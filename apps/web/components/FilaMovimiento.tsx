@@ -99,6 +99,9 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
   const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
   const variante = [m.talla, m.color].filter(Boolean).join(" · ");
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
+  // «no queda ninguna» no cabe en una línea de la columna de la cantidad (celular) y baja a dos: la boleta, que se estira bajo esa columna,
+  // quedaría pegada a su segunda línea. Solo en ese caso la fila de abajo toma más aire (2026-11-02).
+  const cantidadLarga = !esApartado && (quedan ?? "").length > 10;
   const { vuelta, props } = useRepetirAlPasar();
   return (
     // La guía (ADR-0389) abre una fila de ejemplo; salta la de una prenda «sin registrar», porque su nombre lleva un verbo que el
@@ -131,7 +134,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
           </span>
         </div>
         {/* En el celular la referencia (la boleta) se estira hasta 6 rem a la derecha, bajo la cantidad, para leerse completa. */}
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 max-sm:[&>:not(.mv-ruta)]:-mr-24">
+        <div className={`${cantidadLarga ? "mt-2 max-sm:mt-6" : "mt-2"} flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 max-sm:[&>:not(.mv-ruta)]:-mr-24`}>
           <TrayectoMovimiento origen={origen} destino={destino} tipo={rotulo.tipo} motivo={m.motivo} solo={textoSolo(rotulo.tipo)} soloIconos />
           {/* El enlace de una venta abre SU detalle en vez de llevar a otra pantalla. */}
           {m.venta && ctx.enlaceVentas ? (
