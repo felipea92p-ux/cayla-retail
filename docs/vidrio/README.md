@@ -83,6 +83,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | **Mis compras** (página entera: `app/(app)/compras/mi-plata`, ADR-0559) | `components/mi-plata/` (`MesaDeLaRonda`, `Billetera`, `AccionDelDia`) | Elegido | Billetera A · Ahumada; «¿Qué hiciste?» A · Gota grande | `mis-compras-vidrio-2026-11/` |
 | **Conteo** (página entera: `app/(app)/inventario/conteo` y `conteo/[id]`) | `ConteoVista`, `components/conteo/` (`ContarConteo`, `ListaConteo`, `FilaConteo`, `PasosConteo`) | Elegido (la planilla conserva su cara de tabla, ADR-0358) | Planilla A · Placa Serena; pasos A · Ranura con gotas (el riel compartido con Recibir) | `conteo-vidrio-2026-11/` |
 | **Frescura del piso** (página entera: `app/(app)/gestion/frescura`, ADR-0208; el piloto de /formidable) | `components/frescura/` (`FrescuraPanel`, `FrescuraPiso`, `FrescuraAguja`, `FrescuraFila`) | Elegido (armada con las piezas elegidas; los colores de los tramos no cambian) | La aguja B · Lentes del tono; por decidir B · Fila hundida | `frescura-vidrio-2026-11/` |
+| **Movimientos** (página entera: `app/(app)/inventario/movimientos`, ADR-0353) | `MovimientosLista`, `FilaMovimiento`, `components/movimientos/` (`SelloTipo`, `TiposMovimiento`), `estilos/movimientos-sellos.css` | En maqueta (Felipe 2026-11-02: tocarla con el mismo movimiento de los sellos) | — (recomendadas: el sello A · Lente del tono, los tipos A · Placas con su tono) | `movimientos-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
