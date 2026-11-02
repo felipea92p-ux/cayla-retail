@@ -15,3 +15,8 @@ Conflicto probable con #1574: `lib/guias/huellas/produccion.ordenes.numero.json`
 - **P14**: apagar «Cuenta en Análisis, Frescura y el plan del piso» en las familias de accesorios (Catálogo ▸ Familias).
 - **P04**: avisar, sin bloquear, cuando lo facturado supera lo pedido; falta el margen (propuesto 10 %).
 - **P02, P03, P05, P19**: las cuatro decisiones de dinero y control de la Ola 1.
+
+**Cuarta tanda (2026-11-02), decisiones de Felipe:** P19 motivo+nombre+hora, P05 igualar Admin con Compras, P04 al 5 %, P03 camino corto.
+- Hecho en esta rama: **P04** (aviso más fuerte sobre el 5 %) y **P05** (migración `20261102210000`, solo en el repo: pegar en producción con el OK de Felipe, DESPUÉS de `20261026161000`).
+- Como sesiones propias: **P19** (nueva firma de `cerrar_produccion`) y **P03** (compra con proveedor y deuda). Sigue sin tocar **P02** (nota de crédito de Producción) y **P07/P08/P14** (decisiones de arriba).
+- **Orden de pegado en producción** (para P08): 1) `20261026161000_admin_recibe_lo_que_compro.sql` (si aún no está) → 2) `20261102210000_admin_recibe_insumos_que_pidio.sql`. La web de P05 se publica sin problema antes: sin la migración, la pantalla deja recibir y la base sigue frenando con su mensaje de siempre.
