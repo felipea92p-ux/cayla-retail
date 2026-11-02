@@ -219,7 +219,7 @@ export function LookHoja({
             <div className="space-y-2.5 lg:sticky lg:top-0" data-guia="look.prendas">
               <p className="text-sm text-taupe">De 2 a 4 prendas que se vean bien juntas. Salen en este orden en la lámina.</p>
               {piezas.length > 0 && (
-              <ol className="divide-y divide-sand rounded-xl border border-sand bg-papel">
+              <ol className="card-cayla divide-y divide-sand">
                 {piezas.map((p, i) => {
                   const m = porId.get(p.productoId);
                   const antes = guardadas.get(p.productoId);

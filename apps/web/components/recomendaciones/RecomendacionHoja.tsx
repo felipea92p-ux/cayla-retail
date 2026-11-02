@@ -418,7 +418,7 @@ export function RecomendacionHoja({
         <div className="max-w-[88%]">
           {/* Lo que escribió, tal cual (es texto: lo que parezca código se lee como texto). */}
           <blockquote
-            className="whitespace-pre-line break-words rounded-2xl rounded-tl-md border border-sand bg-hueso/70 px-4 py-3 font-serif text-[18px] leading-snug text-tinta"
+            className="whitespace-pre-line break-words tw-cita rounded-2xl rounded-tl-md border px-4 py-3 font-serif text-[18px] leading-snug text-tinta"
             data-guia="recomendacion.texto"
           >
             {r.texto}
