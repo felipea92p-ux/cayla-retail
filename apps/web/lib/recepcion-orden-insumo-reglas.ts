@@ -143,6 +143,11 @@ export function leerOrdenesPorRecibir(data: unknown): OrdenInsumoPorRecibir[] {
 export const esMiOrden = (o: Pick<OrdenInsumoPorRecibir, "creadaPorId">, personaId: string | null | undefined): boolean =>
   !!personaId && o.creadaPorId === personaId;
 
+/** ¿La pantalla le cierra «Recibir» por ser suya? Sí, salvo que la cuenta sea de un Admin (P05 del análisis del Taller, 2026-11-02: la misma excepción que Compras,
+ *  ADR-0517; la base la repite en `recibir_orden_insumo`). Se pregunta a la CUENTA, no al responsable del combo. */
+export const ordenBloqueadaPorSerMia = (o: Pick<OrdenInsumoPorRecibir, "creadaPorId">, personaId: string | null | undefined, esAdmin: boolean): boolean =>
+  !esAdmin && esMiOrden(o, personaId);
+
 /** ¿Ya llegó algo de esta orden? (para el chip «Llegó en parte»). */
 export const llegoAlgo = (o: Pick<OrdenInsumoPorRecibir, "lineas">): boolean => o.lineas.some((l) => l.recibido > 0);
 
