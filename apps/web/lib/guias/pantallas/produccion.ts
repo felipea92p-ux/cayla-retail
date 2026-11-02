@@ -547,6 +547,22 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra (por prenda o el total de la orden), desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
     },
     {
+      id: "poner-costo",
+      ancla: "prod-orden.poner-costo",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Ponerle costo a un paso",
+      texto: "Lo que cuesta hacer un paso en el Taller (Habilitado, Costura…) también entra al costo de la prenda. Con «Poner costo» lo anotas, aunque el paso ya esté hecho. Lo ve quien ve los costos del Taller. En la demo no guardamos nada.",
+    },
+    {
+      id: "costo-montos",
+      ancla: "prod-orden-costo.montos",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "prod-orden.poner-costo" }],
+      titulo: "Cuánto cuesta",
+      texto: "Escribes cuánto cuesta por prenda, un monto fijo por toda la orden, o los dos; abajo ves cuánto sale con las prendas de esta orden. El costo sigue a lo que se terminó. Si quien lo hace ya está en la planilla, no lo cuentes dos veces.",
+    },
+    {
       id: "quitar-paso",
       ancla: "prod-orden.quitar-paso",
       opcional: true,

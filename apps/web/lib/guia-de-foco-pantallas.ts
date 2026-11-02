@@ -417,6 +417,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/CorregirAnotacionModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CorregirAnotacionModal.tsx"] },
   "components/orden-pagina/CambioConMotivoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CambioConMotivoModal.tsx"] },
   "components/orden-pagina/NotaDeLaOrdenModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/NotaDeLaOrdenModal.tsx"] },
+  // ADR-0597: «Poner costo» a un paso del Taller. «Falta» = cuánto cuesta (por prenda, por toda la orden, o los dos: un solo campo) y quién lo anota; lo que la base rechazaría sale de `leerCostoDelPaso`.
+  "components/orden-pagina/CostoDelPasoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CostoDelPasoModal.tsx"] },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control propio + 8 del cierre y los insumos

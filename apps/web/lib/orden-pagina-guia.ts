@@ -166,6 +166,22 @@ export function camposDeNota(e: EleccionAnulacion): CampoDeGuia[] {
   ];
 }
 
+export type EleccionCostoDelPaso = {
+  /** Lo que `leerCostoDelPaso` dice que la base rechazaría, o `null`. */
+  problema: string | null;
+  /** Las dos cajas (tarifa y fijo) están vacías. */
+  vacio: boolean;
+  responsableListo: boolean;
+};
+
+/** «Poner costo» a un paso del Taller (ADR-0597): cuánto cuesta (la tarifa por prenda, el fijo por toda la orden, o los dos: es UN campo) y quién lo anota. */
+export function camposDeCostoDelPaso(e: EleccionCostoDelPaso): CampoDeGuia[] {
+  return [
+    { id: "costo", nombre: "Cuánto cuesta", requerido: true, hecho: !e.vacio && e.problema === null, pendiente: e.problema ?? "Escribe cuánto cuesta por prenda, o el total de toda la orden." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este costo." },
+  ];
+}
+
 export type EleccionCierre = {
   /** Cuántas prendas buenas se pasan al stock en total. */
   total: number;

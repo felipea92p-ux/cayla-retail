@@ -62,6 +62,18 @@ const DESHACER_FALLAS = PARCHES_FALLAS.map(
   ({ viejo, nuevo }) => `  v_def := pg_get_functiondef('retail.fn_fases_de_orden(uuid)'::regprocedure);
   execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
 ).join("\n");
+// 20261101033000 (ADR-0597, el costo de un paso del Taller) cambió una línea de `fn_fases_de_orden` y otra de `fn_orden_produccion`. Su inverso exacto también se LEE de la migración y va
+// antes que todo lo demás: es lo más nuevo.
+const PARCHES_COSTO_PASO = [
+  ...leer("20261101033000_produccion_costo_de_un_paso_del_taller.sql").matchAll(
+    /select pg_temp\.reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$\s*\);/g
+  ),
+].map(([, firma, viejo, nuevo]) => ({ firma, viejo, nuevo }));
+if (PARCHES_COSTO_PASO.length !== 2) throw new Error(`20261101033000 debería tener 2 reemplazos anclados y tiene ${PARCHES_COSTO_PASO.length}: revisa el inverso de esta suite`);
+const DESHACER_COSTO_PASO = PARCHES_COSTO_PASO.map(
+  ({ firma, viejo, nuevo }) => `  v_def := pg_get_functiondef('${firma}'::regprocedure);
+  execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
+).join("\n");
 // 20261029210000 (ADR-0570, el catálogo de procesos) cambió líneas de `fn_produccion_fases_normalizar`, `guardar_tarifa_servicio`, `fn_tarifas_de_servicios` y `agregar_paso_orden`
 // por consultas al catálogo. Su inverso exacto también se LEE de la migración (de la última a la primera) y va antes que todo lo demás: es lo más nuevo.
 const PARCHES_CATALOGO = [
@@ -88,6 +100,7 @@ ${REGISTRAR_AVANCE_DE_ANTES}
 do $deshacer_cinco$
 declare v_def text;
 begin
+${DESHACER_COSTO_PASO}
 ${DESHACER_CATALOGO}
 ${DESHACER_FALLAS}
   v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);

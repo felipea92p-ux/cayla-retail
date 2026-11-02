@@ -15,7 +15,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type Quien, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import { camposDeCambiarQuien } from "@/lib/orden-pagina-guia";
-import { RPC_CAMBIAR_QUIEN_FASE, RPC_DEJAR_FASE_PENDIENTE, RPC_REGISTRAR_PROVEEDOR_DE_FASE, esPendienteDeRegistrar, quienDeFase, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { RPC_CAMBIAR_QUIEN_FASE, RPC_DEJAR_FASE_PENDIENTE, RPC_PONER_COSTO_A_FASE, RPC_REGISTRAR_PROVEEDOR_DE_FASE, esPendienteDeRegistrar, quienDeFase, tieneCostoPropio, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import type { OpcionesNuevaOrden } from "@/lib/produccion";
 import { firmar } from "@/lib/responsable-reglas";
 import type { Tolerado } from "@/lib/resultado";
@@ -112,6 +112,11 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enVuelo.current) return;
+    // Un paso del Taller que sigue en el Taller no cambia nada: llamar a `cambiar_quien_fase` le borraría el costo propio que lleva (ADR-0597).
+    if (fase.quien === "taller" && borrador.quien === "taller") {
+      cerrarTrasGuardar();
+      return;
+    }
     if (problemas.length > 0) {
       avisar.error(problemas[0].texto);
       return;
@@ -150,7 +155,11 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
               texto: "Deshacer",
               onClick: async () => {
                 const l = llamada(fase.id, borradorDe(fase), eraPendiente, lista, hoy);
-                const { error: e2 } = await firmar(createClient().rpc(l.rpc as never, l.args as never), firma);
+                let { error: e2 } = await firmar(createClient().rpc(l.rpc as never, l.args as never), firma);
+                // Volver al Taller deja el paso sin costo: si lo llevaba (ADR-0597), se le devuelve.
+                if (!e2 && tieneCostoPropio(fase)) {
+                  ({ error: e2 } = await firmar(createClient().rpc(RPC_PONER_COSTO_A_FASE as never, { p_fase_id: fase.id, p_tarifa_prenda: fase.tarifaPrenda, p_fijo_orden: fase.fijoOrden > 0 ? fase.fijoOrden : null } as never), firma));
+                }
                 if (e2) avisar.error(traducirError(e2, `volver a como estaba ${nombreMinuscula}`));
                 router.refresh();
               },

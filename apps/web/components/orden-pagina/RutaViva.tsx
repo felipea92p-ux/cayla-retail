@@ -7,6 +7,7 @@ import { AnotarSalidaModal } from "@/components/orden-pagina/AnotarSalidaModal";
 import { AnotarVueltaModal } from "@/components/orden-pagina/AnotarVueltaModal";
 import { AgregarPasoModal } from "@/components/orden-pagina/AgregarPasoModal";
 import { CambiarQuienModal } from "@/components/orden-pagina/CambiarQuienModal";
+import { CostoDelPasoModal } from "@/components/orden-pagina/CostoDelPasoModal";
 import { QuitarPasoModal } from "@/components/orden-pagina/QuitarPasoModal";
 import { MarcarFaseModal } from "@/components/orden-pagina/MarcarFaseModal";
 import { CambioConMotivoModal } from "@/components/orden-pagina/CambioConMotivoModal";
@@ -37,11 +38,14 @@ import {
   pasoAgregadoTarde,
   pasosAgregables,
   puedeCambiarQuien,
+  puedePonerCosto,
   puedeRegistrarQuien,
   puedeQuitarPaso,
   quienDeFase,
   subtituloEnRuta,
+  textoCostoDelPaso,
   textoDeFase,
+  tieneCostoPropio,
   type EntradaDeTiempo,
   type FasePagina,
   type OrdenPagina,
@@ -58,7 +62,7 @@ import {
 // Anular una Salida o una Vuelta). Así quien se equivocó lo arregla desde donde lo anotó, sin buscarlo en la historia. Lo hace quien opera el Taller, como en la historia.
 
 type Hoja =
-  | { tipo: "terminar" | "quien" | "salida" | "vuelta" | "marcar" | "desmarcar" | "quitar"; faseId: string }
+  | { tipo: "terminar" | "quien" | "costo" | "salida" | "vuelta" | "marcar" | "desmarcar" | "quitar"; faseId: string }
   | { tipo: "corregir"; faseId: string; entrada: EntradaDeTiempo };
 
 /** Cuántas anotaciones del paso se ven de entrada; las demás, con «Ver N más». */
@@ -194,6 +198,7 @@ export function RutaViva({
       {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "quitar" && faseDeLaHoja && <QuitarPasoModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {agregando && sePuedeAgregar && <AgregarPasoModal datos={datos} pasos={pasosPorAgregar} bloqueados={pasosBloqueados} opciones={opciones} hoy={hoy} esLider={esLider} onClose={() => setAgregando(false)} />}
+      {hoja?.tipo === "costo" && faseDeLaHoja && <CostoDelPasoModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {entradaDeLaHoja?.corregible && faseCorregida && (
         <CorregirAnotacionModal datos={datos} fase={faseCorregida} anotacion={entradaDeLaHoja.corregible} onClose={() => setHoja(null)} />
       )}
@@ -229,6 +234,9 @@ function PasoAbierto({
   const registrar = puedeRegistrarQuien(fase, datos);
   const cambiar = registrar || puedeCambiarQuien(fase, datos);
   const quitar = puedeQuitarPaso(fase, datos);
+  // ADR-0597: un paso del Taller también puede costar; se ve a quien ve los costos del Taller, y se pone o cambia aunque el paso ya esté hecho.
+  const costear = puedePonerCosto(fase, datos);
+  const costoPropio = datos.permisos.veCostos && tieneCostoPropio(fase);
   const servicio = fase.quien === "servicio";
   const estado = estadoEnRuta(fase);
   // ADR-0586: un paso que se olvidó y entró ya hecho lo dice, con su motivo al pasar el mouse (y completo en la historia).
@@ -294,13 +302,14 @@ function PasoAbierto({
           S/&nbsp;{fase.tarifaPrenda.toFixed(2)} por prenda{fase.fijoOrden > 0 ? ` + S/ ${fase.fijoOrden.toFixed(2)} fijo` : ""}
         </p>
       )}
+      {costoPropio && <p className="op-paso-detalle">Costo en el Taller: {textoCostoDelPaso(fase)}</p>}
       {aviso && (
         <Aviso tono="atencion" chico className="op-paso-aviso">
           {aviso}
         </Aviso>
       )}
       {soloLider && <p className="op-paso-detalle">{soloLider}</p>}
-      {(acciones.length > 0 || cambiar || quitar) && (
+      {(acciones.length > 0 || cambiar || quitar || costear) && (
         <div className="op-paso-acciones">
           {acciones.includes("marcar") && (
             <Boton type="button" peso={peso} aria-haspopup="dialog" data-guia="prod-orden.marcar" onClick={() => alAbrirHoja("marcar")}>
@@ -330,6 +339,11 @@ function PasoAbierto({
           {cambiar && (
             <button type="button" aria-haspopup="dialog" data-guia="prod-orden.cambiar-quien" onClick={() => alAbrirHoja("quien")} className="btn-cayla btn-enlace text-[12.5px]">
               {registrar ? "Registrar quién" : "Cambiar quién"}
+            </button>
+          )}
+          {costear && (
+            <button type="button" aria-haspopup="dialog" data-guia="prod-orden.poner-costo" onClick={() => alAbrirHoja("costo")} className="btn-cayla btn-enlace text-[12.5px]">
+              {costoPropio ? "Cambiar costo" : "Poner costo"}
             </button>
           )}
           {quitar && (

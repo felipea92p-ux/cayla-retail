@@ -731,6 +731,29 @@ export function pendienteConCosto(f: Pick<FasePagina, "tarifaPrenda" | "fijoOrde
   return (f.tarifaPrenda ?? 0) > 0 || f.fijoOrden > 0;
 }
 
+export const RPC_PONER_COSTO_A_FASE = "poner_costo_a_fase";
+
+/** ¿Un paso que hace el Taller lleva su propio costo (tarifa por prenda y/o fijo por orden)? Devenga como un servicio y entra al costo de cada prenda (ADR-0597). */
+export function tieneCostoPropio(f: Pick<FasePagina, "quien" | "tarifaPrenda" | "fijoOrden">): boolean {
+  return f.quien === "taller" && pendienteConCosto(f);
+}
+
+/**
+ * ¿Se ofrece «Poner costo» en este paso? En un paso del Taller que cuenta prendas (el que se marca con un toque no), mientras la orden siga en proceso, a quien opera ese Taller Y ve los
+ * costos. Sirve en cualquier momento —también con el paso ya hecho—: lo que cuesta no cambia lo que pasó con las prendas. La base repite todo (`poner_costo_a_fase`: `fase_no_es_del_taller`,
+ * `fase_es_hito`, `orden_cerrada`, `sin_costos`) y manda: esto solo evita ofrecer un botón que ya se sabe que va a rechazar.
+ */
+export function puedePonerCosto(f: Pick<FasePagina, "quien" | "hito">, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return p.permisos.puedeOperar && p.permisos.veCostos && p.orden.estado === "en_proceso" && f.quien === "taller" && !f.hito;
+}
+
+/** Lo que cuesta un paso, dicho como se piensa: «S/ 0.40 por prenda + S/ 5.00 fijo» o «S/ 60.00 por toda la orden». */
+export function textoCostoDelPaso(f: Pick<FasePagina, "tarifaPrenda" | "fijoOrden">): string {
+  const tarifa = f.tarifaPrenda ?? 0;
+  if (tarifa === 0) return `${soles(f.fijoOrden)} por toda la orden`;
+  return `${soles(tarifa)} por prenda${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`;
+}
+
 /** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
 export function esPrimeraFase(f: FasePagina, fases: readonly FasePagina[]): boolean {
   if (f.hito) return false;
@@ -1179,20 +1202,23 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
     filas.push({ clave: "avios", concepto: "Avíos", detalle: avios.length > 0 ? nombres(avios) : null, estimado: estimadoDe(avios, c.aviosEstimado), real: usadoDe(avios) || c.aviosReal !== 0 ? monto(c.aviosReal) : "aún no", realPendiente: !usadoDe(avios) && c.aviosReal === 0 });
   }
   for (const f of p.fases) {
-    if (f.quien !== "servicio") continue;
+    const afuera = f.quien === "servicio";
+    // Un paso del Taller entra al cuadro solo si lleva su propio costo (ADR-0597); sin costo no suma nada y no se dibuja.
+    if (!afuera && !tieneCostoPropio(f)) continue;
     const tarifa = f.tarifaPrenda ?? 0;
-    const hayVuelta = f.devengado !== null && f.devengado > 0;
+    // Afuera, el real llega con la Vuelta; en el Taller, desde que el paso empieza (lo hecho × la tarifa + el fijo).
+    const hayReal = afuera ? f.devengado !== null && f.devengado > 0 : f.empezada;
     filas.push({
-      clave: `servicio-${f.id}`,
-      concepto: `${f.nombre} afuera`,
-      // Un servicio que se cobra UNA vez por toda la orden (el ploteo) no se lee «57 × S/ 0.00 + S/ 15.00 fijo»: se dice como es, y cuánto toca por prenda.
+      clave: `${afuera ? "servicio" : "paso"}-${f.id}`,
+      concepto: afuera ? `${f.nombre} afuera` : `${f.nombre} en el Taller`,
+      // Un paso que se cobra UNA vez por toda la orden (el ploteo, o un fijo) no se lee «57 × S/ 0.00 + S/ 15.00 fijo»: se dice como es, y cuánto toca por prenda.
       detalle:
         tarifa === 0 && f.fijoOrden > 0 && plan > 0
           ? `Pago único por las ${plan} prendas · ${quienDeFase(f)} · ${soles(f.fijoOrden / plan)} por prenda`
           : `${plan} × ${soles(tarifa)} · ${quienDeFase(f)}${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`,
       estimado: monto(tarifa * plan + f.fijoOrden),
-      real: hayVuelta ? monto(f.devengado ?? 0) : "al volver",
-      realPendiente: !hayVuelta,
+      real: hayReal ? monto(f.devengado ?? 0) : afuera ? "al volver" : "al terminar",
+      realPendiente: !hayReal,
     });
   }
   const cerrada = p.orden.estado === "terminada" && (p.orden.cantidadBuenas ?? 0) > 0;

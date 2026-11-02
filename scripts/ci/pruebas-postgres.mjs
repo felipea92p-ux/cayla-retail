@@ -1819,6 +1819,11 @@ export const PRUEBAS = [
   // El estimado de la tela y los avíos de una orden (ADR-0400, act. 2026-10-31): al gastarse el último lote de una tela su estimado ya no cae a 0 (en la orden real, Estimado 355.20 contra Real 761.92 con casi
   // toda la tela usada): si la orden ya consumió de ese insumo, cuesta lo que le costó; si no, el lote con saldo; sin ninguno, 0. No cambia el costo real. Pegar dos veces, ancla perdida y camino de vuelta. ROLLBACK.
   "pruebas:produccion-estimado-de-tela",
+
+  // El costo de un paso del Taller (ADR-0597): Habilitado, Costura o Planchado pueden llevar tarifa por prenda y fijo por orden; devengan terminadas × tarifa + fijo (aunque el costo se ponga
+  // con el paso ya hecho), suman al estimado y al real del cuadro «Costo», entran al costo de cada prenda al pasar al stock, y se rechazan en un servicio, en un paso que se marca, fuera de
+  // los topes, en una orden cerrada o sin operar ese Taller; el CHECK sigue rechazando proveedor, fecha y mínimo en el Taller; su rastro en Actividad y su camino de vuelta. ROLLBACK.
+  "pruebas:produccion-costo-del-paso",
   // Las telas cortadas sin anotar (ADR-0570, actividad 4): Insumos avisa «la OP-3 ya cortó con esta tela y no tiene nada anotado» solo cuando el Corte tiene prendas y el libro no descontó
   // la tela; calla sin Corte, con la tela anotada, en una muestra o una orden anulada; quien no lee Producción en ese Taller recibe []. ROLLBACK.
   "pruebas:produccion-telas-cortadas-sin-anotar",

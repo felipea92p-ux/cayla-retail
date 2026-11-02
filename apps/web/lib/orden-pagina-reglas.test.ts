@@ -76,6 +76,9 @@ import {
   textoApertura,
   textoColoresYTallas,
   textoCosto,
+  puedePonerCosto,
+  textoCostoDelPaso,
+  tieneCostoPropio,
   textoDeFase,
   textoMandaste,
   textoPasasteAlStock,
@@ -544,6 +547,42 @@ describe("el costo", () => {
   it("una orden sin tela ni servicios muestra solo el total", () => {
     const p = orden({ insumos: [], fases: [faseCruda({ clave: "corte", secuencia: 10, quien: "taller" }), faseCruda({ clave: "costura", secuencia: 30, quien: "taller" }), faseCruda({ clave: "acabado", secuencia: 60, quien: "taller" })], costos: { tela_estimado: 0, avios_estimado: 0, tela_real: 0, avios_real: 0, servicios_estimado: 0, servicios_devengado: 0, total_estimado: 0, total_real_hasta_hoy: 0 } });
     expect(textoCosto(p)!.filas).toEqual([]);
+  });
+});
+
+describe("el costo de un paso del Taller (ADR-0597)", () => {
+  const conHabilitado = (extra: Partial<FasePagina>) => {
+    const p = orden();
+    return { ...p, fases: [...p.fases, { ...p.fases[0], id: "f-habilitado", clave: "habilitado" as const, nombre: "Habilitado", secuencia: 15, quien: "taller" as const, proveedorId: null, proveedorNombre: null, tarifaPrenda: null, fijoOrden: 0, empezada: false, hito: false, devengado: null, ...extra }] };
+  };
+  it("un paso del Taller SIN costo no entra al cuadro (como hasta hoy)", () => {
+    expect(textoCosto(conHabilitado({}))!.filas.map((f) => f.concepto)).toEqual(["Tela", "Avíos", "Costura afuera"]);
+  });
+  it("con tarifa y fijo entra «en el Taller», con su estimado y «al terminar» mientras nadie lo empezó", () => {
+    const fila = textoCosto(conHabilitado({ tarifaPrenda: 0.4, fijoOrden: 5, devengado: 0 }))!.filas.at(-1)!;
+    expect(fila).toMatchObject({ clave: "paso-f-habilitado", concepto: "Habilitado en el Taller", estimado: "24.20", real: "al terminar", realPendiente: true, detalle: "48 × S/\u00a00.40 · Taller + S/\u00a05.00 fijo" });
+  });
+  it("empezado, el real es lo devengado; un fijo solo se lee «pago único» con lo que toca por prenda", () => {
+    expect(textoCosto(conHabilitado({ tarifaPrenda: 0.4, fijoOrden: 5, empezada: true, devengado: 24.2 }))!.filas.at(-1)).toMatchObject({ real: "24.20", realPendiente: false });
+    expect(textoCosto(conHabilitado({ tarifaPrenda: null, fijoOrden: 60, empezada: true, devengado: 60 }))!.filas.at(-1)).toMatchObject({ estimado: "60.00", detalle: "Pago único por las 48 prendas · Taller · S/\u00a01.25 por prenda" });
+  });
+  it("tieneCostoPropio: solo el paso del Taller con tarifa o fijo; textoCostoDelPaso lo dice como se piensa", () => {
+    expect(tieneCostoPropio({ quien: "taller", tarifaPrenda: 0.4, fijoOrden: 0 })).toBe(true);
+    expect(tieneCostoPropio({ quien: "taller", tarifaPrenda: null, fijoOrden: 60 })).toBe(true);
+    expect(tieneCostoPropio({ quien: "taller", tarifaPrenda: null, fijoOrden: 0 })).toBe(false);
+    expect(tieneCostoPropio({ quien: "servicio", tarifaPrenda: 4.5, fijoOrden: 0 })).toBe(false);
+    expect(textoCostoDelPaso({ tarifaPrenda: 0.4, fijoOrden: 5 })).toBe("S/\u00a00.40 por prenda + S/\u00a05.00 fijo");
+    expect(textoCostoDelPaso({ tarifaPrenda: null, fijoOrden: 60 })).toBe("S/\u00a060.00 por toda la orden");
+  });
+  it("puedePonerCosto: quien opera Y ve costos, orden en proceso, paso del Taller que cuenta prendas (también ya hecho)", () => {
+    const p = orden();
+    const ok = { orden: p.orden, permisos: { puedeOperar: true, veCostos: true } };
+    expect(puedePonerCosto({ quien: "taller", hito: false }, ok)).toBe(true);
+    expect(puedePonerCosto({ quien: "servicio", hito: false }, ok)).toBe(false);
+    expect(puedePonerCosto({ quien: "taller", hito: true }, ok)).toBe(false);
+    expect(puedePonerCosto({ quien: "taller", hito: false }, { ...ok, permisos: { puedeOperar: true, veCostos: false } })).toBe(false);
+    expect(puedePonerCosto({ quien: "taller", hito: false }, { ...ok, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
+    expect(puedePonerCosto({ quien: "taller", hito: false }, { ...ok, orden: { ...p.orden, estado: "terminada" as const } })).toBe(false);
   });
 });
 
