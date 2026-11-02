@@ -1,0 +1,276 @@
+/* =====================================================================
+   EL OBSERVATORIO CON VIDRIO (ADR-0596 sobre ADR-0322; Felipe 2026-10-31, maqueta docs/maquetas/observatorio-vidrio-2026-10/).
+   Es la piel: el Observatorio hace exactamente lo mismo que antes (datos, zoom, panel, pestañas, orbes, en vivo, los tres bucles que
+   son señal). Lo que eligió Felipe mirando la maqueta:
+
+     · Vidrio «B · El mapa al aire»: la tarjeta grande deja de ser tarjeta y el Perú se dibuja directo sobre la Aurora; el panel de la
+       tienda (lo que se toca y se lee de cerca) y las demás tarjetas son la placa Serena.
+     · Controles «B · Ahumado, con más contraste» («no se distinguen bien los controles»): la pista lleva el borde de lo que se toca
+       (`borde-control`, 3:1) y una sombra que la separa; lo no elegido en tinta al 80 %; la elegida, el ahumado denso.
+     · Orbes de «Por revisar» «A · Lente», con el líquido que los llena hasta los días que lleva el aviso más viejo.
+     · Y los extras: la venta en vivo en una cinta de vidrio, los anillos de meta en tubo, el Perú como lámina de vidrio, el área de
+       vidrio esmerilado bajo las curvas (los degradados viven en `piezas.tsx`, `AreaVidrio`) y la estela del cometa (en `Mapa.tsx`).
+     · En todas las caras: la meta grande, el ranking y las barras del detalle en el tubo; «Repetir el día», las flechas, la ✕ y
+       «Toda CAYLA» en gotas; «Ver/Revisar» en el primario ahumado; los avatares en su lente; el globito en ahumado.
+     Los colores de los DATOS no cambian: el vidrio va encima o alrededor, nunca en lugar del color.
+
+   Sin capa, después de `estilos/observatorio.css` (globals.css): le gana a sus reglas con la misma especificidad. Las que allá llevan
+   `!important` (bordes de botones) se vuelven a escribir con `!important` aquí. Solo recetas de recetas.css y tokens (ADR-0169 /
+   ADR-0336): en oscuro las recetas se oscurecen solas. Movimiento: lo nuevo entra una vez y sin rebote, y se apaga con
+   `prefers-reduced-motion` (la regla general de observatorio.css ya cubre todo `.obs`). Un `:hover` vive en `@media (hover: hover)`.
+   ===================================================================== */
+
+/* ---------- las tarjetas: la placa Serena ---------- */
+.obs .o-tj {
+  border-radius: 24px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* ---------- B · El mapa al aire ----------
+   La tarjeta del mapa no es tarjeta: el país se dibuja sobre la Aurora (lo que explica es plano) y solo el panel es una placa. La luz que
+   sigue al mouse dibuja el borde de una tarjeta: sin tarjeta, se apaga. */
+.obs .o-heroe {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  overflow: visible;
+}
+.obs .o-heroe.o-luz::after,
+.obs .o-heroe.o-luz::before {
+  display: none;
+}
+.obs .o-hpanel {
+  border: 1px solid var(--serena-borde);
+  border-radius: 24px;
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+@container obs (min-width: 1000px) {
+  .obs .o-hpanel { border: 1px solid var(--serena-borde); }
+}
+/* El Perú de vidrio: una lámina que flota sobre la Aurora y proyecta su sombra; la costa queda como su filo. */
+.obs .o-mapa .forma {
+  fill: var(--lamina-mapa-fondo);
+  filter: var(--lamina-mapa-sombra);
+}
+/* El ubicador del departamento (abajo a la izquierda, acercado): la placa, no papel. */
+.obs .o-ubic {
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo-encima);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* ---------- la venta en vivo: la cinta de vidrio que flota en su esquina ---------- */
+.obs .o-tk {
+  padding: 7px 14px 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--serena-borde);
+  color: var(--o-tx);
+  background: var(--serena-fondo-encima);
+  -webkit-backdrop-filter: var(--lente-grande-filtro);
+  backdrop-filter: var(--lente-grande-filtro);
+  box-shadow: var(--vidrio-flota-sombra);
+  z-index: 3;
+}
+
+/* ---------- la estela del cometa: cuatro gotas que se desvanecen tras el traslado en camino (el mismo bucle-señal, ADR-0322) ---------- */
+.obs .o-mapa .cometa {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--o-info) 60%, transparent));
+}
+.obs .o-mapa .cometa.cola {
+  opacity: var(--o, 0.3);
+}
+
+/* ---------- los controles: B · Ahumado, con contraste ----------
+   La pista es una placa casi llena con el borde de lo que se toca; lo no elegido, tinta al 80 %; la elegida, el ahumado denso. */
+.obs .o-sd {
+  border: 1px solid var(--color-borde-control);
+  background: var(--serena-fondo-encima);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--pista-control-sombra);
+}
+.obs .o-sd button { color: color-mix(in srgb, var(--o-tx) 80%, transparent); }
+.obs .o-sd button.on { color: var(--o-fondo); }
+@media (hover: hover) {
+  .obs .o-sd button:not(.on):hover {
+    color: var(--o-tx);
+    background: var(--hundido-fondo);
+  }
+}
+.obs .o-sd-ind {
+  border: 1px solid var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+
+/* ---------- lo que se toca: gotas ---------- */
+.obs .o-repetir {
+  border: 1px solid var(--color-borde-control) !important;
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+.obs .o-repetir .o-ic {
+  background: var(--ahumado-fondo);
+  box-shadow: var(--ahumado-luz);
+  color: var(--o-fondo);
+}
+@media (hover: hover) {
+  .obs .o-repetir:not(:disabled):hover {
+    border-color: var(--o-foco) !important;
+    background: var(--gota-fondo-encima);
+  }
+}
+/* «Repetir el día» MIENTRAS corre: el primario ahumado (oscuro, la hora en crema) y su ícono una gota clara; en oscuro, al revés (las
+   recetas se invierten solas). Tiene que ir DESPUÉS de la gota de arriba: si no, la gota le gana y la hora queda en crema sobre vidrio
+   claro (Felipe 2026-10-31: «el fondo es blanco y las letras también»). */
+.obs .o-repetir.va {
+  color: var(--o-fondo);
+  border-color: var(--ahumado-denso-borde) !important;
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+.obs .o-repetir.va .o-ic {
+  background: var(--ahumado-denso-gota);
+  box-shadow: none;
+  color: var(--o-foco);
+}
+.obs .o-repetir.va span { font-weight: 700; letter-spacing: 0.01em; }
+@media (hover: hover) {
+  .obs .o-repetir.va:hover { background: var(--ahumado-denso-fondo); }
+}
+
+/* Las flechas y la ✕ del panel, y la ✕ del detalle de un aviso: gotas redondas con el borde de 3:1. */
+.obs :is(.o-t-nav button, .o-det-cab .cerrar) {
+  border: 1px solid var(--color-borde-control) !important;
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+}
+@media (hover: hover) {
+  .obs :is(.o-t-nav button, .o-det-cab .cerrar):hover {
+    border-color: var(--o-tx) !important;
+    background: var(--gota-marca);
+  }
+}
+/* «Toda CAYLA» (volver del zoom): la gota que flota sobre el mapa. */
+.obs .o-volver {
+  border: 1px solid var(--color-borde-control) !important;
+  background: var(--serena-fondo-encima) !important;
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--gota-luz);
+}
+/* «Ver» / «Revisar» (lleva a otra pantalla): el primario ahumado; al pasar el mouse, rojo profundo como todo botón negro. */
+.obs .o-ir {
+  border-radius: 999px;
+  padding: 0 18px;
+  background: var(--ahumado-fondo);
+  box-shadow: var(--ahumado-luz);
+}
+@media (hover: hover) {
+  .obs .o-ir:hover { background: var(--ahumado-hover); }
+}
+
+/* ---------- el tubo de vidrio: la meta grande, el ranking y las barras del detalle por sede ----------
+   La pista es un pozo con su filo; el relleno conserva el color del dato y lleva la luz del tubo encima. */
+.obs :is(.o-meter .pista, .o-rk-b, .o-hb .pista) {
+  height: 14px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--tubo-fondo);
+  border: 1px solid var(--tubo-borde);
+  box-shadow: var(--tubo-sombra);
+  overflow: visible;
+}
+.obs :is(.o-meter .pista, .o-rk-b) i {
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  max-width: calc(100% - 4px);
+}
+.obs :is(.o-meter .pista, .o-rk-b, .o-hb .pista) i {
+  border-radius: 999px;
+  background-image: var(--tubo-brillo);
+  box-shadow: var(--tubo-luz);
+}
+.obs .o-hb .pista i { min-width: 0; }
+
+/* ---------- los anillos de meta (panel de la tienda y Taller): el tubo en redondo ---------- */
+.obs .o-an-f {
+  stroke: var(--tubo-anillo);
+  filter: var(--tubo-anillo-sombra);
+}
+.obs .o-an-v { filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--o-foco) 35%, transparent)); }
+.obs .o-an-v.ok { filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--o-ok) 45%, transparent)); }
+
+/* ---------- los gráficos de vidrio: el área bajo la curva es vidrio esmerilado (sus degradados, en `AreaVidrio`) ---------- */
+.obs .o-graf .o-ga1 { stop-color: var(--grafico-vidrio); stop-opacity: var(--grafico-vidrio-o1); }
+.obs .o-graf .o-ga2 { stop-color: var(--grafico-vidrio); stop-opacity: var(--grafico-vidrio-o2); }
+.obs .o-graf .o-ga3 { stop-color: var(--grafico-vidrio); stop-opacity: var(--grafico-vidrio-o3); }
+.obs .o-graf .ln.f { filter: var(--grafico-vidrio-linea); }
+
+/* ---------- los avatares: en su lente ---------- */
+.obs .o-av {
+  background: var(--lente-avatar-fondo);
+  box-shadow: var(--lente-avatar-luz);
+}
+@media screen {
+  [data-tema="oscuro"] .obs .o-av { color: var(--o-tx); }
+}
+
+/* ---------- el globito al pasar el mouse: ahumado ---------- */
+.o-tip {
+  background: var(--globo-fondo);
+  -webkit-backdrop-filter: var(--globo-filtro);
+  backdrop-filter: var(--globo-filtro);
+  border: 1px solid var(--ahumado-borde);
+  box-shadow: var(--globo-sombra);
+  border-radius: 14px;
+}
+
+/* ---------- «Por revisar»: A · Lente, con su líquido ----------
+   Cada orbe es una lente que sobresale (se toca: abre su detalle). Adentro, el color del aviso llena la lente hasta el nivel de los
+   días que lleva esperando el más viejo (lo mismo que dice el aro: `--nivel`, de 0 a 1, lo pone `Abajo.tsx`), con un filo de luz
+   arriba; sube una vez al verse. Al día, vacía. El halo del urgente sigue respirando (bucle-señal, ADR-0322) sin perder la lente. */
+.obs .o-orbe .c {
+  border: 1px solid var(--lente-grande-borde);
+  background: var(--lente-grande-fondo);
+  -webkit-backdrop-filter: var(--lente-grande-filtro);
+  backdrop-filter: var(--lente-grande-filtro);
+  box-shadow: var(--lente-grande-sombra);
+}
+.obs .o-orbe .c > :not(svg.aro) { position: relative; z-index: 1; }
+.obs .o-orbe .c::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--liquido-filo) 0 2px, color-mix(in srgb, var(--col, var(--o-ok)) 22%, transparent) 2px, color-mix(in srgb, var(--col, var(--o-ok)) 34%, transparent));
+  clip-path: inset(calc((1 - var(--nivel, 0)) * 100%) 0 0 0);
+  transition: clip-path 0.95s var(--o-ease);
+}
+.obs .o-revelar.visto .o-orbe .c::before { animation: o-llenar 1.3s var(--o-ease) 0.6s backwards; }
+@keyframes o-llenar {
+  from { clip-path: inset(100% 0 0 0); }
+}
+.obs .o-orbe.ok .c::before { display: none; }
+.obs .o-orbe.urg .c { animation-name: o-respira-lente; }
+@keyframes o-respira-lente {
+  0% { box-shadow: var(--lente-grande-sombra), 0 0 0 0 color-mix(in srgb, var(--o-urg) 34%, transparent); }
+  70%, 100% { box-shadow: var(--lente-grande-sombra), 0 0 0 14px color-mix(in srgb, var(--o-urg) 0%, transparent); }
+}
+@media (hover: hover) {
+  .obs .o-orbe:hover .c { border-color: var(--color-borde-control); }
+}
+.obs .o-orbe.abierto .c { border-color: var(--o-tx); }

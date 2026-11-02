@@ -21,7 +21,7 @@ import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { CircleCheck, FileText, Link2, ReceiptText, Store } from "lucide-react";
+import { CircleCheck, FileText, Link2, MessageCircle, ReceiptText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -94,13 +94,16 @@ function accionComprobante(
 // podía verlo ni descargarlo. `pdfUrl` es el que de verdad importa (se le
 // manda a la clienta); XML/CDR quedan como enlaces chicos al lado para
 // cuando hace falta el respaldo técnico (una reclamación, una auditoría).
+// Con el vidrio (Felipe 2026-11-02, «A · Gotas chicas»): «Ver PDF» y «WhatsApp», lo que se le manda al cliente, son gotas claras
+// con su ícono; XML y CDR quedan tenues detrás de un punto. El material vive en `app/estilos/vidrio/comprobantes.css`.
 function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | null }) {
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
     // En una tarjeta angosta (celular) no se dibujan: viven en el «⋯», con botones del tamaño de un dedo.
-    <div className="mt-0.5 hidden flex-wrap gap-x-3 text-sm @min-[640px]:flex">
+    <div className="docs-sunat mt-1.5 hidden flex-wrap items-center @min-[640px]:flex">
       {c.pdfUrl && (
-        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="btn-enlace font-medium">
+        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="docs-sunat__gota">
+          <FileText aria-hidden className="h-3 w-3" />
           Ver PDF
         </a>
       )}
@@ -110,18 +113,24 @@ function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | n
           target="_blank"
           rel="noreferrer"
           aria-label={`Enviar por WhatsApp ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`}
-          className="btn-enlace"
+          className="docs-sunat__gota"
         >
+          <MessageCircle aria-hidden className="h-3 w-3" />
           WhatsApp
         </a>
       )}
+      {c.pdfUrl && (c.xmlUrl || c.cdrUrl) && (
+        <span aria-hidden className="docs-sunat__punto">
+          ·
+        </span>
+      )}
       {c.xmlUrl && (
-        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="btn-enlace">
+        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="docs-sunat__tenue">
           XML
         </a>
       )}
       {c.cdrUrl && (
-        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="btn-enlace">
+        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="docs-sunat__tenue">
           CDR
         </a>
       )}
@@ -378,13 +387,13 @@ export function ComprobantesPanel({
                     </p>
                     <p className="mt-0.5 truncate text-sm text-tinta/65 @min-[900px]:hidden">{cliente}</p>
                     {extras[c.id]?.notaDeCredito && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-sm text-pizarra">
+                      <p className="comprobante-vinculo mt-1 inline-flex items-center gap-1 text-sm text-pizarra">
                         <Link2 aria-hidden size={12} />
                         Tiene {extras[c.id]!.notaDeCredito!.numero}
                       </p>
                     )}
                     {extras[c.id]?.corrige && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-sm text-pizarra">
+                      <p className="comprobante-vinculo mt-1 inline-flex items-center gap-1 text-sm text-pizarra">
                         <Link2 aria-hidden size={12} />
                         Corrige {extras[c.id]!.corrige!.numero}
                       </p>

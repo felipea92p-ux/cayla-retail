@@ -1027,7 +1027,10 @@ export function InventarioPanel({
                 </Link>
               }
             >
-              Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
+              {/* En el teléfono el título basta: la explicación empujaba la primera prenda bajo el pliegue (verificado a 375 px, 2026-11-02). */}
+              <span className="max-sm:hidden">
+                Lo que dice «en almacén» puede estar colgado: los números del almacén no están verificados hasta el primer cuadre.
+              </span>
             </Aviso>
           )}
           <ExistenciasTarjetas

@@ -1,0 +1,140 @@
+/* =====================================================================
+   NOTAS, AVISOS Y LISTAS DE COMBO CON EL VIDRIO «SERENA» (ADR-0596; maquetas docs/maquetas/modales-vidrio-2026-10/ y
+   docs/maquetas/marco-vidrio-2026-10/). Elegidos por Felipe el 2026-10-31: nota «A · Placa», aviso «B · Lente», combo «A · Gota viajera».
+
+   · La NOTA (`nota-cayla`, ~125 en el ERP) es una placa de vidrio: plana (explica, no se toca), con su «i» en una lente.
+   · El AVISO (`<Aviso>`, los cuatro tonos) pierde la franja de la izquierda, que sobre una placa redondeada se curvaba como una
+     medialuna: la señal es la lente de su color (con el ícono que se dibuja, como siempre) y un borde de su color, tenue.
+   · La LISTA de todo combo (`lista-flotante`: Desplegable, ComboBuscable, Responsable, filtros, sugerencias) es una placa de vidrio que
+     flota; la opción donde estás —con el mouse o con las flechas— es la gota del menú lateral, y la elegida conserva su hilo rojo de
+     canto y su ✓. La gota pasa de opción en opción con un fundido corto (sin JavaScript: es la misma `opcion-activa` de siempre).
+   ===================================================================== */
+
+/* ---------- la nota: la placa ---------- */
+.nota-cayla {
+  background: var(--placa-fondo);
+  border: 1px solid var(--placa-borde);
+  box-shadow: var(--placa-luz);
+  border-radius: 18px;
+}
+.nota-cayla:not(.sin-i) { padding-left: 3.25rem; }
+/* La «i» (su máscara, vacio-aviso-buscador.css) se mira a través de una lente de vidrio de 30 px. */
+.nota-cayla:not(.sin-i)::before { left: calc(0.75rem + 7px); top: calc(0.75rem + 7px); z-index: 1; }
+.nota-cayla:not(.sin-i)::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--lente-fondo);
+  box-shadow: var(--lente-luz);
+  pointer-events: none;
+}
+
+/* ---------- el aviso: la lente de su color ---------- */
+.aviso-linea {
+  align-items: center;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--c) 7%, transparent), color-mix(in srgb, var(--c) 3%, transparent)),
+    var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+  padding: 12px 16px 12px 12px;
+  animation: cayla-aviso-linea-entra 280ms var(--ease-cayla) both;
+}
+.aviso-linea[data-tono="error"] {
+  animation: cayla-aviso-linea-entra 280ms var(--ease-cayla) both, cayla-aviso-linea-destello 900ms var(--ease-cayla) 300ms;
+}
+.aviso-linea-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--c) 16%, transparent), color-mix(in srgb, var(--c) 6%, transparent)),
+    var(--lente-fondo);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 90%, transparent), 0 0 0 1px color-mix(in srgb, var(--c) 24%, transparent),
+    0 4px 10px -6px color-mix(in srgb, var(--c) 45%, transparent);
+}
+.aviso-linea-ic svg { width: 16px; height: 16px; }
+.aviso-linea.chico { border-radius: 14px; padding: 8px 12px 8px 8px; }
+.aviso-linea.chico .aviso-linea-ic { width: 28px; height: 28px; }
+.aviso-linea.chico .aviso-linea-ic svg { width: 14px; height: 14px; }
+@media screen {
+  [data-tema="oscuro"] .aviso-linea-ic { box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent); }
+}
+
+/* ---------- la lista de un combo: la placa que flota, y la gota donde estás ---------- */
+.lista-flotante {
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  border: 1px solid var(--placa-borde);
+  box-shadow: var(--vidrio-flota-sombra);
+  border-radius: 20px;
+}
+.lista-flotante [role="option"] {
+  border-radius: 14px;
+  transition: background 180ms var(--ease-cayla), box-shadow 180ms var(--ease-cayla), padding 300ms var(--ease-cayla);
+}
+/* La gota: opaca sobre papel, para que la fila fija de «Registrar…» siga sin dejar leer lo que pasa por debajo (por eso era opaca). */
+.lista-flotante .opcion-activa,
+.lista-flotante:not(:has(.opcion-activa)) [role="option"][aria-selected="true"] {
+  background: var(--gota-marca), var(--color-papel);
+  box-shadow: var(--gota-luz);
+}
+@media screen {
+  [data-tema="oscuro"] .lista-flotante .opcion-activa,
+  [data-tema="oscuro"] .lista-flotante:not(:has(.opcion-activa)) [role="option"][aria-selected="true"] {
+    background: var(--gota-marca), var(--color-hueso);
+  }
+}
+/* El buscador de la lista: un pozo en píldora. */
+.lista-flotante .combo-buscar {
+  margin: 4px 6px 6px;
+  border-radius: 999px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+/* La sede de la cabecera (Desplegable forma «pastilla»): una gota, con la letra normal de la maqueta. */
+.combo-pastilla {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--color-borde-control) 70%, transparent);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+}
+@media (hover: hover) {
+  .combo-pastilla:hover { background: var(--gota-fondo-encima); }
+}
+
+/* ---------- El menú «Más»: «A · La lista del combo» (Felipe 2026-11-01, docs/maquetas/acciones-mes-vidrio-2026-11/) ----------
+   La lista que abre `MenuAcciones` (el «⋯» de una fila y el «Más ▾») es la MISMA lista de vidrio de todo combo (`lista-flotante`, arriba),
+   y la opción donde estás lleva la misma gota (`opcion-activa`): una función, una pieza; la persona aprende un solo gesto. Lo único
+   propio: sobre lo peligroso («Anular», `data-peligro`), la gota se tiñe apenas de rojo, para que lo irreversible no se vea como lo
+   demás; y lo que no se puede (`aria-disabled`, con su motivo) no recibe la gota. */
+.lista-menu [role="menuitem"] {
+  border-radius: 14px;
+  transition: background 180ms var(--ease-cayla), box-shadow 180ms var(--ease-cayla);
+}
+.lista-menu .opcion-activa[data-peligro] {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 8%, color-mix(in srgb, var(--color-vidrio) 90%, transparent)), color-mix(in srgb, var(--color-rojo) 12%, color-mix(in srgb, var(--color-vidrio) 60%, transparent))),
+    var(--color-papel);
+  box-shadow: var(--gota-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-rojo) 22%, transparent);
+}
+@media screen {
+  [data-tema="oscuro"] .lista-menu .opcion-activa[data-peligro] {
+    background: linear-gradient(color-mix(in srgb, var(--color-rojo) 16%, transparent), color-mix(in srgb, var(--color-rojo) 16%, transparent)), var(--color-hueso);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lista-menu [role="menuitem"] { transition: none; }
+}

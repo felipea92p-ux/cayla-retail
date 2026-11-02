@@ -1,0 +1,74 @@
+/* =====================================================================
+   DOS BARRAS DE TODO EL ERP CON EL VIDRIO «SERENA» (ADR-0596; Felipe 2026-11-01, docs/maquetas/inicio-lider-vidrio-2026-10/).
+
+   · La barra de avance (<BarraAvance>), «A · Tubo»: la misma de la barra de pagos de las hojas, para «cuánto va» en todo el ERP (ya no el
+     pozo fino de los gráficos). La pista es un tubo hundido con su filo de vidrio, la tinta al 6 % y su sombra interior; el relleno es
+     vidrio teñido de su tono (tinta, verde, ámbar o rojo: `data-tono`) con la luz arriba y una sombra de su color. Tres altos:
+     `fina` 8 px (2 de aire), `normal` 14 (3) y `gruesa` 20 (4). La rayita de la meta, `data-sobre-tinta` (la billetera de Mis compras) y
+     que se llena al verse (avance-anillo-copiar.css) no cambian.
+   · La barra de abajo del celular (<BarraDeAbajo>), «A · Gota ahumada»: la forma vive en barra-abajo.css (en la capa `components`, para
+     que las utilidades `sm:` de cada pantalla le sigan ganando); aquí, sin capa, lo que toca a los botones de adentro, que son vidrio sin
+     capa y le ganarían a esa forma.
+
+   Solo recetas de recetas.css. Movimiento de ADR-0136: el relleno se llena una vez y se desliza si cambia; sin rebote.
+   ===================================================================== */
+
+/* ---------- La barra de avance: el tubo ---------- */
+.barra-avance:not([data-sobre-tinta]) {
+  --tubo-aire: 3px;
+  height: 14px;
+  padding: var(--tubo-aire);
+  border: 1px solid var(--tubo-borde);
+  background: var(--tubo-fondo);
+  box-shadow: var(--tubo-sombra);
+}
+.barra-avance:not([data-sobre-tinta])[data-alto="fina"] { --tubo-aire: 2px; height: 8px; }
+.barra-avance:not([data-sobre-tinta])[data-alto="gruesa"] { --tubo-aire: 4px; height: 20px; }
+/* El relleno va DENTRO del tubo, en su flujo: así `width: var(--p)` es el porcentaje del hueco y no del borde de afuera. */
+.barra-avance:not([data-sobre-tinta]) .barra-avance-lleno {
+  --col: var(--color-tinta);
+  position: relative;
+  inset: auto;
+  height: 100%;
+  max-width: 100%;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--col) var(--tubo-relleno-mezcla), var(--tubo-relleno-arriba)), var(--col) 70%);
+  box-shadow: var(--tubo-relleno-luz), 0 3px 8px -3px color-mix(in srgb, var(--col) 50%, transparent);
+  transition: width 500ms var(--ease-cayla), box-shadow 400ms var(--ease-cayla);
+}
+.barra-avance:not([data-sobre-tinta])[data-tono="verde"] .barra-avance-lleno { --col: var(--color-verde); }
+.barra-avance:not([data-sobre-tinta])[data-tono="ambar"] .barra-avance-lleno { --col: var(--color-ambar); }
+.barra-avance:not([data-sobre-tinta])[data-tono="rojo"] .barra-avance-lleno { --col: var(--color-rojo); }
+/* La rayita de la meta sigue 6 px más alta que la barra (en la fina, 4: la barra ya es más gruesa que antes). */
+.barra-avance:not([data-sobre-tinta]) .barra-avance-marca { z-index: 1; }
+.barra-avance:not([data-sobre-tinta])[data-alto="fina"] .barra-avance-marca { height: calc(100% + 4px); }
+
+/* ---------- La barra de abajo: los botones de adentro ---------- */
+/* Con una sola acción, el botón ES la isla: la gota ahumada del primario, en píldora, con su sombra de flotar. */
+.barra-abajo[data-sola] > .btn-primario { box-shadow: var(--ahumado-flota-luz); }
+/* Sobre la isla oscura (el ahumado denso), el principal es la gota clara de crema: otro ahumado ahí no se vería. Al pasar el mouse se
+   llena de crema (el rojo profundo del primario, con letra de tinta, no se leería). */
+.barra-abajo[data-tono="tinta"] .btn-primario {
+  border-color: color-mix(in srgb, var(--color-crema) 60%, transparent);
+  background: var(--gota-crema-fondo);
+  color: var(--color-tinta);
+  box-shadow: var(--gota-crema-luz);
+}
+/* Un secundario sobre la isla oscura: la gota de su misma crema, apenas teñida (la gota clara de afuera, con letra de tinta, no se leería). */
+.barra-abajo[data-tono="tinta"] .btn-secundario {
+  border-color: color-mix(in srgb, var(--color-crema) 30%, transparent);
+  background: color-mix(in srgb, var(--color-crema) 10%, transparent);
+  color: var(--color-crema);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 18%, transparent);
+}
+@media (hover: hover) {
+  .barra-abajo[data-tono="tinta"] .btn-secundario:hover:not(:disabled) { background: color-mix(in srgb, var(--color-crema) 18%, transparent); }
+  .barra-abajo[data-tono="tinta"] .btn-primario:hover:not(:disabled) {
+    border-color: var(--color-crema);
+    background: var(--gota-crema-hover);
+    color: var(--color-tinta);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra-avance:not([data-sobre-tinta]) .barra-avance-lleno { transition: none; }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Check, House, ListChecks, Truck } from "lucide-react";
 import { AnotarAvanceModal } from "@/components/orden-pagina/AnotarAvanceModal";
 import { AnotarSalidaModal } from "@/components/orden-pagina/AnotarSalidaModal";
@@ -103,6 +103,38 @@ export function RutaViva({
         ? "los pasos terminaron"
         : `${hechas} de ${fases.length} ${hechas === 1 ? "hecho" : "hechos"}${fases.some((f) => f.quien === "servicio" && f.afuera > 0) ? " · hay prendas afuera" : ""}`;
 
+  // El pico de la placa del paso abierto (vidrio «A · Placa con su pico», vidrio/ordenes.css): dónde queda, sobre la placa, el centro del
+  // paso elegido. Solo mide y deja `--op-pico`; si el paso no queda encima de la placa (la placa vive en la columna de la izquierda), sin pico.
+  const rutaRef = useRef<HTMLOListElement>(null);
+  const idAbierta = abierta?.id;
+  useLayoutEffect(() => {
+    const ruta = rutaRef.current;
+    const paso = document.getElementById("op-paso-abierto");
+    if (!ruta || !paso) return;
+    const medir = () => {
+      const nodo = ruta.querySelector<HTMLElement>('.op-nodo[aria-pressed="true"]');
+      if (!nodo) {
+        delete paso.dataset.pico;
+        return;
+      }
+      const n = nodo.getBoundingClientRect();
+      const p = paso.getBoundingClientRect();
+      const x = Math.round(n.left + n.width / 2 - p.left);
+      // 32 px: el radio de la placa (22) más medio pico; más afuera el pico caería sobre la curva o fuera de la placa.
+      if (x < 32 || x > p.width - 32) {
+        paso.dataset.pico = "fuera";
+        return;
+      }
+      paso.style.setProperty("--op-pico", `${x}px`);
+      paso.dataset.pico = "si";
+    };
+    medir();
+    const vigia = new ResizeObserver(medir);
+    vigia.observe(ruta);
+    vigia.observe(paso);
+    return () => vigia.disconnect();
+  }, [idAbierta, fases.length]);
+
   return (
     <>
       <section aria-label="Ruta de la orden" className="space-y-3">
@@ -131,7 +163,7 @@ export function RutaViva({
             </Vacio>
           </div>
         ) : (
-          <ol className="op-camino card-cayla" style={{ "--n": fases.length } as CSSProperties} data-guia="prod-orden.fases">
+          <ol ref={rutaRef} className="op-camino card-cayla" style={{ "--n": fases.length } as CSSProperties} data-guia="prod-orden.fases">
             {fases.map((fase, i) => {
               const estado = estadoEnRuta(fase);
               const esAbierta = fase.id === abierta?.id;

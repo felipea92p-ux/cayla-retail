@@ -130,8 +130,9 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
             <span className="block truncate text-sm tabular-nums text-taupe">{[variante, donde].filter(Boolean).join(" · ")}</span>
           </span>
         </div>
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5">
-          <TrayectoMovimiento origen={origen} destino={destino} tipo={rotulo.tipo} motivo={m.motivo} solo={textoSolo(rotulo.tipo)} />
+        {/* En el celular la referencia (la boleta) se estira hasta 6 rem a la derecha, bajo la cantidad, para leerse completa. */}
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 max-sm:[&>:not(.mv-ruta)]:-mr-24">
+          <TrayectoMovimiento origen={origen} destino={destino} tipo={rotulo.tipo} motivo={m.motivo} solo={textoSolo(rotulo.tipo)} soloIconos />
           {/* El enlace de una venta abre SU detalle en vez de llevar a otra pantalla. */}
           {m.venta && ctx.enlaceVentas ? (
             <BotonReferencia texto={referencia?.texto ?? "Ver la venta"} onClick={() => ctx.onAbrirVenta(m)} />
@@ -146,7 +147,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
       <div className="flex items-center gap-1 text-right">
         <span className="flex flex-col items-end gap-0.5">
           <span className="mv-cant">{esApartado ? textoApartado(m.cantidad, m.categoria as "apartado" | "liberacion_apartado") : textoDelta(m)}</span>
-          <span className="whitespace-nowrap text-sm text-taupe">{esApartado ? "" : (quedan ?? palabraPrendas(m.cantidad))}</span>
+          <span className="text-right text-sm text-taupe max-sm:max-w-[5.25rem] sm:whitespace-nowrap">{esApartado ? "" : (quedan ?? palabraPrendas(m.cantidad))}</span>
         </span>
         {/* Que se puede tocar, sin tener que descubrirlo: la misma flecha que las tarjetas clicables. */}
         <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
@@ -209,8 +210,9 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
             </span>
           </span>
         </div>
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5">
-          <TrayectoMovimiento origen={r.origen} destino={r.destino} tipo={tipo} motivo={primera.motivo} solo={textoSolo(tipo)} />
+        {/* En el celular la referencia (la boleta) se estira hasta 6 rem a la derecha, bajo la cantidad, para leerse completa. */}
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 max-sm:[&>:not(.mv-ruta)]:-mr-24">
+          <TrayectoMovimiento origen={r.origen} destino={r.destino} tipo={tipo} motivo={primera.motivo} solo={textoSolo(tipo)} soloIconos />
           {primera.venta && ctx.enlaceVentas ? (
             <BotonReferencia texto={r.referencia?.texto ?? "Ver la venta"} onClick={() => ctx.onAbrirVenta(primera)} />
           ) : (
@@ -222,7 +224,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
       <div className="flex items-center gap-1 text-right">
         <span className="flex flex-col items-end gap-0.5">
           <span className="mv-cant">{textoCantidadOperacionVisual(r, tipo)}</span>
-          <span className="whitespace-nowrap text-sm text-taupe">{esApartado ? "" : palabraPrendas(unidades)}</span>
+          <span className="text-right text-sm text-taupe max-sm:max-w-[5.25rem] sm:whitespace-nowrap">{esApartado ? "" : palabraPrendas(unidades)}</span>
         </span>
         <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
       </div>

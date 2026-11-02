@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-ht="humo" data-bc="isla" data-nv="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caja con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Caja con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/caja/page.tsx → CajaAbiertaPanel, vista «hoy contra ayer», ADR-0319) armada SOLO con las piezas ya
+   elegidas del tablero: cabecera A, placas Serena, insignia A · Lente de color, gráficos B · Tinta sobre vidrio con el globito B ·
+   Ahumado, barra de avance A · Tubo, «Ver» en gota, íconos A, la barra de abajo del celular A · Gota ahumada.
+   Lo PROPIO de Caja, con sus caras:
+     1. El titular «Hoy contra ayer» (`VeredictoCaja`, estilos/caja-comparativa.css): hoy un bloque de TINTA SÓLIDA con el halo del
+        efectivo y el anillo grande sobre la tinta.
+     2. La barra de cierre (`BarraCierreCaja`, estilos/caja-cierre.css, ADR-0318): pegada abajo en escritorio, sube de color con la hora
+        (papel → tinta → rojo profundo) y lleva el «Cerrar caja» ROJO SÓLIDO.
+   La persiana de «Caja cerrada» es diseño propio (ADR-0301) y no está aquí. Solo tokens (los de los medios de pago, copiados de
+   globals.css y tema.css), claro y oscuro. Movimiento: el de hoy (entra una vez, cuenta, se dibuja), sin rebote ni bucle; todo se apaga
+   con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+:root{--efectivo:#d19a12;--efectivo-t:#6b4a00;--tarjeta:#525a64;--yape:#6d3fa3;--plin:#1c6b56;--transferencia:#2f6aa3;--verde-p:#2f4529}
+:root[data-tema="oscuro"]{--efectivo-t:#f0c35a;--tarjeta:#a2acb8;--yape:#b79be0;--plin:#5fc4a4;--transferencia:#78b0e6;--verde-p:var(--verde)}
+
+/* ---------- lo elegido que esta pantalla usa ---------- */
+.placa{position:relative;border-radius:22px;padding:20px 22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--i,0) * 60ms + 80ms)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.p-tit{font-size:14px;font-weight:700}.p-baj{font-size:12.5px;color:var(--t65);margin-top:1px}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip.ambar{--c:var(--ambar)}.chip.neutro{--c:var(--taupe)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.chip .pt{width:6px;height:6px;border-radius:50%;background:currentColor}
+.enlace-ver{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--rojo);
+  border:1px solid color-mix(in srgb,var(--rojo) 30%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 80%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .enlace-ver{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent)}
+.enlace-ver svg{width:12px;height:12px;transition:translate .22s var(--ease)}
+@media (hover:hover){.enlace-ver:hover svg{translate:3px 0}}
+/* anillo y barra (gráficos B · Tinta sobre vidrio; barra de avance A · Tubo) */
+.anillo{position:relative;display:inline-grid;place-items:center;flex:none}
+.anillo>svg{position:absolute;inset:0;overflow:visible}
+.an-pista{fill:none;stroke:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.an-arco{fill:none;stroke:var(--tinta);stroke-linecap:round;stroke-dasharray:var(--p) 100;animation:cierra 1.1s var(--ease) .3s backwards}
+@keyframes cierra{from{stroke-dasharray:0 100}}
+.tubo{position:relative;display:block;height:14px;padding:3px;border-radius:999px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-tema="oscuro"] .tubo{background:color-mix(in srgb,var(--sombra) 30%,transparent);border-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.tubo i{position:absolute;inset:3px auto 3px 3px;width:calc(var(--p) - 6px);min-width:6px;border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--col) 62%,var(--vidrio)),var(--col) 70%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent);transform-origin:left;animation:llena .76s var(--ease) backwards;animation-delay:calc(var(--i,0) * 70ms + 300ms)}
+[data-tema="oscuro"] .tubo i{background:linear-gradient(180deg,color-mix(in srgb,var(--col) 80%,var(--sombra)),var(--col) 70%)}
+.tubo .ayer{position:absolute;top:-3px;bottom:-3px;left:var(--m);width:2px;border-radius:1px;background:var(--tinta);translate:-1px 0}
+@keyframes llena{from{transform:scaleX(0)}}
+.globo-g{position:absolute;z-index:10;padding:6px 10px;border-radius:10px;white-space:nowrap;pointer-events:none;color:var(--crema);font-size:12px;line-height:1.4;font-variant-numeric:tabular-nums;
+  border:1px solid color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 82%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 60%,transparent);transform:translate(-50%,calc(-100% - 10px))}
+.globo-g small{display:block;opacity:.78}
+.ga1{stop-color:var(--vidrio);stop-opacity:.95}.ga2{stop-color:var(--vidrio);stop-opacity:.55}.ga3{stop-color:var(--vidrio);stop-opacity:.05}
+.go1{stop-color:var(--tinta);stop-opacity:.16}.go2{stop-color:var(--tinta);stop-opacity:0}
+
+/* ---------- el estado del turno, a la derecha de la cabecera ---------- */
+.turno{display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-size:13px;color:var(--t65)}
+.turno b{font-family:'EB Garamond',serif;font-weight:500;font-size:17px;color:var(--tinta)}
+.ep-acc{flex-wrap:wrap;justify-content:flex-end}
+
+/* ============ 1 · EL TITULAR «HOY CONTRA AYER» ============ */
+.heroe{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;margin-top:24px;padding:26px 30px;border-radius:18px;
+  background:var(--tinta);color:var(--crema);animation:sube .5s var(--ease) backwards}
+.heroe::before{content:"";position:absolute;right:-80px;top:-120px;width:380px;height:380px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,color-mix(in srgb,var(--efectivo) 22%,transparent),transparent 70%)}
+.h-sobre{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--crema) 66%,transparent)}
+.h-frase{font-family:'EB Garamond',serif;font-weight:400;font-size:52px;line-height:1.04;margin-top:8px}
+.h-frase em{font-style:normal;white-space:nowrap;color:var(--efectivo)}
+.h-det{margin-top:12px;max-width:580px;font-size:14px;color:color-mix(in srgb,var(--crema) 80%,transparent)}
+.h-det b{color:var(--crema)}
+.h-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.h-chips span{display:inline-flex;gap:6px;align-items:center;height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;background:color-mix(in srgb,var(--crema) 10%,transparent);color:color-mix(in srgb,var(--crema) 80%,transparent)}
+.h-chips b{color:var(--crema)}
+.heroe .an-pista{stroke:color-mix(in srgb,var(--crema) 14%,transparent)}
+.heroe .an-arco{stroke:var(--crema)}
+.h-anillo .an-centro{position:relative;text-align:center;line-height:1.1}
+.h-anillo .an-centro b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:30px;font-variant-numeric:tabular-nums}
+.h-anillo .an-centro small{font-size:12px;color:color-mix(in srgb,var(--crema) 70%,transparent)}
+/* A · Ahumado: la misma presencia oscura (es lo primero que se lee), pero de vidrio ahumado como el botón primario: deja ver el lienzo
+   desenfocado, lleva su luz arriba y un filo; el halo del efectivo sigue. */
+[data-ht="humo"] .heroe{border-radius:28px;border:1px solid color-mix(in srgb,var(--tinta) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));-webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 30px 60px -30px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-tema="oscuro"][data-ht="humo"] .heroe{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--crema) 40%,transparent),0 30px 60px -30px var(--sombra)}
+[data-ht="humo"] .h-chips span{border:1px solid color-mix(in srgb,var(--crema) 14%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 14%,transparent),color-mix(in srgb,var(--crema) 5%,transparent))}
+/* B · Placa clara: el titular es una placa Serena más, la frase en tinta y lo que falta en el tono del efectivo (más oscuro, para leerse);
+   el anillo, de tinta sobre vidrio. Toda la pantalla queda clara. */
+:is([data-ht="placa"],[data-ht="aire"]) .heroe{color:var(--tinta);background:none}
+[data-ht="placa"] .heroe{border-radius:28px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-ht="placa"] .heroe{background:color-mix(in srgb,var(--vidrio) 72%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-ht="placa"],[data-ht="aire"]) .h-frase em{color:var(--efectivo-t)}
+:is([data-ht="placa"],[data-ht="aire"]) .h-sobre,:is([data-ht="placa"],[data-ht="aire"]) .h-anillo small{color:var(--t65)}
+:is([data-ht="placa"],[data-ht="aire"]) .h-det{color:var(--t80)}
+:is([data-ht="placa"],[data-ht="aire"]) .h-det b,:is([data-ht="placa"],[data-ht="aire"]) .h-chips b{color:var(--tinta)}
+:is([data-ht="placa"],[data-ht="aire"]) .h-chips span{color:var(--t80);border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent))}
+:is([data-ht="placa"],[data-ht="aire"]) .heroe .an-pista{stroke:color-mix(in srgb,var(--tinta) 8%,transparent)}
+:is([data-ht="placa"],[data-ht="aire"]) .heroe .an-arco{stroke:var(--tinta)}
+/* C · Al aire: sin caja: la frase grande queda sobre el lienzo, como el mapa del Observatorio; el halo del efectivo se vuelve el brillo
+   del lienzo detrás. Lo más liviano, y lo que más se parece a un titular de revista. */
+[data-ht="aire"] .heroe{padding:10px 0 4px;overflow:visible}
+[data-ht="aire"] .heroe::before{right:0;top:-160px;background:radial-gradient(circle,color-mix(in srgb,var(--efectivo) 16%,transparent),transparent 70%)}
+[data-ht="aire"] .h-frase{font-size:58px}
+
+/* ---------- las tarjetas ---------- */
+.rej{display:grid;gap:14px;margin-top:14px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.rej.r2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.rej.r3{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+.cajon{padding-left:26px}
+.cajon::before{content:"";position:absolute;left:10px;top:20px;bottom:20px;width:3px;border-radius:3px;background:linear-gradient(180deg,color-mix(in srgb,var(--efectivo) 70%,var(--vidrio)),var(--efectivo))}
+.cajon .et{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--efectivo-t)}
+.cajon .et svg{width:16px;height:16px;color:var(--t50)}
+.monto-g{font-family:'EB Garamond',serif;font-size:44px;line-height:1;margin-top:10px;font-variant-numeric:tabular-nums lining-nums}
+.monto-g small{font-size:26px}
+.piezas{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:14px;font-size:12.5px;color:var(--t65);font-variant-numeric:tabular-nums}
+.piezas b{color:var(--tinta);font-weight:600}
+.nota-c{margin-top:12px;font-size:12px;color:var(--t65)}
+.dos-n{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+.dos-n .vs{font-size:10.5px}
+.dos-n .num-g{margin-top:0;color:var(--tinta);font-family:'EB Garamond',serif;font-size:34px;line-height:1.15;font-variant-numeric:tabular-nums}
+.dos-n p{font-size:12.5px;color:var(--t65);margin-top:4px}
+.chip.sube{--c:var(--verde-p)}
+.lienzo-g{position:relative;margin-top:10px}
+.lienzo-g svg{display:block;width:100%;overflow:visible}
+.rejilla{stroke:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.eje{font-size:10.5px;fill:var(--taupe);font-variant-numeric:tabular-nums}
+.l-area{fill:url(#area-claro);animation:aparece .6s var(--ease) .5s backwards}
+[data-tema="oscuro"] .l-area{fill:url(#area-oscuro)}
+.l-trazo{fill:none;stroke:var(--tinta);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:1;animation:dibuja-l .9s var(--ease) .2s backwards}
+.l-ref{fill:none;stroke:var(--taupe);stroke-width:2;stroke-dasharray:6 4}
+.l-proy{fill:none;stroke:color-mix(in srgb,var(--tinta) 40%,transparent);stroke-width:2;stroke-dasharray:2 4;stroke-linecap:round}
+.l-fin{fill:var(--tinta);stroke:var(--papel);stroke-width:2}
+.l-cifra{font-family:'EB Garamond',serif;font-size:15px;fill:var(--tinta);paint-order:stroke;stroke:var(--papel);stroke-width:4px;stroke-linejoin:round}
+.l-guia{stroke:color-mix(in srgb,var(--rojo) 55%,transparent);stroke-width:1.5}
+.l-punto-g{fill:var(--tinta);stroke:var(--papel);stroke-width:2}
+@keyframes dibuja-l{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes aparece{from{opacity:0}}
+.leyenda{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;font-size:12px;color:var(--t65)}
+.leyenda i{display:inline-block;width:16px;height:0;border-top:2.5px solid var(--tinta);vertical-align:middle;margin-right:6px}
+.leyenda i.ref{border-top:2px dashed var(--taupe)}
+.metodo{display:grid;grid-template-columns:116px minmax(0,1fr) 92px;gap:12px;align-items:center;min-height:52px;font-size:13.5px}
+.metodo+.metodo{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.metodo .nm{display:inline-flex;align-items:center;gap:7px}
+.metodo .nm i{width:8px;height:8px;border-radius:50%;background:var(--col)}
+.metodo .mt{text-align:right;font-variant-numeric:tabular-nums}
+.metodo .mt small{display:block;font-size:11.5px;color:var(--t65)}
+/* dónde ganas y dónde pierdes: barras por tiempo hacia arriba y hacia abajo */
+.difs{position:relative;display:grid;height:180px;margin-top:16px}
+.difs .cero{position:absolute;left:0;right:0;top:50%;border-top:1px solid color-mix(in srgb,var(--tinta) 14%,transparent)}
+.dif{position:relative}
+.dif>i{position:absolute;left:50%;width:min(70%,26px);translate:-50% 0;border-radius:4px;background:var(--col);transform-origin:var(--o);animation:crece .56s var(--ease) backwards;animation-delay:calc(160ms + var(--i,0) * 40ms)}
+.dif[data-signo="+"]>i{bottom:50%;height:var(--h);border-radius:4px 4px 0 0;--col:var(--verde);--o:bottom}
+.dif[data-signo="-"]>i{top:50%;height:var(--h);border-radius:0 0 4px 4px;--col:var(--ambar);--o:top}
+.dif[data-curso]>i{background-image:repeating-linear-gradient(135deg,transparent 0 3px,color-mix(in srgb,var(--vidrio) 55%,transparent) 3px 6px)}
+.dif b{position:absolute;left:50%;translate:-50% 0;font-size:11px;font-weight:600;white-space:nowrap;color:var(--t80)}
+.dif[data-signo="+"] b{bottom:calc(50% + var(--h) + 4px)}.dif[data-signo="-"] b{top:calc(50% + var(--h) + 4px)}
+@keyframes crece{from{transform:scaleY(0)}}
+.eje-d{display:grid;margin-top:6px}.eje-d span{text-align:center;font-size:10.5px;color:var(--taupe)}
+.eje-d .hoy{font-weight:600;color:var(--tinta)}
+.veredicto-h{margin-top:14px;padding:12px 14px;border-radius:14px;font-size:13.5px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+[data-tema="oscuro"] .veredicto-h{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.mov{display:flex;align-items:center;gap:12px;min-height:54px}
+.mov+.mov{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.mov .ic-m{width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;color:var(--col);background:color-mix(in srgb,var(--col) 14%,transparent)}
+.mov .ic-m svg{width:16px;height:16px}
+.mov .tx{flex:1;min-width:0}.mov .tx b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mov .tx small{font-size:11.5px;color:var(--t65)}
+.mov .m{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--verde-p)}.mov .m.sale{color:var(--rojo-p)}
+[data-tema="oscuro"] .mov .m.sale{color:var(--rojo)}
+
+/* ============ 2 · LA BARRA DE CIERRE (y el «Cerrar caja») ============ */
+.cierre-pie{position:sticky;bottom:0;z-index:5;margin-top:22px;padding:10px 0 14px;background:linear-gradient(to top,var(--crema) 60%,transparent)}
+.cbarra{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px 12px 20px;border-radius:16px;border:1px solid var(--sand);background:var(--papel);
+  transition:background-color .4s var(--ease),border-color .4s var(--ease),color .4s var(--ease)}
+.cbarra b{display:block;font-size:14px;font-weight:700}.cbarra span{font-size:12.5px;opacity:.75}
+[data-nv="1"] .cbarra{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+[data-nv="2"] .cbarra{background:var(--rojo-p);border-color:var(--rojo-p);color:var(--crema)}
+.cerrar{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 26px;border-radius:11px;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+  background:var(--rojo);color:var(--crema);box-shadow:0 10px 22px -10px color-mix(in srgb,var(--rojo) 75%,transparent);transition:background-color .2s var(--ease),transform .15s var(--ease)}
+.cerrar svg{width:16px;height:16px}
+@media (hover:hover){.cerrar:hover{background:var(--rojo-p)}}
+.cerrar:active{transform:scale(.98)}
+:is([data-nv="1"],[data-nv="2"]) .cbarra .cerrar{background:var(--crema);color:var(--tinta);box-shadow:none}
+[data-nv="2"] .cbarra .cerrar{color:var(--rojo-p)}
+.ep .cerrar{height:40px;padding:0 18px;font-size:11px}
+/* El «Cerrar caja» en las dos caras: la GOTA ROJA (el botón primario «A · Gota», en rojo: se nota igual, ahora de vidrio) */
+:is([data-bc="placa"],[data-bc="isla"]) .cerrar{border-radius:999px;border:1px solid color-mix(in srgb,var(--rojo) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 82%,transparent),color-mix(in srgb,var(--rojo) 96%,transparent));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 40%,transparent),0 10px 22px -10px color-mix(in srgb,var(--rojo) 70%,transparent)}
+@media (hover:hover){:is([data-bc="placa"],[data-bc="isla"]) .cerrar:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 82%,transparent),color-mix(in srgb,var(--rojo-p) 96%,transparent))}}
+[data-tema="oscuro"]:is([data-bc="placa"],[data-bc="isla"]) .cerrar{color:var(--tinta-fija)}
+:is([data-bc="placa"],[data-bc="isla"]):is([data-nv="1"],[data-nv="2"]) .cbarra .cerrar{border-color:color-mix(in srgb,var(--crema) 70%,transparent);color:var(--tinta);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 98%,transparent),color-mix(in srgb,var(--crema) 84%,transparent));box-shadow:inset 0 1px 0 var(--crema)}
+:is([data-bc="placa"],[data-bc="isla"])[data-nv="2"] .cbarra .cerrar{color:var(--rojo-p)}
+/* A · Placa que se tiñe: la barra es una placa de vidrio; con la hora sube a vidrio AHUMADO de tinta y, pasada la hora, ahumado de rojo
+   profundo. El color sigue diciendo lo mismo, ahora de vidrio. */
+:is([data-bc="placa"],[data-bc="isla"]) .cierre-pie{background:none}
+[data-bc="placa"] .cbarra,[data-bc="isla"] .cbarra{border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 20px 40px -20px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"]:is([data-bc="placa"],[data-bc="isla"]) .cbarra{background:color-mix(in srgb,var(--vidrio) 86%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+:is([data-bc="placa"],[data-bc="isla"])[data-nv="1"] .cbarra{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 28%,transparent),0 20px 40px -20px color-mix(in srgb,var(--sombra) 60%,transparent)}
+:is([data-bc="placa"],[data-bc="isla"])[data-nv="2"] .cbarra{color:var(--crema-fija);border-color:color-mix(in srgb,var(--rojo-p) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 84%,transparent),color-mix(in srgb,var(--rojo-p) 95%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 28%,transparent),0 20px 40px -20px color-mix(in srgb,var(--rojo-p) 60%,transparent)}
+[data-tema="oscuro"]:is([data-bc="placa"],[data-bc="isla"])[data-nv="2"] .cbarra{color:var(--tinta-fija)}
+[data-tema="oscuro"]:is([data-bc="placa"],[data-bc="isla"])[data-nv="2"] .cbarra .cerrar{color:var(--rojo-p);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta-fija) 92%,transparent),var(--tinta-fija))}
+/* B · Isla: la barra se encoge a una píldora que flota al centro, bajo el contenido, como la isla del recordatorio (ADR-0305): ocupa
+   menos y deja ver la pantalla a los lados. Mismos tonos. */
+[data-bc="isla"] .cierre-pie{display:flex;justify-content:center}
+[data-bc="isla"] .cbarra{flex-wrap:nowrap;width:auto;max-width:640px;padding:8px 8px 8px 22px;border-radius:999px}
+[data-bc="isla"] .cbarra span{display:none}
+[data-bc="isla"] .cbarra .cerrar{height:44px}
+
+/* ---------- la barra de abajo del celular (elegida: A · Gota ahumada) ---------- */
+.isla-m{display:none;position:absolute;z-index:6;left:12px;right:12px;bottom:12px;gap:8px;animation:sube .5s var(--ease) .6s backwards}
+.isla-m .btn{height:52px;border-radius:999px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 16px 32px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.isla-m .btn.pri{flex:1;min-width:0;padding:0 14px}
+.isla-m .cuad{flex:none;width:54px;height:52px;padding:0;border-radius:18px;flex-direction:column;gap:2px;font-size:10.5px;
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5)}
+.isla-m .cuad svg{width:16px;height:16px}
+.isla-m .cuad.rojo{color:var(--crema);border-color:color-mix(in srgb,var(--rojo) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 82%,transparent),color-mix(in srgb,var(--rojo) 96%,transparent))}
+[data-tema="oscuro"] .isla-m .cuad.rojo{color:var(--tinta-fija)}
+
+/* ---------- a lo ancho de la pantalla (por el ancho del contenido) ---------- */
+@container disp (max-width:1180px){.rej.r2,.rej.r3{grid-template-columns:minmax(0,1fr)}}
+@container disp (max-width:900px){.rej{grid-template-columns:minmax(0,1fr)}.heroe{grid-template-columns:1fr;padding:22px 20px}.h-frase{font-size:40px}[data-ht="aire"] .h-frase{font-size:44px}[data-ht="aire"] .heroe{padding:6px 0 0}}
+@container disp (max-width:640px){
+  .h-anillo{display:none}.h-frase,[data-ht="aire"] .h-frase{font-size:34px}
+  .cierre-pie{display:none}.isla-m{display:flex}.cont{padding-bottom:96px}
+  .turno{align-items:flex-start}.ep-acc .btn:not(.cerrar),.ep .cerrar{display:none}
+  .metodo{grid-template-columns:96px minmax(0,1fr) 78px;gap:8px}
+  .dif b{font-size:10px}.difs .dif:nth-child(odd):not([data-curso]) b{display:none}
+}
+@container disp (max-width:360px){.dos-n{grid-template-columns:1fr}.monto-g{font-size:38px}}
+@media (prefers-reduced-motion:reduce){.placa,.heroe,.an-arco,.tubo i,.l-area,.l-trazo,.dif>i,.isla-m{animation:none}.cbarra,.cerrar{transition:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="area-claro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ga1"/><stop offset=".55" class="ga2"/><stop offset="1" class="ga3"/></linearGradient>
+  <linearGradient id="area-oscuro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="go1"/><stop offset="1" class="go2"/></linearGradient></defs></svg>
+
+<div class="spk">
+  <span class="titulo">Caja, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">Titular «hoy contra ayer»</span><div class="seg-m" data-ctl="ht"><button data-v="ahora">Como ahora</button><button data-v="humo">A · Ahumado ✓</button><button data-v="placa">B · Placa clara</button><button data-v="aire">C · Al aire</button></div>
+  <span class="tag">Barra de cierre</span><div class="seg-m" data-ctl="bc"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa que se tiñe</button><button data-v="isla">B · Isla ✓</button></div>
+  <span class="tag">La hora</span><div class="seg-m" data-ctl="nv"><button data-v="0">Antes del cierre</button><button data-v="1">Es hora de cerrar</button><button data-v="2">Pasó la hora</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="isla-m" id="isla-m"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>app/(app)/caja</code> → <code>CajaAbiertaPanel</code>, vista «hoy contra ayer», ADR-0319): la cabecera con el turno y sus acciones (Registrar gasto, Registrar ingreso, Historial, Cerrar caja); el titular; el efectivo en el cajón y las ventas hechas; lo que llevas vendido contra ayer; cómo te pagaron; dónde ganas y dónde pierdes, hora por hora; los movimientos del turno; la barra de cierre pegada abajo y, en el celular, la barra de abajo. Todas las tarjetas son <b>papel macizo</b>.</li>
+      <li><b>El titular «hoy contra ayer»</b>: un bloque de <b>tinta sólida</b> con el halo dorado del efectivo, la frase de 52 px («Te faltan S/ 1 020 para igualar ayer») y el anillo grande sobre la tinta.</li>
+      <li><b>La barra de cierre</b> (ADR-0318): pegada abajo en escritorio; de papel, sube a <b>tinta sólida</b> a la hora de cierre y a <b>rojo profundo</b> cuando pasó; el «Cerrar caja» es un botón <b>rojo sólido</b>.</li>
+      <li>Lo que ya elegiste se aplica tal cual: cabecera A, placas Serena, insignia A, gráficos B con el globito ahumado, barra de avance A · Tubo, «Ver» en gota, íconos A y la barra de abajo del celular A. La persiana de «Caja cerrada» es diseño propio y no se toca.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="3"><b>Titular</b></td><td>A · Ahumado <span class="ev">Elegida</span></td><td>Sigue siendo lo primero que se lee (oscuro, grande), ahora de vidrio ahumado como el botón primario: se ve el lienzo detrás, con su luz y su filo; el halo del efectivo sigue.</td><td>Casi nada: el cambio se nota de cerca.</td></tr>
+      <tr><td>B · Placa clara</td><td>Toda la pantalla queda clara y del mismo material; lo que falta, en el dorado oscuro del efectivo.</td><td>El titular deja de destacar sobre las demás tarjetas: compite con el cajón y con el gráfico.</td></tr>
+      <tr><td>C · Al aire</td><td>Sin caja, como el mapa del Observatorio: un titular de revista sobre el lienzo.</td><td>Sobre una aurora muy clara, la frase y el anillo pierden un borde que los agrupe; en el celular se confunde con la cabecera.</td></tr>
+      <tr><td rowspan="2"><b>Barra de cierre</b></td><td>A · Placa que se tiñe</td><td>Lo mismo que hoy (sube de color con la hora y no se deja de ver), ahora de vidrio: clara, ahumada de tinta y ahumada de rojo profundo; «Cerrar caja» pasa a la gota roja.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Isla <span class="ev">Elegida</span></td><td>Se encoge a una píldora al centro y deja ver la pantalla a los lados, como la isla del recordatorio.</td><td>Pierde la frase de abajo («Pasó la hora de cierre…»): queda solo el título; y se parece a la isla que avisa desde otras pantallas.</td></tr>
+    </table>
+    <h3>Lo que decidió Felipe (2026-11-02): A y B</h3>
+    <p><b>Titular A · Ahumado y barra de cierre B · Isla.</b> El titular sigue oscuro y es lo primero que se lee, ahora de vidrio ahumado. La barra de cierre se encoge a una píldora al centro con los mismos tres tonos (vidrio claro, ahumado de tinta, ahumado de rojo profundo) y el «Cerrar caja» en gota roja.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Lo que dice cada tarjeta y en qué orden, el titular que habla en soles («Te faltan…», «Ya superaste…»), el anillo que pasa a verde al alcanzar a ayer, las barras verdes hacia arriba y ámbar hacia abajo (nunca rojo: «aún no llegas» no es «vas mal»), la hora en curso rayada, los tres niveles de la barra de cierre y su destello al subir de nivel, el «Cerrar caja» que siempre se ve, y en el celular la barra de abajo con Vender, Gasto, Ingreso y Cerrar.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa, T…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { candado: 'M6 11h12v10H6z M9 11V7a3 3 0 016 0v4', vender: T.vender, gasto: T.gastos, ingreso: 'M12 19V5M5 12l7-7 7 7', historial: T.historial, flecha: 'M5 12h14M13 6l6 6-6 6',
+    ok: 'M20 6 9 17l-5-5', venta: T.venta, sale: 'M12 5v14M19 12l-7 7-7-7' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const soles = (n) => 'S/ ' + Math.round(n).toLocaleString('es-PE');
+  const soles2 = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const HORAS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+  const AYER = [0, 180, 420, 760, 1150, 1480, 1890, 2310, 2780, 3240, 3720, 4080, 4260];
+  const HOY = [0, 240, 610, 980, 1420, 1830, 2400, 2960, 3240];
+  const AHORA = 16.7;
+  const METODOS = [['Efectivo', 'efectivo', 1180, 1720], ['Tarjeta', 'tarjeta', 1240, 1480], ['Yape', 'yape', 640, 820], ['Plin', 'plin', 180, 240]];
+  const DIFS = [[9, 60], [10, 130], [11, 30], [12, 50], [13, -60], [14, 160], [15, 150], [16, -170, 1]];
+  const MOVS = [['venta', 'Venta · Blusa Emma y Polo Nube', '16:31 · Lucía · Yape', 189.9, 'var(--verde)'], ['sale', 'Gasto · Agua y café', '15:58 · Lucía · efectivo', -14.5, 'var(--rojo)'],
+    ['venta', 'Venta · Vestido Ara', '15:20 · Mateo · tarjeta', 249, 'var(--verde)'], ['ingreso', 'Ingreso · Sencillo del banco', '12:05 · Lucía', 200, 'var(--pizarra)']];
+
+  function anillo(p, tam, centro) {
+    const g = 12, r = (tam - g) / 2;
+    return `<span class="anillo h-anillo" style="width:${tam}px;height:${tam}px;--p:${Math.min(p, 100)}"><svg viewBox="0 0 ${tam} ${tam}" aria-hidden="true">
+      <circle class="an-pista" cx="${tam / 2}" cy="${tam / 2}" r="${r}" stroke-width="${g}"/><circle class="an-arco" cx="${tam / 2}" cy="${tam / 2}" r="${r}" stroke-width="${g}" pathLength="100" transform="rotate(-90 ${tam / 2} ${tam / 2})"/></svg>
+      <span class="an-centro">${centro}</span></span>`;
+  }
+  function lineaSVG(ancho) {
+    const W = Math.max(220, ancho), H = 210, iz = 44, de = 14, ar = 18, ab = 26, max = 4800;
+    const x = (h) => iz + ((h - 9) / 12) * (W - iz - de), y = (v) => ar + (1 - v / max) * (H - ar - ab);
+    const hoyP = HOY.map((v, k) => [k === 8 ? AHORA : HORAS[k], v]);
+    const d = 'M' + hoyP.map(([h, v]) => `${x(h).toFixed(1)},${y(v).toFixed(1)}`).join('L');
+    const area = d + `L${x(AHORA).toFixed(1)},${y(0)}L${x(9)},${y(0)}Z`;
+    const rejas = [0, 1500, 3000, 4500].map((v) => `<line class="rejilla" x1="${iz}" x2="${W - de}" y1="${y(v)}" y2="${y(v)}"/><text class="eje" x="${iz - 8}" y="${y(v) + 3.5}" text-anchor="end">${v ? (v / 1000).toFixed(1).replace('.0', '') + ' mil' : '0'}</text>`).join('');
+    const ejes = [9, 12, 15, 18, 21].map((h) => `<text class="eje" x="${x(h)}" y="${H - 6}" text-anchor="middle">${h}:00</text>`).join('');
+    const fx = x(AHORA), fy = y(3240);
+    return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Lo que llevas vendido hoy contra ayer">${rejas}${ejes}
+      <polyline class="l-ref" points="${AYER.map((v, k) => `${x(HORAS[k]).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/>
+      <path class="l-area" d="${area}"/><path class="l-trazo" d="${d}" pathLength="1"/>
+      <line class="l-proy" x1="${fx}" y1="${fy}" x2="${x(21)}" y2="${y(4620)}"/><circle class="l-fin" cx="${fx}" cy="${fy}" r="5"/>
+      <text class="l-cifra" x="${fx - 10}" y="${fy - 12}" text-anchor="end">${soles(3240)}</text>
+      <g class="l-lee" style="display:none"><line class="l-guia" y1="${ar}" y2="${H - ab}"/><circle class="l-punto-g" r="5"/></g>
+      <rect class="l-toque" x="${iz}" y="0" width="${W - iz - de}" height="${H - ab}" fill="transparent"/></svg>`;
+  }
+  function difsHTML() {
+    const max = 200;
+    return `<div class="difs" style="grid-template-columns:repeat(${DIFS.length},minmax(0,1fr))"><span class="cero"></span>
+      ${DIFS.map(([h, v, curso], i) => `<div class="dif" data-signo="${v >= 0 ? '+' : '-'}" ${curso ? 'data-curso' : ''} style="--h:${(Math.abs(v) / max) * 50}%;--i:${i}"><i></i><b>${v >= 0 ? '+' : '−'}${Math.abs(v)}</b></div>`).join('')}</div>
+      <div class="eje-d" style="grid-template-columns:repeat(${DIFS.length},minmax(0,1fr))">${DIFS.map(([h, , c]) => `<span class="${c ? 'hoy' : ''}">${h}h</span>`).join('')}</div>`;
+  }
+  const cerrarBtn = () => `<button class="cerrar" data-acc="cerrar">${s(D.candado)}Cerrar caja</button>`;
+  const BARRA = { 0: ['Cuando termines tu turno, cierra la caja', 'Cierras a las 21:00. Antes, cuenta el efectivo del cajón.'], 1: ['Es hora de cerrar la caja', 'Pasó la hora de cierre (21:00). Cuenta el cajón y ciérrala.'], 2: ['La caja sigue abierta · pasó la hora de cierre hace 1 h 20 min', 'Ciérrala ahora: el cierre de mañana no puede empezar sin este.'] };
+
+  function pantalla() {
+    const nv = document.documentElement.dataset.nv || '0';
+    const maxM = Math.max(...METODOS.map((m) => Math.max(m[2], m[3]))) * 1.08;
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Caja', frase: 'Turno de Lucía Ramos · Líder de equipo', acciones: [['sec', 'Registrar gasto'], ['sec', 'Registrar ingreso'], ['sec', 'Historial']] })}
+      <section class="heroe" aria-label="Cómo vas contra ayer">
+        <div><p class="h-sobre">Hoy contra ayer · a las 16:42</p>
+          <h2 class="h-frase">Te faltan <em>${soles(1020)}</em> para igualar ayer</h2>
+          <p class="h-det">Ayer vendiste <b>${soles(4260)}</b> en todo el día. A esta hora ya llevabas <b>${soles(2960)}</b>: hoy vas <b>${soles(280)} por encima</b>.</p>
+          <p class="h-chips"><span>Vendido hoy <b>${soles(3240)}</b></span><span>Ventas <b>18</b></span><span>Venta promedio <b>${soles(180)}</b></span></p></div>
+        ${anillo(76, 160, `<b>${soles(3240)}</b><small>de ${soles(4260)}<br>de ayer</small>`)}
+      </section>
+      <div class="rej">
+        <div class="placa cajon" style="--i:1"><p class="et">Efectivo en el cajón ahora ${s(D.candado)}</p>
+          <p class="monto-g">S/ 1,486<small>.50</small></p>
+          <p class="piezas"><span>Abriste con <b>${soles2(300)}</b></span><span>+ ventas <b>${soles2(1180)}</b></span><span>+ ingresos <b>${soles2(200)}</b></span><span>− gastos <b>${soles2(193.5)}</b></span></p>
+          <p class="nota-c">Tarjeta, Yape y transferencias no entran al cajón.</p></div>
+        <div class="placa" style="--i:2"><p class="p-tit">Ventas hechas</p><p class="p-baj">Hoy, comparado con ayer a esta misma hora</p>
+          <div class="dos-n"><div><p class="vs">Número de ventas</p><p class="num-g">18</p><span class="chip sube">▲ 13 %</span><p>ayer a esta hora: 16</p></div>
+            <div><p class="vs">Cuánto vale cada venta</p><p class="num-g">${soles(180)}</p><span class="chip ambar">▼ 3 %</span><p>ayer a esta hora: ${soles(185)}</p></div></div></div>
+      </div>
+      <div class="rej r2">
+        <div class="placa" style="--i:3"><p class="p-tit">Lo que llevas vendido</p><p class="p-baj">Hoy, hora por hora, contra lo que vendiste ayer</p>
+          <div class="lienzo-g" id="g-linea"></div>
+          <p class="leyenda"><span><i></i>Hoy</span><span><i class="ref"></i>Ayer</span><span>Punteado fino: si sigue así, cierras en ${soles(4620)}</span></p></div>
+        <div class="placa" style="--i:4"><p class="p-tit">Cómo te pagaron</p><p class="p-baj">Lo que cobraste hoy por cada medio; la raya es dónde terminó ayer</p>
+          <div style="margin-top:8px">${METODOS.map(([n, k, h, a], i) => `<div class="metodo"><span class="nm" style="--col:var(--${k})"><i></i>${n}</span>
+            <span class="tubo" style="--p:${(h / maxM) * 100}%;--m:${(a / maxM) * 100}%;--col:var(--${k});--i:${i}" role="img" aria-label="${n}: ${soles(h)} hoy, ${soles(a)} ayer"><i></i><span class="ayer"></span></span>
+            <span class="mt"><b>${soles(h)}</b><small>ayer ${soles(a)}</small></span></div>`).join('')}</div></div>
+      </div>
+      <div class="rej r3">
+        <div class="placa" style="--i:5"><p class="p-tit">Dónde ganas y dónde pierdes</p><p class="p-baj">Cada barra es una hora: lo de hoy menos lo de ayer en esa misma hora. La rayada aún no termina.</p>
+          ${difsHTML()}<p class="veredicto-h">Tu mejor hora fue la de las <b>14:00</b> (+${soles(160)}). La más floja, las <b>16:00</b> (−${soles(170)}), que todavía no termina.</p></div>
+        <div class="placa" style="--i:6"><p class="p-tit">Movimientos del turno</p><p class="p-baj">Lo último que entró y salió de la caja</p>
+          <div style="margin-top:6px">${MOVS.map(([ic, t, d, m, col]) => `<div class="mov"><span class="ic-m" style="--col:${col}">${s(D[ic])}</span><span class="tx"><b>${t}</b><small>${d}</small></span><span class="m ${m < 0 ? 'sale' : ''}">${m < 0 ? '−' : '+'} ${soles2(Math.abs(m))}</span></div>`).join('')}</div>
+          <a class="enlace-ver" href="#" style="margin-top:12px">Ver los 31 movimientos ${s(D.flecha)}</a></div>
+      </div>
+      <div class="cierre-pie"><div class="cbarra" role="status"><div><b>${BARRA[nv][0]}</b><span>${BARRA[nv][1]}</span></div>${cerrarBtn()}</div></div>`;
+    // la cabecera: el estado del turno arriba a la derecha y «Cerrar caja» junto a las acciones
+    const ep = $('#cont .ep'), acc = $('.ep-acc', ep);
+    if (acc) { acc.insertAdjacentHTML('beforeend', cerrarBtn()); acc.insertAdjacentHTML('beforebegin', `<div class="turno"><span class="chip"><span class="pt"></span>Todo sincronizado</span><span>Abrió 9:02 · lleva <b>7 h 40 min</b></span></div>`);
+      const col = document.createElement('div'); col.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:12px'; acc.before(col); col.append($('.turno', ep), acc); }
+    $('#isla-m').innerHTML = `<button class="btn pri">${s(D.vender)}Vender</button><button class="btn sec cuad">${s(D.gasto)}Gasto</button><button class="btn sec cuad">${s(D.ingreso)}Ingreso</button><button class="btn sec cuad rojo">${s(D.candado)}Cerrar</button>`;
+    dibujarLinea();
+  }
+  function dibujarLinea() { const c = $('#g-linea'); if (c) c.innerHTML = lineaSVG(c.clientWidth); }
+  function quitarGlobo() { $$('.globo-g').forEach((g) => g.remove()); const l = $('.l-lee'); if (l) l.style.display = 'none'; }
+  document.addEventListener('mousemove', (ev) => {
+    const t = ev.target.closest('.l-toque'); if (!t) { quitarGlobo(); return; }
+    const lien = t.closest('.lienzo-g'), rl = lien.getBoundingClientRect(), z = zoomDisp(), svg = t.ownerSVGElement, W = +svg.getAttribute('width'), iz = 44, de = 14;
+    const px = (ev.clientX - rl.left) / z, h = Math.max(9, Math.min(21, 9 + ((px - iz) / (W - iz - de)) * 12)), k = Math.round(h - 9), hh = 9 + k;
+    const y = (v) => 18 + (1 - v / 4800) * (210 - 44), x = iz + ((hh - 9) / 12) * (W - iz - de), hoy = HOY[k], ayer = AYER[k];
+    const lee = $('.l-lee', svg); lee.style.display = ''; $('line', lee).setAttribute('x1', x); $('line', lee).setAttribute('x2', x);
+    const pc = $('circle', lee); pc.setAttribute('cx', x); pc.setAttribute('cy', y(hoy ?? ayer));
+    let g = $('.globo-g', lien); if (!g) { g = document.createElement('div'); g.className = 'globo-g'; lien.appendChild(g); }
+    g.style.left = Math.max(70, Math.min(W - 70, x)) + 'px'; g.style.top = y(hoy ?? ayer) + 'px';
+    g.innerHTML = hoy != null ? `<b>${hh}:00 · ${soles(hoy)}</b><small>ayer ${soles(ayer)}</small>` : `<b>${hh}:00</b><small>ayer ${soles(ayer)} · aún no llega</small>`;
+  });
+  document.addEventListener('click', (e) => { if (e.target.closest('#cont a')) e.preventDefault(); });
+  Marco.iniciar({ estado: { ht: 'humo', bc: 'isla', nv: '1' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+  new ResizeObserver(() => { const c = $('#g-linea'); if (c && c.firstElementChild && Math.abs(+c.firstElementChild.getAttribute('width') - c.clientWidth) > 2) dibujarLinea(); }).observe($('#cont'));
+})();
+</script>
+</body>
+</html>

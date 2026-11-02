@@ -10,10 +10,12 @@
  *     la misma regla a los contadores del subtítulo, al filtro y a «A quién pedirle» (migración
  *     20260922120000); esta función es la copia para lo que se pinta en cada fila. «Sin stock» y «Stock
  *     bajo» son EXCLUYENTES, igual que en la base: 0 unidades es «sin stock», no las dos cosas.
- *  2. (Reemplazada el 2026-09-28, ADR-0270.) Antes el número era el TOTAL de todas las sedes y el Taller,
- *     rotulado «Stock total». Ahora la tarjeta dice lo de la sede elegida arriba («7 aquí») y aparte el resto
- *     (`lineasDeStock`); las ALERTAS siguen mirando la red, porque de ellas sale qué pedirle al proveedor.
- *     «Stock total N» queda solo para cuando no se pudo leer lo de la sede.
+ *  2. (Reemplazada el 2026-09-28, ADR-0270, y otra vez el 2026-11-02.) Antes el número era el TOTAL de todas las
+ *     sedes y el Taller, rotulado «Stock total»; del 28-09 al 02-11 la tarjeta dijo lo de la sede elegida arriba
+ *     («7 aquí») y aparte el resto (`lineasDeStock`, que siguen usando la Tabla y la vista rápida). Desde la tarjeta
+ *     «A · Catálogo de moda» (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/) la Grilla dice el total, tenue
+ *     («34 en stock»), y lo de la sede pasa a su `title` (`stockDeTarjeta`). Las ALERTAS siguen mirando la red, porque
+ *     de ellas sale qué pedirle al proveedor.
  *  3. «Sin stock» no es rojo: con 23 prendas en 0, más de la mitad de la grilla quedaba en rojo y el
  *     rojo dejaba de avisar (MAX_ROJO_POR_PANTALLA = 2). Se dice con la misma palabra que el subtítulo y
  *     el filtro («sin stock»), en un chip neutro. Una descontinuada en 0 dice «Stock total 0»: es un
@@ -23,9 +25,6 @@
 export type AlertaStock = "sin_stock" | "bajo" | null;
 
 type ProductoConStock = { estado: string; stockTotal: number; stockMinimo: number | null };
-
-/** Lo que dice el total, tal como se pinta junto al nombre de la prenda. Solo si no se pudo leer lo de la sede (ver abajo). */
-export const ROTULO_STOCK_TOTAL = "Stock total";
 
 /** Para el `title` (al pasar el mouse o dejar el dedo) y para la nota de la cabecera. */
 export const EXPLICACION_STOCK_TOTAL =
@@ -44,10 +43,6 @@ export function alertaDeStock(p: ProductoConStock): AlertaStock {
   return null;
 }
 
-/** «Stock total 12». En cero también: «Stock total 0» (la alerta «Sin stock» la pinta el chip, no este texto). */
-export function textoDeStock(stockTotal: number): string {
-  return `${ROTULO_STOCK_TOTAL} ${stockTotal}`;
-}
 
 // ============================================================================
 // La tarjeta por sede (ADR-0270, decisiones 1 a 5 de Felipe, 2026-09-28): lo de la sede elegida arriba, en grande; las
@@ -190,4 +185,62 @@ export function mensajeSinResultados(filtros: { estado?: string; stock?: string 
       : `Ninguna prenda activa calza con esos filtros, pero hay ${descontinuadas} descontinuadas que sí. Elige «Estado: Todos» para verlas.`;
   }
   return MENSAJE_SIN_RESULTADOS;
+}
+
+// ============================================================================
+// La tarjeta «A · Catálogo de moda» de la Grilla (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/): bajo la foto, a la
+// derecha de los puntos de color, el stock TENUE. Solo pesa si es poco («Quedan 8», ámbar) o nada («Sin stock», rojo): las mismas
+// dos alertas de `alertaDeStock`, que miran la red y nunca a una descontinuada. Marca · proveedor y lo de la sede salieron de la
+// tarjeta (están en la vista rápida) y quedan en el `title` del stock, una cosa por renglón.
+// ============================================================================
+
+export type TonoStockTarjeta = "tenue" | "poco" | "cero";
+
+export type StockDeTarjeta = {
+  /** «34 en stock» · «Quedan 8» · «Sin stock». */
+  texto: string;
+  tono: TonoStockTarjeta;
+  /** El `title`: de quién es y quién lo trae, lo de la sede elegida y el resto. Renglones separados por «\n». */
+  titulo: string;
+};
+
+/** «Marca · Proveedor», con lo que falta dicho con palabras (ADR-0283: un producto puede crearse sin los dos). */
+function marcaYProveedor(marca: string | null, proveedor: string | null): string {
+  if (!marca && !proveedor) return "Sin marca ni proveedor";
+  return `${marca ?? "Sin marca"} · ${proveedor ?? "Sin proveedor"}`;
+}
+
+export function stockDeTarjeta(
+  p: ProductoConStock & { marca: string | null; proveedor: string | null },
+  {
+    existencias,
+    enSede,
+    sede,
+  }: {
+    /** Lo de la sede por producto (`fn_existencias_productos`, ADR-0270); `null` si no se pudo leer. */
+    existencias: ExistenciasProducto | null;
+    /** Las unidades de la sede según `useStockEnSede` (el respaldo si `existencias` no llegó): `null` mientras lee. */
+    enSede: number | null | "error";
+    sede: string;
+  }
+): StockDeTarjeta {
+  const alerta = alertaDeStock(p);
+  const n = p.stockTotal.toLocaleString("es-PE");
+  const texto = alerta === "sin_stock" ? "Sin stock" : alerta === "bajo" ? `Quedan ${n}` : `${n} en stock`;
+  const tono: TonoStockTarjeta = alerta === "sin_stock" ? "cero" : alerta === "bajo" ? "poco" : "tenue";
+
+  const donde = corta(sede) || "tu sede";
+  const renglones = [marcaYProveedor(p.marca, p.proveedor)];
+  if (existencias) {
+    const lineas = lineasDeStock(existencias);
+    renglones.push(`${existencias.aqui.toLocaleString("es-PE")} para vender en ${donde}`);
+    const resto = [lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ");
+    if (resto) renglones.push(resto);
+  } else if (enSede === "error") {
+    renglones.push(`No se pudo leer lo de ${donde}`);
+  } else if (enSede !== null) {
+    renglones.push(`${enSede.toLocaleString("es-PE")} en ${donde}`);
+  }
+  renglones.push("«En stock», «Quedan» y «Sin stock» cuentan todas las sedes y el Taller.");
+  return { texto, tono, titulo: renglones.join("\n") };
 }

@@ -171,6 +171,10 @@
   .mv-riel { flex: 0 0 24px; min-width: 24px; }
   .mv-punto { padding-right: 0.5rem; }
   .mv-punto span { max-width: 7.5rem; }
+  /* La fila de la lista: solo el ícono de cada lugar (el nombre queda en `aria-label` y `title`); el detalle conserva el texto. */
+  .mv-ruta[data-solo-iconos] .mv-punto { padding: 0.25rem; }
+  .mv-ruta[data-solo-iconos] .mv-punto span { display: none; }
+  .mv-ruta[data-solo-iconos] .mv-punto svg { width: 16px; height: 16px; }
 }
 
 /* ── La columna de los siete tipos: cada botón es el filtro y su cifra ── */
@@ -276,3 +280,110 @@ ul[data-hay] .mv-tipo:not([aria-current]) { opacity: 0.6; }
   .mv-riel .mv-viaje { display: none; }
 }
 
+
+/* ====================================================================
+   El vidrio de Movimientos (ADR-0596 sobre ADR-0353; maqueta docs/maquetas/movimientos-vidrio-2026-11/). Felipe, 2026-11-02: la página
+   pasa al vidrio CON EL MISMO MOVIMIENTO —ningún `@keyframes` ni ningún `[data-go]` de arriba cambia: aquí solo cambia el MATERIAL—.
+   Eligió mirando el sello «A · Lente del tono» (el sello, una lente teñida de su tipo con su luz, como la insignia; los lugares del
+   trayecto, gotas claras; el riel, una ranura) y los tipos «A · Placas con su tono» (cada tipo, una placa clara; el elegido, teñido de
+   su tipo con su filo). Va al final y sin capa para ganarle a lo de arriba; los colores de cada tipo (`--mv-c`) son dato y no cambian,
+   ni el borde punteado de lo hecho a mano (ajuste, conteo). Las recetas son las de `vidrio/recetas.css`.
+   ==================================================================== */
+
+/* ── El sello: la lente del tono (`--lente-sello-*`) ── */
+.mv-sello {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mv-c) var(--lente-sello-tinte-arriba), var(--lente-sello-base-arriba)),
+    color-mix(in srgb, var(--mv-c) var(--lente-sello-tinte-abajo), var(--lente-sello-base-abajo))
+  );
+  box-shadow:
+    var(--lente-sello-luz),
+    inset 0 0 0 1px color-mix(in srgb, var(--mv-c) var(--lente-sello-filo), transparent),
+    0 6px 14px -8px color-mix(in srgb, var(--mv-c) var(--lente-sello-sombra-tono), transparent);
+}
+/* Lo hecho a mano: casi transparente, con su borde punteado (el mismo de arriba) y sin luz ni sombra. */
+.mv-sello[data-punteado] {
+  background: color-mix(in srgb, var(--mv-c) 6%, var(--lente-tono-base-abajo));
+  box-shadow: none;
+}
+
+/* ── El trayecto: los lugares, gotas claras; el riel, una ranura con el relleno adentro ── */
+.mv-punto {
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 45%, transparent);
+  background: var(--gota-marca);
+  box-shadow: var(--placa-luz);
+  padding-block: 0.0625rem; /* el filo suma 1 px arriba y abajo: el lugar mide lo mismo que antes */
+}
+.mv-punto[data-fuera] { background: transparent; box-shadow: none; }
+.mv-riel {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.mv-riel .mv-relleno { inset: 2px 0; }
+
+/* ── La fila: el velo del tono sobre el vidrio (no sobre papel) y el hilo entre filas ── */
+:is(.mv-fila, .mv-mazo) { border-color: var(--hilo-fila); }
+.mv-fila:focus-within,
+.mv-fila[data-sel] { background: color-mix(in srgb, var(--mv-c) 7%, transparent); }
+@media (hover: hover) {
+  .mv-fila:hover { background: color-mix(in srgb, var(--mv-c) 7%, transparent); }
+}
+@keyframes mv-destello { 0%, 100% { background: transparent; } 25% { background: color-mix(in srgb, var(--mv-c) 17%, transparent); } }
+/* El mazo (no está en la maqueta: sigue la misma regla): su cifra, sus capas y sus hijos, teñidos sobre el vidrio, no sobre papel. */
+.mv-veces { background: color-mix(in srgb, var(--mv-c) 15%, transparent); }
+.mv-capas i {
+  border-color: color-mix(in srgb, var(--mv-c) 26%, transparent);
+  background: color-mix(in srgb, var(--mv-c) 9%, var(--lente-tono-base-abajo));
+}
+.mv-mazo-hijos > ul { background: color-mix(in srgb, var(--mv-c) 4%, transparent); }
+
+/* ── El día: de la franja de hueso a una ranura fina (su franja de colores no cambia) ── */
+.mv-dia {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+
+/* ── Los tipos: placas claras; el elegido, teñido de su tipo con su filo; la barra, un pozo ── */
+.mv-tipo {
+  border: 1px solid var(--serena-borde);
+  border-radius: 18px;
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--placa-luz);
+}
+/* Al pasar el mouse y el elegido: el vidrio de la lente del tono (`--lente-tono-base-*`, la base del aviso de la esquina: más llena que
+   la placa) teñido del tipo, más tono abajo. La base es la receta (en oscuro, vidrio oscuro; sin transparencia, papel) y el tipo solo pone
+   su color. No es `--serena-fondo-encima`: en oscuro lleva crema y aclaraba la tarjeta (el texto taupe del elegido bajaba a 3,2:1). */
+@media (hover: hover) {
+  .mv-tipo:hover {
+    border-color: var(--serena-borde);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--mv-c) 5%, var(--lente-tono-base-arriba)),
+      color-mix(in srgb, var(--mv-c) 9%, var(--lente-tono-base-abajo))
+    );
+  }
+  .mv-tipo[data-vacio]:hover { border-color: var(--serena-borde); background: var(--serena-fondo); }
+}
+.mv-tipo[aria-current] {
+  border-color: color-mix(in srgb, var(--mv-c) 55%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mv-c) 8%, var(--lente-tono-base-arriba)),
+    color-mix(in srgb, var(--mv-c) 16%, var(--lente-tono-base-abajo))
+  );
+  box-shadow: var(--placa-luz), 0 10px 22px -14px color-mix(in srgb, var(--mv-c) 50%, transparent);
+}
+/* El texto tenue del elegido (cuántas prendas, «operaciones») sube del taupe a 78 % de tinta, como el detalle del pase de Traslados: sobre
+   la placa teñida de su tono el taupe bajaba a 4,0:1 en claro (tinta) y a 3,9:1 en oscuro (medido el 2026-11-02). */
+.mv-tipo[aria-current] :is(.mv-tipo-prendas, .mv-tipo-cifra small) { color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+.mv-tipo-barra {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}

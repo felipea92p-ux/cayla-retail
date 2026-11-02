@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fondo="aurora" data-lateral="riel" data-cabecera="islas" data-combo="gota" data-subs="bandeja" data-pmodo="nombre">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>El marco con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · el marco del ERP con el vidrio «Serena» (ADR-0596, 2026-10-31)
+   Primera pieza del tablero docs/vidrio/README.md: el fondo, el menú lateral y la cabecera (components/AppShell.tsx).
+   Hoy: fondo crema plano; lateral de 288 px en crema con borde y riel rojo de 2 px en la fila activa; cabecera fija en crema al 85 %
+   con desenfoque y borde abajo. El vidrio necesita algo detrás: sobre un fondo plano, una placa de vidrio es una placa crema.
+   Tres caras por pieza + «Como ahora». No cambia qué hace nada: el menú, sus grupos, plegar, el cajón del celular, la sede, el buscador.
+   Colores: SOLO los tokens de apps/web/app/globals.css y estilos/tema.css, copiados abajo. Datos inventados (el repo es público).
+   Movimiento: una vez, sin rebote; lo que se mueve después responde a un clic; todo se apaga con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+--ease:cubic-bezier(.32,.72,.24,1);--lienzo:#ddd5c6}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t50:color-mix(in srgb,var(--tinta) 56%,transparent);
+--t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.vs{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}}
+@keyframes funde{from{opacity:0}}
+@keyframes enfoca{from{opacity:0;filter:blur(8px);transform:translateY(6px)}}
+
+/* ---------- barra de la maqueta (no es parte del diseño) ---------- */
+.spk{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px} /* tema-fijo: barra de la maqueta */
+.spk .titulo{font-family:'EB Garamond',serif;font-size:18px;width:100%}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)} /* tema-fijo: barra de la maqueta */
+.seg-m{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg-m button{height:26px;padding:0 9px;font-size:11.5px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.seg-m button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.spk .accion{height:28px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.25);color:#f5f0e8;font-size:12px} /* tema-fijo: barra de la maqueta */
+.spk .accion.on{background:#f5f0e8;color:#1a1a18} /* tema-fijo: barra de la maqueta */
+@media (max-width:1300px){.spk{position:relative}}
+.escena{padding:16px;display:flex;justify-content:center}
+
+/* ---------- el aparato ---------- */
+.disp{scroll-margin-top:110px;container:disp/inline-size;position:relative;width:min(1440px,100%);height:860px;border-radius:16px;overflow:hidden;border:1px solid var(--t25);isolation:isolate}
+.disp[data-ancho="movil"]{width:375px;height:780px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+
+/* ====================================================================
+   EL FONDO (lienzo)
+   ==================================================================== */
+.lienzo{position:absolute;inset:0;z-index:0;background:var(--crema);overflow:hidden}
+.lienzo i{display:none;position:absolute;border-radius:50%;filter:blur(90px)}
+/* A · Crema quieto: el crema de siempre con una luz suave que baja desde arriba; nada de color */
+[data-fondo="crema"] .lienzo{background:radial-gradient(120% 70% at 50% -10%,var(--papel),var(--crema) 60%)}
+/* B · Aurora de sede: tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo; le dan al vidrio algo que desenfocar */
+[data-fondo="aurora"] .lienzo i{display:block;opacity:.16;animation:funde 1.4s var(--ease) both}
+[data-fondo="aurora"] .lienzo i:nth-child(1){width:620px;height:520px;left:-160px;top:-180px;background:var(--rojo)}
+[data-fondo="aurora"] .lienzo i:nth-child(2){width:700px;height:560px;right:-220px;top:120px;background:var(--pizarra);opacity:.14}
+[data-fondo="aurora"] .lienzo i:nth-child(3){width:560px;height:460px;left:30%;bottom:-260px;background:var(--ambar);opacity:.12}
+[data-tema="oscuro"][data-fondo="aurora"] .lienzo i{opacity:.1}
+/* C · Tejido: el crema con la trama fina de una tela (CAYLA también teje) y una luz desde arriba */
+[data-fondo="tejido"] .lienzo{background:
+  radial-gradient(110% 60% at 50% -10%,color-mix(in srgb,var(--papel) 85%,transparent),transparent 65%),
+  repeating-linear-gradient(45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  repeating-linear-gradient(-45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  var(--crema)}
+
+/* ---------- el vidrio del marco (Serena) ---------- */
+.vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+.gota{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .gota{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 16px -8px var(--sombra)}
+
+/* ====================================================================
+   EL MENÚ LATERAL
+   ==================================================================== */
+.disp{--lat-x:0px;--lat-y:0px;--lat-w:272px;--lat-r:0px;--cont-x:272px}
+.disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="panel"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:256px;--lat-r:28px;--cont-x:280px}
+[data-lateral="panel"] .disp[data-plegado]{--lat-w:72px;--cont-x:96px}
+[data-lateral="riel"] .disp{--lat-w:268px;--cont-x:268px}
+[data-lateral="riel"] .disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="riel"][data-pmodo="nombre"] .disp[data-plegado]{--lat-w:84px;--cont-x:84px}
+[data-lateral="riel"][data-pmodo="iconos"] .disp[data-plegado]{--lat-w:64px;--cont-x:64px}
+:root:not([data-lateral])[data-pmodo="nombre"] .disp[data-plegado]{--lat-w:84px;--cont-x:84px}
+:root:not([data-lateral])[data-pmodo="iconos"] .disp[data-plegado]{--lat-w:64px;--cont-x:64px}
+[data-lateral="isla"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:72px;--lat-r:26px;--cont-x:96px}
+.lat{position:absolute;z-index:5;left:var(--lat-x);top:var(--lat-y);bottom:var(--lat-y);width:var(--lat-w);border-radius:var(--lat-r);display:flex;flex-direction:column;overflow:hidden;
+  transition:width .35s var(--ease)}
+/* Como ahora */
+:root:not([data-lateral]) .lat{background:var(--crema);border-right:1px solid var(--t12)}
+/* Arriba del menú, el logo entero. El botón para plegar FLOTA en el borde del menú, a la altura del logo (Felipe 2026-10-31: «que no
+   quite el logo, tal vez hacerlo flotante»): no le quita lugar al logo ni abierto ni plegado, y viaja con el borde al plegar. */
+.logo-fila{display:flex;align-items:center;gap:8px;padding:26px 24px 22px;transition:padding .35s var(--ease)}
+.logo{display:flex;align-items:center;gap:10px;min-width:0;flex:1;white-space:nowrap;overflow:hidden}
+.cerrar-cajon{display:none;flex:none;width:32px;height:32px;border-radius:50%;place-items:center;color:var(--t65)}
+.cerrar-cajon svg{width:18px;height:18px;stroke-width:1.6}
+.plegar-flota{position:absolute;z-index:7;left:calc(var(--lat-x) + var(--lat-w) - 14px);top:calc(var(--lat-y) + 30px);width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 45%,transparent);
+  transition:left .35s var(--ease),color .2s,transform .25s var(--ease),opacity .25s}
+[data-tema="oscuro"] .plegar-flota{background:linear-gradient(180deg,color-mix(in srgb,var(--hueso) 95%,transparent),color-mix(in srgb,var(--hueso) 80%,transparent));border-color:color-mix(in srgb,var(--tinta) 16%,transparent);box-shadow:0 6px 16px -8px var(--sombra)}
+.plegar-flota svg{width:14px;height:14px;stroke-width:2.2;transition:transform .35s var(--ease)}
+.disp[data-plegado] .plegar-flota svg{transform:rotate(180deg)}
+@media (hover:hover){.plegar-flota:hover{color:var(--tinta);transform:scale(1.1)}}
+.plegar-flota:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+[data-lateral="isla"] .plegar-flota{display:none}
+.disp[data-plegado] .logo-fila{justify-content:center;padding:26px 0 22px}
+.disp[data-plegado] .logo{flex:none}
+.disp[data-plegado] .logo>div{display:none}
+/* las islas de la cabecera se apartan del botón flotante */
+[data-cabecera] .disp:not([data-ancho="movil"]) .cab{--aire-cab:22px}
+.logo i{width:26px;height:26px;border-radius:50%;background:var(--rojo);flex:none}
+.logo span{font-family:'EB Garamond',serif;font-size:22px;letter-spacing:.2em}
+.logo small{display:block;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin-top:-4px}
+.nav{position:relative;flex:1;overflow:auto;padding:0 12px;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.grupo-t{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:14px 12px 6px;white-space:nowrap}
+.fila-m{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 12px;border-radius:10px;color:var(--t80);font-size:13.5px;white-space:nowrap;text-align:left;transition:color .2s,background .25s}
+.fila-m svg{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:var(--t65);transition:color .2s,transform .3s var(--ease)}
+.fila-m .et{flex:1;overflow:hidden;text-overflow:ellipsis;transition:opacity .2s}
+.fila-m .chev{width:14px;height:14px;stroke-width:2;transition:transform .3s var(--ease)}
+.fila-m[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.fila-m.on{color:var(--tinta);font-weight:600}
+.fila-m.on svg{color:var(--tinta)}
+.fila-m .glob{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:11px;font-weight:600;display:grid;place-items:center;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+@media (hover:hover){.fila-m:hover{color:var(--rojo)}.fila-m:hover svg{color:var(--rojo);transform:translateX(2px)}}
+/* Los submódulos (Felipe 2026-10-31: «todos los íconos, hasta para los submódulos, y una mejor animación al desplegar, ya que está muy
+   brusco»). Hoy (`.lateral-hijos`, globals.css) la caja crece en 300 ms y las hijas solo aparecen (opacidad, 30 ms de desfase): el alto
+   empuja de golpe todo lo de abajo. Ahora: la caja crece más lento y con una curva que frena, un HILO baja desde el ícono del módulo y
+   le da una rama a cada submódulo, y cada fila llega desde arriba, desenfocada, y se enfoca en cascada; al cerrar, todo se va más rápido
+   y sin cascada (un panel que se va, no uno que llega). Una vez, sin rebote, apagado con prefers-reduced-motion. */
+.sub{position:relative}
+.hijos{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.4,0,1,1)}
+.hijos[data-abierto]{grid-template-rows:1fr;transition:grid-template-rows .46s var(--ease)}
+.hijos>div{position:relative;min-height:0;overflow:hidden}
+.hijos .fila-m{height:36px;padding-left:44px;font-size:13px}
+.hijos .fila-m svg{width:18px;height:18px}
+.hijos .hijos .fila-m{height:34px;padding-left:66px;font-size:12.5px}
+.hijos .hijos .fila-m svg{width:16px;height:16px}
+/* Las ramas del hilo se fueron (Felipe 2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Tres caras, todas sin líneas: */
+/* A · Bandeja: los submódulos de un módulo abierto viven en una bandeja hundida bajo él, como una caja abierta. */
+[data-subs="bandeja"] .nav>.sub>.hijos>div{border-radius:16px;transition:margin .3s var(--ease),padding .3s var(--ease),background .3s,box-shadow .3s}
+[data-subs="bandeja"] .nav>.sub>.hijos[data-abierto]>div{margin:2px 0 6px;padding:4px 0;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+[data-tema="oscuro"][data-subs="bandeja"] .nav>.sub>.hijos[data-abierto]>div{background:color-mix(in srgb,var(--sombra) 26%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-subs="bandeja"] .hijos .fila-m{padding-left:20px}
+[data-subs="bandeja"] .hijos .hijos .fila-m{padding-left:40px}
+/* B · Sangría limpia: sin caja ni línea; los submódulos se alinean con el NOMBRE del módulo y sus íconos van más tenues. */
+[data-subs="sangria"] .hijos .fila-m{padding-left:44px}
+[data-subs="sangria"] .hijos .hijos .fila-m{padding-left:72px}
+[data-subs="sangria"] .hijos .fila-m:not(.on) svg{color:var(--t50)}
+[data-subs="sangria"] .fila-m[aria-expanded="true"]{color:var(--tinta);font-weight:600}
+/* C · Tarjeta: el módulo abierto y sus submódulos se vuelven UNA placa de vidrio que crece desde la fila; lo de abajo se corre. */
+[data-subs="tarjeta"] .nav>.sub{border-radius:18px;border:1px solid transparent;transition:background .35s var(--ease),border-color .35s,box-shadow .35s,margin .35s var(--ease)}
+[data-subs="tarjeta"] .nav>.sub:has(>.hijos[data-abierto]){margin:4px 0;border-color:color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 48%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 10px 24px -18px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-subs="tarjeta"] .nav>.sub:has(>.hijos[data-abierto]){border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-subs="tarjeta"] .nav>.sub>.hijos>div{padding-bottom:6px}
+[data-subs="tarjeta"] .hijos .fila-m{padding-left:44px}
+[data-subs="tarjeta"] .hijos .hijos .fila-m{padding-left:64px}
+[data-subs="tarjeta"] .fila-m[aria-expanded="true"]{color:var(--tinta);font-weight:600}
+/* la cascada: cada fila llega desde arriba, desenfocada, y se enfoca */
+.hijos>div>*{opacity:0;transform:translateY(-8px);filter:blur(3px);transition:opacity .14s,transform .14s,filter .14s}
+.hijos[data-abierto]>div>*{opacity:1;transform:none;filter:none;
+  transition:opacity .34s var(--ease),transform .42s var(--ease),filter .34s var(--ease);transition-delay:calc(80ms + var(--i,0) * 38ms)}
+/* el ícono del módulo que se abre asiente una vez */
+.fila-m[aria-expanded="true"] > svg:first-child{animation:asiente .5s var(--ease)}
+@keyframes asiente{40%{transform:scale(.86)}}
+@media (prefers-reduced-motion:reduce){.hijos>div>*{opacity:1;transform:none;filter:none}}
+/* el riel rojo de la fila activa (hoy) */
+.fila-m.on::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+.marca-activa{display:none}
+.firma{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe);padding:14px 24px;white-space:nowrap;overflow:hidden}
+.yo{display:flex;align-items:center;gap:12px;margin:0 12px 12px;padding:12px;border-top:1px solid var(--t12);white-space:nowrap;overflow:hidden}
+.av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;flex:none;font-family:'EB Garamond',serif;font-size:15px;position:relative}
+.av::after{content:"";position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--verde);border:2px solid var(--crema)}
+.yo .tx{flex:1;min-width:0}.yo b{display:block;font-size:13.5px;font-weight:500}.yo .tx>span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t65)}
+.yo .salir{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+/* plegado (hoy y A/B): solo íconos */
+.disp[data-plegado] .lat :is(.firma,.logo span,.logo small,.grupo-t){opacity:0;pointer-events:none}
+/* Plegado (Felipe 2026-10-31: «los íconos deben estar bien cuadrados; del lado derecho sobresale más, y se podría aprovechar más el
+   espacio»). Antes el nombre seguía ocupando su lugar invisible y empujaba el ícono a la izquierda. Ahora cada fila es un cuadrado con el
+   ícono al centro, la gota es ese cuadrado, y la marca roja sale al canto del menú para no descentrarlo. Dos caras: */
+.disp[data-plegado] .lat :is(.et,.chev,.glob,.yo .tx,.yo .salir){display:none}
+.disp[data-plegado] .nav{padding:0 10px}
+.disp[data-plegado] .lat .fila-m{justify-content:center;gap:0;padding:0;border-radius:14px}
+.disp[data-plegado] .lat .fila-m svg{transform:none!important}
+.disp[data-plegado] .marca-activa{border-radius:14px}
+.disp[data-plegado] .marca-activa::after{left:-8px!important}
+.fila-m .corto{display:none}
+/* A · Con nombre: bajo cada ícono, su nombre corto (10 px). No hace falta apuntar para saber qué es (ley 1: sin manual). */
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m{flex-direction:column;height:54px;gap:4px}
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m .corto{display:block;max-width:100%;padding:0 2px;font-size:10px;line-height:1.15;font-weight:500;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m.on .corto{font-weight:700}
+/* B · Solo íconos: la columna se angosta a 64 px y cada ícono vive en un cuadrado de 44. */
+[data-pmodo="iconos"] .disp[data-plegado] .lat .fila-m{height:44px}
+[data-pmodo="iconos"] .disp[data-plegado] .nav{padding:0 10px}
+.disp[data-plegado] .lat .hijos{display:none}
+
+.disp[data-plegado] .lat .yo{padding:12px 0;margin:0 8px 12px;justify-content:center}
+.disp[data-plegado] .lat .yo{border-radius:14px}
+
+/* A · Panel flotante: el lateral es una placa de vidrio a 12 px de los bordes; la fila activa es la gota, que viaja a la fila que tocas */
+[data-lateral="panel"] .lat{border-radius:28px}
+[data-lateral="panel"] .marca-activa,[data-lateral="riel"] .marca-activa,[data-lateral="isla"] .marca-activa{display:block;position:absolute;z-index:0;left:12px;right:12px;top:0;height:40px;border-radius:14px;
+  transition:top .38s var(--ease),height .38s var(--ease),left .38s var(--ease),width .38s var(--ease),opacity .25s}
+[data-lateral="panel"] .marca-activa::after,[data-lateral="riel"] .marca-activa::after,[data-lateral="isla"] .marca-activa::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
+[data-lateral="panel"] .fila-m.on::before,[data-lateral="riel"] .fila-m.on::before,[data-lateral="isla"] .fila-m.on::before{content:none}
+/* la fila elegida corre 6 px para que la marca roja no toque su ícono (Felipe 2026-10-31, «el efecto de seleccionado como en la foto») */
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m{transition:color .2s,background .25s,padding .38s var(--ease)}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m.on{padding-left:20px}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .hijos .fila-m.on{padding-left:calc(var(--sub-x,44px) + 8px)}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .hijos .hijos .fila-m.on{padding-left:calc(var(--sub-x2,66px) + 8px)}
+[data-subs="bandeja"]{--sub-x:20px;--sub-x2:40px}[data-subs="sangria"]{--sub-x:44px;--sub-x2:72px}[data-subs="tarjeta"]{--sub-x:44px;--sub-x2:64px}
+@media (hover:hover){:is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}
+  :is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover svg{color:var(--tinta)}}
+[data-lateral="panel"] .yo{border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));padding:10px}
+[data-tema="oscuro"][data-lateral="panel"] .yo{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+[data-lateral="panel"] .disp[data-plegado] .marca-activa{left:10px;right:10px}
+
+/* B · Riel de vidrio (elegido, 2026-10-31): pegado al borde, de arriba abajo, con su filo de luz a la derecha; la fila activa es la gota con su marca roja (Felipe eligió la gota del panel) */
+[data-lateral="riel"] .lat{border-width:0 1px 0 0;border-radius:0;box-shadow:inset -1px 0 0 color-mix(in srgb,var(--vidrio) 80%,transparent),12px 0 40px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+
+/* C · Isla de íconos: una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido y muestra los nombres */
+[data-lateral="isla"] .lat{border-radius:26px}
+[data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:0;transition:opacity .2s}
+[data-lateral="isla"] .lat .hijos{display:none}
+[data-lateral="isla"] .lat .logo-fila{padding-left:23px}
+[data-lateral="isla"] .lat .yo{border-top:0;padding:8px 6px;justify-content:flex-start}
+@media (hover:hover){
+  [data-lateral="isla"] .lat:hover{width:248px}
+  [data-lateral="isla"] .lat:hover :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1;transition-delay:.12s}
+  [data-lateral="isla"] .lat:hover .hijos{display:grid}
+}
+
+
+/* ====================================================================
+   LA CABECERA
+   ==================================================================== */
+.cab{position:absolute;z-index:4;top:0;left:var(--cont-x);right:0;height:60px;display:flex;align-items:center;gap:10px;padding:0 24px;transition:left .35s var(--ease)}
+:root:not([data-cabecera]) .cab{background:color-mix(in srgb,var(--crema) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--t12)}
+.cab .buscar{display:flex;align-items:center;gap:10px;height:38px;flex:0 1 340px;white-space:nowrap;overflow:hidden;padding:0 14px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);color:var(--t50);font-size:13px}
+.cab .buscar kbd{margin-left:auto;font:inherit;font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid var(--t25)}
+.cab .der{margin-left:auto;display:flex;align-items:center;gap:6px}
+.cab .ib{position:relative;width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:var(--t65);transition:background .2s,color .2s}
+.cab .ib svg{width:18px;height:18px;stroke-width:1.5}
+@media (hover:hover){.cab .ib:hover{background:var(--t06);color:var(--rojo)}}
+.cab .ib .pt{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;font-size:10px;font-weight:700;display:grid;place-items:center;background:var(--rojo);color:var(--crema)}
+.cab .sede{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500}
+.cab .sede i{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.cab .hamb,.cab .colibri{display:none}
+/* A · Barra flotante: una barra de vidrio a 12 px de los bordes; los botones, gotas redondas */
+[data-cabecera="flotante"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:56px;border-radius:20px;padding:0 10px 0 14px}
+[data-cabecera] .cab .ib{border-radius:50%}
+[data-cabecera] .cab .buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cabecera] .cab .buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cabecera] .cab .sede{border-color:color-mix(in srgb,var(--borde) 70%,transparent)}
+[data-cabecera] .cab :is(.ib,.sede){background:transparent}
+@media (hover:hover){[data-cabecera] .cab .ib:hover{background:var(--t06);color:var(--tinta)}}
+[data-cabecera="flotante"] .cab .sede,[data-cabecera="islas"] .cab .sede{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-cabecera] .cab .sede{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:none}
+/* B · Fundida: sin barra. El contenido se desvanece al llegar arriba bajo un desenfoque que se va apagando; los botones quedan sueltos */
+[data-cabecera="fundida"] .cab{height:76px;align-items:flex-start;padding-top:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 88%,transparent),color-mix(in srgb,var(--crema) 50%,transparent) 60%,transparent);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask:linear-gradient(#000 55%,transparent);mask:linear-gradient(#000 55%,transparent)}
+/* C · Dos islas: la búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha; entre ellas se ve el contenido */
+[data-cabecera="islas"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:52px;padding:0;background:none;border:0;box-shadow:none}
+[data-cabecera="islas"] .cab .izq,[data-cabecera="islas"] .cab .der{height:52px;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:999px}
+[data-cabecera="islas"] .cab .izq{flex:0 1 340px;min-width:54px}[data-cabecera="islas"] .cab .izq .buscar{flex:1 1 auto}
+[data-cabecera="islas"] .cab{justify-content:space-between;gap:12px}
+[data-cabecera="islas"] .cab .der{flex:none}
+/* El buscador nunca se sale de su isla (Felipe 2026-10-31): se encoge con la cabecera; angosta, pierde la tecla «/», y más angosta
+   queda en una lupa redonda. La cabecera es un contenedor: la regla mira SU ancho, no el de la pantalla. */
+.cab{container:cab/inline-size}
+.cab .buscar{min-width:0}
+.cab .buscar .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cab .buscar kbd{flex:none}
+@container cab (max-width:700px){.cab .buscar kbd{display:none}}
+@container cab (max-width:560px){:root[data-cabecera="islas"] .cab .izq{flex:0 0 auto}:root .cab .izq .buscar{flex:0 0 38px;width:38px;padding:0;justify-content:center;gap:0}.cab .buscar .txt{display:none}.cab .ocultable{display:none}}
+.cab .izq{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+
+/* ====================================================================
+   EL CONTENIDO (Existencias, de muestra; sus piezas son de otra auditoría)
+   ==================================================================== */
+.cont{position:absolute;z-index:1;top:0;bottom:0;left:var(--cont-x);right:0;overflow:auto;padding:92px 36px 40px;transition:left .35s var(--ease);scrollbar-width:thin}
+.enc .linea{display:flex;align-items:center;gap:10px}
+.enc .linea::before{content:"";width:22px;height:1px;background:var(--taupe)}
+.enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin:8px 0 6px}
+.enc p{color:var(--t65)}
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}
+.cifras div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+.cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.filtros>span:not(#filtro-cat){height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);display:inline-flex;align-items:center;font-size:12.5px;background:var(--papel)}
+.filtros>span.on:not(#filtro-cat){background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.prendas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.prenda{border-radius:16px;overflow:hidden;background:var(--papel);border:1px solid var(--sand)}
+.prenda .foto{aspect-ratio:4/5;display:grid;place-items:center;color:var(--crema-fija)}
+.prenda .foto.claro{color:var(--tinta-fija)}
+.prenda .foto svg{width:34px;height:34px;stroke-width:1.5;opacity:.85}
+.prenda .pie{padding:10px 12px}.prenda b{display:block;font-size:13.5px;font-weight:600}.prenda span{font-size:12px;color:var(--t65)}
+.cont .enc,.cont .cifras,.cont .filtros{animation:sube .5s var(--ease) backwards}
+.cont .cifras{animation-delay:.08s}.cont .filtros{animation-delay:.14s}
+
+/* ====================================================================
+   UNA HOJA ENCIMA (la elegida: Serena, campos hundidos, botones gota) — para ver cómo se apila sobre el marco
+   ==================================================================== */
+.capa{position:absolute;inset:0;z-index:20;display:none;justify-content:center;align-items:flex-start;padding:7% 24px 24px}
+.disp[data-hoja] .capa{display:flex}
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 20%,transparent);backdrop-filter:blur(1.5px);animation:funde .3s var(--ease) both}
+[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 42%,transparent)}
+.hoja{position:relative;width:min(448px,100%);padding:30px;border-radius:32px;background:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .62s var(--ease) both}
+[data-tema="oscuro"] .hoja{background:color-mix(in srgb,var(--vidrio) 82%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.hoja .sub{color:var(--taupe);font-size:13.5px;margin:4px 0 18px}
+.hoja .et{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:6px}
+.hoja .caja{height:42px;border-radius:14px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent);padding:0 14px;display:flex;align-items:center;margin-bottom:14px;font-size:14px}
+.hoja .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.hoja .b{height:42px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:500}
+.hoja .b.sec{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+.hoja .b.pri{color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+
+/* ====================================================================
+   EL COMBO (Felipe 2026-10-31: «mejorar el combo de las sedes y que quede así para todos los combos»)
+   Hoy es UNA pieza, `Desplegable` (components/ui/campos.tsx), con siete formas: campo, caja, cajaBaja, pildora, pastilla (la sede),
+   fin y finEnLinea; la usan ~105 archivos, más ComboBuscable (21), ComboResponsable y DesplegablePildora (20). Su lista: papel, el hilo
+   rojo de canto y el ✓ en la elegida, y un buscador con más de 8 opciones (ADR-0209). Lo que se elija aquí cambia la LISTA y el
+   DISPARADOR de todas las formas; en una hoja el disparador sigue siendo el pozo (campos «A · Hundido»).
+   ==================================================================== */
+:root{--sede-tru:#2f6aa3;--sede-aqp:#c26a2e;--sede-lim:#1d8a72;--sede-tal:#8a4fa8;--sede-emp:#9a8b7b}
+:root[data-tema="oscuro"]{--sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-tal:#a26cc6;--sede-emp:#8a7d70}
+.cb{position:relative;display:inline-block}
+.cb.ancho{display:block}
+.cb-btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500;white-space:nowrap;
+  transition:background .25s,border-color .25s,box-shadow .25s,transform .25s var(--ease)}
+.cb-btn .pto{width:8px;height:8px;border-radius:50%;flex:none;background:var(--c,var(--verde));box-shadow:0 0 0 3px color-mix(in srgb,var(--c,var(--verde)) 18%,transparent)}
+.cb-btn .flecha{width:14px;height:14px;transition:transform .3s var(--ease),color .2s}
+.cb.abierto .cb-btn .flecha{transform:rotate(180deg);color:var(--rojo)}
+.cb-btn .val{display:inline-block}
+.cb-btn .val.entra{animation:val-entra .32s var(--ease)}
+@keyframes val-entra{from{opacity:0;transform:translateY(60%)}}
+.cb-btn[data-forma="campo"]{width:100%;height:44px;border-radius:14px;justify-content:flex-start;padding:0 7px 0 14px;font-weight:400;font-size:14px;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.cb-btn[data-forma="campo"] .flecha-caja{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.cb-btn[data-forma="pildora"]{height:32px;font-size:12.5px;background:var(--papel)}
+/* Como ahora: la pastilla de la cabecera en versalitas, la caja de un formulario, la lista de papel */
+:root:not([data-combo]) .cb-btn[data-forma="pastilla"]{border-radius:6px;height:32px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;background:transparent;box-shadow:none}
+:root:not([data-combo]) .cb-btn[data-forma="campo"]{border-radius:10px;background:var(--hueso);box-shadow:none}
+:root:not([data-combo]) .cb-btn .pto{display:none}
+.cb-lista{position:absolute;z-index:40;top:calc(100% + 8px);left:0;width:max-content;max-width:340px;display:none;padding:6px;border-radius:12px;
+  background:var(--papel);border:1px solid var(--sand);box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+/* La lista flota en la capa del aparato, fuera del disparador (como `useDestinoFlotante`): un vidrio dentro de otro vidrio no ve lo de atrás. */
+.flotante{position:absolute;inset:0;z-index:30;pointer-events:none}
+.flotante .cb-lista{pointer-events:auto}
+.cb-lista.abierta{display:block;animation:sube .24s var(--ease)}
+.cb-buscar{display:flex;align-items:center;gap:8px;height:36px;margin:2px 2px 6px;padding:0 10px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);font-size:13px;color:var(--t65)}
+.cb-buscar input{flex:1;border:0;background:none;outline:0;min-width:0;color:var(--tinta)}
+.cb-grupo{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:8px 10px 4px}
+.cb-ops{position:relative;display:grid;gap:2px;max-height:300px;overflow:auto;scrollbar-width:thin}
+.cb-op{position:relative;z-index:1;display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;text-align:left;font-size:13.5px;transition:background .2s,padding .3s var(--ease)}
+.cb-op .lente{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.cb-op .lente svg{width:16px;height:16px;stroke-width:1.6}
+.cb-op .tx{min-width:0}.cb-op .tx b{display:block;font-weight:500}.cb-op .tx span{display:block;font-size:12px;color:var(--t65);white-space:nowrap}
+.cb-op .ok{margin-left:auto;opacity:0;width:15px;height:15px}
+.cb-op[aria-selected="true"] .ok{opacity:1}
+.cb-op[aria-selected="true"] .ok path{stroke-dasharray:24;animation:traza-cb .4s var(--ease) both}
+@keyframes traza-cb{from{stroke-dashoffset:24}}
+.cb-op[aria-selected="true"] .tx b{font-weight:600}
+.cb-op[aria-selected="true"]::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+@media (hover:hover){.cb-op:hover{background:var(--hueso)}}
+.cb-op[hidden],.cb-grupo[hidden]{display:none}
+.cb-vacio{padding:12px;font-size:13px;color:var(--t65)}
+.cb-gota{display:none}
+
+/* lo común del vidrio: el disparador es una gota (en una hoja, el pozo con su flecha en gota) y la lista, una placa de vidrio */
+[data-combo] .cb-btn:not([data-forma="campo"]){border-color:color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 32%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 12px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn:not([data-forma="campo"]){background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+[data-combo] .cb-btn[data-forma="campo"] .flecha-caja{border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 24%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"] .flecha-caja{background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-combo] .cb.abierto .cb-btn[data-forma="campo"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+@media (hover:hover){[data-combo] .cb-btn:not([data-forma="campo"]):hover{transform:translateY(-1px)}}
+[data-combo] .cb-lista{border-radius:20px;padding:8px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 74%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-lista{background:color-mix(in srgb,var(--vidrio) 88%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 26px 54px -24px var(--sombra)}
+[data-combo] .cb-buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo] .cb-op{border-radius:14px}
+[data-combo] .cb-op .lente{background:linear-gradient(145deg,color-mix(in srgb,var(--c) 18%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 8%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--c) 25%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-op .lente{background:color-mix(in srgb,var(--c) 18%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 30%,transparent)}
+
+/* A · Gota viajera: la gota del menú lateral, también en la lista. Se queda en la elegida y viaja a la que apuntas. */
+[data-combo="gota"] .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;
+  transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@media (hover:hover){:is([data-combo="gota"],[data-combo="tarjetas"]) .cb-op:hover{background:transparent}}
+[data-combo="gota"] .cb-op[aria-selected="true"]{padding-left:18px}
+[data-combo="gota"] .cb-op[aria-selected="true"]::before{left:7px;width:3px;height:14px;margin-top:-7px;border-radius:3px}
+
+/* B · Brota del botón: la lista nace del disparador, como una gota que se estira, y sus opciones se enfocan en cascada.
+   La elegida queda hundida (estás adentro), con su ✓. */
+[data-combo="brota"] .cb-lista.abierta{animation:brota .42s var(--ease) both;transform-origin:top left}
+[data-combo="brota"] .cb-lista.abierta[data-alinea="derecha"]{transform-origin:top right}
+@keyframes brota{from{opacity:0;transform:scale(.35,.15);border-radius:999px}to{opacity:1;transform:none}}
+[data-combo="brota"] .cb-lista.abierta .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(140ms + var(--k,0) * 35ms)}
+[data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo="brota"] .cb-op[aria-selected="true"]::before{left:6px}
+@media (hover:hover){[data-combo="brota"] .cb-op:not([aria-selected="true"]):hover{background:var(--t06)}}
+
+/* C · Tarjetas: con pocas opciones y su detalle (las sedes), la lista se vuelve un tablero de tarjetas de vidrio; con muchas, la lista
+   de A. La elegida sobresale con su anillo y su ✓ en la esquina. */
+[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:400px!important;max-width:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-grupo{display:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-ops{grid-template-columns:1fr 1fr;gap:8px;max-height:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent);transition:transform .25s var(--ease),background .25s}
+[data-tema="oscuro"][data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:first-child{grid-column:1/-1;flex-direction:row;align-items:center}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .lente{width:36px;height:36px}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .tx b{font-family:'EB Garamond',serif;font-size:19px;line-height:1.1}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .ok{position:absolute;top:10px;right:10px;width:18px;height:18px;padding:3px;border-radius:50%;box-sizing:content-box;background:var(--tinta);color:var(--crema)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]{border-color:var(--tinta);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px var(--tinta),0 10px 22px -14px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]::before{content:none}
+@media (hover:hover){[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:hover{transform:translateY(-2px)}}
+[data-combo="tarjetas"] .cb-lista.abierta[data-tarjetas] .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(80ms + var(--k,0) * 45ms)}
+[data-combo="tarjetas"] .cb-lista:not([data-tarjetas]) .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@container disp (max-width:520px){[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:300px!important}.cb-lista{max-width:300px}}
+
+/* ====================================================================
+   EL CELULAR: el lateral es un cajón que entra desde la izquierda; la cabecera, menú + colibrí + acciones
+   ==================================================================== */
+@container disp (max-width:520px){
+  /* una consulta de contenedor no alcanza al contenedor mismo: el corrimiento se apaga en quienes lo usan */
+  .cab,.cont{--cont-x:0px}
+  .lat,[data-lateral] .lat{left:0;top:0;bottom:0;width:min(300px,86%)!important;border-radius:0 28px 28px 0;transform:translateX(-105%);transition:transform .45s var(--ease)}
+  :root:not([data-lateral]) .lat{border-radius:0}
+  .disp[data-cajon] .lat{transform:none}
+  [data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1}
+  [data-lateral="isla"] .lat .hijos{display:grid}
+  .disp[data-cajon]::after{content:"";position:absolute;inset:0;z-index:4;background:color-mix(in srgb,var(--sombra) 22%,transparent)}
+  .cab{padding:0 10px}
+  [data-cabecera="flotante"] .cab,[data-cabecera="islas"] .cab{left:8px;right:8px;top:8px}
+  .cab .buscar,.cab .ocultable,.plegar-flota{display:none}
+  .lat .cerrar-cajon{display:grid}
+  .cab .hamb,.cab .colibri{display:grid}
+  .cab .colibri{width:26px;height:26px;border-radius:50%;background:var(--rojo)}
+  .cont{padding:84px 16px 32px}
+  .enc h1{font-size:34px}
+  .cifras{grid-template-columns:1fr 1fr}
+  .prendas{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- el análisis ---------- */
+.analisis{max-width:1180px;margin:20px auto 60px;padding:0 16px;display:grid;gap:18px}
+.analisis section{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 24px}
+.analisis h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.15;margin-bottom:6px}
+.analisis h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:16px 0 8px}
+.analisis p,.analisis li{font-size:14px;color:var(--t80);max-width:84ch}
+.analisis ul{padding-left:20px;display:grid;gap:6px}
+.analisis b{color:var(--tinta)}
+.analisis code{font-size:12.5px;background:var(--hueso);padding:1px 6px;border-radius:6px}
+.analisis table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.analisis th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:left;padding:8px 10px;border-bottom:1px solid var(--sand)}
+.analisis td{padding:8px 10px;border-bottom:1px solid var(--sand);vertical-align:top;color:var(--t80)}
+.ev{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:6px;vertical-align:1px;background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">El marco con vidrio · fondo, menú lateral y cabecera</span>
+  <span class="tag">Fondo</span><div class="seg-m" data-ctl="fondo"><button data-v="ahora">Como ahora</button><button data-v="crema">A · Crema quieto</button><button data-v="aurora">B · Aurora ✓</button><button data-v="tejido">C · Tejido</button></div>
+  <span class="tag">Lateral</span><div class="seg-m" data-ctl="lateral"><button data-v="ahora">Como ahora</button><button data-v="panel">A · Panel flotante</button><button data-v="riel">B · Riel con gota ✓</button><button data-v="isla">C · Isla de íconos</button></div>
+  <span class="tag">Cabecera</span><div class="seg-m" data-ctl="cabecera"><button data-v="ahora">Como ahora</button><button data-v="flotante">A · Barra flotante</button><button data-v="fundida">B · Fundida</button><button data-v="islas">C · Dos islas ✓</button></div>
+  <span class="tag">Submódulos</span><div class="seg-m" data-ctl="subs"><button data-v="bandeja">A · Bandeja ✓</button><button data-v="sangria">B · Sangría limpia</button><button data-v="tarjeta">C · Tarjeta</button></div>
+  <span class="tag">Plegado</span><div class="seg-m" data-ctl="pmodo"><button data-v="nombre">A · Con nombre ✓</button><button data-v="iconos">B · Solo íconos</button></div>
+  <span class="tag">Combo</span><div class="seg-m" data-ctl="combo"><button data-v="ahora">Como ahora</button><button data-v="gota">A · Gota viajera ✓</button><button data-v="brota">B · Brota del botón</button><button data-v="tarjetas">C · Tarjetas</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="movil">Celular 375</button></div>
+  <button class="accion" data-acc="hoja">Ver una hoja encima</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+  <div class="capa"><div class="velo" data-acc="hoja"></div>
+    <div class="hoja" role="dialog" aria-label="Registrar cliente"><h2>Registrar cliente</h2><p class="sub">Solo su documento: vino, preguntó, se probó.</p>
+      <p class="et">Documento</p><div class="caja">DNI · 47210385</div><p class="et">Nombre</p><div class="caja">Rosa Quispe Mendoza</div>
+      <p class="et">Qué se probó</p><div id="campo-cat" style="margin-bottom:14px"></div>
+      <div class="pie"><button class="b sec" data-acc="hoja">Cancelar</button><button class="b pri">Registrar cliente</button></div></div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy (<code>components/AppShell.tsx</code>)</h2>
+    <ul>
+      <li><b>El fondo</b> es <code>bg-crema</code> plano. Sobre un fondo plano, una placa de vidrio es una placa crema: el vidrio de las hojas solo se nota cuando hay prendas con color detrás.</li>
+      <li><b>El menú lateral</b> mide 288 px (76 plegado), es crema con un borde a la derecha; la fila activa lleva el riel rojo de 2 px; los íconos son de 20 px a trazo 1,5 y se van a la derecha al pasar el mouse. Abajo, la firma «Donde el estilo transforma.» y la persona, que abre Mi perfil. Plegado, cada grupo abre un cajón al costado; en el celular, el lateral es un cajón que entra desde la izquierda.</li>
+      <li><b>La cabecera</b> es fija, crema al 85 % con desenfoque y una línea abajo: botón de plegar, buscador, Asistente, Actividad, Demo (terminales), tema y la sede.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td rowspan="3"><b>Fondo</b></td><td>A · Crema quieto</td><td>El crema de siempre con una luz suave que baja desde arriba.</td><td>Lo más sereno. El vidrio del marco casi no se nota: es crema sobre crema.</td></tr>
+      <tr><td>B · Aurora <span class="ev">Elegida</span></td><td>Tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo.</td><td>Le da al vidrio algo que desenfocar sin distraer. Cuesta que el contraste ya no es sobre un solo color: hay que medirlo.</td></tr>
+      <tr><td>C · Tejido</td><td>La trama fina de una tela sobre el crema, con luz desde arriba.</td><td>Dice «taller textil». Pero detrás de una tabla, una trama se ve como ruido.</td></tr>
+      <tr><td rowspan="3"><b>Lateral</b></td><td>A · Panel flotante</td><td>Placa de vidrio a 12 px de los bordes; la fila activa es la gota de Mi perfil, que viaja a la fila que tocas, con su marca roja.</td><td>Es el mismo idioma de las hojas: donde estás sobresale. Cuesta 8 px de ancho.</td></tr>
+      <tr><td>B · Riel de vidrio <span class="ev">Elegida, con la gota</span></td><td>Pegado al borde, de arriba abajo, con un filo de luz. Felipe lo eligió con la fila activa del panel: la gota con su marca roja, y la fila corre 6 px para que la marca no toque el ícono.</td><td>El cambio más chico en el ancho y el idioma de las hojas en la fila activa (donde estás sobresale).</td></tr>
+      <tr><td>C · Isla de íconos</td><td>Una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido con los nombres.</td><td>Le da todo el ancho a la pantalla. Pero quien no conoce los íconos tiene que apuntar para leer (ley 1 de Formidable: sin manual).</td></tr>
+      <tr><td rowspan="3"><b>Cabecera</b></td><td>A · Barra flotante</td><td>Barra de vidrio a 12 px de los bordes, con botones redondos y la sede en una gota.</td><td>Hermana del panel lateral: el marco son dos placas flotando sobre el fondo.</td></tr>
+      <tr><td>B · Fundida</td><td>Sin barra: el contenido se desvanece al llegar arriba bajo un desenfoque que se apaga.</td><td>La más limpia. Los botones quedan sueltos y sobre una prenda de color se pierden.</td></tr>
+      <tr><td>C · Dos islas <span class="ev">Elegida</span></td><td>La búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha.</td><td>La más «iOS». Al bajar, el contenido se ve entre las dos islas y la página parece cortada.</td></tr>
+    </table>
+    <p style="margin-top:12px">Con «Ver una hoja encima» se ve cómo se apila una hoja Serena sobre el marco: el velo, el lateral y la cabecera de vidrio detrás, y el fondo debajo de todo. Ojo con las capas: el lateral, la cabecera y la hoja son tres <code>backdrop-filter</code> a la vez (por medir en el Mac mini).</p>
+  </section>
+  <section>
+    <h2>El combo (la sede, y todos los demás)</h2>
+    <p>Hoy el combo es <b>una sola pieza</b>, <code>Desplegable</code> (<code>components/ui/campos.tsx</code>), con siete formas: <code>campo</code>, <code>caja</code>, <code>cajaBaja</code>, <code>pildora</code>, <code>pastilla</code> (la sede de la cabecera, en versalitas de 11 px con su borde), <code>fin</code> y <code>finEnLinea</code>; la usan ~105 archivos, y además <code>ComboBuscable</code>, <code>ComboResponsable</code> y <code>DesplegablePildora</code> dibujan la misma lista. Su lista es de papel, con el hilo rojo de canto y el ✓ en la elegida, y un buscador desde las 9 opciones (ADR-0209). Por eso «que quede así para todos» se cumple cambiando la lista y los disparadores en un solo lugar. En la maqueta, el mismo combo se ve en tres lugares: <b>la sede</b> (cabecera), <b>el filtro «Categoría»</b> (pantalla) y <b>«Qué se probó»</b> dentro de «Ver una hoja encima» (con buscador).</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td>A · Gota viajera <span class="ev">Elegida</span></td><td>El disparador es una gota; la lista, una placa de vidrio. La gota del menú lateral también vive en la lista: se queda en la elegida, con su marca roja, y viaja a la que apuntas. Cada sede lleva su lente con el color de la sede.</td><td>El mismo gesto que elegiste para el menú: la persona aprende uno solo. Sirve igual con 6 opciones que con 50.</td></tr>
+      <tr><td>B · Brota del botón</td><td>La lista nace del disparador como una gota que se estira, y sus opciones se enfocan en cascada; la elegida queda hundida con su ✓.</td><td>La entrada más líquida. Pero «hundido» ya quiere decir «espera tu dato», y la cascada demora una lista que se abre muchas veces al día.</td></tr>
+      <tr><td>C · Tarjetas</td><td>Con pocas opciones y su detalle (las sedes), la lista se vuelve un tablero de tarjetas de vidrio; con muchas, la lista de A.</td><td>La sede se ve como un lugar, no como una línea. Pero son dos combos distintos según cuántas opciones haya: la regla «una función, una pieza» se rompe un poco.</td></tr>
+    </table>
+    <p style="margin-top:10px">La lista flota en una capa propia, fuera del disparador, como ya lo hace <code>useDestinoFlotante</code>: un vidrio dentro de otro vidrio no ve lo que hay detrás. El detalle de cada sede («Tienda», «Lima · producción») es su tipo; mostrar ahí si la caja está abierta sería un dato nuevo que el combo no carga hoy.</p>
+  </section>
+  <section>
+    <h2>El menú completo y cómo se despliega</h2>
+    <p>El lateral de la maqueta es el menú real de una líder (<code>lib/menu.ts</code>, lo que está «viva»): 11 módulos, sus submódulos y los dos subgrupos de tercer nivel (Producción ▸ Abastecimiento y Ventas ▸ Posventa), <b>cada uno con su ícono de hoy</b> (los 61 trazos de <code>lib/menu-iconos.ts</code>, copiados tal cual). Los globitos suman lo que hay dentro de un módulo cerrado, y abrir un módulo cierra sus hermanos, como en el ERP.</p>
+    <p style="margin-top:8px"><b>El despliegue.</b> Hoy (<code>.lateral-hijos</code> en <code>globals.css</code>) la caja crece en 300 ms y las filas solo aparecen, así que todo lo de abajo baja de golpe. Ahora la caja crece en 460 ms con una curva que frena, cada submódulo llega desde arriba, desenfocado, y se enfoca en cascada (38 ms entre uno y otro), el ícono del módulo asiente una vez y la gota de la fila activa acompaña a su fila; al cerrar, 300 ms sin cascada. Sin rebote, y con <code>prefers-reduced-motion</code> todo aparece de una.</p>
+    <p style="margin-top:8px"><b>Plegar: un botón que flota en el borde del menú</b> (Felipe 2026-10-31: «que no quite el logo, tal vez hacerlo flotante»). Ya no está en la cabecera ni en la fila del logo: es una gota redonda de 28 px montada sobre el borde derecho del menú, a la altura del logo, que viaja con el borde al plegar y da vuelta su flecha. El logo queda entero abierto y, plegado, el colibrí centrado; las islas de la cabecera se apartan 22 px para no tocarlo. En el celular no está: ahí va la ✕ que cierra el cajón.</p>
+    <p style="margin-top:8px"><b>El menú plegado</b> (Felipe 2026-10-31: «los íconos deben estar bien cuadrados; del lado derecho sobresale más, y se podría aprovechar más el espacio»). El nombre invisible seguía ocupando su lugar y empujaba el ícono a la izquierda. Ahora cada fila es un cuadrado con el ícono al centro (medido: 0 px de corrimiento), la gota es ese cuadrado y la marca roja sale al canto del menú. Selector <b>Plegado</b>: <b>A · Con nombre</b> (84 px; bajo cada ícono su nombre corto en 10 px —«Salud», «Web»—, así no hay que apuntar para saber qué es; elegida) o <b>B · Solo íconos</b> (64 px, cuadrados de 44).</p>
+    <p style="margin-top:8px"><b>El buscador de la cabecera</b> nunca se sale de su isla: la cabecera es un contenedor y el buscador se encoge con ella; bajo 700 px de cabecera pierde la tecla «/», y bajo 560 queda en una lupa redonda. Medido con el menú abierto y plegado, de 1440 a 600 px: las islas no se montan y nada se corta.</p>
+    <p style="margin-top:8px"><b>Cómo se agrupan los submódulos</b> (Felipe no quiso las ramas del hilo). Selector <b>Submódulos</b>, las tres sin líneas:</p>
+    <table>
+      <tr><th>Cara</th><th>Cómo es</th><th>Lo que gana y lo que cuesta</th></tr>
+      <tr><td>A · Bandeja <span class="ev">Elegida</span></td><td>Los submódulos viven en una bandeja hundida bajo su módulo, como una caja abierta.</td><td>Agrupa con claridad. Pero «hundido» ya quiere decir «espera tu dato», y la bandeja se lee un poco como un campo.</td></tr>
+      <tr><td>B · Sangría limpia</td><td>Sin caja ni línea: los submódulos se alinean con el nombre del módulo y sus íconos van más tenues.</td><td>Lo más liviano. Con dos módulos abiertos (Producción y Abastecimiento) cuesta ver dónde termina cada uno.</td></tr>
+      <tr><td>C · Tarjeta</td><td>El módulo abierto y sus submódulos se vuelven una sola placa de vidrio que crece desde la fila; lo de abajo se corre.</td><td>Lo que abriste sobresale, como en las hojas: el idioma de siempre. Se ve de un vistazo qué está abierto y dónde termina.</td></tr>
+    </table>
+  </section>
+</div>
+
+<script>
+const EASE = 'cubic-bezier(.32,.72,.24,1)';
+const quieto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+// Los trazos del menú, copiados de apps/web/lib/menu-iconos.ts (TRAZOS_MENU) para que se vea el lateral de verdad.
+// Los trazos del menú, copiados tal cual de apps/web/lib/menu-iconos.ts (TRAZOS_MENU): los 61 que usa el árbol de hoy.
+const T = {"inicio": "M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5 M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244 M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05", "pulso": "M3 12h4l2.5-6 4 12 2.5-6H21", "produccion": "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12", "resumen": "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z", "ordenes": "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01", "insumos": "M7 3h10a1 1 0 011 1v1.5a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z M7 17.5h10a1 1 0 011 1V20a1 1 0 01-1 1H7a1 1 0 01-1-1v-1.5a1 1 0 011-1z M8 6.5v11M16 6.5v11 M8 10l8 2M8 13l8 2", "compras": "M7 21a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M18 21a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12", "ordenesInsumos": "M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01", "proveedores": "M12 16h.01 M16 16h.01 M3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5a.5.5 0 0 0-.769-.422l-4.462 2.844A.5.5 0 0 1 15 10.5v-2a.5.5 0 0 0-.769-.422L9.77 10.922A.5.5 0 0 1 9 10.5V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z M8 16h.01", "facturas": "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8", "recibirInsumos": "M12 22v-9M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36zM20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z", "porPagar": "M16 14v2.2l1.6 1 M16 2v4 M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5 M3 10h5 M8 2v4 M10 16a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", "gestion": "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M16.24 7.76l-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z", "analisis": "M3 10.5a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0 -15 0 M21 21l-5.2-5.2 M7 12.5l2.4-2.6 2.1 2 3-3.4", "frescura": "M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13", "planPiso": "M12 12V9a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3M16 20v-3a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3M20 22V2M4 12h16M4 20h16M4 2v20M4 4h16", "rendimiento": "M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3", "preguntas": "M7.9 20A9 9 0 1 0 4 16.1L2 22ZM9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01", "venta": "M16 10a4 4 0 0 1-8 0 M3.103 6.034h17.794 M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z", "vender": "M7 3h10v5H7z M12 8v3 M3 11h18v8a2 2 0 01-2 2H5a2 2 0 01-2-2z M8 15h.01M12 15h.01M16 15h.01M8 18h.01M12 18h.01M16 18h.01", "apartados": "M6 3h12v18l-6-4-6 4V3zm3.5 6.5L11 11l3.5-3.5", "caja": "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8 M12 18V6", "historial": "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2", "posventa": "M3.4 5.467a2 2 0 00-.4 1.2V20a2 2 0 002 2h14a2 2 0 002-2V6.667a2 2 0 00-.4-1.2l-2-2.667A2 2 0 0017 2H7a2 2 0 00-1.6.8z M3.1 6h17.8 M10.5 10.5l-2.2 2.2 2.2 2.2 M8.3 12.7h5.2a2.5 2.5 0 010 5H11", "cambios": "M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4", "devoluciones": "M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4", "facturacion": "M13 16H8 M14 8H8 M16 12H8 M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z", "tiendaWeb": "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20 M2 12h20", "resumenWeb": "M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z", "pedidosWeb": "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01 M9 10l2 2 4-4", "vitrina": "M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z M8 21h8 M12 17v4 M10.8 6.8a1.2 1.2 0 1 1 1.2 1.2v.9l4 3H8l4-3", "paleta": "M12 22a1 1 0 0 1 0-20a10 9 0 0 1 10 9a5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z M13 6.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M17 10.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M8 7.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M6 12.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0", "recomendaciones": "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4", "trafico": "M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z M16 17h4 M4 13h4", "ajustesWeb": "M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4", "inventario": "M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z M7 16.5l-4.74-2.85 M7 16.5l5-3 M7 16.5v5.17 M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z M17 16.5l-5-3 M17 16.5l4.74-2.85 M17 16.5v5.17 M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z M12 8 7.26 5.15 M12 8l4.74-2.85 M12 13.5V8", "existencias": "M11.3 3a1.3 1.3 0 102 1c0 .5-.3.9-.7 1.1v1.3L4 13.5a1.5 1.5 0 00-.7 1.3V16h17.4v-1.2a1.5 1.5 0 00-.7-1.3l-7.7-6.1V5.4", "movimientos": "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4", "traslados": "M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2 M15 18H9 M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14 M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M5 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0", "conteo": "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4", "recibir": "M12 22V12 M16 17l2 2 4-4 M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753 M3.29 7 12 12l8.71-5 M7.5 4.27l8.997 5.148", "catalogo": "M12 7v14 M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z", "productos": "M20.38 3.46 16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10a2 2 0 002 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z", "categorias": "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z", "marcas": "M3 6h18l-2.6 6L21 18H3l2.6-6z M12 9.3l.9 1.85 2.05.3-1.5 1.45.36 2.05L12 14l-1.8.95.36-2.05-1.5-1.45 2.05-.3z", "atributos": "M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z M16.7 13H19a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7 M 7 17h.01 M11 8l2.3-2.3a2.4 2.4 0 0 1 3.404.004L18.6 7.6a2.4 2.4 0 0 1 .026 3.434L9.9 19.8", "insignias": "M15.477 12.89l1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526 M6 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", "liquidacion": "M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z M15 9l-6 6 M9 9h.01 M15 15h.01", "campana": "M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14M8 6v8", "fondos": "M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17M7 21l1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9M2 16l6 6M13.1 9a2.9 2.9 0 1 0 5.8 0a2.9 2.9 0 1 0-5.8 0M3 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0", "finanzas": "M13.744 17.736a6 6 0 1 1-7.48-7.48 M15 6h1v4 M6.134 14.768l.866-.5 2 3.464 M10 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", "panorama": "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1", "gastos": "M3 7a2 2 0 012-2h13a1 1 0 011 1v2 M3 7v11a2 2 0 002 2h14a1 1 0 001-1v-3 M3 7h16a1 1 0 011 1v3 M20 11h-4a2 2 0 000 4h4v-4z", "dinero": "M3 6h18v12H3z M7 12h.01 M17 12h.01 M12 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z", "reportes": "M4 20V10 M10 20V4 M16 20v-7 M3 20h18", "impuestos": "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01", "cierre": "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4", "club": "M18 21a8 8 0 0 0-16 0 M5 8a5 5 0 1 0 10 0a5 5 0 1 0 -10 0 M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", "clientas": "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z", "avisos": "M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z", "puntos": "M20 12v10H4V12 M2 7h20v5H2z M12 22V7 M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"};
+const L = { chev: 'M9 6l6 6-6 6', menu: 'M4 7h16M4 12h16M4 17h16', plegar: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 3v18 M16 15l-3-3 3-3', cerrar: 'M18 6 6 18M6 6l12 12', buscar: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8',
+  actividad: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0', luna: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z', chispa: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z',
+  salir: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9', abajo: 'M6 9l6 6 6-6',
+  camisa: 'M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z',
+  pantalon: 'M7 2h10l1.2 20h-4.7L12 10l-1.5 12H5.8z M7 6h10' };
+const sv = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+
+// El menú completo de una líder, sacado de apps/web/lib/menu.ts (ARBOL, solo lo que está «viva»): módulos, submódulos y los
+// subgrupos de tercer nivel (Abastecimiento, Posventa), cada uno con su ícono de hoy. Existencias abierta.
+const MENU = [{"id": "inicio", "et": "Inicio", "ic": "inicio"}, {"id": "global", "et": "Salud del negocio", "ic": "pulso"}, {"id": "produccion", "et": "Producción", "ic": "produccion", "hijos": [{"id": "produccion.resumenProduccion", "et": "Resumen", "ic": "resumen"}, {"id": "produccion.ordenes", "et": "Órdenes", "ic": "ordenes"}, {"id": "produccion.insumos", "et": "Insumos", "ic": "insumos"}, {"id": "produccion.abastecimiento", "et": "Abastecimiento", "ic": "compras", "hijos": [{"id": "produccion.ordenesInsumos", "et": "Órdenes de insumos", "ic": "ordenesInsumos"}, {"id": "produccion.proveedoresProduccion", "et": "Proveedores", "ic": "proveedores"}, {"id": "produccion.comprobantesProduccion", "et": "Facturas de insumos", "ic": "facturas"}, {"id": "produccion.recibirProduccion", "et": "Recibir", "ic": "recibirInsumos"}, {"id": "produccion.porPagarProduccion", "et": "Por pagar", "ic": "porPagar"}]}]}, {"id": "gestion", "et": "Gestión", "ic": "gestion", "hijos": [{"id": "gestion.analisis", "et": "Análisis", "ic": "analisis"}, {"id": "gestion.frescura", "et": "Frescura del piso", "ic": "frescura"}, {"id": "gestion.plan_piso", "et": "Plan del piso", "ic": "planPiso"}, {"id": "gestion.rendimiento", "et": "Rendimiento", "ic": "rendimiento"}, {"id": "gestion.preguntas", "et": "Preguntas del equipo", "ic": "preguntas"}]}, {"id": "venta", "et": "Ventas", "ic": "venta", "hijos": [{"id": "venta.puntoDeVenta", "et": "Punto de Venta", "ic": "vender"}, {"id": "venta.apartados", "et": "Apartados", "ic": "apartados"}, {"id": "venta.caja", "et": "Caja", "ic": "caja"}, {"id": "venta.historial", "et": "Historial", "ic": "historial"}, {"id": "venta.posventa", "et": "Posventa", "ic": "posventa", "hijos": [{"id": "venta.cambios", "et": "Cambios", "ic": "cambios"}, {"id": "venta.devoluciones", "et": "Devoluciones", "ic": "devoluciones"}]}, {"id": "venta.facturacion", "et": "Comprobantes", "ic": "facturacion"}]}, {"id": "tiendaWeb", "et": "Tienda web", "ic": "tiendaWeb", "hijos": [{"id": "tiendaWeb.resumen", "et": "Resumen", "ic": "resumenWeb"}, {"id": "tiendaWeb.pedidos", "et": "Pedidos", "ic": "pedidosWeb"}, {"id": "tiendaWeb.vitrina", "et": "Vitrina", "ic": "vitrina"}, {"id": "tiendaWeb.campanas", "et": "Campañas", "ic": "paleta"}, {"id": "tiendaWeb.recomendaciones", "et": "Recomendaciones", "ic": "recomendaciones"}, {"id": "tiendaWeb.trafico", "et": "Tráfico", "ic": "trafico"}, {"id": "tiendaWeb.ajustes", "et": "Conf. Tienda", "ic": "ajustesWeb"}]}, {"id": "inventario", "et": "Inventario", "ic": "inventario", "hijos": [{"id": "inventario.existencias", "et": "Existencias", "ic": "existencias"}, {"id": "inventario.movimientos", "et": "Movimientos", "ic": "movimientos"}, {"id": "inventario.traslados", "et": "Traslados", "ic": "traslados"}, {"id": "inventario.conteo", "et": "Conteo", "ic": "conteo"}, {"id": "inventario.recibir", "et": "Recibir mercadería", "ic": "recibir"}]}, {"id": "catalogo", "et": "Catálogo", "ic": "catalogo", "hijos": [{"id": "catalogo.productos", "et": "Productos", "ic": "productos"}, {"id": "catalogo.categorias", "et": "Categorías", "ic": "categorias"}, {"id": "catalogo.marcas", "et": "Marcas", "ic": "marcas"}, {"id": "catalogo.atributos", "et": "Atributos", "ic": "atributos"}, {"id": "catalogo.insignias", "et": "Insignias", "ic": "insignias"}, {"id": "catalogo.liquidacion", "et": "Liquidación", "ic": "liquidacion"}]}, {"id": "compras", "et": "Compras", "ic": "compras", "hijos": [{"id": "compras.plan", "et": "Plan de campaña", "ic": "campana"}, {"id": "compras.miPlata", "et": "Mis compras", "ic": "fondos"}, {"id": "compras.proveedores", "et": "Proveedores", "ic": "proveedores"}, {"id": "compras.comprobantes", "et": "Historial de compras", "ic": "facturas"}]}, {"id": "finanzas", "et": "Finanzas", "ic": "finanzas", "hijos": [{"id": "finanzas.resumen", "et": "Resumen", "ic": "panorama"}, {"id": "finanzas.gastos", "et": "Gastos", "ic": "gastos"}, {"id": "finanzas.dinero", "et": "Cuentas y dinero", "ic": "dinero"}, {"id": "finanzas.reportes", "et": "Estados financieros", "ic": "reportes"}, {"id": "finanzas.impuestos", "et": "Impuestos", "ic": "impuestos"}, {"id": "finanzas.cierreDeMes", "et": "Cierre de mes", "ic": "cierre"}]}, {"id": "clientas", "et": "Clientes", "ic": "club", "hijos": [{"id": "clientas.fichas", "et": "Fichas", "ic": "clientas"}, {"id": "clientas.avisos", "et": "Avisos", "ic": "avisos"}, {"id": "clientas.beneficios", "et": "Beneficios", "ic": "puntos"}]}];
+const CORTOS = { global: 'Salud', tiendaWeb: 'Web', clientas: 'Clientes', produccion: 'Producción', inventario: 'Inventario' };
+const GLOBITOS = { 'inventario.traslados': 3, 'tiendaWeb.pedidos': 2, 'compras.comprobantes': 1 };
+const abiertos = new Set(['inventario']);
+let activa = 'inventario.existencias';
+const contiene = (n, id) => n.id === id || (n.hijos || []).some((h) => contiene(h, id));
+const suma = (n) => (n.hijos ? n.hijos.reduce((a, h) => a + suma(h), 0) : GLOBITOS[n.id] || 0);
+function fila(n, prof, i, sinHijas) {
+  const glob = (x) => (x ? `<span class="glob">${x}</span>` : '');
+  const corto = prof === 0 ? `<span class="corto">${CORTOS[n.id] || n.et}</span>` : '';
+  if (!n.hijos) return `<button class="fila-m${activa === n.id ? ' on' : ''}" data-ir="${n.id}" style="--i:${i}" title="${n.et}">${sv(T[n.ic])}<span class="et">${n.et}</span>${corto}${glob(GLOBITOS[n.id])}</button>`;
+  const ab = abiertos.has(n.id) && !sinHijas, dentro = contiene(n, activa);
+  return `<div class="sub" style="--i:${i}"><button class="fila-m${dentro && !ab ? ' on' : ''}" data-grupo="${n.id}" aria-expanded="${ab}" title="${n.et}">${sv(T[n.ic])}<span class="et">${n.et}</span>${corto}${ab ? '' : glob(suma(n))}${sv(L.chev, 'ic chev')}</button>
+    <div class="hijos"${ab ? ' data-abierto' : ' inert'}><div>${n.hijos.map((h, j) => fila(h, prof + 1, j, sinHijas)).join('')}</div></div></div>`;
+}
+function pintarLateral() {
+  const lat = $('#lat');
+  lat.className = 'lat' + (document.documentElement.dataset.lateral ? ' vidrio' : '');
+  // Plegado o en la isla las hijas no se ven: el módulo lleva la marca de la pantalla en la que estás.
+  const sinHijas = document.documentElement.dataset.lateral === 'isla' || $('#disp').hasAttribute('data-plegado');
+  const plegado = $('#disp').hasAttribute('data-plegado');
+  const bp = $('#plegar-flota'); bp.setAttribute('aria-label', plegado ? 'Expandir el menú' : 'Plegar el menú'); bp.title = bp.getAttribute('aria-label');
+  lat.innerHTML = `<div class="logo-fila"><div class="logo"><i></i><div><span>CAYLA</span><small>Retail</small></div></div>
+      <button class="cerrar-cajon" data-acc="cajon" aria-label="Cerrar el menú">${sv(L.cerrar)}</button></div>
+    <nav class="nav"><span class="marca-activa gota" aria-hidden="true"></span>${MENU.map((n, i) => fila(n, 0, i, sinHijas)).join('')}</nav>
+    <p class="firma">Donde el estilo transforma.</p>
+    <div class="yo"><span class="av">LR</span><span class="tx"><b>Lucía Ramos</b><span>Líder · Trujillo</span></span><button class="salir" aria-label="Salir">${sv(L.salir)}</button></div>`;
+  requestAnimationFrame(() => moverMarca(false));
+}
+// Abrir o cerrar un módulo SIN volver a pintar el menú (si no, no hay transición). Como en el ERP, abrir uno cierra sus hermanos.
+function alternarGrupo(btn) {
+  const id = btn.dataset.grupo, sub = btn.parentElement, abre = !abiertos.has(id);
+  const hermanos = [...sub.parentElement.children].filter((x) => x !== sub && x.classList.contains('sub'));
+  const poner = (s, abierto) => {
+    const b = s.firstElementChild, h = b.nextElementSibling, gid = b.dataset.grupo, n = buscar(MENU, gid);
+    abierto ? abiertos.add(gid) : abiertos.delete(gid);
+    b.setAttribute('aria-expanded', abierto); h.toggleAttribute('data-abierto', abierto); h.inert = !abierto;
+    b.classList.toggle('on', !abierto && contiene(n, activa));
+    const g = $(':scope > .glob', b); if (g) g.remove();
+    if (!abierto && suma(n)) b.querySelector('.chev').insertAdjacentHTML('beforebegin', `<span class="glob">${suma(n)}</span>`);
+  };
+  if (abre) hermanos.forEach((s) => abiertos.has(s.firstElementChild.dataset.grupo) && poner(s, false));
+  poner(sub, abre);
+  seguirMarca(520);
+}
+function buscar(lista, id) { for (const n of lista) { if (n.id === id) return n; const x = n.hijos && buscar(n.hijos, id); if (x) return x; } return null; }
+// La gota acompaña a su fila mientras las cajas crecen o se cierran.
+function seguirMarca(ms) { const fin = performance.now() + ms; const paso = () => { moverMarca(false); if (performance.now() < fin) requestAnimationFrame(paso); }; requestAnimationFrame(paso); }
+
+function moverMarca(animar = true) {
+  const m = $('.marca-activa'), on = $('.lat .fila-m.on');
+  if (!m) return;
+  if (!on || !on.offsetParent) { m.style.opacity = 0; return; }
+  m.style.opacity = 1;
+  if (!animar || quieto()) m.style.transition = 'none'; else m.style.transition = '';
+  const nav = $('.nav'), r = on.getBoundingClientRect(), rn = nav.getBoundingClientRect();
+  m.style.top = r.top - rn.top + nav.scrollTop + 'px'; m.style.height = r.height + 'px';
+  m.style.left = r.left - rn.left + 'px'; m.style.width = r.width + 'px'; m.style.right = 'auto';
+  requestAnimationFrame(() => (m.style.transition = ''));
+}
+
+function pintarCabecera() {
+  $('#cab').innerHTML = `<div class="izq${document.documentElement.dataset.cabecera === 'islas' ? ' vidrio' : ''}"><button class="ib hamb" data-acc="cajon" aria-label="Abrir menú">${sv(L.menu)}</button><span class="colibri" aria-hidden="true"></span>
+      <span class="buscar">${sv(L.buscar)}<span class="txt">Buscar en el ERP</span><kbd>/</kbd></span></div>
+    <div class="der${document.documentElement.dataset.cabecera === 'islas' ? ' vidrio' : ''}"><button class="ib ocultable" aria-label="Asistente">${sv(L.chispa)}</button>
+      <button class="ib" aria-label="Actividad">${sv(L.actividad)}<span class="pt">3</span></button>
+      <button class="ib" aria-label="Tema">${sv(L.luna)}</button>
+      ${combo({ id: 'sede', forma: 'pastilla', opciones: SEDES, valor: estadoCombos.sede, alinea: 'derecha', tarjetas: true, etiqueta: 'Cambiar de sede' })}</div>`;
+  $('#cab').className = 'cab' + (document.documentElement.dataset.cabecera === 'flotante' ? ' vidrio' : '');
+}
+
+// La pantalla de muestra: Existencias, con prendas de color para que el vidrio tenga qué desenfocar al bajar.
+const PRENDAS = [['#7a2e2a', 'Blusa Emma', 'camisa', 34], ['#c9a27e', 'Casaca Lía', 'camisa', 12, 1], ['#2f4a3a', 'Vestido Ara', 'camisa', 8], ['#d8cbb3', 'Polo Nube', 'camisa', 41, 1],
+  ['#1f2f4a', 'Jean Río', 'pantalon', 22], ['#b5643a', 'Falda Inti', 'camisa', 6], ['#e7d7c1', 'Top Brisa', 'camisa', 17, 1], ['#5b3a5e', 'Saco Malva', 'camisa', 4],
+  ['#8c9a6b', 'Short Oliva', 'pantalon', 15, 1], ['#2b2b2b', 'Pantalón Noa', 'pantalon', 28], ['#c2876b', 'Blusa Coral', 'camisa', 9], ['#4f6f8f', 'Camisa Mar', 'camisa', 13],
+  ['#7d5a3c', 'Chaleco Roble', 'camisa', 5], ['#a33b3b', 'Vestido Rubí', 'camisa', 11], ['#36474f', 'Jogger Pizarra', 'pantalon', 19], ['#d9b44a', 'Blusa Sol', 'camisa', 7, 1]]; // tema-fijo: colores de prenda, son dato
+$('#cont').innerHTML = `<div class="enc"><p class="vs linea">Trujillo · viernes 31 de octubre</p><h1>Existencias</h1><p>Lo que hay en la tienda y en el almacén, prenda por prenda.</p></div>
+  <div class="cifras"><div><span class="vs">En tienda</span><b>1 284</b></div><div><span class="vs">En almacén</span><b>3 902</b></div><div><span class="vs">Por reponer</span><b>46</b></div><div><span class="vs">Sin foto</span><b>12</b></div></div>
+  <div class="filtros"><span class="on">Todas</span><span>Por reponer</span><span>Sin foto</span><span id="filtro-cat"></span></div>
+  <div class="prendas">${PRENDAS.map(([c, n, i, q, claro]) => `<div class="prenda"><div class="foto${claro ? ' claro' : ''}" data-color-dato style="background:${c}">${sv(L[i])}</div><div class="pie"><b>${n}</b><span>${q} en la tienda</span></div></div>`).join('')}</div>`;
+
+// ---------- el combo: una sola pieza para la sede, el filtro y el campo de una hoja ----------
+const SEDES = [
+  { v: 'global', t: 'Toda la empresa', d: 'Las tres tiendas, el taller y el almacén', c: 'var(--sede-emp)', ic: 'pulso', g: 'Toda la empresa' },
+  { v: 'tru', t: 'Trujillo', d: 'Tienda', c: 'var(--sede-tru)', ic: 'inicio', g: 'Sedes' },
+  { v: 'aqp', t: 'Arequipa', d: 'Tienda', c: 'var(--sede-aqp)', ic: 'inicio', g: 'Sedes' },
+  { v: 'lim', t: 'Lima', d: 'Tienda', c: 'var(--sede-lim)', ic: 'inicio', g: 'Sedes' },
+  { v: 'tal', t: 'Taller', d: 'Lima · producción', c: 'var(--sede-tal)', ic: 'produccion', g: 'Sedes' },
+  { v: 'alm', t: 'Almacén', d: 'Lima · reserva', c: 'var(--taupe)', ic: 'inventario', g: 'Sedes' },
+];
+// Más de 8 opciones: aparece el buscador (ADR-0209, UMBRAL_BUSCAR_COMBO).
+const CATEGORIAS = ['Blusas', 'Bodys', 'Camisas', 'Casacas', 'Chalecos', 'Faldas', 'Jeans', 'Leggings', 'Polos', 'Sacos', 'Shorts', 'Tops', 'Vestidos'].map((t) => ({ v: t, t }));
+const estadoCombos = { sede: 'tru', filtro: '', campo: 'Blusas' };
+const sinTilde = (x) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const ICK = { ok: 'M20 6 9 17l-5-5', lupa: L.buscar };
+function combo({ id, forma, opciones, valor, alinea, ancho, tarjetas, etiqueta, marcador }) {
+  const el = opciones.find((o) => o.v === valor);
+  const conBuscar = opciones.length > 8;
+  let grupo = null, k = 0;
+  const ops = opciones.map((o) => {
+    const cab = o.g && o.g !== grupo ? `<p class="cb-grupo">${(grupo = o.g)}</p>` : '';
+    return `${cab}<button type="button" role="option" class="cb-op" style="--k:${k++}${o.c ? `;--c:${o.c}` : ''}" aria-selected="${o.v === valor}" data-v="${o.v}" data-t="${o.t}">${o.ic ? `<span class="lente">${sv(T[o.ic])}</span>` : ''}<span class="tx"><b>${o.t}</b>${o.d ? `<span>${o.d}</span>` : ''}</span>${sv(ICK.ok, 'ic ok')}</button>`;
+  }).join('');
+  // La lista se cuelga de la capa flotante del aparato (como useDestinoFlotante en el ERP); el disparador se queda en su lugar.
+  $$(`.flotante [data-de="${id}"]`).forEach((x) => x.remove());
+  $('#flotante').insertAdjacentHTML('beforeend', `<div class="cb-lista" role="listbox" data-de="${id}" ${alinea ? `data-alinea="${alinea}"` : ''} ${tarjetas ? 'data-tarjetas' : ''} ${ancho ? 'data-ancho' : ''}>${conBuscar ? `<label class="cb-buscar">${sv(ICK.lupa)}<input placeholder="Buscar" data-buscar></label>` : ''}<div class="cb-ops"><span class="cb-gota gota" aria-hidden="true"></span>${ops}<p class="cb-vacio" hidden>No hay nada con ese nombre.</p></div></div>`);
+  const flecha = forma === 'campo' ? `<span class="flecha-caja">${sv(L.abajo, 'ic flecha')}</span>` : sv(L.abajo, 'ic flecha');
+  return `<div class="cb${ancho ? ' ancho' : ''}" data-cb="${id}">
+    <button type="button" class="cb-btn" data-forma="${forma}" role="combobox" aria-expanded="false" aria-label="${etiqueta || ''}" style="${el && el.c ? `--c:${el.c}` : ''}">${forma === 'pastilla' ? '<span class="pto"></span>' : ''}<span class="val">${el ? el.t : marcador}</span>${flecha}</button></div>`;
+}
+function pintarCombosDelContenido() {
+  $('#filtro-cat').outerHTML = `<span id="filtro-cat">${combo({ id: 'filtro', forma: 'pildora', opciones: CATEGORIAS, valor: estadoCombos.filtro, marcador: 'Categoría', etiqueta: 'Filtrar por categoría' })}</span>`;
+  $('#campo-cat').innerHTML = combo({ id: 'campo', forma: 'campo', opciones: CATEGORIAS, valor: estadoCombos.campo, ancho: true, etiqueta: 'Qué se probó' });
+}
+const listaDe = (id) => $(`.flotante .cb-lista[data-de="${id}"]`);
+const cbDe = (lista) => $(`.cb[data-cb="${lista.dataset.de}"]`);
+// La gota de la lista (A, y las listas largas de C): se queda en la elegida y viaja a la que apuntas.
+function gotaA(lista, op, animar = true) {
+  const g = lista && $('.cb-gota', lista);
+  if (!g) return;
+  const destino = op || $('.cb-op[aria-selected="true"]:not([hidden])', lista);
+  if (!destino) { g.style.opacity = 0; return; }
+  if (!animar || quieto()) g.style.transition = 'none';
+  g.style.top = destino.offsetTop + 'px'; g.style.height = destino.offsetHeight + 'px'; g.style.opacity = 1;
+  if (!animar || quieto()) requestAnimationFrame(() => (g.style.transition = ''));
+}
+function cerrarCombos() {
+  $$('.cb.abierto').forEach((c) => { c.classList.remove('abierto'); $('.cb-btn', c).setAttribute('aria-expanded', 'false'); });
+  $$('.cb-lista.abierta').forEach((l) => l.classList.remove('abierta'));
+}
+function abrirCombo(cb) {
+  const lista = listaDe(cb.dataset.cb), btn = $('.cb-btn', cb), d = $('#disp').getBoundingClientRect(), r = btn.getBoundingClientRect();
+  cb.classList.add('abierto'); btn.setAttribute('aria-expanded', 'true');
+  lista.style.width = lista.hasAttribute('data-ancho') ? r.width + 'px' : '';
+  lista.style.minWidth = r.width + 'px';
+  lista.classList.add('abierta');
+  const w = lista.offsetWidth;
+  lista.style.top = r.bottom - d.top + 8 + 'px';
+  lista.style.left = Math.max(8, lista.dataset.alinea === 'derecha' ? r.right - d.left - w : r.left - d.left) + 'px';
+  requestAnimationFrame(() => gotaA(lista, null, false));
+  const b = $('[data-buscar]', lista); if (b) setTimeout(() => b.focus(), 30);
+}
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.cb-btn');
+  if (btn) { const cb = btn.parentElement, abre = !cb.classList.contains('abierto'); cerrarCombos(); if (abre) abrirCombo(cb); e.stopImmediatePropagation(); return; }
+  const op = e.target.closest('.cb-op');
+  if (op) {
+    const lista = op.closest('.cb-lista'), cb = cbDe(lista);
+    $$('.cb-op', lista).forEach((o) => o.setAttribute('aria-selected', o === op));
+    estadoCombos[lista.dataset.de] = op.dataset.v;
+    const b = $('.cb-btn', cb), val = $('.val', b);
+    val.textContent = op.dataset.t; val.classList.remove('entra'); void val.offsetWidth; val.classList.add('entra');
+    if (op.style.getPropertyValue('--c')) b.style.setProperty('--c', op.style.getPropertyValue('--c'));
+    setTimeout(cerrarCombos, 160);
+    e.stopImmediatePropagation(); return;
+  }
+  if (!e.target.closest('.cb-lista')) cerrarCombos();
+}, true);
+document.addEventListener('pointerover', (e) => {
+  const op = e.target.closest('.cb-op');
+  if (op) gotaA(op.closest('.cb-lista'), op);
+});
+document.addEventListener('pointerout', (e) => {
+  const ops = e.target.closest('.cb-ops');
+  if (ops && !ops.contains(e.relatedTarget)) gotaA(ops.closest('.cb-lista'));
+});
+document.addEventListener('input', (e) => {
+  if (!e.target.matches('[data-buscar]')) return;
+  const lista = e.target.closest('.cb-lista'), q = sinTilde(e.target.value.trim());
+  let hay = 0;
+  $$('.cb-op', lista).forEach((o) => { const ver = !q || sinTilde(o.dataset.t).includes(q); o.hidden = !ver; hay += ver; });
+  $('.cb-vacio', lista).hidden = hay > 0;
+  gotaA(lista, null, false);
+});
+document.addEventListener('keydown', (e) => {
+  // Escape: primero cierra la lista abierta; recién el segundo cierra la hoja (useEscapeLibre).
+  if (e.key !== 'Escape') return;
+  if ($('.cb-lista.abierta')) { cerrarCombos(); return; }
+  $('#disp').removeAttribute('data-hoja');
+});
+
+// ---------- estado ----------
+const estado = { fondo: 'aurora', lateral: 'riel', cabecera: 'islas', combo: 'gota', subs: 'bandeja', pmodo: 'nombre', tema: 'claro', ancho: 'escritorio' };
+function pintar() {
+  const r = document.documentElement;
+  r.dataset.tema = estado.tema;
+  for (const k of ['fondo', 'lateral', 'cabecera', 'combo', 'subs', 'pmodo']) { if (estado[k] === 'ahora') delete r.dataset[k]; else r.dataset[k] = estado[k]; }
+  $$('.seg-m').forEach((s) => $$('button', s).forEach((b) => b.classList.toggle('on', b.dataset.v === estado[s.dataset.ctl])));
+  $('#disp').dataset.ancho = estado.ancho;
+  cerrarCombos(); pintarLateral(); pintarCabecera();
+}
+document.addEventListener('click', (e) => {
+  const ctl = e.target.closest('.seg-m button');
+  if (ctl) { estado[ctl.parentElement.dataset.ctl] = ctl.dataset.v; pintar(); return; }
+  const acc = e.target.closest('[data-acc]');
+  const d = $('#disp');
+  if (acc) {
+    const a = acc.dataset.acc;
+    if (a === 'hoja') { d.toggleAttribute('data-hoja'); $('.spk [data-acc="hoja"]').classList.toggle('on', d.hasAttribute('data-hoja')); }
+    if (a === 'plegar') { d.toggleAttribute('data-plegado'); pintarLateral(); setTimeout(() => moverMarca(false), 360); }
+    if (a === 'cajon') d.toggleAttribute('data-cajon');
+    return;
+  }
+  const g = e.target.closest('[data-grupo]');
+  if (g) { if ($('#disp').hasAttribute('data-plegado') || document.documentElement.dataset.lateral === 'isla') return; alternarGrupo(g); return; }
+  const ir = e.target.closest('[data-ir]');
+  if (ir) { activa = ir.dataset.ir; $$('.lat .fila-m').forEach((f) => f.classList.toggle('on', f === ir || !!(f.dataset.grupo && f.getAttribute('aria-expanded') !== 'true' && contiene(buscar(MENU, f.dataset.grupo), activa)))); moverMarca(true); return; }
+  if (d.hasAttribute('data-cajon') && !e.target.closest('.lat')) d.removeAttribute('data-cajon');
+});
+$('#lat').addEventListener('transitionend', () => moverMarca(false));
+addEventListener('resize', () => moverMarca(false));
+pintar();
+pintarCombosDelContenido();
+$('#cont').addEventListener('scroll', () => { if ($('.cb-lista.abierta')) cerrarCombos(); }, { passive: true });
+</script>
+<script src="../vidrio-base-2026-10/copiar-seleccion.js"></script>
+</body>
+</html>

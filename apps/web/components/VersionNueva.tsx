@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import {
   CADA_MS_PREGUNTAR_VERSION,
@@ -30,6 +30,49 @@ async function preguntarVersion(): Promise<string | null> {
   } finally {
     window.clearTimeout(corte);
   }
+}
+
+/** El aire que la píldora deja a cada lado cuando va entre las islas de la cabecera, y bajo ella cuando cuelga. */
+const AIRE_PX = 12;
+const BAJO_PX = 8;
+
+/**
+ * Dónde va la píldora con la cabecera «Dos islas» (docs/maquetas/avisos-espera-vidrio-2026-10/README.md): en el HUECO entre las dos
+ * islas si cabe con 12 px de aire por lado y, si no, justo bajo la cabecera, centrada sobre el contenido (el `left` de `avisos.css`).
+ * Se MIDE, no se adivina por anchos: lo que hay en cada isla cambia con la cuenta y la sede. El recordatorio de cierre de caja
+ * (`RecordatorioCierreCaja`) vive en el mismo hueco: si está en la barra, la píldora toma el lado que sobra; si cuelga bajo la
+ * cabecera, la píldora cuelga bajo él. Sin cabecera (no debería pasar), se queda lo del CSS.
+ */
+function colocar(el: HTMLElement) {
+  el.style.setProperty("--m", `${el.offsetWidth / 2}px`);
+  const cab = document.querySelector<HTMLElement>("[data-cabecera-app]");
+  const izq = cab?.querySelector<HTMLElement>(".marco-isla-izq");
+  const der = cab?.querySelector<HTMLElement>(".marco-isla-der");
+  if (!cab || !izq || !der) {
+    delete el.dataset.colocada;
+    return;
+  }
+  const r = cab.getBoundingClientRect();
+  const alto = el.offsetHeight;
+  const ancho = el.offsetWidth;
+  const caps = document.querySelector<HTMLElement>(".rcc-caps")?.getBoundingClientRect();
+  const hayCaps = !!caps && caps.width > 0 && caps.height > 0;
+  const capsEnLaBarra = hayCaps && caps.top < r.bottom;
+
+  // Los tramos libres de la barra: de la isla izquierda a la derecha, partidos por la cápsula de caja si está ahí.
+  const a = izq.getBoundingClientRect().right;
+  const b = der.getBoundingClientRect().left;
+  const tramos: [number, number][] = capsEnLaBarra ? [[a, caps.left], [caps.right, b]] : [[a, b]];
+  const [desde, hasta] = tramos.reduce((m, t) => (t[1] - t[0] > m[1] - m[0] ? t : m));
+  if (hasta - desde >= ancho + 2 * AIRE_PX) {
+    el.style.setProperty("--vn-x", `${(desde + hasta) / 2}px`);
+    el.style.setProperty("--vn-y", `${r.top + (r.height - alto) / 2}px`);
+    el.dataset.colocada = "hueco";
+    return;
+  }
+  const bajo = hayCaps && !capsEnLaBarra ? caps.bottom : r.bottom;
+  el.style.setProperty("--vn-y", `${bajo + BAJO_PX}px`);
+  el.dataset.colocada = "bajo";
 }
 
 /**
@@ -84,10 +127,32 @@ export function VersionNueva() {
     return () => window.clearTimeout(id);
   }, [callada]);
 
-  // La mitad del ancho de la píldora, para que el líquido llegue a las paredes sea cual sea el largo del texto (ver `avisos.css`).
+  // La mitad del ancho de la píldora (`--m`, para que el líquido llegue a las paredes sea cual sea el largo del texto) y su lugar en la
+  // cabecera (`colocar`). Al montarla, y otra vez cuando cambia la ventana, una isla o el recordatorio de caja.
+  const pildora = useRef<HTMLDivElement | null>(null);
   const medirPildora = useCallback((el: HTMLDivElement | null) => {
-    if (el) el.style.setProperty("--m", `${el.offsetWidth / 2}px`);
+    pildora.current = el;
+    if (el) colocar(el);
   }, []);
+  const visible = hayNueva && !callada;
+  useEffect(() => {
+    if (!visible) return;
+    const remedir = () => pildora.current && colocar(pildora.current);
+    const observador = new ResizeObserver(remedir);
+    const cab = document.querySelector<HTMLElement>("[data-cabecera-app]");
+    if (cab) {
+      observador.observe(cab);
+      cab.querySelectorAll<HTMLElement>(".marco-isla").forEach((isla) => observador.observe(isla));
+    }
+    // El recordatorio de caja y la cabecera de una pantalla nueva terminan de montarse un poco después: se vuelve a medir.
+    const ids = [window.setTimeout(remedir, 400), window.setTimeout(remedir, 1500)];
+    window.addEventListener("resize", remedir);
+    return () => {
+      observador.disconnect();
+      ids.forEach((id) => window.clearTimeout(id));
+      window.removeEventListener("resize", remedir);
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!saliendo) return;
@@ -105,7 +170,7 @@ export function VersionNueva() {
     else setSaliendo(true);
   }, []);
 
-  if (!hayNueva || callada) return null;
+  if (!visible) return null;
 
   return (
     <>
@@ -129,6 +194,8 @@ export function VersionNueva() {
           }
         }}
       >
+        {/* La luz de la gota ahumada: lo de atrás, desenfocado, a través del líquido (vidrio/avisos-espera.css). */}
+        <span aria-hidden className="version-nueva-luz" />
         <div aria-hidden className="version-nueva-agua">
           <div className="version-nueva-goo">
             <i className="vn-gota" />
