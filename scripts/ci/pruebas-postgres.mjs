@@ -1998,6 +1998,7 @@ export const PRUEBAS = [
   // y mandar la confirmación por la API directa no cambia nada; una talla con cero buenas no cuenta; una muestra no
   // pregunta; una sola función (sin sobrecargas); `anon` no la ejecuta; se puede pegar dos veces. Cada caso termina en ROLLBACK.
   "pruebas:produccion-costo-atipico",
+  "pruebas:produccion-costo-atipico-motivo",
 
   // Recibir un lote sin factura pide confirmación si el costo de una línea es atípico (20260930122000, Felipe 2026-09-30): el
   // líder recibe `costo_atipico` con las líneas raras que faltan por confirmar en `detail.items` (numeradas; las normales no) y no
