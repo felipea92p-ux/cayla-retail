@@ -437,6 +437,14 @@
   backdrop-filter: blur(22px) saturate(1.5);
   pointer-events: none;
 }
+/* En el cobro, el paso que «sigue» (guía de foco) tampoco lleva el fondo rosado sólido con borde: sobre el vidrio se veía como un bloque opaco.
+   Se marca con su número en rojo y la pastilla «Sigue aquí», como en el descuento. Se conserva su margen y su relleno: el diseño del cobro,
+   compactado por su alto, no cambia de medidas. */
+.hoja-cobro.hoja-serena .hoja-cobro-paso,
+.hoja-cobro.hoja-serena .hoja-cobro-paso.sigue-aqui {
+  background: transparent;
+  border-color: transparent;
+}
 .hoja-descuento.hoja-serena {
   /* Contenedor con nombre: con la hoja ancha (≥ 38 rem) el cuerpo pasa a dos columnas; si queda angosta (catálogo estrecho a 1024–1100 px), una. */
   container: descuento / inline-size;
