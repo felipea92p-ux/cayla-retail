@@ -16,10 +16,10 @@ barra), la isla oscura del celular y botones gota.
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | «Qué hacer» (`ProveedoresLoQueNoSeVe`) | Como ahora | Tarjeta de papel con la lista de tareas (verbo, número, flecha); lo urgente en rojo. |
-| | **A · Placa con filas** (recomendada) | La placa Serena; cada tarea una fila que se aclara al pasar, como la lista de los combos; la urgente con su ícono en una gota roja. |
+| | **A · Placa con filas** (elegida) | La placa Serena; cada tarea una fila que se aclara al pasar, como la lista de los combos; la urgente con su ícono en una gota roja. |
 | | B · Tareas en gotas | Cada tarea una gota clara; la urgente, una lente roja. |
 | «Comparar» (`ProveedoresComparar`) | Como ahora | Tarjeta de papel, una columna por proveedor, cada dato en su fila. |
-| | **A · Placa con columnas** (recomendada) | La placa Serena; el nombre arriba con su × en gota; las filas con rayas finas. |
+| | **A · Placa con columnas** (elegida) | La placa Serena; el nombre arriba con su × en gota; las filas con rayas finas. |
 | | B · Columnas hundidas | Cada proveedor en su pozo, de arriba abajo. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -37,4 +37,11 @@ que nada se salga (a 320 px, «todo vencido» se corta con sus puntos suspensivo
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: «Qué hacer» A · Placa con filas y «Comparar» A · Placa con columnas** (las recomendadas). Al implementar:
+- `ProveedoresLoQueNoSeVe`: el `aside` pasa de `card-cayla` a la placa Serena. Cada `FilaTarea` sigue siendo una fila de la lista; al pasar el
+  mouse se aclara como la lista de los combos (gota clara: vidrio 96→70 %; en oscuro, tinta al 9 %) en vez de `hover:bg-hueso/70`; las rayas
+  entre filas, tinta al 8 % (no `divide-sand/70`). La tarea **urgente** lleva su ícono en una gota roja de 28 px (rojo 80→96 %, ícono de 14 px en
+  `crema-fija`); las demás, su ícono como hoy. El pie gris no cambia.
+- `ProveedoresComparar`: el `aside` pasa a la placa Serena; la × de cada proveedor, de `bg-hueso` a una gota clara con su filo (`borde`); las
+  rayas entre filas, tinta al 8 % (no `border-sand`). Cada dato sigue en su fila para todos los proveedores (en la maqueta, con `subgrid`).
+- La isla oscura del celular con los marcados es la `BarraDeAbajo tono="tinta"` que ya existe: no cambia.
