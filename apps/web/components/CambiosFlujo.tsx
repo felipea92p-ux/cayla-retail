@@ -455,7 +455,8 @@ export function CambiosFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div data-guia="cambios.flujo-prendas" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          {/* Las tarjetas del flujo son la placa Serena (`posv-placa`, vidrio/posventa.css). */}
+          <div data-guia="cambios.flujo-prendas" className="posv-placa p-5 sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
               <legend className="sr-only">Prenda que el cliente quiere cambiar</legend>
@@ -467,10 +468,12 @@ export function CambiosFlujo({
                     <label
                       key={l.ventaItemId}
                       data-guia="cambios.prenda-elegir"
-                      // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta).
-                      className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
-                        estado.cambiable ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
-                      } ${elegida ? "bg-crema ring-1 ring-tinta/30" : ""}`}
+                      // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta). La elegida es una gota (`posv-fila`).
+                      data-tocable={estado.cambiable ? "" : undefined}
+                      data-elegida={elegida ? "" : undefined}
+                      className={`posv-fila flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
+                        estado.cambiable ? "cursor-pointer" : "cursor-not-allowed"
+                      }`}
                     >
                       <input
                         type="radio"
@@ -510,7 +513,7 @@ export function CambiosFlujo({
       {paso === 3 && linea && seleccion && r && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div data-guia="cambios.reemplazo" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div data-guia="cambios.reemplazo" className="posv-placa p-5 sm:p-7">
               <CambioReemplazo
                 linea={linea}
                 seleccion={seleccion}
@@ -568,8 +571,9 @@ export function CambiosFlujo({
       {paso === 4 && linea && seleccion && r && totales && r.varianteNueva && impacto && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
-              <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+            {/* Al confirmar, los datos y el impacto van cada uno en su placa y la balanza queda al aire entre ellos (A · Balanza). */}
+            <div className="min-w-0 space-y-6">
+              <dl className="posv-placa grid gap-x-8 gap-y-4 p-5 text-sm sm:grid-cols-2 sm:p-7">
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
                 </Dato>
@@ -587,7 +591,7 @@ export function CambiosFlujo({
                 diferencia={totales.diferencia}
                 otras={totales.salidas.slice(1).map((x) => ({ ...ficha(x.variante, x.precio), cantidad: x.cantidad }))}
               />
-              <div className="border-t border-tinta/[0.08] pt-7">
+              <div className="posv-placa p-5 sm:p-7">
                 <ImpactoVista impacto={impacto} />
               </div>
             </div>

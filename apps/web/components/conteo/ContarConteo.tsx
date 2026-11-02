@@ -602,7 +602,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
         <CifrasCabecera control={control} />
       </EncabezadoPagina>
       <div data-guia="conteo.pasos">
-        <PasosConteo actual="contar" />
+        <PasosConteo forma="riel" actual="contar" />
       </div>
       {notaAcotada}
 

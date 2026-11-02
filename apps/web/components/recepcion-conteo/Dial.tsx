@@ -72,6 +72,8 @@ export function Dial({
       <svg viewBox="0 0 290 290" aria-hidden className="rc-dial-aro">
         <circle className="rc-dial-pista" cx={CX} cy={CX} r={R} />
         <circle className="rc-dial-arco" cx={CX} cy={CX} r={R} pathLength={100} style={{ strokeDashoffset: 100 - e.lleno }} />
+        {/* La luz quieta del tubo (vidrio, «B · Tubo», Felipe 2026-11-02): un brillo fino sobre el arco que lo sigue y no se mueve solo. */}
+        <circle className="rc-dial-luz" cx={CX} cy={CX} r={R - 4} pathLength={100} style={{ strokeDashoffset: 100 - Math.max(0, e.lleno - 4) }} />
         {Array.from({ length: e.cortes }, (_, i) => {
           const t = (i / e.cortes) * Math.PI * 2;
           return (

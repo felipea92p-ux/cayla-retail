@@ -215,6 +215,9 @@ export function Linea({
   }, []);
   const [guia, setGuia] = useState<number | null>(null);
   const idBajo = useId();
+  // El área bajo la línea es vidrio esmerilado (ADR-0596, «B · Tinta sobre vidrio», Felipe 2026-11-01): un degradado propio por gráfico
+  // (dos líneas en la misma pantalla no comparten id); sus colores, por tema, en vidrio/graficos-y-pasos.css.
+  const idArea = useId();
 
   const todos = [...serie, ...(referencia ?? []), ...(proyeccion ?? []), ...(enCurso ? [enCurso] : [])].map((p) => p.y);
   const techo = maxY ?? topeRedondo(Math.max(1, ...todos));
@@ -418,7 +421,20 @@ export function Linea({
           {serie.length > 0 && ultimo ? (
             <>
               {area && serie.length > 1 && (
-                <path d={`${camino(serie, escalones)} L${X(ultimo.x).toFixed(1)},${Y(minY).toFixed(1)} L${X(serie[0]!.x).toFixed(1)},${Y(minY).toFixed(1)} Z`} className="linea-area" />
+                <>
+                  <defs>
+                    <linearGradient id={idArea} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" className="linea-area-alto" />
+                      <stop offset="0.55" className="linea-area-medio" />
+                      <stop offset="1" className="linea-area-bajo" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d={`${camino(serie, escalones)} L${X(ultimo.x).toFixed(1)},${Y(minY).toFixed(1)} L${X(serie[0]!.x).toFixed(1)},${Y(minY).toFixed(1)} Z`}
+                    className="linea-area"
+                    style={{ fill: `url(#${idArea})` }}
+                  />
+                </>
               )}
               {serie.length > 1 && <path d={camino(serie, escalones)} pathLength={1} className="linea-trazo" />}
               {yBajo !== null && serie.length > 1 && <path d={camino(serie, escalones)} clipPath={`url(#${idBajo})`} className="linea-trazo-bajo" />}

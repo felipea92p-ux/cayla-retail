@@ -125,9 +125,10 @@ function ColumnasTallas({
               e.stopPropagation();
               onTalla(f);
             }}
-            title={lectura}
+            title={c.estado === "falta" ? `0 en el piso · ${c.almacen} en el almacén: puedes colgarlas` : lectura}
+            data-estado={c.estado}
             aria-label={`${lectura}${marca === "cumple" || marca === "principal" ? `. ${marcaDelFiltro?.etiqueta ?? ""}` : ""}${marca === "principal" ? ", la que más se vende" : ""}`}
-            className={`grid min-w-0 cursor-pointer gap-px rounded-[8px] border px-0.5 pb-1 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
+            className={`vitrina-talla grid min-w-0 cursor-pointer gap-px rounded-[8px] border px-0.5 pb-1 pt-1 text-center transition-[background-color,outline-color,transform] duration-300 ease-[var(--ease-cayla)] hover:-translate-y-px hover:outline hover:outline-[1.5px] hover:outline-tinta/30 motion-reduce:transition-none ${fondo} ${marca === "tenue" ? "opacity-40" : ""}`}
           >
             {/* En ámbar o en rojo, el nombre toma el color de su celda: el taupe sobre el ámbar daba 3,8:1 (`tema:auditar`, 2026-10-31). */}
             <span className={`inline-flex min-w-0 items-center justify-center gap-1 truncate text-[12px] font-semibold tracking-[0.04em] ${c.estado === "normal" ? "text-taupe" : ""} ${marca === "principal" ? "underline decoration-2 underline-offset-2" : ""}`}>

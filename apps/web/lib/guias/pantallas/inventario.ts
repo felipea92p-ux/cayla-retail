@@ -591,8 +591,8 @@ export const GUIA_MOVIMIENTOS: Guia = {
       id: "ingresos-total",
       ancla: "movimientos.ingresos-total",
       opcional: true,
-      titulo: "El total, de un vistazo",
-      texto: "Cuántas prendas entraron y de cuántos modelos distintos en ese período. Es la cifra que compras suele pedir primero.",
+      titulo: "Lo que ves, en una frase",
+      texto: "Cuántos modelos entraron en ese período y cuántas prendas suman. Si buscas o filtras, la frase dice qué pusiste y cuántos quedan. Es la cifra que compras suele pedir primero.",
     },
     {
       id: "ingresos-descargar",
@@ -629,7 +629,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "movimientos.ingresos-buscador" }],
       titulo: "Un modelo por línea",
-      texto: "Su foto, su nombre y su código, y cuántas prendas entraron sumando todos sus colores y tallas. El de más prendas va primero; toca el título de una columna para ordenar por ella. Pasa el mouse sobre la cifra y te dice cuántas fueron de stock inicial y cuántas de mercadería recibida.",
+      texto: "Su foto, su nombre, cuándo entró y cuántas prendas sumando sus colores y tallas. El de más prendas va primero; toca el título de una columna para ordenarla o filtrarla. Pasa el mouse sobre la cifra: te dice cuántas fueron de stock inicial y cuántas de mercadería recibida.",
     },
     {
       id: "ingresos-abrir",
@@ -659,7 +659,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
       ancla: "movimientos.ingresos-novedad",
       opcional: true,
       titulo: "Solo los nuevos",
-      texto: "Cuando llegaron de las dos clases, aquí dejas solo los nuevos o solo los reingresos. El total de arriba se ajusta a lo que estás viendo.",
+      texto: "Toca «Clase» y elige «Nuevo» o «Reingreso»: se aplica al tocar, y el número de al lado dice cuántos hay. Se quita con la ✕ de su píldora. Si llegaron de una sola clase, aquí solo se ordena.",
     },
     {
       id: "ingresos-precio",
@@ -673,7 +673,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
       ancla: "movimientos.ingresos-pie",
       opcional: true,
       titulo: "El total al pie",
-      texto: "Como en Excel, al pie va el total de lo que estás viendo. Si buscas o filtras por nuevos o reingresos, el total se ajusta.",
+      texto: "Como en Excel, al pie va el total de lo que estás viendo. Si buscas o filtras por clase o categoría, el total se ajusta.",
     },
     {
       id: "ingresos-nota",

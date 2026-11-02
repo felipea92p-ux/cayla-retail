@@ -12,16 +12,13 @@
    Ninguna se pone roja al pasar el mouse. Solo tokens (ADR-0336: el oscuro sale solo). Registro: docs/unificar/pestanas.md. ---- */
 @layer components {
   /* ---------- 1 · Pestaña de vista ----------
-     El vidrio de Comprobantes (`.pestanas-vidrio`, ADR-0124) llevado a toda pestaña de vista: un contenedor de vidrio
-     (`vidrio-cayla`) con 4 px de aire y radio 14, y una píldora en tinta de radio 10 que se DESLIZA bajo la elegida
+     El vidrio de Comprobantes (ADR-0124) llevado a toda pestaña de vista: un contenedor de vidrio (su material, desde el
+     2026-10-31, es el pozo de vidrio/pantalla.css; la isla de ADR-0124 se fue el 2026-11-02) con 4 px de aire y radio 14, y una píldora en tinta de radio 10 que se DESLIZA bajo la elegida
      (`IndicadorDeslizante` «pildora-tinta», 450 ms, ADR-0136). La palabra va en versalitas de 12 px (label-cayla), como pidió
      Felipe: «la que elegí, pero con mayúsculas». La elegida, en crema sobre la píldora. Antes de hidratar (o sin JavaScript) la
      elegida lleva su propio fondo y, en cuanto la píldora se coloca (`data-indicador`), ese fondo se apaga. El foco va hacia
      adentro (la fila se desliza y le recortaba el anillo, ADR-0351) y en celular la fila se desliza de costado. */
   .pestanas-cayla {
-    --vidrio-alfa: 0.45;
-    --vidrio-borde: 0.09;
-    --vidrio-blur: 22px;
     position: relative;
     display: inline-flex;
     align-self: flex-start;

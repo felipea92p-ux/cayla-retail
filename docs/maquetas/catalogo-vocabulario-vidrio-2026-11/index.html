@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-pag="categorias" data-tj="aire" data-le="ranura">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catálogo con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Catálogo ▸ Categorías, Marcas y Atributos con el vidrio, en una sola maqueta porque comparten piezas
+   (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   Las pantallas reales: /productos/categorias (CategoriasLista: grupos por familia, TarjetaCategoria = TarjetaAtributo con MuestraCategoria,
+   VistaRapidaCategoria), /productos/marcas (MarcasLista, ADR-0109 y ADR-0373: el buscador con la sombra que completa, el índice de letras,
+   TarjetaMarca con su monograma y «Más ▾») y /productos/atributos (AtributosHub: Colores · Tallas · Tejidos · Patrones · Temporadas, cada
+   valor en una TarjetaAtributo, con «Pendiente» y Aprobar/Rechazar cuando alguien lo propuso).
+   Armada SOLO con lo ya elegido: cabecera A con sus gotas, pestañas A, buscador A · Pozo (en Marcas, CON su sombra: excepción decidida,
+   ADR-0373), filtros A · Gotas, títulos de grupo, insignia A, menú «Más» en gota, paginación A, la hoja Serena con sus campos hundidos y el
+   aviso B · Lente, que es la cara de «Existe también» (ADR-0576): su pregunta vive DENTRO de la hoja, sobre los botones.
+   Lo PROPIO, con sus caras:
+     1. La tarjeta de un valor (TarjetaAtributo, que también es la de cada categoría; y la de cada marca, que tiene su misma forma).
+     2. El índice de letras de Marcas.
+   Solo tokens (los colores de las muestras son dato). Sin movimiento nuevo; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+
+.pag-cat,.pag-mar,.pag-atr{display:none}
+[data-pag="categorias"] .pag-cat,[data-pag="marcas"] .pag-mar,[data-pag="atributos"] .pag-atr{display:block}
+.tgr{display:flex;align-items:center;gap:10px;margin:26px 0 12px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.tgr::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.tgr .glb{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font-size:11px;letter-spacing:0;background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.rej{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.barra-f{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:22px}
+.pest .glb{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:8px;padding:0 6px;border-radius:999px;font-size:11px;letter-spacing:0;color:var(--t65);background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.pest .glb.pide{color:var(--tinta);background:color-mix(in srgb,var(--ambar) 30%,transparent)}
+
+/* ---------- Marcas: el buscador con su sombra (ADR-0373, excepción decidida) ---------- */
+.pozo-b .som{color:var(--tinta)}.pozo-b .som i{font-style:normal;color:var(--t50)}
+.pozo-b kbd{margin-left:auto;flex:none;font:600 10.5px 'DM Sans',sans-serif;padding:2px 6px;border-radius:6px;color:var(--t65);border:1px solid var(--borde)}
+.res-m{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-size:13px;color:var(--t65)}.res-m b{color:var(--tinta);font-weight:600}
+
+/* ============ 1 · LA TARJETA DE UN VALOR ============ */
+.tj{position:relative;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:16px;text-align:left;transition:transform .26s var(--ease),border-color .26s var(--ease)}
+@media (hover:hover){.tj:hover{transform:translateY(-2px)}.tj:hover .mu svg{transform:translateX(-4px)}}
+.tj.apagada{opacity:.6}
+.mu{position:relative;display:grid;place-items:center;height:92px;overflow:hidden;background:var(--mf);color:var(--ma)}
+.mu svg{width:44px;height:44px;stroke-width:1.5;transition:transform .5s var(--ease)}
+.mu.color{background:var(--mf)}.mu.color svg{display:none}
+.tj .nom{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:15px;font-weight:500;line-height:1.3}
+.tj .det{font-size:12px;color:var(--t65);font-variant-numeric:tabular-nums}.tj .det .pre{margin-right:6px;font:600 10.5px ui-monospace,monospace;color:var(--t80)}
+.tj .tmp{font-size:12px;color:var(--taupe)}
+.tj .pie-t{display:flex;flex-wrap:wrap;gap:8px}.tj .pie-t .btn{flex:1;min-width:6.5rem;height:32px;padding:0 10px;font-size:11px}
+.tj .pie-t .btn.rech{color:var(--rojo-p)}[data-tema="oscuro"] .tj .pie-t .btn.rech{color:var(--rojo)}
+.chip.roja{--c:var(--rojo)}
+.tj .mono{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;font-family:'EB Garamond',serif;font-size:19px;color:var(--mc);background:color-mix(in srgb,var(--mc) 14%,transparent)}
+.tj .mono.punt{background:none;border:1.5px dashed color-mix(in srgb,var(--tinta) 35%,transparent);color:var(--t65)}
+.tj-m{flex-direction:row;align-items:center;gap:12px}.tj-m .cv-tx{flex:1;min-width:0}.tj-m .cv-tx b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tj-m .cv-mas{flex:none;display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 10px;border-radius:999px;font-size:12.5px;color:var(--t80)}.tj-m .cv-mas svg{width:13px;height:13px}
+/* Como ahora: tarjeta de papel con borde arena; la muestra, un recuadro de 8 px de esquina dentro de la tarjeta. */
+[data-tj="ahora"] .tj{border:1px solid var(--sand);background:var(--papel)}
+@media (hover:hover){[data-tj="ahora"] .tj:hover{border-color:color-mix(in srgb,var(--tinta) 25%,transparent)}}
+[data-tj="ahora"] .mu{border-radius:8px}
+/* las dos caras nuevas: la placa Serena */
+:is([data-tj="aire"],[data-tj="ventana"]) .tj{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:is([data-tj="aire"],[data-tj="ventana"]) .tj{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+:is([data-tj="aire"],[data-tj="ventana"]) .tj-m .cv-mas{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"]:is([data-tj="aire"],[data-tj="ventana"]) .tj-m .cv-mas{background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+:is([data-tj="aire"],[data-tj="ventana"]) .tj .mono:not(.punt){border:1px solid color-mix(in srgb,var(--mc) 28%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--mc) 8%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--mc) 18%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent)}
+/* A · Muestra al aire: la muestra llega al borde de arriba de la placa, sin marco, como la foto de Productos que elegiste; un filo de luz la
+   separa del texto. */
+[data-tj="aire"] .tj:not(.tj-m){padding-top:0;overflow:hidden}
+[data-tj="aire"] .mu{margin:0 -14px;height:100px;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent)}
+/* B · Placa con su ventana: la muestra queda dentro de la placa como una ventana, con esquinas de 12 px, su filo y su luz arriba. */
+[data-tj="ventana"] .mu{border-radius:12px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--vidrio) 55%,transparent),inset 0 10px 18px -12px color-mix(in srgb,var(--vidrio) 90%,transparent)}
+
+/* ============ 2 · EL ÍNDICE DE LETRAS ============ */
+.letras{display:flex;align-items:center;gap:2px;margin-top:14px;overflow-x:auto;scrollbar-width:none;max-width:100%}
+.letras .vs{flex:none;margin-right:8px;font-size:11px}
+.letras button{flex:none;height:30px;min-width:30px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--t80)}
+.letras button[disabled]{color:var(--t25);font-weight:500}
+.letras button.aqui{color:var(--tinta)}
+/* Como ahora: cuadritos de 8 px; las letras de esta página en tinta sobre arena. */
+[data-le="ahora"] .letras button.aqui{background:color-mix(in srgb,var(--sand) 70%,transparent)}
+@media (hover:hover){[data-le="ahora"] .letras button:not([disabled]):hover{background:var(--hueso)}}
+/* A · Ranura con gotas: las letras viven en una ranura; las de esta página, en gotas claras; al pasar, la gota aparece. */
+[data-le="ranura"] .letras-w{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-le="ranura"] .letras-w{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-le="ranura"] .letras button{border-radius:999px;height:28px;min-width:28px}
+[data-le="ranura"] .letras button.aqui{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-le="ranura"] .letras button.aqui{background:color-mix(in srgb,var(--tinta) 16%,transparent);box-shadow:none}
+@media (hover:hover){[data-le="ranura"] .letras button:not([disabled]):not(.aqui):hover{background:color-mix(in srgb,var(--vidrio) 60%,transparent)}}
+/* B · Letras al aire: sin fondo; las de esta página llevan un punto debajo; al pasar, una gota. */
+[data-le="aire"] .letras button{border-radius:999px;position:relative}
+[data-le="aire"] .letras button.aqui::after{content:"";position:absolute;left:50%;bottom:2px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--tinta)}
+@media (hover:hover){[data-le="aire"] .letras button:not([disabled]):hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}}
+.pags{display:flex;justify-content:center;gap:4px;margin-top:20px;padding:3px;border-radius:999px;width:max-content;margin-inline:auto;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.pags button{width:32px;height:32px;border-radius:999px;font-size:13px;color:var(--t65)}
+.pags button[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .pags button[aria-current]{background:color-mix(in srgb,var(--tinta) 16%,transparent)}
+
+/* ---------- la hoja «Nueva categoría» con «Existe también» ---------- */
+.hoja .hoja-cuerpo{display:grid;grid-template-columns:minmax(0,1fr)}
+.hoja .caja.esc{border-color:color-mix(in srgb,var(--tinta) 40%,transparent);background:var(--papel)}
+.hoja .caja .cur{display:inline-block;width:1px;height:18px;margin-left:1px;background:var(--tinta)}
+.hoja .dos{display:grid;grid-template-columns:minmax(0,1fr) 7rem;gap:12px}
+.lente-at{--c:var(--ambar);margin:2px 0 16px;padding:14px 16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--c) 30%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 6%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 13%,color-mix(in srgb,var(--vidrio) 60%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .lente-at{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,transparent),color-mix(in srgb,var(--c) 8%,transparent))}
+.lente-at .t{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600}.lente-at .t svg{width:18px;height:18px;color:var(--c)}
+.lente-at p{font-size:13px;color:var(--t65);margin-top:4px}
+.lente-at .op{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:14px}.lente-at .op span i{font-style:normal;color:var(--t65)}
+.lente-at .op .b{height:34px;padding:0 14px;font-size:12.5px}
+.lente-at .no{margin-top:8px;font-size:12.5px;color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+.hoja .b.pri[disabled]{opacity:.45}
+.hoja .falta{font-size:12px;color:var(--t65);text-align:right;margin:-2px 0 8px}
+@container disp (max-width:640px){.rej{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tj{padding:12px}[data-tj="aire"] .mu{margin:0 -12px;height:84px}.mu{height:78px}.rej.m{grid-template-columns:minmax(0,1fr)}.hoja .dos{grid-template-columns:minmax(0,1fr)}}
+@container disp (max-width:340px){.rej:not(.m){grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.tj,.mu svg{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Catálogo ▸ Categorías, Marcas y Atributos, con vidrio: tres pantallas que comparten su tarjeta</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="pag"><button data-v="categorias">Categorías</button><button data-v="marcas">Marcas</button><button data-v="atributos">Atributos ▸ Colores</button></div>
+  <span class="tag">La tarjeta de un valor</span><div class="seg-m" data-ctl="tj"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Muestra al aire</button><button data-v="ventana">B · Placa con su ventana</button></div>
+  <span class="tag">Índice de letras (Marcas)</span><div class="seg-m" data-ctl="le"><button data-v="ahora">Como ahora</button><button data-v="ranura">A · Ranura con gotas</button><button data-v="aire">B · Letras al aire</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Ver abierta</span><button class="accion" data-acc="hoja">«Nueva categoría» con «Existe también»</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+  <div class="capa"><div class="velo" data-acc="hoja"></div><div class="hoja" role="dialog" aria-modal="true" aria-labelledby="hTit">
+    <div class="hoja-cuerpo"><h2 id="hTit">Nueva categoría</h2><p class="sub">Un tipo de prenda: lo que va en la etiqueta y en el código corto.</p>
+      <p class="et">Nombre *</p><div class="caja esc">Blusa<span class="cur"></span></div>
+      <div class="lente-at" role="group" aria-label="Existe también"><p class="t"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>¿No será «Blusas», que ya existe?</p>
+        <p>Plural y singular son el mismo nombre. Si es la misma, úsala; si es otra, dilo y sigue.</p>
+        <div class="op"><span>Blusas <i>· BLU · 48 productos</i></span><button class="b sec" data-acc="hoja">Usar Blusas</button></div><button class="no">No, es otra categoría</button></div>
+      <div class="dos"><div><p class="et">Familia *</p><div class="caja">Indumentaria</div></div><div><p class="et">Prefijo *</p><div class="caja">BLS</div></div></div>
+      <p class="falta">Falta: contestar si es «Blusas»</p>
+      <div class="pie"><button class="b sec" data-acc="hoja">Cancelar</button><button class="b pri" disabled>Guardar</button></div></div>
+  </div></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>Categorías</b> (<code>CategoriasLista</code>): los grupos por familia y, en cada uno, una <b>tarjeta de papel</b> con la muestra de la categoría (su ícono sobre el tono de su familia), el nombre, el prefijo, cuántos productos y su temporada. Al tocarla, la vista rápida.</li>
+      <li><b>Marcas</b> (<code>MarcasLista</code>, ADR-0373): el buscador con la <b>sombra que completa</b> (excepción decidida: se mantiene), el resumen, el <b>índice de letras</b> (cuadritos de 30 px) y una tarjeta por marca con su monograma del estado, el nombre, los productos y «Más ▾».</li>
+      <li><b>Atributos</b> (<code>AtributosHub</code>): pestañas Colores · Tallas · Tejidos · Patrones · Temporadas; cada valor en la misma tarjeta (<code>TarjetaAtributo</code>), con «Pendiente» y Aprobar / Rechazar cuando alguien lo propuso.</li>
+      <li><b>«Existe también»</b> (ADR-0576): mientras se escribe el nombre en la hoja, la pregunta ámbar dice qué ya existe; «Guardar» espera el «No, es otra». Su cara es el aviso que ya elegiste (B · Lente): no tiene caras propias.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>La tarjeta de un valor</b></td><td>A · Muestra al aire <span class="ev">Recomendada</span></td><td>La muestra llega al borde de la placa, sin marco, como la foto de Productos que elegiste: el ícono de la categoría o el color se ven primero. Una sola forma de tarjeta con imagen en todo Catálogo.</td><td>Con el color de una prenda muy claro, la placa y la muestra se funden arriba (las separa el filo).</td></tr>
+      <tr><td>B · Placa con su ventana</td><td>La muestra queda enmarcada, como hoy, con su filo y su luz.</td><td>Otra forma de tarjeta con imagen, distinta de Productos.</td></tr>
+      <tr><td rowspan="2"><b>Índice de letras</b></td><td>A · Ranura con gotas <span class="ev">Recomendada</span></td><td>Las 26 letras en una ranura, como la paginación que elegiste; las de esta página, gotas claras. Se lee como un control, de un vistazo.</td><td>Ocupa una fila entera también a 1920 px.</td></tr>
+      <tr><td>B · Letras al aire</td><td>Liviano: solo letras, con un punto bajo las de esta página.</td><td>El punto es chico: cuesta ver dónde estás.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Los grupos por familia, el tono de cada familia y el dibujo de cada categoría (con su movimiento al pasar el mouse), el color de cada muestra (es dato), la vista rápida, el buscador de Marcas con su sombra, Tab y Enter, el monograma y su estado, «Más ▾», «Pendiente» con Aprobar / Rechazar, el orden de las pestañas de Atributos, y «Existe también»: lo que pregunta, cuándo y que «Guardar» espera la respuesta.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', abajo: 'M6 9l6 6 6-6',
+    blusa: 'M20.4 6.6 16 4a4 4 0 0 1-8 0L3.6 6.6a1 1 0 0 0-.5 1.2l.9 2.7a1 1 0 0 0 1.2.6L7 10v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V10l1.8.9a1 1 0 0 0 1.2-.6l.9-2.7a1 1 0 0 0-.5-1.2z',
+    vestido: 'M9 2h6l-1 5 4 14H6l4-14z M9 7h6', pantalon: 'M6 2h12l1 20h-5l-2-12-2 12H5z M6 6h12', falda: 'M7 4h10l4 16H3z M7 8h10', casaca: 'M8 3 4 6v15h6V9l2-2 2 2v12h6V6l-4-3-2 3h-4z',
+    bolso: 'M5 8h14l-1 13H6z M9 8V6a3 3 0 0 1 6 0v2', zapato: 'M3 17h18v3H3z M3 17l1-7 5 2 3-4 4 6 5 1v2', gorro: 'M4 16a8 8 0 0 1 16 0z M3 16h18v3H3z' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const TONO = { ind: ['color-mix(in srgb,var(--taupe) 22%,var(--papel))', 'var(--taupe)'], acc: ['color-mix(in srgb,var(--pizarra) 18%,var(--papel))', 'var(--pizarra)'], cal: ['color-mix(in srgb,var(--verde) 16%,var(--papel))', 'var(--verde)'] };
+  const tj = (mu, nom, det, extra = '', cls = '') => `<button class="tj ${cls}">${mu}<span class="nom">${nom}</span>${det}${extra}</button>`;
+  const muestra = (t, ic) => `<span class="mu" style="--mf:${TONO[t][0]};--ma:${TONO[t][1]}">${s(D[ic])}</span>`;
+  const CATS = [['Indumentaria', 'ind', [['Blusas', 'BLU', 'blusa', 48, 2, 'Todo el año'], ['Vestidos', 'VES', 'vestido', 31, 0, 'Verano'], ['Pantalones', 'PAN', 'pantalon', 27, 1, ''], ['Faldas', 'FAL', 'falda', 14, 0, 'Verano'], ['Casacas', 'CAS', 'casaca', 12, 0, 'Invierno']]],
+    ['Accesorios', 'acc', [['Bolsos', 'BOL', 'bolso', 9, 0, ''], ['Gorros', 'GOR', 'gorro', 0, 0, 'Invierno']]], ['Calzado', 'cal', [['Sandalias', 'SAN', 'zapato', 6, 0, 'Verano']]]];
+  const categorias = () => `${encabezado({ sede: 'Toda la empresa', titulo: 'Categorías', frase: 'Los tipos de prenda de cada familia: qué tallas, tejidos y patrones ofrece cada una.', acciones: [['pri', 'Nueva categoría', 'mas']] })}
+    <div class="barra-f"><div class="pozo-b">${s(D.lupa)}<span>Busca una categoría o una subcategoría</span></div><button class="fp" aria-pressed="true">Todas</button><button class="fp">Familia ${s(D.abajo)}</button></div>
+    ${CATS.map(([f, t, cs]) => `<p class="tgr">${f} <span class="glb">${cs.length}</span></p><div class="rej">${cs.map(([n, p, ic, pr, sub, te]) => tj(muestra(t, ic), n.replace('/', '/&#8203;'), `<span class="det"><span class="pre">${p}</span>${sub ? sub + ' sub · ' : ''}${pr ? pr + ' productos' : 'sin productos'}</span>`, te ? `<span class="tmp">${te}</span>` : '')).join('')}</div>`).join('')}`;
+  const LET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), PRES = new Set('ABCDEGHILMNPRSTV'), AQUI = new Set('ABC');
+  const MARCAS = [['Andina', 'AN', 'var(--verde)', '42 productos · Textiles Andinos SAC'], ['Aurora', 'AU', 'var(--verde)', '18 productos · Confecciones Rímac'], ['Bambú', 'BA', 'var(--ambar)', 'sin proveedor · 3 productos'],
+    ['Bruma', 'BR', 'var(--verde)', '9 productos · Punto Fino SAC'], ['Cayla', 'CA', 'var(--verde)', '126 productos · Taller Lima'], ['Ceibo', 'CE', '', 'desactivada · 0 productos'], ['Cielo', 'CI', 'var(--verde)', '7 productos · Moda Gamarra EIRL'], ['Coral', 'CO', 'var(--ambar)', 'sin proveedor · 1 producto']];
+  const marcas = () => `${encabezado({ sede: 'Toda la empresa', titulo: 'Marcas', frase: 'Las marcas del catálogo y quién las trae.', acciones: [['pri', 'Nueva marca', 'mas']] })}
+    <div class="barra-f"><div class="pozo-b" style="max-width:28rem">${s(D.lupa)}<span class="som">Andi<i>na</i></span><kbd>Tab</kbd></div><button class="fp" aria-pressed="true">Activas</button><button class="fp">Sin proveedor</button><button class="fp">Proveedor ${s(D.abajo)}</button></div>
+    <p class="res-m"><span><b>89</b> marcas activas</span><span><b>6</b> sin proveedor</span><span><b>4</b> desactivadas</span></p>
+    <div class="letras"><span class="vs">Ir a</span><div class="letras-w">${LET.map((l) => `<button${PRES.has(l) ? '' : ' disabled'}${AQUI.has(l) ? ' class="aqui"' : ''}>${l}</button>`).join('')}</div></div>
+    <p class="tgr">A <span class="glb">2</span></p><div class="rej m" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${MARCAS.slice(0, 2).map(marca).join('')}</div>
+    <p class="tgr">B <span class="glb">2</span></p><div class="rej m" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${MARCAS.slice(2, 4).map(marca).join('')}</div>
+    <p class="tgr">C <span class="glb">4</span></p><div class="rej m" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${MARCAS.slice(4).map(marca).join('')}</div>
+    <div class="pags"><button aria-current="page">1</button><button>2</button><button>3</button><button>4</button></div>`;
+  function marca([n, m, c, d]) { return `<div class="tj tj-m${c ? '' : ' apagada'}"><span class="mono${c ? '' : ' punt'}" style="--mc:${c || 'var(--tinta)'}">${m}</span><span class="cv-tx"><b>${n}</b><span class="det">${d}</span></span><button class="cv-mas">Más ${s(D.abajo)}</button></div>`; }
+  const COLORES = [['#7a2e2a', 'Vino', 'Rojos · 12 prendas'], ['#c9a27e', 'Camel', 'Marrones · 9 prendas'], ['#2f4a3a', 'Verde botella', 'Verdes · 6 prendas'], ['#d8cbb3', 'Hueso', 'Blancos · 21 prendas'],
+    ['#1f2a44', 'Azul noche', 'Azules · 14 prendas'], ['#b8576b', 'Palo rosa', 'Rosados · 4 prendas'], ['#6b6f3a', 'Verde oliva', 'Verdes · propuesto por Ana Torres', 1], ['#e2b33c', 'Mostaza', 'Amarillos · 3 prendas']];
+  const atributos = () => `${encabezado({ sede: 'Toda la empresa', titulo: 'Atributos', frase: 'Los colores, tallas, tejidos, patrones y temporadas con que se describe una prenda.', acciones: [['pri', 'Nuevo color', 'mas']] })}
+    <div class="barra-f"><nav class="pest" aria-label="Atributos"><a href="#" aria-current="page">Colores<span class="glb pide">1</span></a><a href="#">Tallas</a><a href="#">Tejidos</a><a href="#">Patrones</a><a href="#">Temporadas</a></nav></div>
+    <div class="barra-f"><div class="pozo-b">${s(D.lupa)}<span>Busca un color</span></div><button class="fp" aria-pressed="true">Todos</button><button class="fp">Por aprobar</button><button class="fp">Tono ${s(D.abajo)}</button></div>
+    <p class="tgr">Colores <span class="glb">8</span></p><div class="rej">${COLORES.map(([h, n, d, pen]) => `<div class="tj">${`<span class="mu color" data-color-dato style="--mf:${h}"></span>`}<span class="nom">${n}${pen ? '<span class="chip roja">Pendiente</span>' : ''}</span><span class="det">${d}</span>${pen ? `<span class="pie-t">${boton(['pri', 'Aprobar'])}${boton(['sec rech', 'Rechazar'])}</span>` : ''}</div>`).join('')}</div>`;
+  function pantalla() { $('#cont').innerHTML = `<div class="pag-cat">${categorias()}</div><div class="pag-mar">${marcas()}</div><div class="pag-atr">${atributos()}</div>`; }
+  Marco.iniciar({ estado: { pag: 'categorias', tj: 'aire', le: 'ranura' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); },
+    // «Nueva categoría» se abre desde Categorías: la hoja se ve sobre su pantalla.
+    alAccion: (a) => { if (a === 'hoja' && $('#disp').hasAttribute('data-hoja') && estado.pag !== 'categorias') { estado.pag = 'categorias'; pintar(); } } });
+})();
+</script>
+</body>
+</html>

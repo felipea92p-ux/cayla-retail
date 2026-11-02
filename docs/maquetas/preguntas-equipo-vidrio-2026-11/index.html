@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-me="placa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preguntas del equipo con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Gestión ▸ Preguntas del equipo con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/gestion/preguntas → components/asistente/PreguntasEquipo.tsx e InformeSemanal.tsx, ADR-0536): lo que el
+   equipo le preguntó a «Pregúntale a CAYLA» en un mes. La cabecera con el selector de mes; cinco cifras (las que filtran se rellenan al
+   tocarlas); «Lo que conviene mejorar» (el informe del lunes: hasta 5 mejoras numeradas, cada una con su tipo, su título, su detalle y «Ver las N
+   preguntas» que despliega las preguntas que la sostienen); «Pantallas que más responden» y «Accesos que piden» (barras); y la lista de
+   preguntas con su fecha, quién preguntó, la pregunta (y lo que buscaba), qué respondió y si le sirvió.
+   Armada SOLO con lo ya elegido: cabecera A, selector de mes B · Gota entera, tarjetas de cifra A · Placa (la que filtra, hundida), títulos de
+   sección con su globito, barra de avance A · Tubo, tabla B · Placa Serena, avatar en lente, insignia A, filtros A · Gotas, «Ver más» y
+   botones gota.
+   Lo PROPIO, con sus caras: las mejoras del informe del lunes.
+   Solo tokens. Sin movimiento nuevo (las preguntas ya se desplegaban así); todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+
+.mesg{display:inline-flex;align-items:center;gap:2px;height:40px;padding:0 4px;border-radius:999px;border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .mesg{background:color-mix(in srgb,var(--tinta) 9%,transparent);border-color:color-mix(in srgb,var(--tinta) 30%,transparent);box-shadow:none}
+.mesg button{height:32px;min-width:32px;border-radius:999px;display:grid;place-items:center;color:var(--t80)}.mesg button svg{width:15px;height:15px}.mesg button[disabled]{opacity:.35}.mesg span{padding:0 6px;font-size:14px;font-weight:600}
+.pq-cif{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px;text-align:left}.cif .vs{display:flex;align-items:center;gap:6px;font-size:10.5px}.cif .vs i{width:7px;height:7px;border-radius:50%;background:var(--c,transparent)}
+.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.1;margin-top:4px}.cif small{font-size:12.5px;color:var(--t65)}
+.cif[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.ts{display:flex;align-items:center;gap:8px;font-family:'EB Garamond',serif;font-size:21px}.ts .glb{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;font:500 11px 'DM Sans',sans-serif;background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.ts small{margin-left:auto;font:400 13px 'DM Sans',sans-serif;color:var(--t65)}
+.pq-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+.bl{padding:16px 18px}.bl ul{margin-top:10px;display:grid;gap:10px}.bl li{font-size:13.5px}.bl li div{display:flex;justify-content:space-between;gap:8px}.bl li b{font-weight:600;font-variant-numeric:tabular-nums}
+.tubo{position:relative;display:block;height:6px;margin-top:5px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}.tubo i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--tinta)}
+
+/* ============ LAS MEJORAS DEL INFORME DEL LUNES ============ */
+.inf{margin-top:18px;padding:18px 20px}
+.inf .ts{flex-wrap:wrap}.inf .ts .btn{margin-left:auto;height:34px;font:500 12.5px 'DM Sans',sans-serif}
+.inf .q{font-size:13px;color:var(--taupe);margin:4px 0 12px}
+.mj{--c:var(--t65);display:flex;align-items:flex-start;gap:12px;padding:16px 0}
+.mj[data-t="ambar"]{--c:var(--ambar)}.mj[data-t="pizarra"]{--c:var(--pizarra)}
+.mj .mj-n{flex:none;display:grid;place-items:center;width:24px;height:24px;margin-top:2px;border-radius:50%;font-size:12px;font-variant-numeric:tabular-nums}
+.mj .cu{flex:1;min-width:0;display:grid;gap:6px}
+.mj .mj-f{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--taupe)}
+.mj .tit{font-weight:500}.mj .det{max-width:65ch;font-size:13.5px;color:var(--t80)}
+.vermas{display:inline-flex;align-items:center;gap:4px;width:max-content;font-size:13px;color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}.vermas svg{width:14px;height:14px;transition:transform .3s var(--ease)}
+.mj[data-abierta] .vermas svg{transform:rotate(180deg)}
+.mj .prs{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s var(--ease)}.mj[data-abierta] .prs{grid-template-rows:1fr}.mj .prs>div{min-height:0;overflow:hidden}
+.inf ol,.mj .prs ul{list-style:none;padding-left:0}.mj .prs ul{display:grid;gap:8px;margin-top:4px}.mj .prs li{font-size:13.5px}.mj .prs li small{display:block;font-size:12px;color:var(--taupe)}
+/* Como ahora: tarjeta de papel; el número en un círculo arena; las preguntas, con una raya arena a la izquierda. */
+[data-me="ahora"] .inf{border-radius:16px;border:1px solid var(--sand);background:var(--papel);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+[data-me="ahora"] .mj+.mj{border-top:1px solid var(--sand)}[data-me="ahora"] .mj .mj-n{background:var(--sand)}
+[data-me="ahora"] .mj .prs ul{padding-left:12px;border-left:2px solid var(--sand)}
+/* A · Placa con su número en gota: la placa Serena; el número, una gota clara; las preguntas que la sostienen bajan en un pozo. */
+[data-me="placa"] .mj+.mj,[data-me="lentes"] .mj+.mj{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 8%,transparent)}
+:is([data-me="placa"],[data-me="lentes"]) .mj .mj-n{width:28px;height:28px;margin-top:0;border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -6px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:is([data-me="placa"],[data-me="lentes"]) .mj .mj-n{background:color-mix(in srgb,var(--tinta) 14%,transparent);box-shadow:none}
+[data-me="placa"] .mj .prs ul{padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 14%,transparent)}
+/* B · Lentes del tono: cada mejora es una lente teñida de su tipo (función nueva en ámbar, mover o escribir en pizarra, dar acceso y capacitar
+   neutras); el número, su gota. */
+[data-me="lentes"] .inf .lista{display:grid;gap:10px}
+[data-me="lentes"] .mj{padding:14px 16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--c) 26%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 5%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 60%,transparent)))}
+[data-tema="oscuro"][data-me="lentes"] .mj{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 12%,transparent),color-mix(in srgb,var(--c) 6%,transparent))}
+[data-me="lentes"] .mj+.mj{box-shadow:none}
+[data-me="lentes"] .mj .prs ul{padding-left:12px;border-left:2px solid color-mix(in srgb,var(--c) 30%,transparent)}
+
+/* ---------- la lista ---------- */
+.lp{margin-top:18px;overflow:visible}.lp .herr{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 20px}
+.lp-c,.lp-f{display:grid;grid-template-columns:7.5rem minmax(10rem,.9fr) minmax(16rem,2fr) minmax(10rem,1fr) 5rem;gap:8px 16px;align-items:start;padding:0 20px}
+.lp-c{min-height:42px;align-items:center;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.lp-f{padding-top:12px;padding-bottom:12px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:14px}
+.lp-f .fe{font-size:13px;color:var(--taupe)}.lp-f .qn{display:flex;align-items:center;gap:8px;min-width:0}.lp-f .qn b{font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lp-f .qn small{display:block;font-size:12px;color:var(--taupe)}
+.lp-f .pg small{display:block;margin-top:2px;font-size:12px;color:var(--taupe)}.lp-f .re small{display:block;margin-top:4px;font-size:12px;color:var(--taupe)}
+.av24{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:11px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--sand) 70%,var(--vidrio)),color-mix(in srgb,var(--sand) 90%,transparent))}
+.chip.roja{--c:var(--rojo)}
+@container disp (max-width:1280px){.pq-cif{grid-template-columns:repeat(3,minmax(0,1fr))}.lp-c{display:none}.lp-f{grid-template-columns:minmax(0,1fr) auto;padding:12px 16px}.lp-f .fe{grid-column:1/-1}.lp-f .pg{grid-column:1/-1}.lp-f .re{grid-column:1}}
+@container disp (max-width:700px){.pq-cif{grid-template-columns:repeat(2,minmax(0,1fr))}.pq-2{grid-template-columns:minmax(0,1fr)}.cif b{font-size:26px}.inf{padding:16px}.inf .ts .btn{margin-left:0}.lp .herr{padding:14px}}
+@media (prefers-reduced-motion:reduce){.mj .prs,.vermas svg{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Preguntas del equipo, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">Lo que conviene mejorar</span><div class="seg-m" data-ctl="me"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa con su número en gota</button><button data-v="lentes">B · Lentes del tono</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>PreguntasEquipo</code>, ADR-0536): el mes, cinco cifras que filtran, «Lo que conviene mejorar», las pantallas que más responden y los accesos que piden, y la lista de preguntas con quién preguntó, qué buscaba, qué respondió CAYLA y si le sirvió.</li>
+      <li><b>Lo que conviene mejorar</b> (<code>InformeSemanal</code>): el informe del lunes en una <b>tarjeta de papel</b>; hasta cinco mejoras, cada una con su <b>número en un círculo arena</b>, su tipo (función nueva en ámbar, mover a la vista o escribir una regla en pizarra, dar un acceso y capacitar neutras), su título y su detalle; «Ver las N preguntas» despliega las preguntas que la sostienen, con una <b>raya arena</b> a la izquierda.</li>
+      <li>Todo lo demás son piezas ya elegidas.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Lo que conviene mejorar</b></td><td>A · Placa con su número en gota <span class="ev">Recomendada</span></td><td>Una placa más; el número, una gota clara que se lee como un orden; las preguntas que la sostienen bajan en un pozo, como los lotes de Insumos que elegiste.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Lentes del tono</td><td>Cada mejora, una lente de su tipo: la función nueva se ve ámbar desde lejos.</td><td>Cinco lentes de tres colores: el color compite con el número, que es el orden de importancia.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Qué cuenta cada cifra, el orden de las mejoras (de más a menos preguntas), sus tipos y colores, «Armar el de la semana pasada» (una vez), las barras, la lista con el nombre de quien preguntó y lo que buscaba, «Sí / No / —», y el mes en la URL.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { izq: 'M15 6l-6 6 6 6', der: 'M9 6l6 6-6 6', abajo: 'M6 9l6 6 6-6', lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const abiertas = new Set([0]);
+  const MJ = [['ambar', 'Función nueva', 'Que Vender diga cuánto falta para la meta del día', 'Siete personas lo preguntaron de cinco formas distintas; hoy hay que ir a Rendimiento.', 7, 'Trujillo y Arequipa', [['¿cuánto me falta para mi meta de hoy?', 'Mía Quispe · Trujillo · 27 oct'], ['¿cómo voy hoy?', 'Rosa Castro · Arequipa · 25 oct'], ['meta del día', 'Ana Torres · Trujillo · 24 oct']]],
+    ['pizarra', 'Mover a la vista', 'Apartar desde Existencias está escondido en «Más»', 'Cinco preguntaron cómo apartar una prenda desde la tarjeta; el botón vive en el menú.', 5, 'las tres tiendas', [['¿cómo aparto una prenda?', 'Lucía Ramos · Lima · 26 oct']]],
+    ['pizarra', 'Escribir una regla', 'Cuándo se puede cambiar una prenda en liquidación', 'Las respuestas no lo decían: la regla no está escrita en ninguna parte.', 4, 'Trujillo', [['¿se puede cambiar una de liquidación?', 'Ana Torres · Trujillo · 22 oct']]],
+    ['', 'Dar un acceso', 'Caja ▸ Gastos para quien abre la tienda', 'Tres encargadas pidieron registrar el taxi del día.', 3, 'Arequipa', [['¿dónde pongo el taxi?', 'Rosa Castro · Arequipa · 21 oct']]]];
+  const LP = [['27 oct · 11:36', 'MQ', 'Mía Quispe', 'Trujillo', '¿cuánto me falta para mi meta de hoy?', 'la meta del día', ['ambar', 'Sin respuesta'], 'No encontró la pantalla', ['roja', 'No']], ['26 oct · 18:02', 'LR', 'Lucía Ramos', 'Lima', '¿cómo aparto una prenda?', '', ['verde', 'Resuelta'], 'Vender ▸ Apartados', ['verde', 'Sí']],
+    ['25 oct · 16:40', 'RC', 'Rosa Castro', 'Arequipa', '¿dónde pongo el taxi?', 'gastos', ['tinta', 'Pide un acceso'], 'Caja ▸ Gastos', null], ['24 oct · 10:15', 'AT', 'Ana Torres', 'Trujillo', '¿cómo hago un traslado a Lima?', '', ['verde', 'Resuelta'], 'Inventario ▸ Traslados', ['verde', 'Sí']]];
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Preguntas del equipo', frase: 'Lo que tu equipo le pregunta a CAYLA: qué se resolvió, qué no encontró y qué accesos pide.', pie: `<div class="mesg"><button aria-label="Mes anterior">${s(D.izq)}</button><span>Octubre 2026</span><button aria-label="Mes siguiente" disabled>${s(D.der)}</button></div>` })}
+      <div class="pq-cif">${[['Preguntas', '148', 'en octubre', ''], ['Resueltas', '96', 'el 65 %', 'var(--verde)', 1], ['Sin respuesta', '31', 'no encontró la pantalla', 'var(--ambar)'], ['Piden un acceso', '14', 'a un módulo que no ven', 'var(--taupe)'], ['No les sirvió', '7', 'de 52 que contestaron', 'var(--rojo)']].map(([e, v, d, c, p]) => `<button class="placa cif" aria-pressed="${!!p}" style="--c:${c}"><p class="vs">${c ? '<i></i>' : ''}${e}</p><b>${v}</b><small>${d}</small></button>`).join('')}</div>
+      <section class="placa inf"><p class="ts">Lo que conviene mejorar ${boton(['sec', 'Armar el de la semana pasada'])}</p><p class="q">Del informe del lunes · del 19 al 25 oct · 4 mejoras de 41 preguntas</p><ol class="lista">
+        ${MJ.map(([t, tipo, tit, det, n, sedes, prs], i) => `<li class="mj" data-t="${t}"${abiertas.has(i) ? ' data-abierta' : ''}><span class="mj-n">${i + 1}</span><div class="cu"><div class="mj-f"><span class="chip ${t || 'tinta'}">${tipo}</span><span>${n} preguntas · ${sedes}</span></div><p class="tit">${tit}</p><p class="det">${det}</p>
+          <button class="vermas" data-mj="${i}">${n === 1 ? 'Ver la pregunta' : `Ver las ${n} preguntas`}${s(D.abajo)}</button><div class="prs"><div><ul>${prs.map(([q, w]) => `<li>«${q}»<small>${w}</small></li>`).join('')}</ul></div></div></div></li>`).join('')}</ol></section>
+      <div class="pq-2"><section class="placa bl"><p class="ts">Pantallas que más responden <span class="glb">4</span></p><ul>${[['Vender ▸ Apartados', 22], ['Inventario ▸ Traslados', 17], ['Caja', 12], ['Existencias', 9]].map(([n, v]) => `<li><div><span>${n}</span><b>${v}</b></div><span class="tubo"><i style="width:${(v / 22) * 100}%"></i></span></li>`).join('')}</ul></section>
+        <section class="placa bl"><p class="ts">Accesos que piden <span class="glb">3</span></p><ul>${[['Caja ▸ Gastos', 6], ['Compras ▸ Proveedores', 5], ['Análisis', 3]].map(([n, v]) => `<li><div><span>${n}</span><b>${v}</b></div><span class="tubo"><i style="width:${(v / 6) * 100}%"></i></span></li>`).join('')}</ul></section></div>
+      <section class="placa lp"><div class="herr"><div class="pozo-b">${s(D.lupa)}<span>Busca una pregunta o una persona</span></div><button class="fp">Quién ${s(D.abajo)}</button><button class="fp">Sede ${s(D.abajo)}</button></div>
+        <div class="lp-c"><span>Cuándo</span><span>Quién</span><span>Pregunta</span><span>Qué respondió</span><span>¿Le sirvió?</span></div>
+        ${LP.map(([fe, ini, n, se, q, bu, [ct, cx], qr, sv]) => `<div class="lp-f"><span class="fe">${fe}</span><span class="qn"><span class="av24">${ini}</span><span style="min-width:0"><b>${n}</b><small>${se}</small></span></span><span class="pg">${q}${bu ? `<small>Buscaba: «${bu}»</small>` : ''}</span><span class="re"><span class="chip ${ct}">${cx}</span><small>${qr}</small></span><span>${sv ? `<span class="chip ${sv[0]}">${sv[1]}</span>` : '<span style="color:var(--taupe)">—</span>'}</span></div>`).join('')}</section>`;
+    $$('#cont [data-mj]').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.mj, li = b.closest('.mj'); abiertas.has(i) ? abiertas.delete(i) : abiertas.add(i); li.toggleAttribute('data-abierta', abiertas.has(i)); }));
+  }
+  Marco.iniciar({ estado: { me: 'placa' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

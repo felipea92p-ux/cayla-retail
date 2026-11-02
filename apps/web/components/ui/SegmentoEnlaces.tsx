@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { IndicadorDeslizante } from "./IndicadorDeslizante";
 
 /* ====================================================================
    SegmentoEnlaces · el segmento de MODO DE VISTA y de ORDEN que vive en la URL
@@ -16,6 +17,10 @@ import type { ReactNode } from "react";
    relleno (no compite con el botón principal ni con la píldora elegida); 13,5 px en 500 en todas; el icono va delante y
    siempre con su palabra. CSS: `.segmento-cayla` en app/estilos/pestanas-y-segmentos.css. Su gemelo con estado es
    `SegmentoDeslizante forma="modo"`.
+
+   Con el vidrio (Felipe 2026-11-02, «A · Pozo y gota», docs/maquetas/productos-vidrio-2026-11/): el pozo de las pestañas en
+   chico, con su ícono, y la elegida es la gota que FLUYE de una a otra (`IndicadorDeslizante` «gota»: sobrevive al cambio de
+   URL porque Next no remonta el segmento al cambiar solo los parámetros). Antes de hidratar, la elegida lleva su gota estática.
 
    Reemplaza: el pulgar oscuro que se deslizaba con MAYÚSCULAS de 11 px y el rojo al pasar el mouse (la prop `deslizante`
    se fue con él), las pistas sand de Grilla / Tabla y del tamaño de la grilla, y las pistas hueso escritas a mano.
@@ -62,6 +67,7 @@ export function SegmentoEnlaces({
           {soloIconoEnCelular && o.icono ? <span className="max-sm:sr-only">{o.etiqueta}</span> : o.etiqueta}
         </Link>
       ))}
+      <IndicadorDeslizante activa={activo} id={`modo:${etiquetaAccesible}`} variante="gota" />
     </nav>
   );
 }

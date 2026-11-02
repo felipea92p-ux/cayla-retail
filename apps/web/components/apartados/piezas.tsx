@@ -216,9 +216,14 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
   return typeof document === "undefined" ? null : createPortal(cuerpo, document.body);
 }
 
-/** Alto de las pestañas de abajo en el celular (`ApartadosPanel`): la barra de acción se apoya encima. Un solo número
- *  para las dos piezas, o la barra taparía las pestañas o dejaría una rendija. */
+/** Alto de las pestañas de abajo en el celular de Comprobantes (`PestanasComprobantesMovil`), las que nacieron de las de Apartados.
+ *  Apartados ya no lo usa: sus pestañas son la isla (ver `SOBRE_ISLA_PESTANAS`). */
 export const ALTO_PESTANAS_MOVIL = "4rem";
+
+/** Desde «A · Isla de pestañas» (Felipe 2026-11-02, vidrio/vender.css) las pestañas de Apartados flotan: 62 px de isla más 10 de aire
+ *  hasta la barra negra. Las dos islas van a 12 px del borde, así que la barra se apoya sobre esto (no sobre `ALTO_PESTANAS_MOVIL`,
+ *  que sigue siendo el alto de las pestañas de Comprobantes). Si cambia el alto de la isla en el CSS, cambia aquí. */
+const SOBRE_ISLA_PESTANAS = "4.5rem";
 
 /** Monta lo fijo del celular en `document.body` (ADR-0211): la hoja de Apartados entra con un `transform`
  *  (`anim-sube`) y, mientras dura, un `position: fixed` adentro se pegaría a la hoja y no a la pantalla. */
@@ -253,7 +258,7 @@ export function BarraMovil({
   return (
     <EnCuerpo>
     {/* La isla oscura de lo que llevas elegido, apoyada en las pestañas (ADR-0479, actividad 12, `barra-abajo`). */}
-    <BarraDeAbajo tono="tinta" sobre={ALTO_PESTANAS_MOVIL} className="z-20 flex-nowrap justify-between gap-3 py-2.5 pl-5 pr-2.5 sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden">
+    <BarraDeAbajo tono="tinta" sobre={SOBRE_ISLA_PESTANAS} className="z-20 flex-nowrap justify-between gap-3 py-2.5 pl-5 pr-2.5 sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden">
       <div className="min-w-0">
         <p className="label-cayla truncate text-[10px] text-crema/60 dark:text-crema/75">{etiqueta}</p>
         <p className="font-display text-2xl leading-tight tabular-nums">{money(monto)}</p>

@@ -56,8 +56,9 @@ export function BotonEditar(props: Comun & ({ href: string; onClick?: never } | 
   );
 }
 
-const CLASE_LAPIZ =
-  "grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta disabled:cursor-not-allowed disabled:opacity-45 aria-disabled:opacity-45";
+/** El lápiz de una fila: el ícono solo, y su gota redonda de 32 px con el filo de lo que se toca al pasar el mouse o con el foco
+ *  (`icono-fila`, app/estilos/vidrio/campos-y-botones.css; «A · Gota al pasar», Felipe 2026-11-01), la misma del copiar y del «⋯». */
+const CLASE_LAPIZ = "icono-fila grid h-8 w-8 shrink-0 place-items-center disabled:cursor-not-allowed disabled:opacity-45 aria-disabled:opacity-45";
 
 export function LapizEditar(
   props: {

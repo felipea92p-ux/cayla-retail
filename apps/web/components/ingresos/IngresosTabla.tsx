@@ -1,8 +1,7 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
@@ -11,35 +10,53 @@ import { HojaIngresos } from "./HojaIngresos";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { MatrizIngreso } from "./MatrizIngreso";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
-import { Vacio } from "@/components/ui/Vacio";
+import { TablaViva, useTablaViva, type ColumnaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { ENCABEZADOS_DETALLE, encabezadosPorModelo, filasPorColorYTalla, filasPorModelo, nombreArchivoIngresos } from "@/lib/ingresos-exportar";
 import type { Apariencia } from "@/lib/ingresos";
 import {
   ORDEN_INICIAL_INGRESOS,
   buscarModelosIngresos,
+  conPreposicion,
   costoDelModelo,
   cuentaNovedad,
   esCampoOrdenIngresos,
-  filtrarPorNovedad,
-  modelosTexto,
   ordenarModelosIngresos,
   precioDelModelo,
   prendasTexto,
-  siguienteOrdenIngresos,
-  type FiltroNovedad,
   type ModeloIngresado,
-  type OrdenIngresos,
 } from "@/lib/ingresos-reglas";
+import { fechaRelativa, ordenarFilas, sumaDe, unirConO, type OrdenViva } from "@/lib/tabla-viva-reglas";
 
-// La lista de modelos de «Ingresos»: una línea por modelo con su foto, si es Nuevo o un Reingreso, cuántas prendas entraron, su
-// precio en esta sede y —solo para quien ve el dinero— su costo. Vive en el cliente porque se busca, se filtra, se ordena y se abre
-// sin volver al servidor: el rango ya trajo todo lo que se muestra (la búsqueda del navegador no abre el loader, ADR-0149).
+// La lista de modelos de «Ingresos»: una línea por modelo con su foto, si es Nuevo o un Reingreso, su categoría, cuándo entró, cuántas
+// prendas entraron, su precio en esta sede y —solo para quien ve el dinero— su costo. Vive en el cliente porque se busca, se filtra, se
+// ordena y se abre sin volver al servidor: el rango ya trajo todo lo que se muestra (la búsqueda del navegador no abre el loader,
+// ADR-0149). Por eso es la primera pantalla con la tabla con superpoderes (`TablaViva`, ADR-0596): filtrar «Nuevo o Reingreso» y la
+// categoría desde su cabecera, la frase de lo que ves, la cabecera que acompaña al bajar y el total de lo que ves al pie.
 
 /** El alto de un botón de fila: 32 px con el mouse y 44 con el dedo (el patrón de `parecidas-boton` y `compra-celular`), para que quede a la altura de
  *  las píldoras. Una utilidad le gana a `.btn-chico`, que mide 44 siempre. */
 const ALTO_COMPACTO = "min-h-8 [@media(pointer:coarse)]:min-h-11";
+const MODELO = { uno: "modelo", varios: "modelos", genero: "m" } as const;
+const NUEVO = "Nuevo";
+const REINGRESO = "Reingreso";
+
+/** El orden de la pantalla: nombre, prendas, precio y costo con sus desempates de siempre (lo sin costo al final, el empate por nombre);
+ *  las columnas nuevas (clase, categoría, cuándo entró), con el orden de la tabla. */
+function ordenarIngresos(columnas: readonly ColumnaViva<ModeloIngresado>[]) {
+  return (filas: readonly ModeloIngresado[], orden: OrdenViva): ModeloIngresado[] =>
+    esCampoOrdenIngresos(orden.clave)
+      ? ordenarModelosIngresos(filas, { campo: orden.clave, dir: orden.dir })
+      : ordenarFilas(filas, columnas.find((c) => c.clave === orden.clave), orden.dir);
+}
+
+function ChipClase({ nuevo }: { nuevo: boolean }) {
+  return (
+    <Chip tono={nuevo ? "verde" : "pizarra"} versalitas={false} title={nuevo ? "Es la primera vez que entra este modelo" : "Este modelo ya había entrado antes"}>
+      {nuevo ? NUEVO : REINGRESO}
+    </Chip>
+  );
+}
 
 export function IngresosTabla({
   modelos,
@@ -49,6 +66,7 @@ export function IngresosTabla({
   sede,
   desde,
   hasta,
+  hoy,
 }: {
   modelos: ModeloIngresado[];
   apariencia: Record<string, Apariencia>;
@@ -58,10 +76,10 @@ export function IngresosTabla({
   sede: string;
   desde: string;
   hasta: string;
+  /** El día de Lima: con él, «cuándo entró» dice «hace 3 días». */
+  hoy: string;
 }) {
-  const [filtro, setFiltro] = useState<FiltroNovedad>("todos");
   const [busqueda, setBusqueda] = useState("");
-  const [orden, setOrden] = useState<OrdenIngresos>(ORDEN_INICIAL_INGRESOS);
   // Los modelos abiertos (por si compras quiere comparar el detalle de dos): se abren y se cierran con un toque.
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
   function alternar(productoId: string) {
@@ -71,20 +89,133 @@ export function IngresosTabla({
       return ahora;
     });
   }
-  // El filtro se ofrece según TODOS los modelos (no salta cuando una búsqueda deja solo de una clase); con una sola clase no filtra
-  // nada, así que no se ofrece, y si estaba puesto se vuelve a «todos». Los números de sus píldoras siguen a la búsqueda.
+  // «Nuevo o Reingreso» se filtra según TODOS los modelos (no salta cuando una búsqueda deja solo de una clase); con una sola clase no
+  // filtra nada, así que su cabecera solo ordena (y si estaba puesto, deja de filtrar: lo hace `useTablaViva`).
   const hayDeLasDos = cuentaNovedad(modelos).hayDeLasDos;
-  const activo: FiltroNovedad = hayDeLasDos ? filtro : "todos";
-  const encontrados = buscarModelosIngresos(modelos, busqueda);
-  const cuenta = cuentaNovedad(encontrados);
-  const visibles = ordenarModelosIngresos(filtrarPorNovedad(encontrados, activo), orden);
-  const prendas = visibles.reduce((suma, m) => suma + m.unidades, 0);
-  // Con solo una búsqueda puesta, el botón del vacío la borra; con un filtro de por medio, quita todo lo puesto.
-  const soloBusqueda = busqueda.trim() !== "" && activo === "todos";
-  function limpiar() {
-    setBusqueda("");
-    setFiltro("todos");
-  }
+  const encontrados = useMemo(() => buscarModelosIngresos(modelos, busqueda), [modelos, busqueda]);
+
+  // Las columnas: la plantilla se declara una vez y la usan la cabecera, las filas y el pie. El costo solo existe para quien lo ve: su
+  // columna no se dibuja vacía.
+  const columnas = useMemo<ColumnaViva<ModeloIngresado>[]>(
+    () => [
+      {
+        clave: "modelo",
+        titulo: "Modelo",
+        tipo: "texto",
+        valor: (m) => m.referencia,
+        principal: true,
+        alinear: "izquierda",
+        ancho: "minmax(0,2.6fr)",
+        // Toda la fila se toca con el mouse; el botón del nombre es lo que usan el teclado y el lector de pantalla (su Enter sube hasta
+        // la fila). Lo que se fue de las columnas escondidas va bajo el nombre (`debajo`), junto al código.
+        celda: (m, { indice, debajo }) => {
+          const a = apariencia[m.productoId];
+          const abierto = abiertos.has(m.productoId);
+          return (
+            <span className="flex min-w-0 items-center gap-3">
+              <MiniaturaPrenda tamano="lg" fotoUrl={a?.fotoUrl ?? null} prefijo={a?.prefijo} familia={a?.familia} categoria={a?.categoria} />
+              <span className="min-w-0">
+                <button
+                  type="button"
+                  aria-expanded={abierto}
+                  aria-controls={`ingreso-${m.productoId}`}
+                  data-guia={indice === 0 ? "movimientos.ingresos-nombre" : undefined}
+                  className="block max-w-full truncate text-left font-medium text-tinta"
+                >
+                  {m.referencia}
+                  <span className="sr-only">{abierto ? ". Ocultar colores y tallas" : ". Ver colores y tallas"}</span>
+                </button>
+                {m.codigo && <span className="tv-sub truncate">{m.codigo}</span>}
+                {debajo}
+              </span>
+            </span>
+          );
+        },
+      },
+      {
+        clave: "clase",
+        titulo: "Clase",
+        tipo: "opcion",
+        valor: (m) => (m.esNuevo ? NUEVO : REINGRESO),
+        filtra: hayDeLasDos,
+        ancho: "7.5rem",
+        sinNombreEnTarjeta: true,
+        ayuda: "«Nuevo» llega por primera vez; «Reingreso» ya había entrado antes",
+        guia: "movimientos.ingresos-novedad",
+        guiaCelda: "movimientos.ingresos-etiqueta",
+        celda: (m) => <ChipClase nuevo={m.esNuevo} />,
+        dibujarOpcion: (v) => <ChipClase nuevo={v === NUEVO} />,
+        frase: (v, n) => unirConO(v.map((x) => (x === NUEVO ? (n === 1 ? "nuevo" : "nuevos") : n === 1 ? "reingreso" : "reingresos"))),
+      },
+      {
+        clave: "categoria",
+        titulo: "Categoría",
+        tipo: "opcion",
+        valor: (m) => m.categoria,
+        filtra: true,
+        seVa: 1060,
+        ancho: "minmax(8.5rem,1fr)",
+        resumen: (m) => m.categoria,
+        frase: (v) => `de ${unirConO(v)}`,
+      },
+      {
+        clave: "entro",
+        titulo: "Entró",
+        tipo: "fecha",
+        valor: (m) => m.ultimoDia,
+        seVa: 840,
+        ancho: "7rem",
+        ayuda: "El último día del período en que entró algo de este modelo",
+        resumen: (m) => `entró ${fechaRelativa(m.ultimoDia, hoy).texto}`,
+      },
+      {
+        clave: "prendas",
+        titulo: "Prendas",
+        tipo: "numero",
+        valor: (m) => m.unidades,
+        texto: (m) => m.unidades.toLocaleString("es-PE"),
+        destacadaEnTarjeta: true,
+        unidadEnTarjeta: "prendas",
+        celda: (m) => (
+          <span title={`${m.deStockInicial.toLocaleString("es-PE")} de stock inicial · ${m.deRecepcion.toLocaleString("es-PE")} de mercadería recibida`}>
+            {m.unidades.toLocaleString("es-PE")}
+          </span>
+        ),
+        suma: (v) => sumaDe(v, (m) => m.unidades).toLocaleString("es-PE"),
+      },
+      {
+        clave: "precio",
+        titulo: "Precio",
+        tipo: "monto",
+        valor: (m) => m.precioMin,
+        texto: precioDelModelo,
+        ayuda: "Lo que se cobra en esta sede por lo que entró",
+        guiaCelda: "movimientos.ingresos-precio",
+      },
+      ...(veCosto
+        ? [
+            {
+              clave: "costo",
+              titulo: "Costo",
+              tipo: "monto" as const,
+              valor: (m: ModeloIngresado) => m.costoMin,
+              texto: costoDelModelo,
+              // Bajo 840 px de tabla el costo pasa bajo el nombre: el modelo necesita el lugar, y el precio se queda a la vista.
+              seVa: 840 as const,
+              resumen: (m: ModeloIngresado) => `costo ${costoDelModelo(m)}`,
+              ayuda: "Lo que costó. Solo lo ve quien tiene permiso de dinero.",
+            },
+          ]
+        : []),
+    ],
+    [apariencia, abiertos, hayDeLasDos, hoy, veCosto],
+  );
+  const ordenar = useMemo(() => ordenarIngresos(columnas), [columnas]);
+  const tabla = useTablaViva({ filas: encontrados, columnas, ordenInicial: { clave: ORDEN_INICIAL_INGRESOS.campo, dir: ORDEN_INICIAL_INGRESOS.dir }, ordenar });
+  const visibles = tabla.visibles;
+  const q = busqueda.trim();
+  const deAfuera: FiltroDeAfuera[] = q ? [{ clave: "busqueda", pildora: `Busca: «${q}»`, frase: `con «${q}»`, quitar: () => setBusqueda("") }] : [];
+
   // Imprimir: la hoja (con foto) se monta pegada a <body> SOLO mientras se imprime —en pantalla no existe—, se espera a que carguen
   // sus fotos y recién ahí se abre el cuadro de impresión. Al cerrarlo (imprimas o canceles) la hoja se quita.
   const [imprimiendo, setImprimiendo] = useState(false);
@@ -117,35 +248,32 @@ export function IngresosTabla({
     };
   }, [imprimiendo]);
 
-  // Baja LO QUE SE VE (con la búsqueda, el filtro y el orden de la pantalla): armado acá, con lo que el rango ya trajo.
+  // Baja LO QUE SE VE (con la búsqueda, los filtros y el orden de la tabla): armado acá, con lo que el rango ya trajo.
   function bajar(conDetalle: boolean) {
     const nombre = nombreArchivoIngresos({ sede, desde, hasta, detalle: conDetalle });
     if (conDetalle) descargarCsv(nombre, ENCABEZADOS_DETALLE, filasPorColorYTalla(visibles));
     else descargarCsv(nombre, encabezadosPorModelo(veCosto), filasPorModelo(visibles, veCosto));
   }
 
-  // Una plantilla para el encabezado y las filas (Tabla). El costo solo existe para quien lo ve: su columna no se dibuja vacía.
-  const plantilla = veCosto ? "sm:grid-cols-[minmax(0,1fr)_5.5rem_8rem_8rem]" : "sm:grid-cols-[minmax(0,1fr)_5.5rem_8rem]";
-  const columnas: Columna[] = [
-    { titulo: "Modelo", campo: "modelo" },
-    { titulo: "Prendas", alinear: "der", campo: "prendas" },
-    { titulo: "Precio", alinear: "der", campo: "precio", ayuda: "Lo que se cobra en esta sede por lo que entró" },
-    ...(veCosto ? [{ titulo: "Costo", alinear: "der" as const, campo: "costo", ayuda: "Lo que costó. Solo lo ve quien tiene permiso de dinero." }] : []),
-  ];
-
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p data-guia="movimientos.ingresos-total" className="text-sm text-taupe">
-          <b className="font-semibold text-tinta">{prendasTexto(prendas)}</b> en {modelosTexto(visibles.length)}, {rangoTexto}.
-        </p>
+        <Buscador
+          valor={busqueda}
+          onCambio={setBusqueda}
+          placeholder="Buscar un modelo"
+          etiqueta="Buscar un modelo por su nombre, su código o su categoría"
+          atajo
+          guia="movimientos.ingresos-buscador"
+          className="w-full sm:max-w-xs"
+        />
         {visibles.length > 0 && (
           <>
             {/* Desde sm: los tres botones sueltos, a la altura de las píldoras de al lado (32 px con el mouse, 44 con el dedo: `btn-chico`
                 mide 44 siempre y la fila quedaba con tres alturas). En el celular se juntan en «Más»: sueltos empujaban la tabla casi una
                 pantalla hacia abajo. */}
             <div data-guia="movimientos.ingresos-descargar" className="hidden flex-wrap items-center gap-2 sm:flex">
-              <BotonDescargar chico className={ALTO_COMPACTO} onClick={() => bajar(false)} title="Baja lo que estás viendo, con tu búsqueda y tu orden: una línea por modelo">
+              <BotonDescargar chico className={ALTO_COMPACTO} onClick={() => bajar(false)} title="Baja lo que estás viendo, con tu búsqueda, tus filtros y tu orden: una línea por modelo">
                 Descargar Excel
               </BotonDescargar>
               <BotonDescargar chico className={ALTO_COMPACTO} onClick={() => bajar(true)} title="Lo mismo, con una línea por cada color y talla de cada modelo">
@@ -176,112 +304,30 @@ export function IngresosTabla({
           </>
         )}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <Buscador
-          valor={busqueda}
-          onCambio={setBusqueda}
-          placeholder="Buscar un modelo"
-          etiqueta="Buscar un modelo por su nombre, su código o su categoría"
-          atajo
-          guia="movimientos.ingresos-buscador"
-          className="w-full sm:max-w-xs"
-        />
-        {hayDeLasDos && (
-          <div role="group" aria-label="Nuevos o reingresos" data-guia="movimientos.ingresos-novedad" className="flex flex-wrap items-center gap-1.5">
-            <Pastilla activa={activo === "todos"} onClick={() => setFiltro("todos")} cuenta={encontrados.length}>
-              Todos
-            </Pastilla>
-            <Pastilla activa={activo === "nuevo"} onClick={() => setFiltro("nuevo")} cuenta={cuenta.nuevos}>
-              Nuevos
-            </Pastilla>
-            <Pastilla activa={activo === "reingreso"} onClick={() => setFiltro("reingreso")} cuenta={cuenta.reingresos}>
-              Reingresos
-            </Pastilla>
-          </div>
-        )}
-      </div>
-      <Tabla guia="movimientos.ingresos-tabla">
-        <Encabezado columnas={columnas} plantilla={plantilla} orden={orden} onOrden={(campo) => esCampoOrdenIngresos(campo) && setOrden((o) => siguienteOrdenIngresos(o, campo))} />
-        {visibles.length === 0 && (
-          <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: soloBusqueda ? "Borrar la búsqueda" : "Quitar lo puesto", onClick: limpiar }}>
-            {busqueda.trim() !== "" ? `Ningún modelo coincide con «${busqueda.trim()}».` : "Ningún modelo es de esa clase."}
-          </Vacio>
-        )}
-        {visibles.map((m, i) => {
-          const a = apariencia[m.productoId];
-          const detalle = [m.codigo, m.categoria].filter(Boolean).join(" · ");
-          const abierto = abiertos.has(m.productoId);
-          return (
-            <Fragment key={m.productoId}>
-              {/* Toda la fila se toca con el mouse; el botón del nombre es lo que usan el teclado y el lector de pantalla (su Enter
-                  sube hasta la fila). Abierta, la fila queda marcada con `aria-current`, como las demás del sistema. */}
-              <div
-                role="row"
-                data-guia={i === 0 ? "movimientos.ingresos-fila" : undefined}
-                aria-current={abierto ? "true" : undefined}
-                onClick={() => alternar(m.productoId)}
-                className={fila(plantilla, "cursor-pointer items-center")}
-              >
-                <div className={celda("izq", "flex items-center gap-3")}>
-                  <MiniaturaPrenda tamano="lg" fotoUrl={a?.fotoUrl ?? null} prefijo={a?.prefijo} familia={a?.familia} categoria={a?.categoria} />
-                  <span className="min-w-0">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <button
-                        type="button"
-                        aria-expanded={abierto}
-                        aria-controls={`ingreso-${m.productoId}`}
-                        data-guia={i === 0 ? "movimientos.ingresos-nombre" : undefined}
-                        className="truncate text-left text-sm font-medium text-tinta"
-                      >
-                        {m.referencia}
-                        <span className="sr-only">{abierto ? ". Ocultar colores y tallas" : ". Ver colores y tallas"}</span>
-                      </button>
-                      <span data-guia={i === 0 ? "movimientos.ingresos-etiqueta" : undefined} className="shrink-0">
-                        <Chip tono={m.esNuevo ? "verde" : "pizarra"} versalitas={false} title={m.esNuevo ? "Es la primera vez que entra este modelo" : "Este modelo ya había entrado antes"}>
-                          {m.esNuevo ? "Nuevo" : "Reingreso"}
-                        </Chip>
-                      </span>
-                    </span>
-                    {detalle && <span className="block truncate text-sm text-taupe">{detalle}</span>}
-                  </span>
-                </div>
-                <span
-                  className={celda("der", "text-sm font-semibold text-tinta")}
-                  title={`${m.deStockInicial.toLocaleString("es-PE")} de stock inicial · ${m.deRecepcion.toLocaleString("es-PE")} de mercadería recibida`}
-                >
-                  <Etiqueta>Prendas </Etiqueta>
-                  {m.unidades.toLocaleString("es-PE")}
-                </span>
-                <span data-guia={i === 0 ? "movimientos.ingresos-precio" : undefined} className={celda("der", "text-sm text-tinta")}>
-                  <Etiqueta>Precio </Etiqueta>
-                  {precioDelModelo(m)}
-                </span>
-                {veCosto && (
-                  <span className={celda("der", "text-sm text-tinta/75")}>
-                    <Etiqueta>Costo </Etiqueta>
-                    {costoDelModelo(m)}
-                  </span>
-                )}
-              </div>
-              {abierto && (
-                <div id={`ingreso-${m.productoId}`} data-guia={i === 0 ? "movimientos.ingresos-detalle" : undefined} className="anim-revelar bg-hueso/60 px-5 py-3 sm:pl-[5.25rem]">
-                  <MatrizIngreso variantes={m.variantes} />
-                </div>
-              )}
-            </Fragment>
-          );
-        })}
-        {visibles.length > 0 && (
-          // El total de lo que se ve, como la fila de totales de Excel: sigue a la búsqueda y al filtro.
-          <div role="row" data-guia="movimientos.ingresos-pie" className={`grid gap-x-4 gap-y-1 bg-hueso/60 px-5 py-2.5 text-sm font-semibold text-tinta ${plantilla}`}>
-            <span className="min-w-0 truncate">Total</span>
-            <span className="whitespace-nowrap tabular-nums sm:text-right">
-              {prendas.toLocaleString("es-PE")}
-              <span className="text-sm font-normal text-taupe sm:hidden"> {prendas === 1 ? "prenda" : "prendas"}</span>
-            </span>
-          </div>
-        )}
-      </Tabla>
+      <TablaViva
+        tabla={tabla}
+        clave={(m) => m.productoId}
+        etiqueta="Modelos que entraron"
+        sustantivo={MODELO}
+        hoy={hoy}
+        total={modelos.length}
+        cola={`que entraron ${conPreposicion(rangoTexto)}`}
+        suma={(v) => prendasTexto(sumaDe(v, (m) => m.unidades))}
+        deAfuera={deAfuera}
+        onAbrir={(m) => alternar(m.productoId)}
+        abierta={(m) => abiertos.has(m.productoId)}
+        debajoDeFila={(m, i) =>
+          abiertos.has(m.productoId) ? (
+            <div id={`ingreso-${m.productoId}`} data-guia={i === 0 ? "movimientos.ingresos-detalle" : undefined} className="anim-revelar rounded-xl bg-hueso/60 px-4 py-3 sm:ml-16">
+              <MatrizIngreso variantes={m.variantes} />
+            </div>
+          ) : null
+        }
+        guia="movimientos.ingresos-tabla"
+        guiaFrase="movimientos.ingresos-total"
+        guiaFila="movimientos.ingresos-fila"
+        guiaPie="movimientos.ingresos-pie"
+      />
       {imprimiendo &&
         createPortal(
           <HojaIngresos modelos={visibles} abiertos={abiertos} apariencia={apariencia} veCosto={veCosto} sede={sede} rangoTexto={rangoTexto} impresoEn={impresoEn} />,
@@ -307,19 +353,4 @@ function esperarImagenes(raiz: HTMLElement | null, tope: number): Promise<void> 
     }
     setTimeout(resolver, tope);
   });
-}
-
-/** En el celular el encabezado de la tabla se esconde y cada fila apila sus datos: cada cifra dice qué es. */
-function Etiqueta({ children }: { children: string }) {
-  return <span className="text-sm text-taupe sm:hidden">{children}</span>;
-}
-
-/** La píldora de filtro del sistema (ADR-0358) con cuántos modelos tiene. */
-function Pastilla({ activa, onClick, cuenta, children }: { activa: boolean; onClick: () => void; cuenta: number; children: string }) {
-  return (
-    <button type="button" onClick={onClick} aria-pressed={activa} className="pildora-cayla shrink-0">
-      {children}
-      <span className="pildora-cayla__n">{cuenta.toLocaleString("es-PE")}</span>
-    </button>
-  );
 }

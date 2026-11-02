@@ -50,7 +50,7 @@ export function ProveedoresComparar({
   const columnas = { gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` };
   const cifra = `font-display font-normal leading-none tabular-nums ${n === 3 ? "text-[18px]" : "text-[21px]"}`;
   const fila = (titulo: ReactNode, celda: (f: FilaRanking) => ReactNode, i: number) => (
-    <div className="anim-entra space-y-1.5 border-t border-sand py-2.5" style={{ ["--i" as string]: 2 + i }}>
+    <div className="prov-comp-fila anim-entra space-y-1.5 border-t py-2.5" style={{ ["--i" as string]: 2 + i }}>
       <span className="flex items-center gap-1 text-sm font-semibold text-taupe">{titulo}</span>
       <div className="grid items-start gap-3" style={columnas}>
         {filas.map((f) => (
@@ -89,7 +89,7 @@ export function ProveedoresComparar({
                 aria-label={`Quitar ${f.nombre} de la comparación`}
                 title="Quitar de la comparación"
                 onClick={() => onQuitar(f.proveedorId)}
-                className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-hueso text-tinta transition-colors duration-200 hover:bg-sand"
+                className="prov-quitar grid h-6 w-6 shrink-0 place-items-center rounded-full text-tinta"
               >
                 <X aria-hidden className="h-3.5 w-3.5" />
               </button>

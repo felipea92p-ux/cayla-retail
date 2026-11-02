@@ -16,7 +16,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 // compras) queda en una línea gris al pie. Las cuentas siguen en `proveedores-ranking-reglas.ts` y `proveedor-analisis-reglas.ts`.
 
 /** La caja de cada tarjeta de la columna derecha: «Qué hacer» y «Comparar» (lo pegado al bajar lo pone `ConLado`). */
-export const CLASE_LADO = "card-cayla space-y-5 p-4";
+export const CLASE_LADO = "card-cayla prov-lado space-y-5 p-4";
 
 type Tono = "urgente" | "bien" | "normal";
 
@@ -37,7 +37,8 @@ const TONO_ICONO: Record<Tono, string> = { urgente: "text-rojo-profundo", bien: 
 function FilaTarea({ t, i }: { t: Tarea; i: number }) {
   const cuerpo = (
     <>
-      <span aria-hidden className={`grid place-items-center ${TONO_ICONO[t.tono]}`}>
+      {/* La urgente lleva su ícono en una gota roja (vidrio «A · Placa con filas», Felipe 2026-11-02: vidrio/proveedores.css). */}
+      <span aria-hidden className={`grid place-items-center ${t.tono === "urgente" ? "prov-gota-roja" : TONO_ICONO[t.tono]}`}>
         {t.icono}
       </span>
       <span className="min-w-0 text-[14.5px] leading-snug text-tinta">
@@ -52,7 +53,7 @@ function FilaTarea({ t, i }: { t: Tarea; i: number }) {
     </>
   );
   const clase =
-    "group anim-entra grid w-full grid-cols-[1.5rem_minmax(0,1fr)_auto_1rem] items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-left transition-colors duration-200 hover:bg-hueso/70";
+    "prov-tarea group anim-entra grid w-full grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] items-center gap-2.5 rounded-[10px] px-2.5 py-2.5 text-left transition-colors duration-200";
   const estilo = { ["--i" as string]: i };
   if (t.href)
     return (
@@ -67,7 +68,7 @@ function FilaTarea({ t, i }: { t: Tarea; i: number }) {
       </button>
     );
   return (
-    <div className={clase.replace(" hover:bg-hueso/70", "")} style={estilo} title={t.ayuda}>
+    <div className={clase} style={estilo} title={t.ayuda}>
       {cuerpo}
     </div>
   );
@@ -146,11 +147,11 @@ export function ProveedoresLoQueNoSeVe({
   ].filter(Boolean);
 
   return (
-    <aside data-guia={soloHoy ? undefined : "proveedores.lado"} aria-label={soloHoy ? "Para hoy" : undefined} className="card-cayla p-3">
+    <aside data-guia={soloHoy ? undefined : "proveedores.lado"} aria-label={soloHoy ? "Para hoy" : undefined} className="card-cayla prov-lado p-3">
       <div className="px-2.5 pb-1 pt-1">
         <TituloSeccion>{soloHoy ? "Para hoy" : "Qué hacer"}</TituloSeccion>
       </div>
-      <div className="divide-y divide-sand/70" data-guia={soloHoy ? undefined : "proveedores.para-hoy"}>
+      <div className="prov-filas" data-guia={soloHoy ? undefined : "proveedores.para-hoy"}>
         {tareas.map((t, i) => (
           <FilaTarea key={t.clave} t={t} i={i} />
         ))}
