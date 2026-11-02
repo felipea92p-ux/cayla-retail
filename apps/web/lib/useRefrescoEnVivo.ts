@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { navegacionSinEspera } from "@/components/ui/Espera";
 import { ESPERA_JUNTAR_PAGINA_MS, queHacerConUnCambio, REINTENTO_CON_HOJA_MS } from "@/lib/cambios-en-vivo-reglas";
 import { useCambiosEnVivo } from "@/lib/useCambiosEnVivo";
 
@@ -28,6 +29,9 @@ export function useRefrescoEnVivo(ubicacionId: string) {
       switch (queHacerConUnCambio({ oculta: document.visibilityState !== "visible", hojaAbierta: hayHojaAbierta() })) {
         case "refrescar":
           pendiente.current = false;
+          // Nadie pidió este refresco: se anuncia al loader para que no tape la pantalla (`navegacionSinEspera`, ADR-0149). Sin esto, el
+          // `router.refresh()` cuenta como «cargar una pantalla» y cada venta ajena dejaba Existencias bajo «Cargando».
+          navegacionSinEspera(window.location.href);
           router.refresh();
           return;
         case "guardar-para-despues":
