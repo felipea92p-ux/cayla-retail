@@ -21,10 +21,10 @@ Esta pantalla tenía **su propio vidrio** desde ADR-0124 (`.tema-vidrio`, `.vidr
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | Las tarjetas de indicador (`TarjetaKpiVidrio`) | Como ahora | El vidrio de ADR-0124: papel translúcido con borde arena, el canto de 3 px del estado, su tinte que se difumina y la luz que sigue al mouse. |
-| | **A · Lente del tono** (recomendada) | La placa Serena; la que tiene un estado que decir (pendientes, rechazados) se tiñe apenas de él con su filo; el ícono en su gota. La luz se queda. |
+| | **A · Lente del tono** (elegida) | La placa Serena; la que tiene un estado que decir (pendientes, rechazados) se tiñe apenas de él con su filo; el ícono en su gota. La luz se queda. |
 | | B · Placa con su canto | La placa Serena para todas; el canto, una gota fina del estado dentro de la placa. |
 | Los documentos de SUNAT y el vínculo (`DocumentosSunat`, «Tiene NC…») | Como ahora | Cuatro enlaces subrayados; el vínculo, un rectángulo pizarra. |
-| | **A · Gotas chicas** (recomendada) | «Ver PDF» y «WhatsApp» en gotas claras de 26 px; XML y CDR, enlaces tenues; el vínculo, una lente pizarra. |
+| | **A · Gotas chicas** (elegida) | «Ver PDF» y «WhatsApp» en gotas claras de 26 px; XML y CDR, enlaces tenues; el vínculo, una lente pizarra. |
 | | B · Ranura | Los cuatro juntos en una ranura fina. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`. En el celular los documentos siguen viviendo en el «⋯», como hoy.
@@ -41,4 +41,14 @@ inventados. Medida de 320 a 1920 px sin que nada se salga.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: las recomendadas, las tarjetas A · Lente del tono y los documentos A · Gotas chicas.** Al implementar (solo el material; nada
+de SUNAT ni de Lucode):
+- Se va la isla de ADR-0124 en `app/globals.css`: `.tema-vidrio`, `.vidrio-cayla`, `.pestanas-vidrio` (las pestañas pasan a `<Pestanas>`, la
+  gota elegida) y el material de `.kpi-vidrio`.
+- `TarjetaKpiVidrio`: la placa Serena (vidrio 64→44 %, desenfoque 24 y saturación 1,6, su luz arriba). Sin el canto de 3 px ni el tinte que se
+  difumina: con `tono` ámbar, rojo o verde, la placa se tiñe del tono al 6→12 % sobre vidrio con un filo del tono al 30 % (en oscuro, 14→8 %
+  sobre transparente); con `taupe`, placa clara. El ícono, en una gota de 32 px del tono al 14 %. La luz que sigue al mouse (`--mx`, `--my`),
+  el subir 2 px al pasar y el `@property --kc` que desliza el color se quedan. Los gráficos no cambian (sin rojo).
+- `DocumentosSunat`: «Ver PDF» y «WhatsApp», gotas claras de 26 px con su ícono de 13 px (`borde`, vidrio 90→55 %); «XML» y «CDR», enlaces
+  tenues de 11,5 px tras un punto. «Tiene …» / «Corrige …» (`bg-pizarra/[0.08]`), una lente pizarra (6→13 % sobre vidrio, filo al 28 %, píldora).
+  En el celular siguen en el «⋯».
