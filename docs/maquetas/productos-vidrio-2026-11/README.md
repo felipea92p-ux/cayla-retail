@@ -61,3 +61,6 @@ La ficha con marco (Peloton) y la leyenda sobre la foto **no lo convencieron**; 
 
 Medido: 60 combinaciones (320 a 1920, claro y oscuro, las cinco), nada se desborda; los colores siguen cambiando la foto. Lo que va sobre
 la foto toma la tinta (en una prenda oscura heredaba el crema y quedaba blanco sobre blanco: corregido).
+
+**Eligió A · Catálogo de moda** (2026-11-02): la foto al aire y los tres renglones apretados debajo (nombre | precio · tipo · color ·
+colores | stock), como quedó en la ronda de los catálogos. Se recomendaba la C.
