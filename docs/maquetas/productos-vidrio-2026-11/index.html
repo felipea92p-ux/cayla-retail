@@ -88,6 +88,35 @@
 /* en A y B, lo que va sobre la foto es una gota de vidrio */
 :is([data-tg="aire"],[data-tg="placa"]) .pr :is(.cat-c,.ins){background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 72%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 10px -5px color-mix(in srgb,var(--sombra) 45%,transparent)}
 
+
+/* ---------- la información de la prenda, ordenada como en los catálogos de moda (Felipe 2026-11-02: «que no quede desparramado») ----------
+   Lo que hacen los catálogos grandes (Zara, COS, Arket, Uniqlo, el tema Dawn de Shopify): la FOTO es casi todo el peso; debajo, un bloque
+   corto y apretado de tres renglones con UN solo tamaño de letra para lo principal y otro, más chico y tenue, para lo demás.
+     1. el nombre a la izquierda y el precio a la derecha, en la misma línea y el mismo tamaño (15 px): es lo que se busca primero;
+     2. qué es y de qué color, en una línea tenue (13 px): «Blusas · Vino» (el color que se ve, el que eligió en los puntos);
+     3. los colores en puntos chicos (12 px, uno marcado con su aro) y, a la derecha, el stock tenue; solo pesa (ámbar o rojo) si es poco o cero.
+   Fuera de la tarjeta (están en la vista rápida): marca · proveedor y «en tu sede» van al `title` del stock. La categoría en versalitas sobre
+   la foto se va: ya la dice el segundo renglón. Separaciones de 2, 4 y 10 px: el bloque se lee como uno solo, pegado a su foto. */
+.info{display:none}
+:is([data-tg="aire"],[data-tg="placa"]) .pr .cuerpo{display:none}
+:is([data-tg="aire"],[data-tg="placa"]) .pr .info{display:grid;gap:3px;padding:12px 2px 2px;container-type:inline-size}
+[data-tg="placa"] .pr .info{padding:12px 14px 14px}
+:is([data-tg="aire"],[data-tg="placa"]) .pr .cat-c{display:none}
+.info .l1{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:15px;line-height:1.3}
+.info .l1 .nom-i{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.info .l1 .pre-i{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
+.info .l2{font-size:13px;line-height:1.35;color:var(--t65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info .l3{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;min-height:20px}
+.info .pts-i{display:flex;align-items:center;gap:1px;margin-left:-6px}
+/* el punto mide 12 px, pero lo que se toca, 24: el punto vive en su ::before */
+.info .pts-i button{position:relative;width:24px;height:24px;display:grid;place-items:center}
+.info .pts-i button::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sombra) 25%,transparent)}
+.info .pts-i button[aria-pressed="true"]::before{outline:1.5px solid var(--tinta);outline-offset:2px}
+.info .st-i{font-size:12.5px;color:var(--t65);font-variant-numeric:tabular-nums;white-space:nowrap}
+.info .st-i.poco{color:color-mix(in srgb,var(--ambar) 82%,var(--tinta));font-weight:600}
+.info .st-i.cero{color:color-mix(in srgb,var(--rojo) 78%,var(--tinta));font-weight:600}
+@container (max-width:180px){.info .l3{flex-wrap:wrap;row-gap:0;margin-top:4px}.info .l1{flex-direction:column;gap:1px}.info .l1,.info .l1 .pre-i{font-size:14px}}
+
 /* ---------- la tabla (con la placa elegida para las tablas) ---------- */
 .tabla-p{margin-top:14px;border-radius:22px;overflow:hidden;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
   background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 var(--vidrio)}
@@ -110,8 +139,8 @@
 
 <div class="spk">
   <span class="titulo">Catálogo ▸ Productos, con vidrio</span>
-  <span class="tag">Tarjeta de producto</span><div class="seg-m" data-ctl="tg"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Foto al aire</button><button data-v="placa">B · Placa translúcida</button></div>
-  <span class="tag">Grilla / Tabla</span><div class="seg-m" data-ctl="md"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo y gota</button><button data-v="iconos">B · Dos gotas de ícono</button></div>
+  <span class="tag">Tarjeta de producto</span><div class="seg-m" data-ctl="tg"><button data-v="ahora">Como ahora</button><button data-v="aire">A · Foto al aire ✓</button><button data-v="placa">B · Placa translúcida</button></div>
+  <span class="tag">Grilla / Tabla</span><div class="seg-m" data-ctl="md"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo y gota ✓</button><button data-v="iconos">B · Dos gotas de ícono</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
@@ -138,13 +167,13 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>Tarjeta de producto</b></td><td>A · Foto al aire <span class="ev">Recomendada</span></td><td>La misma que eligió para el Punto de Venta: una prenda en grilla se ve igual en Vender y en el Catálogo. La foto manda, como en una vitrina.</td><td>Sin tarjeta, el nombre y los datos quedan sobre el fondo; con muchas fotos claras se pierde el borde (lo sostiene la sombra).</td></tr>
+      <tr><td rowspan="2"><b>Tarjeta de producto</b></td><td>A · Foto al aire <span class="ev">Elegida</span></td><td>La misma que eligió para el Punto de Venta: una prenda en grilla se ve igual en Vender y en el Catálogo. La foto manda, como en una vitrina.</td><td>Sin tarjeta, el nombre y los datos quedan sobre el fondo; con muchas fotos claras se pierde el borde (lo sostiene la sombra).</td></tr>
       <tr><td>B · Placa translúcida</td><td>La de Existencias: la ficha es una unidad que se alza; los datos se leen sobre su vidrio.</td><td>Habría dos tarjetas de prenda distintas en el ERP (la de Vender y la del Catálogo).</td></tr>
-      <tr><td rowspan="2"><b>Grilla / Tabla</b></td><td>A · Pozo y gota <span class="ev">Recomendada</span></td><td>El mismo pozo con su gota que viaja de las pestañas, en chico, con su ícono: «estás en Grilla» se lee igual que «estás en esta sección».</td><td>Se parece a una pestaña; lo separa estar a la derecha de los filtros, en chico.</td></tr>
+      <tr><td rowspan="2"><b>Grilla / Tabla</b></td><td>A · Pozo y gota <span class="ev">Elegida</span></td><td>El mismo pozo con su gota que viaja de las pestañas, en chico, con su ícono: «estás en Grilla» se lee igual que «estás en esta sección».</td><td>Se parece a una pestaña; lo separa estar a la derecha de los filtros, en chico.</td></tr>
       <tr><td>B · Dos gotas de ícono</td><td>Ocupa menos (dos círculos); el elegido, ahumado.</td><td>Sin palabra: «cuadrícula / lista» hay que adivinarlo; y el ahumado ya dice «filtro puesto».</td></tr>
     </table>
-    <h3>Recomendación</h3>
-    <p><b>Tarjeta A · Foto al aire y modo A · Pozo y gota.</b> Toca «Tabla» para ver la otra vista; los puntos de color cambian la foto.</p>
+    <h3>Lo que eligió Felipe (2026-11-02)</h3>
+    <p><b>Tarjeta A · Foto al aire y modo A · Pozo y gota</b>, con la información de la prenda ordenada como en los catálogos de moda (tres renglones apretados bajo la foto). Toca «Tabla» para ver la otra vista; los puntos de color cambian la foto.</p>
     <h3>Lo que no cambia</h3>
     <p>Lo que dice cada tarjeta y qué abre (la vista rápida), los puntos de color, el stock y «en tu sede», los filtros plegables, «Nuevo producto»; en la Tabla, marcar varias y cambiar el estado en bloque, costo y margen solo para quien los ve.</p>
   </section>
@@ -161,6 +190,8 @@ const MARCAS_Q = ['CAYLA · Taller Lima', 'Mistral · Hilados del Sur', 'CAYLA �
 const PRE_Q = [89, 159, 189, 49, 129, 99, 59, 169, 69, 119, 89, 79];
 const ST_Q = [34, 12, 8, 41, 22, 0, 17, 4, 15, 28, 9, 13];
 let modoQ = 'grilla';
+const COLORES_Q = ['Vino', 'Arena', 'Bosque', 'Hueso', 'Marino', 'Teja', 'Crudo', 'Ciruela', 'Oliva', 'Carbón', 'Coral', 'Mar', 'Roble', 'Rubí', 'Pizarra', 'Sol'];
+const NOMBRE_COLOR_Q = (i, k) => COLORES_Q[[i, (i + 4) % 16, (i + 9) % 16][k]];
 const colorQ = {};
 function tarjetaQ([c0, n, , , cl0], i, quieta) {
   const cols = [[c0, cl0], [PRENDAS[(i + 4) % 16][0], PRENDAS[(i + 4) % 16][4]], [PRENDAS[(i + 9) % 16][0], PRENDAS[(i + 9) % 16][4]]];
@@ -169,7 +200,11 @@ function tarjetaQ([c0, n, , , cl0], i, quieta) {
     <div class="cuerpo"><div><div class="nom">${n}</div><div class="sub">${CATS_Q[i]} · algodón</div><div class="mp">${MARCAS_Q[i % 6]}</div></div><div class="sep"></div>
     <div class="ps"><span class="pre">S/ ${PRE_Q[i]}.00</span><span class="st${st === 0 ? ' cero' : st < 10 ? ' poco' : ''}">${st === 0 ? 'Sin stock' : `${st} en total`}</span></div>
     <div class="sede">${Math.round(st / 3)} en Trujillo</div>
-    <div class="cols"><span class="pts">${cols.map(([x], j) => `<button data-color-dato style="background:${x}" data-i="${i}" data-k="${j}" aria-pressed="${j === k}" aria-label="Color ${j + 1}"></button>`).join('')}</span><span class="cn">${['Vino', 'Arena', 'Bosque', 'Hueso', 'Marino', 'Teja', 'Crudo', 'Ciruela', 'Oliva', 'Carbón', 'Coral', 'Mar'][i]}</span></div></div></article>`;
+    <div class="cols"><span class="pts">${cols.map(([x], j) => `<button data-color-dato style="background:${x}" data-i="${i}" data-k="${j}" aria-pressed="${j === k}" aria-label="Color ${j + 1}"></button>`).join('')}</span><span class="cn">${['Vino', 'Arena', 'Bosque', 'Hueso', 'Marino', 'Teja', 'Crudo', 'Ciruela', 'Oliva', 'Carbón', 'Coral', 'Mar'][i]}</span></div></div>
+    <div class="info"><div class="l1"><span class="nom-i">${n}</span><span class="pre-i">S/ ${PRE_Q[i]}</span></div>
+      <div class="l2">${CATS_Q[i]} · ${NOMBRE_COLOR_Q(i, k)}</div>
+      <div class="l3"><span class="pts-i">${cols.map(([x], j) => `<button data-color-dato style="--c:${x}" data-i="${i}" data-k="${j}" aria-pressed="${j === k}" aria-label="Ver en ${NOMBRE_COLOR_Q(i, j)}"></button>`).join('')}</span>
+        <span class="st-i${st === 0 ? ' cero' : st < 10 ? ' poco' : ''}" title="${MARCAS_Q[i % 6]} · ${Math.round(st / 3)} en Trujillo">${st === 0 ? 'Sin stock' : st < 10 ? `Quedan ${st}` : `${st} en stock`}</span></div></div></article>`;
 }
 function tablaQ() {
   return `<div class="tabla-p"><table><thead><tr><th>✓</th><th style="text-align:left">Prenda</th><th class="ocul">Marca · proveedor</th><th>Precio</th><th class="ocul">Margen</th><th>Stock</th><th>Estado</th></tr></thead><tbody>
@@ -196,7 +231,7 @@ document.addEventListener('click', (ev) => {
   const m = ev.target.closest('.md [data-modo]');
   if (m) { modoQ = m.dataset.modo; $$('.md [data-modo]').forEach((b) => b.setAttribute('aria-pressed', b === m)); moverPistaQ(true);
     $('#vista-q').innerHTML = modoQ === 'grilla' ? `<div class="gp">${PRENDAS.slice(0, 12).map((p, i) => tarjetaQ(p, i)).join('')}</div>` : tablaQ(); return; }
-  const pt = ev.target.closest('.pts button');
+  const pt = ev.target.closest('.pts button, .pts-i button');
   if (pt) { colorQ[pt.dataset.i] = +pt.dataset.k; const art = pt.closest('.pr'); art.outerHTML = tarjetaQ(PRENDAS[+pt.dataset.i], +pt.dataset.i, true); }
 });
 Marco.iniciar({ estado: { tg: 'aire', md: 'pozo' }, alPintar: () => pintarQ() });
