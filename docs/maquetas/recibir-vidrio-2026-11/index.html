@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-sp="vidrio" data-dl="tubo" data-mo="contar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recibir mercadería con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Recibir mercadería «B» con el vidrio (ADR-0596; la pantalla es diseño propio: ADR-0575, Felipe 2026-10-29)
+   Felipe pidió pasarla al vidrio (2026-11-02), como Traslados y Movimientos: EL MOVIMIENTO NO CAMBIA (el Trayecto que se llena y suelta su
+   halo, el Dial que se llena con su chispa y su halo al cuadrar, el acordeón que se abre, el podio que crece, la etiqueta que se estampa, el
+   sello de lacre que cae, una vez y sin rebote: copiado de app/estilos/recepcion-viva.css). Solo cambia el MATERIAL:
+     · las superficies (los grupos del acordeón, la tarjeta del lacre, la de la Vitrina y sus cifras): hoy papel y hueso macizos;
+     · los avances (la pista del Dial, la vía del Trayecto, las barras del Podio): hoy hueso, arena y tinta sólida; el botón «+» en tinta sólida.
+   No cambia: el rojo de la etiqueta de precio ni el del sello de lacre (son la metáfora de la pantalla), ni qué guarda nada. Datos inventados.
+   Ojo: los pasos de arriba (`rc-riel`) los elegiste en Conteo (A · Ranura con gotas) y Recibir los hereda.
+   ==================================================================== */
+.rc-card{margin-top:20px;border-radius:22px;padding:18px 20px;container-type:inline-size;border:1px solid var(--sand);background:var(--papel)}
+.rc-cab{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:14px}
+.rc-cab h2{margin:0;font-family:'EB Garamond',serif;font-size:22px;font-weight:400}.rc-cab span{font-size:13px;color:var(--taupe)}
+
+/* ---------- el Trayecto (copiado de recepcion-viva.css: se llena y suelta su halo una vez) ---------- */
+.tray{--tc:var(--pizarra);--bola:44px;--parada:16px;--via:6px;margin:4px 0 18px}
+.tray-camino{position:relative;height:var(--bola);margin:0 calc(var(--bola) / 2)}
+.tray-via{position:absolute;left:0;right:0;top:calc((var(--bola) - var(--via)) / 2);height:var(--via);overflow:hidden;border-radius:99px;background:var(--sand)}
+.tray-lleno{position:absolute;inset:0 auto 0 0;width:var(--p);border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 55%,transparent),var(--tc));transform-origin:left;animation:llena-x 1s var(--ease) .2s backwards}
+@keyframes llena-x{from{transform:scaleX(0)}}
+.tray-parada{position:absolute;top:calc((var(--bola) - var(--parada)) / 2);width:var(--parada);height:var(--parada);margin-left:calc(var(--parada) / -2);border-radius:50%;border:2px dashed color-mix(in srgb,var(--tc) 60%,transparent);background:var(--papel)}
+.tray-parada[data-hecha]{border-style:solid;border-color:var(--tc);background:var(--tc)}
+.tray-bola{position:absolute;top:0;width:var(--bola);height:var(--bola);margin-left:calc(var(--bola) / -2);border-radius:50%;display:grid;place-items:center;color:var(--crema-fija);background:var(--tc);animation:aparece-b .5s var(--ease) 1s backwards}
+.tray-bola svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tray-bola::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--tc);opacity:0;animation:halo-b 1s var(--ease) 1.2s}
+@keyframes aparece-b{from{opacity:0;scale:.6}}
+@keyframes halo-b{from{opacity:.8;scale:1}to{opacity:0;scale:1.7}}
+.tray-textos{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--t65)}.tray-textos b{color:var(--tinta);font-weight:600}
+
+/* ---------- Contar: el acordeón y el Dial ---------- */
+.mesa{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+@container (min-width:720px){.mesa{grid-template-columns:280px minmax(0,1fr)}}
+.acord{display:flex;flex-direction:column;gap:8px}
+.ac-g{border:1px solid var(--sand);border-radius:18px;background:var(--papel);transition:border-color .25s,box-shadow .25s}
+.ac-g[data-abierto]{border-color:var(--tinta)}
+.ac-cab{display:flex;align-items:center;gap:10px;width:100%;min-height:54px;padding:8px 12px 8px 8px;text-align:left;font-size:14.5px;font-weight:600}
+.ac-cab .ic-c{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--hueso);color:var(--tinta)}
+.ac-cab .ic-c svg,.ac-cab .fl svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ac-cab .n{margin-left:auto;font-weight:500;color:var(--t65);font-variant-numeric:tabular-nums}
+.ac-cab .fl{transition:transform .3s var(--ease);color:var(--t65)}.ac-g[data-abierto] .fl{transform:rotate(180deg)}
+.ac-cuerpo{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease)}.ac-g[data-abierto] .ac-cuerpo{grid-template-rows:1fr}
+.ac-dentro{overflow:hidden;min-height:0;display:grid;gap:6px;padding:0 8px}
+.ac-g[data-abierto] .ac-dentro{padding-bottom:8px}
+.ac-pr{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:var(--hueso);font-size:13.5px}
+.ac-pr .pts{display:inline-flex;flex-wrap:wrap;gap:4px}.ac-pr .pts i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--borde)}.ac-pr .pts i[data-lleno]{border-color:var(--verde);background:var(--verde)}
+.dial-col{display:grid;justify-items:center;gap:8px}
+.dial{position:relative;width:250px;height:250px}
+.dial>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;transform:rotate(-90deg)}
+.d-pista{fill:none;stroke:var(--hueso);stroke-width:20}
+.d-arco{fill:none;stroke:var(--tinta);stroke-width:20;stroke-linecap:round;stroke-dasharray:100;transition:stroke-dashoffset .6s var(--ease),stroke .45s var(--ease);animation:d-llena 1.1s var(--ease) .2s backwards}
+@keyframes d-llena{from{stroke-dashoffset:100}}
+.dial[data-cuadra] .d-arco{stroke:var(--verde)}
+.d-brillo{display:none;fill:none;stroke:var(--vidrio);stroke-width:5;stroke-linecap:round;stroke-dasharray:100;opacity:.55;transition:stroke-dashoffset .6s var(--ease)}
+.d-halo{position:absolute;inset:10px;border-radius:50%;border:3px solid var(--verde);opacity:0;pointer-events:none}
+.dial[data-cuadra] .d-halo{animation:d-halo 1s var(--ease)}
+@keyframes d-halo{from{opacity:.9;scale:1}to{opacity:0;scale:1.18}}
+.d-centro{position:absolute;inset:54px;display:grid;place-items:center;align-content:center;text-align:center}
+.d-num{font-family:'EB Garamond',serif;font-size:74px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.d-de{font-size:13px;color:var(--taupe)}
+.d-btn{position:absolute;bottom:0;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--borde);background:var(--papel);color:var(--tinta)}
+.d-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.d-btn.menos{left:0}.d-btn.mas{right:0;border-color:var(--tinta);background:var(--tinta);color:var(--crema)}
+.dial-pista{font-size:13px;color:var(--taupe)}
+.totales{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 20px;margin-top:18px;padding-top:14px;border-top:1px solid var(--sand);font-size:13.5px;color:var(--taupe)}
+.totales b{font-family:'EB Garamond',serif;font-size:24px;font-weight:600;color:var(--tinta);font-variant-numeric:tabular-nums;margin-left:6px}
+
+/* ---------- Cerrar: el lacre, el podio y la Vitrina ---------- */
+.lacre{position:relative;display:grid;gap:10px;padding:24px;border:1px solid var(--sand);border-radius:22px;background:var(--papel);margin-top:20px;container-type:inline-size;animation:sube .45s var(--ease) both}
+.lacre h3{margin:0;font-family:'EB Garamond',serif;font-size:24px;font-weight:400}.lacre p{margin:0;font-size:13.5px;color:var(--taupe)}
+.sello{position:absolute;top:-18px;right:18px;width:88px;height:88px;filter:drop-shadow(0 8px 10px color-mix(in srgb,var(--sombra) 35%,transparent));animation:cae .6s var(--ease) .25s both}
+@keyframes cae{from{opacity:0;transform:translateY(-14px) scale(1.5) rotate(-20deg)}}
+.sello .cera{fill:var(--rojo)}.sello .aro{fill:none;stroke:color-mix(in srgb,var(--crema-fija) 40%,transparent);stroke-width:2}.sello text{fill:var(--crema-fija);font-family:'EB Garamond',serif;font-size:34px;font-weight:600}
+[data-tema="oscuro"] .sello text{fill:var(--tinta-fija)}
+.l-cifras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 4px}
+@container (min-width:600px){.l-cifras{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.l-cifras>div{display:grid;gap:2px;padding:12px 14px;border-radius:14px;background:var(--hueso);animation:sube .42s var(--ease) backwards;animation-delay:calc(200ms + var(--i) * 70ms)}
+.l-cifras dt{font-size:13px;font-weight:600;color:var(--taupe)}.l-cifras dd{margin:0;font-family:'EB Garamond',serif;font-size:32px;font-weight:600;line-height:1.15}
+.l-cifras [data-tono="verde"] dd{color:color-mix(in srgb,var(--verde) 85%,var(--tinta))}.l-cifras [data-tono="ambar"] dd{color:color-mix(in srgb,var(--ambar) 85%,var(--tinta))}
+.cierre-dos{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin-top:20px}
+@container disp (min-width:900px){.cierre-dos{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}}
+.podio{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px;align-items:end;max-width:28rem}
+.p-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:120px}
+.p-n{font-family:'EB Garamond',serif;font-size:22px;font-weight:600;line-height:1}
+.p-barra{width:min(100%,44px);height:var(--h);border-radius:8px 8px 3px 3px;background:var(--tinta);transform-origin:bottom;animation:crece .8s var(--ease) both;animation-delay:calc(var(--i) * 90ms + 200ms)}
+@keyframes crece{from{transform:scaleY(0)}}
+.p-col[data-c="dijeron"] .p-barra{background:color-mix(in srgb,var(--borde) 40%,var(--hueso))}.p-col[data-c="vender"] .p-barra{background:var(--verde)}.p-col[data-c="despues"] .p-barra{background:var(--taupe)}
+.p-col small{font-size:12.5px;font-weight:600;color:var(--taupe);white-space:nowrap}
+.vit{position:relative;display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px;border:1px solid var(--sand);border-radius:18px;background:var(--papel);animation:sube .45s var(--ease) .3s backwards}
+.vit .foto-v{width:72px;height:72px;border-radius:12px}
+.vit b{display:block;font-size:15px}.vit small{display:block;font-size:12.5px;color:var(--t65);margin-top:2px}
+.etq{display:grid;place-items:center;align-content:center;width:78px;height:78px;border-radius:50%;background:var(--rojo);color:var(--crema-fija);rotate:-8deg;box-shadow:0 10px 18px -12px color-mix(in srgb,var(--rojo) 70%,transparent);animation:sella .5s var(--ease) .5s backwards}
+.etq small{font-size:11px;font-weight:700;opacity:.85}.etq b{font-family:'EB Garamond',serif;font-size:21px;font-weight:600;color:inherit}
+[data-tema="oscuro"] .etq{color:var(--tinta-fija)}
+@keyframes sella{from{opacity:0;scale:1.35;rotate:-24deg}}
+.sub-t{margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+
+/* ====================================================================
+   SUPERFICIES · A · VIDRIO CLARO: los grupos del acordeón, la tarjeta del lacre y la de la Vitrina pasan a vidrio claro SIN desenfoque
+   (como la Vitrina de Existencias: cuesta lo mismo que el papel); lo de adentro (la prenda del acordeón, las cifras del lacre, el ícono
+   de la categoría) pasa al pozo; el «+» del Dial, a la gota ahumada; el «−», a la gota clara.
+   ==================================================================== */
+[data-sp="vidrio"] :is(.rc-card,.ac-g,.lacre,.vit){border-color:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 12px 28px -18px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-sp="vidrio"] :is(.rc-card,.ac-g,.lacre,.vit){border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-sp="vidrio"] .ac-g[data-abierto]{border-color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+[data-sp="vidrio"] :is(.ac-pr,.l-cifras>div,.ac-cab .ic-c){background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-sp="vidrio"] :is(.ac-pr,.l-cifras>div,.ac-cab .ic-c){background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-sp="vidrio"] .d-btn{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 8px 16px -10px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-sp="vidrio"] .d-btn{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent)}
+[data-sp="vidrio"] .d-btn.mas{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 10px 20px -10px color-mix(in srgb,var(--sombra) 60%,transparent)}
+[data-sp="vidrio"] :is(.totales){border-top-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-sp="vidrio"] .tray-parada:not([data-hecha]){background:color-mix(in srgb,var(--vidrio) 90%,transparent)}
+
+/* ====================================================================
+   AVANCES · A · TINTA SOBRE VIDRIO (lo elegido para los gráficos): el dato en su color pleno; la pista, un pozo fino.
+             B · TUBO (lo elegido para la barra de avance en todo el ERP): la pista es un tubo hundido y el dato, vidrio teñido con su luz.
+   ==================================================================== */
+[data-dl="tinta"] .d-pista{stroke:color-mix(in srgb,var(--tinta) 7%,transparent)}
+[data-dl="tinta"] .tray-via{background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+[data-dl="tubo"] .d-pista{stroke:color-mix(in srgb,var(--tinta) 8%,transparent);filter:drop-shadow(0 1.5px 1px color-mix(in srgb,var(--sombra) 14%,transparent))}
+[data-dl="tubo"] .d-arco{filter:drop-shadow(0 3px 5px color-mix(in srgb,var(--tinta) 30%,transparent))}
+[data-dl="tubo"] .dial[data-cuadra] .d-arco{filter:drop-shadow(0 3px 6px color-mix(in srgb,var(--verde) 45%,transparent))}
+[data-dl="tubo"] .d-brillo{display:inline}
+[data-tema="oscuro"][data-dl="tubo"] .d-brillo{opacity:.18}
+[data-dl="tubo"] .tray{--via:12px}
+[data-dl="tubo"] .tray-via{padding:2px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+[data-dl="tubo"] .tray-lleno{inset:2px auto 2px 2px;background:linear-gradient(180deg,color-mix(in srgb,var(--tc) 62%,var(--vidrio)),var(--tc) 70%);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent)}
+[data-dl="tubo"] .p-barra{border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-bottom:0;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 62%,var(--vidrio)),var(--tinta) 70%);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 50%,transparent)}
+[data-dl="tubo"] .p-col[data-c="dijeron"] .p-barra{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--tinta) 14%,transparent));border-color:color-mix(in srgb,var(--borde) 50%,transparent)}
+[data-dl="tubo"] .p-col[data-c="vender"] .p-barra{background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 62%,var(--vidrio)),var(--verde) 70%)}
+[data-dl="tubo"] .p-col[data-c="despues"] .p-barra{background:linear-gradient(180deg,color-mix(in srgb,var(--taupe) 62%,var(--vidrio)),var(--taupe) 70%)}
+[data-dl="tinta"] .p-col[data-c="dijeron"] .p-barra{background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 16%,transparent)}
+
+[data-mo="contar"] .solo-cierre,[data-mo="cierre"] .solo-contar{display:none}
+@container disp (max-width:520px){.rc-card{padding:14px;border-radius:18px}.dial{width:224px;height:224px}.d-centro{inset:46px}.d-num{font-size:62px}.d-btn{width:50px;height:50px}.lacre{padding:20px 16px}.sello{width:70px;height:70px;right:10px}.l-cifras dd{font-size:27px}.vit{grid-template-columns:56px minmax(0,1fr)}.vit .foto-v{width:56px;height:56px}.vit .etq-c{grid-column:1 / -1;justify-self:end}}
+@media (prefers-reduced-motion:reduce){.tray-lleno,.tray-bola,.tray-bola::after,.d-arco,.d-halo,.lacre,.sello,.l-cifras>div,.p-barra,.vit,.etq{animation:none!important}.d-arco,.ac-cuerpo,.fl{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Recibir mercadería, con vidrio · el movimiento no cambia</span>
+  <span class="tag">Momento</span><div class="seg-m" data-ctl="mo"><button data-v="contar">Contar</button><button data-v="cierre">Envío cerrado</button></div>
+  <span class="tag">Superficies</span><div class="seg-m" data-ctl="sp"><button data-v="ahora">Como ahora</button><button data-v="vidrio">A · Vidrio claro</button></div>
+  <span class="tag">Avances (Dial, Trayecto, Podio)</span><div class="seg-m" data-ctl="dl"><button data-v="ahora">Como ahora</button><button data-v="tinta">A · Tinta sobre vidrio</button><button data-v="tubo">B · Tubo</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <button class="accion" data-acc="repetir">Repetir el movimiento</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li>Recibir «B» (ADR-0575) es diseño propio: siete piezas vivas (Trayecto, acordeón, Dial, totales que ruedan, Podio, Vitrina, sello de lacre), con mucho movimiento elegido por Felipe. <b>Ese movimiento no cambia.</b></li>
+      <li>Su material es macizo: los grupos del acordeón, el lacre y la Vitrina son <b>papel</b>; la prenda del acordeón y las cifras del lacre, <b>hueso</b>; la pista del Dial, <b>hueso</b>; la vía del Trayecto, <b>arena</b>; el «+» del Dial y las barras del Podio, <b>tinta sólida</b>.</li>
+      <li>El rojo de la etiqueta de precio y del sello de lacre <b>se queda</b>: es la metáfora de la pantalla (la etiqueta que se estampa, el lacre que cierra).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>Superficies</b></td><td>A · Vidrio claro <span class="ev">Recomendada</span></td><td>Las tarjetas pasan a vidrio claro sin desenfoque (como la Vitrina de Existencias), lo de adentro al pozo, el «+» a la gota ahumada. Recibir se ve del mismo ERP que todo lo demás.</td><td>Casi nada: no desenfoca, así que cuesta lo mismo que el papel.</td></tr>
+      <tr><td rowspan="2"><b>Avances</b></td><td>A · Tinta sobre vidrio</td><td>Lo elegido para los gráficos: el arco del Dial y las barras en su color pleno, la pista en un pozo fino.</td><td>El Dial es un avance (cuántas van de cuántas dijeron), y para los avances elegiste el Tubo.</td></tr>
+      <tr><td>B · Tubo <span class="ev">Recomendada</span></td><td>Lo elegido para la barra de avance en todo el ERP: la pista del Dial y la vía del Trayecto son tubos hundidos, el arco y las barras del Podio son vidrio teñido con su brillo. Un avance se ve igual en todas partes.</td><td>El Dial gana un brillo que antes no tenía (quieto: no se mueve solo).</td></tr>
+    </table>
+    <h3>Recomendación</h3>
+    <p><b>Superficies A · Vidrio claro y avances B · Tubo.</b> Toca − y + hasta que el Dial cuadre (8 de 8) para ver el halo; «Envío cerrado» muestra el lacre, el Podio y la Vitrina; «Repetir el movimiento» lo vuelve a correr.</p>
+    <h3>Lo que no cambia</h3>
+    <p>Todo el movimiento de ADR-0575 y qué guarda cada cosa: el número del Dial que se toca para escribirlo, el acordeón que solo desglosa, la etiqueta que escribe para todas las combinaciones, Imprimir etiquetas y Bajar al piso en la tarjeta del lacre, y los pasos de arriba (los elegidos en Conteo).</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js y marco.css usan nombres globales (estado, pintar, boton, encabezado, fila, buscar; .hoja, .cifras, .sede, .av, .tc, .uni, .linea, .sub, .prendas…); la maqueta no los repite. -->
+<script>
+const svR = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const ICR = { camion: 'M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14', percha: 'M12 6a2 2 0 1 1 2-2M12 6v2l9 6v2H3v-2l9-6', abajo: 'm6 9 6 6 6-6', menos: 'M5 12h14', mas: 'M12 5v14M5 12h14' };
+const CATS_R = [['Blusas', 8, 8], ['Vestidos', 6, 5], ['Jeans', 4, 0]];
+let abiertaR = 1, contadasR = 5;
+// las prendas de cada categoría del envío: [nombre, unidades]
+const PRENDAS_R = [[['Blusa Emma · Vino', 3], ['Blusa Sol · Mostaza', 2], ['Blusa Coral', 3]], [['Vestido Ara · Bosque', 3], ['Vestido Rubí', 2], ['Vestido Malva', 1]], [['Jean Río · Marino', 4]]];
+function trayHTML() {
+  // en el envío cerrado el Trayecto llega al final; mientras se cuenta, va en «Contando»
+  const cerrado = estado.mo === 'cierre', p = cerrado ? 100 : 66, aqui = cerrado ? 3 : 2;
+  return `<div class="tray" aria-label="${cerrado ? 'El envío está cerrado' : 'El envío llegó y se está contando'}"><div class="tray-camino"><div class="tray-via"><span class="tray-lleno" style="--p:${p}%"></span></div>
+    ${[0, 33, 66, 100].map((x, i) => `<span class="tray-parada" ${i <= aqui ? 'data-hecha' : ''} style="left:${x}%"></span>`).join('')}<span class="tray-bola" style="left:${p}%">${svR(ICR.camion)}</span></div>
+    <div class="tray-textos">${['Salió de Lima', 'Llegó', 'Contando', 'Cerrado'].map((t, i) => `<span>${i === aqui ? `<b>${t}</b>` : t}</span>`).join('')}</div></div>`;
+}
+function dialHTML() {
+  const dij = CATS_R[abiertaR][1], p = Math.min(100, (contadasR / dij) * 100);
+  return `<div class="dial-col"><div class="dial" ${contadasR === dij ? 'data-cuadra' : ''}><svg viewBox="0 0 250 250" aria-hidden="true"><circle class="d-pista" cx="125" cy="125" r="104"/><circle class="d-arco" cx="125" cy="125" r="104" pathLength="100" style="stroke-dashoffset:${100 - p}"/><circle class="d-brillo" cx="125" cy="125" r="100" pathLength="100" style="stroke-dashoffset:${100 - Math.max(0, p - 4)}"/></svg>
+    <span class="d-halo"></span><div class="d-centro"><span class="d-num">${contadasR}</span><span class="d-de">de ${dij} que dijeron</span></div>
+    <button class="d-btn menos" data-d="-1" aria-label="Una menos">${svR(ICR.menos)}</button><button class="d-btn mas" data-d="1" aria-label="Una más">${svR(ICR.mas)}</button></div>
+    <span class="dial-pista">${CATS_R[abiertaR][0]} · toca el número para escribirlo</span></div>`;
+}
+function acordHTML() {
+  return `<div class="acord">${CATS_R.map(([n, dij, cont], i) => `<div class="ac-g" ${i === abiertaR ? 'data-abierto' : ''}><button class="ac-cab" data-cat="${i}"><span class="ic-c">${svR(ICR.percha)}</span>${n}<span class="n">${i === abiertaR ? contadasR : cont} / ${dij}</span><span class="fl">${svR(ICR.abajo)}</span></button>
+    <div class="ac-cuerpo"><div class="ac-dentro">${PRENDAS_R[i].map(([pn, k], j) => `<div class="ac-pr"><span>${pn}</span><span class="pts">${Array.from({ length: k }, (_, x) => `<i ${x < (j === 0 ? k : 1) ? 'data-lleno' : ''}></i>`).join('')}</span></div>`).join('')}</div></div></div>`).join('')}</div>`;
+}
+function pintarR() {
+  const sello = `<svg class="sello" viewBox="0 0 92 92" aria-hidden="true"><path class="cera" d="M46 4c8 0 10 6 17 8s13 1 16 8-2 11 1 18 9 9 7 17-9 9-11 16-1 14-8 17-11-2-18 1-9 9-17 7-9-9-16-11-14-1-17-8 2-11-1-18-9-9-7-17 9-9 11-16 1-14 8-17 11 2 18-1 9-9 17-7z"/><circle class="aro" cx="46" cy="46" r="28"/><text x="46" y="58" text-anchor="middle">C</text></svg>`;
+  $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', titulo: 'Recibir mercadería', frase: 'Cuenta lo que llegó y cierra el envío.', volver: 'los envíos', detalle: 'Envío ENV-0412 de Lima' })}
+    <section class="rc-card">${trayHTML()}
+      <div class="solo-contar"><div class="rc-cab"><h2>Contar</h2><span>Elige una categoría y cuenta sus prendas</span></div>
+        <div class="mesa">${acordHTML()}${dialHTML()}</div>
+        <div class="totales"><span>Dijeron<b>18</b></span><span>Contadas<b>${8 + contadasR}</b></span><span>Faltan<b>${Math.max(0, 18 - 8 - contadasR)}</b></span></div></div>
+      <div class="solo-cierre"><div class="lacre">${sello}<h3>Envío cerrado</h3><p>Hoy 16:42 · lo cerró Lucía Ramos</p>
+        <dl class="l-cifras">${[['Llegaron', 17, ''], ['A la venta', 15, 'verde'], ['Para después', 2, ''], ['No cuadró', 1, 'ambar']].map(([t, n, tono], i) => `<div style="--i:${i}" ${tono ? `data-tono="${tono}"` : ''}><dt>${t}</dt><dd>${n}</dd></div>`).join('')}</dl>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${boton(['pri', 'Imprimir etiquetas', 'imprimir'])}${boton(['sec', 'Bajar al piso', 'percha'])}</div></div>
+        <div class="cierre-dos"><div><p class="sub-t">Vestidos</p><div class="podio">${[['dijeron', 6, 'Dijeron'], ['contadas', 5, 'Contadas'], ['vender', 4, 'A la venta'], ['despues', 1, 'Después']].map(([c, n, t], i) => `<div class="p-col" data-c="${c}" style="--i:${i}"><span class="p-n">${n}</span><span class="p-barra" style="--h:${n * 14}px;--i:${i}"></span><small>${t}</small></div>`).join('')}</div></div>
+          <div><p class="sub-t">La Vitrina</p><div class="vit"><span class="foto-v" data-color-dato style="background:#2f4a3a"></span><span><b>Vestido Ara · Bosque</b><small>S · M · L · costo S/ 72 · ganas S/ 117</small></span><span class="etq-c"><span class="etq"><small>Precio</small><b>189</b></span></span></div></div></div></div></section>`;
+}
+function moverDialR() {
+  const dij = CATS_R[abiertaR][1], p = Math.min(100, (contadasR / dij) * 100), dial = $('.dial');
+  $('.d-arco').style.strokeDashoffset = 100 - p; $('.d-brillo').style.strokeDashoffset = 100 - Math.max(0, p - 4);
+  $('.d-num').textContent = contadasR; dial.toggleAttribute('data-cuadra', contadasR === dij);
+  $$('.ac-cab .n')[abiertaR].textContent = `${contadasR} / ${dij}`;
+  const tt = $$('.totales b'); tt[1].textContent = 8 + contadasR; tt[2].textContent = Math.max(0, 18 - 8 - contadasR);
+}
+document.addEventListener('click', (ev) => {
+  // el Dial cambia en su lugar (sin volver a pintar): el arco se desliza 600 ms y, si cuadra, suelta su halo una vez
+  const d = ev.target.closest('.d-btn'); if (d) { contadasR = Math.max(0, contadasR + +d.dataset.d); moverDialR(); return; }
+  const a = ev.target.closest('.ac-cab'); if (a) { abiertaR = +a.dataset.cat; contadasR = CATS_R[abiertaR][2] || 0; $$('.ac-g').forEach((g, i) => g.toggleAttribute('data-abierto', i === abiertaR)); setTimeout(pintarR, 420); }
+});
+Marco.iniciar({ estado: { sp: 'vidrio', dl: 'tubo', mo: 'contar' }, alPintar: () => pintarR(), alAccion: (acc) => { if (acc === 'repetir') pintarR(); } });
+</script>
+</body>
+</html>
