@@ -180,6 +180,21 @@
   transition: opacity 340ms var(--ease-cayla), transform 420ms var(--ease-cayla), filter 340ms var(--ease-cayla);
   transition-delay: calc(80ms + var(--i, 0) * 38ms);
 }
+/* En el celular el despliegue es más corto y sin desenfoque (Felipe 2026-11-02: «va muy lento y buguea»): animar `filter: blur` en cada
+   submódulo mientras crece el alto cuesta un repintado por cuadro, y 460 ms + la cascada se sentían espera. Aquí la caja crece en
+   300 ms y cada hija entra solo con opacidad y 6 px, con un desfase de 22 ms. El menú además no dibuja su barra de desplazamiento:
+   mientras la bandeja crece el contenido cruza el alto del cajón y la barra aparecía y desaparecía a mitad de la animación (cambiando
+   el ancho útil de las filas); el dedo no la necesita y el menú sigue desplazándose. Escritorio no cambia. */
+@media (max-width: 639.98px) {
+  .lateral-hijos[data-abierto="true"] { transition: grid-template-rows 300ms var(--ease-cayla); }
+  .lateral-hijo { transform: translate3d(0, -6px, 0); filter: none; transition: opacity 120ms var(--ease-salida), transform 120ms var(--ease-salida); }
+  .lateral-hijos[data-abierto="true"] > div > .lateral-hijo {
+    transition: opacity 220ms var(--ease-cayla), transform 260ms var(--ease-cayla);
+    transition-delay: calc(40ms + var(--i, 0) * 22ms);
+  }
+  .cajon-lateral nav { scrollbar-width: none; }
+  .cajon-lateral nav::-webkit-scrollbar { display: none; }
+}
 /* El ícono del módulo que se abre asiente una vez (solo al tocarlo: al cargar la página con un módulo abierto, quieto). */
 .marco-fila[data-asiente] .marco-icono { animation: marco-asiente 500ms var(--ease-cayla); }
 @keyframes marco-asiente {
