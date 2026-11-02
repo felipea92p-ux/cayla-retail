@@ -562,7 +562,9 @@ export function PuntoDeVentaTicket({
         }}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
+        {/* `data-sin-reserva`: la lista del ticket se acorta al quitar una prenda y el scroll debe bajar con ella; con la
+            reserva de <PaginaEstable> quedaba un hueco en blanco bajo la última prenda (2026-11-02). */}
+        <div data-sin-reserva className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
           {enLaEspera ? (
             <div className={saliendo ? "anim-revelar-salida space-y-3 px-5 py-4" : "anim-revelar space-y-3 px-5 py-4"}>
               {/* Si el actual tiene líneas, retomar lo intercambia: se dice antes de tocar. */}
