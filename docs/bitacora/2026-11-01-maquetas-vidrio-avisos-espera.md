@@ -38,3 +38,7 @@
   de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en `apps/web`.
 - **Lo que eligió Felipe en Historial (2026-11-02):** línea del tiempo B · Solo los días en gota (no tomó la recomendada) y pila de prendas
   A · Lentes apiladas. Lo mandó con el botón «Copiar mi selección», mirando en claro.
+- **Traslados, página entera (2026-11-02)** (me la pasó la otra sesión): es la billetera de pases (ADR-0355), un diseño propio. Le pregunté a
+  Felipe y decidió pasarla al vidrio con el mismo movimiento. Maqueta `docs/maquetas/traslados-vidrio-2026-11/`. Caras de lo propio: el pase
+  (A · Vidrio claro, recomendada, con los huecos de la perforación recortados de verdad con una máscara; B · Lente del tono) y el escenario
+  (A · Al aire, recomendada; B · Pozo). Medida de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en `apps/web`.
