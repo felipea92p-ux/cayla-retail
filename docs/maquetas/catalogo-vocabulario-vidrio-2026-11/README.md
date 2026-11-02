@@ -21,10 +21,10 @@ grupo con su globito, insignia A («Pendiente»), paginación A, botones gota y 
 | Pieza | Cara | Cómo es |
 |---|---|---|
 | La tarjeta de un valor (`TarjetaAtributo`, que es también `TarjetaCategoria`; `TarjetaMarca` con la misma forma) | Como ahora | Tarjeta de papel con borde arena; la muestra (ícono sobre el tono de la familia, o el color), un recuadro de 8 px de esquina. |
-| | **A · Muestra al aire** (recomendada) | La placa Serena; la muestra llega al borde de arriba, sin marco, como la foto de Productos elegida; un filo de luz la separa del texto. El monograma de una marca, una lente de su estado. |
+| | **A · Muestra al aire** (elegida) | La placa Serena; la muestra llega al borde de arriba, sin marco, como la foto de Productos elegida; un filo de luz la separa del texto. El monograma de una marca, una lente de su estado. |
 | | B · Placa con su ventana | La placa Serena; la muestra dentro, con esquinas de 12 px, su filo y su luz. |
 | El índice de letras de Marcas (`marcas/IndiceLetras`) | Como ahora | Cuadritos de 30 px; las letras de esta página sobre arena. |
-| | **A · Ranura con gotas** (recomendada) | Las letras en una ranura, como la paginación elegida; las de esta página en gotas claras. |
+| | **A · Ranura con gotas** (elegida) | Las letras en una ranura, como la paginación elegida; las de esta página en gotas claras. |
 | | B · Letras al aire | Solo letras; un punto bajo las de esta página. |
 
 Lo que gana y lo que cuesta cada una, al pie de `index.html`.
@@ -43,4 +43,12 @@ así que aquí se llaman `.cv-tx` y `.cv-mas`.
 
 ## Lo que decidió Felipe
 
-Pendiente.
+**2026-11-02: las recomendadas, la tarjeta A · Muestra al aire y el índice A · Ranura con gotas.** Al implementar:
+- `TarjetaAtributo` (`atributos/kit.tsx`, y con ella `TarjetaCategoria`): de `card-cayla` a la placa Serena; la muestra (`MuestraIcono`,
+  la de un color) sin margen ni esquinas propias: llega al borde de arriba de la placa (que recorta con `overflow-hidden`), 100 px de alto, con
+  un filo de vidrio al 70 % al pie. El dibujo y su movimiento al pasar el mouse (`group/etq`) no cambian, ni el subir 2 px.
+- `TarjetaMarca`: la placa Serena; el monograma, una lente de su estado (el tono al 8→18 % sobre vidrio, filo al 28 %); la desactivada sigue
+  punteada; «Más ▾» en gota.
+- `marcas/IndiceLetras`: las letras dentro de una ranura (tinta al 5 % con su sombra adentro, píldora); cada letra de 28 px redonda; las de esta
+  página, gota clara (vidrio 96→70 %); al pasar, vidrio al 60 %; las que no están, tenues como hoy.
+- Sin cambios: el buscador con sombra (ADR-0373) y «Existe también» (ADR-0576), que ya usa el aviso lente elegido.

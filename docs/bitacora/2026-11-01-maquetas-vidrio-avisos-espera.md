@@ -94,3 +94,5 @@
   (A · Ranura con gotas, recomendada; B · Letras al aire). El buscador con sombra de Marcas (ADR-0373) se mantiene; «Existe también»
   (ADR-0576) pregunta dentro de la hoja con el aviso lente ya elegido. Medida de 320 a 1920 px sin desbordes ni errores. Sin cambios en
   `apps/web`.
+- **Lo que eligió Felipe en Comprobantes y en Catálogo (2026-11-02):** las recomendadas. Comprobantes: tarjetas A · Lente del tono y
+  documentos A · Gotas chicas. Catálogo: tarjeta A · Muestra al aire e índice A · Ranura con gotas.
