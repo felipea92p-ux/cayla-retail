@@ -35,3 +35,11 @@ que aparecieron al medir: las celdas de talla usaban `.tc`, el mismo nombre que 
 a 320 px se salían), renombradas; y a 768 px con el lateral abierto las tres cifras de la cabecera se salían 14 px porque la base las
 achicaba mirando el ancho del aparato y no el de la cabecera: la base ahora mira la cabecera (`@container ep`), lo que además achica los
 desbordes que ya traían las maquetas de cifras, del Inicio y de tablas.
+
+## Lo que decidió Felipe
+
+**Vitrina A · Translúcida, sin desenfoque, y tira A · Pozo de vidrio** (2026-11-02). Con una captura pidió mejorar **cómo se ve la talla en
+cero** (0 en el piso, algunas en el almacén): en el pozo, la celda teñida de ámbar al 12 % quedaba como una mancha parda y «+3» no decía
+que esas 3 esperan en el almacén. La maqueta suma el control «Talla en cero»: **A · Lente que pide** (recomendada: sale del pozo como una
+lente teñida de ámbar, la agotada en rojo; contraste medido 6,5:1 en claro y 6,7:1 en oscuro) y B · Hueco por llenar (contorno punteado).
+En las dos, la bajada pasa a «↑ 3» (flecha que sube y las del almacén). Falta que elija.

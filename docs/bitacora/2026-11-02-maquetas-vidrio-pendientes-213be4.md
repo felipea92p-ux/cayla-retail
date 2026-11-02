@@ -4,3 +4,5 @@
   31 de octubre se descartó el desenfoque por costo) / B · Placa con desenfoque, y tira A · Pozo de vidrio / B · Celdas en gota. 162
   combinaciones sin desborde. La base (`vidrio-base-2026-10/marco.css`) ahora achica las cifras de la cabecera por el ancho de la cabecera
   (`@container ep`), no del aparato.
+- **Existencias, elegida A y A**; Felipe pidió mejorar la talla en cero: en la maqueta, A · Lente que pide (recomendada) y B · Hueco por
+  llenar, con la bajada «↑ 3». Contraste medido 6,5:1 y 6,7:1. Fusionada la elección de Caja de la otra sesión (titular A, cierre B · Isla).

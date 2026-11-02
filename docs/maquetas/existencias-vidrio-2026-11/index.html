@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-tema="claro" data-vt="translucida" data-tt="pozo">
+<html lang="es" data-tema="claro" data-vt="translucida" data-tt="pozo" data-cz="lente">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -104,6 +104,30 @@
 [data-tt="gotas"] .ta.agotada{border-color:color-mix(in srgb,var(--rojo) 35%,transparent);background:color-mix(in srgb,var(--rojo) 9%,transparent)}
 [data-tt="gotas"] .ta.falta{border-color:color-mix(in srgb,var(--ambar) 40%,transparent);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
 
+/* ---------- la talla en cero (Felipe 2026-11-02: «mejora cómo se ve la casilla cuando hay 0») ----------
+   Antes: la celda se teñía de ámbar al 12 % DENTRO del pozo y quedaba como una mancha parda: no se leía si era un error, un hueco o algo
+   que hacer, y «+3» no decía que esas 3 están en el almacén listas para colgar. Las dos caras dicen lo mismo: «aquí 0, sube 3».
+   La bajada cambia en las dos: una flecha que sube y el número (las que esperan en el almacén). */
+.ta .sube{display:none}
+:is([data-cz="lente"],[data-cz="hueco"]) .ta.falta .t-alm .mas-txt{display:none}
+:is([data-cz="lente"],[data-cz="hueco"]) .ta.falta .sube{display:inline-flex;align-items:center;justify-content:center;gap:2px;font-weight:700}
+.ta .sube svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+/* A · LENTE QUE PIDE: la talla que hay que colgar sale del pozo como una lente de vidrio teñida de ámbar (la insignia elegida): su luz
+   arriba, su filo ámbar, el 0 y la flecha en ámbar hondo. Es lo único de la tira que sobresale, porque es lo único que pide algo.
+   La agotada, igual en rojo. */
+[data-cz="lente"] .ta.falta,[data-cz="lente"] .ta.agotada{--t:var(--ambar);position:relative;z-index:1;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--t) 14%,var(--vidrio)),color-mix(in srgb,var(--t) 26%,var(--vidrio)));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--t) 55%,transparent),0 5px 12px -5px color-mix(in srgb,var(--t) 55%,transparent)}
+[data-cz="lente"] .ta.agotada{--t:var(--rojo)}
+[data-tema="oscuro"][data-cz="lente"] :is(.ta.falta,.ta.agotada){background:color-mix(in srgb,var(--t) 18%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--t) 30%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--t) 40%,transparent)}
+:is([data-cz="lente"],[data-cz="hueco"]) .ta.falta :is(.t-can,.t-nom,.t-alm){color:color-mix(in srgb,var(--ambar) 82%,var(--tinta))} /* contraste: texto sobre vidrio teñido */
+:is([data-cz="lente"],[data-cz="hueco"]) .ta.agotada :is(.t-can,.t-nom,.t-alm){color:color-mix(in srgb,var(--rojo) 78%,var(--tinta))}
+/* B · HUECO POR LLENAR: sin relleno; un contorno ámbar punteado dentro del pozo, como un lugar vacío que espera su prenda. El 0 queda
+   tenue (no hay nada) y lo que habla es la flecha con las 3 del almacén. */
+[data-cz="hueco"] .ta.falta,[data-cz="hueco"] .ta.agotada{background:none;box-shadow:none;outline:1.5px dashed color-mix(in srgb,var(--ambar) 65%,transparent);outline-offset:-3px}
+[data-cz="hueco"] .ta.agotada{outline-color:color-mix(in srgb,var(--rojo) 60%,transparent)}
+[data-cz="hueco"] .ta.falta .t-can.t-can{color:var(--t50)}
+
 @container disp (max-width:520px){.ph-t{flex-wrap:wrap}.ph-t .btn{margin-left:23px}.rej{gap:12px}}
 @container disp (max-width:360px){.vt{grid-template-columns:88px minmax(0,1fr)}.vt .foto{width:88px;height:136px}.ta .t-can{font-size:17px}}
 @media (prefers-reduced-motion:reduce){.vt{animation:none;transition:none}}
@@ -113,8 +137,9 @@
 
 <div class="spk">
   <span class="titulo">Existencias, con vidrio</span>
-  <span class="tag">Vitrina</span><div class="seg-m" data-ctl="vt"><button data-v="ahora">Como ahora</button><button data-v="translucida">A · Translúcida, sin desenfoque</button><button data-v="placa">B · Placa con desenfoque</button></div>
-  <span class="tag">Tira de tallas</span><div class="seg-m" data-ctl="tt"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo de vidrio</button><button data-v="gotas">B · Celdas en gota</button></div>
+  <span class="tag">Vitrina</span><div class="seg-m" data-ctl="vt"><button data-v="ahora">Como ahora</button><button data-v="translucida">A · Translúcida, sin desenfoque ✓</button><button data-v="placa">B · Placa con desenfoque</button></div>
+  <span class="tag">Tira de tallas</span><div class="seg-m" data-ctl="tt"><button data-v="ahora">Como ahora</button><button data-v="pozo">A · Pozo de vidrio ✓</button><button data-v="gotas">B · Celdas en gota</button></div>
+  <span class="tag">Talla en cero</span><div class="seg-m" data-ctl="cz"><button data-v="ahora">Como estaba</button><button data-v="lente">A · Lente que pide</button><button data-v="hueco">B · Hueco por llenar</button></div>
   <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
   <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
 </div>
@@ -141,13 +166,15 @@
     <h2>Las caras: lo que gana y lo que cuesta</h2>
     <table>
       <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
-      <tr><td rowspan="2"><b>Vitrina</b></td><td>A · Translúcida, sin desenfoque <span class="ev">Recomendada</span></td><td>Se ve de vidrio (su luz arriba, su filo, deja pasar el color del fondo) pero no desenfoca: cuesta lo mismo que el papel con cientos de tarjetas. Respeta lo que se decidió el 31 de octubre.</td><td>Sin desenfoque, lo que pasa por detrás se ve apenas más nítido que en una placa.</td></tr>
+      <tr><td rowspan="2"><b>Vitrina</b></td><td>A · Translúcida, sin desenfoque <span class="ev">Elegida</span></td><td>Se ve de vidrio (su luz arriba, su filo, deja pasar el color del fondo) pero no desenfoca: cuesta lo mismo que el papel con cientos de tarjetas. Respeta lo que se decidió el 31 de octubre.</td><td>Sin desenfoque, lo que pasa por detrás se ve apenas más nítido que en una placa.</td></tr>
       <tr><td>B · Placa con desenfoque</td><td>Exactamente la placa de las cifras: la pantalla más rica.</td><td>Es la «C · Vidrio» que se descartó: el desenfoque de cientos de tarjetas se nota al bajar en un computador modesto.</td></tr>
-      <tr><td rowspan="2"><b>Tira de tallas</b></td><td>A · Pozo de vidrio <span class="ev">Recomendada</span></td><td>El pozo de hueso pasa al pozo de todo el ERP (el del buscador y los campos): la tira se sigue leyendo como una sola pieza.</td><td>Casi nada.</td></tr>
+      <tr><td rowspan="2"><b>Talla en cero</b> (pedida el 2026-11-02)</td><td>A · Lente que pide <span class="ev">Recomendada</span></td><td>La talla que hay que colgar sale del pozo como una lente teñida de ámbar (la insignia elegida): es lo único de la tira que sobresale, porque es lo único que pide algo. La bajada dice «↑ 3»: sube 3 del almacén. La agotada, igual en rojo.</td><td>En claro el ámbar de la paleta es un ámbar tostado: se distingue por su filo y su luz más que por el color.</td></tr>
+      <tr><td>B · Hueco por llenar</td><td>Un contorno punteado dentro del pozo: un lugar vacío que espera su prenda; el 0 queda tenue y habla la flecha.</td><td>Sin relleno se ve menos desde lejos; punteado se parece a «deshabilitado».</td></tr>
+      <tr><td rowspan="2"><b>Tira de tallas</b></td><td>A · Pozo de vidrio <span class="ev">Elegida</span></td><td>El pozo de hueso pasa al pozo de todo el ERP (el del buscador y los campos): la tira se sigue leyendo como una sola pieza.</td><td>Casi nada.</td></tr>
       <tr><td>B · Celdas en gota</td><td>Cada talla se ve como algo que se toca (abre su detalle).</td><td>Cinco gotas por tarjeta, en una rejilla de cuarenta, son muchos bordes: vuelve el desorden que la Vitrina quitó.</td></tr>
     </table>
-    <h3>Recomendación</h3>
-    <p><b>Vitrina A · Translúcida, sin desenfoque, y tira A · Pozo de vidrio.</b></p>
+    <h3>Lo que eligió Felipe (2026-11-02)</h3>
+    <p><b>Vitrina A · Translúcida, sin desenfoque, y tira A · Pozo de vidrio.</b> Pidió mejorar cómo se ve la talla en cero: falta elegir entre A · Lente que pide (recomendada) y B · Hueco por llenar.</p>
     <h3>Lo que no cambia</h3>
     <p>La forma de la Vitrina (foto de 104 px, chapa con hasta 5 colores o 3 y «+N», el filo de 3 px rojo o ámbar, el pie a todo el ancho con «Más ▾»), lo que dice cada talla, qué abre cada toque, la rejilla de 20 rem, la alzada de 3 px al pasar el mouse. El modal de la prenda y «Ajustar stock» (la planilla) son diseño propio y no entran.</p>
   </section>
@@ -172,7 +199,7 @@ function vitrinaHTML([c, n, , , cl], i) {
   const agot = ts.some(([, p]) => p === null), falta = ts.filter(([, p, a]) => p === 0 && a > 0).length;
   const e = agot ? 'rojo' : falta ? 'ambar' : 'verde';
   const tira = ts.map(([t, p, a]) => { const cls = p === null ? 'agotada' : p === 0 && a > 0 ? 'falta' : ''; const ab = p === null ? (corta ? 'agotada' : 'se acabó') : a > 0 ? (corta ? `+${a}` : `+${a} en almacén`) : (corta ? '0' : '0 en almacén');
-    return `<div class="ta ${cls}"><div class="t-nom">${t}</div><div class="t-can">${p === null ? '—' : p}</div><div class="t-alm">${ab}</div></div>`; }).join('');
+    return `<div class="ta ${cls}"><div class="t-nom">${t}</div><div class="t-can">${p === null ? '—' : p}</div><div class="t-alm"${cls === 'falta' ? ` title="0 en el piso · ${a} en el almacén: puedes colgarlas"` : ''}><span class="mas-txt">${ab}</span>${cls === 'falta' ? `<span class="sube">${svE('M12 19V5M6 11l6-6 6 6')}${a}</span>` : ''}</div></div>`; }).join('');
   const izq = e === 'ambar' ? boton(['sec', `Colgar en el piso · ${falta} ${falta === 1 ? 'talla' : 'tallas'}`]) : e === 'rojo' ? '<span class="estado-v rojo"><i></i>Se acabó una talla</span>' : '<span class="estado-v"><i></i>Todo en el piso</span>';
   const precio = [89, 159, 189, 49, 129, 99, 59, 169, 69, 119][i];
   return `<article class="vt" data-e="${e}" style="--i:${i}"><span class="foto${cl ? ' claro' : ''}" data-color-dato style="background:${c}">${svE(ICE.percha)}<span class="chapa">${chapa}</span></span>
@@ -188,7 +215,7 @@ function pintarEx() {
     <div class="rej">${PRENDAS.slice(0, 10).map((p, i) => vitrinaHTML(p, i)).join('')}</div>`;
 }
 document.addEventListener('click', (ev) => { const f = ev.target.closest('.fp'); if (f) { $$('.fp').forEach((x) => x.setAttribute('aria-pressed', x === f)); } });
-Marco.iniciar({ estado: { vt: 'translucida', tt: 'pozo' }, alPintar: () => pintarEx() });
+Marco.iniciar({ estado: { vt: 'translucida', tt: 'pozo', cz: 'lente' }, alPintar: () => pintarEx() });
 </script>
 </body>
 </html>
