@@ -318,7 +318,8 @@ export function DevolucionesFlujo({
           {/* Las tarjetas del flujo son la placa Serena (`posv-placa`, vidrio/posventa.css). */}
           <div className="posv-placa p-5 sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
-            <fieldset data-guia="devolucion.prendas" className="mt-4">
+            {/* `min-w-0`: el fieldset no crece al ancho mínimo de su fila (a 375 px la fila se salía 12 px de la tarjeta). */}
+            <fieldset data-guia="devolucion.prendas" className="mt-4 min-w-0">
               <legend className="sr-only">Prendas que el cliente quiere devolver</legend>
               <div className="space-y-1.5">
                 {venta.map((l) => {
@@ -329,7 +330,7 @@ export function DevolucionesFlujo({
                     <div key={l.ventaItemId} data-elegida={item ? "" : undefined} className="posv-fila rounded-lg transition-colors duration-200">
                       <label
                         data-tocable={estado.devolvible ? "" : undefined}
-                        className={`posv-fila flex items-center gap-4 rounded-lg p-3 transition-colors duration-200 ${
+                        className={`posv-fila flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
                           estado.devolvible ? "cursor-pointer" : "cursor-not-allowed"
                         }`}
                       >
@@ -348,7 +349,10 @@ export function DevolucionesFlujo({
                             <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
                           </span>
                         </span>
-                        <ChipEstado estado={estado} />
+                        {/* En el celular el chip baja a su propia línea, alineado con el texto (como en Cambios). */}
+                        <span className="max-sm:basis-full max-sm:pl-9">
+                          <ChipEstado estado={estado} />
+                        </span>
                       </label>
                       {item && disponibles > 1 && (
                         <div className="flex items-center gap-3 px-3 pb-3 pl-[3.25rem]">
