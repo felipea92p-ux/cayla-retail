@@ -7,6 +7,7 @@ import {
   impuestoRenta,
   leerFilaSustento,
   mesesEntre,
+  proveedoresSinFactura,
   proyectarRenta,
   resumirSustento,
   tasaMarginal,
@@ -224,8 +225,52 @@ describe("la tarjeta de Impuestos", () => {
     expect(r.proyeccion.utilidad).toBeCloseTo(60_000 + 5_000 * r.proyeccion.factor, 1);
   });
 
+  it("la barra usa lo medido desde el inicio del sistema, no lo proyectado al año", () => {
+    const r = armarRentaDelAno({ ...base, parametros: ESCALA })!;
+    expect(r.medido.inventario.sustenta).toBe(10_000);
+    expect(r.proyeccion.sustento.inventario.sustenta).toBeGreaterThan(10_000);
+  });
+
   it("lo del contador de OTRO año no cuenta", () => {
     const r = armarRentaDelAno({ ...base, parametros: [...ESCALA, p("renta_utilidad_previa", "2025-01-01", 60_000)] })!;
     expect(r.previoCargado).toBe(false);
+  });
+});
+
+describe("a quién pedirle factura", () => {
+  const filas = [
+    fila("mercaderia", "nota_venta", 3_000, "Gamarra A"),
+    fila("mercaderia", "sin_comprobante", 2_000, "Gamarra A"),
+    fila("mercaderia", "factura", 9_000, "Gamarra A"),
+    fila("taller", "sin_comprobante", 4_000, "Hilos B"),
+    fila("gasto", "boleta", 500, "Bodega C"),
+    fila("gasto", "sin_comprobante", 120, null),
+    fila("mercaderia", "factura", 7_000, "Formal D"),
+  ];
+
+  it("ordena por lo comprado sin factura, de mayor a menor, y deja fuera a quien siempre da factura", () => {
+    const l = proveedoresSinFactura(filas, 0.295);
+    expect(l.map((p) => p.proveedor)).toEqual(["Gamarra A", "Hilos B", "Bodega C", null]);
+    expect(l[0]).toMatchObject({ sinPapel: 5_000, enBoleta: 0, documentos: 2 });
+  });
+
+  it("con factura se ahorraría la renta a la tasa del último sol, y se le podría pagar hasta un 42 % más sin perder", () => {
+    const [a] = proveedoresSinFactura(filas, 0.295);
+    expect(a.ahorroRenta).toBe(1_475);
+    expect(a.precioConFactura).toBe(7_092.2); // 5 000 / 0,705
+  });
+
+  it("las boletas cuentan aparte (restan solo bajo el tope)", () => {
+    const c = proveedoresSinFactura(filas, 0.1).find((p) => p.proveedor === "Bodega C")!;
+    expect(c).toMatchObject({ sinPapel: 0, enBoleta: 500, ahorroRenta: 50 });
+  });
+
+  it("el mismo proveedor en mercadería y en gastos va en dos filas", () => {
+    const l = proveedoresSinFactura([fila("mercaderia", "nota_venta", 100, "X"), fila("gasto", "nota_venta", 50, "X")], 0.1);
+    expect(l.map((p) => p.origen)).toEqual(["mercaderia", "gasto"]);
+  });
+
+  it("sin compras sin factura, la lista está vacía", () => {
+    expect(proveedoresSinFactura([fila("mercaderia", "factura", 100)], 0.1)).toEqual([]);
   });
 });

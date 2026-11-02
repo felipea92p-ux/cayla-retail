@@ -2,7 +2,7 @@
   "guia": "finanzas.impuestos",
   "ruta": "/finanzas/impuestos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 14,
   "controles": {
     "components/ImpuestosPanel.tsx": [
       "button «fin-impuestos.ir-a-declarar»",
@@ -16,6 +16,7 @@
       "Link «{cuerpo}»"
     ],
     "components/finanzas/ImpuestosRenta.tsx": [
+      "button «fin-impuestos.pedir-factura»",
       "Link «Carga lo de tu contador»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [

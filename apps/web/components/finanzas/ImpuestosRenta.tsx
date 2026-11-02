@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { Receipt, Settings2 } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
@@ -6,7 +9,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Superficie } from "@/components/finanzas/kit";
 import { solesRedondo, textoMes } from "@/lib/gastos-reglas";
-import type { RentaPantalla } from "@/lib/renta-anual-reglas";
+import { proveedoresSinFactura, type RentaPantalla } from "@/lib/renta-anual-reglas";
+import { ProveedoresSinFactura } from "@/components/finanzas/ImpuestosProveedores";
 
 // Finanzas ▸ Impuestos, la renta de marzo (ADR-0598): cuánto tocaría pagar por el año, cuánto ya se pagó a cuenta y cuánto de esa renta es por
 // lo que no tiene factura. Las cifras las arma `lib/renta-anual-reglas.ts`; aquí solo se dibujan. Es una estimación y lo dice.
@@ -14,6 +18,7 @@ import type { RentaPantalla } from "@/lib/renta-anual-reglas";
 const pct = (parte: number, total: number) => (total > 0 ? Math.round((parte / total) * 100) : 0);
 
 export function RentaDelAno({ renta, falla, guia }: { renta: RentaPantalla | null; falla: string | null; guia?: string }) {
+  const [verProveedores, setVerProveedores] = useState(false);
   if (!renta) {
     return (
       <Superficie pad className="anim-sube" guia={guia}>
@@ -28,7 +33,8 @@ export function RentaDelAno({ renta, falla, guia }: { renta: RentaPantalla | nul
   }
 
   const r = renta.proyeccion;
-  const s = r.sustento;
+  // La barra dice «desde octubre»: lo medido, no lo proyectado al año (la hoja de proveedores también lista lo medido).
+  const s = renta.medido;
   const conPapel = s.inventario.sustenta + s.gasto.sustenta + s.boletasQueRestan;
   const sinPapel = s.inventario.noSustenta + s.gasto.noSustenta + s.boletasQueNoRestan;
   const total = conPapel + sinPapel;
@@ -85,6 +91,17 @@ export function RentaDelAno({ renta, falla, guia }: { renta: RentaPantalla | nul
                   No resta: {solesRedondo(sinPapel)} ({pct(sinPapel, total)} %)
                 </li>
               </ul>
+              {sinPapel > 0 && (
+                <button
+                  type="button"
+                  className="btn-cayla btn-secundario btn-chico mt-3"
+                  onClick={() => setVerProveedores(true)}
+                  aria-haspopup="dialog"
+                  data-guia="fin-impuestos.pedir-factura"
+                >
+                  A quién pedirle factura
+                </button>
+              )}
             </>
           ) : (
             <Vacio tamano="chico" icono={<Receipt />}>
@@ -107,6 +124,9 @@ export function RentaDelAno({ renta, falla, guia }: { renta: RentaPantalla | nul
         )}
         {" "}Es una estimación: la confirma tu contador.
       </p>
+      {verProveedores && (
+        <ProveedoresSinFactura lista={proveedoresSinFactura(renta.filas, r.tasaMarginal)} desde={desde} tasa={r.tasaMarginal} onCerrar={() => setVerProveedores(false)} />
+      )}
     </Superficie>
   );
 }

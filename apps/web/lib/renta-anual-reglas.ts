@@ -263,6 +263,8 @@ export type RentaPantalla = {
   /** ¿El contador ya dio lo de esos meses? Si no, el año entero sale del ritmo del sistema. */
   previoCargado: boolean;
   proyeccion: RentaDelAno;
+  /** El costo por papel tal como se midió desde `desdeSistema` (sin proyectar): lo que dibuja la barra y lista la hoja. */
+  medido: Sustento;
   filas: FilaSustento[];
 };
 
@@ -288,5 +290,45 @@ export function armarRentaDelAno(e: {
     { utilidad: e.utilidad, costoVentas: e.costoVentas, filas: e.filas, meses: mesesSistema, pagosACuenta: e.ventasSinIgv * tasaPagoCuenta, previo },
     tasas
   );
-  return { anio, desdeSistema, hasta: e.hoy, mesesSistema, mesesAntes, previoCargado: previo !== null, proyeccion, filas: [...e.filas] };
+  return { anio, desdeSistema, hasta: e.hoy, mesesSistema, mesesAntes, previoCargado: previo !== null, proyeccion, medido: resumirSustento(e.filas, tasas), filas: [...e.filas] };
+}
+
+// ---- A quién pedirle factura -----------------------------------------------------------------------------------------------
+
+export type ProveedorSinFactura = {
+  clave: string;
+  /** `null`: gastos sin proveedor (luz, taxis…). */
+  proveedor: string | null;
+  origen: OrigenCosto;
+  /** Lo comprado sin papel que resta (nota de venta, sin comprobante). */
+  sinPapel: number;
+  /** Lo comprado con boleta o ticket: resta solo bajo el tope del 6 %. */
+  enBoleta: number;
+  documentos: number;
+  /** La renta que se ahorraría si todo eso viniera con factura, a la tasa del último sol. */
+  ahorroRenta: number;
+  /** Hasta cuánto (sin IGV) se le podría pagar con factura y salir igual: lo de hoy / (1 − tasa). El IGV de la factura se recupera aparte. */
+  precioConFactura: number;
+};
+
+/** Los proveedores ordenados por lo que se les compró sin factura, de mayor a menor: por quién empezar a pedirla. */
+export function proveedoresSinFactura(filas: readonly FilaSustento[], tasa: number): ProveedorSinFactura[] {
+  const grupos = new Map<string, ProveedorSinFactura>();
+  for (const f of filas) {
+    const clase = clasePapel(f.papel);
+    if (clase === "sustenta") continue;
+    const clave = `${f.origen}:${f.proveedorId ?? "sin-proveedor"}`;
+    const g = grupos.get(clave) ?? { clave, proveedor: f.proveedor, origen: f.origen, sinPapel: 0, enBoleta: 0, documentos: 0, ahorroRenta: 0, precioConFactura: 0 };
+    if (clase === "con_tope") g.enBoleta += f.monto;
+    else g.sinPapel += f.monto;
+    g.documentos += f.documentos;
+    grupos.set(clave, g);
+  }
+  return [...grupos.values()]
+    .map((g) => {
+      const total = g.sinPapel + g.enBoleta;
+      return { ...g, sinPapel: r2(g.sinPapel), enBoleta: r2(g.enBoleta), ahorroRenta: r2(total * tasa), precioConFactura: r2(total / (1 - tasa)) };
+    })
+    .filter((g) => g.sinPapel + g.enBoleta > 0)
+    .sort((a, b) => b.sinPapel + b.enBoleta - (a.sinPapel + a.enBoleta) || (a.proveedor ?? "").localeCompare(b.proveedor ?? "", "es"));
 }
