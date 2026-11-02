@@ -131,7 +131,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
           </span>
         </div>
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5">
-          <TrayectoMovimiento origen={origen} destino={destino} tipo={rotulo.tipo} motivo={m.motivo} solo={textoSolo(rotulo.tipo)} />
+          <TrayectoMovimiento origen={origen} destino={destino} tipo={rotulo.tipo} motivo={m.motivo} solo={textoSolo(rotulo.tipo)} soloIconos />
           {/* El enlace de una venta abre SU detalle en vez de llevar a otra pantalla. */}
           {m.venta && ctx.enlaceVentas ? (
             <BotonReferencia texto={referencia?.texto ?? "Ver la venta"} onClick={() => ctx.onAbrirVenta(m)} />
@@ -210,7 +210,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
           </span>
         </div>
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5">
-          <TrayectoMovimiento origen={r.origen} destino={r.destino} tipo={tipo} motivo={primera.motivo} solo={textoSolo(tipo)} />
+          <TrayectoMovimiento origen={r.origen} destino={r.destino} tipo={tipo} motivo={primera.motivo} solo={textoSolo(tipo)} soloIconos />
           {primera.venta && ctx.enlaceVentas ? (
             <BotonReferencia texto={r.referencia?.texto ?? "Ver la venta"} onClick={() => ctx.onAbrirVenta(primera)} />
           ) : (

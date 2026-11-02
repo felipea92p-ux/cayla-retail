@@ -171,6 +171,10 @@
   .mv-riel { flex: 0 0 24px; min-width: 24px; }
   .mv-punto { padding-right: 0.5rem; }
   .mv-punto span { max-width: 7.5rem; }
+  /* La fila de la lista: solo el ícono de cada lugar (el nombre queda en `aria-label` y `title`); el detalle conserva el texto. */
+  .mv-ruta[data-solo-iconos] .mv-punto { padding: 0.25rem; }
+  .mv-ruta[data-solo-iconos] .mv-punto span { display: none; }
+  .mv-ruta[data-solo-iconos] .mv-punto svg { width: 16px; height: 16px; }
 }
 
 /* ── La columna de los siete tipos: cada botón es el filtro y su cifra ── */
