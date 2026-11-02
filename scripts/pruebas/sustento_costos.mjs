@@ -133,7 +133,9 @@ console.log("Sustento del costo (ADR-0598, actividad 1)");
     "taller|Hilos Prueba S1|factura|1|50.00",
     "taller|Hilos Prueba S1|sin_comprobante|1|80.00",
   ];
-  esperar("cada fuente con su papel y su monto sin IGV (la nota de crédito resta)", r.ok && JSON.stringify(filas) === JSON.stringify(esperadas), r);
+  // Se comparan ordenadas aquí: el orden del «—» frente a las letras depende de la intercalación de la base (C en local, en_US en el CI).
+  const ordenadas = (xs) => JSON.stringify([...xs].sort());
+  esperar("cada fuente con su papel y su monto sin IGV (la nota de crédito resta)", r.ok && ordenadas(filas) === ordenadas(esperadas), r);
   esperar("no cuentan el activo, la compra anulada, diciembre de 2023, el lote sin costo ni el lote de un envío", r.ok && !filas.some((f) => /\|(590|500|700|826|60|180)\.00$/.test(f)), r);
 }
 
