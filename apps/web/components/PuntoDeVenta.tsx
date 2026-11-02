@@ -60,6 +60,7 @@ import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePre
 import { fichaDelColor, unidadesPorColor, type ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { HojaDeCobro } from "@/components/punto-de-venta/HojaDeCobro";
+import { HojaDeDescuento } from "@/components/punto-de-venta/HojaDeDescuento";
 import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
 import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
@@ -1841,8 +1842,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   useEffect(() => {
     if (bloqueado || hayModal || prendaElegida) return;
     function alAtajo(e: KeyboardEvent) {
-      // Esc cierra la hoja de cobro y vuelve al ticket (un combo de adentro que use el Escape lo detiene antes).
-      if (e.key === "Escape" && momento === "cobrar" && !e.defaultPrevented) {
+      // Esc cierra la hoja de cobro o la del descuento y vuelve al ticket (un combo de adentro que use el Escape lo detiene antes).
+      if (e.key === "Escape" && (momento === "cobrar" || (momento === "descuento" && !apilado)) && !e.defaultPrevented) {
         setMomento("armar");
         return;
       }
@@ -2344,6 +2345,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             onAbrirDescuento={abrirDescuento}
             onAplicarDescuento={aplicarDescuentoAlTicket}
             onQuitarDescuento={quitarDescuentoDelTicket}
+            descuentoAparte={!enHoja}
             nota={nota}
             onNota={setNota}
             enEspera={enEspera}
@@ -2579,6 +2581,26 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 className="hoja-cobro absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden rounded-3xl border border-sand bg-papel"
               >
                 {hojaDeCobro(false)}
+              </section>
+            </>
+          )}
+
+          {/* La hoja del descuento (Felipe, 2026-11-02, «A · Hoja lateral»): como el cobro, sobre el catálogo y con el ticket quieto a la
+              vista. El velo tocado, «Volver» o Esc cierran sin aplicar. En el celular el descuento sigue dentro de la hoja del ticket. */}
+          {!apilado && momento === "descuento" && !bloqueado && (
+            <>
+              <div aria-hidden onClick={() => setMomento("armar")} className="hoja-descuento-velo absolute inset-0 z-30" />
+              <section aria-label="Descuento" className="hoja-descuento hoja-serena absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden">
+                <HojaDeDescuento
+                  descuento={descuento}
+                  onDescuento={(cambio) => setDescuento((actual) => ({ ...actual, ...cambio }))}
+                  carrito={carritoConPiso}
+                  vale={valeDelTicket}
+                  bloqueado={bloqueado}
+                  onAplicar={aplicarDescuentoAlTicket}
+                  onQuitar={quitarDescuentoDelTicket}
+                  onVolver={() => setMomento("armar")}
+                />
               </section>
             </>
           )}
