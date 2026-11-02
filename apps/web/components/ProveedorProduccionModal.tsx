@@ -25,7 +25,7 @@ import {
   validarCuentas,
   type Billetera,
 } from "@/lib/proveedores-cuentas-form";
-import { ETIQUETA_FORMA_PAGO, RUBROS_PRODUCCION, type ProveedorProduccion, type RubroProduccion } from "@/lib/proveedores-produccion-reglas";
+import { ETIQUETA_FORMA_PAGO, RUBROS_PRODUCCION, avisoDelRuc, type ProveedorProduccion, type RubroProduccion } from "@/lib/proveedores-produccion-reglas";
 
 // Alta y edición de un proveedor de Producción (ADR-0133, F4a). Un solo formulario para las dos cosas: `guardar_proveedor_produccion`
 // crea si no recibe id y reemplaza si lo recibe. Es solo del líder (lleva datos bancarios de un tercero). Con `<Modal>` del
@@ -102,6 +102,8 @@ export function ProveedorProduccionModal({
   const errores = validarCuentas({ cci, celularBilletera: celular, billeteras, titularCuenta: titular });
   const rucDigitos = ruc.replace(/\D/g, "");
   const errorRuc = ruc.trim() !== "" && rucDigitos.length !== 11 ? "El RUC tiene 11 dígitos." : null;
+  // P06 del análisis del Taller: un RUC de 11 dígitos que no existe se avisa, no se frena (el RUC es opcional).
+  const avisoRuc = errorRuc ? null : avisoDelRuc(ruc);
   const plazoNum = plazo.trim() === "" ? null : Number(plazo);
   const errorPlazo = plazoNum !== null && (!Number.isInteger(plazoNum) || plazoNum <= 0) ? "Días enteros, mayores a cero." : null;
 
@@ -211,7 +213,7 @@ export function ProveedorProduccionModal({
 
         <div data-guia="prod-proveedor-modal.ruc" className="grid gap-3 sm:grid-cols-2">
           <CampoGuiado id="ruc" guia={guia}>
-          <CampoTexto etiqueta={guia.etiqueta("ruc", "RUC")} mono inputMode="numeric" placeholder="11 dígitos" value={ruc} onChange={(e) => setRuc(e.target.value)} tono={errorRuc ? "error" : "neutro"} pie={errorRuc ?? undefined} />
+          <CampoTexto etiqueta={guia.etiqueta("ruc", "RUC")} mono inputMode="numeric" placeholder="11 dígitos" value={ruc} onChange={(e) => setRuc(e.target.value)} tono={errorRuc ? "error" : avisoRuc ? "aviso" : "neutro"} pie={errorRuc ?? (avisoRuc ? `${avisoRuc}. Puedes guardarlo igual; revisa que esté bien escrito.` : undefined)} />
           </CampoGuiado>
           <CampoGuiado id="contacto" guia={guia}>
           <CampoTexto etiqueta={guia.etiqueta("contacto", "Contacto")} placeholder="Persona con quien se habla" value={contacto} onChange={(e) => setContacto(e.target.value)} />
