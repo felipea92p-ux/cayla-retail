@@ -2393,7 +2393,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // bajo la cabecera fija de AppShell: `100dvh` menos el `pt-24 + pb-12` de su
     // `<main>` (9rem). En celular/tablet (apilado) se mantiene el scroll de página:
     // dos scrolls internos uno debajo del otro serían peores que uno solo.
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
+    // «A · Catálogo al aire, ticket en placa» (vender-vidrio-2026-11, Felipe 2026-11-02): sin la tarjeta grande de crema; el catálogo
+    // vive sobre la Aurora y el ticket es la placa Serena de su columna (vidrio/vender.css).
+    <div className="pv-mesa flex flex-col text-tinta lg:h-[calc(100dvh-9rem)]">
       {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
           izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
           «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.
@@ -2406,11 +2408,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // ancho) `apilado` todavía es false y el ticket se dibujaba un instante debajo del catálogo en el celular.
         // El ticket mide 420 px cuando hay sitio y cede hasta 320 (el 40 % del ancho): fijo en 420, una laptop de 1024 con
         // el lateral abierto dejaba al catálogo en 190 px — el buscador hecho una pastilla y tarjetas de 90 px (2026-10-02).
-        className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(320px,40%,420px)] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden"
+        className="grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_clamp(320px,40%,420px)] lg:grid-rows-[minmax(0,1fr)] lg:gap-5 max-lg:[&>aside]:hidden"
         inert={bloqueado}
       >
-        <div className="relative flex min-w-0 flex-col lg:min-h-0 lg:border-r lg:border-sand">
-          <div className="anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
+        <div className="relative flex min-w-0 flex-col lg:min-h-0">
+          <div className="pv-cat-aire anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
             <p className="label-cayla mr-2 w-full text-[11px] text-taupe-profundo sm:w-auto">Venta en tienda · {ubicacionEtiqueta}</p>
             {puedeApartar && <BotonApartados prendas={prendas} onApartar={apartarDesdeTicket} deshabilitado={bloqueado} />}
             {accesos.filter((a) => a.modulo === "existencias").map((a) => <BotonSepararDanada key={a.href} href={a.href} />)}
@@ -2594,7 +2596,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             </span>
             <span key={total} className="anim-asentar block font-display text-xl leading-tight tabular-nums">{money(total)}</span>
           </span>
-          <span className="label-cayla flex h-10 shrink-0 items-center gap-1 rounded-lg bg-crema px-3 text-[10.5px] text-tinta">
+          <span className="pv-isla-ver label-cayla flex h-10 shrink-0 items-center gap-1 rounded-lg bg-crema px-3 text-[10.5px] text-tinta">
             Ver ticket
             <ChevronUp className="h-3.5 w-3.5" aria-hidden />
           </span>

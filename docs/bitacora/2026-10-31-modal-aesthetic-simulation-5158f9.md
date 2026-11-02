@@ -187,3 +187,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   contenido se alejan de costado (34 px, 0,94, recorte de 22 px) con el mismo mecanismo de las hojas (`alejarFondo(ms, "lado")` en
   `fondoDeLaHoja.ts`) y siguen al dedo en la misma proporción (`fondoDeLadoSegun`, probado en `lib/hoja-gesto.test.ts`). Con «reducir
   movimiento» ya no se desliza. El escritorio no cambia.
+
+- **El Punto de Venta al vidrio (Felipe 2026-11-02):** la mesa «A · Catálogo al aire» (sin la tarjeta grande de crema; el catálogo sobre la
+  Aurora) con el ticket en placa Serena (radio 24, vidrio 72→52 %, 26 px) y la tarjeta de prenda «B · Foto al aire» (la foto con esquinas de
+  18 px y su sombra, sube 3 px al pasar el mouse; nombre, tallas y precio planos debajo; tallas en gota: agotada hueco punteado, almacén
+  ámbar punteada, apartada pizarra punteada; el globito dentro de la foto). En el celular, «Ver ticket» de la isla es la gota crema (15:1 en
+  los dos temas). En `vidrio/vender.css` + recetas. El ticket sigue ocupando el alto de su columna (la página no corre en escritorio).

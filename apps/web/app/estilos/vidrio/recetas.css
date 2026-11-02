@@ -201,6 +201,22 @@
   --tubo-relleno-arriba: var(--color-vidrio);
   --tubo-relleno-mezcla: 62%;
   --tubo-relleno-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+
+  /* ---------- el Punto de Venta con vidrio (docs/maquetas/vender-vidrio-2026-11/; piezas en vidrio/vender.css) ---------- */
+  /* «A · Catálogo al aire, ticket en placa»: el ticket es la placa Serena más llena (72 → 52 %) y con más desenfoque que una tarjeta de
+     cifra: sobre él se arma la venta y pasan las fotos del catálogo por detrás. */
+  --ticket-placa-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-vidrio) 52%, transparent));
+  --ticket-placa-filtro: blur(26px) saturate(1.6);
+  --ticket-placa-sombra: inset 0 1px 0 var(--color-vidrio), 0 30px 60px -34px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+  --ticket-placa-radio: 24px;
+  /* «B · Foto al aire»: sin tarjeta, la foto de la prenda es la pieza; sus esquinas y la sombra que crece al pasar el mouse. */
+  --foto-al-aire-radio: 18px;
+  --foto-al-aire-sombra: 0 18px 30px -20px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  --foto-al-aire-sombra-encima: 0 24px 36px -20px color-mix(in srgb, var(--color-sombra) 65%, transparent);
+  /* El hueco punteado: lo que no se puede elegir (una talla agotada), apenas hundido. */
+  --hueco-fondo: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  --hueco-borde: color-mix(in srgb, var(--color-borde-control) 55%, transparent);
+  --hueco-sombra: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 12%, transparent);
 }
 
 @media screen {
@@ -298,6 +314,12 @@
     --tubo-relleno-arriba: var(--color-sombra);
     --tubo-relleno-mezcla: 80%;
     --tubo-relleno-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent);
+    /* El Punto de Venta: en oscuro el ticket es vidrio parejo y casi lleno (sobre el negro cálido el degradado no se ve) y las sombras, negras. */
+    --ticket-placa-fondo: color-mix(in srgb, var(--color-vidrio) 78%, transparent);
+    --ticket-placa-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 30px 60px -34px var(--color-sombra);
+    --foto-al-aire-sombra: 0 18px 30px -20px var(--color-sombra);
+    --foto-al-aire-sombra-encima: 0 24px 36px -20px var(--color-sombra);
+    --hueco-sombra: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 45%, transparent);
   }
 }
 
@@ -322,5 +344,6 @@
     --espera-velo-fondo: color-mix(in srgb, var(--color-crema) 90%, transparent);
     --espera-halo: var(--color-crema);
     --version-agua-opacidad: 1;
+    --ticket-placa-fondo: var(--color-papel);
   }
 }

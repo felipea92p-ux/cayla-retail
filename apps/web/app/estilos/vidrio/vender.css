@@ -1,0 +1,174 @@
+/* =====================================================================
+   EL PUNTO DE VENTA (`/vender`) CON EL VIDRIO «SERENA» (ADR-0596; Felipe 2026-11-02, docs/maquetas/vender-vidrio-2026-11/).
+
+   Lo que eligió Felipe mirando:
+   · La mesa, «A · Catálogo al aire, ticket en placa»: se va la tarjeta grande de crema que encerraba todo (la pantalla más usada del ERP era
+     la única que tapaba la Aurora). El catálogo vive directo sobre el fondo y el ticket es la placa Serena de su columna (radio 24 px, vidrio
+     del 72 al 52 % con 26 px de desenfoque), pegada arriba. Dentro del ticket, las líneas de la cabecera y del pie son el hilo del vidrio.
+   · La tarjeta de prenda, «B · Foto al aire»: sin borde ni fondo de tarjeta. La foto (o el `MosaicoPrenda` de la prenda sin foto, ADR-0333)
+     lleva esquinas de 18 px y su sombra, y sube 3 px al pasar el mouse con la sombra que crece. Nombre, tallas y precio van planos debajo.
+     Las tallas son gotas, como las píldoras de filtro (vidrio/campos-y-botones.css); la agotada es un hueco punteado; la que está en el
+     almacén, ámbar al 8 % punteada; la apartada, pizarra punteada. El globito de la esquina va dentro de la foto (lo pone la tarjeta).
+   · En el celular el ticket vive en la isla ahumada (`barra-abajo` con `data-tono="tinta"`, vidrio/barras.css); su «Ver ticket» es la gota
+     clara de crema, que en oscuro se invierte sola con la isla (crema oscura con letra tinta clara).
+
+   Los ganchos los ponen components/PuntoDeVenta.tsx (`pv-mesa`, `pv-cat-aire`, `pv-isla-ver`), PuntoDeVentaCatalogo.tsx (`pv-cat-scroll`,
+   `pv-grilla`), PuntoDeVentaTicket.tsx (`pv-ticket`, `pv-ticket-hilo`, `pv-ticket-pie`; `data-en-hoja` en la hoja del celular, que no se
+   toca) y punto-de-venta/TarjetaPrenda.tsx (`pv-prenda`, `pv-prenda-foto`, `pv-prenda-abrir`, `pv-prenda-tope`, `pv-talla` con su
+   `data-talla`). Nada cambia qué hace la pantalla. Solo recetas de recetas.css. Movimiento de ADR-0136: la foto sube una vez al pasar el
+   mouse y vuelve, sin rebote; con «reducir movimiento», quieta.
+   ===================================================================== */
+
+/* ---------- La mesa: el catálogo al aire ---------- */
+/* Sin la tarjeta, el catálogo se alinea con la cabecera de la pantalla: sin el margen interior que tenía dentro de la crema. */
+.pv-mesa .pv-cat-aire {
+  padding-inline: 0;
+}
+/* La grilla corre por dentro (escritorio): 10 px de aire a los lados y 6 arriba para que la foto que sube y su sombra no se recorten contra
+   el borde del scroll; el margen negativo la deja alineada con lo de arriba. */
+.pv-mesa .pv-cat-scroll {
+  margin-inline: -10px;
+  padding-inline: 10px;
+  padding-top: 6px;
+}
+/* Sin tarjeta alrededor, cada prenda necesita su aire: entre filas, el que deja leer el precio de arriba sin pegarse a la foto de abajo. */
+.pv-mesa .pv-grilla {
+  gap: 22px 14px;
+}
+@media (max-width: 639px) {
+  .pv-mesa .pv-grilla { gap: 18px 10px; }
+}
+
+/* ---------- La mesa: el ticket en placa (solo en su columna; en la hoja del celular la cara la pone la hoja) ---------- */
+.pv-mesa .pv-ticket:not([data-en-hoja]) {
+  position: sticky;
+  top: 0;
+  overflow: hidden;
+  border: 1px solid var(--serena-borde);
+  border-radius: var(--ticket-placa-radio);
+  background: var(--ticket-placa-fondo);
+  -webkit-backdrop-filter: var(--ticket-placa-filtro);
+  backdrop-filter: var(--ticket-placa-filtro);
+  box-shadow: var(--ticket-placa-sombra);
+}
+.pv-mesa .pv-ticket:not([data-en-hoja]) .pv-ticket-hilo {
+  border-color: var(--hilo-cabeza);
+}
+.pv-mesa .pv-ticket:not([data-en-hoja]) .pv-ticket-pie {
+  background: transparent;
+}
+
+/* ---------- La tarjeta de prenda: «B · Foto al aire» ---------- */
+.pv-prenda-foto {
+  isolation: isolate; /* Safari: que la foto que se agranda adentro respete las esquinas */
+  border-radius: var(--foto-al-aire-radio);
+  box-shadow: var(--foto-al-aire-sombra);
+  transition:
+    transform 350ms var(--ease-cayla),
+    box-shadow 350ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .pv-prenda:hover .pv-prenda-foto {
+    transform: translateY(-3px);
+    box-shadow: var(--foto-al-aire-sombra-encima);
+  }
+}
+/* El botón que abre «Todo de la prenda» y el velo del tope siguen la forma de la foto. */
+.pv-prenda-abrir,
+.pv-prenda-tope {
+  border-radius: var(--foto-al-aire-radio);
+}
+
+/* Las tallas (y el «+N» de los colores): gotas sueltas con el borde de lo que se toca (3:1), como las píldoras de filtro. */
+.pv-talla {
+  border: 1px solid var(--color-borde-control);
+  border-radius: 999px;
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--gota-luz);
+  transition:
+    background 200ms var(--ease-cayla),
+    border-color 200ms var(--ease-cayla),
+    color 200ms var(--ease-cayla),
+    transform 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  /* La talla que agrega se llena del ahumado denso al pasar el mouse (la letra crema la pone la tarjeta, `hover:text-crema`). */
+  .pv-talla[data-talla="piso"]:not(:disabled):hover {
+    border-color: var(--ahumado-denso-borde);
+    background: var(--ahumado-denso-fondo);
+    box-shadow: var(--ahumado-denso-luz);
+  }
+  .pv-talla:not([data-talla]):not(:disabled):hover {
+    color: var(--color-tinta);
+    background: var(--gota-marca);
+  }
+  .pv-talla[data-talla="almacen"]:not(:disabled):hover {
+    background: color-mix(in srgb, var(--color-ambar) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}
+/* En el almacén: ámbar al 8 %, punteada. Tocarla ofrece registrar la bajada (ADR-0321). */
+.pv-talla[data-talla="almacen"] {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-ambar) 55%, transparent);
+  background: color-mix(in srgb, var(--color-ambar) 8%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  box-shadow: none;
+}
+/* Agotada aquí: el hueco punteado (no se toca; su tooltip dice dónde sí hay). */
+.pv-talla[data-talla="agotada"] {
+  border-style: dashed;
+  border-color: var(--hueco-borde);
+  background: var(--hueco-fondo);
+  box-shadow: var(--hueco-sombra);
+}
+.pv-talla[data-talla="agotada"]:focus-visible {
+  border-color: color-mix(in srgb, var(--color-rojo) 60%, transparent);
+}
+/* Apartada para un cliente: el hueco, en el pizarra informativo y sin tachar. */
+.pv-talla[data-talla="apartada"] {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-pizarra) 50%, transparent);
+  background: var(--hueco-fondo);
+  box-shadow: none;
+}
+
+/* En oscuro la gota es casi tinta: el borde y el fondo se aclaran con tinta (como la píldora de filtro). */
+@media screen {
+  :root[data-tema="oscuro"] .pv-talla:is([data-talla="piso"], :not([data-talla])) {
+    border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    background: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    box-shadow: none;
+  }
+}
+/* Va después del oscuro y con más peso: si no, en oscuro la talla no se llenaba al pasar el mouse. */
+@media (hover: hover) {
+  :root[data-tema="oscuro"] .pv-talla[data-talla="piso"]:not(:disabled):hover {
+    border-color: var(--ahumado-denso-borde);
+    background: var(--ahumado-denso-fondo);
+  }
+  :root[data-tema="oscuro"] .pv-talla:not([data-talla]):not(:disabled):hover {
+    background: var(--gota-marca);
+  }
+}
+
+/* ---------- El celular: «Ver ticket» en la isla ahumada ---------- */
+/* Sobre el ahumado denso, la gota clara de crema (la misma del principal de la isla, vidrio/barras.css). En oscuro la isla es clara y la
+   crema oscura: la letra de tinta sigue leyéndose sin hacer nada. */
+.pv-isla-ver {
+  border: 1px solid color-mix(in srgb, var(--color-crema) 60%, transparent);
+  border-radius: 999px;
+  background: var(--gota-crema-fondo);
+  color: var(--color-tinta);
+  box-shadow: var(--gota-crema-luz);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-prenda-foto,
+  .pv-talla {
+    transition: none;
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: reduce) {
+  .pv-prenda:hover .pv-prenda-foto {
+    transform: none;
+  }
+}

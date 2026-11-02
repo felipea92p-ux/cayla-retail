@@ -122,6 +122,7 @@
 @import "./estilos/vidrio/marco.css";
 @import "./estilos/vidrio/observatorio.css"; /* El Observatorio con vidrio (el Inicio del Admin, ADR-0322 / ADR-0596) */
 @import "./estilos/vidrio/inicio.css"; /* El Inicio de una líder con vidrio (inicio-lider-vidrio-2026-10) */
+@import "./estilos/vidrio/vender.css"; /* El Punto de Venta con vidrio: la mesa al aire, el ticket en placa y la prenda «Foto al aire» (docs/maquetas/vender-vidrio-2026-11/) */
 
 /* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
    pone el botón del tema. Sin esto, un Windows o un iPhone en oscuro activaría las clases `dark:` de los componentes shadcn
