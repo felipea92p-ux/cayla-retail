@@ -64,12 +64,12 @@ const DESHACER_AVISO_250 = `${deshacerAnclas(AVISO_250)}
 set local session_replication_role = replica;
 delete from retail.parametros_tributarios where nombre in ('igv_general', 'igv_ipm', 'aviso_umbral_uit', 'ventas_previas_erp');
 set local session_replication_role = origin;`;
-// ADR-0598 (20261102060000, renta del año) hace lo mismo después: sus anclas sobre `guardar_parametro_tributario` se deshacen primero y sus nueve nombres se apagan.
+// ADR-0598 (20261102060000, renta del año) hace lo mismo después: sus anclas sobre `guardar_parametro_tributario` se deshacen primero y sus ocho nombres se apagan.
 const RENTA_DEL_ANO = readFileSync(join(RAIZ, "supabase", "migrations", "20261102060000_renta_del_ano_parametros.sql"), "utf8");
 const DESHACER_RENTA_DEL_ANO = `${deshacerAnclas(RENTA_DEL_ANO)}
 set local session_replication_role = replica;
 delete from retail.parametros_tributarios where nombre in ('renta_tramo_uit', 'renta_tasa_tramo', 'renta_tasa_resto', 'boletas_tope_pct', 'boletas_tope_uit',
-  'renta_utilidad_previa', 'renta_costo_previo', 'renta_sin_papel_previo', 'renta_pagada_previa');
+  'renta_utilidad_previa', 'renta_sin_papel_previo', 'renta_pagada_previa');
 set local session_replication_role = origin;`;
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)

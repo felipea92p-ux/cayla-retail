@@ -12,7 +12,7 @@
  *   · solo el líder: una colaboradora recibe 42501; un rango al revés, 22023.
  *   · la migración se puede pegar dos veces.
  *   · actividad 3 (`20261102060000_renta_del_ano_parametros.sql`): la escala del Régimen MYPE y el tope de las boletas vienen sembrados desde 2017 y se
- *     heredan; «lo de antes del sistema» se guarda por año (la utilidad puede ser una pérdida; los otros tres, de 0 en adelante), desde el 1 de enero;
+ *     heredan; «lo de antes del sistema» se guarda por año (la utilidad puede ser una pérdida; los otros dos, de 0 en adelante), desde el 1 de enero;
  *     la escala no se cambia desde la pantalla; y las dos partes se pegan dos veces.
  *
  * CÓMO. Como `impuestos.mjs`: todo en una transacción con ROLLBACK (la base local es compartida), sesión simulada con
@@ -178,17 +178,14 @@ exception when others then
 end;
 $f$;
 select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_utilidad_previa', '2026-01-01', -12500.5, null)$q$);
-select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_costo_previo', '2026-01-01', 180000, null)$q$);
 select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_sin_papel_previo', '2026-01-01', 95000, null)$q$);
 select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_pagada_previa', '2026-01-01', 3800, null)$q$);
-select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_costo_previo', '2026-01-01', -1, null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_sin_papel_previo', '2026-01-01', -1, null)$q$);
 select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_pagada_previa', '2026-03-01', 10, null)$q$);
 select pg_temp.intento($q$select retail.guardar_parametro_tributario('renta_tasa_resto', '2027-01-01', 0.3, null)$q$);
 select valor from retail.fn_parametro_tributario('renta_utilidad_previa', '2026-12-31');
 select count(*) from retail.fn_parametro_tributario('renta_utilidad_previa', '2027-06-01') where vigente_desde = '2026-01-01';`);
-  const [neg, costo, sinPapel, pagada, negativo, marzo, ley, guardada] = lineas(r);
-  esperar("se guardan los cuatro de antes del sistema (la utilidad, aunque sea pérdida)", [neg, costo, sinPapel, pagada].every((x) => x === "SIN_ERROR"), r);
-  esperar("un costo negativo se rechaza", /de 0 a 100 millones/.test(negativo ?? ""), r);
+XX, /de 0 a 100 millones/.test(negativo ?? ""), r);
   esperar("rige desde el 1 de enero", /rigen por año/.test(marzo ?? ""), r);
   esperar("la escala de la ley no se cambia desde la pantalla", /no existe/.test(ley ?? ""), r);
   esperar("la utilidad guardada es la pérdida tal cual", guardada === "-12500.5000", r);

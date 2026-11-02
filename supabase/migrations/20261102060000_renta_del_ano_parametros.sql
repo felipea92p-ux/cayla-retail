@@ -6,19 +6,20 @@
 --     proveedor del Nuevo RUS solo resta hasta el 6 % de lo sustentado con comprobantes y 200 UIT al año (Ley del Impuesto a la Renta, art. 37 inc. z).
 --     Son cifras de una ley: como la UIT y el IGV, viven en `parametros_tributarios` con su vigencia y nunca en el código.
 --  2) LO DE ANTES DEL SISTEMA. Finanzas cuenta desde octubre de 2026 (`fn_finanzas_desde`); enero a septiembre los lleva el contador. Para el año
---     completo hacen falta su utilidad, su costo de lo vendido, lo que se compró sin factura y la renta ya pagada a cuenta (Felipe, 2026-11-02: «puedo
---     darte los reportes de los meses anteriores»).
+--     completo hacen falta su utilidad, lo que se compró sin factura y la renta ya pagada a cuenta (Felipe, 2026-11-02: «puedo darte los reportes
+--     de los meses anteriores»). Su contador anota solo lo que tiene comprobante (Felipe, 2026-11-02): su utilidad YA trae como cero lo que no tiene
+--     papel, así que es la base de la renta tal cual; lo comprado sin factura solo dice cuánto costó. Su costo de lo vendido no entra en la cuenta.
 --
 -- QUÉ HACE.
---   PARTE 1 · `parametros_tributarios`: las reglas de la tabla conocen nueve nombres nuevos y se siembra la escala vigente desde 2017.
+--   PARTE 1 · `parametros_tributarios`: las reglas de la tabla conocen ocho nombres nuevos y se siembra la escala vigente desde 2017.
 --     · `renta_tramo_uit` (15), `renta_tasa_tramo` (0.10), `renta_tasa_resto` (0.295), `boletas_tope_pct` (0.06), `boletas_tope_uit` (200): la ley. Rigen
 --       por año y se heredan (como la UIT). Como `igv_general`, se leen y NO se editan desde la pantalla: si la ley cambia, se cambian con una migración.
---     · `renta_utilidad_previa` (puede ser negativa: una pérdida), `renta_costo_previo`, `renta_sin_papel_previo`, `renta_pagada_previa`: en soles, por AÑO
+--     · `renta_utilidad_previa` (puede ser negativa: una pérdida), `renta_sin_papel_previo`, `renta_pagada_previa`: en soles, por AÑO
 --       EXACTO (como `ventas_previas_erp`: no se heredan) y NO se siembran: sin fila, la pantalla proyecta el año con lo que el sistema tiene y lo dice.
---   PARTE 2 · `guardar_parametro_tributario` acepta y valida los cuatro de «lo de antes» (los de la ley, no).
+--   PARTE 2 · `guardar_parametro_tributario` acepta y valida los tres de «lo de antes» (los de la ley, no).
 --
 -- DECIDÍ: reutilizar `parametros_tributarios` (vigencia, solo-agregar, historia de Configuración, firma del responsable) en vez de una tabla nueva para
---   cuatro montos por año: el saldo a favor de IGV y el ajuste de ventas ya resolvieron el mismo problema así.
+--   tres montos por año: el saldo a favor de IGV y el ajuste de ventas ya resolvieron el mismo problema así.
 -- DESCARTÉ: escribir 10 %, 29,5 %, 15 UIT, 6 % y 200 UIT en `renta-anual-reglas.ts`: la prueba de Impuestos exige que ninguna cifra tributaria esté en el
 --   código, y la UIT ya mostró que cambian.
 -- DESCARTÉ: pedir «lo de antes» por mes: el contador lo entrega acumulado, y la renta anual se calcula sobre el acumulado.
@@ -44,9 +45,9 @@ begin
       check (nombre = any (array['igv', 'uit', 'umbral_uit', 'renta_pago_cuenta', 'regimen', 'tope_planilla_movilidad', 'saldo_favor_igv',
                                  'igv_general', 'igv_ipm', 'aviso_umbral_uit', 'ventas_previas_erp',
                                  'renta_tramo_uit', 'renta_tasa_tramo', 'renta_tasa_resto', 'boletas_tope_pct', 'boletas_tope_uit',
-                                 'renta_utilidad_previa', 'renta_costo_previo', 'renta_sin_papel_previo', 'renta_pagada_previa']));
+                                 'renta_utilidad_previa', 'renta_sin_papel_previo', 'renta_pagada_previa']));
   end if;
-  -- `parametros_tributarios_anual` no cambia: los nueve nuevos rigen desde el 1 de enero, que es lo que exige a todo nombre fuera de su lista.
+  -- `parametros_tributarios_anual` no cambia: los ocho nuevos rigen desde el 1 de enero, que es lo que exige a todo nombre fuera de su lista.
   if (select pg_get_constraintdef(c.oid) from pg_constraint c where c.conrelid = 'retail.parametros_tributarios'::regclass and c.conname = 'parametros_tributarios_valor_coherente') not like '%renta_tramo_uit%' then
     alter table retail.parametros_tributarios drop constraint parametros_tributarios_valor_coherente;
     alter table retail.parametros_tributarios add constraint parametros_tributarios_valor_coherente
@@ -68,7 +69,6 @@ begin
         when 'boletas_tope_pct' then texto is null and valor >= 0 and valor < 1
         when 'boletas_tope_uit' then texto is null and valor >= 0 and valor <= 100000
         when 'renta_utilidad_previa' then texto is null and valor >= -100000000 and valor <= 100000000
-        when 'renta_costo_previo' then texto is null and valor >= 0 and valor <= 100000000
         when 'renta_sin_papel_previo' then texto is null and valor >= 0 and valor <= 100000000
         when 'renta_pagada_previa' then texto is null and valor >= 0 and valor <= 100000000
         else false
@@ -117,12 +117,12 @@ begin
 end;
 $f$;
 
--- Acepta los cuatro de «lo de antes del sistema» (los de la ley no se cambian desde la pantalla). La lista de siempre NO se toca: las migraciones
+-- Acepta los tres de «lo de antes del sistema» (los de la ley no se cambian desde la pantalla). La lista de siempre NO se toca: las migraciones
 -- anteriores se reconocen ya pegadas buscando su texto completo («not in ('igv', … 'ventas_previas_erp')»), y reescribirla haría abortar a
 -- 20261023013000 si alguien la vuelve a pegar. Se le antepone otra condición: `a or b and c` es `a or (b and c)`.
 select pg_temp.anclar('retail.guardar_parametro_tributario(text, date, numeric, text)',
 $v$if p_nombre is null or p_nombre not in ($v$,
-$n$if p_nombre is null or p_nombre not in ('renta_utilidad_previa', 'renta_costo_previo', 'renta_sin_papel_previo', 'renta_pagada_previa') and p_nombre not in ($n$);
+$n$if p_nombre is null or p_nombre not in ('renta_utilidad_previa', 'renta_sin_papel_previo', 'renta_pagada_previa') and p_nombre not in ($n$);
 
 -- Y los valida: soles; la utilidad puede ser una pérdida. Va justo después de `v_actor := …`, que es donde TERMINA el texto que dejó
 -- 20261014002000: insertarlo entre los otros chequeos partiría el texto con que 20261023013000 se reconoce ya pegada.
@@ -133,7 +133,7 @@ $n$  v_actor := retail.fn_actor_persona_id(true);
   if p_nombre = 'renta_utilidad_previa' and (v_valor is null or v_valor < -100000000 or v_valor > 100000000) then
     raise exception 'La utilidad de antes del sistema va en soles (con signo menos si fue pérdida), hasta 100 millones.' using errcode = 'P0001';
   end if;
-  if p_nombre in ('renta_costo_previo', 'renta_sin_papel_previo', 'renta_pagada_previa') and (v_valor is null or v_valor < 0 or v_valor > 100000000) then
+  if p_nombre in ('renta_sin_papel_previo', 'renta_pagada_previa') and (v_valor is null or v_valor < 0 or v_valor > 100000000) then
     raise exception 'Ese monto de antes del sistema va en soles, de 0 a 100 millones.' using errcode = 'P0001';
   end if;$n$);
 

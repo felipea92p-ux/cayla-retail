@@ -405,10 +405,9 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   );
 }
 
-// Lo de antes del sistema para la renta del año (ADR-0598), en el orden en que viene en el estado de resultados del contador.
+// Lo de antes del sistema para la renta del año (ADR-0598). El contador anota solo lo que tiene comprobante: su utilidad ya es la base de la renta.
 const RENTA_PREVIA: readonly { nombre: NombreRentaPrevia; nombre_visible: string; ayuda: string }[] = [
-  { nombre: "renta_utilidad_previa", nombre_visible: "Utilidad antes de impuestos", ayuda: "con signo menos si fue pérdida" },
-  { nombre: "renta_costo_previo", nombre_visible: "Costo de lo vendido", ayuda: "del estado de resultados" },
+  { nombre: "renta_utilidad_previa", nombre_visible: "Utilidad del contador", ayuda: "antes de impuestos; con signo menos si fue pérdida" },
   { nombre: "renta_sin_papel_previo", nombre_visible: "Compras sin factura", ayuda: "nota de venta o nada; aproximado sirve" },
   { nombre: "renta_pagada_previa", nombre_visible: "Renta pagada a cuenta", ayuda: "la suma de tus PDT 621" },
 ];

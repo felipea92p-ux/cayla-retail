@@ -278,10 +278,9 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
   it("lo de antes del sistema para la renta del año (ADR-0598): soles con céntimos; la utilidad puede ser pérdida, lo demás no", () => {
     expect(parsearParametro("renta_utilidad_previa", "-12,500.50")).toEqual({ ok: true, valor: -12500.5 });
     expect(parsearParametro("renta_utilidad_previa", "S/ 84,300")).toEqual({ ok: true, valor: 84300 });
-    expect(parsearParametro("renta_costo_previo", "180000")).toEqual({ ok: true, valor: 180000 });
     expect(parsearParametro("renta_sin_papel_previo", "95000,5")).toEqual({ ok: true, valor: 95000.5 });
     expect(parsearParametro("renta_pagada_previa", "0")).toEqual({ ok: true, valor: 0 });
-    expect(parsearParametro("renta_costo_previo", "-1").ok).toBe(false);
+    expect(parsearParametro("renta_sin_papel_previo", "-1").ok).toBe(false);
     expect(parsearParametro("renta_pagada_previa", "100000001").ok).toBe(false);
     expect(parsearParametro("renta_utilidad_previa", "-100000001").ok).toBe(false);
     expect(valorEnCasilla(fila("renta_utilidad_previa", "2026-01-01", -12500.5))).toBe("-12500.50");

@@ -336,8 +336,8 @@ export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): A
 // `aviso_umbral_uit` y `ventas_previas_erp` (alerta de 250 UIT, ADR sin número aún): cuántas UIT de ventas del año encienden el aviso anticipado, y un ajuste OPCIONAL a las ventas del año
 // (sin IGV, en soles; sin fila vale 0 y nada lo exige). Los dos rigen por año. Los componentes del IGV (`igv_general`, `igv_ipm`) viven en la tabla como referencia y no se editan desde aquí.
 //
-// La renta del año (ADR-0598): `renta_utilidad_previa`, `renta_costo_previo`, `renta_sin_papel_previo` y `renta_pagada_previa` son lo del año ANTES de que Finanzas
-// tuviera datos, según el contador, en soles y por año exacto (la utilidad puede ser una pérdida). La escala de la ley (`renta_tramo_uit`, `renta_tasa_tramo`,
+// La renta del año (ADR-0598): `renta_utilidad_previa`, `renta_sin_papel_previo` y `renta_pagada_previa` son lo del año ANTES de que Finanzas tuviera
+// datos, según el contador, en soles y por año exacto (la utilidad puede ser una pérdida; es la suya, que ya no resta lo que no tiene comprobante). La escala de la ley (`renta_tramo_uit`, `renta_tasa_tramo`,
 // `renta_tasa_resto`, `boletas_tope_pct`, `boletas_tope_uit`) viene sembrada y, como los componentes del IGV, se lee y no se edita desde aquí.
 export type NombreParametro =
   | "igv"
@@ -353,8 +353,8 @@ export type NombreParametro =
   | NombreEscalaRenta;
 
 /** Lo del año antes de que Finanzas tuviera datos (ADR-0598): se escribe en Configuración, por año. */
-export type NombreRentaPrevia = "renta_utilidad_previa" | "renta_costo_previo" | "renta_sin_papel_previo" | "renta_pagada_previa";
-const NOMBRES_RENTA_PREVIA: readonly NombreRentaPrevia[] = ["renta_utilidad_previa", "renta_costo_previo", "renta_sin_papel_previo", "renta_pagada_previa"];
+export type NombreRentaPrevia = "renta_utilidad_previa" | "renta_sin_papel_previo" | "renta_pagada_previa";
+const NOMBRES_RENTA_PREVIA: readonly NombreRentaPrevia[] = ["renta_utilidad_previa", "renta_sin_papel_previo", "renta_pagada_previa"];
 /** La escala de la renta y el tope de las boletas: ley sembrada por migración, solo se lee. */
 export type NombreEscalaRenta = "renta_tramo_uit" | "renta_tasa_tramo" | "renta_tasa_resto" | "boletas_tope_pct" | "boletas_tope_uit";
 
