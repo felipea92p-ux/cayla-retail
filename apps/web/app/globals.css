@@ -131,6 +131,7 @@
 @import "./estilos/vidrio/colaboradores.css"; /* Colaboradores ▸ Equipo con vidrio: el rol «A · Gotas» y «Esperan tu ok» «A · Lente ámbar» (docs/maquetas/colaboradores-vidrio-2026-11/) */
 @import "./estilos/vidrio/proveedores.css"; /* Compras ▸ Proveedores con vidrio: «Qué hacer» A · Placa con filas y «Comparar» A · Placa con columnas (docs/maquetas/proveedores-vidrio-2026-11/) */
 @import "./estilos/vidrio/recibir.css"; /* Recibir mercadería «B» con vidrio: superficies A · Vidrio claro y avances B · Tubo; el movimiento de ADR-0575 no cambia (docs/maquetas/recibir-vidrio-2026-11/) */
+@import "./estilos/vidrio/comprobantes.css"; /* Ventas ▸ Comprobantes con vidrio: las tarjetas de indicador A · Lente del tono y los documentos de SUNAT A · Gotas chicas; se fue la isla de ADR-0124 (docs/maquetas/comprobantes-vidrio-2026-11/) */
 @import "./estilos/vidrio/plan-piso.css"; /* Gestión ▸ Plan del piso con vidrio: tarjeta B · Al aire y banda B · Estante de vidrio; el riel «La percha» no cambia (docs/maquetas/plan-piso-vidrio-2026-11/) */
 @import "./estilos/vidrio/catalogo.css"; /* Catálogo ▸ Categorías, Marcas y Atributos con vidrio: la tarjeta A · Muestra al aire y el índice de letras A · Ranura con gotas (docs/maquetas/catalogo-vocabulario-vidrio-2026-11/) */
 @import "./estilos/vidrio/ordenes.css"; /* Producción ▸ Órdenes con vidrio: la ruta B · Lentes al aire y el paso abierto A · Placa con su pico; la lista no cambia (docs/maquetas/ordenes-vidrio-2026-11/) */
@@ -2128,109 +2129,15 @@ html[data-buscando] [data-resultados] {
   .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
 }
 
-/* ==================================================================
-   La «isla» de vidrio de Facturación (ADR-0124).
-
-   Vidrio = superficie translúcida con desenfoque. No agrega ningún color: solo blanco
-   translúcido y tinta sobre el crema de siempre. Vive bajo `.tema-vidrio` (la raíz del
-   layout de /vender/facturacion) y NO en `:root`: llevarlo a otras pantallas sería mover
-   variables del sistema, y esa es otra decisión.
-
-   Rendimiento: el desenfoque cuesta en las tablets de las tiendas. Se limita a las
-   tarjetas de arriba (R2), al contenedor de pestañas y a los botones «vidrio». Si se
-   nota, se baja `--vidrio-blur` acá (`.tema-vidrio`, para tarjetas y botones); el contenedor
-   de pestañas fija el suyo (22 px, en `.pestanas-vidrio`) y se baja allá.
-
-   Movimiento: la transición de la píldora es de `transform`/`width`, y la regla global de
-   movimiento reducido (`transition-duration: 1ms !important`, al final del archivo) ya la
-   apaga sola.
-   ================================================================== */
-@layer components {
-  .tema-vidrio {
-    --vidrio-blur: 18px;
-  }
-
-  .vidrio-cayla {
-    background: color-mix(in srgb, var(--color-vidrio) calc(var(--vidrio-alfa, 0.58) * 100%), transparent);
-    border: 1px solid color-mix(in srgb, var(--color-tinta) calc(var(--vidrio-borde, 0.12) * 100%), transparent);
-    -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px));
-    backdrop-filter: blur(var(--vidrio-blur, 18px));
-  }
-
-  /* Pestañas: un contenedor de vidrio con una píldora negra que se desliza bajo la
-     etiqueta activa. La píldora la coloca `FacturacionPestanas` midiendo el DOM y
-     escribiendo `--pildora-x` y `--pildora-w` sobre este mismo elemento (sin estado de
-     React, como `Ayuda.tsx`: el primer cuadro ya sale bien puesto). */
-  .pestanas-vidrio {
-    --vidrio-alfa: 0.45;
-    --vidrio-borde: 0.09;
-    --vidrio-blur: 22px;
-    position: relative;
-    display: inline-flex;
-    max-width: 100%;
-    gap: 2px;
-    padding: 4px;
-    border-radius: 14px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  /* Con pantalla ancha las cuatro pestañas caben siempre: sin recorte, la sombra de la
-     píldora (que se derrama bajo el contenedor, como en la maqueta aprobada) y el anillo de
-     foco de las pestañas de los extremos se ven completos. El umbral es de 1024 px y no de
-     celular a tablet: desde 640 px el menú lateral (17rem) y el margen de la página se comen
-     352 px, y a 768 el contenedor mide ~400 px para unas pestañas que suman ~545 (con
-     `visible` la última se saldría del vidrio y de la pantalla). Por debajo de 1024 px sigue
-     desplazándose en horizontal, y ahí sí recorta la sombra (el mal menor). */
-  @media (min-width: 64rem) {
-    .pestanas-vidrio {
-      overflow: visible;
-    }
-  }
-
-  .pestanas-vidrio__pildora {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    width: var(--pildora-w, 0px);
-    transform: translateX(var(--pildora-x, 0px));
-    border-radius: 10px;
-    background: var(--color-tinta);
-    box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  /* Hasta que la píldora está medida (el primer cuadro, antes de hidratar), la pestaña
-     activa se pinta a sí misma: así nunca hay un cuadro con la etiqueta en crema sobre
-     el vidrio, ilegible. */
-  .pestanas-vidrio:not([data-medido]) [aria-current="page"] {
-    background: var(--color-tinta);
-  }
-
-  .pestanas-vidrio[data-medido] .pestanas-vidrio__pildora {
-    opacity: 1;
-  }
-
-  /* La transición se habilita recién después de la primera pintura: la píldora nace en su
-     lugar y solo se desliza cuando cambia la pestaña. */
-  .pestanas-vidrio[data-listo] .pestanas-vidrio__pildora {
-    transition:
-      transform 450ms var(--ease-cayla),
-      width 450ms var(--ease-cayla);
-  }
-}
-
 /* ------------------------------------------------------------------
-   Tarjetas de indicador de la isla (R2, ADR-0124): borde izquierdo de 3 px en el color del
-   estado, un tinte que se difumina hacia la derecha («Sutil») y una luz que sigue al cursor
-   (`TarjetaKpiVidrio` escribe `--mx`/`--my`). Valores de la maqueta v8 aprobada por Felipe.
+   Tarjetas de indicador de Comprobantes (R2, ADR-0124): aquí queda la forma, la luz que sigue al
+   cursor (`TarjetaKpiVidrio` escribe `--mx`/`--my`) y el subir 2 px al pasar el mouse. El MATERIAL
+   (la placa Serena teñida del tono, «A · Lente del tono», Felipe 2026-11-02) vive en
+   `estilos/vidrio/comprobantes.css`: la isla de vidrio propia de ADR-0124 se fue con el vidrio del ERP.
 
    `@property --kc` va fuera de capa (no es una regla de clase) para que el color de la tarjeta se
    DESLICE cuando cambia el estado (ámbar → verde al quedar sin pendientes). Sin soporte cambia de
-   golpe y no se rompe nada. Sin sombra en reposo (ADR-0012); al pasar el mouse sube 2 px y toma
-   `--shadow-md`.
+   golpe y no se rompe nada.
    ------------------------------------------------------------------ */
 @property --kc {
   syntax: "<color>";
@@ -2261,22 +2168,6 @@ html[data-buscando] [data-resultados] {
     overflow: hidden;
     padding: 18px 18px 16px;
     border-radius: 16px;
-    border: 1px solid var(--color-sand);
-    border-left: 3px solid var(--kc);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-papel) 42%, transparent));
-    box-shadow: inset 0 1px 0 var(--brillo-superior);
-    -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
-    backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
-    transition: box-shadow 260ms var(--ease-cayla);
-  }
-  /* El tinte: el color del estado al 14 % que se difumina hacia la derecha hasta el 62 %. */
-  .kpi-vidrio::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--kc) 14%, transparent) 0%, transparent 62%);
   }
   /* La luz especular: un resplandor blanco que sigue al cursor y solo aparece al pasar el mouse. */
   .kpi-vidrio::after {
@@ -2289,7 +2180,7 @@ html[data-buscando] [data-resultados] {
     transition: opacity 350ms;
     background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), var(--luz-especular), transparent 68%);
   }
-  /* El contenido por encima del tinte y de la luz. Sin `z-index` la luz (`::after`, la última en el
+  /* El contenido por encima de la luz. Sin `z-index` la luz (`::after`, la última en el
      árbol) se pintaba ENCIMA del texto y lo lavaba justo cuando el cursor pasaba por la tarjeta. */
   .kpi-vidrio > * {
     position: relative;
@@ -2303,9 +2194,6 @@ html[data-buscando] [data-resultados] {
   @media (hover: hover) {
     .kpi-vidrio-envoltura:hover {
       transform: translateY(-2px);
-    }
-    .kpi-vidrio-envoltura:hover .kpi-vidrio {
-      box-shadow: inset 0 1px 0 var(--brillo-superior), var(--shadow-md);
     }
     .kpi-vidrio:hover::after {
       opacity: 1;

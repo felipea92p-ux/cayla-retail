@@ -318,6 +318,13 @@
      esa placa (72 %), parejo. */
   --placa-paso-fondo: var(--ticket-placa-fondo);
   --placa-paso-pico: color-mix(in srgb, var(--color-vidrio) 72%, transparent);
+
+  /* ---------- Comprobantes (docs/maquetas/comprobantes-vidrio-2026-11/; piezas en vidrio/comprobantes.css) ---------- */
+  /* «A · Lente del tono» (Felipe 2026-11-02): el ícono de una tarjeta de indicador va en una gota redonda del tono de la tarjeta, al
+     14 %, con su luz arriba. La tarjeta misma es la placa Serena teñida con la lente chica (`--lente-chica-*`); la mezcla con el tono
+     la hace la pieza con su `--kc`. */
+  --gota-icono-tinte: 14%;
+  --gota-icono-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 60%, transparent);
 }
 
 @media screen {
@@ -475,6 +482,8 @@
     --lente-paso-toca-tinte-arriba: 22%;
     --lente-paso-toca-tinte-abajo: 22%;
     --placa-paso-pico: color-mix(in srgb, var(--color-vidrio) 78%, transparent);
+    /* Comprobantes en oscuro: la luz de la gota del ícono toma la crema (el vidrio oscuro no se ve sobre el tono). */
+    --gota-icono-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   }
 }
 

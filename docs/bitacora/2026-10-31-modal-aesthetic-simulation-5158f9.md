@@ -333,3 +333,10 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   punteada); las letras de Marcas, en la ranura de la paginación con la de esta página en gota clara. Al pasar el mouse la placa se aclara
   (el borde que se marcaba ya no se ve). El buscador con sombra (ADR-0373) y «Existe también» no cambian. **Ojo:** la placa lleva desenfoque y
   Colores dibuja ~89 tarjetas; si se nota lento, va sin él (como la Vitrina, 31 de octubre). Las píldoras «La trae» siguen en papel.
+
+- **Ventas ▸ Comprobantes al vidrio (Felipe 2026-11-02):** las tarjetas de indicador A · Lente del tono y los documentos de SUNAT A · Gotas
+  chicas (`vidrio/comprobantes.css`). Se fue la isla de ADR-0124 de `globals.css` (`.tema-vidrio`, `.vidrio-cayla`, `.pestanas-vidrio*` y el
+  material de `.kpi-vidrio`), con ella la variante `vidrio` de `BotonCompacto` (nadie la usaba) y la clase `vidrio-cayla` de `<Pestanas>` (el
+  pozo de vidrio/pantalla.css ya la vestía). Las tarjetas son la placa Serena teñida de su tono con la lente chica, el ícono en una gota de su
+  tono; «Ver PDF» y «WhatsApp», gotas chicas de 26 px; XML y CDR, tenues tras un punto; «Tiene …» / «Corrige …», lente pizarra. Nada de SUNAT ni
+  de Lucode cambió. La base local no tiene comprobantes con PDF: los documentos se vieron con su marcado en el navegador.

@@ -117,7 +117,7 @@ export function Pestanas({
   // React avisaba que el HTML no coincidía. Esas dos marcas no son de React: no hay nada que comparar.
   if (porEstado) {
     return (
-      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
+      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} data-guia={guia} className={`pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
         {items.map((p, i) => {
           const esActiva = p.clave === activa;
           return (
@@ -143,7 +143,7 @@ export function Pestanas({
   }
 
   return (
-    <nav ref={filaNav} aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
+    <nav ref={filaNav} aria-label={etiquetaAccesible} data-guia={guia} className={`pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
       {items.map((p) => (
         <Link key={p.clave} href={p.href ?? "#"} aria-current={p.clave === activa ? "page" : undefined} title={p.ayuda} data-guia={p.guia} className="pestana-cayla">
           {contenido(p)}
