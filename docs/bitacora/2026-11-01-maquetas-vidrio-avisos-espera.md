@@ -30,3 +30,5 @@
   clara; C · Al aire) y la barra de cierre (A · Placa que se tiñe, recomendada; B · Isla), con sus tres niveles por la hora; «Cerrar caja» pasa
   a la gota roja. Fuera, la persiana de «Caja cerrada». Medida de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en
   `apps/web`.
+- **Lo que eligió Felipe en Caja (2026-11-02):** titular A · Ahumado y barra de cierre B · Isla (en la barra no tomó la recomendada). La isla
+  pierde la bajada de cada nivel: queda anotado en el README para quien implemente.
