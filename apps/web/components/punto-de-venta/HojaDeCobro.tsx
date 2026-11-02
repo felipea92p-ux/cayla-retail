@@ -126,14 +126,16 @@ export function HojaDeCobro({
   // «Otro»: lo escrito se guarda como texto mientras se edita (con coma y todo) y se lee con la regla de plata (ADR-0419): convertirlo en
   // cada tecla borraba la coma de «2,» a mitad de escribir. Lo que no se entiende no cuenta como recibido y queda en rojo.
   const [otroTexto, setOtroTexto] = useState<string | null>(null);
-  // Al elegir el comprobante aparece el documento del cliente; en una hoja baja puede quedar bajo el pliegue. Entonces el cuerpo
-  // baja lo justo para mostrarlo (`block: "nearest"`: si ya se ve entero, no se mueve). Lo disparó un toque en un botón, nunca
-  // una tecla en un campo de texto de la hoja (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
+  // Al elegir el comprobante aparece el documento del cliente; en una hoja baja puede quedar bajo el pliegue. Entonces la vista baja
+  // hasta mostrarlo: en el celular (`compacta`) lo deja al CENTRO (es lo que se acaba de abrir y lo que toca llenar); en escritorio, el
+  // cuerpo baja lo justo (`block: "nearest"`: si ya se ve entero, no se mueve). Lo disparó un toque en un botón, nunca una tecla en un
+  // campo de texto de la hoja (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
   useEffect(() => {
-    if (compacta || !tipoComprobante) return;
+    if (!tipoComprobante) return;
     const fotograma = requestAnimationFrame(() => {
       const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      cuerpoRef.current?.querySelector("[data-documento-cobro]")?.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" });
+      const raiz = compacta ? document : cuerpoRef.current;
+      raiz?.querySelector("[data-documento-cobro]")?.scrollIntoView({ block: compacta ? "center" : "nearest", behavior: reducido ? "auto" : "smooth" });
     });
     return () => cancelAnimationFrame(fotograma);
   }, [tipoComprobante, compacta]);
@@ -146,19 +148,6 @@ export function HojaDeCobro({
     .filter((x) => preguntaMaquina(maquinas, x.pago.metodo));
   const maquinaDelPos = pagos.length === 1 && pagos[0] ? nombreMaquina(maquinas, pagos[0]) : null;
   const pagoOk = pagos.length > 0 && restante === 0 && !pagos.some((p) => varios && p.monto <= 0);
-  // En el celular (`compacta`) el comprobante queda bajo el pliegue de la hoja: en cuanto el pago queda cubierto y falta elegirlo,
-  // la hoja baja lo justo para mostrarlo. Lo dispara un toque (un medio, un monto sugerido), nunca una tecla en un campo de texto
-  // (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
-  useEffect(() => {
-    if (!compacta || !pagoOk || tipoComprobante) return;
-    const fotograma = requestAnimationFrame(() => {
-      const activo = document.activeElement;
-      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
-      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      cuerpoRef.current?.querySelector("[data-paso-comprobante]")?.scrollIntoView({ block: "center", behavior: reducido ? "auto" : "smooth" });
-    });
-    return () => cancelAnimationFrame(fotograma);
-  }, [compacta, pagoOk, tipoComprobante]);
   const comprobanteOk = tipoComprobante !== null && faltaDocumento === null;
   // El que no se escribió a mano se queda con el resto: con dos medios, el otro del editado; con más, el primero libre.
   const libre = varios ? pagos.findIndex((p) => !p.fijo) : -1;
@@ -168,6 +157,29 @@ export function HojaDeCobro({
   const aCobrar = cobroEfectivo?.aCobrar ?? efectivo?.monto ?? 0;
   const redondeo = cobroEfectivo?.redondeo ?? 0;
   const sugeridos = efectivo ? montosSugeridos(aCobrar) : [];
+  // En el celular (`compacta`) la hoja del ticket scrollea y lo que se abre queda bajo el pliegue. La vista va, en este orden, a lo
+  // que toca ahora (Felipe 2026-11-02: «si abro una opción, mándame a lo que abre, centrado»): (1) al elegir un medio, a lo que ese
+  // medio pide (con cuánto paga, con qué máquina); (2) con el pago cubierto y sin comprobante, al comprobante. En efectivo el paso (2) espera
+  // a que se diga con cuánto paga, para no pasar de largo los billetes. Lo dispara un toque (un medio, un monto), nunca una tecla en un
+  // campo de texto (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
+  const mediosPrevios = useRef("");
+  const faltaDecirConCuantoPaga = efectivo !== undefined && aCobrar > 0 && efectivo.recibido == null;
+  useEffect(() => {
+    const clave = pagos.map((p) => p.metodo).join(",");
+    const cambioElMedio = clave !== mediosPrevios.current;
+    mediosPrevios.current = clave;
+    if (!compacta) return;
+    const fotograma = requestAnimationFrame(() => {
+      const activo = document.activeElement;
+      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
+      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const ir = (el: Element | null | undefined) => el?.scrollIntoView({ block: "center", behavior: reducido ? "auto" : "smooth" });
+      const extra = cuerpoRef.current?.querySelector(".hoja-cobro-extra");
+      if (cambioElMedio && clave && extra && (extra.textContent ?? "").trim() !== "") return ir(extra);
+      if (pagoOk && !tipoComprobante && !faltaDecirConCuantoPaga) ir(cuerpoRef.current?.querySelector("[data-paso-comprobante]"));
+    });
+    return () => cancelAnimationFrame(fotograma);
+  }, [compacta, pagos, pagoOk, tipoComprobante, faltaDecirConCuantoPaga]);
   const recibido = efectivo?.recibido;
   const enSugeridos = recibido !== undefined && (recibido === aCobrar || sugeridos.includes(recibido));
   const lectura = lecturaDelRecibido(recibido, aCobrar, vuelto);
@@ -433,8 +445,9 @@ export function HojaDeCobro({
   );
 }
 
-/** El título de un paso: número (✓ al completarlo), nombre, la pastilla de «Sigue aquí»/«Elige uno» y su estado a la derecha. */
-function CabezaPaso({
+/** El título de un paso: número (✓ al completarlo), nombre, la pastilla de «Sigue aquí»/«Elige uno» y su estado a la derecha. También lo usa
+ *  la hoja del descuento (`PanelDescuento`): los dos pasos a paso de Vender se ven igual. */
+export function CabezaPaso({
   numero,
   titulo,
   hecho,

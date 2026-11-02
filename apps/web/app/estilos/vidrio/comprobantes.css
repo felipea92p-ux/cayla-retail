@@ -1,0 +1,111 @@
+/* =====================================================================
+   Ventas ▸ Comprobantes con vidrio (ADR-0596; maqueta docs/maquetas/comprobantes-vidrio-2026-11/, Felipe 2026-11-02).
+
+   Esta pantalla tenía su propio vidrio desde ADR-0124 (`.tema-vidrio`, `.vidrio-cayla`, `.pestanas-vidrio` y el material de
+   `.kpi-vidrio` en app/globals.css): con el vidrio de todo el ERP esa isla se fue, y lo propio de Comprobantes queda aquí, con las dos
+   caras que eligió Felipe:
+   · Las tarjetas de indicador (`TarjetaKpiVidrio`), «A · Lente del tono»: la placa Serena (vidrio 64 → 44 %, desenfoque 24 y
+     saturación 1,6, su luz arriba), sin el canto de 3 px ni el tinte que se difuminaba. La que tiene un estado que decir (ámbar, rojo,
+     verde) se tiñe apenas de él con la lente chica (`--lente-chica-*`: 6 → 12 % sobre vidrio, filo del tono al 30 %; en oscuro, el tono
+     directo, 11 → 7 %); la de `taupe`, que solo informa, queda en la placa clara. El ícono, en su gota de 32 px del tono al 14 %.
+     La luz que sigue al mouse, el subir 2 px y el color que se desliza (`@property --kc`) siguen en globals.css; los gráficos no cambian.
+   · Los documentos de SUNAT (`DocumentosSunat`) y el vínculo con la nota, «A · Gotas chicas»: «Ver PDF» y «WhatsApp», lo que se le manda
+     al cliente, son gotas claras de 26 px con su ícono (`--gota-chica-*`, con el borde de lo que se toca); «XML» y «CDR», el respaldo
+     técnico, enlaces tenues detrás de un punto; «Tiene …» / «Corrige …», una lente pizarra en píldora. En el celular siguen en el «⋯».
+
+   Solo el material: nada de SUNAT ni de Lucode cambia (qué se emite, los estados, qué hace cada botón). Solo recetas de recetas.css;
+   sin capa, le gana a `components`. Sin movimiento nuevo.
+   ===================================================================== */
+
+/* ---------- 1 · Las tarjetas de indicador: A · Lente del tono ---------- */
+.kpi-vidrio {
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+  transition: box-shadow 260ms var(--ease-cayla);
+}
+/* `--kc` lo pone la envoltura por su `data-tono` (globals.css) y se desliza al cambiar: el tinte y el filo lo siguen solos. */
+.kpi-vidrio-envoltura:not([data-tono="taupe"]) > .kpi-vidrio {
+  border-color: color-mix(in srgb, var(--kc) var(--lente-chica-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--kc) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+    color-mix(in srgb, var(--kc) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+  );
+}
+/* El ícono en su gota: redonda, del tono al 14 %, con su luz. Sube 6 px hacia la esquina para no estirar la cabecera de la tarjeta. */
+.kpi-vidrio__icono {
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px 0 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kc) var(--gota-icono-tinte), transparent);
+  box-shadow: var(--gota-icono-luz);
+}
+@media (hover: hover) {
+  .kpi-vidrio-envoltura:hover > .kpi-vidrio {
+    box-shadow: var(--serena-sombra-encima);
+  }
+}
+
+/* ---------- 2 · Los documentos de SUNAT y el vínculo: A · Gotas chicas ---------- */
+.docs-sunat {
+  gap: 6px;
+  font-size: 12px;
+}
+.docs-sunat__gota {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-borde-control);
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-tinta);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 200ms var(--ease-cayla);
+}
+.docs-sunat__punto {
+  color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: no aplica — es un separador decorativo (aria-hidden), no un texto que se lee */
+}
+.docs-sunat__tenue {
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-tinta) 20%, transparent); /* contraste: no aplica — es el subrayado, no el texto */
+  text-underline-offset: 3px;
+}
+@media (hover: hover) {
+  .docs-sunat__gota:hover {
+    border-color: var(--color-tinta);
+  }
+  .docs-sunat__tenue:hover {
+    color: var(--color-tinta);
+    text-decoration-color: currentColor;
+  }
+}
+
+/* «Tiene NC…» / «Corrige …»: una lente pizarra en píldora (la lente chica, teñida de pizarra). */
+.comprobante-vinculo {
+  --c: var(--color-pizarra);
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--c) var(--lente-chica-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--lente-chica-tinte-arriba), var(--lente-chica-base-arriba)),
+    color-mix(in srgb, var(--c) var(--lente-chica-tinte-abajo), var(--lente-chica-base-abajo))
+  );
+  box-shadow: var(--placa-luz);
+}

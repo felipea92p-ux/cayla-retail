@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
-import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
+import { estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
 //
@@ -23,6 +23,8 @@ export type GuiaCampos = {
   /** El título de un campo con su marca a la izquierda (y «Sigue aquí» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
   etiqueta: (id: string, texto: ReactNode) => ReactNode;
   faltan: CampoDeGuia[];
+  /** La hoja pidió decir el grado de cada campo en palabras (`conGrado`): `PieGuia` separa «Faltan» de «Conviene». */
+  conGrado: boolean;
   /** El id del campo que sigue, o null. */
   ahora: string | null;
   /** Solo lo REQUERIDO cuenta. */
@@ -43,8 +45,12 @@ export type GuiaCampos = {
  * `enModal` (por defecto sí): el formulario vive dentro de un modal, que se desplaza solo lo mínimo. Una PANTALLA con su propio
  * formulario corto (Conteo ▸ Abrir un conteo) pasa `{ enModal: false }`: se lleva el campo a la vista de la ventana, sin taparlo
  * con la barra de abajo ni con la cabecera.
+ *
+ * `conGrado` (por defecto no): cada título dice en palabras si su campo es «obligatorio», «conviene» u «opcional» mientras no esté hecho, y el pie separa
+ * «Faltan:» (lo que bloquea) de «Conviene:» (lo que no). Es opt-in a propósito: lo piden las hojas del Taller (P09 del análisis del 2-nov); que lo adopte
+ * el resto de las hojas lo decide Felipe mirándolo (`/unificar`).
  */
-export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true }: { enModal?: boolean } = {}): GuiaCampos {
+export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, conGrado = false }: { enModal?: boolean; conGrado?: boolean } = {}): GuiaCampos {
   // El campo de texto donde la persona está escribiendo: mientras siga ahí conserva la luz (`siguienteDe`). Sin esto, la primera
   // letra del nombre ya lo daba por «hecho» y la luz se iba al siguiente campo a media palabra.
   const [escribiendoEn, setEscribiendoEn] = useState<string | null>(null);
@@ -68,8 +74,16 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true }
   return {
     campos,
     estado: (id) => estados[id] ?? "opcional",
-    etiqueta: (id, texto) => <ConMarca estado={estados[id] ?? "opcional"}>{texto}</ConMarca>,
+    etiqueta: (id, texto) => {
+      const campo = conGrado ? campos.find((c) => c.id === id) : undefined;
+      return (
+        <ConMarca estado={estados[id] ?? "opcional"} grado={campo ? palabraDeGrado(campo) : null}>
+          {texto}
+        </ConMarca>
+      );
+    },
     faltan: faltanDe(campos),
+    conGrado,
     ahora,
     puedeConfirmar,
     frase: fraseDeLoQueFalta(campos),

@@ -1,0 +1,532 @@
+/* =====================================================================
+   EL MARCO CON VIDRIO — fondo, menú lateral y cabecera (ADR-0596, Felipe 2026-10-31; maqueta en
+   docs/maquetas/marco-vidrio-2026-10/, tablero en docs/vidrio/README.md). La estructura vive en components/AppShell.tsx.
+
+   Lo que eligió Felipe mirando:
+     · Fondo B · Aurora: tres nubes muy tenues quietas detrás de todo. El vidrio necesita algo detrás: sobre un fondo plano,
+       una placa de vidrio es una placa crema.
+     · Lateral: columna LISA que sigue el tema (desde el 2026-11-02, antes riel de vidrio), con la gota de la fila activa (y su marca roja) que viaja a la fila que tocas.
+     · Submódulos A · Bandeja: hundidos bajo su módulo, sin líneas ni ramas; se despliegan en cascada.
+     · Botón de plegar flotante sobre el borde del riel, a la altura del logo.
+     · Plegado A · Con nombre: 84 px, cada fila un cuadrado con el ícono al centro y su nombre corto debajo.
+     · Cabecera C · Dos islas: el buscador a la izquierda y las acciones a la derecha; entre ellas se ve el contenido.
+
+   Fuera de capa (como recetas.css) a propósito: estas reglas reemplazan el aspecto que el marco traía en utilidades de
+   Tailwind (el `rounded-lg` de los botones de la cabecera, el relleno del menú), y lo que vive fuera de capa le gana a las
+   utilidades sin `!important`. Por eso el AppShell ya no pone esas utilidades donde esta hoja manda.
+
+   Solo tokens y recetas (ADR-0169 / ADR-0336). Movimiento una vez, sin rebote; lo que se mueve después responde a un clic,
+   y todo se apaga con `prefers-reduced-motion` (ADR-0136). Un `:hover` vive en `@media (hover: hover)`.
+   ===================================================================== */
+
+/* ---------- El fondo: la aurora ----------
+   Detrás de TODO (z-index negativo en la raíz: queda sobre el crema del `body` y bajo el contenido). Quieta: entra una vez
+   con un fundido y no se mueve más; una nube que deriva sería un bucle decorativo (ADR-0136). En oscuro, más tenue. */
+.marco-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.marco-aurora i {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: var(--aurora-o);
+  animation: marco-aurora-entra 1.4s var(--ease-cayla) both;
+}
+/* Las nubes se apartan del menú (Felipe 2026-11-02): la roja ya no nace bajo el riel y se mezcla con él, sino arriba a la derecha del contenido. */
+.marco-aurora i:nth-child(1) { width: 620px; height: 520px; right: 12%; top: -260px; background: var(--color-rojo); --aurora-o: 0.12; }
+.marco-aurora i:nth-child(2) { width: 700px; height: 560px; right: -220px; top: 120px; background: var(--color-pizarra); --aurora-o: 0.12; }
+.marco-aurora i:nth-child(3) { width: 560px; height: 460px; left: 30%; bottom: -260px; background: var(--color-ambar); --aurora-o: 0.10; }
+@keyframes marco-aurora-entra {
+  from { opacity: 0; }
+}
+@media screen {
+  :root[data-tema="oscuro"] .marco-aurora i { --aurora-o: 0.1; }
+}
+@media print {
+  .marco-aurora { display: none; }
+}
+
+/* ---------- El riel: el menú lateral ----------
+   El vidrio va en un `::before` y no en el <aside>: un `backdrop-filter` en el <aside> lo volvería el contenedor de todo lo
+   `fixed` de adentro (la salida del colibrí de «Salir», un aviso) y lo recortaría a su ancho. La sombra de afuera va en el
+   <aside> (su `overflow: hidden` recortaría la del `::before`); el filo de luz de la derecha, en el `::before`. */
+/* En escritorio el riel es una columna LISA (Felipe 2026-11-02: «el degradado en la unión del menú y el contenido se ve raro»; maqueta
+   «E», elegida entre cuatro): el fondo y su línea de límite siguen el tema (`--riel-fondo`, `--riel-borde`, vidrio/recetas.css), sin
+   vidrio, sin aro de luz y sin la sombra larga que se escurría hacia el contenido. Bajo 640 px sigue siendo el cajón de vidrio de abajo. */
+.marco-riel {
+  box-shadow: var(--marco-riel-sombra);
+}
+@media (min-width: 640px) {
+  .marco-riel {
+    background: var(--riel-fondo);
+    border-right: 1px solid var(--riel-borde);
+    box-shadow: none;
+  }
+  .marco-riel::before { display: none; }
+}
+.marco-riel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--marco-vidrio-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  border-right: 1px solid var(--marco-vidrio-borde);
+  box-shadow: var(--marco-riel-sombra);
+}
+/* En el celular el riel es el cajón que entra desde la izquierda: su borde de afuera se redondea, y la gota entra en la cascada
+   del cajón (globals.css) con el turno de su fila (`--k`, lo copia el AppShell): sin esto llegaba sola, antes que las filas. */
+@media (max-width: 639.98px) {
+  .marco-riel { border-radius: 0 28px 28px 0; }
+  .marco-riel[data-cajon="abierto"] .marco-gota {
+    animation: cayla-pieza-cajon 460ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--k, 0) * 45ms + 90ms);
+  }
+}
+
+/* Las filas. El alto lo pone la profundidad (la maqueta: 40 · 36 · 34) y el lugar del ícono, `--fila-x`. La fila elegida corre
+   8 px a la derecha para que la marca roja de la gota no toque su ícono (Felipe 2026-10-31). */
+.marco-fila {
+  position: relative;
+  z-index: 1;
+  height: 40px;
+  padding-left: var(--fila-x);
+  padding-right: 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  --fila-x: 12px;
+}
+/* (Desde el 2026-11-02, con el menú abierto el primer nivel queda fijo en 40 px y sin aire: `useMenuHolgado` ya no lo reparte; plegado sigue
+   repartiendo.) El primer nivel reparte el alto del menú (`useMenuHolgado`: entre 40 y 56 px, y lo que sobra es aire entre filas; Felipe
+   2026-10-31). Las hijas conservan su alto: lo que crece es el índice, no la bandeja. */
+.marco-fila[data-prof="0"] { height: var(--fila-alto, 40px); }
+.marco-riel nav [data-pieza-cajon] + [data-pieza-cajon] { margin-top: var(--fila-aire, 0px); }
+.marco-riel nav[data-holgado] .marco-fila[data-prof="0"] { font-size: 14.5px; gap: 0.875rem; }
+.marco-fila[data-prof="1"] { height: 36px; font-size: 13px; --fila-x: 20px; }
+.marco-fila[data-prof="2"] { height: 34px; font-size: 12.5px; --fila-x: 40px; }
+.marco-fila[data-fila-activa] { padding-left: calc(var(--fila-x) + 8px); }
+/* El corrimiento se anima solo con el menú abierto: plegado, el ícono va al centro y no hay nada que correr. */
+.marco-riel:not([data-compacto]) .marco-fila {
+  transition: color 200ms var(--ease-cayla), background-color 250ms var(--ease-cayla), padding-left 380ms var(--ease-cayla);
+}
+.marco-corto { display: none; }
+
+/* La gota: la placa en relieve bajo la fila activa, con su marca roja de 3 × 14 adentro a la izquierda. Es UNA sola pieza para
+   todo el menú (no una por fila): así puede viajar de la fila que dejas a la que tocas. El AppShell la ubica midiendo la fila
+   (`data-fila-activa`); `data-quieta` la mueve sin transición (al cargar, o mientras acompaña a su fila cuando un módulo se abre). */
+.marco-gota {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--menu-activa-fondo);
+  box-shadow: var(--menu-activa-sombra);
+  transition: top 380ms var(--ease-cayla), height 380ms var(--ease-cayla), left 380ms var(--ease-cayla), width 380ms var(--ease-cayla), opacity 250ms var(--ease-cayla);
+}
+.marco-gota[data-lista] { opacity: 1; }
+.marco-gota[data-quieta] { transition: opacity 250ms var(--ease-cayla); }
+.marco-gota::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 3px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 3px;
+  background: var(--color-rojo);
+}
+
+/* La bandeja: los submódulos de un módulo de primer nivel abierto viven en una placa esmerilada bajo él (antes hundida; «Escarcha»,
+   Felipe 2026-11-02), sin líneas ni ramas (Felipe 2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Un subgrupo (Abastecimiento) no lleva otra bandeja:
+   ya está dentro de una. */
+.lateral-hijos[data-bandeja] > div {
+  border-radius: 16px;
+  transition: margin 300ms var(--ease-cayla), padding 300ms var(--ease-cayla), background-color 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla);
+}
+.lateral-hijos[data-bandeja][data-abierto="true"] > div {
+  margin: 2px 0 6px;
+  padding: 4px 0;
+  background-color: var(--bandeja-fondo);
+  box-shadow: var(--bandeja-sombra);
+}
+
+/* El despliegue (reemplaza al de globals.css, que crecía en 300 ms y solo hacía aparecer las hijas: el alto empujaba de golpe
+   todo lo de abajo, «muy brusco»). La caja crece en 460 ms con la curva que frena; cada submódulo llega desde arriba 8 px,
+   desenfocado, y se enfoca en cascada (38 ms de desfase desde los 80 ms). Al cerrar, 300 ms con la curva de salida y sin
+   cascada: un panel que se va, no uno que llega. Cerradas, las hijas siguen montadas (alto 0 e `inert`) para poder animarse.
+   `> div >`, no un descendiente cualquiera (D-84): un subgrupo (Abastecimiento) mete OTRO `.lateral-hijos` dentro de una
+   `.lateral-hijo`; sin acotarlo a SU hija directa, abrir Producción encendía de una las pantallas de Abastecimiento aunque el
+   subgrupo siguiera cerrado (y al abrirlo después no tenían cascada propia). Acotado así, cada `.lateral-hijos` gobierna solo
+   a SUS hijas. */
+.lateral-hijos {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms var(--ease-salida);
+}
+.lateral-hijos[data-abierto="true"] {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 460ms var(--ease-cayla);
+}
+.lateral-hijos > div { min-height: 0; overflow: hidden; }
+.lateral-hijo {
+  opacity: 0;
+  transform: translate3d(0, -8px, 0);
+  filter: blur(3px);
+  transition: opacity 140ms var(--ease-salida), transform 140ms var(--ease-salida), filter 140ms var(--ease-salida);
+}
+.lateral-hijos[data-abierto="true"] > div > .lateral-hijo {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: opacity 340ms var(--ease-cayla), transform 420ms var(--ease-cayla), filter 340ms var(--ease-cayla);
+  transition-delay: calc(80ms + var(--i, 0) * 38ms);
+}
+/* En el celular el despliegue es más corto y sin desenfoque (Felipe 2026-11-02: «va muy lento y buguea»): animar `filter: blur` en cada
+   submódulo mientras crece el alto cuesta un repintado por cuadro, y 460 ms + la cascada se sentían espera. Aquí la caja crece en
+   300 ms y cada hija entra solo con opacidad y 6 px, con un desfase de 22 ms. El menú además no dibuja su barra de desplazamiento:
+   mientras la bandeja crece el contenido cruza el alto del cajón y la barra aparecía y desaparecía a mitad de la animación (cambiando
+   el ancho útil de las filas); el dedo no la necesita y el menú sigue desplazándose. Escritorio no cambia. */
+@media (max-width: 639.98px) {
+  .lateral-hijos[data-abierto="true"] { transition: grid-template-rows 300ms var(--ease-cayla); }
+  .lateral-hijo { transform: translate3d(0, -6px, 0); filter: none; transition: opacity 120ms var(--ease-salida), transform 120ms var(--ease-salida); }
+  .lateral-hijos[data-abierto="true"] > div > .lateral-hijo {
+    transition: opacity 220ms var(--ease-cayla), transform 260ms var(--ease-cayla);
+    transition-delay: calc(40ms + var(--i, 0) * 22ms);
+  }
+  .cajon-lateral nav { scrollbar-width: none; }
+  .cajon-lateral nav::-webkit-scrollbar { display: none; }
+}
+/* El ícono del módulo que se abre asiente una vez (solo al tocarlo: al cargar la página con un módulo abierto, quieto). */
+.marco-fila[data-asiente] .marco-icono { animation: marco-asiente 500ms var(--ease-cayla); }
+@keyframes marco-asiente {
+  40% { scale: 0.86; }
+}
+
+/* Plegado (Plegado A · Con nombre, 84 px; el ancho vive en `--spacing-lateral`, globals.css). Antes el nombre invisible seguía
+   ocupando su lugar y empujaba el ícono a la izquierda. Ahora cada fila es un cuadrado con el ícono al centro, la gota es ese
+   cuadrado y la marca roja sale al canto del menú para no descentrarlo; bajo cada ícono, su nombre corto en 10 px (ley 1: sin
+   manual, no hace falta apuntar para saber qué es). `data-compacto` lo pone el AppShell solo en escritorio: en el cajón del
+   celular el menú va siempre abierto, aunque la preferencia diga «plegado». */
+.marco-riel[data-compacto] nav { padding-inline: 10px; }
+.marco-riel[data-compacto] .marco-fila[data-prof="0"] {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: var(--fila-alto, 54px);
+  padding: 0;
+  border-radius: 14px;
+}
+.marco-riel[data-compacto] .marco-fila :is(.marco-etiqueta, .marco-chevron) { display: none; }
+.marco-riel[data-compacto] .marco-fila .marco-icono { translate: none; }
+.marco-riel[data-compacto] .marco-corto {
+  display: block;
+  max-width: 100%;
+  padding: 0 2px;
+  font-size: 10px;
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.marco-riel[data-compacto] .marco-fila[data-fila-activa] .marco-corto { font-weight: 700; }
+.marco-riel[data-compacto] .marco-gota::after { left: -8px; }
+
+/* ---------- El botón de plegar ----------
+   Una gota redonda de 28 px montada sobre el borde derecho del riel, a la altura del logo (Felipe 2026-10-31: «que no quite el
+   logo, tal vez hacerlo flotante»): no le quita lugar al logo ni abierto ni plegado, viaja con el borde (el mismo `left` que el
+   ancho del riel, en el mismo tiempo) y da vuelta su flecha. Bajo 640 px no existe: ahí el menú es un cajón con su ✕. */
+.marco-plegar {
+  position: fixed;
+  z-index: 41;
+  top: calc(env(safe-area-inset-top, 0px) + 30px);
+  left: calc(var(--spacing-lateral) - 14px);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: none;
+  place-items: center;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  border: 1px solid var(--plegar-borde);
+  background: var(--plegar-fondo);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--plegar-sombra);
+  transition: left 300ms var(--ease-cayla), color 200ms var(--ease-cayla), scale 250ms var(--ease-cayla);
+}
+@media (min-width: 640px) {
+  .marco-plegar { display: grid; }
+}
+.marco-plegar svg { width: 14px; height: 14px; transition: rotate 300ms var(--ease-cayla); }
+.marco-plegar[aria-expanded="false"] svg { rotate: 180deg; }
+@media (hover: hover) {
+  .marco-plegar:hover { color: var(--color-tinta); scale: 1.1; }
+}
+.marco-plegar:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+
+/* ---------- La cabecera: dos islas ----------
+   Ya no es una banda: es una fila transparente (no recibe clics: entre las islas se toca el contenido) con dos cápsulas de
+   vidrio. Las islas se apartan 22 px del riel para no tocar el botón de plegar, que sobresale 14 px.
+   La cabecera es un CONTENEDOR: el buscador se encoge con SU ancho, no con el de la pantalla, así que nunca se sale de su isla
+   (Felipe 2026-10-31). `RecordatorioCierreCaja` mide el hueco entre los hijos de su primera caja: son las dos islas. */
+.marco-cabecera {
+  position: fixed;
+  z-index: 30;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  height: 52px;
+  pointer-events: none;
+  container: cabecera / inline-size;
+}
+@media (min-width: 640px) {
+  .marco-cabecera {
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: calc(var(--spacing-lateral) + 22px);
+    right: max(12px, env(safe-area-inset-right, 0px));
+  }
+}
+.marco-cabecera-fila {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* El vidrio de la isla va en un `::before` por la misma razón que el del riel: un `backdrop-filter` en la isla la volvería el
+   contenedor de lo `fixed` de adentro. `z-index: 0` la vuelve una capa propia para que el `::before` quede detrás de sus botones. */
+.marco-isla {
+  pointer-events: auto;
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 52px;
+  padding: 0 8px;
+  border-radius: 9999px;
+}
+.marco-isla::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--marco-vidrio-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  border: 1px solid var(--marco-vidrio-borde);
+  box-shadow: var(--marco-vidrio-sombra);
+}
+.marco-isla-izq { flex: none; min-width: 0; }
+.marco-isla-der { flex: none; margin-left: auto; }
+@media (min-width: 640px) {
+  .marco-isla-izq { flex: 0 1 340px; min-width: 54px; }
+}
+/* En el celular cada píxel cuenta: a 375 px, con «Preguntar», «Actividad», el tema, la sede y la lupa, dos islas con el aire del
+   escritorio no caben. Se aprieta el aire y, si aun así no alcanza, el colibrí (el Inicio sigue en el menú) se va primero. */
+@media (max-width: 639.98px) {
+  .marco-cabecera-fila { gap: 8px; }
+  .marco-isla { padding: 0 4px; gap: 2px; }
+}
+@container cabecera (max-width: 400px) {
+  .marco-colibri { display: none; }
+}
+/* Los botones de la cabecera, redondos (los que tienen nombre, píldoras). El combo de la sede no es hijo directo (va en su
+   propia caja, `data-marco-sede`): su aspecto es del combo, no de la cabecera. */
+.marco-isla-der > :is(button, a) { border-radius: 9999px; }
+
+/* El buscador: un pozo (lo hundido espera tu dato) que llena su isla. */
+.marco-buscador {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+  transition: box-shadow 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .marco-buscador:hover { background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra); }
+}
+.marco-buscador-tecla { flex: none; }
+/* Angosta (el riel abierto en un laptop chico), los botones con nombre quedan en su ícono: el nombre sigue en su `title` y
+   en su `aria-label`. Más angosta, el buscador pierde la tecla, y más aún queda en una lupa redonda. */
+@container cabecera (max-width: 720px) {
+  .marco-isla-der > button .label-cayla { display: none; }
+}
+@container cabecera (max-width: 640px) {
+  .marco-buscador-tecla { display: none; }
+}
+@container cabecera (max-width: 520px) {
+  .marco-isla-izq { flex: 0 0 auto; }
+  .marco-buscador { flex: 0 0 38px; width: 38px; padding: 0; justify-content: center; gap: 0; }
+  .marco-buscador-texto { display: none; }
+}
+
+/* ---------- El cajón de un módulo con el menú plegado ----------
+   Flota junto al riel con el vidrio de lo que flota; la pantalla en la que estás es la gota con su marca roja, como en el riel. */
+.marco-cajon-grupo {
+  border-radius: 20px;
+  border: 1px solid var(--marco-vidrio-borde);
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--vidrio-flota-sombra);
+}
+.marco-cajon-fila { border-radius: 12px; }
+.marco-cajon-fila[aria-current="page"] {
+  padding-left: 20px;
+  background: var(--menu-activa-fondo);
+  box-shadow: var(--menu-activa-sombra);
+}
+.marco-cajon-fila[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 3px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 3px;
+  background: var(--color-rojo);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marco-aurora i,
+  .marco-riel[data-cajon="abierto"] .marco-gota,
+  .marco-fila[data-asiente] .marco-icono { animation: none; }
+  .marco-gota,
+  .marco-plegar,
+  .marco-plegar svg,
+  .marco-riel:not([data-compacto]) .marco-fila,
+  .lateral-hijos,
+  .lateral-hijos[data-abierto="true"],
+  .lateral-hijos[data-bandeja] > div { transition: none; }
+  .lateral-hijo,
+  .lateral-hijos[data-abierto="true"] > div > .lateral-hijo { transition: none; transform: none; filter: none; }
+}
+
+/* ===================================================================== */
+/* ---------- Abajo del menú: la persona (Felipe 2026-10-31: «elimina lo de “el estilo transforma” y mejora lo de abajo») ---------- */
+/* Una placa de vidrio con la foto en su lente, el nombre y el rol en la sede (en letra normal: en versalitas se cortaba «TIENDA LIM…») y
+   «Salir» como una gota redonda con su puerta, la misma de Mi perfil. Toda la placa abre Mi perfil y sube 1 px al pasar el mouse; «Salir»
+   pasa a rojo profundo. Plegado queda la foto sola, centrada. */
+.marco-yo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 12px 14px;
+  padding: 8px 8px 8px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--placa-borde);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+  transition: margin 300ms var(--ease-cayla), padding 300ms var(--ease-cayla), background 250ms var(--ease-cayla), transform 250ms var(--ease-cayla);
+}
+.marco-yo-quien { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; border-radius: 14px; }
+.marco-yo-lente {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--lente-fondo);
+  box-shadow: var(--lente-luz);
+  transition: transform 300ms var(--ease-cayla);
+}
+.marco-yo-texto { display: flex; min-width: 0; flex: 1; flex-direction: column; line-height: 1.25; }
+.marco-yo-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
+.marco-yo-rol { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.marco-yo-salida { flex: none; }
+.marco-yo-salir {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--placa-borde);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+  transition: color 200ms, background 200ms, transform 250ms var(--ease-cayla);
+}
+.marco-yo-salir:focus-visible, .marco-yo-quien:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+@media (hover: hover) {
+  .marco-yo:has(.marco-yo-quien:hover) { background: var(--gota-fondo-encima); transform: translateY(-1px); }
+  .marco-yo-quien:hover .marco-yo-lente { transform: scale(1.05); }
+  .marco-yo-salir:hover { color: var(--color-rojo-profundo); background: var(--gota-fondo-encima); transform: scale(1.06); }
+}
+/* Plegado: la foto sola, centrada en la columna; sin placa. */
+.marco-riel[data-compacto] .marco-yo { justify-content: center; margin: 8px 10px 14px; padding: 8px 0; border-color: transparent; background: none; box-shadow: none; }
+.marco-riel[data-compacto] :is(.marco-yo-texto, .marco-yo-salida) { display: none; }
+.marco-riel[data-compacto] .marco-yo-quien { flex: none; }
+
+/* ---------- Los íconos del marco: «A · Se llena al elegir» (Felipe 2026-11-01, docs/maquetas/iconos-vidrio-2026-11/) ----------
+   Como la barra de un iPhone: en reposo, línea; la pantalla en que estás (y su grupo, si está cerrado: es la fila que lleva la marca) va
+   con su dibujo LLENO de un vidrio tintado, además de la gota y la marca roja. Se ve también con el menú plegado, donde solo queda el ícono.
+   La flecha del grupo no se llena. */
+.marco-fila svg:not([class*="chevron"]) path { transition: fill 200ms var(--ease-cayla); }
+.marco-fila[data-fila-activa] svg:not([class*="chevron"]) { color: var(--color-tinta); }
+.marco-fila[data-fila-activa] svg:not([class*="chevron"]) path { fill: color-mix(in srgb, currentColor 34%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .marco-fila svg path { transition: none; }
+}
+
+/* ---------- El cajón del menú en el celular: «A · Hoja con profundidad» (Felipe 2026-11-01) ----------
+   Maqueta en docs/maquetas/cajon-menu-vidrio-2026-11/. Bajo 640 px el riel se vuelve una HOJA de costado, como las hojas del celular
+   (ADR-0479): más ancha que el cajón de antes (hasta 300 px, sin pasar del 86 % de la pantalla), redondeada a la derecha, con un vidrio
+   más denso que el del riel de escritorio y un asa vertical junto a su borde. El velo esmerila lo de atrás y, además, lo de atrás se ALEJA
+   (se corre 34 px y baja a 0,94, con su contenido redondeado 22 px): eso lo pone `alejarFondo(…, "lado")` desde
+   `useLateralConElDedo`, y mientras el dedo lleva el menú, el velo y el alejamiento siguen su misma proporción.
+   Lo de adentro, la cascada y los tiempos (420 ms al llegar, 260 al irse, globals.css) no cambian. Con «reducir movimiento» no se mueve
+   nada: ni el cajón, ni el velo, ni lo de atrás (el hook no lo aleja). */
+@media (max-width: 639.98px) {
+  .marco-riel {
+    width: min(300px, 86%);
+    max-width: none;
+  }
+  .marco-riel::before {
+    background: var(--cajon-movil-fondo);
+    -webkit-backdrop-filter: var(--cajon-movil-filtro);
+    backdrop-filter: var(--cajon-movil-filtro);
+  }
+  /* El asa: dice que la hoja se lleva con el dedo hacia la izquierda. No recibe toques: el dedo lo escucha el cajón entero. */
+  .marco-riel::after {
+    content: "";
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    width: 4px;
+    height: 44px;
+    margin-top: -22px;
+    border-radius: 4px;
+    background: var(--cajon-movil-asa);
+    pointer-events: none;
+  }
+  .velo-cajon {
+    background: var(--cajon-movil-velo);
+    -webkit-backdrop-filter: var(--cajon-movil-velo-filtro);
+    backdrop-filter: var(--cajon-movil-velo-filtro);
+  }
+}
+@media (max-width: 639.98px) and (prefers-reduced-motion: reduce) {
+  .cajon-lateral,
+  .cajon-lateral[data-cajon="abierto"],
+  .velo-cajon,
+  .velo-cajon[data-abierto="true"] { transition: none; }
+}

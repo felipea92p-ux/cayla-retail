@@ -52,6 +52,7 @@ import {
   argsRegistrarPapelInsumo,
   calcularRenglonInsumo,
   camposDelPapelInsumo,
+  deMasEsMucho,
   deMasPorLineaInsumo,
   detalleDeRegistroInsumo,
   pedidasDeLaOrden,
@@ -744,8 +745,9 @@ function RenglonDelPapel({
         {pedida.facturado > 0 ? ` · ya en papel ${cantidadConUnidad(pedida.facturado, pedida.unidadMedida)}` : ""}
       </p>
       {deMas && (
-        <p className="mt-0.5 text-sm text-ambar">
-          Pasa lo pedido por {cantidadConUnidad(deMas.deMas, deMas.unidad)}. Se acepta y queda avisado.
+        <p className={`mt-0.5 text-sm ${deMasEsMucho(deMas) ? "font-medium text-ambar-profundo" : "text-ambar"}`}>
+          Pasa lo pedido por {cantidadConUnidad(deMas.deMas, deMas.unidad)}.{" "}
+          {deMasEsMucho(deMas) ? "Es más del 5 % de lo pedido: revisa que no sea un cero de más. Se acepta y queda avisado." : "Se acepta y queda avisado."}
         </p>
       )}
     </div>

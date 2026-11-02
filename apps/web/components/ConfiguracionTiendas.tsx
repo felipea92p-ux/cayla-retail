@@ -17,7 +17,8 @@ import { ajustarCelular, celularValido } from "@/lib/club-reglas";
 import type { CampanaConfig, ConfiguracionMetas, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
-import { Casilla, type Guardar } from "@/components/ConfiguracionCasilla";
+import { Casilla, MarcoCasilla, useVistoGuardado, type Guardar } from "@/components/ConfiguracionCasilla";
+import { cambioLaCasilla } from "@/lib/configuracion-casilla";
 import { ConfiguracionMetasMes } from "@/components/ConfiguracionMetasMes";
 import { ConfiguracionAsistente } from "@/components/asistente/ConfiguracionAsistente";
 import type { SedeAsistente } from "@/lib/asistente/sedes";
@@ -39,19 +40,23 @@ function CasillaHora({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: 
     setAntes(valor);
     setT(valor);
   }
+  const visto = useVistoGuardado();
   return (
-    <input
-      type="time"
-      aria-label={etiqueta}
-      value={t}
-      onChange={(e) => setT(e.target.value)}
-      onBlur={async () => {
-        if (t === valor) return;
-        const ok = await alGuardar(t);
-        if (!ok) setT(valor);
-      }}
-      className="fin-control fin-num inline-block w-[7.6rem]"
-    />
+    <MarcoCasilla vez={visto.vez}>
+      <input
+        type="time"
+        aria-label={etiqueta}
+        value={t}
+        onChange={(e) => setT(e.target.value)}
+        onBlur={async () => {
+          if (!cambioLaCasilla(t, valor)) return;
+          const ok = await alGuardar(t);
+          if (ok) visto.marcar();
+          else setT(valor);
+        }}
+        className="fin-control fin-num inline-block w-[7.6rem]"
+      />
+    </MarcoCasilla>
   );
 }
 
@@ -64,29 +69,33 @@ function CasillaCelular({ valor, etiqueta, alGuardar }: { valor: string; etiquet
     setAntes(valor);
     setT(valor);
   }
+  const visto = useVistoGuardado();
   return (
-    <input
-      aria-label={etiqueta}
-      inputMode="tel"
-      value={t}
-      placeholder="—"
-      onChange={(e) => setT(ajustarCelular(e.target.value))}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setT(valor);
-      }}
-      onBlur={async () => {
-        if (t === valor) return;
-        if (t !== "" && !celularValido(t)) {
-          avisar.error(`${etiqueta}: tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío.`);
-          setT(valor);
-          return;
-        }
-        const ok = await alGuardar(t);
-        if (!ok) setT(valor);
-      }}
-      className="fin-control fin-num inline-block w-[7.6rem]"
-    />
+    <MarcoCasilla vez={visto.vez}>
+      <input
+        aria-label={etiqueta}
+        inputMode="tel"
+        value={t}
+        placeholder="—"
+        onChange={(e) => setT(ajustarCelular(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          if (e.key === "Escape") setT(valor);
+        }}
+        onBlur={async () => {
+          if (!cambioLaCasilla(t, valor)) return;
+          if (t !== "" && !celularValido(t)) {
+            avisar.error(`${etiqueta}: tiene 9 dígitos y empieza en 9. Si la tienda no tiene uno, déjalo vacío.`);
+            setT(valor);
+            return;
+          }
+          const ok = await alGuardar(t);
+          if (ok) visto.marcar();
+          else setT(valor);
+        }}
+        className="fin-control fin-num inline-block w-[7.6rem]"
+      />
+    </MarcoCasilla>
   );
 }
 
@@ -293,7 +302,7 @@ export function ConfiguracionTiendas({
         <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de cada día (con IGV), lo que queda en el cajón al cerrar y a qué hora cierra.">
           <Chip tono={rigenHoy.length ? "ambar" : "verde"}>Hoy rige: {rigenHoy.length ? rigenHoy.map((c) => c.nombre).join(" y ") : "lo normal"}</Chip>
         </TituloDeTarjeta>
-        <div className="fin-tabla-wrap">
+        <div className="fin-tabla-wrap cfg-planilla">
           <table className="fin-tabla fin-tabla-apretada">
             <thead>
               <tr>

@@ -58,6 +58,8 @@
 .r-item-cab b { color: var(--tinta); font-weight: 600; }
 /* Lo que escribió, tal cual: sus saltos de línea se respetan y una palabra larguísima no rompe la tarjeta. */
 .r-texto { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.r-tuyo { padding: 10px 14px; border-left: 3px solid var(--taupe); border-radius: 0 12px 12px 0; background: color-mix(in srgb, var(--tinta) 5%, transparent); }
+.r-tuyo-t { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tinta-60); }
 .r-respuesta { padding: 10px 14px; border-left: 3px solid var(--verde); border-radius: 0 12px 12px 0; background: color-mix(in srgb, var(--verde) 9%, transparent); }
 .r-respuesta-t { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); }
 .r-respuesta-t .ic { width: 15px; height: 15px; }

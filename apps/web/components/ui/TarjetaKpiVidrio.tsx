@@ -13,8 +13,9 @@ const COLOR_DE_LA_CIFRA: Record<TonoKpi, string> = {
 };
 
 /**
- * Una tarjeta de indicador de la isla de vidrio de Facturación (ADR-0124): borde izquierdo de 3 px
- * en el color del estado, un tinte que se difumina hacia la derecha y una luz que sigue al cursor.
+ * Una tarjeta de indicador de Comprobantes (ADR-0124), con el vidrio del ERP (ADR-0596, «A · Lente del tono», Felipe
+ * 2026-11-02): la placa Serena que, si tiene un estado que decir, se tiñe apenas de él con su filo; el ícono en su gota y
+ * una luz que sigue al cursor. El material vive en `app/estilos/vidrio/comprobantes.css`.
  * Mismo criterio de color que `TarjetaKpi` de Caja: verde va bien, ámbar hay algo pendiente, rojo
  * exige acción, taupe solo informa. El color no va solo: cada tarjeta lo dice también con texto.
  *

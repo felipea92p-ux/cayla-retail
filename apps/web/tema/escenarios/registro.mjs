@@ -463,6 +463,19 @@ ESCENARIOS.push(
     preparar: abrirCobro,
     limpiar: quitarAsesora,
   },
+  {
+    id: "vender.descuento",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: ".hoja-descuento",
+    nombre: "Vender · la hoja del descuento (a qué prendas, cuánto y por qué)",
+    async preparar(pagina) {
+      await agregarPrendaAlTicket(pagina);
+      await pagina.getByRole("button", { name: "Aplicar descuento" }).first().click();
+      await esperar(pagina, 1400);
+    },
+  },
   { id: "vender.cobro-efectivo", ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".hoja-cobro", nombre: "Vender · cobro en efectivo (monto recibido y vuelto)", preparar: medio(/Efectivo/i), limpiar: quitarAsesora },
   { id: "vender.cobro-tarjeta", ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".hoja-cobro", nombre: "Vender · cobro con tarjeta", preparar: medio(/Tarjeta/i), limpiar: quitarAsesora },
   { id: "vender.cobro-yape", ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".hoja-cobro", nombre: "Vender · cobro con Yape", preparar: medio(/Yape/i), limpiar: quitarAsesora },
@@ -597,6 +610,20 @@ async function cobroCelular(pagina) {
 ESCENARIOS.push(
   { id: "vender.m-catalogo", ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", nombre: "Vender (celular) · el catálogo abierto", preparar: abrirCatalogoCelular },
   { id: "vender.m-ticket", ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", abre: "[role=dialog]", nombre: "Vender (celular) · la hoja del ticket con una prenda", preparar: ticketCelular },
+  {
+    id: "vender.m-descuento",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "celular",
+    // En celular el descuento vive dentro de la hoja del ticket (un <Modal>), no en `.hoja-descuento` (la hoja lateral de escritorio).
+    abre: "[role=dialog]",
+    nombre: "Vender (celular) · el descuento en la hoja del ticket",
+    async preparar(pagina) {
+      await ticketCelular(pagina);
+      await pagina.getByRole("button", { name: "Aplicar descuento" }).first().click();
+      await esperar(pagina, 1200);
+    },
+  },
   {
     id: "vender.m-cobrar",
     ruta: "/vender",

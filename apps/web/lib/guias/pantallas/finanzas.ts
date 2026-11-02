@@ -1746,13 +1746,19 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       ancla: "fin-impuestos.por-hacer",
       opcional: true,
       titulo: "Pendientes",
-      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe, con su monto: rechazados, ventas sin comprobante, compras con boleta, IGV que no se descuenta y honorarios. Cada línea lleva a donde se arregla.",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe, con su monto: rechazados, ventas sin comprobante, compras con boleta, IGV que no se descuenta, honorarios y lo que no cuadra con la propuesta de SUNAT. Cada línea lleva a donde se arregla.",
     },
     {
       id: "paquete",
       ancla: "fin-impuestos.paquete",
       titulo: "Descargar para el contador",
       texto: "Abre un menú: todo el paquete en un ZIP, o un solo archivo: registro de ventas, de compras o resumen del IGV. En la demo no descargamos nada.",
+    },
+    {
+      id: "sire",
+      ancla: "fin-impuestos.sire",
+      titulo: "Comparar con SUNAT",
+      texto: "Lleva a la propuesta de compras que SUNAT armó para el mes, comprobante por comprobante, contra lo registrado aquí. Así el contador la acepta sabiendo que cuadra.",
     },
     {
       id: "limite",
@@ -1796,6 +1802,68 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
+};
+
+export const GUIA_FIN_SIRE: Guia = {
+  id: "finanzas.impuestos.sire",
+  ruta: "/finanzas/impuestos/sire",
+  titulo: "Comparar con SUNAT",
+  resumen: "Las propuestas de compras y de ventas que arma SUNAT, contra lo registrado en el ERP: qué cuadra y qué no, antes de que el contador las acepte.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "La propuesta de SUNAT, revisada",
+      texto: "Cada mes SUNAT arma la lista de facturas que los proveedores emitieron a nombre de CAYLA. Aquí la comparas con lo registrado, antes de que el contador la acepte. Es una demo: no se sube ni se guarda nada.",
+    },
+    ...TELAR,
+    {
+      id: "registros",
+      ancla: "fin-sire.registros",
+      titulo: "Compras o ventas",
+      texto: "Compras compara las facturas que te emitieron los proveedores: ahí se esconde el IGV que no se descuenta. Ventas compara lo que enviaste por Lucode: ahí se ve lo que no llegó a SUNAT o se emitió por fuera.",
+    },
+    {
+      id: "subir",
+      ancla: "fin-sire.subir",
+      titulo: "Subir la propuesta",
+      texto: "Bájala del portal SIRE con la Clave SOL («Descargar propuesta», en txt) y súbela aquí. Si ya subiste una, puedes subir otra versión: la anterior no se borra.",
+    },
+    {
+      id: "vacio",
+      ancla: "fin-sire.vacio",
+      opcional: true,
+      titulo: "Todavía no hay propuesta",
+      texto: "Mientras nadie suba la de este mes, aquí se explica de dónde se baja. La de un mes recién cerrado ya está completa en SUNAT.",
+    },
+    {
+      id: "version",
+      ancla: "fin-sire.version",
+      opcional: true,
+      titulo: "Qué se comparó",
+      texto: "Quién subió la propuesta, cuándo y cuántos comprobantes trae. Si se subió más de una vez, dice qué versión es.",
+    },
+    {
+      id: "cifras",
+      ancla: "fin-sire.cifras",
+      opcional: true,
+      titulo: "Cuántas en cada caso",
+      texto: "Lo que SUNAT no tiene, lo que falta en el ERP, los montos distintos y lo que cuadra. Toca una cifra para ver solo esas en la lista; lo que cuadra no se lista hasta que tocas su cifra.",
+    },
+    {
+      id: "lista",
+      ancla: "fin-sire.lista",
+      opcional: true,
+      titulo: "Cada comprobante",
+      texto: "Lo que hay que mirar va primero, con cuánto tiene SUNAT, cuánto el ERP y qué hacer. El «⋯» de cada fila la resuelve: «Es de CLAURE», «Va en otro mes», «Se la pedí al proveedor»… Lo resuelto baja al final y se puede deshacer.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Cuando todo cuadra, el contador solo acepta la propuesta y la genera en el portal. Para repasarlo: Mi perfil ▸ Demo ▸ Comparar con SUNAT.",
+    },
+  ],
 };
 
 export const GUIA_FIN_CIERRE: Guia = {

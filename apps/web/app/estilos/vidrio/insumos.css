@@ -1,0 +1,85 @@
+/* =====================================================================
+   PRODUCCIÓN ▸ INSUMOS CON EL VIDRIO «SERENA» (ADR-0596; maqueta docs/maquetas/insumos-vidrio-2026-11/, tablero docs/vidrio/README.md).
+
+   Felipe eligió mirando (2026-11-02), las recomendadas:
+   · La fila de un insumo, «A · Una placa por tela»: los colores de una tela (o de un avío) viven en UNA placa Serena (`.insumos-placa`,
+     22 px, `overflow-hidden`) bajo su `TituloGrupo`, que queda afuera. Cada `FilaInsumo` (`.insumo-fila`) deja de ser tarjeta: es una
+     fila, con la raya de tinta al 8 % entre filas y tinta al 3 % al pasar el mouse. La fila ABIERTA (`data-abierto`) se hunde: margen de
+     6 px, esquinas de 16 px, tinta al 4 % con su sombra adentro; la raya sobre sus lotes, la misma del 8 % (no `border-sand`).
+   · El libro de movimientos, «A · Placa con filas»: `.insumos-libro` deja la tarjeta de papel y es la placa Serena; las rayas entre
+     movimientos, tinta al 8 %; la cantidad de lo que entra, una lente verde en píldora; la de lo que sale, una píldora de tinta al 6 %.
+
+   Solo cambia el MATERIAL: el acordeón por `grid-template-rows`, la barra del saldo, el estado, el saldo que cuenta, los lotes con «1º» y
+   «Nueva tela» con «Existe también» no se tocan (components/InsumosPanel.tsx). Sin capa: le gana a `card-cayla` (components) y a las
+   utilidades (`border-sand`, `divide-tinta/10`). Solo recetas de recetas.css (el bloque «Insumos»). Sin movimiento nuevo: la entrada en
+   cascada (`anim-entra`) y el acordeón son los de siempre.
+   ===================================================================== */
+
+/* ---------- 1 · La placa de una tela ---------- */
+.insumos-placa {
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* La fila: ya no es tarjeta. */
+.insumo-fila.card-cayla {
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.insumo-fila + .insumo-fila {
+  box-shadow: inset 0 1px 0 var(--insumo-raya);
+}
+@media (hover: hover) {
+  .insumo-fila:not([data-abierto]) > .insumo-fila-cabecera:hover {
+    background: var(--insumo-fila-encima);
+  }
+}
+
+/* La fila abierta se hunde (la que sigue conserva su raya: el margen la separa). */
+.insumo-fila.card-cayla[data-abierto] {
+  margin: 6px;
+  border-radius: 16px;
+  background: var(--insumo-abierta-fondo);
+  box-shadow: var(--insumo-abierta-sombra);
+}
+
+/* La raya sobre los lotes. */
+.insumo-lotes {
+  border-top-color: var(--insumo-raya);
+}
+
+/* ---------- 2 · El libro de movimientos ---------- */
+.insumos-libro.card-cayla {
+  border-radius: 22px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+.insumos-libro-lista > li {
+  border-color: var(--insumo-raya);
+}
+
+/* La cantidad: una píldora. Lo que sale, tinta al 6 %; lo que entra, la lente verde (el texto sigue en verde profundo). */
+.insumos-libro-cantidad {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--insumo-sale-fondo);
+}
+.insumos-libro-cantidad[data-sentido="entra"] {
+  --c: var(--color-verde);
+  border: 1px solid color-mix(in srgb, var(--c) var(--insumo-entra-filo), transparent);
+  padding: 1px 8px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--insumo-entra-tinte-arriba), var(--insumo-entra-base-arriba)),
+    color-mix(in srgb, var(--c) var(--insumo-entra-tinte-abajo), var(--insumo-entra-base-abajo))
+  );
+}

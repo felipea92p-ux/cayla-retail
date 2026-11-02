@@ -107,6 +107,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
+  "/finanzas/impuestos/sire": { estado: "no-aplica", motivo: "Comparar con SUNAT (ADR-0601) solo mira: las cifras filtran la lista y nada se llena aquí. El archivo y quién lo sube se eligen en la hoja «Propuesta de compras» (SubirPropuestaSireModal), que lleva su registro aparte." },
   "/finanzas/reportes": { estado: "no-aplica", motivo: "¿Ganamos? (Estados financieros, ADR-0585) solo mira: la respuesta, la cascada y lo de cada sede se tocan para ver más, nada se llena. El mes y la sede los elige la barra del telar." },
   "/finanzas/reportes/balance": { estado: "no-aplica", motivo: "¿Cuánto vale CAYLA? (ADR-0585) solo mira: su único control es la fecha del Balance, un filtro. Los saldos de arranque se llenan en su propia hoja (SaldosArranqueModal), que lleva su registro aparte." },
   "/finanzas/reportes/campanas": { estado: "no-aplica", motivo: "La lista de campañas y cómo le fue a cada una (ADR-0585: la puerta desde ¿Ganamos?): solo mira, sin campos ni pasos." },
@@ -267,7 +268,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 50;
+export const MODALES_PENDIENTES_HOY = 49;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -368,6 +369,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // en la cabecera de la pantalla, fuera del cajón.
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
+  "components/finanzas/SubirPropuestaSireModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/SubirPropuestaSireModal.tsx"] },
+  "components/finanzas/ResolverDiferenciaSireModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/ResolverDiferenciaSireModal.tsx"] },
   "components/plan-compra/RectificarPedidos.tsx": { estado: "no-aplica", motivo: "UN solo control (la razón de rectificar, con «Cambié de idea» de fábrica) y quién lo hace: no hay campos que completar ni pasos. La base solo se niega si el pedido ya es una orden, y la hoja lo dice antes con su aviso." },
   "components/ordenes-compra/PendientesDeCampana.tsx": { estado: "no-aplica", motivo: "Dos hojas sin nada obligatorio: «Confirmar y pedir» no tiene campos (resume el pedido, avisa si llega tarde y pide quién lo hace) y «Cambiar fecha» arranca con la fecha que ya tenía el pedido, un valor válido; lo que podría salir mal lo dice en el lugar (la fecha que ya pasó, el proveedor que cambió, la orden que la base no acepta)." },
   "components/plan-compra/NotaDeVersionModal.tsx": { estado: "no-aplica", motivo: "Una nota opcional de hasta 120 letras y quién lo hace: no hay nada que falte ni pasos que completar. Sirve a tres caminos (guardar una versión, usar el plan con tope y volver a una) y nunca bloquea: la base solo se niega si el plan no cambió." },
@@ -437,7 +440,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
   "components/ProveedorModal.tsx": PENDIENTE, // 13 controles
-  "components/ProveedorProduccionModal.tsx": PENDIENTE, // 13 controles
+  "components/ProveedorProduccionModal.tsx": { estado: "aplicada", evidencia: ["components/ProveedorProduccionModal.tsx"] },
   "components/PuntoDeVenta.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PuntoDeVentaTicket.tsx": PENDIENTE, // 12 controles
   // «Falta» = lo mismo que apaga el botón «Reabrir»: el motivo (único control obligatorio) (ADR-0334).

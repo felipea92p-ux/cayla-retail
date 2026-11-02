@@ -189,7 +189,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja el ticket o unas prendas, en % o en soles, con su motivo. «Código de cupón» canjea un cupón del Club. «Dejar en espera» guarda el ticket para atender a otro; «En espera · N» muestra los guardados para retomarlos o quitarlos. Sobre «Cobrar» eliges quién atiende; debajo, las sin registrar.",
+      texto: "«Aplicar descuento» abre una hoja al lado, como el cobro: eliges a qué prendas, cuánto (porcentaje o monto en soles) y por qué. «Código de cupón» canjea un cupón del Club. «Dejar en espera» guarda el ticket para atender a otro; «En espera · N» los muestra. Sobre «Cobrar» eliges quién atiende; debajo, las sin registrar.",
     },
     {
       id: "codigo-cupon",
@@ -390,7 +390,7 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       solo: "escritorio",
       titulo: "Cobrar el saldo y entregar",
-      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si el cliente ya no la quiere, desde aquí se libera y se le devuelve el adelanto, sin gastar ningún comprobante.",
+      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si se apartó por error o el cliente ya no la quiere, «Liberar apartado» deja la prenda disponible y el adelanto queda por devolver. En la demo no se toca.",
     },
     {
       id: "todos",

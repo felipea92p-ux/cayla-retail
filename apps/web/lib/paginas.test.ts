@@ -22,8 +22,11 @@ describe("<Paginas>", () => {
 
   it("corta con «…» y deja la primera y la última", () => {
     const html = dibujar({ pagina: 5, totalPaginas: 20, onPagina: () => {} });
-    const numeros = [...html.matchAll(/class="paginas-n ">(\d+)</g)].map((m) => Number(m[1]));
+    const numeros = [...html.matchAll(/class="paginas-n (?:lejana)?">(\d+)</g)].map((m) => Number(m[1]));
     expect(numeros).toEqual([1, 4, 5, 6, 20]);
+    // En un teléfono angosto se esconden las lejanas y quedan la actual y sus vecinas (vidrio/pantalla.css).
+    const lejanas = [...html.matchAll(/class="paginas-n lejana">(\d+)</g)].map((m) => Number(m[1]));
+    expect(lejanas).toEqual([1, 20]);
     expect(html.match(/paginas-corte/g)).toHaveLength(2);
   });
 

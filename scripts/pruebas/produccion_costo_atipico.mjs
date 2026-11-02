@@ -105,7 +105,10 @@ select set_config('prueba.buenas', jsonb_build_array(${lineas === "dos_tallas"
 ${sesion(como === "lider" ? FELIPE : MICAELA)}
 ${confirma === null
     ? `select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, null, null, null)', current_setting('prueba.ord'), current_setting('prueba.buenas'))) as r \\gset`
-    : `select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, null, null, null, ${confirma})', current_setting('prueba.ord'), current_setting('prueba.buenas'))) as r \\gset`}
+    : confirma === true && como === "lider"
+      // P19 (2-nov-2026): el líder que confirma un costo atípico lo hace por la puerta con motivo; `cerrar_produccion(…, true)` a pelo ya no confirma (lo prueba produccion_costo_atipico_motivo.mjs).
+      ? `select pg_temp.intento(format('select retail.cerrar_produccion_con_motivo(%L, %L::jsonb, null, null, null, true, ''motivo de prueba'')', current_setting('prueba.ord'), current_setting('prueba.buenas'))) as r \\gset`
+      : `select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, null, null, null, ${confirma})', current_setting('prueba.ord'), current_setting('prueba.buenas'))) as r \\gset`}
 reset role;
 select jsonb_build_object(
   'r', :'r'::jsonb,
@@ -162,10 +165,11 @@ caso("líder con confirmación: cierra, y el costo confirmado entra al promedio 
   if (Number(s.costo) !== Number(s.costo_esperado)) return `costo ${s.costo}, esperado ${s.costo_esperado}`;
 });
 
-caso("…y deja constancia en la nota de la orden, sin montos", () => {
+caso("…y deja constancia en la nota de la orden, con quién, cuándo y el motivo, sin montos de costo", () => {
   const s = escena({ unitario: 70, confirma: true });
-  if (s.nota !== "Costo atípico confirmado por un líder (más del doble del costo vigente)") return `nota: ${s.nota}`;
-  if (/[0-9]/.test(s.nota)) return `la nota trae cifras: ${s.nota}`;
+  const m = /^Costo atípico confirmado por .+ el \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} \(más del doble del costo vigente\): «motivo de prueba»$/.exec(s.nota ?? "");
+  if (!m) return `nota: ${s.nota}`;
+  if (/70|32|79/.test(s.nota)) return `la nota trae cifras de costo: ${s.nota}`;
 });
 
 caso("un integrante con costo atípico NO puede cerrar: costo_atipico_sin_lider, sin cifras (sin detail)", () => {

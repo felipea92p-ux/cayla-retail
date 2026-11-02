@@ -228,25 +228,28 @@ export function InsumosPanel({
                           )}
                         </div>
                       )}
-                      {g.insumos.map((i) => (
-                        <FilaInsumo
-                          key={i.id}
-                          insumo={i}
-                          indice={indice++}
-                          esLider={esLider}
-                          veCostos={veCostos}
-                          vocabulario={vocabulario}
-                          abierto={!!abiertos[i.id]}
-                          onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
-                          onIngresar={() => setIngresando({ insumoId: i.id })}
-                          onFicha={() => setFichando(i)}
-                          onRetirar={() => setRetirando(i)}
-                          ingresosEditables={datos.ingresosEditables}
-                          eliminados={eliminados.filter((e) => e.insumoId === i.id)}
-                          onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
-                          onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
-                        />
-                      ))}
+                      {/* «A · Una placa por tela» (vidrio/insumos.css): los colores de una tela, en una sola placa. */}
+                      <div className="insumos-placa">
+                        {g.insumos.map((i) => (
+                          <FilaInsumo
+                            key={i.id}
+                            insumo={i}
+                            indice={indice++}
+                            esLider={esLider}
+                            veCostos={veCostos}
+                            vocabulario={vocabulario}
+                            abierto={!!abiertos[i.id]}
+                            onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
+                            onIngresar={() => setIngresando({ insumoId: i.id })}
+                            onFicha={() => setFichando(i)}
+                            onRetirar={() => setRetirando(i)}
+                            ingresosEditables={datos.ingresosEditables}
+                            eliminados={eliminados.filter((e) => e.insumoId === i.id)}
+                            onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
+                            onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
+                          />
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </section>
@@ -255,13 +258,13 @@ export function InsumosPanel({
           </div>
 
           {/* ==================== libro de movimientos ==================== */}
-          <aside data-guia="prod-insumos.libro" className="card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
+          <aside data-guia="prod-insumos.libro" className="insumos-libro card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
             <TituloSeccion>Libro de movimientos</TituloSeccion>
             <p className="mb-2 text-sm text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
             {libro.length === 0 ? (
               <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ArrowLeftRight />}>Todavía no se movió nada.</Vacio>
             ) : (
-              <ul className="divide-y divide-tinta/10">
+              <ul className="insumos-libro-lista divide-y divide-tinta/10">
                 {libro.map((m) => {
                   const entra = m.tipo === "compra" || m.tipo === "devolucion" || (m.tipo === "ajuste" && m.cantidad > 0);
                   return (
@@ -272,7 +275,7 @@ export function InsumosPanel({
                           {[m.insumo, m.orden, m.lote].filter(Boolean).join(" · ")} · {diaMes(diaLima(m.creadoEn))}
                         </p>
                       </div>
-                      <span className={`self-start font-medium tabular-nums ${entra ? "text-verde-profundo" : "text-tinta"}`}>
+                      <span data-sentido={entra ? "entra" : "sale"} className={`insumos-libro-cantidad self-start whitespace-nowrap font-medium tabular-nums ${entra ? "text-verde-profundo" : "text-tinta"}`}>
                         {entra ? "+" : "−"}
                         {cantidadTexto(Math.abs(m.cantidad), m.unidad)}
                       </span>
@@ -383,13 +386,13 @@ function FilaInsumo({
     .join(" · ");
 
   return (
-    <article data-guia="prod-insumos.fila" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 4 + indice }}>
+    <article data-guia="prod-insumos.fila" data-abierto={abierto ? "" : undefined} className="insumo-fila card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 4 + indice }}>
       <button
         type="button"
         data-guia={indice === 0 ? "prod-insumos.fila-cabecera" : undefined}
         onClick={onAlternar}
         aria-expanded={abierto}
-        className="grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] max-sm:grid-cols-[1fr_auto]"
+        className="insumo-fila-cabecera grid w-full grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto] items-center gap-x-5 gap-y-3 px-4 py-3.5 text-left outline-none focus-visible:bg-tinta/[0.03] max-sm:grid-cols-[1fr_auto]"
       >
         <div className="min-w-0">
           <p className="truncate text-[15px] text-tinta">{i.nombre}</p>
@@ -403,8 +406,11 @@ function FilaInsumo({
           </p>
         </div>
         <div className="max-sm:order-3 max-sm:col-span-2">
-          <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo !== null ? marcaMinimo * 100 : null} decorativa indice={indice} title={marcaMinimo !== null ? `Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}` : undefined} />
-          <div className="mt-1.5 flex items-center justify-between text-sm text-tinta/65">
+          {/* Sin mínimo no hay contra qué medir: la barra se llenaba entera con 1 m de tela y mentía (P10 del análisis del Taller, 2026-11-02). */}
+          {marcaMinimo !== null && (
+            <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo * 100} decorativa indice={indice} title={`Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}`} />
+          )}
+          <div className={`${marcaMinimo !== null ? "mt-1.5 " : ""}flex items-center justify-between text-sm text-tinta/65`}>
             <span>{i.minimo === null ? "sin mínimo definido" : `mínimo ${cantidadTexto(i.minimo, i.unidad)}`}</span>
             <Chip tono={TONO_ESTADO[i.estado.tono]}>{i.estado.etiqueta}</Chip>
           </div>
@@ -419,14 +425,14 @@ function FilaInsumo({
       {/* Se abre por `grid-template-rows` (ADR-0128): sin medir alturas, sin salto. */}
       <div className={`grid transition-[grid-template-rows] duration-300 ease-cayla ${abierto ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
         <div className="min-h-0 overflow-hidden">
-          <div className="border-t border-sand px-4 pb-3 pt-1.5">
+          <div className="insumo-lotes border-t border-sand px-4 pb-3 pt-1.5">
             {lotes.length === 0 ? (
               <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Layers />}>Todavía no hay lotes de este insumo.</Vacio>
             ) : (
               <ul>
                 {lotes.map((l, k) => (
-                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[4.5rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
-                    <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
+                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
+                    <span className="whitespace-nowrap font-mono font-medium text-tinta">{l.codigo ?? <span className="font-sans font-normal text-tinta/65">sin código</span>}</span>
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
                       <p className="mt-1 truncate text-tinta/65">
@@ -435,7 +441,10 @@ function FilaInsumo({
                       </p>
                     </div>
                     <span className="whitespace-nowrap tabular-nums text-tinta">
-                      {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">/ {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
+                      {/* «quedan de entraron»: dos cifras iguales sin nombre no decían cuál era cuál (P11 del análisis del Taller). */}
+                      <span title="Lo que queda de lo que entró">
+                        {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">de {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
+                      </span>
                     </span>
                     <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75">
                       {veCostos && l.costoUnitario !== null && costoUnitarioTexto(l.costoUnitario)}
