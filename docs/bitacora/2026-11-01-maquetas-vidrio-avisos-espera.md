@@ -25,3 +25,8 @@
   de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en `apps/web`.
 - **Lo que eligió Felipe en los íconos:** marco A · Se llena al elegir y contenido A · Duotono en los de 20 (en el contenido no tomó la
   recomendada).
+- **Caja, página entera** (la otra sesión me la pasó; ella hace Punto de Venta y Existencias): maqueta `docs/maquetas/caja-vidrio-2026-11/`,
+  en la vista «hoy contra ayer», armada solo con las piezas elegidas. Caras de lo propio: el titular (A · Ahumado, recomendada; B · Placa
+  clara; C · Al aire) y la barra de cierre (A · Placa que se tiñe, recomendada; B · Isla), con sus tres niveles por la hora; «Cerrar caja» pasa
+  a la gota roja. Fuera, la persiana de «Caja cerrada». Medida de 320 a 1920 px sin desbordes, en claro y oscuro, sin errores. Sin cambios en
+  `apps/web`.

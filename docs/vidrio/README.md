@@ -72,6 +72,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | Íconos del contenido (lucide) | `lib/iconos.ts` (477 archivos) | Elegido | A · Duotono en los de 20 (y los dibujos grandes); 12, 14 y 16 px, solo línea | `iconos-vidrio-2026-11/` |
 | Página · Punto de Venta (`/vender`) | `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx`, `PuntoDeVentaTicket.tsx`, `punto-de-venta/TarjetaPrenda.tsx` | En maqueta | — (recomendadas: la mesa A · Catálogo al aire, ticket en placa y tarjeta A · Placa) | `vender-vidrio-2026-11/` |
 | **El Observatorio** (Inicio del Admin, ADR-0322) | `components/observatorio/`, `estilos/observatorio.css` | Elegido (pasado a la sesión que implementa) | B · El mapa al aire, controles B · Ahumado (con contraste 3:1), orbes A · Lente, y los extras: orbes con líquido, cinta de vidrio, anillos de tubo, el Perú de vidrio, gráficos de vidrio, estela del cometa | `observatorio-vidrio-2026-10/` |
+| **Caja** (página entera: `app/(app)/caja`, vista «hoy contra ayer») | `CajaAbiertaPanel`, `CajaComparativa`, `BarraCierreCaja` | En maqueta (armada con las piezas elegidas) | — (recomendadas: titular A · Ahumado, barra de cierre A · Placa que se tiñe) | `caja-vidrio-2026-11/` |
 
 ## Fuera hasta que Felipe diga
 
