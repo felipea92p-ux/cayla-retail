@@ -214,12 +214,27 @@ caso(
      pg_temp.eh(pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "1")})));`,
   "42501|recibir_insumos_sin_modulo,42501|recibir_insumos_sin_modulo"
 );
+// P05 del análisis del Taller (2026-11-02, migración 20261102210000): con la migración nueva (`--con-migracion`) la regla tiene UNA excepción, la cuenta de un Admin
+// (como en Compras, ADR-0517). Sin ella, la regla es la de siempre y Felipe (Admin en el seed) queda frenado; con ella, «sin ser Admin» = a Felipe se le baja el rol
+// en Dynamic dentro del caso: sigue siendo líder aquí y sigue frenado.
+const FELIPE_SIN_SER_ADMIN = `reset role;\nupdate public.personas set rol = 'integrante' where auth_user_id = '${FELIPE}';\n${como(FELIPE)}`;
 caso(
-  "P2 quien hizo la orden no la recibe, ni el líder (42501 / recibir_quien_compro) y no queda nada",
-  `select concat_ws('|', pg_temp.eh(pg_temp.recibe(:'o2', :'taller', ${una(":'j1'", "1")})),
+  "P2 quien hizo la orden no la recibe, ni el líder que no es Admin (42501 / recibir_quien_compro) y no queda nada",
+  `${CON_MIGRACION ? FELIPE_SIN_SER_ADMIN : ""}select concat_ws('|', pg_temp.eh(pg_temp.recibe(:'o2', :'taller', ${una(":'j1'", "1")})),
      (select count(*) from retail.insumo_lotes l where l.orden_insumo_item_id = :'j1'));`,
   "42501|recibir_quien_compro|0"
 );
+if (CON_MIGRACION) {
+  caso(
+    "P3 un Admin sí recibe lo que él mismo pidió: entra el lote y queda a su nombre (la orden la hizo él y el movimiento lo registró él)",
+    `select pg_temp.recibe(:'o2', :'taller', ${una(":'j1'", "1")}) as r \\gset
+     select concat_ws('|', (:'r' like 'OK:%')::text, (select count(*) from retail.insumo_lotes l where l.orden_insumo_item_id = :'j1'),
+       coalesce((select (o.creada_por = :'felipe_p' and m.usuario_id = :'felipe_p')::text
+          from retail.ordenes_insumo o, retail.insumo_lotes l, retail.movimientos_insumo m
+         where o.id = :'o2' and l.orden_insumo_item_id = :'j1' and m.insumo_lote_id = l.id limit 1), 'sin movimiento'), case when :'r' like 'OK:%' then '' else left(:'r', 90) end);`,
+    "true|1|true|"
+  );
+}
 
 caso(
   "R1 sin papel (el comprobante no bloquea): 10 m de lino abren un lote con el costo neto de la orden y su movimiento de compra",

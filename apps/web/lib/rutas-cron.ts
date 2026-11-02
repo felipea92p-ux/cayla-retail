@@ -27,6 +27,8 @@ export const RUTAS_DE_CRON = [
   "/api/apartados/vencer",
   // ADR-0536 (actividad 10): el informe del lunes de «Pregúntale a CAYLA», los lunes a las 7:00 de Lima.
   "/api/asistente/informe",
+  // ADR-0601 (actividad 5): trae de la API del SIRE las propuestas del mes anterior, del día 2 al 10 a las 8:30 de Lima.
+  "/api/sire/propuesta",
 ] as const;
 
 /** ¿La petición trae la clave del cron? Sin `CRON_SECRET` configurado no pasa nadie, tampoco «Bearer undefined» ni «Bearer ». */

@@ -22,7 +22,9 @@ export type ClaveChequeo =
   | "sobrantes_traslado"
   | "facturas_sin_recibir"
   | "diario"
-  | "huella";
+  | "huella"
+  // La propuesta del SIRE contra el ERP (ADR-0601): la arma la web con el cruce de «Comparar con SUNAT», no la base. Solo avisa.
+  | "sire";
 
 /** Un chequeo tal como lo mide la base: si pasa, si bloquea el cierre y los datos para decir qué falta. */
 export type Chequeo = { clave: ClaveChequeo | string; ok: boolean; bloquea: boolean; datos: Record<string, unknown> };
@@ -230,6 +232,7 @@ const TITULOS: Record<ClaveChequeo, string> = {
   facturas_sin_recibir: "Mercadería facturada ya recibida",
   diario: "El diario de la unidad cuadra",
   huella: "Lo congelado sigue igual al diario de hoy",
+  sire: "La propuesta de SUNAT cuadra con el ERP",
 };
 
 /**
@@ -252,6 +255,7 @@ const NOMBRE_DE_AVISO: Record<ClaveChequeo, string> = {
   facturas_sin_recibir: "mercadería facturada sin recibir",
   diario: "diario que no cuadra",
   huella: "diario que ya no coincide con lo congelado",
+  sire: "diferencias con la propuesta de SUNAT",
 };
 
 /** El chequeo, dicho por lo que le falta: «envíos recibidos con faltantes por resolver». */
@@ -378,6 +382,13 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
         detalle: `${plural(n, "factura de mercadería", "facturas de mercadería")}${sede} ${n === 1 ? "tiene" : "tienen"} prendas sin recibir: ${plural(numero(d.unidades), "prenda", "prendas")} por llegar${total}${cola("Recíbelas en Recibir mercadería")}`,
       };
     }
+    case "sire": {
+      // No lleva la `cola` de siempre: este aviso lo arma la web y no queda guardado en el cierre.
+      const resueltas = numero(d.resueltas);
+      if (c.ok) return { titulo, detalle: resueltas > 0 ? `Cuadra, con ${plural(resueltas, "diferencia resuelta", "diferencias resueltas")}` : `La propuesta de compras de ${m} cuadra con lo registrado` };
+      if (d.subida !== true) return { titulo, detalle: `Todavía no se comparó la propuesta de compras de ${m}. Puedes cerrar igual` };
+      return { titulo, detalle: `${plural(numero(d.por_mirar), "diferencia", "diferencias")} sin resolver. Puedes cerrar igual, pero el contador aceptaría la propuesta con ellas` };
+    }
     case "diario": {
       const asientos = numero(d.asientos);
       const lineas = plural(numero(d.lineas), "línea", "líneas");
@@ -422,6 +433,8 @@ export function enlaceChequeo(c: Chequeo, u: Pick<Unidad, "alcance" | "ubicacion
       return `/finanzas/gastos?tab=fijos&mes=${mes}&ver=${ver}`;
     case "conciliacion":
       return "/finanzas/dinero/conciliacion";
+    case "sire":
+      return `/finanzas/impuestos/sire?mes=${mes}`;
     // Los cuatro pendientes por sede: cada uno, a la pantalla donde se resuelve («Nos debe» vive en la ficha de cada proveedor).
     case "envios_con_diferencia":
       return "/compras/proveedores";
@@ -485,4 +498,15 @@ export function historiaDe(p: Pick<PanelCierre, "historia">, u: Pick<Unidad, "al
       lineas.push({ cuando: e.reabiertoEn, texto: `${fechaCorta(diaLima(e.reabiertoEn))} · ${primerNombre(e.reabiertoPor ?? "—")} reabrió: «${e.motivoReapertura ?? ""}»` });
   }
   return lineas.sort((a, b) => a.cuando.localeCompare(b.cuando)).map((l) => l.texto);
+}
+
+/** Suma el aviso de la comparación con SUNAT (ADR-0601) a la unidad «empresa», que es la del RUC entero. Si no hay aviso, el panel sigue igual. */
+export function conChequeoSire(p: PanelCierre, chequeo: Chequeo | null): PanelCierre {
+  if (!chequeo) return p;
+  return {
+    ...p,
+    unidades: p.unidades.map((u) =>
+      u.alcance !== "empresa" ? u : { ...u, chequeos: [...u.chequeos, chequeo], avisos: u.avisos + (chequeo.ok || u.estado === "cerrado" ? 0 : 1) },
+    ),
+  };
 }
