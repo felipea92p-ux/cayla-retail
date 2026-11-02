@@ -27,3 +27,7 @@ En negrita, la recomendada. Lo que gana y lo que cuesta cada una, al pie de `ind
 
 En Chrome sin ventana: 324 combinaciones (320 a 1920 px, claro y oscuro, lista y orden, todas las caras), nada se desborda; sin errores de JS;
 el pico sigue al paso elegido (549 → 119 px al tocar Corte).
+
+## Lo que decidió Felipe
+
+**Ruta B · Lentes al aire y paso abierto A · Placa con su pico** (2026-11-02). En la ruta se recomendaba la A.
