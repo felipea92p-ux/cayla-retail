@@ -230,3 +230,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
   y tres renglones: nombre y precio sin «.00» (`lib/precio-de-catalogo.ts`, con su prueba), «Categoría · color que se ve» y los puntos de
   color de 12 px (24 de toque) con el stock tenue (`stockDeTarjeta`). En tarjeta angosta el precio baja. Felipe aceptó las tres reglas que
   cambia (stock de la empresa en la tarjeta, «Sin stock» en rojo, sin el chip de marca/proveedor): escritas en ADR-0596 act. 2026-11-02.
+
+- **Conteo al vidrio (Felipe 2026-11-02):** la planilla «A · Placa Serena» (sigue siendo un `<table>`: placa Serena, encabezado hundido,
+  hilo de tinta al 9 % entre filas, sin rayado; los tintes de cuadra y reconteo no cambian) y los pasos «A · Ranura con gotas» (el `rc-riel`:
+  ranura de 6 px, el paso hecho en gota verde, el actual en ahumado denso con halo, el pendiente en gota clara). Recibir mercadería hereda
+  los pasos. Contar, Revisar y Confirmar pasan de los pasos en «línea» al riel (`forma="riel"`, con sus subtítulos), como en la maqueta; el
+  cuadre del piso sigue en línea. Visto con una maqueta montada sobre la página: la base local no tiene un conteo en curso.
