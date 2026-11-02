@@ -215,3 +215,9 @@ Qué se verificó: en local, escritorio abierto (9 filas de 56 px con 14 px de a
 - **El selector de modo al vidrio (Felipe 2026-11-02):** «Grilla / Tabla» y todo `SegmentoDeslizante forma="modo"` / `SegmentoEnlaces`
   pasan a «A · Pozo y gota»: el pozo con la gota de las pestañas que fluye (el mismo `IndicadorDeslizante variante="gota"`), también entre
   enlaces que cambian `?vista=`. Alto de 36 px como siempre. La tarjeta de `ProductosGrilla` queda como estaba: Felipe elige su reparto.
+
+- **Traslados al vidrio (Felipe 2026-11-02):** la billetera de pases (ADR-0355) con el pase «B · Lente del tono» (vidrio teñido del tono
+  con su filo, la banda en el tono, las perforaciones recortadas con una máscara: `PaseFrente` mide dónde caen) y el escenario «A · Al aire»;
+  el movimiento no cambia. Para que se lea sobre el vidrio, la letra tenue del pase sube a tinta al 78 %, el nombre de la banda lleva algo
+  de tinta y la banda en oscuro va más clara que en la maqueta (12→6 %): peor caso medido 4,5:1. Se corrigió de paso que el frente se veía
+  a través del reverso al girar. Solo se vio el tono «contando» (la base local no tiene otros).
