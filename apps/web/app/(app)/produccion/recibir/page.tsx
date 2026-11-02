@@ -33,7 +33,7 @@ export default async function RecibirProduccionPage() {
   const [lineas, ordenes] = await Promise.all([getLineasPorRecibir(taller.id), getOrdenesInsumoPorRecibir(taller.id)]);
   return (
     <div className="space-y-6">
-      <RecibirProduccionPanel sede={persona.ubicacionEtiqueta} lineas={lineas} ordenesInsumo={ordenes.ordenes} fallaOrdenes={ordenes.falla} tallerId={taller.id} />
+      <RecibirProduccionPanel sede={persona.ubicacionEtiqueta} lineas={lineas} ordenesInsumo={ordenes.ordenes} fallaOrdenes={ordenes.falla} tallerId={taller.id} esAdmin={persona.esAdmin} />
     </div>
   );
 }

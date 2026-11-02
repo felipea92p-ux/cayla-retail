@@ -12,7 +12,8 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { Aviso } from "@/components/ui/Aviso";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { cantidadConUnidad } from "@/lib/ordenes-insumo-reglas";
-import { esMiOrden, llegoAlgo, type OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
+import { esMiOrden,
+  ordenBloqueadaPorSerMia, llegoAlgo, type OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { etiquetaTipo } from "@/lib/comprobantes-produccion-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { agruparPorComprobante, resumenRecepcion, type ComprobantePorRecibir, type LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
@@ -35,6 +36,7 @@ export function RecibirProduccionPanel({
   ordenesInsumo = [],
   fallaOrdenes = null,
   tallerId,
+  esAdmin = false,
   sede,
 }: {
   lineas: LineaPorRecibir[];
@@ -43,6 +45,8 @@ export function RecibirProduccionPanel({
   /** Por qué no se pudieron leer las órdenes (la pantalla lo dice y sigue con los papeles). */
   fallaOrdenes?: string | null;
   tallerId: string;
+  /** La cuenta es de un Admin: recibe lo que él mismo pidió (P05 del análisis del Taller; la base lo vuelve a exigir). */
+  esAdmin?: boolean;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
 }) {
@@ -100,7 +104,9 @@ export function RecibirProduccionPanel({
           <TituloSeccion cuenta={ordenesInsumo.length}>Órdenes de insumos</TituloSeccion>
           <ul className="space-y-3">
             {ordenesInsumo.map((o, i) => {
-              const mia = esMiOrden(o, personaId);
+              const mia = ordenBloqueadaPorSerMia(o, personaId, esAdmin);
+              // Un Admin que hizo la orden sí la recibe: se lo dice, y queda a su nombre (el lote y su movimiento guardan quién los registró).
+              const suya = esAdmin && esMiOrden(o, personaId);
               // La entrega es una fecha; «pedida el» es un instante y se lee en Lima (de 7 p. m. a medianoche, en UTC ya es mañana).
               const cuando = o.fechaEntregaEstimada ? `llega el ${diaMes(o.fechaEntregaEstimada)}` : o.creadaEn ? `pedida el ${diaYHoraLima(o.creadaEn).dia}` : null;
               return (
@@ -129,6 +135,7 @@ export function RecibirProduccionPanel({
                     </div>
                   </div>
                   {mia && <p className="mt-2 text-sm text-taupe">La hiciste tú: la recibe otra persona del Taller.</p>}
+                  {suya && <p className="mt-2 text-sm text-taupe">La hiciste tú. Como Admin la puedes recibir; queda anotado a tu nombre.</p>}
                   <ul className="mt-3">
                     {o.lineas.map((l) => (
                       <li key={l.itemId} className="flex items-baseline justify-between gap-3 border-t border-tinta/10 py-2 text-sm">
