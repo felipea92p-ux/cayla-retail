@@ -445,8 +445,9 @@ export function HojaDeCobro({
   );
 }
 
-/** El título de un paso: número (✓ al completarlo), nombre, la pastilla de «Sigue aquí»/«Elige uno» y su estado a la derecha. */
-function CabezaPaso({
+/** El título de un paso: número (✓ al completarlo), nombre, la pastilla de «Sigue aquí»/«Elige uno» y su estado a la derecha. También lo usa
+ *  la hoja del descuento (`PanelDescuento`): los dos pasos a paso de Vender se ven igual. */
+export function CabezaPaso({
   numero,
   titulo,
   hecho,

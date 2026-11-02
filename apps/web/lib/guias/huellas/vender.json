@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 194,
+  "total": 196,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -114,16 +114,6 @@
       "Volver «→onVolverATicket»",
       "button «Retomar»",
       "button «{`Descartar el ticket de ${nombreDeEspera(t.nombre, i)}»",
-      "SegmentoDeslizante «Cómo escribir el descuento»",
-      "button «S/»",
-      "input «Monto de descuento»",
-      "button «{p}»",
-      "input «Porcentaje de descuento»",
-      "button «{r.etiqueta}»",
-      "input «Detalle del motivo»",
-      "textarea «Argumento del descuento»",
-      "button «{todoElTicket && <IconoCheck />}»",
-      "button «{marcada && <IconoCheck />}»",
       "input «Lo recoge el sábado, va con arreglo de bastilla…»",
       "button «Quitar»",
       "button «Cambiar»",
@@ -219,6 +209,11 @@
       "button «{icono}»",
       "button «vender.cobro-confirmar»"
     ],
+    "components/punto-de-venta/HojaDeDescuento.tsx": [
+      "Volver «→onVolver»",
+      "Boton «Aplicar descuento»",
+      "Boton «Quitar descuento»"
+    ],
     "components/punto-de-venta/LineaDelTicket.tsx": [
       "button «{`Descuento para ${nombre}»",
       "BotonDeshacer «{`Dejar ${nombre}»",
@@ -233,6 +228,17 @@
       "Casilla «(sin nombre)» #2",
       "button «{bajable ? `Agregar ${nombre}»",
       "button «{`Quitar ${nombre}»"
+    ],
+    "components/punto-de-venta/PanelDescuento.tsx": [
+      "Casilla «Todo el ticket»",
+      "Casilla «{it.referencia}»",
+      "SegmentoDeslizante «Cómo escribir el descuento»",
+      "button «{porMonto ? `S/${a}»",
+      "input «Monto de descuento»",
+      "input «Porcentaje de descuento»",
+      "button «{r.etiqueta}»",
+      "input «Detalle del motivo»",
+      "textarea «Argumento del descuento»"
     ],
     "components/punto-de-venta/PedidosParaClientes.tsx": [
       "button «{llego ? \"Avisar por WhatsApp\" : \"Avisar que no llegó\"}»",
