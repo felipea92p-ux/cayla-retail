@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 139,
+  "total": 150,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -50,6 +50,10 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
+      "button «{nombreDeParada(p)}»",
+      "DesplegablePildora «Proveedor»",
+      "DesplegablePildora «Marca»",
+      "button «Ver todas»",
       "button «{nombre}»",
       "button «recepcion.agregar»"
     ],
@@ -136,6 +140,16 @@
       "SegmentoDeslizante «{`Dónde vale el precio de ${nombre}»",
       "button «Distinto por talla o color»"
     ],
+    "components/recepcion-conteo/PrendasDeLaPlaca.tsx": [
+      "button «→() => onElegir(p)»",
+      "button «Cambiar tallas»",
+      "Boton «Tallas y colores ahora»",
+      "Boton «Crear ahora»",
+      "button «{`Llegó ${p.nombre}»",
+      "BotonEditar «Describir»",
+      "button «Llegaron otras y aún no sé cómo se llaman»",
+      "button «Quitar»"
+    ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
       "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",
       "ComboResponsable «{responsable}»",
@@ -147,7 +161,6 @@
     ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",
-      "button «{`Pasar ${a.prenda.nombre}»",
       "button «Cambiar»",
       "Boton «Tallas y colores ahora»",
       "Boton «Crear ahora»",

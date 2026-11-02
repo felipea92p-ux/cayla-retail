@@ -46,6 +46,20 @@
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
 }
+/* El modelo que está en el Dial sobresale (la gota: «donde estás»); los demás siguen hundidos. */
+.rc-acord-prenda[data-activa],
+.rc-placa-fila[data-activa] {
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz), inset 0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 55%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+}
+@media (hover: hover) {
+  .rc-acord-prenda:not([data-activa]):hover { box-shadow: var(--pozo-sombra), inset 0 0 0 1.5px var(--color-borde-control); }
+}
+/* Lo que explica o acompaña al lado del Dial: al pozo, como lo demás de adentro de la placa. */
+.rc-placa-accion { background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
+@media (hover: hover) {
+  .rc-placa-fila:not([data-activa]):hover { background: var(--pozo-fondo); }
+}
 /* El número del Dial: al pasar el mouse se hunde (antes, hueso); al escribirlo, el pozo encendido de un campo, con su raya roja. */
 @media (hover: hover) {
   .rc-dial-numero:hover {

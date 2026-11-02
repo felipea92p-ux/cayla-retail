@@ -1823,28 +1823,62 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       titulo: "¿Llegó algo que no está aquí?",
       texto: "Si viene dentro de este envío, empieza a recibirlo igual y lo sumas al contar. Si es otro paquete que llegó sin aviso de Compras, «Recibir sin aviso» te lleva a recibirlo aparte. Lo que manda otra sede se recibe en Traslados.",
     },
-    // ---- Abierto, contando primero (ADR-0393): un número por categoría, lo demás para después ----
+    // ---- Abierto, contando modelo por modelo (Felipe 2026-11-02, sobre ADR-0393): cada categoría una vez, y el aro cuenta el modelo elegido ----
     {
       id: "categorias",
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "Lo que dijeron que venía, por tipo de prenda. Toca una para contarla: se abre y muestra las prendas que se anotaron al comprar, con un punto por prenda que se llena al identificarla. Con su ✓ ya tiene su número y todas sus prendas identificadas.",
+      texto: "Cada categoría sale una sola vez, aunque venga de varios proveedores. Toca una y se abre con sus modelos, uno por uno, con un punto por prenda que se llena al contarla. Toca el modelo que tienes en la mano y el aro lo cuenta; la categoría suma sola. Con su ✓ ya está contada e identificada.",
+    },
+    {
+      // Solo si el envío trae más de un proveedor o marca.
+      id: "filtros",
+      ancla: "recepcion.filtros",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Ver solo un proveedor o marca",
+      texto: "Si el envío trae varios proveedores o marcas, aquí dejas solo los de uno: la lista muestra sus categorías y sus modelos. Sirve cuando abres el fardo de un proveedor. Los totales de abajo siguen siendo de todo el envío.",
     },
     {
       id: "quien-cuenta",
       ancla: "recepcion.quien-cuenta",
       requiere: ["recepcion.categorias"],
       titulo: "Quién cuenta",
-      texto: "Debajo de las categorías, elige quién está contando: cada categoría guarda quién la contó. Pueden contar varias personas a la vez, cada una su categoría; al final firma quien cierra. El ⓘ te lo explica.",
+      texto: "Debajo de las categorías, elige quién está contando: cada modelo guarda quién lo contó. Pueden contar varias personas a la vez; al final firma quien cierra. El ⓘ te lo explica.",
     },
     {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      titulo: "Cuántas llegaron",
-      texto: "El aro se llena con lo que cuentas: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y −, +5 y +10; «Llegaron las N» pone lo que dijeron de un toque. Se guarda solo. Si no coincide, no pasa nada: al cerrar dirás por qué.",
+      titulo: "Cuántas llegaron de este modelo",
+      texto: "El aro cuenta el modelo que elegiste y se llena con lo que cuentas: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y −, +5 y +10; «Llegaron las N» pone lo que se anotó de un toque. Se guarda solo. Si no coincide, no pasa nada: al cerrar dirás por qué.",
+    },
+    {
+      id: "anotadas",
+      ancla: "recepcion.anotadas",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que se anotó al comprar",
+      texto: "Al lado del aro, las prendas que se anotaron al comprar en esta categoría, con cuántas llevas de cada una. Toca una y el aro pasa a contarla.",
+    },
+    {
+      // Tocar una la suma a la lista y eso se guarda solo: la demo la explica sin tocarla.
+      id: "parecidas",
+      ancla: "recepcion.parecidas",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Las que se parecen",
+      texto: "Del catálogo de esta categoría y marca, las que se parecen a lo que se anotó. Si llegó una de esas, tócala: se suma a la lista y el aro pasa a contarla.",
+    },
+    {
+      id: "separar",
+      ancla: "recepcion.separar",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "¿Llegó otra cosa?",
+      texto: "Si no es ninguna de las anotadas, búscala en el catálogo y queda en el aro para contarla. Si no está, anótala con un nombre corto. Las tallas y los colores pueden esperar; saber qué prenda es, no: sin eso no se pasa a «Cerrar».",
     },
     {
       // ADR-0507: «Anotar observación» abre una hoja que guarda; la guía la explica sin tocarla.
@@ -1856,24 +1890,6 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar observación»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo que contaste.",
     },
     {
-      id: "separar",
-      ancla: "recepcion.separar",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "¿Qué prendas son?",
-      texto: "Di qué prenda es cada una de las que contaste: busca la del catálogo y pon cuántas eran. Si es nueva, anótala con un nombre corto y cuántas. Tienen que sumar lo contado: sin eso no se pasa a «Cerrar». Las tallas y los colores pueden esperar.",
-    },
-    {
-      // Solo si la categoría trae prendas anotadas al comprar que todavía no pasaron a la lista. Tocar un chip pasa la prenda a «¿Qué … son?»:
-      // es un cambio que se guarda solo, así que la demo lo explica sin tocarlo.
-      id: "anotadas",
-      ancla: "recepcion.anotadas",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "Lo que se anotó al comprar",
-      texto: "Si la compra anotó qué prendas eran, aquí salen con cuántas eran. Toca una y pasa a la lista de abajo con esa cantidad; si ya habías contado menos, lo contado sube y un aviso te dice cuántas se agregaron. Allí puedes cambiar el número, también escribiéndolo.",
-    },
-    {
       id: "agregar",
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],
@@ -1881,13 +1897,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Si llegó una categoría que no venía, la agregas aquí con su marca y la cuentas como las demás; al cerrar dirás qué pasa con ella. En un envío sin aviso, todo lo que llega entra por aquí. En la demo no la agregamos.",
     },
     {
-      // Solo con la última categoría a la vista: antes, el botón dice «Listo, sigue …».
+      // Solo con lo último a la vista: antes, el botón dice «Listo, sigue …».
       id: "pasar-a-cerrar",
       ancla: "recepcion.pasar-a-cerrar",
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Pasar a cerrar",
-      texto: "Cuando todas las categorías tienen su número y sus prendas identificadas, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. En la demo no avanzamos.",
+      texto: "Cuando todo está contado e identificado, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. En la demo no avanzamos.",
     },
     {
       id: "tabla-cierre",

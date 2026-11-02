@@ -28,6 +28,7 @@ import {
   SIN_MARCA,
   sumarPrenda,
   textoPrendas,
+  TOPES_CONTEO,
   totalSeparado,
   type LineaParaContar,
   type PrendaAnotada,
@@ -81,6 +82,7 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
   const usadasNombre = new Set<string>();
   const filas: ModeloDelConteo[] = anotadasDelGrupo(g).map(({ prenda }) => {
     const clave = claveDeAnotada(prenda);
+    let productoId = prenda.productoId;
     let contadas = 0;
     let conTallas = false;
     if (prenda.productoId) {
@@ -91,14 +93,23 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
     } else {
       const k = normaliza(prenda.nombre);
       usadasNombre.add(k);
-      contadas = g.separado.nuevas.filter((n) => n.descripcion && normaliza(n.descripcion) === k).reduce((a, n) => a + n.cantidad, 0);
+      // Anotada solo por nombre y luego creada en el catálogo con ese nombre («Crear ahora»): sigue siendo este modelo, ahora con su prenda.
+      const creada = g.separado.prendas.find((p) => p.nombre && normaliza(p.nombre) === k && !usadasCatalogo.has(p.productoId));
+      if (creada) {
+        usadasCatalogo.add(creada.productoId);
+        productoId = creada.productoId;
+        contadas = creada.cantidad;
+        conTallas = !!creada.variantes;
+      } else {
+        contadas = g.separado.nuevas.filter((n) => n.descripcion && normaliza(n.descripcion) === k).reduce((a, n) => a + n.cantidad, 0);
+      }
     }
     const lineas = lineasDelModelo(g, { clave });
     const contado = contadas > 0 || (lineas.length > 0 && lineas.every((l) => l.conteo !== null));
     return {
       clave,
       nombre: prenda.nombre,
-      productoId: prenda.productoId,
+      productoId,
       codigo: prenda.codigo,
       esperadas: prenda.cantidad,
       contadas,
@@ -275,7 +286,7 @@ export function opcionesDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDel
 
 /** Lo separado con este modelo en `n`. En 0 sale de lo separado, sin volverse «nuevas sin describir»: se dijo que no llegó, no que falta nombrarla. */
 export function cantidadDeModelo(s: Separado, m: ModeloDelConteo, n: number): Separado {
-  const c = Math.max(0, Math.trunc(n));
+  const c = Math.max(0, Math.min(TOPES_CONTEO.contadas, Math.trunc(n)));
   if (m.productoId) {
     if (c === 0) return quitarPrenda(s, m.productoId);
     return s.prendas.some((p) => p.productoId === m.productoId)
@@ -290,23 +301,31 @@ export function cantidadDeModelo(s: Separado, m: ModeloDelConteo, n: number): Se
 }
 
 /**
- * La persona dejó este modelo en `n`. Lo contado del grupo sigue a los modelos: si baja un modelo, baja el total; si sube, primero se usa lo que
- * estaba contado sin saber qué era (de un conteo de antes) y recién después sube el total. Solo se guarda lo que cambia y la línea de este
- * modelo: las demás líneas sin contar siguen «sin contar», para que la guía siga pidiendo cada modelo.
+ * Lo separado cambió: lo contado del grupo lo sigue. Si baja, baja el total; si sube, primero se usa lo que estaba contado sin saber qué era (de un
+ * conteo de antes) y recién después sube el total. Solo se guarda lo que cambia y las líneas de `lineasDeEsto`: las demás líneas sin contar siguen
+ * «sin contar», para que la guía siga pidiendo cada modelo.
  */
-export function repartirModelo(g: GrupoDeLineas, m: ModeloDelConteo, n: number): Reparto {
-  const nuevo = cantidadDeModelo(g.separado, m, n);
+function repartirCambio(g: GrupoDeLineas, nuevo: Separado, lineasDeEsto: ReadonlySet<string>): Reparto {
   const antes = totalSeparado(g.separado);
   const despues = totalSeparado(nuevo);
   const piso = g.enStock + despues;
   const total = despues >= antes ? Math.max(g.contadas, piso) : Math.max(piso, g.contadas - (antes - despues));
   const r = repartirSeparado(g, nuevo, total);
-  const deEste = new Set(lineasDelModelo(g, m).map((l) => l.clave));
   return {
     ...r,
-    cambios: r.cambios.filter((c) => c.linea.conteo !== null || deEste.has(c.clave) || c.contadas > 0 || totalSeparado(c.separado) > 0),
+    cambios: r.cambios.filter((c) => c.linea.conteo !== null || lineasDeEsto.has(c.clave) || c.contadas > 0 || totalSeparado(c.separado) > 0),
   };
 }
+
+/** La persona dejó este modelo en `n`. */
+export const repartirModelo = (g: GrupoDeLineas, m: ModeloDelConteo, n: number): Reparto =>
+  repartirCambio(g, cantidadDeModelo(g.separado, m, n), new Set(lineasDelModelo(g, m).map((l) => l.clave)));
+
+/** Lo separado cambió por otra cosa (llegó una prenda más, se le pusieron tallas, unas sin nombre). */
+export const repartirOtroCambio = (g: GrupoDeLineas, nuevo: Separado): Reparto => repartirCambio(g, nuevo, new Set());
+
+/** La llave de modelo de lo que se anota por su nombre (para quedarse en él apenas exista). */
+export const claveDeNombre = (nombre: string): string => `nombre:${normaliza(nombre)}`;
 
 // ---- Las prendas que se parecen ---------------------------------------------------------------------------------------------------------
 

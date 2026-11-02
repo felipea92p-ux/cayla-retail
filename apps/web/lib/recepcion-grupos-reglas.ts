@@ -19,9 +19,7 @@ import {
   contadasDe,
   diferenciaDe,
   estaSeparada,
-  ID_CAMPO_AGREGAR,
   idCampoCierre,
-  idCampoConteo,
   marcaDeLinea,
   nuevasSinDescribir,
   prendasAnotadasDe,
@@ -232,9 +230,6 @@ export function anotadasDelGrupo(g: GrupoDeLineas): AnotadaDelGrupo[] {
   return [...porPrenda.values()];
 }
 
-/** Las que todavía no pasaron a «¿Qué … son?». Si se quita de ahí, vuelve sola: no hay otro estado que guardar. */
-export const anotadasPorSepararDelGrupo = (g: GrupoDeLineas): AnotadaDelGrupo[] => anotadasDelGrupo(g).filter((a) => !estaSeparada(g.separado, a.prenda));
-
 /**
  * Cuántas de las prendas contadas de la categoría todavía no se sabe cuáles son (Felipe 2026-10-27). Una prenda está identificada cuando
  * es una del catálogo o una nueva ya descrita con su nombre; las nuevas sin descripción y lo que no se separó NO lo están. Lo que ya entró al
@@ -252,16 +247,6 @@ export const gruposSinIdentificar = (grupos: readonly GrupoDeLineas[]): GrupoDeL
 /** La llave del campo de la guía «identifica las prendas de esta categoría» (`data-campo` de su «¿Qué … son?»). */
 export const idCampoIdentificar = (claveGrupo: string): string => `identificar-${claveGrupo.replace(/[^a-zA-Z0-9]+/g, "-")}`;
 
-/**
- * Lo que dice el aviso cuando una prenda pasada a «¿Qué … son?» sube lo contado (Felipe 2026-10-27): cuántas se agregaron al conteo y cuánto
- * es ahora. Si no subió nada (cabía en lo ya contado), no hay aviso.
- */
-export function avisoDePrendasAgregadas(nombre: string, antes: number, despues: number): string | null {
-  const n = despues - antes;
-  if (antes <= 0 || n <= 0) return null;
-  return `${n === 1 ? "Se agregó" : "Se agregaron"} ${textoPrendas(n)} «${nombre}» al conteo: ahora son ${despues}.`;
-}
-
 /** Lo que dice el chip del contador de la categoría: «Cuadra: llegaron las 12», «Faltan 2», «Sobran 3», «12 contadas». */
 export function veredictoDelGrupo(g: GrupoDeLineas): { texto: string; tono: "verde" | "ambar" | "neutro" } {
   const n = g.contadas;
@@ -270,37 +255,6 @@ export function veredictoDelGrupo(g: GrupoDeLineas): { texto: string; tono: "ver
   const d = n - g.dijeron;
   if (d === 0) return { texto: `Cuadra: llegaron las ${g.dijeron}`, tono: "verde" };
   return d < 0 ? { texto: `Faltan ${-d}. Puedes seguir: lo explicas al cerrar.`, tono: "ambar" } : { texto: `Sobran ${d}. Puedes seguir: lo explicas al cerrar.`, tono: "ambar" };
-}
-
-/**
- * La guía de foco del conteo: por categoría, el número (hecho cuando todas sus líneas lo tienen, aunque sea 0) y, con lo contado, quiénes
- * son esas prendas (hecho cuando no queda ninguna sin identificar). El primero no frena nada; el segundo sí: sin él no se pasa a «Cerrar».
- */
-export function camposDelConteoPorGrupo(grupos: readonly GrupoDeLineas[]): CampoDeGuia[] {
-  // Sin nada en la lista (un envío sin aviso recién abierto) no se puede cerrar: lo que sigue es agregar lo que llegó.
-  if (grupos.length === 0) {
-    return [{ id: ID_CAMPO_AGREGAR, nombre: "Lo que llegó", requerido: true, hecho: false, pendiente: "Agrega la primera categoría que llegó y cuéntala." }];
-  }
-  return grupos.flatMap((g) => {
-    const nombre = [g.principal.categoria?.nombre, g.principal.categoria ? marcaDeLinea(g.principal).nombre : null].filter(Boolean).join(" · ") || "esta categoría";
-    const sin = sinIdentificarDelGrupo(g);
-    const prendas = (g.principal.categoria?.nombre ?? "prendas").toLowerCase();
-    const campos: CampoDeGuia[] = [];
-    // Lo de fuera de la guía no pide su número (es lo que se agrega al contar), pero sí que se sepa qué prendas son.
-    if (g.principal.linea) {
-      campos.push({ id: idCampoConteo(g.principal.clave), nombre, requerido: true, hecho: g.contado, pendiente: `Cuenta ${nombre} y escribe cuántas llegaron.` });
-    }
-    if (g.principal.linea || sin > 0) {
-      campos.push({
-        id: idCampoIdentificar(g.clave),
-        nombre: `Qué ${prendas} son`,
-        requerido: true,
-        hecho: sin === 0,
-        pendiente: `${sin === 1 ? "Falta" : "Faltan"} ${textoPrendas(sin)} por identificar en ${nombre}: busca cada una o anótala como nueva.`,
-      });
-    }
-    return campos;
-  });
 }
 
 /** Cómo se llamaron las prendas de la compra («Vestido Sofía, Vestido Lima»), sin repetir. */

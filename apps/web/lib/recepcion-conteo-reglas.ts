@@ -899,8 +899,6 @@ export function camposDelCierre(
 /** El id de un campo del cierre en la guía y en el DOM (`data-campo`). */
 export const idCampoCierre = (tipo: "contar" | "causa" | "costo", clave: ClaveLinea): string => `${tipo}-${clave.replace(":", "-")}`;
 
-export const idCampoConteo = (clave: ClaveLinea): string => `contar-${clave.replace(":", "-")}`;
-
 /** El botón «+ Agregar lo que llegó», cuando la lista está vacía. */
 export const ID_CAMPO_AGREGAR = "contar-agregar";
 

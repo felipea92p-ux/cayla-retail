@@ -279,7 +279,7 @@ export function RecibirContando({
       ? "Este envío se anuló: ya no llega."
       : otraSede || noLoRecibe
         ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
-        : "Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
+        : "Abre un fardo y cuenta cuántas llegaron de cada modelo. Elige la categoría a la izquierda y toca el modelo que tienes en la mano.";
   // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. El número del envío y lo que se
   // lleva contado van en el riel y en la balanza.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
@@ -368,8 +368,9 @@ export function RecibirContando({
 
       {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la DERECHA mientras se cuenta, se cierra y se
           mira lo cerrado (rediseño de «Contar», opción A de `docs/maquetas/recibir-contar-2026-10`, Felipe 2026-10-28): el trabajo ocupa lo
-          ancho y el papel acompaña sin quitarle el primer lugar. Bajo `xl` el papel va arriba, como antes. Sin papeles, todo sigue a lo ancho. */}
-      <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]" : "space-y-6"}>
+          ancho y el papel acompaña sin quitarle el primer lugar. Bajo `xl` el papel va arriba, como antes. Sin papeles, todo sigue a lo ancho. Desde
+          el 2026-11-02 la columna es más angosta: al contar son tres zonas (categorías, placa y papeles) y a 1440 px tienen que caber las tres. */}
+      <div className={conPapel ? "grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem] min-[1600px]:grid-cols-[minmax(0,1fr)_22rem]" : "space-y-6"}>
       {conPapel && (
         <div className="xl:sticky xl:top-4 xl:order-2">
           <PapelesDeLaCompra papeles={papeles} lineas={lineas} alSubirFoto={subirFotoDelPapel} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />

@@ -68,14 +68,6 @@ button.rc-parada:disabled { cursor: default; }
 .rc-contador { container-type: inline-size; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--color-hueso) 70%, var(--color-papel)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-sand) 55%, transparent); }
 /* La franja del contador (opción A): número, atajos y barra de «cuadra». Angosta (la tarjeta, no la ventana: junto al papel queda de ~650 px):
    el número y los atajos van en una fila y la barra baja debajo. Ancha: las tres cosas en una sola fila. */
-.rc-franja { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 24px; }
-.rc-franja .rc-rapidos { justify-content: flex-start; }
-.rc-franja-cuadra { display: flex; flex-direction: column; gap: 8px; min-width: 0; grid-column: 1 / -1; }
-@container (min-width: 820px) {
-  .rc-franja { grid-template-columns: auto auto minmax(0, 1fr); }
-  .rc-franja-cuadra { grid-column: auto; }
-}
-@media (max-width: 639px) { .rc-franja { grid-template-columns: minmax(0, 1fr); } .rc-franja .rc-rapidos { justify-content: center; } }
 .rc-rapidos { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .rc-rapidos button { padding: 5px 14px; border: 1px solid var(--color-sand); border-radius: 999px; color: var(--color-taupe); font-size: 13px; font-weight: 600; transition: background-color 150ms var(--ease-cayla), border-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla); }
 @media (hover: hover) {

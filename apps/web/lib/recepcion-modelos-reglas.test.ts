@@ -15,12 +15,13 @@ import {
   paradasDelGrupo,
   prendasParecidas,
   repartirModelo,
+  repartirOtroCambio,
   resumenDeCategoria,
   SIN_FILTRO,
   SIN_PROVEEDOR,
 } from "./recepcion-modelos-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
-import { leerConteosDelEnvio, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
+import { leerConteosDelEnvio, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
 
 const VESTIDOS = { id: "c-vestidos", nombre: "Vestidos", prefijo: "VES", familia: "vestidos" };
@@ -131,6 +132,11 @@ describe("modelosDelGrupo", () => {
       ["p-x", null, 2, "fuera"],
       ["nombre:vestido floral", null, 1, "fuera"],
     ]);
+  });
+
+  it("anotada por nombre y después creada en el catálogo con ese nombre, sigue siendo el mismo modelo", () => {
+    const g = grupo(deLaGuia(lima(), { contadas: 7, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 7)], nuevas: [] } }));
+    expect(modelosDelGrupo(g).map((m) => [m.clave, m.productoId, m.esperadas, m.contadas, m.estado])).toEqual([["nombre:vestido lima", "p-lima", 7, 7, "cuadra"]]);
   });
 
   it("la misma prenda comprada en dos líneas es un solo modelo, con sus cantidades sumadas", () => {
@@ -329,6 +335,14 @@ describe("contar un modelo", () => {
     expect(quedo.contadas).toBe(0);
   });
 
+  it("una cifra absurda se queda en el tope de lo que la base acepta, también la primera vez", () => {
+    const g = grupo(deLaGuia(sofia()));
+    const tope = TOPES_CONTEO.contadas;
+    expect(repartirModelo(g, modelo(g, "p-sofia"), 99_999_999).contadas).toBe(tope);
+    const conUna = grupo(deLaGuia(sofia(), { contadas: 1, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 1)], nuevas: [] } }));
+    expect(repartirModelo(conUna, modelo(conUna, "p-sofia"), 99_999_999).contadas).toBe(tope);
+  });
+
   it("lo que ya entró al stock no se puede bajar: es el piso de lo contado", () => {
     const g = grupo(deLaGuia(sofia(), { contadas: 5, en_stock: 3, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 2)], nuevas: [] } }));
     const r = repartirModelo(g, modelo(g, "p-sofia"), 0);
@@ -342,6 +356,19 @@ describe("contar un modelo", () => {
     const nuevo = cantidadDeModelo(g.separado, modelo(g, "p-sofia"), 3);
     expect(nuevo.prendas.find((p) => p.productoId === "p-sofia")?.variantes).toBeNull();
     expect(nuevo.prendas.find((p) => p.productoId === "p-anto")?.variantes).not.toBeNull();
+  });
+
+  it("llegó otra prenda: se escribe en la línea principal, sube lo contado y las demás siguen sin contar", () => {
+    const g = grupo(deLaGuia(sofia()), deLaGuia(antonella()));
+    const r = repartirOtroCambio(g, { prendas: [{ productoId: "p-x", nombre: "Vestido Mar", codigo: null, cantidad: 1, variantes: null }], nuevas: [] });
+    expect(r.cambios.map((c) => [c.clave, c.contadas])).toEqual([["item:l-sofia", 1]]);
+    expect(modelo(aplicar(g, r.cambios), "p-anto").contado).toBe(false);
+  });
+
+  it("bajar las que no tienen nombre baja lo contado, no deja «sin identificar»", () => {
+    const g = grupo(deLaGuia(sofia(), { contadas: 3, separado: { prendas: [], nuevas: [{ cantidad: 3, descripcion: null }] } }));
+    const r = repartirOtroCambio(g, { prendas: [], nuevas: [{ cantidad: 1, descripcion: null }] });
+    expect(r.contadas).toBe(1);
   });
 
   // El CHECK `separado_cabe` de la base: en una fila, lo separado más lo que ya entró al stock nunca pasa de lo contado.

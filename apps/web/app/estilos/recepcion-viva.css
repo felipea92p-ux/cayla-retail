@@ -9,16 +9,6 @@
 .rc-odo-tira > span { display: block; height: 1.15em; }
 
 /* ── El Dial ── */
-.rc-franja.rc-franja--dial { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 20px; }
-.rc-franja-lado { display: flex; flex-direction: column; gap: 14px; min-width: 0; width: 100%; }
-.rc-franja--dial .rc-rapidos { justify-content: center; }
-.rc-franja--dial .rc-franja-cuadra { grid-column: auto; align-items: center; text-align: center; }
-@container (min-width: 560px) {
-  .rc-franja.rc-franja--dial { grid-template-columns: auto minmax(0, 1fr); justify-items: stretch; gap: 20px 36px; }
-  .rc-franja--dial .rc-rapidos { justify-content: flex-start; }
-  .rc-franja--dial .rc-franja-cuadra { align-items: flex-start; text-align: left; }
-}
-
 .rc-dial { position: relative; width: 264px; height: 264px; flex: none; }
 .rc-dial-aro { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transform: rotate(-90deg); }
 :where(.rc-dial-aro) :where(circle, line) { fill: none; }
@@ -103,9 +93,9 @@
 .rc-mesa { container-type: inline-size; }
 .rc-mesa-grilla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 .rc-mesa-lado { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-/* Desde 640 px de tarjeta (a 1440 px, junto al papel de la compra, mide 669) el acordeón va al lado: el Dial queda a la vista sin bajar (Formidable 2026-10-29). */
+/* Desde 640 px de tarjeta (a 1440 px, junto al papel de la compra, mide 785) el acordeón va al lado: el Dial queda a la vista sin bajar (Formidable 2026-10-29). */
 @container (min-width: 640px) {
-  .rc-mesa-grilla { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; }
+  .rc-mesa-grilla { grid-template-columns: 250px minmax(0, 1fr); gap: 16px; }
   .rc-mesa-lado { position: sticky; top: 16px; }
 }
 @container (min-width: 940px) {
@@ -114,8 +104,36 @@
 /* «Quién cuenta» en una línea: el título con su ⓘ y el combo al lado (bajan juntos si no caben). */
 .rc-quien { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .rc-quien > .nota-cayla { flex-basis: 100%; }
-.rc-dial-col { display: grid; justify-items: center; gap: 8px; }
 .rc-dial-pista { color: var(--color-taupe); font-size: 13px; }
+
+/* ── La placa compacta (Felipe 2026-11-02): el Dial chico a la izquierda y a su derecha las prendas. Decide por el ancho de la propia placa. ── */
+.rc-placa-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.rc-placa-dial { display: grid; align-content: start; justify-items: center; gap: 10px; min-width: 0; }
+.rc-placa-dial .rc-rapidos button { padding-inline: 10px; }
+.rc-placa-prendas { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+@container (min-width: 420px) {
+  .rc-placa-cuerpo { grid-template-columns: 196px minmax(0, 1fr); align-items: start; gap: 18px; }
+}
+@container (min-width: 640px) {
+  .rc-placa-cuerpo { grid-template-columns: 216px minmax(0, 1fr); gap: 28px; }
+}
+.rc-placa .rc-dial { width: 192px; height: 192px; }
+.rc-placa .rc-dial-centro { inset: 40px; }
+.rc-placa .rc-dial-centro small { font-size: 13px; line-height: 1.2; }
+.rc-placa .rc-dial-numero { padding: 0 6px; font-size: 54px; }
+.rc-placa .rc-dial-caja { width: 88px; font-size: 48px; }
+.rc-placa .rc-dial-visto { top: 12px; right: 12px; width: 30px; height: 30px; }
+.rc-placa .rc-dial-boton { width: 44px; height: 44px; }
+
+/* Las prendas al lado del Dial: se tocan para ponerlas en él; la que está en el Dial lleva su filo. */
+.rc-placa-lista { display: grid; gap: 4px; }
+.rc-placa-fila { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 10px 6px 6px; border-radius: 12px; text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-placa-fila[data-activa] { background: var(--color-hueso); box-shadow: inset 0 0 0 1.5px var(--color-tinta); }
+.rc-placa-fila:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+@media (hover: hover) {
+  .rc-placa-fila:not([data-activa]):hover { background: var(--color-hueso); }
+}
+.rc-placa-accion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--color-hueso); }
 
 /* ── El acordeón de categorías ── */
 .rc-acord { display: flex; flex-direction: column; gap: 8px; }
@@ -132,7 +150,16 @@
 .rc-acord-grupo[data-abierta] .rc-acord-cuerpo { grid-template-rows: 1fr; }
 .rc-acord-dentro { overflow: hidden; min-height: 0; }
 .rc-acord-grupo[data-abierta] .rc-acord-dentro { padding: 0 6px 6px; }
-.rc-acord-prenda { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--color-hueso); }
+/* Los filtros de arriba: las píldoras se reparten el ancho de la columna y cortan su valor con «…» si no caben. */
+.rc-acord-filtros { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 2px; }
+.rc-acord-filtros > * { min-width: 0; max-width: 100%; }
+/* Cada modelo es una fila que se toca: la que está en el Dial lleva el filo de tinta (Felipe 2026-11-02). */
+.rc-acord-prenda { display: grid; gap: 6px; width: 100%; padding: 10px 12px; border-radius: 12px; background: var(--color-hueso); text-align: left; transition: box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+.rc-acord-prenda[data-activa] { box-shadow: inset 0 0 0 1.5px var(--color-tinta); }
+.rc-acord-prenda:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+@media (hover: hover) {
+  .rc-acord-prenda:not([data-activa]):hover { box-shadow: inset 0 0 0 1.5px var(--color-borde-control); }
+}
 .rc-acord-grupo[data-abierta] .rc-acord-prenda { animation: cayla-entrada 380ms var(--ease-cayla) backwards; animation-delay: calc(120ms + var(--k, 0) * 55ms); }
 .rc-acord-puntos { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .rc-acord-puntos i { width: 10px; height: 10px; border: 1.5px solid var(--color-borde-control); border-radius: 50%; transition: background-color 300ms var(--ease-cayla), border-color 300ms var(--ease-cayla); }
@@ -140,7 +167,7 @@
 .rc-acord-agregar { width: 100%; border-radius: 18px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc-acord-grupo, .rc-acord-flecha, .rc-acord-cuerpo, .rc-acord-puntos i { transition: none; }
+  .rc-acord-grupo, .rc-acord-flecha, .rc-acord-cuerpo, .rc-acord-puntos i, .rc-acord-prenda, .rc-placa-fila { transition: none; }
   .rc-acord-grupo, .rc-acord-grupo[data-abierta] .rc-acord-prenda { animation: none; }
 }
 
