@@ -825,7 +825,6 @@ export const DECISIONES = {
       "components/PrendaSinRegistrarModal.tsx",
       "components/ProveedorModal.tsx",
       "components/SalidasDeCaja.tsx",
-      "components/UltimoCierreCaja.tsx",
       "components/actividad/BotonActividad.tsx",
       "components/actividad/ListaActividad.tsx",
       "components/alta-producto/ElegirColores.tsx",
