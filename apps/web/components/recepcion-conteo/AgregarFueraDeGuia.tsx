@@ -126,12 +126,12 @@ export function AgregarFueraDeGuia({
               onValor={setMarcaId}
               // Vacía = sin marca (Felipe 2026-11-03): hay prendas que no la tienen; se completa después en Editar producto. «Sin marca» solo aparece para deshacer una ya elegida.
               opciones={[...(marcaId ? [{ valor: "", texto: "Sin marca" }] : []), ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
-              marcador="Déjala vacía si no tiene"
+              marcador={otrasMarcas.length >= 2 ? "Elige la marca" : "Déjala vacía si no tiene"}
             />
           </CampoGuiado>
           {destino.tipo === "dentro" && (
             <p className="nota-cayla text-sm">
-              <b className="text-tinta">{nombreCategoria} ya está en tu lista.</b> Si llegó otro modelo, se anota ahí con su nombre.
+              <b className="text-tinta">{[nombreCategoria, destino.grupo.principal.marca?.nombre].filter(Boolean).join(" · ")} ya está en tu lista.</b> Si llegó otro modelo, se anota ahí con su nombre.
             </p>
           )}
           {destino.tipo === "otra-marca" && (
@@ -155,7 +155,8 @@ export function AgregarFueraDeGuia({
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {grupoDestino ? `+ Agregar dentro de ${[nombreCategoria, grupoDestino.principal.marca?.nombre].filter(Boolean).join(" · ")}` : "+ Agregar y contar"}
+              {/* Corto a propósito: la marca la dice la nota de arriba; con ella aquí, el texto no cabía en el botón. */}
+              {grupoDestino ? `+ Agregar a ${nombreCategoria}` : "+ Agregar y contar"}
             </Boton>
           </div>
         </form>
