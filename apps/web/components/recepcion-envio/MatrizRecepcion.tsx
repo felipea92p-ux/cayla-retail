@@ -13,8 +13,8 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
 // talla y un color que la prenda tiene (una variante); la que no existe sale rayada con «—» (se crea con «+ talla o color»).
 //
 // Dos usos: `modo="cantidades"` (cuántas llegaron, buenas y dañadas juntas) y `modo="danadas"` (cuántas de esas vinieron dañadas: una celda
-// con más dañadas que las que llegaron se pinta en ámbar y la guía lo dice). Vacío es cero; solo dígitos, hasta 4 (una cantidad imposible ni
-// se tipea). Total por color, por talla y general, solo donde dicen algo.
+// con más dañadas que las que llegaron se pinta en ámbar y la guía lo dice). Vacío es cero; lo que no es una cantidad se queda como se escribió, se
+// pinta en ámbar y no deja guardar (`s.invalidas`). Total por color, por talla y general, solo donde dicen algo.
 
 export function MatrizRecepcion({
   prenda,
@@ -124,7 +124,7 @@ export function MatrizRecepcion({
                           tamano="celda"
                           sinTab
                           // Más dañadas que las que llegaron: la celda se pinta en ámbar (y la guía lo dice).
-                          tono={deMas ? "atencion" : undefined}
+                          tono={deMas || leerCantidad(texto) === null ? "atencion" : undefined}
                           className={sinNada ? "opacity-40" : ""}
                           menos={{ onClick: () => onValor(v.id, pasoCantidad(texto, -1)), deshabilitado: deshabilitada || sinNada || texto === "", etiqueta: `Restar a ${nombre}` }}
                           mas={{ onClick: () => onValor(v.id, pasoCantidad(texto, 1)), deshabilitado: deshabilitada || sinNada, etiqueta: `Sumar a ${nombre}` }}
@@ -132,10 +132,10 @@ export function MatrizRecepcion({
                             type: "text",
                             inputMode: "numeric",
                             pattern: "[0-9]*",
-                            maxLength: 4,
+                            maxLength: 7,
                             autoComplete: "off",
                             "aria-label": `${pregunta} ${nombre}`,
-                            "aria-invalid": deMas || undefined,
+                            "aria-invalid": deMas || leerCantidad(texto) === null || undefined,
                             placeholder: "0",
                             value: texto,
                             disabled: deshabilitada || sinNada,

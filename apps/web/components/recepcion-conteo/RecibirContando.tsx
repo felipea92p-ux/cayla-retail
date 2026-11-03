@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentProps } from "react";
 import { useRouter } from "next/navigation";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { estabaEnCerrar, recordarEnCerrar } from "@/lib/recepcion-cierre-borrador";
 import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
-import type { BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import type { BorradorTallas, ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { TEXTO_COMPRASTE_Y_LO_RECIBES, TEXTO_LA_RECIBE_OTRA, TEXTO_LO_RECIBIO_QUIEN_COMPRO, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import {
   argsGuardarConteo,
@@ -39,7 +40,6 @@ import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
-import type { ModoDeTallas } from "./PlacaDelModelo";
 import { Trayecto } from "@/components/recepcion-envio/Trayecto";
 import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 
@@ -58,6 +58,7 @@ export type EstadoGuardado = "guardando" | "guardado" | "error";
 const ESPERA_GUARDAR_MS = 700;
 
 type Paso = 1 | 2 | 3;
+const sinCambios = () => () => {};
 /** Una copia del registro sin esa clave (lo guardado deja de ser borrador o error). */
 function sinClave<T>(r: Readonly<Record<string, T>>, clave: string): Record<string, T> {
   const copia = { ...r };
@@ -105,10 +106,15 @@ export function RecibirContando({
   const [borradores, setBorradores] = useState<Record<string, Borrador>>({});
   const [guardados, setGuardados] = useState<Record<string, EstadoGuardado>>({});
   const [errores, setErrores] = useState<Record<string, string>>({});
-  const [paso, setPaso] = useState<Paso>(detalle.estado === "en_camino" ? 1 : 2);
+  // Se recargó la página estando en Cerrar: se vuelve ahí (solo el navegador lo sabe: en el primer dibujo manda lo de siempre).
+  const seguiaEnCerrar = useSyncExternalStore(sinCambios, () => estabaEnCerrar(detalle.id), () => false);
+  const [pasoElegido, setPaso] = useState<Paso | null>(null);
+  const paso: Paso = pasoElegido ?? (seguiaEnCerrar ? 3 : detalle.estado === "en_camino" ? 1 : 2);
   // «Contarla», desde Cerrar: la línea a la que se vuelve, y lo que ya se había decidido, para no perderlo al ir y volver.
   const [volverA, setVolverA] = useState<ClaveLinea | null>(null);
   const [decisionesCierre, setDecisionesCierre] = useState<Readonly<Record<string, DecisionCierre>> | null>(null);
+  // Lo que se estaba contando: Contar se desmonta al ir a Cerrar, y al volver sigue ahí.
+  const [focoAlVolver, setFocoAlVolver] = useState<string | null>(null);
   // De cada modelo: «solo la cantidad» o «tallas y colores ahora», y lo escrito en su tabla. Aquí y no en Contar: ir a Cerrar y volver no lo borra.
   const [modos, setModos] = useState<Readonly<Record<string, ModoDeTallas>>>({});
   const [tablas, setTablas] = useState<Readonly<Record<string, BorradorTallas>>>({});
@@ -312,7 +318,9 @@ export function RecibirContando({
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
   const insignia = insigniaDelEnvio(estado, pendientesDelEnvio);
   // El Trayecto (rediseño «B», Felipe 2026-10-29) reemplaza al chip de estado; un envío anulado no tiene camino y sigue con su chip.
-  const etapa = etapaDelEnvio(estado, { pendientes: pendientesDelEnvio, contadas: estado === "abierto" ? cifras.contadas : undefined, dijeron: cifras.dijeron });
+  const etapaDelCamino = etapaDelEnvio(estado, { pendientes: pendientesDelEnvio, contadas: estado === "abierto" ? cifras.contadas : undefined, dijeron: cifras.dijeron });
+  // Al contar, «148 de 8,412» ya lo dice el resumen de la derecha (Felipe 2026-11-03). El camino sigue llenándose con su color.
+  const etapa = etapaDelCamino && contando ? { ...etapaDelCamino, detalle: null } : etapaDelCamino;
 
   return (
     <div className="space-y-6">
@@ -412,14 +420,18 @@ export function RecibirContando({
           onModos={setModos}
           tablas={tablas}
           onTablas={setTablas}
-          veDinero={veDinero}
           onAgregar={async (nuevo) => {
             const linea: LineaParaContar = { clave: "extra:0", linea: null, conteo: null, categoria: null, marca: null, proveedor: null, dijeron: null };
             const c = await guardar(linea, { contadas: 0, separado: { prendas: [], nuevas: [] } }, nuevo);
             return c ? claveDe(c) : null;
           }}
-          onCerrar={() => setPaso(3)}
+          onCerrar={() => {
+            recordarEnCerrar(detalle.id, true);
+            setPaso(3);
+          }}
           lineaInicial={volverA}
+          focoPrevio={focoAlVolver}
+          onFoco={setFocoAlVolver}
         />
       )}
 
@@ -430,6 +442,7 @@ export function RecibirContando({
           lineas={lineas}
           sinAviso={sinAviso}
           reabierto={reabierto}
+          generacion={base?.cierres.length ?? 0}
           sede={sedeActual.etiqueta}
           responsable={responsable}
           veDinero={veDinero}
@@ -440,6 +453,7 @@ export function RecibirContando({
           onVolver={(clave, decisiones) => {
             setVolverA(clave ?? null);
             setDecisionesCierre(decisiones);
+            recordarEnCerrar(detalle.id, false);
             setPaso(2);
           }}
           decisionesPrevias={decisionesCierre}
@@ -447,6 +461,7 @@ export function RecibirContando({
           onReintentarGuardado={() => reintentar.current()}
           onConteoCambiado={() => void releer()}
           onCerrado={() => {
+            recordarEnCerrar(detalle.id, false);
             setRecienCerrado(true);
             void avisoSalida.retirarYa().then(() => releer());
           }}
@@ -469,6 +484,7 @@ export function RecibirContando({
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {
+            recordarEnCerrar(detalle.id, false);
             setPaso(2);
             void releer();
           }}

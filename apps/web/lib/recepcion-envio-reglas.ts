@@ -879,7 +879,8 @@ export function opcionesSobrante(
   const pendiente = pendienteDe(ctx.deudas, donde.proveedorId, donde.categoriaId, donde.marcaId);
   if (pendiente <= 0) return [...CAUSAS_SOBRANTE];
   const nombre = ctx.proveedores.find((p) => p.id === donde.proveedorId)?.nombre ?? null;
-  return [...CAUSAS_SOBRANTE, opcionReposicion(pendiente, nombre, { categoria: donde.categoria, marca: donde.marca })];
+  const prendas = deudaDe(ctx.deudas, donde.proveedorId, donde.categoriaId, donde.marcaId)?.prendas;
+  return [...CAUSAS_SOBRANTE, opcionReposicion(pendiente, nombre, { categoria: donde.categoria, marca: donde.marca, prendas })];
 }
 
 /**
