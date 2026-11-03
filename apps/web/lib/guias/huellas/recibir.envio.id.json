@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 181,
+  "total": 186,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -39,6 +39,13 @@
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
       "button «›»"
+    ],
+    "components/recepcion-conteo/CancelarRecepcion.tsx": [
+      "CampoTexto «{guia.etiqueta(\"cancelar-motivo\", \"¿Por qué lo cancelas?\")}»",
+      "button «{m}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Seguir recibiendo»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
       "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",

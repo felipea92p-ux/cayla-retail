@@ -53,6 +53,8 @@ export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 /** «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26; migración `20261026163000`). */
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
+/** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
+export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 /** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
