@@ -22,3 +22,8 @@ Felipe se lleva: ningún tope ni regla cambió, pero sí lo que se arreglaba sol
 Qué hice: al traer `main` para abrir el PR, el candado de `cantidad-escrita-campos.test.ts` se puso en rojo con una caja que acababa de llegar: `ContarCajonHoja`, la ayuda para contar el cajón al abrir caja. Borraba la coma: «2,5» dejaba 25 billetes y «-5», 5. Ahora lleva el mismo arreglo que los billetes de Cerrar caja, y «Usar este total» frena con lo mal escrito.
 Por qué así: esa suma pasa al monto de apertura, y un número equivocado ahí es dinero. La regla es la misma `REGLA_BILLETES`, y el tope de 999 por denominación se queda en la pantalla.
 Felipe se lleva: ningún tope cambió. Probado tecleando en una ruta temporal ya borrada, porque en la base local Lima tiene la caja abierta y la hoja no se ofrece. Es lo que el candado venía a hacer: la caja se escribió hoy en otra rama, sin saber de este cambio.
+
+## 2026-11-03 (Cantidades: los botones que salen del ticket de Apartar)
+Qué hice: «Apartar» en escritorio y «Cliente» en la barra del celular ya frenan con lo mal escrito en una cantidad: el primer clic se queda en el ticket y dice por qué; el segundo sigue.
+Por qué así: solo frenaba el «Confirmar» del último paso, y para entonces la caja donde se lee el aviso ya quedó atrás. Lo destapó la prueba a 375 px que pide la plantilla para `/vender/apartados`: «Cliente» avanzaba con «-5» escrito. La cantidad seguía bien, pero nadie alcanzaba a leer por qué no entró.
+Felipe se lleva: ninguna regla cambió. Ahora una prueba exige que los dos botones pasen por el freno.

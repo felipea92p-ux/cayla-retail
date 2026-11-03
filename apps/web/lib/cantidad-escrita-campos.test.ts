@@ -806,6 +806,14 @@ describe("ninguna caja de cantidad vuelve a borrar lo que no es una cifra mientr
     expect(conNumero).toEqual([]);
   });
 
+  // Apartar sale del ticket por dos botones, el de escritorio y la barra del celular: los dos dejan atrás la caja donde se lee el aviso (2026-11-03: «Cliente» avanzaba con «-5» escrito).
+  it("los dos botones que salen del ticket de Apartar frenan con lo mal escrito", () => {
+    const texto = readFileSync(join(RAIZ, "components/apartados/ApartarVista.tsx"), "utf8");
+    expect(texto).toMatch(/function seguirDelTicket\(\) \{\s*(\/\/[^\n]*\n\s*)?if \(escrita\.frenar\(\)\) return;/);
+    expect(texto.match(/onClick=\{seguirDelTicket\}/g)?.length).toBe(2);
+    expect(texto).not.toMatch(/onClick=\{\(\) => irAPaso\("clienta"\)\}/);
+  });
+
   // El aviso de una celda sale recién cuando el clic en el botón se lleva el cursor (`alQuererSeguir`). Las celdas viven dentro de la tabla y el botón en la pantalla: si una pantalla no conecta los dos, se guarda lo
   // que había sin que nadie alcance a leer por qué.
   it("toda pantalla con una tabla de cantidades le conecta el freno a su botón", () => {

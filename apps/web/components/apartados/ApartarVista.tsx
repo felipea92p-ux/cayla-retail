@@ -345,7 +345,13 @@ export function ApartarVista({
     setPaso(siguiente);
     if (apilado) document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
   }
-  const cambiar = <K extends keyof typeof FORMULARIO_VACIO>(k: K, v: (typeof FORMULARIO_VACIO)[K]) => setF((x) => ({ ...x, [k]: v }));
+  /** Del ticket a los datos del cliente. */
+  function seguirDelTicket() {
+    // Lo escrito en una cantidad no valió, y el paso siguiente deja atrás la caja donde se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
+    irAPaso("clienta");
+  }
+  const cambiar =<K extends keyof typeof FORMULARIO_VACIO>(k: K, v: (typeof FORMULARIO_VACIO)[K]) => setF((x) => ({ ...x, [k]: v }));
 
   /** Suma una prenda al apartado. `silencioso`: la cámara ya dice en su tarjeta qué pasó, y enfocar el campo le
    *  abriría el teclado encima. */
@@ -941,7 +947,7 @@ export function ApartarVista({
                   <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(total)}</p>
                 </div>
               </div>
-              <button type="button" disabled={lineas.length === 0 || faltaDuenoEn.length > 0} title={faltaDuenoEn.length > 0 ? "Marca de quién es lo que apartas." : undefined} onClick={() => irAPaso("clienta")} className={BOTON_PRINCIPAL}>
+              <button type="button" disabled={lineas.length === 0 || faltaDuenoEn.length > 0} title={faltaDuenoEn.length > 0 ? "Marca de quién es lo que apartas." : undefined} onClick={seguirDelTicket} className={BOTON_PRINCIPAL}>
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> Apartar</span>
                 <span className="font-display text-xl tabular-nums">{money(total)}</span>
               </button>
@@ -1156,7 +1162,7 @@ export function ApartarVista({
           monto={total}
           accion="Cliente"
           icono={<ArrowRight className="h-4 w-4" aria-hidden />}
-          onClick={() => irAPaso("clienta")}
+          onClick={seguirDelTicket}
         />
       )}
       {paso === "clienta" && (
