@@ -20,7 +20,7 @@ import { ContarCajonHoja } from "@/components/caja/ContarCajonHoja";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { estadoApertura, hayConteo, montoEscrito, textoFaltas, type ConteoCajon } from "@/lib/caja-apertura-reglas";
-import { estadoCierre } from "@/lib/historial-cierres-reglas";
+import { estadoCierre, rachaDeCierres } from "@/lib/historial-cierres-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { CierreCaja } from "@/lib/caja";
 
@@ -233,7 +233,7 @@ export function AbrirCajaPantalla({
 
         {serie.length > 1 && (
           <div className="mt-auto pt-6">
-            <TituloGrupo>Últimos {serie.length} cierres</TituloGrupo>
+            <TituloGrupo>Cierres anteriores</TituloGrupo>
             <ol className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
               {serie.map((c) => {
                 const estado = estadoCierre(c.diferencia);
@@ -247,6 +247,7 @@ export function AbrirCajaPantalla({
                 );
               })}
             </ol>
+            <p className="mt-2.5 text-sm text-tinta/65">{rachaDeCierres(serie).texto}</p>
           </div>
         )}
       </section>
