@@ -49,6 +49,7 @@ const NOMBRE_ESTADO: Record<EstadoDelResumen, string> = { cuadran: "Cuadran", di
 /** Un solo estado por fila, el de lo que le toca: ámbar por las tallas solo si la persona pidió hacerlas ahora y le faltan (pueden esperar). */
 export function EstadoModelo({ m, faltanTallas, sinAviso = false }: { m: ModeloDelConteo; faltanTallas: boolean; sinAviso?: boolean }) {
   if (m.estado === "por-contar") return <Chip tono="neutro">Por contar</Chip>;
+  if (m.porDefecto) return <Chip tono="ambar">Falta su nombre</Chip>;
   // Lo que cuadra es la categoría: el modelo no tiene contra qué compararse.
   if (m.estado === "contado") return faltanTallas ? <Chip tono="ambar">Faltan tallas</Chip> : null;
   if (m.estado === "no-llego") return <Chip tono="neutro">No llegó</Chip>;
@@ -114,6 +115,7 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
           <span className="rc-modelo-cifras" title={conOrigen ? origenDelGrupo(p.grupo) : undefined}>
             {cifras}
             {conOrigen && ` · ${origenDelGrupo(p.grupo)}`}
+            {m?.nota && ` · ${m.nota}`}
           </span>
         </span>
         {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : <Chip tono="ambar">Falta decir cuál</Chip>}

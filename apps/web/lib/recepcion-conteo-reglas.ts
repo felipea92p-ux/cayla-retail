@@ -219,6 +219,18 @@ export function agregarModeloEnCero(s: Separado, m: { nombre: string; nota?: str
   return { ...s, nuevas: [...s.nuevas, { cantidad: 0, descripcion: nombre, ...(nota ? { nota } : {}), ...(m.porDefecto ? { porDefecto: true } : {}) }] };
 }
 
+/** Ponerle su nombre a un modelo agregado al contar, o cambiárselo. Lo contado no cambia, y deja de ser un nombre por defecto. */
+export function renombrarModelo(s: Separado, nombre: string, cambio: { nombre: string; nota: string | null }): Separado {
+  const clave = nombre.toLocaleLowerCase("es");
+  const nota = cambio.nota?.trim();
+  return {
+    ...s,
+    nuevas: s.nuevas.map((n) =>
+      n.descripcion?.toLocaleLowerCase("es") === clave ? { cantidad: n.cantidad, descripcion: limpiarDescripcion(cambio.nombre), ...(nota ? { nota } : {}) } : n,
+    ),
+  };
+}
+
 /** Una prenda del catálogo para contar aparte, en 0. Si ya estaba, queda como está. */
 export function agregarPrendaEnCero(s: Separado, p: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
   if (s.prendas.some((x) => x.productoId === p.productoId)) return s;

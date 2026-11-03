@@ -108,6 +108,9 @@ function resolver(ctx: ContextoCategoria | null | undefined, campo: "nombre" | "
 /** El placeholder de «Nombre»: la forma `<Prenda> <nombre propio>` de la categoría elegida. */
 export const sugerirNombre = (ctx: ContextoCategoria | null | undefined): Sugerencia => resolver(ctx, "nombre");
 
+/** Cómo se dice una prenda de esa categoría, para un nombre provisional («Blusa 1»). Sin ficha, «Modelo». */
+export const prendaDeLaCategoria = (ctx: ContextoCategoria | null | undefined): string => (ctx?.prefijo ? FICHAS_POR_CATEGORIA[ctx.prefijo]?.prenda : undefined) ?? "Modelo";
+
 /** El placeholder de «Descripción»: lo que suele decir el corte, el material o los detalles de esa categoría. */
 export const sugerirDescripcion = (ctx: ContextoCategoria | null | undefined): Sugerencia => resolver(ctx, "descripcion");
 

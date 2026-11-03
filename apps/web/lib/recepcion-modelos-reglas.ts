@@ -65,6 +65,10 @@ export type ModeloDelConteo = {
   /** Sus tallas y colores, si ya se pusieron. */
   conTallas: boolean;
   anotada: PrendaAnotada | null;
+  /** Lo que lo describe, para no confundirlo con otro parecido. */
+  nota: string | null;
+  /** Su nombre es provisional («Blusa 1»): contado, no deja cerrar el envío. */
+  porDefecto: boolean;
 };
 
 const claveDeAnotada = (a: PrendaAnotada): string => a.productoId ?? `nombre:${normaliza(a.nombre)}`;
@@ -136,6 +140,8 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       // Lo que ya entró al stock ya tiene sus tallas: solo falta decirlas de lo que queda.
       conTallas: contadas > 0 ? conTallas : enStock > 0,
       anotada: prenda,
+      nota: null,
+      porDefecto: false,
     };
   });
   for (const p of g.separado.prendas) {
@@ -153,6 +159,8 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       estado: p.cantidad > 0 ? llegoSinNombre : "por-contar",
       conTallas: !!p.variantes,
       anotada: null,
+      nota: null,
+      porDefecto: false,
     });
   }
   for (const n of g.separado.nuevas) {
@@ -170,6 +178,8 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       estado: n.cantidad > 0 ? llegoSinNombre : "por-contar",
       conTallas: false,
       anotada: null,
+      nota: n.nota ?? null,
+      porDefecto: !!n.porDefecto,
     });
   }
   return filas;
@@ -297,6 +307,18 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
 
 /** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */
 export const paradaDelNombre = (c: CategoriaDelEnvio, nombre: string): ParadaDelConteo | null => c.paradas.find((p) => p.modelo && normaliza(p.modelo.nombre) === normaliza(nombre)) ?? null;
+
+/** El nombre provisional de un modelo que nadie sabe cómo se llama: el primer «Blusa N» libre de la categoría. */
+export function nombrePorDefecto(prenda: string, c: Pick<CategoriaDelEnvio, "paradas"> | null): string {
+  const usados = new Set((c?.paradas ?? []).map((p) => (p.modelo ? normaliza(p.modelo.nombre) : "")));
+  let n = 1;
+  while (usados.has(normaliza(`${prenda} ${n}`))) n += 1;
+  return `${prenda} ${n}`;
+}
+
+/** Los modelos contados que siguen con su nombre provisional: el envío no se cierra hasta cambiarlos. Uno en 0 no frena: se descarta al cerrar. */
+export const modelosSinNombre = (categorias: readonly CategoriaDelEnvio[]): ModeloDelConteo[] =>
+  categorias.flatMap((c) => c.paradas).flatMap((p) => (p.modelo?.porDefecto && p.modelo.contadas > 0 ? [p.modelo] : []));
 
 /** La marca que se sugiere para otro modelo: la de la categoría, si toda es de una sola. Con varias, o sin marca, no se adivina. */
 export function marcaSugeridaDelModelo(c: CategoriaDelEnvio): string {
@@ -651,6 +673,10 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
       campos.push({ id: idCampoCategoria(c.clave), nombre: `Los modelos de ${nombre}`, requerido: true, hecho: c.contada, pendiente: `Agrega cada modelo de ${nombre} con el «+» y cuéntalo.` });
     }
     for (const p of c.paradas) {
+      if (p.modelo?.porDefecto && p.modelo.contadas > 0) {
+        campos.push({ id: idCampoParada(p), nombre: `El nombre de ${p.modelo.nombre}`, requerido: true, hecho: false, pendiente: `Cambia el nombre de ${p.modelo.nombre}: sin eso no se cierra el envío.` });
+        continue;
+      }
       if (!p.modelo || p.modelo.estado === "fuera" || p.modelo.estado === "contado") continue;
       const quien = nombreDeParada(p);
       campos.push({ id: idCampoParada(p), nombre: quien, requerido: true, hecho: paradaContada(p), pendiente: `Cuenta ${quien} y deja cuántas llegaron.` });

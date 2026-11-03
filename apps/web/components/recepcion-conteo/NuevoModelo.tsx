@@ -12,15 +12,15 @@ import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { CatalogoParaRecibir, CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { TOPES_CONTEO } from "@/lib/recepcion-conteo-reglas";
 import { alAgregarALaLista, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
-import { marcaSugeridaDelModelo, paradaDelNombre, type CategoriaDelEnvio, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
-import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
+import { marcaSugeridaDelModelo, nombrePorDefecto, paradaDelNombre, type CategoriaDelEnvio, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
+import { prendaDeLaCategoria, sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 // «¿Qué llegó?» y el «+» de una categoría (Felipe 2026-11-03, ADR-0604): un modelo más para contar aparte. Nace en 0 y queda en el contador. La marca es de cada modelo (vacía = sin marca) y el
 // proveedor solo se pregunta si el envío trae dos o más; por dentro cae en la línea de esa categoría y marca, o abre una. Mientras se escribe el nombre salen las prendas parecidas del catálogo,
 // sin bloquear: tocar una la cuenta a ella. Si la categoría ya está con dos o más marcas, no se adivina: se elige, o se agrega aparte sin marca (lo halló `/chaos`, semilla 20261103).
 
-export type ModeloPedido = { categoriaId: string; proveedorId: string | null; marcaId: string | null; nombre: string; nota: string | null; prenda: PrendaRecepcion | null };
+export type ModeloPedido = { categoriaId: string; proveedorId: string | null; marcaId: string | null; nombre: string; nota: string | null; prenda: PrendaRecepcion | null; porDefecto: boolean };
 
 export function NuevoModelo({
   categoriaFija,
@@ -62,6 +62,8 @@ export function NuevoModelo({
   const [error, setError] = useState<string | null>(null);
 
   const texto = nombre.trim();
+  // Nadie sabe cómo se llama: queda «Blusa 1» y no se cierra el envío hasta cambiarlo (Felipe 2026-11-03).
+  const provisional = categoria ? nombrePorDefecto(prendaDeLaCategoria(categoria), enLista) : "";
   const yaEsta = texto && enLista ? paradaDelNombre(enLista, texto) : null;
   // Sin marca, en una categoría que ya está con dos o más: no se adivina cuál era.
   const destino = categoriaId && (!eligeProveedor || proveedorId) ? alAgregarALaLista(grupos, { proveedorId: eligeProveedor ? proveedorId : null, categoriaId, marcaId: marcaId || null }) : null;
@@ -91,7 +93,7 @@ export function NuevoModelo({
   const guia = useGuiaCampos([
     ...(eligeProveedor ? [{ id: "modelo-proveedor", nombre: "De qué proveedor", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es." }] : []),
     ...(categoriaFija ? [] : [{ id: "modelo-categoria", nombre: "Qué llegó", requerido: true, hecho: categoriaId !== "", pendiente: "Elige la categoría." }]),
-    { id: "modelo-nombre", nombre: "El nombre", requerido: true, hecho: texto !== "", pendiente: "Escribe cómo se llama el modelo." },
+    { id: "modelo-nombre", nombre: "El nombre", requerido: false, sugerido: true, hecho: texto !== "", pendiente: "Escribe cómo se llama, o déjalo vacío si no lo sabes." },
     { id: "modelo-marca", nombre: "La marca", requerido: otrasMarcas.length > 0, hecho: marcaId !== "", pendiente: "Elige la marca, o agrégala aparte sin marca." },
     { id: "modelo-nota", nombre: "La descripción", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
   ]);
@@ -99,7 +101,7 @@ export function NuevoModelo({
   async function crear(prenda: PrendaRecepcion | null) {
     setGuardando(true);
     setError(null);
-    const e = await onCrear({ categoriaId, proveedorId: eligeProveedor ? proveedorId : null, marcaId: marcaId || null, nombre: prenda?.nombre ?? texto, nota: nota.trim() || null, prenda });
+    const e = await onCrear({ categoriaId, proveedorId: eligeProveedor ? proveedorId : null, marcaId: marcaId || null, nombre: prenda?.nombre ?? (texto || provisional), nota: nota.trim() || null, prenda, porDefecto: !prenda && !texto });
     setGuardando(false);
     if (e) setError(e);
     else onCerrar();
@@ -166,6 +168,7 @@ export function NuevoModelo({
               onChange={(e) => setNombre(e.target.value)}
               placeholder={`Ej. ${sugerirNombre(categoria).texto}`}
               autoFocus={!!categoriaFija}
+              pie={!texto && provisional ? `Si no lo sabes, déjalo vacío: quedará como «${provisional}» y le pondrás su nombre antes de cerrar.` : undefined}
             />
           </CampoGuiado>
           {aLaVista.length > 0 && (
@@ -210,7 +213,7 @@ export function NuevoModelo({
                 </b>{" "}
                 Elige su marca.
               </p>
-              <button type="button" className="btn-cayla btn-enlace mt-1" disabled={guardando || !texto} onClick={() => void crear(null)}>
+              <button type="button" className="btn-cayla btn-enlace mt-1" disabled={guardando} onClick={() => void crear(null)}>
                 No tiene marca: agregarla aparte
               </button>
             </div>

@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 173,
+  "total": 178,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -84,6 +84,12 @@
       "button «Una menos»",
       "button «Una más»"
     ],
+    "components/recepcion-conteo/EditarModelo.tsx": [
+      "CampoTexto «{guia.etiqueta(\"editar-nombre\", \"El nombre\")}»",
+      "CampoTexto «{guia.etiqueta(\"editar-nota\", \"La descripción (para no confundirlo con otro)\")}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/recepcion-conteo/ElegirQuienCuenta.tsx": [
       "Volver «→() => router.push(\"/recibir\")»",
       "ComboResponsable «{responsable}»"
@@ -128,6 +134,7 @@
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
       "button «{titulo}»",
+      "LapizEditar «{`el nombre de ${modelo.nombre}»",
       "button «+»",
       "button «+» #2",
       "button «Llegaron las»",

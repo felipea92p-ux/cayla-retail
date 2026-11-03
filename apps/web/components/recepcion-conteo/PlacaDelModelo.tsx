@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, RotateCcw, Sparkl
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -48,6 +49,7 @@ export function PlacaDelModelo({
   observacion,
   observaciones,
   identificar,
+  onEditarNombre,
   tallas,
 }: {
   parada: ParadaDelConteo;
@@ -84,6 +86,8 @@ export function PlacaDelModelo({
   observaciones: ReactNode;
   /** Lo que falta decir de un número suelto de antes. */
   identificar: ReactNode;
+  /** Ponerle su nombre al modelo, o cambiárselo. */
+  onEditarNombre: () => void;
   /** La tabla de tallas y colores, cuando se pide. */
   tallas: ReactNode;
 }) {
@@ -134,6 +138,7 @@ export function PlacaDelModelo({
         <div className="rc-placa-textos">
           <TituloSeccion dato={!hayConteo ? <EtiquetaAhora /> : undefined}>{nombreDeParada(parada)}</TituloSeccion>
           <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, descripcion].filter(Boolean).join(" · ")}</p>
+          {modelo?.nota && <p>{modelo.nota}</p>}
           <div className="rc-chips">
             {tipo === "nuevo" && (
               <Chip tono="pizarra" versalitas={false}>
@@ -170,6 +175,7 @@ export function PlacaDelModelo({
             {llevaCuenta}
           </p>
           <div className="rc-placa-acciones">
+            {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
             {observacion}
           </div>
         </div>

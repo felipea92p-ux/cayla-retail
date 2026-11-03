@@ -22,6 +22,8 @@ import {
   idCampoParada,
   modelosDelGrupo,
   hayQueIdentificar,
+  modelosSinNombre,
+  nombrePorDefecto,
   nombreDeParada,
   opcionesDelFiltro,
   origenDelGrupo,
@@ -37,7 +39,7 @@ import {
   paradaDelNombre,
   marcaSugeridaDelModelo,
 } from "./recepcion-modelos-reglas";
-import { agregarModeloEnCero, agregarPrendaEnCero } from "./recepcion-conteo-reglas";
+import { agregarModeloEnCero, agregarPrendaEnCero, renombrarModelo } from "./recepcion-conteo-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
 import { leerConteosDelEnvio, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
@@ -206,6 +208,20 @@ describe("paradas: lo que el Dial puede contar", () => {
   it("con todo anotado, lo que no estaba sigue estando de más", () => {
     const g = grupo(deLaGuia(sofia(), { contadas: 7, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [{ cantidad: 2, descripcion: "Vestido Mar" }] } }));
     expect(modelosDelGrupo(g).find((m) => m.nombre === "Vestido Mar")?.estado).toBe("fuera");
+  });
+
+  it("un nombre por defecto: el primer número libre; contado no deja cerrar, en 0 no frena, y al renombrarlo se libera", () => {
+    const nuevas = [{ cantidad: 2, descripcion: "Vestido 1", porDefecto: true, nota: "con lazo" }, { cantidad: 0, descripcion: "Vestido 3", porDefecto: true }];
+    const extra = (s: Separado): LineaParaContar => ({ ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s), separado: { prendas: [], nuevas: [] } }), clave: "extra:1", linea: null, dijeron: null, conteo: { ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s) }).conteo!, separado: s } });
+    const c = categoriasDelEnvio(agruparLineas([extra({ prendas: [], nuevas })]));
+    expect(nombrePorDefecto("Vestido", c[0])).toBe("Vestido 2");
+    expect(nombrePorDefecto("Vestido", null)).toBe("Vestido 1");
+    expect(modelosSinNombre(c).map((m) => m.nombre)).toEqual(["Vestido 1"]);
+    expect(c[0].paradas[0].modelo?.nota).toBe("con lazo");
+    expect(camposDelConteoPorModelo(c).filter((x) => x.requerido && !x.hecho).map((x) => x.nombre)).toContain("El nombre de Vestido 1");
+    const renombrado = renombrarModelo({ prendas: [], nuevas }, "vestido 1", { nombre: " Vestido  Luna ", nota: null });
+    expect(renombrado.nuevas[0]).toEqual({ cantidad: 2, descripcion: "Vestido Luna" });
+    expect(modelosSinNombre(categoriasDelEnvio(agruparLineas([extra(renombrado)])))).toEqual([]);
   });
 
   it("el foco: la elegida; si ya no está, otra de su grupo; si no, la primera sin contar", () => {
