@@ -319,6 +319,11 @@ describe("cerrar", () => {
     ]);
   });
 
+  it("p_lineas lleva TODO conteo, también lo de fuera de la guía que quedó en 0: la base lo exige y lo salta sola (si falta, el cierre falla siempre con «se contó mientras cerrabas»)", () => {
+    const ls = lineasParaCerrar([contada("i1", 4, 4), extra(2, 0)], {}, false);
+    expect(ls.map((x) => x.extra_posicion ?? x.despacho_item_id)).toEqual(["i1", 2]);
+  });
+
   it("«Otro» (2026-10-28): se ofrece solo para lo de más, pide su explicación y la lleva como nota de la línea", () => {
     expect(causasDe(extra(1, 3))?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "otro"]);
     expect(causasDe(contada("i1", 10, 12), 2)?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "reposicion_faltante", "otro"]);
