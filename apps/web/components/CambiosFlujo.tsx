@@ -183,6 +183,8 @@ export function CambiosFlujo({
   const [esperandoPistola, setEsperandoPistola] = useState(false);
   const [lectura, setLectura] = useState<{ tono: TonoAvisoLinea; texto: string } | null>(null);
   const campoPrenda = useRef<HTMLInputElement>(null);
+  const frenoCantidad = useRef<() => boolean>(null);
+  const refCantidad = useRef<HTMLInputElement>(null);
 
   // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, el cambio queda guardado en ESTA sede. Registrado, ya no hay nada que
   // guardar.
@@ -343,6 +345,12 @@ export function CambiosFlujo({
   }
 
   function continuarAConfirmar() {
+    // Lo escrito en «¿Cuántas cambia?» no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidad.current?.()) {
+      // El aviso está junto a la caja y este botón al fondo de la página: sin esto, el clic no haría nada a la vista.
+      refCantidad.current?.focus();
+      return;
+    }
     if (!bloqueo) {
       setAvisoContinuar(null);
       setPaso(4);
@@ -515,6 +523,8 @@ export function CambiosFlujo({
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div data-guia="cambios.reemplazo" className="posv-placa p-5 sm:p-7">
               <CambioReemplazo
+                frenoCantidad={frenoCantidad}
+                refCantidad={refCantidad}
                 linea={linea}
                 seleccion={seleccion}
                 r={r}

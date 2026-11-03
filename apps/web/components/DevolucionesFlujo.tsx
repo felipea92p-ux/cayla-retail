@@ -47,11 +47,15 @@ import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { CLASE_MONTO_ILEGIBLE } from "@/components/ui/CampoMonto";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisosDeLaDevolucion, type DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 import { Casilla } from "@/components/ui/Casilla";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
+const CANTIDAD_A_DEVOLVER = reglaDeEntero();
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
 
@@ -130,6 +134,7 @@ export function DevolucionesFlujo({
   const [errorIncierto, setErrorIncierto] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
+  const escrita = useCantidadEscrita(CANTIDAD_A_DEVOLVER);
   // Doble clic: el estado `enviando` tarda un render en apagar el botón; el ref es inmediato.
   const enviandoAhora = useRef(false);
   // La marca de ESTA devolución (20261015162000): el navegador puede reenviar el envío por su cuenta si la conexión se corta, y la
@@ -208,6 +213,8 @@ export function DevolucionesFlujo({
   }
 
   function continuarDesdePrendas() {
+    // Lo escrito en «¿Cuántas devuelve?» no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     if (lineasElegidas.length === 0) {
       setAvisoContinuar("Elige al menos una prenda.");
       return;
@@ -361,12 +368,8 @@ export function DevolucionesFlujo({
                           </label>
                           <input
                             id={`cantidad-${l.ventaItemId}`}
-                            type="number"
-                            min={1}
-                            max={disponibles}
-                            value={item.cantidad}
-                            onChange={(e) => cambiarItem(l.ventaItemId, { cantidad: Math.max(1, Math.min(disponibles, Number(e.target.value) || 1)) })}
-                            className="caja-campo-input w-20 text-sm"
+                            {...escrita.campo(l.ventaItemId, String(item.cantidad), (v) => cambiarItem(l.ventaItemId, { cantidad: Math.max(1, Math.min(disponibles, Number(v) || 1)) }), disponibles)}
+                            className={`caja-campo-input w-20 text-sm ${CLASE_MONTO_ILEGIBLE}`}
                           />
                         </div>
                       )}
@@ -392,7 +395,7 @@ export function DevolucionesFlujo({
             </Link>
           </div>
 
-          <PieDelPaso aviso={avisoContinuar} guia="devolucion.pie-prendas">
+          <PieDelPaso aviso={escrita.problema ?? avisoContinuar} guia="devolucion.pie-prendas">
             <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
             <BotonPrincipal onClick={continuarDesdePrendas}>
               Continuar

@@ -8,7 +8,8 @@ import type { SerieArchivada } from "@/lib/comprobantes";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { antiguedad } from "@/lib/facturacion-resumen-reglas";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
-import { errorDeSerie, nombreDelTipo, numerosUsados, seriesPorTienda, TIPOS_CON_SERIE } from "@/lib/facturacion-comprobantes-reglas";
+import { errorDeSerie, errorDeSiguienteNumero, nombreDelTipo, numerosUsados, seriesPorTienda, TIPOS_CON_SERIE } from "@/lib/facturacion-comprobantes-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { coincide } from "@/lib/facturacion-busqueda";
 import { traducirError } from "@/lib/error-escritura";
 import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
@@ -84,7 +85,7 @@ export function SeriesPanel({
     e.preventDefault();
     // Una serie mal escrita queda guardada y todos sus comprobantes se rechazan (y cada intento quema un
     // número): se comprueba el formato antes de guardar, no después.
-    const error = errorDeSerie(tipo, texto);
+    const error = errorDeSerie(tipo, texto) ?? errorDeSiguienteNumero(numero);
     if (error) {
       avisar.error(error);
       return;
@@ -96,7 +97,7 @@ export function SeriesPanel({
       p_tipo: tipo,
       p_serie: serie,
       // undefined se cae del JSON: sin número, la RPC no toca el correlativo.
-      p_siguiente_numero: numero ? Number(numero) : undefined,
+      p_siguiente_numero: numero.trim() ? Number(numero.trim()) : undefined,
     });
     setLoading(false);
     if (errorBase) {
@@ -258,12 +259,12 @@ export function SeriesPanel({
                     usado hace que el comprobante se rechace por duplicado.
                   </Ayuda>
                 }
-                pie="Vacío = el sistema lo lleva solo."
+                pie={errorDeSiguienteNumero(numero) ?? "Vacío = el sistema lo lleva solo."}
+                tono={errorDeSiguienteNumero(numero) ? "error" : undefined}
                 mono
-                type="number"
-                min="1"
+                inputMode="numeric"
                 value={numero}
-                onChange={(e) => setNumero(e.target.value)}
+                onChange={(e) => setNumero(limpiarCantidad(e.target.value))}
                 placeholder="1"
               />
               <div className="pie-acciones pt-3">

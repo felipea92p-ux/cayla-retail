@@ -57,6 +57,8 @@ import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
@@ -77,6 +79,7 @@ type ConteoDeLaLlegada = {
   token: string;
 };
 
+const CANTIDAD_QUE_LLEGO = reglaDeEntero();
 const ID_BUSCADOR = "llegada-buscador";
 const ID_LISTA = "llegada-sugerencias";
 
@@ -150,6 +153,7 @@ export function LlegoMercaderia({
   // Si fueron a crear una prenda nueva en otra pestaña, al volver se relee el catálogo (la lista de aquí no se pierde).
   const fueACrear = useRef(false);
   const colaOffline = useColaRecibir();
+  const escrita = useCantidadEscrita(CANTIDAD_QUE_LLEGO);
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
   // ADR-0542: en una sede donde operan dos empresas (Lima), quien recibe dice de quién es lo que llegó. Sin respuesta de fábrica.
   const empresasDeLaSede = useEmpresasDeSede(ubicacionId);
@@ -289,6 +293,8 @@ export function LlegoMercaderia({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Lo escrito en una cantidad no valió: antes de recibir lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     await recibir(null);
   }
 
@@ -563,15 +569,24 @@ export function LlegoMercaderia({
                       <PasoCantidad
                         role="group"
                         aria-label={`Cantidad de ${p.referencia}`}
-                        menos={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1)), etiqueta: "Una menos" }}
-                        mas={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1)), etiqueta: "Una más" }}
+                        tono={escrita.invalida(l.varianteId) ? "error" : undefined}
+                        menos={{
+                          onClick: () => {
+                            escrita.olvidar();
+                            cambiarLineas(sumarPrenda(lineas, l.varianteId, -1));
+                          },
+                          etiqueta: "Una menos",
+                        }}
+                        mas={{
+                          onClick: () => {
+                            escrita.olvidar();
+                            cambiarLineas(sumarPrenda(lineas, l.varianteId, 1));
+                          },
+                          etiqueta: "Una más",
+                        }}
                         campo={{
-                          type: "number",
-                          min: 0,
-                          inputMode: "numeric",
                           "aria-label": "Cantidad",
-                          value: l.cantidad,
-                          onChange: (e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value))),
+                          ...escrita.campo(l.varianteId, String(l.cantidad), (v) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(v)))),
                         }}
                       />
                       {verMontos && (
@@ -592,6 +607,11 @@ export function LlegoMercaderia({
                   );
                 })}
               </ul>
+            )}
+            {escrita.problema && (
+              <Aviso tono="error" chico className="mt-2">
+                {escrita.problema}
+              </Aviso>
             )}
           </CampoGuiado>
           </div>

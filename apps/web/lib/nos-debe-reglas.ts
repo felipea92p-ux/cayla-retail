@@ -14,6 +14,7 @@
 // que baja lo que se le debe al comprobante y deja el resto a favor (decisión 58); y (actividad 5) «Depositó»: el mismo documento y, en la
 // misma operación, el reembolso de lo que quedó a favor, porque el proveedor ya devolvió esa plata (decisiones 24 y 59).
 
+import { limpiarCantidad } from "./alta-producto";
 import { soles } from "./compras-reglas";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
@@ -494,8 +495,8 @@ export type BorradorReposicion = { cantidad: string; nota: string };
 /** Viene puesto todo lo que se debía: es lo más común («llegó la reposición»). La nota, vacía. */
 export const borradorReposicion = (d: Pick<DeudaProveedor, "pendiente">): BorradorReposicion => ({ cantidad: String(Math.max(1, d.pendiente)), nota: "" });
 
-/** Lo que admite la caja de cantidad mientras se tipea: solo dígitos, hasta 4. */
-export const limpiarCantidadReposicion = (t: string): string => t.replace(/\D/g, "").slice(0, 4);
+/** Lo que queda en la caja de cantidad de las tres hojas: como se escribió, con los miles juntos. Lo demás lo rechaza el lector de cada hoja y dice por qué («2,5» ya no se vuelve 25). */
+export const limpiarCantidadReposicion = limpiarCantidad;
 
 /** La cantidad escrita: un entero de 1 a lo pendiente, como exige la base. Con la categoría, el tope se dice en sus palabras. */
 export function leerCantidadReposicion(t: string, pendiente: number, categoria: string | null = null): { n: number | null; problema: string | null } {

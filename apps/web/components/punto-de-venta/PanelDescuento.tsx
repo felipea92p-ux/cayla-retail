@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { type DescuentoForm, type ItemCarrito, money } from "@/components/PuntoDeVenta";
 import { CabezaPaso } from "@/components/punto-de-venta/HojaDeCobro";
 import { Casilla } from "@/components/ui/Casilla";
-import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto, atributosPorcentajeTexto } from "@/components/ui/CampoMonto";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { AYUDA_MODO_DESCUENTO, type CuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
 import { RAZONES_DESCUENTO, type ModoDescuento, type PasoDescuento } from "@/lib/vender-reglas";
@@ -13,8 +13,6 @@ import { RAZONES_DESCUENTO, type ModoDescuento, type PasoDescuento } from "@/lib
 const ATAJOS_PCT = [5, 10, 15] as const;
 /** Atajos de S/ — la otra entrada, para cuando lo acordado con el cliente es un monto y no un % (vuelve el 2026-10-14, Felipe). */
 const ATAJOS_MONTO = [5, 10, 20, 50] as const;
-/** El campo numérico sin las flechitas del navegador: «−» y «+» ya son eso. */
-const SIN_FLECHAS = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 /** Lleva la vista (y el foco, si es un campo de texto) al paso del descuento que sigue. Cada paso se marca con `data-paso-descuento`. */
 function irAlPaso(raiz: HTMLElement | null, paso: PasoDescuento) {
@@ -158,16 +156,13 @@ export function PanelDescuento({
                 <>
                   <input
                     aria-label="Otro porcentaje de descuento"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={100}
+                    {...atributosPorcentajeTexto(descuento.pct)}
                     value={descuento.pct}
                     onChange={(e) => onDescuento({ pct: e.target.value })}
                     onKeyDown={siguienteConEnter}
                     placeholder="Otro" // sugerir-fijo: «Otro» nombra la casilla del valor libre junto a las fichas, no es un ejemplo que dependa de lo elegido
                     disabled={bloqueado}
-                    className={`min-w-0 flex-1 self-stretch py-0 text-center text-lg font-semibold ${SIN_FLECHAS}`}
+                    className={`min-w-0 flex-1 self-stretch py-0 text-center text-lg font-semibold ${CLASE_MONTO_ILEGIBLE}`}
                   />
                   <span className="text-sm text-tinta/60">%</span>
                 </>

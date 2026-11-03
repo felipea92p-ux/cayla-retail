@@ -606,9 +606,12 @@ export function NuevoProductoForm({
   // Un segundo clic (o Enter) mientras el alta viaja no la manda otra vez: con el mismo token la base devuelve el mismo producto y no
   // duplica el stock, pero las fotos se suben DESPUÉS de cada respuesta y quedarían dos veces (/chaos de Catálogo 2026-10-14, DC-01).
   const enviando = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enviando.current) return;
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     enviando.current = true;
     try {
       await crear();
@@ -1312,6 +1315,7 @@ export function NuevoProductoForm({
               onCosto={(clave, valor) => setOverrideCosto((prev) => ({ ...prev, [clave]: valor }))}
               destinoEtiqueta={destino.etiqueta}
               llegada={cargaCerrada}
+              freno={frenoCantidades}
             />
 
             {cargaCerrada && stock.total > 0 ? (

@@ -57,6 +57,7 @@ export function OrdenCierre({
   // Lo que contestó la base cuando el costo por prenda salió atípico; mientras haya algo aquí, la pregunta está abierta.
   const [atipico, setAtipico] = useState<CostoAtipico | null>(null);
   const seccion = useRef<HTMLElement>(null);
+  const frenoBuenas = useRef<() => boolean>(null);
   // Responsable (ADR-0161/0162): el cierre firma con quien se elige en el combo (la lista sale del Taller, la sede activa).
   const responsable = useResponsable();
 
@@ -77,6 +78,8 @@ export function OrdenCierre({
   }
 
   async function confirmar(confirmaCostoAtipico = false, motivoCosto = "") {
+    // Lo escrito en una casilla no valió: antes de meter al stock lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoBuenas.current?.()) return;
     if (total <= 0) {
       avisar.error("No salió ninguna prenda buena — si el lote se perdió, anula la orden en vez de cerrarla.");
       return;
@@ -133,6 +136,7 @@ export function OrdenCierre({
           matriz={matriz}
           modo="cierre"
           buenas={buenas}
+          freno={frenoBuenas}
           onCambio={(id, v) => {
             setBuenas((b) => ({ ...b, [id]: v }));
             setAtipico(null);

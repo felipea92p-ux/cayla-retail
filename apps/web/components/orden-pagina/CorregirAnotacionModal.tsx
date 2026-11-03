@@ -65,6 +65,7 @@ export function CorregirAnotacionModal({ datos, fase, anotacion, onClose }: { da
   const [hoy] = useState(() => hoyLima());
   const apertura = fechaLimaDe(datos.orden.creadoEn);
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
 
   const tabla = useMemo(() => tablaDeModeloExistente(datos.lineas.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [datos.lineas]);
   const lineasPorId = useMemo(() => new Map(datos.lineas.map((l) => [l.varianteId, l] as const)), [datos.lineas]);
@@ -161,6 +162,8 @@ export function CorregirAnotacionModal({ datos, fase, anotacion, onClose }: { da
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+          if (frenoCantidades.current?.()) return;
           void guardar("corregir");
         }}
         className="mt-3.5 space-y-5"
@@ -169,6 +172,7 @@ export function CorregirAnotacionModal({ datos, fase, anotacion, onClose }: { da
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas salieron bien, por talla y color")}</span>
             <MatrizCantidades
+              freno={frenoCantidades}
               soloCantidades
               teclado
               celdas={tabla.celdas}

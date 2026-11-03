@@ -82,6 +82,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   const telas = useMemo(() => telasDeLaOrden(datos.insumos).filter((t) => t.tipo === "tela"), [datos.insumos]);
   const [telaUsada, setTelaUsada] = useState<Record<string, string>>(() => Object.fromEntries(telas.map((t) => [t.insumoId, valorDeFabrica(t)])));
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
   const token = useRef<string>(crypto.randomUUID());
 
   const tabla = useMemo(() => tablaDeModeloExistente(datos.lineas.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [datos.lineas]);
@@ -134,6 +135,8 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enVuelo.current) return;
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     if (total + conFalla <= 0) {
       avisar.error("Escribe cuántas terminaste en al menos una talla y color.");
       return;
@@ -234,6 +237,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas salieron bien, por talla y color")}</span>
             <MatrizCantidades
+              freno={frenoCantidades}
               soloCantidades
               teclado
               celdas={tabla.celdas}

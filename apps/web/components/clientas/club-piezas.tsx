@@ -1,13 +1,12 @@
 "use client";
 
 import { CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { ajustarCelular } from "@/lib/club-reglas";
 import { celularLegible, problemaCelularOpcional } from "@/lib/club-caja-reglas";
 import {
   CUMPLE_VACIO,
   OPCIONES_MES_CUMPLE,
-  ajustarAnio,
-  ajustarDia,
   cumpleCompleto,
   cumpleVacio,
   problemaCumple,
@@ -116,11 +115,11 @@ export function CamposCumpleanos({
           caja
           mono
           inputMode="numeric"
-          maxLength={2}
           placeholder="Día" // sugerir-fijo: nombre de la caja (el día del cumpleaños); no depende de nada elegido antes
           value={cumple.dia}
           disabled={deshabilitado}
-          onChange={(e) => onCumple({ ...cumple, dia: ajustarDia(e.target.value) })}
+          // Sin `maxLength` a propósito: cortaría «2,5» en «2,» y «19905» en 1990. Lo escrito se queda a la vista y `problemaCumple` dice lo que falla.
+          onChange={(e) => onCumple({ ...cumple, dia: limpiarCantidad(e.target.value) })}
         />
         <CampoSelect
           etiqueta="Mes del cumpleaños"
@@ -137,11 +136,10 @@ export function CamposCumpleanos({
           caja
           mono
           inputMode="numeric"
-          maxLength={4}
           placeholder="Año" // sugerir-fijo: nombre de la caja (el año, opcional); no depende de nada elegido antes
           value={cumple.anio}
           disabled={deshabilitado}
-          onChange={(e) => onCumple({ ...cumple, anio: ajustarAnio(e.target.value) })}
+          onChange={(e) => onCumple({ ...cumple, anio: limpiarCantidad(e.target.value) })}
         />
       </div>
       {problema && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { construirCeldas } from "@/lib/alta-producto";
@@ -81,6 +81,7 @@ export function AgregarTallasModal({
   // Con cuántas unidades nace cada variante (ADR-0494): la única ocasión en que se escribe stock desde Editar producto.
   const puedeCargar = !!ctx.ajusteStock;
   const [porVariante, setPorVariante] = useState<Record<string, number>>({});
+  const frenoCantidades = useRef<() => boolean>(null);
   const nuevasCombos = clasificadas.filter((c) => c.queHace === "nueva");
   const unidadesDe = (color: string | null, talla: string | null) => porVariante[llaveDeUnidades({ colorCodigo: color, tallaId: talla })] ?? 0;
   const totalUnidades = nuevasCombos.reduce((s, c) => s + unidadesDe(c.colorCodigo, c.tallaId), 0);
@@ -203,6 +204,7 @@ export function AgregarTallasModal({
                   onTodas={() => setPorVariante((a) => Object.fromEntries([...nuevasCombos.map((c) => llaveDeUnidades(c)), ...Object.keys(a)].map((k) => [k, Math.min(9999, (a[k] ?? 0) + 1)])))}
                   onCeros={() => setPorVariante({})}
                   total={totalUnidades}
+                  freno={frenoCantidades}
                 />
               </CampoGuiado>
             </section>
@@ -222,6 +224,8 @@ export function AgregarTallasModal({
             texto={combos.length === 0 ? "Agregar" : `Agregar ${combos.length} ${combos.length === 1 ? "variante" : "variantes"}`}
             deshabilitado={combos.length === 0 || (nacen > 0 && !precioOk)}
             onConfirmar={() => {
+              // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+              if (frenoCantidades.current?.()) return;
               onConfirmar({ combos, precio, costo, unidades: puedeCargar ? porVariante : {} });
               cerrar();
             }}

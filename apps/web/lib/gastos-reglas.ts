@@ -2,6 +2,7 @@
 // Las mismas reglas las cierra la base (`registrar_gasto`, checks y disparadores de 20260924235100); aquí se dicen con una
 // frase clara ANTES de ir a la base, y se arma lo que la RPC espera.
 
+import { reglaDeEntero } from "./cantidad-escrita-reglas";
 import { claveTexto, type MotivoParecido } from "./nombres-parecidos";
 import { proveedoresParecidos } from "./proveedores-reglas";
 import { soles } from "./compras-reglas";
@@ -1116,6 +1117,24 @@ export type ParamsFijo = { p_ubicacion_id: string | null; p_categoria: string; p
 /** Lo mismo que el candado de la base (`gastos_fijos_dias_antes_valido`): una persona que escribe «45» casi seguro quiso decir otra cosa. */
 const MAX_DIAS_ANTES = 30;
 
+export const TEXTO_DIA_FIJO = "El día va del 1 al 28. Si vence el 29, 30 o 31, elige «A fin de mes».";
+export const TEXTO_DIAS_ANTES_FIJO = `Pagar antes va de 0 a ${MAX_DIAS_ANTES} días. Con 0 se paga el mismo día que vence.`;
+
+const CIFRA_DE_FIJO = reglaDeEntero(2);
+
+/** El día o los días antes como se escribieron, o `NaN` si no es un entero. Vacío es 0. Se lee por su forma, no con `Number`, que tomaría «1e1» por 10. */
+export const leerCifraDeFijo = (texto: string): number => CIFRA_DE_FIJO.leer(texto) ?? Number.NaN;
+
+export function diaDeFijoValido(texto: string): boolean {
+  const dia = leerCifraDeFijo(texto);
+  return dia >= 1 && dia <= 28;
+}
+
+export function diasAntesDeFijoValidos(texto: string): boolean {
+  const dias = leerCifraDeFijo(texto);
+  return dias >= 0 && dias <= MAX_DIAS_ANTES;
+}
+
 /** El día que respalda a cada momento (el mismo que exige la base: 7, 15 y 28 son solo el orden). */
 const DIA_DE_RESPALDO: Record<Exclude<MomentoFijo, "dia">, number> = { primera_semana: 7, quincena: 15, fin_de_mes: 28 };
 
@@ -1127,17 +1146,15 @@ export function validarFijo(b: BorradorFijo): Resultado<ParamsFijo> {
   if (!m.ok) return m;
   let dia: number;
   if (b.momento === "dia") {
-    dia = Number(b.dia);
-    if (!Number.isInteger(dia) || dia < 1 || dia > 28) return { ok: false, error: "El día va del 1 al 28. Si vence el 29, 30 o 31, elige «A fin de mes»." };
+    if (!diaDeFijoValido(b.dia)) return { ok: false, error: TEXTO_DIA_FIJO };
+    dia = leerCifraDeFijo(b.dia);
   } else {
     dia = DIA_DE_RESPALDO[b.momento];
   }
   let diasAntes: number | undefined;
   if (b.diasAntes !== null) {
-    diasAntes = b.diasAntes.trim() === "" ? 0 : Number(b.diasAntes);
-    if (!Number.isInteger(diasAntes) || diasAntes < 0 || diasAntes > MAX_DIAS_ANTES) {
-      return { ok: false, error: `Pagar antes va de 0 a ${MAX_DIAS_ANTES} días. Con 0 se paga el mismo día que vence.` };
-    }
+    if (!diasAntesDeFijoValidos(b.diasAntes)) return { ok: false, error: TEXTO_DIAS_ANTES_FIJO };
+    diasAntes = leerCifraDeFijo(b.diasAntes);
   }
   return {
     ok: true,

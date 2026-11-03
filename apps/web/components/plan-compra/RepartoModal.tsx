@@ -12,8 +12,9 @@ import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { camposDelReparto } from "@/lib/plan-compra-guia";
-import { RPC_GUARDAR_MINIMO } from "@/lib/plan-compra-reparto";
+import { problemasDeLosMinimos, RPC_GUARDAR_MINIMO } from "@/lib/plan-compra-reparto";
 
 // El mínimo por tienda del reparto (ADR-0372, act. 2026-10-12 · Felipe: Lima casi no vende todavía; «un mínimo que fija un líder»). Por cada
 // tienda activa, un % opcional: en blanco, le toca según lo que vende. Lo fija quien tiene el módulo Plan de campaña, sea o no líder (la base
@@ -40,6 +41,7 @@ export function RepartoModal({
   const enviando = useRef(false);
   const guia = useGuiaCampos(camposDelReparto(textos, tiendas, { listo: responsable.listo, motivo: responsable.motivo }));
   const cambiadas = tiendas.filter((t) => (textos[t.id] ?? "").trim() !== (inicial[t.id] ?? ""));
+  const { porTienda } = problemasDeLosMinimos(textos);
 
   async function guardar(cerrar: () => void) {
     if (enviando.current || !guia.puedeConfirmar || cambiadas.length === 0) return;
@@ -83,17 +85,19 @@ export function RepartoModal({
         >
           {tiendas.map((t) => (
             <CampoGuiado key={t.id} id={`minimo-${t.id}`} guia={guia} titulo={t.nombre} ayuda="Mínimo, en % del objetivo">
-              <div className="flex w-36 items-center gap-2">
+              <div className="flex w-36 items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <CampoTexto
                     etiqueta={`Mínimo de ${t.nombre}, en %`}
                     caja
                     inputMode="numeric"
                     value={textos[t.id] ?? ""}
-                    onChange={(e) => setTextos((x) => ({ ...x, [t.id]: e.target.value.replace(/\D/g, "").slice(0, 2) }))}
+                    tono={porTienda[t.id] ? "error" : undefined}
+                    pie={porTienda[t.id]}
+                    onChange={(e) => setTextos((x) => ({ ...x, [t.id]: limpiarCantidad(e.target.value) }))}
                   />
                 </div>
-                <span aria-hidden className="pb-4 text-sm text-tinta/70">
+                <span aria-hidden className="pt-2.5 text-sm text-tinta/70">
                   %
                 </span>
               </div>
