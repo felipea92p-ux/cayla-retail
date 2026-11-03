@@ -115,6 +115,19 @@
   box-shadow: var(--placa-luz);
   border-radius: 20px;
 }
+/* Lo que era hueso, papel o crema SÓLIDO dentro de una hoja o un cajón (una nota, un resumen, una caja con borde, la pista de una barra): la
+   placa de vidrio, en UN solo lugar y no pantalla por pantalla (Felipe 2026-11-02: «muchos módulos tienen el mismo problema»; son ~150
+   archivos con hoja). Mismo modelo que `.tienda-web-vidrio .bg-hueso`. Se quedan opacos a propósito: lo que flota o se pega (`sticky`, `fixed`,
+   `absolute`, `rounded-full`: globos, menús, los puntos de una línea de tiempo, encabezados de tabla que tapan lo que pasa por debajo), el papel físico y el color
+   de dato, y los controles, que ya tienen su receta (campos, botones). Un `hover:bg-…` o un `bg-…/50` no se tocan: son otra clase. */
+:is(.hoja-serena, .cajon-serena)
+  :is(.bg-hueso, .bg-papel, .bg-crema):not(
+    .sticky, .fixed, .absolute, .rounded-full, .card-cayla, input, textarea, select, button,
+    .papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-color-dato], [data-color-dato] *
+  ) {
+  background: var(--placa-fondo);
+  border-color: var(--placa-borde);
+}
 :is(.hoja-serena, .cajon-serena) :is(.divide-sand, .divide-tinta\/10) > :not(:first-child) {
   border-color: color-mix(in srgb, var(--color-tinta) 9%, transparent);
 }

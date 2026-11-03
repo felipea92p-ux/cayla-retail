@@ -20,7 +20,7 @@ Estados: **Por auditar** · **En maqueta** (esperando que Felipe elija) · **Ele
 | Pieza | Dónde vive | Estado | Cara | Maqueta |
 |---|---|---|---|---|
 | El fondo (lienzo) | `AppShell.tsx` (`bg-crema`), `globals.css` | En código | B · Aurora | `marco-vidrio-2026-10/` |
-| Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | En código | B · Riel de vidrio con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en bandeja, desde el 2026-11-02 una placa esmerilada plana y la fila activa una ficha mate sin brillo («Escarcha», `--bandeja-*` y `--menu-activa-*`; antes hundida y con gota); plegar con un botón que flota en el borde, a la altura del logo; plegado con nombre corto bajo cada ícono (A, 84 px) | `marco-vidrio-2026-10/`, `lateral-glass-2026-11/` |
+| Menú lateral (abierto, plegado, cajón de grupo) | `AppShell.tsx` (`GrupoLateral`, `CajonGrupo`) | En código | Desde el 2026-11-02, en escritorio, una columna LISA que sigue el tema (papel con una línea de límite en claro; negro cálido bajo la página en oscuro: `--riel-fondo` y `--riel-borde`), sin vidrio, sin degradado ni sombra larga en la unión con el contenido (Felipe: «el degradado se ve raro»; maqueta «E»); el cajón del celular conserva su vidrio. Con la gota en la fila activa; todos los íconos, también en submódulos; despliegue en cascada; submódulos en una placa apenas hundida y la fila activa una ficha teñida de rojo con su filo, ambas planas (`--bandeja-*` y `--menu-activa-*`); plegar con un botón que flota en el borde, a la altura del logo; plegado con nombre corto bajo cada ícono (A, 84 px) | `marco-vidrio-2026-10/`, `lateral-glass-2026-11/` |
 | Cabecera (sede, buscador, Actividad, tema, Demo) | `AppShell.tsx` (`data-cabecera-app`) | En código | C · Dos islas; el buscador se encoge con la cabecera hasta quedar en una lupa | `marco-vidrio-2026-10/` |
 | El combo: la sede y todos los demás | `ui/campos.tsx` (`Desplegable`, 7 formas), `UbicacionSwitcher.tsx` | En código | A · Gota viajera | `marco-vidrio-2026-10/` |
 | Íconos del marco | `lib/menu-iconos.ts` (trazo 1,5) | En código | A · Se llena al elegir: la pantalla en que estás, con su dibujo lleno de vidrio (34 %) | `iconos-vidrio-2026-11/` |
@@ -150,12 +150,15 @@ insignias, vacíos, hojas): lo que les falta es revisar **sus piezas propias**, 
 - **Producción:** Resumen (`/produccion`) · Abastecimiento: Órdenes de insumos (`/ordenes-insumos`), Proveedores (`/produccion/proveedores`),
   Facturas de insumos (`/produccion/comprobantes`), Recibir (`/produccion/recibir`), Por pagar (`/produccion/por-pagar`).
 - **Gestión:** Análisis (`/gestion/analisis`, ADR-0357, con su movimiento propio).
-- **Tienda web** (ADR-0430, con su movimiento propio): Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico, Conf. Tienda.
 - **Compras:** Historial de compras (`/compras`) y las pantallas de una compra o factura.
 - **Clientes:** Avisos (`/clientas/avisos`) y Beneficios (`/clientas/beneficios`).
 - **Configuración:** Ubicaciones y accesos, Empresa y facturación, Apartados, Comercial.
 - **Administración:** Colaboradores ▸ Roles y accesos, Actividad.
 - **Las pantallas internas** (una factura, editar un producto, una compra, una orden de insumos): heredan las piezas; se revisan con su módulo.
+
+**Auditadas y en código** (sin maqueta, con las piezas de 4.1):
+
+- **Tienda web** (ADR-0430; `app/estilos/vidrio/tienda-web.css`, 2026-11-02): Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico y Conf. Tienda. Cada bloque es la placa Serena; las cartas, la bandeja y las puertas, vidrio claro; lo hueso, el pozo; las opciones de Campañas, gota que se hunde al elegirse; y dentro de una hoja, la lámina (`card-cayla`). El layout del grupo pone `.tienda-web-vidrio` (`display: contents`). El movimiento no cambia. Se quedan como están, porque muestran lo que ve el cliente: la vista previa de una campaña, el teléfono de Conf. Tienda y la captura del chat de «Editar mensaje». Medida con `tema:auditar` en claro y oscuro, y a 1440 y 375 px, también con datos inventados (la base local no trae pedidos, campañas ni tráfico). Sin probar con datos reales de producción.
 
 **Fuera, hasta que Felipe diga** (diseño propio decidido, ver más abajo): la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock,
 la persiana de Caja, Finanzas (El telar, ADR-0493), el login, las guías interactivas, y lo que es papel o cámara.

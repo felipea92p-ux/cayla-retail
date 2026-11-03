@@ -112,6 +112,10 @@ export const PRUEBAS = [
   // se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
   "pruebas:impuestos",
 
+  // Sustento del costo (ADR-0598): lo gastado por proveedor y papel (factura, boleta, nota de venta, sin comprobante), con la
+  // nota de crédito restando, sin activos ni anulados, sin el lote de un envío (su plata vive en la compra de la orden); solo el líder. ROLLBACK.
+  "pruebas:sustento-costos",
+
   // Estado de resultados (ADR-0195 F5): el diario cuadra, cada regla de posteo, unidades y consolidado, planilla de
   // Dynamic, permisos, campañas y un año de volumen; y las mermas en la 6951 (antes 659, migración 20261023012000): el Estado de
   // resultados, el Balance y la conciliación dan lo mismo antes y después, y 6599/6598 no se mueven. ROLLBACK.
@@ -1786,6 +1790,7 @@ export const PRUEBAS = [
   // (Corte conserva su tope plan × 1,10); avance, salida y vuelta la rechazan; un servicio de ploteo cobra el fijo por orden y devenga al marcarse;
   // lo marcado solo se agrega; la línea de tiempo y las puertas. ROLLBACK.
   "pruebas:produccion-ploteo",
+  "pruebas:insumo-compra-con-deuda",
 
   // «Pendiente de registrar» (ADR-0551 pendiente de registrar): una fase de servicio sin proveedor que puede llevar su costo (tarifa, fijo, mínimo) y lo devenga igual, y se registra quién después aunque ya haya empezado (conserva el costo; bloquea la orden; deja su rastro en Actividad). El CHECK, la apertura, el devengado, las puertas. ROLLBACK.
   "pruebas:produccion-proveedor-pendiente",
@@ -1828,6 +1833,10 @@ export const PRUEBAS = [
   // El catálogo de procesos (ADR-0570, actividad 5): los doce de siempre con su mismo lugar en la ruta, Pegar cierre y Lavado o teñido, la llave foránea en fases y tarifas;
   // solo un líder da de alta o apaga (el nuevo cae entre sus vecinos; la espina no se apaga; lo apagado no entra a una orden ni a una tarifa); lo que lleva cada modelo. ROLLBACK.
   "pruebas:produccion-catalogo-de-procesos",
+  // La propuesta del SIRE (ADR-0601, actividades 1 y 2): se guarda entera o nada, otra subida del mismo mes agrega una versión sin borrar (la vigente es la última),
+  // solo quien ve Impuestos la sube o la lee, la base frena un mes futuro, un registro desconocido o una línea mal formada; una diferencia se resuelve una vez
+  // (deshacer no borra) y la resolución sobrevive a otra versión; lo que trae la API (actividad 5) solo lo guarda la llave de servicio y sin repetir versión. ROLLBACK.
+  "pruebas:sire-propuestas",
   // Agregar una talla o un color a un modelo desde Nueva orden (migración 20261031172000): una variante por color o por talla con el precio y el costo de su hermana y sin stock;
   // no duplica, no reclama una desactivada, talla habilitada y color activo, sin mezclar «Sin color» ni «Única»; solo quien opera el Taller y edita el catálogo. ROLLBACK.
   "pruebas:produccion-agregar-variantes",
@@ -1994,6 +2003,7 @@ export const PRUEBAS = [
   // y mandar la confirmación por la API directa no cambia nada; una talla con cero buenas no cuenta; una muestra no
   // pregunta; una sola función (sin sobrecargas); `anon` no la ejecuta; se puede pegar dos veces. Cada caso termina en ROLLBACK.
   "pruebas:produccion-costo-atipico",
+  "pruebas:produccion-costo-atipico-motivo",
 
   // Recibir un lote sin factura pide confirmación si el costo de una línea es atípico (20260930122000, Felipe 2026-09-30): el
   // líder recibe `costo_atipico` con las líneas raras que faltan por confirmar en `detail.items` (numeradas; las normales no) y no

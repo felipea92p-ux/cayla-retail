@@ -2012,6 +2012,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     SUNAT queda entero) y el Estado de resultados la nota «No incluye lo vendido de CLAURE» (`notaResultadosClaure`, `EstadoResultadosPanel`). `fn_flujo_lineas` cuenta el pago a CLAURE como salida
     (`pago_claure`, `TEXTO_CATEGORIA`). La 479 acumula la parte sin IGV de TODO lo vendido de CLAURE (también el efectivo, que tiene Claudia): es provisional hasta el contador. Prueba:
     `pnpm pruebas:claure-fuera-de-las-cifras`.
+    **La renta del año (ADR-0598, 20261102055000 y 20261102060000):** `/finanzas/impuestos` lee además `getRentaDelAno(hoy)` (`lib/renta-anual.ts`):
+    `fn_sustento_costos(desde, hasta)` (solo el líder; lo gastado por origen, proveedor y papel), el Estado de resultados (`getEstadoResultados`, consolidado),
+    `fn_impuestos_igv_meses` (lo vendido sin IGV, para el 1 % a cuenta), `fn_parametros_tributarios_lista` (la escala `renta_*`/`boletas_*` y lo de antes del
+    sistema `renta_utilidad_previa`/`renta_sin_papel_previo`/`renta_pagada_previa`) y el inicio de Finanzas. La regla vive en `lib/renta-anual-reglas.ts`
+    (`clasePapel`, `proyectarRenta`, `armarRentaDelAno`, `proveedoresSinFactura`) y se dibuja en `components/finanzas/ImpuestosRenta.tsx` (tarjeta «Renta de
+    2026») e `ImpuestosProveedores.tsx` (cajón «A quién pedirle factura»). Lo de antes del sistema se escribe en Configuración ▸ Impuestos
+    (`ConfiguracionImpuestos`, `guardar_parametro_tributario`). Prueba: `pnpm pruebas:sustento-costos`.
     **CLAURE fuera del Inicio y del Observatorio (actividad 6a, 20261029023000):** `fn_item_es_de_claure(línea, sede, fecha)` (interna) es la regla de «esta línea de venta es de CLAURE» —la misma de
     `fn_claure_ventas`: sede donde opera CLAURE, venta desde `empresas.cuenta_corriente_desde`, dueño real de la línea (`fn_dueno_de_la_linea`)— y la reusan 6b, 6c y 6d. `fn_observatorio` (todas las tiendas) y
     `fn_observatorio_tienda` (una tienda) suman solo lo de CAYLA (reemplazos anclados: una venta solo de CLAURE no cuenta ni como ticket, la mixta cuenta por sus líneas de CAYLA, y las prendas «quietas» miden solo
@@ -2120,6 +2127,18 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
       (`DescargarCuadro`, `components/finanzas/estados/DescargarContador.tsx`).
   - `/finanzas/impuestos` → `lib/impuestos.ts` → lecturas de IGV y registros (`parametros_tributarios` con vigencia y
     correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo).
+  - `/finanzas/impuestos/sire` (ADR-0601, «Comparar con SUNAT»; `?registro=ventas` para el RVIE) → `lib/sire.ts` → `fn_sire_propuesta` (la
+    propuesta vigente del SIRE, jsonb) y `fn_impuestos_registro_compras` o `_ventas` (los mismos registros del contador), cruzados por
+    `lib/sire-cruce-reglas.ts` (`cruzarCompras`, `cruzarVentas`). Se sube con
+    `guardar_propuesta_sire` desde `components/finanzas/SubirPropuestaSireModal.tsx`: el txt (o el .zip, `lib/zip-leer.ts`) lo lee
+    `lib/sire-propuesta-reglas.ts` en el navegador. Tablas `sire_propuestas` y `sire_lineas` (migración `20261102202000`; nunca se borra:
+    otra subida del mes es otra versión). Cada diferencia se resuelve con `resolver_diferencia_sire` / `deshacer_resolucion_sire`
+    (`components/finanzas/ResolverDiferenciaSireModal.tsx`; tabla `sire_resoluciones`, migración `20261102203000`: deshacer no borra).
+    El mismo cruce, resumido (`getEstadoSire`, `lib/sire-estado-reglas.ts`), suma líneas a «Antes de declarar» de `/finanzas/impuestos` y
+    un aviso que no bloquea a la unidad «empresa» de `/finanzas/cierre` (`conChequeoSire`).
+    `GET /api/sire/propuesta` (cron de Vercel, del 2 al 10 a las 8:30 de Lima) trae las dos propuestas del mes anterior de la API del
+    SIRE (`lib/sire-api.ts`, solo lectura; credenciales `SIRE_*` en variables de entorno) y las guarda con `guardar_propuesta_sire_api`
+    (solo `service_role`, migración `20261102204000`; no repite una versión igual). Sin credenciales responde «omitido».
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.

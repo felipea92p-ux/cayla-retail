@@ -141,7 +141,7 @@ export function PrepararRecortesHoja({
       <form onSubmit={empezar} className="space-y-5">
         {fase === "antes" ? (
           <>
-            <p className="rounded-xl border border-sand bg-papel px-3.5 py-2.5 text-sm text-tinta">
+            <p className="nota-cayla">
               Solo entran al armador las fotos con fondo transparente (el PNG sin fondo que entrega la IA). Una foto con fondo, o un JPG, se queda sin
               recorte: cámbiala en Editar producto. Deja esta pestaña abierta; si la pausas, lo hecho queda guardado y sigues otro día.
             </p>

@@ -401,7 +401,7 @@ describe("el aviso del modal «Cerrar el mes»: dice lo que FALTA, no el estado 
   const CLAVES: Record<ClaveChequeo, true> = {
     cajas: true, egresos: true, regularizar: true, fijos: true, conciliacion: true, planilla: true, sin_costo: true,
     cerrada_sin_prenda: true, envios_con_diferencia: true, conteos_abiertos: true, sobrantes_traslado: true,
-    facturas_sin_recibir: true, diario: true, huella: true,
+    facturas_sin_recibir: true, diario: true, huella: true, sire: true,
   };
   it("octubre: cuatro pendientes avisan y el modal los nombra por lo que falta", () => {
     const avisos = ["envios_con_diferencia", "conteos_abiertos", "sobrantes_traslado", "facturas_sin_recibir"].map((c) => ch(c, false, {}, false));

@@ -1,6 +1,8 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller } from "@/lib/produccion";
 import { getInsumosDelTaller, getTelasCortadasSinAnotar } from "@/lib/insumos";
+import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
+import { opcional } from "@/lib/resultado";
 import { avisosDeTelaCortada } from "@/lib/telas-cortadas-sin-anotar-reglas";
 import { getClasesDeAvio, getColoresDeLaCarta, getVocabularioDeTelas } from "@/lib/telas-vocabulario";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -36,7 +38,7 @@ export default async function InsumosPage() {
   }
 
   const esLider = persona.rol === "lider";
-  const [datosConCostos, vocabulario, carta, clases, telasCortadas] = await Promise.all([
+  const [datosConCostos, vocabulario, carta, clases, telasCortadas, proveedores] = await Promise.all([
     getInsumosDelTaller(taller.id, { conCostos: true, hoy: hoyLima() }),
     // Dato de apoyo (la ficha de la tela): si no se lee, la lista sigue en pie y la ficha lo dice.
     getVocabularioDeTelas(),
@@ -46,6 +48,8 @@ export default async function InsumosPage() {
     getClasesDeAvio(),
     // Dato de apoyo: las órdenes que ya cortaron con una tela que hay en el estante y no la anotaron. Si la base no responde, la pantalla sigue sin el aviso.
     getTelasCortadasSinAnotar(taller.id),
+    // A quién se le puede comprar (P03: «Ingresar insumo ▸ Compra» pide proveedor). Solo el líder los lee; si no responden, la hoja dice que no hay y no deja comprar sin proveedor.
+    esLider ? opcional(getProveedoresProduccion(), "los proveedores de la compra") : Promise.resolve(null),
   ]);
   // `veCostos` lo dice la base (si no entregó costo teniendo lotes, no se dibuja «S/ 0.00» como si fuera un dato). El capital total es solo del líder.
   const veCostos = datosConCostos.veCostos;
@@ -66,6 +70,7 @@ export default async function InsumosPage() {
         clases={clases.clases}
         leyoClases={clases.leyo}
         avisosDeTela={avisosDeTelaCortada(telasCortadas)}
+        proveedores={(proveedores ?? []).filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, plazoCreditoDias: p.plazoCreditoDias }))}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
+import type { ProveedorParaCompra } from "@/components/insumos-taller/CompraDelInsumo";
 import { CorregirIngresoModal } from "@/components/insumos-taller/CorregirIngresoModal";
 import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
@@ -26,6 +27,7 @@ import {
   agruparPorTela,
   cantidadTexto,
   loteMasAntiguoConSaldo,
+  origenDeLote,
   textoDeCompra,
   textoDeMovimiento,
   tramoDeSaldo,
@@ -63,6 +65,7 @@ export function InsumosPanel({
   sede,
   datos,
   tallerId,
+  proveedores = [],
   esLider,
   veCostos,
   vocabulario,
@@ -77,6 +80,8 @@ export function InsumosPanel({
   sede: string;
   datos: InsumosDelTaller;
   tallerId: string;
+  /** A quién se le puede comprar (solo el líder los lee): «Ingresar insumo ▸ Compra» pide proveedor (P03). */
+  proveedores?: readonly ProveedorParaCompra[];
   esLider: boolean;
   /** Quien ve Producción en el Taller ve el costo de cada lote (no el capital). */
   veCostos: boolean;
@@ -336,7 +341,7 @@ export function InsumosPanel({
       {retirando && <RetirarColorModal key={retirando.id} insumo={retirando} tallerId={tallerId} onClose={() => setRetirando(null)} />}
       {corrigiendo && <CorregirIngresoModal key={corrigiendo.lote.id} insumo={corrigiendo.insumo} lote={corrigiendo.lote} veCostos={veCostos} onClose={() => setCorrigiendo(null)} />}
       {restaurando && <RestaurarIngresoModal key={restaurando.eliminado.loteId} insumo={restaurando.insumo} eliminado={restaurando.eliminado} onClose={() => setRestaurando(null)} />}
-      {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
+      {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} proveedores={proveedores} onClose={() => setIngresando(null)} />}
     </div>
   );
 }
@@ -436,9 +441,11 @@ function FilaInsumo({
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
                       <p className="mt-1 truncate text-tinta/65">
-                        {l.origen === "saldo_inicial" ? "saldo inicial" : "compra"} · {diaMes(l.ingreso)}
+                        {origenDeLote(l)} · {diaMes(l.ingreso)}
                         {l.documento ? ` · ${l.documento}` : ""}
                       </p>
+                      {/* La nota del ingreso (la cuenta de kilos a metros, o «Encontré tela») a la vista, no escondida: P11 del análisis del Taller. */}
+                      {l.nota && <p className="mt-0.5 truncate text-tinta/65" title={l.nota}>{l.nota}</p>}
                     </div>
                     <span className="whitespace-nowrap tabular-nums text-tinta">
                       {/* «quedan de entraron»: dos cifras iguales sin nombre no decían cuál era cuál (P11 del análisis del Taller). */}

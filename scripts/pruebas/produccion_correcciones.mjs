@@ -99,7 +99,7 @@ create function pg_temp.restaura(p_cambio uuid, p_motivo text default 'Se elimin
   select pg_temp.intento(format('select retail.restaurar_anotacion_orden(%L, %L)', p_cambio, p_motivo)) $f$;
 create function pg_temp.comenta(p_oid uuid, p_texto text) returns text language sql as $f$ select pg_temp.intento(format('select retail.comentar_orden(%L, %L)', p_oid, p_texto)) $f$;
 create function pg_temp.cierra(p_oid uuid, p_buenas jsonb) returns text language sql as $f$
-  select pg_temp.intento(format('select retail.cerrar_produccion(%L, %L::jsonb, 1400, 200, null, true)', p_oid, p_buenas)) $f$;
+  select pg_temp.intento(format('select retail.cerrar_produccion_con_motivo(%L, %L::jsonb, 1400, 200, null, true, ''motivo de prueba'')', p_oid, p_buenas)) $f$;
 `;
 
 const PRELUDIO = `

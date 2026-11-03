@@ -290,7 +290,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                     setBorrador((b) => conModo(b, modo));
                     setErrorGuardar(null);
                   }}
-                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${borrador.modo === modo ? "border-tinta bg-papel shadow-[0_0_0_1px_var(--color-tinta)]" : "border-sand bg-crema hover:bg-hueso"}`}
+                  className="tw-opcion flex items-center gap-3 rounded-xl border p-3 text-left"
                 >
                   <Icono className="h-4 w-4 shrink-0" aria-hidden />
                   <span className="min-w-0">
@@ -315,7 +315,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                       aria-pressed={puesto}
                       disabled={terminada || guardando}
                       onClick={() => elegirAmbiente(a.clave)}
-                      className={`flex flex-col gap-1 rounded-xl border p-2 text-left transition-colors ${puesto ? "border-tinta bg-papel shadow-[0_0_0_1px_var(--color-tinta)]" : "border-sand bg-crema hover:bg-hueso"}`}
+                      className="tw-opcion flex flex-col gap-1 rounded-xl border p-2 text-left"
                     >
                       <span className="relative block h-14 rounded-lg" style={{ backgroundColor: p.fondo, color: p.texto }} data-color-dato>
                         <b className="absolute bottom-2 left-2 font-sans text-sm uppercase tracking-wide">Aa</b>
@@ -426,7 +426,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                           aria-pressed={puesta}
                           disabled={terminada || guardando}
                           onClick={() => setBorrador((b) => conPaleta(b, i))}
-                          className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm transition-colors ${puesta ? "border-tinta bg-papel shadow-[0_0_0_1px_var(--color-tinta)]" : "border-sand bg-crema hover:bg-hueso"}`}
+                          className="tw-opcion flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm"
                         >
                           <span className="font-semibold">{p.nombre}</span>
                           <span className="flex gap-1" aria-hidden data-color-dato>
@@ -521,7 +521,7 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
                             setBorrador((b) => conMovimiento(b, "efecto", e));
                             setVuelta((n) => n + 1);
                           }}
-                          className={`flex h-11 items-center justify-center rounded-xl border transition-colors ${borrador.efecto === e ? "border-tinta bg-tinta text-crema" : "border-sand bg-crema text-tinta hover:bg-hueso"}`}
+                          className="tw-opcion tw-opcion-icono flex h-11 items-center justify-center rounded-xl border text-tinta"
                         >
                           <Icono className="h-4 w-4" aria-hidden />
                         </button>

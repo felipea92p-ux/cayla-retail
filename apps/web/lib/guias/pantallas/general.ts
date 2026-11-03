@@ -1212,6 +1212,13 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "Opcional. El aviso de ventas del año de Impuestos cuenta lo registrado en el sistema y puede quedar por debajo de la cifra real. Si tu contador te da otra cifra, escribe aquí cuánto sumar, sin IGV. Cada año va aparte: el de uno no pasa al siguiente.",
     },
     {
+      id: "impuestos-renta-previa",
+      ancla: "config.impuestos-renta-previa",
+      opcional: true,
+      titulo: "La renta: lo de antes del sistema",
+      texto: "Lo de enero hasta que Finanzas empezó a contar, según tu contador: la utilidad, el costo de lo vendido, lo comprado sin factura y la renta ya pagada. Con esto, la renta de marzo de Impuestos cubre el año entero. Vacío, la estima a tu ritmo actual.",
+    },
+    {
       id: "impuestos-regimen",
       ancla: "config.impuestos-regimen",
       opcional: true,

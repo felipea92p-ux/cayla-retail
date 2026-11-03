@@ -20,6 +20,7 @@ import { camposDeCierre } from "@/lib/orden-pagina-guia";
 import {
   MAX_MOTIVO_CAMBIO,
   RPC_CERRAR_PRODUCCION,
+  RPC_CERRAR_PRODUCCION_CON_MOTIVO,
   RPC_MARCAR_YA_EN_STOCK,
   RPC_PERMITIR_SIN_TELA,
   cantidadesTerminadas,
@@ -132,7 +133,7 @@ export function PasarAlStockModal({
     void guardiaFuera.then(() => router.refresh());
   }
 
-  async function confirmar(confirmaCostoAtipico = false) {
+  async function confirmar(confirmaCostoAtipico = false, motivoCosto = "") {
     if (enVuelo.current) return;
     if (problemas.length > 0) {
       avisar.error(problemas[0].texto);
@@ -181,8 +182,9 @@ export function PasarAlStockModal({
       // Los montos van en `null` a propósito: la base toma la tela y los avíos del libro de insumos y los servicios de lo devengado.
       resultado = await firmar(
         createClient().rpc(
-          RPC_CERRAR_PRODUCCION as never,
-          { p_produccion_id: orden.id, p_buenas: lineasDeCierre(lineasOrden, cantidades), p_costo_tela: null, p_costo_avios: null, p_costo_maquila: null, ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true } : {}) } as never
+          // Confirmar un costo atípico va por la puerta con motivo (P19); lo demás, por la de siempre.
+          (confirmaCostoAtipico ? RPC_CERRAR_PRODUCCION_CON_MOTIVO : RPC_CERRAR_PRODUCCION) as never,
+          { p_produccion_id: orden.id, p_buenas: lineasDeCierre(lineasOrden, cantidades), p_costo_tela: null, p_costo_avios: null, p_costo_maquila: null, ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true, p_motivo: motivoCosto } : {}) } as never
         ),
         responsable.firma()
       );
@@ -395,7 +397,8 @@ export function PasarAlStockModal({
               listo={responsable.listo}
               motivoNoListo={responsable.motivo}
               onCorregir={() => avisoSalida.pedirAccion(onClose)}
-              onConfirmar={() => void confirmar(true)}
+              conMotivo
+              onConfirmar={(motivo) => void confirmar(true, motivo)}
             />
           )}
         </div>

@@ -2,9 +2,10 @@
   "guia": "finanzas.impuestos",
   "ruta": "/finanzas/impuestos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 15,
   "controles": {
     "components/ImpuestosPanel.tsx": [
+      "BotonVer «Comparar con SUNAT»",
       "button «fin-impuestos.ir-a-declarar»",
       "Link «Ver la cuenta con CLAURE»"
     ],
@@ -14,6 +15,10 @@
     ],
     "components/finanzas/ImpuestosFila.tsx": [
       "Link «{cuerpo}»"
+    ],
+    "components/finanzas/ImpuestosRenta.tsx": [
+      "button «fin-impuestos.pedir-factura»",
+      "Link «Carga lo de tu contador»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
       "Link «{`${a.texto}»",
