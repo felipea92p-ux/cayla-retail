@@ -442,14 +442,6 @@
   backdrop-filter: blur(22px) saturate(1.5);
   pointer-events: none;
 }
-/* En el cobro, el paso que «sigue» (guía de foco) tampoco lleva el fondo rosado sólido con borde: sobre el vidrio se veía como un bloque opaco.
-   Se marca con su número en rojo y la pastilla «Sigue aquí», como en el descuento. Se conserva su margen y su relleno: el diseño del cobro,
-   compactado por su alto, no cambia de medidas. */
-.hoja-cobro.hoja-serena .hoja-cobro-paso,
-.hoja-cobro.hoja-serena .hoja-cobro-paso.sigue-aqui {
-  background: transparent;
-  border-color: transparent;
-}
 .hoja-descuento.hoja-serena {
   /* Contenedor con nombre: con la hoja ancha (≥ 38 rem) el cuerpo pasa a dos columnas; si queda angosta (catálogo estrecho a 1024–1100 px), una. */
   container: descuento / inline-size;
@@ -550,14 +542,6 @@
   gap: 0.625rem;
   align-content: start;
   min-width: 0;
-}
-/* El paso que sigue (guía de foco) lleva su número en rojo, la pastilla «Sigue aquí» y el filo de luz de abajo, SIN fondo de color (Felipe
-   2026-11-02: un recuadro rosado sólido se veía como una mancha sobre el vidrio). Conserva su relleno y su margen de siempre: el filo es un
-   borde y necesita aire alrededor del contenido. */
-.pv-desc-cuerpo .hoja-cobro-paso,
-.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui {
-  border-color: transparent;
-  background: transparent;
 }
 /* El segmento «Porcentaje | Monto en S/» a lo ancho de su paso, con cada opción a media caja: un blanco cómodo de tocar. */
 .segmento-cayla.pv-desc-modo {
