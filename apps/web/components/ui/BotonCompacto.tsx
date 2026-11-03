@@ -34,7 +34,7 @@ const BASE =
 // `cargando` seguiría levantándose o rellenándose bajo el puntero (y en `fila-alerta` el relleno rojo
 // taparía el hilo de carga, que también es rojo).
 const VARIANTE: Record<VarianteBotonCompacto, string> = {
-  primario: "h-9 rounded-[10px] bg-tinta px-3.5 text-[13px] text-crema enabled:hover:bg-rojo-profundo",
+  primario: "btn-primario h-9 rounded-full border px-3.5 text-[13px] text-crema",
   fila: "h-[30px] rounded-[8px] border border-tinta/28 px-3 text-[12.5px] text-tinta enabled:hover:bg-tinta enabled:hover:text-crema",
   "fila-alerta":
     "h-[30px] rounded-[8px] border border-rojo-profundo px-3 text-[12.5px] text-rojo-profundo enabled:hover:border-rojo enabled:hover:bg-rojo enabled:hover:text-crema",
