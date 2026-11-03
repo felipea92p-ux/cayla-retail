@@ -67,3 +67,8 @@ Felipe se lleva: mirarlo en local, y que pegar varias celdas de una hoja de cál
 Qué hice: en un modelo con tallas guardadas, teclear un número que deja de cuadrar o cambiar el número con el Dial ya no cierra la tabla. El cursor se queda en su celda, lo repartido no se pierde y dice cuánto falta. «Deshacer» vuelve a lo guardado sin dejar la falsa pregunta de «sin guardar» al salir.
 Por qué así: el modo «ahora» se deducía de que el modelo tuviera tallas, y soltarlas lo mandaba a «después». Ahora el modelo que se toca deja dicho su modo, y lo elegido por la persona no se pisa. Lógica pura en `lib/recepcion-tallas-reglas.ts`, con su prueba; sin migración. No cambié la decisión de ADR-0604: lo guardado se suelta mientras no cuadre.
 Felipe se lleva: el error está en `main` y esta corrección sigue sin subir. Probé con Vestido Sofía en ENV-003062 (base local), que quedó en 48 con 5 + 43.
+
+## 2026-11-03 (Producción: «Nos debe» por prenda, pegado)
+Qué hice: con el OK de Felipe pegué `20261103144000` a las 11:33 de Lima y marqué la casilla del PR #1609; él pidió además la fusión automática. Antes volví a mirar producción: las cuatro funciones intactas, cada ancla una sola vez, las dos nuevas sin existir y todas las tablas y columnas que lee.
+Por qué así: se pega antes de fusionar porque el check lo exige y pegarla no rompe la web de hoy: a las lecturas solo les agrega llaves. Los md5 de las seis funciones quedaron iguales a los de la base local, donde corren las pruebas. Las dos internas no se pueden llamar desde afuera.
+Felipe se lleva: producción tiene 0 diferencias de envío vigentes, así que todavía no hay ninguna deuda con la que verla funcionando allá; lo verá en el primer envío con faltantes. Falta refrescar el volcado (la foto es del 2026-10-29).

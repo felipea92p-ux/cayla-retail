@@ -130,7 +130,7 @@ Felipe pasó un boceto y pidió una maqueta para decidir (`docs/maquetas/recibir
 
 ## Lo que se pidió al usarla (actualización (c), Felipe 2026-11-03)
 
-Felipe contestó si quien recibe ve el costo («sí, debe poder ver el costo de la prenda en el detalle superior») y eligió de la lista de pendientes. La migración se pega aparte, con su OK: hasta entonces, «Nos debe» sigue diciendo «2 vestidos».
+Felipe contestó si quien recibe ve el costo («sí, debe poder ver el costo de la prenda en el detalle superior») y eligió de la lista de pendientes. La migración se pegó en producción el 2026-11-03, con su OK.
 
 | Qué | Antes | Ahora | Dónde |
 |---|---|---|---|
