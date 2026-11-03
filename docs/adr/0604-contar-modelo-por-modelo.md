@@ -170,3 +170,5 @@ Felipe contestó si quien recibe ve el costo («sí, debe poder ver el costo de 
 
 **SE ROMPE SI:** una función nueva lee `separado` sin pasar por `fn_envio_sin_ceros` y da por hecho que toda cantidad es 1 o más (`despacho_pendientes.cantidad` lo rechazaría). Y queda abierto, para que Felipe decida: **dos personas agregando a la vez en la misma línea, la última pisa a la otra** (como ya pasaba con lo separado). Con versión distinta se avisa con `textoPisaste`, que habla de cantidades y no de modelos.
 
+**En producción desde el 2026-11-03,** con `apply_migration`: quedó registrada con la versión `20261103190810` (la hora de aplicarla), no la del archivo (`20261103182000`). Se verificó leyendo las funciones y llamando a `fn_envio_leer_separado` y `fn_envio_sin_ceros` sin escribir nada.
+
