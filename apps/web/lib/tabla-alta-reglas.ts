@@ -45,14 +45,14 @@ export function totalesCantidades(
   return { porFila, porColumna, total };
 }
 
-/** «Llenar todas con [n]»: qué celdas reciben qué valor. Solo las que siguen en la tabla; con la caja vacía (o sin un
- *  solo dígito) no se toca nada, para que un «Aplicar» por error no borre lo ya contado. */
+/** «Llenar todas con [n]»: qué celdas reciben qué valor. Solo las que siguen en la tabla; con la caja vacía, o con algo que no es
+ *  una cantidad («2,5», «12345»), no se toca nada: ni se borra lo ya contado ni se llena con un número que nadie escribió. */
 export function llenarTodas(celdas: readonly CeldaAlta[], excluidas: ReadonlySet<string>, valor: string): { clave: string; valor: string }[] {
   const limpio = limpiarCantidad(valor);
-  if (limpio === "") return [];
+  const n = leerCantidad(limpio);
+  if (limpio === "" || n === null) return [];
   // «007» se escribe «7»: es lo que la persona ve después en cada celda.
-  const normal = String(Number(limpio));
-  return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: normal }));
+  return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: String(n) }));
 }
 
 /** El reverso de `llenarTodas`: al borrar la caja «Llenar todas con», deja vacías las mismas celdas que habría tocado
@@ -62,17 +62,20 @@ export function vaciarTodas(celdas: readonly CeldaAlta[], excluidas: ReadonlySet
 }
 
 /**
- * Lo que hace escribir (o borrar) en «Llenar todas con». Con un número, lo pone en todas las celdas que siguen en la tabla. Con la caja VACÍA —porque se borró o porque se tecleó algo que no
- * es un dígito— depende de la pantalla: en Nuevo producto es el reverso de lo anterior y deja vacías esas celdas (`borraAlVaciar`, lo de siempre); en «Nueva orden» NO toca nada, porque ahí
- * las cantidades suelen venir de la sugerencia de la red o de teclearlas una por una, y una tecla de más no debe vaciar la orden entera sin avisar (revisión adversaria de A2, 2026-10-13).
+ * Lo que hace escribir (o borrar) en «Llenar todas con». Con un número, lo pone en todas las celdas que siguen en la tabla. Con lo que no es una cantidad, las deja como estaban al entrar a la caja
+ * (`antes`): se aplica en cada tecla, así que el «2» de «2,5» ya las había llenado, y sin esto quedaba un 2 en todas (Felipe 2026-11-03). Con la caja VACÍA depende de la pantalla: en Nuevo producto es el reverso de
+ * lo anterior y deja vacías esas celdas (`borraAlVaciar`, lo de siempre); en «Nueva orden» NO toca nada, porque ahí las cantidades suelen venir de la sugerencia de la red o de teclearlas una por una, y una
+ * tecla de más no debe vaciar la orden entera sin avisar (revisión adversaria de A2, 2026-10-13).
  */
 export function cambiosDeRelleno(
   celdas: readonly CeldaAlta[],
   excluidas: ReadonlySet<string>,
   texto: string,
-  borraAlVaciar: boolean
+  borraAlVaciar: boolean,
+  antes: Readonly<Record<string, string>>
 ): { clave: string; valor: string }[] {
   const limpio = limpiarCantidad(texto);
+  if (leerCantidad(limpio) === null) return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: antes[c.clave] ?? "" }));
   if (limpio !== "") return llenarTodas(celdas, excluidas, limpio);
   return borraAlVaciar ? vaciarTodas(celdas, excluidas) : [];
 }

@@ -3,11 +3,14 @@ import {
   avanceDeCategoria,
   camposDelConteoPorModelo,
   cantidadDeModelo,
+  categoriaAbierta,
   categoriasDelEnvio,
   categoriasDelFiltro,
   categoriasEnOrden,
   cifrasDelResumen,
+  claveDeCategoria,
   conSigno,
+  costoDeLaParada,
   esToqueRepetido,
   estadoDeParada,
   focoTrasElFiltro,
@@ -31,6 +34,7 @@ import {
   resumenDeCategoria,
   SIN_FILTRO,
   SIN_PROVEEDOR,
+  textoDeCosto,
 } from "./recepcion-modelos-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
 import { leerConteosDelEnvio, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
@@ -195,6 +199,59 @@ describe("paradas: lo que el Dial puede contar", () => {
   });
 });
 
+describe("costoDeLaParada: lo que cuesta cada prenda de lo que se cuenta", () => {
+  const paradaDe = (g: GrupoDeLineas, nombre: string) => paradasDelGrupo(g).find((p) => nombreDeParada(p) === nombre)!;
+
+  it("un modelo dice el costo de su línea, no el de las demás", () => {
+    const g = grupo(deLaGuia(sofia({ costoUnitario: 45.5 })), deLaGuia(antonella({ costoUnitario: 80 })));
+    expect(costoDeLaParada(paradaDe(g, "Vestido Sofía"))).toEqual({ desde: 45.5, hasta: 45.5 });
+    expect(costoDeLaParada(paradaDe(g, "Vestido Antonella"))).toEqual({ desde: 80, hasta: 80 });
+  });
+
+  it("la misma prenda comprada dos veces a distinto costo dice de uno a otro", () => {
+    const g = grupo(deLaGuia(sofia({ costoUnitario: 30 })), deLaGuia(linea("l-sofia-2", 2, { descripcion: "Vestido Sofía", costoUnitario: 35, prendaElegida: { productoId: "p-sofia", nombre: "Vestido Sofía", codigo: "VES-1" } })));
+    const c = costoDeLaParada(paradaDe(g, "Vestido Sofía"));
+    expect(c).toEqual({ desde: 30, hasta: 35 });
+    expect(textoDeCosto(c!)).toBe("S/\u00a030.00 a S/\u00a035.00");
+  });
+
+  it("lo corregido en el conteo le gana al costo de la orden", () => {
+    const base = deLaGuia(sofia({ costoUnitario: 30 }), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } });
+    const corregido = { ...base, conteo: { ...base.conteo!, costoUnitario: 33 } };
+    expect(costoDeLaParada(paradaDe(grupo(corregido), "Vestido Sofía"))).toEqual({ desde: 33, hasta: 33 });
+    const conPropio = { ...base, conteo: { ...base.conteo!, costoUnitario: 33, costosPrendas: { "p-sofia": 40 } } };
+    expect(costoDeLaParada(paradaDe(grupo(conPropio), "Vestido Sofía"))).toEqual({ desde: 40, hasta: 40 });
+  });
+
+  it("un modelo anotado solo por su nombre también dice su costo, el propio si ya lo tiene", () => {
+    const base = deLaGuia(lima({ costoUnitario: 25 }), { contadas: 7, separado: { prendas: [], nuevas: [{ cantidad: 7, descripcion: "Vestido Lima" }] } });
+    expect(costoDeLaParada(paradaDe(grupo(base), "Vestido Lima"))).toEqual({ desde: 25, hasta: 25 });
+    const conPropio = { ...base, conteo: { ...base.conteo!, costosPrendas: { "nueva:Vestido Lima": 27 } } };
+    expect(costoDeLaParada(paradaDe(grupo(conPropio), "Vestido Lima"))).toEqual({ desde: 27, hasta: 27 });
+  });
+
+  it("lo que llegó sin estar anotado dice el costo de la línea donde quedó, no de todo el grupo", () => {
+    const g = grupo(
+      deLaGuia(sofia({ costoUnitario: 30 })),
+      deLaGuia(antonella({ costoUnitario: 80 }), { contadas: 1, separado: { prendas: [prendaSep("p-otra", "Vestido Otro", 1)], nuevas: [] } }),
+    );
+    expect(costoDeLaParada(paradaDe(g, "Vestido Otro"))).toEqual({ desde: 80, hasta: 80 });
+  });
+
+  it("un total de varias líneas dice de cuánto a cuánto", () => {
+    const g = grupo(deLaGuia(linea("l1", 5, { costoUnitario: 20 })), deLaGuia(linea("l2", 5, { costoUnitario: 45 })));
+    expect(costoDeLaParada(paradasDelGrupo(g)[0])).toEqual({ desde: 20, hasta: 45 });
+  });
+
+  it("sin costo, o en 0 porque nadie lo dijo, no dice nada", () => {
+    expect(costoDeLaParada(paradasDelGrupo(grupo(deLaGuia(sofia({ costoUnitario: 0 }))))[0])).toBeNull();
+  });
+
+  it("se lee con sus miles", () => {
+    expect(textoDeCosto({ desde: 1250.5, hasta: 1250.5 })).toBe("S/\u00a01,250.50");
+  });
+});
+
 describe("categoriasDelEnvio: cada categoría una sola vez", () => {
   const delEnvio = () =>
     agruparLineas([
@@ -236,6 +293,29 @@ describe("categoriasDelEnvio: cada categoría una sola vez", () => {
     expect(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: sep })]))[0].hecha).toBe(true);
     expect(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5 })]))[0].hecha).toBe(false);
     expect(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: sep }), deLaGuia(lima())]))[0].hecha).toBe(false);
+  });
+});
+
+describe("abrir una categoría no cambia lo que se cuenta", () => {
+  it("abierta la de lo que se cuenta y, leyendo la lista, todas", () => {
+    expect(categoriaAbierta(true, false, false)).toBe(true);
+    expect(categoriaAbierta(false, false, false)).toBe(false);
+    expect(categoriaAbierta(false, true, false)).toBe(true);
+  });
+
+  it("la persona la puede dejar al revés, también la de lo que se cuenta", () => {
+    expect(categoriaAbierta(false, false, true)).toBe(true);
+    expect(categoriaAbierta(true, false, true)).toBe(false);
+    expect(categoriaAbierta(false, true, true)).toBe(false);
+  });
+
+  it("la llave es la categoría, aunque venga de dos proveedores; lo que no tiene categoría va solo", () => {
+    const [a, b] = agruparLineas([deLaGuia(linea("l1", 1)), deLaGuia(linea("l2", 1, { proveedor: ANDINA }))]);
+    expect(a.clave).not.toBe(b.clave);
+    expect(claveDeCategoria(a)).toBe(claveDeCategoria(b));
+    expect(claveDeCategoria(a)).toBe(categoriasDelEnvio([a, b])[0].clave);
+    const sinCategoria = { ...a, principal: { ...a.principal, categoria: null } };
+    expect(claveDeCategoria(sinCategoria)).toBe(a.clave);
   });
 });
 

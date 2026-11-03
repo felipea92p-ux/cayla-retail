@@ -10,6 +10,7 @@ import {
   fraseStockCreado,
   leerCantidad,
   limpiarCantidad,
+  textoCantidadRechazada,
   ordenarFotosAlta,
   PASOS_ALTA,
   pasoAbrible,
@@ -253,19 +254,41 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
     expect(leerCantidad("9999")).toBe(9999);
     for (const malo of ["10000", "2.5", "-1", "dos", "1e3", "3,0"]) expect(leerCantidad(malo)).toBeNull();
   });
-  it("limpiarCantidad: al tipear solo quedan dígitos, hasta 4 (una cantidad imposible ni se escribe)", () => {
+  it("limpiarCantidad: una cantidad se deja como está, y los miles se juntan", () => {
     expect(limpiarCantidad("12")).toBe("12");
-    expect(limpiarCantidad("-3")).toBe("3");
-    // /chaos 2026-10-28 (semilla 2810): «2,5» se guardaba como 25. Un decimal se corta en el entero; «1,200» con tres cifras es un millar.
-    expect(limpiarCantidad("2.5")).toBe("2");
-    expect(limpiarCantidad("2,5")).toBe("2");
-    expect(limpiarCantidad("12,50")).toBe("12");
+    expect(limpiarCantidad("007")).toBe("007");
+    expect(limpiarCantidad("")).toBe("");
+    expect(limpiarCantidad(" 12 ")).toBe("12");
     expect(limpiarCantidad("1,200")).toBe("1200");
     expect(limpiarCantidad("1.200")).toBe("1200");
-    expect(limpiarCantidad("1e3")).toBe("1");
-    expect(limpiarCantidad(" 12 u.")).toBe("12");
-    expect(limpiarCantidad("abc")).toBe("");
-    expect(limpiarCantidad("123456")).toBe("1234");
+    expect(limpiarCantidad("1 200")).toBe("1200");
+  });
+  it("limpiarCantidad: lo que no es una cantidad se queda como se escribió, para que se vea y no se guarde (Felipe 2026-11-03)", () => {
+    for (const malo of ["2,5", "2.5", "12,50", "-3", "-", "1e3", "abc", "12 u.", "S/ 12", "12 34", "12\t34", "123456", "1,20", "1,2345"]) {
+      expect(limpiarCantidad(malo), malo).toBe(malo);
+      expect(leerCantidad(limpiarCantidad(malo)), malo).toBeNull();
+    }
+  });
+  it("limpiarCantidad: tecleado de a una letra, «2,5» y «1.5» nunca pasan por otro número", () => {
+    const tecleado = (escrito: string) => {
+      const pasos: string[] = [];
+      let caja = "";
+      for (const tecla of escrito) {
+        caja = limpiarCantidad(caja + tecla);
+        pasos.push(caja);
+      }
+      return pasos;
+    };
+    expect(tecleado("2,5")).toEqual(["2", "2,", "2,5"]);
+    expect(tecleado("1.5")).toEqual(["1", "1.", "1.5"]);
+    expect(tecleado("-5")).toEqual(["-", "-5"]);
+    expect(tecleado("1,200").at(-1)).toBe("1200");
+    expect(tecleado("1200").at(-1)).toBe("1200");
+  });
+  it("textoCantidadRechazada dice qué pasó, mientras se escribe y al salir", () => {
+    expect(textoCantidadRechazada("2,5", false)).toBe("«2,5» no es una cantidad: escribe un número entero, de 0 a 9999.");
+    expect(textoCantidadRechazada("2,5", true)).toBe("«2,5» no se guardó: las cantidades son números enteros, de 0 a 9999.");
+    expect(textoCantidadRechazada("x".repeat(40), true).length).toBeLessThan(100);
   });
   it("resumenStock suma solo las celdas que siguen en la tabla", () => {
     const cantidades = { a: "3", b: "", c: "2", quitada: "50" };

@@ -329,6 +329,47 @@ de la compra bajo 1280 px (¿abajo o plegado?) para que el Dial llegue a la vist
 
 - **Concurrencia:** dos pestañas sobre el mismo modelo: gana el último y avisa; la tabla no se entera hasta recargar (ADR-0604, límite 7). **Caída externa:** red cortada: lo dice, ofrece «Reintentar» esté donde esté la persona y reintenta al volver la conexión. **Persona sin contexto:** ciega ✓, real sin probar.
 
+## Re-análisis 2026-11-03 — lo que Felipe eligió de la «lista aparte» (ADR-0604, actualización c)
+
+- **Dispositivo que manda:** escritorio. **Pregunta:** «¿Cuántas llegaron de este modelo, cuánto costó y qué me falta para cerrar?»
+- **Veredicto:** «Una persona nueva termina un envío de 75 líneas al primer intento: ve el costo arriba, dice qué pasó con lo que faltó, un F5 no le borra nada y encuentra el precio plegado sin volver atrás.»
+- **Lo que cambió, por decisión de Felipe:** el costo en la cabecera, el número que no se transforma, abrir una categoría sin mover lo que se cuenta, «Cambiar de prenda», sin las cifras repetidas, Cerrar con lo que pide una decisión primero y lo que cuadra plegado, lo decidido que sobrevive a recargar y «Nos debe» por prenda.
+
+| Eje | Antes | Ahora | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 8 | 8 (tope sin real) | [Observado] 3.ª ciega: cerró al primer intento; lectura de 5 s coincide |
+| 4 Lenguaje de tienda | 7 | 7 | [Observado] «Cambiar de prenda» se entendió sin tocarlo. Quedan «fardo» y «CLAURE» |
+| 7 Perdonar antes que preguntar | 8 | 8 | [Medido] «Empezar de cero» se deshace; lo que no es una cantidad no se guarda |
+| 8 Quitar antes de agregar | 5 | 7 | [Medido] sin las tres cifras junto al aro ni «N de M» bajo el Trayecto. Se quedan las barras: las pidió Felipe |
+| 9 De punta a punta | 7 | 8 | [Medido] F5 en Cerrar no pierde nada; la deuda dice la prenda de punta a punta. Terminal sin firma de respaldo, sin probar |
+| **Leyes (promedio)** | **7,0** | **7,3** | las demás, sin cambio |
+| **Oficio visual** | **7** | **7** | sin volver a medir: se quitó, no se agregó. [Medido] 0 hallazgos solo en oscuro a 1440 px |
+
+**Cerrar, medido a 1440 px con 75 líneas:** de casi 16.000 px a 2.215 px con 8 filas que piden algo; abriendo lo plegado, 9.615 px. Sin desborde a 375 y 1024 px.
+
+**Lo que cambió por esta ciega:** al volver de Cerrar se sigue en el mismo modelo; «Corregir el costo» lleva a la caja con el cursor puesto; el rótulo cortado «Se vend…» pasó a «A vender».
+
+### Prueba ciega 2026-11-03 (Sonnet, cuenta de Felipe en Tienda Lima, ENV de 75 líneas casi contado, 1440 × 900)
+
+Tarea: terminar de contar dos modelos, decir cuánto costó uno, decir que lo que faltó no vino, recargar a mitad, poner un precio solo en su tienda y cerrar.
+
+| Medida | Resultado |
+|---|---|
+| Lectura de 5 s | ✓ «recibir un envío: decir cuántas llegaron de cada modelo y pasar a cerrar» |
+| Primer intento | ✓ cerró; volvió a Contar solo para mirar la tabla de tallas, como pedía la tarea |
+| Pasos | 67 acciones hasta cerrar. 11 se fueron en buscar dónde «anotar» el costo: la tarea decía «anótame», y lo leyó como escribirlo en el sistema. El costo lo vio al primer vistazo |
+| Dudas | el costo como dato o como campo; «Crearlo con sus tallas ahora»; si «Pasar a cerrar» ya cierra; el sello del precio no parece una caja (de antes); si el costo escrito se guardó; CAYLA o CLAURE sin datos; «Por terminar» tras cerrar (de antes) |
+| Palabras no entendidas | «CLAURE»; «fardo», «por crear» y «se promedia» las dedujo bien |
+| Errores evitables | 1: estando en una búsqueda plegó sin querer la categoría y el siguiente toque cayó en «Agregar categoría» (lo canceló) |
+| F5 en Cerrar | ✓ siguió en Cerrar, con los «No vino» puestos y «Lo que habías decidido sigue aquí» |
+| Precio dentro de lo plegado | ✓ lo encontró con «Ver las 49 que cuadran» → «Precio y costo», sin volver atrás |
+
+**Lista aparte, de esta ciega (no se ejecuta sin que Felipe lo mande):** el sello del precio de venta no parece una caja; no hay nada que diga que un costo cambiado se guarda al cerrar (el precio sí lo dice); Tab desde el costo deja seleccionado el de la siguiente prenda; después de cerrar, «Por terminar · 74 pendientes» hizo dudar de si faltaba algo.
+
+### Antes de decir «listo»
+
+- **Concurrencia:** dos pestañas donde una cierra: un solo cierre, la otra lee «Este envío ya se recibió». Dos sesiones sobre la misma deuda: `pruebas:nos-debe`, caso C1, corre en el CI. **Caída externa:** lo decidido en Cerrar no depende de la red; sin almacén en el navegador, la pantalla sigue sin borrador. **Persona sin contexto:** ciega ✓, real sin probar.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
@@ -339,3 +380,4 @@ de la compra bajo 1280 px (¿abajo o plegado?) para que el Dial llegue a la vist
 | 2026-10-29 | `2a4e72e55` (piezas «B», ADR-0575) | 6,3 · ley 8: 5 · ley 1: 6 | 7 | — (3 propuestos, esperan el OK) |
 | 2026-10-29 | `02b2ef6fe` (los 3 cambios) | 7,2 · ley 1: 7 (tope sin real) | 7,5 | los 3 del 2026-10-29 (el 1, a medias a 1024 × 768) |
 | 2026-11-02 | rama `claude/mockup-receiving-merchandise-3f444e` (tres columnas, ADR-0604) | 7,0 · ley 1: 8 (tope sin real) · ley 8: 5 | 7 | el 1 del 2026-10-29 (a 1024 × 768 el Dial ya no queda bajo el papel) |
+| 2026-11-03 | ADR-0604 act. c | 7,3 · ley 1: 8 (tope sin real) · ley 8: 7 | 7 | la lista aparte del 2026-11-02 |
