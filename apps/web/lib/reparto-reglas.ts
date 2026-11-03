@@ -44,6 +44,14 @@ export function textoOtrasTiendas(otras: TiendaEnLinea[] | undefined): string | 
 }
 
 /** «Tienda Trujillo · Taller» — los destinos de un comprobante, con nombre (los ids sin nombre se descartan). */
+/** Los destinos de una fila de lista: sin la palabra «Tienda», que se repite en cada uno. */
+export function destinosCortos(ubicacionesDestino: string[], nombrePorId: Record<string, string>): string {
+  return ubicacionesDestino
+    .map((id) => nombrePorId[id]?.replace(/^Tienda\s+/i, ""))
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function nombresDeDestinos(ubicacionesDestino: string[], nombrePorId: Record<string, string>): string {
   return ubicacionesDestino
     .map((id) => nombrePorId[id])

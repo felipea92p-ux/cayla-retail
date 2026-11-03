@@ -9,6 +9,7 @@ import {
   lineaEnMiTienda,
   MOTIVOS_REASIGNACION,
   motivoDeReasignacion,
+  destinosCortos,
   nombresDeDestinos,
   otrasTiendasDeJson,
   pendienteDeMiTienda,
@@ -51,6 +52,10 @@ describe("lo que ve una tienda (Recibir)", () => {
 
   it("los destinos con nombre; un id sin nombre no aparece", () => {
     expect(nombresDeDestinos(["a", "b", "z"], { a: "Tienda Trujillo", b: "Taller" })).toBe("Tienda Trujillo · Taller");
+  });
+
+  it("en una fila de lista los destinos van sin «Tienda»; un id sin nombre no aparece", () => {
+    expect(destinosCortos(["a", "b", "z"], { a: "Tienda Trujillo", b: "Taller" })).toBe("Trujillo · Taller");
   });
 });
 

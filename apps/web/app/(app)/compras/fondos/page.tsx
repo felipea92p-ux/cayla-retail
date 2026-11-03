@@ -360,7 +360,7 @@ export default async function FondosPage() {
       )}
       {!falla && (
         <p className="nota-cayla text-sm">
-          Lo que anotan las compradoras pasa solo a los libros. Aquí queda lo que no pudo y lo de antes; lo demás está en el historial.
+          Aquí queda lo que no entró solo a los libros.
         </p>
       )}
       {!falla && (

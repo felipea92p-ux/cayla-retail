@@ -22,7 +22,7 @@ export function SaldosAFavor({ saldos, indice = 0 }: { saldos: SaldoAFavor[]; /*
           A favor con proveedores
         </p>
         <p className="text-sm tabular-nums text-verde-profundo">
-          <b className="font-semibold">{soles(total)}</b> <span className="text-sm text-tinta/60">que te deben · se descuenta al pagar</span>
+          <b className="font-semibold">{soles(total)}</b> <span className="text-sm text-tinta/60">a tu favor</span>
         </p>
       </div>
       <div className="divide-y divide-tinta/10">
@@ -36,8 +36,8 @@ export function SaldosAFavor({ saldos, indice = 0 }: { saldos: SaldoAFavor[]; /*
                 </Link>
                 <p className="text-sm text-tinta/60">
                   {s.deuda > 0
-                    ? `Le debes ${soles(s.deuda)} · con tu saldo a favor solo transferirías ${soles(Math.max(0, Math.round((s.deuda - cubre) * 100) / 100))}`
-                    : "Sin deuda pendiente: queda a tu favor para su próxima compra, o pídele el reembolso."}
+                    ? `Le debes ${soles(s.deuda)} · transfieres ${soles(Math.max(0, Math.round((s.deuda - cubre) * 100) / 100))}`
+                    : "Sin deuda: úsalo en su próxima compra o pide el reembolso."}
                 </p>
                 {/* Cuánto de la deuda cubre el saldo a favor: la proporción se ve sin leer las cifras. Se llena una vez al llegar. */}
                 {s.deuda > 0 && (
