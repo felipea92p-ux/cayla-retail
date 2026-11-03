@@ -99,6 +99,15 @@ $n$    -- ADR-0604 (act. 2026-11-03): en 0 solo existe un modelo con nombre; sin
       || case when v_n ->> 'por_defecto' = 'true' then '{"por_defecto": true}'::jsonb else '{}'::jsonb end);$n$,
 1);
 
+-- Con cantidades en 0, lo contado ya no le pone techo a cuántas filas caben: hasta 500 modelos por línea, muchos más de los que trae un envío (lo halló `/chaos`, semilla 20261103).
+select pg_temp.reemplazar('retail.fn_envio_leer_separado(jsonb,text)',
+$v$  for v_n in select e.value from jsonb_array_elements(coalesce(p_separado -> 'nuevas', '[]'::jsonb)) e loop$v$,
+$n$  if jsonb_array_length(coalesce(p_separado -> 'prendas', '[]'::jsonb)) + jsonb_array_length(coalesce(p_separado -> 'nuevas', '[]'::jsonb)) > 500 then
+    raise exception 'En % hay demasiados modelos: hasta 500 por línea', p_donde using hint = 'conteo_separado';
+  end if;
+  for v_n in select e.value from jsonb_array_elements(coalesce(p_separado -> 'nuevas', '[]'::jsonb)) e loop$n$,
+1);
+
 -- ---------- 3. Al cerrar: el nombre por defecto frena y lo que quedó en 0 se descarta ----------
 select pg_temp.reemplazar('retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)',
 $v$    v_sep := retail.fn_envio_leer_separado(v_k.separado, v_k.donde);$v$,

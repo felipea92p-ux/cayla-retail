@@ -631,6 +631,17 @@ caso(
   "OK / OK / OK / crear=3",
 );
 
+caso(
+  "Z4 hasta 500 modelos por línea: lo que cuesta guardar tiene techo aunque esté en 0",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.e(pg_temp.guarda(:'d', null, 0, jsonb_build_object('prendas', '[]'::jsonb, 'nuevas', (select jsonb_agg(jsonb_build_object('cantidad', 0, 'descripcion', 'M' || i)) from generate_series(1, 500) i)), null::int, null::int, null::uuid, :'cat', :'marca')) as caben \\gset
+   select pg_temp.h(pg_temp.guarda(:'d', null, 0, jsonb_build_object('prendas', '[]'::jsonb, 'nuevas', (select jsonb_agg(jsonb_build_object('cantidad', 0, 'descripcion', 'M' || i)) from generate_series(1, 501) i)), null::int, 1::int, null::uuid, null::uuid, null::uuid)) as demasiados \\gset
+   reset role;
+   select concat_ws(' / ', :'caben', :'demasiados');`,
+  "OK / conteo_separado",
+);
+
 // M. SIN MARCA ----------------------------------------------------------------------------------------------------------
 caso(
   "M1 sin marca: se cuenta y entra al stock sin marca; una prenda con marca no es de esa línea; la nueva nace sin marca; el detalle la muestra",

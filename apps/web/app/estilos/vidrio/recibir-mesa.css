@@ -131,6 +131,12 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 /* El «+» de otro modelo, al lado del check. Vive fuera del botón de la categoría y se apoya sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
 .rc-cat-hueco-mas { flex: none; width: 32px; height: 32px; }
 .rc-cat-mas { position: absolute; top: 50%; right: 64px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); background: var(--color-vidrio); }
+/* Con el dedo, 44 px (ADR-0350). */
+@media (pointer: coarse) {
+  .rc-cat-hueco-mas, .rc-cat-mas, .rc-modelo-tacho { width: 44px; height: 44px; }
+  .rc-modelo[data-con-tacho] { padding-right: 52px; }
+  .rc-modelo-tacho { right: 0; }
+}
 .rc-cat-mas:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 .rc-cat-sin-modelos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 12px 10px; color: var(--rc-cat-suave); font-size: 14px; }
 .rc-cat-flecha { flex: none; color: var(--rc-cat-suave); transition: transform 300ms var(--ease-cayla); }

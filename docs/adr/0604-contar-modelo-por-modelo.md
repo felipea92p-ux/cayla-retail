@@ -153,3 +153,20 @@ Felipe contestó si quien recibe ve el costo («sí, debe poder ver el costo de 
 
 8. **Lo guardado en el navegador no viaja:** otra persona en otro aparato abre Cerrar sin lo decidido. Dos pestañas del mismo envío comparten lo último que se guardó.
 9. **Una reposición de una prenda que no se debe** salda igual la deuda más antigua de esa categoría y marca, como hasta hoy.
+
+## Actualización 2026-11-03: sin fila «Total», todo se cuenta por modelo (Felipe, 20 preguntas)
+
+**El problema.** Dos blusas distintas sin marca no se podían contar aparte: el sistema mandaba a «Total de Blusas», que parecía un modelo más y confundía. Esa fila venía de `necesitaTotal`, que solo miraba lo que anotó Compras y nunca se iba.
+
+**Lo que Felipe decidió:**
+- **La fila «Total» se va.** `hayQueIdentificar` reemplaza a `necesitaTotal`: solo un número suelto de un envío ya abierto sale como «Sin identificar», no deja cerrar y contar el modelo lo va descontando. Con guía «Vestidos: 20» sin modelos, la categoría cuadra: «Dijeron 20 · Contaste 12 · Faltan 8» (`cuadraEnLaCategoria`; estado `contado`, que no dice «No estaba anotada»).
+- **Un «+» junto al check de cada categoría** y «¿Qué llegó?» son la misma hoja (`NuevoModelo`): nombre, marca por modelo (vacía = sin marca; se sugiere la de la categoría si es una sola; con dos o más se elige o se agrega aparte), descripción, y proveedor solo si hay dos o más. Las parecidas salen mientras se escribe, sin bloquear. Se van «¿Llegó otra cosa?» y «Llegaron otras y aún no sé».
+- **El modelo nace en 0, guardado en la base** (`20261103182000`): `separado.nuevas` acepta cantidad 0 con nombre, `nota` y `por_defecto`; una prenda del catálogo también puede ir en 0; hasta 500 modelos por línea.
+- **Sin nombre: «Blusa 1», «Blusa 2»** (`prendaDeLaCategoria`, `nombrePorDefecto`). Contado no deja cerrar: la pantalla lo dice y la base lo rechaza (`recepcion_modelo_sin_nombre`). En 0 no frena. El lápiz le pone su nombre y descripción (`EditarModelo`).
+- **Tacho en lo agregado:** en 0 borra directo, con conteo pide confirmar, y el aviso deshace ese modelo solo (`devolverModelo`: una foto de todo revivía lo que se quitó después). Lo anotado por Compras no lleva tacho: en 0 dice que no llegó.
+- **Al cerrar:** lo agregado en 0 se avisa y se descarta (`lineasSinModelosEnCero`, `fn_envio_sin_ceros`). Lo que no cuadró va por modelo si Compras lo anotó (`agruparLineasDelCierre`), por categoría si no.
+
+**DESCARTÉ:** guardar el modelo en 0 solo en el navegador (se perdía al recargar y otra persona no lo veía); una tabla de modelos del conteo (partir `separado` tocaría cierre, pendientes y reabrir para lo mismo); detectar «Blusa 1» por su texto (una blusa puede llamarse así: lo dice `por_defecto`).
+
+**SE ROMPE SI:** una función nueva lee `separado` sin pasar por `fn_envio_sin_ceros` y da por hecho que toda cantidad es 1 o más (`despacho_pendientes.cantidad` lo rechazaría). Y queda abierto, para que Felipe decida: **dos personas agregando a la vez en la misma línea, la última pisa a la otra** (como ya pasaba con lo separado). Con versión distinta se avisa con `textoPisaste`, que habla de cantidades y no de modelos.
+
