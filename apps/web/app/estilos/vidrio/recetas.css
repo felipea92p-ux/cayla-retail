@@ -293,6 +293,14 @@
   --vidrio-claro-borde: color-mix(in srgb, var(--color-vidrio) 70%, transparent);
   --vidrio-claro-filo: inset 0 1px 0 var(--color-vidrio);
   --vidrio-claro-sombra: var(--vidrio-claro-filo), 0 12px 28px -18px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+  /* La placa de una prenda (Vender y Catálogo ▸ Productos, docs/maquetas/tarjeta-prenda-vidrio-2026-11/, «A · Vidrio claro», Felipe 2026-11-03):
+     el vidrio claro de arriba al 86 → 66 % se leía como papel macizo sobre el crema; aquí baja al 50 → 20 %, en diagonal, con el filo de luz
+     arriba y un hilo abajo. Sigue SIN `backdrop-filter` (una grilla repite 20–40 tarjetas; con el fondo tan parejo el desenfoque casi no se ve). */
+  --placa-prenda-fondo: linear-gradient(160deg, color-mix(in srgb, var(--color-vidrio) 50%, transparent), color-mix(in srgb, var(--color-vidrio) 20%, transparent));
+  --placa-prenda-borde: color-mix(in srgb, var(--color-vidrio) 78%, transparent);
+  --placa-prenda-filo: inset 0 1px 0 var(--color-vidrio), inset 0 -1px 0 color-mix(in srgb, var(--color-sombra) 5%, transparent);
+  --placa-prenda-sombra: var(--placa-prenda-filo), 0 16px 30px -20px color-mix(in srgb, var(--color-sombra) 38%, transparent);
+  --placa-prenda-sombra-encima: var(--placa-prenda-filo), 0 22px 38px -20px color-mix(in srgb, var(--color-sombra) 48%, transparent);
 
   /* ---------- el Plan del piso con vidrio (docs/maquetas/plan-piso-vidrio-2026-11/; piezas en vidrio/plan-piso.css) ---------- */
   /* «B · Estante de vidrio» (Felipe 2026-11-02): la banda del riel es una vitrina translúcida, más llena arriba (70 → 38 %), con su filo
@@ -480,6 +488,12 @@
     --vidrio-claro-borde: color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --vidrio-claro-filo: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent);
     --vidrio-claro-sombra: var(--vidrio-claro-filo);
+    /* La placa de una prenda en oscuro: la crema al 9 → 3 % en diagonal, con su filo de crema y la sombra de afuera sobre el negro cálido. */
+    --placa-prenda-fondo: linear-gradient(160deg, color-mix(in srgb, var(--color-tinta) 9%, transparent), color-mix(in srgb, var(--color-tinta) 3%, transparent));
+    --placa-prenda-borde: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --placa-prenda-filo: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 16%, transparent);
+    --placa-prenda-sombra: var(--placa-prenda-filo), 0 16px 30px -20px var(--color-sombra);
+    --placa-prenda-sombra-encima: var(--placa-prenda-filo), 0 22px 38px -20px var(--color-sombra);
     /* El estante en oscuro: la vitrina es la crema al 5 % (el degradado no se ve sobre el negro cálido) y solo lleva su filo; el tubo, la
        crema que se apaga hacia abajo, sin sombra; la lámina, vidrio parejo y casi lleno. */
     --estante-fondo: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
@@ -530,6 +544,7 @@
     --version-agua-opacidad: 1;
     --ticket-placa-fondo: var(--color-papel);
     --vidrio-claro-fondo: var(--color-papel);
+    --placa-prenda-fondo: var(--color-papel);
     --estante-fondo: var(--color-papel);
     --lamina-vidrio-fondo: var(--color-papel);
     --lente-paso-base: var(--color-papel);

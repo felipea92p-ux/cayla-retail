@@ -64,13 +64,15 @@
    Con fotos reales, la foto al aire no funcionaba: cada foto trae su fondo (blanco, beige, celeste), así que unas se perdían contra el fondo
    de la pantalla y otras parecían un hueco blanco, y el nombre, las tallas y el precio quedaban «en el aire». Cada prenda vive ahora en su
    placa de vidrio claro (la de las tarjetas que se repiten, sin desenfoque por costo); la foto va dentro con su filo, para que todas
-   tengan el mismo borde sea cual sea su fondo, y el texto se apoya en la placa. */
+   tengan el mismo borde sea cual sea su fondo, y el texto se apoya en la placa.
+   Felipe 2026-11-03 (docs/maquetas/tarjeta-prenda-vidrio-2026-11/, «A · Vidrio claro»): el vidrio claro de las otras tarjetas (86 → 66 %)
+   sobre el crema se leía como papel; esta placa usa su propia receta, `--placa-prenda-*` (50 → 20 %), la misma de Catálogo ▸ Productos. */
 .pv-prenda {
   padding: 8px 8px 12px;
-  border: 1px solid var(--vidrio-claro-borde);
+  border: 1px solid var(--placa-prenda-borde);
   border-radius: var(--pv-placa-radio, 22px);
-  background: var(--vidrio-claro-fondo);
-  box-shadow: var(--vidrio-claro-sombra);
+  background: var(--placa-prenda-fondo);
+  box-shadow: var(--placa-prenda-sombra);
   transition:
     transform 350ms var(--ease-cayla),
     box-shadow 350ms var(--ease-cayla);
@@ -97,7 +99,7 @@
 @media (hover: hover) {
   .pv-prenda:hover {
     transform: translateY(-3px);
-    box-shadow: var(--vidrio-claro-filo), 0 18px 34px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    box-shadow: var(--placa-prenda-sombra-encima);
   }
 }
 /* El botón que abre «Todo de la prenda» y el velo del tope cubren la placa entera y siguen su forma. */
@@ -685,17 +687,31 @@
    descuento (`.hoja-cobro-paso`, `CabezaPaso`) ya no es papel con un tinte rojo: es vidrio claro con un borde de luz del rojo de CAYLA que
    está QUIETO: la pasada de luz que daba al llegar se quitó (Felipe 2026-11-02: «dejar el borde pero sin la pasada animada»). El número, el chip
    «Sigue aquí» y los controles de adentro no cambian.
-   El filo es un borde con máscara (`::after`, sobre el borde de 1,5 px que el paso ya reserva): no mueve ni empuja nada.
+   El filo es un borde con máscara (`::after`) y el tinte un `::before`: los dos se pintan por fuera y no mueven ni empujan nada.
    ===================================================================== */
 .hoja-cobro-paso {
   position: relative;
   isolation: isolate;
 }
-.hoja-cobro-paso.sigue-aqui {
-  /* Un blanco translúcido sobre una hoja que ya es blanca translúcida no se distingue de ella (Felipe 2026-11-02: «el fondo no se nota nada»):
-     el paso que sigue lleva un tinte del rojo de CAYLA, más lleno arriba, que SÍ deja ver el vidrio a través. */
+/* El tinte vive en un `::before` y no en el fondo del paso: el cobro y el descuento le ponen `background: transparent` al paso (reglas más
+   específicas de arriba, «sin recuadro»), y un fondo propio quedaba pisado (Felipe 2026-11-02: «¿por qué lo sigo viendo así?»). Un blanco
+   translúcido sobre una hoja que ya es blanca translúcida no se distingue de ella: el tinte es del rojo de CAYLA, más lleno arriba, y deja ver el
+   vidrio a través. */
+.hoja-cobro-paso.sigue-aqui::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 12%, transparent), color-mix(in srgb, var(--color-rojo) 4%, transparent));
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+}
+/* En el descuento el paso no lleva relleno (padding 0): el tinte y el filo salen a su alrededor, sin mover ni empujar nada. */
+.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui::before,
+.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui::after {
+  inset: -0.45rem -0.75rem;
+  border-radius: 1.1rem;
 }
 .hoja-cobro-paso.sigue-aqui::after {
   content: "";
