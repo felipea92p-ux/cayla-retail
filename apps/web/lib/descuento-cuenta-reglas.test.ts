@@ -72,6 +72,14 @@ describe("cuentaDelDescuento — lo que el apartado «Descuento» dice de lo que
     expect(ninguna.hecho.prendas).toBe(false);
   });
 
+  it("«Todo el ticket» cuenta como marcado también cuando las prendas se eligieron a mano y son todas", () => {
+    expect(cuentaDelDescuento(vacio, ticket, null).todasLasPrendas).toBe(true);
+    expect(cuentaDelDescuento({ ...vacio, elegidas: ["a", "b"] }, ticket, null).todasLasPrendas).toBe(true);
+    expect(cuentaDelDescuento({ ...vacio, elegidas: ["a"] }, ticket, null).todasLasPrendas).toBe(false);
+    expect(cuentaDelDescuento({ ...vacio, elegidas: [] }, ticket, null).todasLasPrendas).toBe(false);
+    expect(cuentaDelDescuento(vacio, [], null).todasLasPrendas).toBe(false);
+  });
+
   it("una pieza de liquidación no recibe descuento aunque esté marcada (ADR-0379)", () => {
     const conLiquidacion = [linea("a", 100), linea("l", 200, { liquidacion: { codigo: "LIQ-1" } })];
     const c = cuentaDelDescuento({ ...vacio, pct: "10", razon: "cerrar_venta" }, conLiquidacion, null);

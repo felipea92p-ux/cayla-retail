@@ -34,6 +34,8 @@ export function cuentaDelDescuento(descuento: DescuentoForm, carrito: readonly I
   const recibeDescuento = (it: ItemCarrito) => alcanza(it.claveLinea) && entraAlDescuento(it, null);
   const alcanzadas = carrito.filter(recibeDescuento);
   const elegidasCuenta = elegidas === null ? carrito.length : elegidas.length;
+  // «Todo el ticket» está marcado cuando no se eligió nada aparte O cuando las marcadas a mano ya son todas las prendas.
+  const todasLasPrendas = carrito.length > 0 && carrito.every((it) => alcanza(it.claveLinea));
   // El descuento por unidad que va a quedar en cada línea si se aplica ahora — en % sale del precio de cada una (sin céntimos sueltos,
   // ADR-0403); en S/ el monto es del total de lo elegido y se reparte según el precio.
   const pedidos = descuentosPedidos(descuento.modo, porMonto ? monto : pct, alcanzadas);
@@ -89,6 +91,7 @@ export function cuentaDelDescuento(descuento: DescuentoForm, carrito: readonly I
     valorValido,
     elegidas,
     todoElTicket,
+    todasLasPrendas,
     alcanza,
     recibeDescuento,
     alcanzadas,
