@@ -21,10 +21,10 @@ import {
   conMiles,
   conSigno,
   hayFiltro,
+  idCampoCategoria,
   idCampoParada,
   nombreDeParada,
   origenDelGrupo,
-  paradaContada,
   resumenDeCategoria,
   SIN_FILTRO,
   tipoDeParada,
@@ -36,6 +36,7 @@ import {
   type OrdenDelConteo,
   type ParadaDelConteo,
 } from "@/lib/recepcion-modelos-reglas";
+import { sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { BaldosaCategoria } from "./piezas";
 import { useFilaActivaALaVista } from "./useFilaActivaALaVista";
 
@@ -48,6 +49,8 @@ const NOMBRE_ESTADO: Record<EstadoDelResumen, string> = { cuadran: "Cuadran", di
 /** Un solo estado por fila, el de lo que le toca: ámbar por las tallas solo si la persona pidió hacerlas ahora y le faltan (pueden esperar). */
 export function EstadoModelo({ m, faltanTallas, sinAviso = false }: { m: ModeloDelConteo; faltanTallas: boolean; sinAviso?: boolean }) {
   if (m.estado === "por-contar") return <Chip tono="neutro">Por contar</Chip>;
+  // Lo que cuadra es la categoría: el modelo no tiene contra qué compararse.
+  if (m.estado === "contado") return faltanTallas ? <Chip tono="ambar">Faltan tallas</Chip> : null;
   if (m.estado === "no-llego") return <Chip tono="neutro">No llegó</Chip>;
   // Sin aviso nada estaba anotado: decirlo en cada fila no dice nada.
   if (m.estado === "fuera") {
@@ -90,8 +93,8 @@ function useFotosDeLaCategoria(c: CategoriaDelEnvio, enUso: boolean, onFotos: (f
 function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void }) {
   const m = p.modelo;
   const cat = p.grupo.principal.categoria;
-  const contadas = m ? m.contadas : p.grupo.contadas;
-  const esperadas = m ? m.esperadas : p.grupo.dijeron;
+  const contadas = m ? m.contadas : sinIdentificarDelGrupo(p.grupo);
+  const esperadas = m ? m.esperadas : null;
   const cifras = esperadas != null ? <><b>{conMiles(contadas)}</b> de {conMiles(esperadas)}</> : <><b>{conMiles(contadas)}</b> {contadas === 1 ? "contada" : "contadas"}</>;
   return (
     <li>
@@ -113,7 +116,7 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
             {conOrigen && ` · ${origenDelGrupo(p.grupo)}`}
           </span>
         </span>
-        {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : !paradaContada(p) && <Chip tono="neutro">Por contar</Chip>}
+        {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : <Chip tono="ambar">Falta decir cuál</Chip>}
       </button>
     </li>
   );
@@ -131,6 +134,7 @@ function Categoria({
   onElegir,
   onFotos,
   onAgregarModelo,
+  onNoLlego,
 }: {
   c: CategoriaDelEnvio;
   i: number;
@@ -143,6 +147,8 @@ function Categoria({
   onElegir: (p: ParadaDelConteo) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
   onAgregarModelo: () => void;
+  /** Vino en la guía y no llegó nada: queda contada en 0. */
+  onNoLlego: () => void;
 }) {
   useFotosDeLaCategoria(c, abierta, onFotos);
   const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
@@ -156,7 +162,7 @@ function Categoria({
   const pct = avanceDeCategoria(c);
   return (
     <div className="rc-cat" data-abierta={abierta ? "" : undefined} style={{ "--i": i } as React.CSSProperties}>
-      <div className="rc-cat-tira">
+      <div className="rc-cat-tira" data-campo={idCampoCategoria(c.clave)}>
         <button
           type="button"
           className="rc-cat-cabeza"
@@ -188,6 +194,16 @@ function Categoria({
       </div>
       <div id={idCuerpo} className="rc-cat-cuerpo" inert={!abierta}>
         <div className="rc-cat-dentro">
+          {c.paradas.length === 0 && (
+            <div className="rc-cat-sin-modelos">
+              <p>Aún sin modelos. Agrégalos con el «+».</p>
+              {!c.hayConteo && c.grupos.some((g) => g.principal.linea) && (
+                <button type="button" className="btn-cayla btn-enlace" onClick={onNoLlego}>
+                  No llegó nada
+                </button>
+              )}
+            </div>
+          )}
           <ul className="rc-modelos">
             {c.paradas.map((p) => (
               <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} />
@@ -221,6 +237,7 @@ export function ListaDelEnvio({
   onElegirPrimero,
   onAgregar,
   onAgregarModelo,
+  onNoLlego,
   onFotos,
 }: {
   categorias: readonly CategoriaDelEnvio[];
@@ -252,12 +269,13 @@ export function ListaDelEnvio({
   onAgregar: () => void;
   /** El «+» de una categoría: otro modelo para contar aparte. */
   onAgregarModelo: (categoria: string) => void;
+  onNoLlego: (c: CategoriaDelEnvio) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
 }) {
   // Buscando o filtrando por estado se lee la lista: todas las que quedan, abiertas.
   const leyendo = !!filtro.texto.trim() || !!filtro.estado;
   const lista = useFilaActivaALaVista<HTMLDivElement>(enFoco?.clave ?? null, categorias[0]?.paradas[0]?.clave ?? null);
-  const vistos = categorias.reduce((a, c) => a + c.paradas.length, 0);
+  const vistos = categorias.reduce((a, c) => a + c.paradas.filter((p) => p.modelo).length, 0);
   const cuantos = hayFiltro(filtro) ? `${conMiles(vistos)} de ${conMiles(modelosTotales)} modelos` : `${conMiles(modelosTotales)} ${modelosTotales === 1 ? "modelo" : "modelos"}`;
   const volver = " · tócala otra vez para volver al orden de la compra";
   const conOrden = categorias.flatMap((c) => c.paradas).length > 1;
@@ -342,7 +360,7 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} />;
+            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} />;
           })}
         </nav>
         <div className="rc-lista-agregar">

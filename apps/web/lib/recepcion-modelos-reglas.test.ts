@@ -21,14 +21,13 @@ import {
   gruposDelFiltro,
   idCampoParada,
   modelosDelGrupo,
-  necesitaTotal,
+  hayQueIdentificar,
   nombreDeParada,
   opcionesDelFiltro,
   origenDelGrupo,
   paradaContada,
   paradaEnFoco,
   paradasDelGrupo,
-  prendasParecidas,
   repartirModelo,
   repartirOtroCambio,
   resumenDeCategoria,
@@ -167,22 +166,46 @@ describe("modelosDelGrupo", () => {
 });
 
 describe("paradas: lo que el Dial puede contar", () => {
-  it("con modelos anotados, cada modelo es una parada y no hay total", () => {
+  it("con modelos anotados, cada modelo es una parada", () => {
     const g = grupo(deLaGuia(sofia()), deLaGuia(lima()));
-    expect(necesitaTotal(g)).toBe(false);
+    expect(hayQueIdentificar(g)).toBe(false);
     expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Vestido Sofía", "Vestido Lima"]);
   });
 
-  it("sin nada anotado se cuenta el total (sin aviso, o una compra que no dijo qué prendas)", () => {
+  it("sin nada anotado no hay fila: se agregan los modelos, y la categoría cuadra contra lo que dijeron", () => {
     const g = grupo(deLaGuia(linea("l1", 6)));
-    expect(necesitaTotal(g)).toBe(true);
-    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Total de Vestidos"]);
+    expect(hayQueIdentificar(g)).toBe(false);
+    expect(paradasDelGrupo(g)).toEqual([]);
+    expect(camposDelConteoPorModelo(categoriasDelEnvio([g])).map((c) => c.nombre)).toEqual(["Los modelos de Vestidos"]);
   });
 
-  it("si la compra anotó solo una parte, el total sigue a mano para lo demás", () => {
+  it("si la compra anotó solo una parte, lo demás también entra como modelos, sin un total", () => {
     const g = grupo(deLaGuia(sofia()), deLaGuia(linea("l2", 4)));
-    expect(necesitaTotal(g)).toBe(true);
-    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Total de Vestidos", "Vestido Sofía"]);
+    expect(hayQueIdentificar(g)).toBe(false);
+    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Vestido Sofía"]);
+  });
+
+  it("un número suelto de antes, sin modelo al que atribuírselo, dice «Sin identificar» y se va al identificarlo", () => {
+    const g = grupo(deLaGuia(linea("l1", 6), { contadas: 5 }));
+    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Sin identificar"]);
+    const conModelo = grupo(deLaGuia(linea("l1", 6), { contadas: 5, separado: { prendas: [], nuevas: [{ cantidad: 5, descripcion: "Vestido Mar" }] } }));
+    expect(paradasDelGrupo(conModelo).map(nombreDeParada)).toEqual(["Vestido Mar"]);
+  });
+
+  it("un modelo agregado a «Vestidos: 20» no está de más: lo que cuadra es la categoría", () => {
+    const nuevas = [{ cantidad: 5, descripcion: "Vestido Mar" }];
+    const g = grupo(deLaGuia(linea("l1", 20), { contadas: 5, separado: { prendas: [], nuevas } }));
+    expect(modelosDelGrupo(g).map((m) => [m.nombre, m.estado])).toEqual([["Vestido Mar", "contado"]]);
+    const cifras = cifrasDelResumen(categoriasDelEnvio([g]));
+    expect([cifras.diferencia, cifras.estados.diferencia, cifras.estados.cuadran]).toEqual([-15, 1, 0]);
+    const completa = grupo(deLaGuia(linea("l1", 20), { contadas: 20, separado: { prendas: [], nuevas: [{ cantidad: 20, descripcion: "Vestido Mar" }] } }));
+    const cifrasCompleta = cifrasDelResumen(categoriasDelEnvio([completa]));
+    expect([cifrasCompleta.diferencia, cifrasCompleta.estados.cuadran]).toEqual([0, 1]);
+  });
+
+  it("con todo anotado, lo que no estaba sigue estando de más", () => {
+    const g = grupo(deLaGuia(sofia(), { contadas: 7, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [{ cantidad: 2, descripcion: "Vestido Mar" }] } }));
+    expect(modelosDelGrupo(g).find((m) => m.nombre === "Vestido Mar")?.estado).toBe("fuera");
   });
 
   it("el foco: la elegida; si ya no está, otra de su grupo; si no, la primera sin contar", () => {
@@ -241,8 +264,8 @@ describe("costoDeLaParada: lo que cuesta cada prenda de lo que se cuenta", () =>
     expect(costoDeLaParada(paradaDe(g, "Vestido Otro"))).toEqual({ desde: 80, hasta: 80 });
   });
 
-  it("un total de varias líneas dice de cuánto a cuánto", () => {
-    const g = grupo(deLaGuia(linea("l1", 5, { costoUnitario: 20 })), deLaGuia(linea("l2", 5, { costoUnitario: 45 })));
+  it("lo sin identificar de varias líneas dice de cuánto a cuánto", () => {
+    const g = grupo(deLaGuia(linea("l1", 5, { costoUnitario: 20 }), { contadas: 1 }), deLaGuia(linea("l2", 5, { costoUnitario: 45 })));
     expect(costoDeLaParada(paradasDelGrupo(g)[0])).toEqual({ desde: 20, hasta: 45 });
   });
 
@@ -282,13 +305,20 @@ describe("categoriasDelEnvio: cada categoría una sola vez", () => {
     expect(r.cambios.map((c) => c.clave)).toEqual(["item:l-anto"]);
   });
 
-  it("resume lo contado y cuántos modelos trae", () => {
+  it("con guía, cuadra contra lo que dijeron", () => {
     const sinContar = categoriasDelEnvio(agruparLineas([deLaGuia(sofia())]))[0];
-    expect(resumenDeCategoria(sinContar)).toBe("sin contar · 1 modelo");
+    expect(resumenDeCategoria(sinContar)).toBe("Dijeron 5 · sin contar");
     const contada = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3 }), deLaGuia(lima())]))[0];
-    expect(resumenDeCategoria(contada)).toBe("3 de 12 · 2 modelos");
+    expect(resumenDeCategoria(contada)).toBe("Dijeron 12 · Contaste 3 · Faltan 9");
     const grande = categoriasDelEnvio(agruparLineas([deLaGuia(linea("g", 12000, { descripcion: "Vestido Paula" }), { contadas: 9500 })]))[0];
-    expect(resumenDeCategoria(grande)).toBe("9,500 de 12,000 · 1 modelo");
+    expect(resumenDeCategoria(grande)).toBe("Dijeron 12,000 · Contaste 9,500 · Faltan 2,500");
+    expect(resumenDeCategoria(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5 })]))[0])).toBe("Dijeron 5 · Contaste 5 · Cuadra");
+    expect(resumenDeCategoria(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 7 })]))[0])).toBe("Dijeron 5 · Contaste 7 · Sobran 2");
+  });
+
+  it("sin guía, lo contado y cuántos modelos trae", () => {
+    const extra: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 2, separado: { prendas: [], nuevas: [{ cantidad: 2, descripcion: "Vestido Mar" }, { cantidad: 0, descripcion: "Vestido Sol" }] } }), clave: "extra:1", linea: null, dijeron: null };
+    expect(resumenDeCategoria(categoriasDelEnvio(agruparLineas([extra]))[0])).toBe("2 contadas · 2 modelos");
   });
 
   it("está hecha solo con todo contado y sin nada por identificar", () => {
@@ -438,7 +468,7 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     const porNombre = new Map(todas()[0].paradas.map((p) => [nombreDeParada(p), tipoDeParada(p)]));
     expect(porNombre.get("Vestido Sofía")).toBe("restock");
     expect(porNombre.get("Vestido Lima")).toBe("nuevo");
-    const sinModelos = categoriasDelEnvio(agruparLineas([deLaGuia(linea("l-suelta", 9))]));
+    const sinModelos = categoriasDelEnvio(agruparLineas([deLaGuia(linea("l-suelta", 9), { contadas: 9 })]));
     expect(tipoDeParada(sinModelos[0].paradas[0])).toBeNull();
   });
 
@@ -849,30 +879,6 @@ describe("contar un modelo", () => {
     expect(modelo(g, "p-sofia").contadas).toBe(1);
     expect(modelo(g, "p-anto").contadas).toBe(7);
     expect(g.contadas).toBe(8);
-  });
-});
-
-describe("prendasParecidas", () => {
-  const catalogo = [
-    { productoId: "a", nombre: "Vestido Sofía Lino" },
-    { productoId: "b", nombre: "Vestido Mar" },
-    { productoId: "c", nombre: "Falda Ariana" },
-    { productoId: "d", nombre: "Vestido Antonella" },
-  ];
-
-  it("ordena por palabras en común, pesando más el modelo que se está contando", () => {
-    expect(prendasParecidas(catalogo, ["Vestido Sofía"], new Set()).map((p) => p.productoId)).toEqual(["a", "d", "b"]);
-    expect(prendasParecidas(catalogo, ["Vestido Antonella", "Vestido Sofía"], new Set())[0].productoId).toBe("d");
-  });
-
-  it("no ofrece lo que ya está en la lista ni lo que no se parece en nada", () => {
-    expect(prendasParecidas(catalogo, ["Vestido Sofía"], new Set(["a"])).map((p) => p.productoId)).toEqual(["d", "b"]);
-    expect(prendasParecidas(catalogo, ["Chompa"], new Set())).toEqual([]);
-  });
-
-  it("no le importan las tildes ni las mayúsculas; sin nada que comparar, las primeras", () => {
-    expect(prendasParecidas(catalogo, ["VESTIDO SOFIA"], new Set())[0].productoId).toBe("a");
-    expect(prendasParecidas(catalogo, [], new Set(), 2).map((p) => p.productoId)).toEqual(["a", "b"]);
   });
 });
 

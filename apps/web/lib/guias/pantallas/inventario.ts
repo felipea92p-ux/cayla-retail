@@ -1880,30 +1880,12 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Dentro de las tallas, di cuántas llegaron dañadas en su talla y color, y si tienen arreglo. Las dañadas no se venden: entran a la cuarentena de la sede.",
     },
     {
-      // Abrirla no guarda; tocar una prenda sí, por eso la demo se queda en el enlace.
-      id: "otra-cosa",
-      ancla: "recepcion.otra-cosa",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "¿Llegó otra cosa?",
-      texto: "Si tienes en la mano algo que no está en la lista, aquí lo sumas: las prendas que se parecen, buscar otra en el catálogo o anotarla con un nombre corto. Queda en el contador para contarla.",
-    },
-    {
-      // Tocar una la suma a la lista y eso se guarda solo: la demo la explica sin tocarla.
-      id: "parecidas",
-      ancla: "recepcion.parecidas",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "Las que se parecen",
-      texto: "Del catálogo de esta categoría y marca, las que se parecen a lo que se anotó. Si llegó una de esas, tócala: se suma a la lista y el aro pasa a contarla.",
-    },
-    {
       id: "separar",
       ancla: "recepcion.separar",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      titulo: "Saber qué prenda es",
-      texto: "Si no es ninguna de las anotadas, búscala en el catálogo y queda en el aro para contarla. Si no está, anótala con un nombre corto. Las tallas y los colores pueden esperar; saber qué prenda es, no: sin eso no se pasa a «Cerrar».",
+      titulo: "Lo que falta decir",
+      texto: "Si un envío venía contado con un número suelto, aquí ves cuántas no son de ningún modelo. Agrega su modelo con el «+» y cuéntalas ahí: sin decir cuáles son no se puede cerrar.",
     },
     {
       // ADR-0507: «Anotar observación» abre una hoja que guarda; la guía la explica sin tocarla.
@@ -1926,7 +1908,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],
       titulo: "Algo que no estaba en la guía",
-      texto: "Si llegó una categoría que no venía, la agregas aquí y la cuentas como las demás; la marca va solo si tiene. Si esa categoría ya está en la lista, te lleva a anotar el modelo dentro de ella. Al cerrar dirás qué pasa con lo agregado. En un envío sin aviso, todo lo que llega entra por aquí.",
+      texto: "Si llegó una categoría que no venía, la agregas aquí con su primer modelo y lo cuentas como los demás; la marca va solo si tiene. Al cerrar dirás qué pasa con lo agregado. En un envío sin aviso, todo lo que llega entra por aquí.",
     },
     {
       id: "cifra",

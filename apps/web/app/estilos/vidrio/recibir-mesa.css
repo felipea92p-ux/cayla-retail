@@ -123,7 +123,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cat-cabeza .rc-cat-ic { flex: none; background: var(--color-vidrio); box-shadow: none; color: var(--color-pizarra); }
 .rc-cat-textos { display: grid; flex: 1 1 0; gap: 2px; min-width: 0; }
 .rc-cat-textos b { overflow: hidden; color: var(--color-tinta); font-size: 15px; font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.rc-cat-resumen { overflow: hidden; color: var(--rc-cat-suave); font-size: 14px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Hace falta leerlo entero («Dijeron 20 · Contaste 12 · Faltan 8»): baja a otra línea en vez de cortarse. */
+.rc-cat-resumen { color: var(--rc-cat-suave); font-size: 14px; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .rc-cat-barra { display: block; margin-top: 3px; }
 /* Las barras chicas, un poco más gruesas: el color tiene que leerse desde lejos. */
 :is(.rc-cat-barra, .rc-tipo-cifra) .barra-avance:not([data-sobre-tinta])[data-alto="fina"] { --tubo-aire: 2px; height: 11px; }
@@ -131,6 +132,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cat-hueco-mas { flex: none; width: 32px; height: 32px; }
 .rc-cat-mas { position: absolute; top: 50%; right: 64px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); background: var(--color-vidrio); }
 .rc-cat-mas:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-cat-sin-modelos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 12px 10px; color: var(--rc-cat-suave); font-size: 14px; }
 .rc-cat-flecha { flex: none; color: var(--rc-cat-suave); transition: transform 300ms var(--ease-cayla); }
 .rc-cat[data-abierta] .rc-cat-flecha { transform: rotate(180deg); }
 .rc-cat-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }

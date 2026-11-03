@@ -11,30 +11,39 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { CatalogoParaRecibir, CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { TOPES_CONTEO } from "@/lib/recepcion-conteo-reglas";
+import { alAgregarALaLista, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { marcaSugeridaDelModelo, paradaDelNombre, type CategoriaDelEnvio, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
-// «+» de una categoría (Felipe 2026-11-03, ADR-0604): un modelo más para contar aparte. Nace en 0 y queda en el contador. La marca es de cada modelo (vacía = sin marca) y el proveedor
-// solo se pregunta si el envío trae dos o más; por dentro cae en la línea de esa categoría y marca, o abre una. Mientras se escribe el nombre salen las prendas parecidas del catálogo,
-// sin bloquear: tocar una la cuenta a ella.
+// «¿Qué llegó?» y el «+» de una categoría (Felipe 2026-11-03, ADR-0604): un modelo más para contar aparte. Nace en 0 y queda en el contador. La marca es de cada modelo (vacía = sin marca) y el
+// proveedor solo se pregunta si el envío trae dos o más; por dentro cae en la línea de esa categoría y marca, o abre una. Mientras se escribe el nombre salen las prendas parecidas del catálogo,
+// sin bloquear: tocar una la cuenta a ella. Si la categoría ya está con dos o más marcas, no se adivina: se elige, o se agrega aparte sin marca (lo halló `/chaos`, semilla 20261103).
 
-export type ModeloPedido = { proveedorId: string | null; marcaId: string | null; nombre: string; nota: string | null; prenda: PrendaRecepcion | null };
+export type ModeloPedido = { categoriaId: string; proveedorId: string | null; marcaId: string | null; nombre: string; nota: string | null; prenda: PrendaRecepcion | null };
 
 export function NuevoModelo({
-  categoria,
-  enLista,
+  categoriaFija,
+  categorias,
+  grupos,
+  sinAviso,
   catalogo,
   proveedores,
+  errorDelGuardado = null,
   onCrear,
   onIrA,
   onCerrar,
 }: {
-  categoria: CategoriaDeLinea;
-  /** La categoría en la lista: de ahí salen la marca que se sugiere y lo que ya se anotó. */
-  enLista: CategoriaDelEnvio;
+  /** La categoría del «+». Sin ella («Agregar lo que llegó»), la persona la elige. */
+  categoriaFija: CategoriaDeLinea | null;
+  /** Las categorías en la lista: de ahí salen la marca que se sugiere y lo que ya se anotó. */
+  categorias: readonly CategoriaDelEnvio[];
+  grupos: readonly GrupoDeLineas[];
+  sinAviso: boolean;
   catalogo: CatalogoParaRecibir | null;
   proveedores: readonly { id: string; nombre: string }[];
+  /** La causa que dijo la base al no poder agregar: la conexión no siempre es el motivo. */
+  errorDelGuardado?: string | null;
   /** Devuelve el error, o null si quedó. */
   onCrear: (m: ModeloPedido) => Promise<string | null>;
   /** Ese modelo ya está en la lista: se va a contarlo. */
@@ -42,15 +51,21 @@ export function NuevoModelo({
   onCerrar: () => void;
 }) {
   const eligeProveedor = proveedores.length >= 2;
-  const [proveedorId, setProveedorId] = useState(eligeProveedor ? (enLista.grupos[0]?.principal.proveedor?.id ?? "") : "");
-  const [marcaId, setMarcaId] = useState(() => marcaSugeridaDelModelo(enLista));
+  const [categoriaId, setCategoriaId] = useState(categoriaFija?.id ?? "");
+  const enLista = categorias.find((c) => c.categoria?.id === categoriaId) ?? null;
+  const categoria: CategoriaDeLinea | null = categoriaFija ?? enLista?.categoria ?? catalogo?.categorias.find((c) => c.id === categoriaId) ?? null;
+  const [proveedorId, setProveedorId] = useState(eligeProveedor ? (enLista?.grupos[0]?.principal.proveedor?.id ?? "") : "");
+  const [marcaId, setMarcaId] = useState(() => (enLista ? marcaSugeridaDelModelo(enLista) : ""));
   const [nombre, setNombre] = useState("");
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const texto = nombre.trim();
-  const yaEsta = texto ? paradaDelNombre(enLista, texto) : null;
+  const yaEsta = texto && enLista ? paradaDelNombre(enLista, texto) : null;
+  // Sin marca, en una categoría que ya está con dos o más: no se adivina cuál era.
+  const destino = categoriaId && (!eligeProveedor || proveedorId) ? alAgregarALaLista(grupos, { proveedorId: eligeProveedor ? proveedorId : null, categoriaId, marcaId: marcaId || null }) : null;
+  const otrasMarcas = destino?.tipo === "otra-marca" && destino.grupos.length >= 2 ? destino.grupos.map((g) => g.principal.marca?.nombre ?? "") : [];
 
   const marcas = useMemo(() => {
     const todas = catalogo?.marcas ?? [];
@@ -63,27 +78,28 @@ export function NuevoModelo({
   const vuelta = useRef(0);
   useEffect(() => {
     const mia = ++vuelta.current;
-    if (texto.length < 2) return;
+    if (texto.length < 2 || !categoriaId) return;
     const t = window.setTimeout(() => {
-      void buscarPrendasParaRecibir(categoria.id, marcaId || null, texto).then(({ prendas, error: e }) => {
+      void buscarPrendasParaRecibir(categoriaId, marcaId || null, texto).then(({ prendas, error: e }) => {
         if (mia === vuelta.current) setParecidas(e ? [] : prendas.slice(0, 4));
       });
     }, 250);
     return () => window.clearTimeout(t);
-  }, [categoria.id, marcaId, texto]);
-  const aLaVista = texto.length >= 2 && !yaEsta ? parecidas.filter((p) => !paradaDelNombre(enLista, p.nombre)) : [];
+  }, [categoriaId, marcaId, texto]);
+  const aLaVista = texto.length >= 2 && !yaEsta ? parecidas.filter((p) => !enLista || !paradaDelNombre(enLista, p.nombre)) : [];
 
   const guia = useGuiaCampos([
     ...(eligeProveedor ? [{ id: "modelo-proveedor", nombre: "De qué proveedor", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es." }] : []),
+    ...(categoriaFija ? [] : [{ id: "modelo-categoria", nombre: "Qué llegó", requerido: true, hecho: categoriaId !== "", pendiente: "Elige la categoría." }]),
     { id: "modelo-nombre", nombre: "El nombre", requerido: true, hecho: texto !== "", pendiente: "Escribe cómo se llama el modelo." },
-    { id: "modelo-marca", nombre: "La marca", requerido: false, hecho: marcaId !== "", pendiente: "" },
+    { id: "modelo-marca", nombre: "La marca", requerido: otrasMarcas.length > 0, hecho: marcaId !== "", pendiente: "Elige la marca, o agrégala aparte sin marca." },
     { id: "modelo-nota", nombre: "La descripción", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
   ]);
 
   async function crear(prenda: PrendaRecepcion | null) {
     setGuardando(true);
     setError(null);
-    const e = await onCrear({ proveedorId: eligeProveedor ? proveedorId : null, marcaId: marcaId || null, nombre: prenda?.nombre ?? texto, nota: nota.trim() || null, prenda });
+    const e = await onCrear({ categoriaId, proveedorId: eligeProveedor ? proveedorId : null, marcaId: marcaId || null, nombre: prenda?.nombre ?? texto, nota: nota.trim() || null, prenda });
     setGuardando(false);
     if (e) setError(e);
     else onCerrar();
@@ -100,7 +116,12 @@ export function NuevoModelo({
   }
 
   return (
-    <Modal titulo={`Otro modelo de ${categoria.nombre}`} subtitulo="Se cuenta aparte. Nace en 0 y lo cuentas enseguida." bloqueado={guardando} onClose={onCerrar}>
+    <Modal
+      titulo={categoriaFija ? `Otro modelo de ${categoriaFija.nombre}` : sinAviso ? "¿Qué llegó?" : "Algo que no estaba en la guía"}
+      subtitulo={categoriaFija ? "Se cuenta aparte. Nace en 0 y lo cuentas enseguida." : sinAviso ? "Agrega cada modelo que llegó y cuéntalo." : "Se cuenta como lo demás; al cerrar dirás qué pasa con lo que vino de más."}
+      bloqueado={guardando}
+      onClose={onCerrar}
+    >
       {(cerrar) => (
         <form
           noValidate
@@ -122,6 +143,21 @@ export function NuevoModelo({
               />
             </CampoGuiado>
           )}
+          {!categoriaFija && (
+            <CampoGuiado id="modelo-categoria" guia={guia}>
+              <CampoSelect
+                etiqueta={guia.etiqueta("modelo-categoria", "Qué llegó")}
+                valor={categoriaId}
+                onValor={(v) => {
+                  setCategoriaId(v);
+                  const c = categorias.find((x) => x.categoria?.id === v);
+                  setMarcaId(c ? marcaSugeridaDelModelo(c) : "");
+                }}
+                opciones={(catalogo?.categorias ?? []).map((c) => ({ valor: c.id, texto: c.nombre }))}
+                marcador="Elige la categoría"
+              />
+            </CampoGuiado>
+          )}
           <CampoGuiado id="modelo-nombre" guia={guia}>
             <CampoTexto
               etiqueta={guia.etiqueta("modelo-nombre", "El nombre")}
@@ -129,7 +165,7 @@ export function NuevoModelo({
               maxLength={TOPES_CONTEO.descripcionNueva}
               onChange={(e) => setNombre(e.target.value)}
               placeholder={`Ej. ${sugerirNombre(categoria).texto}`}
-              autoFocus
+              autoFocus={!!categoriaFija}
             />
           </CampoGuiado>
           {aLaVista.length > 0 && (
@@ -143,7 +179,7 @@ export function NuevoModelo({
                 tecla=""
                 sugerencias={aLaVista.map((p) => ({
                   clave: p.productoId,
-                  miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />,
+                  miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria?.prefijo} familia={categoria?.familia} categoria={categoria?.nombre} />,
                   titulo: p.nombre,
                   detalle: p.codigo ?? undefined,
                 }))}
@@ -163,9 +199,22 @@ export function NuevoModelo({
               onValor={setMarcaId}
               // Vacía = sin marca: «Sin marca» solo aparece para deshacer una ya elegida.
               opciones={[...(marcaId ? [{ valor: "", texto: "Sin marca" }] : []), ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
-              marcador="Déjala vacía si no tiene"
+              marcador={otrasMarcas.length > 0 ? "Elige la marca" : "Déjala vacía si no tiene"}
             />
           </CampoGuiado>
+          {otrasMarcas.length > 0 && (
+            <div className="nota-cayla text-sm">
+              <p>
+                <b className="text-tinta">
+                  {categoria?.nombre} ya está en tu lista con {new Intl.ListFormat("es", { type: "conjunction" }).format(otrasMarcas)}.
+                </b>{" "}
+                Elige su marca.
+              </p>
+              <button type="button" className="btn-cayla btn-enlace mt-1" disabled={guardando || !texto} onClick={() => void crear(null)}>
+                No tiene marca: agregarla aparte
+              </button>
+            </div>
+          )}
           <CampoGuiado id="modelo-nota" guia={guia}>
             <CampoTexto
               etiqueta={guia.etiqueta("modelo-nota", "La descripción (para no confundirlo con otro)")}
@@ -176,7 +225,7 @@ export function NuevoModelo({
             />
           </CampoGuiado>
           {!catalogo && <Aviso tono="atencion" titulo="No se pudo leer el catálogo">Recarga la pantalla para elegir la marca.</Aviso>}
-          {error && <Aviso tono="error" titulo="No se pudo agregar">{error}</Aviso>}
+          {error && <Aviso tono="error" titulo="No se pudo agregar">{errorDelGuardado ?? error}</Aviso>}
           <PieGuia guia={guia} listo="Todo listo." />
           <div className="pie-acciones">
             <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>

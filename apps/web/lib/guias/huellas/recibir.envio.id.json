@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 179,
+  "total": 173,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -40,18 +40,11 @@
       "button «→onClick»",
       "button «›»"
     ],
-    "components/recepcion-conteo/AgregarFueraDeGuia.tsx": [
-      "CampoSelect «{guia.etiqueta(\"fuera-proveedor\", \"De qué proveedor\")}»",
-      "CampoSelect «{guia.etiqueta(\"fuera-categoria\", \"Qué llegó\")}»",
-      "CampoSelect «{guia.etiqueta(\"fuera-marca\", \"La marca\")}»",
-      "button «No tiene marca: agregarla aparte»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
-    ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
       "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",
       "button «{nombre}»",
       "button «{i === 0 ? \"recepcion.agregar-modelo\" : undefined}»",
+      "button «No llegó nada»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Marca»",
       "SegmentoDeslizante «Ordenar por cantidad»",
@@ -78,7 +71,7 @@
       "Boton «{textoConfirmar}»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
-      "Boton «{sinAviso ? \"Agregar lo que llegó\" : \"Agregar categoría\"}»"
+      "Boton «(sin nombre)»"
     ],
     "components/recepcion-conteo/DescribirNuevas.tsx": [
       "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
@@ -113,8 +106,10 @@
     ],
     "components/recepcion-conteo/NuevoModelo.tsx": [
       "CampoSelect «{guia.etiqueta(\"modelo-proveedor\", \"De qué proveedor\")}»",
+      "CampoSelect «{guia.etiqueta(\"modelo-categoria\", \"Qué llegó\")}»",
       "CampoTexto «{guia.etiqueta(\"modelo-nombre\", \"El nombre\")}»",
       "CampoSelect «{guia.etiqueta(\"modelo-marca\", \"La marca\")}»",
+      "button «No tiene marca: agregarla aparte»",
       "CampoTexto «{guia.etiqueta(\"modelo-nota\", \"La descripción (para no confundirlo con otro)\")}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
@@ -133,7 +128,6 @@
     ],
     "components/recepcion-conteo/PlacaDelModelo.tsx": [
       "button «{titulo}»",
-      "button «recepcion.otra-cosa»",
       "button «+»",
       "button «+» #2",
       "button «Llegaron las»",
@@ -164,9 +158,7 @@
       "button «Distinto por talla o color»"
     ],
     "components/recepcion-conteo/PrendasDeLaPlaca.tsx": [
-      "button «{`Llegó ${p.nombre}»",
       "BotonEditar «Describir»",
-      "button «Llegaron otras y aún no sé cómo se llaman»",
       "button «Quitar»"
     ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
