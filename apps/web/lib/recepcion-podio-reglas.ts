@@ -15,7 +15,7 @@ export function podioDeCategoria(c: { dijeron: number | null; contadas: number; 
   const crudas: Omit<ColumnaPodio, "alto">[] = [
     ...(conGuia ? [{ clave: "dijeron" as const, titulo: "Dijeron", n: c.dijeron ?? 0 }] : []),
     { clave: "contaste", titulo: "Contaste", n: c.contadas },
-    { clave: "vender", titulo: "Se venden", n: c.alStock },
+    { clave: "vender", titulo: "A vender", n: c.alStock },
     { clave: "despues", titulo: "Después", n: c.paraDespues },
   ];
   const mayor = Math.max(1, ...crudas.map((x) => x.n));

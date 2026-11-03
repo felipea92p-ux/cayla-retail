@@ -58,7 +58,7 @@ export function TallasDeLaPlaca({
   onDejarSuma: (n: number) => void;
   /** Lo que la prenda no tiene: se crea con la hoja de la prenda. */
   onCrear: (pedida: { tallaId?: string; colorCodigo?: string }) => void;
-  /** «¿Era otra prenda?»: al repartir se vio que era otra. */
+  /** «Cambiar de prenda»: al repartir se vio que era otra. */
   onCambiarPrenda: () => void;
 }) {
   const [fallo, setFallo] = useState(false);
@@ -183,7 +183,7 @@ function Reparto({
           {!cuadra && <EtiquetaAhora />}
         </p>
         <button type="button" className="btn-cayla btn-enlace" onClick={onCambiarPrenda}>
-          ¿Era otra prenda?
+          Cambiar de prenda
         </button>
       </div>
 

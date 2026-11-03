@@ -1,7 +1,7 @@
 "use client";
 
 import { type MouseEvent, type ReactNode, type Ref } from "react";
-import { ArrowLeft, ArrowRight, Ban, Check, Package, RotateCcw, Sparkles, Tag } from "lucide-react";
+import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, RotateCcw, Sparkles, Tag } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -11,13 +11,14 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { descripcionDelGrupo, minimoDelGrupo } from "@/lib/recepcion-grupos-reglas";
-import { conMiles, conSigno, lineasDeLaParada, nombreDeParada, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
+import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
 
-// Lo que se está contando (Felipe 2026-11-02, de su boceto; el Dial es el de ADR-0575): el modelo con su foto, cuánto dijeron, cuánto se contó y la diferencia, los botones de sumar y los que
-// llevan al siguiente. Debajo, si se quiere, sus tallas y colores. Lo guarda la pantalla: aquí solo se dice qué dejó la persona.
+// Lo que se está contando (Felipe 2026-11-02, de su boceto; el Dial es el de ADR-0575): el modelo con su foto y su costo, el aro que dice cuánto se contó de lo que dijeron, los botones de sumar y
+// los que llevan al siguiente. Debajo, si se quiere, sus tallas y colores. Lo guarda la pantalla: aquí solo se dice qué dejó la persona. Las tres cifras que iban junto al aro se fueron (Felipe
+// 2026-11-03): decían lo mismo que el aro y el estado de arriba.
 
 export type ModoDeTallas = "despues" | "ahora";
 
@@ -111,6 +112,7 @@ export function PlacaDelModelo({
   const noLlego = hayConteo && contadas === 0;
   const diferencia = hayConteo ? contadas - (dijeron ?? 0) : null;
   const tipo = tipoDeParada(parada);
+  const costo = costoDeLaParada(parada);
 
   const contoNombre = lineasDeLaParada(parada)
     .map((l) => l.conteo)
@@ -158,6 +160,12 @@ export function PlacaDelModelo({
                 {marcaDeLinea(p).nombre}
               </Chip>
             )}
+            {costo && (
+              <Chip tono="neutro" versalitas={false} title="Lo que cuesta cada prenda, según la compra">
+                <Banknote aria-hidden className="h-3 w-3" />
+                Costo {textoDeCosto(costo)}
+              </Chip>
+            )}
             {/* Lo mismo que dice su fila en la lista. Sin contar, «Sigue aquí» ya lo dice. */}
             {modelo && hayConteo && <EstadoModelo m={modelo} faltanTallas={faltanTallas} sinAviso={sinAviso} />}
             {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo?.conTallas && modelo.productoId && <Chip tono="verde">Entra al stock</Chip>}
@@ -184,24 +192,6 @@ export function PlacaDelModelo({
 
       <div className="rc-cuenta" data-guia="recepcion.numero">
         <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
-        <div className="rc-cifras">
-          {!sinAviso && (
-            <div className="rc-cifra">
-              <small>Dijeron</small>
-              <b>{dijeron != null ? conMiles(dijeron) : "—"}</b>
-            </div>
-          )}
-          <div className="rc-cifra">
-            <small>Contaste</small>
-            <b>{hayConteo ? conMiles(contadas) : "—"}</b>
-          </div>
-          {!sinAviso && (
-            <div className="rc-cifra" data-tono={diferencia == null ? undefined : diferencia === 0 ? "verde" : "ambar"}>
-              <small>Diferencia</small>
-              <b>{diferencia == null ? "—" : conSigno(diferencia)}</b>
-            </div>
-          )}
-        </div>
         <div className="rc-cuenta-lado">
           {/* Tres clases de botón, de lo más rápido a lo menos común: sumar de a varias, «ya llegaron todas» y «no llegó». El que ya se cumplió se queda en su lugar, marcado. */}
           <div className="rc-atajos">
