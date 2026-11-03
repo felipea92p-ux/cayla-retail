@@ -64,6 +64,13 @@ const DESHACER_AVISO_250 = `${deshacerAnclas(AVISO_250)}
 set local session_replication_role = replica;
 delete from retail.parametros_tributarios where nombre in ('igv_general', 'igv_ipm', 'aviso_umbral_uit', 'ventas_previas_erp');
 set local session_replication_role = origin;`;
+// ADR-0598 (20261102060000, renta del año) hace lo mismo después: sus anclas sobre `guardar_parametro_tributario` se deshacen primero y sus ocho nombres se apagan.
+const RENTA_DEL_ANO = readFileSync(join(RAIZ, "supabase", "migrations", "20261102060000_renta_del_ano_parametros.sql"), "utf8");
+const DESHACER_RENTA_DEL_ANO = `${deshacerAnclas(RENTA_DEL_ANO)}
+set local session_replication_role = replica;
+delete from retail.parametros_tributarios where nombre in ('renta_tramo_uit', 'renta_tasa_tramo', 'renta_tasa_resto', 'boletas_tope_pct', 'boletas_tope_uit',
+  'renta_utilidad_previa', 'renta_sin_papel_previo', 'renta_pagada_previa');
+set local session_replication_role = origin;`;
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
@@ -112,6 +119,7 @@ insert into retail.compra_pagos (compra_id, fecha, monto, metodo, ubicacion_id, 
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
+${DESHACER_RENTA_DEL_ANO}
 ${DESHACER_AVISO_250}
 ${DESHACER_SALDO_IGV}
 ${sinCandadosDePegado(MIGRACION)}

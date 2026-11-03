@@ -2578,7 +2578,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 aria-label="Cobro"
                 // La hoja no scrollea: la cabecera y «Confirmar cobro» van fijos y solo el cuerpo de los pasos lo hace, si de verdad
                 // no caben (`HojaDeCobro`). Es un contenedor de tamaño (`container: cobro`) para que se compacte según SU alto.
-                className="hoja-cobro absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden rounded-3xl border border-sand bg-papel"
+                className="hoja-cobro hoja-serena absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden"
               >
                 {hojaDeCobro(false)}
               </section>
