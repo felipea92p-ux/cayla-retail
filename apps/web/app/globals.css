@@ -191,6 +191,9 @@
   /* Oliva (Felipe, 2026-10-05, ADR-0353): OTRA tonalidad del verde para la «Llegada» en Movimientos, al lado de la «Venta» en verde.
      No es un color nuevo: es el verde oficial con un toque de ámbar (34 %), así sale de la paleta y la sigue si la paleta cambia. */
   --color-oliva: color-mix(in srgb, var(--color-verde) 66%, var(--color-ambar));
+  /* El medio de una barra que se llena (Felipe 2026-11-02, Recibir): de rojo a este ámbar y a verde (`lib/avance-color.ts`). El ámbar de arriba es un marrón oscuro hecho para
+     que un texto se lea: como relleno no se distingue del verde. Solo relleno, nunca texto. */
+  --color-avance-medio: #c08a1e;
   --color-ambar: #74501a;       /* Al filo / en proceso — oficial 2026-09-22 (antes #8c631f, 4.72:1); más oscuro, sube el contraste */
 
   /* Marcas de GRÁFICO con polaridad (Análisis de inventario, 2026-09-22): aceleró · estable · desaceleró.

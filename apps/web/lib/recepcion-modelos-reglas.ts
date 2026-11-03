@@ -276,10 +276,147 @@ export function categoriasEnOrden(categorias: readonly CategoriaDelEnvio[], orde
     .sort((a, b) => signo * (cantidadDeCategoria(a) - cantidadDeCategoria(b)));
 }
 
+// ---- Re stock, Producto nuevo y los estados del resumen (Felipe 2026-11-02, maqueta del boceto) --------------------------------------------
+
+/**
+ * Re stock o Producto nuevo no se le pregunta a nadie: lo dice lo que anotó Compras. Un modelo con su prenda del catálogo es re stock; uno que solo tiene nombre todavía no
+ * existe, es nuevo. Lo que se cuenta como un total, sin modelo, no es ninguno de los dos.
+ */
+export type TipoDeModelo = "restock" | "nuevo";
+export const tipoDeParada = (p: Pick<ParadaDelConteo, "modelo">): TipoDeModelo | null => (p.modelo ? (p.modelo.productoId ? "restock" : "nuevo") : null);
+
+/** Las filas del resumen. Las tres primeras reparten todas las paradas; «despues» se mira aparte (lo que ya se contó y aún no tiene tallas). */
+export type EstadoDelResumen = "cuadran" | "diferencia" | "por-contar" | "despues";
+
+export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "despues"> {
+  if (p.modelo) return p.modelo.estado === "por-contar" ? "por-contar" : p.modelo.estado === "cuadra" ? "cuadran" : "diferencia";
+  if (!paradaContada(p)) return "por-contar";
+  return p.grupo.dijeron == null || p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
+}
+
+export const tallasParaDespues = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas;
+
+const pasaLaParada = (p: ParadaDelConteo, f: FiltroDelConteo, retener: string | null): boolean => {
+  // Lo que se está contando no se va de la lista bajo el dedo: con «Por contar» puesto, sumarle una lo sacaría del filtro. Se va al pasar al siguiente.
+  if (p.clave !== retener) {
+    if (f.tipo && tipoDeParada(p) !== f.tipo) return false;
+    if (f.estado && (f.estado === "despues" ? !tallasParaDespues(p) : estadoDeParada(p) !== f.estado)) return false;
+  }
+  const texto = sinTildes(f.texto).trim().toLocaleLowerCase("es");
+  if (!texto) return true;
+  const donde = [nombreDeParada(p), p.modelo?.codigo, p.grupo.principal.proveedor?.nombre, p.grupo.principal.marca?.nombre, p.grupo.principal.categoria?.nombre].filter(Boolean).join(" ");
+  return sinTildes(donde).toLocaleLowerCase("es").includes(texto);
+};
+
+/** Con un total en la lista, sus modelos ya están adentro: se suma uno u otro, nunca los dos. */
+const sinContarDosVeces = (paradas: readonly ParadaDelConteo[]): ParadaDelConteo[] => {
+  const conTotal = new Set(paradas.filter((p) => !p.modelo).map((p) => p.grupo.clave));
+  return paradas.filter((p) => !p.modelo || !conTotal.has(p.grupo.clave));
+};
+const dijeronDe = (p: ParadaDelConteo): number | null => (p.modelo ? p.modelo.esperadas : p.grupo.dijeron);
+const contadasDeParada = (p: ParadaDelConteo): number => (p.modelo ? p.modelo.contadas : p.grupo.contadas);
+
+/** La categoría con solo esas paradas: sus cifras pasan a ser las de lo que se ve. */
+function conSoloEstas(c: CategoriaDelEnvio, paradas: ParadaDelConteo[]): CategoriaDelEnvio {
+  const sumables = sinContarDosVeces(paradas);
+  const contada = paradas.every(paradaContada);
+  return {
+    ...c,
+    paradas,
+    dijeron: sumables.every((p) => dijeronDe(p) == null) ? null : sumables.reduce((a, p) => a + (dijeronDe(p) ?? 0), 0),
+    contadas: sumables.reduce((a, p) => a + contadasDeParada(p), 0),
+    hayConteo: paradas.some(paradaContada),
+    contada,
+    hecha: contada && c.hecha,
+  };
+}
+
+/** Lo que se ve en la lista: por proveedor y marca se filtran los grupos; por tipo, estado y búsqueda, las paradas de adentro. Una categoría sin nada que mostrar no sale. */
+export function categoriasDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDelConteo, retener: string | null = null): CategoriaDelEnvio[] {
+  const categorias = categoriasDelEnvio(gruposDelFiltro(grupos, f));
+  if (!f.tipo && !f.estado && !f.texto.trim()) return categorias;
+  return categorias.map((c) => conSoloEstas(c, c.paradas.filter((p) => pasaLaParada(p, f, retener)))).filter((c) => c.paradas.length > 0);
+}
+
+/** Lo que el filtro deja cuando la persona lo cambia: si lo que se contaba ya no se ve, se pasa a lo primero sin contar de lo que se ve. Sin nada a la vista, se queda donde está. */
+export function focoTrasElFiltro(categorias: readonly CategoriaDelEnvio[], foco: string | null): string | null {
+  const lista = categorias.flatMap((c) => c.paradas);
+  if (lista.length === 0 || lista.some((p) => p.clave === foco)) return foco;
+  return (lista.find((p) => !paradaContada(p)) ?? lista[0]).clave;
+}
+
+/** Quién va antes y después en la lista que se ve. Si lo que se cuenta salió de la lista, lo que sigue es lo primero que queda. */
+export function vecinosDeLaParada(paradas: readonly ParadaDelConteo[], clave: string | null): { anterior: ParadaDelConteo | null; siguiente: ParadaDelConteo | null } {
+  const i = paradas.findIndex((p) => p.clave === clave);
+  if (i < 0) return { anterior: null, siguiente: paradas[0] ?? null };
+  return { anterior: paradas[i - 1] ?? null, siguiente: paradas[i + 1] ?? null };
+}
+
+export type CifrasDelResumen = {
+  /** `null` en un envío sin aviso: no hay con qué comparar. */
+  dijeron: number | null;
+  contadas: number;
+  /** De lo ya contado: lo que falta contar no es todavía un faltante. */
+  diferencia: number;
+  /** Cuánto lleva del total, de 0 a 100 o más. `null` sin lo que dijeron. */
+  avance: number | null;
+  estados: Record<EstadoDelResumen, number>;
+  tipos: Record<TipoDeModelo, { modelos: number; contados: number }>;
+};
+
+/** Lo que dice el resumen de la derecha, de TODO el envío: los filtros solo deciden qué se ve a la izquierda. */
+export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[]): CifrasDelResumen {
+  const paradas = categorias.flatMap((c) => c.paradas);
+  const grupos = categorias.flatMap((c) => c.grupos);
+  const dijeron = grupos.every((g) => g.dijeron == null) ? null : grupos.reduce((a, g) => a + (g.dijeron ?? 0), 0);
+  const contadas = grupos.reduce((a, g) => a + g.contadas, 0);
+  const estados: Record<EstadoDelResumen, number> = { cuadran: 0, diferencia: 0, "por-contar": 0, despues: 0 };
+  const tipos: CifrasDelResumen["tipos"] = { restock: { modelos: 0, contados: 0 }, nuevo: { modelos: 0, contados: 0 } };
+  for (const p of paradas) {
+    estados[estadoDeParada(p)] += 1;
+    if (tallasParaDespues(p)) estados.despues += 1;
+    const tipo = tipoDeParada(p);
+    if (!tipo) continue;
+    tipos[tipo].modelos += 1;
+    if (paradaContada(p)) tipos[tipo].contados += 1;
+  }
+  return {
+    dijeron,
+    contadas,
+    diferencia: grupos.reduce((a, g) => a + diferenciaDelGrupo(g, paradas.filter((p) => p.grupo.clave === g.clave)), 0),
+    avance: dijeron == null ? null : dijeron > 0 ? (contadas / dijeron) * 100 : contadas > 0 ? 100 : 0,
+    estados,
+    tipos,
+  };
+}
+
+/** Lo contado contra lo que dijeron, solo de lo ya contado. Lo contado que no es de ningún modelo (un número suelto de antes) también cuenta. */
+function diferenciaDelGrupo(g: GrupoDeLineas, paradas: readonly ParadaDelConteo[]): number {
+  const total = paradas.find((p) => !p.modelo);
+  if (total) return paradaContada(total) ? g.contadas - (g.dijeron ?? 0) : 0;
+  const deModelos = paradas.reduce((a, p) => a + (p.modelo?.contadas ?? 0), 0);
+  return g.contadas - deModelos + paradas.filter(paradaContada).reduce((a, p) => a + contadasDeParada(p) - (dijeronDe(p) ?? 0), 0);
+}
+
+/** Cuánto lleva una categoría de lo que dijeron, de 0 a 100 o más. Sin lo que dijeron, llena en cuanto se contó algo. */
+export function avanceDeCategoria(c: Pick<CategoriaDelEnvio, "dijeron" | "contadas">): number {
+  return c.dijeron ? (c.contadas / c.dijeron) * 100 : c.contadas > 0 ? 100 : 0;
+}
+
 // ---- El filtro por proveedor y marca ------------------------------------------------------------------------------------------------
 
-export type FiltroDelConteo = { proveedorId: string | null; marcaId: string | null };
-export const SIN_FILTRO: FiltroDelConteo = { proveedorId: null, marcaId: null };
+export type FiltroDelConteo = {
+  proveedorId: string | null;
+  marcaId: string | null;
+  /** Re stock o Producto nuevo: las tarjetas de arriba. */
+  tipo: TipoDeModelo | null;
+  /** Una fila del resumen («Con diferencia», «Por contar»…). */
+  estado: EstadoDelResumen | null;
+  /** Lo que se busca: modelo, código, proveedor o marca. */
+  texto: string;
+};
+export const SIN_FILTRO: FiltroDelConteo = { proveedorId: null, marcaId: null, tipo: null, estado: null, texto: "" };
+export const hayFiltro = (f: FiltroDelConteo): boolean => !!(f.proveedorId || f.marcaId || f.tipo || f.estado || f.texto.trim());
 
 /** El valor de «proveedor por confirmar» en el filtro. */
 export const SIN_PROVEEDOR = "sin-proveedor";

@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  avanceDeCategoria,
   camposDelConteoPorModelo,
   cantidadDeModelo,
   categoriasDelEnvio,
+  categoriasDelFiltro,
   categoriasEnOrden,
+  cifrasDelResumen,
+  estadoDeParada,
+  focoTrasElFiltro,
+  hayFiltro,
+  tallasParaDespues,
+  tipoDeParada,
+  vecinosDeLaParada,
   gruposDelFiltro,
   idCampoParada,
   modelosDelGrupo,
@@ -307,7 +316,7 @@ describe("el filtro por proveedor y marca", () => {
     expect(categoriasDelEnvio(delSur).flatMap((c) => c.paradas).map(nombreDeParada)).toEqual(["Vestido Sofía", "Falda Ariana"]);
     const deOtra = gruposDelFiltro(grupos(), { ...SIN_FILTRO, marcaId: OTRA.id });
     expect(categoriasDelEnvio(deOtra).map((c) => c.categoria?.nombre)).toEqual(["Faldas", "Vestidos"]);
-    const ambos = gruposDelFiltro(grupos(), { proveedorId: ANDINA.id, marcaId: OTRA.id });
+    const ambos = gruposDelFiltro(grupos(), { ...SIN_FILTRO, proveedorId: ANDINA.id, marcaId: OTRA.id });
     expect(categoriasDelEnvio(ambos).flatMap((c) => c.paradas).map(nombreDeParada)).toEqual(["Vestido Antonella"]);
   });
 
@@ -333,6 +342,150 @@ describe("el filtro por proveedor y marca", () => {
     const o = opcionesDelFiltro(g, SIN_FILTRO);
     expect(o.proveedores).toContainEqual({ valor: SIN_PROVEEDOR, etiqueta: "Por confirmar" });
     expect(gruposDelFiltro(g, { ...SIN_FILTRO, proveedorId: SIN_PROVEEDOR })).toHaveLength(1);
+  });
+});
+
+describe("Re stock, Producto nuevo y los estados del resumen", () => {
+  const lineas = () => [deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }), deLaGuia(antonella()), deLaGuia(lima())];
+  const todas = () => categoriasDelEnvio(agruparLineas(lineas()));
+
+  it("el tipo lo dice lo que anotó Compras: con prenda del catálogo es re stock; solo con nombre, nuevo; un total no es ninguno", () => {
+    const porNombre = new Map(todas()[0].paradas.map((p) => [nombreDeParada(p), tipoDeParada(p)]));
+    expect(porNombre.get("Vestido Sofía")).toBe("restock");
+    expect(porNombre.get("Vestido Lima")).toBe("nuevo");
+    const sinModelos = categoriasDelEnvio(agruparLineas([deLaGuia(linea("l-suelta", 9))]));
+    expect(tipoDeParada(sinModelos[0].paradas[0])).toBeNull();
+  });
+
+  it("cada parada cae en un solo estado: por contar, cuadra o con diferencia", () => {
+    const [c] = categoriasDelEnvio(
+      agruparLineas([
+        deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }),
+        deLaGuia(antonella(), { contadas: 1, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 1)], nuevas: [] } }),
+        deLaGuia(lima()),
+      ]),
+    );
+    const porNombre = new Map(c.paradas.map((p) => [nombreDeParada(p), estadoDeParada(p)]));
+    expect(porNombre.get("Vestido Sofía")).toBe("cuadran");
+    expect(porNombre.get("Vestido Antonella")).toBe("diferencia");
+    expect(porNombre.get("Vestido Lima")).toBe("por-contar");
+  });
+
+  it("tallas para después: lo contado que todavía no tiene tallas y colores", () => {
+    const conTallas = [{ variante_id: "v1", cantidad: 5, danadas: 0, danada_solucion: null, talla: "S", color: "Negro", codigo: null }];
+    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5, conTallas)], nuevas: [] } }), deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } }), deLaGuia(lima())]));
+    const porNombre = new Map(c.paradas.map((p) => [nombreDeParada(p), tallasParaDespues(p)]));
+    expect(porNombre.get("Vestido Sofía")).toBe(false);
+    expect(porNombre.get("Vestido Antonella")).toBe(true);
+    expect(porNombre.get("Vestido Lima")).toBe(false);
+  });
+
+  it("las cifras del resumen son las de TODO el envío", () => {
+    const r = cifrasDelResumen(todas());
+    expect(r.dijeron).toBe(15);
+    expect(r.contadas).toBe(5);
+    expect(r.diferencia).toBe(0);
+    expect(Math.round(r.avance ?? 0)).toBe(33);
+    expect(r.estados).toEqual({ cuadran: 1, diferencia: 0, "por-contar": 2, despues: 1 });
+    expect(r.tipos).toEqual({ restock: { modelos: 2, contados: 1 }, nuevo: { modelos: 1, contados: 0 } });
+  });
+
+  it("lo que falta contar no es todavía un faltante", () => {
+    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } }), deLaGuia(lima())]));
+    const r = cifrasDelResumen([c]);
+    expect(r.diferencia).toBe(-2);
+  });
+
+  it("lo contado que no es de ningún modelo también cuenta, en el total y en la diferencia", () => {
+    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(sofia({ enviado: 12 }), { contadas: 8, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } })]));
+    const r = cifrasDelResumen([c]);
+    expect(r.contadas).toBe(8);
+    expect(r.dijeron).toBe(12);
+    expect(r.diferencia).toBe(-4);
+  });
+
+  it("un total y sus modelos no se suman dos veces", () => {
+    // La compra no anotó qué prendas eran: se cuenta el total y, de ese total, ya se dijo qué son 3.
+    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(linea("l-mix", 12), { contadas: 8, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 3)], nuevas: [] } })]));
+    expect(c.paradas.some((p) => !p.modelo)).toBe(true);
+    const r = cifrasDelResumen([c]);
+    expect(r.contadas).toBe(8);
+    expect(r.diferencia).toBe(-4);
+  });
+
+  it("sin aviso no hay lo que dijeron: ni avance ni diferencia con qué comparar", () => {
+    const suelta: LineaParaContar = { clave: "extra:1", linea: null, conteo: deLaGuia(linea("x", 0), { contadas: 4 }).conteo, categoria: VESTIDOS, marca: CAYLA, proveedor: SUR, dijeron: null };
+    const r = cifrasDelResumen(categoriasDelEnvio(agruparLineas([suelta])));
+    expect(r.dijeron).toBeNull();
+    expect(r.avance).toBeNull();
+    expect(r.contadas).toBe(4);
+  });
+
+  it("el avance de una categoría: con lo que dijeron, su parte; sin eso, lleno si se contó algo", () => {
+    expect(avanceDeCategoria({ dijeron: 200, contadas: 50 })).toBe(25);
+    expect(avanceDeCategoria({ dijeron: null, contadas: 3 })).toBe(100);
+    expect(avanceDeCategoria({ dijeron: null, contadas: 0 })).toBe(0);
+  });
+
+  describe("el filtro completo", () => {
+    const gs = () => agruparLineas(lineas());
+
+    it("por tipo deja solo esos, y las cifras de la categoría pasan a ser las de lo que se ve", () => {
+      const [c] = categoriasDelFiltro(gs(), { ...SIN_FILTRO, tipo: "nuevo" });
+      expect(c.paradas.map(nombreDeParada)).toEqual(["Vestido Lima"]);
+      expect(c.dijeron).toBe(7);
+      expect(c.contadas).toBe(0);
+    });
+
+    it("por estado y por búsqueda, sin tildes ni mayúsculas", () => {
+      expect(categoriasDelFiltro(gs(), { ...SIN_FILTRO, estado: "por-contar" })[0].paradas.map(nombreDeParada)).toEqual(["Vestido Antonella", "Vestido Lima"]);
+      expect(categoriasDelFiltro(gs(), { ...SIN_FILTRO, texto: "SOFIA" })[0].paradas.map(nombreDeParada)).toEqual(["Vestido Sofía"]);
+      expect(categoriasDelFiltro(gs(), { ...SIN_FILTRO, texto: "confecciones" })[0].paradas).toHaveLength(3);
+    });
+
+    it("una categoría sin nada que mostrar no sale", () => {
+      expect(categoriasDelFiltro(gs(), { ...SIN_FILTRO, texto: "no existe" })).toEqual([]);
+    });
+
+    it("lo que se está contando no se va de la lista al salir del estado filtrado, sí si no coincide con lo buscado", () => {
+      const clave = todas()[0].paradas.find((p) => nombreDeParada(p) === "Vestido Sofía")?.clave ?? null;
+      const conEl = categoriasDelFiltro(gs(), { ...SIN_FILTRO, estado: "por-contar" }, clave);
+      expect(conEl[0].paradas.map(nombreDeParada)).toEqual(["Vestido Sofía", "Vestido Antonella", "Vestido Lima"]);
+      expect(categoriasDelFiltro(gs(), { ...SIN_FILTRO, texto: "lima" }, clave)[0].paradas.map(nombreDeParada)).toEqual(["Vestido Lima"]);
+    });
+
+    it("hayFiltro: un texto de puros espacios no filtra", () => {
+      expect(hayFiltro(SIN_FILTRO)).toBe(false);
+      expect(hayFiltro({ ...SIN_FILTRO, texto: "   " })).toBe(false);
+      expect(hayFiltro({ ...SIN_FILTRO, tipo: "nuevo" })).toBe(true);
+    });
+  });
+
+  describe("moverse por la lista", () => {
+    const paradas = () => todas()[0].paradas;
+
+    it("al cambiar el filtro: si lo que se cuenta sigue a la vista, no se mueve; si no, a lo primero sin contar", () => {
+      const lista = todas();
+      const sofiaClave = paradas()[0].clave;
+      expect(focoTrasElFiltro(lista, sofiaClave)).toBe(sofiaClave);
+      const soloNuevo = categoriasDelFiltro(agruparLineas(lineas()), { ...SIN_FILTRO, tipo: "nuevo" });
+      expect(focoTrasElFiltro(soloNuevo, sofiaClave)).toBe(soloNuevo[0].paradas[0].clave);
+    });
+
+    it("sin nada a la vista se queda donde está", () => {
+      expect(focoTrasElFiltro([], "x")).toBe("x");
+    });
+
+    it("anterior y siguiente, según la lista que se ve", () => {
+      const ps = paradas();
+      expect(vecinosDeLaParada(ps, ps[0].clave)).toEqual({ anterior: null, siguiente: ps[1] });
+      expect(vecinosDeLaParada(ps, ps[2].clave)).toEqual({ anterior: ps[1], siguiente: null });
+    });
+
+    it("si lo que se cuenta salió de la lista, lo que sigue es lo primero que queda", () => {
+      const ps = paradas();
+      expect(vecinosDeLaParada(ps, "otra")).toEqual({ anterior: null, siguiente: ps[0] });
+    });
   });
 });
 

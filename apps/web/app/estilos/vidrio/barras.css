@@ -38,6 +38,10 @@
 .barra-avance:not([data-sobre-tinta])[data-tono="verde"] .barra-avance-lleno { --col: var(--color-verde); }
 .barra-avance:not([data-sobre-tinta])[data-tono="ambar"] .barra-avance-lleno { --col: var(--color-ambar); }
 .barra-avance:not([data-sobre-tinta])[data-tono="rojo"] .barra-avance-lleno { --col: var(--color-rojo); }
+/* Un color que manda la pantalla y cambia con el avance (`colorDeAvance`): registrarlo deja que pase de un tono a otro de a poco, sin saltos. */
+@property --barra-color { syntax: "<color>"; inherits: true; initial-value: #1a1a18; } /* tema-fijo: solo el valor de partida de una propiedad registrada; nunca se ve, cada barra trae el suyo */
+.barra-avance[data-color-propio] { transition: --barra-color 600ms var(--ease-cayla); }
+.barra-avance[data-color-propio]:not([data-sobre-tinta]) .barra-avance-lleno { --col: var(--barra-color); }
 /* La rayita de la meta sigue 6 px más alta que la barra (en la fina, 4: la barra ya es más gruesa que antes). */
 .barra-avance:not([data-sobre-tinta]) .barra-avance-marca { z-index: 1; }
 .barra-avance:not([data-sobre-tinta])[data-alto="fina"] .barra-avance-marca { height: calc(100% + 4px); }
@@ -71,4 +75,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .barra-avance:not([data-sobre-tinta]) .barra-avance-lleno { transition: none; }
+  .barra-avance[data-color-propio] { transition: none; }
 }
