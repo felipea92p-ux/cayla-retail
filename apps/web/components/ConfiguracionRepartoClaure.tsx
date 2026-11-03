@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
@@ -28,7 +29,11 @@ export function ConfiguracionRepartoClaure({ filas }: { filas: FilaReparto[] | n
   }
 
   if (filas === null) {
-    return <p className="nota-cayla">No se pudo leer el reparto de gastos con CLAURE. Revisa que esté pegada en la base la migración 20261029161000 y vuelve a entrar.</p>;
+    return (
+      <Aviso tono="error" titulo="No se pudo leer el reparto con CLAURE">
+        Recarga la página; si sigue, avísale al líder.
+      </Aviso>
+    );
   }
 
   async function guardar(f: FilaReparto) {
@@ -80,7 +85,7 @@ export function ConfiguracionRepartoClaure({ filas }: { filas: FilaReparto[] | n
           titulo="Gastos que se reparten con CLAURE"
           bajada="Qué parte de cada gasto de la tienda es de Claudia: 0 es todo de CAYLA, 100 es todo de CLAURE. Esa parte baja lo que se le debe."
         />
-        <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 xl:grid-cols-3 min-[1700px]:grid-cols-4">
           {filas.map((f) => (
             <CampoFin key={f.categoria} etiqueta={f.nombre} htmlFor={`reparto-${f.categoria}`} ayuda={`${etiquetaReparto(Number(valores[f.categoria]?.replace(",", ".")) || 0)}${f.ejemplos ? ` · ${f.ejemplos}` : ""}`}>
               <div className="fin-con-unidad">

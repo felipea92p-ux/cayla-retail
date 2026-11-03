@@ -1,0 +1,119 @@
+/* ====================================================================
+   Una pantalla armada con las superficies de siempre, al vidrio de una vez (ADR-0596, tablero docs/vidrio/README.md, «4.3» y «4.4»).
+   El layout de un grupo pone `.pantalla-en-vidrio` (`display: contents`, no ocupa lugar) y lo de adentro toma las piezas elegidas: un bloque es
+   la placa Serena; una línea, el hilo de las tablas; lo que era hueso, el pozo. Y el kit de Finanzas (`Superficie`, `InputFin`, `SelectFin`, la
+   tabla), que usan pantallas fuera de Finanzas: en Finanzas sigue en papel hasta que se rediseñe con El telar (ADR-0493).
+   Hoy: Tienda web y Configuración. Una hoja se cuelga fuera del grupo y tiene lo suyo (hoja.css). Solo cambia el material. Sin capa: le gana a
+   `components` y a las utilidades; por eso un estado de color que viva en una capa (`hover:border-…`) hay que repetirlo aquí.
+   ==================================================================== */
+
+/* ---------- Un bloque de la pantalla: la placa Serena ---------- */
+.pantalla-en-vidrio .card-cayla,
+.pantalla-en-vidrio .fin-superficie {
+  border-radius: 22px;
+  border-color: var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* ---------- Las líneas: el hilo de las tablas (lo que muestra el papel de verdad no se toca) ---------- */
+.pantalla-en-vidrio .border-sand:not(.papel-fijo, .papel-fijo *),
+.pantalla-en-vidrio .divide-sand:not(.papel-fijo, .papel-fijo *) > *,
+.pantalla-en-vidrio :is(.fin-herramientas, .fin-pie, .fin-lista li, .fin-fijo) {
+  border-color: var(--hilo-fila);
+}
+
+/* ---------- Lo que era hueso (la pista de una línea de tiempo, las personas que esperan una talla, un ícono sobre su fondo): el pozo ---------- */
+.pantalla-en-vidrio .bg-hueso:not(.papel-fijo, .papel-fijo *, [data-color-dato], [data-color-dato] *) {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+
+/* ---------- El pie pegado de una página (no de una hoja): vidrio que desenfoca lo que pasa por detrás, alineado con la pantalla ----------
+   Los -1.5rem de `pie-hoja-fijo` son los del relleno de una hoja: en una página se salían 8 px a 375 px. */
+.pantalla-en-vidrio {
+  --fondo-hoja: var(--vidrio-pie-fondo);
+}
+.pantalla-en-vidrio .pie-hoja-fijo {
+  margin-inline: 0;
+  padding-inline: 0;
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+
+/* ---------- El campo y el combo del kit: el pozo, como `caja-campo-input` ----------
+   `background-color`, nunca `background`: la flecha de `.fin-desplegable` es su `background-image`. La casilla de la planilla de Tiendas
+   (`.cfg-casilla`) ya tiene el suyo, en píldora (campos-y-botones.css). */
+.pantalla-en-vidrio .fin-control:not(.cfg-casilla > *) {
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-radius: 14px;
+  background-color: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.pantalla-en-vidrio .fin-control:not(.cfg-casilla > *):focus,
+.pantalla-en-vidrio .fin-desplegable[aria-expanded="true"] {
+  border-color: var(--color-borde-control);
+  background-color: color-mix(in srgb, var(--color-vidrio) 38%, transparent);
+  box-shadow: var(--pozo-encendido-sombra);
+}
+
+/* ---------- Elegir entre tarjetas del kit: gota al esperar; la puesta se hunde con su filo de tinta ---------- */
+.pantalla-en-vidrio :is(.fin-radios, .fin-opciones) label {
+  border-color: var(--gota-chica-borde);
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz);
+}
+.pantalla-en-vidrio :is(.fin-radios, .fin-opciones) label:has(input:checked) {
+  border-color: var(--color-tinta);
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+
+/* ---------- La tabla del kit: como `<Tabla>`, sin rayado, con el encabezado suelto y un hilo entre filas ---------- */
+.pantalla-en-vidrio .fin-tabla thead {
+  background: none;
+}
+.pantalla-en-vidrio .fin-tabla th {
+  border-bottom: 1px solid var(--hilo-cabeza);
+}
+.pantalla-en-vidrio .fin-tabla td,
+.pantalla-en-vidrio .fin-tabla tbody tr {
+  border-color: var(--hilo-fila);
+}
+.pantalla-en-vidrio .fin-tabla tbody tr:nth-child(even) {
+  background: none;
+}
+/* La fila que agrupa (la meta de ventas en Presupuesto): hundida, en vez de arena; bajo 860 px, donde el kit la apila, la pinta la fila entera. */
+.pantalla-en-vidrio .fin-tabla tr.fin-grupo td {
+  background: var(--pozo-fondo);
+}
+@media (max-width: 860px) {
+  .pantalla-en-vidrio .fin-tabla tbody tr.fin-grupo {
+    background: var(--pozo-fondo);
+  }
+  .pantalla-en-vidrio .fin-tabla tr.fin-grupo td {
+    background: none;
+  }
+}
+/* La primera fila no lleva hilo: ya tiene el del encabezado. */
+.pantalla-en-vidrio .fin-tabla tbody tr:first-child td {
+  border-top-color: transparent;
+}
+@media (hover: hover) {
+  .pantalla-en-vidrio .fin-tabla tbody tr:hover {
+    background: color-mix(in srgb, var(--color-vidrio) 45%, transparent);
+  }
+}
+@media screen and (hover: hover) {
+  :root[data-tema="oscuro"] .pantalla-en-vidrio .fin-tabla tbody tr:hover {
+    background: color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+}
+
+/* ---------- Las barras del kit: la pista en su pozo; el relleno sigue en tinta (B · Tinta sobre vidrio) ---------- */
+.pantalla-en-vidrio :is(.fin-barra, .fin-umbral-barra) {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}

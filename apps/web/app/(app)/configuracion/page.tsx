@@ -5,6 +5,7 @@ import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getPar
 import { getCategoriasGasto, getContextoGastos, getFichasDeFijos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
@@ -36,7 +37,7 @@ const PESTANAS = [
   { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto", guia: "config.tab-presupuesto" },
   { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos", guia: "config.tab-impuestos" },
   // Solo del líder (ADR-0560, actividad 17): mueve plata (lo que se le debe a Claudia).
-  { clave: "claure", etiqueta: "Gastos con CLAURE", href: "/configuracion?tab=claure", guia: "config.tab-claure" },
+  { clave: "claure", etiqueta: "Reparto CLAURE", href: "/configuracion?tab=claure", guia: "config.tab-claure" },
 ] as const;
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string; mes?: string }> }) {
@@ -66,6 +67,16 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
   );
 }
 
+// Si una lectura falla, la persona ve qué hacer; el detalle técnico (que trae el mensaje crudo de la base) va al registro del servidor.
+function FallaDeSeccion({ falla }: { falla: string }) {
+  console.error(`Configuración: ${falla}`);
+  return (
+    <Aviso tono="error" titulo="No se pudo leer una parte de esta sección">
+      Recarga la página; si sigue, avísale al líder.
+    </Aviso>
+  );
+}
+
 // La carga inicial de cada sede (ADR-0328, actividad 4) va en esta pestaña: es una fecha de la sede, como su hora de cierre. Si la
 // base todavía no tiene la función (la web salió antes que el SQL), la tarjeta no aparece y nada más cambia.
 async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
@@ -89,9 +100,7 @@ async function SeccionCuentas() {
       {[cuentas.falla, medios.falla]
         .filter((f): f is string => !!f)
         .map((f) => (
-          <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-            {f}
-          </p>
+          <FallaDeSeccion key={f} falla={f} />
         ))}
       <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} maquinas={maquinas} planilla={planilla} hoy={hoyLima()} />
     </>
@@ -109,7 +118,7 @@ async function SeccionFijos() {
   ]);
   return (
     <>
-      {fijos.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{fijos.falla}</p>}
+      {fijos.falla && <FallaDeSeccion falla={fijos.falla} />}
       <TablaGastosFijos
         fijos={fijos.datos}
         categorias={categorias}
@@ -133,7 +142,7 @@ async function SeccionPresupuesto({ mes }: { mes: string | undefined }) {
   const { datos, falla } = await getPresupuestoConfig(esMes(mes) ? mes : mesDe(hoy));
   return (
     <>
-      {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
+      {falla && <FallaDeSeccion falla={falla} />}
       {datos && <ConfiguracionPresupuesto datos={datos} hoy={hoy} />}
     </>
   );
@@ -144,7 +153,7 @@ async function SeccionImpuestos() {
   const parametros = await getParametrosTributarios();
   return (
     <>
-      {parametros.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{parametros.falla}</p>}
+      {parametros.falla && <FallaDeSeccion falla={parametros.falla} />}
       <ConfiguracionImpuestos parametros={parametros.datos} anioActual={anioLima()} />
     </>
   );
