@@ -1,0 +1,5 @@
+## 2026-11-03 — Recibir: la marca se deja vacía y otro modelo va dentro de su categoría (ADR-0393, act. 2026-11-03)
+
+Felipe no podía anotar un segundo conjunto sin marca: «¿Qué llegó?» lo daba por repetido y no llevaba a ningún lado. Ahora la marca es opcional (vacía = sin marca, `null` en la base como siempre) y, si la categoría ya está en la lista, el botón «Agregar dentro de Conjuntos» abre «¿Llegó otra cosa?» de esa categoría con el cursor en el nombre.
+La misma categoría de otro proveedor del envío ya no sale como repetida. Solo web, sin migración: `AgregarFueraDeGuia.tsx`, `ContarEnvio.tsx`, `grupoYaEnLaLista` con su prueba.
+Verificado en el navegador sobre la base local aislada: dos conjuntos en una sola línea con la marca vacía. `/chaos` corrido (semilla 20261103, 20 ataques, sin invariantes rotas): 3 hallazgos abiertos en `docs/chaos/README.md`, el peor es que una marca olvidada abre otra línea sin aviso. Sin revisar a 375 px; visto: el contador de la lista suma «Total de Conjuntos» como un modelo más (dice 3 con 2 modelos), ya pasaba antes.

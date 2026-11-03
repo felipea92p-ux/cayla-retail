@@ -425,6 +425,13 @@ Construido corrigiendo `20261013183000` en su lugar (no estaba pegada ni fusiona
 cambia. `pruebas:envio-sin-aviso` 10/10 (P1, P2, M1 y M2 nuevos) y las otras seis suites de la recepción en verde sobre una base hecha de
 cero; en el navegador, de la puerta al cierre con el proveedor elegido, y el modo oscuro del estado nuevo (escenario `recepcion.de-quien`).
 
+**Actualización 2026-11-03 (Felipe): la marca se deja vacía, y otro modelo va dentro de su categoría.** En «¿Qué llegó?» la marca ya no se elige: vacía = sin marca, y «Sin marca»
+solo aparece en la lista para deshacer una marca ya elegida (en la base seguía siendo `null`: nada cambia ahí). Y si esa categoría, marca y proveedor ya están en la lista, ya no es un
+error sin salida («cuéntala ahí»): el botón dice «Agregar dentro de Conjuntos» y lleva a «¿Llegó otra cosa?» de esa categoría, con el cursor listo para escribir el nombre.
+DECIDÍ: no abrir una segunda línea de lo mismo. El modelo nuevo se anota en la que ya está (`grupoYaEnLaLista`, `lib/recepcion-grupos-reglas.ts`). La comparación ahora mira el proveedor:
+antes, la misma categoría de otro proveedor del envío también salía como repetida, sin motivo.
+SE ROMPE SI: alguien deja una marca por olvido, porque ya nada obliga a mirarla. Se completa después en Editar producto, como ya era con «Sin marca».
+
 ### Lo que la maqueta pedía a la base (Felipe, 2026-10-14)
 
 | Pieza de la maqueta | Decisión |

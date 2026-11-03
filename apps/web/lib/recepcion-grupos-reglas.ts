@@ -90,6 +90,18 @@ export function juntarSeparado(partes: readonly Separado[]): Separado {
   };
 }
 
+/**
+ * ¿Lo que se quiere agregar ya está en la lista? Misma categoría, misma marca (vacía = sin marca) y, si el envío trae varios proveedores, el mismo proveedor (`proveedorId`
+ * null: no hace falta distinguirlo). Un modelo más de esa categoría no es otra línea: se anota dentro de la que ya está.
+ */
+export function grupoYaEnLaLista(grupos: readonly GrupoDeLineas[], q: { proveedorId: string | null; categoriaId: string; marcaId: string | null }): GrupoDeLineas | null {
+  return (
+    grupos.find(
+      ({ principal: l }) => l.categoria?.id === q.categoriaId && (l.marca?.id ?? null) === q.marcaId && (q.proveedorId === null || l.proveedor?.id === q.proveedorId),
+    ) ?? null
+  );
+}
+
 /** Las categorías del envío, en el orden en que aparece su primera línea. */
 export function agruparLineas(lineas: readonly LineaParaContar[]): GrupoDeLineas[] {
   const porClave = new Map<string, LineaParaContar[]>();

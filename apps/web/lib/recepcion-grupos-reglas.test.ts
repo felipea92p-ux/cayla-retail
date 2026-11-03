@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   agruparLineas,
   anotadasDelGrupo,
+  grupoYaEnLaLista,
   gruposSinIdentificar,
   sinIdentificarDelGrupo,
   camposDelCierrePorGrupo,
@@ -393,5 +394,30 @@ describe("la categoría en el cierre", () => {
       ["l-sofia", null, null],
       ["l-lima", "no_vino", null],
     ]);
+  });
+});
+
+describe("grupoYaEnLaLista: otro modelo de lo que ya está en la lista no es otra línea", () => {
+  const grupos = agruparLineas([
+    { ...deLaGuia(linea("l1", 3)), marca: null },
+    deLaGuia(linea("l2", 3, { categoria: FALDAS })),
+    { ...deLaGuia(linea("l3", 3, { categoria: FALDAS, proveedor: OTRO_PROV })), marca: null },
+  ]);
+  const buscar = (categoriaId: string, marcaId: string | null, proveedorId: string | null = null) => grupoYaEnLaLista(grupos, { proveedorId, categoriaId, marcaId })?.principal.linea?.id ?? null;
+
+  it("sin marca se encuentra con sin marca, nunca con una marca", () => {
+    expect(buscar(VESTIDOS.id, null)).toBe("l1");
+    expect(buscar(VESTIDOS.id, CAYLA.id)).toBeNull();
+    expect(buscar(FALDAS.id, CAYLA.id)).toBe("l2");
+  });
+
+  it("con varios proveedores, lo del otro proveedor no es lo mismo", () => {
+    expect(buscar(FALDAS.id, null, OTRO_PROV.id)).toBe("l3");
+    expect(buscar(FALDAS.id, null, PROV.id)).toBeNull();
+    expect(buscar(FALDAS.id, CAYLA.id, OTRO_PROV.id)).toBeNull();
+  });
+
+  it("una categoría que no está en la lista se puede agregar", () => {
+    expect(buscar("c-conjuntos", null)).toBeNull();
   });
 });
