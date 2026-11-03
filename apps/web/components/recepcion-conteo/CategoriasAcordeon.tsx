@@ -260,7 +260,7 @@ export function ListaDelEnvio({
     <section className="rc-panel rc-lista" aria-label={sinAviso ? "Lo que llegó" : "Categorías del envío"}>
       <div className="rc-lista-cabeza">
         <TituloSeccion dato={modelosTotales > 0 ? cuantos : undefined}>{sinAviso ? "Lo que llegó" : "Categorías del envío"}</TituloSeccion>
-        <Buscador
+        {modelosTotales > 0 && <Buscador
           atajo
           valor={filtro.texto}
           onCambio={(texto) => onFiltro({ ...filtro, texto })}
@@ -272,7 +272,7 @@ export function ListaDelEnvio({
           etiqueta="Buscar modelo, proveedor o marca"
           placeholder="Buscar modelo o proveedor…" // sugerir-fijo: dice dónde busca, no depende de nada elegido antes
           guia="recepcion.buscar"
-        />
+        />}
         {(filtrarProveedor || filtrarMarca || conOrden) && (
           <div className="rc-filtros" data-guia="recepcion.filtros">
             {filtrarProveedor && (

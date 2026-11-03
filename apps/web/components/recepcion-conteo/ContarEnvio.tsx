@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
+import { PackageOpen } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
@@ -536,9 +538,18 @@ export function ContarEnvio({
 
         <section className="rc-panel rc-placa" aria-label="Cuántas llegaron">
           {!grupo || !parada ? (
-            <div className="rc-scroll space-y-2 p-6 py-10 text-center">
-              <TituloSeccion>¿Qué llegó?</TituloSeccion>
-              <p className="text-sm text-taupe">Agrega la primera categoría en la lista y cuéntala. Una a la vez; después agregas las demás.</p>
+            <div className="rc-scroll">
+              <Vacio
+                icono={<PackageOpen />}
+                titulo="¿Qué llegó?"
+                acciones={
+                  <Boton type="button" peso="primario" onClick={() => setHoja({ tipo: "agregar" })}>
+                    {sinAviso ? "Agregar lo que llegó" : "Agregar categoría"}
+                  </Boton>
+                }
+              >
+                Agrega la primera categoría y cuéntala. Una a la vez; después agregas las demás.
+              </Vacio>
             </div>
           ) : (
             <PlacaDelModelo
