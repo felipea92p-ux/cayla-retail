@@ -48,6 +48,7 @@
     "pruebas:precio-sede-variante": "node scripts/pruebas/precio_sede_variante.mjs",
     "pruebas:precio-desde-recepcion": "node scripts/pruebas/precio_desde_recepcion.mjs",
     "pruebas:recibir-lo-propio": "node scripts/pruebas/recibir_lo_propio.mjs",
+    "pruebas:recibir-lee-su-sede": "node scripts/pruebas/recibir_lee_su_sede.mjs",
     "pruebas:costo-por-prenda": "node scripts/pruebas/costo_por_prenda.mjs",
     "pruebas:recepcion-combinaciones": "node scripts/pruebas/recepcion_combinaciones.mjs",
     "pruebas:precio-terminal": "node scripts/pruebas/precio_terminal.mjs",
