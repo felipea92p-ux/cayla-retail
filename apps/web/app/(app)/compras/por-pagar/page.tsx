@@ -155,7 +155,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
             {...entra(2)}
           >
-            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "comprobante vencido", "comprobantes vencidos")} · pagar ya` : "Nada vencido"}
+            {resumen.vencidas > 0 ? cifra(resumen.vencidas, "comprobante", "comprobantes") : "Nada vencido"}
           </TarjetaCifra>
           <TarjetaCifra
             punto={resumen.porVencer > 0 ? "ambar" : "neutro"}
@@ -167,16 +167,16 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             href={resumen.porVencer > 0 ? "#tramo-semana" : undefined}
             {...entra(3)}
           >
-            {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana}` : "Ninguno en los próximos 7 días"}
+            {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana}` : "Nada por vencer"}
           </TarjetaCifra>
           {conDeuda && extra.topProveedorNombre ? (
-            <TarjetaCifra punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
-              {extra.topProveedorNombre} concentra la deuda
+            <TarjetaCifra punto="neutro" etiqueta="Mayor deuda" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
+              {extra.topProveedorNombre}
               <BarraConcentracion segmentos={segmentos} proveedorActivo={filtros.proveedorId ?? null} />
             </TarjetaCifra>
           ) : (
-            <TarjetaCifra etiqueta="Concentración" valor={null} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
-              Aparece cuando haya deuda
+            <TarjetaCifra etiqueta="Mayor deuda" valor={null} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
+              Sin deuda
             </TarjetaCifra>
           )}
         </div>
@@ -225,7 +225,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
                       </BotonEnlace>
                     }
                   >
-                    Se busca por el nombre del proveedor o por el número del documento (F001-…).
+                    Busca por proveedor o número.
                   </Vacio>
                 ) : (
                   <Vacio
@@ -237,7 +237,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
                       </BotonEnlace>
                     }
                   >
-                    Quita un filtro o límpialos todos para ver todo lo que se debe.
+                    Quita un filtro para ver más.
                   </Vacio>
                 )}
               </div>
@@ -271,7 +271,7 @@ function TodoPagado() {
   return (
     <div className="card-cayla">
       <Vacio icono={<CircleCheck />} titulo="Todo pagado">
-        No queda nada por pagar. Las facturas al crédito salen aquí con su vencimiento.
+        No queda nada por pagar.
       </Vacio>
     </div>
   );

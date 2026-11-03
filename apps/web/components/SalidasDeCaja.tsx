@@ -43,7 +43,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
   const cobertura = cubrirCaja(hayCaja ? caja : 0, salidas.map((s) => s.monto));
   const hayFiltro = !!filtroLocal?.clave.startsWith("caja:");
 
-  let veredicto: React.ReactNode = "Cuánto vence cada semana. Escribe tu caja y verás hasta dónde alcanza.";
+  let veredicto: React.ReactNode = "Escribe tu caja y verás hasta dónde alcanza.";
   if (hayCaja) {
     const { ultimaCubierta, primeraFaltante, sobra } = cobertura;
     if (primeraFaltante && ultimaCubierta === null) {

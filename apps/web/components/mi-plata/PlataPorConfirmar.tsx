@@ -155,7 +155,7 @@ export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fi
         {!esLider && yaTenia ? (
           <div className="flex flex-col items-start gap-2">
             <Chip tono="pizarra">Solo un líder</Chip>
-            <p className="text-sm text-taupe">La plata de antes del sistema la confirma un líder: solo fija con cuánto empieza su fondo.</p>
+            <p className="text-sm text-taupe">La plata de antes del sistema la confirma un líder.</p>
           </div>
         ) : fila.esMia ? (
           <div className="flex flex-col items-start gap-2">
