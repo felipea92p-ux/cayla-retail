@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  barrasPorDia,
+  barrasPorMes,
   cambio,
+  colorDeMetodo,
+  diaEnPalabras,
+  leerSeriesMes,
+  mejorDia,
+  nombreDeMetodo,
+  promedioDiarioAnterior,
+  tramosDePago,
+
   comparacionDe,
   diasDelTramo,
   leerReporteMes,
@@ -159,5 +169,140 @@ describe("la URL", () => {
   it("el primer día del mes lleva dos cifras", () => {
     expect(primerDiaDelMes({ anio: 2026, mes: 9 })).toBe("2026-09-01");
     expect(primerDiaDelMes({ anio: 2026, mes: 12 })).toBe("2026-12-01");
+  });
+});
+
+/* ---------- las series de los gráficos ---------- */
+const SERIES = {
+  mes: "2026-10-01",
+  hoy: "2026-11-02",
+  dias: [
+    { fecha: "2026-10-01", vendido: 100, tickets: 2 },
+    { fecha: "2026-10-02", vendido: 0, tickets: 0 },
+    { fecha: "2026-10-03", vendido: 300.5, tickets: 1 },
+    { fecha: "2026-10-04", vendido: 120, tickets: 3 },
+    { fecha: "2026-10-05", vendido: 300.5, tickets: 4 },
+  ],
+  pagos: [
+    { metodo: "qr", monto: 42392.87 },
+    { metodo: "efectivo", monto: 39409.24 },
+    { metodo: "yape", monto: 20657.47 },
+    { metodo: "redondeo", monto: 0.26 },
+    { metodo: "anticipo", monto: 302.4 },
+    { metodo: "transferencia", monto: 0 },
+  ],
+  meses: [
+    { mes: "2026-09-01", vendido: 3500, tickets: 19, en_curso: false },
+    { mes: "2026-10-01", vendido: 134306.29, tickets: 1704, en_curso: false },
+    { mes: "2026-11-01", vendido: 10668, tickets: 87, en_curso: true },
+  ],
+};
+
+describe("leerSeriesMes", () => {
+  it("lee lo que manda la base", () => {
+    const s = leerSeriesMes(SERIES)!;
+    expect(s.dias).toHaveLength(5);
+    expect(s.meses.map((m) => [m.mes, m.enCurso])).toEqual([["2026-09-01", false], ["2026-10-01", false], ["2026-11-01", true]]);
+    expect(s.pagos[0]).toEqual({ metodo: "qr", monto: 42392.87 });
+  });
+
+  it("descarta una fila rota sin tumbar el gráfico y trata lo que no es lista como vacío", () => {
+    const s = leerSeriesMes({ ...SERIES, dias: [{ fecha: "ayer", vendido: 5 }, { fecha: "2026-10-01", vendido: "abc", tickets: null }, null, 7], pagos: "x", meses: undefined })!;
+    expect(s.dias).toEqual([{ fecha: "2026-10-01", vendido: 0, tickets: 0 }]);
+    expect(s.pagos).toEqual([]);
+    expect(s.meses).toEqual([]);
+  });
+
+  it.each([null, undefined, 5, [], { dias: [] }, { ...SERIES, mes: "octubre" }])("una forma rota da null: %j", (roto) => {
+    expect(leerSeriesMes(roto)).toBeNull();
+  });
+});
+
+describe("ventas por día", () => {
+  const s = leerSeriesMes(SERIES)!;
+
+  it("dice el día en palabras (fecha de Lima, sin correrse por la zona horaria)", () => {
+    expect(diaEnPalabras("2026-10-10")).toBe("sábado 10");
+    expect(diaEnPalabras("2026-11-01")).toBe("domingo 1");
+    expect(diaEnPalabras("2026-10-05")).toBe("lunes 5");
+  });
+
+  it("una barra por día, con el número solo en el 1, cada 5 y el último, y el fin de semana en negrita", () => {
+    const b = barrasPorDia(s);
+    expect(b).toHaveLength(5);
+    expect(b.map((x) => x.etiqueta)).toEqual(["1", "", "", "", "5"]);
+    expect(b.map((x) => !!x.fuerte)).toEqual([false, false, true, true, false]); // 3 y 4 de octubre de 2026: sábado y domingo
+    expect(b[0]!.tip).toMatch(/^jueves 1 · S\/\s100 · 2 ventas$/);
+    expect(b[2]!.tip).toMatch(/1 venta$/);
+    expect(b[1]!.valor).toBe(0);
+  });
+
+  it("el último día lleva su número aunque no sea de los de cada 5", () => {
+    const b = barrasPorDia({ ...s, dias: s.dias.slice(0, 4) });
+    expect(b.map((x) => x.etiqueta)).toEqual(["1", "", "", "4"]);
+  });
+
+  it("el mejor día es el de más ventas (el primero si empatan) y no hay si no se vendió nada", () => {
+    expect(mejorDia(s)).toEqual({ fecha: "2026-10-03", vendido: 300.5, tickets: 1 });
+    expect(mejorDia({ ...s, dias: s.dias.map((d) => ({ ...d, vendido: 0 })) })).toBeNull();
+    expect(mejorDia({ ...s, dias: [] })).toBeNull();
+  });
+
+  it("el promedio diario anterior solo existe si se puede comparar", () => {
+    const r = leerReporteMes(BASE)!; // septiembre (30 días, S/ 4,000.50)
+    expect(promedioDiarioAnterior(r)).toBeCloseTo(4000.5 / 30, 6);
+    expect(promedioDiarioAnterior({ ...r, primeraVenta: "2026-09-30" })).toBeNull(); // septiembre quedó a medias
+    expect(promedioDiarioAnterior({ ...r, anterior: { ...r.anterior, vendido: 0 } })).toBeNull();
+  });
+});
+
+describe("mes a mes", () => {
+  const s = leerSeriesMes(SERIES)!;
+  it("una barra por mes con ventas; el mes que se mira va en negrita y el de hoy, rayado", () => {
+    const b = barrasPorMes(s);
+    expect(b.map((x) => [x.clave, x.etiqueta, !!x.fuerte, !!x.rayada])).toEqual([
+      ["2026-09", "Sep", false, false],
+      ["2026-10", "Oct", true, false],
+      ["2026-11", "Nov", false, true],
+    ]);
+    expect(b[2]!.tip).toContain("Noviembre 2026 (a la fecha)");
+    expect(b[1]!.tip).toMatch(/Octubre 2026 · S\/\s134,306 · 1,704 ventas/);
+  });
+
+  it("sin meses con ventas no hay barras", () => {
+    expect(barrasPorMes({ ...s, meses: [] })).toEqual([]);
+  });
+});
+
+describe("cómo se pagó", () => {
+  it("un tramo por medio, del que más al que menos, con su parte y su color", () => {
+    const { total, tramos } = tramosDePago(leerSeriesMes(SERIES)!);
+    expect(tramos.map((t) => t.metodo)).toEqual(["qr", "efectivo", "yape", "anticipo"]);
+    expect(total).toBeCloseTo(42392.87 + 39409.24 + 20657.47 + 0.26 + 302.4, 2);
+    expect(tramos[0]!.parte).toBeCloseTo(42392.87 / total, 6);
+    expect(tramos.reduce((a, t) => a + t.parte, 0)).toBeLessThanOrEqual(1);
+    expect(tramos[0]!.color).toBe("var(--color-metodo-qr)");
+  });
+
+  it("no dibuja lo que vale 0 ni el redondeo de céntimos", () => {
+    const { tramos } = tramosDePago(leerSeriesMes(SERIES)!);
+    expect(tramos.map((t) => t.metodo)).not.toContain("transferencia");
+    expect(tramos.map((t) => t.metodo)).not.toContain("redondeo");
+  });
+
+  it("sin cobros no hay tramos ni divide por cero", () => {
+    expect(tramosDePago({ pagos: [] })).toEqual({ total: 0, tramos: [] });
+    expect(tramosDePago({ pagos: [{ metodo: "efectivo", monto: 0 }, { metodo: "yape", monto: -5 }] })).toEqual({ total: 0, tramos: [] });
+  });
+
+  it("los nombres: el de siempre, los especiales y, si es uno nuevo, tal cual; un medio sin token va en taupe, nunca un hex", () => {
+    expect(nombreDeMetodo("yape")).toBe("Yape");
+    expect(nombreDeMetodo("qr")).toBe("QR");
+    expect(nombreDeMetodo("anticipo")).toBe("Anticipo de apartados");
+    expect(nombreDeMetodo("redondeo")).toBe("Redondeo de efectivo");
+    expect(nombreDeMetodo("cripto")).toBe("cripto");
+    expect(colorDeMetodo("plin")).toBe("var(--color-metodo-plin)");
+    expect(colorDeMetodo("cripto")).toBe("var(--color-taupe)");
+    expect(colorDeMetodo("redondeo")).toBe("var(--color-taupe)");
   });
 });

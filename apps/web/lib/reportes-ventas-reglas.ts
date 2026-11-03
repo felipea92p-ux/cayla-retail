@@ -1,4 +1,6 @@
 import { NOMBRES_MES } from "./facturacion-reglas";
+import { soles } from "./flujo-caja-reglas";
+import { NOMBRE_METODO_HISTORIAL } from "./ventas-historial-reglas";
 
 // Ventas ▸ Reportes ▸ Ventas del mes: las reglas, sin React ni base (maqueta docs/maquetas/reportes-ventas-2026-11/). Lo que dice la base
 // (`fn_reporte_ventas_mes`, 20261103230000) se lee aquí una sola vez y de aquí salen las cifras derivadas y la frase de la comparación.
@@ -131,3 +133,123 @@ export function tiendaDeUrl(v: string | string[] | undefined | null): string | n
 
 /** El primer día del mes que pide la base: «2026-10-01». */
 export const primerDiaDelMes = ({ anio, mes }: { anio: number; mes: number }): string => `${anio}-${String(mes).padStart(2, "0")}-01`;
+
+/* ====================================================================
+   Las series de los gráficos (`fn_reporte_ventas_series`, 20261103232000): ventas por día, mes a mes y cómo se pagó.
+   PROMETE: lo mismo que arriba —un dato roto no entra— y que cada gráfico sale de la MISMA lectura que las cifras (misma regla de qué cuenta).
+   ASUME: que la base manda un día por cada día del tramo (con ceros) y solo los meses con ventas.
+   ==================================================================== */
+
+export type DiaVentas = { fecha: string; vendido: number; tickets: number };
+export type PagoMes = { metodo: string; monto: number };
+export type MesVentas = { mes: string; vendido: number; tickets: number; enCurso: boolean };
+export type SeriesMes = { mes: string; hoy: string; dias: DiaVentas[]; pagos: PagoMes[]; meses: MesVentas[] };
+
+const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+const objeto = (v: unknown): Record<string, unknown> | null => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
+
+/** Lo que devuelve `fn_reporte_ventas_series`, ya validado. `null` si la forma no es la esperada; una fila rota se descarta, no tumba el gráfico. */
+export function leerSeriesMes(v: unknown): SeriesMes | null {
+  const o = objeto(v);
+  if (!o) return null;
+  const mes = fecha(o.mes);
+  const hoy = fecha(o.hoy);
+  if (!mes || !hoy) return null;
+  const dias = lista(o.dias).flatMap((x): DiaVentas[] => {
+    const d = objeto(x);
+    const f = d && fecha(d.fecha);
+    return d && f ? [{ fecha: f, vendido: numero(d.vendido), tickets: numero(d.tickets) }] : [];
+  });
+  const pagos = lista(o.pagos).flatMap((x): PagoMes[] => {
+    const p = objeto(x);
+    return p && typeof p.metodo === "string" && p.metodo ? [{ metodo: p.metodo, monto: numero(p.monto) }] : [];
+  });
+  const meses = lista(o.meses).flatMap((x): MesVentas[] => {
+    const m = objeto(x);
+    const f = m && fecha(m.mes);
+    return m && f ? [{ mes: f, vendido: numero(m.vendido), tickets: numero(m.tickets), enCurso: m.en_curso === true }] : [];
+  });
+  return { mes, hoy, dias, pagos, meses };
+}
+
+const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
+/** «sábado 10». */
+export function diaEnPalabras(fechaIso: string): string {
+  const [a, m, d] = fechaIso.split("-").map(Number) as [number, number, number];
+  return `${DIAS_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]} ${d}`;
+}
+
+const pluralVentas = (n: number): string => `${n.toLocaleString("es-PE")} ${n === 1 ? "venta" : "ventas"}`;
+
+/** Una barra de un gráfico, sin dibujo: lo que `BarrasTiempo` necesita, con el texto del globito ya armado. */
+export type BarraDeReporte = { clave: string; valor: number; etiqueta: string; fuerte?: boolean; rayada?: boolean; tip: string };
+
+/**
+ * Las barras de «Ventas por día»: una por cada día del tramo. Bajo la barra va el número del día, solo en el 1, cada 5 y el último (con 31 barras
+ * todas no caben, sobre todo en el celular); el globito dice «sábado 10 · S/ 6,109 · 62 ventas». El fin de semana va en negrita.
+ */
+export function barrasPorDia(s: SeriesMes): BarraDeReporte[] {
+  const n = s.dias.length;
+  return s.dias.map((d, i) => {
+    const dia = Number(d.fecha.slice(8, 10));
+    const sem = new Date(Date.UTC(Number(d.fecha.slice(0, 4)), Number(d.fecha.slice(5, 7)) - 1, dia)).getUTCDay();
+    return {
+      clave: d.fecha,
+      valor: d.vendido,
+      etiqueta: dia === 1 || dia % 5 === 0 || i === n - 1 ? String(dia) : "",
+      fuerte: sem === 0 || sem === 6,
+      tip: `${diaEnPalabras(d.fecha)} · ${soles(d.vendido)} · ${pluralVentas(d.tickets)}`,
+    };
+  });
+}
+
+/** El mejor día del tramo (el de más ventas), o `null` si no se vendió nada. */
+export function mejorDia(s: SeriesMes): DiaVentas | null {
+  let mejor: DiaVentas | null = null;
+  for (const d of s.dias) if (d.vendido > 0 && (mejor === null || d.vendido > mejor.vendido)) mejor = d;
+  return mejor;
+}
+
+/** El promedio diario del tramo anterior, para la raya punteada. `null` si ese tramo no se puede comparar (no hay con qué). */
+export function promedioDiarioAnterior(r: ReporteMes): number | null {
+  const c = comparacionDe(r);
+  const dias = diasDelTramo(r.anterior);
+  return c.hay && dias > 0 ? r.anterior.vendido / dias : null;
+}
+
+const MES_CORTO = NOMBRES_MES.map((m) => m.slice(0, 3));
+
+/** Las barras de «Mes a mes»: una por mes con ventas. El mes en curso va rayado (todavía no termina). La clave es «2026-10», la de la URL. */
+export function barrasPorMes(s: SeriesMes): BarraDeReporte[] {
+  return s.meses.map((m) => ({
+    clave: m.mes.slice(0, 7),
+    valor: m.vendido,
+    etiqueta: MES_CORTO[Number(m.mes.slice(5, 7)) - 1]!,
+    fuerte: m.mes === s.mes,
+    rayada: m.enCurso,
+    tip: `${NOMBRES_MES[Number(m.mes.slice(5, 7)) - 1]} ${m.mes.slice(0, 4)}${m.enCurso ? " (a la fecha)" : ""} · ${soles(m.vendido)} · ${pluralVentas(m.tickets)}`,
+  }));
+}
+
+// «Redondeo de efectivo» (ADR-0311) y el anticipo de los apartados no son formas de pago que se elijan: van aquí y no en el diccionario del filtro.
+const NOMBRE_ESPECIAL: Record<string, string> = { anticipo: "Anticipo de apartados", redondeo: "Redondeo de efectivo" };
+export const nombreDeMetodo = (metodo: string): string => NOMBRE_ESPECIAL[metodo] ?? NOMBRE_METODO_HISTORIAL[metodo] ?? metodo;
+/** El token de color del medio (`--color-metodo-…`, el mismo de Ventas ▸ Historial). Un medio sin token (uno nuevo) va en taupe, nunca un hex. */
+const CON_TOKEN = new Set(["efectivo", "tarjeta", "yape", "plin", "transferencia", "qr", "anticipo"]);
+export const colorDeMetodo = (metodo: string): string => (CON_TOKEN.has(metodo) ? `var(--color-metodo-${metodo})` : "var(--color-taupe)");
+
+export type TramoDePago = { metodo: string; nombre: string; monto: number; parte: number; color: string };
+
+/**
+ * Cómo se pagó: un tramo por medio, del que más al que menos. No se dibuja lo que vale 0 ni lo menor a una milésima del total (el redondeo de
+ * céntimos: un tramo de S/ 0.26 sobre S/ 134,000 es «0 %» y no dice nada); el total y las partes salen de TODO lo cobrado.
+ */
+export function tramosDePago(s: Pick<SeriesMes, "pagos">): { total: number; tramos: TramoDePago[] } {
+  const total = s.pagos.reduce((a, p) => a + (p.monto > 0 ? p.monto : 0), 0);
+  if (total <= 0) return { total: 0, tramos: [] };
+  const tramos = s.pagos
+    .filter((p) => p.monto / total >= 0.001)
+    .sort((a, b) => b.monto - a.monto)
+    .map((p) => ({ metodo: p.metodo, nombre: nombreDeMetodo(p.metodo), monto: p.monto, parte: p.monto / total, color: colorDeMetodo(p.metodo) }));
+  return { total, tramos };
+}

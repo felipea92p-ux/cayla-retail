@@ -1,7 +1,7 @@
 import { BarChart3 } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getReporteMes } from "@/lib/reportes-ventas";
+import { getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDeParametro, type Mes } from "@/lib/facturacion-reglas";
 import { nombreDelMes } from "@/lib/historial-cierres-reglas";
@@ -9,11 +9,12 @@ import { tiendaDeUrl } from "@/lib/reportes-ventas-reglas";
 import { CabeceraReportes } from "@/components/reportes-ventas/CabeceraReportes";
 import { FiltrosReporteMes } from "@/components/reportes-ventas/FiltrosReporteMes";
 import { CifrasReporteMes } from "@/components/reportes-ventas/CifrasReporteMes";
+import { GraficosReporteMes } from "@/components/reportes-ventas/GraficosReporteMes";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 
 // Ventas ▸ Reportes ▸ Ventas del mes (maqueta docs/maquetas/reportes-ventas-2026-11/). Actividad 2: el mes, la tienda y las cinco cifras contra el
-// mismo tramo del mes anterior; los gráficos y la tabla llegan en las actividades 3 y 4. Lee en el servidor con `fn_reporte_ventas_mes`: el líder ve
+// mismo tramo del mes anterior (actividad 2) y los tres gráficos (actividad 3: ventas por día, mes a mes, cómo se pagó); la tabla llega en la 4. Lee en el servidor con `fn_reporte_ventas_mes`: el líder ve
 // todas las tiendas y elige una; quien tiene el módulo en su rol ve solo la suya (lo decide la base, no esta pantalla).
 export default async function ReportesVentasPage({ searchParams }: { searchParams: Promise<{ m?: string; tienda?: string }> }) {
   const persona = await requirePersonaActualV2();
@@ -28,7 +29,8 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
   const tienda = pedida && tiendas?.some((t) => t.id === pedida) ? pedida : null;
   const sede = esLider ? (tiendas?.find((t) => t.id === tienda)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
 
-  const lectura = await getReporteMes(mes, tienda);
+  // Las cifras y los gráficos se leen a la vez y por separado: si los gráficos fallan, las cifras siguen a la vista (principio 9).
+  const [lectura, series] = await Promise.all([getReporteMes(mes, tienda), getSeriesMes(mes, tienda)]);
   const r = lectura.datos;
 
   return (
@@ -44,7 +46,16 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
           {tienda ? "En esa tienda no se registró ninguna venta en ese mes." : "No se registró ninguna venta en ese mes."} Elige otro mes con las flechas.
         </Vacio>
       ) : r ? (
-        <CifrasReporteMes r={r} />
+        <>
+          <CifrasReporteMes r={r} />
+          {series.datos ? (
+            <GraficosReporteMes r={r} s={series.datos} tiendaId={tienda} />
+          ) : (
+            <Aviso tono="atencion" titulo="No se pudieron leer los gráficos">
+              Las cifras de arriba están bien. Vuelve a intentarlo en un momento.
+            </Aviso>
+          )}
+        </>
       ) : null}
     </div>
   );
