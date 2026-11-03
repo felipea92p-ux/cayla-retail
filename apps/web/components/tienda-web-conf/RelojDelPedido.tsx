@@ -4,8 +4,8 @@ import { CheckCircle2, ShoppingBag, Store, Wallet } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { soloCifrasEscritas } from "@/lib/numero-escrito";
-import { RANGOS_PARAMETROS, moverParametro, parametroFueraDeRango, queVeElCliente, type BorradorParametros, type ParametrosTiendaWeb } from "@/lib/tienda-web-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { RANGOS_PARAMETROS, moverParametro, parametroFueraDeRango, queVeElCliente, textoRangoParametro, type BorradorParametros, type ParametrosTiendaWeb } from "@/lib/tienda-web-reglas";
 
 type PlazoEditable = Exclude<keyof ParametrosTiendaWeb, "quedanPocasDesde">;
 
@@ -58,7 +58,9 @@ const PASOS: {
 export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: BorradorParametros; onCambiar: (clave: PlazoEditable, texto: string) => void; onRevertir: (clave: PlazoEditable) => void }) {
   return (
     <ol className="tw tw-linea" aria-label="La vida de un pedido web y sus plazos">
-      {PASOS.map((p, i) => (
+      {PASOS.map((p, i) => {
+        const fuera = p.plazo !== null && parametroFueraDeRango(p.plazo, valor[p.plazo]);
+        return (
         <li key={p.nombre} className="tw-linea-paso" style={{ "--i": i } as CSSProperties} title={p.ayuda}>
           <span aria-hidden className="tw-linea-nodo">
             {p.icono}
@@ -68,7 +70,7 @@ export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: Borrad
             <PasoCantidad
               tamano="fila"
               sufijo={p.unidad}
-              tono={parametroFueraDeRango(p.plazo, valor[p.plazo]) ? "error" : undefined}
+              tono={fuera ? "error" : undefined}
               menos={{ onClick: () => onCambiar(p.plazo!, moverParametro(p.plazo!, valor[p.plazo!], -(p.paso ?? 1))), deshabilitado: Number(valor[p.plazo]) <= RANGOS_PARAMETROS[p.plazo][0], etiqueta: `Menos: ${p.nombre}` }}
               mas={{ onClick: () => onCambiar(p.plazo!, moverParametro(p.plazo!, valor[p.plazo!], p.paso ?? 1)), deshabilitado: Number(valor[p.plazo]) >= RANGOS_PARAMETROS[p.plazo][1], etiqueta: `Más: ${p.nombre}` }}
               campo={{
@@ -76,7 +78,8 @@ export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: Borrad
                 inputMode: "numeric",
                 "aria-label": `${p.nombre}: ${p.unidad === "d" ? "días" : "horas"}. ${p.ayuda ?? ""}`.trim(),
                 style: { width: `${Math.max(2, valor[p.plazo].length)}ch` },
-                onChange: (e) => onCambiar(p.plazo!, soloCifrasEscritas(e.target.value, { signo: true })),
+                "aria-invalid": fuera || undefined,
+                onChange: (e) => onCambiar(p.plazo!, limpiarCantidad(e.target.value)),
                 onKeyDown: (e) => {
                   if (e.key === "Escape") onRevertir(p.plazo!);
                 },
@@ -87,9 +90,11 @@ export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: Borrad
               Cliente
             </Chip>
           )}
-          <span className="tw-linea-plazo">{p.nota}</span>
+          {/* Ocupa el lugar de la nota: decirlo aquí no mueve nada bajo el cursor. */}
+          <span className={`tw-linea-plazo ${fuera ? "text-rojo-profundo" : ""}`}>{fuera ? textoRangoParametro(p.plazo!) : p.nota}</span>
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

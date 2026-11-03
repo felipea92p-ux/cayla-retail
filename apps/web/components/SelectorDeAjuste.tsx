@@ -65,6 +65,7 @@ export function SelectorDeAjuste({
               </div>
               <PasoCantidad
                 className="shrink-0"
+                tono={problema ? "error" : undefined}
                 menos={{
                   onClick: () => menos !== null && onTexto(f.varianteId, menos),
                   deshabilitado: bloqueado || menos === null,
@@ -83,7 +84,8 @@ export function SelectorDeAjuste({
                   placeholder: modo === "contado" ? "—" : "0",
                   value: texto,
                   disabled: bloqueado,
-                  onChange: (e) => onTexto(f.varianteId, limpiarTextoAjuste(e.target.value, modo)),
+                  "aria-invalid": problema ? true : undefined,
+                  onChange: (e) => onTexto(f.varianteId, limpiarTextoAjuste(e.target.value)),
                   onFocus: (e) => e.currentTarget.select(),
                 }}
               />

@@ -8,7 +8,7 @@ import { leerMonto as leerMontoDePagoCorregido } from "./corregir-pago-reglas";
 import { leerCantidad } from "./insumos-reglas";
 import { precioEscribible } from "./prenda-sin-registrar-reglas";
 import { limpiarPrecio } from "./tabla-alta-reglas";
-import { sinBlancosDeMiles, soloCifrasEscritas } from "./numero-escrito";
+import { limpiarCantidad } from "./alta-producto";
 import { leerDiasParaLlegar } from "./plan-compra-plazo";
 import { parametroFueraDeRango } from "./tienda-web-reglas";
 import { leerCostoUnitario, leerMontoPlata } from "./monto-plata-reglas";
@@ -181,24 +181,21 @@ describe("ningún lector de cifras vuelve a borrar los blancos por su cuenta", (
   });
 });
 
-describe("soloCifrasEscritas: un campo de entero deja ver el pegado en vez de juntarlo", () => {
-  it("quita lo que no es cifra pero conserva los blancos, para que el validador pueda hablar", () => {
-    expect(soloCifrasEscritas("12 8 5")).toBe("12 8 5");
-    expect(soloCifrasEscritas("12\t8\t5")).toBe("12\t8\t5");
-    expect(soloCifrasEscritas("14 días")).toBe("14 ");
-    expect(soloCifrasEscritas("14")).toBe("14");
-    expect(soloCifrasEscritas("")).toBe("");
-  });
-  it("el signo solo pasa donde el campo lo admite", () => {
-    expect(soloCifrasEscritas("-2")).toBe("2");
-    expect(soloCifrasEscritas("-2", { signo: true })).toBe("-2");
+describe("limpiarCantidad: un campo de entero deja ver el pegado en vez de juntarlo", () => {
+  it("conserva los blancos y lo que no es cifra, para que el validador pueda hablar", () => {
+    expect(limpiarCantidad("12 8 5")).toBe("12 8 5");
+    expect(limpiarCantidad("12\t8\t5")).toBe("12\t8\t5");
+    expect(limpiarCantidad("14 días")).toBe("14 días");
+    expect(limpiarCantidad("-2")).toBe("-2");
+    expect(limpiarCantidad("14")).toBe("14");
+    expect(limpiarCantidad("")).toBe("");
   });
   it("y lo que deja pasar, los validadores de días y de plazos lo rechazan", () => {
     // `leerDiasParaLlegar` y `parametroFueraDeRango` son estrictos (`/^\d{1,3}$/`, `/^-?\d+$/` sobre el texto recortado):
-    // por eso basta con NO borrar el blanco. Si alguien los afloja, estas dos líneas se ponen en rojo.
-    expect(leerDiasParaLlegar(soloCifrasEscritas("12 8 5"))).toBeNull();
-    expect(parametroFueraDeRango("diasAvisoSinRecoger", soloCifrasEscritas("12 8 5", { signo: true }))).toBe(true);
-    expect(leerDiasParaLlegar(soloCifrasEscritas("14"))).toBe(14);
+    // por eso basta con NO borrar nada. Si alguien los afloja, estas dos líneas se ponen en rojo.
+    expect(leerDiasParaLlegar(limpiarCantidad("12 8 5"))).toBeNull();
+    expect(parametroFueraDeRango("diasAvisoSinRecoger", limpiarCantidad("12 8 5"))).toBe(true);
+    expect(leerDiasParaLlegar(limpiarCantidad("14"))).toBe(14);
   });
 });
 
@@ -225,7 +222,7 @@ describe("los filtros de tecleo de un precio: juntan los miles y dejan ver el pe
   }
   it("y las cantidades de prendas del plan (enteros) se quedan con el blanco a la vista", () => {
     // `entero()` de plan-compra-reglas es estricto (`/^\d+$/` sobre el trim), así que rechaza el pegado solo.
-    expect(soloCifrasEscritas("12 8 5")).toBe("12 8 5");
+    expect(limpiarCantidad("12 8 5")).toBe("12 8 5");
     const b = { flojo: "12 8 5", normal: "10", bueno: "20", precio: "50", costo: "20", recupero: "30", curva: {} };
     expect(problemasDelBorrador(b, []).flojo).toBeTruthy();
     expect(problemasDelBorrador({ ...b, flojo: "5" }, []).flojo).toBeFalsy();

@@ -1,9 +1,11 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
+import { detalleDeTalla, lineasDeAjuste, limpiarTextoAjuste, textoEscritoInvalido, textoProblemaTalla, textoTrasPaso, type VarianteAjuste } from "./ajuste-reglas";
 import { limpiarCantidad, textoCantidadRechazada } from "./alta-producto";
 import { REGLA_BILLETES } from "./caja-cierre-reglas";
 import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, leerEscrito, problemaEscrito, reglaDeEntero, SIN_ESCRIBIR, type ReglaCantidad } from "./cantidad-escrita-reglas";
+import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple } from "./club-cumple-reglas";
 import { cantDelRelleno, REGLA_RELLENO } from "./colgar-varias-tabla";
 import { problemaDeDiasAbono, validarTarifa } from "./cuentas-dinero-reglas";
 import { leerEscritoDeCelda, REGLA_CELDA_PLANILLA } from "./existencias-ajuste-modelo";
@@ -11,10 +13,12 @@ import { diaDeFijoValido, diasAntesDeFijoValidos, leerCifraDeFijo, textoPagarDes
 import { leerCantidadDeposito, leerCantidadReposicion, leerCantidadSaldoAFavor, limpiarCantidadReposicion } from "./nos-debe-reglas";
 import { lineasDeFallas, problemasDeFallas, totalFallas, type FallaBorrador } from "./orden-pagina-reglas";
 import { escribioAlgoQueNoEsCifra, escribirEnCasilla } from "./pedidos-web-reglas";
+import { leerDiasParaLlegar, problemaDeLosDias } from "./plan-compra-plazo";
 import { problemaDelRecupero } from "./plan-compra-propuesta";
-import { leerCantidadDelPlan } from "./plan-compra-reglas";
+import { escritoNoEsEntero, leerCantidadDelPlan, lineaDeBorrador, problemasDelBorrador, sumaDeLaCurva, type Borrador } from "./plan-compra-reglas";
 import { problemasDeLosMinimos } from "./plan-compra-reparto";
 import { leerCantidadTecleada, REGLA_CAJITA } from "./reponer-prenda-reglas";
+import { moverParametro, parametroFueraDeRango, textoRangoParametro, validarParametrosTiendaWeb, type BorradorParametros } from "./tienda-web-reglas";
 
 // Los campos que siguieron a Nuevo producto, Editar producto y Producción (2026-11-03): cada tecla pasaba por `.replace(/\D/g, "")` en un campo controlado, así que la coma se borraba al
 // teclearla y el 5 caía junto al 2. «2,5» dejaba 25, «1.5» dejaba 15 y «-5» dejaba 5, sin avisar: en los billetes del cierre de caja, en lo que se cuelga y en un ajuste de stock.
@@ -291,6 +295,175 @@ describe("Plan de compra: «Lo que sobra» y el mínimo de cada tienda", () => {
   });
 });
 
+describe("Plan de compra: los días para llegar a las tiendas", () => {
+  it("lo que no es un entero se queda a la vista, no se lee como otro número y dice por qué", () => {
+    for (const malo of [...LOS_MALOS, "1e1", "1000"]) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      expect(leerDiasParaLlegar(caja), malo).toBeNull();
+      expect(problemaDeLosDias(caja), malo).toBe(`«${malo}» no es una cantidad: escribe un número entero, de 1 a 365.`);
+    }
+    // Pegado: antes «14 días» pasaba como 14 porque se borraban las letras. Lo que no es solo un número se dice.
+    expect(leerDiasParaLlegar(limpiarCantidad("14 días"))).toBeNull();
+  });
+  it("las cantidades de siempre: de 1 a 365, y vacío pide el número", () => {
+    for (const [t, n] of [["1", 1], ["14", 14], ["365", 365], ["0", null], ["366", null], ["", null]] as const) expect(leerDiasParaLlegar(t), t).toBe(n);
+    expect(problemaDeLosDias("14")).toBeNull();
+    expect(problemaDeLosDias("")).toContain("Escribe cuántos días");
+    expect(leerDiasParaLlegar(limpiarCantidad("1,200"))).toBeNull();
+  });
+});
+
+describe("Tienda web: los plazos del reloj del pedido", () => {
+  const base: BorradorParametros = { horasParaConfirmar: "24", horasAvisoSinPagar: "48", diasAvisoSinRecoger: "7", quedanPocasDesde: "2" };
+  const claves = ["horasParaConfirmar", "horasAvisoSinPagar", "diasAvisoSinRecoger"] as const;
+
+  it("lo que no es un entero se queda a la vista, se marca y no se guarda", () => {
+    for (const malo of [...LOS_MALOS, "1e1"]) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      for (const clave of claves) {
+        expect(parametroFueraDeRango(clave, caja), malo).toBe(true);
+        expect(validarParametrosTiendaWeb({ ...base, [clave]: caja }).ok, malo).toBe(false);
+      }
+    }
+  });
+  it("el paso dice hasta dónde llega su plazo", () => {
+    expect(textoRangoParametro("horasParaConfirmar")).toBe("Un número entero, de 1 a 168");
+    expect(textoRangoParametro("horasAvisoSinPagar")).toBe("Un número entero, de 1 a 720");
+    expect(textoRangoParametro("diasAvisoSinRecoger")).toBe("Un número entero, de 1 a 60");
+  });
+  it("«−» y «+» parten de lo más bajo si lo escrito no es un número: «2,5» no es 25", () => {
+    expect(moverParametro("horasParaConfirmar", "2,5", 1)).toBe("2");
+    expect(moverParametro("horasParaConfirmar", "1e1", -1)).toBe("1");
+  });
+  it("las cantidades de siempre", () => {
+    expect(validarParametrosTiendaWeb(base).ok).toBe(true);
+    for (const [clave, tope] of [["horasParaConfirmar", 168], ["horasAvisoSinPagar", 720], ["diasAvisoSinRecoger", 60]] as const) {
+      expect(parametroFueraDeRango(clave, "1"), clave).toBe(false);
+      expect(parametroFueraDeRango(clave, String(tope)), clave).toBe(false);
+      expect(parametroFueraDeRango(clave, String(tope + 1)), clave).toBe(true);
+      expect(parametroFueraDeRango(clave, "0"), clave).toBe(true);
+    }
+    expect(parametroFueraDeRango("horasParaConfirmar", limpiarCantidad("1,200"))).toBe(true);
+  });
+});
+
+describe("Plan de compra: los escenarios, lo que sobre y la curva de una categoría", () => {
+  const b = (c: Partial<Borrador> = {}): Borrador => ({ flojo: "10", normal: "20", bueno: "30", precio: "50", costo: "20", recupero: "30", curva: {}, ...c });
+  const tallas = [
+    { id: "s", valor: "S" },
+    { id: "m", valor: "M" },
+  ];
+
+  it("«2,5» en un escenario no son 25 prendas: se queda a la vista, dice por qué y no se calcula nada", () => {
+    for (const malo of [...LOS_MALOS, "1e3"]) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      expect(escritoNoEsEntero(caja), malo).toBe(true);
+      for (const k of ["flojo", "normal", "bueno"] as const) {
+        expect(problemasDelBorrador(b({ [k]: caja }), [])[k], malo).toBe(`«${malo}» no es una cantidad: escribe un número entero.`);
+        expect(lineaDeBorrador(b({ [k]: caja }), []), malo).toBeNull();
+      }
+      expect(problemasDelBorrador(b({ recupero: caja }), []).recupero, malo).toBe(`«${malo}» no es una cantidad: escribe un número entero, de 0 a 100.`);
+      expect(lineaDeBorrador(b({ recupero: caja }), []), malo).toBeNull();
+    }
+  });
+  it("la curva: lo que no es un entero no suma, ni como 25 ni como 10 («1e1»), y la hoja dice por qué", () => {
+    for (const malo of [...LOS_MALOS, "1e1"]) {
+      const curva = { s: enLaCaja(malo, limpiarCantidad), m: "50" };
+      expect(curva.s, malo).toBe(malo);
+      expect(problemasDelBorrador(b({ curva }), tallas).curva, malo).toBe("Cada talla lleva un porcentaje entero de 0 a 100.");
+      expect(sumaDeLaCurva(curva, tallas), malo).toBe(50);
+    }
+  });
+  it("lo de siempre: vacía pide el número, los topes y el orden no cambian, y los miles se siguen juntando", () => {
+    expect(escritoNoEsEntero("")).toBe(false);
+    expect(escritoNoEsEntero("12")).toBe(false);
+    expect(problemasDelBorrador(b({ flojo: "" }), []).flojo).toBe("Escribe cuántas venderías si la campaña va floja (puede ser 0).");
+    expect(problemasDelBorrador(b({ normal: "" }), []).normal).toBe("Escribe cuántas venderías si la campaña va normal.");
+    expect(problemasDelBorrador(b({ bueno: "" }), []).bueno).toBe("Escribe cuántas venderías si la campaña va buena.");
+    expect(problemasDelBorrador(b({ flojo: "0" }), []).flojo).toBeUndefined();
+    expect(problemasDelBorrador(b({ flojo: "100001", normal: "100001", bueno: "100001" }), []).flojo).toContain("Revisa el número");
+    expect(problemasDelBorrador(b({ normal: "5" }), []).normal).toBe("El normal no puede ser menos que el flojo.");
+    expect(problemasDelBorrador(b({ recupero: "" }), []).recupero).toBe("Escribe a qué % del precio vendes lo que sobre (de 0 a 100).");
+    expect(problemasDelBorrador(b({ recupero: "101" }), []).recupero).toBe("Escribe a qué % del precio vendes lo que sobre (de 0 a 100).");
+    expect(problemasDelBorrador(b({ recupero: "100" }), []).recupero).toBeUndefined();
+    expect(problemasDelBorrador(b({ curva: { s: "50", m: "50" } }), tallas).curva).toBeUndefined();
+    expect(sumaDeLaCurva({ s: "50", m: "30" }, tallas)).toBe(80);
+    expect(sumaDeLaCurva({}, tallas)).toBe(0);
+    expect(problemasDelBorrador(b({ flojo: limpiarCantidad("1,200"), normal: "2000", bueno: "3000" }), []).flojo).toBeUndefined();
+  });
+});
+
+describe("El cumpleaños del club: el día y el año", () => {
+  it("lo que no es un día se queda a la vista y lo dice, esté o no el mes: «2,5» no es el 25, ni «1e1» el 10", () => {
+    for (const malo of [...LOS_MALOS, "1e1", "0x10", "123"]) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      for (const mes of ["3", ""]) expect(problemaCumple({ dia: caja, mes, anio: "" }, 2026), malo).toBe("El día es un número entero, del 1 al 31.");
+      expect(cumpleCompleto({ dia: caja, mes: "3", anio: "" }, 2026), malo).toBe(false);
+      expect(cajaDelProblemaCumple({ dia: caja, mes: "3", anio: "" }, 2026), malo).toBe("dia");
+    }
+  });
+  it("el año va con sus 4 cifras: «19905» no se corta en 1990", () => {
+    for (const malo of [...LOS_MALOS, "1e3", "19905"]) {
+      expect(problemaCumple({ dia: "14", mes: "3", anio: enLaCaja(malo, limpiarCantidad) }, 2026), malo).toBe("El año va con sus 4 cifras (o déjalo vacío).");
+    }
+  });
+  it("lo de siempre: el día que el mes no tiene, y lo que sí vale", () => {
+    expect(problemaCumple({ dia: "14", mes: "3", anio: "" }, 2026)).toBeNull();
+    expect(problemaCumple({ dia: "08", mes: "3", anio: "1990" }, 2026)).toBeNull();
+    expect(problemaCumple({ dia: "31", mes: "4", anio: "" }, 2026)).toBe("Abril no tiene día 31.");
+    expect(problemaCumple({ dia: "0", mes: "3", anio: "" }, 2026)).toBe("Marzo no tiene día 0.");
+    expect(problemaCumple({ dia: "14", mes: "", anio: "" }, 2026)).toBe("Falta el mes de su cumpleaños.");
+  });
+});
+
+describe("Ajustar inventario: lo que se escribe en cada talla (mueve stock)", () => {
+  const talla = { varianteId: "v", sku: "X", talla: "M", color: null, stockPiso: 0, stockAlmacen: 5, stockSinDividir: 5, apartadoPiso: 0, apartadoAlmacen: 0, apartadoSinDividir: 0, sinHistoria: false } as VarianteAjuste;
+  const lineas = (texto: string, modo: "diferencia" | "contado") => lineasDeAjuste([talla], { v: texto }, "almacen", modo);
+
+  it("«2,5» no ajusta 25 ni «1.5» ajusta 15: se quedan a la vista, nadie los cuenta y la fila dice por qué", () => {
+    for (const malo of ["2,5", "1.5", "1e1", "0x10", "a4", "1-2"]) {
+      const caja = enLaCaja(malo, limpiarTextoAjuste);
+      expect(caja, malo).toBe(malo);
+      for (const modo of ["diferencia", "contado"] as const) expect(lineas(caja, modo), malo).toEqual([]);
+      expect(textoEscritoInvalido(caja), malo).toBe(`«${malo}» no es una cantidad: escribe un número entero.`);
+    }
+  });
+  it("«-5» al sumar o restar es restar 5; al contar no se vuelve 5: dice que lo contado no puede ser negativo", () => {
+    expect(enLaCaja("-5", limpiarTextoAjuste)).toBe("-5");
+    expect(textoEscritoInvalido("-5")).toBeNull();
+    expect(lineas("-5", "diferencia")).toMatchObject([{ delta: -5, resultado: 0 }]);
+    const [contado] = lineas("-5", "contado");
+    expect(contado).toMatchObject({ resultado: -5 });
+    expect(textoProblemaTalla(contado!, "contado")).toBe("Lo contado no puede ser negativo.");
+  });
+  it("lo de siempre: el menos de un teclado en español, el «+» adelante, los miles y el «-» con que empieza una resta", () => {
+    expect(limpiarTextoAjuste("−3")).toBe("-3");
+    expect(limpiarTextoAjuste("–3")).toBe("-3");
+    expect(limpiarTextoAjuste("+2")).toBe("2");
+    expect(limpiarTextoAjuste("1,200")).toBe("1200");
+    expect(limpiarTextoAjuste("-1,200")).toBe("-1200");
+    expect(enLaCaja("-12", limpiarTextoAjuste)).toBe("-12");
+    expect(limpiarTextoAjuste("-")).toBe("-");
+    for (const bien of ["", "-", "0", "12", "-12"]) expect(textoEscritoInvalido(bien), bien).toBeNull();
+    expect(lineas("3", "diferencia")).toMatchObject([{ delta: 3, resultado: 8 }]);
+    expect(lineas("3", "contado")).toMatchObject([{ delta: -2, resultado: 3 }]);
+  });
+  it("«+» y «−» no parten de lo que no es un entero: «1e1» no es 10", () => {
+    expect(textoTrasPaso("1e1", 1, "diferencia", 5, -5)).toBe("1");
+    expect(textoTrasPaso("2,5", 1, "contado", 5, 0)).toBe("6");
+    expect(textoTrasPaso("3", 1, "diferencia", 5, -5)).toBe("4");
+  });
+  it("«Coincide con el sistema» tampoco se lee mal: «5e0» no es lo contado", () => {
+    const detalle = (texto: string) => detalleDeTalla({ variante: talla, linea: lineas(texto, "contado")[0], texto, modo: "contado", lugar: "almacen", ubicado: "almacen", separaPisoAlmacen: true, puedeBajarAlPiso: true });
+    expect(detalle("5")).toContain("Coincide con el sistema");
+    expect(detalle("5e0")).not.toContain("Coincide");
+  });
+});
+
 describe("La regla de cada campo: `useCantidadEscrita` no decide qué cantidades valen", () => {
   it("sin regla es la de una celda de stock, de 0 a 9999, con su aviso de siempre", () => {
     expect(alEscribir(alEntrar(SIN_ESCRIBIR, "c", "3"), "c", "12345", "3").paraLaPantalla).toBe("3");
@@ -395,38 +568,83 @@ describe("El código de recojo no es una cantidad: se lee igual, y se dice «sol
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Mismo molde que «ningún lector de cifras vuelve a borrar los blancos» (`pegado-de-celdas.test.ts`): lo de arriba protege los campos que HAY; esto, a los que vengan.
 
-/** Lo que se teclea en una caja, limpiado en el mismo momento: la coma se borra y el 5 cae junto al 2. Una cantidad se limpia con `limpiarCantidad` y se lee con su regla (`useCantidadEscrita`). */
-const BORRA_AL_TECLEAR = /\.(?:currentTarget|target)\.value\.replace\(\/\\D\/g/;
+/**
+ * Un filtro que borra todo lo que no es una cifra, también la coma y el punto: la coma se va y el 5 cae junto al 2. Da igual si está en el `onChange` o en una función de `lib/` que el
+ * `onChange` llama (`soloCifrasEscritas`, `ajustarDia` y `limpiarTextoAjuste` lo escondían ahí). Una cantidad se limpia con `limpiarCantidad` y se lee con su regla (`useCantidadEscrita`).
+ * Un filtro de monto (`[^\d.,\s]`) deja pasar la coma y el punto, y no cae aquí.
+ */
+const BORRA_LA_COMA = /\.replace\(\/(?:\\D|\[\^(?:\\d|0-9)(?:\\s|-)*\])/;
 
-/** Un RUC o un celular son una tira de dígitos, no una cantidad: «20-123» no es otro número. */
-const TIRA_DE_DIGITOS = /\bruc\b|Ruc\b|celular/;
+/** Un RUC, un celular o un teléfono son una tira de dígitos, no una cantidad: «20-123» no es otro número. */
+const TIRA_DE_DIGITOS = /\bruc\b|Ruc\b|celular|telefono/;
+
+/** Los que borran con razón y su línea no lo dice. Una caja de cantidad nunca entra aquí: se limpia con `limpiarCantidad`. */
+const TIRAS_CONOCIDAS: Record<string, string> = {
+  "components/recepcion-envio/FormularioRecepcion.tsx": "el contador de una clave interna",
+  "components/ui/CampoFecha.tsx": "los dígitos de una fecha",
+  "lib/club-reglas.ts": "un celular",
+  "lib/existencias-flujos.ts": "un celular",
+  "lib/gastos-viaje-reglas.ts": "el número de una orden, para ordenarlas",
+  "lib/nombres-parecidos.ts": "comparar las cifras de dos nombres",
+  "lib/pedidos-con-cliente-reglas.ts": "un celular",
+  "lib/pedidos-web-cobro-reglas.ts": "el n.º de operación",
+  "lib/pedidos-web-reglas.ts": "el código de recojo",
+  "lib/proveedores-reglas.ts": "un CCI o una cuenta",
+  "lib/separaciones-reglas.ts": "un documento, un celular o una cuenta",
+};
 
 describe("ninguna caja de cantidad vuelve a borrar lo que no es una cifra mientras se teclea", () => {
   const RAIZ = process.cwd();
   const archivos = (dir: string): string[] =>
     readdirSync(join(RAIZ, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? archivos(join(dir, e.name)) : [join(dir, e.name)]));
-  const fuentes = [...archivos("components"), ...archivos("app")].filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f));
+  const fuentes = [...archivos("components"), ...archivos("app"), ...archivos("lib")].filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f));
 
   const culpas = new Map<string, string[]>();
+  const conFiltro = new Set<string>();
   for (const f of fuentes) {
+    const clave = f.split(sep).join("/");
     readFileSync(join(RAIZ, f), "utf8")
       .split("\n")
       .forEach((linea, i) => {
-        if (/^\s*(\*|\/\/)/.test(linea) || !BORRA_AL_TECLEAR.test(linea) || TIRA_DE_DIGITOS.test(linea)) return;
-        const clave = f.split(sep).join("/");
+        if (/^\s*(\*|\/\/)/.test(linea) || !BORRA_LA_COMA.test(linea)) return;
+        conFiltro.add(clave);
+        if (TIRA_DE_DIGITOS.test(linea) || clave in TIRAS_CONOCIDAS) return;
         culpas.set(clave, [...(culpas.get(clave) ?? []), `${clave}:${i + 1}  ${linea.trim()}`]);
       });
   }
 
   it("el escáner mira de verdad el código (si no, no vigila nada)", () => {
     expect(fuentes.length).toBeGreaterThan(400);
-    expect(BORRA_AL_TECLEAR.test('onChange={(e) => poner(e.target.value.replace(/\\D/g, ""))}')).toBe(true);
-    expect(BORRA_AL_TECLEAR.test('onChange={(e) => poner(e.currentTarget.value.replace(/\\D/g, "").slice(0, 3))}')).toBe(true);
-    expect(BORRA_AL_TECLEAR.test('const d = telefono.replace(/\\D/g, "");')).toBe(false);
+    expect(BORRA_LA_COMA.test('onChange={(e) => poner(e.target.value.replace(/\\D/g, ""))}')).toBe(true);
+    expect(BORRA_LA_COMA.test('onChange={(e) => poner(e.currentTarget.value.replace(/\\D/g, "").slice(0, 3))}')).toBe(true);
+    expect(BORRA_LA_COMA.test('export const ajustar = (texto: string) => texto.replace(/\\D/g, "").slice(0, 2);')).toBe(true);
+    expect(BORRA_LA_COMA.test('return texto.replace(/[^\\d\\s]/g, "");')).toBe(true);
+    expect(BORRA_LA_COMA.test('return texto.replace(/[^\\d\\s-]/g, "");')).toBe(true);
+    expect(BORRA_LA_COMA.test('return texto.replace(/[^0-9]/g, "");')).toBe(true);
+    expect(BORRA_LA_COMA.test('const soloMonto = (s: string) => s.replace(/[^\\d.,\\s]/g, "");')).toBe(false);
+    expect(BORRA_LA_COMA.test('return texto.replace(/[^0-9a-z]/gi, "").slice(0, 40);')).toBe(false);
+    expect(TIRA_DE_DIGITOS.test('const d = telefono.replace(/\\D/g, "");')).toBe(true);
   });
 
   it("ninguna", () => {
     expect([...culpas.values()].flat()).toEqual([]);
+  });
+
+  it("la lista de tiras conocidas no guarda archivos que ya no borran nada", () => {
+    expect(Object.keys(TIRAS_CONOCIDAS).filter((f) => !conFiltro.has(f))).toEqual([]);
+  });
+
+  it("cada caja limpia lo tecleado con su función, y no con un filtro propio", () => {
+    const veces = (archivo: string, patron: RegExp) => (readFileSync(join(RAIZ, archivo), "utf8").match(patron) ?? []).length;
+    for (const [archivo, cuantas] of [
+      ["components/plan-compra/PlazoModal.tsx", 1],
+      ["components/tienda-web-conf/RelojDelPedido.tsx", 1],
+      ["components/plan-compra/FormularioCategoria.tsx", 5],
+      ["components/clientas/club-piezas.tsx", 2],
+    ] as const) {
+      expect(veces(archivo, /limpiarCantidad\(e\.target\.value\)/g), archivo).toBe(cuantas);
+    }
+    expect(veces("components/SelectorDeAjuste.tsx", /limpiarTextoAjuste\(e\.target\.value\)/g)).toBe(1);
   });
 
   // El aviso de una celda sale recién cuando el clic en el botón se lleva el cursor (`alQuererSeguir`). Las celdas viven dentro de la tabla y el botón en la pantalla: si una pantalla no conecta los dos, se guarda lo

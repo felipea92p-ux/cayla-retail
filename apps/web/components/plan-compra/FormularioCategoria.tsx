@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { avisoDelPrecio, montoParaVolver, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { useRouter } from "next/navigation";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
-import { soloCifrasEscritas } from "@/lib/numero-escrito";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -36,8 +36,11 @@ import {
   fraseDelMargen,
   leerDescuento,
   margenPorPrenda,
+  escritoNoEsEntero,
   lineaDeBorrador,
   porQue,
+  problemasDelBorrador,
+  sumaDeLaCurva,
   propuestaDeNormal,
   solesES,
   veredictoDeLoQueSobra,
@@ -60,9 +63,6 @@ import {
 // se escribe; los tres diciembres son UNA pregunta con tres cajas (antes parecían tres opciones para elegir); «Lo que sobre» dice, junto a
 // su caja, lo que produce ese porcentaje (es el número que más mueve la compra); y cada caja tiene su nombre para el lector de pantalla.
 
-// Los blancos se conservan (`soloCifrasEscritas`): son cantidades enteras, y un blanco adentro solo puede venir de pegar
-// varias celdas. `entero()` de plan-compra-reglas lo rechaza solo; borrarlo aquí dejaba «1285» prendas sin una palabra.
-const soloDigitos = (s: string) => soloCifrasEscritas(s);
 const soloMonto = (s: string) => s.replace(/[^\d.,\s]/g, "");
 // Los blancos se conservan (como en `soloMonto`): si se borran aquí, `leerDescuento` ya no puede ver un pegado de varias celdas.
 const soloDescuento = (s: string) => s.replace(/[^\d.,\s]/g, "");
@@ -191,9 +191,12 @@ export function FormularioCategoria({
   // Lo que ya viene en órdenes de compra se cuenta como lo que hay: la misma cuenta que la fila de la tabla (`armarFilas`).
   const calculo = lineaViva ? calcular(lineaViva, stock + enCamino, precioDeLaPlata) : null;
   const porTalla = calculo ? comprarPorTalla(calculo.comprar, tallas, lineaViva!.curva) : null;
-  const sumaCurva = tallas.reduce((s, t) => s + (Number(b.curva[t.id] || "0") || 0), 0);
+  const sumaCurva = sumaDeLaCurva(b.curva, tallas);
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
   const loQueSobra = veredictoDeLoQueSobra(b);
+  const problemas = problemasDelBorrador(b, tallas);
+  // Una caja que no tiene un entero lo dice ella misma, y lo escrito se queda a la vista: «2,5» no se vuelve 25. Lo demás (vacía, fuera de orden) lo dice la guía.
+  const malEscrito = (k: "flojo" | "normal" | "bueno" | "recupero") => (escritoNoEsEntero(b[k]) ? problemas[k] : undefined);
   // El descuento (ADR-0499): lo que queda por prenda con él, y cuánto cambia la compra frente al precio de lista.
   const descuento = leerDescuento(b.descuento) ?? 0;
   const frase = lineaViva ? fraseDelMargen(lineaViva.precio, lineaViva.costo, descuento) : null;
@@ -355,13 +358,13 @@ export function FormularioCategoria({
         <p className="mt-0.5 text-sm text-tinta/70">Llena las tres cajas: si la campaña va floja, normal o buena.</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
           <CampoGuiado id="flojo" guia={guia} titulo="Flojo">
-            <CampoTexto etiqueta="Flojo, prendas" caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Flojo, prendas" caja inputMode="numeric" value={b.flojo} tono={malEscrito("flojo") ? "error" : undefined} pie={malEscrito("flojo")} onChange={(e) => cambiar("flojo")(limpiarCantidad(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="normal" guia={guia} titulo="Normal">
-            <CampoTexto etiqueta="Normal, prendas" caja inputMode="numeric" value={b.normal} onChange={(e) => cambiar("normal")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Normal, prendas" caja inputMode="numeric" value={b.normal} tono={malEscrito("normal") ? "error" : undefined} pie={malEscrito("normal")} onChange={(e) => cambiar("normal")(limpiarCantidad(e.target.value))} />
           </CampoGuiado>
           <CampoGuiado id="bueno" guia={guia} titulo="Bueno">
-            <CampoTexto etiqueta="Bueno, prendas" caja inputMode="numeric" value={b.bueno} onChange={(e) => cambiar("bueno")(soloDigitos(e.target.value))} />
+            <CampoTexto etiqueta="Bueno, prendas" caja inputMode="numeric" value={b.bueno} tono={malEscrito("bueno") ? "error" : undefined} pie={malEscrito("bueno")} onChange={(e) => cambiar("bueno")(limpiarCantidad(e.target.value))} />
           </CampoGuiado>
         </div>
       </fieldset>
@@ -409,14 +412,14 @@ export function FormularioCategoria({
         <div data-guia="plan-modal.recupero" className="flex flex-wrap items-start gap-x-4 gap-y-1">
           <div className="flex w-32 items-center gap-2">
             <div className="min-w-0 flex-1">
-              <CampoTexto etiqueta="Lo que sobre, en % del precio" caja inputMode="numeric" value={b.recupero} onChange={(e) => cambiar("recupero")(soloDigitos(e.target.value))} />
+              <CampoTexto etiqueta="Lo que sobre, en % del precio" caja inputMode="numeric" value={b.recupero} tono={malEscrito("recupero") ? "error" : undefined} onChange={(e) => cambiar("recupero")(limpiarCantidad(e.target.value))} />
             </div>
             <span aria-hidden className="pb-4 text-sm text-tinta/70">
               %
             </span>
           </div>
           <p className="min-w-0 flex-1 basis-60 pt-2.5 text-sm leading-snug text-tinta/80">
-            {loQueSobra ?? "Lo que quede sin vender al terminar la campaña: a cuánto lo venderías después, en la liquidación. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
+            {malEscrito("recupero") ?? loQueSobra ?? "Lo que quede sin vender al terminar la campaña: a cuánto lo venderías después, en la liquidación. Con el precio y el costo escritos, aquí ves qué cambia en la compra."}
             {!linea && fila.recuperoDefecto != null && b.recupero === String(fila.recuperoDefecto) && (
               <span className="mt-1 block text-sm text-tinta/65">Es el % de CAYLA para esta campaña: cámbialo si esta categoría se recupera distinto.</span>
             )}
@@ -482,12 +485,18 @@ export function FormularioCategoria({
                     caja
                     inputMode="numeric"
                     value={b.curva[t.id] ?? ""}
-                    onChange={(e) => setB((x) => ({ ...x, curva: { ...x.curva, [t.id]: soloDigitos(e.target.value) } }))}
+                    tono={escritoNoEsEntero(b.curva[t.id] ?? "") ? "error" : undefined}
+                    onChange={(e) => setB((x) => ({ ...x, curva: { ...x.curva, [t.id]: limpiarCantidad(e.target.value) } }))}
                   />
                   {porTalla && <span className="tabular-nums">{porTalla.get(t.id) ?? 0} prendas</span>}
                 </div>
               ))}
             </div>
+            {tallas.some((t) => escritoNoEsEntero(b.curva[t.id] ?? "")) && (
+              <Aviso tono="error" chico>
+                {problemas.curva}
+              </Aviso>
+            )}
             <button
               type="button"
               onClick={() => setB((x) => ({ ...x, curva: Object.fromEntries(Object.entries(curvaSugerida(tallas, vendidoPorTalla)).map(([k, v]) => [k, String(v)])) }))}
