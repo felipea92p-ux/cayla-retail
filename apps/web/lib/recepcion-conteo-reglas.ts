@@ -1047,6 +1047,12 @@ export function marcaDeLinea(l: { marca: { id: string; nombre: string } | null }
   return l.marca ?? { id: null, nombre: "Sin marca" };
 }
 
+/** La opción de anotar lo que no se encontró. Si la búsqueda falló no se sabe si está en el catálogo, y decir que no invitaría a duplicar una prenda (`/chaos`, 2026-11-03). */
+export function textoAnotarNueva(texto: string, r: { halladas: number; fallo: boolean }): string {
+  if (r.fallo) return `No pudimos revisar el catálogo: anotar «${texto}» de todas formas`;
+  return `${r.halladas === 0 ? "No está en el catálogo:" : "No es ninguna de estas:"} anotar «${texto}» como nueva`;
+}
+
 export function nombreDeLinea(l: Pick<LineaParaContar, "categoria" | "marca" | "linea">): string {
   const base = [l.categoria?.nombre, l.categoria ? marcaDeLinea(l).nombre : null].filter(Boolean).join(" · ") || "esta línea";
   return l.linea?.descripcion ? `${base} · ${l.linea.descripcion}` : base;
