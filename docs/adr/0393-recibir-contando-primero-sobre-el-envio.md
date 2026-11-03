@@ -811,4 +811,4 @@ Al probar la recepción sin aviso de punta a punta (`docs/flujos/recibir/sin-avi
 - **Hoja de confirmar:** decía «sin precio → S/ 9,999.00». Ahora dice «S/ 58.00 → S/ 9,999.00» con `fn_costos_de_hoy`, que solo lee quien ve el dinero de Compras; `variantes.costo` sigue cerrado para los demás. Si la lectura falla, dice «sin costo» y el cierre sigue igual; la base igual frena el costo.
 - **Producción, revisado el 2026-11-03 antes de arreglar:** 3 envíos sin aviso, 4 líneas recibidas y ninguna fuera de lo normal. No hay costos que corregir.
 - **Pruebas:** `pruebas:envio-sin-aviso` S3b y S3c, que fallaban sin la migración.
-
+- **En producción desde el 2026-11-03,** con `apply_migration`: quedó registrada con la versión `20261103223056`. Las dos funciones tienen el mismo md5 que en local.
