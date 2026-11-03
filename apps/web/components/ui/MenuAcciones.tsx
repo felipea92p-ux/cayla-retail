@@ -60,6 +60,10 @@ function colocar(r: DOMRect, alto: number): Posicion {
  *  al pasar el mouse, con el foco y mientras su menú está abierto (`icono-fila`, «A · Gota al pasar», ADR-0596). */
 const CLASE_PUNTOS = "icono-fila grid h-8 w-8 shrink-0 place-items-center disabled:cursor-not-allowed disabled:opacity-45";
 
+/** El «⋯» con círculo (`redondo`): la misma medida y el mismo gesto que «Volver», con el borde de lo que se toca. */
+const CLASE_REDONDO =
+  "grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-borde-control bg-papel text-tinta transition-colors hover:border-tinta/50 aria-expanded:border-tinta/50 disabled:cursor-not-allowed disabled:opacity-50";
+
 /** El mismo «⋯» cuando abre una hoja en vez de una lista (las opciones de un comprobante): `que` va en «Más acciones de <que>». */
 export function BotonPuntos({ que, onClick, className = "", guia }: { que: string; onClick: () => void; className?: string; guia?: string }) {
   const nombre = `Más acciones de ${que}`;
@@ -76,6 +80,7 @@ export function MenuAcciones({
   deshabilitado = false,
   texto,
   guia,
+  redondo = false,
 }: {
   etiqueta: string;
   items: ItemMenu[];
@@ -84,6 +89,9 @@ export function MenuAcciones({
   texto?: string;
   /** El `data-guia` del botón, si la guía interactiva de la pantalla lo enciende. */
   guia?: string;
+  /** El «⋯» con su círculo a la vista, como la flecha de «Volver» (34 px, borde y papel): para el que está solo en una cabecera, donde
+   *  el de 32 px sin borde de las filas se pierde junto al resto (Recibir ▸ Contar, Felipe 2026-11-03). */
+  redondo?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pos, setPos] = useState<Posicion | null>(null);
@@ -178,7 +186,7 @@ export function MenuAcciones({
           conTeclado.current = e.detail === 0;
           setAbierto((a) => !a);
         }}
-        className={texto ? "btn-cayla btn-secundario inline-flex items-center gap-2" : CLASE_PUNTOS}
+        className={texto ? "btn-cayla btn-secundario inline-flex items-center gap-2" : redondo ? CLASE_REDONDO : CLASE_PUNTOS}
       >
         {texto ? (
           <>
