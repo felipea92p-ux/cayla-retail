@@ -1,0 +1,6 @@
+## 2026-11-03 — Recibir ▸ «Cancelar recepción» en un «⋯» junto al Trayecto
+
+Qué hice: el «Más» de Recibir mercadería caía en una fila suelta bajo el título y su lista se abría sobre el menú lateral. Ahora es un «⋯» de 32 px a la derecha del Trayecto, en la fila del título. En `MenuAcciones` (pieza compartida) la lista se alinea al borde izquierdo del botón si éste está en la mitad izquierda de la pantalla, y al abrir con el mouse ya no nace resaltada la primera opción (solo con teclado).
+Por qué así: Felipe vio una maqueta con tres lugares (`docs/maquetas/recibir-cancelar-2026-11/`) y eligió «A»: la acción rara y que no se deshace queda lejos de «Cerrar envío». B (rojo en el pie) quedaba pegada al botón que se aprieta todo el día; C (en el resumen) mezclaba una acción destructiva con una tarjeta de cifras.
+Verificado: `tsc` limpio; `unificar`, `hojas-escape` y `guias` en verde (213). La maqueta se miró en el navegador; la pantalla real no, falta con un envío sin aviso abierto y a 375 px.
+Guía: nuevo paso opcional «Si lo abriste por error» en `recibir.envio.id` (ancla `recepcion.cancelar`, `MenuAcciones` ahora acepta `guia`); `lib/guias.test.ts` en verde. `guias:recorrer` no pudo correrla: la base local no tiene envíos de orden de compra y no se crean datos para una demo. Falta recorrerla cuando los haya y mirar la pantalla real.

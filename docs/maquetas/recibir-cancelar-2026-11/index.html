@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cancelar recepción: dónde va</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500&display=swap" rel="stylesheet">
+<style>
+/* MAQUETA · «Cancelar recepción» en Recibir mercadería (2026-11-03). Tres lugares posibles para la acción; el menú de A es el real
+   (misma lista de vidrio que todo combo, alineada al botón). Solo tokens, claro y oscuro; datos inventados. */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--borde:#96786a;--vidrio:#ffffff;--lienzo:#ddd5c6;--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--lienzo);color:var(--tinta);font:14px/1.5 'DM Sans',system-ui,sans-serif;padding:20px 20px 60px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.barra{display:flex;gap:12px;align-items:center;justify-content:space-between;max-width:1180px;margin:0 auto 18px}
+.barra h1{font-size:15px}.barra p{color:var(--t65);font-size:13px}
+.tg{border:1px solid var(--borde);border-radius:999px;padding:6px 14px;font-size:12px;background:var(--papel)}
+.opcion{max-width:1180px;margin:0 auto 34px}
+.rot{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.rot b{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--rojo-p)}
+.rot span{color:var(--t65);font-size:13px}
+.rot .rec{background:var(--verde);color:var(--crema);font-size:11px;font-weight:700;letter-spacing:.08em;padding:2px 10px;border-radius:999px}
+[data-tema="oscuro"] .rot .rec{color:#1c1a17}
+.marco{display:grid;grid-template-columns:64px 1fr;background:var(--crema);border:1px solid var(--sand);border-radius:18px;overflow:hidden;min-height:430px}
+.lat{background:var(--papel);border-right:1px solid var(--sand);padding:22px 0;display:flex;flex-direction:column;align-items:center;gap:26px;color:var(--t65)}
+.lat i{display:block;width:18px;height:18px;border:1.6px solid currentColor;border-radius:5px;opacity:.55}
+.pant{padding:26px 32px 28px;position:relative}
+.linea{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:.18em;font-weight:600;text-transform:uppercase;color:var(--taupe)}
+.linea .h{width:32px;height:1px;background:var(--taupe)}
+.cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px 40px}
+h2{font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px;display:flex;align-items:center;gap:10px}
+.q{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:600 12px 'DM Sans';color:var(--t65);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 0 0 1px var(--t12)}
+.der{display:flex;align-items:center;gap:14px;flex:1 1 20rem;justify-content:flex-end;min-width:0}
+.tray{flex:1;max-width:28rem;min-width:16rem}
+.tray .rail{height:4px;border-radius:4px;background:var(--sand);position:relative;margin:9px 8px 8px}
+.tray .rail::after{content:"";position:absolute;left:0;top:0;bottom:0;width:46%;background:var(--verde);border-radius:4px}
+.tray .pt{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--sand);box-shadow:0 0 0 2px var(--crema)}
+.tray .pt.on{background:var(--verde)}
+.tray ol{display:flex;justify-content:space-between;list-style:none;font-size:11px;color:var(--t65)}
+.tray ol li:nth-child(3){color:var(--tinta);font-weight:600}
+/* el «⋯» de 32 px, como en las listas */
+.pts{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65);flex:none;transition:background .18s var(--ease),box-shadow .18s var(--ease)}
+.pts:hover,.pts[aria-expanded="true"],.pts:focus-visible{outline:0;color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 0 0 1px var(--t12),0 2px 6px color-mix(in srgb,var(--tinta) 10%,transparent)}
+svg.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* botones */
+.btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;transition:transform .2s var(--ease)}
+.btn:hover{transform:translateY(-2px)}
+.btn.neg{background:var(--tinta);color:var(--crema)}
+.btn.pel{color:var(--rojo-p);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--rojo) 55%,transparent);background:color-mix(in srgb,var(--rojo) 6%,transparent)}
+.btn.chi{height:32px;padding:0 12px;font-size:10.5px}
+.cuerpo{margin-top:26px;display:grid;grid-template-columns:1fr 280px;gap:18px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:16px 18px}
+.card h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t65);margin-bottom:10px;font-weight:600}
+.fila{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--sand)}
+.fila:first-of-type{border-top:0}.fila span:last-child{color:var(--t65)}
+.resumen big{font-size:34px;display:block;line-height:1.1}
+.pie{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px;padding-top:18px;border-top:1px solid var(--sand)}
+/* la lista de vidrio de todo combo */
+.lista{position:absolute;z-index:5;width:208px;padding:6px 0;border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent)),var(--papel);box-shadow:inset 0 0 0 1px var(--t12),0 18px 40px color-mix(in srgb,var(--tinta) 18%,transparent);animation:rev .24s var(--ease)}
+[data-tema="oscuro"] .lista{background:var(--hueso)}
+@keyframes rev{from{opacity:0;transform:translateY(-6px) scale(.98)}}
+.lista[hidden]{display:none}
+.lista button{display:block;width:calc(100% - 12px);margin:0 6px;text-align:left;padding:9px 10px;border-radius:14px;color:var(--rojo-p);transition:background .18s var(--ease),box-shadow .18s var(--ease)}
+.lista button:hover,.lista button:focus-visible{outline:0;background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 8%,color-mix(in srgb,var(--vidrio) 90%,transparent)),color-mix(in srgb,var(--rojo) 12%,color-mix(in srgb,var(--vidrio) 60%,transparent)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rojo) 22%,transparent)}
+.nota{margin-top:12px;font-size:12.5px;color:var(--t65);max-width:1180px}
+.dif{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;margin-top:10px;font-size:13px}
+.dif div{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:10px 14px}
+.dif b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.si b{color:var(--verde)}.no b{color:var(--rojo-p)}
+@media (max-width:760px){.cuerpo{grid-template-columns:1fr}h2{font-size:34px}.marco{grid-template-columns:1fr}.lat{display:none}.dif{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="barra">
+  <div><h1>Recibir mercadería · dónde va «Cancelar recepción»</h1><p>Envío sin aviso, contando, nunca cerrado. Toca los botones: el menú de A es el de verdad.</p></div>
+  <button class="tg" id="tema">Modo oscuro</button>
+</div>
+
+<!-- ============ A ============ -->
+<section class="opcion">
+  <div class="rot"><b>A · «⋯» a la derecha de la cabecera</b><span class="rec">RECOMENDADA</span><span>Lo que ya dejé en el código.</span></div>
+  <div class="marco"><div class="lat"><i></i><i></i><i></i><i></i></div>
+    <div class="pant">
+      <div class="cab">
+        <div>
+          <div class="linea"><span class="h"></span><span>Trujillo · Lun 3 nov · 15:27 · Envío 14</span></div>
+          <h2 class="serif">Recibir mercadería <span class="q">?</span></h2>
+        </div>
+        <div class="der">
+          <div class="tray"><div class="rail"><i class="pt on" style="left:0"></i><i class="pt on" style="left:25%"></i><i class="pt on" style="left:50%"></i><i class="pt" style="left:75%"></i><i class="pt" style="left:calc(100% - 10px)"></i></div><ol><li>Llegó</li><li>Abierto</li><li>Contando</li><li>Cerrado</li><li>En piso</li></ol></div>
+          <button class="pts" id="pa" aria-haspopup="menu" aria-expanded="false" aria-label="Más acciones de este envío"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+        </div>
+      </div>
+      <div class="lista" id="la" role="menu" hidden style="right:32px;top:104px"><button role="menuitem">Cancelar recepción</button></div>
+      <div class="cuerpo">
+        <div class="card"><h3>Lo que llevas contado</h3><div class="fila"><span>Blusa Emma</span><span>12</span></div><div class="fila"><span>Casaca Lía</span><span>8</span></div><div class="fila"><span>Pantalón Ona</span><span>5</span></div></div>
+        <div class="card resumen"><h3>Resumen</h3><big class="serif">25</big><span style="color:var(--t65)">prendas contadas</span></div>
+      </div>
+      <div class="pie"><span style="color:var(--t65)">Cuando termines de contar, cierra el envío.</span><button class="btn neg">Cerrar envío →</button></div>
+    </div>
+  </div>
+  <div class="dif">
+    <div class="si"><b>Gana</b>La acción rara y que no se deshace queda lejos de «Cerrar envío»: nadie la toca por apuro. Es el mismo «⋯» de toda lista del ERP.</div>
+    <div class="no"><b>Pierde</b>Está escondida: quien abrió el envío por error tiene que adivinar que ahí hay algo. Se arregla con la guía de la pantalla.</div>
+  </div>
+</section>
+
+<!-- ============ B ============ -->
+<section class="opcion">
+  <div class="rot"><b>B · Botón rojo a la izquierda del pie</b><span>A la vista, en la fila de «Cerrar envío».</span></div>
+  <div class="marco"><div class="lat"><i></i><i></i><i></i><i></i></div>
+    <div class="pant">
+      <div class="cab">
+        <div><div class="linea"><span class="h"></span><span>Trujillo · Lun 3 nov · 15:27 · Envío 14</span></div><h2 class="serif">Recibir mercadería <span class="q">?</span></h2></div>
+        <div class="der"><div class="tray"><div class="rail"><i class="pt on" style="left:0"></i><i class="pt on" style="left:25%"></i><i class="pt on" style="left:50%"></i><i class="pt" style="left:75%"></i><i class="pt" style="left:calc(100% - 10px)"></i></div><ol><li>Llegó</li><li>Abierto</li><li>Contando</li><li>Cerrado</li><li>En piso</li></ol></div></div>
+      </div>
+      <div class="cuerpo">
+        <div class="card"><h3>Lo que llevas contado</h3><div class="fila"><span>Blusa Emma</span><span>12</span></div><div class="fila"><span>Casaca Lía</span><span>8</span></div><div class="fila"><span>Pantalón Ona</span><span>5</span></div></div>
+        <div class="card resumen"><h3>Resumen</h3><big class="serif">25</big><span style="color:var(--t65)">prendas contadas</span></div>
+      </div>
+      <div class="pie"><button class="btn pel">Cancelar recepción</button><button class="btn neg">Cerrar envío →</button></div>
+    </div>
+  </div>
+  <div class="dif">
+    <div class="si"><b>Gana</b>Se encuentra sola, sin explicar nada. Sigue la regla de lo peligroso: rojo y a la izquierda del pie.</div>
+    <div class="no"><b>Pierde</b>Queda pegada a «Cerrar envío», el botón que se aprieta todo el día: un toque torcido y sale el cartel de cancelar. Y compite con lo principal.</div>
+  </div>
+</section>
+
+<!-- ============ C ============ -->
+<section class="opcion">
+  <div class="rot"><b>C · Al pie del resumen de la derecha</b><span>Junto a lo que se pierde si cancelas.</span></div>
+  <div class="marco"><div class="lat"><i></i><i></i><i></i><i></i></div>
+    <div class="pant">
+      <div class="cab">
+        <div><div class="linea"><span class="h"></span><span>Trujillo · Lun 3 nov · 15:27 · Envío 14</span></div><h2 class="serif">Recibir mercadería <span class="q">?</span></h2></div>
+        <div class="der"><div class="tray"><div class="rail"><i class="pt on" style="left:0"></i><i class="pt on" style="left:25%"></i><i class="pt on" style="left:50%"></i><i class="pt" style="left:75%"></i><i class="pt" style="left:calc(100% - 10px)"></i></div><ol><li>Llegó</li><li>Abierto</li><li>Contando</li><li>Cerrado</li><li>En piso</li></ol></div></div>
+      </div>
+      <div class="cuerpo">
+        <div class="card"><h3>Lo que llevas contado</h3><div class="fila"><span>Blusa Emma</span><span>12</span></div><div class="fila"><span>Casaca Lía</span><span>8</span></div><div class="fila"><span>Pantalón Ona</span><span>5</span></div></div>
+        <div class="card resumen"><h3>Resumen</h3><big class="serif">25</big><span style="color:var(--t65)">prendas contadas</span><div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--sand)"><button class="btn pel chi">Cancelar recepción</button><p style="font-size:12px;color:var(--t65);margin-top:6px">Borra este conteo. No mueve stock.</p></div></div>
+      </div>
+      <div class="pie"><span style="color:var(--t65)">Cuando termines de contar, cierra el envío.</span><button class="btn neg">Cerrar envío →</button></div>
+    </div>
+  </div>
+  <div class="dif">
+    <div class="si"><b>Gana</b>Se ve, y la frase de al lado dice qué pasa al cancelar. Lejos de «Cerrar envío».</div>
+    <div class="no"><b>Pierde</b>El resumen es una tarjeta de cifras: mezclar una acción destructiva ahí es una pieza nueva que hoy no existe, y en el celular el resumen baja al fondo.</div>
+  </div>
+</section>
+
+<p class="nota">En las tres, al elegir «Cancelar recepción» sale el mismo cartel de confirmación que ya existe: cancelar nunca es un solo toque.</p>
+
+<script>
+const $=s=>document.querySelector(s), raiz=document.documentElement;
+$('#tema').onclick=()=>{const o=raiz.dataset.tema==='oscuro';raiz.dataset.tema=o?'claro':'oscuro';$('#tema').textContent=o?'Modo oscuro':'Modo claro'};
+const pa=$('#pa'), la=$('#la');
+function cerrar(){la.hidden=true;pa.setAttribute('aria-expanded','false')}
+pa.onclick=e=>{e.stopPropagation();const a=la.hidden;cerrar();if(a){la.hidden=false;pa.setAttribute('aria-expanded','true')}};
+document.addEventListener('click',e=>{if(!la.contains(e.target))cerrar()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
+</script>
+</body>
+</html>

@@ -1766,6 +1766,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Hiciste una de las órdenes de este envío: ves lo que trae, pero lo recibe otra persona de la tienda. Es la regla para todos, también para un líder; solo un Admin puede recibir lo que él mismo compró, y entonces queda anotado.",
     },
     {
+      // Solo un envío sin aviso, abierto y que nunca se cerró. La demo explica el «⋯» sin abrirlo: cancelar descarta el conteo.
+      id: "cancelar",
+      ancla: "recepcion.cancelar",
+      opcional: true,
+      titulo: "Si lo abriste por error",
+      texto: "Este «⋯» tiene «Cancelar recepción»: descarta el conteo y el envío no entra al stock. Pide confirmar y solo aparece mientras el envío no tiene aviso de Compras y no lo has cerrado. En la demo no se toca.",
+    },
+    {
       // Abrir la hoja no guarda, pero subir una foto sí: la demo explica el botón sin tocarlo.
       id: "papeles",
       ancla: "recepcion.papeles",
