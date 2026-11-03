@@ -26,7 +26,7 @@ import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const bloque = "anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]";
 
-export function GraficosReporteMes({ r, s, tiendaId }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null }) {
+export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null; corte: string | null }) {
   const mes = { anio: Number(s.mes.slice(0, 4)), mes: Number(s.mes.slice(5, 7)) };
   const nombre = nombreDelMes(mes);
   const mejor = mejorDia(s);
@@ -61,7 +61,7 @@ export function GraficosReporteMes({ r, s, tiendaId }: { r: ReporteMes; s: Serie
           <p className="mt-0.5 text-sm text-tinta/60">En soles. Toca un mes para verlo.</p>
           <div className="mt-4">
             {meses.length > 1 ? (
-              <MesAMes barras={meses} elegida={s.mes.slice(0, 7)} tiendaId={tiendaId} max={maxMes} etiqueta={`Ventas de cada mes: ${meses.map((m) => m.tip).join("; ")}`} />
+              <MesAMes barras={meses} elegida={s.mes.slice(0, 7)} tiendaId={tiendaId} corte={corte} max={maxMes} etiqueta={`Ventas de cada mes: ${meses.map((m) => m.tip).join("; ")}`} />
             ) : (
               <p className="rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-sm text-tinta/65">
                 Todavía hay un solo mes con ventas: cuando haya más, los verás aquí uno al lado del otro.

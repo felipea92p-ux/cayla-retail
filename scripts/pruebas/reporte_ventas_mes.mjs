@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Prueba de Ventas ▸ Reportes ▸ Ventas del mes: las cifras (`20261103230000_reporte_ventas_mes.sql`), las series de los gráficos
- * (`20261103232000_reporte_ventas_series.sql`) y el módulo (`20261103224000_reportes_ventas_modulo.sql`).
+ * (`20261103232000_reporte_ventas_series.sql`), los cortes por tienda y categoría (`20261103233000_reporte_ventas_cortes.sql`) y el módulo
+ * (`20261103224000_reportes_ventas_modulo.sql`).
  *
  * EL PROBLEMA. El reporte suma ventas de todo un mes y las compara con el mes anterior. Un reporte de dinero que cuenta una venta anulada,
  * una de prueba, o la de las 00:00 del mes siguiente, no avisa: da una cifra que se lee bien y está mal. Y lo que ve cada cuenta lo decide
@@ -16,6 +17,9 @@
  *   C. Quién ve qué: el líder ve todas las tiendas; una cuenta con el módulo en su rol ve solo la suya (aunque pida otra, da ceros);
  *      una sin el módulo recibe 42501; anon no ejecuta; un mes vacío da error 22023.
  *   D. Los atributos: función INVOKER (lee con las reglas de fila de siempre), estable y sin `search_path` propio.
+ *   G. Los cortes (junio de 2019 contra mayo): por tienda, con su devuelto; por categoría, donde la prenda sin registrar cuenta en la categoría que
+ *      se declaró en caja (como el Observatorio) y lo que no tiene ninguna va en «Sin categoría», siempre al final; la anulada no cuenta; y la
+ *      regla que importa: LOS CORTES SUMAN LO QUE DICEN LAS CIFRAS (por tienda y por categoría = `fn_reporte_ventas_mes`, en dos meses).
  *   F. Las series de los gráficos (misma regla de qué cuenta): un día por cada día del mes, con ceros; lo cobrado por medio de pago (sin
  *      lo anulado ni lo de prueba); la ventana de meses (solo meses con ventas; los 12 que terminan hoy, o los 12 que empiezan en un mes viejo);
  *      el mes en curso llega hasta hoy; un mes futuro, vacío; quien tiene el módulo ve solo su tienda; sin el módulo, 42501.
@@ -36,7 +40,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACIONES = ["20261103224000_reportes_ventas_modulo.sql", "20261103230000_reporte_ventas_mes.sql", "20261103232000_reporte_ventas_series.sql"].map((m) =>
+const MIGRACIONES = ["20261103224000_reportes_ventas_modulo.sql", "20261103230000_reporte_ventas_mes.sql", "20261103232000_reporte_ventas_series.sql", "20261103233000_reporte_ventas_cortes.sql"].map((m) =>
   readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8"),
 );
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -86,6 +90,12 @@ select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as variante from retail.variantes limit 1 \\gset
 select sede_base_id as sede_base from public.personas where auth_user_id = '${FELIPE}' \\gset
+-- Catálogo para los cortes: una variante con categoría (A), otra categoría cualquiera (B, la que se «declara en caja») y una variante SIN categoría
+select va.id as var_a, p.categoria_id as cat_a, c.nombre as cat_a_nombre from retail.variantes va join retail.productos p on p.id = va.producto_id join retail.categorias c on c.id = p.categoria_id order by va.id limit 1 \\gset
+select id as cat_b, nombre as cat_b_nombre from retail.categorias where id <> :'cat_a' order by id limit 1 \\gset
+select va.id as var_sincat from retail.variantes va join retail.productos p on p.id = va.producto_id where p.categoria_id is null limit 1 \\gset
+select id as talla_id from retail.tallas limit 1 \\gset
+select codigo as color_cod from retail.colores limit 1 \\gset
 
 -- Cuentas: una de Trujillo CON el módulo en su rol y otra SIN
 insert into auth.users (id, aud, role, email) values
@@ -139,6 +149,17 @@ select pg_temp.devolucion('D2', 'V1', :'tru', 'pendiente', 50, null);           
 select pg_temp.devolucion('D3', 'V1', :'tru', 'aprobada', 15, ${LIMA("2019-04-02 10:00")});       -- NO: se aprobó en abril
 select pg_temp.devolucion('D4', 'V5', :'tru', 'aprobada', 99, ${LIMA("2019-03-12 10:00")});       -- NO: de una venta de prueba
 select pg_temp.devolucion('D5', 'V7', :'tru', 'aprobada', 20, ${LIMA("2019-02-25 10:00")});       -- febrero: 20
+-- Junio y mayo de 2019 (los cortes)
+select pg_temp.venta('G1', :'tru', ${LIMA("2019-06-05 10:00")}, 'completada', false, 50, 0, 2, :'var_a');       -- 100 · categoría A (2 prendas)
+select pg_temp.venta('G2', :'tru', ${LIMA("2019-06-06 10:00")}, 'completada', false, 30, 0, 1, :'var_sincat');  -- 30 · sin categoría en el catálogo, declarada B en caja
+insert into retail.prendas_por_regularizar (id, venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id, color_codigo, precio_cobrado, vendido_en, estado)
+  values (md5('rv-pp-G2')::uuid, md5('rv-i-G2')::uuid, :'tru', 'prueba', :'cat_b', :'talla_id', :'color_cod', 30, ${LIMA("2019-06-06 10:00")}, 'pendiente');
+select pg_temp.venta('G3', :'tru', ${LIMA("2019-06-07 10:00")}, 'completada', false, 20, 0, 1, :'var_sincat');  -- 20 · sin categoría de ninguna parte
+select pg_temp.venta('G4', :'lim', ${LIMA("2019-06-08 10:00")}, 'completada', false, 40, 0, 1, :'var_a');       -- 40 · categoría A, Lima
+select pg_temp.venta('G5', :'tru', ${LIMA("2019-06-09 10:00")}, 'anulada', false, 500, 0, 1, :'var_a');         -- NO: anulada
+select pg_temp.venta('G6', :'tru', ${LIMA("2019-05-10 10:00")}, 'completada', false, 60, 0, 1, :'var_a');       -- mayo · A · 60
+select pg_temp.venta('G7', :'lim', ${LIMA("2019-05-11 10:00")}, 'completada', false, 15, 0, 1, :'var_sincat');  -- mayo · sin categoría · 15
+select pg_temp.devolucion('GD1', 'G1', :'tru', 'aprobada', 25, ${LIMA("2019-06-20 10:00")});                    -- junio · Trujillo · 25
 -- Lo cobrado de cada venta (las de abril, la anulada y la de prueba traen pagos que NO deben contar)
 insert into retail.venta_pagos (id, venta_id, metodo, monto) values
   (md5('rv-p1')::uuid, md5('rv-V1')::uuid, 'efectivo', 100),
@@ -196,10 +217,10 @@ select 'F3 cobrado de marzo, todas las tiendas: efectivo 310, tarjeta 60, yape 3
   ((:'s_todas'::jsonb -> 'pagos') = '[{"metodo":"efectivo","monto":310},{"metodo":"tarjeta","monto":60},{"metodo":"yape","monto":30}]'::jsonb)::text;
 select 'F4 cobrado de marzo en Trujillo: efectivo 110, tarjeta 60, yape 30' || '|' ||
   ((:'s_tru'::jsonb -> 'pagos') = '[{"metodo":"efectivo","monto":110},{"metodo":"tarjeta","monto":60},{"metodo":"yape","monto":30}]'::jsonb)::text;
-select 'F5 la ventana de meses desde un mes viejo: marzo 400 (4 ventas) y abril 999 (1), y ningún otro (febrero queda fuera)' || '|' ||
-  ((:'s_todas'::jsonb -> 'meses') = '[{"mes":"2019-03-01","vendido":400,"tickets":4,"en_curso":false},{"mes":"2019-04-01","vendido":999,"tickets":1,"en_curso":false}]'::jsonb)::text;
-select 'F6 los meses de Trujillo: marzo 200 (3 ventas) y abril 999' || '|' ||
-  ((:'s_tru'::jsonb -> 'meses') = '[{"mes":"2019-03-01","vendido":200,"tickets":3,"en_curso":false},{"mes":"2019-04-01","vendido":999,"tickets":1,"en_curso":false}]'::jsonb)::text;
+select 'F5 la ventana de meses desde un mes viejo: marzo 400 (4 ventas), abril 999 (1), mayo 75 (2) y junio 190 (4), en orden, y ningún otro (febrero queda fuera)' || '|' ||
+  ((:'s_todas'::jsonb -> 'meses') = '[{"mes":"2019-03-01","vendido":400,"tickets":4,"en_curso":false},{"mes":"2019-04-01","vendido":999,"tickets":1,"en_curso":false},{"mes":"2019-05-01","vendido":75,"tickets":2,"en_curso":false},{"mes":"2019-06-01","vendido":190,"tickets":4,"en_curso":false}]'::jsonb)::text;
+select 'F6 los meses de Trujillo: marzo 200 (3 ventas), abril 999, mayo 60 y junio 150' || '|' ||
+  ((:'s_tru'::jsonb -> 'meses') = '[{"mes":"2019-03-01","vendido":200,"tickets":3,"en_curso":false},{"mes":"2019-04-01","vendido":999,"tickets":1,"en_curso":false},{"mes":"2019-05-01","vendido":60,"tickets":1,"en_curso":false},{"mes":"2019-06-01","vendido":150,"tickets":3,"en_curso":false}]'::jsonb)::text;
 select 'F7 mirando el mes en curso, la ventana son los 12 meses que terminan hoy, y solo el de hoy está en curso' || '|' ||
   (not exists (select 1 from jsonb_array_elements(:'s_encurso'::jsonb -> 'meses') m
      where (m ->> 'mes')::date < (date_trunc('month', now() at time zone 'America/Lima') - interval '11 months')::date
@@ -210,6 +231,52 @@ select 'F8 el mes en curso trae un día por cada día que va, hasta hoy' || '|' 
    and (:'s_encurso'::jsonb -> 'dias' -> -1 ->> 'fecha')::date = (now() at time zone 'America/Lima')::date)::text;
 select 'F9 un mes futuro no trae días ni cobros' || '|' ||
   (jsonb_array_length(:'s_futuro'::jsonb -> 'dias') = 0 and jsonb_array_length(:'s_futuro'::jsonb -> 'pagos') = 0)::text;
+
+select
+  retail.fn_reporte_ventas_cortes('2019-06-15', null)   as todas,
+  retail.fn_reporte_ventas_cortes('2019-06-15', :'tru') as tru,
+  retail.fn_reporte_ventas_cortes('2019-03-10', null)   as marzo,
+  retail.fn_reporte_ventas_cortes((date_trunc('month', now() at time zone 'America/Lima') + interval '5 months')::date, null) as futuro \\gset g_
+select
+  retail.fn_reporte_ventas_mes('2019-06-15', null) as junio,
+  retail.fn_reporte_ventas_mes('2019-03-10', null) as marzo \\gset gm_
+create function pg_temp.suma(p_json jsonb, p_lista text, p_tramo text, p_campo text) returns numeric language sql as $f$
+  select coalesce(sum((x -> p_tramo ->> p_campo)::numeric), 0) from jsonb_array_elements(p_json -> p_lista) x
+$f$;
+grant execute on function pg_temp.suma(jsonb, text, text, text) to authenticated;
+select 'G1 por tienda (junio): Trujillo 150 (3 ventas, 4 prendas, devuelto 25) y Lima 40, de la que más vendió a la que menos' || '|' ||
+  ((select jsonb_agg(jsonb_build_object('t', x ->> 'nombre', 'v', (x -> 'actual' ->> 'vendido')::numeric, 'k', (x -> 'actual' ->> 'tickets')::numeric, 'u', (x -> 'actual' ->> 'unidades')::numeric, 'd', (x -> 'actual' ->> 'devuelto')::numeric))
+      from jsonb_array_elements(:'g_todas'::jsonb -> 'tiendas') x)
+   = '[{"t":"Tienda Trujillo","v":150,"k":3,"u":4,"d":25},{"t":"Tienda Lima","v":40,"k":1,"u":1,"d":0}]'::jsonb)::text;
+select 'G2 por tienda (mayo, el tramo equivalente): Trujillo 60 y Lima 15' || '|' ||
+  ((select jsonb_agg(jsonb_build_object('t', x ->> 'nombre', 'v', (x -> 'anterior' ->> 'vendido')::numeric, 'k', (x -> 'anterior' ->> 'tickets')::numeric))
+      from jsonb_array_elements(:'g_todas'::jsonb -> 'tiendas') x)
+   = '[{"t":"Tienda Trujillo","v":60,"k":1},{"t":"Tienda Lima","v":15,"k":1}]'::jsonb)::text;
+select 'G3 por categoría (junio): la A 140 (3 prendas), la declarada en caja 30 (1) y «Sin categoría» 20 (1), esta siempre al final; la anulada no cuenta' || '|' ||
+  ((select jsonb_agg(jsonb_build_object('n', x ->> 'nombre', 'v', (x -> 'actual' ->> 'vendido')::numeric, 'u', (x -> 'actual' ->> 'unidades')::numeric))
+      from jsonb_array_elements(:'g_todas'::jsonb -> 'categorias') x)
+   = jsonb_build_array(jsonb_build_object('n', :'cat_a_nombre', 'v', 140, 'u', 3), jsonb_build_object('n', :'cat_b_nombre', 'v', 30, 'u', 1), jsonb_build_object('n', 'Sin categoría', 'v', 20, 'u', 1)))::text;
+select 'G4 por categoría (mayo): la A 60 (1) y «Sin categoría» 15 (1); la declarada en caja no vendió nada en mayo' || '|' ||
+  ((select jsonb_agg(jsonb_build_object('n', x ->> 'nombre', 'v', (x -> 'anterior' ->> 'vendido')::numeric))
+      from jsonb_array_elements(:'g_todas'::jsonb -> 'categorias') x)
+   = jsonb_build_array(jsonb_build_object('n', :'cat_a_nombre', 'v', 60), jsonb_build_object('n', :'cat_b_nombre', 'v', 0), jsonb_build_object('n', 'Sin categoría', 'v', 15)))::text;
+select 'G5 LOS CORTES SUMAN LO QUE DICEN LAS CIFRAS (junio): tiendas = categorías = el vendido, las ventas, las prendas y el devuelto de fn_reporte_ventas_mes, también en el mes anterior' || '|' ||
+  (pg_temp.suma(:'g_todas'::jsonb, 'tiendas', 'actual', 'vendido') = (:'gm_junio'::jsonb -> 'actual' ->> 'vendido')::numeric
+   and pg_temp.suma(:'g_todas'::jsonb, 'categorias', 'actual', 'vendido') = (:'gm_junio'::jsonb -> 'actual' ->> 'vendido')::numeric
+   and pg_temp.suma(:'g_todas'::jsonb, 'tiendas', 'actual', 'tickets') = (:'gm_junio'::jsonb -> 'actual' ->> 'tickets')::numeric
+   and pg_temp.suma(:'g_todas'::jsonb, 'tiendas', 'actual', 'unidades') = (:'gm_junio'::jsonb -> 'actual' ->> 'unidades')::numeric
+   and pg_temp.suma(:'g_todas'::jsonb, 'categorias', 'actual', 'unidades') = (:'gm_junio'::jsonb -> 'actual' ->> 'unidades')::numeric
+   and pg_temp.suma(:'g_todas'::jsonb, 'tiendas', 'actual', 'devuelto') = (:'gm_junio'::jsonb -> 'actual' ->> 'devuelto')::numeric
+   and pg_temp.suma(:'g_todas'::jsonb, 'tiendas', 'anterior', 'vendido') = (:'gm_junio'::jsonb -> 'anterior' ->> 'vendido')::numeric
+   and pg_temp.suma(:'g_todas'::jsonb, 'categorias', 'anterior', 'vendido') = (:'gm_junio'::jsonb -> 'anterior' ->> 'vendido')::numeric)::text;
+select 'G6 lo mismo con otro mes (marzo): tiendas = categorías = 400' || '|' ||
+  (pg_temp.suma(:'g_marzo'::jsonb, 'tiendas', 'actual', 'vendido') = 400
+   and pg_temp.suma(:'g_marzo'::jsonb, 'categorias', 'actual', 'vendido') = 400
+   and (:'gm_marzo'::jsonb -> 'actual' ->> 'vendido')::numeric = 400)::text;
+select 'G7 pedir una tienda deja solo esa tienda y sus categorías: Trujillo 150' || '|' ||
+  (jsonb_array_length(:'g_tru'::jsonb -> 'tiendas') = 1 and pg_temp.suma(:'g_tru'::jsonb, 'categorias', 'actual', 'vendido') = 150)::text;
+select 'G8 un mes futuro no trae tiendas ni categorías' || '|' ||
+  (jsonb_array_length(:'g_futuro'::jsonb -> 'tiendas') = 0 and jsonb_array_length(:'g_futuro'::jsonb -> 'categorias') = 0)::text;
 
 -- El control: sin los filtros de estado y de prueba, marzo saldría de otro tamaño
 reset role;
@@ -225,6 +292,9 @@ select
   retail.fn_reporte_ventas_mes('2019-03-01', :'lim')  as pide_lima \\gset c_
 select 'C1 con el módulo ve SOLO su tienda: Trujillo 200 (no los 400 de todas)' || '|' || (${num(vend(":'c_sin_filtro'::jsonb", "actual"), 200)} and ${num(tic(":'c_sin_filtro'::jsonb", "actual"), 3)})::text;
 select retail.fn_reporte_ventas_series('2019-03-01', null) as series \\gset c2_
+select retail.fn_reporte_ventas_cortes('2019-06-15', null) as cortes \\gset c3_
+select 'G9 con el módulo, los cortes también son SOLO de su tienda: una sola tienda y junio suma 150, no 190' || '|' ||
+  (jsonb_array_length(:'c3_cortes'::jsonb -> 'tiendas') = 1 and pg_temp.suma(:'c3_cortes'::jsonb, 'categorias', 'actual', 'vendido') = 150)::text;
 select 'F10 con el módulo, las series también son SOLO de su tienda: marzo suma 200, no 400' || '|' ||
   ((select sum((x ->> 'vendido')::numeric) from jsonb_array_elements(:'c2_series'::jsonb -> 'dias') x) = 200)::text;
 select 'C2 con el módulo, pedir otra tienda da ceros (la base no se la muestra)' || '|' || (${num(vend(":'c_pide_lima'::jsonb", "actual"), 0)} and ${num(tic(":'c_pide_lima'::jsonb", "actual"), 0)})::text;
@@ -233,11 +303,15 @@ select 'C2 con el módulo, pedir otra tienda da ceros (la base no se la muestra)
 select set_config('request.jwt.claim.sub', '${SIN_MODULO}', true);
 select 'C3 sin el módulo: 42501' || '|' || (pg_temp.codigo($q$select retail.fn_reporte_ventas_mes('2019-03-01', null)$q$) like '42501 %')::text;
 
+select 'G10 los cortes sin el módulo: 42501' || '|' ||
+  (pg_temp.codigo($q$select retail.fn_reporte_ventas_cortes('2019-03-01', null)$q$) like '42501 %')::text;
 select 'F11 las series sin el módulo: 42501' || '|' ||
   (pg_temp.codigo($q$select retail.fn_reporte_ventas_series('2019-03-01', null)$q$) like '42501 %')::text;
 
 -- Líder: mes vacío
 select set_config('request.jwt.claim.sub', '${FELIPE}', true);
+select 'G11 los cortes sin mes: error 22023' || '|' ||
+  (pg_temp.codigo($q$select retail.fn_reporte_ventas_cortes(null, null)$q$) like '22023 %')::text;
 select 'F12 las series sin mes: error 22023' || '|' ||
   (pg_temp.codigo($q$select retail.fn_reporte_ventas_series(null, null)$q$) like '22023 %')::text;
 select 'C4 sin mes: error 22023' || '|' || (pg_temp.codigo($q$select retail.fn_reporte_ventas_mes(null, null)$q$) like '22023 %')::text;
@@ -251,6 +325,8 @@ reset role;
 -- Atributos
 select 'D1 es INVOKER (lee con las reglas de fila), estable y sin search_path propio' || '|' ||
   (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_mes(date, uuid)'::regprocedure)::text;
+select 'G12 la función de cortes también es INVOKER, estable y sin search_path propio' || '|' ||
+  (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_cortes(date, uuid)'::regprocedure)::text;
 select 'F13 la función de series también es INVOKER, estable y sin search_path propio' || '|' ||
   (select (not p.prosecdef and p.provolatile = 's' and p.proconfig is null) from pg_proc p where p.oid = 'retail.fn_reporte_ventas_series(date, uuid)'::regprocedure)::text;
 select 'D2 el módulo nace sin rol y delegable' || '|' ||
@@ -272,7 +348,7 @@ const casos = salida
   .filter((l) => /\|(true|false)$/.test(l))
   .map((l) => ({ nombre: l.slice(0, l.lastIndexOf("|")), ok: l.endsWith("|true") }));
 for (const c of casos) console.log(`${c.ok ? "✓" : "✗"} ${c.nombre}`);
-const ESPERADOS = 34;
+const ESPERADOS = 46;
 if (casos.length !== ESPERADOS) {
   console.error(`✗ Se esperaban ${ESPERADOS} casos y salieron ${casos.length}: la prueba dejó de mirar algo.`);
   process.exit(1);

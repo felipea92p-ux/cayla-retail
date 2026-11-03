@@ -253,3 +253,121 @@ export function tramosDePago(s: Pick<SeriesMes, "pagos">): { total: number; tram
     .map((p) => ({ metodo: p.metodo, nombre: nombreDeMetodo(p.metodo), monto: p.monto, parte: p.monto / total, color: colorDeMetodo(p.metodo) }));
   return { total, tramos };
 }
+
+/* ====================================================================
+   Los cortes (`fn_reporte_ventas_cortes`, 20261103233000): el mes por tienda y por categoría.
+   PROMETE: (1) un dato roto no entra (una fila sin nombre se descarta; un número que no es número vale 0); (2) la fila de «Total» sale de LAS CIFRAS
+   (`ReporteMes`), no de sumar las filas, y la base garantiza que ambas coinciden (la prueba de Postgres lo exige); (3) la cola larga de categorías se
+   junta en «Otras N categorías» y «Sin categoría» queda siempre al final; (4) «vs mes pasado» es `null` donde no hay con qué comparar (el mes anterior
+   quedó a medias, o esa fila no vendió nada antes), nunca un porcentaje de miles.
+   ==================================================================== */
+
+export type CifrasDeFila = { vendido: number; tickets: number; unidades: number; devuelto: number };
+export type FilaDeCorte = { id: string | null; nombre: string; actual: CifrasDeFila; anterior: CifrasDeFila };
+export type CortesMes = { mes: string; hoy: string; tiendas: FilaDeCorte[]; categorias: FilaDeCorte[] };
+
+function leerCifrasDeFila(v: unknown): CifrasDeFila {
+  const o = objeto(v) ?? {};
+  return { vendido: numero(o.vendido), tickets: numero(o.tickets), unidades: numero(o.unidades), devuelto: numero(o.devuelto) };
+}
+const leerFilasDeCorte = (v: unknown): FilaDeCorte[] =>
+  lista(v).flatMap((x): FilaDeCorte[] => {
+    const f = objeto(x);
+    if (!f || typeof f.nombre !== "string" || !f.nombre) return [];
+    return [{ id: typeof f.id === "string" ? f.id : null, nombre: f.nombre, actual: leerCifrasDeFila(f.actual), anterior: leerCifrasDeFila(f.anterior) }];
+  });
+
+/** Lo que devuelve `fn_reporte_ventas_cortes`, ya validado. `null` si la forma no es la esperada. */
+export function leerCortesMes(v: unknown): CortesMes | null {
+  const o = objeto(v);
+  const mes = o && fecha(o.mes);
+  const hoy = o && fecha(o.hoy);
+  if (!o || !mes || !hoy) return null;
+  return { mes, hoy, tiendas: leerFilasDeCorte(o.tiendas), categorias: leerFilasDeCorte(o.categorias) };
+}
+
+const sumar = (a: CifrasDeFila, b: CifrasDeFila): CifrasDeFila => ({ vendido: a.vendido + b.vendido, tickets: a.tickets + b.tickets, unidades: a.unidades + b.unidades, devuelto: a.devuelto + b.devuelto });
+const CERO: CifrasDeFila = { vendido: 0, tickets: 0, unidades: 0, devuelto: 0 };
+
+/** Cuántas categorías se ven sueltas; el resto se junta en «Otras N categorías» (con ~30 categorías, la cola vale poco y la tabla se vuelve un muro). */
+export const CATEGORIAS_A_LA_VISTA = 12;
+
+/** La clave de la fila que junta la cola de categorías. */
+export const CLAVE_OTRAS = "otras";
+const SIN_CATEGORIA = "Sin categoría";
+
+/** Junta la cola: las `max` primeras con más ventas, «Otras N categorías» con el resto y «Sin categoría» (si hay) siempre al final. Una sola categoría de cola no se junta: sería una fila que dice lo mismo con otro nombre. */
+export function agruparCola(filas: readonly FilaDeCorte[], max = CATEGORIAS_A_LA_VISTA): FilaDeCorte[] {
+  const sin = filas.find((f) => f.nombre === SIN_CATEGORIA && f.id === null);
+  const con = filas.filter((f) => f !== sin).sort((a, b) => b.actual.vendido - a.actual.vendido || a.nombre.localeCompare(b.nombre, "es"));
+  const vista = con.length > max + 1 ? con.slice(0, max) : con;
+  const cola = con.length > max + 1 ? con.slice(max) : [];
+  const otras: FilaDeCorte[] = cola.length ? [{ id: CLAVE_OTRAS, nombre: `Otras ${cola.length} categorías`, actual: cola.reduce((a, f) => sumar(a, f.actual), CERO), anterior: cola.reduce((a, f) => sumar(a, f.anterior), CERO) }] : [];
+  return [...vista, ...otras, ...(sin ? [sin] : [])];
+}
+
+export type FilaDeTabla = {
+  clave: string;
+  nombre: string;
+  vendido: number;
+  /** Qué parte del total vendido es (0 a 1); `null` si no se vendió nada. */
+  parte: number | null;
+  /** Cuánto cambió contra el tramo anterior; `null` donde no hay con qué comparar. */
+  cambio: number | null;
+  tickets: number;
+  ticket: number | null;
+  unidades: number;
+  devuelto: number;
+  /** El largo de la barra respecto de la fila que más vendió (0 a 1). */
+  barra: number;
+};
+
+/**
+ * Las filas de la tabla que se corta. `r` pone el total y dice si se puede comparar (`comparacionDe`): si no se puede, ninguna fila trae cambio.
+ * Una fila sin ventas en el tramo anterior tampoco lo trae (de 0 a algo no hay porcentaje).
+ */
+export function filasDeTabla(filas: readonly FilaDeCorte[], r: ReporteMes): FilaDeTabla[] {
+  const compara = comparacionDe(r).hay;
+  const total = r.actual.vendido;
+  const mayor = Math.max(0, ...filas.map((f) => f.actual.vendido));
+  return filas.map((f) => ({
+    clave: f.id ?? f.nombre,
+    nombre: f.nombre,
+    vendido: f.actual.vendido,
+    parte: total > 0 ? f.actual.vendido / total : null,
+    cambio: compara ? cambio(f.actual.vendido, f.anterior.vendido) : null,
+    tickets: f.actual.tickets,
+    ticket: ticketPromedio(f.actual),
+    unidades: f.actual.unidades,
+    devuelto: f.actual.devuelto,
+    barra: mayor > 0 ? f.actual.vendido / mayor : 0,
+  }));
+}
+
+/** La fila de «Total»: las cifras del mes tal cual (lo que dicen las tarjetas de arriba). */
+export function totalDeTabla(r: ReporteMes): FilaDeTabla {
+  const c = r.actual;
+  return {
+    clave: "total",
+    nombre: "Total",
+    vendido: c.vendido,
+    parte: c.vendido > 0 ? 1 : null,
+    cambio: comparacionDe(r).hay ? cambio(c.vendido, r.anterior.vendido) : null,
+    tickets: c.tickets,
+    ticket: ticketPromedio(c),
+    unidades: c.unidades,
+    devuelto: c.devuelto,
+    barra: 0,
+  };
+}
+
+export type CorteDeTabla = "tienda" | "categoria";
+
+/** Qué cortes se ofrecen: por tienda solo si hay más de una a la vista (con una sola, la tabla repetiría el total). */
+export const cortesOfrecidos = (c: Pick<CortesMes, "tiendas">): CorteDeTabla[] => (c.tiendas.length > 1 ? ["tienda", "categoria"] : ["categoria"]);
+
+/** El `?corte=` de la URL, dentro de lo que se ofrece; sin él (o con uno que no se ofrece), el primero. */
+export function corteDeUrl(v: string | string[] | undefined | null, ofrecidos: readonly CorteDeTabla[]): CorteDeTabla {
+  const c = Array.isArray(v) ? v[0] : v;
+  return ofrecidos.find((o) => o === c) ?? ofrecidos[0] ?? "categoria";
+}

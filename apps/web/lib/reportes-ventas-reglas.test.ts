@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  agruparCola,
+  corteDeUrl,
+  cortesOfrecidos,
+  filasDeTabla,
+  leerCortesMes,
+  totalDeTabla,
   barrasPorDia,
   barrasPorMes,
   cambio,
@@ -304,5 +310,114 @@ describe("cómo se pagó", () => {
     expect(colorDeMetodo("plin")).toBe("var(--color-metodo-plin)");
     expect(colorDeMetodo("cripto")).toBe("var(--color-taupe)");
     expect(colorDeMetodo("redondeo")).toBe("var(--color-taupe)");
+  });
+});
+
+/* ---------- los cortes ---------- */
+const cif = (vendido: number, tickets = 1, unidades = 1, devuelto = 0) => ({ vendido, tickets, unidades, devuelto });
+const fila = (nombre: string, actual: number, anterior: number, id: string | null = nombre) => ({ id, nombre, actual: cif(actual), anterior: cif(anterior) });
+
+describe("leerCortesMes", () => {
+  const BASE_CORTES = {
+    mes: "2026-10-01",
+    hoy: "2026-11-02",
+    tiendas: [{ id: "t1", nombre: "Tienda Trujillo", actual: { vendido: 100, tickets: 2, unidades: 3, devuelto: 5 }, anterior: { vendido: 80, tickets: 1, unidades: 1, devuelto: 0 } }],
+    categorias: [{ id: null, nombre: "Sin categoría", actual: { vendido: "20.5", unidades: 2 }, anterior: { vendido: 0, unidades: 0 } }],
+  };
+
+  it("lee las dos listas y trata el id vacío (Sin categoría) como null", () => {
+    const c = leerCortesMes(BASE_CORTES)!;
+    expect(c.tiendas[0]).toMatchObject({ id: "t1", nombre: "Tienda Trujillo", actual: { vendido: 100, devuelto: 5 } });
+    expect(c.categorias[0]).toMatchObject({ id: null, nombre: "Sin categoría", actual: { vendido: 20.5, tickets: 0 } });
+  });
+
+  it("descarta una fila sin nombre y una lista que no es lista queda vacía", () => {
+    const c = leerCortesMes({ ...BASE_CORTES, tiendas: [{ id: "x" }, null, "r"], categorias: "nada" })!;
+    expect(c.tiendas).toEqual([]);
+    expect(c.categorias).toEqual([]);
+  });
+
+  it.each([null, undefined, 3, [], { mes: "x" }, { mes: "2026-10-01" }])("una forma rota da null: %j", (roto) => {
+    expect(leerCortesMes(roto)).toBeNull();
+  });
+});
+
+describe("agruparCola", () => {
+  const muchas = Array.from({ length: 15 }, (_, i) => fila(`Cat ${String(i).padStart(2, "0")}`, 1000 - i * 10, 500));
+
+  it("deja las 12 primeras, junta el resto y no pierde plata", () => {
+    const g = agruparCola([...muchas].reverse());
+    expect(g).toHaveLength(13);
+    expect(g[0]!.nombre).toBe("Cat 00");
+    expect(g[12]).toMatchObject({ id: "otras", nombre: "Otras 3 categorías" });
+    expect(g.reduce((a, f) => a + f.actual.vendido, 0)).toBe(muchas.reduce((a, f) => a + f.actual.vendido, 0));
+    expect(g.reduce((a, f) => a + f.anterior.vendido, 0)).toBe(muchas.length * 500);
+  });
+
+  it("«Sin categoría» va siempre al final, aunque sea de lo que más se vendió", () => {
+    const g = agruparCola([fila("Sin categoría", 99999, 0, null), fila("Polos", 10, 5), fila("Faldas", 20, 5)]);
+    expect(g.map((f) => f.nombre)).toEqual(["Faldas", "Polos", "Sin categoría"]);
+  });
+
+  it("una sola categoría de cola no se junta (sería la misma fila con otro nombre)", () => {
+    const g = agruparCola(muchas.slice(0, 13));
+    expect(g).toHaveLength(13);
+    expect(g.map((f) => f.id)).not.toContain("otras");
+  });
+
+  it("con pocas, solo las ordena de la que más vendió a la que menos", () => {
+    expect(agruparCola([fila("B", 5, 1), fila("A", 9, 1)]).map((f) => f.nombre)).toEqual(["A", "B"]);
+    expect(agruparCola([])).toEqual([]);
+  });
+});
+
+describe("filasDeTabla y totalDeTabla", () => {
+  const r = reporte(); // octubre contra septiembre ENTERO (primera venta antes: se compara)
+  const filas = [fila("Tienda Trujillo", 100000, 2000), fila("Tienda Lima", 34306.29, 0)];
+
+  it("la parte, el cambio, el ticket y la barra de cada fila", () => {
+    const t = filasDeTabla(filas, r);
+    expect(t[0]).toMatchObject({ nombre: "Tienda Trujillo", vendido: 100000, barra: 1, ticket: 100000 });
+    expect(t[0]!.parte).toBeCloseTo(100000 / 134306.29, 6);
+    expect(t[0]!.cambio).toBeCloseTo(49, 6);
+    expect(t[1]!.barra).toBeCloseTo(0.343063, 5);
+  });
+
+  it("una fila que no vendió nada antes no trae cambio (de 0 a algo no hay porcentaje)", () => {
+    expect(filasDeTabla(filas, r)[1]!.cambio).toBeNull();
+  });
+
+  it("si el mes anterior quedó a medias, ninguna fila trae cambio", () => {
+    const amedias = reporte({ primeraVenta: "2026-09-30" });
+    expect(filasDeTabla(filas, amedias).map((f) => f.cambio)).toEqual([null, null]);
+    expect(totalDeTabla(amedias).cambio).toBeNull();
+  });
+
+  it("sin ventas no hay parte ni barra, y no se divide por cero", () => {
+    const vacio = reporte({ actual: { ...BASE.actual, vendido: 0, tickets: 0, unidades: 0, devuelto: 0 } });
+    const t = filasDeTabla([{ id: "l", nombre: "Tienda Lima", actual: cif(0, 0, 0), anterior: cif(0, 0, 0) }], vacio);
+    expect(t[0]).toMatchObject({ parte: null, barra: 0, ticket: null, cambio: null });
+  });
+
+  it("el total son las cifras del mes tal cual", () => {
+    const t = totalDeTabla(r);
+    expect(t).toMatchObject({ nombre: "Total", vendido: 134306.29, tickets: 1704, unidades: 2808, devuelto: 29.9, parte: 1 });
+    expect(t.cambio).toBeCloseTo(134306.29 / 4000.5 - 1, 6);
+  });
+});
+
+describe("qué corte se ofrece", () => {
+  it("por tienda solo si hay más de una", () => {
+    expect(cortesOfrecidos({ tiendas: [fila("A", 1, 1), fila("B", 1, 1)] })).toEqual(["tienda", "categoria"]);
+    expect(cortesOfrecidos({ tiendas: [fila("A", 1, 1)] })).toEqual(["categoria"]);
+    expect(cortesOfrecidos({ tiendas: [] })).toEqual(["categoria"]);
+  });
+
+  it("el de la URL, si se ofrece; si no, el primero", () => {
+    expect(corteDeUrl("categoria", ["tienda", "categoria"])).toBe("categoria");
+    expect(corteDeUrl(undefined, ["tienda", "categoria"])).toBe("tienda");
+    expect(corteDeUrl("tienda", ["categoria"])).toBe("categoria");
+    expect(corteDeUrl(["categoria", "x"], ["tienda", "categoria"])).toBe("categoria");
+    expect(corteDeUrl("; drop", ["tienda", "categoria"])).toBe("tienda");
   });
 });

@@ -1,22 +1,24 @@
 import { BarChart3 } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
+import { getCortesMes, getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDeParametro, type Mes } from "@/lib/facturacion-reglas";
 import { nombreDelMes } from "@/lib/historial-cierres-reglas";
-import { tiendaDeUrl } from "@/lib/reportes-ventas-reglas";
+import { corteDeUrl, cortesOfrecidos, tiendaDeUrl } from "@/lib/reportes-ventas-reglas";
+import { paramDeMes } from "@/lib/facturacion-reglas";
 import { CabeceraReportes } from "@/components/reportes-ventas/CabeceraReportes";
 import { FiltrosReporteMes } from "@/components/reportes-ventas/FiltrosReporteMes";
 import { CifrasReporteMes } from "@/components/reportes-ventas/CifrasReporteMes";
 import { GraficosReporteMes } from "@/components/reportes-ventas/GraficosReporteMes";
+import { TablaCortes } from "@/components/reportes-ventas/TablaCortes";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 
 // Ventas ▸ Reportes ▸ Ventas del mes (maqueta docs/maquetas/reportes-ventas-2026-11/). Actividad 2: el mes, la tienda y las cinco cifras contra el
-// mismo tramo del mes anterior (actividad 2) y los tres gráficos (actividad 3: ventas por día, mes a mes, cómo se pagó); la tabla llega en la 4. Lee en el servidor con `fn_reporte_ventas_mes`: el líder ve
+// mismo tramo del mes anterior (actividad 2) y los tres gráficos (actividad 3: ventas por día, mes a mes, cómo se pagó) y la tabla por tienda y categoría (actividad 4). Lee en el servidor con `fn_reporte_ventas_mes`: el líder ve
 // todas las tiendas y elige una; quien tiene el módulo en su rol ve solo la suya (lo decide la base, no esta pantalla).
-export default async function ReportesVentasPage({ searchParams }: { searchParams: Promise<{ m?: string; tienda?: string }> }) {
+export default async function ReportesVentasPage({ searchParams }: { searchParams: Promise<{ m?: string; tienda?: string; corte?: string }> }) {
   const persona = await requirePersonaActualV2();
   const sp = await searchParams;
   const hoy = hoyLima();
@@ -29,14 +31,14 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
   const tienda = pedida && tiendas?.some((t) => t.id === pedida) ? pedida : null;
   const sede = esLider ? (tiendas?.find((t) => t.id === tienda)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
 
-  // Las cifras y los gráficos se leen a la vez y por separado: si los gráficos fallan, las cifras siguen a la vista (principio 9).
-  const [lectura, series] = await Promise.all([getReporteMes(mes, tienda), getSeriesMes(mes, tienda)]);
+  // Las cifras, los gráficos y el desglose se leen a la vez y por separado: si uno falla, los otros siguen a la vista (principio 9).
+  const [lectura, series, cortes] = await Promise.all([getReporteMes(mes, tienda), getSeriesMes(mes, tienda), getCortesMes(mes, tienda)]);
   const r = lectura.datos;
 
   return (
     <div className="space-y-6">
       <CabeceraReportes sede={sede} activa="mes" />
-      <FiltrosReporteMes mes={mes} actual={actual} tiendas={tiendas} tiendaId={tienda} />
+      <FiltrosReporteMes mes={mes} actual={actual} tiendas={tiendas} tiendaId={tienda} corte={sp.corte ?? null} />
       {lectura.falla ? (
         <Aviso tono={lectura.sinAcceso ? "atencion" : "error"} titulo={lectura.sinAcceso ? "Tu rol no ve los Reportes de ventas" : "No se pudo leer el reporte"}>
           {lectura.sinAcceso ? "Pídele a quien administra los accesos que te lo active." : `${lectura.falla} Vuelve a intentarlo en un momento.`}
@@ -49,10 +51,22 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
         <>
           <CifrasReporteMes r={r} />
           {series.datos ? (
-            <GraficosReporteMes r={r} s={series.datos} tiendaId={tienda} />
+            <GraficosReporteMes r={r} s={series.datos} tiendaId={tienda} corte={sp.corte ?? null} />
           ) : (
             <Aviso tono="atencion" titulo="No se pudieron leer los gráficos">
               Las cifras de arriba están bien. Vuelve a intentarlo en un momento.
+            </Aviso>
+          )}
+          {cortes.datos ? (
+            <TablaCortes
+              r={r}
+              cortes={cortes.datos}
+              corte={corteDeUrl(sp.corte, cortesOfrecidos(cortes.datos))}
+              hrefDe={(c) => `/vender/reportes?m=${paramDeMes(mes)}${tienda ? `&tienda=${tienda}` : ""}&corte=${c}`}
+            />
+          ) : (
+            <Aviso tono="atencion" titulo="No se pudo leer el desglose">
+              Las cifras y los gráficos están bien. Vuelve a intentarlo en un momento.
             </Aviso>
           )}
         </>

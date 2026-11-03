@@ -46,7 +46,8 @@ export const PRUEBAS = [
 
   // Ventas ▸ Reportes ▸ Ventas del mes: las cinco cifras cuadran con la suma a mano (la anulada, la de prueba y la de las 00:00 del mes
   // siguiente no cuentan; el descuento sí), el mes en curso se compara por los mismos días, y quien tiene el módulo ve solo su tienda; y las
-  // series de los gráficos (un día por día con ceros, lo cobrado por medio de pago, la ventana de 12 meses) suman lo mismo. ROLLBACK.
+  // series de los gráficos (un día por día con ceros, lo cobrado por medio de pago, la ventana de 12 meses) y los cortes por tienda y categoría
+  // (la prenda sin registrar cuenta en la categoría declarada en caja) suman lo mismo que las cifras. ROLLBACK.
   "pruebas:reporte-ventas-mes",
 
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
