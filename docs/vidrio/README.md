@@ -152,13 +152,14 @@ insignias, vacíos, hojas): lo que les falta es revisar **sus piezas propias**, 
 - **Gestión:** Análisis (`/gestion/analisis`, ADR-0357, con su movimiento propio).
 - **Compras:** Historial de compras (`/compras`) y las pantallas de una compra o factura.
 - **Clientes:** Avisos (`/clientas/avisos`) y Beneficios (`/clientas/beneficios`).
-- **Configuración:** Ubicaciones y accesos, Empresa y facturación, Apartados, Comercial.
 - **Administración:** Colaboradores ▸ Roles y accesos, Actividad.
 - **Las pantallas internas** (una factura, editar un producto, una compra, una orden de insumos): heredan las piezas; se revisan con su módulo.
 
 **Auditadas y en código** (sin maqueta, con las piezas de 4.1):
 
-- **Tienda web** (ADR-0430; `app/estilos/vidrio/tienda-web.css`, 2026-11-02): Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico y Conf. Tienda. Cada bloque es la placa Serena; las cartas, la bandeja y las puertas, vidrio claro; lo hueso, el pozo; las opciones de Campañas, gota que se hunde al elegirse; y dentro de una hoja, la lámina (`card-cayla`). El layout del grupo pone `.tienda-web-vidrio` (`display: contents`). El movimiento no cambia. Se quedan como están, porque muestran lo que ve el cliente: la vista previa de una campaña, el teléfono de Conf. Tienda y la captura del chat de «Editar mensaje». Medida con `tema:auditar` en claro y oscuro, y a 1440 y 375 px, también con datos inventados (la base local no trae pedidos, campañas ni tráfico). Sin probar con datos reales de producción.
+- **Tienda web** (ADR-0430; `app/estilos/vidrio/tienda-web.css`, 2026-11-02): Resumen, Pedidos, Vitrina, Campañas, Recomendaciones, Tráfico y Conf. Tienda. Cada bloque es la placa Serena; las cartas, la bandeja y las puertas, vidrio claro; lo hueso, el pozo; las opciones de Campañas, gota que se hunde al elegirse; y dentro de una hoja, la lámina (`card-cayla`). El layout del grupo pone `.pantalla-en-vidrio` (`display: contents`). El movimiento no cambia. Se quedan como están, porque muestran lo que ve el cliente: la vista previa de una campaña, el teléfono de Conf. Tienda y la captura del chat de «Editar mensaje». Medida con `tema:auditar` en claro y oscuro, y a 1440 y 375 px, también con datos inventados (la base local no trae pedidos, campañas ni tráfico). Sin probar con datos reales de producción.
+
+- **Configuración** (`app/estilos/vidrio/pantalla-en-vidrio.css`, 2026-11-02): sus 8 pestañas (Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos, Gastos con CLAURE). Son del kit de Finanzas: el bloque es la placa Serena, el campo y el combo el pozo, y la tabla sin rayado y con su hilo, como `<Tabla>`. La misma pieza la usa Tienda web; un grupo nuevo solo pone `.pantalla-en-vidrio` en su layout. Finanzas sigue en papel (El telar). **Falta:** las hojas de Configuración (la lista del kit dentro de una hoja sigue en hueso) van con la tanda de hojas y modales.
 
 **Fuera, hasta que Felipe diga** (diseño propio decidido, ver más abajo): la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock,
 la persiana de Caja, Finanzas (El telar, ADR-0493), el login, las guías interactivas, y lo que es papel o cámara.

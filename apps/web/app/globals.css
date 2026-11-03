@@ -136,6 +136,7 @@
 @import "./estilos/vidrio/catalogo.css"; /* Catálogo ▸ Categorías, Marcas y Atributos con vidrio: la tarjeta A · Muestra al aire y el índice de letras A · Ranura con gotas (docs/maquetas/catalogo-vocabulario-vidrio-2026-11/) */
 @import "./estilos/vidrio/ordenes.css"; /* Producción ▸ Órdenes con vidrio: la ruta B · Lentes al aire y el paso abierto A · Placa con su pico; la lista no cambia (docs/maquetas/ordenes-vidrio-2026-11/) */
 @import "./estilos/vidrio/insumos.css"; /* Producción ▸ Insumos con vidrio: la fila A · Una placa por tela y el libro A · Placa con filas (docs/maquetas/insumos-vidrio-2026-11/) */
+@import "./estilos/vidrio/pantalla-en-vidrio.css"; /* Una pantalla armada con las superficies de siempre y el kit de Finanzas, al vidrio de una vez: la placa Serena, el hilo y el pozo (Tienda web, Configuración) */
 @import "./estilos/vidrio/tienda-web.css"; /* Tienda web con vidrio, armada con las piezas elegidas (tablero docs/vidrio/README.md, 4.3): placa Serena, vidrio claro, pozo, gota y ahumado */
 
 /* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
