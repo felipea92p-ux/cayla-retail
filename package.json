@@ -31,6 +31,7 @@
     "pruebas:cambio-sin-precio": "node scripts/pruebas/cambio_sin_precio.mjs",
     "pruebas:actividad": "node scripts/pruebas/actividad.mjs",
     "pruebas:sesion-no-es-equipo": "node scripts/pruebas/sesion_no_es_equipo.mjs",
+    "pruebas:reporte-ventas-mes": "node scripts/pruebas/reporte_ventas_mes.mjs",
     "pruebas:observatorio": "node scripts/pruebas/observatorio.mjs",
     "pruebas:arreglos-en-vivo-roles-observatorio": "node scripts/pruebas/arreglos_en_vivo_roles_observatorio.mjs",
     "pruebas:mis-ventas": "node scripts/pruebas/mis_ventas_del_dia.mjs",

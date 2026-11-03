@@ -44,6 +44,10 @@ export const PRUEBAS = [
   // los proveedores, ni da de alta vocabulario; el líder, una colaboradora y una terminal siguen igual. ROLLBACK.
   "pruebas:sesion-no-es-equipo",
 
+  // Ventas ▸ Reportes ▸ Ventas del mes: las cinco cifras cuadran con la suma a mano (la anulada, la de prueba y la de las 00:00 del mes
+  // siguiente no cuentan; el descuento sí), el mes en curso se compara por los mismos días, y quien tiene el módulo ve solo su tienda. ROLLBACK.
+  "pruebas:reporte-ventas-mes",
+
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",
