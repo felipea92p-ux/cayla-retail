@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  textoAnotarNueva,
   SEPARADO_VACIO,
   claveCostoDeNueva,
   costoDePrendaTexto,
@@ -1229,5 +1230,21 @@ describe("ADR-0519 sobre ADR-0393: el costo de cada prenda en «Hacer ahora»", 
     expect(avisoDeConfirmarHacerAhora([venta])).toMatch(/^El precio de venta rige desde ahora/);
     expect(avisoDeConfirmarHacerAhora([venta])).not.toMatch(/costo/i);
     expect(avisoDeConfirmarHacerAhora([costo, venta])).toMatch(/costo[\s\S]*precio de venta/i);
+  });
+});
+
+describe("textoAnotarNueva: no afirma lo que no pudo comprobar", () => {
+  it("si la búsqueda falló, no dice que no está en el catálogo", () => {
+    const t = textoAnotarNueva("Conjunto Luna", { halladas: 0, fallo: true });
+    expect(t).toBe("No pudimos revisar el catálogo: anotar «Conjunto Luna» de todas formas");
+    expect(t).not.toContain("No está en el catálogo");
+  });
+
+  it("si buscó y no halló nada, lo dice", () => {
+    expect(textoAnotarNueva("Conjunto Luna", { halladas: 0, fallo: false })).toBe("No está en el catálogo: anotar «Conjunto Luna» como nueva");
+  });
+
+  it("si halló parecidas, pregunta por ellas", () => {
+    expect(textoAnotarNueva("Conjunto Luna", { halladas: 2, fallo: false })).toBe("No es ninguna de estas: anotar «Conjunto Luna» como nueva");
   });
 });

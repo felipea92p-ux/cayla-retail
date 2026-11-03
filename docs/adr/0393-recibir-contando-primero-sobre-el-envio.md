@@ -425,6 +425,16 @@ Construido corrigiendo `20261013183000` en su lugar (no estaba pegada ni fusiona
 cambia. `pruebas:envio-sin-aviso` 10/10 (P1, P2, M1 y M2 nuevos) y las otras seis suites de la recepción en verde sobre una base hecha de
 cero; en el navegador, de la puerta al cierre con el proveedor elegido, y el modo oscuro del estado nuevo (escenario `recepcion.de-quien`).
 
+**Actualización 2026-11-03 (Felipe): la marca se deja vacía, y otro modelo va dentro de su categoría.** En «¿Qué llegó?» la marca ya no se elige: vacía = sin marca, y «Sin marca»
+solo aparece en la lista para deshacer una marca ya elegida (en la base seguía siendo `null`: nada cambia ahí). Y si esa categoría, marca y proveedor ya están en la lista, ya no es un
+error sin salida («cuéntala ahí»): el botón dice «Agregar a Conjuntos» y lleva a «¿Llegó otra cosa?» de esa categoría, con el cursor listo para escribir el nombre.
+DECIDÍ: no abrir una segunda línea de lo mismo. El modelo nuevo se anota en la que ya está (`grupoYaEnLaLista`, `lib/recepcion-grupos-reglas.ts`). La comparación ahora mira el proveedor:
+antes, la misma categoría de otro proveedor del envío también salía como repetida, sin motivo.
+Una marca olvidada no abre otra línea en silencio (lo halló `/chaos`, semilla 20261103): si la marca queda vacía y esa categoría ya está con marca, la hoja lo dice, lleva a esa línea y deja
+«No tiene marca: agregarla aparte»; con dos o más marcas no adivina y pide elegir (`alAgregarALaLista`).
+DESCARTÉ: el token en `guardar_conteo_envio`. Anotar algo nuevo dos veces (ráfaga, reintento tras perder la respuesta) deja otra línea en 0, que no se ve y el cierre ignora: no compensa una migración de una función que se usa al recibir. Se revisa si aparece un conteo real repartido en dos líneas iguales.
+SE ROMPE SI: una marca se olvida en una categoría que aún no está en la lista: ahí no hay con qué compararla. Se completa después en Editar producto, como ya era con «Sin marca».
+
 ### Lo que la maqueta pedía a la base (Felipe, 2026-10-14)
 
 | Pieza de la maqueta | Decisión |
