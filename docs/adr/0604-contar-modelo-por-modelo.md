@@ -9,6 +9,7 @@
   Compras; y que la placa y las categorías estén alineadas», seguido de «más equilibrado, no tan exagerado lo de las categorías; ordenar por cantidad con flechas; y que la categoría se
   pueda plegar al tocar su pestaña».
 - **Toca:** ADR-0393 (contar primero, un número por categoría) y ADR-0575 (decisión 2, «el acordeón solo desglosa»): esta decisión las cambia en eso. Lo demás de ellas sigue.
+- **Actualización (c), 2026-11-03:** el costo a la vista, el número que no se transforma, abrir una categoría sin mover lo que se cuenta, Cerrar más corto, lo decidido que sobrevive a recargar y «Nos debe» por prenda. Esta sí lleva una migración (`20261103144000`, solo funciones), sin aplicar en producción. Ver «Lo que se pidió al usarla», al final.
 - **Actualización (b), misma fecha:** Contar pasó a tres columnas, a partir del boceto de Felipe. Ver «Tres columnas y el resumen», al final: **lo que diga esa sección manda sobre la tabla de abajo** (la mesa, la barra de abajo y la hoja de tallas ya no son como dice esa tabla).
 
 ## El problema primero
@@ -66,7 +67,7 @@ Lo que no tiene modelo anotado (un envío sin aviso, lo de fuera de la guía, un
    algo contado sin identificar, el modelo dice «Por contar». Pero al identificar lo último, un modelo que quedó en 0 dice «No llegó» aunque nadie lo haya dicho. No hay cómo
    distinguirlo sin una marca nueva en la base y no vale una migración: al cerrar sale como faltante y pide su causa, que es la red de seguridad.
 2. **Cerrar sigue por proveedor + categoría + marca.** Solo Contar junta las categorías. Si Felipe quiere lo mismo en Cerrar, es otra decisión (ahí cada causa y cada costo son por línea).
-   Aguanta el volumen sin errores, pero se hace muy largo: con 75 líneas son 54 filas y casi 16.000 px de alto.
+   Aguanta el volumen sin errores. Con 75 líneas son 54 filas: medía casi 16.000 px hasta que lo que cuadra quedó plegado (actualización (c)); ahora, unos 2.200.
 3. **A 1024 px la placa mide 340 px** y los atajos bajan bajo el Dial; las categorías quedan en una columna. A 1280 px la placa sigue en 400 y los modelos van en una sola columna, para que se lea el nombre entero.
 4. **Una prenda en dos líneas con tallas puestas** vuelve a quedar entera en la primera línea (`repartirOtroCambio`): las tallas no se reparten. Es raro y la red es la misma: al cerrar lo pregunta.
 5. **«Se parecen» compara palabras** del nombre contra hasta 30 prendas de esa categoría y marca (`fn_prendas_para_recibir`). Es una ayuda, no un dato: si la lectura falla, la
@@ -108,7 +109,7 @@ Felipe pasó un boceto y pidió una maqueta para decidir (`docs/maquetas/recibir
 | El color del avance | Tinta, y verde al final | **De rojo a ámbar y a verde, de a poco** (`colorDeAvance`, en barras y en el Trayecto). Token nuevo `--color-avance-medio`: el ámbar del sistema es un marrón hecho para texto y en un relleno no se distingue del verde. Una categoría toda contada que no cuadra se queda en ámbar. El aro del Dial no cambia | `lib/avance-color.ts`, `BarraAvance.tsx` |
 | La cabecera | Fotos y Trayecto | Al contar, solo el Trayecto, con el nombre de sus cinco paradas si caben, y el número del envío en la línea de arriba. Las fotos pasan al resumen; al cerrar y ya cerrado siguen arriba | `RecibirContando.tsx` |
 
-**Qué se guarda de la tabla, y cuándo.** En la base, las tallas de una prenda siempre suman su cantidad. Por eso lo escrito se guarda **solo cuando reparte justo lo contado**, y mientras tanto espera en la pantalla diciendo «Faltan N por repartir»; «Dejar N como lo contado» lo resuelve para el otro lado. Si lo guardado deja de ser lo que se ve (se corrigió una celda, se cambió el número), **se suelta**: la pantalla nunca contradice a la base. Lo peor que pasa es que ese modelo entra al almacén sin tallas y se termina después, que es el lado seguro. Lo escrito y sin cuadrar se pierde al recargar.
+**Qué se guarda de la tabla, y cuándo.** En la base, las tallas de una prenda siempre suman su cantidad. Por eso lo escrito se guarda **solo cuando reparte justo lo contado**, y mientras tanto espera en la pantalla diciendo «Faltan N por repartir»; «Dejar N como lo contado» lo resuelve para el otro lado. Si lo guardado deja de ser lo que se ve (se corrigió una celda, se cambió el número), **se suelta**: la pantalla nunca contradice a la base. Lo peor que pasa es que ese modelo entra al almacén sin tallas y se termina después, que es el lado seguro. Lo escrito y sin cuadrar se pierde al recargar. **Soltarlas no cierra la tabla (corregido el 2026-11-03):** un modelo que venía con tallas guardadas estaba en «ahora» solo porque las tenía, así que al soltarlas pasaba a «después» y la tabla se cerraba en la primera tecla. Ahora el cambio deja dicho el modo (`modosAlCambiar`), y cambiar el número parte de lo guardado (`tablaParaElNumero`).
 
 **Quitar solo esconde.** Una talla o un color quitado limpia lo escrito en esa fila o columna y ofrece «Deshacer», sin preguntar; nunca borra una variante del catálogo. Agregar lo que la prenda ya tiene lo vuelve a mostrar; lo que no tiene abre la hoja de siempre (`preparar_prenda_al_recibir`) con esa talla o color ya marcados. **No se ofrecen tallas que la categoría no ofrece:** no hay un permiso nuevo. Cuál es «de siempre» ya existe: `categoria_tallas.habitual`.
 
@@ -126,3 +127,29 @@ Felipe pasó un boceto y pidió una maqueta para decidir (`docs/maquetas/recibir
 
 6. **Una celda llega hasta 9.999** (`leerCantidad`, la misma regla de la hoja de tallas). Un modelo con más de 9.999 de una sola talla y un solo color no se puede repartir aquí ni en la hoja: queda con la cantidad y sin tallas.
 7. **Lo escrito en la tabla es de esta pestaña.** Si otra persona guarda otras tallas del mismo modelo, esta pantalla no se entera hasta recargar; al cuadrar, gana el último, como en todo el conteo.
+
+## Lo que se pidió al usarla (actualización (c), Felipe 2026-11-03)
+
+Felipe contestó si quien recibe ve el costo («sí, debe poder ver el costo de la prenda en el detalle superior») y eligió de la lista de pendientes. La migración se pega aparte, con su OK: hasta entonces, «Nos debe» sigue diciendo «2 vestidos».
+
+| Qué | Antes | Ahora | Dónde |
+|---|---|---|---|
+| El costo | No se veía al contar | **Un chip en la cabecera de lo que se cuenta: «Costo S/ 30.00»**, para todo el que recibe. Es el costo propio de la prenda o el de su línea, lo mismo con lo que abre Cerrar; con dos líneas a distinto costo, «S/ 30.00 a S/ 35.00». Lo que no tiene costo no dice nada. También volvió a la hoja de crear prenda | `costoDeLaParada` |
+| El número | «1.5» guardaba 15, «-5» guardaba 5, «1e3» guardaba 13 y «99999999» se cortaba en 99,999, sin avisar | **Lo que no es una cantidad no se guarda ni se transforma:** se queda en la caja, Enter no pasa al siguiente y bajo el número dice «Solo números enteros» o «Hasta 99,999 por modelo». Al salir de la caja vuelve a lo que había, y lo dice. «12,000» sigue siendo doce mil | `leerContadas` |
+| Abrir una categoría | Abrirla ponía a contar su primer modelo: a la prueba ciega la sorprendió | **Abrir o plegar no cambia lo que se cuenta;** cambia al tocar un modelo. Al pasar a contar otra cosa, la de antes vuelve a plegarse si no se abrió a mano | `categoriaAbierta` |
+| «¿Era otra prenda?» | La prueba ciega no lo entendió | **«Cambiar de prenda»** | `TallasDeLaPlaca` |
+| Las cifras | La misma cifra salía hasta cuatro veces | **Se fueron las tres cifras junto al aro** (el aro ya dice cuánto se contó y de cuánto; el estado de arriba, cuánto falta) **y «N de M» bajo el Trayecto al contar** (lo dice el resumen). Se quedan la barra del resumen y las de las tarjetas: las pidió Felipe para ver el color | `PlacaDelModelo` |
+| Cerrar | 54 filas, casi 16.000 px | **Primero lo que pide una decisión.** Con más de 6 filas, lo que cuadra queda plegado («Ver las 46 que cuadran»; si algo adentro cambió, lo dice) y sus precios nacen cerrados. Con pocas, todo como siempre. Contestar no mueve la fila. Un costo atípico o un precio rechazado abren lo que haga falta | `filasDelCierre` |
+| Lo decidido en Cerrar | Un F5 lo borraba | **Se guarda en ese navegador hasta cerrar:** causas, costos, precios, nota, guía, proveedor y dueño. Al recargar se vuelve a Cerrar y dice «Lo que habías decidido sigue aquí», con «Empezar de cero» (que se puede deshacer) | `lib/recepcion-cierre-borrador.ts` |
+| «Nos debe» | Hablaba por categoría y marca | **Dice qué prenda se debe** («2 Vestido Lima · CAYLA») en la ficha, en el aviso de la orden nueva y al cerrar; y **la reposición salda primero esa prenda**, después de la más antigua a la más nueva | migración `20261103144000` |
+
+**Quién ve el costo (decisión de Felipe).** Quien recibe lo ve, aunque no vea el dinero de Compras: es con lo que revisa si lo que llegó es lo que se pagó. Ya se lo daba Cerrar. Sigue igual lo de un envío sin aviso: lo de fuera de la guía no trae costo de ninguna orden y solo lo escribe quien ve ese dinero.
+
+**El borrador contradice a ADR-0129, a propósito.** Ahí Felipe quitó un borrador en el navegador del formulario viejo de Recibir, el mismo día que se construyó. Este es de otra pantalla y de otra cosa: lo contado sigue yendo a la base, solo; lo que se guarda aquí es lo que todavía no vale hasta cerrar. Lo pidió mirando lo que costaba. Guarda solo lo que la persona cambió (si la base trae otro costo mañana, manda la base), no guarda la confirmación de un costo atípico, y no sobrevive a un cierre ni a una reapertura. Se dice a la vista que se recuperó, porque en una terminal puede haberlo decidido otra persona.
+
+**Por qué «Nos debe» no lleva columna nueva.** La prenda ya estaba: la de la línea de la compra, o la devuelta en su cuarentena. Una columna sería otra fuente de verdad y pediría `alter` de una tabla en uso. Lo que faltaba era leerla y usarla al saldar. El tope sigue por proveedor, categoría y marca (`fn_nos_debe_pendiente`): un proveedor puede reponer con otro modelo, y quien tiene la prenda en la mano es quien dice que es la reposición. Las deudas ya saldadas no se tocan: lo resuelto no se cambia.
+
+### Límites que quedan
+
+8. **Lo guardado en el navegador no viaja:** otra persona en otro aparato abre Cerrar sin lo decidido. Dos pestañas del mismo envío comparten lo último que se guardó.
+9. **Una reposición de una prenda que no se debe** salda igual la deuda más antigua de esa categoría y marca, como hasta hoy.
