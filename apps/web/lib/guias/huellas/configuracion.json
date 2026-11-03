@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 96,
+  "total": 97,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -31,6 +31,7 @@
       "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
       "button «config.nuevo-saldo»",
       "Casilla «{`Ajuste de ventas de ${anio}»",
+      "Casilla «{`${r.nombre_visible}»",
       "button «+ Año nuevo»",
       "input «{etiqueta}» #2",
       "Boton «→() => void guardarFila()»",

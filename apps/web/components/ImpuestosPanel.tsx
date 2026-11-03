@@ -11,6 +11,8 @@ import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { PagasImpuestos, CuentaLineas } from "@/components/finanzas/ImpuestosCuenta";
 import { LimiteAnio, MesesImpuestos, PendientesImpuestos } from "@/components/finanzas/ImpuestosFila";
+import { RentaDelAno } from "@/components/finanzas/ImpuestosRenta";
+import type { RentaPantalla } from "@/lib/renta-anual-reglas";
 import { mesADeclarar, sobresIgv } from "@/lib/impuestos-sobres-reglas";
 import { pendientesCompactos } from "@/lib/impuestos-antes-reglas";
 import { lineasSireImpuestos, type EstadoSire } from "@/lib/sire-estado-reglas";
@@ -47,9 +49,9 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 
 type Descarga = "ventas" | "compras" | "resumen" | "paquete";
 
-type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null; sire: EstadoSire | null };
+type Contexto = { sede: ClaveSede; sedes: SedeTelar[]; claure: VentasClaure | null; sire: EstadoSire | null; renta: { datos: RentaPantalla | null; falla: string | null } };
 
-export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
+export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire, renta }: { panel: PanelImpuestos | null; falla: string | null } & Contexto) {
   if (!panel) {
     return (
       <div className="space-y-6">
@@ -59,10 +61,10 @@ export function ImpuestosPanel({ panel, falla, sede, sedes, claure, sire }: { pa
       </div>
     );
   }
-  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} sire={sire} />;
+  return <Pantalla panel={panel} falla={falla} sede={sede} sedes={sedes} claure={claure} sire={sire} renta={renta} />;
 }
 
-function Pantalla({ panel, falla, sede, sedes, claure, sire }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
+function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: PanelImpuestos; falla: string | null } & Contexto) {
   const router = useRouter();
   const sp = useSearchParams();
   const [bajando, setBajando] = useState<Descarga | null>(null);
@@ -205,6 +207,8 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire }: { panel: PanelImp
         <LimiteAnio limite={limite} panel={panel} guia="fin-impuestos.limite" />
         <MesesImpuestos barras={barras} destacada={destacada} onElegir={irA} guia="fin-impuestos.historial" />
       </section>
+
+      <RentaDelAno renta={renta.datos} falla={renta.falla} guia="fin-impuestos.renta" />
     </div>
   );
 }
