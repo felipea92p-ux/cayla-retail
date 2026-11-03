@@ -49,8 +49,9 @@ export default async function ComprasLayout({ children, modal }: { children: Rea
   )
     redirect("/");
 
+  // `pantalla-en-vidrio`: las pantallas del grupo sin vidrio propio toman sus bloques y el kit de Finanzas al vidrio (estilos/vidrio/pantalla-en-vidrio.css).
   return (
-    <div className="space-y-6">
+    <div className="pantalla-en-vidrio space-y-6">
       {children}
       {modal}
     </div>
