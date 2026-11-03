@@ -31,3 +31,8 @@ flecha avanza 4 px).
 **Deuda 0.** La guía de impresión (`GuiaImpresion.tsx`). La firma (`«← Anterior»`, `«‹ Anterior»` o `«Siguiente →»` escritos) encontró
 además la paginación a mano de Clientes (`ClientasPanel.tsx`: «‹ Anterior · Página 2 de 5 · Siguiente ›» en versalitas), que pasó a
 `<Paginas hrefDe>` (familia `paginacion`). La guía interactiva (la demo con velo) tiene su diseño (ADR-0389) y queda aparte.
+
+## Excepción: Contar de Recibir (Felipe, 2026-11-02, ADR-0604)
+
+En `/recibir/envio/[id]`, al contar, «Anterior» lleva su palabra y su flecha, junto a «Listo, siguiente»: Felipe lo pidió mirando la maqueta, para que los dos botones guarden concordancia. Lleva su `unificar-fijo`. Es solo esta pantalla: en un paso a paso, volver sigue siendo la flecha redonda.
+

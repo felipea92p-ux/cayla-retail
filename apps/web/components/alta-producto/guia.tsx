@@ -42,18 +42,20 @@ export function EtiquetaAhora() {
  * formulario: `onIr`). Con solo sugerencias (los colores) no dice «Falta» —crear ya se puede— sino «Sin elegir» y avisa que se
  * puede seguir así. Con `rotulo` («Conviene») la cabeza es esa y no se agrega nada más: el rótulo ya dice que se puede seguir.
  */
-export function FaltanDelPaso<T extends CampoDeGuia>({ faltan, ahora, onIr, rotulo }: { faltan: readonly T[]; ahora: string | null; onIr: (c: T) => void; rotulo?: string }) {
+export function FaltanDelPaso<T extends CampoDeGuia>({ faltan, ahora, onIr, rotulo, tope }: { faltan: readonly T[]; ahora: string | null; onIr: (c: T) => void; rotulo?: string; /** Con muchas cosas que faltan (Contar, por modelo), solo estas a la vista, la que sigue primero, y cuántas más. */ tope?: number }) {
   const soloSugeridas = !rotulo && faltan.every((c) => !c.requerido);
   const cabeza = rotulo ?? (soloSugeridas ? "Sin elegir" : faltan.length === 1 ? "Falta" : "Faltan");
+  const aLaVista = tope && faltan.length > tope ? [...faltan.filter((c) => c.id === ahora), ...faltan.filter((c) => c.id !== ahora)].slice(0, tope) : faltan;
   return (
     <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-[12.5px] text-taupe">
       <span>{cabeza}:</span>
-      {faltan.map((c) => (
+      {aLaVista.map((c) => (
         <button key={c.id} type="button" onClick={() => onIr(c)} title={c.pendiente} className="hilo-chip">
           <MarcaCampo estado={c.id === ahora ? "ahora" : c.requerido ? "falta" : "opcional"} />
           {c.nombre}
         </button>
       ))}
+      {aLaVista.length < faltan.length && <span>y {faltan.length - aLaVista.length} más</span>}
       {soloSugeridas && <span>· puedes seguir así</span>}
     </div>
   );

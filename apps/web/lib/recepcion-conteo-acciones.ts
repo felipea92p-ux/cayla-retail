@@ -69,8 +69,9 @@ export async function leerConteos(despachoId: string): Promise<{ conteos: Conteo
 export async function cerrarConteo(
   args: { p_despacho_id: string; p_version: number; p_lineas: LineaParaCerrar[]; p_nota: string | null; p_token: string },
   firma: Firma | null,
+  duenoId: string | null = null,
 ): Promise<{ resultado: ResultadoRecepcion | null; error: ErrorDeBase }> {
-  const { data, error } = (await firmar(createClient().rpc(RPC_CERRAR_CONTEO as never, args as never), firma)) as Respuesta;
+  const { data, error } = (await firmar(conDueno(createClient().rpc(RPC_CERRAR_CONTEO as never, args as never), duenoId), firma)) as Respuesta;
   return { resultado: error ? null : leerResultadoRecepcion(data), error: error ?? null };
 }
 

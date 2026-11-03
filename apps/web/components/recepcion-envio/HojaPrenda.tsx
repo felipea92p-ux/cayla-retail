@@ -60,6 +60,8 @@ export type DestinoHoja = {
   prenda: PrendaRecepcion | null;
   /** Algo fuera de la guía en un envío de dos o más proveedores: de cuál es (`null` en una línea o con un solo proveedor). */
   proveedorId: string | null;
+  /** En «agregar»: la talla o el color que la persona pidió sumar desde la tabla, ya marcados. */
+  pedidas?: { tallaId?: string; colorCodigo?: string };
 };
 
 export function HojaPrenda({
@@ -97,7 +99,11 @@ export function HojaPrenda({
     }),
     [destino.modo, destino.prenda, categoria],
   );
-  const [borrador, setBorrador] = useState<BorradorPrenda>(() => borradorDePrenda(ctx, { precioSugerido: destino.precioSugerido, prenda: destino.prenda }));
+  const [borrador, setBorrador] = useState<BorradorPrenda>(() => {
+    const b = borradorDePrenda(ctx, { precioSugerido: destino.precioSugerido, prenda: destino.prenda });
+    const { tallaId, colorCodigo } = destino.pedidas ?? {};
+    return { ...b, tallaIds: tallaId && !b.tallaIds.includes(tallaId) ? [...b.tallaIds, tallaId] : b.tallaIds, colorCodigos: colorCodigo && !b.colorCodigos.includes(colorCodigo) ? [...b.colorCodigos, colorCodigo] : b.colorCodigos };
+  });
   const cambiar = (cambios: Partial<BorradorPrenda>) => setBorrador((b) => ({ ...b, ...cambios }));
   // Lo que vino puesto (las tallas de siempre, el precio sugerido) se revisa: hasta que se toca es «sugerido» (ADR-0284 act. h).
   const [tocados, setTocados] = useState<{ tallas?: boolean; precio?: boolean }>({});

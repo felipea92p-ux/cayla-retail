@@ -561,7 +561,7 @@ export const contadasDe = (l: LineaParaContar): number => l.conteo?.contadas ?? 
 /** Lo contado contra lo que dijeron: negativo, faltan; positivo, sobran; null, sin guía (nada con qué comparar). */
 export const diferenciaDe = (l: LineaParaContar): number | null => (l.dijeron == null ? null : contadasDe(l) - l.dijeron);
 
-export const textoPrendas = (n: number): string => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+export const textoPrendas = (n: number): string => `${n.toLocaleString("es-PE")} ${n === 1 ? "prenda" : "prendas"}`;
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Guardar una línea (`guardar_conteo_envio`)
@@ -899,8 +899,6 @@ export function camposDelCierre(
 /** El id de un campo del cierre en la guía y en el DOM (`data-campo`). */
 export const idCampoCierre = (tipo: "contar" | "causa" | "costo", clave: ClaveLinea): string => `${tipo}-${clave.replace(":", "-")}`;
 
-export const idCampoConteo = (clave: ClaveLinea): string => `contar-${clave.replace(":", "-")}`;
-
 /** El botón «+ Agregar lo que llegó», cuando la lista está vacía. */
 export const ID_CAMPO_AGREGAR = "contar-agregar";
 
@@ -1100,7 +1098,7 @@ export function separarAnotada(s: Separado, p: PrendaAnotada, cantidad: number):
 
 /** El texto del botón principal: «Cerrar el envío · 40 contadas en Tienda TRU». */
 export function textoBotonCerrar(contadas: number, sede: string | null, reabierto: boolean): string {
-  return `${reabierto ? "Cerrar de nuevo" : "Cerrar el envío"} · ${contadas} ${contadas === 1 ? "contada" : "contadas"}${sede ? ` en ${sede}` : ""}`;
+  return `${reabierto ? "Cerrar de nuevo" : "Cerrar el envío"} · ${contadas.toLocaleString("es-PE")} ${contadas === 1 ? "contada" : "contadas"}${sede ? ` en ${sede}` : ""}`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -1161,7 +1159,7 @@ export function resumenDelCierre(lineas: readonly LineaParaContar[]): { sePueden
 export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: number }): string {
   const vender = `${r.sePuedenVender} ${r.sePuedenVender === 1 ? "se puede" : "se pueden"} vender ya`;
   if (r.guardadas === 0) return `Al cerrar: ${vender}.`;
-  return `Al cerrar: ${vender} · ${r.guardadas} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después.`;
+  return `Al cerrar: ${vender} · ${r.guardadas.toLocaleString("es-PE")} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después.`;
 }
 
 export type VeredictoDelCerrado = {
@@ -1209,49 +1207,13 @@ export function veredictoDelCerrado(lineas: readonly LineaParaContar[], pendient
   // (formidable, lista aparte del 2026-10-14; Felipe mandó resolverla). Con dos o más, el botón lleva al primero.
   const unSoloPendiente = pendientes.length === 1;
   return {
-    titulo: una ? "La prenda está guardada, pero todavía no se puede vender" : `Las ${guardadas} prendas están guardadas, pero todavía no se pueden vender`,
+    titulo: una ? "La prenda está guardada, pero todavía no se puede vender" : `Las ${guardadas.toLocaleString("es-PE")} prendas están guardadas, pero todavía no se pueden vender`,
     texto: `${una ? "Está" : "Están"} en el almacén. Para ${una ? "venderla" : "venderlas"} falta ${falta}.${unSoloPendiente ? " Se hace abajo, con «Hacer ahora»." : ""}`,
     chip: null,
     accion: unSoloPendiente
       ? null
       : primera === "separar" ? (una ? "Separarla ahora" : "Separarlas ahora") : primera === "detalle" ? (una ? "Ponerle tallas ahora" : "Ponerles tallas ahora") : una ? "Crearla ahora" : "Crearlas ahora",
   };
-}
-
-/**
- * La balanza «Dijeron / Contaste» de la maqueta A: el brazo se inclina hacia donde hay más (±9°, 1,6° por prenda de diferencia) y la
- * insignia dice el veredicto. Sin lo que dijeron (un envío sin aviso), no hay con qué comparar y el brazo queda derecho.
- */
-export function veredictoDeLaBalanza(dijeron: number | null, contadas: number): { estado: "neutro" | "verde" | "ambar"; texto: string; angulo: number } {
-  if (dijeron == null) return { estado: "neutro", texto: "Llegó sin aviso: no hay con qué comparar", angulo: 0 };
-  const d = contadas - dijeron;
-  const angulo = Math.max(-9, Math.min(9, d * 1.6));
-  if (contadas === 0) return { estado: "neutro", texto: "Todavía no contaste", angulo };
-  if (d === 0) return { estado: "verde", texto: "Cuadra con lo que dijeron", angulo: 0 };
-  return { estado: "ambar", texto: d < 0 ? `Faltan ${-d}` : `Sobran ${d}`, angulo };
-}
-
-/**
- * Lo que dice el riel bajo cada paso (maqueta A): en «¿Qué llegó?», de qué envío se trata; en «Contar», cuánto va contado y cuánto queda
- * para después; en «Cerrar», qué se hace ahí o que ya se cerró.
- */
-export function subtitulosDelRiel(p: {
-  estado: string;
-  numero: string;
-  enviado: number;
-  sinAviso: boolean;
-  proveedor: string | null;
-  contadas: number;
-  paraDespues: number;
-}): Record<"1" | "2" | "3", string> {
-  const llego = p.sinAviso ? [p.proveedor, "sin aviso"].filter(Boolean).join(" · ") : `${p.numero} · ${textoPrendas(p.enviado)}`;
-  const contar =
-    p.estado === "en_camino"
-      ? "Por categoría"
-      : p.contadas === 0
-        ? "Por categoría"
-        : `${p.contadas.toLocaleString("es-PE")} ${p.contadas === 1 ? "contada" : "contadas"}${p.paraDespues > 0 ? ` · ${p.paraDespues.toLocaleString("es-PE")} para después` : ""}`;
-  return { "1": llego, "2": contar, "3": p.estado === "cerrado" ? "Cerrado" : "Lo que no cuadró y quién cerró" };
 }
 
 /** La insignia de la cabecera (maqueta A: «1 fardo en camino», «6 pendientes del fardo»): en qué está el envío, en una línea. */
@@ -1529,7 +1491,8 @@ export function diasDesde(desde: string | null, hoy: Date = new Date()): number 
  * reescribir guardaba un 0, y una categoría de fuera de la guía en 0 desaparecía de la lista con la persona escribiendo).
  */
 export function leerContadas(t: string): { texto: string; contadas: number | null } {
-  const texto = limpiarCantidad(t);
+  // Hasta 5 cifras, lo que la base acepta (`TOPES_CONTEO`): un modelo puede llegar por miles.
+  const texto = limpiarCantidad(t, String(TOPES_CONTEO.contadas).length);
   return { texto, contadas: texto === "" ? null : Number(texto) };
 }
 

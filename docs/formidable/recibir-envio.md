@@ -284,6 +284,51 @@ la etiqueta roja «parecía decorativa» (la tocó para probar), «Solo Trujillo
 «Ganas por prenda» siga lo que se escribe; el contraste de lo elegido en `SegmentoDeslizante` (pieza del sistema: pasa por `/unificar`); el papel
 de la compra bajo 1280 px (¿abajo o plegado?) para que el Dial llegue a la vista en una laptop.
 
+## Re-análisis 2026-11-02 — Contar en tres columnas (ADR-0604)
+
+- **Dispositivo que manda:** escritorio. **Pregunta:** «¿Cuántas llegaron de este modelo, y qué me falta para cerrar?» **Protagonista:** el modelo que se tiene en la mano.
+- **Veredicto:** «Una persona nueva cuenta, reparte tallas y dice lo que no llegó al primer intento y sin tocar nada de más. Lo que más pesa es la cantidad de cifras a la vista.»
+- **Método:** medidor propio a tres anchos, dos pruebas ciegas (Opus antes de los cambios, Sonnet después), un revisor de leyes que también hizo de escéptico, y `/chaos`. Felipe dio el OK por adelantado: «aplica todos los cambios que sugieran».
+
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 8 (tope sin real) | [Observado] 2.ª ciega: primer intento, 9 toques, 0 errores. La 1.ª: 20 toques, 2 errores, no terminó |
+| 2 Una pregunta, una respuesta | 7 | [Medido] un solo botón principal a la vez («Pasar a cerrar» es secundario hasta que no quede nada por contar) |
+| 3 Simplicidad profunda | 7 | [Medido] Cuadra, Faltan N, No llegó, Entra al stock. Queda crudo «Diferencia en lo contado» |
+| 4 Lenguaje de tienda | 7 | [Observado] «Dijeron», «Re stock» y «Reparte» se entienden por el contexto; «¿Era otra prenda?» no se entendió |
+| 5 Contenido primero | 7 | [Medido] foto de 84 px y nombre arriba; en la fila, el nombre entero en su línea |
+| 6 Lo difícil, a un toque | 7 | [Observado] lo que falta para cerrar pasó de un `title` que nadie vio a una línea a la vista |
+| 7 Perdonar antes que preguntar | 8 | [Medido] Deshacer al quitar una talla, en «Llegaron», en «Poner en cero» y en «Solo la cantidad» |
+| 8 Quitar antes de agregar | 5 | [Medido] una misma cifra sale cuatro veces (fila, cifra, Dial, botón). Lo pidió Felipe mirando la maqueta: no se tocó |
+| 9 De punta a punta | 7 | [Medido] sin aviso, reabierto, red cortada y sesión vencida probados. Terminal sin firma de respaldo, sin probar |
+| **Leyes (promedio)** | **7,0** | ley 8: 5, decisión de Felipe |
+| **Oficio visual** | **7** | [Medido] ver abajo |
+
+**Oficio, medido:** dos contrastes de 1,08:1 en «Salió» y «En camino» son falsos: el medidor compara el texto con el disco de su parada, y el texto va debajo. Lo que ya no falla: los enlaces de la placa subieron a 24 px, el borde de los atajos a `borde-control` entero, las etiquetas de las cifras a 14 px, los espacios a múltiplos de 4. Lo que queda por decisión: varios radios (24, 20, 14, 12) son los de las piezas del sistema.
+
+**Lo que cambió por la 1.ª ciega y el revisor:** las tarjetas ya no parecen una pregunta (sin el círculo de elegir, «Contando» o «Solo estos»); escribir en el buscador no cambia el contador y Enter lleva al primero; la tabla sube a la vista y el cursor llega a su primera celda; «menos de 1%» en vez de «0%»; «corrige lo contado a N» en vez de «Dejar N»; «Solo la cantidad» dice que no se vende hasta poner tallas; sin contar, el botón dice «Siguiente» y no es el principal; al final de un filtro, «Es el último: ver todos»; el resumen va después de lo que se cuenta bajo 1.040 px; «Contarla» lleva a esa categoría y lo decidido en Cerrar no se pierde al ir y volver.
+
+**Lo que sobra (ley 8), sin tocar porque lo eligió Felipe:** las tres cifras al lado del Dial; «N de M» bajo el Trayecto; la barra de avance del resumen, que repite el Trayecto; las cifras de las tarjetas.
+
+**Lo que no pediste y importa más:** en la prueba de `/chaos`, reabrir un envío contaba dos veces lo que ya estaba en el stock, y cerrar con tallas en Tienda LIM no se podía. Los dos están arreglados y probados cerrando de verdad.
+
+**Lista aparte (no se ejecuta):** en Cerrar, «No vino» y lo demás se pierden al recargar; «Cerrar» con 54 filas sigue siendo largo; abrir otra categoría cambia lo que se cuenta, que a la 2.ª ciega la sorprendió una vez; `¿Era otra prenda?` no se entendió.
+
+### Prueba ciega 2026-11-02
+
+| Medida | 1.ª (Opus, antes) | 2.ª (Sonnet, después) |
+|---|---|---|
+| Lectura de 5 s | coincide | coincide |
+| Primer intento | no: volvió atrás y perdió lo decidido | **sí** |
+| Pasos | 20 (mínimo 13) | **9** |
+| Dudas | 14 | 9 |
+| Palabras no entendidas | 8 | 10, casi todas deducidas bien |
+| Errores evitables | 2 | **0** |
+
+### Antes de decir «listo»
+
+- **Concurrencia:** dos pestañas sobre el mismo modelo: gana el último y avisa; la tabla no se entera hasta recargar (ADR-0604, límite 7). **Caída externa:** red cortada: lo dice, ofrece «Reintentar» esté donde esté la persona y reintenta al volver la conexión. **Persona sin contexto:** ciega ✓, real sin probar.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
@@ -293,3 +338,4 @@ de la compra bajo 1280 px (¿abajo o plegado?) para que el Dial llegue a la vist
 | 2026-10-14 | los 3 cambios de la cara A | 7,6 · ley 1: 8 (tope sin real) | 8,5 | los 3 del 2026-10-13 |
 | 2026-10-29 | `2a4e72e55` (piezas «B», ADR-0575) | 6,3 · ley 8: 5 · ley 1: 6 | 7 | — (3 propuestos, esperan el OK) |
 | 2026-10-29 | `02b2ef6fe` (los 3 cambios) | 7,2 · ley 1: 7 (tope sin real) | 7,5 | los 3 del 2026-10-29 (el 1, a medias a 1024 × 768) |
+| 2026-11-02 | rama `claude/mockup-receiving-merchandise-3f444e` (tres columnas, ADR-0604) | 7,0 · ley 1: 8 (tope sin real) · ley 8: 5 | 7 | el 1 del 2026-10-29 (a 1024 × 768 el Dial ya no queda bajo el papel) |

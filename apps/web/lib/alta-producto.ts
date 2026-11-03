@@ -306,11 +306,11 @@ export function leerCantidad(texto: string): number | null {
  *  Lo de antes del primer número se ignora («S/ 12», « 12»). Un decimal se corta en su entero («2,5» → 2, «12,50» → 12): antes se
  *  borraba la coma y «2,5» se guardaba como 25 sin que nadie lo notara (/chaos 2026-10-28, semilla 2810). Una coma o un punto seguido de
  *  exactamente tres cifras es un millar («1,200», «1.200» → 1200). Lo que viene después del número se ignora («12 u.» → 12). */
-export function limpiarCantidad(texto: string): string {
+export function limpiarCantidad(texto: string, maxCifras = 4): string {
   const t = texto.replace(/^\D+/, "");
   const millar = /^(\d{1,3})[.,](\d{3})(?!\d)/.exec(t);
   const entero = millar ? millar[1] + millar[2] : (/^\d*/.exec(t)?.[0] ?? "");
-  return entero.slice(0, 4);
+  return entero.slice(0, maxCifras);
 }
 
 export type StockAlta = { total: number; invalidas: number; celdasConStock: number };

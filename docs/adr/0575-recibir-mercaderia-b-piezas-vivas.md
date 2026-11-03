@@ -4,6 +4,8 @@
 - **Decide:** Felipe, 2026-10-29: eligió la dirección B de `docs/maquetas/recibir-fiel-2026-10/` y, pieza por pieza, las de la ronda 3 de
   `docs/maquetas/recibir-b-2026-10/` («más visual, menos letra chica, full animaciones, sin cambiar qué hace nada ni sumar clics»).
 - **Toca:** ADR-0393 (Recibir contando primero), ADR-0136 (movimiento), ADR-0358 (una función, una pieza).
+- **Actualización 2026-11-02 (ADR-0604):** el Dial ahora cuenta el modelo elegido y el acordeón deja de «solo desglosar» (decisión 2): cada categoría sale una vez y sus modelos se tocan
+  para contarlos. `lib/recepcion-acordeon-reglas.ts` pasó a `lib/recepcion-modelos-reglas.ts`. El movimiento de las piezas no cambia.
 
 ## El problema primero
 

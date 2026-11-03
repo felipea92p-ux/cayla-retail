@@ -1,4 +1,5 @@
 import { Check, Package, PackageCheck, PackageOpen, Tag, Truck } from "lucide-react";
+import { colorDeAvance } from "@/lib/avance-color";
 import { ETAPAS_ENVIO, type EtapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 
 // El Trayecto (rediseño «B» de Recibir, Felipe 2026-10-29): el camino del envío con sus cinco paradas y una bola en la actual, que lleva su
@@ -19,7 +20,7 @@ export function Trayecto({ etapa, forma = "completa" }: { etapa: EtapaDelEnvio; 
     </span>
   );
   return (
-    <div className="rc-tray" data-forma={forma} data-tono={etapa.tono} role="img" aria-label={[etapa.nombre, etapa.detalle].filter(Boolean).join(": ")}>
+    <div className="rc-tray" data-forma={forma} data-tono={etapa.tono} style={etapa.medido ? ({ "--tc": colorDeAvance(etapa.avance) } as React.CSSProperties) : undefined} role="img" aria-label={[etapa.nombre, etapa.detalle].filter(Boolean).join(": ")}>
       <div className="rc-tray-camino">
         <div className="rc-tray-via">
           <span className="rc-tray-lleno" style={{ width: x }} />
