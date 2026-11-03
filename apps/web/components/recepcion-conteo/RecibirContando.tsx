@@ -352,7 +352,7 @@ export function RecibirContando({
           )}
           {/* Cancelar es raro y no se deshace: va a la derecha de la cabecera, como un «⋯» (no un «Más» suelto bajo el título), y su lista se abre bajo el botón. */}
           {sePuedeCancelar && (
-            <MenuAcciones etiqueta="Más acciones de este envío" guia="recepcion.cancelar" items={[{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }]} />
+            <MenuAcciones etiqueta="Más acciones de este envío" guia="recepcion.cancelar" redondo items={[{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }]} />
           )}
         </div>
       </EncabezadoPagina>

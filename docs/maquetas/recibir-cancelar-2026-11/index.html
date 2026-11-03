@@ -42,8 +42,8 @@ h2{font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px;display:fl
 .tray .pt.on{background:var(--verde)}
 .tray ol{display:flex;justify-content:space-between;list-style:none;font-size:11px;color:var(--t65)}
 .tray ol li:nth-child(3){color:var(--tinta);font-weight:600}
-/* el «⋯» de 32 px, como en las listas */
-.pts{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65);flex:none;transition:background .18s var(--ease),box-shadow .18s var(--ease)}
+/* el «⋯» redondo de 34 px con su borde, como la flecha de «Volver» (a 32 px sin borde se perdía junto al Trayecto) */
+.pts{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--tinta);background:var(--papel);box-shadow:inset 0 0 0 1px var(--borde);flex:none;transition:background .18s var(--ease),box-shadow .18s var(--ease)}
 .pts:hover,.pts[aria-expanded="true"],.pts:focus-visible{outline:0;color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 0 0 1px var(--t12),0 2px 6px color-mix(in srgb,var(--tinta) 10%,transparent)}
 svg.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 /* botones */
