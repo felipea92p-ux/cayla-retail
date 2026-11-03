@@ -5,6 +5,7 @@ import {
   leerEstadoTicket,
   leerTicket,
   leerToken,
+  motivoHttp,
   pedidoToken,
   urlDescargarArchivo,
   urlEstadoTicket,
@@ -31,7 +32,7 @@ const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function json(url: string, init: RequestInit): Promise<{ ok: true; data: unknown } | { ok: false; motivo: string }> {
   try {
     const res = await fetch(url, { ...init, signal: AbortSignal.timeout(ESPERA_MS), cache: "no-store" });
-    if (!res.ok) return { ok: false, motivo: `HTTP ${res.status}` };
+    if (!res.ok) return { ok: false, motivo: motivoHttp(res.status, await res.text().catch(() => "")) };
     return { ok: true, data: await res.json() };
   } catch (e) {
     return { ok: false, motivo: e instanceof Error && e.name === "TimeoutError" ? "SUNAT no respondió a tiempo" : "No se pudo llegar a SUNAT" };
@@ -65,7 +66,7 @@ export async function traerPropuestaSire(registro: RegistroSire, mes: string, c:
         signal: AbortSignal.timeout(ESPERA_MS),
         cache: "no-store",
       });
-      if (!res.ok) return { ok: false, paso: "descargar", motivo: `HTTP ${res.status}` };
+      if (!res.ok) return { ok: false, paso: "descargar", motivo: motivoHttp(res.status, await res.text().catch(() => "")) };
       const bytes = new Uint8Array(await res.arrayBuffer());
       if (!esZip(bytes)) return { ok: true, texto: decodificarTexto(bytes), ticket };
       const txt = (await leerZip(bytes))?.find((a) => a.nombre.toLowerCase().endsWith(".txt"));

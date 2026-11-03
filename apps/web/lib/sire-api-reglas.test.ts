@@ -5,6 +5,7 @@ import {
   leerTicket,
   leerToken,
   mesAnterior,
+  motivoHttp,
   pedidoToken,
   urlDescargarArchivo,
   urlEstadoTicket,
@@ -67,5 +68,25 @@ describe("la propuesta y su ticket", () => {
   it("el proceso trae el mes anterior al de hoy", () => {
     expect(mesAnterior("2026-11")).toBe("2026-10");
     expect(mesAnterior("2027-01")).toBe("2026-12");
+  });
+});
+
+describe("el motivo de un error de SUNAT", () => {
+  it("lee el código y el mensaje, sueltos o dentro de errors[0]", () => {
+    expect(motivoHttp(401, '{"cod":"101","msg":"Token inválido"}')).toBe("HTTP 401: 101 · Token inválido");
+    expect(motivoHttp(422, '{"errors":[{"cod":"2203","msg":"Periodo no habilitado"}]}')).toBe("HTTP 422: 2203 · Periodo no habilitado");
+    expect(motivoHttp(401, '{"error":"unauthorized","error_description":"Sin acceso"}')).toBe("HTTP 401: unauthorized · Sin acceso");
+  });
+
+  it("no vuelca lo que no entiende: HTML, texto suelto o campos desconocidos dejan solo el código", () => {
+    expect(motivoHttp(502, "<html><body>401 Unauthorized</body></html>")).toBe("HTTP 502");
+    expect(motivoHttp(401, "")).toBe("HTTP 401");
+    expect(motivoHttp(401, "[1,2]")).toBe("HTTP 401");
+    expect(motivoHttp(401, '{"token":"abc","datos":{"x":1}}')).toBe("HTTP 401");
+  });
+
+  it("sale en una línea, sin números largos ni correos y con tope", () => {
+    expect(motivoHttp(403, '{"msg":"El RUC 20605964550 no\\n tiene acceso; avisar a a@b.com"}')).toBe("HTTP 403: El RUC [número] no tiene acceso; avisar a [correo]");
+    expect(motivoHttp(403, JSON.stringify({ msg: "x".repeat(500) }))).toHaveLength("HTTP 403: ".length + 160);
   });
 });
