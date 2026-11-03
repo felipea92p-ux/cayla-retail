@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La luz del campo que sigue, en vidrio · alternativas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · la guía de foco («Sigue aquí») sobre el vidrio Serena (2026-11-02)
+   Felipe: «el focus actual brinda un fondo sólido, pero estamos usando glass: ¿podemos cambiarlo para que se adapte mejor?».
+   POR QUÉ HOY SE VE SÓLIDO (leído en el código, no medido en pantalla):
+   · `alta-guia.css` pinta el control que sigue con `background-color: var(--color-papel)` y un fondo `hueso` al 55 % detrás del bloque
+     (`.hilo-luz::before`). El vidrio (`vidrio/campos-y-botones.css`) le pone encima su degradado translúcido (`--pozo-sigue-fondo`),
+     pero con `background:` y menos especificidad: el degradado se dibuja SOBRE un papel sólido, y el pozo deja de ser transparente.
+   Aquí: «Como ahora» (esas mismas declaraciones) y cinco caras que no pintan nada sólido. Nada cambia en lo que hace la guía.
+   Solo tokens (ADR-0169 / ADR-0336), copiados abajo; sin rojo (aquí nada es un error, es un camino); movimiento una vez, sin rebote,
+   apagado con prefers-reduced-motion (ADR-0136). Datos inventados (el repo es público).
+   ==================================================================== */
+:root{--rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--lienzo:#ddd5c6;
+--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{
+/* las recetas de vidrio/recetas.css, tal cual */
+--hoja-fondo:color-mix(in srgb,var(--vidrio) 70%,transparent);
+--hoja-borde:color-mix(in srgb,var(--vidrio) 55%,transparent);
+--hoja-sombra:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);
+--pozo-fondo:color-mix(in srgb,var(--tinta) 5%,transparent);
+--pozo-sombra:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--vidrio) 75%,transparent);
+--pozo-enc-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+--pozo-enc-sombra:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent);
+--pozo-sigue-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 40%,transparent),color-mix(in srgb,var(--vidrio) 16%,transparent));
+--pozo-sigue-anillo:0 0 0 3px color-mix(in srgb,var(--pizarra) 26%,transparent);
+--gota-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+--gota-luz:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent);
+--ahumado-fondo:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+--serena-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+--serena-borde:color-mix(in srgb,var(--vidrio) 60%,transparent);
+--serena-sombra:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 20px 44px -30px color-mix(in srgb,var(--sombra) 40%,transparent);
+--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t25:color-mix(in srgb,var(--tinta) 25%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+
+/* ---------- barra de la maqueta (no es parte del diseño) ---------- */
+.spk{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 16px} /* tema-fijo: barra de la maqueta */
+.spk .t{font-family:'EB Garamond',serif;font-size:19px;width:100%}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)} /* tema-fijo: barra de la maqueta */
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg button{height:28px;padding:0 11px;font-size:12px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.spk .accion{height:28px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.25);font-size:12px;color:#f5f0e8} /* tema-fijo: barra de la maqueta */
+.spk .accion.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.spk .como{margin-left:auto;font-size:12px;color:rgba(245,240,232,.7);max-width:560px} /* tema-fijo: barra de la maqueta */
+
+.envoltura{max-width:1500px;margin:0 auto;padding:18px 16px 60px}
+.rejilla{display:grid;gap:22px 18px;grid-template-columns:repeat(auto-fill,minmax(380px,1fr))}
+@media (max-width:440px){.rejilla{grid-template-columns:1fr}}
+.opcion{display:grid;gap:8px;align-content:start}
+.opcion>header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.opcion .letra{font-family:'EB Garamond',serif;font-size:26px;line-height:1}
+.opcion h2{font-size:15px;font-weight:700}
+.opcion .dice{font-size:13px;color:var(--t80)}
+.opcion .costo{font-size:12px;color:var(--t65)}
+.opcion .costo b{color:var(--tinta)}
+
+/* ---------- el escenario: algo detrás para que el vidrio refracte ---------- */
+.escena{position:relative;height:590px;border-radius:20px;overflow:hidden;background:var(--crema);border:1px solid var(--t25);isolation:isolate}
+.escena .aurora i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.34}
+.escena .aurora i:nth-child(1){width:300px;height:260px;right:-40px;top:-60px;background:var(--rojo)}
+.escena .aurora i:nth-child(2){width:340px;height:280px;left:-90px;top:140px;background:var(--pizarra)}
+.escena .aurora i:nth-child(3){width:300px;height:240px;right:30px;bottom:-80px;background:var(--ambar)}
+.escena .fondo{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:18px;opacity:.9}
+.escena .fondo div{border-radius:12px;height:96px}
+.escena .fondo div:nth-child(1){background:#c9b79c}.escena .fondo div:nth-child(2){background:#8a5a4a}.escena .fondo div:nth-child(3){background:#6d7b6a} /* tema-fijo: el color de una prenda es dato (ADR-0336) */
+.escena .fondo div:nth-child(4){background:#d9cfbd}.escena .fondo div:nth-child(5){background:#4c5d6e}.escena .fondo div:nth-child(6){background:#b8412d} /* tema-fijo: el color de una prenda es dato (ADR-0336) */
+.escena .velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 20%,transparent);backdrop-filter:blur(12px) saturate(1.4);-webkit-backdrop-filter:blur(12px) saturate(1.4)}
+.hoja{position:absolute;left:50%;top:22px;transform:translateX(-50%);width:min(340px,calc(100% - 28px));padding:22px 20px 18px;border-radius:28px;
+  background:var(--hoja-fondo);border:1px solid var(--hoja-borde);box-shadow:var(--hoja-sombra)}
+.hoja h3{font-family:'EB Garamond',serif;font-weight:500;font-size:25px;line-height:1.1}
+.hoja .sub{color:var(--taupe);font-size:13px;margin:3px 0 18px}
+
+/* ---------- un campo guiado: el título con su marca, la caja, y el bloque que se enciende ---------- */
+.cg{position:relative;isolation:isolate;margin-bottom:15px}
+.cg::before,.cg::after{content:"";position:absolute;pointer-events:none}
+.tit{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;margin-bottom:6px;transition:opacity .25s var(--ease)}
+.etq{display:none;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.cg[data-luz="1"] .etq{display:inline-flex;animation:sube .24s var(--ease) both}
+.marca{position:relative;flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;transition:background-color .24s var(--ease),border-color .24s var(--ease)}
+.marca[data-e="hecho"]{background:var(--verde);color:var(--crema)}
+.marca[data-e="ahora"]{background:var(--tinta)}
+.marca[data-e="ahora"]::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--crema)}
+.marca[data-e="falta"]{border:1.5px solid color-mix(in srgb,var(--tinta) 30%,transparent)}
+.marca svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:14;animation:traza .32s var(--ease) .06s backwards}
+.caja{position:relative;display:flex;align-items:center;gap:8px;width:100%;height:44px;padding:0 14px;text-align:left;
+  border:1px solid var(--borde);border-radius:14px;background:var(--pozo-fondo);box-shadow:var(--pozo-sombra);
+  transition:background .3s var(--ease),box-shadow .3s var(--ease),border-color .22s var(--ease),transform .3s var(--ease)}
+.caja input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:14px}
+.caja input::placeholder,.caja .ph{color:color-mix(in srgb,var(--tinta) 56%,transparent)}
+.caja:focus-visible{outline:none}
+.caja:focus-within{background:var(--pozo-enc-fondo);box-shadow:var(--pozo-enc-sombra);transform:translateY(-1px)}
+.caja .v{flex:1}.caja svg.fl{width:16px;height:16px;stroke:var(--t80);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lista{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;border-radius:16px;padding:6px;display:none;
+  background:color-mix(in srgb,var(--vidrio) 78%,transparent);border:1px solid var(--serena-borde);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.lista.abierta{display:block;animation:sube .24s var(--ease) both}
+.lista button{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:10px;font-size:13.5px}
+@media (hover:hover){.lista button:hover{background:var(--gota-fondo);box-shadow:var(--gota-luz)}}
+.cg.op .tit{font-weight:500;color:var(--t80)}
+.cg.op .marca{border:1.5px dashed color-mix(in srgb,var(--tinta) 26%,transparent)}
+
+.pie{margin-top:4px;display:grid;gap:10px}
+.falta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}
+.falta .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);padding:3px 10px 3px 7px;font-weight:500}
+.falta .chip .marca{width:14px;height:14px}.falta .chip .marca[data-e="ahora"]::before{width:4px;height:4px}
+.listo{font-size:13px;color:var(--verde)}
+.guardar{height:42px;border-radius:999px;font-weight:500;font-size:13.5px;color:var(--crema);background:var(--ahumado-fondo);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent);transition:opacity .2s}
+.guardar[disabled]{opacity:.45;cursor:not-allowed}
+
+@keyframes sube{from{opacity:0;transform:translateY(6px)}}
+@keyframes traza{from{stroke-dashoffset:14}}
+@keyframes llega{from{opacity:0}}
+@keyframes anillo{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--pizarra) 40%,transparent)}}
+@keyframes barre{from{background-position:100% 0,0 0}to{background-position:0 0,0 0}}
+
+/* =========================================================================================================
+   X · COMO AHORA — las mismas declaraciones de alta-guia.css (.hilo-luz::before, el control en papel) + el anillo pizarra del vidrio
+   ========================================================================================================= */
+[data-v="x"] .cg[data-luz="1"]::before{inset:-.5rem;z-index:-1;border-radius:12px;background:color-mix(in srgb,var(--hueso) 55%,transparent);
+  box-shadow:0 0 0 1.5px color-mix(in srgb,var(--tinta) 24%,transparent),0 0 0 6px color-mix(in srgb,var(--tinta) 5%,transparent);animation:llega .7s var(--ease) both}
+[data-v="x"] .cg[data-luz="1"] .caja{background-color:var(--papel);background-image:var(--pozo-sigue-fondo);border-color:color-mix(in srgb,var(--tinta) 65%,var(--papel));box-shadow:var(--pozo-sigue-anillo)}
+[data-v="x"] .cg[data-luz="1"] .caja:focus-within{background-image:var(--pozo-enc-fondo);box-shadow:var(--pozo-enc-sombra)}
+
+/* =========================================================================================================
+   A · ANILLO DE VIDRIO — quitar lo sólido y dejar solo lo que la receta ya trae: el pozo a medias con su anillo pizarra
+   ========================================================================================================= */
+[data-v="a"] .cg[data-luz="1"] .caja:not(:focus-within){background:var(--pozo-sigue-fondo);box-shadow:var(--pozo-sigue-anillo);border-color:color-mix(in srgb,var(--tinta) 65%,transparent);animation:anillo .8s var(--ease) both}
+
+/* =========================================================================================================
+   B · GOTA QUE SUBE — el campo que sigue se vuelve la gota (lo que sobresale es lo que haces) y se despega 2 px
+   ========================================================================================================= */
+[data-v="b"] .cg[data-luz="1"] .caja:not(:focus-within){background:var(--gota-fondo);box-shadow:var(--gota-luz);transform:translateY(-2px);border-color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+
+/* =========================================================================================================
+   C · RESPLANDOR LÍQUIDO — una luz pizarra desenfocada DETRÁS del bloque, que se filtra por el vidrio; el campo sigue hundido
+   ========================================================================================================= */
+[data-v="c"] .cg[data-luz="1"]::before{inset:-8px -12px -10px;z-index:-1;border-radius:24px;filter:blur(8px);animation:llega .8s var(--ease) both;
+  background:radial-gradient(ellipse 70% 62% at 50% 70%,color-mix(in srgb,var(--pizarra) 58%,transparent),color-mix(in srgb,var(--pizarra) 22%,transparent) 55%,transparent 100%)}
+[data-v="c"] .cg[data-luz="1"] .caja:not(:focus-within){background:var(--pozo-sigue-fondo);border-color:color-mix(in srgb,var(--tinta) 65%,transparent)}
+
+/* =========================================================================================================
+   D · FILO DE LUZ — un borde de luz de 1,5 px (pizarra → vidrio) que da una pasada al llegar; la caja sube a medias
+   ========================================================================================================= */
+[data-v="d"] .cg[data-luz="1"] .caja::after{content:"";position:absolute;inset:-1px;border-radius:14px;padding:1.5px;pointer-events:none;
+  background:linear-gradient(105deg,transparent 38%,var(--vidrio) 50%,transparent 62%) 100% 0/260% 100% no-repeat,linear-gradient(115deg,color-mix(in srgb,var(--pizarra) 90%,transparent),color-mix(in srgb,var(--pizarra) 65%,transparent));animation:barre 1s var(--ease) both;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor}
+[data-v="d"] .cg[data-luz="1"] .caja:not(:focus-within){background:var(--pozo-enc-fondo);box-shadow:var(--gota-luz);border-color:transparent}
+[data-v="d"] .cg[data-luz="1"] .caja:focus-within{border-color:transparent}
+[data-v="d"] .cg[data-luz="1"] .caja:focus-within::after{content:"";position:absolute;inset:-1px;border-radius:14px;padding:1.5px;pointer-events:none;
+  background:linear-gradient(115deg,color-mix(in srgb,var(--pizarra) 90%,transparent),color-mix(in srgb,var(--pizarra) 65%,transparent));
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor}
+
+/* =========================================================================================================
+   E · PLACA QUE SE ENCIENDE — el bloque (título + campo) se vuelve una placa Serena: una lente chica que aparece detrás
+   ========================================================================================================= */
+[data-v="e"] .cg[data-luz="1"]::before{inset:-12px -12px -12px;z-index:-1;border-radius:20px;background:var(--serena-fondo);border:1px solid var(--serena-borde);box-shadow:var(--serena-sombra);animation:llega .5s var(--ease) both}
+[data-v="e"] .cg[data-luz="1"] .caja:not(:focus-within){border-color:color-mix(in srgb,var(--tinta) 65%,transparent)}
+
+/* =========================================================================================================
+   LA PIEZA DEL DESCUENTO (tu captura): un PASO numerado, `.hoja-cobro-paso` en globals.css:2928, que usan el descuento, el cobro y
+   Apartados. Hoy el que sigue es papel + 4 % de rojo (sólido) con borde rojo al 28 % y su «Sigue aquí» en chip rojo.
+   ========================================================================================================= */
+:root{--rojo-p:#8b2a1f;--acento:var(--rojo);--acento-t:var(--rojo-p)}
+:root[data-tema="oscuro"]{--rojo-p:#f29a86}
+[data-acento="pizarra"]{--acento:var(--pizarra);--acento-t:var(--tinta)}
+.rejilla[data-pieza="paso"]{grid-template-columns:repeat(auto-fill,minmax(430px,1fr))}
+.rejilla[data-pieza="paso"] .escena{height:700px}
+.rejilla[data-pieza="paso"] .hoja{width:min(410px,calc(100% - 24px));padding:20px 18px 16px}
+.rejilla[data-pieza="campo"] .escena{height:590px}
+.paso{position:relative;isolation:isolate;margin:0 -12px 6px;padding:10px 12px;border:1.5px solid transparent;border-radius:17px;
+  transition:background .5s var(--ease),border-color .5s var(--ease),box-shadow .4s var(--ease),transform .4s var(--ease)}
+.paso::before,.paso::after{content:"";position:absolute;pointer-events:none}
+.pcab{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pnum{flex:none;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--acento);color:var(--acento-t);display:grid;place-items:center;font-weight:700;font-size:12px;transition:background .3s,border-color .3s}
+.pnum svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:14;animation:traza .32s var(--ease) .06s backwards}
+.paso[data-hecho="1"] .pnum{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.ptit{font-size:14.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.ppista{display:none;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;white-space:nowrap;background:color-mix(in srgb,var(--acento) 10%,transparent);color:var(--acento-t)}
+.paso[data-luz="1"] .ppista{display:inline-flex;animation:sube .24s var(--ease) both}
+.pestado{margin-left:auto;font-size:13px;font-weight:600;color:var(--verde)}
+.pseg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:999px;background:var(--pozo-fondo);box-shadow:var(--pozo-sombra);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);margin-bottom:10px}
+.pseg button{height:34px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);transition:background .3s var(--ease),box-shadow .3s var(--ease),color .3s}
+.pseg button.on{background:var(--gota-fondo);box-shadow:var(--gota-luz);color:var(--tinta)}
+.pfichas{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:8px}
+.pficha{height:46px;border-radius:14px;font-weight:700;font-size:14.5px;border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);background:var(--gota-fondo);box-shadow:var(--gota-luz);transition:transform .3s var(--ease),background .3s}
+.pficha.on{background:var(--ahumado-fondo);color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+@media (hover:hover){.pficha:hover{transform:translateY(-2px)}}
+.pficha.otro{display:flex;align-items:center;gap:4px;padding:0 8px;background:var(--pozo-fondo);box-shadow:var(--pozo-sombra);font-weight:500}
+.pficha.otro input{width:100%;min-width:0;background:none;border:0;outline:0;font-size:13px;font-weight:500}
+.pficha.otro input::placeholder{color:color-mix(in srgb,var(--tinta) 56%,transparent)}
+.pficha.otro:focus-within{background:var(--pozo-enc-fondo);box-shadow:var(--pozo-enc-sombra);border-color:var(--tinta)}
+.pnota{font-size:12.5px;color:var(--t80)}
+.popciones{display:grid;gap:6px}
+.popciones button{display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border-radius:12px;text-align:left;font-size:13.5px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+.popciones button.on{background:var(--ahumado-fondo);color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.ppie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.ppie small{display:block;font-size:12px;color:var(--t65)}.ppie b{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.1}
+.ppie .guardar{padding:0 18px}
+
+/* X · COMO AHORA (globals.css:2935) */
+[data-v="x"] .paso[data-luz="1"]{background:color-mix(in srgb,var(--rojo) 4%,var(--papel));border-color:color-mix(in srgb,var(--rojo) 28%,transparent)}
+/* A · VIDRIO TEÑIDO — el mismo tinte, pero translúcido: se ve el vidrio a través */
+[data-v="a"] .paso[data-luz="1"]{background:linear-gradient(180deg,color-mix(in srgb,var(--acento) 11%,transparent),color-mix(in srgb,var(--acento) 3%,transparent));
+  border-color:color-mix(in srgb,var(--acento) 30%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent)}
+/* B · GOTA QUE SUBE — el paso se vuelve la gota y se despega 2 px */
+[data-v="b"] .paso[data-luz="1"]{background:var(--gota-fondo);box-shadow:var(--gota-luz);transform:translateY(-2px);border-color:color-mix(in srgb,var(--acento) 26%,transparent)}
+/* C · RESPLANDOR LÍQUIDO — una luz del acento desenfocada detrás del paso; sin borde */
+[data-v="c"] .paso[data-luz="1"]::before{inset:-6px -10px;z-index:-1;border-radius:26px;filter:blur(9px);animation:llega .8s var(--ease) both;
+  background:radial-gradient(ellipse 75% 70% at 50% 55%,color-mix(in srgb,var(--acento) 34%,transparent),color-mix(in srgb,var(--acento) 12%,transparent) 55%,transparent 100%)}
+/* D · FILO DE LUZ — borde de luz del acento con una pasada al llegar; fondo de vidrio claro */
+[data-v="d"] .paso[data-luz="1"]{background:var(--pozo-enc-fondo);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+[data-v="d"] .paso[data-luz="1"]::after{inset:-1.5px;border-radius:17px;padding:1.5px;
+  background:linear-gradient(105deg,transparent 38%,var(--vidrio) 50%,transparent 62%) 100% 0/260% 100% no-repeat,linear-gradient(115deg,color-mix(in srgb,var(--acento) 85%,transparent),color-mix(in srgb,var(--acento) 45%,transparent));animation:barre 1s var(--ease) both;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor}
+/* E · PLACA QUE SE ENCIENDE — el paso es una placa Serena chica */
+[data-v="e"] .paso[data-luz="1"]{background:var(--serena-fondo);border-color:var(--serena-borde);box-shadow:var(--serena-sombra)}
+
+/* ---------- opcional: atenuar lo que no toca ahora ---------- */
+.atenua .cg:not([data-luz="1"]):not([data-hecho="1"]) .caja{opacity:.66}
+.atenua .cg:not([data-luz="1"]):not([data-hecho="1"]) .tit{opacity:.8}
+
+/* ---------- análisis, al pie ---------- */
+.analisis{margin-top:36px;display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.analisis section{background:color-mix(in srgb,var(--vidrio) 52%,transparent);border:1px solid var(--serena-borde);border-radius:18px;padding:18px 20px;box-shadow:var(--serena-sombra)}
+.analisis h2{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;margin-bottom:6px}
+.analisis p,.analisis li{font-size:13.5px;color:var(--t80)}
+.analisis ul{padding-left:18px;display:grid;gap:4px;margin-top:6px}
+.analisis code{font-size:12px;background:var(--hueso);padding:1px 6px;border-radius:6px}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <div class="t">La luz del campo que sigue, en vidrio</div>
+  <span class="tag">Tema</span>
+  <div class="seg" id="seg-tema"><button class="on" data-t="claro">Claro</button><button data-t="oscuro">Oscuro</button></div>
+  <span class="tag">Pieza</span>
+  <div class="seg" id="seg-pieza"><button class="on" data-p="paso">Paso del descuento</button><button data-p="campo">Campo de formulario</button></div>
+  <span class="tag">Acento</span>
+  <div class="seg" id="seg-acento"><button class="on" data-a="rojo">Rojo (como ahora)</button><button data-a="pizarra">Pizarra</button></div>
+  <span class="tag">Lo demás</span>
+    <button class="accion" id="b-reiniciar">Reiniciar</button>
+  <div class="como">Todo se toca. Paso del descuento: elige una ficha en «¿Cuánto?» y la luz pasa a «¿Por qué?». Campo de formulario: escribe 8 o más caracteres en Documento y sal con Tab. Nada se guarda.</div>
+</div>
+
+<div class="envoltura">
+  <div class="rejilla" id="rejilla"></div>
+
+  <div class="analisis">
+    <section>
+      <h2>Por qué hoy se ve sólido</h2>
+      <p>Hay DOS luces distintas en el ERP y las dos pintan papel sobre el vidrio (leído en el código; la segunda, la de tu captura, confirmada contra ella):</p>
+      <ul>
+        <li><b>El paso del descuento y del cobro</b> (<code>.hoja-cobro-paso.sigue-aqui</code>, <code>globals.css:2935</code>): <code>papel</code> con 4 % de rojo, borde rojo al 28 % y el chip «Sigue aquí» en rojo. Ningún archivo de <code>vidrio/</code> lo toca.</li>
+        <li><b>El campo de un formulario</b> (<code>.hilo-luz</code>, <code>alta-guia.css</code>): caja en <code>papel</code> y un <code>hueso</code> al 55 % detrás. El vidrio diseñó su «sigue aquí», pero su degradado se dibuja encima del papel.</li>
+      </ul>
+      <p style="margin-top:8px">Las cinco caras sacan ese papel. Ninguna cambia qué se enciende, cuándo se mueve la luz ni lo que dice «Falta:». Ojo: la guía de foco (ADR-0284) dice «sin rojo», pero el cobro usa rojo; el interruptor «Acento» muestra los dos.</p>
+    </section>
+    <section>
+      <h2>Cuál elegiría</h2>
+      <ul>
+        <li><b>A · Anillo de vidrio</b> — el arreglo mínimo: es lo que la receta ya traía, sin vocabulario nuevo. Se ve discreto; sobre la Aurora puede perderse (Felipe ya dijo «no se distinguen bien los controles»).</li>
+        <li><b>D · Filo de luz</b> — el que más se siente «de vidrio» sin tapar nada, con una sola pasada al llegar. Mi recomendación si A se queda corto.</li>
+        <li><b>B · Gota</b> — habla el idioma del sistema (lo que sobresale es lo que haces), pero se parece a un botón secundario: puede confundirse.</li>
+        <li><b>C · Resplandor</b> — el más suave y el más fácil de pasar por alto en claro.</li>
+        <li><b>E · Placa</b> — el más visible, pero agrega una lente por campo y compite con las notas (que ya son placas).</li>
+      </ul>
+      <p style="margin-top:8px">Lo que falta antes de llevar la elegida al código: medir contraste con <code>tema:auditar</code> en claro y oscuro, y probar combos y chips (aquí hay un combo; faltan chips y el interruptor).</p>
+    </section>
+  </div>
+</div>
+
+<script>
+const CARAS=[
+  {v:'x',l:'·',n:'Como ahora',d:'Papel sólido en la caja y un hueso detrás del bloque, con su aro de tinta.',c:'<b>Lo que ya está.</b> Sólido sobre el vidrio.'},
+  {v:'a',l:'A',n:'Anillo de vidrio',d:'La caja queda a medias con el anillo pizarra de la receta; sin papel ni hueso.',c:'<b>Cuesta:</b> borrar dos reglas de <code>alta-guia.css</code>. <b>Riesgo:</b> discreto.'},
+  {v:'b',l:'B',n:'Gota que sube',d:'El campo que sigue se vuelve la gota y se despega 2 px.',c:'<b>Cuesta:</b> poco. <b>Riesgo:</b> se parece a un botón.'},
+  {v:'c',l:'C',n:'Resplandor líquido',d:'Una luz pizarra desenfocada detrás del bloque; el campo sigue hundido.',c:'<b>Cuesta:</b> un pseudo-elemento. <b>Riesgo:</b> tenue en claro.'},
+  {v:'d',l:'D',n:'Filo de luz',d:'Un borde de luz que da una pasada al llegar; la caja sube a medias.',c:'<b>Cuesta:</b> un borde con máscara. <b>Riesgo:</b> bajo.'},
+  {v:'e',l:'E',n:'Placa que se enciende',d:'El bloque entero se vuelve una placa Serena chica.',c:'<b>Cuesta:</b> una placa por campo. <b>Riesgo:</b> compite con las notas.'}
+];
+const TILDE='<svg viewBox="0 0 12 12"><path d="M2 6.2l2.6 2.6L10 3.4"/></svg>';
+const CHEV='<svg class="fl" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+const SEDES=['Trujillo','Arequipa','Lima'];
+const rejilla=document.getElementById('rejilla');
+
+function tarjeta(cara){
+  const s={doc:'',sede:'',held:null};
+  const op=document.createElement('article');op.className='opcion';
+  op.innerHTML=`<header><span class="letra serif">${cara.l}</span><h2>${cara.n}</h2></header><p class="dice">${cara.d}</p>
+  <div class="escena" data-v="${cara.v}"><div class="aurora"><i></i><i></i><i></i></div>
+    <div class="fondo"><div></div><div></div><div></div><div></div><div></div><div></div></div><div class="velo"></div>
+    <div class="hoja"><h3>Registrar cliente</h3><p class="sub">Completa lo que falta para guardar.</p>
+      <div class="cg" data-id="nom" data-hecho="1"><p class="tit"><span class="marca" data-e="hecho">${TILDE}</span>Nombre completo</p>
+        <label class="caja"><input value="Lucía Ramos" aria-label="Nombre completo"></label></div>
+      <div class="cg" data-id="doc"><p class="tit"><span class="marca"></span>Documento <span class="etq">Sigue aquí</span></p>
+        <label class="caja"><input placeholder="DNI o RUC" inputmode="numeric" aria-label="Documento"></label></div>
+      <div class="cg" data-id="sede"><p class="tit"><span class="marca"></span>Sede <span class="etq">Sigue aquí</span></p>
+        <button type="button" class="caja" aria-haspopup="listbox"><span class="v ph">Elige una sede</span>${CHEV}</button>
+        <div class="lista" role="listbox">${SEDES.map(x=>`<button type="button" role="option">${x}</button>`).join('')}</div></div>
+      <div class="cg op" data-id="mail"><p class="tit"><span class="marca"></span>Correo <span style="font-weight:400;color:var(--t65)">· opcional</span></p>
+        <label class="caja"><input placeholder="nombre@correo.com" aria-label="Correo"></label></div>
+      <div class="pie"><div class="falta"></div><button class="guardar" disabled>Guardar cliente</button></div>
+    </div></div>
+  <p class="costo">${cara.c}</p>`;
+  const $=q=>op.querySelector(q);
+  const cg=id=>op.querySelector(`.cg[data-id="${id}"]`);
+  const completo={doc:()=>s.doc.length>=8,sede:()=>!!s.sede};
+  const orden=['doc','sede'];
+  const nombre={doc:'Documento',sede:'Sede'};
+  function pinta(){
+    const faltan=orden.filter(k=>!completo[k]());
+    const ahora=s.held&&orden.includes(s.held)?s.held:faltan[0];
+    orden.forEach(k=>{
+      const el=cg(k),m=el.querySelector('.marca');
+      const e=completo[k]()?'hecho':(k===ahora?'ahora':'falta');
+      if(m.dataset.e!==e){m.dataset.e=e;m.innerHTML=e==='hecho'?TILDE:''}
+      el.dataset.luz=(k===ahora&&(!completo[k]()||s.held===k))?'1':'0';
+      el.dataset.hecho=e==='hecho'?'1':'0';
+    });
+    const f=$('.falta');
+    f.innerHTML=faltan.length?'Falta: '+faltan.map(k=>`<button type="button" class="chip" data-ir="${k}"><span class="marca" data-e="${k===ahora?'ahora':'falta'}"></span>${nombre[k]}</button>`).join(''):'<span class="listo">Todo listo.</span>';
+    $('.guardar').disabled=faltan.length>0;
+  }
+  op.addEventListener('input',e=>{if(e.target.closest('[data-id="doc"]'))s.doc=e.target.value.trim();pinta()});
+  op.addEventListener('focusin',e=>{const c=e.target.closest('.cg');if(c&&c.dataset.id!=='nom'){s.held=c.dataset.id;pinta()}});
+  op.addEventListener('focusout',()=>{setTimeout(()=>{if(!op.contains(document.activeElement)||!document.activeElement.closest('.cg')){s.held=null;pinta()}},0)});
+  const combo=$('[data-id="sede"] .caja'),lista=$('.lista');
+  combo.addEventListener('click',()=>lista.classList.toggle('abierta'));
+  lista.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    s.sede=b.textContent;combo.querySelector('.v').textContent=s.sede;combo.querySelector('.v').classList.remove('ph');lista.classList.remove('abierta');combo.blur();s.held=null;pinta()});
+  op.addEventListener('click',e=>{const ir=e.target.closest('[data-ir]');if(ir){const t=cg(ir.dataset.ir).querySelector('input,button.caja');t&&t.focus()}});
+  op.reiniciar=()=>{s.doc='';s.sede='';s.held=null;$('[data-id="doc"] input').value='';const v=combo.querySelector('.v');v.textContent='Elige una sede';v.classList.add('ph');lista.classList.remove('abierta');pinta()};
+  pinta();return op;
+}
+
+const CARAS_PASO=[
+  {v:'x',l:'·',n:'Como ahora',d:'Papel sólido con 4 % de rojo, borde rojo al 28 % y el chip rojo. Es lo que ves en tu captura.',c:'<b>Lo que ya está.</b> Sólido sobre el vidrio.'},
+  {v:'a',l:'A',n:'Vidrio teñido',d:'El mismo tinte y el mismo borde, pero translúcidos: se ve el vidrio a través.',c:'<b>Cuesta:</b> cambiar 2 líneas de <code>globals.css</code>. <b>Riesgo:</b> casi ninguno; conserva tu rojo.'},
+  {v:'b',l:'B',n:'Gota que sube',d:'El paso se vuelve la gota y se despega 2 px.',c:'<b>Cuesta:</b> poco. <b>Riesgo:</b> se parece a una ficha.'},
+  {v:'c',l:'C',n:'Resplandor líquido',d:'Una luz del acento desenfocada detrás del paso, sin borde.',c:'<b>Cuesta:</b> un pseudo-elemento. <b>Riesgo:</b> se pierde en claro.'},
+  {v:'d',l:'D',n:'Filo de luz',d:'Un borde de luz del acento con una pasada al llegar, sobre vidrio claro.',c:'<b>Cuesta:</b> un borde con máscara. <b>Riesgo:</b> bajo.'},
+  {v:'e',l:'E',n:'Placa que se enciende',d:'El paso es una placa Serena chica, con su borde de luz.',c:'<b>Cuesta:</b> poco. <b>Riesgo:</b> compite con las listas en placa de adentro.'}
+];
+function tarjetaPaso(cara){
+  const s={cuanto:null,porque:null,modo:'monto'};
+  const op=document.createElement('article');op.className='opcion';
+  op.innerHTML=`<header><span class="letra serif">${cara.l}</span><h2>${cara.n}</h2></header><p class="dice">${cara.d}</p>
+  <div class="escena" data-v="${cara.v}"><div class="aurora"><i></i><i></i><i></i></div>
+    <div class="fondo"><div></div><div></div><div></div><div></div><div></div><div></div></div><div class="velo"></div>
+    <div class="hoja"><h3>Descuento</h3><p class="sub">Tres pasos y queda aplicado.</p>
+      <section class="paso" data-hecho="1"><div class="pcab"><span class="pnum">${TILDE}</span><h4 class="ptit">¿A qué prendas?</h4><span class="pestado">Todo el ticket ✓</span></div></section>
+      <section class="paso" data-p="cuanto"><div class="pcab"><span class="pnum">2</span><h4 class="ptit">¿Cuánto?</h4><span class="ppista">Sigue aquí</span></div>
+        <div class="pseg"><button data-m="pct">Porcentaje</button><button class="on" data-m="monto">Monto en S/</button></div>
+        <div class="pfichas"></div><p class="pnota"></p></section>
+      <section class="paso" data-p="porque"><div class="pcab"><span class="pnum">3</span><h4 class="ptit">¿Por qué?</h4><span class="ppista">Sigue aquí</span></div>
+        <div class="popciones">${['Cliente frecuente','Producto con defecto','Pidió rebaja'].map(x=>`<button type="button">${x}</button>`).join('')}</div></section>
+      <div class="ppie"><div><small>Quedaría en</small><b>S/ 184.00</b></div><button class="guardar" disabled>Aplicar descuento</button></div>
+    </div></div>
+  <p class="costo">${cara.c}</p>`;
+  const $=q=>op.querySelector(q);
+  const fichas=$('.pfichas'),nota=$('.pnota');
+  function dibujaFichas(){
+    const v=s.modo==='monto'?['S/5','S/10','S/20','S/50']:['5 %','10 %','15 %','20 %'];
+    fichas.innerHTML=v.map(x=>`<button type="button" class="pficha${s.cuanto===x?' on':''}">${x}</button>`).join('')+`<label class="pficha otro"><input placeholder="Otro ${s.modo==='monto'?'S/':'%'}" aria-label="Otro valor"></label>`;
+    nota.textContent=s.modo==='monto'?'En soles; se reparte entre las prendas según su precio.':'Sobre el precio de cada prenda elegida.';
+  }
+  function pinta(){
+    const pc=$('[data-p="cuanto"]'),pp=$('[data-p="porque"]');
+    const luz=!s.cuanto?'cuanto':!s.porque?'porque':null;
+    [[pc,'cuanto',s.cuanto,2],[pp,'porque',s.porque,3]].forEach(([el,k,v,n])=>{
+      el.dataset.luz=luz===k?'1':'0';el.dataset.hecho=v?'1':'0';
+      const num=el.querySelector('.pnum');const hecho=num.dataset.h==='1';
+      if(!!v!==hecho){num.dataset.h=v?'1':'0';num.innerHTML=v?TILDE:String(n)}
+    });
+    $('.guardar').disabled=!(s.cuanto&&s.porque);
+  }
+  fichas.addEventListener('click',e=>{const b=e.target.closest('button.pficha');if(!b)return;s.cuanto=b.textContent;dibujaFichas();pinta()});
+  fichas.addEventListener('input',e=>{s.cuanto=e.target.value.trim()?e.target.value.trim():null;pinta()});
+  $('.pseg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;s.modo=b.dataset.m;s.cuanto=null;
+    op.querySelectorAll('.pseg button').forEach(x=>x.classList.toggle('on',x===b));dibujaFichas();pinta()});
+  $('.popciones').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;s.porque=b.textContent;
+    op.querySelectorAll('.popciones button').forEach(x=>x.classList.toggle('on',x===b));pinta()});
+  op.reiniciar=()=>{s.cuanto=null;s.porque=null;op.querySelectorAll('.popciones button').forEach(x=>x.classList.remove('on'));dibujaFichas();pinta()};
+  dibujaFichas();pinta();return op;
+}
+let pieza='paso',tarjetas=[];
+function dibuja(){
+  rejilla.dataset.pieza=pieza;rejilla.innerHTML='';
+  tarjetas=(pieza==='paso'?CARAS_PASO.map(tarjetaPaso):CARAS.map(tarjeta));
+  tarjetas.forEach(t=>rejilla.appendChild(t));
+}
+dibuja();
+document.querySelectorAll('#seg-pieza button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#seg-pieza button').forEach(x=>x.classList.toggle('on',x===b));pieza=b.dataset.p;dibuja()});
+document.querySelectorAll('#seg-acento button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#seg-acento button').forEach(x=>x.classList.toggle('on',x===b));
+  document.documentElement.dataset.acento=b.dataset.a});
+
+document.getElementById('b-reiniciar').onclick=()=>tarjetas.forEach(t=>t.reiniciar());
+document.querySelectorAll('#seg-tema button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#seg-tema button').forEach(x=>x.classList.toggle('on',x===b));
+  document.documentElement.dataset.tema=b.dataset.t;
+});
+</script>
+</body>
+</html>
