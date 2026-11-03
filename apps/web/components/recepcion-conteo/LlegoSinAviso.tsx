@@ -18,6 +18,7 @@ import { diaMes } from "@/lib/fechas-lima";
 import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { urlContraFactura } from "@/lib/llegada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { claveResponsableRecepcion, recordarResponsableGuardar } from "@/lib/responsable-conteo";
 import { TOPES_CONTEO, mensajeAlGuardar } from "@/lib/recepcion-conteo-reglas";
 import { abrirEnvioSinAviso } from "@/lib/recepcion-conteo-acciones";
 
@@ -116,6 +117,8 @@ export function LlegoSinAviso({
       setError(mensajeAlGuardar(e, "abrir el envío"));
       return;
     }
+    // Quien abrió el envío es quien lo cuenta: se recuerda para Contar, que si no lo vuelve a pedir sin que nadie lo vea.
+    if (responsable.elegidoId) recordarResponsableGuardar(claveResponsableRecepcion(abierto.despachoId), responsable.elegidoId);
     router.push(`/recibir/envio/${abierto.despachoId}`);
   }
 

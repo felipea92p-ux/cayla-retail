@@ -20,6 +20,7 @@ export function AgregarFueraDeGuia({
   yaUsadas,
   onAgregar,
   onCerrar,
+  errorDelGuardado = null,
 }: {
   catalogo: CatalogoParaRecibir | null;
   proveedores: readonly { id: string; nombre: string }[];
@@ -28,6 +29,8 @@ export function AgregarFueraDeGuia({
   yaUsadas: ReadonlySet<string>;
   onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string | null }) => Promise<string | null>;
   onCerrar: () => void;
+  /** Lo que dijo la base al rechazar el guardado (ya traducido): se muestra en vez del texto genérico. */
+  errorDelGuardado?: string | null;
 }) {
   const [categoriaId, setCategoriaId] = useState("");
   const [proveedorId, setProveedorId] = useState(proveedores.length === 1 ? proveedores[0].id : "");
@@ -113,7 +116,7 @@ export function AgregarFueraDeGuia({
             />
           </CampoGuiado>
           {!catalogo && <Aviso tono="atencion" titulo="No se pudo leer el catálogo">Recarga la pantalla para elegir la categoría y la marca.</Aviso>}
-          {error && <Aviso tono="error" titulo="No se pudo agregar">{error}</Aviso>}
+          {error && <Aviso tono="error" titulo="No se pudo agregar">{errorDelGuardado ?? error}</Aviso>}
           <PieGuia guia={guia} listo="Todo listo." />
           <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
