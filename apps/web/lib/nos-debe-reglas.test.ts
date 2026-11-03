@@ -64,6 +64,7 @@ import {
   TOPES_REPOSICION,
   type BorradorReposicion,
   type DeudaProveedor,
+  prendasDeLaDeuda,
 } from "./nos-debe-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
 import { ETIQUETA_METODO } from "./compras-reglas";
@@ -960,5 +961,59 @@ describe("por qué la debe: lo que no vino o lo que se le devolvió", () => {
     );
     expect(porQueDebeEnFrase(deuda({ causa: "devuelta", fecha: null }), HOY)).toBe("llegaron con daño en ENV-000061 · Tienda Trujillo");
     expect(porQueDebeEnFrase(deuda(), HOY)).toBe("faltaron en ENV-000061 · Tienda Trujillo · hace 3 días");
+  });
+});
+
+describe("por prenda: la deuda dice qué prenda es (ADR-0604)", () => {
+  const fila = (extra: Record<string, unknown> = {}) => ({ diferencia_id: "x1", cantidad: 3, pendiente: 2, categoria: { id: "c1", nombre: "Vestidos" }, marca: { id: "m1", nombre: "CAYLA" }, descripcion: "Vestido Lima", ...extra });
+
+  it("se lee de la base; si la base todavía no lo sabe, queda como antes", () => {
+    expect(leerNosDebe([fila({ prenda: { id: "p1", nombre: "Vestido Lima" } })])?.abiertas[0].prenda).toBe("Vestido Lima");
+    expect(leerNosDebe([fila()])?.abiertas[0].prenda).toBeNull();
+  });
+
+  it("dice «2 Vestido Lima» si se sabe, y «2 vestidos» si no", () => {
+    expect(queDebe({ pendiente: 2, categoria: "Vestidos", prenda: "Vestido Lima" })).toBe("2 Vestido Lima");
+    expect(queDebe({ pendiente: 2, categoria: "Vestidos", prenda: null })).toBe("2 vestidos");
+    expect(queDebe({ pendiente: 2, categoria: "Vestidos" })).toBe("2 vestidos");
+    expect(prendasDeLaDeuda(1250, { categoria: "Vestidos", prenda: "Vestido Lima" })).toBe("1,250 Vestido Lima");
+  });
+
+  it("su nombre largo usa la prenda antes que lo que decía la línea", () => {
+    expect(nombreDeDeuda({ categoria: "Vestidos", marca: "CAYLA", descripcion: "vestido lima azul", prenda: "Vestido Lima" })).toBe("Vestidos · CAYLA · Vestido Lima");
+    expect(nombreDeDeuda({ categoria: "Vestidos", marca: "CAYLA", descripcion: "vestido lima azul", prenda: null })).toBe("Vestidos · CAYLA · vestido lima azul");
+  });
+
+  it("el aviso de la orden nueva pide las prendas por su nombre, y lo que no tiene nombre por su categoría", () => {
+    const leido = leerResumenNosDebe([
+      { proveedor_id: "p", unidades: 6, detalle: [{ categoria: "Vestidos", unidades: 5, prendas: [{ nombre: "Vestido Lima", unidades: 2 }, { nombre: "Vestido Sofía", unidades: 1 }] }, { categoria: "Polos", unidades: 1, prendas: [] }] },
+    ]).p;
+    expect(leido.detalle[0].prendas).toEqual([{ nombre: "Vestido Lima", unidades: 2 }, { nombre: "Vestido Sofía", unidades: 1 }]);
+    expect(queDebeElProveedor({ unidades: 5, detalle: [{ categoria: "Vestidos", unidades: 3, prendas: [{ nombre: "Vestido Lima", unidades: 2 }, { nombre: "Vestido Sofía", unidades: 1 }] }, { categoria: "Polos", unidades: 2 }] })).toBe("2 Vestido Lima, 1 Vestido Sofía y 2 prendas más");
+    expect(queDebeElProveedor({ unidades: 3, detalle: [{ categoria: "Vestidos", unidades: 3, prendas: [{ nombre: "Vestido Lima", unidades: 2 }, { nombre: "Vestido Sofía", unidades: 1 }] }] })).toBe("2 Vestido Lima y 1 Vestido Sofía");
+  });
+
+  it("sin prendas, el aviso dice lo de siempre", () => {
+    expect(leerResumenNosDebe([{ proveedor_id: "p", unidades: 2, detalle: [{ categoria: "Chompas", unidades: 2 }] }]).p.detalle).toEqual([{ categoria: "Chompas", unidades: 2 }]);
+    expect(queDebeElProveedor({ unidades: 2, detalle: [{ categoria: "Chompas", unidades: 2 }] })).toBe("2 chompas");
+  });
+
+  it("la recepción junta las prendas de sus filas, la que más se debe primero", () => {
+    const base = { proveedor_id: "p", categoria_id: "c", marca_id: "m" };
+    const r = leerDeudasDelEnvio([
+      { ...base, pendiente: 2, prendas: [{ nombre: "Vestido Lima", unidades: 2 }] },
+      { ...base, pendiente: 4, prendas: [{ nombre: "Vestido Sofía", unidades: 3 }, { nombre: "Vestido Lima", unidades: 1 }] },
+    ]);
+    expect(r?.[0].prendas).toEqual([{ nombre: "Vestido Lima", unidades: 3 }, { nombre: "Vestido Sofía", unidades: 3 }]);
+    expect(r?.[0].pendiente).toBe(6);
+    expect(leerDeudasDelEnvio([{ ...base, pendiente: 2 }])?.[0].prendas).toBeUndefined();
+  });
+
+  it("la opción de la reposición nombra lo que se debe, y si queda algo sin nombre también lo dice", () => {
+    const r = opcionReposicion(3, "Textiles Andina", { categoria: "Vestidos", marca: "CAYLA", prendas: [{ nombre: "Vestido Lima", unidades: 2 }, { nombre: "Vestido Sofía", unidades: 1 }] });
+    expect(r.ayuda).toBe("Se descuentan de lo que Textiles Andina te debe (2 Vestido Lima y 1 Vestido Sofía por reponer).");
+    expect(r.aviso).toContain("Textiles Andina te debe 2 Vestido Lima y 1 Vestido Sofía de un envío anterior");
+    expect(opcionReposicion(3, "Textiles Andina", { categoria: "Vestidos", prendas: [{ nombre: "Vestido Lima", unidades: 2 }] }).ayuda).toContain("(2 Vestido Lima y 1 vestido por reponer)");
+    expect(opcionReposicion(2, "Textiles Andina", { categoria: "Chompas", marca: "CAYLA" }).ayuda).toContain("(2 chompas CAYLA por reponer)");
   });
 });
