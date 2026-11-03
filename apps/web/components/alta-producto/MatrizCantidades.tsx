@@ -4,8 +4,10 @@ import { useRef, useState, type InputHTMLAttributes, type KeyboardEvent, type Re
 import { Punto } from "./Punto";
 import { SegmentoDeslizante } from "../ui/SegmentoDeslizante";
 import { PasoCantidad } from "../ui/PasoCantidad";
+import { Aviso } from "../ui/Aviso";
 import { RAYADO_FUERA } from "./rayado";
-import { limpiarCantidad, type CeldaAlta } from "../../lib/alta-producto";
+import { useCantidadEscrita } from "./useCantidadEscrita";
+import { leerCantidad, limpiarCantidad, textoCantidadRechazada, type CeldaAlta } from "../../lib/alta-producto";
 import { fondoDeMuestra } from "../../lib/colores-familias";
 import {
   cambiosDeRelleno,
@@ -31,8 +33,8 @@ import {
 // ahora con una caja por celda. Misma forma a propósito: quien acaba de armar la tabla reconoce cada celda sin volver
 // a leerla. Un segmento arriba decide qué se escribe en ella (las mismas tres que Editar producto, `MatrizStockFicha`):
 //
-//   * «Cuántas tienes hoy» (la carga inicial, ADR-0212): vacío = 0; solo dígitos, hasta 4 (una cantidad imposible ni se
-//     tipea); total por color, por talla y general (la fila «Total» queda fija abajo). «Llenar todas con [n]» pone la
+//   * «Cuántas tienes hoy» (la carga inicial, ADR-0212): vacío = 0; lo que no es un entero de 0 a 9999 se ve en rojo y no
+//     llega a la pantalla (`useCantidadEscrita`); total por color, por talla y general (la fila «Total» queda fija abajo). «Llenar todas con [n]» pone la
 //     misma cantidad en todas las celdas de un golpe (72 en el peor caso real) y después se corrige a mano lo distinto;
 //   * «Precios»: una caja de precio por celda; vacía = el precio de venta (su placeholder); la que difiere se ve en ámbar.
 //     Antes esto vivía en la tabla de variantes, con un botón «Poner un precio distinto»;
@@ -113,6 +115,9 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
 
   const [modo, setModo] = useState<Modo>("cantidades");
   const [relleno, setRelleno] = useState("");
+  const escrita = useCantidadEscrita();
+  // Las celdas al entrar a «Llenar todas con»: adonde vuelven si lo que se escribe ahí no es una cantidad.
+  const antesDelRelleno = useRef(cantidades);
   // Las cajas de las celdas, para que el teclado sepa a cuál llevar el cursor. Solo se llena con `teclado` (un ref no se dibuja: el HTML no cambia).
   const campos = useRef(new Map<string, HTMLInputElement>());
 
@@ -130,13 +135,16 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
   const baseCosto = Number(costoBase) > 0 ? Number(costoBase).toFixed(2) : "0.00";
   const enCostos = modo === "costos";
   const porTalla = teclado ? columnasEditables(filas, columnas, celdas, excluidas) : [];
+  const rellenoInvalido = leerCantidad(relleno) === null;
+  const problema = rellenoInvalido ? textoCantidadRechazada(relleno, false) : escrita.problema;
 
   // Se aplica (o se borra) sola, en cada tecla: ya no hay un «Aplicar» que presionar ni que mis-clickear.
   function escribirRelleno(valor: string) {
     const limpio = limpiarCantidad(valor);
     setRelleno(limpio);
+    escrita.olvidar();
     // Vaciar la caja deja vacías las celdas en Nuevo producto (el reverso de llenarlas); en la orden no toca nada: una tecla de más no debe borrar lo escrito (`cambiosDeRelleno`).
-    for (const { clave, valor: v } of cambiosDeRelleno(celdas, excluidas, limpio, !solo)) onCantidad(clave, v);
+    for (const { clave, valor: v } of cambiosDeRelleno(celdas, excluidas, limpio, !solo, antesDelRelleno.current)) onCantidad(clave, v);
   }
 
   // El cursor se mueve con Enter y las flechas (ver `movimientoDeTecla`). Enter NUNCA envía el formulario desde una celda, aunque no haya a dónde ir (la última): quien sigue
@@ -181,19 +189,31 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            maxLength={4}
+            maxLength={7}
             autoComplete="off"
             placeholder="1"
             value={relleno}
             tabIndex={enCantidades ? undefined : -1}
+            aria-invalid={rellenoInvalido || undefined}
             data-sin-cursor={solo ? "" : undefined}
             onChange={(e) => escribirRelleno(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
+            onFocus={(e) => {
+              antesDelRelleno.current = cantidades;
+              e.currentTarget.select();
+            }}
+            onBlur={() => {
+              // Lo que no es una cantidad no llenó nada: la caja queda vacía y las celdas, como estaban (si no, seguiría en rojo, y en «Precios» estaría escondida).
+              if (!rellenoInvalido) return;
+              escrita.rechazar(relleno);
+              setRelleno("");
+            }}
             onKeyDown={(e) => {
               // Ya se aplica sola en cada tecla: Enter solo evita que envíe el formulario del alta.
               if (e.key === "Enter") e.preventDefault();
             }}
-            className="h-10 w-[72px] rounded-[9px] border border-borde-control bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe"
+            className={`h-10 w-[72px] rounded-[9px] border ${rellenoInvalido ? "border-rojo" : "border-borde-control"} bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 ${
+              rellenoInvalido ? "focus:border-rojo" : "focus:border-taupe"
+            }`}
           />
         </div>
       </div>
@@ -291,6 +311,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                     const propio = (enCostos ? costos[cel.clave] : precios[cel.clave]) ?? "";
                     const distinto = enCostos ? costoDistinto(propio, costoBase) : precioDistinto(propio, precioBase);
                     const valorCelda = cantidades[cel.clave] ?? "";
+                    const invalida = escrita.invalida(cel.clave);
                     // El número de la celda: el mismo con − y + (Nuevo producto) que sin ellos (la orden de producción, que se carga tecleando).
                     const numero: CampoNumero = {
                       ref: teclado
@@ -302,14 +323,19 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                       type: "text",
                       inputMode: "numeric",
                       pattern: "[0-9]*",
-                      maxLength: 4,
+                      maxLength: 7,
                       autoComplete: "off",
                       "aria-label": `${preguntaCelda} ${etiqueta}`,
+                      "aria-invalid": invalida || undefined,
                       title: tituloDe?.(cel.clave),
                       placeholder: fantasma ? fantasma(cel.clave) : "0",
-                      value: valorCelda,
-                      onChange: (e) => onCantidad(cel.clave, limpiarCantidad(e.target.value)),
-                      onFocus: (e) => e.currentTarget.select(),
+                      value: escrita.texto(cel.clave) ?? valorCelda,
+                      onChange: (e) => escrita.escribir(cel.clave, e.target.value, valorCelda, (v) => onCantidad(cel.clave, v)),
+                      onFocus: (e) => {
+                        escrita.empezar(cel.clave, valorCelda);
+                        e.currentTarget.select();
+                      },
+                      onBlur: () => escrita.terminar(cel.clave),
                       onKeyDown: teclado ? (e) => alTeclear(e, cel.clave) : undefined,
                     };
                     return (
@@ -323,14 +349,34 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                             <PasoCantidad
                               tamano="celda"
                               sinTab
-                              menos={{ onClick: () => onCantidad(cel.clave, pasoCantidad(valorCelda, -1)), deshabilitado: valorCelda === "", etiqueta: `Restar a ${etiqueta}` }}
-                              mas={{ onClick: () => onCantidad(cel.clave, pasoCantidad(valorCelda, 1)), etiqueta: `Sumar a ${etiqueta}` }}
+                              tono={invalida ? "error" : undefined}
+                              menos={{
+                                onClick: () => {
+                                  escrita.olvidar();
+                                  onCantidad(cel.clave, pasoCantidad(valorCelda, -1));
+                                },
+                                deshabilitado: valorCelda === "",
+                                etiqueta: `Restar a ${etiqueta}`,
+                              }}
+                              mas={{
+                                onClick: () => {
+                                  escrita.olvidar();
+                                  onCantidad(cel.clave, pasoCantidad(valorCelda, 1));
+                                },
+                                etiqueta: `Sumar a ${etiqueta}`,
+                              }}
                               // El «0» de una celda vacía es un fantasma a propósito (25 %): la tabla se lee por lo que SÍ se cargó.
                               campo={{ ...numero, className: "placeholder:text-tinta/25" }}
                             />
                           ) : enCantidades ? (
                             // La orden de producción no lleva − ni +: es una caja para escribir, no un paso de cantidad.
-                            <span className="inline-flex items-center gap-0.5 rounded-[7px] border border-borde-control bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel">
+                            <span
+                              className={
+                                invalida
+                                  ? "inline-flex items-center gap-0.5 rounded-[7px] border border-rojo bg-papel pl-0.5 pr-0.5"
+                                  : "inline-flex items-center gap-0.5 rounded-[7px] border border-borde-control bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel"
+                              }
+                            >
                               <input
                                 {...numero}
                                 // El número gris DICE algo (lo que sugiere la red): más legible que el «0» de siempre (3,6:1 en claro y 4,7:1 en oscuro, antes 1,7 y 2,1).
@@ -394,6 +440,12 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
           )}
         </table>
       </div>
+
+      {enCantidades && problema && (
+        <Aviso tono="atencion" chico>
+          {problema}
+        </Aviso>
+      )}
     </div>
   );
 }

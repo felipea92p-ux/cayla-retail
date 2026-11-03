@@ -95,6 +95,8 @@ export type DeudaProveedor = {
   marca: string | null;
   marcaId: string | null;
   descripcion: string | null;
+  /** Qué prenda se debe (ADR-0604): la devuelta, la del catálogo o lo que se anotó al comprar. `null` si la línea no lo decía, o la base todavía no lo sabe. */
+  prenda: string | null;
   /** Lo que faltó. */
   cantidad: number;
   /** Lo que ya llegó (o se resolvió de otra forma). */
@@ -160,6 +162,7 @@ function leerDeuda(f: unknown): DeudaProveedor | null {
     marca: nombreDe(r.marca),
     marcaId: idDe(r, "marca"),
     descripcion: texto(r.descripcion),
+    prenda: nombreDe(r.prenda),
     cantidad,
     resuelto,
     pendiente,
@@ -230,9 +233,29 @@ export type ResumenNosDebe = {
   nombre: string | null;
   unidades: number;
   monto: number;
-  /** Qué debe, por categoría («2 chompas, 1 polo»), si la base lo dice; vacío si no. */
-  detalle: { categoria: string; unidades: number }[];
+  /** Qué debe, por categoría («2 chompas, 1 polo»), si la base lo dice; vacío si no. `prendas`: de esas, las que se sabe cuáles son (ADR-0604). */
+  detalle: { categoria: string; unidades: number; prendas?: PrendaDebida[] }[];
 };
+
+/** Una prenda que el proveedor debe, con su nombre: «2 Vestido Lima». */
+export type PrendaDebida = { nombre: string; unidades: number };
+
+/** Lee las prendas que manda la base; sin ninguna (o sin saberlo), lista vacía. */
+function leerPrendasDebidas(v: unknown): PrendaDebida[] {
+  return lista(v).flatMap((f) => {
+    const p = objeto(f);
+    const nombre = p ? texto(p.nombre) : null;
+    const unidades = p ? cifra(p.unidades) : null;
+    return nombre && unidades != null && unidades > 0 ? [{ nombre, unidades }] : [];
+  });
+}
+
+/** Junta prendas de varias filas (la misma en dos marcas o dos deudas), la que más se debe primero. */
+function juntarPrendasDebidas(prendas: readonly PrendaDebida[]): PrendaDebida[] {
+  const porNombre = new Map<string, number>();
+  for (const p of prendas) porNombre.set(p.nombre, (porNombre.get(p.nombre) ?? 0) + p.unidades);
+  return [...porNombre.entries()].map(([nombre, unidades]) => ({ nombre, unidades })).sort((a, b) => b.unidades - a.unidades || a.nombre.localeCompare(b.nombre, "es"));
+}
 
 /** Lee `fn_nos_debe_resumen`: por proveedor, lo pendiente. Un proveedor sin nada pendiente no entra (no hay nada que avisar). */
 export function leerResumenNosDebe(data: unknown): Record<string, ResumenNosDebe> {
@@ -248,14 +271,21 @@ export function leerResumenNosDebe(data: unknown): Record<string, ResumenNosDebe
     // La base lo manda por categoría Y marca; el aviso habla de categorías («2 chompas»): se juntan, la que más debe primero (a igual
     // cantidad, por nombre).
     const porCategoria = new Map<string, number>();
+    const prendasPorCategoria = new Map<string, PrendaDebida[]>();
     for (const x of lista(r.detalle ?? r.categorias)) {
       const c = objeto(x);
       const categoria = c ? (nombreDe(c.categoria) ?? texto(c.nombre)) : null;
       const n = c ? (cifra(c.unidades) ?? cifra(c.pendiente)) : null;
-      if (categoria && n != null && n > 0) porCategoria.set(categoria, (porCategoria.get(categoria) ?? 0) + n);
+      if (categoria && n != null && n > 0) {
+        porCategoria.set(categoria, (porCategoria.get(categoria) ?? 0) + n);
+        prendasPorCategoria.set(categoria, [...(prendasPorCategoria.get(categoria) ?? []), ...leerPrendasDebidas(c?.prendas)]);
+      }
     }
     const detalle = [...porCategoria.entries()]
-      .map(([categoria, n]) => ({ categoria, unidades: n }))
+      .map(([categoria, n]) => {
+        const prendas = juntarPrendasDebidas(prendasPorCategoria.get(categoria) ?? []);
+        return prendas.length > 0 ? { categoria, unidades: n, prendas } : { categoria, unidades: n };
+      })
       .sort((a, b) => b.unidades - a.unidades || a.categoria.localeCompare(b.categoria, "es"));
     out[proveedorId] = {
       proveedorId,
@@ -325,12 +355,16 @@ export function cantidadDePrendas(n: number, categoria: string | null | undefine
 }
 
 /** «Chompas · CAYLA · Chompa cuello alto»: lo que se debe, como se nombra la línea de una orden. */
-export function nombreDeDeuda(d: Pick<DeudaProveedor, "categoria" | "marca" | "descripcion">): string {
-  return [d.categoria, d.marca, d.descripcion].filter(Boolean).join(" · ") || "Prendas";
+export function nombreDeDeuda(d: Pick<DeudaProveedor, "categoria" | "marca" | "descripcion"> & Partial<Pick<DeudaProveedor, "prenda">>): string {
+  return [d.categoria, d.marca, d.prenda ?? d.descripcion].filter(Boolean).join(" · ") || "Prendas";
 }
 
-/** «2 chompas»: lo que todavía falta reponer. */
-export const queDebe = (d: Pick<DeudaProveedor, "pendiente" | "categoria">): string => cantidadDePrendas(d.pendiente, d.categoria);
+/** «2 Vestido Lima» si se sabe qué prenda es (ADR-0604); si no, «2 vestidos». */
+export const prendasDeLaDeuda = (n: number, d: Pick<DeudaProveedor, "categoria"> & Partial<Pick<DeudaProveedor, "prenda">>): string =>
+  d.prenda ? `${n.toLocaleString("es-PE")} ${d.prenda}` : cantidadDePrendas(n, d.categoria);
+
+/** «2 Vestido Lima» o «2 chompas»: lo que todavía falta reponer. */
+export const queDebe = (d: Pick<DeudaProveedor, "pendiente" | "categoria"> & Partial<Pick<DeudaProveedor, "prenda">>): string => prendasDeLaDeuda(d.pendiente, d);
 
 /** «hoy», «ayer», «hace 3 días», «hace 2 meses». Sin fecha, nada. */
 export function cuandoFue(fecha: string | null | undefined, hoy: string): string | null {
@@ -423,14 +457,25 @@ export function textoDeResolucion(r: ResolucionDeuda, hoy: string): string {
   return [como, r.por, cuando].filter(Boolean).join(" · ");
 }
 
-/** «2 chompas y 1 polo», «2 chompas, 1 polo y 3 prendas más» o «3 prendas»: lo que debe un proveedor, para el aviso de la orden nueva. */
-export function queDebeElProveedor(r: Pick<ResumenNosDebe, "unidades" | "detalle">): string {
-  const partes = r.detalle.filter((x) => x.unidades > 0);
-  if (partes.length === 0) return cantidadDePrendas(r.unidades, null);
-  const primeras = partes.slice(0, 2).map((x) => cantidadDePrendas(x.unidades, x.categoria));
+/** «2 Vestido Lima y 1 Vestido Sofía», «2 Vestido Lima, 1 Vestido Sofía y 3 prendas más»: las dos que más se deben y cuántas más. */
+function enUnaFrase(partes: readonly { unidades: number; texto: string }[]): string {
+  const primeras = partes.slice(0, 2).map((x) => x.texto);
   const resto = partes.slice(2).reduce((a, x) => a + x.unidades, 0);
-  const todas = resto > 0 ? [...primeras, `${cantidadDePrendas(resto, null)} más`] : primeras;
-  return new Intl.ListFormat("es", { type: "conjunction" }).format(todas);
+  return new Intl.ListFormat("es", { type: "conjunction" }).format(resto > 0 ? [...primeras, `${cantidadDePrendas(resto, null)} más`] : primeras);
+}
+
+/** Lo que se debe de una categoría: las prendas que se sabe cuáles son y, si queda algo sin nombre, «2 vestidos». */
+function partesDeLaCategoria(unidades: number, categoria: string | null | undefined, prendas: readonly PrendaDebida[] = []): { unidades: number; texto: string }[] {
+  const conNombre = prendas.map((p) => ({ unidades: p.unidades, texto: `${p.unidades.toLocaleString("es-PE")} ${p.nombre}` }));
+  const sinNombre = unidades - prendas.reduce((a, p) => a + p.unidades, 0);
+  return sinNombre > 0 ? [...conNombre, { unidades: sinNombre, texto: cantidadDePrendas(sinNombre, categoria) }] : conNombre;
+}
+
+/** «2 chompas y 1 polo», «2 Vestido Lima y 1 polo», «2 chompas, 1 polo y 3 prendas más» o «3 prendas»: lo que debe un proveedor, para el aviso de la orden nueva. */
+export function queDebeElProveedor(r: Pick<ResumenNosDebe, "unidades" | "detalle">): string {
+  const partes = r.detalle.filter((x) => x.unidades > 0).flatMap((x) => partesDeLaCategoria(x.unidades, x.categoria, x.prendas));
+  if (partes.length === 0) return cantidadDePrendas(r.unidades, null);
+  return enUnaFrase(partes);
 }
 
 /** El aviso de la orden nueva: «Textiles Andina SAC te debe 2 chompas (S/ 84.00) por reponer». */
@@ -536,7 +581,7 @@ export function leerResultadoResolucion(data: unknown): ResultadoResolucion | nu
 /** El aviso de éxito: «Textiles Andina SAC ya no te debe esas chompas» o «Todavía te debe 1 chompa». */
 export function detalleDeReposicion(proveedor: string, d: Pick<DeudaProveedor, "pendiente" | "categoria">, anotadas: number, r: ResultadoResolucion | null): string {
   const queda = r?.pendiente ?? Math.max(0, d.pendiente - anotadas);
-  return queda > 0 ? `Todavía te debe ${cantidadDePrendas(queda, d.categoria)} de esto.` : `${proveedor} ya no te debe nada de esto.`;
+  return queda > 0 ? `Todavía te debe ${prendasDeLaDeuda(queda, d)} de esto.` : `${proveedor} ya no te debe nada de esto.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -1010,6 +1055,8 @@ export type DeudaDelEnvio = {
   pendiente: number;
   /** El costo por unidad de la deuda más antigua (la que se salda primero): precarga el de lo que no estaba en la guía. */
   costoUnitario: number | null;
+  /** De eso, qué prendas se deben (ADR-0604): la recepción las nombra al ofrecer la reposición. */
+  prendas?: PrendaDebida[];
 };
 
 export const claveDeuda = (proveedorId: string, categoriaId: string, marcaId: string): string => `${proveedorId}|${categoriaId}|${marcaId}`;
@@ -1033,7 +1080,8 @@ export function leerDeudasDelEnvio(data: unknown): DeudaDelEnvio[] | null {
     const previa = porClave.get(clave);
     // Las filas llegan de la deuda más antigua a la más nueva: se queda el primer costo que haya.
     const costo = cifra(r.costo_unitario) ?? cifra(r.costo);
-    porClave.set(clave, { proveedorId, categoriaId, marcaId, pendiente: (previa?.pendiente ?? 0) + pendiente, costoUnitario: previa?.costoUnitario ?? costo });
+    const prendas = juntarPrendasDebidas([...(previa?.prendas ?? []), ...leerPrendasDebidas(r.prendas)]);
+    porClave.set(clave, { proveedorId, categoriaId, marcaId, pendiente: (previa?.pendiente ?? 0) + pendiente, costoUnitario: previa?.costoUnitario ?? costo, ...(prendas.length > 0 ? { prendas } : {}) });
   }
   return [...porClave.values()];
 }
@@ -1100,10 +1148,11 @@ export const TEXTO_REPOSICION = "Es la reposición de lo que faltó";
 export function opcionReposicion(
   pendiente: number,
   proveedor: string | null,
-  que: { categoria?: string | null; marca?: string | null } = {},
+  que: { categoria?: string | null; marca?: string | null; prendas?: readonly PrendaDebida[] } = {},
 ): { valor: typeof VALOR_REPOSICION; texto: string; ayuda: string; aviso: string } {
   const quien = proveedor ?? "Este proveedor";
-  const cuantas = loQueSeDebe(pendiente, que.categoria, que.marca);
+  // Si se sabe qué prendas son, se nombran: «Es la reposición» se contesta mirando la prenda que se tiene en la mano.
+  const cuantas = que.prendas?.length ? enUnaFrase(partesDeLaCategoria(pendiente, que.categoria, que.prendas)) : loQueSeDebe(pendiente, que.categoria, que.marca);
   return {
     valor: VALOR_REPOSICION,
     texto: TEXTO_REPOSICION,

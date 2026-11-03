@@ -148,8 +148,6 @@ Estas pantallas ya llevan el vidrio de todas las piezas del sistema que usan (ca
 insignias, vacíos, hojas): lo que les falta es revisar **sus piezas propias**, una por una, con lo de 4.1.
 
 - **Salud del negocio** (`/global`).
-- **Producción:** Resumen (`/produccion`) · Abastecimiento: Órdenes de insumos (`/ordenes-insumos`), Proveedores (`/produccion/proveedores`),
-  Facturas de insumos (`/produccion/comprobantes`), Recibir (`/produccion/recibir`), Por pagar (`/produccion/por-pagar`).
 - **Gestión:** Análisis (`/gestion/analisis`, ADR-0357, con su movimiento propio).
 - **Clientes:** Avisos (`/clientas/avisos`) y Beneficios (`/clientas/beneficios`).
 - **Administración:** Colaboradores ▸ Roles y accesos, Actividad.
@@ -162,6 +160,8 @@ insignias, vacíos, hojas): lo que les falta es revisar **sus piezas propias**, 
 - **Configuración** (`app/estilos/vidrio/pantalla-en-vidrio.css`, 2026-11-02): sus 8 pestañas (Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos, Reparto CLAURE). Son del kit de Finanzas: el bloque es la placa Serena, el campo y el combo el pozo, y la tabla sin rayado y con su hilo, como `<Tabla>`. La misma pieza la usa Tienda web; un grupo nuevo solo pone `.pantalla-en-vidrio` en su layout. Finanzas sigue en papel (El telar). **Falta:** en las hojas de Configuración, los campos y combos del kit (`fin-control`) siguen en hueso: la regla de las hojas (hoja.css) no los alcanza.
 
 - **Compras** (`.pantalla-en-vidrio` en `app/(app)/compras/layout.tsx`, 2026-11-03): todo el grupo. Lo nuevo: Historial, Revisar compras y Por pagar, las pantallas de una factura y de un proveedor, Órdenes de compra (lista, una orden, nueva, editar, registrar compra, enviar), Apunte de compras, Mis envíos y las pestañas de Plan de campaña (Presupuesto, Cuándo se paga, Calendario, Resultados, Historial). Plan, Mis compras y Proveedores ya tenían su maqueta: lo único que les cambia es que sus bloques de papel pasan a la placa. La pieza respeta la tarjeta de cifra, la tarjeta elegida (se hunde), el filo de color de una tarjeta y el borde de lo que se toca. Medida con `tema:auditar` en 15 rutas, y con datos en un banco local cuyas migraciones llegan hasta el 2026-10-24. **Por decidir (Felipe):** el botón verde sólido «Pagado» de una factura (`CompraDetallePanel.tsx`), que repite la insignia «Pagada» y no calza con ninguna pieza elegida.
+
+- **Producción** (`.pantalla-en-vidrio` en `app/(app)/produccion/layout.tsx` y `app/(app)/ordenes-insumos/layout.tsx`, 2026-11-03): Resumen, Eficiencia, Cotizaciones de maquila, y Abastecimiento (Órdenes de insumos, Proveedores, Facturas de insumos, Recibir y Por pagar). Órdenes e Insumos conservan la cara elegida en su maqueta: la pieza compartida quedó con `:where()` y se importa antes que los archivos de cada pantalla, para que lo elegido le gane siempre. El botón `<BotonCompacto variante="primario">` pasa al ahumado en todo el ERP. Medida con `tema:auditar` en 12 rutas. Sin ver con datos: Facturas de insumos y Por pagar del Taller (ninguna base local tiene facturas de producción), y Recibir con órdenes pendientes.
 
 **Fuera, hasta que Felipe diga** (diseño propio decidido, ver más abajo): la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock,
 la persiana de Caja, Finanzas (El telar, ADR-0493), el login, las guías interactivas, y lo que es papel o cámara.

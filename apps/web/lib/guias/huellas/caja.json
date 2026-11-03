@@ -2,19 +2,10 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 111,
+  "total": 113,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
-    ],
-    "components/AbrirCajaFormV2.tsx": [
-      "input «0.00»",
-      "input «Ej.: se usó para vuelto antes de abrir»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "Boton «{responsable.motivo ?? undefined}» #2",
-      "button «→onElegir»"
     ],
     "components/BarraCierreCaja.tsx": [
       "button «Cerrar caja»",
@@ -149,6 +140,19 @@
       "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
       "Boton «→guardar»"
+    ],
+    "components/caja/AbrirCajaPantalla.tsx": [
+      "input «0.00»",
+      "Boton «Igual al cierre ·»",
+      "input «Ej.: se usó para dar vuelto»",
+      "button «Contar billetes y monedas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "BotonEnlace «Ir a vender»",
+      "Boton «Ver la caja»"
+    ],
+    "components/caja/ContarCajonHoja.tsx": [
+      "Boton «Usar este total»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

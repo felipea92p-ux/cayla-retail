@@ -13,17 +13,16 @@
 // y marca, y lo que entra al stock entra por prenda. Y sin separar nada, la categoría solo puede faltar o solo sobrar, nunca las dos.
 
 import type { CampoDeGuia } from "./guia-campos";
+import type { PrendaDebida } from "./nos-debe-reglas";
 import {
   SEPARADO_VACIO,
   causasDe,
   contadasDe,
   diferenciaDe,
-  estaSeparada,
   idCampoCierre,
   marcaDeLinea,
   nuevasSinDescribir,
   prendasAnotadasDe,
-  textoPrendas,
   totalSeparado,
   type ClaveLinea,
   type ConteoDeLinea,
@@ -297,7 +296,7 @@ export function lineaDelGrupo(g: GrupoDeLineas): LineaParaContar {
 /** Lo que pasó con lo que no cuadró en una categoría: una causa para lo que faltó y otra para lo que sobró (casi siempre solo una). */
 export type CausaDelGrupo = {
   tipo: "faltante" | "sobrante";
-  opciones: { valor: string; texto: string; ayuda: string }[];
+  opciones: { valor: string; texto: string; ayuda: string; aviso?: string }[];
   /** Las líneas a las que esta causa se aplica: todas las que faltaron (o sobraron). */
   lineas: LineaParaContar[];
   cantidad: number;
@@ -307,10 +306,10 @@ export type CausaDelGrupo = {
  * Qué hay que explicar al cerrar una categoría. Cada línea sigue guardando su propia causa (la base las pide por línea), pero la persona
  * contesta una sola vez por tipo: lo que se elige vale para todas las líneas que faltaron (o sobraron).
  */
-export function causasDelGrupo(g: GrupoDeLineas, deudaPendiente: number, sinAviso: boolean): CausaDelGrupo[] {
+export function causasDelGrupo(g: GrupoDeLineas, deudaPendiente: number, sinAviso: boolean, prendasDebidas: readonly PrendaDebida[] = []): CausaDelGrupo[] {
   const por = new Map<CausaDelGrupo["tipo"], CausaDelGrupo>();
   for (const l of g.lineas) {
-    const c = causasDe(l, deudaPendiente, sinAviso);
+    const c = causasDe(l, deudaPendiente, sinAviso, prendasDebidas);
     if (!c || !l.conteo) continue;
     const dif = diferenciaDe(l);
     const cantidad = c.tipo === "faltante" ? -(dif ?? 0) : (dif ?? contadasDe(l));
@@ -323,6 +322,30 @@ export function causasDelGrupo(g: GrupoDeLineas, deudaPendiente: number, sinAvis
     }
   }
   return (["faltante", "sobrante"] as const).flatMap((t) => (por.has(t) ? [por.get(t) as CausaDelGrupo] : []));
+}
+
+/**
+ * ¿Esta fila de Cerrar pide algo? Lo que falta contar, lo que no cuadró y el costo de lo que no estaba en la guía (`editaCostoFuera`: en un envío sin aviso, solo quien ve el dinero de Compras lo
+ * escribe). Es lo mismo que pide `camposDelCierre`, sin mirar lo ya contestado: una fila no se va de su lugar bajo el mouse al elegir qué pasó.
+ */
+export function grupoPideDecision(g: GrupoDeLineas, sinAviso: boolean, editaCostoFuera: boolean): boolean {
+  return g.lineas.some((l) => l.linea && !l.conteo) || causasDelGrupo(g, 0, sinAviso).length > 0 || (!g.principal.linea && g.contadas > 0 && editaCostoFuera);
+}
+
+/** Con más filas que estas, lo que no pide nada se pliega y sus precios nacen cerrados: con 75 líneas, Cerrar medía casi 16.000 px. Con menos, se ve todo como siempre. */
+export const FILAS_DE_CIERRE_A_LA_VISTA = 6;
+
+/** Qué se muestra de Cerrar: primero lo que pide una decisión; lo demás, plegado si son muchas (`plegar`). */
+export function filasDelCierre(grupos: readonly GrupoDeLineas[], sinAviso: boolean, editaCostoFuera: boolean): { piden: GrupoDeLineas[]; cuadran: GrupoDeLineas[]; plegar: boolean } {
+  const piden = grupos.filter((g) => grupoPideDecision(g, sinAviso, editaCostoFuera));
+  const cuadran = grupos.filter((g) => !grupoPideDecision(g, sinAviso, editaCostoFuera));
+  return { piden, cuadran, plegar: grupos.length > FILAS_DE_CIERRE_A_LA_VISTA && cuadran.length > 1 };
+}
+
+/** Lo que dice la franja que abre lo plegado. Si algo adentro cambió, lo dice: que no quede escondido lo que va a guardarse al cerrar. */
+export function textoDeLasPlegadas(cuadran: number, conCambios: number, sinAviso: boolean, nadaPide: boolean): string {
+  const cuantas = sinAviso ? `Ver las otras ${cuadran}` : nadaPide ? `Todas cuadran: ver las ${cuadran}` : `Ver las ${cuadran} que cuadran`;
+  return conCambios > 0 ? `${cuantas} · ${conCambios} con cambios` : cuantas;
 }
 
 /**

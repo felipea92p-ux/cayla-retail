@@ -6,7 +6,6 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
@@ -51,6 +50,7 @@ import {
   categoriasDelFiltro,
   categoriasEnOrden,
   cifrasDelResumen,
+  claveDeCategoria,
   claveDeNombre,
   claveDeParada,
   conMiles,
@@ -75,13 +75,14 @@ import {
   type ParadaDelConteo,
   type TipoDeModelo,
 } from "@/lib/recepcion-modelos-reglas";
-import { borradorDeTallas, mismasVariantes, tallasListas, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
+import { ElegirQuienCuenta } from "./ElegirQuienCuenta";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
 import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { HojaTallas } from "./HojaTallas";
-import { PlacaDelModelo, type ModoDeTallas } from "./PlacaDelModelo";
+import { PlacaDelModelo } from "./PlacaDelModelo";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
 import { ResumenDelEnvio } from "./ResumenDelEnvio";
@@ -98,7 +99,7 @@ import { TiposDelEnvio } from "./TiposDelEnvio";
 const ID_CAMPO_QUIEN = "rc-quien-cuenta";
 
 type Hoja =
-  // «¿Era otra prenda?»: la hoja de tallas, donde se elige otra.
+  // «Cambiar de prenda»: la hoja de tallas, donde se elige otra.
   | { tipo: "tallas"; grupo: string; original: PrendaSeparada; prenda: PrendaRecepcion; parada: string }
   // `tabla`: la abrió la tabla de la placa para crear lo que la prenda no tiene, y vuelve a ella.
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"] }
@@ -149,10 +150,11 @@ export function ContarEnvio({
   onModos: setModos,
   tablas,
   onTablas: setTablas,
-  veDinero = true,
   onAgregar,
   onCerrar,
   lineaInicial = null,
+  focoPrevio = null,
+  onFoco,
 }: {
   detalle: DetalleEnvio;
   lineas: readonly LineaParaContar[];
@@ -181,12 +183,13 @@ export function ContarEnvio({
   onModos: Dispatch<SetStateAction<Readonly<Record<string, ModoDeTallas>>>>;
   tablas: Readonly<Record<string, BorradorTallas>>;
   onTablas: Dispatch<SetStateAction<Readonly<Record<string, BorradorTallas>>>>;
-  /** Ve el dinero de Compras: quien no, no ve el costo al crear una prenda. */
-  veDinero?: boolean;
   onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string | null }) => Promise<ClaveLinea | null>;
   onCerrar: () => void;
   /** Se llega desde Cerrar a contar una línea que faltó. */
   lineaInicial?: ClaveLinea | null;
+  /** Lo que se estaba contando antes de ir a Cerrar: al volver, ahí sigue (la prueba ciega volvía al primer modelo). */
+  focoPrevio?: string | null;
+  onFoco?: (clave: string | null) => void;
 }) {
   // Lo agregado en esta visita se ve aunque todavía esté en 0 (lo de fuera de la guía en 0 es «lo quitado»).
   const [agregados, setAgregados] = useState<ReadonlySet<string>>(new Set());
@@ -194,12 +197,12 @@ export function ContarEnvio({
   const [foco, setFoco] = useState<string | null>(() => {
     const inicio = categoriasDelEnvio(agruparLineas(lineasALaVista(lineas, new Set(), null))).flatMap((c) => c.paradas);
     const deLaLinea = lineaInicial ? inicio.filter((p) => lineasDeLaParada(p).some((l) => l.clave === lineaInicial)) : [];
-    return (deLaLinea.find((p) => !paradaContada(p)) ?? deLaLinea[0] ?? paradaEnFoco(inicio, null))?.clave ?? null;
+    return (deLaLinea.find((p) => !paradaContada(p)) ?? deLaLinea[0] ?? paradaEnFoco(inicio, focoPrevio))?.clave ?? null;
   });
   const [filtro, setFiltro] = useState<FiltroDelConteo>(SIN_FILTRO);
   const [orden, setOrden] = useState<OrdenDelConteo>(null);
-  // La persona plegó la categoría de lo que se cuenta: aquí, en qué parada lo hizo. Al pasar a contar otra cosa, se abre sola.
-  const [plegadaEn, setPlegadaEn] = useState<string | null>(null);
+  // Las categorías que la persona abrió o plegó a mano, que no cambian lo que se cuenta. Al pasar a contar otra cosa, la de antes y la de ahora vuelven a lo suyo; al filtrar, todas.
+  const [alternadas, setAlternadas] = useState<ReadonlySet<string>>(new Set());
   // Lo que llega con su número listo para escribir: viene de apretar Enter en lo anterior.
   const [escribirEn, setEscribirEn] = useState<string | null>(null);
   const [otraCosa, setOtraCosa] = useState(false);
@@ -224,6 +227,14 @@ export function ContarEnvio({
   const paradasDelEnvio = todas.flatMap((c) => c.paradas);
   // Lo que se cuenta es lo que se eligió, esté o no en la lista: si el filtro lo sacara mientras se le suma, el contador se iría bajo el dedo.
   const parada = paradaEnFoco(paradasDelEnvio, foco);
+  const categoriaEnFoco = parada ? claveDeCategoria(parada.grupo) : null;
+  const claveEnFoco = parada?.clave ?? null;
+  useEffect(() => onFoco?.(claveEnFoco), [claveEnFoco, onFoco]);
+  const [focoVisto, setFocoVisto] = useState({ parada: parada?.clave ?? null, categoria: categoriaEnFoco });
+  if (focoVisto.parada !== (parada?.clave ?? null)) {
+    setFocoVisto({ parada: parada?.clave ?? null, categoria: categoriaEnFoco });
+    setAlternadas((a) => new Set([...a].filter((k) => k !== focoVisto.categoria && k !== categoriaEnFoco)));
+  }
   const enAhora = new Set(Object.entries(modos).filter(([, m]) => m === "ahora").map(([k]) => k));
   const categorias = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
   const paradas = categorias.flatMap((c) => c.paradas);
@@ -258,7 +269,7 @@ export function ContarEnvio({
   }, [cursorEn]);
   const grupo = parada?.grupo ?? null;
   const lineasDeEsto = parada ? lineasDeLaParada(parada) : [];
-  const plegada = !!parada && plegadaEn === parada.clave;
+  const plegada = !!categoriaEnFoco && alternadas.has(categoriaEnFoco);
 
   // «Falta: Vestido Antonella» desde otra categoría (o escondido por el filtro, o con la categoría plegada): primero se abre esa categoría y recién después se lleva hasta él.
   const guia: GuiaCampos = {
@@ -266,7 +277,7 @@ export function ContarEnvio({
     ir: (id) => {
       const destino = paradasDelEnvio.find((p) => idCampoParada(p) === id) ?? paradasDelEnvio.find((p) => idCampoIdentificar(p.grupo.clave) === id);
       const despuesDeAbrir = () => requestAnimationFrame(() => requestAnimationFrame(() => guiaBase.ir(id)));
-      setPlegadaEn(null);
+      setAlternadas(new Set());
       if (destino && !paradas.some((p) => p.clave === destino.clave)) setFiltro(SIN_FILTRO);
       if (!destino || destino.grupo.clave === grupo?.clave) {
         if (destino && destino.modelo && idCampoParada(destino) === id) setFoco(destino.clave);
@@ -288,7 +299,8 @@ export function ContarEnvio({
         : undefined;
 
   function elegir(p: ParadaDelConteo, escribir = false) {
-    setPlegadaEn(null);
+    const suya = claveDeCategoria(p.grupo);
+    setAlternadas((a) => new Set([...a].filter((k) => k !== suya)));
     setOtraCosa(false);
     setTraerTallas(false);
     setErrorHoja(null);
@@ -306,11 +318,11 @@ export function ContarEnvio({
   /** Cambió el filtro: si lo que se cuenta ya no se ve, se pasa a lo primero sin contar de lo que se ve. Escribir en el buscador no cuenta: el contador cambiaba solo mientras se tecleaba (prueba ciega, 2026-11-02). */
   function cambiarFiltro(f: FiltroDelConteo) {
     setFiltro(f);
+    setAlternadas(new Set());
     if (f.texto !== filtro.texto) return;
     const nuevo = focoTrasElFiltro(categoriasEnOrden(categoriasDelFiltro(grupos, f, null, enAhora), orden), parada?.clave ?? null);
     if (nuevo !== (parada?.clave ?? null)) {
       setFoco(nuevo);
-      setPlegadaEn(null);
       setOtraCosa(false);
       setEscribirEn(null);
     }
@@ -318,10 +330,12 @@ export function ContarEnvio({
 
   /** Guarda lo que cambió en cada línea de la categoría (cada una se guarda sola, con su propio aviso). */
   function aplicar(r: Reparto) {
+    // El modelo que se está mirando sigue en su modo aunque este cambio le suelte las tallas: su tabla no se cierra mientras se escribe.
+    if (parada) setModos((ms) => modosAlCambiar(ms, parada.clave, !!prendaSeparada(parada)?.variantes));
     for (const c of r.cambios) onEscribir(c.linea, { contadas: c.contadas, separado: c.separado });
   }
 
-  const modoDe = (p: ParadaDelConteo): ModoDeTallas => modos[p.clave] ?? (p.modelo?.conTallas ? "ahora" : "despues");
+  const modoDe = (p: ParadaDelConteo): ModoDeTallas => modoDeTallas(modos[p.clave], !!p.modelo?.conTallas);
   const faltanTallas = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && modoDe(p) === "ahora";
   const coloresOrden = (catalogo?.colores ?? []).map((c) => c.codigo);
   const tallasDeLaCategoria = (g: GrupoDeLineas) => catalogo?.categorias.find((c) => c.id === g.principal.categoria?.id)?.tallas ?? [];
@@ -331,8 +345,8 @@ export function ContarEnvio({
   function escribirEnParada(p: ParadaDelConteo, n: number) {
     if (!p.modelo) return aplicar(repartirTotal(p.grupo, n));
     // Si lo repartido en su tabla ahora suma justo lo contado, se guarda con sus tallas.
-    const tabla = tablas[p.clave];
     const prenda = p.modelo.productoId ? prendas.get(p.modelo.productoId) : undefined;
+    const tabla = tablaParaElNumero(tablas[p.clave], prenda, prendaSeparada(p)?.variantes ?? null, coloresOrden, tallasDeLaCategoria(p.grupo), n - p.modelo.enStock);
     const conNumero = cantidadDeModelo(p.grupo.separado, p.modelo, n);
     // La tabla reparte lo que queda por entrar al stock: lo que ya entró no se vuelve a repartir.
     const cuadra = !!tabla && !!prenda && tallasListas(tabla.conteo, prenda, n - p.modelo.enStock);
@@ -358,8 +372,15 @@ export function ContarEnvio({
           const g = gruposVivos.current.find((x) => x.clave === p.grupo.clave);
           const actual = g ? paradasDelGrupo(g).find((x) => x.clave === p.clave) : undefined;
           if (!g || !actual) return;
-          if (actual.modelo && sep?.variantes) aplicar(repartirModeloCon(g, actual.modelo, ponerTallas(cantidadDeModelo(g.separado, actual.modelo, antes), sep.productoId, sep, sep.variantes)));
-          else escribirEnParada(actual, antes);
+          if (actual.modelo && sep?.variantes) {
+            aplicar(repartirModeloCon(g, actual.modelo, ponerTallas(cantidadDeModelo(g.separado, actual.modelo, antes), sep.productoId, sep, sep.variantes)));
+            // Volvió lo guardado: la tabla se arma de ahí, sin nada que esperar.
+            setTablas((t) => {
+              const copia = { ...t };
+              delete copia[p.clave];
+              return copia;
+            });
+          } else escribirEnParada(actual, antes);
         },
       },
     });
@@ -465,7 +486,7 @@ export function ContarEnvio({
     return hallada;
   }
 
-  /** «¿Era otra prenda?»: se abre la hoja de tallas, donde se elige otra. */
+  /** «Cambiar de prenda»: se abre la hoja de tallas, donde se elige otra. */
   async function cambiarDePrenda(p: ParadaDelConteo, s: PrendaSeparada) {
     setErrorHoja(null);
     const completa = await leerPrenda(p.grupo, s.productoId, s.nombre);
@@ -527,13 +548,15 @@ export function ContarEnvio({
           <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
         </p>
       )}
+      {/* Lo primero al entrar: sin un responsable la base rechaza todo guardado (ElegirQuienCuenta). */}
+      {faltaQuien && <ElegirQuienCuenta responsable={responsable} sede={detalle.sede?.nombre ?? "esta sede"} />}
       {!sinAviso && hayModelos && <TiposDelEnvio tipos={cifras.tipos} marcado={tipoMarcado} filtrado={filtro.tipo} onElegir={(t) => cambiarFiltro({ ...filtro, tipo: filtro.tipo === t ? null : t, estado: null })} />}
 
       <div ref={mesa} className="rc-mesa">
         <ListaDelEnvio
           categorias={categorias}
           enFoco={parada}
-          plegada={plegada}
+          alternadas={alternadas}
           sinAviso={sinAviso}
           totalCategorias={todas.length}
           filtro={filtro}
@@ -547,7 +570,13 @@ export function ContarEnvio({
           faltanTallas={faltanTallas}
           onFiltro={cambiarFiltro}
           onOrden={setOrden}
-          onPlegar={(plegar) => setPlegadaEn(plegar && parada ? parada.clave : null)}
+          onAlternar={(clave) =>
+            setAlternadas((a) => {
+              const n = new Set(a);
+              if (!n.delete(clave)) n.add(clave);
+              return n;
+            })
+          }
           onElegir={elegir}
           onElegirPrimero={() => {
             if (paradas[0]) elegir(paradas[0], true);
@@ -584,14 +613,6 @@ export function ContarEnvio({
                 setErrorHoja(null);
                 onReintentar();
               }}
-              quienCuenta={
-                faltaQuien ? (
-                  <div className="rc-placa-quien" data-campo={ID_CAMPO_QUIEN}>
-                    <p className="rc-seccion-titulo">Antes de contar: ¿quién cuenta?</p>
-                    <ComboResponsable control={responsable} compacto className="min-w-0" />
-                  </div>
-                ) : null
-              }
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               modo={modoDe(parada)}
@@ -685,6 +706,7 @@ export function ContarEnvio({
           proveedores={proveedores}
           sinAviso={sinAviso}
           grupos={grupos}
+          errorDelGuardado={errores["extra:0"] ?? null}
           onAgregar={async (nuevo) => {
             const clave = await onAgregar(nuevo);
             if (clave) {
@@ -727,7 +749,7 @@ export function ContarEnvio({
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
           // Lo que se describió al contar se ofrece como nombre, igual que con «Crear ahora» de «Para después».
-          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length, veDinero), descripcionOrden: hoja.nueva.descripcion || (lineaDeHoja.linea?.descripcion ?? null) }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), descripcionOrden: hoja.nueva.descripcion || (lineaDeHoja.linea?.descripcion ?? null) }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           responsable={responsable}
@@ -746,7 +768,7 @@ export function ContarEnvio({
 
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
-          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, veDinero), pedidas: hoja.pedidas }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length), pedidas: hoja.pedidas }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           responsable={responsable}
@@ -780,7 +802,7 @@ function estadoDelGrupo(lineas: readonly LineaParaContar[], guardados: Readonly<
 }
 
 /** A dónde va la hoja de la prenda («Es nueva» / «+ talla o color») desde una línea del conteo. */
-function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number, veDinero: boolean): DestinoHoja {
+function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number): DestinoHoja {
   return {
     modo,
     despachoId: detalle.id,
@@ -790,7 +812,7 @@ function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "a
     marcaNombre: marcaDeLinea(l).nombre,
     descripcionOrden: l.linea?.descripcion ?? null,
     precioSugerido: l.linea?.precioVentaSugerido ?? null,
-    costoUnitario: veDinero ? (l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null) : null,
+    costoUnitario: l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null,
     prenda,
     proveedorId: !l.linea && nProveedores >= 2 ? (l.proveedor?.id ?? null) : null,
   };

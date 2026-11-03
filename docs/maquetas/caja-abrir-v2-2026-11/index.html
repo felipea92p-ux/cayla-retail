@@ -1,0 +1,380 @@
+<meta charset="utf-8">
+<title>Abrir caja CAYLA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Maqueta navegable · Caja cerrada. Idea: el total del cajón SIEMPRE se escribe; contar billetes y monedas es opcional y está escondido.
+   Paleta: la guía CAYLA (crema, tinta, rojo de marca, verde y ámbar de estado). Tipos: EB Garamond para cifras y títulos, DM Sans para lo demás.
+   Layout: tres direcciones que llenan la pantalla; datos inventados. */
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--borde:#96786a;--rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--oro:#d19a12;
+--vidrio:#ffffff;--sombra:#1a1a18;--lienzo:#ddd5c6;--ease:cubic-bezier(.32,.72,.24,1);
+--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t50:color-mix(in srgb,var(--tinta) 56%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent);
+--serif:'EB Garamond',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--oro:#f0c35a;--vidrio:#33302a;--sombra:#000;--lienzo:#0f0e0c;color-scheme:dark}}
+:root[data-theme="dark"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--oro:#f0c35a;--vidrio:#33302a;--sombra:#000;--lienzo:#0f0e0c;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--tinta);background:var(--crema);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(60% 50% at 8% 0%,color-mix(in srgb,var(--rojo) 16%,transparent),transparent 70%),radial-gradient(55% 55% at 100% 30%,color-mix(in srgb,#4c5d6e 15%,transparent),transparent 70%),radial-gradient(60% 50% at 50% 110%,color-mix(in srgb,var(--oro) 14%,transparent),transparent 70%)}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}}
+@keyframes enfoca{from{opacity:0;filter:blur(8px);transform:translateY(6px)}}
+@keyframes crece{from{transform:scaleX(0)}}
+@keyframes alto{from{transform:scaleY(0)}}
+@keyframes traza{from{stroke-dashoffset:30}}
+@keyframes hilo{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+@keyframes desliza{from{opacity:0;transform:translateY(24px)}}
+
+/* ---- barra de la maqueta ---- */
+.chrome{position:relative;z-index:20;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:10px max(16px,env(safe-area-inset-left,0px));display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:#171614;color:#f5f0e8;font-size:12.5px}
+.chrome .t{font-family:var(--serif);font-size:18px;width:100%}
+.chrome .g{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid rgba(245,240,232,.25);border-radius:9px;overflow:hidden}
+.seg button{height:28px;padding:0 11px;font-size:12px;color:rgba(245,240,232,.75)}
+.seg button[aria-pressed="true"]{background:#f5f0e8;color:#1a1a18;font-weight:600}
+.chrome .rei{height:30px;padding:0 12px;border-radius:9px;border:1px solid rgba(245,240,232,.25);color:#f5f0e8;font-size:12px}
+
+/* ---- la pantalla ---- */
+.app{position:relative;z-index:1;min-height:calc(100dvh - 96px);display:flex;flex-direction:column;gap:20px;padding-block:28px 28px;max-width:1800px;margin-inline:auto}
+.cab{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px}
+.sede{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.sede::before{content:"";width:32px;height:1px;background:var(--taupe)}
+.cab h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,52px);line-height:1;margin:10px 0 0;letter-spacing:-.01em}
+.cab .der{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vista{flex:1;display:grid;gap:18px;min-height:0;align-items:stretch}
+.vista>*{min-width:0}
+
+/* piezas del sistema de vidrio */
+.placa{position:relative;border-radius:24px;padding:24px 28px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);display:flex;flex-direction:column;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 66%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--i,0)*70ms + 60ms)}
+:root[data-theme="dark"] .placa{background:color-mix(in srgb,var(--vidrio) 72%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .placa{background:color-mix(in srgb,var(--vidrio) 72%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}}
+.humo{position:relative;overflow:hidden;color:var(--crema);border-radius:28px;padding:28px;display:flex;flex-direction:column;border:1px solid color-mix(in srgb,var(--tinta) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 95%,transparent));-webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 30%,transparent),0 30px 60px -30px color-mix(in srgb,var(--sombra) 60%,transparent);animation:sube .55s var(--ease) backwards}
+.humo::before{content:"";position:absolute;right:-90px;top:-130px;width:420px;height:420px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,color-mix(in srgb,var(--oro) 26%,transparent),transparent 70%)}
+.humo>*{position:relative}
+.et{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.humo .et{color:color-mix(in srgb,var(--crema) 66%,transparent)}
+.serif{font-family:var(--serif);font-weight:500;font-variant-numeric:lining-nums tabular-nums;line-height:1}
+.mini{font-size:13px;color:var(--t65)}.humo .mini{color:color-mix(in srgb,var(--crema) 74%,transparent)}
+.cw{container-type:inline-size;min-width:0}.cifra{font-size:min(84px,19cqw);white-space:nowrap}
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--borde);font-weight:500;font-size:14px;white-space:nowrap;transition:transform .25s var(--ease),box-shadow .25s;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+.btn.pri{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.btn.grande{height:58px;font-size:16px;width:100%}
+.btn.chico{height:34px;padding:0 14px;font-size:13px}
+.btn[disabled]{opacity:.5;pointer-events:none;filter:saturate(.4)}
+.btn:active{transform:scale(.97)}
+@media (hover:hover){.btn:not([disabled]):hover{transform:translateY(-2px)}}
+.btn.carga::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:40%;background:color-mix(in srgb,var(--crema) 85%,transparent);animation:hilo 1.1s linear infinite}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 28%,transparent)}
+.chip.ambar{--c:var(--ambar)}.chip.rojo{--c:var(--rojo-p)}.chip.neutro{--c:var(--taupe)}.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.humo .chip{color:var(--crema);background:color-mix(in srgb,var(--crema) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--crema) 18%,transparent)}
+.enlace{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--taupe);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--taupe) 40%,transparent);text-underline-offset:3px}
+@media (hover:hover){.enlace:hover{color:var(--rojo-p)}}
+.pozo{display:flex;align-items:center;gap:8px;border-radius:16px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);padding:0 18px;transition:background .25s,box-shadow .25s}
+.pozo:focus-within{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 60%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.pozo input{flex:1;min-width:0;border:0;outline:0;background:none;height:100%}
+.pozo input::placeholder{color:var(--t50)}
+.pozo.m{height:50px}.pozo.m input{font-size:15px}
+.pozo.g{height:104px;padding:0 28px}.pozo.g .pre{font-family:var(--serif);font-size:44px;color:var(--t65)}.pozo.g input{font-family:var(--serif);font-size:64px;font-variant-numeric:lining-nums tabular-nums;width:100%}
+
+/* contexto del cierre */
+.fl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:end;padding:8px 0;font-size:13.5px}
+.fl b{font-variant-numeric:tabular-nums;font-weight:600}.fl i{grid-column:1/-1;display:block;height:7px;border-radius:99px;background:color-mix(in srgb,currentColor 14%,transparent);position:relative;overflow:hidden}
+.fl i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);border-radius:inherit;background:color-mix(in srgb,currentColor 55%,transparent);transform-origin:left;animation:crece .9s var(--ease) .3s backwards}
+.fl.fin{border-top:1px solid color-mix(in srgb,currentColor 18%,transparent);margin-top:4px;padding-top:12px;font-weight:600}.fl.fin i::after{background:currentColor}
+.racha{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;align-items:end;height:84px}
+.racha div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+.racha i{display:block;width:100%;max-width:36px;height:calc(var(--h)*1%);border-radius:8px 8px 5px 5px;background:var(--c);transform-origin:bottom;animation:alto .7s var(--ease) calc(var(--k)*55ms + .3s) backwards}
+.racha small{font-size:10.5px;opacity:.7;font-variant-numeric:tabular-nums}
+.puntos{display:inline-flex;gap:5px}.puntos i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+
+/* responsable */
+.rw{position:relative}
+.rb{display:flex;align-items:center;gap:10px;width:100%;height:50px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--borde);font-weight:600;font-size:14.5px;text-align:left;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+.rb>span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rb .ic:last-child{color:var(--t65);transition:transform .25s var(--ease)}.rb[aria-expanded="true"] .ic:last-child{transform:rotate(180deg)}
+.av{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;font-family:var(--serif);font-size:16px;font-weight:600;background:var(--sand);color:var(--tinta)}
+.rl{position:absolute;z-index:30;left:0;right:0;bottom:calc(100% + 6px);padding:6px;border-radius:16px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:color-mix(in srgb,var(--vidrio) 92%,transparent);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);box-shadow:0 24px 50px -20px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .22s var(--ease) backwards}
+.rl button{display:flex;align-items:center;gap:10px;width:100%;height:44px;padding:0 10px;border-radius:12px;font-size:14px;text-align:left}
+.rl button[aria-selected="true"]{background:var(--tinta);color:var(--crema)}.rl button[aria-selected="true"] .av{background:color-mix(in srgb,var(--crema) 20%,transparent);color:var(--crema)}
+@media (hover:hover){.rl button:not([aria-selected="true"]):hover{background:var(--t06)}}
+.falta{margin-top:8px;font-size:12.5px;color:var(--t65);text-align:center}.falta b{color:var(--tinta);font-weight:600}.humo .falta{color:color-mix(in srgb,var(--crema) 72%,transparent)}.humo .falta b{color:var(--crema)}
+
+/* diferencia y motivo */
+.dif{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;min-height:30px}
+.motivo{animation:enfoca .4s var(--ease) backwards}.motivo label{display:block;margin-bottom:6px}.motivo label small{text-transform:none;letter-spacing:0;font-weight:400;color:var(--t65)}
+
+/* teclado (propuesta 1) */
+.disp{display:flex;align-items:baseline;justify-content:center;gap:12px;min-height:120px;padding:10px 0 4px;font-family:var(--serif);font-variant-numeric:lining-nums tabular-nums}
+.disp .pre{font-size:44px;color:var(--t65)}.disp .num{font-size:min(116px,17vw);line-height:1;letter-spacing:-.01em}.disp .num.vacio{color:var(--t50)}
+.disp .cur{width:3px;height:.8em;align-self:center;background:var(--rojo);border-radius:2px;opacity:.9}
+.teclas{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:440px;margin-inline:auto}
+.tecla{height:58px;border-radius:18px;font-family:var(--serif);font-size:28px;font-weight:500;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 8px 16px -12px color-mix(in srgb,var(--sombra) 40%,transparent);transition:transform .15s var(--ease)}
+.tecla:active{transform:scale(.94)}.tecla.sec{font-family:var(--sans);font-size:15px;color:var(--t65)}
+@media (hover:hover){.tecla:hover{transform:translateY(-1px)}}
+
+/* contar billetes: oculto hasta pedirlo */
+.vel{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--sombra) 28%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);animation:enfoca .3s var(--ease) backwards}
+.hoja{position:fixed;z-index:51;display:flex;flex-direction:column;gap:14px;padding:26px;border-radius:30px;border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:color-mix(in srgb,var(--vidrio) 84%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  box-shadow:0 50px 90px -40px color-mix(in srgb,var(--sombra) 60%,transparent);animation:desliza .45s var(--ease) backwards;max-height:calc(100dvh - 32px);overflow:auto}
+.hoja.lado{top:16px;right:16px;bottom:16px;width:min(440px,calc(100% - 32px))}
+.hoja.centro{top:50%;left:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));animation:enfoca .4s var(--ease) backwards}
+.hoja h3{margin:0;font-family:var(--serif);font-weight:500;font-size:28px;line-height:1.1}
+.hoja .fila-b{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.x{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid var(--borde)}
+.den{display:grid;grid-template-columns:1fr;gap:6px}.hoja.centro .den{grid-template-columns:1fr 1fr;gap:6px 18px}
+.den .g{grid-column:1/-1;margin-top:6px}
+.d{display:grid;grid-template-columns:64px minmax(0,1fr) 78px;align-items:center;gap:10px}
+.d .f{display:grid;place-items:center;height:34px;border-radius:8px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;border:1px solid color-mix(in srgb,var(--c) 55%,transparent);background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c)}
+.d.m .f{border-radius:50%;width:38px;height:38px;justify-self:center;color:var(--ambar);border-color:color-mix(in srgb,var(--oro) 60%,transparent);background:color-mix(in srgb,var(--oro) 16%,transparent);font-size:11px}
+.paso{display:flex;align-items:center;height:36px;border-radius:12px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.paso button{flex:none;width:34px;height:100%;display:grid;place-items:center;color:var(--t65)}
+@media (hover:hover){.paso button:hover{color:var(--tinta);background:var(--t06)}}
+.paso input{flex:1;min-width:0;width:100%;height:100%;text-align:center;border:0;outline:0;background:none;font-weight:600;font-variant-numeric:tabular-nums}
+.d .s{text-align:right;font-size:13px;color:var(--t65);font-variant-numeric:tabular-nums}
+.suma{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:16px;background:var(--t06)}
+.suma .serif{font-size:34px}
+
+/* propuesta 2 */
+.v2{grid-template-columns:minmax(0,1.7fr) minmax(300px,.9fr)}
+.recibo .fl{padding:12px 0;border-top:1px solid var(--t12)}.recibo .fl:first-child{border-top:0}
+.tira{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+.tc{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;border:1px solid var(--t12);background:var(--t06);animation:sube .45s var(--ease) calc(var(--k)*45ms + .35s) backwards;min-width:0}
+.tc small{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.tc b{font-family:var(--serif);font-weight:500;font-size:23px;font-variant-numeric:lining-nums tabular-nums;line-height:1.15}
+.tc .chip{margin-top:6px;align-self:flex-start;height:22px;font-size:11.5px}
+.cierre-de{display:flex;align-items:center;gap:14px;margin-top:14px;padding:12px 16px;border-radius:16px;background:var(--t06);border:1px solid var(--t12)}
+.cierre-de .av{width:42px;height:42px;font-size:19px}.cierre-de b{display:block;font-size:14.5px}.cierre-de span.q{font-size:13px;color:var(--t65)}.cierre-de .m{margin-left:auto;text-align:right;font-family:var(--serif);font-size:30px;line-height:1;font-variant-numeric:lining-nums tabular-nums}.cierre-de .m small{display:block;font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:3px}
+.tc .q{font-size:12px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cifras div{padding:12px 14px;border-radius:14px;background:var(--t06)}.cifras .serif{font-size:24px;margin-top:4px;display:block}
+
+/* propuesta 3 */
+.v3{grid-template-rows:auto minmax(0,1fr) auto;justify-items:center}
+.centro-3{width:100%;max-width:860px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+.centro-3 .contexto{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 16px}
+.centro-3 .pozo.g{width:100%;max-width:720px;height:150px}.centro-3 .pozo.g .pre{font-size:56px}.centro-3 .pozo.g input{font-size:96px;text-align:left}
+.rapidos{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.acordeon{width:100%;max-width:720px;text-align:left;animation:enfoca .4s var(--ease) backwards}
+.dock{width:100%;display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.6fr) minmax(240px,.9fr);align-items:center;gap:18px;padding:14px 18px;border-radius:26px}
+.dock .stats{display:flex;flex-wrap:wrap;gap:6px 26px;justify-content:center}.dock .stats div{display:flex;flex-direction:column}
+.dock .stats .serif{font-size:24px}
+
+/* caja abierta */
+.exito{align-items:center;justify-content:center;text-align:center;gap:8px;min-height:60vh}
+.exito .gr{display:grid;place-items:center;width:112px;height:112px;border-radius:50%;background:color-mix(in srgb,var(--verde) 14%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--verde) 35%,transparent)}
+.exito svg{width:56px;height:56px;stroke:var(--verde);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.exito path{stroke-dasharray:30;animation:traza .6s var(--ease) .3s backwards}
+.exito h2{font-family:var(--serif);font-weight:500;font-size:clamp(44px,6vw,72px);line-height:1;margin:14px 0 0}
+.exito .acc{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px}.exito .acc .btn{height:52px;padding:0 30px;font-size:15px}
+.toast{position:fixed;z-index:60;top:16px;right:16px;display:flex;gap:12px;max-width:320px;padding:14px 18px;border-radius:16px;border:1px solid color-mix(in srgb,var(--verde) 40%,transparent);background:color-mix(in srgb,var(--vidrio) 92%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 24px 50px -20px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .5s var(--ease) .8s backwards,fuera .4s var(--ease) 5s forwards}
+.toast b{display:block}.toast span{font-size:12.5px;color:var(--t65)}.toast .ic{color:var(--verde);margin-top:3px}
+@keyframes fuera{to{opacity:0;visibility:hidden}}
+
+@media (max-width:1100px){.v2,.v1{grid-template-columns:minmax(0,1fr)}.tira{grid-template-columns:repeat(4,minmax(0,1fr))}.dock{grid-template-columns:1fr}.dock .stats{justify-content:flex-start}}
+@media (max-width:640px){.tira{grid-template-columns:repeat(2,minmax(0,1fr))}.placa{padding:18px}.disp .pre{font-size:30px}.pozo.g{height:84px}.pozo.g input{font-size:44px}.centro-3 .pozo.g input{font-size:52px}.centro-3 .pozo.g .pre{font-size:34px}.hoja.centro .den{grid-template-columns:1fr}.btn.sticky{position:sticky;bottom:12px}.cifras{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="chrome">
+  <span class="t">Caja cerrada · el total siempre se escribe, contar billetes es opcional</span>
+  <span class="g">Propuesta</span><div class="seg" data-c="v"><button data-v="1">1 · Teclado</button><button data-v="2">2 · Hoja con resumen</button><button data-v="3">3 · Pantalla central</button></div>
+  <span class="g">Escenario</span><div class="seg" data-c="esc"><button data-v="cuadra">Cierre cuadró</button><button data-v="falta">Cierre con faltante</button><button data-v="primera">Primera vez</button></div>
+  <span class="g">Tema</span><div class="seg" data-c="tema"><button data-v="light">Claro</button><button data-v="dark">Oscuro</button></div>
+  <button class="rei" data-a="reiniciar">↺ Reiniciar</button>
+</div>
+<div class="app" id="app"></div>
+<div id="capa"></div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const P = { ok: 'M20 6 9 17l-5-5', abajo: 'm6 9 6 6 6-6', x: 'M18 6 6 18M6 6l12 12', reloj: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l4 2', menos: 'M5 12h14', mas: 'M12 5v14M5 12h14', borrar: 'M21 4H8l-7 8 7 8h13a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM18 9l-6 6M12 9l6 6', billete: 'M2 6h20v12H2zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', vender: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0' };
+  const ic = (k) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[k]}"/></svg>`;
+  const s2 = (n) => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const DEN = [[200, 'b', '--taupe'], [100, 'b', '--pizarra'], [50, 'b', '--ambar'], [20, 'b', '--verde'], [10, 'b', '--rojo'], [5, 'm'], [2, 'm'], [1, 'm'], [0.5, 'm'], [0.2, 'm'], [0.1, 'm']];
+  const etD = (v) => (v >= 1 ? 'S/ ' + v : 'S/ ' + v.toFixed(2));
+
+  // datos inventados
+  const QUIEN = 'Lucía Ramos', RESP = ['Lucía Ramos', 'Marco Quispe', 'Ana Torres'];
+  const AYER = 4260, META = 4500, CIERRE = '21:00';
+  const ESC = { cuadra: { fondo: 258.5, esperaba: 267.4, contado: 267.4, tras: 8.9 }, falta: { fondo: 246.5, esperaba: 267.4, contado: 255.4, tras: 8.9 }, primera: null };
+  const FECHAS = ['27/10', '28/10', '29/10', '30/10', '31/10', '01/11', '02/11'], FONDOS = [240, 251.3, 262, 249.9, 270.1, 255, 258.5];
+  const QUIENES = ['Marco', 'Ana', 'Lucía', 'Marco', 'Ana', 'Lucía', 'Lucía'];
+  const COL = { 0: '--verde', '-': '--rojo', '+': '--ambar' };
+  const racha = () => FECHAS.map((f, i) => { const falta = S.esc === 'falta'; return { f, fondo: i === 6 && falta ? 246.5 : FONDOS[i], dif: i === 6 && falta ? -12 : i === 5 && falta ? 3.5 : 0 }; });
+  const colDe = (d) => (d === 0 ? '--verde' : d < 0 ? '--rojo' : '--ambar');
+  const nombreDe = (d) => (d === 0 ? 'cuadró' : d < 0 ? 'faltó' : 'sobró');
+
+  const nuevo = () => ({ monto: '', motivo: '', resp: RESP[0], respAb: false, cont: false, cnt: {}, cargando: false, abierta: false });
+  const S = Object.assign({ v: '1', esc: 'cuadra', tema: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' }, nuevo());
+  const U = () => ESC[S.esc], esperado = () => (U() ? U().fondo : null);
+  const leer = (t) => { const x = parseFloat(String(t).replace(',', '.')); return Number.isFinite(x) ? r2(x) : null; };
+  function est() {
+    const m = leer(S.monto), e = esperado();
+    const dif = m === null || e === null ? null : r2(m - e);
+    const pide = dif !== null && dif !== 0;
+    const listo = m !== null && m >= 0 && (!pide || S.motivo.trim().length >= 3);
+    return { m, e, dif, pide, listo };
+  }
+  const falta = () => { const { m, pide, listo } = est(); return m === null ? 'el monto del cajón' : pide && S.motivo.trim().length < 3 ? 'qué pasó con la diferencia' : listo ? '' : 'los datos'; };
+
+  // ---- piezas ----
+  const iniciales = (n) => n.split(' ').map((w) => w[0]).join('');
+  const resp = (etq = true) => `<div class="rw">${etq ? '<p class="et" style="margin:0 0 6px">Responsable</p>' : ''}<button class="rb" data-a="resp" aria-expanded="${S.respAb}"><span class="av">${iniciales(S.resp)}</span><span>${S.resp}</span>${ic('abajo')}</button>
+    ${S.respAb ? `<div class="rl" role="listbox">${RESP.map((n) => `<button role="option" aria-selected="${n === S.resp}" data-resp="${n}"><span class="av">${iniciales(n)}</span>${n}</button>`).join('')}</div>` : ''}</div>`;
+  function difHTML() {
+    const { m, e, dif } = est();
+    const igual = e !== null && !(m !== null && m === e) ? `<button class="btn chico" data-a="igual">${ic('ok')}Igual al cierre · ${s2(e)}</button>` : '';
+    let chip = '';
+    if (m !== null && e !== null) chip = dif === 0 ? '<span class="chip"><i></i>Cuadra con el cierre</span>' : dif < 0 ? `<span class="chip rojo"><i></i>Faltan ${s2(-dif)}</span>` : `<span class="chip ambar"><i></i>Sobran ${s2(dif)}</span>`;
+    else if (m !== null) chip = '<span class="chip neutro"><i></i>Primera apertura</span>';
+    return `${igual}${chip}`;
+  }
+  const motivoHTML = () => est().pide ? `<div class="motivo"><label class="et" for="in-motivo">¿Qué pasó? <small>· obligatorio</small></label><div class="pozo m"><input id="in-motivo" autocomplete="off" placeholder="Ej.: se usó para dar vuelto" value="${S.motivo.replace(/"/g, '&quot;')}"></div></div>` : '';
+  function cta(cls = '') {
+    const { m, listo } = est(), f = falta();
+    return `<button class="btn pri grande ${cls}${S.cargando ? ' carga' : ''}" data-a="abrir" ${listo && !S.cargando ? '' : 'disabled'}>${S.cargando ? 'Abriendo…' : listo ? `Abrir caja con ${s2(m)}` : 'Abrir caja'}</button>${f && !S.cargando ? `<p class="falta">Falta: <b>${f}</b></p>` : ''}`;
+  }
+  const flujo = () => { const u = U(), t = Math.max(u.esperaba, u.contado), d = r2(u.contado - u.esperaba);
+    const f = (a, v, c = '', sg = '') => `<div class="fl ${c}"><span>${a}</span><b>${sg}${s2(v)}</b><i style="--w:${(v / t) * 100}%"></i></div>`;
+    return f('Esperado', u.esperaba) + f(`Contado <span class="chip ${d === 0 ? '' : d < 0 ? 'rojo' : 'ambar'}" style="margin-left:6px"><i></i>${d === 0 ? 'Cuadró' : (d < 0 ? 'Faltó ' : 'Sobró ') + s2(Math.abs(d))}</span>`, u.contado) + f('A caja fuerte', u.tras, '', '− ') + f('Quedó en el cajón', u.fondo, 'fin'); };
+  const rachaBarras = () => { const r = racha(), t = Math.max(...r.map((x) => x.fondo)) * 1.08;
+    return `<div class="racha" role="img" aria-label="Últimos 7 cierres">${r.map((x, k) => `<div title="${x.f}: ${nombreDe(x.dif)}, quedaron ${s2(x.fondo)}"><i style="--h:${(x.fondo / t) * 100};--c:var(${colDe(x.dif)});--k:${k}"></i><small>${x.f.slice(0, 2)}</small></div>`).join('')}</div>`; };
+  const puntos = () => `<span class="puntos" aria-label="Últimos 7 cierres">${racha().map((x) => `<i style="--c:var(${colDe(x.dif)})" title="${x.f}: ${nombreDe(x.dif)}"></i>`).join('')}</span>`;
+  const rachaTxt = () => { const r = racha(), n = r.filter((x) => x.dif === 0).length; return n === r.length ? '7 de 7 cierres cuadraron' : `${n} de 7 cuadraron`; };
+  const linkContar = () => `<button class="enlace" data-a="contar">${ic('billete')}Contar billetes y monedas</button>`;
+
+  // ---- contador opcional (escondido hasta pedirlo) ----
+  const suma = () => r2(DEN.reduce((a, [v]) => a + (S.cnt[v] || 0) * v, 0));
+  function contadorHTML(modo) {
+    const fila = ([v, t, c]) => { const n = S.cnt[v] || 0; return `<div class="d ${t}" style="--c:var(${c || '--ambar'})"><span class="f">${etD(v)}</span><span class="paso"><button data-menos="${v}" aria-label="Uno menos de ${etD(v)}">${ic('menos')}</button><input data-den="${v}" inputmode="numeric" autocomplete="off" placeholder="0" value="${n || ''}" aria-label="Cuántos de ${etD(v)}"><button data-mas="${v}" aria-label="Uno más de ${etD(v)}">${ic('mas')}</button></span><b class="s" data-sub="${v}">${n ? s2(r2(n * v)) : '—'}</b></div>`; };
+    return `<div class="vel" data-a="cerrar-c"></div><section class="hoja ${modo}" role="dialog" aria-label="Contar billetes y monedas"><div class="fila-b"><div><h3>Contar billetes y monedas</h3><p class="mini" style="margin:4px 0 0">Suma el total por ti.</p></div><button class="x" data-a="cerrar-c" aria-label="Cerrar">${ic('x')}</button></div>
+      <div class="den"><p class="et g" style="margin:0">Billetes</p>${DEN.filter((d) => d[1] === 'b').map(fila).join('')}<p class="et g" style="margin:6px 0 0">Monedas</p>${DEN.filter((d) => d[1] === 'm').map(fila).join('')}</div>
+      <div class="suma"><div><p class="et" style="margin:0">Total contado</p><span class="serif" data-total>${s2(suma())}</span></div><button class="btn pri" data-a="usar" ${suma() > 0 ? '' : 'disabled'} data-usar>Usar este total</button></div></section>`;
+  }
+  const capa = () => { $('#capa').innerHTML = S.cont ? contadorHTML(S.v === '2' ? 'centro' : 'lado') : ''; };
+  function actualizarContador() {
+    $$('[data-sub]').forEach((e) => { const v = +e.dataset.sub, n = S.cnt[v] || 0; e.textContent = n ? s2(r2(n * v)) : '—'; });
+    const t = $('[data-total]'); if (t) t.textContent = s2(suma()); const u = $('[data-usar]'); if (u) u.disabled = suma() <= 0;
+  }
+
+  // ---- propuesta 1: teclado ----
+  function visor() { const t = S.monto; return `<div class="disp" aria-live="polite"><span class="pre">S/</span><span class="num ${t ? '' : 'vacio'}">${t || '0.00'}</span><span class="cur"></span></div>`; }
+  function v1() {
+    const u = U();
+    const izq = `<section class="humo" style="--i:1">${u ? `<p class="et">En el cajón deberían estar</p><div class="cw" style="margin-top:10px"><p class="serif cifra">${s2(u.fondo)}</p></div><p class="mini" style="margin-top:8px">Lo dejó <b>${QUIEN}</b> · lun 02/11, 9:28 p. m.</p>
+        <div style="margin-top:16px">${flujo()}</div><p class="et" style="margin-top:14px">Últimos 7 cierres</p><div style="margin-top:8px">${rachaBarras()}</div><p class="mini" style="margin-top:10px">${rachaTxt()}</p>`
+      : `<p class="et">Esta sede</p><p class="serif" style="font-size:46px;margin-top:10px">Primera apertura</p><p class="mini" style="margin-top:8px">No hay un cierre anterior con el que comparar.</p>`}
+      <div style="margin-top:auto;padding-top:18px;display:flex;gap:8px;flex-wrap:wrap"><span class="chip"><i></i>Ayer ${s2(AYER).replace('.00', '')}</span><span class="chip"><i></i>Meta ${s2(META).replace('.00', '')}</span><span class="chip"><i></i>Cierras ${CIERRE}</span></div></section>`;
+    const der = `<section class="placa" style="--i:2"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="et" style="font-size:12px">¿Cuánto hay en el cajón?</span>${linkContar()}</div>
+      <div data-reg="visor">${visor()}</div><div class="dif" style="justify-content:center" data-reg="dif">${difHTML()}</div><div data-reg="motivo" data-pide="${est().pide}" style="margin:12px auto 0;width:100%;max-width:440px">${motivoHTML()}</div>
+      <div class="teclas" style="margin-top:16px">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button class="tecla" data-k="${n}">${n}</button>`).join('')}<button class="tecla" data-k=".">.</button><button class="tecla" data-k="0">0</button><button class="tecla sec" data-k="borrar" aria-label="Borrar">${ic('borrar')}</button></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:end;margin-top:auto;padding-top:20px"><div>${resp()}</div><div data-reg="cta">${cta()}</div></div></section>`;
+    return `<div class="vista v1" style="grid-template-columns:minmax(300px,.8fr) minmax(0,1.6fr)">${izq}${der}</div>`;
+  }
+
+  // ---- propuesta 2: hoja con resumen ----
+  function v2() {
+    const u = U(), e = esperado();
+    const izq = `<section class="placa" style="--i:1"><p class="et">Abrir caja</p><h2 class="serif" style="font-size:clamp(32px,3.4vw,44px);margin:10px 0 0;line-height:1.05">${e === null ? '¿Con cuánto abres?' : '¿Cuánto hay en el cajón?'}</h2>
+      ${e !== null ? `<div class="cierre-de"><span class="av">${iniciales(QUIEN)}</span><div><b>Cerró ${QUIEN}</b><span class="q">Último cierre · lun 02/11, 9:28 p. m.</span></div><div class="m"><small>Debería haber</small>${s2(e)}</div></div>` : '<p class="mini" style="margin-top:8px">Escribe el efectivo del cajón.</p>'}
+      <div class="pozo g" style="margin-top:18px"><span class="pre">S/</span><input id="in-monto" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${S.monto}" aria-label="Total en el cajón"></div>
+      <div class="dif" style="margin-top:14px" data-reg="dif">${difHTML()}</div><div data-reg="motivo" data-pide="${est().pide}" style="margin-top:12px">${motivoHTML()}</div>
+      <div style="margin-top:14px">${linkContar()}</div>
+      ${u ? `<div style="margin-top:auto;padding-top:26px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline"><span class="et">Últimos 7 cierres</span><span class="mini">${rachaTxt()}</span></div>
+        <div class="tira" style="margin-top:10px">${racha().map((x, k) => `<div class="tc" style="--k:${k}"><small>${x.f}</small><b>${s2(x.fondo).replace('S/ ', '')}</b><span class="q">Cerró ${QUIENES[k]}</span><span class="chip ${x.dif === 0 ? '' : x.dif < 0 ? 'rojo' : 'ambar'}"><i></i>${nombreDe(x.dif)}</span></div>`).join('')}</div></div>` : ''}</section>`;
+    const der = `<section class="placa" style="--i:2"><p class="et">Resumen</p><div class="recibo" data-reg="resumen" style="margin-top:6px">${resumen()}</div>
+      <div class="cifras" style="margin-top:14px"><div><span class="et">Ayer</span><span class="serif">${s2(AYER).replace('.00', '').replace('S/ ', '')}</span></div><div><span class="et">Meta</span><span class="serif">${s2(META).replace('.00', '').replace('S/ ', '')}</span></div><div><span class="et">Cierras</span><span class="serif">${CIERRE}</span></div></div>
+      <div style="margin-top:auto;padding-top:20px">${resp()}<div data-reg="cta" style="margin-top:14px">${cta('sticky')}</div></div></section>`;
+    return `<div class="vista v2">${izq}${der}</div>`;
+  }
+  function resumen() {
+    const { m, e, dif } = est();
+    const f = (a, b, c = '') => `<div class="fl ${c}"><span>${a}</span><b>${b}</b></div>`;
+    return (e !== null ? f('Debería haber', s2(e)) + f('Cerró', QUIEN) : '') + f('Contaste', m === null ? '—' : s2(m), 'fin') + (e !== null ? f('Diferencia', dif === null ? '—' : dif === 0 ? 'Ninguna' : (dif < 0 ? '− ' : '+ ') + s2(Math.abs(dif))) : '') + f('Responsable', S.resp.split(' ')[0]) + f('Hora', '08:51');
+  }
+
+  // ---- propuesta 3: pantalla central ----
+  function v3() {
+    const u = U(), e = esperado();
+    const medio = `<section class="centro-3"><div class="contexto">${u ? `<span class="et">En el cajón deberían estar</span><span class="serif" style="font-size:30px">${s2(u.fondo)}</span>${puntos()}<span class="mini">Lo dejó ${QUIEN} · lun 02/11</span>` : '<span class="et">Primera apertura</span><span class="mini">No hay un cierre anterior.</span>'}</div>
+      <h2 class="serif" style="font-size:clamp(30px,3.4vw,44px);margin:0">${e === null ? '¿Con cuánto abres?' : '¿Cuánto hay en el cajón?'}</h2>
+      <div class="pozo g"><span class="pre">S/</span><input id="in-monto" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${S.monto}" aria-label="Total en el cajón"></div>
+      <div class="rapidos" data-reg="dif">${difHTML()}</div><div data-reg="motivo" data-pide="${est().pide}" style="width:100%;max-width:720px;text-align:left">${motivoHTML()}</div>${linkContar()}</section>`;
+    const dock = `<section class="placa dock" style="--i:2;padding:14px 18px"><div>${resp(false)}</div>
+      <div class="stats"><div><span class="et">Ayer</span><span class="serif">${s2(AYER).replace('.00', '')}</span></div><div><span class="et">Meta</span><span class="serif">${s2(META).replace('.00', '')}</span></div><div><span class="et">Cierras</span><span class="serif">${CIERRE}</span></div></div>
+      <div data-reg="cta">${cta('sticky')}</div></section>`;
+    return `<div class="vista v3"><span></span>${medio}${dock}</div>`;
+  }
+
+  function exito() {
+    const { m, dif } = est();
+    return `<section class="placa exito" style="--i:0"><div class="gr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Caja abierta</h2>
+      <p style="font-size:16px;color:var(--t65);margin:6px 0 0">Abriste con <b style="color:var(--tinta)">${s2(m)}</b> · ${S.resp}${dif ? `<br>Diferencia de <b style="color:var(--tinta)">${s2(Math.abs(dif))}</b> registrada.` : ''}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px"><span class="chip"><i></i>Abierta 08:56</span><span class="chip neutro"><i></i>Cierras ${CIERRE}</span><span class="chip neutro"><i></i>Meta ${s2(META).replace('.00', '')}</span></div>
+      <div class="acc"><button class="btn pri" data-a="reiniciar">${ic('vender')}Ir a vender</button><button class="btn" data-a="reiniciar">Ver la caja</button></div></section>
+      <div class="toast" role="status">${ic('ok')}<div><b>Caja abierta</b><span>Con ${s2(m)}.</span></div></div>`;
+  }
+
+  // ---- armar y actualizar ----
+  function pantalla() {
+    document.documentElement.dataset.theme = S.tema;
+    $$('.seg').forEach((g) => $$('button', g).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === S[g.dataset.c]))));
+    const ex = S.abierta;
+    $('#app').innerHTML = `<header class="cab"><div><p class="sede" style="margin:0">Arequipa · martes, 3 de noviembre · 08:51</p><h1>Caja</h1></div>
+      <div class="der"><span class="chip ${ex ? '' : 'ambar'}"><i></i>${ex ? 'Caja abierta' : 'Caja cerrada'}</span><button class="btn">${ic('reloj')}Historial de cierres</button></div></header>
+      ${ex ? `<div class="vista" style="grid-template-columns:minmax(0,1fr)">${exito()}</div>` : S.v === '1' ? v1() : S.v === '2' ? v2() : v3()}`;
+    capa();
+  }
+  function actualizar() {
+    const REG = { visor, dif: difHTML, cta: () => cta(S.v === '1' ? '' : 'sticky'), resumen };
+    $$('[data-reg]').forEach((el) => { const k = el.dataset.reg; if (REG[k]) el.innerHTML = REG[k](); });
+    const w = $('[data-reg="motivo"]'), pide = String(est().pide);
+    if (w && w.dataset.pide !== pide) { w.dataset.pide = pide; w.innerHTML = motivoHTML(); }
+  }
+  const abrir = () => { if (!est().listo || S.cargando) return; S.cargando = true; S.respAb = false; actualizar(); setTimeout(() => { S.cargando = false; S.abierta = true; pantalla(); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 50 : 1100); };
+  const poner = (v, n) => { S.cnt[v] = Math.max(0, Math.min(999, n)); const i = $(`input[data-den="${v}"]`); if (i) i.value = S.cnt[v] || ''; actualizarContador(); };
+  const teclear = (k) => { if (k === 'borrar') S.monto = S.monto.slice(0, -1); else if (k === '.') { if (!S.monto.includes('.')) S.monto = (S.monto || '0') + '.'; } else if (!/\.\d{2}$/.test(S.monto) && S.monto.length < 9) S.monto = (S.monto === '0' ? '' : S.monto) + k; actualizar(); };
+
+  document.addEventListener('click', (ev) => {
+    const t = ev.target;
+    const seg = t.closest('.seg button');
+    if (seg) { const c = seg.parentElement.dataset.c, v = seg.dataset.v; if (c === 'tema') S.tema = v; else { S[c] = v; Object.assign(S, nuevo()); } pantalla(); return; }
+    const k = t.closest('[data-k]'); if (k) { teclear(k.dataset.k); return; }
+    const mas = t.closest('[data-mas]'); if (mas) { poner(+mas.dataset.mas, (S.cnt[+mas.dataset.mas] || 0) + 1); return; }
+    const me = t.closest('[data-menos]'); if (me) { poner(+me.dataset.menos, (S.cnt[+me.dataset.menos] || 0) - 1); return; }
+    const rp = t.closest('[data-resp]'); if (rp) { S.resp = rp.dataset.resp; S.respAb = false; pantalla(); return; }
+    const a = (t.closest('[data-a]') || {}).dataset?.a;
+    if (S.respAb && a !== 'resp') { S.respAb = false; pantalla(); }
+    if (a === 'resp') { S.respAb = !S.respAb; pantalla(); }
+    else if (a === 'abrir') abrir();
+    else if (a === 'igual') { S.monto = String(esperado()); pantalla(); }
+    else if (a === 'contar') { S.cont = true; capa(); }
+    else if (a === 'cerrar-c') { S.cont = false; capa(); }
+    else if (a === 'usar') { S.monto = String(suma()); S.cont = false; pantalla(); }
+    else if (a === 'reiniciar') { Object.assign(S, nuevo()); pantalla(); }
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (t.id === 'in-monto') { S.monto = t.value.replace(/[^0-9.,]/g, ''); actualizar(); }
+    else if (t.id === 'in-motivo') { S.motivo = t.value; actualizar(); }
+    else if (t.dataset.den) { S.cnt[+t.dataset.den] = Math.min(999, parseInt(t.value.replace(/\D/g, ''), 10) || 0); actualizarContador(); }
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && S.cont) { S.cont = false; capa(); return; }
+    if (ev.key === 'Enter' && !S.cont && !ev.target.closest('button')) { ev.preventDefault(); abrir(); return; }
+    if (S.v === '1' && !S.cont && !S.abierta && !ev.target.matches('input') && !ev.metaKey && !ev.ctrlKey) {
+      if (/^[0-9.]$/.test(ev.key)) teclear(ev.key); else if (ev.key === 'Backspace') teclear('borrar');
+    }
+  });
+  pantalla();
+})();
+</script>

@@ -17,6 +17,7 @@ import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { ID_CAMPO_AGREGAR, marcaDeLinea } from "@/lib/recepcion-conteo-reglas";
 import {
   avanceDeCategoria,
+  categoriaAbierta,
   conMiles,
   conSigno,
   hayFiltro,
@@ -40,7 +41,7 @@ import { useFilaActivaALaVista } from "./useFilaActivaALaVista";
 
 // La lista de la izquierda (Felipe 2026-11-02, sobre el acordeón de ADR-0575): el título, el buscador, los filtros y las categorías del envío, cada una UNA vez aunque venga de varios
 // proveedores o marcas, cada una con su banda de color para no confundirse con los modelos de adentro. La abierta muestra lo que anotó Compras modelo por modelo, y tocar uno lo pone en
-// el contador: se cuenta modelo por modelo y la categoría suma sola.
+// el contador: se cuenta modelo por modelo y la categoría suma sola. Abrir o plegar una categoría no cambia lo que se está contando (Felipe 2026-11-03).
 
 const NOMBRE_ESTADO: Record<EstadoDelResumen, string> = { cuadran: "Cuadran", diferencia: "Con diferencia", "por-contar": "Por contar", despues: "Tallas para después" };
 
@@ -126,7 +127,7 @@ function Categoria({
   sinAviso,
   fotos,
   faltanTallas,
-  onPlegar,
+  onAlternar,
   onElegir,
   onFotos,
 }: {
@@ -137,7 +138,7 @@ function Categoria({
   sinAviso: boolean;
   fotos: ReadonlyMap<string, string | null>;
   faltanTallas: (p: ParadaDelConteo) => boolean;
-  onPlegar: (plegar: boolean) => void;
+  onAlternar: () => void;
   onElegir: (p: ParadaDelConteo) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
 }) {
@@ -160,13 +161,7 @@ function Categoria({
           aria-current={esta ? "true" : undefined}
           aria-expanded={abierta}
           aria-controls={idCuerpo}
-          onClick={() => {
-            // La de lo que se cuenta se pliega y se vuelve a abrir sin cambiar lo que está en el contador (Felipe 2026-11-02). Abrir otra es ponerse a contar en ella: su primer modelo
-            // sin contar, o el primero.
-            if (esta) return onPlegar(abierta);
-            const destino = c.paradas.find((p) => !paradaContada(p)) ?? c.paradas[0];
-            if (destino) onElegir(destino);
-          }}
+          onClick={onAlternar}
         >
           <BaldosaCategoria categoria={c.categoria} tamano="chico" />
           <span className="rc-cat-textos">
@@ -200,7 +195,7 @@ function Categoria({
 export function ListaDelEnvio({
   categorias,
   enFoco,
-  plegada,
+  alternadas,
   sinAviso,
   totalCategorias,
   filtro,
@@ -214,16 +209,17 @@ export function ListaDelEnvio({
   faltanTallas,
   onFiltro,
   onOrden,
-  onPlegar,
+  onAlternar,
   onElegir,
   onElegirPrimero,
   onAgregar,
   onFotos,
 }: {
   categorias: readonly CategoriaDelEnvio[];
-  /** Lo que el contador está contando ahora: su categoría va abierta, salvo que la persona la pliegue (`plegada`). */
+  /** Lo que el contador está contando ahora: su categoría va abierta. */
   enFoco: ParadaDelConteo | null;
-  plegada: boolean;
+  /** Las categorías que la persona abrió o plegó a mano. */
+  alternadas: ReadonlySet<string>;
   sinAviso: boolean;
   /** Cuántas categorías trae el envío entero: sin ninguna, «Agregar» es lo primero que se pide. */
   totalCategorias: number;
@@ -240,8 +236,8 @@ export function ListaDelEnvio({
   faltanTallas: (p: ParadaDelConteo) => boolean;
   onFiltro: (f: FiltroDelConteo) => void;
   onOrden: (o: OrdenDelConteo) => void;
-  /** Tocó la categoría abierta (`true`, se pliega) o la plegada (`false`, se abre). Lo que el contador cuenta no cambia. */
-  onPlegar: (plegar: boolean) => void;
+  /** Tocó una categoría: se abre o se pliega. Lo que el contador cuenta no cambia. */
+  onAlternar: (clave: string) => void;
   onElegir: (p: ParadaDelConteo) => void;
   /** Enter en el buscador: a contar lo primero que se encontró. */
   onElegirPrimero: () => void;
@@ -336,7 +332,7 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={leyendo || (esta && !plegada)} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onPlegar={onPlegar} onElegir={onElegir} onFotos={onFotos} />;
+            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} />;
           })}
         </nav>
         <div className="rc-lista-agregar">

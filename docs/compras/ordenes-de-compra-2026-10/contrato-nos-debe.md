@@ -146,6 +146,10 @@ re-ejecutables y con un bloque final que comprueba.
   - La cuenta donde entró es opcional, como en la base y en el reembolso.
   - Propone la de la sede donde faltaron las prendas.
 
+## Por prenda (2026-11-03, ADR-0604 act. c)
+
+`fn_nos_debe_deuda` suma `prenda` (`{id, nombre}`, o `null` si la línea no decía cuál), y `fn_nos_debe_resumen` y `fn_nos_debe_del_envio`, las `prendas` de cada categoría y marca. La reposición en una recepción salda primero la deuda de esa prenda (`fn_cercania_de_la_deuda`) y después, como siempre, de la más antigua a la más nueva. El tope sigue por proveedor, categoría y marca. Migración `20261103144000`: sin columnas nuevas; la web de antes ignora las llaves nuevas y la web nueva, sin la migración, dice lo de siempre.
+
 ## Pruebas
 
 `scripts/pruebas/nos_debe.mjs` (en `PRUEBAS` del CI): la deuda nace de un faltante `no_vino` (no de `se_perdio` ni `otra_sede`);

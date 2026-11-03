@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 169,
+  "total": 172,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -62,6 +62,8 @@
       "Boton «Contarla»",
       "CampoTexto «¿Qué pasó exactamente?»",
       "button «{`${abierta ? \"Esconder\" : \"Ver\"}»",
+      "button «Empezar de cero»",
+      "BotonVerMas «recepcion.plegadas»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
       "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
@@ -75,8 +77,7 @@
       "Boton «{textoConfirmar}»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
-      "Boton «{sinAviso ? \"Agregar lo que llegó\" : \"Agregar categoría\"}»",
-      "ComboResponsable «{responsable}»"
+      "Boton «{sinAviso ? \"Agregar lo que llegó\" : \"Agregar categoría\"}»"
     ],
     "components/recepcion-conteo/DescribirNuevas.tsx": [
       "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
@@ -88,6 +89,10 @@
       "button «{`Escribir cuántas ${nombre}»",
       "button «Una menos»",
       "button «Una más»"
+    ],
+    "components/recepcion-conteo/ElegirQuienCuenta.tsx": [
+      "Volver «→() => router.push(\"/recibir\")»",
+      "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/EnvioCerrado.tsx": [
       "BotonEnlace «{a.texto}»",
@@ -182,7 +187,7 @@
     ],
     "components/recepcion-conteo/TallasDeLaPlaca.tsx": [
       "button «Reintentar»",
-      "button «¿Era otra prenda?»",
+      "button «Cambiar de prenda»",
       "button «corrige lo contado a»",
       "button «{`Quitar la talla ${t.texto}»",
       "button «{`Crear ${c.texto}»",

@@ -320,6 +320,11 @@ describe("cerrar", () => {
     ]);
   });
 
+  it("p_lineas lleva TODO conteo, también lo de fuera de la guía que quedó en 0: la base lo exige y lo salta sola (si falta, el cierre falla siempre con «se contó mientras cerrabas»)", () => {
+    const ls = lineasParaCerrar([contada("i1", 4, 4), extra(2, 0)], {}, false);
+    expect(ls.map((x) => x.extra_posicion ?? x.despacho_item_id)).toEqual(["i1", 2]);
+  });
+
   it("«Otro» (2026-10-28): se ofrece solo para lo de más, pide su explicación y la lleva como nota de la línea", () => {
     expect(causasDe(extra(1, 3))?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "otro"]);
     expect(causasDe(contada("i1", 10, 12), 2)?.opciones.map((o) => o.valor)).toEqual(["regalo", "cobra_aparte", "proxima_compra", "reposicion_faltante", "otro"]);
@@ -788,16 +793,47 @@ describe("formidable 2026-10-13: el veredicto al cerrar y lo que pasa al cerrar"
 });
 
 describe("chaos 2026-10-13 (semilla 393): lo que la persona escribe es lo que se guarda", () => {
-  it("ENT-02/ENT-06: el contador solo admite dígitos (hasta 4) y lo vacío no es 0: no se guarda nada mientras se escribe", () => {
-    expect(leerContadas("")).toEqual({ texto: "", contadas: null });
-    expect(leerContadas("   ")).toEqual({ texto: "", contadas: null });
-    expect(leerContadas("12")).toEqual({ texto: "12", contadas: 12 });
-    expect(leerContadas("999999999999")).toEqual({ texto: "99999", contadas: 99999 });
-    expect(leerContadas("12000")).toEqual({ texto: "12000", contadas: 12000 });
-    expect(leerContadas("12,000")).toEqual({ texto: "12000", contadas: 12000 });
-    expect(leerContadas("-5")).toEqual({ texto: "5", contadas: 5 });
-    expect(leerContadas("٣")).toEqual({ texto: "", contadas: null });
-    expect(leerContadas("0")).toEqual({ texto: "0", contadas: 0 });
+  it("ENT-02/ENT-06: el contador acepta hasta 99,999 y lo vacío no es 0: no se guarda nada mientras se escribe", () => {
+    expect(leerContadas("")).toEqual({ texto: "", contadas: null, problema: null });
+    expect(leerContadas("   ")).toEqual({ texto: "", contadas: null, problema: null });
+    expect(leerContadas("12")).toEqual({ texto: "12", contadas: 12, problema: null });
+    expect(leerContadas("12000")).toEqual({ texto: "12000", contadas: 12000, problema: null });
+    expect(leerContadas("99999")).toEqual({ texto: "99999", contadas: 99999, problema: null });
+    expect(leerContadas("0")).toEqual({ texto: "0", contadas: 0, problema: null });
+    expect(leerContadas("00012")).toEqual({ texto: "00012", contadas: 12, problema: null });
+    expect(leerContadas("  7 ")).toEqual({ texto: "7", contadas: 7, problema: null });
+    expect(leerContadas("12 000")).toEqual({ texto: "12000", contadas: 12000, problema: null });
+  });
+
+  it("un millar se lee como se muestra en pantalla", () => {
+    expect(leerContadas("12,000")).toEqual({ texto: "12000", contadas: 12000, problema: null });
+    expect(leerContadas("1,200")).toEqual({ texto: "1200", contadas: 1200, problema: null });
+    expect(leerContadas("1.200")).toEqual({ texto: "1200", contadas: 1200, problema: null });
+  });
+
+  it("lo que no es una cantidad no se guarda ni se vuelve otro número: se queda como se escribió (Felipe 2026-11-03)", () => {
+    for (const malo of ["1.5", "2,5", "12,50", "-5", "-", ".5", "5.", "1,2345", "1-5", "1e3", "0x10", "12a", "٣", "<b>", "12\t34", "12 34"]) {
+      const r = leerContadas(malo);
+      expect(r.contadas, malo).toBeNull();
+      expect(r.problema, malo).toBe("Solo números enteros");
+      expect(r.texto, malo).toBe(malo);
+    }
+  });
+
+  it("lo que pasa del tope se dice, no se corta en otro número", () => {
+    for (const grande of ["100000", "999999999999", "1,200,000"]) {
+      const r = leerContadas(grande);
+      expect(r.contadas, grande).toBeNull();
+      expect(r.problema, grande).toBe("Hasta 99,999 por modelo");
+      expect(r.texto, grande).toBe(grande);
+    }
+  });
+
+  it("tecleado de a una, «1.5» nunca pasa por 15", () => {
+    let caja = "";
+    for (const tecla of "1.5") caja = leerContadas(caja + tecla).texto;
+    expect(caja).toBe("1.5");
+    expect(leerContadas(caja).contadas).toBeNull();
   });
 
   it("ENT-02: la categoría que se está contando no desaparece de la lista aunque quede en 0", () => {
