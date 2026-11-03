@@ -322,7 +322,7 @@ export function PuntoDeVentaTicket({
   // ---- Apartado de descuento: todo derivado de props, sin estado propio — la cuenta es UNA sola y la comparte la hoja lateral
   // de escritorio (`HojaDeDescuento`, ADR-0584 / 2026-11-02) con este ticket (la hoja del celular): `lib/descuento-cuenta-reglas.ts`.
   const cuenta = cuentaDelDescuento(descuento, carrito, vale);
-  const { porMonto, pct, monto, valorValido, todoElTicket, elegidasCuenta, hayDescuentoEnAlcance, motivoDescuento, pasoDescuento } = cuenta;
+  const { porMonto, pct, monto, valorValido, todasLasPrendas, elegidasCuenta, hayDescuentoEnAlcance, motivoDescuento, pasoDescuento } = cuenta;
   const luzListo = descontando && pasoDescuento === "listo";
 
   return (
@@ -411,7 +411,7 @@ export function PuntoDeVentaTicket({
                   ? etiquetaPrendas
                   : enLaEspera
                     ? `${enEspera.length} ${enEspera.length === 1 ? "ticket" : "tickets"}`
-                    : todoElTicket
+                    : todasLasPrendas
                       ? "Todo el ticket"
                       : `${elegidasCuenta} de ${carrito.length} prendas`}
               </p>

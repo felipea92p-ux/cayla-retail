@@ -7,7 +7,7 @@ vi.mock("server-only", () => ({}));
 const CRED = { clientId: "id", clientSecret: "secreto", usuario: "20605964550USUARIO", clave: "clave" };
 const TXT = "RUC|Periodo\n20605964550|202610";
 
-function sunatFalso(opciones: { sinToken?: boolean; nuncaTermina?: boolean; caido?: boolean } = {}) {
+function sunatFalso(opciones: { sinToken?: boolean; nuncaTermina?: boolean; caido?: boolean; sinPermiso?: boolean } = {}) {
   const llamadas: string[] = [];
   const fetchFalso = vi.fn(async (url: string, init?: RequestInit) => {
     llamadas.push(url);
@@ -16,7 +16,10 @@ function sunatFalso(opciones: { sinToken?: boolean; nuncaTermina?: boolean; caid
       expect(init?.method).toBe("POST");
       return Response.json(opciones.sinToken ? { error: "invalid_grant" } : { access_token: "tok", expires_in: 3600 });
     }
-    if (url.includes("exportacioncomprobantepropuesta")) return Response.json({ numTicket: "20260300000123" });
+    if (url.includes("exportacioncomprobantepropuesta")) {
+      if (opciones.sinPermiso) return Response.json({ cod: "101", msg: "Sin permiso para el SIRE" }, { status: 401 });
+      return Response.json({ numTicket: "20260300000123" });
+    }
     if (url.includes("consultaestadotickets")) {
       return Response.json({
         registros: [
@@ -59,6 +62,15 @@ describe("traerPropuestaSire", () => {
     const llamadas = sunatFalso({ sinToken: true });
     expect(await traer()).toMatchObject({ ok: false, paso: "token", motivo: expect.stringContaining("credenciales vencidas") });
     expect(llamadas).toHaveLength(1);
+  });
+
+  it("un 401 al pedir la propuesta dice el paso y lo que explica SUNAT, sin el token ni la clave", async () => {
+    vi.useFakeTimers();
+    const llamadas = sunatFalso({ sinPermiso: true });
+    const r = await traer();
+    expect(r).toEqual({ ok: false, paso: "pedir", motivo: "HTTP 401: 101 · Sin permiso para el SIRE" });
+    expect(JSON.stringify(r)).not.toMatch(/tok|clave|secreto/);
+    expect(llamadas).toHaveLength(2);
   });
 
   it("un ticket que no termina se deja para mañana, sin guardar nada", async () => {
