@@ -1941,7 +1941,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.quien-cuenta",
       requiere: ["recepcion.categorias"],
       titulo: "Quién cuenta",
-      texto: "En el resumen, elige quién está contando: cada modelo guarda quién lo contó. Pueden contar varias personas a la vez; al final firma quien cierra. El ⓘ te lo explica.",
+      texto: "En el resumen, elige quién está contando: cada modelo guarda quién lo contó, y se recuerda mientras cuentas este envío. Pueden contar varias personas a la vez; al final firma quien cierra. El ⓘ te lo explica.",
     },
     {
       id: "pasar-a-cerrar",

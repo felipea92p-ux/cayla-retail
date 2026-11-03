@@ -116,6 +116,12 @@ Felipe pasó un boceto y pidió una maqueta para decidir (`docs/maquetas/recibir
 
 **«Anterior» con palabra es una excepción a `accion.anterior`,** por decisión de Felipe y solo en esta pantalla: «volver solo es una flecha» sigue valiendo en el resto del ERP (`docs/unificar/accion.anterior.md`).
 
+**Reabrir (lo destapó la revisión de `/formidable`).** Lo que entra al stock al cerrar sale de lo separado, así que al reabrir el modelo decía «0 de 48 · Por contar» y «Llegaron las 48» lo contaba otra vez: al volver a cerrar habría entrado dos veces. Ahora lo que ya entró es del modelo de su línea (`ModeloDelConteo.enStock`): cuenta en lo contado, es su piso, no vuelve a lo separado (`cantidadDeModelo`) y la tabla reparte solo lo que queda. Se probó cerrando, reabriendo, sumando 5 y cerrando otra vez: entra lo contado, sin doble cuenta.
+
+**De quién es lo que entra (ADR-0542).** Cerrar con tallas en una sede con dos empresas no se podía: la base pide el dueño y Cerrar no lo preguntaba. Ahora lo pregunta si algo entra al stock. Lo que queda para después lo sigue preguntando «Hacer ahora».
+
+**Quién cuenta se recuerda por envío** (`recordarEn`, como el Conteo): en una terminal se vaciaba tras cada guardado, y contar modelo por modelo lo habría pedido a cada toque. Si falta, se elige en la misma placa, antes de contar.
+
 ### Límites que quedan
 
 6. **Una celda llega hasta 9.999** (`leerCantidad`, la misma regla de la hoja de tallas). Un modelo con más de 9.999 de una sola talla y un solo color no se puede repartir aquí ni en la hoja: queda con la cantidad y sin tallas.

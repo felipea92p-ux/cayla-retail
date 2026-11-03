@@ -8,6 +8,9 @@ La maqueta del boceto ya está en el ERP (tres columnas, resumen, tallas en la m
 - Ver lo que cuentan los demás: varias personas pueden contar a la vez, pero la pantalla no se refresca sola con lo de otra persona.
 - «Llegaron todas» por categoría: bajaría de 146 toques a unos 22 en un envío de 73 modelos que cuadra, pero invita a no contar. Es decisión de negocio de Felipe.
 **Deuda chica, sin decisión:**
+- En Cerrar, lo decidido («No vino», un costo) se pierde al recargar la página: al ir y volver a Contar ya no. Cerrar sigue siendo largo con muchas líneas (ver arriba).
+- Abrir otra categoría cambia lo que se está contando: la segunda ciega se sorprendió una vez. Es lo que pidió Felipe; se podría abrir sin moverlo.
+- `/formidable`, ley 8 en 5: la misma cifra sale cuatro veces (fila, cifra, Dial, botón). Lo pidió Felipe mirando la maqueta; ver `docs/formidable/recibir-envio.md`.
 - Una celda de la tabla de tallas llega hasta 9.999 (`leerCantidad`): un modelo con más de una sola talla y un solo color no se puede repartir (ADR-0604, límite 6).
 - La tabla de tallas no se entera de lo que otra persona guarda en el mismo modelo hasta recargar (ADR-0604, límite 7).
 - Una prenda en dos líneas con tallas puestas vuelve a quedar entera en la primera línea: al cerrar pregunta qué pasó (ADR-0604, límite 4).

@@ -132,7 +132,7 @@ function Reparto({
     const el = raiz.current;
     if (!traerALaVista || !el) return;
     const caja = el.closest<HTMLElement>(".rc-scroll");
-    const suave: ScrollBehavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    const suave: ScrollBehavior = document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
     const alto = el.getBoundingClientRect().top;
     if (caja && caja.scrollHeight > caja.clientHeight) caja.scrollTo({ top: caja.scrollTop + alto - caja.getBoundingClientRect().top - 8, behavior: suave });
     else window.scrollBy({ top: alto - 88, behavior: suave });

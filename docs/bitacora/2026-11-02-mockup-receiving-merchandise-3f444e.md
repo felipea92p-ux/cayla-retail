@@ -48,3 +48,8 @@ Qué hice: llevé la maqueta del boceto a `/recibir/envio/[id]`: Re stock y Prod
 Por qué así: lo escrito en la tabla se guarda solo cuando cuadra con lo contado, porque en la base las tallas de una prenda siempre suman su cantidad; si lo guardado deja de ser lo que se ve, se suelta, y lo peor que pasa es que ese modelo se termina después. Quitar una talla solo esconde: nunca se borra una variante.
 Felipe se lleva: probar en local con quien recibe de verdad; `/formidable` y `/chaos` corrieron sobre esta rama (ver sus tableros).
 
+## 2026-11-02 (Contar: lo que encontraron /formidable y /chaos)
+Qué hice: corrí una prueba ciega, un revisor de las 9 leyes y `/chaos` sobre la pantalla nueva, apliqué lo que sugirieron y repetí la ciega: pasó de 20 toques, 2 errores y sin terminar a primer intento, 9 toques y 0 errores. Lo grave: reabrir contaba dos veces lo que ya estaba en el stock (de esta rama), y cerrar con tallas en una sede con dos empresas no se podía porque la pantalla no preguntaba de quién es (de antes). Los dos, arreglados y probados cerrando de verdad; 0 violaciones nuevas en la base.
+Por qué así: nada se resolvió en la base; toda la corrección vive en las reglas de la pantalla, con su prueba (`lib/recepcion-modelos-reglas.test.ts`, `lib/recepcion-tallas-reglas.test.ts`). Lo que Felipe pidió mirando la maqueta se respetó aunque la ley 8 lo marque: el informe lo dice.
+Felipe se lleva: probarlo con quien recibe de verdad. Lo que quedó sin hacer está en el backlog de esta rama.
+

@@ -641,7 +641,14 @@ export function ContarEnvio({
           filtroEstado={filtro.estado}
           guia={guia}
           responsable={responsable}
-          fotos={papeles.length > 0 ? <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} enResumen /> : undefined}
+          fotos={
+            papeles.length > 0 ? (
+              <div className="grid gap-1">
+                <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} enResumen />
+                {papeles.some((p) => !p.fotoRuta) && <p className="rc-fotos-nota">No frena el cierre.</p>}
+              </div>
+            ) : undefined
+          }
           sinGuardar={sinGuardar}
           onReintentar={onReintentar}
           alCerrar={onCerrar}

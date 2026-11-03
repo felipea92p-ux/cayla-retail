@@ -108,7 +108,7 @@ export function ResumenDelEnvio({
               </dd>
             </div>
             {!sinAviso && dijeron != null && (
-              <div className="rc-total" data-tono={diferencia === 0 ? "verde" : "ambar"}>
+              <div className="rc-total" data-tono={contadas === 0 ? undefined : diferencia === 0 ? "verde" : "ambar"}>
                 <dt>Diferencia en lo contado</dt>
                 <dd>{conSigno(diferencia)}</dd>
               </div>
@@ -162,7 +162,7 @@ export function ResumenDelEnvio({
           peso={todoContado ? "primario" : "fantasma"}
           onClick={alCerrar}
           disabled={!puedeCerrar}
-          title={motivoNoCierra ?? (porContar > 0 ? `Faltan ${conMiles(porContar)} por contar: al cerrar te los va a pedir.` : "Todo está contado.")}
+          title={motivoNoCierra}
           data-guia="recepcion.pasar-a-cerrar"
         >
           <span className="inline-flex items-center gap-1.5">
@@ -170,7 +170,8 @@ export function ResumenDelEnvio({
             <ArrowRight aria-hidden className="h-4 w-4" />
           </span>
         </Boton>
-        <p className="rc-resumen-nota">Lo que cuentas se guarda solo.</p>
+        {/* A la vista, no en un `title`: la prueba ciega no llegó a verlo pasando el mouse. */}
+        <p className="rc-resumen-nota">{porContar > 0 ? `Faltan ${conMiles(porContar)} por contar: al cerrar te los va a pedir.` : "Lo que cuentas se guarda solo."}</p>
       </div>
     </aside>
   );
