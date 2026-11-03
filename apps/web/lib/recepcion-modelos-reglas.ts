@@ -311,6 +311,9 @@ export const paradaDelNombre = (c: CategoriaDelEnvio, nombre: string): ParadaDel
 /** ¿Lleva tacho? Solo lo que agregó quien cuenta. Lo que anotó Compras no se borra: en 0 dice que no llegó y va al reclamo. Lo que ya entró al stock tampoco se quita desde aquí. */
 export const modeloSeQuita = (m: Pick<ModeloDelConteo, "anotada" | "enStock">): boolean => !m.anotada && m.enStock === 0;
 
+/** ¿Se puede quitar la categoría entera? Solo si nada de ella venía en la guía de Compras y nada entró al stock (ADR-0605). */
+export const sePuedeQuitarCategoria = (c: Pick<CategoriaDelEnvio, "grupos">): boolean => c.grupos.length > 0 && c.grupos.every((g) => !g.principal.linea && g.enStock === 0);
+
 /** El nombre provisional de un modelo que nadie sabe cómo se llama: el primer «Blusa N» libre de la categoría. */
 export function nombrePorDefecto(prenda: string, c: Pick<CategoriaDelEnvio, "paradas"> | null): string {
   const usados = new Set((c?.paradas ?? []).map((p) => (p.modelo ? normaliza(p.modelo.nombre) : "")));

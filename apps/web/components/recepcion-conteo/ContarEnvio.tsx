@@ -33,6 +33,7 @@ import {
   SEPARADO_VACIO,
   agregarModeloEnCero,
   devolverModelo,
+  totalSeparado,
   quitarModelo,
   renombrarModelo,
   agregarPrendaEnCero,
@@ -45,6 +46,7 @@ import {
   idCampoIdentificar,
   lineaDeLaPrenda,
   minimoDelGrupo,
+  repartirSeparado,
   sinIdentificarDelGrupo,
   repartirTotal,
   type GrupoDeLineas,
@@ -60,6 +62,7 @@ import {
   claveDeCategoria,
   claveDeNombre,
   modelosSinNombre,
+  sePuedeQuitarCategoria,
   claveDeParada,
   conMiles,
   esToqueRepetido,
@@ -77,6 +80,7 @@ import {
   SIN_FILTRO,
   tipoDeParada,
   vecinosDeLaParada,
+  type CategoriaDelEnvio,
   type EstadoDelResumen,
   type FiltroDelConteo,
   type OrdenDelConteo,
@@ -119,6 +123,7 @@ type Hoja =
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
   | { tipo: "quitar"; parada: string }
+  | { tipo: "quitar-categoria"; categoria: string }
   | null;
 
 /** La mesa llena la ventana: dónde empieza depende de lo que tenga encima (la cabecera, un aviso). Lo mide, y lo vuelve a medir si cambia algo de eso. */
@@ -229,8 +234,11 @@ export function ContarEnvio({
   const grupos = agruparLineas(visibles);
   // Lo último de cada grupo, para un «Deshacer» que llega cuando ya cambió algo más.
   const gruposVivos = useRef(grupos);
+  // Todas las líneas, también las que no se ven: lo quitado que se queda en 0 sale de los grupos, y «Deshacer» tiene que poder volver a escribirlo.
+  const lineasVivas = useRef(lineas);
   useLayoutEffect(() => {
     gruposVivos.current = grupos;
+    lineasVivas.current = lineas;
   });
   // La guía, «Pasar a cerrar» y el resumen miran todo el envío; el filtro solo decide qué se ve a la izquierda.
   const todas = categoriasEnOrden(categoriasDelEnvio(grupos), orden);
@@ -457,11 +465,40 @@ export function ContarEnvio({
       accion: {
         texto: "Deshacer",
         onClick: () => {
-          // Si era lo único de su línea, ya no está a la vista: se vuelve a mostrar.
-          const g = gruposVivos.current.find((x) => x.clave === p.grupo.clave) ?? p.grupo;
+          // Si era lo único de su línea, ya no está a la vista: se vuelve a mostrar y se escribe sobre la línea de ahora. Comparado con el grupo de antes parecería que no cambió nada.
           setAgregados((a) => new Set([...a, ...p.grupo.lineas.map((l) => l.clave)]));
-          escribirSeparado(g, devolverModelo(g.separado, antes, m));
+          const g = gruposVivos.current.find((x) => x.clave === p.grupo.clave);
+          if (g) {
+            escribirSeparado(g, devolverModelo(g.separado, antes, m));
+          } else {
+            const l = lineasVivas.current.find((x) => x.clave === p.grupo.principal.clave) ?? p.grupo.principal;
+            const separado = devolverModelo(l.conteo?.separado ?? SEPARADO_VACIO, antes, m);
+            onEscribir(l, { contadas: (l.conteo?.enStock ?? 0) + totalSeparado(separado), separado });
+          }
           setFoco(p.clave);
+        },
+      },
+    });
+  }
+
+  /** El tacho de una categoría que se agregó entera (ADR-0605). El aviso la devuelve con lo que tenía. */
+  function quitarCategoria(c: CategoriaDelEnvio) {
+    if (!sePuedeQuitarCategoria(c)) return;
+    const antes = c.grupos.flatMap((g) => g.lineas);
+    const claves = antes.map((l) => l.clave);
+    const siguiente = paradasDelEnvio.find((x) => !c.paradas.some((p) => p.clave === x.clave) && !paradaContada(x)) ?? paradasDelEnvio.find((x) => !c.paradas.some((p) => p.clave === x.clave)) ?? null;
+    const focoAntes = parada?.clave ?? null;
+    for (const g of c.grupos) aplicar(repartirSeparado(g, SEPARADO_VACIO, 0));
+    setAgregados((a) => new Set([...a].filter((k) => !claves.includes(k as ClaveLinea))));
+    if (parada && c.paradas.some((p) => p.clave === parada.clave)) setFoco(siguiente?.clave ?? null);
+    avisar.exito(`Quitaste ${c.categoria?.nombre ?? "la categoría"}`, {
+      accion: {
+        texto: "Deshacer",
+        onClick: () => {
+          setAgregados((a) => new Set([...a, ...claves]));
+          // Cada línea, sobre su versión de ahora: quitarlas ya la cambió.
+          for (const l of antes) onEscribir(lineasVivas.current.find((x) => x.clave === l.clave) ?? l, { contadas: l.conteo?.contadas ?? 0, separado: l.conteo?.separado ?? SEPARADO_VACIO });
+          setFoco(focoAntes);
         },
       },
     });
@@ -540,12 +577,13 @@ export function ContarEnvio({
   const categoriaDelModelo = hoja?.tipo === "modelo" && hoja.categoria ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
   const paradaAEditar = hoja?.tipo === "editar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
   const paradaAQuitar = hoja?.tipo === "quitar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
-  const grupoDeHoja = hoja && hoja.tipo !== "modelo" && hoja.tipo !== "editar" && hoja.tipo !== "quitar" ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
+  const categoriaAQuitar = hoja?.tipo === "quitar-categoria" ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
+  const grupoDeHoja = hoja && "grupo" in hoja ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
   // Vino en la guía sin decir qué modelos: lo que sigue es agregarlos.
   const sinModelos = todas.find((c) => c.paradas.length === 0 && !c.hayConteo) ?? null;
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
   const lineaDeHoja =
-    grupoDeHoja && hoja && hoja.tipo !== "modelo" && hoja.tipo !== "editar" && hoja.tipo !== "quitar"
+    grupoDeHoja && hoja && "grupo" in hoja
       ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
       : null;
   const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
@@ -604,6 +642,7 @@ export function ContarEnvio({
           onAgregarModelo={(categoria) => setHoja({ tipo: "modelo", categoria })}
           onNoLlego={(c) => c.grupos.forEach((g) => aplicar(repartirTotal(g, 0)))}
           onQuitar={(p) => (p.modelo && p.modelo.contadas > 0 ? setHoja({ tipo: "quitar", parada: p.clave }) : quitarModeloDe(p))}
+          onQuitarCategoria={(c) => (c.contadas > 0 ? setHoja({ tipo: "quitar-categoria", categoria: c.clave }) : quitarCategoria(c))}
           onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
         />
 
@@ -711,7 +750,8 @@ export function ContarEnvio({
         />
       </div>
 
-      {paradaAQuitar?.modelo && <QuitarModelo modelo={paradaAQuitar.modelo} onQuitar={() => quitarModeloDe(paradaAQuitar)} onCerrar={() => setHoja(null)} />}
+      {paradaAQuitar?.modelo && <QuitarModelo nombre={paradaAQuitar.modelo.nombre} contadas={paradaAQuitar.modelo.contadas} onQuitar={() => quitarModeloDe(paradaAQuitar)} onCerrar={() => setHoja(null)} />}
+      {categoriaAQuitar && <QuitarModelo nombre={categoriaAQuitar.categoria?.nombre ?? "la categoría"} contadas={categoriaAQuitar.contadas} onQuitar={() => quitarCategoria(categoriaAQuitar)} onCerrar={() => setHoja(null)} />}
 
       {paradaAEditar?.modelo && paradaAEditar.grupo.principal.categoria && (
         <EditarModelo

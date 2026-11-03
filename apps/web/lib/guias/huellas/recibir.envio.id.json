@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 186,
+  "total": 187,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -52,6 +52,7 @@
       "button «{`Quitar ${m.nombre}»",
       "button «{nombre}»",
       "button «{i === 0 ? \"recepcion.agregar-modelo\" : undefined}»",
+      "button «{`Quitar ${nombre}»",
       "button «No llegó nada»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Marca»",

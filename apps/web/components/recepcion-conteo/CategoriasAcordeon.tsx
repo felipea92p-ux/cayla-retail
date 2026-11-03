@@ -24,6 +24,7 @@ import {
   idCampoCategoria,
   idCampoParada,
   modeloSeQuita,
+  sePuedeQuitarCategoria,
   nombreDeParada,
   origenDelGrupo,
   resumenDeCategoria,
@@ -145,6 +146,7 @@ function Categoria({
   onAgregarModelo,
   onNoLlego,
   onQuitar,
+  onQuitarCategoria,
 }: {
   c: CategoriaDelEnvio;
   i: number;
@@ -160,6 +162,7 @@ function Categoria({
   /** Vino en la guía y no llegó nada: queda contada en 0. */
   onNoLlego: () => void;
   onQuitar: (p: ParadaDelConteo) => void;
+  onQuitarCategoria: () => void;
 }) {
   useFotosDeLaCategoria(c, abierta, onFotos);
   const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
@@ -171,6 +174,7 @@ function Categoria({
   const fuera = c.grupos.every((g) => !g.principal.linea);
   const idCuerpo = `rc-cat-${c.clave.replace(/[^a-zA-Z0-9]+/g, "-")}`;
   const pct = avanceDeCategoria(c);
+  const seQuita = sePuedeQuitarCategoria(c);
   return (
     <div className="rc-cat" data-abierta={abierta ? "" : undefined} style={{ "--i": i } as React.CSSProperties}>
       <div className="rc-cat-tira" data-campo={idCampoCategoria(c.clave)}>
@@ -195,6 +199,7 @@ function Categoria({
           </span>
           {dif != null && dif !== 0 && <Chip tono="ambar">{conSigno(dif)}</Chip>}
           {/* Su lugar: el «+» va al lado, fuera de este botón (un botón no puede llevar otro adentro). */}
+          {seQuita && <span aria-hidden className="rc-cat-hueco-mas" />}
           <span aria-hidden className="rc-cat-hueco-mas" />
           <MarcaCampo estado={estado} />
           <ChevronDown aria-hidden className="rc-cat-flecha h-4 w-4" />
@@ -202,6 +207,11 @@ function Categoria({
         <button type="button" className="rc-cat-mas mov-boton" aria-label={`Agregar otro modelo de ${nombre}`} title={`Agregar otro modelo de ${nombre}`} onClick={onAgregarModelo} data-guia={i === 0 ? "recepcion.agregar-modelo" : undefined}>
           <Plus aria-hidden className="h-4 w-4" />
         </button>
+        {seQuita && (
+          <button type="button" className="rc-cat-tacho" aria-label={`Quitar ${nombre} del envío`} title={`Quitar ${nombre} del envío`} onClick={onQuitarCategoria}>
+            <Trash2 aria-hidden className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <div id={idCuerpo} className="rc-cat-cuerpo" inert={!abierta}>
         <div className="rc-cat-dentro">
@@ -250,6 +260,7 @@ export function ListaDelEnvio({
   onAgregarModelo,
   onNoLlego,
   onQuitar,
+  onQuitarCategoria,
   onFotos,
 }: {
   categorias: readonly CategoriaDelEnvio[];
@@ -284,6 +295,8 @@ export function ListaDelEnvio({
   onNoLlego: (c: CategoriaDelEnvio) => void;
   /** El tacho de un modelo agregado al contar. */
   onQuitar: (p: ParadaDelConteo) => void;
+  /** El tacho de una categoría entera que nada de ella venía en la guía. */
+  onQuitarCategoria: (c: CategoriaDelEnvio) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
 }) {
   // Buscando o filtrando por estado se lee la lista: todas las que quedan, abiertas.
@@ -374,7 +387,7 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} />;
+            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} onQuitarCategoria={() => onQuitarCategoria(c)} />;
           })}
         </nav>
         <div className="rc-lista-agregar">
