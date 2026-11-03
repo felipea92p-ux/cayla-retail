@@ -172,3 +172,5 @@ Felipe contestó si quien recibe ve el costo («sí, debe poder ver el costo de 
 
 **En producción desde el 2026-11-03,** con `apply_migration`: quedó registrada con la versión `20261103190810` (la hora de aplicarla), no la del archivo (`20261103182000`). Se verificó leyendo las funciones y llamando a `fn_envio_leer_separado` y `fn_envio_sin_ceros` sin escribir nada.
 
+**Cruce con #1616 / ADR-0605 (Felipe, 2026-11-03): manda esta actualización.** Quitar lo agregado es el tacho, que confirma si ya se contó, y no hay fila «Total» ni la fila de la categoría hace de total. De ADR-0605 siguen cancelar la recepción de un envío sin aviso y quitar una categoría entera.
+
