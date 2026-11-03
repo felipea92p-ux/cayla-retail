@@ -7,11 +7,12 @@ import { Boton, CampoSelect } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { CatalogoParaRecibir } from "@/lib/recepcion-envio-reglas";
-import { grupoYaEnLaLista, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
+import { alAgregarALaLista, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 
 // «¿Llegó algo que no estaba en la guía?» (ADR-0393; decisión 13 de ADR-0362): una categoría que no venía se agrega a la lista con su marca, si tiene (vacía = sin marca, Felipe
 // 2026-11-03) y, si el envío trae dos o más, su proveedor; y se cuenta como las demás. Al cerrar, Compras ve lo que pasó con ella. En un envío sin aviso, todo lo que llega entra
-// por aquí, y del proveedor del envío. Si esa categoría ya está en la lista, otro modelo no es otra línea: la hoja lleva a anotarlo dentro de ella.
+// por aquí, y del proveedor del envío. Si esa categoría ya está en la lista, otro modelo no es otra línea: la hoja lleva a anotarlo dentro de ella; y dejar la marca vacía en una
+// categoría que ya está con marca pregunta, porque una marca olvidada abriría otra línea sin que nadie lo note (`/chaos`, 2026-11-03).
 
 export function AgregarFueraDeGuia({
   catalogo,
@@ -46,23 +47,31 @@ export function AgregarFueraDeGuia({
     return [...todas].sort((a, b) => Number(suyas.has(b.id)) - Number(suyas.has(a.id)) || a.nombre.localeCompare(b.nombre, "es"));
   }, [catalogo, proveedorId]);
   const proveedorElegido = eligeProveedor ? proveedorId : null;
-  const yaEnLista = categoriaId && proveedorElegido !== "" ? grupoYaEnLaLista(grupos, { proveedorId: proveedorElegido, categoriaId, marcaId: marcaId || null }) : null;
+  const destino = categoriaId && proveedorElegido !== "" ? alAgregarALaLista(grupos, { proveedorId: proveedorElegido, categoriaId, marcaId: marcaId || null }) : ({ tipo: "nueva" } as const);
+  // Adónde lleva el botón principal: con dos o más marcas no se adivina cuál era.
+  const grupoDestino = destino.tipo === "dentro" ? destino.grupo : destino.tipo === "otra-marca" && destino.grupos.length === 1 ? destino.grupos[0] : null;
+  const otrasMarcas = destino.tipo === "otra-marca" ? destino.grupos.map((g) => g.principal.marca?.nombre ?? "") : [];
   const nombreCategoria = catalogo?.categorias.find((c) => c.id === categoriaId)?.nombre ?? "";
 
   const campos = [
     ...(eligeProveedor ? [{ id: "fuera-proveedor", nombre: "De qué proveedor", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es." }] : []),
     { id: "fuera-categoria", nombre: "Qué llegó", requerido: true, hecho: categoriaId !== "", pendiente: "Elige la categoría." },
-    { id: "fuera-marca", nombre: "La marca", requerido: false, hecho: marcaId !== "", pendiente: "" },
+    { id: "fuera-marca", nombre: "La marca", requerido: otrasMarcas.length >= 2, hecho: marcaId !== "", pendiente: "Elige la marca, o agrégala aparte sin marca." },
   ];
   const guia = useGuiaCampos(campos);
 
-  async function agregar() {
+  /** El botón principal: va a la línea que ya está o agrega una nueva. */
+  function confirmar() {
     if (!guia.puedeConfirmar) return;
-    if (yaEnLista) {
-      onIrAlGrupo(yaEnLista);
+    if (grupoDestino) {
+      onIrAlGrupo(grupoDestino);
       onCerrar();
       return;
     }
+    void agregar();
+  }
+
+  async function agregar() {
     setGuardando(true);
     setError(null);
     const clave = await onAgregar({ proveedorId: proveedorElegido, categoriaId, marcaId: marcaId || null });
@@ -83,7 +92,7 @@ export function AgregarFueraDeGuia({
           noValidate
           onSubmit={(e) => {
             e.preventDefault();
-            void agregar();
+            confirmar();
           }}
           className="space-y-4"
         >
@@ -120,10 +129,23 @@ export function AgregarFueraDeGuia({
               marcador="Déjala vacía si no tiene"
             />
           </CampoGuiado>
-          {yaEnLista && (
+          {destino.tipo === "dentro" && (
             <p className="nota-cayla text-sm">
               <b className="text-tinta">{nombreCategoria} ya está en tu lista.</b> Si llegó otro modelo, se anota ahí con su nombre.
             </p>
+          )}
+          {destino.tipo === "otra-marca" && (
+            <div className="nota-cayla text-sm">
+              <p>
+                <b className="text-tinta">
+                  {nombreCategoria} ya está en tu lista con {new Intl.ListFormat("es", { type: "conjunction" }).format(otrasMarcas)}.
+                </b>{" "}
+                {otrasMarcas.length === 1 ? "Si es de esa marca, se anota ahí." : "Elige la marca de arriba y se anota en su línea."}
+              </p>
+              <button type="button" className="btn-cayla btn-enlace mt-1" disabled={guardando} onClick={() => void agregar()}>
+                No tiene marca: agregarla aparte
+              </button>
+            </div>
           )}
           {!catalogo && <Aviso tono="atencion" titulo="No se pudo leer el catálogo">Recarga la pantalla para elegir la categoría y la marca.</Aviso>}
           {error && <Aviso tono="error" titulo="No se pudo agregar">{error}</Aviso>}
@@ -133,7 +155,7 @@ export function AgregarFueraDeGuia({
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {yaEnLista ? `+ Agregar dentro de ${nombreCategoria}` : "+ Agregar y contar"}
+              {grupoDestino ? `+ Agregar dentro de ${[nombreCategoria, grupoDestino.principal.marca?.nombre].filter(Boolean).join(" · ")}` : "+ Agregar y contar"}
             </Boton>
           </div>
         </form>

@@ -1919,7 +1919,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],
       titulo: "Algo que no estaba en la guía",
-      texto: "Si llegó una categoría que no venía, la agregas aquí con su marca y la cuentas como las demás; al cerrar dirás qué pasa con ella. En un envío sin aviso, todo lo que llega entra por aquí.",
+      texto: "Si llegó una categoría que no venía, la agregas aquí y la cuentas como las demás; la marca va solo si tiene. Si esa categoría ya está en la lista, te lleva a anotar el modelo dentro de ella. Al cerrar dirás qué pasa con lo agregado. En un envío sin aviso, todo lo que llega entra por aquí.",
     },
     {
       id: "cifra",

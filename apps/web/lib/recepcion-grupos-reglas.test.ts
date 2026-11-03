@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   agruparLineas,
   anotadasDelGrupo,
-  grupoYaEnLaLista,
+  alAgregarALaLista,
   gruposSinIdentificar,
   sinIdentificarDelGrupo,
   camposDelCierrePorGrupo,
@@ -397,13 +397,16 @@ describe("la categoría en el cierre", () => {
   });
 });
 
-describe("grupoYaEnLaLista: otro modelo de lo que ya está en la lista no es otra línea", () => {
+describe("alAgregarALaLista: otro modelo de lo que ya está en la lista no es otra línea", () => {
   const grupos = agruparLineas([
     { ...deLaGuia(linea("l1", 3)), marca: null },
     deLaGuia(linea("l2", 3, { categoria: FALDAS })),
     { ...deLaGuia(linea("l3", 3, { categoria: FALDAS, proveedor: OTRO_PROV })), marca: null },
   ]);
-  const buscar = (categoriaId: string, marcaId: string | null, proveedorId: string | null = null) => grupoYaEnLaLista(grupos, { proveedorId, categoriaId, marcaId })?.principal.linea?.id ?? null;
+  const buscar = (categoriaId: string, marcaId: string | null, proveedorId: string | null = null) => {
+    const r = alAgregarALaLista(grupos, { proveedorId, categoriaId, marcaId });
+    return r.tipo === "dentro" ? (r.grupo.principal.linea?.id ?? null) : null;
+  };
 
   it("sin marca se encuentra con sin marca, nunca con una marca", () => {
     expect(buscar(VESTIDOS.id, null)).toBe("l1");
@@ -419,5 +422,42 @@ describe("grupoYaEnLaLista: otro modelo de lo que ya está en la lista no es otr
 
   it("una categoría que no está en la lista se puede agregar", () => {
     expect(buscar("c-conjuntos", null)).toBeNull();
+  });
+});
+
+describe("alAgregarALaLista: dejar la marca vacía no abre otra línea sin avisar", () => {
+  const ZARA = { id: "m-zara", nombre: "Zara" };
+  const consulta = (categoriaId: string, marcaId: string | null, proveedorId: string | null = null) => ({ proveedorId, categoriaId, marcaId });
+  const tipo = (grupos: ReturnType<typeof agruparLineas>, q: ReturnType<typeof consulta>) => alAgregarALaLista(grupos, q).tipo;
+
+  it("la categoría con marca y la marca vacía: pregunta, no crea otra línea", () => {
+    const grupos = agruparLineas([deLaGuia(linea("l1", 3))]);
+    const r = alAgregarALaLista(grupos, consulta(VESTIDOS.id, null));
+    expect(r.tipo).toBe("otra-marca");
+    expect(r.tipo === "otra-marca" && r.grupos.map((g) => g.principal.linea?.id)).toEqual(["l1"]);
+  });
+
+  it("con dos marcas de esa categoría, las dice las dos, una vez cada una", () => {
+    const grupos = agruparLineas([deLaGuia(linea("l1", 3)), deLaGuia(linea("l2", 3, { marca: ZARA })), deLaGuia(linea("l3", 3, { proveedor: OTRO_PROV }))]);
+    const r = alAgregarALaLista(grupos, consulta(VESTIDOS.id, null));
+    expect(r.tipo === "otra-marca" && r.grupos.map((g) => g.principal.marca?.nombre)).toEqual(["CAYLA", "Zara"]);
+  });
+
+  it("si ya hay una línea sin marca de esa categoría, va dentro de ella aunque haya otra con marca", () => {
+    const grupos = agruparLineas([deLaGuia(linea("l1", 3)), { ...deLaGuia(linea("l2", 3)), marca: null }]);
+    const r = alAgregarALaLista(grupos, consulta(VESTIDOS.id, null));
+    expect(r.tipo === "dentro" && r.grupo.principal.linea?.id).toBe("l2");
+  });
+
+  it("elegir una marca es una decisión: esa marca va dentro de su línea o es nueva, sin preguntar", () => {
+    const grupos = agruparLineas([deLaGuia(linea("l1", 3))]);
+    expect(tipo(grupos, consulta(VESTIDOS.id, CAYLA.id))).toBe("dentro");
+    expect(tipo(grupos, consulta(VESTIDOS.id, ZARA.id))).toBe("nueva");
+  });
+
+  it("lo de otro proveedor o de otra categoría no cuenta", () => {
+    const grupos = agruparLineas([deLaGuia(linea("l1", 3))]);
+    expect(tipo(grupos, consulta(VESTIDOS.id, null, OTRO_PROV.id))).toBe("nueva");
+    expect(tipo(grupos, consulta(FALDAS.id, null))).toBe("nueva");
   });
 });
