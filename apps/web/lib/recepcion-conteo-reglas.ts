@@ -231,6 +231,30 @@ export function renombrarModelo(s: Separado, nombre: string, cambio: { nombre: s
   };
 }
 
+/**
+ * Las líneas como las ve Cerrar: sin los modelos que quedaron en 0, que no se guardan (la base hace lo mismo, `fn_envio_sin_ceros`). Lo de fuera de la guía que se queda sin nada desaparece.
+ */
+export function lineasSinModelosEnCero<T extends Pick<LineaParaContar, "conteo">>(lineas: readonly T[]): T[] {
+  return lineas.map((l) =>
+    l.conteo
+      ? { ...l, conteo: { ...l.conteo, separado: { prendas: l.conteo.separado.prendas.filter((p) => p.cantidad > 0), nuevas: l.conteo.separado.nuevas.filter((n) => n.cantidad > 0) } } }
+      : l,
+  );
+}
+
+/** Lo que quien cuenta agregó y dejó en 0: al cerrar se avisa y se descarta (Felipe 2026-11-03). */
+export function modelosEnCeroDe(lineas: readonly Pick<LineaParaContar, "conteo">[]): string[] {
+  return lineas.flatMap((l) => {
+    const s = l.conteo?.separado;
+    if (!s) return [];
+    return [...s.prendas.filter((p) => p.cantidad <= 0).map((p) => p.nombre ?? p.codigo ?? "Prenda"), ...s.nuevas.filter((n) => n.cantidad <= 0 && n.descripcion).map((n) => n.descripcion as string)];
+  });
+}
+
+/** «Blusa 2 quedó en 0: no se guarda.» */
+export const textoModelosEnCero = (nombres: readonly string[]): string =>
+  `${new Intl.ListFormat("es", { type: "conjunction" }).format(nombres)} ${nombres.length === 1 ? "quedó en 0: no se guarda." : "quedaron en 0: no se guardan."}`;
+
 /** El tacho: el modelo sale de lo separado, con lo que se había contado de él. */
 export function quitarModelo(s: Separado, m: { productoId: string | null; nombre: string }): Separado {
   if (m.productoId) return quitarPrenda(s, m.productoId);

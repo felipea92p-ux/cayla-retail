@@ -110,10 +110,10 @@ export function alAgregarALaLista(grupos: readonly GrupoDeLineas[], q: { proveed
 }
 
 /** Las categorías del envío, en el orden en que aparece su primera línea. */
-export function agruparLineas(lineas: readonly LineaParaContar[]): GrupoDeLineas[] {
+export function agruparLineas(lineas: readonly LineaParaContar[], claveDe: (l: LineaParaContar) => string = claveDeGrupo): GrupoDeLineas[] {
   const porClave = new Map<string, LineaParaContar[]>();
   for (const l of lineas) {
-    const k = claveDeGrupo(l);
+    const k = claveDe(l);
     const ya = porClave.get(k);
     if (ya) ya.push(l);
     else porClave.set(k, [l]);
@@ -134,6 +134,23 @@ export function agruparLineas(lineas: readonly LineaParaContar[]): GrupoDeLineas
 export const minimoDelGrupo = (g: GrupoDeLineas): number => g.lineas.reduce((a, l) => a + minimoDe(l), 0);
 
 /** Lo que queda guardado en una línea. */
+/**
+ * Las filas de Cerrar (Felipe 2026-11-03): lo que no cuadró se explica contra lo que Compras dijo. Si anotó el modelo, por modelo (Compras sabe qué reclamar); si solo dijo «Vestidos: 20», por
+ * categoría. La misma prenda comprada en dos líneas sigue siendo una sola fila.
+ */
+export const agruparLineasDelCierre = (lineas: readonly LineaParaContar[]): GrupoDeLineas[] =>
+  agruparLineas(lineas, (l) => {
+    const anotada = l.linea ? prendasAnotadasDe(l)[0] : undefined;
+    return anotada ? `${claveDeGrupo(l)}|${anotada.productoId ?? normaliza(anotada.nombre)}` : claveDeGrupo(l);
+  });
+
+/** El nombre de una fila de Cerrar: el modelo si se anotó, y si no, la categoría. */
+export function nombreDelGrupoDelCierre(g: GrupoDeLineas): string {
+  const anotada = g.principal.linea ? prendasAnotadasDe(g.principal)[0] : undefined;
+  const p = g.principal;
+  return [anotada?.nombre ?? p.categoria?.nombre ?? "Categoría", p.categoria ? marcaDeLinea(p).nombre : null].filter(Boolean).join(" · ");
+}
+
 export type CambioDeLinea = { linea: LineaParaContar; clave: ClaveLinea; contadas: number; separado: Separado };
 
 export type Reparto = {

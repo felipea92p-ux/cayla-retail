@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  lineasSinModelosEnCero,
+  modelosEnCeroDe,
   textoAnotarNueva,
+  textoModelosEnCero,
   leerSeparado,
   SEPARADO_VACIO,
   claveCostoDeNueva,
@@ -89,6 +92,7 @@ import {
   proveedorDelSinAviso,
   prendasAnotadasDe,
   separarAnotada,
+  type ConteoDeLinea,
 } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
 
@@ -1280,5 +1284,35 @@ describe("un modelo en 0, con su descripción y su nombre por defecto", () => {
       { cantidad: 2, descripcion: "Blusa Luna" },
       { cantidad: 3, descripcion: null },
     ]);
+  });
+});
+
+describe("Cerrar no ve lo que quedó en 0, y avisa cuál fue", () => {
+  const conteo = (separado: Separado) => ({ conteo: { separado } as unknown as ConteoDeLinea });
+  const lineas = [
+    conteo({
+      prendas: [
+        { productoId: "p1", nombre: "Blusa Emma", codigo: null, cantidad: 0, variantes: null },
+        { productoId: "p2", nombre: "Blusa Sol", codigo: null, cantidad: 2, variantes: null },
+      ],
+      nuevas: [
+        { cantidad: 0, descripcion: "Blusa 1", porDefecto: true },
+        { cantidad: 1, descripcion: "Blusa Luna" },
+      ],
+    }),
+    { conteo: null },
+  ];
+
+  it("los saca de lo separado sin tocar lo demás", () => {
+    const [a, b] = lineasSinModelosEnCero(lineas);
+    expect(a.conteo?.separado.prendas.map((p) => p.productoId)).toEqual(["p2"]);
+    expect(a.conteo?.separado.nuevas.map((n) => n.descripcion)).toEqual(["Blusa Luna"]);
+    expect(b.conteo).toBeNull();
+  });
+
+  it("dice cuáles eran", () => {
+    expect(modelosEnCeroDe(lineas)).toEqual(["Blusa Emma", "Blusa 1"]);
+    expect(textoModelosEnCero(["Blusa 1"])).toBe("Blusa 1 quedó en 0: no se guarda.");
+    expect(textoModelosEnCero(["Blusa 1", "Blusa 2"])).toBe("Blusa 1 y Blusa 2 quedaron en 0: no se guardan.");
   });
 });
