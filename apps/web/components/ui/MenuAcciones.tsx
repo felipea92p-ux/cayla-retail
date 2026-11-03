@@ -26,7 +26,10 @@ type Posicion = { top: number; left: number; maxHeight?: number };
  * con más lugar y con alto máximo (se desplaza por dentro). Nunca queda una opción fuera de la pantalla.
  */
 function colocar(r: DOMRect, alto: number): Posicion {
-  const left = Math.min(Math.max(MARGEN, r.right - ANCHO), window.innerWidth - ANCHO - MARGEN);
+  // Alineado al borde derecho del botón (su lugar de siempre, a la derecha de una fila); si el botón está en la mitad izquierda de la pantalla,
+  // al borde izquierdo: si no, la lista se corre hasta el margen y se monta sobre el menú lateral.
+  const alineado = r.left + r.width / 2 < window.innerWidth / 2 ? r.left : r.right - ANCHO;
+  const left = Math.min(Math.max(MARGEN, alineado), window.innerWidth - ANCHO - MARGEN);
   const abajo = window.innerHeight - r.bottom - 4 - MARGEN;
   const arriba = r.top - 4 - MARGEN;
   if (alto <= abajo) return { top: r.bottom + 4, left };
@@ -72,12 +75,15 @@ export function MenuAcciones({
   items,
   deshabilitado = false,
   texto,
+  guia,
 }: {
   etiqueta: string;
   items: ItemMenu[];
   deshabilitado?: boolean;
   /** Si viene, el botón dice esto (con la forma de un botón secundario) en vez de «⋯». */
   texto?: string;
+  /** El `data-guia` del botón, si la guía interactiva de la pantalla lo enciende. */
+  guia?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pos, setPos] = useState<Posicion | null>(null);
@@ -85,6 +91,9 @@ export function MenuAcciones({
   const [activo, setActivo] = useState(-1);
   const boton = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
+  // Abierto con el teclado (Enter o espacio): la gota arranca en la primera opción. Con el mouse no: una lista de una sola opción
+  // peligrosa nacía ya teñida de rojo, como si alguien la hubiera elegido.
+  const conTeclado = useRef(false);
 
   const cerrar = useCallback((devolverFoco: boolean) => {
     setAbierto(false);
@@ -110,7 +119,9 @@ export function MenuAcciones({
   }, [montado]);
 
   useEffect(() => {
-    if (montado) menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    if (!montado) return;
+    if (conTeclado.current) menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    else menu.current?.focus({ preventScroll: true });
   }, [montado]);
 
   useEffect(() => {
@@ -147,7 +158,7 @@ export function MenuAcciones({
       e.preventDefault();
       const filas = Array.from(menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
       const i = filas.indexOf(document.activeElement as HTMLElement);
-      const sig = e.key === "ArrowDown" ? (i + 1) % filas.length : (i - 1 + filas.length) % filas.length;
+      const sig = e.key === "ArrowDown" ? (i + 1) % filas.length : i < 0 ? filas.length - 1 : (i - 1 + filas.length) % filas.length;
       filas[sig]?.focus();
     }
   }
@@ -161,8 +172,12 @@ export function MenuAcciones({
         aria-haspopup="menu"
         aria-expanded={abierto}
         disabled={deshabilitado}
+        data-guia={guia}
         title={texto ? undefined : etiqueta}
-        onClick={() => setAbierto((a) => !a)}
+        onClick={(e) => {
+          conTeclado.current = e.detail === 0;
+          setAbierto((a) => !a);
+        }}
         className={texto ? "btn-cayla btn-secundario inline-flex items-center gap-2" : CLASE_PUNTOS}
       >
         {texto ? (
@@ -182,10 +197,11 @@ export function MenuAcciones({
           <div
             ref={menu}
             role="menu"
+            tabIndex={-1}
             aria-label={etiqueta}
             onKeyDown={alTeclear}
             style={{ top: pos.top, left: pos.left, width: ANCHO, maxHeight: pos.maxHeight }}
-            className={`lista-flotante lista-menu anim-revelar fixed z-[60] py-1.5 text-sm ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
+            className={`lista-flotante lista-menu anim-revelar fixed z-[60] py-1.5 text-sm focus:outline-none ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
           >
             {items.map((it, i) => (
               <button
