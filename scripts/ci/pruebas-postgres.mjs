@@ -50,6 +50,10 @@ export const PRUEBAS = [
   // (la prenda sin registrar cuenta en la categoría declarada en caja) suman lo mismo que las cifras. ROLLBACK.
   "pruebas:reporte-ventas-mes",
 
+  // Ventas ▸ Reportes ▸ Ranking de prendas: el orden (unidades, soles; modelo, color y talla), lo del período anterior del mismo largo, lo que NO entra
+  // (anulada, prueba, bolsa, prenda sin registrar, que se cuenta aparte), los filtros, «Quedan» (solo tiendas) y que el ranking suma lo que dicen las cifras. ROLLBACK.
+  "pruebas:reporte-ventas-ranking",
+
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",
