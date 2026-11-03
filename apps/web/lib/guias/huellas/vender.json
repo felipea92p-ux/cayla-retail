@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 196,
+  "total": 195,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -170,6 +170,9 @@
     "components/punto-de-venta/CajaCerrada.tsx": [
       "button «vender.abrir-caja»"
     ],
+    "components/punto-de-venta/CerrarHoja.tsx": [
+      "button «Cerrar»"
+    ],
     "components/punto-de-venta/ClientaDelTicket.tsx": [
       "button «{linea.titulo}»",
       "button «{abiertaLaCaja ? \"Ocultar lo del club\" : \"Ver lo del club\"}»",
@@ -201,7 +204,6 @@
       "Boton «Descartar ticket»"
     ],
     "components/punto-de-venta/HojaDeCobro.tsx": [
-      "Volver «→onVolver»",
       "CampoMonto «{`Monto en ${NOMBRE_METODO[m]}»",
       "button «→() => onMaquina?.(indice, m.cuentaId)»",
       "button «{i === 0 ? \"Exacto\" : undefined}»",
@@ -210,7 +212,6 @@
       "button «vender.cobro-confirmar»"
     ],
     "components/punto-de-venta/HojaDeDescuento.tsx": [
-      "Volver «→onVolver»",
       "Boton «Aplicar descuento»",
       "Boton «Quitar descuento»"
     ],
@@ -234,8 +235,8 @@
       "Casilla «{it.referencia}»",
       "SegmentoDeslizante «Cómo escribir el descuento»",
       "button «{porMonto ? `S/${a}»",
-      "input «Monto de descuento»",
-      "input «Porcentaje de descuento»",
+      "input «Otro monto de descuento»",
+      "input «Otro porcentaje de descuento»",
       "button «{r.etiqueta}»",
       "input «Detalle del motivo»",
       "textarea «Argumento del descuento»"
