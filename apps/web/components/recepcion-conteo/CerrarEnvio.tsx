@@ -15,6 +15,7 @@ import { FilaDeCosto } from "./PrecioDePrenda";
 import { PodioCategoria } from "./PodioCategoria";
 import { PrendaConCombinaciones } from "./PrendaConCombinaciones";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
@@ -903,6 +904,8 @@ export function CerrarEnvio({
       className="space-y-5"
      
     >
+      {/* «Cerrar el conteo» trae hasta aquí: todavía falta este paso (Felipe 2026-11-03). */}
+      <TituloSeccion>Revisa y cierra</TituloSeccion>
       {modelosEnCero.length > 0 && (
         <p className="nota-cayla text-sm">
           <b className="text-tinta">{textoModelosEnCero(modelosEnCero)}</b> Si sí llegaron, vuelve a contarlos.

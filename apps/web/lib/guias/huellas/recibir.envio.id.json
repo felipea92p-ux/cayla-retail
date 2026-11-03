@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 187,
+  "total": 186,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -39,6 +39,10 @@
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
       "button «›»"
+    ],
+    "components/recepcion-conteo/BotonCerrarConteo.tsx": [
+      "Boton «{guia}»",
+      "Boton «{guia}» #2"
     ],
     "components/recepcion-conteo/CancelarRecepcion.tsx": [
       "CampoTexto «{guia.etiqueta(\"cancelar-motivo\", \"¿Por qué lo cancelas?\")}»",
@@ -124,7 +128,6 @@
       "CampoSelect «{guia.etiqueta(\"modelo-categoria\", \"Qué llegó\")}»",
       "CampoTexto «{guia.etiqueta(\"modelo-nombre\", \"El nombre\")}»",
       "CampoSelect «{guia.etiqueta(\"modelo-marca\", \"La marca\")}»",
-      "button «No tiene marca: agregarla aparte»",
       "CampoTexto «{guia.etiqueta(\"modelo-nota\", \"La descripción (para no confundirlo con otro)\")}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
@@ -152,7 +155,6 @@
       "Boton «{anterior ? `Antes: ${nombreDeParada(anterior)}»",
       "Boton «{`${hayConteo ? \"Listo, siguiente\" : \"Siguiente\"}»",
       "Boton «Es el último: ver todos»",
-      "Boton «{motivoNoCierra}»",
       "button «Reintentar»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
@@ -194,8 +196,7 @@
       "button «{e.texto}»",
       "button «Reintentar»",
       "button «Cómo se guarda quién cuenta»",
-      "ComboResponsable «{responsable}»",
-      "Boton «recepcion.pasar-a-cerrar»"
+      "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",

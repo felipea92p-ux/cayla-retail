@@ -1937,7 +1937,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.pasar-a-cerrar",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      titulo: "Pasar a cerrar",
+      titulo: "Cerrar el conteo",
       texto: "Cuando todo está contado e identificado, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. Arriba del botón ves cuántas se podrán vender. En la demo no avanzamos.",
     },
     {

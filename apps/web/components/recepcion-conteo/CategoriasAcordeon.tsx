@@ -115,7 +115,7 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
             )}
           </span>
           {/* Si la categoría junta varios, de qué proveedor y marca, junto a sus cifras. */}
-          <span className="rc-modelo-cifras" title={conOrigen ? origenDelGrupo(p.grupo) : undefined}>
+          <span className="rc-modelo-cifras" title={[conOrigen ? origenDelGrupo(p.grupo) : null, m?.nota].filter(Boolean).join(" · ") || undefined}>
             {cifras}
             {conOrigen && ` · ${origenDelGrupo(p.grupo)}`}
             {m?.nota && ` · ${m.nota}`}

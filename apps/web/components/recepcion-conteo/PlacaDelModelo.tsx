@@ -15,6 +15,7 @@ import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-gru
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import type { ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
+import { BotonCerrarConteo } from "./BotonCerrarConteo";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
 
@@ -36,7 +37,8 @@ export function PlacaDelModelo({
   siguiente,
   hayFiltroPuesto,
   puedeCerrar,
-  motivoNoCierra,
+  motivosNoCierra,
+  onIrALoQueFalta,
   filaSeguir,
   onPoner,
   onDeUnToque,
@@ -67,7 +69,8 @@ export function PlacaDelModelo({
   siguiente: ParadaDelConteo | null;
   hayFiltroPuesto: boolean;
   puedeCerrar: boolean;
-  motivoNoCierra?: string;
+  motivosNoCierra: readonly string[];
+  onIrALoQueFalta: () => void;
   /** La fila de «Anterior» y «Listo, siguiente»: al apretar Enter en el último, el cursor va a su botón. */
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
@@ -243,12 +246,7 @@ export function PlacaDelModelo({
               Es el último: ver todos
             </Boton>
           ) : (
-            <Boton type="button" peso="primario" disabled={!puedeCerrar} title={motivoNoCierra} onClick={onCerrar}>
-              <span className="inline-flex items-center gap-2">
-                Pasar a cerrar
-                <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
-              </span>
-            </Boton>
+            <BotonCerrarConteo peso="primario" puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={onIrALoQueFalta} />
           )}
         </div>
       </div>

@@ -301,14 +301,12 @@ export function ContarEnvio({
   const proveedores = conteos?.proveedores ?? [];
   const faltanNombres = modelosSinNombre(todas);
   const puedeCerrar = visibles.length > 0 && faltanIdentificar.length === 0 && faltanNombres.length === 0;
-  const motivoNoCierra =
-    visibles.length === 0
-      ? "Primero agrega lo que llegó."
-      : faltanIdentificar.length > 0
-        ? `Falta identificar las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}`
-        : faltanNombres.length > 0
-          ? `Cambia el nombre de ${faltanNombres.map((m) => m.nombre).join(", ")}`
-          : undefined;
+  // Lo que frena el cierre, todo a la vez: el botón apagado lo dice (`BotonCerrarConteo`).
+  const motivosNoCierra = [
+    ...(visibles.length === 0 ? ["Agrega lo que llegó"] : []),
+    ...(faltanIdentificar.length > 0 ? [`Identifica las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}`] : []),
+    ...(faltanNombres.length > 0 ? [`Ponle su nombre a ${faltanNombres.map((m) => m.nombre).join(", ")}`] : []),
+  ];
 
   function elegir(p: ParadaDelConteo, escribir = false) {
     const suya = claveDeCategoria(p.grupo);
@@ -682,7 +680,8 @@ export function ContarEnvio({
               siguiente={siguiente}
               hayFiltroPuesto={hayFiltro(filtro)}
               puedeCerrar={puedeCerrar}
-              motivoNoCierra={motivoNoCierra}
+              motivosNoCierra={motivosNoCierra}
+              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
               filaSeguir={filaSeguir}
               onPoner={(n) => escribirEnParada(parada, n)}
               onAnterior={(e) => pasarA(anterior, e.timeStamp)}
@@ -745,7 +744,8 @@ export function ContarEnvio({
           alCerrar={onCerrar}
           textoAlCerrar={textoResumenDelCierre(resumenDelCierre(visibles))}
           puedeCerrar={puedeCerrar}
-          motivoNoCierra={motivoNoCierra}
+          motivosNoCierra={motivosNoCierra}
+              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
           onFiltroEstado={(e: EstadoDelResumen | null) => cambiarFiltro({ ...filtro, estado: e, tipo: null })}
         />
       </div>

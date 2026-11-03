@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ArrowRight, Check, CircleDashed, Clock, Info, TriangleAlert } from "lucide-react";
+import { Check, CircleDashed, Clock, Info, TriangleAlert } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { Boton } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { colorDeAvance, textoDeAvance } from "@/lib/avance-color";
 import { conMiles, conSigno, type CifrasDelResumen, type EstadoDelResumen } from "@/lib/recepcion-modelos-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
+import { BotonCerrarConteo } from "./BotonCerrarConteo";
 import { Odometro } from "./Odometro";
 
 // El resumen del envío (Felipe 2026-11-02, de su boceto): lo que hacía la barra de abajo, siempre a la vista. Dice cómo va TODO el envío, con el filtro que sea; sus filas filtran la lista.
@@ -43,7 +43,8 @@ export function ResumenDelEnvio({
   alCerrar,
   textoAlCerrar,
   puedeCerrar,
-  motivoNoCierra,
+  motivosNoCierra,
+  onIrALoQueFalta,
   onFiltroEstado,
 }: {
   cifras: CifrasDelResumen;
@@ -59,7 +60,8 @@ export function ResumenDelEnvio({
   alCerrar: () => void;
   textoAlCerrar: string;
   puedeCerrar: boolean;
-  motivoNoCierra?: string;
+  motivosNoCierra: readonly string[];
+  onIrALoQueFalta: () => void;
   onFiltroEstado: (e: EstadoDelResumen | null) => void;
 }) {
   // «Cómo se guarda quién cuenta»: la ayuda se abre con un toque (nunca solo con el mouse encima).
@@ -164,19 +166,7 @@ export function ResumenDelEnvio({
       </div>
       <div className="rc-resumen-pie">
         <p>{textoAlCerrar}</p>
-        <Boton
-          type="button"
-          peso={todoContado ? "primario" : "fantasma"}
-          onClick={alCerrar}
-          disabled={!puedeCerrar}
-          title={motivoNoCierra}
-          data-guia="recepcion.pasar-a-cerrar"
-        >
-          <span className="inline-flex items-center gap-1.5">
-            Pasar a cerrar
-            <ArrowRight aria-hidden className="h-4 w-4" />
-          </span>
-        </Boton>
+        <BotonCerrarConteo peso={todoContado ? "primario" : "fantasma"} puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={alCerrar} onIrALoQueFalta={onIrALoQueFalta} guia="recepcion.pasar-a-cerrar" />
         {/* A la vista, no en un `title`: la prueba ciega no llegó a verlo pasando el mouse. */}
         <p className="rc-resumen-nota">{notaDelResumen(porContar - cifras.agregadosEnCero, cifras.agregadosEnCero)}</p>
       </div>
