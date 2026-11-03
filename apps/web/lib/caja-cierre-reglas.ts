@@ -2,6 +2,7 @@
 // `CerrarCajaModalV2`, `AbrirCajaFormV2`, el historial de cierres y sus pruebas. Los mismos candados viven en la base
 // (`cerrar_caja`, `abrir_caja`, `caja_traslados`); aquí solo se adelantan para que la pantalla explique antes de enviar.
 
+import { reglaDeEntero } from "./cantidad-escrita-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
 export type DestinoTraslado = "caja_fuerte" | "banco" | "lider" | "claudia";
@@ -35,6 +36,9 @@ export function etiquetaDestino(destino: string): string {
 export function leerMonto(texto: string): number | null {
   return leerMontoPlata(texto);
 }
+
+/** Cuántos billetes o monedas de cada uno: cualquier entero, sin tope. Lo que no lo es no le llega a la suma, que lee con `parseInt` («2,5» sería 2, y «-5», -5): `useCantidadEscrita`. */
+export const REGLA_BILLETES = reglaDeEntero();
 
 export const cuadra = (a: number, b: number) => Math.abs(a - b) < 0.01;
 

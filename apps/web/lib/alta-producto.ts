@@ -311,10 +311,10 @@ export function limpiarCantidad(texto: string): string {
   return /^\d{1,3}([.,]\d{3})+$/.test(t) ? t.replace(/[.,]/g, "") : t;
 }
 
-/** Lo que se dice de lo escrito en una celda que no es una cantidad: mientras se escribe, o después de salir de ella, cuando ya volvió su número. */
-export function textoCantidadRechazada(escrito: string, alSalir: boolean): string {
+/** Lo que se dice de lo escrito en una celda que no es una cantidad: mientras se escribe, o después de salir de ella, cuando ya volvió su número. `rango`: hasta dónde llega la celda; vacío, si no tiene tope. */
+export function textoCantidadRechazada(escrito: string, alSalir: boolean, rango = ", de 0 a 9999"): string {
   const corto = escrito.length > 12 ? `${escrito.slice(0, 12)}…` : escrito;
-  return alSalir ? `«${corto}» no se guardó: las cantidades son números enteros, de 0 a 9999.` : `«${corto}» no es una cantidad: escribe un número entero, de 0 a 9999.`;
+  return alSalir ? `«${corto}» no se guardó: las cantidades son números enteros${rango}.` : `«${corto}» no es una cantidad: escribe un número entero${rango}.`;
 }
 
 export type StockAlta = { total: number; invalidas: number; celdasConStock: number };

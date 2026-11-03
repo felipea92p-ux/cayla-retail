@@ -22,9 +22,11 @@ import { TiraDeLoQueEntro, VistoQueSeDibuja } from "@/components/ficha-producto/
 import { hrefEtiquetasDeSubidas } from "@/lib/matriz-ficha-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { apartadoEn, type VarianteAjuste } from "@/lib/ajuste-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import {
   avisoCargaDeLaPlanilla,
   claveCelda,
+  leerEscritoDeCelda,
   motivoCerrado,
   motivoPlanilla,
   MOTIVOS_PLANILLA,
@@ -225,7 +227,7 @@ export function PlanillaDelAjuste({
   function avisar(texto: string | null) {
     setRazon(texto);
     setPideLugar(null);
-    if (texto) setVez((n) => n + 1);
+    setVez((n) => n + 1);
   }
 
   function elegirLugar(u: "piso" | "almacen") {
@@ -396,9 +398,9 @@ export function PlanillaDelAjuste({
             </Boton>
           </span>
         </Aviso>
-      ) : razon ? (
+      ) : razon || control.escritoRechazado ? (
         <Aviso key={`razon-${vez}`} tono="atencion" className="ajuste-aviso">
-          {razon}
+          {razon ?? control.escritoRechazado}
         </Aviso>
       ) : null}
       {control.error && (
@@ -625,18 +627,26 @@ function Celda({
     else onRazon(r.razon);
     if (!r.razon) onVista();
   }
-  function confirmar() {
-    if (borrador === null) return;
-    const t = borrador.trim();
+  /** Al salir de la cantidad o con Enter. `false`: lo escrito no era una cantidad, y se dijo. */
+  function confirmar(): boolean {
+    if (borrador === null) return true;
     setBorrador(null);
-    if (t === "" || Number(t) === n) return;
-    const r = control.fijar(v, Number(t));
+    const escrito = leerEscritoDeCelda(borrador, n);
+    if (escrito.tipo === "nada") return true;
+    if (escrito.tipo === "rechazo") {
+      control.rechazarEscrito(escrito.texto);
+      onRazon(null);
+      return false;
+    }
+    const r = control.fijar(v, escrito.n);
     if (r.abrirConteo) onAbrirConteo(v.varianteId);
     else onRazon(r.razon);
+    return true;
   }
 
   const nota = notaDeCelda(v, control);
   const bajo = !conNota ? null : nota?.tono === "ajeno" ? nota : cambio ? { texto: `era ${hoy}`, tono: "cambio" as const } : nota;
+  const invalida = borrador !== null && leerEscritoDeCelda(borrador, n).tipo === "rechazo";
 
   return (
     <div
@@ -650,7 +660,7 @@ function Celda({
     >
       <PasoCantidad
         tamano="planilla"
-        tono={cambio ? "atencion" : undefined}
+        tono={invalida ? "error" : cambio ? "atencion" : undefined}
         sinTab
         menos={{ onClick: () => tocar(-1), bloqueado: noBaja !== null, etiqueta: `Una menos de ${nombre}`, title: noBaja || undefined }}
         mas={{ onClick: () => tocar(1), bloqueado: noSube !== null, etiqueta: `Una más de ${nombre}`, title: noSube ?? undefined }}
@@ -659,13 +669,18 @@ function Celda({
           value: borrador ?? String(n),
           inputMode: "numeric",
           "aria-label": `${nombre}, ${DONDE[control.lugar]}`,
+          "aria-invalid": invalida || undefined,
           onFocus: (e) => e.currentTarget.select(),
-          onChange: (e) => setBorrador(e.target.value.replace(/\D/g, "").slice(0, 3)),
+          onChange: (e) => setBorrador(limpiarCantidad(e.target.value)),
           onBlur: confirmar,
           onKeyDown: (e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              confirmar();
+              // Lo que no valió no pasa a la siguiente: el cursor se queda aquí, con su número elegido para escribir encima.
+              if (!confirmar()) {
+                requestAnimationFrame(() => caja.current?.select());
+                return;
+              }
               onVista();
               onSiguiente();
             } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {

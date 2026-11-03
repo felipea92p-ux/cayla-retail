@@ -1308,6 +1308,11 @@ export function escribirEnCasilla(valor: string, indice: number, entrante: strin
   return { valor: nuevo, cursor: Math.min(3, desde + cifras.length) };
 }
 
+/** ¿Decir «solo cifras»? Se escribió algo que no es una cifra y el código sigue incompleto: la casilla lo ignora a propósito, y sin decirlo parece que el teclado falló. Un «20 94» pegado entero no necesita explicación. */
+export function escribioAlgoQueNoEsCifra(entrante: string, valor: string): boolean {
+  return /\D/.test(entrante) && limpiarCodigo(valor).length < 4;
+}
+
 /** «Borrar» en una casilla ya vacía: quita la cifra de la anterior y el cursor vuelve a ella. */
 export function borrarCasillaAnterior(valor: string, indice: number): { valor: string; cursor: number } {
   const actual = limpiarCodigo(valor);

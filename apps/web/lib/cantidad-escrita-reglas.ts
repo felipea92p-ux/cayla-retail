@@ -6,36 +6,74 @@ import { leerCantidad, limpiarCantidad, textoCantidadRechazada } from "./alta-pr
 // no entienden (`enteroDe`, `celdaEntera`), y un «2,5» guardado ahí haría desaparecer esa talla de la orden, también sin avisar. Al salir de la celda vuelve su número, y se dice que lo escrito no se guardó.
 //
 // CONTRATO
-//   PROMETE: que `paraLaPantalla` es siempre una cantidad que `leerCantidad` acepta, si lo que había antes también lo era; y que lo escrito nunca se transforma en otro número, salvo los miles («1,200» → 1200).
+//   PROMETE: que `paraLaPantalla` es siempre una cantidad que la regla del campo acepta, si lo que había antes también lo era; y que lo escrito nunca se transforma en otro número, salvo los miles («1,200» → 1200).
 //   ASUME:   que hay una sola celda con el cursor a la vez. `useCantidadEscrita` guarda este estado y las celdas lo dibujan.
-//   NO HACE: no decide qué cantidades valen (`leerCantidad`) ni guarda nada: la pantalla sigue siendo la dueña del número.
+//   NO HACE: no decide qué cantidades valen (cada campo trae su `ReglaCantidad`; sin ella, `leerCantidad`) ni guarda nada: la pantalla sigue siendo la dueña del número.
 
 type Escribiendo = { clave: string; texto: string; antes: string };
-type EstadoEscrito = { escribiendo: Escribiendo | null; rechazado: string | null };
+/** `aviso`: qué se dice de lo último que no se guardó. `frena`: ese aviso todavía no detuvo al botón que sigue (`alQuererSeguir`). */
+type EstadoEscrito = { escribiendo: Escribiendo | null; aviso: string | null; frena: boolean };
 
-export const SIN_ESCRIBIR: EstadoEscrito = { escribiendo: null, rechazado: null };
+export const SIN_ESCRIBIR: EstadoEscrito = { escribiendo: null, aviso: null, frena: false };
+
+/** Qué cantidades valen en un campo y qué se dice de lo demás. */
+export type ReglaCantidad = {
+  /** El número que vale (vacío es 0), o `null` si lo escrito no es una cantidad aquí. */
+  leer: (texto: string) => number | null;
+  /** Qué decir de lo que no vale: mientras se escribe, o después de salir, cuando ya volvió su número. */
+  decir: (escrito: string, alSalir: boolean) => string;
+};
+
+/** La de una celda de stock: de 0 a 9999, como la base (`leerCantidad`). */
+const REGLA_DE_STOCK: ReglaCantidad = { leer: leerCantidad, decir: textoCantidadRechazada };
+
+/** Un campo con otro tope: un entero sin signo de hasta `maxCifras` cifras, o de cualquier largo si no se pasa. El tope es el que el campo ya tenía: esto no lo decide. */
+export function reglaDeEntero(maxCifras?: number): ReglaCantidad {
+  const forma = new RegExp(maxCifras === undefined ? "^\\d+$" : `^\\d{1,${maxCifras}}$`);
+  const rango = maxCifras === undefined ? "" : `, de 0 a ${"9".repeat(maxCifras)}`;
+  return {
+    leer(texto) {
+      const t = texto.trim();
+      if (t === "") return 0;
+      return forma.test(t) ? Number(t) : null;
+    },
+    decir: (escrito, alSalir) => textoCantidadRechazada(escrito, alSalir, rango),
+  };
+}
 
 /** ¿Lo escrito ahora mismo no es una cantidad? */
-export const escritoInvalido = (e: EstadoEscrito): boolean => e.escribiendo !== null && leerCantidad(e.escribiendo.texto) === null;
+export const escritoInvalido = (e: EstadoEscrito, regla = REGLA_DE_STOCK): boolean => e.escribiendo !== null && regla.leer(e.escribiendo.texto) === null;
 
 /** Qué decir bajo la tabla, o `null`. */
-export function problemaEscrito(e: EstadoEscrito): string | null {
-  if (e.escribiendo !== null && escritoInvalido(e)) return textoCantidadRechazada(e.escribiendo.texto, false);
-  return e.rechazado === null ? null : textoCantidadRechazada(e.rechazado, true);
+export function problemaEscrito(e: EstadoEscrito, regla = REGLA_DE_STOCK): string | null {
+  if (e.escribiendo !== null && escritoInvalido(e, regla)) return regla.decir(e.escribiendo.texto, false);
+  return e.aviso;
 }
 
 /** Entró a la celda: lo que hay es adonde vuelve si lo que escriba no es una cantidad. El aviso de la celda anterior sigue: el Tab acaba de dejarla. */
 export const alEntrar = (e: EstadoEscrito, clave: string, valor: string): EstadoEscrito => ({ ...e, escribiendo: { clave, texto: valor, antes: valor } });
 
 /** Una tecla o un pegado. `valor`: lo que la pantalla tiene ahora. */
-export function alEscribir(e: EstadoEscrito, clave: string, crudo: string, valor: string): { estado: EstadoEscrito; paraLaPantalla: string } {
+export function alEscribir(e: EstadoEscrito, clave: string, crudo: string, valor: string, regla = REGLA_DE_STOCK): { estado: EstadoEscrito; paraLaPantalla: string } {
   const texto = limpiarCantidad(crudo);
   const antes = e.escribiendo?.clave === clave ? e.escribiendo.antes : valor;
-  return { estado: { escribiendo: { clave, texto, antes }, rechazado: null }, paraLaPantalla: leerCantidad(texto) === null ? antes : texto };
+  return { estado: { escribiendo: { clave, texto, antes }, aviso: null, frena: false }, paraLaPantalla: regla.leer(texto) === null ? antes : texto };
 }
 
+/** Lo escrito no se guardó, y se dice: al salir de la celda, o de una caja que no es una celda («Llenar todas con», que trae su propia regla). */
+export const alRechazar = (texto: string, regla = REGLA_DE_STOCK): EstadoEscrito => ({ escribiendo: null, aviso: regla.decir(texto, true), frena: true });
+
 /** Salió de la celda: vuelve a mostrarse el número de la pantalla, y si lo escrito no valía, se dice. */
-export function alSalir(e: EstadoEscrito, clave: string): EstadoEscrito {
+export function alSalir(e: EstadoEscrito, clave: string, regla = REGLA_DE_STOCK): EstadoEscrito {
   if (e.escribiendo?.clave !== clave) return e;
-  return { escribiendo: null, rechazado: escritoInvalido(e) ? e.escribiendo.texto : e.rechazado };
+  return escritoInvalido(e, regla) ? alRechazar(e.escribiendo.texto, regla) : { ...e, escribiendo: null };
+}
+
+/**
+ * El botón que sigue (cerrar la caja, colgar, guardar): sin esto se llevaría lo que acaba de rechazarse, sin que nadie alcance a leer por qué.
+ * Con el cursor todavía en la celda (Enter), no sigue hasta que se corrija. Ya fuera de ella frena una vez: el clic que se llevó el cursor es el mismo que quiere seguir, y el aviso sale recién ahí. El segundo clic sigue.
+ */
+export function alQuererSeguir(e: EstadoEscrito, regla = REGLA_DE_STOCK): { estado: EstadoEscrito; frena: boolean } {
+  if (escritoInvalido(e, regla)) return { estado: e, frena: true };
+  return { estado: e.frena ? { ...e, frena: false } : e, frena: e.frena };
 }

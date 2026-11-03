@@ -22,6 +22,7 @@ import {
   type MotivoAjuste,
   type VarianteAjuste,
 } from "./ajuste-reglas";
+import { reglaDeEntero } from "./cantidad-escrita-reglas";
 import { conPaso, type Pendientes } from "./matriz-ficha-reglas";
 import { compararTallas } from "./tallas";
 
@@ -333,6 +334,18 @@ export function ordenDeRecorrido(modelo: ModeloDeAjuste): string[] {
 export function siguienteDelRecorrido(orden: readonly string[], actual: string): string | null {
   const i = orden.indexOf(actual);
   return i === -1 ? null : (orden[i + 1] ?? null);
+}
+
+/** Una cantidad de la planilla: de 0 a 999, como siempre. */
+export const REGLA_CELDA_PLANILLA = reglaDeEntero(3);
+
+/** Qué hacer con lo escrito en una cantidad al salir de ella o con Enter. Vacía o con el mismo número no cambia nada, y lo que no es una cantidad se rechaza: nunca se vuelve otro número (`Number("1e3")` es 1000). */
+export function leerEscritoDeCelda(escrito: string, hay: number): { tipo: "nada" } | { tipo: "fijar"; n: number } | { tipo: "rechazo"; texto: string } {
+  const t = escrito.trim();
+  if (t === "") return { tipo: "nada" };
+  const n = REGLA_CELDA_PLANILLA.leer(t);
+  if (n === null) return { tipo: "rechazo", texto: t };
+  return n === hay ? { tipo: "nada" } : { tipo: "fijar", n };
 }
 
 /** El aviso de la carga inicial nombra el motivo de la ventana completa de Ajustar («Encontré prendas»); en la planilla ese botón se llama
