@@ -1512,8 +1512,9 @@ export function lineasALaVista(lineas: readonly LineaParaContar[], agregados: Re
 
 /**
  * El error de un guardado de la recepción en palabras de tienda. La base ya habla castellano (sus pistas `recepcion_*`); la red caída no
- * se muestra cruda. Como cada guardado lleva su token (un reintento con el mismo token no repite nada), se puede decir que vuelva a
- * intentar sin miedo, aunque no se sepa si llegó a guardarse.
+ * se muestra cruda. Se puede decir que vuelva a intentar sin miedo aunque no se sepa si llegó a guardarse: los guardados de una sola vez llevan
+ * su token y un conteo se escribe sobre su propia línea, así que un reintento no repite nada. Lo único sin token es ANOTAR algo nuevo fuera de la
+ * guía (`guardar_conteo_envio` sin posición): un reintento deja otra línea en 0, que no se ve y el cierre ignora, y su hoja no usa este mensaje.
  */
 export function mensajeAlGuardar(error: { message?: string | null; hint?: string | null; code?: string | null; details?: string | null } | null | undefined, contexto: string): string {
   const deLaRecepcion = mensajeDeLaRecepcion(error);
