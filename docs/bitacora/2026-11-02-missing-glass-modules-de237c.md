@@ -8,4 +8,4 @@
 
 - **Qué:** las 8 pestañas de Configuración pasan al vidrio con una sola pieza, `apps/web/app/estilos/vidrio/pantalla-en-vidrio.css`: el layout pone `.pantalla-en-vidrio` y sus bloques, campos, combos y tablas (kit de Finanzas) toman la placa Serena, el pozo y el hilo. Tienda web usa ahora la misma pieza; Finanzas sigue en papel (El telar). Solo cambia el material.
 - **Verificado:** `tema:auditar` en las 8 pestañas con 0 hallazgos solo en oscuro (los 2 heredados son los botones ahumados, que el auditor lee mal por el degradado); sin desborde a 1440 y 375 px; un combo abre su lista fuera de la placa, sin recortarse. Aprendido: un `@import` nuevo en `globals.css` no entra con el servidor corriendo ni reiniciándolo: hay que borrar `.next` (la caché de Turbopack).
-- **Falta:** las hojas de Configuración (van con la tanda de hojas y modales) y `/formidable`. No se guardó ningún dato ni se abrió una hoja.
+- **Falta:** los campos y combos del kit dentro de las hojas de Configuración (siguen en hueso) y `/formidable`. No se guardó ningún dato ni se abrió una hoja.
