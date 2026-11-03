@@ -112,6 +112,10 @@ export const PRUEBAS = [
   // se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
   "pruebas:impuestos",
 
+  // Sustento del costo (ADR-0598): lo gastado por proveedor y papel (factura, boleta, nota de venta, sin comprobante), con la
+  // nota de crédito restando, sin activos ni anulados, sin el lote de un envío (su plata vive en la compra de la orden); solo el líder. ROLLBACK.
+  "pruebas:sustento-costos",
+
   // Estado de resultados (ADR-0195 F5): el diario cuadra, cada regla de posteo, unidades y consolidado, planilla de
   // Dynamic, permisos, campañas y un año de volumen; y las mermas en la 6951 (antes 659, migración 20261023012000): el Estado de
   // resultados, el Balance y la conciliación dan lo mismo antes y después, y 6599/6598 no se mueven. ROLLBACK.

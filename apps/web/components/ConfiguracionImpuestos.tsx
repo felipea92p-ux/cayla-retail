@@ -24,7 +24,9 @@ import {
   parsearParametro,
   valorEnCasilla,
   vigenteEnAnio,
+  type NombreEscalaRenta,
   type NombreParametro,
+  type NombreRentaPrevia,
   type ParametroFila,
   type Regimen,
 } from "@/lib/impuestos-reglas";
@@ -131,7 +133,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
     return true;
   };
 
-  const guardarCasilla = (nombre: Exclude<NombreParametro, "regimen">, vigenteDesde: string, que: string) => async (tipeado: string) => {
+  const guardarCasilla = (nombre: Exclude<NombreParametro, "regimen" | NombreEscalaRenta>, vigenteDesde: string, que: string) => async (tipeado: string) => {
     const v = parsearParametro(nombre, tipeado);
     if (!v.ok) {
       avisar.error(`${que}: ${v.error}`);
@@ -148,7 +150,9 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
               ? `S/\u00a0${v.valor.toFixed(2)} a favor`
               : nombre === "ventas_previas_erp"
                 ? `S/\u00a0${v.valor.toFixed(2)} de ajuste`
-                : `${v.valor} UIT`;
+                : RENTA_PREVIA.some((r) => r.nombre === nombre)
+                  ? `S/\u00a0${v.valor.toFixed(2)}`
+                  : `${v.valor} UIT`;
     return guardar(nombre, vigenteDesde, v.valor, null, `${que}: ${legible}.`);
   };
   const confirmar = (p: ParametroFila, que: string) => () => void guardar(p.nombre, p.vigenteDesde, p.valor, p.texto, `${que}: confirmado.`);
@@ -158,6 +162,9 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   const saldos = parametros.filter((p) => p.nombre === "saldo_favor_igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   // El ajuste de ventas del año rige por año exacto: se listan los años que ya tienen algo y el año en curso (aunque no se haya cargado).
   const aniosPrevias = [...new Set([...parametros.filter((p) => p.nombre === "ventas_previas_erp").map((p) => Number(p.vigenteDesde.slice(0, 4))), anioActual])].sort((a, b) => b - a);
+  // Lo de antes del sistema para la renta (ADR-0598): por año exacto, el año en curso aunque esté vacío.
+  const aniosRentaPrevia = [...new Set([...parametros.filter((p) => RENTA_PREVIA.some((r) => r.nombre === p.nombre)).map((p) => Number(p.vigenteDesde.slice(0, 4))), anioActual])].sort((a, b) => b - a);
+  const escala = escalaDeRenta(parametros, anioActual);
   const uits = parametros.filter((p) => p.nombre === "uit");
   const aniosUit = [...new Set([...uits.map((u) => Number(u.vigenteDesde.slice(0, 4))), ...aniosUitExtra])].sort((a, b) => b - a);
   const anios = aniosDeRegimen(parametros, anioActual, aniosRegimenExtra);
@@ -319,6 +326,44 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
             Si ya está registrado en el sistema, déjalo en 0: se contaría dos veces. Cada año va aparte.
           </p>
         </Superficie>
+
+        <Superficie pad className="anim-sube" guia="config.impuestos-renta-previa">
+          <CabeceraBloque
+            titulo="Renta del año: lo de antes del sistema"
+            bajada="De enero hasta el mes antes de que Finanzas empezara a contar, según tu contador. Con esto, la renta de marzo de Impuestos cubre el año entero."
+          />
+          {aniosRentaPrevia.map((anio) => (
+            <div key={anio} className="mt-3 first:mt-0">
+              <p className="text-sm font-medium text-tinta">{anio}</p>
+              <ul className="fin-vigencias">
+                {RENTA_PREVIA.map((r) => {
+                  const p = delAnio(parametros, r.nombre, anio);
+                  return (
+                    <li key={r.nombre}>
+                      <span>
+                        {r.nombre_visible}
+                        {p ? <Quien p={p} onConfirmar={confirmar(p, `${r.nombre_visible} ${anio}`)} /> : <small>{r.ayuda}</small>}
+                      </span>
+                      <span className="fin-con-unidad">
+                        S/
+                        <Casilla
+                          valor={p ? valorEnCasilla(p) : ""}
+                          placeholder="0.00"
+                          etiqueta={`${r.nombre_visible} de ${anio} antes del sistema, en soles`}
+                          ancho="w-28"
+                          alGuardar={guardarCasilla(r.nombre, `${anio}-01-01`, `${r.nombre_visible} ${anio}`)}
+                        />
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+          <p className="fin-tenue mt-3 text-sm">
+            {escala ?? "La escala de la renta todavía no está en la base."} Solo lo que el sistema no tiene: si un mes ya está en Finanzas, no lo sumes aquí.
+          </p>
+        </Superficie>
       </section>
 
       <Superficie className="anim-sube" guia="config.impuestos-regimen">
@@ -360,9 +405,25 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   );
 }
 
+// Lo de antes del sistema para la renta del año (ADR-0598). El contador anota solo lo que tiene comprobante: su utilidad ya es la base de la renta.
+const RENTA_PREVIA: readonly { nombre: NombreRentaPrevia; nombre_visible: string; ayuda: string }[] = [
+  { nombre: "renta_utilidad_previa", nombre_visible: "Utilidad del contador", ayuda: "antes de impuestos; con signo menos si fue pérdida" },
+  { nombre: "renta_sin_papel_previo", nombre_visible: "Compras sin factura", ayuda: "nota de venta o nada; aproximado sirve" },
+  { nombre: "renta_pagada_previa", nombre_visible: "Renta pagada a cuenta", ayuda: "la suma de tus PDT 621" },
+];
+
+/** «Escala de 2026: 10 % hasta 15 UIT y 29.5 % sobre el resto; las boletas restan hasta 6 %.» — de los parámetros de la ley; null si falta alguno. */
+function escalaDeRenta(parametros: readonly ParametroFila[], anio: number): string | null {
+  const v = (n: NombreEscalaRenta) => vigenteEnAnio(parametros, n, anio)?.valor ?? null;
+  const [tramo, tasaTramo, tasaResto, boletas] = [v("renta_tramo_uit"), v("renta_tasa_tramo"), v("renta_tasa_resto"), v("boletas_tope_pct")];
+  if (tramo === null || tasaTramo === null || tasaResto === null || boletas === null) return null;
+  const pct = (x: number) => `${Number((x * 100).toFixed(2))} %`;
+  return `Escala de ${anio}: ${pct(tasaTramo)} hasta ${tramo} UIT y ${pct(tasaResto)} sobre el resto; las boletas restan hasta ${pct(boletas)}.`;
+}
+
 type CampoAnio = "regimen" | "umbral" | "aviso" | "renta";
 const CAMPOS_ANIO: readonly CampoAnio[] = ["regimen", "umbral", "aviso", "renta"];
-const PARAMETRO_DE: Record<Exclude<CampoAnio, "regimen">, Exclude<NombreParametro, "regimen">> = { umbral: "umbral_uit", aviso: "aviso_umbral_uit", renta: "renta_pago_cuenta" };
+const PARAMETRO_DE: Record<Exclude<CampoAnio, "regimen">, Exclude<NombreParametro, "regimen" | NombreEscalaRenta>> = { umbral: "umbral_uit", aviso: "aviso_umbral_uit", renta: "renta_pago_cuenta" };
 const NOMBRE_DE: Record<CampoAnio, string> = { regimen: "Régimen", umbral: "Límite", aviso: "Aviso", renta: "Pago a cuenta" };
 
 /** Una casilla que NO se guarda sola: lo tipeado vive en la fila hasta que se aprieta «Guardar». Enter guarda; Escape devuelve lo guardado. */

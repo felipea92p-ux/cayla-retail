@@ -335,6 +335,10 @@ export function avisoUmbral(p: Pick<PanelImpuestos, "parametros" | "umbral">): A
 //
 // `aviso_umbral_uit` y `ventas_previas_erp` (alerta de 250 UIT, ADR sin número aún): cuántas UIT de ventas del año encienden el aviso anticipado, y un ajuste OPCIONAL a las ventas del año
 // (sin IGV, en soles; sin fila vale 0 y nada lo exige). Los dos rigen por año. Los componentes del IGV (`igv_general`, `igv_ipm`) viven en la tabla como referencia y no se editan desde aquí.
+//
+// La renta del año (ADR-0598): `renta_utilidad_previa`, `renta_sin_papel_previo` y `renta_pagada_previa` son lo del año ANTES de que Finanzas tuviera
+// datos, según el contador, en soles y por año exacto (la utilidad puede ser una pérdida; es la suya, que ya no resta lo que no tiene comprobante). La escala de la ley (`renta_tramo_uit`, `renta_tasa_tramo`,
+// `renta_tasa_resto`, `boletas_tope_pct`, `boletas_tope_uit`) viene sembrada y, como los componentes del IGV, se lee y no se edita desde aquí.
 export type NombreParametro =
   | "igv"
   | "uit"
@@ -344,10 +348,18 @@ export type NombreParametro =
   | "tope_planilla_movilidad"
   | "saldo_favor_igv"
   | "aviso_umbral_uit"
-  | "ventas_previas_erp";
+  | "ventas_previas_erp"
+  | NombreRentaPrevia
+  | NombreEscalaRenta;
+
+/** Lo del año antes de que Finanzas tuviera datos (ADR-0598): se escribe en Configuración, por año. */
+export type NombreRentaPrevia = "renta_utilidad_previa" | "renta_sin_papel_previo" | "renta_pagada_previa";
+const NOMBRES_RENTA_PREVIA: readonly NombreRentaPrevia[] = ["renta_utilidad_previa", "renta_sin_papel_previo", "renta_pagada_previa"];
+/** La escala de la renta y el tope de las boletas: ley sembrada por migración, solo se lee. */
+export type NombreEscalaRenta = "renta_tramo_uit" | "renta_tasa_tramo" | "renta_tasa_resto" | "boletas_tope_pct" | "boletas_tope_uit";
 
 /** Los que rigen por año (desde el 1 de enero): la tabla del régimen. La tasa de IGV y el tope de la planilla, desde cualquier fecha. */
-const POR_ANIO: readonly NombreParametro[] = ["regimen", "umbral_uit", "renta_pago_cuenta", "aviso_umbral_uit", "ventas_previas_erp"];
+const POR_ANIO: readonly NombreParametro[] = ["regimen", "umbral_uit", "renta_pago_cuenta", "aviso_umbral_uit", "ventas_previas_erp", ...NOMBRES_RENTA_PREVIA];
 export type ParametroFila = {
   nombre: NombreParametro;
   /** «2026-01-01». */
@@ -388,15 +400,17 @@ export function diaDelRegistro(registradoEn: string | null): string | null {
 export function valorEnCasilla(p: Pick<ParametroFila, "nombre" | "valor">): string {
   if (p.valor === null) return "";
   // El tope de la planilla es un monto en soles: con sus dos decimales («45.20»).
-  if (p.nombre === "tope_planilla_movilidad" || p.nombre === "saldo_favor_igv" || p.nombre === "ventas_previas_erp") return p.valor.toFixed(2);
+  if (p.nombre === "tope_planilla_movilidad" || p.nombre === "saldo_favor_igv" || p.nombre === "ventas_previas_erp" || esRentaPrevia(p.nombre)) return p.valor.toFixed(2);
   const v = p.nombre === "igv" || p.nombre === "renta_pago_cuenta" ? p.valor * 100 : p.valor;
   return String(Number(v.toFixed(4)));
 }
 
+const esRentaPrevia = (n: NombreParametro): n is NombreRentaPrevia => (NOMBRES_RENTA_PREVIA as readonly string[]).includes(n);
+
 type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
 /** Lo tipeado en una casilla → lo que se guarda (la tasa, como fracción). Mismos límites que la base, con otras palabras. */
-export function parsearParametro(nombre: Exclude<NombreParametro, "regimen">, tipeado: string): Resultado<number> {
+export function parsearParametro(nombre: Exclude<NombreParametro, "regimen" | NombreEscalaRenta>, tipeado: string): Resultado<number> {
   const limpio = tipeado.replace(/[S/%\s]/g, "").replace(/,(?=\d{3}\b)/g, "").replace(",", "."); // coma-fija: solo quita la coma de miles (3 cifras detrás); la de céntimos pasa a punto
   if (!limpio) return { ok: false, error: "Escribe un valor." };
   const n = Number(limpio);
@@ -425,6 +439,15 @@ export function parsearParametro(nombre: Exclude<NombreParametro, "regimen">, ti
   if (nombre === "ventas_previas_erp") {
     // Cero vale: es declarar que no hay ajuste.
     if (n < 0 || n > 10000000) return { ok: false, error: "El ajuste de ventas del año va en soles, sin IGV (0 si no hay), hasta 10 millones." };
+    return { ok: true, valor: Math.round(n * 100) / 100 };
+  }
+  if (nombre === "renta_utilidad_previa") {
+    // Puede ser una pérdida: con signo menos.
+    if (n < -100000000 || n > 100000000) return { ok: false, error: "La utilidad va en soles (con signo menos si fue pérdida), hasta 100 millones." };
+    return { ok: true, valor: Math.round(n * 100) / 100 };
+  }
+  if (esRentaPrevia(nombre)) {
+    if (n < 0 || n > 100000000) return { ok: false, error: "Va en soles, de 0 a 100 millones." };
     return { ok: true, valor: Math.round(n * 100) / 100 };
   }
   if (nombre === "aviso_umbral_uit") {
