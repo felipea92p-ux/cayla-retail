@@ -67,13 +67,28 @@ alter table retail.despachos add constraint despachos_apertura check (
 -- ---------- 2. Abierto → anulado, solo desde la función ----------
 -- OJO con el NULL: sin la marca puesta, `current_setting(…, true)` es NULL y `… = 'si'` también; dentro de un AND con lo demás verdadero daría NULL y todo el
 -- `not (… or NULL)` dejaría pasar el cambio. Por eso el `coalesce` (la prueba F2 lo vigila con un UPDATE a mano).
+-- OJO con el lugar: la cláusula va como un `and not (…)` APARTE, ANTES de la lista de caminos permitidos, y no al final de esa lista: `reabrir_envio` (20261013180000)
+-- ancla su reemplazo en el texto `… = 'si')) then` y varias pruebas viejas la recargan; si la mía quedara pegada a ese final, el ancla de «reabrir» ya no calzaría.
 select pg_temp.reemplazar(
   'retail.fn_despachos_camino()',
-  $v$and current_setting('retail.reabriendo', true) = 'si')) then$v$,
-  $v$and current_setting('retail.reabriendo', true) = 'si')
-              -- ADR-0605: cancelar la recepción de un envío sin aviso, solo desde cancelar_recepcion_envio (lo avisa con retail.cancelando).
-              or (old.estado = 'abierto' and new.estado = 'anulado' and coalesce(current_setting('retail.cancelando', true), '') = 'si')) then$v$,
+  $v$and not ((old.estado = 'en_camino' and new.estado in ('abierto', 'anulado'))$v$,
+  $v$and not (old.estado = 'abierto' and new.estado = 'anulado' and coalesce(current_setting('retail.cancelando', true), '') = 'si')
+     -- ADR-0605: cancelar la recepción de un envío sin aviso, solo desde cancelar_recepcion_envio (lo avisa con retail.cancelando).
+     and not ((old.estado = 'en_camino' and new.estado in ('abierto', 'anulado'))$v$,
   1);
+-- La primera versión de esta migración (ya pegada en producción el 2026-11-03) ponía la cláusula al final de la lista; si está, se quita. En una base nueva no está.
+do $d$
+declare
+  v_def text := pg_get_functiondef('retail.fn_despachos_camino()'::regprocedure);
+  v_viejo text := $v$
+              -- ADR-0605: cancelar la recepción de un envío sin aviso, solo desde cancelar_recepcion_envio (lo avisa con retail.cancelando).
+              or (old.estado = 'abierto' and new.estado = 'anulado' and coalesce(current_setting('retail.cancelando', true), '') = 'si')$v$;
+begin
+  if position(v_viejo in v_def) > 0 then
+    execute replace(v_def, v_viejo, '');
+  end if;
+end;
+$d$;
 
 -- ---------- 3. Cancelar ----------
 create or replace function retail.cancelar_recepcion_envio(p_despacho_id uuid, p_version integer, p_motivo text)
@@ -196,6 +211,15 @@ begin
   end if;
   if position($t$coalesce(current_setting('retail.cancelando', true), '') = 'si'$t$ in pg_get_functiondef('retail.fn_despachos_camino()'::regprocedure)) = 0 then
     raise exception 'falta el reemplazo: cancelar la recepción en el camino del envío';
+  end if;
+  -- Una sola vez, y sin pegarle al final de la lista de «reabrir».
+  if (length(pg_get_functiondef('retail.fn_despachos_camino()'::regprocedure))
+      - length(replace(pg_get_functiondef('retail.fn_despachos_camino()'::regprocedure), 'retail.cancelando', ''))) / length('retail.cancelando') <> 2
+     or position($t$or (old.estado = 'abierto' and new.estado = 'cerrado')
+              -- ADR-0393: reabrir un envío ya recibido, solo desde reabrir_envio (lo avisa con retail.reabriendo).
+              or (old.estado = 'cerrado' and new.estado = 'abierto' and current_setting('retail.reabriendo', true) = 'si')) then$t$
+          in pg_get_functiondef('retail.fn_despachos_camino()'::regprocedure)) = 0 then
+    raise exception 'fn_despachos_camino: la cláusula de cancelar debe estar una vez y el bloque de reabrir intacto';
   end if;
 end;
 $$;

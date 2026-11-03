@@ -36,8 +36,10 @@ en cero a mano. Además la lista repetía lo mismo dos veces: la fila de la cate
 ## Cómo se pega en producción (con el OK de Felipe)
 
 Una sola parte, después de `20261014205000`: cambia un candado de `despachos` (`despachos_apertura`: un anulado puede recordar quién lo abrió), reemplaza `fn_despachos_camino` con ancla y crea la función.
-Sin políticas ni `drop trigger` (ADR-0195). Se puede pegar dos veces; el bloque final comprueba todo. **Ojo:** re-pegar después `20261013180000_reabrir_envio.sql` ya no calza su ancla (la función cambió);
-cada migración corre una vez y en orden, y las pruebas lo respetan.
+Sin políticas ni `drop trigger` (ADR-0195). Se puede pegar dos veces; el bloque final comprueba todo. **Ojo con el lugar de la cláusula (2026-11-03, tras el CI):** la primera versión pegaba la cláusula de cancelar al final de la lista de caminos
+permitidos de `fn_despachos_camino`, y eso rompía el ancla de «reabrir» (`… = 'si')) then`): cinco tandas de Postgres se pusieron en rojo porque varias pruebas viejas recargan esa migración. La cláusula
+va ahora como un `and not (…)` aparte, ANTES de la lista, y la migración quita la versión vieja si está (idempotente). Como el check «SQL pegado» compara el texto de las funciones con producción, producción se
+alinea con la misma migración corregida (`cancelar_recepcion_sin_aviso_clausula_al_frente`).
 
 ## Pruebas
 
