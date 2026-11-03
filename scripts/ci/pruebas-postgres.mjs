@@ -278,6 +278,10 @@ export const PRUEBAS = [
   // la cuenta; el Taller conserva su bloqueo. ROLLBACK.
   "pruebas:recibir-lo-propio",
 
+  // Quien solo tiene Recibir mira lo que llega a SU sede (ADR-0387, actualización 2026-11-03, Felipe): el detalle, los conteos, las
+  // observaciones, las listas y la foto del papel; Órdenes de compra, el dinero de Compras y el líder siguen viendo todas. ROLLBACK.
+  "pruebas:recibir-lee-su-sede",
+
   // El costo propio por prenda al cerrar un envío (ADR-0519, Felipe 2026-10-26): la prenda con tallas entra con su costo y las demás con el de
   // su línea; lo pendiente se detalla después con el costo de su prenda; se valida como el de la línea; un costo fuera de lo normal pide
   // confirmar; sin costos propios todo sigue igual. ROLLBACK.
@@ -1671,6 +1675,10 @@ export const PRUEBAS = [
   // con los mismos pendientes; nada sobra ni deja deuda; el costo solo lo escribe quien ve el dinero de Compras (ADR-0330) y lo que
   // entra sin costo no toca el de la prenda. ROLLBACK siempre.
   "pruebas:envio-sin-aviso",
+
+  // Cancelar la recepción de un envío sin aviso (ADR-0605, Felipe 2026-11-03): abierto → anulado con su motivo, quién y cuándo; lo contado queda como historia;
+  // no se cancela lo cerrado, lo que ya metió stock ni lo que vino de Compras; un UPDATE a mano no salta el candado. ROLLBACK siempre.
+  "pruebas:cancelar-recepcion",
 
   // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
   // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;

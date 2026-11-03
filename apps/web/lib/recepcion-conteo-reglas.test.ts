@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  lineasSinModelosEnCero,
+  modelosEnCeroDe,
+  textoAnotarNueva,
+  textoModelosEnCero,
+  leerSeparado,
   SEPARADO_VACIO,
   claveCostoDeNueva,
   costoDePrendaTexto,
@@ -87,6 +92,7 @@ import {
   proveedorDelSinAviso,
   prendasAnotadasDe,
   separarAnotada,
+  type ConteoDeLinea,
 } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
 
@@ -216,7 +222,8 @@ describe("leer lo contado de un envío (fn_envio_conteos)", () => {
     expect(c?.origen).toBe("sin_aviso");
     expect(c?.proveedores).toEqual([PROV]);
     expect(c?.conteos).toHaveLength(2);
-    expect(c?.conteos[0].separado.prendas.map((p) => p.productoId)).toEqual(["pa"]);
+    // Una prenda en 0 ya es un modelo que todavía no se cuenta (ADR-0604, act. 2026-11-03): se lee.
+    expect(c?.conteos[0].separado.prendas.map((p) => p.productoId)).toEqual(["pa", "pz"]);
     expect(c?.conteos[0].pendientes.map((p) => [p.id, p.quedan])).toEqual([["pe1", 2]]);
     expect(c?.conteos[1].extraPosicion).toBe(1);
     expect(c?.cierres).toEqual([{ tipo: "cierre", motivo: null, hechoPor: { id: "per1", nombre: "Mariana" }, hechoEn: null, porDetallar: 8, faltan: 2 }]);
@@ -1229,5 +1236,83 @@ describe("ADR-0519 sobre ADR-0393: el costo de cada prenda en «Hacer ahora»", 
     expect(avisoDeConfirmarHacerAhora([venta])).toMatch(/^El precio de venta rige desde ahora/);
     expect(avisoDeConfirmarHacerAhora([venta])).not.toMatch(/costo/i);
     expect(avisoDeConfirmarHacerAhora([costo, venta])).toMatch(/costo[\s\S]*precio de venta/i);
+  });
+});
+
+describe("textoAnotarNueva: no afirma lo que no pudo comprobar", () => {
+  it("si la búsqueda falló, no dice que no está en el catálogo", () => {
+    const t = textoAnotarNueva("Conjunto Luna", { halladas: 0, fallo: true });
+    expect(t).toBe("No pudimos revisar el catálogo: anotar «Conjunto Luna» de todas formas");
+    expect(t).not.toContain("No está en el catálogo");
+  });
+
+  it("si buscó y no halló nada, lo dice", () => {
+    expect(textoAnotarNueva("Conjunto Luna", { halladas: 0, fallo: false })).toBe("No está en el catálogo: anotar «Conjunto Luna» como nueva");
+  });
+
+  it("si halló parecidas, pregunta por ellas", () => {
+    expect(textoAnotarNueva("Conjunto Luna", { halladas: 2, fallo: false })).toBe("No es ninguna de estas: anotar «Conjunto Luna» como nueva");
+  });
+});
+
+describe("un modelo en 0, con su descripción y su nombre por defecto", () => {
+  const separado = {
+    prendas: [{ producto_id: "p1", nombre: "Blusa Emma", codigo: null, cantidad: 0, variantes: null }],
+    nuevas: [
+      { cantidad: 0, descripcion: "Blusa 1", nota: "cuello V", por_defecto: true },
+      { cantidad: 2, descripcion: "Blusa Luna" },
+      { cantidad: 0, descripcion: null },
+      { cantidad: 3, descripcion: null },
+    ],
+  };
+
+  it("se lee sin perder nada, y lo que no tiene nombre en 0 no existe", () => {
+    const s = leerSeparado(separado);
+    expect(s.prendas.map((p) => [p.productoId, p.cantidad])).toEqual([["p1", 0]]);
+    expect(s.nuevas).toEqual([
+      { cantidad: 0, descripcion: "Blusa 1", nota: "cuello V", porDefecto: true },
+      { cantidad: 2, descripcion: "Blusa Luna" },
+      { cantidad: 3, descripcion: null },
+    ]);
+  });
+
+  it("vuelve a la base tal como la base lo espera", () => {
+    const base = separadoParaBase(leerSeparado(separado));
+    expect(base.prendas.map((p) => [p.producto_id, p.cantidad])).toEqual([["p1", 0]]);
+    expect(base.nuevas).toEqual([
+      { cantidad: 0, descripcion: "Blusa 1", nota: "cuello V", por_defecto: true },
+      { cantidad: 2, descripcion: "Blusa Luna" },
+      { cantidad: 3, descripcion: null },
+    ]);
+  });
+});
+
+describe("Cerrar no ve lo que quedó en 0, y avisa cuál fue", () => {
+  const conteo = (separado: Separado) => ({ conteo: { separado } as unknown as ConteoDeLinea });
+  const lineas = [
+    conteo({
+      prendas: [
+        { productoId: "p1", nombre: "Blusa Emma", codigo: null, cantidad: 0, variantes: null },
+        { productoId: "p2", nombre: "Blusa Sol", codigo: null, cantidad: 2, variantes: null },
+      ],
+      nuevas: [
+        { cantidad: 0, descripcion: "Blusa 1", porDefecto: true },
+        { cantidad: 1, descripcion: "Blusa Luna" },
+      ],
+    }),
+    { conteo: null },
+  ];
+
+  it("los saca de lo separado sin tocar lo demás", () => {
+    const [a, b] = lineasSinModelosEnCero(lineas);
+    expect(a.conteo?.separado.prendas.map((p) => p.productoId)).toEqual(["p2"]);
+    expect(a.conteo?.separado.nuevas.map((n) => n.descripcion)).toEqual(["Blusa Luna"]);
+    expect(b.conteo).toBeNull();
+  });
+
+  it("dice cuáles eran", () => {
+    expect(modelosEnCeroDe(lineas)).toEqual(["Blusa Emma", "Blusa 1"]);
+    expect(textoModelosEnCero(["Blusa 1"])).toBe("Blusa 1 quedó en 0: no se guarda.");
+    expect(textoModelosEnCero(["Blusa 1", "Blusa 2"])).toBe("Blusa 1 y Blusa 2 quedaron en 0: no se guardan.");
   });
 });

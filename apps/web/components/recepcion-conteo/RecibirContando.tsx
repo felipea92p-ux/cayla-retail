@@ -34,9 +34,11 @@ import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
 import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
 import { ContarEnvio } from "./ContarEnvio";
+import { CancelarRecepcion } from "./CancelarRecepcion";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
@@ -99,6 +101,7 @@ export function RecibirContando({
   // Se recuerda por envío: en una terminal se vaciaba tras cada guardado, y contar modelo por modelo volvía a pedirlo a cada toque.
   const responsable = useResponsable(undefined, { recordarEn: claveResponsableRecepcion(detalle.id) });
   const [apertura, setApertura] = useState<ResultadoApertura | null>(null);
+  const [cancelando, setCancelando] = useState(false);
   // Lo guardado en esta visita, más nuevo que lo que leyó la página: gana la versión más alta.
   const [locales, setLocales] = useState<Record<string, ConteoDeLinea>>({});
   // Lo que se lee de nuevo de la base (después de cerrar, reabrir o «Hacer ahora»), sin esperar a que la página recargue.
@@ -304,6 +307,8 @@ export function RecibirContando({
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
   const conPapel = papeles.length > 0 && (porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe;
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
+  // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y que nunca se cerró. Uno de Compras, uno cerrado o uno reabierto (ya metió stock) no lo ofrecen.
+  const sePuedeCancelar = estado === "abierto" && sinAviso && !reabierto && !otraSede && !noLoRecibe;
   // Al contar, las fotos van en el resumen; al cerrar y ya cerrado, en la cabecera.
   const contando = estado === "abierto" && paso !== 3;
   const conPapelArriba = conPapel && !contando;
@@ -324,7 +329,16 @@ export function RecibirContando({
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería" subtitulo={frase} detalle={detalle.numero} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
+      <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería"
+        subtitulo={frase}
+        detalle={detalle.numero}
+        volver={<Volver href="/recibir" a="Recibir mercadería" />}
+        acciones={
+          sePuedeCancelar ? (
+            <MenuAcciones etiqueta="Más acciones de este envío" texto="Más" items={[{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }]} />
+          ) : undefined
+        }
+      >
         {/* En la fila del título, para no gastar una fila propia (Felipe 2026-11-02): en qué va el envío, con sus cinco paradas, y las fotos si no están en el resumen. */}
         <div
           className={`anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-3 sm:justify-end ${etapa ? (conPapelArriba ? "grow basis-[29.5rem]" : "grow basis-[20rem] sm:max-w-[28rem]") : ""}`}
@@ -422,7 +436,8 @@ export function RecibirContando({
           onTablas={setTablas}
           onAgregar={async (nuevo) => {
             const linea: LineaParaContar = { clave: "extra:0", linea: null, conteo: null, categoria: null, marca: null, proveedor: null, dijeron: null };
-            const c = await guardar(linea, { contadas: 0, separado: { prendas: [], nuevas: [] } }, nuevo);
+            const { separado, ...donde } = nuevo;
+            const c = await guardar(linea, { contadas: 0, separado: separado ?? { prendas: [], nuevas: [] } }, donde);
             return c ? claveDe(c) : null;
           }}
           onCerrar={() => {
@@ -492,6 +507,18 @@ export function RecibirContando({
       )}
 
       {avisoSalida.aviso}
+      {cancelando && (
+        <CancelarRecepcion
+          detalle={{ ...detalle, version }}
+          contadas={cifras.contadas}
+          responsable={responsable}
+          onCancelado={() => {
+            setCancelando(false);
+            router.push("/recibir");
+          }}
+          onCerrar={() => setCancelando(false)}
+        />
+      )}
     </div>
   );
 }

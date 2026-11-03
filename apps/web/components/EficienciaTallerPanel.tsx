@@ -182,7 +182,7 @@ export function EficienciaTallerPanel({
             {actual.planilla !== null && <p className="text-sm text-tinta/60">Planilla: costo total para CAYLA (sueldos, provisiones de gratificación, CTS y vacaciones, y aportes) de {plural(actual.ventana.planilla?.personas ?? 0, "persona", "personas")}, tal como se pagó.</p>}
             {!hayGastos && (
               <p className="text-sm text-tinta/60">
-                Alquiler y servicios del Taller aparecerán aquí cuando se registren como gastos del Taller en Finanzas (modelo de gastos, ADR-0117); Producción no lleva una tabla aparte.
+                Alquiler y servicios del Taller aparecerán aquí cuando se registren como gastos del Taller en Finanzas; Producción no lleva una tabla aparte.
               </p>
             )}
           </section>

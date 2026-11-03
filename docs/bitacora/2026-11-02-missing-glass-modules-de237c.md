@@ -27,3 +27,9 @@
 - **Qué:** Felipe pidió texto preciso en las tres pestañas. Se acortan las cifras, los vacíos y la nota de Revisar; una factura anulada dice «Anulada» una sola vez y una pagada solo lleva su chip; los destinos van sin «Tienda»; «Concentración» pasa a «Mayor deuda». Se quita el recuadro «Días promedio de pago», que nunca mostraba un dato. Ninguna cifra ni regla cambia.
 - **Verificado:** capturas de las tres pestañas en claro y oscuro a 1440 px y en claro a 375 px, sin desborde; tipos, Vitest completo y Knip.
 - **Falta:** no se tocaron las hojas ni el detalle de una factura; persona real sin probar.
+
+# 2026-11-03 — Producción con vidrio
+
+- **Qué:** Producción y Órdenes de insumos pasan al vidrio con `.pantalla-en-vidrio` en sus layouts. La pieza compartida baja su prioridad (`:where()`, importada antes que los archivos de cada pantalla) porque pisaba la cara elegida de la ruta de una orden y de las filas de Insumos. `<BotonCompacto variante="primario">` pasa al ahumado en todo el ERP (Cotizaciones, Series, Cola de SUNAT, Proformas). Se quitan «(D-31)» y «ADR-0117» de dos textos a la vista.
+- **Verificado:** `tema:auditar` en 12 rutas con 0 hallazgos solo en oscuro (los heredados son degradados: ninguno sin imagen); sin desborde de página a 1440 y 375 px; comparación con y sin la pieza en una orden e Insumos; repaso con capturas de Tienda web, Configuración y Compras tras bajar la prioridad; órdenes de insumos y proveedores vistos con datos de un banco local, solo leído.
+- **Falta:** la base local compartida no tiene `producciones.ingreso_al_stock`, así que Resumen, la lista de Órdenes y Eficiencia se miraron quitando esa columna de la consulta solo mientras se capturaba (no se commitea). Facturas de insumos y Por pagar del Taller no se vieron con datos, ni Recibir con pendientes. Series, Cola de SUNAT y Proformas no se abrieron tras el cambio del botón. Siguen en 4.3: Clientes, Gestión ▸ Análisis, Administración y Salud del negocio.

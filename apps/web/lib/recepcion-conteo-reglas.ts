@@ -53,6 +53,8 @@ export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 /** «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26; migración `20261026163000`). */
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
+/** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
+export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 /** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
@@ -119,7 +121,15 @@ export type PrendaSeparada = {
 };
 
 /** Lo nuevo: solo cuántas (decisión 8); describirlas es parte del pendiente «crear». */
-export type NuevaSeparada = { cantidad: number; descripcion: string | null };
+export type NuevaSeparada = {
+  cantidad: number;
+  /** El nombre con que se anotó; null = «llegaron N y aún no sé cuáles». Con nombre puede estar en 0: es un modelo que todavía no se cuenta. */
+  descripcion: string | null;
+  /** Lo que describe al modelo, para no confundirlo con otro parecido (opcional). */
+  nota?: string | null;
+  /** Su nombre es provisional («Blusa 1»): no se cierra el envío hasta cambiarlo (`recepcion_modelo_sin_nombre`). */
+  porDefecto?: boolean;
+};
 
 export type Separado = { prendas: PrendaSeparada[]; nuevas: NuevaSeparada[] };
 
@@ -152,11 +162,16 @@ export function leerSeparado(v: unknown): Separado {
       const vars = Array.isArray(o.variantes) ? o.variantes.map(leerVarianteSeparada).filter((x): x is VarianteSeparada => x !== null) : null;
       return { productoId, nombre: texto(o.nombre), codigo: texto(o.codigo), cantidad: entero(o.cantidad), variantes: vars };
     })
-    .filter((p): p is PrendaSeparada => p !== null && p.cantidad > 0);
+    .filter((p): p is PrendaSeparada => p !== null);
   const nuevas = lista(r.nuevas)
     .map((n): NuevaSeparada | null => {
       const o = objeto(n);
-      return o && entero(o.cantidad) > 0 ? { cantidad: entero(o.cantidad), descripcion: texto(o.descripcion) } : null;
+      if (!o) return null;
+      const cantidad = entero(o.cantidad);
+      const descripcion = texto(o.descripcion);
+      // En 0 solo existe un modelo con nombre.
+      if (cantidad <= 0 && !descripcion) return null;
+      return { cantidad, descripcion, ...(texto(o.nota) ? { nota: texto(o.nota) } : {}), ...(o.por_defecto === true ? { porDefecto: true } : {}) };
     })
     .filter((n): n is NuevaSeparada => n !== null);
   return { prendas, nuevas };
@@ -171,11 +186,10 @@ export const detalladas = (s: Separado): number => s.prendas.filter((p) => p.var
 /** Lo separado en la forma que guarda la base (`p_separado`): sin los nombres, con las tallas en 0 fuera. */
 export function separadoParaBase(s: Separado): {
   prendas: { producto_id: string; cantidad: number; variantes: { variante_id: string; cantidad: number; danadas: number; danada_solucion: SolucionDanada | null }[] | null }[];
-  nuevas: { cantidad: number; descripcion: string | null }[];
+  nuevas: { cantidad: number; descripcion: string | null; nota?: string; por_defecto?: true }[];
 } {
   return {
     prendas: s.prendas
-      .filter((p) => p.cantidad > 0)
       .map((p) => ({
         producto_id: p.productoId,
         cantidad: p.cantidad,
@@ -186,8 +200,84 @@ export function separadoParaBase(s: Separado): {
                 .filter((v) => v.cantidad > 0)
                 .map((v) => ({ variante_id: v.varianteId, cantidad: v.cantidad, danadas: v.danadas, danada_solucion: v.danadas > 0 ? v.solucion : null })),
       })),
-    nuevas: s.nuevas.filter((n) => n.cantidad > 0).map((n) => ({ cantidad: n.cantidad, descripcion: n.descripcion?.trim() || null })),
+    // En 0 solo se guarda un modelo con nombre (`fn_envio_leer_separado`).
+    nuevas: s.nuevas
+      .filter((n) => n.cantidad > 0 || n.descripcion?.trim())
+      .map((n) => ({
+        cantidad: n.cantidad,
+        descripcion: n.descripcion?.trim() || null,
+        ...(n.nota?.trim() ? { nota: n.nota.trim() } : {}),
+        ...(n.porDefecto ? { por_defecto: true as const } : {}),
+      })),
   };
+}
+
+/** Un modelo más para contar aparte, en 0 (el «+» de la categoría). Con su nombre ya en la lista, no se repite. */
+export function agregarModeloEnCero(s: Separado, m: { nombre: string; nota?: string | null; porDefecto?: boolean }): Separado {
+  const nombre = limpiarDescripcion(m.nombre);
+  const clave = nombre.toLocaleLowerCase("es");
+  if (!nombre || s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave)) return s;
+  const nota = m.nota?.trim();
+  return { ...s, nuevas: [...s.nuevas, { cantidad: 0, descripcion: nombre, ...(nota ? { nota } : {}), ...(m.porDefecto ? { porDefecto: true } : {}) }] };
+}
+
+/** Ponerle su nombre a un modelo agregado al contar, o cambiárselo. Lo contado no cambia, y deja de ser un nombre por defecto. */
+export function renombrarModelo(s: Separado, nombre: string, cambio: { nombre: string; nota: string | null }): Separado {
+  const clave = nombre.toLocaleLowerCase("es");
+  const nota = cambio.nota?.trim();
+  return {
+    ...s,
+    nuevas: s.nuevas.map((n) =>
+      n.descripcion?.toLocaleLowerCase("es") === clave ? { cantidad: n.cantidad, descripcion: limpiarDescripcion(cambio.nombre), ...(nota ? { nota } : {}) } : n,
+    ),
+  };
+}
+
+/**
+ * Las líneas como las ve Cerrar: sin los modelos que quedaron en 0, que no se guardan (la base hace lo mismo, `fn_envio_sin_ceros`). Lo de fuera de la guía que se queda sin nada desaparece.
+ */
+export function lineasSinModelosEnCero<T extends Pick<LineaParaContar, "conteo">>(lineas: readonly T[]): T[] {
+  return lineas.map((l) =>
+    l.conteo
+      ? { ...l, conteo: { ...l.conteo, separado: { prendas: l.conteo.separado.prendas.filter((p) => p.cantidad > 0), nuevas: l.conteo.separado.nuevas.filter((n) => n.cantidad > 0) } } }
+      : l,
+  );
+}
+
+/** Lo que quien cuenta agregó y dejó en 0: al cerrar se avisa y se descarta (Felipe 2026-11-03). */
+export function modelosEnCeroDe(lineas: readonly Pick<LineaParaContar, "conteo">[]): string[] {
+  return lineas.flatMap((l) => {
+    const s = l.conteo?.separado;
+    if (!s) return [];
+    return [...s.prendas.filter((p) => p.cantidad <= 0).map((p) => p.nombre ?? p.codigo ?? "Prenda"), ...s.nuevas.filter((n) => n.cantidad <= 0 && n.descripcion).map((n) => n.descripcion as string)];
+  });
+}
+
+/** «Blusa 2 quedó en 0: no se guarda.» */
+export const textoModelosEnCero = (nombres: readonly string[]): string =>
+  `${new Intl.ListFormat("es", { type: "conjunction" }).format(nombres)} ${nombres.length === 1 ? "quedó en 0: no se guarda." : "quedaron en 0: no se guardan."}`;
+
+/** El tacho: el modelo sale de lo separado, con lo que se había contado de él. */
+export function quitarModelo(s: Separado, m: { productoId: string | null; nombre: string }): Separado {
+  if (m.productoId) return quitarPrenda(s, m.productoId);
+  const clave = m.nombre.toLocaleLowerCase("es");
+  return { ...s, nuevas: s.nuevas.filter((n) => n.descripcion?.toLocaleLowerCase("es") !== clave) };
+}
+
+/** «Deshacer» del tacho: vuelve SOLO ese modelo, sobre lo que hay ahora. Si se restaurara todo lo de antes, revivirían los que se quitaron después. */
+export function devolverModelo(s: Separado, antes: Separado, m: { productoId: string | null; nombre: string }): Separado {
+  const clave = m.nombre.toLocaleLowerCase("es");
+  const prenda = m.productoId ? antes.prendas.find((p) => p.productoId === m.productoId) : undefined;
+  const nueva = m.productoId ? undefined : antes.nuevas.find((n) => n.descripcion?.toLocaleLowerCase("es") === clave);
+  if (prenda && !s.prendas.some((p) => p.productoId === prenda.productoId)) return { ...s, prendas: [...s.prendas, prenda] };
+  if (nueva && !s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave)) return { ...s, nuevas: [...s.nuevas, nueva] };
+  return s;
+}
+
+/** Una prenda del catálogo para contar aparte, en 0. Si ya estaba, queda como está. */
+export function agregarPrendaEnCero(s: Separado, p: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
+  if (s.prendas.some((x) => x.productoId === p.productoId)) return s;
+  return { ...s, prendas: [...s.prendas, { ...p, cantidad: 0, variantes: null }] };
 }
 
 /** Una prenda conocida más (si ya estaba, suma una). */
@@ -554,7 +644,9 @@ export function lineasParaContar(d: Pick<DetalleEnvio, "lineas">, c: Pick<Conteo
 }
 
 /** Lo de fuera de la guía que quedó en 0 se quitó al contar: no se muestra ni se cierra. */
-export const lineaVisible = (l: LineaParaContar): boolean => l.linea !== null || (l.conteo?.contadas ?? 0) > 0;
+export const lineaVisible = (l: LineaParaContar): boolean =>
+  // Lo de fuera de la guía en 0 es lo quitado, salvo que tenga un modelo que todavía no se cuenta (ADR-0604, act. 2026-11-03).
+  l.linea !== null || (l.conteo?.contadas ?? 0) > 0 || (l.conteo?.separado.prendas.length ?? 0) + (l.conteo?.separado.nuevas.length ?? 0) > 0;
 
 /** Lo contado de una línea (0 si nadie la contó). */
 export const contadasDe = (l: LineaParaContar): number => l.conteo?.contadas ?? 0;
@@ -1049,6 +1141,12 @@ export function marcaDeLinea(l: { marca: { id: string; nombre: string } | null }
   return l.marca ?? { id: null, nombre: "Sin marca" };
 }
 
+/** La opción de anotar lo que no se encontró. Si la búsqueda falló no se sabe si está en el catálogo, y decir que no invitaría a duplicar una prenda (`/chaos`, 2026-11-03). */
+export function textoAnotarNueva(texto: string, r: { halladas: number; fallo: boolean }): string {
+  if (r.fallo) return `No pudimos revisar el catálogo: anotar «${texto}» de todas formas`;
+  return `${r.halladas === 0 ? "No está en el catálogo:" : "No es ninguna de estas:"} anotar «${texto}» como nueva`;
+}
+
 export function nombreDeLinea(l: Pick<LineaParaContar, "categoria" | "marca" | "linea">): string {
   const base = [l.categoria?.nombre, l.categoria ? marcaDeLinea(l).nombre : null].filter(Boolean).join(" · ") || "esta línea";
   return l.linea?.descripcion ? `${base} · ${l.linea.descripcion}` : base;
@@ -1514,8 +1612,9 @@ export function lineasALaVista(lineas: readonly LineaParaContar[], agregados: Re
 
 /**
  * El error de un guardado de la recepción en palabras de tienda. La base ya habla castellano (sus pistas `recepcion_*`); la red caída no
- * se muestra cruda. Como cada guardado lleva su token (un reintento con el mismo token no repite nada), se puede decir que vuelva a
- * intentar sin miedo, aunque no se sepa si llegó a guardarse.
+ * se muestra cruda. Se puede decir que vuelva a intentar sin miedo aunque no se sepa si llegó a guardarse: los guardados de una sola vez llevan
+ * su token y un conteo se escribe sobre su propia línea, así que un reintento no repite nada. Lo único sin token es ANOTAR algo nuevo fuera de la
+ * guía (`guardar_conteo_envio` sin posición): un reintento deja otra línea en 0, que no se ve y el cierre ignora, y su hoja no usa este mensaje.
  */
 export function mensajeAlGuardar(error: { message?: string | null; hint?: string | null; code?: string | null; details?: string | null } | null | undefined, contexto: string): string {
   const deLaRecepcion = mensajeDeLaRecepcion(error);

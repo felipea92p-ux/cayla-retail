@@ -111,7 +111,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   --rc-cat-suave: color-mix(in srgb, var(--color-tinta) 74%, var(--color-pizarra)); /* contraste: texto sobre papel, hueso, crema */
 }
 .rc-cat { padding: 0 8px; animation: cayla-entrada 380ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--i, 0), 8) * 45ms); }
-.rc-cat-tira { padding: 4px 0; }
+.rc-cat-tira { position: relative; padding: 4px 0; }
 /* La abierta se queda pegada arriba mientras pasan sus modelos: casi llena, para que no se lean a través de ella. */
 .rc-cat[data-abierta] > .rc-cat-tira { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--color-papel) 94%, transparent); }
 .rc-cat-cabeza { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 8px 10px 8px 8px; border-radius: 14px; background: var(--rc-cat-fondo); box-shadow: inset 0 0 0 1px var(--rc-cat-filo), 0 2px 6px -4px color-mix(in srgb, var(--color-sombra) 30%, transparent); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
@@ -123,16 +123,42 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cat-cabeza .rc-cat-ic { flex: none; background: var(--color-vidrio); box-shadow: none; color: var(--color-pizarra); }
 .rc-cat-textos { display: grid; flex: 1 1 0; gap: 2px; min-width: 0; }
 .rc-cat-textos b { overflow: hidden; color: var(--color-tinta); font-size: 15px; font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.rc-cat-resumen { overflow: hidden; color: var(--rc-cat-suave); font-size: 14px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Hace falta leerlo entero («Dijeron 20 · Contaste 12 · Faltan 8»): baja a otra línea en vez de cortarse. */
+.rc-cat-resumen { color: var(--rc-cat-suave); font-size: 14px; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .rc-cat-barra { display: block; margin-top: 3px; }
 /* Las barras chicas, un poco más gruesas: el color tiene que leerse desde lejos. */
 :is(.rc-cat-barra, .rc-tipo-cifra) .barra-avance:not([data-sobre-tinta])[data-alto="fina"] { --tubo-aire: 2px; height: 11px; }
+/* El «+» de otro modelo, al lado del check. Vive fuera del botón de la categoría y se apoya sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
+.rc-cat-hueco-mas { flex: none; width: 32px; height: 32px; }
+.rc-cat-mas { position: absolute; top: 50%; right: 64px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); background: var(--color-vidrio); }
+/* Con el dedo, 44 px (ADR-0350). */
+@media (pointer: coarse) {
+  .rc-cat-hueco-mas, .rc-cat-mas, .rc-cat-tacho, .rc-modelo-tacho { width: 44px; height: 44px; }
+  .rc-cat-tacho { right: 118px; }
+  .rc-modelo[data-con-tacho] { padding-right: 52px; }
+  .rc-modelo-tacho { right: 0; }
+}
+.rc-cat-tacho { position: absolute; top: 50%; right: 106px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--rc-cat-suave); transform: translateY(-50%); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-cat-tacho:hover { color: var(--color-rojo-profundo); background: var(--pozo-fondo); }
+}
+.rc-cat-tacho:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-cat-mas:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-cat-sin-modelos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 12px 10px; color: var(--rc-cat-suave); font-size: 14px; }
 .rc-cat-flecha { flex: none; color: var(--rc-cat-suave); transition: transform 300ms var(--ease-cayla); }
 .rc-cat[data-abierta] .rc-cat-flecha { transform: rotate(180deg); }
 .rc-cat-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }
 .rc-cat[data-abierta] .rc-cat-cuerpo { grid-template-rows: 1fr; }
 .rc-cat-dentro { overflow: hidden; min-height: 0; }
 /* Los modelos cuelgan de su categoría: la raya del color de la categoría los junta. */
+/* El tacho de lo agregado: fuera del botón de la fila, sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
+.rc-modelo-fila { position: relative; }
+.rc-modelo[data-con-tacho] { padding-right: 40px; }
+.rc-modelo-tacho { position: absolute; top: 50%; right: 6px; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 999px; color: var(--rc-cat-suave); transform: translateY(-50%); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-modelo-tacho:hover { color: var(--color-rojo-profundo); background: var(--pozo-fondo); }
+}
+.rc-modelo-tacho:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 .rc-modelos { display: grid; gap: 2px; margin: 0 0 8px 15px; padding: 2px 0 2px 8px; border-left: 2px solid var(--rc-cat-filo); }
 .rc-modelo { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 7px 10px 7px 7px; border-radius: 14px; text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
 @media (hover: hover) {
@@ -143,7 +169,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-modelo-textos { display: grid; flex: 1 1 0; gap: 1px; min-width: 0; }
 .rc-modelo-nombre { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .rc-modelo-nombre b { overflow: hidden; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.rc-modelo-cifras { overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rc-modelo-cifras { color: var(--color-taupe); font-size: 14px; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .rc-modelo-cifras b { color: var(--color-tinta); font-weight: 600; }
 .rc-modelo .chip-cayla { flex: none; }
 /* Con la columna angosta el nombre va en su propia línea y el estado junto a las cifras: al lado de dos chips, «Vestido Sofía» se leía «Ve…». */

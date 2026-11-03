@@ -66,7 +66,7 @@ const normaliza = (d: string): string => d.trim().replace(/\s+/g, " ").toLocaleL
 /** Junta lo separado de varias líneas: las prendas conocidas (una sola vez cada una) y las nuevas (las de igual descripción se suman). */
 export function juntarSeparado(partes: readonly Separado[]): Separado {
   const prendas = new Map<string, Separado["prendas"][number]>();
-  const descritas = new Map<string, { cantidad: number; descripcion: string }>();
+  const descritas = new Map<string, Separado["nuevas"][number] & { descripcion: string }>();
   let sinDescribir = 0;
   for (const s of partes) {
     for (const p of s.prendas) {
@@ -80,7 +80,7 @@ export function juntarSeparado(partes: readonly Separado[]): Separado {
       }
       const k = normaliza(n.descripcion);
       const ya = descritas.get(k);
-      descritas.set(k, ya ? { ...ya, cantidad: ya.cantidad + n.cantidad } : { cantidad: n.cantidad, descripcion: n.descripcion });
+      descritas.set(k, ya ? { ...ya, cantidad: ya.cantidad + n.cantidad } : { ...n, descripcion: n.descripcion });
     }
   }
   return {
@@ -89,11 +89,31 @@ export function juntarSeparado(partes: readonly Separado[]): Separado {
   };
 }
 
+/**
+ * Qué hacer con lo que se quiere agregar a la lista:
+ * · `dentro`: ya está esa categoría con esa marca (vacía = sin marca) y, si el envío trae varios proveedores, de ese proveedor (`proveedorId` null: no hace falta distinguirlo). Un modelo
+ *   más no es otra línea: se anota dentro de la que ya está.
+ * · `otra-marca`: la marca se dejó vacía y esa categoría ya está con marca. Puede ser un olvido o una prenda que de verdad no la tiene: lo decide la persona, y nunca se abre otra línea sin avisar.
+ * · `nueva`: es otra línea.
+ */
+export type AlAgregar = { tipo: "dentro"; grupo: GrupoDeLineas } | { tipo: "otra-marca"; grupos: GrupoDeLineas[] } | { tipo: "nueva" };
+
+export function alAgregarALaLista(grupos: readonly GrupoDeLineas[], q: { proveedorId: string | null; categoriaId: string; marcaId: string | null }): AlAgregar {
+  const deEsto = grupos.filter(({ principal: l }) => l.categoria?.id === q.categoriaId && (q.proveedorId === null || l.proveedor?.id === q.proveedorId));
+  const misma = deEsto.find(({ principal: l }) => (l.marca?.id ?? null) === q.marcaId);
+  if (misma) return { tipo: "dentro", grupo: misma };
+  if (q.marcaId !== null || deEsto.length === 0) return { tipo: "nueva" };
+  // Una vez por marca: un envío puede traer la misma marca en varias líneas.
+  const porMarca = new Map<string | undefined, GrupoDeLineas>();
+  for (const g of deEsto) if (!porMarca.has(g.principal.marca?.id)) porMarca.set(g.principal.marca?.id, g);
+  return { tipo: "otra-marca", grupos: [...porMarca.values()] };
+}
+
 /** Las categorías del envío, en el orden en que aparece su primera línea. */
-export function agruparLineas(lineas: readonly LineaParaContar[]): GrupoDeLineas[] {
+export function agruparLineas(lineas: readonly LineaParaContar[], claveDe: (l: LineaParaContar) => string = claveDeGrupo): GrupoDeLineas[] {
   const porClave = new Map<string, LineaParaContar[]>();
   for (const l of lineas) {
-    const k = claveDeGrupo(l);
+    const k = claveDe(l);
     const ya = porClave.get(k);
     if (ya) ya.push(l);
     else porClave.set(k, [l]);
@@ -114,6 +134,23 @@ export function agruparLineas(lineas: readonly LineaParaContar[]): GrupoDeLineas
 export const minimoDelGrupo = (g: GrupoDeLineas): number => g.lineas.reduce((a, l) => a + minimoDe(l), 0);
 
 /** Lo que queda guardado en una línea. */
+/**
+ * Las filas de Cerrar (Felipe 2026-11-03): lo que no cuadró se explica contra lo que Compras dijo. Si anotó el modelo, por modelo (Compras sabe qué reclamar); si solo dijo «Vestidos: 20», por
+ * categoría. La misma prenda comprada en dos líneas sigue siendo una sola fila.
+ */
+export const agruparLineasDelCierre = (lineas: readonly LineaParaContar[]): GrupoDeLineas[] =>
+  agruparLineas(lineas, (l) => {
+    const anotada = l.linea ? prendasAnotadasDe(l)[0] : undefined;
+    return anotada ? `${claveDeGrupo(l)}|${anotada.productoId ?? normaliza(anotada.nombre)}` : claveDeGrupo(l);
+  });
+
+/** El nombre de una fila de Cerrar: el modelo si se anotó, y si no, la categoría. */
+export function nombreDelGrupoDelCierre(g: GrupoDeLineas): string {
+  const anotada = g.principal.linea ? prendasAnotadasDe(g.principal)[0] : undefined;
+  const p = g.principal;
+  return [anotada?.nombre ?? p.categoria?.nombre ?? "Categoría", p.categoria ? marcaDeLinea(p).nombre : null].filter(Boolean).join(" · ");
+}
+
 export type CambioDeLinea = { linea: LineaParaContar; clave: ClaveLinea; contadas: number; separado: Separado };
 
 export type Reparto = {
