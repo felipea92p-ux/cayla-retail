@@ -1,0 +1,4 @@
+## P03 · «Ingresar insumo ▸ Compra» con deuda (2026-11-02)
+- **POR PEGAR (2026-11-02):** `supabase/migrations/20261102235000_insumo_compra_con_deuda.sql` en el SQL Editor de producción, UNA parte, con el OK de Felipe y junto con la fusión de la web (la hoja nueva llama a la función). Verificación: `select to_regprocedure('retail.recibir_insumo_comprado(uuid,uuid,uuid,numeric,numeric,text,text,text,boolean,text,date,date,numeric,jsonb,text,text,uuid)') is not null;` debe dar `true`.
+- **Pendiente:** ver la hoja con «Ya la pagué» (medios de pago), a 375 px y en oscuro; una pantalla para REEMPLAZAR una nota de venta provisional (S/P) cuando llegue el papel real (hoy: anular y registrar de nuevo); regularizar los 9 lotes de compra que ya existen sin proveedor (decisión de Felipe, sin borrar nada).
+- **Camino de fondo (ADR-0570, actividad 7, «Llegó una compra»)** sigue sin construir: esta hoja es el camino corto.
