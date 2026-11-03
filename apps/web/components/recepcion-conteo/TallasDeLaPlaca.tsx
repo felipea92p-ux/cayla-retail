@@ -337,13 +337,13 @@ function TablaDeTallas({
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        maxLength={4}
+                        maxLength={7}
                         autoComplete="off"
                         placeholder="0" // sugerir-fijo: una cantidad vacía es cero, sea la prenda que sea
                         data-talla={t.clave}
                         data-color={c.clave}
                         aria-label={`${pregunta} ${nombreDeVariante(v)}`}
-                        aria-invalid={deMas || undefined}
+                        aria-invalid={deMas || leerCantidad(valores[v.id] ?? "") === null || undefined}
                         disabled={sinNada}
                         value={valores[v.id] ?? ""}
                         onChange={(e) => onValor(v.id, limpiarCantidad(e.target.value))}
