@@ -132,7 +132,7 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
     };
   });
   for (const p of g.separado.prendas) {
-    if (usadasCatalogo.has(p.productoId) || p.cantidad <= 0) continue;
+    if (usadasCatalogo.has(p.productoId)) continue;
     filas.push({
       clave: p.productoId,
       nombre: p.nombre ?? p.codigo ?? "Prenda del catálogo",
@@ -141,14 +141,15 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       esperadas: null,
       contadas: p.cantidad,
       enStock: 0,
-      contado: true,
-      estado: "fuera",
+      contado: p.cantidad > 0,
+      // Lo agregado en 0 todavía no se cuenta (ADR-0604, act. 2026-11-03).
+      estado: p.cantidad > 0 ? "fuera" : "por-contar",
       conTallas: !!p.variantes,
       anotada: null,
     });
   }
   for (const n of g.separado.nuevas) {
-    if (!n.descripcion || n.cantidad <= 0 || usadasNombre.has(normaliza(n.descripcion))) continue;
+    if (!n.descripcion || usadasNombre.has(normaliza(n.descripcion))) continue;
     usadasNombre.add(normaliza(n.descripcion));
     filas.push({
       clave: `nombre:${normaliza(n.descripcion)}`,
@@ -158,8 +159,8 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       esperadas: null,
       contadas: n.cantidad,
       enStock: 0,
-      contado: true,
-      estado: "fuera",
+      contado: n.cantidad > 0,
+      estado: n.cantidad > 0 ? "fuera" : "por-contar",
       conTallas: false,
       anotada: null,
     });
@@ -285,6 +286,15 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
       variosOrigenes: gs.length > 1,
     };
   });
+}
+
+/** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */
+export const paradaDelNombre = (c: CategoriaDelEnvio, nombre: string): ParadaDelConteo | null => c.paradas.find((p) => p.modelo && normaliza(p.modelo.nombre) === normaliza(nombre)) ?? null;
+
+/** La marca que se sugiere para otro modelo: la de la categoría, si toda es de una sola. Con varias, o sin marca, no se adivina. */
+export function marcaSugeridaDelModelo(c: CategoriaDelEnvio): string {
+  const marcas = new Set(c.grupos.map((g) => g.principal.marca?.id ?? ""));
+  return marcas.size === 1 ? ([...marcas][0] ?? "") : "";
 }
 
 /** Un número como se lee en pantalla: 12,000. */
@@ -510,6 +520,13 @@ export function opcionesDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDel
  */
 export function cantidadDeModelo(s: Separado, m: ModeloDelConteo, n: number): Separado {
   const c = Math.max(0, Math.min(TOPES_CONTEO.contadas, Math.trunc(n)) - m.enStock);
+  // Lo que agregó quien cuenta sigue en la lista aunque vuelva a 0: se quita con su tacho. Lo que anotó Compras sigue por lo que anotó.
+  if (c === 0 && !m.anotada) {
+    return {
+      prendas: s.prendas.map((p) => (m.productoId && p.productoId === m.productoId ? { ...p, cantidad: 0, variantes: null } : p)),
+      nuevas: s.nuevas.map((x) => (!m.productoId && x.descripcion && normaliza(x.descripcion) === normaliza(m.nombre) ? { ...x, cantidad: 0 } : x)),
+    };
+  }
   if (m.productoId) {
     if (c === 0) return quitarPrenda(s, m.productoId);
     return s.prendas.some((p) => p.productoId === m.productoId)
@@ -536,7 +553,8 @@ function repartirCambio(g: GrupoDeLineas, nuevo: Separado, lineasDeEsto: Readonl
   const r = repartirSeparado(g, nuevo, total);
   return {
     ...r,
-    cambios: r.cambios.filter((c) => c.linea.conteo !== null || lineasDeEsto.has(c.clave) || c.contadas > 0 || totalSeparado(c.separado) > 0),
+    // Un modelo en 0 también se guarda: si no, se perdería al recargar.
+    cambios: r.cambios.filter((c) => c.linea.conteo !== null || lineasDeEsto.has(c.clave) || c.contadas > 0 || c.separado.prendas.length + c.separado.nuevas.length > 0),
   };
 }
 

@@ -31,10 +31,14 @@ import {
   type LineaParaContar,
   type PrendaSeparada,
   type Separado,
+  SEPARADO_VACIO,
+  agregarModeloEnCero,
+  agregarPrendaEnCero,
   marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
 import {
   agruparLineas,
+  alAgregarALaLista,
   gruposSinIdentificar,
   idCampoIdentificar,
   lineaDeLaPrenda,
@@ -77,6 +81,7 @@ import {
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
+import { NuevoModelo, type ModeloPedido } from "./NuevoModelo";
 import { ElegirQuienCuenta } from "./ElegirQuienCuenta";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
 import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea";
@@ -106,6 +111,8 @@ type Hoja =
   // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string }; parada: string }
   | { tipo: "agregar" }
+  // El «+» de una categoría: otro modelo para contar aparte.
+  | { tipo: "modelo"; categoria: string }
   | null;
 
 /** La mesa llena la ventana: dónde empieza depende de lo que tenga encima (la cabecera, un aviso). Lo mide, y lo vuelve a medir si cambia algo de eso. */
@@ -183,7 +190,7 @@ export function ContarEnvio({
   onModos: Dispatch<SetStateAction<Readonly<Record<string, ModoDeTallas>>>>;
   tablas: Readonly<Record<string, BorradorTallas>>;
   onTablas: Dispatch<SetStateAction<Readonly<Record<string, BorradorTallas>>>>;
-  onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string | null }) => Promise<ClaveLinea | null>;
+  onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string | null; separado?: Separado }) => Promise<ClaveLinea | null>;
   onCerrar: () => void;
   /** Se llega desde Cerrar a contar una línea que faltó. */
   lineaInicial?: ClaveLinea | null;
@@ -475,6 +482,28 @@ export function ContarEnvio({
     setCursorEn(idCampoIdentificar(g.clave));
   }
 
+  /** El «+» de la categoría: el modelo cae en la línea de esa categoría y marca (o abre una) y queda en 0 en el contador. */
+  async function crearModelo(categoriaId: string, m: ModeloPedido): Promise<string | null> {
+    const llave = m.prenda ? m.prenda.productoId : claveDeNombre(m.nombre);
+    const conModelo = (s: Separado): Separado =>
+      m.prenda ? agregarPrendaEnCero(s, { productoId: m.prenda.productoId, nombre: m.prenda.nombre, codigo: m.prenda.codigo }) : agregarModeloEnCero(s, { nombre: m.nombre, nota: m.nota });
+    if (m.prenda) onPrendaVista(m.prenda);
+    const destino = alAgregarALaLista(grupos, { proveedorId: m.proveedorId, categoriaId, marcaId: m.marcaId });
+    if (destino.tipo === "dentro") {
+      escribirSeparado(destino.grupo, conModelo(destino.grupo.separado));
+      setFoco(claveDeParada(destino.grupo, llave));
+    } else {
+      const clave = await onAgregar({ proveedorId: m.proveedorId, categoriaId, marcaId: m.marcaId, separado: conModelo(SEPARADO_VACIO) });
+      if (!clave) return "No se pudo agregar. Revisa la conexión y vuelve a intentar.";
+      setAgregados((a) => new Set([...a, clave]));
+      setFoco(`${clave}::${llave}`);
+    }
+    setFiltro(SIN_FILTRO);
+    setOtraCosa(false);
+    setErrorHoja(null);
+    return null;
+  }
+
   async function leerPrenda(g: GrupoDeLineas, productoId: string, nombre: string | null): Promise<PrendaRecepcion | null> {
     const ya = prendas.get(productoId);
     if (ya) return ya;
@@ -523,10 +552,11 @@ export function ContarEnvio({
     setHoja(null);
   }
 
-  const grupoDeHoja = hoja && hoja.tipo !== "agregar" ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
+  const categoriaDelModelo = hoja?.tipo === "modelo" ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
+  const grupoDeHoja = hoja && hoja.tipo !== "agregar" && hoja.tipo !== "modelo" ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
   const lineaDeHoja =
-    grupoDeHoja && hoja && hoja.tipo !== "agregar"
+    grupoDeHoja && hoja && hoja.tipo !== "agregar" && hoja.tipo !== "modelo"
       ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
       : null;
   const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
@@ -582,6 +612,7 @@ export function ContarEnvio({
             if (paradas[0]) elegir(paradas[0], true);
           }}
           onAgregar={() => setHoja({ tipo: "agregar" })}
+          onAgregarModelo={(categoria) => setHoja({ tipo: "modelo", categoria })}
           onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
         />
 
@@ -717,6 +748,18 @@ export function ContarEnvio({
             return clave;
           }}
           onIrAlGrupo={irAlGrupo}
+          onCerrar={() => setHoja(null)}
+        />
+      )}
+
+      {hoja?.tipo === "modelo" && categoriaDelModelo?.categoria && (
+        <NuevoModelo
+          categoria={categoriaDelModelo.categoria}
+          enLista={categoriaDelModelo}
+          catalogo={catalogo}
+          proveedores={proveedores}
+          onCrear={(m) => crearModelo(categoriaDelModelo.categoria?.id ?? "", m)}
+          onIrA={elegir}
           onCerrar={() => setHoja(null)}
         />
       )}

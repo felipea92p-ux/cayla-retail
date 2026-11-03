@@ -1915,6 +1915,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar observación»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo contado.",
     },
     {
+      id: "agregar-modelo",
+      ancla: "recepcion.agregar-modelo",
+      opcional: true,
+      titulo: "Otro modelo de esta categoría",
+      texto: "Si llegaron dos modelos distintos de la misma categoría, cada uno se cuenta aparte. El «+» junto al check agrega otro: su nombre, su marca si tiene y, si quieres, una descripción. Nace en 0 y lo cuentas enseguida. En la demo no lo agregamos.",
+    },
+    {
       id: "agregar",
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],

@@ -130,6 +130,7 @@ function Categoria({
   onAlternar,
   onElegir,
   onFotos,
+  onAgregarModelo,
 }: {
   c: CategoriaDelEnvio;
   i: number;
@@ -141,6 +142,7 @@ function Categoria({
   onAlternar: () => void;
   onElegir: (p: ParadaDelConteo) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
+  onAgregarModelo: () => void;
 }) {
   useFotosDeLaCategoria(c, abierta, onFotos);
   const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
@@ -175,8 +177,13 @@ function Categoria({
             )}
           </span>
           {dif != null && dif !== 0 && <Chip tono="ambar">{conSigno(dif)}</Chip>}
+          {/* Su lugar: el «+» va al lado, fuera de este botón (un botón no puede llevar otro adentro). */}
+          <span aria-hidden className="rc-cat-hueco-mas" />
           <MarcaCampo estado={estado} />
           <ChevronDown aria-hidden className="rc-cat-flecha h-4 w-4" />
+        </button>
+        <button type="button" className="rc-cat-mas mov-boton" aria-label={`Agregar otro modelo de ${nombre}`} title={`Agregar otro modelo de ${nombre}`} onClick={onAgregarModelo} data-guia={i === 0 ? "recepcion.agregar-modelo" : undefined}>
+          <Plus aria-hidden className="h-4 w-4" />
         </button>
       </div>
       <div id={idCuerpo} className="rc-cat-cuerpo" inert={!abierta}>
@@ -213,6 +220,7 @@ export function ListaDelEnvio({
   onElegir,
   onElegirPrimero,
   onAgregar,
+  onAgregarModelo,
   onFotos,
 }: {
   categorias: readonly CategoriaDelEnvio[];
@@ -242,6 +250,8 @@ export function ListaDelEnvio({
   /** Enter en el buscador: a contar lo primero que se encontró. */
   onElegirPrimero: () => void;
   onAgregar: () => void;
+  /** El «+» de una categoría: otro modelo para contar aparte. */
+  onAgregarModelo: (categoria: string) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
 }) {
   // Buscando o filtrando por estado se lee la lista: todas las que quedan, abiertas.
@@ -332,7 +342,7 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} />;
+            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} />;
           })}
         </nav>
         <div className="rc-lista-agregar">

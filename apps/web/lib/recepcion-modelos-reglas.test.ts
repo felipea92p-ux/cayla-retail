@@ -35,7 +35,10 @@ import {
   SIN_FILTRO,
   SIN_PROVEEDOR,
   textoDeCosto,
+  paradaDelNombre,
+  marcaSugeridaDelModelo,
 } from "./recepcion-modelos-reglas";
+import { agregarModeloEnCero, agregarPrendaEnCero } from "./recepcion-conteo-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
 import { leerConteosDelEnvio, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
@@ -716,15 +719,38 @@ describe("contar un modelo", () => {
     expect(mas.contadas).toBe(30);
   });
 
-  it("lo que llegó sin estar anotado, en 0 sale de la lista", () => {
+  it("lo que llegó sin estar anotado sigue en la lista en 0, por contar: se quita con su tacho", () => {
     const g = grupo(deLaGuia(sofia(), { contadas: 2, separado: { prendas: [prendaSep("p-x", "Vestido Mar", 2)], nuevas: [] } }));
     const r = repartirModelo(g, modelo(g, "p-x"), 0);
-    expect(modelosDelGrupo(aplicar(g, r.cambios)).map((m) => m.clave)).toEqual(["p-sofia"]);
+    const prenda = modelosDelGrupo(aplicar(g, r.cambios)).find((m) => m.clave === "p-x");
+    expect([prenda?.contadas, prenda?.estado, prenda?.contado]).toEqual([0, "por-contar", false]);
     const nueva = grupo(deLaGuia(sofia(), { contadas: 1, separado: { prendas: [], nuevas: [{ cantidad: 1, descripcion: "Vestido floral" }] } }));
     const q = repartirModelo(nueva, modelo(nueva, "nombre:vestido floral"), 0);
     const quedo = aplicar(nueva, q.cambios);
-    expect(quedo.separado.nuevas).toEqual([]);
+    expect(quedo.separado.nuevas).toEqual([{ cantidad: 0, descripcion: "Vestido floral" }]);
     expect(quedo.contadas).toBe(0);
+  });
+
+  it("otro modelo: nace en 0, no se repite, conserva su descripción y se guarda aunque la línea no estuviera contada", () => {
+    const g = grupo(deLaGuia(sofia()));
+    const s = agregarModeloEnCero(g.separado, { nombre: "  Vestido   Mar ", nota: " con lazo " });
+    expect(s.nuevas).toEqual([{ cantidad: 0, descripcion: "Vestido Mar", nota: "con lazo" }]);
+    expect(agregarModeloEnCero(s, { nombre: "vestido mar" })).toBe(s);
+    const r = repartirOtroCambio(g, s);
+    expect(r.cambios).toHaveLength(1);
+    expect(r.cambios[0].contadas).toBe(0);
+    expect(modelosDelGrupo(aplicar(g, r.cambios)).find((m) => m.nombre === "Vestido Mar")?.estado).toBe("por-contar");
+    const prenda = agregarPrendaEnCero(g.separado, { productoId: "p-x", nombre: "Vestido Sol", codigo: null });
+    expect(prenda.prendas).toEqual([{ productoId: "p-x", nombre: "Vestido Sol", codigo: null, cantidad: 0, variantes: null }]);
+    expect(agregarPrendaEnCero(prenda, { productoId: "p-x", nombre: "Vestido Sol", codigo: null })).toBe(prenda);
+  });
+
+  it("la categoría dice qué modelo ya se llama así y qué marca sugerir: la de todas, si es una sola", () => {
+    const una = categoriasDelEnvio([grupo(deLaGuia(sofia()))])[0];
+    expect(paradaDelNombre(una, "  vestido SOFÍA ")?.modelo?.clave).toBe("p-sofia");
+    expect(paradaDelNombre(una, "Vestido Mar")).toBeNull();
+    expect(marcaSugeridaDelModelo(una)).toBe(una.grupos[0].principal.marca?.id);
+    expect(marcaSugeridaDelModelo({ ...una, grupos: [...una.grupos, { ...una.grupos[0], principal: { ...una.grupos[0].principal, marca: null } }] })).toBe("");
   });
 
   it("una cifra absurda se queda en el tope de lo que la base acepta, también la primera vez", () => {

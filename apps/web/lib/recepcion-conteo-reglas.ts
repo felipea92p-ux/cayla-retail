@@ -210,6 +210,21 @@ export function separadoParaBase(s: Separado): {
   };
 }
 
+/** Un modelo más para contar aparte, en 0 (el «+» de la categoría). Con su nombre ya en la lista, no se repite. */
+export function agregarModeloEnCero(s: Separado, m: { nombre: string; nota?: string | null; porDefecto?: boolean }): Separado {
+  const nombre = limpiarDescripcion(m.nombre);
+  const clave = nombre.toLocaleLowerCase("es");
+  if (!nombre || s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave)) return s;
+  const nota = m.nota?.trim();
+  return { ...s, nuevas: [...s.nuevas, { cantidad: 0, descripcion: nombre, ...(nota ? { nota } : {}), ...(m.porDefecto ? { porDefecto: true } : {}) }] };
+}
+
+/** Una prenda del catálogo para contar aparte, en 0. Si ya estaba, queda como está. */
+export function agregarPrendaEnCero(s: Separado, p: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
+  if (s.prendas.some((x) => x.productoId === p.productoId)) return s;
+  return { ...s, prendas: [...s.prendas, { ...p, cantidad: 0, variantes: null }] };
+}
+
 /** Una prenda conocida más (si ya estaba, suma una). */
 export function sumarPrenda(s: Separado, p: { productoId: string; nombre: string | null; codigo: string | null }, n = 1): Separado {
   const ya = s.prendas.find((x) => x.productoId === p.productoId);
@@ -574,7 +589,9 @@ export function lineasParaContar(d: Pick<DetalleEnvio, "lineas">, c: Pick<Conteo
 }
 
 /** Lo de fuera de la guía que quedó en 0 se quitó al contar: no se muestra ni se cierra. */
-export const lineaVisible = (l: LineaParaContar): boolean => l.linea !== null || (l.conteo?.contadas ?? 0) > 0;
+export const lineaVisible = (l: LineaParaContar): boolean =>
+  // Lo de fuera de la guía en 0 es lo quitado, salvo que tenga un modelo que todavía no se cuenta (ADR-0604, act. 2026-11-03).
+  l.linea !== null || (l.conteo?.contadas ?? 0) > 0 || (l.conteo?.separado.prendas.length ?? 0) + (l.conteo?.separado.nuevas.length ?? 0) > 0;
 
 /** Lo contado de una línea (0 si nadie la contó). */
 export const contadasDe = (l: LineaParaContar): number => l.conteo?.contadas ?? 0;

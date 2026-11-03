@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 172,
+  "total": 179,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -51,6 +51,7 @@
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
       "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",
       "button «{nombre}»",
+      "button «{i === 0 ? \"recepcion.agregar-modelo\" : undefined}»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Marca»",
       "SegmentoDeslizante «Ordenar por cantidad»",
@@ -109,6 +110,14 @@
     "components/recepcion-conteo/HojaTallas.tsx": [
       "Boton «Dejar para después»",
       "Boton «{textoListo}»"
+    ],
+    "components/recepcion-conteo/NuevoModelo.tsx": [
+      "CampoSelect «{guia.etiqueta(\"modelo-proveedor\", \"De qué proveedor\")}»",
+      "CampoTexto «{guia.etiqueta(\"modelo-nombre\", \"El nombre\")}»",
+      "CampoSelect «{guia.etiqueta(\"modelo-marca\", \"La marca\")}»",
+      "CampoTexto «{guia.etiqueta(\"modelo-nota\", \"La descripción (para no confundirlo con otro)\")}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/ObservacionesDeLinea.tsx": [
       "button «recepcion.observaciones»",

@@ -111,7 +111,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   --rc-cat-suave: color-mix(in srgb, var(--color-tinta) 74%, var(--color-pizarra)); /* contraste: texto sobre papel, hueso, crema */
 }
 .rc-cat { padding: 0 8px; animation: cayla-entrada 380ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--i, 0), 8) * 45ms); }
-.rc-cat-tira { padding: 4px 0; }
+.rc-cat-tira { position: relative; padding: 4px 0; }
 /* La abierta se queda pegada arriba mientras pasan sus modelos: casi llena, para que no se lean a través de ella. */
 .rc-cat[data-abierta] > .rc-cat-tira { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--color-papel) 94%, transparent); }
 .rc-cat-cabeza { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 8px 10px 8px 8px; border-radius: 14px; background: var(--rc-cat-fondo); box-shadow: inset 0 0 0 1px var(--rc-cat-filo), 0 2px 6px -4px color-mix(in srgb, var(--color-sombra) 30%, transparent); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
@@ -127,6 +127,10 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cat-barra { display: block; margin-top: 3px; }
 /* Las barras chicas, un poco más gruesas: el color tiene que leerse desde lejos. */
 :is(.rc-cat-barra, .rc-tipo-cifra) .barra-avance:not([data-sobre-tinta])[data-alto="fina"] { --tubo-aire: 2px; height: 11px; }
+/* El «+» de otro modelo, al lado del check. Vive fuera del botón de la categoría y se apoya sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
+.rc-cat-hueco-mas { flex: none; width: 32px; height: 32px; }
+.rc-cat-mas { position: absolute; top: 50%; right: 64px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); background: var(--color-vidrio); }
+.rc-cat-mas:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 .rc-cat-flecha { flex: none; color: var(--rc-cat-suave); transition: transform 300ms var(--ease-cayla); }
 .rc-cat[data-abierta] .rc-cat-flecha { transform: rotate(180deg); }
 .rc-cat-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }

@@ -422,7 +422,8 @@ export function RecibirContando({
           onTablas={setTablas}
           onAgregar={async (nuevo) => {
             const linea: LineaParaContar = { clave: "extra:0", linea: null, conteo: null, categoria: null, marca: null, proveedor: null, dijeron: null };
-            const c = await guardar(linea, { contadas: 0, separado: { prendas: [], nuevas: [] } }, nuevo);
+            const { separado, ...donde } = nuevo;
+            const c = await guardar(linea, { contadas: 0, separado: separado ?? { prendas: [], nuevas: [] } }, donde);
             return c ? claveDe(c) : null;
           }}
           onCerrar={() => {
