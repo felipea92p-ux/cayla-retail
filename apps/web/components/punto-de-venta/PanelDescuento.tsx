@@ -149,7 +149,7 @@ export function PanelDescuento({
                     value={descuento.monto}
                     onChange={(e) => onDescuento({ monto: e.target.value })}
                     onKeyDown={siguienteConEnter}
-                    placeholder="Otro"
+                    placeholder="Otro" // sugerir-fijo: «Otro» nombra la casilla del valor libre junto a las fichas, no es un ejemplo que dependa de lo elegido
                     disabled={bloqueado}
                     className={`min-w-0 flex-1 self-stretch py-0 text-center text-lg font-semibold ${CLASE_MONTO_ILEGIBLE}`}
                   />
@@ -165,7 +165,7 @@ export function PanelDescuento({
                     value={descuento.pct}
                     onChange={(e) => onDescuento({ pct: e.target.value })}
                     onKeyDown={siguienteConEnter}
-                    placeholder="Otro"
+                    placeholder="Otro" // sugerir-fijo: «Otro» nombra la casilla del valor libre junto a las fichas, no es un ejemplo que dependa de lo elegido
                     disabled={bloqueado}
                     className={`min-w-0 flex-1 self-stretch py-0 text-center text-lg font-semibold ${SIN_FLECHAS}`}
                   />
