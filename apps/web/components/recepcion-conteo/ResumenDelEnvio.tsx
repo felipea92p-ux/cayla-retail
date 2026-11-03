@@ -24,6 +24,13 @@ const ESTADOS: Record<EstadoDelResumen, { texto: string; tono: string; icono: Re
   despues: { texto: "Tallas para después", tono: "pizarra", icono: <Clock aria-hidden className="h-3 w-3" /> },
 };
 
+/** Lo que falta contar de lo que anotó Compras se pide al cerrar; lo agregado en 0 no: se descarta. */
+function notaDelResumen(faltanDeCompras: number, agregadosEnCero: number): string {
+  if (faltanDeCompras > 0) return `Faltan ${conMiles(faltanDeCompras)} por contar: al cerrar te los va a pedir.`;
+  if (agregadosEnCero > 0) return "Lo que dejes en 0 no se guarda.";
+  return "Lo que cuentas se guarda solo.";
+}
+
 export function ResumenDelEnvio({
   cifras,
   sinAviso,
@@ -171,7 +178,7 @@ export function ResumenDelEnvio({
           </span>
         </Boton>
         {/* A la vista, no en un `title`: la prueba ciega no llegó a verlo pasando el mouse. */}
-        <p className="rc-resumen-nota">{porContar > 0 ? `Faltan ${conMiles(porContar)} por contar: al cerrar te los va a pedir.` : "Lo que cuentas se guarda solo."}</p>
+        <p className="rc-resumen-nota">{notaDelResumen(porContar - cifras.agregadosEnCero, cifras.agregadosEnCero)}</p>
       </div>
     </aside>
   );

@@ -21,23 +21,26 @@ import {
   gruposDelFiltro,
   idCampoParada,
   modelosDelGrupo,
-  necesitaTotal,
+  hayQueIdentificar,
+  modeloSeQuita,
+  modelosSinNombre,
+  nombrePorDefecto,
   nombreDeParada,
   opcionesDelFiltro,
   origenDelGrupo,
   paradaContada,
   paradaEnFoco,
   paradasDelGrupo,
-  prendasParecidas,
   repartirModelo,
   repartirOtroCambio,
   resumenDeCategoria,
-  sePuedeQuitarCategoria,
-  sePuedeQuitarModelo,
   SIN_FILTRO,
   SIN_PROVEEDOR,
   textoDeCosto,
+  paradaDelNombre,
+  marcaSugeridaDelModelo,
 } from "./recepcion-modelos-reglas";
+import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
 import { leerConteosDelEnvio, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
@@ -166,22 +169,90 @@ describe("modelosDelGrupo", () => {
 });
 
 describe("paradas: lo que el Dial puede contar", () => {
-  it("con modelos anotados, cada modelo es una parada y no hay total", () => {
+  it("con modelos anotados, cada modelo es una parada", () => {
     const g = grupo(deLaGuia(sofia()), deLaGuia(lima()));
-    expect(necesitaTotal(g)).toBe(false);
+    expect(hayQueIdentificar(g)).toBe(false);
     expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Vestido Sofía", "Vestido Lima"]);
   });
 
-  it("sin nada anotado se cuenta el total (sin aviso, o una compra que no dijo qué prendas)", () => {
+  it("sin nada anotado no hay fila: se agregan los modelos, y la categoría cuadra contra lo que dijeron", () => {
     const g = grupo(deLaGuia(linea("l1", 6)));
-    expect(necesitaTotal(g)).toBe(true);
-    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Total de Vestidos"]);
+    expect(hayQueIdentificar(g)).toBe(false);
+    expect(paradasDelGrupo(g)).toEqual([]);
+    expect(camposDelConteoPorModelo(categoriasDelEnvio([g])).map((c) => c.nombre)).toEqual(["Los modelos de Vestidos"]);
   });
 
-  it("si la compra anotó solo una parte, el total sigue a mano para lo demás", () => {
+  it("si la compra anotó solo una parte, lo demás también entra como modelos, sin un total", () => {
     const g = grupo(deLaGuia(sofia()), deLaGuia(linea("l2", 4)));
-    expect(necesitaTotal(g)).toBe(true);
-    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Total de Vestidos", "Vestido Sofía"]);
+    expect(hayQueIdentificar(g)).toBe(false);
+    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Vestido Sofía"]);
+  });
+
+  it("un número suelto de antes, sin modelo al que atribuírselo, dice «Sin identificar» y se va al identificarlo", () => {
+    const g = grupo(deLaGuia(linea("l1", 6), { contadas: 5 }));
+    expect(paradasDelGrupo(g).map(nombreDeParada)).toEqual(["Sin identificar"]);
+    const conModelo = grupo(deLaGuia(linea("l1", 6), { contadas: 5, separado: { prendas: [], nuevas: [{ cantidad: 5, descripcion: "Vestido Mar" }] } }));
+    expect(paradasDelGrupo(conModelo).map(nombreDeParada)).toEqual(["Vestido Mar"]);
+  });
+
+  it("un modelo agregado a «Vestidos: 20» no está de más: lo que cuadra es la categoría", () => {
+    const nuevas = [{ cantidad: 5, descripcion: "Vestido Mar" }];
+    const g = grupo(deLaGuia(linea("l1", 20), { contadas: 5, separado: { prendas: [], nuevas } }));
+    expect(modelosDelGrupo(g).map((m) => [m.nombre, m.estado])).toEqual([["Vestido Mar", "contado"]]);
+    const cifras = cifrasDelResumen(categoriasDelEnvio([g]));
+    expect([cifras.diferencia, cifras.estados.diferencia, cifras.estados.cuadran]).toEqual([-15, 1, 0]);
+    const completa = grupo(deLaGuia(linea("l1", 20), { contadas: 20, separado: { prendas: [], nuevas: [{ cantidad: 20, descripcion: "Vestido Mar" }] } }));
+    const cifrasCompleta = cifrasDelResumen(categoriasDelEnvio([completa]));
+    expect([cifrasCompleta.diferencia, cifrasCompleta.estados.cuadran]).toEqual([0, 1]);
+  });
+
+  it("con todo anotado, lo que no estaba sigue estando de más", () => {
+    const g = grupo(deLaGuia(sofia(), { contadas: 7, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [{ cantidad: 2, descripcion: "Vestido Mar" }] } }));
+    expect(modelosDelGrupo(g).find((m) => m.nombre === "Vestido Mar")?.estado).toBe("fuera");
+  });
+
+  it("un nombre por defecto: el primer número libre; contado no deja cerrar, en 0 no frena, y al renombrarlo se libera", () => {
+    const nuevas = [{ cantidad: 2, descripcion: "Vestido 1", porDefecto: true, nota: "con lazo" }, { cantidad: 0, descripcion: "Vestido 3", porDefecto: true }];
+    const extra = (s: Separado): LineaParaContar => ({ ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s), separado: { prendas: [], nuevas: [] } }), clave: "extra:1", linea: null, dijeron: null, conteo: { ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s) }).conteo!, separado: s } });
+    const c = categoriasDelEnvio(agruparLineas([extra({ prendas: [], nuevas })]));
+    expect(nombrePorDefecto("Vestido", c[0])).toBe("Vestido 2");
+    expect(nombrePorDefecto("Vestido", null)).toBe("Vestido 1");
+    expect(modelosSinNombre(c).map((m) => m.nombre)).toEqual(["Vestido 1"]);
+    expect(c[0].paradas[0].modelo?.nota).toBe("con lazo");
+    expect(camposDelConteoPorModelo(c).filter((x) => x.requerido && !x.hecho).map((x) => x.nombre)).toContain("El nombre de Vestido 1");
+    const renombrado = renombrarModelo({ prendas: [], nuevas }, "vestido 1", { nombre: " Vestido  Luna ", nota: null });
+    expect(renombrado.nuevas[0]).toEqual({ cantidad: 2, descripcion: "Vestido Luna" });
+    expect(modelosSinNombre(categoriasDelEnvio(agruparLineas([extra(renombrado)])))).toEqual([]);
+  });
+
+  it("el tacho: solo en lo que agregó quien cuenta; al quitarlo baja lo contado", () => {
+    const sep = { prendas: [prendaSep("p-x", "Vestido Sol", 2)], nuevas: [{ cantidad: 3, descripcion: "Vestido Mar" }] };
+    const g = grupo(deLaGuia(sofia(), { contadas: 5, separado: sep }));
+    const quitan = modelosDelGrupo(g).map((m) => [m.nombre, modeloSeQuita(m)]);
+    expect(quitan).toEqual([["Vestido Sofía", false], ["Vestido Sol", true], ["Vestido Mar", true]]);
+    expect(modeloSeQuita({ anotada: null, enStock: 1 })).toBe(false);
+    const mar = modelosDelGrupo(g).find((m) => m.nombre === "Vestido Mar");
+    const sinMar = quitarModelo(g.separado, { productoId: mar?.productoId ?? null, nombre: "vestido mar" });
+    expect(sinMar.nuevas).toEqual([]);
+    expect(aplicar(g, repartirOtroCambio(g, sinMar).cambios).contadas).toBe(2);
+    expect(quitarModelo(g.separado, { productoId: "p-x", nombre: "Vestido Sol" }).prendas).toEqual([]);
+  });
+
+  it("«Deshacer» del tacho devuelve solo ese modelo: lo que se quitó después no revive", () => {
+    const antes: Separado = { prendas: [{ productoId: "p-x", nombre: "Vestido Sol", codigo: null, cantidad: 2, variantes: null }], nuevas: [{ cantidad: 3, descripcion: "Vestido Mar" }, { cantidad: 0, descripcion: "Vestido 1", porDefecto: true }] };
+    const sinUno = quitarModelo(antes, { productoId: null, nombre: "Vestido 1" });
+    const sinDos = quitarModelo(sinUno, { productoId: null, nombre: "Vestido Mar" });
+    const vuelve = devolverModelo(sinDos, antes, { productoId: null, nombre: "Vestido 1" });
+    expect(vuelve.nuevas).toEqual([{ cantidad: 0, descripcion: "Vestido 1", porDefecto: true }]);
+    const sinPrenda = quitarModelo(antes, { productoId: "p-x", nombre: "Vestido Sol" });
+    expect(devolverModelo(sinPrenda, antes, { productoId: "p-x", nombre: "Vestido Sol" }).prendas).toEqual(antes.prendas);
+    expect(devolverModelo(antes, antes, { productoId: null, nombre: "Vestido Mar" })).toBe(antes);
+  });
+
+  it("el resumen separa lo que falta contar de Compras de lo agregado en 0, que se descarta", () => {
+    const g = grupo(deLaGuia(sofia()), deLaGuia(lima(), { contadas: 0, separado: { prendas: [], nuevas: [{ cantidad: 0, descripcion: "Vestido Mar" }] } }));
+    const cifras = cifrasDelResumen(categoriasDelEnvio([g]));
+    expect(cifras.agregadosEnCero).toBe(1);
   });
 
   it("el foco: la elegida; si ya no está, otra de su grupo; si no, la primera sin contar", () => {
@@ -240,8 +311,8 @@ describe("costoDeLaParada: lo que cuesta cada prenda de lo que se cuenta", () =>
     expect(costoDeLaParada(paradaDe(g, "Vestido Otro"))).toEqual({ desde: 80, hasta: 80 });
   });
 
-  it("un total de varias líneas dice de cuánto a cuánto", () => {
-    const g = grupo(deLaGuia(linea("l1", 5, { costoUnitario: 20 })), deLaGuia(linea("l2", 5, { costoUnitario: 45 })));
+  it("lo sin identificar de varias líneas dice de cuánto a cuánto", () => {
+    const g = grupo(deLaGuia(linea("l1", 5, { costoUnitario: 20 }), { contadas: 1 }), deLaGuia(linea("l2", 5, { costoUnitario: 45 })));
     expect(costoDeLaParada(paradasDelGrupo(g)[0])).toEqual({ desde: 20, hasta: 45 });
   });
 
@@ -281,13 +352,20 @@ describe("categoriasDelEnvio: cada categoría una sola vez", () => {
     expect(r.cambios.map((c) => c.clave)).toEqual(["item:l-anto"]);
   });
 
-  it("resume lo contado y cuántos modelos trae", () => {
+  it("con guía, cuadra contra lo que dijeron", () => {
     const sinContar = categoriasDelEnvio(agruparLineas([deLaGuia(sofia())]))[0];
-    expect(resumenDeCategoria(sinContar)).toBe("sin contar · 1 modelo");
+    expect(resumenDeCategoria(sinContar)).toBe("Dijeron 5 · sin contar");
     const contada = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3 }), deLaGuia(lima())]))[0];
-    expect(resumenDeCategoria(contada)).toBe("3 de 12 · 2 modelos");
+    expect(resumenDeCategoria(contada)).toBe("Dijeron 12 · Contaste 3 · Faltan 9");
     const grande = categoriasDelEnvio(agruparLineas([deLaGuia(linea("g", 12000, { descripcion: "Vestido Paula" }), { contadas: 9500 })]))[0];
-    expect(resumenDeCategoria(grande)).toBe("9,500 de 12,000 · 1 modelo");
+    expect(resumenDeCategoria(grande)).toBe("Dijeron 12,000 · Contaste 9,500 · Faltan 2,500");
+    expect(resumenDeCategoria(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5 })]))[0])).toBe("Dijeron 5 · Contaste 5 · Cuadra");
+    expect(resumenDeCategoria(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 7 })]))[0])).toBe("Dijeron 5 · Contaste 7 · Sobran 2");
+  });
+
+  it("sin guía, lo contado y cuántos modelos trae", () => {
+    const extra: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 2, separado: { prendas: [], nuevas: [{ cantidad: 2, descripcion: "Vestido Mar" }, { cantidad: 0, descripcion: "Vestido Sol" }] } }), clave: "extra:1", linea: null, dijeron: null };
+    expect(resumenDeCategoria(categoriasDelEnvio(agruparLineas([extra]))[0])).toBe("2 contadas · 2 modelos");
   });
 
   it("está hecha solo con todo contado y sin nada por identificar", () => {
@@ -437,7 +515,7 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     const porNombre = new Map(todas()[0].paradas.map((p) => [nombreDeParada(p), tipoDeParada(p)]));
     expect(porNombre.get("Vestido Sofía")).toBe("restock");
     expect(porNombre.get("Vestido Lima")).toBe("nuevo");
-    const sinModelos = categoriasDelEnvio(agruparLineas([deLaGuia(linea("l-suelta", 9))]));
+    const sinModelos = categoriasDelEnvio(agruparLineas([deLaGuia(linea("l-suelta", 9), { contadas: 9 })]));
     expect(tipoDeParada(sinModelos[0].paradas[0])).toBeNull();
   });
 
@@ -718,15 +796,38 @@ describe("contar un modelo", () => {
     expect(mas.contadas).toBe(30);
   });
 
-  it("lo que llegó sin estar anotado, en 0 sale de la lista", () => {
+  it("lo que llegó sin estar anotado sigue en la lista en 0, por contar: se quita con su tacho", () => {
     const g = grupo(deLaGuia(sofia(), { contadas: 2, separado: { prendas: [prendaSep("p-x", "Vestido Mar", 2)], nuevas: [] } }));
     const r = repartirModelo(g, modelo(g, "p-x"), 0);
-    expect(modelosDelGrupo(aplicar(g, r.cambios)).map((m) => m.clave)).toEqual(["p-sofia"]);
+    const prenda = modelosDelGrupo(aplicar(g, r.cambios)).find((m) => m.clave === "p-x");
+    expect([prenda?.contadas, prenda?.estado, prenda?.contado]).toEqual([0, "por-contar", false]);
     const nueva = grupo(deLaGuia(sofia(), { contadas: 1, separado: { prendas: [], nuevas: [{ cantidad: 1, descripcion: "Vestido floral" }] } }));
     const q = repartirModelo(nueva, modelo(nueva, "nombre:vestido floral"), 0);
     const quedo = aplicar(nueva, q.cambios);
-    expect(quedo.separado.nuevas).toEqual([]);
+    expect(quedo.separado.nuevas).toEqual([{ cantidad: 0, descripcion: "Vestido floral" }]);
     expect(quedo.contadas).toBe(0);
+  });
+
+  it("otro modelo: nace en 0, no se repite, conserva su descripción y se guarda aunque la línea no estuviera contada", () => {
+    const g = grupo(deLaGuia(sofia()));
+    const s = agregarModeloEnCero(g.separado, { nombre: "  Vestido   Mar ", nota: " con lazo " });
+    expect(s.nuevas).toEqual([{ cantidad: 0, descripcion: "Vestido Mar", nota: "con lazo" }]);
+    expect(agregarModeloEnCero(s, { nombre: "vestido mar" })).toBe(s);
+    const r = repartirOtroCambio(g, s);
+    expect(r.cambios).toHaveLength(1);
+    expect(r.cambios[0].contadas).toBe(0);
+    expect(modelosDelGrupo(aplicar(g, r.cambios)).find((m) => m.nombre === "Vestido Mar")?.estado).toBe("por-contar");
+    const prenda = agregarPrendaEnCero(g.separado, { productoId: "p-x", nombre: "Vestido Sol", codigo: null });
+    expect(prenda.prendas).toEqual([{ productoId: "p-x", nombre: "Vestido Sol", codigo: null, cantidad: 0, variantes: null }]);
+    expect(agregarPrendaEnCero(prenda, { productoId: "p-x", nombre: "Vestido Sol", codigo: null })).toBe(prenda);
+  });
+
+  it("la categoría dice qué modelo ya se llama así y qué marca sugerir: la de todas, si es una sola", () => {
+    const una = categoriasDelEnvio([grupo(deLaGuia(sofia()))])[0];
+    expect(paradaDelNombre(una, "  vestido SOFÍA ")?.modelo?.clave).toBe("p-sofia");
+    expect(paradaDelNombre(una, "Vestido Mar")).toBeNull();
+    expect(marcaSugeridaDelModelo(una)).toBe(una.grupos[0].principal.marca?.id);
+    expect(marcaSugeridaDelModelo({ ...una, grupos: [...una.grupos, { ...una.grupos[0], principal: { ...una.grupos[0].principal, marca: null } }] })).toBe("");
   });
 
   it("una cifra absurda se queda en el tope de lo que la base acepta, también la primera vez", () => {
@@ -828,30 +929,6 @@ describe("contar un modelo", () => {
   });
 });
 
-describe("prendasParecidas", () => {
-  const catalogo = [
-    { productoId: "a", nombre: "Vestido Sofía Lino" },
-    { productoId: "b", nombre: "Vestido Mar" },
-    { productoId: "c", nombre: "Falda Ariana" },
-    { productoId: "d", nombre: "Vestido Antonella" },
-  ];
-
-  it("ordena por palabras en común, pesando más el modelo que se está contando", () => {
-    expect(prendasParecidas(catalogo, ["Vestido Sofía"], new Set()).map((p) => p.productoId)).toEqual(["a", "d", "b"]);
-    expect(prendasParecidas(catalogo, ["Vestido Antonella", "Vestido Sofía"], new Set())[0].productoId).toBe("d");
-  });
-
-  it("no ofrece lo que ya está en la lista ni lo que no se parece en nada", () => {
-    expect(prendasParecidas(catalogo, ["Vestido Sofía"], new Set(["a"])).map((p) => p.productoId)).toEqual(["d", "b"]);
-    expect(prendasParecidas(catalogo, ["Chompa"], new Set())).toEqual([]);
-  });
-
-  it("no le importan las tildes ni las mayúsculas; sin nada que comparar, las primeras", () => {
-    expect(prendasParecidas(catalogo, ["VESTIDO SOFIA"], new Set())[0].productoId).toBe("a");
-    expect(prendasParecidas(catalogo, [], new Set(), 2).map((p) => p.productoId)).toEqual(["a", "b"]);
-  });
-});
-
 describe("la guía de foco", () => {
   it("sin nada en la lista, lo que sigue es agregar lo que llegó", () => {
     expect(camposDelConteoPorModelo([]).map((c) => [c.id, c.hecho])).toEqual([["contar-agregar", false]]);
@@ -884,25 +961,5 @@ describe("la guía de foco", () => {
     const extra: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 4 }), clave: "extra:1", linea: null, dijeron: null };
     const categorias = categoriasDelEnvio(agruparLineas([extra]));
     expect(camposDelConteoPorModelo(categorias).map((c) => c.id)).toEqual([idCampoIdentificar("extra:1")]);
-  });
-});
-
-describe("la ✕ de quitar (Felipe 2026-11-03)", () => {
-  it("un modelo se puede quitar solo si la persona lo agregó y nada de él entró al stock", () => {
-    expect(sePuedeQuitarModelo({ anotada: null, enStock: 0 })).toBe(true);
-    // Lo que anotó Compras puede «no llegar», no desaparecer.
-    expect(sePuedeQuitarModelo({ anotada: { productoId: "p1", nombre: "Vestido Sofía", cantidad: 3 } as never, enStock: 0 })).toBe(false);
-    // Lo que ya entró al stock es historia.
-    expect(sePuedeQuitarModelo({ anotada: null, enStock: 2 })).toBe(false);
-  });
-
-  it("una categoría se quita solo si nada de ella venía en la guía y nada entró al stock", () => {
-    const fuera: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 4 }), clave: "extra:1", linea: null, dijeron: null };
-    const [soloFuera] = categoriasDelEnvio(agruparLineas([fuera]));
-    expect(sePuedeQuitarCategoria(soloFuera)).toBe(true);
-    const [conGuia] = categoriasDelEnvio(agruparLineas([deLaGuia(linea("g", 5), { contadas: 5 })]));
-    expect(sePuedeQuitarCategoria(conGuia)).toBe(false);
-    expect(sePuedeQuitarCategoria({ grupos: [{ ...soloFuera.grupos[0], enStock: 1 }] })).toBe(false);
-    expect(sePuedeQuitarCategoria({ grupos: [] })).toBe(false);
   });
 });

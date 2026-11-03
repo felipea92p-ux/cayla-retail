@@ -43,7 +43,8 @@ const normaliza = (d: string): string => d.trim().replace(/\s+/g, " ").toLocaleL
 
 // ---- Los modelos de un grupo --------------------------------------------------------------------------------------------------------
 
-export type EstadoModelo = "por-contar" | "a-medias" | "cuadra" | "sobran" | "no-llego" | "fuera";
+// «contado»: se agregó a una categoría donde Compras dijo cuántas pero no qué modelos: no estaba anotado, pero tampoco está de más; lo que cuadra es la categoría.
+export type EstadoModelo = "por-contar" | "a-medias" | "cuadra" | "sobran" | "no-llego" | "fuera" | "contado";
 
 export type ModeloDelConteo = {
   /** Única dentro de su grupo: la prenda del catálogo, o el nombre si se anotó solo por nombre. */
@@ -64,6 +65,10 @@ export type ModeloDelConteo = {
   /** Sus tallas y colores, si ya se pusieron. */
   conTallas: boolean;
   anotada: PrendaAnotada | null;
+  /** Lo que lo describe, para no confundirlo con otro parecido. */
+  nota: string | null;
+  /** Su nombre es provisional («Blusa 1»): contado, no deja cerrar el envío. */
+  porDefecto: boolean;
 };
 
 const claveDeAnotada = (a: PrendaAnotada): string => a.productoId ?? `nombre:${normaliza(a.nombre)}`;
@@ -79,6 +84,11 @@ function estadoDe(esperadas: number | null, contadas: number, contado: boolean, 
   return contadas === esperadas ? "cuadra" : "sobran";
 }
 
+/** Compras dijo cuántas pero no qué modelos (o solo de una parte): los modelos se agregan al contar y lo que cuadra es la categoría, contra lo que dijeron. */
+export function cuadraEnLaCategoria(g: GrupoDeLineas): boolean {
+  return g.dijeron != null && g.dijeron > anotadasDelGrupo(g).reduce((a, x) => a + x.prenda.cantidad, 0);
+}
+
 /** Los modelos de un grupo, en el orden de la compra y después lo que llegó sin estar anotado. */
 export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
   // Lo que ya entró al stock al cerrar sale de lo separado: al reabrir, lo de cada modelo es lo de su línea. Sin esto decía «Por contar» y «Llegaron las 48» las volvía a contar.
@@ -88,6 +98,7 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
   const ceroEsNoLlego = sinIdentificarDelGrupo(g) === 0 && g.enStock === stockDeModelos;
   const usadasCatalogo = new Set<string>();
   const usadasNombre = new Set<string>();
+  const llegoSinNombre = cuadraEnLaCategoria(g) ? "contado" : "fuera";
   const filas: ModeloDelConteo[] = anotadasDelGrupo(g).map(({ prenda }) => {
     const clave = claveDeAnotada(prenda);
     let productoId = prenda.productoId;
@@ -129,10 +140,12 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       // Lo que ya entró al stock ya tiene sus tallas: solo falta decirlas de lo que queda.
       conTallas: contadas > 0 ? conTallas : enStock > 0,
       anotada: prenda,
+      nota: null,
+      porDefecto: false,
     };
   });
   for (const p of g.separado.prendas) {
-    if (usadasCatalogo.has(p.productoId) || p.cantidad <= 0) continue;
+    if (usadasCatalogo.has(p.productoId)) continue;
     filas.push({
       clave: p.productoId,
       nombre: p.nombre ?? p.codigo ?? "Prenda del catálogo",
@@ -141,14 +154,17 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       esperadas: null,
       contadas: p.cantidad,
       enStock: 0,
-      contado: true,
-      estado: "fuera",
+      contado: p.cantidad > 0,
+      // Lo agregado en 0 todavía no se cuenta (ADR-0604, act. 2026-11-03).
+      estado: p.cantidad > 0 ? llegoSinNombre : "por-contar",
       conTallas: !!p.variantes,
       anotada: null,
+      nota: null,
+      porDefecto: false,
     });
   }
   for (const n of g.separado.nuevas) {
-    if (!n.descripcion || n.cantidad <= 0 || usadasNombre.has(normaliza(n.descripcion))) continue;
+    if (!n.descripcion || usadasNombre.has(normaliza(n.descripcion))) continue;
     usadasNombre.add(normaliza(n.descripcion));
     filas.push({
       clave: `nombre:${normaliza(n.descripcion)}`,
@@ -158,10 +174,12 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       esperadas: null,
       contadas: n.cantidad,
       enStock: 0,
-      contado: true,
-      estado: "fuera",
+      contado: n.cantidad > 0,
+      estado: n.cantidad > 0 ? llegoSinNombre : "por-contar",
       conTallas: false,
       anotada: null,
+      nota: n.nota ?? null,
+      porDefecto: !!n.porDefecto,
     });
   }
   return filas;
@@ -169,7 +187,7 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
 
 // ---- Las paradas: lo que el Dial puede contar ---------------------------------------------------------------------------------------
 
-/** Lo que el Dial cuenta en un momento: un modelo o, si no hay con qué separarlo, el total del grupo (`modelo: null`). */
+/** Lo que el Dial cuenta en un momento: un modelo o, de un conteo de antes, lo contado sin modelo (`modelo: null`). */
 export type ParadaDelConteo = { clave: string; grupo: GrupoDeLineas; modelo: ModeloDelConteo | null };
 
 const paradaDe = (grupo: GrupoDeLineas, modelo: ModeloDelConteo | null): ParadaDelConteo => ({ clave: `${grupo.clave}::${modelo?.clave ?? "*"}`, grupo, modelo });
@@ -181,16 +199,16 @@ export const claveDeParada = (grupo: Pick<GrupoDeLineas, "clave">, modeloClave: 
 export const grupoDeLaClave = (claveParada: string): string => claveParada.split("::")[0];
 
 /**
- * ¿Hace falta contar el grupo como un total? Cuando la compra no anotó qué prendas eran (un envío sin aviso, lo de fuera de la guía) o anotó solo
- * parte de lo que salió: ahí no hay modelo que elegir para lo demás, y se cuenta como siempre, primero el número y luego quién es cada una.
+ * ¿Queda algo contado sin modelo y sin un modelo al que atribuírselo? Ya no se cuenta un total (Felipe 2026-11-03: «Total de Blusas» confundía): todo se cuenta por modelo. Esta fila existe solo para
+ * un número suelto de antes, de un envío que ya venía contándose así; dice «Sin identificar» y no deja cerrar hasta decir de qué modelo son.
  */
-export function necesitaTotal(g: GrupoDeLineas): boolean {
+export function hayQueIdentificar(g: GrupoDeLineas): boolean {
+  if (sinIdentificarDelGrupo(g) === 0) return false;
   const anotadas = anotadasDelGrupo(g);
-  if (anotadas.length === 0) return true;
-  return (g.dijeron ?? 0) > anotadas.reduce((a, x) => a + x.prenda.cantidad, 0);
+  return anotadas.length === 0 || (g.dijeron ?? 0) > anotadas.reduce((a, x) => a + x.prenda.cantidad, 0);
 }
 
-export const paradasDelGrupo = (g: GrupoDeLineas): ParadaDelConteo[] => [...(necesitaTotal(g) ? [paradaDe(g, null)] : []), ...modelosDelGrupo(g).map((m) => paradaDe(g, m))];
+export const paradasDelGrupo = (g: GrupoDeLineas): ParadaDelConteo[] => [...(hayQueIdentificar(g) ? [paradaDe(g, null)] : []), ...modelosDelGrupo(g).map((m) => paradaDe(g, m))];
 
 export const paradaContada = (p: ParadaDelConteo): boolean => (p.modelo ? p.modelo.contado : p.grupo.principal.linea ? p.grupo.contado : p.grupo.contadas > 0);
 
@@ -200,17 +218,8 @@ export function lineasDeLaParada(p: ParadaDelConteo): LineaParaContar[] {
   return delModelo.length > 0 ? delModelo : p.grupo.lineas;
 }
 
-/**
- * ¿Se puede sacar este modelo del envío con la ✕ (Felipe 2026-11-03)? Solo uno que la persona agregó (no venía anotado por Compras: lo anotado puede
- * «no llegar», no desaparecer) y del que nada entró todavía al stock (eso ya es historia y no se quita).
- */
-export const sePuedeQuitarModelo = (m: Pick<ModeloDelConteo, "anotada" | "enStock">): boolean => m.anotada === null && m.enStock === 0;
-
-/** ¿Se puede sacar la categoría entera? Solo si nada de ella venía en la guía de Compras y nada entró al stock. */
-export const sePuedeQuitarCategoria = (c: Pick<CategoriaDelEnvio, "grupos">): boolean => c.grupos.length > 0 && c.grupos.every((g) => !g.principal.linea && g.enStock === 0);
-
-/** Lo que dice la fila o la placa de una parada: el modelo, o «Total de Vestidos». */
-export const nombreDeParada = (p: ParadaDelConteo): string => p.modelo?.nombre ?? `Total de ${p.grupo.principal.categoria?.nombre ?? "la categoría"}`;
+/** Lo que dice la fila o la placa de una parada: el modelo, o lo contado que todavía no es de ninguno. */
+export const nombreDeParada = (p: ParadaDelConteo): string => p.modelo?.nombre ?? "Sin identificar";
 
 /**
  * Cuánto cuesta cada prenda de lo que se cuenta, para verlo arriba, junto a su nombre (Felipe 2026-11-03: quien recibe lo ve): el costo propio de la prenda, o el de su línea, lo mismo con lo que
@@ -296,6 +305,30 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
   });
 }
 
+/** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */
+export const paradaDelNombre = (c: CategoriaDelEnvio, nombre: string): ParadaDelConteo | null => c.paradas.find((p) => p.modelo && normaliza(p.modelo.nombre) === normaliza(nombre)) ?? null;
+
+/** ¿Lleva tacho? Solo lo que agregó quien cuenta. Lo que anotó Compras no se borra: en 0 dice que no llegó y va al reclamo. Lo que ya entró al stock tampoco se quita desde aquí. */
+export const modeloSeQuita = (m: Pick<ModeloDelConteo, "anotada" | "enStock">): boolean => !m.anotada && m.enStock === 0;
+
+/** El nombre provisional de un modelo que nadie sabe cómo se llama: el primer «Blusa N» libre de la categoría. */
+export function nombrePorDefecto(prenda: string, c: Pick<CategoriaDelEnvio, "paradas"> | null): string {
+  const usados = new Set((c?.paradas ?? []).map((p) => (p.modelo ? normaliza(p.modelo.nombre) : "")));
+  let n = 1;
+  while (usados.has(normaliza(`${prenda} ${n}`))) n += 1;
+  return `${prenda} ${n}`;
+}
+
+/** Los modelos contados que siguen con su nombre provisional: el envío no se cierra hasta cambiarlos. Uno en 0 no frena: se descarta al cerrar. */
+export const modelosSinNombre = (categorias: readonly CategoriaDelEnvio[]): ModeloDelConteo[] =>
+  categorias.flatMap((c) => c.paradas).flatMap((p) => (p.modelo?.porDefecto && p.modelo.contadas > 0 ? [p.modelo] : []));
+
+/** La marca que se sugiere para otro modelo: la de la categoría, si toda es de una sola. Con varias, o sin marca, no se adivina. */
+export function marcaSugeridaDelModelo(c: CategoriaDelEnvio): string {
+  const marcas = new Set(c.grupos.map((g) => g.principal.marca?.id ?? ""));
+  return marcas.size === 1 ? ([...marcas][0] ?? "") : "";
+}
+
 /** Un número como se lee en pantalla: 12,000. */
 export const conMiles = (n: number): string => n.toLocaleString("es-PE");
 
@@ -304,8 +337,14 @@ export const conSigno = (n: number): string => (n > 0 ? `+${conMiles(n)}` : n < 
 
 /** La línea bajo el nombre: «13 de 15 · 3 modelos», «sin contar · 1 modelo», «3 contadas» (sin aviso). Corta: con miles no cabría más. */
 export function resumenDeCategoria(c: CategoriaDelEnvio): string {
+  // Con guía, la categoría cuadra contra lo que dijeron (Felipe 2026-11-03).
+  if (c.dijeron != null) {
+    if (!c.hayConteo) return `Dijeron ${conMiles(c.dijeron)} · sin contar`;
+    const dif = c.contadas - c.dijeron;
+    return `Dijeron ${conMiles(c.dijeron)} · Contaste ${conMiles(c.contadas)} · ${dif === 0 ? "Cuadra" : dif < 0 ? `Faltan ${conMiles(-dif)}` : `Sobran ${conMiles(dif)}`}`;
+  }
   const n = c.paradas.filter((p) => p.modelo).length;
-  const conteo = !c.hayConteo ? "sin contar" : c.dijeron != null ? `${conMiles(c.contadas)} de ${conMiles(c.dijeron)}` : `${conMiles(c.contadas)} ${c.contadas === 1 ? "contada" : "contadas"}`;
+  const conteo = !c.hayConteo ? "sin contar" : `${conMiles(c.contadas)} ${c.contadas === 1 ? "contada" : "contadas"}`;
   return n > 0 ? `${conteo} · ${n} ${n === 1 ? "modelo" : "modelos"}` : conteo;
 }
 
@@ -349,6 +388,7 @@ export function tipoDeParada(p: Pick<ParadaDelConteo, "modelo">): TipoDeModelo |
 export type EstadoDelResumen = "cuadran" | "diferencia" | "por-contar" | "despues";
 
 export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "despues"> {
+  if (p.modelo?.estado === "contado") return p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
   if (p.modelo) return p.modelo.estado === "por-contar" ? "por-contar" : p.modelo.estado === "cuadra" ? "cuadran" : "diferencia";
   if (!paradaContada(p)) return "por-contar";
   return p.grupo.dijeron == null || p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
@@ -356,6 +396,8 @@ export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "d
 
 /** Lo contado que queda sin tallas. Lo que la persona pidió hacer ahora (`enAhora`) no es «para después»: ese dice «Faltan tallas». */
 export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && !enAhora?.has(p.clave);
+
+const sinTildes = (t: string): string => t.normalize("NFD").replace(/\p{M}/gu, "");
 
 const pasaLaParada = (p: ParadaDelConteo, f: FiltroDelConteo, retener: string | null, enAhora?: ReadonlySet<string>): boolean => {
   // Lo que se está contando no se va de la lista bajo el dedo: con «Por contar» puesto, sumarle una lo sacaría del filtro. Se va al pasar al siguiente.
@@ -417,6 +459,8 @@ export function vecinosDeLaParada(paradas: readonly ParadaDelConteo[], clave: st
 }
 
 export type CifrasDelResumen = {
+  /** Lo que agregó quien cuenta y sigue en 0: al cerrar no se pide, se descarta. */
+  agregadosEnCero: number;
   /** `null` en un envío sin aviso: no hay con qué comparar. */
   dijeron: number | null;
   contadas: number;
@@ -445,6 +489,7 @@ export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[], enAho
     if (paradaContada(p)) tipos[tipo].contados += 1;
   }
   return {
+    agregadosEnCero: paradas.filter((p) => p.modelo && !p.modelo.anotada && p.modelo.contadas === 0).length,
     dijeron,
     contadas,
     diferencia: grupos.reduce((a, g) => a + diferenciaDelGrupo(g, paradas.filter((p) => p.grupo.clave === g.clave)), 0),
@@ -458,6 +503,8 @@ export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[], enAho
 function diferenciaDelGrupo(g: GrupoDeLineas, paradas: readonly ParadaDelConteo[]): number {
   const total = paradas.find((p) => !p.modelo);
   if (total) return paradaContada(total) ? g.contadas - (g.dijeron ?? 0) : 0;
+  // Lo que cuadra es la categoría: contra lo que dijeron, en cuanto se empezó a contar.
+  if (cuadraEnLaCategoria(g)) return g.contadas > 0 || paradas.some(paradaContada) ? g.contadas - (g.dijeron ?? 0) : 0;
   const deModelos = paradas.reduce((a, p) => a + (p.modelo?.contadas ?? 0), 0);
   return g.contadas - deModelos + paradas.filter(paradaContada).reduce((a, p) => a + contadasDeParada(p) - (dijeronDe(p) ?? 0), 0);
 }
@@ -519,6 +566,13 @@ export function opcionesDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDel
  */
 export function cantidadDeModelo(s: Separado, m: ModeloDelConteo, n: number): Separado {
   const c = Math.max(0, Math.min(TOPES_CONTEO.contadas, Math.trunc(n)) - m.enStock);
+  // Lo que agregó quien cuenta sigue en la lista aunque vuelva a 0: se quita con su tacho. Lo que anotó Compras sigue por lo que anotó.
+  if (c === 0 && !m.anotada) {
+    return {
+      prendas: s.prendas.map((p) => (m.productoId && p.productoId === m.productoId ? { ...p, cantidad: 0, variantes: null } : p)),
+      nuevas: s.nuevas.map((x) => (!m.productoId && x.descripcion && normaliza(x.descripcion) === normaliza(m.nombre) ? { ...x, cantidad: 0 } : x)),
+    };
+  }
   if (m.productoId) {
     if (c === 0) return quitarPrenda(s, m.productoId);
     return s.prendas.some((p) => p.productoId === m.productoId)
@@ -545,7 +599,8 @@ function repartirCambio(g: GrupoDeLineas, nuevo: Separado, lineasDeEsto: Readonl
   const r = repartirSeparado(g, nuevo, total);
   return {
     ...r,
-    cambios: r.cambios.filter((c) => c.linea.conteo !== null || lineasDeEsto.has(c.clave) || c.contadas > 0 || totalSeparado(c.separado) > 0),
+    // Un modelo en 0 también se guarda: si no, se perdería al recargar.
+    cambios: r.cambios.filter((c) => c.linea.conteo !== null || lineasDeEsto.has(c.clave) || c.contadas > 0 || c.separado.prendas.length + c.separado.nuevas.length > 0),
   };
 }
 
@@ -600,34 +655,6 @@ export const repartirOtroCambio = (g: GrupoDeLineas, nuevo: Separado): Reparto =
 /** La llave de modelo de lo que se anota por su nombre (para quedarse en él apenas exista). */
 export const claveDeNombre = (nombre: string): string => `nombre:${normaliza(nombre)}`;
 
-// ---- Las prendas que se parecen ---------------------------------------------------------------------------------------------------------
-
-const sinTildes = (t: string): string => t.normalize("NFD").replace(/\p{M}/gu, "");
-const palabras = (t: string): string[] =>
-  sinTildes(normaliza(t))
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((w) => w.length >= 3);
-
-/**
- * Del catálogo de esa categoría y marca, las que se parecen a lo que se anotó al comprar: por palabras en común, pesando más las del modelo que
- * se está contando (la primera referencia). Sin nada que comparar, las primeras. Las que ya están en la lista no se ofrecen.
- */
-export function prendasParecidas<T extends { productoId: string; nombre: string }>(catalogo: readonly T[], referencias: readonly string[], yaEstan: ReadonlySet<string>, max = 4): T[] {
-  const libres = catalogo.filter((p) => !yaEstan.has(p.productoId));
-  const refs = referencias.map(palabras);
-  if (refs.every((r) => r.length === 0)) return libres.slice(0, max);
-  const puntaje = (p: T): number => {
-    const suyas = new Set(palabras(p.nombre));
-    return refs.reduce((total, r, i) => total + r.filter((w) => suyas.has(w)).length * (i === 0 ? 2 : 1), 0);
-  };
-  return libres
-    .map((p) => ({ p, s: puntaje(p) }))
-    .filter((x) => x.s > 0)
-    .sort((a, b) => b.s - a.s || a.p.nombre.localeCompare(b.p.nombre, "es"))
-    .slice(0, max)
-    .map((x) => x.p);
-}
-
 // ---- La guía de foco --------------------------------------------------------------------------------------------------------------------
 
 /** La llave del campo de la guía de una parada (`data-campo` de su fila en el acordeón). */
@@ -637,6 +664,8 @@ export const idCampoParada = (p: Pick<ParadaDelConteo, "clave">): string => `con
  * Lo que la guía pide: cada modelo anotado contado (aunque sea para decir que no llegó) y, con lo contado, que no quede ninguna sin saber qué
  * prenda es. Lo primero no frena nada (si un modelo no se contó, al cerrar sale como faltante); lo segundo sí: sin eso no se pasa a «Cerrar».
  */
+export const idCampoCategoria = (clave: string): string => `categoria-${clave.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+
 export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[]): CampoDeGuia[] {
   if (categorias.length === 0) {
     return [{ id: ID_CAMPO_AGREGAR, nombre: "Lo que llegó", requerido: true, hecho: false, pendiente: "Agrega la primera categoría que llegó y cuéntala." }];
@@ -645,8 +674,16 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
   return categorias.flatMap((c) => {
     const nombre = c.categoria?.nombre ?? "esta categoría";
     const campos: CampoDeGuia[] = [];
+    // Vino en la guía sin decir qué modelos: lo que falta son sus modelos, con el «+» de la categoría.
+    if (c.paradas.length === 0) {
+      campos.push({ id: idCampoCategoria(c.clave), nombre: `Los modelos de ${nombre}`, requerido: true, hecho: c.contada, pendiente: `Agrega cada modelo de ${nombre} con el «+» y cuéntalo.` });
+    }
     for (const p of c.paradas) {
-      if (p.modelo ? p.modelo.estado === "fuera" : !p.grupo.principal.linea) continue;
+      if (p.modelo?.porDefecto && p.modelo.contadas > 0) {
+        campos.push({ id: idCampoParada(p), nombre: `El nombre de ${p.modelo.nombre}`, requerido: true, hecho: false, pendiente: `Cambia el nombre de ${p.modelo.nombre}: sin eso no se cierra el envío.` });
+        continue;
+      }
+      if (!p.modelo || p.modelo.estado === "fuera" || p.modelo.estado === "contado") continue;
       const quien = nombreDeParada(p);
       campos.push({ id: idCampoParada(p), nombre: quien, requerido: true, hecho: paradaContada(p), pendiente: `Cuenta ${quien} y deja cuántas llegaron.` });
     }

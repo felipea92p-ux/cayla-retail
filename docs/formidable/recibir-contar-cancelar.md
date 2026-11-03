@@ -1,5 +1,8 @@
 # /formidable · Inventario ▸ Recibir mercadería ▸ Contar — lo nuevo del PR #1616 (2026-11-03)
 
+> **Nota al fusionar con `main` (2026-11-03):** la ✕ y la fila de la categoría como total que se calificaron aquí se descartaron: #1617 (ADR-0604) entregó su propia versión (tacho y Contar sin «Total»). De esta calificación solo sigue vigente lo de la hoja «Cancelar la recepción» (por ejemplo, el motivo con 3 caracteres visibles); lo de la ✕/Deshacer y el total ya no aplica al código.
+
+
 Lo nuevo: la ✕ que saca del envío un modelo o una categoría agregados, la fila de la categoría que ES el total (ya no hay «Total de X» aparte) y la hoja «Cancelar la recepción» (menú «Más»). ADR-0605.
 Evidencia: ERP de la rama contra un banco propio y desechable (1055 migraciones desde cero), cuenta de prueba del seed; Chrome sin pantalla (Playwright). **Medido** a 1440, 1024 y 375 · **Observado** con 4 agentes: medidor, prueba ciega (agente sin contexto: no una colaboradora real), revisor de leyes y escéptico · **Opinión** solo donde se dice.
 No se probó con una persona real de la tienda. No se midió 1920 ni el modo oscuro a 375.

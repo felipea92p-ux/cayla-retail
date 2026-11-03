@@ -238,8 +238,6 @@
     box-shadow: var(--gota-luz);
   }
 }
-/* La ✕ de quitar (`BotonQuitar`, Felipe 2026-11-03): la misma gota, pero en rojo desde el principio (lo peligroso es rojo). */
-.icono-fila.icono-quitar { color: var(--color-rojo-profundo); }
 .icono-fila.copiar-icono[data-copiado] {
   color: var(--color-verde-profundo);
   border-color: color-mix(in srgb, var(--color-verde) 55%, transparent);

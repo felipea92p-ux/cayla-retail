@@ -5,13 +5,13 @@ import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, RotateCcw, Sparkl
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
-import { BotonQuitar } from "@/components/ui/BotonQuitar";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
-import { descripcionDelGrupo, minimoDelGrupo } from "@/lib/recepcion-grupos-reglas";
+import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import type { ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
@@ -37,7 +37,6 @@ export function PlacaDelModelo({
   hayFiltroPuesto,
   puedeCerrar,
   motivoNoCierra,
-  otraCosaAbierta,
   filaSeguir,
   onPoner,
   onDeUnToque,
@@ -47,11 +46,10 @@ export function PlacaDelModelo({
   onEnter,
   onCerrar,
   onModo,
-  onOtraCosa,
-  onQuitar,
   observacion,
   observaciones,
-  otraCosa,
+  identificar,
+  onEditarNombre,
   tallas,
 }: {
   parada: ParadaDelConteo;
@@ -70,7 +68,6 @@ export function PlacaDelModelo({
   hayFiltroPuesto: boolean;
   puedeCerrar: boolean;
   motivoNoCierra?: string;
-  otraCosaAbierta: boolean;
   /** La fila de «Anterior» y «Listo, siguiente»: al apretar Enter en el último, el cursor va a su botón. */
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
@@ -83,26 +80,26 @@ export function PlacaDelModelo({
   onEnter: () => void;
   onCerrar: () => void;
   onModo: (m: ModoDeTallas) => void;
-  onOtraCosa: () => void;
-  /** La ✕ junto al nombre: saca del envío lo que la persona agregó (el modelo, o la categoría si se cuenta su total). Ausente si no se puede quitar. */
-  onQuitar?: () => void;
   /** El enlace «Anotar observación». */
   observacion: ReactNode;
   /** Lo ya anotado. */
   observaciones: ReactNode;
-  /** «¿Llegó otra cosa?», cuando se abre. */
-  otraCosa: ReactNode;
+  /** Lo que falta decir de un número suelto de antes. */
+  identificar: ReactNode;
+  /** Ponerle su nombre al modelo, o cambiárselo. */
+  onEditarNombre: () => void;
   /** La tabla de tallas y colores, cuando se pide. */
   tallas: ReactNode;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
-  const hayConteo = modelo ? modelo.contado : grupo.lineas.some((l) => l.conteo !== null);
-  const contadas = modelo ? modelo.contadas : grupo.contadas;
-  const dijeron = modelo ? modelo.esperadas : grupo.dijeron;
-  // Un modelo se puede bajar hasta 0 (no llegó) o hasta lo que ya entró al stock; el total de un grupo, no por debajo de lo que ya se dijo qué es.
-  const minimo = modelo ? modelo.enStock : minimoDelGrupo(grupo);
-  const enStock = modelo ? modelo.enStock : grupo.enStock;
+  const hayConteo = modelo ? modelo.contado : true;
+  // Sin modelo, lo contado de antes que todavía no es de ninguno: nunca se compara con lo que dijeron.
+  const contadas = modelo ? modelo.contadas : sinIdentificarDelGrupo(grupo);
+  const dijeron = modelo ? modelo.esperadas : null;
+  // Un modelo se puede bajar hasta 0 (no llegó) o hasta lo que ya entró al stock.
+  const minimo = modelo ? modelo.enStock : 0;
+  const enStock = modelo ? modelo.enStock : 0;
   // Lo que ya entró al stock ya tiene sus tallas: de eso no hay nada que decidir.
   const yaEntroTodo = !!modelo && modelo.enStock > 0 && modelo.contadas === modelo.enStock;
   const poner = (n: number) => onPoner(Math.max(minimo, Math.max(0, n)));
@@ -110,7 +107,7 @@ export function PlacaDelModelo({
   const [atajoChico, atajoGrande] = atajosDelDial(dijeron, contadas);
   const yaLlegaron = hayConteo && dijeron != null && dijeron === contadas;
   const noLlego = hayConteo && contadas === 0;
-  const diferencia = hayConteo ? contadas - (dijeron ?? 0) : null;
+  const diferencia = hayConteo && modelo?.estado !== "contado" ? contadas - (dijeron ?? 0) : null;
   const tipo = tipoDeParada(parada);
   const costo = costoDeLaParada(parada);
 
@@ -139,11 +136,9 @@ export function PlacaDelModelo({
       <div className="rc-placa-cabeza">
         {p.categoria && <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />}
         <div className="rc-placa-textos">
-          <div className="rc-titulo-fila">
-            <TituloSeccion dato={!hayConteo ? <EtiquetaAhora /> : undefined}>{nombreDeParada(parada)}</TituloSeccion>
-            {onQuitar && <BotonQuitar que={`${nombreDeParada(parada)} del envío`} onClick={onQuitar} />}
-          </div>
+          <TituloSeccion dato={!hayConteo ? <EtiquetaAhora /> : undefined}>{nombreDeParada(parada)}</TituloSeccion>
           <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, descripcion].filter(Boolean).join(" · ")}</p>
+          {modelo?.nota && <p>{modelo.nota}</p>}
           <div className="rc-chips">
             {tipo === "nuevo" && (
               <Chip tono="pizarra" versalitas={false}>
@@ -180,17 +175,13 @@ export function PlacaDelModelo({
             {llevaCuenta}
           </p>
           <div className="rc-placa-acciones">
-            {modelo && (
-              <button type="button" className="btn-cayla btn-enlace" aria-expanded={otraCosaAbierta} onClick={onOtraCosa} data-guia="recepcion.otra-cosa">
-                ¿Llegó otra cosa?
-              </button>
-            )}
+            {modelo && !modelo.productoId && !modelo.anotada && <LapizEditar que={`el nombre de ${modelo.nombre}`} onClick={onEditarNombre} />}
             {observacion}
           </div>
         </div>
       </div>
       {observaciones}
-      {otraCosa}
+      {identificar}
 
       <div className="rc-cuenta" data-guia="recepcion.numero">
         <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} abrirAlEntrar={abrirNumero} onPoner={poner} onEnter={onEnter} />
@@ -219,7 +210,7 @@ export function PlacaDelModelo({
                 </button>
               )
             ) : (
-              (modelo || p.linea) && (
+              modelo && (
                 <button type="button" className="rc-atajo rc-atajo-cero" data-hecho={noLlego ? "" : undefined} disabled={noLlego} onClick={() => poner(0)}>
                   <Ban aria-hidden className="h-4 w-4" />
                   No llegó nada

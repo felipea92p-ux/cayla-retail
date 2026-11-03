@@ -34,9 +34,9 @@ import {
 import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
-import { agruparLineas, camposDelCierrePorGrupo, causasDelGrupo, FILAS_DE_CIERRE_A_LA_VISTA, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
+import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, FILAS_DE_CIERRE_A_LA_VISTA, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
-import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
 import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerPreciosDeCombinaciones, ponerProveedorEnvio, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
@@ -76,7 +76,7 @@ const FRANJA = "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-ce
 export function CerrarEnvio({
   detalle,
   version,
-  lineas,
+  lineas: lineasConCeros,
   sinAviso,
   reabierto,
   generacion,
@@ -121,6 +121,9 @@ export function CerrarEnvio({
   onConteoCambiado: () => void;
   onCerrado: () => void;
 }) {
+  // Lo agregado que quedó en 0 no se guarda (la base hace lo mismo): Cerrar ya no lo ve, y solo avisa cuál fue.
+  const lineas = lineasSinModelosEnCero(lineasConCeros);
+  const modelosEnCero = modelosEnCeroDe(lineasConCeros);
   const visibles = lineas.filter(lineaVisible);
   // Lo que se decidió antes de recargar. Esta pantalla siempre se monta en el navegador: leerlo al iniciar el estado no rompe la hidratación.
   const [borrador] = useState(() => leerBorradorDelCierre(detalle.id, generacion));
@@ -174,7 +177,7 @@ export function CerrarEnvio({
   // 2026-10-29 (Formidable) también arranca abierta la que ya tiene prendas identificadas, porque la prueba ciega no encontraba dónde poner el precio; con
   // muchas filas ya no (Felipe 2026-11-03): serían miles de px, y cada fila dice «Precio y costo» con su nombre.
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(() => {
-    const todas = agruparLineas(visibles);
+    const todas = agruparLineasDelCierre(visibles);
     const pocas = todas.length <= FILAS_DE_CIERRE_A_LA_VISTA;
     return new Set(todas.filter((g) => (!g.principal.linea && g.contadas > 0 && !(sinAviso && !veDinero)) || (pocas && g.separado.prendas.length > 0)).map((g) => g.clave));
   });
@@ -249,7 +252,7 @@ export function CerrarEnvio({
 
   // Una categoría es UNA fila (ADR-0393, act. 2026-10-26): las líneas de la compra con el mismo proveedor, categoría y marca van juntas. Lo que se
   // decide en una fila (qué pasó, el costo y el precio de cada prenda) se guarda en las líneas a las que toca: la base sigue pidiéndolo por línea.
-  const grupos = agruparLineas(visibles);
+  const grupos = agruparLineasDelCierre(visibles);
   const { piden, cuadran, plegar } = filasDelCierre(grupos, sinAviso, !(sinAviso && !veDinero));
   const campos = [
     ...camposDelCierrePorGrupo(
@@ -637,7 +640,7 @@ export function CerrarEnvio({
     // El costo de una categoría de fuera de la guía no viene de ninguna orden: mientras falte, la fila escondida lo dice (con aviso, es obligatorio).
     const faltaCosto = costoDeLaLineaObligatorio && !sinAviso && costo.valor == null;
     const idFila = g.principal.clave.replace(":", "-");
-    const nombreGrupo = [p.categoria?.nombre ?? "Categoría", p.categoria ? marcaDeLinea(p).nombre : null].filter(Boolean).join(" · ");
+    const nombreGrupo = nombreDelGrupoDelCierre(g);
     const contaron = [...new Set(g.lineas.map((x) => x.conteo?.contadoPor?.nombre?.split(" ")[0]).filter((n): n is string => !!n))];
     // Lo que cambió en esta categoría y quedaría escondido: se avisa en la fila cerrada.
     const { costo: cambiaCosto, venta: cambiaVenta } = cambiosDeLaFila(g);
@@ -661,7 +664,8 @@ export function CerrarEnvio({
             <BaldosaCategoria categoria={p.categoria} tamano="chico" />
           </span>
           <span className="min-w-0 @min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:flex-col @min-[1000px]:justify-center">
-            <p className="font-medium text-tinta">{p.categoria?.nombre ?? "Categoría"}</p>
+            {/* El modelo si Compras lo anotó: cada uno es su fila. La marca y quién contó, debajo. */}
+            <p className="font-medium text-tinta">{nombreDelGrupoDelCierre(g).split(" · ")[0]}</p>
             {faltaCosto && !abierta && <Chip tono="ambar">Falta el costo</Chip>}
             {conCambios && !abierta && <Chip tono="ambar">{textoCambios}</Chip>}
             <p className="text-sm text-taupe">
@@ -879,6 +883,11 @@ export function CerrarEnvio({
       className="space-y-5"
      
     >
+      {modelosEnCero.length > 0 && (
+        <p className="nota-cayla text-sm">
+          <b className="text-tinta">{textoModelosEnCero(modelosEnCero)}</b> Si sí llegaron, vuelve a contarlos.
+        </p>
+      )}
       {reabierto && (
         <Aviso tono="info" titulo="Lo cierras de nuevo">
           Lo que ya entró al stock queda donde está. Lo que faltó o sobró se vuelve a anotar con lo que diga este cierre.
