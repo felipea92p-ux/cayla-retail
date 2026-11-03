@@ -563,7 +563,11 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/recepcion-envio/RecibirSinGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-envio/RecibirSinGuia.tsx"] },
   // ADR-0393: lo que no estaba en la guía (o lo que llegó sin aviso): de qué proveedor si hay dos o más, la categoría y la marca (una que
   // ya está en la lista no se repite).
-  "components/recepcion-conteo/AgregarFueraDeGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/AgregarFueraDeGuia.tsx"] },
+  // «¿Qué llegó?» y el «+» de una categoría: otro modelo para contar aparte. Categoría, nombre (y proveedor, si hay varios) es lo que falta; marca y descripción son opcionales, salvo que la
+  // categoría ya venga con dos o más marcas: ahí se elige, o se agrega aparte sin marca.
+  "components/recepcion-conteo/NuevoModelo.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/NuevoModelo.tsx"] },
+  // Ponerle su nombre a un modelo: el nombre es lo que falta; la descripción es opcional.
+  "components/recepcion-conteo/EditarModelo.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/EditarModelo.tsx"] },
   // «¿Quién va a contar?» al entrar a Contar desde una terminal: UN solo control (el combo del responsable, que se enciende solo y sale al elegir).
   "components/recepcion-conteo/ElegirQuienCuenta.tsx": { estado: "no-aplica", motivo: "Hoja de un solo control: el combo «Quién cuenta», que la hoja pide al entrar y se cierra sola al elegir; no hay campos ni pasos que guiar." },
   // ADR-0393: «Hacer ahora». Separar pide al menos una prenda y nunca más de lo que queda; las tallas y la prenda nueva son las hojas de

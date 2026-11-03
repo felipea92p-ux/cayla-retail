@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   agruparLineas,
   anotadasDelGrupo,
+  agruparLineasDelCierre,
   alAgregarALaLista,
+  nombreDelGrupoDelCierre,
   gruposSinIdentificar,
   sinIdentificarDelGrupo,
   camposDelCierrePorGrupo,
@@ -538,5 +540,26 @@ describe("Cerrar: primero lo que pide una decisión (Felipe 2026-11-03)", () => 
     expect(textoDeLasPlegadas(54, 0, false, true)).toBe("Todas cuadran: ver las 54");
     expect(textoDeLasPlegadas(12, 0, true, false)).toBe("Ver las otras 12");
     expect(textoDeLasPlegadas(38, 2, false, false)).toBe("Ver las 38 que cuadran · 2 con cambios");
+  });
+});
+
+describe("las filas de Cerrar: lo que no cuadró, contra lo que Compras dijo", () => {
+  const conNombre = (id: string, nombre: string, extra = {}) => linea(id, 5, { descripcion: nombre, ...extra });
+
+  it("si anotó el modelo, una fila por modelo, cada una con su causa", () => {
+    const grupos = agruparLineasDelCierre([deLaGuia(conNombre("a", "Vestido Sol"), { contadas: 3 }), deLaGuia(conNombre("b", "Vestido Mar"), { contadas: 7 })]);
+    expect(grupos.map(nombreDelGrupoDelCierre)).toEqual(["Vestido Sol · CAYLA", "Vestido Mar · CAYLA"]);
+    expect(grupos.map((g) => causasDelGrupo(g, 0, false).map((c) => [c.tipo, c.cantidad]))).toEqual([[["faltante", 2]], [["sobrante", 2]]]);
+  });
+
+  it("si solo dijo cuántas, una sola fila por categoría", () => {
+    const grupos = agruparLineasDelCierre([deLaGuia(linea("a", 5), { contadas: 3 }), deLaGuia(linea("b", 5), { contadas: 3 })]);
+    expect(grupos.map(nombreDelGrupoDelCierre)).toEqual(["Vestidos · CAYLA"]);
+    expect(causasDelGrupo(grupos[0], 0, false).map((c) => [c.tipo, c.cantidad])).toEqual([["faltante", 4]]);
+  });
+
+  it("la misma prenda en dos líneas sigue siendo una fila", () => {
+    const grupos = agruparLineasDelCierre([deLaGuia(conNombre("a", "Vestido Sol")), deLaGuia(conNombre("b", "  vestido sol "))]);
+    expect(grupos).toHaveLength(1);
   });
 });
