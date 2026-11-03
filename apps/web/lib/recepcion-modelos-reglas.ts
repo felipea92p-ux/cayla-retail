@@ -181,6 +181,12 @@ export const paradasDelGrupo = (g: GrupoDeLineas): ParadaDelConteo[] => [...(nec
 
 export const paradaContada = (p: ParadaDelConteo): boolean => (p.modelo ? p.modelo.contado : p.grupo.principal.linea ? p.grupo.contado : p.grupo.contadas > 0);
 
+/** Las líneas de lo que se cuenta: las del modelo, o todas las del grupo. Lo que se anotó después, sin línea propia, cae en las del grupo. */
+export function lineasDeLaParada(p: ParadaDelConteo): LineaParaContar[] {
+  const delModelo = p.modelo ? lineasDelModelo(p.grupo, p.modelo) : [];
+  return delModelo.length > 0 ? delModelo : p.grupo.lineas;
+}
+
 /** Lo que dice la fila o la placa de una parada: el modelo, o «Total de Vestidos». */
 export const nombreDeParada = (p: ParadaDelConteo): string => p.modelo?.nombre ?? `Total de ${p.grupo.principal.categoria?.nombre ?? "la categoría"}`;
 
@@ -245,6 +251,9 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
 /** Un número como se lee en pantalla: 12,000. */
 export const conMiles = (n: number): string => n.toLocaleString("es-PE");
 
+/** Una diferencia, con su signo: +3, −20, 0. */
+export const conSigno = (n: number): string => (n > 0 ? `+${conMiles(n)}` : n < 0 ? `−${conMiles(-n)}` : "0");
+
 /** La línea bajo el nombre: «13 de 15 · 3 modelos», «sin contar · 1 modelo», «3 contadas» (sin aviso). Corta: con miles no cabría más. */
 export function resumenDeCategoria(c: CategoriaDelEnvio): string {
   const n = c.paradas.filter((p) => p.modelo).length;
@@ -279,11 +288,14 @@ export function categoriasEnOrden(categorias: readonly CategoriaDelEnvio[], orde
 // ---- Re stock, Producto nuevo y los estados del resumen (Felipe 2026-11-02, maqueta del boceto) --------------------------------------------
 
 /**
- * Re stock o Producto nuevo no se le pregunta a nadie: lo dice lo que anotó Compras. Un modelo con su prenda del catálogo es re stock; uno que solo tiene nombre todavía no
- * existe, es nuevo. Lo que se cuenta como un total, sin modelo, no es ninguno de los dos.
+ * Re stock o Producto nuevo no se le pregunta a nadie: lo dice lo que anotó Compras. Un modelo anotado con su prenda del catálogo es re stock; uno anotado solo por su nombre es nuevo,
+ * también después de crearlo al recibir. Lo que no estaba anotado lo dice su prenda. Lo que se cuenta como un total, sin modelo, no es ninguno de los dos.
  */
 export type TipoDeModelo = "restock" | "nuevo";
-export const tipoDeParada = (p: Pick<ParadaDelConteo, "modelo">): TipoDeModelo | null => (p.modelo ? (p.modelo.productoId ? "restock" : "nuevo") : null);
+export function tipoDeParada(p: Pick<ParadaDelConteo, "modelo">): TipoDeModelo | null {
+  if (!p.modelo) return null;
+  return (p.modelo.anotada ? p.modelo.anotada.productoId : p.modelo.productoId) ? "restock" : "nuevo";
+}
 
 /** Las filas del resumen. Las tres primeras reparten todas las paradas; «despues» se mira aparte (lo que ya se contó y aún no tiene tallas). */
 export type EstadoDelResumen = "cuadran" | "diferencia" | "por-contar" | "despues";
@@ -521,9 +533,11 @@ function partirEntreSusLineas(g: GrupoDeLineas, m: ModeloDelConteo, r: Reparto):
   return { ...r, cambios };
 }
 
+/** Lo separado cambió por lo que se contó de este modelo: `nuevo` ya trae su cantidad (y, si cuadran, sus tallas). */
+export const repartirModeloCon = (g: GrupoDeLineas, m: ModeloDelConteo, nuevo: Separado): Reparto => partirEntreSusLineas(g, m, repartirCambio(g, nuevo, new Set(lineasDelModelo(g, m).map((l) => l.clave))));
+
 /** La persona dejó este modelo en `n`. */
-export const repartirModelo = (g: GrupoDeLineas, m: ModeloDelConteo, n: number): Reparto =>
-  partirEntreSusLineas(g, m, repartirCambio(g, cantidadDeModelo(g.separado, m, n), new Set(lineasDelModelo(g, m).map((l) => l.clave))));
+export const repartirModelo = (g: GrupoDeLineas, m: ModeloDelConteo, n: number): Reparto => repartirModeloCon(g, m, cantidadDeModelo(g.separado, m, n));
 
 /** Lo separado cambió por otra cosa (llegó una prenda más, se le pusieron tallas, unas sin nombre). */
 export const repartirOtroCambio = (g: GrupoDeLineas, nuevo: Separado): Reparto => repartirCambio(g, nuevo, new Set());

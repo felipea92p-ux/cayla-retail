@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 151,
+  "total": 163,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -48,12 +48,13 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
-      "button «{m && cat && <MiniaturaPrenda fotoUrl={foto}»",
+      "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",
+      "button «{nombre}»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Marca»",
       "SegmentoDeslizante «Ordenar por cantidad»",
-      "button «Ver todas»",
-      "button «{nombre}»",
+      "FiltroPuesto «Quitar el filtro de tipo»",
+      "FiltroPuesto «Quitar el filtro de estado»",
       "button «recepcion.agregar»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
@@ -70,18 +71,6 @@
     "components/recepcion-conteo/ConfirmarPrecios.tsx": [
       "Boton «Cancelar»",
       "Boton «{textoConfirmar}»"
-    ],
-    "components/recepcion-conteo/ContarEnvio.tsx": [
-      "button «Cómo se guarda quién cuenta»",
-      "ComboResponsable «{responsable}»",
-      "Volver «→() => anterior && elegir(anterior)»",
-      "Boton «Listo, sigue»",
-      "Boton «recepcion.pasar-a-cerrar»",
-      "button «+»",
-      "button «+» #2",
-      "button «Llegaron las»",
-      "button «No llegó nada»",
-      "button «Poner en cero»"
     ],
     "components/recepcion-conteo/DescribirNuevas.tsx": [
       "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
@@ -111,7 +100,7 @@
       "Boton «{textoListo}»"
     ],
     "components/recepcion-conteo/ObservacionesDeLinea.tsx": [
-      "Boton «Anotar observación»",
+      "button «recepcion.observaciones»",
       "button «{t.nombre}»",
       "textarea «Mensaje de la observación»",
       "Boton «Cancelar»",
@@ -121,6 +110,19 @@
       "Boton «Subir o tomar una foto del papel»",
       "input «Ver en grande»",
       "Boton «recepcion.papeles»"
+    ],
+    "components/recepcion-conteo/PlacaDelModelo.tsx": [
+      "button «{titulo}»",
+      "button «recepcion.otra-cosa»",
+      "button «+»",
+      "button «+» #2",
+      "button «Llegaron las»",
+      "button «Poner en cero»",
+      "button «No llegó nada»",
+      "Boton «{anterior ? `Volver a ${nombreDeParada(anterior)}»",
+      "Boton «{`Listo, siguiente: ${nombreDeParada(siguiente)}»",
+      "Boton «Es el último de esta lista»",
+      "Boton «{motivoNoCierra}»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
@@ -141,9 +143,6 @@
       "button «Distinto por talla o color»"
     ],
     "components/recepcion-conteo/PrendasDeLaPlaca.tsx": [
-      "button «Cambiar tallas»",
-      "Boton «Tallas y colores ahora»",
-      "Boton «Crear ahora»",
       "button «{`Llegó ${p.nombre}»",
       "BotonEditar «Describir»",
       "button «Llegaron otras y aún no sé cómo se llaman»",
@@ -158,6 +157,12 @@
     "components/recepcion-conteo/RecibirContando.tsx": [
       "Volver «/recibir»"
     ],
+    "components/recepcion-conteo/ResumenDelEnvio.tsx": [
+      "button «{e.texto}»",
+      "button «Cómo se guarda quién cuenta»",
+      "ComboResponsable «{responsable}»",
+      "Boton «recepcion.pasar-a-cerrar»"
+    ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",
       "button «Cambiar»",
@@ -166,6 +171,19 @@
       "BotonEditar «Describir ahora»",
       "button «{p.nombre}»",
       "button «(sin nombre)»"
+    ],
+    "components/recepcion-conteo/TallasDeLaPlaca.tsx": [
+      "button «Volver a intentar»",
+      "button «Cambiar de prenda»",
+      "button «Dejar»",
+      "button «{`Quitar la talla ${t.texto}»",
+      "button «{`Crear ${c.texto}»",
+      "input «{`${pregunta}»",
+      "button «{`Quitar ${c.texto}»",
+      "button «(sin nombre)»"
+    ],
+    "components/recepcion-conteo/TiposDelEnvio.tsx": [
+      "button «{t.icono}»"
     ],
     "components/recepcion-envio/BloquePrenda.tsx": [
       "Boton «+ talla o color»",

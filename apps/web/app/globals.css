@@ -130,6 +130,7 @@
 @import "./estilos/vidrio/frescura.css"; /* Frescura del piso (Gestión) con vidrio: la aguja «B · Lentes del tono» y la prenda por decidir «B · Fila hundida» (docs/maquetas/frescura-vidrio-2026-11/) */
 @import "./estilos/vidrio/colaboradores.css"; /* Colaboradores ▸ Equipo con vidrio: el rol «A · Gotas» y «Esperan tu ok» «A · Lente ámbar» (docs/maquetas/colaboradores-vidrio-2026-11/) */
 @import "./estilos/vidrio/proveedores.css"; /* Compras ▸ Proveedores con vidrio: «Qué hacer» A · Placa con filas y «Comparar» A · Placa con columnas (docs/maquetas/proveedores-vidrio-2026-11/) */
+@import "./estilos/vidrio/recibir-mesa.css"; /* Contar en tres columnas: Re stock y Nuevo, la lista, la placa y el resumen */
 @import "./estilos/vidrio/recibir.css"; /* Recibir mercadería «B» con vidrio: superficies A · Vidrio claro y avances B · Tubo; el movimiento de ADR-0575 no cambia (docs/maquetas/recibir-vidrio-2026-11/) */
 @import "./estilos/vidrio/comprobantes.css"; /* Ventas ▸ Comprobantes con vidrio: las tarjetas de indicador A · Lente del tono y los documentos de SUNAT A · Gotas chicas; se fue la isla de ADR-0124 (docs/maquetas/comprobantes-vidrio-2026-11/) */
 @import "./estilos/vidrio/plan-piso.css"; /* Gestión ▸ Plan del piso con vidrio: tarjeta B · Al aire y banda B · Estante de vidrio; el riel «La percha» no cambia (docs/maquetas/plan-piso-vidrio-2026-11/) */

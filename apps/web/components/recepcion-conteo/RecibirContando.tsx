@@ -260,6 +260,9 @@ export function RecibirContando({
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
   const conPapel = papeles.length > 0 && (porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe;
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
+  // Al contar, las fotos van en el resumen; al cerrar y ya cerrado, en la cabecera.
+  const contando = estado === "abierto" && paso !== 3;
+  const conPapelArriba = conPapel && !contando;
   // La frase de la maqueta, la misma en los tres pasos.
   const frase =
     estado === "anulado"
@@ -267,7 +270,7 @@ export function RecibirContando({
       : otraSede || noLoRecibe
         ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
         : "Abre un fardo y cuenta cuántas llegaron de cada modelo. Elige la categoría a la izquierda y toca el modelo que tienes en la mano.";
-  // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. Lo que se lleva contado va en la barra de abajo.
+  // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. Lo que se lleva contado va en el resumen.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
   const insignia = insigniaDelEnvio(estado, pendientesDelEnvio);
   // El Trayecto (rediseño «B», Felipe 2026-10-29) reemplaza al chip de estado; un envío anulado no tiene camino y sigue con su chip.
@@ -275,16 +278,16 @@ export function RecibirContando({
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería" subtitulo={frase} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
-        {/* En la fila del título, para no gastar una fila propia (Felipe 2026-11-02): el botón de las fotos, y en qué va el envío. */}
+      <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería" subtitulo={frase} detalle={detalle.numero} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
+        {/* En la fila del título, para no gastar una fila propia (Felipe 2026-11-02): en qué va el envío, con sus cinco paradas, y las fotos si no están en el resumen. */}
         <div
-          className={`anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-3 sm:justify-end ${conPapel && etapa ? "grow basis-[29.5rem]" : ""}`}
+          className={`anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-3 sm:justify-end ${etapa ? (conPapelArriba ? "grow basis-[29.5rem]" : "grow basis-[20rem] sm:max-w-[28rem]") : ""}`}
           style={{ "--i": 1 } as React.CSSProperties}
         >
-          {conPapel && <PapelesDeLaCompra papeles={papeles} alSubirFoto={subirFotoDelPapel} />}
+          {conPapelArriba && <PapelesDeLaCompra papeles={papeles} alSubirFoto={subirFotoDelPapel} />}
           {etapa ? (
             // Con el botón al lado, el Trayecto toma lo que quede: bajo 22 rem sus nombres se tocan en la última etapa.
-            <div className={conPapel ? "min-w-[min(20rem,100%)] max-w-[26rem] flex-1" : "w-[26rem] max-w-full"}>
+            <div className={conPapelArriba ? "min-w-[min(20rem,100%)] max-w-[28rem] flex-1" : "w-full"}>
               <div className="rc-tray-cabecera">
                 <Trayecto etapa={etapa} />
               </div>
@@ -361,6 +364,8 @@ export function RecibirContando({
           guardados={guardados}
           errores={errores}
           prendas={prendas}
+          papeles={conPapel ? papeles : []}
+          alSubirFoto={subirFotoDelPapel}
           onPrendaVista={recordarPrenda}
           onEscribir={escribir}
           onAgregar={async (nuevo) => {

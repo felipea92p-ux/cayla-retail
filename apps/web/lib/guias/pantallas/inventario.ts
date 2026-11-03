@@ -1745,13 +1745,6 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Aquí recibes en tu sede lo que llegó: abres un fardo, cuentas cuántas llegaron de cada modelo y cierras. Las tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
     },
     {
-      id: "cifra",
-      ancla: "recepcion.cifra",
-      opcional: true,
-      titulo: "Cuántas dijeron y cuántas llevas",
-      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas llevas contadas de las que dijeron, cuántos modelos van y si cuadra. El tubo se llena: verde lo identificado. A los lados, la flecha para volver al modelo anterior y lo que sigue.",
-    },
-    {
       id: "hacer-dueno",
       ancla: "recibir.hacer-dueno",
       opcional: true,
@@ -1803,22 +1796,38 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       titulo: "¿Llegó algo que no está aquí?",
       texto: "Si viene dentro de este envío, empieza a recibirlo igual y lo sumas al contar. Si es otro paquete que llegó sin aviso de Compras, «Recibir sin aviso» te lleva a recibirlo aparte. Lo que manda otra sede se recibe en Traslados.",
     },
-    // ---- Abierto, contando modelo por modelo (Felipe 2026-11-02, sobre ADR-0393): cada categoría una vez, y el aro cuenta el modelo elegido ----
+    // ---- Abierto, contando modelo por modelo y en tres columnas (Felipe 2026-11-02, ADR-0604): cada categoría una vez, y el aro cuenta el modelo elegido ----
+    {
+      // Solo si la compra anotó modelos: en un envío sin aviso no se sabe todavía.
+      id: "tipos",
+      ancla: "recepcion.tipos",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Re stock o producto nuevo",
+      texto: "Aquí ves si lo que cuentas ya está en tu inventario o todavía no. Lo dice lo que anotó Compras: no tienes que elegir nada. Toca una tarjeta para dejar solo esos en la lista; el filtro se quita con su ✕.",
+    },
     {
       id: "categorias",
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "Cada categoría sale una sola vez, aunque venga de varios proveedores. Toca una y se abre con todo lo que anotó Compras, modelo por modelo; tócala otra vez y se pliega. Toca el modelo que tienes en la mano y el aro lo cuenta; la categoría suma sola. Con su ✓ ya está contada e identificada.",
+      texto: "Cada categoría sale una sola vez, aunque venga de varios proveedores. Toca una y se abre con todo lo que anotó Compras, modelo por modelo; tócala otra vez y se pliega. Toca el modelo que tienes en la mano para contarlo.",
     },
     {
-      // Solo si el envío trae más de un proveedor o marca.
+      id: "buscar",
+      ancla: "recepcion.buscar",
+      requiere: ["recepcion.categorias"],
+      titulo: "Buscar un modelo",
+      texto: "Escribe el modelo, el proveedor o la marca y la lista deja solo lo que coincide. Desde el teclado llegas aquí con la tecla «/».",
+    },
+    {
+      // Solo si el envío trae más de un proveedor o marca, o más de una cosa que ordenar.
       id: "filtros",
       ancla: "recepcion.filtros",
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Ver solo un proveedor o marca",
-      texto: "Si el envío trae varios proveedores o marcas, aquí dejas solo los de uno: la lista muestra sus categorías y sus modelos. Sirve cuando abres el fardo de un proveedor. Los totales de abajo siguen siendo de todo el envío.",
+      texto: "Si el envío trae varios proveedores o marcas, aquí dejas solo los de uno: la lista muestra sus categorías y sus modelos. Sirve cuando abres el fardo de un proveedor. El resumen de la derecha sigue siendo de todo el envío.",
     },
     {
       // Solo si hay más de una cosa que ordenar.
@@ -1827,14 +1836,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Ordenar por cantidad",
-      texto: "Con las flechas, las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma flecha, vuelven al orden de la compra. «Listo, sigue» avanza en el orden que elegiste.",
-    },
-    {
-      id: "quien-cuenta",
-      ancla: "recepcion.quien-cuenta",
-      requiere: ["recepcion.categorias"],
-      titulo: "Quién cuenta",
-      texto: "Debajo de las categorías, elige quién está contando: cada modelo guarda quién lo contó. Pueden contar varias personas a la vez; al final firma quien cierra. El ⓘ te lo explica.",
+      texto: "Con las flechas, las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma flecha, vuelven al orden de la compra. «Listo, siguiente» sigue este orden.",
     },
     {
       id: "numero",
@@ -1842,7 +1844,49 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y − y con los atajos, que van a la escala de lo que cuentas; «Llegaron las N» pone lo anotado de un toque. Se guarda solo. Si no coincide, al cerrar dirás por qué.",
+      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y − y con los atajos, que van a la escala de lo que cuentas. «Llegaron las N» lo deja listo y «No llegó nada» también es una respuesta.",
+    },
+    {
+      id: "siguiente",
+      ancla: "recepcion.siguiente",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Al siguiente modelo",
+      texto: "«Listo, siguiente» pasa al modelo que sigue en la lista y «Anterior» vuelve. Con el número abierto, Enter hace lo mismo y deja el siguiente listo para escribir: cuentas todo el envío sin soltar el teclado.",
+    },
+    {
+      id: "que-hacer",
+      ancla: "recepcion.que-hacer",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Solo cuadrar, o también sus tallas",
+      texto: "Con la cantidad basta para seguir: las tallas y los colores pueden esperar. Si los tienes a mano, elige «Tallas y colores ahora» y los repartes aquí mismo. Si el modelo es nuevo, primero lo creas. Se puede elegir después de contarlo.",
+    },
+    {
+      // Solo con «Tallas y colores ahora» elegido: cada celda se guarda sola, así que la demo la explica sin tocarla.
+      id: "tallas",
+      ancla: "recepcion.tallas",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Tallas y colores",
+      texto: "Arranca con las tallas de siempre de la categoría. Quita con la × lo que no llegó y suma con «Agregar talla» o «Agregar color». Se guarda solo, cuando lo repartido cuadra con lo contado; con tallas y colores, entra al stock al cerrar.",
+    },
+    {
+      id: "danadas-contar",
+      ancla: "recepcion.danadas-contar",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Si llegó algo dañado",
+      texto: "Dentro de las tallas, di cuántas llegaron dañadas en su talla y color, y si tienen arreglo. Las dañadas no se venden: entran a la cuarentena de la sede.",
+    },
+    {
+      // Abrirla no guarda; tocar una prenda sí, por eso la demo se queda en el enlace.
+      id: "otra-cosa",
+      ancla: "recepcion.otra-cosa",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "¿Llegó otra cosa?",
+      texto: "Si tienes en la mano algo que no está en la lista, aquí lo sumas: las prendas que se parecen, buscar otra en el catálogo o anotarla con un nombre corto. Queda en el contador para contarla.",
     },
     {
       // Tocar una la suma a la lista y eso se guarda solo: la demo la explica sin tocarla.
@@ -1858,7 +1902,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.separar",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      titulo: "¿Llegó otra cosa?",
+      titulo: "Saber qué prenda es",
       texto: "Si no es ninguna de las anotadas, búscala en el catálogo y queda en el aro para contarla. Si no está, anótala con un nombre corto. Las tallas y los colores pueden esperar; saber qué prenda es, no: sin eso no se pasa a «Cerrar».",
     },
     {
@@ -1868,23 +1912,44 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Lo que viste al abrir la caja",
-      texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar observación»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo que contaste.",
+      texto: "Si una prenda llegó rota, manchada o distinta, o faltó alguna, toca «Anotar observación»: eliges qué pasó, lo cuentas en una línea y queda en el envío a tu nombre. Compras lo lee para reclamar. No cambia lo contado.",
     },
     {
       id: "agregar",
       ancla: "recepcion.agregar",
       requiere: ["recepcion.categorias"],
       titulo: "Algo que no estaba en la guía",
-      texto: "Si llegó una categoría que no venía, la agregas aquí con su marca y la cuentas como las demás; al cerrar dirás qué pasa con ella. En un envío sin aviso, todo lo que llega entra por aquí. En la demo no la agregamos.",
+      texto: "Si llegó una categoría que no venía, la agregas aquí con su marca y la cuentas como las demás; al cerrar dirás qué pasa con ella. En un envío sin aviso, todo lo que llega entra por aquí.",
     },
     {
-      // Solo con lo último a la vista: antes, el botón dice «Listo, sigue …».
+      id: "cifra",
+      ancla: "recepcion.cifra",
+      opcional: true,
+      titulo: "Cómo va todo el envío",
+      texto: "El resumen dice cuántas dijeron, cuántas llevas, la diferencia de lo ya contado y cuánto avanzaste. Es de todo el envío, aunque filtres la lista. La barra va de rojo a verde mientras se llena.",
+    },
+    {
+      id: "estados",
+      ancla: "recepcion.estados",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que falta, de un toque",
+      texto: "Toca «Por contar», «Con diferencia» o «Tallas para después» y la lista deja solo esos. Otro toque y vuelve a todo. Si algo te falta, «Falta: …» te lleva hasta él.",
+    },
+    {
+      id: "quien-cuenta",
+      ancla: "recepcion.quien-cuenta",
+      requiere: ["recepcion.categorias"],
+      titulo: "Quién cuenta",
+      texto: "En el resumen, elige quién está contando: cada modelo guarda quién lo contó. Pueden contar varias personas a la vez; al final firma quien cierra. El ⓘ te lo explica.",
+    },
+    {
       id: "pasar-a-cerrar",
       ancla: "recepcion.pasar-a-cerrar",
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Pasar a cerrar",
-      texto: "Cuando todo está contado e identificado, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. En la demo no avanzamos.",
+      texto: "Cuando todo está contado e identificado, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. Arriba del botón ves cuántas se podrán vender. En la demo no avanzamos.",
     },
     {
       id: "tabla-cierre",

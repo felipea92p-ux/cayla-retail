@@ -1,7 +1,7 @@
 import { leerCantidad } from "./alta-producto";
 import { compararTallas } from "./tallas";
-import type { VarianteSeparada } from "./recepcion-conteo-reglas";
-import { sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type TallaDeLaCategoria, type VarianteRecepcion } from "./recepcion-envio-reglas";
+import { conteoDeVariantes, type VarianteSeparada } from "./recepcion-conteo-reglas";
+import { matrizDe, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepcion, type TallaDeLaCategoria, type VarianteRecepcion } from "./recepcion-envio-reglas";
 
 // Las tallas y colores en la misma pantalla de Contar (Felipe 2026-11-02, maqueta `docs/maquetas/recibir-boceto-2026-11/`): la tabla arranca con las tallas de siempre
 // de la categoría (`categoria_tallas.habitual`) y se le quitan o se le agregan tallas y colores.
@@ -33,6 +33,15 @@ export function tallasIniciales(matriz: Pick<MatrizRecepcion, "tallas">, prenda:
 export function coloresIniciales(matriz: Pick<MatrizRecepcion, "colores">, prenda: Pick<PrendaRecepcion, "variantes">, conteo: Pick<Conteo, "cantidades">): string[] {
   const conDatos = matriz.colores.filter((c) => variantesDe(prenda, "color", claveDeEje(c.codigo)).some((v) => tieneCantidad(conteo, v)));
   return (conDatos.length > 0 ? conDatos : matriz.colores).map((c) => claveDeEje(c.codigo));
+}
+
+/** Lo que hay escrito en la tabla de un modelo mientras se reparte: se guarda en la base recién cuando cuadra. */
+export type BorradorTallas = { conteo: Conteo; tallas: string[]; colores: string[] };
+
+export function borradorDeTallas(prenda: Pick<PrendaRecepcion, "variantes">, ordenColores: readonly string[], categoria: readonly TallaDeLaCategoria[], variantes: readonly VarianteSeparada[] | null): BorradorTallas {
+  const matriz = matrizDe(prenda, ordenColores);
+  const conteo = conteoDeVariantes(variantes);
+  return { conteo, tallas: tallasIniciales(matriz, prenda, categoria, conteo), colores: coloresIniciales(matriz, prenda, conteo) };
 }
 
 export type TallaPorAgregar = { clave: string; texto: string; /** La prenda no la tiene: agregarla crea la combinación. */ crear: boolean };

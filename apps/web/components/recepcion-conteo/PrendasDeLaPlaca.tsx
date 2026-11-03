@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ListChecks, Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { BotonEditar } from "@/components/ui/BotonEditar";
-import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
@@ -13,40 +12,34 @@ import {
   marcaDeLinea,
   nuevasSinDescribir,
   textoPrendas,
-  type PrendaSeparada,
   type Separado,
 } from "@/lib/recepcion-conteo-reglas";
 import { idCampoIdentificar, sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
-import {
-  conMiles,
-  modelosDelGrupo,
-  prendasParecidas,
-  type ParadaDelConteo,
-} from "@/lib/recepcion-modelos-reglas";
+import { conMiles, modelosDelGrupo, prendasParecidas, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { DescribirNuevas } from "./DescribirNuevas";
 import { BuscarPrendaEnLinea, PasoDePrendas } from "./SepararPrendas";
 
-// Bajo el Dial (Felipe 2026-11-02): lo que falta decir de lo que se está contando y las prendas del catálogo que se parecen a lo anotado, por si llegó
-// otra cosa; tocar una la suma a la lista y queda en el Dial. Lo que anotó Compras se ve en las categorías, de donde se elige qué se cuenta. Lo que
-// hacía «¿Qué … son?» (buscar, anotar una nueva, las tallas, «Crear ahora») sigue aquí.
+// «¿Llegó otra cosa?» (Felipe 2026-11-02): lo que anotó Compras se ve en las categorías, de donde se elige qué se cuenta. Aquí, plegado, lo que no estaba: las prendas del catálogo que se parecen a
+// lo anotado, buscar otra, anotar una que no está y las que todavía no tienen nombre. Lo que falta decir (las sin nombre, lo contado sin saber qué es) se ve aunque esté plegado.
 
 export function PrendasDeLaPlaca({
   parada,
+  abierta,
   onSeparado,
   onPrendaDelCatalogo,
+  onIrAModelo,
   onTextoNuevo,
-  onTallas,
-  onCrearNueva,
   onQuitarSueltas,
 }: {
   parada: ParadaDelConteo;
+  abierta: boolean;
   onSeparado: (s: Separado) => void;
-  /** Llegó esta prenda del catálogo: se suma al grupo y queda en el Dial. */
+  /** Llegó esta prenda del catálogo: se suma al grupo y queda en el contador. */
   onPrendaDelCatalogo: (p: PrendaRecepcion) => void;
-  /** Llegó algo que no está en el catálogo: se anota con este nombre y queda en el Dial. */
+  /** Esa prenda ya está en la lista, con otro proveedor o marca: se va a contarla allá. */
+  onIrAModelo: (productoId: string) => boolean;
+  /** Llegó algo que no está en el catálogo: se anota con este nombre y queda en el contador. */
   onTextoNuevo: (texto: string) => void;
-  onTallas: (p: PrendaSeparada) => void;
-  onCrearNueva: (nueva: { cantidad: number; descripcion: string }) => void;
   /** Quitar lo contado que no es de ningún modelo (un número suelto de antes). */
   onQuitarSueltas: () => void;
 }) {
@@ -62,12 +55,12 @@ export function PrendasDeLaPlaca({
   const catId = cat?.id ?? null;
   const marcaId = marca.id;
   useEffect(() => {
-    if (!catId) return;
+    if (!catId || !abierta) return;
     const mia = ++vuelta.current;
     void buscarPrendasParaRecibir(catId, marcaId, "").then(({ prendas, error }) => {
       if (mia === vuelta.current) setCatalogo(error ? [] : prendas);
     });
-  }, [catId, marcaId]);
+  }, [catId, marcaId, abierta]);
 
   const modelos = modelosDelGrupo(grupo);
   const yaEstan = new Set(modelos.map((m) => m.productoId).filter((x): x is string => !!x));
@@ -75,54 +68,25 @@ export function PrendasDeLaPlaca({
 
   const sueltas = sinIdentificarDelGrupo(grupo);
   const sinNombre = nuevasSinDescribir(separado);
-  const prendaDelModelo = modelo?.productoId ? separado.prendas.find((p) => p.productoId === modelo.productoId) : undefined;
-  const nuevaDelModelo = modelo && !modelo.productoId && modelo.contadas > 0 ? { cantidad: modelo.contadas, descripcion: modelo.nombre } : null;
 
-  if (!cat) return null;
+  if (!cat || (!abierta && sueltas === 0 && sinNombre === 0)) return null;
   return (
-    <div className="rc-placa-prendas" data-guia="recepcion.separar" data-campo={idCampoIdentificar(grupo.clave)}>
-      {/* Lo que falta decir de lo que está en el Dial: sus tallas y colores (pueden esperar) o, si es nueva, crearla en el catálogo. */}
-      {prendaDelModelo && (
-        <div className="rc-placa-accion">
-          {prendaDelModelo.variantes ? (
-            <>
-              <Chip tono="verde">Entra al stock</Chip>
-              <button type="button" className="btn-cayla btn-enlace" onClick={() => onTallas(prendaDelModelo)}>
-                Cambiar tallas
-              </button>
-            </>
-          ) : (
-            <>
-              <Boton type="button" peso="discreto" onClick={() => onTallas(prendaDelModelo)}>
-                <span className="inline-flex items-center gap-1.5">
-                  <ListChecks aria-hidden className="h-4 w-4" />
-                  Tallas y colores ahora
-                </span>
-              </Boton>
-              <span className="text-sm text-taupe">o queda pendiente</span>
-            </>
-          )}
-        </div>
-      )}
-      {nuevaDelModelo && (
-        <div className="rc-placa-accion">
-          <Boton type="button" peso="discreto" onClick={() => onCrearNueva(nuevaDelModelo)}>
-            <span className="inline-flex items-center gap-1.5">
-              <Plus aria-hidden className="h-4 w-4" />
-              Crear ahora
-            </span>
-          </Boton>
-          <Chip tono="pizarra">Por crear</Chip>
-        </div>
-      )}
-
-      {parecidas.length > 0 && (
-        <div className="space-y-1.5" data-guia="recepcion.parecidas">
-          <p className="label-cayla text-[10.5px] text-taupe">Se parecen · toca si llegó esa</p>
-          <ul className="flex flex-wrap gap-1.5">
+    <div className="rc-otra" data-guia="recepcion.separar" data-campo={idCampoIdentificar(grupo.clave)}>
+      {abierta && parecidas.length > 0 && (
+        <div className="grid gap-1.5" data-guia="recepcion.parecidas">
+          <p className="rc-etiqueta-chica">Se parecen · toca si llegó esa</p>
+          <ul className="rc-chipitos">
             {parecidas.map((p) => (
               <li key={p.productoId} className="min-w-0 max-w-full">
-                <button type="button" className="rc-anotada-chip" title={p.codigo ?? undefined} aria-label={`Llegó ${p.nombre}: agregarla y contarla`} onClick={() => onPrendaDelCatalogo(p)}>
+                <button
+                  type="button"
+                  className="rc-anotada-chip"
+                  title={p.codigo ?? undefined}
+                  aria-label={`Llegó ${p.nombre}: agregarla y contarla`}
+                  onClick={() => {
+                    if (!onIrAModelo(p.productoId)) onPrendaDelCatalogo(p);
+                  }}
+                >
                   <Plus aria-hidden className="h-4 w-4 shrink-0" />
                   <b>{p.nombre}</b>
                 </button>
@@ -132,10 +96,10 @@ export function PrendasDeLaPlaca({
         </div>
       )}
 
-      <BuscarPrendaEnLinea categoria={cat} marca={marca} corto onElegir={onPrendaDelCatalogo} onEsNueva={onTextoNuevo} />
+      {abierta && <BuscarPrendaEnLinea categoria={cat} marca={marca} corto onElegir={onPrendaDelCatalogo} onEsNueva={onTextoNuevo} />}
 
       {sinNombre > 0 ? (
-        <div className="rc-placa-accion">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--pozo-fondo)] px-2.5 py-2 shadow-[var(--pozo-sombra)]">
           <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
             <Sparkles className="h-4 w-4" />
           </span>
@@ -144,9 +108,11 @@ export function PrendasDeLaPlaca({
           <PasoDePrendas valor={sinNombre} etiqueta="las que no tienen nombre" onValor={(n) => onSeparado(cambiarNuevasSinDescribir(separado, n))} />
         </div>
       ) : (
-        <button type="button" className="btn-cayla btn-enlace self-start" onClick={() => onSeparado(cambiarNuevasSinDescribir(separado, 1))}>
-          Llegaron otras y aún no sé cómo se llaman
-        </button>
+        abierta && (
+          <button type="button" className="btn-cayla btn-enlace justify-self-start" onClick={() => onSeparado(cambiarNuevasSinDescribir(separado, 1))}>
+            Llegaron otras y aún no sé cómo se llaman
+          </button>
+        )
       )}
 
       {sueltas > 0 && (
@@ -163,14 +129,7 @@ export function PrendasDeLaPlaca({
         </div>
       )}
 
-      {describiendo && (
-        <DescribirNuevas
-          categoria={cat}
-          maximo={sinNombre}
-          onDescribir={(texto, cantidad) => onSeparado(describirNuevas(separado, texto, cantidad))}
-          onCerrar={() => setDescribiendo(false)}
-        />
-      )}
+      {describiendo && <DescribirNuevas categoria={cat} maximo={sinNombre} onDescribir={(texto, cantidad) => onSeparado(describirNuevas(separado, texto, cantidad))} onCerrar={() => setDescribiendo(false)} />}
     </div>
   );
 }

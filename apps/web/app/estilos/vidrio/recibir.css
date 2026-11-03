@@ -20,42 +20,18 @@
    ===================================================================== */
 
 /* ---------- Las superficies: vidrio claro, sin desenfoque ---------- */
-.rc-acord-grupo,
 .rc-lacre,
 .rc-vitrina-tarjeta {
   border-color: var(--vidrio-claro-borde);
   background: var(--vidrio-claro-fondo);
   box-shadow: var(--vidrio-claro-sombra);
 }
-/* El grupo abierto conserva su borde de tinta (al 55 %: sobre el vidrio el tinta pleno se ve como un recorte) y su sombra honda. */
-.rc-acord-grupo[data-abierta] {
-  border-color: color-mix(in srgb, var(--color-tinta) 55%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-  box-shadow: var(--vidrio-claro-filo), 0 14px 28px -24px color-mix(in srgb, var(--color-sombra) 70%, transparent);
-}
-/* La tarjeta del contador conserva su borde y su anillo de «encendida» (es la categoría que se cuenta, ADR-0284): solo el hueso macizo
-   pasa a vidrio claro, para que el Dial quede sobre vidrio como en la maqueta. */
-.rc-contador {
-  background: var(--vidrio-claro-fondo);
-  box-shadow: var(--vidrio-claro-filo), 0 0 0 4px color-mix(in srgb, var(--color-sand) 55%, transparent);
-}
 
 /* ---------- Lo de adentro: el pozo ---------- */
-.rc-acord-prenda,
-.rc-lacre-cifras > div,
-:is(.rc-acord-cabeza, .rc-contador) .rc-cat-ic {
+.rc-lacre-cifras > div {
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
 }
-/* El modelo que está en el Dial sobresale (la gota: «donde estás»); los demás siguen hundidos. */
-.rc-acord-prenda[data-activa] {
-  background: var(--gota-marca);
-  box-shadow: var(--gota-luz), inset 0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 55%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-}
-@media (hover: hover) {
-  .rc-acord-prenda:not([data-activa]):hover { box-shadow: var(--pozo-sombra), inset 0 0 0 1.5px var(--color-borde-control); }
-}
-/* Lo que explica o acompaña bajo el Dial: al pozo, como lo demás de adentro de la placa. */
-.rc-placa-accion { background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
 /* El número del Dial: al pasar el mouse se hunde (antes, hueso); al escribirlo, el pozo encendido de un campo, con su raya roja. */
 @media (hover: hover) {
   .rc-dial-numero:hover {

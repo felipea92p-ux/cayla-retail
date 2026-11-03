@@ -8,7 +8,8 @@ import { Odometro } from "./Odometro";
 
 // El Dial de una categoría (rediseño «B» de Recibir, Felipe 2026-10-29): el aro se llena con lo contado contra lo que dijeron, con un corte
 // por prenda esperada y una perilla que marca hasta dónde se llegó. El aro solo muestra (Felipe pidió quitar el arrastre): el número se toca
-// y se escribe con el teclado —Enter o salir de la caja lo deja, Escape lo devuelve, vacío no cambia nada— y el − y el + suman de a una.
+// y se escribe con el teclado —salir de la caja lo deja, Escape lo devuelve, vacío no cambia nada— y el − y el + suman de a una. Enter lo deja y
+// pasa a lo siguiente, que llega con su número listo para escribir (`abrirAlEntrar`): así se cuenta un envío entero sin soltar el teclado.
 // Sumar hace saltar una chispa en la perilla; cuadrar recorre el aro con un brillo y dibuja el visto. Todo una vez, sin rebote (ADR-0136).
 
 const CX = 145;
@@ -21,7 +22,9 @@ export function Dial({
   hayConteo,
   minimo,
   nombre,
+  abrirAlEntrar = false,
   onPoner,
+  onEnter,
 }: {
   contadas: number;
   dijeron: number | null;
@@ -30,11 +33,15 @@ export function Dial({
   minimo: number;
   /** «faltas», en minúsculas: para lo que lee el lector de pantalla. */
   nombre: string;
+  /** Llega con el número abierto: viene de apretar Enter en lo anterior. */
+  abrirAlEntrar?: boolean;
   /** El número que dejó la persona; `ContarEnvio` lo sube al mínimo y lo reparte entre las líneas. */
   onPoner: (n: number) => void;
+  /** Apretó Enter al escribir: ya se dejó el número y toca pasar a lo siguiente. */
+  onEnter?: () => void;
 }) {
   const e = estadoDelDial(contadas, dijeron, hayConteo);
-  const [editando, setEditando] = useState<string | null>(null);
+  const [editando, setEditando] = useState<string | null>(abrirAlEntrar ? (hayConteo ? String(contadas) : "") : null);
   const caja = useRef<HTMLInputElement>(null);
   const hecho = useRef(false);
   // Las animaciones de respuesta: cada vez que sube lo contado, una chispa; cada vez que pasa a «cuadra», el brillo. Se cuentan durante el
@@ -64,7 +71,8 @@ export function Dial({
     hecho.current = true;
     const { contadas: n } = leerContadas(editando);
     setEditando(null);
-    if (guardar && n !== null && n !== contadas) onPoner(n);
+    // Un 0 escrito en lo que no se contó todavía también es una respuesta: «no llegó ninguna». Vacío no dice nada.
+    if (guardar && n !== null && (n !== contadas || !hayConteo)) onPoner(n);
   }
 
   return (
@@ -115,6 +123,7 @@ export function Dial({
               if (ev.key === "Enter") {
                 ev.preventDefault();
                 dejar(true);
+                onEnter?.();
               } else if (ev.key === "Escape") {
                 ev.preventDefault();
                 ev.stopPropagation();

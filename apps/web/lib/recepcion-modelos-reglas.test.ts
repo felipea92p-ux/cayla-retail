@@ -7,6 +7,7 @@ import {
   categoriasDelFiltro,
   categoriasEnOrden,
   cifrasDelResumen,
+  conSigno,
   estadoDeParada,
   focoTrasElFiltro,
   hayFiltro,
@@ -357,6 +358,20 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(tipoDeParada(sinModelos[0].paradas[0])).toBeNull();
   });
 
+  it("uno anotado solo por su nombre sigue siendo nuevo después de crearlo al recibir", () => {
+    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(lima(), { contadas: 7, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 7)], nuevas: [] } })]));
+    const p = c.paradas.find((x) => nombreDeParada(x) === "Vestido Lima");
+    expect(p?.modelo?.productoId).toBe("p-lima");
+    expect(p && tipoDeParada(p)).toBe("nuevo");
+  });
+
+  it("lo que no estaba anotado lo dice su prenda: del catálogo, re stock; solo con nombre, nuevo", () => {
+    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-otra", "Vestido Otro", 2)], nuevas: [{ cantidad: 3, descripcion: "Vestido Raro" }] } })]));
+    const porNombre = new Map(c.paradas.map((p) => [nombreDeParada(p), tipoDeParada(p)]));
+    expect(porNombre.get("Vestido Otro")).toBe("restock");
+    expect(porNombre.get("Vestido Raro")).toBe("nuevo");
+  });
+
   it("cada parada cae en un solo estado: por contar, cuadra o con diferencia", () => {
     const [c] = categoriasDelEnvio(
       agruparLineas([
@@ -419,6 +434,10 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(r.dijeron).toBeNull();
     expect(r.avance).toBeNull();
     expect(r.contadas).toBe(4);
+  });
+
+  it("una diferencia se lee con su signo", () => {
+    expect([conSigno(3), conSigno(-1200), conSigno(0)]).toEqual(["+3", "−1,200", "0"]);
   });
 
   it("el avance de una categoría: con lo que dijeron, su parte; sin eso, lleno si se contó algo", () => {
