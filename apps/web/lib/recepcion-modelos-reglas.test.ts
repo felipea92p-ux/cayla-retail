@@ -34,6 +34,7 @@ import {
   repartirModelo,
   repartirOtroCambio,
   resumenDeCategoria,
+  sePuedeQuitarCategoria,
   SIN_FILTRO,
   SIN_PROVEEDOR,
   textoDeCosto,
@@ -961,5 +962,17 @@ describe("la guía de foco", () => {
     const extra: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 4 }), clave: "extra:1", linea: null, dijeron: null };
     const categorias = categoriasDelEnvio(agruparLineas([extra]));
     expect(camposDelConteoPorModelo(categorias).map((c) => c.id)).toEqual([idCampoIdentificar("extra:1")]);
+  });
+});
+
+describe("quitar una categoría entera (ADR-0605)", () => {
+  it("una categoría se quita solo si nada de ella venía en la guía y nada entró al stock", () => {
+    const fuera: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 4 }), clave: "extra:1", linea: null, dijeron: null };
+    const [soloFuera] = categoriasDelEnvio(agruparLineas([fuera]));
+    expect(sePuedeQuitarCategoria(soloFuera)).toBe(true);
+    const [conGuia] = categoriasDelEnvio(agruparLineas([deLaGuia(linea("g", 5), { contadas: 5 })]));
+    expect(sePuedeQuitarCategoria(conGuia)).toBe(false);
+    expect(sePuedeQuitarCategoria({ grupos: [{ ...soloFuera.grupos[0], enStock: 1 }] })).toBe(false);
+    expect(sePuedeQuitarCategoria({ grupos: [] })).toBe(false);
   });
 });
