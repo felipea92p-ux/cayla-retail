@@ -47,6 +47,7 @@ import {
   leerCostoCierre,
   leerPrecioNuevo,
   cambioDePrecioDeCompra,
+  conCostoDeHoy,
   cambioDePrecioDeVenta,
   textoCambioDePrecio,
   textoIgualaTallas,
@@ -999,6 +1000,22 @@ describe("precio de venta desde la recepción", () => {
     expect(cambioDePrecioDeCompra("Blusas", "18.50", "19.80")).toMatchObject({ tipo: "compra", antes: 18.5, despues: 19.8 });
     expect(cambioDePrecioDeCompra("Blusas", "", "19.80")).toMatchObject({ antes: null, despues: 19.8 });
     expect(cambioDePrecioDeCompra("Blusas", "18.50", "abc")).toBeNull();
+  });
+  it("un costo de fuera de la guía se compara con lo que cuesta hoy la prenda, no con «sin costo»", () => {
+    const nuevo = { tipo: "compra" as const, nombre: "Vestidos", antes: null, despues: 9999, alcance: null };
+    expect(textoCambioDePrecio(nuevo, "Tienda Lima")).toBe("sin costo → S/\u00a09,999.00");
+    const conHoy = conCostoDeHoy(nuevo, ["a"], { a: 58 });
+    expect(textoCambioDePrecio(conHoy!, "Tienda Lima")).toBe("S/\u00a058.00 → S/\u00a09,999.00");
+    expect(conCostoDeHoy(nuevo, ["a", "b"], { a: 58, b: 60 })).toMatchObject({ rango: { desde: 58, hasta: 60 } });
+    // Sin costo conocido (una prenda nueva, o no se pudo leer): sigue diciendo que no tenía.
+    expect(conCostoDeHoy(nuevo, ["a"], {})).toBe(nuevo);
+    // Igual a lo que ya cuesta: no hay nada que confirmar.
+    expect(conCostoDeHoy({ ...nuevo, despues: 58 }, ["a"], { a: 58 })).toBeNull();
+    // Lo que ya traía su costo (de la orden) no se toca, y un precio de venta tampoco.
+    const deOrden = { ...nuevo, antes: 20 };
+    expect(conCostoDeHoy(deOrden, ["a"], { a: 58 })).toBe(deOrden);
+    const venta = { tipo: "venta" as const, nombre: "Ivana", antes: null, despues: 90, alcance: "todas" as const };
+    expect(conCostoDeHoy(venta, ["a"], { a: 58 })).toBe(venta);
     expect(cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "149.90", "todas")).toBeNull();
     expect(cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "159.90", "sede")).toMatchObject({ tipo: "venta", antes: 149.9, despues: 159.9, alcance: "sede" });
     expect(cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "", "todas")).toBeNull();

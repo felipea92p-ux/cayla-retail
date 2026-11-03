@@ -803,3 +803,12 @@ por talla. Se corrigieron la insignia «N precios» de Productos (tomaba el prec
 la cabecera y la frase de «lo que cobra la caja» no afirman un precio único, las etiquetas de lo que entró llevan el precio de cada talla y la tabla de una terminal muestra el de cada una. No se tocó
 `cambianEnCajaAlGuardar` (el aviso de reimprimir etiquetas sigue mirando el precio por prenda).
 
+### El costo fuera de lo normal también pide confirmar sin aviso (2026-11-03)
+
+Al probar la recepción sin aviso de punta a punta (`docs/flujos/recibir/sin-aviso-de-punta-a-punta.md`), un costo de S/ 9 999 en un vestido de S/ 149.90 entró sin ningún aviso y subió su costo promedio de S/ 58 a S/ 2 674. El filtro que saca los regalos del revisor (`20261028182000`) compara `sobrante_causa` con `'regalo'`, y sin aviso esa causa es NULL: la condición daba NULL y la fila se descartaba, así que el revisor nunca corría en un envío sin aviso. Es la misma trampa del NULL de ADR-0605.
+
+- **Base (`20261103222000`):** el revisor lee cada unidad con la causa vacía convertida en texto. La línea del filtro no se tocó, porque `pendientes_de_envio` vuelve a cargar `20261028182000`, que la busca tal cual.
+- **Hoja de confirmar:** decía «sin precio → S/ 9,999.00». Ahora dice «S/ 58.00 → S/ 9,999.00» con `fn_costos_de_hoy`, que solo lee quien ve el dinero de Compras; `variantes.costo` sigue cerrado para los demás. Si la lectura falla, dice «sin costo» y el cierre sigue igual; la base igual frena el costo.
+- **Producción, revisado el 2026-11-03 antes de arreglar:** 3 envíos sin aviso, 4 líneas recibidas y ninguna fuera de lo normal. No hay costos que corregir.
+- **Pruebas:** `pruebas:envio-sin-aviso` S3b y S3c, que fallaban sin la migración.
+
