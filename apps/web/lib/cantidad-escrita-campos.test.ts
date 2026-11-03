@@ -780,6 +780,7 @@ describe("ninguna caja de cantidad vuelve a borrar lo que no es una cifra mientr
       ["components/NuevaProformaModal.tsx", 1],
       ["components/ImprimirEtiquetasPrecio.tsx", 1],
       ["components/rotulos/TiraBrother.tsx", 1],
+      ["components/caja/ContarCajonHoja.tsx", 1],
     ] as const) {
       expect(veces(archivo, /\.campo\(/g), archivo).toBe(cuantas);
     }
