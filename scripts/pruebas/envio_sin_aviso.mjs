@@ -9,7 +9,7 @@
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK, con los candados diferidos revisados al final; las migraciones se cargan DOS
  * veces dentro de cada caso). Las personas son las de `pendientes_de_envio.mjs`.
- *   S  SIN AVISO: abrir (sede, proveedor, token, permisos); contar y cerrar sin costo; la regla del costo; lo pendiente se termina igual
+ *   S  SIN AVISO: abrir (sede, proveedor, token, permisos); contar y cerrar sin costo; la regla del costo; el costo fuera de lo normal; lo pendiente se termina igual
  *      (la prenda nueva con el proveedor del envío); el formulario de la fase 4 no lo cierra, y se reabre sin freno.
  *   P  SIN PROVEEDOR (Felipe 2026-10-14): se abre y se cuenta sin saber de quién es; el cierre lo pide; se pone una sola vez y se pasa
  *      a lo contado; sus permisos.
@@ -58,6 +58,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261014205000_corregir_guia_al_cerrar.sql",
       // ADR-0604 (act. 2026-11-03): modelos en 0, con descripción y nombre por defecto.
       "20261103182000_modelos_en_cero_al_contar.sql",
+      // Un costo fuera de lo normal también pide confirmar sin aviso; lo que cuesta hoy cada prenda.
+      "20261103222000_costo_fuera_de_lo_normal_sin_aviso.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -139,6 +141,7 @@ create function pg_temp.h(p jsonb) returns text language sql as $f$
 $f$;
 grant execute on function pg_temp.h(jsonb) to authenticated;
 ${atrapa("abre", "p_id uuid, p_version integer", "retail.abrir_despacho(p_id, p_version)")}
+${atrapa("costos_hoy", "p_vars uuid[]", "retail.fn_costos_de_hoy(p_vars)")}
 ${atrapa(
   "prepara",
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
@@ -462,6 +465,35 @@ caso(
    select concat_ws(' / ', :'micaela', :'sandra',
      (select string_agg(r.costo_unitario::text, ',') from retail.despacho_recibidos r where r.despacho_id = :'d'), ${COSTO("pg_s")});`,
   "P0001|recepcion_costo_sin_permiso|Tu rol no ve el dinero de Compras: recibe sin costo, llega con la factura / OK / 15.00 / 15.00",
+);
+caso(
+  "S3b un costo fuera de lo normal pide confirmar también sin aviso (la causa vacía no lo salta): sin confirmar no entra nada; confirmado, entra; sin costo, no pregunta",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select ${EXTRA("d", "cat2", 3, SEP([["prod_g", 3, [V("pg_s", 3)]]]))} \\g /dev/null
+   ${VERS("d", [], [1])}
+   ${como(SANDRA)}${SIN_ENCABEZADOS}
+   select pg_temp.e(${CIERRA("d", [DEC(1, { costo: 999 })])}) as sin_confirmar \\gset
+   reset role;
+   select (select count(*) from retail.despacho_recibidos r where r.despacho_id = :'d') as tras_rechazo, ${COSTO("pg_s")} as costo_igual \\gset
+   ${como(SANDRA)}${SIN_ENCABEZADOS}
+   select pg_temp.e(${CIERRA("d", [DEC(1, { costo: 999, confirma: true })])}) as confirmado \\gset
+   reset role;
+   select concat_ws(' / ', :'sin_confirmar', :'tras_rechazo', :'costo_igual', :'confirmado',
+     (select string_agg(r.costo_unitario::text, ',') from retail.despacho_recibidos r where r.despacho_id = :'d'),
+     (select l.nota like '%Costo atípico confirmado%' from retail.lotes l where l.despacho_id = :'d'));`,
+  "P0001|recepcion_costo_atipico|Hay un costo fuera de lo normal: revísalo y confírmalo para recibir / 0 / 12.00 / OK / 999.00 / t",
+);
+caso(
+  "S3c lo que cuesta hoy cada prenda, para decirlo antes de cambiarlo: lo lee quien ve el dinero de Compras; quien no, no",
+  `${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.costos_hoy(array[:'pg_s'::uuid])) as micaela \\gset
+   ${como(SANDRA)}${SIN_ENCABEZADOS}
+   select retail.fn_costos_de_hoy(array[:'pg_s'::uuid, :'pv_s'::uuid]) as sandra \\gset
+   reset role;
+   select concat_ws(' / ', :'micaela', :'sandra'::jsonb ->> :'pg_s', :'sandra'::jsonb ->> :'pv_s',
+     has_function_privilege('anon', 'retail.fn_costos_de_hoy(uuid[])', 'execute'));`,
+  "42501|sin_dinero_de_compras|Tu rol no ve el dinero de Compras / 12.00 / 25.00 / f",
 );
 caso(
   "S4 lo pendiente se termina igual: la prenda nueva se crea con el proveedor del envío y entra sin costo",

@@ -36,9 +36,9 @@ import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, FILAS_DE_CIERRE_A_LA_VISTA, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
-import { lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
-import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerPreciosDeCombinaciones, ponerProveedorEnvio, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
+import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerPreciosDeCombinaciones, ponerProveedorEnvio, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
   type CambiosDeCosto,
   type CambiosDePrecio,
@@ -170,6 +170,23 @@ export function CerrarEnvio({
     // Se lee una vez por conjunto de prendas; `idsDeProductos` se arma en cada dibujo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsDeProductos.join(","), detalle.sede?.id]);
+  // Lo que cuesta hoy lo contado: la hoja de confirmar lo dice antes de cambiarlo (solo quien ve el dinero de Compras). Se lee una vez por conjunto de combinaciones.
+  const [costosDeHoy, setCostosDeHoy] = useState<Record<string, number>>({});
+  const variantesDe = (l: LineaParaContar, productoId?: string) =>
+    (l.conteo?.separado.prendas ?? []).filter((p) => !productoId || p.productoId === productoId).flatMap((p) => (p.variantes ?? []).map((v) => v.varianteId));
+  const idsDeVariantes = [...new Set(visibles.flatMap((l) => variantesDe(l)))].sort();
+  useEffect(() => {
+    if (!veDinero) return;
+    let vivo = true;
+    void leerCostosDeHoy(idsDeVariantes).then((r) => {
+      if (vivo) setCostosDeHoy(r);
+    });
+    return () => {
+      vivo = false;
+    };
+    // `idsDeVariantes` se arma en cada dibujo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsDeVariantes.join(","), veDinero]);
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
   // Las filas con el costo y el precio de venta de sus prendas a la vista. Una categoría de fuera de la guía arranca abierta (su costo se pide y no
@@ -321,7 +338,8 @@ export function CerrarEnvio({
         for (const c of combinacionesContadas(pr, hoy.porVariante, costoHeredadoDe(l.clave, pr.productoId))) {
           const e = cambiosCosto[c.varianteId];
           if (e === undefined || e === c.costoHeredado) continue;
-          r.push({ tipo: "compra", nombre: `${pr.nombre ?? pr.codigo ?? "La prenda"} · ${etiquetaDe(c)}`, antes: c.costoHeredado, despues: e, alcance: null });
+          const cambio = conCostoDeHoy({ tipo: "compra", nombre: `${pr.nombre ?? pr.codigo ?? "La prenda"} · ${etiquetaDe(c)}`, antes: c.costoHeredado, despues: e, alcance: null }, [c.varianteId], costosDeHoy);
+          if (cambio) r.push(cambio);
         }
       }
     }
@@ -400,7 +418,8 @@ export function CerrarEnvio({
     for (const l of visibles) {
       if (sinAviso && !l.linea && !veDinero) continue;
       const c = cambioDePrecioDeCompra(nombreDeLinea(l), costoInicial[l.clave] ?? "", decisionDe(l.clave).costo);
-      if (c) compra.push(c);
+      const conHoy = c && conCostoDeHoy(c, variantesDe(l), costosDeHoy);
+      if (conHoy) compra.push(conHoy);
     }
     return [...compra, ...cambiosDeCompraPorPrenda(), ...cambiosDeCompraPorCombinacion(), ...cambiosDeVenta()];
   }
@@ -424,7 +443,8 @@ export function CerrarEnvio({
         if (!propios || !Object.hasOwn(propios, p.clave) || !propios[p.clave]?.trim()) continue;
         const antes = costoPrendaInicial[l.clave]?.[p.clave] ?? costoInicial[l.clave] ?? "";
         const c = cambioDePrecioDeCompra(`${p.nombre}${p.nueva ? " (por crear)" : ""} · ${nombreDeLinea(l)}`, antes, propios[p.clave] ?? "");
-        if (c) r.push(c);
+        const conHoy = c && (p.nueva ? c : conCostoDeHoy(c, variantesDe(l, p.clave), costosDeHoy));
+        if (conHoy) r.push(conHoy);
       }
     }
     return r;

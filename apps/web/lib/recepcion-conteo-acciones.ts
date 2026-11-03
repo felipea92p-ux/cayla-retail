@@ -20,6 +20,7 @@ import {
   RPC_LIGAR_PRENDA,
   RPC_PONER_PROVEEDOR,
   RPC_CANCELAR_RECEPCION,
+  RPC_COSTOS_DE_HOY,
   RPC_REABRIR_ENVIO,
   RPC_RESOLVER_PENDIENTE,
   RPC_SIN_AVISO,
@@ -137,6 +138,18 @@ export async function validarPreciosEnRecepcion(
  * prenda aquí o el general: `fn_precios_en_sede`, la misma regla que la caja), y cuántas tallas activas tiene cada prenda (para saber si «solo esta tienda»
  * con todas queda como el precio de la prenda). Sin el costo: esa columna es de otro permiso. Si no se pudo leer, `null` y la pantalla sigue sin precios de hoy.
  */
+/** Lo que cuesta hoy cada combinación, para quien ve el dinero de Compras. Si la base no responde, vacío: la hoja dice «sin costo» y el cierre sigue igual. */
+export async function leerCostosDeHoy(varianteIds: readonly string[]): Promise<Record<string, number>> {
+  if (varianteIds.length === 0) return {};
+  const { data, error } = (await createClient().rpc(RPC_COSTOS_DE_HOY as never, { p_variantes: [...varianteIds] } as never)) as unknown as Respuesta;
+  if (error || !data) return {};
+  return Object.fromEntries(
+    Object.entries(data as Record<string, number | string>)
+      .map(([id, costo]) => [id, Number(costo)] as const)
+      .filter(([, costo]) => Number.isFinite(costo)),
+  );
+}
+
 export async function leerPreciosDeCombinaciones(
   productoIds: readonly string[],
   ubicacionId: string | null,

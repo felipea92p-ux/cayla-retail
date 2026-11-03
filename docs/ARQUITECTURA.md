@@ -1689,7 +1689,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   base, `/recibir/envio/[id]` cambia de cara (si faltan, sigue la de la fase 4): `lib/recepcion-conteo.ts` (`fn_envio_conteos`) →
   `components/recepcion-conteo/RecibirContando.tsx` (¿Qué llegó? → Contar → Cerrar → cerrado) + `ContarEnvio`, `SepararPrendas`,
   `HojaTallas`, `AgregarFueraDeGuia`, `CerrarEnvio`, `EnvioCerrado`, `HacerAhora` y `ReabrirEnvio` → `lib/recepcion-conteo-acciones.ts`:
-  `guardar_conteo_envio` (con `x-espera: no`), `cerrar_conteo_envio`, `resolver_pendiente_envio`, `reabrir_envio` y
+  `guardar_conteo_envio` (con `x-espera: no`), `fn_costos_de_hoy` (lo que cuesta hoy cada combinación, solo quien ve el dinero de Compras), `cerrar_conteo_envio`, `resolver_pendiente_envio`, `reabrir_envio` y
   `abrir_envio_sin_aviso`. `/recibir` cambia «Llegó mercadería» por `LlegoSinAviso.tsx` y suma `PendientesDeRecibir.tsx`
   (`fn_recepcion_pendientes`, el mismo número que el aviso «Recibido por terminar» del Inicio y el de Catálogo ▸ Productos). Lógica pura
   en `lib/recepcion-conteo-reglas.ts`; reusa la matriz, `HojaPrenda` y `ElegirPrendaExistente` de la fase 4.
