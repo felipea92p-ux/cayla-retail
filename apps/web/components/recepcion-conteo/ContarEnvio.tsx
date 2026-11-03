@@ -6,6 +6,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
@@ -30,7 +31,6 @@ import {
   type LineaParaContar,
   type PrendaSeparada,
   type Separado,
-  SIN_MARCA,
   SEPARADO_VACIO,
   marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
@@ -213,6 +213,8 @@ export function ContarEnvio({
   const [otraCosa, setOtraCosa] = useState(false);
   // Se acaba de pedir «Tallas y colores ahora»: la tabla queda bajo el borde de la columna y hay que traerla a la vista.
   const [traerTallas, setTraerTallas] = useState(false);
+  // Se pidió anotar otro modelo desde «¿Qué llegó?»: el campo al que hay que llevar el cursor, una vez que la hoja se fue y «¿Llegó otra cosa?» ya se abrió.
+  const [cursorEn, setCursorEn] = useState<string | null>(null);
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
   const filaSeguir = useRef<HTMLDivElement>(null);
   const ultimoPaso = useRef(Number.NEGATIVE_INFINITY);
@@ -261,6 +263,15 @@ export function ContarEnvio({
     };
   }, [detalle.id]);
   const [errorHoja, setErrorHoja] = useState<string | null>(null);
+  // Después del `setTimeout` con que Radix le devuelve el foco a quien abrió la hoja: antes, se lo quitaría al campo.
+  useEffect(() => {
+    if (!cursorEn) return;
+    const t = window.setTimeout(() => {
+      irAlIdCampo(cursorEn, { cursor: true });
+      setCursorEn(null);
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [cursorEn]);
   const grupo = parada?.grupo ?? null;
   const lineasDeEsto = parada ? lineasDeLaParada(parada) : [];
   const plegada = !!categoriaEnFoco && alternadas.has(categoriaEnFoco);
@@ -283,7 +294,6 @@ export function ContarEnvio({
     },
   };
   const faltanIdentificar = gruposSinIdentificar(grupos);
-  const yaUsadas = new Set(visibles.map((l) => `${l.categoria?.id}|${l.marca?.id ?? SIN_MARCA}`));
   const proveedores = conteos?.proveedores ?? [];
   const puedeCerrar = visibles.length > 0 && faltanIdentificar.length === 0;
   const motivoNoCierra =
@@ -509,6 +519,16 @@ export function ContarEnvio({
     if (!paradas.some((p) => p.clave === allá.clave)) setFiltro(SIN_FILTRO);
     elegir(allá);
     return true;
+  }
+
+  /** Llegó otro modelo de una categoría que ya está en la lista: se abre «¿Llegó otra cosa?» de esa categoría, con el cursor listo para escribir su nombre. */
+  function irAlGrupo(g: GrupoDeLineas) {
+    const destino = parada?.grupo.clave === g.clave ? parada : paradasDelEnvio.find((p) => p.grupo.clave === g.clave);
+    if (!destino) return;
+    if (!paradas.some((p) => p.clave === destino.clave)) setFiltro(SIN_FILTRO);
+    elegir(destino);
+    setOtraCosa(true);
+    setCursorEn(idCampoIdentificar(g.clave));
   }
 
   async function leerPrenda(g: GrupoDeLineas, productoId: string, nombre: string | null): Promise<PrendaRecepcion | null> {
@@ -744,7 +764,7 @@ export function ContarEnvio({
           catalogo={catalogo}
           proveedores={proveedores}
           sinAviso={sinAviso}
-          yaUsadas={yaUsadas}
+          grupos={grupos}
           errorDelGuardado={errores["extra:0"] ?? null}
           onAgregar={async (nuevo) => {
             const clave = await onAgregar(nuevo);
@@ -755,6 +775,7 @@ export function ContarEnvio({
             }
             return clave;
           }}
+          onIrAlGrupo={irAlGrupo}
           onCerrar={() => setHoja(null)}
         />
       )}

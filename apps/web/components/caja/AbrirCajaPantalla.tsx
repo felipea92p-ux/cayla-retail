@@ -223,7 +223,6 @@ export function AbrirCajaPantalla({
               onChange={(e) => setMotivo(e.target.value)}
               className={campoTexto}
             />
-            <p className="text-sm text-tinta/65">El líder de equipo lo verá en Inicio.</p>
           </div>
         )}
 

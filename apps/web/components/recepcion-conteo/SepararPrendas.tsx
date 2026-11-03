@@ -22,6 +22,7 @@ import {
   quitarNuevaDescrita,
   quitarPrenda,
   sumarPrenda,
+  textoAnotarNueva,
   textoPrendas,
   totalSeparado,
   type PrendaSeparada,
@@ -376,7 +377,7 @@ export function BuscarPrendaEnLinea({
               }}
             >
               <Sparkles aria-hidden className="h-4 w-4 text-pizarra" />
-              {prendas.length === 0 ? "No está en el catálogo:" : "No es ninguna de estas:"} anotar «{texto}» como nueva
+              {textoAnotarNueva(texto, { halladas: prendas.length, fallo })}
             </button>
           </li>
         </ul>
