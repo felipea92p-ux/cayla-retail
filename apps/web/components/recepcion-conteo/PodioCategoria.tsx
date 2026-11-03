@@ -15,7 +15,7 @@ export function PodioCategoria({ dijeron, contadas, alStock, paraDespues }: { di
       )}
       {columnas.map((c, i) => (
         <span key={c.clave} className="rc-podio-col" data-clave={c.clave}>
-          <b className="rc-podio-n">{c.n}</b>
+          <b className="rc-podio-n">{c.n.toLocaleString("es-PE")}</b>
           <span className="rc-podio-barra" style={{ height: `${Math.max(3, c.alto * 0.6)}px`, "--i": i } as React.CSSProperties} />
           <small>{c.titulo}</small>
         </span>

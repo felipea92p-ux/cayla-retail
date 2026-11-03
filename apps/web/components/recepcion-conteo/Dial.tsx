@@ -68,7 +68,7 @@ export function Dial({
   }
 
   return (
-    <div className={`rc-dial rc-dial--${e.tono}`}>
+    <div className={`rc-dial rc-dial--${e.tono}`} data-cifras={String(contadas).length}>
       <svg viewBox="0 0 290 290" aria-hidden className="rc-dial-aro">
         <circle className="rc-dial-pista" cx={CX} cy={CX} r={R} />
         <circle className="rc-dial-arco" cx={CX} cy={CX} r={R} pathLength={100} style={{ strokeDashoffset: 100 - e.lleno }} />

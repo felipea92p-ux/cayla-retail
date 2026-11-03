@@ -3,6 +3,7 @@ import {
   camposDelConteoPorModelo,
   cantidadDeModelo,
   categoriasDelEnvio,
+  categoriasEnOrden,
   gruposDelFiltro,
   idCampoParada,
   modelosDelGrupo,
@@ -214,7 +215,9 @@ describe("categoriasDelEnvio: cada categoría una sola vez", () => {
     const sinContar = categoriasDelEnvio(agruparLineas([deLaGuia(sofia())]))[0];
     expect(resumenDeCategoria(sinContar)).toBe("sin contar · 1 modelo");
     const contada = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 3 }), deLaGuia(lima())]))[0];
-    expect(resumenDeCategoria(contada)).toBe("3 de 12 contadas · 2 modelos");
+    expect(resumenDeCategoria(contada)).toBe("3 de 12 · 2 modelos");
+    const grande = categoriasDelEnvio(agruparLineas([deLaGuia(linea("g", 12000, { descripcion: "Vestido Paula" }), { contadas: 9500 })]))[0];
+    expect(resumenDeCategoria(grande)).toBe("9,500 de 12,000 · 1 modelo");
   });
 
   it("está hecha solo con todo contado y sin nada por identificar", () => {
@@ -222,6 +225,72 @@ describe("categoriasDelEnvio: cada categoría una sola vez", () => {
     expect(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: sep })]))[0].hecha).toBe(true);
     expect(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5 })]))[0].hecha).toBe(false);
     expect(categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: sep }), deLaGuia(lima())]))[0].hecha).toBe(false);
+  });
+});
+
+describe("categoriasEnOrden: por cantidad, de menos a más o de más a menos", () => {
+  const modelo = (id: string, enviado: number, categoria = VESTIDOS) => linea(id, enviado, { categoria, descripcion: `Modelo ${id}`, prendaElegida: { productoId: `p-${id}`, nombre: `Modelo ${id}`, codigo: null } });
+  const envio = (...conteos: Cuerpo[]) =>
+    categoriasDelEnvio(
+      agruparLineas([
+        deLaGuia(modelo("a", 50), conteos[0] ?? null),
+        deLaGuia(modelo("b", 900), conteos[1] ?? null),
+        deLaGuia(modelo("c", 200), conteos[2] ?? null),
+        deLaGuia(modelo("f1", 5000, FALDAS)),
+        deLaGuia(modelo("f2", 3000, FALDAS)),
+      ]),
+    );
+  const nombres = (c: { paradas: Parameters<typeof nombreDeParada>[0][] }) => c.paradas.map(nombreDeParada);
+
+  it("sin orden deja todo como viene en la compra", () => {
+    const categorias = envio();
+    expect(categoriasEnOrden(categorias, null)).toBe(categorias);
+  });
+
+  it("de menos a más ordena las categorías por su total y, dentro, sus modelos", () => {
+    const [primera, segunda] = categoriasEnOrden(envio(), "asc");
+    expect(primera.categoria?.nombre).toBe("Vestidos");
+    expect(nombres(primera)).toEqual(["Modelo a", "Modelo c", "Modelo b"]);
+    expect(segunda.categoria?.nombre).toBe("Faldas");
+    expect(nombres(segunda)).toEqual(["Modelo f2", "Modelo f1"]);
+  });
+
+  it("de más a menos, al revés", () => {
+    const [primera, segunda] = categoriasEnOrden(envio(), "desc");
+    expect(primera.categoria?.nombre).toBe("Faldas");
+    expect(nombres(primera)).toEqual(["Modelo f1", "Modelo f2"]);
+    expect(nombres(segunda)).toEqual(["Modelo b", "Modelo c", "Modelo a"]);
+  });
+
+  it("con la misma cantidad queda el orden de la compra", () => {
+    const iguales = categoriasDelEnvio(agruparLineas([deLaGuia(modelo("a", 10)), deLaGuia(modelo("b", 10)), deLaGuia(modelo("c", 10))]));
+    expect(nombres(categoriasEnOrden(iguales, "asc")[0])).toEqual(["Modelo a", "Modelo b", "Modelo c"]);
+    expect(nombres(categoriasEnOrden(iguales, "desc")[0])).toEqual(["Modelo a", "Modelo b", "Modelo c"]);
+  });
+
+  it("va por lo que anotó Compras: contar no mueve las filas bajo el dedo de quien cuenta", () => {
+    const antes = categoriasEnOrden(envio(), "desc");
+    const contando = categoriasEnOrden(envio({ contadas: 40000 }, { contadas: 1 }), "desc");
+    expect(contando.map((c) => nombres(c))).toEqual(antes.map((c) => nombres(c)));
+  });
+
+  it("lo que Compras no anotó va por lo contado", () => {
+    const sep = { prendas: [prendaSep("p-otra", "Vestido Otro", 500)], nuevas: [] };
+    const [vestidos] = categoriasEnOrden(categoriasDelEnvio(agruparLineas([deLaGuia(modelo("a", 50), { contadas: 550, separado: sep }), deLaGuia(modelo("b", 900))])), "desc");
+    expect(nombres(vestidos)).toEqual(["Modelo b", "Vestido Otro", "Modelo a"]);
+  });
+
+  it("no pierde nada ni toca la lista original", () => {
+    const categorias = envio();
+    const original = categorias.map((c) => nombres(c));
+    const ordenadas = categoriasEnOrden(categorias, "asc");
+    expect(ordenadas.flatMap((c) => nombres(c)).sort()).toEqual(original.flat().sort());
+    expect(categorias.map((c) => nombres(c))).toEqual(original);
+  });
+
+  it("«Falta: …» de la guía dice los modelos en el orden en que se ven", () => {
+    const campos = camposDelConteoPorModelo(categoriasEnOrden(envio(), "desc"));
+    expect(campos.map((c) => c.nombre)).toEqual(["Modelo f1", "Modelo f2", "Modelo b", "Modelo c", "Modelo a"]);
   });
 });
 
@@ -369,6 +438,50 @@ describe("contar un modelo", () => {
     const g = grupo(deLaGuia(sofia(), { contadas: 3, separado: { prendas: [], nuevas: [{ cantidad: 3, descripcion: null }] } }));
     const r = repartirOtroCambio(g, { prendas: [], nuevas: [{ cantidad: 1, descripcion: null }] });
     expect(r.contadas).toBe(1);
+  });
+
+  describe("la misma prenda comprada en dos líneas", () => {
+    const dos = () => grupo(deLaGuia(sofia({ id: "l-a", enviado: 48 })), deLaGuia(sofia({ id: "l-b", enviado: 250 })));
+    const porLinea = (cambios: ReturnType<typeof repartirModelo>["cambios"]) => cambios.map((c) => [c.clave, c.contadas, totalSeparado(c.separado)]);
+
+    it("contarla completa deja cada línea con lo suyo: cuadra y «Cerrar» no pide explicar nada", () => {
+      const g = dos();
+      const r = repartirModelo(g, modelo(g, "p-sofia"), 298);
+      expect(porLinea(r.cambios)).toEqual([["item:l-a", 48, 48], ["item:l-b", 250, 250]]);
+      const quedo = aplicar(g, r.cambios);
+      expect(quedo.lineas.map((l) => (l.conteo?.contadas ?? 0) - (l.dijeron ?? 0))).toEqual([0, 0]);
+      expect(modelo(quedo, "p-sofia").contadas).toBe(298);
+      expect(modelo(quedo, "p-sofia").estado).toBe("cuadra");
+    });
+
+    it("con menos, llena en el orden de la compra; con más, lo que sobra va a la última", () => {
+      const g = dos();
+      expect(porLinea(repartirModelo(g, modelo(g, "p-sofia"), 100).cambios)).toEqual([["item:l-a", 48, 48], ["item:l-b", 52, 52]]);
+      expect(porLinea(repartirModelo(g, modelo(g, "p-sofia"), 30).cambios)).toEqual([["item:l-a", 30, 30], ["item:l-b", 0, 0]]);
+      expect(porLinea(repartirModelo(g, modelo(g, "p-sofia"), 400).cambios)).toEqual([["item:l-a", 48, 48], ["item:l-b", 352, 352]]);
+    });
+
+    it("sirve igual si está anotada solo por nombre, y bajar a 0 deja las dos dichas", () => {
+      const g = grupo(deLaGuia(lima({ id: "l-a", enviado: 10 })), deLaGuia(lima({ id: "l-b", enviado: 5 })));
+      const clave = "nombre:vestido lima";
+      const r = repartirModelo(g, modelo(g, clave), 15);
+      expect(r.cambios.map((c) => c.separado.nuevas)).toEqual([[{ cantidad: 10, descripcion: "Vestido Lima" }], [{ cantidad: 5, descripcion: "Vestido Lima" }]]);
+      const quedo = aplicar(g, r.cambios);
+      expect(modelo(quedo, clave).contadas).toBe(15);
+      const cero = aplicar(quedo, repartirModelo(quedo, modelo(quedo, clave), 0).cambios);
+      expect(cero.lineas.map((l) => l.conteo?.contadas)).toEqual([0, 0]);
+      expect(modelo(cero, clave).estado).toBe("no-llego");
+    });
+
+    it("no toca lo de otro modelo que esté en esas líneas", () => {
+      const conOtra = { prendas: [prendaSep("p-x", "Vestido Mar", 2)], nuevas: [] };
+      const g = grupo(deLaGuia(sofia({ id: "l-a", enviado: 48 }), { contadas: 2, separado: conOtra }), deLaGuia(sofia({ id: "l-b", enviado: 250 })));
+      const r = repartirModelo(g, modelo(g, "p-sofia"), 298);
+      const a = r.cambios.find((c) => c.clave === "item:l-a");
+      expect(a?.separado.prendas.map((p) => [p.productoId, p.cantidad]).sort()).toEqual([["p-sofia", 48], ["p-x", 2]]);
+      expect(a?.contadas).toBe(50);
+      expect(aplicar(g, r.cambios).contadas).toBe(300);
+    });
   });
 
   // El CHECK `separado_cabe` de la base: en una fila, lo separado más lo que ya entró al stock nunca pasa de lo contado.

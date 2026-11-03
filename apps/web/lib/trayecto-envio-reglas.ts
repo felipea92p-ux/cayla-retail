@@ -25,8 +25,8 @@ export function etapaDelEnvio(estado: string, datos: { pendientes?: number; cont
   if (estado === "abierto") {
     const { contadas, dijeron } = datos;
     if (contadas == null) return etapa(2, "trabaja", null);
-    if (dijeron == null || dijeron <= 0) return etapa(2, "trabaja", `${contadas} ${contadas === 1 ? "contada" : "contadas"}`);
-    return etapa(2, "trabaja", `${contadas} de ${dijeron}`, Math.min(100, Math.round((contadas / dijeron) * 100)));
+    if (dijeron == null || dijeron <= 0) return etapa(2, "trabaja", `${contadas.toLocaleString("es-PE")} ${contadas === 1 ? "contada" : "contadas"}`);
+    return etapa(2, "trabaja", `${contadas.toLocaleString("es-PE")} de ${dijeron.toLocaleString("es-PE")}`, Math.min(100, Math.round((contadas / dijeron) * 100)));
   }
   if (estado === "cerrado") {
     const p = datos.pendientes ?? 0;

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Info } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -11,7 +13,8 @@ import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { BaldosaCategoria } from "./piezas";
 import { Dial } from "./Dial";
-import { CategoriasAcordeon } from "./CategoriasAcordeon";
+import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
+import { CategoriasAcordeon, FiltrosDelEnvio } from "./CategoriasAcordeon";
 import { Odometro } from "./Odometro";
 import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -56,19 +59,23 @@ import {
 import {
   camposDelConteoPorModelo,
   categoriasDelEnvio,
+  categoriasEnOrden,
   claveDeNombre,
   claveDeParada,
+  conMiles,
   grupoDeLaClave,
   gruposDelFiltro,
   idCampoParada,
   lineasDelModelo,
   nombreDeParada,
   opcionesDelFiltro,
+  paradaContada,
   paradaEnFoco,
   repartirModelo,
   repartirOtroCambio,
   SIN_FILTRO,
   type FiltroDelConteo,
+  type OrdenDelConteo,
   type ParadaDelConteo,
 } from "@/lib/recepcion-modelos-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
@@ -134,11 +141,14 @@ export function ContarEnvio({
   // Se cuenta UNA cosa a la vez: `foco` es la llave de su parada (un modelo, o el total de un grupo sin modelos). Arranca en la primera sin contar.
   const [foco, setFoco] = useState<string | null>(() => paradaEnFoco(categoriasDelEnvio(agruparLineas(lineasALaVista(lineas, new Set(), null))).flatMap((c) => c.paradas), null)?.clave ?? null);
   const [filtro, setFiltro] = useState<FiltroDelConteo>(SIN_FILTRO);
+  const [orden, setOrden] = useState<OrdenDelConteo>(null);
+  // La persona plegó la categoría de lo que se cuenta: aquí, en qué parada lo hizo. Al pasar a contar otra cosa, se abre sola.
+  const [plegadaEn, setPlegadaEn] = useState<string | null>(null);
   const visibles = lineasALaVista(lineas, agregados, foco?.startsWith("extra:") ? (grupoDeLaClave(foco) as ClaveLinea) : null);
   const grupos = agruparLineas(visibles);
   // La guía y «Pasar a cerrar» miran todo el envío; el filtro solo decide qué se ve a la izquierda.
-  const todas = categoriasDelEnvio(grupos);
-  const categorias = categoriasDelEnvio(gruposDelFiltro(grupos, filtro));
+  const todas = categoriasEnOrden(categoriasDelEnvio(grupos), orden);
+  const categorias = categoriasEnOrden(categoriasDelEnvio(gruposDelFiltro(grupos, filtro)), orden);
   const paradas = categorias.flatMap((c) => c.paradas);
   const parada = paradaEnFoco(paradas, foco);
   const opciones = opcionesDelFiltro(grupos, filtro);
@@ -159,20 +169,23 @@ export function ContarEnvio({
   const grupo = parada?.grupo ?? null;
   // Las observaciones y «quién contó» son de la línea del modelo; las de un total, de todas las del grupo.
   const lineasDeLaParada = parada ? (parada.modelo ? lineasDelModelo(parada.grupo, parada.modelo) : parada.grupo.lineas) : [];
-  const categoriaEnFoco = parada ? (categorias.find((c) => c.paradas.includes(parada)) ?? null) : null;
-  // «Falta: Vestido Antonella» desde otra categoría (o escondido por el filtro): primero se abre esa categoría y recién después se lleva hasta él.
+  const plegada = !!parada && plegadaEn === parada.clave;
+  // «Falta: Vestido Antonella» desde otra categoría (o escondido por el filtro, o con la categoría plegada): primero se abre esa categoría y recién después se lleva hasta él.
   const guia: GuiaCampos = {
     ...guiaBase,
     ir: (id) => {
       const lista = todas.flatMap((c) => c.paradas);
       const destino = lista.find((p) => idCampoParada(p) === id) ?? lista.find((p) => idCampoIdentificar(p.grupo.clave) === id);
+      const despuesDeAbrir = () => requestAnimationFrame(() => requestAnimationFrame(() => guiaBase.ir(id)));
+      setPlegadaEn(null);
       if (!destino || destino.grupo.clave === grupo?.clave) {
         if (destino && destino.modelo && idCampoParada(destino) === id) setFoco(destino.clave);
+        if (plegada) return void despuesDeAbrir();
         return guiaBase.ir(id);
       }
       setFiltro(SIN_FILTRO);
       setFoco(destino.clave);
-      requestAnimationFrame(() => requestAnimationFrame(() => guiaBase.ir(id)));
+      despuesDeAbrir();
     },
   };
   const faltanIdentificar = gruposSinIdentificar(grupos);
@@ -183,6 +196,7 @@ export function ContarEnvio({
   const proveedores = conteos?.proveedores ?? [];
 
   function elegir(p: ParadaDelConteo) {
+    setPlegadaEn(null);
     setFoco(p.clave);
   }
 
@@ -263,6 +277,10 @@ export function ContarEnvio({
   const totalContadas = visibles.reduce((a, l) => a + (l.conteo ? contadasDe(l) : 0), 0);
   // Las que ya se sabe qué prenda son, de todo el envío (lo contado menos lo que falta identificar, categoría por categoría).
   const totalIdentificadas = grupos.reduce((a, g) => a + (g.lineas.some((l) => l.conteo !== null) ? g.contadas - sinIdentificarDelGrupo(g) : 0), 0);
+  // Cuántos modelos van, de todo el envío (el filtro solo decide qué se ve a la izquierda).
+  const paradasConModelo = todas.flatMap((c) => c.paradas).filter((p) => p.modelo);
+  const modelosDelEnvio = paradasConModelo.length;
+  const modelosContados = paradasConModelo.filter(paradaContada).length;
 
   return (
     <div className="space-y-5">
@@ -272,23 +290,33 @@ export function ContarEnvio({
         </Aviso>
       )}
 
-      {/* La mesa (rediseño «B», Felipe 2026-10-29): a la izquierda las categorías como acordeón y quién cuenta; a la derecha el Dial y
-          «¿Qué … son?». Con la tarjeta angosta (junto al papel, una laptop o el celular) el acordeón va arriba. Reemplaza a las píldoras de la
-          opción A (2026-10-28), que no decían qué prendas trae cada categoría. */}
+      {/* La mesa (rediseño «B», Felipe 2026-10-29; repartida de nuevo el 2026-11-02): las categorías llevan 3/5 del ancho, para ver lo que anotó Compras, y la
+          placa del Dial 2/5 (400 px como mínimo). Los filtros van en su fila, para que la primera categoría y la placa empiecen a la misma altura. Con la
+          tarjeta angosta (una laptop chica o el celular) las categorías van arriba. */}
       <div className="rc-mesa">
+       <FiltrosDelEnvio
+         cuantas={categorias.length}
+         sinAviso={sinAviso}
+         filtro={filtro}
+         proveedores={opciones.proveedores}
+         marcas={opciones.marcas}
+         filtrarProveedor={opciones.hayQueFiltrarProveedor}
+         filtrarMarca={opciones.hayQueFiltrarMarca}
+         totalCategorias={todas.length}
+         onFiltro={setFiltro}
+         orden={orden}
+         conOrden={todas.flatMap((c) => c.paradas).length > 1}
+         onOrden={setOrden}
+       />
        <div className="rc-mesa-grilla">
         <div className="rc-mesa-lado">
           <CategoriasAcordeon
             categorias={categorias}
             enFoco={parada}
+            plegada={plegada}
             sinAviso={sinAviso}
-            filtro={filtro}
-            proveedores={opciones.proveedores}
-            marcas={opciones.marcas}
-            filtrarProveedor={opciones.hayQueFiltrarProveedor}
-            filtrarMarca={opciones.hayQueFiltrarMarca}
             totalCategorias={todas.length}
-            onFiltro={setFiltro}
+            onPlegar={(plegar) => setPlegadaEn(plegar && parada ? parada.clave : null)}
             onElegir={elegir}
             onAgregar={() => setHoja({ tipo: "agregar" })}
           />
@@ -320,7 +348,7 @@ export function ContarEnvio({
           )}
         </div>
 
-        <div className="min-w-0 space-y-4">
+        <div className="rc-mesa-cuenta min-w-0 space-y-4">
           <section className="space-y-4" aria-label="Contar">
             {!grupo || !parada ? (
               <div className="rc-contador space-y-2 p-6 py-10 text-center">
@@ -346,19 +374,15 @@ export function ContarEnvio({
                   />
                 }
               >
-                {categoriaEnFoco && (
-                  <PrendasDeLaPlaca
-                    parada={parada}
-                    categoria={categoriaEnFoco}
-                    onElegir={elegir}
-                    onSeparado={(s) => escribirSeparado(grupo, s)}
-                    onPrendaDelCatalogo={(p) => llegoPrenda(grupo, p)}
-                    onTextoNuevo={(t) => llegoNueva(grupo, t)}
-                    onTallas={(p) => void abrirTallas(grupo, p)}
-                    onCrearNueva={(nueva) => setHoja({ tipo: "crear", grupo: grupo.clave, nueva })}
-                    onQuitarSueltas={() => aplicar(repartirTotal(grupo, minimoDelGrupo(grupo)))}
-                  />
-                )}
+                <PrendasDeLaPlaca
+                  parada={parada}
+                  onSeparado={(s) => escribirSeparado(grupo, s)}
+                  onPrendaDelCatalogo={(p) => llegoPrenda(grupo, p)}
+                  onTextoNuevo={(t) => llegoNueva(grupo, t)}
+                  onTallas={(p) => void abrirTallas(grupo, p)}
+                  onCrearNueva={(nueva) => setHoja({ tipo: "crear", grupo: grupo.clave, nueva })}
+                  onQuitarSueltas={() => aplicar(repartirTotal(grupo, minimoDelGrupo(grupo)))}
+                />
                 {errorHoja && (
                   <Aviso tono="error" chico>
                     {errorHoja}
@@ -367,28 +391,23 @@ export function ContarEnvio({
               </ContadorDeParada>
             )}
 
-            <PieGuia guia={guia} listo="Todas las categorías tienen su número y sus prendas identificadas." />
+            <PieGuia guia={guia} tope={4} listo="Todas las categorías tienen su número y sus prendas identificadas." />
 
           </section>
         </div>
        </div>
-        {/* La barra de cierre (opción A, Felipe 2026-10-28; bajo la mesa entera desde el 2026-10-29, Formidable: en la columna del Dial se partía en 4 filas): lo que dijeron contra lo contado de TODO el envío y la acción que sigue, en una sola
-            barra que se queda al pie mientras se baja. Reemplaza a la balanza de dibujo, que sigue en «Cerrar». */}
+        {/* La barra de abajo, que se queda al pie mientras se baja (Felipe 2026-11-02, sobre la opción A y los totales que ruedan de ADR-0575): desde que no están
+            los pasos de arriba, es la que dice cómo va todo el envío y qué sigue. */}
         <BarraDeAbajo pegada className="rc-cierre" data-guia="recepcion.cifra">
-          <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
-            <span className="inline-flex items-center gap-1.5">
-              <ArrowLeft aria-hidden className="h-4 w-4" />
-              Anterior
-            </span>
-          </Boton>
-          <CifrasDelEnvio dijeron={totalDijeron} contadas={totalContadas} identificadas={totalIdentificadas} />
+          <Volver onClick={() => anterior && elegir(anterior)} deshabilitado={!anterior} a="Volver al modelo anterior" />
+          <CifrasDelEnvio dijeron={totalDijeron} contadas={totalContadas} identificadas={totalIdentificadas} modelosContados={modelosContados} modelos={modelosDelEnvio} />
           <div className="barra-abajo-acciones">
             {/* Con todas las categorías contadas (o al reabrir), lo que sigue es cerrar, esté donde esté la persona en la lista. */}
             {siguiente && !guia.puedeConfirmar ? (
               <Boton type="button" peso="primario" onClick={() => elegir(siguiente)}>
-                <span className="inline-flex items-center gap-1.5">
-                  Listo, sigue {nombreDeParada(siguiente)}
-                  <ArrowRight aria-hidden className="h-4 w-4" />
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <span className="rc-cierre-sigue">Listo, sigue {nombreDeParada(siguiente)}</span>
+                  <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
                 </span>
               </Boton>
             ) : (
@@ -549,6 +568,7 @@ function ContadorDeParada({
   const v = veredictoDelGrupo(grupo);
   const hayDiferencia = modelo ? modelo.estado === "a-medias" || modelo.estado === "sobran" || modelo.estado === "no-llego" : v.tono === "ambar";
   const poner = (n: number) => onPoner(Math.max(minimo, Math.max(0, n)));
+  const [atajoChico, atajoGrande] = atajosDelDial(dijeron, contadas);
 
   const lineasDeEsto = modelo ? lineasDelModelo(grupo, modelo) : [];
   const contoNombre = (lineasDeEsto.length > 0 ? lineasDeEsto : grupo.lineas)
@@ -561,7 +581,7 @@ function ContadorDeParada({
 
   return (
     <section className="rc-contador rc-placa space-y-4 p-4" aria-label="Cuántas llegaron">
-      {/* En el celular, «Contó …» baja bajo el nombre: a la derecha apretaba la categoría a una columna de 11 letras. */}
+      {/* En una placa angosta, «Contó …» baja bajo el nombre: a su lado lo apretaba a una columna de pocas letras. */}
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
         <BaldosaCategoria categoria={p.categoria} />
         <div className="min-w-0 flex-1 basis-48">
@@ -570,7 +590,7 @@ function ContadorDeParada({
             {[modelo ? p.categoria?.nombre : null, p.categoria ? marcaDeLinea(p).nombre : null, p.proveedor?.nombre, descripcion].filter(Boolean).join(" · ")}
             {dijeron != null && (
               <>
-                {" "}· Dijeron <b className="text-tinta">{dijeron}</b>
+                {" "}· Dijeron <b className="text-tinta">{conMiles(dijeron)}</b>
               </>
             )}
             {!p.linea && !sinAviso && (
@@ -581,28 +601,27 @@ function ContadorDeParada({
           </p>
         </div>
         {llevaCuenta && (
-          <p className="w-full pl-13 text-sm text-taupe sm:w-auto sm:pl-0" aria-live="polite">
+          <p className="rc-placa-quien text-sm text-taupe" aria-live="polite">
             {llevaCuenta}
           </p>
         )}
       </div>
 
-      {/* La placa compacta (Felipe 2026-11-02): el Dial más chico a la izquierda con sus atajos debajo, y a su derecha las prendas de la compra y las
-          que se parecen, en vez de una tarjeta aparte abajo. Con la tarjeta angosta se apilan. */}
+      {/* La placa compacta (Felipe 2026-11-02): el Dial con sus atajos y, según el ancho de la placa, a su derecha o debajo lo que falta decir de esa prenda y las que se parecen. */}
       <div className="rc-placa-cuerpo">
         <div className="rc-placa-dial" data-guia="recepcion.numero">
           <Dial contadas={contadas} dijeron={dijeron} hayConteo={hayConteo} minimo={minimo} nombre={nombre} onPoner={poner} />
           <p className="rc-dial-pista">Toca el número para escribirlo</p>
           <div className="rc-rapidos">
-            <button type="button" onClick={() => poner(contadas + 5)}>
-              +5
+            <button type="button" onClick={() => poner(contadas + atajoChico)}>
+              +{atajoChico}
             </button>
-            <button type="button" onClick={() => poner(contadas + 10)}>
-              +10
+            <button type="button" onClick={() => poner(contadas + atajoGrande)}>
+              +{atajoGrande}
             </button>
             {dijeron != null && dijeron >= minimo && dijeron !== contadas && (
               <button type="button" onClick={() => poner(dijeron)}>
-                Llegaron las {dijeron}
+                Llegaron las {conMiles(dijeron)}
               </button>
             )}
             {!hayConteo && (modelo || p.linea) ? (
@@ -636,28 +655,44 @@ function ContadorDeParada({
 }
 
 /**
- * Los totales que ruedan (rediseño «B», Felipe 2026-10-29): lo que dijeron, lo contado y lo identificado de todo el envío, con el número que
- * rueda al cambiar, y al pie de la barra una línea de dos tonos —verde lo identificado, tinta lo contado que falta identificar— sobre lo que
- * dijeron. Sin aviso no hay «Dijeron»: no hay con qué comparar.
+ * Cómo va todo el envío (los totales que ruedan de ADR-0575; desde el 2026-11-02, también lo que decían los pasos de arriba): lo contado contra lo que
+ * dijeron, cuántos modelos van, el tubo que se llena —verde lo identificado, tinta lo contado que falta identificar— y si cuadra. Lo identificado solo
+ * se nombra si falta algo: contando por modelo es lo mismo que lo contado, salvo un número suelto. Sin aviso no hay «de N»: no hay con qué comparar.
  */
-function CifrasDelEnvio({ dijeron, contadas, identificadas }: { dijeron: number | null; contadas: number; identificadas: number }) {
+function CifrasDelEnvio({ dijeron, contadas, identificadas, modelosContados, modelos }: { dijeron: number | null; contadas: number; identificadas: number; modelosContados: number; modelos: number }) {
   const v = veredictoDeLaBalanza(dijeron, contadas);
   const base = Math.max(1, dijeron ?? 0, contadas);
-  const cifras: [string, number][] = [...(dijeron == null ? [] : ([["Dijeron", dijeron]] as [string, number][])), ["Contadas", contadas], ["Identificadas", identificadas]];
+  const buenas = Math.min(identificadas, contadas);
+  const sueltas = Math.max(0, contadas - identificadas);
   return (
-    <>
-      <div className="rc-cierre-cifras" aria-live="polite">
-        {cifras.map(([t, n]) => (
-          <span key={t} className="rc-cierre-cifra">
-            <span className="label-cayla text-[11px] text-taupe">{t}</span> <Odometro valor={n} />
+    <div className="rc-cierre-avance" aria-live="polite">
+      <div className="rc-cierre-cifras">
+        <span className="rc-cierre-cifra">
+          <span className="label-cayla text-[11px] text-taupe">Contadas</span> <Odometro valor={contadas} />
+          {dijeron != null && <span className="rc-cierre-de">de {conMiles(dijeron)}</span>}
+        </span>
+        {modelos > 0 && (
+          <span className="rc-cierre-cifra">
+            <span className="label-cayla text-[11px] text-taupe">Modelos</span> <Odometro valor={modelosContados} />
+            <span className="rc-cierre-de">de {conMiles(modelos)}</span>
           </span>
-        ))}
-        <Chip tono={v.estado}>{v.texto}</Chip>
+        )}
+        {sueltas > 0 && <Chip tono="ambar">{conMiles(sueltas)} sin identificar</Chip>}
+        <span className="rc-cierre-veredicto">
+          <Chip tono={v.estado}>{v.texto}</Chip>
+        </span>
       </div>
-      <span aria-hidden className="rc-cierre-linea">
-        <i className="rc-cierre-linea-id" style={{ width: `${(Math.min(identificadas, contadas) / base) * 100}%` }} />
-        <i className="rc-cierre-linea-cont" style={{ width: `${(Math.max(0, contadas - identificadas) / base) * 100}%` }} />
-      </span>
-    </>
+      <BarraApilada
+        decorativa
+        viva
+        sinEntrada
+        alto={8}
+        total={base}
+        segmentos={[
+          { clave: "identificadas", nombre: "Identificadas", valor: buenas, clase: "bg-verde" },
+          { clave: "contadas", nombre: "Contadas sin identificar", valor: sueltas, clase: "bg-tinta" },
+        ]}
+      />
+    </div>
   );
 }

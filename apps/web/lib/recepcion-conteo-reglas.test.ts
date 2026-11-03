@@ -76,7 +76,6 @@ import {
   prendaCreadaDeNueva,
   BOTON_DE_PENDIENTE,
   veredictoDeLaBalanza,
-  subtitulosDelRiel,
   insigniaDelEnvio,
   textoResumenDelCierre,
   veredictoDelCerrado,
@@ -735,12 +734,6 @@ describe("maqueta A: la balanza, el riel y la insignia", () => {
     expect(veredictoDeLaBalanza(null, 7)).toEqual({ estado: "neutro", texto: "Llegó sin aviso: no hay con qué comparar", angulo: 0 });
   });
 
-  it("el riel dice qué pasó en cada paso", () => {
-    const base = { estado: "abierto", numero: "ENV-000118", enviado: 120, sinAviso: false, proveedor: null, contadas: 121, paraDespues: 6 };
-    expect(subtitulosDelRiel(base)).toEqual({ "1": "ENV-000118 · 120 prendas", "2": "121 contadas · 6 para después", "3": "Lo que no cuadró y quién cerró" });
-    expect(subtitulosDelRiel({ ...base, estado: "en_camino", contadas: 0, paraDespues: 0 })["2"]).toBe("Por categoría");
-    expect(subtitulosDelRiel({ ...base, sinAviso: true, proveedor: "Confecciones del Sur", estado: "cerrado", contadas: 1, paraDespues: 0 })).toEqual({ "1": "Confecciones del Sur · sin aviso", "2": "1 contada", "3": "Cerrado" });
-  });
 
   it("la insignia de la cabecera", () => {
     expect(insigniaDelEnvio("en_camino", 0)).toEqual({ tono: "pizarra", texto: "En camino" });
@@ -806,7 +799,9 @@ describe("chaos 2026-10-13 (semilla 393): lo que la persona escribe es lo que se
     expect(leerContadas("")).toEqual({ texto: "", contadas: null });
     expect(leerContadas("   ")).toEqual({ texto: "", contadas: null });
     expect(leerContadas("12")).toEqual({ texto: "12", contadas: 12 });
-    expect(leerContadas("999999999999")).toEqual({ texto: "9999", contadas: 9999 });
+    expect(leerContadas("999999999999")).toEqual({ texto: "99999", contadas: 99999 });
+    expect(leerContadas("12000")).toEqual({ texto: "12000", contadas: 12000 });
+    expect(leerContadas("12,000")).toEqual({ texto: "12000", contadas: 12000 });
     expect(leerContadas("-5")).toEqual({ texto: "5", contadas: 5 });
     expect(leerContadas("٣")).toEqual({ texto: "", contadas: null });
     expect(leerContadas("0")).toEqual({ texto: "0", contadas: 0 });

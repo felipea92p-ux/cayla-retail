@@ -1742,14 +1742,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Recibir lo que llegó",
-      texto: "Aquí recibes en tu sede lo que llegó: abres un fardo, cuentas cuántas llegaron de cada tipo de prenda y cierras. Qué modelo es cada una, sus tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
+      texto: "Aquí recibes en tu sede lo que llegó: abres un fardo, cuentas cuántas llegaron de cada modelo y cierras. Las tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
     },
     {
       id: "cifra",
       ancla: "recepcion.cifra",
       opcional: true,
       titulo: "Cuántas dijeron y cuántas llevas",
-      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas dijeron que venían (si Compras lo dijo), cuántas llevas contadas, cuántas ya identificaste y si cuadra. La línea del pie se llena: verde lo identificado. A los lados, «Anterior» y lo que sigue.",
+      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas llevas contadas de las que dijeron, cuántos modelos van y si cuadra. El tubo se llena: verde lo identificado. A los lados, la flecha para volver al modelo anterior y lo que sigue.",
     },
     {
       id: "hacer-dueno",
@@ -1773,32 +1773,12 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Hiciste una de las órdenes de este envío: ves lo que trae, pero lo recibe otra persona de la tienda. Es la regla para todos, también para un líder; solo un Admin puede recibir lo que él mismo compró, y entonces queda anotado.",
     },
     {
+      // Abrir la hoja no guarda, pero subir una foto sí: la demo explica el botón sin tocarlo.
       id: "papeles",
       ancla: "recepcion.papeles",
       opcional: true,
-      titulo: "El papel de la compra",
-      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas. Si un papel no trae foto, «Subir foto» te deja subirla o tomarla ahí mismo.",
-    },
-    {
-      id: "papel-foto",
-      ancla: "recepcion.papel-foto",
-      opcional: true,
-      titulo: "La foto en grande",
-      texto: "Tócala y se abre en grande sobre la pantalla, sin perder lo que estás contando.",
-    },
-    {
-      id: "papel-subir",
-      ancla: "recepcion.papel-subir",
-      opcional: true,
-      titulo: "Sube o toma la foto",
-      texto: "Cuando un papel llegó sin foto, este botón abre la cámara o tus fotos. Queda guardada con la compra y Compras la ve al completarla; una foto ya subida no se cambia.",
-    },
-    {
-      id: "anotado",
-      ancla: "recepcion.anotado",
-      opcional: true,
-      titulo: "Lo que anotó la compradora",
-      texto: "Cada prenda que anotó al comprar, con cuántas. Se va llenando con lo que identificas de ella en «¿Qué … son?»: «Contada» es la que ya llegó completa y «0 de 4» la que todavía no identificas.",
+      titulo: "Las facturas de la compra",
+      texto: "Si lo compraron desde el celular, este botón abre la boleta, la factura o la nota que le dieron a quien compró. Si un papel no trae foto, ahí mismo la subes o la tomas: queda guardada con la compra y Compras la ve al completarla. Una foto ya subida no se cambia.",
     },
     // ---- En camino: se lee lo que trae y se abre ----
     {
@@ -1829,7 +1809,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "Cada categoría sale una sola vez, aunque venga de varios proveedores. Toca una y se abre con sus modelos, uno por uno, con un punto por prenda que se llena al contarla. Toca el modelo que tienes en la mano y el aro lo cuenta; la categoría suma sola. Con su ✓ ya está contada e identificada.",
+      texto: "Cada categoría sale una sola vez, aunque venga de varios proveedores. Toca una y se abre con todo lo que anotó Compras, modelo por modelo; tócala otra vez y se pliega. Toca el modelo que tienes en la mano y el aro lo cuenta; la categoría suma sola. Con su ✓ ya está contada e identificada.",
     },
     {
       // Solo si el envío trae más de un proveedor o marca.
@@ -1839,6 +1819,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       titulo: "Ver solo un proveedor o marca",
       texto: "Si el envío trae varios proveedores o marcas, aquí dejas solo los de uno: la lista muestra sus categorías y sus modelos. Sirve cuando abres el fardo de un proveedor. Los totales de abajo siguen siendo de todo el envío.",
+    },
+    {
+      // Solo si hay más de una cosa que ordenar.
+      id: "orden",
+      ancla: "recepcion.orden",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Ordenar por cantidad",
+      texto: "Con las flechas, las categorías y sus modelos se ordenan por lo que anotó Compras: de menos a más o de más a menos. Si tocas otra vez la misma flecha, vuelven al orden de la compra. «Listo, sigue» avanza en el orden que elegiste.",
     },
     {
       id: "quien-cuenta",
@@ -1853,15 +1842,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste y se llena con lo que cuentas: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y −, +5 y +10; «Llegaron las N» pone lo que se anotó de un toque. Se guarda solo. Si no coincide, no pasa nada: al cerrar dirás por qué.",
-    },
-    {
-      id: "anotadas",
-      ancla: "recepcion.anotadas",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "Lo que se anotó al comprar",
-      texto: "Al lado del aro, las prendas que se anotaron al comprar en esta categoría, con cuántas llevas de cada una. Toca una y el aro pasa a contarla.",
+      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y − y con los atajos, que van a la escala de lo que cuentas; «Llegaron las N» pone lo anotado de un toque. Se guarda solo. Si no coincide, al cerrar dirás por qué.",
     },
     {
       // Tocar una la suma a la lista y eso se guarda solo: la demo la explica sin tocarla.

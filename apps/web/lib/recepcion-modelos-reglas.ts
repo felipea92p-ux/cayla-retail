@@ -24,6 +24,7 @@ import {
   marcaDeLinea,
   prendasAnotadasDe,
   quitarPrenda,
+  SEPARADO_VACIO,
   separarAnotada,
   SIN_MARCA,
   sumarPrenda,
@@ -207,6 +208,8 @@ export type CategoriaDelEnvio = {
   contadas: number;
   /** ¿Se empezó a contar? */
   hayConteo: boolean;
+  /** Todo contado, aunque falte decir qué prenda es alguna: recién ahí la diferencia con lo que dijeron es un resultado. */
+  contada: boolean;
   /** Todo contado y todas las prendas identificadas. */
   hecha: boolean;
   /** Viene de más de un proveedor o marca: cada fila tiene que decir de cuál. */
@@ -232,21 +235,46 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
       dijeron: gs.every((g) => g.dijeron == null) ? null : gs.reduce((a, g) => a + (g.dijeron ?? 0), 0),
       contadas: gs.reduce((a, g) => a + g.contadas, 0),
       hayConteo: gs.some((g) => g.lineas.some((l) => l.conteo !== null)),
+      contada: contados,
       hecha: contados && gs.every((g) => sinIdentificarDelGrupo(g) === 0),
       variosOrigenes: gs.length > 1,
     };
   });
 }
 
-/** La línea bajo el nombre: «13 de 15 contadas · 3 modelos», «sin contar · 1 modelo», «3 contadas» (sin aviso). */
+/** Un número como se lee en pantalla: 12,000. */
+export const conMiles = (n: number): string => n.toLocaleString("es-PE");
+
+/** La línea bajo el nombre: «13 de 15 · 3 modelos», «sin contar · 1 modelo», «3 contadas» (sin aviso). Corta: con miles no cabría más. */
 export function resumenDeCategoria(c: CategoriaDelEnvio): string {
   const n = c.paradas.filter((p) => p.modelo).length;
-  const conteo = !c.hayConteo ? "sin contar" : c.dijeron != null ? `${c.contadas} de ${c.dijeron} contadas` : `${c.contadas} ${c.contadas === 1 ? "contada" : "contadas"}`;
+  const conteo = !c.hayConteo ? "sin contar" : c.dijeron != null ? `${conMiles(c.contadas)} de ${conMiles(c.dijeron)}` : `${conMiles(c.contadas)} ${c.contadas === 1 ? "contada" : "contadas"}`;
   return n > 0 ? `${conteo} · ${n} ${n === 1 ? "modelo" : "modelos"}` : conteo;
 }
 
 /** «Confecciones del Sur · CAYLA»: de dónde viene un grupo, para cuando la categoría junta varios. */
 export const origenDelGrupo = (g: GrupoDeLineas): string => [g.principal.proveedor?.nombre, g.principal.categoria ? marcaDeLinea(g.principal).nombre : null].filter(Boolean).join(" · ");
+
+// ---- El orden por cantidad ----------------------------------------------------------------------------------------------------------
+
+/** Cómo se ven las categorías y sus modelos: como vienen en la compra (`null`) o por cantidad, de menos a más (`asc`) o de más a menos (`desc`). */
+export type OrdenDelConteo = "asc" | "desc" | null;
+
+/**
+ * La cantidad con la que se ordena: lo que anotó Compras, que no cambia mientras se cuenta (por lo contado, la fila se movería bajo el dedo de quien
+ * cuenta). Lo que Compras no anotó (un envío sin aviso, lo de fuera de la guía) va por lo contado.
+ */
+const cantidadDeParada = (p: ParadaDelConteo): number => (p.modelo ? (p.modelo.esperadas ?? p.modelo.contadas) : (p.grupo.dijeron ?? p.grupo.contadas));
+const cantidadDeCategoria = (c: CategoriaDelEnvio): number => c.dijeron ?? c.contadas;
+
+/** Las categorías y, dentro de cada una, sus modelos, en ese orden. Con la misma cantidad queda el orden de la compra (`sort` es estable). */
+export function categoriasEnOrden(categorias: readonly CategoriaDelEnvio[], orden: OrdenDelConteo): readonly CategoriaDelEnvio[] {
+  if (!orden) return categorias;
+  const signo = orden === "asc" ? 1 : -1;
+  return categorias
+    .map((c) => ({ ...c, paradas: [...c.paradas].sort((a, b) => signo * (cantidadDeParada(a) - cantidadDeParada(b))) }))
+    .sort((a, b) => signo * (cantidadDeCategoria(a) - cantidadDeCategoria(b)));
+}
 
 // ---- El filtro por proveedor y marca ------------------------------------------------------------------------------------------------
 
@@ -317,9 +345,48 @@ function repartirCambio(g: GrupoDeLineas, nuevo: Separado, lineasDeEsto: Readonl
   };
 }
 
+/**
+ * La misma prenda comprada en dos líneas es un solo modelo para quien cuenta, pero cada línea tiene lo que dijo. Lo contado se reparte en el orden
+ * de la compra hasta lo que dijo cada una, y lo que sobra va a la última. Sin esto una quedaba con todo y la otra en 0, y «Cerrar» pedía explicar un
+ * faltante y un sobrante que no existen, aunque el modelo cuadrara.
+ */
+function partirEntreSusLineas(g: GrupoDeLineas, m: ModeloDelConteo, r: Reparto): Reparto {
+  const lineas = lineasDelModelo(g, m);
+  if (lineas.length < 2) return r;
+  const clave = normaliza(m.nombre);
+  const esDelModelo = {
+    prenda: (p: Separado["prendas"][number]) => p.productoId === m.productoId,
+    nueva: (x: Separado["nuevas"][number]) => !m.productoId && !!x.descripcion && normaliza(x.descripcion) === clave,
+  };
+  const cuantasEn = (s: Separado) => s.prendas.filter(esDelModelo.prenda).reduce((a, p) => a + p.cantidad, 0) + s.nuevas.filter(esDelModelo.nueva).reduce((a, x) => a + x.cantidad, 0);
+  const despues = new Map(g.lineas.map((l) => [l.clave, { linea: l, contadas: l.conteo?.contadas ?? 0, separado: l.conteo?.separado ?? SEPARADO_VACIO }]));
+  for (const c of r.cambios) despues.set(c.clave, { linea: c.linea, contadas: c.contadas, separado: c.separado });
+  let resto = [...despues.values()].reduce((a, d) => a + cuantasEn(d.separado), 0);
+  lineas.forEach((l, i) => {
+    const d = despues.get(l.clave);
+    if (!d) return;
+    const leToca = i === lineas.length - 1 ? resto : Math.min(resto, l.dijeron ?? 0);
+    resto -= leToca;
+    const sin = { prendas: d.separado.prendas.filter((p) => !esDelModelo.prenda(p)), nuevas: d.separado.nuevas.filter((x) => !esDelModelo.nueva(x)) };
+    const con: Separado =
+      leToca === 0
+        ? sin
+        : m.productoId
+          ? sumarPrenda(sin, { productoId: m.productoId, nombre: m.nombre, codigo: m.codigo }, leToca)
+          : { ...sin, nuevas: [...sin.nuevas, { cantidad: leToca, descripcion: m.nombre }] };
+    d.contadas += leToca - cuantasEn(d.separado);
+    d.separado = con;
+  });
+  const deEste = new Set(lineas.map((l) => l.clave));
+  const cambios = [...despues.values()]
+    .filter(({ linea, contadas, separado }) => deEste.has(linea.clave) || r.cambios.some((c) => c.clave === linea.clave) || contadas !== (linea.conteo?.contadas ?? 0) || JSON.stringify(separado) !== JSON.stringify(linea.conteo?.separado ?? SEPARADO_VACIO))
+    .map(({ linea, contadas, separado }) => ({ linea, clave: linea.clave, contadas, separado }));
+  return { ...r, cambios };
+}
+
 /** La persona dejó este modelo en `n`. */
 export const repartirModelo = (g: GrupoDeLineas, m: ModeloDelConteo, n: number): Reparto =>
-  repartirCambio(g, cantidadDeModelo(g.separado, m, n), new Set(lineasDelModelo(g, m).map((l) => l.clave)));
+  partirEntreSusLineas(g, m, repartirCambio(g, cantidadDeModelo(g.separado, m, n), new Set(lineasDelModelo(g, m).map((l) => l.clave))));
 
 /** Lo separado cambió por otra cosa (llegó una prenda más, se le pusieron tallas, unas sin nombre). */
 export const repartirOtroCambio = (g: GrupoDeLineas, nuevo: Separado): Reparto => repartirCambio(g, nuevo, new Set());
@@ -368,15 +435,16 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
   if (categorias.length === 0) {
     return [{ id: ID_CAMPO_AGREGAR, nombre: "Lo que llegó", requerido: true, hecho: false, pendiente: "Agrega la primera categoría que llegó y cuéntala." }];
   }
-  return categorias.flatMap((c) =>
-    c.grupos.flatMap((g) => {
-      const nombre = c.categoria?.nombre ?? "esta categoría";
-      const campos: CampoDeGuia[] = [];
-      for (const p of paradasDelGrupo(g)) {
-        if (p.modelo ? p.modelo.estado === "fuera" : !g.principal.linea) continue;
-        const quien = nombreDeParada(p);
-        campos.push({ id: idCampoParada(p), nombre: quien, requerido: true, hecho: paradaContada(p), pendiente: `Cuenta ${quien} y deja cuántas llegaron.` });
-      }
+  // En el orden de `c.paradas`: «Falta: …» dice los modelos como se ven en la lista, también si se ordenó por cantidad.
+  return categorias.flatMap((c) => {
+    const nombre = c.categoria?.nombre ?? "esta categoría";
+    const campos: CampoDeGuia[] = [];
+    for (const p of c.paradas) {
+      if (p.modelo ? p.modelo.estado === "fuera" : !p.grupo.principal.linea) continue;
+      const quien = nombreDeParada(p);
+      campos.push({ id: idCampoParada(p), nombre: quien, requerido: true, hecho: paradaContada(p), pendiente: `Cuenta ${quien} y deja cuántas llegaron.` });
+    }
+    for (const g of c.grupos) {
       const sin = sinIdentificarDelGrupo(g);
       if (sin > 0) {
         campos.push({
@@ -387,7 +455,7 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
           pendiente: `${sin === 1 ? "Falta" : "Faltan"} ${textoPrendas(sin)} por identificar en ${nombre}: elige el modelo, búscala o anótala como nueva.`,
         });
       }
-      return campos;
-    }),
-  );
+    }
+    return campos;
+  });
 }

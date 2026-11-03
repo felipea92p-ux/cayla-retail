@@ -60,7 +60,7 @@ export function CampoGuiado({
 /** «Falta: ● Nombre ○ Motivo» sobre el botón principal, cada cosa tocable (lleva a su campo); con todo listo, «Todo listo.».
  *  `conFrase`: además, escribe A LA VISTA qué hacer con el campo que sigue («El precio va con punto, por ejemplo 12.50.»). Sin esto la frase solo vive en el
  *  `title` de cada chip (pasar el mouse), que no se ve con el dedo ni con el teclado (ley 6 de Formidable). Por defecto no cambia nada para los demás modales. */
-export function PieGuia({ guia, listo = "Todo listo.", conFrase = false }: { guia: GuiaCampos; listo?: string; conFrase?: boolean }) {
+export function PieGuia({ guia, listo = "Todo listo.", conFrase = false, tope }: { guia: GuiaCampos; listo?: string; conFrase?: boolean; /** Cuántas cosas que faltan se listan a lo sumo; las demás se cuentan. */ tope?: number }) {
   if (guia.faltan.length > 0) {
     const siguiente = guia.faltan.find((c) => c.id === guia.ahora) ?? guia.faltan[0];
     return (
@@ -68,7 +68,7 @@ export function PieGuia({ guia, listo = "Todo listo.", conFrase = false }: { gui
         {guia.conGrado ? (
           <PieSeparado guia={guia} />
         ) : (
-          <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
+          <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} tope={tope} />
         )}
         {conFrase && siguiente?.pendiente && (
           <p role="status" className="text-[12.5px] text-tinta/80">

@@ -39,9 +39,6 @@
       "button «→onClick»",
       "button «›»"
     ],
-    "components/conteo/PasosConteo.tsx": [
-      "button «{contenido}»"
-    ],
     "components/recepcion-conteo/AgregarFueraDeGuia.tsx": [
       "CampoSelect «{guia.etiqueta(\"fuera-proveedor\", \"De qué proveedor\")}»",
       "CampoSelect «{guia.etiqueta(\"fuera-categoria\", \"Qué llegó\")}»",
@@ -50,9 +47,10 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
-      "button «{nombreDeParada(p)}»",
+      "button «{m && cat && <MiniaturaPrenda fotoUrl={foto}»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Marca»",
+      "SegmentoDeslizante «Ordenar por cantidad»",
       "button «Ver todas»",
       "button «{nombre}»",
       "button «recepcion.agregar»"
@@ -75,11 +73,11 @@
     "components/recepcion-conteo/ContarEnvio.tsx": [
       "button «Cómo se guarda quién cuenta»",
       "ComboResponsable «{responsable}»",
-      "Boton «Anterior»",
+      "Volver «→() => anterior && elegir(anterior)»",
       "Boton «Listo, sigue»",
       "Boton «recepcion.pasar-a-cerrar»",
-      "button «+5»",
-      "button «+10»",
+      "button «+»",
+      "button «+» #2",
       "button «Llegaron las»",
       "button «No llegó nada»",
       "button «Poner en cero»"
@@ -119,8 +117,9 @@
       "Boton «{problema ?? undefined}»"
     ],
     "components/recepcion-conteo/PapelesDeLaCompra.tsx": [
-      "Boton «recepcion.papel-subir»",
-      "input «Ver en grande»"
+      "Boton «Subir o tomar una foto del papel»",
+      "input «Ver en grande»",
+      "Boton «recepcion.papeles»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
@@ -141,7 +140,6 @@
       "button «Distinto por talla o color»"
     ],
     "components/recepcion-conteo/PrendasDeLaPlaca.tsx": [
-      "button «→() => onElegir(p)»",
       "button «Cambiar tallas»",
       "Boton «Tallas y colores ahora»",
       "Boton «Crear ahora»",

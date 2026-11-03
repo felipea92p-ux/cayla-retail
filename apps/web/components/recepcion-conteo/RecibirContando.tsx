@@ -17,8 +17,6 @@ import {
   insigniaDelEnvio,
   lineasParaContar,
   paraDespues,
-  resumenDelCierre,
-  subtitulosDelRiel,
   textoPisaste,
   type ClaveLinea,
   type ConteoDeLinea,
@@ -38,8 +36,6 @@ import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
-import { siguienteAnotada } from "@/lib/recibir-papel-reglas";
-import { PasosConteo } from "@/components/conteo/PasosConteo";
 import { Trayecto } from "@/components/recepcion-envio/Trayecto";
 import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 
@@ -58,15 +54,6 @@ export type EstadoGuardado = "guardando" | "guardado" | "error";
 const ESPERA_GUARDAR_MS = 700;
 
 type Paso = 1 | 2 | 3;
-// El mismo indicador del conteo de inventario (una función, una pieza: ADR-0358), en su forma «riel» (la maqueta A): tres paradas a lo
-// ancho con lo que pasó en cada una. Con el envío abierto, «Contar» y «Cerrar» se tocan para ir y volver.
-// Solo dos paradas: lo que antes era «¿Qué llegó?» ahora es la hoja «Detalle» de la lista de Recibir (Felipe 2026-10-24); un paso que ya no
-// se recorre aquí confundiría («¿me salté uno?»). Las claves siguen siendo «2» y «3».
-const PASOS = [
-  { clave: "2", nombre: "Contar" },
-  { clave: "3", nombre: "Cerrar" },
-] as const;
-
 /** Una copia del registro sin esa clave (lo guardado deja de ser borrador o error). */
 function sinClave<T>(r: Readonly<Record<string, T>>, clave: string): Record<string, T> {
   const copia = { ...r };
@@ -273,36 +260,34 @@ export function RecibirContando({
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
   const conPapel = papeles.length > 0 && (porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe;
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
-  // La frase de la maqueta, la misma en los tres pasos (de qué envío se trata lo dicen el riel y su tarjeta).
+  // La frase de la maqueta, la misma en los tres pasos.
   const frase =
     estado === "anulado"
       ? "Este envío se anuló: ya no llega."
       : otraSede || noLoRecibe
         ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
         : "Abre un fardo y cuenta cuántas llegaron de cada modelo. Elige la categoría a la izquierda y toca el modelo que tienes en la mano.";
-  // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. El número del envío y lo que se
-  // lleva contado van en el riel y en la balanza.
+  // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. Lo que se lleva contado va en la barra de abajo.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
   const insignia = insigniaDelEnvio(estado, pendientesDelEnvio);
   // El Trayecto (rediseño «B», Felipe 2026-10-29) reemplaza al chip de estado; un envío anulado no tiene camino y sigue con su chip.
   const etapa = etapaDelEnvio(estado, { pendientes: pendientesDelEnvio, contadas: estado === "abierto" ? cifras.contadas : undefined, dijeron: cifras.dijeron });
-  const subtitulos = subtitulosDelRiel({
-    estado,
-    numero: detalle.numero,
-    enviado: detalle.enviado,
-    sinAviso,
-    proveedor: base?.proveedorPorConfirmar ? "proveedor por confirmar" : (base?.proveedores[0]?.nombre ?? null),
-    contadas: cifras.contadas,
-    paraDespues: resumenDelCierre(lineas).guardadas,
-  });
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería" subtitulo={frase} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
-        <div className={etapa ? "anim-sube w-[26rem] max-w-full" : "anim-sube"} style={{ "--i": 1 } as React.CSSProperties}>
+        {/* En la fila del título, para no gastar una fila propia (Felipe 2026-11-02): el botón de las fotos, y en qué va el envío. */}
+        <div
+          className={`anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-3 sm:justify-end ${conPapel && etapa ? "grow basis-[29.5rem]" : ""}`}
+          style={{ "--i": 1 } as React.CSSProperties}
+        >
+          {conPapel && <PapelesDeLaCompra papeles={papeles} alSubirFoto={subirFotoDelPapel} />}
           {etapa ? (
-            <div className="rc-tray-cabecera">
-              <Trayecto etapa={etapa} />
+            // Con el botón al lado, el Trayecto toma lo que quede: bajo 22 rem sus nombres se tocan en la última etapa.
+            <div className={conPapel ? "min-w-[min(20rem,100%)] max-w-[26rem] flex-1" : "w-[26rem] max-w-full"}>
+              <div className="rc-tray-cabecera">
+                <Trayecto etapa={etapa} />
+              </div>
             </div>
           ) : (
             <Chip tono={insignia.tono}>{insignia.texto}</Chip>
@@ -348,35 +333,6 @@ export function RecibirContando({
           La misma persona hizo la compra y cerró el conteo (un Admin puede recibir lo que él mismo compró), así que nadie más contó esta mercadería.
         </Aviso>
       )}
-
-      {(estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe && (
-        <PasosConteo
-          forma="riel"
-          actual={String(estado === "cerrado" ? 3 : paso)}
-          pasos={PASOS}
-          subtitulos={subtitulos}
-          etiqueta="Pasos de la recepción"
-          onIr={
-            estado === "abierto"
-              ? (clave) => {
-                  if (clave === "2" || clave === "3") setPaso(Number(clave) as Paso);
-                }
-              : undefined
-          }
-        />
-      )}
-
-      {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la DERECHA mientras se cuenta, se cierra y se
-          mira lo cerrado (rediseño de «Contar», opción A de `docs/maquetas/recibir-contar-2026-10`, Felipe 2026-10-28): el trabajo ocupa lo
-          ancho y el papel acompaña sin quitarle el primer lugar. Bajo `xl` el papel va arriba, como antes. Sin papeles, todo sigue a lo ancho. Desde
-          el 2026-11-02 la columna es más angosta: al contar son tres zonas (categorías, placa y papeles) y a 1440 px tienen que caber las tres. */}
-      <div className={conPapel ? "grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_18rem] min-[1600px]:grid-cols-[minmax(0,1fr)_22rem]" : "space-y-6"}>
-      {conPapel && (
-        <div className="xl:sticky xl:top-4 xl:order-2">
-          <PapelesDeLaCompra papeles={papeles} lineas={lineas} alSubirFoto={subirFotoDelPapel} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />
-        </div>
-      )}
-      <div className={conPapel ? "min-w-0 space-y-6 xl:order-1" : "space-y-6"}>
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
         <EmpezarARecibir
@@ -460,9 +416,6 @@ export function RecibirContando({
           }}
         />
       )}
-
-      </div>
-      </div>
 
       {avisoSalida.aviso}
     </div>

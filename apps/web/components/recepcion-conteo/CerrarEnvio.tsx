@@ -453,7 +453,7 @@ export function CerrarEnvio({
       return;
     }
     avisar.exito(`${detalle.numero} cerrado`, {
-      detalle: resultado && resultado.unidades > 0 ? `${resultado.unidades} prendas entraron al stock${porDetallar > 0 ? `; ${porDetallar} quedan para después` : ""}` : porDetallar > 0 ? `${porDetallar} prendas quedan para después` : undefined,
+      detalle: resultado && resultado.unidades > 0 ? `${resultado.unidades.toLocaleString("es-PE")} prendas entraron al stock${porDetallar > 0 ? `; ${porDetallar.toLocaleString("es-PE")} quedan para después` : ""}` : porDetallar > 0 ? `${porDetallar.toLocaleString("es-PE")} prendas quedan para después` : undefined,
     });
     onCerrado();
   }
@@ -596,7 +596,7 @@ export function CerrarEnvio({
                     {para > 0 ? (
                       <>
                         <div className={FRANJA}>
-                          <Chip tono="pizarra">{para} para después</Chip>
+                          <Chip tono="pizarra">{para.toLocaleString("es-PE")} para después</Chip>
                         </div>
                         <ul className="space-y-0.5 text-sm leading-snug text-taupe">
                           {detalleParaDespues(l).map((t) => (
@@ -781,7 +781,7 @@ export function CerrarEnvio({
         <p className="nota-cayla">
           {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : ""}
           {porDetallar > 0
-            ? `Cerrar el envío deja el conteo oficial y ${porDetallar} ${porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.`
+            ? `Cerrar el envío deja el conteo oficial y ${porDetallar.toLocaleString("es-PE")} ${porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.`
             : ""}
         </p>
       )}
