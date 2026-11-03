@@ -6,9 +6,12 @@ import {
   coloresPorAgregar,
   cuadreDeTallas,
   mismasVariantes,
+  modoDeTallas,
+  modosAlCambiar,
   ordenarTallasVisibles,
   quitarColor,
   quitarTalla,
+  tablaParaElNumero,
   tallasIniciales,
   tallasListas,
   tallasPorAgregar,
@@ -176,6 +179,61 @@ describe("cuándo se guarda", () => {
     expect(tallasListas(conteo({ "s-neg": "5" }, { ...base, danadas: { "s-neg": "2" } }), COMPLETA, 5)).toBe(false);
     expect(tallasListas(conteo({ "s-neg": "5" }, { ...base, danadas: { "s-neg": "2" }, arreglo: "pendiente" }), COMPLETA, 5)).toBe(true);
     expect(tallasListas(conteo({ "s-neg": "5" }, base), COMPLETA, 5)).toBe(true);
+  });
+});
+
+describe("la tabla sigue a la vista mientras se escribe (Felipe 2026-11-03)", () => {
+  it("sin que nadie elija: «ahora» si tiene tallas guardadas, «después» si no", () => {
+    expect(modoDeTallas(undefined, true)).toBe("ahora");
+    expect(modoDeTallas(undefined, false)).toBe("despues");
+  });
+
+  it("lo que la persona eligió manda, tenga o no tallas", () => {
+    expect(modoDeTallas("ahora", false)).toBe("ahora");
+    expect(modoDeTallas("despues", true)).toBe("despues");
+  });
+
+  it("al recargar y teclear algo que no cuadra, las tallas se sueltan y el modelo sigue en «ahora»: antes se iba a «después» y la tabla se cerraba", () => {
+    const modos = modosAlCambiar({}, "modelo", true);
+    // El cambio soltó las tallas: ya no hay nada guardado de donde deducir el modo.
+    expect(modoDeTallas(modos.modelo, false)).toBe("ahora");
+  });
+
+  it("un modelo sin tallas guardadas no pasa a «ahora» por tocar su número: nadie lo pidió", () => {
+    const modos = {};
+    expect(modosAlCambiar(modos, "modelo", false)).toBe(modos);
+  });
+
+  it("«Solo la cantidad», elegido por la persona, no se pisa", () => {
+    const modos = { modelo: "despues" as const };
+    expect(modosAlCambiar(modos, "modelo", true)).toBe(modos);
+  });
+
+  it("los demás modelos no cambian", () => {
+    expect(modosAlCambiar({ otro: "despues" }, "modelo", true)).toEqual({ otro: "despues", modelo: "ahora" });
+  });
+});
+
+describe("la tabla con que se decide si el número nuevo cuadra", () => {
+  const guardada = (varianteId: string, cantidad: number): VarianteSeparada => ({ varianteId, cantidad, danadas: 0, solucion: null, talla: null, color: null, codigo: null });
+  const GUARDADAS = [guardada("s-neg", 20), guardada("m-neg", 28)];
+
+  it("al recargar solo hay lo guardado: cambiar el número no lo pierde, y al volver cuadra otra vez", () => {
+    const tabla = tablaParaElNumero(undefined, COMPLETA, GUARDADAS, ["neg", "cre"], CATEGORIA, 49);
+    expect(tabla?.conteo.cantidades).toMatchObject({ "s-neg": "20", "m-neg": "28" });
+    expect(tallasListas(tabla!.conteo, COMPLETA, 49)).toBe(false);
+    expect(tallasListas(tabla!.conteo, COMPLETA, 48)).toBe(true);
+  });
+
+  it("lo que se está escribiendo manda sobre lo guardado", () => {
+    const escrita = { conteo: conteo({ "s-neg": "7" }), tallas: ["s"], colores: ["neg"] };
+    expect(tablaParaElNumero(escrita, COMPLETA, GUARDADAS, ["neg"], CATEGORIA, 49)).toBe(escrita);
+  });
+
+  it("sin tallas guardadas, sin la prenda leída o con el modelo en cero, no hay tabla que armar", () => {
+    expect(tablaParaElNumero(undefined, COMPLETA, null, ["neg"], CATEGORIA, 49)).toBeUndefined();
+    expect(tablaParaElNumero(undefined, undefined, GUARDADAS, ["neg"], CATEGORIA, 49)).toBeUndefined();
+    expect(tablaParaElNumero(undefined, COMPLETA, GUARDADAS, ["neg"], CATEGORIA, 0)).toBeUndefined();
   });
 });
 

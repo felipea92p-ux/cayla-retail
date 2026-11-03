@@ -10,7 +10,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { estabaEnCerrar, recordarEnCerrar } from "@/lib/recepcion-cierre-borrador";
 import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
-import type { BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import type { BorradorTallas, ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { TEXTO_COMPRASTE_Y_LO_RECIBES, TEXTO_LA_RECIBE_OTRA, TEXTO_LO_RECIBIO_QUIEN_COMPRO, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import {
   argsGuardarConteo,
@@ -40,7 +40,6 @@ import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
-import type { ModoDeTallas } from "./PlacaDelModelo";
 import { Trayecto } from "@/components/recepcion-envio/Trayecto";
 import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 

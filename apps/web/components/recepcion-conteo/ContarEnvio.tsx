@@ -76,13 +76,13 @@ import {
   type ParadaDelConteo,
   type TipoDeModelo,
 } from "@/lib/recepcion-modelos-reglas";
-import { borradorDeTallas, mismasVariantes, tallasListas, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
+import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
 import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
 import { HojaTallas } from "./HojaTallas";
-import { PlacaDelModelo, type ModoDeTallas } from "./PlacaDelModelo";
+import { PlacaDelModelo } from "./PlacaDelModelo";
 import { PrendasDeLaPlaca } from "./PrendasDeLaPlaca";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
 import { ResumenDelEnvio } from "./ResumenDelEnvio";
@@ -320,10 +320,12 @@ export function ContarEnvio({
 
   /** Guarda lo que cambió en cada línea de la categoría (cada una se guarda sola, con su propio aviso). */
   function aplicar(r: Reparto) {
+    // El modelo que se está mirando sigue en su modo aunque este cambio le suelte las tallas: su tabla no se cierra mientras se escribe.
+    if (parada) setModos((ms) => modosAlCambiar(ms, parada.clave, !!prendaSeparada(parada)?.variantes));
     for (const c of r.cambios) onEscribir(c.linea, { contadas: c.contadas, separado: c.separado });
   }
 
-  const modoDe = (p: ParadaDelConteo): ModoDeTallas => modos[p.clave] ?? (p.modelo?.conTallas ? "ahora" : "despues");
+  const modoDe = (p: ParadaDelConteo): ModoDeTallas => modoDeTallas(modos[p.clave], !!p.modelo?.conTallas);
   const faltanTallas = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && modoDe(p) === "ahora";
   const coloresOrden = (catalogo?.colores ?? []).map((c) => c.codigo);
   const tallasDeLaCategoria = (g: GrupoDeLineas) => catalogo?.categorias.find((c) => c.id === g.principal.categoria?.id)?.tallas ?? [];
@@ -333,8 +335,8 @@ export function ContarEnvio({
   function escribirEnParada(p: ParadaDelConteo, n: number) {
     if (!p.modelo) return aplicar(repartirTotal(p.grupo, n));
     // Si lo repartido en su tabla ahora suma justo lo contado, se guarda con sus tallas.
-    const tabla = tablas[p.clave];
     const prenda = p.modelo.productoId ? prendas.get(p.modelo.productoId) : undefined;
+    const tabla = tablaParaElNumero(tablas[p.clave], prenda, prendaSeparada(p)?.variantes ?? null, coloresOrden, tallasDeLaCategoria(p.grupo), n - p.modelo.enStock);
     const conNumero = cantidadDeModelo(p.grupo.separado, p.modelo, n);
     // La tabla reparte lo que queda por entrar al stock: lo que ya entró no se vuelve a repartir.
     const cuadra = !!tabla && !!prenda && tallasListas(tabla.conteo, prenda, n - p.modelo.enStock);
@@ -360,8 +362,15 @@ export function ContarEnvio({
           const g = gruposVivos.current.find((x) => x.clave === p.grupo.clave);
           const actual = g ? paradasDelGrupo(g).find((x) => x.clave === p.clave) : undefined;
           if (!g || !actual) return;
-          if (actual.modelo && sep?.variantes) aplicar(repartirModeloCon(g, actual.modelo, ponerTallas(cantidadDeModelo(g.separado, actual.modelo, antes), sep.productoId, sep, sep.variantes)));
-          else escribirEnParada(actual, antes);
+          if (actual.modelo && sep?.variantes) {
+            aplicar(repartirModeloCon(g, actual.modelo, ponerTallas(cantidadDeModelo(g.separado, actual.modelo, antes), sep.productoId, sep, sep.variantes)));
+            // Volvió lo guardado: la tabla se arma de ahí, sin nada que esperar.
+            setTablas((t) => {
+              const copia = { ...t };
+              delete copia[p.clave];
+              return copia;
+            });
+          } else escribirEnParada(actual, antes);
         },
       },
     });

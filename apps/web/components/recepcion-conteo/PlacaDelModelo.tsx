@@ -12,6 +12,7 @@ import { atajosDelDial } from "@/lib/recepcion-dial-reglas";
 import { marcaDeLinea, textoPrendas } from "@/lib/recepcion-conteo-reglas";
 import { descripcionDelGrupo, minimoDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
+import type { ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
@@ -19,8 +20,6 @@ import type { EstadoGuardado } from "./RecibirContando";
 // Lo que se está contando (Felipe 2026-11-02, de su boceto; el Dial es el de ADR-0575): el modelo con su foto y su costo, el aro que dice cuánto se contó de lo que dijeron, los botones de sumar y
 // los que llevan al siguiente. Debajo, si se quiere, sus tallas y colores. Lo guarda la pantalla: aquí solo se dice qué dejó la persona. Las tres cifras que iban junto al aro se fueron (Felipe
 // 2026-11-03): decían lo mismo que el aro y el estado de arriba.
-
-export type ModoDeTallas = "despues" | "ahora";
 
 export function PlacaDelModelo({
   parada,
