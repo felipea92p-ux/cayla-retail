@@ -1,7 +1,7 @@
 "use client";
 
 import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
 import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
@@ -9,6 +9,9 @@ import { desgloseIgv, pasoDelCobro, totalDeLineas, type MomentoTicket } from "@/
 import { cuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
 import { PanelDescuento } from "@/components/punto-de-venta/PanelDescuento";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { Aviso } from "@/components/ui/Aviso";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
@@ -26,6 +29,7 @@ const TASA_IGV = 0.18;
 
 /** La nota del ticket: el tope es el `check` de `ventas.nota`; el contador se muestra
  *  recién cerca del tope, para no contar letras a quien escribe cuatro palabras. */
+const CANTIDAD_DE_LINEA = reglaDeEntero();
 const NOTA_MAX = 200;
 const NOTA_AVISO = 160;
 
@@ -162,6 +166,8 @@ type Props = {
   // Los momentos del ticket: «armar» (líneas + total), «descuento» y «cobrar» (pago + comprobante)
   momento: MomentoTicket;
   onIrACobrar: () => void;
+  /** Para el padre: `true` = todavía no se cobra, lo escrito en una cantidad no valió y hay que leer por qué. Con una referencia, una tecla no vuelve a dibujar toda la caja. */
+  frenoCantidades: Ref<() => boolean>;
   onVolverATicket: () => void;
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
@@ -237,6 +243,7 @@ export function PuntoDeVentaTicket({
   gana = null,
   momento: momentoDelPadre,
   onIrACobrar,
+  frenoCantidades,
   onVolverATicket,
   motivoBloqueo,
   responsable,
@@ -263,6 +270,7 @@ export function PuntoDeVentaTicket({
   const momento: MomentoTicket = quieto ? "armar" : momentoDelPadre;
   const [momentoMostrado, setMomentoMostrado] = useState(momento);
   const [saliendo, setSaliendo] = useState(false);
+  const escrita = useCantidadEscrita(CANTIDAD_DE_LINEA, frenoCantidades);
   // Ajustar estado durante el render (el patrón que React documenta para esto exacto:
   // "arrancar algo la primera vez que cambia una prop"), no dentro del efecto — ahí
   // `setSaliendo(true)` dispararía un re-render en cascada que el propio linter del
@@ -535,6 +543,7 @@ export function PuntoDeVentaTicket({
                     bloqueado={bloqueado || cobrando}
                     onQuitar={onQuitar}
                     onCantidad={onCantidad}
+                    escrita={escrita}
                     onDescuento={(clave) => onAbrirDescuento([clave])}
                   />
                 ))}
@@ -713,6 +722,13 @@ export function PuntoDeVentaTicket({
             <div data-guia="vender.responsable">
               <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
             </div>
+          )}
+
+          {/* Lo escrito en una cantidad que no valió: aquí, junto a «Cobrar», se ve aunque la lista sea larga. */}
+          {escrita.problema && !cobrando && (
+            <Aviso tono="error" chico className="mb-2">
+              {escrita.problema}
+            </Aviso>
           )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.

@@ -160,6 +160,7 @@ export function PedidoWebHoja({
   // hasta saber si quedó.
   const [codigo, setCodigo] = useState("");
   const [rechazoCodigo, setRechazoCodigo] = useState<string | null>(null);
+  const [codigoSoloCifras, setCodigoSoloCifras] = useState(false);
   const [errorEntrega, setErrorEntrega] = useState<{ titulo: string; detalle: string } | null>(null);
   const [revisando, setRevisando] = useState(false);
   const entrega = useIntento("entregar_pedido_web");
@@ -672,13 +673,14 @@ export function PedidoWebHoja({
                           <div data-guia="pedido-web.codigo">
                             <Campo
                               etiqueta={guia.etiqueta("codigo", "Código para recoger")}
-                              tono={rechazoCodigo ? "error" : "neutro"}
-                              pie={rechazoCodigo ?? "Lo ve en «Mis pedidos» de su cuenta en la web."}
+                              tono={rechazoCodigo ? "error" : codigoSoloCifras ? "aviso" : "neutro"}
+                              pie={rechazoCodigo ?? (codigoSoloCifras ? "Solo cifras: el código son 4 números." : "Lo ve en «Mis pedidos» de su cuenta en la web.")}
                             >
                               <CodigoEnCasillas
                                 valor={codigo}
-                                onCambio={(v) => {
+                                onCambio={(v, soloCifras) => {
                                   setCodigo(v);
+                                  setCodigoSoloCifras(soloCifras);
                                   setRechazoCodigo(null);
                                   setErrorEntrega(null);
                                 }}

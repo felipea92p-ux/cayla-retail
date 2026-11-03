@@ -1,14 +1,15 @@
 "use client";
 
 import { useRef, type ClipboardEvent, type KeyboardEvent } from "react";
-import { borrarCasillaAnterior, escribirEnCasilla } from "@/lib/pedidos-web-reglas";
+import { borrarCasillaAnterior, escribioAlgoQueNoEsCifra, escribirEnCasilla } from "@/lib/pedidos-web-reglas";
 
 const CASILLAS = [0, 1, 2, 3] as const;
 
 /**
  * El código de recojo de 4 cifras en 4 casillas (rediseño de Pedidos, 2026-10-31). Cada cifra va en la suya; el cursor pasa solo a la
  * siguiente; «borrar» en una vacía vuelve a la anterior; y pegar «20 94» (o «2094») llena las cuatro. La lógica es pura
- * (`escribirEnCasilla`, `borrarCasillaAnterior`); aquí solo se dibuja y se mueve el cursor. Quien la usa lleva su etiqueta y su pie en un `<Campo>`.
+ * (`escribirEnCasilla`, `borrarCasillaAnterior`); aquí solo se dibuja y se mueve el cursor. Quien la usa lleva su etiqueta y su pie en un `<Campo>`,
+ * y ahí dice «solo cifras» cuando `onCambio` se lo pide: una coma no entra, y sin decirlo parece que el teclado falló.
  */
 export function CodigoEnCasillas({
   valor,
@@ -18,7 +19,7 @@ export function CodigoEnCasillas({
   etiqueta = "Código de 4 cifras",
 }: {
   valor: string;
-  onCambio: (valor: string) => void;
+  onCambio: (valor: string, soloCifras: boolean) => void;
   /** La base rechazó el código: las casillas se marcan. */
   error?: boolean;
   disabled?: boolean;
@@ -29,7 +30,7 @@ export function CodigoEnCasillas({
 
   const escribir = (i: number, texto: string) => {
     const r = escribirEnCasilla(valor, i, texto);
-    onCambio(r.valor);
+    onCambio(r.valor, escribioAlgoQueNoEsCifra(texto, r.valor));
     ir(r.cursor);
   };
   const alPegar = (i: number, e: ClipboardEvent<HTMLInputElement>) => {
@@ -40,7 +41,7 @@ export function CodigoEnCasillas({
     if (e.key === "Backspace" && !valor[i]) {
       e.preventDefault();
       const r = borrarCasillaAnterior(valor, i);
-      onCambio(r.valor);
+      onCambio(r.valor, false);
       ir(r.cursor);
     } else if (e.key === "ArrowLeft" && i > 0) ir(i - 1);
     else if (e.key === "ArrowRight" && i < 3) ir(i + 1);

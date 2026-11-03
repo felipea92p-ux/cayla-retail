@@ -1,6 +1,9 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode, Ref, RefObject } from "react";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { CLASE_MONTO_ILEGIBLE } from "@/components/ui/CampoMonto";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import Link from "next/link";
 import { Plus, ScanLine, X } from "lucide-react";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
@@ -18,6 +21,7 @@ import { MAX_PRENDAS_EXTRA, extrasDe, textoPagoConDescuento, type PrendaExtra, t
 
 /** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. Es el hueco punteado del vidrio
  *  (`posv-opcion-hueco`, vidrio/posventa.css), lo mismo que una talla agotada en Vender. */
+const CANTIDAD_A_CAMBIAR = reglaDeEntero();
 const OPCION_SIN_STOCK = `${OPCION} posv-opcion posv-opcion-hueco`;
 
 function Pregunta({ children, id }: { children: ReactNode; id?: string }) {
@@ -109,6 +113,8 @@ export function CambioReemplazo({
   refPrenda,
   refMetodo,
   onCambio,
+  frenoCantidad,
+  refCantidad,
   salidas,
   campoPrenda,
   onEscanear,
@@ -131,6 +137,9 @@ export function CambioReemplazo({
   refPrenda: RefObject<HTMLDivElement | null>;
   refMetodo: RefObject<HTMLButtonElement | null>;
   onCambio: (cambio: Partial<Seleccion>) => void;
+  /** Para el botón que sigue: `true` = todavía no, lo escrito en «¿Cuántas cambia?» no valió y hay que leer por qué. */
+  frenoCantidad: Ref<() => boolean>;
+  refCantidad: RefObject<HTMLInputElement | null>;
   /** Lo que necesitan las salidas cuando la talla no está aquí (`CambioSalidas`). */
   salidas: { sedes: SedeConId[]; ubicacionId: string; sede: string; esLider: boolean; responsable: ControlResponsable };
   /** El input del combo de prenda: lo que la pistola escribe ahí es una lectura, no una búsqueda. */
@@ -153,6 +162,7 @@ export function CambioReemplazo({
   onAgregarExtra: () => void;
   onQuitarExtra: (id: string) => void;
 }) {
+  const escrita = useCantidadEscrita(CANTIDAD_A_CAMBIAR, frenoCantidad);
   const disponible = unidadesDisponibles(linea);
   const idBase = `cambio-${linea.ventaItemId}`;
   const extras = extrasDe(s);
@@ -325,13 +335,15 @@ export function CambioReemplazo({
           <p className="text-sm text-tinta/70">Compró {linea.cantidad}; quedan {disponible} por cambiar.</p>
           <input
             id={`${idBase}-cantidad`}
-            type="number"
-            min={1}
-            max={disponible}
-            value={s.cantidad}
-            onChange={(e) => onCambio({ cantidad: Math.max(1, Math.min(disponible, Number(e.target.value) || 1)) })}
-            className="caja-campo-input mt-2 w-24 text-sm"
+            ref={refCantidad}
+            {...escrita.campo("cantidad", String(s.cantidad), (v) => onCambio({ cantidad: Math.max(1, Math.min(disponible, Number(v) || 1)) }), disponible)}
+            className={`caja-campo-input mt-2 w-24 text-sm ${CLASE_MONTO_ILEGIBLE}`}
           />
+          {escrita.problema && (
+            <Aviso tono="error" chico className="mt-2">
+              {escrita.problema}
+            </Aviso>
+          )}
         </div>
       )}
 

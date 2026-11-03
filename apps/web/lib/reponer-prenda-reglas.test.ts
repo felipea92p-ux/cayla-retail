@@ -44,12 +44,12 @@ describe("cantidades: el selector no deja pedir lo imposible", () => {
     expect(acotarCantidad(3, 0)).toBe(0);
   });
 
-  it("lo tecleado: vacío y letras son cero, y nunca pasa del tope", () => {
+  it("lo tecleado: vacío es cero, nunca pasa del tope, y lo que no es una cantidad no es ningún número (de a una letra: `cantidad-escrita-campos.test.ts`)", () => {
     expect(leerCantidadTecleada("", 4)).toBe(0);
-    expect(leerCantidadTecleada("abc", 4)).toBe(0);
     expect(leerCantidadTecleada("3", 4)).toBe(3);
     expect(leerCantidadTecleada("99", 4)).toBe(4);
-    expect(leerCantidadTecleada("-2", 4)).toBe(2); // el guion se ignora: «−» es el botón, no el teclado
+    expect(leerCantidadTecleada("abc", 4)).toBeNull();
+    expect(leerCantidadTecleada("-2", 4)).toBeNull();
   });
 });
 

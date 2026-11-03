@@ -80,6 +80,7 @@ export function PasarAlStockModal({
   // Lo que contestó la base cuando el costo por prenda salió atípico; mientras haya algo aquí, la pregunta está abierta.
   const [atipico, setAtipico] = useState<CostoAtipico | null>(null);
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
   // «Ya estaban registradas» (ADR-0551 C): la orden puede venir marcada por un líder; solo un líder la cambia aquí. Una muestra no toca el stock: no se pregunta.
   const marcadaEnLaOrden = orden.ingresoAlStock === "ya_estaba";
   const [yaEstaba, setYaEstaba] = useState(marcadaEnLaOrden);
@@ -227,6 +228,8 @@ export function PasarAlStockModal({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+          if (frenoCantidades.current?.()) return;
           void confirmar();
         }}
         className="mt-3.5 space-y-5"
@@ -235,6 +238,7 @@ export function PasarAlStockModal({
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas salieron buenas por talla y color")}</span>
             <MatrizCantidades
+              freno={frenoCantidades}
               soloCantidades
               teclado
               celdas={tabla.celdas}

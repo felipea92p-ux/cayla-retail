@@ -142,6 +142,12 @@ function numeroOCero(texto: string): Resultado<number> {
   return parsearMonto(t);
 }
 
+/** Lo que le falta a los días de abono, o `null`: un entero de 0 a 15, como exige la base. */
+export function problemaDeDiasAbono(texto: string): string | null {
+  const t = texto.trim();
+  return /^\d{1,2}$/.test(t) && Number(t) <= 15 ? null : "Los días de abono van de 0 a 15.";
+}
+
 export function validarTarifa(b: BorradorTarifa, maquinaId: string): Resultado<PayloadTarifa> {
   const tasa = numeroOCero(b.tasa);
   if (!tasa.ok) return { ok: false, error: `Tasa: ${tasa.error.charAt(0).toLowerCase()}${tasa.error.slice(1)}` };
@@ -149,7 +155,8 @@ export function validarTarifa(b: BorradorTarifa, maquinaId: string): Resultado<P
   const fijo = numeroOCero(b.cargoFijo);
   if (!fijo.ok) return { ok: false, error: `Cargo fijo: ${fijo.error.charAt(0).toLowerCase()}${fijo.error.slice(1)}` };
   if (fijo.valor > 50) return { ok: false, error: `El cargo fijo por pago va de ${soles2(0)} a ${soles2(50)}.` };
-  if (!/^\d{1,2}$/.test(b.diasAbono.trim()) || Number(b.diasAbono) > 15) return { ok: false, error: "Los días de abono van de 0 a 15." };
+  const dias = problemaDeDiasAbono(b.diasAbono);
+  if (dias) return { ok: false, error: dias };
   return {
     ok: true,
     valor: { p_maquina_id: maquinaId, p_medio: b.medio, p_tasa_pct: Math.round(tasa.valor * 100) / 100, p_igv_sobre_tasa: b.igvSobreTasa, p_cargo_fijo: Math.round(fijo.valor * 100) / 100, p_dias_abono: Number(b.diasAbono) },

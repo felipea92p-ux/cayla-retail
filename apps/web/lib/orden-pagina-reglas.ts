@@ -1,3 +1,4 @@
+import { textoCantidadRechazada } from "./alta-producto";
 import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
@@ -1507,6 +1508,9 @@ export type FallaBorrador = { varianteId: string; cantidad: string; destino: Des
 
 const enteroDe = (s: string): number => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : 0);
 
+/** ¿Se escribió algo que no es un entero? Vacía no cuenta: todavía no dijo cuántas. */
+export const cantidadDeFallaMalEscrita = (s: string): boolean => s.trim() !== "" && !/^\d+$/.test(s.trim());
+
 /** Cuántas con falla en total (una celda vacía o que no es un entero cuenta 0). */
 export function totalFallas(fallas: readonly FallaBorrador[]): number {
   return fallas.reduce((s, f) => s + (f.varianteId ? enteroDe(f.cantidad) : 0), 0);
@@ -1546,7 +1550,12 @@ export function problemasDeFallas(
 ): string[] {
   const problemas: string[] = [];
   if (fallas.some((f) => !f.varianteId)) problemas.push("Elige la talla y el color de cada prenda con falla.");
-  for (const f of fallas) if (f.varianteId && enteroDe(f.cantidad) <= 0) problemas.push(`Escribe cuántas con falla hay en ${nombreDe(f.varianteId)}.`);
+  for (const f of fallas) {
+    if (!f.varianteId) continue;
+    // Las cuentas leen como 0 lo que no entienden: este problema frena «Anotar», y es lo que evita que esa falla se vaya sin avisar.
+    if (cantidadDeFallaMalEscrita(f.cantidad)) problemas.push(textoCantidadRechazada(f.cantidad.trim(), false, ""));
+    else if (enteroDe(f.cantidad) <= 0) problemas.push(`Escribe cuántas con falla hay en ${nombreDe(f.varianteId)}.`);
+  }
   for (const [id, conFalla] of fallasPorVariante(fallas)) {
     const buenas = enteroDe(cantidades[id] ?? "0");
     const falta = faltan[id] ?? 0;

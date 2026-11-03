@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { leerVariantesParaAjuste } from "@/components/AjustarInventarioModal";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { conDueno, faltaElegirDueno, hayQueElegirDueno, type EmpresaElegible } from "@/lib/dueno-reglas";
@@ -43,6 +44,7 @@ import {
   porQueNoBaja,
   porQueNoSube,
   problemaDelLote,
+  REGLA_CELDA_PLANILLA,
   resumenDelLote,
   textoCambiosAlContar,
   viajaConLoQueHabia,
@@ -100,6 +102,10 @@ export type ControlAjuste = {
   paso: (v: VarianteAjuste, p: 1 | -1) => { razon: string | null; abrirConteo: boolean };
   /** El número escrito en la celda. */
   fijar: (v: VarianteAjuste, objetivo: number) => { razon: string | null; abrirConteo: boolean };
+  /** Lo escrito en una celda no es una cantidad: se dice que no se guardó, y «Guardar» espera a que se lea. */
+  rechazarEscrito: (texto: string) => void;
+  /** Lo que se dice de lo último rechazado, o `null`. */
+  escritoRechazado: string | null;
   lineas: LineaDelLote[];
   resumen: { tallas: number; entran: number; salen: number };
   problema: ReturnType<typeof problemaDelLote>;
@@ -180,6 +186,8 @@ export function useAjusteDelModelo({
   const [incierto, setIncierto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cambiadas, setCambiadas] = useState<ReadonlyMap<string, CambioAlContar>>(new Map());
+  // Cada celda guarda lo que se teclea (así una tecla no vuelve a dibujar todo el panel); aquí queda solo lo que se rechazó al salir, que el pie necesita para no guardar sin que se lea.
+  const escrita = useCantidadEscrita(REGLA_CELDA_PLANILLA);
   const enVuelo = useRef(false);
   // La marca de cada intento: la misma mientras no cambie lo que se manda, nueva si cambia (como `FlujoTalla`).
   const intento = useRef<{ huella: string; token: string } | null>(null);
@@ -196,6 +204,7 @@ export function useAjusteDelModelo({
       setPendientes({});
       setIncierto(false);
       setError(null);
+      escrita.olvidar();
       setCambiadas(new Map());
       setVariantes(null);
       setLectura((n) => n + 1);
@@ -265,6 +274,7 @@ export function useAjusteDelModelo({
 
   function paso(v: VarianteAjuste, p: 1 | -1) {
     if (incierto || enviando) return { razon: fija, abrirConteo: false };
+    escrita.olvidar();
     if (p > 0 && (faltantes.get(v.varianteId)?.pendientes ?? 0) > 0) return { razon: null, abrirConteo: true };
     const razon = p > 0 ? sube(v) : baja(v);
     if (razon !== null) return { razon: razon || null, abrirConteo: false };
@@ -284,6 +294,7 @@ export function useAjusteDelModelo({
 
   function fijar(v: VarianteAjuste, objetivo: number) {
     if (incierto || enviando) return { razon: fija, abrirConteo: false };
+    escrita.olvidar();
     if (!Number.isInteger(objetivo) || objetivo < 0) return { razon: null, abrirConteo: false };
     const actual = hoy(v);
     // Contra lo de HOY (como la ficha): al escribir «20», la tecla «2» no es un error.
@@ -307,6 +318,7 @@ export function useAjusteDelModelo({
   function cambiarLugar(u: "piso" | "almacen") {
     if (u === ubicado) return null;
     if (lineas.length > 0 || incierto) return "Lo contado es de un lugar: guarda o descarta antes de pasar al otro.";
+    escrita.olvidar();
     setUbicado(u);
     // «Encontré» se anota en el almacén: al pasar al piso, la visita vuelve a «Conté y hay otro número».
     if (motivoCerrado(motivo, u, separa)) setMotivo(MOTIVO_INICIAL);
@@ -324,6 +336,8 @@ export function useAjusteDelModelo({
 
   async function guardar(): Promise<AjusteGuardado | null> {
     if (enVuelo.current || !variantes || lineas.length === 0 || problema || faltaDueno) return null;
+    // Lo escrito en una cantidad no valió, y este mismo clic se llevó el cursor: antes de guardar lo demás, se lee por qué.
+    if (escrita.frenar()) return null;
     const { ajustes, cargaInicial } = repartirLineasAjuste(lineas, abiertaCarga);
     const sububicacionId = separa ? (ubicado === "piso" ? sububicacionPisoId : sububicacionAlmacenId) : null;
     // «Conté» viaja con lo que había al contar (ADR-0494): si una venta lo cambió mientras tanto, la base rechaza y dice qué cambió.
@@ -443,6 +457,8 @@ export function useAjusteDelModelo({
     porQueNoBaja: baja,
     paso,
     fijar,
+    rechazarEscrito: (texto: string) => escrita.rechazar(texto),
+    escritoRechazado: escrita.problema,
     lineas,
     resumen,
     problema,
@@ -458,12 +474,14 @@ export function useAjusteDelModelo({
       setPendientes({});
       setCambiadas(new Map());
       setError(null);
+      escrita.olvidar();
     },
     descartarYPasar: (u) => {
       if (incierto || enviando || u === ubicado) return;
       setPendientes({});
       setCambiadas(new Map());
       setError(null);
+      escrita.olvidar();
       setUbicado(u);
       if (motivoCerrado(motivo, u, separa)) setMotivo(MOTIVO_INICIAL);
     },

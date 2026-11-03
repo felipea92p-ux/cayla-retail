@@ -1,6 +1,7 @@
 // Reglas puras de Proveedores (maquetas 08 y 09, ADR-0111; vista rápida y mini-tendencias, ADR-0128).
 // Sin I/O: se prueban sin base.
 
+import { enteroEscrito } from "./cantidad-escrita-reglas";
 import { soles } from "./compras-reglas";
 import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
 
@@ -209,6 +210,13 @@ export function chipEntregas(p: { facturas: number | null; facturas_atrasadas: n
 // ---------------------------------------------------------------------------
 // Contacto
 // ---------------------------------------------------------------------------
+
+/** El plazo de crédito escrito a mano: días enteros, 1 o mayor, lo mismo que exige la base (`proveedores_plazo_credito_positivo`). Vacío: sin definir. */
+export function problemaDePlazoCredito(texto: string): string | null {
+  if (texto.trim() === "") return null;
+  const n = enteroEscrito(texto);
+  return n !== null && n >= 1 ? null : "El plazo de crédito es un número entero de días, 1 o mayor.";
+}
 
 /**
  * Enlace de WhatsApp a partir del teléfono guardado. Un móvil peruano tiene 9 dígitos y empieza en

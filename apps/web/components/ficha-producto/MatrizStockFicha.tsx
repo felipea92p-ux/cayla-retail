@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { TONOS } from "@/components/MuestraEtiqueta";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
@@ -102,6 +102,7 @@ export function MatrizStockFicha({
   huecos,
   precioAqui = null,
   deshabilitado,
+  freno,
 }: {
   ctx: ContextoFicha;
   filas: FilaFicha[];
@@ -134,6 +135,8 @@ export function MatrizStockFicha({
   /** En una terminal: el precio de su tienda se escribe en la tabla (`PrecioAquiMatriz`). */
   precioAqui?: PrecioAquiMatriz | null;
   deshabilitado: boolean;
+  /** Para el botón que sigue de la pantalla (`useCantidadEscrita`): que no se lleve lo que acaba de rechazarse sin que se lea. */
+  freno?: Ref<() => boolean>;
 }) {
   const n = ctx.nombres;
   const m = armarMatriz(filas, n);
@@ -153,7 +156,7 @@ export function MatrizStockFicha({
     return () => window.clearTimeout(t);
   }, [filas]);
   // Lo que se está escribiendo en una celda de unidades (puede quedar vacío un instante); al salir, la celda vuelve a su número.
-  const escrita = useCantidadEscrita();
+  const escrita = useCantidadEscrita(undefined, freno);
   const relojes = useRef(new Map<string, number>());
   // La etiqueta que se está poniendo o quitando en la pestaña «Etiquetas». Si ya no se ofrece, la primera.
   const [etiquetaPedida, setEtiquetaPedida] = useState<string | null>(null);
@@ -445,7 +448,8 @@ export function MatrizStockFicha({
         </table>
       </div>
 
-      {enUnidades && escrita.problema && (
+      {/* También en las otras pestañas: si se esconde, el freno del botón detendría un clic sin decir por qué. */}
+      {escrita.problema && (
         <Aviso tono="atencion" chico>
           {escrita.problema}
         </Aviso>

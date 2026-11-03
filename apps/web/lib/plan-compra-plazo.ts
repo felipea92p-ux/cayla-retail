@@ -11,6 +11,7 @@
 //   NO HACE: no distingue proveedores ni al Taller (un solo plazo por campaña) ni sabe si el pedido ya se hizo (eso lo dice `enCamino` en
 //            la fila: la pantalla no muestra el plazo de una categoría que ya tiene su orden).
 
+import { textoCantidadRechazada } from "./alta-producto";
 import { diaMes, diasEntreFechas, diaYHoraLima, sumarDias } from "./fechas-lima";
 
 /** Con lo que arranca una campaña sin plazo fijado: lo que se supone cuando no hay historia de recepciones. Es un supuesto y la pantalla lo dice. */
@@ -46,8 +47,11 @@ export function leerDiasParaLlegar(t: string): number | null {
   return n >= 1 && n <= MAX_DIAS_PARA_LLEGAR ? n : null;
 }
 
-export const problemaDeLosDias = (t: string): string | null =>
-  leerDiasParaLlegar(t) === null ? `Escribe cuántos días tarda un pedido en estar en las tiendas (de 1 a ${MAX_DIAS_PARA_LLEGAR}).` : null;
+export function problemaDeLosDias(t: string): string | null {
+  if (leerDiasParaLlegar(t) !== null) return null;
+  const escrito = t.trim();
+  return escrito === "" ? `Escribe cuántos días tarda un pedido en estar en las tiendas (de 1 a ${MAX_DIAS_PARA_LLEGAR}).` : textoCantidadRechazada(escrito, false, `, de 1 a ${MAX_DIAS_PARA_LLEGAR}`);
+}
 
 const dias = (n: number) => (Math.abs(n) === 1 ? "1 día" : `${Math.abs(n)} días`);
 

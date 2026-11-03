@@ -6,7 +6,7 @@ import { Boton } from "@/components/ui/campos";
 import { Casilla } from "@/components/ui/Casilla";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto, atributosPorcentajeTexto } from "@/components/ui/CampoMonto";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { money } from "@/components/PuntoDeVenta";
@@ -33,7 +33,6 @@ const ATAJOS_MONTO = [5, 10, 20, 50] as const;
 const OPCION = "rounded-lg text-sm font-semibold transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
-const SIN_FLECHAS = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 export function DescuentoApartado({
   lineas,
@@ -67,7 +66,7 @@ export function DescuentoApartado({
   const [elegidas, setElegidas] = useState<string[]>(() => [...elegidasAlAbrir]);
 
   const porMonto = modo === "monto";
-  const valor = porMonto ? numeroDeMonto(monto) : Number(pct);
+  const valor = numeroDeMonto(porMonto ? monto : pct);
   const valorValido = Number.isFinite(valor) && valor > 0 && (porMonto || valor <= 100);
   const conArgumento = valorValido && elegidas.length > 0 && pideArgumento(lineas, modo, valor, elegidas);
   const detalle = { razon, razonOtro, argumento };
@@ -154,14 +153,11 @@ export function DescuentoApartado({
                   <>
                     <input
                       aria-label="Porcentaje de descuento"
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={100}
+                      {...atributosPorcentajeTexto(pct)}
                       value={pct}
                       onChange={(e) => setPct(e.target.value)}
                       placeholder="0" // sugerir-fijo: un porcentaje vacío no depende de nada elegido antes
-                      className={`ml-auto w-20 self-stretch py-0 text-right text-lg font-semibold ${SIN_FLECHAS}`}
+                      className={`ml-auto w-20 self-stretch py-0 text-right text-lg font-semibold ${CLASE_MONTO_ILEGIBLE}`}
                     />
                     <span className="text-sm text-tinta/60">%</span>
                   </>

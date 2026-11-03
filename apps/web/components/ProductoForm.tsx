@@ -23,7 +23,8 @@ import { FotosPorColor } from "@/components/ficha-producto/FotosPorColor";
 import { comoPrincipal, conFotosNuevas, fotosDelColor, primeraEnSuColor, sinLaFoto, vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
-import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
+import { claveReferencia, leerErrorAlta, limpiarCantidad, tituloReferencia, type ColorAlta } from "@/lib/alta-producto";
+import { enteroEscrito } from "@/lib/cantidad-escrita-reglas";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { problemaAlEditar } from "@/lib/marca-proveedor-reglas";
 import { useParecidos } from "@/lib/use-parecidos";
@@ -219,6 +220,8 @@ import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-to
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; familia?: string | null; exigeTejidoPatron: boolean; admitePrecioCero: boolean };
 
+const TEXTO_STOCK_MINIMO = "El stock mínimo tiene que ser un número entero, 0 o mayor.";
+
 const ESTADOS = [
   { valor: "activo", texto: "Activo" },
   { valor: "descontinuado", texto: "Descontinuado" },
@@ -376,6 +379,8 @@ export function ProductoForm({
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
   const [estado, setEstado] = useState<(typeof ESTADOS)[number]["valor"]>(producto?.estado ?? "activo");
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
+  // En blanco vale: nunca entra en «Stock bajo». Lo demás, un entero: «2,5» se queda a la vista y no se guarda.
+  const stockMinimoMal = stockMinimo.trim() !== "" && enteroEscrito(stockMinimo) === null;
   const [temporada, setTemporada] = useState(producto?.temporada ?? SIN_PROPIA);
   // ADR-0246: la lista y lo que ya estaba guardado al abrir. `null` = la base todavía no la tiene (SQL sin pegar).
   const temporadas = producto?.temporadas ?? null;
@@ -427,6 +432,7 @@ export function ProductoForm({
   const fotosVista = useMemo(() => fotosComoSeVen(fotos, mudanzas), [fotos, mudanzas]);
   // La subida de una foto termina después de un `await`: se ancla con las filas de ESE momento, no con las de cuando empezó.
   const filasRef = useRef(filas);
+  const frenoCantidades = useRef<() => boolean>(null);
   useEffect(() => {
     filasRef.current = filas;
   }, [filas]);
@@ -811,6 +817,8 @@ export function ProductoForm({
    *  hoja «Revisa y guarda los cambios»; ahí se confirma. */
   function revisar(e?: React.FormEvent) {
     e?.preventDefault();
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
     if (!hayCambios) return;
     if (versionCambiada) {
@@ -825,9 +833,9 @@ export function ProductoForm({
       abrir("producto");
       return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
     }
-    if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
+    if (stockMinimoMal) {
       abrir("tejido");
-      return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
+      return void avisar.error(TEXTO_STOCK_MINIMO, { enfocar: "producto-stock-minimo" });
     }
     // Marca y proveedor pueden faltar (ADR-0283), pero lo que el producto ya tenía se cambia, no se deja en blanco.
     const sinDejarEnBlanco = problemaAlEditar({ marcaId: producto?.marcaId ?? "", proveedorId: producto?.proveedorId ?? "" }, { marcaId, proveedorId });
@@ -1699,15 +1707,12 @@ export function ProductoForm({
             <CampoTexto
               etiqueta="Stock mínimo (opcional)"
               id="producto-stock-minimo"
-              type="number"
-              min={0}
-              step={1}
               inputMode="numeric"
               value={stockMinimo}
-              onChange={(e) => setStockMinimo(e.target.value)}
+              onChange={(e) => setStockMinimo(limpiarCantidad(e.target.value))}
               placeholder="Ej. 5"
-              pie={antesDe("stockMinimo") ?? "Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos."}
-              tono={tonoDe("stockMinimo")}
+              pie={stockMinimoMal ? TEXTO_STOCK_MINIMO : (antesDe("stockMinimo") ?? "Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos.")}
+              tono={stockMinimoMal ? "error" : tonoDe("stockMinimo")}
             />
             {temporadas ? (
               <CampoSelect
@@ -1852,6 +1857,7 @@ export function ProductoForm({
             retraso={190}
           >
             <MatrizStockFicha
+              freno={frenoCantidades}
               ctx={ctx}
               filas={filas}
               stock={stock}

@@ -21,7 +21,7 @@ import {
  */
 export function cuentaDelDescuento(descuento: DescuentoForm, carrito: readonly ItemCarrito[], vale: { vale: number } | null) {
   const porMonto = descuento.modo === "monto";
-  const pct = Number(descuento.pct);
+  const pct = numeroDeMonto(descuento.pct);
   const pctValido = Number.isFinite(pct) && pct > 0 && pct <= 100;
   const monto = numeroDeMonto(descuento.monto);
   const montoValido = Number.isFinite(monto) && monto > 0;

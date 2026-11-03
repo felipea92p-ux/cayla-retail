@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MONTO_ILEGIBLE, lecturaCampoMonto, montoIlegible } from "@/lib/monto-plata-reglas";
+import { MONTO_ILEGIBLE, lecturaCampoMonto, montoIlegible, porcentajeMalEscrito } from "@/lib/monto-plata-reglas";
 
 /**
  * Campo de un monto en soles que se puede vaciar y reescribir sin que se le pegue un «0», y que entiende la coma decimal.
@@ -78,5 +78,17 @@ export function atributosMontoTexto(texto: string) {
     autoComplete: "off",
     "aria-invalid": ilegible || undefined,
     title: ilegible ? MONTO_ILEGIBLE : undefined,
+  } as const;
+}
+
+/** Lo mismo para el % de un descuento, que acepta decimales y se lee igual que el monto de al lado (`numeroDeMonto`): «2,5» es 2.5. Un `type="number"` no dejaba entrar la coma, y quedaba 25 %. */
+export function atributosPorcentajeTexto(texto: string) {
+  const mal = porcentajeMalEscrito(texto);
+  return {
+    type: "text",
+    inputMode: "decimal",
+    autoComplete: "off",
+    "aria-invalid": mal || undefined,
+    title: mal ? "El porcentaje va de 1 a 100, sin signo: 2,5 o 15." : undefined,
   } as const;
 }

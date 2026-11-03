@@ -12,8 +12,9 @@ import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { camposDelRecupero } from "@/lib/plan-compra-guia";
-import { RPC_GUARDAR_RECUPERO, argsGuardarRecupero } from "@/lib/plan-compra-propuesta";
+import { RPC_GUARDAR_RECUPERO, argsGuardarRecupero, problemaDelRecupero } from "@/lib/plan-compra-propuesta";
 
 // «Lo que sobra» de CAYLA para una campaña (ADR-0372, C5 · Felipe 2026-10-12): a qué % del precio se vende en la liquidación lo que queda sin
 // vender. Es el punto de partida de cada categoría nueva del plan; cada una puede cambiarlo (un jean se recupera mejor que un polo de temporada).
@@ -27,6 +28,8 @@ export function RecuperoModal({ planId, planNombre, actual, heredado, onClose }:
   // Un segundo envío mientras el primero viaja (doble clic, Enter repetido) no sale.
   const enviando = useRef(false);
   const guia = useGuiaCampos(camposDelRecupero(texto, { listo: responsable.listo, motivo: responsable.motivo }));
+  // Vacío todavía no está mal: la guía ya pide escribirlo.
+  const malEscrito = texto.trim() === "" ? null : problemaDelRecupero(texto);
 
   async function guardar(valor: string | null, cerrar: () => void) {
     if (enviando.current) return;
@@ -62,11 +65,19 @@ export function RecuperoModal({ planId, planNombre, actual, heredado, onClose }:
           className="space-y-5"
         >
           <CampoGuiado id="recupero" guia={guia} titulo="Lo que sobra" ayuda="En % del precio de venta">
-            <div className="flex w-36 items-center gap-2">
+            <div className="flex w-36 items-start gap-2">
               <div className="min-w-0 flex-1">
-                <CampoTexto etiqueta="Lo que sobra, en % del precio" caja inputMode="numeric" value={texto} onChange={(e) => setTexto(e.target.value.replace(/\D/g, "").slice(0, 3))} />
+                <CampoTexto
+                  etiqueta="Lo que sobra, en % del precio"
+                  caja
+                  inputMode="numeric"
+                  value={texto}
+                  tono={malEscrito ? "error" : undefined}
+                  pie={malEscrito ?? undefined}
+                  onChange={(e) => setTexto(limpiarCantidad(e.target.value))}
+                />
               </div>
-              <span aria-hidden className="pb-4 text-sm text-tinta/70">
+              <span aria-hidden className="pt-2.5 text-sm text-tinta/70">
                 %
               </span>
             </div>

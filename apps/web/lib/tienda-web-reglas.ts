@@ -294,6 +294,12 @@ export function parametroFueraDeRango(clave: keyof ParametrosTiendaWeb, texto: s
   return !/^-?\d+$/.test(t) || Number(t) < min || Number(t) > max;
 }
 
+/** Lo que se dice bajo un plazo que se sale de su rango o no es un entero: hasta dónde llega. */
+export function textoRangoParametro(clave: keyof ParametrosTiendaWeb): string {
+  const [min, max] = RANGOS_PARAMETROS[clave];
+  return `Un número entero, de ${min} a ${max}`;
+}
+
 /** Subir o bajar un plazo de a `paso`, sin salirse de su rango. Si lo escrito no es un número, parte de lo más bajo que se acepta. */
 export function moverParametro(clave: keyof ParametrosTiendaWeb, texto: string, paso: number): string {
   const [min, max] = RANGOS_PARAMETROS[clave];

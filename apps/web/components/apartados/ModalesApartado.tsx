@@ -64,9 +64,13 @@ import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 import { CampoSelect, Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+
+const CANTIDAD_DE_LINEA = reglaDeEntero();
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
@@ -779,6 +783,7 @@ export function EditarApartadoModal({
 }) {
   const router = useRouter();
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
+  const escrita = useCantidadEscrita(CANTIDAD_DE_LINEA);
   const [quitar, setQuitar] = useState<ReadonlySet<string>>(() => new Set());
   const [sumar, setSumar] = useState<{ varianteId: string; cantidad: number }[]>([]);
   const [texto, setTexto] = useState("");
@@ -833,6 +838,8 @@ export function EditarApartadoModal({
   }, [texto, prendas]);
 
   async function guardar(cerrar: () => void) {
+    // Lo escrito en una cantidad no valió: antes de guardar lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     if (!cambio || debajo || sinPrendas || !responsable.listo) return;
     const params = {
       p_separacion_id: apartado.id,
@@ -917,6 +924,7 @@ export function EditarApartadoModal({
                       setQuitar((q) => (q.has(pr.itemId) ? new Set([...q].filter((x) => x !== pr.itemId)) : new Set([...q, pr.itemId])));
                     }}
                     onCantidad={() => {}}
+                    escrita={escrita}
                     onDescuento={() => {}}
                     pie={
                       !fuera && hermanas.length > 1 ? (
@@ -972,6 +980,7 @@ export function EditarApartadoModal({
                       if (valor === l.cantidad + 1) agregar(clave);
                       else setSumar((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: Math.min(Math.floor(valor), p.stockAqui) } : x)));
                     }}
+                    escrita={escrita}
                     onDescuento={(clave) => setHojaDescuento([clave])}
                     pie={<span className="text-verde-profundo">Se suma al apartado</span>}
                   />
@@ -979,6 +988,11 @@ export function EditarApartadoModal({
               );
             })}
           </ul>
+          {escrita.problema && (
+            <Aviso tono="error" chico>
+              {escrita.problema}
+            </Aviso>
+          )}
           {/* El descuento a mano de lo que se suma (ADR-0584): el mismo de Apartar y de la venta. Lo que ya estaba conserva el suyo. */}
           {sumar.length > 0 && (
             <div className="flex items-center justify-between gap-3">

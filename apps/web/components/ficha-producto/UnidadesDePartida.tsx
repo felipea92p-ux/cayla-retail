@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
@@ -64,6 +64,7 @@ export function UnidadesDeLasNuevas({
   onCeros,
   total,
   deshabilitado = false,
+  freno,
 }: {
   filas: readonly FilaDeUnidades[];
   columnas: readonly ColumnaDeUnidades[];
@@ -76,8 +77,10 @@ export function UnidadesDeLasNuevas({
   onCeros: () => void;
   total: number;
   deshabilitado?: boolean;
+  /** Para el botón que sigue de la hoja (`useCantidadEscrita`): que no se lleve lo que acaba de rechazarse sin que se lea. */
+  freno?: Ref<() => boolean>;
 }) {
-  const escrita = useCantidadEscrita();
+  const escrita = useCantidadEscrita(undefined, freno);
   return (
     <div className="space-y-2">
       <div className="overflow-x-auto rounded-xl border border-sand">

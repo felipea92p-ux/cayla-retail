@@ -43,6 +43,7 @@ import {
   soloDeLaPrenda,
   stockEn,
   TEXTO_AJUSTE_INCIERTO,
+  textoEscritoInvalido,
   textoExitoAjuste,
   textoProblemaTalla,
   textoStockTalla,
@@ -240,6 +241,11 @@ export function AjustarInventarioModal({
     const texto = textoProblemaTalla(l, modo) ?? textoProblemaMotivo(l, motivo, abiertaCarga, reposicionCerrada(ubicado, separaPisoAlmacen));
     if (texto) problemaDe[l.variante.varianteId] = texto;
   }
+  // Lo que no es un entero no es una línea: sin esto, esa talla se iría sin ajustar y sin avisar.
+  for (const v of variantes) {
+    const texto = textoEscritoInvalido(cantidades[v.varianteId] ?? "");
+    if (texto) problemaDe[v.varianteId] = texto;
+  }
   const hayProblemas = Object.keys(problemaDe).length > 0;
   // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
   const { ajustes, cargaInicial } = repartirLineasAjuste(lineas, abiertaCarga);
@@ -268,12 +274,11 @@ export function AjustarInventarioModal({
       nombre: "Cantidades",
       requerido: true,
       hecho: lineas.length > 0 && !hayProblemas && !hayPregunta,
-      pendiente:
-        lineas.length === 0
+      pendiente: hayProblemas
+        ? Object.values(problemaDe)[0]
+        : lineas.length === 0
           ? "Escribe qué cambia en alguna talla."
-          : hayProblemas
-            ? Object.values(problemaDe)[0]
-            : "Responde si es la prenda que faltó en el conteo.",
+          : "Responde si es la prenda que faltó en el conteo.",
     },
     {
       id: "nota",

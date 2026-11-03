@@ -80,6 +80,13 @@ export function montoIlegible(texto: string): boolean {
   return lecturaCampoMonto(texto).ilegible;
 }
 
+/** El porcentaje de un descuento: se escribe y se lee como el monto de al lado (`numeroDeMonto`), así que «2,5» es 2.5. Hay algo escrito y no es un % que se pueda aplicar. Vacío todavía no está mal. */
+export function porcentajeMalEscrito(texto: string): boolean {
+  if (texto.trim() === "") return false;
+  const n = numeroDeMonto(texto);
+  return !(n > 0 && n <= 100);
+}
+
 /** Lo que dice la hoja cuando el costo por unidad escrito no se entiende. */
 export const COSTO_UNITARIO_ILEGIBLE = "No se entiende el costo: escríbelo así, 0.045 o 2,50.";
 

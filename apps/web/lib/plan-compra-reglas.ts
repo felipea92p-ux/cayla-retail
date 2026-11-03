@@ -20,6 +20,8 @@
 //            de foco y el botón digan lo mismo que la base); cantidades enteras que suman exacto (resto mayor).
 //   NO HACE: no compra nada ni decide por la persona: propone y muestra el porqué.
 
+import { textoCantidadRechazada } from "./alta-producto";
+import { leerEscrito, reglaDeEntero } from "./cantidad-escrita-reglas";
 import { sinBlancosDeMiles } from "./numero-escrito";
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
@@ -390,6 +392,25 @@ export type CampoPlan = "flojo" | "normal" | "bueno" | "precio" | "costo" | "rec
 
 const entero = (s: string): number | null => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : null);
 
+/** ¿Se escribió algo que no es un entero? Vacía no cuenta: la guía ya la pide. */
+export const escritoNoEsEntero = (s: string): boolean => s.trim() !== "" && entero(s) === null;
+
+/** Lo que suma la curva mientras se escribe: lo que no es un entero no cuenta, igual que en `problemasDelBorrador`. */
+export function sumaDeLaCurva(curva: Readonly<Record<string, string>>, tallas: readonly TallaPlan[]): number {
+  return tallas.reduce((s, t) => s + (entero(curva[t.id] ?? "") ?? 0), 0);
+}
+
+const CANTIDAD_DEL_PLAN = reglaDeEntero();
+
+/** Una cantidad del plan que se escribe (`CantidadEditable`): cualquier entero, y lo que pasa de `max` se recorta, como con el «+». Lo demás no se fija: `Number` leía «1.5» como 2, «-5» como 0 y «1e3» como 1000. */
+export function leerCantidadDelPlan(escrito: string, hay: number, max: number): { tipo: "nada" } | { tipo: "fijar"; n: number } | { tipo: "rechazo"; aviso: string } {
+  const r = leerEscrito(escrito, hay, CANTIDAD_DEL_PLAN);
+  if (r.tipo === "rechazo") return { tipo: "rechazo", aviso: CANTIDAD_DEL_PLAN.decir(r.texto, true) };
+  if (r.tipo === "nada") return r;
+  const n = Math.min(max, r.n);
+  return n === hay ? { tipo: "nada" } : { tipo: "fijar", n };
+}
+
 /**
  * Un monto en soles tal como lo escribe la persona: «1299.50», «1299,50», «1,299.50» o «1 299,50» (las comas o espacios de miles se aceptan;
  * la coma sola, como decimal). Cero vale. null si no se entiende. La MISMA lectura para el tope, el precio y el costo (chaos 2026-10-10: el
@@ -427,12 +448,16 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   const normal = entero(b.normal);
   const bueno = entero(b.bueno);
   const demasiadas = `Revisa el número: más de ${MAX_UNIDADES_ESCENARIO.toLocaleString("es-PE")} prendas en una campaña no parece de una categoría.`;
-  if (flojo === null) p.flojo = "Escribe cuántas venderías si la campaña va floja (puede ser 0).";
+  const noEsEntero = (s: string, rango = "") => textoCantidadRechazada(s.trim(), false, rango);
+  if (escritoNoEsEntero(b.flojo)) p.flojo = noEsEntero(b.flojo);
+  else if (flojo === null) p.flojo = "Escribe cuántas venderías si la campaña va floja (puede ser 0).";
   else if (flojo > MAX_UNIDADES_ESCENARIO) p.flojo = demasiadas;
-  if (normal === null) p.normal = "Escribe cuántas venderías si la campaña va normal.";
+  if (escritoNoEsEntero(b.normal)) p.normal = noEsEntero(b.normal);
+  else if (normal === null) p.normal = "Escribe cuántas venderías si la campaña va normal.";
   else if (normal > MAX_UNIDADES_ESCENARIO) p.normal = demasiadas;
   else if (flojo !== null && normal < flojo) p.normal = "El normal no puede ser menos que el flojo.";
-  if (bueno === null) p.bueno = "Escribe cuántas venderías si la campaña va buena.";
+  if (escritoNoEsEntero(b.bueno)) p.bueno = noEsEntero(b.bueno);
+  else if (bueno === null) p.bueno = "Escribe cuántas venderías si la campaña va buena.";
   else if (bueno > MAX_UNIDADES_ESCENARIO) p.bueno = demasiadas;
   else if (normal !== null && bueno < normal) p.bueno = "El bueno no puede ser menos que el normal.";
   const precio = leerNumeroDeMonto(b.precio);
@@ -444,7 +469,8 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   else if (costo > MAX_MONTO_PRENDA) p.costo = caro;
   else if (precio !== null && costo >= precio) p.costo = "El costo tiene que ser menor que el precio de venta.";
   const recupero = entero(b.recupero);
-  if (recupero === null || recupero > 100) p.recupero = "Escribe a qué % del precio vendes lo que sobre (de 0 a 100).";
+  if (escritoNoEsEntero(b.recupero)) p.recupero = noEsEntero(b.recupero, ", de 0 a 100");
+  else if (recupero === null || recupero > 100) p.recupero = "Escribe a qué % del precio vendes lo que sobre (de 0 a 100).";
   if (leerDescuento(b.descuento) === null) p.descuento = "Escribe el descuento en %, de 0 a menos de 100 (déjalo vacío si no hay).";
   const usadas = tallas.filter((t) => (b.curva[t.id] ?? "").trim() !== "");
   if (usadas.length > 0) {

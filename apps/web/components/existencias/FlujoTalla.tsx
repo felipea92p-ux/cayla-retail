@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentType, type InputHTMLAttributes, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bandage, Truck, Warehouse, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +8,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { avisarDestacado } from "@/components/ui/AvisoDestacado";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -25,8 +27,8 @@ import { pistaDeNota } from "@/lib/sugerencias-danadas";
 import { fraseDejarEn } from "@/lib/danadas-lugar";
 import { objecionDeFoto, textoFotoNoSubio, TIPOS_FOTO_DANADA } from "@/lib/danadas-foto";
 import { subirFotoDanada } from "@/lib/danadas-foto-subida";
-import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
-import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
+import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, REGLA_CAJITA, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
+import { cantDelRelleno, celdaColgarVarias, celdaSubirVarias, llenarTodasCon, REGLA_RELLENO, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -93,10 +95,11 @@ function Opcion({ marcada, titulo, sub, onClick, deshabilitada = false }: { marc
 }
 
 /** − número + (la maqueta: `.stepper`). Se puede escribir el número; nunca pasa del tope ni baja de 0. */
-function Stepper({ valor, max, onValor, etiqueta, id }: { valor: number; max: number | null; onValor: (n: number) => void; etiqueta: string; id: string }) {
+function Stepper({ valor, max, onValor, etiqueta, id, campo }: { valor: number; max: number | null; onValor: (n: number) => void; etiqueta: string; id: string; campo: InputHTMLAttributes<HTMLInputElement> }) {
   const tope = max ?? Number.POSITIVE_INFINITY;
+  const invalida = Boolean(campo["aria-invalid"]);
   return (
-    <div className="inline-flex items-center overflow-hidden rounded-2xl border border-sand bg-papel">
+    <div className={`inline-flex items-center overflow-hidden rounded-2xl border bg-papel ${invalida ? "border-rojo" : "border-sand"}`}>
       <button type="button" aria-label="Una menos" disabled={valor <= 0} onClick={() => onValor(Math.max(0, valor - 1))} className="grid h-14 w-14 place-items-center text-2xl text-tinta disabled:text-taupe/40">
         −
       </button>
@@ -105,9 +108,8 @@ function Stepper({ valor, max, onValor, etiqueta, id }: { valor: number; max: nu
         inputMode="numeric"
         autoComplete="off"
         aria-label={etiqueta}
-        value={valor}
-        onChange={(e) => onValor(leerCantidadTecleada(e.target.value, tope))}
-        className="h-14 w-16 border-x border-sand bg-transparent text-center font-display text-[26px] tabular-nums text-tinta"
+        {...campo}
+        className={`h-14 w-16 border-x border-sand bg-transparent text-center font-display text-[26px] tabular-nums ${invalida ? "text-rojo-profundo" : "text-tinta"}`}
       />
       <button type="button" aria-label="Una más" disabled={valor >= tope} onClick={() => onValor(Math.min(tope, valor + 1))} className="grid h-14 w-14 place-items-center text-2xl text-tinta disabled:text-taupe/40">
         +
@@ -155,7 +157,7 @@ function NotaSubida({ valor, onValor }: { valor: string; onValor: (v: string) =>
 
 /** Una celda de «Subir varias»: con algo colgado se edita (de 0 a lo colgado); sin nada colgado dice cuántas hay en almacén; sin nada
  *  libre en la sede, «Se acabó». El mismo dibujo que la celda de Colgar varias, con el tope en el piso. */
-function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<typeof celdaSubirVarias>; n: number; etiqueta: string; fondo: string; onValor: (n: number, max: number) => void }) {
+function CeldaSubir({ celda, n, etiqueta, fondo, onValor, caja }: { celda: ReturnType<typeof celdaSubirVarias>; n: number; etiqueta: string; fondo: string; onValor: (n: number, max: number) => void; caja: (tope: number) => InputHTMLAttributes<HTMLInputElement> }) {
   if (celda.tipo === "acabo")
     return <td className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-sm font-semibold text-rojo-profundo">Se acabó</td>;
   if (celda.tipo === "sinPiso")
@@ -165,21 +167,22 @@ function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<
         <small className="block text-sm">{celda.almacen} en almacén</small>
       </td>
     );
+  const campo = caja(celda.piso);
+  const invalida = Boolean(campo["aria-invalid"]);
   return (
     <td className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
       <PasoCantidad
         tamano="celda"
+        tono={invalida ? "error" : undefined}
         menos={{ onClick: () => onValor(n - 1, celda.piso), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
         mas={{ onClick: () => onValor(n + 1, celda.piso), deshabilitado: n >= celda.piso, etiqueta: `Una más de ${etiqueta}` }}
         campo={{
           inputMode: "numeric",
           "aria-label": `Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`,
-          value: n === 0 ? "" : n,
           placeholder: "0",
-          onFocus: (e) => e.currentTarget.select(),
-          onChange: (e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso),
+          ...campo,
           // Con algo elegido, el número va en verde.
-          className: n > 0 ? "text-verde" : "",
+          className: n > 0 && !invalida ? "text-verde" : "",
         }}
       />
       <small className="mt-1 block text-sm text-taupe">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
@@ -276,6 +279,10 @@ export function FlujoTalla({
   });
   // «Llenar todas con» de la tabla de Colgar varias: lo tecleado, para que la caja no se borre al rellenar.
   const [relleno, setRelleno] = useState("");
+  // Cómo estaba la tabla al entrar a «Llenar todas con»: adonde vuelve si lo que se escriba no es una cantidad.
+  const antesDelRelleno = useRef<Record<string, number>>({});
+  // Lo que se teclea en las cajas de cantidad: lo que no es una cantidad se queda a la vista, en la caja, y nunca le llega a los números.
+  const escrita = useCantidadEscrita(REGLA_CAJITA);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // La foto OPCIONAL del daño (ADR-0564): se elige aquí y se sube DESPUÉS de reportar, con la dañada ya guardada; si falla, la prenda queda
@@ -331,7 +338,7 @@ export function FlujoTalla({
   const guia = useGuiaCampos(
     pasos.slice(0, i + 1).map((p) => ({ id: p, nombre: ETIQUETA_PASO[p], requerido: true, hecho: pasoCompleto(p, tipo, d, ctx), pendiente: `Falta ${FALTA_PASO[p]}.` })),
   );
-  const guiaDePasos = { ...guia, ir: (id: string) => setI(Math.max(0, pasos.indexOf(id as PasoFlujo))) };
+  const guiaDePasos = { ...guia, ir: (id: string) => irAlPaso(Math.max(0, pasos.indexOf(id as PasoFlujo))) };
 
   function poner(cambios: Partial<DatosFlujo>) {
     if (incierto || enviando) return;
@@ -339,11 +346,36 @@ export function FlujoTalla({
     setError(null);
   }
 
+  /** Otro paso: lo que se rechazó en este no sigue diciéndose en el que viene. */
+  function irAlPaso(n: number) {
+    escrita.olvidar();
+    setI(n);
+  }
+
+  /** Las props del número de una caja de cantidad. `alCambiar` solo recibe cantidades, recortadas a `tope`. `conCero`: lo que muestra con 0 (la tabla, nada; el paso de una talla, su 0). */
+  function cajaDe(clave: string, n: number, tope: number, alCambiar: (n: number) => void, conCero: "" | 0 = ""): InputHTMLAttributes<HTMLInputElement> {
+    const invalida = escrita.invalida(clave);
+    return {
+      // Lo escrito solo se muestra si no vale: lo que vale muestra su número, ya recortado a lo que hay.
+      value: invalida ? escrita.texto(clave) : n === 0 ? conCero : n,
+      "aria-invalid": invalida || undefined,
+      onFocus: (e) => {
+        escrita.empezar(clave, String(n));
+        e.currentTarget.select();
+      },
+      onBlur: () => escrita.terminar(clave),
+      onChange: (e) => {
+        if (incierto || enviando) return;
+        escrita.escribir(clave, e.target.value, String(n), (v) => alCambiar(leerCantidadTecleada(v, tope) ?? 0));
+      },
+    };
+  }
+
   function atras() {
     if (enviando) return;
     if (i === 0 || incierto) return onSalir();
     setError(null);
-    setI(i - 1);
+    irAlPaso(i - 1);
   }
 
   async function confirmar() {
@@ -560,10 +592,12 @@ export function FlujoTalla({
 
   function seguir() {
     if (!completo || enviando) return;
+    // Lo tecleado no valió: antes de seguir (o de mover las prendas) con lo que quedó, se lee por qué.
+    if (REGLA_RELLENO.leer(relleno) === null || escrita.frenar()) return;
     if (ultimo) void confirmar();
     else {
       setError(null);
-      setI(i + 1);
+      irAlPaso(i + 1);
     }
   }
 
@@ -604,14 +638,37 @@ export function FlujoTalla({
           <>
             <Pregunta ayuda={`Hay ${unidades(max)} ${de}.`}>{pregunta}</Pregunta>
             <div className="flex flex-wrap items-center gap-3">
-              <Stepper id="flujo-cantidad" valor={d.n ?? 0} max={max} etiqueta="Cantidad" onValor={(n) => poner({ n })} />
+              <Stepper
+                id="flujo-cantidad"
+                valor={d.n ?? 0}
+                max={max}
+                etiqueta="Cantidad"
+                onValor={(n) => {
+                  escrita.olvidar();
+                  poner({ n });
+                }}
+                campo={cajaDe("flujo-cantidad", d.n ?? 0, max, (n) => poner({ n }), 0)}
+              />
               {/* «Todas (N)»: el atajo de colgar o subir todo lo que hay (2026-10-07). */}
               {viaje && max > 1 && (
-                <button type="button" aria-pressed={(d.n ?? 0) === max} onClick={() => poner({ n: max })} className="btn-cayla btn-secundario btn-chico aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel">
+                <button
+                  type="button"
+                  aria-pressed={(d.n ?? 0) === max}
+                  onClick={() => {
+                    escrita.olvidar();
+                    poner({ n: max });
+                  }}
+                  className="btn-cayla btn-secundario btn-chico aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel"
+                >
                   Todas ({max})
                 </button>
               )}
             </div>
+            {escrita.problema && (
+              <Aviso tono="atencion" chico className="mt-3">
+                {escrita.problema}
+              </Aviso>
+            )}
             {/* «Así va a quedar»: de dónde sale, lo que viaja y a dónde llega, con el número después en grande y el de antes chico. Reemplaza
                 al «0 → 1» que había que descifrar (Felipe, 2026-10-07: «esto también está un poco confuso»). */}
             {viaje && (
@@ -659,7 +716,19 @@ export function FlujoTalla({
         const nFalta = Object.keys(loQueFalta).length;
         const enPausa = colores.some((c) => c.tallas.some((t) => t.planPiso?.accion === "pausa_sin_cuadre"));
         const muchas = tallasDeTodos.length > 1;
-        const poner1 = (id: string, n: number, max: number) => poner({ cant: { ...cant, [id]: Math.max(0, Math.min(max, n)) } });
+        // Un botón cambió la tabla: lo rechazado ya no se dice, y es adonde vuelve «Llenar todas con» aunque tenga el cursor (en el iPhone, un botón no se lo lleva).
+        const conBoton = (nuevas: Record<string, number>) => {
+          escrita.olvidar();
+          antesDelRelleno.current = nuevas;
+          poner({ cant: nuevas });
+        };
+        const poner1 = (id: string, n: number, max: number) => conBoton({ ...cant, [id]: Math.max(0, Math.min(max, n)) });
+        const rellenoInvalido = REGLA_RELLENO.leer(relleno) === null;
+        const problemaTabla = rellenoInvalido ? REGLA_RELLENO.decir(relleno, false) : escrita.problema;
+        const conAtajo = (nuevas: Record<string, number>) => {
+          setRelleno("");
+          conBoton(nuevas);
+        };
         // Subir varias: la misma tabla al revés (2026-10-08). Se edita lo colgado; el atajo es «Todo lo colgado», no «lo que falta».
         const subiendo = tipo === "subirVarias";
         const todoLoColgado = llenarTodasCon(todas, Number.MAX_SAFE_INTEGER, "subir");
@@ -674,27 +743,38 @@ export function FlujoTalla({
               <input
                 id="colgar-llenar"
                 inputMode="numeric"
-                maxLength={2}
+                maxLength={7}
                 placeholder="1"
                 value={relleno}
+                aria-invalid={rellenoInvalido || undefined}
                 onChange={(e) => {
-                  const limpio = e.target.value.replace(/\D/g, "");
+                  const limpio = limpiarCantidad(e.target.value);
                   setRelleno(limpio);
-                  poner({ cant: llenarTodasCon(todas, limpio === "" ? null : Number(limpio), subiendo ? "subir" : "bajar") });
+                  escrita.olvidar();
+                  poner({ cant: cantDelRelleno(todas, limpio, antesDelRelleno.current, subiendo ? "subir" : "bajar") });
                 }}
-                onFocus={(e) => e.currentTarget.select()}
-                className="h-9 w-14 rounded-[9px] border border-borde-control bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
+                onFocus={(e) => {
+                  antesDelRelleno.current = cant;
+                  e.currentTarget.select();
+                }}
+                onBlur={() => {
+                  // Lo que no es una cantidad no llenó nada: la caja queda vacía y las celdas, como estaban.
+                  if (!rellenoInvalido) return;
+                  escrita.rechazar(relleno, REGLA_RELLENO);
+                  setRelleno("");
+                }}
+                className={`h-9 w-14 rounded-[9px] border bg-hueso text-center text-[15px] font-semibold tabular-nums outline-none placeholder:text-tinta/30 focus:bg-papel ${rellenoInvalido ? "border-rojo text-rojo-profundo focus:border-rojo" : "border-borde-control text-tinta focus:border-taupe"}`}
               />
               {subiendo ? (
-                <button type="button" disabled={nColgado === 0} onClick={() => { setRelleno(""); poner({ cant: { ...todoLoColgado } }); }} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">
+                <button type="button" disabled={nColgado === 0} onClick={() => conAtajo({ ...todoLoColgado })} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">
                   Todo lo colgado ({nColgado})
                 </button>
               ) : (
-                <button type="button" disabled={nFalta === 0} onClick={() => { setRelleno(""); poner({ cant: { ...loQueFalta } }); }} title="1 en cada talla sin ninguna colgada" className="btn-cayla btn-secundario btn-chico">
+                <button type="button" disabled={nFalta === 0} onClick={() => conAtajo({ ...loQueFalta })} title="1 en cada talla sin ninguna colgada" className="btn-cayla btn-secundario btn-chico">
                   Solo lo que falta ({nFalta})
                 </button>
               )}
-              <button type="button" disabled={tot.total === 0} onClick={() => { setRelleno(""); poner({ cant: {} }); }} className="btn-cayla btn-sutil btn-chico">
+              <button type="button" disabled={tot.total === 0} onClick={() => conAtajo({})} className="btn-cayla btn-sutil btn-chico">
                 Vaciar
               </button>
             </div>
@@ -724,7 +804,18 @@ export function FlujoTalla({
                         {tallasDeTodos.map((nombre) => {
                           const t = c.tallas.find((x) => (x.talla ?? "Única") === nombre);
                           if (!t) return <td key={nombre} aria-hidden className={`border-t border-sand ${fondo}`} />;
-                          if (subiendo) return <CeldaSubir key={nombre} celda={celdaSubirVarias(t)} n={cant[t.varianteId] ?? 0} etiqueta={`${c.color ?? ""} ${nombre}`} fondo={fondo} onValor={(n, max) => poner1(t.varianteId, n, max)} />;
+                          if (subiendo)
+                            return (
+                              <CeldaSubir
+                                key={nombre}
+                                celda={celdaSubirVarias(t)}
+                                n={cant[t.varianteId] ?? 0}
+                                etiqueta={`${c.color ?? ""} ${nombre}`}
+                                fondo={fondo}
+                                onValor={(n, max) => poner1(t.varianteId, n, max)}
+                                caja={(tope) => cajaDe(t.varianteId, cant[t.varianteId] ?? 0, tope, (n) => poner({ cant: { ...cant, [t.varianteId]: n } }))}
+                              />
+                            );
                           const celda = celdaColgarVarias(t, faltan);
                           if (celda.tipo === "acabo")
                             return (
@@ -741,23 +832,23 @@ export function FlujoTalla({
                             );
                           const n = cant[t.varianteId] ?? 0;
                           const etiqueta = `${c.color ?? ""} ${nombre}`;
+                          const campo = cajaDe(t.varianteId, n, celda.almacen, (v) => poner({ cant: { ...cant, [t.varianteId]: v } }));
+                          const invalida = Boolean(campo["aria-invalid"]);
                           return (
                             <td key={nombre} className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
                               <PasoCantidad
                                 tamano="celda"
                                 // La talla que falta en el piso se tiñe de ámbar (como su «falta» de abajo).
-                                tono={celda.falta ? "atencion" : undefined}
+                                tono={invalida ? "error" : celda.falta ? "atencion" : undefined}
                                 menos={{ onClick: () => poner1(t.varianteId, n - 1, celda.almacen), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
                                 mas={{ onClick: () => poner1(t.varianteId, n + 1, celda.almacen), deshabilitado: n >= celda.almacen, etiqueta: `Una más de ${etiqueta}` }}
                                 campo={{
                                   inputMode: "numeric",
                                   "aria-label": `Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`,
-                                  value: n === 0 ? "" : n,
                                   placeholder: "0",
-                                  onFocus: (e) => e.currentTarget.select(),
-                                  onChange: (e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } }),
+                                  ...campo,
                                   // Con algo elegido, el número va en verde (también en una talla que falta).
-                                  className: n > 0 ? "text-verde" : "",
+                                  className: n > 0 && !invalida ? "text-verde" : "",
                                 }}
                               />
                               <small className={`mt-1 block text-sm ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
@@ -785,6 +876,11 @@ export function FlujoTalla({
                 )}
               </table>
             </div>
+            {problemaTabla && (
+              <Aviso tono="atencion" chico className="mt-2">
+                {problemaTabla}
+              </Aviso>
+            )}
             <p className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-sm text-taupe">
               {!subiendo && <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-ambar/40 bg-ambar/[0.14]" />falta en el piso</span>}
               <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />{subiendo ? "nada colgado" : "no hay en almacén"}</span>

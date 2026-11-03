@@ -10,12 +10,12 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
-import { soloCifrasEscritas } from "@/lib/numero-escrito";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { camposDelPlazo } from "@/lib/plan-compra-guia";
-import { DIAS_PARA_LLEGAR_DE_FABRICA, RPC_GUARDAR_PLAZO, argsGuardarPlazo, detalleDelNuevoPlazo, plazoDePedido } from "@/lib/plan-compra-plazo";
+import { DIAS_PARA_LLEGAR_DE_FABRICA, RPC_GUARDAR_PLAZO, argsGuardarPlazo, detalleDelNuevoPlazo, plazoDePedido, problemaDeLosDias } from "@/lib/plan-compra-plazo";
 
 // Los días que tarda un pedido en llegar a las tiendas, para esta campaña (ADR-0499): con ellos, la fecha límite para pedir. Lo fija quien tiene
 // el módulo Plan de campaña (la base lo exige también). Guía de foco (ADR-0284): `camposDelPlazo` sale de la misma regla que la base. Mientras se
@@ -51,6 +51,8 @@ export function PlazoModal({
   const dias = argsGuardarPlazo(planId, texto).p_dias;
   // La fecha límite que resultaría con lo escrito: la persona la ve ANTES de guardar.
   const resultado = dias !== null ? plazoDePedido(desde, hasta, hoy, dias) : null;
+  // Vacío todavía no está mal: la guía ya pide escribirlo.
+  const malEscrito = texto.trim() === "" ? null : problemaDeLosDias(texto);
 
   async function guardar(valor: string | null, cerrar: () => void) {
     if (enviando.current) return;
@@ -90,14 +92,14 @@ export function PlazoModal({
             <div data-guia="plazo-modal.dias" className="flex flex-wrap items-start gap-x-4 gap-y-1">
               <div className="flex w-32 items-center gap-2">
                 <div className="min-w-0 flex-1">
-                  <CampoTexto etiqueta="Días para llegar a las tiendas" caja inputMode="numeric" value={texto} onChange={(e) => setTexto(soloCifrasEscritas(e.target.value))} />
+                  <CampoTexto etiqueta="Días para llegar a las tiendas" caja inputMode="numeric" value={texto} tono={malEscrito ? "error" : undefined} onChange={(e) => setTexto(limpiarCantidad(e.target.value))} />
                 </div>
                 <span aria-hidden className="pb-4 text-sm text-tinta/70">
                   días
                 </span>
               </div>
               <p className="min-w-0 flex-1 basis-60 pt-2.5 text-sm leading-snug text-tinta/80" aria-live="polite">
-                {resultado ? resultado.detalle : `Escribe un número de días: sin historia de recepciones, el supuesto es de ${DIAS_PARA_LLEGAR_DE_FABRICA}.`}
+                {resultado ? resultado.detalle : (malEscrito ?? `Escribe un número de días: sin historia de recepciones, el supuesto es de ${DIAS_PARA_LLEGAR_DE_FABRICA}.`)}
               </p>
             </div>
           </CampoGuiado>

@@ -389,9 +389,10 @@ describe("la cantidad y la nota de la hoja", () => {
     expect(leerCantidadReposicion("-1", 2).problema).toMatch(/solo el número/);
   });
 
-  it("al tipear solo entran dígitos, hasta 4", () => {
-    expect(limpiarCantidadReposicion("2a")).toBe("2");
-    expect(limpiarCantidadReposicion("123456")).toBe("1234");
+  it("al tipear, lo que no es una cantidad se queda a la vista para que el lector lo diga (tecleado de a una letra: `cantidad-escrita-campos.test.ts`)", () => {
+    expect(limpiarCantidadReposicion("2a")).toBe("2a");
+    expect(limpiarCantidadReposicion("123456")).toBe("123456");
+    expect(limpiarCantidadReposicion("1,200")).toBe("1200");
   });
 
   it("la nota es obligatoria y va hasta 300 letras", () => {

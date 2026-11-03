@@ -1,4 +1,5 @@
 import { HORAS_PROFORMA_POR_VENCER } from "@cayla-retail/shared";
+import { enteroEscrito } from "./cantidad-escrita-reglas";
 
 // Reglas puras de proformas: ni Supabase ni `next/headers`, para que se puedan
 // probar sin levantar nada.
@@ -84,6 +85,13 @@ export type LineaProforma = {
 /** Hasta dónde se puede descontar una línea en la proforma. Es la banda que el Punto de Venta cobra sin
  *  argumento escrito; lo que pase de ahí lo decide un líder al cobrar (spec 2026-09-22). */
 export const TOPE_DESCUENTO_PROFORMA = 0.2;
+
+/** Cuántos días vale una proforma, de lo que se escribe: vacío o 0 son 7, y hasta 60. `null`: no es un entero, y no se adivina. */
+export function diasDeLaProforma(texto: string): number | null {
+  if (texto.trim() === "") return 7;
+  const n = enteroEscrito(texto);
+  return n === null ? null : Math.min(60, n || 7);
+}
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
