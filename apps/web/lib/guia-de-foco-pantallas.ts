@@ -564,9 +564,12 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0393: lo que no estaba en la guía (o lo que llegó sin aviso): de qué proveedor si hay dos o más, la categoría y la marca (una que
   // ya está en la lista no se repite).
   "components/recepcion-conteo/AgregarFueraDeGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/AgregarFueraDeGuia.tsx"] },
+  // «¿Quién va a contar?» al entrar a Contar desde una terminal: UN solo control (el combo del responsable, que se enciende solo y sale al elegir).
+  "components/recepcion-conteo/ElegirQuienCuenta.tsx": { estado: "no-aplica", motivo: "Hoja de un solo control: el combo «Quién cuenta», que la hoja pide al entrar y se cierra sola al elegir; no hay campos ni pasos que guiar." },
   // ADR-0393: «Hacer ahora». Separar pide al menos una prenda y nunca más de lo que queda; las tallas y la prenda nueva son las hojas de
   // siempre (HojaTallas, HojaPrenda), con su guía.
   "components/recepcion-conteo/PapelesDeLaCompra.tsx": { estado: "no-aplica", motivo: "Sus hojas solo muestran los papeles y su foto en grande: nada que llenar. El único control de archivo es el botón «Subir foto» de un papel sin foto: un toque que abre la cámara o la galería, sin campos ni pasos." },
+  "components/recepcion-conteo/CerrarEnvio.tsx": { estado: "no-aplica", motivo: "Su hoja solo avisa que alguien guardó un conteo mientras se cerraba el envío: un mensaje con su ×, sin campos ni pasos. Los campos del cierre viven en la página y ya traen su guía (ruta /recibir/envio/[id])." },
   "components/recepcion-conteo/ConfirmarPrecios.tsx": { estado: "no-aplica", motivo: "La hoja de confirmación solo lista los precios que cambian (compra y venta) y pide confirmar: no tiene campos. Los campos del cierre ya traen su guía en la página y los de «Hacer ahora», en su hoja. La usan el cierre y «Hacer ahora»." },
   "components/recepcion-conteo/HacerAhora.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/HacerAhora.tsx"] },
   // ADR-0393: las tallas y colores de una prenda separada: qué prenda es, cuántas de cada talla y color y, si llegaron dañadas, cuántas y

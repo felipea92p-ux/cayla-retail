@@ -3,12 +3,13 @@
    El layout de un grupo pone `.pantalla-en-vidrio` (`display: contents`, no ocupa lugar) y lo de adentro toma las piezas elegidas: un bloque es
    la placa Serena; una línea, el hilo de las tablas; lo que era hueso, el pozo. Y el kit de Finanzas (`Superficie`, `InputFin`, `SelectFin`, la
    tabla), que usan pantallas fuera de Finanzas: en Finanzas sigue en papel hasta que se rediseñe con El telar (ADR-0493).
-   Hoy: Tienda web y Configuración. Una hoja se cuelga fuera del grupo y tiene lo suyo (hoja.css). Solo cambia el material. Sin capa: le gana a
+   Hoy: Tienda web, Configuración y Compras. Una hoja se cuelga fuera del grupo y tiene lo suyo (hoja.css). Solo cambia el material. Sin capa: le gana a
    `components` y a las utilidades; por eso un estado de color que viva en una capa (`hover:border-…`) hay que repetirlo aquí.
    ==================================================================== */
 
-/* ---------- Un bloque de la pantalla: la placa Serena ---------- */
-.pantalla-en-vidrio .card-cayla,
+/* ---------- Un bloque de la pantalla: la placa Serena ----------
+   Fuera: la tarjeta de cifra, que ya es esa placa y se hunde cuando filtra (pantalla.css), y una tarjeta con el fondo del tono de lo que dice. */
+.pantalla-en-vidrio .card-cayla:not(.tarjeta-cifra, [class*="bg-rojo"], [class*="bg-ambar"], [class*="bg-verde"], [class*="bg-pizarra"]),
 .pantalla-en-vidrio .fin-superficie {
   border-radius: 22px;
   border-color: var(--serena-borde);
@@ -17,9 +18,34 @@
   backdrop-filter: var(--serena-filtro);
   box-shadow: var(--serena-sombra);
 }
+/* La tarjeta que se toca (`mov-boton`) conserva la sombra de su movimiento al pasar el mouse; la que lleva un filo de color a la izquierda, ese filo. */
+.pantalla-en-vidrio .card-cayla.mov-boton:not(.border-tinta) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: revert-layer;
+}
+.pantalla-en-vidrio .card-cayla[class*="border-l-"] {
+  border-left-color: revert-layer;
+}
+/* La tarjeta elegida entre varias (el tipo de compra, cómo se pagó, la cuenta): se hunde con su filo de tinta, como las opciones del kit. */
+.pantalla-en-vidrio .card-cayla.border-tinta:not(.tarjeta-cifra) {
+  border-color: var(--color-tinta);
+  background: var(--hundido-fondo);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: var(--hundido-sombra);
+}
+/* Lo que era papel o arena dentro de un bloque (una línea de la orden, lo que se recibe en un cierre, las cuentas del proveedor): la placa.
+   Fuera lo que se toca, que lleva su propia cara, y un ícono sobre una foto, que tiene que seguir leyéndose (`aria-hidden`). */
+.pantalla-en-vidrio :is(div, section, ul, li, span).bg-papel:not(.papel-fijo, .papel-fijo *, [data-color-dato], [data-color-dato] *, [aria-hidden]),
+.pantalla-en-vidrio div.bg-sand\/40 {
+  border-color: var(--placa-borde);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz);
+}
 
-/* ---------- Las líneas: el hilo de las tablas (lo que muestra el papel de verdad no se toca) ---------- */
-.pantalla-en-vidrio .border-sand:not(.papel-fijo, .papel-fijo *),
+/* ---------- Las líneas: el hilo de las tablas (lo que muestra el papel de verdad no se toca; un botón o un enlace conserva el borde que dice que se toca) ---------- */
+.pantalla-en-vidrio .border-sand:not(.papel-fijo, .papel-fijo *, a, button, [role="button"]),
 .pantalla-en-vidrio .divide-sand:not(.papel-fijo, .papel-fijo *) > *,
 .pantalla-en-vidrio :is(.fin-herramientas, .fin-pie, .fin-lista li, .fin-fijo) {
   border-color: var(--hilo-fila);
@@ -41,6 +67,11 @@
   padding-inline: 0;
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
   backdrop-filter: blur(14px) saturate(1.3);
+}
+
+/* La barra que acompaña al bajar (el total y el botón de «Apunte de compras»): el mismo vidrio del pie, en vez de crema casi sólida. */
+.pantalla-en-vidrio [class~="bg-crema/95"] {
+  background: var(--vidrio-pie-fondo);
 }
 
 /* ---------- El campo y el combo del kit: el pozo, como `caja-campo-input` ----------

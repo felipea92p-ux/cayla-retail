@@ -8,7 +8,7 @@ import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indica
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
-import { nombresDeDestinos } from "@/lib/reparto-reglas";
+import { destinosCortos } from "@/lib/reparto-reglas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -158,7 +158,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           ) : (
             <>
               {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-              {soles(extra.valorPorRecibir)} por llegar
+              {soles(extra.valorPorRecibir)}
             </>
           )}
         </TarjetaCifra>
@@ -168,7 +168,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           etiqueta={`Compras de ${mesActual}`}
           valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
         >
-          {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)} completo: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
+          {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)}: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
         </TarjetaCifra>
         <TarjetaCifra
           className="anim-entra"
@@ -177,7 +177,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           etiqueta="IGV del mes"
           valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
         >
-          Crédito fiscal · solo facturas
+          Solo facturas
         </TarjetaCifra>
       </div>
 
@@ -272,20 +272,23 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.recepcion">
                       <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                      <span className="mt-0.5 block text-sm text-tinta/70">{recepcion.sub}</span>
+                      {c.estado !== "anulada" && <span className="mt-0.5 block text-sm text-tinta/70">{recepcion.sub}</span>}
                       {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
                       {c.ubicacionesDestino.length > 1 && (
-                        <span className="mt-0.5 block text-sm text-tinta/70">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                        <span className="mt-0.5 block text-sm text-tinta/70">{destinosCortos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
                       )}
                       {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                       <AvanceFino pct={recepcion.pct} />
                     </span>
                     <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.pago">
+                      {/* Una anulada ya lo dice en Recepción, y una pagada no necesita más que su chip: «Contado» o «Vence» van bajo la emisión. */}
                       {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
-                      <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
-                        {pago.texto}
-                      </Chip>
-                      <span className="mt-0.5 block text-sm tabular-nums text-tinta/70">{pago.sub}</span>
+                      {c.estado !== "anulada" && (
+                        <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
+                          {pago.texto}
+                        </Chip>
+                      )}
+                      {c.estado !== "anulada" && c.estadoPago !== "pagada" && <span className="mt-0.5 block text-sm tabular-nums text-tinta/70">{pago.sub}</span>}
                       <AvanceFino pct={pago.pct} />
                       {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
                       <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
