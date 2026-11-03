@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 97,
+  "total": 107,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -10,7 +10,6 @@
       "CampoMonto «{guia.etiqueta(\"costo\", `Costo por ${UNIDADES_INSUMO[unidad].corta}»",
       "CampoTexto «Código de lote»",
       "CampoTexto «Documento»",
-      "CampoSelect «Origen»",
       "CampoTexto «Nota»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
@@ -31,6 +30,14 @@
       "Boton «+ Ingresar lote»",
       "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»",
       "Boton «{indice === 0 ? \"prod-insumos.retirar-color\" : undefined}»"
+    ],
+    "components/MediosDePago.tsx": [
+      "Desplegable «{m.metodo}»",
+      "input «{`Monto del medio ${i + 1}»",
+      "input «{`Referencia del medio ${i + 1}»",
+      "button «{`Quitar el medio ${i + 1}»",
+      "button «Agregar otro medio»",
+      "Desplegable «{valor}»"
     ],
     "components/ProduccionSoloEnTaller.tsx": [
       "BotonVer «Volver al inicio»"
@@ -60,6 +67,13 @@
     "components/insumos-taller/CamposDeLaFicha.tsx": [
       "CampoSelect «{foco.etiqueta(\"tejido\", \"Tejido\")}»",
       "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
+    ],
+    "components/insumos-taller/CompraDelInsumo.tsx": [
+      "ComboBuscable «{proveedorId}»",
+      "CampoSelect «Tipo»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoFecha «Vence»"
     ],
     "components/insumos-taller/CorregirIngresoModal.tsx": [
       "CampoTexto «{`Cantidad (${unidad.corta}»",
