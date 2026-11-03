@@ -17,6 +17,8 @@
  *      nada; vacía o larga no; en camino, sin responsable o sin Recibir no; deja su rastro y se cierra con la versión nueva.
  *   M  SIN MARCA (Felipe 2026-10-14): lo de fuera de la guía se cuenta sin marca, entra al stock así, la prenda nueva nace sin marca y el
  *      detalle del envío no pierde la fila; en un envío de Compras, lo de más sin marca deja su diferencia.
+ *   Z  MODELOS EN 0 (Felipe 2026-11-03): un modelo agregado nace en 0, con descripción y nombre por defecto; se guarda, el nombre por defecto no
+ *      deja cerrar lo contado, y lo que quedó en 0 se descarta sin dejar pendiente.
  *   F  LA FORMA: permisos y RLS.
  *
  * USO
@@ -54,6 +56,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261013183000_envio_sin_aviso.sql",
       // ADR-0393: la guía se corrige al cerrar.
       "20261014205000_corregir_guia_al_cerrar.sql",
+      // ADR-0604 (act. 2026-11-03): modelos en 0, con descripción y nombre por defecto.
+      "20261103182000_modelos_en_cero_al_contar.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -576,6 +580,55 @@ caso(
    reset role;
    select concat_ws(' / ', :'en_camino', :'sin_resp', :'sin_modulo', (select numero_guia from retail.despachos where id = :'d1'));`,
   "envio_no_abierto / responsable_requerido / recibir_sin_modulo / T001-88",
+);
+
+// Z. MODELOS EN 0 --------------------------------------------------------------------------------------------------------
+const NUEVA = (cantidad, nombre, extra = {}) => ({ cantidad, descripcion: nombre, ...extra });
+const SEPJ = (nuevas, prendas = []) => `'${JSON.stringify({ prendas, nuevas }).replaceAll("'", "''")}'::jsonb`;
+caso(
+  "Z1 un modelo en 0 se guarda con su descripción y su nombre por defecto; sin nombre no; la nota larga no; lo negativo no; y no suma a lo contado",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.guarda(:'d', null, 0, ${SEPJ([NUEVA(0, "Chompa 1", { por_defecto: true, nota: "  cuello alto  " }), NUEVA(0, "Chompa Luna")])}, null::int, null::int, null::uuid, :'cat', :'marca') as g \\gset
+   select pg_temp.e(:'g'::jsonb) as bien \\gset
+   select pg_temp.h(pg_temp.guarda(:'d', null, 0, ${SEPJ([NUEVA(0, null)])}, null::int, null::int, null::uuid, :'cat', :'marca')) as sin_nombre \\gset
+   select pg_temp.h(pg_temp.guarda(:'d', null, 1, ${SEPJ([NUEVA(1, null, { por_defecto: true })])}, null::int, null::int, null::uuid, :'cat', :'marca')) as defecto_sin_nombre \\gset
+   select pg_temp.h(pg_temp.guarda(:'d', null, 0, ${SEPJ([NUEVA(0, "Larga", { nota: "x".repeat(201) })])}, null::int, null::int, null::uuid, :'cat', :'marca')) as nota_larga \\gset
+   select pg_temp.h(pg_temp.guarda(:'d', null, 1, ${SEPJ([NUEVA(-1, "Negativa")])}, null::int, null::int, null::uuid, :'cat', :'marca')) as negativa \\gset
+   reset role;
+   select concat_ws(' / ', :'bien', :'sin_nombre', :'defecto_sin_nombre', :'nota_larga', :'negativa',
+     (select concat_ws(':', k.contadas, retail.fn_envio_total_separado(k.separado), k.separado -> 'nuevas' -> 0 ->> 'descripcion', k.separado -> 'nuevas' -> 0 ->> 'nota',
+                       k.separado -> 'nuevas' -> 0 ->> 'por_defecto', k.separado -> 'nuevas' -> 1 ->> 'descripcion', coalesce(k.separado -> 'nuevas' -> 1 ->> 'por_defecto', 'sin marca'))
+        from retail.despacho_conteos k where k.despacho_id = :'d'));`,
+  "OK / conteo_cantidad / conteo_cantidad / conteo_nueva_descripcion / conteo_cantidad / 0:0:Chompa 1:cuello alto:true:Chompa Luna:sin marca",
+);
+caso(
+  "Z2 un modelo contado con nombre por defecto no deja cerrar; con su nombre cierra, y lo que quedó en 0 no deja pendiente",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.guarda(:'d', null, 2, ${SEPJ([NUEVA(2, "Chompa 1", { por_defecto: true }), NUEVA(0, "Chompa 2", { por_defecto: true }), NUEVA(0, "Chompa Sol")])}, null::int, null::int, null::uuid, :'cat', :'marca') as g \\gset
+   ${VERS("d", [], [1])}
+   select pg_temp.e(${CIERRA("d", [DEC(1)])}) as frena \\gset
+   select pg_temp.guarda(:'d', null, 2, ${SEPJ([NUEVA(2, "Chompa Luna", { nota: "cuello alto" }), NUEVA(0, "Chompa 2", { por_defecto: true }), NUEVA(0, "Chompa Sol")])}, null::int, 1::int, null::uuid, null::uuid, null::uuid) as g2 \\gset
+   ${VERS("d", [], [1])}
+   select ${CIERRA("d", [DEC(1)])} as r \\gset
+   reset role;
+   select concat_ws(' / ', :'frena', pg_temp.e(:'r'::jsonb),
+     (select string_agg(x.tipo || '=' || x.cantidad || '=' || x.descripcion, ',' order by x.descripcion) from retail.despacho_pendientes x where x.despacho_id = :'d'));`,
+  "P0001|recepcion_modelo_sin_nombre|Cambia el nombre de «Chompa 1» antes de cerrar / OK / crear=2=Chompa Luna",
+);
+caso(
+  "Z3 una prenda del catálogo en 0 se guarda y no deja pendiente; un envío con todo en 0 con nombre por defecto no frena por el nombre",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.e(pg_temp.guarda(:'d', null, 0, jsonb_build_object('prendas', jsonb_build_array(jsonb_build_object('producto_id', :'prod_p'::uuid, 'cantidad', 0)), 'nuevas', ${SEPJ([NUEVA(0, "Chompa 1", { por_defecto: true })])} -> 'nuevas'), null::int, null::int, null::uuid, :'cat', :'marca')) as en_cero \\gset
+   select pg_temp.e(pg_temp.guarda(:'d', null, 3, jsonb_build_object('prendas', jsonb_build_array(jsonb_build_object('producto_id', :'prod_p'::uuid, 'cantidad', 0)), 'nuevas', ${SEPJ([NUEVA(3, "Chompa Sol")])} -> 'nuevas'), null::int, 1::int, null::uuid, null::uuid, null::uuid)) as contado \\gset
+   ${VERS("d", [], [1])}
+   select ${CIERRA("d", [DEC(1)])} as r \\gset
+   reset role;
+   select concat_ws(' / ', :'en_cero', :'contado', pg_temp.e(:'r'::jsonb),
+     (select string_agg(x.tipo || '=' || x.cantidad, ',') from retail.despacho_pendientes x where x.despacho_id = :'d'));`,
+  "OK / OK / OK / crear=3",
 );
 
 // M. SIN MARCA ----------------------------------------------------------------------------------------------------------

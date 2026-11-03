@@ -119,7 +119,15 @@ export type PrendaSeparada = {
 };
 
 /** Lo nuevo: solo cuántas (decisión 8); describirlas es parte del pendiente «crear». */
-export type NuevaSeparada = { cantidad: number; descripcion: string | null };
+export type NuevaSeparada = {
+  cantidad: number;
+  /** El nombre con que se anotó; null = «llegaron N y aún no sé cuáles». Con nombre puede estar en 0: es un modelo que todavía no se cuenta. */
+  descripcion: string | null;
+  /** Lo que describe al modelo, para no confundirlo con otro parecido (opcional). */
+  nota?: string | null;
+  /** Su nombre es provisional («Blusa 1»): no se cierra el envío hasta cambiarlo (`recepcion_modelo_sin_nombre`). */
+  porDefecto?: boolean;
+};
 
 export type Separado = { prendas: PrendaSeparada[]; nuevas: NuevaSeparada[] };
 
@@ -152,11 +160,16 @@ export function leerSeparado(v: unknown): Separado {
       const vars = Array.isArray(o.variantes) ? o.variantes.map(leerVarianteSeparada).filter((x): x is VarianteSeparada => x !== null) : null;
       return { productoId, nombre: texto(o.nombre), codigo: texto(o.codigo), cantidad: entero(o.cantidad), variantes: vars };
     })
-    .filter((p): p is PrendaSeparada => p !== null && p.cantidad > 0);
+    .filter((p): p is PrendaSeparada => p !== null);
   const nuevas = lista(r.nuevas)
     .map((n): NuevaSeparada | null => {
       const o = objeto(n);
-      return o && entero(o.cantidad) > 0 ? { cantidad: entero(o.cantidad), descripcion: texto(o.descripcion) } : null;
+      if (!o) return null;
+      const cantidad = entero(o.cantidad);
+      const descripcion = texto(o.descripcion);
+      // En 0 solo existe un modelo con nombre.
+      if (cantidad <= 0 && !descripcion) return null;
+      return { cantidad, descripcion, ...(texto(o.nota) ? { nota: texto(o.nota) } : {}), ...(o.por_defecto === true ? { porDefecto: true } : {}) };
     })
     .filter((n): n is NuevaSeparada => n !== null);
   return { prendas, nuevas };
@@ -171,11 +184,10 @@ export const detalladas = (s: Separado): number => s.prendas.filter((p) => p.var
 /** Lo separado en la forma que guarda la base (`p_separado`): sin los nombres, con las tallas en 0 fuera. */
 export function separadoParaBase(s: Separado): {
   prendas: { producto_id: string; cantidad: number; variantes: { variante_id: string; cantidad: number; danadas: number; danada_solucion: SolucionDanada | null }[] | null }[];
-  nuevas: { cantidad: number; descripcion: string | null }[];
+  nuevas: { cantidad: number; descripcion: string | null; nota?: string; por_defecto?: true }[];
 } {
   return {
     prendas: s.prendas
-      .filter((p) => p.cantidad > 0)
       .map((p) => ({
         producto_id: p.productoId,
         cantidad: p.cantidad,
@@ -186,7 +198,15 @@ export function separadoParaBase(s: Separado): {
                 .filter((v) => v.cantidad > 0)
                 .map((v) => ({ variante_id: v.varianteId, cantidad: v.cantidad, danadas: v.danadas, danada_solucion: v.danadas > 0 ? v.solucion : null })),
       })),
-    nuevas: s.nuevas.filter((n) => n.cantidad > 0).map((n) => ({ cantidad: n.cantidad, descripcion: n.descripcion?.trim() || null })),
+    // En 0 solo se guarda un modelo con nombre (`fn_envio_leer_separado`).
+    nuevas: s.nuevas
+      .filter((n) => n.cantidad > 0 || n.descripcion?.trim())
+      .map((n) => ({
+        cantidad: n.cantidad,
+        descripcion: n.descripcion?.trim() || null,
+        ...(n.nota?.trim() ? { nota: n.nota.trim() } : {}),
+        ...(n.porDefecto ? { por_defecto: true as const } : {}),
+      })),
   };
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   textoAnotarNueva,
+  leerSeparado,
   SEPARADO_VACIO,
   claveCostoDeNueva,
   costoDePrendaTexto,
@@ -217,7 +218,8 @@ describe("leer lo contado de un envío (fn_envio_conteos)", () => {
     expect(c?.origen).toBe("sin_aviso");
     expect(c?.proveedores).toEqual([PROV]);
     expect(c?.conteos).toHaveLength(2);
-    expect(c?.conteos[0].separado.prendas.map((p) => p.productoId)).toEqual(["pa"]);
+    // Una prenda en 0 ya es un modelo que todavía no se cuenta (ADR-0604, act. 2026-11-03): se lee.
+    expect(c?.conteos[0].separado.prendas.map((p) => p.productoId)).toEqual(["pa", "pz"]);
     expect(c?.conteos[0].pendientes.map((p) => [p.id, p.quedan])).toEqual([["pe1", 2]]);
     expect(c?.conteos[1].extraPosicion).toBe(1);
     expect(c?.cierres).toEqual([{ tipo: "cierre", motivo: null, hechoPor: { id: "per1", nombre: "Mariana" }, hechoEn: null, porDetallar: 8, faltan: 2 }]);
@@ -1246,5 +1248,37 @@ describe("textoAnotarNueva: no afirma lo que no pudo comprobar", () => {
 
   it("si halló parecidas, pregunta por ellas", () => {
     expect(textoAnotarNueva("Conjunto Luna", { halladas: 2, fallo: false })).toBe("No es ninguna de estas: anotar «Conjunto Luna» como nueva");
+  });
+});
+
+describe("un modelo en 0, con su descripción y su nombre por defecto", () => {
+  const separado = {
+    prendas: [{ producto_id: "p1", nombre: "Blusa Emma", codigo: null, cantidad: 0, variantes: null }],
+    nuevas: [
+      { cantidad: 0, descripcion: "Blusa 1", nota: "cuello V", por_defecto: true },
+      { cantidad: 2, descripcion: "Blusa Luna" },
+      { cantidad: 0, descripcion: null },
+      { cantidad: 3, descripcion: null },
+    ],
+  };
+
+  it("se lee sin perder nada, y lo que no tiene nombre en 0 no existe", () => {
+    const s = leerSeparado(separado);
+    expect(s.prendas.map((p) => [p.productoId, p.cantidad])).toEqual([["p1", 0]]);
+    expect(s.nuevas).toEqual([
+      { cantidad: 0, descripcion: "Blusa 1", nota: "cuello V", porDefecto: true },
+      { cantidad: 2, descripcion: "Blusa Luna" },
+      { cantidad: 3, descripcion: null },
+    ]);
+  });
+
+  it("vuelve a la base tal como la base lo espera", () => {
+    const base = separadoParaBase(leerSeparado(separado));
+    expect(base.prendas.map((p) => [p.producto_id, p.cantidad])).toEqual([["p1", 0]]);
+    expect(base.nuevas).toEqual([
+      { cantidad: 0, descripcion: "Blusa 1", nota: "cuello V", por_defecto: true },
+      { cantidad: 2, descripcion: "Blusa Luna" },
+      { cantidad: 3, descripcion: null },
+    ]);
   });
 });

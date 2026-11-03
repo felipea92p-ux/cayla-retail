@@ -66,7 +66,7 @@ const normaliza = (d: string): string => d.trim().replace(/\s+/g, " ").toLocaleL
 /** Junta lo separado de varias líneas: las prendas conocidas (una sola vez cada una) y las nuevas (las de igual descripción se suman). */
 export function juntarSeparado(partes: readonly Separado[]): Separado {
   const prendas = new Map<string, Separado["prendas"][number]>();
-  const descritas = new Map<string, { cantidad: number; descripcion: string }>();
+  const descritas = new Map<string, Separado["nuevas"][number] & { descripcion: string }>();
   let sinDescribir = 0;
   for (const s of partes) {
     for (const p of s.prendas) {
@@ -80,7 +80,7 @@ export function juntarSeparado(partes: readonly Separado[]): Separado {
       }
       const k = normaliza(n.descripcion);
       const ya = descritas.get(k);
-      descritas.set(k, ya ? { ...ya, cantidad: ya.cantidad + n.cantidad } : { cantidad: n.cantidad, descripcion: n.descripcion });
+      descritas.set(k, ya ? { ...ya, cantidad: ya.cantidad + n.cantidad } : { ...n, descripcion: n.descripcion });
     }
   }
   return {
