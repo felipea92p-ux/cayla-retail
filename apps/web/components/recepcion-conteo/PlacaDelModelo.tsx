@@ -29,7 +29,6 @@ export function PlacaDelModelo({
   guardado,
   error,
   onReintentar,
-  quienCuenta,
   modo,
   abrirNumero,
   anterior,
@@ -61,8 +60,6 @@ export function PlacaDelModelo({
   error: string | null;
   /** Vuelve a mandar lo que no se pudo guardar. */
   onReintentar: () => void;
-  /** En una terminal, antes de contar: elegir quién cuenta. */
-  quienCuenta: ReactNode;
   modo: ModoDeTallas;
   /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
   abrirNumero: boolean;
@@ -179,7 +176,6 @@ export function PlacaDelModelo({
         </div>
       </div>
       {observaciones}
-      {quienCuenta}
       {otraCosa}
 
       <div className="rc-cuenta" data-guia="recepcion.numero">

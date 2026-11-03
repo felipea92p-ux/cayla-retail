@@ -6,7 +6,6 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
@@ -77,6 +76,7 @@ import {
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, mismasVariantes, tallasListas, type BorradorTallas } from "@/lib/recepcion-tallas-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
+import { ElegirQuienCuenta } from "./ElegirQuienCuenta";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
 import { AnotarObservacion, ObservacionesAnotadas } from "./ObservacionesDeLinea";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
@@ -507,6 +507,8 @@ export function ContarEnvio({
           <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
         </p>
       )}
+      {/* Lo primero al entrar: sin un responsable la base rechaza todo guardado (ElegirQuienCuenta). */}
+      {faltaQuien && <ElegirQuienCuenta responsable={responsable} sede={detalle.sede?.nombre ?? "esta sede"} />}
       {!sinAviso && hayModelos && <TiposDelEnvio tipos={cifras.tipos} marcado={tipoMarcado} filtrado={filtro.tipo} onElegir={(t) => cambiarFiltro({ ...filtro, tipo: filtro.tipo === t ? null : t, estado: null })} />}
 
       <div ref={mesa} className="rc-mesa">
@@ -564,14 +566,6 @@ export function ContarEnvio({
                 setErrorHoja(null);
                 onReintentar();
               }}
-              quienCuenta={
-                faltaQuien ? (
-                  <div className="rc-placa-quien" data-campo={ID_CAMPO_QUIEN}>
-                    <p className="rc-seccion-titulo">Antes de contar: ¿quién cuenta?</p>
-                    <ComboResponsable control={responsable} compacto className="min-w-0" />
-                  </div>
-                ) : null
-              }
               onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
               onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               modo={modoDe(parada)}
@@ -665,6 +659,7 @@ export function ContarEnvio({
           proveedores={proveedores}
           sinAviso={sinAviso}
           yaUsadas={yaUsadas}
+          errorDelGuardado={errores["extra:0"] ?? null}
           onAgregar={async (nuevo) => {
             const clave = await onAgregar(nuevo);
             if (clave) {
