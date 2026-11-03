@@ -10,6 +10,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
+import type { ProveedorParaCompra } from "@/components/insumos-taller/CompraDelInsumo";
 import { CorregirIngresoModal } from "@/components/insumos-taller/CorregirIngresoModal";
 import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
@@ -64,6 +65,7 @@ export function InsumosPanel({
   sede,
   datos,
   tallerId,
+  proveedores = [],
   esLider,
   veCostos,
   vocabulario,
@@ -78,6 +80,8 @@ export function InsumosPanel({
   sede: string;
   datos: InsumosDelTaller;
   tallerId: string;
+  /** A quién se le puede comprar (solo el líder los lee): «Ingresar insumo ▸ Compra» pide proveedor (P03). */
+  proveedores?: readonly ProveedorParaCompra[];
   esLider: boolean;
   /** Quien ve Producción en el Taller ve el costo de cada lote (no el capital). */
   veCostos: boolean;
@@ -337,7 +341,7 @@ export function InsumosPanel({
       {retirando && <RetirarColorModal key={retirando.id} insumo={retirando} tallerId={tallerId} onClose={() => setRetirando(null)} />}
       {corrigiendo && <CorregirIngresoModal key={corrigiendo.lote.id} insumo={corrigiendo.insumo} lote={corrigiendo.lote} veCostos={veCostos} onClose={() => setCorrigiendo(null)} />}
       {restaurando && <RestaurarIngresoModal key={restaurando.eliminado.loteId} insumo={restaurando.insumo} eliminado={restaurando.eliminado} onClose={() => setRestaurando(null)} />}
-      {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
+      {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} proveedores={proveedores} onClose={() => setIngresando(null)} />}
     </div>
   );
 }

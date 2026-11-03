@@ -13,6 +13,8 @@ export type EtapaDelEnvio = {
   tono: "viaja" | "trabaja" | "listo";
   /** Cuánto lleva la parada actual, de 0 a 100 (el anillo de la bola): lo contado mientras se cuenta. */
   avance: number;
+  /** El avance es de verdad lo contado contra lo que dijeron: el camino toma el color de ese avance (de rojo a verde, `colorDeAvance`). */
+  medido?: boolean;
 };
 
 /**
@@ -25,8 +27,8 @@ export function etapaDelEnvio(estado: string, datos: { pendientes?: number; cont
   if (estado === "abierto") {
     const { contadas, dijeron } = datos;
     if (contadas == null) return etapa(2, "trabaja", null);
-    if (dijeron == null || dijeron <= 0) return etapa(2, "trabaja", `${contadas} ${contadas === 1 ? "contada" : "contadas"}`);
-    return etapa(2, "trabaja", `${contadas} de ${dijeron}`, Math.min(100, Math.round((contadas / dijeron) * 100)));
+    if (dijeron == null || dijeron <= 0) return etapa(2, "trabaja", `${contadas.toLocaleString("es-PE")} ${contadas === 1 ? "contada" : "contadas"}`);
+    return { ...etapa(2, "trabaja", `${contadas.toLocaleString("es-PE")} de ${dijeron.toLocaleString("es-PE")}`, Math.min(100, Math.round((contadas / dijeron) * 100))), medido: true };
   }
   if (estado === "cerrado") {
     const p = datos.pendientes ?? 0;

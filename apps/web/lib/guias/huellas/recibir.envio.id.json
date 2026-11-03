@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 140,
+  "total": 168,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -40,9 +40,6 @@
       "button «→onClick»",
       "button «›»"
     ],
-    "components/conteo/PasosConteo.tsx": [
-      "button «{contenido}»"
-    ],
     "components/recepcion-conteo/AgregarFueraDeGuia.tsx": [
       "CampoSelect «{guia.etiqueta(\"fuera-proveedor\", \"De qué proveedor\")}»",
       "CampoSelect «{guia.etiqueta(\"fuera-categoria\", \"Qué llegó\")}»",
@@ -51,7 +48,13 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
+      "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",
       "button «{nombre}»",
+      "DesplegablePildora «Proveedor»",
+      "DesplegablePildora «Marca»",
+      "SegmentoDeslizante «Ordenar por cantidad»",
+      "FiltroPuesto «Quitar el filtro de tipo»",
+      "FiltroPuesto «Quitar el filtro de estado»",
       "button «recepcion.agregar»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
@@ -62,7 +65,8 @@
       "CampoTexto «Nota (opcional)»",
       "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
       "ComboResponsable «{responsable}»",
-      "Volver «→onVolver»",
+      "button «Reintentar»",
+      "Volver «→() => onVolver(undefined, decisiones)»",
       "Boton «recepcion.cerrar-boton»"
     ],
     "components/recepcion-conteo/ConfirmarPrecios.tsx": [
@@ -70,16 +74,8 @@
       "Boton «{textoConfirmar}»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
-      "button «Cómo se guarda quién cuenta»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Anterior»",
-      "Boton «Listo, sigue»",
-      "Boton «recepcion.pasar-a-cerrar»",
-      "button «+5»",
-      "button «+10»",
-      "button «Llegaron las»",
-      "button «No llegó nada»",
-      "button «Poner en cero»"
+      "Boton «{sinAviso ? \"Agregar lo que llegó\" : \"Agregar categoría\"}»",
+      "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/DescribirNuevas.tsx": [
       "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
@@ -109,15 +105,30 @@
       "Boton «{textoListo}»"
     ],
     "components/recepcion-conteo/ObservacionesDeLinea.tsx": [
-      "Boton «Anotar observación»",
+      "button «recepcion.observaciones»",
       "button «{t.nombre}»",
       "textarea «Mensaje de la observación»",
       "Boton «Cancelar»",
       "Boton «{problema ?? undefined}»"
     ],
     "components/recepcion-conteo/PapelesDeLaCompra.tsx": [
-      "Boton «recepcion.papel-subir»",
-      "input «Ver en grande»"
+      "Boton «Subir o tomar una foto del papel»",
+      "input «Ver en grande»",
+      "Boton «recepcion.papeles»"
+    ],
+    "components/recepcion-conteo/PlacaDelModelo.tsx": [
+      "button «{titulo}»",
+      "button «recepcion.otra-cosa»",
+      "button «+»",
+      "button «+» #2",
+      "button «Llegaron las»",
+      "button «Poner en cero»",
+      "button «No llegó nada»",
+      "Boton «{anterior ? `Antes: ${nombreDeParada(anterior)}»",
+      "Boton «{`${hayConteo ? \"Listo, siguiente\" : \"Siguiente\"}»",
+      "Boton «Es el último: ver todos»",
+      "Boton «{motivoNoCierra}»",
+      "button «Reintentar»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
@@ -137,6 +148,12 @@
       "SegmentoDeslizante «{`Dónde vale el precio de ${nombre}»",
       "button «Distinto por talla o color»"
     ],
+    "components/recepcion-conteo/PrendasDeLaPlaca.tsx": [
+      "button «{`Llegó ${p.nombre}»",
+      "BotonEditar «Describir»",
+      "button «Llegaron otras y aún no sé cómo se llaman»",
+      "button «Quitar»"
+    ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
       "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",
       "ComboResponsable «{responsable}»",
@@ -146,15 +163,34 @@
     "components/recepcion-conteo/RecibirContando.tsx": [
       "Volver «/recibir»"
     ],
+    "components/recepcion-conteo/ResumenDelEnvio.tsx": [
+      "button «{e.texto}»",
+      "button «Reintentar»",
+      "button «Cómo se guarda quién cuenta»",
+      "ComboResponsable «{responsable}»",
+      "Boton «recepcion.pasar-a-cerrar»"
+    ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",
-      "button «{`Pasar ${a.prenda.nombre}»",
       "button «Cambiar»",
       "Boton «Tallas y colores ahora»",
       "Boton «Crear ahora»",
       "BotonEditar «Describir ahora»",
       "button «{p.nombre}»",
       "button «(sin nombre)»"
+    ],
+    "components/recepcion-conteo/TallasDeLaPlaca.tsx": [
+      "button «Reintentar»",
+      "button «¿Era otra prenda?»",
+      "button «corrige lo contado a»",
+      "button «{`Quitar la talla ${t.texto}»",
+      "button «{`Crear ${c.texto}»",
+      "input «{`${pregunta}»",
+      "button «{`Quitar ${c.texto}»",
+      "button «(sin nombre)»"
+    ],
+    "components/recepcion-conteo/TiposDelEnvio.tsx": [
+      "button «{t.icono}»"
     ],
     "components/recepcion-envio/BloquePrenda.tsx": [
       "Boton «+ talla o color»",

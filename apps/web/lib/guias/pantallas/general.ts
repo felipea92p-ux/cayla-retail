@@ -977,7 +977,7 @@ export const GUIA_CONFIGURACION: Guia = {
       id: "pestanas",
       ancla: "config.pestanas",
       titulo: "Las secciones",
-      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos y, solo para el líder, Gastos con CLAURE. Te las mostramos una por una, empezando por Tiendas y caja.",
+      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto, Impuestos y, solo para el líder, Reparto CLAURE. Te las mostramos una por una, empezando por Tiendas y caja.",
     },
     {
       id: "guardado",
@@ -1230,7 +1230,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.claure-reparto",
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-claure" }],
-      titulo: "Gastos con CLAURE",
+      titulo: "Reparto CLAURE",
       texto: "Solo el líder la ve. Qué parte de cada gasto de la tienda es de Claudia: 0 es todo de CAYLA y 100, todo de CLAURE. Esa parte baja lo que se le debe y sale del gasto de CAYLA. Cada casilla se guarda sola, firmada; en la demo no cambiamos ninguna.",
     },
     {

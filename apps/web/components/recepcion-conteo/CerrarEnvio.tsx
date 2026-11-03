@@ -29,8 +29,11 @@ import {
   type CostoAtipicoRecepcion,
   type DetalleEnvio,
 } from "@/lib/recepcion-envio-reglas";
+import { hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineas, camposDelCierrePorGrupo, causasDelGrupo, lineaDeLaPrenda, lineaDelGrupo } from "@/lib/recepcion-grupos-reglas";
-import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
 import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerPreciosDeCombinaciones, ponerProveedorEnvio, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
@@ -78,6 +81,9 @@ export function CerrarEnvio({
   proveedores = [],
   esperandoGuardar,
   onVolver,
+  decisionesPrevias = null,
+  sinGuardar = 0,
+  onReintentarGuardado,
   onConteoCambiado,
   onCerrado,
 }: {
@@ -96,12 +102,22 @@ export function CerrarEnvio({
   proveedores?: readonly { id: string; nombre: string }[];
   /** Algo de lo contado todavía se está guardando: se espera antes de cerrar. */
   esperandoGuardar: boolean;
-  onVolver: () => void;
+  /** Volver a contar; `clave`: la línea que falta contar, para llegar a ella. */
+  onVolver: (clave: ClaveLinea | undefined, decisiones: Readonly<Record<string, DecisionCierre>>) => void;
+  /** Lo que se decidió antes de volver a contar: no se pierde al ir y volver. */
+  decisionesPrevias?: Readonly<Record<string, DecisionCierre>> | null;
+  /** Cuántas líneas no se pudieron guardar. */
+  sinGuardar?: number;
+  onReintentarGuardado?: () => void;
   onConteoCambiado: () => void;
   onCerrado: () => void;
 }) {
   const visibles = lineas.filter(lineaVisible);
-  const [decisiones, setDecisiones] = useState<Record<string, DecisionCierre>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l)])));
+  const [decisiones, setDecisiones] = useState<Record<string, DecisionCierre>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionesPrevias?.[l.clave] ?? decisionInicial(l)])));
+  // En una sede con CAYLA y CLAURE, lo que entra al stock al cerrar lleva su dueño (ADR-0542): la base lo exige. Solo se pregunta si algo entra: lo que queda para después lo pregunta «Hacer ahora».
+  const empresasDeLaSede = useEmpresasDeSede(detalle.sede?.id ?? null);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede) && visibles.some((l) => l.conteo !== null && detalladas(l.conteo.separado) > 0);
+  const [duenoId, setDuenoId] = useState("");
   // Lo que traía cada línea al abrir el cierre: la tarjeta «Costos y precios» marca lo que quien cierra cambió y dice cuánto era.
   const [costoInicial] = useState<Record<string, string>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l).costo])));
   // El costo de compra propio de cada prenda ya identificada (ADR-0519): por línea y por producto, solo lo que quien cierra tocó (lo demás sigue el
@@ -180,18 +196,21 @@ export function CerrarEnvio({
   // Una categoría es UNA fila (ADR-0393, act. 2026-10-26): las líneas de la compra con el mismo proveedor, categoría y marca van juntas. Lo que se
   // decide en una fila (qué pasó, el costo y el precio de cada prenda) se guarda en las líneas a las que toca: la base sigue pidiéndolo por línea.
   const grupos = agruparLineas(visibles);
-  const campos = camposDelCierrePorGrupo(
-    camposDelCierre({
-      lineas: visibles,
-      decisiones,
-      sinAviso,
-      responsable: responsable.listo,
-      proveedorPorConfirmar,
-      proveedorElegido: proveedorPuesto || proveedorId !== "",
-      guia: guiaEscrita,
-    }),
-    grupos,
-  );
+  const campos = [
+    ...camposDelCierrePorGrupo(
+      camposDelCierre({
+        lineas: visibles,
+        decisiones,
+        sinAviso,
+        responsable: responsable.listo,
+        proveedorPorConfirmar,
+        proveedorElegido: proveedorPuesto || proveedorId !== "",
+        guia: guiaEscrita,
+      }),
+      grupos,
+    ),
+    ...(preguntaDueno ? [{ id: "hacer-ahora-dueno", nombre: "De quién es la mercadería", requerido: true, hecho: duenoId !== "", pendiente: "Di si lo que entra al stock es de CAYLA o de CLAURE." }] : []),
+  ];
   const guiaBase = useGuiaCampos(campos, { enModal: false });
   // La guía interactiva ancla su paso «prendas» a la fila de la primera prenda que se dibuje.
   const primeraPrenda = grupos.flatMap((g) => g.separado.prendas.map((p) => `${g.clave}|${p.productoId}`))[0] ?? null;
@@ -434,6 +453,7 @@ export function CerrarEnvio({
         p_token: token,
       },
       responsable.firma(),
+      preguntaDueno ? duenoId : null,
     );
     responsable.despues(e);
     setGuardando(false);
@@ -453,7 +473,7 @@ export function CerrarEnvio({
       return;
     }
     avisar.exito(`${detalle.numero} cerrado`, {
-      detalle: resultado && resultado.unidades > 0 ? `${resultado.unidades} prendas entraron al stock${porDetallar > 0 ? `; ${porDetallar} quedan para después` : ""}` : porDetallar > 0 ? `${porDetallar} prendas quedan para después` : undefined,
+      detalle: resultado && resultado.unidades > 0 ? `${resultado.unidades.toLocaleString("es-PE")} prendas entraron al stock${porDetallar > 0 ? `; ${porDetallar.toLocaleString("es-PE")} quedan para después` : ""}` : porDetallar > 0 ? `${porDetallar.toLocaleString("es-PE")} prendas quedan para después` : undefined,
     });
     onCerrado();
   }
@@ -596,7 +616,7 @@ export function CerrarEnvio({
                     {para > 0 ? (
                       <>
                         <div className={FRANJA}>
-                          <Chip tono="pizarra">{para} para después</Chip>
+                          <Chip tono="pizarra">{para.toLocaleString("es-PE")} para después</Chip>
                         </div>
                         <ul className="space-y-0.5 text-sm leading-snug text-taupe">
                           {detalleParaDespues(l).map((t) => (
@@ -613,7 +633,7 @@ export function CerrarEnvio({
                   <div className="min-w-0" role="cell">
                     {sinContar ? (
                       <CampoGuiado id={idCampoCierre("contar", sinContar.clave)} guia={guia} className={FRANJA}>
-                        <Boton type="button" peso="discreto" onClick={onVolver}>
+                        <Boton type="button" peso="discreto" onClick={() => onVolver(sinContar.clave, decisiones)}>
                           Contarla
                         </Boton>
                       </CampoGuiado>
@@ -781,7 +801,7 @@ export function CerrarEnvio({
         <p className="nota-cayla">
           {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : ""}
           {porDetallar > 0
-            ? `Cerrar el envío deja el conteo oficial y ${porDetallar} ${porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.`
+            ? `Cerrar el envío deja el conteo oficial y ${porDetallar.toLocaleString("es-PE")} ${porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.`
             : ""}
         </p>
       )}
@@ -829,6 +849,12 @@ export function CerrarEnvio({
         </div>
       )}
 
+      {preguntaDueno && empresasDeLaSede && (
+        <CampoGuiado id="hacer-ahora-dueno" guia={guia} className="card-cayla p-4 sm:p-5">
+          <DuenoDeLoQueEntra empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={guardando} />
+        </CampoGuiado>
+      )}
+
       <CampoGuiado id="responsable" guia={guia} className="card-cayla p-4 sm:p-5">
         <p className="mb-2 text-sm font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>
         <ComboResponsable control={responsable} />
@@ -869,16 +895,29 @@ export function CerrarEnvio({
           ) : (
             <>
               <p className="text-sm text-tinta" aria-live="polite">{textoResumenDelCierre(resumen)}</p>
-              <PieGuia guia={guia} listo={porDetallar > 0 ? "Todo listo: lo guardado no frena el cierre." : "Todo listo para cerrar."} />
+              {sinGuardar > 0 && (
+                <Aviso
+                  tono="error"
+                  chico
+                  accion={
+                    <button type="button" className="btn-cayla btn-enlace" onClick={onReintentarGuardado}>
+                      Reintentar
+                    </button>
+                  }
+                >
+                  {sinGuardar === 1 ? "Una línea no se pudo guardar" : `${sinGuardar} líneas no se pudieron guardar`}: hasta guardarlas no se puede cerrar.
+                </Aviso>
+              )}
+              <PieGuia guia={guia} tope={2} listo={porDetallar > 0 ? "Todo listo: lo guardado no frena el cierre." : "Todo listo para cerrar."} />
               <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <Volver onClick={onVolver} a="contar" deshabilitado={guardando} />
+                <Volver onClick={() => onVolver(undefined, decisiones)} a="contar" deshabilitado={guardando} />
                 <Boton
                   type="submit"
                   peso="primario"
                   cargando={guardando}
                   textoCargando="Cerrando…"
                   disabled={!guia.puedeConfirmar || esperandoGuardar}
-                  title={esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
+                  title={sinGuardar > 0 ? "Hay líneas que no se pudieron guardar" : esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
                   className={guia.claseConfirmar}
                   data-guia="recepcion.cerrar-boton"
                 >

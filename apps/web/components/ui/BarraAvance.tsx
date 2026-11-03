@@ -24,6 +24,7 @@ export function BarraAvance({
   pct,
   alto = "normal",
   tono,
+  color,
   marca,
   etiqueta,
   texto,
@@ -38,6 +39,8 @@ export function BarraAvance({
   alto?: AltoAvance;
   /** Sin tono: tinta, y verde al llegar a 100. Con tono, el que pide la pantalla. */
   tono?: TonoBarraAvance;
+  /** Un color de token que cambia con el avance (`colorDeAvance`, Recibir): manda sobre `tono` y se mueve de a poco. */
+  color?: string;
   /** La rayita de «a esta hora tocaba» (o de un mínimo), de 0 a 100. */
   marca?: number | readonly number[] | null;
   /** Lo que le dice al lector de pantalla («Lo contado del envío»). */
@@ -54,14 +57,14 @@ export function BarraAvance({
   className?: string;
 }) {
   const p = acotar(pct);
-  const color = tono ?? (pct >= 100 ? "verde" : "tinta");
+  const conTono = tono ?? (pct >= 100 ? "verde" : "tinta");
   const marcas = marca == null ? [] : typeof marca === "number" ? [marca] : marca;
-  const estilo = { "--p": `${p}%`, ...(indice !== undefined ? { "--i": indice } : {}) } as CSSProperties;
+  const estilo = { "--p": `${p}%`, ...(color ? { "--barra-color": color } : {}), ...(indice !== undefined ? { "--i": indice } : {}) } as CSSProperties;
   const lector = decorativa
     ? ({ "aria-hidden": true } as const)
     : ({ role: "progressbar", "aria-valuenow": Math.round(p), "aria-valuemin": 0, "aria-valuemax": 100, "aria-label": etiqueta, "aria-valuetext": texto } as const);
   return (
-    <span data-alto={alto} data-tono={color} data-sobre-tinta={sobreTinta || undefined} title={title} className={`barra-avance ${className}`} style={estilo} {...lector}>
+    <span data-alto={alto} data-tono={conTono} data-color-propio={color ? "" : undefined} data-sobre-tinta={sobreTinta || undefined} title={title} className={`barra-avance ${className}`} style={estilo} {...lector}>
       <span className="barra-avance-lleno" />
       {marcas.map((m, i) => (
         <span key={i} aria-hidden className="barra-avance-marca" style={{ "--m": `${acotar(m)}%` } as CSSProperties} />

@@ -150,7 +150,8 @@
 .tabla-cayla > * + * {
   border-color: var(--hilo-fila);
 }
-.tabla-cayla > .encabezado-tabla-cayla {
+/* A cualquier hondura: Órdenes de compra lo envuelve en la caja que lo esconde en el celular, y sin esto volvía la banda de arena. */
+.tabla-cayla .encabezado-tabla-cayla {
   background: none;
 }
 .tabla-cayla > .encabezado-tabla-cayla + * {

@@ -1,5 +1,6 @@
 # ADR-0480 — Compras simple: la compra nace en el celular de quien compra
 
+- **Actualización 2026-11-02 (ADR-0604):** en Recibir los papeles dejan de ser una columna fija: son un botón «Subir foto de facturas» en la cabecera que abre una hoja, y «Lo que anotó» se quitó.
 - **Fecha:** 2026-10-22 · **Estado:** en construcción en la rama `claude/modulo-compras-66e94a`, actividad por actividad
   (`/construir`). Actividad 1 (menú y módulos): migración `20261022225000_compras_simple_modulos.sql`. Actividad 2 (anotar y confirmar
   la plata): `20261022235000_compras_simple_plata_anotada.sql`. Actividad 3 (registrar una compra): `20261023005000_compras_simple_compra_rapida.sql`. Actividad 5 (otro gasto,

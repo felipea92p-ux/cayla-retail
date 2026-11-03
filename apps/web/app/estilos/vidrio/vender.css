@@ -444,14 +444,6 @@
   backdrop-filter: blur(22px) saturate(1.5);
   pointer-events: none;
 }
-/* En el cobro, el paso que «sigue» (guía de foco) tampoco lleva el fondo rosado sólido con borde: sobre el vidrio se veía como un bloque opaco.
-   Se marca con su número en rojo y la pastilla «Sigue aquí», como en el descuento. Se conserva su margen y su relleno: el diseño del cobro,
-   compactado por su alto, no cambia de medidas. */
-.hoja-cobro.hoja-serena .hoja-cobro-paso,
-.hoja-cobro.hoja-serena .hoja-cobro-paso.sigue-aqui {
-  background: transparent;
-  border-color: transparent;
-}
 .hoja-descuento.hoja-serena {
   /* Contenedor con nombre: con la hoja ancha (≥ 38 rem) el cuerpo pasa a dos columnas; si queda angosta (catálogo estrecho a 1024–1100 px), una. */
   container: descuento / inline-size;
@@ -552,16 +544,6 @@
   gap: 0.625rem;
   align-content: start;
   min-width: 0;
-}
-/* El paso que sigue (guía de foco) se marca con su número en rojo y la pastilla «Sigue aquí» — SIN recuadro de fondo ni halo alrededor del
-   control: dentro de esta hoja, con tres pasos casi seguidos, un recuadro rosado alrededor de un paso sobre el vidrio se veía
-   como una mancha (Felipe 2026-11-02). Sin tinte tampoco hace falta el margen negativo que se lo daba. */
-.pv-desc-cuerpo .hoja-cobro-paso,
-.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui {
-  margin-inline: 0;
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
 }
 /* El segmento «Porcentaje | Monto en S/» a lo ancho de su paso, con cada opción a media caja: un blanco cómodo de tocar. */
 .segmento-cayla.pv-desc-modo {
@@ -703,7 +685,8 @@
 /* =====================================================================
    EL PASO QUE SIGUE: «D · FILO DE LUZ» (Felipe 2026-11-02, docs/maquetas/foco-vidrio-2026-11/). El paso numerado del cobro y del
    descuento (`.hoja-cobro-paso`, `CabezaPaso`) ya no es papel con un tinte rojo: es vidrio claro con un borde de luz del rojo de CAYLA que
-   da UNA pasada al llegar (ADR-0136: una vez, sin rebote ni bucle). El número, el chip «Sigue aquí» y los controles de adentro no cambian.
+   está QUIETO: la pasada de luz que daba al llegar se quitó (Felipe 2026-11-02: «dejar el borde pero sin la pasada animada»). El número, el chip
+   «Sigue aquí» y los controles de adentro no cambian.
    El filo es un borde con máscara (`::after`) y el tinte un `::before`: los dos se pintan por fuera y no mueven ni empujan nada.
    ===================================================================== */
 .hoja-cobro-paso {
@@ -737,20 +720,10 @@
   border-radius: inherit;
   padding: 1.5px;
   pointer-events: none;
-  background:
-    linear-gradient(105deg, transparent 38%, var(--color-vidrio) 50%, transparent 62%) 100% 0 / 260% 100% no-repeat,
-    linear-gradient(115deg, color-mix(in srgb, var(--color-rojo) 85%, transparent), color-mix(in srgb, var(--color-rojo) 45%, transparent));
+  background: linear-gradient(115deg, color-mix(in srgb, var(--color-rojo) 85%, transparent), color-mix(in srgb, var(--color-rojo) 45%, transparent));
   /* la máscara solo usa el alfa: el color es un token opaco cualquiera */
   mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
   mask-composite: exclude;
   -webkit-mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
   -webkit-mask-composite: xor;
-  animation: hoja-cobro-filo 1000ms var(--ease-cayla) both;
-}
-@keyframes hoja-cobro-filo {
-  from { background-position: 100% 0, 0 0; }
-  to { background-position: 0 0, 0 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hoja-cobro-paso.sigue-aqui::after { animation: none; }
 }

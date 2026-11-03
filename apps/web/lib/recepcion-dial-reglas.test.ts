@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
+import { atajosDelDial, estadoDelDial, MAX_CORTES } from "./recepcion-dial-reglas";
 
 describe("estadoDelDial", () => {
   it("sin contar todavía, dice lo que dijeron y el aro está vacío", () => {
@@ -33,5 +33,23 @@ describe("estadoDelDial", () => {
   it("con muchas prendas esperadas el aro va liso", () => {
     expect(estadoDelDial(0, MAX_CORTES, false).cortes).toBe(MAX_CORTES);
     expect(estadoDelDial(0, MAX_CORTES + 1, false).cortes).toBe(0);
+  });
+});
+
+describe("los atajos del Dial", () => {
+  it("van a la escala de lo que se cuenta", () => {
+    expect(atajosDelDial(48, 0)).toEqual([5, 10]);
+    expect(atajosDelDial(600, 0)).toEqual([10, 50]);
+    expect(atajosDelDial(2400, 0)).toEqual([50, 100]);
+    expect(atajosDelDial(12000, 0)).toEqual([100, 500]);
+  });
+  it("sin lo que dijeron, la escala la da lo contado", () => {
+    expect(atajosDelDial(null, 0)).toEqual([5, 10]);
+    expect(atajosDelDial(null, 1500)).toEqual([50, 100]);
+  });
+  it("las frases del aro separan los miles", () => {
+    expect(estadoDelDial(9000, 12000, true).texto).toBe("faltan 3,000 de 12,000");
+    expect(estadoDelDial(12000, 12000, true).texto).toBe("cuadra · 12,000");
+    expect(estadoDelDial(14000, 12000, true).texto).toBe("sobran 2,000");
   });
 });

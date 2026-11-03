@@ -19,6 +19,20 @@ export type EstadoDial = {
   angulo: number;
 };
 
+const miles = (n: number): string => n.toLocaleString("es-PE");
+
+/**
+ * Los dos atajos de suma, a la escala de lo que se cuenta: de 5 en 5 para 40 prendas, pero nadie llega a 12.000 de 5 en 5. Sin lo que dijeron (sin
+ * aviso), la escala la da lo que ya se lleva contado.
+ */
+export function atajosDelDial(dijeron: number | null, contadas: number): readonly [number, number] {
+  const escala = dijeron ?? contadas;
+  if (escala >= 5000) return [100, 500];
+  if (escala >= 1000) return [50, 100];
+  if (escala >= 200) return [10, 50];
+  return [5, 10];
+}
+
 /** Qué dibuja el aro con lo contado (`hayConteo`: alguien ya escribió un número, aunque sea 0) y lo que dijeron (`null` = sin aviso). */
 export function estadoDelDial(contadas: number, dijeron: number | null, hayConteo: boolean): EstadoDial {
   const n = Math.max(0, contadas);
@@ -30,8 +44,8 @@ export function estadoDelDial(contadas: number, dijeron: number | null, hayConte
   const exceso = Math.min(100, (Math.max(0, n - dijeron) / dijeron) * 100);
   const cortes = dijeron <= MAX_CORTES ? dijeron : 0;
   const base = { lleno, exceso, cortes, angulo: lleno * 3.6 };
-  if (!hayConteo) return { ...base, tono: "neutro", texto: `dijeron ${dijeron}` };
+  if (!hayConteo) return { ...base, tono: "neutro", texto: `dijeron ${miles(dijeron)}` };
   const d = n - dijeron;
-  if (d === 0) return { ...base, tono: "cuadra", texto: `cuadra · ${dijeron}` };
-  return d < 0 ? { ...base, tono: "neutro", texto: `faltan ${-d} de ${dijeron}` } : { ...base, tono: "sobra", texto: `sobran ${d}` };
+  if (d === 0) return { ...base, tono: "cuadra", texto: `cuadra · ${miles(dijeron)}` };
+  return d < 0 ? { ...base, tono: "neutro", texto: `faltan ${miles(-d)} de ${miles(dijeron)}` } : { ...base, tono: "sobra", texto: `sobran ${miles(d)}` };
 }

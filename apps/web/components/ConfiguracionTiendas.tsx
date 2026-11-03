@@ -325,12 +325,14 @@ export function ConfiguracionTiendas({
           </table>
         </div>
         <PieTabla>
-          <span>La meta del mes no se escribe: es la suma de los días, con las campañas incluidas. Vacío = sin meta ese día.</span>
+          <span>La meta del mes no se escribe: es la suma de los días, con las campañas incluidas. Vacío = sin meta ese día. Un mes con su propia meta o una fecha especial (abajo) mandan sobre esta semana.</span>
         </PieTabla>
       </Superficie>
 
       {metas && metas.tiendas.length > 0 && <ConfiguracionMetasMes metas={metas} guardar={guardar} />}
 
+      {/* A lo ancho (ADR-0462), dos tablas cortas van lado a lado: «Tiendas y caja» era la pestaña más larga y estas no piden todo el ancho. */}
+      <div className="grid items-start gap-6 min-[1280px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] [&>*:only-child]:col-span-full min-[1280px]:[&_.fin-tabla]:min-w-0">
       <Superficie className="anim-sube" guia="config.tiendas-whatsapp">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
@@ -365,6 +367,7 @@ export function ConfiguracionTiendas({
       </Superficie>
 
       {asistente && asistente.sedes.length > 0 && <ConfiguracionAsistente sedes={asistente.sedes} gastado={asistente.gastado} hoy={datos.hoy} guardar={guardar} />}
+      </div>
 
       {despuesDeWhatsapp}
 
