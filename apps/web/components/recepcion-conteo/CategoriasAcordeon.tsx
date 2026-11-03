@@ -25,6 +25,7 @@ import {
   origenDelGrupo,
   paradaContada,
   resumenDeCategoria,
+  SIN_FILTRO,
   tipoDeParada,
   type CategoriaDelEnvio,
   type EstadoDelResumen,
@@ -44,10 +45,14 @@ import { useFilaActivaALaVista } from "./useFilaActivaALaVista";
 const NOMBRE_ESTADO: Record<EstadoDelResumen, string> = { cuadran: "Cuadran", diferencia: "Con diferencia", "por-contar": "Por contar", despues: "Tallas para después" };
 
 /** Un solo estado por fila, el de lo que le toca: ámbar por las tallas solo si la persona pidió hacerlas ahora y le faltan (pueden esperar). */
-export function EstadoModelo({ m, faltanTallas }: { m: ModeloDelConteo; faltanTallas: boolean }) {
+export function EstadoModelo({ m, faltanTallas, sinAviso = false }: { m: ModeloDelConteo; faltanTallas: boolean; sinAviso?: boolean }) {
   if (m.estado === "por-contar") return <Chip tono="neutro">Por contar</Chip>;
   if (m.estado === "no-llego") return <Chip tono="neutro">No llegó</Chip>;
-  if (m.estado === "fuera") return <Chip tono="pizarra">No estaba anotada</Chip>;
+  // Sin aviso nada estaba anotado: decirlo en cada fila no dice nada.
+  if (m.estado === "fuera") {
+    if (faltanTallas) return <Chip tono="ambar">Faltan tallas</Chip>;
+    return sinAviso ? null : <Chip tono="pizarra">No estaba anotada</Chip>;
+  }
   if (m.estado === "sobran") return <Chip tono="ambar">{`Sobran ${conMiles(m.contadas - (m.esperadas ?? 0))}`}</Chip>;
   if (m.estado === "a-medias") return <Chip tono="ambar">{`Faltan ${conMiles((m.esperadas ?? 0) - m.contadas)}`}</Chip>;
   if (faltanTallas) return <Chip tono="ambar">Faltan tallas</Chip>;
@@ -81,7 +86,7 @@ function useFotosDeLaCategoria(c: CategoriaDelEnvio, enUso: boolean, onFotos: (f
   }, [enUso, clave, leida]);
 }
 
-function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, onElegir }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; onElegir: (p: ParadaDelConteo) => void }) {
+function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void }) {
   const m = p.modelo;
   const cat = p.grupo.principal.categoria;
   const contadas = m ? m.contadas : p.grupo.contadas;
@@ -107,7 +112,7 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, onElegir }: { 
             {conOrigen && ` · ${origenDelGrupo(p.grupo)}`}
           </span>
         </span>
-        {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} /> : !paradaContada(p) && <Chip tono="neutro">Por contar</Chip>}
+        {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : !paradaContada(p) && <Chip tono="neutro">Por contar</Chip>}
       </button>
     </li>
   );
@@ -183,7 +188,7 @@ function Categoria({
         <div className="rc-cat-dentro">
           <ul className="rc-modelos">
             {c.paradas.map((p) => (
-              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} onElegir={onElegir} />
+              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} />
             ))}
           </ul>
         </div>
@@ -211,6 +216,7 @@ export function ListaDelEnvio({
   onOrden,
   onPlegar,
   onElegir,
+  onElegirPrimero,
   onAgregar,
   onFotos,
 }: {
@@ -237,13 +243,15 @@ export function ListaDelEnvio({
   /** Tocó la categoría abierta (`true`, se pliega) o la plegada (`false`, se abre). Lo que el contador cuenta no cambia. */
   onPlegar: (plegar: boolean) => void;
   onElegir: (p: ParadaDelConteo) => void;
+  /** Enter en el buscador: a contar lo primero que se encontró. */
+  onElegirPrimero: () => void;
   onAgregar: () => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
 }) {
   // Buscando o filtrando por estado se lee la lista: todas las que quedan, abiertas.
   const leyendo = !!filtro.texto.trim() || !!filtro.estado;
   const lista = useFilaActivaALaVista<HTMLDivElement>(enFoco?.clave ?? null, categorias[0]?.paradas[0]?.clave ?? null);
-  const vistos = categorias.reduce((a, c) => a + c.paradas.filter((p) => p.modelo).length, 0);
+  const vistos = categorias.reduce((a, c) => a + c.paradas.length, 0);
   const cuantos = hayFiltro(filtro) ? `${conMiles(vistos)} de ${conMiles(modelosTotales)} modelos` : `${conMiles(modelosTotales)} ${modelosTotales === 1 ? "modelo" : "modelos"}`;
   const volver = " · tócala otra vez para volver al orden de la compra";
   const conOrden = categorias.flatMap((c) => c.paradas).length > 1;
@@ -252,7 +260,19 @@ export function ListaDelEnvio({
     <section className="rc-panel rc-lista" aria-label={sinAviso ? "Lo que llegó" : "Categorías del envío"}>
       <div className="rc-lista-cabeza">
         <TituloSeccion dato={modelosTotales > 0 ? cuantos : undefined}>{sinAviso ? "Lo que llegó" : "Categorías del envío"}</TituloSeccion>
-        <Buscador atajo valor={filtro.texto} onCambio={(texto) => onFiltro({ ...filtro, texto })} etiqueta="Buscar modelo, proveedor o marca" placeholder="Buscar modelo o proveedor…" guia="recepcion.buscar" />{/* sugerir-fijo: dice dónde busca, no depende de nada elegido antes */}
+        <Buscador
+          atajo
+          valor={filtro.texto}
+          onCambio={(texto) => onFiltro({ ...filtro, texto })}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || !filtro.texto.trim()) return;
+            e.preventDefault();
+            onElegirPrimero();
+          }}
+          etiqueta="Buscar modelo, proveedor o marca"
+          placeholder="Buscar modelo o proveedor…" // sugerir-fijo: dice dónde busca, no depende de nada elegido antes
+          guia="recepcion.buscar"
+        />
         {(filtrarProveedor || filtrarMarca || conOrden) && (
           <div className="rc-filtros" data-guia="recepcion.filtros">
             {filtrarProveedor && (
@@ -310,7 +330,7 @@ export function ListaDelEnvio({
       <div ref={lista} className="rc-scroll scroll-cayla">
         <nav aria-label="Categorías del envío" data-guia="recepcion.categorias">
           {categorias.length === 0 && totalCategorias > 0 && (
-            <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Ver todo", onClick: () => onFiltro({ proveedorId: null, marcaId: null, tipo: null, estado: null, texto: "" }) }}>
+            <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Ver todo", onClick: () => onFiltro(SIN_FILTRO) }}>
               {filtro.texto.trim() ? `Nada coincide con «${filtro.texto.trim()}».` : "Nada coincide con lo que filtraste."}
             </Vacio>
           )}

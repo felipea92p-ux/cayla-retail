@@ -9,7 +9,7 @@
    «reducir movimiento». Lo que sigue siendo del Dial y del Trayecto vive en recepcion-viva.css.
    ===================================================================== */
 
-.rc-conteo { container: rc-conteo / inline-size; display: grid; gap: 14px; min-width: 0; }
+.rc-conteo { container: rc-conteo / inline-size; display: grid; gap: 16px; min-width: 0; }
 /* La mesa llena la ventana: abajo, solo el aire que ella misma deja. */
 main:has(.rc-conteo) { padding-bottom: 16px; }
 
@@ -25,7 +25,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 }
 
 /* ---------- Re stock y Producto nuevo ---------- */
-.rc-tipos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.rc-tipos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .rc-tipo {
   display: flex; align-items: center; gap: 14px; min-width: 0; min-height: 72px; padding: 10px 18px 10px 12px;
   border: 1px solid var(--serena-borde); border-radius: 20px; background: var(--serena-fondo); box-shadow: var(--serena-sombra);
@@ -47,13 +47,15 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-tipo-cifra { flex: none; display: grid; gap: 5px; }
 .rc-tipo-cifra span { color: var(--color-taupe); font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rc-tipo-cifra b { color: var(--color-tinta); font-weight: 600; }
+.rc-tipo-marca { flex: none; min-width: 5.25rem; color: var(--color-rojo-profundo); font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
+.rc-tipo-marca:empty { min-width: 0; }
 .rc-radio { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid var(--color-borde-control); border-radius: 50%; transition: border-color 200ms var(--ease-cayla); }
 .rc-radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--color-rojo-profundo); transform: scale(0); transition: transform 200ms var(--ease-cayla); }
 [data-activa] > .rc-radio, [aria-checked="true"] > .rc-radio { border-color: var(--color-rojo-profundo); }
 [data-activa] > .rc-radio::after, [aria-checked="true"] > .rc-radio::after { transform: scale(1); }
 
 /* ---------- La mesa: tres columnas alineadas arriba y abajo ---------- */
-.rc-mesa { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+.rc-mesa { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .rc-panel {
   display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
   border: 1px solid var(--serena-borde); border-radius: 24px; background: var(--serena-fondo); box-shadow: var(--serena-sombra);
@@ -61,7 +63,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   animation: cayla-entrada 420ms var(--ease-cayla) backwards;
 }
 .rc-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-.rc-resumen { grid-row: 1; }
+/* Bajo las tres columnas, el resumen va después de lo que se cuenta: encima dejaba el contador bajo el pliegue, y el orden con Tab al revés. */
+.rc-resumen { order: 3; }
 
 /* Dos columnas: la lista y la placa; el resumen va arriba, en una tira. */
 @container rc-conteo (min-width: 680px) {
@@ -77,7 +80,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
     height: max(540px, calc(100dvh - var(--rc-mesa-arriba, 300px) - 16px));
     align-items: stretch;
   }
-  .rc-resumen { grid-column: auto; grid-row: auto; order: 3; }
+  .rc-resumen { grid-column: auto; }
   .rc-lista { max-height: none; }
   .rc-placa { position: static; align-self: stretch; max-height: none; }
 }
@@ -86,7 +89,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-lista { container: rc-lista / inline-size; }
 /* La cabeza de la categoría abierta va pegada arriba: al pasar con Tab o al llevar a una fila, esa fila queda bajo ella, nunca detrás. */
 .rc-lista .rc-scroll { scroll-padding-top: 72px; }
-.rc-lista-cabeza { display: grid; gap: 10px; padding: 14px 14px 12px; border-bottom: 1px solid var(--hilo-cabeza); }
+.rc-lista-cabeza { display: grid; gap: 8px; padding: 16px 16px 12px; border-bottom: 1px solid var(--hilo-cabeza); }
 .rc-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .rc-filtros .pildora-filtro { min-width: 0; max-width: 100%; }
 .rc-filtros [data-orden] { margin-left: auto; }
@@ -157,7 +160,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 
 /* ---------- La placa: lo que se está contando ---------- */
 .rc-placa { container: rc-placa / inline-size; }
-.rc-placa-cabeza { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px 12px; }
+.rc-placa-cabeza { display: flex; align-items: flex-start; gap: 16px; padding: 16px 16px 12px; }
 .rc-placa-textos { display: grid; flex: 1 1 0; gap: 4px; min-width: 0; }
 .rc-placa-textos .titulo-seccion { flex-wrap: wrap; }
 .rc-placa-textos .titulo-seccion-texto { font-size: 28px; font-weight: 500; line-height: 1.12; letter-spacing: -0.01em; }
@@ -166,26 +169,28 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-placa-derecha { flex: none; display: grid; justify-items: end; align-content: space-between; gap: 6px; align-self: stretch; }
 .rc-placa-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 14px; }
 .rc-guardado { min-height: 20px; color: var(--color-taupe); font-size: 14px; white-space: nowrap; }
-.rc-placa-observaciones { padding: 0 18px 12px; }
-.rc-placa-error { padding: 0 18px 12px; }
+.rc-placa-observaciones { padding: 0 16px 12px; }
+.rc-placa-error { padding: 0 16px 12px; }
+.rc-placa-quien { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hilo-fila); }
 
-.rc-cuenta { display: grid; grid-template-columns: 192px minmax(0, 1fr); grid-template-rows: auto auto 1fr; gap: 12px 22px; padding: 2px 18px 14px; }
+.rc-cuenta { display: grid; grid-template-columns: 192px minmax(0, 1fr); grid-template-rows: auto auto 1fr; gap: 12px 24px; padding: 4px 16px 16px; }
 .rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1 / span 3; }
 .rc-cifras { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
 .rc-cifra { display: grid; gap: 0; min-width: 0; padding: 8px 12px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); transition: background-color 300ms var(--ease-cayla); }
-.rc-cifra small { color: var(--color-taupe); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.rc-cifra small { color: color-mix(in srgb, var(--color-tinta) 74%, var(--color-taupe)); font-size: 14px; font-weight: 600; white-space: nowrap; }  /* contraste: texto sobre papel, hueso, crema */
 .rc-cifra b { color: var(--color-tinta); font-family: var(--font-serif); font-size: 26px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rc-cifra[data-tono="verde"] { background: color-mix(in srgb, var(--color-verde) 20%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-verde) 30%, transparent); }
 .rc-cifra[data-tono="verde"] b { color: var(--color-verde-profundo); }
 .rc-cifra[data-tono="ambar"] { background: color-mix(in srgb, var(--color-ambar) 13%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 24%, transparent); }
 .rc-cifra[data-tono="ambar"] b { color: var(--color-ambar-profundo); }
 .rc-cuenta-lado { grid-column: 2; grid-row: 2; display: grid; align-content: start; gap: 8px; min-width: 0; }
-.rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; }
+.rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-pista { min-height: 2.7em; }
 /* Los botones del contador: sumar en su bandeja, «Llegaron» en verde porque es lo que más se usa y deja el modelo listo, y «No llegó» aparte, más callado. */
 .rc-atajos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rc-suma { display: inline-flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
-.rc-suma button { min-width: 54px; height: 34px; padding: 0 10px; border-radius: 11px; background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
-.rc-atajo { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid color-mix(in srgb, var(--color-borde-control) 75%, transparent); border-radius: 13px; color: var(--color-tinta); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+.rc-suma button { min-width: 56px; height: 32px; padding: 0 12px; border-radius: 10px; background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+.rc-atajo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--color-borde-control); border-radius: 12px; color: var(--color-tinta); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
 .rc-atajo svg { flex: none; }
 /* Por tocar resalta; ya hecho se apaga: lo que sigue es «Listo, siguiente», no este botón. */
 .rc-atajo-llegaron { border-color: color-mix(in srgb, var(--color-verde) 60%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 14%, var(--color-vidrio)), color-mix(in srgb, var(--color-verde) 30%, var(--color-vidrio))); box-shadow: var(--gota-luz); color: var(--color-verde-profundo); }
@@ -202,6 +207,8 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-suma button:focus-visible, .rc-atajo:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 /* El + y el − del aro, un poco más grandes: son los que se tocan una y otra vez. */
 .rc-placa .rc-dial-boton { width: 48px; height: 48px; }
+/* Los enlaces de arriba de la placa no van dentro de una frase: se tocan solos, y necesitan su alto. */
+.rc-placa-acciones .btn-cayla { min-height: 24px; }
 /* «Anterior» y «Listo, siguiente», del mismo alto y lado a lado. */
 .rc-seguir { grid-column: 2; grid-row: 3; align-self: end; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .rc-seguir .btn-cayla { flex: 0 1 auto; min-height: 40px; white-space: nowrap; }
@@ -234,7 +241,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   .rc-cuenta-lado > p { text-align: center; }
 }
 
-.rc-seccion { display: grid; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--hilo-fila); }
+.rc-seccion { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hilo-fila); }
 .rc-seccion-titulo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--color-tinta); font-size: 15px; font-weight: 600; }
 .rc-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .rc-opcion { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--placa-borde); border-radius: 14px; background: var(--placa-fondo); box-shadow: var(--placa-luz); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
@@ -261,7 +268,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 /* Cada talla es una etiqueta que se quita, a la vista (nunca solo al pasar el mouse): en el teléfono no hay mouse. */
 .rc-talla { display: inline-flex; align-items: center; gap: 1px; min-height: 26px; padding: 0 2px 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: 13px; font-weight: 600; white-space: nowrap; animation: cayla-entrada 240ms var(--ease-cayla) both; }
 .rc-talla > span:only-child { padding-right: 7px; }
-.rc-talla-quitar { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+.rc-talla-quitar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-talla-quitar:hover { background: var(--pozo-fondo); color: var(--color-rojo-profundo); }
 }
@@ -287,13 +294,13 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 .rc-matriz-total[data-tono="verde"] b { color: var(--color-verde-profundo); }
 .rc-matriz-total[data-tono="ambar"] b { color: var(--color-ambar-profundo); }
 
-.rc-otra { display: grid; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--hilo-fila); animation: cayla-entrada 300ms var(--ease-cayla) both; }
+.rc-otra { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hilo-fila); animation: cayla-entrada 300ms var(--ease-cayla) both; }
 .rc-otra:empty { display: none; }
 .rc-chipitos { display: flex; flex-wrap: wrap; gap: 6px; }
 .rc-etiqueta-chica { color: var(--color-taupe); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
 
 /* ---------- El resumen: lo que hacía la barra de abajo ---------- */
-.rc-resumen-cuerpo { display: grid; align-content: start; gap: 10px; padding: 14px 16px 10px; }
+.rc-resumen-cuerpo { display: grid; align-content: start; gap: 8px; padding: 16px 16px 12px; }
 .rc-totales { display: grid; gap: 4px; }
 .rc-total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .rc-total dt { color: var(--color-taupe); font-size: 14px; }
@@ -326,7 +333,7 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 .rc-resumen-pie .btn-cayla { width: 100%; }
 .rc-resumen-nota { text-align: center; }
 .rc-fotos-boton { width: 100%; }
-.rc-fotos-boton small { color: var(--color-taupe); font-size: 13px; font-weight: 500; }
+.rc-fotos-boton small { color: var(--color-taupe); font-size: 14px; font-weight: 500; }
 
 /* Con la mesa angosta el resumen es una tira arriba: las cifras, los estados con su número y lo que sigue, sin gastar alto. */
 @container rc-conteo (max-width: 1039px) {

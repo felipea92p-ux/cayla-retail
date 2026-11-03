@@ -140,9 +140,9 @@ export function PapelesDeLaCompra({
             </>
           ) : (
             <>
-              {/* En la fila del título: desde 1440 px cabe entero; antes, corto, para no empujar el Trayecto a otra fila. */}
-              <span className="max-[1439px]:hidden">{quePuedeHacer}</span>
-              <span className="min-[1440px]:hidden">Facturas</span>
+              {/* En la fila del título: desde 1700 px cabe entero; antes, corto, para no empujar el Trayecto a otra fila. */}
+              <span className="max-[1699px]:hidden">{quePuedeHacer}</span>
+              <span className="min-[1700px]:hidden">Facturas</span>
             </>
           )}
         </span>

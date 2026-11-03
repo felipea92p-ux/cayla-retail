@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 163,
+  "total": 167,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -65,12 +65,16 @@
       "CampoTexto «Nota (opcional)»",
       "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
       "ComboResponsable «{responsable}»",
-      "Volver «→onVolver»",
+      "button «Reintentar»",
+      "Volver «→() => onVolver(undefined, decisiones)»",
       "Boton «recepcion.cerrar-boton»"
     ],
     "components/recepcion-conteo/ConfirmarPrecios.tsx": [
       "Boton «Cancelar»",
       "Boton «{textoConfirmar}»"
+    ],
+    "components/recepcion-conteo/ContarEnvio.tsx": [
+      "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/DescribirNuevas.tsx": [
       "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
@@ -119,10 +123,11 @@
       "button «Llegaron las»",
       "button «Poner en cero»",
       "button «No llegó nada»",
-      "Boton «{anterior ? `Volver a ${nombreDeParada(anterior)}»",
-      "Boton «{`Listo, siguiente: ${nombreDeParada(siguiente)}»",
-      "Boton «Es el último de esta lista»",
-      "Boton «{motivoNoCierra}»"
+      "Boton «{anterior ? `Antes: ${nombreDeParada(anterior)}»",
+      "Boton «{`${hayConteo ? \"Listo, siguiente\" : \"Siguiente\"}»",
+      "Boton «Es el último: ver todos»",
+      "Boton «{motivoNoCierra}»",
+      "button «Reintentar»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
@@ -159,6 +164,7 @@
     ],
     "components/recepcion-conteo/ResumenDelEnvio.tsx": [
       "button «{e.texto}»",
+      "button «Reintentar»",
       "button «Cómo se guarda quién cuenta»",
       "ComboResponsable «{responsable}»",
       "Boton «recepcion.pasar-a-cerrar»"
@@ -173,9 +179,9 @@
       "button «(sin nombre)»"
     ],
     "components/recepcion-conteo/TallasDeLaPlaca.tsx": [
-      "button «Volver a intentar»",
-      "button «Cambiar de prenda»",
-      "button «Dejar»",
+      "button «Reintentar»",
+      "button «¿Era otra prenda?»",
+      "button «corrige lo contado a»",
       "button «{`Quitar la talla ${t.texto}»",
       "button «{`Crear ${c.texto}»",
       "input «{`${pregunta}»",

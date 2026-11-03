@@ -5,10 +5,11 @@ import { ArrowRight, Check, CircleDashed, Clock, Info, TriangleAlert } from "luc
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { Aviso } from "@/components/ui/Aviso";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { colorDeAvance } from "@/lib/avance-color";
+import { colorDeAvance, textoDeAvance } from "@/lib/avance-color";
 import { conMiles, conSigno, type CifrasDelResumen, type EstadoDelResumen } from "@/lib/recepcion-modelos-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Odometro } from "./Odometro";
@@ -30,6 +31,8 @@ export function ResumenDelEnvio({
   guia,
   responsable,
   fotos,
+  sinGuardar = 0,
+  onReintentar,
   alCerrar,
   textoAlCerrar,
   puedeCerrar,
@@ -43,6 +46,9 @@ export function ResumenDelEnvio({
   responsable: ControlResponsable;
   /** El botón de las fotos de las facturas, si la compra tiene papeles. */
   fotos?: ReactNode;
+  /** Líneas que no se pudieron guardar, estén donde estén: quien ya siguió con otra cosa no vería el error. */
+  sinGuardar?: number;
+  onReintentar?: () => void;
   alCerrar: () => void;
   textoAlCerrar: string;
   puedeCerrar: boolean;
@@ -53,6 +59,8 @@ export function ResumenDelEnvio({
   const [verAyuda, setVerAyuda] = useState(false);
   const { dijeron, contadas, diferencia, avance, estados } = cifras;
   const porContar = estados["por-contar"];
+  // El botón principal de la pantalla es «Listo, siguiente»: este pasa a serlo recién cuando ya no queda nada por contar.
+  const todoContado = porContar === 0 && puedeCerrar;
   const fila = (clave: EstadoDelResumen) => {
     const e = ESTADOS[clave];
     return (
@@ -73,6 +81,19 @@ export function ResumenDelEnvio({
       <div className="rc-scroll scroll-cayla">
         <div className="rc-resumen-cuerpo">
           <TituloSeccion className="rc-resumen-titulo">Resumen del envío</TituloSeccion>
+          {sinGuardar > 0 && (
+            <Aviso
+              tono="error"
+              chico
+              accion={
+                <button type="button" className="btn-cayla btn-enlace" onClick={onReintentar}>
+                  Reintentar
+                </button>
+              }
+            >
+              {sinGuardar === 1 ? "Una línea no se pudo guardar." : `${conMiles(sinGuardar)} líneas no se pudieron guardar.`}
+            </Aviso>
+          )}
           <dl className="rc-totales" data-guia="recepcion.cifra" aria-live="polite">
             {!sinAviso && dijeron != null && (
               <div className="rc-total">
@@ -97,7 +118,7 @@ export function ResumenDelEnvio({
             <div className="rc-avance">
               <p>
                 <span>Avance</span>
-                <b>{Math.round(avance)}%</b>
+                <b>{textoDeAvance(avance)}</b>
               </p>
               <BarraAvance pct={Math.min(100, avance)} alto="normal" color={colorDeAvance(avance)} decorativa />
             </div>
@@ -109,7 +130,7 @@ export function ResumenDelEnvio({
             <div className="rc-separador" />
             {fila("despues")}
           </div>
-          <PieGuia guia={guia} tope={3} listo="Todo contado y con su prenda identificada." />
+          <PieGuia guia={guia} tope={2} listo="Todo contado y con su prenda identificada." />
           <div className="rc-quien" data-guia="recepcion.quien-cuenta">
             <div className="rc-quien-titulo">
               <p className="label-cayla text-[11px] text-taupe">Quién cuenta</p>
@@ -138,10 +159,10 @@ export function ResumenDelEnvio({
         <p>{textoAlCerrar}</p>
         <Boton
           type="button"
-          peso="primario"
+          peso={todoContado ? "primario" : "fantasma"}
           onClick={alCerrar}
           disabled={!puedeCerrar}
-          title={motivoNoCierra ?? (porContar > 0 ? `Lo que no cuentes (${conMiles(porContar)} ${porContar === 1 ? "modelo" : "modelos"}) sale como faltante.` : "Todo está contado.")}
+          title={motivoNoCierra ?? (porContar > 0 ? `Faltan ${conMiles(porContar)} por contar: al cerrar te los va a pedir.` : "Todo está contado.")}
           data-guia="recepcion.pasar-a-cerrar"
         >
           <span className="inline-flex items-center gap-1.5">
@@ -149,7 +170,7 @@ export function ResumenDelEnvio({
             <ArrowRight aria-hidden className="h-4 w-4" />
           </span>
         </Boton>
-        <p className="rc-resumen-nota">Todo se guarda solo.</p>
+        <p className="rc-resumen-nota">Lo que cuentas se guarda solo.</p>
       </div>
     </aside>
   );

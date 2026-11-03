@@ -52,8 +52,10 @@ export type ModeloDelConteo = {
   codigo: string | null;
   /** Cuántas se anotaron al comprar; `null` si no estaba anotada (llegó y no venía en la compra). */
   esperadas: number | null;
-  /** Cuántas se contaron de este modelo. */
+  /** Cuántas se contaron de este modelo, con lo que ya entró al stock. */
   contadas: number;
+  /** De esas, las que ya entraron al stock en un envío reabierto: no se vuelven a contar y lo contado no baja de ahí. */
+  enStock: number;
   /** ¿Ya se contó, aunque sea para decir que no llegó ninguna? */
   contado: boolean;
   estado: EstadoModelo;
@@ -77,8 +79,11 @@ function estadoDe(esperadas: number | null, contadas: number, contado: boolean, 
 
 /** Los modelos de un grupo, en el orden de la compra y después lo que llegó sin estar anotado. */
 export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
-  // Un 0 solo es «no llegó» si de verdad se sabe: con un número suelto de antes por repartir (o con algo ya en el stock), todavía no se dijo nada.
-  const ceroEsNoLlego = sinIdentificarDelGrupo(g) === 0 && g.enStock === 0;
+  // Lo que ya entró al stock al cerrar sale de lo separado: al reabrir, lo de cada modelo es lo de su línea. Sin esto decía «Por contar» y «Llegaron las 48» las volvía a contar.
+  const enStockDe = (clave: string): number => lineasDelModelo(g, { clave }).reduce((a, l) => a + (l.conteo?.enStock ?? 0), 0);
+  const stockDeModelos = anotadasDelGrupo(g).reduce((a, { prenda }) => a + enStockDe(claveDeAnotada(prenda)), 0);
+  // Un 0 solo es «no llegó» si de verdad se sabe: con un número suelto de antes por repartir (o con algo en el stock que no es de ningún modelo), todavía no se dijo nada.
+  const ceroEsNoLlego = sinIdentificarDelGrupo(g) === 0 && g.enStock === stockDeModelos;
   const usadasCatalogo = new Set<string>();
   const usadasNombre = new Set<string>();
   const filas: ModeloDelConteo[] = anotadasDelGrupo(g).map(({ prenda }) => {
@@ -106,17 +111,21 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       }
     }
     const lineas = lineasDelModelo(g, { clave });
-    const contado = contadas > 0 || (lineas.length > 0 && lineas.every((l) => l.conteo !== null));
+    const enStock = enStockDe(clave);
+    const total = contadas + enStock;
+    const contado = total > 0 || (lineas.length > 0 && lineas.every((l) => l.conteo !== null));
     return {
       clave,
       nombre: prenda.nombre,
       productoId,
       codigo: prenda.codigo,
       esperadas: prenda.cantidad,
-      contadas,
+      contadas: total,
+      enStock,
       contado,
-      estado: estadoDe(prenda.cantidad, contadas, contado, ceroEsNoLlego),
-      conTallas,
+      estado: estadoDe(prenda.cantidad, total, contado, ceroEsNoLlego),
+      // Lo que ya entró al stock ya tiene sus tallas: solo falta decirlas de lo que queda.
+      conTallas: contadas > 0 ? conTallas : enStock > 0,
       anotada: prenda,
     };
   });
@@ -129,6 +138,7 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       codigo: p.codigo,
       esperadas: null,
       contadas: p.cantidad,
+      enStock: 0,
       contado: true,
       estado: "fuera",
       conTallas: !!p.variantes,
@@ -145,6 +155,7 @@ export function modelosDelGrupo(g: GrupoDeLineas): ModeloDelConteo[] {
       codigo: null,
       esperadas: null,
       contadas: n.cantidad,
+      enStock: 0,
       contado: true,
       estado: "fuera",
       conTallas: false,
@@ -306,13 +317,14 @@ export function estadoDeParada(p: ParadaDelConteo): Exclude<EstadoDelResumen, "d
   return p.grupo.dijeron == null || p.grupo.dijeron === p.grupo.contadas ? "cuadran" : "diferencia";
 }
 
-export const tallasParaDespues = (p: ParadaDelConteo): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas;
+/** Lo contado que queda sin tallas. Lo que la persona pidió hacer ahora (`enAhora`) no es «para después»: ese dice «Faltan tallas». */
+export const tallasParaDespues = (p: ParadaDelConteo, enAhora?: ReadonlySet<string>): boolean => !!p.modelo && p.modelo.contadas > 0 && !p.modelo.conTallas && !enAhora?.has(p.clave);
 
-const pasaLaParada = (p: ParadaDelConteo, f: FiltroDelConteo, retener: string | null): boolean => {
+const pasaLaParada = (p: ParadaDelConteo, f: FiltroDelConteo, retener: string | null, enAhora?: ReadonlySet<string>): boolean => {
   // Lo que se está contando no se va de la lista bajo el dedo: con «Por contar» puesto, sumarle una lo sacaría del filtro. Se va al pasar al siguiente.
   if (p.clave !== retener) {
     if (f.tipo && tipoDeParada(p) !== f.tipo) return false;
-    if (f.estado && (f.estado === "despues" ? !tallasParaDespues(p) : estadoDeParada(p) !== f.estado)) return false;
+    if (f.estado && (f.estado === "despues" ? !tallasParaDespues(p, enAhora) : estadoDeParada(p) !== f.estado)) return false;
   }
   const texto = sinTildes(f.texto).trim().toLocaleLowerCase("es");
   if (!texto) return true;
@@ -344,18 +356,21 @@ function conSoloEstas(c: CategoriaDelEnvio, paradas: ParadaDelConteo[]): Categor
 }
 
 /** Lo que se ve en la lista: por proveedor y marca se filtran los grupos; por tipo, estado y búsqueda, las paradas de adentro. Una categoría sin nada que mostrar no sale. */
-export function categoriasDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDelConteo, retener: string | null = null): CategoriaDelEnvio[] {
+export function categoriasDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDelConteo, retener: string | null = null, enAhora?: ReadonlySet<string>): CategoriaDelEnvio[] {
   const categorias = categoriasDelEnvio(gruposDelFiltro(grupos, f));
   if (!f.tipo && !f.estado && !f.texto.trim()) return categorias;
-  return categorias.map((c) => conSoloEstas(c, c.paradas.filter((p) => pasaLaParada(p, f, retener)))).filter((c) => c.paradas.length > 0);
+  return categorias.map((c) => conSoloEstas(c, c.paradas.filter((p) => pasaLaParada(p, f, retener, enAhora)))).filter((c) => c.paradas.length > 0);
 }
 
-/** Lo que el filtro deja cuando la persona lo cambia: si lo que se contaba ya no se ve, se pasa a lo primero sin contar de lo que se ve. Sin nada a la vista, se queda donde está. */
+/** Lo que el filtro deja cuando la persona lo cambia: si lo que se contaba ya no se ve, se pasa a lo primero sin contar de lo que se ve. Sin nada a la vista, se queda donde está. La búsqueda no pasa por aquí: lo que se cuenta no cambia mientras se teclea. */
 export function focoTrasElFiltro(categorias: readonly CategoriaDelEnvio[], foco: string | null): string | null {
   const lista = categorias.flatMap((c) => c.paradas);
   if (lista.length === 0 || lista.some((p) => p.clave === foco)) return foco;
   return (lista.find((p) => !paradaContada(p)) ?? lista[0]).clave;
 }
+
+/** Un doble clic en «Listo, siguiente» saltaba un modelo sin que nadie lo notara (chaos DC-01, 2026-11-02): el segundo toque, tan seguido, no cuenta. */
+export const esToqueRepetido = (anterior: number, ahora: number): boolean => ahora - anterior < 350;
 
 /** Quién va antes y después en la lista que se ve. Si lo que se cuenta salió de la lista, lo que sigue es lo primero que queda. */
 export function vecinosDeLaParada(paradas: readonly ParadaDelConteo[], clave: string | null): { anterior: ParadaDelConteo | null; siguiente: ParadaDelConteo | null } {
@@ -377,7 +392,7 @@ export type CifrasDelResumen = {
 };
 
 /** Lo que dice el resumen de la derecha, de TODO el envío: los filtros solo deciden qué se ve a la izquierda. */
-export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[]): CifrasDelResumen {
+export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[], enAhora?: ReadonlySet<string>): CifrasDelResumen {
   const paradas = categorias.flatMap((c) => c.paradas);
   const grupos = categorias.flatMap((c) => c.grupos);
   const dijeron = grupos.every((g) => g.dijeron == null) ? null : grupos.reduce((a, g) => a + (g.dijeron ?? 0), 0);
@@ -386,7 +401,7 @@ export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[]): Cifr
   const tipos: CifrasDelResumen["tipos"] = { restock: { modelos: 0, contados: 0 }, nuevo: { modelos: 0, contados: 0 } };
   for (const p of paradas) {
     estados[estadoDeParada(p)] += 1;
-    if (tallasParaDespues(p)) estados.despues += 1;
+    if (tallasParaDespues(p, enAhora)) estados.despues += 1;
     const tipo = tipoDeParada(p);
     if (!tipo) continue;
     tipos[tipo].modelos += 1;
@@ -461,9 +476,12 @@ export function opcionesDelFiltro(grupos: readonly GrupoDeLineas[], f: FiltroDel
 
 // ---- Contar un modelo -----------------------------------------------------------------------------------------------------------------
 
-/** Lo separado con este modelo en `n`. En 0 sale de lo separado, sin volverse «nuevas sin describir»: se dijo que no llegó, no que falta nombrarla. */
+/**
+ * Lo separado con este modelo en `n`. En 0 sale de lo separado, sin volverse «nuevas sin describir»: se dijo que no llegó, no que falta nombrarla. `n` es todo lo que llegó del modelo:
+ * en un envío reabierto, lo que ya entró al stock no vuelve a lo separado (si volviera, entraría otra vez al cerrar).
+ */
 export function cantidadDeModelo(s: Separado, m: ModeloDelConteo, n: number): Separado {
-  const c = Math.max(0, Math.min(TOPES_CONTEO.contadas, Math.trunc(n)));
+  const c = Math.max(0, Math.min(TOPES_CONTEO.contadas, Math.trunc(n)) - m.enStock);
   if (m.productoId) {
     if (c === 0) return quitarPrenda(s, m.productoId);
     return s.prendas.some((p) => p.productoId === m.productoId)
@@ -514,7 +532,7 @@ function partirEntreSusLineas(g: GrupoDeLineas, m: ModeloDelConteo, r: Reparto):
   lineas.forEach((l, i) => {
     const d = despues.get(l.clave);
     if (!d) return;
-    const leToca = i === lineas.length - 1 ? resto : Math.min(resto, l.dijeron ?? 0);
+    const leToca = i === lineas.length - 1 ? resto : Math.min(resto, Math.max(0, (l.dijeron ?? 0) - (l.conteo?.enStock ?? 0)));
     resto -= leToca;
     const sin = { prendas: d.separado.prendas.filter((p) => !esDelModelo.prenda(p)), nuevas: d.separado.nuevas.filter((x) => !esDelModelo.nueva(x)) };
     const con: Separado =

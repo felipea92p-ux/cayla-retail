@@ -124,10 +124,35 @@ describe("quitar", () => {
 
 describe("cuándo se guarda", () => {
   it("dice lo que falta contra lo contado", () => {
-    expect(cuadreDeTallas(360, 0)).toEqual({ estado: "vacia", texto: "Reparte las 360" });
-    expect(cuadreDeTallas(360, 360).estado).toBe("cuadra");
-    expect(cuadreDeTallas(360, 300)).toEqual({ estado: "faltan", texto: "Faltan 60 por repartir" });
-    expect(cuadreDeTallas(360, 1400)).toEqual({ estado: "sobran", texto: "Te pasaste por 1,040" });
+    expect(cuadreDeTallas(conteo(), COMPLETA, 360)).toEqual({ estado: "vacia", texto: "Reparte las 360" });
+    expect(cuadreDeTallas(conteo({ "s-neg": "360" }), COMPLETA, 360).estado).toBe("cuadra");
+    expect(cuadreDeTallas(conteo({ "s-neg": "300" }), COMPLETA, 360)).toEqual({ estado: "faltan", texto: "Faltan 60 por repartir" });
+    expect(cuadreDeTallas(conteo({ "s-neg": "1400" }), COMPLETA, 360)).toEqual({ estado: "sobran", texto: "Te pasaste por 1,040" });
+  });
+
+  it("«Cuadra» solo si de verdad se guarda: las dañadas a medias tampoco", () => {
+    const base = { "s-neg": "5" };
+    const sinArreglo = conteo(base, { conDanadas: true, danadas: { "s-neg": "2" } });
+    expect(cuadreDeTallas(sinArreglo, COMPLETA, 5).texto).toBe("Falta decir si tienen arreglo: aún no se guarda");
+    const deMas = conteo(base, { conDanadas: true, danadas: { "s-neg": "9" }, arreglo: "pendiente" });
+    expect(cuadreDeTallas(deMas, COMPLETA, 5).estado).toBe("danadas");
+    const bien = conteo(base, { conDanadas: true, danadas: { "s-neg": "2" }, arreglo: "pendiente" });
+    expect(cuadreDeTallas(bien, COMPLETA, 5).estado).toBe("cuadra");
+    expect(cuadreDeTallas(conteo(base, { conDanadas: true }), COMPLETA, 5).estado).toBe("cuadra");
+  });
+
+  it("dice lo mismo que lo que se guarda", () => {
+    const casos: Conteo[] = [
+      conteo(),
+      conteo({ "s-neg": "5" }),
+      conteo({ "s-neg": "4" }),
+      conteo({ "s-neg": "6" }),
+      conteo({ "s-neg": "5" }, { conDanadas: true }),
+      conteo({ "s-neg": "5" }, { conDanadas: true, danadas: { "s-neg": "2" } }),
+      conteo({ "s-neg": "5" }, { conDanadas: true, danadas: { "s-neg": "9" }, arreglo: "pendiente" }),
+      conteo({ "s-neg": "5" }, { conDanadas: true, danadas: { "s-neg": "2" }, arreglo: "sin_solucion" }),
+    ];
+    for (const c of casos) expect(cuadreDeTallas(c, COMPLETA, 5).estado === "cuadra").toBe(tallasListas(c, COMPLETA, 5));
   });
 
   it("solo con todo repartido: en la base las tallas siempre suman la cantidad", () => {

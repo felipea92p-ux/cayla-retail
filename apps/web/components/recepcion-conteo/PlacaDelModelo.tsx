@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, type Ref } from "react";
+import { type MouseEvent, type ReactNode, type Ref } from "react";
 import { ArrowLeft, ArrowRight, Ban, Check, Package, RotateCcw, Sparkles, Tag } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
@@ -28,6 +28,8 @@ export function PlacaDelModelo({
   faltanTallas,
   guardado,
   error,
+  onReintentar,
+  quienCuenta,
   modo,
   abrirNumero,
   anterior,
@@ -38,8 +40,10 @@ export function PlacaDelModelo({
   otraCosaAbierta,
   filaSeguir,
   onPoner,
+  onDeUnToque,
   onAnterior,
   onSiguiente,
+  onQuitarFiltro,
   onEnter,
   onCerrar,
   onModo,
@@ -55,6 +59,10 @@ export function PlacaDelModelo({
   faltanTallas: boolean;
   guardado: EstadoGuardado | null;
   error: string | null;
+  /** Vuelve a mandar lo que no se pudo guardar. */
+  onReintentar: () => void;
+  /** En una terminal, antes de contar: elegir quién cuenta. */
+  quienCuenta: ReactNode;
   modo: ModoDeTallas;
   /** Llega con el número listo para escribir: viene de apretar Enter en lo anterior. */
   abrirNumero: boolean;
@@ -68,8 +76,11 @@ export function PlacaDelModelo({
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
   onPoner: (n: number) => void;
-  onAnterior: () => void;
-  onSiguiente: () => void;
+  /** «Llegaron las N» o «Poner en cero»: pisan lo contado de un toque, y se pueden deshacer. */
+  onDeUnToque: (n: number) => void;
+  onAnterior: (e: MouseEvent) => void;
+  onSiguiente: (e: MouseEvent) => void;
+  onQuitarFiltro: () => void;
   onEnter: () => void;
   onCerrar: () => void;
   onModo: (m: ModoDeTallas) => void;
@@ -88,9 +99,13 @@ export function PlacaDelModelo({
   const hayConteo = modelo ? modelo.contado : grupo.lineas.some((l) => l.conteo !== null);
   const contadas = modelo ? modelo.contadas : grupo.contadas;
   const dijeron = modelo ? modelo.esperadas : grupo.dijeron;
-  // Un modelo se puede bajar hasta 0 (no llegó); el total de un grupo, no por debajo de lo que ya se dijo qué es.
-  const minimo = modelo ? 0 : minimoDelGrupo(grupo);
+  // Un modelo se puede bajar hasta 0 (no llegó) o hasta lo que ya entró al stock; el total de un grupo, no por debajo de lo que ya se dijo qué es.
+  const minimo = modelo ? modelo.enStock : minimoDelGrupo(grupo);
+  const enStock = modelo ? modelo.enStock : grupo.enStock;
+  // Lo que ya entró al stock ya tiene sus tallas: de eso no hay nada que decidir.
+  const yaEntroTodo = !!modelo && modelo.enStock > 0 && modelo.contadas === modelo.enStock;
   const poner = (n: number) => onPoner(Math.max(minimo, Math.max(0, n)));
+  const deUnToque = (n: number) => onDeUnToque(Math.max(minimo, Math.max(0, n)));
   const [atajoChico, atajoGrande] = atajosDelDial(dijeron, contadas);
   const yaLlegaron = hayConteo && dijeron != null && dijeron === contadas;
   const noLlego = hayConteo && contadas === 0;
@@ -128,7 +143,7 @@ export function PlacaDelModelo({
             {tipo === "nuevo" && (
               <Chip tono="pizarra" versalitas={false}>
                 <Sparkles aria-hidden className="h-3 w-3" />
-                {modelo?.productoId ? "Nuevo · ya creado" : "Nuevo · por crear"}
+                {modelo?.productoId || modelo?.enStock ? "Nuevo · ya creado" : "Nuevo · por crear"}
               </Chip>
             )}
             {tipo === "restock" && (
@@ -143,7 +158,9 @@ export function PlacaDelModelo({
                 {marcaDeLinea(p).nombre}
               </Chip>
             )}
-            {modelo && (modelo.conTallas && modelo.productoId ? <Chip tono="verde">Entra al stock</Chip> : <EstadoModelo m={modelo} faltanTallas={faltanTallas} />)}
+            {/* Lo mismo que dice su fila en la lista. Sin contar, «Sigue aquí» ya lo dice. */}
+            {modelo && hayConteo && <EstadoModelo m={modelo} faltanTallas={faltanTallas} sinAviso={sinAviso} />}
+            {yaEntroTodo ? <Chip tono="verde">Ya en el stock</Chip> : modelo?.conTallas && modelo.productoId && <Chip tono="verde">Entra al stock</Chip>}
             {!p.linea && !sinAviso && <Chip tono="ambar">No estaba en la guía</Chip>}
           </div>
         </div>
@@ -162,6 +179,7 @@ export function PlacaDelModelo({
         </div>
       </div>
       {observaciones}
+      {quienCuenta}
       {otraCosa}
 
       <div className="rc-cuenta" data-guia="recepcion.numero">
@@ -196,14 +214,14 @@ export function PlacaDelModelo({
               </button>
             </div>
             {dijeron != null && dijeron >= minimo && (
-              <button type="button" className="rc-atajo rc-atajo-llegaron" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => poner(dijeron)}>
+              <button type="button" className="rc-atajo rc-atajo-llegaron" data-hecho={yaLlegaron ? "" : undefined} disabled={yaLlegaron} onClick={() => deUnToque(dijeron)}>
                 <Check aria-hidden className="h-4 w-4" />
                 Llegaron las {conMiles(dijeron)}
               </button>
             )}
             {contadas > 0 ? (
               minimo === 0 && (
-                <button type="button" className="rc-atajo rc-atajo-cero" onClick={() => poner(0)}>
+                <button type="button" className="rc-atajo rc-atajo-cero" onClick={() => deUnToque(0)}>
                   <RotateCcw aria-hidden className="h-4 w-4" />
                   Poner en cero
                 </button>
@@ -217,31 +235,29 @@ export function PlacaDelModelo({
               )
             )}
           </div>
-          <p>Toca el número para escribirlo</p>
-          {diferencia != null && diferencia !== 0 && !sinAviso && <p>Si no coincide, al cerrar dices por qué.</p>}
-          {grupo.enStock > 0 && <p>Ya entraron {textoPrendas(grupo.enStock)} al stock: lo contado no baja de ahí.</p>}
+          {/* Una sola línea de ayuda, en su lugar reservado: si apareciera otra, «Listo, siguiente» se movería bajo el mouse al primer toque. */}
+          <p className="rc-pista">{diferencia != null && diferencia !== 0 && !sinAviso ? "Si no coincide, al cerrar dices por qué." : "Toca el número para escribirlo."}</p>
+          {enStock > 0 && <p>Ya entraron {textoPrendas(enStock)} al stock: lo contado no baja de ahí.</p>}
         </div>
         {/* «Anterior» y «Listo, siguiente», iguales y con su flecha (Felipe 2026-11-02). El nombre de la prenda no va en el botón: uno largo no cabía. */}
         <div ref={filaSeguir} className="rc-seguir" data-guia="recepcion.siguiente">
-          <Boton type="button" peso="fantasma" disabled={!anterior} title={anterior ? `Volver a ${nombreDeParada(anterior)}` : undefined} onClick={onAnterior}>
+          <Boton type="button" peso="fantasma" disabled={!anterior} title={anterior ? `Antes: ${nombreDeParada(anterior)}` : undefined} onClick={onAnterior}>
             <span className="inline-flex items-center gap-2">
               <ArrowLeft aria-hidden className="h-4 w-4 shrink-0" />{/* unificar-fijo: Felipe pidió «Anterior» con su flecha junto a «Listo, siguiente», los dos con palabra, en esta pantalla (2026-11-02) */}
               Anterior
             </span>
           </Boton>
+          {/* Sin contar todavía no es «Listo»: pasar es saltarlo, y lo principal aquí es contar. */}
           {siguiente ? (
-            <Boton type="button" peso="primario" title={`Sigue ${nombreDeParada(siguiente)}`} aria-label={`Listo, siguiente: ${nombreDeParada(siguiente)}`} onClick={onSiguiente}>
+            <Boton type="button" peso={hayConteo ? "primario" : "fantasma"} title={`Sigue ${nombreDeParada(siguiente)}`} aria-label={`${hayConteo ? "Listo, siguiente" : "Siguiente"}: ${nombreDeParada(siguiente)}`} onClick={onSiguiente}>
               <span className="inline-flex items-center gap-2">
-                Listo, siguiente
+                {hayConteo ? "Listo, siguiente" : "Siguiente"}
                 <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
               </span>
             </Boton>
           ) : hayFiltroPuesto ? (
-            <Boton type="button" peso="primario" disabled title="Es el último de esta lista">
-              <span className="inline-flex items-center gap-2">
-                Listo, siguiente
-                <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
-              </span>
+            <Boton type="button" peso="fantasma" onClick={onQuitarFiltro}>
+              Es el último: ver todos
             </Boton>
           ) : (
             <Boton type="button" peso="primario" disabled={!puedeCerrar} title={motivoNoCierra} onClick={onCerrar}>
@@ -255,20 +271,28 @@ export function PlacaDelModelo({
       </div>
       {error && (
         <div className="rc-placa-error">
-          <Aviso tono="error" chico>
+          <Aviso
+            tono="error"
+            chico
+            accion={
+              <button type="button" className="btn-cayla btn-enlace" onClick={onReintentar}>
+                Reintentar
+              </button>
+            }
+          >
             {error}
           </Aviso>
         </div>
       )}
 
-      {modelo && (
+      {modelo && !yaEntroTodo && (
         <div className="rc-seccion" data-guia="recepcion.que-hacer">
           <p className="rc-seccion-titulo">¿Qué deseas hacer?</p>
           <div className="rc-opciones" role="radiogroup" aria-label="¿Qué deseas hacer?">
-            {opcion("despues", "Solo cuadrar cantidad", "Tallas y colores, después.")}
-            {opcion("ahora", esNueva ? "Crearlo con sus tallas ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después, sus tallas." : "Cuántas hay de cada una.")}
+            {opcion("despues", "Solo la cantidad", "Queda guardada: no se vende hasta poner sus tallas.")}
+            {opcion("ahora", esNueva ? "Crearlo con sus tallas ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después, sus tallas." : "Con eso entra al stock al cerrar.")}
           </div>
-          {sinNumero && <p className="text-sm text-taupe">Primero valida la cantidad total. Después podrás completar tallas y colores.</p>}
+          {sinNumero && <p className="text-sm text-taupe">Primero cuenta cuántas llegaron. Después podrás poner tallas y colores.</p>}
         </div>
       )}
       {tallas}

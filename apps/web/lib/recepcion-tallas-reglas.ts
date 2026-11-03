@@ -36,7 +36,13 @@ export function coloresIniciales(matriz: Pick<MatrizRecepcion, "colores">, prend
 }
 
 /** Lo que hay escrito en la tabla de un modelo mientras se reparte: se guarda en la base recién cuando cuadra. */
-export type BorradorTallas = { conteo: Conteo; tallas: string[]; colores: string[] };
+export type BorradorTallas = {
+  conteo: Conteo;
+  tallas: string[];
+  colores: string[];
+  /** Hay algo escrito que no se puede guardar todavía: se perdería al salir. */
+  sinGuardar?: boolean;
+};
 
 export function borradorDeTallas(prenda: Pick<PrendaRecepcion, "variantes">, ordenColores: readonly string[], categoria: readonly TallaDeLaCategoria[], variantes: readonly VarianteSeparada[] | null): BorradorTallas {
   const matriz = matrizDe(prenda, ordenColores);
@@ -98,14 +104,21 @@ export function ordenarTallasVisibles(matriz: Pick<MatrizRecepcion, "tallas">, v
   return matriz.tallas.map((t) => claveDeEje(t.id)).filter((k) => usadas.has(k));
 }
 
-export type CuadreDeTallas = { estado: "cuadra" | "faltan" | "sobran" | "vacia"; texto: string };
+export type CuadreDeTallas = { estado: "cuadra" | "faltan" | "sobran" | "vacia" | "danadas"; texto: string };
 
-/** Lo repartido contra lo contado en el contador. */
-export function cuadreDeTallas(contadas: number, repartidas: number): CuadreDeTallas {
+/**
+ * Cómo va lo repartido contra lo contado. «Cuadra» solo si de verdad se guarda: con las dañadas a medias tampoco se guarda, y un «Cuadra» en verde mentía.
+ * `tallasListas` y esto dicen lo mismo: lo vigila su prueba.
+ */
+export function cuadreDeTallas(conteo: Conteo, prenda: Pick<PrendaRecepcion, "variantes">, contadas: number): CuadreDeTallas {
   const miles = (n: number) => n.toLocaleString("es-PE");
-  if (repartidas === 0) return { estado: "vacia", texto: `Reparte las ${miles(contadas)}` };
-  if (repartidas === contadas) return { estado: "cuadra", texto: "Cuadra con lo contado" };
-  return repartidas < contadas ? { estado: "faltan", texto: `Faltan ${miles(contadas - repartidas)} por repartir` } : { estado: "sobran", texto: `Te pasaste por ${miles(repartidas - contadas)}` };
+  const s = sumasDe(conteo, prenda);
+  if (s.contado === 0) return { estado: "vacia", texto: `Reparte las ${miles(contadas)}` };
+  if (s.contado < contadas) return { estado: "faltan", texto: `Faltan ${miles(contadas - s.contado)} por repartir` };
+  if (s.contado > contadas) return { estado: "sobran", texto: `Te pasaste por ${miles(s.contado - contadas)}` };
+  if (conteo.conDanadas && (s.danadasInvalidas > 0 || s.danadasDeMas.length > 0)) return { estado: "danadas", texto: "Revisa las dañadas: aún no se guarda" };
+  if (conteo.conDanadas && s.danadas > 0 && conteo.arreglo === null) return { estado: "danadas", texto: "Falta decir si tienen arreglo: aún no se guarda" };
+  return { estado: "cuadra", texto: "Cuadra con lo contado" };
 }
 
 /** ¿Lo escrito ya es lo guardado? Sin importar el orden: si es lo mismo, no se vuelve a escribir en la base. */

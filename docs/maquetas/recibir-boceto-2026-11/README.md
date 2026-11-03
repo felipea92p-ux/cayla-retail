@@ -39,6 +39,10 @@ Además, a probar: **Enter en el número del contador guarda y pasa al siguiente
 - **«Anterior» y «Listo, siguiente»:** dos botones iguales, cada uno con su flecha y sin el nombre de la prenda, que en una larga no cabía (el nombre queda al pasar el mouse). Con el último modelo, el de la derecha pasa a «Pasar a cerrar».
 - **Un color nuevo:** `--bm-avance-medio` (`#c08a1e`, solo en claro). El ámbar del sistema es un marrón oscuro hecho para texto: en una barra no se distingue del verde. Si esto pasa a local, va como token en `globals.css` y `tema.css`.
 
+## Ya se pasó a local (2026-11-02)
+
+Felipe la aprobó y está en el ERP (`/recibir/envio/[id]`, ADR-0604). Esta maqueta queda como referencia de lo que eligió; manda el ERP. Lo de abajo es cómo se planeó.
+
 ## Si se pasa a local
 
 Sin migración ni RPC nuevas: «Re stock» y «Nuevo» salen de si el modelo trae `productoId`; los estados, de `recepcion-modelos-reglas.ts`; las tallas de siempre, de `categoria_tallas.habitual`, que ya existe y ya usa Nuevo producto (`lib/catalogo-v2.ts`).

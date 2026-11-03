@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, Trash2, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
@@ -36,6 +36,7 @@ export function TallasDeLaPlaca({
   tallasCategoria,
   coloresCatalogo,
   contadas,
+  traerALaVista,
   borrador,
   onCambiar,
   onDejarSuma,
@@ -49,13 +50,15 @@ export function TallasDeLaPlaca({
   tallasCategoria: readonly TallaDeLaCategoria[];
   coloresCatalogo: readonly ColorAlta[];
   contadas: number;
+  /** Se acaba de pedir: la tabla sube a la vista y el cursor va a su primera celda. */
+  traerALaVista: boolean;
   borrador: BorradorTallas | null;
   onCambiar: (b: BorradorTallas) => void;
-  /** «Dejar N como lo contado»: lo repartido manda. */
+  /** «Corrige lo contado a N»: lo repartido manda. */
   onDejarSuma: (n: number) => void;
   /** Lo que la prenda no tiene: se crea con la hoja de la prenda. */
   onCrear: (pedida: { tallaId?: string; colorCodigo?: string }) => void;
-  /** «Cambiar de prenda»: al repartir se vio que era otra. */
+  /** «¿Era otra prenda?»: al repartir se vio que era otra. */
   onCambiarPrenda: () => void;
 }) {
   const [fallo, setFallo] = useState(false);
@@ -77,7 +80,7 @@ export function TallasDeLaPlaca({
       <div className="rc-seccion" data-guia="recepcion.tallas">
         <p className="rc-seccion-titulo">Tallas y colores</p>
         {fallo ? (
-          <Aviso tono="error" chico accion={<button type="button" className="btn-cayla btn-enlace" onClick={() => { setFallo(false); setIntento((n) => n + 1); }}>Volver a intentar</button>}>
+          <Aviso tono="error" chico accion={<button type="button" className="btn-cayla btn-enlace" onClick={() => { setFallo(false); setIntento((n) => n + 1); }}>Reintentar</button>}>
             No se pudieron leer las tallas y colores de esta prenda.
           </Aviso>
         ) : (
@@ -86,7 +89,7 @@ export function TallasDeLaPlaca({
       </div>
     );
   }
-  return <Reparto prenda={prenda} tallasCategoria={tallasCategoria} coloresCatalogo={coloresCatalogo} contadas={contadas} borrador={borrador} onCambiar={onCambiar} onDejarSuma={onDejarSuma} onCrear={onCrear} onCambiarPrenda={onCambiarPrenda} />;
+  return <Reparto prenda={prenda} tallasCategoria={tallasCategoria} coloresCatalogo={coloresCatalogo} contadas={contadas} traerALaVista={traerALaVista} borrador={borrador} onCambiar={onCambiar} onDejarSuma={onDejarSuma} onCrear={onCrear} onCambiarPrenda={onCambiarPrenda} />;
 }
 
 function Reparto({
@@ -94,6 +97,7 @@ function Reparto({
   tallasCategoria,
   coloresCatalogo,
   contadas,
+  traerALaVista,
   borrador,
   onCambiar,
   onDejarSuma,
@@ -104,6 +108,7 @@ function Reparto({
   tallasCategoria: readonly TallaDeLaCategoria[];
   coloresCatalogo: readonly ColorAlta[];
   contadas: number;
+  traerALaVista: boolean;
   borrador: BorradorTallas;
   onCambiar: (b: BorradorTallas) => void;
   onDejarSuma: (n: number) => void;
@@ -114,13 +119,27 @@ function Reparto({
   const matriz = matrizDe(prenda, coloresCatalogo.map((c) => c.codigo));
   const { conteo } = borrador;
   const s = sumasDe(conteo, prenda);
-  const cuadre = cuadreDeTallas(contadas, s.contado);
+  const cuadre = cuadreDeTallas(conteo, prenda, contadas);
   const cuadra = cuadre.estado === "cuadra";
   const tallas: Eje[] = ordenarTallasVisibles(matriz, borrador.tallas).map((clave) => ({ clave, texto: matriz.tallas.find((t) => claveDeEje(t.id) === clave)?.texto ?? "" }));
   const visiblesColor = new Set(borrador.colores);
   const colores: Eje[] = matriz.colores.filter((c) => visiblesColor.has(claveDeEje(c.codigo))).map((c) => ({ clave: claveDeEje(c.codigo), texto: c.nombre }));
   const porAgregarTalla = tallasPorAgregar(matriz, borrador.tallas, tallasCategoria);
   const porAgregarColor = coloresPorAgregar(matriz, borrador.colores, coloresCatalogo);
+
+  // Se acaba de pedir: en la prueba ciega la tabla quedó bajo el borde y parecía que el botón no había hecho nada. Mueve solo la columna; en el teléfono, donde la columna no se desplaza, la página.
+  useEffect(() => {
+    const el = raiz.current;
+    if (!traerALaVista || !el) return;
+    const caja = el.closest<HTMLElement>(".rc-scroll");
+    const suave: ScrollBehavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    const alto = el.getBoundingClientRect().top;
+    if (caja && caja.scrollHeight > caja.clientHeight) caja.scrollTo({ top: caja.scrollTop + alto - caja.getBoundingClientRect().top - 8, behavior: suave });
+    else window.scrollBy({ top: alto - 88, behavior: suave });
+    if (window.matchMedia("(pointer: fine)").matches) el.querySelector<HTMLInputElement>("input.rc-celda:not(:disabled)")?.focus({ preventScroll: true });
+    // Una sola vez, al llegar la tabla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // El cursor va a la talla o al color que se acaba de sumar, para seguir escribiendo.
   const cursor = useRef<string | null>(null);
@@ -164,7 +183,7 @@ function Reparto({
           {!cuadra && <EtiquetaAhora />}
         </p>
         <button type="button" className="btn-cayla btn-enlace" onClick={onCambiarPrenda}>
-          Cambiar de prenda
+          ¿Era otra prenda?
         </button>
       </div>
 
@@ -190,11 +209,11 @@ function Reparto({
         </span>
       </div>
       {s.invalidas > 0 && <p className="text-sm text-ambar">Las cantidades son números enteros, de 0 a 9999.</p>}
-      {!cuadra && s.contado > 0 && (
+      {(cuadre.estado === "faltan" || cuadre.estado === "sobran") && (
         <p className="text-sm text-taupe">
-          Se guarda cuando cuadre con lo contado.{" "}
+          Se guarda cuando cuadre con lo contado. Si llegaron {conMiles(s.contado)},{" "}
           <button type="button" className="btn-cayla btn-enlace" onClick={() => onDejarSuma(s.contado)}>
-            Dejar {conMiles(s.contado)} como lo contado
+            corrige lo contado a {conMiles(s.contado)}
           </button>
         </p>
       )}
@@ -337,7 +356,7 @@ function TablaDeTallas({
                 {conQuitar && colores.length > 1 && (
                   <td>
                     <button type="button" className="icono-fila grid h-8 w-8 place-items-center" aria-label={`Quitar ${c.texto}`} title={`Quitar ${c.texto}`} onClick={() => onQuitar("color", c)}>
-                      <Trash2 aria-hidden className="h-4 w-4" />
+                      <X aria-hidden className="h-4 w-4" />
                     </button>
                   </td>
                 )}

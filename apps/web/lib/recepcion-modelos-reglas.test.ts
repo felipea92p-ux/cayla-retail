@@ -8,6 +8,7 @@ import {
   categoriasEnOrden,
   cifrasDelResumen,
   conSigno,
+  esToqueRepetido,
   estadoDeParada,
   focoTrasElFiltro,
   hayFiltro,
@@ -123,12 +124,12 @@ describe("modelosDelGrupo", () => {
     expect(modelosDelGrupo(noLlego)[0].estado).toBe("no-llego");
   });
 
-  it("un 0 no es «no llegó» si hay un número suelto de antes sin repartir, ni si algo ya entró al stock", () => {
+  it("un 0 no es «no llegó» si hay un número suelto de antes sin repartir; lo que ya entró al stock cuenta como suyo", () => {
     const suelto = grupo(deLaGuia(sofia(), { contadas: 4 }));
     expect(sinIdentificarDelGrupo(suelto)).toBe(4);
     expect(modelosDelGrupo(suelto)[0].estado).toBe("por-contar");
     const enStock = grupo(deLaGuia(sofia(), { contadas: 2, en_stock: 2 }));
-    expect(modelosDelGrupo(enStock)[0].estado).toBe("por-contar");
+    expect(modelosDelGrupo(enStock)[0]).toMatchObject({ estado: "a-medias", contadas: 2, enStock: 2 });
   });
 
   it("suma lo que llegó sin estar anotado, del catálogo o nuevo con nombre; las nuevas sin nombre no son un modelo", () => {
@@ -395,6 +396,15 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
     expect(porNombre.get("Vestido Lima")).toBe(false);
   });
 
+  it("lo que se pidió hacer ahora no se cuenta «para después»", () => {
+    const [c] = categoriasDelEnvio(agruparLineas([deLaGuia(antonella(), { contadas: 3, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 3)], nuevas: [] } })]));
+    const p = c.paradas[0];
+    expect(tallasParaDespues(p)).toBe(true);
+    expect(tallasParaDespues(p, new Set([p.clave]))).toBe(false);
+    expect(cifrasDelResumen([c], new Set([p.clave])).estados.despues).toBe(0);
+    expect(categoriasDelFiltro(agruparLineas(c.grupos.flatMap((g) => g.lineas)), { ...SIN_FILTRO, estado: "despues" }, null, new Set([p.clave]))).toEqual([]);
+  });
+
   it("las cifras del resumen son las de TODO el envío", () => {
     const r = cifrasDelResumen(todas());
     expect(r.dijeron).toBe(15);
@@ -483,6 +493,12 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
   describe("moverse por la lista", () => {
     const paradas = () => todas()[0].paradas;
 
+    it("el segundo toque de un doble clic no salta otro modelo", () => {
+      expect(esToqueRepetido(1000, 1120)).toBe(true);
+      expect(esToqueRepetido(1000, 1400)).toBe(false);
+      expect(esToqueRepetido(0, 5000)).toBe(false);
+    });
+
     it("al cambiar el filtro: si lo que se cuenta sigue a la vista, no se mueve; si no, a lo primero sin contar", () => {
       const lista = todas();
       const sofiaClave = paradas()[0].clave;
@@ -505,6 +521,61 @@ describe("Re stock, Producto nuevo y los estados del resumen", () => {
       const ps = paradas();
       expect(vecinosDeLaParada(ps, "otra")).toEqual({ anterior: null, siguiente: ps[0] });
     });
+  });
+});
+
+describe("un envío reabierto: lo que ya entró al stock", () => {
+  // Al cerrar, lo que tenía tallas entra al stock y sale de lo separado. Al reabrir, la línea tiene sus 48 contadas y `en_stock` 48.
+  const reabierta = () => grupo(deLaGuia(sofia({ enviado: 48 }), { contadas: 48, en_stock: 48 }), deLaGuia(antonella({ enviado: 120 }), { contadas: 120, separado: { prendas: [prendaSep("p-anto", "Vestido Antonella", 120)], nuevas: [] } }));
+  const sofiaDe = (g: GrupoDeLineas) => modelosDelGrupo(g).find((m) => m.nombre === "Vestido Sofía")!;
+
+  it("no pide contar de nuevo lo que ya entró", () => {
+    const m = sofiaDe(reabierta());
+    expect(m).toMatchObject({ contadas: 48, enStock: 48, estado: "cuadra", contado: true, conTallas: true });
+  });
+
+  it("«Llegaron las 48» no lo cuenta dos veces: no agrega nada a lo que entra al cerrar", () => {
+    const g = reabierta();
+    expect(cantidadDeModelo(g.separado, sofiaDe(g), 48).prendas.some((p) => p.productoId === "p-sofia")).toBe(false);
+    const r = repartirModelo(g, sofiaDe(g), 48);
+    const linea = r.cambios.find((c) => c.clave === "item:l-sofia");
+    if (linea) expect(linea.contadas).toBe(48);
+  });
+
+  it("si aparecen más, solo lo nuevo queda por entrar", () => {
+    const g = reabierta();
+    const m = sofiaDe(g);
+    const r = repartirModelo(g, m, 50);
+    const linea = r.cambios.find((c) => c.clave === "item:l-sofia");
+    expect(linea?.contadas).toBe(50);
+    expect(linea?.separado.prendas).toEqual([expect.objectContaining({ productoId: "p-sofia", cantidad: 2, variantes: null })]);
+    const despues = sofiaDe(aplicar(g, r.cambios));
+    expect(despues).toMatchObject({ contadas: 50, enStock: 48, estado: "sobran", conTallas: false });
+  });
+
+  it("volver a bajar deja lo que ya entró, nunca menos", () => {
+    const g = reabierta();
+    const conDos = aplicar(g, repartirModelo(g, sofiaDe(g), 50).cambios);
+    const r = repartirModelo(conDos, sofiaDe(conDos), 48);
+    const linea = r.cambios.find((c) => c.clave === "item:l-sofia");
+    expect(linea?.contadas).toBe(48);
+    expect(linea?.separado.prendas).toEqual([]);
+    expect(repartirModelo(conDos, sofiaDe(conDos), 3).cambios.find((c) => c.clave === "item:l-sofia")?.contadas).toBe(48);
+  });
+
+  it("las cifras no se suman dos veces y el otro modelo sigue igual", () => {
+    const g = reabierta();
+    const [c] = categoriasDelEnvio([g]);
+    const r = cifrasDelResumen([c]);
+    expect(r.contadas).toBe(168);
+    expect(r.diferencia).toBe(0);
+    expect(r.estados).toMatchObject({ cuadran: 2, "por-contar": 0 });
+    expect(modelosDelGrupo(g).find((m) => m.nombre === "Vestido Antonella")).toMatchObject({ contadas: 120, enStock: 0, conTallas: false });
+  });
+
+  it("un modelo que no llegó sigue diciendo «No llegó» aunque otro de su grupo ya esté en el stock", () => {
+    const g = grupo(deLaGuia(sofia({ enviado: 48 }), { contadas: 48, en_stock: 48 }), deLaGuia(antonella({ enviado: 120 }), { contadas: 0 }));
+    expect(modelosDelGrupo(g).find((m) => m.nombre === "Vestido Antonella")?.estado).toBe("no-llego");
   });
 });
 

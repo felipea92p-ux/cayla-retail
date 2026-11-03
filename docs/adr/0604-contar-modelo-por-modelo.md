@@ -9,6 +9,7 @@
   Compras; y que la placa y las categorías estén alineadas», seguido de «más equilibrado, no tan exagerado lo de las categorías; ordenar por cantidad con flechas; y que la categoría se
   pueda plegar al tocar su pestaña».
 - **Toca:** ADR-0393 (contar primero, un número por categoría) y ADR-0575 (decisión 2, «el acordeón solo desglosa»): esta decisión las cambia en eso. Lo demás de ellas sigue.
+- **Actualización (b), misma fecha:** Contar pasó a tres columnas, a partir del boceto de Felipe. Ver «Tres columnas y el resumen», al final: **lo que diga esa sección manda sobre la tabla de abajo** (la mesa, la barra de abajo y la hoja de tallas ya no son como dice esa tabla).
 
 ## El problema primero
 
@@ -89,3 +90,33 @@ Con el reparto de 3/5 y 2/5: 375, 1024, 1280, 1440, 1784, 1920 y 2560 px sin des
 **Volumen (a pedido de Felipe):** un envío de prueba de 75 líneas, 114.447 prendas, 11 categorías, 3 proveedores, 3 marcas y hasta 12.000 de un modelo. Se contó entero con «Listo, sigue» (74 paradas);
 las 75 filas quedaron en la base con la suma exacta; cada toque responde en unos 19 ms; se escribió 12.000 y el tope de 99.999; la base aceptó el cierre sin mover stock. Antes de corregirlo, ese mismo envío
 daba un pie de guía de 74 chips, una placa de 1.184 px, el Dial fuera de la vista al bajar y números que no cabían en el aro. **Falta:** el recorrido formal de `/chaos` y `/formidable`, y probarlo con quien recibe de verdad.
+
+## Tres columnas y el resumen (actualización (b), Felipe 2026-11-02)
+
+Felipe pasó un boceto y pidió una maqueta para decidir (`docs/maquetas/recibir-boceto-2026-11/`). Mirándola pidió: las categorías con otro color, barras que cambien de color al llenarse, mejores botones en el contador, quitar y agregar tallas empezando por las de siempre, y «Anterior» y «Listo, siguiente» sin el nombre de la prenda. Y después: «termina, pásalo a local». Sin migración ni RPC nueva.
+
+| Pieza | Antes | Ahora | Archivo |
+|---|---|---|---|
+| La mesa | Dos columnas y la barra de abajo | **Tres columnas alineadas arriba y abajo, cada una con su scroll, hasta el borde de la ventana:** la lista, lo que se cuenta y el resumen. Bajo 1.040 px de pantalla, dos columnas con el resumen en una tira arriba; bajo 680, una columna con el resumen al final | `ContarEnvio.tsx`, `vidrio/recibir-mesa.css` |
+| Re stock y Producto nuevo | No había | **Dos tarjetas arriba.** No se le pregunta a nadie: lo dice lo que anotó Compras (`tipoDeParada`). Siempre marcan el tipo de lo que se cuenta; al tocar una, la lista deja solo esas, con su filtro que se quita. En un envío sin aviso no salen: todavía no se sabe | `TiposDelEnvio.tsx` |
+| El resumen | La barra de abajo | Dijeron, Contaste, la diferencia de lo ya contado, el avance, cuatro filas de estado que filtran la lista, «Falta: …», quién cuenta, las fotos y «Pasar a cerrar». Es siempre de todo el envío (`cifrasDelResumen`). Sin aviso se va lo que depende de lo que dijeron | `ResumenDelEnvio.tsx` |
+| La lista | Título y filtros encima de las dos columnas | Título, **buscador** (modelo, código, proveedor o marca, sin tildes), Proveedor, Marca y las flechas. Las categorías, en una banda pizarra para no confundirse con sus modelos; la abierta se queda pegada arriba. Buscando o filtrando por estado, todas abiertas | `CategoriasAcordeon.tsx` |
+| Lo que se cuenta | Dial con sus atajos y las prendas al lado | Foto, nombre, chips, y a la derecha quién contó, «¿Llegó otra cosa?» y «Anotar observación». Debajo el Dial, Dijeron / Contaste / Diferencia y los atajos: sumar en su bandeja, «Llegaron las N» en verde (se apaga en su lugar) y «No llegó nada» callado | `PlacaDelModelo.tsx` |
+| Pasar al siguiente | La barra de abajo, con el nombre de la prenda | «Anterior» y «Listo, siguiente», iguales y con su flecha; el nombre va en su `title`. Con el último de la lista, «Pasar a cerrar». **Enter en el número guarda y pasa al siguiente con su número abierto**: se cuenta sin soltar el teclado | `PlacaDelModelo.tsx`, `Dial.tsx` |
+| Tallas y colores | Una hoja | **En la misma pantalla**, con «¿Qué deseas hacer?» (solo cuadrar, o tallas ahora). Una nueva primero se crea con la hoja de siempre y vuelve aquí | `TallasDeLaPlaca.tsx`, `lib/recepcion-tallas-reglas.ts` |
+| «¿Llegó otra cosa?» | A la vista | Plegado. Lo que falta decir (sin nombre, contado sin identificar) se ve igual. Una parecida que ya está en la lista con otro proveedor lleva a ese modelo, en vez de sumar otro | `PrendasDeLaPlaca.tsx` |
+| El color del avance | Tinta, y verde al final | **De rojo a ámbar y a verde, de a poco** (`colorDeAvance`, en barras y en el Trayecto). Token nuevo `--color-avance-medio`: el ámbar del sistema es un marrón hecho para texto y en un relleno no se distingue del verde. Una categoría toda contada que no cuadra se queda en ámbar. El aro del Dial no cambia | `lib/avance-color.ts`, `BarraAvance.tsx` |
+| La cabecera | Fotos y Trayecto | Al contar, solo el Trayecto, con el nombre de sus cinco paradas si caben, y el número del envío en la línea de arriba. Las fotos pasan al resumen; al cerrar y ya cerrado siguen arriba | `RecibirContando.tsx` |
+
+**Qué se guarda de la tabla, y cuándo.** En la base, las tallas de una prenda siempre suman su cantidad. Por eso lo escrito se guarda **solo cuando reparte justo lo contado**, y mientras tanto espera en la pantalla diciendo «Faltan N por repartir»; «Dejar N como lo contado» lo resuelve para el otro lado. Si lo guardado deja de ser lo que se ve (se corrigió una celda, se cambió el número), **se suelta**: la pantalla nunca contradice a la base. Lo peor que pasa es que ese modelo entra al almacén sin tallas y se termina después, que es el lado seguro. Lo escrito y sin cuadrar se pierde al recargar.
+
+**Quitar solo esconde.** Una talla o un color quitado limpia lo escrito en esa fila o columna y ofrece «Deshacer», sin preguntar; nunca borra una variante del catálogo. Agregar lo que la prenda ya tiene lo vuelve a mostrar; lo que no tiene abre la hoja de siempre (`preparar_prenda_al_recibir`) con esa talla o color ya marcados. **No se ofrecen tallas que la categoría no ofrece:** no hay un permiso nuevo. Cuál es «de siempre» ya existe: `categoria_tallas.habitual`.
+
+**Lo que se está contando no se va de la lista.** Con «Por contar» puesto, sumarle una lo sacaría del filtro y el contador saltaría bajo el dedo: se queda hasta pasar al siguiente (`categoriasDelFiltro`, `retener`).
+
+**«Anterior» con palabra es una excepción a `accion.anterior`,** por decisión de Felipe y solo en esta pantalla: «volver solo es una flecha» sigue valiendo en el resto del ERP (`docs/unificar/accion.anterior.md`).
+
+### Límites que quedan
+
+6. **Una celda llega hasta 9.999** (`leerCantidad`, la misma regla de la hoja de tallas). Un modelo con más de 9.999 de una sola talla y un solo color no se puede repartir aquí ni en la hoja: queda con la cantidad y sin tallas.
+7. **Lo escrito en la tabla es de esta pestaña.** Si otra persona guarda otras tallas del mismo modelo, esta pantalla no se entera hasta recargar; al cuadrar, gana el último, como en todo el conteo.

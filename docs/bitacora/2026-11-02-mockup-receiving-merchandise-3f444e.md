@@ -42,3 +42,9 @@ Felipe se lleva: elegir el color de las categorías mirando, y confirmar que «b
 Qué hice: en `docs/maquetas/recibir-boceto-2026-11/`, la tabla de tallas arranca con las habituales de la categoría, cada talla se quita con su × y «Agregar talla» ofrece las demás de la más a la menos común, cayendo en su lugar. Sigue sin tocar `apps/web`.
 Por qué así: «las más convencionales» ya existen en el catálogo como `categoria_tallas.habitual` (S, M, L; en jeans 28, 30, 32): no hay que inventar nada ni migrar. Quitar no pregunta: si había cantidades, el aviso ofrece «Deshacer».
 Felipe se lleva: una decisión si esto pasa a local: quién puede sumar una talla que la categoría no ofrece, porque la base la rechaza si no se ofrece antes.
+
+## 2026-11-02 (Contar en tres columnas, en el ERP)
+Qué hice: llevé la maqueta del boceto a `/recibir/envio/[id]`: Re stock y Producto nuevo arriba, tres columnas alineadas que llenan la ventana, el resumen en lugar de la barra de abajo, el buscador, el filtro por tipo y por estado, Enter que pasa al siguiente, tallas y colores en la misma pantalla y las barras que van de rojo a verde. Sin migración ni RPC nueva (ADR-0604, «Tres columnas y el resumen»).
+Por qué así: lo escrito en la tabla se guarda solo cuando cuadra con lo contado, porque en la base las tallas de una prenda siempre suman su cantidad; si lo guardado deja de ser lo que se ve, se suelta, y lo peor que pasa es que ese modelo se termina después. Quitar una talla solo esconde: nunca se borra una variante.
+Felipe se lleva: probar en local con quien recibe de verdad; `/formidable` y `/chaos` corrieron sobre esta rama (ver sus tableros).
+

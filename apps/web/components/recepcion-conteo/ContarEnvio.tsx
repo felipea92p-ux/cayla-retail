@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type Dispatch, type SetStateAction } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { leerObservacionesDelEnvio } from "@/lib/recepcion-conteo-acciones";
 import { deLasLineas, type ObservacionDeEnvio } from "@/lib/observaciones-envio-reglas";
-import type { CatalogoParaRecibir, DetalleEnvio, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { sumasDe, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import {
   cambiarNuevasSinDescribir,
   describirNuevas,
@@ -50,13 +51,17 @@ import {
   cifrasDelResumen,
   claveDeNombre,
   claveDeParada,
+  conMiles,
+  esToqueRepetido,
   focoTrasElFiltro,
   grupoDeLaClave,
   hayFiltro,
   idCampoParada,
   lineasDeLaParada,
   opcionesDelFiltro,
+  paradaContada,
   paradaEnFoco,
+  paradasDelGrupo,
   repartirModeloCon,
   repartirOtroCambio,
   SIN_FILTRO,
@@ -88,8 +93,10 @@ import { TiposDelEnvio } from "./TiposDelEnvio";
 // Por dentro la base sigue guardando una fila por línea de la compra: `lib/recepcion-modelos-reglas.ts` dice en qué línea cae cada modelo y `lib/recepcion-grupos-reglas.ts` reparte. Lo que no
 // tiene modelo (un envío sin aviso, una compra que no anotó qué prendas eran) se cuenta como un total y después se identifica.
 
+const ID_CAMPO_QUIEN = "rc-quien-cuenta";
+
 type Hoja =
-  // «Cambiar de prenda»: la hoja de tallas, donde se elige otra.
+  // «¿Era otra prenda?»: la hoja de tallas, donde se elige otra.
   | { tipo: "tallas"; grupo: string; original: PrendaSeparada; prenda: PrendaRecepcion; parada: string }
   // `tabla`: la abrió la tabla de la placa para crear lo que la prenda no tiene, y vuelve a ella.
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"] }
@@ -134,8 +141,16 @@ export function ContarEnvio({
   alSubirFoto,
   onPrendaVista,
   onEscribir,
+  sinGuardar = 0,
+  onReintentar,
+  modos,
+  onModos: setModos,
+  tablas,
+  onTablas: setTablas,
+  veDinero = true,
   onAgregar,
   onCerrar,
+  lineaInicial = null,
 }: {
   detalle: DetalleEnvio;
   lineas: readonly LineaParaContar[];
@@ -155,13 +170,30 @@ export function ContarEnvio({
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onEscribir: (linea: LineaParaContar, cambio: Partial<Borrador>) => void;
+  /** Cuántas líneas no se pudieron guardar, en todo el envío. */
+  sinGuardar?: number;
+  /** Vuelve a mandar lo que no se pudo guardar. */
+  onReintentar: () => void;
+  /** De cada modelo: «solo la cantidad» o «tallas y colores ahora», y lo escrito en su tabla (viven en la pantalla: ir a Cerrar y volver no los borra). */
+  modos: Readonly<Record<string, ModoDeTallas>>;
+  onModos: Dispatch<SetStateAction<Readonly<Record<string, ModoDeTallas>>>>;
+  tablas: Readonly<Record<string, BorradorTallas>>;
+  onTablas: Dispatch<SetStateAction<Readonly<Record<string, BorradorTallas>>>>;
+  /** Ve el dinero de Compras: quien no, no ve el costo al crear una prenda. */
+  veDinero?: boolean;
   onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string | null }) => Promise<ClaveLinea | null>;
   onCerrar: () => void;
+  /** Se llega desde Cerrar a contar una línea que faltó. */
+  lineaInicial?: ClaveLinea | null;
 }) {
   // Lo agregado en esta visita se ve aunque todavía esté en 0 (lo de fuera de la guía en 0 es «lo quitado»).
   const [agregados, setAgregados] = useState<ReadonlySet<string>>(new Set());
   // Se cuenta UNA cosa a la vez: `foco` es la llave de su parada (un modelo, o el total de un grupo sin modelos). Arranca en la primera sin contar.
-  const [foco, setFoco] = useState<string | null>(() => paradaEnFoco(categoriasDelEnvio(agruparLineas(lineasALaVista(lineas, new Set(), null))).flatMap((c) => c.paradas), null)?.clave ?? null);
+  const [foco, setFoco] = useState<string | null>(() => {
+    const inicio = categoriasDelEnvio(agruparLineas(lineasALaVista(lineas, new Set(), null))).flatMap((c) => c.paradas);
+    const deLaLinea = lineaInicial ? inicio.filter((p) => lineasDeLaParada(p).some((l) => l.clave === lineaInicial)) : [];
+    return (deLaLinea.find((p) => !paradaContada(p)) ?? deLaLinea[0] ?? paradaEnFoco(inicio, null))?.clave ?? null;
+  });
   const [filtro, setFiltro] = useState<FiltroDelConteo>(SIN_FILTRO);
   const [orden, setOrden] = useState<OrdenDelConteo>(null);
   // La persona plegó la categoría de lo que se cuenta: aquí, en qué parada lo hizo. Al pasar a contar otra cosa, se abre sola.
@@ -169,11 +201,11 @@ export function ContarEnvio({
   // Lo que llega con su número listo para escribir: viene de apretar Enter en lo anterior.
   const [escribirEn, setEscribirEn] = useState<string | null>(null);
   const [otraCosa, setOtraCosa] = useState(false);
-  // De cada modelo: «solo cuadrar» o «tallas y colores ahora», y lo escrito en su tabla, que espera aquí hasta cuadrar con lo contado.
-  const [modos, setModos] = useState<Readonly<Record<string, ModoDeTallas>>>({});
-  const [tablas, setTablas] = useState<Readonly<Record<string, BorradorTallas>>>({});
+  // Se acaba de pedir «Tallas y colores ahora»: la tabla queda bajo el borde de la columna y hay que traerla a la vista.
+  const [traerTallas, setTraerTallas] = useState(false);
   const [fotos, setFotos] = useState<ReadonlyMap<string, string | null>>(() => new Map());
   const filaSeguir = useRef<HTMLDivElement>(null);
+  const ultimoPaso = useRef(Number.NEGATIVE_INFINITY);
   const mesa = useAltoDeLaMesa();
 
   const visibles = lineasALaVista(lineas, agregados, foco?.startsWith("extra:") ? (grupoDeLaClave(foco) as ClaveLinea) : null);
@@ -188,12 +220,18 @@ export function ContarEnvio({
   const paradasDelEnvio = todas.flatMap((c) => c.paradas);
   // Lo que se cuenta es lo que se eligió, esté o no en la lista: si el filtro lo sacara mientras se le suma, el contador se iría bajo el dedo.
   const parada = paradaEnFoco(paradasDelEnvio, foco);
-  const categorias = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null), orden);
+  const enAhora = new Set(Object.entries(modos).filter(([, m]) => m === "ahora").map(([k]) => k));
+  const categorias = categoriasEnOrden(categoriasDelFiltro(grupos, filtro, parada?.clave ?? null, enAhora), orden);
   const paradas = categorias.flatMap((c) => c.paradas);
   const { anterior, siguiente } = vecinosDeLaParada(paradas, parada?.clave ?? null);
   const opciones = opcionesDelFiltro(grupos, filtro);
-  const cifras = cifrasDelResumen(todas);
-  const guiaBase = useGuiaCampos(camposDelConteoPorModelo(todas), { enModal: false });
+  const cifras = cifrasDelResumen(todas, enAhora);
+  // En una terminal hay que elegir quién cuenta antes de guardar: es lo primero que falta, y se elige ahí mismo.
+  const faltaQuien = responsable.estado === "falta";
+  const guiaBase = useGuiaCampos(
+    [...(faltaQuien ? [{ id: ID_CAMPO_QUIEN, nombre: "Quién cuenta", requerido: true, hecho: false, pendiente: "Elige quién está contando." }] : []), ...camposDelConteoPorModelo(todas)],
+    { enModal: false },
+  );
   const [hoja, setHoja] = useState<Hoja>(null);
   // Las observaciones de todo el envío (ADR-0507), leídas una vez; cada modelo muestra las suyas.
   const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
@@ -230,20 +268,34 @@ export function ContarEnvio({
   const yaUsadas = new Set(visibles.map((l) => `${l.categoria?.id}|${l.marca?.id ?? SIN_MARCA}`));
   const proveedores = conteos?.proveedores ?? [];
   const puedeCerrar = visibles.length > 0 && faltanIdentificar.length === 0;
-  const motivoNoCierra = faltanIdentificar.length > 0 ? `Falta identificar las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}` : undefined;
+  const motivoNoCierra =
+    visibles.length === 0
+      ? "Primero agrega lo que llegó."
+      : faltanIdentificar.length > 0
+        ? `Falta identificar las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}`
+        : undefined;
 
   function elegir(p: ParadaDelConteo, escribir = false) {
     setPlegadaEn(null);
     setOtraCosa(false);
+    setTraerTallas(false);
     setErrorHoja(null);
     setEscribirEn(escribir ? p.clave : null);
     setFoco(p.clave);
   }
 
-  /** Cambió el filtro: si lo que se cuenta ya no se ve, se pasa a lo primero sin contar de lo que se ve. */
+  /** «Anterior» o «Listo, siguiente». */
+  function pasarA(p: ParadaDelConteo | null, ahora: number) {
+    if (!p || esToqueRepetido(ultimoPaso.current, ahora)) return;
+    ultimoPaso.current = ahora;
+    elegir(p);
+  }
+
+  /** Cambió el filtro: si lo que se cuenta ya no se ve, se pasa a lo primero sin contar de lo que se ve. Escribir en el buscador no cuenta: el contador cambiaba solo mientras se tecleaba (prueba ciega, 2026-11-02). */
   function cambiarFiltro(f: FiltroDelConteo) {
     setFiltro(f);
-    const nuevo = focoTrasElFiltro(categoriasEnOrden(categoriasDelFiltro(grupos, f), orden), parada?.clave ?? null);
+    if (f.texto !== filtro.texto) return;
+    const nuevo = focoTrasElFiltro(categoriasEnOrden(categoriasDelFiltro(grupos, f, null, enAhora), orden), parada?.clave ?? null);
     if (nuevo !== (parada?.clave ?? null)) {
       setFoco(nuevo);
       setPlegadaEn(null);
@@ -270,8 +322,35 @@ export function ContarEnvio({
     const tabla = tablas[p.clave];
     const prenda = p.modelo.productoId ? prendas.get(p.modelo.productoId) : undefined;
     const conNumero = cantidadDeModelo(p.grupo.separado, p.modelo, n);
-    const nuevo = tabla && prenda && tallasListas(tabla.conteo, prenda, n) ? ponerTallas(conNumero, prenda.productoId, prenda, variantesDeConteo(tabla.conteo, prenda)) : conNumero;
+    // La tabla reparte lo que queda por entrar al stock: lo que ya entró no se vuelve a repartir.
+    const cuadra = !!tabla && !!prenda && tallasListas(tabla.conteo, prenda, n - p.modelo.enStock);
+    const nuevo = cuadra ? ponerTallas(conNumero, prenda.productoId, prenda, variantesDeConteo(tabla.conteo, prenda)) : conNumero;
     aplicar(repartirModeloCon(p.grupo, p.modelo, nuevo));
+    if (tabla && prenda) setTablas((t) => ({ ...t, [p.clave]: { ...tabla, sinGuardar: !cuadra && sumasDe(tabla.conteo, prenda).contado > 0 } }));
+  }
+
+  /**
+   * «Llegaron las N» y «Poner en cero» pisan lo que ya se había contado de un toque: si había algo, el aviso ofrece deshacerlo, tallas incluidas (ley 7 de Formidable: se confirma solo lo
+   * irreversible). Desde cero no hay nada que perder y no se avisa.
+   */
+  function ponerDeUnToque(p: ParadaDelConteo, n: number) {
+    const antes = p.modelo ? p.modelo.contadas : p.grupo.contadas;
+    const sep = prendaSeparada(p);
+    escribirEnParada(p, n);
+    if (antes <= 0 || antes === n) return;
+    avisar.exito(n === 0 ? "Lo pusiste en cero" : `Lo dejaste en ${conMiles(n)}`, {
+      detalle: `Tenía ${conMiles(antes)}.`,
+      accion: {
+        texto: "Deshacer",
+        onClick: () => {
+          const g = gruposVivos.current.find((x) => x.clave === p.grupo.clave);
+          const actual = g ? paradasDelGrupo(g).find((x) => x.clave === p.clave) : undefined;
+          if (!g || !actual) return;
+          if (actual.modelo && sep?.variantes) aplicar(repartirModeloCon(g, actual.modelo, ponerTallas(cantidadDeModelo(g.separado, actual.modelo, antes), sep.productoId, sep, sep.variantes)));
+          else escribirEnParada(actual, antes);
+        },
+      },
+    });
   }
 
   /** Lo separado de un grupo cambió por otra cosa que el contador (llegó otra prenda, sus tallas, las sin nombre): lo contado lo sigue. */
@@ -281,11 +360,12 @@ export function ContarEnvio({
 
   /** Lo escrito en la tabla de un modelo: se guarda recién cuando reparte justo lo contado. Si lo guardado ya no es lo que se ve, se suelta: la pantalla nunca contradice a la base. */
   function cambiarTabla(clave: string, prenda: PrendaRecepcion, tabla: BorradorTallas) {
-    setTablas((t) => ({ ...t, [clave]: tabla }));
     const g = gruposVivos.current.find((x) => x.clave === grupoDeLaClave(clave));
     const sep = g?.separado.prendas.find((x) => x.productoId === prenda.productoId);
+    const cuadra = !!sep && tallasListas(tabla.conteo, prenda, sep.cantidad);
+    setTablas((t) => ({ ...t, [clave]: { ...tabla, sinGuardar: !cuadra && sumasDe(tabla.conteo, prenda).contado > 0 } }));
     if (!g || !sep) return;
-    if (tallasListas(tabla.conteo, prenda, sep.cantidad)) {
+    if (cuadra) {
       const vs = variantesDeConteo(tabla.conteo, prenda);
       if (!mismasVariantes(vs, sep.variantes)) escribirSeparado(g, ponerTallas(g.separado, prenda.productoId, prenda, vs));
     } else if (sep.variantes) {
@@ -303,6 +383,7 @@ export function ContarEnvio({
     }
     const sep = prendaSeparada(p);
     setModos((ms) => ({ ...ms, [p.clave]: modo }));
+    setTraerTallas(modo === "ahora");
     if (modo === "despues" && sep?.variantes) {
       const antes = sep.variantes;
       const productoId = sep.productoId;
@@ -362,7 +443,7 @@ export function ContarEnvio({
     return hallada;
   }
 
-  /** «Cambiar de prenda»: se abre la hoja de tallas, donde se elige otra. */
+  /** «¿Era otra prenda?»: se abre la hoja de tallas, donde se elige otra. */
   async function cambiarDePrenda(p: ParadaDelConteo, s: PrendaSeparada) {
     setErrorHoja(null);
     const completa = await leerPrenda(p.grupo, s.productoId, s.nombre);
@@ -385,6 +466,7 @@ export function ContarEnvio({
     const nuevaClave = nombreIgual ? claveParada : claveDeParada(g, prenda.productoId);
     if (!nombreIgual) setFoco(nuevaClave);
     setModos((ms) => ({ ...ms, [nuevaClave]: "ahora" }));
+    setTraerTallas(true);
     setHoja(null);
   }
 
@@ -437,7 +519,7 @@ export function ContarEnvio({
           marcas={opciones.marcas}
           filtrarProveedor={opciones.hayQueFiltrarProveedor}
           filtrarMarca={opciones.hayQueFiltrarMarca}
-          modelosTotales={paradasDelEnvio.filter((p) => p.modelo).length}
+          modelosTotales={paradasDelEnvio.length}
           orden={orden}
           fotos={fotos}
           faltanTallas={faltanTallas}
@@ -445,6 +527,9 @@ export function ContarEnvio({
           onOrden={setOrden}
           onPlegar={(plegar) => setPlegadaEn(plegar && parada ? parada.clave : null)}
           onElegir={elegir}
+          onElegirPrimero={() => {
+            if (paradas[0]) elegir(paradas[0], true);
+          }}
           onAgregar={() => setHoja({ tipo: "agregar" })}
           onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
         />
@@ -453,7 +538,7 @@ export function ContarEnvio({
           {!grupo || !parada ? (
             <div className="rc-scroll space-y-2 p-6 py-10 text-center">
               <TituloSeccion>¿Qué llegó?</TituloSeccion>
-              <p className="text-sm text-taupe">Agrega la primera categoría a la izquierda y cuéntala. Una a la vez; después agregas las demás.</p>
+              <p className="text-sm text-taupe">Agrega la primera categoría en la lista y cuéntala. Una a la vez; después agregas las demás.</p>
             </div>
           ) : (
             <PlacaDelModelo
@@ -464,6 +549,20 @@ export function ContarEnvio({
               faltanTallas={faltanTallas(parada)}
               guardado={estadoDelGrupo(lineasDeEsto, guardados)}
               error={grupo.lineas.map((l) => errores[l.clave]).find(Boolean) ?? errorHoja}
+              onReintentar={() => {
+                setErrorHoja(null);
+                onReintentar();
+              }}
+              quienCuenta={
+                faltaQuien ? (
+                  <div className="rc-placa-quien" data-campo={ID_CAMPO_QUIEN}>
+                    <p className="rc-seccion-titulo">Antes de contar: ¿quién cuenta?</p>
+                    <ComboResponsable control={responsable} compacto className="min-w-0" />
+                  </div>
+                ) : null
+              }
+              onQuitarFiltro={() => cambiarFiltro(SIN_FILTRO)}
+              onDeUnToque={(n) => ponerDeUnToque(parada, n)}
               modo={modoDe(parada)}
               abrirNumero={escribirEn === parada.clave}
               anterior={anterior}
@@ -474,8 +573,8 @@ export function ContarEnvio({
               otraCosaAbierta={otraCosa}
               filaSeguir={filaSeguir}
               onPoner={(n) => escribirEnParada(parada, n)}
-              onAnterior={() => anterior && elegir(anterior)}
-              onSiguiente={() => siguiente && elegir(siguiente)}
+              onAnterior={(e) => pasarA(anterior, e.timeStamp)}
+              onSiguiente={(e) => pasarA(siguiente, e.timeStamp)}
               onEnter={() => {
                 if (siguiente) elegir(siguiente, true);
                 else requestAnimationFrame(() => filaSeguir.current?.querySelector<HTMLButtonElement>(".btn-primario:not(:disabled)")?.focus());
@@ -512,9 +611,10 @@ export function ContarEnvio({
                     tallasCategoria={tallasDeLaCategoria(grupo)}
                     coloresCatalogo={catalogo?.colores ?? []}
                     contadas={sepDeLaParada.cantidad}
+                    traerALaVista={traerTallas}
                     borrador={prendaDeLaParada ? (tablas[parada.clave] ?? borradorDeTallas(prendaDeLaParada, coloresOrden, tallasDeLaCategoria(grupo), sepDeLaParada.variantes)) : null}
                     onCambiar={(t) => prendaDeLaParada && cambiarTabla(parada.clave, prendaDeLaParada, t)}
-                    onDejarSuma={(n) => escribirEnParada(parada, n)}
+                    onDejarSuma={(n) => escribirEnParada(parada, n + (parada.modelo?.enStock ?? 0))}
                     onCrear={(pedidas) => setHoja({ tipo: "prenda", grupo: grupo.clave, original: sepDeLaParada, modo: "agregar", prenda: prendaDeLaParada, parada: parada.clave, tabla: true, pedidas })}
                     onCambiarPrenda={() => void cambiarDePrenda(parada, sepDeLaParada)}
                   />
@@ -531,6 +631,8 @@ export function ContarEnvio({
           guia={guia}
           responsable={responsable}
           fotos={papeles.length > 0 ? <PapelesDeLaCompra papeles={papeles} alSubirFoto={alSubirFoto} enResumen /> : undefined}
+          sinGuardar={sinGuardar}
+          onReintentar={onReintentar}
           alCerrar={onCerrar}
           textoAlCerrar={textoResumenDelCierre(resumenDelCierre(visibles))}
           puedeCerrar={puedeCerrar}
@@ -586,7 +688,7 @@ export function ContarEnvio({
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
           // Lo que se describió al contar se ofrece como nombre, igual que con «Crear ahora» de «Para después».
-          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), descripcionOrden: hoja.nueva.descripcion || (lineaDeHoja.linea?.descripcion ?? null) }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length, veDinero), descripcionOrden: hoja.nueva.descripcion || (lineaDeHoja.linea?.descripcion ?? null) }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           responsable={responsable}
@@ -605,7 +707,7 @@ export function ContarEnvio({
 
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
-          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length), pedidas: hoja.pedidas }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, veDinero), pedidas: hoja.pedidas }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           responsable={responsable}
@@ -639,7 +741,7 @@ function estadoDelGrupo(lineas: readonly LineaParaContar[], guardados: Readonly<
 }
 
 /** A dónde va la hoja de la prenda («Es nueva» / «+ talla o color») desde una línea del conteo. */
-function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number): DestinoHoja {
+function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number, veDinero: boolean): DestinoHoja {
   return {
     modo,
     despachoId: detalle.id,
@@ -649,7 +751,7 @@ function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "a
     marcaNombre: marcaDeLinea(l).nombre,
     descripcionOrden: l.linea?.descripcion ?? null,
     precioSugerido: l.linea?.precioVentaSugerido ?? null,
-    costoUnitario: l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null,
+    costoUnitario: veDinero ? (l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null) : null,
     prenda,
     proveedorId: !l.linea && nProveedores >= 2 ? (l.proveedor?.id ?? null) : null,
   };
