@@ -64,13 +64,15 @@
    Con fotos reales, la foto al aire no funcionaba: cada foto trae su fondo (blanco, beige, celeste), así que unas se perdían contra el fondo
    de la pantalla y otras parecían un hueco blanco, y el nombre, las tallas y el precio quedaban «en el aire». Cada prenda vive ahora en su
    placa de vidrio claro (la de las tarjetas que se repiten, sin desenfoque por costo); la foto va dentro con su filo, para que todas
-   tengan el mismo borde sea cual sea su fondo, y el texto se apoya en la placa. */
+   tengan el mismo borde sea cual sea su fondo, y el texto se apoya en la placa.
+   Felipe 2026-11-03 (docs/maquetas/tarjeta-prenda-vidrio-2026-11/, «A · Vidrio claro»): el vidrio claro de las otras tarjetas (86 → 66 %)
+   sobre el crema se leía como papel; esta placa usa su propia receta, `--placa-prenda-*` (50 → 20 %), la misma de Catálogo ▸ Productos. */
 .pv-prenda {
   padding: 8px 8px 12px;
-  border: 1px solid var(--vidrio-claro-borde);
+  border: 1px solid var(--placa-prenda-borde);
   border-radius: var(--pv-placa-radio, 22px);
-  background: var(--vidrio-claro-fondo);
-  box-shadow: var(--vidrio-claro-sombra);
+  background: var(--placa-prenda-fondo);
+  box-shadow: var(--placa-prenda-sombra);
   transition:
     transform 350ms var(--ease-cayla),
     box-shadow 350ms var(--ease-cayla);
@@ -97,7 +99,7 @@
 @media (hover: hover) {
   .pv-prenda:hover {
     transform: translateY(-3px);
-    box-shadow: var(--vidrio-claro-filo), 0 18px 34px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    box-shadow: var(--placa-prenda-sombra-encima);
   }
 }
 /* El botón que abre «Todo de la prenda» y el velo del tope cubren la placa entera y siguen su forma. */

@@ -124,7 +124,8 @@ piezas, en `app/estilos/vidrio/*.css`.
 | Tarjetas que se repiten muchas veces (sin desenfoque, por costo) | la Vitrina de Existencias, los grupos de Recibir | el vidrio claro `--vidrio-claro-*` |
 | Un ícono o un estado que se mira a través | `<Chip>` (lente de color), `<Aviso>` (lente), la «i» de una nota | `--lente-*`, `--lente-tono-*`, `--lente-chica-*`, `--lente-estado-*` |
 | Avances y gráficos | `<BarraAvance>`, `<BarraApilada>`, `<Anillo>`, `<Linea>`, `<BarrasTiempo>` (fuera de una hoja: tinta sobre vidrio; dentro: tubo) | `--tubo-*`, `--grafico-vidrio-*` |
-| Una foto o una muestra que llega al borde | la tarjeta de Productos, la de un valor de Catálogo | `--foto-al-aire-*`, `--muestra-al-aire-filo` |
+| Una foto o una muestra que llega al borde | la foto de Posventa, la de un valor de Catálogo | `--foto-al-aire-*`, `--muestra-al-aire-filo` |
+| La tarjeta de una prenda con su foto (Felipe 2026-11-03, «A · Vidrio claro») | `.pv-prenda` de Vender y `.prod-tarjeta` de Catálogo ▸ Productos | la placa de prenda `--placa-prenda-*` (50 → 20 %, sin desenfoque) |
 | Lo puesto o abierto (filtro elegido, fila abierta, panel desplegado) | se hunde | `--hundido-*` |
 | Pestañas, segmento, paginación, índice de letras | `<Pestanas>`, `SegmentoDeslizante`, `<Paginas>` | la gota en su pozo; la ranura `--ranura-*` |
 | El sistema que habla (avisos de la esquina, loader, versión nueva) | `avisar.*`, `<EsperaGlobal>`, `VersionNueva` | `--espera-*`, `--version-*` |
