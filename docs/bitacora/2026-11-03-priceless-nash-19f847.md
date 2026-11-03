@@ -1,4 +1,4 @@
 ## 2026-11-03 (Recibir: quien solo tiene el módulo mira lo que llega a su sede)
 Qué hice: una regla única en la base (`fn_recepcion_puede_leer_sede`, `20261103172000`) para el detalle, los conteos, las observaciones y las listas de envíos, y la foto del papel. Órdenes de compra, quien ve el dinero de Compras y el líder siguen viendo todas. La web no cambia. Prueba nueva: `pnpm pruebas:recibir-lee-su-sede`.
 Por qué así: Felipe lo decidió el 2026-11-03: mirar sigue ahora la misma sede que escribir (ADR-0387, actualización). Un envío de otra sede responde como uno que no existe, y la pantalla ya sabe decirlo.
-Felipe se lleva: la migración está lista y NO está en producción; se pega con su OK, en una sola parte (solo funciones). Probada por rol en Postgres; no se vio en el navegador con un envío real.
+Felipe se lleva: la migración está en producción desde el 2026-11-03, pegada con su OK por el MCP (la versión allá es la hora de aplicación, no la del archivo). Probada por rol en Postgres; no se vio en el navegador con un envío real.
