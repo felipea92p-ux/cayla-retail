@@ -6,7 +6,8 @@ import { QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { DESTINOS_FALLA, MAX_MOTIVO_FALLA, MOTIVOS_FALLA, type DestinoFalla, type FallaBorrador } from "@/lib/orden-pagina-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { cantidadDeFallaMalEscrita, DESTINOS_FALLA, MAX_MOTIVO_FALLA, MOTIVOS_FALLA, type DestinoFalla, type FallaBorrador } from "@/lib/orden-pagina-reglas";
 
 // Las prendas con falla de un «Terminé» (ADR-0570, actividad 2): talla y color, cuántas, qué pasa con ellas —se arregla, segunda o se perdió— y el porqué a un toque. Se abre a pedido;
 // sin filas, solo el botón. La usan «Terminé» y «Corregir» (actividad 3): una sola forma de anotar una falla. Quien la usa pone su ancla de la guía alrededor y decide qué pasa con las buenas al cambiar una fila.
@@ -51,7 +52,7 @@ export function FilasDeFalla({
             <div key={i} className="space-y-2 border-b border-sand pb-3 last:border-b-0 last:pb-0">
               <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_1.5rem] items-end gap-x-3">
                 <CampoSelect etiqueta="Talla y color" id={`falla-variante-${i}`} valor={f.varianteId} onValor={(v) => cambiarFila(i, { varianteId: v })} opciones={opciones} marcador="Elige" />
-                <CampoTexto etiqueta="Cuántas" id={`falla-cantidad-${i}`} inputMode="numeric" value={f.cantidad} onChange={(e) => cambiarFila(i, { cantidad: e.target.value.replace(/\D/g, "") })} maxLength={5} />
+                <CampoTexto etiqueta="Cuántas" id={`falla-cantidad-${i}`} inputMode="numeric" value={f.cantidad} tono={cantidadDeFallaMalEscrita(f.cantidad) ? "error" : undefined} onChange={(e) => cambiarFila(i, { cantidad: limpiarCantidad(e.target.value) })} maxLength={5} />
                 <div className="pb-2.5">
                   <QuitarColor nombre="esta fila de prendas con falla" onQuitar={() => onFallas(fallas.filter((_, j) => j !== i))} />
                 </div>

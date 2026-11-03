@@ -78,6 +78,8 @@ type Comunes = {
   alFinalDeTallas?: ReactNode;
   /** Lo que va en una fila extra DEBAJO del último color (el «+ Color» de «Nueva orden»). De fábrica, nada. */
   alFinalDeColores?: ReactNode;
+  /** Para el botón que sigue de la pantalla (`useCantidadEscrita`): que no se lleve lo que acaba de rechazarse sin que se lea. */
+  freno?: Ref<() => boolean>;
 };
 
 /** Nuevo producto (paso 4): cantidades, precios y costos por celda. */
@@ -115,7 +117,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
 
   const [modo, setModo] = useState<Modo>("cantidades");
   const [relleno, setRelleno] = useState("");
-  const escrita = useCantidadEscrita();
+  const escrita = useCantidadEscrita(undefined, props.freno);
   // Las celdas al entrar a «Llenar todas con»: adonde vuelven si lo que se escribe ahí no es una cantidad.
   const antesDelRelleno = useRef(cantidades);
   // Las cajas de las celdas, para que el teclado sepa a cuál llevar el cursor. Solo se llena con `teclado` (un ref no se dibuja: el HTML no cambia).
@@ -441,7 +443,8 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
         </table>
       </div>
 
-      {enCantidades && problema && (
+      {/* También en las otras pestañas: si se esconde, el freno del botón detendría un clic sin decir por qué. */}
+      {problema && (
         <Aviso tono="atencion" chico>
           {problema}
         </Aviso>

@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useImperativeHandle, useState, type Ref } from "react";
 import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, escritoInvalido, problemaEscrito, SIN_ESCRIBIR, type ReglaCantidad } from "../../lib/cantidad-escrita-reglas";
 
 // La celda de cantidad que muestra lo que se escribe, y a la pantalla solo le llega una cantidad de verdad: el porqué, en `lib/cantidad-escrita-reglas.ts`.
 // Imports RELATIVOS a propósito, como `MatrizCantidades`, que se dibuja sola en una prueba de node (vitest no resuelve `@/`).
 
-/** `regla`: qué cantidades valen en estas celdas y qué se dice de lo demás. Sin ella, las de una celda de stock, de 0 a 9999. */
-export function useCantidadEscrita(regla?: ReglaCantidad) {
+/**
+ * `regla`: qué cantidades valen en estas celdas y qué se dice de lo demás. Sin ella, las de una celda de stock, de 0 a 9999.
+ * `freno`: para cuando las celdas viven en una tabla y el botón que sigue en la pantalla: la pantalla le pasa un `useRef` a la tabla y, en su botón, `if (freno.current?.()) return;`. Con una referencia, una tecla no vuelve a
+ * dibujar toda la pantalla (`ProductoForm` tiene más de 2000 líneas).
+ */
+export function useCantidadEscrita(regla?: ReglaCantidad, freno?: Ref<() => boolean>) {
   const [estado, setEstado] = useState(SIN_ESCRIBIR);
+  /** Para el botón que sigue: `true` = todavía no, lo escrito no valió y hay que leer por qué (`alQuererSeguir`). */
+  function frenar(): boolean {
+    const r = alQuererSeguir(estado, regla);
+    setEstado(r.estado);
+    return r.frena;
+  }
+  useImperativeHandle(freno, () => frenar);
   return {
     /** Lo que muestra la celda mientras se escribe en ella; si no, `undefined` y manda su número. */
     texto: (clave: string): string | undefined => (estado.escribiendo?.clave === clave ? estado.escribiendo.texto : undefined),
@@ -36,11 +47,6 @@ export function useCantidadEscrita(regla?: ReglaCantidad) {
     rechazar(texto: string, suya = regla) {
       setEstado(alRechazar(texto, suya));
     },
-    /** Para el botón que sigue: `true` = todavía no, lo escrito no valió y hay que leer por qué (`alQuererSeguir`). */
-    frenar(): boolean {
-      const r = alQuererSeguir(estado, regla);
-      setEstado(r.estado);
-      return r.frena;
-    },
+    frenar,
   };
 }

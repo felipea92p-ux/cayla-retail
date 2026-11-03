@@ -274,6 +274,7 @@ export function NuevaOrdenProduccionForm({
   // Dos clics en el mismo ciclo del navegador leen el MISMO `cargando` (falso) y enviaban dos llamadas (/chaos DC-01, 2026-10-10): la base las resolvía con el
   // token (1 modelo, 1 orden), pero la pantalla no debe depender de eso. Una marca síncrona corta la segunda.
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
   // Responsable (ADR-0161/0162): la orden la abre quien se elige en el combo (lista del Taller, la sede activa).
   const responsable = useResponsable();
   const [diasObjetivo, setDiasObjetivo] = useState<number>(DIAS_OBJETIVO_PRODUCCION);
@@ -759,6 +760,8 @@ export function NuevaOrdenProduccionForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     if (esNuevo) {
       await abrirConModeloNuevo(false);
       return;
@@ -948,6 +951,7 @@ export function NuevaOrdenProduccionForm({
                 {/* La misma tabla de Nuevo producto (ADR-0396, A2). `key`: «Llenar todas con» arranca vacío al cambiar de modelo o de categoría (las cantidades también se vacían). */}
                 <MatrizCantidades
                   key={esNuevo ? `nuevo-${categoriaNuevaId}` : productoId}
+                  freno={frenoCantidades}
                   soloCantidades
                   teclado
                   celdas={tabla.celdas}

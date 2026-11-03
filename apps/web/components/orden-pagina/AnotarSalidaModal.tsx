@@ -45,6 +45,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   const problemaTela = problemaDeTelaQueSale(telas, telaQueSale);
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
   const token = useRef<string>(crypto.randomUUID());
 
   const servicio = quienDeFase(fase);
@@ -73,6 +74,8 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enVuelo.current) return;
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     const faltas = problemasDeSalida(fase, cantidades, nombreDe);
     if (faltas.length > 0) {
       avisar.error(faltas[0].texto);
@@ -137,6 +140,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas mandas por talla y color")}</span>
             <MatrizCantidades
+              freno={frenoCantidades}
               soloCantidades
               teclado
               celdas={tabla.celdas}

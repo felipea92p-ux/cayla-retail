@@ -3,11 +3,17 @@ import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { limpiarCantidad, textoCantidadRechazada } from "./alta-producto";
 import { REGLA_BILLETES } from "./caja-cierre-reglas";
-import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, problemaEscrito, reglaDeEntero, SIN_ESCRIBIR, type ReglaCantidad } from "./cantidad-escrita-reglas";
+import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, leerEscrito, problemaEscrito, reglaDeEntero, SIN_ESCRIBIR, type ReglaCantidad } from "./cantidad-escrita-reglas";
 import { cantDelRelleno, REGLA_RELLENO } from "./colgar-varias-tabla";
+import { problemaDeDiasAbono, validarTarifa } from "./cuentas-dinero-reglas";
 import { leerEscritoDeCelda, REGLA_CELDA_PLANILLA } from "./existencias-ajuste-modelo";
+import { diaDeFijoValido, diasAntesDeFijoValidos, leerCifraDeFijo, textoPagarDesde, TEXTO_DIA_FIJO, TEXTO_DIAS_ANTES_FIJO, validarFijo, type BorradorFijo } from "./gastos-reglas";
 import { leerCantidadDeposito, leerCantidadReposicion, leerCantidadSaldoAFavor, limpiarCantidadReposicion } from "./nos-debe-reglas";
+import { lineasDeFallas, problemasDeFallas, totalFallas, type FallaBorrador } from "./orden-pagina-reglas";
 import { escribioAlgoQueNoEsCifra, escribirEnCasilla } from "./pedidos-web-reglas";
+import { problemaDelRecupero } from "./plan-compra-propuesta";
+import { leerCantidadDelPlan } from "./plan-compra-reglas";
+import { problemasDeLosMinimos } from "./plan-compra-reparto";
 import { leerCantidadTecleada, REGLA_CAJITA } from "./reponer-prenda-reglas";
 
 // Los campos que siguieron a Nuevo producto, Editar producto y Producción (2026-11-03): cada tecla pasaba por `.replace(/\D/g, "")` en un campo controlado, así que la coma se borraba al
@@ -181,6 +187,110 @@ describe("Existencias: una cantidad de la planilla de «Ajustar stock»", () => 
   });
 });
 
+describe("Gastos fijos: el día del mes y los días antes", () => {
+  const fijo = (c: Partial<BorradorFijo>): BorradorFijo => ({ ubicacion: "empresa", categoria: "luz", descripcion: "Luz", proveedorId: "", comprobante: "factura", monto: "100", variable: false, dia: "10", momento: "dia", diasAntes: "3", ...c });
+
+  it("lo que no es un entero se queda a la vista, no se guarda y dice hasta cuánto llega", () => {
+    // `validarFijo` leía con `Number`: la caja borraba lo demás, pero dejándolo pasar, «1e1» sería el día 10 y «0x10» el 16.
+    for (const malo of [...LOS_MALOS, "1e1", "0x10", "5.0"]) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      expect(validarFijo(fijo({ dia: caja })), malo).toEqual({ ok: false, error: TEXTO_DIA_FIJO });
+      expect(validarFijo(fijo({ diasAntes: caja })), malo).toEqual({ ok: false, error: TEXTO_DIAS_ANTES_FIJO });
+      expect(diaDeFijoValido(caja), malo).toBe(false);
+      expect(diasAntesDeFijoValidos(caja), malo).toBe(false);
+    }
+  });
+  it("«Se paga desde el día…» no se arma con lo que no es un entero", () => {
+    expect(textoPagarDesde("dia", leerCifraDeFijo("1e1"), leerCifraDeFijo("2"))).toBeNull();
+    expect(textoPagarDesde("dia", leerCifraDeFijo("10"), leerCifraDeFijo("2,5"))).toBeNull();
+    expect(textoPagarDesde("dia", leerCifraDeFijo("10"), leerCifraDeFijo("2"))).toBe("desde el día 8");
+  });
+  it("las cantidades de siempre: el día de 1 a 28, y antes de 0 a 30 (vacío es 0)", () => {
+    for (const [dia, vale] of [["1", true], ["28", true], ["0", false], ["29", false], ["", false], ["123", false]] as const) expect(validarFijo(fijo({ dia })).ok, dia).toBe(vale);
+    for (const [diasAntes, vale] of [["", true], ["0", true], ["30", true], ["31", false], ["123", false]] as const) expect(validarFijo(fijo({ diasAntes })).ok, diasAntes).toBe(vale);
+    expect(validarFijo(fijo({ dia: "7", diasAntes: "" }))).toMatchObject({ ok: true, valor: { p_dia_del_mes: 7, p_dias_antes: 0 } });
+    expect(validarFijo(fijo({ dia: "1,200" })).ok).toBe(false);
+  });
+});
+
+describe("La tarifa de una máquina: en cuántos días deposita", () => {
+  const tarifa = (diasAbono: string) => ({ medio: "tarjeta" as const, tasa: "3.5", igvSobreTasa: true, cargoFijo: "", diasAbono });
+
+  it("lo que no es un entero se queda a la vista, no se guarda y dice hasta cuánto llega", () => {
+    for (const malo of [...LOS_MALOS, "1e1", "123"]) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      expect(problemaDeDiasAbono(caja), malo).toContain("de 0 a 15");
+      expect(validarTarifa(tarifa(caja), "m").ok, malo).toBe(false);
+    }
+  });
+  it("las cantidades de siempre, de 0 a 15", () => {
+    for (const [dias, vale] of [["0", true], ["2", true], ["15", true], ["16", false], ["", false]] as const) {
+      expect(problemaDeDiasAbono(dias) === null, dias).toBe(vale);
+      expect(validarTarifa(tarifa(dias), "m").ok, dias).toBe(vale);
+    }
+  });
+});
+
+describe("Prendas con falla: cuántas", () => {
+  const faltan = { v: 10 };
+  const nombreDe = () => "Negro S";
+  const filas = (cantidad: string): FallaBorrador[] => [{ varianteId: "v", cantidad, destino: "arreglo" }];
+
+  it("lo que no es un entero se queda a la vista, no se anota y la hoja dice por qué", () => {
+    // Las reglas leen como 0 lo que no entienden: lo que evita que esa falla se vaya sin avisar es que este problema frena «Anotar».
+    for (const malo of LOS_MALOS) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      expect(problemasDeFallas(faltan, {}, filas(caja), "Mancha", nombreDe), malo).toEqual([`«${malo}» no es una cantidad: escribe un número entero.`]);
+      expect(lineasDeFallas(filas(caja), "Mancha"), malo).toEqual([]);
+      expect(totalFallas(filas(caja)), malo).toBe(0);
+    }
+  });
+  it("lo de siempre no cambia: vacía pide el número, y lo que pasa de lo que falta lo dice", () => {
+    expect(problemasDeFallas(faltan, {}, filas(""), "Mancha", nombreDe)).toEqual(["Escribe cuántas con falla hay en Negro S."]);
+    expect(problemasDeFallas(faltan, {}, filas("2"), "Mancha", nombreDe)).toEqual([]);
+    expect(problemasDeFallas(faltan, {}, filas(limpiarCantidad("1,200")), "Mancha", nombreDe)[0]).toContain("anotaste 1200");
+  });
+});
+
+describe("Plan de compra: una cantidad que se escribe", () => {
+  it("lo que no es un entero no se fija: «1.5» no se redondea a 2 ni «-5» baja a 0", () => {
+    for (const malo of [...LOS_MALOS, "1e3", "0x10"]) {
+      const r = leerCantidadDelPlan(enLaCaja(malo, limpiarCantidad), 3, 100000);
+      expect(r.tipo, malo).toBe("rechazo");
+      expect(r.tipo === "rechazo" && r.aviso, malo).toContain(`«${malo}» no se guardó`);
+      expect(r.tipo === "rechazo" && r.aviso, malo).not.toMatch(/de 0 a/);
+    }
+  });
+  it("lo que sí vale se fija, y lo que pasa del tope se recorta como con el «+»; vacío o el mismo número no cambian nada", () => {
+    expect(leerCantidadDelPlan("25", 3, 100000)).toEqual({ tipo: "fijar", n: 25 });
+    expect(leerCantidadDelPlan("0", 3, 100000)).toEqual({ tipo: "fijar", n: 0 });
+    expect(leerCantidadDelPlan("150", 3, 100)).toEqual({ tipo: "fijar", n: 100 });
+    expect(leerCantidadDelPlan("1234567", 3, 100000)).toEqual({ tipo: "fijar", n: 100000 });
+    expect(leerCantidadDelPlan(limpiarCantidad("1,200"), 3, 100000)).toEqual({ tipo: "fijar", n: 1200 });
+    expect(leerCantidadDelPlan("3", 3, 100000)).toEqual({ tipo: "nada" });
+    expect(leerCantidadDelPlan("150", 100, 100)).toEqual({ tipo: "nada" });
+    expect(leerCantidadDelPlan("", 3, 100000)).toEqual({ tipo: "nada" });
+  });
+});
+
+describe("Plan de compra: «Lo que sobra» y el mínimo de cada tienda", () => {
+  it("lo que no es un entero se queda a la vista y dice por qué", () => {
+    for (const malo of LOS_MALOS) {
+      const caja = enLaCaja(malo, limpiarCantidad);
+      expect(caja, malo).toBe(malo);
+      expect(problemaDelRecupero(caja), malo).toContain("de 0 a 100");
+      expect(problemasDeLosMinimos({ t: caja }).porTienda.t, malo).toContain("De 1 a 90");
+    }
+  });
+  it("las cantidades de siempre", () => {
+    for (const [t, vale] of [["0", true], ["100", true], ["101", false], ["1200", false]] as const) expect(problemaDelRecupero(t) === null, t).toBe(vale);
+    for (const [t, vale] of [["", true], ["1", true], ["90", true], ["0", false], ["91", false], ["1200", false]] as const) expect(problemasDeLosMinimos({ t }).porTienda.t === undefined, t).toBe(vale);
+  });
+});
+
 describe("La regla de cada campo: `useCantidadEscrita` no decide qué cantidades valen", () => {
   it("sin regla es la de una celda de stock, de 0 a 9999, con su aviso de siempre", () => {
     expect(alEscribir(alEntrar(SIN_ESCRIBIR, "c", "3"), "c", "12345", "3").paraLaPantalla).toBe("3");
@@ -203,6 +313,13 @@ describe("La regla de cada campo: `useCantidadEscrita` no decide qué cantidades
   });
   it("«Llenar todas con» dice lo suyo aunque la caja de al lado tenga otra regla", () => {
     expect(problemaEscrito(alRechazar("1200", REGLA_RELLENO), REGLA_CAJITA)).toContain("de 0 a 99");
+  });
+  it("una caja que fija su número al salir: vacía o con el mismo número no cambia nada, y lo que no vale se rechaza", () => {
+    const libre = reglaDeEntero();
+    expect(leerEscrito("7", 3, libre)).toEqual({ tipo: "fijar", n: 7 });
+    expect(leerEscrito("3", 3, libre)).toEqual({ tipo: "nada" });
+    expect(leerEscrito(" ", 3, libre)).toEqual({ tipo: "nada" });
+    expect(leerEscrito(" 2,5 ", 3, libre)).toEqual({ tipo: "rechazo", texto: "2,5" });
   });
 });
 
@@ -284,19 +401,6 @@ const BORRA_AL_TECLEAR = /\.(?:currentTarget|target)\.value\.replace\(\/\\D\/g/;
 /** Un RUC o un celular son una tira de dígitos, no una cantidad: «20-123» no es otro número. */
 const TIRA_DE_DIGITOS = /\bruc\b|Ruc\b|celular/;
 
-/**
- * El mismo error, sin arreglar todavía (días del mes, plazos, porcentajes, cantidades del plan de compra y de las prendas con falla). Esta lista solo BAJA: al arreglar uno se borra de aquí, y un
- * archivo nuevo no entra.
- */
-const DEUDA: Record<string, number> = {
-  "components/GastosFijosYActivos.tsx": 2,
-  "components/finanzas/TarifaMaquinaModal.tsx": 1,
-  "components/orden-pagina/FilasDeFalla.tsx": 1,
-  "components/plan-compra/CantidadEditable.tsx": 1,
-  "components/plan-compra/RecuperoModal.tsx": 1,
-  "components/plan-compra/RepartoModal.tsx": 1,
-};
-
 describe("ninguna caja de cantidad vuelve a borrar lo que no es una cifra mientras se teclea", () => {
   const RAIZ = process.cwd();
   const archivos = (dir: string): string[] =>
@@ -321,13 +425,19 @@ describe("ninguna caja de cantidad vuelve a borrar lo que no es una cifra mientr
     expect(BORRA_AL_TECLEAR.test('const d = telefono.replace(/\\D/g, "");')).toBe(false);
   });
 
-  it("ninguna fuera de la deuda", () => {
-    const nuevas = [...culpas].filter(([f]) => !(f in DEUDA)).flatMap(([, lineas]) => lineas);
-    expect(nuevas).toEqual([]);
+  it("ninguna", () => {
+    expect([...culpas.values()].flat()).toEqual([]);
   });
 
-  it("la deuda es exacta: arreglar uno lo saca de la lista", () => {
-    const hoy = Object.fromEntries([...culpas].filter(([f]) => f in DEUDA).map(([f, lineas]) => [f, lineas.length]));
-    expect(hoy).toEqual(DEUDA);
+  // El aviso de una celda sale recién cuando el clic en el botón se lleva el cursor (`alQuererSeguir`). Las celdas viven dentro de la tabla y el botón en la pantalla: si una pantalla no conecta los dos, se guarda lo
+  // que había sin que nadie alcance a leer por qué.
+  it("toda pantalla con una tabla de cantidades le conecta el freno a su botón", () => {
+    const conTabla = fuentes.filter((f) => /<(MatrizCantidades|MatrizStockFicha|UnidadesDeLasNuevas)\b/.test(readFileSync(join(RAIZ, f), "utf8")));
+    expect(conTabla.length).toBeGreaterThanOrEqual(10);
+    const sinFreno = conTabla.filter((f) => {
+      const texto = readFileSync(join(RAIZ, f), "utf8");
+      return !/\bfreno=\{/.test(texto) || !/freno\w*\.current\?\.\(\)/.test(texto);
+    });
+    expect(sinFreno).toEqual([]);
   });
 });

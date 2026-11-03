@@ -20,6 +20,7 @@
 //            de foco y el botón digan lo mismo que la base); cantidades enteras que suman exacto (resto mayor).
 //   NO HACE: no compra nada ni decide por la persona: propone y muestra el porqué.
 
+import { leerEscrito, reglaDeEntero } from "./cantidad-escrita-reglas";
 import { sinBlancosDeMiles } from "./numero-escrito";
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
@@ -389,6 +390,17 @@ export type Borrador = {
 export type CampoPlan = "flojo" | "normal" | "bueno" | "precio" | "costo" | "recupero" | "descuento" | "curva";
 
 const entero = (s: string): number | null => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : null);
+
+const CANTIDAD_DEL_PLAN = reglaDeEntero();
+
+/** Una cantidad del plan que se escribe (`CantidadEditable`): cualquier entero, y lo que pasa de `max` se recorta, como con el «+». Lo demás no se fija: `Number` leía «1.5» como 2, «-5» como 0 y «1e3» como 1000. */
+export function leerCantidadDelPlan(escrito: string, hay: number, max: number): { tipo: "nada" } | { tipo: "fijar"; n: number } | { tipo: "rechazo"; aviso: string } {
+  const r = leerEscrito(escrito, hay, CANTIDAD_DEL_PLAN);
+  if (r.tipo === "rechazo") return { tipo: "rechazo", aviso: CANTIDAD_DEL_PLAN.decir(r.texto, true) };
+  if (r.tipo === "nada") return r;
+  const n = Math.min(max, r.n);
+  return n === hay ? { tipo: "nada" } : { tipo: "fijar", n };
+}
 
 /**
  * Un monto en soles tal como lo escribe la persona: «1299.50», «1299,50», «1,299.50» o «1 299,50» (las comas o espacios de miles se aceptan;

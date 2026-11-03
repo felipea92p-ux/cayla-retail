@@ -50,6 +50,15 @@ export function problemaEscrito(e: EstadoEscrito, regla = REGLA_DE_STOCK): strin
   return e.aviso;
 }
 
+/** Una caja con su propio borrador, que fija su número al salir de ella o con Enter (Ajustar stock, el plan de compra): vacía o con el mismo número no cambia nada, y lo que no es una cantidad se rechaza. */
+export function leerEscrito(escrito: string, hay: number, regla = REGLA_DE_STOCK): { tipo: "nada" } | { tipo: "fijar"; n: number } | { tipo: "rechazo"; texto: string } {
+  const t = escrito.trim();
+  if (t === "") return { tipo: "nada" };
+  const n = regla.leer(t);
+  if (n === null) return { tipo: "rechazo", texto: t };
+  return n === hay ? { tipo: "nada" } : { tipo: "fijar", n };
+}
+
 /** Entró a la celda: lo que hay es adonde vuelve si lo que escriba no es una cantidad. El aviso de la celda anterior sigue: el Tab acaba de dejarla. */
 export const alEntrar = (e: EstadoEscrito, clave: string, valor: string): EstadoEscrito => ({ ...e, escribiendo: { clave, texto: valor, antes: valor } });
 

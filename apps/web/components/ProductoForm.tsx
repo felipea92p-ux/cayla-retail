@@ -427,6 +427,7 @@ export function ProductoForm({
   const fotosVista = useMemo(() => fotosComoSeVen(fotos, mudanzas), [fotos, mudanzas]);
   // La subida de una foto termina después de un `await`: se ancla con las filas de ESE momento, no con las de cuando empezó.
   const filasRef = useRef(filas);
+  const frenoCantidades = useRef<() => boolean>(null);
   useEffect(() => {
     filasRef.current = filas;
   }, [filas]);
@@ -811,6 +812,8 @@ export function ProductoForm({
    *  hoja «Revisa y guarda los cambios»; ahí se confirma. */
   function revisar(e?: React.FormEvent) {
     e?.preventDefault();
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
     if (!hayCambios) return;
     if (versionCambiada) {
@@ -1852,6 +1855,7 @@ export function ProductoForm({
             retraso={190}
           >
             <MatrizStockFicha
+              freno={frenoCantidades}
               ctx={ctx}
               filas={filas}
               stock={stock}

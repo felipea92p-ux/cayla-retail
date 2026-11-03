@@ -28,6 +28,7 @@ import {
   type ResumenFicha,
 } from "@/lib/gasto-fijo-ficha-reglas";
 import { colaDeFijos, bajadaDeLaCola, textoFechaDeFijo, tituloDeLaCola } from "@/lib/fijos-del-mes-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { diasAntesSugeridos } from "@/lib/sugerencias-gasto-fijo";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -36,10 +37,15 @@ import {
   AYUDA_MOMENTO_FIJO,
   MOMENTOS_FIJO,
   TEXTO_COMPROBANTE,
+  TEXTO_DIA_FIJO,
+  TEXTO_DIAS_ANTES_FIJO,
   TEXTO_ESTADO_ACTIVO,
   TEXTO_MOMENTO_FIJO,
   TIPOS_COMPROBANTE,
+  diaDeFijoValido,
+  diasAntesDeFijoValidos,
   fechaCorta,
+  leerCifraDeFijo,
   puedeAnularActivo,
   resumenActivosPorSede,
   solesRedondo,
@@ -499,8 +505,11 @@ export function GastoFijoModal({
   const poner = <K extends keyof BorradorFijo>(k: K, v: BorradorFijo[K]) => setB((x) => ({ ...x, [k]: v }));
   const cat = categorias.find((c) => c.codigo === b.categoria) ?? null;
   // «Se paga desde el día 12» con lo que va escrito: así quien lo llena ve de qué fecha se habla sin hacer la cuenta (ADR-0487).
-  const nDiasAntes = b.diasAntes === null || b.diasAntes.trim() === "" ? 0 : Number(b.diasAntes);
-  const pagarDesde = textoPagarDesde(b.momento, Number(b.dia), nDiasAntes);
+  const nDiasAntes = b.diasAntes === null ? 0 : leerCifraDeFijo(b.diasAntes);
+  const pagarDesde = textoPagarDesde(b.momento, leerCifraDeFijo(b.dia), nDiasAntes);
+  // Vacío todavía no está mal: lo dice «Guardar». Lo demás se queda a la vista, y la ayuda de su caja dice hasta cuánto llega.
+  const diaMal = b.dia.trim() !== "" && !diaDeFijoValido(b.dia);
+  const diasAntesMal = b.diasAntes !== null && !diasAntesDeFijoValidos(b.diasAntes);
   const ayudaDiasAntes = pagarDesde
     ? `Se paga ${pagarDesde}; desde ahí sale «Toca pagar». Pon 0 si lo pagas el día que vence.`
     : "0 = se paga el día que vence. Con 3, «Toca pagar» sale 3 días antes.";
@@ -624,19 +633,20 @@ export function GastoFijoModal({
       {(b.momento === "dia" || b.diasAntes !== null) && (
         <div className="fin-dos-campos">
           {b.momento === "dia" && (
-            <CampoFin etiqueta="Día del mes en que vence" htmlFor="fijo-dia" ayuda="Del 1 al 28. Para el 29, 30 o 31, elige «A fin de mes».">
-              <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
+            <CampoFin etiqueta="Día del mes en que vence" htmlFor="fijo-dia" ayuda={diaMal ? TEXTO_DIA_FIJO : "Del 1 al 28. Para el 29, 30 o 31, elige «A fin de mes»."} tono={diaMal ? "aviso" : undefined}>
+              <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} aria-invalid={diaMal || undefined} onChange={(e) => poner("dia", limpiarCantidad(e.target.value))} placeholder="10" />
             </CampoFin>
           )}
           {b.diasAntes !== null && (
-            <CampoFin etiqueta="¿Cuántos días antes lo pagas?" htmlFor="fijo-dias-antes" ayuda={ayudaDiasAntes}>
+            <CampoFin etiqueta="¿Cuántos días antes lo pagas?" htmlFor="fijo-dias-antes" ayuda={diasAntesMal ? TEXTO_DIAS_ANTES_FIJO : ayudaDiasAntes} tono={diasAntesMal ? "aviso" : undefined}>
               <InputFin
                 id="fijo-dias-antes"
                 inputMode="numeric"
                 value={b.diasAntes}
+                aria-invalid={diasAntesMal || undefined}
                 onChange={(e) => {
                   setDiasAntesTocado(true);
-                  poner("diasAntes", e.target.value.replace(/\D/g, "").slice(0, 2));
+                  poner("diasAntes", limpiarCantidad(e.target.value));
                 }}
                 placeholder={String(diasAntesSugeridos(b.categoria))}
               />

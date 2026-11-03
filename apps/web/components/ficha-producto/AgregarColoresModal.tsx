@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -112,6 +112,7 @@ export function AgregarColoresModal({
   const [costo, setCosto] = useState(montos.costo);
   // Con cuántas unidades nace cada variante (ADR-0494): la única ocasión en que se escribe stock desde Editar producto.
   const [porVariante, setPorVariante] = useState<Record<string, number>>({});
+  const frenoCantidades = useRef<() => boolean>(null);
   // La foto de referencia de cada color nuevo (una por color: volver a elegir la reemplaza).
   const [fotoDe, setFotoDe] = useState<Record<string, string>>({});
   const { elegir: elegirFoto, ocupado: subiendoFoto } = useSubirFotos({
@@ -394,6 +395,7 @@ export function AgregarColoresModal({
                   onTodas={() => setPorVariante((a) => Object.fromEntries([...nuevasCombos.map((c) => llaveDeUnidades(c)), ...Object.keys(a)].map((k) => [k, Math.min(9999, (a[k] ?? 0) + 1)])))}
                   onCeros={() => setPorVariante({})}
                   total={totalUnidades}
+                  freno={frenoCantidades}
                 />
               </CampoGuiado>
             </section>
@@ -413,6 +415,8 @@ export function AgregarColoresModal({
             texto={texto}
             deshabilitado={!puede || subiendoFoto}
             onConfirmar={() => {
+              // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+              if (frenoCantidades.current?.()) return;
               // Solo las fotos de los colores que de verdad nacen (uno con todas sus celdas quitadas no se crea).
               const creados = new Set(combos.map((c) => c.colorCodigo));
               const fotos = Object.entries(fotoDe)
