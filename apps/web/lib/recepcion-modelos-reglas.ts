@@ -554,7 +554,7 @@ function partirEntreSusLineas(g: GrupoDeLineas, m: ModeloDelConteo, r: Reparto):
 /** Lo separado cambió por lo que se contó de este modelo: `nuevo` ya trae su cantidad (y, si cuadran, sus tallas). */
 export const repartirModeloCon = (g: GrupoDeLineas, m: ModeloDelConteo, nuevo: Separado): Reparto => partirEntreSusLineas(g, m, repartirCambio(g, nuevo, new Set(lineasDelModelo(g, m).map((l) => l.clave))));
 
-/** La persona dejó este modelo en `n`. */
+/** @internal La persona dejó este modelo en `n`: la forma corta con la que las pruebas encadenan toques. La pantalla pasa por `repartirModeloCon`, porque a veces lleva sus tallas. */
 export const repartirModelo = (g: GrupoDeLineas, m: ModeloDelConteo, n: number): Reparto => repartirModeloCon(g, m, cantidadDeModelo(g.separado, m, n));
 
 /** Lo separado cambió por otra cosa (llegó una prenda más, se le pusieron tallas, unas sin nombre). */

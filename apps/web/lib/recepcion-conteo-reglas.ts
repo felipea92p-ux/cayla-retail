@@ -1216,19 +1216,6 @@ export function veredictoDelCerrado(lineas: readonly LineaParaContar[], pendient
   };
 }
 
-/**
- * La balanza «Dijeron / Contaste» de la maqueta A: el brazo se inclina hacia donde hay más (±9°, 1,6° por prenda de diferencia) y la
- * insignia dice el veredicto. Sin lo que dijeron (un envío sin aviso), no hay con qué comparar y el brazo queda derecho.
- */
-export function veredictoDeLaBalanza(dijeron: number | null, contadas: number): { estado: "neutro" | "verde" | "ambar"; texto: string; angulo: number } {
-  if (dijeron == null) return { estado: "neutro", texto: "Llegó sin aviso: no hay con qué comparar", angulo: 0 };
-  const d = contadas - dijeron;
-  const angulo = Math.max(-9, Math.min(9, d * 1.6));
-  if (contadas === 0) return { estado: "neutro", texto: "Todavía no contaste", angulo };
-  if (d === 0) return { estado: "verde", texto: "Cuadra con lo que dijeron", angulo: 0 };
-  return { estado: "ambar", texto: d < 0 ? `Faltan ${(-d).toLocaleString("es-PE")}` : `Sobran ${d.toLocaleString("es-PE")}`, angulo };
-}
-
 /** La insignia de la cabecera (maqueta A: «1 fardo en camino», «6 pendientes del fardo»): en qué está el envío, en una línea. */
 export function insigniaDelEnvio(estado: string, pendientes: number): { tono: "pizarra" | "ambar" | "verde" | "neutro"; texto: string } {
   if (estado === "en_camino") return { tono: "pizarra", texto: "En camino" };

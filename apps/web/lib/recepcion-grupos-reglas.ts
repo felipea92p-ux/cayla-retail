@@ -247,16 +247,6 @@ export const gruposSinIdentificar = (grupos: readonly GrupoDeLineas[]): GrupoDeL
 /** La llave del campo de la guía «identifica las prendas de esta categoría» (`data-campo` de su «¿Qué … son?»). */
 export const idCampoIdentificar = (claveGrupo: string): string => `identificar-${claveGrupo.replace(/[^a-zA-Z0-9]+/g, "-")}`;
 
-/** Lo que dice el chip del contador de la categoría: «Cuadra: llegaron las 12», «Faltan 2», «Sobran 3», «12 contadas». */
-export function veredictoDelGrupo(g: GrupoDeLineas): { texto: string; tono: "verde" | "ambar" | "neutro" } {
-  const n = g.contadas;
-  if (g.dijeron == null) return n ? { texto: `${n} contadas`, tono: "neutro" } : { texto: "Cuenta y escribe el número", tono: "neutro" };
-  if (!g.lineas.some((l) => l.conteo !== null)) return { texto: `Dijeron ${g.dijeron}. Cuenta y escribe el número.`, tono: "neutro" };
-  const d = n - g.dijeron;
-  if (d === 0) return { texto: `Cuadra: llegaron las ${g.dijeron}`, tono: "verde" };
-  return d < 0 ? { texto: `Faltan ${-d}. Puedes seguir: lo explicas al cerrar.`, tono: "ambar" } : { texto: `Sobran ${d}. Puedes seguir: lo explicas al cerrar.`, tono: "ambar" };
-}
-
 /** Cómo se llamaron las prendas de la compra («Vestido Sofía, Vestido Lima»), sin repetir. */
 export function descripcionDelGrupo(g: GrupoDeLineas): string | null {
   const nombres = [...new Set(g.lineas.map((l) => l.linea?.descripcion?.trim()).filter((d): d is string => !!d))];

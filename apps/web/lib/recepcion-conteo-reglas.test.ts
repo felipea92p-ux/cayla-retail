@@ -75,7 +75,6 @@ import {
   cambiarCantidadNuevaDescrita,
   prendaCreadaDeNueva,
   BOTON_DE_PENDIENTE,
-  veredictoDeLaBalanza,
   insigniaDelEnvio,
   textoResumenDelCierre,
   veredictoDelCerrado,
@@ -725,14 +724,7 @@ describe("maqueta A: las prendas que ya se pueden vender", () => {
   });
 });
 
-describe("maqueta A: la balanza, el riel y la insignia", () => {
-  it("la balanza se inclina hacia donde hay más, con tope, y dice el veredicto", () => {
-    expect(veredictoDeLaBalanza(120, 121)).toEqual({ estado: "ambar", texto: "Sobran 1", angulo: 1.6 });
-    expect(veredictoDeLaBalanza(120, 100)).toMatchObject({ estado: "ambar", texto: "Faltan 20", angulo: -9 });
-    expect(veredictoDeLaBalanza(64, 64)).toEqual({ estado: "verde", texto: "Cuadra con lo que dijeron", angulo: 0 });
-    expect(veredictoDeLaBalanza(40, 0)).toMatchObject({ estado: "neutro", texto: "Todavía no contaste" });
-    expect(veredictoDeLaBalanza(null, 7)).toEqual({ estado: "neutro", texto: "Llegó sin aviso: no hay con qué comparar", angulo: 0 });
-  });
+describe("maqueta A: el riel y la insignia", () => {
 
 
   it("la insignia de la cabecera", () => {

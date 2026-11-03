@@ -10,7 +10,6 @@ import {
   claveDeGrupo,
   descripcionDelGrupo,
   lineaDeLaPrenda,
-  veredictoDelGrupo,
   juntarSeparado,
   minimoDelGrupo,
   repartirSeparado,
@@ -267,12 +266,6 @@ describe("lo que muestra la pantalla de una categoría", () => {
     expect(r3.cambios.find((c) => c.linea.linea?.id === "l-lima")?.separado.prendas[0].cantidad).toBe(7);
   });
 
-  it("el chip dice lo que falta o sobra de toda la categoría, no de una línea", () => {
-    expect(veredictoDelGrupo(dosVestidos())).toEqual({ texto: "Dijeron 12. Cuenta y escribe el número.", tono: "neutro" });
-    expect(veredictoDelGrupo(dosVestidos({ contadas: 5 }, { contadas: 7 }))).toEqual({ texto: "Cuadra: llegaron las 12", tono: "verde" });
-    expect(veredictoDelGrupo(dosVestidos({ contadas: 5 }, { contadas: 5 })).texto).toMatch(/^Faltan 2\./);
-    expect(veredictoDelGrupo(dosVestidos({ contadas: 5 }, { contadas: 9 })).texto).toMatch(/^Sobran 2\./);
-  });
 
   it("describe la categoría con los nombres de la compra, sin repetirlos", () => {
     expect(descripcionDelGrupo(dosVestidos())).toBe("Vestido Sofía, Vestido Lima");
