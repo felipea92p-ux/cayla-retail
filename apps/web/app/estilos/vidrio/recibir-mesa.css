@@ -172,17 +172,9 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-placa-observaciones { padding: 0 16px 12px; }
 .rc-placa-error { padding: 0 16px 12px; }
 
-.rc-cuenta { display: grid; grid-template-columns: 192px minmax(0, 1fr); grid-template-rows: auto auto 1fr; gap: 12px 24px; padding: 4px 16px 16px; }
-.rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1 / span 3; }
-.rc-cifras { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
-.rc-cifra { display: grid; gap: 0; min-width: 0; padding: 8px 12px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); transition: background-color 300ms var(--ease-cayla); }
-.rc-cifra small { color: color-mix(in srgb, var(--color-tinta) 74%, var(--color-taupe)); font-size: 14px; font-weight: 600; white-space: nowrap; }  /* contraste: texto sobre papel, hueso, crema */
-.rc-cifra b { color: var(--color-tinta); font-family: var(--font-serif); font-size: 26px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rc-cifra[data-tono="verde"] { background: color-mix(in srgb, var(--color-verde) 20%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-verde) 30%, transparent); }
-.rc-cifra[data-tono="verde"] b { color: var(--color-verde-profundo); }
-.rc-cifra[data-tono="ambar"] { background: color-mix(in srgb, var(--color-ambar) 13%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 24%, transparent); }
-.rc-cifra[data-tono="ambar"] b { color: var(--color-ambar-profundo); }
-.rc-cuenta-lado { grid-column: 2; grid-row: 2; display: grid; align-content: start; gap: 8px; min-width: 0; }
+.rc-cuenta { display: grid; grid-template-columns: 192px minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px 24px; padding: 4px 16px 16px; }
+.rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1 / span 2; }
+.rc-cuenta-lado { grid-column: 2; grid-row: 1; display: grid; align-content: start; gap: 8px; min-width: 0; }
 .rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
 .rc-pista { min-height: 2.7em; }
 /* Los botones del contador: sumar en su bandeja, «Llegaron» en verde porque es lo que más se usa y deja el modelo listo, y «No llegó» aparte, más callado. */
@@ -209,30 +201,27 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 /* Los enlaces de arriba de la placa no van dentro de una frase: se tocan solos, y necesitan su alto. */
 .rc-placa-acciones .btn-cayla { min-height: 24px; }
 /* «Anterior» y «Listo, siguiente», del mismo alto y lado a lado. */
-.rc-seguir { grid-column: 2; grid-row: 3; align-self: end; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.rc-seguir { grid-column: 2; grid-row: 2; align-self: end; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .rc-seguir .btn-cayla { flex: 0 1 auto; min-height: 40px; white-space: nowrap; }
 
 @container rc-placa (max-width: 619px) {
   .rc-placa-cabeza { flex-wrap: wrap; }
   .rc-placa-textos { flex-basis: 12rem; }
   .rc-placa-derecha { flex: 1 1 100%; grid-auto-flow: column; justify-content: space-between; align-items: center; }
-  .rc-cifras { grid-column: 1 / -1; grid-row: 1; }
-  .rc-cuenta { grid-template-rows: auto auto auto; gap: 12px 16px; }
-  .rc-cuenta > .rc-dial { grid-column: 1; grid-row: 2; }
-  .rc-cuenta-lado { grid-column: 2; grid-row: 2; }
+  .rc-cuenta { grid-template-rows: auto auto; gap: 12px 16px; }
+  .rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1; }
+  .rc-cuenta-lado { grid-column: 2; grid-row: 1; }
   /* Con la placa angosta van a lo ancho, debajo del contador: al lado no caben los dos. */
-  .rc-seguir { grid-column: 1 / -1; grid-row: 3; flex-wrap: nowrap; }
+  .rc-seguir { grid-column: 1 / -1; grid-row: 2; flex-wrap: nowrap; }
   .rc-seguir .btn-cayla { flex: 1 1 0; }
   .rc-atajos .rc-atajo { flex: 1 1 auto; }
-  .rc-cifra { padding: 6px 12px; }
-  .rc-cifra b { font-size: 22px; }
   .rc-placa-textos .titulo-seccion-texto { font-size: 25px; }
 }
 @container rc-placa (max-width: 439px) {
   .rc-cuenta { grid-template-columns: minmax(0, 1fr); }
-  .rc-cuenta > .rc-dial { grid-column: 1; grid-row: 2; justify-self: center; }
-  .rc-cuenta-lado { grid-column: 1; grid-row: 3; justify-items: stretch; }
-  .rc-seguir { grid-row: 4; }
+  .rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1; justify-self: center; }
+  .rc-cuenta-lado { grid-column: 1; grid-row: 2; justify-items: stretch; }
+  .rc-seguir { grid-row: 3; }
   /* En el teléfono no caben iguales: «Anterior» a su medida y «Listo, siguiente» con lo que queda. */
   .rc-seguir .btn-cayla { flex: 0 0 auto; }
   .rc-seguir .btn-primario { flex: 1 1 auto; }
@@ -371,5 +360,5 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 
 @media (prefers-reduced-motion: reduce) {
   .rc-tipo, .rc-panel, .rc-cat, .rc-otra, .rc-talla { animation: none; }
-  .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-estado, .rc-cifra, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-tipo, .rc-radio, .rc-radio::after, .rc-talla-quitar { transition: none; }
+  .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-estado, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-tipo, .rc-radio, .rc-radio::after, .rc-talla-quitar { transition: none; }
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { claveCelda, limpiarCantidad } from "./alta-producto";
+import { claveCelda } from "./alta-producto";
+import { alEscribir, SIN_ESCRIBIR } from "./cantidad-escrita-reglas";
 import { BORRADOR_VACIO, celdasDelBorrador, paramsRpcModeloNuevo, resumenCantidades, type BorradorModelo, type CategoriaDeModelo, type ColorDeModelo } from "./modelo-nuevo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "./orden-tabla-reglas";
 import { compararTallas } from "./tallas";
@@ -120,7 +121,7 @@ describe("lineasDeModeloExistente es la expresión de hoy (paridad con el orácu
     }
   });
 
-  it("fuera de ese dominio las dos lecturas divergen (por eso la caja no deja escribir '10000', '2.5' ni '1e3'): `limpiarCantidad` cierra la puerta al teclear", () => {
+  it("fuera de ese dominio las dos lecturas divergen (por eso a la pantalla no le llega '10000', '2.5' ni '1e3'): `alEscribir` cierra la puerta al teclear", () => {
     const variantes = [v("a", "M", "Negro")];
     const t = tablaDeModeloExistente(variantes);
     for (const texto of ["10000", "2.5", "1e3"]) {
@@ -128,8 +129,8 @@ describe("lineasDeModeloExistente es la expresión de hoy (paridad con el orácu
       const mandada = lineasDeModeloExistente(variantes, cantidades).reduce((s, l) => s + l.cantidad, 0);
       const contada = totalesCantidades(t.celdas, t.excluidas, cantidades).total;
       expect(mandada).not.toBe(contada);
-      // Escrito en la caja, el texto ya viene limpio y las dos lecturas vuelven a coincidir.
-      const limpio = { a: limpiarCantidad(texto) };
+      // Escrito en la caja, a la pantalla le llega lo que había, y las dos lecturas vuelven a coincidir.
+      const limpio = { a: alEscribir(SIN_ESCRIBIR, "a", texto, "").paraLaPantalla };
       expect(lineasDeModeloExistente(variantes, limpio).reduce((s, l) => s + l.cantidad, 0)).toBe(totalesCantidades(t.celdas, t.excluidas, limpio).total);
     }
   });

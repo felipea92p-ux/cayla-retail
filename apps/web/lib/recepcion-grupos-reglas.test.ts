@@ -9,11 +9,15 @@ import {
   lineaDelGrupo,
   claveDeGrupo,
   descripcionDelGrupo,
+  FILAS_DE_CIERRE_A_LA_VISTA,
+  filasDelCierre,
+  grupoPideDecision,
   lineaDeLaPrenda,
   juntarSeparado,
   minimoDelGrupo,
   repartirSeparado,
   repartirTotal,
+  textoDeLasPlegadas,
 } from "./recepcion-grupos-reglas";
 import { camposDelCierre, detalleParaDespues, diferenciaDe, leerConteosDelEnvio, lineasParaCerrar, separarAnotada, totalSeparado, unidadesSinIdentificar, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
@@ -393,5 +397,80 @@ describe("la categoría en el cierre", () => {
       ["l-sofia", null, null],
       ["l-lima", "no_vino", null],
     ]);
+  });
+});
+
+describe("Cerrar: primero lo que pide una decisión (Felipe 2026-11-03)", () => {
+  const cat = (i: number) => ({ id: `c-${i}`, nombre: `Categoría ${i}`, prefijo: null, familia: null });
+  const cuadra = (i: number) => deLaGuia(linea(`l${i}`, 5, { categoria: cat(i) }), { contadas: 5 });
+  const faltan = (i: number) => deLaGuia(linea(`l${i}`, 5, { categoria: cat(i) }), { contadas: 3 });
+  const sobran = (i: number) => deLaGuia(linea(`l${i}`, 5, { categoria: cat(i) }), { contadas: 7 });
+  const sinContar = (i: number) => deLaGuia(linea(`l${i}`, 5, { categoria: cat(i) }));
+  const fuera = (i: number, contadas: number): LineaParaContar => ({ clave: `extra:${i}`, linea: null, categoria: cat(i), marca: CAYLA, proveedor: PROV, dijeron: null, conteo: { ...deLaGuia(linea("x", 1), { contadas }).conteo!, despachoItemId: null, extraPosicion: i } });
+  const pide = (l: LineaParaContar, sinAviso = false, editaCostoFuera = true) => grupoPideDecision(agruparLineas([l])[0], sinAviso, editaCostoFuera);
+
+  it("lo que cuadra no pide nada; lo que falta contar y lo que no cuadró, sí", () => {
+    expect(pide(cuadra(1))).toBe(false);
+    expect(pide(faltan(1))).toBe(true);
+    expect(pide(sobran(1))).toBe(true);
+    expect(pide(sinContar(1))).toBe(true);
+  });
+
+  it("una categoría de dos líneas que suman bien igual pide, si una falta y la otra sobra", () => {
+    const g = agruparLineas([deLaGuia(linea("a", 5), { contadas: 3 }), deLaGuia(linea("b", 5), { contadas: 7 })])[0];
+    expect(g.contadas).toBe(g.dijeron);
+    expect(grupoPideDecision(g, false, true)).toBe(true);
+  });
+
+  it("lo que no estaba en la guía pide su costo y qué pasó; en 0, nada", () => {
+    expect(pide(fuera(1, 2))).toBe(true);
+    expect(pide(fuera(1, 0))).toBe(false);
+  });
+
+  it("sin aviso no hay con qué comparar: solo pide si quien mira puede escribir el costo", () => {
+    expect(pide(fuera(1, 2), true, true)).toBe(true);
+    expect(pide(fuera(1, 2), true, false)).toBe(false);
+  });
+
+  it("coincide con lo que pide la guía: una fila que no pide nada no tiene ningún campo obligatorio", () => {
+    const casos = [cuadra(1), faltan(2), sobran(3), sinContar(4), fuera(5, 2), fuera(6, 0)];
+    for (const l of casos) {
+      const g = agruparLineas([l])[0];
+      const campos = camposDelCierre({ lineas: [l], decisiones: {}, sinAviso: false, responsable: true }).filter((c) => c.requerido && c.id !== "responsable");
+      expect(grupoPideDecision(g, false, true), l.clave).toBe(campos.length > 0);
+    }
+  });
+
+  it("contestar no mueve la fila: lo que pide no mira la respuesta", () => {
+    const g = agruparLineas([faltan(1)])[0];
+    expect(grupoPideDecision(g, false, true)).toBe(true);
+    const { piden } = filasDelCierre([g], false, true);
+    expect(piden).toEqual([g]);
+  });
+
+  it("primero lo que pide, cada parte en el orden de la compra", () => {
+    const grupos = agruparLineas([cuadra(1), faltan(2), cuadra(3), sinContar(4)]);
+    const { piden, cuadran } = filasDelCierre(grupos, false, true);
+    expect(piden.map((g) => g.principal.clave)).toEqual(["item:l2", "item:l4"]);
+    expect(cuadran.map((g) => g.principal.clave)).toEqual(["item:l1", "item:l3"]);
+  });
+
+  it("con pocas filas no se pliega nada", () => {
+    const pocas = Array.from({ length: FILAS_DE_CIERRE_A_LA_VISTA }, (_, i) => cuadra(i));
+    expect(filasDelCierre(agruparLineas(pocas), false, true).plegar).toBe(false);
+  });
+
+  it("con muchas se pliega lo que cuadra, y una sola no vale la pena", () => {
+    const muchas = Array.from({ length: FILAS_DE_CIERRE_A_LA_VISTA + 1 }, (_, i) => cuadra(i));
+    expect(filasDelCierre(agruparLineas(muchas), false, true).plegar).toBe(true);
+    const unaQueCuadra = [cuadra(0), ...Array.from({ length: FILAS_DE_CIERRE_A_LA_VISTA }, (_, i) => faltan(i + 1))];
+    expect(filasDelCierre(agruparLineas(unaQueCuadra), false, true).plegar).toBe(false);
+  });
+
+  it("la franja dice cuántas son y si algo adentro cambió", () => {
+    expect(textoDeLasPlegadas(38, 0, false, false)).toBe("Ver las 38 que cuadran");
+    expect(textoDeLasPlegadas(54, 0, false, true)).toBe("Todas cuadran: ver las 54");
+    expect(textoDeLasPlegadas(12, 0, true, false)).toBe("Ver las otras 12");
+    expect(textoDeLasPlegadas(38, 2, false, false)).toBe("Ver las 38 que cuadran · 2 con cambios");
   });
 });

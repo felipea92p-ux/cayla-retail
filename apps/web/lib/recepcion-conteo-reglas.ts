@@ -11,7 +11,8 @@
 // El vocabulario (ADR-0393): ENVÍO es lo que se cuenta y se cierra; PENDIENTE es lo contado que todavía no está en el stock —sin separar
 // (no se sabe qué prendas son), detalle (se sabe la prenda, faltan tallas y colores) o crear (es nueva)—.
 
-import { leerCantidad, limpiarCantidad } from "./alta-producto";
+import { leerCantidad } from "./alta-producto";
+import { sinBlancosDeMiles } from "./numero-escrito";
 import { esFalloDeRed, traducirError } from "./error-escritura";
 import type { CampoDeGuia } from "./guia-campos";
 import { leerNumero, aTexto } from "./orden-compra-alta";
@@ -29,7 +30,7 @@ import {
   type SolucionDanada,
   mensajeDeLaRecepcion,
 } from "./recepcion-envio-reglas";
-import { opcionReposicion } from "./nos-debe-reglas";
+import { opcionReposicion, type PrendaDebida } from "./nos-debe-reglas";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Nombres de la base
@@ -1022,16 +1023,17 @@ export function causasDe(
   l: LineaParaContar,
   deudaPendiente = 0,
   sinAviso = false,
-): { tipo: "faltante" | "sobrante"; opciones: { valor: string; texto: string; ayuda: string }[] } | null {
+  prendasDebidas: readonly PrendaDebida[] = [],
+): { tipo: "faltante" | "sobrante"; opciones: { valor: string; texto: string; ayuda: string; aviso?: string }[] } | null {
   // Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta, y no se pregunta qué pasó (igual que `faltaParaCerrar`).
   if (sinAviso && !l.linea) return null;
   const dif = diferenciaDe(l);
   if (dif != null && dif < 0) return { tipo: "faltante", opciones: [...CAUSAS_FALTANTE] };
   if ((dif != null && dif > 0) || (!l.linea && contadasDe(l) > 0)) {
-    const opciones: { valor: string; texto: string; ayuda: string }[] = [...CAUSAS_SOBRANTE];
+    const opciones: { valor: string; texto: string; ayuda: string; aviso?: string }[] = [...CAUSAS_SOBRANTE];
     if (deudaPendiente > 0) {
-      const r = opcionReposicion(deudaPendiente, l.proveedor?.nombre ?? null, { categoria: l.categoria?.nombre, marca: l.marca?.nombre });
-      opciones.push({ valor: r.valor, texto: r.texto, ayuda: r.ayuda });
+      const r = opcionReposicion(deudaPendiente, l.proveedor?.nombre ?? null, { categoria: l.categoria?.nombre, marca: l.marca?.nombre, prendas: prendasDebidas });
+      opciones.push({ valor: r.valor, texto: r.texto, ayuda: r.ayuda, aviso: r.aviso });
     }
     opciones.push({ ...OPCION_OTRO });
     return { tipo: "sobrante", opciones };
@@ -1075,13 +1077,6 @@ export function prendasAnotadasDe(l: Pick<LineaParaContar, "linea" | "dijeron">)
   if (elegida) return [{ productoId: elegida.productoId, nombre: elegida.nombre ?? l.linea.descripcion ?? "Prenda del catálogo", codigo: elegida.codigo, cantidad: l.dijeron }];
   const nombre = limpiarDescripcion(l.linea.descripcion ?? "");
   return nombre ? [{ productoId: null, nombre, codigo: null, cantidad: l.dijeron }] : [];
-}
-
-/** ¿Ya está en «¿Qué blusas son?»? La del catálogo, por su prenda; la anotada solo por nombre, por su descripción (sin mayúsculas). */
-export function estaSeparada(s: Separado, p: PrendaAnotada): boolean {
-  if (p.productoId) return s.prendas.some((x) => x.productoId === p.productoId);
-  const clave = p.nombre.toLocaleLowerCase("es");
-  return s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave);
 }
 
 /**
@@ -1317,9 +1312,14 @@ export function costoInicialDePrenda(
   productoId: string,
   descripcionNueva: string | null = null,
 ): string {
+  return costoComoTexto(costoDePrendaEnLinea(l, productoId, descripcionNueva));
+}
+
+/** Lo que cuesta una prenda en su línea, como número: el suyo propio que ya quedó en el conteo (`productoId`, o `descripcionNueva` si todavía no se crea) o, si no tiene, el de la línea. */
+export function costoDePrendaEnLinea(l: Pick<LineaParaContar, "linea" | "conteo"> | null, productoId: string | null, descripcionNueva: string | null = null): number | null {
   const propios = l?.conteo?.costosPrendas ?? {};
-  const propio = Object.hasOwn(propios, productoId) ? propios[productoId] : descripcionNueva ? propios[claveCostoDeNueva(descripcionNueva)] : undefined;
-  return costoComoTexto(propio ?? l?.conteo?.costoUnitario ?? l?.linea?.costoUnitario ?? null);
+  const propio = productoId && Object.hasOwn(propios, productoId) ? propios[productoId] : descripcionNueva ? propios[claveCostoDeNueva(descripcionNueva)] : undefined;
+  return propio ?? l?.conteo?.costoUnitario ?? l?.linea?.costoUnitario ?? null;
 }
 
 /**
@@ -1486,14 +1486,22 @@ export function diasDesde(desde: string | null, hoy: Date = new Date()): number 
 }
 
 /**
- * Lo que se escribe en la caja del contador. Solo dígitos, hasta 4 (como la matriz: una cantidad imposible ni se puede escribir), así la
- * caja muestra siempre lo que se guarda. Vacío NO es 0: es «todavía escribiendo», y no se guarda nada (chaos 2026-10-13: borrar para
+ * Lo que se escribe en la caja del contador. Vacío NO es 0: es «todavía escribiendo», y no se guarda nada (chaos 2026-10-13: borrar para
  * reescribir guardaba un 0, y una categoría de fuera de la guía en 0 desaparecía de la lista con la persona escribiendo).
+ *
+ * Se cuentan prendas enteras: «1.5» y «-5» no son una cantidad, y lo que no se entiende no se arregla por su cuenta (Felipe 2026-11-03; /chaos: borrarle a «1.5» el punto al teclearlo guardaba 15, «1e3»
+ * daba 13 y «99999999» se cortaba en 99,999, todo sin que nadie lo notara). Todo se queda en la caja como se escribió, `contadas` es `null` y `problema` dice por qué. Una coma o un punto seguidos de
+ * tres cifras son un millar («12,000», como se lee en pantalla). Hasta 5 cifras, lo que la base acepta (`TOPES_CONTEO`): un modelo puede llegar por miles.
  */
-export function leerContadas(t: string): { texto: string; contadas: number | null } {
-  // Hasta 5 cifras, lo que la base acepta (`TOPES_CONTEO`): un modelo puede llegar por miles.
-  const texto = limpiarCantidad(t, String(TOPES_CONTEO.contadas).length);
-  return { texto, contadas: texto === "" ? null : Number(texto) };
+export function leerContadas(t: string): { texto: string; contadas: number | null; problema: string | null } {
+  // «1 200» son miles; «12 34» son dos celdas pegadas de una hoja de cálculo, y no se adivina.
+  const sinMiles = sinBlancosDeMiles(t);
+  const escrito = (sinMiles ?? t.trim()).slice(0, 16);
+  if (escrito === "") return { texto: "", contadas: null, problema: null };
+  if (sinMiles === null || !/^(\d+|\d{1,3}([.,]\d{3})+)$/.test(escrito)) return { texto: escrito, contadas: null, problema: "Solo números enteros" };
+  const texto = escrito.replace(/[.,]/g, "");
+  const contadas = Number(texto);
+  return contadas > TOPES_CONTEO.contadas ? { texto: escrito, contadas: null, problema: `Hasta ${TOPES_CONTEO.contadas.toLocaleString("es-PE")} por modelo` } : { texto, contadas, problema: null };
 }
 
 /**
