@@ -19,6 +19,7 @@ import {
   RPC_GUARDAR_CONTEO,
   RPC_LIGAR_PRENDA,
   RPC_PONER_PROVEEDOR,
+  RPC_CANCELAR_RECEPCION,
   RPC_REABRIR_ENVIO,
   RPC_RESOLVER_PENDIENTE,
   RPC_SIN_AVISO,
@@ -187,6 +188,12 @@ export async function reabrirEnvio(
 ): Promise<{ abierto: ReturnType<typeof leerEnvioAbierto>; error: ErrorDeBase }> {
   const { data, error } = (await firmar(createClient().rpc(RPC_REABRIR_ENVIO as never, args as never), firma)) as Respuesta;
   return { abierto: error ? null : leerEnvioAbierto(data), error: error ?? null };
+}
+
+/** Cancela la recepción de un envío que llegó sin aviso y se abrió (ADR-0605): queda anulado, con quién, cuándo y por qué. */
+export async function cancelarRecepcion(args: { p_despacho_id: string; p_version: number; p_motivo: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_CANCELAR_RECEPCION as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
 }
 
 /** «Llegó sin aviso»: abre en la sede un envío sin guía de ese proveedor, o sin proveedor (`null`: por confirmar, Felipe 2026-10-14). */

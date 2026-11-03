@@ -1676,6 +1676,10 @@ export const PRUEBAS = [
   // entra sin costo no toca el de la prenda. ROLLBACK siempre.
   "pruebas:envio-sin-aviso",
 
+  // Cancelar la recepción de un envío sin aviso (ADR-0605, Felipe 2026-11-03): abierto → anulado con su motivo, quién y cuándo; lo contado queda como historia;
+  // no se cancela lo cerrado, lo que ya metió stock ni lo que vino de Compras; un UPDATE a mano no salta el candado. ROLLBACK siempre.
+  "pruebas:cancelar-recepcion",
+
   // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
   // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
