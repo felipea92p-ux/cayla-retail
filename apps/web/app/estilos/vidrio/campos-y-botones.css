@@ -25,6 +25,22 @@
   box-shadow: var(--pozo-encendido-sombra);
   transform: translateY(-1px);
 }
+/* El <input> o <textarea> SUELTO que es la caja (`caja-campo-input`: la nota del ticket, «Argumento», las celdas de una fila, `campoTexto` de
+   Modal): el mismo pozo que la `caja-cayla`. Antes llevaba el hueso SÓLIDO de campos-y-casillas.css (su `background-color`), y sobre el vidrio
+   se veía como un bloque opaco (Felipe 2026-11-02: «debe aplicarse para todo el ERP»). El hilo rojo, que es su `background-image`, se queda. Al
+   escribir sube a vidrio claro, sin volverse sólido. */
+.caja-campo-input {
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-radius: 14px;
+  background-color: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+  transition: background-color 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
+}
+.caja-campo-input:focus {
+  border-color: var(--color-borde-control);
+  background-color: color-mix(in srgb, var(--color-vidrio) 38%, transparent);
+  box-shadow: var(--pozo-encendido-sombra);
+}
 /* «Sigue aquí» de la guía de foco (ADR-0284): sube a medias y lleva su anillo pizarra (el papel sólido de antes era papel sobre vidrio). */
 :is(.hilo-fila, .hilo-luz)[data-estado="ahora"] .caja-cayla:not(:focus-within) {
   background: var(--pozo-sigue-fondo);

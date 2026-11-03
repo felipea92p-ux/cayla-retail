@@ -396,23 +396,63 @@
 /* =====================================================================
    LA HOJA DEL DESCUENTO (Felipe 2026-11-02, «A · Hoja lateral»; maqueta docs/maquetas/descuento-hoja-2026-11/;
    `components/punto-de-venta/HojaDeDescuento.tsx` y `PanelDescuento.tsx`).
-   Como el cobro, el descuento entra como una hoja sobre el catálogo con el ticket quieto a la vista. Es la hoja Serena (vidrio al 70 %; el
-   desenfoque lo pone el velo, no la hoja: ADR-0596) y se arma con las piezas elegidas: la gota (fichas de valor, «Todo el ticket»), la
+   Como el cobro, el descuento entra como una hoja sobre el catálogo con el ticket quieto a la vista. Es la hoja Serena (vidrio al 70 %; desenfoque
+   propio y sin velo que pinte: ver abajo) y se arma con las piezas elegidas: la gota (fichas de valor, «Todo el ticket»), la
    placa (listas de prendas y de motivos), el pozo (el campo «Otro»), el ahumado (la opción puesta y «Aplicar descuento») y el segmento
    «Pozo y gota» de `SegmentoDeslizante`. Los tres pasos son los del cobro (`CabezaPaso`, `.hoja-cobro-paso`). En el celular el mismo
-   cuerpo vive dentro de la hoja del ticket, en una columna. Movimiento de ADR-0136: sube y se enfoca una vez, sin rebote ni bucle.
+   cuerpo vive dentro de la hoja del ticket, en una columna. Sin movimiento de entrada: se muestra de frente (Felipe 2026-11-02).
    ===================================================================== */
-.hoja-descuento-velo {
-  background: var(--vidrio-velo);
-  -webkit-backdrop-filter: blur(10px) saturate(1.3);
-  backdrop-filter: blur(10px) saturate(1.3);
-  animation: hoja-cobro-velo 320ms var(--ease-cayla) both;
+/* LAS DOS HOJAS DE VENDER SOBRE EL CATÁLOGO (la del descuento y la de cobro) son vidrio, y comparten dos reglas (Felipe 2026-11-02):
+   1 · El velo NO pinta nada: solo recoge el toque que cierra la hoja. Con tinte y desenfoque dibujaba un rectángulo —el de la columna del
+       catálogo— y, como la hoja deja 12 px de margen, su borde se veía como un marco oscuro en los cuatro lados.
+   2 · El desenfoque de lo que tiene detrás lo pone la propia hoja, dentro de su forma y sin bordes sueltos, y va en un `::before` (como el riel y
+       la isla del marco): un `backdrop-filter` en la hoja misma la volvería el contenedor de todo `position: fixed` de adentro, y la hoja de
+       cobro tiene combos (el documento del comprobante) cuya lista se recortaría (ADR-0596). */
+.hoja-descuento-velo,
+.hoja-cobro-velo {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  animation: none;
+}
+.hoja-descuento.hoja-serena,
+.hoja-cobro.hoja-serena {
+  padding: 0;
+  background: transparent;
+  /* SIN movimiento de entrada (Felipe 2026-11-02: «que no exista efecto al mostrar el modal, que de frente lo muestre tal cual»). Además,
+     mientras una animación de opacidad o de posición actúa sobre la hoja, el navegador no deja que su `::before` desenfoque lo de atrás:
+     el vidrio salía liso y el catálogo se veía nítido al abrirla. */
+  animation: none;
+}
+/* Y nada de lo de adentro se anima al aparecer (la pastilla «Sigue aquí», el total que se asienta, el documento que se revela…): la hoja se
+   muestra de frente, tal cual. Quedan fuera los botones (el hilo de «Procesando…» es una señal de espera) y los campos. */
+.hoja-descuento :not(button, button *, input, textarea),
+.hoja-cobro :not(button, button *, input, textarea) {
+  animation: none;
+}
+.hoja-descuento.hoja-serena::before,
+.hoja-cobro.hoja-serena::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--vidrio-hoja-fondo);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  pointer-events: none;
+}
+/* En el cobro, el paso que «sigue» (guía de foco) tampoco lleva el fondo rosado sólido con borde: sobre el vidrio se veía como un bloque opaco.
+   Se marca con su número en rojo y la pastilla «Sigue aquí», como en el descuento. Se conserva su margen y su relleno: el diseño del cobro,
+   compactado por su alto, no cambia de medidas. */
+.hoja-cobro.hoja-serena .hoja-cobro-paso,
+.hoja-cobro.hoja-serena .hoja-cobro-paso.sigue-aqui {
+  background: transparent;
+  border-color: transparent;
 }
 .hoja-descuento.hoja-serena {
   /* Contenedor con nombre: con la hoja ancha (≥ 38 rem) el cuerpo pasa a dos columnas; si queda angosta (catálogo estrecho a 1024–1100 px), una. */
   container: descuento / inline-size;
-  padding: 0;
-  animation: hoja-cobro-entra 520ms var(--ease-cayla) both;
 }
 .pv-desc-raiz {
   display: flex;
@@ -422,7 +462,7 @@
 }
 .pv-desc-cab {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1.25rem 1.5rem 0.5rem;
@@ -489,12 +529,12 @@
 /* ---------- el cuerpo: tres pasos, uno bajo otro; en una hoja ancha, prendas a la izquierda y cuánto/por qué a la derecha ---------- */
 .pv-desc-cuerpo {
   display: grid;
-  gap: 0.5rem 1.5rem;
+  gap: 1.5rem;
   align-content: start;
 }
 .pv-desc-der {
   display: grid;
-  gap: 0.5rem;
+  gap: 1.5rem;
   align-content: start;
   min-width: 0;
 }
@@ -511,13 +551,16 @@
   align-content: start;
   min-width: 0;
 }
-/* Cada paso entra una vez, escalonado (sube y se enfoca, sin rebote). */
-.pv-desc-cuerpo > section,
-.pv-desc-der > section {
-  animation: cayla-sube 520ms var(--ease-cayla) backwards;
+/* El paso que sigue (guía de foco) se marca con su número en rojo y la pastilla «Sigue aquí» — SIN recuadro de fondo ni halo alrededor del
+   control: dentro de esta hoja, con tres pasos casi seguidos, un recuadro rosado alrededor de un paso sobre el vidrio se veía
+   como una mancha (Felipe 2026-11-02). Sin tinte tampoco hace falta el margen negativo que se lo daba. */
+.pv-desc-cuerpo .hoja-cobro-paso,
+.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui {
+  margin-inline: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
 }
-.pv-desc-der > section:nth-child(1) { animation-delay: 70ms; }
-.pv-desc-der > section:nth-child(2) { animation-delay: 130ms; }
 /* El segmento «Porcentaje | Monto en S/» a lo ancho de su paso, con cada opción a media caja: un blanco cómodo de tocar. */
 .segmento-cayla.pv-desc-modo {
   display: flex;
@@ -572,7 +615,7 @@
 /* Las fichas de valor: gotas grandes (la puesta, ahumada, con la misma luz que toda `pildora-cayla`); «Otro» es el pozo que se escribe. */
 .pv-desc-fichas {
   display: grid;
-  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)) minmax(0, 1.3fr);
+  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)) minmax(0, 1.5fr);
   gap: 0.5rem;
 }
 .pv-desc-ficha.pildora-cayla {
@@ -644,21 +687,13 @@
 /* Con la hoja del descuento abierta el ticket se queda con sus prendas, quieto y atenuado (el cobro hace lo mismo con su velo). */
 .pv-ticket[inert] {
   opacity: 0.72;
-  transition: opacity 300ms var(--ease-cayla);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hoja-descuento-velo,
-  .hoja-descuento.hoja-serena,
-  .pv-desc-cuerpo > section,
-  .pv-desc-der > section {
-    animation: none;
-  }
   .pv-desc-fila,
   .pv-desc-opcion,
   .pv-desc-punto,
-  .pv-desc-punto::after,
-  .pv-ticket[inert] {
+  .pv-desc-punto::after {
     transition: none;
   }
 }
