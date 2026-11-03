@@ -4,7 +4,8 @@
    un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle —salvo
    las rayas del círculo punteado de un campo opcional, que giran—, sin rebote, con `--ease-cayla`, y todo se apaga con
    `prefers-reduced-motion`. Los colores salen solo de los tokens de
-   globals.css (ADR-0169); el rojo no se usa: aquí nada es un error, es un camino. */
+   globals.css (ADR-0169). Desde el 2026-11-03 el campo que sigue lleva el «filo de luz» rojo de Vender (ver «LA LUZ» más abajo): es el
+   rojo de la marca como señal de «mira aquí», no el de un error. */
 
 /* ---- La marca de un campo: 18 px, a la izquierda de su título ---- */
 .hilo-marca {
@@ -74,7 +75,7 @@
 .hilo-fila {
   margin-inline: -0.75rem;
   padding-inline: 0.75rem;
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   transition: background-color 260ms var(--ease-cayla);
 }
 .hilo-fila > .hilo-fila-in {
@@ -85,9 +86,6 @@
   border-top-width: 0;
   padding-top: 0.5rem;
 }
-.hilo-fila[data-estado="ahora"] {
-  background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
-}
 .hilo-fila[data-estado="ahora"] > .hilo-fila-in {
   border-top-color: transparent;
 }
@@ -96,19 +94,22 @@
   border-top-color: transparent;
 }
 
-/* «Sigue aquí»: la etiqueta del título del campo que sigue. */
+/* «Sigue aquí»: la pastilla del título del campo que sigue. La misma de la cabeza de un paso de Vender (`CabezaPaso`: rojo al 10 %, texto
+   rojo profundo, 14 px seminegrita), para que la luz y su pastilla se vean igual en todo el ERP (Felipe 2026-11-03). */
 .hilo-etiqueta {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 12px;
+  padding: 2px 10px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.5;
-  text-transform: uppercase;
-  color: var(--color-tinta);
-  background: color-mix(in srgb, var(--color-tinta) 8%, transparent);
+  line-height: 1.43;
+  /* El título del campo está en versalitas con letra abierta: la pastilla no hereda ni lo uno ni lo otro. */
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-rojo-profundo);
+  background: color-mix(in srgb, var(--color-rojo) 10%, transparent);
   animation: cayla-revelar 240ms var(--ease-cayla) both;
 }
 
@@ -116,16 +117,8 @@
 [data-campo][data-llamado] {
   animation: hilo-llamado 1100ms var(--ease-cayla) 1;
 }
-.hilo-fila[data-llamado][data-estado="ahora"],
-.hilo-tarjeta[data-llamado][data-estado="ahora"] {
-  animation-name: hilo-llamado-ahora;
-}
 @keyframes hilo-llamado {
   0%, 100% { background-color: transparent; }
-  30% { background-color: var(--color-hueso); }
-}
-@keyframes hilo-llamado-ahora {
-  0%, 100% { background-color: color-mix(in srgb, var(--color-hueso) 55%, transparent); }
   30% { background-color: var(--color-hueso); }
 }
 
@@ -197,69 +190,63 @@
   }
 }
 
-/* ---- LA LUZ del control que sigue (ADR-0284, actualización f) ----
-   Dentro de un modal —y también en las filas del alta— el campo que sigue se ENCIENDE: un halo suave alrededor del bloque, y la caja
-   de texto, el combo o el botón desplegable de adentro con el fondo más claro (papel) y el borde firme, para que destaquen entre sus
-   vecinos en hueso. Sirve a CUALQUIER control (una caja, un combo, chips, un interruptor, un grupo de tres cajas): envuelve el
-   bloque, no conoce el control. Se pinta por detrás y por fuera (`::before`, `box-shadow`): no cambia el tamaño de nada ni empuja a
-   los vecinos. Llega con un solo respiro (700 ms) y se queda quieta; con movimiento reducido, sin nada de eso. Solo tokens; sin rojo. */
-.hilo-luz {
+/* ---- LA LUZ del control que sigue: «D · Filo de luz» (ADR-0284, actualización f; cara nueva el 2026-11-03) ----
+   Dentro de un modal —y también en las filas del alta y en la tarjeta de fotos— lo que sigue se ENCIENDE con la MISMA luz que el paso
+   que sigue del cobro y del descuento de Vender (`.hoja-cobro-paso.sigue-aqui`, vidrio/vender.css): un tinte del rojo de CAYLA y un
+   filo de 1,5 px del mismo rojo (`--filo-luz-*`, vidrio/recetas.css, la única receta). Felipe la eligió mirando para Vender (2026-11-02,
+   docs/maquetas/foco-vidrio-2026-11/) y pidió que fuera la de TODO el sistema, no solo la del punto de venta (2026-11-03).
+   Sirve a CUALQUIER control (una caja, un combo, chips, un interruptor, un grupo de tres cajas): envuelve el bloque, no conoce el
+   control, y el control de adentro no cambia (como en Vender: su pozo de siempre, sin papel sólido ni anillo). El tinte es el `::before` y
+   el filo, un borde con máscara, el `::after`: los dos se pintan por fuera y no cambian el tamaño de nada ni empujan a los vecinos.
+   Quietos: aparecen con un fundido corto (260 ms) y no se mueven (Felipe 2026-11-02: «el borde, sin la pasada animada»). */
+.hilo-luz,
+.hilo-fila[data-estado],
+.hilo-tarjeta[data-estado] {
   position: relative;
   isolation: isolate;
 }
-.hilo-luz::before {
+:is(.hilo-luz, .hilo-fila[data-estado], .hilo-tarjeta[data-estado])::before,
+:is(.hilo-luz, .hilo-fila[data-estado], .hilo-tarjeta[data-estado])::after {
   content: "";
   position: absolute;
-  inset: -0.5rem;
-  z-index: -1;
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
-  box-shadow: var(--hilo-halo);
   opacity: 0;
   pointer-events: none;
   transition: opacity 260ms var(--ease-cayla);
 }
-.hilo-luz[data-estado="ahora"]::before {
+/* Un bloque suelto no tiene relleno propio: la luz sale 8 px a cada lado. La fila y la tarjeta ya traen su holgura y la luz es su propio borde. */
+.hilo-luz::before,
+.hilo-luz::after {
+  inset: -0.5rem;
+  border-radius: 1rem;
+}
+:is(.hilo-fila[data-estado], .hilo-tarjeta[data-estado])::before,
+:is(.hilo-fila[data-estado], .hilo-tarjeta[data-estado])::after {
+  inset: 0;
+  border-radius: inherit;
+}
+:is(.hilo-luz, .hilo-fila[data-estado], .hilo-tarjeta[data-estado])::before {
+  z-index: -1;
+  background: var(--filo-luz-tinte);
+  box-shadow: var(--filo-luz-brillo);
+}
+:is(.hilo-luz, .hilo-fila[data-estado], .hilo-tarjeta[data-estado])::after {
+  padding: 1.5px;
+  background: var(--filo-luz-borde);
+  /* la máscara solo usa el alfa: el color es un token opaco cualquiera */
+  mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
+  -webkit-mask-composite: xor;
+}
+:is(.hilo-luz, .hilo-fila, .hilo-tarjeta)[data-estado="ahora"]::before,
+:is(.hilo-luz, .hilo-fila, .hilo-tarjeta)[data-estado="ahora"]::after {
   opacity: 1;
-  animation: hilo-luz-llega 700ms var(--ease-cayla) 1 both;
-}
-:root {
-  --hilo-halo:
-    0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent),
-    0 0 0 6px color-mix(in srgb, var(--color-tinta) 5%, transparent);
-  --hilo-halo-inicio:
-    0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 24%, transparent),
-    0 0 0 0 color-mix(in srgb, var(--color-tinta) 12%, transparent);
-}
-@keyframes hilo-luz-llega {
-  from { box-shadow: var(--hilo-halo-inicio); }
-}
-/* La fila del alta enciende igual (su tinte ya existía; se le suma el halo). */
-.hilo-fila[data-estado="ahora"] {
-  box-shadow: var(--hilo-halo);
-  animation: hilo-luz-llega 700ms var(--ease-cayla) 1 both;
-}
-/* El control encendido: más claro que sus vecinos y con el borde firme. Un campo «en caja» es un contenedor `.caja-cayla` (hueso, con
-   borde) con un <input> transparente adentro: se enciende LA CAJA, y el input solo si está suelto (subrayado, sin caja); si no, se vería
-   un rectángulo claro dentro del marco en hueso. */
-:is(.hilo-fila, .hilo-luz)[data-estado="ahora"] :is(
-    .caja-cayla,
-    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.caja-cayla input):not([data-matriz-mover] input),
-    textarea:not(.caja-cayla textarea),
-    [role="combobox"]:not(.caja-cayla [role="combobox"]),
-    button[aria-haspopup]:not(.caja-cayla button)
-  ) {
-  background-color: var(--color-papel);
-  border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); /* P2 de la familia: el reposo ya es el borde de control (3:1); el control que sigue sube un escalón */
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hilo-luz::before {
+  :is(.hilo-luz, .hilo-fila, .hilo-tarjeta)::before,
+  :is(.hilo-luz, .hilo-fila, .hilo-tarjeta)::after {
     transition: none;
-    animation: none;
-  }
-  .hilo-fila[data-estado="ahora"] {
-    animation: none;
   }
 }
 
@@ -271,18 +258,7 @@
   padding: 0.5rem;
   border-radius: 0.75rem;
 }
-/* Una tarjeta entera (las fotos) que es lo que sigue: mismo tinte que un campo. */
-.hilo-tarjeta {
-  transition: background-color 260ms var(--ease-cayla);
-}
-.hilo-tarjeta[data-estado="ahora"] {
-  background: color-mix(in srgb, var(--color-hueso) 40%, var(--color-papel));
-}
-@media (prefers-reduced-motion: reduce) {
-  .hilo-tarjeta {
-    transition: none;
-  }
-}
+/* Una tarjeta entera (las fotos) que es lo que sigue: la misma luz que un campo (arriba, «La luz del control que sigue»). */
 
 /* ---- El sello del stock inicial (ADR-0494, actividad 3) ----
    Al crear la prenda, sus unidades de partida quedan selladas: se estampa UNA vez, sin rebote ni bucle (ADR-0136). */
