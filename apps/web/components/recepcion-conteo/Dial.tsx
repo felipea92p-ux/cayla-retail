@@ -42,6 +42,8 @@ export function Dial({
 }) {
   const e = estadoDelDial(contadas, dijeron, hayConteo);
   const [editando, setEditando] = useState<string | null>(abrirAlEntrar ? (hayConteo ? String(contadas) : "") : null);
+  // «1.5» o «-5»: no se guarda y se queda lo que había. Se dice bajo el número hasta que la persona toque otra cosa.
+  const [rechazo, setRechazo] = useState<string | null>(null);
   const caja = useRef<HTMLInputElement>(null);
   const hecho = useRef(false);
   // Las animaciones de respuesta: cada vez que sube lo contado, una chispa; cada vez que pasa a «cuadra», el brillo. Se cuentan durante el
@@ -64,13 +66,15 @@ export function Dial({
 
   function abrir() {
     hecho.current = false;
+    setRechazo(null);
     setEditando(hayConteo ? String(contadas) : "");
   }
   function dejar(guardar: boolean) {
     if (hecho.current || editando === null) return;
     hecho.current = true;
-    const { contadas: n } = leerContadas(editando);
+    const { contadas: n, problema } = leerContadas(editando);
     setEditando(null);
+    setRechazo(guardar ? problema : null);
     // Un 0 escrito en lo que no se contó todavía también es una respuesta: «no llegó ninguna». Vacío no dice nada.
     if (guardar && n !== null && (n !== contadas || !hayConteo)) onPoner(n);
   }
@@ -117,11 +121,18 @@ export function Dial({
             placeholder="0"
             aria-label={`Cuántas ${nombre} llegaron`}
             className="rc-dial-caja"
-            onChange={(ev) => setEditando(leerContadas(ev.target.value).texto)}
+            aria-invalid={rechazo !== null}
+            onChange={(ev) => {
+              setRechazo(null);
+              setEditando(leerContadas(ev.target.value).texto);
+            }}
             onBlur={() => dejar(true)}
             onKeyDown={(ev) => {
               if (ev.key === "Enter") {
                 ev.preventDefault();
+                // No pasa al siguiente: la persona está mirando la caja, y ahí mismo lo corrige.
+                const { problema } = leerContadas(editando);
+                if (problema) return setRechazo(problema);
                 dejar(true);
                 onEnter?.();
               } else if (ev.key === "Escape") {
@@ -136,16 +147,33 @@ export function Dial({
             <Odometro valor={contadas} />
           </button>
         )}
-        <small aria-live="polite">{e.texto}</small>
+        <small aria-live="polite" data-rechazo={rechazo ? "" : undefined}>{rechazo ?? e.texto}</small>
       </div>
       <span aria-hidden className="rc-dial-visto">
         <Check className="h-5 w-5" />
       </span>
 
-      <button type="button" onClick={() => onPoner(contadas - 1)} disabled={contadas <= minimo} aria-label="Una menos" className="rc-dial-boton rc-dial-boton--menos">
+      <button
+        type="button"
+        onClick={() => {
+          setRechazo(null);
+          onPoner(contadas - 1);
+        }}
+        disabled={contadas <= minimo}
+        aria-label="Una menos"
+        className="rc-dial-boton rc-dial-boton--menos"
+      >
         <Minus aria-hidden className="h-5 w-5" />
       </button>
-      <button type="button" onClick={() => onPoner(contadas + 1)} aria-label="Una más" className="rc-dial-boton rc-dial-boton--mas">
+      <button
+        type="button"
+        onClick={() => {
+          setRechazo(null);
+          onPoner(contadas + 1);
+        }}
+        aria-label="Una más"
+        className="rc-dial-boton rc-dial-boton--mas"
+      >
         <Plus aria-hidden className="h-5 w-5" />
       </button>
     </div>

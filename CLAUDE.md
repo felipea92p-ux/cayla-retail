@@ -462,8 +462,11 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
 1. **Cada campo dice su estado**, en su título: ✓ hecho · «Sigue aquí» (uno solo a la vez, con un tinte suave) · falta · opcional.
    Piezas: `MarcaCampo`, `EtiquetaAhora`, `ConMarca` (`components/alta-producto/guia.tsx`, `components/ficha-producto/TiraFicha.tsx`);
    en un formulario por pasos, `<FilaAlta campo= estado=>` (`alta-producto/piezas.tsx`) y `<PasoAlta pie={{ faltan }}>`.
-   **En un modal (u hoja) el control que sigue se ENCIENDE**: un halo suave alrededor del bloque y la caja de texto, el combo o el
-   desplegable de adentro con el fondo más claro (`papel`); sirve a cualquier control —caja, combo, chips, interruptor, un grupo— y
+   **En un modal (u hoja) el control que sigue se ENCIENDE con el «filo de luz» de Vender** (Felipe 2026-11-02 para el cobro y el descuento;
+   2026-11-03: «debe ser el de todo el sistema»): un tinte del rojo de CAYLA y un filo de 1,5 px alrededor del bloque, quietos, con su pastilla
+   «Sigue aquí» roja. La receta es UNA (`--filo-luz-*` en `vidrio/recetas.css`); la usan `.hoja-cobro-paso.sigue-aqui` (Vender) y `.hilo-luz`/
+   `.hilo-fila`/`.hilo-tarjeta` (alta-guia.css), y la caja de adentro no cambia (nada de papel sólido ni de anillo). Nunca otra cara para
+   «sigue aquí»; sirve a cualquier control —caja, combo, chips, interruptor, un grupo— y
    al completarlo la luz pasa al siguiente. Se hace con `useGuiaCampos` + `<CampoGuiado>` alrededor de cada bloque + `<PieGuia>` sobre
    el botón principal (`components/guia-de-foco/`; lógica en `lib/guia-campos.ts`; piloto: `components/NuevaClientaModal.tsx`). Una regla
    de grupo («basta uno de tres datos») es UN campo virtual que envuelve a los tres. **La guía no cambia qué se puede confirmar.**
@@ -479,7 +482,7 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
 6. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; **la luz tampoco se va del campo donde la persona está
    escribiendo hasta que sale de él** (una letra no la manda al siguiente; `CampoGuiado` ya lo hace) y un combo con valor de fábrica que
    importa entra a la guía como «sugerido» (ADR-0284 act. h); solo se mueve lo que no se ve; sin animación con
-   `prefers-reduced-motion`. Movimiento de ADR-0136 (sin bucle ni rebote); **sin rojo** (aquí nada es un error, es un camino) y solo
+   `prefers-reduced-motion`. Movimiento de ADR-0136 (sin bucle ni rebote); el rojo de la luz es el de la marca como señal de «mira aquí», nunca el de un error, y solo
    tokens (`app/estilos/alta-guia.css`, clases `hilo-*`). Verificado en escritorio y a 375 px (el pie del paso no se pega bajo `lg`).
 
 **Cómo se hace cumplir** (ya no depende de acordarse):

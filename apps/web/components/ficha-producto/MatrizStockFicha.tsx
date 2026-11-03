@@ -7,9 +7,11 @@ import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { EtiquetasDeLaMatriz, ordenarEtiquetas, type EtiquetaMatriz } from "./EtiquetasDeLaMatriz";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { Aviso } from "@/components/ui/Aviso";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
-import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
+import { nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
@@ -72,13 +74,6 @@ function anchoColor(tallas: number): string {
 }
 const TITULO_RESUMEN: Record<VistaMatriz, string> = { unidades: "Total", precio: "Precio", costo: "Costo", etiquetas: "Llevan" };
 
-
-/** El borrador sin esa celda: al salir de ella vuelve a mostrar su número. */
-function sinClave(b: Record<string, string>, clave: string): Record<string, string> {
-  const salida = { ...b };
-  delete salida[clave];
-  return salida;
-}
 
 const texto = (n: string) => {
   const v = Number(n);
@@ -158,7 +153,7 @@ export function MatrizStockFicha({
     return () => window.clearTimeout(t);
   }, [filas]);
   // Lo que se está escribiendo en una celda de unidades (puede quedar vacío un instante); al salir, la celda vuelve a su número.
-  const [borrador, setBorrador] = useState<Record<string, string>>({});
+  const escrita = useCantidadEscrita();
   const relojes = useRef(new Map<string, number>());
   // La etiqueta que se está poniendo o quitando en la pestaña «Etiquetas». Si ya no se ofrece, la primera.
   const [etiquetaPedida, setEtiquetaPedida] = useState<string | null>(null);
@@ -194,20 +189,9 @@ export function MatrizStockFicha({
 
   /** Solo una variante NUEVA (sin guardar) lleva − y +: sus unidades de partida. Una guardada tiene candado (`celdaUnidades`). */
   function paso(f: FilaFicha, p: 1 | -1) {
+    escrita.olvidar();
     stock.pasoNueva(f.clave, p);
     destellar([f.clave]);
-  }
-
-  function escribir(f: FilaFicha, valor: string) {
-    const limpio = limpiarCantidad(valor);
-    setBorrador((b) => ({ ...b, [f.clave]: limpio }));
-    if (limpio === "") return;
-    stock.fijarNueva(f.clave, Number(limpio));
-  }
-
-  /** Al salir de la celda vuelve a su número. */
-  function salirDeCelda(f: FilaFicha) {
-    setBorrador((b) => sinClave(b, f.clave));
   }
 
   const enUnidades = vista === "unidades";
@@ -461,6 +445,12 @@ export function MatrizStockFicha({
         </table>
       </div>
 
+      {enUnidades && escrita.problema && (
+        <Aviso tono="atencion" chico>
+          {escrita.problema}
+        </Aviso>
+      )}
+
       {enEtiquetas && (
         <EtiquetasDeLaMatriz
           etiquetas={etiquetas}
@@ -583,11 +573,12 @@ export function MatrizStockFicha({
         </PasoCantidad>
       );
     }
-    const valor = borrador[f.clave] ?? String(u);
+    const invalida = escrita.invalida(f.clave);
     return (
       <PasoCantidad
         tamano="celda"
         sinTab
+        tono={invalida ? "error" : undefined}
         className="matriz-paso"
         data-tocada={tocadas.has(f.clave) || undefined}
         data-cambiada={u > 0 || undefined}
@@ -599,15 +590,23 @@ export function MatrizStockFicha({
           type: "text",
           inputMode: "numeric",
           pattern: "[0-9]*",
-          maxLength: 4,
+          maxLength: 7,
           autoComplete: "off",
           "aria-label": `Con cuántas unidades nace ${etiqueta}`,
+          "aria-invalid": invalida || undefined,
           placeholder: "0", // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
-          value: valor,
+          value: escrita.texto(f.clave) ?? String(u),
           disabled: deshabilitado,
-          onChange: (e) => escribir(f, e.target.value),
-          onFocus: (e) => e.currentTarget.select(),
-          onBlur: () => salirDeCelda(f),
+          // Vacía mientras se escribe no cambia el número: al salir de la celda vuelve a verse.
+          onChange: (e) =>
+            escrita.escribir(f.clave, e.target.value, String(u), (v) => {
+              if (v !== "") stock.fijarNueva(f.clave, Number(v));
+            }),
+          onFocus: (e) => {
+            escrita.empezar(f.clave, String(u));
+            e.currentTarget.select();
+          },
+          onBlur: () => escrita.terminar(f.clave),
           // El «0» de una celda vacía es un fantasma a propósito (25 %), como en Nuevo producto.
           className: `@lg:w-9 placeholder:text-tinta/25 ${u > 0 ? "text-ambar-profundo" : ""}`,
         }}

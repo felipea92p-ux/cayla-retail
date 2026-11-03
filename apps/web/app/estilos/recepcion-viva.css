@@ -42,6 +42,7 @@
 .rc-dial-centro small { font-size: 15px; font-weight: 600; color: var(--color-taupe); transition: color 300ms var(--ease-cayla); }
 .rc-dial--cuadra .rc-dial-centro small { color: var(--color-verde-profundo); }
 .rc-dial--sobra .rc-dial-centro small { color: var(--color-ambar-profundo); }
+.rc-dial-centro small[data-rechazo] { color: var(--color-ambar-profundo); }
 .rc-dial-numero { padding: 0 12px; border-radius: 16px; color: var(--color-tinta); font-family: var(--font-serif); font-size: 78px; font-weight: 600; line-height: 1.15; cursor: text; transition: background-color 250ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-dial-numero:hover { background: var(--color-hueso); box-shadow: inset 0 -3px 0 var(--color-borde-control); }

@@ -41,11 +41,9 @@
   background-color: color-mix(in srgb, var(--color-vidrio) 38%, transparent);
   box-shadow: var(--pozo-encendido-sombra);
 }
-/* «Sigue aquí» de la guía de foco (ADR-0284): sube a medias y lleva su anillo pizarra (el papel sólido de antes era papel sobre vidrio). */
-:is(.hilo-fila, .hilo-luz)[data-estado="ahora"] .caja-cayla:not(:focus-within) {
-  background: var(--pozo-sigue-fondo);
-  box-shadow: var(--pozo-sigue-anillo);
-}
+/* «Sigue aquí» de la guía de foco (ADR-0284): ya no toca la caja. La luz es del bloque entero (el «filo de luz» rojo de alta-guia.css, el mismo del
+   paso que sigue de Vender) y la caja de adentro se queda en su pozo de siempre; el papel sólido y el anillo pizarra de antes la hacían un bloque
+   opaco sobre el vidrio (Felipe 2026-11-03: el foco de Vender debe ser el de todo el sistema). */
 /* La flecha de un combo es una gota: lo que aprietas sobresale del pozo donde va tu dato (combo «A · Pozo y gota»). */
 .caja-campo .combo-flecha {
   box-sizing: content-box;

@@ -13,6 +13,20 @@ import { matrizDe, sumasDe, type Conteo, type MatrizRecepcion, type PrendaRecepc
 
 export const claveDeEje = (id: string | null): string => id ?? "";
 
+/** Cómo se trabaja un modelo: solo su número, o sus tallas y colores en la misma pantalla. */
+export type ModoDeTallas = "despues" | "ahora";
+
+/** El modo de un modelo. Si nadie lo eligió, sale de lo guardado: con tallas, «ahora»; sin ellas, «después». */
+export const modoDeTallas = (elegido: ModoDeTallas | undefined, conTallas: boolean): ModoDeTallas => elegido ?? (conTallas ? "ahora" : "despues");
+
+/**
+ * Los modos antes de cambiar el modelo que se está mirando. Si está en «ahora» porque venía con tallas guardadas (al recargar, nadie lo eligió), queda dicho: el cambio se las puede soltar (una celda que deja de
+ * cuadrar, otro número), y si el modo siguiera saliendo de ellas, la tabla se cerraría en la primera tecla (Felipe 2026-11-03). Lo escrito espera en la pantalla hasta que cuadre (ADR-0604). Lo elegido no se toca.
+ */
+export function modosAlCambiar(modos: Readonly<Record<string, ModoDeTallas>>, clave: string, conTallasGuardadas: boolean): Readonly<Record<string, ModoDeTallas>> {
+  return modos[clave] === undefined && conTallasGuardadas ? { ...modos, [clave]: "ahora" } : modos;
+}
+
 type Ids = readonly string[];
 
 const variantesDe = (prenda: Pick<PrendaRecepcion, "variantes">, eje: "talla" | "color", clave: string): VarianteRecepcion[] =>
@@ -48,6 +62,23 @@ export function borradorDeTallas(prenda: Pick<PrendaRecepcion, "variantes">, ord
   const matriz = matrizDe(prenda, ordenColores);
   const conteo = conteoDeVariantes(variantes);
   return { conteo, tallas: tallasIniciales(matriz, prenda, categoria, conteo), colores: coloresIniciales(matriz, prenda, conteo) };
+}
+
+/**
+ * La tabla con que se decide si el número nuevo cuadra: la que se está escribiendo o, si todavía no se tocó (al recargar solo hay lo guardado), lo guardado. Sin esto, cambiar el número soltaba las tallas y la tabla
+ * volvía vacía: había que repartir todo otra vez. Sin nada que repartir (el modelo queda en cero), ninguna.
+ */
+export function tablaParaElNumero(
+  tabla: BorradorTallas | undefined,
+  prenda: Pick<PrendaRecepcion, "variantes"> | undefined,
+  guardadas: readonly VarianteSeparada[] | null,
+  ordenColores: readonly string[],
+  categoria: readonly TallaDeLaCategoria[],
+  porRepartir: number,
+): BorradorTallas | undefined {
+  if (tabla) return tabla;
+  if (!prenda || !guardadas || porRepartir <= 0) return undefined;
+  return borradorDeTallas(prenda, ordenColores, categoria, guardadas);
 }
 
 export type TallaPorAgregar = { clave: string; texto: string; /** La prenda no la tiene: agregarla crea la combinación. */ crear: boolean };

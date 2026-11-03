@@ -9,6 +9,7 @@ import {
   cantidadDePrendas,
   nombreDeDeuda,
   porQueDebe,
+  prendasDeLaDeuda,
   queDebe,
   textoDeDeuda,
   textoDeResolucion,
@@ -104,9 +105,9 @@ export function NosDebeProveedor({
                 {cerradas.map((d) => (
                   <li key={d.diferenciaId} className="px-5 py-2.5">
                     <p className="text-sm text-tinta">
-                      {cantidadDePrendas(d.cantidad, d.categoria)}
+                      {prendasDeLaDeuda(d.cantidad, d)}
                       {d.marca && <> · {d.marca}</>}
-                      {d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
+                      {!d.prenda && d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
                     </p>
                     <p className="text-sm text-tinta/65">{porQueDebe(d, hoy)}</p>
                     {d.resoluciones.map((r, i) => (
@@ -144,7 +145,7 @@ function FilaDeuda({
         <p className="text-sm text-tinta">
           <b className="font-semibold">{queDebe(d)}</b>
           {d.marca && <> · {d.marca}</>}
-          {d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
+          {!d.prenda && d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
         </p>
         <p className="mt-0.5 text-sm text-tinta/65" title={[nombreDeDeuda(d), d.orden].filter(Boolean).join(" · ")}>
           {porQueDebe(d, hoy)}
