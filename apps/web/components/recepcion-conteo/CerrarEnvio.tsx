@@ -6,6 +6,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
@@ -191,6 +192,8 @@ export function CerrarEnvio({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<{ texto: string; recargar: boolean } | null>(null);
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
+  // Alguien guardó un conteo mientras se cerraba: la franja del pie se pasaba por alto, así que además se dice en una hoja a la vista.
+  const [choque, setChoque] = useState<string | null>(null);
   const [proveedorId, setProveedorId] = useState(() => (proveedores.some((p) => p.id === borrador?.proveedorId) ? (borrador?.proveedorId ?? "") : ""));
   // Ya quedó puesto en la base (poner_proveedor_envio no lo cambia): no se vuelve a pedir ni a elegir.
   const [proveedorPuesto, setProveedorPuesto] = useState(false);
@@ -520,7 +523,8 @@ export function CerrarEnvio({
       {
         p_despacho_id: detalle.id,
         p_version: versionParaCerrar,
-        p_lineas: lineasParaCerrar(visibles, conConfirmados, sinAviso, costosPrenda, costosCombinacionesPorLinea()),
+        // Todos los conteos, también lo de fuera de la guía que quedó en 0 y no se ve: la base exige uno por conteo y lo salta sola.
+        p_lineas: lineasParaCerrar(lineas, conConfirmados, sinAviso, costosPrenda, costosCombinacionesPorLinea()),
         p_nota: nota.trim() ? nota.trim().slice(0, TOPES_CONTEO.notaEnvio) : null,
         p_token: token,
       },
@@ -544,7 +548,10 @@ export function CerrarEnvio({
       }
       const cambio = e.hint === HINT_CONTEO_CAMBIADO;
       setError({ texto: mensajeAlGuardar(e, "cerrar el envío"), recargar: cambio || e.hint === "version_cambiada" });
-      if (cambio) onConteoCambiado();
+      if (cambio) {
+        setChoque(mensajeAlGuardar(e, "cerrar el envío"));
+        onConteoCambiado();
+      }
       requestAnimationFrame(() => avisoError.current?.focus());
       return;
     }
@@ -983,10 +990,19 @@ export function CerrarEnvio({
         {!sinAviso && <p className="mt-2 text-sm text-taupe">Quien hizo una orden no puede cerrar su envío (solo un Admin cierra lo que él mismo compró): firma otra persona de la tienda.</p>}
       </CampoGuiado>
 
+      {choque && (
+        <Modal titulo="Cambió el conteo mientras cerrabas" onClose={() => setChoque(null)} conCerrar>
+          <div className="space-y-3 text-sm">
+            <p className="text-tinta">{choque}</p>
+            <p className="text-taupe">No se cerró nada y el stock no se tocó. La pantalla ya trajo lo último: mira lo contado y vuelve a cerrar.</p>
+          </div>
+        </Modal>
+      )}
+
       {error && (
         <Aviso ref={avisoError} enfocable tono="error" titulo="No se pudo cerrar">
           {error.texto}
-          {error.recargar && " Revisa lo contado y vuelve a cerrar."}
+          {error.recargar && !/vuelve a cerrar/i.test(error.texto) && " Revisa lo contado y vuelve a cerrar."}
         </Aviso>
       )}
 

@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 170,
+  "total": 171,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -76,8 +76,7 @@
       "Boton «{textoConfirmar}»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
-      "Boton «{sinAviso ? \"Agregar lo que llegó\" : \"Agregar categoría\"}»",
-      "ComboResponsable «{responsable}»"
+      "Boton «{sinAviso ? \"Agregar lo que llegó\" : \"Agregar categoría\"}»"
     ],
     "components/recepcion-conteo/DescribirNuevas.tsx": [
       "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
@@ -89,6 +88,10 @@
       "button «{`Escribir cuántas ${nombre}»",
       "button «Una menos»",
       "button «Una más»"
+    ],
+    "components/recepcion-conteo/ElegirQuienCuenta.tsx": [
+      "Volver «→() => router.push(\"/recibir\")»",
+      "ComboResponsable «{responsable}»"
     ],
     "components/recepcion-conteo/EnvioCerrado.tsx": [
       "BotonEnlace «{a.texto}»",

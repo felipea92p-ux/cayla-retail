@@ -673,7 +673,7 @@ function FilaPorPagar({
       </div>
       <div className={`hidden text-right tabular-nums @[56rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/70"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
-        <span className="block text-sm text-tinta/70">de {soles(c.total)}</span>
+        {c.pagado > 0 && <span className="block text-sm text-tinta/70">de {soles(c.total)}</span>}
         {c.pagado > 0 && (
           <BarraAvance pct={pctPagado * 100} alto="fina" decorativa indice={posicion} title={`${Math.round(pctPagado * 100)} % pagado`} className="ml-auto mt-[5px] w-[5.5rem]" />
         )}

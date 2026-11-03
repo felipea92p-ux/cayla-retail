@@ -150,7 +150,8 @@
 .tabla-cayla > * + * {
   border-color: var(--hilo-fila);
 }
-.tabla-cayla > .encabezado-tabla-cayla {
+/* A cualquier hondura: Órdenes de compra lo envuelve en la caja que lo esconde en el celular, y sin esto volvía la banda de arena. */
+.tabla-cayla .encabezado-tabla-cayla {
   background: none;
 }
 .tabla-cayla > .encabezado-tabla-cayla + * {
@@ -504,32 +505,56 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
 }
 
 /* ---------- La tarjeta de producto de Catálogo ▸ Productos: «A · Catálogo de moda» (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/) ----------
-   La foto al aire, la misma de Vender (vidrio/vender.css): sin tarjeta de papel, esquinas de 18 px y su sombra, y al pasar el mouse sube
-   3 px con la sombra que crece. Sobre ella solo van sus insignias, en gota. Debajo, pegados a la foto (12 px), tres renglones con 3 y 7 px
-   entre ellos, como los catálogos de moda: nombre | precio (15 px, el precio sin «.00»), qué es · el color que se ve (tenue), y los puntos
-   de color (12 px, lo que se toca 24) con el stock tenue, que solo pesa si es poco (ámbar) o nada (rojo).
+   Era la foto al aire; desde el 2026-11-03 (docs/maquetas/tarjeta-prenda-vidrio-2026-11/, «A · Vidrio claro») cada producto vive en la misma
+   placa de vidrio que la prenda de Vender (`--placa-prenda-*`, vidrio/recetas.css; sin desenfoque por costo): cada foto trae su fondo
+   (blanco, durazno, terracota) y suelta sobre el crema unas se perdían y otras parecían un hueco. La foto va dentro, con 8 px de aire y su
+   filo. Sobre ella solo van sus insignias, en gota. Debajo, pegados a la foto (12 px), tres renglones con 3 y 7 px entre ellos, como los
+   catálogos de moda: nombre | precio (15 px, el precio sin «.00»), qué es · el color que se ve (tenue), y los puntos de color (12 px, lo que se
+   toca 24) con el stock tenue, que solo pesa si es poco (ámbar) o nada (rojo).
    La letra de lectura no baja de 14 px (CLAUDE.md, fila `texto`): el segundo renglón y el stock van en 14 y no en los 13 / 12,5 de la
    maqueta. En una tarjeta angosta (la consulta de contenedor) el precio baja bajo el nombre y el stock bajo los puntos.
    Los ganchos los pone components/ProductosGrilla.tsx; los puntos son `.vg-punto` de Vender (SwatchesColor `forma="punto"`). */
 .prod-grilla {
-  row-gap: 28px;
+  row-gap: 18px;
 }
 @media (max-width: 639px) {
-  .prod-grilla { row-gap: 22px; }
+  .prod-grilla { row-gap: 14px; }
 }
-.prod-foto {
-  isolation: isolate; /* Safari: que la foto respete las esquinas */
-  border-radius: var(--foto-al-aire-radio);
-  box-shadow: var(--foto-al-aire-sombra);
+.prod-tarjeta {
+  padding: 8px 8px 12px;
+  border: 1px solid var(--placa-prenda-borde);
+  border-radius: 22px;
+  background: var(--placa-prenda-fondo);
+  box-shadow: var(--placa-prenda-sombra);
   transition:
     transform 350ms var(--ease-cayla),
     box-shadow 350ms var(--ease-cayla);
 }
+.prod-foto {
+  isolation: isolate; /* Safari: que la foto respete las esquinas */
+  border-radius: 14px; /* el de la placa (22) menos sus 8 px de aire */
+}
+/* El filo de la foto (como el de Vender): un hilo encima de ella, para que todas tengan el mismo borde sea cual sea su fondo. */
+.prod-foto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 9%, transparent);
+  pointer-events: none;
+}
 @media (hover: hover) {
-  .prod-tarjeta:hover .prod-foto {
+  .prod-tarjeta:hover {
     transform: translateY(-3px);
-    box-shadow: var(--foto-al-aire-sombra-encima);
+    box-shadow: var(--placa-prenda-sombra-encima);
   }
+}
+@media (hover: hover) and (prefers-reduced-motion: reduce) {
+  .prod-tarjeta:hover { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prod-tarjeta { transition: none; }
 }
 /* Lo que va sobre la foto es una gota de vidrio: se lee sobre una prenda clara o una oscura. */
 .prod-sobre-foto {
@@ -549,7 +574,7 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
   container-type: inline-size;
   display: grid;
   gap: 3px;
-  padding: 12px 2px 2px;
+  padding: 12px 6px 0;
 }
 .prod-renglon-1 {
   display: flex;
