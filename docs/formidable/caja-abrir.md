@@ -36,7 +36,7 @@ No se lanzó un cuarto agente (la escala acordada fue 2). Cada hallazgo se contr
 ## Estado de los 3 cambios (2026-11-03, SHA 024007766)
 1. **Cerrado, sin el tope.** El monto ya no se filtra al escribir: lo que no se entiende dice «No se entiende el monto» y el botón queda apagado. **El tope se descartó por pregunta de Felipe:** con cierre previo, un monto absurdo ya sale como «Sobran S/ …», pide el motivo y avisa al líder, y la base rechaza lo imposible; solo protegería la primera apertura. [Medido] repetido el ataque: «Total: 3,50 (2 monedas)», «-5», «12 8 5», «1e5» → botón apagado, nada se envía.
 2. **Cerrado.** «Falta: el monto y el responsable» completo [Medido]; 5 clics a la vez → 1 llamada [Medido]; en 375 px «Abrir caja» va en la Isla, a la vista [Medido], y «Caja abierta» queda a 302 px de 812 (antes −790) [Medido]. Nota: la reserva de alto de `PaginaEstable` (ADR-0185) devolvía la vista al fondo; se suelta con `soltarPaginaEstable()`, como el cobro de Vender.
-3. **Cerrado.** Resumen sin «Debería haber» ni «Cerró»; frase «El líder de equipo lo verá en Inicio»; «Contar billetes y monedas» mide 32 px [Medido].
+3. **Cerrado.** Resumen sin «Debería haber» ni «Cerró»; «Contar billetes y monedas» mide 32 px [Medido]. La frase «El líder de equipo lo verá en Inicio» se puso y **Felipe la quitó** (2026-11-03): la pantalla ya no explica qué pasa con la diferencia; el aviso de «Caja abierta» sí dice que quedó registrada para el líder. Ley 6 queda como deuda conocida.
 **Pendiente:** volver a pasar la prueba ciega y medir las dos notas (no se hizo); lo de «real: sin probar» sigue igual. La lista aparte (foco con teclado, mensaje crudo de rechazo, tope de largo del motivo, hoja de contar) no se ejecutó.
 
 ## Historial
