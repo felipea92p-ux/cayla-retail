@@ -256,6 +256,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/vender/comprobantes/proformas": PENDIENTE,
   "/vender/comprobantes/series": PENDIENTE,
   "/vender/historial": PENDIENTE,
+  // Reportes de ventas (2026-11-03): son de solo lectura; sus filtros miran, no llenan un formulario ni avanzan por pasos.
+  "/vender/reportes": { estado: "no-aplica", motivo: "Reporte de solo lectura: sus filtros (mes, tienda) miran la misma pantalla de otra forma; no hay formulario que llenar ni pasos que seguir." },
+  "/vender/reportes/ranking": { estado: "no-aplica", motivo: "Reporte de solo lectura: sus filtros (fechas, tienda, categoría, marca, talla, color) miran el mismo ranking de otra forma; no hay formulario que llenar ni pasos que seguir." },
 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------

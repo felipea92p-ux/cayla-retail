@@ -101,6 +101,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   finanzas: "M13.744 17.736a6 6 0 1 1-7.48-7.48 M15 6h1v4 M6.134 14.768l.866-.5 2 3.464 M10 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", // lucide «coins»
   dinero: "M3 6h18v12H3z M7 12h.01 M17 12h.01 M12 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z",
   reportes: "M4 20V10 M10 20V4 M16 20v-7 M3 20h18",
+  // La línea que sube sobre sus ejes: las ventas por mes (Ventas ▸ Reportes). Distinta de «reportes» (las barras de Finanzas ▸ Estados financieros): una prueba exige que ningún ícono se repita en el lateral. lucide «chart-line».
+  reportesVentas: "M3 3v16a2 2 0 0 0 2 2h16 M19 9l-5 5-4-4-3 3",
   impuestos: "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01",
   cierre: "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4",
   // Lupa sobre una línea que sube: qué se vende, qué no y qué pedir (Gestión ▸ Análisis). Antes un microscopio.

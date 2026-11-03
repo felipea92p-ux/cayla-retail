@@ -12,7 +12,7 @@ import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "inicio",
-  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
+  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "reportes_ventas", "facturacion",
   "tienda_web", "trafico", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
@@ -60,6 +60,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir, exportar y corregir el pago mientras la caja siga abierta" },
+  // Ventas ▸ Reportes (Felipe 2026-11-03, 20261103224000): el reporte de ventas del mes y el ranking de prendas. Nace sin rol: solo el líder.
+  { clave: "reportes_ventas", grupo: "Ventas", nombre: "Reportes de ventas", incluye: "Ver cuánto se vendió cada mes, por tienda y por categoría, y qué prendas se venden más con sus filtros; descargar los reportes" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   // Tienda web (ADR-0430, Felipe 2026-10-16; 20261016174000): el grupo de lo de la tienda online, justo después de Ventas (el mismo
   // lugar que en el lateral). Su Resumen nace SIN rol (solo el líder) y delegable; no trae funciones propias: lee con las lecturas de las

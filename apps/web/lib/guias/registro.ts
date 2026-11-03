@@ -435,4 +435,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/vender/comprobantes/proformas": { estado: "aplicada", guia: GUIA_PROFORMAS.id },
   "/vender/comprobantes/series": { estado: "aplicada", guia: GUIA_SERIES.id },
   "/vender/historial": { estado: "aplicada", guia: GUIA_HISTORIAL.id },
+  // Reportes de ventas (2026-11-03): la guía se escribe en la actividad 7, cuando el reporte ya tiene todas sus piezas.
+  "/vender/reportes": { estado: "no-aplica", motivo: "Pantalla nueva en construcción: su guía se escribe cuando el reporte tenga todas sus piezas." },
+  "/vender/reportes/ranking": { estado: "no-aplica", motivo: "Pantalla nueva en construcción: su guía se escribe cuando el reporte tenga todas sus piezas." },
 };
