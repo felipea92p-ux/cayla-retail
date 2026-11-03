@@ -702,17 +702,31 @@
    EL PASO QUE SIGUE: «D · FILO DE LUZ» (Felipe 2026-11-02, docs/maquetas/foco-vidrio-2026-11/). El paso numerado del cobro y del
    descuento (`.hoja-cobro-paso`, `CabezaPaso`) ya no es papel con un tinte rojo: es vidrio claro con un borde de luz del rojo de CAYLA que
    da UNA pasada al llegar (ADR-0136: una vez, sin rebote ni bucle). El número, el chip «Sigue aquí» y los controles de adentro no cambian.
-   El filo es un borde con máscara (`::after`, sobre el borde de 1,5 px que el paso ya reserva): no mueve ni empuja nada.
+   El filo es un borde con máscara (`::after`) y el tinte un `::before`: los dos se pintan por fuera y no mueven ni empujan nada.
    ===================================================================== */
 .hoja-cobro-paso {
   position: relative;
   isolation: isolate;
 }
-.hoja-cobro-paso.sigue-aqui {
-  /* Un blanco translúcido sobre una hoja que ya es blanca translúcida no se distingue de ella (Felipe 2026-11-02: «el fondo no se nota nada»):
-     el paso que sigue lleva un tinte del rojo de CAYLA, más lleno arriba, que SÍ deja ver el vidrio a través. */
+/* El tinte vive en un `::before` y no en el fondo del paso: el cobro y el descuento le ponen `background: transparent` al paso (reglas más
+   específicas de arriba, «sin recuadro»), y un fondo propio quedaba pisado (Felipe 2026-11-02: «¿por qué lo sigo viendo así?»). Un blanco
+   translúcido sobre una hoja que ya es blanca translúcida no se distingue de ella: el tinte es del rojo de CAYLA, más lleno arriba, y deja ver el
+   vidrio a través. */
+.hoja-cobro-paso.sigue-aqui::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
   background: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 12%, transparent), color-mix(in srgb, var(--color-rojo) 4%, transparent));
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+}
+/* En el descuento el paso no lleva relleno (padding 0): el tinte y el filo salen a su alrededor, sin mover ni empujar nada. */
+.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui::before,
+.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui::after {
+  inset: -0.45rem -0.75rem;
+  border-radius: 1.1rem;
 }
 .hoja-cobro-paso.sigue-aqui::after {
   content: "";
