@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Ban, Check, Package, RotateCcw, Sparkles, Tag } 
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
+import { BotonQuitar } from "@/components/ui/BotonQuitar";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -47,6 +48,7 @@ export function PlacaDelModelo({
   onCerrar,
   onModo,
   onOtraCosa,
+  onQuitar,
   observacion,
   observaciones,
   otraCosa,
@@ -82,6 +84,8 @@ export function PlacaDelModelo({
   onCerrar: () => void;
   onModo: (m: ModoDeTallas) => void;
   onOtraCosa: () => void;
+  /** La ✕ junto al nombre: saca del envío lo que la persona agregó (el modelo, o la categoría si se cuenta su total). Ausente si no se puede quitar. */
+  onQuitar?: () => void;
   /** El enlace «Anotar observación». */
   observacion: ReactNode;
   /** Lo ya anotado. */
@@ -134,7 +138,10 @@ export function PlacaDelModelo({
       <div className="rc-placa-cabeza">
         {p.categoria && <MiniaturaPrenda fotoUrl={foto} tamano="2xl" prefijo={p.categoria.prefijo} familia={p.categoria.familia} categoria={p.categoria.nombre} />}
         <div className="rc-placa-textos">
-          <TituloSeccion dato={!hayConteo ? <EtiquetaAhora /> : undefined}>{nombreDeParada(parada)}</TituloSeccion>
+          <div className="rc-titulo-fila">
+            <TituloSeccion dato={!hayConteo ? <EtiquetaAhora /> : undefined}>{nombreDeParada(parada)}</TituloSeccion>
+            {onQuitar && <BotonQuitar que={`${nombreDeParada(parada)} del envío`} onClick={onQuitar} />}
+          </div>
           <p>{[modelo ? p.categoria?.nombre : null, p.proveedor?.nombre, descripcion].filter(Boolean).join(" · ")}</p>
           <div className="rc-chips">
             {tipo === "nuevo" && (

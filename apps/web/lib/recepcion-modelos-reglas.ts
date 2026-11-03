@@ -198,6 +198,15 @@ export function lineasDeLaParada(p: ParadaDelConteo): LineaParaContar[] {
   return delModelo.length > 0 ? delModelo : p.grupo.lineas;
 }
 
+/**
+ * ¿Se puede sacar este modelo del envío con la ✕ (Felipe 2026-11-03)? Solo uno que la persona agregó (no venía anotado por Compras: lo anotado puede
+ * «no llegar», no desaparecer) y del que nada entró todavía al stock (eso ya es historia y no se quita).
+ */
+export const sePuedeQuitarModelo = (m: Pick<ModeloDelConteo, "anotada" | "enStock">): boolean => m.anotada === null && m.enStock === 0;
+
+/** ¿Se puede sacar la categoría entera? Solo si nada de ella venía en la guía de Compras y nada entró al stock. */
+export const sePuedeQuitarCategoria = (c: Pick<CategoriaDelEnvio, "grupos">): boolean => c.grupos.length > 0 && c.grupos.every((g) => !g.principal.linea && g.enStock === 0);
+
 /** Lo que dice la fila o la placa de una parada: el modelo, o «Total de Vestidos». */
 export const nombreDeParada = (p: ParadaDelConteo): string => p.modelo?.nombre ?? `Total de ${p.grupo.principal.categoria?.nombre ?? "la categoría"}`;
 

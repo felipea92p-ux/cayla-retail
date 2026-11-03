@@ -279,6 +279,7 @@
     "pruebas:pendientes-de-envio": "node scripts/pruebas/pendientes_de_envio.mjs",
     "pruebas:reabrir-envio": "node scripts/pruebas/reabrir_envio.mjs",
     "pruebas:envio-sin-aviso": "node scripts/pruebas/envio_sin_aviso.mjs",
+    "pruebas:cancelar-recepcion": "node scripts/pruebas/cancelar_recepcion.mjs",
     "pruebas:nos-debe": "node scripts/pruebas/nos_debe.mjs",
     "pruebas:ordenes-insumo": "node scripts/pruebas/ordenes_insumo.mjs",
     "pruebas:produccion-fases": "node scripts/pruebas/produccion_fases.mjs",

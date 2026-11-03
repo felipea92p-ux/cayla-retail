@@ -1,0 +1,1297 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fondo="aurora" data-eliminar="dentro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recibir: cancelar y editar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* Base de las maquetas del vidrio (copia de ../vidrio-base-2026-10/marco.css, para que este archivo se abra solo, desde donde sea). */
+/* ====================================================================
+   BASE DE LAS MAQUETAS DEL VIDRIO (ADR-0596, 2026-10-31)
+   El marco YA ELEGIDO, copiado de docs/maquetas/marco-vidrio-2026-10/index.html: fondo B · Aurora, lateral B · Riel de vidrio con la gota,
+   submódulos en bandeja, plegado con nombre, cabecera C · Dos islas y combo A · Gota viajera. Cada maqueta de una pieza de pantalla
+   (docs/vidrio/README.md, sección 3) se monta encima con marco.js, para que la pieza se vea en su lugar y no suelta.
+   Si Felipe cambia el marco, se cambia en su maqueta y se vuelve a copiar aquí. Solo tokens; datos inventados (el repo es público).
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+--ease:cubic-bezier(.32,.72,.24,1);--lienzo:#ddd5c6}
+:root[data-tema="oscuro"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t65:color-mix(in srgb,var(--tinta) 66%,transparent);--t50:color-mix(in srgb,var(--tinta) 56%,transparent);
+--t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t12:color-mix(in srgb,var(--tinta) 12%,transparent);--t06:color-mix(in srgb,var(--tinta) 6%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:500}
+.vs{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}}
+@keyframes funde{from{opacity:0}}
+@keyframes enfoca{from{opacity:0;filter:blur(8px);transform:translateY(6px)}}
+
+/* ---------- barra de la maqueta (no es parte del diseño) ---------- */
+.spk{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px} /* tema-fijo: barra de la maqueta */
+.spk .titulo{font-family:'EB Garamond',serif;font-size:18px;width:100%}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)} /* tema-fijo: barra de la maqueta */
+.seg-m{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg-m button{height:26px;padding:0 9px;font-size:11.5px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.seg-m button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.spk .accion{height:28px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.25);color:#f5f0e8;font-size:12px} /* tema-fijo: barra de la maqueta */
+.spk .accion.on{background:#f5f0e8;color:#1a1a18} /* tema-fijo: barra de la maqueta */
+@media (max-width:1300px){.spk{position:relative}}
+.escena{padding:16px;display:flex;justify-content:center}
+
+/* ---------- el aparato ---------- */
+.disp{scroll-margin-top:110px;container:disp/inline-size;position:relative;width:min(1440px,100%);height:860px;border-radius:16px;overflow:hidden;border:1px solid var(--t25);isolation:isolate}
+.disp[data-ancho="movil"]{width:375px;height:780px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+/* Todos los anchos (Felipe 2026-10-31: «super responsive, en todas las resoluciones posibles y en teléfono»). El aparato mide de verdad lo
+   que dice; si no cabe en la ventana, marco.js lo achica con `zoom` para verlo entero (sus consultas de contenedor siguen midiendo su ancho real). */
+.disp:is([data-ancho="m320"],[data-ancho="m430"]){height:720px;border-radius:40px;border:10px solid #171614} /* tema-fijo: marco del celular de la maqueta */
+.disp[data-ancho="m320"]{width:320px;height:640px}.disp[data-ancho="m430"]{width:430px;height:900px}
+.disp[data-ancho="tablet"]{width:768px;height:1024px;border-radius:32px;border:10px solid #171614} /* tema-fijo: marco de la tableta de la maqueta */
+.disp:not([data-ancho="escritorio"]){flex:none} /* mide lo que dice, aunque no quepa: lo achica el zoom */
+.disp[data-ancho="w1024"]{width:1024px;height:768px}.disp[data-ancho="w1280"]{width:1280px;height:800px}
+.disp[data-ancho="w1440"]{width:1440px;height:900px}.disp[data-ancho="w1920"]{width:1920px;height:1080px}
+
+/* ====================================================================
+   EL FONDO (lienzo)
+   ==================================================================== */
+.lienzo{position:absolute;inset:0;z-index:0;background:var(--crema);overflow:hidden}
+.lienzo i{display:none;position:absolute;border-radius:50%;filter:blur(90px)}
+/* A · Crema quieto: el crema de siempre con una luz suave que baja desde arriba; nada de color */
+[data-fondo="crema"] .lienzo{background:radial-gradient(120% 70% at 50% -10%,var(--papel),var(--crema) 60%)}
+/* B · Aurora de sede: tres nubes muy tenues (rojo, pizarra, ámbar) quietas detrás de todo; le dan al vidrio algo que desenfocar */
+[data-fondo="aurora"] .lienzo i{display:block;opacity:.16;animation:funde 1.4s var(--ease) both}
+[data-fondo="aurora"] .lienzo i:nth-child(1){width:620px;height:520px;left:-160px;top:-180px;background:var(--rojo)}
+[data-fondo="aurora"] .lienzo i:nth-child(2){width:700px;height:560px;right:-220px;top:120px;background:var(--pizarra);opacity:.14}
+[data-fondo="aurora"] .lienzo i:nth-child(3){width:560px;height:460px;left:30%;bottom:-260px;background:var(--ambar);opacity:.12}
+[data-tema="oscuro"][data-fondo="aurora"] .lienzo i{opacity:.1}
+/* C · Tejido: el crema con la trama fina de una tela (CAYLA también teje) y una luz desde arriba */
+[data-fondo="tejido"] .lienzo{background:
+  radial-gradient(110% 60% at 50% -10%,color-mix(in srgb,var(--papel) 85%,transparent),transparent 65%),
+  repeating-linear-gradient(45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  repeating-linear-gradient(-45deg,color-mix(in srgb,var(--tinta) 3.2%,transparent) 0 1px,transparent 1px 7px),
+  var(--crema)}
+
+/* ---------- el vidrio del marco (Serena) ---------- */
+.vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .vidrio{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+.gota{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 8%,transparent),0 6px 16px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .gota{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 18%,transparent),color-mix(in srgb,var(--tinta) 9%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 16px -8px var(--sombra)}
+
+/* ====================================================================
+   EL MENÚ LATERAL
+   ==================================================================== */
+.disp{--lat-x:0px;--lat-y:0px;--lat-w:272px;--lat-r:0px;--cont-x:272px}
+.disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="panel"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:256px;--lat-r:28px;--cont-x:280px}
+[data-lateral="panel"] .disp[data-plegado]{--lat-w:72px;--cont-x:96px}
+[data-lateral="riel"] .disp{--lat-w:268px;--cont-x:268px}
+[data-lateral="riel"] .disp[data-plegado]{--lat-w:76px;--cont-x:76px}
+[data-lateral="riel"][data-pmodo="nombre"] .disp[data-plegado]{--lat-w:84px;--cont-x:84px}
+[data-lateral="riel"][data-pmodo="iconos"] .disp[data-plegado]{--lat-w:64px;--cont-x:64px}
+:root:not([data-lateral])[data-pmodo="nombre"] .disp[data-plegado]{--lat-w:84px;--cont-x:84px}
+:root:not([data-lateral])[data-pmodo="iconos"] .disp[data-plegado]{--lat-w:64px;--cont-x:64px}
+[data-lateral="isla"] .disp{--lat-x:12px;--lat-y:12px;--lat-w:72px;--lat-r:26px;--cont-x:96px}
+.lat{position:absolute;z-index:5;left:var(--lat-x);top:var(--lat-y);bottom:var(--lat-y);width:var(--lat-w);border-radius:var(--lat-r);display:flex;flex-direction:column;overflow:hidden;
+  transition:width .35s var(--ease)}
+/* Como ahora */
+:root:not([data-lateral]) .lat{background:var(--crema);border-right:1px solid var(--t12)}
+/* Arriba del menú, el logo entero. El botón para plegar FLOTA en el borde del menú, a la altura del logo (Felipe 2026-10-31: «que no
+   quite el logo, tal vez hacerlo flotante»): no le quita lugar al logo ni abierto ni plegado, y viaja con el borde al plegar. */
+.logo-fila{display:flex;align-items:center;gap:8px;padding:26px 24px 22px;transition:padding .35s var(--ease)}
+.logo{display:flex;align-items:center;gap:10px;min-width:0;flex:1;white-space:nowrap;overflow:hidden}
+.cerrar-cajon{display:none;flex:none;width:32px;height:32px;border-radius:50%;place-items:center;color:var(--t65)}
+.cerrar-cajon svg{width:18px;height:18px;stroke-width:1.6}
+.plegar-flota{position:absolute;z-index:7;left:calc(var(--lat-x) + var(--lat-w) - 14px);top:calc(var(--lat-y) + 30px);width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 6px 16px -8px color-mix(in srgb,var(--sombra) 45%,transparent);
+  transition:left .35s var(--ease),color .2s,transform .25s var(--ease),opacity .25s}
+[data-tema="oscuro"] .plegar-flota{background:linear-gradient(180deg,color-mix(in srgb,var(--hueso) 95%,transparent),color-mix(in srgb,var(--hueso) 80%,transparent));border-color:color-mix(in srgb,var(--tinta) 16%,transparent);box-shadow:0 6px 16px -8px var(--sombra)}
+.plegar-flota svg{width:14px;height:14px;stroke-width:2.2;transition:transform .35s var(--ease)}
+.disp[data-plegado] .plegar-flota svg{transform:rotate(180deg)}
+@media (hover:hover){.plegar-flota:hover{color:var(--tinta);transform:scale(1.1)}}
+.plegar-flota:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+[data-lateral="isla"] .plegar-flota{display:none}
+.disp[data-plegado] .logo-fila{justify-content:center;padding:26px 0 22px}
+.disp[data-plegado] .logo{flex:none}
+.disp[data-plegado] .logo>div{display:none}
+/* las islas de la cabecera se apartan del botón flotante */
+[data-cabecera] .disp:not([data-ancho="movil"]) .cab{--aire-cab:22px}
+.logo i{width:26px;height:26px;border-radius:50%;background:var(--rojo);flex:none}
+.logo span{font-family:'EB Garamond',serif;font-size:22px;letter-spacing:.2em}
+.logo small{display:block;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--taupe);margin-top:-4px}
+.nav{position:relative;flex:1;overflow:auto;padding:0 12px;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.grupo-t{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:14px 12px 6px;white-space:nowrap}
+.fila-m{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 12px;border-radius:10px;color:var(--t80);font-size:13.5px;white-space:nowrap;text-align:left;transition:color .2s,background .25s}
+.fila-m svg{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:var(--t65);transition:color .2s,transform .3s var(--ease)}
+.fila-m .et{flex:1;overflow:hidden;text-overflow:ellipsis;transition:opacity .2s}
+.fila-m .chev{width:14px;height:14px;stroke-width:2;transition:transform .3s var(--ease)}
+.fila-m[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.fila-m.on{color:var(--tinta);font-weight:600}
+.fila-m.on svg{color:var(--tinta)}
+.fila-m .glob{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:11px;font-weight:600;display:grid;place-items:center;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+@media (hover:hover){.fila-m:hover{color:var(--rojo)}.fila-m:hover svg{color:var(--rojo);transform:translateX(2px)}}
+/* Los submódulos (Felipe 2026-10-31: «todos los íconos, hasta para los submódulos, y una mejor animación al desplegar, ya que está muy
+   brusco»). Hoy (`.lateral-hijos`, globals.css) la caja crece en 300 ms y las hijas solo aparecen (opacidad, 30 ms de desfase): el alto
+   empuja de golpe todo lo de abajo. Ahora: la caja crece más lento y con una curva que frena, un HILO baja desde el ícono del módulo y
+   le da una rama a cada submódulo, y cada fila llega desde arriba, desenfocada, y se enfoca en cascada; al cerrar, todo se va más rápido
+   y sin cascada (un panel que se va, no uno que llega). Una vez, sin rebote, apagado con prefers-reduced-motion. */
+.sub{position:relative}
+.hijos{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.4,0,1,1)}
+.hijos[data-abierto]{grid-template-rows:1fr;transition:grid-template-rows .46s var(--ease)}
+.hijos>div{position:relative;min-height:0;overflow:hidden}
+.hijos .fila-m{height:36px;padding-left:44px;font-size:13px}
+.hijos .fila-m svg{width:18px;height:18px}
+.hijos .hijos .fila-m{height:34px;padding-left:66px;font-size:12.5px}
+.hijos .hijos .fila-m svg{width:16px;height:16px}
+/* Las ramas del hilo se fueron (Felipe 2026-10-31: «las líneas que salen a cada submódulo no me agradan»). Tres caras, todas sin líneas: */
+/* A · Bandeja: los submódulos de un módulo abierto viven en una bandeja hundida bajo él, como una caja abierta. */
+[data-subs="bandeja"] .nav>.sub>.hijos>div{border-radius:16px;transition:margin .3s var(--ease),padding .3s var(--ease),background .3s,box-shadow .3s}
+[data-subs="bandeja"] .nav>.sub>.hijos[data-abierto]>div{margin:2px 0 6px;padding:4px 0;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+[data-tema="oscuro"][data-subs="bandeja"] .nav>.sub>.hijos[data-abierto]>div{background:color-mix(in srgb,var(--sombra) 26%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-subs="bandeja"] .hijos .fila-m{padding-left:20px}
+[data-subs="bandeja"] .hijos .hijos .fila-m{padding-left:40px}
+/* B · Sangría limpia: sin caja ni línea; los submódulos se alinean con el NOMBRE del módulo y sus íconos van más tenues. */
+[data-subs="sangria"] .hijos .fila-m{padding-left:44px}
+[data-subs="sangria"] .hijos .hijos .fila-m{padding-left:72px}
+[data-subs="sangria"] .hijos .fila-m:not(.on) svg{color:var(--t50)}
+[data-subs="sangria"] .fila-m[aria-expanded="true"]{color:var(--tinta);font-weight:600}
+/* C · Tarjeta: el módulo abierto y sus submódulos se vuelven UNA placa de vidrio que crece desde la fila; lo de abajo se corre. */
+[data-subs="tarjeta"] .nav>.sub{border-radius:18px;border:1px solid transparent;transition:background .35s var(--ease),border-color .35s,box-shadow .35s,margin .35s var(--ease)}
+[data-subs="tarjeta"] .nav>.sub:has(>.hijos[data-abierto]){margin:4px 0;border-color:color-mix(in srgb,var(--vidrio) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 48%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 10px 24px -18px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"][data-subs="tarjeta"] .nav>.sub:has(>.hijos[data-abierto]){border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-subs="tarjeta"] .nav>.sub>.hijos>div{padding-bottom:6px}
+[data-subs="tarjeta"] .hijos .fila-m{padding-left:44px}
+[data-subs="tarjeta"] .hijos .hijos .fila-m{padding-left:64px}
+[data-subs="tarjeta"] .fila-m[aria-expanded="true"]{color:var(--tinta);font-weight:600}
+/* la cascada: cada fila llega desde arriba, desenfocada, y se enfoca */
+.hijos>div>*{opacity:0;transform:translateY(-8px);filter:blur(3px);transition:opacity .14s,transform .14s,filter .14s}
+.hijos[data-abierto]>div>*{opacity:1;transform:none;filter:none;
+  transition:opacity .34s var(--ease),transform .42s var(--ease),filter .34s var(--ease);transition-delay:calc(80ms + var(--i,0) * 38ms)}
+/* el ícono del módulo que se abre asiente una vez */
+.fila-m[aria-expanded="true"] > svg:first-child{animation:asiente .5s var(--ease)}
+@keyframes asiente{40%{transform:scale(.86)}}
+@media (prefers-reduced-motion:reduce){.hijos>div>*{opacity:1;transform:none;filter:none}}
+/* el riel rojo de la fila activa (hoy) */
+.fila-m.on::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+.marca-activa{display:none}
+.firma{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe);padding:14px 24px;white-space:nowrap;overflow:hidden}
+.yo{display:flex;align-items:center;gap:12px;margin:0 12px 12px;padding:12px;border-top:1px solid var(--t12);white-space:nowrap;overflow:hidden}
+.av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;flex:none;font-family:'EB Garamond',serif;font-size:15px;position:relative}
+.av::after{content:"";position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--verde);border:2px solid var(--crema)}
+.yo .tx{flex:1;min-width:0}.yo b{display:block;font-size:13.5px;font-weight:500}.yo .tx>span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t65)}
+.yo .salir{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t65)}
+/* plegado (hoy y A/B): solo íconos */
+.disp[data-plegado] .lat :is(.firma,.logo span,.logo small,.grupo-t){opacity:0;pointer-events:none}
+/* Plegado (Felipe 2026-10-31: «los íconos deben estar bien cuadrados; del lado derecho sobresale más, y se podría aprovechar más el
+   espacio»). Antes el nombre seguía ocupando su lugar invisible y empujaba el ícono a la izquierda. Ahora cada fila es un cuadrado con el
+   ícono al centro, la gota es ese cuadrado, y la marca roja sale al canto del menú para no descentrarlo. Dos caras: */
+.disp[data-plegado] .lat :is(.et,.chev,.glob,.yo .tx,.yo .salir){display:none}
+.disp[data-plegado] .nav{padding:0 10px}
+.disp[data-plegado] .lat .fila-m{justify-content:center;gap:0;padding:0;border-radius:14px}
+.disp[data-plegado] .lat .fila-m svg{transform:none!important}
+.disp[data-plegado] .marca-activa{border-radius:14px}
+.disp[data-plegado] .marca-activa::after{left:-8px!important}
+.fila-m .corto{display:none}
+/* A · Con nombre: bajo cada ícono, su nombre corto (10 px). No hace falta apuntar para saber qué es (ley 1: sin manual). */
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m{flex-direction:column;height:54px;gap:4px}
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m .corto{display:block;max-width:100%;padding:0 2px;font-size:10px;line-height:1.15;font-weight:500;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-pmodo="nombre"] .disp[data-plegado] .lat .fila-m.on .corto{font-weight:700}
+/* B · Solo íconos: la columna se angosta a 64 px y cada ícono vive en un cuadrado de 44. */
+[data-pmodo="iconos"] .disp[data-plegado] .lat .fila-m{height:44px}
+[data-pmodo="iconos"] .disp[data-plegado] .nav{padding:0 10px}
+.disp[data-plegado] .lat .hijos{display:none}
+
+.disp[data-plegado] .lat .yo{padding:12px 0;margin:0 8px 12px;justify-content:center}
+.disp[data-plegado] .lat .yo{border-radius:14px}
+
+/* A · Panel flotante: el lateral es una placa de vidrio a 12 px de los bordes; la fila activa es la gota, que viaja a la fila que tocas */
+[data-lateral="panel"] .lat{border-radius:28px}
+[data-lateral="panel"] .marca-activa,[data-lateral="riel"] .marca-activa,[data-lateral="isla"] .marca-activa{display:block;position:absolute;z-index:0;left:12px;right:12px;top:0;height:40px;border-radius:14px;
+  transition:top .38s var(--ease),height .38s var(--ease),left .38s var(--ease),width .38s var(--ease),opacity .25s}
+[data-lateral="panel"] .marca-activa::after,[data-lateral="riel"] .marca-activa::after,[data-lateral="isla"] .marca-activa::after{content:"";position:absolute;left:7px;top:50%;width:3px;height:14px;margin-top:-7px;border-radius:3px;background:var(--rojo)}
+[data-lateral="panel"] .fila-m.on::before,[data-lateral="riel"] .fila-m.on::before,[data-lateral="isla"] .fila-m.on::before{content:none}
+/* la fila elegida corre 6 px para que la marca roja no toque su ícono (Felipe 2026-10-31, «el efecto de seleccionado como en la foto») */
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m{transition:color .2s,background .25s,padding .38s var(--ease)}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .fila-m.on{padding-left:20px}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .hijos .fila-m.on{padding-left:calc(var(--sub-x,44px) + 8px)}
+:is([data-lateral="panel"],[data-lateral="riel"]) .disp:not([data-plegado]) .hijos .hijos .fila-m.on{padding-left:calc(var(--sub-x2,66px) + 8px)}
+[data-subs="bandeja"]{--sub-x:20px;--sub-x2:40px}[data-subs="sangria"]{--sub-x:44px;--sub-x2:72px}[data-subs="tarjeta"]{--sub-x:44px;--sub-x2:64px}
+@media (hover:hover){:is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover{background:var(--t06);color:var(--tinta)}
+  :is([data-lateral="panel"],[data-lateral="riel"],[data-lateral="isla"]) .fila-m:not(.on):hover svg{color:var(--tinta)}}
+[data-lateral="panel"] .yo{border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));padding:10px}
+[data-tema="oscuro"][data-lateral="panel"] .yo{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+[data-lateral="panel"] .disp[data-plegado] .marca-activa{left:10px;right:10px}
+
+/* B · Riel de vidrio (elegido, 2026-10-31): pegado al borde, de arriba abajo, con su filo de luz a la derecha; la fila activa es la gota con su marca roja (Felipe eligió la gota del panel) */
+[data-lateral="riel"] .lat{border-width:0 1px 0 0;border-radius:0;box-shadow:inset -1px 0 0 color-mix(in srgb,var(--vidrio) 80%,transparent),12px 0 40px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+
+/* C · Isla de íconos: una columna angosta de vidrio con los íconos; al pasar el mouse se abre por encima del contenido y muestra los nombres */
+[data-lateral="isla"] .lat{border-radius:26px}
+[data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:0;transition:opacity .2s}
+[data-lateral="isla"] .lat .hijos{display:none}
+[data-lateral="isla"] .lat .logo-fila{padding-left:23px}
+[data-lateral="isla"] .lat .yo{border-top:0;padding:8px 6px;justify-content:flex-start}
+@media (hover:hover){
+  [data-lateral="isla"] .lat:hover{width:248px}
+  [data-lateral="isla"] .lat:hover :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1;transition-delay:.12s}
+  [data-lateral="isla"] .lat:hover .hijos{display:grid}
+}
+
+
+/* ====================================================================
+   LA CABECERA
+   ==================================================================== */
+.cab{position:absolute;z-index:4;top:0;left:var(--cont-x);right:0;height:60px;display:flex;align-items:center;gap:10px;padding:0 24px;transition:left .35s var(--ease)}
+:root:not([data-cabecera]) .cab{background:color-mix(in srgb,var(--crema) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--t12)}
+.cab .buscar{display:flex;align-items:center;gap:10px;height:38px;flex:0 1 340px;white-space:nowrap;overflow:hidden;padding:0 14px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);color:var(--t50);font-size:13px}
+.cab .buscar kbd{margin-left:auto;font:inherit;font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid var(--t25)}
+.cab .der{margin-left:auto;display:flex;align-items:center;gap:6px}
+.cab .ib{position:relative;width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:var(--t65);transition:background .2s,color .2s}
+.cab .ib svg{width:18px;height:18px;stroke-width:1.5}
+@media (hover:hover){.cab .ib:hover{background:var(--t06);color:var(--rojo)}}
+.cab .ib .pt{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;font-size:10px;font-weight:700;display:grid;place-items:center;background:var(--rojo);color:var(--crema)}
+.cab .sede{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500}
+.cab .sede i{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.cab .hamb,.cab .colibri{display:none}
+/* A · Barra flotante: una barra de vidrio a 12 px de los bordes; los botones, gotas redondas */
+[data-cabecera="flotante"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:56px;border-radius:20px;padding:0 10px 0 14px}
+[data-cabecera] .cab .ib{border-radius:50%}
+[data-cabecera] .cab .buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cabecera] .cab .buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cabecera] .cab .sede{border-color:color-mix(in srgb,var(--borde) 70%,transparent)}
+[data-cabecera] .cab :is(.ib,.sede){background:transparent}
+@media (hover:hover){[data-cabecera] .cab .ib:hover{background:var(--t06);color:var(--tinta)}}
+[data-cabecera="flotante"] .cab .sede,[data-cabecera="islas"] .cab .sede{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 35%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-cabecera] .cab .sede{background:color-mix(in srgb,var(--tinta) 8%,transparent);box-shadow:none}
+/* B · Fundida: sin barra. El contenido se desvanece al llegar arriba bajo un desenfoque que se va apagando; los botones quedan sueltos */
+[data-cabecera="fundida"] .cab{height:76px;align-items:flex-start;padding-top:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--crema) 88%,transparent),color-mix(in srgb,var(--crema) 50%,transparent) 60%,transparent);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask:linear-gradient(#000 55%,transparent);mask:linear-gradient(#000 55%,transparent)}
+/* C · Dos islas: la búsqueda en una cápsula a la izquierda, las acciones en otra a la derecha; entre ellas se ve el contenido */
+[data-cabecera="islas"] .cab{top:12px;left:calc(var(--cont-x) + var(--aire-cab,12px));right:12px;height:52px;padding:0;background:none;border:0;box-shadow:none}
+[data-cabecera="islas"] .cab .izq,[data-cabecera="islas"] .cab .der{height:52px;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:999px}
+[data-cabecera="islas"] .cab .izq{flex:0 1 340px;min-width:54px}[data-cabecera="islas"] .cab .izq .buscar{flex:1 1 auto}
+[data-cabecera="islas"] .cab{justify-content:space-between;gap:12px}
+[data-cabecera="islas"] .cab .der{flex:none}
+/* El buscador nunca se sale de su isla (Felipe 2026-10-31): se encoge con la cabecera; angosta, pierde la tecla «/», y más angosta
+   queda en una lupa redonda. La cabecera es un contenedor: la regla mira SU ancho, no el de la pantalla. */
+.cab{container:cab/inline-size}
+.cab .buscar{min-width:0}
+.cab .buscar .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cab .buscar kbd{flex:none}
+@container cab (max-width:700px){.cab .buscar kbd{display:none}}
+@container cab (max-width:560px){:root[data-cabecera="islas"] .cab .izq{flex:0 0 auto}:root .cab .izq .buscar{flex:0 0 38px;width:38px;padding:0;justify-content:center;gap:0}.cab .buscar .txt{display:none}.cab .ocultable{display:none}}
+.cab .izq{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+
+/* ====================================================================
+   EL CONTENIDO (Existencias, de muestra; sus piezas son de otra auditoría)
+   ==================================================================== */
+.cont{position:absolute;z-index:1;top:0;bottom:0;left:var(--cont-x);right:0;overflow:auto;padding:92px 36px 40px;transition:left .35s var(--ease);scrollbar-width:thin}
+.enc .linea{display:flex;align-items:center;gap:10px}
+.enc .linea::before{content:"";width:22px;height:1px;background:var(--taupe)}
+.enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin:8px 0 6px}
+.enc p{color:var(--t65)}
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}
+.cifras div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+.cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.filtros>span:not(#filtro-cat){height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--borde);display:inline-flex;align-items:center;font-size:12.5px;background:var(--papel)}
+.filtros>span.on:not(#filtro-cat){background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.prendas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.prenda{border-radius:16px;overflow:hidden;background:var(--papel);border:1px solid var(--sand)}
+.prenda .foto{aspect-ratio:4/5;display:grid;place-items:center;color:var(--crema-fija)}
+.prenda .foto.claro{color:var(--tinta-fija)}
+.prenda .foto svg{width:34px;height:34px;stroke-width:1.5;opacity:.85}
+.prenda .pie{padding:10px 12px}.prenda b{display:block;font-size:13.5px;font-weight:600}.prenda span{font-size:12px;color:var(--t65)}
+.cont .enc,.cont .cifras,.cont .filtros{animation:sube .5s var(--ease) backwards}
+.cont .cifras{animation-delay:.08s}.cont .filtros{animation-delay:.14s}
+
+/* ====================================================================
+   UNA HOJA ENCIMA (la elegida: Serena, campos hundidos, botones gota) — para ver cómo se apila sobre el marco
+   ==================================================================== */
+.capa{position:absolute;inset:0;z-index:20;display:none;justify-content:center;align-items:flex-start;padding:7% 24px 24px}
+.disp[data-hoja] .capa{display:flex}
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 20%,transparent);backdrop-filter:blur(1.5px);animation:funde .3s var(--ease) both}
+[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 42%,transparent)}
+.hoja{position:relative;width:min(448px,100%);padding:30px;border-radius:32px;background:color-mix(in srgb,var(--vidrio) 70%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .62s var(--ease) both}
+[data-tema="oscuro"] .hoja{background:color-mix(in srgb,var(--vidrio) 82%,transparent);border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.hoja .sub{color:var(--taupe);font-size:13.5px;margin:4px 0 18px}
+.hoja .et{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:6px}
+.hoja .caja{height:42px;border-radius:14px;border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent);padding:0 14px;display:flex;align-items:center;margin-bottom:14px;font-size:14px}
+.hoja .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.hoja .b{height:42px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:500}
+.hoja .b.sec{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+.hoja .b.pri{color:var(--crema);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent))}
+
+/* ====================================================================
+   EL COMBO (Felipe 2026-10-31: «mejorar el combo de las sedes y que quede así para todos los combos»)
+   Hoy es UNA pieza, `Desplegable` (components/ui/campos.tsx), con siete formas: campo, caja, cajaBaja, pildora, pastilla (la sede),
+   fin y finEnLinea; la usan ~105 archivos, más ComboBuscable (21), ComboResponsable y DesplegablePildora (20). Su lista: papel, el hilo
+   rojo de canto y el ✓ en la elegida, y un buscador con más de 8 opciones (ADR-0209). Lo que se elija aquí cambia la LISTA y el
+   DISPARADOR de todas las formas; en una hoja el disparador sigue siendo el pozo (campos «A · Hundido»).
+   ==================================================================== */
+:root{--sede-tru:#2f6aa3;--sede-aqp:#c26a2e;--sede-lim:#1d8a72;--sede-tal:#8a4fa8;--sede-emp:#9a8b7b}
+:root[data-tema="oscuro"]{--sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-tal:#a26cc6;--sede-emp:#8a7d70}
+.cb{position:relative;display:inline-block}
+.cb.ancho{display:block}
+.cb-btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--borde);font-size:13px;font-weight:500;white-space:nowrap;
+  transition:background .25s,border-color .25s,box-shadow .25s,transform .25s var(--ease)}
+.cb-btn .pto{width:8px;height:8px;border-radius:50%;flex:none;background:var(--c,var(--verde));box-shadow:0 0 0 3px color-mix(in srgb,var(--c,var(--verde)) 18%,transparent)}
+.cb-btn .flecha{width:14px;height:14px;transition:transform .3s var(--ease),color .2s}
+.cb.abierto .cb-btn .flecha{transform:rotate(180deg);color:var(--rojo)}
+.cb-btn .val{display:inline-block}
+.cb-btn .val.entra{animation:val-entra .32s var(--ease)}
+@keyframes val-entra{from{opacity:0;transform:translateY(60%)}}
+.cb-btn[data-forma="campo"]{width:100%;height:44px;border-radius:14px;justify-content:flex-start;padding:0 7px 0 14px;font-weight:400;font-size:14px;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.cb-btn[data-forma="campo"] .flecha-caja{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.cb-btn[data-forma="pildora"]{height:32px;font-size:12.5px;background:var(--papel)}
+/* Como ahora: la pastilla de la cabecera en versalitas, la caja de un formulario, la lista de papel */
+:root:not([data-combo]) .cb-btn[data-forma="pastilla"]{border-radius:6px;height:32px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;background:transparent;box-shadow:none}
+:root:not([data-combo]) .cb-btn[data-forma="campo"]{border-radius:10px;background:var(--hueso);box-shadow:none}
+:root:not([data-combo]) .cb-btn .pto{display:none}
+.cb-lista{position:absolute;z-index:40;top:calc(100% + 8px);left:0;width:max-content;max-width:340px;display:none;padding:6px;border-radius:12px;
+  background:var(--papel);border:1px solid var(--sand);box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+/* La lista flota en la capa del aparato, fuera del disparador (como `useDestinoFlotante`): un vidrio dentro de otro vidrio no ve lo de atrás. */
+.flotante{position:absolute;inset:0;z-index:30;pointer-events:none}
+.flotante .cb-lista{pointer-events:auto}
+.cb-lista.abierta{display:block;animation:sube .24s var(--ease)}
+.cb-buscar{display:flex;align-items:center;gap:8px;height:36px;margin:2px 2px 6px;padding:0 10px;border-radius:10px;background:var(--hueso);border:1px solid var(--borde);font-size:13px;color:var(--t65)}
+.cb-buscar input{flex:1;border:0;background:none;outline:0;min-width:0;color:var(--tinta)}
+.cb-grupo{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:8px 10px 4px}
+.cb-ops{position:relative;display:grid;gap:2px;max-height:300px;overflow:auto;scrollbar-width:thin}
+.cb-op{position:relative;z-index:1;display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;text-align:left;font-size:13.5px;transition:background .2s,padding .3s var(--ease)}
+.cb-op .lente{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.cb-op .lente svg{width:16px;height:16px;stroke-width:1.6}
+.cb-op .tx{min-width:0}.cb-op .tx b{display:block;font-weight:500}.cb-op .tx span{display:block;font-size:12px;color:var(--t65);white-space:nowrap}
+.cb-op .ok{margin-left:auto;opacity:0;width:15px;height:15px}
+.cb-op[aria-selected="true"] .ok{opacity:1}
+.cb-op[aria-selected="true"] .ok path{stroke-dasharray:24;animation:traza-cb .4s var(--ease) both}
+@keyframes traza-cb{from{stroke-dashoffset:24}}
+.cb-op[aria-selected="true"] .tx b{font-weight:600}
+.cb-op[aria-selected="true"]::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;margin-top:-8px;border-radius:2px;background:var(--rojo)}
+@media (hover:hover){.cb-op:hover{background:var(--hueso)}}
+.cb-op[hidden],.cb-grupo[hidden]{display:none}
+.cb-vacio{padding:12px;font-size:13px;color:var(--t65)}
+.cb-gota{display:none}
+
+/* lo común del vidrio: el disparador es una gota (en una hoja, el pozo con su flecha en gota) y la lista, una placa de vidrio */
+[data-combo] .cb-btn:not([data-forma="campo"]){border-color:color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 32%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 4px 12px -8px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn:not([data-forma="campo"]){background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+[data-combo] .cb-btn[data-forma="campo"] .flecha-caja{border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 62%,transparent),color-mix(in srgb,var(--vidrio) 24%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-btn[data-forma="campo"] .flecha-caja{background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-combo] .cb.abierto .cb-btn[data-forma="campo"]{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent)}
+@media (hover:hover){[data-combo] .cb-btn:not([data-forma="campo"]):hover{transform:translateY(-1px)}}
+[data-combo] .cb-lista{border-radius:20px;padding:8px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:color-mix(in srgb,var(--vidrio) 74%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-lista{background:color-mix(in srgb,var(--vidrio) 88%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 26px 54px -24px var(--sombra)}
+[data-combo] .cb-buscar{border-radius:999px;border-color:color-mix(in srgb,var(--borde) 80%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-buscar{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo] .cb-op{border-radius:14px}
+[data-combo] .cb-op .lente{background:linear-gradient(145deg,color-mix(in srgb,var(--c) 18%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 8%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 0 0 1px color-mix(in srgb,var(--c) 25%,transparent)}
+[data-tema="oscuro"][data-combo] .cb-op .lente{background:color-mix(in srgb,var(--c) 18%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 30%,transparent)}
+
+/* A · Gota viajera: la gota del menú lateral, también en la lista. Se queda en la elegida y viaja a la que apuntas. */
+[data-combo="gota"] .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;
+  transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@media (hover:hover){:is([data-combo="gota"],[data-combo="tarjetas"]) .cb-op:hover{background:transparent}}
+[data-combo="gota"] .cb-op[aria-selected="true"]{padding-left:18px}
+[data-combo="gota"] .cb-op[aria-selected="true"]::before{left:7px;width:3px;height:14px;margin-top:-7px;border-radius:3px}
+
+/* B · Brota del botón: la lista nace del disparador, como una gota que se estira, y sus opciones se enfocan en cascada.
+   La elegida queda hundida (estás adentro), con su ✓. */
+[data-combo="brota"] .cb-lista.abierta{animation:brota .42s var(--ease) both;transform-origin:top left}
+[data-combo="brota"] .cb-lista.abierta[data-alinea="derecha"]{transform-origin:top right}
+@keyframes brota{from{opacity:0;transform:scale(.35,.15);border-radius:999px}to{opacity:1;transform:none}}
+[data-combo="brota"] .cb-lista.abierta .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(140ms + var(--k,0) * 35ms)}
+[data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-combo="brota"] .cb-op[aria-selected="true"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-combo="brota"] .cb-op[aria-selected="true"]::before{left:6px}
+@media (hover:hover){[data-combo="brota"] .cb-op:not([aria-selected="true"]):hover{background:var(--t06)}}
+
+/* C · Tarjetas: con pocas opciones y su detalle (las sedes), la lista se vuelve un tablero de tarjetas de vidrio; con muchas, la lista
+   de A. La elegida sobresale con su anillo y su ✓ en la esquina. */
+[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:400px!important;max-width:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-grupo{display:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-ops{grid-template-columns:1fr 1fr;gap:8px;max-height:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border-radius:18px;
+  border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent);transition:transform .25s var(--ease),background .25s}
+[data-tema="oscuro"][data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:none}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:first-child{grid-column:1/-1;flex-direction:row;align-items:center}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .lente{width:36px;height:36px}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .tx b{font-family:'EB Garamond',serif;font-size:19px;line-height:1.1}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op .ok{position:absolute;top:10px;right:10px;width:18px;height:18px;padding:3px;border-radius:50%;box-sizing:content-box;background:var(--tinta);color:var(--crema)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]{border-color:var(--tinta);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px var(--tinta),0 10px 22px -14px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op[aria-selected="true"]::before{content:none}
+@media (hover:hover){[data-combo="tarjetas"] .cb-lista[data-tarjetas] .cb-op:hover{transform:translateY(-2px)}}
+[data-combo="tarjetas"] .cb-lista.abierta[data-tarjetas] .cb-op{animation:enfoca .4s var(--ease) backwards;animation-delay:calc(80ms + var(--k,0) * 45ms)}
+[data-combo="tarjetas"] .cb-lista:not([data-tarjetas]) .cb-gota{display:block;position:absolute;z-index:0;left:0;right:0;top:0;height:0;border-radius:14px;opacity:0;pointer-events:none;transition:top .32s var(--ease),height .32s var(--ease),opacity .2s}
+@container disp (max-width:520px){[data-combo="tarjetas"] .cb-lista[data-tarjetas]{width:300px!important}.cb-lista{max-width:300px}}
+
+/* ====================================================================
+   EL CELULAR: el lateral es un cajón que entra desde la izquierda; la cabecera, menú + colibrí + acciones
+   ==================================================================== */
+@container disp (max-width:520px){
+  /* una consulta de contenedor no alcanza al contenedor mismo: el corrimiento se apaga en quienes lo usan */
+  .cab,.cont{--cont-x:0px}
+  .lat,[data-lateral] .lat{left:0;top:0;bottom:0;width:min(300px,86%)!important;border-radius:0 28px 28px 0;transform:translateX(-105%);transition:transform .45s var(--ease)}
+  :root:not([data-lateral]) .lat{border-radius:0}
+  .disp[data-cajon] .lat{transform:none}
+  [data-lateral="isla"] .lat :is(.et,.chev,.glob,.firma,.yo .tx,.yo .salir,.logo span,.logo small,.grupo-t){opacity:1}
+  [data-lateral="isla"] .lat .hijos{display:grid}
+  .disp[data-cajon]::after{content:"";position:absolute;inset:0;z-index:4;background:color-mix(in srgb,var(--sombra) 22%,transparent)}
+  .cab{padding:0 10px}
+  [data-cabecera="flotante"] .cab,[data-cabecera="islas"] .cab{left:8px;right:8px;top:8px}
+  .cab .buscar,.cab .ocultable,.plegar-flota{display:none}
+  .lat .cerrar-cajon{display:grid}
+  .cab .hamb,.cab .colibri{display:grid}
+  .cab .colibri{width:26px;height:26px;border-radius:50%;background:var(--rojo)}
+  .cont{padding:84px 16px 32px}
+  .enc h1{font-size:34px}
+  .cifras{grid-template-columns:1fr 1fr}
+  .prendas{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- el análisis ---------- */
+.analisis{max-width:1180px;margin:20px auto 60px;padding:0 16px;display:grid;gap:18px}
+.analisis section{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 24px}
+.analisis h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.15;margin-bottom:6px}
+.analisis h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:16px 0 8px}
+.analisis p,.analisis li{font-size:14px;color:var(--t80);max-width:84ch}
+.analisis ul{padding-left:20px;display:grid;gap:6px}
+.analisis b{color:var(--tinta)}
+.analisis code{font-size:12.5px;background:var(--hueso);padding:1px 6px;border-radius:6px}
+.analisis table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.analisis th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65);text-align:left;padding:8px 10px;border-bottom:1px solid var(--sand)}
+.analisis td{padding:8px 10px;border-bottom:1px solid var(--sand);vertical-align:top;color:var(--t80)}
+.ev{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:6px;vertical-align:1px;background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+
+/* ====================================================================
+   PIEZAS YA ELEGIDAS QUE TODA PANTALLA TRAE (se suman aquí a medida que Felipe elige)
+   ==================================================================== */
+
+/* ---------- los botones · A · Gota (docs/maquetas/modales-vidrio-2026-10/): nada sólido; el primario es vidrio ahumado de tinta ---------- */
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 20px;border-radius:999px;border:1px solid transparent;
+  font-size:13.5px;font-weight:500;white-space:nowrap;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s,border-color .25s}
+.btn svg{width:16px;height:16px;stroke-width:2}
+.btn.sec{border-color:var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent)}
+.btn.pri{color:var(--crema);-webkit-backdrop-filter:blur(10px) saturate(1.4);backdrop-filter:blur(10px) saturate(1.4);border-color:color-mix(in srgb,var(--tinta) 55%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--vidrio) 8%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.btn::before{content:"";position:absolute;inset:0;pointer-events:none;transform:translateX(-120%);background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--crema) 38%,transparent) 50%,transparent 65%)}
+.btn.sec::before{background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--vidrio) 80%,transparent) 50%,transparent 65%)}
+@media (hover:hover){.btn:hover{transform:translateY(-2px)}.btn:hover::before{transform:translateX(120%);transition:transform .65s var(--ease)}
+  .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 64%,transparent),color-mix(in srgb,var(--rojo-p) 88%,transparent));border-color:color-mix(in srgb,var(--rojo-p) 70%,transparent)}
+  .btn.sec:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent))}
+  .btn:hover .mas{transform:rotate(90deg)}}
+.btn:active{transform:scale(.97)}
+.btn .mas{transition:transform .3s var(--ease)}
+[data-tema="oscuro"] .btn.sec{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 15%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra)}
+[data-tema="oscuro"] .btn.pri{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 74%,transparent),color-mix(in srgb,var(--tinta) 92%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 60%,transparent),0 8px 18px -10px var(--sombra)}
+@media (hover:hover){[data-tema="oscuro"] .btn.pri:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--rojo-p) 74%,transparent),color-mix(in srgb,var(--rojo-p) 92%,transparent))}
+  [data-tema="oscuro"] .btn.sec:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 22%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent))}}
+/* la voz de la cabecera: versalitas de 11 px y 40 px (ADR-0358, «Botones — las dos voces») */
+[data-voz="cabecera"] .btn{height:40px;padding:0 18px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase}
+
+/* ---------- la cabecera de pantalla · A · Plana con gotas (docs/maquetas/cabecera-vidrio-2026-10/) ---------- */
+.ep{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px;position:relative}
+.ep-izq{min-width:0;animation:sube .85s var(--ease) .08s backwards}
+.ep-linea{display:flex;align-items:center;gap:12px}
+.ep-sede{display:flex;min-width:0;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.ep-sede .hilo{display:block;width:32px;height:1px;flex:none;background:var(--taupe);transform-origin:left;animation:dibuja-x 1.1s var(--ease) .25s backwards}
+@keyframes dibuja-x{from{transform:scaleX(0)}}
+.ep-titulo{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+.ep-frase{margin-top:10px;max-width:28rem;font-size:15px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.ep-bajo{margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+.ep-acc{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;min-width:0;max-width:100%;animation:sube .85s var(--ease) .15s backwards}
+.volver{position:relative;width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--tinta);border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 30%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 35%,transparent);transition:transform .25s var(--ease)}
+.volver svg{width:16px;height:16px;stroke-width:1.8;transition:transform .2s var(--ease)}
+@media (hover:hover){.volver:hover{transform:translateY(-1px)}.volver:hover svg{transform:translateX(-2px)}}
+[data-tema="oscuro"] .volver{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 15%,transparent),color-mix(in srgb,var(--tinta) 5%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 22%,transparent),0 6px 14px -8px var(--sombra)}
+/* las cifras de la sede (ResumenSede): la placa Serena */
+.resumen{display:flex;border-radius:24px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent);animation:sube .85s var(--ease) .15s backwards}
+[data-tema="oscuro"] .resumen{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 24px 50px -30px var(--sombra)}
+.resumen li{position:relative;list-style:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:9.5rem;padding:16px 28px;text-align:center}
+.resumen li+li::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:1px;background:linear-gradient(transparent,color-mix(in srgb,var(--tinta) 20%,transparent),transparent)}
+.resumen b{font-family:'EB Garamond',serif;font-weight:500;font-size:42px;line-height:1;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.resumen span{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.resumen span svg{width:14px;height:14px;color:var(--taupe);stroke-width:2}
+.resumen .alerta b,.resumen .alerta span{color:var(--ambar)}.resumen .alerta span{font-weight:600}.resumen .alerta span svg{color:currentColor}
+/* las cifras miran el ancho de la CABECERA, no el del aparato: a 768 px con el lateral abierto quedan 480 px y tres cifras de 9,5 rem se
+   salían 14 px (medido en la maqueta de Existencias) */
+.ep{container:ep/inline-size}
+@container ep (max-width:640px){.ep-izq{width:100%}.resumen{width:100%}.resumen li{min-width:0;flex:1;padding:14px 6px}.resumen b{font-size:30px}}
+@container disp (max-width:520px){
+  .ep{gap:16px}.ep-titulo{font-size:36px}.ep-izq{width:100%}
+  .resumen{width:100%}.resumen li{min-width:0;flex:1;padding:14px 4px}.resumen b{font-size:20px}.resumen span{font-size:11px;margin-top:6px}.resumen span svg{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- la tarjeta de cifra · A · Placa Serena (docs/maquetas/cifras-vidrio-2026-10/) ---------- */
+.fila-c{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:28px}
+.tc{position:relative;container-type:inline-size;display:flex;flex-direction:column;text-align:left;width:100%;padding:16px 20px;border-radius:16px;
+  background:var(--papel);border:1px solid var(--sand);animation:sube .6s var(--ease) backwards;animation-delay:calc(180ms + var(--i,0) * 60ms);
+  transition:background .2s var(--ease),border-color .2s,transform .25s var(--ease),box-shadow .25s var(--ease)}
+.tc>*{position:relative;z-index:1}
+a.tc{color:inherit;text-decoration:none}
+.tc-nom{display:block;min-height:20px;font-size:11px;font-weight:700;line-height:20px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+.tc-nom .pto{position:relative;top:-1px;display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;vertical-align:middle;background:color-mix(in srgb,var(--tinta) 25%,transparent)}
+.pto.ambar{background:var(--ambar)!important}.pto.verde{background:var(--verde)!important}.pto.rojo{background:var(--rojo)!important}
+.tc-val{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin-top:4px}
+.tc-val .num{font-family:'EB Garamond',serif;font-weight:600;font-size:28px;line-height:1.25;white-space:nowrap;font-variant-numeric:lining-nums tabular-nums}
+.tc-val .uni{font-size:14px;color:var(--taupe);white-space:nowrap}
+@container (max-width:148px){.tc-val .num{font-size:22px}}
+.tc-ctx{margin-top:4px;display:flex;align-items:flex-end;gap:4px;font-size:12px;color:var(--taupe)}
+.tc-ctx>span{flex:1;min-width:0}
+.tc-ctx.verde{color:var(--verde)}.tc-ctx.ambar{color:var(--ambar)}
+.tc-pie{margin-top:auto;padding-top:8px;font-size:12px;color:var(--taupe)}
+.flecha{width:14px;height:14px;flex:none;stroke-width:2;color:var(--tinta);margin-bottom:1px;transition:transform .25s var(--ease)}
+.ayuda{display:inline-grid;place-items:center;width:18px;height:18px;margin-left:4px;border-radius:50%;border:1px solid var(--borde);font-size:11px;font-weight:700;letter-spacing:0;color:var(--taupe);vertical-align:-4px}
+.enlace{display:inline-flex;align-items:center;gap:4px;min-height:24px;font-size:13px;font-weight:500;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+.enlace svg{width:14px;height:14px;stroke-width:2}
+.reparto{display:block;height:4px;margin-top:8px;border-radius:99px;background:var(--hueso);overflow:hidden}
+.reparto i{display:block;height:100%;width:calc(var(--p) * 100%);border-radius:inherit;background:var(--ambar);transform-origin:left;animation:dibuja-x .9s var(--ease) .5s backwards}
+/* sin dato y no se pudo leer */
+.tc.sindato{background:transparent;border-style:dashed;border-color:var(--borde)}
+.tc.sindato .num{color:var(--t65);font-weight:500}
+.tc.fallo .num{color:var(--t65);font-weight:500}
+.tc.fallo .tc-ctx{color:var(--tinta)}
+.tc.toca{cursor:pointer}
+.tc.puesta .tc-pie{color:var(--tinta);font-weight:600}
+
+/* ====================================================================
+   A · PLACA SERENA: cada tarjeta es la placa de vidrio de las cifras de la cabecera (la misma de ResumenSede). La que lleva se alza al
+   pasar el mouse y su flecha avanza; la que filtra, puesta, se HUNDE: estás adentro de ese filtro.
+   Acotada con :not([data-maqueta-tc]): su propia maqueta la dibuja junto a las caras que no se eligieron.
+   ==================================================================== */
+:root:not([data-maqueta-tc]) .tc:not(.sindato){border-radius:20px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 20px 44px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:not([data-maqueta-tc]) .tc:not(.sindato){background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),0 20px 44px -30px var(--sombra)}
+:root:not([data-maqueta-tc]) .tc.sindato{border-radius:20px}
+@media (hover:hover){
+  :root:not([data-maqueta-tc]) .tc.toca:not(.puesta):hover{transform:translateY(-2px);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 82%,transparent),color-mix(in srgb,var(--vidrio) 56%,transparent));
+    box-shadow:inset 0 1px 0 var(--vidrio),0 22px 40px -24px color-mix(in srgb,var(--sombra) 45%,transparent)}
+  [data-tema="oscuro"]:not([data-maqueta-tc]) .tc.toca:not(.puesta):hover{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 14%,var(--vidrio)),color-mix(in srgb,var(--tinta) 6%,var(--vidrio)))}
+  :root:not([data-maqueta-tc]) .tc.toca:hover .flecha{transform:translateX(4px)}
+}
+/* la puesta: hundida, como un campo que ya tiene tu dato */
+:root:not([data-maqueta-tc]) .tc.puesta{transform:none;border-color:color-mix(in srgb,var(--borde) 70%,transparent)!important;
+  background:color-mix(in srgb,var(--tinta) 6%,transparent)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 16%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)!important}
+[data-tema="oscuro"]:not([data-maqueta-tc]) .tc.puesta{background:color-mix(in srgb,var(--sombra) 34%,transparent)!important;box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 50%,transparent)!important}
+:root:not([data-maqueta-tc]) .tc.puesta .tc-nom{color:var(--tinta)}
+
+@container disp (max-width:520px){.fila-c{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tc{padding:14px 16px}}
+/* como en el ERP (grid-cols-2 lg:grid-cols-4): con la pantalla angosta, las cifras van de a dos */
+@container disp (max-width:1000px){.fila-c{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+</style>
+<style>
+/* ====================================================================
+   MAQUETA · Recibir mercadería: cancelar una recepción + lápiz y papelera en modelo, categoría y marca
+   Pantalla real: components/recepcion-conteo/ (RecibirContando, PlacaDelModelo, PendientesDeRecibir). Esta maqueta copia lo que ya
+   existe (las dos capturas de Felipe del 2026-11-03) y cambia SOLO lo pedido. Usa piezas ya decididas: <Modal> Serena (hoja con la × o
+   «Cancelar», nunca las dos), <LapizEditar> de 32 px, <MenuAcciones texto="Más">, «lo peligroso» en btn-peligro y a la izquierda del pie,
+   <BotonDeshacer>. Solo tokens; datos inventados. Sin movimiento nuevo salvo el de ADR-0136 (la hoja sube y entra en cascada).
+   ==================================================================== */
+.escena{padding:16px;display:flex;justify-content:center}
+.disp{height:820px}
+svg.pt3{stroke-width:3.4;color:var(--t80)}
+.cont{position:absolute;inset:0;overflow:auto;padding:26px 40px 40px;z-index:2;scrollbar-width:thin}
+.disp[data-ancho="movil"] .cont,.disp[data-ancho="m430"] .cont{padding:18px 16px 40px}
+
+/* ---------- cabecera de pantalla (EncabezadoPagina) ---------- */
+.sede-l{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.sede-l::before{content:"";width:32px;height:1px;background:var(--taupe);opacity:.6}
+.tit{display:flex;align-items:flex-start;gap:14px;margin-top:10px}
+.tit h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;letter-spacing:-.01em}
+@container disp (max-width:520px){.tit h1{font-size:34px}}
+.volver{flex:none;width:36px;height:36px;margin-top:6px;border-radius:50%;display:grid;place-items:center}
+.ayuda-c{width:22px;height:22px;border-radius:50%;margin-top:8px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--t65);box-shadow:inset 0 0 0 1px var(--t12)}
+.tit .der{margin-left:auto;display:flex;align-items:center;gap:10px;padding-top:6px}
+.sub-t{margin-top:6px;font-size:14px;color:var(--t65)}
+
+/* ---------- botones (solo lo necesario) ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:500;white-space:nowrap;transition:transform .25s var(--ease),box-shadow .25s,background .2s,color .2s}
+.btn svg{width:16px;height:16px}
+.btn.chico{height:34px;padding:0 14px;font-size:13px}
+.btn.sec{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--borde) 60%,transparent),0 6px 16px -10px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"] .btn.sec{background:color-mix(in srgb,var(--tinta) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 22%,transparent)}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+.btn.pel{background:var(--rojo-p);color:var(--crema-fija)}
+[data-tema="oscuro"] .btn.pel{background:var(--rojo);color:var(--tinta-fija)}
+.btn.pel-s{color:var(--rojo-p);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rojo) 55%,transparent)}
+[data-tema="oscuro"] .btn.pel-s{color:var(--rojo)}
+.btn.enl{height:auto;padding:0;border-radius:0;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px;font-size:13px}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none!important}
+@media (hover:hover){.btn:not([disabled]):hover{transform:translateY(-2px)}.btn.prim:not([disabled]):hover{background:var(--rojo-p);color:var(--crema-fija)}.btn.enl:hover{color:var(--rojo-p);text-decoration-color:var(--rojo-p);transform:none}}
+.btn:focus-visible,.ico-b:focus-visible,.mini-l:focus-visible,.fila-env:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.ico-b{flex:none;width:32px;height:32px;border-radius:50%;display:inline-grid;place-items:center;color:var(--t65);transition:background .2s,color .2s,transform .25s var(--ease)}
+.ico-b svg{width:16px;height:16px}
+@media (hover:hover){.ico-b:hover{background:var(--t06);color:var(--tinta)}.ico-b.pel:hover{background:color-mix(in srgb,var(--rojo) 12%,transparent);color:var(--rojo-p)}}
+.ico-b.pel{color:color-mix(in srgb,var(--rojo-p) 80%,var(--t65))}
+/* el lápiz y la papelera: «LapizEditar» (32 px, su nombre al pasar el mouse). La papelera solo existe en la cara B. */
+.lapiz{position:relative}
+.lapiz[data-tip]:hover::after,.lapiz[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;z-index:20;top:calc(100% + 6px);left:50%;translate:-50% 0;white-space:nowrap;padding:5px 10px;border-radius:8px;font-size:12px;background:var(--tinta);color:var(--crema);pointer-events:none}
+.papelera{display:none}
+[data-eliminar="lado"] .papelera{display:inline-grid}
+
+/* ---------- el vidrio de lo que se lee ---------- */
+.placa{border-radius:24px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 34%,transparent));border:1px solid color-mix(in srgb,var(--vidrio) 55%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 18px 40px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--tinta) 6%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+.pozo{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;border-radius:14px;font-size:14px;border:1px solid color-mix(in srgb,var(--borde) 60%,transparent);width:100%;text-align:left;
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 12%,transparent)}
+[data-tema="oscuro"] .pozo{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+input.pozo{outline:none}.pozo:focus-visible,.pozo:focus{border-color:var(--tinta);background:var(--papel)}
+.pozo.buscar{border-radius:999px;color:var(--t65)}
+.pozo svg{width:16px;height:16px;color:var(--t65)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:500;background:color-mix(in srgb,var(--tinta) 7%,transparent);color:var(--t80);white-space:nowrap}
+.chip svg{width:12px;height:12px}
+.chip.piz{background:color-mix(in srgb,var(--pizarra) 16%,transparent);color:var(--pizarra)}
+.chip.amb{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.chip.ver{background:color-mix(in srgb,var(--verde) 16%,transparent);color:var(--verde)}
+.chip.rojo{background:color-mix(in srgb,var(--rojo) 14%,transparent);color:var(--rojo-p)}
+[data-tema="oscuro"] .chip.rojo{color:var(--rojo)}
+.chip .ico-b{width:20px;height:20px;margin:0 -6px 0 -2px}.chip .ico-b svg{width:11px;height:11px}
+.chip.con-lapiz{padding-right:4px}
+.vs-s{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+
+/* ---------- lista de envíos ---------- */
+.barra-f{display:flex;gap:10px;align-items:center;margin-top:22px;flex-wrap:wrap}
+.barra-f .pozo.buscar{flex:1;min-width:240px}
+.pil{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:999px;font-size:13px}
+.tabla{margin-top:16px;border-radius:24px;overflow:visible}
+.th,.fila-env{display:grid;grid-template-columns:78px 130px 190px minmax(160px,1fr) 90px 80px 190px;gap:14px;align-items:center;padding:0 22px}
+.th{height:40px;font-size:12px;color:var(--taupe)}
+.fila-env{min-height:76px;border-top:1px solid color-mix(in srgb,var(--borde) 28%,transparent);font-size:13.5px;animation:sube .5s var(--ease) both;position:relative}
+.fila-env small{display:block;font-size:12.5px;color:var(--t65)}
+.fila-env b.num{font-weight:600;letter-spacing:.03em}
+.fila-env[data-estado="anulado"]{opacity:.62}
+.fila-env .acc{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.paso{display:flex;flex-direction:column;gap:6px}
+.pasos{display:flex;align-items:center}
+.pasos i{width:10px;height:10px;border-radius:50%;background:var(--taupe);flex:none}
+.pasos i.v{background:transparent;box-shadow:inset 0 0 0 1.5px var(--t25)}
+.pasos u{width:12px;height:1.5px;background:var(--taupe);flex:none}
+.pasos u.v{background:var(--t25)}
+.pasos .ahora{width:26px;height:26px;border-radius:50%;background:var(--taupe);display:grid;place-items:center;color:var(--crema-fija);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--taupe) 20%,transparent)}
+.pasos .ahora svg{width:13px;height:13px}
+.paso b{font-size:12.5px}
+@container disp (max-width:1180px){
+  .th{display:none}
+  .fila-env{grid-template-columns:1fr auto;grid-template-areas:"a b" "c c" "d d";padding:16px;gap:8px 12px}
+  .fila-env>:nth-child(1){grid-area:a}.fila-env>:nth-child(2){grid-area:a;display:none}
+  .fila-env>:nth-child(3){grid-area:c}.fila-env>:nth-child(4){grid-area:d}
+  .fila-env>:nth-child(5),.fila-env>:nth-child(6){display:none}.fila-env>:nth-child(7){grid-area:b}
+}
+
+@container disp (max-width:900px){.acciones-fila{opacity:1!important}.grupo-c .pt{display:none}.grupo-c small,.mini-l small{white-space:nowrap}}
+/* ---------- el menú (MenuAcciones) ---------- */
+.menu{position:absolute;z-index:40;min-width:250px;padding:6px;border-radius:16px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 94%,transparent),color-mix(in srgb,var(--vidrio) 86%,transparent));
+  border:1px solid color-mix(in srgb,var(--borde) 40%,transparent);box-shadow:0 22px 44px -22px color-mix(in srgb,var(--sombra) 55%,transparent);animation:enfoca .24s var(--ease) both}
+[data-tema="oscuro"] .menu{background:var(--hueso)}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:6px 12px;border-radius:10px;font-size:13.5px;text-align:left}
+.menu button svg{width:16px;height:16px;color:var(--t65)}
+.menu button small{display:block;font-size:11.5px;color:var(--t65);line-height:1.25}
+.menu button.pel{color:var(--rojo-p)}.menu button.pel svg{color:var(--rojo-p)}
+[data-tema="oscuro"] .menu button.pel,[data-tema="oscuro"] .menu button.pel svg{color:var(--rojo)}
+.menu button[disabled]{opacity:.55;cursor:not-allowed}
+@media (hover:hover){.menu button:not([disabled]):hover{background:var(--t06)}}
+.menu hr{border:0;border-top:1px solid var(--t12);margin:4px 6px}
+
+/* ---------- contando ---------- */
+.dos{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin-top:22px;align-items:start}
+@container disp (min-width:980px){.dos{grid-template-columns:minmax(300px,380px) minmax(0,1fr)}}
+.izq{padding:22px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.izq .t{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px}
+.izq .t h2{font-family:'EB Garamond',serif;font-weight:500;font-size:22px}
+.izq .t span{font-size:12.5px;color:var(--t65)}
+.orden{display:flex;justify-content:flex-end}
+.orden .seg{display:inline-flex;border-radius:999px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--borde) 55%,transparent);padding:2px}
+.orden .seg span{width:48px;height:32px;display:grid;place-items:center;color:var(--t65)}
+.grupo{border-radius:16px;border:1px solid color-mix(in srgb,var(--pizarra) 28%,transparent);background:color-mix(in srgb,var(--pizarra) 13%,transparent)}
+.grupo-c{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px}
+.grupo-c .ft{width:36px;height:36px;border-radius:10px;background:var(--papel);display:grid;place-items:center}
+.grupo-c .ft svg{width:20px;height:20px}
+.grupo-c .tx{flex:1;min-width:0}.grupo-c b{display:block;font-size:14.5px}.grupo-c small{font-size:12.5px;color:var(--t65)}
+.grupo-c .pt{width:18px;height:18px;border-radius:50%;background:var(--tinta);box-shadow:0 0 0 3px var(--crema),0 0 0 4px var(--tinta);flex:none;margin:0 4px}
+.grupo.sel{background:color-mix(in srgb,var(--rojo) 11%,var(--papel));border-color:color-mix(in srgb,var(--rojo) 30%,transparent)}
+.grupo-c{cursor:pointer;border-radius:16px}
+.acciones-fila{display:flex;align-items:center;gap:2px;transition:opacity .2s}
+/* el lápiz de una fila de la lista: siempre a la vista (Felipe 2026-11-03) */
+
+.hijos-l{padding:6px 8px 10px 22px;display:flex;flex-direction:column;gap:6px;border-left:1.5px solid var(--t12);margin:0 0 8px 28px}
+.mini-l{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 10px;border-radius:14px;border:1px solid transparent;background:color-mix(in srgb,var(--tinta) 5%,transparent);position:relative;text-align:left;width:100%}
+.mini-l .ft{width:44px;height:44px;border-radius:12px;background:color-mix(in srgb,var(--taupe) 22%,var(--papel));display:grid;place-items:center;flex:none}
+.mini-l .ft svg{width:22px;height:22px;color:var(--taupe)}
+.mini-l .tx{flex:1;min-width:0}.mini-l b{display:flex;align-items:center;gap:8px;font-size:14px;flex-wrap:wrap}.mini-l small{font-size:12.5px;color:var(--t65)}
+.mini-l.on{background:color-mix(in srgb,var(--rojo) 11%,var(--papel));border-color:color-mix(in srgb,var(--rojo) 30%,transparent)}
+.agregar{height:52px;border-radius:16px;border:1.5px dashed var(--t25);display:flex;align-items:center;justify-content:center;gap:8px;color:var(--t80)}
+.der-p{padding:0;overflow:hidden}
+.cabeza{display:flex;gap:18px;padding:20px 22px 16px;align-items:flex-start;flex-wrap:wrap}
+.foto-g{width:88px;height:88px;border-radius:18px;background:color-mix(in srgb,var(--taupe) 22%,var(--papel));display:grid;place-items:center;flex:none}
+.foto-g svg{width:38px;height:38px;color:var(--taupe)}
+.cabeza .tx{flex:1;min-width:240px}
+.cabeza h3{display:flex;align-items:center;gap:4px;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.15}
+.cabeza .cat{display:flex;align-items:center;gap:2px;font-size:14px;color:var(--taupe);margin-top:2px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cabeza .lado{margin-left:auto;text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.cabeza .lado small{font-size:13px;color:var(--t65)}
+.cabeza .lado .btn.enl{font-size:13px}
+.cuerpo{padding:0 22px 18px;border-top:1px solid color-mix(in srgb,var(--borde) 28%,transparent)}
+.aviso-f{margin:14px 0 10px;font-size:14px;color:var(--t80);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cuenta{display:grid;grid-template-columns:auto minmax(0,1fr);gap:28px;align-items:center;margin-top:18px}
+@container disp (max-width:700px){.cuenta{grid-template-columns:1fr;justify-items:center}}
+.dial{position:relative;width:176px;height:176px;border-radius:50%;display:grid;place-items:center;text-align:center;
+  box-shadow:inset 0 0 0 10px var(--tinta),inset 0 0 0 13px var(--t25),inset 0 0 0 15px var(--tinta)}
+.dial b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:60px;line-height:1}
+.dial small{font-size:12.5px;color:var(--t65)}
+.dial i{position:absolute;top:-4px;left:50%;translate:-50% 0;width:16px;height:16px;border-radius:50%;background:var(--papel);box-shadow:0 0 0 3px var(--tinta)}
+.dial .mn,.dial .ms{position:absolute;bottom:-6px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center}
+.dial .mn{left:-8px;background:var(--papel);box-shadow:0 0 0 1px var(--t25),0 8px 16px -10px var(--sombra)}
+.dial .ms{right:-8px;background:var(--tinta);color:var(--crema)}
+.cifras{display:flex;flex-direction:column;gap:12px;max-width:440px}
+.cifra-c{padding:10px 16px;border-radius:14px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.cifra-c small{display:block;font-size:13px;font-weight:600}.cifra-c b{font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.1}
+.atajos{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.atajos .gr{display:inline-flex;border-radius:999px;box-shadow:inset 0 0 0 1px var(--t25);padding:2px}
+.atajos .gr button{height:34px;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:500}
+.nav-c{display:flex;gap:10px;margin-top:14px}
+.que{border-top:1px solid color-mix(in srgb,var(--borde) 28%,transparent);padding:16px 22px 22px}
+.que h4{font-size:14.5px;margin-bottom:10px}
+.ops{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.op{display:flex;gap:10px;padding:12px 14px;border-radius:14px;text-align:left;font-size:13.5px;border:1px solid color-mix(in srgb,var(--borde) 45%,transparent)}
+.op b{display:block;font-size:13.5px}.op small{font-size:12.5px;color:var(--t65);line-height:1.35}
+.op .rd{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--t50);flex:none;margin-top:3px}
+.op.on{background:color-mix(in srgb,var(--rojo) 11%,var(--papel));border-color:color-mix(in srgb,var(--rojo) 35%,transparent)}
+.op.on .rd{box-shadow:inset 0 0 0 4px var(--papel),inset 0 0 0 9px var(--rojo-p)}
+.vacio{padding:70px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.vacio .ci{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--t06);color:var(--t65)}
+.vacio .ci svg{width:26px;height:26px}.vacio h3{font-family:'EB Garamond',serif;font-weight:500;font-size:26px}.vacio p{color:var(--t65);max-width:36ch}
+
+/* ---------- la hoja (<Modal>, vidrio Serena) ---------- */
+.velo{position:absolute;inset:0;z-index:60;background:color-mix(in srgb,var(--sombra) 28%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);display:grid;place-items:start center;padding:56px 16px;overflow:auto;animation:funde .25s var(--ease) both}
+[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+.hoja{position:relative;width:min(100%,var(--w,448px));border-radius:32px;padding:30px 30px 24px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 78%,transparent),color-mix(in srgb,var(--vidrio) 62%,transparent));
+  border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),0 40px 80px -40px color-mix(in srgb,var(--sombra) 70%,transparent);animation:hoja .5s var(--ease) both}
+[data-tema="oscuro"] .hoja{background:color-mix(in srgb,var(--hueso) 86%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.97)}}
+.hoja[data-ancho="mediana"]{--w:576px}
+.hoja>*{animation:sube .5s var(--ease) both}.hoja>*:nth-child(2){animation-delay:55ms}.hoja>*:nth-child(3){animation-delay:110ms}.hoja>*:nth-child(4){animation-delay:165ms}.hoja>*:nth-child(5){animation-delay:220ms}.hoja>*:nth-child(6){animation-delay:275ms}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.15;padding-right:36px}
+.hoja .fr{margin-top:6px;font-size:14px;color:var(--taupe)}
+.hoja .x{position:absolute;top:18px;right:18px}
+.campo{margin-top:16px;display:flex;flex-direction:column;gap:7px;position:relative}
+.campo label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.campo label em{font-style:normal;color:var(--rojo-p);margin-left:3px}
+.campo label span{text-transform:none;letter-spacing:0;font-weight:400;color:var(--t50);margin-left:6px}
+.campo .ayu{font-size:12.5px;color:var(--t65);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.campo[data-sigue]>.pozo,.campo[data-sigue]>.combo>.pozo{background:var(--papel);box-shadow:0 0 0 3px color-mix(in srgb,var(--rojo) 22%,transparent),inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 8%,transparent);border-color:var(--rojo)}
+.campo[data-bloq]>.pozo,.campo[data-bloq] .pozo{opacity:.55;cursor:not-allowed}
+.combo{position:relative}
+.combo .pozo{justify-content:space-between;cursor:pointer}
+.combo .pozo>span{flex:1}
+.lista{position:absolute;z-index:70;left:0;right:0;top:calc(100% + 6px);padding:6px;border-radius:16px;background:var(--papel);border:1px solid color-mix(in srgb,var(--borde) 40%,transparent);box-shadow:0 24px 44px -20px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoca .24s var(--ease) both}
+.lista button{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:6px 12px;border-radius:10px;font-size:14px;text-align:left}
+.lista button.on::after{content:"✓";margin-left:auto;color:var(--tinta)}
+.lista button.nueva{color:var(--rojo-p);font-weight:500}
+@media (hover:hover){.lista button:hover{background:var(--t06)}}
+.nota{margin-top:16px;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--hueso) 70%,transparent);font-size:13px;color:var(--t80);display:flex;gap:10px;line-height:1.45}
+.nota svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--t65)}
+.aviso-l{margin-top:16px;padding:12px 14px;border-radius:14px;display:flex;gap:10px;font-size:13px;line-height:1.45;border-left:3px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.aviso-l svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--ambar)}
+.aviso-l.err{border-left-color:var(--rojo);background:color-mix(in srgb,var(--rojo) 9%,transparent)}.aviso-l.err svg{color:var(--rojo-p)}
+.resu{margin-top:16px;border-radius:16px;padding:4px 14px;background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.resu div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;font-size:13.5px;border-top:1px solid var(--t06)}
+.resu div:first-child{border-top:0}.resu b{font-weight:600}.resu span{color:var(--t65)}
+.motivos{display:flex;gap:8px;flex-wrap:wrap}
+.motivos button{height:32px;padding:0 14px;border-radius:999px;font-size:13px;box-shadow:inset 0 0 0 1px var(--t25)}
+.motivos button.on{background:var(--tinta);color:var(--crema);box-shadow:none}
+.pie{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;flex-wrap:wrap}
+.pie .izq-a{margin-right:auto}
+.pie.sticky{position:sticky;bottom:-24px}
+@container disp (max-width:520px){.pie .btn{flex:1}.pie .izq-a{flex-basis:100%;margin-right:0}.hoja{padding:26px 20px 20px}}
+.resp{display:flex;align-items:center;gap:12px}
+.av{width:28px;height:28px;font-size:12px}
+
+/* ---------- aviso (toast) ---------- */
+.toasts{position:absolute;z-index:90;top:16px;right:16px;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100% - 32px));pointer-events:none}
+.toast{pointer-events:auto;display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:18px;background:var(--papel);border:1px solid color-mix(in srgb,var(--borde) 40%,transparent);box-shadow:0 24px 44px -22px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoca .35s var(--ease) both}
+.toast .v{width:22px;height:22px;border-radius:50%;background:var(--verde);color:var(--crema-fija);display:grid;place-items:center;flex:none}
+[data-tema="oscuro"] .toast .v{color:var(--tinta-fija)}
+.toast .v svg{width:12px;height:12px;stroke-width:3}
+.toast b{display:block;font-size:14px}.toast small{display:block;font-size:12.5px;color:var(--t65)}
+.toast .btn.enl{display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:13px}.toast .btn.enl svg{width:13px;height:13px}
+
+/* ---------- análisis del pie ---------- */
+.analisis{max-width:1100px;margin:8px auto 60px;padding:0 20px;font-size:14px;line-height:1.6}
+.analisis h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;margin:28px 0 8px}
+.analisis h3{font-size:15px;margin:18px 0 6px}
+.analisis ul{padding-left:20px}.analisis li{margin:4px 0}
+.analisis table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
+.analisis th,.analisis td{text-align:left;vertical-align:top;padding:8px 10px;border-top:1px solid var(--t12)}
+.analisis th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t65)}
+.ev{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:99px;font-size:11px;background:color-mix(in srgb,var(--verde) 18%,transparent);color:var(--verde)}
+#cont.quieta *,#capa.quieta *{animation:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- la hoja «¿Qué llegó?» (AgregarFueraDeGuia): cada campo es una tarjeta con su estado ---------- */
+.fcard{margin-top:12px;padding:12px 14px 14px;border-radius:20px;border:1px solid transparent;transition:background .3s,border-color .3s,box-shadow .3s}
+.fcard .fcab{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.fcard .rdo{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--t50);flex:none}
+.fcard .rdo.ok{box-shadow:inset 0 0 0 4px var(--papel),inset 0 0 0 9px var(--tinta)}
+.fcard.sigue{background:color-mix(in srgb,var(--hueso) 75%,transparent);border-color:color-mix(in srgb,var(--borde) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 6%,transparent)}
+.tagsigue{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.fcard .pozo{min-height:46px;border-radius:999px;padding:0 8px 0 18px}
+.combo .pozo>span.chev{flex:none}
+.fcard .chev{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--t25);background:var(--papel)}
+.fcard[data-bloq] .pozo{opacity:.55;cursor:not-allowed}
+.cambios{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px}
+.cambios b{font-weight:600}
+.btn[aria-disabled="true"]{opacity:.55}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Recibir mercadería · cancelar una recepción, la ✕ y el total de la categoría</span>
+  <span class="tag">Pantalla</span><div class="seg-m" data-ctl="escena"><button data-v="lista">Lista de envíos</button><button data-v="contando">Contando ENV-000004</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="escritorio">Escritorio</button><button data-v="tablet">Tableta 768</button><button data-v="movil">Celular 375</button></div>
+  <button class="accion" id="reset">Reiniciar maqueta</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <main class="cont" id="cont"></main>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div id="capa"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Qué hay que probar aquí (3 cosas)</h2>
+    <ul><li><b>Cancelar una recepción:</b> en «Lista de envíos», el «⋯» de ENV-000004 → «Cancelar recepción» (o «Más» al contar).</li>
+    <li><b>La ✕:</b> en «Contando», la ✕ junto a «Abrigos» o «Prueba» las saca del envío, con «Deshacer».</li>
+    <li><b>Total de Abrigos:</b> la fila «Abrigos» es el total; tócala para contarlo. Ya no hay una fila «Total de Abrigos» aparte.</li></ul>
+    <p style="margin-top:14px;color:var(--t65)">Nada está construido: es solo para decidir cómo se ve.</p>
+  </section>
+</div>
+
+<script>
+/* =====================================================================
+   «Copiar mi selección» — para toda maqueta de docs/maquetas/ (Felipe 2026-11-01).
+   Pone un botón al final de la barra de la maqueta (.spk) que copia lo que está marcado, listo para pegarlo en el chat:
+     Mi selección · <título> (docs/maquetas/<carpeta>/)
+     - <grupo>: <opción marcada>
+     Visto en: <tema> · <ancho>
+   No sabe nada de cada maqueta: lee la barra tal como está. Un grupo es un `.seg-m` o `.seg` (su opción marcada lleva `.on` o
+   `aria-pressed="true"`) y su nombre es la `.tag` que lo antecede; las casillas y los botones de acción encendidos se juntan bajo su `.tag`.
+   Tema, ancho y vista van aparte: dicen cómo se miró, no qué se eligió. marco.js lo carga solo; una maqueta sin la base lo suma con
+   <script src="../vidrio-base-2026-10/copiar-seleccion.js"></script>. Si la maqueta rehace su barra, el botón vuelve solo.
+   ===================================================================== */
+(() => {
+  const VISTA = /^(tema|ancho|vista|tamaño|momento)$/i;
+  // lo que dice cómo se mira, aunque su grupo no tenga etiqueta propia
+  const PARECE_VISTA = /^(claro|oscuro)\b|^\d{3,4}( px)?$|ventana|escritorio|todo el ancho|tableta|celular|móvil|lado a lado/i;
+  const limpio = (t) => (t || '').replace(/\s+/g, ' ').replace(/\s*✓\s*$/, '').trim();
+
+  function seleccion() {
+    const spk = document.querySelector('.spk'); if (!spk) return '';
+    const filas = [], vista = [], extras = new Map();
+    let etiqueta = '', fresca = false, titulo = limpio(spk.querySelector('.titulo')?.textContent) || limpio(document.title);
+    for (const el of spk.children) {
+      if (el.classList.contains('copiar-sel') || el.classList.contains('titulo')) continue;
+      if (el.classList.contains('tag')) { etiqueta = limpio(el.textContent); fresca = true; continue; }
+      if (el.matches('.seg-m, .seg')) {
+        const on = el.querySelector('button.on, button[aria-pressed="true"]'); if (!on) continue;
+        const valor = limpio(on.textContent), nombre = fresca ? etiqueta : '';
+        fresca = false;
+        // un grupo sin su propia etiqueta (la de antes ya se usó): si dice cómo se mira, va a «Visto en»; si no, a «Además»
+        if (VISTA.test(nombre) || (!nombre && PARECE_VISTA.test(valor))) vista.push(valor);
+        else filas.push(`- ${nombre || el.dataset.ctl || 'Además'}: ${valor}`);
+        continue;
+      }
+      const casillas = el.matches('label') ? [el] : [...el.querySelectorAll('label')];
+      const grupo = fresca ? etiqueta : 'Además';
+      for (const l of casillas) {
+        const c = l.querySelector('input[type="checkbox"]'); if (!c) continue;
+        const lista = extras.get(grupo) || []; if (c.checked) lista.push(limpio(l.textContent)); extras.set(grupo, lista);
+      }
+      if (el.matches('button.accion.on')) { const lista = extras.get(grupo) || []; lista.push(limpio(el.textContent)); extras.set(grupo, lista); }
+    }
+    for (const [n, l] of extras) filas.push(`- ${n}: ${l.length ? l.join(', ') : 'ninguno'}`);
+    // la carpeta de la maqueta, para que se sepa de dónde vino
+    const partes = location.pathname.split('/').filter(Boolean), i = partes.indexOf('maquetas');
+    const carpeta = i >= 0 && partes[i + 1] ? `docs/maquetas/${partes[i + 1]}/` : partes.length > 1 ? `docs/maquetas/${partes[partes.length - 2]}/` : '';
+    return [`Mi selección · ${titulo}${carpeta ? ` (${carpeta})` : ''}`, ...filas, ...(vista.length ? [`Visto en: ${vista.join(' · ')}`] : [])].join('\n');
+  }
+
+  async function copiar(texto) {
+    try { await navigator.clipboard.writeText(texto); return true; } catch (_) {}
+    // el camino viejo, por si el navegador no deja (archivo abierto sin servidor)
+    const t = document.createElement('textarea'); t.value = texto; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0;top:0';
+    document.body.appendChild(t); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} t.remove(); return ok;
+  }
+
+  const estilo = document.createElement('style');
+  estilo.textContent = `.spk .copiar-sel{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:8px;cursor:pointer;
+    border:1px solid rgba(245,240,232,.35);background:rgba(245,240,232,.08);color:#f5f0e8;font:600 12px/1 'DM Sans',system-ui,sans-serif;transition:background .2s,color .2s} /* tema-fijo: barra de la maqueta */
+    .spk .copiar-sel svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    @media (hover:hover){.spk .copiar-sel:hover{background:rgba(245,240,232,.18)}} /* tema-fijo: barra de la maqueta */
+    .spk .copiar-sel[data-copiado]{background:#f5f0e8;color:#1a1a18} /* tema-fijo: barra de la maqueta */`;
+  document.head.appendChild(estilo);
+
+  const COPIA = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/></svg>';
+  const VISTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  function poner() {
+    const spk = document.querySelector('.spk'); if (!spk || spk.querySelector('.copiar-sel')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'copiar-sel';
+    b.title = 'Copia las opciones que tienes marcadas, para pegarlas en el chat'; b.innerHTML = `${COPIA}<span>Copiar mi selección</span>`;
+    b.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const ok = await copiar(seleccion());
+      b.toggleAttribute('data-copiado', ok); b.innerHTML = ok ? `${VISTO}<span>Copiado</span>` : `${COPIA}<span>No se pudo copiar</span>`;
+      clearTimeout(b._t); b._t = setTimeout(() => { b.removeAttribute('data-copiado'); b.innerHTML = `${COPIA}<span>Copiar mi selección</span>`; }, 1800);
+    });
+    spk.appendChild(b);
+  }
+  window.copiarSeleccion = { texto: seleccion };
+  const iniciar = () => { poner(); const spk = document.querySelector('.spk'); if (spk) new MutationObserver(poner).observe(spk, { childList: true }); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
+})();
+
+</script>
+<script>
+(() => {
+  /* ---------------- datos inventados ---------------- */
+  const P = {
+    lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', lapiz: 'M17 3l4 4L8 20l-5 1 1-5z', papelera: 'M4 7h16 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3',
+    puntos: 'M5 12h.01 M12 12h.01 M19 12h.01', volver: 'M19 12H5M11 6l-6 6 6 6', abajo: 'M6 9l6 6 6-6', arriba: 'M12 19V5 M5 12l7-7 7 7',
+    mas: 'M12 5v14M5 12h14', menos: 'M5 12h14', x: 'M18 6 6 18M6 6l12 12', ok: 'M20 6 9 17l-5-5', prohibido: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M5.6 5.6l12.8 12.8',
+    caja: 'M21 8l-9-5-9 5v8l9 5 9-5z M3 8l9 5 9-5 M12 13v8', etiqueta: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z M7.5 7.5h.01',
+    chispa: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z', prenda: 'M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z',
+    info: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 11v5 M12 8h.01', alerta: 'M12 3 2 20h20z M12 10v5 M12 18h.01', cero: 'M3 12a9 9 0 1 0 3-6.7 M3 4v5h5',
+    reabrir: 'M3 12a9 9 0 1 0 3-6.7 M3 4v5h5', der: 'M5 12h14M13 6l6 6-6 6', deshacer: 'M9 14 4 9l5-5 M4 9h10a6 6 0 0 1 0 12h-3'
+  };
+  const ic = (n, c = '') => `<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+  const RESP = 'Ana Quispe';
+  const MARCAS = ['Cayla', 'Cayla 2', 'Andina'];
+  const CATS = ['Abrigos', 'Blusas', 'Casacas', 'Pantalones', 'Vestidos'];
+  const ESTADO0 = () => ({
+    escena: 'lista', eliminar: 'dentro', modelo: 'porcrear', stock: '0', tema: 'claro', ancho: 'escritorio',
+    envios: { 4: { estado: 'contando', sin: true }, 3: { estado: 'contando', sin: false }, 2: { estado: 'cerrado', sin: false } },
+    g: { cat: 'Abrigos', marca: null, presente: true }, m: { nombre: 'Prueba', presente: true },
+    sel: 'modelo', hoja: null, menu: null, combo: null, motivo: '', motivoFinal: '', borr: null, op: 'despues'
+  });
+  let S = ESTADO0();
+  const html = document.documentElement, $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const MM = () => S.modelo;
+
+  /* ---------------- piezas ---------------- */
+  const lapiz = (acc, tip, data = '') => `<button class="ico-b lapiz" data-acc="${acc}" ${data} data-tip="${tip}" aria-label="${tip}">${ic('lapiz')}</button>`;
+  const papelera = (acc, tip) => `<button class="ico-b pel lapiz" data-acc="${acc}" data-tip="${tip}" aria-label="${tip}">${ic('x')}</button>`; // la «x» de quitar: siempre a la vista, junto al lápiz
+  const pasos = (n) => [0, 1, 2, 3].map((i) => i < n ? '<i></i>' : i === n ? `<span class="ahora">${ic(i === 2 ? 'caja' : 'ok')}</span>` : '<i class="v"></i>').join('<u></u>');
+  const cabecera = (titulo, extra = {}) => `
+    <div class="sede-l">Tienda AQP · Martes, 3 de noviembre · 10:49${extra.detalle ? ' · ' + extra.detalle : ''}</div>
+    <div class="tit">${extra.volver ? `<button class="ico-b volver gota" data-acc="volver" aria-label="Volver a los envíos">${ic('volver')}</button>` : ''}<h1>${titulo}</h1><span class="ayuda-c" title="Qué es esto">?</span>${extra.der ? `<div class="der">${extra.der}</div>` : ''}</div>`;
+  const marcaTxt = () => S.g.marca || 'Sin marca';
+
+  /* ---------------- lista de envíos ---------------- */
+  function fila(id, num, fecha, hora, prov, nota, guia, prendas) {
+    const e = S.envios[id], est = e.estado;
+    const txt = est === 'anulado' ? 'Anulado' : est === 'cerrado' ? 'Recibido' : est === 'camino' ? 'En camino' : 'Contando';
+    const n = est === 'cerrado' ? 3 : est === 'contando' ? 2 : est === 'camino' ? 0 : -1;
+    const acc = est === 'contando' ? `<button class="btn sec chico" data-acc="seguir" data-id="${id}">Seguir recibiendo</button>`
+      : est === 'camino' ? `<button class="btn sec chico" data-acc="seguir" data-id="${id}">Abrir en la sede</button>`
+      : est === 'cerrado' ? `<button class="btn sec chico" data-acc="nada">Ver</button>` : `<button class="btn sec chico" data-acc="nada">Ver el motivo</button>`;
+    return `<div class="fila-env" data-estado="${est}" style="animation-delay:${id * 30}ms">
+      <div><b>${fecha}</b><small>${hora}</small></div>
+      <b class="num">${num}</b>
+      <div class="paso">${est === 'anulado' ? '<span class="chip rojo">Anulado</span>' : `<div class="pasos">${pasos(n)}</div><b>${txt}</b>`}</div>
+      <div><span>${prov}</span><small>${nota}</small></div>
+      <small>${guia}</small><small>${prendas}</small>
+      <div class="acc">${acc}<button class="ico-b" data-acc="menu-fila" data-id="${id}" aria-label="Más acciones de ${num}" aria-haspopup="menu">${ic('puntos', 'pt3')}</button></div>
+    </div>`;
+  }
+  function lista() {
+    const e4 = S.envios[4], e3 = S.envios[3];
+    return cabecera('Recibir mercadería', {}) + `
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-top:24px;flex-wrap:wrap">
+        <div><h2 class="serif" style="font-size:24px">Envíos por recibir en esta sede</h2><p class="sub-t">Se cuentan por categoría y entran al almacén de Tienda AQP.</p></div>
+        <div style="text-align:right"><small style="color:var(--t65);display:block;margin-bottom:6px">¿Llegó algo que no está en la lista? Ábrelo aquí.</small><button class="btn sec chico" data-acc="nada">${ic('caja')}Sin Aviso</button></div>
+      </div>
+      <div class="barra-f"><div class="pozo buscar">${ic('lupa')}Busca por número de envío, guía, proveedor u orden</div>
+        <span class="pil gota">Estado ${ic('abajo')}</span><span class="pil gota">Proveedor ${ic('abajo')}</span><span class="pil gota">Fechas ${ic('abajo')}</span></div>
+      <div class="placa tabla">
+        <div class="th"><span>Enviado</span><span>Envío</span><span>Estado</span><span>Proveedor</span><span>Guía</span><span>Prendas</span><span></span></div>
+        ${fila(4, 'ENV-000004', '03/11', '09:08', 'proveedor por confirmar', e4.estado === 'anulado' ? 'Anulado por ' + RESP + ': ' + (S.motivoFinal || 'se abrió por error') : 'Llegó sin aviso: se sigue contando', '—', '—')}
+        ${fila(3, 'ENV-000003', '02/11', '16:40', 'Textiles Andina', e3.estado === 'camino' ? 'Volvió a «En camino» · lo contado se descartó' : 'Llegó con guía: 3 de 5 modelos contados', 'G-2231', '24')}
+        ${fila(2, 'ENV-000002', '30/10', '11:15', 'Taller Lima', 'Cerrado: cuadró', 'G-2190', '40')}
+      </div>`;
+  }
+  function menuMas() {
+    return `<div class="menu" role="menu"><button role="menuitem" data-acc="cancelar-rec" data-id="4" class="pel">${ic('prohibido')}<span>Cancelar recepción<small>Se anula el envío y se descarta lo contado</small></span></button></div>`;
+  }
+  function menuFila() {
+    const id = S.menu.id, e = S.envios[id];
+    const cerr = e.estado === 'cerrado', anul = e.estado === 'anulado' || e.estado === 'camino';
+    return `<div class="menu" role="menu">
+      ${cerr ? `<button role="menuitem" data-acc="nada">${ic('reabrir')}<span>Reabrir envío<small>Para corregir lo que faltó o sobró</small></span></button><hr>
+        <button role="menuitem" disabled>${ic('prohibido')}<span>Cancelar recepción<small>Ya se cerró: reábrelo para corregirlo</small></span></button>`
+      : anul ? `<button role="menuitem" disabled>${ic('prohibido')}<span>Cancelar recepción<small>Aquí no hay nada que cancelar</small></span></button>`
+      : `<button role="menuitem" data-acc="cancelar-rec" data-id="${id}" class="pel">${ic('prohibido')}<span>Cancelar recepción<small>${e.sin ? 'Se anula el envío y se descarta lo contado' : 'Vuelve a «En camino» y se descarta lo contado'}</small></span></button>`}
+    </div>`;
+  }
+
+  /* ---------------- contando ---------------- */
+  function contando() {
+    const m = S.m, g = S.g, hayG = g.presente, hayM = hayG && m.presente, esT = hayG && (S.sel === 'total' || !hayM), n = esT ? 3 : 1;
+    const marcaChip = `<span class="chip">${ic('etiqueta')}${marcaTxt()}</span>`;
+    const tipoChip = MM() === 'porcrear' ? `<span class="chip piz">${ic('chispa')}Nuevo · por crear</span>` : `<span class="chip piz">${ic('chispa')}Nuevo · ya creado</span>`;
+    const izq = `
+      <section class="placa izq" aria-label="Lo que llegó">
+        <div class="t"><h2>Lo que llegó</h2><span>${hayM ? '2 modelos' : hayG ? '1 modelo' : 'nada todavía'}</span></div>
+        <div class="pozo buscar">${ic('lupa')}Buscar modelo o proveedor…<span style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--t25)">/</span></div>
+        <div class="orden"><div class="seg"><span>${ic('arriba')}</span><span>${ic('abajo')}</span></div></div>
+        ${hayG ? `<div class="grupo ${esT ? 'sel' : ''}">
+          <div class="grupo-c" data-acc="sel" data-v="total" role="button" tabindex="0" aria-label="Contar el total de ${g.cat}"><span class="ft">${ic('prenda')}</span><div class="tx"><b>${g.cat}</b><small>3 contadas · ${hayM ? '1 modelo' : 'sin modelos nuevos'} · ${marcaTxt()}</small></div>
+            <span class="acciones-fila">${papelera('papelera-grupo', 'Quitar ' + g.cat + ' del envío')}</span><span class="pt"></span>${ic('arriba')}</div>
+        </div>
+        <div class="hijos-l">
+          
+          ${hayM ? `<div class="mini-l ${S.sel === 'total' ? '' : 'on'}" data-acc="sel" data-v="modelo" tabindex="0" role="button"><span class="ft">${ic('prenda')}</span><div class="tx"><b>${m.nombre}<span class="chip piz" style="height:20px">${ic('chispa')}Nuevo</span></b><small><span style="font-weight:600;color:var(--tinta)">1</span> contada</small></div>
+            <span class="acciones-fila">${papelera('papelera-mod', 'Quitar ' + m.nombre + ' del envío')}</span></div>` : ''}
+        </div>` : ''}
+        <button class="agregar" data-acc="nada">${ic('mas')}Agregar lo que llegó</button>
+      </section>`;
+    const der = !hayG ? `<section class="placa der-p"><div class="vacio"><span class="ci">${ic('caja')}</span><h3>Elige un modelo de la lista</h3><p>Aquí cuentas lo que llegó de cada uno.${hayG ? '' : ' «' + g.cat + '» ya no está en este envío.'}</p></div></section>` : `
+      <section class="placa der-p">
+        <div class="cabeza">
+          <span class="foto-g">${ic('prenda')}</span>
+          <div class="tx">
+            <h3>${esT ? 'Total de ' + g.cat : m.nombre + papelera('papelera-mod', 'Quitar ' + m.nombre + ' del envío')}</h3>
+            <div class="cat">${g.cat}</div>
+            <div class="chips">${esT ? '' : tipoChip}${marcaChip}</div>
+          </div>
+          <div class="lado"><small>Guardado</small><button class="btn enl" data-acc="nada">¿Llegó otra cosa?</button><button class="btn enl" data-acc="nada">Anotar observación</button></div>
+        </div>
+        <div class="cuerpo">
+          <div class="aviso-f"><span class="chip amb">Faltan 2 por identificar</span>${esT ? '<span>Este es el total de la categoría: lo que cuentes aquí incluye las prendas de todos sus modelos.</span>' : ''}<span style="display:${esT ? 'none' : 'inline'}"><span>Hay 2 prendas contadas que no son de ningún modelo. Hasta decir cuáles son no se puede pasar a «Cerrar».</span></span></div>
+          <button class="btn enl" data-acc="nada">Quitar esas 2 del conteo</button>
+          <div class="cuenta">
+            <div class="dial"><i></i><div><b>${n}</b><small>${n === 1 ? 'contada' : 'contadas'}</small></div><span class="mn">${ic('menos')}</span><span class="ms">${ic('mas')}</span></div>
+            <div class="cifras"><div class="cifra-c"><small>Contaste</small><b>${n}</b></div>
+              <div class="atajos"><div class="gr"><button>+5</button><button>+10</button></div><button class="btn sec chico pel-s">${ic('cero')}Poner en cero</button></div>
+              <small style="color:var(--t65)">Toca el número para escribirlo.</small></div>
+          </div>
+          <div class="nav-c"><button class="btn sec">${ic('volver')}Anterior</button><button class="btn prim" disabled>Pasar a cerrar ${ic('der')}</button></div>
+        </div>
+        <div class="que"><h4>¿Qué deseas hacer?</h4><div class="ops">
+          <button class="op ${S.op === 'despues' ? 'on' : ''}" data-acc="op" data-v="despues"><span class="rd"></span><span><b>Solo la cantidad</b><small>Queda guardada: no se vende hasta poner sus tallas.</small></span></button>
+          <button class="op ${S.op === 'ahora' ? 'on' : ''}" data-acc="op" data-v="ahora"><span class="rd"></span><span><b>Crearlo con sus tallas ahora</b><small>Primero se crea; después, sus tallas.</small></span></button></div></div>
+      </section>`;
+    return cabecera('Recibir mercadería', { volver: true, detalle: 'ENV-000004 · Llegó sin aviso',
+      der: `<button class="btn sec" data-acc="menu-mas" aria-haspopup="menu">${ic('puntos', 'pt3')}Más</button>` }) + `<div class="dos">${izq}${der}</div>`;
+  }
+
+  /* ---------------- hojas ---------------- */
+  const combo = (id, valor, opciones, extra = {}) => `<div class="combo"><button type="button" class="pozo" data-acc="combo" data-id="${id}" aria-haspopup="listbox" ${extra.bloq ? 'disabled' : ''}><span>${valor || extra.vacio}</span>${extra.bloq ? ic('prohibido') : '<span class="chev">' + ic('abajo') + '</span>'}</button>
+    ${S.combo === id ? `<div class="lista" role="listbox">${opciones.map((o) => `<button role="option" class="${o === valor ? 'on' : ''}" data-acc="elige" data-id="${id}" data-v="${o}">${o}</button>`).join('')}</div>` : ''}</div>`;
+  const resp = () => `<div class="campo"><label>Quién lo hace<em>*</em></label><button class="pozo" type="button" data-acc="nada"><span class="resp"><span class="av serif">AQ</span>${RESP}</span><span style="margin-left:auto">${ic('abajo')}</span></button></div>`;
+
+  // La hoja de «¿Qué llegó?» (AgregarFueraDeGuia), ahora también para CAMBIAR la categoría y la marca de lo ya contado.
+  function hojaGrupo() {
+    const b = S.borr, g = S.g, n = +S.stock, tipo = MM();
+    const bloq = tipo === 'creado1'; // un producto ya creado con ventas y movimientos: su categoría no se cambia desde aquí
+    const cambia = b.cat !== g.cat || (b.marca || 'Sin marca') !== marcaTxt();
+    const quitarOk = n === 0 && tipo !== 'creado1';
+    const filas = [['Qué llegó', 'cat', b.cat, CATS, 'Elige la categoría'], ['La marca', 'marca', b.marca || 'Sin marca', ['Sin marca', ...MARCAS], 'Elige la marca']];
+    const cambios = [b.cat !== g.cat ? `<b>Categoría:</b> ${g.cat} → ${b.cat}` : '', (b.marca || 'Sin marca') !== marcaTxt() ? `<b>Marca:</b> ${marcaTxt()} → ${b.marca || 'Sin marca'}` : ''].filter(Boolean);
+    const hijos = tipo === 'porcrear' ? 'Su modelo «' + S.m.nombre + '», que todavía no existe en el catálogo, se creará con la categoría y la marca nuevas.'
+      : tipo === 'creado0' ? 'Su modelo «' + S.m.nombre + '» ya está creado pero nunca se movió: también cambia en el catálogo.'
+      : 'Su modelo «' + S.m.nombre + '» ya tiene ventas y movimientos: la categoría y la marca no se cambian desde aquí (se hace en Editar producto).';
+    return `<div class="velo" data-acc="velo"><div class="hoja" data-ancho="mediana" role="dialog" aria-modal="true" aria-label="Cambiar lo que llegó">
+      <h2>¿Qué llegó?</h2><p class="fr">Cambia la categoría o la marca de lo que ya contaste. El conteo (3 prendas) se queda igual.</p>
+      ${filas.map(([t, id, v, ops, vac], i) => `<div class="fcard ${b.foco === id ? 'sigue' : ''}" ${bloq ? 'data-bloq' : ''}><div class="fcab"><span class="rdo ${v ? 'ok' : ''}"></span><span class="vs-s">${t}</span>${b.foco === id ? '<span class="tagsigue">Sigue aquí</span>' : ''}</div>${combo(id, v, ops, { vacio: vac, bloq })}</div>`).join('')}
+      ${bloq ? `<div class="aviso-l">${ic('alerta')}<span>${hijos}</span></div>` : `<div class="nota">${ic('info')}<span>${hijos}</span></div>`}
+      ${cambios.length ? `<div class="cambios"><span class="vs-s">Se cambia</span>${cambios.map((c) => `<span>${c}</span>`).join('')}</div>` : ''}
+      ${!quitarOk && S.hoja.quitar ? `<div class="aviso-l err">${ic('prohibido')}<span><b>No se puede quitar:</b> ${n ? n + ' prendas de esta categoría ya entraron al stock y eso no se quita.' : 'su modelo ya tiene historia.'} Cancela la recepción o ajusta el inventario.</span></div>` : ''}
+      <div class="pie sticky"><button class="btn pel-s izq-a" data-acc="quitar-grupo" ${quitarOk ? '' : 'aria-disabled="true"'}>${ic('x')}Quitar del envío</button><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn prim" data-acc="guardar-grupo" ${cambia && !bloq ? '' : 'disabled'}>Guardar cambios</button></div>
+    </div></div>`;
+  }
+  function hojaNoPuede() {
+    const n = +S.stock;
+    return `<div class="velo" data-acc="velo"><div class="hoja" role="alertdialog" aria-modal="true" aria-label="No se puede quitar">
+      <h2>No se puede quitar «${S.g.cat}»</h2><p class="fr">${n ? n + ' prendas de esta categoría ya entraron al stock y eso no se quita.' : 'Su modelo ya tiene ventas y movimientos.'}</p>
+      <div class="nota">${ic('info')}<span>Si el envío no era de esta tienda, usa «Cancelar recepción». Si ya entraron prendas, se sacan con un ajuste de inventario.</span></div>
+      <div class="pie"><button class="btn prim" data-acc="cerrar">Entendido</button></div></div></div>`;
+  }
+  // Solo el NOMBRE: la categoría y la marca son las de lo que llegó (el lápiz de al lado las cambia).
+  function hojaModelo() {
+    const b = S.borr, tipo = MM();
+    const quita = tipo === 'porcrear' ? { t: 'Quitar del envío', a: 'quitar-mod', i: 'x' } : tipo === 'creado0' ? { t: 'Eliminar producto', a: 'eliminar-mod', i: 'papelera' } : { t: 'Desactivar producto', a: 'desactivar-mod', i: 'prohibido' };
+    const sub = tipo === 'porcrear' ? 'Todavía no existe en el catálogo: se crea al cerrar el envío, con este nombre.' : 'Ya está en el catálogo: el nombre nuevo vale en todo el ERP, no solo en este envío.';
+    const nota = tipo === 'porcrear' ? `Quitarlo solo saca el modelo y su conteo (1 prenda) de este envío. No toca el catálogo ni el stock.`
+      : tipo === 'creado0' ? `Nunca tuvo ventas, traslados ni stock: se puede eliminar de verdad. Con un solo movimiento, ya solo se podría desactivar.`
+      : `Tiene historia (ventas y movimientos): no se elimina, se <b>desactiva</b> y deja de ofrecerse, y su historial se conserva.`;
+    return `<div class="velo" data-acc="velo"><div class="hoja" data-ancho="mediana" role="dialog" aria-modal="true" aria-label="Editar modelo">
+      <h2>Editar modelo</h2><p class="fr">${sub}</p>
+      <div class="campo"><label>Nombre<em>*</em></label><input class="pozo" id="f-nombre" value="${b.nombre}" maxlength="60" autocomplete="off"></div>
+      <div class="nota">${ic('info')}<span>${nota}</span></div>
+      <div class="pie sticky"><button class="btn pel-s izq-a" data-acc="${quita.a}">${ic(quita.i)}${quita.t}</button><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn prim" data-acc="guardar-mod">Guardar</button></div>
+    </div></div>`;
+  }
+  function hojaConfirma() {
+    const h = S.hoja.cual, T = {
+      'eliminar-mod': ['¿Eliminar el producto «' + S.m.nombre + '»?', 'Nunca tuvo ventas ni movimientos, así que no deja historia. Desaparece del catálogo y de este envío. No se puede recuperar.', 'Eliminar producto'],
+      'desactivar-mod': ['¿Desactivar el producto «' + S.m.nombre + '»?', 'Deja de ofrecerse en Vender y en los envíos nuevos. Su historia (ventas, traslados, stock) se conserva y se puede reactivar.', 'Desactivar producto']
+    }[h];
+    return `<div class="velo" data-acc="velo"><div class="hoja" role="alertdialog" aria-modal="true" aria-label="${T[0]}">
+      <h2>${T[0]}</h2><p class="fr">${T[1]}</p>${resp()}
+      <div class="pie"><button class="btn sec" data-acc="cerrar">Cancelar</button><button class="btn pel" data-acc="ok-${h}">${T[2]}</button></div></div></div>`;
+  }
+  function hojaCancelar() {
+    const id = S.hoja.id, e = S.envios[id], sin = e.sin, n = +S.stock;
+    const ok = S.motivo.trim().length >= 3;
+    const dest = sin ? ['Se anula el envío', 'Como no tenía orden ni guía, no hay a dónde devolverlo: queda como «Anulado», con tu nombre y el motivo, para que se vea que se abrió y se canceló.']
+      : ['Vuelve a «En camino»', 'El proveedor y la guía siguen esperando: el envío vuelve a la lista de lo que viene en camino, para abrirlo de nuevo cuando llegue de verdad.'];
+    return `<div class="velo" data-acc="velo"><div class="hoja" data-ancho="mediana" role="alertdialog" aria-modal="true" aria-label="Cancelar la recepción">
+      <h2>Cancelar la recepción de ENV-00000${id}</h2><p class="fr">${sin ? 'Llegó sin aviso' : 'Textiles Andina · guía G-2231'} · abierto hoy a las 09:08.</p>
+      <div class="resu" aria-label="Qué pasa"><div><span>Qué pasa con el envío</span><b>${dest[0]}</b></div><div><span>Lo que contaste</span><b>${sin ? '3 prendas · 2 modelos' : '14 prendas · 3 modelos'} se descartan</b></div>
+        ${sin ? '<div><span>Modelos nuevos «por crear»</span><b>1 se descarta (no se crea)</b></div>' : ''}<div><span>Ya entró al stock</span><b>${n ? n + ' prendas se quedan' : 'Nada'}</b></div></div>
+      <div class="nota">${ic('info')}<span>${dest[1]}</span></div>
+      ${n ? `<div class="aviso-l">${ic('alerta')}<span><b>${n} prendas ya entraron al stock y no se tocan.</b> Los movimientos no se deshacen. Si no eran de la tienda, saca esas prendas con un ajuste de inventario después de cancelar.</span></div>` : ''}
+      <div class="campo"><label>Por qué se cancela<em>*</em></label>
+        <div class="motivos">${['Se abrió por error', 'Llegó a otra sede', 'Lo mandaron mal', 'Otro'].map((m) => `<button data-acc="motivo" data-v="${m}" class="${S.motivo === m ? 'on' : ''}">${m}</button>`).join('')}</div>
+        <input class="pozo" id="f-motivo" placeholder="Escríbelo con tus palabras (queda en el rastro del envío)" value="${S.motivo.replace(/"/g, '&quot;')}" maxlength="300" autocomplete="off" style="margin-top:6px"></div>
+      ${resp()}
+      <div class="pie"><button class="btn sec" data-acc="cerrar">Seguir recibiendo</button><button class="btn pel" data-acc="ok-cancelar" id="b-cancelar" ${ok ? '' : 'disabled'}>${ic('prohibido')}Cancelar recepción</button></div>
+    </div></div>`;
+  }
+
+  /* ---------------- avisos ---------------- */
+  function toast(titulo, det, deshacer) {
+    const t = document.createElement('div'); t.className = 'toast';
+    t.innerHTML = `<span class="v">${ic('ok')}</span><div><b>${titulo}</b>${det ? `<small>${det}</small>` : ''}${deshacer ? `<button class="btn enl" data-acc="deshacer">${ic('deshacer')}Deshacer</button>` : ''}</div>`;
+    $('#toasts').appendChild(t); setTimeout(() => t.remove(), deshacer ? 7000 : 4500);
+    if (deshacer) t.querySelector('[data-acc="deshacer"]').onclick = () => { deshacer(); t.remove(); pintar(); };
+  }
+
+  /* ---------------- pintar ---------------- */
+  let ultEscena = null, ultHoja = null;
+  function pintar() {
+    const h = S.hoja, claveHoja = h ? h.que + (h.cual || '') + (h.id || '') : '';
+    $('#cont').classList.toggle('quieta', ultEscena === S.escena);
+    $('#capa').classList.toggle('quieta', ultHoja === claveHoja);
+    ultEscena = S.escena; ultHoja = claveHoja;
+    html.dataset.tema = S.tema; html.dataset.eliminar = S.eliminar;
+    $('#disp').dataset.ancho = S.ancho;
+    $('#cont').innerHTML = S.escena === 'lista' ? lista() : contando();
+    $('#capa').innerHTML = (S.menu ? (S.menu.tipo === 'mas' ? menuMas() : menuFila()) : '') + (!h ? '' : h.que === 'modelo' ? hojaModelo() : h.que === 'nopuede' ? hojaNoPuede() : h.que === 'grupo' ? hojaGrupo() : h.que === 'cancelar' ? hojaCancelar() : hojaConfirma());
+    const mn = $('#capa .menu');
+    if (mn) { const an = S.menu.tipo === 'mas' ? $('[data-acc="menu-mas"]') : $(`[data-acc="menu-fila"][data-id="${S.menu.id}"]`), d = $('#disp').getBoundingClientRect(), r = an.getBoundingClientRect(); mn.style.top = (r.bottom - d.top + 6) + 'px'; mn.style.right = Math.max(12, d.right - r.right) + 'px'; }
+    $$('.seg-m').forEach((g) => $$('button', g).forEach((b) => { b.classList.toggle('on', String(S[g.dataset.ctl]) === b.dataset.v); }));
+  }
+  const abrirModelo = () => { S.borr = { nombre: S.m.nombre }; S.hoja = { que: 'modelo' }; S.combo = null; };
+  const abrirGrupo = (foco = 'cat', quitar = false) => { S.borr = { cat: S.g.cat, marca: S.g.marca, foco }; S.hoja = { que: 'grupo', quitar }; S.combo = null; };
+  const quitarMod = () => { S.hoja = null; S.m.presente = false; pintar(); toast('«' + S.m.nombre + '» salió del envío', 'Se quitó su conteo. No se creó nada en el catálogo.', () => { S.m.presente = true; }); };
+  const quitarGrupo = () => { S.hoja = null; S.g.presente = false; pintar(); toast(S.g.cat + ' salió del envío', 'Se quitó lo que contaste de ella (3 prendas). No se creó nada en el catálogo.', () => { S.g.presente = true; }); };
+  const puedeQuitarGrupo = () => +S.stock === 0 && MM() !== 'creado1';
+
+  /* ---------------- eventos ---------------- */
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-ctl] button');
+    if (b) { const k = b.parentElement.dataset.ctl; S[k] = b.dataset.v; if (S.hoja && S.hoja.que === 'modelo') abrirModelo(); if (S.hoja && S.hoja.que === 'grupo') abrirGrupo(S.borr.foco, S.hoja.quitar); pintar(); return; }
+    if (ev.target.closest('#reset')) { S = ESTADO0(); pintar(); return; }
+    const el = ev.target.closest('[data-acc]'); if (!el) { if (S.menu || S.combo) { S.menu = null; S.combo = null; pintar(); } return; }
+    const a = el.dataset.acc, id = el.dataset.id;
+    if (a === 'velo') { if (ev.target === el) { S.hoja = null; S.combo = null; pintar(); } return; }
+    if (a !== 'combo' && a !== 'elige' && S.combo) S.combo = null;
+    if (a !== 'menu-fila' && a !== 'menu-mas' && S.menu && !el.closest('.menu')) S.menu = null;
+    if (el.getAttribute('aria-disabled') === 'true' && a === 'quitar-grupo') { S.hoja.quitar = true; pintar(); return; }
+    switch (a) {
+      case 'seguir': S.escena = 'contando'; S.menu = null; break;
+      case 'volver': S.escena = 'lista'; S.menu = null; break;
+      case 'menu-fila': S.menu = S.menu && S.menu.id === id ? null : { tipo: 'fila', id }; break;
+      case 'menu-mas': S.menu = S.menu ? null : { tipo: 'mas' }; break;
+      case 'cancelar-rec': S.menu = null; S.motivo = ''; S.hoja = { que: 'cancelar', id: +id }; break;
+      case 'motivo': S.motivo = el.dataset.v === 'Otro' ? '' : el.dataset.v; break;
+      case 'ok-cancelar': {
+        const e = S.envios[S.hoja.id]; S.motivoFinal = S.motivo; e.estado = e.sin ? 'anulado' : 'camino'; S.hoja = null; S.escena = 'lista';
+        pintar(); toast(e.sin ? 'ENV-000004 anulado' : 'ENV-000003 volvió a «En camino»', 'Lo que contaste se descartó. Quedó el rastro, a tu nombre.'); return;
+      }
+      case 'lapiz-mod': abrirModelo(); break;
+      case 'lapiz-grupo': abrirGrupo(el.dataset.foco || 'cat'); break;
+      case 'papelera-mod': if (MM() === 'porcrear') { quitarMod(); return; } S.hoja = { que: 'conf', cual: MM() === 'creado0' ? 'eliminar-mod' : 'desactivar-mod' }; break;
+      case 'papelera-grupo': if (puedeQuitarGrupo()) { quitarGrupo(); return; } S.hoja = { que: 'nopuede' }; break;
+      case 'quitar-mod': quitarMod(); return;
+      case 'quitar-grupo': quitarGrupo(); return;
+      case 'eliminar-mod': case 'desactivar-mod': S.hoja = { que: 'conf', cual: a }; break;
+      case 'combo': S.combo = S.combo === id ? null : id; break;
+      case 'elige': S.borr[id] = el.dataset.v === 'Sin marca' ? null : el.dataset.v; S.borr.foco = id === 'cat' ? 'marca' : null; S.combo = null; break;
+      case 'guardar-mod': S.m.nombre = ($('#f-nombre') || {}).value.trim() || S.m.nombre; S.hoja = null; pintar(); toast('«' + S.m.nombre + '» se actualizó', MM() === 'porcrear' ? 'Se creará con este nombre al cerrar el envío.' : 'El nombre ya vale en todo el ERP.'); return;
+      case 'guardar-grupo': S.g.cat = S.borr.cat; S.g.marca = S.borr.marca; S.hoja = null; pintar(); toast('Lo que llegó se actualizó', S.g.cat + ' · ' + marcaTxt() + '. El conteo no cambió.'); return;
+      case 'ok-eliminar-mod': case 'ok-desactivar-mod': S.m.presente = false; S.hoja = null; pintar(); toast(a === 'ok-eliminar-mod' ? '«' + S.m.nombre + '» se eliminó' : '«' + S.m.nombre + '» se desactivó', a === 'ok-eliminar-mod' ? 'Ya no está en el catálogo ni en este envío.' : 'Su historia se conserva. Se puede reactivar desde Productos.'); return;
+      case 'sel': S.sel = el.dataset.v; break;
+      case 'op': S.op = el.dataset.v; break;
+      case 'cerrar': S.hoja = null; break;
+      case 'nada': return;
+    }
+    pintar();
+  });
+  document.addEventListener('input', (ev) => {
+    if (ev.target.id === 'f-motivo') { S.motivo = ev.target.value; const b = $('#b-cancelar'); if (b) b.disabled = S.motivo.trim().length < 3; $$('.motivos button').forEach((x) => x.classList.toggle('on', x.dataset.v === S.motivo)); }
+  });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { if (S.combo) { S.combo = null; } else if (S.menu) { S.menu = null; } else if (S.hoja) { S.hoja = null; } else return; ev.stopPropagation(); pintar(); } });
+
+  // Una vista exacta por el hash, para compartirla o capturarla: #escena=contando&hoja=grupo&foco=marca&tema=oscuro&ancho=movil&menu=mas
+  const q = new URLSearchParams(location.hash.slice(1));
+  q.forEach((v, k) => { if (!['hoja', 'menu', 'motivo', 'abre', 'foco', 'cambia', 'quitar'].includes(k)) S[k] = v; });
+  if (q.get('menu')) S.menu = q.get('menu') === 'mas' ? { tipo: 'mas' } : { tipo: 'fila', id: q.get('menu') };
+  if (q.get('motivo')) S.motivo = q.get('motivo');
+  const hh = q.get('hoja');
+  if (hh === 'modelo') abrirModelo();
+  else if (hh === 'grupo') { abrirGrupo(q.get('foco') || 'cat', !!q.get('quitar')); if (q.get('cambia')) { S.borr.marca = 'Cayla'; S.borr.foco = null; } }
+  else if (hh === 'cancelar') S.hoja = { que: 'cancelar', id: S.escena === 'contando' ? 4 : 3 };
+  else if (/^(eliminar|desactivar)-mod$/.test(hh || '')) S.hoja = { que: 'conf', cual: hh };
+  if (q.get('abre')) S.combo = q.get('abre');
+  pintar();
+})();
+</script>
+</body>
+</html>

@@ -29,6 +29,8 @@ import {
   repartirModelo,
   repartirOtroCambio,
   resumenDeCategoria,
+  sePuedeQuitarCategoria,
+  sePuedeQuitarModelo,
   SIN_FILTRO,
   SIN_PROVEEDOR,
 } from "./recepcion-modelos-reglas";
@@ -802,5 +804,25 @@ describe("la guía de foco", () => {
     const extra: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 4 }), clave: "extra:1", linea: null, dijeron: null };
     const categorias = categoriasDelEnvio(agruparLineas([extra]));
     expect(camposDelConteoPorModelo(categorias).map((c) => c.id)).toEqual([idCampoIdentificar("extra:1")]);
+  });
+});
+
+describe("la ✕ de quitar (Felipe 2026-11-03)", () => {
+  it("un modelo se puede quitar solo si la persona lo agregó y nada de él entró al stock", () => {
+    expect(sePuedeQuitarModelo({ anotada: null, enStock: 0 })).toBe(true);
+    // Lo que anotó Compras puede «no llegar», no desaparecer.
+    expect(sePuedeQuitarModelo({ anotada: { productoId: "p1", nombre: "Vestido Sofía", cantidad: 3 } as never, enStock: 0 })).toBe(false);
+    // Lo que ya entró al stock es historia.
+    expect(sePuedeQuitarModelo({ anotada: null, enStock: 2 })).toBe(false);
+  });
+
+  it("una categoría se quita solo si nada de ella venía en la guía y nada entró al stock", () => {
+    const fuera: LineaParaContar = { ...deLaGuia(linea("x", 0), { contadas: 4 }), clave: "extra:1", linea: null, dijeron: null };
+    const [soloFuera] = categoriasDelEnvio(agruparLineas([fuera]));
+    expect(sePuedeQuitarCategoria(soloFuera)).toBe(true);
+    const [conGuia] = categoriasDelEnvio(agruparLineas([deLaGuia(linea("g", 5), { contadas: 5 })]));
+    expect(sePuedeQuitarCategoria(conGuia)).toBe(false);
+    expect(sePuedeQuitarCategoria({ grupos: [{ ...soloFuera.grupos[0], enStock: 1 }] })).toBe(false);
+    expect(sePuedeQuitarCategoria({ grupos: [] })).toBe(false);
   });
 });

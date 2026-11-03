@@ -120,6 +120,18 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   .rc-cat:not([data-abierta]) .rc-cat-cabeza:hover { background: var(--rc-cat-encima); }
 }
 .rc-cat-cabeza:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+/* La ✕ junto al nombre de la placa. */
+.rc-titulo-fila { display: flex; align-items: center; gap: 4px; min-width: 0; }
+/* La ✕ de quitar una categoría o un modelo agregado: va sobre la fila (que es un botón entero), a la derecha, sin tocar su ancho. */
+.rc-cat-tira, .rc-modelos > li { position: relative; }
+.rc-cat-tira > .icono-quitar, .rc-modelos > li > .icono-quitar { position: absolute; top: 50%; translate: 0 -50%; z-index: 1; }
+.rc-cat-tira > .icono-quitar { right: 40px; }
+.rc-modelos > li > .icono-quitar { right: 6px; }
+.rc-cat-cabeza[data-con-quitar] { position: relative; padding-right: 76px; }
+.rc-cat-cabeza[data-con-quitar] .rc-cat-flecha { position: absolute; right: 14px; }
+.rc-modelo[data-con-quitar] { padding-right: 44px; }
+/* Contando el total de la categoría: la fila de arriba es la activa, como lo es un modelo. */
+.rc-cat .rc-cat-cabeza[data-activa] { background: var(--menu-activa-fondo); box-shadow: var(--menu-activa-sombra); }
 .rc-cat-cabeza .rc-cat-ic { flex: none; background: var(--color-vidrio); box-shadow: none; color: var(--color-pizarra); }
 .rc-cat-textos { display: grid; flex: 1 1 0; gap: 2px; min-width: 0; }
 .rc-cat-textos b { overflow: hidden; color: var(--color-tinta); font-size: 15px; font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }

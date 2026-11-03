@@ -31,6 +31,7 @@ import {
   type PrendaSeparada,
   type Separado,
   SIN_MARCA,
+  SEPARADO_VACIO,
   marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
 import {
@@ -39,6 +40,7 @@ import {
   idCampoIdentificar,
   lineaDeLaPrenda,
   minimoDelGrupo,
+  repartirSeparado,
   repartirTotal,
   type GrupoDeLineas,
   type Reparto,
@@ -64,6 +66,8 @@ import {
   paradaEnFoco,
   paradasDelGrupo,
   repartirModeloCon,
+  sePuedeQuitarCategoria,
+  sePuedeQuitarModelo,
   repartirOtroCambio,
   SIN_FILTRO,
   tipoDeParada,
@@ -71,6 +75,7 @@ import {
   type EstadoDelResumen,
   type FiltroDelConteo,
   type OrdenDelConteo,
+  type CategoriaDelEnvio,
   type ParadaDelConteo,
   type TipoDeModelo,
 } from "@/lib/recepcion-modelos-reglas";
@@ -355,6 +360,57 @@ export function ContarEnvio({
     });
   }
 
+  /**
+   * La ✕ (Felipe 2026-11-03): saca del envío lo que la persona agregó, un modelo o una categoría entera. Es lo mismo que ponerlo en cero y soltar lo separado, con su «Deshacer»
+   * (ley 7 de Formidable: se perdona, no se pregunta). Lo anotado por Compras y lo que ya entró al stock no se quitan: ni se ofrece la ✕.
+   */
+  function quitarConDeshacer(grupos: readonly GrupoDeLineas[], titulo: string, detalle: string, hacer: () => void) {
+    const antes = grupos.flatMap((g) => g.lineas.map((linea) => ({ linea, contadas: linea.conteo?.contadas ?? 0, separado: linea.conteo?.separado ?? SEPARADO_VACIO })));
+    const claves = new Set(antes.map((a) => a.linea.clave));
+    hacer();
+    // Lo agregado en esta visita se veía aunque estuviera en 0: ya no, o la categoría quitada seguiría en la lista.
+    setAgregados((ya) => new Set([...ya].filter((k) => !claves.has(k as ClaveLinea))));
+    setFoco(null);
+    setPlegadaEn(null);
+    setOtraCosa(false);
+    avisar.exito(titulo, {
+      detalle,
+      accion: {
+        texto: "Deshacer",
+        onClick: () => {
+          for (const a of antes) onEscribir(a.linea, { contadas: a.contadas, separado: a.separado });
+        },
+      },
+    });
+  }
+
+  function quitarModelo(p: ParadaDelConteo) {
+    const m = p.modelo;
+    if (!m || !sePuedeQuitarModelo(m)) return;
+    quitarConDeshacer([p.grupo], `«${m.nombre}» salió del envío`, "Se quitó su conteo. No se creó nada en el catálogo.", () => escribirEnParada(p, 0));
+  }
+
+  /** La ✕ de la placa: el modelo que se cuenta o, si se cuenta el total de la categoría, la categoría entera. */
+  const categoriaDe = (p: ParadaDelConteo) => todas.find((c) => c.grupos.some((g) => g.clave === p.grupo.clave));
+  const quitarDeLaPlaca = !parada
+    ? undefined
+    : parada.modelo
+      ? sePuedeQuitarModelo(parada.modelo)
+        ? () => quitarModelo(parada)
+        : undefined
+      : (() => {
+          const c = categoriaDe(parada);
+          return c && sePuedeQuitarCategoria(c) ? () => quitarCategoria(c) : undefined;
+        })();
+
+  function quitarCategoria(c: CategoriaDelEnvio) {
+    if (!sePuedeQuitarCategoria(c)) return;
+    const nombre = c.categoria?.nombre ?? "La categoría";
+    quitarConDeshacer(c.grupos, `${nombre} salió del envío`, `Se quitó lo que contaste de ella (${conMiles(c.contadas)}). No se creó nada en el catálogo.`, () => {
+      for (const g of c.grupos) aplicar(repartirSeparado(g, SEPARADO_VACIO, 0));
+    });
+  }
+
   /** Lo separado de un grupo cambió por otra cosa que el contador (llegó otra prenda, sus tallas, las sin nombre): lo contado lo sigue. */
   function escribirSeparado(g: GrupoDeLineas, s: Separado) {
     aplicar(repartirOtroCambio(g, s));
@@ -536,6 +592,8 @@ export function ContarEnvio({
           }}
           onAgregar={() => setHoja({ tipo: "agregar" })}
           onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
+          onQuitarModelo={quitarModelo}
+          onQuitarCategoria={quitarCategoria}
         />
 
         <section className="rc-panel rc-placa" aria-label="Cuántas llegaron">
@@ -587,6 +645,7 @@ export function ContarEnvio({
               onCerrar={onCerrar}
               onModo={(m) => elegirModo(parada, m)}
               onOtraCosa={() => setOtraCosa((v) => !v)}
+              onQuitar={quitarDeLaPlaca}
               observacion={
                 <AnotarObservacion
                   despachoId={detalle.id}

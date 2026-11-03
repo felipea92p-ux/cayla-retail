@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Plus, SearchX, Sparkles, Tag, Truck } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Buscador } from "@/components/ui/Buscador";
+import { BotonQuitar } from "@/components/ui/BotonQuitar";
 import { Chip } from "@/components/ui/Chip";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
@@ -25,6 +26,8 @@ import {
   origenDelGrupo,
   paradaContada,
   resumenDeCategoria,
+  sePuedeQuitarCategoria,
+  sePuedeQuitarModelo,
   SIN_FILTRO,
   tipoDeParada,
   type CategoriaDelEnvio,
@@ -86,15 +89,16 @@ function useFotosDeLaCategoria(c: CategoriaDelEnvio, enUso: boolean, onFotos: (f
   }, [enUso, clave, leida]);
 }
 
-function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void }) {
+function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir, onQuitar }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void; onQuitar?: (p: ParadaDelConteo) => void }) {
   const m = p.modelo;
   const cat = p.grupo.principal.categoria;
   const contadas = m ? m.contadas : p.grupo.contadas;
   const esperadas = m ? m.esperadas : p.grupo.dijeron;
   const cifras = esperadas != null ? <><b>{conMiles(contadas)}</b> de {conMiles(esperadas)}</> : <><b>{conMiles(contadas)}</b> {contadas === 1 ? "contada" : "contadas"}</>;
+  const quitable = !!onQuitar && !!m && sePuedeQuitarModelo(m);
   return (
     <li>
-      <button type="button" className="rc-modelo" data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
+      <button type="button" className="rc-modelo" data-con-quitar={quitable ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
         {cat && <MiniaturaPrenda fotoUrl={foto} tamano="md" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
         <span className="rc-modelo-textos">
           <span className="rc-modelo-nombre">
@@ -114,6 +118,7 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
         </span>
         {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : !paradaContada(p) && <Chip tono="neutro">Por contar</Chip>}
       </button>
+      {quitable && m && <BotonQuitar que={`${m.nombre} del envío`} onClick={() => onQuitar?.(p)} />}
     </li>
   );
 }
@@ -129,6 +134,8 @@ function Categoria({
   onPlegar,
   onElegir,
   onFotos,
+  onQuitarModelo,
+  onQuitarCategoria,
 }: {
   c: CategoriaDelEnvio;
   i: number;
@@ -140,6 +147,8 @@ function Categoria({
   onPlegar: (plegar: boolean) => void;
   onElegir: (p: ParadaDelConteo) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
+  onQuitarModelo: (p: ParadaDelConteo) => void;
+  onQuitarCategoria: (c: CategoriaDelEnvio) => void;
 }) {
   useFotosDeLaCategoria(c, abierta, onFotos);
   const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
@@ -151,6 +160,11 @@ function Categoria({
   const fuera = c.grupos.every((g) => !g.principal.linea);
   const idCuerpo = `rc-cat-${c.clave.replace(/[^a-zA-Z0-9]+/g, "-")}`;
   const pct = avanceDeCategoria(c);
+  // El total de la categoría (lo que se cuenta cuando no hay con qué separar los modelos) es la fila de arriba, no una más dentro (Felipe 2026-11-03: «Total de Abrigos» repetía lo mismo).
+  const total = c.paradas.find((p) => !p.modelo) ?? null;
+  const filas = c.paradas.filter((p) => p.modelo);
+  const totalActivo = !!total && enFoco?.clave === total.clave;
+  const quitable = sePuedeQuitarCategoria(c);
   return (
     <div className="rc-cat" data-abierta={abierta ? "" : undefined} style={{ "--i": i } as React.CSSProperties}>
       <div className="rc-cat-tira">
@@ -160,7 +174,12 @@ function Categoria({
           aria-current={esta ? "true" : undefined}
           aria-expanded={abierta}
           aria-controls={idCuerpo}
+          data-activa={totalActivo ? "" : undefined}
+          data-con-quitar={quitable ? "" : undefined}
+          data-campo={total ? idCampoParada(total) : undefined}
           onClick={() => {
+            // Con total, tocar la categoría es contar su total; ya contándolo, se pliega o se abre.
+            if (total) return totalActivo ? onPlegar(abierta) : onElegir(total);
             // La de lo que se cuenta se pliega y se vuelve a abrir sin cambiar lo que está en el contador (Felipe 2026-11-02). Abrir otra es ponerse a contar en ella: su primer modelo
             // sin contar, o el primero.
             if (esta) return onPlegar(abierta);
@@ -183,12 +202,13 @@ function Categoria({
           <MarcaCampo estado={estado} />
           <ChevronDown aria-hidden className="rc-cat-flecha h-4 w-4" />
         </button>
+        {quitable && <BotonQuitar que={`${nombre} del envío`} onClick={() => onQuitarCategoria(c)} />}
       </div>
       <div id={idCuerpo} className="rc-cat-cuerpo" inert={!abierta}>
         <div className="rc-cat-dentro">
           <ul className="rc-modelos">
-            {c.paradas.map((p) => (
-              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} />
+            {filas.map((p) => (
+              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} onQuitar={onQuitarModelo} />
             ))}
           </ul>
         </div>
@@ -219,6 +239,8 @@ export function ListaDelEnvio({
   onElegirPrimero,
   onAgregar,
   onFotos,
+  onQuitarModelo,
+  onQuitarCategoria,
 }: {
   categorias: readonly CategoriaDelEnvio[];
   /** Lo que el contador está contando ahora: su categoría va abierta, salvo que la persona la pliegue (`plegada`). */
@@ -247,6 +269,9 @@ export function ListaDelEnvio({
   onElegirPrimero: () => void;
   onAgregar: () => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
+  /** La ✕ de un modelo o de una categoría que la persona agregó: lo saca del envío (con «Deshacer»). */
+  onQuitarModelo: (p: ParadaDelConteo) => void;
+  onQuitarCategoria: (c: CategoriaDelEnvio) => void;
 }) {
   // Buscando o filtrando por estado se lee la lista: todas las que quedan, abiertas.
   const leyendo = !!filtro.texto.trim() || !!filtro.estado;
@@ -336,7 +361,7 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={leyendo || (esta && !plegada)} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onPlegar={onPlegar} onElegir={onElegir} onFotos={onFotos} />;
+            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={leyendo || (esta && !plegada)} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onPlegar={onPlegar} onElegir={onElegir} onFotos={onFotos} onQuitarModelo={onQuitarModelo} onQuitarCategoria={onQuitarCategoria} />;
           })}
         </nav>
         <div className="rc-lista-agregar">
