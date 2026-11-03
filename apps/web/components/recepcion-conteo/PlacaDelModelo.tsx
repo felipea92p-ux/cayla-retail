@@ -4,6 +4,7 @@ import { type MouseEvent, type ReactNode, type Ref } from "react";
 import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, RotateCcw, Sparkles, Tag } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
+import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Chip } from "@/components/ui/Chip";
@@ -213,8 +214,18 @@ export function PlacaDelModelo({
                 </button>
               )
             ) : (
-              modelo && (
-                <button type="button" className="rc-atajo rc-atajo-cero" data-hecho={noLlego ? "" : undefined} disabled={noLlego} onClick={() => poner(0)}>
+              // Sin aviso nadie dijo que venía: lo que no llegó, simplemente no se agrega.
+              modelo && !sinAviso && (
+                <button
+                  type="button"
+                  className="rc-atajo rc-atajo-cero"
+                  data-hecho={noLlego ? "" : undefined}
+                  disabled={noLlego}
+                  onClick={() => {
+                    poner(0);
+                    avisar.exito("Anotado: no llegó nada de este modelo");
+                  }}
+                >
                   <Ban aria-hidden className="h-4 w-4" />
                   No llegó nada
                 </button>
@@ -270,8 +281,8 @@ export function PlacaDelModelo({
         <div className="rc-seccion" data-guia="recepcion.que-hacer">
           <p className="rc-seccion-titulo">¿Qué deseas hacer?</p>
           <div className="rc-opciones" role="radiogroup" aria-label="¿Qué deseas hacer?">
-            {opcion("despues", "Solo la cantidad", "Queda guardada: no se vende hasta poner sus tallas.")}
-            {opcion("ahora", esNueva ? "Crearlo con sus tallas ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después, sus tallas." : "Con eso entra al stock al cerrar.")}
+            {opcion("despues", "Solo la cantidad", "Queda guardada: no se vende hasta terminarla.")}
+            {opcion("ahora", esNueva ? "Crearlo ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después repartes lo contado." : "Con eso entra al stock al cerrar.")}
           </div>
           {sinNumero && <p className="text-sm text-taupe">Primero cuenta cuántas llegaron. Después podrás poner tallas y colores.</p>}
         </div>

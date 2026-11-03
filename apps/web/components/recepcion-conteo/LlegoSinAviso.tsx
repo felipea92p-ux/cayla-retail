@@ -95,6 +95,7 @@ export function LlegoSinAviso({
     },
   });
 
+  const sinTurno = responsable.estado === "nadie" || responsable.estado === "sin_lectura";
   const campos = useGuiaCampos(
     [
       { id: "sin-aviso-proveedor", nombre: "De quién es", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es, o «No sé de quién es»." },
@@ -162,6 +163,8 @@ export function LlegoSinAviso({
           }}
           className="min-w-0 space-y-4"
         >
+          {/* Sin nadie que firme no se abre nada: se dice antes de llenar la hoja, no después (prueba ciega, 2026-11-03). */}
+          {sinTurno && <ComboResponsable control={responsable} />}
           <CampoGuiado id="sin-aviso-proveedor" guia={campos}>
             <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De quién es?")}</p>
             <Buscador valor={buscar} onCambio={setBuscar} placeholder="Busca el proveedor por nombre, marca o RUC" etiqueta="Buscar el proveedor" />
@@ -261,10 +264,12 @@ export function LlegoSinAviso({
                 placeholder="Ej. T001-000342"
               />
             </CampoGuiado>
-            <CampoGuiado id="sin-aviso-quien" guia={campos}>
-              <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-quien", "Quién recibe")}</p>
-              <ComboResponsable control={responsable} compacto />
-            </CampoGuiado>
+            {!sinTurno && (
+              <CampoGuiado id="sin-aviso-quien" guia={campos}>
+                <p className="mb-1.5 text-sm font-semibold text-tinta">{campos.etiqueta("sin-aviso-quien", "Quién recibe")}</p>
+                <ComboResponsable control={responsable} compacto />
+              </CampoGuiado>
+            )}
           </div>
 
           {error && (

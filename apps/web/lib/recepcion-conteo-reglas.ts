@@ -1266,9 +1266,11 @@ export function resumenDelCierre(lineas: readonly LineaParaContar[]): { sePueden
 
 /** La línea sobre el botón de cerrar: «Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.» */
 export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: number }): string {
-  const vender = `${r.sePuedenVender} ${r.sePuedenVender === 1 ? "se puede" : "se pueden"} vender ya`;
-  if (r.guardadas === 0) return `Al cerrar: ${vender}.`;
-  return `Al cerrar: ${vender} · ${r.guardadas.toLocaleString("es-PE")} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después.`;
+  // Al cerrar entran al almacén, no al piso: para venderlas todavía hay que bajarlas (prueba ciega, 2026-11-03).
+  const entran = `${r.sePuedenVender.toLocaleString("es-PE")} ${r.sePuedenVender === 1 ? "queda" : "quedan"} en el almacén; bájalas al piso para venderlas`;
+  const guardadas = `${r.guardadas.toLocaleString("es-PE")} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después`;
+  if (r.sePuedenVender === 0) return r.guardadas === 0 ? "Al cerrar: todavía no hay nada contado." : `Al cerrar: ${guardadas}.`;
+  return r.guardadas === 0 ? `Al cerrar: ${entran}.` : `Al cerrar: ${entran} · ${guardadas}.`;
 }
 
 export type VeredictoDelCerrado = {

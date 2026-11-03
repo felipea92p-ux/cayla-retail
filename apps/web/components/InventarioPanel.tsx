@@ -505,8 +505,13 @@ export function InventarioPanel({
   function irAPagina(n: number) {
     setPagina(n);
     // El paginador está al pie: al cambiar de página, que la tabla empiece a leerse desde arriba.
-    const tarjeta = tarjetaTablaRef.current;
-    if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+    // Después de dibujar: una última página corta dejaba la vista abajo, en blanco (prueba ciega, 2026-11-03).
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const tarjeta = tarjetaTablaRef.current;
+        if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+      }),
+    );
   }
   // «Reponer a piso hoy» filtra una tabla que queda más abajo, fuera de la vista: sin llevarla hasta ahí, el clic
   // parecía no hacer nada (solo cambiaba el fondo de la tarjeta). Se desplaza en el cuadro siguiente, cuando la tabla

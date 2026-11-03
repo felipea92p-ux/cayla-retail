@@ -46,6 +46,7 @@ type Props = {
 export function ComboResponsable({ control, deshabilitado = false, className = "", compacto = false, enLinea = false }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [revisado, setRevisado] = useState<string | null>(null);
   const raiz = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
@@ -140,29 +141,38 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   if (estado === "nadie" || estado === "sin_lectura") {
     const nadie = estado === "nadie";
     return (
-      <Aviso tono="atencion" className={className} titulo={nadie ? `Nadie de turno en ${sede}` : "No se pudo leer quién está de turno"}>
+      <Aviso tono="atencion" className={className} titulo={nadie ? `Nadie marcó entrada hoy en ${sede}` : "No se pudo leer quién está de turno"}>
         {nadie ? (
           <>
             {/* En el teléfono el título y los dos pasos bastan: este párrafo le quitaba al ticket la mitad del alto y dejaba ver
                 una sola prenda a la vez (verificado a 375 px, 2026-11-02). */}
             <p className="max-sm:hidden">
-              Para guardar, quien atiende tiene que haber marcado su <b className="font-semibold">entrada</b> hoy en esta tienda. Nadie lo
-              ha hecho todavía (la regla es la misma para los líderes).
+              Para guardar, quien atiende tiene que haber marcado su <b className="font-semibold">entrada</b> hoy en esta tienda (la regla es la misma para los líderes).
             </p>
             <ol className="ml-[18px] list-decimal sm:mt-2">
-              <li>Marca tu entrada en el kiosco de asistencia de la tienda.</li>
+              <li>Marca tu entrada en la computadora de la Terminal de marcaje.</li>
               <li>Vuelve aquí y toca «Actualizar lista».</li>
             </ol>
           </>
         ) : (
           <p>Revisa la conexión y vuelve a intentar. Sin esa lista no se puede elegir quién hace la operación.</p>
         )}
-        <Boton type="button" onClick={() => void control.recargar()} cargando={control.recargando} textoCargando="Actualizando…" className="mt-3 h-9">
+        <Boton
+          type="button"
+          onClick={() => {
+            void control.recargar().then(() => setRevisado(new Date().toLocaleTimeString("es-PE", { hour: "numeric", minute: "2-digit", timeZone: "America/Lima" })));
+          }}
+          cargando={control.recargando}
+          textoCargando="Actualizando…"
+          className="mt-3 h-9"
+        >
           <span className="flex items-center gap-2">
             <RefreshCw className="-my-1 h-3.5 w-3.5" aria-hidden />
             Actualizar lista
           </span>
         </Boton>
+        {/* Sin esto, tocarlo y seguir igual parecía que no hizo nada. */}
+        {nadie && revisado && <p role="status" className="mt-2 text-sm">Revisado a las {revisado}: todavía nadie.</p>}
       </Aviso>
     );
   }

@@ -222,7 +222,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 /* Por tocar resalta; ya hecho se apaga: lo que sigue es «Listo, siguiente», no este botón. */
 .rc-atajo-llegaron { border-color: color-mix(in srgb, var(--color-verde) 60%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 14%, var(--color-vidrio)), color-mix(in srgb, var(--color-verde) 30%, var(--color-vidrio))); box-shadow: var(--gota-luz); color: var(--color-verde-profundo); }
 .rc-atajo-llegaron[data-hecho] { border-color: transparent; background: color-mix(in srgb, var(--color-verde) 13%, transparent); box-shadow: none; color: var(--color-verde-profundo); cursor: default; }
-.rc-atajo-cero { background: transparent; color: var(--color-taupe-profundo); }
+.rc-atajo-cero { margin-top: 4px; background: transparent; color: var(--color-taupe-profundo); }
 .rc-atajo-cero[data-hecho] { border-color: transparent; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); color: var(--color-tinta); cursor: default; }
 @media (hover: hover) {
   .rc-suma button:hover { translate: 0 -1px; background: var(--gota-fondo-encima); }

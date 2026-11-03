@@ -442,7 +442,7 @@ describe("pasos del alta — cada problema cae en su paso (4 preguntas, spike v2
 describe("piePaso y siguienteDelAlta — el pie de cada paso y la línea de la ficha", () => {
   const listo = { listo: true, faltaElegir: false, motivo: null };
   const sinElegir = { listo: false, faltaElegir: true, motivo: "Elige quién hace esta operación." };
-  const nadie = { listo: false, faltaElegir: false, motivo: "Nadie de turno en TRU: marca tu entrada en el kiosco para poder guardar." };
+  const nadie = { listo: false, faltaElegir: false, motivo: "Nadie marcó entrada hoy en TRU: márcala en la Terminal de marcaje para poder guardar." };
 
   it("un paso con algo pendiente dice qué le falta", () => {
     const p = problemasAlta({ ...base, tejidoId: "" });
