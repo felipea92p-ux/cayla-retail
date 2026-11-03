@@ -459,6 +459,8 @@ export function vecinosDeLaParada(paradas: readonly ParadaDelConteo[], clave: st
 }
 
 export type CifrasDelResumen = {
+  /** Lo que agregó quien cuenta y sigue en 0: al cerrar no se pide, se descarta. */
+  agregadosEnCero: number;
   /** `null` en un envío sin aviso: no hay con qué comparar. */
   dijeron: number | null;
   contadas: number;
@@ -487,6 +489,7 @@ export function cifrasDelResumen(categorias: readonly CategoriaDelEnvio[], enAho
     if (paradaContada(p)) tipos[tipo].contados += 1;
   }
   return {
+    agregadosEnCero: paradas.filter((p) => p.modelo && !p.modelo.anotada && p.modelo.contadas === 0).length,
     dijeron,
     contadas,
     diferencia: grupos.reduce((a, g) => a + diferenciaDelGrupo(g, paradas.filter((p) => p.grupo.clave === g.clave)), 0),

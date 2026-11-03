@@ -157,7 +157,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-modelo-textos { display: grid; flex: 1 1 0; gap: 1px; min-width: 0; }
 .rc-modelo-nombre { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .rc-modelo-nombre b { overflow: hidden; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.rc-modelo-cifras { overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rc-modelo-cifras { color: var(--color-taupe); font-size: 14px; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .rc-modelo-cifras b { color: var(--color-tinta); font-weight: 600; }
 .rc-modelo .chip-cayla { flex: none; }
 /* Con la columna angosta el nombre va en su propia línea y el estado junto a las cifras: al lado de dos chips, «Vestido Sofía» se leía «Ve…». */

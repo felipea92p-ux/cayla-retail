@@ -249,6 +249,12 @@ describe("paradas: lo que el Dial puede contar", () => {
     expect(devolverModelo(antes, antes, { productoId: null, nombre: "Vestido Mar" })).toBe(antes);
   });
 
+  it("el resumen separa lo que falta contar de Compras de lo agregado en 0, que se descarta", () => {
+    const g = grupo(deLaGuia(sofia()), deLaGuia(lima(), { contadas: 0, separado: { prendas: [], nuevas: [{ cantidad: 0, descripcion: "Vestido Mar" }] } }));
+    const cifras = cifrasDelResumen(categoriasDelEnvio([g]));
+    expect(cifras.agregadosEnCero).toBe(1);
+  });
+
   it("el foco: la elegida; si ya no está, otra de su grupo; si no, la primera sin contar", () => {
     const hecho = { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } };
     const paradas = categoriasDelEnvio(agruparLineas([deLaGuia(sofia(), hecho), deLaGuia(lima()), deLaGuia(linea("f", 2, { categoria: FALDAS }))])).flatMap((c) => c.paradas);
