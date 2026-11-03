@@ -278,6 +278,10 @@ export const PRUEBAS = [
   // la cuenta; el Taller conserva su bloqueo. ROLLBACK.
   "pruebas:recibir-lo-propio",
 
+  // Quien solo tiene Recibir mira lo que llega a SU sede (ADR-0387, actualización 2026-11-03, Felipe): el detalle, los conteos, las
+  // observaciones, las listas y la foto del papel; Órdenes de compra, el dinero de Compras y el líder siguen viendo todas. ROLLBACK.
+  "pruebas:recibir-lee-su-sede",
+
   // El costo propio por prenda al cerrar un envío (ADR-0519, Felipe 2026-10-26): la prenda con tallas entra con su costo y las demás con el de
   // su línea; lo pendiente se detalla después con el costo de su prenda; se valida como el de la línea; un costo fuera de lo normal pide
   // confirmar; sin costos propios todo sigue igual. ROLLBACK.
