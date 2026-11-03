@@ -26,6 +26,7 @@ import {
   agruparPorTela,
   cantidadTexto,
   loteMasAntiguoConSaldo,
+  origenDeLote,
   textoDeCompra,
   textoDeMovimiento,
   tramoDeSaldo,
@@ -436,9 +437,11 @@ function FilaInsumo({
                     <div className="min-w-0">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
                       <p className="mt-1 truncate text-tinta/65">
-                        {l.origen === "saldo_inicial" ? "saldo inicial" : "compra"} · {diaMes(l.ingreso)}
+                        {origenDeLote(l)} · {diaMes(l.ingreso)}
                         {l.documento ? ` · ${l.documento}` : ""}
                       </p>
+                      {/* La nota del ingreso (la cuenta de kilos a metros, o «Encontré tela») a la vista, no escondida: P11 del análisis del Taller. */}
+                      {l.nota && <p className="mt-0.5 truncate text-tinta/65" title={l.nota}>{l.nota}</p>}
                     </div>
                     <span className="whitespace-nowrap tabular-nums text-tinta">
                       {/* «quedan de entraron»: dos cifras iguales sin nombre no decían cuál era cuál (P11 del análisis del Taller). */}

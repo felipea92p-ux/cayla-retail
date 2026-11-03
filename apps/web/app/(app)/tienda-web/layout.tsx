@@ -4,5 +4,6 @@
 // permiso leía «Tu rol no ve "Resumen de la tienda web"» (revisión funcional, 2026-10-16). Igual que Gestión (ADR-0392). El candado real
 // sigue en la base.
 export default function TiendaWebLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  // Sin lugar propio (`contents`): solo le da al grupo el vidrio de sus bloques (estilos/vidrio/tienda-web.css).
+  return <div className="tienda-web-vidrio contents">{children}</div>;
 }
