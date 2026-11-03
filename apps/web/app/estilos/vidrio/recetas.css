@@ -242,8 +242,10 @@
 
   /* ---------- el Punto de Venta con vidrio (docs/maquetas/vender-vidrio-2026-11/; piezas en vidrio/vender.css) ---------- */
   /* «A · Catálogo al aire, ticket en placa»: el ticket es la placa Serena más llena (72 → 52 %) y con más desenfoque que una tarjeta de
-     cifra: sobre él se arma la venta y pasan las fotos del catálogo por detrás. */
-  --ticket-placa-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-vidrio) 52%, transparent));
+     cifra: sobre él se arma la venta y pasan las fotos del catálogo por detrás.
+     Felipe 2026-11-03 («¿por qué no tiene el efecto glass?», docs/maquetas/tarjeta-prenda-vidrio-2026-11/ y prueba con la Aurora real): al
+     72 → 52 % el vidrio tapaba la Aurora y se leía como blanco; baja a 50 → 22 % en diagonal («B»). Lo usan el ticket de Vender y el de Apartar. */
+  --ticket-placa-fondo: linear-gradient(160deg, color-mix(in srgb, var(--color-vidrio) 50%, transparent), color-mix(in srgb, var(--color-vidrio) 22%, transparent));
   --ticket-placa-filtro: blur(26px) saturate(1.6);
   --ticket-placa-sombra: inset 0 1px 0 var(--color-vidrio), 0 30px 60px -34px color-mix(in srgb, var(--color-sombra) 50%, transparent);
   --ticket-placa-radio: 24px;
@@ -333,7 +335,7 @@
   --lente-paso-hilo-hecho: color-mix(in srgb, var(--color-verde) 70%, transparent);
   /* «A · Placa con su pico»: el paso abierto es la placa más llena del ticket de Vender (72 → 52 %) y su pico, el vidrio de arriba de
      esa placa (72 %), parejo. */
-  --placa-paso-fondo: var(--ticket-placa-fondo);
+  --placa-paso-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-vidrio) 52%, transparent)); /* el 72 → 52 % de antes: el pico de arriba (72 %) tiene que seguir calzando */
   --placa-paso-pico: color-mix(in srgb, var(--color-vidrio) 72%, transparent);
 
   /* ---------- Comprobantes (docs/maquetas/comprobantes-vidrio-2026-11/; piezas en vidrio/comprobantes.css) ---------- */
@@ -461,6 +463,7 @@
     --tubo-relleno-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent);
     /* El Punto de Venta: en oscuro el ticket es vidrio parejo y casi lleno (sobre el negro cálido el degradado no se ve) y las sombras, negras. */
     --ticket-placa-fondo: color-mix(in srgb, var(--color-vidrio) 78%, transparent);
+    --placa-paso-fondo: color-mix(in srgb, var(--color-vidrio) 78%, transparent);
     --ticket-placa-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 30px 60px -34px var(--color-sombra);
     --foto-al-aire-sombra: 0 18px 30px -20px var(--color-sombra);
     --foto-al-aire-sombra-encima: 0 24px 36px -20px var(--color-sombra);
@@ -543,6 +546,7 @@
     --espera-halo: var(--color-crema);
     --version-agua-opacidad: 1;
     --ticket-placa-fondo: var(--color-papel);
+    --placa-paso-fondo: var(--color-papel);
     --vidrio-claro-fondo: var(--color-papel);
     --placa-prenda-fondo: var(--color-papel);
     --estante-fondo: var(--color-papel);
