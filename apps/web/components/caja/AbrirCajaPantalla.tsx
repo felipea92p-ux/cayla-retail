@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { Aviso } from "@/components/ui/Aviso";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { Chip } from "@/components/ui/Chip";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { campoEtiqueta, campoTexto } from "@/components/ui/Modal";
@@ -16,7 +19,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ContarCajonHoja } from "@/components/caja/ContarCajonHoja";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { estadoApertura, hayConteo, montoEscrito, textoFalta, type ConteoCajon } from "@/lib/caja-apertura-reglas";
+import { estadoApertura, hayConteo, montoEscrito, textoFaltas, type ConteoCajon } from "@/lib/caja-apertura-reglas";
 import { estadoCierre } from "@/lib/historial-cierres-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { CierreCaja } from "@/lib/caja";
@@ -73,13 +76,18 @@ export function AbrirCajaPantalla({
   // Abrir caja guarda en la tienda: pide Responsable (ADR-0161).
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
 
-  const { monto, diferencia, pideMotivo, listo, falta } = estadoApertura({ texto, esperado, motivo });
+  const { monto, diferencia, pideMotivo, ilegible, listo, falta } = estadoApertura({ texto, esperado, motivo });
+  // Un solo envío a la vez: el estado `loading` se apaga con el siguiente render, y dos clics en el mismo instante lo pasaban (/chaos, 2026-11-03).
+  const enCurso = useRef(false);
+  // TODO lo que falta, junto: el monto, la explicación de la diferencia y el responsable.
+  const faltas = textoFaltas(falta, !responsable.listo);
   const puedeAbrir = listo && responsable.listo && !loading;
   const nombreResponsable = [...responsable.lista.elegibles, ...responsable.lista.enPausa].find((p) => p.personaId === responsable.elegidoId)?.nombre ?? responsable.firmaDeRespaldo ?? "—";
 
   async function abrir(e: React.FormEvent) {
     e.preventDefault();
-    if (!puedeAbrir || monto === null) return;
+    if (!puedeAbrir || monto === null || enCurso.current) return;
+    enCurso.current = true;
     setLoading(true);
     const supabase = createClient();
     const { error } = await firmar(
@@ -94,6 +102,7 @@ export function AbrirCajaPantalla({
     setLoading(false);
     responsable.despues(error);
     if (error) {
+      enCurso.current = false;
       avisar.error(traducirError(error, "abrir la caja"));
       return;
     }
@@ -112,13 +121,25 @@ export function AbrirCajaPantalla({
     );
   }
 
-  const hora = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
   const cifras = [
     ayer ? { clave: "ayer", etiqueta: "Ayer", valor: moneyEntero(ayer.total) } : null,
     meta ? { clave: "meta", etiqueta: "Meta", valor: moneyEntero(meta) } : null,
     horaCierre ? { clave: "cierre", etiqueta: "Cierras", valor: horaCierre } : null,
   ].filter((c): c is { clave: string; etiqueta: string; valor: string } => c !== null);
   const serie = [...recientes].reverse();
+  const botonAbrir = (
+    <Boton
+      peso="primario"
+      cargando={loading}
+      textoCargando="Abriendo…"
+      type="submit"
+      disabled={loading || !puedeAbrir}
+      title={responsable.motivo ?? undefined}
+      className="w-full !h-14 !text-base"
+    >
+      {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+    </Boton>
+  );
 
   return (
     <div className="pantalla-en-vidrio">
@@ -158,7 +179,9 @@ export function AbrirCajaPantalla({
             autoFocus
             placeholder="0.00"
             value={texto}
-            onChange={(e) => setTexto(e.target.value.replace(/[^0-9.,]/g, ""))}
+            readOnly={loading}
+            aria-invalid={ilegible || undefined}
+            onChange={(e) => setTexto(e.target.value)}
             className="font-display w-full self-stretch py-0 !text-[44px] tabular-nums sm:!text-[64px]"
           />
         </div>
@@ -177,8 +200,13 @@ export function AbrirCajaPantalla({
               {diferencia === 0 ? "Cuadra con el cierre" : `${diferencia < 0 ? "Faltan" : "Sobran"} ${money(Math.abs(diferencia))}`}
             </Chip>
           )}
-          {monto !== null && diferencia === null && <Chip versalitas={false}>Primera apertura</Chip>}
         </div>
+
+        {ilegible && (
+          <Aviso tono="error" chico className="mt-2">
+            No se entiende el monto. Escribe solo el número, como 258.50.
+          </Aviso>
+        )}
 
         {pideMotivo && (
           <div className="mt-3 space-y-1.5">
@@ -191,13 +219,15 @@ export function AbrirCajaPantalla({
               // sugerir-fijo: el motivo de una diferencia no depende de nada elegido antes (no hay categoría ni familia): es una frase libre.
               placeholder="Ej.: se usó para dar vuelto"
               value={motivo}
+              readOnly={loading}
               onChange={(e) => setMotivo(e.target.value)}
               className={campoTexto}
             />
+            <p className="text-sm text-tinta/65">El líder de equipo lo verá en Inicio.</p>
           </div>
         )}
 
-        <button type="button" onClick={() => setContando(true)} className="btn-cayla btn-enlace mt-4 self-start">
+        <button type="button" onClick={() => setContando(true)} className="btn-cayla btn-enlace mt-3 inline-flex !h-8 items-center self-start">
           Contar billetes y monedas
         </button>
 
@@ -225,12 +255,9 @@ export function AbrirCajaPantalla({
       <aside className="card-cayla anim-sube flex min-w-0 flex-col p-6" style={{ "--i": 2 } as CSSProperties}>
         <p className="label-cayla text-[11px] text-taupe-profundo">Resumen</p>
         <dl className="mt-1.5 text-sm" data-guia="caja.resumen">
-          {esperado !== null && <Fila etiqueta="Debería haber" valor={money(esperado)} />}
-          {ultimo?.cerradaPorNombre && <Fila etiqueta="Cerró" valor={ultimo.cerradaPorNombre} />}
           <Fila etiqueta="Contaste" valor={monto === null ? "—" : money(monto)} fuerte />
           {esperado !== null && <Fila etiqueta="Diferencia" valor={diferencia === null ? "—" : diferencia === 0 ? "Ninguna" : `${diferencia < 0 ? "−" : "+"} ${money(Math.abs(diferencia))}`} />}
           <Fila etiqueta="Responsable" valor={nombreResponsable === "—" ? "—" : primerNombre(nombreResponsable)} />
-          <Fila etiqueta="Hora" valor={hora} />
         </dl>
 
         {cifras.length > 0 && (
@@ -246,22 +273,18 @@ export function AbrirCajaPantalla({
 
         <div className="mt-auto space-y-3.5 pt-5">
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div>
-            <Boton
-              peso="primario"
-              cargando={loading}
-              textoCargando="Abriendo…"
-              type="submit"
-              disabled={loading || !puedeAbrir}
-              title={responsable.motivo ?? undefined}
-              className="w-full !h-14 !text-base"
-            >
-              {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
-            </Boton>
-            {!listo && !loading && <p className="mt-2 text-center text-sm text-tinta/65">Falta: <b className="font-semibold text-tinta">{textoFalta(falta)}</b></p>}
+          <div className="hidden sm:block">
+            {botonAbrir}
+            {faltas && !loading && <p className="mt-2 text-center text-sm text-tinta/65">Falta: <b className="font-semibold text-tinta">{faltas}</b></p>}
           </div>
         </div>
       </aside>
+
+      {/* En el celular el botón no se queda al fondo de una página larga: la Isla lo trae a la mano (ADR-0479). */}
+      <BarraDeAbajo pegada className="flex-col items-stretch p-2.5 sm:hidden">
+        {faltas && !loading && <p className="px-1.5 text-center text-sm text-tinta/70">Falta: <b className="font-semibold text-tinta">{faltas}</b></p>}
+        {botonAbrir}
+      </BarraDeAbajo>
 
       {contando && (
         <ContarCajonHoja
@@ -291,8 +314,15 @@ function Fila({ etiqueta, valor, fuerte }: { etiqueta: string; valor: string; fu
 /** El momento de «Caja abierta»: lo abierto, quién y con cuánto, y a dónde seguir. */
 function CajaAbierta({ abierta, horaCierre, meta, puedeVender, alVer }: { abierta: Abierta; horaCierre: string | null; meta: number | null; puedeVender: boolean; alVer: () => void }) {
   const hora = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+  // En el celular la persona llega aquí desde el fondo de una página larga: «Caja abierta» se lleva a la vista.
+  const raiz = useRef<HTMLElement>(null);
+  // La pantalla nueva es otra cosa, no un bloque que se acortó: se suelta la reserva de PaginaEstable (ADR-0185) y se lleva la vista aquí (como el cobro de Vender).
+  useLayoutEffect(() => {
+    soltarPaginaEstable();
+    raiz.current?.scrollIntoView({ block: "start" });
+  }, []);
   return (
-    <section role="status" className="card-cayla anim-sube flex min-h-[56vh] flex-col items-center justify-center gap-2 p-8 text-center">
+    <section ref={raiz} role="status" className="card-cayla anim-sube flex min-h-[56vh] flex-col items-center justify-center gap-2 p-8 text-center">
       <span className="grid h-28 w-28 place-items-center rounded-full bg-verde/15 text-verde" aria-hidden>
         <Check className="h-14 w-14" />
       </span>

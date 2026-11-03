@@ -50,6 +50,8 @@ export type EstadoApertura = {
   /** Contra el último cierre: 0 = coincide, negativo = faltan, positivo = sobran; `null` = sin monto o sin cierre previo. */
   diferencia: number | null;
   pideMotivo: boolean;
+  /** Hay algo escrito y no se entiende como monto («3,50 (2 monedas)», «-5», «12 8 5»): la pantalla lo dice en vez de adivinarlo. */
+  ilegible: boolean;
   listo: boolean;
   /** Lo que falta para poder abrir, en el orden en que la persona lo resuelve. */
   falta: FaltaParaAbrir;
@@ -61,12 +63,21 @@ export function estadoApertura({ texto, esperado, motivo }: { texto: string; esp
   const pideMotivo = diferencia !== null && diferencia !== 0;
   const montoValido = monto !== null && monto >= 0;
   const falta: FaltaParaAbrir = !montoValido ? "monto" : pideMotivo && !motivoAperturaValido(motivo) ? "motivo" : null;
-  return { monto, diferencia, pideMotivo, listo: falta === null, falta };
+  return { monto, diferencia, pideMotivo, ilegible: texto.trim() !== "" && !montoValido, listo: falta === null, falta };
 }
 
-/** «Falta: el monto del cajón». Corto a propósito: se lee de un vistazo bajo el botón. */
+/** Lo que falta de los datos del cajón, corto a propósito: se lee de un vistazo bajo el botón. */
 export function textoFalta(falta: FaltaParaAbrir): string {
-  if (falta === "monto") return "el monto del cajón";
+  if (falta === "monto") return "el monto";
   if (falta === "motivo") return "qué pasó con la diferencia";
   return "";
+}
+
+/**
+ * «Falta: el monto y el responsable». TODO lo que falta, junto: antes nombraba una sola cosa y se apagaba con el responsable sin elegir,
+ * y la persona descubría lo que faltaba de a uno (prueba ciega de Formidable, 2026-11-03).
+ */
+export function textoFaltas(falta: FaltaParaAbrir, sinResponsable: boolean): string {
+  const lista = [textoFalta(falta), sinResponsable ? "el responsable" : ""].filter(Boolean);
+  return lista.join(" y ");
 }

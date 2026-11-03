@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DENOMINACIONES, estadoApertura, hayConteo, montoEscrito, sumaConteo, textoFalta } from "./caja-apertura-reglas";
+import { DENOMINACIONES, estadoApertura, hayConteo, montoEscrito, sumaConteo, textoFalta, textoFaltas } from "./caja-apertura-reglas";
 
 describe("sumaConteo", () => {
   it("suma billetes y monedas", () => {
@@ -60,8 +60,39 @@ describe("textos", () => {
     expect(montoEscrito(250)).toBe("250.00");
   });
   it("textoFalta dice lo que falta, corto", () => {
-    expect(textoFalta("monto")).toBe("el monto del cajón");
+    expect(textoFalta("monto")).toBe("el monto");
     expect(textoFalta("motivo")).toBe("qué pasó con la diferencia");
     expect(textoFalta(null)).toBe("");
+  });
+});
+
+describe("lo que no se entiende no se adivina (ataque de /chaos, 2026-11-03)", () => {
+  it("un pegado con texto es ilegible: no abre con un monto inventado", () => {
+    for (const texto of ["Total: 3,50 (2 monedas)", "12 8 5", "1e5", "abc"]) {
+      const e = estadoApertura({ texto, esperado: 258.5, motivo: "" });
+      expect(e, texto).toMatchObject({ monto: null, ilegible: true, listo: false, falta: "monto" });
+    }
+  });
+  it("un monto negativo tampoco abre: se dice que no se entiende", () => {
+    expect(estadoApertura({ texto: "-5", esperado: 258.5, motivo: "" })).toMatchObject({ ilegible: true, listo: false, falta: "monto" });
+  });
+  it("vacío no es ilegible (todavía no escribió nada)", () => {
+    expect(estadoApertura({ texto: "", esperado: 258.5, motivo: "" }).ilegible).toBe(false);
+    expect(estadoApertura({ texto: "   ", esperado: 258.5, motivo: "" }).ilegible).toBe(false);
+  });
+  it("un monto bien escrito no es ilegible", () => {
+    expect(estadoApertura({ texto: "258,50", esperado: 258.5, motivo: "" }).ilegible).toBe(false);
+  });
+});
+
+describe("textoFaltas", () => {
+  it("junta todo lo que falta", () => {
+    expect(textoFaltas("monto", true)).toBe("el monto y el responsable");
+    expect(textoFaltas("motivo", true)).toBe("qué pasó con la diferencia y el responsable");
+  });
+  it("una sola cosa, o ninguna", () => {
+    expect(textoFaltas(null, true)).toBe("el responsable");
+    expect(textoFaltas("monto", false)).toBe("el monto");
+    expect(textoFaltas(null, false)).toBe("");
   });
 });
