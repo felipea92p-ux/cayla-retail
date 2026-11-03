@@ -9,3 +9,10 @@
 - **Qué:** las 8 pestañas de Configuración pasan al vidrio con una sola pieza, `apps/web/app/estilos/vidrio/pantalla-en-vidrio.css`: el layout pone `.pantalla-en-vidrio` y sus bloques, campos, combos y tablas (kit de Finanzas) toman la placa Serena, el pozo y el hilo. Tienda web usa ahora la misma pieza; Finanzas sigue en papel (El telar). Solo cambia el material.
 - **Verificado:** `tema:auditar` en las 8 pestañas con 0 hallazgos solo en oscuro (los 2 heredados son los botones ahumados, que el auditor lee mal por el degradado); sin desborde a 1440 y 375 px; un combo abre su lista fuera de la placa, sin recortarse. Aprendido: un `@import` nuevo en `globals.css` no entra con el servidor corriendo ni reiniciándolo: hay que borrar `.next` (la caché de Turbopack).
 - **Falta:** los campos y combos del kit dentro de las hojas de Configuración (siguen en hueso) y `/formidable`. No se guardó ningún dato ni se abrió una hoja.
+
+# 2026-11-02 — Configuración a todo el ancho y /formidable
+
+- **Qué:** `/configuracion` sale de `CON_TOPE_DE_ANCHO`; WhatsApp y «Pregúntale a CAYLA» van lado a lado desde 1280 px y la pestaña pasa a «Reparto CLAURE» para que las 8 quepan. `/formidable` (informe en `docs/formidable/configuracion.md`): textos más claros (qué mide «Mínimo de caja», por qué existe el único «Guardar», qué meta manda) y errores en lenguaje de tienda. Ninguna regla cambia.
+- **Verificado:** capturas a 1920, 1440, 1280 y 375 sin desborde; `tema:auditar` de la pantalla final en «Tiendas y caja» (las demás pestañas, antes de los últimos textos); `guias:recorrer` de la guía, 39 pasos sin escribir; tipos, Vitest y Knip.
+- **Falta:** el error de lectura no se provocó en el navegador y la ciega no se repitió tras los textos; colaboradora real sin probar. Lo que Felipe decide (partir «Tiendas y caja», la guía de foco) queda en la lista aparte del informe.
+
