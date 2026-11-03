@@ -11,6 +11,7 @@
 
 import {
   anotadasDelGrupo,
+  lineaDeLaPrenda,
   repartirSeparado,
   sinIdentificarDelGrupo,
   idCampoIdentificar,
@@ -20,6 +21,7 @@ import {
 import {
   cambiarCantidadNuevaDescrita,
   cambiarCantidadPrenda,
+  costoDePrendaEnLinea,
   ID_CAMPO_AGREGAR,
   marcaDeLinea,
   prendasAnotadasDe,
@@ -210,6 +212,23 @@ export const sePuedeQuitarCategoria = (c: Pick<CategoriaDelEnvio, "grupos">): bo
 /** Lo que dice la fila o la placa de una parada: el modelo, o «Total de Vestidos». */
 export const nombreDeParada = (p: ParadaDelConteo): string => p.modelo?.nombre ?? `Total de ${p.grupo.principal.categoria?.nombre ?? "la categoría"}`;
 
+/**
+ * Cuánto cuesta cada prenda de lo que se cuenta, para verlo arriba, junto a su nombre (Felipe 2026-11-03: quien recibe lo ve): el costo propio de la prenda, o el de su línea, lo mismo con lo que
+ * abre Cerrar. La misma prenda comprada dos veces, o un total de varias líneas, puede tener más de uno. Un costo en 0 es que nadie lo dijo (lo que no viene de ninguna orden): no se muestra.
+ */
+export function costoDeLaParada(p: ParadaDelConteo): { desde: number; hasta: number } | null {
+  const m = p.modelo;
+  const nuevaDescrita = m && !m.productoId ? m.nombre : null;
+  const lineas = !m ? p.grupo.lineas : lineasDelModelo(p.grupo, m).length > 0 ? lineasDelModelo(p.grupo, m) : [lineaDeLaPrenda(p.grupo, m.productoId ? { productoId: m.productoId } : { descripcion: m.nombre })];
+  const costos = lineas.map((l) => costoDePrendaEnLinea(l, m?.productoId ?? null, nuevaDescrita)).filter((c): c is number => c != null && c > 0);
+  return costos.length > 0 ? { desde: Math.min(...costos), hasta: Math.max(...costos) } : null;
+}
+
+const conSoles = (n: number): string => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** «S/ 25.00», o «S/ 20.00 a S/ 25.00» si tiene más de uno. */
+export const textoDeCosto = (c: { desde: number; hasta: number }): string => (c.desde === c.hasta ? conSoles(c.desde) : `${conSoles(c.desde)} a ${conSoles(c.hasta)}`);
+
 /** La parada en la que se está: la que se eligió; si ya no está (se quitó ese modelo, o la esconde el filtro), otra de su grupo; si no, la primera sin contar. */
 export function paradaEnFoco(paradas: readonly ParadaDelConteo[], foco: string | null): ParadaDelConteo | null {
   if (foco) {
@@ -242,11 +261,20 @@ export type CategoriaDelEnvio = {
   variosOrigenes: boolean;
 };
 
+/** La llave de la categoría de un grupo: lo que no tiene categoría va solo. */
+export const claveDeCategoria = (g: Pick<GrupoDeLineas, "clave" | "principal">): string => g.principal.categoria?.id ?? g.clave;
+
+/**
+ * ¿La categoría se ve abierta? Lo normal es la de lo que se cuenta y, si se está leyendo la lista (buscando o filtrando por estado), todas. La persona la pudo dejar al revés a mano (`alternada`):
+ * abrir otra para mirarla no cambia lo que se cuenta (Felipe 2026-11-03; a la prueba ciega la sorprendió que cambiara).
+ */
+export const categoriaAbierta = (deLoQueSeCuenta: boolean, leyendo: boolean, alternada: boolean): boolean => (deLoQueSeCuenta || leyendo) !== alternada;
+
 /** Las categorías del envío sin repetir, en el orden en que aparece la primera línea de cada una. */
 export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaDelEnvio[] {
   const porCategoria = new Map<string, GrupoDeLineas[]>();
   for (const g of grupos) {
-    const k = g.principal.categoria?.id ?? g.clave;
+    const k = claveDeCategoria(g);
     const ya = porCategoria.get(k);
     if (ya) ya.push(g);
     else porCategoria.set(k, [g]);

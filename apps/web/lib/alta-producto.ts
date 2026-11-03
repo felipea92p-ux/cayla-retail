@@ -16,6 +16,7 @@
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
 import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
+import { sinBlancosDeMiles } from "./numero-escrito";
 
 const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
@@ -302,15 +303,18 @@ export function leerCantidad(texto: string): number | null {
   return Number(t);
 }
 
-/** Lo que admite una celda mientras se tipea: solo dígitos, hasta 4. Así una cantidad imposible ni se puede escribir.
- *  Lo de antes del primer número se ignora («S/ 12», « 12»). Un decimal se corta en su entero («2,5» → 2, «12,50» → 12): antes se
- *  borraba la coma y «2,5» se guardaba como 25 sin que nadie lo notara (/chaos 2026-10-28, semilla 2810). Una coma o un punto seguido de
- *  exactamente tres cifras es un millar («1,200», «1.200» → 1200). Lo que viene después del número se ignora («12 u.» → 12). */
-export function limpiarCantidad(texto: string, maxCifras = 4): string {
-  const t = texto.replace(/^\D+/, "");
-  const millar = /^(\d{1,3})[.,](\d{3})(?!\d)/.exec(t);
-  const entero = millar ? millar[1] + millar[2] : (/^\d*/.exec(t)?.[0] ?? "");
-  return entero.slice(0, maxCifras);
+/** Lo que queda en una celda de cantidad al teclear o pegar. Los miles se juntan («1,200», «1.200» y «1 200» son 1200). Todo lo demás se queda como se escribió, para que se vea y `leerCantidad` diga
+ *  que no es una cantidad: «2,5», «-3», «12 u.», «12345» o dos celdas pegadas de una hoja de cálculo («12 34»). Antes se borraba lo que no era un dígito, y como la caja se vuelve a dibujar en cada tecla, el 5
+ *  de «2,5» caía junto al 2 y se guardaba 25 sin que nadie lo notara (/chaos 2026-10-28; tecleándolo, Felipe 2026-11-03). Para leerla en una pantalla: `useCantidadEscrita`. */
+export function limpiarCantidad(texto: string): string {
+  const t = sinBlancosDeMiles(texto) ?? texto.trim();
+  return /^\d{1,3}([.,]\d{3})+$/.test(t) ? t.replace(/[.,]/g, "") : t;
+}
+
+/** Lo que se dice de lo escrito en una celda que no es una cantidad: mientras se escribe, o después de salir de ella, cuando ya volvió su número. */
+export function textoCantidadRechazada(escrito: string, alSalir: boolean): string {
+  const corto = escrito.length > 12 ? `${escrito.slice(0, 12)}…` : escrito;
+  return alSalir ? `«${corto}» no se guardó: las cantidades son números enteros, de 0 a 9999.` : `«${corto}» no es una cantidad: escribe un número entero, de 0 a 9999.`;
 }
 
 export type StockAlta = { total: number; invalidas: number; celdasConStock: number };

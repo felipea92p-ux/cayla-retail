@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ListChecks, Plus, Sparkles, X } from "lucide-react";
+import { avisar } from "@/components/ui/Avisos";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
@@ -55,8 +56,10 @@ export function PasoDePrendas({ valor, onValor, etiqueta, minimo = 0 }: { valor:
     onValor(n);
   };
   const terminar = () => {
-    const { contadas } = leerContadas(escribiendo ?? "");
+    const { contadas, problema } = leerContadas(escribiendo ?? "");
     const guardar = !dejarlo.current && contadas !== null && contadas >= minimo && contadas !== valor;
+    // «1.5» o «-5» no se guarda: el número vuelve a lo que era, y se dice por qué.
+    if (problema && !dejarlo.current) avisar.aviso(`${problema}: se quedó en ${valor}`);
     dejarlo.current = false;
     setEscribiendo(null);
     if (guardar) onValor(contadas);

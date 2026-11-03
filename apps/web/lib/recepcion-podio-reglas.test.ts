@@ -7,7 +7,7 @@ describe("podioDeCategoria", () => {
     expect(p.columnas.map((c) => [c.titulo, c.n, c.alto])).toEqual([
       ["Dijeron", 4, 100],
       ["Contaste", 4, 100],
-      ["Se venden", 3, 75],
+      ["A vender", 3, 75],
       ["Después", 1, 25],
     ]);
     expect(p.llave).toEqual({ texto: "cuadra", cuadra: true });

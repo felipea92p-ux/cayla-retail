@@ -2,9 +2,11 @@
 
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { limpiarCantidad } from "@/lib/alta-producto";
+import { leerCantidad } from "@/lib/alta-producto";
 import type { FilaFicha } from "@/lib/variantes-ficha-reglas";
 import type { ContextoFicha } from "./piezas";
 
@@ -75,6 +77,7 @@ export function UnidadesDeLasNuevas({
   total: number;
   deshabilitado?: boolean;
 }) {
+  const escrita = useCantidadEscrita();
   return (
     <div className="space-y-2">
       <div className="overflow-x-auto rounded-xl border border-sand">
@@ -104,6 +107,8 @@ export function UnidadesDeLasNuevas({
                   const etiqueta = `${f.nombre} · ${c.texto}`;
                   if (!incluida(f.id, c.id)) return <td key={c.id ?? "unica"} className="border-l border-sand px-2 py-1.5 text-center text-tinta/30">—</td>;
                   const n = valor(f.id, c.id);
+                  const clave = `${f.id ?? ""}|${c.id ?? ""}`;
+                  const invalida = escrita.invalida(clave);
                   return (
                     <td key={c.id ?? "unica"} className="border-l border-sand px-0.5 py-1.5 text-center sm:px-2">
                       <PasoCantidad
@@ -112,20 +117,40 @@ export function UnidadesDeLasNuevas({
                         className="matriz-paso mx-auto"
                         data-cambiada={n > 0 || undefined}
                         data-nueva
-                        menos={{ onClick: () => onPaso(f.id, c.id, -1), deshabilitado: deshabilitado || n <= 0, etiqueta: `Restar a ${etiqueta}` }}
-                        mas={{ onClick: () => onPaso(f.id, c.id, 1), deshabilitado, etiqueta: `Sumar a ${etiqueta}` }}
+                        tono={invalida ? "error" : undefined}
+                        menos={{
+                          onClick: () => {
+                            escrita.olvidar();
+                            onPaso(f.id, c.id, -1);
+                          },
+                          deshabilitado: deshabilitado || n <= 0,
+                          etiqueta: `Restar a ${etiqueta}`,
+                        }}
+                        mas={{
+                          onClick: () => {
+                            escrita.olvidar();
+                            onPaso(f.id, c.id, 1);
+                          },
+                          deshabilitado,
+                          etiqueta: `Sumar a ${etiqueta}`,
+                        }}
                         campo={{
                           type: "text",
                           inputMode: "numeric",
                           pattern: "[0-9]*",
-                          maxLength: 4,
+                          maxLength: 7,
                           autoComplete: "off",
                           "aria-label": `Con cuántas unidades nace ${etiqueta}`,
+                          "aria-invalid": invalida || undefined,
                           placeholder: "0", // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
-                          value: String(n),
+                          value: escrita.texto(clave) ?? String(n),
                           disabled: deshabilitado,
-                          onChange: (e) => onFijar(f.id, c.id, Number(limpiarCantidad(e.target.value) || 0)),
-                          onFocus: (e) => e.currentTarget.select(),
+                          onChange: (e) => escrita.escribir(clave, e.target.value, String(n), (v) => onFijar(f.id, c.id, leerCantidad(v) ?? 0)),
+                          onFocus: (e) => {
+                            escrita.empezar(clave, String(n));
+                            e.currentTarget.select();
+                          },
+                          onBlur: () => escrita.terminar(clave),
                           className: `@lg:w-9 placeholder:text-tinta/25 ${n > 0 ? "text-ambar-profundo" : ""}`,
                         }}
                       />
@@ -137,15 +162,36 @@ export function UnidadesDeLasNuevas({
           </tbody>
         </table>
       </div>
+      {escrita.problema && (
+        <Aviso tono="atencion" chico>
+          {escrita.problema}
+        </Aviso>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-tinta/80">
         <span>
           Entran <b className="font-serif text-[20px] font-medium tabular-nums text-tinta">{total}</b> {total === 1 ? "unidad" : "unidades"} al <b>almacén</b>
         </span>
         <span className="flex gap-1">
-          <button type="button" onClick={onTodas} disabled={deshabilitado} className="btn-cayla btn-sutil btn-chico">
+          <button
+            type="button"
+            onClick={() => {
+              escrita.olvidar();
+              onTodas();
+            }}
+            disabled={deshabilitado}
+            className="btn-cayla btn-sutil btn-chico"
+          >
             +1 a todas
           </button>
-          <button type="button" onClick={onCeros} disabled={deshabilitado || total === 0} className="btn-cayla btn-sutil btn-chico">
+          <button
+            type="button"
+            onClick={() => {
+              escrita.olvidar();
+              onCeros();
+            }}
+            disabled={deshabilitado || total === 0}
+            className="btn-cayla btn-sutil btn-chico"
+          >
             En 0
           </button>
         </span>

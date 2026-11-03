@@ -4,5 +4,6 @@ import { exigirModulo } from "@/lib/persona-actual";
 // El candado real sigue en la base; esto evita abrir una pantalla que después falla al guardar.
 export default async function ProduccionLayout({ children }: { children: React.ReactNode }) {
   await exigirModulo("produccion");
-  return <>{children}</>;
+  // Sin lugar propio (`contents`): las pantallas del grupo sin vidrio propio toman sus bloques y el kit de Finanzas al vidrio (estilos/vidrio/pantalla-en-vidrio.css).
+  return <div className="pantalla-en-vidrio contents">{children}</div>;
 }
