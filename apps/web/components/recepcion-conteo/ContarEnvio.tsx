@@ -32,6 +32,8 @@ import {
   type Separado,
   SEPARADO_VACIO,
   agregarModeloEnCero,
+  devolverModelo,
+  quitarModelo,
   renombrarModelo,
   agregarPrendaEnCero,
   marcaDeLinea,
@@ -83,6 +85,7 @@ import {
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
+import { QuitarModelo } from "./QuitarModelo";
 import { NuevoModelo, type ModeloPedido } from "./NuevoModelo";
 import { ElegirQuienCuenta } from "./ElegirQuienCuenta";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
@@ -115,6 +118,7 @@ type Hoja =
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
+  | { tipo: "quitar"; parada: string }
   | null;
 
 /** La mesa llena la ventana: dónde empieza depende de lo que tenga encima (la cabecera, un aviso). Lo mide, y lo vuelve a medir si cambia algo de eso. */
@@ -440,6 +444,29 @@ export function ContarEnvio({
     }
   }
 
+  /** El tacho. El aviso ofrece volverlo atrás: quitar uno por error no debería costar el conteo. */
+  function quitarModeloDe(p: ParadaDelConteo) {
+    const m = p.modelo;
+    if (!m) return;
+    const antes = p.grupo.separado;
+    const siguiente = paradasDelEnvio.find((x) => x.clave !== p.clave && !paradaContada(x)) ?? paradasDelEnvio.find((x) => x.clave !== p.clave) ?? null;
+    escribirSeparado(p.grupo, quitarModelo(antes, m));
+    if (parada?.clave === p.clave) setFoco(siguiente?.clave ?? null);
+    if (p.grupo.separado.prendas.length + p.grupo.separado.nuevas.length === 1) setAgregados((a) => new Set([...a].filter((k) => !p.grupo.lineas.some((l) => l.clave === k))));
+    avisar.exito(`Quitaste ${m.nombre}`, {
+      accion: {
+        texto: "Deshacer",
+        onClick: () => {
+          // Si era lo único de su línea, ya no está a la vista: se vuelve a mostrar.
+          const g = gruposVivos.current.find((x) => x.clave === p.grupo.clave) ?? p.grupo;
+          setAgregados((a) => new Set([...a, ...p.grupo.lineas.map((l) => l.clave)]));
+          escribirSeparado(g, devolverModelo(g.separado, antes, m));
+          setFoco(p.clave);
+        },
+      },
+    });
+  }
+
   /** El «+» de la categoría: el modelo cae en la línea de esa categoría y marca (o abre una) y queda en 0 en el contador. */
   async function crearModelo(m: ModeloPedido): Promise<string | null> {
     const { categoriaId } = m;
@@ -512,12 +539,13 @@ export function ContarEnvio({
 
   const categoriaDelModelo = hoja?.tipo === "modelo" && hoja.categoria ? (todas.find((c) => c.clave === hoja.categoria) ?? null) : null;
   const paradaAEditar = hoja?.tipo === "editar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
-  const grupoDeHoja = hoja && hoja.tipo !== "modelo" && hoja.tipo !== "editar" ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
+  const paradaAQuitar = hoja?.tipo === "quitar" ? (paradasDelEnvio.find((p) => p.clave === hoja.parada) ?? null) : null;
+  const grupoDeHoja = hoja && hoja.tipo !== "modelo" && hoja.tipo !== "editar" && hoja.tipo !== "quitar" ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
   // Vino en la guía sin decir qué modelos: lo que sigue es agregarlos.
   const sinModelos = todas.find((c) => c.paradas.length === 0 && !c.hayConteo) ?? null;
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
   const lineaDeHoja =
-    grupoDeHoja && hoja && hoja.tipo !== "modelo" && hoja.tipo !== "editar"
+    grupoDeHoja && hoja && hoja.tipo !== "modelo" && hoja.tipo !== "editar" && hoja.tipo !== "quitar"
       ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
       : null;
   const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
@@ -575,6 +603,7 @@ export function ContarEnvio({
           onAgregar={() => setHoja({ tipo: "modelo", categoria: null })}
           onAgregarModelo={(categoria) => setHoja({ tipo: "modelo", categoria })}
           onNoLlego={(c) => c.grupos.forEach((g) => aplicar(repartirTotal(g, 0)))}
+          onQuitar={(p) => (p.modelo && p.modelo.contadas > 0 ? setHoja({ tipo: "quitar", parada: p.clave }) : quitarModeloDe(p))}
           onFotos={(nuevas) => setFotos((f) => new Map([...f, ...nuevas]))}
         />
 
@@ -681,6 +710,8 @@ export function ContarEnvio({
           onFiltroEstado={(e: EstadoDelResumen | null) => cambiarFiltro({ ...filtro, estado: e, tipo: null })}
         />
       </div>
+
+      {paradaAQuitar?.modelo && <QuitarModelo modelo={paradaAQuitar.modelo} onQuitar={() => quitarModeloDe(paradaAQuitar)} onCerrar={() => setHoja(null)} />}
 
       {paradaAEditar?.modelo && paradaAEditar.grupo.principal.categoria && (
         <EditarModelo

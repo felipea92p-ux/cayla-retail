@@ -308,6 +308,9 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
 /** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */
 export const paradaDelNombre = (c: CategoriaDelEnvio, nombre: string): ParadaDelConteo | null => c.paradas.find((p) => p.modelo && normaliza(p.modelo.nombre) === normaliza(nombre)) ?? null;
 
+/** ¿Lleva tacho? Solo lo que agregó quien cuenta. Lo que anotó Compras no se borra: en 0 dice que no llegó y va al reclamo. Lo que ya entró al stock tampoco se quita desde aquí. */
+export const modeloSeQuita = (m: Pick<ModeloDelConteo, "anotada" | "enStock">): boolean => !m.anotada && m.enStock === 0;
+
 /** El nombre provisional de un modelo que nadie sabe cómo se llama: el primer «Blusa N» libre de la categoría. */
 export function nombrePorDefecto(prenda: string, c: Pick<CategoriaDelEnvio, "paradas"> | null): string {
   const usados = new Set((c?.paradas ?? []).map((p) => (p.modelo ? normaliza(p.modelo.nombre) : "")));

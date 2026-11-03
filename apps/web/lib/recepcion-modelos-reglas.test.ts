@@ -22,6 +22,7 @@ import {
   idCampoParada,
   modelosDelGrupo,
   hayQueIdentificar,
+  modeloSeQuita,
   modelosSinNombre,
   nombrePorDefecto,
   nombreDeParada,
@@ -39,7 +40,7 @@ import {
   paradaDelNombre,
   marcaSugeridaDelModelo,
 } from "./recepcion-modelos-reglas";
-import { agregarModeloEnCero, agregarPrendaEnCero, renombrarModelo } from "./recepcion-conteo-reglas";
+import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
 import { leerConteosDelEnvio, TOPES_CONTEO, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
@@ -222,6 +223,30 @@ describe("paradas: lo que el Dial puede contar", () => {
     const renombrado = renombrarModelo({ prendas: [], nuevas }, "vestido 1", { nombre: " Vestido  Luna ", nota: null });
     expect(renombrado.nuevas[0]).toEqual({ cantidad: 2, descripcion: "Vestido Luna" });
     expect(modelosSinNombre(categoriasDelEnvio(agruparLineas([extra(renombrado)])))).toEqual([]);
+  });
+
+  it("el tacho: solo en lo que agregó quien cuenta; al quitarlo baja lo contado", () => {
+    const sep = { prendas: [prendaSep("p-x", "Vestido Sol", 2)], nuevas: [{ cantidad: 3, descripcion: "Vestido Mar" }] };
+    const g = grupo(deLaGuia(sofia(), { contadas: 5, separado: sep }));
+    const quitan = modelosDelGrupo(g).map((m) => [m.nombre, modeloSeQuita(m)]);
+    expect(quitan).toEqual([["Vestido Sofía", false], ["Vestido Sol", true], ["Vestido Mar", true]]);
+    expect(modeloSeQuita({ anotada: null, enStock: 1 })).toBe(false);
+    const mar = modelosDelGrupo(g).find((m) => m.nombre === "Vestido Mar");
+    const sinMar = quitarModelo(g.separado, { productoId: mar?.productoId ?? null, nombre: "vestido mar" });
+    expect(sinMar.nuevas).toEqual([]);
+    expect(aplicar(g, repartirOtroCambio(g, sinMar).cambios).contadas).toBe(2);
+    expect(quitarModelo(g.separado, { productoId: "p-x", nombre: "Vestido Sol" }).prendas).toEqual([]);
+  });
+
+  it("«Deshacer» del tacho devuelve solo ese modelo: lo que se quitó después no revive", () => {
+    const antes: Separado = { prendas: [{ productoId: "p-x", nombre: "Vestido Sol", codigo: null, cantidad: 2, variantes: null }], nuevas: [{ cantidad: 3, descripcion: "Vestido Mar" }, { cantidad: 0, descripcion: "Vestido 1", porDefecto: true }] };
+    const sinUno = quitarModelo(antes, { productoId: null, nombre: "Vestido 1" });
+    const sinDos = quitarModelo(sinUno, { productoId: null, nombre: "Vestido Mar" });
+    const vuelve = devolverModelo(sinDos, antes, { productoId: null, nombre: "Vestido 1" });
+    expect(vuelve.nuevas).toEqual([{ cantidad: 0, descripcion: "Vestido 1", porDefecto: true }]);
+    const sinPrenda = quitarModelo(antes, { productoId: "p-x", nombre: "Vestido Sol" });
+    expect(devolverModelo(sinPrenda, antes, { productoId: "p-x", nombre: "Vestido Sol" }).prendas).toEqual(antes.prendas);
+    expect(devolverModelo(antes, antes, { productoId: null, nombre: "Vestido Mar" })).toBe(antes);
   });
 
   it("el foco: la elegida; si ya no está, otra de su grupo; si no, la primera sin contar", () => {

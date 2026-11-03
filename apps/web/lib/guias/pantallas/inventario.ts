@@ -1901,7 +1901,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.agregar-modelo",
       opcional: true,
       titulo: "Otro modelo de esta categoría",
-      texto: "Si llegaron dos modelos distintos de la misma categoría, cada uno se cuenta aparte. El «+» junto al check agrega otro: su nombre, su marca si tiene y, si quieres, una descripción. Si no sabes el nombre queda como «Blusa 1», y no se cierra hasta cambiarlo. En la demo no lo agregamos.",
+      texto: "Dos modelos de la misma categoría se cuentan aparte. El «+» junto al check agrega otro: su nombre, su marca si tiene y una descripción si quieres. Sin nombre queda como «Blusa 1», y no se cierra hasta cambiarlo. Si te equivocaste, el tacho de su fila lo quita. En la demo no lo agregamos.",
     },
     {
       id: "agregar",

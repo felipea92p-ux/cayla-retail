@@ -139,6 +139,14 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-cat[data-abierta] .rc-cat-cuerpo { grid-template-rows: 1fr; }
 .rc-cat-dentro { overflow: hidden; min-height: 0; }
 /* Los modelos cuelgan de su categoría: la raya del color de la categoría los junta. */
+/* El tacho de lo agregado: fuera del botón de la fila, sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
+.rc-modelo-fila { position: relative; }
+.rc-modelo[data-con-tacho] { padding-right: 40px; }
+.rc-modelo-tacho { position: absolute; top: 50%; right: 6px; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 999px; color: var(--rc-cat-suave); transform: translateY(-50%); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-modelo-tacho:hover { color: var(--color-rojo-profundo); background: var(--pozo-fondo); }
+}
+.rc-modelo-tacho:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
 .rc-modelos { display: grid; gap: 2px; margin: 0 0 8px 15px; padding: 2px 0 2px 8px; border-left: 2px solid var(--rc-cat-filo); }
 .rc-modelo { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 7px 10px 7px 7px; border-radius: 14px; text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
 @media (hover: hover) {

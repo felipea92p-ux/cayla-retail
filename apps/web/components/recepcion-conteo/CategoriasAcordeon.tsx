@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, Plus, SearchX, Sparkles, Tag, Truck } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Plus, SearchX, Sparkles, Tag, Truck, Trash2 } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
@@ -23,6 +23,7 @@ import {
   hayFiltro,
   idCampoCategoria,
   idCampoParada,
+  modeloSeQuita,
   nombreDeParada,
   origenDelGrupo,
   resumenDeCategoria,
@@ -91,15 +92,16 @@ function useFotosDeLaCategoria(c: CategoriaDelEnvio, enUso: boolean, onFotos: (f
   }, [enUso, clave, leida]);
 }
 
-function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void }) {
+function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onElegir, onQuitar }: { p: ParadaDelConteo; activa: boolean; conOrigen: boolean; foto: string | null; faltanTallas: boolean; sinAviso: boolean; onElegir: (p: ParadaDelConteo) => void; onQuitar: (p: ParadaDelConteo) => void }) {
   const m = p.modelo;
   const cat = p.grupo.principal.categoria;
   const contadas = m ? m.contadas : sinIdentificarDelGrupo(p.grupo);
   const esperadas = m ? m.esperadas : null;
+  const seQuita = !!m && modeloSeQuita(m);
   const cifras = esperadas != null ? <><b>{conMiles(contadas)}</b> de {conMiles(esperadas)}</> : <><b>{conMiles(contadas)}</b> {contadas === 1 ? "contada" : "contadas"}</>;
   return (
-    <li>
-      <button type="button" className="rc-modelo" data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
+    <li className="rc-modelo-fila">
+      <button type="button" className="rc-modelo" data-con-tacho={seQuita ? "" : undefined} data-activa={activa ? "" : undefined} data-campo={idCampoParada(p)} aria-current={activa ? "true" : undefined} onClick={() => onElegir(p)}>
         {cat && <MiniaturaPrenda fotoUrl={foto} tamano="md" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
         <span className="rc-modelo-textos">
           <span className="rc-modelo-nombre">
@@ -120,6 +122,11 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
         </span>
         {m ? <EstadoModelo m={m} faltanTallas={faltanTallas} sinAviso={sinAviso} /> : <Chip tono="ambar">Falta decir cuál</Chip>}
       </button>
+      {seQuita && m && (
+        <button type="button" className="rc-modelo-tacho" aria-label={`Quitar ${m.nombre}`} title={`Quitar ${m.nombre}`} onClick={() => onQuitar(p)}>
+          <Trash2 aria-hidden className="h-4 w-4" />
+        </button>
+      )}
     </li>
   );
 }
@@ -137,6 +144,7 @@ function Categoria({
   onFotos,
   onAgregarModelo,
   onNoLlego,
+  onQuitar,
 }: {
   c: CategoriaDelEnvio;
   i: number;
@@ -151,6 +159,7 @@ function Categoria({
   onAgregarModelo: () => void;
   /** Vino en la guía y no llegó nada: queda contada en 0. */
   onNoLlego: () => void;
+  onQuitar: (p: ParadaDelConteo) => void;
 }) {
   useFotosDeLaCategoria(c, abierta, onFotos);
   const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
@@ -208,7 +217,7 @@ function Categoria({
           )}
           <ul className="rc-modelos">
             {c.paradas.map((p) => (
-              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} />
+              <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} onQuitar={onQuitar} />
             ))}
           </ul>
         </div>
@@ -240,6 +249,7 @@ export function ListaDelEnvio({
   onAgregar,
   onAgregarModelo,
   onNoLlego,
+  onQuitar,
   onFotos,
 }: {
   categorias: readonly CategoriaDelEnvio[];
@@ -272,6 +282,8 @@ export function ListaDelEnvio({
   /** El «+» de una categoría: otro modelo para contar aparte. */
   onAgregarModelo: (categoria: string) => void;
   onNoLlego: (c: CategoriaDelEnvio) => void;
+  /** El tacho de un modelo agregado al contar. */
+  onQuitar: (p: ParadaDelConteo) => void;
   onFotos: (fotos: ReadonlyMap<string, string | null>) => void;
 }) {
   // Buscando o filtrando por estado se lee la lista: todas las que quedan, abiertas.
@@ -362,7 +374,7 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} />;
+            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} />;
           })}
         </nav>
         <div className="rc-lista-agregar">

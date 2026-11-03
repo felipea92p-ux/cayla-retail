@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 178,
+  "total": 181,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -42,6 +42,7 @@
     ],
     "components/recepcion-conteo/CategoriasAcordeon.tsx": [
       "button «{cat && <MiniaturaPrenda fotoUrl={foto}»",
+      "button «{`Quitar ${m.nombre}»",
       "button «{nombre}»",
       "button «{i === 0 ? \"recepcion.agregar-modelo\" : undefined}»",
       "button «No llegó nada»",
@@ -167,6 +168,10 @@
     "components/recepcion-conteo/PrendasDeLaPlaca.tsx": [
       "BotonEditar «Describir»",
       "button «Quitar»"
+    ],
+    "components/recepcion-conteo/QuitarModelo.tsx": [
+      "Boton «Cancelar»",
+      "Boton «Quitar»"
     ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
       "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",

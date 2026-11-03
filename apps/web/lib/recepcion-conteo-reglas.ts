@@ -231,6 +231,23 @@ export function renombrarModelo(s: Separado, nombre: string, cambio: { nombre: s
   };
 }
 
+/** El tacho: el modelo sale de lo separado, con lo que se había contado de él. */
+export function quitarModelo(s: Separado, m: { productoId: string | null; nombre: string }): Separado {
+  if (m.productoId) return quitarPrenda(s, m.productoId);
+  const clave = m.nombre.toLocaleLowerCase("es");
+  return { ...s, nuevas: s.nuevas.filter((n) => n.descripcion?.toLocaleLowerCase("es") !== clave) };
+}
+
+/** «Deshacer» del tacho: vuelve SOLO ese modelo, sobre lo que hay ahora. Si se restaurara todo lo de antes, revivirían los que se quitaron después. */
+export function devolverModelo(s: Separado, antes: Separado, m: { productoId: string | null; nombre: string }): Separado {
+  const clave = m.nombre.toLocaleLowerCase("es");
+  const prenda = m.productoId ? antes.prendas.find((p) => p.productoId === m.productoId) : undefined;
+  const nueva = m.productoId ? undefined : antes.nuevas.find((n) => n.descripcion?.toLocaleLowerCase("es") === clave);
+  if (prenda && !s.prendas.some((p) => p.productoId === prenda.productoId)) return { ...s, prendas: [...s.prendas, prenda] };
+  if (nueva && !s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave)) return { ...s, nuevas: [...s.nuevas, nueva] };
+  return s;
+}
+
 /** Una prenda del catálogo para contar aparte, en 0. Si ya estaba, queda como está. */
 export function agregarPrendaEnCero(s: Separado, p: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
   if (s.prendas.some((x) => x.productoId === p.productoId)) return s;
