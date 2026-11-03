@@ -86,6 +86,8 @@ import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import type { FilaConCategoria } from "@/lib/categoria-de-prenda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { useCantidadEscrita, type CantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
@@ -157,6 +159,7 @@ const PLANTILLA_LINEA = "@[46rem]:grid-cols-[1fr_4rem_6.5rem_3rem_9rem] @[60rem]
 
 /** La marca de los campos «Llegó»: Enter salta al siguiente campo marcado (y, tras el último, al escáner). */
 const MARCA_CONTEO = { "data-conteo": true };
+const CANTIDAD_QUE_LLEGO = reglaDeEntero();
 
 const CHIP_ESTADO: Record<EstadoLinea, TonoChip> = { sin_contar: "neutro", completa: "verde", faltan: "ambar", excede: "rojo" };
 const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
@@ -276,6 +279,7 @@ export function RecepcionEnvio({
   const [saliendoExtra, setSaliendoExtra] = useState<number | null>(null);
   const [verSugerencias, setVerSugerencias] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const escrita = useCantidadEscrita(CANTIDAD_QUE_LLEGO);
   // El resumen previo a recibir: el pedido ya armado y validado, a la espera del «Confirmar».
   const [pedidoListo, setPedidoListo] = useState<{ pedido: PedidoEnvio; movimientos: MovimientoDelEnvio[] } | null>(null);
   // Costo atípico (20260930124000): los extras (fuera de comprobante) cuyo costo la base marcó y que hay que confirmar (quien ve los
@@ -660,6 +664,8 @@ export function RecepcionEnvio({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
+    // Lo escrito en una cantidad no valió: antes de recibir lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     if (seleccionadas.length === 0) return void avisar.error("Marca al menos un comprobante.", { enfocar: "recibir-buscar" });
     if (porDecidir.length > 0) {
       const primera = lineas.find((l) => l.id === porDecidir[0].lineaId);
@@ -874,22 +880,29 @@ export function RecepcionEnvio({
                 key={destello?.id === l.id ? destello.n : 0}
                 className={destello?.id === l.id ? "anim-pop" : ""}
                 // El borde y el número dicen lo que llegó: se pasó, está completo, falta.
-                tono={excede ? "error" : completa ? "exito" : estado === "faltan" ? "atencion" : undefined}
+                tono={excede || escrita.invalida(`${l.id}:${l.varianteId}`) ? "error" : completa ? "exito" : estado === "faltan" ? "atencion" : undefined}
                 sinTab
                 // En tabla (panel ancho) el − / + se esconde hasta pasar el mouse por la fila o enfocarla; en tarjeta se ve siempre.
                 claseBotones="overflow-hidden transition-[width,background-color,color,transform] duration-200 ease-cayla @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                menos={{ onClick: () => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1)), etiqueta: "Una unidad menos" }}
-                mas={{ onClick: () => fijar(l.id, l.varianteId!, (llego ?? 0) + 1), etiqueta: "Una unidad más" }}
+                menos={{
+                  onClick: () => {
+                    escrita.olvidar();
+                    fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1));
+                  },
+                  etiqueta: "Una unidad menos",
+                }}
+                mas={{
+                  onClick: () => {
+                    escrita.olvidar();
+                    fijar(l.id, l.varianteId!, (llego ?? 0) + 1);
+                  },
+                  etiqueta: "Una unidad más",
+                }}
                 campo={{
-                  type: "number",
-                  min: 0,
-                  max: l.pendiente,
                   ...MARCA_CONTEO,
                   "aria-label": `Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`,
-                  value: reparto[l.id]?.[l.varianteId] ?? "",
                   placeholder: "—",
-                  onChange: (e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value)),
-                  onFocus: (e) => e.target.select(),
+                  ...escrita.campo(`${l.id}:${l.varianteId}`, String(reparto[l.id]?.[l.varianteId] ?? ""), (v) => fijar(l.id, l.varianteId!, v === "" ? null : Number(v))),
                   onKeyDown: (e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
@@ -951,7 +964,7 @@ export function RecepcionEnvio({
             Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.
           </Aviso>
         ) : (
-          <CurvaVariantes referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
+          <CurvaVariantes lineaId={l.id} escrita={escrita} referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
         )}
         {estado === "faltan" && (
           <div className={`grid transition-[grid-template-rows] duration-[320ms] ease-cayla ${mostrarEditor(l.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} inert={!mostrarEditor(l.id)}>
@@ -1474,13 +1487,9 @@ export function RecepcionEnvio({
                               />
                             </div>
                             <input
-                              type="number"
-                              min={1}
                               aria-label="Cantidad"
-                              value={ex.cantidad}
-                              onChange={(e) => actualizarExtra(i, { cantidad: Math.max(1, Number(e.target.value) || 1) })}
-                              onFocus={(e) => e.target.select()}
-                              className="caja-campo-input w-16 shrink-0 text-center tabular-nums"
+                              {...escrita.campo(`extra:${i}`, String(ex.cantidad), (v) => actualizarExtra(i, { cantidad: Math.max(1, Number(v) || 1) }))}
+                              className={`caja-campo-input w-16 shrink-0 text-center tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                             />
                             <div className="w-48 shrink-0">
                               <Desplegable
@@ -1598,7 +1607,12 @@ export function RecepcionEnvio({
             aviso={(
               <>
                 {/* un solo aviso a la vez, el más urgente; entra suave cuando cambia */}
-                {totales.excedidas > 0 ? (
+                {escrita.problema ? (
+                  <span key="esc" className="anim-revelar flex items-center gap-2 text-sm text-rojo">
+                    <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                    {escrita.problema}
+                  </span>
+                ) : totales.excedidas > 0 ? (
                   <span key="exc" className="anim-revelar flex items-center gap-2 text-sm text-rojo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     {totales.excedidas === 1 ? "1 línea supera" : `${totales.excedidas} líneas superan`} lo pendiente: revisa el conteo.
@@ -1779,12 +1793,17 @@ const CELDA =
   "h-9 rounded-md border bg-transparent px-1 text-center text-sm tabular-nums outline-none transition-colors focus:border-rojo focus:ring-1 focus:ring-rojo/40 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 function CurvaVariantes({
+  lineaId,
+  escrita,
   referencia,
   variantes,
   valores,
   excede,
   onFijar,
 }: {
+  lineaId: string;
+  /** El borrador de lo que se teclea: vive en la pantalla, que dice por qué no valió y frena «Recibir». */
+  escrita: CantidadEscrita;
   referencia: string;
   variantes: Variante[];
   valores: Record<string, number>;
@@ -1800,15 +1819,10 @@ function CurvaVariantes({
     const n = valores[v.varianteId];
     return (
       <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
-        type="number"
-        min={0}
-        inputMode="numeric"
         aria-label={`${referencia} ${etiqueta}`}
-        value={n ?? ""}
         placeholder="—"
-        onChange={(e) => onFijar(v.varianteId, e.target.value === "" ? null : Number(e.target.value))}
-        onFocus={(e) => e.target.select()}
-        className={`${CELDA} ${ancho} ${
+        {...escrita.campo(`${lineaId}:${v.varianteId}`, String(n ?? ""), (t) => onFijar(v.varianteId, t === "" ? null : Number(t)))}
+        className={`${CELDA} ${ancho} ${CLASE_MONTO_ILEGIBLE} ${
           n === undefined ? "border-tinta/15 text-tinta/45" : n > 0 ? (excede ? "border-rojo bg-rojo/[0.06] text-rojo" : "border-tinta/60 bg-tinta/[0.05] text-tinta") : "border-ambar/60 bg-ambar/[0.06] text-ambar-profundo"
         }`}
       />

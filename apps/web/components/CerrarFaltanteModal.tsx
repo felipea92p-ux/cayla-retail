@@ -7,6 +7,8 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { enteroEscrito } from "@/lib/cantidad-escrita-reglas";
 import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -51,7 +53,8 @@ export function CerrarFaltanteModal({
   // Quién cierra (ADR-0161/0162): `cerrar_linea_compra` firma con esa persona.
   const responsable = useResponsable();
 
-  const n = Math.floor(Number(cantidad));
+  // Se lee por su forma: `Math.floor` hacía de «1.5» un 1, y «1e1» era 10.
+  const n = enteroEscrito(cantidad) ?? Number.NaN;
   const cantidadOk = Number.isFinite(n) && n >= 1 && n <= tope;
   const pendienteComprobante = compra.facturadoCantidad - compra.recibidoCantidad - compra.cerradoCantidad;
   const cubreTodo = cantidadOk && pendienteComprobante - n <= 0;
@@ -121,14 +124,13 @@ export function CerrarFaltanteModal({
             <CampoTexto
               etiqueta="¿Cuántas unidades se cierran?"
               id="cierre-cantidad"
-              type="number"
-              min={1}
-              max={tope}
+              inputMode="numeric"
               value={cantidad}
-              onChange={(e) => setCantidad(e.target.value)}
+              onChange={(e) => setCantidad(limpiarCantidad(e.target.value))}
               onFocus={(e) => e.target.select()}
               className="tabular-nums"
-              pie={`de ${tope} pendientes${tienda ? ` en ${tienda.nombre}` : ""}`}
+              tono={cantidad.trim() !== "" && !cantidadOk ? "error" : undefined}
+              pie={cantidad.trim() !== "" && !cantidadOk ? `Un número entero, de 1 a ${tope}.` : `de ${tope} pendientes${tienda ? ` en ${tienda.nombre}` : ""}`}
             />
           </div>
 

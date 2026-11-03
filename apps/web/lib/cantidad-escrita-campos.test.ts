@@ -4,11 +4,14 @@ import { describe, expect, it } from "vitest";
 import { detalleDeTalla, lineasDeAjuste, limpiarTextoAjuste, textoEscritoInvalido, textoProblemaTalla, textoTrasPaso, type VarianteAjuste } from "./ajuste-reglas";
 import { limpiarCantidad, textoCantidadRechazada } from "./alta-producto";
 import { REGLA_BILLETES } from "./caja-cierre-reglas";
-import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, leerEscrito, problemaEscrito, reglaDeEntero, SIN_ESCRIBIR, type ReglaCantidad } from "./cantidad-escrita-reglas";
+import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, enteroEscrito, leerEscrito, problemaEscrito, reglaDeEntero, SIN_ESCRIBIR, textoEnLaCaja, type ReglaCantidad } from "./cantidad-escrita-reglas";
 import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple } from "./club-cumple-reglas";
 import { cantDelRelleno, REGLA_RELLENO } from "./colgar-varias-tabla";
 import { problemaDeDiasAbono, validarTarifa } from "./cuentas-dinero-reglas";
+import { cuentaDelDescuento } from "./descuento-cuenta-reglas";
 import { leerEscritoDeCelda, REGLA_CELDA_PLANILLA } from "./existencias-ajuste-modelo";
+import { errorDeSiguienteNumero } from "./facturacion-comprobantes-reglas";
+import { numeroDeMonto, porcentajeMalEscrito } from "./monto-plata-reglas";
 import { diaDeFijoValido, diasAntesDeFijoValidos, leerCifraDeFijo, textoPagarDesde, TEXTO_DIA_FIJO, TEXTO_DIAS_ANTES_FIJO, validarFijo, type BorradorFijo } from "./gastos-reglas";
 import { leerCantidadDeposito, leerCantidadReposicion, leerCantidadSaldoAFavor, limpiarCantidadReposicion } from "./nos-debe-reglas";
 import { lineasDeFallas, problemasDeFallas, totalFallas, type FallaBorrador } from "./orden-pagina-reglas";
@@ -17,8 +20,12 @@ import { leerDiasParaLlegar, problemaDeLosDias } from "./plan-compra-plazo";
 import { problemaDelRecupero } from "./plan-compra-propuesta";
 import { escritoNoEsEntero, leerCantidadDelPlan, lineaDeBorrador, problemasDelBorrador, sumaDeLaCurva, type Borrador } from "./plan-compra-reglas";
 import { problemasDeLosMinimos } from "./plan-compra-reparto";
+import { diasDeLaProforma } from "./proformas-reglas";
+import { problemaDePlazoCredito } from "./proveedores-reglas";
+import { errorDeReasignacion } from "./reparto-reglas";
 import { leerCantidadTecleada, REGLA_CAJITA } from "./reponer-prenda-reglas";
 import { moverParametro, parametroFueraDeRango, textoRangoParametro, validarParametrosTiendaWeb, type BorradorParametros } from "./tienda-web-reglas";
+import { cantidadAlSalirDeLaLinea, problemaDeCantidadDeLinea } from "./traslado-lineas-reglas";
 
 // Los campos que siguieron a Nuevo producto, Editar producto y Producción (2026-11-03): cada tecla pasaba por `.replace(/\D/g, "")` en un campo controlado, así que la coma se borraba al
 // teclearla y el 5 caía junto al 2. «2,5» dejaba 25, «1.5» dejaba 15 y «-5» dejaba 5, sin avisar: en los billetes del cierre de caja, en lo que se cuelga y en un ajuste de stock.
@@ -464,6 +471,111 @@ describe("Ajustar inventario: lo que se escribe en cada talla (mueve stock)", ()
   });
 });
 
+// Las cajas `type="number"` (medido tecleando, 2026-11-03): el navegador no deja entrar la coma, así que «2,5» quedaba 25; lo que tampoco entiende le llega vacío a la pantalla, así que «-5» quedaba 1 o 0.
+describe("Una caja que guarda un número: a la pantalla solo le llega una cantidad de verdad", () => {
+  const regla = reglaDeEntero();
+  /** Lo que hacen Devoluciones y Cambios con lo que les llega: de 1 a lo que queda. */
+  const enDevoluciones = (t: string, quedan: number) => Math.max(1, Math.min(quedan, enteroEscrito(t) || 1));
+
+  it("«2,5», «1.5» y «-5» no le llegan: la caja los muestra, la pantalla sigue con lo que tenía y se dice por qué", () => {
+    for (const malo of LOS_MALOS) {
+      const { pantalla, caja, mientras, alSalir: fuera } = teclear(malo, "3", regla);
+      expect(caja, malo).toBe(malo);
+      expect(pantalla, malo).toBe("3");
+      expect(enDevoluciones(pantalla, 40), malo).toBe(3);
+      expect(mientras, malo).toContain(`«${malo}» no es una cantidad`);
+      expect(fuera, malo).toContain(`«${malo}» no se guardó`);
+    }
+  });
+  it("lo de siempre: lo que pasa del tope se recorta, y vaciar la caja no deja de llegar", () => {
+    expect(enDevoluciones(teclear("25", "3", regla).pantalla, 40)).toBe(25);
+    expect(enDevoluciones(teclear("99", "3", regla).pantalla, 40)).toBe(40);
+    expect(enDevoluciones(teclear("1,200", "3", regla).pantalla, 2000)).toBe(1200);
+    expect(alEscribir(alEntrar(SIN_ESCRIBIR, "c", "3"), "c", "", "3", regla).paraLaPantalla).toBe("");
+    expect(enDevoluciones("", 40)).toBe(1);
+  });
+  it("lo que pasa del tope se ve recortado en la caja, como lo deja la pantalla; lo que no es un número, tal cual", () => {
+    expect(textoEnLaCaja("99", 40)).toBe("40");
+    expect(textoEnLaCaja("40", 40)).toBe("40");
+    expect(textoEnLaCaja("7", 40)).toBe("7");
+    expect(textoEnLaCaja("", 40)).toBe("");
+    expect(textoEnLaCaja("2,5", 1)).toBe("2,5");
+    expect(textoEnLaCaja("99")).toBe("99");
+  });
+  it("el lector de las cajas que guardan texto: solo un entero, vacía tampoco; ni `Number` («1e1» es 10) ni `Math.floor` («1.5» es 1)", () => {
+    for (const malo of [...LOS_MALOS, "1e1", "0x10", "", " ", "a4"]) expect(enteroEscrito(malo), malo).toBeNull();
+    expect(enteroEscrito("7")).toBe(7);
+    expect(enteroEscrito(" 007 ")).toBe(7);
+    expect(enteroEscrito("0")).toBe(0);
+  });
+});
+
+describe("Los porcentajes de descuento de Vender y Apartados aceptan decimales: «2,5» es 2.5, no 25", () => {
+  const form = (pct: string) => ({ modo: "porcentaje" as const, pct, monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" });
+
+  it("la coma y el punto dicen lo mismo: el número que se escribió", () => {
+    expect(numeroDeMonto("2,5")).toBe(2.5);
+    expect(numeroDeMonto("1.5")).toBe(1.5);
+    expect(cuentaDelDescuento(form("2,5"), [], null)).toMatchObject({ pct: 2.5, valorValido: true });
+    expect(cuentaDelDescuento(form("1.5"), [], null)).toMatchObject({ pct: 1.5, valorValido: true });
+    expect(cuentaDelDescuento(form("15"), [], null)).toMatchObject({ pct: 15, valorValido: true });
+    expect(porcentajeMalEscrito("2,5")).toBe(false);
+  });
+  it("lo que no es un porcentaje se marca, no se aplica y se dice por qué", () => {
+    for (const malo of ["-5", "0", "101", "1e1", "a4", "1,200"]) {
+      expect(porcentajeMalEscrito(malo), malo).toBe(true);
+      expect(cuentaDelDescuento(form(malo), [], null).valorValido, malo).toBe(false);
+      expect(cuentaDelDescuento(form(malo), [], null).motivoDescuento, malo).toBe("Elige un porcentaje entre 1 y 100.");
+    }
+  });
+  it("vacío todavía no está mal: lo pide la guía", () => {
+    expect(porcentajeMalEscrito("")).toBe(false);
+    expect(cuentaDelDescuento(form(""), [], null).valorValido).toBe(false);
+  });
+});
+
+describe("Las cajas que guardan texto y leían suelto", () => {
+  it("Reasignar reparto y Cerrar faltante: «1.5» no es 1, ni «1e1» es 10", () => {
+    const base = { desdeId: "a", haciaId: "b", pendienteDesde: 30, nombreDesde: "Lima", motivo: "otro" as const, nota: "x" };
+    for (const malo of [...LOS_MALOS, "1e1", ""]) {
+      const n = enteroEscrito(malo) ?? Number.NaN;
+      expect(errorDeReasignacion({ ...base, cantidad: n }), malo).toContain("entero entre 1 y 30");
+    }
+    expect(errorDeReasignacion({ ...base, cantidad: enteroEscrito("12") ?? Number.NaN })).toBeNull();
+    expect(errorDeReasignacion({ ...base, cantidad: enteroEscrito(limpiarCantidad("1,200")) ?? Number.NaN })).toContain("entero entre 1 y 30");
+  });
+  it("Mover mercadería: al salir, lo que no es un entero se queda a la vista y se dice; no se vuelve 1", () => {
+    for (const malo of [...LOS_MALOS, "1e1", "a4"]) {
+      expect(cantidadAlSalirDeLaLinea(enLaCaja(malo, limpiarCantidad), 10), malo).toBe(malo);
+      expect(problemaDeCantidadDeLinea(malo), malo).toBe(`«${malo}» no es una cantidad: escribe un número entero.`);
+    }
+  });
+  it("Mover mercadería, lo de siempre: entre 1 y el tope, y vacía vuelve a 1", () => {
+    expect(cantidadAlSalirDeLaLinea("5", 10)).toBe("5");
+    expect(cantidadAlSalirDeLaLinea("99", 10)).toBe("10");
+    expect(cantidadAlSalirDeLaLinea("0", 10)).toBe("1");
+    expect(cantidadAlSalirDeLaLinea("", 10)).toBe("1");
+    expect(cantidadAlSalirDeLaLinea("5", 0)).toBe("1");
+    expect(cantidadAlSalirDeLaLinea(limpiarCantidad("1,200"), 2000)).toBe("1200");
+    for (const bien of ["", "5"]) expect(problemaDeCantidadDeLinea(bien), bien).toBeNull();
+  });
+  it("Los días de una proforma: lo que no es un entero no se vuelve 7 ni 25", () => {
+    for (const malo of [...LOS_MALOS, "1e1"]) expect(diasDeLaProforma(enLaCaja(malo, limpiarCantidad)), malo).toBeNull();
+  });
+  it("Los días de una proforma, lo de siempre: vacío o 0 son 7, y hasta 60", () => {
+    for (const [t, n] of [["", 7], ["0", 7], ["1", 1], ["30", 30], ["60", 60], ["61", 60], ["1200", 60]] as const) expect(diasDeLaProforma(t), t).toBe(n);
+  });
+  it("El próximo número de una serie: un entero, 1 o mayor; vacío lo lleva el sistema", () => {
+    for (const malo of [...LOS_MALOS, "1e1", "0"]) expect(errorDeSiguienteNumero(enLaCaja(malo, limpiarCantidad)), malo).toContain("entero");
+    for (const bien of ["", "1", "1200"]) expect(errorDeSiguienteNumero(bien), bien).toBeNull();
+    expect(errorDeSiguienteNumero(limpiarCantidad("1,200"))).toBeNull();
+  });
+  it("El plazo de crédito de un proveedor: días enteros, 1 o mayor (lo mismo que exige la base); vacío es sin definir", () => {
+    for (const malo of [...LOS_MALOS, "1e1", "0"]) expect(problemaDePlazoCredito(enLaCaja(malo, limpiarCantidad)), malo).toContain("entero");
+    for (const bien of ["", "1", "20", "120"]) expect(problemaDePlazoCredito(bien), bien).toBeNull();
+  });
+});
+
 describe("La regla de cada campo: `useCantidadEscrita` no decide qué cantidades valen", () => {
   it("sin regla es la de una celda de stock, de 0 a 9999, con su aviso de siempre", () => {
     expect(alEscribir(alEntrar(SIN_ESCRIBIR, "c", "3"), "c", "12345", "3").paraLaPantalla).toBe("3");
@@ -645,6 +757,52 @@ describe("ninguna caja de cantidad vuelve a borrar lo que no es una cifra mientr
       expect(veces(archivo, /limpiarCantidad\(e\.target\.value\)/g), archivo).toBe(cuantas);
     }
     expect(veces("components/SelectorDeAjuste.tsx", /limpiarTextoAjuste\(e\.target\.value\)/g)).toBe(1);
+    // Las que guardan texto y su lector ya rechaza.
+    for (const [archivo, cuantas] of [
+      ["components/ProductoForm.tsx", 1],
+      ["components/SeriesPanel.tsx", 1],
+      ["components/ProveedorModal.tsx", 1],
+      ["components/ReasignarReparto.tsx", 1],
+      ["components/CerrarFaltanteModal.tsx", 1],
+      ["components/MoverMercaderiaFormV2.tsx", 1],
+      ["components/NuevaProformaModal.tsx", 1],
+    ] as const) {
+      expect(veces(archivo, /limpiarCantidad\(e\.target\.value\)/g), archivo).toBe(cuantas);
+    }
+    // Las que guardan un número, o leen como 0 lo que no entienden: lo escrito vive en el borrador de `useCantidadEscrita`.
+    for (const [archivo, cuantas] of [
+      ["components/punto-de-venta/LineaDelTicket.tsx", 1],
+      ["components/CambioReemplazo.tsx", 1],
+      ["components/DevolucionesFlujo.tsx", 1],
+      ["components/LlegoMercaderia.tsx", 1],
+      ["components/RecepcionEnvio.tsx", 3],
+      ["components/MatrizOrden.tsx", 1],
+      ["components/NuevaProformaModal.tsx", 1],
+      ["components/ImprimirEtiquetasPrecio.tsx", 1],
+      ["components/rotulos/TiraBrother.tsx", 1],
+    ] as const) {
+      expect(veces(archivo, /\.campo\(/g), archivo).toBe(cuantas);
+    }
+    // Los porcentajes de descuento aceptan decimales: leen como el monto de al lado.
+    for (const archivo of ["components/punto-de-venta/PanelDescuento.tsx", "components/apartados/DescuentoApartado.tsx"]) {
+      expect(veces(archivo, /atributosPorcentajeTexto\(/g), archivo).toBe(1);
+    }
+  });
+
+  // El navegador no deja entrar la coma en una caja `type="number"`: «2,5» queda 25, y lo que no entiende le llega vacío a la pantalla (medido tecleando, 2026-11-03). ADR-0419 ya lo dijo de los montos.
+  it("ninguna caja vuelve a ser `type=\"number\"`: una cantidad es texto con `inputMode=\"numeric\"`", () => {
+    const CAJA_DE_NUMERO = /\btype(?::|=)\s*\{?["']number["']/;
+    expect(CAJA_DE_NUMERO.test('<input type="number" min={1} />')).toBe(true);
+    expect(CAJA_DE_NUMERO.test('campo={{ type: "number", min: 0 }}')).toBe(true);
+    expect(CAJA_DE_NUMERO.test('<input type="range" min={1} />')).toBe(false);
+    const conNumero = [...archivos("components"), ...archivos("app")]
+      .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f))
+      .flatMap((f) =>
+        readFileSync(join(RAIZ, f), "utf8")
+          .split("\n")
+          .flatMap((linea, i) => (!/^\s*(\/?\*|\/\/)/.test(linea) && CAJA_DE_NUMERO.test(linea) ? [`${f.split(sep).join("/")}:${i + 1}`] : [])),
+      );
+    expect(conNumero).toEqual([]);
   });
 
   // El aviso de una celda sale recién cuando el clic en el botón se lleva el cursor (`alQuererSeguir`). Las celdas viven dentro de la tabla y el botón en la pantalla: si una pantalla no conecta los dos, se guarda lo

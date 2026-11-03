@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { limpiarCantidad } from "@/lib/alta-producto";
 import { validarDocumento } from "@cayla-retail/shared";
 import { createClient } from "@/lib/supabase/client";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
@@ -9,7 +10,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { ETIQUETA_TIPO_PROVEEDOR, agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos, type TipoProveedor } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, problemaDePlazoCredito, proveedorConRuc, proveedoresParecidos, type TipoProveedor } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { Modal } from "@/components/ui/Modal";
 import {
@@ -273,6 +274,8 @@ export function ProveedorModal({
         { enfocar: "proveedor-parecido" }
       );
     }
+    const problemaPlazo = problemaDePlazoCredito(plazoCreditoDias);
+    if (problemaPlazo) return void avisar.error(problemaPlazo, { enfocar: "proveedor-plazo-dias" });
     // Las cuentas se validan ANTES del paso 1: no se guarda el proveedor para descubrir después que el CCI estaba mal.
     const problema = primerErrorCuentas(errores);
     if (problema) {
@@ -472,7 +475,7 @@ export function ProveedorModal({
             />
             {plazoOtro && (
               <div className="anim-revelar mt-2 max-w-[12rem]">
-                <CampoTexto etiqueta="Días" type="number" min={1} step={1} autoComplete="off" placeholder="20" value={plazoCreditoDias} onChange={(e) => setPlazoCreditoDias(e.target.value)} />
+                <CampoTexto etiqueta="Días" id="proveedor-plazo-dias" inputMode="numeric" autoComplete="off" placeholder="20" value={plazoCreditoDias} tono={problemaDePlazoCredito(plazoCreditoDias) ? "error" : undefined} pie={problemaDePlazoCredito(plazoCreditoDias) ?? undefined} onChange={(e) => setPlazoCreditoDias(limpiarCantidad(e.target.value))} />
               </div>
             )}
           </Campo>

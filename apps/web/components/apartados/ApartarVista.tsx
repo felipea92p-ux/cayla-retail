@@ -60,6 +60,8 @@ import { BarraMovil, FotoPrenda, fechaCorta } from "@/components/apartados/pieza
 import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
 import { Aviso } from "@/components/ui/Aviso";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
@@ -97,6 +99,7 @@ const variante = (p: { color: string | null; talla: string | null }) => [p.color
  *  aparta lo del piso (ADR-0141), pero si la prenda está atrás la colaboradora tiene que saberlo para traerla. */
 export type PrendaApartable = VarianteBusqueda & { almacenAqui?: number };
 
+const CANTIDAD_DE_LINEA = reglaDeEntero();
 const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
@@ -221,6 +224,7 @@ export function ApartarVista({
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
   // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
+  const escrita = useCantidadEscrita(CANTIDAD_DE_LINEA);
   const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : (guardado?.lineas ?? desdeTicket.lineas)));
   // ADR-0542: de quién es lo que se aparta cuando hay unidades de las dos empresas (Lima). Sin respuesta de fábrica.
   const duenosPorVariante = useStockPorDueno(ubicacionId);
@@ -559,6 +563,8 @@ export function ApartarVista({
   }
 
   async function confirmar() {
+    // Lo escrito en una cantidad no valió: antes de apartar lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     setIntento(true);
     if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo || faltaDuenoEn.length > 0) return;
     const supabase = createClient();
@@ -880,6 +886,7 @@ export function ApartarVista({
                               if (valor === l.cantidad + 1) agregar(clave);
                               else setLineas((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: Math.min(Math.floor(valor), pr.stockAqui) } : x)));
                             }}
+                            escrita={escrita}
                             onDescuento={(clave) => setHojaDescuento([clave])}
                             duenos={duenos}
                             duenoElegido={duenoDeLinea[l.varianteId]}
@@ -895,6 +902,13 @@ export function ApartarVista({
                       );
                     })}
                   </div>
+                  {escrita.problema && (
+                    <div className="border-b border-sand px-5 py-3">
+                      <Aviso tono="error" chico>
+                        {escrita.problema}
+                      </Aviso>
+                    </div>
+                  )}
                   {/* El descuento a mano (ADR-0584): el mismo de la venta, para todas las prendas o las que se marquen. */}
                   <div className="flex items-center justify-between gap-3 border-b border-sand px-5 py-3">
                     <button

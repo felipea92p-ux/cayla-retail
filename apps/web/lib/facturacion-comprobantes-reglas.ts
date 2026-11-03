@@ -1,3 +1,4 @@
+import { enteroEscrito } from "./cantidad-escrita-reglas";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "./comprobantes-reglas";
 import { ETIQUETA_TIPO } from "./comprobantes-reglas";
 import { anulacionEnTramite, chipDelComprobante, textoDelNumero } from "./facturacion-actividad";
@@ -15,6 +16,13 @@ export const TIPOS_CON_SERIE: TipoComprobante[] = ["boleta", "factura", "nota_cr
  *  nota de crédito la del documento que corrige (B si corrige boletas, F si corrige facturas)—. `null` si
  *  está bien; si no, el texto que se le muestra a la persona. Se comprueba al REGISTRAR: una serie mal
  *  escrita queda guardada y todos sus comprobantes se rechazan, cada intento quemando un número. */
+/** El próximo número de una serie que ya venía emitiéndose afuera: un entero, 1 o mayor. Vacío: lo lleva el sistema. Mandarle a SUNAT otro número hace que el comprobante se rechace. */
+export function errorDeSiguienteNumero(texto: string): string | null {
+  if (texto.trim() === "") return null;
+  const n = enteroEscrito(texto);
+  return n !== null && n >= 1 ? null : "El próximo número es un entero, 1 o mayor. Déjalo vacío si esta serie empieza de cero.";
+}
+
 export function errorDeSerie(tipo: TipoComprobante, texto: string): string | null {
   const serie = texto.trim().toUpperCase();
   if (!/^[A-Z0-9]{4}$/.test(serie)) return "La serie tiene cuatro caracteres, solo letras y números (por ejemplo B001).";

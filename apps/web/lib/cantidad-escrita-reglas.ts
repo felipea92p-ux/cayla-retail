@@ -41,6 +41,18 @@ export function reglaDeEntero(maxCifras?: number): ReglaCantidad {
   };
 }
 
+/** Lo escrito en una caja que guarda texto, como entero sin signo, o `null` si no lo es (vacía tampoco). Se lee por su forma: `Number` tomaría «1e1» por 10 y `Math.floor` haría de «1.5» un 1. */
+export function enteroEscrito(texto: string): number | null {
+  const t = texto.trim();
+  return /^\d+$/.test(t) ? Number(t) : null;
+}
+
+/** Lo que se ve en una caja mientras se escribe: tal cual, salvo lo que pasa de su `tope`, que se ve recortado, como lo deja la pantalla. */
+export function textoEnLaCaja(texto: string, tope?: number): string {
+  const n = tope === undefined ? null : enteroEscrito(texto);
+  return n !== null && n > tope! ? String(tope) : texto;
+}
+
 /** ¿Lo escrito ahora mismo no es una cantidad? */
 export const escritoInvalido = (e: EstadoEscrito, regla = REGLA_DE_STOCK): boolean => e.escribiendo !== null && regla.leer(e.escribiendo.texto) === null;
 
@@ -84,5 +96,6 @@ export function alSalir(e: EstadoEscrito, clave: string, regla = REGLA_DE_STOCK)
  */
 export function alQuererSeguir(e: EstadoEscrito, regla = REGLA_DE_STOCK): { estado: EstadoEscrito; frena: boolean } {
   if (escritoInvalido(e, regla)) return { estado: e, frena: true };
-  return { estado: e.frena ? { ...e, frena: false } : e, frena: e.frena };
+  // Ya se leyó y se sigue: el aviso se va con este clic, para que no siga ahí si la persona vuelve a la pantalla.
+  return { estado: e.frena ? { ...e, frena: false } : { ...e, aviso: null }, frena: e.frena };
 }

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Percent, Trash2 } from "lucide-react";
+import type { CantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
 import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
 import { filaDelTicket, type DetalleVariante, type TonoStock } from "@/lib/ticket-linea-reglas";
 import { textoDePrendaEnOtroTicket } from "@/lib/tickets-abiertos-reglas";
@@ -20,6 +21,8 @@ type Props = {
   bloqueado: boolean;
   onQuitar: (claveLinea: string) => void;
   onCantidad: (claveLinea: string, valor: number) => void;
+  /** El borrador de lo que se teclea en la cantidad: vive en la pantalla (`useCantidadEscrita`), que dice por qué no valió y frena su botón. */
+  escrita: CantidadEscrita;
   /** Abre el apartado «Descuento» con solo esta prenda elegida (lo que hacía el botón «Desc.»). */
   onDescuento: (claveLinea: string) => void;
   /** Los otros tickets abiertos que llevan esta misma prenda cuando no alcanza para todos (`ticketsQueDisputanLaPrenda`); vacío o
@@ -51,12 +54,12 @@ type Props = {
  * - «Máximo disponible en sede: N» pasa a «● Stock: N»; al llegar al tope el «+» se apaga y su `title` lo dice.
  * - El código de la etiqueta pasa al `title` del nombre (y a la fila, si no se conoce el color ni la talla).
  * - Una sola forma de quitar: el basurero. El «−» en 1 ya no se vuelve basurero, se apaga.
- * - La cantidad se sigue pudiendo escribir (campo numérico entre «−» y «+»).
+ * - La cantidad se sigue pudiendo escribir, entre «−» y «+»: lo que no es un entero no llega al ticket (`escrita`).
  *
  * Sin estado ni hooks: todo llega por props desde `PuntoDeVentaTicket`. Es hija directa de la lista (`listaRef`),
  * que el padre anima con `Flip`.
  */
-export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, onDescuento, tambienEn, duenos, duenoElegido, onDueno, guiaDueno = "vender.dueno", pie, soloLectura = false, quitada = false }: Props) {
+export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, escrita, onDescuento, tambienEn, duenos, duenoElegido, onDueno, guiaDueno = "vender.dueno", pie, soloLectura = false, quitada = false }: Props) {
   const f = filaDelTicket(linea, detalle);
   const nombre = linea.referencia;
   return (
@@ -91,20 +94,20 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
         {f.conPaso && !soloLectura && (
           <PasoCantidad
             className="shrink-0 max-sm:order-3"
-            menos={{ onClick: () => onCantidad(linea.claveLinea, linea.cantidad - 1), deshabilitado: linea.cantidad <= 1, etiqueta: "Reducir cantidad" }}
+            tono={escrita.invalida(linea.claveLinea) ? "error" : undefined}
+            menos={{ onClick: () => { escrita.olvidar(); onCantidad(linea.claveLinea, linea.cantidad - 1); }, deshabilitado: linea.cantidad <= 1, etiqueta: "Reducir cantidad" }}
             mas={{
-              onClick: () => onCantidad(linea.claveLinea, linea.cantidad + 1),
+              onClick: () => {
+                escrita.olvidar();
+                onCantidad(linea.claveLinea, linea.cantidad + 1);
+              },
               deshabilitado: f.alTope,
               etiqueta: "Aumentar cantidad",
               title: f.alTope ? `Máximo disponible en sede: ${linea.stockAqui}` : undefined,
             }}
             campo={{
               "aria-label": `Cantidad de ${nombre}`,
-              type: "number",
-              min: 1,
-              max: linea.stockAqui,
-              value: linea.cantidad,
-              onChange: (e) => onCantidad(linea.claveLinea, Number(e.target.value)),
+              ...escrita.campo(linea.claveLinea, String(linea.cantidad), (v) => onCantidad(linea.claveLinea, Number(v)), Math.max(1, linea.stockAqui)),
             }}
           />
         )}

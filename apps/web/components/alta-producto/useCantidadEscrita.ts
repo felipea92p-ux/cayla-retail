@@ -1,7 +1,7 @@
 "use client";
 
-import { useImperativeHandle, useState, type Ref } from "react";
-import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, escritoInvalido, problemaEscrito, SIN_ESCRIBIR, type ReglaCantidad } from "../../lib/cantidad-escrita-reglas";
+import { useImperativeHandle, useState, type ChangeEvent, type FocusEvent, type Ref } from "react";
+import { alEntrar, alEscribir, alQuererSeguir, alRechazar, alSalir, escritoInvalido, problemaEscrito, SIN_ESCRIBIR, textoEnLaCaja, type ReglaCantidad } from "../../lib/cantidad-escrita-reglas";
 
 // La celda de cantidad que muestra lo que se escribe, y a la pantalla solo le llega una cantidad de verdad: el porqué, en `lib/cantidad-escrita-reglas.ts`.
 // Imports RELATIVOS a propósito, como `MatrizCantidades`, que se dibuja sola en una prueba de node (vitest no resuelve `@/`).
@@ -48,5 +48,30 @@ export function useCantidadEscrita(regla?: ReglaCantidad, freno?: Ref<() => bool
       setEstado(alRechazar(texto, suya));
     },
     frenar,
+    /**
+     * Las props de una caja cuyo número vive en la pantalla (el ticket, lo que se devuelve, lo que llegó), para no repetirlas en cada una.
+     * `valor`: su número, como texto. `fijar`: recibe la cantidad que vale. `tope`: lo que pasa de ahí se ve recortado, como lo deja la pantalla, que recibe lo tecleado (Vender avisa cuando se pasa). Es texto y no `type="number"`: ese no deja entrar la coma («2,5» queda 25).
+     */
+    campo(clave: string, valor: string, fijar: (valor: string) => void, tope?: number) {
+      const escrito = estado.escribiendo?.clave === clave ? estado.escribiendo.texto : undefined;
+      return {
+        inputMode: "numeric" as const,
+        autoComplete: "off",
+        value: escrito === undefined ? valor : textoEnLaCaja(escrito, tope),
+        "aria-invalid": (escrito !== undefined && escritoInvalido(estado, regla)) || undefined,
+        onFocus: (e: FocusEvent<HTMLInputElement>) => {
+          e.currentTarget.select();
+          setEstado(alEntrar(estado, clave, valor));
+        },
+        onChange: (e: ChangeEvent<HTMLInputElement>) => {
+          const r = alEscribir(estado, clave, e.target.value, valor, regla);
+          setEstado(r.estado);
+          fijar(r.paraLaPantalla);
+        },
+        onBlur: () => setEstado(alSalir(estado, clave, regla)),
+      };
+    },
   };
 }
+
+export type CantidadEscrita = ReturnType<typeof useCantidadEscrita>;

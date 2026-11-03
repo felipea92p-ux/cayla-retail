@@ -445,6 +445,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
   const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
   const buscador = useRef<HTMLInputElement>(null);
+  const frenoCantidades = useRef<() => boolean>(null);
   // El botón grande de la persiana «Caja cerrada» (ADR-0301): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
   const botonAbrirCaja = useRef<HTMLButtonElement>(null);
   // A dónde vuelve el foco al cerrarse «Abrir caja». Se decide AL CERRARSE, no al dibujar el modal: cuando la caja abre, el
@@ -1462,7 +1463,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // descuento «no entró».
     const pedidos = descuentosPedidos(
       descuento.modo,
-      descuento.modo === "monto" ? numeroDeMonto(descuento.monto) : Number(descuento.pct),
+      numeroDeMonto(descuento.modo === "monto" ? descuento.monto : descuento.pct),
       carrito.filter((it) => entraAlDescuento(it, claves)),
     );
     const cedieron = carrito.filter((it) => {
@@ -1479,7 +1480,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setCarrito((actual) =>
       descuento.modo === "monto"
         ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
-        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle),
+        : aplicarDescuento(actual, numeroDeMonto(descuento.pct), claves, detalle),
     );
     setMomento("armar");
   }
@@ -1854,6 +1855,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         tocarMedio(metodo);
       } else if (momento === "armar" && prendas > 0) {
         e.preventDefault();
+        if (frenoCantidades.current?.()) return;
         setPagos([pagoNuevo(metodo, Math.max(0, total), maquinasCobro)]);
         setMomento("cobrar");
       }
@@ -2366,7 +2368,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             loading={loading}
             onCobrar={cobrar}
             momento={momento}
-            onIrACobrar={() => setMomento("cobrar")}
+            onIrACobrar={() => {
+              // Lo escrito en una cantidad no valió: antes de cobrar lo que quedó, se lee por qué (`useCantidadEscrita`).
+              if (frenoCantidades.current?.()) return;
+              setMomento("cobrar");
+            }}
+            frenoCantidades={frenoCantidades}
             onVolverATicket={() => setMomento("armar")}
             motivoBloqueo={motivoBloqueo}
             responsable={responsable}
