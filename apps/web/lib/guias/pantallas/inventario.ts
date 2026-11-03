@@ -1844,7 +1844,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Cuántas llegaron de este modelo",
-      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Toca el número para escribirlo, o súmalas con + y − y con los atajos, que van a la escala de lo que cuentas. «Llegaron las N» lo deja listo y «No llegó nada» también es una respuesta.",
+      texto: "El aro cuenta el modelo que elegiste: verde cuando cuadra. Arriba, junto al nombre, ves cuánto costó cada una. Toca el número para escribirlo, o súmalas con + y − y con los atajos. «Llegaron las N» lo deja listo y «No llegó nada» también es una respuesta.",
     },
     {
       id: "siguiente",
@@ -1956,7 +1956,16 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: lo que dijeron, lo que contaste, lo que se puede vender y lo que queda para después. Si no cuadró, eliges qué pasó. Las que tienen prendas identificadas vienen abiertas con su precio y su costo; «Precio y costo» las abre o esconde. En la demo no escribimos.",
+      texto: "Una fila por categoría, primero las que piden algo: lo que dijeron, lo que contaste, lo que se puede vender y lo que queda para después. Si no cuadró, eliges qué pasó. «Precio y costo» abre los de cada fila. Lo que decidas se guarda en este navegador hasta cerrar. En la demo no escribimos.",
+    },
+    {
+      // Solo con muchas filas y más de una que no pide nada.
+      id: "plegadas",
+      ancla: "recepcion.plegadas",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Lo que ya cuadra",
+      texto: "Con muchas categorías, las que cuadran esperan aquí plegadas: no piden nada, pero se pueden revisar. Si cambiaste un costo o un precio adentro, la franja lo dice.",
     },
     {
       // Felipe 2026-10-28: el costo y el precio se ponen por combinación (color y talla). La fila de la primera prenda solo existe con la categoría abierta.
