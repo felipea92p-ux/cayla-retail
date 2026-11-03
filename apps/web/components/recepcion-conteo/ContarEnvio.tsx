@@ -38,6 +38,7 @@ import {
   renombrarModelo,
   agregarPrendaEnCero,
   marcaDeLinea,
+  contadasDe,
 } from "@/lib/recepcion-conteo-reglas";
 import {
   agruparLineas,
@@ -61,7 +62,6 @@ import {
   cifrasDelResumen,
   claveDeCategoria,
   claveDeNombre,
-  modelosSinNombre,
   sePuedeQuitarCategoria,
   claveDeParada,
   conMiles,
@@ -164,6 +164,7 @@ export function ContarEnvio({
   onEscribir,
   sinGuardar = 0,
   onReintentar,
+  onCancelarRecepcion,
   modos,
   onModos: setModos,
   tablas,
@@ -196,6 +197,8 @@ export function ContarEnvio({
   sinGuardar?: number;
   /** Vuelve a mandar lo que no se pudo guardar. */
   onReintentar: () => void;
+  /** Sin aviso y sin nada en el stock: el envío se puede cancelar. */
+  onCancelarRecepcion?: () => void;
   /** De cada modelo: «solo la cantidad» o «tallas y colores ahora», y lo escrito en su tabla (viven en la pantalla: ir a Cerrar y volver no los borra). */
   modos: Readonly<Record<string, ModoDeTallas>>;
   onModos: Dispatch<SetStateAction<Readonly<Record<string, ModoDeTallas>>>>;
@@ -299,13 +302,14 @@ export function ContarEnvio({
   };
   const faltanIdentificar = gruposSinIdentificar(grupos);
   const proveedores = conteos?.proveedores ?? [];
-  const faltanNombres = modelosSinNombre(todas);
-  const puedeCerrar = visibles.length > 0 && faltanIdentificar.length === 0 && faltanNombres.length === 0;
+  // Sin aviso, sin nada contado no hay recepción (la base tampoco la cierra): se cuenta o se cancela.
+  const nadaContado = sinAviso && visibles.length > 0 && visibles.every((l) => contadasDe(l) === 0);
+  const puedeCerrar = visibles.length > 0 && faltanIdentificar.length === 0 && !nadaContado;
   // Lo que frena el cierre, todo a la vez: el botón apagado lo dice (`BotonCerrarConteo`).
   const motivosNoCierra = [
     ...(visibles.length === 0 ? ["Agrega lo que llegó"] : []),
     ...(faltanIdentificar.length > 0 ? [`Identifica las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}`] : []),
-    ...(faltanNombres.length > 0 ? [`Ponle su nombre a ${faltanNombres.map((m) => m.nombre).join(", ")}`] : []),
+    ...(nadaContado ? ["Cuenta lo que llegó, o cancela la recepción"] : []),
   ];
 
   function elegir(p: ParadaDelConteo, escribir = false) {
@@ -741,6 +745,7 @@ export function ContarEnvio({
           }
           sinGuardar={sinGuardar}
           onReintentar={onReintentar}
+          onCancelarRecepcion={nadaContado ? onCancelarRecepcion : undefined}
           alCerrar={onCerrar}
           textoAlCerrar={textoResumenDelCierre(resumenDelCierre(visibles))}
           puedeCerrar={puedeCerrar}

@@ -54,7 +54,7 @@ const MIGRACIONES_PREVIAS = SIN_MIGRACION
       "20261013183000_envio_sin_aviso.sql",
       "20261014205000_corregir_guia_al_cerrar.sql",
     ]);
-const MIGRACIONES = SIN_MIGRACION ? "" : cargar(["20261103173000_cancelar_recepcion_sin_aviso.sql"]);
+const MIGRACIONES = SIN_MIGRACION ? "" : cargar(["20261103173000_cancelar_recepcion_sin_aviso.sql", "20261103182000_modelos_en_cero_al_contar.sql", "20261104000000_recepcion_cierre_sin_nombre_y_vacio.sql"]);
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -457,6 +457,21 @@ caso(
    reset role;
    select concat_ws(' / ', :'cerrado', :'reabierto_h', (select estado from retail.despachos where id = :'d'));`,
   "envio_cerrado / envio_ya_tuvo_stock / abierto",
+);
+caso(
+  "C5b reabierto y sin ninguna prenda en el stock sí se cancela: lo que frena es el stock, no haberse cerrado",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select ${EXTRA("d", "cat", 3)} \\g /dev/null
+   ${VERS("d", [], [1])}
+   select pg_temp.cierra(:'d', :v_d, ${A(DEC(1))}, null::text, null::uuid) as cierre \\gset
+   ${VER("d")}
+   select pg_temp.reabre(:'d', :v_d, 'Se cerró por error', null::uuid) as reabierto \\gset
+   ${VER("d")}
+   select pg_temp.h(pg_temp.cancela(:'d', :v_d, 'Se abrió por error')) as cancelado \\gset
+   reset role;
+   select concat_ws(' / ', :'cancelado', (select estado from retail.despachos where id = :'d'), (select count(*) from retail.despacho_recibidos r where r.despacho_id = :'d'));`,
+  "OK / anulado / 0",
 );
 caso(
   "C6 sin responsable, sin el módulo Recibir, de otra sede o ya anulado no se puede",

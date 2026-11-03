@@ -68,6 +68,9 @@ type Vista =
   | { tipo: "prenda"; desde?: { cantidad: number; descripcion: string } }
   | { tipo: "cargando" };
 
+/** ¿Ese nombre es el provisional que le puso el sistema? La marca vive en el conteo; el texto no lo dice: una blusa puede llamarse «Blusa 1» de verdad. */
+const esProvisional = (l: LineaParaContar, descripcion: string | null): boolean => !!descripcion && (l.conteo?.separado.nuevas ?? []).some((n) => n.porDefecto && n.descripcion === descripcion);
+
 export function HacerAhora({
   detalle,
   item,
@@ -383,7 +386,8 @@ export function HacerAhora({
             marcaId: marca.id,
             marcaNombre: marca.nombre,
             // Sin descripción al contar, el nombre que anotó la compradora en la línea (ADR-0480: «Usar ese nombre»).
-            descripcionOrden: vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null) ?? linea.linea?.descripcion ?? null,
+            // Un nombre provisional («Aretes 1») no se ofrece: esta es la hoja donde se le pone el de verdad.
+            descripcionOrden: esProvisional(linea, vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null)) ? null : (vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null) ?? linea.linea?.descripcion ?? null),
             precioSugerido: linea.linea?.precioVentaSugerido ?? null,
             costoUnitario: linea.conteo?.costoUnitario ?? linea.linea?.costoUnitario ?? null,
             prenda: null,

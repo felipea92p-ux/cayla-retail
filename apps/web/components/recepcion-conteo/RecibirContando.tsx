@@ -307,8 +307,8 @@ export function RecibirContando({
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
   const conPapel = papeles.length > 0 && (porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe;
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
-  // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y que nunca se cerró. Uno de Compras, uno cerrado o uno reabierto (ya metió stock) no lo ofrecen.
-  const sePuedeCancelar = estado === "abierto" && sinAviso && !reabierto && !otraSede && !noLoRecibe;
+  // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y sin nada en el stock (también reabierto: lo que frena es el stock). Uno de Compras o uno cerrado no lo ofrecen.
+  const sePuedeCancelar = estado === "abierto" && sinAviso && lineas.every((l) => (l.conteo?.enStock ?? 0) === 0) && !otraSede && !noLoRecibe;
   // Al contar, las fotos van en el resumen; al cerrar y ya cerrado, en la cabecera.
   const contando = estado === "abierto" && paso !== 3;
   const conPapelArriba = conPapel && !contando;
@@ -413,6 +413,7 @@ export function RecibirContando({
 
       {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && (
         <ContarEnvio
+          onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
           detalle={detalle}
           lineas={lineas}
           conteos={conteos}

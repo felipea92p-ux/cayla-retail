@@ -60,6 +60,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261103182000_modelos_en_cero_al_contar.sql",
       // Un costo fuera de lo normal también pide confirmar sin aviso; lo que cuesta hoy cada prenda.
       "20261103222000_costo_fuera_de_lo_normal_sin_aviso.sql",
+      // Un nombre pendiente no frena y sin nada contado no se cierra.
+      "20261104000000_recepcion_cierre_sin_nombre_y_vacio.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -635,19 +637,29 @@ caso(
   "OK / conteo_cantidad / conteo_cantidad / conteo_nueva_descripcion / conteo_cantidad / 0:0:Chompa 1:cuello alto:true:Chompa Luna:sin marca",
 );
 caso(
-  "Z2 un modelo contado con nombre por defecto no deja cerrar; con su nombre cierra, y lo que quedó en 0 no deja pendiente",
+  "Z2 un modelo contado con nombre por defecto cierra y queda pendiente de crear; lo que quedó en 0 no deja rastro",
   `${MICAELA_RECIBE}
    ${SIN_AVISO("d")}
-   select pg_temp.guarda(:'d', null, 2, ${SEPJ([NUEVA(2, "Chompa 1", { por_defecto: true }), NUEVA(0, "Chompa 2", { por_defecto: true }), NUEVA(0, "Chompa Sol")])}, null::int, null::int, null::uuid, :'cat', :'marca') as g \\gset
-   ${VERS("d", [], [1])}
-   select pg_temp.e(${CIERRA("d", [DEC(1)])}) as frena \\gset
-   select pg_temp.guarda(:'d', null, 2, ${SEPJ([NUEVA(2, "Chompa Luna", { nota: "cuello alto" }), NUEVA(0, "Chompa 2", { por_defecto: true }), NUEVA(0, "Chompa Sol")])}, null::int, 1::int, null::uuid, null::uuid, null::uuid) as g2 \\gset
+   select pg_temp.guarda(:'d', null, 2, ${SEPJ([NUEVA(2, "Chompa 1", { por_defecto: true }), NUEVA(0, "Chompa 2", { por_defecto: true }), NUEVA(0, "Chompa Sol")])}, null::int, null::int, null::uuid, :'cat', :'marca') \\g /dev/null
    ${VERS("d", [], [1])}
    select ${CIERRA("d", [DEC(1)])} as r \\gset
    reset role;
-   select concat_ws(' / ', :'frena', pg_temp.e(:'r'::jsonb),
-     (select string_agg(x.tipo || '=' || x.cantidad || '=' || x.descripcion, ',' order by x.descripcion) from retail.despacho_pendientes x where x.despacho_id = :'d'));`,
-  "P0001|recepcion_modelo_sin_nombre|Cambia el nombre de «Chompa 1» antes de cerrar / OK / crear=2=Chompa Luna",
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb),
+     (select string_agg(x.tipo || '=' || x.cantidad || '=' || x.descripcion, ',' order by x.descripcion) from retail.despacho_pendientes x where x.despacho_id = :'d'),
+     (select estado from retail.despachos where id = :'d'),
+     (select count(*) from retail.despacho_recibidos r where r.despacho_id = :'d'));`,
+  "OK / crear=2=Chompa 1 / cerrado / 0",
+);
+caso(
+  "Z2b sin aviso y con todo en 0 no se cierra: se cuenta o se cancela; nada se escribe",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.guarda(:'d', null, 0, ${SEPJ([NUEVA(0, "Chompa Sol")])}, null::int, null::int, null::uuid, :'cat', :'marca') \\g /dev/null
+   ${VERS("d", [], [1])}
+   select pg_temp.e(${CIERRA("d", [DEC(1)])}) as vacio \\gset
+   reset role;
+   select concat_ws(' / ', :'vacio', (select estado from retail.despachos where id = :'d'), (select count(*) from retail.despacho_cierres c where c.despacho_id = :'d'));`,
+  "P0001|envio_vacio|No contaste nada: cuenta lo que llegó o cancela la recepción / abierto / 0",
 );
 caso(
   "Z3 una prenda del catálogo en 0 se guarda y no deja pendiente; un envío con todo en 0 con nombre por defecto no frena por el nombre",

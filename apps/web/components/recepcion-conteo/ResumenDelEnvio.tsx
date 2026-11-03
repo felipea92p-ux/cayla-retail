@@ -46,6 +46,7 @@ export function ResumenDelEnvio({
   motivosNoCierra,
   onIrALoQueFalta,
   onFiltroEstado,
+  onCancelarRecepcion,
 }: {
   cifras: CifrasDelResumen;
   sinAviso: boolean;
@@ -63,6 +64,8 @@ export function ResumenDelEnvio({
   motivosNoCierra: readonly string[];
   onIrALoQueFalta: () => void;
   onFiltroEstado: (e: EstadoDelResumen | null) => void;
+  /** Sin aviso y sin nada contado: la salida es cancelar, no cerrar. */
+  onCancelarRecepcion?: () => void;
 }) {
   // «Cómo se guarda quién cuenta»: la ayuda se abre con un toque (nunca solo con el mouse encima).
   const [verAyuda, setVerAyuda] = useState(false);
@@ -169,6 +172,14 @@ export function ResumenDelEnvio({
         <BotonCerrarConteo peso={todoContado ? "primario" : "fantasma"} puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={alCerrar} onIrALoQueFalta={onIrALoQueFalta} guia="recepcion.pasar-a-cerrar" />
         {/* A la vista, no en un `title`: la prueba ciega no llegó a verlo pasando el mouse. */}
         <p className="rc-resumen-nota">{notaDelResumen(porContar - cifras.agregadosEnCero, cifras.agregadosEnCero)}</p>
+        {onCancelarRecepcion && (
+          <p className="rc-resumen-nota">
+            ¿No llegó nada?{" "}
+            <button type="button" className="btn-cayla btn-enlace" onClick={onCancelarRecepcion}>
+              Cancelar la recepción
+            </button>
+          </p>
+        )}
       </div>
     </aside>
   );

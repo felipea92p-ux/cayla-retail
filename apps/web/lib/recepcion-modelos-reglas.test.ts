@@ -23,7 +23,6 @@ import {
   modelosDelGrupo,
   hayQueIdentificar,
   modeloSeQuita,
-  modelosSinNombre,
   nombrePorDefecto,
   nombreDeParada,
   opcionesDelFiltro,
@@ -212,18 +211,18 @@ describe("paradas: lo que el Dial puede contar", () => {
     expect(modelosDelGrupo(g).find((m) => m.nombre === "Vestido Mar")?.estado).toBe("fuera");
   });
 
-  it("un nombre por defecto: el primer número libre; contado no deja cerrar, en 0 no frena, y al renombrarlo se libera", () => {
+  it("un nombre por defecto: el primer número libre; contado conviene cambiarlo, pero no frena, y al renombrarlo se libera", () => {
     const nuevas = [{ cantidad: 2, descripcion: "Vestido 1", porDefecto: true, nota: "con lazo" }, { cantidad: 0, descripcion: "Vestido 3", porDefecto: true }];
     const extra = (s: Separado): LineaParaContar => ({ ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s), separado: { prendas: [], nuevas: [] } }), clave: "extra:1", linea: null, dijeron: null, conteo: { ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s) }).conteo!, separado: s } });
     const c = categoriasDelEnvio(agruparLineas([extra({ prendas: [], nuevas })]));
     expect(nombrePorDefecto("Vestido", c[0])).toBe("Vestido 2");
     expect(nombrePorDefecto("Vestido", null)).toBe("Vestido 1");
-    expect(modelosSinNombre(c).map((m) => m.nombre)).toEqual(["Vestido 1"]);
     expect(c[0].paradas[0].modelo?.nota).toBe("con lazo");
-    expect(camposDelConteoPorModelo(c).filter((x) => x.requerido && !x.hecho).map((x) => x.nombre)).toContain("El nombre de Vestido 1");
+    const campoNombre = camposDelConteoPorModelo(c).find((x) => x.nombre === "El nombre de Vestido 1");
+    expect(campoNombre).toMatchObject({ requerido: false, sugerido: true, hecho: false });
     const renombrado = renombrarModelo({ prendas: [], nuevas }, "vestido 1", { nombre: " Vestido  Luna ", nota: null });
     expect(renombrado.nuevas[0]).toEqual({ cantidad: 2, descripcion: "Vestido Luna" });
-    expect(modelosSinNombre(categoriasDelEnvio(agruparLineas([extra(renombrado)])))).toEqual([]);
+    expect(camposDelConteoPorModelo(categoriasDelEnvio(agruparLineas([extra(renombrado)]))).some((x) => x.nombre.startsWith("El nombre de"))).toBe(false);
   });
 
   it("el tacho: solo en lo que agregó quien cuenta; al quitarlo baja lo contado", () => {

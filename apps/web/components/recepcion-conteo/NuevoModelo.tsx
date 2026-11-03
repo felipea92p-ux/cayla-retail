@@ -169,7 +169,7 @@ export function NuevoModelo({
               onChange={(e) => setNombre(e.target.value)}
               placeholder={`Ej. ${sugerirNombre(categoria).texto}`}
               autoFocus={!!categoriaFija}
-              pie={provisional ? `Si no lo sabes, déjalo vacío: quedará como «${provisional}» y le pondrás su nombre antes de cerrar.` : undefined}
+              pie={provisional ? `Si no lo sabes, déjalo vacío: quedará como «${provisional}», y su nombre se pone después.` : undefined}
             />
           </CampoGuiado>
           {aLaVista.length > 0 && (

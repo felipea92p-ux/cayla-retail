@@ -322,10 +322,6 @@ export function nombrePorDefecto(prenda: string, c: Pick<CategoriaDelEnvio, "par
   return `${prenda} ${n}`;
 }
 
-/** Los modelos contados que siguen con su nombre provisional: el envío no se cierra hasta cambiarlos. Uno en 0 no frena: se descarta al cerrar. */
-export const modelosSinNombre = (categorias: readonly CategoriaDelEnvio[]): ModeloDelConteo[] =>
-  categorias.flatMap((c) => c.paradas).flatMap((p) => (p.modelo?.porDefecto && p.modelo.contadas > 0 ? [p.modelo] : []));
-
 /** La marca que se sugiere para otro modelo: la de la categoría, si toda es de una sola. Con varias, o sin marca, no se adivina. */
 export function marcaSugeridaDelModelo(c: CategoriaDelEnvio): string {
   const marcas = new Set(c.grupos.map((g) => g.principal.marca?.id ?? ""));
@@ -683,7 +679,8 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
     }
     for (const p of c.paradas) {
       if (p.modelo?.porDefecto && p.modelo.contadas > 0) {
-        campos.push({ id: idCampoParada(p), nombre: `El nombre de ${p.modelo.nombre}`, requerido: true, hecho: false, pendiente: `Cambia el nombre de ${p.modelo.nombre}: sin eso no se cierra el envío.` });
+        // Conviene, no frena (Felipe 2026-11-03): cierra y queda pendiente; sin nombre no se puede crear ni vender.
+        campos.push({ id: idCampoParada(p), nombre: `El nombre de ${p.modelo.nombre}`, requerido: false, sugerido: true, hecho: false, pendiente: `Ponle su nombre a ${p.modelo.nombre}, si ya lo sabes: sin él no se puede vender.` });
         continue;
       }
       if (!p.modelo || p.modelo.estado === "fuera" || p.modelo.estado === "contado") continue;
