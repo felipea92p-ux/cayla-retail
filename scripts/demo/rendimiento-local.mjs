@@ -103,7 +103,9 @@ do $$ begin
     delete from public.jornadas where persona_id in (select id from public.personas where auth_user_id in (${IDS_AUTH}));
   end if;
 end $$;
-delete from retail.metas_persona_ajustes where persona_id in (select id from public.personas where auth_user_id in (${IDS_AUTH}));
+alter table retail.metas_persona_ajustes disable trigger user; -- su historial no se borra en ningún otro lado: esto es solo para estos datos inventados
+delete from retail.metas_persona_ajustes where persona_id in (select id from public.personas where auth_user_id in (${IDS_VENTAS}));
+alter table retail.metas_persona_ajustes enable trigger user;
 delete from retail.colaboradores where persona_id in (select id from public.personas where auth_user_id in (${IDS_AUTH}));
 delete from public.personas where auth_user_id in (${IDS_AUTH});
 delete from auth.identities where user_id in (${IDS_AUTH});

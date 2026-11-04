@@ -35,7 +35,6 @@ import {
   type PersonaMeta,
   type Vista,
 } from "@/lib/rendimiento-meta-reglas";
-import { EditarMetaModal } from "./EditarMetaModal";
 import { GraficoVentasMeta } from "./GraficoVentasMeta";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
@@ -419,18 +418,6 @@ export function PanelRendimiento({
 
       <Historial cambios={historial} />
 
-      {editando && (
-        <EditarMetaModal
-          key={editando.personaId}
-          persona={editando}
-          ubicacionId={ubicacionId}
-          ubicacionNombre={nombre}
-          mes={mes}
-          mesEtiqueta={mesEtiqueta}
-          metaSedeMes={resMes.meta}
-          onClose={() => setEditando(null)}
-        />
-      )}
     </div>
   );
 }

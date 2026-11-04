@@ -145,8 +145,10 @@ export function medirPersona(entrada: {
   hoy: string;
   turno: TurnoDeHoy | null;
   ahoraMin: number | null;
+  /** Su meta del mes tal como la guarda la base. Las metas de cada día van redondeadas: sumadas no dan exacto, y la cifra que se ve es esta. */
+  metaMes?: number | null;
 }): MedidaPersona {
-  const { personaId, nombre, filas, tramo, hoy, turno, ahoraMin } = entrada;
+  const { personaId, nombre, filas, tramo, hoy, turno, ahoraMin, metaMes } = entrada;
   let vendido = 0;
   let ventas = 0;
   let prendas = 0;
@@ -159,7 +161,9 @@ export function medirPersona(entrada: {
     if (f.total > 0 && (mejorDia === null || f.total > mejorDia.total)) mejorDia = { fecha: f.fecha, total: f.total };
   }
   const fraccion = turno !== null && ahoraMin !== null ? ritmoDelTurno(turno, ahoraMin) : null;
-  const { meta, tocaba, metaHoy, tocabaHoy } = metaYTocaba(filas, tramo, hoy, fraccion);
+  const medido = metaYTocaba(filas, tramo, hoy, fraccion);
+  const { tocaba, metaHoy, tocabaHoy } = medido;
+  const meta = medido.meta !== null && tramo.desde === primerDiaDelMes(hoy) && (metaMes ?? 0) > 0 ? (metaMes as number) : medido.meta;
   const conMeta = meta !== null && meta > 0;
   const ritmo = conMeta && tocaba !== null ? tocaba / meta : null;
   return {
@@ -207,7 +211,7 @@ export function medirEquipo(entrada: {
   const { personas, filas, tramo, hoy, ahoraMin } = entrada;
   const porPersona = filasPorPersona(filas);
   const delEquipo = personas.map((p) =>
-    medirPersona({ personaId: p.personaId, nombre: p.nombre, filas: porPersona.get(p.personaId) ?? [], tramo, hoy, turno: p, ahoraMin }),
+    medirPersona({ personaId: p.personaId, nombre: p.nombre, filas: porPersona.get(p.personaId) ?? [], tramo, hoy, turno: p, ahoraMin, metaMes: p.metaMes }),
   );
   const ids = new Set(personas.map((p) => p.personaId));
   const deAfuera = [...porPersona.entries()]
@@ -455,4 +459,56 @@ export function tramoArrastrado(entrada: { gesto: GestoTramo; dias: readonly str
     b = Math.max(pos(puntoInicial), pos(puntoAhora));
   }
   return { desde: dias[a], hasta: dias[b] };
+}
+
+// ───────────────────────── la fila abierta ─────────────────────────
+
+/**
+ * Lo de una persona si su meta del mes fuera otra: «la meta de cada día se recalcula sola, en la misma proporción» (D-146). Solo cambia el mes en curso;
+ * el mes pasado no se toca. Sirve para mostrar qué pasaría ANTES de guardar.
+ */
+export function filasConOtraMeta(filas: readonly FilaPersonaDia[], hoy: string, metaActual: number, metaNueva: number): FilaPersonaDia[] {
+  if (metaActual <= 0) return [...filas];
+  const inicio = primerDiaDelMes(hoy);
+  const factor = metaNueva / metaActual;
+  return filas.map((f) => (f.fecha >= inicio && f.metaDia !== null ? { ...f, metaDia: f.metaDia * factor } : f));
+}
+
+const DIAS_EN_PLURAL = ["los domingos", "los lunes", "los martes", "los miércoles", "los jueves", "los viernes", "los sábados"];
+
+/** El día de la semana que más vende una persona en el mes en curso, y qué parte de lo suyo es. `null` sin ventas. */
+export function suDiaFuerte(filas: readonly FilaPersonaDia[], hoy: string): { dia: string; parte: number } | null {
+  const inicio = primerDiaDelMes(hoy);
+  const suma = [0, 0, 0, 0, 0, 0, 0];
+  let total = 0;
+  for (const f of filas) {
+    if (f.fecha < inicio || f.fecha > hoy) continue;
+    suma[new Date(`${f.fecha}T12:00:00Z`).getUTCDay()] += f.total;
+    total += f.total;
+  }
+  if (total <= 0) return null;
+  const i = suma.indexOf(Math.max(...suma));
+  return { dia: DIAS_EN_PLURAL[i], parte: Math.round((suma[i] / total) * 100) };
+}
+
+export type DiaCalendario = { fecha: string; n: number; total: number; intensidad: number; llego: boolean };
+
+/** El mes de una persona, para su calendario: cuánto vendió cada día, con la intensidad (0–1) contra su mejor día. Lo que no ha llegado va apagado. */
+export function calendarioDelMes(filas: readonly FilaPersonaDia[], hoy: string): { hueco: number; dias: DiaCalendario[] } {
+  const inicio = primerDiaDelMes(hoy);
+  const fin = ultimoDiaDelMes(hoy);
+  const porFecha = new Map<string, number>();
+  for (const f of filas) if (f.fecha >= inicio && f.fecha <= fin) porFecha.set(f.fecha, (porFecha.get(f.fecha) ?? 0) + f.total);
+  const tope = Math.max(1, ...porFecha.values());
+  const largo = diasEntreFechas(inicio, fin) + 1;
+  // La semana empieza el lunes, como en la pared de la tienda.
+  const hueco = (new Date(`${inicio}T12:00:00Z`).getUTCDay() + 6) % 7;
+  return {
+    hueco,
+    dias: Array.from({ length: largo }, (_, i) => {
+      const fecha = sumarDias(inicio, i);
+      const total = porFecha.get(fecha) ?? 0;
+      return { fecha, n: i + 1, total, intensidad: total / tope, llego: fecha <= hoy };
+    }),
+  };
 }

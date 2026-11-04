@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  calendarioDelMes,
   cierreSimulado,
+  filasConOtraMeta,
+  suDiaFuerte,
   diasParaGrafico,
   gestoEn,
   mesPasadoEnEje,
@@ -106,6 +109,18 @@ describe("medirPersona: un tramo que empieza el 1 se mide contra todo el mes", (
     expect(m.tocaba).toBe(1000);
     expect(m.vendido).toBe(1000);
     expect(m.lectura).toBe("En ritmo");
+  });
+});
+
+describe("medirPersona: la meta del mes es la que guarda la base", () => {
+  it("las de cada día van redondeadas: desde el 1 se ve la del mes; en otro tramo, la de sus días", () => {
+    const filas = mes(() => 100);
+    expect(medirPersona({ personaId: "ana", nombre: "Ana T.", filas, tramo: { desde: dia(1), hasta: HOY }, hoy: HOY, turno: null, ahoraMin: null, metaMes: 3080 }).meta).toBe(3080);
+    expect(medirPersona({ personaId: "ana", nombre: "Ana T.", filas, tramo: { desde: dia(5), hasta: dia(6) }, hoy: HOY, turno: null, ahoraMin: null, metaMes: 3080 }).meta).toBe(200);
+  });
+
+  it("sin metas de los días, una meta del mes no inventa lecturas", () => {
+    expect(medirPersona({ personaId: "ana", nombre: "Ana T.", filas: [fila(dia(1), 50, null)], tramo: { desde: dia(1), hasta: HOY }, hoy: HOY, turno: null, ahoraMin: null, metaMes: 3080 }).meta).toBeNull();
   });
 });
 
@@ -373,5 +388,43 @@ describe("el gráfico", () => {
     expect(gestoEn(95, 40, 100, false)).toBe("hasta");
     expect(gestoEn(70, 40, 100, false)).toBe("mover");
     expect(gestoEn(150, 40, 100, false)).toBe("nuevo");
+  });
+});
+
+describe("la fila abierta", () => {
+  it("otra meta cambia los días del mes en proporción y no toca el mes pasado", () => {
+    const filas = [fila(dia(1), 10, 100), fila(dia(2), 10, null), fila("2026-09-30", 10, 80)];
+    const r = filasConOtraMeta(filas, HOY, 1000, 1500);
+    expect(r[0].metaDia).toBe(150);
+    expect(r[1].metaDia).toBeNull();
+    expect(r[2].metaDia).toBe(80);
+  });
+
+  it("sin meta actual no hay en qué proporción cambiar", () => {
+    const filas = [fila(dia(1), 10, 100)];
+    expect(filasConOtraMeta(filas, HOY, 0, 500)).toEqual(filas);
+  });
+
+  it("con otra meta, la lectura de la persona cambia", () => {
+    const filas = mes(() => 100);
+    expect(medir(filas).lectura).toBe("En ritmo");
+    expect(medir(filasConOtraMeta(filas, HOY, 3100, 2000)).lectura).toBe("Adelante");
+    expect(medir(filasConOtraMeta(filas, HOY, 3100, 5000)).lectura).toBe("Por debajo");
+  });
+
+  it("su día fuerte", () => {
+    // 3 de octubre de 2026 es sábado, 5 es lunes.
+    expect(suDiaFuerte([fila(dia(3), 300), fila(dia(10), 100), fila(dia(5), 100)], HOY)).toEqual({ dia: "los sábados", parte: 80 });
+    expect(suDiaFuerte([fila(dia(25), 300)], HOY)).toBeNull();
+    expect(suDiaFuerte([], HOY)).toBeNull();
+  });
+
+  it("el calendario empieza el lunes, y lo que no ha llegado va apagado", () => {
+    const c = calendarioDelMes([fila(dia(10), 200), fila(dia(11), 100)], HOY);
+    expect(c.hueco).toBe(3); // el 1 de octubre de 2026 es jueves
+    expect(c.dias.length).toBe(31);
+    expect(c.dias[9]).toMatchObject({ n: 10, total: 200, intensidad: 1, llego: true });
+    expect(c.dias[10].intensidad).toBe(0.5);
+    expect(c.dias[24].llego).toBe(false);
   });
 });

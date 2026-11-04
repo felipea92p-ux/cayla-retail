@@ -59,6 +59,7 @@ export function useColumnasRendimiento({
   personaCuentaId,
   conMeta,
   diaVivo,
+  abiertaId,
 }: {
   personas: readonly PersonaMeta[];
   filas: readonly FilaPersonaDia[];
@@ -70,6 +71,7 @@ export function useColumnasRendimiento({
   conMeta: boolean;
   /** El día que se señala en el gráfico: cada fila dice lo que vendió ese día. */
   diaVivo: string | null;
+  abiertaId: string | null;
 }): ColumnaViva<MedidaPersona>[] {
   return useMemo(() => {
     const porId = new Map(personas.map((p) => [p.personaId, p]));
@@ -84,7 +86,7 @@ export function useColumnasRendimiento({
         principal: true,
         alinear: "izquierda",
         filtra: true,
-        ancho: "minmax(180px,1.15fr)",
+        ancho: "minmax(170px,1.1fr)",
         guia: "rendimiento.personas",
         valor: (m) => m.nombre,
         frase: (v) => v.map((n) => n.split(" ")[0]).join(", "),
@@ -96,7 +98,10 @@ export function useColumnasRendimiento({
               <AvatarPersona personaId={m.personaId} nombre={m.nombre} tamano={32} />
               <span className="min-w-0">
                 <span className="mesa-fila-nombre">
-                  <span className="tv-dato">{m.nombre}</span>
+                  {/* El botón es para el teclado: su clic sube a la fila, que es la que abre (TablaViva). */}
+                  <button type="button" className="mesa-fila-abrir tv-dato" aria-expanded={abiertaId === m.personaId}>
+                    {m.nombre}
+                  </button>
                   {p?.esEncargada && (
                     <Chip tono="pizarra" versalitas={false}>
                       Encargada
@@ -123,7 +128,7 @@ export function useColumnasRendimiento({
         tipo: "texto",
         filtra: true,
         sinNombreEnTarjeta: true,
-        ancho: "122px",
+        ancho: "116px",
         guia: "rendimiento.lectura",
         ayuda: "10 puntos arriba o abajo de lo que tocaba. Es para reconocer y acompañar.",
         textosOrden: { asc: "Por debajo primero", desc: "Adelante primero" },
@@ -140,7 +145,7 @@ export function useColumnasRendimiento({
         titulo: conMeta ? "Avance" : "De la tienda",
         tipo: "numero",
         sinNombreEnTarjeta: true,
-        ancho: "minmax(170px,1.5fr)",
+        ancho: "minmax(150px,1.5fr)",
         guia: "rendimiento.avance",
         ayuda: conMeta ? "Lo vendido contra su meta. La rayita es lo que tocaba hasta ahora." : "Su parte de lo vendido en la tienda.",
         // Sin meta en la tienda, la columna dice su parte de lo vendido: un dato, no una meta inventada.
@@ -160,6 +165,7 @@ export function useColumnasRendimiento({
         clave: "vendido",
         titulo: "Vendido",
         tipo: "monto",
+        ancho: "108px",
         destacadaEnTarjeta: true,
         guia: "rendimiento.vendido",
         valor: (m) => m.vendido,
@@ -186,6 +192,7 @@ export function useColumnasRendimiento({
         clave: "meta",
         titulo: "Meta",
         tipo: "monto",
+        ancho: "100px",
         seVa: 1060,
         valor: (m) => m.meta,
         texto: (m) => (m.meta !== null ? SOLES.format(m.meta) : "—"),
@@ -214,6 +221,7 @@ export function useColumnasRendimiento({
         clave: "ticket",
         titulo: "Ticket",
         tipo: "monto",
+        ancho: "100px",
         seVa: 840,
         valor: (m) => m.ticket,
         texto: (m) => (m.ticket !== null ? SOLES.format(m.ticket) : "—"),
@@ -231,6 +239,7 @@ export function useColumnasRendimiento({
         clave: "mejor",
         titulo: "Mejor día",
         tipo: "fecha",
+        ancho: "112px",
         seVa: 840,
         valor: (m) => m.mejorDia?.fecha ?? null,
         resumen: (m) => (m.mejorDia ? `Mejor día: ${SOLES.format(m.mejorDia.total)}` : ""),
@@ -241,7 +250,7 @@ export function useColumnasRendimiento({
         tipo: "texto",
         seVa: 1060,
         ordena: false,
-        ancho: "88px",
+        ancho: "84px",
         ayuda: "Lo que vendió cada día del mes. Lo elegido va en su color.",
         valor: () => null,
         celda: (m) => {
@@ -258,7 +267,7 @@ export function useColumnasRendimiento({
       },
     );
     return columnas;
-  }, [personas, filas, colores, tramo, hoy, esHoy, personaCuentaId, conMeta, diaVivo]);
+  }, [personas, filas, colores, tramo, hoy, esHoy, personaCuentaId, conMeta, diaVivo, abiertaId]);
 }
 
 function CeldaAvance({ m, color, parteDe }: { m: MedidaPersona; color?: string; parteDe: number | null }) {

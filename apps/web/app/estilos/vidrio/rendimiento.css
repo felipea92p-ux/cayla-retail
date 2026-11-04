@@ -825,6 +825,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mesa-abierta,
+  .mesa-abierta[data-cerrando],
+  .mesa-calendario button,
   .mesa-visto,
   .mesa-visto::after,
   .mesa-entra,
@@ -850,6 +853,153 @@
   .mesa-columna {
     animation: none;
   }
+}
+
+/* ---------- La fila que se abre en su lugar ---------- */
+.mesa-fila-abrir {
+  text-align: left;
+  font-weight: inherit;
+  color: inherit;
+  border-radius: 6px;
+}
+.mesa-fila-abrir:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.tv-detalle:has(> .mesa-abierta) {
+  padding: 0;
+}
+.mesa-abierta {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: mesa-abre 420ms var(--ease-cayla) both;
+  background: color-mix(in srgb, var(--c) 6%, transparent);
+  box-shadow: inset 0 1px 0 var(--hilo-fila, transparent), inset 0 -1px 0 var(--hilo-fila, transparent);
+}
+.mesa-abierta > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.mesa-abierta[data-cerrando] {
+  animation: mesa-cierra 300ms var(--ease-cayla) both;
+}
+@keyframes mesa-abre {
+  from { grid-template-rows: 0fr; opacity: 0; }
+}
+@keyframes mesa-cierra {
+  to { grid-template-rows: 0fr; opacity: 0; }
+}
+.mesa-abierta-cuerpo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(320px, 1.3fr);
+  gap: 20px 32px;
+  padding: 16px 22px 22px;
+  cursor: default;
+}
+@container tv (max-width: 1059.98px) {
+  .mesa-abierta-cuerpo { grid-template-columns: auto minmax(0, 1fr); }
+  .mesa-ajuste { grid-column: 1 / -1; }
+}
+@container tv (max-width: 659.98px) {
+  .mesa-abierta-cuerpo { grid-template-columns: minmax(0, 1fr); padding: 14px 18px 18px; }
+}
+.mesa-abierta-titulo {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-calendario {
+  display: grid;
+  grid-template-columns: repeat(7, 36px);
+  gap: 3px;
+}
+@container tv (max-width: 659.98px) {
+  .mesa-calendario { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+}
+.mesa-calendario > span {
+  font-size: 11px;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-calendario button {
+  height: 32px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+  background: color-mix(in srgb, var(--c) var(--n, 0%), color-mix(in srgb, var(--color-tinta) 6%, transparent));
+  animation: mesa-dia 300ms var(--ease-cayla) both;
+  animation-delay: calc(var(--k, 0) * 14ms);
+  transition: transform 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+@keyframes mesa-dia {
+  from { opacity: 0; transform: scale(0.82); }
+}
+.mesa-calendario button[data-fuerte] {
+  color: var(--color-crema-fija);
+}
+.mesa-calendario button:disabled {
+  background: none;
+  cursor: default;
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 12%, transparent);
+}
+.mesa-calendario button[data-en] {
+  box-shadow: 0 0 0 1.5px var(--color-tinta);
+}
+.mesa-calendario button[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--color-tinta);
+}
+@media (hover: hover) {
+  .mesa-calendario button:not(:disabled):hover {
+    transform: scale(1.12);
+  }
+}
+.mesa-calendario button:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.mesa-va-bien {
+  display: grid;
+  gap: 8px;
+  font-size: 14.5px;
+  line-height: 1.42;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+.mesa-va-bien b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mesa-meta-cifra {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.mesa-ajuste {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.mesa-que-pasaria {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+.mesa-que-pasaria [data-pasa] {
+  color: var(--color-ambar);
+}
+.mesa-motivos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 /* En la tarjeta del celular, la barra toma todo lo que queda de la línea. */

@@ -5,9 +5,10 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { useTablaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
 import type { SedeDeRendimiento } from "@/lib/rendimiento";
 import { sumarDias } from "@/lib/fechas-lima";
-import { minutosEnLima, primerDiaDelMes, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
+import { minutosEnLima, primerDiaDelMes, resumenDeSede, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
 import {
   diasDelEje,
+  filasPorPersona,
   fraseDelEquipo,
   medirEquipo,
   medirGrupo,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/rendimiento-vista-reglas";
 import { hayFiltrosPuestos, type FiltrosVivos, type OrdenViva } from "@/lib/tabla-viva-reglas";
 import { CifrasRendimiento } from "./CifrasRendimiento";
+import { FilaAbierta } from "./FilaAbierta";
 import { GraficoRendimiento, type ModoGrafico } from "./GraficoRendimiento";
 import { PanelRendimiento } from "./PanelRendimiento";
 import { SedesConAnillo } from "./SedesConAnillo";
@@ -68,6 +70,23 @@ export function MesaRendimiento({
   const [diaVivo, setDiaVivo] = useState<string | null>(null);
   // «Ver cómo fue»: el mes se repite día a día. Mientras tanto, el tramo crece solo; al llegar a hoy, se detiene (no es un bucle).
   const [repitiendo, setRepitiendo] = useState(false);
+  // La fila abierta; al cerrarse se queda un momento, para que se recoja en vez de desaparecer.
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const [cerrando, setCerrando] = useState<string | null>(null);
+  const reloj = useRef(0);
+  function alternarFila(id: string) {
+    window.clearTimeout(reloj.current);
+    if (abierta !== id) {
+      if (abierta) setCerrando(null);
+      setAbierta(id);
+      return;
+    }
+    setCerrando(id);
+    reloj.current = window.setTimeout(() => {
+      setAbierta((a) => (a === id ? null : a));
+      setCerrando(null);
+    }, 300);
+  }
   // La hora de Lima solo se conoce en el navegador: sin esto, el servidor y el navegador pintarían distinto (D-159).
   const [ahoraMin, setAhoraMin] = useState<number | null>(null);
   useEffect(() => {
@@ -86,7 +105,7 @@ export function MesaRendimiento({
   const tramoTexto = tramoEnPalabras(tramo, hoy);
   // Sin ninguna meta en la tienda no hay nada de qué leer un ritmo: la tabla no dibuja esa columna ni la de la meta.
   const conMeta = medidas.some((m) => m.meta !== null);
-  const columnas = useColumnasRendimiento({ personas: activa?.personas ?? [], filas, colores, tramo, hoy, esHoy: preset === "hoy", personaCuentaId, conMeta, diaVivo });
+  const columnas = useColumnasRendimiento({ personas: activa?.personas ?? [], filas, colores, tramo, hoy, esHoy: preset === "hoy", personaCuentaId, conMeta, diaVivo, abiertaId: abierta });
   const tabla = useTablaViva({ filas: medidas, columnas, control: { filtros, orden, onFiltros: setFiltros, onOrden: setOrden } });
   const vistas = tabla.visibles;
   const hayFiltro = hayFiltrosPuestos(tabla.filtros);
@@ -135,6 +154,8 @@ export function MesaRendimiento({
     if (id === activaId) return;
     setActivaId(id);
     setFiltros({});
+    setAbierta(null);
+    setCerrando(null);
     setPorDia(null);
     setRepitiendo(false);
     const url = new URL(window.location.href);
@@ -148,6 +169,8 @@ export function MesaRendimiento({
   if (!activa) return null;
   const vistaAbajo = preset === "hoy" ? "hoy" : preset === "semana" ? "semana" : "mes";
   const hayPanel = activa.panelDisponible && activa.personaDias !== null;
+  const metaSedeMes = resumenDeSede(activa.serie, "mes", hoy).meta;
+  const porId = filasPorPersona(filas);
 
   return (
     <div ref={raiz} className="mesa mesa-marco">
@@ -227,7 +250,37 @@ export function MesaRendimiento({
           />
         )}
 
-        {hayPanel && <TablaRendimiento tabla={tabla} hoy={hoy} cola={preset === "mes" ? "este mes" : undefined} deAfuera={deAfuera} ventasSinPersona={hayFiltro ? 0 : ventasSinPersona} />}
+        {hayPanel && (
+          <TablaRendimiento
+            tabla={tabla} hoy={hoy} cola={preset === "mes" ? "este mes" : undefined} deAfuera={deAfuera}
+            ventasSinPersona={hayFiltro ? 0 : ventasSinPersona}
+            abierta={(m) => abierta === m.personaId}
+            onAbrir={(m) => alternarFila(m.personaId)}
+            debajoDeFila={(m, i) =>
+              abierta === m.personaId ? (
+                <FilaAbierta
+                  medida={m}
+                  persona={activa.personas.find((p) => p.personaId === m.personaId) ?? null}
+                  personas={activa.personas}
+                  filas={porId.get(m.personaId) ?? []}
+                  ubicacionId={activa.ubicacionId}
+                  ubicacionNombre={activa.nombre}
+                  hoy={hoy}
+                  tramo={tramo}
+                  ahoraMin={ahoraMin}
+                  metaSedeMes={metaSedeMes}
+                  color={colores.get(m.personaId)}
+                  personaCuentaId={personaCuentaId}
+                  esAdmin={esAdmin}
+                  cerrando={cerrando === m.personaId}
+                  guiar={i === 0}
+                  onDia={(fecha) => setTramo((t) => (t.desde === fecha && t.hasta === fecha ? tramoDePreset("mes", hoy) : { desde: fecha, hasta: fecha }))}
+                  onCerrar={() => alternarFila(m.personaId)}
+                />
+              ) : null
+            }
+          />
+        )}
 
         {activa.panelDisponible ? (
           <PanelRendimiento
