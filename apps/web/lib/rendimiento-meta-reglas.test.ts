@@ -189,6 +189,29 @@ describe("asignacionDeVista: lo que suman las personas contra la meta de la sede
 
 
 describe("leerSoles", () => {
+  it("no inventa una cifra con lo que no entiende (/chaos, ENT-07: «15oo» se guardaba como S/ 15)", () => {
+    for (const t of ["15oo", "2 mil", "1e3", "1e309", "6009/k", "١٢٣", "abc", "1.2.3", "1,2,3"]) expect(leerSoles(t), t).toBeNaN();
+  });
+
+  it("el punto o la coma que separan miles son miles, escríbanse como se escriban", () => {
+    expect(leerSoles("1.500")).toBe(1500);
+    expect(leerSoles("12.500")).toBe(12500);
+    expect(leerSoles("1.500.000")).toBe(1500000);
+    expect(leerSoles("1.299,50")).toBe(1299.5);
+    expect(leerSoles("1,299.50")).toBe(1299.5);
+    expect(leerSoles("6.000,00")).toBe(6000);
+  });
+
+  it("los decimales siguen siendo decimales", () => {
+    expect(leerSoles("1.50")).toBe(1.5);
+    expect(leerSoles("0.500")).toBe(0.5);
+    expect(leerSoles("1299.505")).toBe(1299.505);
+    expect(leerSoles("S/. 1500")).toBe(1500);
+    expect(leerSoles("S/1500")).toBe(1500);
+    expect(leerSoles(" 1500 ")).toBe(1500);
+    expect(leerSoles("-5")).toBe(-5);
+  });
+
   it("entiende cómo se tipea en Perú", () => {
     expect(leerSoles("12500")).toBe(12500);
     expect(leerSoles("12,500")).toBe(12500);
@@ -206,6 +229,12 @@ describe("leerSoles", () => {
 
 describe("validarCambioMeta: las mismas reglas que la base, dichas antes de enviar", () => {
   const base = { metaTexto: "9000", volverAutomatica: false, motivo: "cambia_horario" as const, detalle: "", metaSedeMes: 30000 };
+
+  it("lo que no se entiende se dice, sin culpar a la cifra", () => {
+    expect(validarCambioMeta({ ...base, metaTexto: "15oo" })).toMatchObject({ ok: false, campo: "meta", error: expect.stringContaining("No entendí") });
+    expect(validarCambioMeta({ ...base, metaTexto: "" })).toMatchObject({ ok: false, error: "La meta tiene que ser mayor que cero." });
+    expect(validarCambioMeta({ ...base, metaTexto: "-5" })).toMatchObject({ ok: false, error: "La meta tiene que ser mayor que cero." });
+  });
 
   it("un cambio completo pasa", () => {
     expect(validarCambioMeta(base)).toEqual({ ok: true, meta: 9000, motivo: "cambia_horario", detalle: null });

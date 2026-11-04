@@ -323,16 +323,35 @@ export type ResultadoCambio =
   | { ok: true; meta: number | null; motivo: MotivoMeta | null; detalle: string | null }
   | { ok: false; campo: "meta" | "motivo" | "detalle"; error: string };
 
-/** Lo que tipeó la persona en el campo de soles: «12,500», «12500.5» o «S/ 12 500». `NaN` si no se entiende. */
+/**
+ * Lo que tipeó la persona en el campo de soles: «12,500», «1.500», «1.299,50», «12500.5» o «S/ 12 500». `NaN` si no se entiende: nunca se
+ * borra lo que no es cifra para quedarse con el resto, o «15oo» se guardaría como S/ 15 y «2 mil» como S/ 2 (/chaos, 2026-11-04).
+ */
 export function leerSoles(texto: string): number {
-  // Los blancos se miran ANTES de borrar lo que no es cifra: «S/ 12 500» son doce mil quinientos (el espacio separa miles), pero
-  // «12 8 5» es un pegado de tres celdas y no se adivina (`sinBlancosDeMiles`). Sin esto, el borrado ancho los juntaba en 1285.
-  const sinBlancos = sinBlancosDeMiles(texto.replace(/[^\d.,\s]/g, ""));
-  if (sinBlancos === null) return Number.NaN;
-  const limpio = sinBlancos.replace(/,(?=\d{3}(\D|$))/g, "").replace(",", ".");
-  if (limpio === "") return Number.NaN;
+  const negativo = /^\s*-/.test(texto);
+  const sinSimbolo = texto.trim().replace(/^-\s*/, "").replace(/^s\/\.?\s*/i, "");
+  if (sinSimbolo === "" || /[^\d.,\s]/.test(sinSimbolo)) return Number.NaN;
+  // Los blancos se miran antes: «S/ 12 500» son doce mil quinientos (el espacio separa miles), pero «12 8 5» es un pegado de tres celdas.
+  const c = sinBlancosDeMiles(sinSimbolo);
+  if (c === null || !/\d/.test(c)) return Number.NaN;
+  const conAmbos = c.includes(".") && c.includes(",");
+  let limpio: string;
+  if (conAmbos) {
+    // El último separador es el decimal, y el otro separa miles.
+    const decimal = c.lastIndexOf(".") > c.lastIndexOf(",") ? "." : ",";
+    const miles = decimal === "." ? "," : ".";
+    const forma = new RegExp(`^\\d{1,3}(\\${miles}\\d{3})+\\${decimal}\\d+$`);
+    if (!forma.test(c)) return Number.NaN;
+    limpio = c.split(miles).join("").replace(decimal, ".");
+  } else {
+    const sep = c.includes(".") ? "." : c.includes(",") ? "," : null;
+    if (sep === null) limpio = c;
+    else if (new RegExp(`^[1-9]\\d{0,2}(\\${sep}\\d{3})+$`).test(c)) limpio = c.split(sep).join("");
+    else if (c.split(sep).length === 2) limpio = c.replace(sep, ".");
+    else return Number.NaN;
+  }
   // El signo no se pierde: «-5» tiene que rechazarse como negativo, no leerse como 5.
-  return /^\s*-/.test(texto) ? -Number(limpio) : Number(limpio);
+  return negativo ? -Number(limpio) : Number(limpio);
 }
 
 /**
@@ -349,6 +368,7 @@ export function validarCambioMeta(entrada: {
 }): ResultadoCambio {
   if (entrada.volverAutomatica) return { ok: true, meta: null, motivo: null, detalle: null };
   const meta = leerSoles(entrada.metaTexto);
+  if (entrada.metaTexto.trim() !== "" && Number.isNaN(meta)) return { ok: false, campo: "meta", error: "No entendí esa cifra: escríbela solo con números, como 1500." };
   if (!Number.isFinite(meta) || meta <= 0) return { ok: false, campo: "meta", error: "La meta tiene que ser mayor que cero." };
   if (entrada.metaSedeMes !== null && meta > entrada.metaSedeMes) {
     return { ok: false, campo: "meta", error: "La meta de una persona no puede pasar de la de la tienda en el mes." };
