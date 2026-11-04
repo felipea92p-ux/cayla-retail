@@ -9,6 +9,7 @@
 // que todavía no es de ningún modelo (lo contado antes de esto, o un envío sin modelos anotados) sigue siendo «sin identificar» y sigue frenando
 // el paso a «Cerrar», igual que antes.
 
+import { existentesParecidos } from "./atributo-parecido";
 import {
   anotadasDelGrupo,
   lineaDeLaPrenda,
@@ -701,4 +702,17 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
     }
     return campos;
   });
+}
+
+/**
+ * Lo que se le muestra a quien agrega un modelo (Felipe 2026-11-03): lo que trae lo escrito, y `pregunta`, la prenda que se llama igual o casi igual. Esa no se deja pasar en silencio:
+ * o es esa, o la persona dice que es otra. Cuántas muestra lo decide la pantalla; lo que no se parece no sale (antes salía todo lo que compartía la categoría).
+ */
+export function parecidasDelNombre<P extends { productoId: string; nombre: string; coincide?: boolean }>(texto: string, prendas: readonly P[]): { aLaVista: P[]; pregunta: P | null } {
+  const porNombre = existentesParecidos(texto, prendas.map((p) => ({ id: p.productoId, nombre: p.nombre })));
+  const ids = new Set(porNombre.map((c) => c.id));
+  return {
+    aLaVista: prendas.filter((p) => p.coincide || ids.has(p.productoId)),
+    pregunta: prendas.find((p) => p.productoId === porNombre[0]?.id) ?? null,
+  };
 }

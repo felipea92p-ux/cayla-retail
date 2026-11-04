@@ -36,6 +36,7 @@ export const RPC_ENVIOS_POR_RECIBIR = "fn_envios_por_recibir";
 export const RPC_ENVIOS_POR_ABRIR = "fn_envios_por_abrir";
 export const RPC_ORDENES_DIRECTAS = "fn_ordenes_directas_por_recibir";
 export const RPC_PRENDAS_PARA_RECIBIR = "fn_prendas_para_recibir";
+export const RPC_PARECIDAS_PARA_RECIBIR = "fn_parecidas_para_recibir";
 /** Escrituras: abren el loader («guardado»). */
 export const RPC_ABRIR_DESPACHO = "abrir_despacho";
 export const RPC_RECIBIR_SIN_ENVIO = "recibir_orden_sin_envio";
@@ -523,6 +524,9 @@ export type PrendaRecepcion = {
   nueva: boolean;
   /** `pendiente`: la creó quien no edita el catálogo y un líder la revisa después (sigue pudiéndose recibir). */
   estadoAlta: string | null;
+  /** Solo en las parecidas: su marca (pueden ser de otra) y si lo escrito está en su nombre o su código. */
+  marca?: { id: string; nombre: string } | null;
+  coincide?: boolean;
 };
 
 function leerVariante(f: unknown): VarianteRecepcion | null {
@@ -561,6 +565,19 @@ export function leerPrendasParaRecibir(data: unknown): PrendaRecepcion[] {
   return lista(data)
     .map((f) => leerPrenda(f, false))
     .filter((p): p is PrendaRecepcion => p !== null);
+}
+
+/** Las parecidas de una categoría (`fn_parecidas_para_recibir`): como las prendas para recibir, con su marca y si coinciden. */
+export function leerParecidasParaRecibir(data: unknown): PrendaRecepcion[] {
+  return lista(data).flatMap((f) => {
+    const p = leerPrenda(f, false);
+    if (!p) return [];
+    const r = objeto(f);
+    const m = objeto(r?.marca);
+    const id = texto(m?.id);
+    const nombre = texto(m?.nombre);
+    return [{ ...p, marca: id && nombre ? { id, nombre } : null, coincide: r?.coincide === true }];
+  });
 }
 
 /**

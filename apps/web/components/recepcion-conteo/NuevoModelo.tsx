@@ -8,11 +8,11 @@ import { ListaSugerencias } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
+import { buscarParecidasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { CatalogoParaRecibir, CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { TOPES_CONTEO } from "@/lib/recepcion-conteo-reglas";
 import type { GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
-import { marcaSugeridaDelModelo, nombrePorDefecto, paradaDelNombre, type CategoriaDelEnvio, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
+import { marcaSugeridaDelModelo, nombrePorDefecto, paradaDelNombre, parecidasDelNombre, type CategoriaDelEnvio, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import { prendaDeLaCategoria, sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
@@ -84,18 +84,25 @@ export function NuevoModelo({
     const mia = ++vuelta.current;
     if (texto.length < 2 || !categoriaId) return;
     const t = window.setTimeout(() => {
-      void buscarPrendasParaRecibir(categoriaId, marcaId || null, texto).then(({ prendas, error: e }) => {
-        if (mia === vuelta.current) setParecidas(e ? [] : prendas.slice(0, 4));
+      void buscarParecidasParaRecibir(categoriaId, texto).then((prendas) => {
+        if (mia === vuelta.current) setParecidas(prendas);
       });
     }, 250);
     return () => window.clearTimeout(t);
-  }, [categoriaId, marcaId, texto]);
-  const aLaVista = texto.length >= 2 && !yaEsta ? parecidas.filter((p) => !enLista || !paradaDelNombre(enLista, p.nombre)) : [];
+  }, [categoriaId, texto]);
+  // De cualquier marca, sin las que ya están en la lista. La que se llama igual pregunta: «¿Es esta?»; tocar otra también, antes de agregarla.
+  const candidatas = texto.length >= 2 && !yaEsta ? parecidas.filter((p) => !enLista || !paradaDelNombre(enLista, p.nombre)) : [];
+  const { aLaVista, pregunta } = parecidasDelNombre(texto, candidatas);
+  const [dijoQueNo, setDijoQueNo] = useState<string | null>(null);
+  const [tocada, setTocada] = useState<PrendaRecepcion | null>(null);
+  const preguntaPendiente = pregunta && dijoQueNo !== `${pregunta.productoId}|${texto}` ? pregunta : null;
+  const esEsta = tocada ?? preguntaPendiente;
 
   const guia = useGuiaCampos([
     ...(eligeProveedor ? [{ id: "modelo-proveedor", nombre: "De qué proveedor", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es." }] : []),
     ...(categoriaFija ? [] : [{ id: "modelo-categoria", nombre: "Qué llegó", requerido: true, hecho: categoriaId !== "", pendiente: "Elige la categoría." }]),
     { id: "modelo-nombre", nombre: "El nombre", requerido: false, sugerido: categoriaId !== "", hecho: texto !== "", pendiente: "Escribe cómo se llama, o déjalo vacío si no lo sabes." },
+    ...(preguntaPendiente ? [{ id: "modelo-es-esta", nombre: "Si es esa prenda", requerido: true, hecho: false, pendiente: `Di si llegó «${preguntaPendiente.nombre}» o es otra.` }] : []),
     { id: "modelo-marca", nombre: "La marca", requerido: false, hecho: marcaId !== "", pendiente: "" },
     { id: "modelo-nota", nombre: "La descripción", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
   ]);
@@ -103,7 +110,7 @@ export function NuevoModelo({
   async function crear(prenda: PrendaRecepcion | null) {
     setGuardando(true);
     setError(null);
-    const e = await onCrear({ categoriaId, proveedorId: eligeProveedor ? proveedorId : null, marcaId: marcaId || null, nombre: prenda?.nombre ?? (texto || provisional), nota: nota.trim() || null, prenda, porDefecto: !prenda && !texto });
+    const e = await onCrear({ categoriaId, proveedorId: eligeProveedor ? proveedorId : null, marcaId: (prenda ? prenda.marca?.id : marcaId) || null, nombre: prenda?.nombre ?? (texto || provisional), nota: nota.trim() || null, prenda, porDefecto: !prenda && !texto });
     setGuardando(false);
     if (e) setError(e);
     else onCerrar();
@@ -166,30 +173,64 @@ export function NuevoModelo({
               etiqueta={guia.etiqueta("modelo-nombre", "El nombre")}
               value={nombre}
               maxLength={TOPES_CONTEO.descripcionNueva}
-              onChange={(e) => setNombre(e.target.value)}
+              onChange={(e) => {
+                setNombre(e.target.value);
+                setTocada(null);
+              }}
               placeholder={`Ej. ${sugerirNombre(categoria).texto}`}
               autoFocus={!!categoriaFija}
               pie={provisional ? `Si no lo sabes, déjalo vacío: quedará como «${provisional}», y su nombre se pone después.` : undefined}
             />
           </CampoGuiado>
-          {aLaVista.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="rc-etiqueta-chica">Se parecen · toca si llegó esa</p>
-              <ListaSugerencias
-                id="modelo-parecidas"
-                etiqueta="Prendas del catálogo que se parecen"
-                enLinea
-                activa={null}
-                tecla=""
-                sugerencias={aLaVista.map((p) => ({
-                  clave: p.productoId,
-                  miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria?.prefijo} familia={categoria?.familia} categoria={categoria?.nombre} />,
-                  titulo: p.nombre,
-                  detalle: p.codigo ?? undefined,
-                }))}
-                onElegir={(i) => void crear(aLaVista[i])}
-              />
-            </div>
+          {esEsta ? (
+            <CampoGuiado id="modelo-es-esta" guia={guia}>
+              <div className="nota-cayla sin-i space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <MiniaturaPrenda fotoUrl={esEsta.fotoUrl} tamano="md" prefijo={categoria?.prefijo} familia={categoria?.familia} categoria={categoria?.nombre} />
+                  <p className="min-w-0 text-sm">
+                    <b className="block text-tinta">¿Llegó esta?</b>
+                    {esEsta.nombre}
+                    <span className="block text-taupe">{[esEsta.codigo, esEsta.marca?.nombre ?? "Sin marca"].filter(Boolean).join(" · ")}</span>
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Boton type="button" peso="primario" disabled={guardando} onClick={() => void crear(esEsta)}>
+                    Sí, es esta
+                  </Boton>
+                  <Boton
+                    type="button"
+                    peso="fantasma"
+                    disabled={guardando}
+                    onClick={() => {
+                      if (tocada) setTocada(null);
+                      else setDijoQueNo(`${esEsta.productoId}|${texto}`);
+                    }}
+                  >
+                    No, es otra
+                  </Boton>
+                </div>
+              </div>
+            </CampoGuiado>
+          ) : (
+            aLaVista.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="rc-etiqueta-chica">Se parecen · toca si llegó esa</p>
+                <ListaSugerencias
+                  id="modelo-parecidas"
+                  etiqueta="Prendas del catálogo que se parecen"
+                  enLinea
+                  activa={null}
+                  tecla=""
+                  sugerencias={aLaVista.slice(0, 4).map((p) => ({
+                    clave: p.productoId,
+                    miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria?.prefijo} familia={categoria?.familia} categoria={categoria?.nombre} />,
+                    titulo: p.nombre,
+                    detalle: [p.codigo, p.marca?.nombre ?? "Sin marca"].filter(Boolean).join(" · "),
+                  }))}
+                  onElegir={(i) => setTocada(aLaVista[i])}
+                />
+              </div>
+            )
           )}
           {yaEsta && (
             <p className="nota-cayla text-sm">

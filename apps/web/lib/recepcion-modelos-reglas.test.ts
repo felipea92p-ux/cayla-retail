@@ -39,6 +39,7 @@ import {
   textoDeCosto,
   paradaDelNombre,
   marcaSugeridaDelModelo,
+  parecidasDelNombre,
 } from "./recepcion-modelos-reglas";
 import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
@@ -975,3 +976,25 @@ describe("quitar una categoría entera (ADR-0605)", () => {
     expect(sePuedeQuitarCategoria({ grupos: [] })).toBe(false);
   });
 });
+
+describe("parecidasDelNombre: antes de crear una repetida", () => {
+  const sofia = { productoId: "a", nombre: "Vestido Sofía", coincide: false };
+  const antonella = { productoId: "b", nombre: "Vestido Antonella", coincide: false };
+  const blusa = { productoId: "c", nombre: "Blusa Lara", coincide: true };
+  it("el nombre igual, o casi igual, pregunta", () => {
+    expect(parecidasDelNombre("Vestido Sofía", [sofia, antonella]).pregunta).toBe(sofia);
+    expect(parecidasDelNombre("vestido sofia", [sofia, antonella]).pregunta).toBe(sofia);
+    expect(parecidasDelNombre("Vestidos Sofía", [sofia, antonella]).pregunta).toBe(sofia);
+  });
+  it("otro nombre no pregunta, y lo que solo comparte la categoría no sale", () => {
+    const r = parecidasDelNombre("Vestido Luna", [sofia, antonella]);
+    expect(r.pregunta).toBeNull();
+    expect(r.aLaVista).toEqual([]);
+  });
+  it("lo que trae lo escrito sale, sin preguntar", () => {
+    const r = parecidasDelNombre("Lar", [blusa]);
+    expect(r.aLaVista).toEqual([blusa]);
+    expect(r.pregunta).toBeNull();
+  });
+});
+

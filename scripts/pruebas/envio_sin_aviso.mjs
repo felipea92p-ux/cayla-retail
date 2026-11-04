@@ -64,6 +64,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261104000000_recepcion_cierre_sin_nombre_y_vacio.sql",
       // El proveedor se corrige, con rastro.
       "20261104001000_corregir_proveedor_de_envio_sin_aviso.sql",
+      // Lo que se parece, en todas las marcas.
+      "20261104002000_parecidas_al_recibir_en_todas_las_marcas.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -146,6 +148,7 @@ $f$;
 grant execute on function pg_temp.h(jsonb) to authenticated;
 ${atrapa("abre", "p_id uuid, p_version integer", "retail.abrir_despacho(p_id, p_version)")}
 ${atrapa("costos_hoy", "p_vars uuid[]", "retail.fn_costos_de_hoy(p_vars)")}
+${atrapa("parecidas", "p_cat uuid, p_q text", "retail.fn_parecidas_para_recibir(p_cat, p_q)")}
 ${atrapa("corrige", "p_d uuid, p_prov uuid, p_motivo text", "retail.corregir_proveedor_envio(p_d, p_prov, p_motivo)")}
 ${atrapa(
   "prepara",
@@ -521,6 +524,17 @@ caso(
      ${STOCK_TRU("pg_s")}, ${COSTO("pg_s")},
      (select count(*) from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_sin_aviso_proveedor_corregido'));`,
   "sin_dinero_de_compras / corregir_motivo / proveedor_igual / OK / t / t / t / t / 3 / 12.00 / 1",
+);
+caso(
+  "S3e lo que se parece sale con cualquier marca y dice cuál; sin Recibir no se lee; sin nada escrito, nada",
+  `${MICAELA_RECIBE}
+   select retail.fn_parecidas_para_recibir(:'cat2', (select referencia from retail.productos where id = :'prod_g')) as r \\gset
+   select jsonb_array_length(retail.fn_parecidas_para_recibir(:'cat2', '  ')) as vacio \\gset
+   ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(pg_temp.parecidas(:'cat2', 'x')) as sin_modulo \\gset
+   reset role;
+   select concat_ws(' / ', :'r'::jsonb -> 0 ->> 'coincide', (:'r'::jsonb -> 0 -> 'marca' ->> 'id') = :'marca', :'vacio', :'sin_modulo');`,
+  "true / t / 0 / recibir_sin_modulo",
 );
 caso(
   "S4 lo pendiente se termina igual: la prenda nueva se crea con el proveedor del envío y entra sin costo",
