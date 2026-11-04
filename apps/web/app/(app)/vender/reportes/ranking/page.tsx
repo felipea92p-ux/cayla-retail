@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { SearchX, Shirt } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getUbicaciones } from "@/lib/ubicaciones";
+import { alcanceDeReportes } from "@/lib/reportes-ventas-alcance";
 import { getFotosDeModelos, getOpcionesRanking, getRanking } from "@/lib/reportes-ranking";
 import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosDeUrl, hayFiltros, hrefRanking, periodoDe, sePuedeComparar } from "@/lib/reportes-ranking-reglas";
@@ -12,6 +12,7 @@ import { CifrasRanking } from "@/components/reportes-ventas/CifrasRanking";
 import { TablaRanking } from "@/components/reportes-ventas/TablaRanking";
 import { PanelTallasColores } from "@/components/reportes-ventas/PanelTallasColores";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { Vacio } from "@/components/ui/Vacio";
 
 // Ventas ▸ Reportes ▸ Ranking de prendas (maqueta docs/maquetas/reportes-ventas-2026-11/, cara A · Tabla). Actividad 5: las fechas, la tienda, la categoría,
@@ -24,12 +25,10 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
   const hoy = hoyLima();
   const pedidos = filtrosDeUrl(sp);
 
-  const esLider = persona.rol === "lider";
-  const tiendas = esLider ? (await getUbicaciones()).filter((u) => u.tipo === "tienda" && u.activo).map((u) => ({ id: u.id, nombre: u.nombre })) : null;
   // Una tienda que la cuenta no puede elegir (o que no existe) no se obedece: la URL no amplía lo que se ve.
-  const f = { ...pedidos, tienda: esLider && tiendas?.some((t) => t.id === pedidos.tienda) ? pedidos.tienda : null };
+  const { tiendas, tienda, sede } = await alcanceDeReportes(persona, pedidos.tienda);
+  const f = { ...pedidos, tienda };
   const periodo = periodoDe(f, hoy);
-  const sede = esLider ? (tiendas?.find((t) => t.id === f.tienda)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
 
   const [lectura, opciones] = await Promise.all([getRanking(f, periodo), getOpcionesRanking()]);
   const r = lectura.datos;
@@ -40,7 +39,11 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
 
   return (
     <div className="space-y-6">
-      <CabeceraReportes sede={sede} activa="ranking" />
+      <CabeceraReportes
+        sede={sede}
+        activa="ranking"
+        acciones={r && r.cuantos > 0 ? <BotonDescargar href={hrefRanking(f, { pagina: 0 }).replace("/vender/reportes/ranking", "/vender/reportes/ranking/descargar")}>Descargar Excel</BotonDescargar> : undefined}
+      />
       <FiltrosRanking f={f} periodo={periodo} hoy={hoy} opciones={opciones.datos} tiendas={tiendas} />
       {opciones.falla && (
         <Aviso tono="atencion" chico titulo="Faltan algunos filtros">

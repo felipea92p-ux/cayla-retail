@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas } from "@/components/ui/Pestanas";
 
@@ -11,10 +12,11 @@ const FRASES: Record<VistaReporte, string> = {
   ranking: "Qué prendas salen más, con las fechas y los filtros que quieras.",
 };
 
-export function CabeceraReportes({ sede, activa }: { sede: string; activa: VistaReporte }) {
+/** `acciones`: lo que se puede hacer con lo que se ve (hoy, descargarlo); a la derecha de la cabecera, como en las demás pantallas (ADR-0220). */
+export function CabeceraReportes({ sede, activa, acciones }: { sede: string; activa: VistaReporte; acciones?: ReactNode }) {
   return (
     <>
-      <EncabezadoPagina sede={sede} titulo="Reportes" subtitulo={FRASES[activa]} />
+      <EncabezadoPagina sede={sede} titulo="Reportes" subtitulo={FRASES[activa]} acciones={acciones} />
       <Pestanas
         idIndicador="reportes-ventas"
         etiquetaAccesible="Qué reporte ver"

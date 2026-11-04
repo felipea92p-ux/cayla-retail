@@ -1,6 +1,6 @@
 import { BarChart3 } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getUbicaciones } from "@/lib/ubicaciones";
+import { alcanceDeReportes } from "@/lib/reportes-ventas-alcance";
 import { getCortesMes, getReporteMes, getSeriesMes } from "@/lib/reportes-ventas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDeParametro, type Mes } from "@/lib/facturacion-reglas";
@@ -13,6 +13,7 @@ import { CifrasReporteMes } from "@/components/reportes-ventas/CifrasReporteMes"
 import { GraficosReporteMes } from "@/components/reportes-ventas/GraficosReporteMes";
 import { TablaCortes } from "@/components/reportes-ventas/TablaCortes";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { Vacio } from "@/components/ui/Vacio";
 
 // Ventas ▸ Reportes ▸ Ventas del mes (maqueta docs/maquetas/reportes-ventas-2026-11/). Actividad 2: el mes, la tienda y las cinco cifras contra el
@@ -25,11 +26,7 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
   const actual: Mes = { anio: Number(hoy.slice(0, 4)), mes: Number(hoy.slice(5, 7)) };
   const mes = mesDeParametro(sp.m, actual);
 
-  const esLider = persona.rol === "lider";
-  const tiendas = esLider ? (await getUbicaciones()).filter((u) => u.tipo === "tienda" && u.activo).map((u) => ({ id: u.id, nombre: u.nombre })) : null;
-  const pedida = esLider ? tiendaDeUrl(sp.tienda) : null;
-  const tienda = pedida && tiendas?.some((t) => t.id === pedida) ? pedida : null;
-  const sede = esLider ? (tiendas?.find((t) => t.id === tienda)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
+  const { tiendas, tienda, sede } = await alcanceDeReportes(persona, tiendaDeUrl(sp.tienda));
 
   // Las cifras, los gráficos y el desglose se leen a la vez y por separado: si uno falla, los otros siguen a la vista (principio 9).
   const [lectura, series, cortes] = await Promise.all([getReporteMes(mes, tienda), getSeriesMes(mes, tienda), getCortesMes(mes, tienda)]);
@@ -37,7 +34,15 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
 
   return (
     <div className="space-y-6">
-      <CabeceraReportes sede={sede} activa="mes" />
+      <CabeceraReportes
+        sede={sede}
+        activa="mes"
+        acciones={
+          r && r.actual.tickets > 0 && cortes.datos ? (
+            <BotonDescargar href={`/vender/reportes/descargar?m=${paramDeMes(mes)}${tienda ? `&tienda=${tienda}` : ""}&corte=${corteDeUrl(sp.corte, cortesOfrecidos(cortes.datos))}`}>Descargar Excel</BotonDescargar>
+          ) : undefined
+        }
+      />
       <FiltrosReporteMes mes={mes} actual={actual} tiendas={tiendas} tiendaId={tienda} corte={sp.corte ?? null} />
       {lectura.falla ? (
         <Aviso tono={lectura.sinAcceso ? "atencion" : "error"} titulo={lectura.sinAcceso ? "Tu rol no ve los Reportes de ventas" : "No se pudo leer el reporte"}>

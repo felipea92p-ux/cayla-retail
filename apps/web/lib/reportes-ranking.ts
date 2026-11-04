@@ -9,7 +9,7 @@ import { leerRanking, ordenarTallas, POR_PAGINA, type FiltrosRanking, type Perio
 // lo dice (principio 9): nunca un ranking a medias. Nada de costo ni de margen.
 
 /** `sinAcceso`: la cuenta no tiene el módulo `reportes_ventas` (`42501`). La puerta de la pantalla ya lo frena; esto cubre lo que llegue por otro camino. */
-export async function getRanking(f: FiltrosRanking, p: PeriodoRanking): Promise<Lectura<Ranking | null> & { sinAcceso: boolean }> {
+export async function getRanking(f: FiltrosRanking, p: PeriodoRanking, porPagina: number = POR_PAGINA): Promise<Lectura<Ranking | null> & { sinAcceso: boolean }> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "fn_reporte_ventas_ranking" as never,
@@ -25,7 +25,7 @@ export async function getRanking(f: FiltrosRanking, p: PeriodoRanking): Promise<
       p_nivel: f.nivel,
       p_orden: f.orden,
       p_pagina: f.pagina,
-      p_por_pagina: POR_PAGINA,
+      p_por_pagina: porPagina,
     } as never,
   );
   if (error) return { datos: null, falla: `No se pudo leer el ranking: ${error.message}`, sinAcceso: (error as { code?: string }).code === "42501" };
@@ -77,4 +77,26 @@ export async function getFotosDeModelos(productoIds: readonly string[]): Promise
     if (url) salida.set(id, url);
   }
   return salida;
+}
+
+/** Cuántas filas se piden por vuelta al descargar (el máximo de la función) y hasta cuántas se entregan. */
+const POR_PAGINA_DE_DESCARGA = 50;
+export const TOPE_DE_DESCARGA = 1000;
+
+/**
+ * El ranking COMPLETO con los filtros puestos (todas las páginas), para descargarlo. Un archivo cortado que parece completo es peor que ninguno
+ * (ADR-0230): si hay más de `TOPE_DE_DESCARGA` filas no se arma, y `truncado` lo dice para pedir un filtro. Si una vuelta falla a la mitad, falla todo.
+ */
+export async function getRankingCompleto(f: FiltrosRanking, p: PeriodoRanking): Promise<Lectura<Ranking | null> & { sinAcceso: boolean; truncado: boolean }> {
+  const primera = await getRanking({ ...f, pagina: 0 }, p, POR_PAGINA_DE_DESCARGA);
+  if (!primera.datos) return { ...primera, truncado: false };
+  const total = primera.datos.cuantos;
+  if (total > TOPE_DE_DESCARGA) return { ...primera, truncado: true };
+  const filas = [...primera.datos.filas];
+  for (let pagina = 1; filas.length < total; pagina++) {
+    const siguiente = await getRanking({ ...f, pagina }, p, POR_PAGINA_DE_DESCARGA);
+    if (!siguiente.datos || siguiente.datos.filas.length === 0) return { ...siguiente, datos: null, falla: siguiente.falla ?? "El ranking se cortó a la mitad.", truncado: false };
+    filas.push(...siguiente.datos.filas);
+  }
+  return { datos: { ...primera.datos, filas }, falla: null, sinAcceso: false, truncado: false };
 }
