@@ -19,7 +19,7 @@ export type CampoSede = "whatsapp" | "cierre" | "fondo" | "preguntar" | "carga";
 // Prueba ciega de Formidable, 2026-11-04: «Preguntar» y «Carga inicial» no decían qué eran, y el QR no hacía pensar en WhatsApp.
 export const NOMBRE_CAMPO: Record<CampoSede, string> = {
   whatsapp: "WhatsApp y QR",
-  cierre: "Cierra",
+  cierre: "Hora de cierre",
   fondo: "Fondo de caja",
   preguntar: "Asistente CAYLA",
   carga: "Carga de stock inicial",
@@ -41,6 +41,7 @@ export type VitrinaSede = {
   color: ColorSede;
   /** «Jr. de la Unión 880, Lima», o null si la sede no tiene dirección fiscal. */
   direccion: string | null;
+  /** «Boleta B001»: la serie sola no decía de qué era (segunda prueba ciega, 2026-11-04). */
   series: string[];
   /** Solo las tiendas: el resto de las sedes no cobra a clientes. `null` en una que no lo es. */
   tienda: Pick<TiendaConfig, "metas" | "fondo" | "horaCierre" | "whatsappNumero"> | null;
@@ -50,6 +51,7 @@ export type VitrinaSede = {
   carga: { hasta: string | null; estado: EstadoCargaInicial } | null;
 };
 
+const NOMBRE_SERIE: Record<string, string> = { boleta: "Boleta", factura: "Factura" };
 const TIPOS = new Set(["tienda", "almacen", "taller"]);
 const ORDEN_TIPO = { tienda: 0, almacen: 1, taller: 2 } as const;
 
@@ -82,7 +84,7 @@ export function armarVitrinas(entrada: {
         tipo,
         color: colorDeSede({ nombre, tipo }),
         direccion: [fiscal?.direccion, fiscal?.distrito].filter(Boolean).join(", ") || null,
-        series: (fiscal?.series ?? []).map((s) => s.serie),
+        series: (fiscal?.series ?? []).map((s) => `${NOMBRE_SERIE[s.tipo] ?? ""} ${s.serie}`.trim()),
         tienda: t ? { metas: t.metas, fondo: t.fondo, horaCierre: t.horaCierre, whatsappNumero: t.whatsappNumero } : null,
         preguntar: a ? a.encendido : null,
         carga: c ? { hasta: c.hasta, estado: estadoCargaInicial(c.hasta, hoyCarga) } : null,

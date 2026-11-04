@@ -53,7 +53,7 @@ describe("armarVitrinas", () => {
   it("une por sede lo que traen las cuatro lecturas, con las tiendas primero", () => {
     expect(completa.map((v) => v.corto)).toEqual(["TRU", "LIM", "Taller"]);
     expect(tru.direccion).toBe("Av. España 1240, Trujillo");
-    expect(tru.series).toEqual(["B001", "F001"]);
+    expect(tru.series).toEqual(["Boleta B001", "Factura F001"]);
     expect(tru.color).toBe("tru");
     expect(taller.color).toBe("tal");
     expect(taller.tienda).toBeNull();

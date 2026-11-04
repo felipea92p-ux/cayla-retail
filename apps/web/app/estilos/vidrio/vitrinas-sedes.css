@@ -95,7 +95,7 @@
 .vs-nombre { overflow: hidden; font: 500 33px/1.05 var(--font-serif); }
 .vs-nombre span { display: block; }
 .vs-direccion { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 14px; color: var(--color-taupe); }
-.vs-series { display: flex; gap: 5px; margin-top: 9px; }
+.vs-series { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
 .vs-series span {
   display: inline-flex;
   align-items: center;
