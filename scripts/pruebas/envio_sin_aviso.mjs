@@ -62,6 +62,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261103222000_costo_fuera_de_lo_normal_sin_aviso.sql",
       // Un nombre pendiente no frena y sin nada contado no se cierra.
       "20261104000000_recepcion_cierre_sin_nombre_y_vacio.sql",
+      // El proveedor se corrige, con rastro.
+      "20261104001000_corregir_proveedor_de_envio_sin_aviso.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -144,6 +146,7 @@ $f$;
 grant execute on function pg_temp.h(jsonb) to authenticated;
 ${atrapa("abre", "p_id uuid, p_version integer", "retail.abrir_despacho(p_id, p_version)")}
 ${atrapa("costos_hoy", "p_vars uuid[]", "retail.fn_costos_de_hoy(p_vars)")}
+${atrapa("corrige", "p_d uuid, p_prov uuid, p_motivo text", "retail.corregir_proveedor_envio(p_d, p_prov, p_motivo)")}
 ${atrapa(
   "prepara",
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
@@ -496,6 +499,28 @@ caso(
    select concat_ws(' / ', :'micaela', :'sandra'::jsonb ->> :'pg_s', :'sandra'::jsonb ->> :'pv_s',
      has_function_privilege('anon', 'retail.fn_costos_de_hoy(uuid[])', 'execute'));`,
   "42501|sin_dinero_de_compras|Tu rol no ve el dinero de Compras / 12.00 / 25.00 / f",
+);
+caso(
+  "S3d corregir el proveedor: solo quien ve el dinero, con motivo y a otro distinto; cambia envío, conteos, lote y recibido, sin tocar stock ni costo; queda en la Actividad",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select ${EXTRA("d", "cat2", 3, SEP([["prod_g", 3, [V("pg_s", 3)]]]))} \\g /dev/null
+   ${VERS("d", [], [1])}
+   select ${CIERRA("d", [DEC(1)])} as r \\gset
+   select pg_temp.h(pg_temp.corrige(:'d', :'prov2', 'Era de otro')) as micaela \\gset
+   ${como(SANDRA)}${SIN_ENCABEZADOS}
+   select pg_temp.h(pg_temp.corrige(:'d', :'prov2', 'x')) as sin_motivo \\gset
+   select pg_temp.h(pg_temp.corrige(:'d', :'prov', 'Es el mismo')) as igual \\gset
+   select pg_temp.e(pg_temp.corrige(:'d', :'prov2', 'Compras dijo que era de otro')) as bien \\gset
+   reset role;
+   select concat_ws(' / ', :'micaela', :'sin_motivo', :'igual', :'bien',
+     (select s.proveedor_id = :'prov2'::uuid from retail.despachos_sin_aviso s where s.despacho_id = :'d'),
+     (select bool_and(k.proveedor_id = :'prov2'::uuid) from retail.despacho_conteos k where k.despacho_id = :'d'),
+     (select bool_and(l.proveedor_id = :'prov2'::uuid) from retail.lotes l where l.despacho_id = :'d'),
+     (select bool_and(r.proveedor_id = :'prov2'::uuid) from retail.despacho_recibidos r where r.despacho_id = :'d'),
+     ${STOCK_TRU("pg_s")}, ${COSTO("pg_s")},
+     (select count(*) from retail.actividad a where a.registro_id = :'d'::text and a.accion = 'despacho_sin_aviso_proveedor_corregido'));`,
+  "sin_dinero_de_compras / corregir_motivo / proveedor_igual / OK / t / t / t / t / 3 / 12.00 / 1",
 );
 caso(
   "S4 lo pendiente se termina igual: la prenda nueva se crea con el proveedor del envío y entra sin costo",

@@ -21,6 +21,7 @@ import {
   RPC_PONER_PROVEEDOR,
   RPC_CANCELAR_RECEPCION,
   RPC_COSTOS_DE_HOY,
+  RPC_CORREGIR_PROVEEDOR,
   RPC_REABRIR_ENVIO,
   RPC_RESOLVER_PENDIENTE,
   RPC_SIN_AVISO,
@@ -206,6 +207,12 @@ export async function reabrirEnvio(
 /** Cancela la recepción de un envío que llegó sin aviso y se abrió (ADR-0605): queda anulado, con quién, cuándo y por qué. */
 export async function cancelarRecepcion(args: { p_despacho_id: string; p_version: number; p_motivo: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
   const { error } = (await firmar(createClient().rpc(RPC_CANCELAR_RECEPCION as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
+}
+
+/** Corrige de quién llegó un envío sin aviso (quien ve el dinero de Compras), con su motivo. */
+export async function corregirProveedorEnvio(args: { p_despacho_id: string; p_proveedor_id: string; p_motivo: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_CORREGIR_PROVEEDOR as never, args as never), firma)) as Respuesta;
   return { error: error ?? null };
 }
 

@@ -3,6 +3,7 @@ import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogoParaRecibir, getDatosRecepcionEnvio } from "@/lib/recepcion-envio";
 import { getConteosDelEnvio } from "@/lib/recepcion-conteo";
 import { getProveedoresActivos } from "@/lib/compras";
+import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { necesitaCatalogoAlCerrar } from "@/lib/recepcion-conteo-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -77,7 +78,9 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
     // Cerrado con pendientes: «Hacer ahora» pone tallas o crea la prenda, y necesita el vocabulario (el cargador solo lo lee por recibir).
     const catalogo = datos.catalogo ?? (necesitaCatalogoAlCerrar(conteos.conteos) ? await getCatalogoParaRecibir() : null);
     // Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): al cerrar se elige el proveedor. Solo entonces se leen.
-    const proveedoresParaElegir = conteos.conteos?.proveedorPorConfirmar ? (await getProveedoresActivos()).map((p) => ({ id: p.id, nombre: p.nombre })) : [];
+    // Quien ve el dinero de Compras también los necesita para corregirlo. A quién se le RECIBE mercadería: sin quien es solo de gastos (ADR-0452).
+    const paraElegir = conteos.conteos?.proveedorPorConfirmar || (conteos.conteos?.origen === "sin_aviso" && puede(persona, "verDineroCompras"));
+    const proveedoresParaElegir = paraElegir ? proveedoresParaPedir(await getProveedoresActivos(), "").map((p) => ({ id: p.id, nombre: p.nombre })) : [];
     return (
       <RecibirContando
         key={datos.detalle.id}

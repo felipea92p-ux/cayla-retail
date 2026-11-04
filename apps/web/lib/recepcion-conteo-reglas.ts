@@ -56,6 +56,7 @@ export const RPC_REABRIR_ENVIO = "reabrir_envio";
 /** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
 export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";
 export const RPC_COSTOS_DE_HOY = "fn_costos_de_hoy";
+export const RPC_CORREGIR_PROVEEDOR = "corregir_proveedor_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 /** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";

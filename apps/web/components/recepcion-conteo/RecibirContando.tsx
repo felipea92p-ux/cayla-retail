@@ -39,6 +39,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
 import { ContarEnvio } from "./ContarEnvio";
 import { CancelarRecepcion } from "./CancelarRecepcion";
+import { CorregirProveedor } from "./CorregirProveedor";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
@@ -102,6 +103,7 @@ export function RecibirContando({
   const responsable = useResponsable(undefined, { recordarEn: claveResponsableRecepcion(detalle.id) });
   const [apertura, setApertura] = useState<ResultadoApertura | null>(null);
   const [cancelando, setCancelando] = useState(false);
+  const [corrigiendo, setCorrigiendo] = useState(false);
   // Lo guardado en esta visita, más nuevo que lo que leyó la página: gana la versión más alta.
   const [locales, setLocales] = useState<Record<string, ConteoDeLinea>>({});
   // Lo que se lee de nuevo de la base (después de cerrar, reabrir o «Hacer ahora»), sin esperar a que la página recargue.
@@ -309,6 +311,13 @@ export function RecibirContando({
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
   // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y sin nada en el stock (también reabierto: lo que frena es el stock). Uno de Compras o uno cerrado no lo ofrecen.
   const sePuedeCancelar = estado === "abierto" && sinAviso && lineas.every((l) => (l.conteo?.enStock ?? 0) === 0) && !otraSede && !noLoRecibe;
+  // Corregir de quién llegó: sin aviso, ya con proveedor, y solo quien ve el dinero de Compras.
+  const proveedorActual = sinAviso ? (base?.proveedores[0] ?? null) : null;
+  const sePuedeCorregirProveedor = !!proveedorActual && veDinero && (estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe;
+  const accionesDelEnvio = [
+    ...(sePuedeCorregirProveedor ? [{ clave: "proveedor", etiqueta: "Corregir el proveedor", onSelect: () => setCorrigiendo(true) }] : []),
+    ...(sePuedeCancelar ? [{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }] : []),
+  ];
   // Al contar, las fotos van en el resumen; al cerrar y ya cerrado, en la cabecera.
   const contando = estado === "abierto" && paso !== 3;
   const conPapelArriba = conPapel && !contando;
@@ -334,9 +343,7 @@ export function RecibirContando({
         detalle={detalle.numero}
         volver={<Volver href="/recibir" a="Recibir mercadería" />}
         acciones={
-          sePuedeCancelar ? (
-            <MenuAcciones etiqueta="Más acciones de este envío" texto="Más" items={[{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }]} />
-          ) : undefined
+          accionesDelEnvio.length > 0 ? <MenuAcciones etiqueta="Más acciones de este envío" texto="Más" items={accionesDelEnvio} /> : undefined
         }
       >
         {/* En la fila del título, para no gastar una fila propia (Felipe 2026-11-02): en qué va el envío, con sus cinco paradas, y las fotos si no están en el resumen. */}
@@ -508,6 +515,20 @@ export function RecibirContando({
       )}
 
       {avisoSalida.aviso}
+      {corrigiendo && proveedorActual && (
+        <CorregirProveedor
+          detalle={detalle}
+          actual={proveedorActual}
+          proveedores={proveedoresParaElegir}
+          responsable={responsable}
+          onCorregido={() => {
+            setCorrigiendo(false);
+            router.refresh();
+            void releer();
+          }}
+          onCerrar={() => setCorrigiendo(false)}
+        />
+      )}
       {cancelando && (
         <CancelarRecepcion
           detalle={{ ...detalle, version }}
