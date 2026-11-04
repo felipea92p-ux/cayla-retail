@@ -85,12 +85,16 @@ export type CifrasProps = {
   gruposElegidos: readonly string[];
   /** El dinero por día que se está probando; `null`: el ritmo de hoy. */
   porDia: number | null;
+  /** ¿La tienda reparte la meta por horas programadas? Sin horarios, va en partes iguales. */
+  porHoras: boolean;
+  /** Si se pudo leer lo de cada persona. Sin eso, tocar a alguien mostraría ceros falsos. */
+  conPersonas: boolean;
   onPorDia: (v: number | null) => void;
   onPersona: (personaId: string) => void;
   onGrupo: (lectura: LecturaRitmo) => void;
 };
 
-export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, hoy, medidas, colores, elegidas, gruposElegidos, porDia, onPorDia, onPersona, onGrupo }: CifrasProps) {
+export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, hoy, medidas, colores, elegidas, gruposElegidos, porDia, porHoras, conPersonas, onPorDia, onPersona, onGrupo }: CifrasProps) {
   const cierre = useMemo(() => simuladorDeCierre(serieMes, hoy), [serieMes, hoy]);
   const dia = cierre ? (porDia ?? cierre.ritmoPorDia) : 0;
   const cierreAhora = cierre ? cierreSimulado(cierre, dia) : 0;
@@ -114,7 +118,7 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
             <p>
               Lo que vendió {quien} {tramoTexto}, con IGV y sin anuladas: <b>{NUMERO.format(grupo.ventas)} {plural(grupo.ventas, "venta", "ventas")}</b>
               {grupo.ticket !== null && <> con un ticket de <b>{SOLES.format(grupo.ticket)}</b></>}
-              {grupo.ventas > 0 && <> y <b>{(grupo.prendas / grupo.ventas).toLocaleString("es-PE", { maximumFractionDigits: 1 })}</b> prendas por venta</>}. Las devoluciones no restan.
+              {grupo.ventas > 0 && grupo.prendas > 0 && <> y <b>{(grupo.prendas / grupo.ventas).toLocaleString("es-PE", { maximumFractionDigits: 1 })}</b> prendas por venta</>}. Las devoluciones no restan.
             </p>
           </>
         }
@@ -152,7 +156,10 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
             <p>
               {grupo.meta !== null && grupo.diferencia !== null ? (
                 <>
-                  De <b>{SOLES.format(grupo.meta)}</b> de meta, tocaba llevar <b>{SOLES.format(grupo.tocaba ?? 0)}</b>: los días que ya pasaron y, de hoy, lo que ya corrió del turno de cada persona. La meta sale de las horas programadas.
+                  De <b>{SOLES.format(grupo.meta)}</b> de meta, tocaba llevar <b>{SOLES.format(grupo.tocaba ?? 0)}</b>:{" "}
+                  {porHoras
+                    ? "los días que ya pasaron y, de hoy, lo que ya corrió del turno de cada persona. La meta sale de las horas programadas."
+                    : "los días que ya pasaron. Sin horarios cargados, la meta se reparte en partes iguales entre quienes marcaron asistencia."}
                 </>
               ) : (
                 "Cuando haya una meta y lo que toque ya haya empezado a correr, aquí verás la diferencia."
@@ -232,6 +239,7 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
                     aria-pressed={elegidas.includes(m.personaId)}
                     data-apagada={elegidas.length > 0 && !elegidas.includes(m.personaId) ? "" : undefined}
                     data-persona={m.personaId}
+                    disabled={!conPersonas}
                     onClick={() => onPersona(m.personaId)}
                   >
                     <AvatarPersona personaId={m.personaId} nombre={m.nombre} tamano={32} />
@@ -264,7 +272,7 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
               ) : undefined
             }
           >
-            {hayLecturas ? null : "Toca a alguien para verle solo."}
+            {hayLecturas || !conPersonas ? null : "Toca a alguien para verle solo."}
           </TarjetaCifra>
         }
         tras={

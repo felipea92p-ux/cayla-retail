@@ -47,9 +47,8 @@ Reconocer y acompañar, sin dinero (D-65, D-112) · solo encargadas y Admin (D-1
 
 ## Pendiente de decidir
 
-- Si esta es la dirección, y qué superpoderes se quedan.
 - Acordarlo con Dany: el tablero de vidrio dice que en esta pantalla solo cambiaba el material (`docs/vidrio/README.md`).
 
 ## Lo que se decidió
 
-Pendiente.
+Felipe la eligió el 2026-11-04: «Listo, me gusta ese estilo». Se construyó en `components/rendimiento/` (ADR-0610).

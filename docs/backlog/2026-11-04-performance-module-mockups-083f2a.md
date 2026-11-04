@@ -1,12 +1,12 @@
-# 2026-11-04 — Rendimiento más visual e interactivo
+# 2026-11-04 — Rendimiento con superpoderes
 
-**Estado:** maquetas listas, esperando elección. Rama `claude/performance-module-mockups-083f2a`. Sin migración ni cambios en la web.
+**Estado:** construido y probado en local. Rama `claude/performance-module-mockups-083f2a`, sin PR. ADR-0610.
 
-- [x] Primera ronda (`docs/maquetas/rendimiento-interactivo-2026-11/`): descartada, «No me gusta ninguna, crea algo más visual e interactivo»
-- [x] Segunda ronda, tres escenas a pantalla completa (`docs/maquetas/rendimiento-visual-2026-11/`): descartada, «No me gusta ninguna, haz 3 más, con gráficos entendibles y amigables, con full animaciones»
-- [x] Tercera ronda, gráficos simples y animados (`docs/maquetas/rendimiento-graficos-2026-11/`): se pidió «algo más sofisticado e interactivo», con la tabla con superpoderes
-- [x] Cuarta ronda, una pantalla con `TablaViva` y sus piezas con superpoderes (`docs/maquetas/rendimiento-superpoderes-2026-11/`)
-- [ ] Decidir si esta es la dirección y qué superpoderes se quedan
-- [ ] Acordar con Dany el cambio de orden y las piezas nuevas (`docs/vidrio/README.md` decía «solo cambia el material»)
-- [ ] Decidir cómo se reparte la meta en «Hoy» y «Esta semana», si esos períodos se quedan
-- [ ] Al elegir: construir con `/construir`, ADR, lectura nueva de ventas por persona y día, excepción en ADR-0136, `/unificar` para las piezas nuevas, guía, huella y revisión a 375 px
+- [x] Cuatro rondas de maquetas; Felipe eligió `docs/maquetas/rendimiento-superpoderes-2026-11/`
+- [x] Las 9 actividades construidas, cada una con su commit
+- [ ] **Antes de publicar:** pegar `supabase/migrations/20261104213000_rendimiento_persona_por_dia.sql` en producción, de una sola vez (no toma tablas). La web no va antes
+- [ ] Probar con ventas de un mes más avanzado: el 4 de noviembre el gráfico muestra pocos días; la lógica de fin de mes está en las pruebas
+- [ ] Correr `/chaos` y `/formidable` completos; se atacó a mano, pero no es la corrida del catálogo
+- [ ] Contarle a Dany: el tablero decía que aquí solo cambiaba el material
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando la migración esté en producción
+- [ ] Más adelante: selector de mes (ver el mes pasado entero), si hace falta

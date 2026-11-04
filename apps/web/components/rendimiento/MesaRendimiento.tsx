@@ -10,7 +10,7 @@ import { useTablaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { SedeDeRendimiento } from "@/lib/rendimiento";
 import { sumarDias } from "@/lib/fechas-lima";
-import { minutosEnLima, primerDiaDelMes, resumenDeSede, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
+import { minutosEnLima, primerDiaDelMes, repartePorHoras, resumenDeSede, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
 import {
   diasDelEje,
   filasPorPersona,
@@ -327,6 +327,8 @@ export function MesaRendimiento({
     setAbierta(null);
     setCerrando(null);
     setPorDia(null);
+    // Si estaba repitiendo el mes, el tramo iba a medias: la otra tienda se abre en el mes entero.
+    if (repitiendo) setTramo(tramoDePreset("mes", hoy));
     setRepitiendo(false);
     setHistoria([]);
     setBusqueda("");
@@ -432,6 +434,8 @@ export function MesaRendimiento({
           elegidas={elegidas}
           gruposElegidos={grupos}
           porDia={porDia}
+          porHoras={repartePorHoras([...activa.personas])}
+          conPersonas={hayPanel}
           onPorDia={(v) => {
             setPorDia(v);
             if (v !== null && modo !== "suma") {

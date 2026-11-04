@@ -420,6 +420,8 @@ describe("la fila abierta", () => {
     // 3 de octubre de 2026 es sábado, 5 es lunes.
     expect(suDiaFuerte([fila(dia(3), 300), fila(dia(10), 100), fila(dia(5), 100)], HOY)).toEqual({ dia: "los sábados", parte: 80 });
     expect(suDiaFuerte([fila(dia(25), 300)], HOY)).toBeNull();
+    // Un solo sábado no dice que venda más los sábados.
+    expect(suDiaFuerte([fila(dia(3), 300), fila(dia(5), 100)], HOY)).toBeNull();
     expect(suDiaFuerte([], HOY)).toBeNull();
   });
 

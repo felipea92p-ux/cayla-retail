@@ -279,13 +279,13 @@ function AjusteMeta({
       if (responsable.motivo) setError(responsable.motivo);
       return;
     }
-    if (!volver && !cambio) {
-      setError("Primero cambia la meta.");
-      return;
-    }
     const v = validarCambioMeta({ metaTexto, volverAutomatica: volver, motivo, detalle, metaSedeMes });
     if (!v.ok) {
       setError(v.error);
+      return;
+    }
+    if (!volver && !cambio) {
+      setError("Esa ya es su meta: cámbiala antes de guardar.");
       return;
     }
     enVuelo.current = true;
@@ -339,7 +339,7 @@ function AjusteMeta({
 
       {volver ? (
         <p className="nota-cayla sin-i">
-          Vuelve a <b>{persona.metaAutoMes !== null ? SOLES.format(persona.metaAutoMes) : "la automática"}</b>, la que sale de sus horas programadas. Queda anotado en el historial.
+          Vuelve a <b>{persona.metaAutoMes !== null ? SOLES.format(persona.metaAutoMes) : "la automática"}</b>, {persona.base === "horas" ? "la que sale de sus horas programadas" : "la que se reparte en partes iguales"}. Queda anotado en el historial.
         </p>
       ) : (
         <>

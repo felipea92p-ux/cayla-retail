@@ -476,18 +476,23 @@ export function filasConOtraMeta(filas: readonly FilaPersonaDia[], hoy: string, 
 
 const DIAS_EN_PLURAL = ["los domingos", "los lunes", "los martes", "los miércoles", "los jueves", "los viernes", "los sábados"];
 
-/** El día de la semana que más vende una persona en el mes en curso, y qué parte de lo suyo es. `null` sin ventas. */
+/** El día de la semana que más vende una persona en el mes en curso, y qué parte de lo suyo es. `null` sin ventas, o si ese día solo vendió una vez. */
 export function suDiaFuerte(filas: readonly FilaPersonaDia[], hoy: string): { dia: string; parte: number } | null {
   const inicio = primerDiaDelMes(hoy);
   const suma = [0, 0, 0, 0, 0, 0, 0];
+  const veces = [0, 0, 0, 0, 0, 0, 0];
   let total = 0;
   for (const f of filas) {
-    if (f.fecha < inicio || f.fecha > hoy) continue;
-    suma[new Date(`${f.fecha}T12:00:00Z`).getUTCDay()] += f.total;
+    if (f.fecha < inicio || f.fecha > hoy || f.total <= 0) continue;
+    const dia = new Date(`${f.fecha}T12:00:00Z`).getUTCDay();
+    suma[dia] += f.total;
+    veces[dia] += 1;
     total += f.total;
   }
   if (total <= 0) return null;
   const i = suma.indexOf(Math.max(...suma));
+  // Un solo lunes no dice que venda más los lunes: hacen falta al menos dos.
+  if (veces[i] < 2) return null;
   return { dia: DIAS_EN_PLURAL[i], parte: Math.round((suma[i] / total) * 100) };
 }
 

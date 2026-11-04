@@ -1134,3 +1134,23 @@
   padding-top: 10px;
   border-top: 1px solid var(--hilo-fila, transparent);
 }
+
+/* A 320 px los tres modos no caben: el segmento se desplaza por dentro, y la pantalla no. */
+.mesa-grafico-mandos {
+  min-width: 0;
+  max-width: 100%;
+}
+.mesa-grafico-mandos > div {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* En oscuro los colores de persona suben de luz: lo que se escribe encima va en tinta fija, que es la que pasa el contraste sobre todos. */
+@media screen {
+  [data-tema="oscuro"] :is(.mesa-persona-boton, .mesa-fila-persona) .avatar,
+  [data-tema="oscuro"] .mesa-calendario button[data-fuerte],
+  [data-tema="oscuro"] .mesa-visto {
+    color: var(--color-tinta-fija);
+  }
+}

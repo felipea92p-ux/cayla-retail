@@ -624,3 +624,13 @@ Proformas, Resumen de sede).
   escribe con CSS (`::before`), no con texto: no aparece al copiar la cifra ni en lo que lee una prueba; el lector lee el valor entero.
 - **Lo que no puede volver:** el número que se ve sale siempre del valor de ahora; cada dígito solo guarda si está en su primer cuadro.
   Así no reaparece el error del 2026-10-28 (la plata de otra sede), y `lib/cifra-rueda.test.ts` lo vigila en el código.
+
+## Actualización 2026-11-04 — Rendimiento con superpoderes (ADR-0610)
+
+Felipe pidió «muchas animaciones» y «liquid glass al máximo». Excepción, en `app/estilos/vidrio/rendimiento.css`: todo entra una vez o responde a un gesto, sin rebote ni bucle, y se apaga con `prefers-reduced-motion`.
+
+- **Al llegar:** las piezas suben enfocándose en cascada, una luz cruza cada placa, las barras crecen en ola y las cifras ruedan.
+- **Al cambiar algo:** las barras viajan y se transforman entre los tres modos, las líneas se doblan, las filas viajan a su nuevo lugar y la lente se desliza.
+- **Al tocar:** la cifra se voltea, la fila se abre y se recoge, el calendario entra en cascada y, al llegar a la meta, el visto sale con una onda.
+- **«Ver cómo fue»:** repite el mes día a día y se detiene solo al llegar a hoy. No es un bucle.
+- **Lo único que sigue al mouse:** el brillo y el filo de cada placa, la misma luz de «Mi perfil», que nunca se mueve sola.
