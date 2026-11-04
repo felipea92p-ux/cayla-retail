@@ -18,6 +18,7 @@ import {
   type CambioMeta,
   type FilaDetalle,
   type PersonaMeta,
+  repartoEnPalabras,
 } from "@/lib/rendimiento-meta-reglas";
 import type { Tramo } from "@/lib/rendimiento-vista-reglas";
 
@@ -103,10 +104,7 @@ export function DetalleRendimiento({
         <p className="nota-cayla" data-guia="rendimiento.reparto">
           {asignacion.tipo !== "sin_meta" && (
             <>
-              Asignado a {personas.length === 1 ? "1 persona" : `las ${personas.length}`}: <b>{SOLES.format(asignacion.asignado)}</b> de <b>{SOLES.format(asignacion.metaSede)}</b> de {nombre} este mes
-              {asignacion.tipo === "cuadra" && ", y cuadra"}
-              {asignacion.tipo === "faltan" && `: faltan ${SOLES.format(asignacion.diferencia)} por asignar`}
-              {asignacion.tipo === "pasa" && `: se pasa por ${SOLES.format(-asignacion.diferencia)}`}.{" "}
+              {repartoEnPalabras(asignacion, personas.length)} <b>{SOLES.format(asignacion.asignado)}</b> contra <b>{SOLES.format(asignacion.metaSede)}</b> de {nombre}, este mes.{" "}
             </>
           )}
           {porHoras ? "Se reparte por horas programadas." : `${nombre} no tiene horarios cargados en Dynamic: la meta se reparte en partes iguales entre quienes marcaron asistencia, y solo cuenta los días ya marcados.`}

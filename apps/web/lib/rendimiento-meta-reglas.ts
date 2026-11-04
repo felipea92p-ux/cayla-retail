@@ -284,6 +284,22 @@ export function asignacionDeVista(personas: PersonaMeta[], vista: Vista, metaSed
   return { tipo: Math.abs(diferencia) < 1 ? "cuadra" : diferencia > 0 ? "faltan" : "pasa", asignado, metaSede, diferencia };
 }
 
+/**
+ * El reparto, en palabras de tienda. Que las metas sumen más que la de la tienda no es un error (la base lo permite): el equipo apunta más alto.
+ * Lo que pide atención es lo que falta repartir. `seria`: mientras se prueba una meta que todavía no se guarda.
+ */
+export function repartoEnPalabras(a: Asignacion, personas: number, seria = false): string {
+  if (a.tipo === "sin_meta") return "Sin meta de la tienda no hay qué repartir.";
+  const uno = personas === 1;
+  const quienes = uno ? "La meta de 1 persona" : `Las metas de las ${personas} personas`;
+  const suman = seria ? (uno ? "sumaría" : "sumarían") : uno ? "suma" : "suman";
+  const soles = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 }).format(Math.abs(a.diferencia));
+  if (a.tipo === "cuadra") return `${quienes} ${suman} lo mismo que la meta de la tienda.`;
+  return a.tipo === "faltan"
+    ? `${quienes} ${suman} ${soles} menos que la meta de la tienda: falta repartir.`
+    : `${quienes} ${suman} ${soles} más que la meta de la tienda: el equipo apunta más alto.`;
+}
+
 // ───────────────────────── cambiar la meta ─────────────────────────
 
 export type MotivoMeta = "cambia_horario" | "capacitacion" | "cubre_otra_tienda" | "vuelve_de_descanso" | "otro";

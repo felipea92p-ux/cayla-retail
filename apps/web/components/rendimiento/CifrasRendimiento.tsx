@@ -279,7 +279,7 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
           <>
             <Nombre>Cómo se lee</Nombre>
             <p>
-              «Adelante» o «Por debajo» son <b>10 puntos</b> arriba o abajo de lo que tocaba. Es para reconocer y acompañar, sin comisión ni bono. Toca a alguien o a un grupo y toda la pantalla se acomoda.
+              «Adelante» o «Por debajo» son <b>10 %</b> arriba o abajo de lo que tocaba. Es para reconocer y acompañar, sin comisión ni bono. Toca a alguien o a un grupo y toda la pantalla se acomoda.
             </p>
           </>
         }

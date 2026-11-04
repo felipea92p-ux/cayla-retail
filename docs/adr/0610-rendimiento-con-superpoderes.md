@@ -28,7 +28,7 @@ La lógica pura vive en `lib/rendimiento-vista-reglas.ts`, con su prueba. No se 
 
 ## Decisiones de Felipe (2026-11-04)
 
-1. **«Adelante / En ritmo / Por debajo» salen en cualquier período**, no solo en Hoy. Amplía D-159; los 10 puntos y las palabras no cambian. Lo que tocaba solo cuenta lo que ya pasó: de hoy, lo corrido del turno. Sin turno o antes de empezar, no se dice nada.
+1. **«Adelante / En ritmo / Por debajo» salen en cualquier período**, no solo en Hoy. Amplía D-159 y las palabras no cambian. Lo que tocaba solo cuenta lo que ya pasó: de hoy, lo corrido del turno. Sin turno o antes de empezar, no se dice nada. **La medida cambió el mismo día; ver «Actualización» abajo.**
 2. **La meta se cambia dentro de la fila**, y se fue `EditarMetaModal`. Todo lo que hacía sigue: motivo, responsable, `p_meta_esperada`, volver a la automática.
 3. **La pantalla abre en «Este mes»**, como la maqueta aprobada (antes abría en Hoy). `?vista=hoy` sigue funcionando.
 4. **El tablero de vidrio decía que aquí «solo cambia el material» porque el plan era de Dany.** Felipe aprobó el cambio mirando la maqueta; queda escrito aquí para que Dany lo sepa.
@@ -47,6 +47,17 @@ La lógica pura vive en `lib/rendimiento-vista-reglas.ts`, con su prueba. No se 
 
 - Sin la función nueva, elegir días obligaría a inventar el reparto de la meta. Si la función no existe o falla, la pantalla dice que no pudo leer lo de cada persona y sigue con lo de la tienda y los rankings (principio 9). **Por eso la migración se pega antes de publicar la web.**
 - Sin `medirGrupo` sobre la serie de la tienda, las ventas sin quien atendió se perderían y la cifra no cuadraría con Caja.
+
+## Actualización 2026-11-04 (tras `/formidable`, con el OK de Felipe)
+
+**Fuera de Hoy, «En ritmo» es 10 % arriba o abajo de lo que tocaba, no 10 puntos del mes entero.** Medido contra el mes, el día 4 casi nadie podía salir «Por debajo»: la pantalla decía «Todo el equipo va en ritmo» con la tienda S/ 2,148 abajo de S/ 7,104. Ahora la palabra dice lo mismo el día 4 que el día 25. Lo calcula `lecturaDelTramo` (`lib/rendimiento-vista-reglas.ts`).
+
+- **El mínimo son 3 días del período que ya terminaron, los mismos para todo el equipo.** Con menos, sigue `lecturaDeRitmo`, que es más holgada: una sola venta no decide. Hoy no cambia (D-159).
+- **DESCARTÉ contar días con ventas**, que fue la primera propuesta: quien no vendió nada nunca llegaría al mínimo y nunca saldría «Por debajo».
+- **DESCARTÉ contar los días de meta de cada persona:** quien descansó seguía con holgura un día más, y la segunda prueba ciega vio a alguien en 6 % «En ritmo» junto a alguien en 12 % «Por debajo».
+- **Lo que cuesta:** quien trabajó pocos días tiene una banda chica, de menos de un ticket; ahí una venta sí puede cambiar la palabra.
+
+**La frase de arriba lleva a la persona:** cada nombre abre su fila, la deja a la vista y le pasa el foco. **El reparto se dice en palabras de tienda** (`repartoEnPalabras`): cuánto suman las metas contra la de la tienda. Sumar de más no es un error, la base lo permite; lo que se marca en ámbar es lo que falta repartir, antes era al revés.
 
 ## Lo que no se hizo
 

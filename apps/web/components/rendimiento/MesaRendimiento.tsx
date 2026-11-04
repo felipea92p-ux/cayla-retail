@@ -15,6 +15,7 @@ import {
   diasDelEje,
   filasPorPersona,
   fraseDelEquipo,
+  fraseEnTexto,
   interpretarBusqueda,
   loQueSeBaja,
   nombreCoincide,
@@ -111,6 +112,19 @@ export function MesaRendimiento({
   const [abierta, setAbierta] = useState<string | null>(null);
   const [cerrando, setCerrando] = useState<string | null>(null);
   const reloj = useRef(0);
+  // Desde la frase: abre su fila, la deja a la vista y le pasa el foco, para seguir con el teclado.
+  function irAPersona(id: string) {
+    if (abierta !== id) alternarFila(id);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const fila = raiz.current?.querySelector<HTMLElement>(`[data-fila="${CSS.escape(id)}"]`);
+        if (!fila) return;
+        fila.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        fila.querySelector<HTMLElement>(".mesa-fila-abrir")?.focus({ preventScroll: true });
+      }),
+    );
+  }
+
   function alternarFila(id: string) {
     window.clearTimeout(reloj.current);
     if (abierta !== id) {
@@ -179,7 +193,8 @@ export function MesaRendimiento({
   }, [serieGrupo, tramo]);
 
   const quien = !hayFiltro ? (activa?.nombre.replace(/^Tienda\s+/, "") ?? "") : vistas.length === 1 ? (vistas[0].nombre.split(" ")[0] ?? vistas[0].nombre) : `${vistas.length} personas`;
-  const frase = fraseDelEquipo(hayFiltro ? vistas : medidas) ?? (grupo.meta === null ? `${quien} todavía no tiene meta: aquí se ve lo vendido, sin inventar cuánto tocaba.` : `${quien} lleva ${SOLES.format(grupo.vendido)} ${tramoTexto}.`);
+  const partesFrase = fraseDelEquipo(hayFiltro ? vistas : medidas);
+  const frase = partesFrase ? fraseEnTexto(partesFrase) : (grupo.meta === null ? `${quien} todavía no tiene meta: aquí se ve lo vendido, sin inventar cuánto tocaba.` : `${quien} lleva ${SOLES.format(grupo.vendido)} ${tramoTexto}.`);
 
   const eje = useMemo(() => diasDelEje(hoy), [hoy]);
   const serieCierre = useMemo(() => serieGrupo.filter((d) => d.fecha >= primerDiaDelMes(hoy)), [serieGrupo, hoy]);
@@ -416,8 +431,18 @@ export function MesaRendimiento({
         )}
       </div>
 
-      <p key={frase} className="mesa-frase" data-cambia="" aria-live="polite">
-        {frase}
+      <p key={frase} className="mesa-frase" data-cambia="" aria-live="polite" data-guia="rendimiento.frase">
+        {partesFrase
+          ? partesFrase.map((parte, i) =>
+              typeof parte === "string" ? (
+                parte
+              ) : (
+                <button key={`${parte.personaId}-${i}`} type="button" className="btn-enlace" data-persona={parte.personaId} aria-label={`Abrir la fila de ${parte.nombre}`} onClick={() => irAPersona(parte.personaId)}>
+                  {parte.nombre}
+                </button>
+              ),
+            )
+          : frase}
       </p>
 
       <div id="panel-tienda" role={sedes.length > 1 ? "tabpanel" : undefined} aria-label={sedes.length > 1 ? activa.nombre : undefined} className="mesa">

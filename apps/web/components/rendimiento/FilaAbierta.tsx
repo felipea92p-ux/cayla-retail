@@ -13,6 +13,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import {
   asignacionDeVista,
+  repartoEnPalabras,
   LARGO_DETALLE_META,
   leerSoles,
   MOTIVOS_META,
@@ -385,15 +386,7 @@ function AjusteMeta({
         ) : (
           "Con esa meta, todavía no hay ritmo que leer."
         )}
-        <span data-pasa={reparto.tipo === "pasa" ? "" : undefined}>
-          {reparto.tipo === "sin_meta"
-            ? "Sin meta de la tienda no hay qué repartir."
-            : reparto.tipo === "cuadra"
-              ? "El reparto de la tienda cuadra."
-              : reparto.tipo === "faltan"
-                ? `Quedan ${SOLES.format(reparto.diferencia)} sin repartir.`
-                : `El reparto se pasa por ${SOLES.format(-reparto.diferencia)}.`}
-        </span>
+        <span data-falta={reparto.tipo === "faltan" ? "" : undefined}>{repartoEnPalabras(reparto, personas.length, cambio || volver)}</span>
       </p>
 
       {!volver && (

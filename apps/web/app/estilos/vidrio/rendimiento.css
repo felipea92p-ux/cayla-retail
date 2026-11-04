@@ -227,6 +227,11 @@
   margin-bottom: -6px;
 }
 
+/* Desde la frase se llega a la fila: que no quede bajo la cabecera de la tabla. */
+.mesa-marco [data-fila] {
+  scroll-margin-top: 132px;
+}
+
 /* ---------- La frase ---------- */
 .mesa-frase {
   max-width: 72ch;
@@ -234,6 +239,9 @@
   font-size: 21px;
   line-height: 1.3;
   color: var(--color-tinta);
+}
+.mesa-frase .btn-enlace {
+  font: inherit;
 }
 .mesa-frase[data-cambia] {
   animation: mesa-frase 460ms var(--ease-cayla) both;
@@ -1080,7 +1088,7 @@
   font-size: 14px;
   color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
 }
-.mesa-que-pasaria [data-pasa] {
+.mesa-que-pasaria [data-falta] {
   color: var(--color-ambar);
 }
 .mesa-motivos {

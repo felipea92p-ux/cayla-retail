@@ -17,6 +17,7 @@ import {
   diasDelEje,
   filasPorPersona,
   fraseDelEquipo,
+  fraseEnTexto,
   hacePocoEnPalabras,
   medirEquipo,
   medirGrupo,
@@ -101,10 +102,42 @@ describe("medirPersona: un tramo que empieza el 1 se mide contra todo el mes", (
     expect(m.tocaPct).toBeCloseTo((2350 / 3100) * 100);
   });
 
-  it("los 10 puntos se miden contra la meta del mes, como dice lecturaDeRitmo", () => {
+  it("«En ritmo» se mide contra lo que tocaba, no contra el mes entero", () => {
     expect(medir(filas).lectura).toBe("En ritmo");
     expect(medir(mes((n) => (n <= 23 ? 120 : 0))).lectura).toBe("Adelante"); // 2760 de 3100: 89 %, tocaba 75,8 %
     expect(medir(mes((n) => (n <= 23 ? 80 : 0))).lectura).toBe("Por debajo"); // 1840 de 3100: 59 %, tocaba 75,8 %
+  });
+
+  it("dice lo mismo a inicio de mes que a fin de mes: lejos de lo que tocaba es «Por debajo»", () => {
+    const hasta4 = { desde: dia(1), hasta: dia(4) };
+    expect(medir(filas, hasta4).tocaba).toBe(400);
+    expect(medir(mes((n) => (n <= 4 ? 40 : 0)), hasta4).lectura).toBe("Por debajo"); // 160 de 400: 5 puntos del mes abajo, 60 % de lo que tocaba
+    expect(medir(mes((n) => (n <= 4 ? 95 : 0)), hasta4).lectura).toBe("En ritmo"); // 380 de 400
+    expect(medir(mes((n) => (n <= 4 ? 120 : 0)), hasta4).lectura).toBe("Adelante"); // 480 de 400
+  });
+
+  it("los 10 % exactos cuentan, sin que la coma flotante los mueva", () => {
+    const hasta10 = { desde: dia(1), hasta: dia(10) };
+    expect(medir(mes((n) => (n <= 10 ? 110 : 0)), hasta10).lectura).toBe("Adelante");
+    expect(medir(mes((n) => (n <= 10 ? 90 : 0)), hasta10).lectura).toBe("Por debajo");
+  });
+
+  it("el mismo día, la misma medida para todos: quien descansó no sigue con holgura", () => {
+    const hasta4 = { desde: dia(1), hasta: dia(4) };
+    // Descansó el 2 y el 3: le tocaron 200, vendió 100. Sin esto, con 6 % diría «En ritmo» junto a alguien con 12 % «Por debajo».
+    const descanso = mes((n) => (n === 1 ? 100 : 0)).map((f) => (f.fecha === dia(2) || f.fecha === dia(3) ? { ...f, metaDia: 0 } : f));
+    expect(medir(descanso, hasta4).tocaba).toBe(200);
+    expect(medir(descanso, hasta4).lectura).toBe("Por debajo");
+  });
+
+  it("quien no vendió nada también es «Por debajo»: el mínimo son los días que ya pasaron, no los días con ventas", () => {
+    expect(medir(mes(() => 0), { desde: dia(1), hasta: dia(10) }).lectura).toBe("Por debajo");
+  });
+
+  it("con menos de 3 días que ya tocaban, una sola venta no decide: sigue con holgura", () => {
+    const hasta2 = { desde: dia(1), hasta: dia(2) };
+    expect(medir(mes(() => 0), hasta2).lectura).toBe("En ritmo"); // 0 de 3100 contra 6,5 %: menos de 10 puntos
+    expect(medir(mes((n) => (n <= 2 ? 200 : 0)), hasta2).lectura).toBe("En ritmo"); // 400 de 3100: 13 % contra 6,5 %
   });
 
   it("repetir el mes: hasta un día pasado, la meta sigue siendo la del mes y lo que tocaba crece con los días", () => {
@@ -323,18 +356,27 @@ describe("el cierre del mes", () => {
 });
 
 describe("fraseDelEquipo", () => {
-  const con = (nombre: string, lectura: MedidaPersona["lectura"]) => ({ nombre, lectura }) as MedidaPersona;
+  const con = (nombre: string, lectura: MedidaPersona["lectura"]) => ({ personaId: nombre, nombre, lectura }) as MedidaPersona;
+  const frase = (medidas: MedidaPersona[]) => {
+    const partes = fraseDelEquipo(medidas);
+    return partes && fraseEnTexto(partes);
+  };
 
   it("nombra a quién reconocer y a quién acompañar", () => {
-    expect(fraseDelEquipo([con("Ana T.", "Adelante"), con("Elena V.", "Adelante"), con("Diana P.", "Por debajo"), con("Carla R.", "En ritmo")])).toBe("Ana y Elena van adelante. Conviene acompañar a Diana.");
-    expect(fraseDelEquipo([con("Ana T.", "Adelante")])).toBe("Ana va adelante.");
-    expect(fraseDelEquipo([con("Ana T.", "Por debajo"), con("Beto S.", "Por debajo"), con("Carla R.", "Por debajo")])).toBe("Conviene acompañar a Ana, Beto y Carla.");
+    expect(frase([con("Ana T.", "Adelante"), con("Elena V.", "Adelante"), con("Diana P.", "Por debajo"), con("Carla R.", "En ritmo")])).toBe("Ana y Elena van adelante. Conviene acompañar a Diana.");
+    expect(frase([con("Ana T.", "Adelante")])).toBe("Ana va adelante.");
+    expect(frase([con("Ana T.", "Por debajo"), con("Beto S.", "Por debajo"), con("Carla R.", "Por debajo")])).toBe("Conviene acompañar a Ana, Beto y Carla.");
   });
 
   it("todos en ritmo lo dice, y sin lecturas no dice nada", () => {
-    expect(fraseDelEquipo([con("Ana T.", "En ritmo"), con("Beto S.", "En ritmo")])).toBe("Todo el equipo va en ritmo.");
-    expect(fraseDelEquipo([con("Ana T.", null)])).toBeNull();
-    expect(fraseDelEquipo([])).toBeNull();
+    expect(frase([con("Ana T.", "En ritmo"), con("Beto S.", "En ritmo")])).toBe("Todo el equipo va en ritmo.");
+    expect(frase([con("Ana T.", null)])).toBeNull();
+    expect(frase([])).toBeNull();
+  });
+
+  it("cada nombre lleva a su persona, aunque dos se llamen igual", () => {
+    const partes = fraseDelEquipo([{ ...con("Ana T.", "Por debajo"), personaId: "uno" }, { ...con("Ana R.", "Por debajo"), personaId: "dos" }]);
+    expect(partes).toEqual(["Conviene acompañar a ", { personaId: "uno", nombre: "Ana" }, " y ", { personaId: "dos", nombre: "Ana" }, "."]);
   });
 });
 

@@ -128,7 +128,7 @@ export function useColumnasRendimiento({
         filtra: true,
         sinNombreEnTarjeta: true,
         ancho: "116px",
-        ayuda: "10 puntos arriba o abajo de lo que tocaba. Es para reconocer y acompañar.",
+        ayuda: "10 % arriba o abajo de lo que tocaba; en Hoy y en los primeros días, con más holgura. Es para reconocer y acompañar.",
         textosOrden: { asc: "Por debajo primero", desc: "Adelante primero" },
         valor: (m) => (m.lectura ? ORDEN_LECTURA[m.lectura] : null),
         opcion: (m) => m.lectura,

@@ -2,7 +2,7 @@
   "guia": "rendimiento",
   "ruta": "/rendimiento",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 22,
+  "total": 23,
   "controles": {
     "components/rendimiento/CifrasRendimiento.tsx": [
       "button «{vuelta ? \"Volver a la cifra\" : \"¿Cómo se cuenta?\"}»",
@@ -30,6 +30,7 @@
     "components/rendimiento/MesaRendimiento.tsx": [
       "SegmentoDeslizante «Período»",
       "BotonDeshacer «Vuelve a como estaba antes de lo último que cambiaste»",
+      "button «{`Abrir la fila de ${parte.nombre}»",
       "BotonDescargar «Descargar lo que ves»"
     ],
     "components/rendimiento/SedesConAnillo.tsx": [

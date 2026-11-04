@@ -6,7 +6,11 @@
 - [x] Las 9 actividades construidas, cada una con su commit
 - [ ] **Antes de publicar:** pegar `supabase/migrations/20261104213000_rendimiento_persona_por_dia.sql` en producción, de una sola vez (no toma tablas). La web no va antes
 - [ ] Probar con ventas de un mes más avanzado: el 4 de noviembre el gráfico muestra pocos días; la lógica de fin de mes está en las pruebas
-- [ ] Correr `/chaos` y `/formidable` completos; se atacó a mano, pero no es la corrida del catálogo
+- [x] `/formidable` y sus 3 cambios: leyes 7.3, oficio 5 (`docs/formidable/rendimiento.md`)
+- [ ] Al abrir una fila desde la tabla, su panel queda fuera de la vista; al cancelar, la pantalla salta
+- [ ] Decidir si la meta debe bajar sola con una ausencia aprobada: hoy cambiarla a mano multiplica todos los días del mes
+- [ ] Correr `/chaos`: su candado 1 pide la base `54421`, que no tiene las migraciones; se atacó a mano, pero no es la corrida del catálogo
+- [ ] Pasada de `/formidable` con encargadas reales
 - [ ] Contarle a Dany: el tablero decía que aquí solo cambiaba el material
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando la migración esté en producción
 - [ ] Más adelante: selector de mes (ver el mes pasado entero), si hace falta

@@ -10,6 +10,7 @@ Formidable porque sus modales lo sean, ni al revés.
 
 | Módulo | Pantalla / modal | Estado | Leyes | Oficio | Informe | Última medición |
 |---|---|---|---|---|---|---|
+| Gestión | Rendimiento (`/rendimiento`, ADR-0610) | ciega ✓✓ (Sonnet, navegador local, datos inventados) · real sin probar; 3 cambios hechos | 7.3 | 5 | [rendimiento.md](rendimiento.md) | 2026-11-04 · 00fc48523 |
 | Ventas | Reportes: «Ventas del mes» y «Ranking de prendas» (`/vender/reportes`, `/vender/reportes/ranking`, ADR-0606) | ciega ✓ (Sonnet, navegador local, datos inventados, 2 tareas: 3 toques, 0 retrocesos, 0 ayudas, 5 dudas) · real sin probar; sin agente escéptico (contrastado con el código: 3 confirmados, 2 matizados, 1 no verificable, 1 refutado); los 3 cambios de lenguaje (+1 de «Excel» en el botón) hechos y repetida la ciega (0 retrocesos, 4 dudas) | 7,8 · ley 1: 8 | 8 | [vender-reportes](vender-reportes.md) | 2026-11-03 |
 | Configuración | Las 8 pestañas (`/configuracion`; sus hojas, no) | ciega ✓ (Sonnet, sobre capturas) · real sin probar | 6.3 | 6 | [configuracion.md](configuracion.md) | 2026-11-02 · d4ec6298f |
 | Finanzas | Estados financieros: ¿Ganamos?, ¿Dónde está la plata?, ¿Cuánto vale CAYLA?, ¿Lo tuyo creció? y «Descargar para el contador» (`/finanzas/reportes/*`, ADR-0585) | pasada **por lectura de código** (sin navegador con sesión, sin ciega ni oficio medido); 3 cambios propuestos esperan OK | 7,8 (provisional) · ley 9: 6 · ley 1: 8 | sin medir | [finanzas-estados-financieros](finanzas-estados-financieros.md) | 2026-10-31 |

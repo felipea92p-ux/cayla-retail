@@ -136,6 +136,28 @@ function metaYTocaba(filas: readonly FilaPersonaDia[], tramo: Tramo, hoy: string
   return hayMeta ? { meta, tocaba, metaHoy, tocabaHoy } : { meta: null, tocaba: null, metaHoy: 0, tocabaHoy: 0 };
 }
 
+/** Desde cuántos días ya pasados del tramo se compara contra lo que tocaba. Antes, una sola venta decidiría. */
+const DIAS_PARA_MEDIR_CONTRA_LO_QUE_TOCABA = 3;
+
+/** Los días del tramo que ya terminaron. Son los mismos para todo el equipo: si dependieran del descanso de cada uno, el mismo día habría dos medidas. */
+function diasYaPasados(tramo: Tramo, hoy: string): number {
+  const ayer = sumarDias(hoy, -1);
+  const hasta = tramo.hasta < ayer ? tramo.hasta : ayer;
+  return tramo.desde > hasta ? 0 : diasEntreFechas(tramo.desde, hasta) + 1;
+}
+
+/**
+ * Cómo va en un tramo (ADR-0610, Felipe 2026-11-04). Fuera de hoy, 10 % arriba o abajo de lo que tocaba: así la palabra dice lo mismo el día 4
+ * que el día 25. Medido contra el mes entero, el día 4 casi nadie podía estar «Por debajo». Hoy y los primeros días siguen con `lecturaDeRitmo`
+ * (D-159): ahí la banda sería de un par de tickets.
+ */
+function lecturaDelTramo(vendido: number, meta: number | null, tocaba: number | null, tramo: Tramo, hoy: string): LecturaRitmo | null {
+  if (meta === null || meta <= 0 || tocaba === null || tocaba <= 0) return null;
+  if (diasYaPasados(tramo, hoy) < DIAS_PARA_MEDIR_CONTRA_LO_QUE_TOCABA) return lecturaDeRitmo(vendido, meta, tocaba / meta);
+  const d = Math.round((vendido / tocaba - 1) * 1000) / 1000;
+  return d >= 0.1 ? "Adelante" : d <= -0.1 ? "Por debajo" : "En ritmo";
+}
+
 /** Lo de UNA persona en el tramo. `turno` es su turno de hoy, y `ahoraMin`, los minutos de Lima (`null` si todavía no se conocen). */
 export function medirPersona(entrada: {
   personaId: string;
@@ -178,7 +200,7 @@ export function medirPersona(entrada: {
     tocaba,
     pct: conMeta ? (vendido / meta) * 100 : null,
     tocaPct: ritmo !== null ? ritmo * 100 : null,
-    lectura: lecturaDeRitmo(vendido, meta, ritmo),
+    lectura: lecturaDelTramo(vendido, meta, tocaba, tramo, hoy),
     metaHoy,
     tocabaHoy,
     mejorDia,
@@ -288,7 +310,7 @@ export function medirGrupo(entrada: { medidas: readonly MedidaPersona[]; tramo: 
     meta,
     tocaba,
     diferencia: conMeta && tocaba !== null && tocaba > 0 ? vendido - tocaba : null,
-    lectura: meta !== null && meta > 0 && tocaba !== null ? lecturaDeRitmo(vendido, meta, tocaba / meta) : null,
+    lectura: lecturaDelTramo(vendido, meta, tocaba, tramo, hoy),
   };
 }
 
@@ -309,24 +331,32 @@ export function cierreSimulado(p: Pick<ProyeccionMes, "vendido" | "diasQueQuedan
 
 const primerNombre = (nombre: string) => nombre.split(" ")[0] ?? nombre;
 
-function juntar(nombres: string[]): string {
-  if (nombres.length <= 1) return nombres.join("");
-  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+export type ParteFrase = string | { personaId: string; nombre: string };
+
+function juntar(medidas: readonly MedidaPersona[]): ParteFrase[] {
+  return medidas.flatMap((m, i): ParteFrase[] => {
+    const nombre = { personaId: m.personaId, nombre: primerNombre(m.nombre) };
+    if (i === 0) return [nombre];
+    return [i === medidas.length - 1 ? " y " : ", ", nombre];
+  });
 }
 
-/** La frase de arriba: a quién reconocer y a quién acompañar. Solo dice lo que `lecturaDeRitmo` ya dijo; sin lecturas, no dice nada. */
-export function fraseDelEquipo(medidas: readonly MedidaPersona[]): string | null {
+/** La frase de arriba, en piezas: cada nombre lleva a su persona. Solo dice lo que ya dijo la lectura de cada una; sin lecturas, no dice nada. */
+export function fraseDelEquipo(medidas: readonly MedidaPersona[]): ParteFrase[] | null {
   const conLectura = medidas.filter((m) => m.lectura !== null);
   if (conLectura.length === 0) return null;
-  const adelante = conLectura.filter((m) => m.lectura === "Adelante").map((m) => primerNombre(m.nombre));
-  const debajo = conLectura.filter((m) => m.lectura === "Por debajo").map((m) => primerNombre(m.nombre));
-  if (adelante.length === 0 && debajo.length === 0) return conLectura.length === 1 ? `${primerNombre(conLectura[0].nombre)} va en ritmo.` : "Todo el equipo va en ritmo.";
-  return [
-    adelante.length ? `${juntar(adelante)} ${adelante.length > 1 ? "van" : "va"} adelante.` : "",
-    debajo.length ? `Conviene acompañar a ${juntar(debajo)}.` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const adelante = conLectura.filter((m) => m.lectura === "Adelante");
+  const debajo = conLectura.filter((m) => m.lectura === "Por debajo");
+  if (adelante.length === 0 && debajo.length === 0) return conLectura.length === 1 ? [...juntar(conLectura), " va en ritmo."] : ["Todo el equipo va en ritmo."];
+  const partes: ParteFrase[] = [];
+  if (adelante.length) partes.push(...juntar(adelante), adelante.length > 1 ? " van adelante." : " va adelante.");
+  if (debajo.length) partes.push(adelante.length ? " Conviene acompañar a " : "Conviene acompañar a ", ...juntar(debajo), ".");
+  return partes;
+}
+
+/** La misma frase, de corrido. */
+export function fraseEnTexto(partes: readonly ParteFrase[]): string {
+  return partes.map((p) => (typeof p === "string" ? p : p.nombre)).join("");
 }
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];

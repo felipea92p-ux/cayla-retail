@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   asignacionDeVista,
+  repartoEnPalabras,
   avance,
   columnaDePersona,
   leerSoles,
@@ -145,6 +146,22 @@ describe("tabla «Cómo va»", () => {
   it("la tienda reparte por horas si al menos una persona tiene base «horas»", () => {
     expect(repartePorHoras([ana])).toBe(true);
     expect(repartePorHoras([persona({ personaId: "X", base: "iguales" }), persona({ personaId: "Y", base: null })])).toBe(false);
+  });
+});
+
+describe("repartoEnPalabras", () => {
+  const con = (tipo: "cuadra" | "faltan" | "pasa", diferencia: number) => ({ tipo, asignado: 1000, metaSede: 1000, diferencia });
+  it("dice cuánto suman las metas contra la de la tienda, en los tres casos", () => {
+    expect(repartoEnPalabras(con("pasa", -800), 6).replace(/\s/g, " ")).toBe("Las metas de las 6 personas suman S/ 800 más que la meta de la tienda: el equipo apunta más alto.");
+    expect(repartoEnPalabras(con("faltan", 800), 6).replace(/\s/g, " ")).toBe("Las metas de las 6 personas suman S/ 800 menos que la meta de la tienda: falta repartir.");
+    expect(repartoEnPalabras(con("cuadra", 0), 6)).toBe("Las metas de las 6 personas suman lo mismo que la meta de la tienda.");
+  });
+  it("habla de una persona, y de lo que todavía no se guarda", () => {
+    expect(repartoEnPalabras(con("cuadra", 0), 1)).toBe("La meta de 1 persona suma lo mismo que la meta de la tienda.");
+    expect(repartoEnPalabras(con("pasa", -800), 6, true).replace(/\s/g, " ")).toContain("sumarían S/ 800 más");
+  });
+  it("sin meta de la tienda no hay qué repartir", () => {
+    expect(repartoEnPalabras({ tipo: "sin_meta" }, 6)).toBe("Sin meta de la tienda no hay qué repartir.");
   });
 });
 

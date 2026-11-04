@@ -440,6 +440,12 @@ export const GUIA_RENDIMIENTO: Guia = {
       texto: "Elige qué días se miran en toda la pantalla: las cifras, el gráfico y la tabla.",
     },
     {
+      id: "frase-arriba",
+      ancla: "rendimiento.frase",
+      titulo: "A quién reconocer y a quién acompañar",
+      texto: "Lo primero, en una frase. Si nombra a alguien, toca su nombre: se abre su fila, con su mes y su meta.",
+    },
+    {
       id: "cifras",
       ancla: "rendimiento.cifras",
       titulo: "Las cifras",
@@ -549,7 +555,7 @@ export const GUIA_RENDIMIENTO: Guia = {
       ancla: "rendimiento.meta-campo",
       opcional: true,
       titulo: "Mira qué pasaría",
-      texto: "Escribe o mueve la barra: abajo ves cómo iría esa persona y si el reparto de la tienda cuadra, antes de guardar. La meta de cada día se recalcula sola.",
+      texto: "Escribe o mueve la barra: abajo ves cómo iría esa persona y cuánto sumarían las metas del equipo contra la de la tienda, antes de guardar. La meta de cada día se recalcula sola.",
     },
     {
       id: "meta-motivo",
@@ -584,8 +590,8 @@ export const GUIA_RENDIMIENTO: Guia = {
       id: "reparto",
       ancla: "rendimiento.reparto",
       opcional: true,
-      titulo: "¿Cuadra el reparto?",
-      texto: "Si lo repartido entre las personas suma la meta de la tienda, o cuánto falta o sobra.",
+      titulo: "¿Cuadran las metas?",
+      texto: "Cuánto suman las metas de las personas contra la meta de la tienda. Si suman menos, falta repartir.",
     },
     {
       id: "historial",
