@@ -237,7 +237,7 @@ export type MedidaGrupo = {
   ticket: number | null;
   meta: number | null;
   tocaba: number | null;
-  /** Positiva: va por encima de lo que tocaba. `null`: sin meta. */
+  /** Positiva: va por encima de lo que tocaba. `null`: sin meta, o todavía no toca nada (hoy, antes de los turnos): no hay contra qué comparar. */
   diferencia: number | null;
   lectura: LecturaRitmo | null;
 };
@@ -283,7 +283,7 @@ export function medirGrupo(entrada: { medidas: readonly MedidaPersona[]; tramo: 
     ticket: ventas > 0 ? vendido / ventas : null,
     meta,
     tocaba,
-    diferencia: conMeta && tocaba !== null ? vendido - tocaba : null,
+    diferencia: conMeta && tocaba !== null && tocaba > 0 ? vendido - tocaba : null,
     lectura: meta !== null && meta > 0 && tocaba !== null ? lecturaDeRitmo(vendido, meta, tocaba / meta) : null,
   };
 }

@@ -1,0 +1,461 @@
+/* ====================================================================
+   Rendimiento con superpoderes (ADR-0610; Felipe 2026-11-04: «seguir el estilo de liquid glass al máximo, lo más sofisticado y futurista posible»;
+   maqueta docs/maquetas/rendimiento-superpoderes-2026-11/). Pantalla: components/rendimiento/MesaRendimiento.tsx.
+
+   Se arma con las recetas de recetas.css: aquí no se inventa otro vidrio. Lo que suma es el LÍQUIDO, la misma luz de «Mi perfil» (perfil-vidrio.css):
+   un brillo que sigue al mouse y un filo que gira hacia él, nunca solos. Movimiento: excepción de ADR-0136 (act. 2026-11-04): todo responde a un gesto o
+   entra una vez, sin rebote ni bucle, y se apaga con `prefers-reduced-motion`. Solo tokens; el color de una persona es dato (`--c`, siempre con su nombre).
+   ==================================================================== */
+
+.mesa {
+  --mesa-hueco: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mesa-hueco);
+}
+.mesa-entra {
+  animation: mesa-sube 600ms var(--ease-cayla) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes mesa-sube {
+  from { opacity: 0; transform: translateY(16px); filter: blur(6px); }
+}
+
+/* ---------- La luz líquida: sobre cualquier placa de la pantalla ---------- */
+.liquido {
+  position: relative;
+  isolation: isolate;
+  --vidrio-x: 50%;
+  --vidrio-y: 0%;
+}
+.liquido::before,
+.liquido::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* El brillo especular. */
+.liquido::before {
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(380px circle at var(--vidrio-x) var(--vidrio-y), color-mix(in srgb, var(--color-vidrio) 62%, transparent), transparent 70%);
+  transition: opacity 320ms var(--ease-cayla);
+}
+/* El filo: un borde de luz que da la cara al mouse. */
+.liquido::after {
+  z-index: 2;
+  padding: 1.25px;
+  background: conic-gradient(
+    from var(--vidrio-angulo),
+    transparent 0 8%,
+    color-mix(in srgb, var(--color-vidrio) 96%, transparent) 16%,
+    transparent 30% 55%,
+    color-mix(in srgb, var(--color-vidrio) 66%, transparent) 64%,
+    transparent 78%
+  );
+  -webkit-mask: linear-gradient(var(--color-tinta) 0 0) content-box, linear-gradient(var(--color-tinta) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: --vidrio-angulo 620ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .liquido:hover::before { opacity: 1; }
+}
+@media screen {
+  [data-tema="oscuro"] .liquido::before {
+    background: radial-gradient(380px circle at var(--vidrio-x) var(--vidrio-y), color-mix(in srgb, var(--color-tinta) 15%, transparent), transparent 70%);
+  }
+  [data-tema="oscuro"] .liquido::after {
+    background: conic-gradient(
+      from var(--vidrio-angulo),
+      transparent 0 8%,
+      color-mix(in srgb, var(--color-tinta) 46%, transparent) 16%,
+      transparent 30% 55%,
+      color-mix(in srgb, var(--color-tinta) 26%, transparent) 64%,
+      transparent 78%
+    );
+  }
+}
+
+/* Una placa de la pantalla, con su luz. */
+.mesa-placa {
+  border-radius: 22px;
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* ---------- Las tiendas: cada una dice cuánto lleva contra su propia meta ---------- */
+.mesa-herramientas {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+.mesa-sedes {
+  position: relative;
+  display: inline-flex;
+  flex: 0 1 auto;
+  max-width: 100%;
+  gap: 4px;
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: 18px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.mesa-sedes-gota {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  border-radius: 14px;
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+  transition: transform 460ms var(--ease-cayla), width 460ms var(--ease-cayla);
+}
+.mesa-sede {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  height: 46px;
+  padding: 0 14px 0 8px;
+  border-radius: 14px;
+  font-size: 14px;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+  transition: color 200ms var(--ease-cayla);
+}
+.mesa-sede[aria-selected="true"] {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mesa-sede-aro {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  transform: rotate(-90deg);
+}
+.mesa-sede-aro circle {
+  fill: none;
+  stroke-width: 4;
+}
+.mesa-sede-aro .pista {
+  stroke: var(--tubo-anillo);
+}
+.mesa-sede-aro .arco {
+  stroke: var(--color-tinta);
+  stroke-linecap: round;
+  stroke-dasharray: 0 100;
+  transition: stroke-dasharray 1100ms var(--ease-cayla);
+}
+.mesa-sede small {
+  font-size: 13px;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.mesa-sede:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: -2px;
+}
+
+/* ---------- La frase ---------- */
+.mesa-frase {
+  max-width: 72ch;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.3;
+  color: var(--color-tinta);
+}
+.mesa-frase[data-cambia] {
+  animation: mesa-frase 460ms var(--ease-cayla) both;
+}
+@keyframes mesa-frase {
+  from { opacity: 0; transform: translateY(6px); filter: blur(3px); }
+}
+
+/* ---------- Las cifras: se tocan, y se voltean para explicarse ---------- */
+.mesa-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+@container (max-width: 1040px) {
+  .mesa-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 520px) {
+  .mesa-cifras { grid-template-columns: minmax(0, 1fr); }
+}
+.mesa-marco {
+  container-type: inline-size;
+  min-width: 0;
+}
+.volteable {
+  position: relative;
+  min-width: 0;
+  perspective: 1200px;
+}
+.volteable-giro {
+  display: grid;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 640ms var(--ease-cayla);
+}
+.volteable[data-vuelta] .volteable-giro {
+  transform: rotateY(180deg);
+}
+.volteable-cara {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 176px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.volteable-cara > .tarjeta-cifra {
+  flex: 1;
+  /* El giro y `backdrop-filter` no se llevan: el desenfoque aplanaría la cara. El vidrio es el del fondo de la placa. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.volteable-tras {
+  transform: rotateY(180deg);
+}
+.volteable-tras p {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.42;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+.volteable-tras b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.volteable-boton {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+  transition: transform 300ms var(--ease-cayla), color 200ms;
+}
+@media (hover: hover) {
+  .volteable-boton:hover {
+    color: var(--color-tinta);
+    transform: scale(1.12);
+  }
+}
+.volteable-boton:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+
+/* La línea que sube dentro de una cifra. */
+.mesa-trazo {
+  display: block;
+  width: 100%;
+  height: 42px;
+  margin-top: 10px;
+  overflow: visible;
+}
+.mesa-trazo path {
+  fill: none;
+  stroke: var(--color-tinta);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.mesa-trazo .area {
+  fill: var(--color-tinta);
+  stroke: none;
+  opacity: 0.08;
+}
+
+/* La balanza: arriba o abajo de lo que tocaba, desde el centro. */
+.mesa-balanza {
+  position: relative;
+  height: 12px;
+  margin-top: 12px;
+  border-radius: 99px;
+  background: var(--tubo-fondo);
+  box-shadow: var(--tubo-sombra);
+}
+.mesa-balanza i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 99px;
+  background: var(--tubo-brillo), var(--c);
+  box-shadow: var(--tubo-luz);
+  transition: left 800ms var(--ease-cayla), width 800ms var(--ease-cayla), background-color 300ms;
+}
+.mesa-balanza::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-tinta);
+}
+
+/* La barra para probar. */
+.mesa-rango {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin-top: 8px;
+  background: none;
+  cursor: ew-resize;
+}
+.mesa-rango::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--tubo-brillo), linear-gradient(90deg, var(--color-tinta) var(--v, 50%), color-mix(in srgb, var(--color-tinta) 10%, transparent) var(--v, 50%));
+  box-shadow: var(--tubo-sombra);
+}
+.mesa-rango::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -7px;
+  border-radius: 50%;
+  border: 1px solid var(--gota-borde, var(--serena-borde));
+  background: var(--gota-marca), var(--color-crema);
+  box-shadow: var(--gota-luz), 0 4px 10px -3px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  transition: transform 200ms var(--ease-cayla);
+}
+.mesa-rango:active::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+.mesa-rango::-moz-range-track {
+  height: 10px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+}
+.mesa-rango::-moz-range-progress {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--color-tinta);
+}
+.mesa-rango::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--color-borde-control);
+  background: var(--color-crema);
+}
+.mesa-rango:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* El equipo: la pila de personas y los tres grupos, que filtran. */
+.mesa-persona-boton {
+  border-radius: 50%;
+  transition: transform 260ms var(--ease-cayla), opacity 240ms, margin 300ms var(--ease-cayla);
+}
+.mesa-persona-boton .avatar {
+  background: var(--c);
+  color: var(--color-crema-fija);
+}
+.mesa-persona-boton[data-apagada] {
+  opacity: 0.35;
+}
+@media (hover: hover) {
+  .mesa-persona-boton:hover {
+    transform: translateY(-3px);
+  }
+}
+.mesa-grupos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.mesa-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.15;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+  transition: opacity 240ms var(--ease-cayla);
+}
+.mesa-grupo b {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-tinta);
+}
+.mesa-grupo i {
+  display: block;
+  height: 10px;
+  border-radius: 99px;
+  background: var(--tubo-brillo), var(--c);
+  box-shadow: var(--tubo-luz);
+  transition: transform 240ms var(--ease-cayla), box-shadow 200ms;
+}
+.mesa-grupo span {
+  min-height: 2.3em;
+}
+.mesa-grupo[aria-pressed="true"] i {
+  box-shadow: var(--tubo-luz), 0 0 0 2px var(--color-crema), 0 0 0 4px var(--c);
+}
+.mesa-grupo[data-apagada] {
+  opacity: 0.42;
+}
+@media (hover: hover) {
+  .mesa-grupo:hover i {
+    transform: scaleY(1.35);
+  }
+}
+.mesa-grupo:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesa-entra,
+  .mesa-frase[data-cambia] {
+    animation: none;
+  }
+  .volteable-giro,
+  .mesa-sedes-gota,
+  .mesa-sede-aro .arco,
+  .mesa-balanza i,
+  .liquido::before,
+  .liquido::after {
+    transition: none;
+  }
+}

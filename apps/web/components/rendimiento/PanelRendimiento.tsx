@@ -77,6 +77,7 @@ export function PanelRendimiento({
   onVista,
   personaCuentaId,
   esAdmin,
+  sinCabecera = false,
 }: {
   ubicacionId: string;
   nombre: string;
@@ -91,6 +92,8 @@ export function PanelRendimiento({
   onVista?: (v: Vista) => void;
   personaCuentaId: string | null;
   esAdmin: boolean;
+  /** Mientras se migra a la mesa (ADR-0610): el período y las cifras ya los dibuja `MesaRendimiento`. */
+  sinCabecera?: boolean;
 }) {
   const [vista, setVista] = useState<Vista>(vistaInicial);
   const [orden, setOrden] = useState<Orden>("nombre");
@@ -160,6 +163,7 @@ export function PanelRendimiento({
 
   return (
     <div className="space-y-6">
+      {!sinCabecera && (
       <div className="flex flex-wrap items-center gap-3">
         <span className="label-cayla text-[11px] font-bold text-taupe">Período</span>
         {/* El período es un filtro de un valor: la píldora del sistema, con su rótulo (ADR-0358). */}
@@ -178,8 +182,10 @@ export function PanelRendimiento({
           ))}
         </div>
       </div>
+      )}
 
       {/* Las cuatro cifras */}
+      {!sinCabecera && (
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-guia="rendimiento.cifras">
         <TarjetaCifra etiqueta={`Soles ${t.periodo}`} valor={SOLES.format(res.soles)}>
           {res.ventas > 0 ? `${res.ventas} ${plural(res.ventas, "venta", "ventas")}` : "Sin ventas todavía"}
@@ -215,6 +221,7 @@ export function PanelRendimiento({
           {res.ticket !== null ? "por venta" : "Sin ventas todavía"}
         </TarjetaCifra>
       </div>
+      )}
 
       {/* Las tres medidas de la propuesta final (Felipe, 2026-10-03): proyección del mes, prendas por venta y ventas por hora */}
       {(proyeccion || prendas) && (

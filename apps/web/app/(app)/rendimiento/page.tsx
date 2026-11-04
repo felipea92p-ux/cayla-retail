@@ -2,10 +2,9 @@ import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { celda, Encabezado, fila, Tabla, type Columna } from "@/components/ui/Tabla";
-import { TiendasRendimiento } from "@/components/rendimiento/TiendasRendimiento";
+import { MesaRendimiento } from "@/components/rendimiento/MesaRendimiento";
 import { exigirModulo } from "@/lib/persona-actual";
 import { leerPantallaRendimiento, type SedeDeRendimiento } from "@/lib/rendimiento";
-import { vistaDeUrl } from "@/lib/rendimiento-meta-reglas";
 import { Receipt, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -32,9 +31,9 @@ const SOLES_HORA = new Intl.NumberFormat("es-PE", { style: "currency", currency:
 const PLANTILLA = "grid-cols-[1fr_auto]";
 const COLUMNAS: Columna[] = [{ titulo: "Integrante" }, { titulo: "Ventas", alinear: "der" }];
 
-export default async function RendimientoPage({ searchParams }: { searchParams: Promise<{ vista?: string; sede?: string }> }) {
+export default async function RendimientoPage({ searchParams }: { searchParams: Promise<{ sede?: string }> }) {
   const persona = await exigirModulo("rendimiento");
-  const { vista, sede } = await searchParams;
+  const { sede } = await searchParams;
   const { hoy, sedes: todas } = await leerPantallaRendimiento();
   // La tienda de la sesión va primera y es la que abre si la URL no pide otra (Felipe, 2026-10-03).
   const sedes = [...todas].sort((a, b) => Number(b.ubicacionId === persona.ubicacionId) - Number(a.ubicacionId === persona.ubicacionId));
@@ -79,12 +78,11 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
       )}
 
       {elegida && (
-        <TiendasRendimiento
+        <MesaRendimiento
           sedes={sedes}
           inicialId={elegida.ubicacionId}
           sesionId={persona.ubicacionId}
           hoy={hoy}
-          vistaInicial={vistaDeUrl(vista)}
           personaCuentaId={persona.personaId}
           esAdmin={persona.esAdmin}
           rankings={Object.fromEntries(sedes.map((s) => [s.ubicacionId, <Rankings key={`rankings-${s.ubicacionId}`} sede={s} />]))}

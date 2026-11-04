@@ -240,6 +240,14 @@ describe("medirGrupo", () => {
     expect(g.lectura).toBe("Por debajo");
   });
 
+  it("si todavía no toca nada, no hay diferencia: nadie va «arriba» de cero", () => {
+    const g = medirGrupo({ medidas: [med({ vendido: 90, ventas: 1, meta: 100, tocaba: 0, metaHoy: 100, tocabaHoy: 0 })], tramo: { desde: HOY, hasta: HOY }, hoy: HOY });
+    expect(g.meta).toBe(100);
+    expect(g.tocaba).toBe(0);
+    expect(g.diferencia).toBeNull();
+    expect(g.lectura).toBeNull();
+  });
+
   it("una tienda sin meta dice lo vendido y nada más", () => {
     const g = medirGrupo({ medidas: [], tramo: { desde: dia(1), hasta: HOY }, hoy: HOY, serieTienda: [dSerie(dia(1), 300, 3, null)] });
     expect(g.vendido).toBe(300);
