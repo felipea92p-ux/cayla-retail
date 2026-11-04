@@ -60,3 +60,15 @@ Agente (Sonnet) sobre capturas estáticas de la versión anterior a los textos: 
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-11-02 | d4ec6298f | 6.3 | 6 | 3 de 3 |
+
+## Ronda 2026-11-04: Empresa y tiendas, «Las vitrinas»
+
+Ciega (Sonnet, sobre capturas, sin mouse): **4 de 10**. Encontró sola lo que le falta a Lima y entendió el aro, el dial y el líquido. Se perdió en lo que sigue, y un sistema de capturas no muestra el
+efecto al pasar el mouse, así que la primera nota hay que confirmarla con una colaboradora real. Oficio [Medido]: a 375, 1024, 1280 y 1920 px sin desborde y ningún valor cortado.
+
+Tres cambios propuestos, **a la espera del OK de Felipe**:
+
+1. **Que se note que se toca:** un lápiz en cada dato que se cambia y «Poner» en lo que falta. La ciega no supo cómo cambiar nada.
+2. **Decir qué falta en palabras:** bajo el nombre de la sede, «Falta WhatsApp y hora de cierre». El aro solo cuenta.
+3. **Nombres y dibujos que se expliquen:** «Preguntar» y su estrella no dicen que es el asistente, «Carga inicial» y su candado no dicen de qué, y el QR no dice WhatsApp. El candado de la empresa debería decir «Solo se lee» a la vista.
+
