@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { Ayuda } from "@/components/Ayuda";
 import { BarraAvance, type TonoBarraAvance } from "@/components/ui/BarraAvance";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Interruptor } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -14,7 +15,7 @@ import { CierreCargaInicialModal } from "@/components/ConfiguracionCargaInicial"
 import { AroSede, Instrumento, SelloEmpresa } from "@/components/vitrinas-sedes/Instrumentos";
 import { TOPE_MENSUAL_USD } from "@/lib/asistente/respuesta";
 import { gastoDelMes } from "@/lib/asistente/sedes";
-import { cambioLaCasilla } from "@/lib/configuracion-casilla";
+import { cambioLaCasilla, VISTO_MS } from "@/lib/configuracion-casilla";
 import { validarTienda } from "@/lib/configuracion-reglas";
 import type { DatosEmpresa } from "@/lib/configuracion-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
@@ -123,14 +124,15 @@ function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitri
     setSobre(null);
   }
   const [pedido, setPedido] = useState(false);
+  const [tocado, setTocado] = useState(false);
   useEffect(() => {
     if (!recien) return;
-    const t = window.setTimeout(() => setRecien(0), 1900);
+    const t = window.setTimeout(() => setRecien(0), VISTO_MS);
     return () => window.clearTimeout(t);
   }, [recien]);
 
   const v = sobre ?? vitrina;
-  const clase = `vs-dato ${falta(v, campo) ? "falta" : ""} ${campo === "preguntar" && !v.preguntar ? "apagado" : ""} ${recien ? "recien" : ""}`;
+  const clase = `vs-dato ${falta(v, campo) ? "falta" : ""} ${campo === "preguntar" && !v.preguntar ? "apagado" : ""} ${recien ? "recien" : ""} ${tocado ? "sin-entrada" : ""}`;
   const estilo = conVar({ "--i": i });
   const visto = recien > 0 && (
     <span key={recien} className="vs-visto" aria-hidden>
@@ -212,10 +214,25 @@ function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitri
     );
   }
 
+  // El fondo cuenta desde 0 al entrar y hasta su valor nuevo al guardarse (la pieza de siempre).
+  const fondo = v.tienda?.fondo;
+  const valor =
+    campo === "fondo" && fondo !== null && fondo !== undefined ? (
+      <>
+        S/{"\u00a0"}
+        <CifraQueCuenta valor={Math.round(fondo)} alMontar={!tocado} />
+      </>
+    ) : (
+      valorDe(v, campo)
+    );
+
   return (
-    <button type="button" className={clase} style={estilo} data-guia={guia} aria-label={`${NOMBRE_CAMPO[campo]} de ${v.corto}: ${valorDe(v, campo)}. Cambiar`} onClick={() => setEscribiendo(true)}>
+    <button type="button" className={clase} style={estilo} data-guia={guia} aria-label={`${NOMBRE_CAMPO[campo]} de ${v.corto}: ${valorDe(v, campo)}. Cambiar`} onClick={() => {
+        setTocado(true);
+        setEscribiendo(true);
+      }}>
       <Instrumento vitrina={v} campo={campo} />
-      {textos(<span className="vs-valor">{valorDe(v, campo)}</span>)}
+      {textos(<span className="vs-valor">{valor}</span>)}
       {visto}
     </button>
   );
@@ -298,6 +315,34 @@ function Carnet({ datos }: { datos: DatosEmpresa }) {
   );
 }
 
+/** El filo de luz, el brillo y una inclinación de menos de 1,5° siguen al mouse sin moverse solos (ADR-0136). Sin mouse, o con «reducir movimiento», el vidrio se queda quieto. */
+function useLuzDelMouse(raiz: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    if (!window.matchMedia("(hover: hover)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let pendiente = 0;
+    const alMover = (ev: PointerEvent) => {
+      if (ev.pointerType !== "mouse" || pendiente) return;
+      pendiente = window.requestAnimationFrame(() => {
+        pendiente = 0;
+        raiz.current?.querySelectorAll<HTMLElement>("[data-luz]").forEach((el) => {
+          const r = el.getBoundingClientRect();
+          el.style.setProperty("--mx", `${ev.clientX - r.left}px`);
+          el.style.setProperty("--my", `${ev.clientY - r.top}px`);
+          if (!el.classList.contains("vs-vitrina")) return;
+          const dentro = ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom && !el.querySelector(".edita");
+          el.style.setProperty("--rx", dentro ? `${((ev.clientY - r.top) / r.height - 0.5) * -2.4}deg` : "0deg");
+          el.style.setProperty("--ry", dentro ? `${((ev.clientX - r.left) / r.width - 0.5) * 2.4}deg` : "0deg");
+        });
+      });
+    };
+    window.addEventListener("pointermove", alMover, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", alMover);
+      window.cancelAnimationFrame(pendiente);
+    };
+  }, [raiz]);
+}
+
 /** Dónde explica la guía interactiva cada dato: en la primera sede que lo tenga. */
 function anclasDeLaGuia(vitrinas: readonly VitrinaSede[]): Map<string, Partial<Record<CampoSede, string>>> {
   const ANCLA: Record<CampoSede, { guia: string }> = {
@@ -338,6 +383,8 @@ export function VistaEmpresaTiendas({
   esAdmin: boolean;
 }) {
   const { responsable, guardando, guardar } = useGuardarCasilla();
+  const raiz = useRef<HTMLDivElement>(null);
+  useLuzDelMouse(raiz);
   const [hoja, setHoja] = useState<SedeCargaInicial | null>(null);
   const gasto = gastoDelMes(gastado, TOPE_MENSUAL_USD);
   const lleno = llenadoTubo(gastado, TOPE_MENSUAL_USD);
@@ -347,7 +394,7 @@ export function VistaEmpresaTiendas({
   const tono: TonoBarraAvance = gasto?.tono === "rojo" ? "rojo" : gasto?.tono === "ambar" ? "ambar" : "tinta";
 
   return (
-    <div className="vs-raiz">
+    <div className="vs-raiz" ref={raiz}>
       <div className="vs-firma">
         <ComboResponsable control={responsable} deshabilitado={guardando} />
       </div>
