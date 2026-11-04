@@ -1,6 +1,6 @@
 # Maqueta · Ventas ▸ Reportes (2026-11-02)
 
-> **Estado: en revisión con Felipe.** Solo maqueta: no hay migración, ni código del ERP, ni cambio en producción.
+> **Estado: construido en local (2026-11-03, ADR-0606); sin pegar en producción.** Esta maqueta quedó como referencia: lo que se construyó sigue las decisiones de abajo, no todo lo que dibuja `index.html`.
 > Todos los datos (tiendas, personas, prendas, cifras) son **inventados**.
 
 `index.html`: un solo archivo sobre el marco del ERP ya elegido (`../vidrio-base-2026-10/`). Se abre con la config `maqueta-referentes`

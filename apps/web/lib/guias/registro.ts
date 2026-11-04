@@ -9,6 +9,7 @@
 //              no aplica. Al terminar una, se pasa a «aplicada» y se baja `PENDIENTES_HOY` (la cuenta es exacta: solo baja).
 
 import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
+import { GUIA_REPORTES_MES, GUIA_REPORTES_RANKING } from "./pantallas/reportes-ventas";
 import {
   GUIA_CAJA,
   GUIA_CAMBIOS,
@@ -145,6 +146,8 @@ export const GUIAS: readonly Guia[] = [
   GUIA_PUNTO_DE_VENTA,
   GUIA_APARTADOS,
   GUIA_HISTORIAL,
+  GUIA_REPORTES_MES,
+  GUIA_REPORTES_RANKING,
   GUIA_COMPROBANTES,
   GUIA_COMPROBANTES_MES,
   GUIA_POR_ENVIAR,
@@ -435,7 +438,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/vender/comprobantes/proformas": { estado: "aplicada", guia: GUIA_PROFORMAS.id },
   "/vender/comprobantes/series": { estado: "aplicada", guia: GUIA_SERIES.id },
   "/vender/historial": { estado: "aplicada", guia: GUIA_HISTORIAL.id },
-  // Reportes de ventas (2026-11-03): la guía se escribe en la actividad 7, cuando el reporte ya tiene todas sus piezas.
-  "/vender/reportes": { estado: "no-aplica", motivo: "Pantalla nueva en construcción: su guía se escribe cuando el reporte tenga todas sus piezas." },
-  "/vender/reportes/ranking": { estado: "no-aplica", motivo: "Pantalla nueva en construcción: su guía se escribe cuando el reporte tenga todas sus piezas." },
+  // Reportes de ventas (2026-11-03, Felipe): dos pantallas que solo miran; su guía explica cada pieza sin tocar nada.
+  "/vender/reportes": { estado: "aplicada", guia: GUIA_REPORTES_MES.id },
+  "/vender/reportes/ranking": { estado: "aplicada", guia: GUIA_REPORTES_RANKING.id },
 };

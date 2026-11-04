@@ -62,7 +62,7 @@ export function TablaRanking({ r, f, periodo, fotos }: { r: Ranking; f: FiltrosR
   const orden = f.orden === "soles" ? "soles" : "prendas";
 
   return (
-    <section aria-label="Lo que más se vende" className="space-y-3">
+    <section aria-label="Lo que más se vende" data-guia="ranking.tabla" className="space-y-3">
       <div>
         <TituloSeccion>{porVariante ? "Lo que más se vende, por color y talla" : "Lo que más se vende"}</TituloSeccion>
         <p className="mt-0.5 text-sm text-tinta/60">

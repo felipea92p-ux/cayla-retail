@@ -19,6 +19,7 @@ export function CabeceraReportes({ sede, activa, acciones }: { sede: string; act
       <EncabezadoPagina sede={sede} titulo="Reportes" subtitulo={FRASES[activa]} acciones={acciones} />
       <Pestanas
         idIndicador="reportes-ventas"
+        guia="reportes.pestanas"
         etiquetaAccesible="Qué reporte ver"
         activa={activa}
         items={[

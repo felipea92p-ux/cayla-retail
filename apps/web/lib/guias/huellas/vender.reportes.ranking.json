@@ -1,0 +1,24 @@
+{
+  "guia": "vender.reportes.ranking",
+  "ruta": "/vender/reportes/ranking",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 10,
+  "controles": {
+    "app/(app)/vender/reportes/ranking/page.tsx": [
+      "BotonDescargar «Descargar Excel»"
+    ],
+    "components/reportes-ventas/CabeceraReportes.tsx": [
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/reportes-ventas/FiltrosRanking.tsx": [
+      "DesplegablePildora «{etiqueta}»",
+      "DesplegablePildora «Fechas»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "SegmentoEnlaces «(sin nombre)»",
+      "SegmentoEnlaces «(sin nombre)» #2",
+      "FiltroPuesto «{`Quitar el filtro ${p.texto}»",
+      "BotonLimpiar «Limpiar todo»"
+    ]
+  }
+}

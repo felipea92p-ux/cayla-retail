@@ -14,15 +14,17 @@ export function FiltrosReporteMes({ mes, actual, tiendas, tiendaId, corte }: { m
   const ir = (m: Mes, tienda: string | null) => router.push(`/vender/reportes?m=${paramDeMes(m)}${tienda ? `&tienda=${tienda}` : ""}${corte ? `&corte=${corte}` : ""}`);
   return (
     <div className="mt-5 flex flex-wrap items-center gap-2.5">
-      <SelectorMes valor={mes} actual={actual} onCambiar={(m) => ir(m, tiendaId)} />
+      <SelectorMes guia="reportes.mes" valor={mes} actual={actual} onCambiar={(m) => ir(m, tiendaId)} />
       {tiendas && tiendas.length > 1 && (
-        <DesplegablePildora
-          icono={Store}
-          etiqueta="Tienda"
-          valor={tiendaId ?? TODOS}
-          onValor={(v) => ir(mes, v === TODOS ? null : v)}
-          opciones={[{ valor: TODOS, texto: "Todas las tiendas" }, ...tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))]}
-        />
+        <div data-guia="reportes.tienda">
+          <DesplegablePildora
+            icono={Store}
+            etiqueta="Tienda"
+            valor={tiendaId ?? TODOS}
+            onValor={(v) => ir(mes, v === TODOS ? null : v)}
+            opciones={[{ valor: TODOS, texto: "Todas las tiendas" }, ...tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))]}
+          />
+        </div>
       )}
     </div>
   );

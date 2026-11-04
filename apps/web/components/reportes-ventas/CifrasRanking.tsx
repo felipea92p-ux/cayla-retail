@@ -11,7 +11,7 @@ export function CifrasRanking({ r, f, periodo }: { r: Ranking; f: FiltrosRanking
   const c = cifrasDeRanking(r);
   const filtrado = hayFiltros(f);
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="group" aria-label="Las cifras del ranking">
+    <div data-guia="ranking.cifras" className="grid grid-cols-2 gap-3 lg:grid-cols-4" role="group" aria-label="Las cifras del ranking">
       <TarjetaCifra etiqueta="Prendas vendidas" valor={ENTERO.format(c.prendas)} unidad={c.prendas === 1 ? "prenda" : "prendas"} pie={filtrado ? "con tus filtros" : periodo.etiqueta.toLowerCase()}>
         {c.parteVendida !== null && filtrado ? `${PORCENTAJE.format(c.parteVendida * 100)} % de lo registrado` : null}
       </TarjetaCifra>

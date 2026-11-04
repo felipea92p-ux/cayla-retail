@@ -48,7 +48,7 @@ export function CifrasReporteMes({ r }: { r: ReporteMes }) {
   const parte = parteDevuelta(actual);
   return (
     <div className="space-y-3">
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5" role="group" aria-label="Las cifras del mes">
+    <div data-guia="reportes.cifras" className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5" role="group" aria-label="Las cifras del mes">
       <TarjetaCifra etiqueta="Vendido" valor={soles(actual.vendido)} className="col-span-2 lg:col-span-1" pie={tramoEnPalabras(r)}>
         <Cambio c={cambio(actual.vendido, anterior.vendido)} comparacion={comparacion} />
       </TarjetaCifra>

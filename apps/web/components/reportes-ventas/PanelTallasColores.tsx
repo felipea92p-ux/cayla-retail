@@ -20,7 +20,7 @@ export function PanelTallasColores({ r }: { r: Ranking }) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-1">
-      <section aria-label="Las tallas que se llevan" className={bloque}>
+      <section aria-label="Las tallas que se llevan" data-guia="ranking.tallas" className={bloque}>
         <TituloSeccion>Las tallas que se llevan</TituloSeccion>
         <p className="mt-0.5 text-sm text-tinta/60">Con los filtros de arriba</p>
         {tallas.length === 0 ? (
@@ -38,7 +38,7 @@ export function PanelTallasColores({ r }: { r: Ranking }) {
         )}
       </section>
 
-      <section aria-label="Los colores que se llevan" className={bloque}>
+      <section aria-label="Los colores que se llevan" data-guia="ranking.colores" className={bloque}>
         <TituloSeccion>Los colores que se llevan</TituloSeccion>
         <p className="mt-0.5 text-sm text-tinta/60">Con los filtros de arriba</p>
         {colores.length === 0 ? (

@@ -39,7 +39,7 @@ export default async function ReportesVentasPage({ searchParams }: { searchParam
         activa="mes"
         acciones={
           r && r.actual.tickets > 0 && cortes.datos ? (
-            <BotonDescargar href={`/vender/reportes/descargar?m=${paramDeMes(mes)}${tienda ? `&tienda=${tienda}` : ""}&corte=${corteDeUrl(sp.corte, cortesOfrecidos(cortes.datos))}`}>Descargar Excel</BotonDescargar>
+            <BotonDescargar guia="reportes.descargar" href={`/vender/reportes/descargar?m=${paramDeMes(mes)}${tienda ? `&tienda=${tienda}` : ""}&corte=${corteDeUrl(sp.corte, cortesOfrecidos(cortes.datos))}`}>Descargar Excel</BotonDescargar>
           ) : undefined
         }
       />

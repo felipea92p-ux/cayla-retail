@@ -137,18 +137,20 @@ export function TablaCortes({ r, cortes, corte, hrefDe }: { r: ReporteMes; corte
   };
 
   return (
-    <section aria-label="El mes por tienda y por categoría" className="anim-sube space-y-3" style={{ "--i": 8 } as React.CSSProperties}>
+    <section aria-label="El mes por tienda y por categoría" data-guia="reportes.tabla" className="anim-sube space-y-3" style={{ "--i": 8 } as React.CSSProperties}>
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div>
           <TituloSeccion>{porTienda ? "Cuánto vendió cada tienda" : "Cuánto vendió cada categoría"}</TituloSeccion>
           <p className="mt-0.5 text-sm text-tinta/60">{mes}{r.enCurso ? " · a la fecha" : ""}</p>
         </div>
         {ofrecidos.length > 1 && (
-          <SegmentoEnlaces
-            etiquetaAccesible="Cómo cortar la tabla"
-            activo={corte}
-            opciones={ofrecidos.map((c) => ({ valor: c, etiqueta: c === "tienda" ? "Por tienda" : "Por categoría", href: hrefDe(c), icono: c === "tienda" ? <Store aria-hidden className="h-3.5 w-3.5" /> : undefined }))}
-          />
+          <div data-guia="reportes.corte">
+            <SegmentoEnlaces
+              etiquetaAccesible="Cómo cortar la tabla"
+              activo={corte}
+              opciones={ofrecidos.map((c) => ({ valor: c, etiqueta: c === "tienda" ? "Por tienda" : "Por categoría", href: hrefDe(c), icono: c === "tienda" ? <Store aria-hidden className="h-3.5 w-3.5" /> : undefined }))}
+            />
+          </div>
         )}
       </div>
       {filas.length === 0 ? (

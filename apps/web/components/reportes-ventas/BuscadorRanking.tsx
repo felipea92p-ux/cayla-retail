@@ -40,5 +40,5 @@ export function BuscadorRanking({ valor }: { valor: string }) {
     return () => window.clearTimeout(t);
   }, [texto, params, pathname, buscar]);
 
-  return <Buscador valor={texto} onCambio={setTexto} buscando={buscando} atajo enterKeyHint="search" placeholder="Modelo o código" maxLength={80} title="Busca un modelo por su nombre o su código" etiqueta="Buscar en el ranking" className="min-w-[14rem] max-w-md flex-1" />; // sugerir-fijo: dice qué se puede buscar (nombre o código), no da un ejemplo de un valor
+  return <div data-guia="ranking.buscador" className="min-w-[14rem] max-w-md flex-1"><Buscador valor={texto} onCambio={setTexto} buscando={buscando} atajo enterKeyHint="search" placeholder="Modelo o código" maxLength={80} title="Busca un modelo por su nombre o su código" etiqueta="Buscar en el ranking" className="w-full" /></div>; // sugerir-fijo: dice qué se puede buscar (nombre o código), no da un ejemplo de un valor
 }

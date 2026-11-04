@@ -39,7 +39,7 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
 
   return (
     <div className="space-y-4">
-      <section aria-label="Ventas por día" className={bloque} style={{ "--i": 5 } as CSSProperties}>
+      <section aria-label="Ventas por día" data-guia="reportes.por-dia" className={bloque} style={{ "--i": 5 } as CSSProperties}>
         <TituloSeccion dato={mejor ? <>Mejor día: <b className="font-semibold text-tinta">{diaEnPalabras(mejor.fecha)}</b> · {soles(mejor.vendido)}</> : undefined}>
           Ventas por día
         </TituloSeccion>
@@ -56,7 +56,7 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section aria-label="Mes a mes" className={bloque} style={{ "--i": 6 } as CSSProperties}>
+        <section aria-label="Mes a mes" data-guia="reportes.mes-a-mes" className={bloque} style={{ "--i": 6 } as CSSProperties}>
           <TituloSeccion>Mes a mes</TituloSeccion>
           <p className="mt-0.5 text-sm text-tinta/60">En soles. Toca un mes para verlo.</p>
           <div className="mt-4">
@@ -70,7 +70,7 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
           </div>
         </section>
 
-        <section aria-label="Cómo se pagó" className={bloque} style={{ "--i": 7 } as CSSProperties}>
+        <section aria-label="Cómo se pagó" data-guia="reportes.pagos" className={bloque} style={{ "--i": 7 } as CSSProperties}>
           <TituloSeccion dato={total > 0 ? <b className="font-semibold text-tinta">{soles(total)}</b> : undefined}>Cómo se pagó</TituloSeccion>
           <p className="mt-0.5 text-sm text-tinta/60">{nombre} · lo cobrado, por medio de pago</p>
           {tramos.length === 0 ? (

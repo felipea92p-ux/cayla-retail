@@ -65,6 +65,7 @@ export function FiltrosRanking({
     <div className="mt-5 space-y-3">
       <div className="flex flex-wrap items-center gap-2.5">
         <BuscadorRanking valor={f.q} />
+        <div data-guia="ranking.fechas" className="flex flex-wrap items-center gap-2.5">
         <DesplegablePildora
           icono={CalendarDays}
           etiqueta="Fechas"
@@ -84,32 +85,39 @@ export function FiltrosRanking({
             <CampoFecha etiqueta="Hasta" valor={f.hasta ?? ultimoDia(periodo.hasta)} onValor={(v) => FECHA.test(v) && ir({ rango: "fechas", hasta: v, desde: f.desde ?? periodo.desde })} />
           </>
         )}
-        {tiendas && tiendas.length > 1 && combo(Store, "Tienda", "Todas las tiendas", f.tienda, tiendas.map((t) => ({ valor: t.id, texto: t.nombre })), "tienda")}
+        </div>
+        {tiendas && tiendas.length > 1 && <div data-guia="ranking.tienda">{combo(Store, "Tienda", "Todas las tiendas", f.tienda, tiendas.map((t) => ({ valor: t.id, texto: t.nombre })), "tienda")}</div>}
         <span className="flex-1" />
-        <SegmentoEnlaces
-          etiquetaAccesible="Cómo ver el ranking"
-          activo={f.nivel}
-          opciones={[
-            { valor: "modelo", etiqueta: "Por modelo", href: hrefRanking(f, { nivel: "modelo", pagina: 0 }) },
-            { valor: "variante", etiqueta: "Por color y talla", href: hrefRanking(f, { nivel: "variante", pagina: 0 }) },
-          ]}
-        />
+        <div data-guia="ranking.nivel">
+          <SegmentoEnlaces
+            etiquetaAccesible="Cómo ver el ranking"
+            activo={f.nivel}
+            opciones={[
+              { valor: "modelo", etiqueta: "Por modelo", href: hrefRanking(f, { nivel: "modelo", pagina: 0 }) },
+              { valor: "variante", etiqueta: "Por color y talla", href: hrefRanking(f, { nivel: "variante", pagina: 0 }) },
+            ]}
+          />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
+        <div data-guia="ranking.filtros" className="flex flex-wrap items-center gap-2.5">
         {combo(LayoutGrid, "Categoría", "Todas las categorías", f.categoria, opciones.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), "categoria")}
         {combo(Tag, "Marca", "Todas las marcas", f.marca, opciones.marcas.map((m) => ({ valor: m.id, texto: m.nombre })), "marca")}
         {combo(Ruler, "Talla", "Todas las tallas", f.talla, opciones.tallas.map((t) => ({ valor: t.id, texto: t.valor })), "talla")}
         {combo(Palette, "Color", "Todos los colores", f.color, opciones.colores.map((c) => ({ valor: c.codigo, texto: c.nombre })), "color")}
+        </div>
         <span className="flex-1" />
-        <SegmentoEnlaces
-          etiquetaAccesible="Qué ordena el ranking"
-          activo={f.orden}
-          opciones={[
-            { valor: "unidades", etiqueta: "Prendas", href: hrefRanking(f, { orden: "unidades", pagina: 0 }) },
-            { valor: "soles", etiqueta: "Soles", href: hrefRanking(f, { orden: "soles", pagina: 0 }) },
-          ]}
-        />
+        <div data-guia="ranking.orden">
+          <SegmentoEnlaces
+            etiquetaAccesible="Qué ordena el ranking"
+            activo={f.orden}
+            opciones={[
+              { valor: "unidades", etiqueta: "Prendas", href: hrefRanking(f, { orden: "unidades", pagina: 0 }) },
+              { valor: "soles", etiqueta: "Soles", href: hrefRanking(f, { orden: "soles", pagina: 0 }) },
+            ]}
+          />
+        </div>
       </div>
 
       {puestos.length > 0 && (
