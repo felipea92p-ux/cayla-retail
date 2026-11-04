@@ -5,6 +5,7 @@ import {
   avance,
   columnaDePersona,
   leerSoles,
+  seGuardoTrasCorte,
   lecturaDeRitmo,
   minutosDeHora,
   minutosEnLima,
@@ -187,6 +188,21 @@ describe("asignacionDeVista: lo que suman las personas contra la meta de la sede
   });
 });
 
+
+describe("seGuardoTrasCorte: se cortó la conexión, y la pantalla ya volvió a preguntar", () => {
+  it("si la meta vigente ya es la que se mandó, sí se guardó", () => {
+    expect(seGuardoTrasCorte(6006, { metaMes: 6006, metaAjustadaMes: 6006 })).toBe(true);
+    expect(seGuardoTrasCorte(6006.4, { metaMes: 6006.4, metaAjustadaMes: 6006.4 })).toBe(true);
+  });
+  it("si sigue la de antes, no se sabe: no se dice que guardó", () => {
+    expect(seGuardoTrasCorte(6006, { metaMes: 9980, metaAjustadaMes: null })).toBe(false);
+    expect(seGuardoTrasCorte(6006, { metaMes: null, metaAjustadaMes: null })).toBe(false);
+  });
+  it("volver a la automática se guardó si ya no está ajustada", () => {
+    expect(seGuardoTrasCorte(null, { metaMes: 9980, metaAjustadaMes: null })).toBe(true);
+    expect(seGuardoTrasCorte(null, { metaMes: 6006, metaAjustadaMes: 6006 })).toBe(false);
+  });
+});
 
 describe("leerSoles", () => {
   it("no inventa una cifra con lo que no entiende (/chaos, ENT-07: «15oo» se guardaba como S/ 15)", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -9,11 +9,12 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
-import { traducirError } from "@/lib/error-escritura";
+import { esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import {
   asignacionDeVista,
   repartoEnPalabras,
+  seGuardoTrasCorte,
   LARGO_DETALLE_META,
   leerSoles,
   MOTIVOS_META,
@@ -83,6 +84,17 @@ export function FilaAbierta({
   const texto = tramoEnPalabras(tramo, hoy);
   const prendasPorVenta = medida.ventas > 0 ? medida.prendas / medida.ventas : null;
   const unDia = tramo.desde === tramo.hasta;
+
+  // Se cortó la conexión al guardar y la base sí lo guardó: al volver la lectura, el formulario se rehace y su aviso se pierde.
+  // Quien sigue aquí es la fila: dice que quedó guardado y se cierra. Si la meta no cambió, el aviso de corte sigue a la vista.
+  const enDuda = useRef<number | null | undefined>(undefined);
+  useEffect(() => {
+    if (enDuda.current === undefined || !persona || !seGuardoTrasCorte(enDuda.current, persona)) return;
+    const volvio = enDuda.current === null;
+    enDuda.current = undefined;
+    avisar.exito(volvio ? "Volvió a la meta automática" : "Meta cambiada", { detalle: `${persona.nombre}: sí se guardó, aunque se cortó la conexión.` });
+    onCerrar();
+  }, [persona, onCerrar]);
 
   return (
     <div className="mesa-abierta" data-cerrando={cerrando ? "" : undefined} style={{ "--c": color } as CSSProperties}>
@@ -157,6 +169,9 @@ export function FilaAbierta({
           {persona ? (
             <AjusteMeta
               key={persona.metaMes ?? "sin"}
+              alQuedarEnDuda={(meta) => {
+                enDuda.current = meta;
+              }}
               medida={medida}
               persona={persona}
               personas={personas}
@@ -198,6 +213,7 @@ function AjusteMeta({
   personaCuentaId,
   esAdmin,
   guiar,
+  alQuedarEnDuda,
   onCerrar,
 }: {
   medida: MedidaPersona;
@@ -213,6 +229,8 @@ function AjusteMeta({
   personaCuentaId: string | null;
   esAdmin: boolean;
   guiar: boolean;
+  /** La conexión se cortó al guardar esta meta. La fila lo recuerda: al volver la lectura, el formulario ya se rehízo con la meta nueva. */
+  alQuedarEnDuda: (meta: number | null) => void;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -309,6 +327,7 @@ function AjusteMeta({
     responsable.despues(errorRpc);
     enVuelo.current = false;
     if (errorRpc) {
+      if (esRespuestaIncierta(errorRpc)) alQuedarEnDuda(v.meta);
       // Las reglas de esta función vienen en castellano de CAYLA con un `hint` que empieza por «meta_».
       setError(errorRpc.hint?.startsWith("meta_") ? errorRpc.message : traducirError(errorRpc, "cambiar la meta"));
       // Si cambió mientras se editaba, se recarga para ver la vigente.

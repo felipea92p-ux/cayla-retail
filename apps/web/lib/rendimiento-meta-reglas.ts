@@ -383,6 +383,15 @@ export function validarCambioMeta(entrada: {
 }
 
 /**
+ * Se cortó la conexión al guardar y la pantalla ya volvió a preguntar: ¿la base lo había guardado? `enviada` es la meta que se mandó; `null`,
+ * volver a la automática. Si la vigente no coincide, no se sabe nada: el aviso de corte se queda.
+ */
+export function seGuardoTrasCorte(enviada: number | null, persona: Pick<PersonaMeta, "metaMes" | "metaAjustadaMes">): boolean {
+  if (enviada === null) return persona.metaAjustadaMes === null;
+  return persona.metaMes !== null && Math.round(persona.metaMes * 100) === Math.round(enviada * 100);
+}
+
+/**
  * ¿Puede esta cuenta tocar la meta de esa fila? Nadie cambia la suya salvo un Admin (D-147), y sin meta de la sede o sin horas
  * ni asistencia no hay meta que ajustar. `motivo` es la frase para el botón apagado (el permiso de verdad lo pone la base).
  */
