@@ -132,6 +132,29 @@ select 'mismo|' || (:'uno' = :'dos');`);
   esperar("el mismo reintento devuelve el mismo apartado", r.ok && r.salida.includes("mismo|t"), r.salida || r.error);
 }
 
+// --- Marcar enviado ---
+{
+  const marcar = (persona, guia = "null", id = "sep") => `set local request.jwt.claim.sub = '${persona}';\nselect retail.marcar_separacion_enviada(:'${id}', ${guia}) as env \\gset\n`;
+  const estado = (id = "sep") => `select 'enviado|' || (enviado_en is not null) || '|' || coalesce(guia_envio, '-') || '|' || (enviado_por is not null) from retail.separaciones where id = :'${id}';`;
+  const envio = online("tiktok", "envio", "Jr. Pizarro 123, Trujillo");
+  let r = correr(`${preparar()}${envio}${marcar(FELIPE, "'Olva guía 998877'")}${estado()}`);
+  esperar("marcar enviado guarda la fecha, quién y la guía", r.ok && r.salida.includes("enviado|true|Olva guía 998877|true"), r.salida || r.error);
+  r = correr(`${preparar()}${envio}${marcar(FELIPE)}select :'env' as primera \\gset\n${marcar(FELIPE, "'otra guía'")}select 'misma|' || (:'env' = :'primera');${estado()}`);
+  esperar("repetirlo (doble toque) devuelve la misma fecha y no cambia nada", r.ok && r.salida.includes("misma|t") && r.salida.includes("enviado|true|-|true"), r.salida || r.error);
+  esperar("un apartado para recoger no se marca como enviado", rechazaCon("no_es_envio")(correr(`${preparar()}${online("tiktok", "recojo", null)}${marcar(FELIPE)}`)), "pasó");
+  esperar("un apartado de tienda no se marca como enviado", rechazaCon("no_es_envio")(correr(`${preparar()}${deTienda}${marcar(FELIPE)}`)), "pasó");
+  esperar("quien no opera el canal no lo marca (integrante)", rechazaCon("canal_sin_permiso")(correr(`${preparar()}${envio}${marcar(MICAELA)}`)), "pasó");
+  esperar("una guía de más de 120 letras se rechaza", rechazaCon("guia_larga")(correr(`${preparar()}${envio}${marcar(FELIPE, `'${"x".repeat(121)}'`)}`)), "pasó");
+  {
+    const lib = correr(`${preparar()}${envio}update retail.separaciones set estado = 'liberada', liberada_en = now(), liberada_por = (select id from public.personas where auth_user_id = '${FELIPE}'), liberada_motivo = 'clienta_desistio' where id = :'sep';\n${marcar(FELIPE)}`);
+    esperar("un apartado liberado no se marca como enviado", rechazaCon("apartado_cerrado")(lib), lib.error ?? lib.salida);
+  }
+  r = correr(`${preparar()}${envio}${marcar(FELIPE, "'Olva 1'")}${entregar()}`);
+  esperar("un envío ya enviado se entrega y su venta nace en TikTok", r.ok && r.salida.includes("venta|tiktok"), r.salida || r.error);
+  r = correr(`${preparar()}${envio}update retail.separaciones set guia_envio = 'x' where id = :'sep';`);
+  esperar("la guía no existe sin haberse enviado (candado)", !r.ok && r.error.includes("separaciones_entrega_coherente"), r.salida || r.error);
+}
+
 // --- La venta hereda el canal ---
 {
   const r = correr(`${preparar()}${online("tiktok", "recojo", null)}${entregar()}`);

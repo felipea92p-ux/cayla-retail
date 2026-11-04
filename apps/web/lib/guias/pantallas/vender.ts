@@ -408,6 +408,13 @@ export const GUIA_APARTADOS: Guia = {
       texto: "«Necesitan algo» junta lo que vence pronto, lo vencido y lo que espera su devolución; «Por recoger», los abiertos; «Cerrados», los entregados o liberados. «Canal» (si vendes por TikTok) deja ver solo un canal. El buscador encuentra por nombre, DNI, celular o número.",
     },
     {
+      id: "marcar-enviado",
+      ancla: "apartados.marcar-enviado",
+      opcional: true,
+      titulo: "Marcar un envío",
+      texto: "En una venta online con envío, «Marcar enviado» deja anotado que la prenda ya salió, con la guía o la agencia si la tienes. Es solo una marca: cobrar el saldo y entregar se hace aparte, en «Entregar». En la demo no se toca.",
+    },
+    {
       id: "periodo",
       ancla: "apartados.periodo",
       opcional: true,

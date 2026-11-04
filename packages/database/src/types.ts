@@ -5539,6 +5539,7 @@ export type Database = {
           devolucion_cci_final: string | null
           direccion_envio: string | null
           enviado_en: string | null
+          guia_envio: string | null
           devolucion_medio: string
           devolucion_numero: string | null
           estado: string
@@ -5556,6 +5557,10 @@ export type Database = {
         }[]
       }
       // Ventas online (ADR-0607, 20261104004000). Escritos a mano con la forma que da `supabase gen types`: regenerar al pegar la migración.
+      marcar_separacion_enviada: {
+        Args: { p_guia?: string; p_separacion_id: string }
+        Returns: string
+      }
       fn_canales_venta: {
         Args: Record<PropertyKey, never>
         Returns: { clave: string; nombre: string; es_fisico: boolean }[]

@@ -16,7 +16,7 @@
 --     · `ventas.canal`: la venta que nace de entregar un apartado hereda su canal (disparador sobre `separaciones.venta_id`, que
 --       no toca `entregar_separacion`: otra función ya parchada diez veces).
 --   PARTE 2 · funciones
---     · `fn_canales_venta()`: los canales activos. `separar_prendas_online(...)`: la puerta de «apartar» con canal online; pide operar
+--     · `marcar_separacion_enviada()`: «Marcar enviado» de un envío (con la guía o la agencia). `fn_canales_venta()`: los canales activos. `separar_prendas_online(...)`: la puerta de «apartar» con canal online; pide operar
 --       el canal, valida entrega y llama a `separar_prendas` TAL CUAL, todo en UNA transacción.
 --   PARTE 3 · qué canales opera cada rol
 --     · `rol_canales` (el Líder opera todos sin filas; todo rol que existe hoy sigue operando `tienda`; un rol nuevo nace con `tienda`),
@@ -61,7 +61,8 @@ alter table retail.separaciones
   add column if not exists modo_entrega    text not null default 'recojo',
   add column if not exists direccion_envio text,
   add column if not exists enviado_en      timestamptz,
-  add column if not exists enviado_por     uuid references public.personas (id);
+  add column if not exists enviado_por     uuid references public.personas (id),
+  add column if not exists guia_envio      text;
 
 alter table retail.separaciones drop constraint if exists separaciones_modo_entrega_check;
 alter table retail.separaciones
@@ -72,9 +73,10 @@ alter table retail.separaciones
   add constraint separaciones_entrega_coherente check (
     -- el envío exige a dónde, y solo el envío lo lleva
     ((modo_entrega = 'envio') = (direccion_envio is not null and btrim(direccion_envio) <> '' and char_length(direccion_envio) <= 300))
-    -- «enviado» solo existe en un envío, y con quien lo marcó
+    -- «enviado» solo existe en un envío, y con quien lo marcó; la guía o agencia solo existe si ya se envió (y no es un texto sin fin)
     and (enviado_en is null or modo_entrega = 'envio')
     and ((enviado_en is null) = (enviado_por is null))
+    and (guia_envio is null or (enviado_en is not null and btrim(guia_envio) <> '' and char_length(guia_envio) <= 120))
     -- un apartado de la tienda física siempre se recoge
     and (canal <> 'tienda' or modo_entrega = 'recojo')
   );
@@ -194,6 +196,50 @@ comment on function retail.separar_prendas_online(text, text, text, uuid, jsonb,
   'ADR-0607: la puerta de «Nueva venta online». Pide operar el canal, valida canal y entrega, llama a separar_prendas tal cual y marca la separación, en una sola transacción.';
 revoke all on function retail.separar_prendas_online(text, text, text, uuid, jsonb, jsonb, text, text, text, text, text, text, text, text, text, text, uuid, uuid, text, uuid) from public, anon;
 grant execute on function retail.separar_prendas_online(text, text, text, uuid, jsonb, jsonb, text, text, text, text, text, text, text, text, text, text, uuid, uuid, text, uuid) to authenticated;
+
+-- Marcar un envío como enviado (la prenda ya salió de la tienda hacia la clienta). Solo un apartado ABIERTO de un canal online con entrega
+-- por envío; con la guía o la agencia si se tiene. Es lo que dice «Enviado» en las listas. Entregar (cobrar el saldo y emitir el
+-- comprobante) es otro paso y sigue siendo el de siempre. Repetirlo no cambia nada (un doble toque devuelve la misma fecha).
+create or replace function retail.marcar_separacion_enviada(p_separacion_id uuid, p_guia text default null)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  s retail.separaciones;
+  v_actor uuid;
+  v_guia text := nullif(btrim(coalesce(p_guia, '')), '');
+begin
+  v_actor := fn_actor_persona_id(true);
+  select * into s from separaciones where id = p_separacion_id for update;
+  if s.id is null then
+    raise exception 'Ese apartado no existe — actualiza la pantalla';
+  end if;
+  if not fn_puede_operar_ubicacion(s.ubicacion_id) then
+    raise exception 'No puedes operar la tienda de este apartado.' using errcode = '42501';
+  end if;
+  if not fn_puede_canal(s.canal) then
+    raise exception 'No puedes marcar envíos de este canal: tu rol no lo opera.' using errcode = '42501', hint = 'canal_sin_permiso';
+  end if;
+  if s.canal = 'tienda' or s.modo_entrega <> 'envio' then
+    raise exception 'Este apartado no es un envío: se recoge en la tienda.' using hint = 'no_es_envio';
+  end if;
+  if s.enviado_en is not null then
+    return s.enviado_en;
+  end if;
+  if s.estado <> 'abierta' then
+    raise exception 'Solo un apartado abierto se puede marcar como enviado.' using hint = 'apartado_cerrado';
+  end if;
+  if v_guia is not null and char_length(v_guia) > 120 then
+    raise exception 'La guía o la agencia es muy larga (máximo 120 letras).' using hint = 'guia_larga';
+  end if;
+  update separaciones set enviado_en = now(), enviado_por = v_actor, guia_envio = v_guia where id = s.id returning enviado_en into s.enviado_en;
+  return s.enviado_en;
+end;
+$fn$;
+revoke all on function retail.marcar_separacion_enviada(uuid, text) from public, anon;
+grant execute on function retail.marcar_separacion_enviada(uuid, text) to authenticated;
 
 -- ============================================================================
 -- PARTE 3 · QUÉ CANALES OPERA CADA ROL (actividad 2)
@@ -386,7 +432,7 @@ set lock_timeout = '3s';
 drop function if exists retail.buscar_separaciones(uuid, text, text[], date, date);
 
 create or replace function retail.buscar_separaciones(p_ubicacion_id uuid, p_texto text DEFAULT NULL::text, p_estados text[] DEFAULT NULL::text[], p_desde date DEFAULT NULL::date, p_hasta date DEFAULT NULL::date)
- RETURNS TABLE(id uuid, codigo text, estado text, clienta_nombres text, clienta_apellidos text, clienta_celular text, clienta_dni text, asesora text, total numeric, adelanto numeric, saldo numeric, vence_el date, extensiones smallint, creada_en timestamp with time zone, devolucion_medio text, devolucion_numero text, devolucion_cci_final text, liberada_sola boolean, comprobante_anticipo text, comprobante_final text, nota_credito text, items jsonb, pagos jsonb, estante text, canal text, modo_entrega text, direccion_envio text, enviado_en timestamp with time zone)
+ RETURNS TABLE(id uuid, codigo text, estado text, clienta_nombres text, clienta_apellidos text, clienta_celular text, clienta_dni text, asesora text, total numeric, adelanto numeric, saldo numeric, vence_el date, extensiones smallint, creada_en timestamp with time zone, devolucion_medio text, devolucion_numero text, devolucion_cci_final text, liberada_sola boolean, comprobante_anticipo text, comprobante_final text, nota_credito text, items jsonb, pagos jsonb, estante text, canal text, modo_entrega text, direccion_envio text, enviado_en timestamp with time zone, guia_envio text)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'retail', 'public', 'extensions'
@@ -411,7 +457,7 @@ AS $function$
            where si.separacion_id = s.id),
          (select jsonb_agg(jsonb_build_object('metodo', sp.metodo, 'monto', sp.monto, 'fecha', sp.created_at, 'abono', sp.abono_id is not null) order by sp.created_at)
             from separacion_pagos sp where sp.separacion_id = s.id),
-         s.estante, s.canal, s.modo_entrega, s.direccion_envio, s.enviado_en
+         s.estante, s.canal, s.modo_entrega, s.direccion_envio, s.enviado_en, s.guia_envio
     from separaciones s
     left join public.personas pa on pa.id = s.asesora_id
     left join comprobantes ca on ca.id = s.comprobante_anticipo_id

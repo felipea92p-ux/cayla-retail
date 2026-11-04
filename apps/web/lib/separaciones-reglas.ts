@@ -79,6 +79,8 @@ export type Apartado = {
   direccionEnvio: string | null;
   /** Cuándo se marcó enviado (un envío ya despachado), o null. */
   enviadoEn: string | null;
+  /** La guía o la agencia con que se envió (opcional). */
+  guiaEnvio: string | null;
 };
 
 /** Estado que VE la colaboradora: se calcula contra la fecha de hoy, nunca se guarda. */
@@ -493,6 +495,7 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
     modoEntrega: f.modo_entrega === "envio" ? "envio" : "recojo",
     direccionEnvio: (f.direccion_envio as string | null) ?? null,
     enviadoEn: (f.enviado_en as string | null) ?? null,
+    guiaEnvio: (f.guia_envio as string | null) ?? null,
   };
 }
 

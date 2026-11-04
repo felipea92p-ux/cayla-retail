@@ -58,7 +58,7 @@ const apartado = (extra: Partial<Apartado> = {}): Apartado => ({
   id: "s1", codigo: "APT-TRU-0007", estado: "abierta", nombres: "Ana", apellidos: "Lozano Vera", celular: "987111222", dni: "70124598",
   asesora: null, total: 179, adelanto: 90, saldo: 89, venceEl: "2026-09-29", extensiones: 0, creadaEn: "2026-09-22T15:00:00Z",
   devolucionMedio: "yape", devolucionNumero: "987111222", devolucionCciFinal: null, liberadaSola: false,
-  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], estante: null, canal: "tienda", modoEntrega: "recojo", direccionEnvio: null, enviadoEn: null, ...extra,
+  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], estante: null, canal: "tienda", modoEntrega: "recojo", direccionEnvio: null, enviadoEn: null, guiaEnvio: null, ...extra,
 });
 
 describe("estadoVisible (D3: 7 días, aviso a 2, 2 de gracia)", () => {
