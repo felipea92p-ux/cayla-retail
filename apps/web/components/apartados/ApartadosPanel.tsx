@@ -14,6 +14,7 @@ import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
 import type { CanalVenta } from "@/lib/canales-venta-reglas";
+import { CanalesDeApartados } from "@/components/apartados/CanalChip";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -156,6 +157,7 @@ export function ApartadosPanel(props: Props) {
     // pulgar y la barra de cada paso se apoya encima; el margen de abajo deja ver lo último que queda bajo las dos.
     // «A · Al aire» (apartados-vidrio-2026-11, Felipe 2026-11-02): sin la hoja de papel; como la mesa de Vender, la cabecera es una fila
     // plana sobre el fondo y lo de adentro son placas (`ap-mesa`, vidrio/vender.css).
+    <CanalesDeApartados canales={props.canales ?? []}>
     <section id="hoja-apartados" className="ap-mesa anim-sube flex min-h-[calc(100vh-9rem)] scroll-mt-20 flex-col max-lg:mb-40">
       {vista === "todos" && cabecera}
 
@@ -216,5 +218,6 @@ export function ApartadosPanel(props: Props) {
       </nav>
       </EnCuerpo>
     </section>
+    </CanalesDeApartados>
   );
 }

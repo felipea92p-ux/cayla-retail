@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 174,
+  "total": 175,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -182,6 +182,7 @@
       "button «{cajaAbierta ? undefined : \"Abre la caja para cobrar el adelanto.\"}»",
       "button «{pe.direccion === \"me_piden\" ? \"No la tenemos\" : \"Cancelar\"}»",
       "button «{f.etiqueta}»",
+      "DesplegablePildora «Canal»",
       "button «Qué ver»",
       "Casilla «{`Ver ${c.etiqueta}»",
       "button «Lo de fábrica»",

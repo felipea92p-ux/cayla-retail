@@ -58,7 +58,7 @@ const apartado = (extra: Partial<Apartado> = {}): Apartado => ({
   id: "s1", codigo: "APT-TRU-0007", estado: "abierta", nombres: "Ana", apellidos: "Lozano Vera", celular: "987111222", dni: "70124598",
   asesora: null, total: 179, adelanto: 90, saldo: 89, venceEl: "2026-09-29", extensiones: 0, creadaEn: "2026-09-22T15:00:00Z",
   devolucionMedio: "yape", devolucionNumero: "987111222", devolucionCciFinal: null, liberadaSola: false,
-  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], estante: null, ...extra,
+  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], estante: null, canal: "tienda", modoEntrega: "recojo", direccionEnvio: null, enviadoEn: null, ...extra,
 });
 
 describe("estadoVisible (D3: 7 días, aviso a 2, 2 de gracia)", () => {
@@ -494,5 +494,17 @@ describe("descuentoDePrenda — el apartado ya hecho dice su descuento (ADR-0584
     for (const r of RAZONES_DESCUENTO.filter((x) => x.valor !== "otro")) {
       expect(descuentoDePrenda(prenda({ descuento_unitario: "5", motivo_descuento: r.valor }))?.motivo).toBe(r.etiqueta);
     }
+  });
+});
+
+describe("apartadoDeFila: canal y entrega (ADR-0607)", () => {
+  const fila = { id: "s1", codigo: "APT-TRU-0001", estado: "abierta", vence_el: "2026-11-10", creada_en: "2026-11-03T15:00:00Z", items: [], pagos: [] };
+  it("una fila de una base sin la migración es de la tienda y se recoge", () => {
+    const a = apartadoDeFila(fila);
+    expect([a.canal, a.modoEntrega, a.direccionEnvio, a.enviadoEn]).toEqual(["tienda", "recojo", null, null]);
+  });
+  it("una venta online trae su canal, su envío y cuándo se despachó", () => {
+    const a = apartadoDeFila({ ...fila, canal: "tiktok", modo_entrega: "envio", direccion_envio: "Jr. Pizarro 123 · Olva", enviado_en: "2026-11-04T10:00:00Z" });
+    expect([a.canal, a.modoEntrega, a.direccionEnvio, a.enviadoEn]).toEqual(["tiktok", "envio", "Jr. Pizarro 123 · Olva", "2026-11-04T10:00:00Z"]);
   });
 });

@@ -73,6 +73,12 @@ export type Apartado = {
   pagos: PagoApartado[];
   /** El lugar en el estante de Apartados (A-01…), solo mientras está abierto (20260927110000). */
   estante: string | null;
+  /** ADR-0607: por dónde se vendió (`tienda`, `tiktok`…) y cómo se entrega. En la tienda siempre `recojo`. */
+  canal: string;
+  modoEntrega: "recojo" | "envio";
+  direccionEnvio: string | null;
+  /** Cuándo se marcó enviado (un envío ya despachado), o null. */
+  enviadoEn: string | null;
 };
 
 /** Estado que VE la colaboradora: se calcula contra la fecha de hoy, nunca se guarda. */
@@ -482,6 +488,11 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
     })),
     pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto), fecha: (p.fecha as string | null) ?? null, abono: Boolean(p.abono) })),
     estante: (f.estante as string | null) ?? null,
+    // Una base sin la migración no trae estas columnas: todo apartado es de la tienda y se recoge.
+    canal: typeof f.canal === "string" && f.canal ? f.canal : "tienda",
+    modoEntrega: f.modo_entrega === "envio" ? "envio" : "recojo",
+    direccionEnvio: (f.direccion_envio as string | null) ?? null,
+    enviadoEn: (f.enviado_en as string | null) ?? null,
   };
 }
 

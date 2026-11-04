@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { argumentosDeCanal, canalInicialDe, direccionDeEnvioValida, esCanalOnline, ofreceCanal } from "./canales-venta-reglas";
+import { argumentosDeCanal, canalInicialDe, direccionDeEnvioValida, esCanalOnline, nombreDeCanal, ofreceCanal, textoCortoDeEntrega, textoDeEntrega } from "./canales-venta-reglas";
 
 const TIENDA = { clave: "tienda", nombre: "Tienda", esFisico: true };
 const TIKTOK = { clave: "tiktok", nombre: "TikTok", esFisico: false };
@@ -41,5 +41,24 @@ describe("canal de venta del apartado (ADR-0607)", () => {
     expect(argumentosDeCanal(canales, { canal: "tiktok", modoEntrega: "envio", direccionEnvio: "  Jr. Pizarro 123, Olva " })).toEqual({
       rpc: "separar_prendas_online", p_canal: "tiktok", p_modo_entrega: "envio", p_direccion_envio: "Jr. Pizarro 123, Olva",
     });
+  });
+});
+
+describe("cómo se muestra el canal de un apartado (ADR-0607)", () => {
+  const canales = [TIENDA, TIKTOK];
+  it("el nombre sale de la lista de canales; si no está, la clave con mayúscula", () => {
+    expect(nombreDeCanal(canales, "tiktok")).toBe("TikTok");
+    expect(nombreDeCanal(canales, "instagram")).toBe("Instagram");
+    expect(nombreDeCanal(canales, "")).toBe("");
+  });
+  it("la entrega se dice en palabras de tienda", () => {
+    expect(textoDeEntrega({ modoEntrega: "recojo", enviadoEn: null })).toBe("Recojo en tienda");
+    expect(textoDeEntrega({ modoEntrega: "envio", enviadoEn: null })).toBe("Envío por despachar");
+    expect(textoDeEntrega({ modoEntrega: "envio", enviadoEn: "2026-11-04T10:00:00Z" })).toBe("Enviado");
+  });
+  it("y en una palabra para el chip de la lista", () => {
+    expect(textoCortoDeEntrega({ modoEntrega: "recojo", enviadoEn: null })).toBe("Recojo");
+    expect(textoCortoDeEntrega({ modoEntrega: "envio", enviadoEn: null })).toBe("Envío");
+    expect(textoCortoDeEntrega({ modoEntrega: "envio", enviadoEn: "2026-11-04T10:00:00Z" })).toBe("Enviado");
   });
 });

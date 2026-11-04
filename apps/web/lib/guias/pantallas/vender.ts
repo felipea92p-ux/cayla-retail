@@ -405,7 +405,7 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "apartados.pestana-todos" }],
       titulo: "Todos los apartados",
-      texto: "«Necesitan algo» junta los que vencen pronto, los vencidos y los que esperan que se les devuelva el adelanto; «Por recoger», los abiertos; «Cerrados», los ya entregados o liberados. El buscador encuentra cualquiera por nombre, DNI, celular o número, y «Qué ver» elige qué datos muestra cada uno.",
+      texto: "«Necesitan algo» junta lo que vence pronto, lo vencido y lo que espera su devolución; «Por recoger», los abiertos; «Cerrados», los entregados o liberados. «Canal» (si vendes por TikTok) deja ver solo un canal. El buscador encuentra por nombre, DNI, celular o número.",
     },
     {
       id: "periodo",

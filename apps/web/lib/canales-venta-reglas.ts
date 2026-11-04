@@ -59,3 +59,20 @@ export function argumentosDeCanal(
     p_direccion_envio: e.modoEntrega === "envio" ? e.direccionEnvio.trim() : null,
   };
 }
+
+/** El nombre de un canal para mostrar; si no está en la lista (un canal que la cuenta ya no opera), la clave con inicial mayúscula. */
+export function nombreDeCanal(canales: readonly Pick<CanalVenta, "clave" | "nombre">[], clave: string): string {
+  return canales.find((c) => c.clave === clave)?.nombre ?? (clave ? clave[0].toUpperCase() + clave.slice(1) : "");
+}
+
+/** Cómo se entrega un apartado, en palabras de tienda: «Recojo en tienda», «Envío por despachar» o «Enviado». */
+export function textoDeEntrega(a: { modoEntrega: ModoEntrega; enviadoEn: string | null }): string {
+  if (a.modoEntrega === "recojo") return "Recojo en tienda";
+  return a.enviadoEn ? "Enviado" : "Envío por despachar";
+}
+
+/** La misma idea en una palabra, para el chip de una lista: «Recojo», «Envío» o «Enviado». */
+export function textoCortoDeEntrega(a: { modoEntrega: ModoEntrega; enviadoEn: string | null }): string {
+  if (a.modoEntrega === "recojo") return "Recojo";
+  return a.enviadoEn ? "Enviado" : "Envío";
+}

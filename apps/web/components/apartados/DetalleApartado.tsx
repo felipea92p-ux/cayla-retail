@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useReducer, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Bookmark, CalendarClock, MessageCircle, ShoppingBag, Undo2, Unlock, Wallet } from "lucide-react";
+import { Archive, Bookmark, CalendarClock, MapPin, MessageCircle, ShoppingBag, Undo2, Unlock, Wallet } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { Modal } from "@/components/ui/Modal";
@@ -17,6 +17,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
+import { CanalChip, esDeCanalOnline } from "@/components/apartados/CanalChip";
 import { AbonarFormulario, type UbicacionApartado } from "@/components/apartados/ModalesApartado";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
@@ -211,6 +212,26 @@ function VistaDetalle({
           </p>
         )}
       </section>
+
+      {/* ADR-0607: la venta de un canal online dice por dónde se vendió y cómo se entrega (a dónde va, si es un envío). */}
+      {esDeCanalOnline(a) && (
+        <section className="space-y-2 rounded-2xl border border-sand p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <TituloSeccion nivel={3}>Entrega</TituloSeccion>
+            <CanalChip a={a} />
+          </div>
+          {a.modoEntrega === "envio" ? (
+            <>
+              <p className="flex items-start gap-1.5 text-sm text-tinta/85">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {a.direccionEnvio}
+              </p>
+              {a.enviadoEn && <p className="text-sm text-tinta/60">Se envió el {fechaCorta(diaLima(a.enviadoEn))}.</p>}
+            </>
+          ) : (
+            <p className="text-sm text-tinta/70">La clienta lo recoge en la tienda.</p>
+          )}
+        </section>
+      )}
 
       <section>
         <TituloSeccion nivel={3} cuenta={a.prendas.length} className="mb-2">

@@ -18,6 +18,7 @@ import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
+import { CanalChip } from "@/components/apartados/CanalChip";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal, LiberarModal } from "@/components/apartados/ModalesApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -211,6 +212,7 @@ export function EntregarVista({
               </div>
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
+                <div className="mt-1"><CanalChip a={a} className="max-w-full" /></div>
                 <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
                 {conEstante && a.estante && (
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
@@ -292,6 +294,7 @@ export function EntregarVista({
                       </span>
                       <span className="text-right">
                         <EstadoChip {...estadoVisible(x, hoy)} />
+                        <span className="mt-0.5 block"><CanalChip a={x} className="max-w-full" /></span>
                         <span className="block text-sm tabular-nums">saldo <b>{money(x.saldo)}</b></span>
                       </span>
                     </button>
