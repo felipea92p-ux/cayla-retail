@@ -2,7 +2,7 @@
   "guia": "colaboradores",
   "ruta": "/colaboradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 81,
   "controles": {
     "components/ColaboradoresModales.tsx": [
       "ComboResponsable «{responsable}»",
@@ -14,6 +14,9 @@
       "Boton «colaboradores.dar-acceso»",
       "Pestanas «→(c) => setSeccion(c === \"roles\" ? \"roles\" : \"cuentas\")»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/RolesCanales.tsx": [
+      "Casilla «{`${c.nombre}»"
     ],
     "components/RolesModales.tsx": [
       "input «rol-nombre»",
@@ -84,8 +87,8 @@
       "button «{guia}» #2",
       "button «Sí»",
       "button «No»",
-      "button «{`Aprobar a ${p.nombre}»",
       "button «{`Rechazar el alta de ${p.nombre}»",
+      "button «{`Aprobar a ${p.nombre}»",
       "ComboResponsable «{responsable}»",
       "button «→() => onFiltro(a.filtro)»",
       "Boton «colaboradores.nueva-terminal»",

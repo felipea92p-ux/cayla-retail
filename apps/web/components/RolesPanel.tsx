@@ -11,6 +11,7 @@ import { Boton, Desplegable } from "@/components/ui/campos";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Modal } from "@/components/ui/Modal";
 import { RolesModulos } from "@/components/RolesModulos";
+import { RolesCanales } from "@/components/RolesCanales";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ArchivarRolModal, AsignarRolModal, NuevoRolModal, RenombrarRolModal } from "@/components/RolesModales";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -22,6 +23,7 @@ import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo } from "@/li
 import { accionesRolesSupabase, type AccionesRoles, type ResultadoRol } from "@/lib/roles-acciones";
 import {
   avisoDelRol,
+  cambiosDeCanales,
   cambiosDelBorrador,
   conGuardadosLocales,
   esMiRolSinSerLider,
@@ -37,6 +39,7 @@ import {
   pantallaPrincipalValida,
   pantallasElegibles,
   rolesAsignables,
+  type CanalVenta,
   type CuentaConRol,
   type GuardadoLocal,
   type RolVista,
@@ -82,6 +85,8 @@ export function RolesPanel({
   rolInicialId = null,
   soyAdmin = true,
   misModulos = null,
+  canales: catalogoCanales = [{ clave: "tienda", nombre: "Tienda", esFisico: true }],
+  misCanales = null,
   fueraDeAlcance = [],
   admins = [],
   acciones = accionesRolesSupabase,
@@ -101,6 +106,9 @@ export function RolesPanel({
   soyAdmin?: boolean;
   /** ADR-0178 «solo das lo que tienes»: los módulos que ve quien mira, o `null` si es líder (da todo). */
   misModulos?: readonly ClaveModulo[] | null;
+  /** ADR-0607: los canales de venta que existen, y los que opera quien mira (`null` = líder: da todos). */
+  canales?: readonly CanalVenta[];
+  misCanales?: readonly string[] | null;
   /** ADR-0178 «solo alcanzas a quien está por debajo de ti»: a esas personas no se les ofrece cambiar el rol. */
   fueraDeAlcance?: readonly string[];
   /** ADR-0178: los `persona_id` que hoy son Admin. Para avisar en «Asignar rol» si la cuenta pierde el escalón al
@@ -126,6 +134,7 @@ export function RolesPanel({
   const rol = roles.find((r) => r.id === elegidoId) ?? vigentes[0];
   const [borradores, setBorradores] = useState<Record<string, ClaveModulo[]>>({});
   const [pantallaPrincipalBorradores, setPantallaPrincipalBorradores] = useState<Record<string, ClaveModulo | null>>({});
+  const [canalesBorradores, setCanalesBorradores] = useState<Record<string, string[]>>({});
   const [modal, setModal] = useState<Modal | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [verArchivados, setVerArchivados] = useState(false);
@@ -138,9 +147,17 @@ export function RolesPanel({
     borrador,
   );
   const cambioPantallaPrincipal = !!rol && pantallaPrincipalBorrador !== rol.pantallaPrincipal;
-  const conCambios = !!rol && (hayCambios(rol.modulos, borrador) || cambioPantallaPrincipal);
+  /** ¿Estos canales difieren de los guardados del rol? */
+  const cambiaCanales = (guardados: readonly string[], nuevos: readonly string[]) => {
+    const c = cambiosDeCanales(catalogoCanales, guardados, nuevos);
+    return c.suma.length + c.quita.length > 0;
+  };
+  const borradorCanales = rol ? (canalesBorradores[rol.id] ?? rol.canales) : [];
+  const cambiosCanales = rol ? cambiosDeCanales(catalogoCanales, rol.canales, borradorCanales) : { suma: [], quita: [] };
+  const hayCambiosCanales = cambiosCanales.suma.length + cambiosCanales.quita.length > 0;
+  const conCambios = !!rol && (hayCambios(rol.modulos, borrador) || cambioPantallaPrincipal || hayCambiosCanales);
   const cambios = rol ? cambiosDelBorrador(rol.modulos, borrador) : { suma: [], quita: [] };
-  const nCambios = cambios.suma.length + cambios.quita.length + (cambioPantallaPrincipal ? 1 : 0);
+  const nCambios = cambios.suma.length + cambios.quita.length + (cambioPantallaPrincipal ? 1 : 0) + cambiosCanales.suma.length + cambiosCanales.quita.length;
   const cuentasDe = (id: string) => (cuentas ? cuentasDelRol(cuentas, id) : []);
   const quien: QuienEdita = { misModulos, miRolId: cuentas?.find((c) => c.tipo === "persona" && c.id === yoId)?.rolId ?? null, soyAdmin };
 
@@ -169,23 +186,43 @@ export function RolesPanel({
   async function guardar() {
     if (!rol || !conCambios) return;
     setGuardando(true);
-    const r = await ejecutar(
-      "guardar los módulos del rol",
-      (f) => acciones.guardarModulos(rol.id, borrador, rol.version, pantallaPrincipalBorrador, f),
-      `«${rol.nombre}» quedó guardado`,
-    );
+    // Módulos y canales son dos escrituras de la base; la versión de la segunda es la que devolvió la primera (ADR-0193).
+    const cambianModulos = hayCambios(rol.modulos, borrador) || cambioPantallaPrincipal;
+    let version: number | undefined = rol.version;
+    let r: ResultadoRol | null = null;
+    if (cambianModulos) {
+      r = await ejecutar(
+        "guardar los módulos del rol",
+        (f) => acciones.guardarModulos(rol.id, borrador, version ?? rol.version, pantallaPrincipalBorrador, f),
+        `«${rol.nombre}» quedó guardado`,
+      );
+      if (!r) {
+        setGuardando(false);
+        return;
+      }
+      version = r.version;
+    }
+    if (hayCambiosCanales) {
+      r = await ejecutar(
+        "guardar los canales del rol",
+        (f) => acciones.guardarCanales(rol.id, borradorCanales, version ?? null, f),
+        `«${rol.nombre}» quedó guardado`,
+      );
+      if (r) version = r.version;
+    }
     setGuardando(false);
     if (r) {
-      recordarGuardado(rol.id, r.version, borrador, pantallaPrincipalBorrador);
+      recordarGuardado(rol.id, version, borrador, pantallaPrincipalBorrador, borradorCanales);
       setBorradores((b) => sinBorrador(b, rol.id));
       setPantallaPrincipalBorradores((b) => sinBorrador(b, rol.id));
+      setCanalesBorradores((b) => sinBorrador(b, rol.id));
     }
   }
 
-  function recordarGuardado(rolId: string, version: number | undefined, modulos: ClaveModulo[], pantallaPrincipal: ClaveModulo | null) {
+  function recordarGuardado(rolId: string, version: number | undefined, modulos: ClaveModulo[], pantallaPrincipal: ClaveModulo | null, canales: string[]) {
     // Sin versión (base sin ADR-0193) no hay nada que recordar: manda lo que traiga el servidor.
     if (version === undefined) return;
-    setGuardados((g) => ({ ...g, [rolId]: { version, modulos, pantallaPrincipal } }));
+    setGuardados((g) => ({ ...g, [rolId]: { version, modulos, pantallaPrincipal, canales } }));
   }
 
   const ponerBorrador = (modulos: ClaveModulo[]) => {
@@ -241,7 +278,10 @@ export function RolesPanel({
           archivados={archivados}
           elegidoId={rol.id}
           cuentasDe={cuentas ? cuentasDe : null}
-          sinGuardar={(id) => !!borradores[id] && hayCambios(roles.find((r) => r.id === id)?.modulos ?? [], borradores[id])}
+          sinGuardar={(id) =>
+            (!!borradores[id] && hayCambios(roles.find((r) => r.id === id)?.modulos ?? [], borradores[id])) ||
+            (!!canalesBorradores[id] && cambiaCanales(roles.find((r) => r.id === id)?.canales ?? [], canalesBorradores[id]))
+          }
           verArchivados={verArchivados}
           onVerArchivados={() => setVerArchivados((v) => !v)}
           onElegir={setElegidoId}
@@ -335,6 +375,19 @@ export function RolesPanel({
             />
           </div>
 
+          <div className="@container/mod">
+            <RolesCanales
+              rol={rol}
+              catalogo={catalogoCanales}
+              borrador={borradorCanales}
+              suma={cambiosCanales.suma}
+              quita={cambiosCanales.quita}
+              editable={editable}
+              misCanales={misCanales}
+              onCambiar={(canales) => setCanalesBorradores((b) => (cambiaCanales(rol.canales, canales) ? { ...b, [rol.id]: canales } : sinBorrador(b, rol.id)))}
+            />
+          </div>
+
           <details className="group border-t border-sand">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm text-tinta/70 [&::-webkit-details-marker]:hidden">
               <span>
@@ -362,15 +415,15 @@ export function RolesPanel({
         resumen={
           <>
             <strong className="font-semibold text-tinta">{nCambios === 1 ? "1 cambio" : `${nCambios} cambios`}</strong> en «{rol.nombre}»
-            {cambios.suma.length > 0 && <span className="font-semibold text-verde"> · +{cambios.suma.length} suma</span>}
-            {cambios.quita.length > 0 && <span className="font-semibold text-rojo-profundo"> · −{cambios.quita.length} quita</span>}
+            {cambios.suma.length + cambiosCanales.suma.length > 0 && <span className="font-semibold text-verde"> · +{cambios.suma.length + cambiosCanales.suma.length} suma</span>}
+            {cambios.quita.length + cambiosCanales.quita.length > 0 && <span className="font-semibold text-rojo-profundo"> · −{cambios.quita.length + cambiosCanales.quita.length} quita</span>}
             {cuentasDelElegido.length > 0 && ` · afecta a ${cuentasDelElegido.length === 1 ? "1 cuenta" : `${cuentasDelElegido.length} cuentas`}`}
             {responsable.motivo && <span className="block text-sm text-rojo-profundo">{responsable.motivo}</span>}
           </>
         }
         acciones={
           <>
-            <Boton type="button" peso="discreto" onClick={() => setBorradores((b) => sinBorrador(b, rol.id))} disabled={guardando}>
+            <Boton type="button" peso="discreto" onClick={() => { setBorradores((b) => sinBorrador(b, rol.id)); setPantallaPrincipalBorradores((b) => sinBorrador(b, rol.id)); setCanalesBorradores((b) => sinBorrador(b, rol.id)); }} disabled={guardando}>
               Descartar
             </Boton>
             <Boton type="button" peso="primario" onClick={guardar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>

@@ -111,7 +111,7 @@ esperar("un envío con dirección de espacios se rechaza", rechazaCon("direccion
 esperar("un canal que no es online («tienda») se rechaza", rechazaCon("canal_invalido")(correr(`${preparar()}${online("tienda", "recojo", null)}`)), "pasó");
 esperar("un canal que no existe se rechaza", rechazaCon("canal_invalido")(correr(`${preparar()}${online("instagram", "recojo", null)}`)), "pasó");
 esperar("un modo de entrega inventado se rechaza", rechazaCon("modo_entrega_invalido")(correr(`${preparar()}${online("tiktok", "paloma", null)}`)), "pasó");
-esperar("sin el módulo «Ventas online» se rechaza (integrante)", rechazaCon("venta_online_sin_modulo")(correr(`${preparar()}${comoMicaela}${online("tiktok", "recojo", null)}`)), "pasó");
+esperar("un integrante que no opera el canal TikTok se rechaza", rechazaCon("canal_sin_permiso")(correr(`${preparar()}${comoMicaela}${online("tiktok", "recojo", null)}`)), "pasó");
 
 // --- Candado directo en la tabla ---
 {
@@ -146,12 +146,63 @@ select 'mismo|' || (:'uno' = :'dos');`);
   esperar("fn_canales_venta devuelve tienda y tiktok", r.ok && r.salida.includes("canales|tienda,tiktok"), r.salida || r.error);
 }
 
+// --- Qué canales opera cada rol ---
+const rolDe = (persona) => `(select c.rol_id from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${persona}')`;
+const darCanal = (persona, canal) => `insert into retail.rol_canales (rol_id, canal) select ${rolDe(persona)}, '${canal}' on conflict do nothing;\n`;
+const quitarCanal = (persona, canal) => `delete from retail.rol_canales where rol_id = ${rolDe(persona)} and canal = '${canal}';\n`;
+const cuentaPara = (persona, id, etiqueta) => `set local request.jwt.claim.sub = '${persona}';
+select '${etiqueta}|' || count(*) from retail.buscar_separaciones(:'ubic') where id = :'${id}';`;
+{
+  const ambas = `${preparar()}${online("tiktok", "recojo", null, "on")}${deTienda.replace(/as sep/, "as tn").replace(/:'sep'/g, ":'tn'")}
+`;
+  const r = correr(`${ambas}${cuentaPara(FELIPE, "on", "lider_on")}${cuentaPara(FELIPE, "tn", "lider_tn")}${cuentaPara(MICAELA, "on", "mic_on")}${cuentaPara(MICAELA, "tn", "mic_tn")}`);
+  esperar(
+    "el líder ve las dos; un integrante que solo opera tienda ve la de tienda y no la de TikTok",
+    r.ok && ["lider_on|1", "lider_tn|1", "mic_on|0", "mic_tn|1"].every((x) => r.salida.includes(x)),
+    r.salida || r.error,
+  );
+  const r2 = correr(`${ambas}${darCanal(MICAELA, "tiktok")}${quitarCanal(MICAELA, "tienda")}${cuentaPara(MICAELA, "on", "mic_on")}${cuentaPara(MICAELA, "tn", "mic_tn")}`);
+  esperar(
+    "con TikTok y sin tienda, el integrante ve la de TikTok y no la de tienda (aislamiento)",
+    r2.ok && ["mic_on|1", "mic_tn|0"].every((x) => r2.salida.includes(x)),
+    r2.salida || r2.error,
+  );
+  const res = (persona) => `set local request.jwt.claim.sub = '${persona}';\nselect 'por_recoger|' || por_recoger from retail.resumen_separaciones(:'ubic');`;
+  const num = (txt) => Number((txt.match(/por_recoger\|(\d+)/g) ?? []).map((x) => x.split("|")[1])[0]);
+  const rl = correr(`${ambas}${res(FELIPE)}`);
+  const rm = correr(`${ambas}${darCanal(MICAELA, "tiktok")}${quitarCanal(MICAELA, "tienda")}${res(MICAELA)}`);
+  esperar("el resumen del integrante solo cuenta sus canales (una menos que el del líder)", rl.ok && rm.ok && num(rl.salida) - num(rm.salida) === 1, `${rl.salida} / ${rm.salida}`);
+}
+{
+  // La puerta: con el canal dado al rol, el integrante sí puede registrar la venta de TikTok.
+  const r = correr(`${preparar()}${darCanal(MICAELA, "tiktok")}${comoMicaela}${online("tiktok", "recojo", null)}`);
+  esperar("con el canal dado a su rol, el integrante registra la venta de TikTok", r.ok && r.salida.includes("canal|tiktok|recojo|-"), r.salida || r.error);
+}
+{
+  const rolMic = rolDe(MICAELA);
+  const guardar = (persona, canales, version = "null") => `set local request.jwt.claim.sub = '${persona}';\nselect retail.guardar_canales_rol(${rolMic}, ${canales}, ${version}) as v \\gset\n`;
+  const conRol = (extra) => `${preparar()}${extra}`;
+  let r = correr(conRol(`${guardar(FELIPE, "array['tienda','tiktok']")}select 'canales|' || string_agg(canal, ',' order by canal) from retail.rol_canales where rol_id = ${rolMic};
+select 'historial|' || count(*) from retail.roles_historial where rol_id = ${rolMic} and accion = 'canales';`));
+  esperar("el líder guarda los canales de un rol y queda en el historial", r.ok && r.salida.includes("canales|tienda,tiktok") && r.salida.includes("historial|1"), r.salida || r.error);
+  r = correr(conRol(`select version as v0 from retail.roles where id = ${rolMic} \\gset\n${guardar(FELIPE, "array['tiktok']")}select 'sube|' || (:v > :v0);`));
+  esperar("guardar los canales sube la versión del rol", r.ok && r.salida.includes("sube|t"), r.salida || r.error);
+  esperar("una versión vieja se rechaza", rechazaCon("version_cambiada")(correr(conRol(guardar(FELIPE, "array['tienda']", "0")))), "pasó");
+  esperar("un canal que no existe se rechaza", !correr(conRol(guardar(FELIPE, "array['instagram']"))).ok, "pasó");
+  esperar("al Líder no se le quitan canales", rechazaCon("lider_todos_los_canales")(correr(`${preparar()}select retail.guardar_canales_rol((select id from retail.roles where fijo limit 1), array['tienda'], null);`)), "pasó");
+  esperar("quien no administra roles no guarda canales (integrante)", !correr(conRol(guardar(MICAELA, "array['tienda','tiktok']"))).ok, "pasó");
+  r = correr(conRol(`select 'sin_fijo|' || count(*) from retail.roles r where not r.fijo and not exists (select 1 from retail.rol_canales rc where rc.rol_id = r.id and rc.canal = 'tienda');`));
+  esperar("todo rol que existe sigue operando «tienda» (nada cambia para nadie)", r.ok && r.salida.includes("sin_fijo|0"), r.salida || r.error);
+  r = correr(conRol(`select retail.crear_rol('Ventas online de prueba') as nr \\gset\nselect 'nace|' || string_agg(canal, ',') from retail.rol_canales where rol_id = :'nr';`));
+  esperar("un rol nuevo nace operando «tienda»", r.ok && r.salida.includes("nace|tienda"), r.salida || r.error);
+}
+
 // --- La migración ---
 {
   const r = correr(`begin;\n${MIGRACION}\n${MIGRACION}
 select 'canales|' || count(*) from retail.canales_venta;
-select 'roles|' || count(*) from retail.rol_modulos where modulo = 'ventas_online';`);
-  esperar("la migración se puede pegar dos veces: 2 canales y ningún rol con el módulo", r.ok && ["canales|2", "roles|0"].every((x) => r.salida.includes(x)), r.salida || r.error);
+select 'canales_rol|' || count(*) from retail.rol_canales where canal = 'tienda' and rol_id in (select id from retail.roles where not fijo);`);
+  esperar("la migración se puede pegar dos veces: 2 canales y la tienda de cada rol una sola vez", r.ok && ["canales|2"].every((x) => r.salida.includes(x)), r.salida || r.error);
 }
 
 console.log(fallas ? `\n${fallas} de ${total} en rojo.` : `\n${total}/${total} pruebas en verde.`);
