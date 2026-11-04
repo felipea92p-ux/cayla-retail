@@ -4,3 +4,4 @@
 - Maqueta de las 8 vistas en `docs/maquetas/configuracion-vistas-2026-11/`, con la propuesta de quedar en 5 pestañas y la lista de qué se quita, se junta o se muda, sacada de quién lee cada dato y del uso real en producción (lectura).
 - Felipe eligió las 5 pestañas y pidió menos texto, nada muy pequeño y más visual. Tres direcciones de Empresa y tiendas, con movimiento, en `docs/maquetas/empresa-tiendas-2026-11/`; esperan su elección. Nada de esto está construido.
 - Felipe eligió A · Las vitrinas y pidió subirla a vidrio líquido con gráficos sofisticados y futuristas: cada dato es un instrumento dentro de una gota (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). Sigue sin construirse.
+- Felipe pidió quitar los colores de detrás: el vidrio queda neutro y el color de la sede, solo en su aro y sus instrumentos. También se fue el vidrio que doblaba el fondo.

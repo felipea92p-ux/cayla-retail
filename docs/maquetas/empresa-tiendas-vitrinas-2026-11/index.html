@@ -19,7 +19,7 @@
 /* ====================================================================
    MAQUETA · Configuración ▸ Empresa y tiendas, «Las vitrinas» en vidrio líquido (Felipe 2026-11-04: «lo más sofisticado, con iconos o graficaciones sofisticadas y
    futuristas, siempre siguiendo el estilo de liquid glass»). Cada dato es un INSTRUMENTO dentro de una gota de vidrio: el QR que un haz escanea, el dial del día,
-   el fondo como líquido dentro de la esfera, la constelación de Preguntar y el sello hexagonal de la carga. Detrás, la luz de cada sede: el vidrio la dobla.
+   el fondo como líquido dentro de la esfera, la constelación de Preguntar y el sello hexagonal de la carga. El vidrio es neutro y el color es ordenado (Felipe 2026-11-04: «muy desordenado… más sutil y más ordenado»): el de la sede vive solo en su aro y dentro de sus instrumentos; el ámbar dice lo que falta; el verde, lo que cerró.
    Movimiento: una vez al entrar o al guardar, sin rebote ni bucle; el brillo y la inclinación siguen al mouse sin moverse solos; todo se apaga con
    prefers-reduced-motion (ADR-0136). Solo tokens; datos inventados.
    ==================================================================== */
@@ -34,29 +34,20 @@
 /* ---------- el vidrio líquido: filo de luz, brillo que sigue al mouse y lo de atrás doblado ---------- */
 .liq{--mx:30%;--my:0%;position:relative;border-radius:28px;isolation:isolate;
   background:linear-gradient(165deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent) 46%,color-mix(in srgb,var(--vidrio) 44%,transparent));
-  -webkit-backdrop-filter:blur(16px) saturate(1.7);backdrop-filter:blur(16px) saturate(1.7);backdrop-filter:url(#doblar) saturate(1.7);
-  box-shadow:inset 0 1.5px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -14px 26px -18px color-mix(in srgb,var(--c,var(--tinta)) 42%,transparent),inset 0 0 22px color-mix(in srgb,var(--vidrio) 26%,transparent),0 26px 44px -30px color-mix(in srgb,var(--c,var(--sombra)) 55%,var(--sombra))}
-[data-tema="oscuro"] .liq{background:linear-gradient(165deg,color-mix(in srgb,var(--vidrio) 74%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent) 50%,color-mix(in srgb,var(--vidrio) 58%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 26%,transparent),inset 0 -14px 26px -18px color-mix(in srgb,var(--c,var(--tinta)) 60%,transparent),0 26px 44px -30px var(--sombra)}
+  -webkit-backdrop-filter:blur(16px) saturate(1.7);backdrop-filter:blur(16px) saturate(1.2);
+  box-shadow:inset 0 1.5px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 0 22px color-mix(in srgb,var(--vidrio) 26%,transparent),0 26px 44px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+[data-tema="oscuro"] .liq{background:linear-gradient(165deg,color-mix(in srgb,var(--vidrio) 74%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent) 50%,color-mix(in srgb,var(--vidrio) 58%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 26%,transparent),0 26px 44px -30px var(--sombra)}
 /* el filo: una línea de luz que recorre el borde y se enciende donde está el mouse */
-.liq::before{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;padding:1.5px;pointer-events:none;background:radial-gradient(240px circle at var(--mx) var(--my),var(--vidrio),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--c,var(--tinta)) 34%,transparent) 42%,color-mix(in srgb,var(--vidrio) 30%,transparent) 62%,color-mix(in srgb,var(--c,var(--tinta)) 50%,transparent));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-[data-tema="oscuro"] .liq::before{background:radial-gradient(240px circle at var(--mx) var(--my),color-mix(in srgb,var(--tinta) 75%,transparent),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--tinta) 34%,transparent),color-mix(in srgb,var(--c,var(--tinta)) 40%,transparent) 42%,color-mix(in srgb,var(--tinta) 8%,transparent) 62%,color-mix(in srgb,var(--c,var(--tinta)) 60%,transparent))}
+.liq::before{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;padding:1.5px;pointer-events:none;background:radial-gradient(240px circle at var(--mx) var(--my),var(--vidrio),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--tinta) 8%,transparent) 42%,color-mix(in srgb,var(--vidrio) 30%,transparent) 62%,color-mix(in srgb,var(--tinta) 14%,transparent));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+[data-tema="oscuro"] .liq::before{background:radial-gradient(240px circle at var(--mx) var(--my),color-mix(in srgb,var(--tinta) 75%,transparent),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--tinta) 34%,transparent),color-mix(in srgb,var(--tinta) 10%,transparent) 42%,color-mix(in srgb,var(--tinta) 6%,transparent) 62%,color-mix(in srgb,var(--tinta) 16%,transparent))}
 /* el brillo: la luz que cae sobre el vidrio y sigue al mouse */
 .liq::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:radial-gradient(320px circle at var(--mx) var(--my),color-mix(in srgb,var(--vidrio) 62%,transparent),transparent 72%),radial-gradient(120% 60% at 50% -14%,color-mix(in srgb,var(--vidrio) 60%,transparent),transparent 70%)}
 [data-tema="oscuro"] .liq::after{background:radial-gradient(320px circle at var(--mx) var(--my),color-mix(in srgb,var(--tinta) 11%,transparent),transparent 72%),radial-gradient(120% 60% at 50% -14%,color-mix(in srgb,var(--tinta) 9%,transparent),transparent 70%)}
 @keyframes enfoque{from{opacity:0;filter:blur(14px);transform:translateY(18px) scale(.985)}}
 
-/* ---------- la luz de cada sede, detrás del vidrio ---------- */
-.lugar{position:relative}
-.luz-s{position:absolute;z-index:-1;border-radius:50%;pointer-events:none;background:radial-gradient(circle,color-mix(in srgb,var(--c) 62%,transparent),transparent 68%);transform:translate(var(--px,0),var(--py,0));transition:transform .9s var(--ease);animation:funde 1.6s var(--ease) calc(var(--e) * 110ms + .2s) backwards}
-.luz-s.a{width:230px;height:230px;left:-46px;top:-26px}
-.luz-s.b{width:280px;height:280px;right:-66px;bottom:-40px;opacity:.75}
-[data-tema="oscuro"] .luz-s{background:radial-gradient(circle,color-mix(in srgb,var(--c) 74%,transparent),transparent 68%)}
-
 /* ---------- el carnet: holograma de la empresa ---------- */
 .carnet{display:flex;flex-wrap:wrap;align-items:center;gap:14px 40px;padding:20px 26px;overflow:hidden;animation:enfoque .85s var(--ease) backwards}
-.carnet .holo{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;opacity:.3;mix-blend-mode:soft-light;background:conic-gradient(from calc(var(--giro,0deg)) at var(--mx) var(--my),var(--sede-tru),var(--sede-lim),var(--rojo),var(--sede-aqp),var(--sede-tal),var(--sede-tru));transition:opacity .4s}
-[data-tema="oscuro"] .carnet .holo{mix-blend-mode:screen;opacity:.12}
-.carnet .puntos{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;background-image:radial-gradient(color-mix(in srgb,var(--tinta) 22%,transparent) 1px,transparent 1.2px);background-size:12px 12px;-webkit-mask:linear-gradient(100deg,transparent 45%,#000 95%);mask:linear-gradient(100deg,transparent 45%,#000 95%)}
+.carnet .puntos{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;background-image:radial-gradient(color-mix(in srgb,var(--tinta) 13%,transparent) 1px,transparent 1.2px);background-size:12px 12px;-webkit-mask:linear-gradient(100deg,transparent 45%,#000 95%);mask:linear-gradient(100deg,transparent 45%,#000 95%)}
 .carnet::marker{content:""}
 .barrido{position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;overflow:hidden}
 .barrido i{position:absolute;top:-30%;bottom:-30%;left:0;width:34%;background:linear-gradient(100deg,transparent,color-mix(in srgb,var(--vidrio) 80%,transparent),transparent);transform:translateX(-120%) skewX(-14deg);animation:barre 1.8s var(--ease) .55s}
@@ -72,7 +63,7 @@
 @keyframes rueda{from{transform:translateY(0)}}
 .sello{position:relative;flex:none;width:72px;height:72px;margin-left:auto;border-radius:50%;cursor:pointer}
 .sello svg{display:block;width:100%;height:100%;overflow:visible}
-.sello .gui{fill:none;stroke:url(#gui);stroke-width:.55;stroke-dasharray:1;animation:traza1 1.3s var(--ease) calc(.3s + var(--k) * 45ms) backwards}
+.sello .gui{fill:none;stroke:var(--taupe);stroke-width:.5;stroke-dasharray:1;animation:traza1 1.3s var(--ease) calc(.3s + var(--k) * 45ms) backwards}
 @keyframes traza1{from{stroke-dashoffset:1}}
 .sello .cand{fill:none;stroke:var(--tinta);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .sello .cierre{animation:baja .7s var(--ease) 1.3s backwards}
@@ -81,6 +72,7 @@
 .globo{position:absolute;z-index:30;right:0;top:calc(100% + 12px);width:290px;padding:14px 16px;border-radius:20px;font-size:15px;line-height:1.45;background:color-mix(in srgb,var(--vidrio) 88%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 20px 36px -16px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoque .4s var(--ease)}
 
 /* ---------- las vitrinas ---------- */
+.lugar{display:contents}
 .vitrinas{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));align-items:start}
 .vit{--rx:0deg;--ry:0deg;padding:20px 14px 14px;transform:perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .5s var(--ease);animation:sale-gota 1s var(--ease) calc(.08s + var(--e) * 110ms) backwards;transform-style:flat}
 @keyframes sale-gota{from{opacity:0;filter:blur(16px);clip-path:inset(62% 18% 8% 18% round 60px);transform:translateY(24px)}to{clip-path:inset(0 0 0 0 round 28px)}}
@@ -95,10 +87,10 @@
 .lista-v{display:grid;gap:8px}
 
 /* ---------- el aro de la sede: un segmento por dato ---------- */
-.aro{position:relative;flex:none;display:grid;place-items:center;width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 34% 26%,color-mix(in srgb,var(--vidrio) 90%,transparent),transparent 42%),radial-gradient(circle at 68% 84%,color-mix(in srgb,var(--c) 28%,transparent),transparent 62%);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 95%,transparent),0 8px 16px -8px color-mix(in srgb,var(--c) 60%,var(--sombra))}
+.aro{position:relative;flex:none;display:grid;place-items:center;width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 34% 26%,color-mix(in srgb,var(--vidrio) 90%,transparent),transparent 42%),color-mix(in srgb,var(--tinta) 2%,transparent);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 95%,transparent),0 8px 16px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}
 .aro svg.seg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
 .aro .s{fill:none;stroke-width:3.2;stroke-linecap:round}
-.aro .s.lleno{stroke:var(--c);filter:drop-shadow(0 0 2.5px color-mix(in srgb,var(--c) 75%,transparent));animation:seg .7s var(--ease) calc(.5s + var(--k) * 130ms + var(--e) * 110ms) backwards}
+.aro .s.lleno{stroke:var(--c);animation:seg .7s var(--ease) calc(.5s + var(--k) * 130ms + var(--e) * 110ms) backwards}
 .aro .s.vacio{stroke:var(--ambar);stroke-dasharray:1.6 3.2!important;opacity:.8}
 @keyframes seg{from{stroke-dashoffset:var(--largo)}}
 .aro b{font:500 20px/1 'EB Garamond',serif;font-variant-numeric:lining-nums;animation:funde .5s var(--ease) calc(.9s + var(--e) * 110ms) backwards}
@@ -109,12 +101,12 @@
 .d{position:relative;display:flex;align-items:center;gap:13px;width:100%;min-height:78px;padding:10px 12px 10px 10px;border-radius:22px;text-align:left;cursor:pointer;overflow:hidden;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent);transition:transform .35s var(--ease),box-shadow .35s var(--ease),background .35s;animation:asoma .65s var(--ease) calc(.28s + var(--i,0) * 75ms) backwards}
 @keyframes asoma{from{opacity:0;transform:translateY(12px)}}
 [data-tema="oscuro"] .d{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent)}
-@media (hover:hover){.d:not(.edita):hover{transform:translateY(-2px);background:color-mix(in srgb,var(--vidrio) 52%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--c) 28%,transparent),0 16px 26px -18px color-mix(in srgb,var(--c) 70%,var(--sombra))}.d:not(.edita):hover .ins{transform:scale(1.06)}}
+@media (hover:hover){.d:not(.edita):hover{transform:translateY(-2px);background:color-mix(in srgb,var(--vidrio) 52%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 10%,transparent),0 16px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}.d:not(.edita):hover .ins{transform:scale(1.06)}}
 .d:focus-visible,.sello:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
 .tx{min-width:0;flex:1}
 .lb{display:block;font-size:14px;color:var(--taupe);line-height:1.2}
 .v{display:block;font:500 23px/1.2 'EB Garamond',serif;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
-.d.falta{background:linear-gradient(120deg,color-mix(in srgb,var(--ambar) 13%,transparent),color-mix(in srgb,var(--ambar) 4%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--ambar) 38%,transparent)}
+.d.falta{background:color-mix(in srgb,var(--ambar) 7%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--ambar) 38%,transparent)}
 .d.falta .v{color:var(--ambar)}
 .d.apagado .v{color:var(--t65)}
 .d.edita{cursor:text;background:color-mix(in srgb,var(--vidrio) 58%,transparent)}
@@ -131,17 +123,17 @@
 @keyframes onda{to{transform:scale(34);opacity:0}}
 .conm{flex:none;display:inline-flex;align-items:center;width:40px;height:24px;padding:2px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 24%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent);transition:background .35s}
 .conm::after{content:"";width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 34% 28%,var(--vidrio),color-mix(in srgb,var(--vidrio) 72%,transparent));box-shadow:0 2px 5px color-mix(in srgb,var(--sombra) 40%,transparent),inset 0 -2px 3px color-mix(in srgb,var(--sombra) 10%,transparent);transition:transform .4s var(--ease)}
-.conm[aria-checked="true"]{background:color-mix(in srgb,var(--c) 72%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 24%,transparent),0 0 12px color-mix(in srgb,var(--c) 45%,transparent)}
+.conm[aria-checked="true"]{background:color-mix(in srgb,var(--tinta) 82%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 24%,transparent)}
 .conm[aria-checked="true"]::after{transform:translateX(16px)}
 
 /* ---------- la gota que lleva cada instrumento ---------- */
-.ins{position:relative;flex:none;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;transition:transform .4s var(--ease);background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--vidrio) 92%,transparent),transparent 40%),radial-gradient(circle at 70% 86%,color-mix(in srgb,var(--c) 30%,transparent),transparent 62%),color-mix(in srgb,var(--tinta) 3%,transparent);box-shadow:inset 0 1px 1px var(--vidrio),inset 0 -5px 9px color-mix(in srgb,var(--c) 20%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent),0 7px 14px -7px color-mix(in srgb,var(--c) 70%,var(--sombra))}
-[data-tema="oscuro"] .ins{background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--tinta) 24%,transparent),transparent 40%),radial-gradient(circle at 70% 86%,color-mix(in srgb,var(--c) 42%,transparent),transparent 62%),color-mix(in srgb,var(--sombra) 28%,transparent);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--tinta) 30%,transparent),inset 0 -5px 9px color-mix(in srgb,var(--c) 30%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 7px 14px -7px var(--sombra)}
+.ins{position:relative;flex:none;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;transition:transform .4s var(--ease);background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--vidrio) 92%,transparent),transparent 40%),color-mix(in srgb,var(--tinta) 3%,transparent);box-shadow:inset 0 1px 1px var(--vidrio),inset 0 -5px 9px color-mix(in srgb,var(--sombra) 7%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent),0 7px 14px -9px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .ins{background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--tinta) 24%,transparent),transparent 40%),color-mix(in srgb,var(--sombra) 28%,transparent);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--tinta) 30%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 7px 14px -7px var(--sombra)}
 .d.falta .ins{--c:var(--ambar)}
 .ins svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .ins .brillo{position:absolute;left:18%;top:9%;width:36%;height:20%;border-radius:50%;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),transparent);pointer-events:none;z-index:2}
 [data-tema="oscuro"] .ins .brillo{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 30%,transparent),transparent)}
-.t-luz{stroke:var(--c);filter:drop-shadow(0 0 1.6px color-mix(in srgb,var(--c) 80%,transparent))}
+.t-luz{stroke:var(--c)}
 
 /* QR: un haz lo escanea y los módulos se encienden a su paso */
 .iq .esq{fill:none;stroke:var(--c);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;animation:traza1 .6s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
@@ -165,19 +157,19 @@
 @keyframes sube-l{from{transform:translateY(58px)}}
 .il .ola{animation:ola 2.1s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
 @keyframes ola{from{transform:translateX(-46px)}}
-.il .cuerpo{fill:color-mix(in srgb,var(--c) 66%,transparent)}
-[data-tema="oscuro"] .il .cuerpo{fill:color-mix(in srgb,var(--c) 78%,transparent)}
-.il .espuma{fill:color-mix(in srgb,var(--c) 30%,var(--vidrio))}
+.il .cuerpo{fill:color-mix(in srgb,var(--c) 48%,transparent)}
+[data-tema="oscuro"] .il .cuerpo{fill:color-mix(in srgb,var(--c) 58%,transparent)}
+.il .espuma{fill:color-mix(in srgb,var(--c) 18%,var(--vidrio))}
 .il .simb{font:500 19px 'EB Garamond',serif;fill:var(--tinta);text-anchor:middle;paint-order:stroke;stroke:color-mix(in srgb,var(--vidrio) 55%,transparent);stroke-width:2.5px}
 [data-tema="oscuro"] .il .simb{stroke:color-mix(in srgb,var(--sombra) 45%,transparent)}
 .il.no .marco{fill:none;stroke:var(--ambar);stroke-width:1.5;stroke-dasharray:3 4}
 /* Preguntar: una constelación alrededor de su estrella */
-.ic2 .orb{fill:none;stroke:color-mix(in srgb,var(--c) 70%,var(--tinta));stroke-width:.9;stroke-dasharray:1;animation:traza1 .95s var(--ease) calc(.32s + var(--i,0) * 75ms) backwards}
+.ic2 .orb{fill:none;stroke:color-mix(in srgb,var(--tinta) 42%,transparent);stroke-width:.9;stroke-dasharray:1;animation:traza1 .95s var(--ease) calc(.32s + var(--i,0) * 75ms) backwards}
 .ic2 .gira{transform-origin:29px 29px;animation:gira 1.5s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
 @keyframes gira{from{transform:rotate(-70deg)}}
-.ic2 .est{fill:var(--rojo);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--rojo) 70%,transparent));transform-origin:29px 29px;transition:fill .4s;animation:nace .75s var(--ease) calc(.7s + var(--i,0) * 75ms) backwards}
+.ic2 .est{fill:var(--c);filter:drop-shadow(0 0 2px color-mix(in srgb,var(--c) 45%,transparent));transform-origin:29px 29px;transition:fill .4s;animation:nace .75s var(--ease) calc(.7s + var(--i,0) * 75ms) backwards}
 @keyframes nace{from{transform:scale(0) rotate(-45deg)}}
-.ic2 .nodo{fill:var(--c);filter:drop-shadow(0 0 2.5px var(--c));animation:funde .4s var(--ease) calc(1s + var(--i,0) * 75ms + var(--k) * 120ms) backwards}
+.ic2 .nodo{fill:color-mix(in srgb,var(--tinta) 62%,transparent);animation:funde .4s var(--ease) calc(1s + var(--i,0) * 75ms + var(--k) * 120ms) backwards}
 .ic2.no .est{fill:color-mix(in srgb,var(--tinta) 28%,transparent);filter:none}.ic2.no .nodo{fill:color-mix(in srgb,var(--tinta) 26%,transparent);filter:none}.ic2.no .orb{stroke:color-mix(in srgb,var(--tinta) 22%,transparent)}
 /* la carga: un sello hexagonal que se cierra */
 .ik .hex{fill:color-mix(in srgb,var(--col) 12%,transparent);stroke:var(--col);stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:1;animation:traza1 .9s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
@@ -187,17 +179,17 @@
 @keyframes baja2{from{transform:translateY(-4px)}}
 .ik.abierto .gl.cierre,.ik.no .gl.cierre{transform:translateY(-3.5px)}
 .ik.no .hex{stroke-dasharray:3 3;animation:none}
-.ik .dias{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-dasharray:var(--a) 100;filter:drop-shadow(0 0 2px var(--c));animation:arc 1.2s var(--ease) calc(.5s + var(--i,0) * 75ms) backwards}
+.ik .dias{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-dasharray:var(--a) 100;animation:arc 1.2s var(--ease) calc(.5s + var(--i,0) * 75ms) backwards}
 
 /* ---------- el tubo de Preguntar ---------- */
 .tubo-f{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 22px;border-radius:999px;animation:enfoque .85s var(--ease) .55s backwards}
 .tubo-f .chis{flex:none;width:36px;height:36px}
 .tubo-f .chis svg{display:block;width:100%;height:100%}
-.tubo-f .chis path{fill:var(--rojo);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--rojo) 60%,transparent))}
+.tubo-f .chis path{fill:var(--taupe)}
 .tubo-f b{font:500 21px 'EB Garamond',serif}
 .tubo-f span{font-size:15px;color:var(--taupe)}
 .tubo{position:relative;flex:1;min-width:160px;height:18px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 22%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
-.tubo i{position:absolute;left:0;top:0;bottom:0;width:var(--p);border-radius:inherit;background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 55%,var(--vidrio)),var(--rojo));box-shadow:0 0 12px color-mix(in srgb,var(--rojo) 50%,transparent),inset 0 1px 1px color-mix(in srgb,var(--vidrio) 70%,transparent);transform-origin:left;animation:llena 1.4s var(--ease) 1s backwards}
+.tubo i{position:absolute;left:0;top:0;bottom:0;width:var(--p);border-radius:inherit;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 58%,transparent),color-mix(in srgb,var(--tinta) 88%,transparent));box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 45%,transparent);transform-origin:left;animation:llena 1.4s var(--ease) 1s backwards}
 @keyframes llena{from{transform:scaleX(0)}}
 .tubo::after{content:"";position:absolute;left:8px;right:8px;top:2px;height:5px;border-radius:99px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),transparent);pointer-events:none}
 
@@ -215,7 +207,6 @@
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="doblar" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".006 .009" numOctaves="2" seed="7" result="r"/><feDisplacementMap in="SourceGraphic" in2="r" scale="46" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="7"/></filter></svg>
 
 <div class="spk">
   <span class="titulo">Empresa y tiendas · Las vitrinas, en vidrio líquido</span>
@@ -236,26 +227,27 @@
 <div class="analisis">
   <section>
     <h2>Las vitrinas, en vidrio líquido</h2>
-    <p>Toca cualquier dato para cambiarlo y pasa el mouse sobre las tarjetas: el filo de luz, el brillo y la luz de atrás lo siguen.</p>
+    <p>Toca cualquier dato para cambiarlo y pasa el mouse sobre las tarjetas: el filo de luz y el brillo lo siguen.</p>
     <h3>Cada dato, su instrumento</h3>
     <table>
       <tr><th>Dato</th><th>Qué se ve</th><th>Qué dice</th></tr>
       <tr><td><b>WhatsApp</b></td><td>Un haz escanea el visor y los módulos del QR se encienden a su paso.</td><td>Con número hay QR del club. Sin número, el visor queda vacío y en ámbar.</td></tr>
       <tr><td><b>Cierra</b></td><td>Un dial de las 6 de la mañana a la medianoche, con su aguja y su arco de luz.</td><td>Hasta qué hora abre la tienda. Sin hora, no hay aguja.</td></tr>
       <tr><td><b>Fondo de caja</b></td><td>Líquido que sube dentro de la esfera y se asienta.</td><td>Mientras más fondo, más alto llega (lleno en S/ 500, una escala de esta maqueta).</td></tr>
-      <tr><td><b>Preguntar</b></td><td>Una estrella con sus órbitas y sus nodos.</td><td>Encendida en rojo; apagada, en gris.</td></tr>
+      <tr><td><b>Preguntar</b></td><td>Una estrella con sus órbitas y sus nodos.</td><td>Encendida, del color de la sede; apagada, en gris.</td></tr>
       <tr><td><b>Carga inicial</b></td><td>Un sello hexagonal con su candado y un arco con los días que quedan.</td><td>Verde y cerrado, ya terminó; abierto, sigue; punteado, falta la fecha.</td></tr>
       <tr><td><b>Cada sede</b></td><td>Un aro con un tramo por cada dato.</td><td>Tramo encendido, listo; punteado y en ámbar, falta.</td></tr>
     </table>
-    <h3>Qué es líquido</h3>
+    <h3>Cómo se usa el color</h3>
     <ul>
-      <li><b>El vidrio dobla lo de atrás:</b> cada sede tiene su luz detrás y la tarjeta la deforma. Solo en Chrome y Edge; en Safari queda un desenfoque normal.</li>
-      <li><b>El filo de luz</b> recorre el borde, se tiñe del color de la sede y se enciende donde está el mouse.</li>
-      <li><b>Las gotas</b> llevan cada instrumento, con su reflejo arriba y su luz de color abajo.</li>
+      <li><b>El vidrio es neutro:</b> nada de manchas ni tintes detrás de las tarjetas.</li>
+      <li><b>El color de la sede</b> vive solo en su aro y dentro de sus instrumentos, siempre en el mismo lugar.</li>
+      <li><b>El ámbar</b> dice lo que falta y <b>el verde</b>, lo que cerró. No dicen otra cosa.</li>
+      <li><b>Los interruptores y el tubo</b> van en tinta, como en todo el ERP.</li>
     </ul>
     <h3>Lo que hay que decidir antes de construirla</h3>
     <ul>
-      <li><b>Costo:</b> doblar lo de atrás pesa más que un desenfoque. Medí la maqueta, no una tienda real: conviene probarla en el Mac mini y en un celular de tienda antes de darla por buena.</li>
+      <li><b>Costo:</b> sin el vidrio que doblaba el fondo, queda un desenfoque normal en cinco bloques. Pesa menos, pero sigo sin medirlo en un aparato de tienda.</li>
       <li><b>Excepción a la regla:</b> el vidrio del ERP dice «muchas tarjetas iguales, sin desenfoque por costo» (ADR-0596). Aquí son cuatro, a propósito. Los instrumentos son piezas nuevas y se registran en la regla de movimiento (ADR-0136).</li>
     </ul>
     <h3>Lo que no cambia</h3>
@@ -324,17 +316,17 @@ function aroInterior(s, e) {
 }
 const aro = (s, e) => { const r = requeridos(s), h = r.filter((c) => !falta(s, c)).length; return `<span class="aro" data-aro="${s.id}" style="--c:${s.c}" title="${h} de ${r.length} listos">${aroInterior(s, e)}</span>`; };
 const GUI = Array.from({ length: 12 }, (_, k) => `<ellipse class="gui" pathLength="1" style="--k:${k}" cx="36" cy="36" rx="33" ry="13" transform="rotate(${k * 15} 36 36)"/>`).join('');
-const carnet = () => `<section class="liq carnet" aria-label="Datos de la empresa" data-luz><i class="holo"></i><i class="puntos"></i><span class="barrido"><i></i></span>
+const carnet = () => `<section class="liq carnet" aria-label="Datos de la empresa" data-luz><i class="puntos"></i><span class="barrido"><i></i></span>
     <div class="marca-e"><b>CAYLA</b><span>Empresa de Ejemplo S.A.C.</span></div>
     <div class="dat"><small>RUC</small><div class="digitos" aria-label="20600000000">${'20600000000'.split('').map((d, k) => `<span class="dig" style="--d:${d};--k:${k}"><span>${'0123456789'.split('').map((x) => `<i>${x}</i>`).join('')}</span></span>`).join('')}</div></div>
     <div class="dat"><small>Correo</small><b>contacto@ejemplo.pe</b></div>
     <div class="dat"><small>Teléfono</small><b>044 000 000</b></div>
-    <button class="sello" data-ayuda aria-label="Por qué no se pueden cambiar estos datos"><svg viewBox="0 0 72 72" aria-hidden="true"><defs><linearGradient id="gui" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--sede-tru)"/><stop offset=".5" style="stop-color:var(--rojo)"/><stop offset="1" style="stop-color:var(--sede-lim)"/></linearGradient></defs><g class="giro">${GUI}</g><path class="cand cierre" d="M31 35v-3a5 5 0 0 1 10 0v3"/><rect class="cand" x="29" y="35" width="14" height="10" rx="2.500"/></svg></button>
+    <button class="sello" data-ayuda aria-label="Por qué no se pueden cambiar estos datos"><svg viewBox="0 0 72 72" aria-hidden="true"><g class="giro">${GUI}</g><path class="cand cierre" d="M31 35v-3a5 5 0 0 1 10 0v3"/><rect class="cand" x="29" y="35" width="14" height="10" rx="2.500"/></svg></button>
   </section>`;
-const vista = () => `${carnet()}<div class="vitrinas">${SEDES_D.map((s, e) => `<div class="lugar" style="--c:${s.c};--e:${e}"><i class="luz-s a"></i><i class="luz-s b"></i>
+const vista = () => `${carnet()}<div class="vitrinas">${SEDES_D.map((s, e) => `<div class="lugar">
     <article class="liq vit" data-luz data-inclina style="--e:${e};--c:${s.c}"><header><div><h2><span>${s.n}</span></h2><p class="dir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.100 7-11.500a7 7 0 1 0-14 0C5 14.900 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.300"/></svg>${s.dir}</p>${s.serie.length ? `<div class="series">${s.serie.map((x) => `<span>${x}</span>`).join('')}</div>` : ''}</div>${aro(s, e)}</header>
     <div class="lista-v">${CAMPOS(s).map((c, i) => dato(s, c, e + i)).join('')}</div></article></div>`).join('')}</div>
-  <section class="liq tubo-f" aria-label="Lo gastado por Preguntar este mes" data-luz style="--c:var(--rojo)"><span class="chis"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 5c1.500 9.300 5.700 13.500 15 15-9.300 1.500-13.500 5.700-15 15-1.500-9.300-5.700-13.500-15-15 9.300-1.500 13.500-5.700 15-15z"/></svg></span><b>Preguntar</b><div class="tubo" style="--p:14%"><i></i></div><span>US$ 4,20 de 30 este mes</span></section>`;
+  <section class="liq tubo-f" aria-label="Lo gastado por Preguntar este mes" data-luz ><span class="chis"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 5c1.500 9.300 5.700 13.500 15 15-9.300 1.500-13.500 5.700-15 15-1.500-9.300-5.700-13.500-15-15 9.300-1.500 13.500-5.700 15-15z"/></svg></span><b>Preguntar</b><div class="tubo" style="--p:14%"><i></i></div><span>US$ 4,20 de 30 este mes</span></section>`;
 
 // ---------- pintar ----------
 let primera = true;
@@ -408,8 +400,7 @@ document.addEventListener('pointermove', (ev) => {
   if (ev.pointerType !== 'mouse' || sinMov()) return;
   document.querySelectorAll('[data-luz]').forEach((el) => { const r = el.getBoundingClientRect(); const z = r.width / el.offsetWidth || 1; el.style.setProperty('--mx', `${(ev.clientX - r.left) / z}px`); el.style.setProperty('--my', `${(ev.clientY - r.top) / z}px`); });
   document.querySelectorAll('[data-inclina]').forEach((el) => { const r = el.getBoundingClientRect(); const dentro = ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom && !el.querySelector('.edita');
-    el.style.setProperty('--rx', dentro ? `${(((ev.clientY - r.top) / r.height) - 0.5) * -2.4}deg` : '0deg'); el.style.setProperty('--ry', dentro ? `${(((ev.clientX - r.left) / r.width) - 0.5) * 2.4}deg` : '0deg');
-    const lugar = el.parentElement; lugar.querySelectorAll('.luz-s').forEach((b) => { b.style.setProperty('--px', dentro ? `${(ev.clientX - r.left - r.width / 2) * 0.06}px` : '0'); b.style.setProperty('--py', dentro ? `${(ev.clientY - r.top - r.height / 2) * 0.05}px` : '0'); }); });
+    el.style.setProperty('--rx', dentro ? `${(((ev.clientY - r.top) / r.height) - 0.5) * -2.4}deg` : '0deg'); el.style.setProperty('--ry', dentro ? `${(((ev.clientX - r.left) / r.width) - 0.5) * 2.4}deg` : '0deg'); });
 }, { passive: true });
 Marco.iniciar({ estado: {}, alPintar: (e) => pintarV(e), alAccion: (a) => { if (a === 'repetir') pintarV(estado, true); } });
 
