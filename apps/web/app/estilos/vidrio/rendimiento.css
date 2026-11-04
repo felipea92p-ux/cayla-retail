@@ -445,6 +445,290 @@
   border-radius: 8px;
 }
 
+/* ---------- El gráfico: el mismo dibujo que se transforma ---------- */
+.mesa-grafico {
+  padding: 18px 22px 14px;
+  user-select: none;
+}
+.mesa-grafico-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 8px;
+}
+.mesa-grafico-titulo {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.mesa-grafico-frase {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-grafico-mandos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mesa-grafico-mandos button[data-puesto] {
+  background: var(--hundido-fondo);
+  border-color: var(--hundido-borde);
+  box-shadow: var(--hundido-sombra);
+}
+.mesa-lienzo {
+  position: relative;
+  height: 320px;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+.mesa-lienzo svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+}
+.mesa-reja {
+  transition: transform 750ms var(--ease-cayla);
+}
+.mesa-reja line {
+  stroke: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+}
+.mesa-reja text,
+.mesa-marca {
+  font-size: 12px;
+  fill: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: gráfico sobre crema, papel */
+}
+.mesa-marca-hoy {
+  font-weight: 700;
+  fill: var(--color-tinta);
+}
+.mesa-eje {
+  stroke: color-mix(in srgb, var(--color-tinta) 24%, transparent);
+}
+.mesa-columna {
+  fill: color-mix(in srgb, var(--color-tinta) 7%, transparent);
+  animation: mesa-aparece 120ms var(--ease-cayla) both;
+}
+@keyframes mesa-aparece {
+  from { opacity: 0; }
+}
+.mesa-barra {
+  fill: var(--color-grafico-neutro);
+  transition: x 750ms var(--ease-cayla), y 750ms var(--ease-cayla), width 750ms var(--ease-cayla), height 750ms var(--ease-cayla), rx 750ms var(--ease-cayla), fill 240ms var(--ease-cayla), opacity 240ms var(--ease-cayla);
+  transition-delay: calc(var(--k, 0) * 9ms);
+}
+.mesa-lienzo[data-arrastrando] .mesa-barra {
+  transition: opacity 120ms, fill 120ms;
+}
+.mesa-lienzo[data-modo="dia"] .mesa-barra[data-hoy] {
+  fill: var(--color-tinta);
+}
+.mesa-lienzo[data-modo="persona"] .mesa-barra {
+  fill: var(--c);
+}
+.mesa-lienzo[data-modo="suma"] .mesa-barra {
+  fill: var(--color-tinta);
+}
+.mesa-barra[data-fuera] {
+  opacity: 0.32;
+}
+/* Pasar por una persona en cualquier pieza la enciende aquí. */
+.mesa-lienzo[data-foco] .mesa-barra {
+  opacity: 0.3;
+}
+.mesa-lienzo[data-foco] .mesa-barra[data-foco] {
+  opacity: 1;
+  fill: var(--c);
+}
+.mesa-linea {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: d 750ms var(--ease-cayla), stroke 300ms;
+}
+.mesa-linea-meta,
+.mesa-linea-tocaba {
+  stroke: color-mix(in srgb, var(--color-tinta) 56%, transparent); /* contraste: gráfico sobre crema, papel */
+  stroke-width: 1.5;
+  stroke-dasharray: 2 5;
+}
+.mesa-linea-tope {
+  stroke: var(--color-tinta);
+  stroke-width: 1.5;
+}
+.mesa-linea-sumada {
+  stroke: var(--color-tinta);
+  stroke-width: 2.75;
+}
+.mesa-area {
+  fill: var(--color-tinta);
+  opacity: 0.08;
+  transition: d 750ms var(--ease-cayla);
+}
+.mesa-linea-cierre {
+  stroke: var(--color-tinta);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+  opacity: 0.7;
+}
+.mesa-linea-cierre[data-simulado] {
+  transition: none;
+  opacity: 1;
+}
+.mesa-linea-pasado {
+  stroke: var(--color-pizarra);
+  stroke-width: 2;
+  stroke-dasharray: 1 5;
+  animation: mesa-aparece 500ms var(--ease-cayla) both;
+}
+.mesa-rotulo {
+  font-size: 12.5px;
+  font-weight: 600;
+  fill: var(--color-tinta);
+  paint-order: stroke;
+  stroke: var(--color-crema);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+/* La lente: el tramo elegido. Lo de afuera lo apagan las barras (`data-fuera`). */
+.mesa-lente {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 26%, transparent), color-mix(in srgb, var(--color-vidrio) 4%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 -12px 22px -18px color-mix(in srgb, var(--color-sombra) 32%, transparent), 0 14px 30px -18px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+  transition: transform 520ms var(--ease-cayla), width 520ms var(--ease-cayla);
+}
+.mesa-lente-manija {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 34px;
+  margin-top: -17px;
+  border-radius: 99px;
+  background: var(--gota-marca), var(--color-crema);
+  box-shadow: var(--gota-luz), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 22%, transparent);
+}
+.mesa-lente-manija[data-lado="izq"] { left: -4px; }
+.mesa-lente-manija[data-lado="der"] { right: -4px; }
+.mesa-lente-rotulo {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--ahumado-texto, var(--color-crema));
+  background: var(--ahumado-fondo);
+  border: 1px solid var(--ahumado-borde);
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  transition: transform 520ms var(--ease-cayla);
+}
+.mesa-lienzo[data-arrastrando] :is(.mesa-lente, .mesa-lente-rotulo) {
+  transition: none;
+}
+.mesa-globo {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  width: 188px;
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  pointer-events: none;
+  color: var(--color-crema);
+  background: var(--ahumado-fondo);
+  border: 1px solid var(--ahumado-borde);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  transition: transform 160ms var(--ease-cayla);
+}
+.mesa-globo b {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+.mesa-globo p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.mesa-globo-meta {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid color-mix(in srgb, var(--color-crema) 22%, transparent);
+}
+.mesa-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 6px;
+  font-size: 13.5px;
+}
+.mesa-leyenda :is(button, .mesa-leyenda-sin) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  transition: background-color 200ms var(--ease-cayla);
+}
+.mesa-leyenda i {
+  width: 11px;
+  height: 11px;
+  border-radius: 4px;
+  background: var(--c);
+}
+.mesa-leyenda i[data-trazo] {
+  width: 18px;
+  height: 0;
+  border-radius: 0;
+  background: none;
+  border-top: 2px dotted color-mix(in srgb, var(--color-tinta) 56%, transparent); /* contraste: gráfico sobre crema, papel */
+}
+.mesa-leyenda i[data-trazo="cierre"] {
+  border-top: 2px dashed var(--color-tinta);
+}
+.mesa-leyenda i[data-trazo="pasado"] {
+  border-top-color: var(--color-pizarra);
+}
+@media (hover: hover) {
+  .mesa-leyenda button:hover {
+    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  }
+}
+.mesa-pista {
+  margin-top: 6px;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-dia-vivo {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.tv-tabla[data-foco] .tv-fila:not([data-foco]) {
+  opacity: 0.45;
+}
+.tv-fila {
+  transition: background-color 180ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
+}
+
 /* ---------- La tabla: lo propio de Rendimiento dentro de TablaViva ---------- */
 .mesa-fila-persona {
   display: flex;
@@ -552,8 +836,19 @@
   .mesa-sede-aro .arco,
   .mesa-balanza i,
   .liquido::before,
-  .liquido::after {
+  .liquido::after,
+  .mesa-barra,
+  .mesa-linea,
+  .mesa-area,
+  .mesa-reja,
+  .mesa-lente,
+  .mesa-lente-rotulo,
+  .mesa-globo {
     transition: none;
+  }
+  .mesa-linea-pasado,
+  .mesa-columna {
+    animation: none;
   }
 }
 

@@ -4,14 +4,18 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { useTablaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
 import type { SedeDeRendimiento } from "@/lib/rendimiento";
+import { sumarDias } from "@/lib/fechas-lima";
 import { minutosEnLima, primerDiaDelMes, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
 import {
+  diasDelEje,
   fraseDelEquipo,
   medirEquipo,
   medirGrupo,
   PRESETS,
   presetDeTramo,
   serieDeFilas,
+  simuladorDeCierre,
+  cierreSimulado,
   tramoDePreset,
   tramoEnPalabras,
   type Preset,
@@ -19,9 +23,11 @@ import {
 } from "@/lib/rendimiento-vista-reglas";
 import { hayFiltrosPuestos, type FiltrosVivos, type OrdenViva } from "@/lib/tabla-viva-reglas";
 import { CifrasRendimiento } from "./CifrasRendimiento";
+import { GraficoRendimiento, type ModoGrafico } from "./GraficoRendimiento";
 import { PanelRendimiento } from "./PanelRendimiento";
 import { SedesConAnillo } from "./SedesConAnillo";
 import { TablaRendimiento, useColumnasRendimiento } from "./TablaRendimiento";
+import { useFocoPersona } from "./useFocoPersona";
 import { useLuzLiquida } from "./useLuzLiquida";
 
 /* ====================================================================
@@ -51,11 +57,17 @@ export function MesaRendimiento({
 }) {
   const raiz = useRef<HTMLDivElement>(null);
   useLuzLiquida(raiz);
+  useFocoPersona(raiz);
   const [activaId, setActivaId] = useState(inicialId);
   const [tramo, setTramo] = useState<Tramo>(() => tramoDePreset("mes", hoy));
   const [filtros, setFiltros] = useState<FiltrosVivos>({});
   const [orden, setOrden] = useState<OrdenViva | null>({ clave: "avance", dir: "desc" });
   const [porDia, setPorDia] = useState<number | null>(null);
+  const [modo, setModo] = useState<ModoGrafico>("dia");
+  const [mesPasado, setMesPasado] = useState(false);
+  const [diaVivo, setDiaVivo] = useState<string | null>(null);
+  // «Ver cómo fue»: el mes se repite día a día. Mientras tanto, el tramo crece solo; al llegar a hoy, se detiene (no es un bucle).
+  const [repitiendo, setRepitiendo] = useState(false);
   // La hora de Lima solo se conoce en el navegador: sin esto, el servidor y el navegador pintarían distinto (D-159).
   const [ahoraMin, setAhoraMin] = useState<number | null>(null);
   useEffect(() => {
@@ -74,7 +86,7 @@ export function MesaRendimiento({
   const tramoTexto = tramoEnPalabras(tramo, hoy);
   // Sin ninguna meta en la tienda no hay nada de qué leer un ritmo: la tabla no dibuja esa columna ni la de la meta.
   const conMeta = medidas.some((m) => m.meta !== null);
-  const columnas = useColumnasRendimiento({ personas: activa?.personas ?? [], filas, colores, tramo, hoy, esHoy: preset === "hoy", personaCuentaId, conMeta });
+  const columnas = useColumnasRendimiento({ personas: activa?.personas ?? [], filas, colores, tramo, hoy, esHoy: preset === "hoy", personaCuentaId, conMeta, diaVivo });
   const tabla = useTablaViva({ filas: medidas, columnas, control: { filtros, orden, onFiltros: setFiltros, onOrden: setOrden } });
   const vistas = tabla.visibles;
   const hayFiltro = hayFiltrosPuestos(tabla.filtros);
@@ -94,11 +106,37 @@ export function MesaRendimiento({
   const quien = !hayFiltro ? (activa?.nombre.replace(/^Tienda\s+/, "") ?? "") : vistas.length === 1 ? (vistas[0].nombre.split(" ")[0] ?? vistas[0].nombre) : `${vistas.length} personas`;
   const frase = fraseDelEquipo(hayFiltro ? vistas : medidas) ?? (grupo.meta === null ? `${quien} todavía no tiene meta: aquí se ve lo vendido, sin inventar cuánto tocaba.` : `${quien} lleva ${SOLES.format(grupo.vendido)} ${tramoTexto}.`);
 
+  const eje = useMemo(() => diasDelEje(hoy), [hoy]);
+  const serieCierre = useMemo(() => serieGrupo.filter((d) => d.fecha >= primerDiaDelMes(hoy)), [serieGrupo, hoy]);
+  const simulador = useMemo(() => simuladorDeCierre(serieCierre, hoy), [serieCierre, hoy]);
+
+  useEffect(() => {
+    if (!repitiendo) return;
+    if (tramo.hasta >= hoy) {
+      setRepitiendo(false);
+      return;
+    }
+    const t = window.setTimeout(() => setTramo((x) => ({ desde: x.desde, hasta: sumarDias(x.hasta, 1) })), 340);
+    return () => window.clearTimeout(t);
+  }, [repitiendo, tramo, hoy]);
+
+  function repetir() {
+    if (repitiendo) {
+      setRepitiendo(false);
+      return;
+    }
+    setDiaVivo(null);
+    const inicio = primerDiaDelMes(hoy);
+    setTramo({ desde: inicio, hasta: inicio });
+    setRepitiendo(true);
+  }
+
   function elegirSede(id: string) {
     if (id === activaId) return;
     setActivaId(id);
     setFiltros({});
     setPorDia(null);
+    setRepitiendo(false);
     const url = new URL(window.location.href);
     url.searchParams.set("sede", id);
     window.history.replaceState(null, "", url);
@@ -137,20 +175,57 @@ export function MesaRendimiento({
           quien={quien}
           tramoTexto={tramoTexto}
           trazo={trazo}
-          serieMes={serieGrupo.filter((d) => d.fecha >= primerDiaDelMes(hoy))}
+          serieMes={serieCierre}
           hoy={hoy}
           medidas={medidas}
           colores={colores}
           elegidas={elegidas}
           gruposElegidos={grupos}
           porDia={porDia}
-          onPorDia={setPorDia}
+          onPorDia={(v) => {
+            setPorDia(v);
+            if (v !== null) setModo("suma");
+          }}
           onPersona={(id) => {
             const m = medidas.find((x) => x.personaId === id);
             if (m) tabla.alternar("persona", m.nombre);
           }}
           onGrupo={(l) => tabla.alternar("lectura", l)}
         />
+
+        {hayPanel && (
+          <GraficoRendimiento
+            dias={eje}
+            hoy={hoy}
+            filas={filas}
+            medidas={vistas}
+            colores={colores}
+            esLaTienda={!hayFiltro}
+            tramo={tramo}
+            onTramo={(t) => {
+              setRepitiendo(false);
+              setTramo(t);
+            }}
+            modo={modo}
+            onModo={setModo}
+            mesPasado={mesPasado}
+            onMesPasado={setMesPasado}
+            repitiendo={repitiendo}
+            onRepetir={repetir}
+            cierre={
+              simulador
+                ? {
+                    valor: cierreSimulado(simulador, porDia ?? simulador.ritmoPorDia),
+                    meta: simulador.metaMes,
+                    desdeHoy: simulador.vendido,
+                    simulado: porDia !== null,
+                  }
+                : null
+            }
+            onDia={setDiaVivo}
+            onPersona={(m) => tabla.alternar("persona", m.nombre)}
+          />
+        )}
 
         {hayPanel && <TablaRendimiento tabla={tabla} hoy={hoy} cola={preset === "mes" ? "este mes" : undefined} deAfuera={deAfuera} ventasSinPersona={hayFiltro ? 0 : ventasSinPersona} />}
 

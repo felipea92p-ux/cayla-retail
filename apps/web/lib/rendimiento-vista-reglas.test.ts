@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   cierreSimulado,
+  diasParaGrafico,
+  gestoEn,
+  mesPasadoEnEje,
+  metaSumadaDelMes,
+  sumadoDelMes,
+  tramoArrastrado,
   diasDelEje,
   filasPorPersona,
   fraseDelEquipo,
@@ -310,5 +316,62 @@ describe("fraseDelEquipo", () => {
     expect(fraseDelEquipo([con("Ana T.", "En ritmo"), con("Beto S.", "En ritmo")])).toBe("Todo el equipo va en ritmo.");
     expect(fraseDelEquipo([con("Ana T.", null)])).toBeNull();
     expect(fraseDelEquipo([])).toBeNull();
+  });
+});
+
+describe("el gráfico", () => {
+  const dias = [dia(1), dia(2), dia(3), dia(4)];
+  const filas: FilaPersonaDia[] = [fila(dia(1), 100, 50, "ana"), fila(dia(1), 40, 30, "beto"), fila(dia(2), 60, 50, "ana"), fila(dia(2), 10, null, null), fila("2026-09-01", 70, 40, "ana"), fila("2026-09-02", 30, 40, "beto"), fila("2026-09-30", 5, 40, "ana")];
+
+  it("cada día dice lo de cada persona que se mira, con su meta", () => {
+    const e = diasParaGrafico(dias, filas, (id) => id !== "beto");
+    expect(e[0].total).toBe(100);
+    expect(e[0].porPersona.get("ana")).toBe(100);
+    expect(e[0].metaDia).toBe(50);
+    expect(e[1].porPersona.get(null)).toBe(10);
+    expect(e[2].total).toBe(0);
+    expect(e[2].metaDia).toBeNull();
+  });
+
+  it("lo sumado parte el 1 del mes, se queda quieto después de `hasta`, y la meta sumada sigue hasta el final", () => {
+    const e = diasParaGrafico(["2026-09-30", ...dias], filas, () => true);
+    expect(sumadoDelMes(e, HOY, dia(2))).toEqual([null, 140, 210, 210, 210]);
+    expect(metaSumadaDelMes(e, HOY)).toEqual([null, 80, 130, 130, 130]);
+  });
+
+  it("sin metas no hay curva de lo que tocaba", () => {
+    expect(metaSumadaDelMes(diasParaGrafico(dias, [fila(dia(1), 10, null)], () => true), HOY)).toEqual([null, null, null, null]);
+  });
+
+  it("el mes pasado se pone día con día, y solo con quien se mira", () => {
+    expect(mesPasadoEnEje(dias, filas, HOY, () => true, false)).toEqual([70, 30, 0, 0]);
+    expect(mesPasadoEnEje(dias, filas, HOY, (id) => id === "ana", false)).toEqual([70, 0, 0, 0]);
+    expect(mesPasadoEnEje(dias, filas, HOY, () => true, true)).toEqual([70, 100, 100, 100]);
+  });
+
+  it("si el mes pasado fue más corto, los últimos días no se comparan con nada", () => {
+    const octubre31 = [dia(30), dia(31)];
+    expect(mesPasadoEnEje(octubre31, filas, HOY, () => true, false)).toEqual([5, null]);
+  });
+
+  it("arrastrar elige, mueve bordes y traslada, sin pasar de hoy ni quedar al revés", () => {
+    const eje = Array.from({ length: 31 }, (_, i) => dia(i + 1));
+    const base = { dias: eje, hoy: HOY, desdeI: 4, hastaI: 9 };
+    expect(tramoArrastrado({ ...base, gesto: "nuevo", puntoInicial: 12, puntoAhora: 8 })).toEqual({ desde: dia(9), hasta: dia(13) });
+    expect(tramoArrastrado({ ...base, gesto: "nuevo", puntoInicial: 20, puntoAhora: 30 })).toEqual({ desde: dia(21), hasta: dia(24) });
+    expect(tramoArrastrado({ ...base, gesto: "desde", puntoInicial: 4, puntoAhora: 2 })).toEqual({ desde: dia(3), hasta: dia(10) });
+    expect(tramoArrastrado({ ...base, gesto: "desde", puntoInicial: 4, puntoAhora: 20 })).toEqual({ desde: dia(10), hasta: dia(10) });
+    expect(tramoArrastrado({ ...base, gesto: "hasta", puntoInicial: 9, puntoAhora: 2 })).toEqual({ desde: dia(5), hasta: dia(5) });
+    expect(tramoArrastrado({ ...base, gesto: "mover", puntoInicial: 6, puntoAhora: 8 })).toEqual({ desde: dia(7), hasta: dia(12) });
+    expect(tramoArrastrado({ ...base, gesto: "mover", puntoInicial: 6, puntoAhora: 30 })).toEqual({ desde: dia(19), hasta: dia(24) });
+    expect(tramoArrastrado({ ...base, gesto: "mover", puntoInicial: 6, puntoAhora: 0 })).toEqual({ desde: dia(1), hasta: dia(6) });
+  });
+
+  it("qué hace arrastrar según desde dónde", () => {
+    expect(gestoEn(50, 40, 100, true)).toBe("nuevo");
+    expect(gestoEn(45, 40, 100, false)).toBe("desde");
+    expect(gestoEn(95, 40, 100, false)).toBe("hasta");
+    expect(gestoEn(70, 40, 100, false)).toBe("mover");
+    expect(gestoEn(150, 40, 100, false)).toBe("nuevo");
   });
 });

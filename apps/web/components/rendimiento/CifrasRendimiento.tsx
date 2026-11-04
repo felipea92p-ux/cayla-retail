@@ -90,7 +90,7 @@ export type CifrasProps = {
 
 export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, hoy, medidas, colores, elegidas, gruposElegidos, porDia, onPorDia, onPersona, onGrupo }: CifrasProps) {
   const cierre = useMemo(() => simuladorDeCierre(serieMes, hoy), [serieMes, hoy]);
-  const dia = cierre ? (porDia ?? Math.round(cierre.ritmoPorDia / 10) * 10) : 0;
+  const dia = cierre ? (porDia ?? cierre.ritmoPorDia) : 0;
   const cierreAhora = cierre ? cierreSimulado(cierre, dia) : 0;
   const difCierre = cierre?.metaMes != null ? cierreAhora - cierre.metaMes : null;
   const dif = grupo.diferencia;
@@ -181,7 +181,7 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
                   min={0}
                   max={cierre.tope}
                   step={10}
-                  value={Math.min(dia, cierre.tope)}
+                  value={Math.round(Math.min(dia, cierre.tope) / 10) * 10}
                   style={{ "--v": `${(Math.min(dia, cierre.tope) / cierre.tope) * 100}%` } as CSSProperties}
                   aria-label="Lo que se vende por día"
                   aria-valuetext={`${SOLES.format(dia)} por día`}

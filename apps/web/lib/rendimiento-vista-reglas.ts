@@ -345,3 +345,114 @@ export function hacePocoEnPalabras(fecha: string, hoy: string): string {
   const d = diasEntreFechas(fecha, hoy);
   return d <= 0 ? "hoy" : d === 1 ? "ayer" : `hace ${d} días`;
 }
+
+// ───────────────────────── el gráfico ─────────────────────────
+
+/** Lo de un día del eje, por persona. `null` en `metaDia`: ese día nadie tiene meta. */
+export type DiaEje = { fecha: string; porPersona: ReadonlyMap<string | null, number>; total: number; metaDia: number | null };
+
+/** Cada día del eje con lo que vendió cada persona que se está mirando. `incluir` decide quién (nulo: las ventas sin quien atendió). */
+export function diasParaGrafico(dias: readonly string[], filas: readonly FilaPersonaDia[], incluir: (personaId: string | null) => boolean): DiaEje[] {
+  const porFecha = new Map<string, { porPersona: Map<string | null, number>; meta: number; hayMeta: boolean; total: number }>();
+  for (const f of filas) {
+    if (!incluir(f.personaId)) continue;
+    const d = porFecha.get(f.fecha) ?? { porPersona: new Map<string | null, number>(), meta: 0, hayMeta: false, total: 0 };
+    d.porPersona.set(f.personaId, (d.porPersona.get(f.personaId) ?? 0) + f.total);
+    d.total += f.total;
+    if ((f.metaDia ?? 0) > 0) {
+      d.meta += f.metaDia ?? 0;
+      d.hayMeta = true;
+    }
+    porFecha.set(f.fecha, d);
+  }
+  return dias.map((fecha) => {
+    const d = porFecha.get(fecha);
+    return { fecha, porPersona: d?.porPersona ?? new Map(), total: d?.total ?? 0, metaDia: d?.hayMeta ? d.meta : null };
+  });
+}
+
+/** Lo sumado día a día desde el 1 del mes; `null` en los días de antes (a inicio de mes el eje empieza en el mes pasado). */
+export function sumadoDelMes(eje: readonly DiaEje[], hoy: string, hasta: string = hoy): (number | null)[] {
+  const inicio = primerDiaDelMes(hoy);
+  let suma = 0;
+  return eje.map((d) => {
+    if (d.fecha < inicio) return null;
+    if (d.fecha <= hasta) suma += d.total;
+    return suma;
+  });
+}
+
+/** La meta sumada día a día desde el 1 del mes: la curva de lo que tocaba. `null` antes del mes o si nadie tiene meta. */
+export function metaSumadaDelMes(eje: readonly DiaEje[], hoy: string): (number | null)[] {
+  const inicio = primerDiaDelMes(hoy);
+  if (!eje.some((d) => d.fecha >= inicio && (d.metaDia ?? 0) > 0)) return eje.map(() => null);
+  let suma = 0;
+  return eje.map((d) => {
+    if (d.fecha < inicio) return null;
+    suma += d.metaDia ?? 0;
+    return suma;
+  });
+}
+
+/**
+ * Lo del mes pasado puesto sobre los días de este: el día 12 con el día 12. Si el mes pasado fue más corto, los últimos días no tienen con qué
+ * compararse (`null`). `sumado` lo va acumulando desde el 1.
+ */
+export function mesPasadoEnEje(dias: readonly string[], filas: readonly FilaPersonaDia[], hoy: string, incluir: (personaId: string | null) => boolean, sumado: boolean): (number | null)[] {
+  const inicio = primerDiaDelMes(hoy);
+  const pasadoIni = primerDiaDelMes(sumarDias(inicio, -1));
+  const pasadoFin = sumarDias(inicio, -1);
+  const porDia = new Map<number, number>();
+  for (const f of filas) {
+    if (f.fecha < pasadoIni || f.fecha > pasadoFin || !incluir(f.personaId)) continue;
+    const n = Number(f.fecha.slice(8, 10));
+    porDia.set(n, (porDia.get(n) ?? 0) + f.total);
+  }
+  const ultimo = Number(pasadoFin.slice(8, 10));
+  let suma = 0;
+  return dias.map((fecha) => {
+    if (fecha < inicio) return null;
+    const n = Number(fecha.slice(8, 10));
+    if (n > ultimo) return null;
+    const v = porDia.get(n) ?? 0;
+    suma += v;
+    return sumado ? suma : v;
+  });
+}
+
+export type GestoTramo = "nuevo" | "desde" | "hasta" | "mover";
+
+/** Qué hace arrastrar desde un punto: sobre un borde lo mueve, dentro del tramo lo traslada, y fuera elige uno nuevo. Con el mes entero, siempre uno nuevo. */
+export function gestoEn(x: number, bordeDesde: number, bordeHasta: number, todoElMes: boolean, tolerancia = 12): GestoTramo {
+  if (todoElMes) return "nuevo";
+  if (Math.abs(x - bordeDesde) <= tolerancia) return "desde";
+  if (Math.abs(x - bordeHasta) <= tolerancia) return "hasta";
+  return x > bordeDesde && x < bordeHasta ? "mover" : "nuevo";
+}
+
+/**
+ * El tramo mientras se arrastra, por posición en el eje. Nunca pasa de hoy (lo que no ha llegado no se elige) y nunca queda al revés. `inicio`
+ * es el tramo al empezar a arrastrar, y `desdeI` y `hastaI`, sus posiciones.
+ */
+export function tramoArrastrado(entrada: { gesto: GestoTramo; dias: readonly string[]; hoy: string; desdeI: number; hastaI: number; puntoInicial: number; puntoAhora: number }): Tramo {
+  const { gesto, dias, hoy, desdeI, hastaI, puntoInicial, puntoAhora } = entrada;
+  const ultimo = Math.max(0, dias.lastIndexOf(hoy));
+  const pos = (i: number) => Math.max(0, Math.min(ultimo, i));
+  let a: number;
+  let b: number;
+  if (gesto === "desde") {
+    a = Math.min(pos(puntoAhora), hastaI);
+    b = hastaI;
+  } else if (gesto === "hasta") {
+    a = desdeI;
+    b = Math.max(pos(puntoAhora), desdeI);
+  } else if (gesto === "mover") {
+    const largo = hastaI - desdeI;
+    a = Math.max(0, Math.min(ultimo - largo, desdeI + (puntoAhora - puntoInicial)));
+    b = a + largo;
+  } else {
+    a = Math.min(pos(puntoInicial), pos(puntoAhora));
+    b = Math.max(pos(puntoInicial), pos(puntoAhora));
+  }
+  return { desde: dias[a], hasta: dias[b] };
+}

@@ -58,6 +58,7 @@ export function useColumnasRendimiento({
   esHoy,
   personaCuentaId,
   conMeta,
+  diaVivo,
 }: {
   personas: readonly PersonaMeta[];
   filas: readonly FilaPersonaDia[];
@@ -67,6 +68,8 @@ export function useColumnasRendimiento({
   esHoy: boolean;
   personaCuentaId: string | null;
   conMeta: boolean;
+  /** El día que se señala en el gráfico: cada fila dice lo que vendió ese día. */
+  diaVivo: string | null;
 }): ColumnaViva<MedidaPersona>[] {
   return useMemo(() => {
     const porId = new Map(personas.map((p) => [p.personaId, p]));
@@ -164,9 +167,15 @@ export function useColumnasRendimiento({
         celda: (m) => (
           <>
             <CifraAnimada valor={m.vendido} formato="soles-redondo" />
-            <span className="tv-sub" data-ventas={m.personaId}>
-              {NUMERO.format(m.ventas)} {plural(m.ventas, "venta", "ventas")}
-            </span>
+            {diaVivo ? (
+              <span className="tv-sub mesa-dia-vivo">
+                Día {Number(diaVivo.slice(8, 10))}: {SOLES.format((dias.get(m.personaId) ?? []).find((f) => f.fecha === diaVivo)?.total ?? 0)}
+              </span>
+            ) : (
+              <span className="tv-sub">
+                {NUMERO.format(m.ventas)} {plural(m.ventas, "venta", "ventas")}
+              </span>
+            )}
           </>
         ),
         suma: (v) => SOLES.format(v.reduce((s, m) => s + m.vendido, 0)),
@@ -249,7 +258,7 @@ export function useColumnasRendimiento({
       },
     );
     return columnas;
-  }, [personas, filas, colores, tramo, hoy, esHoy, personaCuentaId, conMeta]);
+  }, [personas, filas, colores, tramo, hoy, esHoy, personaCuentaId, conMeta, diaVivo]);
 }
 
 function CeldaAvance({ m, color, parteDe }: { m: MedidaPersona; color?: string; parteDe: number | null }) {
