@@ -279,6 +279,20 @@ describe("ventas por día", () => {
     expect(promedioDiarioAnterior({ ...r, anterior: { ...r.anterior, vendido: 0 } })).toBeNull();
   });
 
+  it("la raya es el promedio de TODO el mes pasado (de «mes a mes»), no el de los mismos N días", () => {
+    const sNov = leerSeriesMes({ ...SERIES, mes: "2026-11-01" })!; // septiembre: S/ 3,500 en 30 días
+    const aLaFecha = leerReporteMes({
+      mes: "2026-11-01", hoy: "2026-11-04", en_curso: true, primera_venta: "2026-08-20",
+      actual: { desde: "2026-11-01", hasta: "2026-11-05", vendido: 7000, tickets: 40, unidades: 60, devuelto: 0 },
+      anterior: { desde: "2026-10-01", hasta: "2026-10-05", vendido: 14656, tickets: 200, unidades: 300, devuelto: 0 }, // los primeros 4 días de octubre
+    })!;
+    expect(promedioDiarioAnterior(aLaFecha)).toBeCloseTo(14656 / 4, 6); // sin la serie: el del tramo equivalente (3,664 al día)
+    expect(promedioDiarioAnterior(aLaFecha, sNov)).toBeCloseTo(134306.29 / 31, 6); // con ella: octubre entero, 31 días
+    expect(promedioDiarioAnterior({ ...aLaFecha, primeraVenta: "2026-10-02" }, sNov)).toBeNull(); // octubre quedó a medias: no se compara
+    const sinOctubre = { ...sNov, meses: sNov.meses.filter((m) => m.mes !== "2026-10-01") };
+    expect(promedioDiarioAnterior(aLaFecha, sinOctubre)).toBeCloseTo(14656 / 4, 6); // si el mes no viene en la serie, cae al tramo
+  });
+
   it("el promedio diario del propio mes sirve de raya cuando no hay con qué comparar", () => {
     const r = leerReporteMes(BASE)!; // octubre entero: 31 días, S/ 134,306.29
     expect(promedioDiarioDelMes(r)).toBeCloseTo(134306.29 / 31, 6);

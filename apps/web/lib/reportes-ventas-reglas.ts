@@ -221,11 +221,19 @@ export function mejorDia(s: SeriesMes): DiaVentas | null {
   return mejor;
 }
 
-/** El promedio diario del tramo anterior, para la raya punteada. `null` si ese tramo no se puede comparar (no hay con qué). */
-export function promedioDiarioAnterior(r: ReporteMes): number | null {
-  const c = comparacionDe(r);
+/**
+ * El promedio diario del mes pasado, para la raya punteada. `null` si no se puede comparar (no hay con qué).
+ * Es el de TODO el mes pasado (Felipe, 2026-11-04): vendido del mes ÷ sus días, que sale de «mes a mes» (`s.meses`). Si ese mes no viene ahí, cae al del
+ * tramo equivalente de las cifras (los mismos N días); en un mes ya cerrado los dos son lo mismo.
+ */
+export function promedioDiarioAnterior(r: ReporteMes, s?: SeriesMes): number | null {
+  if (!comparacionDe(r).hay) return null;
+  const anio = Number(r.anterior.desde.slice(0, 4));
+  const mes = Number(r.anterior.desde.slice(5, 7));
+  const delMes = s?.meses.find((m) => m.mes.slice(0, 7) === r.anterior.desde.slice(0, 7));
+  if (delMes && delMes.vendido > 0) return delMes.vendido / new Date(Date.UTC(anio, mes, 0)).getUTCDate(); // el día 0 del mes siguiente = el último de este
   const dias = diasDelTramo(r.anterior);
-  return c.hay && dias > 0 ? r.anterior.vendido / dias : null;
+  return dias > 0 ? r.anterior.vendido / dias : null;
 }
 
 /**

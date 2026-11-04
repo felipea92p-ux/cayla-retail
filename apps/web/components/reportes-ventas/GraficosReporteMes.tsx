@@ -37,7 +37,7 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
   // el gráfico nunca se queda sin su raya.
   const comparacion = comparacionDe(r);
   const contra = comparacion.hay ? comparacion.contra : null;
-  const promedioAnterior = contra !== null ? promedioDiarioAnterior(r) : null;
+  const promedioAnterior = contra !== null ? promedioDiarioAnterior(r, s) : null;
   const promedio = promedioAnterior ?? promedioDiarioDelMes(r);
   const delMesPasado = promedioAnterior !== null && contra !== null;
   const textoRaya = promedio === null ? null : delMesPasado ? `${capitalizada(contra)}: ${soles(promedio)} al día` : `Este mes: ${soles(promedio)} al día`;

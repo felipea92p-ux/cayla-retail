@@ -1,0 +1,4 @@
+## 2026-11-04 (Ventas ▸ Reportes: la raya es el promedio de TODO el mes pasado)
+Qué hice: en «Ventas por día» de un mes en curso, la raya punteada era el promedio de los mismos N días del mes pasado (en noviembre con 4 días, los primeros 4 de octubre) pero se rotulaba «Octubre: S/ 3,664 al día», como si fuera todo octubre. Ahora es el promedio de todo el mes pasado (lo vendido en el mes ÷ sus días), que sale de «Mes a mes».
+Por qué así: Felipe vio la raya muy por encima de las barras de noviembre y pidió que fuera el promedio del mes. Un rótulo que dice «Octubre» tiene que ser octubre. Las tarjetas de arriba siguen comparando los mismos N días: esa comparación es justa día a día y no cambia.
+Felipe se lleva: una raya que significa lo que dice. Si el mes pasado no viene en «Mes a mes», cae al del tramo equivalente. Probado con pruebas de la regla; no probado con los datos reales de producción.
