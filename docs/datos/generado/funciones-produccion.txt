@@ -1702,6 +1702,7 @@ recibir_comprobante_produccion(p_comprobante_id uuid, p_ubicacion_id uuid, p_lin
 recibir_despacho(p_despacho_id uuid, p_version integer, p_lineas jsonb, p_extras jsonb, p_nota text, p_token uuid) -> jsonb [definer]
 recibir_envio(p_ubicacion_id uuid, p_items jsonb, p_extras jsonb, p_traslados jsonb, p_cierres jsonb, p_notas_credito jsonb, p_numero_guia text, p_nota text, p_token uuid) -> jsonb [definer]
 recibir_insumo(p_insumo_id uuid, p_ubicacion_id uuid, p_cantidad numeric, p_costo_total numeric, p_codigo_lote text, p_proveedor_id uuid, p_documento text, p_origen text, p_nota text, p_token uuid) -> uuid [definer]
+recibir_insumo_comprado(p_insumo_id uuid, p_ubicacion_id uuid, p_proveedor_id uuid, p_cantidad numeric, p_costo_unitario numeric, p_tipo text, p_serie text, p_numero text, p_sin_papel boolean, p_condicion text, p_fecha_emision date, p_fecha_vencimiento date, p_igv_porcentaje numeric, p_pago jsonb, p_codigo_lote text, p_nota text, p_token uuid) -> jsonb [definer]
 recibir_lote(p_ubicacion_id uuid, p_proveedor_id uuid, p_items jsonb, p_numero_guia text, p_nota text, p_token uuid) -> uuid [definer]
 recibir_orden_insumo(p_orden_id uuid, p_ubicacion_id uuid, p_lineas jsonb, p_nota text, p_token uuid) -> jsonb [definer]
 recibir_orden_sin_envio(p_orden_id uuid, p_token uuid) -> jsonb [definer]
