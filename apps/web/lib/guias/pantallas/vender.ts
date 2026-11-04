@@ -370,6 +370,13 @@ export const GUIA_APARTADOS: Guia = {
       texto: "Si acordaste un precio con el cliente, toca «Descuento» (o el importe de una prenda, para solo esa): en % o en soles, con su motivo y, pasado el 15 %, por qué. Lo conserva hasta que recoja y la boleta sale con ese precio. Igual al sumar prendas a un apartado ya hecho. En la demo no se aplica.",
     },
     {
+      id: "canal-apartado",
+      ancla: "apartados.canal",
+      opcional: true,
+      titulo: "¿Por dónde se vende?",
+      texto: "Si tu rol vende también por un canal online (TikTok), aquí eliges por cuál: la prenda sale igual de esta tienda. En un canal online preguntas cómo se entrega: recojo en tienda, o envío con la dirección y la agencia. Con solo la tienda, este bloque no aparece. En la demo no se toca.",
+    },
+    {
       id: "dueno-apartado",
       ancla: "apartar.dueno",
       opcional: true,

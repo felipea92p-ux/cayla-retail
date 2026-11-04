@@ -13,6 +13,7 @@ import { EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
+import type { CanalVenta } from "@/lib/canales-venta-reglas";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -48,6 +49,8 @@ type Props = {
   abrir?: string | null;
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): la entrega cobra el saldo en monedas de S/ 0.10. */
   redondeoEfectivo?: boolean;
+  /** ADR-0607: los canales de venta que opera la cuenta (la tienda, TikTok…). Solo la tienda = Apartar como siempre. */
+  canales?: readonly CanalVenta[];
 };
 
 /**
@@ -166,6 +169,7 @@ export function ApartadosPanel(props: Props) {
           pedido={pedidoParaApartar}
           key={claveDelApartado(props.ubicacionId, pedidoParaApartar?.id)}
           onPedidoHecho={() => setPedidoParaApartar(null)}
+          canales={props.canales ?? []}
         />
       )}
       {vista === "entregar" && (

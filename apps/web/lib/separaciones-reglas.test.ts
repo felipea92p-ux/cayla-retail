@@ -173,6 +173,22 @@ describe("erroresDelApartado", () => {
   });
 });
 
+describe("erroresDelApartado: entrega de un canal online (ADR-0607)", () => {
+  it("un recojo no pide dirección", () => {
+    expect(erroresDelApartado(formulario({ modoEntrega: "recojo", direccionEnvio: "" }), 179).direccionEnvio).toBeUndefined();
+  });
+  it("un envío sin dirección, o con una a medias, no se puede confirmar", () => {
+    expect(erroresDelApartado(formulario({ modoEntrega: "envio", direccionEnvio: "" }), 179).direccionEnvio).toMatch(/a dónde va/);
+    expect(erroresDelApartado(formulario({ modoEntrega: "envio", direccionEnvio: "Av. " }), 179).direccionEnvio).toMatch(/a dónde va/);
+  });
+  it("un envío con su dirección queda listo", () => {
+    expect(erroresDelApartado(formulario({ modoEntrega: "envio", direccionEnvio: "Jr. Pizarro 123, Olva" }), 179).direccionEnvio).toBeUndefined();
+  });
+  it("lo que falta de la dirección se atiende en el primer paso (los datos del cliente)", () => {
+    expect(pasoDelApartado({ direccionEnvio: "x" })).toBe(0);
+  });
+});
+
 describe("dinero", () => {
   it("adelanto y vuelto: solo el efectivo da vuelto", () => {
     const pagos = [{ metodo: "yape" as const, monto: 30 }, { metodo: "efectivo" as const, monto: 20, recibido: 50 }];

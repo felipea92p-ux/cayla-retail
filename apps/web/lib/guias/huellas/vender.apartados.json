@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 171,
+  "total": 174,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -79,6 +79,11 @@
       "Casilla «Le leí las condiciones del apartado»",
       "ComboResponsable «{responsable}»",
       "button «{cajaAbierta ? (responsable.motivo ?? undefined) : undefined}»"
+    ],
+    "components/apartados/CanalDelApartado.tsx": [
+      "SegmentoDeslizante «¿Por dónde se vende?»",
+      "SegmentoDeslizante «Cómo se entrega»",
+      "input «Dirección y agencia de envío»"
     ],
     "components/apartados/DescuentoApartado.tsx": [
       "SegmentoDeslizante «Cómo escribir el descuento»",
