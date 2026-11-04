@@ -9,7 +9,7 @@
 - [x] `/formidable` y sus 3 cambios: leyes 7.3, oficio 5 (`docs/formidable/rendimiento.md`)
 - [ ] Al abrir una fila desde la tabla, su panel queda fuera de la vista; al cancelar, la pantalla salta
 - [ ] Decidir si la meta debe bajar sola con una ausencia aprobada: hoy cambiarla a mano multiplica todos los días del mes
-- [ ] Correr `/chaos`: su candado 1 pide la base `54421`, que no tiene las migraciones; se atacó a mano, pero no es la corrida del catálogo
+- [x] `/chaos`, semilla 20261104: 2 hallazgos, arreglados y atacados de nuevo; sin violaciones nuevas
 - [ ] Pasada de `/formidable` con encargadas reales
 - [ ] Contarle a Dany: el tablero decía que aquí solo cambiaba el material
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando la migración esté en producción
