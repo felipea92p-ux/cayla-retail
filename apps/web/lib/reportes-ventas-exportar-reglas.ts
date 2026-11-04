@@ -21,7 +21,7 @@ const NUMERO = /^-?\d+(\.\d+)?$/;
 const celda = (t: string): string => (NUMERO.test(t) ? t : celdaCsv(t));
 const archivo = (lineas: string[][]): string => `${BOM}${lineas.map((l) => l.map(celda).join(",")).join("\r\n")}\r\n`;
 
-const COLUMNAS_TIENDA = ["Tienda", "Vendido (S/)", "% del total", "Cambio vs mes pasado (%)", "Ventas", "Ticket promedio (S/)", "Prendas", "Devuelto (S/)"];
+const COLUMNAS_TIENDA = ["Tienda", "Vendido (S/)", "% del total", "Cambio vs mes pasado (%)", "Ventas", "Ticket promedio (S/)", "Prendas"];
 const COLUMNAS_CATEGORIA = ["Categoría", "Vendido (S/)", "% del total", "Cambio vs mes pasado (%)", "Prendas"];
 
 /** «Ventas del mes» por tienda o por categoría, con su fila de Total al pie. Las categorías van TODAS (la pantalla junta la cola; el archivo no). */
@@ -31,7 +31,7 @@ export function csvDeVentasDelMes(r: ReporteMes, cortes: CortesMes, corte: Corte
   const total = totalDeTabla(r);
   const linea = (f: (typeof filas)[number]): string[] =>
     porTienda
-      ? [f.nombre, dos(f.vendido), pct(f.parte), pct(f.cambio), String(f.tickets), f.ticket === null ? "" : dos(f.ticket), String(f.unidades), dos(f.devuelto)]
+      ? [f.nombre, dos(f.vendido), pct(f.parte), pct(f.cambio), String(f.tickets), f.ticket === null ? "" : dos(f.ticket), String(f.unidades)]
       : [f.nombre, dos(f.vendido), pct(f.parte), pct(f.cambio), String(f.unidades)];
   // «Sin categoría» va al final aunque haya vendido más que otras, como en pantalla.
   const ordenadas = porTienda ? filas : [...filas.filter((f) => f.nombre !== "Sin categoría"), ...filas.filter((f) => f.nombre === "Sin categoría")];

@@ -37,11 +37,16 @@ describe("csvDeVentasDelMes", () => {
 
   it("por tienda: la cabecera, cada tienda con su parte y su cambio, y el Total de las cifras al pie", () => {
     const l = lineas(csvDeVentasDelMes(MES, CORTES, "tienda"));
-    expect(l[0]).toBe("Tienda,Vendido (S/),% del total,Cambio vs mes pasado (%),Ventas,Ticket promedio (S/),Prendas,Devuelto (S/)");
-    expect(l[1]).toBe("Tienda Trujillo,700.00,70.0,75.0,7,100.00,18,30.00");
-    expect(l[2]).toBe("Tienda Lima,300.00,30.0,,3,100.00,7,0.00"); // no vendió antes: el cambio va vacío, no 0
-    expect(l[3]).toBe("Total,1000.00,100.0,25.0,10,100.00,25,30.00");
+    expect(l[0]).toBe("Tienda,Vendido (S/),% del total,Cambio vs mes pasado (%),Ventas,Ticket promedio (S/),Prendas");
+    expect(l[1]).toBe("Tienda Trujillo,700.00,70.0,75.0,7,100.00,18");
+    expect(l[2]).toBe("Tienda Lima,300.00,30.0,,3,100.00,7"); // no vendió antes: el cambio va vacío, no 0
+    expect(l[3]).toBe("Total,1000.00,100.0,25.0,10,100.00,25");
     expect(l).toHaveLength(4);
+  });
+
+  it("el archivo ya no lleva «Devuelto» (como la tabla en pantalla; lo devuelto del mes es una cifra aparte)", () => {
+    expect(csvDeVentasDelMes(MES, CORTES, "tienda").toLowerCase()).not.toMatch(/devuelto/);
+    expect(csvDeVentasDelMes(MES, CORTES, "categoria").toLowerCase()).not.toMatch(/devuelto/);
   });
 
   it("por categoría: todas (sin juntar la cola), «Sin categoría» al final, y las celdas con coma, comillas o = van protegidas", () => {
