@@ -537,8 +537,10 @@ export function TodosVista({
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <EstadoChip {...e} />
-                      <CanalChip a={a} className="max-w-full" />
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <EstadoChip {...e} />
+                        <CanalChip a={a} className="max-w-full" />
+                      </div>
                       {a.estado === "abierta" && <BarraPlazo creadaEl={diaLima(a.creadaEn)} hoy={hoy} />}
                       <p className="text-sm text-tinta/60">
                         {a.estado === "abierta" ? `vence ${fechaCorta(a.venceEl)}${a.extensiones ? " · extendido" : ""}` : a.estado === "liberada" ? (a.liberadaSola ? "se liberó solo" : "liberado") : a.estado === "entregada" ? `boleta ${a.comprobanteFinal ?? a.comprobanteAnticipo ?? ""}` : a.notaCredito ? `NC ${a.notaCredito}` : "devuelto"}
