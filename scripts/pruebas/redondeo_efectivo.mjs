@@ -700,6 +700,8 @@ rollback;`);
     fn_pedido_web_verificar:
       "Candado diferido del pedido web (20261015051000): exige que su venta tenga exactamente UNA fila de venta_pagos, «anticipo» por lo pagado; una fila de redondeo ahí sería un estado imposible (esa venta no cobra efectivo).",
     fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
+    fn_reporte_ventas_series:
+      "Ventas ▸ Reportes ▸ Ventas del mes (ADR-0606, 20261103232000): el bloque «Cómo se pagó» suma venta_pagos por medio y deja la fila de redondeo como un medio más, a propósito, igual que fn_totales_historial_ventas y fn_comparativa_caja: así lo cobrado suma el total vendido. La web la nombra «Redondeo de efectivo» y no dibuja lo que pesa menos de una milésima del total. No se parchó.",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",
     fn_vendido_por_empresa: "De quién es lo vendido (ADR-0532): suma las LÍNEAS de la venta (venta_items), nunca los pagos; venta_pagos solo se lee para el filtro «pagadas con X» del Historial, igual que fn_totales_historial_ventas. El redondeo no cambia nada.",

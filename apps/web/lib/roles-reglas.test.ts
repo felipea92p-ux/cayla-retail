@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { MODULOS, MODULOS_DE_HOY, esDelegable } from "./modulos";
 import {
+  alternarCanal,
   alternarGrupo,
   alternarModulo,
   avisoDelRol,
+  cambiosDeCanales,
   cambiosDelBorrador,
   controlDe,
   cuentasAsignables,
   esMiRolSinSerLider,
   etiquetasDelMenu,
   fueraDeLoMio,
+  motivoCanalPorLoMio,
   motivoPorLoMio,
   puedeAsignarRol,
   hayCambios,
@@ -23,6 +26,7 @@ import {
   pideUbicacion,
   rolesAsignables,
   rolSoloParaPersonas,
+  sinCanales,
   veModulo,
   type RolVista,
   conGuardadosLocales,
@@ -39,6 +43,7 @@ const rol = (extra: Partial<RolVista> = {}): RolVista => ({
   limitadoComoHoy: false,
   archivado: false,
   modulos: [],
+  canales: ["tienda"],
   version: 1,
   pantallaPrincipal: null,
   ...extra,
@@ -335,5 +340,40 @@ describe("lo recién guardado manda hasta que el servidor lo alcance (ADR-0193)"
     const servidor = rol({ id: "a", modulos: ["existencias"], version: 7 });
     expect(conGuardadosLocales([servidor], { a: { version: 5, modulos: ["vender"], pantallaPrincipal: null } })[0]).toBe(servidor);
     expect(conGuardadosLocales([servidor], { a: { version: 7, modulos: ["vender"], pantallaPrincipal: null } })[0]).toBe(servidor);
+  });
+});
+
+describe("canales de venta por rol (ADR-0607)", () => {
+  const catalogo = [
+    { clave: "tienda", nombre: "Tienda" },
+    { clave: "tiktok", nombre: "TikTok" },
+  ];
+
+  it("cambiosDeCanales dice qué suma y qué quita, en el orden del catálogo", () => {
+    expect(cambiosDeCanales(catalogo, ["tienda"], ["tiktok"])).toEqual({ suma: ["tiktok"], quita: ["tienda"] });
+    expect(cambiosDeCanales(catalogo, ["tienda"], ["tiktok", "tienda"])).toEqual({ suma: ["tiktok"], quita: [] });
+    expect(cambiosDeCanales(catalogo, ["tienda"], ["tienda"])).toEqual({ suma: [], quita: [] });
+  });
+
+  it("alternarCanal enciende y apaga sin perder el orden", () => {
+    expect(alternarCanal(catalogo, ["tiktok"], "tienda")).toEqual(["tienda", "tiktok"]);
+    expect(alternarCanal(catalogo, ["tienda", "tiktok"], "tienda")).toEqual(["tiktok"]);
+    expect(alternarCanal(catalogo, [], "tiktok")).toEqual(["tiktok"]);
+  });
+
+  it("un líder (misCanales null) puede dar cualquier canal", () => {
+    expect(motivoCanalPorLoMio(catalogo, ["tienda"], ["tienda", "tiktok"], null)).toBeNull();
+  });
+
+  it("quien no es líder no enciende un canal que no opera, pero sí puede apagar", () => {
+    expect(motivoCanalPorLoMio(catalogo, ["tienda"], ["tienda", "tiktok"], ["tienda"])).toMatch(/TikTok/);
+    expect(motivoCanalPorLoMio(catalogo, ["tienda", "tiktok"], ["tienda"], ["tienda"])).toBeNull();
+    // Un canal que el rol YA tenía no se cuestiona aunque quien edita no lo opere.
+    expect(motivoCanalPorLoMio(catalogo, ["tienda", "tiktok"], ["tienda", "tiktok"], ["tienda"])).toBeNull();
+  });
+
+  it("un rol sin canales no vería ningún apartado", () => {
+    expect(sinCanales([])).toBe(true);
+    expect(sinCanales(["tienda"])).toBe(false);
   });
 });

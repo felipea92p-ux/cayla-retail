@@ -777,6 +777,13 @@ export const GUIA_COLABORADORES: Guia = {
       texto: "Cada área del menú se abre al tocarla y dice cuántos módulos ve este rol («4 de 7»). Marca o desmarca un módulo: queda en borrador —verde se suma, rojo se quita— y nada cambia hasta «Guardar cambios». Un candado dice por qué ese no se puede dar. En la demo no tocamos ninguno.",
     },
     {
+      id: "roles-canales",
+      ancla: "roles.canales",
+      opcional: true,
+      titulo: "Qué canales de venta opera",
+      texto: "Cada venta lleva el canal por donde se hizo (la tienda, TikTok…). Marca los canales que este rol puede ver y registrar: quien opera solo TikTok no ve los apartados de la tienda, y al revés. Queda en borrador hasta «Guardar cambios».",
+    },
+    {
       id: "roles-vista-previa",
       ancla: "roles.vista-previa",
       opcional: true,

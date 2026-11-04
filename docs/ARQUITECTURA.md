@@ -1861,11 +1861,26 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   /vender/historial/exportar` (route handler, solo líder) → `lib/historial-exportar-reglas.ts` (CSV). «Volver a vender»:
   `/vender?repetir=<id>` → `lib/repetir-venta.ts` → prop `repeticion` de `PuntoDeVenta`.
 
+- `/vender/reportes` y `/vender/reportes/ranking` (módulo `reportes_ventas`, ADR-0606, solo lectura) → `lib/reportes-ventas.ts` y `lib/reportes-ranking.ts`
+  (cargadores de servidor, `rpc("fn_reporte_ventas_*")`) con sus reglas puras en `lib/reportes-ventas-reglas.ts` y `lib/reportes-ranking-reglas.ts` →
+  `components/reportes-ventas/*`. Cuatro funciones INVOKER de la base: `fn_reporte_ventas_mes` (las cinco cifras contra los mismos días del mes anterior),
+  `fn_reporte_ventas_series` (por día, mes a mes, cómo se pagó), `fn_reporte_ventas_cortes` (por tienda y por categoría) y `fn_reporte_ventas_ranking`
+  (con filtros, página y panel de tallas y colores); todas preguntan `fn_ve_modulo('reportes_ventas')`. Todo vive en la URL. La descarga son dos
+  `route.ts` (`/vender/reportes/descargar`, `/vender/reportes/ranking/descargar`) que repiten el permiso y comparten `lib/reportes-ventas-alcance.ts`
+  (qué tienda puede mirar la cuenta) con las pantallas; el CSV lo arma `lib/reportes-ventas-exportar-reglas.ts`.
+
 - **Apartados** (2026-09-23, ADR-0166; módulo propio `apartados` desde ADR-0196): `/vender/apartados` → `lib/separaciones.ts` (`fn_vencer_separaciones`, `buscar_separaciones`,
   `resumen_separaciones`) + `lib/separaciones-reglas.ts` → `components/apartados/*` (Apartar/Entregar/Todos) → RPC `separar_prendas`,
   `entregar_separacion`, `extender_separacion`, `liberar_separacion`, `registrar_devolucion_separacion`.
   Buscador de Apartar (ADR-0168): `resultadosDelBuscador` + `fn_stock_por_sede` (dónde más hay, secundario); `FotoPrenda`
   sale optimizada solo si `fotoOptimizable` (`lib/foto-prenda-reglas.ts`) y `next.config.ts` → `images.remotePatterns` lo permiten.
+  **Ventas online por canal (ADR-0607, 2026-11-03):** el apartado (`separaciones`) y su venta llevan `canal` (`canales_venta`: `tienda`, `tiktok`…); un rol
+  opera sus canales (`rol_canales`; `fn_canales_de_la_cuenta`, `fn_puede_canal`; el Líder, todos) y lo cambia el líder en Colaboradores ▸ Roles y accesos
+  (`components/RolesCanales.tsx` → RPC `guardar_canales_rol`, leído por `fn_canales_de_roles`). `page.tsx` lee `lib/canales-venta.ts`
+  (`getCanalesDeLaCuenta`) → `ApartadosPanel` (`CanalesDeApartados`) → `ApartarVista` (`CanalDelApartado`: «¿Por dónde se vende?» y «Cómo se entrega», solo si la
+  cuenta opera más que la tienda; reglas puras en `lib/canales-venta-reglas.ts`): la tienda sigue por `separar_prendas`; un canal online, por `separar_prendas_online`.
+  `buscar_separaciones` y `resumen_separaciones` solo traen los canales de la cuenta; `CanalChip` los marca en Entregar y Todos (filtro «Canal»); el detalle gana «Entrega»
+  y «Marcar enviado» (`marcar_separacion_enviada`). Un candado en la tabla (`fn_separacion_exige_su_canal`) cuida entregar/abonar/aplazar/liberar/devolver por id. Los motores del piso (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`) solo cuentan `ventas.canal = 'tienda'` (`20261104032000`); Análisis y el plan de compra cuentan todo.
   **Redondeo del efectivo al entregar (ADR-0311, actividad 6):** `page.tsx` lee `fn_acepta_redondeo_efectivo` (la misma bandera de Vender) →
   `ApartadosPanel` → `EntregarVista`: con la bandera, el efectivo del SALDO se cobra al múltiplo de S/ 0.10, hacia abajo
   (`cobroDelSaldo(pagos, saldo, redondear)` y `pagosParaRpcApartado(pagos, redondear)` en `lib/separaciones-reglas.ts`, sobre

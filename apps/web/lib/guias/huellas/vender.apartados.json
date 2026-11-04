@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 171,
+  "total": 180,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -80,6 +80,11 @@
       "ComboResponsable «{responsable}»",
       "button «{cajaAbierta ? (responsable.motivo ?? undefined) : undefined}»"
     ],
+    "components/apartados/CanalDelApartado.tsx": [
+      "SegmentoDeslizante «¿Por dónde se vende?»",
+      "SegmentoDeslizante «Cómo se entrega»",
+      "input «Dirección y agencia de envío»"
+    ],
     "components/apartados/DescuentoApartado.tsx": [
       "SegmentoDeslizante «Cómo escribir el descuento»",
       "button «{porMonto ? `S/${v}»",
@@ -95,6 +100,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/apartados/DetalleApartado.tsx": [
+      "button «apartados.marcar-enviado»",
       "Boton «{aplazar.bloqueo ?? undefined}»",
       "Boton «Registrar abono»",
       "Boton «Entregar»",
@@ -103,7 +109,11 @@
       "CampoFecha «Recoge hasta el»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»",
+      "input «Olva Courier · guía 998877»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{guia.frase ?? undefined}» #2"
     ],
     "components/apartados/EntregarVista.tsx": [
       "button «Otro cliente»",
@@ -177,6 +187,7 @@
       "button «{cajaAbierta ? undefined : \"Abre la caja para cobrar el adelanto.\"}»",
       "button «{pe.direccion === \"me_piden\" ? \"No la tenemos\" : \"Cancelar\"}»",
       "button «{f.etiqueta}»",
+      "DesplegablePildora «Canal»",
       "button «Qué ver»",
       "Casilla «{`Ver ${c.etiqueta}»",
       "button «Lo de fábrica»",

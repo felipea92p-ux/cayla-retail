@@ -1,21 +1,21 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 960 llamadas `.rpc` de `apps/web` contra 1813 funciones del schema `retail` en producción: 606 con los parámetros leídos (se comparan uno por uno), 74 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 280 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-10-29 17:37 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 973 llamadas `.rpc` de `apps/web` contra 1931 funciones del schema `retail` en producción: 616 con los parámetros leídos (se comparan uno por uno), 77 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 280 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-11-04 10:12 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
 
 > **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en `funciones-produccion.txt`, tomada en la fecha
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
-> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (1262 en la
+> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (1341 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 372 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 890 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 397 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 944 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
-## Llamadas sin respaldo en la foto de producción — 16
+## Llamadas sin respaldo en la foto de producción — 1
 
 Cada entrada es una llamada que **la foto no respalda**: la función no aparece, o la app manda un parámetro que la foto no
 tiene. **No es lo mismo que «pantalla rota»**: una función creada o cambiada después de la foto sale aquí aunque en
@@ -28,116 +28,11 @@ select proname from pg_proc where pronamespace = 'retail'::regnamespace and pron
 Si la foto está vieja, refrescarla (`docs/datos/generado/COMO-REFRESCAR.md`). Si la entrada trae «Migración que la crea», esa
 migración define la función: se pegó en producción después de la foto, o todavía no se ha pegado.
 
-### `fn_pedidos_web_push_reclamar` — no está en la foto
-
-- **Dónde:** `apps/web/app/api/pedidos-web/avisar/route.ts:51`
-- **Qué pasa:** la función `fn_pedidos_web_push_reclamar` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261030150000_pedidos_web_push_aparatos.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_pedidos_web_push_quitar_aparato` — no está en la foto
-
-- **Dónde:** `apps/web/app/api/pedidos-web/avisar/route.ts:59`
-- **Qué pasa:** la función `fn_pedidos_web_push_quitar_aparato` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261030150000_pedidos_web_push_aparatos.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_pedidos_web_push_marcar_enviado` — no está en la foto
-
-- **Dónde:** `apps/web/app/api/pedidos-web/avisar/route.ts:71`
-- **Qué pasa:** la función `fn_pedidos_web_push_marcar_enviado` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261030150000_pedidos_web_push_aparatos.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `guardar_propuesta_sire_api` — no está en la foto
-
-- **Dónde:** `apps/web/app/api/sire/propuesta/route.ts:58`
-- **Qué pasa:** la función `guardar_propuesta_sire_api` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261102204000_sire_propuesta_api.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `campanas_firma` — no está en la foto
-
-- **Dónde:** `apps/web/components/PreciosEnVivo.tsx:66`
-- **Qué pasa:** la función `campanas_firma` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261030223000_campanas_firma.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `deshacer_resolucion_sire` — no está en la foto
-
-- **Dónde:** `apps/web/components/finanzas/ResolverDiferenciaSireModal.tsx:42`
-- **Qué pasa:** la función `deshacer_resolucion_sire` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261102203000_sire_resoluciones.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `resolver_diferencia_sire` — no está en la foto
-
-- **Dónde:** `apps/web/components/finanzas/ResolverDiferenciaSireModal.tsx:43`
-- **Qué pasa:** la función `resolver_diferencia_sire` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261102203000_sire_resoluciones.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `guardar_propuesta_sire` — no está en la foto
-
-- **Dónde:** `apps/web/components/finanzas/SubirPropuestaSireModal.tsx:73`
-- **Qué pasa:** la función `guardar_propuesta_sire` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261102202000_sire_propuestas.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_saldos_por_cuenta` — no está en la foto
-
-- **Dónde:** `apps/web/lib/contador.ts:32`
-- **Qué pasa:** la función `fn_saldos_por_cuenta` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261031120000_estados_financieros_saldos_por_cuenta.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_patrimonio_cambios` — no está en la foto
-
-- **Dónde:** `apps/web/lib/estados-financieros.ts:30`
-- **Qué pasa:** la función `fn_patrimonio_cambios` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261030235100_estados_financieros_cambios_en_el_patrimonio.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_telas_cortadas_sin_anotar` — no está en la foto
-
-- **Dónde:** `apps/web/lib/insumos.ts:400`
-- **Qué pasa:** la función `fn_telas_cortadas_sin_anotar` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261031173000_produccion_telas_cortadas_sin_anotar.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_sustento_costos` — no está en la foto
-
-- **Dónde:** `apps/web/lib/renta-anual.ts:21`
-- **Qué pasa:** la función `fn_sustento_costos` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261102055000_sustento_del_costo.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_sire_propuesta` — no está en la foto
-
-- **Dónde:** `apps/web/lib/sire.ts:21`
-- **Qué pasa:** la función `fn_sire_propuesta` no está en la foto de producción (2026-10-29 17:37 UTC)
-- **Migración que la crea:** `supabase/migrations/20261102203000_sire_resoluciones.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
 ### `recibir_insumo_comprado` — no está en la foto
 
 - **Dónde:** `apps/web/components/InsumoModales.tsx:110`
-- **Qué pasa:** la función `recibir_insumo_comprado` no está en la foto de producción (2026-10-29 17:37 UTC); sus parámetros no se pudieron leer
+- **Qué pasa:** la función `recibir_insumo_comprado` no está en la foto de producción (2026-11-04 10:12 UTC); sus parámetros no se pudieron leer
 - **Migración que la crea:** `supabase/migrations/20261102235000_insumo_compra_con_deuda.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `cerrar_produccion_con_motivo` — no está en la foto
-
-- **Dónde:** `apps/web/components/OrdenCierre.tsx:98`
-- **Qué pasa:** la función `cerrar_produccion_con_motivo` no está en la foto de producción (2026-10-29 17:37 UTC); sus parámetros no se pudieron leer
-- **Migración que la crea:** `supabase/migrations/20261102211000_costo_atipico_con_motivo.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
-
-### `fn_gastos_no_emiten` — no está en la foto
-
-- **Dónde:** `apps/web/lib/gastos.ts:106`
-- **Qué pasa:** la función `fn_gastos_no_emiten` no está en la foto de producción (2026-10-29 17:37 UTC); sus parámetros no se pudieron leer
-- **Migración que la crea:** `supabase/migrations/20261031155000_gastos_no_emite_comprobante.sql` (se pegó después de la foto, o todavía no)
 - **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
 
 ## Sobrecargas — 0
@@ -158,8 +53,8 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:236` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `fn_actividad` · `apps/web/components/actividad/ListaActividad.tsx:45` — no manda `p_hasta` (normal si tienen valor por defecto)
 - `registrar_proveedor` · `apps/web/components/alta-producto/NuevaMarcaForm.tsx:228` — no manda `p_contacto`, `p_rubros`, `p_plazo_credito_dias`, `p_forma_pago_preferida`, `p_telefono`, `p_banco`, `p_cuenta_bancaria` (normal si tienen valor por defecto)
-- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:650` — no manda `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
-- `buscar_separaciones` · `apps/web/components/apartados/TodosVista.tsx:146` — no manda `p_texto`, `p_estados` (normal si tienen valor por defecto)
+- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:670` — no manda `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
+- `buscar_separaciones` · `apps/web/components/apartados/TodosVista.tsx:152` — no manda `p_texto`, `p_estados` (normal si tienen valor por defecto)
 - `censo_crear_variante` · `apps/web/components/conteo/AltaAlVuelo.tsx:96` — no manda `p_costo`, `p_precio` (normal si tienen valor por defecto)
 - `fn_presupuesto_propuesta` · `apps/web/components/finanzas/ConfiguracionPresupuesto.tsx:116` — no manda `p_hoy` (normal si tienen valor por defecto)
 - `confirmar_pedido_web` · `apps/web/components/pedidos-web/PedidoWebHoja.tsx:214` — no manda `p_horas_para_confirmar` (normal si tienen valor por defecto)
@@ -188,15 +83,15 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `fn_estado_resultados` · `apps/web/lib/resultados.ts:26` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `fn_campanas_reporte` · `apps/web/lib/resultados.ts:50` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `fn_resumen_variantes_json` · `apps/web/lib/resumen-inventario.ts:31` — no manda `p_cmp_desde`, `p_cmp_hasta` (normal si tienen valor por defecto)
-- `crear_rol` · `apps/web/lib/roles-acciones.ts:33` — no manda `p_descripcion` (normal si tienen valor por defecto)
+- `crear_rol` · `apps/web/lib/roles-acciones.ts:35` — no manda `p_descripcion` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:54` — no manda `p_texto`, `p_estados`, `p_hasta` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:56` — no manda `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:70` — no manda `p_texto`, `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:251` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 617
+## No analizadas — 620
 
-Estas 617 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
+Estas 620 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
 arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un `.rpc("…")` directo (un ternario, un
 ayudante, una constante), o usan `.rpc` como valor (`.bind`, `const { rpc } = x`). No se pueden revisar leyendo el texto.
 **No están aprobadas: están sin revisar.** Una llamada directa o de un ternario a una función que la foto no tiene también está arriba,
@@ -263,8 +158,10 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/components/ResolverDanadosModal.tsx:445` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:60` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/analisis/HojaLiquidarDesde.tsx:59` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:611` — el objeto se arma con «...», no se puede leer entero
-- `entregar_separacion` · `apps/web/components/apartados/EntregarVista.tsx:133` — el objeto se arma con «...», no se puede leer entero
+- `separar_prendas_online` · `apps/web/components/apartados/ApartarVista.tsx:630` — el objeto se arma con «...», no se puede leer entero
+- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:631` — el objeto se arma con «...», no se puede leer entero
+- `marcar_separacion_enviada` · `apps/web/components/apartados/DetalleApartado.tsx:592` — el objeto se arma con «...», no se puede leer entero
+- `entregar_separacion` · `apps/web/components/apartados/EntregarVista.tsx:134` — el objeto se arma con «...», no se puede leer entero
 - `abonar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:660` — el objeto se arma con «...», no se puede leer entero
 - `editar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:855` — el objeto se arma con «...», no se puede leer entero
 - `enviar_pedido_para_apartar` · `apps/web/components/apartados/ModalesApartado.tsx:1172` — el objeto se arma con «...», no se puede leer entero
@@ -562,7 +459,8 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/lib/revisar-compras-acciones.ts:19` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/revisar-compras-acciones.ts:26` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/revisar-compras.ts:21` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `asignar_rol` · `apps/web/lib/roles-acciones.ts:62` — los parámetros no van escritos ahí mismo
+- `guardar_canales_rol` · `apps/web/lib/roles-acciones.ts:52` — el objeto se arma con «...», no se puede leer entero
+- `asignar_rol` · `apps/web/lib/roles-acciones.ts:75` — los parámetros no van escritos ahí mismo
 - `(nombre calculado)` · `apps/web/lib/rpc-por-paginas.ts:31` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/tarifas-servicios.ts:14` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/tarifas-servicios.ts:25` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -576,7 +474,7 @@ foto ni ninguna migración del repo conocen.
 - `fn_impuestos_registro_ventas` · `apps/web/components/ImpuestosPanel.tsx:91` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_impuestos_registro_compras` · `apps/web/components/ImpuestosPanel.tsx:93` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `abrir_orden_produccion` · `apps/web/components/NuevaOrdenProduccionForm.tsx:148` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `guardar_proceso_modelo` · `apps/web/components/NuevaOrdenProduccionForm.tsx:151` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `guardar_proceso_modelo` · `apps/web/components/NuevaOrdenProduccionForm.tsx:151` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `cerrar_periodo` · `apps/web/components/finanzas/CierreMes.tsx:300` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `reabrir_periodo` · `apps/web/components/finanzas/CierreMes.tsx:377` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_diario` · `apps/web/components/finanzas/EstadoResultadosPanel.tsx:282` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -585,11 +483,11 @@ foto ni ninguna migración del repo conocen.
 - `pagar_deuda_fondo` · `apps/web/components/fondos/AccionesFondos.tsx:677` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `rendir_fondo` · `apps/web/components/fondos/RendirFondo.tsx:124` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `anotar_plata_compras` · `apps/web/components/mi-plata/AnotarPlata.tsx:86` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `agregar_variantes_a_modelo` · `apps/web/components/orden-produccion/useAgregarVariantes.ts:15` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031172000_produccion_agregar_variantes_al_modelo.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `agregar_variantes_a_modelo` · `apps/web/components/orden-produccion/useAgregarVariantes.ts:15` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `registrar_gasto_viaje` · `apps/web/components/ordenes-compra/GastoDelViaje.tsx:118` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `fn_pedidos_web_push_estado` · `apps/web/components/pedidos-web/AvisosCelularHoja.tsx:83` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030150000_pedidos_web_push_aparatos.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `pedidos_web_push_activar` · `apps/web/components/pedidos-web/AvisosCelularHoja.tsx:120` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030150000_pedidos_web_push_aparatos.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `pedidos_web_push_apagar` · `apps/web/components/pedidos-web/AvisosCelularHoja.tsx:149` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030150000_pedidos_web_push_aparatos.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `fn_pedidos_web_push_estado` · `apps/web/components/pedidos-web/AvisosCelularHoja.tsx:83` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `pedidos_web_push_activar` · `apps/web/components/pedidos-web/AvisosCelularHoja.tsx:120` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `pedidos_web_push_apagar` · `apps/web/components/pedidos-web/AvisosCelularHoja.tsx:149` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_liquidar_desde` · `apps/web/lib/analisis-liquidar-reglas.ts:15` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `guardar_liquidar_desde` · `apps/web/lib/analisis-liquidar-reglas.ts:16` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_analisis_por_llegar` · `apps/web/lib/analisis-por-llegar-lectura.ts:12` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -636,19 +534,19 @@ foto ni ninguna migración del repo conocen.
 - `anular_movimiento_fondo` · `apps/web/lib/fondos-reglas.ts:22` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_mi_fondo` · `apps/web/lib/fondos-reglas.ts:23` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_mi_fondo_resumen` · `apps/web/lib/fondos-reglas.ts:24` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `agregar_comprobante_a_gasto` · `apps/web/lib/gastos-comprobante-tardio-reglas.ts:12` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031154000_gastos_llego_el_comprobante.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `corregir_gasto` · `apps/web/lib/gastos-corregir-reglas.ts:8` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031151000_gastos_corregir_categoria_y_que_fue.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `fn_correcciones_de_gasto` · `apps/web/lib/gastos-corregir-reglas.ts:9` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031151000_gastos_corregir_categoria_y_que_fue.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `marcar_gasto_no_emite` · `apps/web/lib/gastos-no-emite-reglas.ts:5` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031155000_gastos_no_emite_comprobante.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `agregar_comprobante_a_gasto` · `apps/web/lib/gastos-comprobante-tardio-reglas.ts:12` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `corregir_gasto` · `apps/web/lib/gastos-corregir-reglas.ts:8` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_correcciones_de_gasto` · `apps/web/lib/gastos-corregir-reglas.ts:9` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `marcar_gasto_no_emite` · `apps/web/lib/gastos-no-emite-reglas.ts:5` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_gastos_viaje_de_orden` · `apps/web/lib/gastos-viaje-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_gastos_viaje_ordenes` · `apps/web/lib/gastos-viaje-reglas.ts:15` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_gastos_lista` · `apps/web/lib/gastos.ts:102` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `transferir` · `apps/web/lib/guias/reglas.ts:23` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20260917100700_movimientos_respetan_restriccion_sede.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
 - `fn_igv_en_espera` · `apps/web/lib/igv-en-espera-reglas.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `corregir_ingreso_insumo` · `apps/web/lib/ingreso-insumo-reglas.ts:14` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030134000_insumos_corregir_y_eliminar_ingreso.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `eliminar_ingreso_insumo` · `apps/web/lib/ingreso-insumo-reglas.ts:15` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030134000_insumos_corregir_y_eliminar_ingreso.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `restaurar_ingreso_insumo` · `apps/web/lib/ingreso-insumo-reglas.ts:16` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030134000_insumos_corregir_y_eliminar_ingreso.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `fn_ingresos_eliminados` · `apps/web/lib/ingreso-insumo-reglas.ts:17` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030134000_insumos_corregir_y_eliminar_ingreso.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `corregir_ingreso_insumo` · `apps/web/lib/ingreso-insumo-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `eliminar_ingreso_insumo` · `apps/web/lib/ingreso-insumo-reglas.ts:15` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `restaurar_ingreso_insumo` · `apps/web/lib/ingreso-insumo-reglas.ts:16` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_ingresos_eliminados` · `apps/web/lib/ingreso-insumo-reglas.ts:17` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_mi_plata_compras` · `apps/web/lib/mi-plata-reglas.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_plata_por_confirmar` · `apps/web/lib/mi-plata-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `confirmar_plata_compras` · `apps/web/lib/mi-plata-reglas.ts:16` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -669,32 +567,32 @@ foto ni ninguna migración del repo conocen.
 - `registrar_deposito_deuda` · `apps/web/lib/nos-debe-reglas.ts:819` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `registrar_observacion_envio` · `apps/web/lib/observaciones-envio-reglas.ts:4` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_envio_observaciones` · `apps/web/lib/observaciones-envio-reglas.ts:5` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `fn_procesos_produccion` · `apps/web/lib/orden-fases-reglas.ts:86` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `fn_procesos_produccion` · `apps/web/lib/orden-fases-reglas.ts:86` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_orden_produccion` · `apps/web/lib/orden-pagina-reglas.ts:25` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_tela_pendiente_de_la_orden` · `apps/web/lib/orden-pagina-reglas.ts:26` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `cambiar_quien_fase` · `apps/web/lib/orden-pagina-reglas.ts:27` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `dejar_fase_pendiente_de_registrar` · `apps/web/lib/orden-pagina-reglas.ts:29` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `registrar_proveedor_de_fase` · `apps/web/lib/orden-pagina-reglas.ts:30` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `quitar_paso_orden` · `apps/web/lib/orden-pagina-reglas.ts:31` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `agregar_paso_orden` · `apps/web/lib/orden-pagina-reglas.ts:33` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029051000_produccion_agregar_paso_a_la_orden.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `agregar_paso_tarde` · `apps/web/lib/orden-pagina-reglas.ts:35` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031002000_produccion_agregar_paso_tarde.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `agregar_paso_orden` · `apps/web/lib/orden-pagina-reglas.ts:33` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `agregar_paso_tarde` · `apps/web/lib/orden-pagina-reglas.ts:35` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `marcar_fase_hecha` · `apps/web/lib/orden-pagina-reglas.ts:36` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `registrar_salida_con_tela` · `apps/web/lib/orden-pagina-reglas.ts:38` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031014000_produccion_corte_con_su_tela_todo_o_nada.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `registrar_salida_con_tela` · `apps/web/lib/orden-pagina-reglas.ts:38` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `registrar_vuelta` · `apps/web/lib/orden-pagina-reglas.ts:39` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `anular_salida` · `apps/web/lib/orden-pagina-reglas.ts:40` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `anular_vuelta` · `apps/web/lib/orden-pagina-reglas.ts:41` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `marcar_orden_ya_en_stock` · `apps/web/lib/orden-pagina-reglas.ts:46` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031171000_produccion_cierre_ya_estaba_en_stock.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `marcar_orden_ya_en_stock` · `apps/web/lib/orden-pagina-reglas.ts:46` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `guardar_insumos_orden` · `apps/web/lib/orden-pagina-reglas.ts:49` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `anotar_termine_con_tela` · `apps/web/lib/orden-pagina-reglas.ts:1458` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031014000_produccion_corte_con_su_tela_todo_o_nada.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `deshacer_termine` · `apps/web/lib/orden-pagina-reglas.ts:1459` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031014000_produccion_corte_con_su_tela_todo_o_nada.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `corregir_anotacion_orden` · `apps/web/lib/orden-pagina-reglas.ts:1611` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029173000_produccion_corregir_y_eliminar_con_historia.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `eliminar_anotacion_orden` · `apps/web/lib/orden-pagina-reglas.ts:1612` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029173000_produccion_corregir_y_eliminar_con_historia.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `restaurar_anotacion_orden` · `apps/web/lib/orden-pagina-reglas.ts:1613` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029173000_produccion_corregir_y_eliminar_con_historia.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `comentar_orden` · `apps/web/lib/orden-pagina-reglas.ts:1614` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029173000_produccion_corregir_y_eliminar_con_historia.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `permitir_pasar_sin_tela` · `apps/web/lib/orden-pagina-reglas.ts:1616` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029190000_produccion_tela_al_cortar.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `anotar_insumos_de_la_orden` · `apps/web/lib/orden-tela-usada-reglas.ts:21` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261031014000_produccion_corte_con_su_tela_todo_o_nada.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `encontre_tela` · `apps/web/lib/orden-tela-usada-reglas.ts:22` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029190000_produccion_tela_al_cortar.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `cambiar_tipo_orden_produccion` · `apps/web/lib/orden-tipo-reglas.ts:14` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261030151000_produccion_cambiar_tipo_de_la_orden.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `anotar_termine_con_tela` · `apps/web/lib/orden-pagina-reglas.ts:1458` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `deshacer_termine` · `apps/web/lib/orden-pagina-reglas.ts:1459` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `corregir_anotacion_orden` · `apps/web/lib/orden-pagina-reglas.ts:1611` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `eliminar_anotacion_orden` · `apps/web/lib/orden-pagina-reglas.ts:1612` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `restaurar_anotacion_orden` · `apps/web/lib/orden-pagina-reglas.ts:1613` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `comentar_orden` · `apps/web/lib/orden-pagina-reglas.ts:1614` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `permitir_pasar_sin_tela` · `apps/web/lib/orden-pagina-reglas.ts:1616` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `anotar_insumos_de_la_orden` · `apps/web/lib/orden-tela-usada-reglas.ts:21` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `encontre_tela` · `apps/web/lib/orden-tela-usada-reglas.ts:22` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `cambiar_tipo_orden_produccion` · `apps/web/lib/orden-tipo-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_ordenes_compra` · `apps/web/lib/ordenes-compra-reglas.ts:11` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_ordenes_compra_siguiente` · `apps/web/lib/ordenes-compra-reglas.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_orden_compra` · `apps/web/lib/ordenes-compra-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -762,9 +660,9 @@ foto ni ninguna migración del repo conocen.
 - `guardar_plan_compra_version` · `apps/web/lib/plan-compra-versiones.ts:18` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `usar_plan_compra_con_tope` · `apps/web/lib/plan-compra-versiones.ts:19` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `restaurar_plan_compra_version` · `apps/web/lib/plan-compra-versiones.ts:20` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `guardar_proceso_produccion` · `apps/web/lib/procesos-reglas.ts:13` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `guardar_proceso_produccion` · `apps/web/lib/procesos-reglas.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_nueva_orden_opciones` · `apps/web/lib/produccion.ts:310` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `fn_procesos_de_modelos` · `apps/web/lib/produccion.ts:312` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `fn_procesos_de_modelos` · `apps/web/lib/produccion.ts:312` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_envio_conteos` · `apps/web/lib/recepcion-conteo-reglas.ts:40` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_recepcion_pendientes` · `apps/web/lib/recepcion-conteo-reglas.ts:41` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `guardar_conteo_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:43` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -776,9 +674,9 @@ foto ni ninguna migración del repo conocen.
 - `resolver_pendiente_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:52` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `ligar_prenda_a_pendiente` · `apps/web/lib/recepcion-conteo-reglas.ts:54` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `reabrir_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:55` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `cancelar_recepcion_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:57` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261103173000_cancelar_recepcion_sin_aviso.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `fn_costos_de_hoy` · `apps/web/lib/recepcion-conteo-reglas.ts:58` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261103222000_costo_fuera_de_lo_normal_sin_aviso.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `corregir_proveedor_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:59` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261104001000_corregir_proveedor_de_envio_sin_aviso.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `cancelar_recepcion_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:57` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_costos_de_hoy` · `apps/web/lib/recepcion-conteo-reglas.ts:58` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `corregir_proveedor_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:59` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `abrir_envio_sin_aviso` · `apps/web/lib/recepcion-conteo-reglas.ts:60` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `poner_proveedor_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:62` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `corregir_guia_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:64` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -787,17 +685,17 @@ foto ni ninguna migración del repo conocen.
 - `fn_envios_por_abrir` · `apps/web/lib/recepcion-envio-reglas.ts:38` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_ordenes_directas_por_recibir` · `apps/web/lib/recepcion-envio-reglas.ts:39` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_prendas_para_recibir` · `apps/web/lib/recepcion-envio-reglas.ts:40` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `fn_parecidas_para_recibir` · `apps/web/lib/recepcion-envio-reglas.ts:41` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261104002000_parecidas_al_recibir_en_todas_las_marcas.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `fn_parecidas_para_recibir` · `apps/web/lib/recepcion-envio-reglas.ts:41` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `abrir_despacho` · `apps/web/lib/recepcion-envio-reglas.ts:43` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `recibir_orden_sin_envio` · `apps/web/lib/recepcion-envio-reglas.ts:44` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `preparar_prenda_al_recibir` · `apps/web/lib/recepcion-envio-reglas.ts:45` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `recibir_despacho` · `apps/web/lib/recepcion-envio-reglas.ts:46` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_ordenes_insumo_por_recibir` · `apps/web/lib/recepcion-orden-insumo-reglas.ts:36` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `recibir_orden_insumo` · `apps/web/lib/recepcion-orden-insumo-reglas.ts:37` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `llevar_al_stock_ahora` · `apps/web/lib/recepcion-salida-reglas.ts:6` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261104005000_salida_anticipada_de_un_modelo.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `corregir_salida` · `apps/web/lib/recepcion-salida-reglas.ts:7` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261104005000_salida_anticipada_de_un_modelo.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `fn_salidas_del_envio` · `apps/web/lib/recepcion-salida-reglas.ts:8` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261104005000_salida_anticipada_de_un_modelo.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
-- `fn_envios_a_medias` · `apps/web/lib/recepcion-salida-reglas.ts:93` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20261104005000_salida_anticipada_de_un_modelo.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
+- `llevar_al_stock_ahora` · `apps/web/lib/recepcion-salida-reglas.ts:6` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `corregir_salida` · `apps/web/lib/recepcion-salida-reglas.ts:7` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_salidas_del_envio` · `apps/web/lib/recepcion-salida-reglas.ts:8` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_envios_a_medias` · `apps/web/lib/recepcion-salida-reglas.ts:93` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_mi_fondo_rendicion` · `apps/web/lib/rendicion-reglas.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_mi_ciclo_fondo` · `apps/web/lib/rendicion-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `aprobar_rendicion_fondo` · `apps/web/lib/rendicion-reglas.ts:16` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -821,7 +719,7 @@ foto ni ninguna migración del repo conocen.
 - `fn_tela_en_camino` · `apps/web/lib/tela-del-taller-reglas.ts:70` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:16` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 163
+## Funciones sin llamada detectada desde `apps/web` — 164
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -849,6 +747,7 @@ select p.proname from pg_proc p
 - `agregar_colaborador`
 - `agregar_comprador_de_tienda`
 - `agregar_terminal`
+- `anotar_termine`
 - `apartar_prenda`
 - `apartar_stock`
 - `archivar_caja_prueba`
@@ -871,7 +770,7 @@ select p.proname from pg_proc p
 - `crear_invitacion_club`
 - `crear_pedido_web`
 - `deshacer_avance`
-- `deshacer_marca_fase`
+- `deshacer_falla`
 - `emitir_comprobante`
 - `emitir_nota`
 - `extender_separacion`

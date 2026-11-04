@@ -7,6 +7,7 @@ import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede, nombreCortoSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
+import { getCanalesDeLaCuenta } from "@/lib/canales-venta";
 import { hoyLima } from "@/lib/fechas-lima";
 import { PERIODO_DE_FABRICA, rangoDelPeriodo } from "@/lib/historial-apartados-reglas";
 import { createClient } from "@/lib/supabase/server";
@@ -43,7 +44,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   }
 
   const supabase = await createClient();
-  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede] = await Promise.all([
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede, canales] = await Promise.all([
     // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
     getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
     // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
@@ -60,6 +61,8 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     supabase.rpc("fn_acepta_redondeo_efectivo"),
     // Precio propio de esta tienda (Felipe 2026-10-09): el apartado se separa a ese precio (`separar_prendas`).
     getPreciosPorSede([persona.ubicacionId]),
+    // ADR-0607: los canales que opera esta cuenta; con solo la tienda, Apartar queda como siempre.
+    getCanalesDeLaCuenta(),
   ]);
   const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
 
@@ -130,6 +133,7 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
         esLider={persona.rol === "lider"}
         lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
         redondeoEfectivo={resRedondeo.data === true}
+        canales={canales}
       />
     </TrabajoPorSede>
   );

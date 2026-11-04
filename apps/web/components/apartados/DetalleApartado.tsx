@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useReducer, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Bookmark, CalendarClock, MessageCircle, ShoppingBag, Undo2, Unlock, Wallet } from "lucide-react";
+import { Archive, Bookmark, CalendarClock, MapPin, MessageCircle, ShoppingBag, Truck, Undo2, Unlock, Wallet } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { Modal } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton } from "@/components/ui/campos";
+import { Boton, Campo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -17,6 +17,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { DescuentoDePrenda, EstadoChip, FotoPrenda, ImporteDePrenda, fechaCorta } from "@/components/apartados/piezas";
+import { CanalChip, esDeCanalOnline } from "@/components/apartados/CanalChip";
 import { AbonarFormulario, type UbicacionApartado } from "@/components/apartados/ModalesApartado";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
@@ -103,7 +104,7 @@ export function DetalleApartadoModal({
   const detalle = lectura?.detalle ?? null;
   const leyendo = lectura?.clave !== clave;
 
-  const titulo = modo === "abonar" ? "Registrar abono" : modo === "aplazar" ? "Aplazar el apartado" : `${a.nombres} ${a.apellidos}`;
+  const titulo = modo === "abonar" ? "Registrar abono" : modo === "aplazar" ? "Aplazar el apartado" : modo === "enviar" ? "Marcar como enviado" : `${a.nombres} ${a.apellidos}`;
   const subtitulo =
     modo === "ver"
       ? [a.codigo, a.celular && formatoCelular(a.celular), a.dni && `DNI ${a.dni}`].filter(Boolean).join(" · ")
@@ -117,6 +118,7 @@ export function DetalleApartadoModal({
         if (modo === "abonar")
           return <AbonarFormulario apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onListo={volver} onCancelar={volver} onOcupado={setOcupado} />;
         if (modo === "aplazar") return <AplazarFormulario apartado={a} ubicacion={ubicacion} hoy={hoy} onListo={volver} onCancelar={volver} onOcupado={setOcupado} />;
+        if (modo === "enviar") return <EnviarFormulario apartado={a} ubicacion={ubicacion} onListo={volver} onCancelar={volver} onOcupado={setOcupado} />;
         return (
           <VistaDetalle
             a={a}
@@ -130,6 +132,7 @@ export function DetalleApartadoModal({
             prendas={prendas}
             onAbonar={() => setModo("abonar")}
             onAplazar={() => setModo("aplazar")}
+            onEnviar={() => setModo("enviar")}
             onEntregar={() => onEntregar(a.id)}
           />
         );
@@ -150,6 +153,7 @@ function VistaDetalle({
   prendas,
   onAbonar,
   onAplazar,
+  onEnviar,
   onEntregar,
 }: {
   a: Apartado;
@@ -163,6 +167,7 @@ function VistaDetalle({
   prendas: VarianteBusqueda[];
   onAbonar: () => void;
   onAplazar: () => void;
+  onEnviar: () => void;
   onEntregar: () => void;
 }) {
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
@@ -211,6 +216,37 @@ function VistaDetalle({
           </p>
         )}
       </section>
+
+      {/* ADR-0607: la venta de un canal online dice por dónde se vendió y cómo se entrega (a dónde va, si es un envío). */}
+      {esDeCanalOnline(a) && (
+        <section className="space-y-2 rounded-2xl border border-sand p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <TituloSeccion nivel={3}>Entrega</TituloSeccion>
+            <CanalChip a={a} />
+          </div>
+          {a.modoEntrega === "envio" ? (
+            <>
+              <p className="flex items-start gap-1.5 text-sm text-tinta/85">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {a.direccionEnvio}
+              </p>
+              {a.enviadoEn ? (
+                <p className="text-sm text-tinta/60">
+                  Se envió el {fechaCorta(diaLima(a.enviadoEn))}
+                  {a.guiaEnvio ? ` · ${a.guiaEnvio}` : ""}.
+                </p>
+              ) : (
+                abierto && (
+                  <button type="button" onClick={onEnviar} data-guia="apartados.marcar-enviado" className="btn-cayla btn-secundario btn-chico">
+                    <Truck className="h-4 w-4" aria-hidden /> Marcar enviado
+                  </button>
+                )
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-tinta/70">La clienta lo recoge en la tienda.</p>
+          )}
+        </section>
+      )}
 
       <section>
         <TituloSeccion nivel={3} cuenta={a.prendas.length} className="mb-2">
@@ -515,6 +551,100 @@ function AplazarFormulario({
           className={guia.claseConfirmar}
         >
           {fecha && !motivo ? `Aplazar al ${fechaCorta(fecha)}` : "Aplazar"}
+        </Boton>
+      </PieAcciones>
+    </div>
+  );
+}
+
+/**
+ * «Marcar enviado» (ADR-0607): la prenda de un apartado por envío ya salió de la tienda. Guarda cuándo, quién y, si se tiene, la guía o la
+ * agencia. Es solo una marca: entregar —cobrar el saldo y emitir el comprobante— es otro paso. Repetirlo (doble toque, un reintento tras
+ * un corte) no cambia nada: la base devuelve la misma fecha.
+ */
+function EnviarFormulario({
+  apartado: a,
+  ubicacion,
+  onListo,
+  onCancelar,
+  onOcupado,
+}: {
+  apartado: Apartado;
+  ubicacion: UbicacionApartado;
+  onListo: () => void;
+  onCancelar: () => void;
+  onOcupado: (ocupado: boolean) => void;
+}) {
+  const router = useRouter();
+  const [texto, setTexto] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  useEffect(() => onOcupado(enviando), [enviando, onOcupado]);
+  const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
+  const guia = useGuiaCampos([
+    { id: "guia", nombre: "Guía o agencia", requerido: false, hecho: texto.trim() !== "", pendiente: "" },
+    { id: "responsable", nombre: "Quién atiende", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién está atendiendo." },
+  ]);
+
+  async function enviar() {
+    if (!responsable.listo || enviando) return;
+    setEnviando(true);
+    const { error } = await firmar(
+      createClient().rpc("marcar_separacion_enviada", { p_separacion_id: a.id, ...(texto.trim() ? { p_guia: texto.trim() } : {}) }),
+      responsable.firma(),
+    );
+    setEnviando(false);
+    responsable.despues(error);
+    if (error) {
+      avisar.error(traducirError(error, "marcar el envío"));
+      // Pudo guardarse y perderse la respuesta: repetirlo es seguro (la base devuelve la misma fecha).
+      if (esFalloDeRed(error)) router.refresh();
+      return;
+    }
+    avisar.exito("Marcado como enviado", { detalle: `El apartado de ${a.nombres} figura como enviado. Al entregarlo se cobra el saldo.` });
+    router.refresh();
+    onListo();
+  }
+
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-tinta/80">
+        La prenda ya salió hacia <b className="font-semibold text-tinta">{a.direccionEnvio}</b>. Esto solo deja la marca de que se envió; cobrar el saldo y entregar se hace aparte.
+      </p>
+
+      <CampoGuiado id="guia" guia={guia}>
+        <Campo etiqueta="Guía o agencia (opcional)" sinPie>
+          <input
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            maxLength={120}
+            autoComplete="off"
+            // sugerir-fijo: la guía o la agencia no dependen de nada elegido antes
+            placeholder="Olva Courier · guía 998877"
+            className="caja-campo-input"
+          />
+        </Campo>
+      </CampoGuiado>
+
+      <CampoGuiado id="responsable" guia={guia}>
+        <ComboResponsable control={responsable} deshabilitado={enviando} />
+      </CampoGuiado>
+
+      <PieGuia guia={guia} />
+      <PieAcciones>
+        <Boton type="button" peso="fantasma" onClick={onCancelar} disabled={enviando}>
+          Cancelar
+        </Boton>
+        <Boton
+          type="button"
+          peso="primario"
+          cargando={enviando}
+          textoCargando="Marcando…"
+          disabled={!guia.puedeConfirmar}
+          title={guia.frase ?? undefined}
+          onClick={enviar}
+          className={guia.claseConfirmar}
+        >
+          Marcar enviado
         </Boton>
       </PieAcciones>
     </div>
