@@ -95,10 +95,16 @@ select va.id as sent from retail.variantes va join retail.productos p on p.id = 
 select referencia as n1 from retail.productos where id = :'p1' \\gset
 select referencia as n2 from retail.productos where id = :'p2' \\gset
 select referencia as n3 from retail.productos where id = :'p3' \\gset
-select (array_agg(id order by id))[1] as m1, (array_agg(id order by id))[2] as m2 from retail.marcas \\gset
+-- Las dos marcas son de la prueba: el seed trae UNA sola (CAYLA) y la base local de cada quien, las que tenga. No se supone ninguna.
+insert into retail.marcas (nombre) values ('Marca A de prueba (ranking)'), ('Marca B de prueba (ranking)');
+select id as m1 from retail.marcas where nombre = 'Marca A de prueba (ranking)' \\gset
+select id as m2 from retail.marcas where nombre = 'Marca B de prueba (ranking)' \\gset
 select talla_id as ta1, color_codigo as co1 from retail.variantes where id = :'a1' \\gset
+-- Con los disparadores y las llaves apagados un momento: la marca de un producto también debe ser de su proveedor (marca_proveedores) y aquí no se prueba eso.
+set local session_replication_role = replica;
 update retail.productos set marca_id = :'m1' where id in (:'p1', :'p2');
 update retail.productos set marca_id = :'m2' where id = :'p3';
+set local session_replication_role = origin;
 
 -- Cuentas: una de Trujillo CON el módulo en su rol y otra SIN
 insert into auth.users (id, aud, role, email) values

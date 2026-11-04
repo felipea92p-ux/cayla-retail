@@ -1,4 +1,4 @@
-import { NOMBRES_MES, mesDeParametro, paramDeMes, type Mes } from "./facturacion-reglas";
+import { NOMBRES_MES, mesDeParametro, type Mes } from "./facturacion-reglas";
 import { cambio } from "./reportes-ventas-reglas";
 
 // Ventas ▸ Reportes ▸ Ranking de prendas: las reglas, sin React ni base (maqueta docs/maquetas/reportes-ventas-2026-11/). Lo que dice la base
@@ -151,9 +151,6 @@ export function hrefRanking(f: FiltrosRanking, cambios: Partial<FiltrosRanking> 
   const qs = p.toString();
   return qs ? `/vender/reportes/ranking?${qs}` : "/vender/reportes/ranking";
 }
-
-/** El mes que pide la URL de «mes», con la forma de la URL (`2026-10`). */
-export const mesDeUrl = (m: Mes): string => paramDeMes(m);
 
 /* ---------- lo que dice la base ---------- */
 

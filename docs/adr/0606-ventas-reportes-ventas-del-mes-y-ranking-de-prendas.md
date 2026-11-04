@@ -1,6 +1,6 @@
 # ADR-0606 · Ventas ▸ Reportes: «Ventas del mes» y «Ranking de prendas»
 
-- **Fecha:** 2026-11-03 · **Estado:** construido y probado en local (pruebas de reglas, 46 + 28 casos de Postgres con datos inventados, recorrido de las guías en escritorio y a 375 px, claro y oscuro). Las **cinco migraciones `20261103224000` a `20261103235000` están SIN pegar en producción** (piden el OK de Felipe).
+- **Fecha:** 2026-11-03 · **Estado:** construido y probado en local (pruebas de reglas, 46 + 28 casos de Postgres con datos inventados, recorrido de las guías en escritorio y a 375 px, claro y oscuro). Las cinco migraciones `20261103224000` a `20261103235000` **se pegaron en producción el 2026-11-03** con el OK de Felipe, en orden, y se verificaron leyendo la base (existen, son INVOKER y estables, `anon` no ejecuta, el módulo no está en ningún rol).
 - **Decide:** Felipe, 2026-11-02/03: «al sistema le falta reportes, como reporte de venta mensual y ranking de prendas que más se venden, con sus filtros». Maqueta aprobada (`docs/maquetas/reportes-ventas-2026-11/`) y lugar elegido: «Apliquemos el reporte de ventas dentro del módulo de ventas». Lista de 7 actividades aprobada («Lo apruebo»).
 - **Toca:** ADR-0230 (Historial conectado: el CSV), ADR-0358 (una función, una pieza), ADR-0306 (un módulo es una entrada del menú), ADR-0377 (familias fuera de los motores), ADR-0389 (guías).
 
@@ -33,13 +33,13 @@ y no habla de modelos; Análisis ▸ Qué pedir mira solo hasta 30 días y es un
 
 ## Lo que nunca debe existir (y quién lo impide)
 
-- **Un ranking que no cuadre con las cifras.** Ranking + «sin registrar» = cifras de Ventas del mes: lo exigen las pruebas de Postgres y se comprobó en el banco (S/ 410.253 + 9.043 = 419.296).
+- **Un ranking que no cuadre con las cifras.** Ranking + «sin registrar» + lo que está fuera de los motores (las bolsas) = cifras de Ventas del mes: lo exigen las pruebas de Postgres, se comprobó en el banco (S/ 410.253 + 9.043 = 419.296, datos inventados) y en producción, leyendo un mes real, en prendas y en soles.
 - **Un reporte que vea lo que el rol no ve.** Cada función pregunta `fn_ve_modulo('reportes_ventas')` (42501) y es INVOKER; el `route.ts` de descarga repite la pregunta porque no pasa por el `layout.tsx`.
 - **Una tienda ajena por URL.** `alcanceDeReportes` ignora una tienda que la cuenta no puede elegir, igual en pantalla y en descarga.
 - **Una familia fuera de los motores contada como mercadería.** El ranking pregunta `fn_categoria_entra_a_motores`; la bolsa sí cuenta en las cifras de dinero (ADR-0377).
 
 ## Quedó abierto
 
-- **Pegar las cinco migraciones en producción** (orden: módulo, mes, series, cortes, ranking; cada una es un `create or replace` y permisos, sin tocar tablas en uso), y después, el módulo se le da a un rol desde Roles y accesos.
+- **Darle el módulo a un rol** desde Roles y accesos: hoy solo lo ve el líder.
 - **Rendimiento:** Felipe siente que «estorba». La recomendación fue retirarlo del menú conservando las reglas de metas; la decisión sigue abierta y es aparte.
 - **`/formidable` con colaboradoras reales** y comparación contra el año anterior, cuando haya datos.
