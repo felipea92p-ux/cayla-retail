@@ -45,14 +45,14 @@ export const GUIA_REPORTES_MES: Guia = {
     {
       id: "cifras",
       ancla: "reportes.cifras",
-      titulo: "Las cinco cifras",
-      texto: "Lo vendido, cuántas ventas fueron, lo que deja cada venta, cuántas prendas salieron y cuánto se devolvió. Cada una dice si subió o bajó contra los mismos días del mes pasado, para que la comparación sea justa.",
+      titulo: "Las cuatro cifras",
+      texto: "Lo vendido, cuántas ventas fueron, lo que deja cada venta, y cuántas prendas salieron. Cada una dice si subió o bajó contra los mismos días del mes pasado, para que la comparación sea justa.",
     },
     {
       id: "por-dia",
       ancla: "reportes.por-dia",
       titulo: "Qué días se vende más",
-      texto: "Una barra por día; la más alta es tu mejor día. La raya punteada es lo que se vendía en promedio cada día del mes pasado: las barras por encima de ella van mejor.",
+      texto: "Una barra por día; la más alta es tu mejor día. La raya punteada es el promedio diario: el del mes pasado si se puede comparar y, si no, el de este mes. Las barras por encima de ella van mejor.",
     },
     {
       id: "mes-a-mes",
