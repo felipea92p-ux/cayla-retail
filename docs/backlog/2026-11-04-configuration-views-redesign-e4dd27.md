@@ -2,9 +2,11 @@
 
 Hecho en la rama, sin PR: «Tiendas y caja» partida en «Metas» y «Empresa y tiendas».
 
-Pendiente, a la espera de lo que Felipe elija en `docs/maquetas/configuracion-vistas-2026-11/`:
+Felipe eligió las 5 pestañas y pidió mejorar las piezas: menos texto, nada muy pequeño, más visual. Se sigue vista por vista: primero Empresa y tiendas, con 3 direcciones en `docs/maquetas/empresa-tiendas-2026-11/`, que esperan su elección.
 
-- [ ] 5 pestañas o 8: juntar Cuentas + Caja y avisos en «Dinero», y Gastos fijos + Presupuesto + Reparto CLAURE en «Gastos».
+Pendiente, además de elegir, de la propuesta de `docs/maquetas/configuracion-vistas-2026-11/`:
+
+- [ ] Construir las 5 pestañas: juntar Cuentas + Caja y avisos en «Dinero», y Gastos fijos + Presupuesto + Reparto CLAURE en «Gastos».
 - [ ] «Cada sede»: una sola tabla con WhatsApp, hora de cierre, fondo de caja, asistente y carga inicial.
 - [ ] «Lo normal» como primera fila de la tabla de meses; Fechas especiales al lado o debajo.
 - [ ] Campañas: plegarlas o quitarlas (decisión de negocio: es la única forma de subir el fondo solo en una campaña).

@@ -27,4 +27,4 @@ Lo que hace cada casilla, las funciones de la base, quién ve qué, las hojas de
 
 ## Lo que decidió Felipe
 
-(pendiente)
+**5 pestañas** (2026-11-04). Y pidió mejorar todas las piezas: mucho texto innecesario y muy pequeño, que sea más visual y entendible. Se sigue vista por vista, empezando por `docs/maquetas/empresa-tiendas-2026-11/`. Campañas, plegada o quitada, sigue sin decidir.

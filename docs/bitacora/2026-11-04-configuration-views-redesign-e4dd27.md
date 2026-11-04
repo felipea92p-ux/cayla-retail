@@ -2,4 +2,4 @@
 
 - «Tiendas y caja» se partió en «Metas» (la de fábrica) y «Empresa y tiendas», con mes por mes de a una tienda, las campañas pasadas plegadas y los datos fiscales en lista y no en campos: de 4,3 pantallas y 160 controles a 2,3 y 1,8. Solo presentación (ADR-0195, act. de hoy). Verificado en el navegador a 1440, 1920 y 375, en claro y oscuro; guardar una casilla, la guía (38 pasos) y la auditoría de tema, en verde.
 - Maqueta de las 8 vistas en `docs/maquetas/configuracion-vistas-2026-11/`, con la propuesta de quedar en 5 pestañas y la lista de qué se quita, se junta o se muda, sacada de quién lee cada dato y del uso real en producción (lectura).
-- Espera a Felipe: elegir en la maqueta. Nada de lo que propone está construido.
+- Felipe eligió las 5 pestañas y pidió menos texto, nada muy pequeño y más visual. Tres direcciones de Empresa y tiendas, con movimiento, en `docs/maquetas/empresa-tiendas-2026-11/`; esperan su elección. Nada de esto está construido.
