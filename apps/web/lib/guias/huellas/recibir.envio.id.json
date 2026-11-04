@@ -94,9 +94,10 @@
       "button «recepcion.agregar»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
+      "input «{`Costo de ${nombre}»",
+      "button «{`${abiertaEsta ? \"Esconder\" : \"Cambiar\"}»",
       "Boton «Contarla»",
       "CampoTexto «¿Qué pasó exactamente?»",
-      "button «{`${abierta ? \"Esconder\" : \"Ver\"}»",
       "button «Empezar de cero»",
       "BotonVerMas «recepcion.plegadas»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
@@ -196,8 +197,7 @@
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
-      "CampoTexto «{`Precio de venta de ${nombre}»",
-      "CampoTexto «{`Costo de ${nombre}» #2"
+      "CampoTexto «{`Precio de venta de ${nombre}»"
     ],
     "components/recepcion-conteo/PrendaConCombinaciones.tsx": [
       "SegmentoDeslizante «{`Qué cifra editas en ${nombre}»",

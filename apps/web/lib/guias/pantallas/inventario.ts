@@ -1945,7 +1945,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría, primero las que piden algo: lo que dijeron, lo que contaste, lo que se puede vender y lo que queda para después. Si no cuadró, eliges qué pasó. «Precio y costo» abre los de cada fila. Lo que decidas se guarda en este navegador hasta cerrar. En la demo no escribimos.",
+      texto: "Una fila por modelo, primero los que piden algo: cuánto llegó y su costo. Si algo no cuadra, debajo te pregunta qué pasó. Lo raro, un costo o un precio distinto por talla, se abre con «Cambiar por talla».",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.

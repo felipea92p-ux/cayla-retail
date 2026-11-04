@@ -111,21 +111,6 @@
 /* La parada que falta: vidrio casi lleno (antes, papel), para que el tubo no se vea a través de ella. */
 .rc-tray-parada:not([data-hecha]) { background: color-mix(in srgb, var(--color-vidrio) 90%, transparent); }
 
-/* ---------- El Podio: cada barra es vidrio teñido; «Dijeron» (la referencia), vidrio claro que se oscurece hacia abajo ---------- */
-.rc-podio-barra {
-  --col: var(--color-tinta);
-  border: 1px solid var(--tubo-borde);
-  border-bottom: 0;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--col) var(--tubo-relleno-mezcla), var(--tubo-relleno-arriba)), var(--col) 70%);
-  box-shadow: var(--tubo-relleno-luz);
-}
-.rc-podio-col[data-clave="vender"] .rc-podio-barra { --col: var(--color-verde); }
-.rc-podio-col[data-clave="despues"] .rc-podio-barra { --col: var(--color-taupe); }
-.rc-podio-col[data-clave="dijeron"] .rc-podio-barra {
-  border-color: color-mix(in srgb, var(--color-borde-control) 50%, transparent);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 90%, transparent), color-mix(in srgb, var(--color-tinta) 14%, transparent));
-}
-
 @media (prefers-reduced-motion: reduce) {
   .rc-dial-luz { transition: none; animation: none; }
 }
