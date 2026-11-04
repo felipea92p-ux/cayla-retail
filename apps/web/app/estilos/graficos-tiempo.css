@@ -95,8 +95,13 @@
   .barras-tiempo-zona { position: relative; border-bottom: 1px solid var(--color-sand); }
   .barras-tiempo-columnas { position: absolute; inset: 0; display: grid; }
   .barras-tiempo-cero { position: absolute; left: 0; right: 0; border-top: 1px solid var(--color-sand); }
+  /* Los montos del eje (`ejes`): una raya punteada por monto y su valor en la columna de la izquierda, que la pieza reserva con su relleno. */
+  .barras-tiempo-eje-y { position: absolute; left: 0; right: 0; border-top: 1px dashed color-mix(in srgb, var(--color-tinta) 12%, transparent); pointer-events: none; /* contraste: no aplica — es la rejilla, no un texto */ }
+  .barras-tiempo-eje-y[data-cero] { border-top: 0; }
+  .barras-tiempo-eje-y > span { position: absolute; right: 100%; margin-right: 8px; translate: 0 -50%; white-space: nowrap; font-size: 10.5px; color: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
   .barras-tiempo-ref { position: absolute; left: 0; right: 0; z-index: 1; border-top: 2px dashed var(--color-taupe); pointer-events: none; }
-  .barras-tiempo-ref > span { position: absolute; right: 0; bottom: 3px; font-size: 10.5px; color: var(--color-taupe-profundo); }
+  /* El rótulo de la referencia lleva el color del fondo detrás: si cae sobre una barra, se sigue leyendo (maqueta de Reportes). */
+  .barras-tiempo-ref > span { position: absolute; right: 0; bottom: 3px; padding: 0 6px; border-radius: 6px; font-size: 10.5px; color: var(--color-taupe-profundo); background: color-mix(in srgb, var(--barras-fondo, var(--color-papel)) 85%, transparent); }
   .barra-t { position: relative; display: block; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: none; text-align: center; cursor: default; transition: opacity 200ms var(--ease-cayla); }
   button.barra-t { cursor: pointer; }
   .barra-t[data-apagada] { opacity: .4; }
@@ -110,6 +115,8 @@
   .barra-t[data-tono="rojo"] .barra-t-relleno { background: var(--color-rojo); }
   .barra-t[data-tono="ambar"] .barra-t-relleno { background: var(--color-ambar); }
   .barra-t[data-tono="verde"] .barra-t-relleno { background: var(--color-verde); }
+  /* La arena un tono más oscura (el fin de semana de «Ventas por día», maqueta de Reportes). */
+  .barra-t[data-tono="arena-fuerte"] .barra-t-relleno { background: color-mix(in srgb, var(--color-tinta) 22%, var(--color-grafico-neutro)); /* contraste: gráfico sobre papel */ }
   .barra-t-relleno[data-rayada] {
     background-image: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--color-papel) 55%, transparent) 3px 6px);
   }

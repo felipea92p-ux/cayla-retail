@@ -23,8 +23,9 @@ import {
 // La tabla que se corta de «Ventas del mes» (maqueta docs/maquetas/reportes-ventas-2026-11/): el mes por tienda o por categoría, con su «Total» al
 // pie. Es `<Tabla>` (ADR-0358); el corte vive en la URL (`?corte=`), así que es de servidor y «atrás» vuelve al corte anterior. El cambio contra el mes
 // pasado va con su trazo y su palabra, no solo en color; y donde no hay con qué comparar, va «—».
-// Por tienda hay siete datos: bajo xl (1280) caben cuatro (tienda, vendido, cambio, ventas) y el resto se ve desde xl; en el celular la fila se apila y los trae todos.
-const PLANTILLA_TIENDA = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_7rem_5rem] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_7.5rem_5rem_6rem_5rem_6.5rem]";
+// Por tienda hay seis datos: bajo xl (1280) caben cuatro (tienda, vendido, cambio, ventas) y el resto se ve desde xl; en el celular la fila se apila y los trae todos.
+// «Devuelto» ya no es columna (Felipe, 2026-11-04): lo devuelto del mes es una de las cifras de arriba.
+const PLANTILLA_TIENDA = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_7rem_5rem] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_7.5rem_5rem_6rem_5rem]";
 const PLANTILLA_CATEGORIA = "sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_5rem_7.5rem_5.5rem]";
 const COLUMNAS_TIENDA: Columna[] = [
   { titulo: "Tienda" },
@@ -33,7 +34,6 @@ const COLUMNAS_TIENDA: Columna[] = [
   { titulo: "Ventas", alinear: "der" },
   { titulo: "Ticket", alinear: "der", desdeXl: true },
   { titulo: "Prendas", alinear: "der", desdeXl: true },
-  { titulo: "Devuelto", alinear: "der", desdeXl: true },
 ];
 const COLUMNAS_CATEGORIA: Columna[] = [
   { titulo: "Categoría" },
@@ -44,7 +44,6 @@ const COLUMNAS_CATEGORIA: Columna[] = [
 ];
 const ENTERO = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
-const CENTAVOS = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** El cambio contra el mes pasado: «↑ +12 %» / «↓ −3 %» / «igual» / «—». */
 function Cambio({ c }: { c: number | null }) {
@@ -117,10 +116,6 @@ export function TablaCortes({ r, cortes, corte, hrefDe }: { r: ReporteMes; corte
           {f.ticket === null ? "—" : soles(f.ticket)}
         </span>
         {prendas}
-        <span className={celda("der", "sm:max-xl:hidden")}>
-          <Rotulo>Devuelto</Rotulo>
-          {CENTAVOS.format(f.devuelto)}
-        </span>
       </>
     ) : (
       <>

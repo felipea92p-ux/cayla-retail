@@ -72,7 +72,7 @@ export const GUIA_REPORTES_MES: Guia = {
       id: "tabla",
       ancla: "reportes.tabla",
       titulo: "Quién vendió cuánto",
-      texto: "El mes partido por tienda, con lo que vendió, cuántas ventas, el ticket y lo devuelto, o por categoría, con su parte del total. La última fila es el total y es igual a la cifra de arriba.",
+      texto: "El mes partido por tienda, con lo que vendió, cuántas ventas, el ticket y las prendas, o por categoría, con su parte del total. La última fila es el total y es igual a la cifra de arriba.",
     },
     {
       id: "corte",

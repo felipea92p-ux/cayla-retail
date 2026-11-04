@@ -13,6 +13,7 @@ import {
   diaEnPalabras,
   leerSeriesMes,
   mejorDia,
+  topeDelEje,
   nombreDeMetodo,
   promedioDiarioAnterior,
   tramosDePago,
@@ -252,6 +253,20 @@ describe("ventas por día", () => {
     expect(mejorDia(s)).toEqual({ fecha: "2026-10-03", vendido: 300.5, tickets: 1 });
     expect(mejorDia({ ...s, dias: s.dias.map((d) => ({ ...d, vendido: 0 })) })).toBeNull();
     expect(mejorDia({ ...s, dias: [] })).toBeNull();
+  });
+
+  it("el tope del eje es redondo, cubre la barra mayor y no deja mucho aire", () => {
+    expect(topeDelEje(6109)).toBe(7000); // la maqueta: S/ 7,000 arriba y S/ 3,500 al medio
+    expect(topeDelEje(1100)).toBe(1500); // 2 000 dejaría 45 % de aire
+    expect(topeDelEje(235)).toBe(300);
+    expect(topeDelEje(1000)).toBe(1000); // justo en el tope
+    expect(topeDelEje(0)).toBe(1);
+    expect(topeDelEje(Number.NaN)).toBe(1);
+    for (const max of [1, 7, 48, 99, 235, 999, 1100, 1510, 4213, 6109, 9999, 12905, 134306]) {
+      const tope = topeDelEje(max);
+      expect(tope).toBeGreaterThanOrEqual(max);
+      expect(tope / max).toBeLessThanOrEqual(1.5 + 1e-9); // con la mitad de la potencia el peor caso es 1,5 (de 2 a 3 pasos)
+    }
   });
 
   it("el promedio diario anterior solo existe si se puede comparar", () => {
