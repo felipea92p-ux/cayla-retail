@@ -306,6 +306,25 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
   });
 }
 
+/**
+ * Lo que un cierre anterior ya metió al stock, por prenda (Felipe 2026-11-03). Al reabrir, lo separado queda vacío: sin esto, esas prendas desaparecían de
+ * la lista y parecía que hubiera que volver a contarlas. Se ven con candado; lo que ya es un modelo de la lista con su cifra en el stock no se repite.
+ */
+export function yaEnStockDelEnvio(
+  recibidos: readonly { prenda: string | null; cantidad: number }[] | null,
+  modelos: readonly Pick<ModeloDelConteo, "nombre" | "enStock">[] = [],
+): { prenda: string; cantidad: number }[] {
+  const yaSeVen = new Set(modelos.filter((m) => m.enStock > 0).map((m) => normaliza(m.nombre)));
+  const porPrenda = new Map<string, { prenda: string; cantidad: number }>();
+  for (const r of recibidos ?? []) {
+    const nombre = r.prenda?.trim();
+    if (!nombre || r.cantidad <= 0 || yaSeVen.has(normaliza(nombre))) continue;
+    const clave = normaliza(nombre);
+    porPrenda.set(clave, { prenda: porPrenda.get(clave)?.prenda ?? nombre, cantidad: (porPrenda.get(clave)?.cantidad ?? 0) + r.cantidad });
+  }
+  return [...porPrenda.values()].sort((a, b) => a.prenda.localeCompare(b.prenda, "es"));
+}
+
 /** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */
 export const paradaDelNombre = (c: CategoriaDelEnvio, nombre: string): ParadaDelConteo | null => c.paradas.find((p) => p.modelo && normaliza(p.modelo.nombre) === normaliza(nombre)) ?? null;
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, Plus, SearchX, Sparkles, Tag, Truck, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowDown, ArrowUp, ChevronDown, Lock, Plus, SearchX, Sparkles, Tag, Truck, Trash2 } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
@@ -9,7 +10,7 @@ import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { MarcaCampo } from "@/components/alta-producto/guia";
 import { colorDeAvance } from "@/lib/avance-color";
@@ -237,6 +238,7 @@ function Categoria({
 }
 
 export function ListaDelEnvio({
+  yaEnStock,
   categorias,
   enFoco,
   alternadas,
@@ -292,6 +294,8 @@ export function ListaDelEnvio({
   onAgregar: () => void;
   /** El «+» de una categoría: otro modelo para contar aparte. */
   onAgregarModelo: (categoria: string) => void;
+  /** Al reabrir: lo que ya entró al stock en un cierre anterior. Se ve con candado y no se cuenta. */
+  yaEnStock: readonly { prenda: string; cantidad: number }[];
   onNoLlego: (c: CategoriaDelEnvio) => void;
   /** El tacho de un modelo agregado al contar. */
   onQuitar: (p: ParadaDelConteo) => void;
@@ -390,6 +394,25 @@ export function ListaDelEnvio({
             return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} onQuitarCategoria={() => onQuitarCategoria(c)} />;
           })}
         </nav>
+        {yaEnStock.length > 0 && (
+          <section aria-label="Ya en stock" className="rc-ya-en-stock" data-guia="recepcion.ya-en-stock">
+            <TituloGrupo cuenta={yaEnStock.length}>Ya en stock</TituloGrupo>
+            <ul>
+              {yaEnStock.map((y) => (
+                <li key={y.prenda}>
+                  <Lock aria-hidden className="h-3.5 w-3.5 shrink-0 text-taupe" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-tinta" title={y.prenda}>{y.prenda}</span>
+                    <span className="block text-sm text-taupe">{conMiles(y.cantidad)} ya en stock</span>
+                  </span>
+                  <Link className="btn-cayla btn-enlace shrink-0 text-sm" href={`/inventario?q=${encodeURIComponent(y.prenda)}`}>
+                    Ajustar stock
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <div className="rc-lista-agregar">
           <button
             type="button"

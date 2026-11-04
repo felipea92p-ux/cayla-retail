@@ -86,6 +86,8 @@ import {
   type OrdenDelConteo,
   type ParadaDelConteo,
   type TipoDeModelo,
+  modelosDelGrupo,
+  yaEnStockDelEnvio,
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
@@ -599,7 +601,7 @@ export function ContarEnvio({
     <div className="rc-conteo">
       {reabierto && (
         <Aviso tono="info" titulo="Reabriste el envío">
-          Corrige lo que haga falta y vuelve a cerrarlo. Lo que ya entró al stock no se vuelve a contar ni se toca.
+          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale con candado: si sobró o faltó algo, se corrige con «Ajustar stock».
         </Aviso>
       )}
       {proveedorPorConfirmar && (
@@ -613,6 +615,7 @@ export function ContarEnvio({
 
       <div ref={mesa} className="rc-mesa">
         <ListaDelEnvio
+            yaEnStock={reabierto ? yaEnStockDelEnvio(detalle.recibidos, categorias.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))) : []}
           categorias={categorias}
           enFoco={parada}
           alternadas={alternadas}

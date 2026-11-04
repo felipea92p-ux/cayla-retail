@@ -398,3 +398,8 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
   .rc-tipo, .rc-panel, .rc-cat, .rc-otra, .rc-talla { animation: none; }
   .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-estado, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-tipo, .rc-radio, .rc-radio::after, .rc-talla-quitar { transition: none; }
 }
+
+/* Al reabrir: lo que ya entró al stock, con candado. No es un modelo que se cuenta: no lleva botón ni cifra que cambie. */
+.rc-ya-en-stock { display: grid; gap: 8px; margin-top: 12px; padding: 12px 8px 0; border-top: 1px solid var(--color-sand); }
+.rc-ya-en-stock ul { display: grid; gap: 4px; }
+.rc-ya-en-stock li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }

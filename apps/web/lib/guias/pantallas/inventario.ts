@@ -1941,6 +1941,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Cuando todo está contado e identificado, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. Arriba del botón ves cuántas se podrán vender. En la demo no avanzamos.",
     },
     {
+      id: "ya-en-stock",
+      ancla: "recepcion.ya-en-stock",
+      requiere: ["recepcion.ya-en-stock"],
+      titulo: "Lo que ya está en stock",
+      texto: "Al reabrir un envío, lo que ya entró sale aquí con candado y no se vuelve a contar. Si sobró o faltó algo, «Ajustar stock» te lleva a esa prenda.",
+    },
+    {
       id: "tabla-cierre",
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
