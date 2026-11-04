@@ -1861,6 +1861,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   /vender/historial/exportar` (route handler, solo líder) → `lib/historial-exportar-reglas.ts` (CSV). «Volver a vender»:
   `/vender?repetir=<id>` → `lib/repetir-venta.ts` → prop `repeticion` de `PuntoDeVenta`.
 
+- `/vender/reportes` y `/vender/reportes/ranking` (módulo `reportes_ventas`, ADR-0606, solo lectura) → `lib/reportes-ventas.ts` y `lib/reportes-ranking.ts`
+  (cargadores de servidor, `rpc("fn_reporte_ventas_*")`) con sus reglas puras en `lib/reportes-ventas-reglas.ts` y `lib/reportes-ranking-reglas.ts` →
+  `components/reportes-ventas/*`. Cuatro funciones INVOKER de la base: `fn_reporte_ventas_mes` (las cinco cifras contra los mismos días del mes anterior),
+  `fn_reporte_ventas_series` (por día, mes a mes, cómo se pagó), `fn_reporte_ventas_cortes` (por tienda y por categoría) y `fn_reporte_ventas_ranking`
+  (con filtros, página y panel de tallas y colores); todas preguntan `fn_ve_modulo('reportes_ventas')`. Todo vive en la URL. La descarga son dos
+  `route.ts` (`/vender/reportes/descargar`, `/vender/reportes/ranking/descargar`) que repiten el permiso y comparten `lib/reportes-ventas-alcance.ts`
+  (qué tienda puede mirar la cuenta) con las pantallas; el CSV lo arma `lib/reportes-ventas-exportar-reglas.ts`.
+
 - **Apartados** (2026-09-23, ADR-0166; módulo propio `apartados` desde ADR-0196): `/vender/apartados` → `lib/separaciones.ts` (`fn_vencer_separaciones`, `buscar_separaciones`,
   `resumen_separaciones`) + `lib/separaciones-reglas.ts` → `components/apartados/*` (Apartar/Entregar/Todos) → RPC `separar_prendas`,
   `entregar_separacion`, `extender_separacion`, `liberar_separacion`, `registrar_devolucion_separacion`.

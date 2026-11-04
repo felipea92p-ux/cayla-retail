@@ -44,6 +44,16 @@ export const PRUEBAS = [
   // los proveedores, ni da de alta vocabulario; el líder, una colaboradora y una terminal siguen igual. ROLLBACK.
   "pruebas:sesion-no-es-equipo",
 
+  // Ventas ▸ Reportes ▸ Ventas del mes: las cinco cifras cuadran con la suma a mano (la anulada, la de prueba y la de las 00:00 del mes
+  // siguiente no cuentan; el descuento sí), el mes en curso se compara por los mismos días, y quien tiene el módulo ve solo su tienda; y las
+  // series de los gráficos (un día por día con ceros, lo cobrado por medio de pago, la ventana de 12 meses) y los cortes por tienda y categoría
+  // (la prenda sin registrar cuenta en la categoría declarada en caja) suman lo mismo que las cifras. ROLLBACK.
+  "pruebas:reporte-ventas-mes",
+
+  // Ventas ▸ Reportes ▸ Ranking de prendas: el orden (unidades, soles; modelo, color y talla), lo del período anterior del mismo largo, lo que NO entra
+  // (anulada, prueba, bolsa, prenda sin registrar, que se cuenta aparte), los filtros, «Quedan» (solo tiendas) y que el ranking suma lo que dicen las cifras. ROLLBACK.
+  "pruebas:reporte-ventas-ranking",
+
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",
