@@ -118,7 +118,7 @@ type Hoja =
   // `tabla`: la abrió la tabla de la placa para crear lo que la prenda no tiene, y vuelve a ella.
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"] }
   // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
-  | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean }; parada: string }
+  | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
@@ -424,7 +424,7 @@ export function ContarEnvio({
     const m = p.modelo;
     if (!m) return;
     if (modo === "ahora" && !m.productoId) {
-      setHoja({ tipo: "crear", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto }, parada: p.clave });
+      setHoja({ tipo: "crear", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto, nota: m.nota }, parada: p.clave });
       return;
     }
     const sep = prendaSeparada(p);
@@ -815,10 +815,11 @@ export function ContarEnvio({
 
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
-          // Lo que se describió al contar se ofrece como nombre, igual que con «Crear ahora» de «Para después».
-          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), descripcionOrden: (hoja.nueva.porDefecto ? "" : hoja.nueva.descripcion) || (lineaDeHoja.linea?.descripcion ?? null) }}
+          // Lo escrito al contar ya llena la hoja, igual que con «Crear ahora» de «Para después». Un nombre provisional («Blusa 1») no: aquí se le pone el de verdad.
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), nombreEscrito: hoja.nueva.porDefecto ? null : hoja.nueva.descripcion, nota: hoja.nueva.nota, descripcionOrden: sinAviso ? null : (lineaDeHoja.linea?.descripcion ?? null) }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
+          vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
           onUsarExistente={async (productoId, nombre) => {
@@ -838,6 +839,7 @@ export function ContarEnvio({
           destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length), pedidas: hoja.pedidas }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
+          vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => {
             if (hoja.tabla) return volverATabla(hoja.parada, grupoDeHoja, hoja.prenda, prenda);

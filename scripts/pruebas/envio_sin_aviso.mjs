@@ -19,6 +19,8 @@
  *      detalle del envío no pierde la fila; en un envío de Compras, lo de más sin marca deja su diferencia.
  *   Z  MODELOS EN 0 (Felipe 2026-11-03): un modelo agregado nace en 0, con descripción y nombre por defecto; se guarda, el nombre por defecto no
  *      deja cerrar lo contado, y lo que quedó en 0 se descarta sin dejar pendiente.
+ *   W  CREAR LA PRENDA (Felipe 2026-11-03): al recibir, tejido y patrón son opcionales y lo creado no sale solo en la web, sin importar quién
+ *      lo crea ni si un líder lo aprueba después. Nuevo producto sigue igual.
  *   F  LA FORMA: permisos y RLS.
  *
  * USO
@@ -66,6 +68,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261104001000_corregir_proveedor_de_envio_sin_aviso.sql",
       // Lo que se parece, en todas las marcas.
       "20261104002000_parecidas_al_recibir_en_todas_las_marcas.sql",
+      // Crear la prenda: tejido y patrón opcionales, nada sale solo en la web.
+      "20261104003000_prenda_al_recibir_sin_tela_ni_web.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -154,6 +158,11 @@ ${atrapa(
   "prepara",
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
   "retail.preparar_prenda_al_recibir(p_d, p_item, p_cat, p_marca, p_prod, p_ref, p_vars, p_precio, p_desc, p_tej, p_pat, p_conf, p_token, p_prov)",
+)}
+${atrapa(
+  "alta",
+  "p_ref text, p_cat uuid, p_vars jsonb, p_tej uuid, p_pat uuid",
+  "to_jsonb(retail.crear_producto_con_variantes(p_referencia => p_ref, p_categoria_id => p_cat, p_variantes => p_vars, p_tejido_id => p_tej, p_patron_id => p_pat))",
 )}
 ${atrapa(
   "recibe",
@@ -769,6 +778,66 @@ caso(
    select concat_ws(' / ', :'extra', :'cierra',
      (select count(*) from retail.despacho_diferencias x where x.despacho_id = :'d1' and x.marca_id is null and x.vigente and x.tipo = 'sobrante' and x.causa = 'regalo'));`,
   "OK / OK / 1",
+);
+// Una categoría de Indumentaria, la familia que exige tejido y patrón en Nuevo producto.
+const CON_TELA = `reset role;
+   insert into retail.categorias (nombre, familia) values ('Polos Conteo', 'indumentaria') returning id as cat3 \\gset
+   insert into retail.categoria_tallas (categoria_id, talla_id) values (:'cat3', :'t_s');
+   select id as tej from retail.tejidos where activo order by nombre limit 1 \\gset
+   select id as pat from retail.patrones where activo order by nombre limit 1 \\gset
+   insert into retail.categoria_tejidos (categoria_id, tejido_id) values (:'cat3', :'tej');
+   insert into retail.categoria_patrones (categoria_id, patron_id) values (:'cat3', :'pat');
+`;
+const LA_PRENDA = (prep) => `(select v.producto_id from retail.variantes v where v.id = (:'${prep}'::jsonb -> 'variantes' -> 0 ->> 'id')::uuid)`;
+caso(
+  "W1 al recibir, en una familia que los exige, tejido y patrón son opcionales; el elegido se guarda igual",
+  `${CON_TELA}
+   ${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.prepara(:'d', null, :'cat3', null, null, 'Polo Sin Tela Conteo', ${MATRIZ(["t_s", "c1"])}, 49.90, null, null, null, false, gen_random_uuid(), null) as sin \\gset
+   select pg_temp.prepara(:'d', null, :'cat3', null, null, 'Polo Con Tela Conteo', ${MATRIZ(["t_s", "c1"])}, 49.90, null, :'tej', :'pat', false, gen_random_uuid(), null) as con \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'sin'::jsonb), pg_temp.e(:'con'::jsonb),
+     (select (tejido_id is null) || ':' || (patron_id is null) from retail.productos where id = ${LA_PRENDA("sin")}),
+     (select (tejido_id = :'tej') || ':' || (patron_id = :'pat') from retail.productos where id = ${LA_PRENDA("con")}));`,
+  "OK / OK / true:true / true:true",
+);
+caso(
+  "W2 lo creado al recibir no sale solo en la web: lo cree quien lo cree, y aunque un líder lo apruebe después; la bandera no queda puesta",
+  `${CON_TELA}
+   ${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.prepara(:'d', null, :'cat3', null, null, 'Polo De Micaela Conteo', ${MATRIZ(["t_s", "c1"])}, 49.90, null, null, null, false, gen_random_uuid(), null) as mica \\gset
+   reset role;
+   select id as p_mica, estado_alta as alta_mica from retail.productos where id = ${LA_PRENDA("mica")} \\gset
+   ${como(FELIPE)}
+   select set_config('request.headers', json_build_object('x-responsable', :'felipe_p', 'x-ubicacion', :'tru')::text, true) \\g /dev/null
+   update retail.productos set estado_alta = 'aprobado' where id = :'p_mica';
+   select pg_temp.prepara(:'d', null, :'cat3', null, null, 'Polo De Lider Conteo', ${MATRIZ(["t_s", "c1"])}, 49.90, null, null, null, false, gen_random_uuid(), null) as lider \\gset
+   select coalesce(current_setting('retail.alta_al_recibir', true), '') as bandera \\gset
+   reset role;
+   select concat_ws(' / ', :'alta_mica', pg_temp.e(:'lider'::jsonb), nullif(:'bandera', ''),
+     (select publicado from retail.vitrina_productos where producto_id = :'p_mica'),
+     (select v.publicado from retail.vitrina_productos v where v.producto_id = ${LA_PRENDA("lider")}));`,
+  "pendiente / OK / f / f",
+);
+caso(
+  "W3 Nuevo producto sigue igual: sin tejido no se crea, y lo que crea un líder se muestra en la web",
+  `${CON_TELA}
+   ${como(FELIPE)}
+   select set_config('request.headers', json_build_object('x-responsable', :'felipe_p', 'x-ubicacion', :'tru')::text, true) \\g /dev/null
+   select pg_temp.h(pg_temp.alta('Polo Alta Sin Tela', :'cat3', ${A(J({ talla_id: ":'t_s'", color_codigo: ":'c1'", precio: "49.90" }))}, null, null)) as sin_tela \\gset
+   select pg_temp.alta('Polo Alta Con Tela', :'cat3', ${A(J({ talla_id: ":'t_s'", color_codigo: ":'c1'", precio: "49.90" }))}, :'tej', :'pat') as con_tela \\gset
+   reset role;
+   select concat_ws(' / ', :'sin_tela',
+     (select v.publicado from retail.vitrina_productos v join retail.productos p on p.id = v.producto_id where p.referencia = 'Polo Alta con Tela'));`,
+  "tejido_obligatorio / t",
+);
+caso(
+  "W4 «a» es un conector: «Polo a rayas» se guarda «Polo a Rayas», y la primera palabra sigue en mayúscula",
+  `reset role;
+   select concat_ws(' / ', retail.fn_titulo_referencia('polo a rayas'), retail.fn_titulo_referencia('a rayas'));`,
+  "Polo a Rayas / A Rayas",
 );
 caso(
   "F1 abrir_envio_sin_aviso security definer con sus permisos; la tabla con RLS, sin políticas y sin lectura directa",

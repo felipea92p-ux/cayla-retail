@@ -62,6 +62,7 @@ describe("tituloReferencia — espejo del trigger de la base", () => {
   it("una sola forma de escribir, sin importar cómo se tipee", () => {
     expect(tituloReferencia("  blusa   CAMILA ")).toBe("Blusa Camila");
     expect(tituloReferencia("chompa CON rayas")).toBe("Chompa con Rayas");
+    expect(tituloReferencia("polo a rayas")).toBe("Polo a Rayas");
   });
   it("el conector al inicio sí lleva mayúscula", () => {
     expect(tituloReferencia("con botones")).toBe("Con Botones");

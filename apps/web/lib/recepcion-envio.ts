@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getNombresPorCategoria } from "@/lib/alta-producto-datos";
+import { getImagenesMuestra } from "@/lib/catalogo-v2";
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
@@ -16,6 +18,7 @@ import {
   type OrdenDirecta,
   type PapelDelEnvio,
   type TallaDeLaCategoria,
+  type VocabularioParaRecibir,
 } from "@/lib/recepcion-envio-reglas";
 import { unstable_rethrow } from "next/navigation";
 
@@ -70,11 +73,38 @@ type FilaEje = { categoria_id: string; valor: { id: string; nombre: string } | {
 
 const uno = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
+/** Lo que piden las piezas de Nuevo producto. Es un adorno de la hoja: si no se pudo leer, `null`, y se elige entre lo que ofrece la categoría. */
+async function getVocabularioParaRecibir(): Promise<VocabularioParaRecibir | null> {
+  try {
+    const supabase = await createClient();
+    const [tallas, tejidos, patrones, imagenes, nombresPorCategoria] = await Promise.all([
+      supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado").order("valor"),
+      supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+      supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+      getImagenesMuestra(),
+      getNombresPorCategoria(),
+    ]);
+    const error = tallas.error ?? tejidos.error ?? patrones.error;
+    if (error) throw new Error(error.message);
+    return {
+      tallas: (tallas.data ?? []).map((t) => ({ id: t.id, texto: t.valor })),
+      tejidos: (tejidos.data ?? []).map((t) => ({ id: t.id, texto: t.nombre })),
+      patrones: (patrones.data ?? []).map((t) => ({ id: t.id, texto: t.nombre })),
+      imagenes,
+      nombresPorCategoria,
+    };
+  } catch (e) {
+    unstable_rethrow(e);
+    console.error("[recepcion-envio] vocabulario:", e);
+    return null;
+  }
+}
+
 /** Lee el vocabulario: si algo falla, `null` (la pantalla sigue: «Ya la tengo» funciona; «Es nueva» y lo que no estaba en la guía lo dicen). */
 export async function getCatalogoParaRecibir(): Promise<CatalogoParaRecibir | null> {
   try {
     const supabase = await createClient();
-    const [categorias, colores, familias, tejidos, patrones, marcas, vinculos] = await Promise.all([
+    const [categorias, colores, familias, tejidos, patrones, marcas, vinculos, vocabulario] = await Promise.all([
       supabase
         .from("categorias")
         .select("id, nombre, prefijo, familia, categoria_tallas ( habitual, talla:tallas ( id, valor, activo ) )")
@@ -86,6 +116,7 @@ export async function getCatalogoParaRecibir(): Promise<CatalogoParaRecibir | nu
       supabase.from("categoria_patrones").select("categoria_id, valor:patrones!inner ( id, nombre )").eq("patrones.activo", true),
       supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
       supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
+      getVocabularioParaRecibir(),
     ]);
     const error = categorias.error ?? colores.error ?? familias.error ?? tejidos.error ?? patrones.error ?? marcas.error;
     if (error) {
@@ -134,6 +165,7 @@ export async function getCatalogoParaRecibir(): Promise<CatalogoParaRecibir | nu
       marcas: (marcas.data ?? []).map((m) => ({ id: m.id, nombre: m.nombre })),
       // Un adorno del orden de las marcas: si no se pudo leer, la lista sale igual, por nombre.
       vinculos: vinculos.error ? [] : (vinculos.data ?? []).map((v) => ({ marcaId: v.marca_id, proveedorId: v.proveedor_id })),
+      vocabulario,
     };
   } catch (e) {
     unstable_rethrow(e);

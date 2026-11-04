@@ -18,7 +18,7 @@ import { agruparPorFamilia } from "./colores-familias";
 import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 import { sinBlancosDeMiles } from "./numero-escrito";
 
-const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
+const CONECTORES = ["a", "de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
 /** Espejo de `retail.fn_titulo_referencia`: "  blusa  CAMILA " → "Blusa Camila". */
 export function tituloReferencia(texto: string): string {

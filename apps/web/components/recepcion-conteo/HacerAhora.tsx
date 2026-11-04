@@ -376,6 +376,7 @@ export function HacerAhora({
     }
 
     if (vista.tipo === "prenda") {
+      const escritoAlContar = vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null);
       return (
         <HojaPrenda
           destino={{
@@ -385,9 +386,11 @@ export function HacerAhora({
             categoriaId: categoria.id,
             marcaId: marca.id,
             marcaNombre: marca.nombre,
-            // Sin descripción al contar, el nombre que anotó la compradora en la línea (ADR-0480: «Usar ese nombre»).
-            // Un nombre provisional («Aretes 1») no se ofrece: esta es la hoja donde se le pone el de verdad.
-            descripcionOrden: esProvisional(linea, vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null)) ? null : (vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null) ?? linea.linea?.descripcion ?? null),
+            // Lo escrito al contar ya llena la hoja. Un nombre provisional («Aretes 1») no: esta es la hoja donde se le pone el de verdad.
+            nombreEscrito: esProvisional(linea, escritoAlContar) ? null : escritoAlContar,
+            nota: (linea.conteo?.separado.nuevas ?? []).find((n) => n.descripcion === escritoAlContar)?.nota ?? null,
+            // El nombre que anotó la compradora en la línea (ADR-0480: «Usar ese nombre»).
+            descripcionOrden: linea.linea?.descripcion ?? null,
             precioSugerido: linea.linea?.precioVentaSugerido ?? null,
             costoUnitario: linea.conteo?.costoUnitario ?? linea.linea?.costoUnitario ?? null,
             prenda: null,
@@ -395,6 +398,7 @@ export function HacerAhora({
           }}
           categoria={catalogo?.categorias.find((c) => c.id === categoria.id) ?? null}
           colores={catalogo?.colores ?? []}
+          vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => void alExistir(prenda)}
           onUsarExistente={async (productoId, nombre) => {
