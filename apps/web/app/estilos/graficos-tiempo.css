@@ -140,6 +140,10 @@
   .barras-tiempo-eje { display: grid; margin-top: 6px; }
   .barras-tiempo-eje > span { min-width: 0; overflow: visible; white-space: nowrap; text-align: center; font-size: 10.5px; color: var(--color-taupe-profundo); }
   .barras-tiempo-eje-fuerte { font-weight: 600; color: var(--color-tinta) !important; }
+  /* En el celular no caben 31 números: los que la pantalla marcó `opcional` se esconden (siguen ocupando su lugar). */
+  @media (max-width: 639.98px) {
+    .barras-tiempo-eje > span[data-opcional] { visibility: hidden; }
+  }
 }
 
 @keyframes cayla-linea-dibuja { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }

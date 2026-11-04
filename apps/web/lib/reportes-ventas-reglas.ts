@@ -182,11 +182,12 @@ export function diaEnPalabras(fechaIso: string): string {
 const pluralVentas = (n: number): string => `${n.toLocaleString("es-PE")} ${n === 1 ? "venta" : "ventas"}`;
 
 /** Una barra de un gráfico, sin dibujo: lo que `BarrasTiempo` necesita, con el texto del globito ya armado. */
-export type BarraDeReporte = { clave: string; valor: number; etiqueta: string; fuerte?: boolean; rayada?: boolean; tip: string };
+export type BarraDeReporte = { clave: string; valor: number; etiqueta: string; opcional?: boolean; fuerte?: boolean; rayada?: boolean; tip: string };
 
 /**
- * Las barras de «Ventas por día»: una por cada día del tramo. Bajo la barra va el número del día, solo en el 1, cada 5 y el último (con 31 barras
- * todas no caben, sobre todo en el celular); el globito dice «sábado 10 · S/ 6,109 · 62 ventas». El fin de semana va en negrita.
+ * Las barras de «Ventas por día»: una por cada día del tramo, y bajo CADA barra el número de su día (Felipe, 2026-11-04). En el celular 31 números
+ * no caben, así que los que no son el 1, un múltiplo de 5 ni el último se marcan `opcional` y la pieza los esconde en pantallas angostas (el 30 también,
+ * si pega con el 31); el globito dice «sábado 10 · S/ 6,109 · 62 ventas». El fin de semana va en negrita.
  */
 export function barrasPorDia(s: SeriesMes): BarraDeReporte[] {
   const n = s.dias.length;
@@ -196,7 +197,8 @@ export function barrasPorDia(s: SeriesMes): BarraDeReporte[] {
     return {
       clave: d.fecha,
       valor: d.vendido,
-      etiqueta: dia === 1 || dia % 5 === 0 || i === n - 1 ? String(dia) : "",
+      etiqueta: String(dia),
+      opcional: !(dia === 1 || i === n - 1 || (dia % 5 === 0 && n - 1 - i >= 2)),
       fuerte: sem === 0 || sem === 6,
       tip: `${diaEnPalabras(d.fecha)} · ${soles(d.vendido)} · ${pluralVentas(d.tickets)}`,
     };
@@ -227,6 +229,15 @@ export function promedioDiarioAnterior(r: ReporteMes): number | null {
   const c = comparacionDe(r);
   const dias = diasDelTramo(r.anterior);
   return c.hay && dias > 0 ? r.anterior.vendido / dias : null;
+}
+
+/**
+ * El promedio diario del propio mes (vendido ÷ días del tramo), para la raya cuando NO se puede comparar con el mes pasado (el ERP es joven y ese mes
+ * quedó a medias): sin ella el gráfico se quedaba sin su raya. `null` si no se vendió nada.
+ */
+export function promedioDiarioDelMes(r: ReporteMes): number | null {
+  const dias = diasDelTramo(r.actual);
+  return dias > 0 && r.actual.vendido > 0 ? r.actual.vendido / dias : null;
 }
 
 const MES_CORTO = NOMBRES_MES.map((m) => m.slice(0, 3));

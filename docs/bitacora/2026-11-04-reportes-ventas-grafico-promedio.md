@@ -1,0 +1,4 @@
+## 2026-11-04 (Ventas ▸ Reportes: la raya del promedio siempre se ve y el número de cada día)
+Qué hice: en «Ventas por día» la raya punteada del promedio no salía cuando el mes pasado quedó a medias (el ERP es joven y no se puede comparar), así que ahora, en ese caso, es el promedio diario del propio mes («Este mes: S/ 4,332 al día»); con comparación sigue siendo el del mes pasado. Además cada barra lleva el número de su día debajo (en el celular solo el 1, cada 5 y el último) y la cifra del mejor día sale como «S/ 8,501», no «8,500.5».
+Por qué así: Felipe vio el gráfico en producción sin su raya y sin las fechas bajo las barras. No se inventa una comparación que no existe: se dice con claro texto de qué es la raya (leyenda y rótulo).
+Felipe se lleva: un gráfico que siempre tiene su referencia. Probado con datos inventados a 1280 y 375 px; no probado con los datos reales de producción.

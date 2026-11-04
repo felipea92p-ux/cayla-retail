@@ -12,6 +12,7 @@ import {
   diaEnPalabras,
   mejorDia,
   promedioDiarioAnterior,
+  promedioDiarioDelMes,
   topeDelEje,
   tramoEnPalabras,
   tramosDePago,
@@ -32,8 +33,14 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
   const mes = { anio: Number(s.mes.slice(0, 4)), mes: Number(s.mes.slice(5, 7)) };
   const nombre = nombreDelMes(mes);
   const mejor = mejorDia(s);
-  const promedio = promedioDiarioAnterior(r);
+  // La raya del gráfico es el promedio diario del mes pasado; si ese mes no se puede comparar (el ERP es joven y quedó a medias), es el del propio mes:
+  // el gráfico nunca se queda sin su raya.
   const comparacion = comparacionDe(r);
+  const contra = comparacion.hay ? comparacion.contra : null;
+  const promedioAnterior = contra !== null ? promedioDiarioAnterior(r) : null;
+  const promedio = promedioAnterior ?? promedioDiarioDelMes(r);
+  const delMesPasado = promedioAnterior !== null && contra !== null;
+  const textoRaya = promedio === null ? null : delMesPasado ? `${capitalizada(contra)}: ${soles(promedio)} al día` : `Este mes: ${soles(promedio)} al día`;
   const dias = barrasPorDia(s);
   const meses = barrasPorMes(s);
   const { total, tramos } = tramosDePago(s);
@@ -55,14 +62,16 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
               clave: b.clave,
               valor: b.valor,
               etiqueta: b.etiqueta,
+              opcional: b.opcional,
               fuerte: b.fuerte,
+              cifra: soles(b.valor), // la del mejor día: «S/ 8,501», no «8,500.5»
               // El fin de semana, un tono más oscuro; el mejor día, en tinta aunque caiga en sábado (lo decide `destacada`).
               tono: b.fuerte && b.clave !== mejor?.fecha ? "arena-fuerte" : undefined,
               tip: b.tip,
               aria: b.tip,
             }))}
             destacada={mejor?.fecha ?? null}
-            referencia={promedio !== null && comparacion.hay ? { valor: promedio, texto: `${capitalizada(comparacion.contra)}: ${soles(promedio)} al día` } : null}
+            referencia={promedio !== null && textoRaya !== null ? { valor: promedio, texto: textoRaya } : null}
             etiqueta={`Ventas por día de ${nombre}${mejor ? `. Mejor día: ${diaEnPalabras(mejor.fecha)}, ${soles(mejor.vendido)}` : ""}`}
           />
         </div>
@@ -77,10 +86,10 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
             <span aria-hidden className="h-2.5 w-2.5 rounded-[3px]" style={{ background: "color-mix(in srgb, var(--color-tinta) 22%, var(--color-grafico-neutro))" }} />
             Sábado y domingo
           </li>
-          {promedio !== null && comparacion.hay && (
+          {promedio !== null && (
             <li className="flex items-center gap-1.5">
               <span aria-hidden className="w-3.5 border-t-2 border-dashed border-taupe" />
-              Promedio diario de {comparacion.contra}
+              {delMesPasado ? `Promedio diario de ${contra}` : "Promedio diario de este mes"}
             </li>
           )}
         </ul>

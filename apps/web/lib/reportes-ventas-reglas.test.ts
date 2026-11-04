@@ -16,6 +16,7 @@ import {
   topeDelEje,
   nombreDeMetodo,
   promedioDiarioAnterior,
+  promedioDiarioDelMes,
   tramosDePago,
 
   comparacionDe,
@@ -234,19 +235,24 @@ describe("ventas por día", () => {
     expect(diaEnPalabras("2026-10-05")).toBe("lunes 5");
   });
 
-  it("una barra por día, con el número solo en el 1, cada 5 y el último, y el fin de semana en negrita", () => {
+  it("una barra por día, con el número de su día bajo CADA barra, y el fin de semana en negrita", () => {
     const b = barrasPorDia(s);
     expect(b).toHaveLength(5);
-    expect(b.map((x) => x.etiqueta)).toEqual(["1", "", "", "", "5"]);
+    expect(b.map((x) => x.etiqueta)).toEqual(["1", "2", "3", "4", "5"]);
     expect(b.map((x) => !!x.fuerte)).toEqual([false, false, true, true, false]); // 3 y 4 de octubre de 2026: sábado y domingo
     expect(b[0]!.tip).toMatch(/^jueves 1 · S\/\s100 · 2 ventas$/);
     expect(b[2]!.tip).toMatch(/1 venta$/);
     expect(b[1]!.valor).toBe(0);
   });
 
-  it("el último día lleva su número aunque no sea de los de cada 5", () => {
-    const b = barrasPorDia({ ...s, dias: s.dias.slice(0, 4) });
-    expect(b.map((x) => x.etiqueta)).toEqual(["1", "", "", "4"]);
+  it("en el celular solo se ven el 1, cada 5 y el último: el resto es opcional (y el 30 también si pega con el 31)", () => {
+    const b4 = barrasPorDia({ ...s, dias: s.dias.slice(0, 4) });
+    expect(b4.map((x) => !!x.opcional)).toEqual([false, true, true, false]); // el 4 es el último: se ve aunque no sea de cada 5
+    const mes31 = Array.from({ length: 31 }, (_, i) => ({ fecha: `2026-10-${String(i + 1).padStart(2, "0")}`, vendido: 10, tickets: 1 }));
+    const visibles = barrasPorDia({ ...s, dias: mes31 }).filter((x) => !x.opcional).map((x) => x.etiqueta);
+    expect(visibles).toEqual(["1", "5", "10", "15", "20", "25", "31"]); // sin el 30, que quedaría pegado al 31
+    const mes30 = mes31.slice(0, 30);
+    expect(barrasPorDia({ ...s, dias: mes30 }).filter((x) => !x.opcional).map((x) => x.etiqueta)).toEqual(["1", "5", "10", "15", "20", "25", "30"]);
   });
 
   it("el mejor día es el de más ventas (el primero si empatan) y no hay si no se vendió nada", () => {
@@ -274,6 +280,15 @@ describe("ventas por día", () => {
     expect(promedioDiarioAnterior(r)).toBeCloseTo(4000.5 / 30, 6);
     expect(promedioDiarioAnterior({ ...r, primeraVenta: "2026-09-30" })).toBeNull(); // septiembre quedó a medias
     expect(promedioDiarioAnterior({ ...r, anterior: { ...r.anterior, vendido: 0 } })).toBeNull();
+  });
+
+  it("el promedio diario del propio mes sirve de raya cuando no hay con qué comparar", () => {
+    const r = leerReporteMes(BASE)!; // octubre entero: 31 días, S/ 134,306.29
+    expect(promedioDiarioDelMes(r)).toBeCloseTo(134306.29 / 31, 6);
+    const aMedias = { ...r, primeraVenta: "2026-09-30" }; // septiembre quedó a medias: la comparación no existe, la raya propia sí
+    expect(promedioDiarioAnterior(aMedias)).toBeNull();
+    expect(promedioDiarioDelMes(aMedias)).toBeCloseTo(134306.29 / 31, 6);
+    expect(promedioDiarioDelMes({ ...r, actual: { ...r.actual, vendido: 0 } })).toBeNull(); // sin ventas no hay raya
   });
 });
 
