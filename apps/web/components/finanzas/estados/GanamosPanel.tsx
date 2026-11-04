@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { BadgePercent } from "lucide-react";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -34,6 +34,7 @@ export function GanamosPanel({
   enCurso,
   forma,
   formal,
+  cuadre,
 }: {
   fila: FilaER | null;
   tramos: TramoCascada[];
@@ -47,11 +48,14 @@ export function GanamosPanel({
   forma: FormaEstado;
   /** El cuadro del contador, cuando se pide el formato formal. */
   formal: ComponentProps<typeof EstadoResultadosPanel>;
+  /** De Ventas a Finanzas (ADR-0609); nada si no hay qué comparar. */
+  cuadre: ReactNode;
 }) {
   if (forma === "formal")
     return (
-      <div className="min-w-0" data-guia="fin-ganamos.formal">
+      <div className="min-w-0 space-y-6" data-guia="fin-ganamos.formal">
         <EstadoResultadosPanel {...formal} />
+        {cuadre && <div className="fin-estado">{cuadre}</div>}
       </div>
     );
   const formalNombre = `Ganancias y pérdidas · ${mesNombre(mes)}`;
@@ -88,6 +92,13 @@ export function GanamosPanel({
         </div>
         {conPlan && <p className="mt-2 text-sm text-taupe">Los topes de lo planeado se ponen en Configuración ▸ Presupuesto.</p>}
       </section>
+
+      {cuadre && (
+        <>
+          <div className="fin-estado-sep" />
+          {cuadre}
+        </>
+      )}
 
       <div className="fin-estado-sep" />
       <section data-guia="fin-ganamos.campanas">
