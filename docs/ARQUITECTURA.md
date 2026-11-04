@@ -2121,10 +2121,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     - `/finanzas/reportes` ¿Ganamos? → `components/finanzas/estados/GanamosPanel.tsx`, `lib/ganamos-reglas.ts` → `lib/resultados.ts`
       (`fn_estado_resultados`, `fn_campanas_reporte`, `fn_periodos_mes`), `lib/presupuesto.ts` (`fn_presupuesto_vs_real`); plegado,
       `EstadoResultadosPanel.tsx` con «De dónde sale» (`fn_diario`, por páginas). `presupuesto` redirige aquí; `campanas` es una página
-      interna con su vuelta (`CampanasPanel.tsx`).
+      interna con su vuelta (`CampanasPanel.tsx`). El cuadre con Ventas: `CuadreVentas.tsx`, `lib/cuadre-ventas.ts` (`fn_cuadre_ventas_finanzas`, ADR-0609).
     - `/finanzas/reportes/flujo` ¿Dónde está la plata? → `components/finanzas/estados/PlataPanel.tsx`, `lib/plata-reglas.ts` →
       `lib/flujo-caja.ts` (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`); «¿Y si…?» es `EscenariosPanel.tsx` adentro (`escenarios`
-      redirige a `flujo#y-si`).
+      redirige a `flujo#y-si`). Lo que el Flujo no cubre: `arranques` de `fn_flujo_caja_real` y `loQueNoCubre` (ADR-0609).
     - `/finanzas/reportes/balance` ¿Cuánto vale CAYLA? → `BalancePanel.tsx` + `components/finanzas/estados/Balanza.tsx`,
       `lib/vale-reglas.ts` → `lib/balance.ts` (`fn_balance_general`, `fn_conciliacion_contable`, `fn_balance_por_tienda`,
       `fn_saldos_iniciales`; los registra el líder con `registrar_saldo_inicial`). Tabla `saldos_iniciales`.
