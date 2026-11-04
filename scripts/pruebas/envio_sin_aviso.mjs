@@ -74,6 +74,7 @@ const MIGRACIONES = SIN_MIGRACION
       "20261104003000_prenda_al_recibir_sin_tela_ni_web.sql",
       // Un modelo sale a la venta sin cerrar el envío.
       "20261104005000_salida_anticipada_de_un_modelo.sql",
+      "20261104012000_a_conector_y_correccion_no_es_perdida.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -845,10 +846,10 @@ caso(
   "tejido_obligatorio / t",
 );
 caso(
-  "W4 «a» es un conector: «Polo a rayas» se guarda «Polo a Rayas», y la primera palabra sigue en mayúscula",
+  "W4 «a» es un conector si le sigue otra palabra: «Polo a Rayas», «A Rayas» y «Blusa A»; corregir una tanda no es pérdida",
   `reset role;
-   select concat_ws(' / ', retail.fn_titulo_referencia('polo a rayas'), retail.fn_titulo_referencia('a rayas'));`,
-  "Polo a Rayas / A Rayas",
+   select concat_ws(' / ', retail.fn_titulo_referencia('polo a rayas'), retail.fn_titulo_referencia('a rayas'), retail.fn_titulo_referencia('blusa a'), retail.fn_es_perdida('salida', 'correccion_recepcion', 1));`,
+  "Polo a Rayas / A Rayas / Blusa A / f",
 );
 // Un envío sin aviso con una prenda del catálogo contada: 10, de ellas 4 repartidas en S.
 const CON_PRENDA = `${MICAELA_RECIBE}

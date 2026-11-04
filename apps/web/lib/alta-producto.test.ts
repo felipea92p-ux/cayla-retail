@@ -63,6 +63,7 @@ describe("tituloReferencia — espejo del trigger de la base", () => {
     expect(tituloReferencia("  blusa   CAMILA ")).toBe("Blusa Camila");
     expect(tituloReferencia("chompa CON rayas")).toBe("Chompa con Rayas");
     expect(tituloReferencia("polo a rayas")).toBe("Polo a Rayas");
+    expect(tituloReferencia("blusa a")).toBe("Blusa A");
   });
   it("el conector al inicio sí lleva mayúscula", () => {
     expect(tituloReferencia("con botones")).toBe("Con Botones");

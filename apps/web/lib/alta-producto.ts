@@ -26,7 +26,8 @@ export function tituloReferencia(texto: string): string {
   return palabras
     .map((p, i) => {
       const w = p.toLocaleLowerCase("es");
-      if (i > 0 && CONECTORES.includes(w)) return w;
+      // «a» solo si le sigue otra palabra: «Polo a Rayas», y «Blusa A» sigue igual.
+      if (i > 0 && CONECTORES.includes(w) && (w !== "a" || i < palabras.length - 1)) return w;
       return w.charAt(0).toLocaleUpperCase("es") + w.slice(1);
     })
     .join(" ");

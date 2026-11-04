@@ -1,9 +1,9 @@
 # ADR-0608 · Un modelo sale al stock sin cerrar el envío
 
-- **Fecha:** 2026-11-03 · **Estado:** probado en local (`pnpm pruebas:envio-sin-aviso`, 37 casos; navegador a 1280 px). **Migraciones en producción desde el 2026-11-03** con el OK de Felipe; la pantalla entra al fusionar el PR.
+- **Fecha:** 2026-11-03 · **Estado:** probado en local (`pnpm pruebas:envio-sin-aviso`, 37 casos; navegador a 1280 px). **Cinco migraciones en producción desde el 2026-11-03** con el OK de Felipe; falta `20261104012000`. La pantalla entra al fusionar el PR.
 - **Decide:** Felipe, 2026-11-03: «Digamos que empiezo a contar y quiero contar solo un modelo de polo primero […] esos polos tienen que salir primero». «Si hay que hacerlo y debe quedar absolutamente perfecto».
 - **Toca:** ADR-0393 (recepción contando primero), ADR-0604 (contar modelo por modelo). Cambia tres reglas anteriores, abajo.
-- **Migración:** `20261104005000_salida_anticipada_de_un_modelo.sql`.
+- **Migración:** `20261104005000_salida_anticipada_de_un_modelo.sql` y `20261104012000_a_conector_y_correccion_no_es_perdida.sql`.
 
 ## El problema primero
 
@@ -36,7 +36,7 @@ También: al recibir, **tejido y patrón son opcionales**, aun donde la familia 
 
 - **Cerrar y reabrir por debajo:** deja una deuda de lo que no se contó y un cierre que nadie hizo.
 - **Una fila negativa en lo recibido para corregir:** `cantidad > 0` es un candado, y todos los que suman lo recibido tendrían que restarla.
-- **Guardar el nombre tal como se escribe:** el formato único del catálogo vale en todas las pantallas. «a» pasó a ser conector: «Polo a rayas» se guarda «Polo a Rayas». Felipe había pedido que no cambie, así que queda para que lo decida.
+- **Guardar el nombre tal como se escribe:** el formato único del catálogo vale en todas las pantallas. «a» es conector si le sigue otra palabra: «Polo a rayas» se guarda «Polo a Rayas», y «Blusa A» sigue igual. Felipe había pedido que no cambie, así que queda para que lo decida.
 
 ## Qué se rompería sin esto
 

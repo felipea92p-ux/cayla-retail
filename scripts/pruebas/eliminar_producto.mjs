@@ -386,7 +386,9 @@ select pg_temp.huella(:'va');`);
   const POR_SU_MADRE = ["stock_dueno", "produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
     "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumo_medido",
     // ADR-0570 (actividad 2): una falla de «Terminé» es de una fase de una orden; la orden ya frena el borrado (`producciones`).
-    "produccion_fallas"];
+    "produccion_fallas",
+    // ADR-0608: una tanda que salió antes de cerrar el envío deja movimientos con lote, que ya frenan el borrado; se corrija o no.
+    "despacho_salidas"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c

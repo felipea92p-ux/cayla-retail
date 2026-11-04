@@ -78,6 +78,8 @@ export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = 
  *  vendible, solo cambia la sububicación destino). */
 export const ETIQUETA_PROCESO: Record<string, string> = {
   recepcion: "Recepción",
+  // ADR-0608: se deshizo una tanda que salió al stock antes de cerrar el envío.
+  correccion_recepcion: "Recepción corregida",
   venta: "Venta",
   // Modelo anterior (una sola fila que sale de una sede y entra a otra): la dirección la
   // dice `etiquetaMovimiento`, que mira hacia dónde va el stock de la sede que se mira.
@@ -131,7 +133,7 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
 export const PROCESOS_POR_CATEGORIA: Record<CategoriaFiltro, string[]> = {
   // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
   entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
-  salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
+  salida: ["venta", "traslado_salida", "cambio", "correccion_recepcion", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
@@ -819,6 +821,7 @@ export function leerResumenTienda(
  *  la fila y su « · » partía el desglose en dos («+1 por ajuste · encontrada tras un conteo», 2026-10-03). Los ajustes no
  *  están: van por respaldo (`desgloseAjustes`). */
 export const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
+  correccion_recepcion: "por corregir una recepción",
   traslado_entrada: "por traslado",
   traslado_salida: "por traslado",
   // Una fila del modelo anterior (salía de una sede y entraba a otra): `fn_movimientos_resumen_procesos` ya la parte en
