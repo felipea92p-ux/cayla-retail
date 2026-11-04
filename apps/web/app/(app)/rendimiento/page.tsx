@@ -5,6 +5,7 @@ import { celda, Encabezado, fila, Tabla, type Columna } from "@/components/ui/Ta
 import { MesaRendimiento } from "@/components/rendimiento/MesaRendimiento";
 import { exigirModulo } from "@/lib/persona-actual";
 import { leerPantallaRendimiento, type SedeDeRendimiento } from "@/lib/rendimiento";
+import { tramoDeUrl } from "@/lib/rendimiento-vista-reglas";
 import { Receipt, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -31,9 +32,9 @@ const SOLES_HORA = new Intl.NumberFormat("es-PE", { style: "currency", currency:
 const PLANTILLA = "grid-cols-[1fr_auto]";
 const COLUMNAS: Columna[] = [{ titulo: "Integrante" }, { titulo: "Ventas", alinear: "der" }];
 
-export default async function RendimientoPage({ searchParams }: { searchParams: Promise<{ sede?: string }> }) {
+export default async function RendimientoPage({ searchParams }: { searchParams: Promise<{ sede?: string; vista?: string; desde?: string; hasta?: string; modo?: string }> }) {
   const persona = await exigirModulo("rendimiento");
-  const { sede } = await searchParams;
+  const { sede, vista, desde, hasta, modo } = await searchParams;
   const { hoy, sedes: todas } = await leerPantallaRendimiento();
   // La tienda de la sesión va primera y es la que abre si la URL no pide otra (Felipe, 2026-10-03).
   const sedes = [...todas].sort((a, b) => Number(b.ubicacionId === persona.ubicacionId) - Number(a.ubicacionId === persona.ubicacionId));
@@ -83,6 +84,8 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
           inicialId={elegida.ubicacionId}
           sesionId={persona.ubicacionId}
           hoy={hoy}
+          tramoInicial={tramoDeUrl({ desde, hasta, vista }, hoy)}
+          modoInicial={modo === "persona" || modo === "suma" ? modo : "dia"}
           personaCuentaId={persona.personaId}
           esAdmin={persona.esAdmin}
           rankings={Object.fromEntries(sedes.map((s) => [s.ubicacionId, <Rankings key={`rankings-${s.ubicacionId}`} sede={s} />]))}

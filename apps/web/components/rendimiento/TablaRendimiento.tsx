@@ -309,6 +309,7 @@ function CeldaAvance({ m, color, parteDe }: { m: MedidaPersona; color?: string; 
 export function TablaRendimiento({
   tabla,
   hoy,
+  total,
   cola,
   deAfuera,
   abierta,
@@ -318,6 +319,8 @@ export function TablaRendimiento({
 }: {
   tabla: TablaVivaEstado<MedidaPersona>;
   hoy: string;
+  /** Las personas de la tienda, aunque la búsqueda deje menos. */
+  total: number;
   cola?: string;
   deAfuera: readonly FiltroDeAfuera[];
   abierta?: (m: MedidaPersona) => boolean;
@@ -336,6 +339,7 @@ export function TablaRendimiento({
         etiqueta="Cómo va cada persona"
         sustantivo={PERSONA}
         hoy={hoy}
+        total={total}
         cola={cola}
         suma={(v) => {
           const ventas = v.reduce((s, m) => s + m.ventas, 0);

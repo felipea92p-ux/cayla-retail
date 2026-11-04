@@ -54,7 +54,8 @@ export type PropsGrafico = {
   /** Sin filtros: suma también las ventas sin quien atendió, y la meta es la de la tienda. */
   esLaTienda: boolean;
   tramo: Tramo;
-  onTramo: (t: Tramo, conHistoria: boolean) => void;
+  /** `soltando`: terminó el gesto, y es lo que queda para «Deshacer». */
+  onTramo: (t: Tramo, soltando: boolean) => void;
   modo: ModoGrafico;
   onModo: (m: ModoGrafico) => void;
   mesPasado: boolean;

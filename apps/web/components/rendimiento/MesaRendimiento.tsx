@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
+import { Buscador } from "@/components/ui/Buscador";
+import { ariaDelBuscador, ListaSugerencias, type Sugerencia } from "@/components/ui/ListaSugerencias";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { useTablaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
+import { descargarCsv } from "@/lib/exportar-csv";
 import type { SedeDeRendimiento } from "@/lib/rendimiento";
 import { sumarDias } from "@/lib/fechas-lima";
 import { minutosEnLima, primerDiaDelMes, resumenDeSede, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
@@ -10,6 +15,9 @@ import {
   diasDelEje,
   filasPorPersona,
   fraseDelEquipo,
+  interpretarBusqueda,
+  loQueSeBaja,
+  nombreCoincide,
   medirEquipo,
   medirGrupo,
   PRESETS,
@@ -19,6 +27,7 @@ import {
   cierreSimulado,
   tramoDePreset,
   tramoEnPalabras,
+  type IntencionBusqueda,
   type Preset,
   type Tramo,
 } from "@/lib/rendimiento-vista-reglas";
@@ -40,11 +49,32 @@ import { useLuzLiquida } from "./useLuzLiquida";
 
 const SOLES = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 });
 
+/** Lo que «Deshacer» devuelve: cómo se estaba mirando la pantalla. La tienda no entra: al cambiar de tienda se empieza de nuevo. */
+type VistaMesa = { tramo: Tramo; filtros: FiltrosVivos; orden: OrdenViva | null; modo: ModoGrafico; mesPasado: boolean; busqueda: string };
+
+function tituloDeIntencion(x: IntencionBusqueda): string {
+  if (x.tipo === "persona") return x.nombre;
+  if (x.tipo === "lectura") return `Quienes van ${x.lectura.toLowerCase()}`;
+  if (x.tipo === "tramo") return x.texto.replace(/^./, (c) => c.toUpperCase());
+  if (x.tipo === "sede") return x.nombre;
+  if (x.tipo === "modo") return x.texto;
+  return "Comparar con el mes pasado";
+}
+function detalleDeIntencion(x: IntencionBusqueda): string {
+  if (x.tipo === "persona") return "Ver solo a esta persona";
+  if (x.tipo === "lectura") return `${x.cuantas} ${x.cuantas === 1 ? "persona" : "personas"}`;
+  if (x.tipo === "tramo") return "Elegir estos días";
+  if (x.tipo === "sede") return "Ir a esta tienda";
+  return "En el gráfico";
+}
+
 export function MesaRendimiento({
   sedes,
   inicialId,
   sesionId,
   hoy,
+  tramoInicial,
+  modoInicial,
   personaCuentaId,
   esAdmin,
   rankings,
@@ -53,6 +83,8 @@ export function MesaRendimiento({
   inicialId: string;
   sesionId: string;
   hoy: string;
+  tramoInicial: Tramo;
+  modoInicial: ModoGrafico;
   personaCuentaId: string | null;
   esAdmin: boolean;
   rankings: Record<string, ReactNode>;
@@ -61,11 +93,16 @@ export function MesaRendimiento({
   useLuzLiquida(raiz);
   useFocoPersona(raiz);
   const [activaId, setActivaId] = useState(inicialId);
-  const [tramo, setTramo] = useState<Tramo>(() => tramoDePreset("mes", hoy));
+  const [tramo, setTramo] = useState<Tramo>(tramoInicial);
   const [filtros, setFiltros] = useState<FiltrosVivos>({});
   const [orden, setOrden] = useState<OrdenViva | null>({ clave: "avance", dir: "desc" });
   const [porDia, setPorDia] = useState<number | null>(null);
-  const [modo, setModo] = useState<ModoGrafico>("dia");
+  const [modo, setModo] = useState<ModoGrafico>(modoInicial);
+  const [busqueda, setBusqueda] = useState("");
+  const [buscadorAbierto, setBuscadorAbierto] = useState(false);
+  const [sugerida, setSugerida] = useState(0);
+  // «Deshacer»: cada cambio de lo que se mira guarda cómo estaba. Mover la barra o escribir no; soltar la barra, sí.
+  const [historia, setHistoria] = useState<VistaMesa[]>([]);
   const [mesPasado, setMesPasado] = useState(false);
   const [diaVivo, setDiaVivo] = useState<string | null>(null);
   // «Ver cómo fue»: el mes se repite día a día. Mientras tanto, el tramo crece solo; al llegar a hoy, se detiene (no es un bucle).
@@ -99,6 +136,7 @@ export function MesaRendimiento({
   const activa = sedes.find((s) => s.ubicacionId === activaId) ?? sedes[0];
   const filas = useMemo(() => activa?.personaDias ?? [], [activa]);
   const medidas = useMemo(() => medirEquipo({ personas: activa?.personas ?? [], filas, tramo, hoy, ahoraMin }), [activa, filas, tramo, hoy, ahoraMin]);
+  const encontradas = useMemo(() => medidas.filter((m) => nombreCoincide(m.nombre, busqueda)), [medidas, busqueda]);
   const colores = useMemo(() => new Map(medidas.map((m, i) => [m.personaId, `var(--color-persona-${i % 6})`])), [medidas]);
 
   const preset = presetDeTramo(tramo, hoy);
@@ -106,9 +144,27 @@ export function MesaRendimiento({
   // Sin ninguna meta en la tienda no hay nada de qué leer un ritmo: la tabla no dibuja esa columna ni la de la meta.
   const conMeta = medidas.some((m) => m.meta !== null);
   const columnas = useColumnasRendimiento({ personas: activa?.personas ?? [], filas, colores, tramo, hoy, esHoy: preset === "hoy", personaCuentaId, conMeta, diaVivo, abiertaId: abierta });
-  const tabla = useTablaViva({ filas: medidas, columnas, control: { filtros, orden, onFiltros: setFiltros, onOrden: setOrden } });
+  const arrastre = useRef<VistaMesa | null>(null);
+  const vistaActual = (): VistaMesa => ({ tramo, filtros, orden, modo, mesPasado, busqueda });
+  const guardar = (v: VistaMesa = vistaActual()) => setHistoria((h) => [...h.slice(-39), v]);
+  const tabla = useTablaViva({
+    filas: encontradas,
+    columnas,
+    control: {
+      filtros,
+      orden,
+      onFiltros: (f) => {
+        guardar();
+        setFiltros(f);
+      },
+      onOrden: (o) => {
+        guardar();
+        setOrden(o);
+      },
+    },
+  });
   const vistas = tabla.visibles;
-  const hayFiltro = hayFiltrosPuestos(tabla.filtros);
+  const hayFiltro = hayFiltrosPuestos(tabla.filtros) || busqueda.trim() !== "";
   const elegidas = useMemo(() => medidas.filter((m) => (tabla.filtros.persona ?? []).includes(m.nombre)).map((m) => m.personaId), [medidas, tabla.filtros]);
   const grupos = (tabla.filtros.lectura ?? []) as readonly LecturaRitmo[];
   const idsVistos = useMemo(() => new Set(vistas.map((m) => m.personaId)), [vistas]);
@@ -139,12 +195,126 @@ export function MesaRendimiento({
     return () => window.clearTimeout(t);
   }, [repitiendo, tramo, hoy]);
 
+  function deshacer() {
+    const v = historia.at(-1);
+    if (!v) return;
+    setHistoria((h) => h.slice(0, -1));
+    setRepitiendo(false);
+    setTramo(v.tramo);
+    setFiltros(v.filtros);
+    setOrden(v.orden);
+    setModo(v.modo);
+    setMesPasado(v.mesPasado);
+    setBusqueda(v.busqueda);
+  }
+  function ponerTramo(t: Tramo) {
+    guardar();
+    setRepitiendo(false);
+    setTramo(t);
+  }
+
+  // Lo que se mira queda en la dirección, para compartirlo o recargar en lo mismo. Sin navegar: ni pide nada a la base ni mueve la vista.
+  useEffect(() => {
+    if (repitiendo) return;
+    const url = new URL(window.location.href);
+    const esMes = presetDeTramo(tramo, hoy) === "mes";
+    url.searchParams.delete("vista");
+    if (esMes) {
+      url.searchParams.delete("desde");
+      url.searchParams.delete("hasta");
+    } else {
+      url.searchParams.set("desde", tramo.desde);
+      url.searchParams.set("hasta", tramo.hasta);
+    }
+    if (modo === "dia") url.searchParams.delete("modo");
+    else url.searchParams.set("modo", modo);
+    window.history.replaceState(null, "", url);
+  }, [tramo, modo, repitiendo, hoy]);
+
+  // Las teclas de la pantalla. «/» lo pone el buscador. Nunca mientras se escribe o hay una hoja abierta.
+  const teclas = useRef({ tramo, abierta, eje: [] as readonly string[], hoy, hayFiltro, limpiar: () => {}, cerrar: () => {}, mover: (_: Tramo) => {} });
+  useEffect(() => {
+    const alTeclear = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (e.defaultPrevented || el?.closest?.("input, textarea, [contenteditable], [role=dialog], [role=listbox]")) return;
+      const t = teclas.current;
+      if (e.key === "Escape") {
+        if (t.abierta) t.cerrar();
+        else if (t.hayFiltro || presetDeTramo(t.tramo, t.hoy) !== "mes") t.limpiar();
+        return;
+      }
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (el?.closest?.("[role=radiogroup], [role=tablist]") || presetDeTramo(t.tramo, t.hoy) === "mes") return;
+      const a = t.eje.indexOf(t.tramo.desde);
+      const b = t.eje.indexOf(t.tramo.hasta);
+      const paso = e.key === "ArrowRight" ? 1 : -1;
+      if (a < 0 || b < 0 || a + paso < 0 || t.eje[b + paso] === undefined || t.eje[b + paso] > t.hoy) return;
+      e.preventDefault();
+      t.mover({ desde: t.eje[a + paso], hasta: t.eje[b + paso] });
+    };
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, []);
+  useEffect(() => {
+    teclas.current = {
+      tramo,
+      abierta,
+      eje,
+      hoy,
+      hayFiltro,
+      cerrar: () => {
+        if (abierta) alternarFila(abierta);
+      },
+      limpiar: () => {
+        guardar();
+        setFiltros({});
+        setBusqueda("");
+        setRepitiendo(false);
+        setTramo(tramoDePreset("mes", hoy));
+      },
+      mover: setTramo,
+    };
+  });
+
+  // Lo que puede querer decir lo que se escribió.
+  const intenciones = useMemo(
+    () => interpretarBusqueda(busqueda, { medidas, sedes: sedes.map((s) => ({ ubicacionId: s.ubicacionId, nombre: s.nombre })), activaId: activa?.ubicacionId ?? "", hoy }),
+    [busqueda, medidas, sedes, activa, hoy],
+  );
+  const listaAbierta = buscadorAbierto && busqueda.trim() !== "";
+  const sugerencias: Sugerencia[] = intenciones.map((x, i) => ({
+    clave: `${x.tipo}-${i}`,
+    titulo: tituloDeIntencion(x),
+    detalle: detalleDeIntencion(x),
+  }));
+  function aplicar(x: IntencionBusqueda | undefined) {
+    if (!x) return;
+    setBuscadorAbierto(false);
+    if (x.tipo === "sede") {
+      setBusqueda("");
+      elegirSede(x.ubicacionId);
+      return;
+    }
+    // Lo escrito era la pregunta, no parte de lo que se miraba: «Deshacer» no lo trae de vuelta.
+    guardar({ ...vistaActual(), busqueda: "" });
+    setBusqueda("");
+    setRepitiendo(false);
+    if (x.tipo === "persona") {
+      const m = medidas.find((p) => p.personaId === x.personaId);
+      if (m) setFiltros((f) => ({ ...f, persona: [m.nombre] }));
+    } else if (x.tipo === "lectura") setFiltros((f) => ({ ...f, lectura: [x.lectura] }));
+    else if (x.tipo === "tramo") setTramo(x.tramo);
+    else if (x.tipo === "modo") setModo(x.modo);
+    else setMesPasado(true);
+  }
+
   function repetir() {
     if (repitiendo) {
       setRepitiendo(false);
       return;
     }
     setDiaVivo(null);
+    guardar();
     const inicio = primerDiaDelMes(hoy);
     setTramo({ desde: inicio, hasta: inicio });
     setRepitiendo(true);
@@ -158,12 +328,17 @@ export function MesaRendimiento({
     setCerrando(null);
     setPorDia(null);
     setRepitiendo(false);
+    setHistoria([]);
+    setBusqueda("");
     const url = new URL(window.location.href);
     url.searchParams.set("sede", id);
     window.history.replaceState(null, "", url);
   }
   // Días elegidos a mano: entran a la frase, a las píldoras y a «Limpiar todo», como cualquier filtro de la tabla.
-  const deAfuera: FiltroDeAfuera[] = preset === "mes" ? [] : [{ clave: "dias", pildora: `Días: ${tramoTexto}`, frase: tramoTexto, quitar: () => setTramo(tramoDePreset("mes", hoy)) }];
+  const deAfuera: FiltroDeAfuera[] = [
+    ...(busqueda.trim() ? [{ clave: "busqueda", pildora: `Busca: «${busqueda.trim()}»`, frase: `con «${busqueda.trim()}»`, quitar: () => setBusqueda("") }] : []),
+    ...(preset === "mes" ? [] : [{ clave: "dias", pildora: `Días: ${tramoTexto}`, frase: "", quitar: () => ponerTramo(tramoDePreset("mes", hoy)) }]),
+  ];
   const ventasSinPersona = filas.filter((f) => f.personaId === null && f.fecha >= tramo.desde && f.fecha <= tramo.hasta).reduce((s, f) => s + f.total, 0);
 
   if (!activa) return null;
@@ -176,15 +351,57 @@ export function MesaRendimiento({
     <div ref={raiz} className="mesa mesa-marco">
       <div className="mesa-herramientas mesa-entra" style={{ "--i": 0 } as CSSProperties}>
         {sedes.length > 1 && <SedesConAnillo sedes={sedes} activaId={activa.ubicacionId} sesionId={sesionId} hoy={hoy} onElegir={elegirSede} />}
+        <div className="mesa-buscador" data-guia="rendimiento.buscador">
+          <Buscador
+            valor={busqueda}
+            onCambio={(v) => {
+              setBusqueda(v);
+              setSugerida(0);
+              setBuscadorAbierto(true);
+            }}
+            atajo
+            etiqueta="Buscar en Rendimiento"
+            placeholder="Alguien, «por debajo», «del 5 al 12»" // sugerir-fijo: enseña qué entiende este buscador; no depende de nada elegido antes
+            onFocus={() => setBuscadorAbierto(true)}
+            onBlur={() => setBuscadorAbierto(false)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                if (intenciones.length > 0) setSugerida((i) => (i + (e.key === "ArrowDown" ? 1 : -1) + intenciones.length) % intenciones.length);
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                aplicar(intenciones[sugerida]);
+              } else if (e.key === "Escape") {
+                e.stopPropagation();
+                setBusqueda("");
+                setBuscadorAbierto(false);
+              }
+            }}
+            {...ariaDelBuscador("mesa-sugerencias", listaAbierta, intenciones.length > 0 ? sugerida : null)}
+          />
+          {listaAbierta &&
+            (intenciones.length > 0 ? (
+              <ListaSugerencias id="mesa-sugerencias" etiqueta="Lo que entendí" sugerencias={sugerencias} activa={sugerida} onActiva={setSugerida} onElegir={(i) => aplicar(intenciones[i])} className="mesa-sugerencias" />
+            ) : (
+              <p className="mesa-sugerencias mesa-sin-entender lista-flotante" role="status">
+                No entendí «{busqueda.trim()}». Prueba con un nombre, «por debajo», «día 10» o «del 5 al 12».
+              </p>
+            ))}
+        </div>
         <div data-guia="rendimiento.periodo">
           <SegmentoDeslizante
             forma="modo"
             etiqueta="Período"
             valor={preset ?? ""}
             opciones={PRESETS.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta }))}
-            onCambio={(c) => setTramo(tramoDePreset(c as Preset, hoy))}
+            onCambio={(c) => ponerTramo(tramoDePreset(c as Preset, hoy))}
           />
         </div>
+        {historia.length > 0 && (
+          <span className="mesa-entra-rapido" data-guia="rendimiento.deshacer">
+            <BotonDeshacer onClick={deshacer} title="Vuelve a como estaba antes de lo último que cambiaste" />
+          </span>
+        )}
       </div>
 
       <p key={frase} className="mesa-frase" data-cambia="" aria-live="polite">
@@ -207,7 +424,10 @@ export function MesaRendimiento({
           porDia={porDia}
           onPorDia={(v) => {
             setPorDia(v);
-            if (v !== null) setModo("suma");
+            if (v !== null && modo !== "suma") {
+              guardar();
+              setModo("suma");
+            }
           }}
           onPersona={(id) => {
             const m = medidas.find((x) => x.personaId === id);
@@ -225,14 +445,26 @@ export function MesaRendimiento({
             colores={colores}
             esLaTienda={!hayFiltro}
             tramo={tramo}
-            onTramo={(t) => {
+            onTramo={(t, soltando) => {
               setRepitiendo(false);
+              // Se guarda cómo estaba ANTES de arrastrar, una sola vez.
+              if (!soltando && !arrastre.current) arrastre.current = vistaActual();
+              if (soltando) {
+                guardar(arrastre.current ?? vistaActual());
+                arrastre.current = null;
+              }
               setTramo(t);
             }}
             modo={modo}
-            onModo={setModo}
+            onModo={(m) => {
+              guardar();
+              setModo(m);
+            }}
             mesPasado={mesPasado}
-            onMesPasado={setMesPasado}
+            onMesPasado={(v) => {
+              guardar();
+              setMesPasado(v);
+            }}
             repitiendo={repitiendo}
             onRepetir={repetir}
             cierre={
@@ -251,8 +483,22 @@ export function MesaRendimiento({
         )}
 
         {hayPanel && (
+          <div className="mesa-descarga" data-guia="rendimiento.descargar">
+            <BotonDescargar
+              chico
+              onClick={() => {
+                const { encabezados, filas: filasCsv } = loQueSeBaja(vistas, conMeta);
+                descargarCsv(`rendimiento-${activa.nombre.replace(/^Tienda\s+/, "").toLowerCase()}-${tramo.desde}-a-${tramo.hasta}.csv`, encabezados, filasCsv);
+              }}
+            >
+              Descargar lo que ves
+            </BotonDescargar>
+          </div>
+        )}
+
+        {hayPanel && (
           <TablaRendimiento
-            tabla={tabla} hoy={hoy} cola={preset === "mes" ? "este mes" : undefined} deAfuera={deAfuera}
+            tabla={tabla} hoy={hoy} total={medidas.length} cola={preset === "semana" ? "en los últimos 7 días" : tramoTexto} deAfuera={deAfuera}
             ventasSinPersona={hayFiltro ? 0 : ventasSinPersona}
             abierta={(m) => abierta === m.personaId}
             onAbrir={(m) => alternarFila(m.personaId)}
@@ -274,7 +520,7 @@ export function MesaRendimiento({
                   esAdmin={esAdmin}
                   cerrando={cerrando === m.personaId}
                   guiar={i === 0}
-                  onDia={(fecha) => setTramo((t) => (t.desde === fecha && t.hasta === fecha ? tramoDePreset("mes", hoy) : { desde: fecha, hasta: fecha }))}
+                  onDia={(fecha) => ponerTramo(tramo.desde === fecha && tramo.hasta === fecha ? tramoDePreset("mes", hoy) : { desde: fecha, hasta: fecha })}
                   onCerrar={() => alternarFila(m.personaId)}
                 />
               ) : null

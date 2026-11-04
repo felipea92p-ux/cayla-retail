@@ -512,3 +512,110 @@ export function calendarioDelMes(filas: readonly FilaPersonaDia[], hoy: string):
     }),
   };
 }
+
+// ───────────────────────── la URL y el buscador ─────────────────────────
+
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Los días que pide la URL: un tramo válido dentro del eje y sin pasar de hoy; `vista` es el enlace de antes; sin nada, este mes. */
+export function tramoDeUrl(p: { desde?: string | null; hasta?: string | null; vista?: string | null }, hoy: string): Tramo {
+  const { desde, hasta, vista } = p;
+  if (desde && hasta && FECHA_ISO.test(desde) && FECHA_ISO.test(hasta) && desde <= hasta && hasta <= hoy && diasDelEje(hoy).includes(desde)) return { desde, hasta };
+  if (vista === "hoy" || vista === "semana") return tramoDePreset(vista, hoy);
+  return tramoDePreset("mes", hoy);
+}
+
+const sinMarcas = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+export type IntencionBusqueda =
+  | { tipo: "persona"; personaId: string; nombre: string }
+  | { tipo: "lectura"; lectura: LecturaRitmo; cuantas: number }
+  | { tipo: "tramo"; tramo: Tramo; texto: string }
+  | { tipo: "sede"; ubicacionId: string; nombre: string }
+  | { tipo: "modo"; modo: "dia" | "persona" | "suma"; texto: string }
+  | { tipo: "mesPasado" };
+
+const PALABRAS_MODO: { clave: string; modo: "dia" | "persona" | "suma"; texto: string }[] = [
+  { clave: "sumado", modo: "suma", texto: "Ver lo sumado" },
+  { clave: "acumulado", modo: "suma", texto: "Ver lo sumado" },
+  { clave: "por persona", modo: "persona", texto: "Ver por persona" },
+  { clave: "cada dia", modo: "dia", texto: "Ver cada día" },
+];
+
+/**
+ * Lo que puede querer decir lo que se escribió: una persona, «por debajo», «esta semana», «día 10», «del 5 al 12», una tienda, un modo del gráfico o
+ * «mes pasado». No adivina: solo ofrece, y la persona elige. Un día que no ha llegado o de otro mes no se ofrece.
+ */
+export function interpretarBusqueda(
+  texto: string,
+  c: { medidas: readonly MedidaPersona[]; sedes: readonly { ubicacionId: string; nombre: string }[]; activaId: string; hoy: string },
+): IntencionBusqueda[] {
+  const q = sinMarcas(texto);
+  if (!q) return [];
+  const res: IntencionBusqueda[] = [];
+  const delMes = (n: number) => {
+    const iso = `${c.hoy.slice(0, 8)}${String(n).padStart(2, "0")}`;
+    return n >= 1 && iso <= c.hoy ? iso : null;
+  };
+  const rango = q.match(/^del?\s*(\d{1,2})\s*(?:al?|-)\s*(\d{1,2})$/);
+  if (rango) {
+    const [x, y] = [Number(rango[1]), Number(rango[2])];
+    const a = delMes(Math.min(x, y));
+    const b = delMes(Math.max(x, y));
+    if (a && b) {
+      const t = { desde: a, hasta: b };
+      res.push({ tipo: "tramo", tramo: t, texto: tramoEnPalabras(t, c.hoy) });
+    }
+  }
+  const uno = q.match(/^(?:dia\s*)?(\d{1,2})$/);
+  if (uno) {
+    const d = delMes(Number(uno[1]));
+    if (d) {
+      const t = { desde: d, hasta: d };
+      res.push({ tipo: "tramo", tramo: t, texto: tramoEnPalabras(t, c.hoy) });
+    }
+  }
+  for (const m of c.medidas) if (sinMarcas(m.nombre).includes(q)) res.push({ tipo: "persona", personaId: m.personaId, nombre: m.nombre });
+  for (const l of ["Adelante", "En ritmo", "Por debajo"] as const) {
+    if (!sinMarcas(l).includes(q)) continue;
+    const cuantas = c.medidas.filter((m) => m.lectura === l).length;
+    if (cuantas > 0) res.push({ tipo: "lectura", lectura: l, cuantas });
+  }
+  const periodos: [string, Preset][] = [["hoy", "hoy"], ["7 dias", "semana"], ["semana", "semana"], ["este mes", "mes"], ["mes", "mes"]];
+  const periodo = periodos.find(([k]) => k.startsWith(q) && q.length >= 2);
+  if (periodo) {
+    const t = tramoDePreset(periodo[1], c.hoy);
+    res.push({ tipo: "tramo", tramo: t, texto: tramoEnPalabras(t, c.hoy) });
+  }
+  if (q === "ayer" || (q.length >= 3 && "ayer".startsWith(q))) {
+    const d = sumarDias(c.hoy, -1);
+    if (diasDelEje(c.hoy).includes(d)) res.push({ tipo: "tramo", tramo: { desde: d, hasta: d }, texto: "ayer" });
+  }
+  for (const s of c.sedes) if (s.ubicacionId !== c.activaId && sinMarcas(s.nombre).includes(q)) res.push({ tipo: "sede", ubicacionId: s.ubicacionId, nombre: s.nombre });
+  for (const m of PALABRAS_MODO) if (m.clave.includes(q) && q.length >= 3 && !res.some((r) => r.tipo === "modo" && r.modo === m.modo)) res.push({ tipo: "modo", modo: m.modo, texto: m.texto });
+  if (q.length >= 5 && "mes pasado".startsWith(q)) res.push({ tipo: "mesPasado" });
+  if (q.length >= 3 && "pasado".startsWith(q)) res.push({ tipo: "mesPasado" });
+  return res.slice(0, 6);
+}
+
+/** ¿El nombre de esta persona tiene lo que se escribió? Sin escribir, todas. */
+export function nombreCoincide(nombre: string, texto: string): boolean {
+  const q = sinMarcas(texto);
+  return q === "" || sinMarcas(nombre).includes(q);
+}
+
+/** Lo que se ve, para bajarlo: columnas y filas, sin meta si la tienda no tiene. El archivo lo arma `descargarCsv`, el de todo el ERP. */
+export function loQueSeBaja(medidas: readonly MedidaPersona[], conMeta: boolean): { encabezados: string[]; filas: (string | number)[][] } {
+  return {
+    encabezados: ["Persona", ...(conMeta ? ["Cómo va", "Avance %", "Meta"] : []), "Vendido", "Ventas", "Prendas", "Ticket", "Mejor día"],
+    filas: medidas.map((m) => [
+      m.nombre,
+      ...(conMeta ? [m.lectura ?? "", m.pct === null ? "" : Math.round(m.pct), m.meta === null ? "" : Math.round(m.meta)] : []),
+      Math.round(m.vendido),
+      m.ventas,
+      m.prendas,
+      m.ticket === null ? "" : Math.round(m.ticket),
+      m.mejorDia?.fecha ?? "",
+    ]),
+  };
+}

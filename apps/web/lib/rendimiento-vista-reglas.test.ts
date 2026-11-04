@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   calendarioDelMes,
   cierreSimulado,
+  loQueSeBaja,
+  interpretarBusqueda,
+  nombreCoincide,
+  tramoDeUrl,
   filasConOtraMeta,
   suDiaFuerte,
   diasParaGrafico,
@@ -426,5 +430,81 @@ describe("la fila abierta", () => {
     expect(c.dias[9]).toMatchObject({ n: 10, total: 200, intensidad: 1, llego: true });
     expect(c.dias[10].intensidad).toBe(0.5);
     expect(c.dias[24].llego).toBe(false);
+  });
+});
+
+describe("la URL", () => {
+  it("toma un tramo válido, y lo roto vuelve a este mes", () => {
+    expect(tramoDeUrl({ desde: dia(5), hasta: dia(12) }, HOY)).toEqual({ desde: dia(5), hasta: dia(12) });
+    expect(tramoDeUrl({ desde: dia(12), hasta: dia(5) }, HOY)).toEqual(tramoDePreset("mes", HOY));
+    expect(tramoDeUrl({ desde: dia(5), hasta: dia(28) }, HOY)).toEqual(tramoDePreset("mes", HOY));
+    expect(tramoDeUrl({ desde: "2020-01-01", hasta: "2020-01-02" }, HOY)).toEqual(tramoDePreset("mes", HOY));
+    expect(tramoDeUrl({ desde: "x", hasta: "y" }, HOY)).toEqual(tramoDePreset("mes", HOY));
+  });
+
+  it("los enlaces de antes siguen sirviendo", () => {
+    expect(tramoDeUrl({ vista: "hoy" }, HOY)).toEqual(tramoDePreset("hoy", HOY));
+    expect(tramoDeUrl({ vista: "semana" }, HOY)).toEqual(tramoDePreset("semana", HOY));
+    expect(tramoDeUrl({}, HOY)).toEqual(tramoDePreset("mes", HOY));
+  });
+});
+
+describe("el buscador que entiende", () => {
+  const m = (nombre: string, lectura: MedidaPersona["lectura"]) => ({ personaId: nombre, nombre, lectura }) as MedidaPersona;
+  const contexto = { medidas: [m("Ana T.", "Adelante"), m("Diana P.", "Por debajo"), m("Mónica R.", "Por debajo")], sedes: [{ ubicacionId: "aqp", nombre: "Tienda Arequipa" }, { ubicacionId: "tru", nombre: "Tienda Trujillo" }], activaId: "tru", hoy: HOY };
+  const q = (t: string) => interpretarBusqueda(t, contexto);
+
+  it("una persona, sin importar tildes ni mayúsculas", () => {
+    expect(q("MONICA")).toEqual([{ tipo: "persona", personaId: "Mónica R.", nombre: "Mónica R." }]);
+    expect(q("ana").map((x) => (x.tipo === "persona" ? x.nombre : x.tipo))).toEqual(["Ana T.", "Diana P."]);
+  });
+
+  it("un grupo, solo si hay alguien en él", () => {
+    expect(q("por deb")).toEqual([{ tipo: "lectura", lectura: "Por debajo", cuantas: 2 }]);
+    expect(q("en ritmo")).toEqual([]);
+  });
+
+  it("días y tramos del mes, que ya llegaron", () => {
+    expect(q("del 5 al 12")).toEqual([{ tipo: "tramo", tramo: { desde: dia(5), hasta: dia(12) }, texto: "del 5 al 12 de octubre" }]);
+    expect(q("del 12 al 5")[0]).toMatchObject({ tramo: { desde: dia(5), hasta: dia(12) } });
+    expect(q("día 10")[0]).toMatchObject({ tramo: { desde: dia(10), hasta: dia(10) } });
+    expect(q("10")[0]).toMatchObject({ tramo: { desde: dia(10), hasta: dia(10) } });
+    expect(q("día 28")).toEqual([]);
+    expect(q("del 20 al 28")).toEqual([]);
+  });
+
+  it("períodos, tienda, modo y mes pasado", () => {
+    expect(q("hoy")[0]).toMatchObject({ tipo: "tramo", texto: "hoy" });
+    expect(q("sem")[0]).toMatchObject({ tipo: "tramo", texto: "los últimos 7 días" });
+    expect(q("ayer")[0]).toMatchObject({ tipo: "tramo", texto: "ayer" });
+    expect(q("arequipa")).toEqual([{ tipo: "sede", ubicacionId: "aqp", nombre: "Tienda Arequipa" }]);
+    expect(q("trujillo")).toEqual([]); // ya está en ella
+    expect(q("sumado")).toEqual([{ tipo: "modo", modo: "suma", texto: "Ver lo sumado" }]);
+    expect(q("mes pasado")).toEqual([{ tipo: "mesPasado" }]);
+    expect(q("pasado")).toEqual([{ tipo: "mesPasado" }]);
+  });
+
+  it("lo que no entiende no lo inventa", () => {
+    expect(q("")).toEqual([]);
+    expect(q("xyz")).toEqual([]);
+  });
+
+  it("filtra por nombre", () => {
+    expect(nombreCoincide("Mónica R.", "moni")).toBe(true);
+    expect(nombreCoincide("Ana T.", "")).toBe(true);
+    expect(nombreCoincide("Ana T.", "xyz")).toBe(false);
+  });
+});
+
+describe("lo que se baja", () => {
+  const base = { personaId: "a", nombre: "Ana T.", vendido: 1234.4, ventas: 9, prendas: 12, ticket: 137.2, muestraChica: true, meta: 2000, tocaba: 1000, pct: 61.7, tocaPct: 50, lectura: "Adelante", metaHoy: 0, tocabaHoy: 0, mejorDia: { fecha: dia(3), total: 300 } } as MedidaPersona;
+
+  it("dice lo que se ve, con la meta solo si la hay", () => {
+    expect(loQueSeBaja([base], true)).toEqual({ encabezados: ["Persona", "Cómo va", "Avance %", "Meta", "Vendido", "Ventas", "Prendas", "Ticket", "Mejor día"], filas: [["Ana T.", "Adelante", 62, 2000, 1234, 9, 12, 137, dia(3)]] });
+    expect(loQueSeBaja([base], false).filas[0]).toEqual(["Ana T.", 1234, 9, 12, 137, dia(3)]);
+  });
+
+  it("lo que no tiene dato va vacío, nunca en 0", () => {
+    expect(loQueSeBaja([{ ...base, lectura: null, pct: null, meta: null, ticket: null, mejorDia: null }], true).filas[0]).toEqual(["Ana T.", "", "", "", 1234, 9, 12, "", ""]);
   });
 });

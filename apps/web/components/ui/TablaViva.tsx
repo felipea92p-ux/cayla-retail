@@ -101,7 +101,7 @@ export type ColumnaViva<F> = ColumnaDatos<F> & {
   guiaCelda?: string;
 };
 
-/** Un filtro que la pantalla pone por fuera de las columnas (la búsqueda): entra a la frase, a las píldoras y a «Limpiar todo». */
+/** Un filtro que la pantalla pone por fuera de las columnas (la búsqueda): entra a la frase, a las píldoras y a «Limpiar todo». Con `frase` vacía, solo a las píldoras (la frase ya lo dice en su `cola`). */
 export type FiltroDeAfuera = { clave: string; pildora: string; frase: string; quitar: () => void };
 
 export type TablaVivaEstado<F> = {
@@ -252,7 +252,7 @@ export function TablaViva<F>({
 
   const hayDeColumnas = hayFiltrosPuestos(filtros);
   const hayAlgo = hayDeColumnas || deAfuera.length > 0;
-  const partes = [...deAfuera.map((d) => d.frase), ...partesDeFiltros(columnas, filtros, visibles.length)];
+  const partes = [...deAfuera.map((d) => d.frase).filter(Boolean), ...partesDeFiltros(columnas, filtros, visibles.length)];
   const frase = fraseDeLoQueVes({ visibles: visibles.length, total: total ?? filas.length, sustantivo, partes, suma: visibles.length ? suma?.(visibles) : null, cola });
 
   // La caja de los montos mide lo del más largo de TODAS las filas: filtrar no hace saltar la columna.

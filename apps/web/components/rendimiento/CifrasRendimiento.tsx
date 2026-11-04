@@ -55,6 +55,7 @@ function Trazo({ serie }: { serie: number[] }) {
     const puntos = serie.map((v, i) => `${(n > 1 ? i / (n - 1) : 1) * W} ${H - 2 - (v / tope) * (H - 6)}`);
     return { linea: `M${puntos.join("L")}`, area: `M${puntos.join("L")}L${W} ${H}L0 ${H}Z` };
   }, [serie]);
+  if (serie.length === 0) return <span className="mesa-trazo" aria-hidden />;
   return (
     <svg className="mesa-trazo" viewBox="0 0 240 42" preserveAspectRatio="none" aria-hidden>
       {/* unificar-fijo: el trazo de adorno de una cifra, sin ejes ni lectura; el dato ya está escrito en la cifra */}
