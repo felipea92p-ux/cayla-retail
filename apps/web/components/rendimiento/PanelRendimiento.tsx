@@ -189,7 +189,7 @@ export function PanelRendimiento({
           <TarjetaCifra
             etiqueta="Meta de la sede"
             valor={null}
-            accion={{ href: "/configuracion?tab=tiendas", texto: "Cargarla en Configuración" }}
+            accion={{ href: "/configuracion?tab=metas", texto: "Cargarla en Configuración" }}
           >
             Falta cargarla para {nombre}. Sin ella no hay qué repartir.
           </TarjetaCifra>
@@ -276,7 +276,7 @@ export function PanelRendimiento({
 
       {res.meta === null && (
         <p className="nota-cayla">
-          Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Tiendas y caja</b> y se reparte sola, por horas.
+          Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Metas</b> y se reparte sola, por horas.
         </p>
       )}
       {res.meta !== null && personas.length > 0 && !porHoras && (

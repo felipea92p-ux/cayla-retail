@@ -84,7 +84,7 @@ describe("la insignia de la tarjeta dice lo que el cliente ve hoy", () => {
   it("encendida y completa: se ve", () => {
     expect(estadoSedeWeb({ mostrar: true, ...completa })).toEqual({ tono: "verde", texto: "Se ve en la web" });
   });
-  it("encendida sin WhatsApp (se lo quitaron en Tiendas y caja): avisa que no se ve y por qué", () => {
+  it("encendida sin WhatsApp (se lo quitaron en Empresa y tiendas): avisa que no se ve y por qué", () => {
     expect(estadoSedeWeb({ mostrar: true, ...completa, whatsapp: "" })).toEqual({ tono: "ambar", texto: "No se ve: falta el WhatsApp" });
   });
 });

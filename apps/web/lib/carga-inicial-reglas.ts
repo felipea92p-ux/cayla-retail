@@ -105,14 +105,6 @@ export function avisoCargaInicial(c: CargaInicialSede | null): string | null {
   return `La carga inicial de ${c.sede} se cierra el ${cuando} (${e.dias === 1 ? "falta 1 día" : `faltan ${e.dias} días`}).`;
 }
 
-/** El estado en una palabra o dos, para la insignia de Configuración. */
-export function chipCargaInicial(e: EstadoCargaInicial): { texto: string; tono: "verde" | "ambar" | "apagado" | "neutro" } {
-  if (e.tipo === "sin_fecha") return { texto: "Abierta, sin fecha", tono: "neutro" };
-  if (e.tipo === "cerrada") return { texto: `Cerrada desde el ${fechaCorta(siguienteDia(e.hasta))}`, tono: "apagado" };
-  if (e.dias === 0) return { texto: "Hoy es el último día", tono: "ambar" };
-  return { texto: e.dias === 1 ? "Abierta · falta 1 día" : `Abierta · faltan ${e.dias} días`, tono: e.dias <= 7 ? "ambar" : "verde" };
-}
-
 function siguienteDia(iso: string): string {
   return new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 }

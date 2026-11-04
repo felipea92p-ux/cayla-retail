@@ -624,3 +624,10 @@ Proformas, Resumen de sede).
   escribe con CSS (`::before`), no con texto: no aparece al copiar la cifra ni en lo que lee una prueba; el lector lee el valor entero.
 - **Lo que no puede volver:** el número que se ve sale siempre del valor de ahora; cada dígito solo guarda si está en su primer cuadro.
   Así no reaparece el error del 2026-10-28 (la plata de otra sede), y `lib/cifra-rueda.test.ts` lo vigila en el código.
+
+## Actualización 2026-11-04: Las vitrinas de Configuración ▸ Empresa y tiendas
+
+Felipe pidió «full animaciones y sofisticada», «siempre siguiendo el estilo de liquid glass» (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). Cada dato de una sede es un instrumento en
+una gota de vidrio, y se arma una vez al entrar o al guardarlo: el haz que escanea el QR, la aguja del dial, el líquido que sube, la estrella del asistente, la caja que se sella, el RUC que rueda y
+el aro por tramos. Sin rebote ni bucle, cada pieza en 1,2 s o menos y con la curva del sistema. Lo único que sigue vivo es lo que sigue al mouse (el filo de luz, el brillo y una inclinación de
+menos de 1,5°), que no se mueve solo. Todo se apaga con `prefers-reduced-motion`. Lo vigila `lib/vitrinas-movimiento.test.ts`.

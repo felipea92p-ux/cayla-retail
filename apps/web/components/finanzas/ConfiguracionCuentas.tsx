@@ -42,7 +42,7 @@ import { BANCOS_CON_CUENTA, TEXTO_BANCO, type CuentaPlanilla } from "@/lib/plani
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
-// qué cuenta entra cada medio de cobro en cada tienda. Como en Tiendas y caja, CADA CASILLA SE GUARDA SOLA al cambiar,
+// qué cuenta entra cada medio de cobro en cada tienda. Como en Metas, CADA CASILLA SE GUARDA SOLA al cambiar,
 // firmada con el responsable. Cambiar a qué cuenta entra un cobro rige desde hoy: lo pasado no se mueve. Cada cuenta se
 // corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25). Desde el ADR-0429, también las
 // máquinas de cobro (Izipay, Vendemás): en qué tiendas cobran con tarjeta y QR y en qué cuenta «por depositar» espera esa plata.

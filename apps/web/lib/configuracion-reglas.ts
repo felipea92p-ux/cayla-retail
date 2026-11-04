@@ -1,4 +1,4 @@
-// Reglas de Configuración ▸ Tiendas y caja (ADR-0195 F1). Lógica pura: la usan la pantalla y sus pruebas.
+// Reglas de Configuración ▸ Metas (ADR-0195 F1). Lógica pura: la usan la pantalla y sus pruebas.
 // Las mismas reglas las cierra la base (`guardar_metas_tienda`, `guardar_efecto_campana`, checks y disparadores de
 // 20260924210000); aquí solo se dicen con una frase clara ANTES de ir a la base.
 

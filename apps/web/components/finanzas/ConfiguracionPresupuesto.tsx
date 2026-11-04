@@ -32,7 +32,7 @@ import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Presupuesto (ADR-0195, capa «para decidir»), dibujada como el spike (docs/maquetas/finanzas-2026-09/,
 // `cfgPresupuesto`): una tabla por unidad y rubro para el mes elegido donde CADA CASILLA SE GUARDA SOLA al salir de ella si
-// cambió, firmada con el responsable (como Tiendas y caja). La meta de ventas NO se escribe aquí: es la suma de las metas
+// cambió, firmada con el responsable (como Metas). La meta de ventas NO se escribe aquí: es la suma de las metas
 // del día (F1), y se muestra para llegar a ella. «Copiar de…» y «Sugerir…» PROPONEN (la base no guarda nada) y lo propuesto
 // se ve en una hoja; recién al confirmar se guarda de una vez.
 
@@ -213,7 +213,7 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
                     {u.unidad !== "tienda" ? (
                       <span className="fin-tenue">—</span>
                     ) : (
-                      <Link href="/configuracion?tab=tiendas" className="btn-enlace fin-meta-enlace" title="Se cambia en Tiendas y caja">
+                      <Link href="/configuracion?tab=metas" className="btn-enlace fin-meta-enlace" title="Se cambia en Metas">
                         {u.metaVentas === null ? "sin meta" : solesRedondo(u.metaVentas)}
                       </Link>
                     )}

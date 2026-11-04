@@ -3,7 +3,7 @@
 // 20261014231000); aquí solo se dice con una frase clara ANTES de ir a la base y se arma lo que necesita la guía de foco.
 //
 // El WhatsApp de una tienda es `ubicaciones.whatsapp_numero`, el mismo número del QR del club (ADR-0288): esta pestaña lo
-// guarda con la misma función que Tiendas y caja (`guardar_whatsapp_tienda`) y con la misma regla (`celularValido`).
+// guarda con la misma función que Empresa y tiendas (`guardar_whatsapp_tienda`) y con la misma regla (`celularValido`).
 
 import { cierresDesdeFilas, semanaDeSerializada, semanaDesdeFilas, semanaTieneHoras, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
 import { serializarCierres } from "./horario-edicion-reglas";
@@ -144,7 +144,7 @@ const EN_FRASE: Record<DatoWeb, string> = { nombre_web: "el nombre en la web", w
 export function estadoSedeWeb(s: { mostrar: boolean } & Pick<BorradorSede, "nombreWeb" | "whatsapp" | "direccion">): { tono: "verde" | "ambar" | "neutro"; texto: string } {
   if (!s.mostrar) return { tono: "neutro", texto: "No se ve en la web" };
   const falta = faltaParaMostrar(s);
-  // Encendida pero incompleta: pasa si le quitaron el WhatsApp en Tiendas y caja. La web ya no la muestra (`tienda_sedes`).
+  // Encendida pero incompleta: pasa si le quitaron el WhatsApp en Empresa y tiendas. La web ya no la muestra (`tienda_sedes`).
   if (falta.length > 0) return { tono: "ambar", texto: `No se ve: falta ${new Intl.ListFormat("es", { type: "conjunction" }).format(falta.map((d) => EN_FRASE[d]))}` };
   return { tono: "verde", texto: "Se ve en la web" };
 }

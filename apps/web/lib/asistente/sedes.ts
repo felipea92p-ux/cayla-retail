@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» en cada sede (ADR-0536, actividad 8): el piloto se enciende por sede en Configuración ▸ Tiendas y caja, y lo
+// «Pregúntale a CAYLA» en cada sede (ADR-0536, actividad 8): el piloto se enciende por sede en Configuración ▸ Empresa y tiendas, y lo
 // cambia quien ve Configuración (Felipe 2026-10-27, `guardar_asistente_sede`). Aquí, lo puro: leer lo que devuelve la base
 // (`fn_asistente_sedes`) sin creerle a ciegas, y la frase de cada sede.
 
@@ -30,13 +30,6 @@ export function leerSedesAsistente(data: unknown): SedeAsistente[] {
       },
     ];
   });
-}
-
-/** Lo que dice la fila de una sede, bajo su nombre: desde cuándo corre o desde cuándo no. `hoy` = `YYYY-MM-DD` de Lima. */
-export function estadoDeSede(sede: Pick<SedeAsistente, "encendido" | "desde">, hoy: string, fechaCorta: (f: string) => string): string {
-  const dia = sede.desde?.slice(0, 10) ?? null;
-  if (sede.encendido) return dia === null || dia === hoy ? "Encendido desde hoy" : `Encendido desde el ${fechaCorta(dia)}`;
-  return dia === null ? "Nunca se encendió" : `Apagado · corrió desde el ${fechaCorta(dia)}`;
 }
 
 /** El aviso de lo que va del mes contra el tope, o nada si la base no lo dijo. */

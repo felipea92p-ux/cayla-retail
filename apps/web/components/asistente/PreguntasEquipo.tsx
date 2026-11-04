@@ -117,14 +117,14 @@ export function PreguntasEquipo({
           <Vacio
             icono={<MessageCircleQuestion />}
             titulo={`Nadie preguntó en ${nombreMes}`}
-            accion={!encendido && puedeEncender ? { texto: "Encenderlo en Configuración", href: "/configuracion?tab=tiendas" } : undefined}
+            accion={!encendido && puedeEncender ? { texto: "Encenderlo en Configuración", href: "/configuracion?tab=empresa" } : undefined}
             guia="preguntas.vacio"
           >
             {encendido
               ? "Cuando alguien del equipo use «Preguntar» en la cabecera, su pregunta aparece aquí con lo que se le respondió."
               : todasLasSedes
-                ? "El asistente todavía no está encendido en ninguna sede. Se enciende sede por sede en Configuración ▸ Tiendas y caja."
-                : "El asistente está apagado en esta sede. Se enciende en Configuración ▸ Tiendas y caja."}
+                ? "El asistente todavía no está encendido en ninguna sede. Se enciende sede por sede en Configuración ▸ Empresa y tiendas."
+                : "El asistente está apagado en esta sede. Se enciende en Configuración ▸ Empresa y tiendas."}
           </Vacio>
         </div>
       </>
