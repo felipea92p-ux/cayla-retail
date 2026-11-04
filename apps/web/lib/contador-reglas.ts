@@ -8,7 +8,7 @@
 // (Excel en español), montos exactos con punto, con BOM (`csvDe`).
 
 import { csvDe, mesTitulo, nombreCorto, type FilaER, type LineaDiario } from "./resultados-reglas";
-import { partesDelFlujo } from "./plata-reglas";
+import { loQueNoCubre, partesDelFlujo } from "./plata-reglas";
 import { cuadroFormalPatrimonio, tieneExtremos } from "./patrimonio-reglas";
 import { etiquetaSemana, type FlujoReal } from "./flujo-caja-reglas";
 import type { ClaveEstado, FormaEstado, PatrimonioCambios } from "./estados-financieros-reglas";
@@ -48,7 +48,17 @@ export function csvFlujoContador(real: FlujoReal, mes: string): string {
     for (const l of p.lineas) filas.push([p.formal, l.nombre, r2(l.monto)]);
     filas.push([p.formal, "Total", p.total]);
   }
-  filas.push([], ["", "Efectivo al inicio", r2(real.saldoInicial)], ["", "Aumento (o disminución) del efectivo", r2(real.saldoFinal - real.saldoInicial)], ["", "Efectivo al final", r2(real.saldoFinal)]);
+  // ADR-0609: con una cuenta que arrancó a mitad del mes, el contador recibe lo mismo que la pantalla: no un «aumento» que no se puede afirmar.
+  const noCubre = loQueNoCubre(real);
+  if (noCubre) {
+    filas.push([], ["", "Saldo de partida (cuentas que arrancaron a mitad de período, con el de ese día)", r2(real.saldoInicial)], ["", "Efectivo al final", r2(real.saldoFinal)]);
+    filas.push([], [`Este estado no tiene todo el período: ${noCubre.cuentas.length === 1 ? "una cuenta arrancó" : `${noCubre.cuentas.length} cuentas arrancaron`} con su saldo ${noCubre.cuando}. Lo anterior ya está dentro de ese saldo.`]);
+    filas.push(["Cuenta", "Arrancó", "Saldo con que arrancó", "Cobró antes", "Gastó y pagó antes", "Entre cuentas antes"]);
+    for (const a of noCubre.cuentas) filas.push([a.cuenta, a.desde, r2(a.saldoInicial), r2(a.cobros), r2(a.salidas), r2(a.entreCuentas)]);
+    filas.push(["Cobrado en todo el período", "", "", noCubre.cobrosDelPeriodo]);
+  } else {
+    filas.push([], ["", "Efectivo al inicio", r2(real.saldoInicial)], ["", "Aumento (o disminución) del efectivo", r2(real.saldoFinal - real.saldoInicial)], ["", "Efectivo al final", r2(real.saldoFinal)]);
+  }
   if (real.semanas.length) {
     filas.push([], ["Semana a semana"], ["Semana", "Entró", "Salió", "Ajustes", "Quedó"]);
     for (const w of real.semanas) filas.push([etiquetaSemana(w.desde, w.hasta), w.entro, w.salio, w.ajustes, w.saldo]);

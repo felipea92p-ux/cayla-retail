@@ -7,7 +7,8 @@
 // `fn_balance_por_tienda`, `fn_patrimonio_cambios`). Aquí no se suma plata: se elige la columna de la sede y se escribe la frase.
 // Sin dato se dice por qué (principio 9): nunca un cero que no es.
 
-import { soles } from "./flujo-caja-reglas";
+import { soles, type FlujoReal } from "./flujo-caja-reglas";
+import { loQueNoCubre } from "./plata-reglas";
 import type { FilaER } from "./resultados-reglas";
 import { SEDE_EMPRESA, SEDE_TODAS, type ClaveSede } from "./finanzas-telar-reglas";
 
@@ -91,9 +92,15 @@ export function respuestaGanamos(fila: Pick<FilaER, "resultado" | "ventas"> | nu
   };
 }
 
-export function respuestaPlata(flujo: { saldoInicial: number; saldoFinal: number } | null, falla: string | null, deUnaSede: boolean): RespuestaEstado {
+export function respuestaPlata(flujo: (Pick<FlujoReal, "categorias" | "arranques"> & { saldoInicial: number; saldoFinal: number }) | null, falla: string | null, deUnaSede: boolean): RespuestaEstado {
   if (falla) return sinDato("plata", "No se pudo leer el flujo de efectivo.", true);
   if (!flujo) return sinDato("plata", "Todavía no hay movimientos de plata.", false);
+  // ADR-0609: con una cuenta que arrancó a mitad del mes se sabe cuánto hay, no cuánto cambió.
+  const noCubre = loQueNoCubre(flujo);
+  if (noCubre) {
+    const desde = `Cuentas desde ${noCubre.cuando.replace(/^(el|entre el) /, "")}`;
+    return { ...base("plata"), valor: flujo.saldoFinal, conSigno: false, punto: null, contexto: deUnaSede ? `${desde} · toda CAYLA` : desde, noSePudoLeer: false };
+  }
   const d = Math.round(flujo.saldoFinal - flujo.saldoInicial);
   const cambio = d === 0 ? "Igual que al empezar el mes" : `${d > 0 ? "Subió" : "Bajó"} ${soles(Math.abs(d))} en el mes`;
   return {

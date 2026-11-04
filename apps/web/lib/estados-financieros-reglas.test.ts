@@ -58,10 +58,18 @@ describe("respuestaGanamos", () => {
 
 describe("respuestaPlata", () => {
   it("bajó: ámbar y cuánto", () => {
-    expect(respuestaPlata({ saldoInicial: 31200, saldoFinal: 27450 }, null, false)).toMatchObject({ valor: 27450, punto: "ambar", contexto: "Bajó S/\u00a03,750 en el mes" });
+    expect(respuestaPlata({ saldoInicial: 31200, saldoFinal: 27450, categorias: [], arranques: [] }, null, false)).toMatchObject({ valor: 27450, punto: "ambar", contexto: "Bajó S/\u00a03,750 en el mes" });
   });
   it("subió: verde; mirando una sede, dice que es de toda CAYLA", () => {
-    expect(respuestaPlata({ saldoInicial: 100, saldoFinal: 400 }, null, true)).toMatchObject({ punto: "verde", contexto: "Subió S/\u00a0300 en el mes · toda CAYLA" });
+    expect(respuestaPlata({ saldoInicial: 100, saldoFinal: 400, categorias: [], arranques: [] }, null, true)).toMatchObject({ punto: "verde", contexto: "Subió S/\u00a0300 en el mes · toda CAYLA" });
+  });
+});
+
+describe("respuestaPlata con una cuenta que arrancó a mitad de mes (ADR-0609)", () => {
+  const arranque = { cuentaId: "c", cuenta: "Banco", desde: "2026-10-28", saldoInicial: 5000, cobros: 100, salidas: 0, entreCuentas: 0, comision: 0 };
+  it("dice cuánto hay, pero no «subió» ni «bajó», y sin punto de color", () => {
+    const r = respuestaPlata({ saldoInicial: 100, saldoFinal: 400, categorias: [], arranques: [arranque] }, null, false);
+    expect(r).toMatchObject({ valor: 400, punto: null, contexto: "Cuentas desde 28 oct" });
   });
 });
 
