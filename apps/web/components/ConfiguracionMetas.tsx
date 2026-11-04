@@ -11,63 +11,35 @@ import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
 import { DIAS_CORTOS, DIAS_SEMANA, TEXTO_ESTADO, estadoCampana, ordenarCampanas, parsearMonto, parsearPorcentaje, validarTienda } from "@/lib/configuracion-reglas";
 import type { CampanaConfig, ConfiguracionMetas as DatosMetas, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { Casilla, FilaResponsable, MarcoCasilla, useGuardarCasilla, useVistoGuardado, type Guardar } from "@/components/ConfiguracionCasilla";
-import { cambioLaCasilla } from "@/lib/configuracion-casilla";
+import { Casilla, FilaResponsable, useGuardarCasilla, type Guardar } from "@/components/ConfiguracionCasilla";
 import { ConfiguracionMetasMes } from "@/components/ConfiguracionMetasMes";
 
 // Configuración ▸ Metas (ADR-0195 F1; metas por mes y por fecha, ADR-0435): cuánto se espera vender y qué se deja en el cajón. Nació dentro de
 // «Tiendas y caja», que juntaba 7 temas en 4,3 pantallas; Felipe la partió el 2026-11-04: aquí queda solo lo que responde «¿cuánto tiene que
-// vender cada tienda?», y lo demás pasó a «Empresa y tiendas» (`ConfiguracionTiendas`). CADA CASILLA SE GUARDA SOLA al salir de ella si cambió,
+// vender cada tienda?», y lo demás pasó a «Empresa y tiendas» (`vitrinas-sedes/`), también el fondo de caja y la hora de cierre. CADA CASILLA SE GUARDA SOLA al salir de ella si cambió,
 // firmada con el responsable. Sin botones «Guardar»: la base vuelve a validar todo.
 
 const texto = (n: number | null) => (n === null ? "" : String(n));
 const corto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
 
-/** La hora de cierre: se guarda al salir si cambió (vacía = sin hora, Caja no proyecta). */
-function CasillaHora({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: string; alGuardar: (hora: string) => Promise<boolean> }) {
-  const [t, setT] = useState(valor);
-  const [antes, setAntes] = useState(valor);
-  if (valor !== antes) {
-    setAntes(valor);
-    setT(valor);
-  }
-  const visto = useVistoGuardado();
-  return (
-    <MarcoCasilla vez={visto.vez}>
-      <input
-        type="time"
-        aria-label={etiqueta}
-        value={t}
-        onChange={(e) => setT(e.target.value)}
-        onBlur={async () => {
-          if (!cambioLaCasilla(t, valor)) return;
-          const ok = await alGuardar(t);
-          if (ok) visto.marcar();
-          else setT(valor);
-        }}
-        className="fin-control fin-num inline-block w-[7.6rem]"
-      />
-    </MarcoCasilla>
-  );
-}
-
 function FilaTienda({ tienda, guardar }: { tienda: TiendaConfig; guardar: Guardar }) {
   const metas = tienda.metas.map(texto);
   const fondo = texto(tienda.fondo);
 
-  async function guardarCasilla(indice: number | "fondo", nuevo: string) {
-    const b = { metas: indice === "fondo" ? metas : metas.map((m, i) => (i === indice ? nuevo : m)), fondo: indice === "fondo" ? nuevo : fondo };
+  // `guardar_metas_tienda` recibe las metas y el fondo: el fondo se manda como está, sin cambiarlo. Se edita en Empresa y tiendas (Las vitrinas).
+  async function guardarCasilla(indice: number, nuevo: string) {
+    const b = { metas: metas.map((m, i) => (i === indice ? nuevo : m)), fondo };
     const v = validarTienda(b);
     if (!v.ok) {
       avisar.error(`${tienda.nombre}: ${v.error}`);
       return false;
     }
-    const que = indice === "fondo" ? `Fondo de ${tienda.nombre}` : `Meta del ${DIAS_SEMANA[indice]!.toLowerCase()} de ${tienda.nombre}`;
-    const valorNuevo = indice === "fondo" ? v.valor.fondo : v.valor.metas[indice];
+    const que = `Meta del ${DIAS_SEMANA[indice]!.toLowerCase()} de ${tienda.nombre}`;
+    const valorNuevo = v.valor.metas[indice];
     return guardar(
       () => createClient().rpc("guardar_metas_tienda" as never, { p_ubicacion_id: tienda.id, p_metas: v.valor.metas, p_fondo: v.valor.fondo } as never),
       "guardar las metas",
-      `${que}: ${valorNuevo === null || valorNuevo === undefined ? "sin meta" : solesRedondo(valorNuevo)}.${indice === "fondo" ? "" : " La meta del mes se recalculó."}`,
+      `${que}: ${valorNuevo === null || valorNuevo === undefined ? "sin meta" : solesRedondo(valorNuevo)}. La meta del mes se recalculó.`,
     );
   }
 
@@ -82,22 +54,6 @@ function FilaTienda({ tienda, guardar }: { tienda: TiendaConfig; guardar: Guarda
           <Casilla valor={m} etiqueta={`Meta del ${DIAS_SEMANA[i]!.toLowerCase()} de ${tienda.nombre}`} ancho="w-16" alGuardar={(n) => guardarCasilla(i, n)} />
         </td>
       ))}
-      <td className="fin-num" data-l="Fondo de caja">
-        <Casilla valor={fondo} etiqueta={`Fondo de caja de ${tienda.nombre}`} ancho="w-[5.2rem]" alGuardar={(n) => guardarCasilla("fondo", n)} />
-      </td>
-      <td className="fin-num" data-l="Cierra">
-        <CasillaHora
-          valor={tienda.horaCierre ?? ""}
-          etiqueta={`Hora de cierre de ${tienda.nombre}`}
-          alGuardar={(hora) =>
-            guardar(
-              () => createClient().rpc("guardar_hora_cierre_tienda" as never, { p_ubicacion_id: tienda.id, p_hora: hora || null } as never),
-              "guardar la hora de cierre",
-              hora ? `${tienda.nombre} cierra a las ${hora}. Caja ya proyecta la venta del día.` : `${tienda.nombre}: sin hora de cierre.`,
-            )
-          }
-        />
-      </td>
       <td className="fin-num" data-l="Meta del mes">
         {tienda.metaMes !== null ? (
           <>
@@ -237,7 +193,7 @@ export function ConfiguracionMetas({ datos, metas }: { datos: Datos; metas?: Dat
       <FilaResponsable responsable={responsable} guardando={guardando} guia="config.guardado" />
 
       <Superficie className="anim-sube" guia="config.tiendas-normal">
-        <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de cada día (con IGV), lo que queda en el cajón al cerrar y a qué hora cierra.">
+        <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de cada día, con IGV.">
           <Chip tono={rigenHoy.length ? "ambar" : "verde"}>Hoy rige: {rigenHoy.length ? rigenHoy.map((c) => c.nombre).join(" y ") : "lo normal"}</Chip>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap cfg-planilla">
@@ -250,8 +206,6 @@ export function ConfiguracionMetas({ datos, metas }: { datos: Datos; metas?: Dat
                     {d}
                   </th>
                 ))}
-                <th className="fin-num">Fondo de caja</th>
-                <th className="fin-num">Cierra</th>
                 <th className="fin-num">Meta del mes</th>
               </tr>
             </thead>

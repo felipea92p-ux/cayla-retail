@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 100,
+  "total": 98,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -40,9 +40,7 @@
       "Boton «Agregar»"
     ],
     "components/ConfiguracionMetas.tsx": [
-      "input «{etiqueta}»",
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
-      "Casilla «{`Fondo de caja de ${tienda.nombre}»",
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
       "Casilla «{`Fondo de caja en ${campana.nombre}»",
       "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Insignias)»",

@@ -999,7 +999,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.tiendas-normal",
       opcional: true,
       titulo: "Lo normal de cada tienda",
-      texto: "La semana tipo: la meta de venta de cada día de la semana, el fondo que queda en el cajón al cerrar y la hora de cierre. De aquí salen la meta del Inicio, la de Rendimiento y el aviso de cierre de caja, salvo que el mes o la fecha tengan la suya.",
+      texto: "La semana tipo: la meta de venta de cada día de la semana. De aquí salen la meta del Inicio y la de Rendimiento, salvo que el mes o la fecha tengan la suya. El fondo de caja y la hora de cierre están en Empresa y tiendas.",
     },
     {
       id: "tiendas-meses",

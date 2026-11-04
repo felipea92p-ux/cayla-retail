@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   anguloDial,
@@ -15,7 +17,7 @@ import {
   valorDe,
 } from "./vitrinas-sedes-reglas";
 import { solesRedondo } from "./gastos-reglas";
-import type { TiendaConfig } from "./configuracion-reglas";
+import { validarTienda, type TiendaConfig } from "./configuracion-reglas";
 
 const HOY = "2026-11-04";
 const tienda = (x: Partial<TiendaConfig> & { id: string; nombre: string }): TiendaConfig => ({
@@ -167,5 +169,20 @@ describe("quién cambia la carga: la regla de siempre", () => {
     expect(puedeCambiarCarga(cerrada, true, false)).toBe(false);
     expect(puedeCambiarCarga(cerrada, true, true)).toBe(true);
     expect(puedeCambiarCarga(abierta, false, true)).toBe(false);
+  });
+});
+
+describe("Metas ya no cambia el fondo", () => {
+  it("guardar una meta manda el fondo tal como está: `guardar_metas_tienda` recibe los dos", () => {
+    const r = validarTienda({ metas: ["3800", "", "", "", "", "", ""], fondo: "300" });
+    expect(r.ok && r.valor.fondo).toBe(300);
+    const vacio = validarTienda({ metas: ["3800", "", "", "", "", "", ""], fondo: "" });
+    expect(vacio.ok && vacio.valor.fondo).toBeNull();
+  });
+
+  it("la pantalla de Metas no vuelve a pedir el fondo ni la hora de cierre", () => {
+    const metas = readFileSync(join(__dirname, "../components/ConfiguracionMetas.tsx"), "utf8");
+    expect(metas).not.toMatch(/guardar_hora_cierre_tienda/);
+    expect(metas).not.toMatch(/Fondo de caja de/);
   });
 });
