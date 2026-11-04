@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendimiento interactivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Gestión ▸ Rendimiento más visual e interactivo (2026-11-04).
+   Tres direcciones, con los MISMOS datos inventados y las reglas de hoy copiadas tal cual de lib/rendimiento-meta-reglas.ts y
+   lib/rendimiento-reglas.ts (ritmo por turno, Adelante / En ritmo / Por debajo a 10 puntos, contracción y cota prudente).
+   Armada con las piezas de vidrio ya elegidas (docs/vidrio/README.md, 4.1). Solo tokens. Claro, oscuro y de 320 a 1920 px.
+   Movimiento: una vez, sin rebote ni bucle; se apaga con prefers-reduced-motion. Nada guarda.
+   ==================================================================== */
+
+[data-tema="oscuro"]{color-scheme:dark}
+/* ---------- piezas ya elegidas ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.claro{border-radius:18px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 74%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .claro{background:color-mix(in srgb,var(--vidrio) 76%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--t65)}.chip.sinp::before{display:none}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);white-space:nowrap}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b.n{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}.cif small{display:block;font-size:14px;color:var(--t65);margin-top:2px}
+.cuatro{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}.dos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.tubo{position:relative;display:block;height:8px;margin-top:10px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.tubo>i{position:absolute;inset:0 auto 0 0;width:calc(var(--x,0)*1%);border-radius:999px;background:var(--c,var(--tinta));transition:width .7s var(--ease)}.tubo>u{position:absolute;top:-3px;bottom:-3px;left:calc(var(--t,0)*1%);width:2px;border-radius:2px;background:var(--taupe);transition:left .7s var(--ease)}
+.vista{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:22px}
+.vista h2{font-family:'EB Garamond',serif;font-weight:400;font-size:24px}
+.titulo-b{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:26px}.titulo-b h2{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.avl{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px;color:var(--tinta);border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--sand) 70%,var(--vidrio)),color-mix(in srgb,var(--sand) 92%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+.lapiz{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t80)}.lapiz svg{width:16px;height:16px}
+@media (hover:hover){.lapiz:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}}
+.nota{display:flex;gap:10px;margin-top:12px;padding:12px 14px;border-radius:16px;font-size:14px;color:var(--t80);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent)}
+[data-tema="oscuro"] .nota{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.btn svg{flex:none}
+.btn[disabled]{opacity:.5;pointer-events:none}
+/* ayuda de la cabecera */
+.ay{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:8px;border-radius:50%;font:600 14px 'DM Sans',sans-serif;color:var(--t65);vertical-align:super;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 92%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 3px 8px -4px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.globo{margin-top:10px;max-width:40rem;padding:14px 16px;font-size:15px;line-height:1.5;color:var(--t80);animation:sube .3s var(--ease)}
+
+/* ---------- las tiendas: A · La elegida se levanta ---------- */
+.tiendas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.tt{position:relative;padding:16px;border-radius:18px;text-align:left;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent);transition:opacity .2s,transform .26s var(--ease),box-shadow .26s var(--ease)}
+[data-tema="oscuro"] .tt{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.tt .cab-t{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.tt .nm{font-size:14px;font-weight:600}
+.tt .s{display:block;font-family:'EB Garamond',serif;font-size:26px;line-height:1.2;margin-top:4px;font-variant-numeric:tabular-nums}.tt small{display:block;font-size:14px;color:var(--t65)}
+.tt:not([aria-selected="true"]){opacity:.82}
+@media (hover:hover){.tt:not([aria-selected="true"]):hover{opacity:1}}
+.tt[aria-selected="true"]{transform:translateY(-2px);border-color:color-mix(in srgb,var(--tinta) 45%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 18px 34px -18px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"] .tt[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+
+/* ---------- la respuesta de arriba ---------- */
+.resp{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:14px;margin-top:14px}
+.frase{padding:22px 24px}.frase h3{font-family:'EB Garamond',serif;font-weight:400;font-size:32px;line-height:1.14;letter-spacing:-.005em}
+.frase h3 em{font-style:italic;color:var(--rojo-p)}
+.frase p{margin-top:8px;font-size:15px;color:var(--t80);max-width:62ch}
+.frase .tubo{height:12px;margin-top:16px}.frase .lee{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;margin-top:8px;font-size:14px;color:var(--t65)}.frase .lee b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums}
+.sim{padding:20px 22px;display:flex;flex-direction:column;gap:10px}
+.sim .vs{font-size:10.5px}.sim .gr{font-family:'EB Garamond',serif;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.sim small{display:block;font-size:14px;color:var(--t65)}.sim small b{color:var(--tinta);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--tinta);height:24px;cursor:pointer}
+
+/* ---------- A · La pasarela ---------- */
+.pasarela{margin-top:10px;padding-bottom:6px}
+.carril,.eje{--col:minmax(170px,210px);display:grid;grid-template-columns:var(--col) minmax(0,1fr) 148px;gap:18px;align-items:center;padding:0 20px}
+.eje{min-height:42px;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);border-radius:22px 22px 0 0}
+.eje .esc{position:relative;height:18px;margin:0 16px}.eje .esc span{position:absolute;transform:translateX(-50%);white-space:nowrap}.eje .esc .m{font-weight:600;color:var(--tinta)}
+.carril{width:100%;min-height:64px;text-align:left;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);transition:background .2s}
+@media (hover:hover){.carril:hover{background:color-mix(in srgb,var(--tinta) 4%,transparent)}.carril:hover .pj{transform:translate(-50%,-50%) scale(1.1)}}
+.carril:focus-visible,.tar:focus-visible,.cel:focus-visible,.tt:focus-visible,.d-fila:focus-visible{outline:2px solid var(--tinta);outline-offset:-2px}
+.quien{display:flex;align-items:center;gap:10px;min-width:0}.quien>span:last-child{min-width:0}.quien b{display:block;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.quien small{display:block;font-size:14px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pista{position:relative;height:40px;margin:0 16px}
+.pista .riel{position:absolute;left:-6px;right:-6px;top:50%;height:10px;margin-top:-5px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.pista .llena{position:absolute;left:-6px;top:50%;height:10px;margin-top:-5px;width:calc(var(--x)*1% + 6px);border-radius:999px;background:color-mix(in srgb,var(--tinta) 72%,transparent);transition:width .7s var(--ease)}
+.pista .met{position:absolute;left:80%;top:4px;bottom:4px;width:0;border-left:2px dotted var(--t50)}
+.pista .toc{position:absolute;left:calc(var(--t)*1%);top:8px;bottom:8px;width:3px;margin-left:-1.5px;border-radius:3px;background:var(--taupe);box-shadow:0 0 0 2px color-mix(in srgb,var(--vidrio) 80%,transparent);transition:left .7s var(--ease)}
+.pista .pj{position:absolute;left:calc(var(--x)*1%);top:50%;transform:translate(-50%,-50%);transition:left .7s var(--ease),transform .2s var(--ease);width:34px;height:34px;box-shadow:0 0 0 2.5px var(--aro,var(--t25)),0 8px 16px -8px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.rapido .pista :is(.pj,.llena,.toc){transition-duration:.22s,.22s;transition-timing-function:linear}
+.cuanto{text-align:right}.cuanto b{display:block;font-weight:500;font-size:15px;font-variant-numeric:tabular-nums}.cuanto .chip{margin-top:3px}.cuanto small{display:block;font-size:14px;color:var(--t65)}
+.rebobina{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(150px,auto);align-items:center;gap:14px;padding:12px 20px;margin-top:0;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.rebobina .cuando{font-size:14px;color:var(--t80);text-align:right;font-variant-numeric:tabular-nums}
+.reglas-pie{display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 20px 8px;font-size:14px;color:var(--t65);border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+.reglas-pie i{display:inline-block;vertical-align:middle;margin-right:6px}.m-toc{width:3px;height:14px;border-radius:3px;background:var(--taupe)}.m-met{width:0;height:14px;border-left:2px dotted var(--t50)}
+
+/* ---------- barras por hora ---------- */
+.barras{padding:16px 18px;display:flex;flex-direction:column}.barras .vs{font-size:10.5px}
+.bh{flex:1 1 124px;min-height:124px;display:flex;align-items:flex-end;gap:4px;margin-top:12px}
+.bh button{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;border-radius:6px}
+.bh i{display:block;width:100%;max-width:28px;min-height:2px;height:var(--h);border-radius:4px 4px 2px 2px;background:color-mix(in srgb,var(--taupe) 36%,transparent);transition:height .6s var(--ease),background .2s}
+.bh button.top i{background:var(--tinta)}.bh button.es i{background:color-mix(in srgb,var(--tinta) 70%,transparent)}.bh em{font-style:normal;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ent .bh i{animation:crece .6s var(--ease) backwards;animation-delay:calc(var(--k)*40ms)}
+@keyframes crece{from{height:0}}
+.bh-e{display:flex;justify-content:space-between;font-size:12px;color:var(--t65);margin-top:4px}
+.lectura{margin-top:8px;font-size:14px;color:var(--t65);min-height:21px}.lectura b{color:var(--tinta);font-weight:600}
+
+/* ---------- lo que podemos asegurar (rankings) ---------- */
+.rk{padding:16px 0 6px}.rk-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:0 18px 10px}.rk-cab h3{font-size:15px;font-weight:600}
+.rk-f{display:grid;grid-template-columns:20px minmax(0,1fr) minmax(70px,1fr) 76px;gap:10px;align-items:center;width:100%;min-height:50px;padding:8px 18px;text-align:left;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+@media (hover:hover){.rk-f:hover{background:color-mix(in srgb,var(--tinta) 4%,transparent)}}
+.rk-f .p{color:var(--t65);text-align:center;font-size:14px}.rk-f .rt{text-align:right;font-variant-numeric:tabular-nums;font-size:14px}.rk-f .chip{height:20px;padding:0 8px;font-size:11px}
+.rango{position:relative;height:10px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.rango>i{position:absolute;inset:0 auto 0 0;width:calc(var(--x)*1%);border-radius:999px;background:color-mix(in srgb,var(--tinta) 24%,transparent);transition:width .6s var(--ease)}
+.rango>u{position:absolute;inset:0 auto 0 0;width:calc(var(--t)*1%);border-radius:999px;background:var(--tinta);transition:width .6s var(--ease)}
+.rk-pie{padding:10px 18px;font-size:14px;color:var(--t65);border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+
+/* ---------- ventas contra la meta ---------- */
+.lin{padding:16px 18px;margin-top:10px}
+#linea{position:relative;height:210px;touch-action:pan-y}#linea svg{display:block;width:100%;height:100%;overflow:visible}
+.tip{position:absolute;top:0;padding:8px 12px;border-radius:12px;font-size:13px;white-space:nowrap;pointer-events:none;background:var(--tinta);color:var(--crema);transform:translateX(-50%);opacity:0;transition:opacity .15s}
+.ley{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:14px;color:var(--t65)}.ley i{display:inline-block;width:16px;height:0;margin-right:6px;vertical-align:middle;border-top:2.5px solid var(--tinta)}.ley i.pun{border-top:2px dashed var(--taupe)}.ley i.pro{border-top:2px dotted var(--t50)}
+
+/* ---------- tabla de personas (Como ahora y B) ---------- */
+.pt-c,.pt-f{display:grid;grid-template-columns:minmax(12rem,1.3fr) 7rem 7rem minmax(9rem,1.4fr) 8rem 32px;gap:8px 16px;align-items:center;padding:0 20px}
+.pt-c{min-height:42px;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);border-radius:22px 22px 0 0}.pt-c span:nth-child(2),.pt-c span:nth-child(3){text-align:right}
+.pt-f{min-height:60px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:14px;cursor:pointer}.pt-f .rt{text-align:right;font-variant-numeric:tabular-nums}.pt-f .tubo{height:5px;margin-top:0}
+@media (hover:hover){.pt-f:hover{background:color-mix(in srgb,var(--tinta) 4%,transparent)}}
+.pt-pie{padding:10px 20px;font-size:14px;color:var(--t65);border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}.pt-pie b{color:var(--tinta)}
+
+/* ---------- historial ---------- */
+.hist{margin-top:16px}.hist summary{list-style:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:16px 20px;cursor:pointer;font-size:14px}
+.hist summary::-webkit-details-marker{display:none}.hist summary .ic{transition:transform .3s var(--ease)}.hist[open] summary .ic{transform:rotate(90deg)}.hist summary small{color:var(--t65);font-size:14px}
+.hist ul{list-style:none;margin:0 10px 10px;padding:4px 12px;border-radius:14px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.hist li{display:grid;grid-template-columns:5.5rem minmax(0,1fr);gap:12px;padding:9px 0;font-size:14px}.hist li+li{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}.hist li .d{color:var(--taupe);font-variant-numeric:tabular-nums}.hist li small{display:block;font-size:14px;color:var(--t65)}
+
+/* ---------- B · El reloj de la tienda ---------- */
+.dia{margin-top:10px;--col:150px;--h:0}
+.d-lee{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;min-height:68px;padding:12px 20px;border-radius:22px 22px 0 0;background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.d-lee .gr{font-family:'EB Garamond',serif;font-size:26px;line-height:1;min-width:6.5rem}.d-lee .dt{font-size:14px;color:var(--t65)}.d-lee .dt b{display:block;font-size:15px;color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums}
+.d-lee .pila{display:flex;margin-left:auto;align-items:center}.d-lee .pila .avl{margin-left:-6px}.d-lee .pila small{margin-right:12px;font-size:14px;color:var(--t65)}
+.d-cuerpo{padding:12px 20px 14px;touch-action:pan-y}
+.d-r{display:grid;grid-template-columns:var(--col) minmax(0,1fr);gap:0 12px;align-items:center}
+.d-t{position:relative;height:40px;background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--tinta) 6%,transparent) 0 1px,transparent 1px calc(100%/11))}
+.d-t .cur{position:absolute;top:0;bottom:0;left:calc(var(--h)/11*100%);width:calc(100%/11);background:color-mix(in srgb,var(--tinta) 7%,transparent);transition:left .16s var(--ease);pointer-events:none}
+.d-t .aho{position:absolute;top:0;bottom:0;left:calc(var(--a)*1%);width:2px;margin-left:-1px;background:var(--rojo);pointer-events:none;z-index:2}
+.d-t .aho span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding-bottom:2px;font-size:11px;font-weight:600;color:var(--rojo);white-space:nowrap}
+.d-b{height:132px;display:flex;align-items:flex-end;background-size:100% 100%}
+.d-b button{position:relative;z-index:1;flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 3px}
+.d-b i{display:block;width:100%;height:var(--bh);min-height:2px;border-radius:4px 4px 2px 2px;background:color-mix(in srgb,var(--taupe) 40%,transparent);transition:height .6s var(--ease)}
+.d-b button.top i{background:var(--tinta)}.d-b button.fut i{background:transparent;border:1.5px dashed var(--t25);border-bottom:0}
+.ent .d-b i{animation:crece .6s var(--ease) backwards;animation-delay:calc(var(--k)*45ms)}
+.d-et{font-size:14px;color:var(--t65);text-align:right}.d-eje{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));font-size:12px;color:var(--t65);margin-top:2px}.d-eje span{text-align:center;white-space:nowrap}
+.d-cob{height:34px;display:grid;grid-template-columns:repeat(11,minmax(0,1fr));align-items:center;justify-items:center}.d-cob span{position:relative;z-index:1;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.d-cob small{display:block;width:calc(var(--n)*5px + 4px);max-width:80%;height:4px;border-radius:9px;margin:1px auto 0;background:color-mix(in srgb,var(--tinta) 45%,transparent)}
+.d-fila{display:contents}
+.d-p{position:absolute;z-index:1;top:7px;bottom:7px;left:calc(var(--i)*1%);width:calc(var(--w)*1%);border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 16%,transparent);font-size:12px}
+.d-p>i{position:absolute;inset:0 auto 0 0;width:calc(var(--r)*1%);background:color-mix(in srgb,var(--tinta) 22%,transparent);transition:width .7s var(--ease)}
+.d-p>span{position:relative;display:block;text-align:left;padding:0 10px;line-height:26px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ent .d-p{animation:abre .6s var(--ease) backwards;animation-delay:calc(var(--k)*70ms + .2s);transform-origin:left}
+@keyframes abre{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.d-pq{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;font-size:14px;text-align:right}.d-pq b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.d-pq .avl{width:28px;height:28px;font-size:12px}
+.d-sep{height:1px;background:color-mix(in srgb,var(--tinta) 8%,transparent);margin:6px 0}
+.d-x{cursor:pointer}
+.mapa{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,320px);gap:14px;margin-top:10px}
+.calor{padding:16px 18px}
+.c-g{display:grid;grid-template-columns:36px repeat(11,minmax(0,1fr));gap:3px;align-items:center}
+.c-g>span{font-size:12px;color:var(--t65);text-align:center;white-space:nowrap;overflow:hidden}
+.cel{height:36px;width:100%;border-radius:7px;background:color-mix(in srgb,var(--tinta) calc(var(--v)*1%),transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent);transition:box-shadow .15s,transform .15s var(--ease)}
+.cel[aria-pressed="true"]{box-shadow:0 0 0 2px var(--rojo)}
+@media (hover:hover){.cel:hover{transform:scale(1.08);box-shadow:0 0 0 1.5px var(--tinta)}}
+.ent .cel{animation:funde .5s var(--ease) backwards;animation-delay:calc(var(--o)*28ms)}
+.c-ley{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;color:var(--t65)}.c-ley i{display:block;width:110px;height:8px;border-radius:9px;background:linear-gradient(90deg,color-mix(in srgb,var(--tinta) 6%,transparent),var(--tinta))}
+.c-det{padding:18px 20px;display:flex;flex-direction:column;gap:8px}.c-det .vs{font-size:10.5px}.c-det .gr{font-family:'EB Garamond',serif;font-size:27px;line-height:1.12}.c-det .fl{display:flex;justify-content:space-between;gap:8px;padding:7px 0;font-size:14px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);color:var(--t65)}.c-det .fl b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums}.c-det p{font-size:14px;color:var(--t80)}
+
+/* ---------- C · El equipo ---------- */
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-top:12px;align-items:start}
+.col h3{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;font-weight:500;color:var(--t80)}
+.tar{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 14px;width:100%;padding:14px;text-align:left;margin-bottom:10px;transition:transform .22s var(--ease),box-shadow .22s var(--ease)}
+@media (hover:hover){.tar:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 var(--vidrio),0 14px 28px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}}
+.ent .tar{animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--k)*60ms)}
+.ani{position:relative;width:72px;height:72px;grid-row:span 2}.ani svg{position:absolute;inset:0;transform:rotate(-90deg)}.ani circle{fill:none;stroke-width:6;stroke:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.ani circle+circle{stroke:var(--aro,var(--tinta));stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--x));transition:stroke-dashoffset .8s var(--ease)}
+.ani .avl{position:absolute;inset:12px;width:48px;height:48px;font-size:18px}
+.tar .nm{font-size:15px;font-weight:500;line-height:1.2}.tar .nm small{font-weight:400;font-size:14px;color:var(--t65);display:block}
+.tar .cu{font-family:'EB Garamond',serif;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;margin-top:3px}.tar .cu small{font:400 14px 'DM Sans',sans-serif;color:var(--t65)}
+.tar p{grid-column:1/-1;margin-top:8px;font-size:14px;color:var(--t80)}
+.sem{grid-column:1/-1;display:flex;align-items:flex-end;gap:3px;height:26px;margin-top:8px}.sem i{flex:1;height:calc(var(--h)*1%);min-height:2px;border-radius:2px 2px 1px 1px;background:color-mix(in srgb,var(--taupe) 42%,transparent)}.sem i:last-child{background:var(--tinta)}
+.rep{padding:18px 20px;margin-top:10px}
+.rp-t{position:relative;height:44px;display:flex;gap:2px;touch-action:none;user-select:none}
+.rp-s{height:100%;width:calc(var(--w)*1%);min-width:0;display:grid;place-items:center;font-size:14px;font-weight:600;overflow:hidden;white-space:nowrap;border-radius:6px;color:var(--tinta);background:color-mix(in srgb,var(--taupe) 26%,transparent)}
+.rp-s:first-child{border-radius:14px 6px 6px 14px}.rp-s:last-child{border-radius:6px 14px 14px 6px}
+.rp-s:nth-child(even){background:color-mix(in srgb,var(--tinta) 80%,transparent);color:var(--crema)}
+.rp-s.libre{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--tinta) 7%,transparent) 0 5px,transparent 5px 10px);box-shadow:inset 0 0 0 1px var(--t12);color:var(--t65)}
+.rp-h{position:absolute;top:-6px;bottom:-6px;width:44px;margin-left:-22px;left:calc(var(--p)*1%);display:grid;place-items:center;cursor:ew-resize;z-index:2;touch-action:none}
+.rp-h::after{content:"";width:12px;height:30px;border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 2px 8px color-mix(in srgb,var(--sombra) 45%,transparent),0 0 0 1px var(--t25);transition:transform .15s var(--ease)}
+[data-tema="oscuro"] .rp-h::after{background:var(--tinta)}
+.rp-h:focus-visible{outline:none}.rp-h:focus-visible::after{box-shadow:0 0 0 2px var(--tinta)}@media (hover:hover){.rp-h:hover::after{transform:scaleX(1.25)}}
+.rp-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px 18px;margin-top:14px}
+.rp-i{display:flex;align-items:center;gap:10px;font-size:14px;padding:4px 0}.rp-i b{display:block;font-weight:500;font-variant-numeric:tabular-nums}.rp-i small{display:block;font-size:14px;color:var(--t65)}.rp-i .ca{color:var(--ambar)}
+.rp-pie{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:14px;color:var(--t80)}.rp-pie .acc{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+.mot{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--rojo) 6%,transparent);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--rojo) 34%,transparent);animation:sube .35s var(--ease)}
+.mot>span{width:100%;font-size:14px;color:var(--t80)}
+
+/* ---------- la ficha de cada persona (el cajón) ---------- */
+#fic{position:absolute;inset:0;z-index:40;pointer-events:none}
+.fic-velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 22%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;transition:opacity .28s var(--ease)}
+[data-tema="oscuro"] .fic-velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+.fic-h{position:absolute;top:12px;right:12px;bottom:12px;width:min(520px,calc(100% - 24px));display:flex;flex-direction:column;border-radius:24px;overflow:hidden;transform:translateX(calc(100% + 24px));transition:transform .42s var(--ease);background:color-mix(in srgb,var(--papel) 90%,transparent);-webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5);border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);box-shadow:0 30px 70px -28px color-mix(in srgb,var(--sombra) 65%,transparent)}
+#fic[data-abierta]{pointer-events:auto}#fic[data-abierta] .fic-velo{opacity:1}#fic[data-abierta] .fic-h{transform:none}
+.fic-cab{display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}.fic-cab .avl{width:48px;height:48px;font-size:18px}.fic-cab h3{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1.1}.fic-cab small{display:block;font-size:14px;color:var(--t65)}.fic-cab .x{margin-left:auto;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none}
+.fic-c{flex:1;overflow:auto;padding:16px 20px 20px;display:grid;gap:18px;align-content:start}
+.fic-c>*{animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.tre{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.tre>div{padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--tinta) 4%,transparent)}.tre .vs{font-size:10px}.tre b{display:block;font-family:'EB Garamond',serif;font-size:23px;font-weight:500;line-height:1.15;font-variant-numeric:tabular-nums}.tre small{display:block;font-size:13px;color:var(--t65)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.cal>span{text-align:center;font-size:12px;color:var(--t65)}
+.cal button{height:40px;border-radius:9px;font-size:13px;font-variant-numeric:tabular-nums;color:var(--t80);background:color-mix(in srgb,var(--tinta) calc(var(--v)*1%),transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
+.cal button.os{color:var(--crema)}.cal button.hoy{box-shadow:0 0 0 2px var(--rojo)}.cal button[disabled]{background:none;color:var(--t25);box-shadow:none}
+.bien{display:grid;gap:8px;list-style:none;font-size:14px;color:var(--t80)}.bien li{display:flex;gap:10px;align-items:baseline}.bien li::before{content:"";flex:none;width:6px;height:6px;margin-top:-2px;border-radius:50%;background:var(--verde);align-self:center}
+.fic-pie{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 20px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}.fic-pie .nav-f{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:14px;color:var(--t65)}.fic-pie .nav-f button{width:36px;height:36px;border-radius:50%;display:grid;place-items:center}
+.fic-pie .btn{height:40px;padding:0 16px}
+.sello{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:12px;font-size:14px;font-weight:600;color:var(--verde);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--verde) 60%,transparent);animation:estampa .42s var(--ease)}
+@keyframes estampa{from{opacity:0;transform:scale(1.5) rotate(-5deg)}to{opacity:1;transform:rotate(-2deg)}}.sello{transform:rotate(-2deg)}
+.sello svg{stroke-dasharray:30;animation:traza .5s .18s var(--ease) backwards}@keyframes traza{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+.aviso-m{position:absolute;z-index:60;top:84px;right:20px;max-width:340px;padding:12px 16px;border-radius:16px;font-size:14px;color:var(--t80);background:color-mix(in srgb,var(--papel) 92%,transparent);box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 60%,transparent),0 0 0 1px var(--t12);animation:sube .3s var(--ease)}
+
+/* ---------- entrada una sola vez ---------- */
+.ent .bloque{animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--k,0)*70ms)}
+.ent .frase h3{animation:enfoca .6s var(--ease) backwards}
+
+/* ---------- anchos ---------- */
+@container disp (max-width:1180px){.cuatro{grid-template-columns:repeat(2,minmax(0,1fr))}.pt-c{display:none}.pt-f{grid-template-columns:minmax(0,1fr) auto 32px;padding:12px 16px}.pt-f>.rt.m{display:none}.pt-f>.br{grid-column:1/-1;grid-row:2}.pt-f>.lc{display:none}.pt-f{cursor:pointer}.dos{grid-template-columns:minmax(0,1fr)}.resp{grid-template-columns:minmax(0,1fr)}.mapa{grid-template-columns:minmax(0,1fr)}}
+@container disp (max-width:760px){.tiendas{grid-template-columns:minmax(0,1fr);gap:8px}.frase{padding:18px}.frase h3{font-size:26px}
+  .eje{display:none}.carril{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:12px 16px}.carril .pista{grid-column:1/-1;grid-row:2;margin:4px 16px 0}
+  .rebobina{grid-template-columns:auto minmax(0,1fr);padding:12px 16px}.rebobina .cuando{grid-column:1/-1;text-align:left}.reglas-pie{padding:10px 16px}
+  .rk-f{grid-template-columns:20px minmax(0,1fr) 76px;padding:8px 14px}.rk-f .rango{grid-column:2/-1;grid-row:2}
+  .dia{--col:0px}.d-r{gap:0}.d-r>.d-et,.d-r>.d-pq{grid-column:1/-1;justify-content:flex-start;text-align:left;margin-top:4px}.d-t{grid-column:1/-1}.d-cuerpo{padding:12px 14px}.d-lee{padding:12px 14px}.d-lee .pila{margin-left:0;width:100%}.d-eje span:nth-child(even){visibility:hidden}.d-b{height:110px}
+  .c-g{grid-template-columns:28px repeat(11,minmax(0,1fr));gap:2px}.c-g>span:nth-child(-n+12):nth-child(odd){visibility:hidden}.cel{height:30px;border-radius:5px}
+  .fic-h{top:auto;left:0;right:0;bottom:0;width:100%;max-height:92%;height:92%;border-radius:24px 24px 0 0;transform:translateY(100%)}
+  .rep{padding:14px}.rp-s{font-size:0}.aviso-m{left:12px;right:12px;max-width:none}
+  .rp-pie .acc{margin-left:0;width:100%}.rp-pie .acc .btn{flex:1}}
+@container disp (max-width:420px){.modo{max-width:100%}.modo button{padding:0 8px;letter-spacing:.05em}.tt .cab-t{flex-wrap:wrap}.cif b.n{font-size:26px}.frase h3{font-size:24px}.tre b{font-size:20px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Rendimiento: tres direcciones más visuales e interactivas (datos inventados, nada guarda)</span>
+  <span class="tag">Dirección</span><div class="seg-m" data-ctl="dir"><button data-v="ahora">Como ahora</button><button data-v="a">A · La pasarela</button><button data-v="b">B · El reloj de la tienda</button><button data-v="c">C · El equipo</button></div>
+  <span class="tag">Ver como</span><div class="seg-m" data-ctl="rol"><button data-v="admin">Admin (3 tiendas)</button><button data-v="lider">Líder de la sede</button></div>
+  <span class="tag">Caso</span><div class="seg-m" data-ctl="caso"><button data-v="meta">Con meta</button><button data-v="sinmeta">Sin meta de la sede</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div id="fic"></div>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Por qué cambiar lo de hoy</h2>
+    <p>Hoy la pantalla apila nueve bloques del mismo peso: tiendas, cuatro cifras, dos cifras, ventas por hora, tabla, gráfico, historial y dos rankings. Todo está, pero nada responde. Para saber quién va bien hay que leer fila por fila, y la ficha de cada persona que promete el módulo no existe.</p>
+    <p style="margin-top:8px">Cada dirección arranca con una respuesta en una frase y organiza la pantalla alrededor de <b>una pregunta distinta</b>. Las tres conservan lo que hay hoy (nada desaparece, cambia de lugar) y comparten la ficha de cada persona. Se pueden mezclar.</p>
+  </section>
+  <section>
+    <h2>Las direcciones: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Dirección</th><th>Pregunta que responde</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td><b>A · La pasarela</b> <span class="ev">Recomendada</span></td><td>¿Cómo va el equipo contra su meta, ahora?</td><td>Se entiende de un vistazo: cada persona camina hacia su meta y cada una lleva su marca de «tocaba». «Ver cómo fue» y «Si vendemos…» dan la interacción más clara.</td><td>Puede leerse como una carrera entre personas: por eso cada carril se mide contra su propia meta y no hay podio. Rebobinar necesita una lectura nueva.</td></tr>
+      <tr><td><b>B · El reloj de la tienda</b></td><td>¿Cuándo se vende y quién está en tienda?</td><td>Es la única que lleva a una decisión concreta: mover turnos. No juzga a nadie, mira las horas. Saca a la luz lo que hoy es solo una barrita.</td><td>La más densa. Pide horarios por día, y Lima no los tiene (se ve al tocar Lima). Cómo va cada persona baja a una tabla.</td></tr>
+      <tr><td><b>C · El equipo</b></td><td>¿A quién reconozco y a quién acompaño?</td><td>La más humana: tarjetas por persona, repartidas por cómo van, y el reparto de la meta se arrastra en vez de abrir una hoja por persona.</td><td>Ocupa más alto con equipos grandes. Agrupar a la vista a quienes van «Por debajo» es delicado aunque no lleve rojo: lo debe decidir Felipe mirándolo.</td></tr>
+    </table>
+    <h3>Mi recomendación</h3>
+    <p><b>A como pantalla principal, con la ficha de C y el mapa de calor de B.</b> Hoy «La pasarela» resuelve lo que más se consulta y, cuando una hora importa, el calor reemplaza a la barrita de ventas por hora. El reparto arrastrable de C suma si la líder ajusta metas seguido; si no, el lápiz de hoy alcanza.</p>
+  </section>
+  <section>
+    <h2>Qué datos ya existen y cuáles no</h2>
+    <table>
+      <tr><th>Pieza</th><th>Hoy sale de</th><th>Falta</th></tr>
+      <tr><td>Frase de arriba, carriles, tarjetas, tabla</td><td><code>fn_metas_equipo</code>, reglas de ritmo actuales</td><td>Nada</td></tr>
+      <tr><td>«Si vendemos…» y proyección</td><td><code>fn_rendimiento_serie</code>, <code>proyectarMes</code></td><td>Nada</td></tr>
+      <tr><td>Rankings con «lo que podemos asegurar»</td><td><code>fn_rendimiento_equipo</code>, la cota prudente ya calculada</td><td>Nada; hoy se calcula y no se muestra</td></tr>
+      <tr><td>Barras por hora y mapa de calor</td><td><code>fn_rendimiento_detalle</code> (fecha y hora, por tienda)</td><td>Con un solo mes hay pocos días de cada tipo: conviene leer más semanas</td></tr>
+      <tr><td>«Ver cómo fue» y lo vendido por persona dentro de su turno</td><td>Nadie lo devuelve: el detalle por hora es de la tienda</td><td><b>Lectura nueva</b> por persona y hora o día</td></tr>
+      <tr><td>Cuántas personas hay a cada hora</td><td>Hoy: <code>entrada_hoy</code> y <code>salida_hoy</code></td><td>Para otros días: <b>lectura nueva</b> de horarios de Dynamic</td></tr>
+      <tr><td>La ficha de cada persona (calendario, lo que va bien)</td><td>Pendiente desde ADR-0219 (<code>fn_rendimiento_persona</code>)</td><td><b>Función nueva</b>, ya prevista</td></tr>
+      <tr><td>Reparto arrastrable</td><td><code>fijar_meta_persona</code> guarda de a una persona</td><td>Guardar varias a la vez con un motivo: <b>cambio de función</b></td></tr>
+      <tr><td>Botón «Reconocer»</td><td>No existe</td><td><b>Idea nueva, tabla nueva</b>. Decisión de Felipe: ¿le llega a la persona? ¿a dónde?</td></tr>
+    </table>
+    <h3>Lo que no cambia en ninguna</h3>
+    <p>Reconocer y acompañar, sin comisión ni bono (D-65, D-112). El módulo es de la encargada y el Admin: la integrante sigue sin verlo (D-113). Nunca un ranking que mezcle tiendas. «Adelante / En ritmo / Por debajo» a 10 puntos y sin rojo para juzgar (D-159). Las devoluciones no restan. Con una meta faltante no se inventa nada: prueba «Sin meta de la sede» y tiendas como Lima sin horarios.</p>
+    <h3>Si se elige una</h3>
+    <p>Cada movimiento nuevo (carriles que viajan, anillos, calor en ola) entra como excepción anotada en ADR-0136, y la pantalla necesita guía, huella y revisión a 375 px. Esta maqueta no cambió nada del código ni de la base.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+(() => {
+  /* ==================== datos inventados ==================== */
+  const AHORA = 16 + 40 / 60, DIA = 20, DIAS_MES = 30, H0 = 9, NH = 11;
+  const FECHA = 'viernes, 20 de noviembre · 16:40';
+  const HC = [.3, .5, .8, 1, .9, .8, 1, 1.3, 1.9, 2.3, 1.5];
+  const FD = [.75, .7, .8, .85, 1.05, 1.7, 1.2]; // lun a dom
+  const DS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'], DSL = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
+  // id, nombre, encargada, turno, horas del mes, meta mes, vendido mes, ventas mes, meta hoy, vendido hoy, ventas hoy, ajustada
+  const BASE = {
+    tru: { nombre: 'Trujillo', meta: 50000, sesion: true, prendas: 1.8, personas: [
+      ['an', 'Ana Torres', 0, [9, 17], 152, 11400, 9840, 88, 438, 590, 4, 0], ['lu', 'Lucía Ramos', 1, [10, 18], 144, 11400, 7980, 96, 438, 350, 3, 0],
+      ['mi', 'Mía Quispe', 0, [12, 20], 132, 9600, 4990, 71, 369, 120, 1, 1], ['ro', 'Rosa Castro', 0, [9, 17], 120, 8000, 5760, 52, 308, 290, 3, 1],
+      ['va', 'Valeria Díaz', 0, [12, 20], 110, 6800, 5240, 58, 262, 180, 2, 0], ['ca', 'Carla Mendoza', 0, [14, 20], 24, 1800, 1120, 8, 180, 90, 1, 1]],
+      historial: [['17 nov', 'Carla Mendoza', 'S/ 3,200 → S/ 1,800', 'Lucía Ramos · otro: entró a mitad de mes'], ['9 nov', 'Mía Quispe', 'S/ 8,800 → S/ 9,600', 'Lucía Ramos · cambia su horario'], ['4 nov', 'Rosa Castro', 'S/ 9,600 → S/ 8,000', 'Lucía Ramos · vuelve de descanso']] },
+    aqp: { nombre: 'Arequipa', meta: 40000, prendas: 1.6, personas: [
+      ['ni', 'Nilda Flores', 1, [9, 17], 150, 11000, 7040, 74, 423, 380, 3, 0], ['so', 'Sonia Apaza', 0, [11, 19], 140, 10500, 7980, 81, 404, 360, 4, 0],
+      ['ka', 'Karla Huamán', 0, [12, 20], 118, 9500, 3700, 55, 365, 150, 1, 0], ['yo', 'Yésica Mamani', 0, [9, 15], 88, 7000, 3900, 47, 269, 210, 2, 0]],
+      historial: [] },
+    lim: { nombre: 'Lima', meta: 41000, prendas: 1.7, sinHorarios: true, personas: [
+      ['de', 'Dennise Rojas', 1, null, null, 13667, 10120, 92, 505, 430, 3, 0], ['pa', 'Paola Vega', 0, null, null, 13667, 9240, 84, 505, 510, 4, 0],
+      ['gi', 'Gina Salazar', 0, null, null, 13666, 7900, 33, 505, 260, 2, 0]], historial: [['2 nov', 'La sede', 'S/ 41,000', 'Felipe Alvarez · Configuración ▸ Tiendas y caja']] },
+  };
+  const azar = (semilla) => () => { semilla |= 0; semilla = semilla + 0x6D2B79F5 | 0; let t = Math.imul(semilla ^ semilla >>> 15, 1 | semilla); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const dowDe = (d) => (new Date(2026, 10, d).getDay() + 6) % 7;
+  const semillaDe = (s) => [...s].reduce((a, c) => a * 31 + c.charCodeAt(0), 7);
+  const TIENDAS = {};
+  for (const [id, b] of Object.entries(BASE)) {
+    const personas = b.personas.map(([pid, nombre, enc, turno, horas, metaMes, vendMes, ventasMes, metaHoy, vendHoy, ventasHoy, ajustada]) => {
+      const r = azar(semillaDe(pid));
+      const pesos = Array.from({ length: DIA - 1 }, (_, i) => FD[dowDe(i + 1)] * (.65 + .7 * r()));
+      const suma = pesos.reduce((a, x) => a + x, 0), resto = vendMes - vendHoy;
+      const dias = pesos.map((w) => Math.round(w / suma * resto)); dias.push(vendHoy);
+      const ven = dias.map((x) => Math.round(x / vendMes * ventasMes));
+      const vend7 = dias.slice(-7).reduce((a, x) => a + x, 0);
+      // lo de hoy, por hora, dentro de su turno (sin turno: a lo largo del día)
+      const ini = turno ? Math.max(turno[0], H0) : H0, hh = Array(NH).fill(0);
+      let sp = 0; for (let h = ini; h <= 16; h++) sp += HC[h - H0];
+      for (let h = ini; h <= 16; h++) hh[h - H0] = vendHoy * HC[h - H0] / sp;
+      return { id: pid, nombre, enc: !!enc, turno, horas, metaMes, vendMes, ventasMes, metaHoy, vendHoy, ventasHoy, ajustada: !!ajustada, dias, ven, vend7, ventas7: ven.slice(-7).reduce((a, x) => a + x, 0), hh,
+        ini: nombre.split(' ').map((x) => x[0]).join(''), corto: nombre.split(' ')[0] };
+    });
+    TIENDAS[id] = { id, ...b, personas };
+  }
+
+  /* ==================== reglas (copiadas de lib/rendimiento-meta-reglas.ts y lib/rendimiento-reglas.ts) ==================== */
+  const S = (n) => 'S/ ' + Math.round(n).toLocaleString('en-US');
+  const pl = (n, u, v) => (n === 1 ? u : v);
+  const horaTxt = (h) => (h < 12 ? `${h} a. m.` : h === 12 ? '12 m.' : `${h - 12} p. m.`);
+  const hhmm = (h) => { const m = Math.round((h % 1) * 60); const x = Math.floor(h); return `${x > 12 ? x - 12 : x}${m ? ':' + String(m).padStart(2, '0') : ''} ${x >= 12 ? 'p. m.' : 'a. m.'}`; };
+  const tiempo = (q) => { const m = Math.round(q * 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ' ' + String(m % 60).padStart(2, '0') : ''}`; };
+  const ritmoTurno = (t, h) => (t ? Math.min(1, Math.max(0, (h - t[0]) / (t[1] - t[0]))) : null);
+  const lecturaDe = (v, m, r) => { if (m === null || m <= 0 || r === null || r <= 0) return null; const d = Math.round((v / m - r) * 1000) / 1000; return d >= .1 ? 'Adelante' : d <= -.1 ? 'Por debajo' : 'En ritmo'; };
+  const TONO = { Adelante: ['', 'var(--verde)'], 'En ritmo': ['pizarra', 'var(--pizarra)'], 'Por debajo': ['ambar', 'var(--ambar)'] };
+  const chipL = (l) => (l ? `<span class="chip ${TONO[l][0]}">${l}</span>` : '');
+
+  const st = { tienda: 'tru', vista: 'hoy', orden: 'avance', paso: null, sim: null, celda: null, calorModo: 'soles', ranking: 'hora', lineaModo: 'acum', hora: null, ficha: null, ayuda: false, rep: null, repMot: null, reconocidos: new Set() };
+  const conMeta = () => estado.caso !== 'sinmeta';
+  const T = () => TIENDAS[st.tienda];
+
+  function col(p, vista = st.vista) {
+    const hay = conMeta();
+    if (vista === 'hoy') { const m = hay ? p.metaHoy : null, r = ritmoTurno(p.turno, AHORA); return { vend: p.vendHoy, ventas: p.ventasHoy, meta: m, pct: m ? Math.round(p.vendHoy / m * 100) : null, toc: hay && r !== null ? Math.round(r * 100) : null, lect: lecturaDe(p.vendHoy, m, r) }; }
+    if (vista === 'semana') { const m = hay ? p.metaMes * 7 / DIAS_MES : null; return { vend: p.vend7, ventas: p.ventas7, meta: m, pct: m ? Math.round(p.vend7 / m * 100) : null, toc: hay ? 100 : null, lect: lecturaDe(p.vend7, m, 1) }; }
+    const m = hay ? p.metaMes : null, r = DIA / DIAS_MES;
+    return { vend: p.vendMes, ventas: p.ventasMes, meta: m, pct: m ? Math.round(p.vendMes / m * 100) : null, toc: hay ? Math.round(r * 100) : null, lect: lecturaDe(p.vendMes, m, r) };
+  }
+  function pasos(vista = st.vista) {
+    if (vista === 'hoy') { const l = [10, 11, 12, 13, 14, 15, 16, AHORA]; return l.map((h, i) => ({ h, txt: i === l.length - 1 ? `ahora, ${hhmm(AHORA)}` : `a las ${horaTxt(h)}` })); }
+    if (vista === 'semana') return Array.from({ length: 7 }, (_, k) => ({ d: DIA - 6 + k, txt: k === 6 ? 'hoy, viernes 20' : `${DS[dowDe(DIA - 6 + k)].toLowerCase()} ${DIA - 6 + k}` }));
+    return Array.from({ length: DIA }, (_, k) => ({ d: k + 1, txt: k === DIA - 1 ? 'hoy, 20 de noviembre' : `${k + 1} de noviembre` }));
+  }
+  function colEn(p, k, vista = st.vista) {
+    const c = col(p, vista), ps = pasos(vista), paso = ps[k];
+    let vend, r;
+    if (vista === 'hoy') { vend = 0; for (let i = 0; i < NH; i++) { const f = Math.min(1, Math.max(0, paso.h - (H0 + i))); vend += p.hh[i] * f; } r = ritmoTurno(p.turno, paso.h); }
+    else if (vista === 'semana') { vend = p.dias.slice(DIA - 7, DIA - 7 + k + 1).reduce((a, x) => a + x, 0); r = (k + 1) / 7; }
+    else { vend = p.dias.slice(0, k + 1).reduce((a, x) => a + x, 0); r = (k + 1) / DIAS_MES; }
+    if (k === ps.length - 1) return c;
+    return { ...c, vend, pct: c.meta ? Math.round(vend / c.meta * 100) : null, toc: c.meta && r !== null ? Math.round(r * 100) : null, lect: lecturaDe(vend, c.meta, r) };
+  }
+  function resumen(t, vista = st.vista) {
+    const cols = t.personas.map((p) => col(p, vista));
+    const soles = cols.reduce((a, c) => a + c.vend, 0), ventas = cols.reduce((a, c) => a + c.ventas, 0);
+    const hay = conMeta();
+    const meta = !hay ? null : vista === 'hoy' ? t.personas.reduce((a, p) => a + p.metaHoy, 0) : vista === 'semana' ? t.meta * 7 / DIAS_MES : t.meta;
+    let tocaS = null;
+    if (hay) tocaS = vista === 'hoy' ? (t.sinHorarios ? null : t.personas.reduce((a, p) => a + p.metaHoy * ritmoTurno(p.turno, AHORA), 0)) : vista === 'semana' ? meta : meta * DIA / DIAS_MES;
+    return { soles, ventas, meta, pct: meta ? Math.round(soles / meta * 100) : null, tocaS, tocaPct: meta && tocaS !== null ? Math.round(tocaS / meta * 100) : null, ticket: ventas ? soles / ventas : null, prendas: t.prendas, nPrendas: Math.round(ventas * t.prendas) };
+  }
+  function proyeccion(t) {
+    const cerrados = Array.from({ length: DIA - 1 }, (_, i) => t.personas.reduce((a, p) => a + p.dias[i], 0));
+    const ritmo = cerrados.reduce((a, x) => a + x, 0) / cerrados.length, vendido = t.personas.reduce((a, p) => a + p.vendMes, 0), quedan = DIAS_MES - DIA;
+    return { ritmo, vendido, quedan, proy: vendido + ritmo * quedan };
+  }
+  function rankings(t) {
+    const conHoras = t.personas.filter((p) => p.horas > 0);
+    const H = conHoras.reduce((a, p) => a + p.horas, 0), So = conHoras.reduce((a, p) => a + p.vendMes, 0), Ve = conHoras.reduce((a, p) => a + p.ventasMes, 0);
+    const prior = Ve > 0 ? 40 / (Ve / H) : H, prom = H ? So / H : 0;
+    const filas = t.personas.map((p) => {
+      if (!p.horas) return { p, sinHoras: true, num: null, cota: null, chica: p.ventasMes < 40 };
+      const crudo = p.vendMes / p.horas, num = conHoras.length < 2 ? crudo : (p.horas * crudo + prior * prom) / (p.horas + prior);
+      const ev = p.ventasMes + (conHoras.length < 2 ? 0 : 40), err = Math.sqrt(2 / ev);
+      return { p, sinHoras: false, num, cota: num * Math.max(0, 1 - 2 * err), chica: p.ventasMes < 40 };
+    });
+    return { hora: [...filas].sort((a, b) => (b.cota ?? -1) - (a.cota ?? -1)), ventas: [...filas].sort((a, b) => b.p.ventasMes - a.p.ventasMes) };
+  }
+  function porHora(t, vista = st.vista) {
+    const ΣHC = HC.reduce((a, x) => a + x, 0), r = resumen(t, vista), rng = azar(semillaDe(t.id + vista));
+    if (vista === 'hoy') return HC.map((_, i) => { const total = t.personas.reduce((a, p) => a + p.hh[i], 0); return { h: H0 + i, total, ventas: r.ticket ? Math.round(total / r.ticket) : 0, futura: H0 + i > 16 }; });
+    return HC.map((w, i) => { const total = r.soles * w / ΣHC * (.92 + rng() * .16); return { h: H0 + i, total, ventas: r.ticket ? Math.round(total / r.ticket) : 0 }; });
+  }
+  function enTurno(t, h) { return t.personas.filter((p) => p.turno && p.turno[0] <= h && h < p.turno[1]); }
+  function calor(t) {
+    const rng = azar(semillaDe(t.id)), r = resumen(t, 'mes'), base = r.soles / DIA / HC.reduce((a, x) => a + x, 0);
+    return FD.map((f, d) => HC.map((w) => { const total = base * f * w * (.8 + rng() * .4); return { total, ventas: total / (r.ticket || 1) }; }));
+  }
+
+  /* ==================== piezas ==================== */
+  const IC = { lapiz: 'M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z', che: 'M9 6l6 6-6 6', x: 'M18 6 6 18M6 6l12 12', arr: 'M18 15l-6-6-6 6', aba: 'M6 9l6 6 6-6', play: 'M6 3l14 9-14 9z', ok: 'M20 6 9 17l-5-5', chispa: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z' };
+  const ic = (k) => sv(IC[k]);
+  const av = (p, s = '') => `<span class="avl" ${s}>${p.ini}</span>`;
+  const segmento = (id, opciones, valor) => `<div class="modo" role="group">${opciones.map(([v, t]) => `<button data-rd="${id}" data-v="${v}" aria-pressed="${v === valor}">${t}</button>`).join('')}</div>`;
+  const prev = {};                   // lo último dibujado: de ahí parten los viajes
+  const viaja = (clave, x) => { const de = prev[clave] ?? 0; prev[clave] = x; return `style="--x:${de}" data-x="${x}"`; };
+  function viajar() { requestAnimationFrame(() => requestAnimationFrame(() => $$('#cont [data-x]').forEach((el) => el.style.setProperty('--x', el.dataset.x)))); }
+  function contar() {
+    $$('#cont [data-n]').forEach((el) => {
+      const a = Number(el.dataset.de || 0), b = Number(el.dataset.n), f = el.dataset.f === 's' ? S : (x) => Math.round(x);
+      if (quieto() || a === b) { el.textContent = f(b); return; }
+      const t0 = performance.now(), paso = (t) => { const k = Math.min(1, (t - t0) / 600), e = 1 - Math.pow(1 - k, 3); el.textContent = f(a + (b - a) * e); if (k < 1 && el.isConnected) requestAnimationFrame(paso); };
+      requestAnimationFrame(paso);
+    });
+  }
+  const cifrasPrev = {};
+  const cuenta = (clave, valor) => { const de = cifrasPrev[clave] ?? 0; cifrasPrev[clave] = valor; return `data-f="s" data-de="${de}" data-n="${valor}"`; };
+
+  function tiendasHtml() {
+    if (estado.rol === 'lider') return '';
+    const ms = (t) => resumen(t, 'mes');
+    return `<div class="tiendas bloque" style="--k:0" role="tablist" aria-label="Tienda">${Object.values(TIENDAS).map((t) => {
+      const r = ms(t), l = r.meta ? lecturaDe(r.soles, r.meta, DIA / DIAS_MES) : null;
+      return `<button class="tt" role="tab" data-rd="tienda" data-v="${t.id}" aria-selected="${st.tienda === t.id}"><span class="cab-t"><span class="nm">${t.nombre}${t.sesion ? ' <span class="chip tinta sinp" style="height:20px;padding:0 8px;font-size:11px">Tu sesión</span>' : ''}</span>${chipL(l)}</span><span class="s">${S(r.soles)}</span><small>${r.meta ? `${r.pct} % de ${S(r.meta)} este mes` : 'Este mes · sin meta cargada'}</small>${r.meta ? `<span class="tubo"><i style="--x:${Math.min(100, r.pct)}"></i><u style="--t:${r.tocaPct}"></u></span>` : ''}</button>`;
+    }).join('')}</div>`;
+  }
+  const VTXT = { hoy: ['hoy', 'de hoy', 'Cómo va hoy'], semana: ['en 7 días', 'de los 7 días', 'Cómo va la semana'], mes: ['este mes', 'del mes', 'Cómo va el mes'] };
+  const barraVista = () => `<div class="vista bloque" style="--k:1"><h2>${T().nombre}</h2>${segmento('vista', [['hoy', 'Hoy'], ['semana', 'Semana'], ['mes', 'Mes']], st.vista)}</div>`;
+  const cabecera = () => encabezado({ sede: estado.rol === 'lider' ? 'Trujillo' : 'Todas las tiendas', fecha: FECHA, titulo: `Rendimiento<button class="ay" data-rd="ayuda" aria-label="Cómo se lee Rendimiento" aria-expanded="${st.ayuda}">?</button>` })
+    + (st.ayuda ? '<div class="placa globo">Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta. La meta es para <b>reconocer y acompañar</b>: no se usa para pagar ni para evaluar.</div>' : '');
+
+  function fraseSede(t) {
+    const r = resumen(t), v = st.vista, cu = v === 'hoy' ? 'a esta hora' : v === 'semana' ? 'esta semana' : 'a esta fecha';
+    if (!r.meta) return { h: `${t.nombre} lleva <em>${S(r.soles)}</em> ${VTXT[v][0]}.`, p: 'Sin meta de la sede solo se ve lo vendido. Cárgala en Configuración ▸ Tiendas y caja y se reparte sola entre el equipo.' };
+    let h;
+    if (r.tocaS === null) h = `${t.nombre} lleva el <em>${r.pct} %</em> de su meta ${VTXT[v][1]}.`;
+    else { const d = r.soles - r.tocaS; h = Math.abs(d) < r.meta * .02 ? `${t.nombre} va <em>justo en lo que tocaba</em> ${cu}.` : d > 0 ? `${t.nombre} va <em>${S(d)} por delante</em> de lo que tocaba ${cu}.` : `A ${t.nombre} le faltan <em>${S(-d)}</em> para lo que tocaba ${cu}.`; }
+    const cols = t.personas.map((p) => ({ p, c: col(p) }));
+    const pasadas = cols.filter((x) => x.c.pct >= 100);
+    const bajo = cols.filter((x) => x.c.lect === 'Por debajo').sort((a, b) => a.c.pct - b.c.pct)[0];
+    const trozos = [];
+    if (pasadas.length) trozos.push(`${pasadas.map((x) => x.p.corto).join(' y ')} ya ${pl(pasadas.length, 'pasó', 'pasaron')} su meta.`);
+    if (bajo) { const q = v === 'hoy' && bajo.p.turno ? Math.max(0, bajo.p.turno[1] - AHORA) : null; trozos.push(`A ${bajo.p.corto} le faltan ${S(bajo.c.meta - bajo.c.vend)}${q ? ` y le quedan ${tiempo(q)} de turno` : ''}.`); }
+    if (t.sinHorarios && v === 'hoy') trozos.push(`${t.nombre} no tiene horarios cargados: sin turno no hay ritmo contra qué comparar.`);
+    return { h, p: trozos.join(' ') || 'Todo el equipo va cerca de lo que le toca.' };
+  }
+  const tuboSede = (r) => (r.meta ? `<span class="tubo"><i ${viaja('sede:' + st.tienda, Math.min(100, r.pct))}></i>${r.tocaPct !== null ? `<u style="--t:${Math.min(100, r.tocaPct)}"></u>` : ''}</span><div class="lee"><span><b ${cuenta('s', r.soles)}></b> de ${S(r.meta)} · <b>${r.pct} %</b></span>${r.tocaPct !== null ? `<span>tocaba el ${r.tocaPct} %</span>` : ''}</div>` : `<div class="lee" style="margin-top:12px"><span><b>${r.ventas}</b> ${pl(r.ventas, 'venta', 'ventas')} · ticket <b>${r.ticket ? S(r.ticket) : '—'}</b></span></div>`);
+
+  function cifras(lista) { return `<div class="cuatro bloque" style="--k:3">${lista.map(([e, v, s]) => `<div class="placa cif"><p class="vs">${e}</p><b class="n">${v}</b><small>${s}</small></div>`).join('')}</div>`; }
+  function cuatroCifras(t) {
+    const r = resumen(t), pro = proyeccion(t), hay = conMeta();
+    return cifras([[`Soles ${VTXT[st.vista][0]}`, S(r.soles), `${r.ventas} ${pl(r.ventas, 'venta', 'ventas')}`],
+      ['Ticket promedio', r.ticket ? S(r.ticket) : '—', 'por venta'],
+      ['Prendas por venta', r.prendas.toLocaleString('es-PE'), `${r.nPrendas} prendas ${VTXT[st.vista][0]}`],
+      ['Proyección del mes', S(pro.proy), hay ? `${Math.round(pro.proy / t.meta * 100)} % de la meta · quedan ${pro.quedan} días` : `quedan ${pro.quedan} días de trabajo`]]);
+  }
+  function barrasHora(t, k = 5) {
+    const h = porHora(t), max = Math.max(...h.map((x) => x.total), 1), mejor = h.reduce((a, x) => (x.total > a.total ? x : a), h[0]);
+    return `<div class="placa barras bloque" style="--k:${k}"><p class="vs">Ventas por hora (${VTXT[st.vista][0]})</p><div class="bh" data-lee="#lee-hora">${h.map((x, i) => `<button class="${x === mejor ? 'top' : ''}" style="--k:${i};--h:${Math.round(x.total / max * 88) + 2}%" data-txt="<b>${horaTxt(x.h)}</b>: ${x.futura ? 'todavía no llega' : `${S(x.total)} en ${x.ventas} ${pl(x.ventas, 'venta', 'ventas')}`}" aria-label="${horaTxt(x.h)}: ${S(x.total)}">${x === mejor ? `<em>${S(x.total)}</em>` : ''}<i></i></button>`).join('')}</div><div class="bh-e"><span>9 a. m.</span><span>7 p. m.</span></div><p class="lectura" id="lee-hora" data-base="La mejor franja fue la de las <b>${horaTxt(mejor.h)}</b>. Sirve para repartir turnos, no para juzgar a nadie.">La mejor franja fue la de las <b>${horaTxt(mejor.h)}</b>. Sirve para repartir turnos, no para juzgar a nadie.</p></div>`;
+  }
+  function rankingHtml(t, k = 6) {
+    const rk = rankings(t), hora = st.ranking === 'hora', filas = hora ? rk.hora : rk.ventas;
+    const max = Math.max(...filas.map((f) => (hora ? f.num ?? 0 : f.p.ventasMes)), 1);
+    const cuerpo = filas.map((f, i) => {
+      const chips = `${f.p.enc ? '<span class="chip pizarra sinp">Encargada</span> ' : ''}${f.chica ? `<span class="chip ambar sinp" title="Menos de 40 ventas en el mes">Muestra chica</span>` : ''}`;
+      const rango = hora
+        ? (f.sinHoras ? '<span style="font-size:14px;color:var(--t65)">Sin horas</span>' : `<span class="rango"><i style="--x:${(f.num / max) * 100}"></i><u style="--t:${(f.cota / max) * 100}"></u></span>`)
+        : `<span class="rango"><u style="--t:${(f.p.ventasMes / max) * 100}"></u></span>`;
+      return `<button class="rk-f" data-rd="ficha" data-v="${f.p.id}"><span class="p">${i + 1}</span><span class="quien">${av(f.p)}<span><b>${f.p.nombre}</b>${chips ? `<small>${chips}</small>` : ''}</span></span>${rango}<span class="rt">${hora ? (f.sinHoras ? '—' : 'S/ ' + f.num.toFixed(1) + ' / h') : f.p.ventasMes}</span></button>`;
+    }).join('');
+    return `<section class="placa rk bloque" style="--k:${k}"><div class="rk-cab"><h3>Rankings del mes</h3>${segmento('ranking', [['hora', 'Vende por hora'], ['ventas', 'Cierra ventas']], st.ranking)}</div>${cuerpo}<p class="rk-pie">${hora ? 'La parte oscura es <b>lo que podemos asegurar</b>; la clara, lo que todavía falta confirmar. Con pocas ventas, la clara es larga.' : 'Número de ventas del mes, sin corregir: funciona con o sin horas registradas.'}</p></section>`;
+  }
+  function lineaHtml(t, k = 7) {
+    return `<div class="titulo-b bloque" style="--k:${k}"><h2>Ventas contra la meta</h2>${segmento('lineaModo', [['acum', 'Acumulado'], ['dia', 'Por día']], st.lineaModo)}</div>
+      <div class="placa lin bloque" style="--k:${k}"><div id="linea" role="img" aria-label="Ventas de ${t.nombre} en el mes contra su meta"></div><div class="ley" id="ley-linea"></div></div>`;
+  }
+  function dibujarLinea() {
+    const el = $('#linea'); if (!el) return;
+    const t = T(), w = el.clientWidth, h = el.clientHeight, m = { l: 46, r: 10, t: 14, b: 22 };
+    const porDia = Array.from({ length: DIA }, (_, i) => t.personas.reduce((a, p) => a + p.dias[i], 0));
+    const hay = conMeta(), acum = st.lineaModo === 'acum', pro = proyeccion(t);
+    const x = (d) => m.l + (d - 1) / (DIAS_MES - 1) * (w - m.l - m.r);
+    let svg = '', tope, serie = [];
+    const eje = (tp) => { const y = (v) => h - m.b - v / tp * (h - m.t - m.b); let g = ''; for (let i = 1; i <= 3; i++) { const v = tp / 3 * i; g += `<line x1="${m.l}" x2="${w - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--t12)"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--t65)">${v >= 1000 ? Math.round(v / 100) / 10 + ' mil' : Math.round(v)}</text>`; } g += `<line x1="${m.l}" x2="${w - m.r}" y1="${y(0)}" y2="${y(0)}" stroke="var(--t25)"/>`; [1, 10, 20, 30].forEach((d) => { g += `<text x="${x(d)}" y="${h - 6}" text-anchor="middle" font-size="11" fill="var(--t65)">${d}</text>`; }); return { y, g }; };
+    if (acum) {
+      let s = 0; serie = porDia.map((v) => (s += v));
+      tope = Math.ceil(Math.max(hay ? t.meta : 0, pro.proy) / 15000) * 15000;
+      const { y, g } = eje(tope); svg += g;
+      const ptos = serie.map((v, i) => `${x(i + 1)},${y(v)}`).join(' ');
+      svg += `<polygon points="${x(1)},${y(0)} ${ptos} ${x(DIA)},${y(0)}" fill="color-mix(in srgb,var(--tinta) 8%,transparent)"/>`;
+      if (hay) svg += `<line x1="${x(1)}" y1="${y(t.meta / DIAS_MES)}" x2="${x(DIAS_MES)}" y2="${y(t.meta)}" stroke="var(--taupe)" stroke-width="2" stroke-dasharray="5 5"/>`;
+      svg += `<line x1="${x(DIA)}" y1="${y(serie[DIA - 1])}" x2="${x(DIAS_MES)}" y2="${y(pro.proy)}" stroke="var(--t50)" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/>`;
+      svg += `<polyline class="tr" points="${ptos}" fill="none" stroke="var(--tinta)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" pathLength="1"/>`;
+      svg += `<circle cx="${x(DIA)}" cy="${y(serie[DIA - 1])}" r="4.5" fill="var(--tinta)" stroke="var(--papel)" stroke-width="2"/>`;
+      $('#ley-linea').innerHTML = `<span><i></i>Ventas acumuladas</span>${hay ? '<span><i class="pun"></i>Meta acumulada</span>' : ''}<span><i class="pro"></i>Si sigue así: ${S(pro.proy)}</span>`;
+      el._y = y;
+    } else {
+      serie = porDia; tope = Math.ceil(Math.max(...porDia, hay ? t.meta / DIAS_MES : 0) / 600) * 600;
+      const { y, g } = eje(tope); svg += g; const an = Math.max(3, Math.min(14, (w - m.l - m.r) / DIAS_MES - 3));
+      serie.forEach((v, i) => { svg += `<rect x="${x(i + 1) - an / 2}" y="${y(v)}" width="${an}" height="${y(0) - y(v)}" rx="3" fill="${i === DIA - 1 ? 'var(--tinta)' : 'color-mix(in srgb,var(--taupe) 40%,transparent)'}"/>`; });
+      if (hay) svg += `<line x1="${m.l}" x2="${w - m.r}" y1="${y(t.meta / DIAS_MES)}" y2="${y(t.meta / DIAS_MES)}" stroke="var(--taupe)" stroke-width="2" stroke-dasharray="5 5"/>`;
+      $('#ley-linea').innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:color-mix(in srgb,var(--taupe) 40%,transparent)"></span>Ventas del día</span>${hay ? '<span><i class="pun"></i>Meta del día</span>' : ''}`;
+      el._y = y;
+    }
+    el.innerHTML = `<svg viewBox="0 0 ${w} ${h}">${svg}<line id="l-cur" x1="0" x2="0" y1="${m.t}" y2="${h - m.b}" stroke="var(--t50)" stroke-width="1" opacity="0"/></svg><div class="tip" id="l-tip"></div>`;
+    el.onpointermove = (e) => {
+      const r = el.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * w, d = Math.round((px - m.l) / (w - m.l - m.r) * (DIAS_MES - 1)) + 1;
+      if (d < 1 || d > DIA) { lineaOut(); return; }
+      const c = $('#l-cur'), tp = $('#l-tip'); c.setAttribute('x1', x(d)); c.setAttribute('x2', x(d)); c.setAttribute('opacity', 1);
+      const metaEn = hay ? (acum ? t.meta / DIAS_MES * d : t.meta / DIAS_MES) : null;
+      tp.innerHTML = `${d} de nov · <b>${S(serie[d - 1])}</b>${metaEn ? ` · meta ${S(metaEn)}` : ''}`; tp.style.opacity = 1;
+      tp.style.left = Math.min(w - tp.offsetWidth / 2, Math.max(tp.offsetWidth / 2, x(d))) + 'px';
+    };
+    const lineaOut = () => { $('#l-cur')?.setAttribute('opacity', 0); const tp = $('#l-tip'); if (tp) tp.style.opacity = 0; };
+    el.onpointerleave = lineaOut;
+    const tr = $('.tr', el);
+    if (tr && $('#cont').classList.contains('ent') && !quieto()) tr.animate([{ strokeDasharray: '0 1' }, { strokeDasharray: '1 0' }], { duration: 900, easing: EASE });
+  }
+  function tablaPersonas(t, k = 6) {
+    const r = resumen(t), filas = [...t.personas].sort((a, b) => (col(b).pct ?? col(b).vend) - (col(a).pct ?? col(a).vend));
+    const asignado = t.personas.reduce((a, p) => a + col(p).meta, 0);
+    return `<section class="placa bloque" style="--k:${k};margin-top:10px"><div class="pt-c"><span>Persona</span><span>Vendió</span><span>Meta</span><span>Avance</span><span>Cómo va</span><span></span></div>
+      ${filas.map((p) => { const c = col(p); return `<div class="pt-f" data-rd="ficha" data-v="${p.id}" tabindex="0" role="button"><span class="quien">${av(p)}<span><b>${p.nombre}</b><small>${st.vista === 'hoy' ? (p.turno ? `${hhmm(p.turno[0])} a ${hhmm(p.turno[1])}` : 'Sin turno cargado') : `${c.ventas} ${pl(c.ventas, 'venta', 'ventas')}`}</small></span></span><span class="rt v">${S(c.vend)}</span><span class="rt m">${c.meta ? S(c.meta) : '—'}</span><span class="br">${c.pct !== null ? `<span class="tubo" style="--c:var(--tinta)"><i ${viaja('tb:' + p.id, Math.min(100, c.pct))}></i>${c.toc !== null ? `<u style="--t:${Math.min(100, c.toc)}"></u>` : ''}</span>` : '<span style="color:var(--t65)">Sin meta</span>'}</span><span class="lc">${chipL(c.lect)}</span><button class="lapiz" data-rd="lapiz" data-v="${p.id}" aria-label="Editar la meta de ${p.nombre}" title="Editar la meta">${ic('lapiz')}</button></div>`; }).join('')}
+      <p class="pt-pie">${r.meta ? `Asignado a las ${t.personas.length}: <b>${S(asignado)}</b> de <b>${S(r.meta)}</b> de la sede · ${t.sinHorarios ? 'partes iguales' : 'reparto por horas programadas'}` : 'Sin meta de la sede no hay qué repartir.'}</p></section>`;
+  }
+  function historialHtml(t, k = 8) {
+    return `<details class="placa hist bloque" style="--k:${k}"><summary><span>Cambios de meta <small>· ${t.historial.length} este mes · no se borran</small></span>${ic('che')}</summary><ul>${t.historial.length ? t.historial.map(([d, n, c, q]) => `<li><span class="d">${d}</span><div><b style="font-weight:500">${n}</b>: ${c}<small>${q}</small></div></li>`).join('') : '<li style="grid-template-columns:1fr">Todavía nadie cambió una meta este mes.</li>'}</ul></details>`;
+  }
+
+  /* ==================== A · La pasarela ==================== */
+  function carrilesHtml(t) {
+    const ps = pasos(), k = st.paso ?? ps.length - 1, final = k === ps.length - 1;
+    const orden = [...t.personas];
+    if (st.orden === 'avance') orden.sort((a, b) => (col(b).pct ?? col(b).vend) - (col(a).pct ?? col(a).vend)); else orden.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    const maxV = Math.max(...t.personas.map((p) => col(p).vend), 1);
+    return orden.map((p) => {
+      const c = colEn(p, k), hay = c.meta !== null;
+      const x = hay ? Math.min(125, c.vend / c.meta * 100) / 125 * 100 : c.vend / maxV * 92;
+      const tick = hay && c.toc !== null ? Math.min(125, c.toc) / 125 * 100 : null;
+      const aro = c.lect ? TONO[c.lect][1] : 'var(--t25)';
+      const sub = st.vista === 'hoy' ? (p.turno ? `${hhmm(p.turno[0])} a ${hhmm(p.turno[1])}` : 'Sin turno cargado') : `${col(p).ventas} ${pl(col(p).ventas, 'venta', 'ventas')}`;
+      const de = prev['a:' + p.id] ?? 0; prev['a:' + p.id] = x;
+      return `<button class="carril" data-k="${p.id}" data-rd="ficha" data-v="${p.id}" aria-label="${p.nombre}: ${S(c.vend)}${hay ? ` de ${S(c.meta)}, ${c.pct} %` : ''}${c.lect ? ', ' + c.lect : ''}. Abrir su ficha.">
+        <span class="quien"><span class="avl">${p.ini}</span><span><b>${p.nombre}</b><small>${sub}</small></span></span>
+        <span class="pista" aria-hidden="true"><span class="riel"></span>${hay ? '<span class="met"></span>' : ''}<span class="llena" style="--x:${de}" data-x="${x}"></span>${tick !== null ? `<span class="toc" style="--t:${tick}"></span>` : ''}<span class="avl pj" style="--x:${de};--aro:${aro}" data-x="${x}">${p.ini}</span></span>
+        <span class="cuanto"><b>${S(c.vend)}${hay ? ` <span style="color:var(--t65);font-weight:400">· ${c.pct} %</span>` : ''}</b>${c.lect ? chipL(c.lect) : hay ? `<small>de ${S(c.meta)}</small>` : `<small>${c.ventas ?? 0} ${pl(c.ventas, 'venta', 'ventas')}</small>`}</span></button>`;
+    }).join('');
+  }
+  function pasarela(t) {
+    const f = fraseSede(t), r = resumen(t), pro = proyeccion(t), hay = conMeta(), ps = pasos();
+    if (st.sim === null) st.sim = Math.round(pro.ritmo);
+    const min = Math.round(pro.ritmo * .5 / 10) * 10, max = Math.round(pro.ritmo * 1.7 / 10) * 10;
+    return `${cabecera()}${tiendasHtml()}${barraVista()}
+      <div class="resp"><div class="placa frase bloque" style="--k:2"><h3>${f.h}</h3><p>${f.p}</p>${tuboSede(r)}</div>
+        <div class="placa sim bloque" style="--k:2"><p class="vs">¿Y si…? Cierre del mes</p>${hay ? `<label for="sim" style="font-size:15px">Si vendemos <b id="sim-v" style="font-weight:600;font-variant-numeric:tabular-nums"></b> por día</label><input id="sim" type="range" min="${min}" max="${max}" step="1" value="${st.sim}"><div class="gr" id="sim-r"></div><small id="sim-d"></small>` : `<div class="gr">${S(pro.proy)}</div><small>A este ritmo (${S(pro.ritmo)} por día), sin meta con la que compararlo.</small><button class="btn sec" style="margin-top:6px" data-rd="aviso" data-v="Lleva a Configuración ▸ Tiendas y caja.">Cargar la meta</button>`}</div></div>
+      <div class="titulo-b bloque" style="--k:3"><h2>${VTXT[st.vista][2]}</h2>${segmento('orden', [['avance', 'Por avance'], ['nombre', 'Por nombre']], st.orden)}</div>
+      <section class="placa pasarela bloque" style="--k:3">
+        <div class="eje" aria-hidden="true"><span>Persona</span><span class="esc">${hay ? '<span style="left:0">0</span><span style="left:40%">50 %</span><span class="m" style="left:80%">Su meta</span><span style="left:100%">125 %</span>' : '<span style="left:0">0</span><span style="left:92%">Quien más vendió</span>'}</span><span style="text-align:right">Vendió</span></div>
+        <div id="carriles">${carrilesHtml(t)}</div>
+        <div class="rebobina"><button class="btn sec" data-rd="play" style="height:36px;padding:0 14px">${ic('play')}Ver cómo fue</button><input id="paso" type="range" min="0" max="${ps.length - 1}" value="${st.paso ?? ps.length - 1}" aria-label="Mover el momento"><span class="cuando" id="cuando">${ps[st.paso ?? ps.length - 1].txt}</span></div>
+        ${hay ? '<p class="reglas-pie"><span><i class="m-toc"></i>Lo que tocaba a cada una, según su turno</span><span><i class="m-met"></i>Su propia meta</span><span>El aro dice cómo va. Toca una fila para abrir su ficha.</span></p>' : ''}
+      </section>
+      ${cuatroCifras(t)}
+      <div class="dos">${barrasHora(t, 4)}${rankingHtml(t, 4)}</div>
+      ${lineaHtml(t)}${historialHtml(t)}`;
+  }
+  function simular() {
+    const inp = $('#sim'); if (!inp) return;
+    const t = T(), pro = proyeccion(t), v = Number(inp.value); st.sim = v;
+    const cierre = pro.vendido + v * pro.quedan, pct = Math.round(cierre / t.meta * 100), necesita = Math.max(0, (t.meta - pro.vendido) / pro.quedan);
+    $('#sim-v').textContent = S(v); $('#sim-r').textContent = `Cerramos en ${S(cierre)}`;
+    $('#sim-d').innerHTML = `<b>${pct} %</b> de la meta de ${S(t.meta)}. ${necesita > 0 ? `Para llegar se necesitan <b>${S(necesita)}</b> por día; el ritmo de hoy es ${S(pro.ritmo)}.` : 'La meta ya está alcanzada.'}`;
+  }
+  let reproduciendo = null;
+  function pintarCarriles(rapido) {
+    const box = $('#carriles'); if (!box) return;
+    box.parentElement.classList.toggle('rapido', !!rapido);
+    box.innerHTML = carrilesHtml(T()); viajar();
+    const ps = pasos(), k = st.paso ?? ps.length - 1;
+    $('#cuando').textContent = ps[k].txt; $('#paso').value = k;
+  }
+  function parar() { if (reproduciendo) { clearInterval(reproduciendo); reproduciendo = null; } }
+  function verComoFue() {
+    parar(); const ps = pasos();
+    if (quieto()) { st.paso = null; pintarCarriles(true); return; }
+    st.paso = 0; pintarCarriles(true);
+    const cada = Math.max(170, Math.min(420, 3400 / ps.length));
+    reproduciendo = setInterval(() => { st.paso++; if (st.paso >= ps.length - 1) { st.paso = null; parar(); } pintarCarriles(true); }, cada);
+  }
+
+  /* ==================== B · El reloj de la tienda ==================== */
+  function fraseReloj(t) {
+    const h = porHora(t, 'mes'), tot = h.reduce((a, x) => a + x.total, 0), fuerte = h.slice(9 + 0 - H0 + 9, 11);
+    const part = Math.round(fuerte.reduce((a, x) => a + x.total, 0) / tot * 100), media = h.slice(4, 8), pMedia = Math.round(media.reduce((a, x) => a + x.total, 0) / tot * 100);
+    const en = enTurno(t, 18).length, enM = enTurno(t, 15).length;
+    if (t.sinHorarios) return { h: `Tu hora fuerte es de <em>6 a 8 p. m.</em>: ahí entra el ${part} % de la venta.`, p: `${t.nombre} no tiene horarios cargados en Dynamic: no se puede ver cuántas personas hay a esa hora.` };
+    return { h: `De <em>6 a 8 p. m.</em> entra el ${part} % de la venta, con ${en} ${pl(en, 'persona', 'personas')} en tienda.`, p: `De 1 a 5 p. m. entra el ${pMedia} %, con ${enM} ${pl(enM, 'persona', 'personas')}. Sirve para repartir turnos, no para juzgar a nadie.` };
+  }
+  function reloj(t) {
+    const f = fraseReloj(t), h = porHora(t), max = Math.max(...h.map((x) => x.total), ...calorDe(t).map((c) => c.total), 1), hoyV = st.vista === 'hoy', dow = 4;
+    const cal = calor(t), mejor = h.reduce((a, x) => (x.total > a.total ? x : a), h[0]);
+    const aho = (AHORA - H0) / NH * 100;
+    st.hora = st.hora ?? (hoyV ? 7 : mejor.h - H0);
+    const barras = h.map((x, i) => {
+      const fut = hoyV && x.futura, sug = cal[dow][i].total;
+      const alto = fut ? sug : x.total;
+      return `<button class="${fut ? 'fut' : x === mejor ? 'top' : ''}" style="--k:${i};--bh:${Math.round(alto / max * 96) + 2}%" data-hora="${i}" aria-label="${horaTxt(x.h)}: ${fut ? `suele vender ${S(sug)}` : S(x.total)}"><i></i></button>`;
+    }).join('');
+    const cobertura = t.sinHorarios ? '' : `<div class="d-r"><span class="d-et">En tienda</span><div class="d-t d-cob">${h.map((x) => { const n = enTurno(t, x.h).length; return `<span>${n}<small style="--n:${n}"></small></span>`; }).join('')}<span class="cur" style="grid-row:1;grid-column:1"></span></div></div>`;
+    const filas = !hoyV || t.sinHorarios ? '' : t.personas.map((p, i) => {
+      const ini = Math.max(0, (p.turno[0] - H0) / NH * 100), an = (Math.min(H0 + NH, p.turno[1]) - p.turno[0]) / NH * 100;
+      const r = Math.round(ritmoTurno(p.turno, AHORA) * 100);
+      return `<div class="d-r d-x" data-rd="ficha" data-v="${p.id}"><span class="d-pq">${av(p)}<b>${p.corto}</b></span><button class="d-t" aria-label="${p.nombre}, de ${hhmm(p.turno[0])} a ${hhmm(p.turno[1])}, lleva ${S(p.vendHoy)}"><span class="cur"></span><span class="d-p" style="--i:${ini};--w:${an};--k:${i};--r:${r}"><i></i><span>${S(p.vendHoy)}</span></span>${i === 0 ? '' : ''}<span class="aho" style="--a:${aho}"></span></button></div>`;
+    }).join('');
+    const totalCal = cal.flat(), maxCal = Math.max(...totalCal.map((c) => (st.calorModo === 'soles' ? c.total : c.ventas)));
+    if (!st.celda) { let m = [0, 0], mv = -1; cal.forEach((f2, d) => f2.forEach((c, i) => { if (c.total > mv) { mv = c.total; m = [d, i]; } })); st.celda = m; }
+    const celdas = cal.map((fila, d) => `<span>${DS[d]}</span>${fila.map((c, i) => { const v = (st.calorModo === 'soles' ? c.total : c.ventas) / maxCal; const on = st.celda[0] === d && st.celda[1] === i; return `<button class="cel" style="--v:${Math.round(6 + v * 86)};--o:${d + i}" data-rd="celda" data-v="${d},${i}" aria-pressed="${on}" aria-label="${DSL[d]} a las ${horaTxt(H0 + i)}: ${S(c.total)}" title="${DS[d]} ${horaTxt(H0 + i)} · ${S(c.total)}"></button>`; }).join('')}`).join('');
+    return `${cabecera()}${tiendasHtml()}${barraVista()}
+      <div class="placa frase bloque" style="--k:2;margin-top:14px"><h3>${f.h}</h3><p>${f.p}</p></div>
+      ${cuatroCifras(t)}
+      <div class="titulo-b bloque" style="--k:4"><h2>${hoyV ? 'El día de hoy, hora a hora' : `Las horas ${VTXT[st.vista][0]}`}</h2></div>
+      <section class="placa dia bloque" style="--k:4" id="dia"><div class="d-lee" id="d-lee"></div>
+        <div class="d-cuerpo" id="d-cu">
+          <div class="d-r"><span class="d-et">Vendió</span><div class="d-t d-b" style="padding-top:12px"><span class="cur"></span>${barras}${hoyV ? `<span class="aho" style="--a:${aho}"><span>Ahora</span></span>` : ''}</div></div>
+          <div class="d-r"><span></span><div class="d-eje">${h.map((x) => `<span>${x.h > 12 ? x.h - 12 : x.h}</span>`).join('')}</div></div>
+          ${cobertura ? '<div class="d-sep"></div>' + cobertura : ''}
+          ${filas ? '<div class="d-sep"></div>' + filas : ''}
+        </div>
+        ${hoyV && !t.sinHorarios ? '<p class="reglas-pie"><span>Las barras punteadas son lo que suele venderse un viernes a esa hora.</span><span>Cada barra larga es el turno de una persona; toca una para abrir su ficha.</span></p>' : ''}
+      </section>
+      <div class="titulo-b bloque" style="--k:5"><h2>Cuándo se vende</h2>${segmento('calorModo', [['soles', 'Soles'], ['ventas', 'Ventas']], st.calorModo)}</div>
+      <div class="mapa bloque" style="--k:5"><section class="placa calor"><div class="c-g"><span></span>${HC.map((_, i) => `<span>${H0 + i > 12 ? H0 + i - 12 : H0 + i}</span>`).join('')}${celdas}</div><div class="c-ley"><span>Menos</span><i></i><span>Más</span></div></section><aside class="placa c-det" id="c-det"></aside></div>
+      <div class="titulo-b bloque" style="--k:6"><h2>${VTXT[st.vista][2]}</h2></div>${tablaPersonas(t, 6)}
+      <div style="margin-top:14px">${rankingHtml(t, 7)}</div>${lineaHtml(t, 8)}${historialHtml(t, 9)}`;
+  }
+  const calorDe = (t) => calor(t)[4];
+  function leerHora() {
+    const box = $('#d-lee'); if (!box) return;
+    const t = T(), h = porHora(t), i = st.hora, x = h[i], fut = st.vista === 'hoy' && x.futura, gente = enTurno(t, x.h);
+    $('#dia').style.setProperty('--h', i);
+    const sug = calor(t)[4][i].total;
+    box.innerHTML = `<span class="gr">${horaTxt(x.h)}</span><span class="dt"><b>${fut ? S(sug) : S(x.total)}</b>${fut ? 'suele venderse un viernes' : 'vendido'}</span><span class="dt"><b>${fut ? '—' : x.ventas}</b>${pl(x.ventas, 'venta', 'ventas')}</span>${t.sinHorarios ? '<span class="pila"><small>Sin horarios cargados</small></span>' : `<span class="pila"><small>${gente.length} en tienda</small>${gente.map((p) => av(p, `title="${p.nombre}"`)).join('')}</span>`}`;
+  }
+  function detalleCelda() {
+    const box = $('#c-det'); if (!box) return;
+    const t = T(), [d, i] = st.celda, c = calor(t)[d][i], fila = calor(t).map((f) => f[i].total), prom = fila.reduce((a, x) => a + x, 0) / 7, dif = Math.round((c.total / prom - 1) * 100);
+    const en = t.sinHorarios ? null : enTurno(t, H0 + i).length + (d === 5 ? 1 : 0);
+    box.innerHTML = `<p class="vs">Lo que tocaste</p><p class="gr">${DSL[d][0].toUpperCase() + DSL[d].slice(1)}, ${horaTxt(H0 + i)}</p><div class="fl"><span>Se suele vender</span><b>${S(c.total)}</b></div><div class="fl"><span>Ventas</span><b>${Math.max(1, Math.round(c.ventas))}</b></div><div class="fl"><span>Suele haber en tienda</span><b>${en === null ? '—' : `${en} ${pl(en, 'persona', 'personas')}`}</b></div><p>${dif >= 0 ? `${dif} % más` : `${-dif} % menos`} que el promedio de esa hora en la semana.</p>`;
+  }
+
+  /* ==================== C · El equipo ==================== */
+  function fraseEquipo(t) {
+    const cs = t.personas.map((p) => ({ p, c: col(p) }));
+    if (!conMeta()) return { h: `${t.nombre} lleva <em>${S(resumen(t).soles)}</em> ${VTXT[st.vista][0]}.`, p: 'Sin meta de la sede no hay contra qué comparar: las tarjetas se ordenan por lo vendido.' };
+    const ade = cs.filter((x) => x.c.lect === 'Adelante').sort((a, b) => b.c.pct - a.c.pct)[0], baj = cs.filter((x) => x.c.lect === 'Por debajo').sort((a, b) => a.c.pct - b.c.pct)[0];
+    if (!ade && !baj) return { h: 'Hoy <em>nadie se sale</em> de lo que le toca.', p: t.sinHorarios && st.vista === 'hoy' ? `${t.nombre} no tiene horarios cargados: mira Semana o Mes para comparar contra la meta.` : 'Todo el equipo va en ritmo.' };
+    return { h: [ade && `Toca reconocer a <em>${ade.p.corto}</em>`, baj && `${ade ? 'y ' : 'Toca '}acompañar a <em>${baj.p.corto}</em>`].filter(Boolean).join(' ') + '.', p: [ade && `${ade.p.corto} lleva el ${ade.c.pct} % de su meta ${VTXT[st.vista][1]}.`, baj && `${baj.p.corto} lleva el ${baj.c.pct} % y tocaba el ${baj.c.toc} %.`].filter(Boolean).join(' ') };
+  }
+  function fraseTarjeta(p, c) {
+    if (c.meta === null) return `${c.ventas} ${pl(c.ventas, 'venta', 'ventas')} ${VTXT[st.vista][0]}.`;
+    if (c.vend >= c.meta) return `Ya pasó su meta por ${S(c.vend - c.meta)}.`;
+    const quedan = st.vista === 'hoy' && p.turno ? Math.max(0, p.turno[1] - AHORA) : null;
+    if (c.lect === null) return st.vista === 'hoy' ? `Le faltan ${S(c.meta - c.vend)}. Sin turno cargado hoy.` : `Le faltan ${S(c.meta - c.vend)}.`;
+    return `Le faltan ${S(c.meta - c.vend)}${quedan ? `; le quedan ${tiempo(quedan)} de turno` : ''}.`;
+  }
+  function tarjeta(p, k) {
+    const c = col(p), max7 = Math.max(...p.dias.slice(-7), 1), aro = c.lect ? TONO[c.lect][1] : 'var(--tinta)', x = c.pct === null ? 0 : Math.min(100, c.pct);
+    return `<button class="tar claro" data-k="${p.id}" style="--k:${k}" data-rd="ficha" data-v="${p.id}" aria-label="${p.nombre}. ${S(c.vend)}${c.meta ? ` de ${S(c.meta)}` : ''}. Abrir su ficha.">
+      <span class="ani" style="--aro:${aro}"><svg viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="32"/>${c.pct !== null ? `<circle cx="36" cy="36" r="32" pathLength="100" ${viaja('ani:' + p.id, x)}/>` : ''}</svg><span class="avl">${p.ini}</span></span>
+      <span class="nm">${p.nombre}<small>${st.vista === 'hoy' ? (p.turno ? `${hhmm(p.turno[0])} a ${hhmm(p.turno[1])}` : 'Sin turno cargado') : p.enc ? 'Encargada' : `${c.ventas} ${pl(c.ventas, 'venta', 'ventas')}`}</small></span>
+      <span class="cu">${S(c.vend)}${c.pct !== null ? ` <small>· ${c.pct} %</small>` : ''}</span>
+      <p>${fraseTarjeta(p, c)}</p>
+      <span class="sem" aria-hidden="true" title="Últimos 7 días">${p.dias.slice(-7).map((v) => `<i style="--h:${Math.round(v / max7 * 100)}"></i>`).join('')}</span></button>`;
+  }
+  function equipo(t) {
+    const f = fraseEquipo(t), r = resumen(t);
+    const grupos = conMeta() ? [['Adelante', 'Adelante', 'para reconocer'], ['En ritmo', 'En ritmo', ''], ['Por debajo', 'Por debajo', 'para acompañar'], [null, null, '']] : [[null, null, '']];
+    let k = 0;
+    const cols = grupos.map(([l, tit, nota]) => {
+      const ps = t.personas.filter((p) => col(p).lect === l).sort((a, b) => (col(b).pct ?? col(b).vend) - (col(a).pct ?? col(a).vend));
+      if (!ps.length) return '';
+      return `<div class="col"><h3>${l ? chipL(l) : `<span class="chip tinta sinp">${conMeta() ? 'Sin turno cargado' : 'Por lo vendido'}</span>`}<span>${ps.length}${nota ? ` · ${nota}` : ''}</span></h3>${ps.map((p) => tarjeta(p, k++)).join('')}</div>`;
+    }).join('');
+    return `${cabecera()}${tiendasHtml()}${barraVista()}
+      <div class="placa frase bloque" style="--k:2;margin-top:14px"><h3>${f.h}</h3><p>${f.p}</p>${tuboSede(r)}</div>
+      <div class="cols bloque" style="--k:3">${cols}</div>
+      ${cuatroCifras(t)}
+      <div class="titulo-b bloque" style="--k:4"><h2>El reparto de la meta de ${t.nombre}</h2><span class="chip tinta sinp">Editan la líder de la sede y el Admin</span></div>
+      ${conMeta() ? `<section class="placa rep bloque" style="--k:4" id="rep"></section>` : `<div class="nota bloque">Sin meta de la sede no hay qué repartir. Cárgala en Configuración ▸ Tiendas y caja.</div>`}
+      <div class="dos">${barrasHora(t, 5)}${rankingHtml(t, 5)}</div>${lineaHtml(t)}${historialHtml(t)}`;
+  }
+  const MOTIVOS = ['Cambia su horario', 'Está en capacitación', 'Cubre otra tienda', 'Vuelve de descanso', 'Otro'];
+  function repartoIni(t) { if (!st.rep || st.rep.tienda !== t.id) { st.rep = { tienda: t.id, vals: t.personas.map((p) => p.metaMes) }; st.repMot = null; } return st.rep; }
+  function pintarReparto() {
+    const box = $('#rep'); if (!box) return;
+    const t = T(), rep = repartoIni(t), libre = Math.max(0, t.meta - rep.vals.reduce((a, x) => a + x, 0));
+    let acum = 0;
+    const segs = rep.vals.map((v, i) => { const w = v / t.meta * 100, p = t.personas[i]; return `<div class="rp-s" style="--w:${w}" title="${p.nombre}: ${S(v)}">${p.ini}</div>`; }).join('') + `<div class="rp-s libre" style="--w:${libre / t.meta * 100}">${libre > 1200 ? 'Sin asignar' : ''}</div>`;
+    const asas = rep.vals.map((v, i) => { acum += v; return `<span class="rp-h" role="slider" tabindex="0" data-i="${i}" style="--p:${acum / t.meta * 100}" aria-label="Mover la meta entre ${t.personas[i].corto} y ${t.personas[i + 1]?.corto ?? 'lo sin asignar'}" aria-valuemin="0" aria-valuemax="${t.meta}" aria-valuenow="${v}"></span>`; }).join('');
+    const cambios = rep.vals.filter((v, i) => v !== t.personas[i].metaMes).length;
+    box.innerHTML = `<p style="font-size:15px;color:var(--t80);margin-bottom:14px">Arrastra las marcas para pasarle meta de una persona a otra. La suma nunca se pasa de la meta de la sede.</p>
+      <div class="rp-t" id="rp-t">${segs}${asas}</div>
+      <div class="rp-l">${rep.vals.map((v, i) => { const p = t.personas[i], d = v - p.metaMes; return `<div class="rp-i">${av(p)}<span><b>${S(v)}</b><small class="${d ? 'ca' : ''}">${d ? `${d > 0 ? '+' : '−'} ${S(Math.abs(d))}` : p.corto}</small></span></div>`; }).join('')}</div>
+      <div class="rp-pie"><span>Asignado <b>${S(t.meta - libre)}</b> de <b>${S(t.meta)}</b> · ${libre ? `faltan ${S(libre)} por asignar` : 'cuadra'}</span><span class="acc"><button class="btn sec" data-rd="repIni" ${cambios ? '' : 'disabled'}>Deshacer</button></span></div>
+      ${cambios ? `<div class="mot"><span>Sigue aquí: ¿por qué ${pl(cambios, 'cambia esta meta', `cambian estas ${cambios} metas`)}? Queda en el historial.</span>${MOTIVOS.map((m) => `<button class="fp" data-rd="repMot" data-v="${m}" aria-pressed="${st.repMot === m}">${m}</button>`).join('')}<button class="btn pri" style="margin-left:auto" data-rd="repGuardar" ${st.repMot ? '' : 'disabled'}>Guardar ${cambios} ${pl(cambios, 'cambio', 'cambios')}</button></div>` : ''}`;
+    montarReparto();
+  }
+  function montarReparto() {
+    const tubo = $('#rp-t'); if (!tubo) return;
+    const t = T(), rep = st.rep;
+    const mover = (i, d) => {
+      const libre = t.meta - rep.vals.reduce((a, x) => a + x, 0);
+      const dentro = (x) => Math.round(x / 50) * 50;
+      if (i < rep.vals.length - 1) { const tot = rep.vals[i] + rep.vals[i + 1]; const nv = Math.max(0, Math.min(tot, dentro(rep.vals[i] + d))); rep.vals[i] = nv; rep.vals[i + 1] = tot - nv; }
+      else rep.vals[i] = Math.max(0, Math.min(rep.vals[i] + libre, dentro(rep.vals[i] + d)));
+    };
+    $$('.rp-h', tubo).forEach((h) => {
+      const i = Number(h.dataset.i);
+      h.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); const w = tubo.getBoundingClientRect().width, x0 = e.clientX, v0 = rep.vals.slice();
+        const mv = (ev) => { rep.vals = v0.slice(); mover(i, (ev.clientX - x0) / w * t.meta); actualizarTubo(); };
+        const fin = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', fin); pintarReparto(); $(`.rp-h[data-i="${i}"]`)?.focus(); };
+        addEventListener('pointermove', mv); addEventListener('pointerup', fin);
+      });
+      h.addEventListener('keydown', (e) => { const d = e.key === 'ArrowRight' ? 100 : e.key === 'ArrowLeft' ? -100 : 0; if (!d) return; e.preventDefault(); mover(i, d); pintarReparto(); $(`.rp-h[data-i="${i}"]`)?.focus(); });
+    });
+    function actualizarTubo() {
+      const libre = Math.max(0, t.meta - rep.vals.reduce((a, x) => a + x, 0)), s = $$('.rp-s', tubo), hs = $$('.rp-h', tubo); let ac = 0;
+      rep.vals.forEach((v, i) => { s[i].style.setProperty('--w', v / t.meta * 100); ac += v; hs[i].style.setProperty('--p', ac / t.meta * 100); });
+      s[s.length - 1].style.setProperty('--w', libre / t.meta * 100);
+      $$('.rp-i', $('#rep')).forEach((f, i) => { $('b', f).textContent = S(rep.vals[i]); });
+    }
+  }
+
+  /* ==================== Como ahora ==================== */
+  function comoAhora(t) {
+    const r = resumen(t), pro = proyeccion(t);
+    return `${cabecera()}${tiendasHtml()}${barraVista()}
+      ${cifras([[`Soles ${VTXT[st.vista][0]}`, S(r.soles), `${r.ventas} ventas`], [`Meta ${VTXT[st.vista][1]}`, r.meta ? `${r.pct} %` : '—', r.meta ? `Faltan ${S(Math.max(0, r.meta - r.soles))} de ${S(r.meta)}` : 'Falta cargarla'], ['Programadas hoy', t.sinHorarios ? '0' : String(t.personas.length), `${t.personas.length} vendieron`], ['Ticket promedio', r.ticket ? S(r.ticket) : '—', 'por venta']])}
+      <div class="dos"><div class="placa cif"><p class="vs">Proyección del mes</p><b class="n">${S(pro.proy)}</b><small>A este ritmo (${S(pro.ritmo)} por día de trabajo) ${t.nombre} cierra el mes cerca de esa cifra. Quedan ${pro.quedan} días de trabajo.</small></div><div class="placa cif"><p class="vs">Prendas por venta</p><b class="n">${r.prendas}</b><small>${r.nPrendas} prendas en ${r.ventas} ventas ${VTXT[st.vista][0]}. Las devoluciones no restan.</small></div></div>
+      <div style="margin-top:14px">${barrasHora(t, 4)}</div><div class="titulo-b"><h2>${VTXT[st.vista][2]}</h2><span class="chip tinta sinp">Editan la líder de la sede y el Admin</span></div>${tablaPersonas(t, 5)}${lineaHtml(t, 6)}${historialHtml(t, 7)}<div style="margin-top:16px">${rankingPlano(t)}</div>`;
+  }
+  function rankingPlano(t) {
+    const rk = rankings(t), f = (l, v) => `<section class="placa" style="padding:6px 0">${l.map((x, i) => `<div class="rk-f" style="grid-template-columns:20px minmax(0,1fr) auto"><span class="p">${i + 1}</span><span>${x.p.nombre}</span><span class="rt">${v(x)}</span></div>`).join('')}</section>`;
+    return `<div class="titulo-b"><h2>Rankings del mes</h2></div><div class="dos"><div><h3 style="font-size:15px;font-weight:600;margin-bottom:8px">Vende más por hora</h3>${f(rk.hora, (x) => (x.sinHoras ? '—' : 'S/ ' + x.num.toFixed(1) + ' / h'))}</div><div><h3 style="font-size:15px;font-weight:600;margin-bottom:8px">Cierra más ventas</h3>${f(rk.ventas, (x) => x.p.ventasMes)}</div></div>`;
+  }
+
+  /* ==================== la ficha ==================== */
+  function ficha() {
+    const box = $('#fic');
+    if (!st.ficha) { box.removeAttribute('data-abierta'); return; }
+    const t = T(), lista = t.personas, i = lista.findIndex((p) => p.id === st.ficha), p = lista[i], c = col(p), cm = col(p, 'mes');
+    const mx = Math.max(...p.dias, 1), offset = dowDe(1);
+    const mejorI = p.dias.indexOf(Math.max(...p.dias));
+    let racha = 0; for (let d = DIA - 1; d >= 0; d--) { if (p.dias[d] >= p.metaMes / DIAS_MES) racha++; else break; }
+    const ticket = p.ventasMes ? p.vendMes / p.ventasMes : 0;
+    const rf = rankings(t).hora.find((f) => f.p.id === p.id);
+    const celdas = Array(offset).fill('<span></span>').join('') + Array.from({ length: DIAS_MES }, (_, d) => { const dia = d + 1; if (dia > DIA) return `<button disabled>${dia}</button>`; const v = p.dias[d] / mx, al = Math.round(4 + v * v * 84); return `<button class="${al > 58 ? 'os' : ''} ${dia === DIA ? 'hoy' : ''}" style="--v:${al}" data-dia="${d}" aria-label="${dia} de noviembre: ${S(p.dias[d])}">${dia}</button>`; }).join('');
+    const yaEstaba = box.hasAttribute('data-abierta');
+    box.innerHTML = `<div class="fic-velo" data-rd="cerrarFicha"></div><aside class="fic-h" role="dialog" aria-label="Ficha de ${p.nombre}">
+      <div class="fic-cab">${av(p)}<div><h3>${p.nombre}</h3><small>${p.enc ? 'Encargada · ' : ''}${t.nombre}${st.vista === 'hoy' ? ` · ${p.turno ? `${hhmm(p.turno[0])} a ${hhmm(p.turno[1])}` : 'Sin turno cargado'}` : ''}</small></div><button class="x" data-rd="cerrarFicha" aria-label="Cerrar">${ic('x')}</button></div>
+      <div class="fic-c">
+        <div class="tre" style="--k:0"><div><p class="vs">Vendió ${VTXT[st.vista][0]}</p><b>${S(c.vend)}</b><small>${c.ventas} ${pl(c.ventas, 'venta', 'ventas')}</small></div><div><p class="vs">Su meta</p><b>${c.meta ? S(c.meta) : '—'}</b><small>${c.meta ? (p.ajustada ? 'Ajustada' : t.sinHorarios ? 'Partes iguales' : 'Por horas') : 'Sin meta'}</small></div><div><p class="vs">Avance</p><b>${c.pct !== null ? c.pct + ' %' : '—'}</b><small>${c.lect || (c.toc === null && c.meta ? 'Sin turno' : '&nbsp;')}</small></div></div>
+        <div style="--k:1"><p class="vs" style="margin-bottom:8px">Su mes, día a día</p><div class="cal">${DS.map((x) => `<span>${x[0]}</span>`).join('')}${celdas}</div><p class="lectura" id="cal-lee">Toca un día para ver lo que vendió.</p></div>
+        <div style="--k:2"><p class="vs" style="margin-bottom:8px">Lo que va bien</p><ul class="bien"><li><span>Su mejor día: <b>${mejorI + 1} de noviembre</b>, ${S(p.dias[mejorI])}.</span></li><li><span>Ticket promedio de <b>${S(ticket)}</b> este mes.</span></li>${racha >= 2 ? `<li><span><b>${racha} días seguidos</b> cumpliendo su parte del día.</span></li>` : ''}${rf && !rf.sinHoras ? `<li><span>Vende cerca de <b>S/ ${rf.num.toFixed(1)}</b> por hora${rf.chica ? ' (aún con pocas ventas para estar seguros)' : ''}.</span></li>` : ''}</ul></div>
+        ${cm.lect === 'Por debajo' ? `<div class="nota" style="--k:3;margin-top:0">Para acompañar: le faltan ${S(cm.meta - cm.vend)} este mes. La hora fuerte de la tienda es la de las 7 p. m.</div>` : ''}
+      </div>
+      <div class="fic-pie">${st.reconocidos.has(p.id) ? `<span class="sello">${ic('ok')}Reconocimiento enviado</span>` : `<button class="btn pri" data-rd="reconocer" data-v="${p.id}">${ic('chispa')}Reconocer</button>`}<button class="btn sec" data-rd="lapiz" data-v="${p.id}">${ic('lapiz')}Su meta</button><span class="nav-f"><button data-rd="fichaMov" data-v="-1" aria-label="Anterior" ${i === 0 ? 'disabled style="opacity:.35"' : ''}>${ic('arr')}</button>${i + 1} de ${lista.length}<button data-rd="fichaMov" data-v="1" aria-label="Siguiente" ${i === lista.length - 1 ? 'disabled style="opacity:.35"' : ''}>${ic('aba')}</button></span></div></aside>`;
+    if (!yaEstaba) requestAnimationFrame(() => requestAnimationFrame(() => box.setAttribute('data-abierta', '')));
+    $$('.cal button[data-dia]', box).forEach((b) => { const m = () => { const d = Number(b.dataset.dia); $('#cal-lee').innerHTML = `<b>${DS[dowDe(d + 1)]} ${d + 1}</b>: ${S(p.dias[d])} en ${p.ven[d]} ${pl(p.ven[d], 'venta', 'ventas')}`; }; b.addEventListener('pointerenter', m); b.addEventListener('focus', m); b.addEventListener('click', m); });
+  }
+  function aviso(texto) { $$('.aviso-m').forEach((x) => x.remove()); $('#disp').insertAdjacentHTML('beforeend', `<div class="aviso-m" role="status">${texto}</div>`); const a = $('.aviso-m'); setTimeout(() => a.remove(), 3200); }
+
+  /* ==================== pintar ==================== */
+  let ultimaClave = null;
+  function flip(selector, antes) {
+    if (quieto()) return;
+    const z = zoomDisp();
+    $$(selector).forEach((el) => { const a = antes.get(el.dataset.k); if (!a) return; const r = el.getBoundingClientRect(), dx = (a.left - r.left) / z, dy = (a.top - r.top) / z; if (Math.abs(dx) + Math.abs(dy) < 2) return; el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: 560, easing: EASE }); });
+  }
+  const medir = (selector) => new Map($$(selector).map((el) => [el.dataset.k, el.getBoundingClientRect()]));
+  function pantalla(foco) {
+    parar();
+    if (estado.rol === 'lider') st.tienda = 'tru';
+    const clave = `${estado.dir}|${st.tienda}`, entra = clave !== ultimaClave;
+    if (entra) { Object.keys(prev).forEach((k) => delete prev[k]); Object.keys(cifrasPrev).forEach((k) => delete cifrasPrev[k]); st.sim = null; st.celda = null; st.paso = null; st.hora = null; }
+    ultimaClave = clave;
+    const antes = medir('.tar[data-k],.carril[data-k]');
+    const t = T(), cont = $('#cont'), pos = cont.scrollTop;
+    cont.innerHTML = estado.dir === 'a' ? pasarela(t) : estado.dir === 'b' ? reloj(t) : estado.dir === 'c' ? equipo(t) : comoAhora(t);
+    cont.classList.toggle('ent', entra);
+    cont.scrollTop = entra ? 0 : pos;
+    viajar(); contar(); dibujarLinea(); simular(); leerHora(); detalleCelda(); pintarReparto(); ficha();
+    if (!entra) flip('.tar[data-k],.carril[data-k]', antes);
+    if (foco) $(`#cont [data-rd="${foco[0]}"][data-v="${foco[1]}"]`)?.focus({ preventScroll: true });
+  }
+
+  /* ==================== lo que se toca ==================== */
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-rd]'); if (!el) return;
+    const a = el.dataset.rd, v = el.dataset.v;
+    if (a === 'lapiz') { e.stopPropagation(); aviso('Aquí abre la hoja «Meta de…» de hoy, con su motivo. En la maqueta no se guarda.'); return; }
+    if (a === 'aviso') { aviso(v); return; }
+    if (a === 'vista') { st.vista = v; st.paso = null; st.hora = null; pantalla([a, v]); return; }
+    if (a === 'tienda') { st.tienda = v; st.ficha = null; st.rep = null; pantalla([a, v]); return; }
+    if (a === 'orden') { st.orden = v; pantalla([a, v]); return; }
+    if (a === 'ranking') { st.ranking = v; pantalla([a, v]); return; }
+    if (a === 'lineaModo') { st.lineaModo = v; pantalla([a, v]); return; }
+    if (a === 'calorModo') { st.calorModo = v; pantalla([a, v]); return; }
+    if (a === 'celda') { st.celda = v.split(',').map(Number); $$('.cel').forEach((c) => c.setAttribute('aria-pressed', c === el)); detalleCelda(); return; }
+    if (a === 'ayuda') { st.ayuda = !st.ayuda; pantalla(); return; }
+    if (a === 'play') { verComoFue(); return; }
+    if (a === 'ficha') { if (e.target.closest('.lapiz')) return; st.ficha = v; ficha(); return; }
+    if (a === 'cerrarFicha') { st.ficha = null; $('#fic').removeAttribute('data-abierta'); return; }
+    if (a === 'fichaMov') { const l = T().personas, i = l.findIndex((p) => p.id === st.ficha), n = l[i + Number(v)]; if (n) { st.ficha = n.id; ficha(); } return; }
+    if (a === 'reconocer') { st.reconocidos.add(v); ficha(); return; }
+    if (a === 'repIni') { st.rep = null; st.repMot = null; pintarReparto(); return; }
+    if (a === 'repMot') { st.repMot = v; pintarReparto(); return; }
+    if (a === 'repGuardar') { aviso('Se guardaría cada cambio con su motivo en el historial. En la maqueta no se guarda.'); return; }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && st.ficha) { st.ficha = null; $('#fic').removeAttribute('data-abierta'); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.pt-f')) { e.preventDefault(); st.ficha = e.target.dataset.v; ficha(); }
+    if (st.ficha && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && !e.target.closest('input')) { const l = T().personas, i = l.findIndex((p) => p.id === st.ficha), n = l[i + (e.key === 'ArrowDown' ? 1 : -1)]; if (n) { e.preventDefault(); st.ficha = n.id; ficha(); } }
+  });
+  $('#cont').addEventListener('input', (e) => {
+    if (e.target.id === 'sim') simular();
+    if (e.target.id === 'paso') { parar(); const v = Number(e.target.value), ult = pasos().length - 1; st.paso = v === ult ? null : v; pintarCarriles(true); }
+  });
+  // lecturas al pasar el mouse: barras por hora y el reloj
+  const leerBarra = (e) => { const b = e.target.closest('.bh button'); if (!b) return; const p = $(b.parentElement.dataset.lee); if (p) p.innerHTML = b.dataset.txt; $$('.es', b.parentElement).forEach((x) => x.classList.remove('es')); if (!b.classList.contains('top')) b.classList.add('es'); };
+  $('#cont').addEventListener('pointerover', leerBarra); $('#cont').addEventListener('focusin', leerBarra);
+  $('#cont').addEventListener('pointerout', (e) => { const g = e.target.closest('.bh'); if (g && !g.contains(e.relatedTarget)) { const p = $(g.dataset.lee); if (p) p.innerHTML = p.dataset.base; $$('.es', g).forEach((x) => x.classList.remove('es')); } });
+  const moverHora = (e) => {
+    const cu = e.target.closest?.('#d-cu'); if (!cu) return;
+    const pista = $('.d-t', cu), r = pista.getBoundingClientRect(), i = Math.floor((e.clientX - r.left) / r.width * NH);
+    if (i >= 0 && i < NH && i !== st.hora) { st.hora = i; leerHora(); }
+  };
+  $('#cont').addEventListener('pointermove', moverHora);
+  $('#cont').addEventListener('focusin', (e) => { const h = e.target.closest?.('[data-hora]'); if (h) { st.hora = Number(h.dataset.hora); leerHora(); } });
+  new ResizeObserver(() => { dibujarLinea(); }).observe($('#cont'));
+
+  activa = 'gestion.rendimiento'; abiertos.clear(); abiertos.add('gestion');
+  Marco.iniciar({ estado: { dir: 'a', rol: 'admin', caso: 'meta' }, alPintar: () => pantalla() });
+})();
+</script>
+</body>
+</html>
