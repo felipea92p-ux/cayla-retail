@@ -680,7 +680,7 @@ export function CerrarEnvio({
           const caja = (
             <div>
               <input // unificar-fijo: la caja del sistema dentro de una celda de la tabla, donde el título lo pone la columna
-                className="caja-cayla caja-campo w-full text-right font-semibold tabular-nums"
+                className="caja-cayla caja-campo w-full max-w-40 text-right font-semibold tabular-nums"
                 aria-label={`Costo de ${nombre}`}
                 inputMode="decimal"
                 value={c.valor}

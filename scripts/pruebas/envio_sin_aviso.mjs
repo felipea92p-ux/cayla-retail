@@ -897,7 +897,7 @@ caso(
   "conteo_cambiado / salida_de_mas / salida_vacia / salida_prenda_no_esta / 0 / 0",
 );
 caso(
-  "A4 un costo fuera de lo normal pide confirmar, y sin ver el dinero no se escribe; sin costo entra igual",
+  "A4 sin ver el dinero no se escribe un costo; sin costo entra igual",
   `${CON_PRENDA}
    select pg_temp.h(${LLEVA(1, { costo: "1" })}) as sin_dinero \\gset
    select ${LLEVA(1)} as sin_costo \\gset
@@ -938,7 +938,7 @@ caso(
   "corregir_motivo / OK / true / salida_ya_corregida / 0 / 0 / 10:0:10 / 10 / 1 / 1 / 0",
 );
 caso(
-  "A7 lo que ya bajó del almacén no se corrige aquí, y con el envío cerrado tampoco",
+  "A7 lo que ya bajó del almacén no se corrige aquí",
   `${CON_PRENDA}
    select ${LLEVA(4)} as r \\gset
    reset role;
@@ -985,6 +985,33 @@ caso(
      (select count(*) from retail.despacho_diferencias x where x.despacho_id = :'d1'),
      (select r.costo_unitario from retail.despacho_recibidos r where r.despacho_id = :'d1'));`,
   "OK / abierto / 0 / 30.00",
+);
+caso(
+  "A11 lo dañado entra a cuarentena y esa tanda no se deshace aquí: va a Ajustar stock",
+  `reset role;
+   insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+   select :'tru', 'Cuarentena prueba', 'cuarentena' where not exists (select 1 from retail.sububicaciones s where s.ubicacion_id = :'tru' and s.tipo = 'cuarentena');
+   ${CON_PRENDA}
+   select pg_temp.lleva(:'d', null, :'extra', :'ver', :'prod_p', ${A(J({ variante_id: ":'pv_s'", cantidad: 3, danadas: 1, danada_solucion: "'pendiente'" }))}, null::numeric, false, gen_random_uuid()) as r \\gset
+   select pg_temp.h(pg_temp.corrige_salida((:'r'::jsonb ->> 'salida_id')::uuid, 'Era otra talla', gen_random_uuid())) as no_se \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), :'no_se',
+     (select sum(r.danadas) from retail.despacho_recibidos r where r.despacho_id = :'d'));`,
+  "OK / salida_no_se_deshace / 1",
+);
+caso(
+  "A12 un costo fuera de lo normal pide confirmar a quien ve el dinero; confirmado entra, con otro token",
+  // Por el costo de la línea: esta suite recarga el cierre de antes del costo por prenda (ADR-0519); ese camino lo cubre el navegador.
+  `${CON_PRENDA}
+   reset role;
+   update retail.despacho_conteos k set costo_unitario = 200 where k.despacho_id = :'d';
+   ${como(FELIPE)}
+   select set_config('request.headers', json_build_object('x-responsable', :'felipe_p', 'x-ubicacion', :'tru')::text, true) \\g /dev/null
+   select pg_temp.h(${LLEVA(1)}) as pide \\gset
+   select ${LLEVA(1, { conf: "true" })} as confirma \\gset
+   reset role;
+   select concat_ws(' / ', :'pide', pg_temp.e(:'confirma'::jsonb), (select count(*) from retail.despacho_salidas s where s.despacho_id = :'d'));`,
+  "recepcion_costo_atipico / OK / 1",
 );
 caso(
   "A10 permisos: sin Recibir no; la tabla con RLS y sin lectura directa",

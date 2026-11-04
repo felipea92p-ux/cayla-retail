@@ -776,6 +776,7 @@ export function ContarEnvio({
                       veDinero={veDinero}
                       responsable={responsable}
                       esperandoGuardar={esperandoGuardar}
+                      onConteoCambiado={onSalida}
                       onHecho={(r) => {
                         const clave = parada.clave;
                         const nombre = parada.modelo?.nombre ?? "la prenda";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PackageCheck } from "lucide-react";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -13,6 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
+import { esFalloDeRed } from "@/lib/error-escritura";
 import { corregirSalida, llevarAlStock } from "@/lib/recepcion-conteo-acciones";
 import { mensajeAlGuardar, costoComoTexto, leerCostoCierre, type LineaParaContar } from "@/lib/recepcion-conteo-reglas";
 import { atipicosPorLinea, leerCostoAtipicoRecepcion, type CostoAtipicoRecepcion } from "@/lib/recepcion-envio-reglas";
@@ -37,6 +38,7 @@ export function LlevarAlStock({
   responsable,
   esperandoGuardar,
   onHecho,
+  onConteoCambiado,
 }: {
   despachoId: string;
   unidades: number;
@@ -53,6 +55,7 @@ export function LlevarAlStock({
   /** Lo último que se escribió todavía viaja a la base: se espera, o la base respondería que el conteo cambió. */
   esperandoGuardar: boolean;
   onHecho: (r: ResultadoDeSalida) => void;
+  onConteoCambiado: () => void;
 }) {
   const [abierta, setAbierta] = useState(false);
   const [token, setToken] = useState(() => crypto.randomUUID());
@@ -62,6 +65,7 @@ export function LlevarAlStock({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
+  const enVuelo = useRef(false);
 
   // Sin aviso y sin ver el dinero, entra sin costo: llega con la factura. Lo demás lleva su caja.
   const editaCosto = !(sinAviso && !linea.linea && !veDinero);
@@ -83,13 +87,14 @@ export function LlevarAlStock({
   ]);
 
   async function llevar(confirma: boolean) {
-    if (guardando) return;
+    if (guardando || enVuelo.current) return;
     if (!guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
     if (!linea.conteo) return;
+    enVuelo.current = true;
     setGuardando(true);
     setError(null);
     const cambio = editaCosto && costo.trim() !== textoInicial.trim();
@@ -109,6 +114,7 @@ export function LlevarAlStock({
       preguntaDueno ? duenoId : null,
     );
     responsable.despues(falla);
+    enVuelo.current = false;
     setGuardando(false);
     if (falla) {
       const atip = leerCostoAtipicoRecepcion(falla);
@@ -116,10 +122,17 @@ export function LlevarAlStock({
         setAtipicos(atip);
         return;
       }
+      setAtipicos(null);
+      // Sin respuesta no se sabe si entró: el reintento va con el MISMO token, y si ya entró la base devuelve lo mismo.
+      if (esFalloDeRed(falla)) {
+        setError("No hubo respuesta y no sabemos si entró. Revisa tu conexión y vuelve a intentar: no se mete dos veces.");
+        return;
+      }
       // Lo que rechazó la base no se escribió: un intento nuevo lleva otro token, porque puede llevar otros datos.
       setToken(crypto.randomUUID());
-      setAtipicos(null);
       setError(mensajeAlGuardar(falla, "llevarlo al stock"));
+      // Otra persona lo cambió: se trae lo último, para que el próximo intento vea su versión.
+      if (falla.hint === "conteo_cambiado") onConteoCambiado();
       return;
     }
     setAbierta(false);
@@ -243,6 +256,7 @@ export function CorregirSalida({ salida, responsable, onHecho, onCerrar }: { sal
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<{ texto: string; alStock: boolean } | null>(null);
+  const enVuelo = useRef(false);
   const texto = motivo.trim();
   const guia = useGuiaCampos([
     { id: "corregir-motivo", nombre: "Por qué", requerido: true, hecho: texto.length >= 3, pendiente: "Escribe por qué se corrige." },
@@ -250,16 +264,18 @@ export function CorregirSalida({ salida, responsable, onHecho, onCerrar }: { sal
   ]);
 
   async function corregir() {
-    if (guardando) return;
+    if (guardando || enVuelo.current) return;
     if (!guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
+    enVuelo.current = true;
     setGuardando(true);
     setError(null);
     const { error: falla } = await corregirSalida({ p_salida_id: salida.id, p_motivo: texto, p_token: token }, responsable.firma());
     responsable.despues(falla);
+    enVuelo.current = false;
     setGuardando(false);
     if (falla) {
       setError({ texto: mensajeAlGuardar(falla, "corregir lo que salió"), alStock: falla.hint === "salida_ya_bajo" || falla.hint === "salida_no_se_deshace" });
