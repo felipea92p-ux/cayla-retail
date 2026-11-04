@@ -55,6 +55,7 @@ export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
 /** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
 export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";
+export const RPC_COSTOS_DE_HOY = "fn_costos_de_hoy";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 /** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
@@ -767,7 +768,7 @@ export type CambioDePrecio = {
 export function textoCambioDePrecio(c: CambioDePrecio, sede: string): string {
   const monto = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const donde = c.tipo === "venta" ? (c.alcance === "sede" ? ` · solo ${sede}` : " · todas las sedes") : "";
-  const antes = c.rango ? `${monto(c.rango.desde)} a ${monto(c.rango.hasta)} → ` : c.antes != null ? `${monto(c.antes)} → ` : "sin precio → ";
+  const antes = c.rango ? `${monto(c.rango.desde)} a ${monto(c.rango.hasta)} → ` : c.antes != null ? `${monto(c.antes)} → ` : c.tipo === "compra" ? "sin costo → " : "sin precio → ";
   return `${antes}${monto(c.despues)}${donde}`;
 }
 
@@ -786,6 +787,21 @@ export function cambioDePrecioDeCompra(nombre: string, antes: string, ahora: str
   if (nuevo.problema || nuevo.valor == null) return null;
   const previo = leerCostoCierre(antes).valor;
   return previo === nuevo.valor ? null : { tipo: "compra", nombre, antes: previo, despues: nuevo.valor, alcance: null };
+}
+
+/**
+ * Un costo sin nada escrito antes (lo de fuera de la guía) se compara con lo que cuesta hoy la prenda: si no, un S/ 9 999 sobre una prenda de S/ 58
+ * se leía «sin costo → S/ 9,999.00» (`/flujo-de-negocio`, 2026-11-03). Con costos distintos entre tallas, el rango; sin ningún costo conocido, igual que
+ * antes. Devuelve `null` si queda en lo mismo que ya cuesta: no hay nada que confirmar.
+ */
+export function conCostoDeHoy(c: CambioDePrecio, varianteIds: readonly string[], costosDeHoy: Readonly<Record<string, number>>): CambioDePrecio | null {
+  if (c.tipo !== "compra" || c.antes != null) return c;
+  const costos = varianteIds.map((id) => costosDeHoy[id]).filter((n): n is number => n !== undefined);
+  if (costos.length === 0) return c;
+  const desde = Math.min(...costos);
+  const hasta = Math.max(...costos);
+  if (desde !== hasta) return { ...c, rango: { desde, hasta } };
+  return desde === c.despues ? null : { ...c, antes: desde };
 }
 
 /** El precio de venta de una prenda cambió: lo escrito (válido) contra su precio de hoy. Con precios distintos entre tallas (un rango) cualquier

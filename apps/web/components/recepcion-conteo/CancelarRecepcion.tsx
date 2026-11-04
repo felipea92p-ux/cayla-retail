@@ -38,8 +38,8 @@ export function CancelarRecepcion({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const guia = useGuiaCampos([
-    { id: "cancelar-motivo", nombre: "Por qué", requerido: true, hecho: motivo.trim().length >= 3, pendiente: "Escribe por qué se cancela." },
-    { id: "cancelar-quien", nombre: "Quién lo cancela", requerido: true, hecho: responsable.listo, pendiente: "Elige quién lo cancela." },
+    { id: "cancelar-motivo", nombre: "Motivo", requerido: true, hecho: motivo.trim().length >= 3, pendiente: "Escribe el motivo." },
+    { id: "cancelar-quien", nombre: "A nombre de", requerido: true, hecho: responsable.listo, pendiente: "Elige a nombre de quién." },
   ]);
   const listo = guia.puedeConfirmar;
 
@@ -59,7 +59,13 @@ export function CancelarRecepcion({
   }
 
   return (
-    <Modal titulo={`Cancelar la recepción de ${detalle.numero}`} subtitulo="Llegó sin aviso y se abrió. Si ya no hay nada que recibir, se anula." bloqueado={guardando} onClose={onCerrar}>
+    <Modal
+      titulo={`Cancelar ${detalle.numero}`}
+      // Una sola frase: lo que pasa y lo que se pierde. Que «si ya se recibió algo no se cancela» no se dice: en ese caso el «⋯» ni se ofrece.
+      subtitulo={contadas > 0 ? `Queda anulado. Se descartan ${contadas === 1 ? "1 prenda contada" : `${contadas} prendas contadas`}.` : "Queda anulado. No entra nada al stock."}
+      bloqueado={guardando}
+      onClose={onCerrar}
+    >
       {(cerrar) => (
         <form
           noValidate
@@ -70,14 +76,9 @@ export function CancelarRecepcion({
           }}
           className="space-y-4"
         >
-          <Aviso tono="atencion" titulo="Qué pasa al cancelar">
-            El envío queda <b>anulado</b> y sale de la lista.{" "}
-            {contadas > 0 ? <>Lo que contaste ({contadas === 1 ? "1 prenda" : `${contadas} prendas`}) se descarta y no entra al stock.</> : "No hay nada contado: no entra nada al stock."} Si ya se recibió algo de él, no se cancela:
-            se cuadra y se cierra.
-          </Aviso>
           <CampoGuiado id="cancelar-motivo" guia={guia}>
             <CampoTexto
-              etiqueta={guia.etiqueta("cancelar-motivo", "¿Por qué lo cancelas?")}
+              etiqueta={guia.etiqueta("cancelar-motivo", "Motivo")}
               value={motivo}
               maxLength={TOPES_CONTEO.motivo}
               onChange={(e) => setMotivo(e.target.value)}
@@ -94,17 +95,17 @@ export function CancelarRecepcion({
             </div>
           </CampoGuiado>
           <CampoGuiado id="cancelar-quien" guia={guia}>
-            <p className="mb-1.5 text-sm font-semibold text-tinta">{guia.etiqueta("cancelar-quien", "Quién lo cancela")}</p>
-            <ComboResponsable control={responsable} />
+            <p className="mb-1.5 text-sm font-semibold text-tinta">{guia.etiqueta("cancelar-quien", "A nombre de")}</p>
+            <ComboResponsable control={responsable} compacto />
           </CampoGuiado>
           {error && <Aviso tono="error" titulo="No se pudo cancelar">{error}</Aviso>}
-          <PieGuia guia={guia} listo="Todo listo para cancelar." />
+          {guia.faltan.length > 0 && <PieGuia guia={guia} />}
           <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Seguir recibiendo
             </Boton>
             <Boton type="submit" peso="peligro" cargando={guardando} textoCargando="Cancelando…" disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              Cancelar la recepción
+              Cancelar recepción
             </Boton>
           </div>
         </form>
