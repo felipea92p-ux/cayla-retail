@@ -559,3 +559,17 @@ por sede y la carga inicial). Siguen siendo 8 pestañas porque «Empresa» se ju
 
 Medido a 1440 × 900 con los datos locales: Metas 2,3 pantallas y 72 controles; Empresa y tiendas, 1,8 y 2 (más los de sus filas). Maquetas de lo que sigue:
 `docs/maquetas/configuracion-vistas-2026-11/`.
+
+## Actualización 2026-11-04 (b): «Empresa y tiendas» son Las vitrinas
+
+Felipe eligió la dirección A de `docs/maquetas/empresa-tiendas-2026-11/` y la pidió en vidrio líquido, con el color ordenado (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). El carnet
+de la empresa y una tarjeta por sede reemplazan a las cuatro tablas (`components/vitrinas-sedes/`, reglas en `lib/vitrinas-sedes-reglas.ts`, vidrio en `app/estilos/vidrio/vitrinas-sedes.css`).
+
+- **Fondo de caja y hora de cierre pasan de Metas a la tarjeta de la sede.** Guardar una meta sigue mandando el fondo como está, porque `guardar_metas_tienda` recibe los dos.
+- **«Falta» lo decidió Felipe:** en una tienda, WhatsApp, hora de cierre, fondo y fecha de carga; en otra sede, solo la fecha. Preguntar apagado es una elección. Que falte no bloquea nada.
+- **La carga inicial conserva su hoja y sus permisos**, porque cerrar una sede no debe pasar por un Tab de más. Preguntar usa `<Interruptor>` y el tope de Preguntar, `<BarraAvance>`.
+- **Sin el vidrio que doblaba el fondo:** Felipe quitó las luces de color de detrás, y sin ellas el efecto casi no se notaba. Queda un desenfoque normal en pocos bloques.
+- **Son 5 vitrinas o menos a propósito.** Como ADR-0596 pide no desenfocar «muchas tarjetas iguales», si CAYLA crece mucho en sedes hay que volver a mirarlo.
+
+Siguen siendo 8 pestañas hasta construir Dinero y Gastos. Sin funciones nuevas ni migración.
+

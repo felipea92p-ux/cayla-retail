@@ -1,13 +1,12 @@
 # Configuración, vista por vista (2026-11-04)
 
-Hecho en la rama, sin PR: «Tiendas y caja» partida en «Metas» y «Empresa y tiendas».
+Hecho en la rama, sin PR: «Tiendas y caja» partida en «Metas» y «Empresa y tiendas», y Empresa y tiendas construida como «Las vitrinas».
 
-Felipe eligió las 5 pestañas y pidió mejorar las piezas: menos texto, nada muy pequeño, más visual. Se sigue vista por vista: primero Empresa y tiendas, en `docs/maquetas/empresa-tiendas-2026-11/` eligió A · Las vitrinas, y su versión en vidrio líquido está en `docs/maquetas/empresa-tiendas-vitrinas-2026-11/`, a la espera de su OK. Antes de repetir ese lenguaje en las otras vistas hay que medir su costo en el Mac mini y en un celular de tienda.
+Felipe eligió las 5 pestañas y pidió mejorar las piezas: menos texto, nada muy pequeño, más visual. Se sigue vista por vista: primero Empresa y tiendas, en `docs/maquetas/empresa-tiendas-2026-11/` eligió A · Las vitrinas, y su versión en vidrio líquido está en `docs/maquetas/empresa-tiendas-vitrinas-2026-11/`, ya construida. Antes de repetir ese lenguaje en las otras vistas hay que medir su costo en el Mac mini y en un celular de tienda.
 
 Pendiente, además de elegir, de la propuesta de `docs/maquetas/configuracion-vistas-2026-11/`:
 
 - [ ] Construir las 5 pestañas: juntar Cuentas + Caja y avisos en «Dinero», y Gastos fijos + Presupuesto + Reparto CLAURE en «Gastos».
-- [ ] «Cada sede»: una sola tabla con WhatsApp, hora de cierre, fondo de caja, asistente y carga inicial.
 - [ ] «Lo normal» como primera fila de la tabla de meses; Fechas especiales al lado o debajo.
 - [ ] Campañas: plegarlas o quitarlas (decisión de negocio: es la única forma de subir el fondo solo en una campaña).
 - [ ] Presupuesto: empezar en vacío con «Sugerir»; con topes, una sede a la vez.
@@ -18,3 +17,8 @@ Pendiente, además de elegir, de la propuesta de `docs/maquetas/configuracion-vi
 - [ ] Revisar con Felipe la hora de cierre de las sedes: sin ella no sale el aviso de cierre de caja ni la proyección del día.
 - [ ] `/focus` de `/configuracion` y sus modales sigue pendiente; `/chaos` de las pantallas que guardan, al construir lo elegido.
 - [ ] Ver Reparto CLAURE en el navegador: a la base local le faltan sus migraciones (`/actualizar-flujo`, orden de Felipe).
+- [ ] **Hallazgo de /chaos, gravedad 2:** con dos pestañas abiertas, guardar el fondo desde una página vieja manda las metas que esa página tenía y borra una meta recién cambiada en la otra (y al revés desde Metas). Lo probé en local; ya pasaba cuando estaban en la misma tabla. Se arregla leyendo lo último antes de guardar o con una función aparte para el fondo: lo decide Felipe.
+- [ ] Un WhatsApp escrito con letras queda vacío y borra el número al salir (lo avisa, y así era antes). Un fondo con decimales se guarda exacto, pero la tarjeta lo muestra redondeado.
+- [ ] Medir Las vitrinas en el Mac mini y en un celular de tienda: Felipe.
+- [ ] `/configuracion` sigue `pendiente` en la guía de foco: «qué falta» de cada pestaña es decisión de Felipe.
+

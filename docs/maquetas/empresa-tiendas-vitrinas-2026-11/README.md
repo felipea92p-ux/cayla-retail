@@ -8,4 +8,4 @@ Qué dice cada instrumento y lo que hay que decidir antes de construirla, al pie
 
 ## Lo que decidió Felipe
 
-Quitar las luces de color de detrás de las tarjetas: «se ve muy desordenado, si quieres darle color que sea más sutil y más ordenado» (2026-11-04). Queda el vidrio neutro y el color en un solo lugar. El OK para construirla sigue pendiente.
+Quitar las luces de color de detrás de las tarjetas: «se ve muy desordenado, si quieres darle color que sea más sutil y más ordenado» (2026-11-04). Queda el vidrio neutro y el color en un solo lugar. Aprobó construirla el 2026-11-04: ya está en `components/vitrinas-sedes/`.

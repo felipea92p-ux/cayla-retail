@@ -32,13 +32,6 @@ export function leerSedesAsistente(data: unknown): SedeAsistente[] {
   });
 }
 
-/** Lo que dice la fila de una sede, bajo su nombre: desde cuándo corre o desde cuándo no. `hoy` = `YYYY-MM-DD` de Lima. */
-export function estadoDeSede(sede: Pick<SedeAsistente, "encendido" | "desde">, hoy: string, fechaCorta: (f: string) => string): string {
-  const dia = sede.desde?.slice(0, 10) ?? null;
-  if (sede.encendido) return dia === null || dia === hoy ? "Encendido desde hoy" : `Encendido desde el ${fechaCorta(dia)}`;
-  return dia === null ? "Nunca se encendió" : `Apagado · corrió desde el ${fechaCorta(dia)}`;
-}
-
 /** El aviso de lo que va del mes contra el tope, o nada si la base no lo dijo. */
 export function gastoDelMes(gastado: number | null, tope: number): { texto: string; tono: "verde" | "ambar" | "rojo" } | null {
   if (gastado === null || !Number.isFinite(gastado) || gastado < 0) return null;
