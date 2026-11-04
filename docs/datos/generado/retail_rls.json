@@ -44,6 +44,11 @@
   "relkind": "r",
   "rls": true
  },
+ "avio_clases": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "avisos_bandeja": {
   "forzado": false,
   "relkind": "r",
@@ -135,6 +140,11 @@
   "rls": true
  },
  "campana_web_previas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "canales_venta": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -599,6 +609,11 @@
   "relkind": "r",
   "rls": true
  },
+ "despacho_salidas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "despacho_separaciones": {
   "forzado": false,
   "relkind": "r",
@@ -714,6 +729,11 @@
   "relkind": "r",
   "rls": true
  },
+ "gasto_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gasto_reparto_claure": {
   "forzado": false,
   "relkind": "r",
@@ -754,6 +774,11 @@
   "relkind": "r",
   "rls": true
  },
+ "gastos_no_emiten": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gastos_viaje": {
   "forzado": false,
   "relkind": "r",
@@ -780,6 +805,11 @@
   "rls": true
  },
  "huellas_llave": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "insumo_lote_cambios": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -969,6 +999,16 @@
   "relkind": "r",
   "rls": true
  },
+ "pedidos_web_push_aparatos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pedidos_web_push_envios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "periodo_cierres": {
   "forzado": false,
   "relkind": "r",
@@ -1119,12 +1159,27 @@
   "relkind": "r",
   "rls": true
  },
+ "procesos_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "produccion_avances": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
+ "produccion_cambios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "produccion_etapas_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_fallas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1204,6 +1259,11 @@
   "relkind": "r",
   "rls": true
  },
+ "producto_procesos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "producto_taller": {
   "forzado": false,
   "relkind": "r",
@@ -1270,6 +1330,11 @@
   "rls": true
  },
  "respaldo_b002_renumeradas_20261002": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rol_canales": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1345,6 +1410,21 @@
   "rls": true
  },
  "series_comprobantes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "sire_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "sire_propuestas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "sire_resoluciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true

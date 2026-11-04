@@ -27,6 +27,33 @@
   "with_check": null
  },
  {
+  "cmd": "INSERT",
+  "policyname": "avio_clases_insert_autenticado",
+  "qual": null,
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "avio_clases",
+  "with_check": "(auth.role() = 'authenticated'::text)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "avio_clases_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "avio_clases",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "policyname": "avio_clases_update_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "avio_clases",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
   "cmd": "SELECT",
   "policyname": "caja_movimientos_select",
   "qual": "(EXISTS ( SELECT 1\n   FROM retail.cajas c\n  WHERE ((c.id = caja_movimientos.caja_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (c.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",

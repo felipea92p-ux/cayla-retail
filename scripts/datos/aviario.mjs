@@ -37,6 +37,9 @@ export const AVIARIO = [
       // ADR-0161/0162: roles «ve / no ve» por módulo y terminales sin persona. Qué ve cada cuenta es identidad y acceso,
       // no el módulo que se abre. Asignadas en el refresco del volcado del 2026-09-23.
       "roles", "modulos", "rol_modulos", "roles_historial", "terminales",
+      // ADR-0607: los canales de venta (tienda, TikTok…) que opera cada rol. Qué ve y qué opera una cuenta es identidad y acceso, como `rol_modulos`.
+      // Asignada en el refresco del volcado del 2026-11-04.
+      "rol_canales",
       // ADR-0253: lo que se le quitó al rol Líder de equipo (el resto lo ve). Refresco del 2026-09-28.
       "lider_modulos_ocultos",
       // Qué guías de uso ya se le ofrecieron a cada cuenta y cuáles completó (`quien`, `guia`, `ofrecida_en`, `completada_en`;
@@ -126,6 +129,9 @@ export const AVIARIO = [
       // `envios`, es el padre de sus lotes (`lotes.despacho_id`) y cada fila recibida lleva su movimiento: el pájaro del stock, no el de
       // Compras. Asignadas en el refresco del 2026-10-13, al pegarse en producción.
       "despachos", "despacho_items", "despacho_recibidos",
+      // Cada salida de un envío (lo que se despachó, con su corrección): cuelga de `despachos` y `despacho_items`, el mismo pájaro. En producción
+      // (su migración aún no está en main). Asignada en el refresco del volcado del 2026-11-04.
+      "despacho_salidas",
       // La cara A de Recibir (decisiones de Felipe del 2026-10-13): lo contado de cada línea de un envío, lo contado que todavía no está
       // en el stock (pendientes), cada «Hacer ahora» que lo mete, el rastro de cada cierre y reapertura, y los envíos que una sede abre sin
       // aviso. Son de la recepción del envío, como `despacho_recibidos`: el pájaro del stock. Están en producción desde el 2026-10-14; las
@@ -258,6 +264,10 @@ export const AVIARIO = [
       // ADR-0469: cada vez que una cuenta de Google se unió a la ficha que ya tenía ese correo (a quién se le avisó, y si un líder lo deshizo).
       // Es de la cuenta de la tienda, como `cuentas_web`. En producción desde el 2026-10-21.
       "cuentas_web_vinculos_google",
+      // ADR-0607: por dónde se vendió (la tienda física o un canal online como TikTok); marca el apartado y la venta. Es de Ventas, como `separaciones`.
+      // ADR-0582: los teléfonos que piden el aviso de pedido web nuevo y su cola de envíos; son de los pedidos web (`pedidos_web`), el mismo pájaro.
+      // Asignadas en el refresco del volcado del 2026-11-04.
+      "canales_venta", "pedidos_web_push_aparatos", "pedidos_web_push_envios",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -357,7 +367,11 @@ export const AVIARIO = [
       // ADR-0554: la TELA (qué es y cómo se compra); sus colores son filas de `insumos`, que ya son de Gallito. La escriben `crear_material`, `agregar_colores_a_material`
       // y `editar_material` desde Producción ▸ Insumos. En producción desde el 2026-10-28 (20261028175000). `producto_taller`: los ojales y botones de cada modelo
       // (ADR-0551), que usa Producción. Asignadas en el refresco del volcado del 2026-10-28.
-      "materiales", "producto_taller"] },
+      "materiales", "producto_taller",
+      // ADR-0570: el rastro de lo que se corrige, elimina o restaura en una orden y en un ingreso de insumo, y las prendas de una fase que no salieron bien.
+      // ADR-0570 (act. 5): el catálogo de procesos de una orden y los que lleva cada modelo. ADR-0580: las clases de avío. Todas de Producción del Taller.
+      // Asignadas en el refresco del volcado del 2026-11-04; la sesión de Producción lo confirma.
+      "produccion_cambios", "produccion_fallas", "insumo_lote_cambios", "procesos_produccion", "producto_procesos", "avio_clases"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la
@@ -394,7 +408,10 @@ export const AVIARIO = [
       "gasto_reparto_claure",
       // La cuenta donde se le paga a cada persona de la planilla y las salidas de planilla que se registran (`guardar_cuenta_planilla`, `registrar_salidas_planilla`). Están en
       // producción (sus migraciones aún no están en main) y las asignó el refresco del volcado del 2026-10-29, junto a `planilla_por_sede`. Finanzas (Felipe) confirma la asignación.
-      "planilla_cuentas", "planilla_salidas"] },
+      "planilla_cuentas", "planilla_salidas",
+      // ADR-0588: el rastro de las correcciones de un gasto (categoría y qué fue) y los gastos sin comprobante que no lo tendrán. Son de lo que se hace con un gasto.
+      // Asignadas en el refresco del volcado del 2026-11-04. Finanzas (Felipe) confirma la asignación.
+      "gasto_correcciones", "gastos_no_emiten"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
     tablas: ["activos_fijos",
       // El plan de cuentas (PCGE, F2a) y la lista cerrada de tipos de activo, que trae su cuenta y su vida útil (F2b).
@@ -404,7 +421,10 @@ export const AVIARIO = [
       "parametros_tributarios",
       // Balance y cierre de mes (F7/F9, ADR-0198): el punto de partida del Balance, el estado de cada mes, su historia de
       // cierres y el diario congelado al cerrar.
-      "saldos_iniciales", "periodos", "periodo_cierres", "diario_cerrado"] },
+      "saldos_iniciales", "periodos", "periodo_cierres", "diario_cerrado",
+      // ADR-0601: la propuesta del SIRE que se sube para compararla con el ERP (Finanzas ▸ Impuestos ▸ Comparar con SUNAT), sus comprobantes leídos y lo que se
+      // decidió de cada diferencia. Es de Impuestos, como `parametros_tributarios`. Asignadas en el refresco del volcado del 2026-11-04.
+      "sire_propuestas", "sire_lineas", "sire_resoluciones"] },
   // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá. `actividad` (ADR-0207) es el primero:
   // «quién hizo qué» de cada módulo, escrito por disparadores sobre ventas, caja, cambios y apartados, sin que ningún
   // módulo lo escriba a mano. Asignada en el refresco del volcado del 2026-09-26.
