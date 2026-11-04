@@ -87,7 +87,6 @@ export function useColumnasRendimiento({
         alinear: "izquierda",
         filtra: true,
         ancho: "minmax(170px,1.1fr)",
-        guia: "rendimiento.personas",
         valor: (m) => m.nombre,
         frase: (v) => v.map((n) => n.split(" ")[0]).join(", "),
         celda: (m, { debajo }) => {
@@ -129,7 +128,6 @@ export function useColumnasRendimiento({
         filtra: true,
         sinNombreEnTarjeta: true,
         ancho: "116px",
-        guia: "rendimiento.lectura",
         ayuda: "10 puntos arriba o abajo de lo que tocaba. Es para reconocer y acompañar.",
         textosOrden: { asc: "Por debajo primero", desc: "Adelante primero" },
         valor: (m) => (m.lectura ? ORDEN_LECTURA[m.lectura] : null),
@@ -146,7 +144,6 @@ export function useColumnasRendimiento({
         tipo: "numero",
         sinNombreEnTarjeta: true,
         ancho: "minmax(150px,1.5fr)",
-        guia: "rendimiento.avance",
         ayuda: conMeta ? "Lo vendido contra su meta. La rayita es lo que tocaba hasta ahora." : "Su parte de lo vendido en la tienda.",
         // Sin meta en la tienda, la columna dice su parte de lo vendido: un dato, no una meta inventada.
         valor: (m) => (conMeta ? m.pct : m.vendido),
@@ -167,7 +164,6 @@ export function useColumnasRendimiento({
         tipo: "monto",
         ancho: "108px",
         destacadaEnTarjeta: true,
-        guia: "rendimiento.vendido",
         valor: (m) => m.vendido,
         texto: (m) => SOLES.format(m.vendido),
         celda: (m) => (
@@ -352,7 +348,6 @@ export function TablaRendimiento({
         guia="rendimiento.tabla"
         guiaFrase="rendimiento.frase-tabla"
         guiaFila="rendimiento.fila"
-        guiaPie="rendimiento.reparto"
       />
       {ventasSinPersona > 0 && <p className="nota-cayla mt-3">Además hay {SOLES.format(ventasSinPersona)} en ventas sin quien atendió: suman en la tienda y en ninguna persona.</p>}
     </div>

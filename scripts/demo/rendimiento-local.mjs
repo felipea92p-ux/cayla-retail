@@ -150,7 +150,8 @@ for (const p of [...PERSONAS, MICAELA]) {
     const dia = iso(d);
     const dow = d.getUTCDay();
     if (dow === p.descanso) continue;
-    if (p.tienda === "Tienda Lima") jornadas.push({ auth: p.auth, dia });
+    // Todos marcan: sus horas son las del ranking «vende más por hora». Lima, además, reparte la meta entre quienes marcaron (D-158).
+    jornadas.push({ auth: p.auth, dia, tienda: p.tienda, horas: Math.round(((aMin(p.turno[1]) - aMin(p.turno[0])) / 60) * 10) / 10 });
     const entrada = aMin(p.turno[0]);
     const salida = aMin(p.turno[1]);
     const esHoy = dia === hoy;
@@ -205,6 +206,7 @@ create table if not exists public.turnos (
   origen text, es_descanso boolean not null default false, created_at timestamptz not null default now(), creado_por uuid);
 create table if not exists public.jornadas (
   id uuid primary key default gen_random_uuid(), persona_id uuid not null, fecha date not null, sede_id uuid, estado text default 'cerrada');
+alter table public.jornadas add column if not exists horas_trabajadas numeric;
 
 create schema if not exists demo_tmp;
 create function demo_tmp._p(a uuid) returns uuid language sql stable as $f$ select id from public.personas where auth_user_id = a $f$;
@@ -225,7 +227,7 @@ ${PERSONAS.filter((p) => p.tienda !== "Tienda Lima")
 select _p('${p.auth}'), date '2000-01-01', (select jsonb_object_agg(d::text, jsonb_build_object('e', '${p.turno[0]}', 's', '${p.turno[1]}', 'r', 60)) from generate_series(0, 6) d where d <> ${p.descanso});`,
   )
   .join("\n")}
-${jornadas.length ? `insert into public.jornadas (persona_id, fecha, sede_id) values ${jornadas.map((j) => `(_p('${j.auth}'), date '${j.dia}', (select sede_dynamic_id from retail.ubicaciones where nombre = 'Tienda Lima'))`).join(",\n")};` : ""}
+${jornadas.length ? `insert into public.jornadas (persona_id, fecha, sede_id, horas_trabajadas) values ${jornadas.map((j) => `(_p('${j.auth}'), date '${j.dia}', (select sede_dynamic_id from retail.ubicaciones where nombre = '${j.tienda}'), ${j.horas})`).join(",\n")};` : ""}
 
 ${Object.entries(METAS)
   .map(([tienda, m]) =>

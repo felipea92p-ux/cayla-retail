@@ -2,27 +2,41 @@
   "guia": "rendimiento",
   "ruta": "/rendimiento",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 22,
   "controles": {
-    "components/rendimiento/ComparativoTiendas.tsx": [
-      "button «{activa ? \"rendimiento.tienda-activa\" : \"rendimiento.tienda-otra\"}»"
+    "components/rendimiento/CifrasRendimiento.tsx": [
+      "button «{vuelta ? \"Volver a la cifra\" : \"¿Cómo se cuenta?\"}»",
+      "input «Lo que se vende por día»",
+      "button «{`Ver a ${m.nombre}»",
+      "button «{n}»"
     ],
-    "components/rendimiento/EditarMetaModal.tsx": [
+    "components/rendimiento/FilaAbierta.tsx": [
+      "button «{titulo}»",
       "CampoMonto «{guia.etiqueta(\"meta\", `Meta de ${mesEtiqueta}»",
+      "input «{`Meta de ${persona.nombre}»",
+      "button «{m.valor === \"otro\" ? \"Otro\" : m.etiqueta}»",
       "CampoTexto «{guia.etiqueta(\"detalle\", \"¿Cuál?\")}»",
-      "button «(sin nombre)»",
       "ComboResponsable «{responsable}»",
+      "button «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
-    "components/rendimiento/GraficoVentasMeta.tsx": [
-      "button «{clave === \"mes\" ? \"rendimiento.grafico-mes\" : \"rendimiento.grafico-semana\"}»",
-      "SegmentoDeslizante «Cómo ver el mes»"
+    "components/rendimiento/GraficoRendimiento.tsx": [
+      "SegmentoDeslizante «Cómo se ve»",
+      "button «rendimiento.grafico-pasado»",
+      "button «rendimiento.grafico-repetir»",
+      "button «{m.nombre}»"
     ],
-    "components/rendimiento/PanelRendimiento.tsx": [
-      "button «{v.etiqueta}»",
-      "LapizEditar «{`la meta de ${p.nombre}»",
-      "button «Ordenar por esta columna»"
+    "components/rendimiento/MesaRendimiento.tsx": [
+      "SegmentoDeslizante «Período»",
+      "BotonDeshacer «Vuelve a como estaba antes de lo último que cambiaste»",
+      "BotonDescargar «Descargar lo que ves»"
+    ],
+    "components/rendimiento/SedesConAnillo.tsx": [
+      "button «{activa ? \"rendimiento.tienda-activa\" : \"rendimiento.tienda-otra\"}»"
+    ],
+    "components/rendimiento/TablaRendimiento.tsx": [
+      "button «{m.nombre}»"
     ]
   }
 }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  acumulado,
   asignacionDeVista,
   avance,
   columnaDePersona,
@@ -8,23 +7,20 @@ import {
   lecturaDeRitmo,
   minutosDeHora,
   minutosEnLima,
-  ordenarPersonas,
   primerDiaDelMes,
   puedeEditarMeta,
   etiquetaDeHora,
-  prendasPorVenta,
+  prendasPorVentaEnDias,
   proyectarMes,
-  ventasDeLaTiendaPorHora,
+  ventasPorHoraEnDias,
   rangoDeLectura,
   repartePorHoras,
   resumenDeSede,
   ritmoDelTurno,
-  serieParaGrafico,
   turnoDeHoy,
   ultimoDiaDelMes,
   validarCambioMeta,
   ventanaDeVista,
-  vistaDeUrl,
   type DiaSerie,
   type PersonaMeta,
 } from "./rendimiento-meta-reglas";
@@ -64,16 +60,6 @@ function serieDelMes(ventasPorFecha: Record<string, { total: number; ventas: num
   });
 }
 
-describe("vistaDeUrl (decisión 8: abre en Hoy)", () => {
-  it("reconoce las tres vistas y cae a «hoy» con cualquier otra cosa", () => {
-    expect(vistaDeUrl("semana")).toBe("semana");
-    expect(vistaDeUrl("mes")).toBe("mes");
-    expect(vistaDeUrl("hoy")).toBe("hoy");
-    expect(vistaDeUrl(undefined)).toBe("hoy");
-    expect(vistaDeUrl("año")).toBe("hoy");
-    expect(vistaDeUrl(["mes", "semana"])).toBe("mes");
-  });
-});
 
 describe("fechas de las ventanas", () => {
   it("el mes va del 1 al último día, también en diciembre", () => {
@@ -149,14 +135,6 @@ describe("tabla «Cómo va»", () => {
     expect(columnaDePersona(ana, "mes")).toEqual({ vendido: 4000, ventas: 20, meta: 10000 });
   });
 
-  it("ordena por nombre, por lo vendido y por avance (sin meta al final)", () => {
-    const todas = [beto, lidia, ana];
-    expect(ordenarPersonas(todas, "hoy", "nombre").map((p) => p.personaId)).toEqual(["Ana", "Beto", "Lidia"]);
-    expect(ordenarPersonas(todas, "hoy", "ventas").map((p) => p.personaId)).toEqual(["Beto", "Ana", "Lidia"]);
-    // Beto 200 % · Ana 50 % · Lidia sin meta
-    expect(ordenarPersonas(todas, "hoy", "avance").map((p) => p.personaId)).toEqual(["Beto", "Ana", "Lidia"]);
-    expect(todas.map((p) => p.personaId)).toEqual(["Beto", "Lidia", "Ana"]); // no muta la lista original
-  });
 
   it("el turno de hoy se lee «09:00–18:00» y sin turno no se inventa", () => {
     expect(turnoDeHoy({ entradaHoy: "09:00", salidaHoy: "18:00" })).toBe("09:00–18:00");
@@ -192,42 +170,6 @@ describe("asignacionDeVista: lo que suman las personas contra la meta de la sede
   });
 });
 
-describe("serieParaGrafico", () => {
-  const serie = serieDelMes({ [HOY]: { total: 800, ventas: 4 }, "2026-09-28": { total: 1200, ventas: 6 } });
-  const g = serieParaGrafico(serie, HOY);
-
-  it("la semana son 7 barras con los nombres cortos del día y hoy marcado", () => {
-    expect(g.semana).toHaveLength(7);
-    expect(g.semana.map((d) => d.etiqueta)).toEqual(["Mié", "Jue", "Vie", "Sáb", "Dom", "Lun", "Mar"]);
-    expect(g.semana.at(-1)).toMatchObject({ fecha: HOY, hoy: true, valor: 800, meta: 1000, titulo: "martes 29" });
-    expect(g.semana.filter((d) => d.hoy)).toHaveLength(1);
-  });
-
-  it("el mes trae todos los días; los que faltan por venir no tienen valor (no son un cero)", () => {
-    expect(g.mes).toHaveLength(30);
-    expect(g.mes[0]).toMatchObject({ fecha: "2026-09-01", etiqueta: "1", valor: 0 });
-    expect(g.mes.find((d) => d.fecha === "2026-09-30")).toMatchObject({ valor: null, etiqueta: "30", meta: 1000 });
-    expect(g.mes.find((d) => d.fecha === "2026-09-30")?.hoy).toBe(false);
-  });
-
-  it("rotula pocos días del mes para que no se amontonen", () => {
-    expect(g.mes.map((d) => d.etiqueta).filter(Boolean)).toEqual(["1", "5", "10", "15", "20", "25", "30"]);
-  });
-
-  it("un día sin fila en la serie es un cero de un día ya pasado, no un hueco", () => {
-    const g2 = serieParaGrafico([], HOY);
-    expect(g2.semana[0].valor).toBe(0);
-    expect(g2.semana[0].meta).toBeNull();
-  });
-
-  it("acumulado: las ventas se cortan en hoy y la meta sigue hasta fin de mes", () => {
-    const a = acumulado(g.mes);
-    expect(a.ventas[0]).toBe(0);
-    expect(a.ventas[28]).toBe(2000); // hasta el 29
-    expect(a.ventas[29]).toBeNull();
-    expect(a.meta[29]).toBe(30000);
-  });
-});
 
 describe("leerSoles", () => {
   it("entiende cómo se tipea en Perú", () => {
@@ -404,7 +346,7 @@ describe("proyectarMes", () => {
 
 // ── Ventas por hora y prendas por venta ──────────────────────────────────────────────────────────
 
-describe("ventasDeLaTiendaPorHora / prendasPorVenta", () => {
+describe("ventasPorHoraEnDias / prendasPorVentaEnDias", () => {
   const f = (fecha: string, hora: number, ventas: number, total: number, prendas: number) => ({ fecha, hora, ventas, total, prendas });
   const DETALLE = [
     f("2026-09-29", 10, 2, 180, 3),
@@ -415,7 +357,7 @@ describe("ventasDeLaTiendaPorHora / prendasPorVenta", () => {
   const HOY = "2026-09-29";
 
   it("en «hoy» suma solo las horas de hoy y rellena con 0 las que no vendieron", () => {
-    const r = ventasDeLaTiendaPorHora(DETALLE, "hoy", HOY);
+    const r = ventasPorHoraEnDias(DETALLE, ventanaDeVista("hoy", HOY));
     expect(r.ventas).toBe(5);
     expect(r.horas[0].hora).toBe(9);
     expect(r.horas.at(-1)!.hora).toBe(20);
@@ -424,40 +366,40 @@ describe("ventasDeLaTiendaPorHora / prendasPorVenta", () => {
   });
 
   it("la mejor franja es la hora con más soles", () => {
-    expect(ventasDeLaTiendaPorHora(DETALLE, "hoy", HOY).mejor).toEqual({ hora: 17, total: 420, ventas: 3 });
+    expect(ventasPorHoraEnDias(DETALLE, ventanaDeVista("hoy", HOY)).mejor).toEqual({ hora: 17, total: 420, ventas: 3 });
   });
 
   it("en «mes» junta todos los días del mes, hora por hora", () => {
-    const r = ventasDeLaTiendaPorHora(DETALLE, "mes", HOY);
+    const r = ventasPorHoraEnDias(DETALLE, ventanaDeVista("mes", HOY));
     expect(r.horas.find((h) => h.hora === 17)).toEqual({ hora: 17, ventas: 4, total: 520 });
     expect(r.ventas).toBe(10);
   });
 
   it("sin ventas en la ventana no hay mejor franja y las barras van en 0", () => {
-    const r = ventasDeLaTiendaPorHora([], "hoy", HOY);
+    const r = ventasPorHoraEnDias([], ventanaDeVista("hoy", HOY));
     expect(r.mejor).toBeNull();
     expect(r.ventas).toBe(0);
     expect(r.horas.every((h) => h.total === 0)).toBe(true);
   });
 
   it("una venta fuera del horario de siempre estira el tramo en vez de perderse", () => {
-    const r = ventasDeLaTiendaPorHora([f(HOY, 22, 1, 50, 1), f(HOY, 7, 1, 30, 1)], "hoy", HOY);
+    const r = ventasPorHoraEnDias([f(HOY, 22, 1, 50, 1), f(HOY, 7, 1, 30, 1)], ventanaDeVista("hoy", HOY));
     expect(r.horas[0].hora).toBe(7);
     expect(r.horas.at(-1)!.hora).toBe(22);
     expect(r.horas.map((h) => h.hora)).toEqual(Array.from({ length: 16 }, (_, i) => 7 + i)); // sin huecos
   });
 
   it("en un empate gana la hora más temprana", () => {
-    expect(ventasDeLaTiendaPorHora([f(HOY, 15, 1, 100, 1), f(HOY, 11, 1, 100, 1)], "hoy", HOY).mejor?.hora).toBe(11);
+    expect(ventasPorHoraEnDias([f(HOY, 15, 1, 100, 1), f(HOY, 11, 1, 100, 1)], ventanaDeVista("hoy", HOY)).mejor?.hora).toBe(11);
   });
 
   it("prendas por venta: prendas ÷ ventas de la ventana", () => {
-    expect(prendasPorVenta(DETALLE, "hoy", HOY)).toEqual({ prendas: 8, ventas: 5, porVenta: 1.6 });
-    expect(prendasPorVenta(DETALLE, "mes", HOY).porVenta).toBeCloseTo(15 / 10, 5);
+    expect(prendasPorVentaEnDias(DETALLE, ventanaDeVista("hoy", HOY))).toEqual({ prendas: 8, ventas: 5, porVenta: 1.6 });
+    expect(prendasPorVentaEnDias(DETALLE, ventanaDeVista("mes", HOY)).porVenta).toBeCloseTo(15 / 10, 5);
   });
 
   it("sin ventas no divide por cero", () => {
-    expect(prendasPorVenta([], "hoy", HOY)).toEqual({ prendas: 0, ventas: 0, porVenta: null });
+    expect(prendasPorVentaEnDias([], ventanaDeVista("hoy", HOY))).toEqual({ prendas: 0, ventas: 0, porVenta: null });
   });
 
   it("etiquetaDeHora: «9 a. m.», «12 p. m.», «5 p. m.»", () => {

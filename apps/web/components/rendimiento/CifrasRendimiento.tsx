@@ -31,6 +31,7 @@ function Volteable({ frente, tras, indice, guia, className = "" }: { frente: Rea
       </button>
       <div className="volteable-giro">
         <div className="volteable-cara liquido" style={{ borderRadius: 20 }} aria-hidden={vuelta} inert={vuelta}>
+          <span aria-hidden className="mesa-barrido" style={{ "--i": indice } as CSSProperties} />
           {frente}
         </div>
         <div className="volteable-cara volteable-tras liquido" style={{ borderRadius: 20 }} aria-hidden={!vuelta} inert={!vuelta}>
@@ -102,7 +103,6 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
     <div className="mesa-cifras" data-guia="rendimiento.cifras">
       <Volteable
         indice={2}
-        guia="rendimiento.cifra-vendido"
         frente={
           <TarjetaCifra etiqueta="Vendido" valor={<CifraAnimada valor={grupo.vendido} formato="soles-redondo" />} pie={<Trazo serie={trazo} />}>
             {quien}, {tramoTexto} · {NUMERO.format(grupo.ventas)} {plural(grupo.ventas, "venta", "ventas")}
@@ -122,7 +122,6 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
 
       <Volteable
         indice={3}
-        guia="rendimiento.cifra-tocaba"
         frente={
           dif === null ? (
             <TarjetaCifra etiqueta="Contra lo que tocaba" valor={null}>

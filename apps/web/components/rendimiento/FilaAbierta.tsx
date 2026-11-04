@@ -86,7 +86,7 @@ export function FilaAbierta({
   return (
     <div className="mesa-abierta" data-cerrando={cerrando ? "" : undefined} style={{ "--c": color } as CSSProperties}>
       <div>
-        <div className="mesa-abierta-cuerpo" data-guia={guiar ? "rendimiento.fila-abierta" : undefined}>
+        <div className="mesa-abierta-cuerpo">
           <section aria-label={`El mes de ${medida.nombre}`} data-guia={guiar ? "rendimiento.calendario" : undefined}>
             <h4 className="mesa-abierta-titulo">Su mes: toca un día</h4>
             <div className="mesa-calendario">

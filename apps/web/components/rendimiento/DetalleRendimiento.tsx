@@ -100,7 +100,7 @@ export function DetalleRendimiento({
           Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Tiendas y caja</b> y se reparte sola, por horas.
         </p>
       ) : (
-        <p className="nota-cayla" data-guia="rendimiento.reparto-nota">
+        <p className="nota-cayla" data-guia="rendimiento.reparto">
           {asignacion.tipo !== "sin_meta" && (
             <>
               Asignado a {personas.length === 1 ? "1 persona" : `las ${personas.length}`}: <b>{SOLES.format(asignacion.asignado)}</b> de <b>{SOLES.format(asignacion.metaSede)}</b> de {nombre} este mes

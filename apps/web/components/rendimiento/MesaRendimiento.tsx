@@ -187,11 +187,11 @@ export function MesaRendimiento({
 
   useEffect(() => {
     if (!repitiendo) return;
-    if (tramo.hasta >= hoy) {
-      setRepitiendo(false);
-      return;
-    }
-    const t = window.setTimeout(() => setTramo((x) => ({ desde: x.desde, hasta: sumarDias(x.hasta, 1) })), 340);
+    const t = window.setTimeout(() => {
+      // Al llegar a hoy se detiene: no es un bucle.
+      if (tramo.hasta >= hoy) setRepitiendo(false);
+      else setTramo({ desde: tramo.desde, hasta: sumarDias(tramo.hasta, 1) });
+    }, 340);
     return () => window.clearTimeout(t);
   }, [repitiendo, tramo, hoy]);
 
@@ -232,7 +232,7 @@ export function MesaRendimiento({
   }, [tramo, modo, repitiendo, hoy]);
 
   // Las teclas de la pantalla. «/» lo pone el buscador. Nunca mientras se escribe o hay una hoja abierta.
-  const teclas = useRef({ tramo, abierta, eje: [] as readonly string[], hoy, hayFiltro, limpiar: () => {}, cerrar: () => {}, mover: (_: Tramo) => {} });
+  const teclas = useRef({ tramo, abierta, eje: [] as readonly string[], hoy, hayFiltro, limpiar: () => {}, cerrar: () => {}, mover: (() => {}) as (t: Tramo) => void });
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
@@ -272,7 +272,7 @@ export function MesaRendimiento({
         setRepitiendo(false);
         setTramo(tramoDePreset("mes", hoy));
       },
-      mover: setTramo,
+      mover: (t) => setTramo(t),
     };
   });
 
@@ -348,6 +348,14 @@ export function MesaRendimiento({
 
   return (
     <div ref={raiz} className="mesa mesa-marco">
+      {/* La refracción de la lente: el vidrio dobla lo que tiene detrás. Solo la usa `.mesa-lente`; donde el navegador no sabe, queda el vidrio de siempre. */}
+      <svg aria-hidden width="0" height="0" className="absolute">
+        <filter id="mesa-refraccion" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="7" result="ruido" />
+          <feDisplacementMap in="SourceGraphic" in2="ruido" scale="16" xChannelSelector="R" yChannelSelector="G" />
+          <feGaussianBlur stdDeviation="0.3" />
+        </filter>
+      </svg>
       <div className="mesa-herramientas mesa-entra" style={{ "--i": 0 } as CSSProperties}>
         {sedes.length > 1 && <SedesConAnillo sedes={sedes} activaId={activa.ubicacionId} sesionId={sesionId} hoy={hoy} onElegir={elegirSede} />}
         <div className="mesa-buscador" data-guia="rendimiento.buscador">

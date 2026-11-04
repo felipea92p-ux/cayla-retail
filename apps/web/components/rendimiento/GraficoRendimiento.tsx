@@ -262,8 +262,10 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
           const y = yDe(s ?? 0);
           segmentos.push({ clave: `${i}-${id}`, i, id, x: centro(i) - 3, y: y - 3, w: primero ? 6 : 0, h: primero ? 6 : 0, rx: 3 });
         } else {
-          const h = (v / tope) * alto;
-          const y = base - ((apilado + v) / tope) * alto;
+          // Los bordes de cada pila caen en un píxel entero: si no, se ve una costura entre personas cuando la barra es de un solo color.
+          const abajoPx = Math.round(base - (apilado / tope) * alto);
+          const y = Math.round(base - ((apilado + v) / tope) * alto);
+          const h = abajoPx - y;
           apilado += v;
           segmentos.push({ clave: `${i}-${id}`, i, id, x: xDe(i) + hueco, y, w: ancho, h: Math.max(0, h - (modo === "persona" && h > 2 ? 1 : 0)), rx: modo === "persona" ? 2 : 1.5 });
         }
@@ -287,6 +289,7 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
 
   return (
     <section className="mesa-grafico mesa-placa liquido mesa-entra" style={{ "--i": 6 } as CSSProperties} aria-label={titulo} data-guia="rendimiento.grafico">
+      <span aria-hidden className="mesa-barrido" style={{ "--i": 6 } as CSSProperties} />
       <div className="mesa-grafico-cabeza">
         <div>
           <h2 className="mesa-grafico-titulo">{titulo}</h2>
@@ -325,6 +328,12 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
       >
         {W > 0 && (
           <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${titulo}, ${tramoEnPalabras(tramo, hoy)}. Se vendieron ${SOLES.format(vendidoTramo)}.`}>
+            <defs>
+              <linearGradient id="mesa-brillo-barra" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0" stopColor="var(--color-vidrio)" stopOpacity="0.34" />
+                <stop offset="1" stopColor="var(--color-vidrio)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
             {rejas.map((v) => (
               <g key={v} className="mesa-reja" style={{ transform: `translateY(${yDe(v)}px)` }}>
                 <line x1={0} x2={W} />
@@ -358,6 +367,19 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
                   }
                 />
               ))}
+              {/* El brillo de tubo: la misma luz que las barras de avance del sistema (--tubo-brillo), encima del color del dato. */}
+              {modo !== "suma" &&
+                eje.map((d, i) => {
+                  const alturaPx = d.fecha <= cortar ? (d.total / tope) * alto : 0;
+                  return (
+                    <rect
+                      key={d.fecha}
+                      className="mesa-barra-brillo"
+                      data-fuera={fueraDeTramo(i) ? "" : undefined}
+                      style={{ x: `${xDe(i) + hueco}px`, y: `${base - alturaPx}px`, width: `${ancho * 0.42}px`, height: `${alturaPx}px`, "--k": i } as CSSProperties}
+                    />
+                  );
+                })}
             </g>
 
             {modo !== "suma" && conMeta && <path className="mesa-linea mesa-linea-meta" d={lineaMetaDia} />}
@@ -393,6 +415,8 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
         {W > 0 && !todoElMes && !repitiendo && !sinTope && (
           <>
             <span className="mesa-lente" style={{ transform: `translateX(${lente.x}px)`, width: lente.w, height: base }}>
+              <i className="mesa-lente-canto" data-lado="izq" />
+              <i className="mesa-lente-canto" data-lado="der" />
               <i className="mesa-lente-manija" data-lado="izq" />
               <i className="mesa-lente-manija" data-lado="der" />
             </span>
@@ -436,7 +460,7 @@ export function GraficoRendimiento({ dias, hoy, filas, medidas, colores, esLaTie
         )}
       </div>
 
-      <div className="mesa-leyenda" data-guia="rendimiento.grafico-leyenda">
+      <div className="mesa-leyenda">
         {modo === "persona" &&
           medidas.map((m) => (
             <button key={m.personaId} type="button" data-persona={m.personaId} onClick={() => onPersona(m)} style={{ "--c": colores.get(m.personaId) } as CSSProperties}>

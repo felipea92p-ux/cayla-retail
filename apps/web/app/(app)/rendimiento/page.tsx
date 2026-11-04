@@ -10,27 +10,19 @@ import { Receipt, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
-// Rendimiento (ADR-0219, ADR-0325). Arriba, el PANEL de la meta de la tienda (`PanelRendimiento`, en el
-// navegador): cifras, cómo va cada persona contra su meta —que la líder de la sede o el Admin pueden cambiar—,
-// las ventas contra la meta y el historial de cambios. Abajo, los dos RANKINGS del mes: «Soles por hora» ordena por
-// el número CONTRAÍDO hacia el resto de la tienda (Efron-Morris/James-Stein, `rendimiento-reglas.ts`) — no por el
-// crudo, que es lo que el ADR proponía antes de esa ficha —, y «Cierra más ventas» sigue siendo un conteo crudo, a
-// propósito (funciona sin horas, en AQP y Lima).
+// Rendimiento (ADR-0219, ADR-0325, ADR-0610). Arriba, la MESA (`MesaRendimiento`, en el navegador): tiendas, días, cifras, gráfico y tabla sobre un solo estado.
+// Abajo, los dos RANKINGS del mes: «Soles por hora» ordena por el número CONTRAÍDO hacia el resto de la tienda (Efron-Morris/James-Stein, `rendimiento-reglas.ts`), no por
+// el crudo, y «Cierra más ventas» sigue siendo un conteo crudo, a propósito (funciona sin horas). El servidor lee TODAS las tiendas de una vez: cambiar de tienda o de
+// días no vuelve a preguntarle nada a la base. La pantalla abre en la tienda de la sesión (Felipe, 2026-10-03) y en este mes (ADR-0610).
 //
-// Con VARIAS tiendas (el Admin) arriba van tres tarjetas que son a la vez las pestañas (`ComparativoTiendas`: cómo va cada
-// tienda este mes, nunca un ranking mezclado) y la pantalla abre en la tienda de la sesión (Felipe, 2026-10-03; antes abría en
-// «Todas»). Tocar una tarjeta muestra su panel completo al instante (`TiendasRendimiento`: la tienda elegida es estado del navegador y se anota en `?sede=` sin navegar; el servidor ya leyó todas). La vista (`?vista=hoy|semana|mes`) la cambia el panel sin
-// navegar; acá solo se lee para abrir en la misma.
-//
-// LO QUE FALTA (siguiente paso, no bloquea esta pantalla): ticket promedio por persona, % a precio completo,
-// descuento dado, cuadre de caja y bajada al piso (D-116); la ficha de cada persona (`/rendimiento/[persona]`);
-// corregir quién atendió una venta (`reasignar_asesora`); el selector de mes (hoy siempre el mes calendario de
-// Lima en curso); la sugerencia de meta de la SEDE con 4 semanas de ventas (fase 2 de D-143).
+// LO QUE FALTA (no bloquea esta pantalla): % a precio completo, descuento dado, cuadre de caja y bajada al piso (D-116); corregir quién atendió una venta
+// (`reasignar_asesora`); el selector de mes; la sugerencia de meta de la SEDE con 4 semanas de ventas (fase 2 de D-143).
 
 const SOLES_HORA = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 1 });
 
 const PLANTILLA = "grid-cols-[1fr_auto]";
 const COLUMNAS: Columna[] = [{ titulo: "Integrante" }, { titulo: "Ventas", alinear: "der" }];
+const COLUMNAS_HORA: Columna[] = [{ titulo: "Integrante" }, { titulo: "Por hora", alinear: "der" }];
 
 export default async function RendimientoPage({ searchParams }: { searchParams: Promise<{ sede?: string; vista?: string; desde?: string; hasta?: string; modo?: string }> }) {
   const persona = await exigirModulo("rendimiento");
@@ -120,7 +112,7 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
             </Ayuda>
           </TituloSeccion>
           <Tabla>
-            <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} siempre />
+            <Encabezado columnas={COLUMNAS_HORA} plantilla={PLANTILLA} siempre />
             {porHora.length === 0 && (
               <Vacio tamano="chico" icono={<Receipt />} className="py-5">
                 Nadie vendió este mes.

@@ -13,22 +13,10 @@
  * ASUME: fechas `aaaa-mm-dd` en hora de Lima; que `hoy` es el que calcula el servidor.
  */
 
-import { diasEntreFechas, sumarDias } from "./fechas-lima";
+import { sumarDias } from "./fechas-lima";
 import { sinBlancosDeMiles } from "./numero-escrito";
 
 export type Vista = "hoy" | "semana" | "mes";
-
-export const VISTAS: { clave: Vista; etiqueta: string }[] = [
-  { clave: "hoy", etiqueta: "Hoy" },
-  { clave: "semana", etiqueta: "Semana" },
-  { clave: "mes", etiqueta: "Mes" },
-];
-
-/** La vista de la URL (`?vista=`): lo que no se reconoce es «hoy» (decisión 8: Rendimiento abre en Hoy). */
-export function vistaDeUrl(valor: string | string[] | undefined | null): Vista {
-  const v = Array.isArray(valor) ? valor[0] : valor;
-  return v === "semana" || v === "mes" ? v : "hoy";
-}
 
 /** Un día de la serie de la tienda (`fn_rendimiento_serie`). `metaSede` y `metaAsignada` son `null` si no hay. */
 export type DiaSerie = {
@@ -101,13 +89,6 @@ export function ventanaDeVista(vista: Vista, hoy: string): { desde: string; hast
   if (vista === "hoy") return { desde: hoy, hasta: hoy };
   if (vista === "semana") return { desde: sumarDias(hoy, -6), hasta: hoy };
   return { desde: primerDiaDelMes(hoy), hasta: ultimoDiaDelMes(hoy) };
-}
-
-const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const DIAS_LARGOS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-
-function diaDeSemana(iso: string): number {
-  return new Date(`${iso.slice(0, 10)}T12:00:00Z`).getUTCDay();
 }
 
 // ───────────────────────── cifras ─────────────────────────
@@ -199,12 +180,7 @@ export type VentasPorHora = {
   ventas: number;
 };
 
-/** Cuántas ventas y soles hizo la tienda en cada hora de la ventana de la vista. Sin ventas en la ventana: `mejor` es `null`. */
-export function ventasDeLaTiendaPorHora(detalle: FilaDetalle[], vista: Vista, hoy: string): VentasPorHora {
-  return ventasPorHoraEnDias(detalle, ventanaDeVista(vista, hoy));
-}
-
-/** Lo mismo, para cualquier tramo de días (ADR-0610: el que se elige en el gráfico). */
+/** Cuántas ventas y soles hizo la tienda en cada hora de un tramo de días. Sin ventas: `mejor` es `null`. */
 export function ventasPorHoraEnDias(detalle: FilaDetalle[], { desde, hasta }: { desde: string; hasta: string }): VentasPorHora {
   const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
   const porHora = new Map<number, { ventas: number; total: number }>();
@@ -231,12 +207,7 @@ export function etiquetaDeHora(hora: number): string {
 
 export type PrendasPorVenta = { prendas: number; ventas: number; porVenta: number | null };
 
-/** Cuántas prendas se lleva cada compra en la ventana: `null` sin ventas (no se divide por cero). */
-export function prendasPorVenta(detalle: FilaDetalle[], vista: Vista, hoy: string): PrendasPorVenta {
-  return prendasPorVentaEnDias(detalle, ventanaDeVista(vista, hoy));
-}
-
-/** Lo mismo, para cualquier tramo de días. */
+/** Cuántas prendas se lleva cada compra en un tramo de días: `null` sin ventas (no se divide por cero). */
 export function prendasPorVentaEnDias(detalle: FilaDetalle[], { desde, hasta }: { desde: string; hasta: string }): PrendasPorVenta {
   const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
   const prendas = filas.reduce((s, f) => s + f.prendas, 0);
@@ -246,26 +217,10 @@ export function prendasPorVentaEnDias(detalle: FilaDetalle[], { desde, hasta }: 
 
 // ───────────────────────── tabla «Cómo va» ─────────────────────────
 
-export type Orden = "nombre" | "ventas" | "avance";
-
 export function columnaDePersona(p: PersonaMeta, vista: Vista): { vendido: number; ventas: number; meta: number | null } {
   if (vista === "hoy") return { vendido: p.vendidoHoy, ventas: p.ventasHoy, meta: p.metaHoy };
   if (vista === "semana") return { vendido: p.vendido7d, ventas: p.ventas7d, meta: p.meta7d };
   return { vendido: p.vendidoMes, ventas: p.ventasMes, meta: p.metaMes };
-}
-
-export function ordenarPersonas(personas: PersonaMeta[], vista: Vista, orden: Orden): PersonaMeta[] {
-  const porNombre = (a: PersonaMeta, b: PersonaMeta) => a.nombre.localeCompare(b.nombre, "es");
-  const copia = [...personas];
-  if (orden === "nombre") return copia.sort(porNombre);
-  if (orden === "ventas") {
-    return copia.sort((a, b) => columnaDePersona(b, vista).vendido - columnaDePersona(a, vista).vendido || porNombre(a, b));
-  }
-  const av = (p: PersonaMeta) => {
-    const c = columnaDePersona(p, vista);
-    return avance(c.vendido, c.meta) ?? -1;
-  };
-  return copia.sort((a, b) => av(b) - av(a) || porNombre(a, b));
 }
 
 /** «09:00–18:00», o `null` si no tiene turno cargado hoy (la fila dice «Sin turno cargado» solo si la tienda reparte por horas). */
@@ -327,67 +282,6 @@ export function asignacionDeVista(personas: PersonaMeta[], vista: Vista, metaSed
   const asignado = personas.reduce((s, p) => s + (columnaDePersona(p, vista).meta ?? 0), 0);
   const diferencia = Math.round(metaSede - asignado);
   return { tipo: Math.abs(diferencia) < 1 ? "cuadra" : diferencia > 0 ? "faltan" : "pasa", asignado, metaSede, diferencia };
-}
-
-// ───────────────────────── gráfico ─────────────────────────
-
-export type DiaGrafico = {
-  fecha: string;
-  /** «Lun» en la semana; el número del día (solo algunos) en el mes. */
-  etiqueta: string;
-  /** «lunes 28» para el tooltip y la tabla. */
-  titulo: string;
-  /** Lo vendido ese día; `null` si el día todavía no llega. */
-  valor: number | null;
-  meta: number | null;
-  hoy: boolean;
-};
-
-/** Las barras de los últimos 7 días y las del mes entero, con la meta de la sede de cada día. */
-export function serieParaGrafico(serie: DiaSerie[], hoy: string): { semana: DiaGrafico[]; mes: DiaGrafico[] } {
-  const porFecha = new Map(serie.map((d) => [d.fecha, d]));
-  const dia = (fecha: string, etiqueta: string): DiaGrafico => {
-    const d = porFecha.get(fecha);
-    const n = Number(fecha.slice(8, 10));
-    return {
-      fecha,
-      etiqueta,
-      titulo: `${DIAS_LARGOS[diaDeSemana(fecha)]} ${n}`,
-      valor: fecha > hoy ? null : (d?.total ?? 0),
-      meta: d?.metaSede ?? null,
-      hoy: fecha === hoy,
-    };
-  };
-  const semana = Array.from({ length: 7 }, (_, i) => {
-    const f = sumarDias(hoy, i - 6);
-    return dia(f, DIAS_CORTOS[diaDeSemana(f)]);
-  });
-  const ini = primerDiaDelMes(hoy);
-  const fin = ultimoDiaDelMes(hoy);
-  const mes = Array.from({ length: diasEntreFechas(ini, fin) + 1 }, (_, i) => {
-    const f = sumarDias(ini, i);
-    const n = i + 1;
-    return dia(f, n === 1 || n % 5 === 0 || f === fin ? String(n) : "");
-  });
-  return { semana, mes };
-}
-
-/** Ventas y meta acumuladas día a día (para «¿llego o no llego?»). La línea de ventas se corta en hoy. */
-export function acumulado(dias: DiaGrafico[]): { ventas: (number | null)[]; meta: number[] } {
-  let v = 0;
-  let m = 0;
-  const ventas: (number | null)[] = [];
-  const meta: number[] = [];
-  for (const d of dias) {
-    m += d.meta ?? 0;
-    meta.push(m);
-    if (d.valor === null) ventas.push(null);
-    else {
-      v += d.valor;
-      ventas.push(v);
-    }
-  }
-  return { ventas, meta };
 }
 
 // ───────────────────────── cambiar la meta ─────────────────────────

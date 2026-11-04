@@ -89,6 +89,36 @@
   box-shadow: var(--serena-sombra);
 }
 
+/* Al llegar, una luz cruza cada placa, una sola vez. */
+.mesa-barrido {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.mesa-barrido::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 42%;
+  background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--color-vidrio) 58%, transparent), transparent);
+  transform: translateX(-130%);
+  animation: mesa-barre 1300ms var(--ease-cayla) both;
+  animation-delay: calc(240ms + var(--i, 0) * 80ms);
+}
+@keyframes mesa-barre {
+  to { transform: translateX(340%); }
+}
+@media screen {
+  [data-tema="oscuro"] .mesa-barrido::before {
+    background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--color-tinta) 18%, transparent), transparent);
+  }
+}
+
 /* ---------- Las tiendas: cada una dice cuánto lleva contra su propia meta ---------- */
 .mesa-herramientas {
   position: relative;
@@ -548,6 +578,18 @@
   transition: x 750ms var(--ease-cayla), y 750ms var(--ease-cayla), width 750ms var(--ease-cayla), height 750ms var(--ease-cayla), rx 750ms var(--ease-cayla), fill 240ms var(--ease-cayla), opacity 240ms var(--ease-cayla);
   transition-delay: calc(var(--k, 0) * 9ms);
 }
+.mesa-barra-brillo {
+  fill: url(#mesa-brillo-barra);
+  pointer-events: none;
+  transition: x 750ms var(--ease-cayla), y 750ms var(--ease-cayla), width 750ms var(--ease-cayla), height 750ms var(--ease-cayla), opacity 240ms var(--ease-cayla);
+  transition-delay: calc(var(--k, 0) * 9ms);
+}
+.mesa-barra-brillo[data-fuera] {
+  opacity: 0.32;
+}
+.mesa-lienzo[data-foco] .mesa-barra-brillo {
+  opacity: 0;
+}
 .mesa-lienzo[data-arrastrando] .mesa-barra {
   transition: opacity 120ms, fill 120ms;
 }
@@ -633,6 +675,21 @@
   border: 1px solid color-mix(in srgb, var(--color-vidrio) 70%, transparent);
   box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 -12px 22px -18px color-mix(in srgb, var(--color-sombra) 32%, transparent), 0 14px 30px -18px color-mix(in srgb, var(--color-sombra) 50%, transparent);
   transition: transform 520ms var(--ease-cayla), width 520ms var(--ease-cayla);
+}
+/* El canto de la lente dobla lo que tiene detrás, como el borde de una gota. Solo el canto: el centro se lee sin deformar, porque ahí hay cifras. */
+.mesa-lente-canto {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  overflow: hidden;
+}
+.mesa-lente-canto[data-lado="izq"] { left: 0; border-radius: 14px 0 0 14px; }
+.mesa-lente-canto[data-lado="der"] { right: 0; border-radius: 0 14px 14px 0; }
+@supports (backdrop-filter: url(#mesa-refraccion)) {
+  .mesa-lente-canto {
+    backdrop-filter: url(#mesa-refraccion);
+  }
 }
 .mesa-lente-manija {
   position: absolute;
@@ -852,6 +909,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mesa-barrido::before,
   .mesa-entra-rapido,
   .mesa-abierta,
   .mesa-abierta[data-cerrando],
@@ -869,6 +927,7 @@
   .liquido::before,
   .liquido::after,
   .mesa-barra,
+  .mesa-barra-brillo,
   .mesa-linea,
   .mesa-area,
   .mesa-reja,
