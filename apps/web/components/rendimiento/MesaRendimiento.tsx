@@ -35,7 +35,7 @@ import { hayFiltrosPuestos, type FiltrosVivos, type OrdenViva } from "@/lib/tabl
 import { CifrasRendimiento } from "./CifrasRendimiento";
 import { FilaAbierta } from "./FilaAbierta";
 import { GraficoRendimiento, type ModoGrafico } from "./GraficoRendimiento";
-import { PanelRendimiento } from "./PanelRendimiento";
+import { DetalleRendimiento } from "./DetalleRendimiento";
 import { SedesConAnillo } from "./SedesConAnillo";
 import { TablaRendimiento, useColumnasRendimiento } from "./TablaRendimiento";
 import { useFocoPersona } from "./useFocoPersona";
@@ -342,7 +342,6 @@ export function MesaRendimiento({
   const ventasSinPersona = filas.filter((f) => f.personaId === null && f.fecha >= tramo.desde && f.fecha <= tramo.hasta).reduce((s, f) => s + f.total, 0);
 
   if (!activa) return null;
-  const vistaAbajo = preset === "hoy" ? "hoy" : preset === "semana" ? "semana" : "mes";
   const hayPanel = activa.panelDisponible && activa.personaDias !== null;
   const metaSedeMes = resumenDeSede(activa.serie, "mes", hoy).meta;
   const porId = filasPorPersona(filas);
@@ -383,7 +382,10 @@ export function MesaRendimiento({
             (intenciones.length > 0 ? (
               <ListaSugerencias id="mesa-sugerencias" etiqueta="Lo que entendí" sugerencias={sugerencias} activa={sugerida} onActiva={setSugerida} onElegir={(i) => aplicar(intenciones[i])} className="mesa-sugerencias" />
             ) : (
-              <p className="mesa-sugerencias mesa-sin-entender lista-flotante" role="status">
+              <p
+                className="mesa-sugerencias mesa-sin-entender lista-flotante" // unificar-fijo: no es una lista: es la frase de cuando no se entendió nada
+                role="status"
+              >
                 No entendí «{busqueda.trim()}». Prueba con un nombre, «por debajo», «día 10» o «del 5 al 12».
               </p>
             ))}
@@ -528,23 +530,9 @@ export function MesaRendimiento({
           />
         )}
 
-        {activa.panelDisponible ? (
-          <PanelRendimiento
-            key={`${activa.ubicacionId}-${vistaAbajo}`}
-            ubicacionId={activa.ubicacionId}
-            nombre={activa.nombre}
-            hoy={hoy}
-            serie={activa.serie}
-            detalle={activa.detalle}
-            personas={activa.personas}
-            historial={activa.historial}
-            vistaInicial={vistaAbajo}
-            personaCuentaId={personaCuentaId}
-            esAdmin={esAdmin}
-            sinCabecera
-          />
-        ) : (
-          <p className="nota-cayla">No se pudieron leer las metas de cada persona. Los rankings del mes sí están al día.</p>
+        {!hayPanel && <p className="nota-cayla">No se pudo leer lo de cada persona. Lo de la tienda y los rankings del mes sí están al día.</p>}
+        {activa.panelDisponible && (
+          <DetalleRendimiento nombre={activa.nombre} personas={activa.personas} detalle={activa.detalle} historial={activa.historial} tramo={tramo} tramoTexto={tramoTexto} metaSedeMes={metaSedeMes} />
         )}
         {rankings[activa.ubicacionId]}
       </div>

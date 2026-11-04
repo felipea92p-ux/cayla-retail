@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -456,9 +457,9 @@ function AjusteMeta({
       )}
 
       {error && (
-        <p className="text-sm text-rojo" role="alert">
+        <Aviso tono="error" chico>
           {error}
-        </p>
+        </Aviso>
       )}
       <PieGuia guia={guia} listo="Todo listo para guardar." />
       <div className="pie-acciones" data-guia={guiar ? "rendimiento.meta-guardar" : undefined}>

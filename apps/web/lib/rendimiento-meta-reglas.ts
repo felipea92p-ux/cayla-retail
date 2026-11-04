@@ -201,7 +201,11 @@ export type VentasPorHora = {
 
 /** Cuántas ventas y soles hizo la tienda en cada hora de la ventana de la vista. Sin ventas en la ventana: `mejor` es `null`. */
 export function ventasDeLaTiendaPorHora(detalle: FilaDetalle[], vista: Vista, hoy: string): VentasPorHora {
-  const { desde, hasta } = ventanaDeVista(vista, hoy);
+  return ventasPorHoraEnDias(detalle, ventanaDeVista(vista, hoy));
+}
+
+/** Lo mismo, para cualquier tramo de días (ADR-0610: el que se elige en el gráfico). */
+export function ventasPorHoraEnDias(detalle: FilaDetalle[], { desde, hasta }: { desde: string; hasta: string }): VentasPorHora {
   const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
   const porHora = new Map<number, { ventas: number; total: number }>();
   for (const f of filas) {
@@ -229,7 +233,11 @@ export type PrendasPorVenta = { prendas: number; ventas: number; porVenta: numbe
 
 /** Cuántas prendas se lleva cada compra en la ventana: `null` sin ventas (no se divide por cero). */
 export function prendasPorVenta(detalle: FilaDetalle[], vista: Vista, hoy: string): PrendasPorVenta {
-  const { desde, hasta } = ventanaDeVista(vista, hoy);
+  return prendasPorVentaEnDias(detalle, ventanaDeVista(vista, hoy));
+}
+
+/** Lo mismo, para cualquier tramo de días. */
+export function prendasPorVentaEnDias(detalle: FilaDetalle[], { desde, hasta }: { desde: string; hasta: string }): PrendasPorVenta {
   const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
   const prendas = filas.reduce((s, f) => s + f.prendas, 0);
   const ventas = filas.reduce((s, f) => s + f.ventas, 0);

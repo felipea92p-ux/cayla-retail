@@ -1040,3 +1040,38 @@
     width: 100%;
   }
 }
+
+/* ---------- Lo de la tienda: las horas, las prendas y los cambios de meta ---------- */
+.mesa-medidas {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr);
+  gap: 12px;
+}
+@container (max-width: 760px) {
+  .mesa-medidas { grid-template-columns: minmax(0, 1fr); }
+}
+.mesa-horas {
+  padding: 18px 22px;
+}
+.mesa-historial {
+  padding: 16px 22px;
+}
+.mesa-historial summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.mesa-historial ul {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  animation: mesa-sube 360ms var(--ease-cayla) both;
+}
+.mesa-historial li + li {
+  padding-top: 10px;
+  border-top: 1px solid var(--hilo-fila, transparent);
+}
