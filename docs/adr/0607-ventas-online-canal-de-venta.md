@@ -64,8 +64,13 @@ disparador sobre `separaciones.venta_id`.
 - Duplicar un rol (`crear_rol`) no copia sus canales: el rol nuevo nace con `tienda`.
 - Quien no opera un canal tampoco lo ve en la lista de Caja (`buscar_separaciones` es la misma lectura). Un adelanto de TikTok pagado en
   efectivo y guardado en el cajón de una tienda no lo vería una cajera que no opera TikTok.
-- Las acciones por id (entregar, abonar, extender, liberar, devolver) todavía no verifican el canal en la base: hoy solo se llega a ellas
-  desde la lista, que ya viene filtrada. El candado en la base es la actividad 6.
+- **El candado al actuar por id vive en la tabla, no en cada función.** `fn_separacion_exige_su_canal` (antes de insertar o cambiar una
+  `separaciones`) rechaza a quien no opera el canal del apartado: entregar, abonar, aplazar, liberar, devolver y editar pasan todas por
+  ahí sin parcharlas. Pasan sin sesión (cron) y el vencimiento solo (`liberada_por` vacío), que lo dispara cualquiera que abra Apartados.
+  `separar_prendas_online` le dice el canal al candado con una variable de la transacción (`retail.canal_nuevo`), así quien solo opera
+  TikTok no choca con «no operas la tienda» a mitad de camino.
+- Las lecturas por id (el detalle de un apartado, su ticket) no filtran por canal: quien tuviera un id ajeno podría leer ese apartado.
+  El id es un uuid que no sale de las listas filtradas; si hiciera falta, se cierra en la actividad de reportes.
 
 ## Fuera de esta fase
 

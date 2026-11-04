@@ -24,8 +24,11 @@
 --       historial, «solo das lo que tienes»).
 --   PARTE 4 · las lecturas de Apartados
 --     · `buscar_separaciones` y `resumen_separaciones` muestran solo los canales de la cuenta; la lista trae canal y entrega.
+--   PARTE 5 · el candado en la tabla
+--     · `fn_separacion_exige_su_canal` (antes de insertar o cambiar): nadie crea ni cambia un apartado de un canal que su rol no opera
+--       (entregar, abonar, aplazar, liberar, devolver y editar trabajan por id y pasan todas por aquí); sin sesión y el vencimiento solo pasan.
 --
--- SE PEGA en el SQL Editor de producción EN CUATRO PARTES, en orden (regla de «Políticas y deadlocks»: ningún `create policy` aquí,
+-- SE PEGA en el SQL Editor de producción EN CINCO PARTES, en orden (regla de «Políticas y deadlocks»: ningún `create policy` aquí,
 -- pero sí `alter` de tablas en uso, que va solo). Cada una se puede pegar dos veces. NO cambia lo que hoy ve nadie: todos los roles
 -- siguen operando `tienda`.
 -- ============================================================================
@@ -174,6 +177,9 @@ begin
     raise exception 'La dirección de envío es muy larga (máximo 300 letras).' using hint = 'direccion_envio_larga';
   end if;
 
+  -- El canal viaja a la inserción por una variable de ESTA transacción: el candado de `separaciones` (PARTE 5) la lee y marca el apartado
+  -- con su canal desde el primer instante, así quien solo opera TikTok no choca con «no operas la tienda» a mitad de camino.
+  perform set_config('retail.canal_nuevo', p_canal, true);
   -- Todas las reglas del apartado de siempre (sede que se opera, stock, adelanto mínimo, descuentos, caja, comprobante del anticipo).
   v_id := separar_prendas(
     p_ubicacion_id => p_ubicacion_id, p_items => p_items, p_pagos => p_pagos,
@@ -182,6 +188,7 @@ begin
     p_devolucion_cci => p_devolucion_cci, p_comprobante_tipo => p_comprobante_tipo, p_cliente_ruc => p_cliente_ruc,
     p_cliente_razon_social => p_cliente_razon_social, p_asesora_id => p_asesora_id, p_clienta_id => p_clienta_id,
     p_nota => p_nota, p_token => p_token);
+  perform set_config('retail.canal_nuevo', '', true);
 
   update separaciones
      set canal = p_canal,
@@ -512,5 +519,56 @@ AS $function$
   where s.ubicacion_id = p_ubicacion_id and fn_puede_operar_ubicacion(p_ubicacion_id)
     and s.canal in (select c from retail.fn_canales_de_la_cuenta() c);
 $function$;
+
+
+-- ============================================================================
+-- PARTE 5 · EL CANAL TAMBIÉN SE CUIDA AL ACTUAR POR ID (actividad 6)
+-- ============================================================================
+-- Las listas ya solo muestran los canales de la cuenta, pero entregar, abonar, aplazar, liberar o devolver trabajan por el id del apartado.
+-- En vez de parchar cada una de esas funciones (ya reemplazadas muchas veces), el candado vive en la tabla: nadie cambia ni crea un apartado
+-- de un canal que su rol no opera. Lo que corre sin sesión (cron, mantenimiento) pasa; y el vencimiento solo (`fn_vencer_separaciones`
+-- libera lo vencido sin nombrar a nadie: `liberada_por` vacío) también, porque lo dispara cualquiera que abra Apartados.
+set search_path = retail, public, extensions;
+set lock_timeout = '3s';
+
+create or replace function retail.fn_separacion_exige_su_canal()
+returns trigger
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_nuevo text;
+begin
+  if tg_op = 'INSERT' then
+    -- La puerta online dice el canal antes de insertar (ver `separar_prendas_online`); lo demás nace `tienda`.
+    v_nuevo := nullif(current_setting('retail.canal_nuevo', true), '');
+    if v_nuevo is not null then
+      new.canal := v_nuevo;
+    end if;
+    if auth.uid() is not null and not fn_puede_canal(new.canal) then
+      raise exception 'No puedes registrar ventas de este canal: tu rol no lo opera.' using errcode = '42501', hint = 'canal_sin_permiso';
+    end if;
+    return new;
+  end if;
+
+  -- UPDATE: sin sesión (cron, mantenimiento) pasa; el vencimiento solo (libera sin nombrar a nadie) también.
+  if auth.uid() is null then
+    return new;
+  end if;
+  if new.estado = 'liberada' and old.estado = 'abierta' and new.liberada_por is null then
+    return new;
+  end if;
+  if not fn_puede_canal(old.canal) then
+    raise exception 'No puedes tocar un apartado de este canal: tu rol no lo opera.' using errcode = '42501', hint = 'canal_sin_permiso';
+  end if;
+  return new;
+end;
+$fn$;
+
+create or replace trigger separaciones_canal_bi before insert on retail.separaciones
+  for each row execute function retail.fn_separacion_exige_su_canal();
+create or replace trigger separaciones_canal_bu before update on retail.separaciones
+  for each row execute function retail.fn_separacion_exige_su_canal();
 
 notify pgrst, 'reload schema';

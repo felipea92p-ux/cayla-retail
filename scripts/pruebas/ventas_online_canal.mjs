@@ -77,6 +77,12 @@ select 'venta|' || canal from retail.ventas where id = :'venta';`;
 
 const comoMicaela = `set local request.jwt.claim.sub = '${MICAELA}';\n`;
 
+const rolDe = (persona) => `(select c.rol_id from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${persona}')`;
+const darCanal = (persona, canal) => `insert into retail.rol_canales (rol_id, canal) select ${rolDe(persona)}, '${canal}' on conflict do nothing;\n`;
+const quitarCanal = (persona, canal) => `delete from retail.rol_canales where rol_id = ${rolDe(persona)} and canal = '${canal}';\n`;
+const cuentaPara = (persona, id, etiqueta) => `set local request.jwt.claim.sub = '${persona}';
+select '${etiqueta}|' || count(*) from retail.buscar_separaciones(:'ubic') where id = :'${id}';`;
+
 let fallas = 0;
 let total = 0;
 function esperar(nombre, ok, detalle) {
@@ -132,6 +138,32 @@ select 'mismo|' || (:'uno' = :'dos');`);
   esperar("el mismo reintento devuelve el mismo apartado", r.ok && r.salida.includes("mismo|t"), r.salida || r.error);
 }
 
+// --- El candado al actuar por id (actividad 6) ---
+{
+  const soloTikTok = (persona) => `${darCanal(persona, "tiktok")}${quitarCanal(persona, "tienda")}`;
+  const aplazar = (persona, id = "sep") => `set local request.jwt.claim.sub = '${persona}';\nselect retail.aplazar_separacion(:'${id}', retail.fn_hoy_lima() + 9) as _a \\gset\n`;
+  const ambas = `${preparar()}${online("tiktok", "recojo", null, "on")}${deTienda.replace(/as sep/, "as tn").replace(/:'sep'/g, ":'tn'")}
+`;
+  let r = correr(`${ambas}${soloTikTok(MICAELA)}${aplazar(MICAELA, "tn")}`);
+  esperar("quien solo opera TikTok no puede aplazar un apartado de la tienda (por id)", rechazaCon("canal_sin_permiso")(r), r.salida || r.error);
+  r = correr(`${ambas}${aplazar(MICAELA, "on")}`);
+  esperar("quien solo opera la tienda no puede aplazar un apartado de TikTok (por id)", rechazaCon("canal_sin_permiso")(r), r.salida || r.error);
+  r = correr(`${ambas}${soloTikTok(MICAELA)}${aplazar(MICAELA, "on")}select 'ok|' || count(*) from retail.separaciones where id = :'on';`);
+  esperar("quien opera TikTok sí aplaza uno de TikTok", r.ok && r.salida.includes("ok|1"), r.salida || r.error);
+  r = correr(`${ambas}${aplazar(FELIPE, "on")}${aplazar(FELIPE, "tn")}select 'ok';`);
+  esperar("el líder opera los dos canales", r.ok, r.error || r.salida);
+  r = correr(`${ambas}${soloTikTok(MICAELA)}set local request.jwt.claim.sub = '${MICAELA}';\n${deTienda.replace(/as sep/, "as otra").replace("'Ana'", "'Eva'").replace("987111222", "987333444")}`);
+  esperar("quien solo opera TikTok no crea un apartado de la tienda con separar_prendas directo", rechazaCon("canal_sin_permiso")(r), r.error || r.salida);
+  r = correr(`${preparar()}${soloTikTok(MICAELA)}${comoMicaela}${online("tiktok", "recojo", null)}`);
+  esperar("quien solo opera TikTok sí registra una venta de TikTok por la puerta online", r.ok && r.salida.includes("canal|tiktok|recojo|-"), r.salida || r.error);
+  // El vencimiento solo no se bloquea: libera sin nombrar a nadie, aunque lo dispare quien no opera el canal.
+  r = correr(`${ambas}${soloTikTok(MICAELA)}update retail.separaciones set vence_el = retail.fn_hoy_lima() - 5 where id in (:'on', :'tn');
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.fn_vencer_separaciones(:'ubic') as _v \\gset
+select 'estados|' || string_agg(id::text || ':' || estado, ',' order by canal) from retail.separaciones where id in (:'on', :'tn');`);
+  esperar("el vencimiento solo corre aunque quien abre Apartados no opere el canal del apartado vencido", r.ok, r.salida || r.error);
+}
+
 // --- Marcar enviado ---
 {
   const marcar = (persona, guia = "null", id = "sep") => `set local request.jwt.claim.sub = '${persona}';\nselect retail.marcar_separacion_enviada(:'${id}', ${guia}) as env \\gset\n`;
@@ -170,11 +202,6 @@ select 'mismo|' || (:'uno' = :'dos');`);
 }
 
 // --- Qué canales opera cada rol ---
-const rolDe = (persona) => `(select c.rol_id from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${persona}')`;
-const darCanal = (persona, canal) => `insert into retail.rol_canales (rol_id, canal) select ${rolDe(persona)}, '${canal}' on conflict do nothing;\n`;
-const quitarCanal = (persona, canal) => `delete from retail.rol_canales where rol_id = ${rolDe(persona)} and canal = '${canal}';\n`;
-const cuentaPara = (persona, id, etiqueta) => `set local request.jwt.claim.sub = '${persona}';
-select '${etiqueta}|' || count(*) from retail.buscar_separaciones(:'ubic') where id = :'${id}';`;
 {
   const ambas = `${preparar()}${online("tiktok", "recojo", null, "on")}${deTienda.replace(/as sep/, "as tn").replace(/:'sep'/g, ":'tn'")}
 `;
