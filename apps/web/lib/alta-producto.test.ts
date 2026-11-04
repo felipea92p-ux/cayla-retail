@@ -62,6 +62,8 @@ describe("tituloReferencia — espejo del trigger de la base", () => {
   it("una sola forma de escribir, sin importar cómo se tipee", () => {
     expect(tituloReferencia("  blusa   CAMILA ")).toBe("Blusa Camila");
     expect(tituloReferencia("chompa CON rayas")).toBe("Chompa con Rayas");
+    expect(tituloReferencia("polo a rayas")).toBe("Polo a Rayas");
+    expect(tituloReferencia("blusa a")).toBe("Blusa A");
   });
   it("el conector al inicio sí lleva mayúscula", () => {
     expect(tituloReferencia("con botones")).toBe("Con Botones");
@@ -442,7 +444,7 @@ describe("pasos del alta — cada problema cae en su paso (4 preguntas, spike v2
 describe("piePaso y siguienteDelAlta — el pie de cada paso y la línea de la ficha", () => {
   const listo = { listo: true, faltaElegir: false, motivo: null };
   const sinElegir = { listo: false, faltaElegir: true, motivo: "Elige quién hace esta operación." };
-  const nadie = { listo: false, faltaElegir: false, motivo: "Nadie de turno en TRU: marca tu entrada en el kiosco para poder guardar." };
+  const nadie = { listo: false, faltaElegir: false, motivo: "Nadie marcó entrada hoy en TRU: márcala en la Terminal de marcaje para poder guardar." };
 
   it("un paso con algo pendiente dice qué le falta", () => {
     const p = problemasAlta({ ...base, tejidoId: "" });

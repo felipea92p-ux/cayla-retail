@@ -8,6 +8,7 @@
 //
 // Lo URGENTE no se puede ocultar: es el canal que no se apaga (Square, Zebra; investigación en el README del spike).
 
+import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias, type EnvioAMedias } from "./recepcion-salida-reglas";
 import type { ClaveModulo } from "./modulos";
 import { diasDesde, type PendientesDeLaSede } from "./recepcion-conteo-reglas";
 import type { Permiso } from "./menu";
@@ -42,6 +43,7 @@ export type ClaveAviso =
   | "prendasSinLlegar"
   | "recibir"
   | "porTerminar"
+  | "enviosAMedias"
   | "reponer"
   | "fotos"
   | "completar";
@@ -110,6 +112,8 @@ export type FuentesAvisos = {
   porRecibir?: { facturas: number; primera: string | null } | null;
   /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
   recibidoPorTerminar?: PendientesDeLaSede | null;
+  /** ADR-0393 (act. 2026-11-03): envíos abiertos con algo ya en el stock. Que no se olviden: a los 3 días se resaltan y también le aparecen al líder. */
+  enviosAMedias?: readonly EnvioAMedias[] | null;
   /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`),
    *  con la decisión del motor del piso (`lib/piso-plan.ts`). `enPausa` = cuántas tallas esperan el cuadre del piso (ADR-0328,
    *  decisión 5): con el piso sin cuadrar `tallas` es 0 y el aviso dice esa cifra, nunca «al día». */
@@ -499,6 +503,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/recibir",
       ocultable: true,
       urgenteSi: "Cuando lo más antiguo pasa de 7 días",
+    });
+  }
+  if (f.enviosAMedias != null && f.enviosAMedias.length > 0) {
+    const lista = f.enviosAMedias;
+    const n = lista.length;
+    const masViejo = Math.max(...lista.map((e) => diasAMedias(e.desde)));
+    avisos.push({
+      clave: "enviosAMedias",
+      grupo: "Inventario",
+      titulo: "Envíos a medias",
+      cantidad: n,
+      nivel: nivelDe(n, masViejo >= DIAS_PARA_RESALTAR ? "urgente" : "toca"),
+      ahora: `Termina de contar ${n === 1 ? lista[0].numero : `${n} envíos`}`,
+      detalle: lista.slice(0, 2).map((e) => textoDeEnvioAMedias(e)).join(". "),
+      href: n === 1 ? `/recibir/envio/${lista[0].id}` : "/recibir",
+      ocultable: false,
+      urgenteSi: `Cuando pasan ${DIAS_PARA_RESALTAR} días`,
     });
   }
   // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión

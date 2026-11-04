@@ -39,6 +39,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
 import { ContarEnvio } from "./ContarEnvio";
 import { CancelarRecepcion } from "./CancelarRecepcion";
+import { CorregirProveedor } from "./CorregirProveedor";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
@@ -102,6 +103,7 @@ export function RecibirContando({
   const responsable = useResponsable(undefined, { recordarEn: claveResponsableRecepcion(detalle.id) });
   const [apertura, setApertura] = useState<ResultadoApertura | null>(null);
   const [cancelando, setCancelando] = useState(false);
+  const [corrigiendo, setCorrigiendo] = useState(false);
   // Lo guardado en esta visita, más nuevo que lo que leyó la página: gana la versión más alta.
   const [locales, setLocales] = useState<Record<string, ConteoDeLinea>>({});
   // Lo que se lee de nuevo de la base (después de cerrar, reabrir o «Hacer ahora»), sin esperar a que la página recargue.
@@ -307,8 +309,15 @@ export function RecibirContando({
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
   const conPapel = papeles.length > 0 && (porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe;
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
-  // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y que nunca se cerró. Uno de Compras, uno cerrado o uno reabierto (ya metió stock) no lo ofrecen.
-  const sePuedeCancelar = estado === "abierto" && sinAviso && !reabierto && !otraSede && !noLoRecibe;
+  // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y sin nada en el stock (también reabierto: lo que frena es el stock). Uno de Compras o uno cerrado no lo ofrecen.
+  const sePuedeCancelar = estado === "abierto" && sinAviso && lineas.every((l) => (l.conteo?.enStock ?? 0) === 0) && !otraSede && !noLoRecibe;
+  // Corregir de quién llegó: sin aviso, ya con proveedor, y solo quien ve el dinero de Compras.
+  const proveedorActual = sinAviso ? (base?.proveedores[0] ?? null) : null;
+  const sePuedeCorregirProveedor = !!proveedorActual && veDinero && (estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe;
+  const accionesDelEnvio = [
+    ...(sePuedeCorregirProveedor ? [{ clave: "proveedor", etiqueta: "Corregir el proveedor", onSelect: () => setCorrigiendo(true) }] : []),
+    ...(sePuedeCancelar ? [{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }] : []),
+  ];
   // Al contar, las fotos van en el resumen; al cerrar y ya cerrado, en la cabecera.
   const contando = estado === "abierto" && paso !== 3;
   const conPapelArriba = conPapel && !contando;
@@ -342,7 +351,7 @@ export function RecibirContando({
           {conPapelArriba && <PapelesDeLaCompra papeles={papeles} alSubirFoto={subirFotoDelPapel} />}
           {etapa ? (
             // Con el botón al lado, el Trayecto toma lo que quede: bajo 22 rem sus nombres se tocan en la última etapa.
-            <div className={conPapelArriba ? "min-w-[min(20rem,100%)] max-w-[28rem] flex-1" : sePuedeCancelar ? "min-w-[min(18rem,100%)] flex-1" : "w-full"}>
+            <div className={conPapelArriba ? "min-w-[min(20rem,100%)] max-w-[28rem] flex-1" : accionesDelEnvio.length > 0 ? "min-w-[min(18rem,100%)] flex-1" : "w-full"}>
               <div className="rc-tray-cabecera">
                 <Trayecto etapa={etapa} />
               </div>
@@ -351,9 +360,7 @@ export function RecibirContando({
             <Chip tono={insignia.tono}>{insignia.texto}</Chip>
           )}
           {/* Cancelar es raro y no se deshace: va a la derecha de la cabecera, como un «⋯» (no un «Más» suelto bajo el título), y su lista se abre bajo el botón. */}
-          {sePuedeCancelar && (
-            <MenuAcciones etiqueta="Más acciones de este envío" guia="recepcion.cancelar" redondo items={[{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }]} />
-          )}
+          {accionesDelEnvio.length > 0 && <MenuAcciones etiqueta="Más acciones de este envío" guia="recepcion.cancelar" redondo items={accionesDelEnvio} />}
         </div>
       </EncabezadoPagina>
 
@@ -412,6 +419,11 @@ export function RecibirContando({
 
       {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && (
         <ContarEnvio
+          onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
+          veDinero={veDinero}
+          veExistencias={veExistencias}
+          esperandoGuardar={pendientesDeGuardar}
+          onSalida={() => void releer()}
           detalle={detalle}
           lineas={lineas}
           conteos={conteos}
@@ -506,6 +518,20 @@ export function RecibirContando({
       )}
 
       {avisoSalida.aviso}
+      {corrigiendo && proveedorActual && (
+        <CorregirProveedor
+          detalle={detalle}
+          actual={proveedorActual}
+          proveedores={proveedoresParaElegir}
+          responsable={responsable}
+          onCorregido={() => {
+            setCorrigiendo(false);
+            router.refresh();
+            void releer();
+          }}
+          onCerrar={() => setCorrigiendo(false)}
+        />
+      )}
       {cancelando && (
         <CancelarRecepcion
           detalle={{ ...detalle, version }}

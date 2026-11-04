@@ -793,9 +793,10 @@ describe("formidable 2026-10-13: el veredicto al cerrar y lo que pasa al cerrar"
   it("cambio 3: al cerrar, cuántas se pueden vender ya y cuántas quedan guardadas", () => {
     const l = extra({ contadas: 5, en_stock: 0, sin_separar: 5 });
     expect(resumenDelCierre([l])).toEqual({ sePuedenVender: 0, guardadas: 5 });
-    expect(textoResumenDelCierre({ sePuedenVender: 0, guardadas: 5 })).toBe("Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.");
-    expect(textoResumenDelCierre({ sePuedenVender: 1, guardadas: 1 })).toBe("Al cerrar: 1 se puede vender ya · 1 queda guardada para terminar después.");
-    expect(textoResumenDelCierre({ sePuedenVender: 4, guardadas: 0 })).toBe("Al cerrar: 4 se pueden vender ya.");
+    expect(textoResumenDelCierre({ sePuedenVender: 0, guardadas: 0 })).toBe("Al cerrar: todavía no hay nada contado.");
+    expect(textoResumenDelCierre({ sePuedenVender: 0, guardadas: 5 })).toBe("Al cerrar: 5 quedan guardadas para terminar después.");
+    expect(textoResumenDelCierre({ sePuedenVender: 1, guardadas: 1 })).toBe("Al cerrar: 1 queda en el almacén; bájalas al piso para venderlas · 1 queda guardada para terminar después.");
+    expect(textoResumenDelCierre({ sePuedenVender: 4, guardadas: 0 })).toBe("Al cerrar: 4 quedan en el almacén; bájalas al piso para venderlas.");
   });
 });
 

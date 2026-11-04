@@ -97,7 +97,7 @@ const VENTANA_VARIANTES = 1000;
 const NOMBRES_POR_TANDA = 1000;
 
 /** Los nombres de las prendas de cada categoría, en tandas (la API corta en 1 000 filas). Un fallo no tumba el alta: vacío. */
-async function getNombresPorCategoria(): Promise<Record<string, string[]>> {
+export async function getNombresPorCategoria(): Promise<Record<string, string[]>> {
   const supabase = await createClient();
   const salida: Record<string, string[]> = {};
   for (let desde = 0; ; desde += NOMBRES_POR_TANDA) {

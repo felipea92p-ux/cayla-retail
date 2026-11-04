@@ -7,7 +7,13 @@ import {
   borradorInicial,
   buenasDeRecibidos,
   buenasPorVariante,
+  camposDelPaso,
   camposDePrenda,
+  nombreDeLaHoja,
+  nombreInicialDeLaHoja,
+  PASOS_PRENDA,
+  pasoAbrible,
+  primerPasoConFalta,
   camposDeRecepcion,
   combinacionesDeLaHoja,
   confirmadasDe,
@@ -790,12 +796,62 @@ describe("la hoja «Es nueva»", () => {
     expect(camposDePrenda(listo, { ...CTX_NUEVA, tallas: [] }).some((c) => c.id === "prenda-tallas")).toBe(false);
   });
 
-  it("si la familia los pide, tejido y patrón de la categoría; sin ellos habilitados, lo dice", () => {
+  it("tejido y patrón se preguntan pero nunca frenan, aunque la familia los exija (Felipe 2026-11-03)", () => {
     const ctx: ContextoPrenda = { ...CTX_NUEVA, exigeTejidoPatron: true, tejidos: [{ id: "tj", texto: "Algodón" }], patrones: [] };
-    const b = { ...borradorDePrenda(ctx), nombre: "Chompa", tallaIds: ["t-m"], precio: "50", tejidoId: "tj" };
-    const pendientes = camposDePrenda(b, ctx).filter((c) => c.requerido && !c.hecho);
-    expect(pendientes.map((c) => c.id)).toEqual(["prenda-patron"]);
-    expect(pendientes[0]!.pendiente).toMatch(/no tiene patrones habilitados/);
+    const b = { ...borradorDePrenda(ctx), nombre: "Chompa", tallaIds: ["t-m"], precio: "50" };
+    const campos = camposDePrenda(b, ctx);
+    expect(campos.filter((c) => c.requerido && !c.hecho)).toEqual([]);
+    expect(campos.find((c) => c.id === "prenda-tejido")).toMatchObject({ requerido: false, hecho: false });
+    expect(campos.find((c) => c.id === "prenda-patron")).toMatchObject({ requerido: false, hecho: false });
+    expect(camposDePrenda({ ...b, tejidoId: "tj" }, ctx).find((c) => c.id === "prenda-tejido")?.hecho).toBe(true);
+    // Sin que la familia los pida ni la categoría los ofrezca, no se preguntan.
+    expect(camposDePrenda(b, CTX_NUEVA).some((c) => c.id === "prenda-tejido" || c.id === "prenda-patron")).toBe(false);
+    // Lo que la categoría ofrece se pregunta aunque la familia no lo exija.
+    expect(camposDePrenda(b, { ...CTX_NUEVA, tejidos: [{ id: "tj", texto: "Algodón" }] }).some((c) => c.id === "prenda-tejido")).toBe(true);
+  });
+
+  it("lo elegido se manda aunque la familia no lo exija; lo no elegido va vacío", () => {
+    const base = { despachoId: "e", despachoItemId: "di", categoriaId: "c", marcaId: "m", productoId: null, confirmoDistinto: false, token: "t" };
+    const b = { ...borradorDePrenda(CTX_NUEVA), nombre: "Chompa", tallaIds: ["t-m"], precio: "50" };
+    expect(argsPrepararPrenda({ ...b, tejidoId: "tj", patronId: "pt" }, CTX_NUEVA, base)).toMatchObject({ p_tejido_id: "tj", p_patron_id: "pt" });
+    expect(argsPrepararPrenda(b, { ...CTX_NUEVA, exigeTejidoPatron: true }, base)).toMatchObject({ p_tejido_id: null, p_patron_id: null });
+  });
+
+  it("va por los pasos de Nuevo producto: cómo es, tallas y colores, precio", () => {
+    const ctx: ContextoPrenda = { ...CTX_NUEVA, exigeTejidoPatron: true };
+    const campos = camposDePrenda(borradorDePrenda(ctx), ctx);
+    expect(camposDelPaso(campos, 1).map((c) => c.id)).toEqual(["prenda-tejido", "prenda-patron", "prenda-descripcion", "prenda-nombre"]);
+    expect(camposDelPaso(campos, 2).map((c) => c.id)).toEqual(["prenda-tallas", "prenda-colores"]);
+    expect(camposDelPaso(campos, 3).map((c) => c.id)).toEqual(["prenda-precio"]);
+    // Ningún campo se queda fuera de un paso.
+    expect(PASOS_PRENDA.flatMap((p) => camposDelPaso(campos, p.numero)).length).toBe(campos.length);
+  });
+
+  it("cada paso sabe lo que le falta, y solo se abre si los anteriores no tienen nada pendiente", () => {
+    const vacio = camposDePrenda(borradorDePrenda(CTX_NUEVA), CTX_NUEVA);
+    expect(primerPasoConFalta(vacio)).toBe(1);
+    expect(pasoAbrible(vacio, 1)).toBe(true);
+    expect(pasoAbrible(vacio, 2)).toBe(false);
+    const conNombre = camposDePrenda({ ...borradorDePrenda(CTX_NUEVA), nombre: "Chompa" }, CTX_NUEVA);
+    expect(primerPasoConFalta(conNombre)).toBe(2);
+    expect(pasoAbrible(conNombre, 2)).toBe(true);
+    expect(pasoAbrible(conNombre, 3)).toBe(false);
+    const todo = camposDePrenda({ ...borradorDePrenda(CTX_NUEVA), nombre: "Chompa", tallaIds: ["t-m"], precio: "50" }, CTX_NUEVA);
+    expect(primerPasoConFalta(todo)).toBeNull();
+    // El precio sugerido por quien compró no bloquea: la luz pasa por él, nada más.
+    expect(primerPasoConFalta(camposDePrenda({ ...borradorDePrenda(CTX_NUEVA, { precioSugerido: 59.9 }), nombre: "Chompa", tallaIds: ["t-m"] }, CTX_NUEVA))).toBeNull();
+  });
+
+  it("lo escrito al contar arranca la caja del nombre, partido en el tipo y lo demás", () => {
+    expect(nombreInicialDeLaHoja("Polo a rayas", ["Polo"])).toEqual({ tipo: "Polo", propio: "a rayas" });
+    expect(nombreDeLaHoja("Polo", "a rayas")).toBe("Polo a Rayas");
+    // Lo que no empieza con un tipo de la categoría va a mano, entero.
+    expect(nombreInicialDeLaHoja("Evaluna", ["Polo"])).toEqual({ tipo: "", propio: "Evaluna" });
+    expect(nombreDeLaHoja("", "Evaluna")).toBe("Evaluna");
+    // Sin nada escrito, la caja arranca con el primer tipo y no hay nombre todavía.
+    expect(nombreInicialDeLaHoja(null, ["Blusa", "Camisa"])).toEqual({ tipo: "Blusa", propio: "" });
+    expect(nombreDeLaHoja("Blusa", "  ")).toBe("");
+    expect(nombreInicialDeLaHoja("  ", [])).toEqual({ tipo: "", propio: "" });
   });
 
   it("el precio de venta: obligatorio y mayor que 0 al crear; opcional al sumar tallas o colores", () => {

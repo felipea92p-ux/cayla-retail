@@ -9,6 +9,7 @@
 // que todavía no es de ningún modelo (lo contado antes de esto, o un envío sin modelos anotados) sigue siendo «sin identificar» y sigue frenando
 // el paso a «Cerrar», igual que antes.
 
+import { existentesParecidos } from "./atributo-parecido";
 import {
   anotadasDelGrupo,
   lineaDeLaPrenda,
@@ -305,6 +306,31 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
   });
 }
 
+/**
+ * Lo que un cierre anterior ya metió al stock, por prenda (Felipe 2026-11-03). Al reabrir, lo separado queda vacío: sin esto, esas prendas desaparecían de
+ * la lista y parecía que hubiera que volver a contarlas. Se ven con candado; lo que ya es un modelo de la lista con su cifra en el stock no se repite.
+ */
+export function yaEnStockDelEnvio(
+  recibidos: readonly { prenda: string | null; cantidad: number; talla?: string | null; color?: string | null }[] | null,
+  modelos: readonly Pick<ModeloDelConteo, "nombre" | "enStock">[] = [],
+): { prenda: string; cantidad: number; tallas: string }[] {
+  const yaSeVen = new Set(modelos.filter((m) => m.enStock > 0).map((m) => normaliza(m.nombre)));
+  const porPrenda = new Map<string, { prenda: string; cantidad: number; porTalla: Map<string, number> }>();
+  for (const r of recibidos ?? []) {
+    const nombre = r.prenda?.trim();
+    if (!nombre || r.cantidad <= 0 || yaSeVen.has(normaliza(nombre))) continue;
+    const clave = normaliza(nombre);
+    const fila = porPrenda.get(clave) ?? { prenda: nombre, cantidad: 0, porTalla: new Map<string, number>() };
+    fila.cantidad += r.cantidad;
+    const talla = [r.talla, r.color].filter(Boolean).join(" ");
+    if (talla) fila.porTalla.set(talla, (fila.porTalla.get(talla) ?? 0) + r.cantidad);
+    porPrenda.set(clave, fila);
+  }
+  return [...porPrenda.values()]
+    .map((f) => ({ prenda: f.prenda, cantidad: f.cantidad, tallas: [...f.porTalla].map(([t, n]) => `${t}: ${n}`).join(" · ") }))
+    .sort((a, b) => a.prenda.localeCompare(b.prenda, "es"));
+}
+
 /** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */
 export const paradaDelNombre = (c: CategoriaDelEnvio, nombre: string): ParadaDelConteo | null => c.paradas.find((p) => p.modelo && normaliza(p.modelo.nombre) === normaliza(nombre)) ?? null;
 
@@ -321,10 +347,6 @@ export function nombrePorDefecto(prenda: string, c: Pick<CategoriaDelEnvio, "par
   while (usados.has(normaliza(`${prenda} ${n}`))) n += 1;
   return `${prenda} ${n}`;
 }
-
-/** Los modelos contados que siguen con su nombre provisional: el envío no se cierra hasta cambiarlos. Uno en 0 no frena: se descarta al cerrar. */
-export const modelosSinNombre = (categorias: readonly CategoriaDelEnvio[]): ModeloDelConteo[] =>
-  categorias.flatMap((c) => c.paradas).flatMap((p) => (p.modelo?.porDefecto && p.modelo.contadas > 0 ? [p.modelo] : []));
 
 /** La marca que se sugiere para otro modelo: la de la categoría, si toda es de una sola. Con varias, o sin marca, no se adivina. */
 export function marcaSugeridaDelModelo(c: CategoriaDelEnvio): string {
@@ -683,7 +705,8 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
     }
     for (const p of c.paradas) {
       if (p.modelo?.porDefecto && p.modelo.contadas > 0) {
-        campos.push({ id: idCampoParada(p), nombre: `El nombre de ${p.modelo.nombre}`, requerido: true, hecho: false, pendiente: `Cambia el nombre de ${p.modelo.nombre}: sin eso no se cierra el envío.` });
+        // Conviene, no frena (Felipe 2026-11-03): cierra y queda pendiente; sin nombre no se puede crear ni vender.
+        campos.push({ id: idCampoParada(p), nombre: `El nombre de ${p.modelo.nombre}`, requerido: false, sugerido: true, hecho: false, pendiente: `Ponle su nombre a ${p.modelo.nombre}, si ya lo sabes: sin él no se puede vender.` });
         continue;
       }
       if (!p.modelo || p.modelo.estado === "fuera" || p.modelo.estado === "contado") continue;
@@ -704,4 +727,17 @@ export function camposDelConteoPorModelo(categorias: readonly CategoriaDelEnvio[
     }
     return campos;
   });
+}
+
+/**
+ * Lo que se le muestra a quien agrega un modelo (Felipe 2026-11-03): lo que trae lo escrito, y `pregunta`, la prenda que se llama igual o casi igual. Esa no se deja pasar en silencio:
+ * o es esa, o la persona dice que es otra. Cuántas muestra lo decide la pantalla; lo que no se parece no sale (antes salía todo lo que compartía la categoría).
+ */
+export function parecidasDelNombre<P extends { productoId: string; nombre: string; coincide?: boolean }>(texto: string, prendas: readonly P[]): { aLaVista: P[]; pregunta: P | null } {
+  const porNombre = existentesParecidos(texto, prendas.map((p) => ({ id: p.productoId, nombre: p.nombre })));
+  const ids = new Set(porNombre.map((c) => c.id));
+  return {
+    aLaVista: prendas.filter((p) => p.coincide || ids.has(p.productoId)),
+    pregunta: prendas.find((p) => p.productoId === porNombre[0]?.id) ?? null,
+  };
 }

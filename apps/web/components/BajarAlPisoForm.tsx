@@ -263,7 +263,7 @@ export function BajarAlPisoForm({
   const hayEscaneadas = resumen.prendas > 0;
   const motivo = !hayEscaneadas
     ? lineas.length > 0
-      ? "Escanea cada prenda de la lista al colgarla: solo se baja lo escaneado."
+      ? "Escanea cada prenda al colgarla, o usa el + si todavía no tiene etiqueta: solo se baja lo marcado."
       : "Escanea al menos una prenda."
     : lineas.length > MAX_LINEAS_BAJADA
         ? `Una bajada admite hasta ${MAX_LINEAS_BAJADA} prendas distintas y esta lista tiene ${lineas.length}: quita ${lineas.length - MAX_LINEAS_BAJADA} y bájalas en otra.`

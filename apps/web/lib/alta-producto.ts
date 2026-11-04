@@ -18,7 +18,7 @@ import { agruparPorFamilia } from "./colores-familias";
 import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 import { sinBlancosDeMiles } from "./numero-escrito";
 
-const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
+const CONECTORES = ["a", "de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
 /** Espejo de `retail.fn_titulo_referencia`: "  blusa  CAMILA " → "Blusa Camila". */
 export function tituloReferencia(texto: string): string {
@@ -26,7 +26,8 @@ export function tituloReferencia(texto: string): string {
   return palabras
     .map((p, i) => {
       const w = p.toLocaleLowerCase("es");
-      if (i > 0 && CONECTORES.includes(w)) return w;
+      // «a» solo si le sigue otra palabra: «Polo a Rayas», y «Blusa A» sigue igual.
+      if (i > 0 && CONECTORES.includes(w) && (w !== "a" || i < palabras.length - 1)) return w;
       return w.charAt(0).toLocaleUpperCase("es") + w.slice(1);
     })
     .join(" ");

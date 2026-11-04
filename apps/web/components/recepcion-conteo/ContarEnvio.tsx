@@ -8,6 +8,9 @@ import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
+import { CorregirSalida, LlevarAlStock, SalidaHecha } from "./LlevarAlStock";
+import { leerSalidasDelEnvio } from "@/lib/recepcion-conteo-acciones";
+import { loQueSale, ultimaSalidaDe, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { leerObservacionesDelEnvio } from "@/lib/recepcion-conteo-acciones";
@@ -38,6 +41,7 @@ import {
   renombrarModelo,
   agregarPrendaEnCero,
   marcaDeLinea,
+  contadasDe,
 } from "@/lib/recepcion-conteo-reglas";
 import {
   agruparLineas,
@@ -61,7 +65,6 @@ import {
   cifrasDelResumen,
   claveDeCategoria,
   claveDeNombre,
-  modelosSinNombre,
   sePuedeQuitarCategoria,
   claveDeParada,
   conMiles,
@@ -86,6 +89,8 @@ import {
   type OrdenDelConteo,
   type ParadaDelConteo,
   type TipoDeModelo,
+  modelosDelGrupo,
+  yaEnStockDelEnvio,
 } from "@/lib/recepcion-modelos-reglas";
 import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
@@ -118,7 +123,9 @@ type Hoja =
   // `tabla`: la abrió la tabla de la placa para crear lo que la prenda no tiene, y vuelve a ella.
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"] }
   // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
-  | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean }; parada: string }
+  | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string }
+  | { tipo: "corregir-salida"; salida: SalidaDelEnvio }
+  | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
@@ -160,10 +167,15 @@ export function ContarEnvio({
   prendas,
   papeles = [],
   alSubirFoto,
+  veDinero,
+  veExistencias,
+  esperandoGuardar,
+  onSalida,
   onPrendaVista,
   onEscribir,
   sinGuardar = 0,
   onReintentar,
+  onCancelarRecepcion,
   modos,
   onModos: setModos,
   tablas,
@@ -189,6 +201,12 @@ export function ContarEnvio({
   /** Los papeles de la compra: su botón va en el resumen. */
   papeles?: ComponentProps<typeof PapelesDeLaCompra>["papeles"];
   alSubirFoto?: ComponentProps<typeof PapelesDeLaCompra>["alSubirFoto"];
+  veDinero: boolean;
+  veExistencias: boolean;
+  /** Lo último que se escribió todavía viaja a la base. */
+  esperandoGuardar: boolean;
+  /** Algo salió al stock o se corrigió: se vuelve a leer lo contado y la página. */
+  onSalida: () => void;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onEscribir: (linea: LineaParaContar, cambio: Partial<Borrador>) => void;
@@ -196,6 +214,8 @@ export function ContarEnvio({
   sinGuardar?: number;
   /** Vuelve a mandar lo que no se pudo guardar. */
   onReintentar: () => void;
+  /** Sin aviso y sin nada en el stock: el envío se puede cancelar. */
+  onCancelarRecepcion?: () => void;
   /** De cada modelo: «solo la cantidad» o «tallas y colores ahora», y lo escrito en su tabla (viven en la pantalla: ir a Cerrar y volver no los borra). */
   modos: Readonly<Record<string, ModoDeTallas>>;
   onModos: Dispatch<SetStateAction<Readonly<Record<string, ModoDeTallas>>>>;
@@ -299,16 +319,15 @@ export function ContarEnvio({
   };
   const faltanIdentificar = gruposSinIdentificar(grupos);
   const proveedores = conteos?.proveedores ?? [];
-  const faltanNombres = modelosSinNombre(todas);
-  const puedeCerrar = visibles.length > 0 && faltanIdentificar.length === 0 && faltanNombres.length === 0;
-  const motivoNoCierra =
-    visibles.length === 0
-      ? "Primero agrega lo que llegó."
-      : faltanIdentificar.length > 0
-        ? `Falta identificar las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}`
-        : faltanNombres.length > 0
-          ? `Cambia el nombre de ${faltanNombres.map((m) => m.nombre).join(", ")}`
-          : undefined;
+  // Sin aviso, sin nada contado no hay recepción (la base tampoco la cierra): se cuenta o se cancela.
+  const nadaContado = sinAviso && visibles.length > 0 && visibles.every((l) => contadasDe(l) === 0);
+  const puedeCerrar = visibles.length > 0 && faltanIdentificar.length === 0 && !nadaContado;
+  // Lo que frena el cierre, todo a la vez: el botón apagado lo dice (`BotonCerrarConteo`).
+  const motivosNoCierra = [
+    ...(visibles.length === 0 ? ["Agrega lo que llegó"] : []),
+    ...(faltanIdentificar.length > 0 ? [`Identifica las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}`] : []),
+    ...(nadaContado ? ["Cuenta lo que llegó, o cancela la recepción"] : []),
+  ];
 
   function elegir(p: ParadaDelConteo, escribir = false) {
     const suya = claveDeCategoria(p.grupo);
@@ -422,7 +441,7 @@ export function ContarEnvio({
     const m = p.modelo;
     if (!m) return;
     if (modo === "ahora" && !m.productoId) {
-      setHoja({ tipo: "crear", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto }, parada: p.clave });
+      setHoja({ tipo: "crear", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto, nota: m.nota }, parada: p.clave });
       return;
     }
     const sep = prendaSeparada(p);
@@ -593,11 +612,22 @@ export function ContarEnvio({
   const sepDeLaParada = parada ? prendaSeparada(parada) : undefined;
   const prendaDeLaParada = parada?.modelo?.productoId ? (prendas.get(parada.modelo.productoId) ?? null) : null;
 
+  // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
+  const nRecibidos = detalle.recibidos?.length ?? 0;
+  const [salidas, setSalidas] = useState<SalidaDelEnvio[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    void leerSalidasDelEnvio(detalle.id).then((s) => vivo && setSalidas(s));
+    return () => {
+      vivo = false;
+    };
+  }, [detalle.id, nRecibidos]);
+
   return (
     <div className="rc-conteo">
       {reabierto && (
         <Aviso tono="info" titulo="Reabriste el envío">
-          Corrige lo que haga falta y vuelve a cerrarlo. Lo que ya entró al stock no se vuelve a contar ni se toca.
+          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale con candado, abajo a la izquierda, y desde ahí se corrige.
         </Aviso>
       )}
       {proveedorPorConfirmar && (
@@ -611,6 +641,8 @@ export function ContarEnvio({
 
       <div ref={mesa} className="rc-mesa">
         <ListaDelEnvio
+            yaEnStock={yaEnStockDelEnvio(detalle.recibidos, categorias.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))).map((y) => ({ ...y, salida: ultimaSalidaDe(salidas, y.prenda) }))}
+            onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
           categorias={categorias}
           enFoco={parada}
           alternadas={alternadas}
@@ -682,7 +714,8 @@ export function ContarEnvio({
               siguiente={siguiente}
               hayFiltroPuesto={hayFiltro(filtro)}
               puedeCerrar={puedeCerrar}
-              motivoNoCierra={motivoNoCierra}
+              motivosNoCierra={motivosNoCierra}
+              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
               filaSeguir={filaSeguir}
               onPoner={(n) => escribirEnParada(parada, n)}
               onAnterior={(e) => pasarA(anterior, e.timeStamp)}
@@ -722,6 +755,43 @@ export function ContarEnvio({
                   />
                 ) : null
               }
+              llevarAlStock={
+                parada.modelo && sepDeLaParada && prendaDeLaParada && modoDe(parada) === "ahora" ? (() => {
+                  const tabla = tablas[parada.clave] ?? borradorDeTallas(prendaDeLaParada, coloresOrden, tallasDeLaCategoria(grupo), sepDeLaParada.variantes);
+                  const unidades = loQueSale(sumasDe(tabla.conteo, prendaDeLaParada), sepDeLaParada.cantidad, tabla.conteo.conDanadas && sumasDe(tabla.conteo, prendaDeLaParada).danadas > 0 && !tabla.conteo.arreglo);
+                  const linea = lineaDeLaPrenda(grupo, { productoId: sepDeLaParada.productoId });
+                  if (unidades === 0 || !linea?.conteo) return null;
+                  return (
+                    <LlevarAlStock
+                      key={parada.clave}
+                      despachoId={detalle.id}
+                      unidades={unidades}
+                      nombre={parada.modelo.nombre}
+                      sede={detalle.sede?.nombre ?? "esta sede"}
+                      sedeId={detalle.sede?.id ?? null}
+                      linea={linea}
+                      productoId={sepDeLaParada.productoId}
+                      variantes={variantesDeConteo(tabla.conteo, prendaDeLaParada)}
+                      sinAviso={sinAviso}
+                      veDinero={veDinero}
+                      responsable={responsable}
+                      esperandoGuardar={esperandoGuardar}
+                      onConteoCambiado={onSalida}
+                      onHecho={(r) => {
+                        const clave = parada.clave;
+                        const nombre = parada.modelo?.nombre ?? "la prenda";
+                        setTablas((t) => {
+                          const { [clave]: _sale, ...resto } = t;
+                          return resto;
+                        });
+                        setHoja({ tipo: "salida-hecha", resultado: r, nombre });
+                        void leerSalidasDelEnvio(detalle.id).then(setSalidas);
+                        onSalida();
+                      }}
+                    />
+                  );
+                })() : null
+              }
             />
           )}
         </section>
@@ -742,10 +812,12 @@ export function ContarEnvio({
           }
           sinGuardar={sinGuardar}
           onReintentar={onReintentar}
+          onCancelarRecepcion={nadaContado ? onCancelarRecepcion : undefined}
           alCerrar={onCerrar}
           textoAlCerrar={textoResumenDelCierre(resumenDelCierre(visibles))}
           puedeCerrar={puedeCerrar}
-          motivoNoCierra={motivoNoCierra}
+          motivosNoCierra={motivosNoCierra}
+              onIrALoQueFalta={() => guia.faltan[0] && guia.ir(guia.faltan[0].id)}
           onFiltroEstado={(e: EstadoDelResumen | null) => cambiarFiltro({ ...filtro, estado: e, tipo: null })}
         />
       </div>
@@ -808,12 +880,28 @@ export function ContarEnvio({
         />
       )}
 
+      {hoja?.tipo === "salida-hecha" && <SalidaHecha resultado={hoja.resultado} nombre={hoja.nombre} veExistencias={veExistencias} onCerrar={() => setHoja(null)} />}
+      {hoja?.tipo === "corregir-salida" && (
+        <CorregirSalida
+          salida={hoja.salida}
+          responsable={responsable}
+          onCerrar={() => setHoja(null)}
+          onHecho={() => {
+            avisar.exito(`Corregiste ${hoja.salida.prenda}`, { detalle: "Salieron del almacén y volvieron a lo contado." });
+            setHoja(null);
+            void leerSalidasDelEnvio(detalle.id).then(setSalidas);
+            onSalida();
+          }}
+        />
+      )}
+
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
-          // Lo que se describió al contar se ofrece como nombre, igual que con «Crear ahora» de «Para después».
-          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), descripcionOrden: (hoja.nueva.porDefecto ? "" : hoja.nueva.descripcion) || (lineaDeHoja.linea?.descripcion ?? null) }}
+          // Lo escrito al contar ya llena la hoja, igual que con «Crear ahora» de «Para después». Un nombre provisional («Blusa 1») no: aquí se le pone el de verdad.
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), nombreEscrito: hoja.nueva.porDefecto ? null : hoja.nueva.descripcion, nota: hoja.nueva.nota, descripcionOrden: sinAviso ? null : (lineaDeHoja.linea?.descripcion ?? null) }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
+          vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
           onUsarExistente={async (productoId, nombre) => {
@@ -833,6 +921,7 @@ export function ContarEnvio({
           destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length), pedidas: hoja.pedidas }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
+          vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => {
             if (hoja.tabla) return volverATabla(hoja.parada, grupoDeHoja, hoja.prenda, prenda);

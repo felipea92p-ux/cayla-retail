@@ -93,20 +93,14 @@ export function juntarSeparado(partes: readonly Separado[]): Separado {
  * Qué hacer con lo que se quiere agregar a la lista:
  * · `dentro`: ya está esa categoría con esa marca (vacía = sin marca) y, si el envío trae varios proveedores, de ese proveedor (`proveedorId` null: no hace falta distinguirlo). Un modelo
  *   más no es otra línea: se anota dentro de la que ya está.
- * · `otra-marca`: la marca se dejó vacía y esa categoría ya está con marca. Puede ser un olvido o una prenda que de verdad no la tiene: lo decide la persona, y nunca se abre otra línea sin avisar.
- * · `nueva`: es otra línea.
+ * · `nueva`: es otra línea. Con la marca vacía también: cada modelo lleva su marca, y vacía es «no tiene» (Felipe 2026-11-03).
  */
-export type AlAgregar = { tipo: "dentro"; grupo: GrupoDeLineas } | { tipo: "otra-marca"; grupos: GrupoDeLineas[] } | { tipo: "nueva" };
+export type AlAgregar = { tipo: "dentro"; grupo: GrupoDeLineas } | { tipo: "nueva" };
 
 export function alAgregarALaLista(grupos: readonly GrupoDeLineas[], q: { proveedorId: string | null; categoriaId: string; marcaId: string | null }): AlAgregar {
   const deEsto = grupos.filter(({ principal: l }) => l.categoria?.id === q.categoriaId && (q.proveedorId === null || l.proveedor?.id === q.proveedorId));
   const misma = deEsto.find(({ principal: l }) => (l.marca?.id ?? null) === q.marcaId);
-  if (misma) return { tipo: "dentro", grupo: misma };
-  if (q.marcaId !== null || deEsto.length === 0) return { tipo: "nueva" };
-  // Una vez por marca: un envío puede traer la misma marca en varias líneas.
-  const porMarca = new Map<string | undefined, GrupoDeLineas>();
-  for (const g of deEsto) if (!porMarca.has(g.principal.marca?.id)) porMarca.set(g.principal.marca?.id, g);
-  return { tipo: "otra-marca", grupos: [...porMarca.values()] };
+  return misma ? { tipo: "dentro", grupo: misma } : { tipo: "nueva" };
 }
 
 /** Las categorías del envío, en el orden en que aparece su primera línea. */

@@ -11,6 +11,8 @@ import {
   RPC_ABRIR_DESPACHO,
   RPC_PREPARAR_PRENDA,
   RPC_PRENDAS_PARA_RECIBIR,
+  RPC_PARECIDAS_PARA_RECIBIR,
+  leerParecidasParaRecibir,
   RPC_RECIBIR_DESPACHO,
   RPC_RECIBIR_SIN_ENVIO,
   type ArgsPrepararPrenda,
@@ -70,6 +72,12 @@ export async function buscarPrendasParaRecibir(categoriaId: string, marcaId: str
     { p_categoria_id: categoriaId, p_marca_id: marcaId, p_busqueda: busqueda.trim() || null } as never,
   )) as unknown as Respuesta;
   return { prendas: error ? [] : leerPrendasParaRecibir(data), error: error ?? null };
+}
+
+/** Lo que se parece en TODAS las marcas de la categoría, para no crear una prenda repetida al recibir. Si no responde, se sigue sin ellas. */
+export async function buscarParecidasParaRecibir(categoriaId: string, busqueda: string): Promise<PrendaRecepcion[]> {
+  const { data, error } = (await createClient().rpc(RPC_PARECIDAS_PARA_RECIBIR as never, { p_categoria_id: categoriaId, p_busqueda: busqueda.trim() } as never)) as unknown as Respuesta;
+  return error ? [] : leerParecidasParaRecibir(data);
 }
 
 /** El detalle de un envío (`fn_envio_detalle`) leído desde el navegador: lo que trae, para la hoja «Detalle» de la lista de Recibir. Solo lee. */

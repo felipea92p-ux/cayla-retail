@@ -15,11 +15,13 @@
 // se lee con la costumbre del ERP (punto decimal, coma de miles; «12,50» sin punto es doce cincuenta: `leerNumero`).
 
 import { claveCelda, claveReferencia, construirCeldas, leerCantidad, tituloReferencia, type ColorAlta } from "./alta-producto";
+import type { ImagenesMuestra, ValorVocabulario } from "./catalogo-v2";
 import { leerCostosAtipicos, MOTIVOS_COSTO_ATIPICO, type CostoAtipico, type MotivoCostoAtipico } from "./costo-atipico-reglas";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { AccionDespues } from "./llegada-reglas";
+import { armarReferencia, separarNombre } from "./nombre-de-prenda";
 import { aTexto, leerNumero, textoParaBase } from "./orden-compra-alta";
 import { numeroEnvio, numeroOrdenCompra, type EstadoEnvio } from "./ordenes-compra-reglas";
 import { cubrirReposiciones, deudaDe, leerDeudasDelEnvio, opcionReposicion, pendienteDe, VALOR_REPOSICION, type DeudaDelEnvio, type PedidoReposicion } from "./nos-debe-reglas";
@@ -36,6 +38,7 @@ export const RPC_ENVIOS_POR_RECIBIR = "fn_envios_por_recibir";
 export const RPC_ENVIOS_POR_ABRIR = "fn_envios_por_abrir";
 export const RPC_ORDENES_DIRECTAS = "fn_ordenes_directas_por_recibir";
 export const RPC_PRENDAS_PARA_RECIBIR = "fn_prendas_para_recibir";
+export const RPC_PARECIDAS_PARA_RECIBIR = "fn_parecidas_para_recibir";
 /** Escrituras: abren el loader («guardado»). */
 export const RPC_ABRIR_DESPACHO = "abrir_despacho";
 export const RPC_RECIBIR_SIN_ENVIO = "recibir_orden_sin_envio";
@@ -523,6 +526,9 @@ export type PrendaRecepcion = {
   nueva: boolean;
   /** `pendiente`: la creó quien no edita el catálogo y un líder la revisa después (sigue pudiéndose recibir). */
   estadoAlta: string | null;
+  /** Solo en las parecidas: su marca (pueden ser de otra) y si lo escrito está en su nombre o su código. */
+  marca?: { id: string; nombre: string } | null;
+  coincide?: boolean;
 };
 
 function leerVariante(f: unknown): VarianteRecepcion | null {
@@ -561,6 +567,19 @@ export function leerPrendasParaRecibir(data: unknown): PrendaRecepcion[] {
   return lista(data)
     .map((f) => leerPrenda(f, false))
     .filter((p): p is PrendaRecepcion => p !== null);
+}
+
+/** Las parecidas de una categoría (`fn_parecidas_para_recibir`): como las prendas para recibir, con su marca y si coinciden. */
+export function leerParecidasParaRecibir(data: unknown): PrendaRecepcion[] {
+  return lista(data).flatMap((f) => {
+    const p = leerPrenda(f, false);
+    if (!p) return [];
+    const r = objeto(f);
+    const m = objeto(r?.marca);
+    const id = texto(m?.id);
+    const nombre = texto(m?.nombre);
+    return [{ ...p, marca: id && nombre ? { id, nombre } : null, coincide: r?.coincide === true }];
+  });
 }
 
 /**
@@ -1266,7 +1285,7 @@ export const TEXTO_QUIEN_COMPRO =
 /** Los avisos de la base de esta fase vienen ya en palabras de tienda (`hint` recepcion_*, recibir_*, envio_*, orden_*). Algunos llegan con
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
-const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden)_[a-z_]+$/;
+const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden|salida|corregir)_[a-z_]+$/;
 /** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4). La cara A (ADR-0393) lo llamó «Abrir el fardo» y el aviso se traducía; con
  *  varios fardos por envío que se abren por partes, «abrir el fardo» ya no decía qué hacía el botón y volvió a ser «Empezar a recibir»
  *  (ADR-0480, 2026-10-26). El texto vive en nueve lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se dice aquí, por su
@@ -1462,6 +1481,17 @@ export type CatalogoParaRecibir = {
   marcas: { id: string; nombre: string }[];
   /** Qué marca trae cada proveedor (`marca_proveedores`): en lo que no estaba en la guía, primero las del proveedor del envío. */
   vinculos: { marcaId: string; proveedorId: string }[];
+  /** Lo que piden las piezas de Nuevo producto; `null` si no se pudo leer: la hoja se queda con lo de la categoría. */
+  vocabulario: VocabularioParaRecibir | null;
+};
+
+/** Todo el vocabulario aprobado, sus imágenes y los nombres que ya usa cada categoría: lo mismo que lee Nuevo producto para sus piezas. */
+export type VocabularioParaRecibir = {
+  tallas: ValorVocabulario[];
+  tejidos: ValorVocabulario[];
+  patrones: ValorVocabulario[];
+  imagenes: ImagenesMuestra;
+  nombresPorCategoria: Record<string, string[]>;
 };
 
 export type BorradorPrenda = {
@@ -1486,6 +1516,10 @@ export type ContextoPrenda = {
   /** En «agregar»: las combinaciones que la prenda ya tiene (`claveCelda`). */
   existentes?: ReadonlySet<string>;
 };
+
+/** Se pregunta si la familia los pide o si la categoría ofrece alguno, como en Nuevo producto. Preguntar no es exigir: al recibir, siempre se puede seguir sin ellos. */
+export const pideTejido = (ctx: Pick<ContextoPrenda, "exigeTejidoPatron" | "tejidos">): boolean => ctx.exigeTejidoPatron || ctx.tejidos.length > 0;
+export const pidePatron = (ctx: Pick<ContextoPrenda, "exigeTejidoPatron" | "patrones">): boolean => ctx.exigeTejidoPatron || ctx.patrones.length > 0;
 
 /** Lo que viene puesto: en «nueva», las tallas habituales de la categoría y el precio que sugirió quien compró; en «agregar», lo que la
  *  prenda ya tiene (para ver qué se suma). */
@@ -1541,9 +1575,12 @@ export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: nu
 }
 
 /**
- * Los campos de la guía de la hoja, en su orden. Salen de lo que `crear_producto_con_variantes` rechaza (nombre con al menos una letra o un
- * número, talla habilitada en la categoría, precio mayor que 0 y hasta S/ 99 999.99, tejido y patrón si la familia los pide) más lo que Nuevo
- * producto también exige (al menos una talla si la categoría las tiene). Los colores son opcionales: sin color, la prenda va «Sin color».
+ * Los campos de la guía de la hoja, en el orden de sus pasos (`PASOS_PRENDA`). Salen de lo que `crear_producto_con_variantes` rechaza (nombre con
+ * al menos una letra o un número, talla habilitada en la categoría, precio mayor que 0 y hasta S/ 99 999.99) más lo que Nuevo producto también exige
+ * (al menos una talla si la categoría las tiene). Los colores son opcionales: sin color, la prenda va «Sin color».
+ *
+ * Tejido y patrón son opcionales al recibir (Felipe 2026-11-03), también donde la familia los exige: nadie tiene por qué saber la tela con la caja
+ * abierta, y una blusa de encaje salió marcada «Liso» por no poder decir «no sé». Se completan después en Editar producto.
  *
  * Las tallas arrancan sin marcar (Felipe 2026-10-13, /formidable): se marcan las que llegaron, y sin ninguna no se crea.
  * `tocados.precio` (ADR-0284 act. h): el precio que sugirió quien compró viene puesto, pero importa (es al que se vende). Mientras la persona
@@ -1554,6 +1591,10 @@ export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: 
   const campos: CampoDeGuia[] = [];
   const nueva = ctx.modo === "nueva";
   if (nueva) {
+    if (pideTejido(ctx)) campos.push({ id: "prenda-tejido", nombre: "Tejido", requerido: false, hecho: b.tejidoId !== "", pendiente: "" });
+    if (pidePatron(ctx)) campos.push({ id: "prenda-patron", nombre: "Patrón", requerido: false, hecho: b.patronId !== "", pendiente: "" });
+    const problemaDesc = b.descripcion.trim().length > TOPES_PRENDA.descripcion ? `La descripción va hasta ${TOPES_PRENDA.descripcion} letras.` : null;
+    campos.push({ id: "prenda-descripcion", nombre: "Detalle", requerido: problemaDesc !== null, hecho: b.descripcion.trim() !== "" && problemaDesc === null, pendiente: problemaDesc ?? "" });
     const nombre = b.nombre.trim();
     const problemaNombre = !nombre ? "Escribe el nombre de la prenda." : claveReferencia(nombre) === "" ? "El nombre necesita al menos una letra o un número." : null;
     campos.push({ id: "prenda-nombre", nombre: "Nombre", requerido: true, hecho: problemaNombre === null, pendiente: problemaNombre ?? "" });
@@ -1575,26 +1616,44 @@ export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: 
         ? { id: "prenda-precio", nombre: "Precio de venta", requerido: false, sugerido: true, hecho: false, pendiente: "Revisa el precio de venta: lo sugirió quien compró." }
         : { id: "prenda-precio", nombre: "Precio de venta", requerido: true, hecho: precio.problema === null, pendiente: precio.problema ?? "" },
     );
-    if (ctx.exigeTejidoPatron) {
-      campos.push({
-        id: "prenda-tejido",
-        nombre: "Tejido",
-        requerido: true,
-        hecho: ctx.tejidos.some((t) => t.id === b.tejidoId),
-        pendiente: ctx.tejidos.length === 0 ? "Esta categoría no tiene tejidos habilitados: pídele a un líder que los habilite en Catálogo ▸ Categorías." : "Elige el tejido.",
-      });
-      campos.push({
-        id: "prenda-patron",
-        nombre: "Patrón",
-        requerido: true,
-        hecho: ctx.patrones.some((p) => p.id === b.patronId),
-        pendiente: ctx.patrones.length === 0 ? "Esta categoría no tiene patrones habilitados: pídele a un líder que los habilite en Catálogo ▸ Categorías." : "Elige el patrón (si no tiene diseño, Liso).",
-      });
-    }
-    const problemaDesc = b.descripcion.trim().length > TOPES_PRENDA.descripcion ? `La descripción va hasta ${TOPES_PRENDA.descripcion} letras.` : null;
-    campos.push({ id: "prenda-descripcion", nombre: "Descripción", requerido: problemaDesc !== null, hecho: b.descripcion.trim() !== "" && problemaDesc === null, pendiente: problemaDesc ?? "" });
   }
   return campos;
+}
+
+/** Los pasos de «Crear la prenda»: los de Nuevo producto sin lo que aquí sobra. La categoría ya viene de la línea, y fotos, temporada e insignias se ponen después. */
+export const PASOS_PRENDA = [
+  { numero: 1, nombre: "Cómo es", nombreCorto: "Cómo es", titulo: "¿Cómo es?", campos: ["prenda-tejido", "prenda-patron", "prenda-descripcion", "prenda-nombre"] },
+  { numero: 2, nombre: "Tallas y colores", nombreCorto: "Tallas", titulo: "¿En qué tallas y colores?", campos: ["prenda-tallas", "prenda-colores"] },
+  { numero: 3, nombre: "Precio", nombreCorto: "Precio", titulo: "¿Cuánto cuesta?", campos: ["prenda-precio"] },
+] as const;
+
+const camposDelNumero = (numero: number): readonly string[] => PASOS_PRENDA.find((p) => p.numero === numero)?.campos ?? [];
+
+/** Los campos de un paso, en su orden. */
+export const camposDelPaso = (campos: readonly CampoDeGuia[], numero: number): CampoDeGuia[] => campos.filter((c) => camposDelNumero(numero).includes(c.id));
+
+/** ¿A este paso le falta algo que bloquea? Lo sugerido (el precio por revisar) no bloquea. */
+export const pasoConFalta = (campos: readonly CampoDeGuia[], numero: number): boolean => camposDelPaso(campos, numero).some((c) => c.requerido && !c.hecho);
+
+/** El primer paso al que le falta algo: al crear, se vuelve ahí si la persona saltó de paso con los puntos de arriba. */
+export const primerPasoConFalta = (campos: readonly CampoDeGuia[]): number | null => PASOS_PRENDA.find((p) => pasoConFalta(campos, p.numero))?.numero ?? null;
+
+/** Un paso se abre si los anteriores no tienen nada pendiente. */
+export const pasoAbrible = (campos: readonly CampoDeGuia[], numero: number): boolean => PASOS_PRENDA.filter((p) => p.numero < numero).every((p) => !pasoConFalta(campos, p.numero));
+
+/** El nombre que arma la caja: el tipo fijo más lo escrito (`tipo` vacío = nombre completo a mano). Sin nada escrito no hay nombre: el tipo solo no basta. */
+export function nombreDeLaHoja(tipo: string, propio: string): string {
+  const escrito = propio.trim();
+  if (!escrito) return "";
+  return tipo ? armarReferencia(tipo, escrito) : escrito;
+}
+
+/** Cómo arranca la caja del nombre: lo escrito al contar, partido en tipo y resto. «Polo a rayas» en Polos es «Polo» + «a rayas». Lo que no empieza con un tipo de la categoría va a mano. */
+export function nombreInicialDeLaHoja(escrito: string | null | undefined, tipos: readonly string[]): { tipo: string; propio: string } {
+  const texto = escrito?.trim() ?? "";
+  if (!texto) return { tipo: tipos[0] ?? "", propio: "" };
+  const { tipo, propio } = separarNombre(texto, tipos);
+  return tipo ? { tipo, propio } : { tipo: "", propio: texto };
 }
 
 export type ArgsPrepararPrenda = {
@@ -1647,8 +1706,8 @@ export function argsPrepararPrenda(
     p_variantes: combinacionesDeLaHoja(b, ctx),
     p_precio: precio == null ? null : precio / 100,
     p_descripcion: nueva && descripcion ? descripcion : null,
-    p_tejido_id: nueva && ctx.exigeTejidoPatron && b.tejidoId ? b.tejidoId : null,
-    p_patron_id: nueva && ctx.exigeTejidoPatron && b.patronId ? b.patronId : null,
+    p_tejido_id: nueva && b.tejidoId ? b.tejidoId : null,
+    p_patron_id: nueva && b.patronId ? b.patronId : null,
     p_confirmo_distinto: o.confirmoDistinto,
     p_token: o.token,
     p_proveedor_id: o.despachoItemId ? null : o.proveedorId || null,

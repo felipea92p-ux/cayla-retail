@@ -87,6 +87,11 @@ export function EnviosDeOrden({ orden }: { orden: DetalleOrden }) {
               <span className={`${CIFRA} text-tinta`}>{e.unidades.toLocaleString("es-PE")}</span>
               <span className="min-w-0">
                 <Chip tono={estado.tono}>{estado.texto}</Chip>
+                {e.estado === "abierto" && !!e.enStock && (
+                  <span className="text-sm text-taupe">
+                    {e.enStock.toLocaleString("es-PE")} de {e.unidades.toLocaleString("es-PE")} ya en stock · se sigue contando
+                  </span>
+                )}
               </span>
               <span className="min-w-0 @min-[44rem]:text-right">
                 {sePuedeAnularEnvio(e) && (

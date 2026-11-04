@@ -457,6 +457,7 @@ export function FormularioRecepcion({
           destino={hoja.destino}
           categoria={catalogo?.categorias.find((c) => c.id === hoja.destino.categoriaId) ?? null}
           colores={colores}
+          vocabulario={catalogo?.vocabulario ?? null}
           responsable={responsable}
           onListo={(prenda) => {
             const { objetivo, destino } = hoja;

@@ -23,7 +23,6 @@ import {
   modelosDelGrupo,
   hayQueIdentificar,
   modeloSeQuita,
-  modelosSinNombre,
   nombrePorDefecto,
   nombreDeParada,
   opcionesDelFiltro,
@@ -40,6 +39,8 @@ import {
   textoDeCosto,
   paradaDelNombre,
   marcaSugeridaDelModelo,
+  parecidasDelNombre,
+  yaEnStockDelEnvio,
 } from "./recepcion-modelos-reglas";
 import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
@@ -212,18 +213,18 @@ describe("paradas: lo que el Dial puede contar", () => {
     expect(modelosDelGrupo(g).find((m) => m.nombre === "Vestido Mar")?.estado).toBe("fuera");
   });
 
-  it("un nombre por defecto: el primer número libre; contado no deja cerrar, en 0 no frena, y al renombrarlo se libera", () => {
+  it("un nombre por defecto: el primer número libre; contado conviene cambiarlo, pero no frena, y al renombrarlo se libera", () => {
     const nuevas = [{ cantidad: 2, descripcion: "Vestido 1", porDefecto: true, nota: "con lazo" }, { cantidad: 0, descripcion: "Vestido 3", porDefecto: true }];
     const extra = (s: Separado): LineaParaContar => ({ ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s), separado: { prendas: [], nuevas: [] } }), clave: "extra:1", linea: null, dijeron: null, conteo: { ...deLaGuia(linea("x", 0), { contadas: totalSeparado(s) }).conteo!, separado: s } });
     const c = categoriasDelEnvio(agruparLineas([extra({ prendas: [], nuevas })]));
     expect(nombrePorDefecto("Vestido", c[0])).toBe("Vestido 2");
     expect(nombrePorDefecto("Vestido", null)).toBe("Vestido 1");
-    expect(modelosSinNombre(c).map((m) => m.nombre)).toEqual(["Vestido 1"]);
     expect(c[0].paradas[0].modelo?.nota).toBe("con lazo");
-    expect(camposDelConteoPorModelo(c).filter((x) => x.requerido && !x.hecho).map((x) => x.nombre)).toContain("El nombre de Vestido 1");
+    const campoNombre = camposDelConteoPorModelo(c).find((x) => x.nombre === "El nombre de Vestido 1");
+    expect(campoNombre).toMatchObject({ requerido: false, sugerido: true, hecho: false });
     const renombrado = renombrarModelo({ prendas: [], nuevas }, "vestido 1", { nombre: " Vestido  Luna ", nota: null });
     expect(renombrado.nuevas[0]).toEqual({ cantidad: 2, descripcion: "Vestido Luna" });
-    expect(modelosSinNombre(categoriasDelEnvio(agruparLineas([extra(renombrado)])))).toEqual([]);
+    expect(camposDelConteoPorModelo(categoriasDelEnvio(agruparLineas([extra(renombrado)]))).some((x) => x.nombre.startsWith("El nombre de"))).toBe(false);
   });
 
   it("el tacho: solo en lo que agregó quien cuenta; al quitarlo baja lo contado", () => {
@@ -974,5 +975,45 @@ describe("quitar una categoría entera (ADR-0605)", () => {
     expect(sePuedeQuitarCategoria(conGuia)).toBe(false);
     expect(sePuedeQuitarCategoria({ grupos: [{ ...soloFuera.grupos[0], enStock: 1 }] })).toBe(false);
     expect(sePuedeQuitarCategoria({ grupos: [] })).toBe(false);
+  });
+});
+
+describe("parecidasDelNombre: antes de crear una repetida", () => {
+  const sofia = { productoId: "a", nombre: "Vestido Sofía", coincide: false };
+  const antonella = { productoId: "b", nombre: "Vestido Antonella", coincide: false };
+  const blusa = { productoId: "c", nombre: "Blusa Lara", coincide: true };
+  it("el nombre igual, o casi igual, pregunta", () => {
+    expect(parecidasDelNombre("Vestido Sofía", [sofia, antonella]).pregunta).toBe(sofia);
+    expect(parecidasDelNombre("vestido sofia", [sofia, antonella]).pregunta).toBe(sofia);
+    expect(parecidasDelNombre("Vestidos Sofía", [sofia, antonella]).pregunta).toBe(sofia);
+  });
+  it("otro nombre no pregunta, y lo que solo comparte la categoría no sale", () => {
+    const r = parecidasDelNombre("Vestido Luna", [sofia, antonella]);
+    expect(r.pregunta).toBeNull();
+    expect(r.aLaVista).toEqual([]);
+  });
+  it("lo que trae lo escrito sale, sin preguntar", () => {
+    const r = parecidasDelNombre("Lar", [blusa]);
+    expect(r.aLaVista).toEqual([blusa]);
+    expect(r.pregunta).toBeNull();
+  });
+});
+
+describe("yaEnStockDelEnvio: lo que un cierre anterior ya metió al stock", () => {
+  const r = (prenda: string | null, cantidad: number) => ({ prenda, cantidad });
+  it("suma por prenda, sin importar la talla ni cómo se escribió", () => {
+    expect(yaEnStockDelEnvio([r("Polo Dalia", 2), r("polo dalia", 3), r("Blusa Rosa", 1)])).toEqual([
+      { prenda: "Blusa Rosa", cantidad: 1, tallas: "" },
+      { prenda: "Polo Dalia", cantidad: 5, tallas: "" },
+    ]);
+  });
+  it("sin recibidos o sin nombre no dibuja nada, y lo que ya se ve como modelo con su cifra no se repite", () => {
+    expect(yaEnStockDelEnvio(null)).toEqual([]);
+    expect(yaEnStockDelEnvio([r(null, 3), r("Polo", 0)])).toEqual([]);
+    expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 2 }])).toEqual([]);
+    expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 0 }])).toEqual([{ prenda: "Polo Dalia", cantidad: 2, tallas: "" }]);
+  });
+  it("dice qué tallas son", () => {
+    expect(yaEnStockDelEnvio([{ prenda: "Polo", cantidad: 2, talla: "M", color: "Rojo" }, { prenda: "Polo", cantidad: 1, talla: "M", color: "Rojo" }, { prenda: "Polo", cantidad: 4, talla: "L", color: null }])[0].tallas).toBe("M Rojo: 3 · L: 4");
   });
 });

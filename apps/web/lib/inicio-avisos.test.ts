@@ -403,3 +403,16 @@ describe("armarEquipo", () => {
     expect(e.find((m) => m.personaId === "m")!.monto).toBe(50);
   });
 });
+
+describe("envíos a medias", () => {
+  const e = (dias: number) => ({ id: "e1", numero: "ENV-000012", sede: "Lima", enStock: 12, contadas: 70, desde: new Date(Date.now() - dias * 86_400_000).toISOString() });
+  it("lleva a terminarlo, y a los 3 días es urgente", () => {
+    const a = avisosInicio({ enviosAMedias: [e(1)] }).find((x) => x.clave === "enviosAMedias");
+    expect(a).toMatchObject({ nivel: "toca", href: "/recibir/envio/e1", ahora: "Termina de contar ENV-000012" });
+    expect(avisosInicio({ enviosAMedias: [e(3)] }).find((x) => x.clave === "enviosAMedias")?.nivel).toBe("urgente");
+  });
+  it("sin envíos a medias o sin poder leerlos, no sale", () => {
+    expect(avisosInicio({ enviosAMedias: [] }).some((x) => x.clave === "enviosAMedias")).toBe(false);
+    expect(avisosInicio({ enviosAMedias: null }).some((x) => x.clave === "enviosAMedias")).toBe(false);
+  });
+});

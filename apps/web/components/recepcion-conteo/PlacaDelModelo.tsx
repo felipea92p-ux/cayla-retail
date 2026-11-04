@@ -4,6 +4,7 @@ import { type MouseEvent, type ReactNode, type Ref } from "react";
 import { ArrowLeft, ArrowRight, Ban, Banknote, Check, Package, RotateCcw, Sparkles, Tag } from "lucide-react";
 import { EtiquetaAhora } from "@/components/alta-producto/guia";
 import { Aviso } from "@/components/ui/Aviso";
+import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Chip } from "@/components/ui/Chip";
@@ -15,6 +16,7 @@ import { descripcionDelGrupo, sinIdentificarDelGrupo } from "@/lib/recepcion-gru
 import { conMiles, costoDeLaParada, lineasDeLaParada, nombreDeParada, textoDeCosto, tipoDeParada, type ParadaDelConteo } from "@/lib/recepcion-modelos-reglas";
 import type { ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EstadoModelo } from "./CategoriasAcordeon";
+import { BotonCerrarConteo } from "./BotonCerrarConteo";
 import { Dial } from "./Dial";
 import type { EstadoGuardado } from "./RecibirContando";
 
@@ -36,7 +38,8 @@ export function PlacaDelModelo({
   siguiente,
   hayFiltroPuesto,
   puedeCerrar,
-  motivoNoCierra,
+  motivosNoCierra,
+  onIrALoQueFalta,
   filaSeguir,
   onPoner,
   onDeUnToque,
@@ -51,6 +54,7 @@ export function PlacaDelModelo({
   identificar,
   onEditarNombre,
   tallas,
+  llevarAlStock,
 }: {
   parada: ParadaDelConteo;
   sinAviso: boolean;
@@ -67,7 +71,8 @@ export function PlacaDelModelo({
   siguiente: ParadaDelConteo | null;
   hayFiltroPuesto: boolean;
   puedeCerrar: boolean;
-  motivoNoCierra?: string;
+  motivosNoCierra: readonly string[];
+  onIrALoQueFalta: () => void;
   /** La fila de «Anterior» y «Listo, siguiente»: al apretar Enter en el último, el cursor va a su botón. */
   filaSeguir: Ref<HTMLDivElement>;
   /** La persona dejó este número: la pantalla lo guarda en la línea que le toca. */
@@ -90,6 +95,8 @@ export function PlacaDelModelo({
   onEditarNombre: () => void;
   /** La tabla de tallas y colores, cuando se pide. */
   tallas: ReactNode;
+  /** «Llevar al stock ahora»: el modelo sale sin cerrar el envío, cuando ya se repartió algo. */
+  llevarAlStock: ReactNode;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
@@ -210,8 +217,18 @@ export function PlacaDelModelo({
                 </button>
               )
             ) : (
-              modelo && (
-                <button type="button" className="rc-atajo rc-atajo-cero" data-hecho={noLlego ? "" : undefined} disabled={noLlego} onClick={() => poner(0)}>
+              // Sin aviso nadie dijo que venía: lo que no llegó, simplemente no se agrega.
+              modelo && !sinAviso && (
+                <button
+                  type="button"
+                  className="rc-atajo rc-atajo-cero"
+                  data-hecho={noLlego ? "" : undefined}
+                  disabled={noLlego}
+                  onClick={() => {
+                    poner(0);
+                    avisar.exito("Anotado: no llegó nada de este modelo");
+                  }}
+                >
                   <Ban aria-hidden className="h-4 w-4" />
                   No llegó nada
                 </button>
@@ -243,12 +260,7 @@ export function PlacaDelModelo({
               Es el último: ver todos
             </Boton>
           ) : (
-            <Boton type="button" peso="primario" disabled={!puedeCerrar} title={motivoNoCierra} onClick={onCerrar}>
-              <span className="inline-flex items-center gap-2">
-                Pasar a cerrar
-                <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
-              </span>
-            </Boton>
+            <BotonCerrarConteo peso="primario" puedeCerrar={puedeCerrar} motivos={motivosNoCierra} onCerrar={onCerrar} onIrALoQueFalta={onIrALoQueFalta} />
           )}
         </div>
       </div>
@@ -272,13 +284,14 @@ export function PlacaDelModelo({
         <div className="rc-seccion" data-guia="recepcion.que-hacer">
           <p className="rc-seccion-titulo">¿Qué deseas hacer?</p>
           <div className="rc-opciones" role="radiogroup" aria-label="¿Qué deseas hacer?">
-            {opcion("despues", "Solo la cantidad", "Queda guardada: no se vende hasta poner sus tallas.")}
-            {opcion("ahora", esNueva ? "Crearlo con sus tallas ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después, sus tallas." : "Con eso entra al stock al cerrar.")}
+            {opcion("despues", "Solo la cantidad", "Queda guardada: no se vende hasta terminarla.")}
+            {opcion("ahora", esNueva ? "Crearlo ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después repartes lo contado." : "Entra al stock al cerrar, o antes si tú la llevas.")}
           </div>
           {sinNumero && <p className="text-sm text-taupe">Primero cuenta cuántas llegaron. Después podrás poner tallas y colores.</p>}
         </div>
       )}
       {tallas}
+      {llevarAlStock}
     </div>
   );
 }

@@ -1945,15 +1945,29 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.pasar-a-cerrar",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      titulo: "Pasar a cerrar",
+      titulo: "Cerrar el conteo",
       texto: "Cuando todo está contado e identificado, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. Arriba del botón ves cuántas se podrán vender. En la demo no avanzamos.",
+    },
+    {
+      id: "llevar-al-stock",
+      ancla: "recepcion.llevar-al-stock",
+      requiere: ["recepcion.llevar-al-stock"],
+      titulo: "Sale ya, sin cerrar el envío",
+      texto: "Si unas prendas tienen que venderse ya, reparte sus tallas y llévalas al stock. Lo demás se sigue contando. Después puedes imprimir sus etiquetas y bajarlas al piso.",
+    },
+    {
+      id: "ya-en-stock",
+      ancla: "recepcion.ya-en-stock",
+      requiere: ["recepcion.ya-en-stock"],
+      titulo: "Lo que ya está en stock",
+      texto: "Lo que ya entró al stock sale aquí con candado y no se vuelve a contar. «Corregir» deshace lo que salió antes de cerrar, mientras siga en el almacén; si no, «Ajustar stock» te lleva a esa prenda.",
     },
     {
       id: "tabla-cierre",
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría, primero las que piden algo: lo que dijeron, lo que contaste, lo que se puede vender y lo que queda para después. Si no cuadró, eliges qué pasó. «Precio y costo» abre los de cada fila. Lo que decidas se guarda en este navegador hasta cerrar. En la demo no escribimos.",
+      texto: "Una fila por modelo, primero los que piden algo: cuánto llegó y su costo. Si algo no cuadra, debajo te pregunta qué pasó. Lo raro, un costo o un precio distinto por talla, se abre con «Cambiar por talla».",
     },
     {
       // Solo con muchas filas y más de una que no pide nada.

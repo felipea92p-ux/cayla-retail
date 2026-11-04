@@ -431,22 +431,15 @@ describe("alAgregarALaLista: otro modelo de lo que ya está en la lista no es ot
   });
 });
 
-describe("alAgregarALaLista: dejar la marca vacía no abre otra línea sin avisar", () => {
+describe("alAgregarALaLista: la marca vacía es «no tiene», y no se pregunta", () => {
   const ZARA = { id: "m-zara", nombre: "Zara" };
   const consulta = (categoriaId: string, marcaId: string | null, proveedorId: string | null = null) => ({ proveedorId, categoriaId, marcaId });
   const tipo = (grupos: ReturnType<typeof agruparLineas>, q: ReturnType<typeof consulta>) => alAgregarALaLista(grupos, q).tipo;
 
-  it("la categoría con marca y la marca vacía: pregunta, no crea otra línea", () => {
-    const grupos = agruparLineas([deLaGuia(linea("l1", 3))]);
-    const r = alAgregarALaLista(grupos, consulta(VESTIDOS.id, null));
-    expect(r.tipo).toBe("otra-marca");
-    expect(r.tipo === "otra-marca" && r.grupos.map((g) => g.principal.linea?.id)).toEqual(["l1"]);
-  });
-
-  it("con dos marcas de esa categoría, las dice las dos, una vez cada una", () => {
-    const grupos = agruparLineas([deLaGuia(linea("l1", 3)), deLaGuia(linea("l2", 3, { marca: ZARA })), deLaGuia(linea("l3", 3, { proveedor: OTRO_PROV }))]);
-    const r = alAgregarALaLista(grupos, consulta(VESTIDOS.id, null));
-    expect(r.tipo === "otra-marca" && r.grupos.map((g) => g.principal.marca?.nombre)).toEqual(["CAYLA", "Zara"]);
+  it("la categoría con marca y la marca vacía: es otra línea, con una marca o con varias", () => {
+    expect(tipo(agruparLineas([deLaGuia(linea("l1", 3))]), consulta(VESTIDOS.id, null))).toBe("nueva");
+    const conDos = agruparLineas([deLaGuia(linea("l1", 3)), deLaGuia(linea("l2", 3, { marca: ZARA })), deLaGuia(linea("l3", 3, { proveedor: OTRO_PROV }))]);
+    expect(tipo(conDos, consulta(VESTIDOS.id, null))).toBe("nueva");
   });
 
   it("si ya hay una línea sin marca de esa categoría, va dentro de ella aunque haya otra con marca", () => {

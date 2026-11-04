@@ -169,7 +169,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 .rc-modelo-textos { display: grid; flex: 1 1 0; gap: 1px; min-width: 0; }
 .rc-modelo-nombre { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .rc-modelo-nombre b { overflow: hidden; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.rc-modelo-cifras { color: var(--color-taupe); font-size: 14px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.rc-modelo-cifras { overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .rc-modelo-cifras b { color: var(--color-tinta); font-weight: 600; }
 .rc-modelo .chip-cayla { flex: none; }
 /* Con la columna angosta el nombre va en su propia línea y el estado junto a las cifras: al lado de dos chips, «Vestido Sofía» se leía «Ve…». */
@@ -179,10 +179,20 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
   .rc-modelo-textos { display: contents; }
   .rc-modelo-nombre { grid-column: 2 / -1; }
   .rc-modelo-cifras { grid-column: 2; }
-  .rc-modelo > .chip-cayla { grid-column: 3; }
+  .rc-modelo > .chip-cayla { grid-column: 3; align-self: center; }
+  /* El tacho, a la altura del estado (Felipe 2026-11-03): los dos en la línea de abajo, y el nombre conserva su línea entera. */
+  .rc-modelo-tacho { top: auto; bottom: 4px; transform: none; translate: none; }
 }
 .rc-lista-agregar { padding: 10px 12px 12px; }
 .rc-acord-agregar { width: 100%; border-radius: 18px; }
+
+/* «Cerrar el conteo» apagado: se ve apagado, pero recibe el mouse y el toque para decir qué falta. */
+.rc-cierre-apagado { opacity: 0.5; cursor: not-allowed; }
+.rc-cierre-globo.rc-cierre-globo { border: 1px solid var(--color-sand); background: color-mix(in srgb, var(--color-vidrio) 94%, transparent); color: var(--color-tinta); box-shadow: 0 8px 24px color-mix(in srgb, var(--color-sombra) 22%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.rc-cierre-globo > :last-child:is(span, svg) { display: none; }
+@media (hover: hover) {
+  .rc-cierre-apagado.btn-primario:hover { background: var(--ahumado-fondo, inherit); }
+}
 
 /* ---------- La placa: lo que se está contando ---------- */
 .rc-placa { container: rc-placa / inline-size; }
@@ -212,7 +222,7 @@ main:has(.rc-conteo) { padding-bottom: 16px; }
 /* Por tocar resalta; ya hecho se apaga: lo que sigue es «Listo, siguiente», no este botón. */
 .rc-atajo-llegaron { border-color: color-mix(in srgb, var(--color-verde) 60%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 14%, var(--color-vidrio)), color-mix(in srgb, var(--color-verde) 30%, var(--color-vidrio))); box-shadow: var(--gota-luz); color: var(--color-verde-profundo); }
 .rc-atajo-llegaron[data-hecho] { border-color: transparent; background: color-mix(in srgb, var(--color-verde) 13%, transparent); box-shadow: none; color: var(--color-verde-profundo); cursor: default; }
-.rc-atajo-cero { background: transparent; color: var(--color-taupe-profundo); }
+.rc-atajo-cero { margin-top: 4px; background: transparent; color: var(--color-taupe-profundo); }
 .rc-atajo-cero[data-hecho] { border-color: transparent; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); color: var(--color-tinta); cursor: default; }
 @media (hover: hover) {
   .rc-suma button:hover { translate: 0 -1px; background: var(--gota-fondo-encima); }
@@ -388,3 +398,8 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
   .rc-tipo, .rc-panel, .rc-cat, .rc-otra, .rc-talla { animation: none; }
   .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-estado, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-tipo, .rc-radio, .rc-radio::after, .rc-talla-quitar { transition: none; }
 }
+
+/* Al reabrir: lo que ya entró al stock, con candado. No es un modelo que se cuenta: no lleva botón ni cifra que cambie. */
+.rc-ya-en-stock { display: grid; gap: 8px; margin-top: 12px; padding: 12px 8px 0; border-top: 1px solid var(--color-sand); }
+.rc-ya-en-stock ul { display: grid; gap: 4px; }
+.rc-ya-en-stock li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }

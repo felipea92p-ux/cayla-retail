@@ -611,6 +611,8 @@ export type EnvioDeOrden = {
   despachadoEn: string | null;
   /** Unidades que lleva (de esta orden). */
   unidades: number;
+  /** De esas, las que ya están en el stock, aunque el envío se siga contando. */
+  enStock?: number;
   /** La versión que vio la pantalla: la base rechaza anular si otra persona lo cambió antes. `null` = la base no la dice en la orden. */
   version: number | null;
 };
@@ -643,6 +645,7 @@ export function leerEnvios(data: unknown): EnvioDeOrden[] | null {
         estado,
         despachadoEn: texto(r.despachado_en),
         unidades: cifra(r.unidades) ?? 0,
+        ...(cifra(r.en_stock) ? { enStock: cifra(r.en_stock) ?? 0 } : {}),
         version: cifra(r.version),
       };
     })
