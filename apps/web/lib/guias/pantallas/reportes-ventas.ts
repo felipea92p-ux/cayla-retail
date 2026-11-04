@@ -28,7 +28,7 @@ export const GUIA_REPORTES_MES: Guia = {
       texto: "Aquí ves cuánto se vendió en un mes, si va mejor o peor que el anterior, qué días se vendió más, qué tienda y qué categoría pesan más y cómo pagaron los clientes. Solo mira: no cambia nada.",
     },
     PESTANAS,
-    DESCARGAR("Llévate el mes a Excel", "«Descargar el mes» baja la tabla de abajo, por tienda o por categoría, con su total, para guardarla o mandarla. No lleva costos ni márgenes: solo ventas."),
+    DESCARGAR("Llévate el mes a Excel", "«Descargar el mes en Excel» baja la tabla de abajo, por tienda o por categoría, con su total, para guardarla o mandarla. No lleva costos ni márgenes: solo ventas."),
     {
       id: "mes",
       ancla: "reportes.mes",
@@ -103,7 +103,7 @@ export const GUIA_REPORTES_RANKING: Guia = {
       texto: "Aquí ves qué prendas salen más en las fechas que elijas, de la que más a la que menos, y si van mejor o peor que antes. Sirve para saber qué reponer y qué dejar de insistir. Solo mira: no cambia nada.",
     },
     PESTANAS,
-    DESCARGAR("Llévate el ranking a Excel", "«Descargar el ranking» baja todas las filas con tus filtros, no solo las de esta página, para guardarlas o mandarlas. No lleva costos ni márgenes: solo ventas."),
+    DESCARGAR("Llévate el ranking a Excel", "«Descargar el ranking en Excel» baja todas las filas con tus filtros, no solo las de esta página, para guardarlas o mandarlas. No lleva costos ni márgenes: solo ventas."),
     {
       id: "buscador",
       ancla: "ranking.buscador",

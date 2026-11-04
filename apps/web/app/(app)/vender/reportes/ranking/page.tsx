@@ -42,7 +42,7 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
       <CabeceraReportes
         sede={sede}
         activa="ranking"
-        acciones={r && r.cuantos > 0 ? <BotonDescargar guia="reportes.descargar" title="Baja todas las filas del ranking con tus filtros, no solo las de esta página" href={hrefRanking(f, { pagina: 0 }).replace("/vender/reportes/ranking", "/vender/reportes/ranking/descargar")}>Descargar el ranking</BotonDescargar> : undefined}
+        acciones={r && r.cuantos > 0 ? <BotonDescargar guia="reportes.descargar" title="Baja todas las filas del ranking con tus filtros, no solo las de esta página" href={hrefRanking(f, { pagina: 0 }).replace("/vender/reportes/ranking", "/vender/reportes/ranking/descargar")}>Descargar el ranking en Excel</BotonDescargar> : undefined}
       />
       <FiltrosRanking f={f} periodo={periodo} hoy={hoy} opciones={opciones.datos} tiendas={tiendas} />
       {opciones.falla && (

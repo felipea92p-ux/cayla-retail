@@ -44,3 +44,12 @@ La línea «Todas las tiendas · …» de la cabecera y el selector «Tienda Lim
 - **Concurrencia (dos personas, mismo registro):** no aplica, no escribe; descargas y lecturas son independientes.
 - **Caída externa:** cada bloque (cifras, gráficos, tabla) lee por separado y, si falla, se ve un `<Aviso>` sin tumbar los otros; si la base no responde, el marco manda a `/sin-base` (ADR-0450). **Sin probar en vivo** una base caída.
 - **Persona sin contexto:** la ciega lo respondió (arriba). Real: **sin probar**.
+
+## Después de los 3 cambios (2026-11-03, segunda prueba ciega: otro agente Sonnet, mismas tareas, mismo navegador local)
+- **[Observado]** 0 retrocesos y 0 ayudas otra vez; 4 dudas (antes 5). Tarea 1 con 1 toque, tarea 2 con 1 toque (antes 2).
+- **El botón** (cambio 1): ahora sabe qué baja cada uno («Descargar el ranking → el ranking de prendas, no el mes») pero anotó que **«la palabra Excel no aparece en el botón; la deduje yo»**. Se devolvió en un cuarto cambio: «Descargar el mes en Excel» y «Descargar el ranking en Excel» (289 px de 343 a 375 px, sin desborde). Sin repetir la prueba ciega después de este último ajuste.
+- **«Quedan 48 en tiendas»** (cambio 2): resuelto en lo esencial: infirió «de todas las tiendas juntas, porque dice *en tiendas* y el filtro Tienda está vacío». Le queda la duda de la cabecera («Todas las tiendas» contra «Tienda Lima» de arriba), que es del marco de todo el ERP (ver «Lo que no pediste»).
+- **«Por regularizar»** (cambio 3): sigue sin saber qué es, pero ya sabe dónde está («Inventario ▸ Por regularizar»); queda como mejora parcial. Un enlace tocable depende de que su rol vea esa pantalla: decisión de Felipe.
+- **«Las 10 primeras: 100 %»**: esta vez lo interpretó bien («solo hay 10 modelos, así que las 10 suman todo»): confirma el veredicto MATIZADO (solo molesta con 10 modelos o menos).
+- **Dudas que NO son de la pantalla:** el mes viejo unos segundos tras tocar «‹» y «un hueco en blanco al abrir» son de `next dev` con el panel oculto (compilación y animaciones de entrada congeladas); NO VERIFICABLE en producción.
+- **Notas después:** leyes **7,8** (ley 4: 8, ley 6: 7; el resto igual); oficio **8** (medido a 1440, 1024 y 375 px: sin desborde, la celda de «Stock en tiendas» cabe a 1024 px). **Real: sin probar.**
