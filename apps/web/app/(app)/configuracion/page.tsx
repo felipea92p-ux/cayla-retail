@@ -1,6 +1,5 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
-import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
 import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFichasDeFijos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { anioLima, hoyLima } from "@/lib/fechas-lima";
@@ -9,8 +8,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionMetas } from "@/components/ConfiguracionMetas";
-import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
-import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
+import { VistaEmpresaTiendas } from "@/components/vitrinas-sedes/VistaEmpresaTiendas";
+import { armarVitrinas } from "@/lib/vitrinas-sedes-reglas";
 import { ConfiguracionCajaAvisos } from "@/components/ConfiguracionCajaAvisos";
 import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 import { getParametrosTributarios } from "@/lib/impuestos";
@@ -79,9 +78,8 @@ function FallaDeSeccion({ falla }: { falla: string }) {
   );
 }
 
-// Empresa y tiendas: los datos fiscales, que solo se leen, y lo que se ajusta de cada sede y no es una meta. La carga inicial (ADR-0328, actividad 4) es
-// una fecha de la sede: si la base todavía no tiene la función, la tarjeta no aparece y nada más cambia. Si no se pueden leer las tiendas, lo fiscal
-// se sigue viendo.
+// Empresa y tiendas, «Las vitrinas»: el carnet de la empresa, que solo se lee, y una tarjeta por sede. Si una lectura falla, lo demás se sigue viendo: las tiendas
+// avisan (es lo único que se cambia a mano aquí), y la carga inicial o Preguntar simplemente no se dibujan si la base todavía no las tiene.
 async function SeccionEmpresa({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
   const [empresa, tiendas, carga, asistente] = await Promise.all([
     getDatosEmpresa(),
@@ -90,16 +88,12 @@ async function SeccionEmpresa({ esLider, esAdmin }: { esLider: boolean; esAdmin:
     getAsistenteSedes(),
   ]);
   const falla = tiendas instanceof Error;
+  const hoy = falla ? hoyLima() : tiendas.hoy;
+  const vitrinas = armarVitrinas({ empresa, tiendas: falla ? [] : tiendas.tiendas, asistente: asistente?.sedes ?? null, carga, hoy });
   return (
     <>
-      <ConfiguracionEmpresa datos={empresa} />
       {falla && <FallaDeSeccion falla={tiendas.message} />}
-      <ConfiguracionTiendas
-        tiendas={falla ? [] : tiendas.tiendas}
-        hoy={falla ? hoyLima() : tiendas.hoy}
-        asistente={asistente}
-        carga={carga && carga.sedes.length > 0 ? <ConfiguracionCargaInicial lectura={carga} esLider={esLider} esAdmin={esAdmin} /> : null}
-      />
+      <VistaEmpresaTiendas datos={empresa} vitrinas={vitrinas} gastado={asistente?.gastado ?? null} carga={carga} esLider={esLider} esAdmin={esAdmin} />
     </>
   );
 }

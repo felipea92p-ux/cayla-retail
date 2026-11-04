@@ -2,14 +2,13 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 99,
+  "total": 100,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Guardar»"
     ],
     "components/ConfiguracionCargaInicial.tsx": [
-      "button «→() => setAbierta(s)»",
       "button «(sin nombre)»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
@@ -60,10 +59,6 @@
     ],
     "components/ConfiguracionRepartoClaure.tsx": [
       "ComboResponsable «{responsable}»"
-    ],
-    "components/ConfiguracionTiendas.tsx": [
-      "input «{etiqueta}»",
-      "BotonVer «Ver el cartel del club»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -134,6 +129,12 @@
     "components/gasto-fijo/FichaDePagoCampos.tsx": [
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
+    ],
+    "components/vitrinas-sedes/VistaEmpresaTiendas.tsx": [
+      "input «{`${NOMBRE_CAMPO[campo]}»",
+      "button «{guia}»",
+      "button «{guia}» #2",
+      "ComboResponsable «{responsable}»"
     ]
   }
 }

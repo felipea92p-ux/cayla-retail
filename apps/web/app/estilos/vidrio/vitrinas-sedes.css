@@ -1,0 +1,254 @@
+/* ====================================================================
+   Configuración ▸ Empresa y tiendas, «Las vitrinas» (Felipe 2026-11-04, docs/maquetas/empresa-tiendas-vitrinas-2026-11/): cada dato de una sede es un instrumento
+   dentro de una gota de vidrio. El vidrio es neutro y el color es ordenado («más sutil y más ordenado»): el de la sede solo en su aro y dentro de sus instrumentos;
+   el ámbar, lo que falta; el verde, lo que cerró. Sale de las recetas de siempre (`recetas.css`): la placa Serena, la placa, la gota y el pozo.
+   Nada baja de 14 px. El movimiento vive al final de este archivo y se apaga con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+.vs-raiz { display: grid; gap: 18px; }
+.vs-firma { justify-self: end; width: 100%; max-width: 20rem; }
+
+/* El bloque de vidrio: la placa Serena, con un filo de luz que se enciende donde está el mouse y un brillo que lo sigue */
+.vs-liquido {
+  --mx: 30%;
+  --my: 0%;
+  position: relative;
+  isolation: isolate;
+  border-radius: 28px;
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: var(--serena-sombra);
+}
+.vs-liquido::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(240px circle at var(--mx) var(--my), var(--color-vidrio), transparent 70%),
+    linear-gradient(150deg, color-mix(in srgb, var(--color-vidrio) 95%, transparent), color-mix(in srgb, var(--color-tinta) 8%, transparent) 42%, color-mix(in srgb, var(--color-vidrio) 30%, transparent) 62%, color-mix(in srgb, var(--color-tinta) 14%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); /* tema-fijo: una máscara se pinta en negro */
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); /* tema-fijo: una máscara se pinta en negro */
+}
+.vs-liquido::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(320px circle at var(--mx) var(--my), color-mix(in srgb, var(--color-vidrio) 62%, transparent), transparent 72%),
+    radial-gradient(120% 60% at 50% -14%, color-mix(in srgb, var(--color-vidrio) 60%, transparent), transparent 70%);
+}
+:root[data-tema="oscuro"] .vs-liquido::before {
+  background:
+    radial-gradient(240px circle at var(--mx) var(--my), color-mix(in srgb, var(--color-tinta) 75%, transparent), transparent 70%),
+    linear-gradient(150deg, color-mix(in srgb, var(--color-tinta) 34%, transparent), color-mix(in srgb, var(--color-tinta) 10%, transparent) 42%, color-mix(in srgb, var(--color-tinta) 6%, transparent) 62%, color-mix(in srgb, var(--color-tinta) 16%, transparent));
+}
+:root[data-tema="oscuro"] .vs-liquido::after {
+  background:
+    radial-gradient(320px circle at var(--mx) var(--my), color-mix(in srgb, var(--color-tinta) 11%, transparent), transparent 72%),
+    radial-gradient(120% 60% at 50% -14%, color-mix(in srgb, var(--color-tinta) 9%, transparent), transparent 70%);
+}
+
+/* ---------- el carnet de la empresa ---------- */
+.vs-carnet { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 40px; padding: 20px 26px; overflow: hidden; }
+.vs-puntos {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: radial-gradient(color-mix(in srgb, var(--color-tinta) 13%, transparent) 1px, transparent 1.2px);
+  background-size: 12px 12px;
+  -webkit-mask: linear-gradient(100deg, transparent 45%, #000 95%); /* tema-fijo: una máscara se pinta en negro */
+  mask: linear-gradient(100deg, transparent 45%, #000 95%); /* tema-fijo: una máscara se pinta en negro */
+}
+.vs-barrido { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.vs-marca { display: block; font: 500 40px/1 var(--font-serif); }
+.vs-rotulo { display: block; font-size: 14px; line-height: 1.25; color: var(--color-taupe); }
+.vs-dato-e { display: block; margin-top: 1px; font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.vs-ruc { display: flex; font: 500 30px/1.2 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; }
+.vs-digito { display: block; height: 1.2em; overflow: hidden; }
+.vs-digito > span { display: block; transform: translateY(calc(var(--d) * -1.2em)); }
+.vs-digito i { display: block; height: 1.2em; font-style: normal; }
+.vs-sello { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.vs-guilloche { width: 68px; height: 68px; overflow: visible; }
+.vs-guilloche .linea { fill: none; stroke: var(--color-taupe); stroke-width: 0.5; }
+.vs-guilloche .candado { fill: none; stroke: var(--color-tinta); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- las vitrinas ---------- */
+.vs-vitrinas { display: grid; gap: 18px; align-items: start; grid-template-columns: repeat(auto-fit, minmax(252px, 1fr)); }
+.vs-vitrina { padding: 20px 14px 14px; }
+.vs-vitrina[data-color="tru"] { --c: var(--color-sede-tru); }
+.vs-vitrina[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.vs-vitrina[data-color="lim"] { --c: var(--color-sede-lim); }
+.vs-vitrina[data-color="tal"] { --c: var(--color-sede-tal); }
+.vs-vitrina[data-color="otra"], .vs-vitrina[data-color="emp"] { --c: var(--color-taupe); }
+.vs-vitrina header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 0 6px 14px; }
+.vs-nombre { overflow: hidden; font: 500 33px/1.05 var(--font-serif); }
+.vs-nombre span { display: block; }
+.vs-direccion { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 14px; color: var(--color-taupe); }
+.vs-series { display: flex; gap: 5px; margin-top: 9px; }
+.vs-series span {
+  display: inline-flex;
+  align-items: center;
+  height: 25px;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 8%, transparent);
+}
+.vs-datos { display: grid; gap: 8px; }
+
+/* El aro de la sede: un tramo por dato */
+.vs-aro {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+}
+.vs-aro .tramos { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transform: rotate(-90deg); }
+.vs-aro .tramo { fill: none; stroke-width: 3.2; stroke-linecap: round; }
+.vs-aro .tramo.lleno { stroke: var(--c); }
+.vs-aro .tramo.vacio { stroke: var(--color-ambar); opacity: 0.8; }
+.vs-aro b { font: 500 20px/1 var(--font-serif); font-variant-numeric: lining-nums; }
+.vs-aro .visto { width: 26px; height: 26px; fill: none; stroke: var(--c); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; } /* unificar-fijo: el visto del aro es parte del instrumento, no un ícono de la escala */
+
+/* Cada dato: la placa con su instrumento. Se toca entero; mientras se escribe, el pozo de la casilla vive adentro. */
+.vs-dato {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 78px;
+  padding: 10px 12px 10px 10px;
+  overflow: hidden;
+  border-radius: 22px;
+  text-align: left;
+  color: var(--color-tinta);
+  background: var(--placa-fondo);
+  box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 5%, transparent);
+  transition: transform 350ms var(--ease-cayla), box-shadow 350ms var(--ease-cayla), background 350ms;
+}
+button.vs-dato { cursor: pointer; }
+button.vs-dato:disabled { cursor: default; }
+button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+@media (hover: hover) {
+  button.vs-dato:not(:disabled):hover { transform: translateY(-2px); background: var(--gota-fondo-encima); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent), 0 16px 26px -18px color-mix(in srgb, var(--color-sombra) 55%, transparent); }
+  button.vs-dato:not(:disabled):hover .vs-gota { transform: scale(1.06); }
+}
+.vs-textos { flex: 1; min-width: 0; }
+.vs-valor { display: block; font: 500 23px/1.2 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.vs-dato.falta { background: color-mix(in srgb, var(--color-ambar) 7%, transparent); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 38%, transparent); }
+.vs-dato.falta { --c: var(--color-ambar); }
+.vs-dato.falta .vs-valor { color: var(--color-ambar-profundo); }
+.vs-dato.apagado .vs-valor { color: var(--color-taupe); }
+.vs-dato.edita { background: var(--gota-fondo-encima); }
+.vs-dato .cfg-casilla { display: block; margin-top: 2px; }
+.vs-entrada { width: 100%; font-size: 16px; }
+.vs-visto {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-crema-fija);
+  background: var(--color-verde);
+}
+.vs-visto svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 20; } /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */
+
+/* La gota que lleva cada instrumento */
+.vs-gota {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--color-vidrio) 92%, transparent), transparent 40%), color-mix(in srgb, var(--color-tinta) 3%, transparent);
+  box-shadow: inset 0 1px 1px var(--color-vidrio), inset 0 -5px 9px color-mix(in srgb, var(--color-sombra) 7%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 6%, transparent), 0 7px 14px -9px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+  transition: transform 400ms var(--ease-cayla);
+}
+:root[data-tema="oscuro"] .vs-gota {
+  background: radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--color-tinta) 24%, transparent), transparent 40%), color-mix(in srgb, var(--color-sombra) 28%, transparent);
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--color-tinta) 30%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 8%, transparent), 0 7px 14px -7px var(--color-sombra);
+}
+.vs-gota > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.vs-brillo { position: absolute; z-index: 2; left: 18%; top: 9%; width: 36%; height: 20%; border-radius: 50%; pointer-events: none; background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 90%, transparent), transparent); }
+:root[data-tema="oscuro"] .vs-brillo { background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 30%, transparent), transparent); }
+
+/* El visor del QR */
+.vsi-qr .esq { fill: none; stroke: var(--c); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.vsi-qr .mod { fill: var(--color-tinta); opacity: 0.92; }
+.vsi-qr .haz { fill: var(--c); opacity: 0; }
+.vsi-qr.no .mod { opacity: 0.16; }
+.vsi-qr.no .esq { stroke-dasharray: 2.5 3; }
+/* El dial del día, de las 6 de la mañana a la medianoche */
+.vsi-dial .marca { stroke: color-mix(in srgb, var(--color-tinta) 34%, transparent); stroke-width: 1; stroke-linecap: round; }
+.vsi-dial.no .marca { stroke: color-mix(in srgb, var(--color-ambar) 60%, transparent); }
+.vsi-dial .arco { fill: none; stroke: var(--c); stroke-width: 3; stroke-linecap: round; stroke-dasharray: var(--a) 100; }
+.vsi-dial .aguja { transform-origin: 29px 29px; transform: rotate(var(--g)); }
+.vsi-dial .vara { stroke: var(--color-tinta); stroke-width: 1.3; stroke-linecap: round; }
+.vsi-dial .punta { fill: var(--c); }
+.vsi-dial .eje { fill: var(--color-tinta); }
+.vsi-dial.no .eje { fill: var(--color-ambar); }
+/* El fondo, como líquido */
+.vsi-liq .nivel { transform: translateY(var(--n)); }
+.vsi-liq .cuerpo { fill: color-mix(in srgb, var(--c) 48%, transparent); }
+:root[data-tema="oscuro"] .vsi-liq .cuerpo { fill: color-mix(in srgb, var(--c) 58%, transparent); }
+.vsi-liq .espuma { fill: color-mix(in srgb, var(--c) 18%, var(--color-vidrio)); }
+.vsi-liq .simbolo { font: 500 19px var(--font-serif); fill: var(--color-tinta); text-anchor: middle; paint-order: stroke; stroke: color-mix(in srgb, var(--color-vidrio) 55%, transparent); stroke-width: 2.5px; }
+:root[data-tema="oscuro"] .vsi-liq .simbolo { stroke: color-mix(in srgb, var(--color-sombra) 45%, transparent); }
+.vsi-liq .vacio { fill: none; stroke: var(--color-ambar); stroke-width: 1.5; stroke-dasharray: 3 4; }
+/* La constelación de Preguntar */
+.vsi-const .orbita { fill: none; stroke: color-mix(in srgb, var(--color-tinta) 42%, transparent); stroke-width: 0.9; }
+.vsi-const .nodo { fill: color-mix(in srgb, var(--color-tinta) 62%, transparent); }
+.vsi-const .estrella { fill: var(--c); transform-origin: 29px 29px; transition: fill 400ms; }
+.vsi-const.no .estrella { fill: color-mix(in srgb, var(--color-tinta) 28%, transparent); }
+.vsi-const.no .nodo { fill: color-mix(in srgb, var(--color-tinta) 26%, transparent); }
+.vsi-const.no .orbita { stroke: color-mix(in srgb, var(--color-tinta) 22%, transparent); }
+/* El sello de la carga */
+.vsi-sello.cerrado { --sello: var(--color-verde); }
+.vsi-sello.abierto { --sello: var(--c); }
+.vsi-sello.no { --sello: var(--color-ambar); }
+.vsi-sello .hex { fill: color-mix(in srgb, var(--sello) 12%, transparent); stroke: var(--sello); stroke-width: 1.5; stroke-linejoin: round; }
+.vsi-sello.no .hex { stroke-dasharray: 3 3; }
+.vsi-sello .traza { fill: none; stroke: var(--sello); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.vsi-sello .dias { fill: none; stroke: var(--c); stroke-width: 2; stroke-linecap: round; stroke-dasharray: var(--a) 100; }
+.vsi-sello.abierto .cierre, .vsi-sello.no .cierre { transform: translateY(-3.5px); }
+
+/* El tubo de Preguntar: la barra del sistema, a lo ancho */
+.vs-tubo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 22px; border-radius: 999px; }
+.vs-tubo-nombre { font: 500 21px var(--font-serif); }
+.vs-tubo-barra { flex: 1; min-width: 160px; }
+
+@container (max-width: 520px) {
+  .vs-carnet { padding: 18px; }
+}
+@media (max-width: 639px) {
+  .vs-carnet { padding: 18px; border-radius: 24px; }
+  .vs-marca { font-size: 34px; }
+  .vs-ruc { font-size: 26px; }
+  .vs-sello { position: absolute; right: 12px; top: 12px; margin: 0; }
+  .vs-guilloche { width: 52px; height: 52px; }
+  .vs-firma { max-width: none; }
+  .vs-tubo { border-radius: 24px; }
+}
