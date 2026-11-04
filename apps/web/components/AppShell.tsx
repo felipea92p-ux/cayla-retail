@@ -1153,7 +1153,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           {/* Selector de ubicación del líder: cambia toda la app de perspectiva. Un integrante ve solo la etiqueta, sin poder
               tocarla. El avatar que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
           <div className="marco-isla marco-isla-der">
-            {/* «Pregúntale a CAYLA» (ADR-0536): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Tiendas y caja,
+            {/* «Pregúntale a CAYLA» (ADR-0536): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Empresa y tiendas,
                 act. 8), también una terminal. No es un módulo (ADR-0306): es una ayuda, como «Demo», y solo ofrece las pantallas del
                 menú de esta cuenta. Apagado, tampoco responde a su atajo. */}
             {asistenteEncendido ? (

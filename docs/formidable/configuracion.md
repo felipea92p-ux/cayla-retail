@@ -37,7 +37,7 @@ Alcance: las 8 pestañas de la pantalla. Sus hojas no se revisaron. Las notas so
 «Tiendas y caja» junta 7 cosas distintas en una sola página de casi 3800 px. Partirla, o darle un índice, es lo que más ayudaría. Cambia cómo se navega, así que es decisión de Felipe.
 
 ## Lista aparte (no se ejecutó)
-- Partir o indexar «Tiendas y caja».
+- ~~Partir o indexar «Tiendas y caja».~~ Felipe la partió el 2026-11-04 en «Metas» y «Empresa y tiendas» (ADR-0195, actualización de ese día).
 - El visto en la celda también en Caja y avisos, Presupuesto, Impuestos, Reparto CLAURE y los combos de Cuentas.
 - A 1024 px varias tablas se recorren de lado (8 en Tiendas). Ya pasaba antes.
 - `<Interruptor>` (38×22) y el enlace «sin meta» (20 px) bajo los 24 px de mínimo.

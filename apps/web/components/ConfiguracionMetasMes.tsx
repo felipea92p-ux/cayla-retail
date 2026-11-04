@@ -11,7 +11,7 @@ import { DIAS_CORTOS, DIAS_SEMANA, validarMetaFecha, validarSemanaMes } from "@/
 import type { ConfiguracionMetas, FechaMeta, MesMetas, TiendaMetas } from "@/lib/configuracion-reglas";
 import { fechaCorta, solesRedondo, textoMes } from "@/lib/gastos-reglas";
 
-// Configuración ▸ Tiendas y caja: la meta que cambia con el calendario (ADR-0435, 20261017020000). Hasta aquí la semana tipo valía los
+// Configuración ▸ Metas: la meta que cambia con el calendario (ADR-0435, 20261017020000). Hasta aquí la semana tipo valía los
 // 12 meses; pero diciembre vende casi el doble que octubre y el 24 de diciembre, dos veces su día. Dos tarjetas con el mismo patrón de
 // siempre —cada casilla se guarda sola al salir, firmada con el responsable—:
 //   · «Meta mes por mes»: la semana de cada mes. Una casilla vacía usa la semana tipo (se ve en gris), así que un mes sin cargar no cambia nada.
@@ -223,35 +223,46 @@ function FechasEspeciales({ metas, guardar }: { metas: ConfiguracionMetas; guard
 }
 
 export function ConfiguracionMetasMes({ metas, guardar }: { metas: ConfiguracionMetas; guardar: Guardar }) {
+  // Una tienda a la vez (Felipe 2026-11-04): con todas abiertas eran 84 casillas y casi una pantalla, y nadie carga dos tiendas al mismo tiempo.
+  const [tiendaId, setTiendaId] = useState(metas.tiendas[0]?.id ?? "");
+  const t = metas.tiendas.find((x) => x.id === tiendaId) ?? metas.tiendas[0]!;
   return (
     <>
       <Superficie className="anim-sube" guia="config.tiendas-meses">
         <TituloDeTarjeta
           titulo="Meta mes por mes"
           bajada="La semana tipo vale todo el año; aquí cada mes puede tener la suya (diciembre vende casi el doble que octubre). Una casilla vacía usa la semana tipo, que se ve en gris."
-        />
-        {metas.tiendas.map((t) => (
-          <div key={t.id} className="fin-tabla-wrap cfg-planilla">
-            <table className="fin-tabla fin-tabla-apretada">
-              <thead>
-                <tr>
-                  <th>{t.nombre}</th>
-                  {DIAS_CORTOS.map((d) => (
-                    <th key={d} className="fin-num">
-                      {d}
-                    </th>
-                  ))}
-                  <th className="fin-num">Meta del mes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {t.meses.map((m, i) => (
-                  <FilaMes key={m.mes} tienda={t} mes={m} esActual={i === 0} guardar={guardar} />
+        >
+          {metas.tiendas.length > 1 && (
+            <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">
+              {metas.tiendas.map((x) => (
+                <button key={x.id} type="button" className="pildora-cayla" aria-pressed={x.id === t.id} onClick={() => setTiendaId(x.id)}>
+                  {corto(x.nombre)}
+                </button>
+              ))}
+            </div>
+          )}
+        </TituloDeTarjeta>
+        <div key={t.id} className="fin-tabla-wrap cfg-planilla">
+          <table className="fin-tabla fin-tabla-apretada">
+            <thead>
+              <tr>
+                <th>{t.nombre}</th>
+                {DIAS_CORTOS.map((d) => (
+                  <th key={d} className="fin-num">
+                    {d}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
+                <th className="fin-num">Meta del mes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {t.meses.map((m, i) => (
+                <FilaMes key={m.mes} tienda={t} mes={m} esActual={i === 0} guardar={guardar} />
+              ))}
+            </tbody>
+          </table>
+        </div>
         <PieTabla>
           <span>La meta del mes es la suma de los días, con las fechas especiales y las campañas. Un mes que ya pasó no se cambia.</span>
         </PieTabla>

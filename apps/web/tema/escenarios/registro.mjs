@@ -1913,6 +1913,7 @@ ESCENARIOS.push(
   { id: "colaboradores.roles", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · «Roles y accesos»", preparar: clicRol("button", /^Roles y accesos/i) },
   { id: "colaboradores.rol", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · el detalle de un rol", preparar: secuencia(clicRol("button", /^Roles y accesos/i), async (pagina) => { await pagina.getByRole("button", { name: /Integrante/i }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
   { id: "tienda-web.ajustes", ruta: "/tienda-web/ajustes", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Tienda web ▸ Conf. Tienda (antes Datos y plazos; ADR-0430; antes la pestaña «Tienda web» de Configuración)" },
+  { id: "configuracion.metas-pasadas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Metas» con las campañas que ya pasaron abiertas", preparar: secuencia(clicPestana(/^Metas/i), clicRol("button", /que ya pasaron|la que ya pasó/i)) },
   { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
   { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },

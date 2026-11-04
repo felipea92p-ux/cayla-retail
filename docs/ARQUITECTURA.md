@@ -1948,6 +1948,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
   pura) → `ConfiguracionTiendas.tsx` → RPC `guardar_metas_tienda`, `guardar_efecto_campana` (firmadas con el responsable).
+  **Desde el 2026-11-04 «Tiendas y caja» son dos pestañas: `?tab=metas` (`ConfiguracionMetas.tsx`) y `?tab=empresa` (`ConfiguracionEmpresa.tsx` + `ConfiguracionTiendas.tsx`); ADR-0195, actualización de ese día. Lo que sigue la nombra como era.**
   Desde ADR-0328 (actividad 4) la pestaña «Tiendas y caja» trae además «Carga inicial de cada sede» (`ConfiguracionCargaInicial.tsx`
   ← `lib/carga-inicial.ts` → `fn_carga_inicial_sedes`; la hoja guarda con `fijar_cierre_carga_inicial`).
   **Caja y avisos** (`ConfiguracionCajaAvisos.tsx`) también fija «Desde cuándo cuenta Finanzas» (ADR-0332): RPC `guardar_inicio_finanzas` →

@@ -25,7 +25,7 @@ import {
 } from "@/lib/carga-inicial-reglas";
 import { Boton } from "@/components/ui/campos";
 
-// Configuración ▸ Tiendas y caja ▸ «Carga inicial de cada sede» (ADR-0328, actividad 4). La carga inicial sin papeles (alta con
+// Configuración ▸ Empresa y tiendas ▸ «Carga inicial de cada sede» (ADR-0328, actividad 4). La carga inicial sin papeles (alta con
 // stock, stock inicial de una prenda nueva en la tienda) se cierra POR SEDE y SOLA en su fecha: el último día abierto. Aquí se ve
 // la fecha de cada sede y se cambia con `fijar_cierre_carga_inicial`, que es quien decide de verdad (la pantalla solo lo dice
 // antes): apretar —poner fecha, adelantarla— es del líder; aflojar —reabrir, quitarla, correrla más adelante— solo del Admin.

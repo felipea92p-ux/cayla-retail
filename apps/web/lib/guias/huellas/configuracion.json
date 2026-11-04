@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 97,
+  "total": 99,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -16,6 +16,7 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ConfiguracionCasilla.tsx": [
+      "ComboResponsable «{responsable}»",
       "input «{etiqueta}»"
     ],
     "components/ConfiguracionImpuestos.tsx": [
@@ -39,27 +40,30 @@
       "button «Cancelar»",
       "Boton «Agregar»"
     ],
+    "components/ConfiguracionMetas.tsx": [
+      "input «{etiqueta}»",
+      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
+      "Casilla «{`Fondo de caja de ${tienda.nombre}»",
+      "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
+      "Casilla «{`Fondo de caja en ${campana.nombre}»",
+      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Insignias)»",
+      "BotonVerMas «{pasadas.length === 1 ? \"Ver la que ya pasó\" : `Ver las ${pasadas.length}»",
+      "Link «Ver cómo se ve en Caja»"
+    ],
     "components/ConfiguracionMetasMes.tsx": [
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
       "Casilla «{`Meta de ${que}»",
       "Boton «Quitar»",
       "input «Meta de la fecha especial»",
-      "Boton «+ Agregar»"
+      "Boton «+ Agregar»",
+      "button «{corto(x.nombre)}»"
     ],
     "components/ConfiguracionRepartoClaure.tsx": [
       "ComboResponsable «{responsable}»"
     ],
     "components/ConfiguracionTiendas.tsx": [
       "input «{etiqueta}»",
-      "input «{etiqueta}» #2",
-      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
-      "Casilla «{`Fondo de caja de ${tienda.nombre}»",
-      "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
-      "Casilla «{`Fondo de caja en ${campana.nombre}»",
-      "ComboResponsable «{responsable}»",
-      "BotonVer «Ver el cartel del club»",
-      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Insignias)»",
-      "Link «Ver cómo se ve en Caja»"
+      "BotonVer «Ver el cartel del club»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -107,7 +111,7 @@
       "Link «Estados financieros ▸ ¿Ganamos?»",
       "Boton «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
       "Boton «config.presupuesto-sugerir»",
-      "Link «Se cambia en Tiendas y caja»",
+      "Link «Se cambia en Metas»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «{`Aplicar ${cambios.length}»"

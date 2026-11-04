@@ -497,7 +497,7 @@ export function CajaAbiertaPanel({
                   </div>
                 </dl>
                 <p className="mt-1 text-[12.5px] text-taupe">
-                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
+                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Metas; cada campaña puede subirlo.
                 </p>
               </div>
             )}

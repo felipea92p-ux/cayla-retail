@@ -290,7 +290,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CerrarColaArranqueModal.tsx": { estado: "aplicada", evidencia: ["components/CerrarColaArranqueModal.tsx"] },
   "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
-  // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Tiendas y caja. Falta: la fecha (que cambie y la
+  // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Empresa y tiendas. Falta: la fecha (que cambie y la
   // base la acepte: `validarCierre`) y quién hace el cambio.
   // ADR-0354: la hoja de «Revisar y guardar» de Editar producto suma UN solo control, «Quién hace estos cambios»; su porqué va
   // bajo el combo y el botón espera hasta que haya alguien de turno.
