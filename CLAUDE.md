@@ -241,6 +241,14 @@ Nada sólido sobre el vidrio. Dos cosas que no se tocan sin leer el ADR: **la ho
 contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque lo pone el velo), y **una pieza nueva no inventa su vidrio**:
 usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
 
+**Lo que flota sobre contenido que se desplaza lleva fondo de vidrio, nunca «en el aire» (regla — Felipe 2026-11-04):** una cabecera, una
+barra pegada o una fila de herramientas que se queda quieta mientras la pantalla corre por detrás no puede quedar transparente: lo que pasa
+por debajo se mezcla con sus botones y se ve roto (la cabecera de «dos islas» lo hacía, con los filtros pasando entre las cápsulas). Se le
+pone fondo con **el vidrio de lo que flota** (`--vidrio-flota-fondo` + `--vidrio-flota-filtro`, las mismas variables de las islas, el cajón de
+un módulo y la barra de abajo), con su borde que se desvanece si no es una barra a ras, y **se verifica haciendo scroll** con una tabla o
+filtros debajo, en claro y en oscuro. No inventes otro color ni otro desenfoque: es la receta de `recetas.css`. Ejemplo hecho:
+`.marco-cabecera::before` en `app/estilos/vidrio/marco.css` (maqueta: `docs/maquetas/cabecera-banda-2026-11/`).
+
 **Desde el 2026-11-02 esta es LA estética del ERP, y es obligatoria (Felipe):** toda pantalla, modal o pieza nueva o editada sigue esta línea y
 se arma con las piezas ya elegidas (la tabla «4.1 Las piezas elegidas» del tablero: hoja Serena, pozo, gota, ahumado, placa Serena, vidrio
 claro, lentes, tubo, hundido…), que llegan solas al usar el componente del sistema (`<Modal>`, `<Tabla>`, `<TarjetaCifra>`, `<Chip>`,

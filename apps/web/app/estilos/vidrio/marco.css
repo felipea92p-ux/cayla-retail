@@ -299,6 +299,36 @@
     right: max(12px, env(safe-area-inset-right, 0px));
   }
 }
+/* La banda de atrás (Felipe 2026-11-04): las islas flotan, pero entre ellas la fila era transparente y al bajar la pantalla el
+   contenido (los filtros, una tabla) pasaba «en el aire» por detrás de los botones. Una banda con el MISMO vidrio de lo
+   que flota en el ERP (`--vidrio-flota-fondo` y `--vidrio-flota-filtro`, como las islas y el cajón de un módulo) y el borde
+   de abajo que se desvanece tapa lo que sube sin dibujar una barra dura: las islas siguen siendo islas. Va de borde a borde de la ventana (a la izquierda la tapa el riel) y es solo atmósfera: no recibe clics.
+   `::before` con z-index -1 queda dentro de la cabecera (es su propio contexto), detrás de las dos islas. */
+.marco-cabecera::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  top: calc(-1 * (env(safe-area-inset-top, 0px) + 8px));
+  bottom: -16px;
+  left: calc(-1 * max(8px, env(safe-area-inset-left, 0px)));
+  right: calc(-1 * max(8px, env(safe-area-inset-right, 0px)));
+  background: var(--vidrio-flota-fondo);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  -webkit-mask-image: linear-gradient(to bottom, var(--color-tinta-fija) calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, var(--color-tinta-fija) calc(100% - 20px), transparent);
+}
+@media (min-width: 640px) {
+  .marco-cabecera::before {
+    top: calc(-1 * (env(safe-area-inset-top, 0px) + 12px));
+    left: -22px;
+    right: calc(-1 * max(12px, env(safe-area-inset-right, 0px)));
+  }
+}
+@media print {
+  .marco-cabecera::before { display: none; }
+}
 .marco-cabecera-fila {
   display: flex;
   height: 100%;
