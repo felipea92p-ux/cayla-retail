@@ -5,9 +5,9 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** 2026-11-04 10:12:02 UTC
+> **Leído el:** 2026-11-04 15:50:26 UTC
 > **Tablas y vistas encontradas:** 324
-> **Funciones en `retail`:** 1931 (las firmas, en `funciones-produccion.txt`)
+> **Funciones en `retail`:** 1932 (las firmas, en `funciones-produccion.txt`)
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -335,7 +335,7 @@
 
 ### `guias_vistas`
 
-*4 columnas · ~280 filas · permisos por fila **activos***
+*4 columnas · ~281 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1598,7 +1598,7 @@
 
 ### `movimientos`
 
-*23 columnas · ~8380 filas · permisos por fila **activos***
+*23 columnas · ~8415 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1644,7 +1644,7 @@
 
 ### `stock`
 
-*6 columnas · ~4883 filas · permisos por fila **activos***
+*6 columnas · ~4888 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2311,7 +2311,7 @@
 
 ### `despacho_conteos`
 
-*14 columnas · ~43 filas · permisos por fila **activos***
+*14 columnas · ~44 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2532,7 +2532,7 @@
 
 ### `bajadas_piso`
 
-*6 columnas · ~975 filas · permisos por fila **activos***
+*6 columnas · ~982 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2555,7 +2555,7 @@
 
 ### `bajada_piso_items`
 
-*4 columnas · ~2544 filas · permisos por fila **activos***
+*4 columnas · ~2569 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2596,7 +2596,7 @@
 
 ### `bajadas_en_mano`
 
-*2 columnas · ~11 filas · permisos por fila **activos***
+*2 columnas · ~15 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2767,7 +2767,7 @@
 
 ### `movimientos_internos_intentos`
 
-*4 columnas · ~369 filas · permisos por fila **activos***
+*4 columnas · ~370 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2963,7 +2963,7 @@
 
 ### `ventas`
 
-*21 columnas · ~1829 filas · permisos por fila **activos***
+*21 columnas · ~1833 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3013,7 +3013,7 @@
 
 ### `venta_items`
 
-*15 columnas · ~2973 filas · permisos por fila **activos***
+*15 columnas · ~2978 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3060,7 +3060,7 @@
 
 ### `venta_pagos`
 
-*7 columnas · ~1882 filas · permisos por fila **activos***
+*7 columnas · ~1886 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3122,7 +3122,7 @@
 
 ### `cajas`
 
-*20 columnas · ~97 filas · permisos por fila **activos***
+*20 columnas · ~98 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3166,7 +3166,7 @@
 
 ### `caja_movimientos`
 
-*12 columnas · ~264 filas · permisos por fila **activos***
+*12 columnas · ~265 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4507,7 +4507,7 @@
 
 ### `intentos_con_token`
 
-*5 columnas · ~1867 filas · permisos por fila **activos***
+*5 columnas · ~1873 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4989,7 +4989,7 @@
 
 ### `trafico_web`
 
-*9 columnas · ~776 filas · permisos por fila **activos***
+*9 columnas · ~797 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5555,7 +5555,7 @@
 
 ### `comprobantes`
 
-*41 columnas · ~1832 filas · permisos por fila **activos***
+*41 columnas · ~1836 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -8559,7 +8559,7 @@
 
 ### `gastos`
 
-*19 columnas · ~304 filas · permisos por fila **activos***
+*19 columnas · ~305 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -9882,7 +9882,7 @@
 
 ### `actividad`
 
-*14 columnas · ~6810 filas · permisos por fila **activos***
+*14 columnas · ~6828 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
