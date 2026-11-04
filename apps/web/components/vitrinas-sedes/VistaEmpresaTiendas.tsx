@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { MapPin, Settings2 } from "lucide-react";
+import { MapPin, Pencil, Settings2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { Ayuda } from "@/components/Ayuda";
@@ -21,7 +21,7 @@ import type { DatosEmpresa } from "@/lib/configuracion-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
 import type { LecturaCargaInicial, SedeCargaInicial } from "@/lib/carga-inicial-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
-import { camposDe, falta, hora12, llenadoTubo, NOMBRE_CAMPO, puedeCambiarCarga, valorDe, type CampoSede, type VitrinaSede } from "@/lib/vitrinas-sedes-reglas";
+import { camposDe, falta, fraseDeLaSede, hora12, llenadoTubo, NOMBRE_CAMPO, puedeCambiarCarga, valorDe, type CampoSede, type VitrinaSede } from "@/lib/vitrinas-sedes-reglas";
 
 // Configuración ▸ Empresa y tiendas, «Las vitrinas» (Felipe 2026-11-04, docs/maquetas/empresa-tiendas-vitrinas-2026-11/): el carnet de la empresa y una tarjeta por sede. Antes
 // eran cuatro tablas con las mismas filas. Cada dato se cambia ahí mismo y se guarda solo al salir de él, firmado con el responsable; la carga inicial abre su hoja, porque
@@ -141,6 +141,16 @@ function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitri
       </svg>
     </span>
   );
+  // Lo que se toca se nota (prueba ciega, 2026-11-04: «no sé si se puede cambiar»): lo que falta dice «Poner»; lo demás lleva su lápiz.
+  const accion = falta(v, campo) ? (
+    <span className="vs-accion poner" aria-hidden>
+      Poner
+    </span>
+  ) : (
+    <span className="vs-accion" aria-hidden>
+      <Pencil className="h-4 w-4" /* unificar-fijo: el dato entero es el botón: un <LapizEditar> adentro sería un botón dentro de otro */ />
+    </span>
+  );
   const textos = (cuerpo: React.ReactNode) => (
     <span className="vs-textos">
       <span className="vs-rotulo">{NOMBRE_CAMPO[campo]}</span>
@@ -166,7 +176,7 @@ function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitri
       <div className={clase} style={estilo} data-guia={guia}>
         <Instrumento vitrina={v} campo={campo} />
         {textos(<span className="vs-valor">{valorDe(v, campo)}</span>)}
-        <Interruptor activo={!!v.preguntar} disabled={pedido} onActivo={cambiar} etiqueta={<span className="sr-only">Preguntar en {v.corto}</span>} />
+        <Interruptor activo={!!v.preguntar} disabled={pedido} onActivo={cambiar} etiqueta={<span className="sr-only">Asistente en {v.corto}</span>} />
         {visto}
       </div>
     );
@@ -188,6 +198,7 @@ function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitri
       >
         <Instrumento vitrina={v} campo={campo} />
         {textos(<span className="vs-valor">{valorDe(v, campo)}</span>)}
+        {puede && accion}
       </button>
     );
   }
@@ -233,12 +244,14 @@ function Dato({ vitrina, campo, i, guardar, carga, guia, alAbrirCarga }: { vitri
       }}>
       <Instrumento vitrina={v} campo={campo} />
       {textos(<span className="vs-valor">{valor}</span>)}
+      {accion}
       {visto}
     </button>
   );
 }
 
 function Vitrina({ vitrina, e, guardar, carga, guias, alAbrirCarga }: { vitrina: VitrinaSede; e: number; guardar: Guardar; carga: Carga; guias: Partial<Record<CampoSede, string>>; alAbrirCarga: (id: string) => void }) {
+  const frase = fraseDeLaSede(vitrina);
   return (
     <article className="vs-vitrina vs-liquido" data-color={vitrina.color} data-luz style={conVar({ "--e": e })}>
       <header>
@@ -262,6 +275,7 @@ function Vitrina({ vitrina, e, guardar, carga, guias, alAbrirCarga }: { vitrina:
         </div>
         <AroSede vitrina={vitrina} />
       </header>
+      {frase && <p className={`vs-frase ${frase === "Todo listo" ? "listo" : ""}`}>{frase}</p>}
       <div className="vs-datos">
         {camposDe(vitrina).map((c, i) => (
           <Dato key={c} vitrina={vitrina} campo={c} i={e + i} guardar={guardar} carga={carga} guia={guias[c]} alAbrirCarga={() => alAbrirCarga(vitrina.id)} />
@@ -309,6 +323,7 @@ function Carnet({ datos }: { datos: DatosEmpresa }) {
       </div>
       <div className="vs-sello">
         <SelloEmpresa />
+        <span className="vs-rotulo">Solo se lee</span>
         <Ayuda titulo="Solo se lee">Salen en boletas y facturas. Se corrigen con el contador y el proveedor de facturación: un RUC o una serie mal escritos hacen que SUNAT rechace cada comprobante.</Ayuda>
       </div>
     </section>
@@ -422,9 +437,9 @@ export function VistaEmpresaTiendas({
       )}
 
       {conPreguntar && gasto && lleno !== null && (
-        <section className="vs-tubo vs-liquido" aria-label="Lo gastado por Preguntar este mes" data-luz>
-          <b className="vs-tubo-nombre">Preguntar</b>
-          <BarraAvance pct={lleno * 100} alto="gruesa" tono={tono} etiqueta="Lo gastado por Preguntar este mes" texto={gasto.texto} className="vs-tubo-barra" />
+        <section className="vs-tubo vs-liquido" aria-label="Lo gastado por el asistente este mes" data-luz>
+          <b className="vs-tubo-nombre">Asistente CAYLA</b>
+          <BarraAvance pct={lleno * 100} alto="gruesa" tono={tono} etiqueta="Lo gastado por el asistente este mes" texto={gasto.texto} className="vs-tubo-barra" />
           <span className="vs-rotulo">{gasto.texto}</span>
         </section>
       )}

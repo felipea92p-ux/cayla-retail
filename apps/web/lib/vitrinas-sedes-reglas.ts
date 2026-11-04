@@ -16,12 +16,21 @@ import type { DatosEmpresa, TiendaConfig } from "./configuracion-reglas";
 
 export type CampoSede = "whatsapp" | "cierre" | "fondo" | "preguntar" | "carga";
 
+// Prueba ciega de Formidable, 2026-11-04: «Preguntar» y «Carga inicial» no decían qué eran, y el QR no hacía pensar en WhatsApp.
 export const NOMBRE_CAMPO: Record<CampoSede, string> = {
-  whatsapp: "WhatsApp",
+  whatsapp: "WhatsApp y QR",
   cierre: "Cierra",
   fondo: "Fondo de caja",
-  preguntar: "Preguntar",
-  carga: "Carga inicial",
+  preguntar: "Asistente CAYLA",
+  carga: "Carga de stock inicial",
+};
+
+const NOMBRE_EN_FRASE: Record<CampoSede, string> = {
+  whatsapp: "WhatsApp",
+  cierre: "hora de cierre",
+  fondo: "fondo de caja",
+  preguntar: "asistente",
+  carga: "fecha de carga",
 };
 
 export type VitrinaSede = {
@@ -112,6 +121,16 @@ export function avance(v: VitrinaSede): { hechos: number; total: number; complet
   const r = requeridos(v);
   const hechos = r.filter((c) => !falta(v, c)).length;
   return { hechos, total: r.length, completo: r.length > 0 && hechos === r.length };
+}
+
+/** Lo que el aro cuenta, en palabras: «Falta WhatsApp y hora de cierre». Sin nada que pedir, `null`: no hay nada que decir. */
+export function fraseDeLaSede(v: VitrinaSede): string | null {
+  const a = avance(v);
+  if (!a.total) return null;
+  if (a.completo) return "Todo listo";
+  const f = requeridos(v).filter((c) => falta(v, c)).map((c) => NOMBRE_EN_FRASE[c]);
+  const lista = f.length > 1 ? `${f.slice(0, -1).join(", ")} y ${f[f.length - 1]}` : f[0];
+  return `Falta ${lista}`;
 }
 
 /** «21:00» → «9:00 p. m.». Si la base trae segundos («21:00:00»), se ignoran. */

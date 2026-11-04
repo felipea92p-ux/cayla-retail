@@ -77,7 +77,8 @@
 .vs-digito { display: block; height: 1.2em; overflow: hidden; }
 .vs-digito > span { display: block; transform: translateY(calc(var(--d) * -1.2em)); }
 .vs-digito i { display: block; height: 1.2em; font-style: normal; }
-.vs-sello { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.vs-sello { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.vs-sello .vs-rotulo { white-space: nowrap; }
 .vs-guilloche { width: 68px; height: 68px; overflow: visible; }
 .vs-guilloche .linea { fill: none; stroke: var(--color-taupe); stroke-width: 0.5; }
 .vs-guilloche .candado { fill: none; stroke: var(--color-tinta); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -106,6 +107,8 @@
   background: var(--placa-fondo);
   box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 8%, transparent);
 }
+.vs-frase { padding: 0 6px 12px; font-size: 15px; font-weight: 500; color: var(--color-ambar-profundo); }
+.vs-frase.listo { color: var(--color-verde-profundo); }
 .vs-datos { display: grid; gap: 8px; }
 
 /* El aro de la sede: un tramo por dato */
@@ -150,8 +153,12 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 @media (hover: hover) {
   button.vs-dato:not(:disabled):hover { transform: translateY(-2px); background: var(--gota-fondo-encima); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent), 0 16px 26px -18px color-mix(in srgb, var(--color-sombra) 55%, transparent); }
   button.vs-dato:not(:disabled):hover .vs-gota { transform: scale(1.06); }
+  button.vs-dato:not(:disabled):hover .vs-accion { color: var(--color-tinta); transform: translateY(-1px); }
 }
 .vs-textos { flex: 1; min-width: 0; }
+/* Lo que dice que se puede tocar: el lápiz, o «Poner» en lo que falta */
+.vs-accion { flex: none; display: grid; place-items: center; color: var(--color-taupe); transition: color 250ms var(--ease-cayla), transform 250ms var(--ease-cayla); }
+.vs-accion.poner { height: 30px; padding: 0 12px; border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--color-ambar-profundo); background: var(--gota-fondo); box-shadow: var(--gota-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 42%, transparent); }
 .vs-valor { display: block; font: 500 23px/1.2 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
 .vs-dato.falta { background: color-mix(in srgb, var(--color-ambar) 7%, transparent); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 38%, transparent); }
 .vs-dato.falta { --c: var(--color-ambar); }
@@ -199,6 +206,7 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 .vsi-qr .esq { fill: none; stroke: var(--c); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .vsi-qr .mod { fill: var(--color-tinta); opacity: 0.92; }
 .vsi-qr .haz { fill: var(--c); opacity: 0; }
+.vsi-qr .globo { fill: var(--c); stroke: var(--color-vidrio); stroke-width: 1.3; stroke-linejoin: round; }
 .vsi-qr.no .mod { opacity: 0.16; }
 .vsi-qr.no .esq { stroke-dasharray: 2.5 3; }
 /* El dial del día, de las 6 de la mañana a la medianoche */
@@ -218,26 +226,28 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 .vsi-liq .simbolo { font: 500 19px var(--font-serif); fill: var(--color-tinta); text-anchor: middle; paint-order: stroke; stroke: color-mix(in srgb, var(--color-vidrio) 55%, transparent); stroke-width: 2.5px; }
 :root[data-tema="oscuro"] .vsi-liq .simbolo { stroke: color-mix(in srgb, var(--color-sombra) 45%, transparent); }
 .vsi-liq .vacio { fill: none; stroke: var(--color-ambar); stroke-width: 1.5; stroke-dasharray: 3 4; }
-/* La constelación de Preguntar */
+/* El globo del asistente, con su estrella */
 .vsi-const .orbita { fill: none; stroke: color-mix(in srgb, var(--color-tinta) 42%, transparent); stroke-width: 0.9; }
 .vsi-const .nodo { fill: color-mix(in srgb, var(--color-tinta) 62%, transparent); }
 .vsi-const .estrella { fill: var(--c); transform-origin: 29px 29px; transition: fill 400ms; }
 .vsi-const.no .estrella { fill: color-mix(in srgb, var(--color-tinta) 28%, transparent); }
 .vsi-const.no .nodo { fill: color-mix(in srgb, var(--color-tinta) 26%, transparent); }
 .vsi-const.no .orbita { stroke: color-mix(in srgb, var(--color-tinta) 22%, transparent); }
-/* El sello de la carga */
+/* La caja de la carga: cerrada, con su visto */
 .vsi-sello.cerrado { --sello: var(--color-verde); }
 .vsi-sello.abierto { --sello: var(--c); }
 .vsi-sello.no { --sello: var(--color-ambar); }
 .vsi-sello .hex { fill: color-mix(in srgb, var(--sello) 12%, transparent); stroke: var(--sello); stroke-width: 1.5; stroke-linejoin: round; }
 .vsi-sello.no .hex { stroke-dasharray: 3 3; }
-.vsi-sello .traza { fill: none; stroke: var(--sello); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.vsi-sello .traza { fill: none; stroke: var(--sello); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.vsi-sello.no .traza { stroke-dasharray: 3 3; }
+.vsi-sello .marca-fondo { fill: var(--color-verde); stroke: var(--color-vidrio); stroke-width: 1.5; }
+.vsi-sello .marca-visto { fill: none; stroke: var(--color-crema-fija); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; }
 .vsi-sello .dias { fill: none; stroke: var(--c); stroke-width: 2; stroke-linecap: round; stroke-dasharray: var(--a) 100; }
-.vsi-sello.abierto .cierre, .vsi-sello.no .cierre { transform: translateY(-3.5px); }
 
 /* El tubo de Preguntar: la barra del sistema, a lo ancho */
 .vs-tubo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 22px; border-radius: 999px; }
-.vs-tubo-nombre { font: 500 21px var(--font-serif); }
+.vs-tubo-nombre { font: 500 21px var(--font-serif); white-space: nowrap; }
 .vs-tubo-barra { flex: 1; min-width: 160px; }
 
 @container (max-width: 520px) {
@@ -247,7 +257,7 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
   .vs-carnet { padding: 18px; border-radius: 24px; }
   .vs-marca { font-size: 34px; }
   .vs-ruc { font-size: 26px; }
-  .vs-sello { position: absolute; right: 12px; top: 12px; margin: 0; }
+  .vs-sello { margin: 0; }
   .vs-guilloche { width: 52px; height: 52px; }
   .vs-firma { max-width: none; }
   .vs-tubo { border-radius: 24px; }
@@ -313,7 +323,8 @@ button.vs-dato:focus-visible { outline: 2px solid var(--color-rojo); outline-off
 .vsi-const .nodo { animation: vs-funde 400ms var(--ease-cayla) calc(1000ms + var(--i, 0) * 75ms + var(--k) * 120ms) backwards; }
 .vsi-sello:not(.no) .hex { stroke-dasharray: 1; animation: vs-traza 900ms var(--ease-cayla) calc(300ms + var(--i, 0) * 75ms) backwards; }
 .vsi-sello .dias { animation: vs-arco 1200ms var(--ease-cayla) calc(500ms + var(--i, 0) * 75ms) backwards; }
-.vsi-sello.cerrado .cierre { animation: vs-cierra 700ms var(--ease-cayla) calc(850ms + var(--i, 0) * 75ms) backwards; }
+.vsi-sello .marca-fondo { transform-box: fill-box; transform-origin: center; animation: vs-nace 500ms var(--ease-cayla) calc(850ms + var(--i, 0) * 75ms) backwards; }
+.vsi-sello .marca-visto { animation: vs-traza-24 450ms var(--ease-cayla) calc(1150ms + var(--i, 0) * 75ms) backwards; }
 .vs-tubo { animation: vs-enfoca 850ms var(--ease-cayla) 550ms backwards; }
 
 /* Un dato que ya se tocó no vuelve a entrar: al salir de la casilla sin cambiar nada, se queda quieto. */

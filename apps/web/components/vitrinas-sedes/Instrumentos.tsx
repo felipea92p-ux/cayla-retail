@@ -2,7 +2,7 @@ import { useId, type CSSProperties } from "react";
 import { anguloDial, arcoCarga, avance, nivelFondo, requeridos, falta, type CampoSede, type VitrinaSede } from "@/lib/vitrinas-sedes-reglas";
 
 // Configuración ▸ Empresa y tiendas (docs/maquetas/empresa-tiendas-vitrinas-2026-11/): cada dato de una sede es un INSTRUMENTO dentro de una gota de vidrio. Se ve antes
-// de leerse: el visor con su QR, el dial del día, el líquido del fondo, la constelación de Preguntar y el sello de la carga. Solo dibujan lo que ya dicen las reglas
+// de leerse: el visor con su QR, el dial del día, el líquido del fondo, el globo del asistente y la caja de la carga. Solo dibujan lo que ya dicen las reglas
 // (`lib/vitrinas-sedes-reglas.ts`) y son `aria-hidden`: lo que se lee está en el texto del dato. Color: el de la sede solo aquí y en su aro (Felipe 2026-11-04: «más
 // sutil y más ordenado»); ámbar, lo que falta; verde, lo que cerró. Estilos y movimiento: `app/estilos/vidrio/vitrinas-sedes.css`.
 
@@ -21,6 +21,7 @@ function Visor({ con }: { con: boolean }) {
         p ? <rect key={k} className="mod" style={conVar({ "--f": Math.floor(k / 7) })} x={18.5 + (k % 7) * 3.1} y={18.5 + Math.floor(k / 7) * 3.1} width={2.6} height={2.6} rx={0.6} /> : null,
       )}
       <rect className="haz" x={13} y={13} width={32} height={1.4} rx={0.7} />
+      <path className="globo" d="M45.5 37.5a7 7 0 0 1 0 14c-1.2 0-2.3-.3-3.300-.8l-3.700 1 1-3.500a7 7 0 0 1 6-10.700z" />
     </svg>
   );
 }
@@ -84,22 +85,20 @@ function Liquido({ fondo }: { fondo: number | null }) {
   );
 }
 
-function Constelacion({ activa }: { activa: boolean }) {
+function Asistente({ activo }: { activo: boolean }) {
   return (
-    <svg className={`vsi-const ${activa ? "" : "no"}`} viewBox="0 0 58 58" aria-hidden>
+    <svg className={`vsi-const ${activo ? "" : "no"}`} viewBox="0 0 58 58" aria-hidden>
       <g className="gira">
-        <ellipse className="orbita" pathLength={1} cx={29} cy={29} rx={22} ry={8.5} transform="rotate(32 29 29)" />
-        <ellipse className="orbita" pathLength={1} cx={29} cy={29} rx={22} ry={8.5} transform="rotate(-32 29 29)" />
-        <circle className="nodo" style={conVar({ "--k": 0 })} cx={47.6} cy={40.6} r={1.9} />
-        <circle className="nodo" style={conVar({ "--k": 1 })} cx={10.4} cy={40.6} r={1.5} />
-        <circle className="nodo" style={conVar({ "--k": 2 })} cx={47.6} cy={17.4} r={1.3} />
+        <path className="orbita" pathLength={1} d="M29 11c10.500 0 19 7.200 19 16.200s-8.500 16.200-19 16.200c-2.200 0-4.300-.3-6.200-.9L14 47l1.800-8.200C12 35.800 10 31.700 10 27.200 10 18.200 18.500 11 29 11z" />
+        <circle className="nodo" style={conVar({ "--k": 0 })} cx={19.5} cy={20} r={1.5} />
+        <circle className="nodo" style={conVar({ "--k": 1 })} cx={39} cy={33.500} r={1.3} />
       </g>
-      <path className="estrella" d="M29 16c1.3 8.1 4.9 11.7 13 13-8.100 1.300-11.700 4.900-13 13-1.300-8.100-4.900-11.700-13-13 8.100-1.300 11.700-4.900 13-13z" />
+      <path className="estrella" d="M29 17.500c1 6.300 3.400 8.700 9.700 9.700-6.300 1-8.700 3.400-9.700 9.700-1-6.300-3.400-8.700-9.700-9.700 6.300-1 8.700-3.400 9.700-9.700z" />
     </svg>
   );
 }
 
-function Sello({ vitrina }: { vitrina: VitrinaSede }) {
+function CajaDeCarga({ vitrina }: { vitrina: VitrinaSede }) {
   const e = vitrina.carga?.estado;
   const clase = e?.tipo === "cerrada" ? "cerrado" : e?.tipo === "abierta" ? "abierto" : "no";
   const arco = e ? arcoCarga(e) : 0;
@@ -108,8 +107,13 @@ function Sello({ vitrina }: { vitrina: VitrinaSede }) {
       <path className="hex" pathLength={1} d="M29 7.5 47.6 18.25V39.75L29 50.5 10.4 39.75V18.25Z" />
       {/* unificar-fijo: los días que quedan alrededor del sello, parte del dibujo; lo que se lee es la fecha */}
       {arco > 0 && <circle className="dias" style={conVar({ "--a": arco * 100 })} cx={29} cy={29} r={25.5} pathLength={100} transform="rotate(-90 29 29)" />}
-      <path className="traza cierre" d="M23.5 28v-3.5a5.5 5.5 0 0 1 11 0V28" />
-      <rect className="traza" x={21} y={28} width={16} height={11.5} rx={3} />
+      <path className="traza caja" d="M10.4 18.25 29 29l18.6-10.750M29 29v21.500" />
+      {e?.tipo === "cerrada" && (
+        <>
+          <circle className="marca-fondo" cx={44} cy={43} r={8} />
+          <path className="marca-visto" d="M40.300 43.200l2.600 2.600 4.800-5.200" />
+        </>
+      )}
     </svg>
   );
 }
@@ -122,8 +126,8 @@ export function Instrumento({ vitrina, campo }: { vitrina: VitrinaSede; campo: C
       {campo === "whatsapp" && <Visor con={!falta(vitrina, "whatsapp")} />}
       {campo === "cierre" && <Dial hora={vitrina.tienda?.horaCierre ?? null} />}
       {campo === "fondo" && <Liquido fondo={vitrina.tienda?.fondo ?? null} />}
-      {campo === "preguntar" && <Constelacion activa={!!vitrina.preguntar} />}
-      {campo === "carga" && <Sello vitrina={vitrina} />}
+      {campo === "preguntar" && <Asistente activo={!!vitrina.preguntar} />}
+      {campo === "carga" && <CajaDeCarga vitrina={vitrina} />}
     </span>
   );
 }

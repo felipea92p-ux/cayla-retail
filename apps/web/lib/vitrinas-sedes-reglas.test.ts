@@ -9,6 +9,7 @@ import {
   camposDe,
   celularLegible,
   falta,
+  fraseDeLaSede,
   hora12,
   llenadoTubo,
   nivelFondo,
@@ -106,6 +107,21 @@ describe("qué falta (decisión de Felipe, 2026-11-04)", () => {
     expect(falta(cero!, "fondo")).toBe(false);
     expect(valorDe(cero!, "fondo")).toBe(solesRedondo(0));
     expect(falta(vacio!, "fondo")).toBe(true);
+  });
+});
+
+describe("la frase de la sede dice lo que el aro cuenta", () => {
+  it("nombra lo que falta, y dice cuando no falta nada", () => {
+    expect(fraseDeLaSede(tru)).toBe("Todo listo");
+    expect(fraseDeLaSede(lim)).toBe("Falta WhatsApp y hora de cierre");
+    expect(fraseDeLaSede(taller)).toBe("Falta fecha de carga");
+  });
+
+  it("con tres o más separa con comas y cierra con «y»; sin nada que pedir no dice nada", () => {
+    const [v] = armarVitrinas({ empresa: null, tiendas: [tienda({ id: "a", nombre: "Tienda LIM", whatsappNumero: null, horaCierre: null, fondo: null })], asistente: null, carga: null, hoy: HOY });
+    expect(fraseDeLaSede(v!)).toBe("Falta WhatsApp, hora de cierre y fondo de caja");
+    const [solo] = armarVitrinas({ empresa: null, tiendas: [], asistente: [asistente("a", "Almacén", "almacen")], carga: null, hoy: HOY });
+    expect(fraseDeLaSede(solo!)).toBeNull();
   });
 });
 

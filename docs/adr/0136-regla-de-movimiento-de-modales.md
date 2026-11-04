@@ -628,6 +628,6 @@ Proformas, Resumen de sede).
 ## Actualización 2026-11-04: Las vitrinas de Configuración ▸ Empresa y tiendas
 
 Felipe pidió «full animaciones y sofisticada», «siempre siguiendo el estilo de liquid glass» (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). Cada dato de una sede es un instrumento en
-una gota de vidrio, y se arma una vez al entrar o al guardarlo: el haz que escanea el QR, la aguja del dial, el líquido que sube, la constelación, el sello que se cierra, el RUC que rueda y
+una gota de vidrio, y se arma una vez al entrar o al guardarlo: el haz que escanea el QR, la aguja del dial, el líquido que sube, la estrella del asistente, la caja que se sella, el RUC que rueda y
 el aro por tramos. Sin rebote ni bucle, cada pieza en 1,2 s o menos y con la curva del sistema. Lo único que sigue vivo es lo que sigue al mouse (el filo de luz, el brillo y una inclinación de
 menos de 1,5°), que no se mueve solo. Todo se apaga con `prefers-reduced-motion`. Lo vigila `lib/vitrinas-movimiento.test.ts`.

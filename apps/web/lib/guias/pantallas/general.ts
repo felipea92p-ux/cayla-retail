@@ -1233,13 +1233,13 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.empresa-tiendas",
       opcional: true,
       titulo: "Una tarjeta por sede",
-      texto: "Cada sede con su dirección y sus series de comprobante. El aro de arriba dice cuántos de sus datos están listos: un tramo punteado es uno que falta. Toca un dato para cambiarlo; se guarda solo al salir de él.",
+      texto: "Cada sede con su dirección y sus series de comprobante. Debajo del nombre dice qué le falta, y el aro lo cuenta: un tramo punteado es un dato que falta. Toca cualquier dato con su lápiz, o «Poner» si falta; se guarda solo al salir de él.",
     },
     {
       id: "tiendas-whatsapp",
       ancla: "config.tiendas-whatsapp",
       opcional: true,
-      titulo: "WhatsApp de cada tienda",
+      titulo: "WhatsApp y QR",
       texto: "El número al que escriben los clientes desde el cartel del club y desde la tienda web. Sin número, esa tienda no muestra el código QR ni sale en la web.",
     },
     {
@@ -1260,14 +1260,14 @@ export const GUIA_CONFIGURACION: Guia = {
       id: "tiendas-asistente",
       ancla: "config.tiendas-asistente",
       opcional: true,
-      titulo: "Pregúntale a CAYLA en cada sede",
+      titulo: "El asistente CAYLA",
       texto: "La ayuda de la cabecera que responde «¿cómo hago…?» se prende sede por sede: el botón «Preguntar» solo sale en las encendidas. Al pie ves cuánto va gastado en el mes; al llegar al tope, sigue respondiendo sin IA hasta el día 1.",
     },
     {
       id: "carga-inicial",
       ancla: "config.carga-inicial",
       opcional: true,
-      titulo: "Carga inicial",
+      titulo: "Carga de stock inicial",
       texto: "Hasta qué día cada sede carga, sin comprobante, lo que ya tenía al empezar con el sistema. Después, lo que aparezca entra como «Encontré prendas». Tocarlo abre su hoja: la fecha la fija un líder; reabrir una sede cerrada, solo un Admin.",
     },
     {
