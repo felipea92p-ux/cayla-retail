@@ -247,7 +247,7 @@ por debajo se mezcla con sus botones y se ve roto (la cabecera de «dos islas» 
 pone fondo con **el vidrio de lo que flota** (`--vidrio-flota-fondo` + `--vidrio-flota-filtro`, las mismas variables de las islas, el cajón de
 un módulo y la barra de abajo), con su borde que se desvanece si no es una barra a ras, y **se verifica haciendo scroll** con una tabla o
 filtros debajo, en claro y en oscuro. No inventes otro color ni otro desenfoque: es la receta de `recetas.css`. Ejemplo hecho:
-`.marco-cabecera::before` en `app/estilos/vidrio/marco.css` (maqueta: `docs/maquetas/cabecera-banda-2026-11/`).
+`.marco-cabecera-fila::before` en `app/estilos/vidrio/marco.css` (la barra rectangular de borde a borde que cubre toda la cabecera; reemplazó a la banda detrás de las dos islas, maqueta: `docs/maquetas/cabecera-banda-2026-11/`).
 
 **Desde el 2026-11-02 esta es LA estética del ERP, y es obligatoria (Felipe):** toda pantalla, modal o pieza nueva o editada sigue esta línea y
 se arma con las piezas ya elegidas (la tabla «4.1 Las piezas elegidas» del tablero: hoja Serena, pozo, gota, ahumado, placa Serena, vidrio
