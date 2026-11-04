@@ -1,6 +1,6 @@
 # ADR-0608 · Un modelo sale al stock sin cerrar el envío
 
-- **Fecha:** 2026-11-03 · **Estado:** construido y probado en local (`pnpm pruebas:envio-sin-aviso`, 37 casos; navegador a 1280 px).
+- **Fecha:** 2026-11-03 · **Estado:** probado en local (`pnpm pruebas:envio-sin-aviso`, 37 casos; navegador a 1280 px). **Migraciones en producción desde el 2026-11-03** con el OK de Felipe; la pantalla entra al fusionar el PR.
 - **Decide:** Felipe, 2026-11-03: «Digamos que empiezo a contar y quiero contar solo un modelo de polo primero […] esos polos tienen que salir primero». «Si hay que hacerlo y debe quedar absolutamente perfecto».
 - **Toca:** ADR-0393 (recepción contando primero), ADR-0604 (contar modelo por modelo). Cambia tres reglas anteriores, abajo.
 - **Migración:** `20261104005000_salida_anticipada_de_un_modelo.sql`.

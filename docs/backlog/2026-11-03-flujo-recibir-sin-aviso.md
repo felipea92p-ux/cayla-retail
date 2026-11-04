@@ -50,3 +50,7 @@ Felipe: «debe quedar absolutamente perfecto». Toca stock y movimientos: va con
 ### Para que decida Felipe
 - [ ] **Mayúsculas del nombre:** «Polo a rayas» se guarda «Polo a Rayas» («a» ya es conector; ya no sale «Polo A Rayas»). Guardarlo tal como se escribe cambiaría el formato único de todo el catálogo (`fn_titulo_referencia`): no se tocó.
 - [ ] **«Cambiar por talla» y «Crear la prenda» sin aprobar mirando:** Felipe pidió ver la tabla de Cerrar antes de darla por buena; se construyó y se revisa en el PR.
+
+### En producción (2026-11-03, con el OK de Felipe; pegadas por MCP, por eso cambia la versión)
+`20261104000000` → `20261104010518` · `20261104001000` → `20261104010616` · `20261104002000` → `20261104010619` · `20261104003000` → `20261104010622` · `20261104005000` → `20261104010755`.
+- [ ] Refrescar la foto de producción (`docs/datos/generado/COMO-REFRESCAR.md`): `despacho_salidas` y las funciones nuevas todavía no están en el diccionario, y `pnpm datos:comparar` las marca por eso.
