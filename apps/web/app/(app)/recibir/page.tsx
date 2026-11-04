@@ -12,6 +12,7 @@ import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam }
 import { getEnviosDeLotes } from "@/lib/envio";
 import { getTrasladosEnCurso, type TrasladoResumen } from "@/lib/traslados";
 import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto, trasladosHaciaAca } from "@/lib/envio-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 import { AvisoTrasladosEnCamino } from "@/components/AvisoTrasladosEnCamino";
 import { valorPorRecibirDeMiTienda } from "@/lib/reparto-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
@@ -34,7 +35,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
-import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { getEnviosAMedias, getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
 import { esEnvioSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
@@ -272,6 +274,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     }));
     // De quién es cada envío sin aviso que alguien dejó abierto (suelen ser uno o dos): la lista de Compras no lo trae. Si no se lee, la
     // fila dice lo de siempre.
+    const aMedias = contando.disponible ? await getEnviosAMedias(persona.ubicacionId) : [];
     const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
     const proveedoresSinAviso = Object.fromEntries(
       await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, proveedorDelSinAviso((await getConteosDelEnvio(e.id)).conteos)] as const)),
@@ -291,6 +294,20 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       return (
         <div className="space-y-6">
           {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
+          {aMedias.map((e) => (
+            <Aviso
+              key={e.id}
+              tono={diasAMedias(e.desde) >= DIAS_PARA_RESALTAR ? "atencion" : "info"}
+              chico
+              accion={
+                <Link href={`/recibir/envio/${e.id}`} className="btn-cayla btn-enlace">
+                  Seguir contando
+                </Link>
+              }
+            >
+              {textoDeEnvioAMedias(e)}
+            </Aviso>
+          ))}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>

@@ -2,10 +2,11 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 144,
+  "total": 145,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
+      "Link «Seguir contando»",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
       "Link «recíbela sin factura» #2"

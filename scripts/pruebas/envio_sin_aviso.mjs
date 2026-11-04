@@ -21,6 +21,8 @@
  *      deja cerrar lo contado, y lo que quedó en 0 se descarta sin dejar pendiente.
  *   W  CREAR LA PRENDA (Felipe 2026-11-03): al recibir, tejido y patrón son opcionales y lo creado no sale solo en la web, sin importar quién
  *      lo crea ni si un líder lo aprueba después. Nuevo producto sigue igual.
+ *   A  LLEVAR AL STOCK AHORA (Felipe 2026-11-03): un modelo entra sin cerrar el envío; doble clic, otra versión, de más, otra prenda; lo que falta se mide al
+ *      cierre final; se corrige mientras siga en el almacén; sin proveedor sale a nombre de «Por confirmar»; lo demás sigue por repartir.
  *   F  LA FORMA: permisos y RLS.
  *
  * USO
@@ -70,6 +72,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261104002000_parecidas_al_recibir_en_todas_las_marcas.sql",
       // Crear la prenda: tejido y patrón opcionales, nada sale solo en la web.
       "20261104003000_prenda_al_recibir_sin_tela_ni_web.sql",
+      // Un modelo sale a la venta sin cerrar el envío.
+      "20261104005000_salida_anticipada_de_un_modelo.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -159,6 +163,13 @@ ${atrapa(
   "p_d uuid, p_item uuid, p_cat uuid, p_marca uuid, p_prod uuid, p_ref text, p_vars jsonb, p_precio numeric, p_desc text, p_tej uuid, p_pat uuid, p_conf boolean, p_token uuid, p_prov uuid",
   "retail.preparar_prenda_al_recibir(p_d, p_item, p_cat, p_marca, p_prod, p_ref, p_vars, p_precio, p_desc, p_tej, p_pat, p_conf, p_token, p_prov)",
 )}
+${atrapa(
+  "lleva",
+  "p_d uuid, p_item uuid, p_extra integer, p_ver integer, p_prod uuid, p_vars jsonb, p_costo numeric, p_conf boolean, p_token uuid",
+  "retail.llevar_al_stock_ahora(p_d, p_item, p_extra, p_ver, p_prod, p_vars, p_costo, p_conf, p_token)",
+)}
+${atrapa("corrige_salida", "p_id uuid, p_motivo text, p_token uuid", "retail.corregir_salida(p_id, p_motivo, p_token)")}
+${atrapa("salidas", "p_d uuid", "retail.fn_salidas_del_envio(p_d)")}
 ${atrapa(
   "alta",
   "p_ref text, p_cat uuid, p_vars jsonb, p_tej uuid, p_pat uuid",
@@ -838,6 +849,153 @@ caso(
   `reset role;
    select concat_ws(' / ', retail.fn_titulo_referencia('polo a rayas'), retail.fn_titulo_referencia('a rayas'));`,
   "Polo a Rayas / A Rayas",
+);
+// Un envío sin aviso con una prenda del catálogo contada: 10, de ellas 4 repartidas en S.
+const CON_PRENDA = `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.e(pg_temp.guarda(:'d', null, 10, ${SEP([["prod_p", 10]])}, null::int, null::int, null::uuid, :'cat', :'marca')) as g \\gset
+   reset role;
+   select k.version as ver, k.extra_posicion as extra from retail.despacho_conteos k where k.despacho_id = :'d' \\gset
+   select coalesce((select cantidad from retail.stock where variante_id = :'pv_s' and ubicacion_id = :'tru' and sububicacion_id = retail.fn_sububicacion_por_defecto(:'tru', 'entrada')), 0) as antes \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+`;
+const LLEVA = (n, { ver = ":'ver'", token = "gen_random_uuid()", prod = ":'prod_p'", costo = "null::numeric", conf = "false", extra = ":'extra'" } = {}) =>
+  `pg_temp.lleva(:'d', null, ${extra}, ${ver}, ${prod}, ${A(V("pv_s", n))}, ${costo}, ${conf}, ${token})`;
+const EN_ALMACEN = `(select coalesce(sum(s.cantidad), 0) from retail.stock s where s.variante_id = :'pv_s' and s.ubicacion_id = :'tru' and s.sububicacion_id = retail.fn_sububicacion_por_defecto(:'tru', 'entrada'))`;
+const CUENTAS_D = `(select c.contadas || ':' || c.en_stock || ':' || c.sin_separar from retail.fn_envio_cuentas(array[:'d'::uuid]) c)`;
+caso(
+  "A1 lleva 4 de 10: entra al stock, lo contado no cambia, lo demás sigue por repartir y el envío sigue abierto",
+  `${CON_PRENDA}
+   select ${LLEVA(4)} as r \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), :'r'::jsonb ->> 'unidades', ${EN_ALMACEN} - :antes,
+     (select estado from retail.despachos where id = :'d'), ${CUENTAS_D},
+     (select (x ->> 'cantidad') || ':' || coalesce(x ->> 'variantes', 'sin repartir') from retail.despacho_conteos k cross join lateral jsonb_array_elements(k.separado -> 'prendas') x where k.despacho_id = :'d'),
+     (select count(*) from retail.despacho_diferencias x where x.despacho_id = :'d'));`,
+  "OK / 4 / 4 / abierto / 10:4:6 / 6:sin repartir / 0",
+);
+caso(
+  "A2 un doble clic con el mismo token mete una sola vez; el mismo token con otros datos se rechaza",
+  `${CON_PRENDA}
+   select gen_random_uuid() as t \\gset
+   select ${LLEVA(4, { token: ":'t'" })} as r1 \\gset
+   select ${LLEVA(4, { token: ":'t'" })} as r2 \\gset
+   select pg_temp.h(${LLEVA(3, { token: ":'t'", ver: ":'ver'::int + 1" })}) as otro \\gset
+   reset role;
+   select concat_ws(' / ', :'r2'::jsonb ->> 'repetido', :'otro', ${EN_ALMACEN} - :antes, (select count(*) from retail.despacho_salidas s where s.despacho_id = :'d'));`,
+  "true / salida_otros_datos / 4 / 1",
+);
+caso(
+  "A3 los rechazos claros y sin nada escrito: otra versión, de más, sin repartir, otra prenda",
+  `${CON_PRENDA}
+   select pg_temp.h(${LLEVA(1, { ver: ":'ver'::int + 5" })}) as a \\gset
+   select pg_temp.h(${LLEVA(11)}) as b \\gset
+   select pg_temp.h(${LLEVA(0)}) as c \\gset
+   select pg_temp.h(${LLEVA(1, { prod: ":'prod_g'" })}) as e \\gset
+   reset role;
+   select concat_ws(' / ', :'a', :'b', :'c', :'e', ${EN_ALMACEN} - :antes, (select count(*) from retail.despacho_salidas s where s.despacho_id = :'d'));`,
+  "conteo_cambiado / salida_de_mas / salida_vacia / salida_prenda_no_esta / 0 / 0",
+);
+caso(
+  "A4 un costo fuera de lo normal pide confirmar, y sin ver el dinero no se escribe; sin costo entra igual",
+  `${CON_PRENDA}
+   select pg_temp.h(${LLEVA(1, { costo: "1" })}) as sin_dinero \\gset
+   select ${LLEVA(1)} as sin_costo \\gset
+   reset role;
+   select concat_ws(' / ', :'sin_dinero', pg_temp.e(:'sin_costo'::jsonb));`,
+  "recepcion_costo_sin_permiso / OK",
+);
+caso(
+  "A5 lo que ya salió cuenta al cierre final; el cierre no lo mete dos veces",
+  `${CON_PRENDA}
+   select ${LLEVA(10)} as r \\gset
+   reset role;
+   select k.version as ver2 from retail.despacho_conteos k where k.despacho_id = :'d' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   ${VERS("d", [], [1])}
+   select pg_temp.e(${CIERRA("d", [DEC(1)])}) as cierra \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), :'cierra', ${EN_ALMACEN} - :antes, (select estado from retail.despachos where id = :'d'), ${CUENTAS_D},
+     (select count(*) from retail.despacho_diferencias x where x.despacho_id = :'d'));`,
+  "OK / OK / 10 / cerrado / 10:10:0 / 0",
+);
+caso(
+  "A6 corregir devuelve el stock y las unidades, deja el movimiento y el archivo; dos veces no; con motivo; otro token ya corregida",
+  `${CON_PRENDA}
+   select ${LLEVA(4)} as r \\gset
+   select gen_random_uuid() as t \\gset
+   select pg_temp.h(pg_temp.corrige_salida((:'r'::jsonb ->> 'salida_id')::uuid, 'x', :'t')) as sin_motivo \\gset
+   select pg_temp.corrige_salida((:'r'::jsonb ->> 'salida_id')::uuid, 'Era otra talla', :'t') as c1 \\gset
+   select pg_temp.corrige_salida((:'r'::jsonb ->> 'salida_id')::uuid, 'Era otra talla', :'t') as c2 \\gset
+   select pg_temp.h(pg_temp.corrige_salida((:'r'::jsonb ->> 'salida_id')::uuid, 'Era otra talla', gen_random_uuid())) as otra \\gset
+   select pg_temp.salidas(:'d') as vigentes \\gset
+   reset role;
+   select concat_ws(' / ', :'sin_motivo', pg_temp.e(:'c1'::jsonb), :'c2'::jsonb ->> 'repetido', :'otra', jsonb_array_length(:'vigentes'::jsonb), ${EN_ALMACEN} - :antes, ${CUENTAS_D},
+     (select x ->> 'cantidad' from retail.despacho_conteos k cross join lateral jsonb_array_elements(k.separado -> 'prendas') x where k.despacho_id = :'d'),
+     (select count(*) from retail.movimientos m where m.motivo = 'correccion_recepcion' and m.variante_id = :'pv_s'),
+     (select jsonb_array_length(s.recibidos_archivados) from retail.despacho_salidas s where s.despacho_id = :'d'),
+     (select count(*) from retail.despacho_recibidos r where r.despacho_id = :'d'));`,
+  "corregir_motivo / OK / true / salida_ya_corregida / 0 / 0 / 10:0:10 / 10 / 1 / 1 / 0",
+);
+caso(
+  "A7 lo que ya bajó del almacén no se corrige aquí, y con el envío cerrado tampoco",
+  `${CON_PRENDA}
+   select ${LLEVA(4)} as r \\gset
+   reset role;
+   update retail.stock s set cantidad = 0 where s.variante_id = :'pv_s' and s.ubicacion_id = :'tru' and s.sububicacion_id = retail.fn_sububicacion_por_defecto(:'tru', 'entrada');
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(pg_temp.corrige_salida((:'r'::jsonb ->> 'salida_id')::uuid, 'Era otra talla', gen_random_uuid())) as bajo \\gset
+   reset role;
+   select concat_ws(' / ', :'bajo', (select count(*) from retail.despacho_recibidos r where r.despacho_id = :'d'));`,
+  "salida_ya_bajo / 1",
+);
+caso(
+  "A8 sin proveedor sale a nombre de «Por confirmar», no cierra hasta tenerlo y al ponerlo pasa al real",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d", { prov: "null::uuid" })}
+   select pg_temp.e(pg_temp.guarda(:'d', null, 5, ${SEP([["prod_p", 5]])}, null::int, null::int, null::uuid, :'cat', :'marca')) as g \\gset
+   reset role;
+   select k.version as ver, k.extra_posicion as extra from retail.despacho_conteos k where k.despacho_id = :'d' \\gset
+   select id as pc from retail.proveedores where por_confirmar \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select ${LLEVA(5)} as r \\gset
+   ${VERS("d", [], [1])}
+   select pg_temp.h(${CIERRA("d", [DEC(1)])}) as no_cierra \\gset
+   reset role;
+   select (select count(*) from retail.lotes l where l.despacho_id = :'d' and l.proveedor_id = :'pc') as con_pc \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(retail.poner_proveedor_envio(:'d', :'prov')) as pone \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), :'no_cierra', :con_pc, :'pone',
+     (select count(*) from retail.lotes l where l.despacho_id = :'d' and l.proveedor_id = :'prov'),
+     (select count(*) from retail.despacho_recibidos x where x.despacho_id = :'d' and x.proveedor_id = :'pc'),
+     (select count(*) from retail.proveedores p where p.por_confirmar and not p.activo));`,
+  "OK / envio_sin_proveedor / 1 / OK / 1 / 0 / 1",
+);
+caso(
+  "A9 en un envío de Compras, solo una línea sale; lo demás se cuenta después y lo que falta se mide contando lo que ya salió",
+  `${BASE_D1}
+   select pg_temp.e(${GUARDA("d1", "di_l1", 8, SEP([["prod_p", 8]]))}) as g \\gset
+   reset role;
+   select k.version as ver from retail.despacho_conteos k where k.despacho_id = :'d1' and k.despacho_item_id = :'di_l1' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.lleva(:'d1', :'di_l1', null, :ver, :'prod_p', ${A(V("pv_s", 8))}, null::numeric, false, gen_random_uuid()) as r \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), (select estado from retail.despachos where id = :'d1'),
+     (select count(*) from retail.despacho_diferencias x where x.despacho_id = :'d1'),
+     (select r.costo_unitario from retail.despacho_recibidos r where r.despacho_id = :'d1'));`,
+  "OK / abierto / 0 / 30.00",
+);
+caso(
+  "A10 permisos: sin Recibir no; la tabla con RLS y sin lectura directa",
+  `reset role;
+   select concat_ws(' / ',
+     (select p.prosecdef || ':' || has_function_privilege('authenticated', p.oid, 'execute') || ':' || has_function_privilege('anon', p.oid, 'execute')
+        from pg_proc p where p.oid = 'retail.llevar_al_stock_ahora(uuid,uuid,integer,integer,uuid,jsonb,numeric,boolean,uuid)'::regprocedure),
+     (select p.prosecdef || ':' || has_function_privilege('authenticated', p.oid, 'execute') from pg_proc p where p.oid = 'retail.corregir_salida(uuid,text,uuid)'::regprocedure),
+     (select c.relrowsecurity || ':' || has_table_privilege('authenticated', c.oid, 'select')
+        from pg_class c where c.oid = 'retail.despacho_salidas'::regclass));`,
+  "true:true:false / true:true / true:false",
 );
 caso(
   "F1 abrir_envio_sin_aviso security definer con sus permisos; la tabla con RLS, sin políticas y sin lectura directa",

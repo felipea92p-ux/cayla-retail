@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 210,
+  "total": 224,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -91,6 +91,7 @@
       "SegmentoDeslizante «Ordenar por cantidad»",
       "FiltroPuesto «Quitar el filtro de tipo»",
       "FiltroPuesto «Quitar el filtro de estado»",
+      "button «Corregir»",
       "Link «Ajustar stock»",
       "button «recepcion.agregar»"
     ],
@@ -159,6 +160,21 @@
     "components/recepcion-conteo/HojaTallas.tsx": [
       "Boton «Dejar para después»",
       "Boton «{textoListo}»"
+    ],
+    "components/recepcion-conteo/LlevarAlStock.tsx": [
+      "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
+      "CampoMonto «{guia.etiqueta(\"salida-costo\", \"Costo por prenda\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "BotonEnlace «(sin nombre)»",
+      "BotonEnlace «Bajar al piso»",
+      "Boton «Seguir contando»",
+      "CampoTexto «{guia.etiqueta(\"corregir-motivo\", \"¿Por qué se corrige?\")}»",
+      "ComboResponsable «{responsable}» #2",
+      "BotonEnlace «Ir a Ajustar stock»",
+      "Boton «Cancelar» #2",
+      "Boton «{guia.frase ?? undefined}» #2"
     ],
     "components/recepcion-conteo/NuevoModelo.tsx": [
       "CampoSelect «{guia.etiqueta(\"modelo-proveedor\", \"De qué proveedor\")}»",

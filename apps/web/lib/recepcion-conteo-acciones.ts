@@ -2,6 +2,7 @@ import { conDueno } from "@/lib/dueno-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { ErrorDeBase } from "@/lib/recepcion-envio-acciones";
+import { leerResultadoDeSalida, leerSalidas, RPC_CORREGIR_SALIDA, RPC_LLEVAR_AL_STOCK, RPC_SALIDAS_DEL_ENVIO, type ArgsLlevarAlStock, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
 import {
   leerConteosDelEnvio,
   leerEnvioAbierto,
@@ -263,4 +264,22 @@ export async function registrarObservacion(
 export async function agregarFotoPapel(args: { p_despacho_id: string; p_papel_id: string; p_foto_ruta: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
   const { error } = (await firmar(createClient().rpc(RPC_FOTO_PAPEL as never, args as never), firma)) as Respuesta;
   return { error: error ?? null };
+}
+
+/** Mete al stock lo repartido de una prenda sin cerrar el envío. */
+export async function llevarAlStock(args: ArgsLlevarAlStock, firma: Firma | null, duenoId: string | null = null): Promise<{ resultado: ResultadoDeSalida | null; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(conDueno(createClient().rpc(RPC_LLEVAR_AL_STOCK as never, args as never), duenoId), firma)) as Respuesta;
+  return { resultado: error ? null : leerResultadoDeSalida(data), error: error ?? null };
+}
+
+/** Deshace una tanda, mientras siga en el almacén. */
+export async function corregirSalida(args: { p_salida_id: string; p_motivo: string; p_token: string }, firma: Firma | null): Promise<{ ok: boolean; error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_CORREGIR_SALIDA as never, args as never), firma)) as Respuesta;
+  return { ok: !error, error: error ?? null };
+}
+
+/** Lo que salió de este envío y sigue vigente. Si no se pudo leer, nada: el botón «Corregir» no sale y lo demás sigue igual. */
+export async function leerSalidasDelEnvio(despachoId: string): Promise<SalidaDelEnvio[]> {
+  const { data, error } = (await createClient().rpc(RPC_SALIDAS_DEL_ENVIO as never, { p_despacho_id: despachoId } as never)) as Respuesta;
+  return error ? [] : leerSalidas(data);
 }

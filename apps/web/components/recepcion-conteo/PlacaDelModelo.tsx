@@ -54,6 +54,7 @@ export function PlacaDelModelo({
   identificar,
   onEditarNombre,
   tallas,
+  llevarAlStock,
 }: {
   parada: ParadaDelConteo;
   sinAviso: boolean;
@@ -94,6 +95,8 @@ export function PlacaDelModelo({
   onEditarNombre: () => void;
   /** La tabla de tallas y colores, cuando se pide. */
   tallas: ReactNode;
+  /** «Llevar al stock ahora»: el modelo sale sin cerrar el envío, cuando ya se repartió algo. */
+  llevarAlStock: ReactNode;
 }) {
   const { grupo, modelo } = parada;
   const p = grupo.principal;
@@ -288,6 +291,7 @@ export function PlacaDelModelo({
         </div>
       )}
       {tallas}
+      {llevarAlStock}
     </div>
   );
 }

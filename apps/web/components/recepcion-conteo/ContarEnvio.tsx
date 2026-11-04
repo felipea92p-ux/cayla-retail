@@ -8,6 +8,9 @@ import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
+import { CorregirSalida, LlevarAlStock, SalidaHecha } from "./LlevarAlStock";
+import { leerSalidasDelEnvio } from "@/lib/recepcion-conteo-acciones";
+import { loQueSale, ultimaSalidaDe, type ResultadoDeSalida, type SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { leerObservacionesDelEnvio } from "@/lib/recepcion-conteo-acciones";
@@ -120,6 +123,8 @@ type Hoja =
   // `tabla`: la abrió la tabla de la placa para crear lo que la prenda no tiene, y vuelve a ella.
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null; parada: string; tabla: boolean; pedidas?: DestinoHoja["pedidas"] }
   // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
+  | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string }
+  | { tipo: "corregir-salida"; salida: SalidaDelEnvio }
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
@@ -162,6 +167,10 @@ export function ContarEnvio({
   prendas,
   papeles = [],
   alSubirFoto,
+  veDinero,
+  veExistencias,
+  esperandoGuardar,
+  onSalida,
   onPrendaVista,
   onEscribir,
   sinGuardar = 0,
@@ -192,6 +201,12 @@ export function ContarEnvio({
   /** Los papeles de la compra: su botón va en el resumen. */
   papeles?: ComponentProps<typeof PapelesDeLaCompra>["papeles"];
   alSubirFoto?: ComponentProps<typeof PapelesDeLaCompra>["alSubirFoto"];
+  veDinero: boolean;
+  veExistencias: boolean;
+  /** Lo último que se escribió todavía viaja a la base. */
+  esperandoGuardar: boolean;
+  /** Algo salió al stock o se corrigió: se vuelve a leer lo contado y la página. */
+  onSalida: () => void;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onEscribir: (linea: LineaParaContar, cambio: Partial<Borrador>) => void;
@@ -597,6 +612,17 @@ export function ContarEnvio({
   const sepDeLaParada = parada ? prendaSeparada(parada) : undefined;
   const prendaDeLaParada = parada?.modelo?.productoId ? (prendas.get(parada.modelo.productoId) ?? null) : null;
 
+  // Lo que salió de este envío, para ofrecer «Corregir». Se relee cuando cambia lo recibido.
+  const nRecibidos = detalle.recibidos?.length ?? 0;
+  const [salidas, setSalidas] = useState<SalidaDelEnvio[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    void leerSalidasDelEnvio(detalle.id).then((s) => vivo && setSalidas(s));
+    return () => {
+      vivo = false;
+    };
+  }, [detalle.id, nRecibidos]);
+
   return (
     <div className="rc-conteo">
       {reabierto && (
@@ -615,7 +641,8 @@ export function ContarEnvio({
 
       <div ref={mesa} className="rc-mesa">
         <ListaDelEnvio
-            yaEnStock={reabierto ? yaEnStockDelEnvio(detalle.recibidos, categorias.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))) : []}
+            yaEnStock={yaEnStockDelEnvio(detalle.recibidos, categorias.flatMap((c) => c.grupos.flatMap(modelosDelGrupo))).map((y) => ({ ...y, salida: ultimaSalidaDe(salidas, y.prenda) }))}
+            onCorregirSalida={(s) => setHoja({ tipo: "corregir-salida", salida: s })}
           categorias={categorias}
           enFoco={parada}
           alternadas={alternadas}
@@ -728,6 +755,42 @@ export function ContarEnvio({
                   />
                 ) : null
               }
+              llevarAlStock={
+                parada.modelo && sepDeLaParada && prendaDeLaParada && modoDe(parada) === "ahora" ? (() => {
+                  const tabla = tablas[parada.clave] ?? borradorDeTallas(prendaDeLaParada, coloresOrden, tallasDeLaCategoria(grupo), sepDeLaParada.variantes);
+                  const unidades = loQueSale(sumasDe(tabla.conteo, prendaDeLaParada), sepDeLaParada.cantidad, tabla.conteo.conDanadas && sumasDe(tabla.conteo, prendaDeLaParada).danadas > 0 && !tabla.conteo.arreglo);
+                  const linea = lineaDeLaPrenda(grupo, { productoId: sepDeLaParada.productoId });
+                  if (unidades === 0 || !linea?.conteo) return null;
+                  return (
+                    <LlevarAlStock
+                      key={parada.clave}
+                      despachoId={detalle.id}
+                      unidades={unidades}
+                      nombre={parada.modelo.nombre}
+                      sede={detalle.sede?.nombre ?? "esta sede"}
+                      sedeId={detalle.sede?.id ?? null}
+                      linea={linea}
+                      productoId={sepDeLaParada.productoId}
+                      variantes={variantesDeConteo(tabla.conteo, prendaDeLaParada)}
+                      sinAviso={sinAviso}
+                      veDinero={veDinero}
+                      responsable={responsable}
+                      esperandoGuardar={esperandoGuardar}
+                      onHecho={(r) => {
+                        const clave = parada.clave;
+                        const nombre = parada.modelo?.nombre ?? "la prenda";
+                        setTablas((t) => {
+                          const { [clave]: _sale, ...resto } = t;
+                          return resto;
+                        });
+                        setHoja({ tipo: "salida-hecha", resultado: r, nombre });
+                        void leerSalidasDelEnvio(detalle.id).then(setSalidas);
+                        onSalida();
+                      }}
+                    />
+                  );
+                })() : null
+              }
             />
           )}
         </section>
@@ -813,6 +876,21 @@ export function ContarEnvio({
           }}
           onAbrirHoja={(modo, prenda) => setHoja({ tipo: "prenda", grupo: hoja.grupo, original: hoja.original, modo, prenda, parada: hoja.parada, tabla: false })}
           onCerrar={() => setHoja(null)}
+        />
+      )}
+
+      {hoja?.tipo === "salida-hecha" && <SalidaHecha resultado={hoja.resultado} nombre={hoja.nombre} veExistencias={veExistencias} onCerrar={() => setHoja(null)} />}
+      {hoja?.tipo === "corregir-salida" && (
+        <CorregirSalida
+          salida={hoja.salida}
+          responsable={responsable}
+          onCerrar={() => setHoja(null)}
+          onHecho={() => {
+            avisar.exito(`Corregiste ${hoja.salida.prenda}`, { detalle: "Salieron del almacén y volvieron a lo contado." });
+            setHoja(null);
+            void leerSalidasDelEnvio(detalle.id).then(setSalidas);
+            onSalida();
+          }}
         />
       )}
 

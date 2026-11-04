@@ -4,6 +4,7 @@ import { getNombresPorCategoria } from "@/lib/alta-producto-datos";
 import { getImagenesMuestra } from "@/lib/catalogo-v2";
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { compararTallas } from "@/lib/tallas";
+import { leerEnviosAMedias, RPC_ENVIOS_A_MEDIAS, type EnvioAMedias } from "@/lib/recepcion-salida-reglas";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
 import {
   leerDetalleEnvio,
@@ -72,6 +73,13 @@ type FilaCategoria = {
 type FilaEje = { categoria_id: string; valor: { id: string; nombre: string } | { id: string; nombre: string }[] | null };
 
 const uno = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
+
+/** Los envíos a medias de esta sede (un líder, también los viejos de otras). Es un aviso: si no se pudo leer, no sale. */
+export async function getEnviosAMedias(ubicacionId: string): Promise<EnvioAMedias[]> {
+  const { data, error } = await rpc(RPC_ENVIOS_A_MEDIAS, { p_ubicacion_id: ubicacionId }).catch((e: unknown) => ({ data: null, error: { message: String(e) } }));
+  if (error) console.error(`${RPC_ENVIOS_A_MEDIAS}: ${error.message}`);
+  return error ? [] : leerEnviosAMedias(data);
+}
 
 /** Lo que piden las piezas de Nuevo producto. Es un adorno de la hoja: si no se pudo leer, `null`, y se elige entre lo que ofrece la categoría. */
 async function getVocabularioParaRecibir(): Promise<VocabularioParaRecibir | null> {

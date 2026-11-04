@@ -1,3 +1,4 @@
+import { getEnviosAMedias } from "@/lib/recepcion-envio";
 import { Suspense } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
@@ -143,7 +144,8 @@ export default async function InicioPage() {
       comprobantesAtascados,
     }
   );
-  const avisos = avisosInicio(datosAlmacen ? { ...fuentes, ...fuentesDeAlmacen(datosAlmacen) } : fuentes);
+  const enviosAMedias = ve("recibir") || esLider ? await getEnviosAMedias(persona.ubicacionId) : undefined;
+  const avisos = avisosInicio({ ...(datosAlmacen ? { ...fuentes, ...fuentesDeAlmacen(datosAlmacen) } : fuentes), enviosAMedias });
   const cookie = cookieEleccion(persona.personaId);
   const eleccion = leerEleccion((await cookies()).get(cookie)?.value);
   const visibles = avisosVisibles(avisos, eleccion, esLider);

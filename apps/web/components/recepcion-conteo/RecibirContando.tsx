@@ -421,6 +421,10 @@ export function RecibirContando({
       {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && (
         <ContarEnvio
           onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
+          veDinero={veDinero}
+          veExistencias={veExistencias}
+          esperandoGuardar={pendientesDeGuardar}
+          onSalida={() => void releer()}
           detalle={detalle}
           lineas={lineas}
           conteos={conteos}

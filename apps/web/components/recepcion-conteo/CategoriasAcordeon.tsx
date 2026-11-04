@@ -12,6 +12,7 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import type { SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
 import { MarcaCampo } from "@/components/alta-producto/guia";
 import { colorDeAvance } from "@/lib/avance-color";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
@@ -239,6 +240,7 @@ function Categoria({
 
 export function ListaDelEnvio({
   yaEnStock,
+  onCorregirSalida,
   categorias,
   enFoco,
   alternadas,
@@ -294,8 +296,9 @@ export function ListaDelEnvio({
   onAgregar: () => void;
   /** El «+» de una categoría: otro modelo para contar aparte. */
   onAgregarModelo: (categoria: string) => void;
-  /** Al reabrir: lo que ya entró al stock en un cierre anterior. Se ve con candado y no se cuenta. */
-  yaEnStock: readonly { prenda: string; cantidad: number }[];
+  /** Lo que ya entró al stock, en un cierre anterior o en una tanda. Se ve con candado y no se cuenta. */
+  yaEnStock: readonly { prenda: string; cantidad: number; salida: SalidaDelEnvio | null }[];
+  onCorregirSalida: (s: SalidaDelEnvio) => void;
   onNoLlego: (c: CategoriaDelEnvio) => void;
   /** El tacho de un modelo agregado al contar. */
   onQuitar: (p: ParadaDelConteo) => void;
@@ -405,9 +408,16 @@ export function ListaDelEnvio({
                     <span className="block truncate text-sm font-medium text-tinta" title={y.prenda}>{y.prenda}</span>
                     <span className="block text-sm text-taupe">{conMiles(y.cantidad)} ya en stock</span>
                   </span>
-                  <Link className="btn-cayla btn-enlace shrink-0 text-sm" href={`/inventario?q=${encodeURIComponent(y.prenda)}`}>
-                    Ajustar stock
-                  </Link>
+                  {/* Lo que salió antes de cerrar se corrige aquí mientras siga en el almacén; lo demás, en Existencias. */}
+                  {y.salida ? (
+                    <button type="button" className="btn-cayla btn-enlace shrink-0 text-sm" onClick={() => onCorregirSalida(y.salida as SalidaDelEnvio)}>
+                      Corregir
+                    </button>
+                  ) : (
+                    <Link className="btn-cayla btn-enlace shrink-0 text-sm" href={`/inventario?q=${encodeURIComponent(y.prenda)}`}>
+                      Ajustar stock
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
