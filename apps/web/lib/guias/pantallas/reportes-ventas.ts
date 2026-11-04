@@ -52,7 +52,7 @@ export const GUIA_REPORTES_MES: Guia = {
       id: "por-dia",
       ancla: "reportes.por-dia",
       titulo: "Qué días se vende más",
-      texto: "Una barra por día; la más alta es tu mejor día. La raya punteada es el promedio diario: el del mes pasado si se puede comparar y, si no, el de este mes. Las barras por encima de ella van mejor.",
+      texto: "Una barra por día; la más alta es tu mejor día. La raya punteada es el promedio diario del mes que miras (en el mes en curso, del día 1 a hoy). Las barras por encima de ella van mejor que tu día normal.",
     },
     {
       id: "mes-a-mes",
