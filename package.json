@@ -403,6 +403,7 @@
     "pruebas:ventas-montos-validos": "node scripts/pruebas/ventas_montos_validos.mjs",
     "pruebas:comprobante-documento-valido": "node scripts/pruebas/comprobante_documento_valido.mjs",
     "pruebas:apartados-proformas-candados": "node scripts/pruebas/apartados_proformas_candados.mjs",
+    "pruebas:ventas-online-canal": "node scripts/pruebas/ventas_online_canal.mjs",
     "pruebas:actividad-oculta-ventas-de-prueba": "node scripts/pruebas/actividad_oculta_ventas_de_prueba.mjs",
     "pruebas:producto-origen": "node scripts/pruebas/producto_origen.mjs",
     "pruebas:costo-hasta-primera-compra": "node scripts/pruebas/costo_hasta_primera_compra.mjs",

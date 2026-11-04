@@ -716,6 +716,10 @@ export const PRUEBAS = [
   // no nace vencida y no se marca con una venta de otras prendas. Con controles. Cada caso: ROLLBACK.
   "pruebas:apartados-proformas-candados",
 
+  // Ventas online (ADR-0607): el canal marca el apartado en la misma transacción, un envío exige dirección, la puerta pide el módulo
+  // y la venta hereda el canal al entregar; un apartado de tienda sigue igual. Con control. Cada caso: ROLLBACK.
+  "pruebas:ventas-online-canal",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.
