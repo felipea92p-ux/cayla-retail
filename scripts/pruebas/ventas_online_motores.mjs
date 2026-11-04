@@ -32,7 +32,7 @@ const CANAL = sinControl(leer("20261104004000_ventas_online_canal.sql"));
 const MOTORES = sinControl(leer("20261104032000_motores_del_piso_solo_tienda.sql"));
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const CENTINELA = "22222222-2222-4222-8222-222222222222";
-const ARGS = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
+const ARGS = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", process.env.BASE_PG ?? "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 
 function correr(sql) {
   try {
@@ -203,7 +203,7 @@ caso(
   "G1 sin la columna ventas.canal la migración se detiene y dice qué pegar antes",
   `select 'no-debio-llegar';`,
   (o) => o.includes("Falta retail.ventas.canal"),
-  { prelu: `begin;\nset local search_path = retail, public, extensions;\n${MOTORES}\n` },
+  { prelu: `begin;\nset local search_path = retail, public, extensions;\nalter table retail.ventas drop column if exists canal cascade;\n${MOTORES}\n` },
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien`);

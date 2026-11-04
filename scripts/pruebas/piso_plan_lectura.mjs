@@ -74,6 +74,8 @@ const MIGRACION_ANTERIOR = leerMigracion("20261004213000_piso_plan_lectura.sql")
 const HUELLA_ANTERIOR = "faff73d2a6db4c0692775c1f6d6e284d";
 // El parche por ancla de las bolsas de despacho, que también toca esta función: M7 prueba que el orden entre los dos no importa.
 // 20261029041000 (ADR-0560, 6d) parcha estas funciones DESPUÉS del parche de familias: M7 vuelve a cargar el de familias sobre la función viva, así que primero se deshace.
+// 20261104032000 (ADR-0607) parcha a propósito el motor del piso y la demanda con reemplazos anclados DESPUÉS de los de CLAURE: se deshace primero (dentro de la transacción), antes que los de CLAURE.
+const DESHACER_CANAL = sqlDeshacer("20261104032000_motores_del_piso_solo_tienda.sql", ["retail.fn_piso_plan_lectura(uuid)", "retail.fn_demanda_sede(uuid, integer)"]);
 const DESHACER_CLAURE = sqlDeshacer("20261029041000_claure_fuera_de_analisis_y_motores.sql", ["retail.fn_piso_plan_lectura(uuid)", "retail.fn_demanda_sede(uuid, integer)"]);
 const MIGRACION_FAMILIAS = leerMigracion("20261010232000_piso_demanda_y_plan_ignoran_familias_apagadas.sql");
 // La puerta ANTES de que ADR-0289 le enseñara la terminal (20260922170000): para probar la guarda.
@@ -897,7 +899,7 @@ caso(
 );
 caso(
   "M7 el orden con el parche de familias (20261010232000) no importa: antes o después de él, la función queda letra por letra igual (el CI aplica las migraciones de un PR después de las de main)",
-  `${DESHACER_CLAURE}\n${MIGRACION_ANTERIOR}\n${MIGRACION}\n${MIGRACION_FAMILIAS}
+  `${DESHACER_CANAL}\n${DESHACER_CLAURE}\n${MIGRACION_ANTERIOR}\n${MIGRACION}\n${MIGRACION_FAMILIAS}
    select md5(prosrc) as primero_esta from pg_proc where oid = ${OID} \\gset
    ${MIGRACION_ANTERIOR}\n${MIGRACION_FAMILIAS}\n${MIGRACION}
    select concat_ws(',', (select md5(prosrc) = :'primero_esta' from pg_proc where oid = ${OID}),

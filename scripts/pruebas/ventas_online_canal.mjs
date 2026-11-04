@@ -24,7 +24,7 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261104004000_ventas_online_canal.sql"), "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — ve todos los módulos y opera cualquier sede
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — sin el módulo nuevo
-const ARGS = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
+const ARGS = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", process.env.BASE_PG ?? "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 
 function correr(sql) {
   try {
@@ -35,9 +35,10 @@ function correr(sql) {
 }
 
 function preparar({ sinMigracion = false } = {}) {
+  // En el CI la base ya trae la migración: para «sin la migración» se le quita la columna dentro de la transacción (ROLLBACK).
   return `
 begin;
-${sinMigracion ? "" : MIGRACION}
+${sinMigracion ? "alter table retail.separaciones drop column if exists canal cascade;" : MIGRACION}
 set local request.jwt.claim.sub = '${FELIPE}';
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)

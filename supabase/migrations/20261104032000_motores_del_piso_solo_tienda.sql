@@ -68,9 +68,9 @@ $f$;
 select pg_temp.reemplazar('retail.fn_piso_plan_lectura(uuid)',
 $v$        and not v.es_prueba
         -- Una liquidación de prenda dañada$v$,
-$v$        and not v.es_prueba
+$n$        and not v.es_prueba
         and v.canal = 'tienda' -- ADR-0607: una venta online no pasó por el piso
-        -- Una liquidación de prenda dañada$v$,
+        -- Una liquidación de prenda dañada$n$,
 1);
 
 -- ---------- 2. fn_demanda_sede: lo vendido con prenda y lo «sin registrar» ----------
@@ -78,18 +78,18 @@ select pg_temp.reemplazar('retail.fn_demanda_sede(uuid, integer)',
 $v$         and v.estado = 'completada'
          and not v.es_prueba
          and not exists (select 1 from retail.movimientos m$v$,
-$v$         and v.estado = 'completada'
+$n$         and v.estado = 'completada'
          and not v.es_prueba
          and v.canal = 'tienda' -- ADR-0607: una venta online no pasó por el piso
-         and not exists (select 1 from retail.movimientos m$v$,
+         and not exists (select 1 from retail.movimientos m$n$,
 1);
 select pg_temp.reemplazar('retail.fn_demanda_sede(uuid, integer)',
 $v$         and v.estado = 'completada' and not v.es_prueba
          and v.created_at >= v_desde_ts and v.created_at < v_hasta_ts
          and retail.fn_categoria_entra_a_motores(p.categoria_id)$v$,
-$v$         and v.estado = 'completada' and not v.es_prueba and v.canal = 'tienda'
+$n$         and v.estado = 'completada' and not v.es_prueba and v.canal = 'tienda'
          and v.created_at >= v_desde_ts and v.created_at < v_hasta_ts
-         and retail.fn_categoria_entra_a_motores(p.categoria_id)$v$,
+         and retail.fn_categoria_entra_a_motores(p.categoria_id)$n$,
 1);
 
 -- ---------- 3. fn_motor_demanda_preparacion: «¿ya puede recomendar?» ----------
@@ -97,14 +97,14 @@ select pg_temp.reemplazar('retail.fn_motor_demanda_preparacion(uuid)',
 $v$       and v.estado = 'completada'
        and not v.es_prueba
        and not exists (select 1 from retail.movimientos m$v$,
-$v$       and v.estado = 'completada'
+$n$       and v.estado = 'completada'
        and not v.es_prueba
        and v.canal = 'tienda' -- ADR-0607: una venta online no pasó por el piso
-       and not exists (select 1 from retail.movimientos m$v$,
+       and not exists (select 1 from retail.movimientos m$n$,
 1);
 select pg_temp.reemplazar('retail.fn_motor_demanda_preparacion(uuid)',
 $v$where v.ubicacion_id = s.id and v.estado = 'completada' and not v.es_prueba),$v$,
-$v$where v.ubicacion_id = s.id and v.estado = 'completada' and not v.es_prueba and v.canal = 'tienda'),$v$,
+$n$where v.ubicacion_id = s.id and v.estado = 'completada' and not v.es_prueba and v.canal = 'tienda'),$n$,
 1);
 
 -- ---------- 4. Validación final: si algo no quedó, se deshace todo ----------
