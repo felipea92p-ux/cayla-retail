@@ -1,8 +1,8 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 973 llamadas `.rpc` de `apps/web` contra 1931 funciones del schema `retail` en producción: 616 con los parámetros leídos (se comparan uno por uno), 77 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 280 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-11-04 10:12 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 973 llamadas `.rpc` de `apps/web` contra 1932 funciones del schema `retail` en producción: 616 con los parámetros leídos (se comparan uno por uno), 77 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 280 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-11-04 15:50 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
@@ -15,25 +15,9 @@
 
 ---
 
-## Llamadas sin respaldo en la foto de producción — 1
+## Llamadas sin respaldo en la foto de producción — 0
 
-Cada entrada es una llamada que **la foto no respalda**: la función no aparece, o la app manda un parámetro que la foto no
-tiene. **No es lo mismo que «pantalla rota»**: una función creada o cambiada después de la foto sale aquí aunque en
-producción ya esté bien. Confirmarlo antes de actuar:
-
-```sql
-select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname = '<nombre>';
-```
-
-Si la foto está vieja, refrescarla (`docs/datos/generado/COMO-REFRESCAR.md`). Si la entrada trae «Migración que la crea», esa
-migración define la función: se pegó en producción después de la foto, o todavía no se ha pegado.
-
-### `recibir_insumo_comprado` — no está en la foto
-
-- **Dónde:** `apps/web/components/InsumoModales.tsx:110`
-- **Qué pasa:** la función `recibir_insumo_comprado` no está en la foto de producción (2026-11-04 10:12 UTC); sus parámetros no se pudieron leer
-- **Migración que la crea:** `supabase/migrations/20261102235000_insumo_compra_con_deuda.sql` (se pegó después de la foto, o todavía no)
-- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
+Nada. Todas las llamadas encajan con la firma de la foto.
 
 ## Sobrecargas — 0
 

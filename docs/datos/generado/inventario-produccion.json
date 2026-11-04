@@ -1,6 +1,6 @@
 {
-  "leido_en": "2026-11-04T10:12:02.085547+00:00",
-  "funciones_en_produccion": 1931,
+  "leido_en": "2026-11-04T15:50:26.760597+00:00",
+  "funciones_en_produccion": 1932,
   "tablas": [
     {
       "esquema": "retail",
@@ -56,7 +56,7 @@
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 6810,
+      "filas_estimadas": 6828,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2101,7 +2101,7 @@
       "tabla": "bajada_piso_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 2544,
+      "filas_estimadas": 2569,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2197,7 +2197,7 @@
       "tabla": "bajadas_en_mano",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 11,
+      "filas_estimadas": 15,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2260,7 +2260,7 @@
       "tabla": "bajadas_piso",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 975,
+      "filas_estimadas": 982,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2364,7 +2364,7 @@
       "tabla": "caja_movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 264,
+      "filas_estimadas": 265,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2689,7 +2689,7 @@
       "tabla": "cajas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 97,
+      "filas_estimadas": 98,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13256,7 +13256,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1832,
+      "filas_estimadas": 1836,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -17904,7 +17904,7 @@
       "tabla": "despacho_conteos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 43,
+      "filas_estimadas": 44,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23409,7 +23409,7 @@
       "tabla": "gastos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 304,
+      "filas_estimadas": 305,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -25075,7 +25075,7 @@
       "tabla": "guias_vistas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 280,
+      "filas_estimadas": 281,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -26017,7 +26017,7 @@
       "tabla": "intentos_con_token",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1867,
+      "filas_estimadas": 1873,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -27413,7 +27413,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 8380,
+      "filas_estimadas": 8415,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -28316,7 +28316,7 @@
       "tabla": "movimientos_internos_intentos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 369,
+      "filas_estimadas": 370,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -46779,7 +46779,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 4883,
+      "filas_estimadas": 4888,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -48617,7 +48617,7 @@
       "tabla": "trafico_web",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 776,
+      "filas_estimadas": 797,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -50937,7 +50937,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 2973,
+      "filas_estimadas": 2978,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -51186,7 +51186,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1882,
+      "filas_estimadas": 1886,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -51473,7 +51473,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1829,
+      "filas_estimadas": 1833,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
