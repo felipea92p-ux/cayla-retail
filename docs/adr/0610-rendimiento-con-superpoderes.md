@@ -5,7 +5,7 @@
 
 ## DECIDÍ
 
-Gestión ▸ Rendimiento deja de ser un panel de bloques sueltos y pasa a ser **una mesa con un solo estado** (la tienda, los días, las personas, el orden). Lo que se toca en cualquier pieza cambia todas. Se arma con la tabla ya elegida (`TablaViva`, ADR-0596) y con las recetas del vidrio; lo nuevo es lo que cada pieza puede hacer:
+Gestión ▸ Rendimiento deja de ser un panel de bloques sueltos y pasa a ser **una mesa con un solo estado** (la tienda, los días, las personas, el orden). Lo que se toca en cualquier pieza cambia todas. Se arma con la tabla ya elegida (`TablaViva`, `docs/maquetas/tabla-superpoderes-2026-10/`) y con las recetas del vidrio (ADR-0596); lo nuevo es lo que cada pieza puede hacer:
 
 | Pieza | Superpoder |
 |---|---|
