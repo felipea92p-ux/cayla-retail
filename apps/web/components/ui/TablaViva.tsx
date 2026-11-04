@@ -69,6 +69,8 @@ export type ColumnaViva<F> = ColumnaDatos<F> & {
   filtra?: boolean;
   /** Se puede ordenar (de fábrica, sí). */
   ordena?: boolean;
+  /** Cómo se dicen los dos sentidos del orden, si los de su tipo no dicen nada («Por debajo primero»). */
+  textosOrden?: { asc: string; desc: string };
   /** La pista de la rejilla (`minmax(0,1.5fr)`, `8rem`). De fábrica `minmax(0,1fr)`; un monto o un número con `texto`, de fábrica, nunca
    *  más angosto que su caja (el más largo + aire): así un monto no se sale de su columna. */
   ancho?: string;
@@ -122,14 +124,21 @@ export function useTablaViva<F>({
   columnas,
   ordenInicial = null,
   ordenar,
+  control,
 }: {
   filas: readonly F[];
   columnas: readonly ColumnaViva<F>[];
   ordenInicial?: OrdenViva | null;
   ordenar?: (filas: readonly F[], orden: OrdenViva) => F[];
+  /** Cuando filtros y orden viven afuera, porque otras piezas de la pantalla también los tocan (Rendimiento, ADR-0610). Sin esto, los guarda la tabla. */
+  control?: { filtros: FiltrosVivos; orden: OrdenViva | null; onFiltros: (f: FiltrosVivos) => void; onOrden: (o: OrdenViva) => void };
 }): TablaVivaEstado<F> {
-  const [filtros, setFiltros] = useState<FiltrosVivos>({});
-  const [orden, setOrden] = useState<OrdenViva | null>(ordenInicial);
+  const [filtrosPropios, setFiltrosPropios] = useState<FiltrosVivos>({});
+  const [ordenPropio, setOrdenPropio] = useState<OrdenViva | null>(ordenInicial);
+  const filtros = control ? control.filtros : filtrosPropios;
+  const orden = control ? control.orden : ordenPropio;
+  const setFiltros = (cambio: (f: FiltrosVivos) => FiltrosVivos) => (control ? control.onFiltros(cambio(control.filtros)) : setFiltrosPropios(cambio));
+  const setOrden = (o: OrdenViva) => (control ? control.onOrden(o) : setOrdenPropio(o));
   // Un filtro de una columna que dejó de filtrar (la pantalla la apagó: ya no hay de las dos clases) no puede seguir escondiendo filas.
   const vigentes = useMemo(() => {
     const filtrables = new Set(columnas.filter((c) => c.filtra).map((c) => c.clave));
@@ -150,7 +159,7 @@ export function useTablaViva<F>({
     ordenarPor: (clave, dir) => setOrden({ clave, dir }),
     alternar: (clave, valor) => setFiltros((f) => alternarOpcion(f, clave, valor)),
     quitarColumna: (clave) => setFiltros((f) => ({ ...f, [clave]: [] })),
-    limpiarFiltros: () => setFiltros({}),
+    limpiarFiltros: () => setFiltros(() => ({})),
   };
 }
 
@@ -409,7 +418,7 @@ export function TablaViva<F>({
             onClick={(e) => abrirGlobo({ tipo: "orden" }, e.currentTarget)}
           >
             <ArrowDownUp aria-hidden className="h-3.5 w-3.5" />
-            {columnaOrdenada && orden ? `${columnaOrdenada.titulo}: ${textosDeOrden(columnaOrdenada.tipo)[orden.dir]}` : "Ordenar"}
+            {columnaOrdenada && orden ? `${columnaOrdenada.titulo}: ${(columnaOrdenada.textosOrden ?? textosDeOrden(columnaOrdenada.tipo))[orden.dir]}` : "Ordenar"}
           </button>
         )}
         {columnas
@@ -493,6 +502,7 @@ export function TablaViva<F>({
             const abiertaYa = abierta?.(f) ?? false;
             const comun = {
               role: "row",
+              "data-fila": clave(f),
               "data-guia": i === 0 ? guiaFila : undefined,
               "aria-current": abiertaYa ? ("true" as const) : undefined,
             };
@@ -650,7 +660,7 @@ function ContenidoGlobo<F>({ globo, tabla }: { globo: Globo; tabla: TablaVivaEst
   if (globo.tipo === "orden") return <ElegirOrden tabla={tabla} />;
   const c = tabla.columnas.find((x) => x.clave === globo.clave);
   if (!c) return null;
-  const textos = textosDeOrden(c.tipo);
+  const textos = c.textosOrden ?? textosDeOrden(c.tipo);
   return (
     <>
       {c.ordena !== false && (
@@ -726,7 +736,7 @@ function ElegirOrden<F>({ tabla }: { tabla: TablaVivaEstado<F> }) {
             return (
               <button key={`${c.clave}-${d}`} type="button" className="tv-op" aria-pressed={puesta} data-elegida={puesta || undefined} onClick={() => tabla.ordenarPor(c.clave, d)}>
                 <span className="tv-op-texto">
-                  {c.titulo} · {textosDeOrden(c.tipo)[d]}
+                  {c.titulo} · {(c.textosOrden ?? textosDeOrden(c.tipo))[d]}
                 </span>
               </button>
             );

@@ -281,7 +281,7 @@ export function PanelRendimiento({
       )}
       {detalle === null && <p className="nota-cayla">No se pudieron leer las ventas por hora ahora. Lo demás de esta pantalla sí está al día.</p>}
 
-      {res.meta === null && (
+      {!sinCabecera && res.meta === null && (
         <p className="nota-cayla">
           Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Tiendas y caja</b> y se reparte sola, por horas.
         </p>
@@ -293,6 +293,7 @@ export function PanelRendimiento({
       )}
 
       {/* Cómo va cada persona */}
+      {!sinCabecera && (
       <section className="space-y-3" aria-label={t.tabla} data-guia="rendimiento.personas">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <TituloSeccion>{t.tabla}</TituloSeccion>
@@ -398,6 +399,7 @@ export function PanelRendimiento({
           </Tabla>
         )}
       </section>
+      )}
 
       <GraficoVentasMeta
         titulo="Ventas contra la meta"

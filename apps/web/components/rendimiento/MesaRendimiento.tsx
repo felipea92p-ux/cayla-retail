@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { useTablaViva, type FiltroDeAfuera } from "@/components/ui/TablaViva";
 import type { SedeDeRendimiento } from "@/lib/rendimiento";
 import { minutosEnLima, primerDiaDelMes, type LecturaRitmo } from "@/lib/rendimiento-meta-reglas";
 import {
@@ -16,9 +17,11 @@ import {
   type Preset,
   type Tramo,
 } from "@/lib/rendimiento-vista-reglas";
+import { hayFiltrosPuestos, type FiltrosVivos, type OrdenViva } from "@/lib/tabla-viva-reglas";
 import { CifrasRendimiento } from "./CifrasRendimiento";
 import { PanelRendimiento } from "./PanelRendimiento";
 import { SedesConAnillo } from "./SedesConAnillo";
+import { TablaRendimiento, useColumnasRendimiento } from "./TablaRendimiento";
 import { useLuzLiquida } from "./useLuzLiquida";
 
 /* ====================================================================
@@ -50,8 +53,8 @@ export function MesaRendimiento({
   useLuzLiquida(raiz);
   const [activaId, setActivaId] = useState(inicialId);
   const [tramo, setTramo] = useState<Tramo>(() => tramoDePreset("mes", hoy));
-  const [elegidas, setElegidas] = useState<string[]>([]);
-  const [grupos, setGrupos] = useState<LecturaRitmo[]>([]);
+  const [filtros, setFiltros] = useState<FiltrosVivos>({});
+  const [orden, setOrden] = useState<OrdenViva | null>({ clave: "avance", dir: "desc" });
   const [porDia, setPorDia] = useState<number | null>(null);
   // La hora de Lima solo se conoce en el navegador: sin esto, el servidor y el navegador pintarían distinto (D-159).
   const [ahoraMin, setAhoraMin] = useState<number | null>(null);
@@ -67,11 +70,16 @@ export function MesaRendimiento({
   const medidas = useMemo(() => medirEquipo({ personas: activa?.personas ?? [], filas, tramo, hoy, ahoraMin }), [activa, filas, tramo, hoy, ahoraMin]);
   const colores = useMemo(() => new Map(medidas.map((m, i) => [m.personaId, `var(--color-persona-${i % 6})`])), [medidas]);
 
-  const hayFiltro = elegidas.length > 0 || grupos.length > 0;
-  const vistas = useMemo(
-    () => medidas.filter((m) => (elegidas.length === 0 || elegidas.includes(m.personaId)) && (grupos.length === 0 || (m.lectura !== null && grupos.includes(m.lectura)))),
-    [medidas, elegidas, grupos],
-  );
+  const preset = presetDeTramo(tramo, hoy);
+  const tramoTexto = tramoEnPalabras(tramo, hoy);
+  // Sin ninguna meta en la tienda no hay nada de qué leer un ritmo: la tabla no dibuja esa columna ni la de la meta.
+  const conMeta = medidas.some((m) => m.meta !== null);
+  const columnas = useColumnasRendimiento({ personas: activa?.personas ?? [], filas, colores, tramo, hoy, esHoy: preset === "hoy", personaCuentaId, conMeta });
+  const tabla = useTablaViva({ filas: medidas, columnas, control: { filtros, orden, onFiltros: setFiltros, onOrden: setOrden } });
+  const vistas = tabla.visibles;
+  const hayFiltro = hayFiltrosPuestos(tabla.filtros);
+  const elegidas = useMemo(() => medidas.filter((m) => (tabla.filtros.persona ?? []).includes(m.nombre)).map((m) => m.personaId), [medidas, tabla.filtros]);
+  const grupos = (tabla.filtros.lectura ?? []) as readonly LecturaRitmo[];
   const idsVistos = useMemo(() => new Set(vistas.map((m) => m.personaId)), [vistas]);
   const grupo = useMemo(
     () => medirGrupo({ medidas: hayFiltro ? vistas : medidas, tramo, hoy, serieTienda: hayFiltro ? null : (activa?.serie ?? null) }),
@@ -83,25 +91,25 @@ export function MesaRendimiento({
     return serieGrupo.filter((d) => d.fecha >= tramo.desde && d.fecha <= tramo.hasta).map((d) => (suma += d.total));
   }, [serieGrupo, tramo]);
 
-  const preset = presetDeTramo(tramo, hoy);
-  const tramoTexto = tramoEnPalabras(tramo, hoy);
   const quien = !hayFiltro ? (activa?.nombre.replace(/^Tienda\s+/, "") ?? "") : vistas.length === 1 ? (vistas[0].nombre.split(" ")[0] ?? vistas[0].nombre) : `${vistas.length} personas`;
   const frase = fraseDelEquipo(hayFiltro ? vistas : medidas) ?? (grupo.meta === null ? `${quien} todavía no tiene meta: aquí se ve lo vendido, sin inventar cuánto tocaba.` : `${quien} lleva ${SOLES.format(grupo.vendido)} ${tramoTexto}.`);
 
   function elegirSede(id: string) {
     if (id === activaId) return;
     setActivaId(id);
-    setElegidas([]);
-    setGrupos([]);
+    setFiltros({});
     setPorDia(null);
     const url = new URL(window.location.href);
     url.searchParams.set("sede", id);
     window.history.replaceState(null, "", url);
   }
-  const alternar = <T,>(lista: T[], x: T) => (lista.includes(x) ? lista.filter((y) => y !== x) : [...lista, x]);
+  // Días elegidos a mano: entran a la frase, a las píldoras y a «Limpiar todo», como cualquier filtro de la tabla.
+  const deAfuera: FiltroDeAfuera[] = preset === "mes" ? [] : [{ clave: "dias", pildora: `Días: ${tramoTexto}`, frase: tramoTexto, quitar: () => setTramo(tramoDePreset("mes", hoy)) }];
+  const ventasSinPersona = filas.filter((f) => f.personaId === null && f.fecha >= tramo.desde && f.fecha <= tramo.hasta).reduce((s, f) => s + f.total, 0);
 
   if (!activa) return null;
   const vistaAbajo = preset === "hoy" ? "hoy" : preset === "semana" ? "semana" : "mes";
+  const hayPanel = activa.panelDisponible && activa.personaDias !== null;
 
   return (
     <div ref={raiz} className="mesa mesa-marco">
@@ -137,9 +145,14 @@ export function MesaRendimiento({
           gruposElegidos={grupos}
           porDia={porDia}
           onPorDia={setPorDia}
-          onPersona={(id) => setElegidas((l) => alternar(l, id))}
-          onGrupo={(l) => setGrupos((g) => alternar(g, l))}
+          onPersona={(id) => {
+            const m = medidas.find((x) => x.personaId === id);
+            if (m) tabla.alternar("persona", m.nombre);
+          }}
+          onGrupo={(l) => tabla.alternar("lectura", l)}
         />
+
+        {hayPanel && <TablaRendimiento tabla={tabla} hoy={hoy} cola={preset === "mes" ? "este mes" : undefined} deAfuera={deAfuera} ventasSinPersona={hayFiltro ? 0 : ventasSinPersona} />}
 
         {activa.panelDisponible ? (
           <PanelRendimiento

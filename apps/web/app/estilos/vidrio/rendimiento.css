@@ -445,7 +445,104 @@
   border-radius: 8px;
 }
 
+/* ---------- La tabla: lo propio de Rendimiento dentro de TablaViva ---------- */
+.mesa-fila-persona {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.mesa-fila-persona .avatar {
+  background: var(--c);
+  color: var(--color-crema-fija);
+}
+.mesa-fila-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  font-weight: 500;
+}
+.tv-celda:has(> .tv-monto > .mesa-avance) .tv-monto {
+  display: block;
+  min-width: 0;
+  text-align: left;
+}
+.mesa-avance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.mesa-avance-barra {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+.mesa-avance-pct {
+  flex: none;
+  min-width: 3.1em;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mesa-visto {
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  border-radius: 50%;
+  color: var(--color-crema-fija);
+  background: var(--c);
+  box-shadow: var(--tubo-luz);
+  animation: mesa-visto 420ms var(--ease-cayla) both;
+}
+.mesa-visto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  opacity: 0;
+  animation: mesa-onda 900ms var(--ease-cayla) 200ms 1;
+}
+@keyframes mesa-visto {
+  from { opacity: 0; transform: scale(0.6); }
+}
+@keyframes mesa-onda {
+  from { opacity: 0.8; transform: scale(1); }
+  to { opacity: 0; transform: scale(2.4); }
+}
+.mesa-poco {
+  color: var(--color-ambar);
+}
+.mesa-curva {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+  height: 30px;
+}
+.mesa-curva i {
+  flex: 0 1 3px;
+  min-width: 2px;
+  height: var(--h, 8%);
+  border-radius: 1px 1px 0 0;
+  background: color-mix(in srgb, var(--color-tinta) 22%, transparent);
+  transition: height 600ms var(--ease-cayla), background-color 240ms var(--ease-cayla);
+}
+.mesa-curva i[data-en] {
+  background: var(--c);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .mesa-visto,
+  .mesa-visto::after,
   .mesa-entra,
   .mesa-frase[data-cambia] {
     animation: none;
@@ -457,5 +554,16 @@
   .liquido::before,
   .liquido::after {
     transition: none;
+  }
+}
+
+/* En la tarjeta del celular, la barra toma todo lo que queda de la línea. */
+@container tv (max-width: 659.98px) {
+  .tv-fila > .tv-celda:has(.mesa-avance) {
+    flex: 1 1 150px;
+    min-width: 0;
+  }
+  .tv-fila > .tv-celda:has(.mesa-avance) .tv-monto {
+    width: 100%;
   }
 }
