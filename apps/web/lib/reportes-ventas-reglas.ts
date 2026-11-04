@@ -221,16 +221,9 @@ export function mejorDia(s: SeriesMes): DiaVentas | null {
   return mejor;
 }
 
-/** El promedio diario del tramo anterior, para la raya punteada. `null` si ese tramo no se puede comparar (no hay con qué). */
-export function promedioDiarioAnterior(r: ReporteMes): number | null {
-  const c = comparacionDe(r);
-  const dias = diasDelTramo(r.anterior);
-  return c.hay && dias > 0 ? r.anterior.vendido / dias : null;
-}
-
 /**
- * El promedio diario del propio mes (vendido ÷ días del tramo), para la raya cuando NO se puede comparar con el mes pasado (el ERP es joven y ese mes
- * quedó a medias): sin ella el gráfico se quedaba sin su raya. `null` si no se vendió nada.
+ * El promedio diario del mes que se mira (vendido ÷ días del tramo), para la raya de «Ventas por día» (Felipe, 2026-11-04): en un mes cerrado, todo el
+ * mes; en el mes en curso, del día 1 a hoy. `null` si no se vendió nada.
  */
 export function promedioDiarioDelMes(r: ReporteMes): number | null {
   const dias = diasDelTramo(r.actual);

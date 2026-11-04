@@ -8,10 +8,9 @@ import { soles } from "@/lib/flujo-caja-reglas";
 import {
   barrasPorDia,
   barrasPorMes,
-  comparacionDe,
+  diasDelTramo,
   diaEnPalabras,
   mejorDia,
-  promedioDiarioAnterior,
   promedioDiarioDelMes,
   topeDelEje,
   tramoEnPalabras,
@@ -22,25 +21,22 @@ import {
 import { nombreDelMes } from "@/lib/historial-cierres-reglas";
 import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 
-// Los tres gráficos de «Ventas del mes» (maqueta docs/maquetas/reportes-ventas-2026-11/): ventas por día contra el promedio del mes anterior,
+// Los tres gráficos de «Ventas del mes» (maqueta docs/maquetas/reportes-ventas-2026-11/): ventas por día contra el promedio diario del mes que se mira,
 // mes a mes y cómo se pagó. Todo sale de `fn_reporte_ventas_series`, la hermana de la lectura de las cifras: suman lo mismo. Las piezas son las del
 // sistema (ADR-0358): `BarrasTiempo` y `BarraApilada`; ningún gráfico dibujado a mano.
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
-const capitalizada = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 const bloque = "anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]";
 
 export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null; corte: string | null }) {
   const mes = { anio: Number(s.mes.slice(0, 4)), mes: Number(s.mes.slice(5, 7)) };
   const nombre = nombreDelMes(mes);
   const mejor = mejorDia(s);
-  // La raya del gráfico es el promedio diario del mes pasado; si ese mes no se puede comparar (el ERP es joven y quedó a medias), es el del propio mes:
-  // el gráfico nunca se queda sin su raya.
-  const comparacion = comparacionDe(r);
-  const contra = comparacion.hay ? comparacion.contra : null;
-  const promedioAnterior = contra !== null ? promedioDiarioAnterior(r) : null;
-  const promedio = promedioAnterior ?? promedioDiarioDelMes(r);
-  const delMesPasado = promedioAnterior !== null && contra !== null;
-  const textoRaya = promedio === null ? null : delMesPasado ? `${capitalizada(contra)}: ${soles(promedio)} al día` : `Este mes: ${soles(promedio)} al día`;
+  // La raya es el promedio diario del propio mes que se mira (Felipe, 2026-11-04): en un mes cerrado, todo el mes; en el mes en curso, del día 1 a hoy.
+  // No se compara con el mes pasado: eso ya lo dicen las cifras de arriba, con los mismos N días.
+  const promedio = promedioDiarioDelMes(r);
+  const mesEnPalabra = nombre.split(" ")[0]!.toLowerCase();
+  const tramo = r.enCurso ? `del 1 al ${diasDelTramo(r.actual)}` : null;
+  const textoRaya = promedio === null ? null : `${tramo === null ? `Promedio de ${mesEnPalabra}` : `Promedio ${tramo}`}: ${soles(promedio)} al día`;
   const dias = barrasPorDia(s);
   const meses = barrasPorMes(s);
   const { total, tramos } = tramosDePago(s);
@@ -89,7 +85,7 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
           {promedio !== null && (
             <li className="flex items-center gap-1.5">
               <span aria-hidden className="w-3.5 border-t-2 border-dashed border-taupe" />
-              {delMesPasado ? `Promedio diario de ${contra}` : "Promedio diario de este mes"}
+              {tramo === null ? `Promedio diario de ${mesEnPalabra}` : `Promedio diario, ${tramo} de ${mesEnPalabra}`}
             </li>
           )}
         </ul>
