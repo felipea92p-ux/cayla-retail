@@ -1048,6 +1048,13 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       texto: "Arriba lo que vendiste; abajo, lo que se fue en cada cosa, hasta lo que quedó. La raya sobre un gasto es lo planeado en el presupuesto: si se pasa más del 10 %, lo dice. Toca un gasto y ves sus partes, lo real contra lo planeado.",
     },
     {
+      id: "cuadre",
+      ancla: "fin-ganamos.cuadre",
+      opcional: true,
+      titulo: "De Ventas a Finanzas",
+      texto: "Por qué lo vendido en Ventas no es la venta de aquí: el IGV, las devoluciones, los cambios y lo de CLAURE, en céntimos y por sede. Si algo no tiene nombre, sale como «Sin explicar».",
+    },
+    {
       id: "sedes",
       ancla: "fin-ganamos.sedes",
       opcional: true,
@@ -1203,6 +1210,13 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-plata.respuesta",
       titulo: "Cuánta plata hay",
       texto: "La plata que tiene CAYLA hoy (o con la que cerró el mes), y en una frase por qué no siguió a la ganancia: lo que se fue en compras que duran, en retiros o en la tarjeta.",
+    },
+    {
+      id: "no-cubre",
+      ancla: "fin-plata.no-cubre",
+      opcional: true,
+      titulo: "Lo que este cuadro no tiene",
+      texto: "Si una cuenta arrancó con su saldo a mitad de mes, lo anterior ya está dentro de ese saldo y no suma abajo. Aquí ves, cuenta por cuenta, cuánto fue y cuánto se cobró en todo el período.",
     },
     {
       id: "puente",

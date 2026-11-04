@@ -298,7 +298,7 @@ export const GUIA_AVISOS_CLUB: Guia = {
       ancla: "avisos.editar-mensaje",
       opcional: true,
       titulo: "El mensaje",
-      texto: "Escríbelo como quieras. Los botones «+ Nombre», «+ Sus puntos»… ponen el dato de cada miembro, que se completa solo. Lo que va entre *asteriscos* sale en negrita.",
+      texto: "Escríbelo como quieras. Los botones «+ Nombre», «+ Sus puntos»… ponen el dato de cada miembro, que se completa solo, y los emojis caen donde está el cursor. Lo que va entre *asteriscos* sale en negrita.",
     },
     {
       id: "editar-cierre",

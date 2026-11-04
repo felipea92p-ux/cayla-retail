@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cabecera con banda — maqueta</title>
+<style>
+/* Tokens reales de apps/web/app/globals.css y estilos/tema.css */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--borde-control:#96786a;
+  --vidrio:#fffdf8;--sombra:#1a1a18;
+  --isla-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 48%,transparent));
+  --isla-borde:color-mix(in srgb,var(--vidrio) 60%,transparent);
+  --aurora:.12;--flota-fondo:color-mix(in srgb,#fff 74%,transparent);
+}
+:root[data-tema="oscuro"]{
+  --crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c9a898;--borde-control:#8d7a6e;
+  --vidrio:#2c2924;
+  --isla-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));
+  --isla-borde:color-mix(in srgb,var(--tinta) 10%,transparent);
+  --aurora:.10;--flota-fondo:color-mix(in srgb,#33302a 88%,transparent);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#d9d2c4;font:14px/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--tinta);padding:20px}
+:root[data-tema="oscuro"] body{background:#0f0e0c}
+.barra{display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.barra h1{font:600 18px Georgia,serif;margin:0;color:#1a1a18}
+:root[data-tema="oscuro"] .barra h1{color:#f5f0e8}
+.barra button{border:1px solid #96786a;background:#fbf8f2;border-radius:99px;padding:7px 16px;cursor:pointer;font:inherit;color:#1a1a18}
+.barra small{color:#805c4c}
+:root[data-tema="oscuro"] .barra small{color:#c9a898}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:1100px){.dos{grid-template-columns:1fr}}
+figure{margin:0}
+figcaption{font:600 13px ui-sans-serif,system-ui;margin:0 0 8px;color:#1a1a18;letter-spacing:.06em;text-transform:uppercase}
+:root[data-tema="oscuro"] figcaption{color:#f5f0e8}
+figcaption em{font-style:normal;color:var(--rojo);margin-left:8px;text-transform:none;letter-spacing:0;font-weight:500}
+
+/* La "pantalla": ventana con lateral, aurora y contenido que se desplaza */
+.vent{position:relative;height:560px;overflow:hidden;border-radius:16px;background:var(--crema);border:1px solid var(--sand)}
+.aurora{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.aurora i{position:absolute;border-radius:50%;filter:blur(70px);opacity:var(--aurora)}
+.aurora i:nth-child(1){width:360px;height:300px;right:10%;top:-150px;background:var(--rojo)}
+.aurora i:nth-child(2){width:380px;height:320px;right:-120px;top:120px;background:#4f6b7a}
+.riel{position:absolute;inset:0 auto 0 0;width:150px;background:var(--papel);border-right:1px solid var(--sand);z-index:40;padding:16px 12px}
+.riel b{display:block;font:700 15px Georgia,serif;margin-bottom:18px;letter-spacing:.14em}
+.riel span{display:block;padding:9px 10px;border-radius:10px;color:var(--taupe);font-size:13px}
+.riel span.on{background:var(--hueso);color:var(--tinta)}
+.scroll{position:absolute;inset:0 0 0 150px;overflow-y:auto;padding:92px 22px 40px 22px}
+h2.t{font:400 34px Georgia,serif;margin:0 0 4px}
+.sub{color:var(--taupe);margin:0 0 16px}
+.pildoras{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.p{border:1px solid var(--borde-control);border-radius:99px;padding:7px 15px;background:color-mix(in srgb,var(--papel) 70%,transparent);font-size:13px;white-space:nowrap}
+.tabla{border:1px solid var(--sand);border-radius:16px;background:var(--papel);overflow:hidden}
+.fila{display:grid;grid-template-columns:44px 1fr 90px 80px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--sand)}
+.fila:first-child{border-top:0}
+.foto{width:36px;height:36px;border-radius:9px}
+.fila small{color:var(--taupe)}
+
+/* LA CABECERA — igual que marco.css: fila transparente + dos islas */
+.cab{position:absolute;z-index:30;top:12px;left:172px;right:12px;height:52px;pointer-events:none}
+.cab .fila2{display:flex;height:100%;align-items:center;justify-content:space-between;gap:12px}
+.isla{pointer-events:auto;position:relative;z-index:0;display:flex;align-items:center;gap:6px;height:52px;padding:0 8px;border-radius:99px}
+.isla::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--isla-fondo);border:1px solid var(--isla-borde);
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:0 10px 30px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.buscar{display:flex;align-items:center;gap:8px;height:38px;width:230px;padding:0 12px;border-radius:99px;background:var(--hueso);border:1px solid color-mix(in srgb,var(--borde-control) 80%,transparent);color:var(--taupe)}
+.buscar kbd{margin-left:auto;font:11px ui-monospace,monospace;border:1px solid var(--sand);border-radius:5px;padding:1px 5px}
+.btn{display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:99px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.sede{border:1px solid var(--borde-control);border-radius:99px;padding:7px 14px;font-size:13px;color:var(--tinta);background:color-mix(in srgb,var(--papel) 70%,transparent)}
+
+/* ANTES: nada detrás. DESPUÉS: la banda (copiada de marco.css) */
+.despues .cab::before{content:"";position:absolute;z-index:-1;pointer-events:none;top:-12px;bottom:-16px;left:-22px;right:-12px;
+  background:var(--flota-fondo);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 20px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 20px),transparent)}
+.nota{margin-top:14px;color:#1a1a18;max-width:70ch}
+:root[data-tema="oscuro"] .nota{color:#f5f0e8}
+</style>
+</head>
+<body>
+<div class="barra">
+  <h1>Cabecera con banda de fondo</h1>
+  <button id="tema">Cambiar a modo oscuro</button>
+  <small>Desplaza dentro de cada ventana para ver qué pasa con los filtros al subir.</small>
+</div>
+
+<div class="dos">
+  <figure>
+    <figcaption>Antes <em>los filtros pasan «en el aire» entre las islas</em></figcaption>
+    <div class="vent antes"></div>
+  </figure>
+  <figure>
+    <figcaption>Después <em>una banda de vidrio, igual que las islas, los tapa y se desvanece</em></figcaption>
+    <div class="vent despues"></div>
+  </figure>
+</div>
+<p class="nota">La banda va de borde a borde (a la izquierda la tapa el menú), usa el mismo vidrio que flota en el resto del ERP (74 % de blanco y desenfoque 24 con saturación 1.6; en oscuro, 88 %) y su borde de abajo se desvanece. Las dos islas de vidrio no cambian. Los colores son los de los tokens reales, en claro y en oscuro.</p>
+
+<script>
+const colores=["#c9b79c","#9fb0a3","#b9a5b5","#a9b8c4","#d1a89a","#b5b08f"];
+const filas=Array.from({length:30},(_,i)=>`<div class="fila"><div class="foto" style="background:${colores[i%6]}"></div><div><div>Blusa ${["Emma","Aurora","Luna","Sol","Brisa"][i%5]} ${i+1}</div><small>PRV-${100+i} · Proveedor ${i%4+1}</small></div><div>S/ ${(79+i*3)}.90</div><div><small>${12+i%9} u.</small></div></div>`).join("");
+const contenido=`
+ <h2 class="t">Productos</h2><p class="sub">Todo el catálogo, por tienda y por proveedor.</p>
+ <div class="pildoras"><span class="p">Categoría ▾</span><span class="p">Proveedor ▾</span><span class="p">Estado: <b>Activos</b> ▾</span><span class="p">Temporada ▾</span><span class="p">Tienda ▾</span><span class="p">Por completar ▾</span></div>
+ <div class="tabla">${filas}</div>`;
+const cab=`<header class="cab"><div class="fila2">
+  <div class="isla"><div class="buscar">🔍︎ Buscar… <kbd>Ctrl K</kbd></div></div>
+  <div class="isla"><span class="btn">? Preguntar</span><span class="btn">⟲ Actividad</span><span class="btn">☾</span><span class="sede">Tienda LIM ▾</span></div>
+ </div></header>`;
+document.querySelectorAll(".vent").forEach(v=>{
+  v.innerHTML=`<div class="aurora"><i></i><i></i></div>
+  <aside class="riel"><b>CAYLA</b><span>Inicio</span><span>Ventas</span><span class="on">Catálogo</span><span>Compras</span><span>Caja</span></aside>
+  <div class="scroll">${contenido}</div>${cab}`;
+  v.querySelector(".scroll").scrollTop=150;
+});
+document.getElementById("tema").onclick=e=>{
+  const r=document.documentElement,o=r.dataset.tema==="oscuro";
+  r.dataset.tema=o?"claro":"oscuro";e.target.textContent=o?"Cambiar a modo oscuro":"Cambiar a modo claro";
+};
+// Sincroniza el scroll de las dos ventanas para comparar lo mismo
+const s=[...document.querySelectorAll(".scroll")];let lock=false;
+s.forEach(a=>a.addEventListener("scroll",()=>{if(lock)return;lock=true;s.forEach(b=>{if(b!==a)b.scrollTop=a.scrollTop});lock=false}));
+</script>
+</body>
+</html>

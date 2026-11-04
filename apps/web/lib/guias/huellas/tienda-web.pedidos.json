@@ -2,7 +2,7 @@
   "guia": "tienda-web.pedidos",
   "ruta": "/tienda-web/pedidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 88,
+  "total": 87,
   "controles": {
     "components/CorregirPagoModal.tsx": [
       "button «{NOMBRE_METODO[m]}»",
@@ -48,7 +48,6 @@
     "components/pedidos-web/EditarMensajePredeterminadoHoja.tsx": [
       "textarea «Mensaje predeterminado»",
       "button «{m.texto}»",
-      "button «{`Insertar ${e}»",
       "Boton «Usar el de fábrica»",
       "Boton «Cancelar»",
       "Boton «Guardar»"

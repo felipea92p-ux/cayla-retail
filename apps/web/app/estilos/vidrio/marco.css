@@ -285,52 +285,66 @@
 .marco-cabecera {
   position: fixed;
   z-index: 30;
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
-  left: max(8px, env(safe-area-inset-left, 0px));
-  right: max(8px, env(safe-area-inset-right, 0px));
-  height: 52px;
+  /* Un RECTÁNGULO de borde a borde (Felipe 2026-11-04): pegado arriba y a la derecha y, en escritorio, empezando donde termina el
+     riel; sin margen ni esquinas. La zona segura de arriba (notch) se suma como relleno para que la barra siga midiendo 52 px. */
+  top: 0;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  --cab-alto: 60px; /* la barra: lo mismo que ocupaba la cabecera flotante (8 de aire + 52) */
+  height: calc(var(--cab-alto) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   pointer-events: none;
   container: cabecera / inline-size;
 }
 @media (min-width: 640px) {
   .marco-cabecera {
-    top: calc(env(safe-area-inset-top, 0px) + 12px);
-    left: calc(var(--spacing-lateral) + 22px);
-    right: max(12px, env(safe-area-inset-right, 0px));
+    --cab-alto: 64px;
+    left: var(--spacing-lateral);
   }
 }
+/* UN solo fondo (Felipe 2026-11-04, «C · Una sola barra»): el vidrio abarca toda la cabecera, de la parte izquierda (buscador) a la
+   derecha (acciones y sede), y nada de adentro lleva fondo propio: ni las islas, ni el pozo del buscador, ni la caja de la sede.
+   Va en un `::before` por la misma razón que el del riel: un `backdrop-filter` en la fila la volvería el contenedor de lo `fixed`
+   de adentro. `z-index: 0` la vuelve una capa propia para que el `::before` quede detrás de sus botones. */
 .marco-cabecera-fila {
+  pointer-events: auto;
+  position: relative;
+  z-index: 0;
   display: flex;
   height: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  /* Aire alrededor del contenido: 12 px arriba y abajo (el buscador y la sede miden 40 de los 64 px) y 16 px a la derecha; a la
+     izquierda 24 px, para no tocar el botón de plegar del riel, que sobresale 14 px sobre la barra. */
+  padding: 0 16px 0 24px;
 }
-/* El vidrio de la isla va en un `::before` por la misma razón que el del riel: un `backdrop-filter` en la isla la volvería el
-   contenedor de lo `fixed` de adentro. `z-index: 0` la vuelve una capa propia para que el `::before` quede detrás de sus botones. */
-.marco-isla {
-  pointer-events: auto;
-  position: relative;
-  z-index: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 52px;
-  padding: 0 8px;
-  border-radius: 9999px;
-}
-.marco-isla::before {
+.marco-cabecera-fila::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  border-radius: inherit;
-  background: var(--marco-vidrio-fondo);
+  /* El vidrio de lo que flota sobre contenido que corre (CLAUDE.md, regla del 2026-11-04): la tabla o los filtros que suben por
+     detrás no se mezclan con los botones. Rectángulo: solo el filo de abajo, que la separa del contenido. */
+  background: var(--vidrio-flota-fondo);
   -webkit-backdrop-filter: var(--vidrio-flota-filtro);
   backdrop-filter: var(--vidrio-flota-filtro);
-  border: 1px solid var(--marco-vidrio-borde);
-  box-shadow: var(--marco-vidrio-sombra);
+  border-bottom: 1px solid var(--marco-vidrio-borde);
+  box-shadow: var(--vidrio-flota-sombra);
+}
+@media (max-width: 639.98px) {
+  .marco-cabecera-fila { padding-left: 8px; }
+}
+/* Las islas siguen siendo las dos mitades de la barra (el aviso de cierre de caja y «Hay una versión nueva» miden el hueco entre
+   ellas), pero ya no pintan nada. */
+.marco-isla {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--cab-alto);
 }
 .marco-isla-izq { flex: none; min-width: 0; }
 .marco-isla-der { flex: none; margin-left: auto; }
@@ -340,8 +354,8 @@
 /* En el celular cada píxel cuenta: a 375 px, con «Preguntar», «Actividad», el tema, la sede y la lupa, dos islas con el aire del
    escritorio no caben. Se aprieta el aire y, si aun así no alcanza, el colibrí (el Inicio sigue en el menú) se va primero. */
 @media (max-width: 639.98px) {
-  .marco-cabecera-fila { gap: 8px; }
-  .marco-isla { padding: 0 4px; gap: 2px; }
+  .marco-cabecera-fila { gap: 8px; padding: 0 8px; }
+  .marco-isla { gap: 2px; }
 }
 @container cabecera (max-width: 400px) {
   .marco-colibri { display: none; }
@@ -350,18 +364,32 @@
    propia caja, `data-marco-sede`): su aspecto es del combo, no de la cabecera. */
 .marco-isla-der > :is(button, a) { border-radius: 9999px; }
 
-/* El buscador: un pozo (lo hundido espera tu dato) que llena su isla. */
+/* El buscador y la sede: SIN relleno (la barra ya es su fondo) pero con su contorno, de 40 px: la barra les deja 12 px de aire arriba y abajo.
+   Solo al pasar el mouse se encienden (el pozo de todo campo; la gota de la sede). */
 .marco-buscador {
   flex: 1 1 auto;
   min-width: 0;
-  height: 38px;
+  height: 40px;
   border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
-  background: var(--pozo-fondo);
-  box-shadow: var(--pozo-sombra);
-  transition: box-shadow 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+  background: transparent;
+  box-shadow: none;
+  transition: box-shadow 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
 }
 @media (hover: hover) {
-  .marco-buscador:hover { background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra); }
+  .marco-buscador:hover {
+    border-color: var(--color-borde-control);
+    background: var(--pozo-encendido-fondo);
+    box-shadow: var(--pozo-encendido-sombra);
+  }
+}
+.marco-cabecera .combo-pastilla {
+  min-height: 40px;
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  background: transparent;
+  box-shadow: none;
+}
+@media (hover: hover) {
+  .marco-cabecera .combo-pastilla:hover { border-color: var(--color-borde-control); background: var(--gota-fondo-encima); box-shadow: var(--gota-luz); }
 }
 .marco-buscador-tecla { flex: none; }
 /* Angosta (el riel abierto en un laptop chico), los botones con nombre quedan en su ícono: el nombre sigue en su `title` y
@@ -374,7 +402,7 @@
 }
 @container cabecera (max-width: 520px) {
   .marco-isla-izq { flex: 0 0 auto; }
-  .marco-buscador { flex: 0 0 38px; width: 38px; padding: 0; justify-content: center; gap: 0; }
+  .marco-buscador { flex: 0 0 40px; width: 40px; padding: 0; justify-content: center; gap: 0; }
   .marco-buscador-texto { display: none; }
 }
 

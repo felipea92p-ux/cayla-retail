@@ -1407,8 +1407,6 @@ type DatosDelMensaje = { codigo: string; cliente: { nombre: string; celular?: st
 
 /** El mensaje de fábrica de los pedidos web. Sus marcas se llenan con cada pedido: {nombre}, {tienda} y {codigo}. */
 export const MENSAJE_PREDETERMINADO_WEB = "¡Hola {nombre}! 👋 Te escribimos de {tienda} por tu pedido {codigo} 🛍️\n¡Gracias por elegirnos! 💛";
-/** Los emojis que ofrece el editor del mensaje, para insertar con un toque. */
-export const EMOJIS_DEL_MENSAJE = ["👋", "😊", "🛍️", "💛", "🎉", "🙏", "✨", "👗"] as const;
 /** Tope de letras del mensaje propio (lo mismo que la base: `fn_guardar_mensaje_pedidos_web`). */
 export const MAX_MENSAJE_PREDETERMINADO_WEB = 600;
 

@@ -118,6 +118,10 @@ export const PRUEBAS = [
   // de caja; solo el líder y nada se guarda. ROLLBACK.
   "pruebas:flujo-caja",
 
+  // De Ventas a Finanzas y lo que el Flujo no cubre (ADR-0609): el cuadre suma exacto y da la cifra del Estado de resultados, sede por sede;
+  // lo anterior al arranque de una cuenta no suma, pero se dice. ROLLBACK.
+  "pruebas:cuadre-ventas-finanzas",
+
   // Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
   // se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
   "pruebas:impuestos",

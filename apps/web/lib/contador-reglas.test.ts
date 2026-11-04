@@ -54,7 +54,14 @@ describe("el flujo de efectivo", () => {
       { clave: "dueno_pone", lado: "entra", monto: 200 },
       { clave: "dueno_saca", lado: "sale", monto: 500 },
     ],
+    arranques: [],
   } as unknown as FlujoReal;
+  it("con una cuenta que arrancó a mitad del período no afirma un aumento y dice lo que falta (ADR-0609)", () => {
+    const f = filas(csvFlujoContador({ ...real, arranques: [{ cuentaId: "c", cuenta: "BCP", desde: "2026-10-28", saldoInicial: 1000, cobros: 76829.59, salidas: 110.4, entreCuentas: 0, comision: 0 }] }, "2026-10"));
+    expect(f.find((x) => x[1] === "Aumento (o disminución) del efectivo")).toBeUndefined();
+    expect(f.find((x) => x[0] === "BCP")).toEqual(["BCP", "2026-10-28", "1000.00", "76829.59", "110.40", "0.00"]);
+    expect(f.find((x) => x[1]?.startsWith("Saldo de partida"))?.[2]).toBe("1000.00");
+  });
   it("cada partida bajo su actividad, sus totales y el efectivo al inicio y al final", () => {
     const f = filas(csvFlujoContador(real, "2026-10"));
     expect(f[3]).toEqual(["Actividad", "Partida", "S/"]);

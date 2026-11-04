@@ -6,6 +6,8 @@ import { getCampanas, getEstadoResultados, getUnidadesCerradas } from "@/lib/res
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getVentasClaure } from "@/lib/cuenta-claure";
+import { getCuadreVentas } from "@/lib/cuadre-ventas";
+import { cuadroVentas } from "@/lib/cuadre-ventas-reglas";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { verDeLaVista } from "@/lib/vista-global";
@@ -13,6 +15,7 @@ import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@
 import { filaDeLaSede, formaDe, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
+import { CuadreVentas } from "@/components/finanzas/estados/CuadreVentas";
 import { GanamosPanel } from "@/components/finanzas/estados/GanamosPanel";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 
@@ -34,7 +37,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const veTodo = veDiarioDeTodoDe(persona);
   const sede: ClaveSede = veTodo ? sedeDeLaUrl(sp) : (persona.ubicacionId ?? SEDE_TODAS);
 
-  const [actual, anterior, parametros, cerradas, claure, ppto, campanas] = await Promise.all([
+  const [actual, anterior, parametros, cerradas, claure, ppto, campanas, cuadre] = await Promise.all([
     getEstadoResultados(desde, hasta),
     comparar ? getEstadoResultados(antes.desde, antes.hasta) : Promise.resolve(null),
     getParametrosFinanzas(),
@@ -45,6 +48,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     // Apoyo: si el presupuesto o las campañas no se pueden leer, la cascada sale sin la raya de lo planeado y sin campañas.
     getPresupuestoVsReal(mes),
     getCampanas(),
+    // De Ventas a Finanzas (ADR-0609): si falla, la tarjeta lo dice y el resto de la pantalla se dibuja igual.
+    getCuadreVentas(desde, hasta),
   ]);
   // ADR-0332: un mes anterior a la fecha desde la que cuenta Finanzas sale vacío; se dice por qué en vez de dejar ceros mudos.
   const inicio = parametros?.inicioFinanzas ?? null;
@@ -62,6 +67,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const deCadaSede = sede === SEDE_TODAS && veTodo ? porSede(actual.datos) : null;
   const delMes = campanasDelMes(campanas.datos, mes);
   const sedesCascada = deCadaSede ? filasDeSedes(deCadaSede, (c) => href("/finanzas/reportes", c)) : null;
+  const cuadro = cuadroVentas(cuadre.datos, sede);
   const recomendaciones = recomendacionesGanamos({ fila, sedes: deCadaSede, tramos, meta, campanas: delMes, enCurso, href });
 
   return (
@@ -78,6 +84,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           mes={mes}
           enCurso={enCurso}
           forma={forma}
+          cuadre={cuadre.falla || cuadro ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
           formal={{
             filas: actual.datos,
             anteriores: anterior?.datos ?? null,

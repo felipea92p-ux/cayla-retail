@@ -3,11 +3,12 @@
 // PROMETE: el flujo del mes en el «método directo», que es el que se lee como «cobraste / pagaste»: la plata de cada categoría que ya
 // da la base va a una de tres partes (del día a día, compras que duran años, tú y los préstamos), con las diferencias de caja y la
 // plata en camino aparte; el puente de cómo empezó a cómo terminó el mes; la frase que explica por qué la plata no siguió a la
-// ganancia; y las recomendaciones.
+// ganancia; lo que el cuadro no cubre cuando una cuenta arrancó a mitad del período (ADR-0609); y las recomendaciones.
 // ASUME: toda cifra viene de la base (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`). Aquí no se suma plata nueva: se agrupa lo que
 // la base ya dio y se escribe.
 
-import { etiquetaSemana, puntoMasBajo, soles, textoCategoria, type CategoriaFlujo, type FlujoReal, type Proyeccion, type SemanaProy } from "./flujo-caja-reglas";
+import { etiquetaSemana, puntoMasBajo, soles, textoCategoria, type ArranqueCuenta, type CategoriaFlujo, type FlujoReal, type Proyeccion, type SemanaProy } from "./flujo-caja-reglas";
+import { fechaCorta } from "./gastos-reglas";
 import type { Recomendacion } from "./ganamos-reglas";
 import type { TramoCascada } from "./pulso-reglas";
 
@@ -45,9 +46,55 @@ export function partesDelFlujo(real: Pick<FlujoReal, "categorias">): ParteDelFlu
   }).filter((p) => p.lineas.length);
 }
 
+/** Los medios con que se le cobra a un cliente; lo demás que entra (el dueño, un reembolso) no es cobro. */
+const MEDIOS_DE_COBRO: ReadonlySet<string> = new Set(["efectivo", "yape", "plin", "tarjeta", "transferencia", "qr"]);
+
+export type LoQueNoCubre = {
+  /** Solo las cuentas que cambian algo: una que arrancó en cero y sin movimientos no le quita nada al cuadro. */
+  cuentas: ArranqueCuenta[];
+  /** «el 28 oct» o «entre el 23 oct y el 28 oct». */
+  cuando: string;
+  cobrosFuera: number;
+  salidasFuera: number;
+  entreCuentasFuera: number;
+  comisionFuera: number;
+  cobrosEnElCuadro: number;
+  /** Lo cobrado en el período de verdad: lo de arriba más lo de antes de arrancar. */
+  cobrosDelPeriodo: number;
+};
+
+/**
+ * Lo que el flujo del período no cubre porque una cuenta arrancó con su saldo a mitad de él (ADR-0609). Lo anterior al arranque ya está dentro
+ * de ese saldo: sumarlo lo contaría dos veces, así que se dice aparte y las cifras del puente no cambian. `null`: el período está completo.
+ */
+export function loQueNoCubre(real: Pick<FlujoReal, "categorias" | "arranques">): LoQueNoCubre | null {
+  const cuentas = real.arranques.filter((a) => [a.saldoInicial, a.cobros, a.salidas, a.entreCuentas].some((n) => Math.round(n * 100) !== 0));
+  if (!cuentas.length) return null;
+  const suma = (f: (a: ArranqueCuenta) => number) => r2(cuentas.reduce((t, a) => t + f(a), 0));
+  const fechas = [...new Set(cuentas.map((a) => a.desde))].sort();
+  const cobrosFuera = suma((a) => a.cobros);
+  const cobrosEnElCuadro = r2(real.categorias.filter((c) => c.lado === "entra" && MEDIOS_DE_COBRO.has(c.clave)).reduce((t, c) => t + c.monto, 0));
+  return {
+    cuentas,
+    cuando: fechas.length === 1 ? `el ${fechaCorta(fechas[0]!)}` : `entre el ${fechaCorta(fechas[0]!)} y el ${fechaCorta(fechas.at(-1)!)}`,
+    cobrosFuera,
+    salidasFuera: suma((a) => a.salidas),
+    entreCuentasFuera: suma((a) => a.entreCuentas),
+    comisionFuera: suma((a) => a.comision),
+    cobrosEnElCuadro,
+    cobrosDelPeriodo: r2(cobrosEnElCuadro + cobrosFuera),
+  };
+}
+
 /** El puente del mes: lo que había al empezar, lo que movió cada parte (se toca y muestra sus categorías) y lo que hay al cerrar. */
 export function puentePlata(real: FlujoReal, enCurso: boolean): TramoCascada[] {
-  const tramos: TramoCascada[] = [{ clave: "inicio", nombre: "Al empezar el mes", monto: real.saldoInicial, tipo: "entra" }];
+  // Con una cuenta que arrancó a mitad de mes, este saldo trae el de su arranque: llamarlo «al empezar el mes» sería afirmar lo que no se sabe.
+  const noCubre = loQueNoCubre(real);
+  const tramos: TramoCascada[] = [
+    noCubre
+      ? { clave: "inicio", nombre: "Saldo de partida", detalle: `El de cada cuenta al empezar; las que arrancaron ${noCubre.cuando}, con el de ese día`, monto: real.saldoInicial, tipo: "entra" }
+      : { clave: "inicio", nombre: "Al empezar el mes", monto: real.saldoInicial, tipo: "entra" },
+  ];
   for (const p of partesDelFlujo(real)) {
     tramos.push({
       clave: p.clave,
@@ -69,6 +116,9 @@ const montoDe = (real: Pick<FlujoReal, "categorias">, clave: string) => real.cat
  * retiros, la tarjeta), que es lo que separa «gané» de «tengo». Sin la ganancia, dice cuánto subió o bajó.
  */
 export function fraseDeLaPlata(real: FlujoReal, ganancia: number | null): string {
+  // ADR-0609: sin saber con cuánto empezó el mes de verdad, «subió» o «bajó» no se puede afirmar, y tampoco por qué no siguió a la ganancia.
+  const noCubre = loQueNoCubre(real);
+  if (noCubre) return `No se puede decir cuánto subió o bajó en el mes: ${noCubre.cuentas.length === 1 ? "una cuenta arrancó" : `${noCubre.cuentas.length} cuentas arrancaron`} con su saldo ${noCubre.cuando}.`;
   const d = Math.round(real.saldoFinal - real.saldoInicial);
   const cambio = d === 0 ? "La plata quedó igual que al empezar el mes" : `La plata ${d > 0 ? "subió" : "bajó"} ${soles(Math.abs(d))} en el mes`;
   if (ganancia === null) return `${cambio}.`;
@@ -131,7 +181,7 @@ export function recomendacionesPlata({
       });
     }
   }
-  if (real && ganancia !== null && Math.round(ganancia) > 0 && real.saldoFinal < real.saldoInicial) {
+  if (real && !loQueNoCubre(real) && ganancia !== null && Math.round(ganancia) > 0 && real.saldoFinal < real.saldoInicial) {
     const fuera = montoDe(real, "activos") + montoDe(real, "dueno_saca");
     if (Math.round(fuera) > 0) {
       out.push({
