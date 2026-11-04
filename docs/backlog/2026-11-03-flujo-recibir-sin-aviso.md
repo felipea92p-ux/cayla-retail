@@ -52,6 +52,5 @@ Felipe: «debe quedar absolutamente perfecto». Toca stock y movimientos: va con
 - [ ] **«Cambiar por talla» y «Crear la prenda» sin aprobar mirando:** Felipe pidió ver la tabla de Cerrar antes de darla por buena; se construyó y se revisa en el PR.
 
 ### En producción (2026-11-03, con el OK de Felipe; pegadas por MCP, por eso cambia la versión)
-`20261104000000` → `20261104010518` · `20261104001000` → `20261104010616` · `20261104002000` → `20261104010619` · `20261104003000` → `20261104010622` · `20261104005000` → `20261104010755`.
-- [ ] **Falta pegar `20261104012000`** (la encontró el CI): «a» solo es conector si le sigue otra palabra, y corregir una tanda no cuenta como pérdida. Hasta pegarla, un nombre nuevo como «Blusa A» se guarda «Blusa a». El permiso de la app rechazó pegarla por MCP: espera el OK de Felipe.
-- [ ] Refrescar la foto de producción (`docs/datos/generado/COMO-REFRESCAR.md`): `despacho_salidas` y las funciones nuevas todavía no están en el diccionario, y `pnpm datos:comparar` las marca por eso.
+`20261104000000` → `20261104010518` · `20261104001000` → `20261104010616` · `20261104002000` → `20261104010619` · `20261104003000` → `20261104010622` · `20261104005000` → `20261104010755` · `20261104012000` → `20261104145014` (2026-11-04: «a» solo es conector si le sigue otra palabra, y corregir una tanda no cuenta como pérdida; comprobado en producción: «Blusa A», «Polo a Rayas»).
+- [x] Foto de producción: la refrescó main el 2026-11-04 (10:12 UTC) y `despacho_salidas` ya está en el diccionario. `20261104012000` es posterior, pero solo cambia el cuerpo de dos funciones.
