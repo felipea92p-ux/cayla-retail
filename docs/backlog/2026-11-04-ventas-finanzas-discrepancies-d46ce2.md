@@ -1,6 +1,7 @@
 ## Finanzas: lo que falta para que Ventas y Finanzas no se presten a confusión (ADR-0609, 2026-11-04)
 
-- [ ] Pegar en producción `20261104211000` y `20261104212000`, en ese orden y antes de publicar la web (OK de Felipe). Después, refrescar el diccionario.
+- [x] Pegar en producción `20261104211000` y `20261104212000` (2026-11-04).
+- [ ] Publicar la web (abrir el PR y fusionar) y refrescar el diccionario.
 - [ ] Comparar el cuadre de octubre en pantalla con la conciliación hecha a mano.
 - [ ] Ventas ▸ Reportes: «Vendido» no dice que lleva IGV ni que incluye CLAURE; decidir si CLAURE va aparte (Felipe).
 - [ ] Las 4 ventas vigentes con boleta anulada; dos parecen duplicadas (confirmar con la tienda antes de anular).

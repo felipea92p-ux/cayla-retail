@@ -1,3 +1,3 @@
 - 2026-11-04 · **Finanzas: el Flujo dice lo que no cubre y ¿Ganamos? trae el cuadre con Ventas (ADR-0609).** Octubre se concilió desde las tablas de producción; las cifras no cambian. Con una cuenta que arrancó a mitad de mes, el Flujo ya no afirma «subió» ni «bajó» y muestra, cuenta por cuenta, lo anterior al arranque; el cuadre explica en céntimos de «Vendido» a «Ventas» por sede.
 - Verificado: `pnpm pruebas:cuadre-ventas-finanzas` (16/16) en una copia con las migraciones que le faltan a la base local compartida, que fue la que destapó un alcance mal escrito; pantallas a 1440 y 375 px, claro y oscuro.
-- Migraciones `20261104211000` y `20261104212000` sin pegar en producción.
+- Migraciones `20261104211000` y `20261104212000` pegadas en producción el 2026-11-04, con la orden de Felipe. Comprobado allí: lo anterior al arranque de octubre da lo mismo que la conciliación a mano. La pantalla, pendiente de publicar la web.

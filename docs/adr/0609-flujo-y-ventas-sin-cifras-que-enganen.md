@@ -1,6 +1,6 @@
 # ADR-0609 — Lo que el Flujo no cubre y el cuadre de Ventas a Finanzas
 
-- **Fecha:** 2026-11-04 · **Estado:** construido; migraciones `20261104211000` y `20261104212000` **sin pegar en producción**.
+- **Fecha:** 2026-11-04 · **Estado:** construido; migraciones `20261104211000` y `20261104212000` **en producción desde el 2026-11-04** (por SQL, no quedan en `schema_migrations`); la web sale al fusionar.
 - **Relacionados:** ADR-0195 F3 y F6 (cuentas y Flujo), ADR-0552 (reinicio de saldos), ADR-0560 (CLAURE), ADR-0585 (Estados financieros), ADR-0332 (desde cuándo cuenta Finanzas).
 - **Cifras:** las reales no entran al repo (es público, como en el ADR-0552).
 
