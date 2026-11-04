@@ -23,6 +23,8 @@ export type BarraTiempo = {
   valor: number;
   /** Lo que dice bajo la barra («6», «Lun», «15–21 oct»); vacío, nada. */
   etiqueta?: string;
+  /** La etiqueta se esconde en pantallas angostas (bajo 640 px) para que las demás quepan; en escritorio se ve. */
+  opcional?: boolean;
   /** La etiqueta en negrita (hoy). */
   fuerte?: boolean;
   /** El globito al pasar el mouse (y lo que oye el lector si la barra es un botón). */
@@ -190,7 +192,7 @@ export function BarrasTiempo({
       {barras.some((b) => b.etiqueta) && (
         <div aria-hidden className="barras-tiempo-eje" style={columnas}>
           {barras.map((b) => (
-            <span key={b.clave} className={b.fuerte || b.clave === destacada ? "barras-tiempo-eje-fuerte" : undefined}>
+            <span key={b.clave} data-opcional={b.opcional || undefined} className={b.fuerte || b.clave === destacada ? "barras-tiempo-eje-fuerte" : undefined}>
               {b.etiqueta ?? ""}
             </span>
           ))}
