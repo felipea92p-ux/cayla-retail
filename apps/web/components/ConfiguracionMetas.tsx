@@ -13,6 +13,8 @@ import type { CampanaConfig, ConfiguracionMetas as DatosMetas, ConfiguracionTien
 import { BotonEnlace } from "@/components/ui/campos";
 import { Casilla, FilaResponsable, useGuardarCasilla, type Guardar } from "@/components/ConfiguracionCasilla";
 import { ConfiguracionMetasMes } from "@/components/ConfiguracionMetasMes";
+import { semanaConCambio } from "@/lib/metas-frescas-reglas";
+import { NO_SE_PUDO_LEER, tiendaFresca } from "@/lib/metas-frescas";
 
 // Configuración ▸ Metas (ADR-0195 F1; metas por mes y por fecha, ADR-0435): cuánto se espera vender y qué se deja en el cajón. Nació dentro de
 // «Tiendas y caja», que juntaba 7 temas en 4,3 pantallas; Felipe la partió el 2026-11-04: aquí queda solo lo que responde «¿cuánto tiene que
@@ -24,11 +26,15 @@ const corto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
 
 function FilaTienda({ tienda, guardar }: { tienda: TiendaConfig; guardar: Guardar }) {
   const metas = tienda.metas.map(texto);
-  const fondo = texto(tienda.fondo);
 
-  // `guardar_metas_tienda` recibe las metas y el fondo: el fondo se manda como está, sin cambiarlo. Se edita en Empresa y tiendas (Las vitrinas).
+  // `guardar_metas_tienda` reemplaza la semana y el fondo: se manda lo último de la base con solo este día cambiado, para no pisar lo de otra pestaña. El fondo se edita en Empresa y tiendas.
   async function guardarCasilla(indice: number, nuevo: string) {
-    const b = { metas: metas.map((m, i) => (i === indice ? nuevo : m)), fondo };
+    const fresca = await tiendaFresca(tienda.id);
+    if (!fresca) {
+      avisar.error(NO_SE_PUDO_LEER);
+      return false;
+    }
+    const b = semanaConCambio(fresca, indice, nuevo);
     const v = validarTienda(b);
     if (!v.ok) {
       avisar.error(`${tienda.nombre}: ${v.error}`);

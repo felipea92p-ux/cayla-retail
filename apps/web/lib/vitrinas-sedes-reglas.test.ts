@@ -189,7 +189,7 @@ describe("quién cambia la carga: la regla de siempre", () => {
 });
 
 describe("Metas ya no cambia el fondo", () => {
-  it("guardar una meta manda el fondo tal como está: `guardar_metas_tienda` recibe los dos", () => {
+  it("el fondo vacío y el fondo con valor se validan como siempre", () => {
     const r = validarTienda({ metas: ["3800", "", "", "", "", "", ""], fondo: "300" });
     expect(r.ok && r.valor.fondo).toBe(300);
     const vacio = validarTienda({ metas: ["3800", "", "", "", "", "", ""], fondo: "" });

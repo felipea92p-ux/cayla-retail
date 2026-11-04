@@ -5,4 +5,5 @@
 - Felipe eligió las 5 pestañas y pidió menos texto, nada muy pequeño y más visual. Tres direcciones de Empresa y tiendas, con movimiento, en `docs/maquetas/empresa-tiendas-2026-11/`; esperan su elección. Nada de esto está construido.
 - Felipe eligió A · Las vitrinas y pidió subirla a vidrio líquido con gráficos sofisticados y futuristas: cada dato es un instrumento dentro de una gota (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). Sigue sin construirse.
 - Felipe pidió quitar los colores de detrás: el vidrio queda neutro y el color de la sede, solo en su aro y sus instrumentos. También se fue el vidrio que doblaba el fondo.
-- Empresa y tiendas ya son Las vitrinas en el ERP, con su movimiento y su guía, y Metas dejó el fondo y la hora de cierre. Verificado en el ERP local; sin PR ni producción. Queda abierto un hallazgo de dos pestañas (backlog).
+- Empresa y tiendas ya son Las vitrinas en el ERP, con su movimiento y su guía, y Metas dejó el fondo y la hora de cierre. Verificado en el ERP local; sin PR ni producción.
+- Guardar metas y fondo ya lee lo último de la base antes de mandar la semana: una página vieja no borra lo de otra pestaña. Repetí el ataque y resiste, también en la semana de un mes.

@@ -17,7 +17,7 @@ Pendiente, además de elegir, de la propuesta de `docs/maquetas/configuracion-vi
 - [ ] Revisar con Felipe la hora de cierre de las sedes: sin ella no sale el aviso de cierre de caja ni la proyección del día.
 - [ ] `/focus` de `/configuracion` y sus modales sigue pendiente; `/chaos` de las pantallas que guardan, al construir lo elegido.
 - [ ] Ver Reparto CLAURE en el navegador: a la base local le faltan sus migraciones (`/actualizar-flujo`, orden de Felipe).
-- [ ] **Hallazgo de /chaos, gravedad 2:** con dos pestañas abiertas, guardar el fondo desde una página vieja manda las metas que esa página tenía y borra una meta recién cambiada en la otra (y al revés desde Metas). Lo probé en local; ya pasaba cuando estaban en la misma tabla. Se arregla leyendo lo último antes de guardar o con una función aparte para el fondo: lo decide Felipe.
+- [x] Dos pestañas: guardar desde una página vieja ya no borra una meta ni un fondo (`lib/metas-frescas.ts`). Queda un margen de milisegundos si dos personas guardan a la vez; cerrarlo del todo pediría funciones de la base que cambien un solo dato.
 - [ ] Un WhatsApp escrito con letras queda vacío y borra el número al salir (lo avisa, y así era antes). Un fondo con decimales se guarda exacto, pero la tarjeta lo muestra redondeado.
 - [ ] Medir Las vitrinas en el Mac mini y en un celular de tienda: Felipe.
 - [ ] `/configuracion` sigue `pendiente` en la guía de foco: «qué falta» de cada pestaña es decisión de Felipe.

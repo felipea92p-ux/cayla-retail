@@ -21,6 +21,8 @@ import type { DatosEmpresa } from "@/lib/configuracion-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
 import type { LecturaCargaInicial, SedeCargaInicial } from "@/lib/carga-inicial-reglas";
 import { solesRedondo } from "@/lib/gastos-reglas";
+import { semanaConFondo } from "@/lib/metas-frescas-reglas";
+import { NO_SE_PUDO_LEER, tiendaFresca } from "@/lib/metas-frescas";
 import { camposDe, falta, fraseDeLaSede, hora12, llenadoTubo, NOMBRE_CAMPO, puedeCambiarCarga, valorDe, type CampoSede, type VitrinaSede } from "@/lib/vitrinas-sedes-reglas";
 
 // Configuración ▸ Empresa y tiendas, «Las vitrinas» (Felipe 2026-11-04, docs/maquetas/empresa-tiendas-vitrinas-2026-11/): el carnet de la empresa y una tarjeta por sede. Antes
@@ -55,8 +57,13 @@ async function guardarDato(campo: "whatsapp" | "cierre" | "fondo", v: VitrinaSed
     );
     return ok ? { ...v, tienda: { ...tienda, horaCierre: t || null } } : null;
   }
-  // El fondo se guarda con las metas de la semana, sin cambiarlas: `guardar_metas_tienda` recibe los dos.
-  const r = validarTienda({ metas: tienda.metas.map((m) => (m === null ? "" : String(m))), fondo: t });
+  // `guardar_metas_tienda` reemplaza la semana y el fondo: se manda lo último de la base con solo el fondo cambiado, para no pisar lo de otra pestaña.
+  const fresca = await tiendaFresca(v.id);
+  if (!fresca) {
+    avisar.error(NO_SE_PUDO_LEER);
+    return null;
+  }
+  const r = validarTienda(semanaConFondo(fresca, t));
   if (!r.ok) {
     avisar.error(`${v.corto}: ${r.error}`);
     return null;

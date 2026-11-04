@@ -10,6 +10,8 @@ import { Casilla, type Guardar } from "@/components/ConfiguracionCasilla";
 import { DIAS_CORTOS, DIAS_SEMANA, validarMetaFecha, validarSemanaMes } from "@/lib/configuracion-reglas";
 import type { ConfiguracionMetas, FechaMeta, MesMetas, TiendaMetas } from "@/lib/configuracion-reglas";
 import { fechaCorta, solesRedondo, textoMes } from "@/lib/gastos-reglas";
+import { semanaDelMesConCambio } from "@/lib/metas-frescas-reglas";
+import { NO_SE_PUDO_LEER, semanaDelMesFresca } from "@/lib/metas-frescas";
 
 // Configuración ▸ Metas: la meta que cambia con el calendario (ADR-0435, 20261017020000). Hasta aquí la semana tipo valía los
 // 12 meses; pero diciembre vende casi el doble que octubre y el 24 de diciembre, dos veces su día. Dos tarjetas con el mismo patrón de
@@ -24,10 +26,14 @@ const nombreMes = (mes: string) => textoMes(mes.slice(0, 7));
 const diaDe = (iso: string) => DIAS_CORTOS[(new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7]!;
 
 function FilaMes({ tienda, mes, esActual, guardar }: { tienda: TiendaMetas; mes: MesMetas; esActual: boolean; guardar: Guardar }) {
-  const textos = mes.metas.map(texto);
-
+  // `guardar_metas_mes` reemplaza la semana: se manda lo último de la base con solo este día cambiado, para no pisar lo de otra pestaña.
   async function guardarCasilla(indice: number, nuevo: string) {
-    const v = validarSemanaMes(textos.map((t, i) => (i === indice ? nuevo : t)));
+    const fresca = await semanaDelMesFresca(tienda.id, mes.mes);
+    if (!fresca) {
+      avisar.error(NO_SE_PUDO_LEER);
+      return false;
+    }
+    const v = validarSemanaMes(semanaDelMesConCambio(fresca, indice, nuevo));
     if (!v.ok) {
       avisar.error(`${tienda.nombre}, ${nombreMes(mes.mes)}: ${v.error}`);
       return false;
