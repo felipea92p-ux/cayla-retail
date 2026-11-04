@@ -521,6 +521,7 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
   .prod-grilla { row-gap: 14px; }
 }
 .prod-tarjeta {
+  min-width: 0; /* un hijo de la grilla no se ensancha más que su columna por el largo de un nombre */
   padding: 8px 8px 12px;
   border: 1px solid var(--placa-prenda-borde);
   border-radius: 22px;
@@ -573,6 +574,9 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
 .prod-info {
   container-type: inline-size;
   display: grid;
+  /* Una sola columna que NO crece con su contenido: con la columna `auto` de fábrica, el nombre en una línea (`nowrap`) la estiraba
+     hasta su largo completo y empujaba el precio fuera de la tarjeta. Con `minmax(0, 1fr)` el nombre se corta con «…». */
+  grid-template-columns: minmax(0, 1fr);
   gap: 3px;
   padding: 12px 6px 0;
 }
