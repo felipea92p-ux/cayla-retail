@@ -106,6 +106,10 @@ end $$;
 alter table retail.metas_persona_ajustes disable trigger user; -- su historial no se borra en ningún otro lado: esto es solo para estos datos inventados
 delete from retail.metas_persona_ajustes where persona_id in (select id from public.personas where auth_user_id in (${IDS_VENTAS}));
 alter table retail.metas_persona_ajustes enable trigger user;
+-- Usar la pantalla con estas cuentas deja rastro en la actividad: sin borrarlo, la persona no se puede quitar.
+alter table retail.actividad disable trigger user;
+delete from retail.actividad where persona_id in (select id from public.personas where auth_user_id in (${IDS_AUTH}));
+alter table retail.actividad enable trigger user;
 delete from retail.colaboradores where persona_id in (select id from public.personas where auth_user_id in (${IDS_AUTH}));
 delete from public.personas where auth_user_id in (${IDS_AUTH});
 delete from auth.identities where user_id in (${IDS_AUTH});
