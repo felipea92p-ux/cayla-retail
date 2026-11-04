@@ -5,7 +5,7 @@
   "total": 4,
   "controles": {
     "app/(app)/vender/reportes/page.tsx": [
-      "BotonDescargar «Descargar Excel»"
+      "BotonDescargar «Baja la tabla del mes que miras (por tienda o por categoría), con su total»"
     ],
     "components/reportes-ventas/CabeceraReportes.tsx": [
       "Pestanas «(sin nombre)»"

@@ -42,7 +42,7 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
       <CabeceraReportes
         sede={sede}
         activa="ranking"
-        acciones={r && r.cuantos > 0 ? <BotonDescargar guia="reportes.descargar" href={hrefRanking(f, { pagina: 0 }).replace("/vender/reportes/ranking", "/vender/reportes/ranking/descargar")}>Descargar Excel</BotonDescargar> : undefined}
+        acciones={r && r.cuantos > 0 ? <BotonDescargar guia="reportes.descargar" title="Baja todas las filas del ranking con tus filtros, no solo las de esta página" href={hrefRanking(f, { pagina: 0 }).replace("/vender/reportes/ranking", "/vender/reportes/ranking/descargar")}>Descargar el ranking</BotonDescargar> : undefined}
       />
       <FiltrosRanking f={f} periodo={periodo} hoy={hoy} opciones={opciones.datos} tiendas={tiendas} />
       {opciones.falla && (
@@ -59,7 +59,7 @@ export default async function RankingPrendasPage({ searchParams }: { searchParam
           <CifrasRanking r={r} f={f} periodo={periodo} />
           {r.sinRegistrar.unidades > 0 && sinPrendaFiltrada && (
             <Aviso tono="info" chico titulo={`No cuenta ${new Intl.NumberFormat("es-PE").format(r.sinRegistrar.unidades)} ${r.sinRegistrar.unidades === 1 ? "prenda sin registrar" : "prendas sin registrar"} (${soles(r.sinRegistrar.vendido)})`}>
-              Se cobraron en caja sin elegir de qué modelo eran. Cuando se registren en Por regularizar, entran aquí.
+              Se cobraron en caja sin elegir qué prenda era. Cuando alguien las identifique en Inventario ▸ Por regularizar, entran aquí.
             </Aviso>
           )}
           {r.cuantos > 0 && !sePuedeComparar(r) && <p className="texto-detalle text-taupe">El período anterior empieza antes de que se vendiera: no se compara.</p>}

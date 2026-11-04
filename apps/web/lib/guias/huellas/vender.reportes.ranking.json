@@ -5,7 +5,7 @@
   "total": 10,
   "controles": {
     "app/(app)/vender/reportes/ranking/page.tsx": [
-      "BotonDescargar «Descargar Excel»"
+      "BotonDescargar «Baja todas las filas del ranking con tus filtros, no solo las de esta página»"
     ],
     "components/reportes-ventas/CabeceraReportes.tsx": [
       "Pestanas «(sin nombre)»"

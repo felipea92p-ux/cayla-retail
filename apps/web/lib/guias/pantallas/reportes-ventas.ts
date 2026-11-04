@@ -12,14 +12,8 @@ const PESTANAS: PasoGuia = {
   texto: "«Ventas del mes» te dice cuánto se vendió y cómo va contra el mes pasado. «Ranking de prendas» te dice cuáles salen más. Tocas una y cambias de reporte.",
 };
 
-/** El botón de la cabecera: baja lo que se ve. Solo aparece si hay algo que bajar. */
-const DESCARGAR: PasoGuia = {
-  id: "descargar",
-  ancla: "reportes.descargar",
-  opcional: true,
-  titulo: "Llévalo a Excel",
-  texto: "«Descargar Excel» baja exactamente lo que estás viendo, con tus mismos filtros, para guardarlo o mandarlo. No lleva costos ni márgenes: solo ventas.",
-};
+/** El botón de la cabecera: baja lo que se ve. Solo aparece si hay algo que bajar. Cada pantalla baja una cosa distinta, y el paso lo dice. */
+const DESCARGAR = (titulo: string, texto: string): PasoGuia => ({ id: "descargar", ancla: "reportes.descargar", opcional: true, titulo, texto });
 
 export const GUIA_REPORTES_MES: Guia = {
   id: "vender.reportes",
@@ -34,7 +28,7 @@ export const GUIA_REPORTES_MES: Guia = {
       texto: "Aquí ves cuánto se vendió en un mes, si va mejor o peor que el anterior, qué días se vendió más, qué tienda y qué categoría pesan más y cómo pagaron los clientes. Solo mira: no cambia nada.",
     },
     PESTANAS,
-    DESCARGAR,
+    DESCARGAR("Llévate el mes a Excel", "«Descargar el mes» baja la tabla de abajo, por tienda o por categoría, con su total, para guardarla o mandarla. No lleva costos ni márgenes: solo ventas."),
     {
       id: "mes",
       ancla: "reportes.mes",
@@ -109,7 +103,7 @@ export const GUIA_REPORTES_RANKING: Guia = {
       texto: "Aquí ves qué prendas salen más en las fechas que elijas, de la que más a la que menos, y si van mejor o peor que antes. Sirve para saber qué reponer y qué dejar de insistir. Solo mira: no cambia nada.",
     },
     PESTANAS,
-    DESCARGAR,
+    DESCARGAR("Llévate el ranking a Excel", "«Descargar el ranking» baja todas las filas con tus filtros, no solo las de esta página, para guardarlas o mandarlas. No lleva costos ni márgenes: solo ventas."),
     {
       id: "buscador",
       ancla: "ranking.buscador",
@@ -157,7 +151,7 @@ export const GUIA_REPORTES_RANKING: Guia = {
       id: "tabla",
       ancla: "ranking.tabla",
       titulo: "El ranking",
-      texto: "Una fila por prenda: cuánto se vendió, qué parte del total es, si sube o baja contra el período anterior y cuánto stock queda. Si el stock alcanza para poco, la fila lo avisa: es lo que hay que reponer primero.",
+      texto: "Una fila por prenda: cuánto se vendió, qué parte del total es, si sube o baja contra el período anterior y cuánto stock queda en las tiendas. Si alcanza para poco, la fila lo avisa: es lo que hay que reponer primero.",
     },
     {
       id: "tallas",

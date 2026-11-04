@@ -33,7 +33,7 @@ const COLUMNAS: Columna[] = [
   { titulo: "Vendido", alinear: "der", desdeXl: true },
   { titulo: "% del total", alinear: "der", desdeXl: true },
   { titulo: "vs período anterior", alinear: "der", desdeXl: true },
-  { titulo: "Cómo está el stock", alinear: "der" },
+  { titulo: "Stock en tiendas", alinear: "der" },
 ];
 const ENTERO = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
@@ -115,7 +115,7 @@ export function TablaRanking({ r, f, periodo, fotos }: { r: Ranking; f: FiltrosR
                 ) : (
                   <>
                     <span className="tabular-nums">
-                      Quedan <b className="font-semibold">{ENTERO.format(x.stock)}</b>
+                      Quedan <b className="font-semibold">{ENTERO.format(x.stock)}</b> en tiendas
                     </span>
                     {stock.tipo === "poco" && stock.dias !== null && (
                       <Chip tono="ambar" versalitas={false}>
