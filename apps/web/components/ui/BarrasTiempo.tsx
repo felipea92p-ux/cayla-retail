@@ -15,7 +15,8 @@ import type { CSSProperties, ReactNode } from "react";
    Sin JavaScript propio: sirve en un Server Component. Registro: docs/unificar/grafico.barras.md. Nunca una fila de barras a mano.
    ==================================================================== */
 
-export type TonoBarraTiempo = "tinta" | "rojo" | "ambar" | "verde";
+/** `arena-fuerte`: la arena un tono más oscura, para marcar un grupo de barras (el fin de semana en «Ventas por día»). */
+export type TonoBarraTiempo = "tinta" | "rojo" | "ambar" | "verde" | "arena-fuerte";
 
 export type BarraTiempo = {
   clave: string;
@@ -55,6 +56,7 @@ export function BarrasTiempo({
   destacada = null,
   cifras = "destacada",
   referencia = null,
+  ejes,
   alto = 140,
   max,
   respuesta,
@@ -69,6 +71,8 @@ export function BarrasTiempo({
   cifras?: "destacada" | "todas" | "ninguna";
   /** Una sola referencia para todas: una raya taupe punteada de lado a lado. */
   referencia?: { valor: number; texto?: string } | null;
+  /** Los montos del eje de la izquierda: tres rayas (el cero, la mitad y el tope) con lo que vale cada una. Pásale `max` redondo (el tope del eje). */
+  ejes?: (valor: number) => string;
   /** El alto de la zona de las barras, en px (de fábrica 140). */
   alto?: number;
   /** El tope del eje (de fábrica, la mayor barra o meta). */
@@ -103,8 +107,14 @@ export function BarrasTiempo({
   const raiz = decorativa ? { "aria-hidden": true as const } : responde ? { role: "group" as const, "aria-label": etiqueta } : { role: "img" as const, "aria-label": etiqueta };
 
   return (
-    <div {...raiz} className={`barras-tiempo ${className}`}>
+    <div {...raiz} className={`barras-tiempo ${className}`} style={ejes ? { paddingLeft: "3.25rem" } : undefined}>
       <div className="barras-tiempo-zona" style={{ height: alto }}>
+        {ejes &&
+          [0, 0.5, 1].map((f) => (
+            <span key={f} aria-hidden className="barras-tiempo-eje-y" data-cero={f === 0 || undefined} style={{ bottom: Math.round(util * f) }}>
+              <span>{ejes(tope * f)}</span>
+            </span>
+          ))}
         {divergente && <span aria-hidden className="barras-tiempo-cero" style={{ bottom: cero }} />}
         {referencia && (
           <span aria-hidden className="barras-tiempo-ref" style={{ bottom: cero + px(referencia.valor) }}>

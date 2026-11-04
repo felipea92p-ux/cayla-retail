@@ -203,6 +203,18 @@ export function barrasPorDia(s: SeriesMes): BarraDeReporte[] {
   });
 }
 
+/**
+ * El tope redondo del eje de «Ventas por día» (maqueta: «S/ 7,000» arriba, la mitad al medio y «S/ 0» abajo): el múltiplo de la potencia de diez
+ * de la barra mayor que la cubre. Si eso deja mucho aire arriba (más de 30 %), la mitad de esa potencia: 1 100 → 1 500, no 2 000.
+ */
+export function topeDelEje(max: number): number {
+  if (!(max > 0)) return 1;
+  const potencia = 10 ** Math.floor(Math.log10(max));
+  const entero = Math.ceil(max / potencia) * potencia;
+  if (entero / max <= 1.3) return entero;
+  return Math.ceil(max / (potencia / 2)) * (potencia / 2);
+}
+
 /** El mejor día del tramo (el de más ventas), o `null` si no se vendió nada. */
 export function mejorDia(s: SeriesMes): DiaVentas | null {
   let mejor: DiaVentas | null = null;

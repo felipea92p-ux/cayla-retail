@@ -12,6 +12,7 @@ import {
   diaEnPalabras,
   mejorDia,
   promedioDiarioAnterior,
+  topeDelEje,
   tramoEnPalabras,
   tramosDePago,
   type ReporteMes,
@@ -24,6 +25,7 @@ import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 // mes a mes y cómo se pagó. Todo sale de `fn_reporte_ventas_series`, la hermana de la lectura de las cifras: suman lo mismo. Las piezas son las del
 // sistema (ADR-0358): `BarrasTiempo` y `BarraApilada`; ningún gráfico dibujado a mano.
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
+const capitalizada = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 const bloque = "anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]";
 
 export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null; corte: string | null }) {
@@ -46,13 +48,42 @@ export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s
         <p className="mt-0.5 text-sm text-tinta/60">{nombre} · {tramoEnPalabras(r)}</p>
         <div className="mt-4">
           <BarrasTiempo
-            alto={190}
-            barras={dias.map((b) => ({ clave: b.clave, valor: b.valor, etiqueta: b.etiqueta, fuerte: b.fuerte, tip: b.tip, aria: b.tip }))}
+            alto={216}
+            ejes={soles}
+            max={topeDelEje(Math.max(0, ...dias.map((b) => b.valor), promedio ?? 0))}
+            barras={dias.map((b) => ({
+              clave: b.clave,
+              valor: b.valor,
+              etiqueta: b.etiqueta,
+              fuerte: b.fuerte,
+              // El fin de semana, un tono más oscuro; el mejor día, en tinta aunque caiga en sábado (lo decide `destacada`).
+              tono: b.fuerte && b.clave !== mejor?.fecha ? "arena-fuerte" : undefined,
+              tip: b.tip,
+              aria: b.tip,
+            }))}
             destacada={mejor?.fecha ?? null}
-            referencia={promedio !== null && comparacion.hay ? { valor: promedio, texto: `Promedio diario de ${comparacion.contra}: ${soles(promedio)}` } : null}
+            referencia={promedio !== null && comparacion.hay ? { valor: promedio, texto: `${capitalizada(comparacion.contra)}: ${soles(promedio)} al día` } : null}
             etiqueta={`Ventas por día de ${nombre}${mejor ? `. Mejor día: ${diaEnPalabras(mejor.fecha)}, ${soles(mejor.vendido)}` : ""}`}
           />
         </div>
+        <ul aria-label="Qué significa cada color" className="mt-3 flex flex-wrap gap-x-[18px] gap-y-1.5 text-xs text-tinta/65">
+          {mejor && (
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="h-2.5 w-2.5 rounded-[3px] bg-tinta" />
+              El mejor día
+            </li>
+          )}
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className="h-2.5 w-2.5 rounded-[3px]" style={{ background: "color-mix(in srgb, var(--color-tinta) 22%, var(--color-grafico-neutro))" }} />
+            Sábado y domingo
+          </li>
+          {promedio !== null && comparacion.hay && (
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="w-3.5 border-t-2 border-dashed border-taupe" />
+              Promedio diario de {comparacion.contra}
+            </li>
+          )}
+        </ul>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">

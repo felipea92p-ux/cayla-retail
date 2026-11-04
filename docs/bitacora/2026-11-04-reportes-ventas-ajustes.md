@@ -1,0 +1,4 @@
+## 2026-11-04 (Ventas ▸ Reportes: el gráfico como la maqueta y la tabla sin «Devuelto»)
+Qué hice: «Ventas por día» ahora trae lo que la maqueta tenía y producción no: los montos en el eje (S/ 0, la mitad y un tope redondo), el fin de semana en un tono más oscuro, la leyenda de los colores y la raya del mes pasado con su fondo para leerse sobre las barras. Y quité la columna «Devuelto» de la tabla por tienda (lo devuelto del mes sigue en su cifra de arriba).
+Por qué así: Felipe vio producción al lado de la maqueta y faltaban cosas; «Devuelto» por tienda no ayudaba a decidir. Los montos del eje son una opción nueva de la pieza `BarrasTiempo` (`ejes`), apagada de fábrica: ninguna otra pantalla cambia.
+Felipe se lleva: un gráfico que se lee sin pasar el mouse por cada barra. Probado con datos inventados en escritorio y a 375 px; no probado con datos reales de producción.
