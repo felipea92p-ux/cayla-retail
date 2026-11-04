@@ -1920,7 +1920,7 @@ ESCENARIOS.push(
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },
   { id: "configuracion.presupuesto", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Presupuesto»", preparar: clicPestana(/^Presupuesto/i) },
   { id: "configuracion.impuestos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Impuestos»", preparar: clicPestana(/^Impuestos/i) },
-  { id: "configuracion.empresa", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Empresa»", preparar: clicPestana(/^Empresa/i) },
+  { id: "configuracion.empresa", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Empresa y tiendas»", preparar: secuencia(clicPestana(/^Empresa/i), (pagina) => esperar(pagina, 2600) /* la entrada de Las vitrinas dura 2,4 s: se mide terminada */) },
   { id: "actividad.modulo", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Módulo»", preparar: clicRol("combobox", /^Módulo/i) },
   { id: "actividad.persona", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Persona»", preparar: clicRol("combobox", /^Persona/i) },
   { id: "actividad.hoy", ruta: "/actividad", cuentas: ["admin"], nombre: "Actividad · el período «Hoy»", preparar: clicRol("button", /^Hoy/i) },
