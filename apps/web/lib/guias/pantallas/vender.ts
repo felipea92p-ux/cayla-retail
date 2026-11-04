@@ -370,6 +370,13 @@ export const GUIA_APARTADOS: Guia = {
       texto: "Si acordaste un precio con el cliente, toca «Descuento» (o el importe de una prenda, para solo esa): en % o en soles, con su motivo y, pasado el 15 %, por qué. Lo conserva hasta que recoja y la boleta sale con ese precio. Igual al sumar prendas a un apartado ya hecho. En la demo no se aplica.",
     },
     {
+      id: "canal-apartado",
+      ancla: "apartados.canal",
+      opcional: true,
+      titulo: "¿Por dónde se vende?",
+      texto: "Si tu rol vende también por un canal online (TikTok), aquí eliges por cuál: la prenda sale igual de esta tienda. En un canal online preguntas cómo se entrega: recojo en tienda, o envío con la dirección y la agencia. Con solo la tienda, este bloque no aparece. En la demo no se toca.",
+    },
+    {
       id: "dueno-apartado",
       ancla: "apartar.dueno",
       opcional: true,
@@ -398,7 +405,14 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "apartados.pestana-todos" }],
       titulo: "Todos los apartados",
-      texto: "«Necesitan algo» junta los que vencen pronto, los vencidos y los que esperan que se les devuelva el adelanto; «Por recoger», los abiertos; «Cerrados», los ya entregados o liberados. El buscador encuentra cualquiera por nombre, DNI, celular o número, y «Qué ver» elige qué datos muestra cada uno.",
+      texto: "«Necesitan algo» junta lo que vence pronto, lo vencido y lo que espera su devolución; «Por recoger», los abiertos; «Cerrados», los entregados o liberados. «Canal» (si vendes por TikTok) deja ver solo un canal. El buscador encuentra por nombre, DNI, celular o número.",
+    },
+    {
+      id: "marcar-enviado",
+      ancla: "apartados.marcar-enviado",
+      opcional: true,
+      titulo: "Marcar un envío",
+      texto: "En una venta online con envío, «Marcar enviado» deja anotado que la prenda ya salió, con la guía o la agencia si la tienes. Es solo una marca: cobrar el saldo y entregar se hace aparte, en «Entregar». En la demo no se toca.",
     },
     {
       id: "periodo",

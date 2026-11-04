@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal } from "lucide-react";
+import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal, Store } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
@@ -25,6 +25,8 @@ import {
 } from "@/lib/separaciones-reglas";
 import { diaLima } from "@/lib/fechas-lima";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { CanalChip, useCanalesDeApartados } from "@/components/apartados/CanalChip";
+import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
 import { DetalleApartadoModal, type ModoDetalle } from "@/components/apartados/DetalleApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -128,6 +130,10 @@ export function TodosVista({
 }) {
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  // ADR-0607: con más de un canal a la vista, el Historial se puede acotar a uno. Con solo la tienda no hay nada que elegir.
+  const canales = useCanalesDeApartados();
+  const [canalFiltro, setCanalFiltro] = useState<string>(TODOS);
+  const conFiltroDeCanal = canales.length >= 2;
   const [texto, setTexto] = useState(buscarInicial);
   // Período (Felipe 2026-10-10): acota SOLO lo cerrado, por el día en que se hizo el apartado; lo que espera algo sale
   // siempre (`buscar_separaciones`, 20261010180000). La página ya trajo los últimos 30 días: otro período se lee aquí,
@@ -220,6 +226,7 @@ export function TodosVista({
   const conEstado = fuente.map((a) => ({ a, e: estadoVisible(a, hoy) }));
   const lista = conEstado
     .filter(({ a }) => coincide(a, texto))
+    .filter(({ a }) => !conFiltroDeCanal || canalFiltro === TODOS || a.canal === canalFiltro)
     .filter(({ a, e }) =>
       filtro === "hoy" ? ["porvencer", "vencida", "devolver"].includes(e.clave) : filtro === "abiertos" ? a.estado === "abierta" : filtro === "cerrados" ? e.clave === "cerrada" : true,
     )
@@ -335,6 +342,15 @@ export function TodosVista({
             {f.etiqueta}
           </button>
         ))}
+        {conFiltroDeCanal && (
+          <DesplegablePildora
+            icono={Store}
+            etiqueta="Canal"
+            valor={canalFiltro}
+            onValor={setCanalFiltro}
+            opciones={[{ valor: TODOS, texto: "Todos" }, ...canales.map((c) => ({ valor: c.clave, texto: c.nombre }))]}
+          />
+        )}
         <div className="relative flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
         <Buscador valor={texto} onCambio={setTexto} placeholder="Nombre, DNI, celular, APT- o B004-" etiqueta="Buscar en los apartados" className="min-w-0 flex-1 sm:w-80 sm:flex-none" />
         <button type="button" onClick={() => setVerAbierto((v) => !v)} aria-expanded={verAbierto} className={`${BOTON_CHICO} inline-flex h-10 items-center gap-1.5`}>
@@ -521,7 +537,10 @@ export function TodosVista({
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <EstadoChip {...e} />
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <EstadoChip {...e} />
+                        <CanalChip a={a} className="max-w-full" />
+                      </div>
                       {a.estado === "abierta" && <BarraPlazo creadaEl={diaLima(a.creadaEn)} hoy={hoy} />}
                       <p className="text-sm text-tinta/60">
                         {a.estado === "abierta" ? `vence ${fechaCorta(a.venceEl)}${a.extensiones ? " · extendido" : ""}` : a.estado === "liberada" ? (a.liberadaSola ? "se liberó solo" : "liberado") : a.estado === "entregada" ? `boleta ${a.comprobanteFinal ?? a.comprobanteAnticipo ?? ""}` : a.notaCredito ? `NC ${a.notaCredito}` : "devuelto"}

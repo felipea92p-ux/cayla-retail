@@ -26,7 +26,7 @@ import { DarAccesoModal } from "@/components/colaboradores/DarAccesoModal";
 import { avisoDarAcceso } from "@/lib/dar-acceso-reglas";
 import { AsignarRolModal } from "@/components/RolesModales";
 import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones";
-import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
+import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CanalVenta, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import type { ClaveModulo } from "@/lib/modulos";
 import { RolesPanel } from "@/components/RolesPanel";
 import { ActividadEquipo } from "@/components/colaboradores/ActividadEquipo";
@@ -83,6 +83,8 @@ export function ColaboradoresPanel({
   admins = [],
   fueraDeAlcance = [],
   misModulos = null,
+  canales = undefined,
+  misCanales = null,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
   accionesTerminales = accionesTerminalesServidor,
@@ -121,6 +123,9 @@ export function ColaboradoresPanel({
   fueraDeAlcance?: readonly string[];
   /** ADR-0178 «solo das lo que tienes»: los módulos que ve quien mira, o `null` si es líder (da todo). */
   misModulos?: readonly ClaveModulo[] | null;
+  /** ADR-0607: el catálogo de canales de venta y los que opera quien mira (`null` = líder). Para Roles y accesos. */
+  canales?: readonly CanalVenta[];
+  misCanales?: readonly string[] | null;
   acciones?: AccionesColaboradores;
   accionesRoles?: AccionesRoles;
   /** Crear terminal y cambiar su clave. Por defecto, las Server Actions de `app/actions/terminales.ts`. */
@@ -397,6 +402,8 @@ export function ColaboradoresPanel({
               rolInicialId={rolElegidoId}
               soyAdmin={soyAdmin}
               misModulos={misModulos}
+              canales={canales}
+              misCanales={misCanales}
               fueraDeAlcance={fueraDeAlcance}
               admins={admins}
               acciones={accionesRoles}

@@ -45,6 +45,11 @@
   "src_table": "asistente_sedes"
  },
  {
+  "conname": "avio_clases_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "avio_clases"
+ },
+ {
   "conname": "bajadas_piso_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "bajadas_piso"
@@ -580,6 +585,11 @@
   "src_table": "frescura_decisiones"
  },
  {
+  "conname": "gasto_correcciones_corregida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_correcciones"
+ },
+ {
   "conname": "gasto_reparto_claure_actualizado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gasto_reparto_claure"
@@ -625,9 +635,19 @@
   "src_table": "gastos_legado_2026_09"
  },
  {
+  "conname": "gastos_no_emiten_marcado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gastos_no_emiten"
+ },
+ {
   "conname": "historial_producto_cambios_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "historial_producto_cambios"
+ },
+ {
+  "conname": "insumo_lote_cambios_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "insumo_lote_cambios"
  },
  {
   "conname": "insumos_creado_por_fkey",
@@ -808,6 +828,11 @@
   "conname": "pedidos_web_entregado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "pedidos_web"
+ },
+ {
+  "conname": "pedidos_web_push_aparatos_auth_user_id_fkey",
+  "ref_table": "auth.users",
+  "src_table": "pedidos_web_push_aparatos"
  },
  {
   "conname": "periodo_cierres_cerrado_por_fkey",
@@ -1010,9 +1035,19 @@
   "src_table": "produccion_avances"
  },
  {
+  "conname": "produccion_cambios_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_cambios"
+ },
+ {
   "conname": "produccion_etapas_historial_hecho_por_fkey",
   "ref_table": "public.personas",
   "src_table": "produccion_etapas_historial"
+ },
+ {
+  "conname": "produccion_fallas_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_fallas"
  },
  {
   "conname": "produccion_fase_marcas_hecho_por_fkey",
@@ -1230,6 +1265,11 @@
   "src_table": "separaciones"
  },
  {
+  "conname": "separaciones_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separaciones"
+ },
+ {
   "conname": "separaciones_liberada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separaciones"
@@ -1238,6 +1278,21 @@
   "conname": "series_comprobantes_archivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "series_comprobantes"
+ },
+ {
+  "conname": "sire_propuestas_subida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "sire_propuestas"
+ },
+ {
+  "conname": "sire_resoluciones_deshecha_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "sire_resoluciones"
+ },
+ {
+  "conname": "sire_resoluciones_resuelta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "sire_resoluciones"
  },
  {
   "conname": "tallas_aprobado_por_fkey",

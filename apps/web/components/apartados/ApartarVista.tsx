@@ -13,6 +13,7 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CanalDelApartado } from "@/components/apartados/CanalDelApartado";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
@@ -24,6 +25,7 @@ import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
+import { argumentosDeCanal, canalInicialDe, esCanalOnline, ofreceCanal, type CanalVenta, type ModoEntrega } from "@/lib/canales-venta-reglas";
 import { huellaDe, type InstantaneaIntento } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
@@ -90,7 +92,7 @@ const MQ_APILADO = "(max-width: 1023.98px)";
 
 /** Los campos con un formato que se puede equivocar al tipearlo: su aviso sale al dejar el campo, no recién al confirmar
  *  (en la captura de Felipe un DNI de 9 dígitos pasó sin aviso hasta el final). Los vacíos siguen esperando al intento. */
-const CAMPOS_CON_FORMATO = new Set(["celular", "dni", "ruc", "devolucion"]);
+const CAMPOS_CON_FORMATO = new Set(["celular", "dni", "ruc", "devolucion", "direccionEnvio"]);
 
 /** «Terracota · M»: la variante en una línea, para que dos tallas del mismo modelo no se lean iguales en el ticket. */
 const variante = (p: { color: string | null; talla: string | null }) => [p.color, p.talla].filter(Boolean).join(" · ");
@@ -140,6 +142,10 @@ const FORMULARIO_VACIO = {
   devolucionNumero: "",
   devolucionCci: "",
   acepta: false,
+  // ADR-0607: por dónde se vende y cómo se entrega. En la tienda no se pregunta: `canal` queda en «tienda» y la entrega, en recojo.
+  canal: "tienda",
+  modoEntrega: "recojo" as ModoEntrega,
+  direccionEnvio: "",
 };
 
 export function ApartarVista({
@@ -155,6 +161,7 @@ export function ApartarVista({
   tiendas = [],
   pedido = null,
   onPedidoHecho,
+  canales = [],
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -176,6 +183,8 @@ export function ApartarVista({
   /** Un pedido que ya llegó: su prenda y su clienta arrancan cargadas y se aparta con `separar_pedido_para_apartar`. */
   pedido?: PedidoApartado | null;
   onPedidoHecho?: () => void;
+  /** ADR-0607: los canales de venta que opera la cuenta. Solo la tienda (o vacío) = el formulario de siempre. */
+  canales?: readonly CanalVenta[];
 }) {
   const router = useRouter();
   // El apartado a medio armar es de SU sede (Felipe, 2026-10-11): el panel monta Apartar con la sede en la key, y lo armado en otra
@@ -254,8 +263,15 @@ export function ApartarVista({
   const [nota, setNota] = useState(guardado?.nota ?? "");
   const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
   const [f, setF] = useState(() =>
-    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : (guardado?.f ?? FORMULARIO_VACIO),
+    pedido
+      ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular }
+      : { ...FORMULARIO_VACIO, canal: canalInicialDe(canales), ...guardado?.f },
   );
+  // Lo guardado de otra sesión puede traer un canal que esta cuenta ya no opera: se vuelve al de arranque.
+  const canalElegido = canales.some((c) => c.clave === f.canal) ? f.canal : canalInicialDe(canales);
+  const conCanal = !pedido && ofreceCanal(canales);
+  const esOnline = conCanal && esCanalOnline(canales, canalElegido);
+  const modoDeEntrega: ModoEntrega = esOnline ? f.modoEntrega : "recojo";
   const conOtraSede = encendida(apagadas, "otra_sede");
   const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string; cantidad: number } } | null>(null);
   const [intento, setIntento] = useState(false);
@@ -332,7 +348,7 @@ export function ApartarVista({
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);
   const vence = sumarDiasIso(hoy, PLAZO_DIAS);
   // Quién atiende ya no se valida como campo del formulario: lo exige el combo «Responsable», que apaga el botón.
-  const formulario: FormularioApartado = { ...f, asesoraId: responsable.elegidoId, faltaAsesora: false };
+  const formulario: FormularioApartado = { ...f, modoEntrega: modoDeEntrega, asesoraId: responsable.elegidoId, faltaAsesora: false };
   const errores = erroresDelApartado(formulario, total);
   const pasoForm = pasoDelApartado(errores);
   const adelanto = Math.min(adelantoDe(f.pagos), total);
@@ -603,12 +619,16 @@ export function ApartarVista({
       p_clienta_id: clientaId ?? undefined,
       p_nota: nota.trim() || undefined,
     };
-    const r = await envio.enviar(huellaDe(pedido ? [pedido.id, args] : args), (token, senal) =>
+    // ADR-0607: la tienda sigue por `separar_prendas`; un canal online, por `separar_prendas_online`, que además guarda el canal y la entrega.
+    const porCanal = conCanal ? argumentosDeCanal(canales, { canal: canalElegido, modoEntrega: modoDeEntrega, direccionEnvio: f.direccionEnvio }) : ({ rpc: "separar_prendas" } as const);
+    const r = await envio.enviar(huellaDe(pedido ? [pedido.id, args] : [args, porCanal]), (token, senal) =>
       firmar(
         conDuenoPorLineas(
           pedido
             ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: { ...args, p_token: token } })
-            : supabase.rpc("separar_prendas", { ...args, p_token: token }),
+            : porCanal.rpc === "separar_prendas_online"
+              ? supabase.rpc("separar_prendas_online", { ...args, p_canal: porCanal.p_canal, p_modo_entrega: porCanal.p_modo_entrega, p_direccion_envio: porCanal.p_direccion_envio, p_token: token })
+              : supabase.rpc("separar_prendas", { ...args, p_token: token }),
           duenoDeLasLineas(args.p_items),
         ),
         responsable.firma(),
@@ -660,7 +680,8 @@ export function ApartarVista({
     setLineas([]);
     setDescuentos({});
     setNota("");
-    setF(FORMULARIO_VACIO);
+    // Se sigue en el mismo canal (quien vende por TikTok registra varias seguidas); la dirección de ese envío no se arrastra.
+    setF({ ...FORMULARIO_VACIO, canal: canalElegido, modoEntrega: f.modoEntrega });
     setIntento(false);
     setTocados(new Set());
     setClientaId(null);
@@ -983,6 +1004,23 @@ export function ApartarVista({
                   </div>
                   <p role="status" className="mt-2 text-sm text-taupe-profundo">{TEXTO_PASO_APARTADO[pasoForm]}</p>
                 </div>
+
+                {conCanal && (
+                  <div className={paso === "adelanto" ? "max-lg:hidden" : ""}>
+                    <CanalDelApartado
+                      canales={canales}
+                      canal={canalElegido}
+                      modoEntrega={modoDeEntrega}
+                      direccionEnvio={f.direccionEnvio}
+                      errorDireccion={ver("direccionEnvio")}
+                      onCanal={(k) => cambiar("canal", k)}
+                      onModo={(m) => cambiar("modoEntrega", m)}
+                      onDireccion={(t) => cambiar("direccionEnvio", t)}
+                      onTocarDireccion={tocar("direccionEnvio")}
+                      deshabilitado={enviando}
+                    />
+                  </div>
+                )}
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
                   <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>

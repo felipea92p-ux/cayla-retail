@@ -7,6 +7,7 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { TOPE_VUELTO, UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
+import { direccionDeEnvioValida } from "./canales-venta-reglas";
 import { diaLima, diaMes } from "./fechas-lima";
 import { motivoDeLaLinea } from "./ticket-linea-reglas";
 import { porcentajeDeLinea, RAZON_CAMPANA } from "./vender-reglas";
@@ -72,6 +73,14 @@ export type Apartado = {
   pagos: PagoApartado[];
   /** El lugar en el estante de Apartados (A-01…), solo mientras está abierto (20260927110000). */
   estante: string | null;
+  /** ADR-0607: por dónde se vendió (`tienda`, `tiktok`…) y cómo se entrega. En la tienda siempre `recojo`. */
+  canal: string;
+  modoEntrega: "recojo" | "envio";
+  direccionEnvio: string | null;
+  /** Cuándo se marcó enviado (un envío ya despachado), o null. */
+  enviadoEn: string | null;
+  /** La guía o la agencia con que se envió (opcional). */
+  guiaEnvio: string | null;
 };
 
 /** Estado que VE la colaboradora: se calcula contra la fecha de hoy, nunca se guarda. */
@@ -200,9 +209,12 @@ export type FormularioApartado = {
   devolucionNumero: string;
   devolucionCci: string;
   acepta: boolean;
+  /** ADR-0607: cómo se entrega un apartado de un canal online. En la tienda no se pregunta y queda en `recojo`. */
+  modoEntrega?: "recojo" | "envio";
+  direccionEnvio?: string;
 };
 
-export type CampoApartado = "nombres" | "apellidos" | "celular" | "dni" | "ruc" | "razonSocial" | "asesora" | "pago" | "devolucion" | "acepta";
+export type CampoApartado = "nombres" | "apellidos" | "celular" | "dni" | "ruc" | "razonSocial" | "asesora" | "pago" | "devolucion" | "acepta" | "direccionEnvio";
 
 export const adelantoDe = (pagos: readonly PagoAdelanto[]) => Math.round(pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0) * 100) / 100;
 
@@ -241,6 +253,8 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
     if (!f.razonSocial.trim()) e.razonSocial = "Escribe la razón social.";
   }
   if (f.faltaAsesora) e.asesora = "Toca a quien atendió.";
+  // ADR-0607: un envío dice a dónde va (la base lo exige igual: `direccion_envio_falta`).
+  if (f.modoEntrega === "envio" && !direccionDeEnvioValida(f.direccionEnvio ?? "")) e.direccionEnvio = "Escribe a dónde va: dirección y agencia.";
   const adelanto = adelantoDe(f.pagos);
   if (f.pagos.length === 0) e.pago = "Elige cómo dejó el adelanto.";
   else if (f.pagos.some((p) => !(p.monto > 0))) e.pago = "Cada medio lleva un monto mayor a cero.";
@@ -269,7 +283,7 @@ export const TEXTO_PASO_APARTADO: Record<PasoApartado, string> = {
   2: "Cómo se le devuelve si no recoge, y que acepte.",
 };
 export function pasoDelApartado(e: Partial<Record<CampoApartado, string>>): PasoApartado {
-  if (e.nombres || e.apellidos || e.celular || e.dni || e.ruc || e.razonSocial || e.asesora) return 0;
+  if (e.nombres || e.apellidos || e.celular || e.dni || e.ruc || e.razonSocial || e.asesora || e.direccionEnvio) return 0;
   if (e.pago) return 1;
   return 2;
 }
@@ -476,6 +490,12 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
     })),
     pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto), fecha: (p.fecha as string | null) ?? null, abono: Boolean(p.abono) })),
     estante: (f.estante as string | null) ?? null,
+    // Una base sin la migración no trae estas columnas: todo apartado es de la tienda y se recoge.
+    canal: typeof f.canal === "string" && f.canal ? f.canal : "tienda",
+    modoEntrega: f.modo_entrega === "envio" ? "envio" : "recojo",
+    direccionEnvio: (f.direccion_envio as string | null) ?? null,
+    enviadoEn: (f.enviado_en as string | null) ?? null,
+    guiaEnvio: (f.guia_envio as string | null) ?? null,
   };
 }
 

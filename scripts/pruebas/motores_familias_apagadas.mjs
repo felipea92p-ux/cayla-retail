@@ -48,6 +48,12 @@ const PREPARACION = leer("20261012220000_preparacion_motor_ignora_familias_apaga
 const GRUPOS = leer("20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql");
 // 20261029041000 (ADR-0560, 6d) parcha a propósito estas mismas funciones (lo vendido de CLAURE no es demanda de CAYLA) con reemplazos anclados DESPUÉS de los de
 // familias apagadas: aquí se recargan las migraciones de familias sobre la función viva, así que primero se deshacen los de CLAURE (dentro de la transacción).
+// 20261104032000 (ADR-0607) parcha a propósito el motor del piso, la demanda y la preparación con reemplazos anclados DESPUÉS de los de CLAURE: se deshace primero (dentro de la transacción).
+const DESHACER_CANAL = sqlDeshacer("20261104032000_motores_del_piso_solo_tienda.sql", [
+  "retail.fn_piso_plan_lectura(uuid)",
+  "retail.fn_demanda_sede(uuid, integer)",
+  "retail.fn_motor_demanda_preparacion(uuid)",
+]);
 const DESHACER_CLAURE = sqlDeshacer("20261029041000_claure_fuera_de_analisis_y_motores.sql", [
   "retail.fn_piso_plan_lectura(uuid)",
   "retail.fn_demanda_sede(uuid, integer)",
@@ -78,6 +84,7 @@ const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local 
 
 const PRELUDIO = `
 begin;
+${DESHACER_CANAL}
 ${DESHACER_CLAURE}
 set local search_path = retail, public, extensions;
 ${sinControl(MARCA)}

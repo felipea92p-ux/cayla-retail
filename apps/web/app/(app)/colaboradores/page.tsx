@@ -13,7 +13,7 @@ import {
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ColaboradoresPanel } from "@/components/ColaboradoresPanel";
 import { vistaDe, type SeccionColaboradores } from "@/lib/colaboradores-reglas";
-import { getCuentasConRol, getEscalonAdmin, getRolesTolerado } from "@/lib/roles";
+import { getCanalesParaRoles, getCuentasConRol, getEscalonAdmin, getRolesTolerado } from "@/lib/roles";
 
 // Gestión de acceso a retail (0013 + 0016_roles_colaborador.sql + 20260922110000_colaboradores_suspender_y_actividad.sql).
 // Desde 20260923131000 (Felipe, 2026-09-22) no es solo del líder: la abre quien ve el módulo Colaboradores (sección Cuentas
@@ -31,7 +31,7 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
   const nada = <T,>(valor: T) => Promise.resolve(valor);
 
   const soyLider = persona.rol === "lider";
-  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones, terminales, roles, cuentas, escalon] = await Promise.all([
+  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones, terminales, roles, cuentas, escalon, canalesDeVenta] = await Promise.all([
     veColaboradores ? getColaboradores() : nada([]),
     veColaboradores ? getColaboradoresPendientes() : nada([]),
     veColaboradores ? getColaboradoresSuspendidos() : nada([]),
@@ -47,6 +47,8 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
     veRoles ? getCuentasConRol() : nada({ datos: null }),
     // ADR-0178: quién administra a los líderes (el Admin se lee de Dynamic).
     getEscalonAdmin(soyLider),
+    // ADR-0607: los canales de venta que existen y los que opera quien mira (para «Canales de venta» de cada rol).
+    veRoles ? getCanalesParaRoles(soyLider) : nada({ canales: [], mios: null }),
   ]);
 
   // El punto verde de Equipo: quién está de turno hoy en cada tienda (tolerado sede por sede, nunca bloquea).
@@ -75,6 +77,8 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
       fueraDeAlcance={escalon.fueraDeAlcance}
       // ADR-0178 «solo das lo que tienes»: quien no es líder da solo los módulos que ve.
       misModulos={soyLider ? null : persona.modulos.map((m) => m.clave)}
+      canales={canalesDeVenta.canales}
+      misCanales={canalesDeVenta.mios}
     />
   );
 }

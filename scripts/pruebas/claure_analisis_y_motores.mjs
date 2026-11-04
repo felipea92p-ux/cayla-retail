@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PRODUCTO_SIN_HISTORIA } from "./_claure_prendas.mjs";
+import { sqlDeshacer } from "./_deshacer_claure.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -25,6 +26,12 @@ const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 // La columna `cuenta_corriente_desde` (actividad 1) y la regla `fn_item_es_de_claure` (6a) son lo que esta migración usa.
 const PREVIAS = [leer("20261029004000_cuenta_con_claure.sql"), leer("20261029023000_claure_fuera_de_inicio_y_observatorio.sql")].join("\n");
 const MIGRACION = leer("20261029041000_claure_fuera_de_analisis_y_motores.sql");
+// 20261104032000 (ADR-0607) parcha a propósito el motor del piso, la demanda y la preparación con reemplazos anclados DESPUÉS de los de CLAURE: se deshace primero (dentro de la transacción).
+const DESHACER_CANAL = sqlDeshacer("20261104032000_motores_del_piso_solo_tienda.sql", [
+  "retail.fn_piso_plan_lectura(uuid)",
+  "retail.fn_demanda_sede(uuid, integer)",
+  "retail.fn_motor_demanda_preparacion(uuid)",
+]);
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'";
 const CLAURE = "'c1a07e00-0000-4000-8000-000000000002'";
@@ -55,6 +62,7 @@ const ID = (n) => `'00000000-0000-4000-8000-0000000000${n}'`;
 //   S4 (solo en el caso de «antes del arranque»): A 59 hace 12 días.
 const PRELUDIO = `
 begin;
+${DESHACER_CANAL}
 \\o /dev/null
 ${PREVIAS}
 ${MIGRACION}

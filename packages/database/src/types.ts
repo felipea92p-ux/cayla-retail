@@ -5530,12 +5530,16 @@ export type Database = {
           clienta_apellidos: string
           clienta_celular: string
           clienta_dni: string | null
+          canal: string
           clienta_nombres: string
           codigo: string
           comprobante_anticipo: string | null
           comprobante_final: string | null
           creada_en: string
           devolucion_cci_final: string | null
+          direccion_envio: string | null
+          enviado_en: string | null
+          guia_envio: string | null
           devolucion_medio: string
           devolucion_numero: string | null
           estado: string
@@ -5543,6 +5547,7 @@ export type Database = {
           extensiones: number
           id: string
           items: Json
+          modo_entrega: string
           liberada_sola: boolean
           nota_credito: string | null
           pagos: Json
@@ -5550,6 +5555,52 @@ export type Database = {
           total: number
           vence_el: string
         }[]
+      }
+      // Ventas online (ADR-0607, 20261104004000). Escritos a mano con la forma que da `supabase gen types`: regenerar al pegar la migración.
+      marcar_separacion_enviada: {
+        Args: { p_guia?: string; p_separacion_id: string }
+        Returns: string
+      }
+      fn_canales_venta: {
+        Args: Record<PropertyKey, never>
+        Returns: { clave: string; nombre: string; es_fisico: boolean }[]
+      }
+      fn_canales_de_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: { rol_id: string; canal: string }[]
+      }
+      fn_canales_de_la_cuenta: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      guardar_canales_rol: {
+        Args: { p_canales: string[]; p_rol_id: string; p_version_esperada?: number }
+        Returns: number
+      }
+      separar_prendas_online: {
+        Args: {
+          p_asesora_id?: string
+          p_canal: string
+          p_cliente_razon_social?: string
+          p_cliente_ruc?: string
+          p_clienta_apellidos: string
+          p_clienta_celular: string
+          p_clienta_dni?: string
+          p_clienta_id?: string
+          p_clienta_nombres: string
+          p_comprobante_tipo?: string
+          p_devolucion_cci?: string
+          p_devolucion_medio: string
+          p_devolucion_numero?: string
+          p_direccion_envio: string | null
+          p_items: Json
+          p_modo_entrega: string
+          p_nota?: string
+          p_pagos: Json
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
       }
       entregar_separacion: {
         Args: { p_pagos?: Json; p_separacion_id: string; p_token?: string }
