@@ -2,7 +2,7 @@
 
 Hecho en la rama, sin PR: «Tiendas y caja» partida en «Metas» y «Empresa y tiendas».
 
-Felipe eligió las 5 pestañas y pidió mejorar las piezas: menos texto, nada muy pequeño, más visual. Se sigue vista por vista: primero Empresa y tiendas, con 3 direcciones en `docs/maquetas/empresa-tiendas-2026-11/`, que esperan su elección.
+Felipe eligió las 5 pestañas y pidió mejorar las piezas: menos texto, nada muy pequeño, más visual. Se sigue vista por vista: primero Empresa y tiendas, en `docs/maquetas/empresa-tiendas-2026-11/` eligió A · Las vitrinas, y su versión en vidrio líquido está en `docs/maquetas/empresa-tiendas-vitrinas-2026-11/`, a la espera de su OK. Antes de repetir ese lenguaje en las otras vistas hay que medir su costo en el Mac mini y en un celular de tienda.
 
 Pendiente, además de elegir, de la propuesta de `docs/maquetas/configuracion-vistas-2026-11/`:
 

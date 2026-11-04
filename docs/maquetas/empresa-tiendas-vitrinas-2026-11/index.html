@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Empresa y tiendas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+.pz-t{position:relative;display:inline-flex;gap:2px;margin-top:20px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);max-width:100%;overflow-x:auto;scrollbar-width:none}
+[data-tema="oscuro"] .pz-t{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pz-t button{flex:none;height:34px;padding:0 16px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pz-t button[aria-selected="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pz-t button[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pz-t{flex-wrap:wrap;margin-top:0}
+.pz-t button{height:34px;padding:0 14px}
+
+/* ====================================================================
+   MAQUETA · Configuración ▸ Empresa y tiendas, «Las vitrinas» en vidrio líquido (Felipe 2026-11-04: «lo más sofisticado, con iconos o graficaciones sofisticadas y
+   futuristas, siempre siguiendo el estilo de liquid glass»). Cada dato es un INSTRUMENTO dentro de una gota de vidrio: el QR que un haz escanea, el dial del día,
+   el fondo como líquido dentro de la esfera, la constelación de Preguntar y el sello hexagonal de la carga. Detrás, la luz de cada sede: el vidrio la dobla.
+   Movimiento: una vez al entrar o al guardar, sin rebote ni bucle; el brillo y la inclinación siguen al mouse sin moverse solos; todo se apaga con
+   prefers-reduced-motion (ADR-0136). Solo tokens; datos inventados.
+   ==================================================================== */
+.pz-t{flex-wrap:wrap;margin-top:0}.pz-t button{height:36px;padding:0 15px}
+.tira{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-top:20px}
+.firma-g{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 16px 0 6px;border-radius:999px;font-size:15px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.firma-g i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:500 14px 'EB Garamond',serif;font-style:normal;background:var(--sand)}
+#cont{overflow-x:hidden}
+.raiz{position:relative;display:grid;gap:18px;margin-top:18px}
+.quieto .raiz *,.quieto .raiz *::before,.quieto .raiz *::after{animation:none!important}
+
+/* ---------- el vidrio líquido: filo de luz, brillo que sigue al mouse y lo de atrás doblado ---------- */
+.liq{--mx:30%;--my:0%;position:relative;border-radius:28px;isolation:isolate;
+  background:linear-gradient(165deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 26%,transparent) 46%,color-mix(in srgb,var(--vidrio) 44%,transparent));
+  -webkit-backdrop-filter:blur(16px) saturate(1.7);backdrop-filter:blur(16px) saturate(1.7);backdrop-filter:url(#doblar) saturate(1.7);
+  box-shadow:inset 0 1.5px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -14px 26px -18px color-mix(in srgb,var(--c,var(--tinta)) 42%,transparent),inset 0 0 22px color-mix(in srgb,var(--vidrio) 26%,transparent),0 26px 44px -30px color-mix(in srgb,var(--c,var(--sombra)) 55%,var(--sombra))}
+[data-tema="oscuro"] .liq{background:linear-gradient(165deg,color-mix(in srgb,var(--vidrio) 74%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent) 50%,color-mix(in srgb,var(--vidrio) 58%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 26%,transparent),inset 0 -14px 26px -18px color-mix(in srgb,var(--c,var(--tinta)) 60%,transparent),0 26px 44px -30px var(--sombra)}
+/* el filo: una línea de luz que recorre el borde y se enciende donde está el mouse */
+.liq::before{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;padding:1.5px;pointer-events:none;background:radial-gradient(240px circle at var(--mx) var(--my),var(--vidrio),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--vidrio) 95%,transparent),color-mix(in srgb,var(--c,var(--tinta)) 34%,transparent) 42%,color-mix(in srgb,var(--vidrio) 30%,transparent) 62%,color-mix(in srgb,var(--c,var(--tinta)) 50%,transparent));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+[data-tema="oscuro"] .liq::before{background:radial-gradient(240px circle at var(--mx) var(--my),color-mix(in srgb,var(--tinta) 75%,transparent),transparent 70%),linear-gradient(150deg,color-mix(in srgb,var(--tinta) 34%,transparent),color-mix(in srgb,var(--c,var(--tinta)) 40%,transparent) 42%,color-mix(in srgb,var(--tinta) 8%,transparent) 62%,color-mix(in srgb,var(--c,var(--tinta)) 60%,transparent))}
+/* el brillo: la luz que cae sobre el vidrio y sigue al mouse */
+.liq::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:radial-gradient(320px circle at var(--mx) var(--my),color-mix(in srgb,var(--vidrio) 62%,transparent),transparent 72%),radial-gradient(120% 60% at 50% -14%,color-mix(in srgb,var(--vidrio) 60%,transparent),transparent 70%)}
+[data-tema="oscuro"] .liq::after{background:radial-gradient(320px circle at var(--mx) var(--my),color-mix(in srgb,var(--tinta) 11%,transparent),transparent 72%),radial-gradient(120% 60% at 50% -14%,color-mix(in srgb,var(--tinta) 9%,transparent),transparent 70%)}
+@keyframes enfoque{from{opacity:0;filter:blur(14px);transform:translateY(18px) scale(.985)}}
+
+/* ---------- la luz de cada sede, detrás del vidrio ---------- */
+.lugar{position:relative}
+.luz-s{position:absolute;z-index:-1;border-radius:50%;pointer-events:none;background:radial-gradient(circle,color-mix(in srgb,var(--c) 62%,transparent),transparent 68%);transform:translate(var(--px,0),var(--py,0));transition:transform .9s var(--ease);animation:funde 1.6s var(--ease) calc(var(--e) * 110ms + .2s) backwards}
+.luz-s.a{width:230px;height:230px;left:-46px;top:-26px}
+.luz-s.b{width:280px;height:280px;right:-66px;bottom:-40px;opacity:.75}
+[data-tema="oscuro"] .luz-s{background:radial-gradient(circle,color-mix(in srgb,var(--c) 74%,transparent),transparent 68%)}
+
+/* ---------- el carnet: holograma de la empresa ---------- */
+.carnet{display:flex;flex-wrap:wrap;align-items:center;gap:14px 40px;padding:20px 26px;overflow:hidden;animation:enfoque .85s var(--ease) backwards}
+.carnet .holo{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;opacity:.3;mix-blend-mode:soft-light;background:conic-gradient(from calc(var(--giro,0deg)) at var(--mx) var(--my),var(--sede-tru),var(--sede-lim),var(--rojo),var(--sede-aqp),var(--sede-tal),var(--sede-tru));transition:opacity .4s}
+[data-tema="oscuro"] .carnet .holo{mix-blend-mode:screen;opacity:.12}
+.carnet .puntos{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;background-image:radial-gradient(color-mix(in srgb,var(--tinta) 22%,transparent) 1px,transparent 1.2px);background-size:12px 12px;-webkit-mask:linear-gradient(100deg,transparent 45%,#000 95%);mask:linear-gradient(100deg,transparent 45%,#000 95%)}
+.carnet::marker{content:""}
+.barrido{position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;overflow:hidden}
+.barrido i{position:absolute;top:-30%;bottom:-30%;left:0;width:34%;background:linear-gradient(100deg,transparent,color-mix(in srgb,var(--vidrio) 80%,transparent),transparent);transform:translateX(-120%) skewX(-14deg);animation:barre 1.8s var(--ease) .55s}
+@keyframes barre{to{transform:translateX(420%) skewX(-14deg)}}
+.marca-e b{display:block;font:500 40px/1 'EB Garamond',serif;letter-spacing:.005em}
+.marca-e span{display:block;font-size:15px;color:var(--taupe);margin-top:4px}
+.dat small{display:block;font-size:14px;color:var(--taupe)}
+.dat b{display:block;font-size:16px;font-weight:500;margin-top:1px}
+.digitos{display:flex;font:500 30px/1.2 'EB Garamond',serif;font-variant-numeric:lining-nums tabular-nums}
+.dig{display:block;height:1.2em;overflow:hidden}
+.dig span{display:block;transform:translateY(calc(var(--d) * -1.2em));animation:rueda 1.2s var(--ease) calc(.25s + var(--k) * 50ms) backwards}
+.dig i{display:block;height:1.2em;font-style:normal}
+@keyframes rueda{from{transform:translateY(0)}}
+.sello{position:relative;flex:none;width:72px;height:72px;margin-left:auto;border-radius:50%;cursor:pointer}
+.sello svg{display:block;width:100%;height:100%;overflow:visible}
+.sello .gui{fill:none;stroke:url(#gui);stroke-width:.55;stroke-dasharray:1;animation:traza1 1.3s var(--ease) calc(.3s + var(--k) * 45ms) backwards}
+@keyframes traza1{from{stroke-dashoffset:1}}
+.sello .cand{fill:none;stroke:var(--tinta);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.sello .cierre{animation:baja .7s var(--ease) 1.3s backwards}
+@keyframes baja{from{transform:translateY(-3px)}}
+@media (hover:hover){.sello svg .giro{transition:transform 1s var(--ease);transform-origin:36px 36px}.sello:hover svg .giro{transform:rotate(30deg)}}
+.globo{position:absolute;z-index:30;right:0;top:calc(100% + 12px);width:290px;padding:14px 16px;border-radius:20px;font-size:15px;line-height:1.45;background:color-mix(in srgb,var(--vidrio) 88%,transparent);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 20px 36px -16px color-mix(in srgb,var(--sombra) 60%,transparent);animation:enfoque .4s var(--ease)}
+
+/* ---------- las vitrinas ---------- */
+.vitrinas{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));align-items:start}
+.vit{--rx:0deg;--ry:0deg;padding:20px 14px 14px;transform:perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .5s var(--ease);animation:sale-gota 1s var(--ease) calc(.08s + var(--e) * 110ms) backwards;transform-style:flat}
+@keyframes sale-gota{from{opacity:0;filter:blur(16px);clip-path:inset(62% 18% 8% 18% round 60px);transform:translateY(24px)}to{clip-path:inset(0 0 0 0 round 28px)}}
+.vit header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:0 6px 14px}
+.vit h2{font:500 33px/1.05 'EB Garamond',serif;overflow:hidden}
+.vit h2 span{display:block;animation:ranura .8s var(--ease) calc(.25s + var(--e) * 110ms) backwards}
+@keyframes ranura{from{transform:translateY(108%)}}
+.vit .dir{display:flex;align-items:center;gap:5px;font-size:14px;color:var(--taupe);margin-top:4px;animation:funde .8s var(--ease) calc(.5s + var(--e) * 110ms) backwards}
+.vit .dir svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
+.series{display:flex;gap:5px;margin-top:9px;animation:funde .8s var(--ease) calc(.65s + var(--e) * 110ms) backwards}
+.series span{position:relative;height:25px;padding:0 9px;display:inline-flex;align-items:center;border-radius:8px;font-size:14px;font-variant-numeric:tabular-nums;color:var(--t80);background:color-mix(in srgb,var(--vidrio) 34%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent)}
+.lista-v{display:grid;gap:8px}
+
+/* ---------- el aro de la sede: un segmento por dato ---------- */
+.aro{position:relative;flex:none;display:grid;place-items:center;width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 34% 26%,color-mix(in srgb,var(--vidrio) 90%,transparent),transparent 42%),radial-gradient(circle at 68% 84%,color-mix(in srgb,var(--c) 28%,transparent),transparent 62%);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--vidrio) 95%,transparent),0 8px 16px -8px color-mix(in srgb,var(--c) 60%,var(--sombra))}
+.aro svg.seg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.aro .s{fill:none;stroke-width:3.2;stroke-linecap:round}
+.aro .s.lleno{stroke:var(--c);filter:drop-shadow(0 0 2.5px color-mix(in srgb,var(--c) 75%,transparent));animation:seg .7s var(--ease) calc(.5s + var(--k) * 130ms + var(--e) * 110ms) backwards}
+.aro .s.vacio{stroke:var(--ambar);stroke-dasharray:1.6 3.2!important;opacity:.8}
+@keyframes seg{from{stroke-dashoffset:var(--largo)}}
+.aro b{font:500 20px/1 'EB Garamond',serif;font-variant-numeric:lining-nums;animation:funde .5s var(--ease) calc(.9s + var(--e) * 110ms) backwards}
+.aro b svg{display:block;width:26px;height:26px;fill:none;stroke:var(--c);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;animation:traza .55s var(--ease) calc(1.05s + var(--e) * 110ms) backwards}
+@keyframes traza{from{stroke-dashoffset:24}}
+
+/* ---------- cada dato: una placa con su instrumento ---------- */
+.d{position:relative;display:flex;align-items:center;gap:13px;width:100%;min-height:78px;padding:10px 12px 10px 10px;border-radius:22px;text-align:left;cursor:pointer;overflow:hidden;background:color-mix(in srgb,var(--vidrio) 22%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 72%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent);transition:transform .35s var(--ease),box-shadow .35s var(--ease),background .35s;animation:asoma .65s var(--ease) calc(.28s + var(--i,0) * 75ms) backwards}
+@keyframes asoma{from{opacity:0;transform:translateY(12px)}}
+[data-tema="oscuro"] .d{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 5%,transparent)}
+@media (hover:hover){.d:not(.edita):hover{transform:translateY(-2px);background:color-mix(in srgb,var(--vidrio) 52%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--c) 28%,transparent),0 16px 26px -18px color-mix(in srgb,var(--c) 70%,var(--sombra))}.d:not(.edita):hover .ins{transform:scale(1.06)}}
+.d:focus-visible,.sello:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+.tx{min-width:0;flex:1}
+.lb{display:block;font-size:14px;color:var(--taupe);line-height:1.2}
+.v{display:block;font:500 23px/1.2 'EB Garamond',serif;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.d.falta{background:linear-gradient(120deg,color-mix(in srgb,var(--ambar) 13%,transparent),color-mix(in srgb,var(--ambar) 4%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--ambar) 38%,transparent)}
+.d.falta .v{color:var(--ambar)}
+.d.apagado .v{color:var(--t65)}
+.d.edita{cursor:text;background:color-mix(in srgb,var(--vidrio) 58%,transparent)}
+.in{width:100%;height:36px;margin-top:2px;padding:0 12px;border-radius:999px;font:500 16px 'DM Sans';border:1px solid var(--borde);background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);outline:none;font-variant-numeric:tabular-nums}
+.pozo{position:relative;display:block;animation:asoma .25s var(--ease)}
+.pozo::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;border-radius:2px;background:var(--rojo);animation:hilo .3s var(--ease)}
+@keyframes hilo{from{transform:scaleX(0)}}
+.visto{position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:50%;display:none;place-items:center;color:var(--crema);background:var(--verde);box-shadow:0 0 12px color-mix(in srgb,var(--verde) 70%,transparent)}
+.visto svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;animation:traza20 .35s var(--ease) .12s backwards}
+@keyframes traza20{from{stroke-dashoffset:20}}
+.d.recien .visto{display:grid;animation:sello-v 1.9s var(--ease) forwards}
+@keyframes sello-v{0%{opacity:0;transform:scale(.5)}14%,80%{opacity:1;transform:none}100%{opacity:0}}
+.onda{position:absolute;left:var(--ox);top:var(--oy);width:16px;height:16px;margin:-8px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,color-mix(in srgb,var(--verde) 42%,transparent),transparent 70%);animation:onda 1s var(--ease) forwards}
+@keyframes onda{to{transform:scale(34);opacity:0}}
+.conm{flex:none;display:inline-flex;align-items:center;width:40px;height:24px;padding:2px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 24%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent);transition:background .35s}
+.conm::after{content:"";width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 34% 28%,var(--vidrio),color-mix(in srgb,var(--vidrio) 72%,transparent));box-shadow:0 2px 5px color-mix(in srgb,var(--sombra) 40%,transparent),inset 0 -2px 3px color-mix(in srgb,var(--sombra) 10%,transparent);transition:transform .4s var(--ease)}
+.conm[aria-checked="true"]{background:color-mix(in srgb,var(--c) 72%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 24%,transparent),0 0 12px color-mix(in srgb,var(--c) 45%,transparent)}
+.conm[aria-checked="true"]::after{transform:translateX(16px)}
+
+/* ---------- la gota que lleva cada instrumento ---------- */
+.ins{position:relative;flex:none;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;transition:transform .4s var(--ease);background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--vidrio) 92%,transparent),transparent 40%),radial-gradient(circle at 70% 86%,color-mix(in srgb,var(--c) 30%,transparent),transparent 62%),color-mix(in srgb,var(--tinta) 3%,transparent);box-shadow:inset 0 1px 1px var(--vidrio),inset 0 -5px 9px color-mix(in srgb,var(--c) 20%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent),0 7px 14px -7px color-mix(in srgb,var(--c) 70%,var(--sombra))}
+[data-tema="oscuro"] .ins{background:radial-gradient(circle at 32% 24%,color-mix(in srgb,var(--tinta) 24%,transparent),transparent 40%),radial-gradient(circle at 70% 86%,color-mix(in srgb,var(--c) 42%,transparent),transparent 62%),color-mix(in srgb,var(--sombra) 28%,transparent);box-shadow:inset 0 1px 1px color-mix(in srgb,var(--tinta) 30%,transparent),inset 0 -5px 9px color-mix(in srgb,var(--c) 30%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 8%,transparent),0 7px 14px -7px var(--sombra)}
+.d.falta .ins{--c:var(--ambar)}
+.ins svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ins .brillo{position:absolute;left:18%;top:9%;width:36%;height:20%;border-radius:50%;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),transparent);pointer-events:none;z-index:2}
+[data-tema="oscuro"] .ins .brillo{background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 30%,transparent),transparent)}
+.t-luz{stroke:var(--c);filter:drop-shadow(0 0 1.6px color-mix(in srgb,var(--c) 80%,transparent))}
+
+/* QR: un haz lo escanea y los módulos se encienden a su paso */
+.iq .esq{fill:none;stroke:var(--c);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;animation:traza1 .6s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+.iq .mod{fill:var(--tinta);opacity:.92;animation:mod .25s var(--ease) calc(.5s + var(--i,0) * 75ms + var(--f) * 75ms) backwards}
+@keyframes mod{from{opacity:0;fill:var(--c)}}
+.iq .haz{fill:var(--c);filter:drop-shadow(0 0 4px var(--c));opacity:0;animation:haz .75s linear calc(.46s + var(--i,0) * 75ms)}
+@keyframes haz{0%{opacity:0;transform:translateY(0)}12%,88%{opacity:1}100%{opacity:0;transform:translateY(32px)}}
+.iq.no .mod{opacity:.16;animation:none}.iq.no .haz{display:none}.iq.no .esq{stroke-dasharray:2.5 3;animation:none}
+/* el dial del día: de las 6 de la mañana a la medianoche */
+.id .tick{stroke:color-mix(in srgb,var(--tinta) 34%,transparent);stroke-width:1;stroke-linecap:round}
+.id .arc{fill:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:var(--a) 100;animation:arc 1.2s var(--ease) calc(.35s + var(--i,0) * 75ms) backwards}
+@keyframes arc{from{stroke-dasharray:0 100}}
+.id .aguja{transform-origin:29px 29px;transform:rotate(var(--g));animation:aguja 1.2s var(--ease) calc(.35s + var(--i,0) * 75ms) backwards}
+@keyframes aguja{from{transform:rotate(-135deg)}}
+.id .pto{fill:var(--c);filter:drop-shadow(0 0 3px var(--c))}
+.id .eje{fill:var(--tinta)}
+.id .lin{stroke:var(--tinta);stroke-width:1.3;stroke-linecap:round}
+.id.no .tick{stroke:color-mix(in srgb,var(--ambar) 60%,transparent)}
+/* el fondo: líquido dentro de la esfera, que sube y se asienta */
+.il .liq-s{transform:translateY(var(--n));animation:sube-l 1.5s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+@keyframes sube-l{from{transform:translateY(58px)}}
+.il .ola{animation:ola 2.1s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+@keyframes ola{from{transform:translateX(-46px)}}
+.il .cuerpo{fill:color-mix(in srgb,var(--c) 66%,transparent)}
+[data-tema="oscuro"] .il .cuerpo{fill:color-mix(in srgb,var(--c) 78%,transparent)}
+.il .espuma{fill:color-mix(in srgb,var(--c) 30%,var(--vidrio))}
+.il .simb{font:500 19px 'EB Garamond',serif;fill:var(--tinta);text-anchor:middle;paint-order:stroke;stroke:color-mix(in srgb,var(--vidrio) 55%,transparent);stroke-width:2.5px}
+[data-tema="oscuro"] .il .simb{stroke:color-mix(in srgb,var(--sombra) 45%,transparent)}
+.il.no .marco{fill:none;stroke:var(--ambar);stroke-width:1.5;stroke-dasharray:3 4}
+/* Preguntar: una constelación alrededor de su estrella */
+.ic2 .orb{fill:none;stroke:color-mix(in srgb,var(--c) 70%,var(--tinta));stroke-width:.9;stroke-dasharray:1;animation:traza1 .95s var(--ease) calc(.32s + var(--i,0) * 75ms) backwards}
+.ic2 .gira{transform-origin:29px 29px;animation:gira 1.5s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+@keyframes gira{from{transform:rotate(-70deg)}}
+.ic2 .est{fill:var(--rojo);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--rojo) 70%,transparent));transform-origin:29px 29px;transition:fill .4s;animation:nace .75s var(--ease) calc(.7s + var(--i,0) * 75ms) backwards}
+@keyframes nace{from{transform:scale(0) rotate(-45deg)}}
+.ic2 .nodo{fill:var(--c);filter:drop-shadow(0 0 2.5px var(--c));animation:funde .4s var(--ease) calc(1s + var(--i,0) * 75ms + var(--k) * 120ms) backwards}
+.ic2.no .est{fill:color-mix(in srgb,var(--tinta) 28%,transparent);filter:none}.ic2.no .nodo{fill:color-mix(in srgb,var(--tinta) 26%,transparent);filter:none}.ic2.no .orb{stroke:color-mix(in srgb,var(--tinta) 22%,transparent)}
+/* la carga: un sello hexagonal que se cierra */
+.ik .hex{fill:color-mix(in srgb,var(--col) 12%,transparent);stroke:var(--col);stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:1;animation:traza1 .9s var(--ease) calc(.3s + var(--i,0) * 75ms) backwards}
+.ik .gl{fill:none;stroke:var(--col);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ik.cerrado{--col:var(--verde)}.ik.abierto{--col:var(--c)}.ik.no{--col:var(--ambar)}
+.ik.cerrado .gl.cierre{animation:baja2 .7s var(--ease) calc(.85s + var(--i,0) * 75ms) backwards}
+@keyframes baja2{from{transform:translateY(-4px)}}
+.ik.abierto .gl.cierre,.ik.no .gl.cierre{transform:translateY(-3.5px)}
+.ik.no .hex{stroke-dasharray:3 3;animation:none}
+.ik .dias{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-dasharray:var(--a) 100;filter:drop-shadow(0 0 2px var(--c));animation:arc 1.2s var(--ease) calc(.5s + var(--i,0) * 75ms) backwards}
+
+/* ---------- el tubo de Preguntar ---------- */
+.tubo-f{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 22px;border-radius:999px;animation:enfoque .85s var(--ease) .55s backwards}
+.tubo-f .chis{flex:none;width:36px;height:36px}
+.tubo-f .chis svg{display:block;width:100%;height:100%}
+.tubo-f .chis path{fill:var(--rojo);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--rojo) 60%,transparent))}
+.tubo-f b{font:500 21px 'EB Garamond',serif}
+.tubo-f span{font-size:15px;color:var(--taupe)}
+.tubo{position:relative;flex:1;min-width:160px;height:18px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 22%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
+.tubo i{position:absolute;left:0;top:0;bottom:0;width:var(--p);border-radius:inherit;background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 55%,var(--vidrio)),var(--rojo));box-shadow:0 0 12px color-mix(in srgb,var(--rojo) 50%,transparent),inset 0 1px 1px color-mix(in srgb,var(--vidrio) 70%,transparent);transform-origin:left;animation:llena 1.4s var(--ease) 1s backwards}
+@keyframes llena{from{transform:scaleX(0)}}
+.tubo::after{content:"";position:absolute;left:8px;right:8px;top:2px;height:5px;border-radius:99px;background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),transparent);pointer-events:none}
+
+/* ---------- la hoja y el aviso ---------- */
+.hoja-c .sub{font-size:15px}
+.hoja-c .caja{height:48px;margin-bottom:12px}
+.hoja-c input{width:100%;background:none;border:0;outline:none;font-size:16px}
+.hoja-c .cons{display:flex;gap:12px;align-items:center;padding:12px 14px;margin-bottom:14px;border-radius:20px;font-size:15px;background:color-mix(in srgb,var(--vidrio) 40%,transparent);box-shadow:inset 0 1px 0 var(--vidrio),inset 0 0 0 1px color-mix(in srgb,var(--tinta) 6%,transparent)}
+.aviso-g{position:absolute;z-index:40;top:76px;right:20px;max-width:340px;padding:11px 16px;border-radius:18px;font-size:15px;background:linear-gradient(180deg,color-mix(in srgb,var(--verde) 10%,color-mix(in srgb,var(--vidrio) 86%,transparent)),color-mix(in srgb,var(--verde) 16%,color-mix(in srgb,var(--vidrio) 70%,transparent)));-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--verde) 30%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 50%,transparent);animation:enfoque .45s var(--ease)}
+.aviso-g.mal{background:color-mix(in srgb,var(--ambar) 16%,color-mix(in srgb,var(--vidrio) 90%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 40%,transparent),0 14px 28px -14px color-mix(in srgb,var(--sombra) 50%,transparent)}
+@container disp (max-width:520px){.carnet{padding:18px;border-radius:24px}.marca-e b{font-size:34px}.digitos{font-size:26px}.sello{position:absolute;right:14px;top:14px;width:58px;height:58px}.aviso-g{left:12px;right:12px;top:70px}.firma-g{width:100%}.tubo-f{border-radius:24px}}
+@media (hover:none){.vit{transform:none}}
+@media (prefers-reduced-motion:reduce){.raiz *,.raiz *::before,.raiz *::after,.aviso-g,.hoja{animation:none!important;transition:none!important}.barrido{display:none}.vit{transform:none!important}}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="doblar" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".006 .009" numOctaves="2" seed="7" result="r"/><feDisplacementMap in="SourceGraphic" in2="r" scale="46" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="7"/></filter></svg>
+
+<div class="spk">
+  <span class="titulo">Empresa y tiendas · Las vitrinas, en vidrio líquido</span>
+  <button class="accion" data-acc="repetir">Repetir la entrada</button>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1280">1280</button><button data-v="escritorio">1440</button><button data-v="w1920">1920</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Las vitrinas, en vidrio líquido</h2>
+    <p>Toca cualquier dato para cambiarlo y pasa el mouse sobre las tarjetas: el filo de luz, el brillo y la luz de atrás lo siguen.</p>
+    <h3>Cada dato, su instrumento</h3>
+    <table>
+      <tr><th>Dato</th><th>Qué se ve</th><th>Qué dice</th></tr>
+      <tr><td><b>WhatsApp</b></td><td>Un haz escanea el visor y los módulos del QR se encienden a su paso.</td><td>Con número hay QR del club. Sin número, el visor queda vacío y en ámbar.</td></tr>
+      <tr><td><b>Cierra</b></td><td>Un dial de las 6 de la mañana a la medianoche, con su aguja y su arco de luz.</td><td>Hasta qué hora abre la tienda. Sin hora, no hay aguja.</td></tr>
+      <tr><td><b>Fondo de caja</b></td><td>Líquido que sube dentro de la esfera y se asienta.</td><td>Mientras más fondo, más alto llega (lleno en S/ 500, una escala de esta maqueta).</td></tr>
+      <tr><td><b>Preguntar</b></td><td>Una estrella con sus órbitas y sus nodos.</td><td>Encendida en rojo; apagada, en gris.</td></tr>
+      <tr><td><b>Carga inicial</b></td><td>Un sello hexagonal con su candado y un arco con los días que quedan.</td><td>Verde y cerrado, ya terminó; abierto, sigue; punteado, falta la fecha.</td></tr>
+      <tr><td><b>Cada sede</b></td><td>Un aro con un tramo por cada dato.</td><td>Tramo encendido, listo; punteado y en ámbar, falta.</td></tr>
+    </table>
+    <h3>Qué es líquido</h3>
+    <ul>
+      <li><b>El vidrio dobla lo de atrás:</b> cada sede tiene su luz detrás y la tarjeta la deforma. Solo en Chrome y Edge; en Safari queda un desenfoque normal.</li>
+      <li><b>El filo de luz</b> recorre el borde, se tiñe del color de la sede y se enciende donde está el mouse.</li>
+      <li><b>Las gotas</b> llevan cada instrumento, con su reflejo arriba y su luz de color abajo.</li>
+    </ul>
+    <h3>Lo que hay que decidir antes de construirla</h3>
+    <ul>
+      <li><b>Costo:</b> doblar lo de atrás pesa más que un desenfoque. Medí la maqueta, no una tienda real: conviene probarla en el Mac mini y en un celular de tienda antes de darla por buena.</li>
+      <li><b>Excepción a la regla:</b> el vidrio del ERP dice «muchas tarjetas iguales, sin desenfoque por costo» (ADR-0596). Aquí son cuatro, a propósito. Los instrumentos son piezas nuevas y se registran en la regla de movimiento (ADR-0136).</li>
+    </ul>
+    <h3>Lo que no cambia</h3>
+    <p>Las funciones de la base, los permisos (reabrir una carga sigue siendo solo del Admin), la firma del responsable y la historia. Datos inventados.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<script>
+// En su propio bloque: marco.js usa nombres globales que aquí no se pisan.
+{
+
+const HOY = '2026-11-04';
+const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+const fechaC = (f) => { const [, m, d] = f.split('-'); return `${+d} ${MESES_C[+m - 1]}`; };
+const hora12 = (h) => { const [a, b] = h.split(':').map(Number); return `${a % 12 || 12}:${String(b).padStart(2, '0')} ${a >= 12 ? 'p. m.' : 'a. m.'}`; };
+const celu = (w) => `${w.slice(0, 3)} ${w.slice(3, 6)} ${w.slice(6)}`;
+const OK = 'M5 12.5l4.5 4.5L19 7.5';
+const dd = (a, b) => (new Date(b) - new Date(a)) / 864e5;
+const SEDES_D = [
+  { id: 'tru', n: 'Trujillo', c: 'var(--sede-tru)', dir: 'Av. España 1240', serie: ['B001', 'F001'], wa: '987654321', cierra: '21:00', fondo: 300, ia: true, carga: '2026-10-28', tienda: true },
+  { id: 'aqp', n: 'Arequipa', c: 'var(--sede-aqp)', dir: 'Mercaderes 312', serie: ['B002', 'F002'], wa: '956112480', cierra: '20:30', fondo: 250, ia: true, carga: '2026-10-28', tienda: true },
+  { id: 'lim', n: 'Lima', c: 'var(--sede-lim)', dir: 'Jr. de la Unión 880', serie: ['B003', 'F003'], wa: '', cierra: '', fondo: 300, ia: true, carga: '2026-11-30', tienda: true },
+  { id: 'tal', n: 'Taller', c: 'var(--sede-tal)', dir: 'En Lima', serie: [], wa: '', cierra: '', fondo: null, ia: false, carga: '', tienda: false },
+];
+const sedeDe = (id) => SEDES_D.find((s) => s.id === id);
+const CAMPOS = (s) => (s.tienda ? ['wa', 'cierra', 'fondo', 'ia', 'carga'] : ['ia', 'carga']);
+const NOMBRE = { wa: 'WhatsApp', cierra: 'Cierra', fondo: 'Fondo de caja', ia: 'Preguntar', carga: 'Carga inicial' };
+const falta = (s, c) => (c === 'wa' && !s.wa) || (c === 'cierra' && !s.cierra) || (c === 'fondo' && (s.fondo === null || s.fondo === '')) || (c === 'carga' && !s.carga);
+const requeridos = (s) => CAMPOS(s).filter((c) => c !== 'ia');
+
+// ---------- los instrumentos (cada uno, en 58 × 58) ----------
+const gota = (svg) => `<span class="ins"><i class="brillo"></i>${svg}</span>`;
+const PATRON = [1,1,1,0,1,0,1,1,0,1,1,0,0,1,1,1,1,0,1,1,1,0,0,1,1,0,0,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,1,1,0,1,0,1];
+const iQr = (on, i) => `<svg class="iq ${on ? '' : 'no'}" style="--i:${i}" viewBox="0 0 58 58" aria-hidden="true">
+  ${['M15 20v-5h5', 'M38 15h5v5', 'M43 38v5h-5', 'M20 43h-5v-5'].map((d) => `<path class="esq" pathLength="1" d="${d}"/>`).join('')}
+  ${PATRON.map((p, k) => (p ? `<rect class="mod" style="--f:${Math.floor(k / 7)}" x="${18.5 + (k % 7) * 3.1}" y="${18.5 + Math.floor(k / 7) * 3.1}" width="2.6" height="2.6" rx=".6"/>` : '')).join('')}
+  <rect class="haz" x="13" y="13" width="32" height="1.4" rx=".7"/></svg>`;
+const anguloHora = (h) => { const [a, b] = h.split(':').map(Number); return ((Math.min(24, Math.max(6, a + b / 60)) - 6) / 18) * 270 - 135; };
+const iDial = (h, i) => { const on = !!h, g = on ? anguloHora(h) : -135, pct = ((g + 135) / 270) * 75;
+  return `<svg class="id ${on ? '' : 'no'}" style="--i:${i}" viewBox="0 0 58 58" aria-hidden="true">
+  ${Array.from({ length: 13 }, (_, k) => { const an = (-135 + k * 22.5) * Math.PI / 180, l = k % 2 ? 2 : 3.6; return `<line class="tick" x1="${29 + Math.sin(an) * 22}" y1="${29 - Math.cos(an) * 22}" x2="${29 + Math.sin(an) * (22 - l)}" y2="${29 - Math.cos(an) * (22 - l)}"/>`; }).join('')}
+  ${on ? `<circle class="arc t-luz" style="--a:${pct}" cx="29" cy="29" r="17.5" pathLength="100" transform="rotate(-225 29 29)"/><g class="aguja" style="--g:${g}deg"><line class="lin" x1="29" y1="29" x2="29" y2="15"/><circle class="pto" cx="29" cy="11.5" r="2.3"/></g><circle class="eje" cx="29" cy="29" r="1.8"/>` : `<circle class="eje" cx="29" cy="29" r="1.8" style="fill:var(--ambar)"/>`}</svg>`; };
+let cuentaId = 0;
+const iLiquido = (m, i) => { const on = m !== null && m !== ''; const id = `cl${cuentaId += 1}`; const n = on ? Math.round(52 - Math.min(1, m / 500) * 44) : 58;
+  return `<svg class="il ${on ? '' : 'no'}" style="--i:${i}" viewBox="0 0 58 58" aria-hidden="true"><clipPath id="${id}"><circle cx="29" cy="29" r="27.4"/></clipPath>${on ? `<g clip-path="url(#${id})"><g class="liq-s" style="--n:${n}px"><g class="ola"><path class="espuma" d="M-58 2q7-4.500 14.500 0t14.500 0 14.500 0 14.500 0 14.500 0 14.500 0 14.500 0 14.500 0v70h-116z"/><path class="cuerpo" d="M-58 4q7 4 14.500 0t14.500 0 14.500 0 14.500 0 14.500 0 14.500 0 14.500 0 14.500 0v70h-116z"/></g></g></g><text class="simb" x="29" y="35">S/</text>` : '<circle class="marco" cx="29" cy="29" r="20"/>'}</svg>`; };
+const iConst = (on, i) => `<svg class="ic2 ${on ? '' : 'no'}" style="--i:${i}" viewBox="0 0 58 58" aria-hidden="true"><g class="gira"><ellipse class="orb" pathLength="1" cx="29" cy="29" rx="22" ry="8.5" transform="rotate(32 29 29)"/><ellipse class="orb" pathLength="1" cx="29" cy="29" rx="22" ry="8.5" transform="rotate(-32 29 29)"/><circle class="nodo" style="--k:0" cx="47.6" cy="40.6" r="1.9"/><circle class="nodo" style="--k:1" cx="10.4" cy="40.600" r="1.5"/><circle class="nodo" style="--k:2" cx="47.6" cy="17.400" r="1.3"/></g><path class="est" d="M29 16c1.300 8.100 4.900 11.700 13 13-8.100 1.300-11.700 4.900-13 13-1.300-8.100-4.900-11.700-13-13 8.100-1.300 11.700-4.900 13-13z"/></svg>`;
+const HEX = 'M29 7.500 47.600 18.250V39.750L29 50.500 10.400 39.750V18.250Z';
+const iSello = (f, i) => { const est = !f ? 'no' : f < HOY ? 'cerrado' : 'abierto'; const pct = est === 'abierto' ? Math.max(4, Math.min(100, (dd(HOY, f) / 45) * 100)) : 0;
+  return `<svg class="ik ${est}" style="--i:${i}" viewBox="0 0 58 58" aria-hidden="true"><path class="hex" pathLength="1" d="${HEX}"/>${est === 'abierto' ? `<circle class="dias" style="--a:${pct}" cx="29" cy="29" r="25.500" pathLength="100" transform="rotate(-90 29 29)"/>` : ''}<path class="gl cierre" d="M23.500 28v-3.500a5.500 5.500 0 0 1 11 0V28"/><rect class="gl" x="21" y="28" width="16" height="11.500" rx="3"/></svg>`; };
+const instrumento = (s, c, i) => gota({ wa: () => iQr(!!s.wa, i), cierra: () => iDial(s.cierra, i), fondo: () => iLiquido(s.fondo, i), ia: () => iConst(s.ia, i), carga: () => iSello(s.carga, i) }[c]());
+const textoCarga = (f) => (!f ? 'Falta' : f < HOY ? `Cerró ${fechaC(f)}` : `Hasta ${fechaC(f)}`);
+
+function dato(s, c, i = 0) {
+  const fa = falta(s, c);
+  const val = { wa: () => (s.wa ? celu(s.wa) : 'Falta'), cierra: () => (s.cierra ? hora12(s.cierra) : 'Falta'), fondo: () => (fa ? 'Falta' : `<span data-cuenta="${s.fondo}" data-pre="S/ ">S/ ${s.fondo}</span>`), ia: () => (s.ia ? 'Activo' : 'Apagado'), carga: () => textoCarga(s.carga) }[c]();
+  return `<div class="d ${fa ? 'falta' : ''} ${c === 'ia' && !s.ia ? 'apagado' : ''}" role="button" tabindex="0" data-s="${s.id}" data-c="${c}" style="--i:${i};--c:${s.c}" aria-label="${NOMBRE[c]} de ${s.n}: ${String(val).replace(/<[^>]+>/g, '')}">
+    ${instrumento(s, c, i)}<span class="tx"><span class="lb">${NOMBRE[c]}</span><span class="v">${val}</span></span>
+    ${c === 'ia' ? `<span class="conm" role="switch" aria-checked="${s.ia}" aria-hidden="true"></span>` : ''}<span class="visto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${OK}"/></svg></span></div>`;
+}
+function aroInterior(s, e) {
+  const r = requeridos(s), n = r.length, C = 2 * Math.PI * 29.5, hueco = 7, largo = C / n - hueco;
+  const seg = r.map((c, k) => { const lleno = !falta(s, c); const off = -(k * (C / n)) - hueco / 2; return `<circle class="s ${lleno ? 'lleno' : 'vacio'}" style="--k:${k};--e:${e};--largo:${largo}px;stroke-dasharray:${largo} ${C - largo};stroke-dashoffset:${off}" cx="33" cy="33" r="29.500"/>`; }).join('');
+  const hechos = r.filter((c) => !falta(s, c)).length;
+  return `<svg class="seg" viewBox="0 0 66 66" aria-hidden="true">${seg}</svg><b style="--e:${e}">${hechos === n ? `<svg viewBox="0 0 24 24" style="--e:${e}"><path d="${OK}"/></svg>` : `${hechos}/${n}`}</b>`;
+}
+const aro = (s, e) => { const r = requeridos(s), h = r.filter((c) => !falta(s, c)).length; return `<span class="aro" data-aro="${s.id}" style="--c:${s.c}" title="${h} de ${r.length} listos">${aroInterior(s, e)}</span>`; };
+const GUI = Array.from({ length: 12 }, (_, k) => `<ellipse class="gui" pathLength="1" style="--k:${k}" cx="36" cy="36" rx="33" ry="13" transform="rotate(${k * 15} 36 36)"/>`).join('');
+const carnet = () => `<section class="liq carnet" aria-label="Datos de la empresa" data-luz><i class="holo"></i><i class="puntos"></i><span class="barrido"><i></i></span>
+    <div class="marca-e"><b>CAYLA</b><span>Empresa de Ejemplo S.A.C.</span></div>
+    <div class="dat"><small>RUC</small><div class="digitos" aria-label="20600000000">${'20600000000'.split('').map((d, k) => `<span class="dig" style="--d:${d};--k:${k}"><span>${'0123456789'.split('').map((x) => `<i>${x}</i>`).join('')}</span></span>`).join('')}</div></div>
+    <div class="dat"><small>Correo</small><b>contacto@ejemplo.pe</b></div>
+    <div class="dat"><small>Teléfono</small><b>044 000 000</b></div>
+    <button class="sello" data-ayuda aria-label="Por qué no se pueden cambiar estos datos"><svg viewBox="0 0 72 72" aria-hidden="true"><defs><linearGradient id="gui" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--sede-tru)"/><stop offset=".5" style="stop-color:var(--rojo)"/><stop offset="1" style="stop-color:var(--sede-lim)"/></linearGradient></defs><g class="giro">${GUI}</g><path class="cand cierre" d="M31 35v-3a5 5 0 0 1 10 0v3"/><rect class="cand" x="29" y="35" width="14" height="10" rx="2.500"/></svg></button>
+  </section>`;
+const vista = () => `${carnet()}<div class="vitrinas">${SEDES_D.map((s, e) => `<div class="lugar" style="--c:${s.c};--e:${e}"><i class="luz-s a"></i><i class="luz-s b"></i>
+    <article class="liq vit" data-luz data-inclina style="--e:${e};--c:${s.c}"><header><div><h2><span>${s.n}</span></h2><p class="dir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.100 7-11.500a7 7 0 1 0-14 0C5 14.900 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.300"/></svg>${s.dir}</p>${s.serie.length ? `<div class="series">${s.serie.map((x) => `<span>${x}</span>`).join('')}</div>` : ''}</div>${aro(s, e)}</header>
+    <div class="lista-v">${CAMPOS(s).map((c, i) => dato(s, c, e + i)).join('')}</div></article></div>`).join('')}</div>
+  <section class="liq tubo-f" aria-label="Lo gastado por Preguntar este mes" data-luz style="--c:var(--rojo)"><span class="chis"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 5c1.500 9.300 5.700 13.500 15 15-9.300 1.500-13.500 5.700-15 15-1.500-9.300-5.700-13.500-15-15 9.300-1.500 13.500-5.700 15-15z"/></svg></span><b>Preguntar</b><div class="tubo" style="--p:14%"><i></i></div><span>US$ 4,20 de 30 este mes</span></section>`;
+
+// ---------- pintar ----------
+let primera = true;
+function pintarV(e, forzar) {
+  const cont = $('#cont'), arriba = cont.scrollTop, nueva = forzar || primera;
+  document.documentElement.classList.toggle('quieto', !nueva);
+  cont.innerHTML = `${encabezado({ sede: 'Toda CAYLA', fecha: 'miércoles, 4 de noviembre · 16:42', titulo: 'Configuración' })}
+    <div class="tira"><div class="pz-t" role="tablist" aria-label="Secciones de Configuración">${['Empresa y tiendas', 'Metas', 'Dinero', 'Gastos', 'Impuestos'].map((t, k) => `<button role="tab" data-otra="${k}" aria-selected="${k === 0}">${t}</button>`).join('')}</div>
+      <span class="firma-g" title="Cada dato se guarda solo al salir de él, a nombre de quien firma."><i>LR</i>Lucía Ramos</span></div>
+    <div class="raiz">${vista()}</div>`;
+  cont.scrollTop = nueva ? 0 : arriba;
+  if (nueva) { primera = false; cuentaTodo(cont); }
+}
+const sinMov = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function cuentaTodo(r) { if (sinMov()) return; r.querySelectorAll('[data-cuenta]').forEach((el) => { const fin = +el.dataset.cuenta, t0 = performance.now() + 350, pre = el.dataset.pre || ''; const paso = (t) => { const p = Math.min(1, Math.max(0, (t - t0) / 1100)); el.textContent = pre + Math.round(fin * (1 - (1 - p) ** 3)); if (p < 1) requestAnimationFrame(paso); }; el.textContent = pre + '0'; requestAnimationFrame(paso); }); }
+function aros() { document.querySelectorAll('[data-aro]').forEach((el) => { const s = sedeDe(el.dataset.aro); el.innerHTML = aroInterior(s, 0); el.querySelectorAll('.s,b,b svg').forEach((x) => { x.style.animationDelay = '0s'; }); }); }
+let tAviso;
+function avisar(tx, mal) { document.querySelectorAll('.aviso-g').forEach((a) => a.remove()); $('#disp').insertAdjacentHTML('beforeend', `<div class="aviso-g ${mal ? 'mal' : ''}" role="status">${tx}</div>`); clearTimeout(tAviso); tAviso = setTimeout(() => document.querySelectorAll('.aviso-g').forEach((a) => a.remove()), 3200); }
+function rehacer(el, recien, origen) {
+  const s = sedeDe(el.dataset.s), c = el.dataset.c, i = +(el.style.getPropertyValue('--i') || 0);
+  const tmp = document.createElement('div'); tmp.innerHTML = dato(s, c, -3); const n = tmp.firstElementChild; n.style.setProperty('--i', recien ? -3 : i);
+  if (!recien) n.style.animation = 'none';
+  el.replaceWith(n);
+  if (recien) { n.classList.add('recien'); n.style.animation = 'none'; const r = n.getBoundingClientRect(); const z = r.width / n.offsetWidth || 1; const ox = origen ? (origen.x - r.left) / z : n.offsetWidth / 2, oy = origen ? (origen.y - r.top) / z : n.offsetHeight / 2; n.insertAdjacentHTML('beforeend', `<i class="onda" style="--ox:${ox}px;--oy:${oy}px"></i>`); cuentaTodo(n); setTimeout(() => { n.classList.remove('recien'); n.querySelector('.onda')?.remove(); }, 2000); }
+  return n;
+}
+let ultimoClic = null;
+function abrir(el) {
+  const s = sedeDe(el.dataset.s), c = el.dataset.c;
+  if (c === 'ia') { s.ia = !s.ia; rehacer(el, true, ultimoClic); avisar(s.ia ? `${s.n} ya puede preguntarle a CAYLA.` : `${s.n}: Preguntar apagado.`); return; }
+  if (c === 'carga') { abrirHoja(s); return; }
+  if (el.classList.contains('edita')) return;
+  el.classList.add('edita'); el.closest('[data-inclina]')?.style.setProperty('--rx', '0deg'); el.closest('[data-inclina]')?.style.setProperty('--ry', '0deg');
+  const v = c === 'wa' ? s.wa : c === 'cierra' ? s.cierra : s.fondo ?? '';
+  el.querySelector('.v').innerHTML = `<span class="pozo"><input class="in" ${c === 'cierra' ? 'type="time"' : 'inputmode="numeric"'} value="${v}" aria-label="${NOMBRE[c]} de ${s.n}"></span>`;
+  const i = el.querySelector('input'); i.focus(); i.select?.(); let hecho = false;
+  const cerrar = (guardar) => { if (hecho) return; hecho = true; const t = i.value.trim();
+    if (!guardar || t === String(v)) { rehacer(el, false); return; }
+    if (c === 'wa' && t && !/^9\d{8}$/.test(t)) { avisar('Tiene 9 dígitos y empieza en 9.', true); rehacer(el, false); return; }
+    if (c === 'fondo' && t && !/^\d+$/.test(t)) { avisar('El fondo es un monto en soles.', true); rehacer(el, false); return; }
+    if (c === 'wa') s.wa = t; if (c === 'cierra') s.cierra = t; if (c === 'fondo') s.fondo = t ? +t : null;
+    rehacer(el, true); aros();
+    avisar(c === 'wa' ? (t ? `${s.n}: su QR del club ya se puede imprimir.` : `${s.n}: sin WhatsApp, no muestra QR.`) : c === 'cierra' ? (t ? `${s.n} cierra a las ${hora12(t)}.` : `${s.n}: sin hora de cierre.`) : `Fondo de ${s.n}: ${t ? `S/ ${t}` : 'sin fondo'}.`);
+  };
+  i.addEventListener('blur', () => cerrar(true));
+  i.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') i.blur(); if (ev.key === 'Escape') cerrar(false); });
+}
+function abrirHoja(s) {
+  const d = $('#disp'); d.querySelector('.capa')?.remove();
+  const cons = (f) => (!f ? 'Elige hasta qué día.' : f < HOY ? `${s.n} ya no carga sin comprobante.` : `${s.n} carga sin comprobante hasta el ${fechaC(f)}.`);
+  d.insertAdjacentHTML('beforeend', `<div class="capa hoja-c"><div class="velo" data-cierra></div><div class="hoja" role="dialog" aria-label="Carga inicial de ${s.n}" style="--c:${s.c}"><h2>Carga inicial de ${s.n}</h2><p class="sub">Hasta qué día carga lo que ya tenía.</p><div class="caja"><input type="date" value="${s.carga}" aria-label="Último día de carga"></div><div class="cons"><span id="cv">${gota(iSello(s.carga, 0))}</span><span id="ct">${cons(s.carga)}</span></div><div class="pie"><button class="b sec" data-cierra>Cancelar</button><button class="b pri" data-guarda>Guardar</button></div></div></div>`);
+  d.setAttribute('data-hoja', '');
+  const capa = d.querySelector('.capa'), i = capa.querySelector('input');
+  i.addEventListener('input', () => { capa.querySelector('#cv').innerHTML = gota(iSello(i.value, 0)); capa.querySelector('#ct').textContent = cons(i.value); });
+  const fin = () => { capa.remove(); d.removeAttribute('data-hoja'); };
+  capa.addEventListener('click', (ev) => { if (ev.target.closest('[data-cierra]')) fin(); if (ev.target.closest('[data-guarda]')) { s.carga = i.value; fin(); const vivo = document.querySelector(`.d[data-s="${s.id}"][data-c="carga"]`); if (vivo) rehacer(vivo, true); aros(); avisar(`Carga inicial de ${s.n} guardada.`); } });
+}
+
+// ---------- lo que se toca ----------
+document.addEventListener('click', (ev) => {
+  ultimoClic = { x: ev.clientX, y: ev.clientY };
+  const ay = ev.target.closest('[data-ayuda]');
+  document.querySelectorAll('.globo').forEach((g) => g.remove());
+  if (ay) { ay.insertAdjacentHTML('beforeend', '<span class="globo" role="status" style="text-align:left;display:block"><b>Solo se lee.</b> Salen en boletas y facturas. Se corrigen con el contador: un RUC mal escrito hace que SUNAT rechace cada comprobante.</span>'); return; }
+  const otra = ev.target.closest('[data-otra]'); if (otra && otra.dataset.otra !== '0') { avisar('Esta maqueta es solo de Empresa y tiendas.'); return; }
+  const t = ev.target.closest('.d'); if (t && !ev.target.closest('input')) abrir(t);
+});
+document.addEventListener('keydown', (ev) => { const el = ev.target; if ((ev.key === 'Enter' || ev.key === ' ') && el.classList?.contains('d')) { ev.preventDefault(); ultimoClic = null; abrir(el); } });
+// el brillo y la inclinación siguen al mouse; sin mouse, el vidrio se queda quieto
+document.addEventListener('pointermove', (ev) => {
+  if (ev.pointerType !== 'mouse' || sinMov()) return;
+  document.querySelectorAll('[data-luz]').forEach((el) => { const r = el.getBoundingClientRect(); const z = r.width / el.offsetWidth || 1; el.style.setProperty('--mx', `${(ev.clientX - r.left) / z}px`); el.style.setProperty('--my', `${(ev.clientY - r.top) / z}px`); });
+  document.querySelectorAll('[data-inclina]').forEach((el) => { const r = el.getBoundingClientRect(); const dentro = ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom && !el.querySelector('.edita');
+    el.style.setProperty('--rx', dentro ? `${(((ev.clientY - r.top) / r.height) - 0.5) * -2.4}deg` : '0deg'); el.style.setProperty('--ry', dentro ? `${(((ev.clientX - r.left) / r.width) - 0.5) * 2.4}deg` : '0deg');
+    const lugar = el.parentElement; lugar.querySelectorAll('.luz-s').forEach((b) => { b.style.setProperty('--px', dentro ? `${(ev.clientX - r.left - r.width / 2) * 0.06}px` : '0'); b.style.setProperty('--py', dentro ? `${(ev.clientY - r.top - r.height / 2) * 0.05}px` : '0'); }); });
+}, { passive: true });
+Marco.iniciar({ estado: {}, alPintar: (e) => pintarV(e), alAccion: (a) => { if (a === 'repetir') pintarV(estado, true); } });
+
+}
+</script>
+</body>
+</html>

@@ -15,4 +15,4 @@ En negrita, la recomendada. Lo que gana y lo que cuesta cada una, al pie de `ind
 
 ## Lo que decidió Felipe
 
-(pendiente)
+**A · Las vitrinas** (2026-11-04), y pidió subirla: «lo más sofisticado, con iconos o graficaciones sofisticadas y futuristas, siempre siguiendo el estilo de liquid glass». Sigue en `docs/maquetas/empresa-tiendas-vitrinas-2026-11/`.
