@@ -482,7 +482,11 @@ begin
     select jsonb_agg(jsonb_build_object(
              'id', s.id, 'producto_id', s.producto_id, 'prenda', p.referencia, 'unidades', s.unidades, 'creado_en', s.creado_en,
              'quien', retail.fn_envio_persona(s.creado_por) ->> 'nombre',
-             'lineas', (select jsonb_agg(jsonb_build_object('variante_id', l ->> 'variante_id', 'cantidad', (l ->> 'cantidad')::integer)) from jsonb_array_elements(s.lineas) l))
+             'lineas', (select jsonb_agg(jsonb_build_object('variante_id', l ->> 'variante_id', 'cantidad', (l ->> 'cantidad')::integer, 'talla', t.valor, 'color', col.nombre))
+                          from jsonb_array_elements(s.lineas) l
+                          join retail.variantes vr on vr.id = (l ->> 'variante_id')::uuid
+                          left join retail.tallas t on t.id = vr.talla_id
+                          left join retail.colores col on col.codigo = vr.color_codigo))
              order by s.creado_en)
       from retail.despacho_salidas s
       join retail.productos p on p.id = s.producto_id

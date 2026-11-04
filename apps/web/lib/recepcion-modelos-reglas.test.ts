@@ -1003,14 +1003,17 @@ describe("yaEnStockDelEnvio: lo que un cierre anterior ya metió al stock", () =
   const r = (prenda: string | null, cantidad: number) => ({ prenda, cantidad });
   it("suma por prenda, sin importar la talla ni cómo se escribió", () => {
     expect(yaEnStockDelEnvio([r("Polo Dalia", 2), r("polo dalia", 3), r("Blusa Rosa", 1)])).toEqual([
-      { prenda: "Blusa Rosa", cantidad: 1 },
-      { prenda: "Polo Dalia", cantidad: 5 },
+      { prenda: "Blusa Rosa", cantidad: 1, tallas: "" },
+      { prenda: "Polo Dalia", cantidad: 5, tallas: "" },
     ]);
   });
   it("sin recibidos o sin nombre no dibuja nada, y lo que ya se ve como modelo con su cifra no se repite", () => {
     expect(yaEnStockDelEnvio(null)).toEqual([]);
     expect(yaEnStockDelEnvio([r(null, 3), r("Polo", 0)])).toEqual([]);
     expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 2 }])).toEqual([]);
-    expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 0 }])).toEqual([{ prenda: "Polo Dalia", cantidad: 2 }]);
+    expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 0 }])).toEqual([{ prenda: "Polo Dalia", cantidad: 2, tallas: "" }]);
+  });
+  it("dice qué tallas son", () => {
+    expect(yaEnStockDelEnvio([{ prenda: "Polo", cantidad: 2, talla: "M", color: "Rojo" }, { prenda: "Polo", cantidad: 1, talla: "M", color: "Rojo" }, { prenda: "Polo", cantidad: 4, talla: "L", color: null }])[0].tallas).toBe("M Rojo: 3 · L: 4");
   });
 });

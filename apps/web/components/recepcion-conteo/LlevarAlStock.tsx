@@ -48,7 +48,7 @@ export function LlevarAlStock({
   /** La línea del envío donde está contada esta prenda. */
   linea: LineaParaContar;
   productoId: string;
-  variantes: readonly { varianteId: string; cantidad: number; danadas: number; solucion: string | null }[];
+  variantes: readonly { varianteId: string; cantidad: number; danadas: number; solucion: string | null; talla: string | null; color: string | null }[];
   sinAviso: boolean;
   veDinero: boolean;
   responsable: ControlResponsable;
@@ -181,6 +181,8 @@ export function LlevarAlStock({
                 void llevar(false);
               }}
             >
+              {/* Lo que va a entrar, a la vista antes de confirmar (prueba ciega, 2026-11-03: no se podía revisar la talla). */}
+              <ListaDeTallas lineas={variantes} />
               {editaCosto ? (
                 <CampoGuiado id="salida-costo" guia={guia}>
                   <CampoMonto
@@ -228,11 +230,25 @@ export function LlevarAlStock({
   );
 }
 
+/** Qué tallas y colores son, una por línea: «M · Rojo: 3». */
+function ListaDeTallas({ lineas }: { lineas: readonly { cantidad: number; talla?: string | null; color?: string | null }[] }) {
+  return (
+    <ul className="nota-cayla sin-i space-y-0.5 text-sm" aria-label="Tallas y colores">
+      {lineas.map((l, i) => (
+        <li key={i} className="flex justify-between gap-3">
+          <span>{[l.talla ?? "Talla única", l.color ?? "Sin color"].join(" · ")}</span>
+          <b className="tabular-nums text-tinta">{l.cantidad.toLocaleString("es-PE")}</b>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Lo que sigue después de salir: las etiquetas de esa tanda, bajarlas al piso o seguir contando. */
 export function SalidaHecha({ resultado, nombre, veExistencias, onCerrar }: { resultado: ResultadoDeSalida; nombre: string; veExistencias: boolean; onCerrar: () => void }) {
   const n = resultado.unidades.toLocaleString("es-PE");
   return (
-    <Modal titulo={`${n} de ${nombre} ya están en el stock`} subtitulo="Están en el almacén. El envío sigue abierto." tamano="angosta" onClose={onCerrar} conCerrar>
+    <Modal titulo={`${n} de ${nombre} ya están en el stock`} subtitulo="Están en el almacén: se venden cuando las bajes al piso. El envío sigue abierto." tamano="angosta" onClose={onCerrar} conCerrar>
       <div className="grid gap-2">
         <BotonEnlace href={urlEtiquetasDeLaTanda(resultado.lineas)} peso="primario">
           {resultado.unidades === 1 ? "Imprimir la etiqueta" : `Imprimir ${n} etiquetas`}
@@ -296,6 +312,7 @@ export function CorregirSalida({ salida, responsable, onHecho, onCerrar }: { sal
             void corregir();
           }}
         >
+          <ListaDeTallas lineas={salida.lineas} />
           <CampoGuiado id="corregir-motivo" guia={guia}>
             <CampoTexto
               etiqueta={guia.etiqueta("corregir-motivo", "¿Por qué se corrige?")}

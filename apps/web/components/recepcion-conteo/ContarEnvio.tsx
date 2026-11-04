@@ -627,7 +627,7 @@ export function ContarEnvio({
     <div className="rc-conteo">
       {reabierto && (
         <Aviso tono="info" titulo="Reabriste el envío">
-          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale con candado: si sobró o faltó algo, se corrige con «Ajustar stock».
+          Cuenta solo lo nuevo y vuelve a cerrarlo. Lo que ya entró al stock sale con candado, abajo a la izquierda, y desde ahí se corrige.
         </Aviso>
       )}
       {proveedorPorConfirmar && (

@@ -342,9 +342,6 @@ export function RecibirContando({
         subtitulo={frase}
         detalle={detalle.numero}
         volver={<Volver href="/recibir" a="Recibir mercadería" />}
-        acciones={
-          accionesDelEnvio.length > 0 ? <MenuAcciones etiqueta="Más acciones de este envío" texto="Más" items={accionesDelEnvio} /> : undefined
-        }
       >
         {/* En la fila del título, para no gastar una fila propia (Felipe 2026-11-02): en qué va el envío, con sus cinco paradas, y las fotos si no están en el resumen. */}
         <div
@@ -354,7 +351,7 @@ export function RecibirContando({
           {conPapelArriba && <PapelesDeLaCompra papeles={papeles} alSubirFoto={subirFotoDelPapel} />}
           {etapa ? (
             // Con el botón al lado, el Trayecto toma lo que quede: bajo 22 rem sus nombres se tocan en la última etapa.
-            <div className={conPapelArriba ? "min-w-[min(20rem,100%)] max-w-[28rem] flex-1" : "w-full"}>
+            <div className={conPapelArriba ? "min-w-[min(20rem,100%)] max-w-[28rem] flex-1" : accionesDelEnvio.length > 0 ? "min-w-[min(18rem,100%)] flex-1" : "w-full"}>
               <div className="rc-tray-cabecera">
                 <Trayecto etapa={etapa} />
               </div>
@@ -362,6 +359,8 @@ export function RecibirContando({
           ) : (
             <Chip tono={insignia.tono}>{insignia.texto}</Chip>
           )}
+          {/* Cancelar es raro y no se deshace: va a la derecha de la cabecera, como un «⋯» (no un «Más» suelto bajo el título), y su lista se abre bajo el botón. */}
+          {accionesDelEnvio.length > 0 && <MenuAcciones etiqueta="Más acciones de este envío" guia="recepcion.cancelar" redondo items={accionesDelEnvio} />}
         </div>
       </EncabezadoPagina>
 

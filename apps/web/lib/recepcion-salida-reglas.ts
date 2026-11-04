@@ -7,7 +7,7 @@ export const RPC_LLEVAR_AL_STOCK = "llevar_al_stock_ahora";
 export const RPC_CORREGIR_SALIDA = "corregir_salida";
 export const RPC_SALIDAS_DEL_ENVIO = "fn_salidas_del_envio";
 
-export type LineaDeSalida = { varianteId: string; cantidad: number };
+export type LineaDeSalida = { varianteId: string; cantidad: number; talla?: string | null; color?: string | null };
 
 export type SalidaDelEnvio = { id: string; productoId: string; prenda: string; unidades: number; quien: string | null; creadoEn: string; lineas: LineaDeSalida[] };
 
@@ -15,8 +15,10 @@ export type ResultadoDeSalida = { salidaId: string; unidades: number; lineas: Li
 
 const lineasDe = (v: unknown): LineaDeSalida[] =>
   Array.isArray(v)
-    ? v.flatMap((l: { variante_id?: unknown; cantidad?: unknown }) =>
-        typeof l?.variante_id === "string" && Number(l.cantidad) > 0 ? [{ varianteId: l.variante_id, cantidad: Number(l.cantidad) }] : [],
+    ? v.flatMap((l: { variante_id?: unknown; cantidad?: unknown; talla?: unknown; color?: unknown }) =>
+        typeof l?.variante_id === "string" && Number(l.cantidad) > 0
+          ? [{ varianteId: l.variante_id, cantidad: Number(l.cantidad), ...(typeof l.talla === "string" ? { talla: l.talla } : {}), ...(typeof l.color === "string" ? { color: l.color } : {}) }]
+          : [],
       )
     : [];
 

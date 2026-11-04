@@ -142,7 +142,7 @@ export function ResumenDelEnvio({
             <div className="rc-separador" />
             {fila("despues")}
           </div>
-          <PieGuia guia={guia} tope={2} listo="Todo contado y con su prenda identificada." />
+          <PieGuia guia={guia} tope={2} listo="Todo contado." />
           <div className="rc-quien" data-guia="recepcion.quien-cuenta">
             <div className="rc-quien-titulo">
               <p className="label-cayla text-[11px] text-taupe">Quién cuenta</p>

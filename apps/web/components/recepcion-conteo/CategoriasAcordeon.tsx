@@ -297,7 +297,7 @@ export function ListaDelEnvio({
   /** El «+» de una categoría: otro modelo para contar aparte. */
   onAgregarModelo: (categoria: string) => void;
   /** Lo que ya entró al stock, en un cierre anterior o en una tanda. Se ve con candado y no se cuenta. */
-  yaEnStock: readonly { prenda: string; cantidad: number; salida: SalidaDelEnvio | null }[];
+  yaEnStock: readonly { prenda: string; cantidad: number; tallas: string; salida: SalidaDelEnvio | null }[];
   onCorregirSalida: (s: SalidaDelEnvio) => void;
   onNoLlego: (c: CategoriaDelEnvio) => void;
   /** El tacho de un modelo agregado al contar. */
@@ -406,12 +406,12 @@ export function ListaDelEnvio({
                   <Lock aria-hidden className="h-3.5 w-3.5 shrink-0 text-taupe" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-tinta" title={y.prenda}>{y.prenda}</span>
-                    <span className="block text-sm text-taupe">{conMiles(y.cantidad)} ya en stock</span>
+                    <span className="block text-sm text-taupe" title={y.tallas || undefined}>{conMiles(y.cantidad)} ya en stock{y.tallas ? ` · ${y.tallas}` : ""}</span>
                   </span>
                   {/* Lo que salió antes de cerrar se corrige aquí mientras siga en el almacén; lo demás, en Existencias. */}
                   {y.salida ? (
                     <button type="button" className="btn-cayla btn-enlace shrink-0 text-sm" onClick={() => onCorregirSalida(y.salida as SalidaDelEnvio)}>
-                      Corregir
+                      Corregir {conMiles(y.salida.unidades)}
                     </button>
                   ) : (
                     <Link className="btn-cayla btn-enlace shrink-0 text-sm" href={`/inventario?q=${encodeURIComponent(y.prenda)}`}>

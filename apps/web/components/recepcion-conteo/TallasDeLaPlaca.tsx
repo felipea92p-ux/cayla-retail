@@ -211,7 +211,7 @@ function Reparto({
       {s.invalidas > 0 && <p className="text-sm text-ambar">Las cantidades son números enteros, de 0 a 9999.</p>}
       {(cuadre.estado === "faltan" || cuadre.estado === "sobran") && (
         <p className="text-sm text-taupe">
-          Se guarda cuando cuadre con lo contado. Si llegaron {conMiles(s.contado)},{" "}
+          {cuadre.estado === "faltan" ? "Lleva estas al stock, o sigue repartiendo." : "Se guarda cuando cuadre con lo contado."} Si en total llegaron {conMiles(s.contado)},{" "}
           <button type="button" className="btn-cayla btn-enlace" onClick={() => onDejarSuma(s.contado)}>
             corrige lo contado a {conMiles(s.contado)}
           </button>

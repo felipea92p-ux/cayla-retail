@@ -285,7 +285,7 @@ export function PlacaDelModelo({
           <p className="rc-seccion-titulo">¿Qué deseas hacer?</p>
           <div className="rc-opciones" role="radiogroup" aria-label="¿Qué deseas hacer?">
             {opcion("despues", "Solo la cantidad", "Queda guardada: no se vende hasta terminarla.")}
-            {opcion("ahora", esNueva ? "Crearlo ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después repartes lo contado." : "Con eso entra al stock al cerrar.")}
+            {opcion("ahora", esNueva ? "Crearlo ahora" : "Tallas y colores ahora", esNueva ? "Primero se crea; después repartes lo contado." : "Entra al stock al cerrar, o antes si tú la llevas.")}
           </div>
           {sinNumero && <p className="text-sm text-taupe">Primero cuenta cuántas llegaron. Después podrás poner tallas y colores.</p>}
         </div>

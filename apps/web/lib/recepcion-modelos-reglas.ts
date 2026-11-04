@@ -311,18 +311,24 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
  * la lista y parecía que hubiera que volver a contarlas. Se ven con candado; lo que ya es un modelo de la lista con su cifra en el stock no se repite.
  */
 export function yaEnStockDelEnvio(
-  recibidos: readonly { prenda: string | null; cantidad: number }[] | null,
+  recibidos: readonly { prenda: string | null; cantidad: number; talla?: string | null; color?: string | null }[] | null,
   modelos: readonly Pick<ModeloDelConteo, "nombre" | "enStock">[] = [],
-): { prenda: string; cantidad: number }[] {
+): { prenda: string; cantidad: number; tallas: string }[] {
   const yaSeVen = new Set(modelos.filter((m) => m.enStock > 0).map((m) => normaliza(m.nombre)));
-  const porPrenda = new Map<string, { prenda: string; cantidad: number }>();
+  const porPrenda = new Map<string, { prenda: string; cantidad: number; porTalla: Map<string, number> }>();
   for (const r of recibidos ?? []) {
     const nombre = r.prenda?.trim();
     if (!nombre || r.cantidad <= 0 || yaSeVen.has(normaliza(nombre))) continue;
     const clave = normaliza(nombre);
-    porPrenda.set(clave, { prenda: porPrenda.get(clave)?.prenda ?? nombre, cantidad: (porPrenda.get(clave)?.cantidad ?? 0) + r.cantidad });
+    const fila = porPrenda.get(clave) ?? { prenda: nombre, cantidad: 0, porTalla: new Map<string, number>() };
+    fila.cantidad += r.cantidad;
+    const talla = [r.talla, r.color].filter(Boolean).join(" ");
+    if (talla) fila.porTalla.set(talla, (fila.porTalla.get(talla) ?? 0) + r.cantidad);
+    porPrenda.set(clave, fila);
   }
-  return [...porPrenda.values()].sort((a, b) => a.prenda.localeCompare(b.prenda, "es"));
+  return [...porPrenda.values()]
+    .map((f) => ({ prenda: f.prenda, cantidad: f.cantidad, tallas: [...f.porTalla].map(([t, n]) => `${t}: ${n}`).join(" · ") }))
+    .sort((a, b) => a.prenda.localeCompare(b.prenda, "es"));
 }
 
 /** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */

@@ -73,7 +73,7 @@
       "Boton «{guia}» #2"
     ],
     "components/recepcion-conteo/CancelarRecepcion.tsx": [
-      "CampoTexto «{guia.etiqueta(\"cancelar-motivo\", \"¿Por qué lo cancelas?\")}»",
+      "CampoTexto «{guia.etiqueta(\"cancelar-motivo\", \"Motivo\")}»",
       "button «{m}»",
       "ComboResponsable «{responsable}»",
       "Boton «Seguir recibiendo»",
