@@ -719,6 +719,7 @@ export const PRUEBAS = [
   // Ventas online (ADR-0607): el canal marca el apartado en la misma transacción, un envío exige dirección, la puerta pide el módulo
   // y la venta hereda el canal al entregar; un apartado de tienda sigue igual. Con control. Cada caso: ROLLBACK.
   "pruebas:ventas-online-canal",
+  "pruebas:ventas-online-motores",
 
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.

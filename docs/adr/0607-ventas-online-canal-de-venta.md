@@ -58,6 +58,19 @@ la tienda física siempre es recojo; un envío exige a dónde; «enviado» solo 
 parchar `separar_prendas` y `entregar_separacion` (ya reemplazadas diez veces por anclas): la herencia del canal a la venta va en un
 disparador sobre `separaciones.venta_id`.
 
+**DECIDÍ 6 — Qué cuenta lo vendido online (2026-11-03; la recomendación quedó como pendiente de Felipe y se aplicó, ver abajo).**
+Una venta de TikTok es una venta real, pero no pasó por el piso. Entonces:
+- **Los motores que deciden qué colgar solo cuentan la tienda:** `fn_piso_plan_lectura`, `fn_demanda_sede` y `fn_motor_demanda_preparacion` filtran
+  `ventas.canal = 'tienda'` (`20261104032000`). Así «colgar otra igual» y los pedidos al Taller no responden a una demanda que el piso no tuvo.
+- **Análisis y el plan de compra SÍ cuentan lo online** (`fn_analisis_sede`, `fn_unidades_vendidas`, `fn_plan_compra`): es demanda real de CAYLA y debe
+  verse y comprarse. No se parte por canal todavía: la marca `ventas.canal` ya está para cuando Felipe quiera esa columna.
+- **Frescura (`fn_frescura_sede`) tampoco se toca:** mide por el libro de movimientos cuánto del stock bajado al piso salió; una prenda del piso
+  vendida online salió igual, y dejarla fuera la marcaría «no se mueve» habiéndose vendido.
+- **Caja, comprobantes, Ventas, Finanzas y Resumen** cuentan todo (ya era así).
+**DESCARTÉ** que Análisis y el plan de compra ignoren lo online como hacen con CLAURE (ADR-0560): lo de CLAURE es de otro dueño; lo de TikTok es de CAYLA.
+**DESCARTÉ** una función `fn_canal_entra_a_motores(canal)`: con `security definer` es lenta por llamada (medido en Tráfico) y hoy el único canal físico es
+`tienda`; si algún día hay otro, es una migración con las tres líneas de arriba.
+
 ## Se rompe si / límites conocidos
 
 - Se agrega un canal físico (`es_fisico`): el candado «tienda ⇒ recojo» y `separar_prendas_online` asumen que el único físico es `tienda`.

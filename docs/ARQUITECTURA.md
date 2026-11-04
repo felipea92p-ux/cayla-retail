@@ -1872,7 +1872,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`getCanalesDeLaCuenta`) → `ApartadosPanel` (`CanalesDeApartados`) → `ApartarVista` (`CanalDelApartado`: «¿Por dónde se vende?» y «Cómo se entrega», solo si la
   cuenta opera más que la tienda; reglas puras en `lib/canales-venta-reglas.ts`): la tienda sigue por `separar_prendas`; un canal online, por `separar_prendas_online`.
   `buscar_separaciones` y `resumen_separaciones` solo traen los canales de la cuenta; `CanalChip` los marca en Entregar y Todos (filtro «Canal»); el detalle gana «Entrega»
-  y «Marcar enviado» (`marcar_separacion_enviada`). Un candado en la tabla (`fn_separacion_exige_su_canal`) cuida entregar/abonar/aplazar/liberar/devolver por id.
+  y «Marcar enviado» (`marcar_separacion_enviada`). Un candado en la tabla (`fn_separacion_exige_su_canal`) cuida entregar/abonar/aplazar/liberar/devolver por id. Los motores del piso (`fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_motor_demanda_preparacion`) solo cuentan `ventas.canal = 'tienda'` (`20261104032000`); Análisis y el plan de compra cuentan todo.
   **Redondeo del efectivo al entregar (ADR-0311, actividad 6):** `page.tsx` lee `fn_acepta_redondeo_efectivo` (la misma bandera de Vender) →
   `ApartadosPanel` → `EntregarVista`: con la bandera, el efectivo del SALDO se cobra al múltiplo de S/ 0.10, hacia abajo
   (`cobroDelSaldo(pagos, saldo, redondear)` y `pagosParaRpcApartado(pagos, redondear)` en `lib/separaciones-reglas.ts`, sobre
