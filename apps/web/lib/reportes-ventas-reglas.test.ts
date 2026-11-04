@@ -22,7 +22,6 @@ import {
   comparacionDe,
   diasDelTramo,
   leerReporteMes,
-  parteDevuelta,
   prendasPorVenta,
   primerDiaDelMes,
   sentidoDe,
@@ -81,14 +80,12 @@ describe("las cifras derivadas", () => {
     const a = reporte().actual;
     expect(ticketPromedio(a)).toBeCloseTo(78.82, 2);
     expect(prendasPorVenta(a)).toBeCloseTo(1.65, 2);
-    expect(parteDevuelta(a)).toBeCloseTo(0.000223, 6);
   });
 
   it("con divisor 0 son null, no NaN ni infinito", () => {
     const vacio = { vendido: 0, tickets: 0, unidades: 0, devuelto: 0 };
     expect(ticketPromedio(vacio)).toBeNull();
     expect(prendasPorVenta(vacio)).toBeNull();
-    expect(parteDevuelta(vacio)).toBeNull();
   });
 });
 

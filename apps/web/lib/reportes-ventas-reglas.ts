@@ -60,9 +60,6 @@ export const ticketPromedio = (c: Pick<CifrasMes, "vendido" | "tickets">): numbe
 /** Cuántas prendas lleva cada venta, en promedio. `null` sin ventas. */
 export const prendasPorVenta = (c: Pick<CifrasMes, "unidades" | "tickets">): number | null => (c.tickets > 0 ? c.unidades / c.tickets : null);
 
-/** Qué parte de lo vendido se devolvió (0 a 1). `null` si no se vendió nada. */
-export const parteDevuelta = (c: Pick<CifrasMes, "vendido" | "devuelto">): number | null => (c.vendido > 0 ? c.devuelto / c.vendido : null);
-
 /** Cuánto cambió una cifra contra la del tramo anterior (0,116 = subió 11,6 %). `null` si falta alguna o la anterior es 0: no hay con qué comparar. */
 export function cambio(actual: number | null, anterior: number | null): number | null {
   if (actual === null || anterior === null || !(anterior > 0)) return null;
