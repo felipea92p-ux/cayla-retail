@@ -125,7 +125,7 @@ export function CambioConMotivoModal({ datos, cambio, onClose }: { datos: OrdenP
               </Boton>
               <Boton
                 type="submit"
-                peso={quita ? "peligro" : "primario"}
+                peso="primario"
                 cargando={cargando}
                 textoCargando={quita ? "Quitando…" : "Restaurando…"}
                 disabled={!guia.puedeConfirmar}

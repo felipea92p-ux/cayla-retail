@@ -4,7 +4,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { MessageCircle, PackageSearch, ReceiptText, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton, BotonAncla, Campo } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -471,13 +471,14 @@ export function PedidoWebHoja({
               <p className="text-sm text-taupe">El stock no cambia: nada se había reservado. El cliente ve «Anulado» con el motivo.</p>
               <div className="pie-hoja-fijo space-y-2 pt-2">
                 <PieGuia guia={guia} />
+                <AvisoNoSeDeshace />
                 <PieAcciones>
                   <Boton type="button" onClick={() => setModo("revisar")} disabled={guardando}>
                     Cancelar
                   </Boton>
                   <Boton
                     type="button"
-                    peso="peligro"
+                    peso="primario"
                     cargando={guardando}
                     textoCargando="Cerrando…"
                     disabled={!guia.puedeConfirmar}
@@ -624,13 +625,14 @@ export function PedidoWebHoja({
               </CampoGuiado>
               <div className="pie-hoja-fijo space-y-2 pt-2">
                 <PieGuia guia={guia} />
+                <AvisoNoSeDeshace />
                 <PieAcciones>
                   <Boton type="button" onClick={() => setModo("revisar")} disabled={guardando}>
                     Cancelar
                   </Boton>
                   <Boton
                     type="button"
-                    peso="peligro"
+                    peso="primario"
                     cargando={guardando}
                     textoCargando="Anulando…"
                     disabled={!guia.puedeConfirmar}

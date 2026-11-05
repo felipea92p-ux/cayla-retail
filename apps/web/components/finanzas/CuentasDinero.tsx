@@ -52,7 +52,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { UltimosMovimientos } from "@/components/finanzas/dinero/HistorialDinero";
 import { Casilla } from "@/components/ui/Casilla";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
@@ -1019,6 +1019,7 @@ function AnularModal({
         <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" />
       </CampoFin>
       <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <AvisoNoSeDeshace className="mt-4" />
       <div className="fin-botones mt-4">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Volver

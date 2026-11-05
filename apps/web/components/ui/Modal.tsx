@@ -81,7 +81,7 @@ type Props = {
   atrasCierra?: boolean;
   /** La cara de toda hoja es UNA (ADR-0358, ronda 12) y desde el 2026-10-31 es el vidrio «Serena» (ADR-0596, `.hoja-serena` en
       app/estilos/vidrio/hoja.css): vidrio al 70 % con su borde de luz y su sombra, 32 px de radio, la × en gota y el título serif de
-      27 px; con un botón rojo adentro vuelve a papel. El desenfoque lo pone el velo, no la hoja (un `backdrop-filter` aquí recortaría la
+      27 px; una sola hoja, también con lo que no se deshace (Felipe 2026-11-05). El desenfoque lo pone el velo, no la hoja (un `backdrop-filter` aquí recortaría la
       lista de cada combo de adentro). `hoja` y `papel` quedan como nombres que no cambian la cara: «papel» todavía pone la ✕. */
   variante?: "papel" | "hoja" | "camara" | "ticket" | "vidrio";
   /* «vidrio» (Mi perfil, Felipe 2026-10-31, maqueta docs/maquetas/mi-perfil-2026-10/, «A · Cristal líquido»): la hoja es vidrio

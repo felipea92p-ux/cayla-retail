@@ -2,7 +2,7 @@
   "guia": "cambios",
   "ruta": "/cambios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 43,
   "controles": {
     "components/BuscadorVentas.tsx": [
       "BotonBuscar «(sin nombre)»",
@@ -62,8 +62,7 @@
       "Volver «→onVolver»",
       "button «{hecho ? `Volver a «${nombre}»",
       "button «{guia}»",
-      "button «{children}»",
-      "button «{children}» #2"
+      "button «{children}»"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
       "Boton «→anotar»",

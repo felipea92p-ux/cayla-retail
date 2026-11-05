@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Boton } from "@/components/ui/campos";
 import type { PestanaDeTicket } from "@/lib/tickets-abiertos-reglas";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 /**
  * Antes de cerrar la caja con tickets que tienen prendas (Felipe, 2026-10-25, pregunta 19): al cerrar la caja la espera se vacía
@@ -40,7 +41,7 @@ export function TicketsSinCobrarModal({ tickets, onSeguir, onClose }: { tickets:
             </Boton>
             <Boton
               type="button"
-              peso="peligro"
+              peso="primario"
               onClick={() => {
                 onSeguir();
                 cerrar();
@@ -78,14 +79,15 @@ export function DescartarTicketModal({
     >
       {(cerrar) => (
         <>
-          <p className="text-sm text-tinta/70">Se pierden las prendas y todo lo que ya se había anotado para este cliente. No se puede deshacer.</p>
+          <p className="text-sm text-tinta/70">Se pierden las prendas y todo lo que ya se había anotado para este cliente.</p>
+          <AvisoNoSeDeshace className="mt-4" />
           <PieAcciones className="mt-5">
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="button"
-              peso="peligro"
+              peso="primario"
               onClick={() => {
                 onDescartar();
                 cerrar();

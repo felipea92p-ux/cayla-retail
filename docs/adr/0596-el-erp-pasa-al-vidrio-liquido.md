@@ -90,3 +90,30 @@ mismo con datos distintos. Una pieza que no calce sigue pasando por Felipe, pero
 SE ROMPE SI: una pantalla nueva nace con tarjetas de papel sólido o con su propio vidrio en vez de las recetas; o si alguien vuelve a
 abrir maquetas de vidrio sin que Felipe lo pida.
 
+## Actualización 2026-11-05 — una sola hoja, y lo que no se deshace va en negro
+
+Felipe, mirando la lámina que comparaba Retail con Dynamic, preguntó por qué dos hojas se veían distintas y pidió «Anular» en negro, también en
+Retail, para que los dos sistemas queden iguales.
+
+DECIDÍ: la hoja es una sola (se fue `.hoja-serena:has(.btn-peligro)`). La acción principal de una hoja de confirmación es negra, aunque anule o
+borre (`peso="primario"`), y `<AvisoNoSeDeshace />` queda como la señal, justo sobre los botones y solo donde es verdad. `btn-peligro` pasa a la gota
+con letra en rojo profundo y queda para lo que abre la confirmación, va en una fila o convive con «Guardar». «Cerrar caja» y el paso final de Cambios y
+Devoluciones pasan al ahumado; `BotonRojo` se fue, porque `BotonPrincipal` hacía lo mismo. El rojo avisa; no se aprieta. Ya no hay receta de vidrio
+rojo: `--gota-roja-*` queda solo para el ícono de lo urgente en Proveedores. El borde de lo que se escribe (`.caja-campo-input`, `.buscador`,
+`.marco-buscador`, `.combo-pastilla`, `.casilla-input`, `.fin-control`) vuelve a pleno.
+
+DESCARTÉ: el rojo de marca casi lleno (96 → 100 %), que se reconoce como rojo pero pasa con poco margen (4.52:1) y casi no se ve vidrio; y el rojo
+profundo de vidrio (78 → 94 %), que pasa bien pero sobre papel se ve café y no se reconoce como alerta. También descarté dejar el negro sin aviso:
+sin él, «Aprobar» y «Anular» se ven iguales y quien aprueba toda la mañana puede anular por costumbre.
+
+POR QUÉ: la letra crema sobre el rojo de vidrio daba de 2.87:1 a 4.26:1 en claro (el mínimo es 4.5:1), y al pasar el mouse el negro daba 4.12:1. El
+borde al 80 % daba 2.64:1 (el mínimo es 3:1). Nadie lo veía: `tema-tokens.test.ts` mide tokens planos y `tema:auditar` solo suma `background-color`.
+Ahora `lib/vidrio-contraste.test.ts` compone cada tramo del degradado sobre la página, la tarjeta y la hoja, en los dos temas; `--ahumado-hover` subió
+de 74 → 92 % a 78 → 94 %, y `--gota-peligro-*` lleva menos crema en oscuro para que el rojo se lea. Sobre el vidrio de la hoja la letra da 12.68:1 o
+más, así que volver a papel no hacía falta para leer.
+
+SE ROMPE SI: una hoja nueva anula o elimina y nace sin su aviso (la prueba lo detecta si el botón dice «Anulando…», «Eliminando…» o «Borrando…»; otro
+verbo no lo ve), o si el aviso se pone donde sí se puede volver a hacer y deja de creerse.
+
+Revierte en Retail: «Lo peligroso, rojo desde el principio» (ADR-0358, 2026-10-07), la hoja que vuelve a papel (esta ADR, 2026-10-31) y la gota roja de
+«Cerrar caja» (2026-11-02). Dynamic adopta lo mismo al migrar sus piezas.

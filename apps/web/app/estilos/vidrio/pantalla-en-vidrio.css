@@ -81,7 +81,7 @@
    `background-color`, nunca `background`: la flecha de `.fin-desplegable` es su `background-image`. La casilla de la planilla de Tiendas
    (`.cfg-casilla`) ya tiene el suyo, en píldora (campos-y-botones.css). */
 .pantalla-en-vidrio .fin-control:not(.cfg-casilla > *) {
-  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-color: var(--color-borde-control);
   border-radius: 14px;
   background-color: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);

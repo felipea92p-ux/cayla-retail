@@ -37,6 +37,9 @@
   /* ---------- la gota: lo que haces o donde estás (botón secundario, opción elegida, fila activa) ---------- */
   --gota-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 58%, transparent), color-mix(in srgb, var(--color-vidrio) 22%, transparent));
   --gota-fondo-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 78%, transparent), color-mix(in srgb, var(--color-vidrio) 40%, transparent));
+  /* La gota de lo peligroso (`btn-peligro`, la letra en rojo profundo): en claro es la gota de siempre; en oscuro, menos crema, o el rojo no se lee. */
+  --gota-peligro-fondo: var(--gota-fondo);
+  --gota-peligro-encima: var(--gota-fondo-encima);
   /* La gota que marca dónde estás (menú, lista): más llena, para que se vea desde lejos. */
   --gota-marca: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 92%, transparent), color-mix(in srgb, var(--color-vidrio) 60%, transparent));
   --gota-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 95%, transparent),
@@ -56,7 +59,8 @@
 
   /* ---------- el ahumado: el botón principal y la elegida en una fila de píldoras ---------- */
   --ahumado-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 72%, transparent), color-mix(in srgb, var(--color-tinta) 93%, transparent));
-  --ahumado-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 92%, transparent));
+  /* Al pasar el mouse, rojo profundo del 78 al 94 %: al 74 % la letra daba 4.12:1 en su tramo de arriba (lo mide lib/vidrio-contraste.test.ts). */
+  --ahumado-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 78%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 94%, transparent));
   --ahumado-borde: color-mix(in srgb, var(--color-tinta) 55%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --ahumado-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 45%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 8%, transparent),
@@ -67,17 +71,9 @@
   --ahumado-denso-borde: color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --ahumado-denso-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 35%, transparent),
     0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
-  /* Lo peligroso es vidrio rojo: no se confunde, y tampoco es un bloque sólido. */
-  --rojo-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 70%, transparent), color-mix(in srgb, var(--color-rojo) 92%, transparent));
-  --rojo-vidrio-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 94%, transparent));
-  /* La GOTA ROJA: la acción que cierra algo y mueve plata o stock de verdad («Cerrar caja», «Confirmar cambio», «Registrar devolución»).
-     Más llena que `btn-peligro` (82→96 %, no 70→92 %): es LA acción de esa pantalla. Nació en vidrio/caja.css (`--caja-gota-roja-*`, Felipe
-     2026-11-02) y se mudó aquí al llegar a Cambios y Devoluciones. En oscuro es la MISMA receta: el rojo se aclara solo (tema.css) y la letra
-     va en `--color-crema`, que allí es el negro cálido. Contraste medido de la letra en crema, a media altura de la gota (≈89 %) sobre el
-     fondo de la pantalla: claro 4.1:1 (3.6:1 arriba, 4.5:1 abajo; el rojo macizo daba 4.8:1); oscuro 5.3:1. */
+  /* La GOTA ROJA ya no es un botón (Felipe 2026-11-05): la acción principal de una hoja es negra y lo que no se deshace lo dice un aviso con palabras
+     (`AvisoNoSeDeshace`). Queda como señal: el ícono de lo urgente en Proveedores, que no lleva letra. El rojo avisa; no se aprieta. */
   --gota-roja-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 82%, transparent), color-mix(in srgb, var(--color-rojo) 96%, transparent));
-  --gota-roja-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 82%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 96%, transparent));
-  --gota-roja-borde: color-mix(in srgb, var(--color-rojo) 70%, transparent);
   --gota-roja-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 40%, transparent),
     0 10px 22px -10px color-mix(in srgb, var(--color-rojo) 70%, transparent);
 
@@ -365,6 +361,8 @@
 
     --gota-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 15%, transparent), color-mix(in srgb, var(--color-tinta) 5%, transparent));
     --gota-fondo-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 22%, transparent), color-mix(in srgb, var(--color-tinta) 10%, transparent));
+    --gota-peligro-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 8%, transparent), color-mix(in srgb, var(--color-tinta) 3%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+    --gota-peligro-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 10%, transparent), color-mix(in srgb, var(--color-tinta) 5%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --gota-marca: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 18%, transparent), color-mix(in srgb, var(--color-tinta) 9%, transparent));
     --gota-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 22%, transparent), 0 6px 14px -8px var(--color-sombra);
 
@@ -374,9 +372,8 @@
     --pozo-encendido-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 16%, transparent), 0 10px 22px -12px var(--color-sombra);
 
     --ahumado-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 74%, transparent), color-mix(in srgb, var(--color-tinta) 92%, transparent));
-    --ahumado-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 74%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 92%, transparent));
+    --ahumado-hover: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo-profundo) 78%, transparent), color-mix(in srgb, var(--color-rojo-profundo) 94%, transparent));
     --ahumado-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 60%, transparent), 0 8px 18px -10px var(--color-sombra);
-    --rojo-vidrio-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 74%, transparent), color-mix(in srgb, var(--color-rojo) 92%, transparent));
 
     --lente-fondo: linear-gradient(145deg, color-mix(in srgb, var(--color-tinta) 18%, transparent), color-mix(in srgb, var(--color-tinta) 5%, transparent));
     --lente-luz: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 18%, transparent);

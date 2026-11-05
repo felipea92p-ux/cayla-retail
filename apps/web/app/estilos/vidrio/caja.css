@@ -8,11 +8,11 @@
        640 px), con los mismos tres tonos por `data-nivel` —vidrio claro, ahumado de tinta, ahumado de rojo profundo— y SIN la bajada: lo
        que decía va en el `title` del botón (BarraCierreCaja.tsx) y se sigue leyendo en voz alta (queda oculta solo a la vista).
      · «Cerrar caja» (`.cc-boton`: el de la cabecera y el de la barra; y el cuadrado «Cerrar» de la barra del celular, `.cc-cuadrado-cerrar`),
-       la gota roja: rojo al 82→96 %, borde de rojo al 70 % y la luz arriba. En las barras de nivel 1 y 2, la gota de crema con la letra en
-       tinta o en rojo profundo.
+       el ahumado de todo botón principal (Felipe 2026-11-05: antes, la gota roja; el rojo avisa y no se aprieta). En las barras de nivel 1 y 2,
+       la gota de crema con la letra en tinta o en rojo profundo.
    La persiana de «Caja cerrada» es diseño propio (ADR-0301) y no se toca. Sin capa, como las demás piezas de vidrio: le gana a
    caja-cierre.css, a caja-comparativa.css y a las utilidades. El ahumado de Caja, que falta en vidrio/recetas.css, vive aquí, en `--caja-*`,
-   hasta que se mude allá; la gota roja de 82→96 % ya se mudó (`--gota-roja-*`, 2026-11-02). Movimiento: el de siempre (la barra cambia
+   hasta que se mude allá. Movimiento: el de siempre (la barra cambia
    de tono en 400 ms, el destello al subir de nivel), sin rebote; todo se apaga con `prefers-reduced-motion` (caja-cierre.css).
    ===================================================================== */
 
@@ -48,20 +48,20 @@
   :root[data-tema="oscuro"] .cmp-sobre { color: color-mix(in srgb, var(--color-crema) 70%, transparent); }
 }
 
-/* ---------- 2 · «Cerrar caja»: la gota roja ---------- */
+/* ---------- 2 · «Cerrar caja»: el ahumado del botón principal ---------- */
 .cc-boton,
 .cc-cuadrado-cerrar {
-  border: 1px solid var(--gota-roja-borde);
-  background: var(--gota-roja-fondo);
+  border: 1px solid var(--ahumado-borde);
+  background: var(--ahumado-fondo);
   color: var(--color-crema);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  box-shadow: var(--gota-roja-luz);
+  box-shadow: var(--ahumado-luz);
 }
 .cc-boton { border-radius: 999px; }
 @media (hover: hover) {
   .cc-boton:hover,
-  .cc-cuadrado-cerrar:hover { background: var(--gota-roja-hover); }
+  .cc-cuadrado-cerrar:hover { background: var(--ahumado-hover); }
 }
 
 /* ---------- 3 · La barra de cierre: B · Isla ---------- */

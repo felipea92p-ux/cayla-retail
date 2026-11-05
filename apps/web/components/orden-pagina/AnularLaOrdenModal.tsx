@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
@@ -72,12 +72,13 @@ export function AnularLaOrdenModal({ datos, onClose }: { datos: OrdenPagina; onC
         )}
         <CampoTexto id="anular-orden-motivo" etiqueta="Por qué la anulas" pie="Opcional · queda escrito en la orden" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={200} />
         <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
+        <AvisoNoSeDeshace />
         <div className="pie-hoja-fijo">
           <div className="pie-acciones border-t border-sand pt-3">
             <Boton type="button" onClick={onClose}>
               Volver
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={cargando} textoCargando="Anulando…" disabled={!responsable.listo || afuera !== null} title={afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anulando…" disabled={!responsable.listo || afuera !== null} title={afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}>
               Anular orden
             </Boton>
           </div>

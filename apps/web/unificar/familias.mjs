@@ -505,7 +505,7 @@ export const DECISIONES = {
     "fecha": "2026-10-07",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/boton.md",
-    "elegida": "A · rojo desde el principio (btn-peligro, <Boton peso=\"peligro\">, fila-alerta en la barra de vidrio), elegida mirando el 2026-10-07",
+    "elegida": "La principal de una confirmación, negra con AvisoNoSeDeshace si no se deshace; lo demás, gota con letra roja (btn-peligro, <Boton peso=\"peligro\">, fila-alerta en la barra de vidrio). Elegida mirando el 2026-10-07; cambiada el 2026-11-05",
     "pieza": "components/ui/campos.tsx",
     "tambien": ["app/globals.css"],
     "firmas": [

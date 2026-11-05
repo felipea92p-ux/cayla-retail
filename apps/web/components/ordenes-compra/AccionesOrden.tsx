@@ -34,6 +34,7 @@ import {
 import { anularOrdenCompra } from "@/lib/ordenes-compra-acciones";
 import { textoParaBase } from "@/lib/orden-compra-alta";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
 // solo mientras está «generada». Con papel (fase 2, actividad 4) se suma «Registrar la compra» —la acción principal— mientras la orden esté
@@ -239,7 +240,7 @@ function AnularOrdenModal({
         >
           <p className="text-sm text-tinta/75">
             La orden queda anulada: deja de contar en lo pedido y su número no vuelve a usarse. No se borra; queda a la vista con quién la
-            anuló, cuándo y por qué. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+            anuló, cuándo y por qué.
           </p>
           {/* El título va en el bloque (`titulo`, con su marca de la guía): la caja hundida deja su etiqueta solo para el lector. */}
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
@@ -259,11 +260,12 @@ function AnularOrdenModal({
             </CampoGuiado>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." />
+          <AvisoNoSeDeshace />
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Anulando…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Anular orden
             </Boton>
           </div>

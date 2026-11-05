@@ -13,7 +13,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Boton } from "@/components/ui/campos";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { textoQuePasaAlRevertir } from "@/lib/orden-pagina-reglas";
 
 // Anular y revertir una orden (ADR-0133, F2: se conservan tal cual estaban en `OrdenesProduccionV2.tsx`; solo
@@ -68,6 +68,7 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
           <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela el lote" className={campoTexto} />
         </div>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
+        <AvisoNoSeDeshace />
         <div className="pie-acciones pt-1">
           <button type="button" onClick={onClose} className="btn-cayla btn-secundario">
             Volver

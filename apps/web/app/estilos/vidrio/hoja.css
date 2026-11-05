@@ -3,8 +3,9 @@
    cajón (`<Cajon>`), salvo la cámara, el ticket y «Mi perfil» (que es el vidrio «Completo», perfil-vidrio.css).
 
    Vidrio al 70 % con su borde de luz, su sombra larga y 32 px de radio; la × es una gota; el título en serif sube un punto; la hoja entra
-   desenfocada y su contenido se enfoca en cascada (el movimiento de Mi perfil, una vez y sin rebote). Una hoja con algo peligroso (un
-   botón rojo) vuelve a papel: una decisión seria no se mira a través de nada.
+   desenfocada y su contenido se enfoca en cascada (el movimiento de Mi perfil, una vez y sin rebote). Una sola hoja (Felipe 2026-11-05): la que
+   lleva una acción que no se deshace ya no vuelve a papel. Lo dice su aviso, con palabras (`AvisoNoSeDeshace`, ui/Aviso.tsx); la letra se lee igual
+   sobre el vidrio (12.68:1 o más, lib/vidrio-contraste.test.ts).
 
    POR QUÉ EL DESENFOQUE LO HACE EL VELO Y NO LA HOJA (2026-10-31): un `backdrop-filter` en la hoja la vuelve el bloque contenedor de todo
    `position: fixed` de adentro, y la hoja es además la que hace scroll: la lista de un combo (el Responsable con que se firma casi todo,
@@ -40,11 +41,6 @@
 .hoja-serena > h2.font-display { font-size: 27px; line-height: 1.1; }
 @media (max-width: 639.98px) {
   .hoja-serena > h2.font-display { font-size: 25px; }
-}
-/* Una hoja con algo irreversible (un botón rojo) vuelve a papel. */
-.hoja-serena:has(.btn-peligro) {
-  background: color-mix(in srgb, var(--color-papel) 96%, transparent);
-  --fondo-hoja: var(--color-papel);
 }
 /* Donde se lee en serio (una tabla dentro de la hoja), la lámina casi papel: el contraste no depende de lo que hay detrás. */
 .hoja-serena :is(table, [role="table"]) { background: var(--lamina-fondo); }

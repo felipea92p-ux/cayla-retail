@@ -16,6 +16,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { estadoVisible, etiquetaMetodo, etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
 import { cantidadTexto, type UnidadInsumo } from "@/lib/insumos-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Detalle de un comprobante de Producción (ADR-0133, F4b): sus líneas, sus pagos y su saldo. Lo leído aquí es del líder por RLS. Anular
 // pide un motivo y solo se puede si no hay pagos (anular dejaría dinero sin respaldo); nunca se borra.
@@ -175,6 +176,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
             <div className="anim-entra space-y-2.5 rounded-xl border border-sand bg-crema p-3">
               <CampoTexto etiqueta="Motivo de la anulación" placeholder="Por qué se anula" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />
               <ComboResponsable control={responsable} deshabilitado={cargando} />
+              <AvisoNoSeDeshace />
               <div className="flex gap-2">
                 <Boton peso="discreto" type="button" onClick={() => setAnulando(false)}>
                   Volver

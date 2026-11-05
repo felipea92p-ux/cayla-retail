@@ -103,7 +103,7 @@
   min-height: 2.25rem;
   padding: 0 0.875rem;
   border-radius: 999px;
-  border-color: color-mix(in srgb, var(--color-borde-control) 70%, transparent);
+  border-color: var(--color-borde-control);
   background: var(--gota-fondo);
   box-shadow: var(--gota-luz);
   font-size: 13px;

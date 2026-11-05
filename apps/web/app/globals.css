@@ -598,8 +598,8 @@ body {
   }
   .btn-peligro {
     background: transparent;
-    color: var(--color-rojo);
-    border-color: color-mix(in oklab, var(--color-rojo) 30%, transparent);
+    color: var(--color-rojo-profundo);
+    border-color: var(--color-borde-control);
   }
   @media (hover: hover) {
     .btn-peligro:hover:not(:disabled) {

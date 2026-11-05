@@ -6,8 +6,8 @@
      es un pozo tallado en el vidrio. Al escribir (o con la lista abierta) sube como la gota sin volverse sólido: se ilumina por arriba,
      gana su sombra afuera y deja ver lo de atrás. El hilo rojo de abajo (campos-y-casillas.css) se queda: dice dónde estás escribiendo.
      El borde sigue siendo el de control (3:1, ADR-0516).
-   · El BOTÓN es una píldora. El secundario es la gota; el principal, vidrio ahumado de tinta (más denso abajo, para no verse gris); lo
-     peligroso, vidrio rojo. Nada sólido. Lo de siempre se queda: el negro pasa a rojo profundo, sube 2 px, cruza la luz (`.mov-boton`) y
+   · El BOTÓN es una píldora. El secundario es la gota; el principal, vidrio ahumado de tinta (más denso abajo, para no verse gris), también
+     cuando anula o borra; lo peligroso que no es la acción principal, la gota con letra roja. Nada sólido. Lo de siempre se queda: el negro pasa a rojo profundo, sube 2 px, cruza la luz (`.mov-boton`) y
      se encoge al presionar.
    ===================================================================== */
 
@@ -30,7 +30,7 @@
    se veía como un bloque opaco (Felipe 2026-11-02: «debe aplicarse para todo el ERP»). El hilo rojo, que es su `background-image`, se queda. Al
    escribir sube a vidrio claro, sin volverse sólido. */
 .caja-campo-input {
-  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-color: var(--color-borde-control); /* pleno: al 80 % bajaba a 2.64:1 y lo único que identifica este control es su borde (ADR-0516) */
   border-radius: 14px;
   background-color: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
@@ -61,7 +61,7 @@
    El del mostrador (60 px) conserva su alto y toma la misma piel. */
 .buscador {
   border-radius: 999px;
-  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-color: var(--color-borde-control);
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
   transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
@@ -92,17 +92,20 @@
   background: transparent;
   border-color: var(--placa-borde);
 }
+/* Lo peligroso que NO es la acción principal de la hoja (Felipe 2026-11-05): abre una confirmación, va en una fila o convive con «Guardar». Es la
+   gota con la letra roja: no puede haber dos botones negros en un pie. La acción principal de una confirmación es `btn-primario`, y si no se deshace
+   lleva `AvisoNoSeDeshace` (ui/Aviso.tsx). */
 .btn-peligro {
-  background: var(--rojo-vidrio-fondo);
-  border-color: color-mix(in srgb, var(--color-rojo) 70%, transparent);
-  color: var(--color-crema);
-  box-shadow: var(--ahumado-luz);
+  background: var(--gota-peligro-fondo);
+  border-color: var(--color-borde-control);
+  color: var(--color-rojo-profundo);
+  box-shadow: var(--gota-luz);
 }
 @media (hover: hover) {
   .btn-primario:hover:not(:disabled) { background: var(--ahumado-hover); border-color: color-mix(in srgb, var(--color-rojo-profundo) 70%, transparent); }
   .btn-secundario:hover:not(:disabled) { background: var(--gota-fondo-encima); }
   .btn-sutil:hover:not(:disabled) { background: var(--gota-fondo); }
-  .btn-peligro:hover:not(:disabled) { background: var(--rojo-vidrio-hover); }
+  .btn-peligro:hover:not(:disabled) { background: var(--gota-peligro-encima); }
 }
 
 /* ---------- las píldoras que filtran o eligen: «A · Gotas, la puesta ahumada» (Felipe 2026-10-31, buscador-filtros-vidrio-2026-10/) ----------
@@ -182,7 +185,7 @@
    El interruptor: la pista es un pozo y la perilla una gota; encendido, la pista se vuelve ahumada. El crecimiento del fondo, el ✓ que se
    traza y la perilla que se estira al presionar no cambian. */
 .casilla-input {
-  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-color: var(--color-borde-control);
   background: var(--pozo-fondo);
   box-shadow: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 18%, transparent);
 }

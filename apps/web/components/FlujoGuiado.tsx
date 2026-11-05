@@ -224,7 +224,7 @@ export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; ch
 // con aire entre las letras (`label-cayla`) y, si hay un monto, a la derecha y en la serif de la
 // casa — la etiqueta dice qué se hace; el monto, cuánto. Sin monto, la etiqueta va centrada.
 // Su cara es vidrio en píldora (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): el principal, el ahumado de
-// `btn-primario` (vidrio/campos-y-botones.css); el rojo, la gota roja de «Cerrar caja» (`posv-boton-rojo`, vidrio/posventa.css).
+// `btn-primario` (vidrio/campos-y-botones.css), también en el paso que mueve stock o plata de verdad (Felipe 2026-11-05: antes, un botón rojo).
 // Mientras espera (ADR-0358, ronda 12): la etiqueta pasa a `textoCargando` sin cambiar el ancho, corre el hilo y el botón se apaga, como en
 // todo botón que guarda (`Boton`); el monto se queda a la vista.
 type Espera = { cargando?: boolean; textoCargando?: string };
@@ -272,23 +272,6 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       className="btn-cayla btn-secundario h-12 gap-2 px-5"
     >
       {children}
-    </button>
-  );
-}
-
-/** El único rojo del flujo: la acción que mueve stock o plata de verdad. */
-export function BotonRojo({ onClick, children, disabled = false, monto, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string } & Espera) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || cargando}
-      aria-busy={cargando || undefined}
-      className={`posv-boton-rojo mov-boton relative flex h-12 items-center gap-8 rounded-full px-6 disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
-    >
-      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
-        {children}
-      </ContenidoBoton>
     </button>
   );
 }

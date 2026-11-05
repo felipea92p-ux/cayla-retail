@@ -72,6 +72,7 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { CalendarClock, Laptop } from "lucide-react";
 import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
 import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b), y la lista de fijos de Configuración,
 // dibujadas como el spike (docs/maquetas/finanzas-2026-09/, `vistaFijos`, `tablaActivos`, `cfgFijos`).
@@ -922,6 +923,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
           <InputFin id="activo-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder={accion === "baja" ? "Se malogró la pantalla" : "Se registró dos veces"} />
         </CampoFin>
         <ComboResponsable control={responsable} deshabilitado={guardando} />
+        <AvisoNoSeDeshace className="mt-4" />
         <div className="fin-botones mt-4">
           <button type="button" className="btn-cayla btn-secundario" onClick={() => setAccion(null)} disabled={guardando}>
             Volver

@@ -370,7 +370,7 @@
   flex: 1 1 auto;
   min-width: 0;
   height: 40px;
-  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-color: var(--color-borde-control);
   background: transparent;
   box-shadow: none;
   transition: box-shadow 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
@@ -384,7 +384,7 @@
 }
 .marco-cabecera .combo-pastilla {
   min-height: 40px;
-  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  border-color: var(--color-borde-control);
   background: transparent;
   box-shadow: none;
 }
