@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
@@ -16,7 +16,7 @@ import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
 import { SIZES_TARJETA_PRODUCTOS as SIZES_FOTO, SIZES_VISTA_RAPIDA } from "@/lib/fotos-tamanos";
-import { stockDeTarjeta, MENSAJE_SIN_RESULTADOS, SIN_EXISTENCIAS, type ExistenciasProducto } from "@/lib/productos-stock";
+import { lugaresDeStock, stockDeTarjeta, MENSAJE_SIN_RESULTADOS, SIN_EXISTENCIAS, type ExistenciasProducto } from "@/lib/productos-stock";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type LugaresDeModelo, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
@@ -43,7 +43,8 @@ import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
  * La tarjeta es «A · Catálogo de moda» (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/): la foto al aire, como en Vender
  * (sin tarjeta de papel; esquinas de 18 px y su sombra, sube al pasar el mouse), con solo sus insignias encima; debajo, tres renglones
  * apretados: el nombre y el precio (sin «.00»), qué es y de qué color, y los puntos de color con el stock tenue. Marca · proveedor y
- * lo de la sede van en el `title` del stock (y en la vista rápida). Los estilos: `.prod-*` en app/estilos/vidrio/pantalla.css.
+ * lo de la sede van en el `title` del stock (y en la vista rápida). Una cuarta línea dice en qué sede está cada unidad (Felipe 2026-11-05).
+ * Los estilos: `.prod-*` en app/estilos/vidrio/pantalla.css.
  */
 
 export function ProductosGrilla({
@@ -207,6 +208,8 @@ function TarjetaProducto({
   const enSede = stock === "error" ? "error" : stock ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
   // El stock tenue de la tarjeta: solo pesa si es poco o nada (las alertas de la red); marca · proveedor y lo de la sede, en su title.
   const enStock = stockDeTarjeta(producto, { existencias, enSede, sede });
+  // Y en qué sede está, a la vista: Trujillo, Arequipa, Lima y el Taller, cada uno con su nombre (Felipe 2026-11-05).
+  const dondeEsta = lugaresDeStock(existencias, sede, producto.stockTotal);
   // El precio de la tienda elegida arriba (su precio propio, si tiene) y, si una campaña lo rebaja hoy, lo que cobra la caja (ADR-0472).
   const precios = variantesQueSeVenden(producto.variantes).map((v) => ({ id: v.varianteId, precio: preciosAqui?.[v.varianteId] ?? v.precio }));
   const deHoy = campanasHoy ? precioDeHoy(precios, (id) => campanasHoy[id]) : null;
@@ -292,6 +295,19 @@ function TarjetaProducto({
             {enStock.texto}
           </span>
         </div>
+        {dondeEsta && (
+          <p className="prod-lugares">
+            {dondeEsta.map((l, i) => (
+              <Fragment key={l.lugar}>
+                {/* El separador va fuera de la pieza que no se parte: ahí es donde la línea puede bajar en una tarjeta angosta. */}
+                {i > 0 && " · "}
+                <span className="prod-lugar" data-cero={l.n === 0 || undefined}>
+                  {l.lugar} <b>{l.n.toLocaleString("es-PE")}</b>
+                </span>
+              </Fragment>
+            ))}
+          </p>
+        )}
       </div>
 
       {vistaRapida && (

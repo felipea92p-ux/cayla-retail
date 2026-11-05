@@ -14,13 +14,15 @@
  *     sedes y el Taller, rotulado «Stock total»; del 28-09 al 02-11 la tarjeta dijo lo de la sede elegida arriba
  *     («7 aquí») y aparte el resto (`lineasDeStock`, que siguen usando la Tabla y la vista rápida). Desde la tarjeta
  *     «A · Catálogo de moda» (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/) la Grilla dice el total, tenue
- *     («34 en stock»), y lo de la sede pasa a su `title` (`stockDeTarjeta`). Las ALERTAS siguen mirando la red, porque
+ *     («34 en stock»), y lo de cada sede va en la línea de abajo (`lugaresDeStock`, Felipe 2026-11-05). Las ALERTAS siguen mirando la red, porque
  *     de ellas sale qué pedirle al proveedor.
  *  3. «Sin stock» no es rojo: con 23 prendas en 0, más de la mitad de la grilla quedaba en rojo y el
  *     rojo dejaba de avisar (MAX_ROJO_POR_PANTALLA = 2). Se dice con la misma palabra que el subtítulo y
  *     el filtro («sin stock»), en un chip neutro. Una descontinuada en 0 dice «Stock total 0»: es un
  *     hecho, no una alerta, y así ninguna tarjeta dice «Sin stock» sin contar en el número de arriba.
  */
+
+import { colorDeSede, type ColorSede } from "./finanzas-telar-reglas";
 
 export type AlertaStock = "sin_stock" | "bajo" | null;
 
@@ -203,6 +205,31 @@ export type StockDeTarjeta = {
   /** El `title`: de quién es y quién lo trae, lo de la sede elegida y el resto. Renglones separados por «\n». */
   titulo: string;
 };
+
+/** Un lugar en la línea de la tarjeta: «Trujillo 3». `n` es lo que se puede vender ahí. */
+type LugarDeStock = { lugar: string; n: number };
+
+const CIUDAD_DE_SEDE: Partial<Record<ColorSede, string>> = { tru: "Trujillo", aqp: "Arequipa", lim: "Lima" };
+
+/** La ciudad con todas sus letras: en producción las tiendas se llaman «Tienda TRU», «Tienda AQP» y «Tienda LIM», y Felipe pidió leer «Trujillo», «Arequipa» y «Lima». Reconoce la sigla con `colorDeSede`, la misma regla de Finanzas; una tienda de otra ciudad queda con su nombre. */
+const lugarDeSede = (sede: string) => CIUDAD_DE_SEDE[colorDeSede({ nombre: sede })] ?? corta(sede);
+
+/**
+ * ¿Dónde está? La cuarta línea de la tarjeta, a la vista (Felipe 2026-11-05, «ya no me sale lo que está disponible en Trujillo o en
+ * Arequipa», y «que especifique si es en Lima también»): el `title` no alcanza, porque en el celular no existe y con el mouse hay que
+ * ir a buscarlo. La sede elegida arriba va primero aunque tenga 0 (es la respuesta a «¿la tengo aquí?»); después, TODA tienda que tenga,
+ * de más a menos y siempre con su nombre (nunca «2 sedes más»), y al final el Taller, porque el total de la tarjeta también lo cuenta.
+ * `null` si no se pudo leer lo de las sedes, o si no hay nada en ninguna parte (ya lo dice «Sin stock»).
+ */
+export function lugaresDeStock(existencias: ExistenciasProducto | null, sede: string, stockTotal: number): LugarDeStock[] | null {
+  if (!existencias) return null;
+  const otras = [...existencias.otras].sort((a, b) => b.disponible - a.disponible || a.sede.localeCompare(b.sede, "es"));
+  if (stockTotal === 0 && existencias.aqui === 0 && otras.length === 0 && existencias.enTaller === 0) return null;
+  const lugares: LugarDeStock[] = [{ lugar: lugarDeSede(sede) || "Aquí", n: existencias.aqui }];
+  for (const o of otras) lugares.push({ lugar: lugarDeSede(o.sede), n: o.disponible });
+  if (existencias.enTaller > 0) lugares.push({ lugar: "Taller", n: existencias.enTaller });
+  return lugares;
+}
 
 /** «Marca · Proveedor», con lo que falta dicho con palabras (ADR-0283: un producto puede crearse sin los dos). */
 function marcaYProveedor(marca: string | null, proveedor: string | null): string {
