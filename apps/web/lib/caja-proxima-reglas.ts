@@ -106,6 +106,11 @@ export function estadoDeCaja(c: CajaCayla): { texto: string; tono: TonoCaja } | 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+/** Lo que hay de verdad en las cuentas: `saldoHoy` ya viene sin lo de Claudia (ADR-0560), así que para comparar con los saldos o repartirlo se le devuelve. */
+export function loQueHayEnCuentas(c: Pick<CajaCayla, "saldoHoy" | "deClaudia">): number {
+  return r2(c.saldoHoy + c.deClaudia);
+}
+
 /** `iso` + `n` días. */
 export function sumarDias(iso: string, n: number): string {
   const [a, m, d] = iso.slice(0, 10).split("-").map(Number) as [number, number, number];

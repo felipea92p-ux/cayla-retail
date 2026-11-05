@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
-import { estadoDeCaja, type CajaCayla, type CajaProxima } from "./caja-proxima-reglas";
+import { estadoDeCaja, loQueHayEnCuentas, type CajaCayla, type CajaProxima } from "./caja-proxima-reglas";
 import { debesPronto, leerResumen } from "./resumen-finanzas-reglas";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { desgloseDeTienes, tresRespuestas } from "./tres-respuestas-reglas";
@@ -11,7 +11,7 @@ import { desgloseDeTienes, tresRespuestas } from "./tres-respuestas-reglas";
 const texto = (s: string) => s.replace(/ /g, " ");
 const cajaCayla = (extra: Partial<CajaCayla> = {}): CajaProxima =>
   ({
-    tipo: "cayla", hoy: "2026-10-15", hasta: "2026-10-29", saldoHoy: 21500, minimo: 15000, entra: 0, sale: 0, queda: 21500, puntos: [], porSemana: false,
+    tipo: "cayla", hoy: "2026-10-15", hasta: "2026-10-29", saldoHoy: 21500, deClaudia: 0, minimo: 15000, entra: 0, sale: 0, queda: 21500, puntos: [], porSemana: false,
     mayores: [], bajaDelMinimo: null, sinPlata: null, masBajo: null, luego: null, titular: "", tono: "verde", provisional: false, faltan: [], sinPlanilla: false,
     ...extra,
   }) as unknown as CajaProxima;
@@ -36,8 +36,9 @@ describe("tresRespuestas", () => {
     expect(armar(cajaCayla())[0].chips).toEqual([{ texto: "Te alcanza", tono: "verde" }]);
   });
 
-  it("si se le debe algo a CLAURE, «¿Cuánto tienes?» reparte lo que tienes entre CAYLA y CLAURE (la cifra no cambia)", () => {
-    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: "/finanzas/dinero", hrefPorPagar: "/finanzas/dinero/por-pagar", claure: { saldo: 500 } });
+  // Como llega de la base: `saldo_hoy` ya viene sin lo de Claudia (20261029160000) y `de_claudia` dice cuánto se le restó.
+  it("si se le debe algo a CLAURE, «¿Cuánto tienes?» es lo que hay en las cuentas, y lo reparte entre CAYLA y CLAURE sin restarlo otra vez", () => {
+    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla({ saldoHoy: 21000, deClaudia: 500 }), deja: DEJA, hrefDinero: "/finanzas/dinero", hrefPorPagar: "/finanzas/dinero/por-pagar", claure: { saldo: 500 } });
     expect(t.valor).toBe(21500);
     expect(t.chips.map((c) => c.texto)).toEqual(["Te alcanza"]);
     expect(t.reparto).toEqual([
@@ -60,7 +61,7 @@ describe("tresRespuestas", () => {
   });
 
   it("lo que se le debe a Claudia pasa de lo que hay: lo de CAYLA sale negativo en el reparto", () => {
-    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla({ saldoHoy: 300 }), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure: { saldo: 500 } });
+    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla({ saldoHoy: -200, deClaudia: 500 }), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure: { saldo: 500 } });
     expect(t.reparto).toEqual([
       { clave: "cayla", nombre: "De CAYLA", monto: -200 },
       { clave: "claure", nombre: "De CLAURE", monto: 500 },
@@ -153,6 +154,12 @@ const conDesglose = (saldoHoy: number, desglose: ReturnType<typeof desgloseDeTie
   tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla({ saldoHoy }), deja: DEJA, hrefDinero: "/finanzas/dinero", hrefPorPagar: "/finanzas/dinero/por-pagar", desglose })[0];
 
 describe("«¿Cuánto tienes?» dice de qué está hecha", () => {
+  it("con plata de CLAURE, las cuentas cuadran con lo que hay y el desglose sigue a la vista", () => {
+    const caja = cajaCayla({ saldoHoy: 98569.56, deClaudia: 1000 }) as CajaCayla;
+    const hay = loQueHayEnCuentas(caja);
+    expect(hay).toBe(99569.56);
+    expect(desgloseDeTienes(HOY_27, hay)).toEqual({ enMano: 42897.04, porAbonar: 56146.12, otros: 526.4 });
+  });
   it("separa lo que está en bancos y cajas de lo que las máquinas todavía no depositan y de los fondos", () => {
     expect(desgloseDeTienes(HOY_27, 99569.56)).toEqual({ enMano: 42897.04, porAbonar: 56146.12, otros: 526.4 });
   });
