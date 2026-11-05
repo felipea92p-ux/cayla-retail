@@ -6,9 +6,10 @@
  *
  *   pnpm --filter web tacto:medir -- [--base-url http://localhost:3010] [/vender,/cambios]
  *
- * Entra con la cuenta del seed (datos inventados). Se niega a correr fuera de localhost.
+ * Entra con la cuenta del seed (datos inventados, la misma de `tema/cuentas.mjs`). Se niega a correr fuera de localhost.
  */
 import { chromium } from "playwright";
+import { CLAVE_LOCAL, CUENTAS } from "../tema/cuentas.mjs";
 
 const args = process.argv.slice(2).filter((a) => a !== "--");
 const i = args.indexOf("--base-url");
@@ -51,8 +52,8 @@ const navegador = await chromium.launch();
 const contexto = await navegador.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
 const page = await contexto.newPage();
 await page.goto(`${BASE}/login`);
-await page.locator("input[type=email], input[name=email]").first().fill("felipe@cayla.local");
-await page.locator("input[type=password]").first().fill("cayla-local");
+await page.locator("input[type=email], input[name=email]").first().fill(CUENTAS.find((c) => c.clave === "admin").correo);
+await page.locator("input[type=password]").first().fill(CLAVE_LOCAL);
 await page.keyboard.press("Enter");
 await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 30000 });
 

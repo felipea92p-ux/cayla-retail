@@ -35,5 +35,5 @@ Felipe: primero se implementa el diseño de Estados financieros; después, las m
 ## Antes del PR de esta rama
 
 - [x] `/chaos` en Registrar gasto (semilla 611, informe en `.chaos/`).
-- [ ] `pnpm --filter web tema:auditar`, que la casilla del PR pide.
+- [x] `pnpm --filter web tema:auditar` en Gastos, Clientes, Rendimiento y Proveedores: lo que señala no viene de esta rama (el hallazgo solo en oscuro es «Pagar vencido» en la vista rápida de un proveedor, 4,24:1). 9 de 28 escenarios no abrieron: necesitan gastos que la base local no tiene, o quedaron viejos (el período «Mes» de Rendimiento).
 - [ ] Menor, de `/chaos`: con el reloj del equipo en otro año, «3/11» toma ese año. Donde hay `max`, sacar el año de ahí.
