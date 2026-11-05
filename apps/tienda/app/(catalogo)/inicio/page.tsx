@@ -10,6 +10,7 @@ import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { OfertasPorCampana } from "@/components/OfertasPorCampana";
+import { PortadaTresPaneles } from "@/components/PortadaTresPaneles";
 import { SeccionClub } from "@/components/SeccionClub";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
@@ -25,6 +26,7 @@ import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { piezasDelDesfile } from "@/lib/desfile";
+import { gruposDeLaPortada } from "@/lib/portada-l";
 import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
@@ -47,10 +49,11 @@ export const metadata: Metadata = { title: "Inicio · CAYLA" };
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 /** El Inicio con la tienda elegida (`?sede=`) y, si se eligió, la campaña de las ofertas (`?oferta=`). */
-const hrefInicio = (sede: string | null, oferta: string | null = null) => {
+const hrefInicio = (sede: string | null, oferta: string | null = null, portada: string | null = null) => {
   const q = new URLSearchParams();
   if (sede) q.set("sede", sede);
   if (oferta) q.set("oferta", oferta);
+  if (portada) q.set("portada", portada);
   const s = q.toString();
   return s ? `/inicio?${s}` : "/inicio";
 };
@@ -100,6 +103,10 @@ export default async function Inicio({ searchParams }: Props) {
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
   const hero = heroDelInicio(campana, prendas);
+  // La portada nueva (ADR-0613), solo con `?portada=l` hasta que Felipe la pruebe en su teléfono y la active. Una campaña vigente va primero.
+  const conPortadaL = sp.portada === "l";
+  const portadaL = conPortadaL ? sp.portada : null;
+  const gruposL = conPortadaL && hero.tipo !== "campana" ? gruposDeLaPortada(prendas, elegida, sedes, sede) : [];
   // El diseño de la campaña que anuncia la portada (la misma que la franja): viste el héroe y el sello de sus prendas; sin él, todo como siempre.
   const diseno = await leerDisenoDeCampana(campana?.nombre);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
@@ -122,12 +129,16 @@ export default async function Inicio({ searchParams }: Props) {
       sede={sede}
       actual="inicio"
       filtro={[
-        { nombre: "Todas", href: hrefInicio(null), actual: elegida === null },
-        ...sedes.map((s) => ({ nombre: s.nombre, href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
+        { nombre: "Todas", href: hrefInicio(null, null, portadaL as string | null), actual: elegida === null },
+        ...sedes.map((s) => ({ nombre: s.nombre, href: hrefInicio(claveDeSede(s.nombre), null, portadaL as string | null), actual: elegida?.id === s.id })),
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
-      <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      {gruposL.length > 0 ? (
+        <PortadaTresPaneles grupos={gruposL} hrefArmar={sede ? `/looks/arma?sede=${encodeURIComponent(sede)}` : "/looks/arma"} />
+      ) : (
+        <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      )}
       {/* Con una campaña vigente la portada es la de la campaña y el desfile baja a su propia sección (ADR-0524); sin campaña, el desfile ES la portada. */}
       {hero.tipo === "campana" && nuevas.length > 0 && (
         <EscenarioDelDesfile
