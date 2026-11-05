@@ -1,4 +1,4 @@
-import { conFotoPrimero, hrefDePrenda, soles, type Prenda } from "./catalogo";
+import { categoriasDe, claveCategoria, conFotoPrimero, hrefDePrenda, soles, type Prenda } from "./catalogo";
 import { lasNuevas } from "./inicio";
 import { hayAlgo, type Tienda } from "./stock";
 
@@ -44,7 +44,7 @@ export const GRUPOS_DE_PORTADA: readonly GrupoElegido[] = [
   [
     { codigo: "CMS-0012", fondo: "#3A1B24", texto: CLARO },
     { codigo: "FAL-0012", fondo: "#D9C7A8", texto: OSCURO },
-    { codigo: "BLZ-0008", fondo: "#123E33", texto: CLARO },
+    { codigo: "CHA-0016", fondo: "#22303A", texto: CLARO },
   ],
 ];
 
@@ -147,4 +147,28 @@ export function gruposDeLaPortada(
   if (salen.length > 0) return salen;
   const sueltas = prendasSueltas(prendas, sede);
   return sueltas ? [sueltas] : [];
+}
+
+export type CategoriaConFoto = { clave: string; nombre: string; foto: string; fondo: string };
+
+/**
+ * Una prenda por categoría, para la fila de categorías (ADR-0613): la más vendida con foto o, si ninguna tiene puesto, la que llegó hace menos.
+ * Sale de lo que hay ahora en la tienda elegida, así que nunca muestra algo agotado. El fondo es el color de esa prenda, muy suave, y una muy
+ * clara sale sobre gris para que se distinga.
+ */
+export function categoriasConFoto(prendas: readonly Prenda[]): CategoriaConFoto[] {
+  return categoriasDe(prendas).flatMap((c) => {
+    const suyas = prendas.filter((p) => claveCategoria(p.categoria) === c.clave && p.fotos[0]);
+    if (suyas.length === 0) return [];
+    const mejor = [...suyas].sort((a, b) => (a.vendidos ?? 99) - (b.vendidos ?? 99) || (a.nuevo?.dias ?? 99) - (b.nuevo?.dias ?? 99))[0];
+    return [{ clave: c.clave, nombre: c.nombre, foto: mejor.fotos[0], fondo: mejor.colores[0]?.hex && !esMuyClara(mejor) ? mejor.colores[0].hex : "#8f8f8c" }];
+  });
+}
+
+/** Las prendas de la sección de abajo: las mismas de la portada, y si son pocas, lo último que llegó. Sin repetir, hasta nueve. */
+export function prendasDeAbajo(prendas: readonly Prenda[], grupos: readonly GrupoDePortada[]): Prenda[] {
+  const porId = new Map(prendas.map((p) => [p.id, p]));
+  const lista = grupos.flatMap((g) => g.prendas.flatMap((x) => porId.get(x.id) ?? []));
+  for (const p of lasNuevas(prendas)) if (!lista.includes(p)) lista.push(p);
+  return lista.slice(0, 9);
 }
