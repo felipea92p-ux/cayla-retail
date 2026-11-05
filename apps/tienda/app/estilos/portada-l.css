@@ -61,3 +61,18 @@
 @media (prefers-reduced-motion: reduce) {
   .pl-p, .pl-im { transition: none; }
 }
+
+/* Debajo de la portada: las categorías con una prenda real, y las prendas de la portada otra vez. */
+.pl-cats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content, 1fr); gap: 6px; overflow-x: auto; padding-block: 14px; border-bottom: 1px solid var(--sand); scrollbar-width: none; }
+.pl-cats::-webkit-scrollbar { display: none; }
+.pl-cat { display: block; padding: 2px 6px; text-align: center; font-size: 13px; white-space: nowrap; }
+.pl-cat span { display: block; width: 62px; height: 62px; margin: 0 auto 5px; overflow: hidden; border-radius: 50%; background: color-mix(in srgb, var(--c) 24%, #f4f2ee); transition: transform .35s ease; }
+.pl-cat img { display: block; width: 100%; height: 100%; object-fit: contain; padding: 6px; mix-blend-mode: multiply; }
+@media (hover: hover) {
+  .pl-cat:hover span { transform: translateY(-3px); }
+}
+.pl-todo { display: grid; place-items: center; padding: 16px; background: var(--hueso); text-align: center; font-size: 15px; font-weight: 500; }
+.pl-todo span { border-bottom: 1px solid currentColor; padding-bottom: 2px; }
+@container tienda (min-width: 960px) {
+  .pl-grilla > :nth-child(n + 9) { display: none; }
+}

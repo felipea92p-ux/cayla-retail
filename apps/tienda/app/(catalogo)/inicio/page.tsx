@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { EscenarioDelDesfile } from "@/components/desfile/EscenarioDelDesfile";
+import { FilaDeCategorias } from "@/components/FilaDeCategorias";
 import { ListaDeSalidas } from "@/components/desfile/ListaDeSalidas";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
@@ -26,7 +27,7 @@ import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { piezasDelDesfile } from "@/lib/desfile";
-import { gruposDeLaPortada } from "@/lib/portada-l";
+import { categoriasConFoto, gruposDeLaPortada, prendasDeAbajo } from "@/lib/portada-l";
 import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
@@ -163,7 +164,31 @@ export default async function Inicio({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          {delPrograma.length > 0 && (
+          {gruposL.length > 0 && (
+            <>
+              <FilaDeCategorias categorias={categoriasConFoto(prendas)} sede={sede} origenFotos={origenFotos} />
+              <section className="t-sec t-ancho" aria-labelledby="lo-nuevo">
+                <div className="t-sec-cab" data-revela>
+                  <div>
+                    <h2 id="lo-nuevo">Lo nuevo</h2>
+                  </div>
+                  <Link className="t-ver" href={lista("nuevo")}>
+                    Ver todo <Icono nombre="flecha" />
+                  </Link>
+                </div>
+                <div className="t-grilla pl-grilla">
+                  {prendasDeAbajo(prendas, gruposL).map((p) => (
+                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo diseno={diseno} />
+                  ))}
+                  <Link className="pl-todo" href={lista("nuevo")}>
+                    <span>Ver todo lo nuevo</span>
+                  </Link>
+                </div>
+              </section>
+            </>
+          )}
+
+          {gruposL.length === 0 && delPrograma.length > 0 && (
             <section className="t-programa-sec t-ancho" aria-labelledby="lo-nuevo">
               <div className="t-cab-centro" data-revela>
                 <span className="t-ceja">El programa</span>
