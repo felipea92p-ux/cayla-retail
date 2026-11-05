@@ -15,7 +15,6 @@ import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrup
 import { ImpactoVista } from "@/components/CambioResumen";
 import {
   BotonPrincipal,
-  BotonRojo,
   BotonSecundario,
   Dato,
   EncabezadoFlujo,
@@ -25,6 +24,7 @@ import {
   PieDelPaso,
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
+  useVistaDelPaso,
 } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { etiquetaDia, primerBloqueo, unidadesDisponibles, varianteLegible, type Validacion } from "@/lib/cambios-reglas";
@@ -186,6 +186,7 @@ export function DevolucionesFlujo({
     esTotal: esDevolucionTotal(venta, cantidades),
   });
 
+  useVistaDelPaso(paso);
   useFocoAlCambiarDePaso(titulo, paso);
   // Si la base rechazó la devolución, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);
@@ -538,10 +539,10 @@ export function DevolucionesFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
+              <BotonPrincipal onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
                 <Check className="h-4 w-4" aria-hidden />
                 Registrar devolución
-              </BotonRojo>
+              </BotonPrincipal>
             </div>
           </PieDelPaso>
         </div>

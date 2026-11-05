@@ -14,6 +14,7 @@ import { TEXTO_TIPO_CUENTA, TIPOS_QUE_SE_AGREGAN, type CuentaDinero, type TipoCu
 import { cambiosDeCuenta, formInicial, leerDetalleCuenta, salidaDeCuenta, textoUsos, type DetalleCuenta, type FormCuenta } from "@/lib/cuenta-editar-reglas";
 import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { Boton } from "@/components/ui/campos";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Configuración ▸ Dinero ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25). Lo que se puede cambiar lo
 // dice la base (`fn_cuenta_dinero_detalle`) y lo vuelve a exigir al guardar: el nombre y el número siempre; el tipo mientras
@@ -173,13 +174,14 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
       {confirmarEliminar ? (
         <div /* unificar-fijo: la confirmación de eliminar con sus dos botones (Finanzas), no un aviso */ className="mt-4 rounded-[10px] border border-rojo/30 bg-rojo/5 px-4 py-3" role="alertdialog" aria-label="Confirmar eliminación">
           <p className="text-[15px]">
-            <b>¿Eliminar «{detalle?.nombre}»?</b> Desaparece de Finanzas y no se puede deshacer; queda anotada en la historia de Configuración.
+            <b>¿Eliminar «{detalle?.nombre}»?</b> Desaparece de Finanzas; queda anotada en la historia de Configuración.
           </p>
+          <AvisoNoSeDeshace className="mt-3" />
           <div className="fin-botones mt-3">
             <button type="button" className="btn-cayla btn-secundario" onClick={() => setConfirmarEliminar(false)} disabled={guardando}>
               No, volver
             </button>
-            <Boton peso="peligro" cargando={guardando} textoCargando="Eliminando…"
+            <Boton peso="primario" cargando={guardando} textoCargando="Eliminando…"
               type="button"
               disabled={guardando || !responsable.listo}
               onClick={() =>

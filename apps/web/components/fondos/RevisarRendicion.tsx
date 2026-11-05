@@ -351,7 +351,7 @@ function RevisarRendicionModal({
                 <Boton type="button" onClick={() => setDevolviendo(false)} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton textoCargando="Devolviendo…" type="button" peso="peligro" cargando={guardando} disabled={!motivo.trim()} onClick={() => void devolver()}>
+                <Boton textoCargando="Devolviendo…" type="button" peso="primario" cargando={guardando} disabled={!motivo.trim()} onClick={() => void devolver()}>
                   Devolver para corregir
                 </Boton>
               </>

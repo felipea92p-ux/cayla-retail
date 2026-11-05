@@ -76,7 +76,7 @@ export function RetirarColorModal({ insumo, tallerId, onClose }: { insumo: Insum
           <Boton type="button" onClick={onClose}>
             Cancelar
           </Boton>
-          <Boton type="submit" peso="peligro" cargando={cargando} textoCargando="Retirando…" disabled={!responsable.listo || !!motivoSaldo} title={motivoSaldo ?? responsable.motivo ?? undefined}>
+          <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Retirando…" disabled={!responsable.listo || !!motivoSaldo} title={motivoSaldo ?? responsable.motivo ?? undefined}>
             Retirar color
           </Boton>
         </PieAcciones>

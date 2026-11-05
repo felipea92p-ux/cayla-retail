@@ -20,6 +20,7 @@ import type { AccionesDeCompra } from "@/lib/modulos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Acciones sobre una factura ya registrada (ADR-0035): registrar un pago
 // contra el saldo, o anularla. La página (server) dibuja el detalle; este
@@ -524,6 +525,7 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
           <ComboResponsable control={responsable} deshabilitado={loading} />
+          <AvisoNoSeDeshace />
           <div className="pie-acciones pt-1">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver

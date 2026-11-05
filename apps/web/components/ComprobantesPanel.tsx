@@ -34,6 +34,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { laBajaAnulaLaVenta, MAX_MOTIVO_BAJA } from "@/lib/anular-comprobante-reglas";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -556,6 +557,7 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoAnulacion} className="pt-2" />
+          <AvisoNoSeDeshace className="mt-3" />
           <div className="pie-acciones pt-3">
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar

@@ -79,6 +79,11 @@
   transition: background-color 200ms, color 200ms;
 }
 .hoja-vidrio > .cerrar-hoja { right: 16px; }
+/* En el celular bajan a 24 px: arriba quedarían bajo la franja del asa (`asa-hoja-fija`), desenfocados y sin recibir el dedo en su borde de arriba. */
+@media (max-width: 639.98px) {
+  .hoja-vidrio > .cerrar-hoja,
+  .vidrio-salir { top: 24px; }
+}
 .vidrio-salir {
   right: 60px;
   color: color-mix(in srgb, var(--color-tinta) 64%, transparent);

@@ -20,7 +20,7 @@ import { chipsDeGastos, fallaLegible, filtrarGastos, filtrosPuestosDeGastos, pre
 import { Buscador as BuscadorLista } from "@/components/ui/Buscador";
 import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Volver } from "@/components/ui/Volver";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { CorreccionesDeCompra } from "@/components/mi-plata/CorreccionesDeCompra";
@@ -829,9 +829,10 @@ function GastoDetalle({
           <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" maxLength={MAX_MOTIVO_ANULAR_GASTO} />
         </CampoFin>
         <ComboResponsable control={responsable} deshabilitado={guardando} />
+        <AvisoNoSeDeshace className="mt-4" />
         <div className="pie-acciones mt-4">
           <Volver onClick={() => setAnulando(false)} a="Volver al gasto" />
-          <Boton peso="peligro" cargando={guardando} textoCargando="Anulando…" type="button" onClick={anular} disabled={guardando || !responsable.listo} className="ml-auto">
+          <Boton peso="primario" cargando={guardando} textoCargando="Anulando…" type="button" onClick={anular} disabled={guardando || !responsable.listo} className="ml-auto">
             Anular gasto
           </Boton>
         </div>

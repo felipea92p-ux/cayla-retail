@@ -470,7 +470,7 @@ function RendicionAbierta({
           )}
           <div className="pie-hoja-fijo flex flex-wrap justify-end gap-3 pt-1">
             {retirando ? (
-              <Boton textoCargando="Retirando…" type="button" peso="peligro" cargando={guardando} disabled={!motivo.trim()} onClick={() => void retirar()}>
+              <Boton textoCargando="Retirando…" type="button" peso="primario" cargando={guardando} disabled={!motivo.trim()} onClick={() => void retirar()}>
                 Retirar para corregir
               </Boton>
             ) : (

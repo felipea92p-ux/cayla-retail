@@ -16,7 +16,6 @@ import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrup
 import { ImpactoVista, ComparacionPrendas, type PrendaFicha } from "@/components/CambioResumen";
 import {
   BotonPrincipal,
-  BotonRojo,
   BotonSecundario,
   Dato,
   EncabezadoFlujo,
@@ -24,6 +23,7 @@ import {
   PieDelPaso,
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
+  useVistaDelPaso,
 } from "@/components/FlujoGuiado";
 import { CambioReemplazo } from "@/components/CambioReemplazo";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
@@ -263,6 +263,7 @@ export function CambiosFlujo({
         })
       : null;
 
+  useVistaDelPaso(paso);
   useFocoAlCambiarDePaso(titulo, paso);
   // Si la base rechazó el cambio, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);
@@ -628,10 +629,10 @@ export function CambiosFlujo({
               </BotonSecundario>
               {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
                   hay diferencia que mover: sin ella, el botón no promete plata. */}
-              <BotonRojo onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={totales.diferencia !== 0 ? soles(Math.abs(totales.diferencia)) : undefined}>
+              <BotonPrincipal onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={totales.diferencia !== 0 ? soles(Math.abs(totales.diferencia)) : undefined}>
                 <Check className="h-4 w-4" aria-hidden />
                 {envio.incierto ? "Volver a intentar" : "Confirmar cambio"}
-              </BotonRojo>
+              </BotonPrincipal>
             </div>
           </PieDelPaso>
         </div>
