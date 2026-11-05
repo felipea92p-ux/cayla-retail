@@ -87,3 +87,54 @@
 @media (prefers-reduced-motion: reduce) {
   .cv-bloque, .cv-tubo i, .cv-mes, .cv-boleto { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Dinero: los hilos, las tarjetas y las frases que avisan ---------- */
+.cv-tarjetas { display: grid; gap: 10px; margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.cv-tarjetas.sin-margen { margin-top: 0; }
+.cv-tarjetas.una { grid-template-columns: minmax(0, 1fr); }
+.cv-dos { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 1200px) { .cv-dos { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
+.cv-vigia { display: grid; gap: 10px; margin-top: 12px; }
+@media (min-width: 768px) { .cv-vigia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1700px) { .cv-vigia { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cv-tope { justify-content: space-between; }
+.cv-tope .cv-frase { flex: 1 1 170px; }
+.cv-tope .cv-combo { flex: 1 1 170px; margin-top: 0; }
+.cv-gota svg { fill: none; }
+.cv-ic { stroke: var(--color-tinta); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.cv-ic.con-color { stroke: var(--c, var(--color-taupe)); stroke-width: 1.7; }
+.cv-ic path { stroke-dasharray: 1; animation: cv-traza 900ms var(--ease-cayla) calc(250ms + var(--i, 0) * 70ms) backwards; }
+.cv-nombre { display: block; font-size: 15.5px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
+.cv-saldo { flex: none; font: 500 21px var(--font-serif); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.cv-saldo.debe { color: var(--color-rojo); }
+.cv-frase { font-size: 15px; line-height: 1.3; }
+.cv-unidad { flex: none; font-size: 15px; color: var(--color-taupe); }
+.cv-combo { display: block; min-width: 0; margin-top: 3px; }
+.cv-consecuencia { margin-top: 4px; }
+
+.cv-flujo { position: relative; display: grid; gap: 10px 72px; margin-top: 14px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.cv-hilos { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.cv-hilo { fill: none; stroke: color-mix(in srgb, var(--color-tinta) 30%, transparent); stroke-width: 1.5; stroke-dasharray: 1; animation: cv-traza 1s var(--ease-cayla) calc(200ms + var(--k) * 90ms) backwards; transition: stroke 250ms, stroke-width 250ms; }
+.cv-hilo.encendido { stroke: var(--c, var(--color-tinta)); stroke-width: 2.5; }
+.cv-columna { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.cv-nodo { display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 7px 14px 7px 7px; border-radius: 34px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 6%, transparent); animation: vs-asoma 650ms var(--ease-cayla) calc(200ms + var(--i, 0) * 60ms) backwards; }
+.cv-nodo.falta { background: color-mix(in srgb, var(--color-ambar) 7%, transparent); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-ambar) 38%, transparent); --c: var(--color-ambar); }
+.cv-nodo .cv-gota { width: 52px; height: 52px; }
+.cv-nodo-tx { flex: 1; min-width: 0; }
+.cv-nodo-tx b { display: block; font: 500 21px/1.15 var(--font-serif); overflow-wrap: anywhere; }
+.cv-columna:not(.destinos) .cv-nodo-tx { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.cv-columna:not(.destinos) .cv-nodo-tx b { flex: 0 0 118px; }
+.cv-columna:not(.destinos) .cv-combo { flex: 1 1 150px; margin-top: 0; }
+.cv-nodo-tx small { display: block; font-size: 14px; color: var(--color-taupe); }
+
+@media (max-width: 767px) {
+  .cv-flujo { grid-template-columns: minmax(0, 1fr); }
+  .cv-hilos, .cv-columna.destinos { display: none; }
+}
+
+@keyframes cv-traza { from { stroke-dashoffset: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .cv-ic path, .cv-hilo, .cv-nodo { animation: none !important; transition: none !important; }
+}
+.cv-subgrupo { margin-top: 18px; }
+.cv-subgrupo > :first-child { margin-bottom: 10px; }

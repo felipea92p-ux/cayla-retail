@@ -2,12 +2,8 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 100,
+  "total": 107,
   "controles": {
-    "components/ConfiguracionCajaAvisos.tsx": [
-      "ComboResponsable «{responsable}»",
-      "Boton «Guardar»"
-    ],
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
       "ComboResponsable «{responsable}»",
@@ -72,12 +68,8 @@
     "components/ProveedorElegido.tsx": [
       "a «{tel.texto}»"
     ],
-    "components/finanzas/ConfiguracionCuentas.tsx": [
+    "components/finanzas/AgregarCuentaModal.tsx": [
       "ComboResponsable «{responsable}»",
-      "Boton «+ Agregar cuenta»",
-      "LapizEditar «{c.nombre}»",
-      "LapizEditar «{`la tarifa de ${m.nombre}»",
-      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
     ],
@@ -110,6 +102,21 @@
     "components/gasto-fijo/FichaDePagoCampos.tsx": [
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
+    ],
+    "components/vistas-config/VistaDinero.tsx": [
+      "Desplegable «{valor}»",
+      "button «{nombreCortoSede(s.nombre)}»",
+      "LapizEditar «{cuenta.nombre}»",
+      "Boton «+ Agregar cuenta»",
+      "BotonVerMas «{textoDeLoPlegado(deLasSedes.length, archivadas.length)}»",
+      "button «{`Poner la tarifa de ${maquina.nombre}»",
+      "LapizEditar «{`la tarifa de ${maquina.nombre}»",
+      "Casilla «Mínimo de caja, en soles»",
+      "Casilla «Cuánto puede subir un gasto sobre su promedio, en porcentaje»",
+      "Casilla «Con cuántos días se avisa un vencimiento»",
+      "Desplegable «{corte}»",
+      "Boton «Guardar»",
+      "ComboResponsable «{responsable}»"
     ],
     "components/vistas-config/VistaMetas.tsx": [
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",

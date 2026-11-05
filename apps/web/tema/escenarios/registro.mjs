@@ -1915,8 +1915,7 @@ ESCENARIOS.push(
   { id: "tienda-web.ajustes", ruta: "/tienda-web/ajustes", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Tienda web ▸ Conf. Tienda (antes Datos y plazos; ADR-0430; antes la pestaña «Tienda web» de Configuración)" },
   { id: "configuracion.metas-pasadas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Metas» con las campañas que ya pasaron abiertas", preparar: secuencia(clicPestana(/^Metas/i), clicRol("button", /que ya pasaron|la que ya pasó/i)) },
   { id: "configuracion.carga-inicial", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Empresa y tiendas · la hoja de la carga inicial", preparar: secuencia(clicPestana(/^Empresa/i), async (pagina) => { await pagina.locator('[data-guia="config.carga-inicial"]').click({ timeout: 8000 }); await esperar(pagina, 900); }) },
-  { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
-  { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
+  { id: "configuracion.dinero", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Dinero»", preparar: secuencia(clicPestana(/^Dinero/i), (pagina) => esperar(pagina, 2600)) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },
   { id: "configuracion.presupuesto", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Presupuesto»", preparar: clicPestana(/^Presupuesto/i) },
   { id: "configuracion.impuestos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Impuestos»", preparar: clicPestana(/^Impuestos/i) },
@@ -2255,7 +2254,7 @@ ESCENARIOS.push(
   // ADR-0567: la hoja de la planilla que Dynamic pagó. Pide una Dynamic con planilla pagada (la base local de siempre solo tiene el stub de
   // Dynamic y el aviso no aparece: el escenario falla diciendo que no encontró el botón).
   { id: "dinero.salidas-planilla", ruta: "/finanzas/dinero", cuentas: FIN, abre: '[data-guia="fin-dinero.salida-fila"]', nombre: "Cuentas y dinero · «Registrar de qué banco salió» la planilla que Dynamic pagó", preparar: clicRol("button", /^Registrar (la salida|las \d salidas)$/i) },
-  { id: "configuracion.maquina-tarifa", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Cuentas y cobros · «Tarifa de Izipay»", preparar: secuencia(clicPestana(/Cuentas y cobros/i), clicRol("button", /Editar la tarifa de Izipay/i)) },
+  { id: "configuracion.maquina-tarifa", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Dinero · «Tarifa de Izipay»", preparar: secuencia(clicPestana(/^Dinero/i), clicRol("button", /Editar la tarifa de Izipay/i)) },
 );
 
 export const escenariosDe = (ruta, cuentaClave, celular = false) =>
