@@ -36,7 +36,7 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
         pregunta: preguntaDeDinero("cuadrar", null),
         valor: ctx.conciliacion.falla ? null : cuadre.valor,
         chips: cuadre.chips,
-        motivo: ctx.conciliacion.falla ? undefined : "Todavía no hay bancos: se agregan en Configuración ▸ Cuentas y cobros.",
+        motivo: ctx.conciliacion.falla ? undefined : "Todavía no hay bancos: se agregan en Configuración ▸ Dinero.",
       }}
       orillo={null}
       sedes={telar.sedes}

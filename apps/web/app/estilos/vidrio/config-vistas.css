@@ -4,11 +4,11 @@
    listo. Nada baja de 14 px. Movimiento una vez, sin rebote ni bucle, apagado con prefers-reduced-motion (ADR-0136).
    ==================================================================== */
 .cv-bloque { padding: 20px 22px; min-width: 0; }
-.cv-bloque[data-color="tru"] { --c: var(--color-sede-tru); }
-.cv-bloque[data-color="aqp"] { --c: var(--color-sede-aqp); }
-.cv-bloque[data-color="lim"] { --c: var(--color-sede-lim); }
-.cv-bloque[data-color="tal"] { --c: var(--color-sede-tal); }
-.cv-bloque[data-color="otra"], .cv-bloque[data-color="emp"] { --c: var(--color-taupe); }
+.cv-bloque[data-color="tru"], .cv-fijo[data-color="tru"], .cv-pago[data-color="tru"] { --c: var(--color-sede-tru); }
+.cv-bloque[data-color="aqp"], .cv-fijo[data-color="aqp"], .cv-pago[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.cv-bloque[data-color="lim"], .cv-fijo[data-color="lim"], .cv-pago[data-color="lim"] { --c: var(--color-sede-lim); }
+.cv-bloque[data-color="tal"], .cv-fijo[data-color="tal"], .cv-pago[data-color="tal"] { --c: var(--color-sede-tal); }
+.cv-bloque[data-color="otra"], .cv-bloque[data-color="emp"], .cv-fijo[data-color="otra"], .cv-fijo[data-color="emp"], .cv-pago[data-color="otra"], .cv-pago[data-color="emp"] { --c: var(--color-taupe); }
 .cv-cifras { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .cv-ver-mas { width: calc(100% + 44px); margin: 12px -22px -20px; border-radius: 0 0 28px 28px; }
 .cv-par { display: inline-flex; align-items: center; gap: 6px; }
@@ -138,3 +138,24 @@
 }
 .cv-subgrupo { margin-top: 18px; }
 .cv-subgrupo > :first-child { margin-bottom: 10px; }
+
+/* ---------- Gastos: la línea del mes, los fijos, los topes y el reparto ---------- */
+.cv-linea-mes { position: relative; height: 112px; margin: 6px 16px 12px; }
+.cv-linea-mes .pista, .cv-linea-mes .pasado { position: absolute; left: 0; top: 76px; height: 10px; border-radius: 999px; }
+.cv-linea-mes .pista { right: 0; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
+.cv-linea-mes .pasado { width: var(--w); background: color-mix(in srgb, var(--color-tinta) 24%, transparent); transform-origin: left; animation: cv-llena-x 1100ms var(--ease-cayla) 200ms backwards; }
+.cv-pago { position: absolute; top: 76px; left: var(--x); width: 0; height: 0; }
+.cv-pago span { position: absolute; left: -13px; bottom: calc(var(--a) * 8px + 2px); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 14px; font-variant-numeric: lining-nums; color: var(--color-tinta); background: radial-gradient(circle at 34% 26%, var(--color-vidrio), color-mix(in srgb, var(--color-vidrio) 60%, transparent)); box-shadow: inset 0 0 0 1.5px var(--c, var(--color-taupe)), 0 4px 9px -4px color-mix(in srgb, var(--color-sombra) 60%, transparent); animation: vs-asoma 500ms var(--ease-cayla) calc(300ms + var(--k) * 40ms) backwards; }
+.cv-linea-mes .dias { position: absolute; left: 0; right: 0; top: 92px; display: flex; justify-content: space-between; font-size: 14px; color: var(--color-taupe); }
+.cv-fijo { min-height: 68px; padding: 9px 14px 9px 9px; }
+.cv-dia-fijo { flex: none; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; background: color-mix(in srgb, var(--color-tinta) 3%, transparent); box-shadow: inset 0 1px 1px var(--color-vidrio), inset 0 0 0 1.5px var(--c, var(--color-taupe)); }
+.cv-dia-fijo b { font: 500 21px/1 var(--font-serif); font-variant-numeric: lining-nums; }
+.cv-falta-txt { color: var(--color-ambar-profundo); }
+.cv-mes-combo { flex: 0 0 256px; max-width: 100%; margin-top: 0; }
+.cv-pie-bloque { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; margin-top: 14px; }
+.cv-parte-tx { display: grid; flex: 1; gap: 5px; min-width: 0; }
+
+@keyframes cv-llena-x { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .cv-linea-mes .pasado, .cv-pago span { animation: none !important; }
+}

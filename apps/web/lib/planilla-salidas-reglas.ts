@@ -60,7 +60,7 @@ export function leerTramo(f: Fila): TramoPlanilla {
   };
 }
 
-/** De qué cuenta de CAYLA sale la planilla de quienes cobran en un banco (Configuración ▸ Cuentas y cobros). */
+/** De qué cuenta de CAYLA sale la planilla de quienes cobran en un banco (Configuración ▸ Dinero). */
 export type CuentaPlanilla = { banco: Exclude<BancoColaborador, "sin_banco">; cuentaId: string | null; cuentaNombre: string | null };
 export const BANCOS_CON_CUENTA: readonly CuentaPlanilla["banco"][] = ["bcp", "interbank"];
 

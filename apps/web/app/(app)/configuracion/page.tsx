@@ -8,44 +8,40 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { VistaDinero } from "@/components/vistas-config/VistaDinero";
+import { VistaGastos } from "@/components/vistas-config/VistaGastos";
 import { VistaMetas } from "@/components/vistas-config/VistaMetas";
 import { VistaEmpresaTiendas } from "@/components/vitrinas-sedes/VistaEmpresaTiendas";
 import { armarVitrinas } from "@/lib/vitrinas-sedes-reglas";
-import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 import { getParametrosTributarios } from "@/lib/impuestos";
 import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 import { getMaquinasPos, getMediosDeCobro, getPlanillaCuentas, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
-import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPresupuesto";
 import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
 import { getRepartoClaure } from "@/lib/reparto-claure";
-import { ConfiguracionRepartoClaure } from "@/components/ConfiguracionRepartoClaure";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
 // trae Empresa y tiendas, Metas (las dos salieron de «Tiendas y caja», que Felipe partió el 2026-11-04 porque juntaba 7 temas en 4,3 pantallas; una
-// dirección vieja, `?tab=tiendas`, cae en Metas), Dinero (Cuentas y cobros con Caja y avisos, F3), Gastos fijos (F2b), Presupuesto (capa
-// «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías. «Tienda web» fue una pestaña de aquí (ADR-0408 act. 6)
+// dirección vieja, `?tab=tiendas`, cae en Metas), Dinero (Cuentas y cobros con Caja y avisos, F3), Gastos (fijos F2b, topes de la capa
+// «para decidir», `?mes=` elige el mes, y Reparto CLAURE) e Impuestos (F8), sin pestañas vacías. «Tienda web» fue una pestaña de aquí (ADR-0408 act. 6)
 // hasta el 2026-10-16: desde ADR-0430 es Tienda web ▸ Datos y plazos (`/tienda-web/ajustes`), y desde 20261016223000 con su propio módulo
 // (`ajustes_web`, `fn_puede_ajustes_tienda_web`): Configuración ya no la abre; la dirección vieja, `?tab=tienda-web`, lleva allá (`next.config.ts`).
 const PESTANAS = [
   { clave: "empresa", etiqueta: "Empresa y tiendas", href: "/configuracion?tab=empresa", guia: "config.tab-empresa" },
   { clave: "metas", etiqueta: "Metas", href: "/configuracion?tab=metas", guia: "config.tab-metas" },
   { clave: "dinero", etiqueta: "Dinero", href: "/configuracion?tab=dinero", guia: "config.tab-dinero" },
-  { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos", guia: "config.tab-fijos" },
-  { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto", guia: "config.tab-presupuesto" },
+  { clave: "gastos", etiqueta: "Gastos", href: "/configuracion?tab=gastos", guia: "config.tab-gastos" },
   { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos", guia: "config.tab-impuestos" },
-  // Solo del líder (ADR-0560, actividad 17): mueve plata (lo que se le debe a Claudia).
-  { clave: "claure", etiqueta: "Reparto CLAURE", href: "/configuracion?tab=claure", guia: "config.tab-claure" },
 ] as const;
+
+// Una dirección vieja sigue llegando (Felipe 2026-11-05): de 8 pestañas quedaron 5.
+const PESTANA_VIEJA: Record<string, string> = { cuentas: "dinero", caja: "dinero", fijos: "gastos", presupuesto: "gastos", claure: "gastos" };
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string; mes?: string }> }) {
   const persona = await exigirModulo("configuracion");
   const { tab, mes } = await searchParams;
-  const pestanasDeEsteLider = PESTANAS.filter((p) => p.clave !== "claure" || persona.rol === "lider");
-  // Una dirección vieja sigue llegando: «Cuentas y cobros» y «Caja y avisos» se juntaron en Dinero (Felipe 2026-11-05).
-  const pedida = tab === "cuentas" || tab === "caja" ? "dinero" : tab;
-  const pestana = pestanasDeEsteLider.find((p) => p.clave === pedida)?.clave ?? "metas";
+  const pedida = PESTANA_VIEJA[tab ?? ""] ?? tab;
+  const pestana = PESTANAS.find((p) => p.clave === pedida)?.clave ?? "metas";
 
   return (
     <div className="space-y-6">
@@ -55,14 +51,12 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
         titulo="Configuración"
         subtitulo="Lo que se ajusta una vez y todas las pantallas leen."
       />
-      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...pestanasDeEsteLider]} guia="config.pestanas" />
+      <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
       {pestana === "empresa" && <SeccionEmpresa esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
       {pestana === "metas" && <SeccionMetas />}
       {pestana === "dinero" && <SeccionDinero />}
-      {pestana === "fijos" && <SeccionFijos />}
-      {pestana === "presupuesto" && <SeccionPresupuesto mes={mes} />}
+      {pestana === "gastos" && <SeccionGastos mes={mes} esLider={persona.rol === "lider"} />}
       {pestana === "impuestos" && <SeccionImpuestos />}
-      {pestana === "claure" && <ConfiguracionRepartoClaure filas={await getRepartoClaure()} />}
     </div>
   );
 }
@@ -121,43 +115,35 @@ async function SeccionDinero() {
   );
 }
 
-async function SeccionFijos() {
-  const { desde } = rangoMes(mesDe(hoyLima()));
-  const [contexto, categorias, proveedores, fijos, fichas] = await Promise.all([
+// Gastos (F2b, ADR-0195 «para decidir», ADR-0560): los fijos, los topes del mes elegido y, solo para el líder, el reparto con CLAURE.
+async function SeccionGastos({ mes, esLider }: { mes: string | undefined; esLider: boolean }) {
+  const hoy = hoyLima();
+  const { desde } = rangoMes(mesDe(hoy));
+  const [contexto, categorias, proveedores, fijos, fichas, presupuesto, reparto] = await Promise.all([
     getContextoGastos(),
     getCategoriasGasto(),
     getProveedoresParaGasto(),
     getFijosMes(desde, { clave: "todas", ubicacionId: null, soloEmpresa: false }),
     getFichasDeFijos(),
+    getPresupuestoConfig(esMes(mes) ? mes : mesDe(hoy)),
+    esLider ? getRepartoClaure() : null,
   ]);
   return (
     <>
       {fijos.falla && <FallaDeSeccion falla={fijos.falla} />}
-      <TablaGastosFijos
+      {presupuesto.falla && <FallaDeSeccion falla={presupuesto.falla} />}
+      <VistaGastos
         fijos={fijos.datos}
         categorias={categorias}
         ubicaciones={contexto.ubicaciones}
         proveedores={proveedores}
         fichas={fichas.porFijo}
         fichaDisponible={fichas.disponible}
-        hoy={hoyLima()}
+        presupuesto={presupuesto.datos}
+        reparto={reparto}
+        esLider={esLider}
+        hoy={hoy}
       />
-      <p className="nota-cayla">
-        Un fijo es un recordatorio: cada mes aparece en <b>Finanzas ▸ Gastos ▸ Fijos del mes</b> para registrarlo con lo que llegó de verdad. Si uno deja de pagarse, se archiva: sus gastos ya registrados se quedan.
-      </p>
-    </>
-  );
-}
-
-// Presupuesto (ADR-0195, capa «para decidir»): los topes de gasto de cada unidad y rubro para el mes elegido. La meta de
-// ventas no se escribe aquí: es la suma de las metas del día (Metas).
-async function SeccionPresupuesto({ mes }: { mes: string | undefined }) {
-  const hoy = hoyLima();
-  const { datos, falla } = await getPresupuestoConfig(esMes(mes) ? mes : mesDe(hoy));
-  return (
-    <>
-      {falla && <FallaDeSeccion falla={falla} />}
-      {datos && <ConfiguracionPresupuesto datos={datos} hoy={hoy} />}
     </>
   );
 }

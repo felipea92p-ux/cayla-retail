@@ -16,7 +16,7 @@ import { VISTO_MS, cambioLaCasilla } from "@/lib/configuracion-casilla";
 // al número y se va solo en 1,6 s («A · Visto en la celda»). El aviso de la esquina sigue saliendo: dice qué más cambió (la meta del mes).
 
 /** Lo que cada casilla llama para guardar: firma con el responsable, avisa y refresca. `true` si la base lo aceptó. */
-export type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string) => Promise<boolean>;
+export type Guardar = (hacer: () => PromiseLike<{ error: unknown; data?: unknown }>, que: string, listo: string | ((data: unknown) => string)) => Promise<boolean>;
 
 /** El guardado de las casillas: exige el responsable, firma, avisa y refresca. Lo comparten Metas y Empresa y tiendas. */
 export function useGuardarCasilla() {
@@ -30,14 +30,14 @@ export function useGuardarCasilla() {
       return false;
     }
     setGuardando(true);
-    const { error } = await firmar(hacer() as never, responsable.firma());
+    const { error, data } = (await firmar(hacer() as never, responsable.firma())) as { error: unknown; data?: unknown };
     setGuardando(false);
     responsable.despues(error as never);
     if (error) {
       avisar.error(traducirError(error as never, que));
       return false;
     }
-    avisar.exito(listo);
+    avisar.exito(typeof listo === "function" ? listo(data) : listo);
     router.refresh();
     return true;
   };

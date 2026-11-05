@@ -465,8 +465,8 @@ function LoQueViene({ p }: { p: Proyeccion }) {
       {!p.planillaVisible && <p className="nota-cayla mt-3">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
       <p className="nota-cayla mt-3" data-guia="fin-flujo.config">
         El mínimo de caja y los avisos se cambian en{" "}
-        <Link href="/configuracion?tab=caja" className="underline underline-offset-2 hover:text-rojo">
-          Configuración ▸ Caja y avisos
+        <Link href="/configuracion?tab=dinero" className="underline underline-offset-2 hover:text-rojo">
+          Configuración ▸ Dinero
         </Link>
         .
       </p>

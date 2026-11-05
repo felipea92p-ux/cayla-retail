@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 107,
+  "total": 111,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -34,9 +34,6 @@
       "button «Cancelar»",
       "Boton «Agregar»"
     ],
-    "components/ConfiguracionRepartoClaure.tsx": [
-      "ComboResponsable «{responsable}»"
-    ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
       "LapizEditar «la cuenta»",
@@ -53,8 +50,6 @@
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «No es fijo»",
-      "Boton «+ Agregar fijo»",
-      "LapizEditar «{f.descripcion}»",
       "ComboResponsable «{responsable}» #2",
       "button «Ya no se paga: archivar»",
       "button «Cancelar» #2",
@@ -72,17 +67,6 @@
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «Agregar»"
-    ],
-    "components/finanzas/ConfiguracionPresupuesto.tsx": [
-      "input «{etiqueta}»",
-      "ComboResponsable «{responsable}»",
-      "Link «Estados financieros ▸ ¿Ganamos?»",
-      "Boton «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
-      "Boton «config.presupuesto-sugerir»",
-      "Link «Se cambia en Metas»",
-      "ComboResponsable «{responsable}» #2",
-      "button «Cancelar»",
-      "Boton «{`Aplicar ${cambios.length}»"
     ],
     "components/finanzas/EditarCuentaModal.tsx": [
       "ComboResponsable «{responsable}»",
@@ -103,6 +87,17 @@
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
     ],
+    "components/vistas-config/TopesDeGasto.tsx": [
+      "Boton «config.presupuesto-sugerir»",
+      "Boton «{textoOrigen(\"mes_anterior\", mes)}»",
+      "button «{nombreColumna(u)}»",
+      "Desplegable «{mes}»",
+      "Boton «Escribirlos a mano»",
+      "Casilla «{`Tope de ${l.nombre}»",
+      "Link «Se cambia en Metas»",
+      "button «Cancelar»",
+      "Boton «{`Aplicar ${cambios.length}»"
+    ],
     "components/vistas-config/VistaDinero.tsx": [
       "Desplegable «{valor}»",
       "button «{nombreCortoSede(s.nombre)}»",
@@ -117,6 +112,15 @@
       "Desplegable «{corte}»",
       "Boton «Guardar»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/vistas-config/VistaGastos.tsx": [
+      "Boton «+ Agregar fijo»",
+      "button «{u.nombre}»",
+      "LapizEditar «{f.descripcion}»",
+      "Casilla «{`Parte de CLAURE en ${f.nombre}»",
+      "BotonVerMas «{`Ver ${plegadas.length}»",
+      "ComboResponsable «{responsable}»",
+      "ComboResponsable «{responsable}» #2"
     ],
     "components/vistas-config/VistaMetas.tsx": [
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",

@@ -18,7 +18,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { limpiarCantidad } from "@/lib/alta-producto";
 import { TEXTO_MEDIO_COBRO, mediosDeMaquina, problemaDeDiasAbono, textoTarifa, validarTarifa, type BorradorTarifa, type MaquinaPos, type MedioCobro } from "@/lib/cuentas-dinero-reglas";
 
-// Configuración ▸ Cuentas y cobros ▸ «Cambiar la tarifa» de una máquina de cobro (ADR-0429, act. 4). La tarifa SOLO estima y avisa:
+// Configuración ▸ Dinero ▸ «Cambiar la tarifa» de una máquina de cobro (ADR-0429, act. 4). La tarifa SOLO estima y avisa:
 // con ella, cada día pendiente de depósito dice la comisión esperada y el ERP avisa cuando la máquina se atrasa. La comisión real
 // sale siempre del depósito (actividad 3). Se cambia desde hoy: lo pasado se estima con la tarifa que regía ese día.
 // Guía de foco (ADR-0284): «falta» es lo mismo que apaga «Guardar» (`validarTarifa` y el responsable); el cargo fijo es opcional.

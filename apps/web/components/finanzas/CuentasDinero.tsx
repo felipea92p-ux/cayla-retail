@@ -275,7 +275,7 @@ export function ConciliacionPanel({
     return (
       <Superficie>
         <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
-          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros.
+          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Dinero.
         </Vacio>
       </Superficie>
     );

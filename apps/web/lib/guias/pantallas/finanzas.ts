@@ -971,7 +971,7 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       ancla: "fin-conciliacion.vacia",
       opcional: true,
       titulo: "Primero, los bancos",
-      texto: "Si todavía no hay bancos, aquí lo dice: se agregan en Configuración ▸ Cuentas y cobros. Desde ese día ya se pueden conciliar.",
+      texto: "Si todavía no hay bancos, aquí lo dice: se agregan en Configuración ▸ Dinero. Desde ese día ya se pueden conciliar.",
     },
     {
       id: "otras",
@@ -1268,7 +1268,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       id: "config",
       ancla: "fin-flujo.config",
       titulo: "Tu mínimo de caja",
-      texto: "La línea punteada del gráfico es tu mínimo de caja: la plata que nunca quieres tener por debajo. Ese mínimo y los avisos se cambian en Configuración ▸ Caja y avisos (el enlace te lleva; en la demo no salimos).",
+      texto: "La línea punteada del gráfico es tu mínimo de caja: la plata que nunca quieres tener por debajo. Ese mínimo y los avisos se cambian en Configuración ▸ Dinero (el enlace te lleva; en la demo no salimos).",
     },
     {
       id: "recos",
