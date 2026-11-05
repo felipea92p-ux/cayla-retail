@@ -5,7 +5,7 @@
 // PROMETE: de lo que devuelve `fn_observatorio` (por tienda y día, más cada venta de hoy y las del mismo día de la semana
 // pasada), las cifras de un foco (toda CAYLA o una tienda) en un periodo (hoy, 7 o 30 días) y «hasta un minuto» (el corte
 // de «Repetir el día»): lo vendido, la meta, la comparación con el periodo anterior a la misma altura, las barras por hora o
-// por día y la curva del % de la meta acumulado.
+// por día y la curva del % de la meta acumulado; y, al comparar, la ventaja en soles de una tienda sobre otra.
 // ASUME: las tiendas abren de 10:00 a 21:00 para dibujar (una venta antes o después cae en la primera o la última hora).
 // Una meta sin configurar (`null`) no se inventa: el % queda en `null` y la pantalla dice «sin meta».
 
@@ -13,6 +13,7 @@ import { siglaSede } from "./inicio-almacen-reglas";
 import { esSiglaConMapa, type SiglaConMapa } from "./observatorio-mapa";
 import { fraseRepeticion, hrefPerdidas, type Repeticion } from "./perdidas-reglas";
 import { avisosDePlanilla, planillaParaElInicio, TEXTO_BANCO, type CuentaPlanilla, type TramoPlanilla } from "./planilla-salidas-reglas";
+import { formatoSoles } from "./resumen-formato";
 
 export type Periodo = "hoy" | "7d" | "30d";
 export type Ventana = "hoy" | "d7" | "d30";
@@ -115,6 +116,8 @@ export type Calculo = {
   /** Curva del % de la meta acumulado: [x de 0 a 1, %]. Sin meta, [x, soles]. */
   curva: [number, number][];
   curvaAnterior: [number, number][];
+  /** Lo vendido acumulado, siempre en soles, en los mismos puntos de `curva`. Su último punto es `total`. */
+  acumulado: [number, number][];
   /** Dónde está «ahora» en el eje x (0 a 1). */
   xAhora: number;
   /** Qué parte de un día típico ya pasó a esta hora (sale del mismo día de la semana pasada). */
@@ -159,6 +162,7 @@ export function calcular(d: DatosObservatorio, foco: string, periodo: Periodo, c
   let barraActual: number;
   let curva: [number, number][];
   let curvaAnterior: [number, number][];
+  let acumulado: [number, number][];
   let xAhora: number;
   let n = 1;
 
@@ -175,10 +179,14 @@ export function calcular(d: DatosObservatorio, foco: string, periodo: Periodo, c
     sombra = Array.from({ length: 11 }, (_, i) => suma(sp.filter((v) => horaDe(v.min) === i), (v) => v.s));
     barraActual = horaDe(corte);
     const eje = (v: number) => (meta ? (v / meta) * 100 : v);
-    curva = Array.from({ length: 12 }, (_, i) => {
+    acumulado = Array.from({ length: 12 }, (_, i) => {
       const t = Math.min(ABRE + 60 * i, Math.max(corte, ABRE));
-      return [(t - ABRE) / (CIERRA - ABRE), eje(suma(vh.filter((v) => v.min <= t), (v) => v.s))];
+      // El último punto llega hasta el corte: una venta después de las 9 p. m. (Arequipa cierra a las 10) también cuenta,
+      // o la curva terminaría por debajo del total que la cabecera ya dice.
+      const hasta = i === 11 ? Math.max(t, corte) : t;
+      return [(t - ABRE) / (CIERRA - ABRE), suma(vh.filter((v) => v.min <= hasta), (v) => v.s)];
     });
+    curva = acumulado.map(([x, v]) => [x, eje(v)]);
     curvaAnterior = Array.from({ length: 12 }, (_, i) => {
       const t = ABRE + 60 * i;
       return [i / 11, eje(suma(sp.filter((v) => v.min <= t), (v) => v.s))];
@@ -208,11 +216,12 @@ export function calcular(d: DatosObservatorio, foco: string, periodo: Periodo, c
     const metaCompleta = meta;
     const eje = (v: number) => (metaCompleta ? (v / metaCompleta) * 100 : v);
     let c = 0;
-    curva = [[0, 0]];
+    acumulado = [[0, 0]];
     fechas.forEach((f, j) => {
       c += del(f).s;
-      curva.push([(j + (f === d.hoy ? Math.max(0.02, parteDelDia) : 1)) / n, eje(c)]);
+      acumulado.push([(j + (f === d.hoy ? Math.max(0.02, parteDelDia) : 1)) / n, c]);
     });
+    curva = acumulado.map(([x, v]) => [x, eje(v)]);
     let c2 = 0;
     curvaAnterior = [[0, 0]];
     antes.forEach((f, j) => {
@@ -243,6 +252,7 @@ export function calcular(d: DatosObservatorio, foco: string, periodo: Periodo, c
     barraActual,
     curva,
     curvaAnterior,
+    acumulado,
     xAhora,
     parteDelDia,
     dias: n,
@@ -254,6 +264,136 @@ export function rankear(d: DatosObservatorio, periodo: Periodo, corte?: number):
   return d.tiendas
     .map((t) => calcular(d, t.id, periodo, corte))
     .sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.total - a.total);
+}
+
+/** El punto de una curva más cercano a una x (de 0 a 1): el que está mirando el mouse. */
+export function indiceCercano(curva: readonly (readonly [number, number])[], x: number): number {
+  let j = 0;
+  let mejor = Infinity;
+  curva.forEach((p, n) => {
+    const d = Math.abs(p[0] - x);
+    if (d < mejor) {
+      mejor = d;
+      j = n;
+    }
+  });
+  return j;
+}
+
+/** Qué momento es el punto `j` de una curva: «3:00 p. m.» con «Hoy»; si no, «16 oct» («Inicio» antes del primer día). */
+export function momentoDe(c: Pick<Calculo, "periodo" | "dias">, hoy: string, corte: number, j: number): string {
+  if (c.periodo === "hoy") return hora12(Math.min(ABRE + 60 * j, Math.max(corte, ABRE)));
+  return j === 0 ? "Inicio" : fechaCorta(sumarDias(hoy, j - c.dias));
+}
+
+/** El mismo momento, para decirlo en una frase: «el 16 oct», «las 3:00 p. m.», «la 1:00 p. m.». */
+export function alMomento(c: Pick<Calculo, "periodo" | "dias">, hoy: string, corte: number, j: number): string {
+  const m = momentoDe(c, hoy, corte, j);
+  if (c.periodo !== "hoy") return `el ${m}`;
+  return m.startsWith("1:") ? `la ${m}` : `las ${m}`;
+}
+
+// ── La ventaja: cómo va una tienda contra otra (ADR-0322, act. 2026-11-05) ───────────────────────────────────────────
+
+export type EstadoVentaja = "sin-ventas" | "parejas" | "adelante" | "detras";
+export type Ventaja = {
+  /** Cuántos soles le lleva la tienda al rival en cada punto: [x de 0 a 1, soles]. Negativo: va detrás. */
+  serie: [number, number][];
+  /** Lo acumulado de cada lado en esos mismos puntos (el rival, en promedio si son varias). */
+  propia: number[];
+  rival: number[];
+  /** La ventaja de ahora: el último punto de `serie`. */
+  brecha: number;
+  estado: EstadoVentaja;
+  /** El último punto en que la tienda que hoy va adelante todavía no se despegaba. `0`: se despegó desde el inicio. */
+  quiebre: number;
+  /** El último punto, antes del quiebre, en que iba claramente adelante la otra. `null`: nunca. */
+  otraIbaAdelante: number | null;
+  pctPropia: number | null;
+  /** El % de meta del rival; `null` si alguna de las comparadas no tiene meta. */
+  pctRival: number | null;
+};
+
+/**
+ * La ventaja de una tienda sobre otra, o sobre el promedio de varias.
+ *
+ * PROMETE: va en soles, así que compara también a una tienda sin meta (comparar en % de la meta se quedaba sin línea). Dos
+ * tiendas van «parejas» mientras la diferencia no alcanza ni para lo que vende la mayor en un día promedio (con «Hoy», en una
+ * hora): menos que eso se da vuelta con una tarde buena y no dice quién va ganando.
+ * ASUME: `rivales` no incluye a `foco` (comparar una tienda con un total que la contiene no compara nada) y todos vienen del
+ * mismo periodo y corte, así que sus curvas tienen los mismos puntos.
+ */
+export function calcularVentaja(foco: Calculo, rivales: readonly Calculo[]): Ventaja {
+  const propia = foco.acumulado.map((p) => p[1]);
+  const rival = propia.map((_, i) => (rivales.length ? suma(rivales, (r) => r.acumulado[i]?.[1] ?? r.total) / rivales.length : 0));
+  const serie = foco.acumulado.map(([x], i): [number, number] => [x, propia[i] - rival[i]]);
+  const ultimo = serie.length - 1;
+  const brecha = serie[ultimo][1];
+  const unidades = foco.periodo === "hoy" ? Math.max(1, foco.xAhora * 11) : foco.dias;
+  const parejasHasta = Math.max(propia[ultimo], rival[ultimo]) / unidades;
+
+  const lado = brecha >= 0 ? 1 : -1;
+  let quiebre = 0;
+  serie.forEach(([, s], i) => {
+    if (lado * s <= parejasHasta) quiebre = i;
+  });
+  let otraIbaAdelante: number | null = null;
+  for (let i = 0; i <= quiebre; i++) if (lado * serie[i][1] < -parejasHasta) otraIbaAdelante = i;
+
+  const estado: EstadoVentaja =
+    propia[ultimo] === 0 && rival[ultimo] === 0 ? "sin-ventas" : Math.abs(brecha) <= parejasHasta ? "parejas" : brecha > 0 ? "adelante" : "detras";
+  const todasConMeta = rivales.length > 0 && rivales.every((r) => r.meta);
+  return {
+    serie,
+    propia,
+    rival,
+    brecha,
+    estado,
+    quiebre,
+    otraIbaAdelante,
+    pctPropia: foco.pct,
+    pctRival: todasConMeta ? (suma(rivales, (r) => r.total) / suma(rivales, (r) => r.meta ?? 0)) * 100 : null,
+  };
+}
+
+/** Los nombres de la comparación. `rival: null` = el promedio de las otras tiendas. */
+export type NombresVentaja = { propia: string; rival: string | null };
+
+/** Soles con su signo, para el final de la línea: «+S/ 3,250», «−S/ 1,200», «S/ 0». */
+export function solesConSigno(v: number): string {
+  const r = Math.round(v);
+  return `${r > 0 ? "+" : r < 0 ? "−" : ""}${formatoSoles(Math.abs(r))}`;
+}
+
+/** Lo que dice la ventaja en palabras: quién va adelante, por cuánto y desde cuándo. `al` nombra un punto: «el 16 oct». */
+export function fraseVentaja(v: Ventaja, n: NombresVentaja, al: (j: number) => string): { titular: string; detalle: string | null; metas: string | null } {
+  const { propia, rival } = n;
+  const elRival = rival ?? "el promedio de las otras";
+  const aRival = rival ? `a ${rival}` : "al promedio de las otras";
+  const deRival = rival ? `de ${rival}` : "del promedio de las otras";
+  const conMayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  // «las 3:00 p. m.» ya termina en punto.
+  const conPunto = (t: string) => (t.endsWith(".") ? t : `${t}.`);
+  const soles = formatoSoles(Math.abs(v.brecha));
+
+  let titular: string;
+  let detalle: string | null = null;
+  if (v.estado === "sin-ventas") {
+    titular = "Todavía no hay ventas para comparar.";
+  } else if (v.estado === "parejas") {
+    titular = Math.round(Math.abs(v.brecha)) >= 1 ? `${propia} y ${elRival} van parejas: ${soles} de diferencia.` : `${propia} y ${elRival} van parejas.`;
+  } else {
+    const adelante = v.estado === "adelante";
+    titular = adelante ? `${propia} le saca ${soles} ${aRival}.` : `${propia} va ${soles} detrás ${deRival}.`;
+    if (v.quiebre === 0) detalle = adelante ? "Va adelante desde el inicio." : "Va detrás desde el inicio.";
+    else if (v.otraIbaAdelante !== null) detalle = conPunto(`${conMayuscula(adelante ? elRival : propia)} iba adelante hasta ${al(v.otraIbaAdelante)}`);
+    else detalle = conPunto(`Iban parejas hasta ${al(v.quiebre)}`);
+  }
+  const metas =
+    v.pctPropia !== null && v.pctRival !== null
+      ? `${propia} va en ${Math.round(v.pctPropia)}% de su meta · ${rival ?? "las otras"} en ${Math.round(v.pctRival)}%`
+      : null;
+  return { titular, detalle, metas };
 }
 
 export function ventanaDe(p: Periodo): Ventana {
