@@ -66,7 +66,7 @@ export function QuitarPasoModal({ datos, fase, onClose }: { datos: OrdenPagina; 
           <Boton type="button" onClick={onClose}>
             Cancelar
           </Boton>
-          <Boton type="submit" peso="peligro" cargando={cargando} textoCargando="Quitando…" disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+          <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Quitando…" disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
             Quitar paso
           </Boton>
         </PieAcciones>

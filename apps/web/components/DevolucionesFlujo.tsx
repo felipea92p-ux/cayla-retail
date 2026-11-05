@@ -15,7 +15,6 @@ import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrup
 import { ImpactoVista } from "@/components/CambioResumen";
 import {
   BotonPrincipal,
-  BotonRojo,
   BotonSecundario,
   Dato,
   EncabezadoFlujo,
@@ -538,10 +537,10 @@ export function DevolucionesFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
+              <BotonPrincipal onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
                 <Check className="h-4 w-4" aria-hidden />
                 Registrar devolución
-              </BotonRojo>
+              </BotonPrincipal>
             </div>
           </PieDelPaso>
         </div>

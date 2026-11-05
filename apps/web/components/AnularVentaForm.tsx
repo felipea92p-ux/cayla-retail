@@ -11,7 +11,7 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 const CONDICIONES = [
   { valor: "vendible", etiqueta: "Vendible — vuelve al stock" },
@@ -184,6 +184,7 @@ export function AnularVentaForm({
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
+          <AvisoNoSeDeshace />
           <div className="pie-acciones pt-1">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar

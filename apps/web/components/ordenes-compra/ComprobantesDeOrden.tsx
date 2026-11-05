@@ -6,7 +6,7 @@ import { Ban } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -218,8 +218,7 @@ function AnularComprobanteModal({
           className="space-y-5"
         >
           <p className="text-sm text-tinta/75">
-            El comprobante deja de contar en Por pagar y la orden vuelve a tener pendiente lo que traía. No se borra: queda a la vista, anulado y con su motivo.{" "}
-            <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+            El comprobante deja de contar en Por pagar y la orden vuelve a tener pendiente lo que traía. No se borra: queda a la vista, anulado y con su motivo.
           </p>
           {/* El título va en el bloque (`titulo`, con su marca de la guía): la caja hundida deja su etiqueta solo para el lector. */}
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
@@ -237,11 +236,12 @@ function AnularComprobanteModal({
               {error}
             </Aviso>
           )}
+          <AvisoNoSeDeshace />
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Anulando…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Anular comprobante
             </Boton>
           </div>

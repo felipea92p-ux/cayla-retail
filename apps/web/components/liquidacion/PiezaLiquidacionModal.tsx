@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -189,13 +189,14 @@ export function PiezaLiquidacionModal({
             <CampoGuiado id="responsable" guia={guiaRetiro}>
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
+            <AvisoNoSeDeshace />
             <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
               <PieGuia guia={guiaRetiro} listo="Deja de estar a la venta. No se borra: queda en «Retiradas»." />
               <div className="ml-auto pie-acciones">
                 <Boton type="button" onClick={() => setModo("ver")}>
                   Cancelar
                 </Boton>
-                <Boton textoCargando="Retirando…" type="submit" peso="peligro" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
+                <Boton textoCargando="Retirando…" type="submit" peso="primario" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
                   Retirar
                 </Boton>
               </div>

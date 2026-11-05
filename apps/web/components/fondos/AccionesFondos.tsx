@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { FichasCuenta } from "@/components/fondos/FichasCuenta";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -594,7 +594,7 @@ function AnularMovimientoFondoModal({
               : esPago
                 ? `La plata deja de contar en ${movimiento.cuenta} y ${primerNombre(movimiento.persona)} vuelve a deber ${soles(movimiento.monto)}.`
                 : "La plata vuelve a contar en su fondo."}{" "}
-            No se borra: queda a la vista con quién {esPago ? "lo" : "la"} anuló y por qué. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+            No se borra: queda a la vista con quién {esPago ? "lo" : "la"} anuló y por qué.
           </p>
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
             <CampoTexto
@@ -620,11 +620,12 @@ function AnularMovimientoFondoModal({
             </Aviso>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." conFrase />
+          <AvisoNoSeDeshace />
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Anulando…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {`Anular ${art} ${que}`}
             </Boton>
           </div>

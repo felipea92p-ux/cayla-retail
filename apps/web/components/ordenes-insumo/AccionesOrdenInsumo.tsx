@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Ban, ReceiptText } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -206,7 +206,7 @@ function AnularOrdenInsumoModal({
         >
           <p className="text-sm text-tinta/75">
             La orden queda anulada: deja de contar en lo pedido y su número no vuelve a usarse. No se borra; queda a la vista con quién la
-            anuló, cuándo y por qué. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+            anuló, cuándo y por qué.
           </p>
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
             <CampoTexto
@@ -249,11 +249,12 @@ function AnularOrdenInsumoModal({
             </Aviso>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." />
+          <AvisoNoSeDeshace />
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Anulando…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Anular orden
             </Boton>
           </div>

@@ -81,7 +81,7 @@ type Props = {
   atrasCierra?: boolean;
   /** La cara de toda hoja es UNA (ADR-0358, ronda 12) y desde el 2026-10-31 es el vidrio «Serena» (ADR-0596, `.hoja-serena` en
       app/estilos/vidrio/hoja.css): vidrio al 70 % con su borde de luz y su sombra, 32 px de radio, la × en gota y el título serif de
-      27 px; con un botón rojo adentro vuelve a papel. El desenfoque lo pone el velo, no la hoja (un `backdrop-filter` aquí recortaría la
+      27 px; una sola hoja, también con lo que no se deshace (Felipe 2026-11-05). El desenfoque lo pone el velo, no la hoja (un `backdrop-filter` aquí recortaría la
       lista de cada combo de adentro). `hoja` y `papel` quedan como nombres que no cambian la cara: «papel» todavía pone la ✕. */
   variante?: "papel" | "hoja" | "camara" | "ticket" | "vidrio";
   /* «vidrio» (Mi perfil, Felipe 2026-10-31, maqueta docs/maquetas/mi-perfil-2026-10/, «A · Cristal líquido»): la hoja es vidrio
@@ -298,7 +298,8 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
               disabled={bloqueado}
               aria-label="Cerrar"
               {...(variante === "papel" ? {} : { "data-sin-cascada": true })}
-              className="cerrar-hoja absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+              // En el celular baja a la altura del título: arriba quedaría bajo la franja del asa (`asa-hoja-fija`, los primeros 24 px).
+              className={`cerrar-hoja absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo ${conAsa ? "max-sm:top-6" : ""}`}
             >
               <X aria-hidden className="h-4 w-4" />
             </button>

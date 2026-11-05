@@ -82,7 +82,7 @@ export function QuitarVarianteHoja({
           </Boton>
           <Boton
             type="button"
-            peso="peligro"
+            peso="primario"
             onClick={() => {
               onArchivar();
               onCerrar();

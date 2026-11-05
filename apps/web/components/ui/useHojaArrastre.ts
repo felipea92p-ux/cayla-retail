@@ -155,8 +155,9 @@ export function useHojaArrastre(opciones: Opciones) {
       const objetivo = e.target instanceof Element ? e.target : null;
       if (!objetivo || objetivo.closest(NO_ARRASTRA)) return;
       // Lo que corre bajo el dedo, de adentro hacia la hoja: si algo no está arriba del todo, bajar el dedo es desplazarlo.
+      // Salvo el asa, que no está sobre contenido: se queda a la vista al correr y tirar de ella siempre mueve la hoja.
       const corredores: HTMLElement[] = [];
-      for (let el: Element | null = objetivo; el && hoja.contains(el); el = el.parentElement) {
+      for (let el: Element | null = objetivo.closest("[data-asa-hoja]") ? null : objetivo; el && hoja.contains(el); el = el.parentElement) {
         if (el instanceof HTMLElement && el.scrollHeight > el.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) corredores.push(el);
       }
       const t = e.touches[0];
