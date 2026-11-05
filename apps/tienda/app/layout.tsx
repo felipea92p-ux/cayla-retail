@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bodoni_Moda, Public_Sans } from "next/font/google";
+import { DM_Serif_Display, Public_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
@@ -24,11 +24,11 @@ import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
 
-// Las letras de la dirección «G · Pasarela» (Felipe 2026-10-26, ADR-0524; antes «A · Muro»: Archivo y Newsreader): Public Sans para todo el texto y las
-// versalitas, y Bodoni Moda —una Didone de alto contraste— para los títulos, el nombre de cada prenda y las cifras grandes, como el programa de un
-// desfile. La palabra CAYLA no va con ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
+// Las letras de la tienda: Public Sans para todo el texto y las versalitas, y DM Serif Display para los títulos, el nombre de cada prenda y las cifras
+// grandes (Felipe 2026-11-05, ADR-0612: Bodoni Moda, la de «G · Pasarela», era tan fina que costaba leerla). Solo tiene un peso.
+// La palabra CAYLA no va con ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
 const sans = Public_Sans({ subsets: ["latin"], variable: "--font-public", display: "swap" });
-const didone = Bodoni_Moda({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-bodoni", display: "swap" });
+const titulos = DM_Serif_Display({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-titulos", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
@@ -49,7 +49,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // `suppressHydrationWarning`: el script del tema marca `<html>` antes de que React lo hidrate, y esa marca no viene del servidor.
-    <html lang="es" className={`${sans.variable} ${didone.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${sans.variable} ${titulos.variable}`} suppressHydrationWarning>
       <head>
         {/* El tema elegido (claro, oscuro o el del aparato) se aplica antes de pintar: sin esto, quien eligió oscuro vería un destello blanco (lib/tema.ts). */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_TEMA }} />
