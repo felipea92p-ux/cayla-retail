@@ -1,4 +1,4 @@
-/* La portada «L» (ADR-0613). Los fondos los elige `lib/portada-l.ts` según la prenda: no cambian con el tema oscuro, como la foto. */
+/* La portada «L» (ADR-0613). Los fondos pastel los elige `lib/portada-l.ts` según la prenda: no cambian con el tema oscuro, como la foto. */
 .pl { position: relative; background: #0b0b0b; }
 .pl-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
@@ -6,7 +6,7 @@
 .pl-cel { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: calc(100svh - 112px - 54px); min-height: 470px; max-height: 900px; }
 .pl-fila { display: flex; min-height: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .pl-fila::-webkit-scrollbar { display: none; }
-.pl-fila:focus-visible { outline: 2px solid #f4f1ea; outline-offset: -4px; }
+.pl-fila:focus-visible { outline: 2px solid #17110d; outline-offset: -4px; }
 .pl-s { flex: 0 0 86%; position: relative; display: block; overflow: hidden; scroll-snap-align: start; background: var(--f); color: var(--t); }
 .pl-s-t { position: absolute; left: 14px; top: 8px; font-family: var(--nombre); font-size: 15.5cqi; line-height: .95; letter-spacing: -.025em; white-space: nowrap; }
 .pl-s-g { position: absolute; inset: 56px 16px 68px; display: block; }
@@ -61,7 +61,18 @@
 }
 
 /* Debajo de la portada: las categorías con una prenda real, y las prendas de la portada otra vez. */
-.pl-cats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content, 1fr); gap: 6px; overflow-x: auto; padding-block: 14px; border-bottom: 1px solid var(--sand); scrollbar-width: none; }
+.pl-cats-marco { position: relative; border-bottom: 1px solid var(--sand); }
+.pl-cats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content, 1fr); gap: 6px; overflow-x: auto; padding-block: 14px; scrollbar-width: none; }
+/* Las flechas: solo con mouse (con el dedo se desliza) y solo hacia donde hay más. */
+.pl-cats-flecha { position: absolute; top: 28px; z-index: 2; display: none; place-items: center; width: 44px; height: 44px; padding: 0; background: var(--papel); color: var(--tinta); border: 1px solid var(--tinta); border-radius: 50%; cursor: pointer; transition: background-color .2s, color .2s; }
+.pl-cats-flecha[data-lado="izquierda"] { left: clamp(4px, 1.4cqi, 20px); }
+.pl-cats-flecha[data-lado="derecha"] { right: clamp(4px, 1.4cqi, 20px); }
+.pl-cats-flecha svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+@media (hover: hover) {
+  .pl-cats-flecha { display: grid; }
+  .pl-cats-flecha[hidden] { display: none; }
+  .pl-cats-flecha:hover { background: var(--tinta); color: var(--crema); }
+}
 .pl-cats::-webkit-scrollbar { display: none; }
 .pl-cat { display: block; padding: 2px 6px; text-align: center; font-size: 13px; white-space: nowrap; }
 .pl-cat span { display: block; width: 62px; height: 62px; margin: 0 auto 5px; overflow: hidden; border-radius: 50%; background: color-mix(in srgb, var(--c) 24%, #f4f2ee); transition: transform .35s ease; }

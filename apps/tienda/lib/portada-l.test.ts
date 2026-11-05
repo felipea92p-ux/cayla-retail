@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import { categoriasConFoto, gruposDeLaPortada, prendasDeAbajo } from "./portada-l";
+import { categoriasConFoto, distanciaDeColor, FONDOS_PASTEL, fondosDelGrupo, gruposDeLaPortada, prendasDeAbajo, TEXTO_DE_PORTADA, type Rgb } from "./portada-l";
 
 /** `codigo` es «CAT-n»; el orden en que se pasan no importa: manda `dias`. */
 function prenda(codigo: string, dias: number | null, extra: Partial<Prenda> = {}): Prenda {
@@ -62,7 +62,7 @@ describe("las últimas prendas de tres categorías", () => {
     const colores = [{ codigo: "BLA", nombre: "Blanco", hex: "#ffffff", foto: null }, { codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", foto }];
     const [g] = gruposDeLaPortada([prenda("POL-1", 1, { colores, fotos: [foto] }), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
     expect(g.prendas[0].id).toBe("POL-1");
-    expect(g.prendas[0].texto).toBe("#17110D");
+    expect(g.prendas[0].color).toEqual([0x2d, 0x2c, 0x2f]);
   });
 
   it("si una categoría se queda sin prendas, entra la que sigue, sin repetir ninguna (como Lima)", () => {
@@ -86,21 +86,55 @@ describe("las últimas prendas de tres categorías", () => {
     expect(gruposDeLaPortada(lista, null)).toHaveLength(3);
   });
 
-  it("una prenda oscura va sobre fondo claro, y una clara sobre oscuro, con el texto que se lee", () => {
-    const negra = { colores: [{ codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", foto: null }] };
-    const [g] = gruposDeLaPortada([prenda("POL-1", 1, negra), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
-    expect(g.prendas[0]).toMatchObject({ fondo: "#DCCBB8", texto: "#17110D" });
-    expect(g.prendas[1].texto).toBe("#F4F1EA");
-  });
-
-  it("dos paneles seguidos del mismo tipo de color no llevan el mismo fondo", () => {
-    const [g] = gruposDeLaPortada([prenda("POL-1", 1), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
-    expect(new Set(g.prendas.map((p) => p.fondo)).size).toBe(3);
-  });
-
   it("muestra lo que paga el cliente", () => {
     const [g] = gruposDeLaPortada([prenda("POL-1", 1, { precioFinal: 40 }), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
     expect(g.prendas[0].precio).toContain("40");
+  });
+});
+
+const aRgb = (hex: string): Rgb => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+const luz = (c: Rgb) => {
+  const l = c.map((v) => (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2];
+};
+const contraste = (a: Rgb, b: Rgb) => (Math.max(luz(a), luz(b)) + 0.05) / (Math.min(luz(a), luz(b)) + 0.05);
+
+describe("los fondos en pastel", () => {
+  it("el texto se lee sobre todos, con más de 9:1", () => {
+    for (const f of FONDOS_PASTEL) expect(contraste(aRgb(TEXTO_DE_PORTADA), aRgb(f))).toBeGreaterThan(9);
+  });
+
+  it("son pastel: claros y sin colores fuertes", () => {
+    for (const f of FONDOS_PASTEL) {
+      const c = aRgb(f);
+      expect(luz(c)).toBeGreaterThan(0.4);
+      expect(Math.max(...c) - Math.min(...c)).toBeLessThan(95);
+    }
+  });
+
+  // Los colores de prendas de la carta, también los que se pierden fácil: pasteles, tierra y negros.
+  const CARTA = ["#2D2C2F", "#D5BA98", "#9B1B30", "#A9CADA", "#80A0D4", "#F0A1BF", "#F2D3BC", "#B3573F", "#EADA4F", "#b4d7ff", "#C5C5C5", "#4B342F", "#B0885B", "#2A304E", "#F2E6B1", "#848587", "#6C2831", "#EE9626", "#EFC4CF", "#F3ECE0"];
+
+  it("ninguna prenda de la carta queda sobre un fondo que la pierda, en ningún turno", () => {
+    for (const a of CARTA) for (const b of CARTA) for (const c of CARTA) for (const turno of [0, 3, 6]) {
+      const colores = [a, b, c].map(aRgb);
+      fondosDelGrupo(colores, turno).forEach((f, i) => expect(distanciaDeColor(colores[i], aRgb(f))).toBeGreaterThanOrEqual(22));
+    }
+  });
+
+  it("los tres fondos de un grupo son distintos, y cambian de un grupo a otro", () => {
+    const colores: Rgb[] = [aRgb("#2D2C2F"), aRgb("#2D2C2F"), aRgb("#2D2C2F")];
+    const uno = fondosDelGrupo(colores, 0);
+    expect(new Set(uno).size).toBe(3);
+    expect(fondosDelGrupo(colores, 3)).not.toEqual(uno);
+  });
+
+  it("una prenda rosada no va sobre el rosado", () => {
+    expect(fondosDelGrupo([aRgb("#F0D6D4")], 2)[0]).not.toBe("#F0D6D4");
+  });
+
+  it("sin saber el color, igual les da un fondo a todas", () => {
+    expect(new Set(fondosDelGrupo([null, null, null], 0)).size).toBe(3);
   });
 });
 
