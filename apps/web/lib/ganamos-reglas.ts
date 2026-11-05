@@ -1,4 +1,4 @@
-// Estados financieros ▸ ¿Ganamos? (ganancias y pérdidas; ADR-0585, actividad 4).
+// Estados financieros ▸ Ganancias y pérdidas (ganancias y pérdidas; ADR-0585, actividad 4).
 //
 // PROMETE: la cascada de la venta a la ganancia en palabras de tienda (los gastos agrupados en lo que la persona reconoce, no en cuentas),
 // cada grupo con lo planeado en el presupuesto y cuánto se pasa; lo que dejó cada sede; las campañas del mes y las recomendaciones.
@@ -45,7 +45,7 @@ export function desvio(real: number, plan: number | null | undefined): number | 
 }
 
 /**
- * La cascada de ¿Ganamos?: vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
+ * La cascada de Ganancias y pérdidas: vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
  * tope lleva `plan` y `desvio` (contra la proyección en el mes en curso) y sus cuentas, para abrirlo.
  */
 export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCascada[] {
@@ -181,7 +181,7 @@ export type Recomendacion = {
 };
 
 /**
- * Qué te recomiendo en ¿Ganamos? (hasta 3, la más urgente arriba). Cada una sale de una cifra que la pantalla ya muestra: una sede que
+ * Qué te recomiendo en Ganancias y pérdidas (hasta 3, la más urgente arriba). Cada una sale de una cifra que la pantalla ya muestra: una sede que
  * pierde, un gasto que se pasa de lo planeado, una campaña que cerró y la meta de ventas. Ninguna inventa una regla.
  * `href` arma la dirección con la sede y el mes de la barra.
  */

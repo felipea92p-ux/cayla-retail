@@ -1,4 +1,4 @@
-// Estados financieros ▸ ¿Lo tuyo creció? (estado de cambios en el patrimonio; ADR-0585, actividad 7).
+// Estados financieros ▸ Cambios en el patrimonio (estado de cambios en el patrimonio; ADR-0585, actividad 7).
 //
 // PROMETE: el cuadro formal (capital, aportes y resultados por columna) y las recomendaciones. Las palabras y las partes de la pantalla están en `estados-patrimonio.ts`.
 // ASUME: toda cifra viene de `fn_patrimonio_cambios` (el mismo diario que el Balance). Aquí no se suma plata nueva: se ordena lo que la
@@ -64,7 +64,7 @@ export function cuadroFormalPatrimonio(p: ConExtremos): FilaFormalPatrimonio[] {
 }
 
 /**
- * Qué te recomiendo en ¿Lo tuyo creció? (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si retiraste más de lo
+ * Qué te recomiendo en Cambios en el patrimonio (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si retiraste más de lo
  * que ganaste (o una parte grande), si perdiste, si lo tuyo viene bajando y si hay algo sin explicar. Ninguna inventa una regla.
  */
 export function recomendacionesTuyo({ datos, href }: { datos: PatrimonioCambios | null; href: (ruta: string) => string }): Recomendacion[] {
@@ -107,8 +107,8 @@ export function recomendacionesTuyo({ datos, href }: { datos: PatrimonioCambios 
       tono: "atencion",
       prioridad: 3,
       titulo: `Perdiste ${soles(-g)} en el mes`,
-      texto: "La pérdida baja lo tuyo igual que un retiro. En ¿Ganamos? ves qué gasto se pasó.",
-      accion: { texto: "Ver ¿Ganamos?", href: href("/finanzas/reportes") },
+      texto: "La pérdida baja lo tuyo igual que un retiro. En Ganancias y pérdidas ves qué gasto se pasó.",
+      accion: { texto: "Ver Ganancias y pérdidas", href: href("/finanzas/reportes") },
     });
   }
   const bajando = mesesBajando(datos.serie);

@@ -69,7 +69,7 @@ export function csvFlujoContador(real: FlujoReal, mes: string): string {
 /** El estado de cambios en el patrimonio por columna, con la cuenta de cada columna en su encabezado. Sin arranque, lo dice. */
 export function csvPatrimonioContador(p: PatrimonioCambios, mes: string): string {
   const titulo = [`Estado de cambios en el patrimonio · ${mesTitulo(mes)}`];
-  if (!tieneExtremos(p)) return csvDe([titulo, ["Faltan los saldos de arranque: el líder los registra en ¿Cuánto vale CAYLA?."]]);
+  if (!tieneExtremos(p)) return csvDe([titulo, ["Faltan los saldos de arranque: el líder los registra en Balance general."]]);
   return csvDe([
     titulo,
     [],

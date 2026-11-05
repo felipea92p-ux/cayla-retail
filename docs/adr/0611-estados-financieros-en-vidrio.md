@@ -1,6 +1,6 @@
 # ADR-0611 · Estados financieros en vidrio: una cifra, una frase y un gráfico sobre hilos
 
-- **Fecha:** 2026-11-05 · **Estado:** propuesto. La dirección visual la eligió Felipe; la construcción espera que apruebe su lista de actividades.
+- **Fecha:** 2026-11-05 · **Estado:** aceptado y construido en local, en la rama `claude/estados-financieros-vidrio` (9 actividades que Felipe aprobó). Falta pegar la migración `20261105230000`, que espera su OK, y abrir el PR.
 - **Decide:** Felipe, mirando dos rondas de referencias y la maqueta `docs/maquetas/finanzas-eeff-vidrio-2026-11/`.
 - **Toca:** ADR-0585 (Estados financieros, que este rediseño reemplaza en su forma, no en sus datos ni permisos), ADR-0596 (vidrio «Serena»), ADR-0169
   (paleta), ADR-0136 (movimiento), ADR-0493 (El telar) y ADR-0358 (una función, una pieza).
@@ -25,9 +25,8 @@ ERP es «algo pobre». La propia receta da la causa en `app/estilos/vidrio/recet
 | Gráficos | Línea y área, cascada, tubos; categorías a la vista. Sin río de flujo | Marcas de las dos rondas |
 | Temas | Claro y oscuro al mismo nivel | Pregunta 3 |
 
-**Fechas (Felipe, 2026-11-05):** pidió poder elegir fechas específicas. La maqueta cambia `<SelectorMes>` por un calendario de vidrio con atajos y meses: rango en
-Ganancias, Flujo y Patrimonio; una sola fecha en Balance. Falta su OK. Construirlo cambia la URL de esta pantalla a `?desde=&hasta=` y `fn_patrimonio_cambios`, que hoy solo
-acepta un mes, lo cual lleva migración y pegado en producción.
+**Fechas (Felipe, 2026-11-05):** pidió poder elegir fechas específicas. `<SelectorMes>` cede su lugar a un calendario de vidrio con atajos y meses: rango en
+Ganancias, Flujo y Patrimonio; una sola fecha en Balance. Lo demás de Finanzas sigue con su mes.
 
 ## Las excepciones a las reglas, y por qué
 
@@ -58,7 +57,7 @@ acepta un mes, lo cual lleva migración y pegado en producción.
 ## Las mejoras de los componentes, ya en el ERP (2026-11-05)
 
 Salieron de comparar los componentes con otros sistemas (`docs/investigacion/2026-11-05-componentes-frente-a-sistemas.html`) y de probarlas en la maqueta. Felipe ordenó: «Empieza por 1 a 5 y luego elijo
-"rápido" para avanzar hasta la 8 y dejar la 9 para el final». **Valen para todo el ERP, no solo para Finanzas**, y son independientes de la reconstrucción de Estados financieros, que sigue propuesta.
+"rápido" para avanzar hasta la 8 y dejar la 9 para el final». **Valen para todo el ERP, no solo para Finanzas**, y son independientes de la reconstrucción de Estados financieros.
 
 | # | Qué | Dónde vive | Alcance real |
 |---|---|---|---|
@@ -83,6 +82,40 @@ Al poner límites a un rango solo se limita «Hasta»: si «Desde» también tuv
 - **Editar en la fila: no.** Toda corrección sigue en su hoja, con responsable y «antes → ahora», y el monto de un gasto no se corrige ni ahí (ADR-0588).
 - **Esqueleto de carga: no cambia nada.** Sigue el loader único, y el esqueleto parcial de una sección que ADR-0149 ya admite.
 
-## Cómo se verifica
+## Lo que se decidió al construirla
 
-Cada actividad se abre en el navegador en local, en claro y oscuro, a 1440, 1920 y 375 px. Al cierre: `tema:auditar`, guías, `/formidable` y `/unificar`.
+La maqueta decía cómo se ve; esto es lo que salió al conectarla con los datos reales.
+
+- **Una sola fecha para los cuatro estados, en la URL** (`lib/estados-periodo.ts`). Un mes entero es `?mes=` (el de hoy no se escribe); otras fechas suman `?desde=&hasta=`. `mes` es siempre el mes de `hasta`, porque viaja al
+  resto de Finanzas. Balance mira `hasta`, y la URL vieja con `?corte=` se sigue leyendo.
+- **El calendario se cierra al aplicar,** distinto de la maqueta: cada elección rehace la pantalla, así que quedarse abierto taparía justo lo que se quiso ver. Lo escrito a mano pide «Ver»; lo tocado se aplica solo.
+- **Un mes en curso se compara con los mismos días del mes pasado,** no con el mes entero: comparar cinco días contra treinta siempre daría «bajó».
+- **Una pieza común, `<EstadoVidrio>`** (`components/finanzas/estados/`): cifra, frase, gráfico, partes con su detalle y libro del contador. Las reglas de cada estado viven en `lib/estados-ganancias.ts`, `estados-flujo.ts`,
+  `estados-balance.ts` y `estados-patrimonio.ts`, con su prueba; lo común, en `lib/estados-partes.ts`.
+- **Lo que está en cero no se dibuja,** salvo el resultado. «Faltaron» tiene su tarjeta y no su tramo en la barra, porque la barra reparte lo que se gastó.
+- **Balance compara solo contra un cierre que también cuadre.** Compararlo con uno que no cuadra daría una diferencia sin sentido. Las filas de cada sede no muestran su caja abierta (ADR-0186).
+- **`?forma=formal` se retira.** El formato formal de cada estado se abre ahí mismo («Ver el formato formal», `LibroDelContador`), y una URL vieja solo muestra el estado. No se perdió nada: el cuadro por sede con «De dónde sale», comparar con el mes
+  anterior, semana a semana, el cuadro por columna y los saldos de arranque siguen en «Ver más». Los avisos graves del Estado de resultados (rojo y ámbar) se ven bajo la cifra, sin abrir nada.
+- **«Para el contador» es un botón con menú** (`MenuContador`, `opcionesDelContador`): los saldos por cuenta, el libro diario y las descargas de cada archivo.
+- **«Qué te recomiendo» va a todo el ancho,** no en una columna al costado como en la maqueta: la columna dejaba muy poco lugar a la barra. Dentro de esa placa, el botón de cada recomendación va bajo el texto: a su lado, a 375 px, el texto quedaba en una columna de una palabra.
+- **Los puntos de «días con más ventas» salen de `fn_rendimiento_serie`,** así que solo los ve quien tiene Rendimiento; los demás ven el calendario sin puntos. Es una lectura de apoyo, por `GET /finanzas/reportes/periodo`, con `x-espera: no`: si falla, el calendario funciona igual.
+- **La lente (el borde que desvía) solo se aplica** en Chromium, desde 760 px, sin «reducir movimiento», sin «reducir transparencia» y sin «más contraste». En otro caso, queda el mismo vidrio sin esa curva.
+- **Fuera de la pieza del sistema, a propósito:** la línea de los meses (`LineaDeMeses`), la barra que se explora (`TuboDePartes`) y el calendario (`SelectorPeriodo`) son de esta pantalla, por la maqueta que Felipe eligió. Lo anotan `docs/unificar/grafico.linea.md`,
+  `grafico.barra.md` y `mes.md`.
+
+**Una función nueva en la base: `retail.fn_patrimonio_en_fechas(p_desde, p_hasta)`** (migración `20261105230000`; solo lee, `security definer`, con el mismo candado de `fn_patrimonio_cambios`; sin `alter` ni políticas). Sin pegarla, un mes entero funciona igual con
+`fn_patrimonio_cambios`, y solo fallan, con su mensaje, otras fechas y la comparación del mes en curso.
+
+**Con el dedo, un tramo angosto de la barra sigue siendo angosto** (de 7 a 42 px): su ancho es la proporción, que es el dato. La tarjeta de abajo hace lo mismo y mide 44 px; WCAG 2.5.8 admite ese caso (control equivalente).
+
+## Cómo se verificó
+
+Local, base `54421`, con los datos del seed y, solo para mirar, datos inventados que nunca se commitearon.
+
+- **Cada actividad** se abrió en un navegador sin ventana (el panel estaba oculto). Se probaron meses con pérdida, rangos, sede, Empresa, fecha de inicio, «reducir movimiento» y descarga. `pnpm pruebas:patrimonio-cambios`: 34 comprobaciones.
+- **Guías** (`guias:recorrer`): las cinco pasan con datos reales y con los inventados, a 1440 y 375 px, y a 1440 en oscuro.
+- **Contraste** (`tema:auditar`, 15 vistas a 1440 y 15 a 375, con calendario, detalle, libro y «Ver más»): 0 hallazgos solo en oscuro. Lo heredado del claro que queda es falso positivo: «Registrar gasto», «Ver» y el día elegido tienen fondo degradado, que el detector no lee. Lo real se corrigió:
+  el «S/ 0» de la línea, el rojo y el verde sobre el tinte y en las partes apagadas, y el aviso rojo del calendario en la hoja del celular.
+- **Ancho:** 0 desbordes en 1920, 1440, 1024 y 375, en claro y oscuro, sin errores de consola.
+- **Dedo** (`tacto:medir`): solo quedan los tramos de la barra. **Ciega y notas:** `docs/formidable/finanzas-estados-financieros.md`.
+- **No medido:** la fluidez en el Mac mini (lente, desenfoque y lienzos que se mueven). Si no alcanza, se apaga primero la lente.

@@ -87,7 +87,7 @@ describe("recomendacionesTuyo", () => {
     expect(r[0]!.accion?.href).toBe("/finanzas/reportes/balance?mes=2026-10");
     expect(r[2]!.titulo).toBe("Lo tuyo baja hace 2 meses");
   });
-  it("una pérdida lleva a ¿Ganamos?", () => {
+  it("una pérdida lleva a Ganancias y pérdidas", () => {
     const r = recomendacionesTuyo({ datos: datos({ ganancia: -4000, retiros: 0 }), href });
     expect(r[0]).toMatchObject({ clave: "perdida", accion: { href: "/finanzas/reportes?mes=2026-10" } });
   });

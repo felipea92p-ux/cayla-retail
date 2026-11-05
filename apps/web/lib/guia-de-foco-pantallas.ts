@@ -109,13 +109,13 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/impuestos": PENDIENTE,
   "/finanzas/impuestos/sire": { estado: "no-aplica", motivo: "Comparar con SUNAT (ADR-0601) solo mira: las cifras filtran la lista y nada se llena aquí. El archivo y quién lo sube se eligen en la hoja «Propuesta de compras» (SubirPropuestaSireModal), que lleva su registro aparte." },
   "/finanzas/reportes": { estado: "no-aplica", motivo: "Ganancias y pérdidas (Estados financieros, ADR-0611) solo mira: la cifra, la línea y las partes de la barra se tocan para ver más, nada se llena. El mes y la sede los elige la barra del telar." },
-  "/finanzas/reportes/balance": { estado: "no-aplica", motivo: "¿Cuánto vale CAYLA? (ADR-0585) solo mira: su único control es la fecha del Balance, un filtro. Los saldos de arranque se llenan en su propia hoja (SaldosArranqueModal), que lleva su registro aparte." },
-  "/finanzas/reportes/campanas": { estado: "no-aplica", motivo: "La lista de campañas y cómo le fue a cada una (ADR-0585: la puerta desde ¿Ganamos?): solo mira, sin campos ni pasos." },
+  "/finanzas/reportes/balance": { estado: "no-aplica", motivo: "Balance general (ADR-0611) solo mira: la fecha es un filtro, y los saldos de arranque se llenan en su propia hoja (SaldosArranqueModal)." },
+  "/finanzas/reportes/campanas": { estado: "no-aplica", motivo: "La lista de campañas y cómo le fue a cada una (ADR-0585: la puerta desde Ganancias y pérdidas): solo mira, sin campos ni pasos." },
   "/finanzas/reportes/cuentas": { estado: "no-aplica", motivo: "Ver ▸ Saldos por cuenta o Libro diario (ADR-0585): solo mira. Su único campo es el buscador del diario, que filtra; no hay nada que llenar." },
-  "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de ¿Dónde está la plata? (ADR-0585)." },
-  "/finanzas/reportes/flujo": { estado: "no-aplica", motivo: "¿Dónde está la plata? (ADR-0585) solo mira. Sus controles son un filtro (cuántas semanas) y las palancas de «¿Y si…?», una simulación que no guarda: ninguna es obligatoria ni sigue a otra, así que no hay «qué falta». Lo explica su guía interactiva." },
-  "/finanzas/reportes/patrimonio": { estado: "no-aplica", motivo: "¿Lo tuyo creció? (Estados financieros, ADR-0585) solo mira: lo tuyo al empezar y al cerrar el mes y lo que lo movió. No hay campos ni pasos; el mes y la sede los elige la barra del telar." },
-  "/finanzas/reportes/presupuesto": { estado: "no-aplica", motivo: "Solo redirige a ¿Ganamos? (ADR-0585): el presupuesto vive dentro de esa pantalla y ya no tiene campos propios." },
+  "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de Flujo de efectivo (ADR-0585)." },
+  "/finanzas/reportes/flujo": { estado: "no-aplica", motivo: "Flujo de efectivo (ADR-0611) solo mira. Sus controles son filtros (las fechas, cuántas semanas) y las palancas de «¿Y si…?», una simulación que no guarda nada." },
+  "/finanzas/reportes/patrimonio": { estado: "no-aplica", motivo: "Cambios en el patrimonio (ADR-0611) solo mira: no hay campos ni pasos; las fechas son un filtro." },
+  "/finanzas/reportes/presupuesto": { estado: "no-aplica", motivo: "Solo redirige a Ganancias y pérdidas (ADR-0585): el presupuesto vive dentro de esa pantalla y ya no tiene campos propios." },
   "/finanzas/resumen": PENDIENTE,
   // ---- global ----
   "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) manda a la primera de sus cuatro pantallas que la cuenta ve; no hay campos ni pasos." },
@@ -271,7 +271,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 47;
+export const MODALES_PENDIENTES_HOY = 46;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -521,7 +521,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // días de abono y quién hace el cambio; el cargo fijo es opcional y el IGV viene marcado (lo usual en Perú).
   "components/finanzas/TarifaMaquinaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/TarifaMaquinaModal.tsx"] },
   "components/finanzas/dinero/SalidasPlanillaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/dinero/SalidasPlanillaModal.tsx"] },
-  "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
+  "components/finanzas/EstadoResultadosPanel.tsx": { estado: "no-aplica", motivo: "«De dónde sale» solo se lee: las líneas del diario detrás de una cifra del cuadro por sede. No tiene campos ni guarda nada; su único control es la × que la cierra." },
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles
   // ADR-0288 tanda 1a: la hoja ganó el alta de la clienta. Tanda 1g: solo el documento (tipo, número, nombre) y quién atiende.

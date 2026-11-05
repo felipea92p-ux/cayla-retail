@@ -349,7 +349,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         <p className="nota-cayla mt-3" data-guia="fin-flujo.sin-meta">
           <b>{sinMeta.map((t) => t.nombre).join(" y ")}</b> {sinMeta.length === 1 ? "no tiene" : "no tienen"} meta{sinMeta.some((t) => t.origen === "mixto") ? " algunos días" : ""}: se
           espera su promedio de ese día de la semana (hasta 8 semanas atrás){sinMeta.some((t) => t.corto) ? "; con pocos días de historia se acerca al promedio de todos sus días, para que un día atípico no mande" : ""}. Ponle meta en{" "}
-          <Link href="/configuracion?tab=metas" className="underline underline-offset-2 hover:text-rojo">
+          <Link href="/configuracion?tab=metas" className="btn-enlace">
             Configuración ▸ Metas
           </Link>
           .
@@ -358,7 +358,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
       {!p.planillaVisible && <p className="nota-cayla mt-3">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
       <p className="nota-cayla mt-3" data-guia="fin-flujo.config">
         El mínimo de caja y los avisos se cambian en{" "}
-        <Link href="/configuracion?tab=dinero" className="underline underline-offset-2 hover:text-rojo">
+        <Link href="/configuracion?tab=dinero" className="btn-enlace">
           Configuración ▸ Dinero
         </Link>
         .

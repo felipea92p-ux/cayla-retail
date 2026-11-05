@@ -1,5 +1,5 @@
 // Guías de Finanzas (ADR-0389): Resumen, Gastos, Cuentas y dinero (Cuentas, Efectivo por tienda, Por pagar, Conciliación), los cuatro
-// Estados financieros (¿Ganamos?, ¿Dónde está la plata?, ¿Cuánto vale CAYLA?, ¿Lo tuyo creció?) con sus páginas internas (Presupuesto,
+// Estados financieros (Ganancias y pérdidas, Flujo de efectivo, Balance general, Cambios en el patrimonio) con sus páginas internas (Presupuesto,
 // Campañas, Escenarios), Impuestos y Cierre de mes. Es dinero:
 // cada guía dice con cuidado QUÉ muestra cada cifra y DE DÓNDE sale (casi siempre: de lo que ya registran Ventas, Caja, Compras y
 // Producción; aquí nadie escribe un saldo a mano), en lenguaje de tienda y sin estadística. El piloto solo cambia de pestaña dentro de
@@ -1038,14 +1038,14 @@ export const GUIA_FIN_CONCILIACION: Guia = {
 export const GUIA_FIN_RESULTADOS: Guia = {
   id: "finanzas.reportes",
   ruta: "/finanzas/reportes",
-  titulo: "¿Ganamos?",
-  resumen: "Ganancias y pérdidas: lo que vendiste, lo que costó y lo que quedó, con lo planeado al lado de cada gasto.",
+  titulo: "Ganancias y pérdidas",
+  resumen: "Cuánto ganaste o perdiste en las fechas que elijas, a dónde se fue lo que vendiste y cómo viene mes a mes.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "¿Ganamos?",
-      texto: "Lo que se vendió en el mes, menos lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
+      titulo: "Ganancias y pérdidas",
+      texto: "Lo que se vendió, menos lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
     },
     ...TELAR_SIN_MES,
     FECHAS,
@@ -1177,7 +1177,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes si CAYLA ganó en el mes. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Ganamos?.",
+      texto: "Ya sabes si CAYLA ganó en el mes. Para repasarlo: Mi perfil ▸ Demo ▸ Ganancias y pérdidas.",
     },
   ],
   alSalir: [{ tipo: "escape" }],
@@ -1232,14 +1232,14 @@ export const GUIA_FIN_CAMPANAS: Guia = {
 export const GUIA_FIN_FLUJO: Guia = {
   id: "finanzas.reportes.flujo",
   ruta: "/finanzas/reportes/flujo",
-  titulo: "¿Dónde está la plata?",
-  resumen: "Flujo de efectivo: de dónde vino y a dónde fue la plata, lo que viene y qué pasa si cambias algo.",
+  titulo: "Flujo de efectivo",
+  resumen: "Con cuánta plata terminaste, por qué cambió, lo que viene y qué pasa si cambias algo.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "¿Vendí bien y no hay plata?",
-      texto: "Vender no es lo mismo que tener plata: una factura grande, un retiro o una máquina nueva se la llevan. Aquí ves de dónde vino y a dónde fue la plata en el mes, y lo que viene en las próximas semanas. Es una demo.",
+      texto: "Vender no es lo mismo que tener plata: una factura grande, un retiro o una máquina nueva se la llevan. Aquí ves por qué cambió tu plata en las fechas que elijas, y lo que viene. Es una demo.",
     },
     ...TELAR_SIN_MES,
     FECHAS,
@@ -1460,7 +1460,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes por qué la plata no siempre acompaña a las ventas. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Dónde está la plata?.",
+      texto: "Ya sabes por qué la plata no siempre acompaña a las ventas. Para repasarlo: Mi perfil ▸ Demo ▸ Flujo de efectivo.",
     },
   ],
   alSalir: [{ tipo: "clic", ancla: "fin-escenarios.volver" }],
@@ -1468,14 +1468,14 @@ export const GUIA_FIN_FLUJO: Guia = {
 export const GUIA_FIN_BALANCE: Guia = {
   id: "finanzas.reportes.balance",
   ruta: "/finanzas/reportes/balance",
-  titulo: "¿Cuánto vale CAYLA?",
-  resumen: "Balance general: lo que tiene, contra lo que debe y lo que es tuyo.",
+  titulo: "Balance general",
+  resumen: "Cuánto vale CAYLA a una fecha: lo que tiene, contra lo que debe y lo que es tuyo.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "¿Cuánto vale CAYLA?",
-      texto: "Lo que CAYLA tiene (plata, mercadería, muebles), contra lo que debe (proveedores, impuestos) y lo que es tuyo. Mirando una tienda, ves cuánta plata tiene metida y cuánto le rinde. Es una demo.",
+      titulo: "Balance general",
+      texto: "Lo que CAYLA tiene (plata, mercadería, muebles), contra lo que debe (proveedores, impuestos) y lo que es tuyo, a la fecha que elijas. Mirando una sede, lo que es de ella. Es una demo.",
     },
     ...TELAR_SIN_MES,
     FECHA_DEL_BALANCE,
@@ -1656,7 +1656,7 @@ export const GUIA_FIN_BALANCE: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes cuánto vale CAYLA y cuánto tiene cada tienda. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Cuánto vale CAYLA?.",
+      texto: "Ya sabes cuánto vale CAYLA y cuánto tiene cada tienda. Para repasarlo: Mi perfil ▸ Demo ▸ Balance general.",
     },
   ],
   alSalir: [{ tipo: "escape" }],
@@ -1666,14 +1666,14 @@ export const GUIA_FIN_BALANCE: Guia = {
 export const GUIA_FIN_PATRIMONIO: Guia = {
   id: "finanzas.reportes.patrimonio",
   ruta: "/finanzas/reportes/patrimonio",
-  titulo: "¿Lo tuyo creció?",
-  resumen: "Cambios en el patrimonio: si lo tuyo creció en el mes, qué lo movió y cómo viene mes a mes.",
+  titulo: "Cambios en el patrimonio",
+  resumen: "Cuánto cambió tu parte en CAYLA en las fechas que elijas, qué la movió y cómo viene mes a mes.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "¿Lo tuyo creció?",
-      texto: "Lo tuyo es lo que tiene CAYLA menos lo que debe. Aquí ves cuánto era al empezar el mes, qué lo movió (lo que ganaste, lo que pusiste y lo que retiraste) y cuánto quedó. Sale del mismo diario que el Balance: nadie lo escribe. Es una demo.",
+      titulo: "Cambios en el patrimonio",
+      texto: "Tu parte en CAYLA es lo que tiene menos lo que debe. Aquí ves con cuánto empezaste, qué la movió (lo que ganaste, lo que pusiste y lo que retiraste) y con cuánto terminaste. Es una demo.",
     },
     ...TELAR_SIN_MES,
     FECHAS,
@@ -1734,13 +1734,13 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       ancla: "fin-patrimonio.vacio",
       opcional: true,
       titulo: "Faltan los saldos de arranque",
-      texto: "Lo tuyo se cuenta desde el día en que CAYLA empezó a usar el sistema. Hasta que el líder registre esos saldos en ¿Cuánto vale CAYLA?, aquí no hay cifras.",
+      texto: "Lo tuyo se cuenta desde el día en que CAYLA empezó a usar el sistema. Hasta que el líder registre esos saldos en Balance general, aquí no hay cifras.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes si lo tuyo creció y por qué. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Lo tuyo creció?.",
+      texto: "Ya sabes si lo tuyo creció y por qué. Para repasarlo: Mi perfil ▸ Demo ▸ Cambios en el patrimonio.",
     },
   ],
 };

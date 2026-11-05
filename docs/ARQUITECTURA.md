@@ -2114,29 +2114,28 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
     foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
     nada apunta) y `archivar_cuenta_dinero`. Solo el líder.
-  - `/finanzas/reportes` — **Estados financieros** (ADR-0585, 2026-10-30; la URL y la clave de módulo `reportes_financieros` no
-    cambiaron): cuatro pantallas con la cabecera común `components/finanzas/estados/CabeceraEstados.tsx` (las cuatro respuestas, que son
-    las pestañas, `lib/estados-financieros.ts` → `getRespuestasEstados`; y «Descargar para el contador»). Quién ve CAYLA entera:
-    `veEstadosFinancierosDeTodoDe` / `veDiarioDeTodoDe` (`lib/persona-actual.ts`) ↔ `fn_ve_estados_financieros_de_todo`,
+  - `/finanzas/reportes` — **Estados financieros** (ADR-0585, 2026-10-30; rediseño en vidrio: ADR-0611, 2026-11-05; la URL y la clave de módulo `reportes_financieros` no
+    cambiaron): cuatro pantallas bajo un layout propio (`app/(app)/finanzas/reportes/layout.tsx`: la tela `TelaHilos`, la letra Inter de `lib/letra-estados.ts` y la clase `estados-vidrio`; estilos en
+    `app/estilos/vidrio/estados.css`), con la cabecera común `components/finanzas/estados/CabeceraEstados.tsx` (las cuatro pestañas de `ESTADOS`, `lib/estados-financieros-reglas.ts`; las fechas de
+    `SelectorPeriodo.tsx`; y `MenuContador.tsx`, «Para el contador»). Cada estado se arma con `EstadoVidrio.tsx` (`HeroeEstado` + un gráfico + `PartesDelEstado` + `LibroDelContador`) y lo demás va en «Ver más» (`MasDelEstado`). Las fechas
+    viven en la URL (`?mes=`, `?desde=&hasta=`; `lib/estados-periodo.ts`). Quién ve CAYLA entera: `veEstadosFinancierosDeTodoDe` / `veDiarioDeTodoDe` (`lib/persona-actual.ts`) ↔ `fn_ve_estados_financieros_de_todo`,
     `fn_ve_diario_de_todo` y `fn_exigir_estados_financieros_de_todo` (migración `20261030235000`).
-    - `/finanzas/reportes` ¿Ganamos? → `components/finanzas/estados/GanamosPanel.tsx`, `lib/ganamos-reglas.ts` → `lib/resultados.ts`
-      (`fn_estado_resultados`, `fn_campanas_reporte`, `fn_periodos_mes`), `lib/presupuesto.ts` (`fn_presupuesto_vs_real`); plegado,
-      `EstadoResultadosPanel.tsx` con «De dónde sale» (`fn_diario`, por páginas). `presupuesto` redirige aquí; `campanas` es una página
+    - `/finanzas/reportes` Ganancias y pérdidas → `lib/estados-ganancias.ts`, `lib/ganamos-reglas.ts` → `lib/resultados.ts` (`fn_estado_resultados`, `fn_campanas_reporte`, `fn_periodos_mes`), `lib/presupuesto.ts` (`fn_presupuesto_vs_real`); la línea de 13 meses,
+      `LineaDeGanancias.tsx` + `lib/estados-serie.ts` (`getResultadoPorMes`); en «Ver más» (`MasDeGanancias.tsx`), `EstadoResultadosPanel.tsx` con «De dónde sale» (`fn_diario`, por páginas). `presupuesto` redirige aquí; `campanas` es una página
       interna con su vuelta (`CampanasPanel.tsx`). El cuadre con Ventas: `CuadreVentas.tsx`, `lib/cuadre-ventas.ts` (`fn_cuadre_ventas_finanzas`, ADR-0609).
-    - `/finanzas/reportes/flujo` ¿Dónde está la plata? → `components/finanzas/estados/PlataPanel.tsx`, `lib/plata-reglas.ts` →
+    - `/finanzas/reportes/flujo` Flujo de efectivo → `lib/estados-flujo.ts`, `CascadaDeColumnas.tsx`; en «Ver más», `components/finanzas/estados/PlataPanel.tsx` (`MasDelFlujo`), `lib/plata-reglas.ts` →
       `lib/flujo-caja.ts` (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`); «¿Y si…?» es `EscenariosPanel.tsx` adentro (`escenarios`
       redirige a `flujo#y-si`). Lo que el Flujo no cubre: `arranques` de `fn_flujo_caja_real` y `loQueNoCubre` (ADR-0609).
-    - `/finanzas/reportes/balance` ¿Cuánto vale CAYLA? → `BalancePanel.tsx` + `components/finanzas/estados/Balanza.tsx`,
+    - `/finanzas/reportes/balance` Balance general → `lib/estados-balance.ts`, `TubosDelBalance.tsx`, `EcuacionDelBalance.tsx`; `components/finanzas/BalancePanel.tsx` (la vista cuando no cuadra y «Ver más»),
       `lib/vale-reglas.ts` → `lib/balance.ts` (`fn_balance_general`, `fn_conciliacion_contable`, `fn_balance_por_tienda`,
       `fn_saldos_iniciales`; los registra el líder con `registrar_saldo_inicial`). Tabla `saldos_iniciales`.
-    - `/finanzas/reportes/patrimonio` ¿Lo tuyo creció? → `components/finanzas/estados/PatrimonioPanel.tsx`, `lib/patrimonio-reglas.ts`
-      → `getPatrimonioCambios` → `fn_patrimonio_cambios` (migración `20261030235100`).
+    - `/finanzas/reportes/patrimonio` Cambios en el patrimonio → `lib/estados-patrimonio.ts`, `LineaDePatrimonio.tsx`, `components/finanzas/estados/PatrimonioPanel.tsx`, `lib/patrimonio-reglas.ts`
+      → `getPatrimonioCambios` → `fn_patrimonio_cambios` (migración `20261030235100`) y, con otras fechas, `getPatrimonioEnFechas` → `fn_patrimonio_en_fechas` (migración `20261105230000`, **sin pegar en producción**).
     - Las recomendaciones de cada una (`components/finanzas/estados/Recomendaciones.tsx`) salen de su `*-reglas.ts`, sin RPC propia.
-    - La barra de las siete vistas en la cabecera (`<Pestanas>` en `CabeceraEstados.tsx`, opciones en `opcionesVer` de `lib/contador-reglas.ts`): las
-      respuestas, los cuatro estados en formato formal (`?forma=formal`) o los dos cuadros de `/finanzas/reportes/cuentas`
-      (`?cuadro=saldos` → `SaldosPanel`, `fn_saldos_por_cuenta`; `?cuadro=diario` → `DiarioPanel`, `fn_diario` por páginas; los dos por
-      `saldosDelMes` y `diarioDelMes` de `lib/contador.ts`). La cascada de los cuatro estados es `CascadaEstados`
-      (`lib/cascada-estados-reglas.ts`) y su respuesta, `TitularEstado`.
+    - `/finanzas/reportes/cuentas` (`?cuadro=saldos` → `SaldosPanel`, `fn_saldos_por_cuenta`; `?cuadro=diario` → `DiarioPanel`, `fn_diario` por páginas; los dos por
+      `saldosDelMes` y `diarioDelMes` de `lib/contador.ts`): los dos cuadros que no son un estado. Se llega desde «Para el contador» (`opcionesDelContador`, `lib/contador-reglas.ts`), que también descarga cada archivo.
+    - `GET /finanzas/reportes/periodo?sede=&mes=` (route handler, ADR-0611): lo que el calendario pide al abrirse. Sin `mes`, cuánto se ganó cada mes (`getResultadoPorMes`, para sus barritas); con `mes`, lo vendido por día (`getVentasDelMes` →
+      `fn_rendimiento_serie`, para sus puntos). Repite el candado del módulo porque una ruta no hereda el del layout. Es de apoyo: si falla, el calendario funciona igual.
     - `GET /finanzas/reportes/descargar?archivo=&mes=` (route handler) → `lib/contador.ts` + `lib/contador-reglas.ts`: un CSV por
       archivo (los cuatro estados con sus cuentas, los saldos por cuenta y el libro diario), con las mismas lecturas de cada pantalla
       más `fn_saldos_por_cuenta` (migración `20261031120000`) y `fn_diario`. Lo pide el «Descargar Excel» de cada cuadro

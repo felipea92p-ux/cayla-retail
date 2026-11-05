@@ -235,7 +235,7 @@
 }
 .estados-cal-paso[data-tono] {
   font-weight: 500;
-  color: var(--color-rojo);
+  color: var(--color-rojo-profundo);
 }
 .estados-cal-paso[data-tono]::before {
   background: var(--color-rojo);
@@ -339,7 +339,7 @@
 .estados-cal-hilo-mes {
   position: relative;
   display: flex;
-  height: 66px;
+  height: 72px;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
@@ -795,8 +795,7 @@
   right: 32px;
   left: 32px;
   height: 0;
-  border-top: 1px dashed var(--color-borde-control);
-  opacity: 0.7;
+  border-top: 1px dashed color-mix(in srgb, var(--color-borde-control) 70%, transparent);
 }
 .estados-linea-cero small {
   position: absolute;
@@ -1133,6 +1132,10 @@
 .estados-parte b[data-tono="mal"] {
   color: var(--color-rojo);
 }
+/* Sobre el tinte de la parte encendida, el rojo de marca no llega a 4.5:1: el profundo sí, en los dos temas. */
+.estados-parte[data-encendida] b[data-tono="mal"] {
+  color: var(--color-rojo-profundo);
+}
 .estados-parte[data-encendida] {
   background: linear-gradient(180deg, var(--estados-luz-suave), transparent 70%), color-mix(in srgb, var(--c) 10%, transparent);
   box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave), 0 10px 20px -14px var(--color-sombra);
@@ -1143,8 +1146,17 @@
   filter: saturate(0.5);
 }
 [data-foco="elegido"] [data-apagada] {
-  opacity: 0.55;
+  opacity: 0.85;
   filter: saturate(0.75);
+}
+/* Apagada, el color de marca baja de 4.5:1; el profundo se sigue leyendo. */
+[data-foco="elegido"] .estados-parte[data-apagada] b[data-tono="mal"],
+[data-foco="elegido"] .estados-cc[data-apagada] .estados-cc-val[data-signo="menos"] {
+  color: var(--color-rojo-profundo);
+}
+[data-foco="elegido"] .estados-parte[data-apagada] b[data-tono="bien"],
+[data-foco="elegido"] .estados-cc[data-apagada] .estados-cc-val[data-signo="mas"] {
+  color: var(--color-verde-profundo);
 }
 
 /* ---------- El detalle de una parte, justo debajo ---------- */
@@ -1519,6 +1531,20 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 12px;
 }
+/* Una tarjeta mide de 280 a 400 px: con el botón a la derecha del texto, el texto quedaba en una columna de una palabra. Va debajo. */
+.estados-recos .aviso-linea {
+  align-items: start;
+}
+.estados-recos .aviso-linea-tit,
+.estados-recos .aviso-linea-det {
+  grid-column: 2 / -1;
+}
+.estados-recos .aviso-linea-acc {
+  grid-column: 2 / -1;
+  grid-row: auto;
+  justify-self: start;
+  margin-top: 8px;
+}
 .estados-mas {
   display: flex;
   flex-direction: column;
@@ -1598,6 +1624,17 @@
   .estados-grafico[data-aire] {
     min-height: 300px;
     margin-inline: 0;
+  }
+  /* Los dos tubos ya miden lo suyo: con el alto de la cascada quedaban sobre un hueco vacío. */
+  .estados-grafico[data-aire]:has(.estados-tubos) {
+    min-height: 0;
+  }
+  /* En dos renglones, el hilo de `btn-enlace` (una imagen a 0,7 em del centro de la caja) tachaba el segundo. */
+  .estados-mas-boton .ver-mas-enlace {
+    background-image: none;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-tinta) 32%, transparent);
+    text-underline-offset: 4px;
   }
   .estados-cc-nombre {
     font-size: 13px;

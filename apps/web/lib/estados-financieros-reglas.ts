@@ -1,8 +1,6 @@
-// Finanzas ▸ Estados financieros (ADR-0585, Felipe 2026-10-30; maqueta `docs/maquetas/finanzas-eeff-2026-10/`): los cuatro estados como
-// cuatro respuestas, y esas respuestas son las pestañas.
+// Finanzas ▸ Estados financieros (ADR-0585, ADR-0611): los cuatro estados, que son las cuatro pestañas.
 //
-// PROMETE: cuál es cada estado (su ruta, su nombre formal y su pregunta de tienda) y cómo se dice su respuesta en una línea, con la cifra
-// que la base ya calculó. Lógica pura: la usan la cabecera (servidor) y su prueba.
+// PROMETE: cuál es cada estado (su ruta y su nombre) y de qué fila del Estado de resultados sale cada sede. Lógica pura: la usan la cabecera (servidor) y su prueba.
 // ASUME: toda cifra viene de la base (`fn_estado_resultados`, `fn_flujo_caja_real`, `fn_balance_general` + `fn_conciliacion_contable`,
 // `fn_balance_por_tienda`, `fn_patrimonio_cambios`). Aquí no se suma plata: se elige la columna de la sede y se escribe la frase.
 // Sin dato se dice por qué (principio 9): nunca un cero que no es.
@@ -23,11 +21,11 @@ export const mesDeLosEstados = (mes: string | undefined, hoy: string): string =>
 };
 
 /** Los cuatro, en el orden de la pantalla: primero los que se miran cada mes, después los de vez en cuando. La ruta no se renombró. */
-export const ESTADOS: readonly { clave: ClaveEstado; ruta: string; formal: string; pregunta: string }[] = [
-  { clave: "ganamos", ruta: "/finanzas/reportes", formal: "Ganancias y pérdidas", pregunta: "¿Ganamos?" },
-  { clave: "plata", ruta: "/finanzas/reportes/flujo", formal: "Flujo de efectivo", pregunta: "¿Dónde está la plata?" },
-  { clave: "vale", ruta: "/finanzas/reportes/balance", formal: "Balance general", pregunta: "¿Cuánto vale CAYLA?" },
-  { clave: "tuyo", ruta: "/finanzas/reportes/patrimonio", formal: "Cambios en el patrimonio", pregunta: "¿Lo tuyo creció?" },
+export const ESTADOS: readonly { clave: ClaveEstado; ruta: string; formal: string }[] = [
+  { clave: "ganamos", ruta: "/finanzas/reportes", formal: "Ganancias y pérdidas" },
+  { clave: "plata", ruta: "/finanzas/reportes/flujo", formal: "Flujo de efectivo" },
+  { clave: "vale", ruta: "/finanzas/reportes/balance", formal: "Balance general" },
+  { clave: "tuyo", ruta: "/finanzas/reportes/patrimonio", formal: "Cambios en el patrimonio" },
 ];
 
 /** La columna del Estado de resultados que corresponde a la sede de la barra: todas → CAYLA (el consolidado), empresa → «De la empresa». */

@@ -1,4 +1,4 @@
-// Estados financieros ▸ ¿Cuánto vale CAYLA? (balance general; ADR-0585, actividad 6).
+// Estados financieros ▸ Balance general (balance general; ADR-0585, actividad 6).
 //
 // PROMETE: el Balance como una balanza que se lee de un vistazo: lo que tiene, contra lo que debe y lo que es tuyo, cada lado en pocos
 // grupos que una tienda reconoce (no cuentas), cada grupo con sus líneas por su nombre; dos medidores que traducen el Balance a una
@@ -76,7 +76,7 @@ export function medidores(grupos: readonly GrupoBalance[], costoDelMes: number |
 export const MESES_DE_MERCADERIA_ALTOS = 4;
 
 /**
- * Qué te recomiendo en ¿Cuánto vale CAYLA? (hasta 3). Sale de lo que la pantalla ya muestra: si el Balance no cuadra, la mercadería
+ * Qué te recomiendo en Balance general (hasta 3). Sale de lo que la pantalla ya muestra: si el Balance no cuadra, la mercadería
  * guardada, cuánto de lo que debes cubre la plata y la sede que no devuelve lo invertido.
  */
 export function recomendacionesVale({

@@ -1,4 +1,4 @@
-// Estados financieros ▸ ¿Dónde está la plata? (flujo de efectivo; ADR-0585, actividad 5).
+// Estados financieros ▸ Flujo de efectivo (flujo de efectivo; ADR-0585, actividad 5).
 //
 // PROMETE: el flujo del mes en el «método directo», que es el que se lee como «cobraste / pagaste»: la plata de cada categoría que ya
 // da la base va a una de tres partes (del día a día, compras que duran años, tú y los préstamos), con las diferencias de caja y la
@@ -91,7 +91,7 @@ export const montoDe = (real: Pick<FlujoReal, "categorias">, clave: string) => r
 export const DIAS_DE_CAJA_CORTOS = 15;
 
 /**
- * Qué te recomiendo en ¿Dónde está la plata? (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si la plata alcanza
+ * Qué te recomiendo en Flujo de efectivo (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si la plata alcanza
  * en las próximas semanas, por qué bajó aunque se ganó, los días de caja y el próximo impuesto. Ninguna inventa una regla.
  */
 export function recomendacionesPlata({

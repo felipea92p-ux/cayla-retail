@@ -34,7 +34,7 @@ import { CalendarX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { notaResultadosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 
-// Estados financieros ▸ ¿Ganamos? ▸ el formato formal (ADR-0195 F5; desde ADR-0585 va plegado al pie de ¿Ganamos?): UNA tarjeta con
+// Estados financieros ▸ Ganancias y pérdidas ▸ el formato formal (ADR-0195 F5; desde ADR-0585 va plegado al pie de Ganancias y pérdidas): UNA tarjeta con
 // «Comparar» y el cuadro (conceptos en filas, unidades en columnas, CAYLA al final) → dos notas. Cada cifra se puede tocar: abre las
 // líneas del diario de las que sale. La sede y el mes los elige la barra del telar; las cuentas contables no se muestran (van en lo que
 // se descarga, Felipe 2026-10-30). La pantalla no calcula plata: todo viene de `fn_estado_resultados`.

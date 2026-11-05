@@ -181,7 +181,7 @@ la persiana de Caja, Finanzas (El telar, ADR-0493), el login, las guías interac
 ## Fuera hasta que Felipe diga
 
 Lo que tiene diseño propio decidido: la vista rápida de producto, Catálogo ▸ Insignias, Ajustar stock de Existencias,
-la persiana de Caja, El telar de Finanzas, el login «El vuelo vivo», las guías interactivas. Y lo que es papel o cámara: ticket, boleta,
+la persiana de Caja, El telar de Finanzas, Estados financieros (su vidrio con luz sobre hilos, ADR-0611), el login «El vuelo vivo», las guías interactivas. Y lo que es papel o cámara: ticket, boleta,
 etiqueta, QR y los visores de cámara (ADR-0336, regla 3).
 
 ## Antes de la primera pieza en código
