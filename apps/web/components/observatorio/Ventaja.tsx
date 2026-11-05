@@ -59,6 +59,7 @@ export function GraficoVentaja({
   };
 
   const rivalCorto = nombres.rival ?? "las otras";
+  const hayVentas = v.estado !== "sin-ventas";
   const hayQuienVaAdelante = v.estado === "adelante" || v.estado === "detras";
 
   const cruz = (e: EventoPuntero) => {
@@ -100,22 +101,34 @@ export function GraficoVentaja({
     <div className="o-graf o-ritmo" ref={grafRef} data-ventaja={v.estado}>
       <Revela key={v.serie.length}>
         <Trazo pts={[[0, cero], [100, cero]]} tipo="l" className="cero" />
-        <AreaVidrio pts={pts} base={cero} />
-        <Trazo pts={pts} tipo="l" className="ln f" />
+        {hayVentas && (
+          <>
+            <AreaVidrio pts={pts} base={cero} />
+            <Trazo pts={pts} tipo="l" className="ln f" />
+          </>
+        )}
       </Revela>
-      <span className="o-vent-lado arriba">{nombres.propia} adelante</span>
-      <span className="o-vent-lado abajo">{rivalCorto.charAt(0).toUpperCase() + rivalCorto.slice(1)} adelante</span>
+      {hayVentas && (
+        <>
+          <span className="o-vent-lado arriba">{nombres.propia} adelante</span>
+          <span className="o-vent-lado abajo">{rivalCorto.charAt(0).toUpperCase() + rivalCorto.slice(1)} adelante</span>
+        </>
+      )}
       {hayQuienVaAdelante && (
         <span className={`o-vent-cero o-anima${sFin > 0 ? " bajo" : ""}`} style={{ top: `${cero.toFixed(2)}%` }}>
           Parejas
         </span>
       )}
-      <span className="pt o-anima" style={punto} />
-      <span className={`pt-l o-anima${lugarCifra}`} style={punto}>
-        {solesConSigno(sFin)}
-      </span>
-      <div className="capa" onPointerMove={cruz} onPointerLeave={ocultarTip} />
-      <i className="cruz" ref={cruzRef} />
+      {hayVentas && (
+        <>
+          <span className="pt o-anima" style={punto} />
+          <span className={`pt-l o-anima${lugarCifra}`} style={punto}>
+            {solesConSigno(sFin)}
+          </span>
+          <div className="capa" onPointerMove={cruz} onPointerLeave={ocultarTip} />
+          <i className="cruz" ref={cruzRef} />
+        </>
+      )}
       <div className="eje">
         {ejes.map(([x, t]) => (
           <span key={t} style={{ left: `${x * 100}%` }}>
