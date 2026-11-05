@@ -1,0 +1,3 @@
+- **2026-11-05 · Rendimiento ▸ la tabla (`TablaViva`, ADR-0610 act.):** ordenar pasa a dos flechas sin texto, la columna que solo ordena cambia al tocarla, el globo es vidrio y ya no se corre de lado, y las columnas se van de una en una (1060, 960, 840, 740). Sin migración.
+- **De paso:** el asa pegada de las hojas del celular tapaba el título en toda hoja (`.asa-hoja-fija`, `top: -1.5rem`).
+- **Sin ver en el navegador:** Movimientos ▸ Ingresos con filas (la base local no tiene ingresos); usa la misma pieza.

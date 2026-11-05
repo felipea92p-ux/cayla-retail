@@ -74,3 +74,16 @@ pnpm --filter web guias:recorrer -- --guia rendimiento --base-url http://localho
 ```
 
 Datos inventados para mirarla: `scripts/demo/rendimiento-local.mjs`. Solo corre con el contenedor dicho a mano (`CAYLA_CONTENEDOR_DB`), porque la base local de siempre la comparten otras sesiones y está atrasada frente a `main`; esta construcción se probó en una pila aparte con todas las migraciones.
+
+## Actualización 2026-11-05 — la tabla: flechas en vez de texto, el globo en vidrio y más escalones (Felipe)
+
+**Por qué:** el globo de «Cómo va» se veía corrido y con una barra de desplazamiento: «Por debajo primero / Adelante primero» medía 314 px dentro de un globo de 270, y además no tenía el vidrio de las hojas. Felipe pidió flechas para ahorrar texto y una tabla «super responsive». Se cambió en `TablaViva`, así que también llega a Movimientos ▸ Ingresos.
+
+- **Ordenar son dos flechas, sin texto:** ↑ menor a mayor, ↓ mayor a menor, en una línea (`FlechasDeOrden`). Lo que significa en cada columna sigue en `title` y para el lector de pantalla.
+- **Una columna que solo ordena no abre globo:** tocarla cambia su flecha (`ordenAlTocar`). Empieza por la cifra o la fecha mayor, o por el nombre de la A a la Z. El globo queda para las columnas con «Mostrar solo», que llevan embudo.
+- **El globo es vidrio y mide lo que pide su contenido:** receta nueva `--globo-tabla-*` en `recetas.css`. Sin velo que desenfoque detrás, el desenfoque lo pone él. Ya no puede correrse de lado.
+- **Cuatro escalones en vez de dos:** `seVa` admite 1060, 960, 840 y 740, y las columnas se van de una en una: Su mes, Mejor día, Ticket y Meta. Las pistas reparten lo que sobra, para que en una pantalla muy ancha no se lo lleve todo la barra.
+- **Bajo el nombre, cada dato baja entero** a la línea siguiente, sin un «·» huérfano. En el celular, «Ordenar» es una lista de columnas con sus flechas y los filtros bajan de línea en vez de esconderse a la derecha.
+- **De paso, en toda hoja del celular:** el asa pegada se bajaba 24 px y su franja tapaba el título (`top: 0` se cuenta desde dentro del relleno). Ahora es `top: -1.5rem`.
+
+**Verificado en local:** de 280 a 1700 px de tabla, con letra normal y grande, sin desbordes ni nombres cortados; a 375 y 1024 px de ventana; el globo en claro y en oscuro. **Sin ver en el navegador:** Movimientos ▸ Ingresos con filas, porque la base local no tiene ingresos.

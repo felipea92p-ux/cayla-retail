@@ -90,6 +90,12 @@
   --vidrio-flota-filtro: blur(24px) saturate(1.6);
   --vidrio-flota-sombra: inset 0 1px 0 var(--color-vidrio), 0 26px 54px -24px color-mix(in srgb, var(--color-sombra) 55%, transparent);
 
+  /* El globo que brota de una cabecera (TablaViva, Felipe 2026-11-05: «no tiene el efecto glass que tienen los modales»). Sin velo que desenfoque
+     detrás, el vidrio lo pone él: más translúcido que una lista de combo, con un brillo en diagonal y el borde de luz de la hoja. */
+  --globo-tabla-fondo: linear-gradient(150deg, color-mix(in srgb, var(--color-vidrio) 66%, transparent), color-mix(in srgb, var(--color-vidrio) 44%, transparent));
+  --globo-tabla-filtro: blur(20px) saturate(1.9);
+  --globo-tabla-sombra: inset 0 1px 0 var(--color-vidrio), inset 0 0 0 1px color-mix(in srgb, var(--color-vidrio) 28%, transparent), 0 30px 60px -26px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+
   /* ---------- la placa Serena: las cifras de la cabecera, las tarjetas de cifra y las tablas de una pantalla (ADR-0596, 2026-10-31) ---------- */
   /* Más firme que la placa de una nota: sobre la Aurora se lee un monto. Con su propio desenfoque (no vive dentro de una hoja). */
   --serena-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 64%, transparent), color-mix(in srgb, var(--color-vidrio) 44%, transparent));
@@ -383,6 +389,8 @@
 
     --vidrio-flota-fondo: color-mix(in srgb, var(--color-vidrio) 88%, transparent);
     --vidrio-flota-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 12%, transparent), 0 26px 54px -24px var(--color-sombra);
+    --globo-tabla-fondo: linear-gradient(150deg, color-mix(in srgb, var(--color-vidrio) 80%, transparent), color-mix(in srgb, var(--color-vidrio) 64%, transparent));
+    --globo-tabla-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 16%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 5%, transparent), 0 30px 60px -24px var(--color-sombra); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
 
     --serena-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-vidrio) 60%, transparent));
     --serena-fondo-encima: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 14%, var(--color-vidrio)), color-mix(in srgb, var(--color-tinta) 6%, var(--color-vidrio)));
@@ -526,6 +534,7 @@
     --vidrio-hoja-fondo: var(--color-papel);
     --vidrio-pie-fondo: var(--color-papel);
     --vidrio-flota-fondo: var(--color-papel);
+    --globo-tabla-fondo: var(--color-papel);
     --cajon-movil-fondo: var(--color-papel);
     --cajon-movil-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);
     --vidrio-velo: color-mix(in srgb, var(--color-sombra) 40%, transparent);

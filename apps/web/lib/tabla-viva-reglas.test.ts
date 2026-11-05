@@ -13,6 +13,7 @@ import {
   partesDeFiltros,
   pasaFiltros,
   sumaDe,
+  ordenAlTocar,
   textosDeOrden,
   tituloSinResultados,
   unirConO,
@@ -111,6 +112,20 @@ describe("ordenar", () => {
     expect(textosDeOrden("texto")).toEqual({ asc: "A → Z", desc: "Z → A" });
     expect(textosDeOrden("monto").desc).toBe("Mayor primero");
     expect(textosDeOrden("fecha").asc).toBe("Más antigua primero");
+  });
+});
+
+describe("la cabecera que solo ordena: la flecha cambia al tocar", () => {
+  it("la primera vez, la cifra y la fecha de mayor a menor; el nombre de la A a la Z", () => {
+    expect(ordenAlTocar({ clave: "total", tipo: "monto" }, null)).toEqual({ clave: "total", dir: "desc" });
+    expect(ordenAlTocar({ clave: "entro", tipo: "fecha" }, { clave: "total", dir: "asc" })).toEqual({ clave: "entro", dir: "desc" });
+    expect(ordenAlTocar({ clave: "prov", tipo: "texto" }, null)).toEqual({ clave: "prov", dir: "asc" });
+  });
+  it("tocarla otra vez da la vuelta, y otra más vuelve", () => {
+    const una = ordenAlTocar({ clave: "total", tipo: "monto" }, null);
+    const dos = ordenAlTocar({ clave: "total", tipo: "monto" }, una);
+    expect(dos.dir).toBe("asc");
+    expect(ordenAlTocar({ clave: "total", tipo: "monto" }, dos).dir).toBe("desc");
   });
 });
 
