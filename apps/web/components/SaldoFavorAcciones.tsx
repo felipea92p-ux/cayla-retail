@@ -110,6 +110,8 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
             sentido="entra"
             cuentas={cuentas.cuentas}
             listo={cuentas.listo}
+                falla={cuentas.falla}
+                reintentar={cuentas.reintentar}
             clase="reembolso"
             medio={metodo}
             valor={cuentaEntra}
@@ -124,7 +126,7 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
             <button type="button" onClick={cerrar} disabled={loading} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <Boton peso="primario" cargando={loading} textoCargando="Registrando…" type="submit" disabled={loading || !montoOk}>
+            <Boton peso="primario" cargando={loading} textoCargando="Registrando…" type="submit" disabled={loading || !montoOk || cuentas.falla}>
               Registrar reembolso
             </Boton>
           </div>

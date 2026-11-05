@@ -159,7 +159,7 @@ create temp table lider_diario_cerrado as select * from retail.fn_diario('2025-0
 const SIN_COMENTARIOS = "regexp_replace(p.prosrc, '--[^\\n]*', '', 'g')";
 // Las lecturas del diario: todas deciden «ve todo» con la misma pregunta (ADR-0585).
 const HERMANAS = ["fn_diario_ubicaciones", "fn_asientos", "fn_diario", "fn_estado_resultados", "fn_balance_por_tienda", "fn_balance_general",
-  "fn_campanas_reporte", "fn_presupuesto_vs_real", "fn_periodos_mes", "fn_gastos_fuera_de_lo_normal", "fn_planilla_provision", "fn_claure_ventas_en", "fn_cuadre_ventas_finanzas"];
+  "fn_campanas_reporte", "fn_presupuesto_vs_real", "fn_periodos_mes", "fn_gastos_fuera_de_lo_normal", "fn_planilla_provision", "fn_claure_ventas_en", "fn_cuadre_ventas_finanzas", "fn_lo_que_falta_del_mes"];
 // Lo que es de CAYLA entera: lo abre el módulo (ADR-0585). Registrar los saldos de arranque sigue siendo del líder.
 const DE_CAYLA_ENTERA = ["fn_flujo_caja_real", "fn_flujo_caja_proyeccion", "fn_balance_general", "fn_conciliacion_contable", "fn_saldos_iniciales",
   "fn_saldos_iniciales_propuesta"];

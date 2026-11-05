@@ -2,7 +2,7 @@
   "guia": "produccion.comprobantes",
   "ruta": "/produccion/comprobantes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 40,
+  "total": 41,
   "controles": {
     "components/ComprobanteProduccionDetalle.tsx": [
       "CampoTexto «Motivo de la anulación»",
@@ -48,7 +48,8 @@
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «{valor}»"
+      "Desplegable «{valor}»",
+      "button «Volver a intentar»"
     ],
     "components/ProduccionSoloEnTaller.tsx": [
       "BotonVer «Volver al inicio»"

@@ -81,6 +81,47 @@ export const RUTAS_CON_VARIAS_SEDES: readonly string[] = [
 
 export const aceptaVariasSedes = (ruta: string) => RUTAS_CON_VARIAS_SEDES.some((r) => ruta === r || ruta.startsWith(`${r}/`));
 
+/**
+ * Qué filtra de verdad cada pantalla de Finanzas (tarea 26 de «Las 36»). La barra es común, pero no todo se parte por sede ni cambia con el mes: en
+ * Campañas decía «Viendo solo Lima» mostrando toda CAYLA, y el mes no movía nada en Cuentas y dinero. Sede y mes siguen viajando en la URL, para
+ * la pantalla siguiente; aquí la barra apaga lo que no aplica y lo dice. Una pantalla nueva se declara aquí: `lib/finanzas-telar-reglas.test.ts`
+ * falla si un `page.tsx` de Finanzas no está. `redirige`: no dibuja nada, lleva a otra pantalla.
+ */
+export type AlcanceDeRuta = { sede: "sede" | "toda"; mes: boolean } | { redirige: true };
+export const ALCANCE_POR_RUTA: Readonly<Record<string, AlcanceDeRuta>> = {
+  "/finanzas": { redirige: true },
+  "/finanzas/resumen": { sede: "sede", mes: true },
+  "/finanzas/gastos": { sede: "sede", mes: true },
+  "/finanzas/cierre": { sede: "sede", mes: true },
+  "/finanzas/dinero": { sede: "sede", mes: false },
+  "/finanzas/dinero/por-pagar": { sede: "sede", mes: false },
+  "/finanzas/dinero/conciliacion": { sede: "toda", mes: false },
+  "/finanzas/dinero/claure": { sede: "toda", mes: false },
+  "/finanzas/dinero/efectivo": { redirige: true },
+  "/finanzas/impuestos": { sede: "sede", mes: true },
+  "/finanzas/impuestos/sire": { sede: "toda", mes: true },
+  "/finanzas/reportes": { sede: "sede", mes: true },
+  "/finanzas/reportes/balance": { sede: "sede", mes: true },
+  "/finanzas/reportes/cuentas": { sede: "toda", mes: true },
+  "/finanzas/reportes/flujo": { sede: "toda", mes: true },
+  "/finanzas/reportes/patrimonio": { sede: "toda", mes: true },
+  "/finanzas/reportes/campanas": { sede: "toda", mes: false },
+  "/finanzas/reportes/presupuesto": { redirige: true },
+  "/finanzas/reportes/escenarios": { redirige: true },
+};
+
+/** Lo que aplica en esta ruta. Una que no se conoce deja la barra como siempre. */
+export function alcanceDeRuta(ruta: string): { sede: "sede" | "toda"; mes: boolean } {
+  const a = ALCANCE_POR_RUTA[ruta];
+  return a && !("redirige" in a) ? a : { sede: "sede", mes: true };
+}
+
+/** Lo que la barra dice cuando algo no aplica. `null`: todo aplica. */
+export function dichoDelAlcance(a: { sede: "sede" | "toda"; mes: boolean }): string | null {
+  if (a.sede === "toda") return a.mes ? "Aquí es toda CAYLA" : "Aquí es toda CAYLA, y no cambia con el mes";
+  return a.mes ? null : "No cambia con el mes";
+}
+
 /** Estados financieros (antes «Reportes»): su ruta no se renombró (ADR-0585, como `/clientas`). */
 export const RUTA_ESTADOS_FINANCIEROS = "/finanzas/reportes";
 

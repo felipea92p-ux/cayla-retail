@@ -1,5 +1,10 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ALCANCE_POR_RUTA,
+  alcanceDeRuta,
+  dichoDelAlcance,
   aceptaVariasSedes,
   alternarSede,
   claveDeSedes,
@@ -254,5 +259,29 @@ describe("el mes de Cierre de mes", () => {
     expect(mesDeLaRuta("/finanzas/gastos", null, HOY)).toBe(HOY);
     expect(mesDeLaRuta("/finanzas/gastos", "2026-08", HOY)).toBe("2026-08");
     expect(mesDeLaRuta("/finanzas/cierres-viejos", null, HOY)).toBe(HOY);
+  });
+});
+
+describe("ALCANCE_POR_RUTA: la barra dice qué filtra cada pantalla (tarea 26)", () => {
+  /** Las rutas reales: cada `page.tsx` bajo Finanzas. */
+  function rutasDeFinanzas(dir = "app/(app)/finanzas", base = "/finanzas"): string[] {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      if (e.isDirectory()) return rutasDeFinanzas(join(dir, e.name), `${base}/${e.name}`);
+      return e.name === "page.tsx" ? [base] : [];
+    });
+  }
+  it("toda pantalla de Finanzas declara su alcance, y ninguna declarada dejó de existir", () => {
+    expect(Object.keys(ALCANCE_POR_RUTA).sort()).toEqual(rutasDeFinanzas().sort());
+  });
+  it("Campañas y Conciliación son de toda CAYLA, y lo dicen", () => {
+    expect(alcanceDeRuta("/finanzas/reportes/campanas").sede).toBe("toda");
+    expect(dichoDelAlcance(alcanceDeRuta("/finanzas/reportes/campanas"))).toBe("Aquí es toda CAYLA, y no cambia con el mes");
+    expect(dichoDelAlcance(alcanceDeRuta("/finanzas/reportes/flujo"))).toBe("Aquí es toda CAYLA");
+    expect(dichoDelAlcance(alcanceDeRuta("/finanzas/dinero"))).toBe("No cambia con el mes");
+  });
+  it("donde todo aplica no dice nada, y una ruta que no se conoce deja la barra como siempre", () => {
+    expect(dichoDelAlcance(alcanceDeRuta("/finanzas/gastos"))).toBeNull();
+    expect(alcanceDeRuta("/finanzas/nueva")).toEqual({ sede: "sede", mes: true });
+    expect(alcanceDeRuta("/finanzas")).toEqual({ sede: "sede", mes: true });
   });
 });

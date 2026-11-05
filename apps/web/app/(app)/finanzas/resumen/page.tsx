@@ -2,7 +2,7 @@ import { exigirModulo, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual
 import { hoyLima } from "@/lib/fechas-lima";
 import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
 import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
-import { getEstadoResultados } from "@/lib/resultados";
+import { getEstadoResultados, getFaltaDelMes } from "@/lib/resultados";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { getFlujoProximo, getTiendasActivas, getVentasPorDia } from "@/lib/resumen-telar";
 import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
@@ -42,7 +42,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       })
     : null;
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas, faltaDelMes] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
     getEstadoResultados(tramo.desde, tramo.hasta, sueldos.hasta),
@@ -53,6 +53,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     // Lo que se le debe a CLAURE (ADR-0560, actividad 4): solo quien ve las finanzas de todo (los bancos son de la empresa) y con el módulo Cuentas y dinero.
     veTodo ? getCuentaClaure() : Promise.resolve(null),
     ventasAdelantadas ?? Promise.resolve(null),
+    mes === mesDeHoy ? getFaltaDelMes(mes) : Promise.resolve([]),
   ]);
   // `null`: la cuenta no lo ve o CLAURE no tiene nada todavía (la tarjeta no se dibuja); `{ saldo: null }`: se cayó la lectura (se dice, no se inventa).
   const claure =
@@ -79,6 +80,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       hoy={hoy}
       estadoMes={erMes}
       estadoAntes={erAntes.falla ? null : erAntes.datos}
+      faltaDelMes={faltaDelMes}
       ventasPorDia={ventas}
       sedes={telar.sedes}
       flujoProximo={flujoProximo}

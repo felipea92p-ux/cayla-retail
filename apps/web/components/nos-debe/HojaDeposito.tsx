@@ -311,6 +311,8 @@ function HojaDeposito({
                 sentido="entra"
                 cuentas={cuentas.cuentas}
                 listo={cuentas.listo}
+                falla={cuentas.falla}
+                reintentar={cuentas.reintentar}
                 clase="reembolso"
                 medio={borrador.metodo}
                 valor={cuentaEntra}
@@ -327,6 +329,8 @@ function HojaDeposito({
               sentido="entra"
               cuentas={cuentas.cuentas}
               listo={cuentas.listo}
+                falla={cuentas.falla}
+                reintentar={cuentas.reintentar}
               clase="reembolso"
               medio={borrador.metodo}
               valor={cuentaEntra}
@@ -397,7 +401,7 @@ function HojaDeposito({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={cuentas.falla} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {textoBotonDeposito(monto)}
             </Boton>
           </div>

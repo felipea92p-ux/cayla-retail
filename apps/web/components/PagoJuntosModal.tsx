@@ -389,7 +389,7 @@ export function PagoJuntosModal({
               <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
             </div>
           ) : (
-            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} aplicaciones={aplicaciones.map((a) => ({ total: a.c.total, monto: a.monto }))} />
+            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }} aplicaciones={aplicaciones.map((a) => ({ total: a.c.total, monto: a.monto }))} />
           )}
 
           <div className="border-t border-tinta/10 pt-4">
@@ -433,7 +433,7 @@ export function PagoJuntosModal({
               <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                 Cancelar
               </button>
-              <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman} className="pie-acciones-ancho">
+              <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || cuentas.falla || !mediosSuman} className="pie-acciones-ancho">
                 {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
               </Boton>
             </div>

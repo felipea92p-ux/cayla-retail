@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { lineaVentasMeta, mesPasadoComparable, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, tramoDeSueldos, vendidoPorSede } from "./resumen-telar-reglas";
+import { comparacionMesPasado, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, tramoDeSueldos, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -121,14 +121,33 @@ describe("los sueldos del mes en el Resumen", () => {
     expect(tramoDeSueldos("2026-09", "2026-10-27")).toEqual({ desde: "2026-09-01", hasta: "2026-09-30" });
     expect(tramoDeSueldos("2026-11", "2026-10-27")).toBeNull();
   });
-  it("el mes pasado solo sirve para comparar si lleva sueldos igual que este (si no, la diferencia sería un artefacto)", () => {
+  it("sin sueldos en uno de los dos meses, compara los dos antes de sueldos y lo dice (tarea 25)", () => {
     const base = filas(todas());
-    const con = (fs: FilaER[], planilla: number) => fs.map((f) => ({ ...f, planilla }));
-    // Octubre ya lleva sus sueldos devengados; septiembre se pagó antes del inicio de Finanzas y no los tiene: no se compara.
-    expect(mesPasadoComparable(con(base, 41717.28), con(base, 0))).toBeNull();
-    expect(mesPasadoComparable(con(base, 41717.28), con(base, 30062.23))).toEqual(con(base, 30062.23));
-    expect(mesPasadoComparable(con(base, 0), con(base, 0))).toEqual(con(base, 0));
-    expect(mesPasadoComparable(con(base, 41717.28), null)).toBeNull();
+    const con = (fs: FilaER[], planilla: number) =>
+      fs.map((f) => ({
+        ...f,
+        planilla,
+        gastos: f.gastos + planilla,
+        resultado: f.resultado - planilla,
+        detalleGastos: [...f.detalleGastos.filter((d) => d.cuenta !== "62"), { cuenta: "62", nombre: "Personal", monto: planilla }],
+      }));
+    // Noviembre ya lleva sus sueldos devengados; el mismo tramo de octubre todavía no.
+    const c = comparacionMesPasado(con(base, 41717.28), con(base, 0));
+    expect(c.antesDeSueldos).toBe(true);
+    expect(c.antes).not.toBeNull();
+    expect(c.ahora.every((f) => f.planilla === 0 && !f.detalleGastos.some((d) => d.cuenta === "62"))).toBe(true);
+    expect(c.ahora.map((f) => f.resultado)).toEqual(base.map((f) => f.resultado));
+    // Si los dos llevan lo mismo, se comparan tal cual.
+    const ambos = comparacionMesPasado(con(base, 41717.28), con(base, 30062.23));
+    expect(ambos.antesDeSueldos).toBe(false);
+    expect(ambos.antes).toEqual(con(base, 30062.23));
+    expect(comparacionMesPasado(con(base, 0), con(base, 0)).antesDeSueldos).toBe(false);
+  });
+  it("una lectura caída no se disfraza: `antes` es null y Lo que se movió dice que no se pudo leer", () => {
+    const base = filas(todas());
+    const c = comparacionMesPasado(base, null);
+    expect(c.antes).toBeNull();
+    expect(c.antesDeSueldos).toBe(false);
   });
 });
 
