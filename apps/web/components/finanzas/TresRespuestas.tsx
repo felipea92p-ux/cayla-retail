@@ -49,8 +49,9 @@ function Deudas({ filas, mas }: { filas: NonNullable<Respuesta["filas"]>; mas: n
   return (
     <ul className="m-0 mt-3 list-none p-0">
       {filas.map((f) => (
-        <li key={`${f.texto}|${f.cuando}|${f.monto}`} className="flex items-baseline justify-between gap-3 border-t border-sand py-1.5 text-sm text-tinta first:border-t-0">
-          <span className="min-w-0">
+        <li key={`${f.texto}|${f.cuando}|${f.monto}`} className="flex flex-wrap items-baseline justify-between gap-x-3 border-t border-sand py-1.5 text-sm text-tinta first:border-t-0">
+          {/* En una tarjeta angosta, «Vencida hace…» baja de línea en vez de apretar el nombre hasta montarse sobre él. */}
+          <span className="min-w-0 flex-1 basis-32">
             {f.texto} · <span className="num">{soles(f.monto)}</span>
           </span>
           <span className={`shrink-0 text-xs font-semibold ${f.tono === "rojo" ? "text-rojo-profundo" : "text-ambar-profundo"}`}>{f.cuando}</span>
@@ -63,7 +64,7 @@ function Deudas({ filas, mas }: { filas: NonNullable<Respuesta["filas"]>; mas: n
 
 export function TresRespuestas({ respuestas, guia = "fin-resumen.respuestas" }: { respuestas: readonly Respuesta[]; guia?: string }) {
   return (
-    <div className="grid gap-3 md:grid-cols-3" data-guia={guia}>
+    <div className="tres-respuestas grid gap-3" data-guia={guia}>
       {respuestas.map((x, i) => {
         const contexto = (
           <>
@@ -71,7 +72,7 @@ export function TresRespuestas({ respuestas, guia = "fin-resumen.respuestas" }: 
             {x.valor !== null && x.chips.length > 0 && (
               <span className="mt-2 flex flex-wrap gap-1.5">
                 {x.chips.map((c) => (
-                  <Chip key={c.texto} tono={c.tono} versalitas={false}>
+                  <Chip key={c.texto} tono={c.tono} versalitas={false} className="chip-envuelve">
                     {c.texto}
                   </Chip>
                 ))}

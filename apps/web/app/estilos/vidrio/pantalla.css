@@ -39,6 +39,22 @@
   box-shadow: var(--serena-sombra);
 }
 
+/* El número mide lo que cabe en su parte del recuadro, hasta su tope. La cuenta es del espacio real: la ventana, menos el lateral, menos los
+   márgenes de la pantalla, repartido entre las cifras, menos el relleno de cada una, y 0,45 em por letra (la serif con cifras tabulares). */
+.resumen-sede-cifra {
+  --tope: var(--tope-celular, 20px);
+  --lateral: 0px;
+  --margenes: 32px;
+  --relleno: 16px;
+  font-size: clamp(13px, calc(((100vw - var(--lateral) - var(--margenes)) / var(--cifras, 3) - var(--relleno)) / (var(--largo, 4) * 0.45)), var(--tope));
+}
+@media (min-width: 640px) {
+  .resumen-sede-cifra { --tope: 42px; --margenes: 80px; --lateral: var(--spacing-lateral); }
+}
+@media (min-width: 1024px) {
+  .resumen-sede-cifra { --relleno: var(--relleno-ancho, 56px); }
+}
+
 /* ---------- La tarjeta de cifra: la misma placa ---------- */
 .tarjeta-cifra:not([data-sin-dato]) {
   border-radius: 20px;
@@ -204,6 +220,8 @@
    Una lente de vidrio teñida de su tono: más clara arriba, con su luz y un filo del tono; el punto brilla apenas. Se sigue leyendo de un
    vistazo en una tabla, pero ya no es una mancha plana; el neutro deja de ser arena maciza. «apagado» y «tinta» son vidrio claro con su
    contorno. La letra, el punto, el latido de «Vencida», el tachado de «Anulado» y la variante con ícono no cambian. */
+/* Un chip con una frase entera, donde el ancho no se elige (la tarjeta de una respuesta), baja de línea en vez de salirse. */
+.chip-cayla.chip-envuelve { max-width: 100%; white-space: normal; border-radius: 12px; }
 .chip-cayla { --tono-chip: var(--color-taupe); }
 .chip-cayla[data-tono="ambar"] { --tono-chip: var(--color-ambar); }
 .chip-cayla[data-tono="verde"] { --tono-chip: var(--color-verde); }

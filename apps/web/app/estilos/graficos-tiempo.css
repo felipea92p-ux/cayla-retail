@@ -92,7 +92,9 @@
   .linea-elegible:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 4px; border-radius: 6px; }
 
   /* ---------- Las barras por tiempo ---------- */
-  .barras-tiempo-zona { position: relative; border-bottom: 1px solid var(--color-sand); }
+  /* `container-type` porque el globito de cada barra mide contra la zona (`cqw`). De paso, lo que se sale de la zona se pinta pero no cuenta
+     para el ancho de la página: un globito escondido no le da scroll lateral a la pantalla (2026-11-05). */
+  .barras-tiempo-zona { position: relative; container-type: inline-size; border-bottom: 1px solid var(--color-sand); }
   .barras-tiempo-columnas { position: absolute; inset: 0; display: grid; }
   .barras-tiempo-cero { position: absolute; left: 0; right: 0; border-top: 1px solid var(--color-sand); }
   /* Los montos del eje (`ejes`): una raya punteada por monto y su valor en la columna de la izquierda, que la pieza reserva con su relleno. */
@@ -132,9 +134,10 @@
   .barra-t-encima { position: absolute; left: 50%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 3px; white-space: nowrap;
     animation: cayla-linea-aparece 300ms var(--ease-cayla) 600ms backwards; }
   .barra-t-cifra { font-size: 11px; font-weight: 600; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
-  .barra-t-globo { left: 50%; translate: -50% 0; opacity: 0; transition: opacity 160ms var(--ease-cayla); }
-  .barra-t-globo[data-lado="izq"] { left: 0; translate: 0 0; }
-  .barra-t-globo[data-lado="der"] { left: auto; right: 0; translate: 0 0; }
+  /* El globito se apoya en su barra por el punto que le corresponde según dónde está ella (`--x`, de 0 a 1 a lo ancho del gráfico): con la
+     primera asoma hacia la derecha, con la del medio queda centrado y con la última, hacia la izquierda. Así nunca se sale del gráfico, con 7
+     barras o con 120; si el texto no cabe en una línea, baja de línea. */
+  .barra-t-globo { left: 50%; translate: calc(var(--x, 0.5) * -100%) 0; width: max-content; max-width: 100cqw; white-space: normal; opacity: 0; transition: opacity 160ms var(--ease-cayla); }
   /* hover-tactil: el globito es la lectura de la barra; con el dedo, tocarla lo muestra (ADR-0479). */
   .barra-t:hover .barra-t-globo, .barra-t:focus-visible .barra-t-globo { opacity: 1; }
   .barras-tiempo-eje { display: grid; margin-top: 6px; }

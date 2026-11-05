@@ -60,7 +60,7 @@ export function BarraAtributos({
         {filtros}
       </div>
       {(busqueda || agregar) && (
-        <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
+        <div className="ml-auto flex w-full max-w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
           {busqueda && <Buscador {...busqueda} />}
           {agregar && (
             <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0" data-guia="vocabulario.agregar">
