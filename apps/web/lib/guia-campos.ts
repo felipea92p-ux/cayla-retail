@@ -83,6 +83,11 @@ export function pendientesAlRevisar(campos: readonly CampoDeGuia[]): string[] {
   return campos.filter((c) => c.requerido && !c.hecho).map((c) => c.id);
 }
 
+/** Cuando ya no falta nada se olvida lo revisado: una hoja que se limpia para el siguiente («Guardar y registrar otro») empieza sin regañar. */
+export function revisadosVigentes(revisados: ReadonlySet<string>, campos: readonly CampoDeGuia[]): ReadonlySet<string> {
+  return revisados.size > 0 && sePuedeConfirmar(campos) ? new Set<string>() : revisados;
+}
+
 /**
  * Qué error dice UN campo bajo su control (ADR-0611, mejora 1). Se avisa solo si estaba pendiente al intentar guardar (`revisado`): un campo vacío
  * no regaña a quien todavía no llega a él. Un error que el guardado devolvió para este campo (`externo`) manda, y se borra apenas se corrige.

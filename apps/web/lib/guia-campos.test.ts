@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorDeCampo, estadosDe, pendientesAlRevisar, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
+import { errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -190,5 +190,26 @@ describe("guardar con algo pendiente — el error va a su campo (ADR-0611, mejor
 
   it("un error que devolvió el guardado manda, aunque el campo parezca hecho o no se hubiera intentado", () => {
     expect(errorDeCampo(pendientes, "monto", false, "El monto no puede pasar de S/ 1 000 000.")).toBe("El monto no puede pasar de S/ 1 000 000.");
+  });
+});
+
+describe("«Guardar y registrar otro» no deja una hoja limpia regañando (/chaos 2026-11-05)", () => {
+  const faltan = [campo("monto"), campo("sede", { hecho: true })];
+  const listos = [campo("monto", { hecho: true }), campo("sede", { hecho: true })];
+  const revisados = new Set(["monto", "sede"]);
+
+  it("mientras algo falta, lo revisado se recuerda", () => {
+    expect(revisadosVigentes(revisados, faltan)).toBe(revisados);
+  });
+
+  it("cuando ya no falta nada, se olvida: la hoja que se limpia después empieza sin errores", () => {
+    const vigentes = revisadosVigentes(revisados, listos);
+    expect(vigentes.size).toBe(0);
+    expect(errorDeCampo(faltan, "monto", vigentes.has("monto"))).toBeNull();
+  });
+
+  it("sin nada que olvidar devuelve lo mismo, para no repintar en bucle", () => {
+    const vacio = new Set<string>();
+    expect(revisadosVigentes(vacio, listos)).toBe(vacio);
   });
 });

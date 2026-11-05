@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { avisar } from "@/components/ui/Avisos";
 import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
-import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
+import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, revisadosVigentes, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
 //
@@ -68,6 +68,8 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
 
   // Se avisa solo después de intentar confirmar, y solo lo que faltaba entonces: un campo vacío no regaña a quien todavía no llega a él.
   const [revisados, setRevisados] = useState<ReadonlySet<string>>(() => new Set());
+  const vigentes = revisadosVigentes(revisados, campos);
+  if (vigentes !== revisados) setRevisados(vigentes);
   const [externos, setExternos] = useState<Record<string, string>>({});
   const limpiarError = useCallback((id: string) => {
     setExternos((e) => {
