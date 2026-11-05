@@ -1,0 +1,89 @@
+/* ====================================================================
+   Configuración ▸ Metas, Dinero, Gastos e Impuestos (Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/): el mismo lenguaje de Las vitrinas. El vidrio es
+   `.vs-liquido` (`vitrinas-sedes.css`); aquí viven las piezas de cada vista. El color de la sede solo en lo que es de esa sede; el ámbar, lo que falta; el verde, lo que está
+   listo. Nada baja de 14 px. Movimiento una vez, sin rebote ni bucle, apagado con prefers-reduced-motion (ADR-0136).
+   ==================================================================== */
+.cv-bloque { padding: 20px 22px; min-width: 0; }
+.cv-bloque[data-color="tru"] { --c: var(--color-sede-tru); }
+.cv-bloque[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.cv-bloque[data-color="lim"] { --c: var(--color-sede-lim); }
+.cv-bloque[data-color="tal"] { --c: var(--color-sede-tal); }
+.cv-bloque[data-color="otra"], .cv-bloque[data-color="emp"] { --c: var(--color-taupe); }
+.cv-cifras { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.cv-ver-mas { width: calc(100% + 44px); margin: 12px -22px -20px; border-radius: 0 0 28px 28px; }
+.cv-par { display: inline-flex; align-items: center; gap: 6px; }
+.cv-fila-tx { flex: 1; min-width: 0; }
+.cv-fila-tx b { display: block; font-size: 15.5px; font-weight: 500; line-height: 1.25; }
+
+/* Los tubos: se llenan según lo que valen */
+.cv-tubo {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 7%, transparent);
+}
+.cv-tubo i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--n) * 100%);
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 42%, var(--color-vidrio)), color-mix(in srgb, var(--c) 68%, transparent));
+  transition: height 700ms var(--ease-cayla);
+}
+.cv-tubo.hereda i { background: color-mix(in srgb, var(--color-tinta) 14%, transparent); }
+.cv-tubo::after { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 5px; border-radius: 9px; pointer-events: none; background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 80%, transparent), transparent 62%); }
+
+.cv-meses { display: grid; gap: 8px; margin-top: 12px; grid-template-columns: repeat(7, minmax(0, 1fr)); align-items: end; }
+.cv-mes { display: grid; justify-items: center; gap: 7px; padding: 10px 4px 9px; border-radius: 20px; color: var(--color-tinta); cursor: pointer; transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), transform 300ms var(--ease-cayla); }
+.cv-mes[aria-pressed="true"] { background: var(--gota-fondo); box-shadow: var(--gota-luz); }
+.cv-mes:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+@media (hover: hover) { .cv-mes:hover { transform: translateY(-2px); } }
+.cv-mes-nombre { font-size: 15px; font-weight: 500; }
+.cv-mes-monto { font: 500 18px/1 var(--font-serif); font-variant-numeric: lining-nums; white-space: nowrap; }
+.cv-semana-t { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin: 16px 0 10px; padding-top: 16px; border-top: 1px solid var(--hilo-fila); }
+.cv-semana-t b { font: 500 22px var(--font-serif); }
+.cv-dias { display: grid; gap: 8px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cv-dia { display: grid; justify-items: center; gap: 7px; min-width: 0; }
+.cv-dia .cv-tubo { width: 30px; height: 70px; }
+.cv-dia .cfg-casilla { width: 100%; max-width: 92px; }
+.cv-dia .fin-control { text-align: center; }
+
+/* Los días especiales y las filas de una lista */
+.cv-boletos { display: grid; gap: 10px; margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.cv-boleto { display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; border-radius: 20px; color: var(--color-tinta); background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 5%, transparent); }
+.cv-boleto.nuevo { justify-content: center; gap: 8px; min-height: 80px; font-size: 15px; color: var(--color-taupe); cursor: pointer; background: none; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 14%, transparent); transition: color 250ms var(--ease-cayla), background 250ms var(--ease-cayla); }
+@media (hover: hover) { .cv-boleto.nuevo:hover { color: var(--color-tinta); background: var(--placa-fondo); } }
+.cv-boleto.nuevo:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+.cv-boleto.formulario { flex-wrap: wrap; grid-column: 1 / -1; }
+.cv-boleto.formulario > .fin-control { flex: 1 1 150px; width: auto; }
+.cv-cal { flex: none; display: grid; justify-items: center; align-content: center; gap: 2px; width: 58px; height: 58px; border-radius: 16px; background: var(--pozo-fondo); box-shadow: inset 0 1px 1px var(--color-vidrio), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 7%, transparent); }
+.cv-cal b { font: 500 26px/1 var(--font-serif); font-variant-numeric: lining-nums; }
+.cv-cal small { font-size: 14px; line-height: 1; color: var(--color-taupe); }
+.cv-quitar { margin-top: 2px; padding-inline: 0; font-size: 14px; }
+.cv-filas { display: grid; gap: 10px; margin-top: 12px; }
+.cv-filas.sin-margen { margin-top: 0; }
+.cv-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 14px; border-radius: 18px; background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 5%, transparent); }
+.cv-fila.tenue .cv-fila-tx b { color: var(--color-taupe); }
+
+@media (max-width: 767px) {
+  .cv-bloque { padding: 16px; border-radius: 24px; }
+  .cv-ver-mas { width: calc(100% + 32px); margin: 12px -16px -16px; border-radius: 0 0 24px 24px; }
+  .cv-meses { grid-template-columns: repeat(7, minmax(74px, 1fr)); overflow-x: auto; padding-bottom: 6px; }
+  .cv-dias { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ---------- el movimiento: una vez ---------- */
+@keyframes cv-enfoca { from { opacity: 0; filter: blur(14px); transform: translateY(18px); } }
+@keyframes cv-sube { from { height: 0; } }
+.cv-bloque { animation: cv-enfoca 850ms var(--ease-cayla) calc(var(--e, 0) * 110ms) backwards; }
+.cv-tubo i { animation: cv-sube 1200ms var(--ease-cayla) calc(250ms + var(--k, 0) * 70ms) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-bloque, .cv-tubo i, .cv-mes, .cv-boleto { animation: none !important; transition: none !important; }
+}

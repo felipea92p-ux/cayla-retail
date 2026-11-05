@@ -10,7 +10,7 @@ import { VISTO_MS } from "./configuracion-casilla";
 const crudo = readFileSync(join(__dirname, "../app/estilos/vidrio/vitrinas-sedes.css"), "utf8");
 const css = crudo.replace(/\/\*[\s\S]*?\*\//g, "");
 const REDUCIR = "@media (prefers-reduced-motion: reduce)";
-const vista = readFileSync(join(__dirname, "../components/vitrinas-sedes/VistaEmpresaTiendas.tsx"), "utf8");
+const vista = readFileSync(join(__dirname, "../components/vitrinas-sedes/useLuzDelMouse.ts"), "utf8");
 
 describe("vitrinas-sedes.css — los límites del movimiento (ADR-0136, excepción de Las vitrinas)", () => {
   it("ninguna animación se repite: nada en bucle", () => {

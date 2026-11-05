@@ -13,6 +13,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { MarcoCasilla, useGuardarCasilla, useVistoGuardado, type Guardar } from "@/components/ConfiguracionCasilla";
 import { CierreCargaInicialModal } from "@/components/ConfiguracionCargaInicial";
 import { AroSede, Instrumento, SelloEmpresa } from "@/components/vitrinas-sedes/Instrumentos";
+import { useLuzDelMouse } from "@/components/vitrinas-sedes/useLuzDelMouse";
 import { TOPE_MENSUAL_USD } from "@/lib/asistente/respuesta";
 import { gastoDelMes } from "@/lib/asistente/sedes";
 import { cambioLaCasilla, VISTO_MS } from "@/lib/configuracion-casilla";
@@ -335,34 +336,6 @@ function Carnet({ datos }: { datos: DatosEmpresa }) {
       </div>
     </section>
   );
-}
-
-/** El filo de luz, el brillo y una inclinación de menos de 1,5° siguen al mouse sin moverse solos (ADR-0136). Sin mouse, o con «reducir movimiento», el vidrio se queda quieto. */
-function useLuzDelMouse(raiz: React.RefObject<HTMLDivElement | null>) {
-  useEffect(() => {
-    if (!window.matchMedia("(hover: hover)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let pendiente = 0;
-    const alMover = (ev: PointerEvent) => {
-      if (ev.pointerType !== "mouse" || pendiente) return;
-      pendiente = window.requestAnimationFrame(() => {
-        pendiente = 0;
-        raiz.current?.querySelectorAll<HTMLElement>("[data-luz]").forEach((el) => {
-          const r = el.getBoundingClientRect();
-          el.style.setProperty("--mx", `${ev.clientX - r.left}px`);
-          el.style.setProperty("--my", `${ev.clientY - r.top}px`);
-          if (!el.classList.contains("vs-vitrina")) return;
-          const dentro = ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom && !el.querySelector(".edita");
-          el.style.setProperty("--rx", dentro ? `${((ev.clientY - r.top) / r.height - 0.5) * -2.4}deg` : "0deg");
-          el.style.setProperty("--ry", dentro ? `${((ev.clientX - r.left) / r.width - 0.5) * 2.4}deg` : "0deg");
-        });
-      });
-    };
-    window.addEventListener("pointermove", alMover, { passive: true });
-    return () => {
-      window.removeEventListener("pointermove", alMover);
-      window.cancelAnimationFrame(pendiente);
-    };
-  }, [raiz]);
 }
 
 /** Dónde explica la guía interactiva cada dato: en la primera sede que lo tenga. */

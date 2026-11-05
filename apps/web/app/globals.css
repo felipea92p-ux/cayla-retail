@@ -139,6 +139,7 @@
 @import "./estilos/vidrio/ordenes.css"; /* Producción ▸ Órdenes con vidrio: la ruta B · Lentes al aire y el paso abierto A · Placa con su pico; la lista no cambia (docs/maquetas/ordenes-vidrio-2026-11/) */
 @import "./estilos/vidrio/insumos.css"; /* Producción ▸ Insumos con vidrio: la fila A · Una placa por tela y el libro A · Placa con filas (docs/maquetas/insumos-vidrio-2026-11/) */
 @import "./estilos/vidrio/vitrinas-sedes.css"; /* Configuración ▸ Empresa y tiendas: Las vitrinas, un instrumento por dato (Felipe 2026-11-04). */
+@import "./estilos/vidrio/config-vistas.css"; /* Configuración ▸ Metas, Dinero, Gastos e Impuestos: el lenguaje de Las vitrinas (Felipe 2026-11-05). */
 @import "./estilos/vidrio/tienda-web.css"; /* Tienda web con vidrio, armada con las piezas elegidas (tablero docs/vidrio/README.md, 4.3): placa Serena, vidrio claro, pozo, gota y ahumado */
 
 /* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que

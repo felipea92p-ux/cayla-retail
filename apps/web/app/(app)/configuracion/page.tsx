@@ -1,13 +1,13 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
-import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
+import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosCaja, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFichasDeFijos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
-import { ConfiguracionMetas } from "@/components/ConfiguracionMetas";
+import { VistaMetas } from "@/components/vistas-config/VistaMetas";
 import { VistaEmpresaTiendas } from "@/components/vitrinas-sedes/VistaEmpresaTiendas";
 import { armarVitrinas } from "@/lib/vitrinas-sedes-reglas";
 import { ConfiguracionCajaAvisos } from "@/components/ConfiguracionCajaAvisos";
@@ -101,7 +101,9 @@ async function SeccionEmpresa({ esLider, esAdmin }: { esLider: boolean; esAdmin:
 // Metas: lo normal de cada tienda, mes por mes, fechas especiales y campañas.
 async function SeccionMetas() {
   const [datos, metas] = await Promise.all([getConfiguracionTiendas(), getConfiguracionMetas()]);
-  return <ConfiguracionMetas datos={datos} metas={metas} />;
+  // La meta de hoy de cada tienda la dice la base (`fn_parametros_caja`), con su campaña y su fecha especial: la pantalla no la recalcula.
+  const hoy = await Promise.all(datos.tiendas.map(async (t) => [t.id, (await getParametrosCaja(t.id, datos.hoy))?.meta ?? null] as const));
+  return <VistaMetas datos={datos} metas={metas} metaDeHoy={Object.fromEntries(hoy)} />;
 }
 
 // Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base), a qué cuenta entra cada cobro y las

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { VISTO_MS, cambioLaCasilla } from "@/lib/configuracion-casilla";
@@ -44,18 +43,6 @@ export function useGuardarCasilla() {
   };
 
   return { responsable, guardando, guardar };
-}
-
-/** La frase de «se guarda sola» con el combo de quién firma. `guia`: el ancla de la guía interactiva, si esta fila es la que explica. */
-export function FilaResponsable({ responsable, guardando, guia }: { responsable: ReturnType<typeof useResponsable>; guardando: boolean; guia?: string }) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-guia={guia}>
-      <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al salir de ella y queda en la historia.</p>
-      <div className="w-full max-w-xs">
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
-      </div>
-    </div>
-  );
 }
 
 /** El ✓ de «se guardó»: `vez` cuenta los guardados (0 = no se ve). Cada guardado nuevo lo vuelve a dibujar desde cero (otra `key`). */

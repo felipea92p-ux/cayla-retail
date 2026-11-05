@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 98,
+  "total": 100,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -15,7 +15,6 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ConfiguracionCasilla.tsx": [
-      "ComboResponsable «{responsable}»",
       "input «{etiqueta}»"
     ],
     "components/ConfiguracionImpuestos.tsx": [
@@ -38,22 +37,6 @@
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
-    ],
-    "components/ConfiguracionMetas.tsx": [
-      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
-      "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
-      "Casilla «{`Fondo de caja en ${campana.nombre}»",
-      "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Insignias)»",
-      "BotonVerMas «{pasadas.length === 1 ? \"Ver la que ya pasó\" : `Ver las ${pasadas.length}»",
-      "Link «Ver cómo se ve en Caja»"
-    ],
-    "components/ConfiguracionMetasMes.tsx": [
-      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
-      "Casilla «{`Meta de ${que}»",
-      "Boton «Quitar»",
-      "input «Meta de la fecha especial»",
-      "Boton «+ Agregar»",
-      "button «{corto(x.nombre)}»"
     ],
     "components/ConfiguracionRepartoClaure.tsx": [
       "ComboResponsable «{responsable}»"
@@ -127,6 +110,23 @@
     "components/gasto-fijo/FichaDePagoCampos.tsx": [
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
+    ],
+    "components/vistas-config/VistaMetas.tsx": [
+      "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
+      "Casilla «{`Fondo de caja en ${campana.nombre}»",
+      "BotonEnlace «Nueva campaña en Insignias»",
+      "BotonVerMas «{pasadas.length === 1 ? \"Ver la que ya pasó\" : `Ver las ${pasadas.length}»",
+      "BotonVerMas «→setAbierta»",
+      "Boton «{`Quitar ${que}»",
+      "Casilla «{`Meta de ${que}»",
+      "button «config.tiendas-agregar-dia»",
+      "Boton «Cancelar»",
+      "Boton «{falta.length ? `Falta ${falta.join(\" y \")}»",
+      "ComboResponsable «{responsable}»",
+      "button «{nombreCortoSede(t.nombre)}»",
+      "button «config.tiendas-normal»",
+      "button «{`${nombreDelMes(m.mes)}»",
+      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»"
     ],
     "components/vitrinas-sedes/VistaEmpresaTiendas.tsx": [
       "input «{`${NOMBRE_CAMPO[campo]}»",
