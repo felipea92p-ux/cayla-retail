@@ -10,7 +10,7 @@ import { getEstadoResultados } from "@/lib/resultados";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { filaDeLaSede, formaDe, paramsDe } from "@/lib/estados-financieros-reglas";
+import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { recomendacionesPlata } from "@/lib/plata-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
@@ -19,7 +19,7 @@ import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CascadaDeColumnas } from "@/components/finanzas/estados/CascadaDeColumnas";
 import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
-import { FlujoFormal, MasDelFlujo, NoCubre, NoCuadra } from "@/components/finanzas/estados/PlataPanel";
+import { MasDelFlujo, NoCubre, NoCuadra } from "@/components/finanzas/estados/PlataPanel";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 import { SoloLiderFlujo } from "@/components/finanzas/SoloLiderFlujo";
 
@@ -47,7 +47,6 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
     getEstadoResultados(base.desde, base.hasta),
   ]);
   const params = paramsDe(sp);
-  const forma = formaDe(sp.forma);
   const href = (ruta: string) => hrefTelar(ruta, params, {}, { mismaPantalla: false, mesDeHoy: mesDelDia(hoy) });
   // La plata es de CAYLA entera: la ganancia con que se compara es la de CAYLA (el consolidado), mire la sede que mire la barra.
   const ganancia = er.falla ? null : (filaDeLaSede(er.datos, "todas")?.resultado ?? null);
@@ -63,10 +62,8 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-4">
-      <CabeceraEstados pantalla="plata" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={forma} />
-      {forma === "formal" ? (
-        <FlujoFormal real={real.datos} fallas={[real.falla, proyeccion.falla].filter((f): f is string => !!f)} />
-      ) : real.falla ? (
+      <CabeceraEstados pantalla="plata" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} />
+      {real.falla ? (
         <Aviso tono="error">{real.falla}</Aviso>
       ) : !real.datos ? (
         <Vacio tamano="chico" icono={<CalendarX />}>
@@ -94,7 +91,7 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
         />
       )}
       <Recomendaciones recomendaciones={recomendaciones} />
-      <MasDelEstado texto={textoDeVerMas(["lo que viene", "qué pasa si cambias algo"])!} guia="fin-plata.mas">
+      <MasDelEstado texto={textoDeVerMas(["lo que viene", "qué pasa si cambias algo", "semana a semana"])!} guia="fin-plata.mas">
         <MasDelFlujo real={real.datos} proyeccion={proyeccion.datos} falla={proyeccion.falla} semanas={semanas} hoy={hoy} escenarios={{ resultados: erBase.falla ? null : erBase.datos, mesBase }} />
       </MasDelEstado>
     </div>

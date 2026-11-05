@@ -11,7 +11,7 @@ import { csvDe, mesTitulo, nombreCorto, type FilaER, type LineaDiario } from "./
 import { loQueNoCubre, partesDelFlujo } from "./plata-reglas";
 import { cuadroFormalPatrimonio, tieneExtremos } from "./patrimonio-reglas";
 import { etiquetaSemana, type FlujoReal } from "./flujo-caja-reglas";
-import type { ClaveEstado, FormaEstado, PatrimonioCambios } from "./estados-financieros-reglas";
+import type { PatrimonioCambios } from "./estados-financieros-reglas";
 
 export type ArchivoContador = "resultados" | "flujo" | "balance" | "patrimonio" | "saldos" | "diario";
 
@@ -164,64 +164,35 @@ export function filtrarDiario(lineas: readonly LineaDiario[], buscado: string, c
 // ---- La barra de las siete vistas (Felipe 2026-10-31: primero «el menú Ver», después «una barra horizontal») -------------------
 
 /** Lo que se puede mirar: las respuestas, o uno de los seis cuadros del contador (los mismos seis que se descargan). */
-export type VistaVer = "respuestas" | ArchivoContador;
 
 /** La pantalla de los saldos por cuenta y el libro diario (`?cuadro=saldos|diario`: `?ver=` ya es la sede en el telar). */
 export const RUTA_CUENTAS = "/finanzas/reportes/cuentas";
 export type VerCuentas = "saldos" | "diario";
 export const leerVerCuentas = (v: string | undefined): VerCuentas => (v === "diario" ? "diario" : "saldos");
 
-/** Qué estado es cada cuadro formal (los otros dos viven en la pantalla de las cuentas). */
-const ESTADO_DEL_CUADRO = { resultados: "ganamos", flujo: "plata", balance: "vale", patrimonio: "tuyo" } as const satisfies Partial<Record<ArchivoContador, ClaveEstado>>;
-type CuadroDeEstado = keyof typeof ESTADO_DEL_CUADRO;
-const esCuadroDeEstado = (v: ArchivoContador): v is CuadroDeEstado => v in ESTADO_DEL_CUADRO;
+export type OpcionContador = { clave: string; etiqueta: string } & ({ href: string } | { archivo: ArchivoContador });
 
-/** El nombre en la barra de las siete vistas (Felipe 2026-10-31: «una barra horizontal»): corto, para que las siete entren en una fila
- *  de escritorio; el nombre completo va en el título del cuadro. */
-const CORTO: Readonly<Record<ArchivoContador, string>> = {
-  resultados: "Resultados",
-  flujo: "Flujo de efectivo",
-  balance: "Balance",
-  patrimonio: "Patrimonio",
-  saldos: "Saldos por cuenta",
-  diario: "Libro diario",
+const DESCARGA: Readonly<Record<ArchivoContador, string>> = {
+  resultados: "estado de resultados",
+  flujo: "flujo de efectivo",
+  balance: "Balance general",
+  patrimonio: "cambios en el patrimonio",
+  saldos: "saldos por cuenta",
+  diario: "libro diario",
 };
 
-/** Lo que la barra marca como elegido: en un estado, sus respuestas o su cuadro formal; en la pantalla de las cuentas, saldos o diario. */
-export function vistaActiva(pantalla: ClaveEstado | VerCuentas, forma: FormaEstado): VistaVer {
-  if (pantalla === "saldos" || pantalla === "diario") return pantalla;
-  if (forma === "respuesta") return "respuestas";
-  return (Object.keys(ESTADO_DEL_CUADRO) as CuadroDeEstado[]).find((k) => ESTADO_DEL_CUADRO[k] === pantalla)!;
-}
-
 /**
- * Las siete vistas de la barra, en orden, con a dónde lleva cada una. «Las respuestas» vuelve al estado que se mira (desde las cuentas, a
- * ¿Ganamos?); un cuadro formal lleva a su estado con `?forma=formal`; saldos y diario, a la pantalla de las cuentas. Lo que es de CAYLA
- * entera se ve con su motivo y no se elige en una terminal (la misma regla que la descarga).
+ * Lo que hay en «Para el contador» (ADR-0611): ver los dos cuadros que no son un estado y bajar, uno por uno, los archivos del mes con sus cuentas. Cada estado en su formato formal
+ * se abre dentro del estado mismo. Lo que es de CAYLA entera no se ofrece a una terminal: la base lo exige igual.
  */
-export function opcionesVer({
-  pantalla,
-  hrefEstado,
-  hrefCuentas,
-  veTodo,
-}: {
-  pantalla: ClaveEstado | VerCuentas;
-  hrefEstado: (clave: ClaveEstado, forma: FormaEstado) => string;
-  hrefCuentas: (ver: VerCuentas) => string;
-  veTodo: boolean;
-}): { clave: VistaVer; etiqueta: string; corto: string; href: string; motivo?: string }[] {
-  const estado: ClaveEstado = pantalla === "saldos" || pantalla === "diario" ? "ganamos" : pantalla;
+export function opcionesDelContador({ veTodo, hrefCuentas }: { veTodo: boolean; hrefCuentas: (ver: VerCuentas) => string }): OpcionContador[] {
   return [
-    { clave: "respuestas" as const, etiqueta: "Las respuestas", corto: "Respuestas", href: hrefEstado(estado, "respuesta") },
-    ...ARCHIVOS_CONTADOR.map((a) => {
-      const motivo = motivoArchivoContador(a.clave, veTodo);
-      return {
-        clave: a.clave,
-        etiqueta: a.etiqueta,
-        corto: CORTO[a.clave],
-        href: esCuadroDeEstado(a.clave) ? hrefEstado(ESTADO_DEL_CUADRO[a.clave], "formal") : hrefCuentas(a.clave as VerCuentas),
-        ...(motivo ? { motivo } : {}),
-      };
-    }),
+    ...(veTodo
+      ? [
+          { clave: "ver-saldos", etiqueta: "Ver saldos por cuenta", href: hrefCuentas("saldos") },
+          { clave: "ver-diario", etiqueta: "Ver el libro diario", href: hrefCuentas("diario") },
+        ]
+      : []),
+    ...ARCHIVOS_CONTADOR.filter((a) => !motivoArchivoContador(a.clave, veTodo)).map((a) => ({ clave: `bajar-${a.clave}`, etiqueta: `Descargar ${DESCARGA[a.clave]}`, archivo: a.clave })),
   ];
 }

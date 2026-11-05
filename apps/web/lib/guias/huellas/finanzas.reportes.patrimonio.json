@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.patrimonio",
   "ruta": "/finanzas/reportes/patrimonio",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 25,
+  "total": 26,
   "controles": {
     "components/finanzas/estados/CabeceraEstados.tsx": [
       "Pestanas «(sin nombre)»"
@@ -12,6 +12,9 @@
     ],
     "components/finanzas/estados/LibroDelContador.tsx": [
       "button «{guia}»"
+    ],
+    "components/finanzas/estados/MasDelEstado.tsx": [
+      "BotonVerMas «{guia}»"
     ],
     "components/finanzas/estados/PartesDelEstado.tsx": [
       "button «{parte.texto}»",

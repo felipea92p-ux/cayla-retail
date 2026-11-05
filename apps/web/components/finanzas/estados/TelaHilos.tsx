@@ -8,7 +8,7 @@ import { CAPAS_DE_HILOS, corrimientoDeCapa, esElHiloRojo, estadoDeLaRuta, mouseE
 // vuelve a pintar si cambia el tamaño de la ventana o el tema, y los colores salen de los tokens. Lo único que se mueve: las capas se reacomodan al cambiar de pestaña y siguen al
 // mouse unos pocos píxeles (nunca se mueven solas). Con «reducir movimiento» se queda quieta. También lleva el brillo del vidrio, que sigue al mouse.
 
-const PLACA = ".placa-estados, .fin-estado";
+const PLACA = ".placa-estados";
 
 function pintar(lienzos: readonly (HTMLCanvasElement | null)[]) {
   const estilo = getComputedStyle(document.documentElement);

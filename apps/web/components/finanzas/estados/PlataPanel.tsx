@@ -31,11 +31,11 @@ import {
   type FlujoReal,
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
-import { loQueNoCubre, partesDelFlujo } from "@/lib/plata-reglas";
+import { loQueNoCubre } from "@/lib/plata-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 
 // Estados financieros ▸ Flujo de efectivo: lo que no es la cifra (ADR-0195 F6, ADR-0585, ADR-0611). Lo plegado en «Ver más»: lo que no suma aquí, lo que viene semana a semana contra tu
-// mínimo y «¿Y si…?», que es Escenarios entero (nada se guarda). Y el cuadro formal del contador (`?forma=formal`). Es de CAYLA entera. La pantalla no calcula plata: la base da las
+// mínimo, «¿Y si…?», que es Escenarios entero (nada se guarda), y lo que entró y salió semana a semana. Es de CAYLA entera. La pantalla no calcula plata: la base da las
 // cifras (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`).
 
 /** Lo plegado de Flujo de efectivo. */
@@ -99,85 +99,18 @@ export function MasDelFlujo({
           <EscenariosPanel proyeccion={proyeccion} resultados={escenarios.resultados} mesBase={escenarios.mesBase} fallas={[]} hoy={hoy} />
         </FilasDeMas>
       </section>
+
+      {real && real.semanas.length > 0 && <SemanaASemana real={real} />}
     </>
   );
 }
 
-/** El cuadro del contador, en lugar de la respuesta. */
-export function FlujoFormal({ real, fallas }: { real: FlujoReal | null; fallas: string[] }) {
+/** Lo que entró, lo que salió y lo que quedó, semana a semana. */
+function SemanaASemana({ real }: { real: FlujoReal }) {
   return (
-    <div className="min-w-0 space-y-4" data-guia="fin-plata.formal">
-      {fallas.map((f) => (
-        <Aviso key={f} tono="error">
-          {f}
-        </Aviso>
-      ))}
-      {real ? (
-        <>
-          <NoCubre real={real} />
-          <Formal real={real} />
-        </>
-      ) : (
-        <Vacio tamano="chico" icono={<CalendarX />}>
-          Sin movimientos de plata en este mes.
-        </Vacio>
-      )}
-    </div>
-  );
-}
-
-/** El estado de flujos de efectivo como lo lee un contador (método directo), sin cuentas, y lo que quedó semana a semana. */
-function Formal({ real }: { real: FlujoReal }) {
-  const partes = partesDelFlujo(real);
-  return (
-    <Superficie pad>
-      <p className="mb-3 text-sm text-taupe">Estado de flujos de efectivo, método directo.</p>
-      <div className="fin-tabla-wrap" data-guia="fin-plata.formal-tabla">
-        <table className="fin-tabla fin-tabla-flujo">
-          <caption className="sr-only">Estado de flujos de efectivo</caption>
-          <thead>
-            <tr>
-              <th>Partida</th>
-              <th className="fin-num">S/</th>
-            </tr>
-          </thead>
-          <tbody>
-            {partes.flatMap((p) => [
-              ...p.lineas.map((l) => (
-                <tr key={`${p.clave}-${l.nombre}`}>
-                  <td data-l="Partida">{l.nombre}</td>
-                  <td className="fin-num" data-l="S/">
-                    {solesConSigno(l.monto)}
-                  </td>
-                </tr>
-              )),
-              <tr key={`${p.clave}-total`} className="fin-suave">
-                <td data-l="Partida">
-                  <b>{p.formal}</b>
-                </td>
-                <td className="fin-num" data-l="S/">
-                  <b>{solesConSigno(p.total)}</b>
-                </td>
-              </tr>,
-            ])}
-            <tr>
-              <td data-l="Partida">{loQueNoCubre(real) ? "Saldo de partida" : "Efectivo al inicio"}</td>
-              <td className="fin-num" data-l="S/">
-                {soles(real.saldoInicial)}
-              </td>
-            </tr>
-            <tr className="fin-suave">
-              <td data-l="Partida">
-                <b>Efectivo al final</b>
-              </td>
-              <td className="fin-num" data-l="S/">
-                <b>{soles(real.saldoFinal)}</b>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div className="fin-tabla-wrap mt-4" data-guia="fin-flujo.semana-a-semana">
+    <section className="space-y-3">
+      <TituloSeccion>Semana a semana</TituloSeccion>
+      <div className="fin-tabla-wrap" data-guia="fin-flujo.semana-a-semana">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Semana a semana: lo que entró, lo que salió y lo que quedó</caption>
           <thead>
@@ -215,8 +148,7 @@ function Formal({ real }: { real: FlujoReal }) {
           </tbody>
         </table>
       </div>
-
-    </Superficie>
+    </section>
   );
 }
 

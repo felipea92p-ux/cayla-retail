@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { exigirModulo, veDiarioDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe } from "@/lib/gastos-reglas";
-import { mesAnterior, mesNombre } from "@/lib/resultados-reglas";
+import { avisosER, columnasER, leerVerER, mesAnterior, mesNombre } from "@/lib/resultados-reglas";
 import { getCampanas, getEstadoResultados, getUnidadesCerradas } from "@/lib/resultados";
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
 import { getParametrosFinanzas } from "@/lib/configuracion";
@@ -15,11 +15,12 @@ import { lecturaDeGanancias, libroDeGanancias, partesDeGanancias, tituloDeLasPar
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
-import { filaDeLaSede, formaDe, paramsDe } from "@/lib/estados-financieros-reglas";
+import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CuadreVentas } from "@/components/finanzas/estados/CuadreVentas";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
 import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
 import { LineaDeGanancias, LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
@@ -29,7 +30,7 @@ import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 
 // Finanzas ▸ Estados financieros ▸ Ganancias y pérdidas (ADR-0195 F5, ADR-0585, ADR-0611). Lee en el servidor, a la vez: el Estado de resultados de las fechas del
 // calendario y de los dos períodos de antes, el presupuesto contra lo real y las campañas (estos dos, si se mira un mes). La línea de los meses llega aparte, con su
-// `Suspense`. La sede es la de la barra del telar (`?sede=`); `?comparar=1` pone en el formato formal cuánto cambió cada total contra el mes anterior. Quien ve todo (el líder, Configuración, Cierre de mes, CAYLA Global o este
+// `Suspense`. La sede es la de la barra del telar (`?sede=`); `?comparar=1` pone en el cuadro por sede cuánto cambió cada total contra el mes anterior. Quien ve todo (el líder, Configuración, Cierre de mes, CAYLA Global o este
 // módulo, ADR-0585) elige la sede; una terminal mira la suya (lo decide la base).
 export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ mes?: string; desde?: string; hasta?: string; ver?: string; sede?: string; comparar?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
@@ -69,7 +70,6 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const avisoCorte = inicio && mesAntesDelCorte(mes, inicio) ? avisoAntesDelCorte(inicio) : null;
 
   const params = paramsDe(sp);
-  const forma = formaDe(sp.forma);
   const mesDeHoy = mesDelDia(hoy);
   const href = (ruta: string, otra?: ClaveSede) => hrefTelar(ruta, params, otra ? { sede: otra } : {}, { mismaPantalla: false, mesDeHoy });
 
@@ -83,77 +83,85 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const cuadro = cuadroVentas(cuadre.datos, sede);
   const recomendaciones = recomendacionesGanamos({ fila, sedes: deCadaSede, tramos, meta, campanas: delMes, enCurso, href });
   const hayCuadre = cuadre.falla || cuadro;
+  // Lo que no cuadra o se queda corto se dice a la vista: un número calculado sobre datos que no cuadran es peor que ninguno. Lo demás (las notas) va con el cuadro.
+  const verParam = verDeLaVista(persona.vista, sedeDeLaUrl(sp));
+  const avisosGraves = avisosER(columnasER(actual.datos, leerVerER(verParam, actual.datos, veTodo, persona.ubicacionId)), enCurso).filter((a) => a.tono !== "pizarra");
   const textoMas = textoDeVerMas([
     ...(tramos.some((t) => t.plan !== undefined) ? ["lo planeado"] : []),
     ...(sedesCascada && sedesCascada.length > 1 ? ["las sedes"] : []),
     ...(unMes ? ["las campañas"] : []),
     ...(hayCuadre ? ["lo que cuadra con Ventas"] : []),
-  ]);
+    "el cuadro por sede",
+  ])!;
   const leidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, fila: c.lectura.falla ? null : filaDeLaSede(c.lectura.datos, sede) }));
 
   return (
     <div className="space-y-4">
-      <CabeceraEstados pantalla="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} forma={forma} />
-      {forma === "formal" ? (
-        <div className="min-w-0 space-y-4" data-guia="fin-ganamos.formal">
-          <EstadoResultadosPanel
-            filas={actual.datos}
-            anteriores={anterior?.datos ?? null}
-            veTodo={veTodo}
-            cerradas={cerradas}
-            sedeActual={persona.ubicacionId}
-            verParam={verDeLaVista(persona.vista, sedeDeLaUrl(sp))}
-            mes={mes}
-            mesPrevio={previo}
-            hoy={hoy}
-            comparar={comparar}
-            claure={claure}
-            fallas={[avisoCorte, actual.falla, anterior?.falla ?? null].filter((f): f is string => !!f)}
-          />
-        </div>
+      <CabeceraEstados pantalla="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} />
+      {avisoCorte && <Aviso tono="info">{avisoCorte}</Aviso>}
+      {/* Si no se pudo leer se dice: nunca una cifra en cero que no es. */}
+      {actual.falla ? (
+        <Aviso tono="error">{actual.falla}</Aviso>
       ) : (
-        <>
-          {avisoCorte && <Aviso tono="info">{avisoCorte}</Aviso>}
-          {/* Si no se pudo leer se dice: nunca una cifra en cero que no es. */}
-          {actual.falla ? (
-            <Aviso tono="error">{actual.falla}</Aviso>
-          ) : (
-            <EstadoVidrio
-              nombre={`Ganancias y pérdidas · ${periodo.titulo}`}
-              lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo)}
-              grafico={
-                <Suspense fallback={<LineaEsperando />}>
-                  <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} />
-                </Suspense>
-              }
-              guiaRespuesta="fin-ganamos.respuesta"
-              guiaPartes="fin-ganamos.partes"
-              guiaLibro="fin-ganamos.libro"
-              titulo={fila ? tituloDeLasPartes(fila, tramos) : ""}
-              conTubo
-              partes={fila ? partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : []}
-              tituloColumnas={unMes ? "Mes a mes" : "Período a período"}
-              libro={{ titulo: "Ganancias y pérdidas", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: fila ? libroDeGanancias(fila, tramos) : [] }}
-            />
-          )}
-        </>
+        <EstadoVidrio
+          nombre={`Ganancias y pérdidas · ${periodo.titulo}`}
+          lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo)}
+          grafico={
+            <Suspense fallback={<LineaEsperando />}>
+              <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} />
+            </Suspense>
+          }
+          guiaRespuesta="fin-ganamos.respuesta"
+          guiaPartes="fin-ganamos.partes"
+          guiaLibro="fin-ganamos.libro"
+          aviso={avisosGraves.map((a) => (
+            <Aviso key={a.texto} tono={a.tono === "rojo" ? "error" : "atencion"}>
+              {a.texto}
+            </Aviso>
+          ))}
+          titulo={fila ? tituloDeLasPartes(fila, tramos) : ""}
+          conTubo
+          partes={fila ? partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : []}
+          tituloColumnas={unMes ? "Mes a mes" : "Período a período"}
+          libro={{ titulo: "Ganancias y pérdidas", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: fila ? libroDeGanancias(fila, tramos) : [] }}
+        />
       )}
       <Recomendaciones recomendaciones={recomendaciones} />
-      {textoMas && (
-        <MasDelEstado texto={textoMas} guia="fin-ganamos.mas">
-          <MasDeGanancias
-            fila={fila}
-            tramos={tramos}
-            meta={meta}
-            enCurso={enCurso}
-            sedes={sedesCascada}
-            campanas={unMes ? delMes : null}
-            hrefCampanas={href("/finanzas/reportes/campanas")}
-            nombreDelMes={mesNombre(mes)}
-            cuadre={hayCuadre ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
-          />
-        </MasDelEstado>
-      )}
+      <MasDelEstado texto={textoMas} guia="fin-ganamos.mas" abierto={comparar}>
+        <MasDeGanancias
+          fila={fila}
+          tramos={tramos}
+          meta={meta}
+          enCurso={enCurso}
+          sedes={sedesCascada}
+          campanas={unMes ? delMes : null}
+          hrefCampanas={href("/finanzas/reportes/campanas")}
+          nombreDelMes={mesNombre(mes)}
+          cuadre={hayCuadre ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
+          cuadro={
+            <section className="min-w-0 space-y-3" data-guia="fin-ganamos.cuadro">
+              <TituloSeccion>El cuadro por sede</TituloSeccion>
+              <EstadoResultadosPanel
+                filas={actual.datos}
+                anteriores={anterior?.datos ?? null}
+                veTodo={veTodo}
+                cerradas={cerradas}
+                sedeActual={persona.ubicacionId}
+                verParam={verParam}
+                mes={mes}
+                desde={desde}
+                hasta={hasta}
+                titulo={periodo.titulo}
+                mesPrevio={antes && unMes ? previo : null}
+                hoy={hoy}
+                comparar={comparar}
+                claure={claure}
+                fallas={anterior?.falla ? [anterior.falla] : []}
+              />
+            </section>
+          }
+        />
+      </MasDelEstado>
     </div>
   );
 }

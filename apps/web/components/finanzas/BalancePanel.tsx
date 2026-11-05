@@ -35,7 +35,7 @@ import { CalendarX, Flag, Scale } from "lucide-react";
 
 // Estados financieros ▸ Balance general: lo que no es la cifra (ADR-0195 F7, ADR-0198, ADR-0585, ADR-0611). Si no cuadra, la comprobación y la guía de qué falta siguen a la vista: el
 // Balance no se dibuja (un número falso es peor que ninguno). Si cuadra, la respuesta la dibuja `EstadoVidrio`, y aquí queda lo plegado en «Ver más» (dos preguntas, lo de cada sede, cómo
-// se comprobó y los saldos de arranque) y el cuadro formal (`?forma=formal`). La pantalla no calcula plata: todo viene de la base (`fn_conciliacion_contable`, `fn_balance_general`,
+// se comprobó y los saldos de arranque). La pantalla no calcula plata: todo viene de la base (`fn_conciliacion_contable`, `fn_balance_general`,
 // `fn_balance_por_tienda`).
 
 const entra = (i: number, clase = "") => ({
@@ -46,39 +46,26 @@ const entra = (i: number, clase = "") => ({
 export function BalancePanel({
   esLider,
   hoy,
-  corte,
   chequeos,
-  lineas,
   unidades,
   saldos,
   propuestaArranque,
-  fallas,
 }: {
   /** Solo el líder registra los saldos de arranque (`registrar_saldo_inicial`). */
   esLider: boolean;
   hoy: string;
-  corte: string;
   chequeos: Chequeo[];
-  lineas: LineaBalance[];
   unidades: UnidadBalance[];
   saldos: SaldoInicial[];
   /** La propuesta de los saldos de arranque ya leída (opcional; si no viene, el modal la pide). */
   propuestaArranque?: LineaPropuesta[] | null;
-  fallas: string[];
 }) {
   const [arranqueAbierto, setArranqueAbierto] = useState(false);
   const arranque = chequeos.find((c) => c.arranque)?.arranque ?? saldos.find((s) => s.vigente)?.fecha ?? null;
 
   return (
     <div className="space-y-6">
-      {fallas.map((f) => (
-        <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
-          {f}
-        </p>
-      ))}
-
-      <VistaCayla hoy={hoy} corte={corte} chequeos={chequeos} lineas={lineas} unidades={unidades} esLider={esLider} onArranque={() => setArranqueAbierto(true)} />
-
+      <VistaSinCuadrar hoy={hoy} chequeos={chequeos} unidades={unidades} esLider={esLider} onArranque={() => setArranqueAbierto(true)} />
       {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} propuestaInicial={propuestaArranque} onCerrar={() => setArranqueAbierto(false)} />}
     </div>
   );
@@ -172,59 +159,22 @@ const minuscula = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
 // ---- CAYLA entera ---------------------------------------------------------------------------------------------------------
 
-function VistaCayla({
+/** Si no cuadra, la comprobación y la guía de qué falta: el Balance no se dibuja (ADR-0198). */
+function VistaSinCuadrar({
   hoy,
-  corte,
   chequeos,
-  lineas,
   unidades,
   esLider,
   onArranque,
 }: {
   hoy: string;
-  corte: string;
   chequeos: Chequeo[];
-  lineas: LineaBalance[];
   unidades: UnidadBalance[];
   esLider: boolean;
   onArranque: () => void;
 }) {
   const sit = situacion(chequeos);
   const visibles = chequeos.filter((c) => c.clave !== "corte");
-  if (sit.tipo === "cuadra") {
-    const comprobacion = (
-      <Superficie pad className="fin-balance-tarjeta">
-        <CabeceraBloque titulo="Antes de dibujarlo, el sistema lo comprueba" bajada="Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra: un número falso es peor que ninguno." />
-        <ul className="fin-chequeos" data-guia="fin-balance.chequeos">
-          {visibles.map((c) => (
-            <FilaChequeo key={c.clave} c={c} onArranque={onArranque} />
-          ))}
-        </ul>
-      </Superficie>
-    );
-    return (
-      <div className="space-y-4" data-guia="fin-vale.formal">
-        <div className="flex flex-wrap items-center gap-2.5">
-          {esLider && (
-            <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
-              Saldos de arranque
-            </button>
-          )}
-        </div>
-        <div data-guia="fin-balance.resultado">
-          <BalanceCuadra lineas={lineas} corte={corte} hoy={hoy} />
-        </div>
-        {comprobacion}
-        <div className="nota-cayla" data-guia="fin-balance.nota">
-          El <b>capital</b> se registra una vez, al arrancar (lo que pusiste en el negocio), con las utilidades que ya traía. Nunca se
-          calcula como «lo que falta para que cuadre»: si así fuera, el Balance cuadraría siempre y no probaría nada. Por sede se muestra
-          <b> lo que es suyo</b> (su cajón, su mercadería, sus muebles y las facturas que pidió, enteras); el banco, el capital y el IGV son de
-          CAYLA entera y no se reparten.
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div {...entra(1)} data-guia="fin-balance.chequeos">
@@ -353,70 +303,6 @@ function EnlaceCausa({ enlace, onArranque }: { enlace: Enlace | null; onArranque
         {enlace.texto}
       </button>
     </>
-  );
-}
-
-function BalanceCuadra({ lineas, corte, hoy }: { lineas: LineaBalance[]; corte: string; hoy: string }) {
-  const g = agrupar(lineas);
-  return (
-    <Superficie pad className="fin-balance-tarjeta">
-      <CabeceraBloque titulo={tituloCorte(corte, hoy)} bajada="Lo que CAYLA tiene, contra lo que debe y lo que es tuyo.">
-        <Chip tono="verde">cuadra</Chip>
-      </CabeceraBloque>
-      <div className="fin-balance">
-        <div>
-          <h3>Lo que tiene</h3>
-          <ul>
-            {g.tiene.map((l) => (
-              <LineaFila key={`${l.seccion}-${l.cuenta}`} l={l} />
-            ))}
-            <li className="fin-balance-tot">
-              <span />
-              <span>Total</span>
-              <span>{solesBalance(g.totalTiene)}</span>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h3>Lo que debe</h3>
-          <ul>
-            {g.debe.map((l) => (
-              <LineaFila key={`${l.seccion}-${l.cuenta}`} l={l} />
-            ))}
-            <li className="fin-balance-tot">
-              <span />
-              <span>Total</span>
-              <span>{solesBalance(g.totalDebe)}</span>
-            </li>
-          </ul>
-          <h3>Lo que es tuyo</h3>
-          <ul>
-            {g.tuyo.map((l) => (
-              <LineaFila key={`${l.seccion}-${l.cuenta}`} l={l} />
-            ))}
-            <li className="fin-balance-tot">
-              <span />
-              <span>Deudas + lo tuyo</span>
-              <span>{solesBalance(g.totalDebe + g.totalTuyo)}</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </Superficie>
-  );
-}
-
-function LineaFila({ l }: { l: LineaBalance }) {
-  const nota = notaLinea(l);
-  return (
-    <li>
-      <span />
-      <span>
-        {nombreLinea(l)}
-        {nota && <small>{nota}</small>}
-      </span>
-      <span>{solesBalance(l.monto)}</span>
-    </li>
   );
 }
 

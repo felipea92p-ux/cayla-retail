@@ -15,7 +15,7 @@ import type { CampanaFila, FilaER } from "@/lib/resultados-reglas";
 const fechaCorta = (iso: string | null) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "");
 
 /**
- * Lo que sigue a un toque en Ganancias y pérdidas (ADR-0611): contra lo planeado, si hay presupuesto; lo que dejó cada sede; las campañas, si se mira un mes; y cómo cuadra con Ventas.
+ * Lo que sigue a un toque en Ganancias y pérdidas (ADR-0611): contra lo planeado, si hay presupuesto; lo que dejó cada sede; las campañas, si se mira un mes; cómo cuadra con Ventas y el cuadro por sede.
  * Con otras fechas el presupuesto y las campañas no se dibujan: van por mes, y a medias mentirían.
  */
 export function MasDeGanancias({
@@ -28,6 +28,7 @@ export function MasDeGanancias({
   hrefCampanas,
   nombreDelMes,
   cuadre,
+  cuadro,
 }: {
   fila: FilaER | null;
   tramos: TramoCascada[];
@@ -41,6 +42,8 @@ export function MasDeGanancias({
   /** «octubre». */
   nombreDelMes: string;
   cuadre: ReactNode;
+  /** El estado de resultados por sede, con lo que hay detrás de cada cifra. */
+  cuadro: ReactNode;
 }) {
   const filas = fila
     ? filasDeTramos(
@@ -98,6 +101,7 @@ export function MasDeGanancias({
         </section>
       )}
       {cuadre}
+      {cuadro}
     </>
   );
 }

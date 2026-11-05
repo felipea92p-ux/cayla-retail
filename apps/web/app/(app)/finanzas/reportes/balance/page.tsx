@@ -32,7 +32,7 @@ import { EcuacionDelBalance } from "@/components/finanzas/estados/EcuacionDelBal
 import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
 import { TubosDelBalance } from "@/components/finanzas/estados/TubosDelBalance";
-import { formaDe, paramsDe } from "@/lib/estados-financieros-reglas";
+import { paramsDe } from "@/lib/estados-financieros-reglas";
 
 // Finanzas ▸ Estados financieros ▸ Balance general (ADR-0195 F7, ADR-0585, ADR-0611). La fecha es la del calendario de arriba, la misma `hasta` de los otros tres estados (`?corte=`, el
 // nombre viejo, se sigue entendiendo). Lee en el servidor, a la vez: la comprobación, el Balance y lo de cada tienda a esa fecha y en los dos cierres de antes (con los que se compara, solo
@@ -51,8 +51,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
   // «Empresa» no tiene un Balance aparte: es el de CAYLA entera.
   const ver = veTodo ? (pedida !== "cayla" && pedida !== "todas" && pedida !== "empresa" ? pedida : "cayla") : persona.ubicacionId;
   const params = paramsDe(sp);
-  const forma = formaDe(sp.forma);
-  const cabecera = <CabeceraEstados pantalla="vale" mes={mes} sede={veTodo ? pedida : (persona.ubicacionId ?? "todas")} hoy={hoy} params={params} forma={forma} />;
+  const cabecera = <CabeceraEstados pantalla="vale" mes={mes} sede={veTodo ? pedida : (persona.ubicacionId ?? "todas")} hoy={hoy} params={params} />;
 
   const href = (ruta: string, otra?: string) => hrefTelar(ruta, params, otra ? { sede: otra } : {}, { mismaPantalla: false, mesDeHoy: mesDelDia(hoy) });
   const deUnaSede = !veTodo || ver !== "cayla";
@@ -86,12 +85,16 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
   const unidad = deUnaSede ? (unidades.datos.find((u) => u.ubicacionId === ver) ?? unidades.datos[0] ?? null) : null;
   const fallas = [chequeos.falla, lineas.falla, unidades.falla, saldos.falla].filter((f): f is string => !!f);
   const etiquetaActual = etiquetaDelCorte(corte);
-  const conVidrio = forma === "respuesta" && (deUnaSede ? !!unidad : !!cuadra);
+  const conVidrio = deUnaSede ? !!unidad : !!cuadra;
 
   return (
     <div className="space-y-4">
       {cabecera}
-      {forma === "respuesta" && fallas.map((f) => <Aviso key={f} tono="error">{f}</Aviso>)}
+      {fallas.map((f) => (
+        <Aviso key={f} tono="error">
+          {f}
+        </Aviso>
+      ))}
       {conVidrio && !deUnaSede && (() => {
         const partes = partesDelBalance({ grupos, comparadas: anteriores, etiquetaActual, corte });
         const t = totalesDelBalance(grupos);
@@ -149,14 +152,12 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
           />
         );
       })()}
-      {forma === "respuesta" && deUnaSede && !unidad && (
+      {deUnaSede && !unidad && (
         <Vacio icono={<Store />} titulo="No hay una tienda que mostrar">
           Lo que es de una tienda se ve desde su sede. Si trabajas en una, elígela arriba.
         </Vacio>
       )}
-      {!conVidrio && !(forma === "respuesta" && deUnaSede) && (
-        <BalancePanel esLider={esLider} hoy={hoy} corte={corte} chequeos={chequeos.datos} lineas={lineas.datos} unidades={unidades.datos} saldos={saldos.datos} fallas={forma === "respuesta" ? [] : fallas} />
-      )}
+      {!conVidrio && !deUnaSede && <BalancePanel esLider={esLider} hoy={hoy} chequeos={chequeos.datos} unidades={unidades.datos} saldos={saldos.datos} />}
       <Recomendaciones recomendaciones={recomendaciones} />
       {conVidrio && !deUnaSede && (
         <MasDelEstado texto={textoDeVerMas(["dos preguntas que importan", "lo de cada sede", "cómo se comprobó"])!} guia="fin-vale.mas">

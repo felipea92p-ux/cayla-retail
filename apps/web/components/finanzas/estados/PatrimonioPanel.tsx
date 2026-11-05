@@ -7,7 +7,7 @@ import { Superficie } from "@/components/finanzas/kit";
 import { soles, solesConSigno } from "@/lib/flujo-caja-reglas";
 import { cuadroFormalPatrimonio } from "@/lib/patrimonio-reglas";
 
-// Estados financieros ▸ Cambios en el patrimonio: lo que no es la cifra (ADR-0585, ADR-0611). El cuadro del contador por columna (`?forma=formal`) y lo que se dice si faltan los saldos de
+// Estados financieros ▸ Cambios en el patrimonio: lo que no es la cifra (ADR-0585, ADR-0611). El cuadro del contador por columna, plegado en «Ver más», y lo que se dice si faltan los saldos de
 // arranque. Las cifras son de `fn_patrimonio_cambios` y `fn_patrimonio_en_fechas`, el mismo diario que el Balance. Lo tuyo es de CAYLA entera.
 
 /** Sin saldos de arranque no hay patrimonio que contar. */

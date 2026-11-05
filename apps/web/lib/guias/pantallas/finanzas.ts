@@ -89,7 +89,7 @@ const PARA_EL_CONTADOR: PasoGuia = {
   id: "para-el-contador",
   ancla: "fin-estados.contador",
   titulo: "Para el contador",
-  texto: "Aquí está lo que no se usa todos los días: cada estado en formato formal, los saldos por cuenta y el libro diario, con su Excel para descargar. En la demo no lo abrimos.",
+  texto: "Lo que no se usa todos los días: los saldos por cuenta, el libro diario y cada estado en un archivo que abre Excel, con sus cuentas. Cada estado en su formato formal se abre dentro de él.",
 };
 
 const EXCEL: PasoGuia = {
@@ -1051,7 +1051,6 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     FECHAS,
     VISTAS,
     PARA_EL_CONTADOR,
-    CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-ganamos.respuesta",
@@ -1115,11 +1114,11 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       texto: "Por qué lo vendido en Ventas no es la venta de aquí: el IGV, las devoluciones, los cambios y lo de CLAURE, en céntimos y por sede. Si algo no tiene nombre, sale como «Sin explicar».",
     },
     {
-      id: "formal",
-      ancla: "fin-ganamos.formal",
+      id: "cuadro",
+      ancla: "fin-ganamos.cuadro",
       opcional: true,
-      titulo: "El formato formal",
-      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Se ve en la barra de arriba.",
+      titulo: "El cuadro por sede",
+      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final.",
     },
     {
       id: "comparar",
@@ -1246,7 +1245,6 @@ export const GUIA_FIN_FLUJO: Guia = {
     FECHAS,
     VISTAS,
     PARA_EL_CONTADOR,
-    CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-plata.respuesta",
@@ -1452,20 +1450,6 @@ export const GUIA_FIN_FLUJO: Guia = {
       demostrar: [{ tipo: "clic", ancla: "fin-escenarios.volver" }],
     },
     {
-      id: "formal",
-      ancla: "fin-plata.formal",
-      opcional: true,
-      titulo: "El formato formal",
-      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Se ve en la barra de arriba.",
-    },
-    {
-      id: "formal-tabla",
-      ancla: "fin-plata.formal-tabla",
-      opcional: true,
-      titulo: "Las tres partes",
-      texto: "Cada parte con lo que la forma y su total, y la plata al empezar y al terminar. Las cuentas contables no se muestran: van en lo que se descarga.",
-    },
-    {
       id: "semana-a-semana",
       ancla: "fin-flujo.semana-a-semana",
       opcional: true,
@@ -1497,7 +1481,6 @@ export const GUIA_FIN_BALANCE: Guia = {
     FECHA_DEL_BALANCE,
     VISTAS,
     PARA_EL_CONTADOR,
-    CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-vale.respuesta",
@@ -1581,13 +1564,6 @@ export const GUIA_FIN_BALANCE: Guia = {
       opcional: true,
       titulo: "Ver más",
       texto: "Mirando una sede: cómo le fue en el mes y lo que hay que saber de estas cifras (te lo abrimos).",
-    },
-    {
-      id: "formal",
-      ancla: "fin-vale.formal",
-      opcional: true,
-      titulo: "El formato formal",
-      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Se ve en la barra de arriba.",
     },
     {
       id: "arranque",
@@ -1703,7 +1679,6 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
     FECHAS,
     VISTAS,
     PARA_EL_CONTADOR,
-    CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-patrimonio.respuesta",
@@ -1733,11 +1708,19 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       texto: "Si retiraste más de lo que ganaste, cuánto habría crecido retirando la mitad, si lo tuyo viene bajando y si hay algo sin explicar. Nada se cambia solo.",
     },
     {
+      id: "mas",
+      ancla: "fin-patrimonio.mas",
+      opcional: true,
+      titulo: "Ver más",
+      texto: "El cuadro por columna, como lo lee un contador (te lo abrimos).",
+    },
+    {
       id: "formal",
       ancla: "fin-patrimonio.formal",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-patrimonio.mas" }],
       titulo: "El formato formal",
-      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Se ve en la barra de arriba.",
+      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre.",
     },
     {
       id: "formal-tabla",

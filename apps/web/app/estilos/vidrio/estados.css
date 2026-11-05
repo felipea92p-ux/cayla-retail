@@ -30,8 +30,7 @@
   inherits: false;
   initial-value: 30deg;
 }
-.placa-estados,
-.estados-vidrio .fin-estado {
+.placa-estados {
   position: relative;
   isolation: isolate;
   border: 0;
@@ -41,8 +40,7 @@
   backdrop-filter: var(--estados-filtro);
   box-shadow: var(--estados-sombra);
 }
-.placa-estados::before,
-.estados-vidrio .fin-estado::before {
+.placa-estados::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -55,8 +53,7 @@
   -webkit-mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
   -webkit-mask-composite: xor;
 }
-.placa-estados::after,
-.estados-vidrio .fin-estado::after {
+.placa-estados::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -68,8 +65,7 @@
   background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), var(--estados-luz-suave), transparent 70%);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .placa-estados::before,
-  .estados-vidrio .fin-estado::before {
+  .placa-estados::before {
     animation: estados-filo calc(var(--t-momento) * 1.6) var(--ease-cayla) both;
   }
 }
@@ -103,7 +99,7 @@
 }
 
 /* ---------- Lo que se lee sobre el vidrio ---------- */
-.estados-vidrio .fin-estado :is(.text-taupe, .fin-titular-bajada) {
+.estados-vidrio .placa-estados .text-taupe {
   color: var(--estados-secundario);
 }
 
@@ -1712,9 +1708,7 @@
 @media (prefers-contrast: more) {
   .tela-hilos canvas,
   .placa-estados::before,
-  .estados-vidrio .fin-estado::before,
-  .placa-estados::after,
-  .estados-vidrio .fin-estado::after {
+  .placa-estados::after {
     display: none;
   }
 }

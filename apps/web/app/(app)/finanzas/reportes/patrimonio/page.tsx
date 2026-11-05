@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import { exigirModulo, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { hrefTelar, mesDelDia, nombreCortoSede, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { formaDe, paramsDe } from "@/lib/estados-financieros-reglas";
+import { paramsDe } from "@/lib/estados-financieros-reglas";
 import { etiquetaDelPeriodo, leerPeriodo, periodoDe, periodosAnteriores } from "@/lib/estados-periodo";
 import { getPatrimonioCambios, getPatrimonioEnFechas } from "@/lib/estados-financieros";
 import { lecturaDelPatrimonio, libroDelPatrimonio, partesDelPatrimonio, tituloDelPatrimonio } from "@/lib/estados-patrimonio";
+import { textoDeVerMas } from "@/lib/estados-partes";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getEstadoResultados } from "@/lib/resultados";
 import { recomendacionesTuyo, tieneExtremos } from "@/lib/patrimonio-reglas";
@@ -14,6 +15,7 @@ import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
 import { LineaDePatrimonio } from "@/components/finanzas/estados/LineaDePatrimonio";
 import { LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
+import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
 import { PatrimonioFormal, PatrimonioSinArranque } from "@/components/finanzas/estados/PatrimonioPanel";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 import { SoloLiderFlujo } from "@/components/finanzas/SoloLiderFlujo";
@@ -34,7 +36,6 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
   const periodo = leerPeriodo(sp, hoy);
   const { desde, hasta, mes } = periodo;
   const params = paramsDe(sp);
-  const forma = formaDe(sp.forma);
   const href = (ruta: string) => hrefTelar(ruta, params, {}, { mismaPantalla: false, mesDeHoy: mesDelDia(hoy) });
   const parametros = await getParametrosFinanzas();
   const anteriores = periodosAnteriores(periodo, hoy, parametros?.inicioFinanzas ?? null);
@@ -52,15 +53,13 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
 
   return (
     <div className="space-y-4">
-      <CabeceraEstados pantalla="tuyo" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={forma} />
+      <CabeceraEstados pantalla="tuyo" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} />
       {patrimonio.falla ? (
         <Aviso tono="error" titulo="No se pudo leer lo tuyo">
           {patrimonio.falla}
         </Aviso>
       ) : !tieneExtremos(datos) ? (
         <PatrimonioSinArranque />
-      ) : forma === "formal" ? (
-        <PatrimonioFormal datos={datos} titulo={periodo.titulo} />
       ) : (
         <EstadoVidrio
           nombre={`Cambios en el patrimonio · ${periodo.titulo}`}
@@ -86,6 +85,11 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
         />
       )}
       {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}
+      {tieneExtremos(datos) && (
+        <MasDelEstado texto={textoDeVerMas(["el cuadro por columna"])!} guia="fin-patrimonio.mas">
+          <PatrimonioFormal datos={datos} titulo={periodo.titulo} />
+        </MasDelEstado>
+      )}
     </div>
   );
 }
