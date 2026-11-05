@@ -1897,6 +1897,10 @@ export const PRUEBAS = [
   // de cordura (`ya_estaba_sin_registro`), desmarcar vuelve al cierre de siempre y «Revertir» no descuenta un stock que nunca entró. ROLLBACK.
   "pruebas:produccion-ya-estaba",
 
+  // Revertir el cierre devuelve el costo de la prenda (ADR-0614, actividad 1): el costo exacto de antes, rechazo si ya está mezclado con otra compra
+  // o cierre, en orden inverso sí se puede, y el par cierre + reversión no sale en la pestaña «Costo». ROLLBACK.
+  "pruebas:produccion-revertir-costo",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 

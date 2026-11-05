@@ -1155,6 +1155,7 @@ describe("pasar la orden al stock, anularla y revertirla", () => {
 
   it("al revertir, dice qué pasa con el stock: las prendas salen (con un movimiento) o, en una muestra, nada que devolver", () => {
     expect(textoQuePasaAlRevertir({ inventariadoEn: "2026-10-15T12:00:00+00:00", cantidadBuenas: 46 })).toContain("Las 46 prendas salen del stock del Taller");
+    expect(textoQuePasaAlRevertir({ inventariadoEn: "2026-10-15T12:00:00+00:00", cantidadBuenas: 46 })).toContain("El costo de la prenda vuelve al que tenía");
     expect(textoQuePasaAlRevertir({ inventariadoEn: null, cantidadBuenas: 3 })).toBe("La muestra vuelve a estar en proceso. No había stock que devolver.");
   });
 

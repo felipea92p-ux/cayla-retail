@@ -2093,6 +2093,6 @@ export function textoAnulasteLaOrden(referencia: string): string {
 export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null; ingresoAlStock?: IngresoAlStock }): string {
   if (o.ingresoAlStock === "ya_estaba") return "La orden vuelve a estar en proceso. Esas prendas ya estaban registradas en una sede: no entraron al stock al cerrar, así que no hay stock que devolver. La marca «ya estaban registradas» se quita y hay que decidirla otra vez al volver a cerrar.";
   return o.inventariadoEn
-    ? `Las ${o.cantidadBuenas ?? 0} prendas salen del stock del Taller (queda un movimiento de reversión: la entrada original no se borra) y la orden vuelve a estar en proceso, para corregir las buenas o los costos.`
+    ? `Las ${o.cantidadBuenas ?? 0} prendas salen del stock del Taller (queda un movimiento de reversión: la entrada original no se borra) y la orden vuelve a estar en proceso, para corregir las buenas o los costos. El costo de la prenda vuelve al que tenía antes de este cierre.`
     : "La muestra vuelve a estar en proceso. No había stock que devolver.";
 }
