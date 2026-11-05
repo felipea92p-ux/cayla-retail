@@ -392,7 +392,7 @@ export function PuntoDeVentaTicket({
                 type="button"
                 onClick={onCerrarHoja}
                 aria-label="Volver al catálogo"
-                className="order-last ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
+                className="area-dedo order-last ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
               >
                 <X className="h-5 w-5" aria-hidden />
               </button>
@@ -652,7 +652,7 @@ export function PuntoDeVentaTicket({
                   onClick={() => onAbrirDescuento(null)}
                   disabled={bloqueado || carrito.length === 0}
                   aria-label="Aplicar descuento"
-                  className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
@@ -671,7 +671,7 @@ export function PuntoDeVentaTicket({
                   disabled={bloqueado || carrito.length === 0 || vale != null}
                   data-guia="vender.codigo-cupon-boton"
                   aria-label="Código de cupón"
-                  className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="area-dedo label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <span className="flex items-center gap-1.5">
                     <Ticket className={ICONO_CHICO} aria-hidden />

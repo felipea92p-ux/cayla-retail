@@ -100,7 +100,7 @@ export function SelectorMes({
         aria-label={`Ir a ${nombreDelMes(previo)}`}
         disabled={!hayPrevio}
         onClick={() => onCambiar(previo)}
-        className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+        className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
       >
         <ChevronLeft className="h-4 w-4" aria-hidden />
       </button>
@@ -110,7 +110,7 @@ export function SelectorMes({
         aria-haspopup="dialog"
         aria-expanded={abierto}
         onClick={() => (abierto ? cerrar() : abrir())}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold text-tinta"
+        className="area-dedo inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold text-tinta"
       >
         {nombreDelMes(valor)}
         {/* Da media vuelta al abrir, como la flecha del «Más». */}
@@ -125,7 +125,7 @@ export function SelectorMes({
         aria-label={haySiguiente ? `Ir a ${nombreDelMes(mesSiguiente(valor))}` : "Ya estás en el mes actual"}
         disabled={!haySiguiente}
         onClick={() => onCambiar(mesSiguiente(valor))}
-        className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+        className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
       >
         <ChevronRight className="h-4 w-4" aria-hidden />
       </button>
@@ -150,7 +150,7 @@ export function SelectorMes({
                   aria-label={`Ver los meses de ${anio - 1}`}
                   disabled={anio - 1 < anioMinimo}
                   onClick={() => setAnio((a) => a - 1)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+                  className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
                 >
                   <ChevronLeft className="h-4 w-4" aria-hidden />
                 </button>
@@ -162,7 +162,7 @@ export function SelectorMes({
                   aria-label={`Ver los meses de ${anio + 1}`}
                   disabled={anio + 1 > actual.anio}
                   onClick={() => setAnio((a) => a + 1)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+                  className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
                 >
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
