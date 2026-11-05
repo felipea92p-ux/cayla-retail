@@ -34,4 +34,6 @@ Felipe: primero se implementa el diseño de Estados financieros; después, las m
 
 ## Antes del PR de esta rama
 
-- [ ] Correr `/chaos` en Registrar gasto y `pnpm --filter web tema:auditar`, que la casilla del PR pide.
+- [x] `/chaos` en Registrar gasto (semilla 611, informe en `.chaos/`).
+- [ ] `pnpm --filter web tema:auditar`, que la casilla del PR pide.
+- [ ] Menor, de `/chaos`: con el reloj del equipo en otro año, «3/11» toma ese año. Donde hay `max`, sacar el año de ahí.
