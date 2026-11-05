@@ -16,7 +16,7 @@ Felipe cerró las reglas, el dinero y los datos del Taller antes de rediseñarlo
 | El plan no baja de lo cortado; cada cambio deja su fila en la historia | `cambiar_plan_de_orden`, `cambiar_datos_de_orden` | `pruebas:produccion-datos-y-plan` |
 | Los avíos declarados bajan solos al pasar al stock, y entran al costo | `fn_descontar_avios_al_cerrar` | `pruebas:produccion-avios-al-cerrar` |
 | Lo que no llegó a una tienda no se ofrece; llegar no tiene vuelta | `fn_productos_por_etapa`, `fn_vitrina_por_que_no`, `fn_productos_filtro` | `pruebas:produccion-etapas-de-prenda` |
-| Una orden sin tela se puede abrir: el freno es solo de pantalla (ADR-0600) | `NuevaOrdenProduccionForm` | `lib/nueva-orden-tela-*.test.ts` |
+| Una orden que no declaró tela se frena al pasar al stock, solo en la pantalla (ADR-0600) | `lib/orden-tela-sin-anotar-reglas.ts` | `lib/orden-tela-sin-anotar-reglas.test.ts` |
 
 ## Reglas puras, en la web
 
