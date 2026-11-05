@@ -629,6 +629,8 @@ export function CampanaModal({
                     tono={fHasta.ok && !objecion ? undefined : "error"}
                     pie={objecion ?? undefined}
                     rango={rangoElegido}
+                    min={rangoElegido.desde ?? undefined}
+                    motivoMin="No puede terminar antes de «Desde»."
                   />
                 </div>
                 {/* Si rige hoy, cuánto lleva (la misma barra de su pase en Insignias); y siempre que haya dos fechas, cuánto dura. */}
@@ -863,6 +865,8 @@ export function NuevaEtiquetaModal({
                   tono={fHastaNueva.ok && !objecionDeFechas ? undefined : "error"}
                   pie={objecionDeFechas ?? undefined}
                   rango={rangoNuevo}
+                  min={rangoNuevo.desde ?? undefined}
+                  motivoMin="No puede terminar antes de «Desde»."
                   disabled={guardando}
                 />
               </div>

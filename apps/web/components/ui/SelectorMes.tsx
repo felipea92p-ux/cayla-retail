@@ -7,6 +7,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useDestinoFlotante, usePosicionAnclada } from "@/components/ui/useAnclaje";
 import { esMismoMes, mesAnterior, mesSiguiente, paramDeMes, type Mes } from "@/lib/facturacion-reglas";
 import { mesesDelSelector, nombreDelMes } from "@/lib/historial-cierres-reglas";
+import { mesPorTecla } from "@/lib/campo-fecha-reglas";
 
 const ANCHO = 268;
 
@@ -77,6 +78,23 @@ export function SelectorMes({
     });
     return () => cancelAnimationFrame(id);
   }, [abierto, pos]);
+
+  // Flechas por la grilla de meses (ADR-0611, mejora 8). Un mes que todavía no llega se ve pero no recibe el foco: el foco se queda donde está.
+  const [mesConFoco, setMesConFoco] = useState<number | null>(null);
+  useEffect(() => {
+    if (mesConFoco === null) return;
+    panel.current?.querySelector<HTMLElement>(`[data-mes="${mesConFoco}"]:not(:disabled)`)?.focus();
+    setMesConFoco(null);
+  }, [mesConFoco, anio]);
+  function alTeclearGrilla(e: React.KeyboardEvent<HTMLDivElement>) {
+    const actualEnFoco = (e.target as HTMLElement).closest<HTMLElement>("[data-mes]");
+    const destino = actualEnFoco ? mesPorTecla(anio, Number(actualEnFoco.dataset.mes), e.key) : null;
+    if (!destino) return;
+    e.preventDefault();
+    if (destino.anio < anioMinimo || destino.anio > actual.anio) return;
+    setAnio(destino.anio);
+    setMesConFoco(destino.mes);
+  }
 
   // Escape cierra el panel y se queda con la tecla: la hoja de abajo sigue abierta.
   useEffect(() => {
@@ -167,7 +185,7 @@ export function SelectorMes({
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
               </div>
-              <div className="selector-mes-grilla grid grid-cols-3 gap-1.5">
+              <div className="selector-mes-grilla grid grid-cols-3 gap-1.5" onKeyDown={alTeclearGrilla}>
                 {mesesDelSelector(anio, actual).map((m) => {
                   const elegido = esMismoMes({ anio, mes: m.mes }, valor);
                   const esActual = esMismoMes({ anio, mes: m.mes }, actual);
