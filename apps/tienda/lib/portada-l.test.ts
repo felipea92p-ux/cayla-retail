@@ -116,10 +116,15 @@ describe("los fondos en pastel", () => {
   const CARTA = ["#2D2C2F", "#D5BA98", "#9B1B30", "#A9CADA", "#80A0D4", "#F0A1BF", "#F2D3BC", "#B3573F", "#EADA4F", "#b4d7ff", "#C5C5C5", "#4B342F", "#B0885B", "#2A304E", "#F2E6B1", "#848587", "#6C2831", "#EE9626", "#EFC4CF", "#F3ECE0"];
 
   it("ninguna prenda de la carta queda sobre un fondo que la pierda, en ningún turno", () => {
+    // Un `expect` por combinación llegaba a 5,8 s en el CI, sobre el límite de 5 s: se juntan las que fallan y se comprueba una sola vez.
+    const perdidas: string[] = [];
     for (const a of CARTA) for (const b of CARTA) for (const c of CARTA) for (const turno of [0, 3, 6]) {
       const colores = [a, b, c].map(aRgb);
-      fondosDelGrupo(colores, turno).forEach((f, i) => expect(distanciaDeColor(colores[i], aRgb(f))).toBeGreaterThanOrEqual(22));
+      fondosDelGrupo(colores, turno).forEach((f, i) => {
+        if (distanciaDeColor(colores[i], aRgb(f)) < 22) perdidas.push(`${[a, b, c][i]} sobre ${f}, turno ${turno}`);
+      });
     }
+    expect(perdidas).toEqual([]);
   });
 
   it("los tres fondos de un grupo son distintos, y cambian de un grupo a otro", () => {
