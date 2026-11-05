@@ -1,4 +1,4 @@
-import { estadoDeCaja, type CajaProxima } from "./caja-proxima-reglas";
+import { estadoDeCaja, loQueHayEnCuentas, type CajaProxima } from "./caja-proxima-reglas";
 import { disponibleReal } from "./cuenta-claure-reglas";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { soles } from "./flujo-caja-reglas";
@@ -12,7 +12,7 @@ import type { RespuestaResumen } from "./resumen-telar-reglas";
 // Contrato. PROMETE: tres respuestas, siempre en el mismo orden, cada una con su cifra (o el motivo por el que no hay) y el contexto que la
 // vuelve legible. NO CALCULA plata: cada cifra sale de donde ya vive (la caja, `debesPronto`, la respuesta del mes), así que el Resumen no
 // puede decir en la tarjeta de arriba algo distinto de lo que dice abajo. Lo único que agrupa son los saldos que la base ya calculó, por tipo
-// de cuenta (`desgloseDeTienes`), y solo si suman la cifra de arriba. ASUME: que `caja` ya viene armada con `cajaProxima`.
+// de cuenta (`desgloseDeTienes`), y solo si suman la cifra de arriba. «¿Cuánto tienes?» dice lo que hay en las cuentas (`loQueHayEnCuentas`), con lo de CLAURE adentro y repartido; «Tu caja» parte de lo mismo sin eso, y lo dice. ASUME: que `caja` ya viene armada con `cajaProxima`.
 // Sin dato dice por qué (principio 9): nunca un cero que parezca un dato.
 
 export type Tono = "verde" | "ambar" | "rojo" | "pizarra";
@@ -108,14 +108,16 @@ function tienes(caja: CajaProxima, href: string | null, desglose?: DesgloseTiene
     if (claureFalla) chips.push({ texto: "No se pudo leer lo de CLAURE", tono: "pizarra" });
     // Si a CLAURE se le pagó de más, no hay plata suya que repartir: lo que ella le debe a CAYLA se dice aparte.
     if (claure && claure.saldo < 0) chips.push({ texto: `CLAURE te debe ${soles(-claure.saldo)}`, tono: "pizarra" });
-    const d = claure ? disponibleReal(caja.saldoHoy, claure.saldo) : null;
+    // `saldoHoy` ya viene sin lo de Claudia (fn_flujo_caja_proyeccion, ADR-0560): la tarjeta parte de lo que hay en las cuentas, o se le restaría dos veces.
+    const hay = loQueHayEnCuentas(caja);
+    const d = claure ? disponibleReal(hay, claure.saldo) : null;
     const reparto: PartePlata[] | undefined = d
       ? [
           { clave: "cayla", nombre: "De CAYLA", monto: d.disponible },
           { clave: "claure", nombre: "De CLAURE", monto: d.deClaudia },
         ]
       : undefined;
-    return { ...base, pregunta: "¿Cuánto tienes?", valor: caja.saldoHoy, detalle: detalleDeTienes(desglose), chips, ...(reparto ? { reparto } : {}) };
+    return { ...base, pregunta: "¿Cuánto tienes?", valor: hay, detalle: detalleDeTienes(desglose), chips, ...(reparto ? { reparto } : {}) };
   }
   if (caja.tipo === "sede") {
     const pregunta = caja.vende ? `¿Cuánto efectivo tienes en ${caja.nombre}?` : "¿Cuánto efectivo tienes?";
