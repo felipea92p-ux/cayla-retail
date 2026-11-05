@@ -67,7 +67,7 @@ export function EstadoPersona({ p }: { p: Pick<PersonaEquipo, "estado"> }) {
  *  pantalla ancha van juntas a la izquierda con anchos fijos, y lo que sobra lo toma «Estado» (Felipe 2026-10-05: el rol y la fecha
  *  quedaban al otro extremo, lejos del nombre). */
 const COLUMNAS =
-  "grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3.5 sm:grid-cols-[36px_minmax(0,1fr)_10rem_7.5rem] lg:grid-cols-[36px_minmax(14rem,22rem)_11rem_8rem_minmax(0,1fr)]";
+  "grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3.5 max-xl:@[32rem]:grid-cols-[36px_minmax(0,1fr)_10rem_7.5rem] xl:grid-cols-[36px_minmax(14rem,22rem)_11rem_8rem_minmax(0,1fr)]";
 
 /** El estado en una palabra: lo que pide atención o lo que está pasando hoy. Nada si está activa y sin turno. */
 function EstadoMiembro({ m }: { m: MiembroEquipo }) {
@@ -133,20 +133,20 @@ function FilaMiembro({
         </span>
         <span className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[14.5px] font-semibold leading-tight ${apagado ? "text-tinta/60" : "text-tinta"}`}>
           <NombreMiembro m={m} />
-          {/* Bajo 1024 px el estado va junto al nombre; desde ahí, en su columna. */}
+          {/* Bajo 1280 px el estado va junto al nombre; desde ahí, en su columna: a 1024 px no le queda ancho y se salía de la tarjeta. */}
           {apagado && (
-            <span className="lg:hidden">
+            <span className="xl:hidden">
               <EstadoMiembro m={m} />
             </span>
           )}
         </span>
-        <span className={`flex min-w-0 max-w-[9.5rem] sm:max-w-none ${apagado ? "opacity-70" : ""}`}>
+        <span className={`flex min-w-0 max-w-[9.5rem] @[32rem]:max-w-none ${apagado ? "opacity-70" : ""}`}>
           <PildoraRol nombre={m.rolNombre} lider={m.tipo === "persona" && m.nivel === "lider"} />
         </span>
-        <span className="hidden text-sm tabular-nums text-tinta/60 sm:block lg:text-left">
+        <span className="hidden text-sm tabular-nums text-tinta/60 @[32rem]:block xl:text-left">
           {m.tipo === "persona" && m.estado !== "activa" ? "—" : cuandoEntro(m.ultimoAcceso, ahoraIso)}
         </span>
-        <span className="hidden lg:block">
+        <span className="hidden xl:block">
           <EstadoMiembro m={m} />
         </span>
       </button>
@@ -325,7 +325,7 @@ export function EquipoLista({
               + Nueva terminal
             </Boton>
           )}
-          <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="flex w-full max-w-full flex-wrap items-center gap-2 sm:w-auto">
             <Buscador guia="colaboradores.buscador"
               valor={texto}
               onCambio={setTexto}
@@ -367,14 +367,15 @@ export function EquipoLista({
           )
 
         ) : (
-          <div className="space-y-5" data-guia="colaboradores.lista">
-            {/* Los títulos de las columnas, una vez arriba (Felipe 2026-10-05: «no hay título», y la fecha no decía qué era). */}
+          <div className="@container space-y-5" data-guia="colaboradores.lista">
+            {/* Los títulos de las columnas, una vez arriba (Felipe 2026-10-05: «no hay título», y la fecha no decía qué era). Las columnas miran el
+                ancho de la lista, no el de la ventana: a 640 px el lateral deja 266 px y «Último ingreso» no cabe (2026-11-05). */}
             {vista === "lista" && (
-              <div aria-hidden className={`${COLUMNAS} max-sm:hidden border-b border-sand px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-taupe-profundo`}>
+              <div aria-hidden className={`${COLUMNAS} @max-[32rem]:hidden border-b border-sand px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-taupe-profundo`}>
                 <span className="col-span-2">{enTerminales ? "Terminal" : "Persona"}</span>
                 <span>Rol</span>
-                <span className="hidden sm:block">Último ingreso</span>
-                <span className="hidden lg:block">Estado</span>
+                <span className="hidden @[32rem]:block">Último ingreso</span>
+                <span className="hidden xl:block">Estado</span>
               </div>
             )}
             {grupos.map((g) => (

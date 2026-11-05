@@ -189,7 +189,7 @@ export function CuandoSePaga({ derivado, lectura, pagado, flujo }: { derivado: P
         <TarjetaCifra etiqueta="Hasta cuándo pedir" valor={limite ? fechaCortaES(limite) : plazo.estado === "termino" ? "Terminó" : "Ya empezó"}>
           {limite ? `${fechaCortaES(plan.plan.desde)} menos ${diasParaLlegar} días para llegar` : plazo.texto}
         </TarjetaCifra>
-        <TarjetaCifra etiqueta="Esto no es un gasto" valor={<span className="text-[1.375rem] leading-tight">Inversión en mercadería</span>}>
+        <TarjetaCifra etiqueta="Esto no es un gasto" valor={<span className="whitespace-normal text-[1.375rem] leading-tight">Inversión en mercadería</span>}>
           Es mercadería: el costo entra cuando se vende
         </TarjetaCifra>
       </div>
