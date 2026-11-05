@@ -13,22 +13,10 @@
  * ASUME: fechas `aaaa-mm-dd` en hora de Lima; que `hoy` es el que calcula el servidor.
  */
 
-import { diasEntreFechas, sumarDias } from "./fechas-lima";
+import { sumarDias } from "./fechas-lima";
 import { sinBlancosDeMiles } from "./numero-escrito";
 
 export type Vista = "hoy" | "semana" | "mes";
-
-export const VISTAS: { clave: Vista; etiqueta: string }[] = [
-  { clave: "hoy", etiqueta: "Hoy" },
-  { clave: "semana", etiqueta: "Semana" },
-  { clave: "mes", etiqueta: "Mes" },
-];
-
-/** La vista de la URL (`?vista=`): lo que no se reconoce es «hoy» (decisión 8: Rendimiento abre en Hoy). */
-export function vistaDeUrl(valor: string | string[] | undefined | null): Vista {
-  const v = Array.isArray(valor) ? valor[0] : valor;
-  return v === "semana" || v === "mes" ? v : "hoy";
-}
 
 /** Un día de la serie de la tienda (`fn_rendimiento_serie`). `metaSede` y `metaAsignada` son `null` si no hay. */
 export type DiaSerie = {
@@ -101,13 +89,6 @@ export function ventanaDeVista(vista: Vista, hoy: string): { desde: string; hast
   if (vista === "hoy") return { desde: hoy, hasta: hoy };
   if (vista === "semana") return { desde: sumarDias(hoy, -6), hasta: hoy };
   return { desde: primerDiaDelMes(hoy), hasta: ultimoDiaDelMes(hoy) };
-}
-
-const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const DIAS_LARGOS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-
-function diaDeSemana(iso: string): number {
-  return new Date(`${iso.slice(0, 10)}T12:00:00Z`).getUTCDay();
 }
 
 // ───────────────────────── cifras ─────────────────────────
@@ -199,9 +180,8 @@ export type VentasPorHora = {
   ventas: number;
 };
 
-/** Cuántas ventas y soles hizo la tienda en cada hora de la ventana de la vista. Sin ventas en la ventana: `mejor` es `null`. */
-export function ventasDeLaTiendaPorHora(detalle: FilaDetalle[], vista: Vista, hoy: string): VentasPorHora {
-  const { desde, hasta } = ventanaDeVista(vista, hoy);
+/** Cuántas ventas y soles hizo la tienda en cada hora de un tramo de días. Sin ventas: `mejor` es `null`. */
+export function ventasPorHoraEnDias(detalle: FilaDetalle[], { desde, hasta }: { desde: string; hasta: string }): VentasPorHora {
   const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
   const porHora = new Map<number, { ventas: number; total: number }>();
   for (const f of filas) {
@@ -227,9 +207,8 @@ export function etiquetaDeHora(hora: number): string {
 
 export type PrendasPorVenta = { prendas: number; ventas: number; porVenta: number | null };
 
-/** Cuántas prendas se lleva cada compra en la ventana: `null` sin ventas (no se divide por cero). */
-export function prendasPorVenta(detalle: FilaDetalle[], vista: Vista, hoy: string): PrendasPorVenta {
-  const { desde, hasta } = ventanaDeVista(vista, hoy);
+/** Cuántas prendas se lleva cada compra en un tramo de días: `null` sin ventas (no se divide por cero). */
+export function prendasPorVentaEnDias(detalle: FilaDetalle[], { desde, hasta }: { desde: string; hasta: string }): PrendasPorVenta {
   const filas = detalle.filter((f) => f.fecha >= desde && f.fecha <= hasta);
   const prendas = filas.reduce((s, f) => s + f.prendas, 0);
   const ventas = filas.reduce((s, f) => s + f.ventas, 0);
@@ -238,26 +217,10 @@ export function prendasPorVenta(detalle: FilaDetalle[], vista: Vista, hoy: strin
 
 // ───────────────────────── tabla «Cómo va» ─────────────────────────
 
-export type Orden = "nombre" | "ventas" | "avance";
-
 export function columnaDePersona(p: PersonaMeta, vista: Vista): { vendido: number; ventas: number; meta: number | null } {
   if (vista === "hoy") return { vendido: p.vendidoHoy, ventas: p.ventasHoy, meta: p.metaHoy };
   if (vista === "semana") return { vendido: p.vendido7d, ventas: p.ventas7d, meta: p.meta7d };
   return { vendido: p.vendidoMes, ventas: p.ventasMes, meta: p.metaMes };
-}
-
-export function ordenarPersonas(personas: PersonaMeta[], vista: Vista, orden: Orden): PersonaMeta[] {
-  const porNombre = (a: PersonaMeta, b: PersonaMeta) => a.nombre.localeCompare(b.nombre, "es");
-  const copia = [...personas];
-  if (orden === "nombre") return copia.sort(porNombre);
-  if (orden === "ventas") {
-    return copia.sort((a, b) => columnaDePersona(b, vista).vendido - columnaDePersona(a, vista).vendido || porNombre(a, b));
-  }
-  const av = (p: PersonaMeta) => {
-    const c = columnaDePersona(p, vista);
-    return avance(c.vendido, c.meta) ?? -1;
-  };
-  return copia.sort((a, b) => av(b) - av(a) || porNombre(a, b));
 }
 
 /** «09:00–18:00», o `null` si no tiene turno cargado hoy (la fila dice «Sin turno cargado» solo si la tienda reparte por horas). */
@@ -321,65 +284,20 @@ export function asignacionDeVista(personas: PersonaMeta[], vista: Vista, metaSed
   return { tipo: Math.abs(diferencia) < 1 ? "cuadra" : diferencia > 0 ? "faltan" : "pasa", asignado, metaSede, diferencia };
 }
 
-// ───────────────────────── gráfico ─────────────────────────
-
-export type DiaGrafico = {
-  fecha: string;
-  /** «Lun» en la semana; el número del día (solo algunos) en el mes. */
-  etiqueta: string;
-  /** «lunes 28» para el tooltip y la tabla. */
-  titulo: string;
-  /** Lo vendido ese día; `null` si el día todavía no llega. */
-  valor: number | null;
-  meta: number | null;
-  hoy: boolean;
-};
-
-/** Las barras de los últimos 7 días y las del mes entero, con la meta de la sede de cada día. */
-export function serieParaGrafico(serie: DiaSerie[], hoy: string): { semana: DiaGrafico[]; mes: DiaGrafico[] } {
-  const porFecha = new Map(serie.map((d) => [d.fecha, d]));
-  const dia = (fecha: string, etiqueta: string): DiaGrafico => {
-    const d = porFecha.get(fecha);
-    const n = Number(fecha.slice(8, 10));
-    return {
-      fecha,
-      etiqueta,
-      titulo: `${DIAS_LARGOS[diaDeSemana(fecha)]} ${n}`,
-      valor: fecha > hoy ? null : (d?.total ?? 0),
-      meta: d?.metaSede ?? null,
-      hoy: fecha === hoy,
-    };
-  };
-  const semana = Array.from({ length: 7 }, (_, i) => {
-    const f = sumarDias(hoy, i - 6);
-    return dia(f, DIAS_CORTOS[diaDeSemana(f)]);
-  });
-  const ini = primerDiaDelMes(hoy);
-  const fin = ultimoDiaDelMes(hoy);
-  const mes = Array.from({ length: diasEntreFechas(ini, fin) + 1 }, (_, i) => {
-    const f = sumarDias(ini, i);
-    const n = i + 1;
-    return dia(f, n === 1 || n % 5 === 0 || f === fin ? String(n) : "");
-  });
-  return { semana, mes };
-}
-
-/** Ventas y meta acumuladas día a día (para «¿llego o no llego?»). La línea de ventas se corta en hoy. */
-export function acumulado(dias: DiaGrafico[]): { ventas: (number | null)[]; meta: number[] } {
-  let v = 0;
-  let m = 0;
-  const ventas: (number | null)[] = [];
-  const meta: number[] = [];
-  for (const d of dias) {
-    m += d.meta ?? 0;
-    meta.push(m);
-    if (d.valor === null) ventas.push(null);
-    else {
-      v += d.valor;
-      ventas.push(v);
-    }
-  }
-  return { ventas, meta };
+/**
+ * El reparto, en palabras de tienda. Que las metas sumen más que la de la tienda no es un error (la base lo permite): el equipo apunta más alto.
+ * Lo que pide atención es lo que falta repartir. `seria`: mientras se prueba una meta que todavía no se guarda.
+ */
+export function repartoEnPalabras(a: Asignacion, personas: number, seria = false): string {
+  if (a.tipo === "sin_meta") return "Sin meta de la tienda no hay qué repartir.";
+  const uno = personas === 1;
+  const quienes = uno ? "La meta de 1 persona" : `Las metas de las ${personas} personas`;
+  const suman = seria ? (uno ? "sumaría" : "sumarían") : uno ? "suma" : "suman";
+  const soles = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 }).format(Math.abs(a.diferencia));
+  if (a.tipo === "cuadra") return `${quienes} ${suman} lo mismo que la meta de la tienda.`;
+  return a.tipo === "faltan"
+    ? `${quienes} ${suman} ${soles} menos que la meta de la tienda: falta repartir.`
+    : `${quienes} ${suman} ${soles} más que la meta de la tienda: el equipo apunta más alto.`;
 }
 
 // ───────────────────────── cambiar la meta ─────────────────────────
@@ -405,16 +323,35 @@ export type ResultadoCambio =
   | { ok: true; meta: number | null; motivo: MotivoMeta | null; detalle: string | null }
   | { ok: false; campo: "meta" | "motivo" | "detalle"; error: string };
 
-/** Lo que tipeó la persona en el campo de soles: «12,500», «12500.5» o «S/ 12 500». `NaN` si no se entiende. */
+/**
+ * Lo que tipeó la persona en el campo de soles: «12,500», «1.500», «1.299,50», «12500.5» o «S/ 12 500». `NaN` si no se entiende: nunca se
+ * borra lo que no es cifra para quedarse con el resto, o «15oo» se guardaría como S/ 15 y «2 mil» como S/ 2 (/chaos, 2026-11-04).
+ */
 export function leerSoles(texto: string): number {
-  // Los blancos se miran ANTES de borrar lo que no es cifra: «S/ 12 500» son doce mil quinientos (el espacio separa miles), pero
-  // «12 8 5» es un pegado de tres celdas y no se adivina (`sinBlancosDeMiles`). Sin esto, el borrado ancho los juntaba en 1285.
-  const sinBlancos = sinBlancosDeMiles(texto.replace(/[^\d.,\s]/g, ""));
-  if (sinBlancos === null) return Number.NaN;
-  const limpio = sinBlancos.replace(/,(?=\d{3}(\D|$))/g, "").replace(",", ".");
-  if (limpio === "") return Number.NaN;
+  const negativo = /^\s*-/.test(texto);
+  const sinSimbolo = texto.trim().replace(/^-\s*/, "").replace(/^s\/\.?\s*/i, "");
+  if (sinSimbolo === "" || /[^\d.,\s]/.test(sinSimbolo)) return Number.NaN;
+  // Los blancos se miran antes: «S/ 12 500» son doce mil quinientos (el espacio separa miles), pero «12 8 5» es un pegado de tres celdas.
+  const c = sinBlancosDeMiles(sinSimbolo);
+  if (c === null || !/\d/.test(c)) return Number.NaN;
+  const conAmbos = c.includes(".") && c.includes(",");
+  let limpio: string;
+  if (conAmbos) {
+    // El último separador es el decimal, y el otro separa miles.
+    const decimal = c.lastIndexOf(".") > c.lastIndexOf(",") ? "." : ",";
+    const miles = decimal === "." ? "," : ".";
+    const forma = new RegExp(`^\\d{1,3}(\\${miles}\\d{3})+\\${decimal}\\d+$`);
+    if (!forma.test(c)) return Number.NaN;
+    limpio = c.split(miles).join("").replace(decimal, ".");
+  } else {
+    const sep = c.includes(".") ? "." : c.includes(",") ? "," : null;
+    if (sep === null) limpio = c;
+    else if (new RegExp(`^[1-9]\\d{0,2}(\\${sep}\\d{3})+$`).test(c)) limpio = c.split(sep).join("");
+    else if (c.split(sep).length === 2) limpio = c.replace(sep, ".");
+    else return Number.NaN;
+  }
   // El signo no se pierde: «-5» tiene que rechazarse como negativo, no leerse como 5.
-  return /^\s*-/.test(texto) ? -Number(limpio) : Number(limpio);
+  return negativo ? -Number(limpio) : Number(limpio);
 }
 
 /**
@@ -431,6 +368,7 @@ export function validarCambioMeta(entrada: {
 }): ResultadoCambio {
   if (entrada.volverAutomatica) return { ok: true, meta: null, motivo: null, detalle: null };
   const meta = leerSoles(entrada.metaTexto);
+  if (entrada.metaTexto.trim() !== "" && Number.isNaN(meta)) return { ok: false, campo: "meta", error: "No entendí esa cifra: escríbela solo con números, como 1500." };
   if (!Number.isFinite(meta) || meta <= 0) return { ok: false, campo: "meta", error: "La meta tiene que ser mayor que cero." };
   if (entrada.metaSedeMes !== null && meta > entrada.metaSedeMes) {
     return { ok: false, campo: "meta", error: "La meta de una persona no puede pasar de la de la tienda en el mes." };
@@ -442,6 +380,15 @@ export function validarCambioMeta(entrada: {
     return { ok: false, campo: "detalle", error: `Tiene que caber en ${LARGO_DETALLE_META} letras.` };
   }
   return { ok: true, meta: Math.round(meta * 100) / 100, motivo: entrada.motivo, detalle: detalle === "" ? null : detalle };
+}
+
+/**
+ * Se cortó la conexión al guardar y la pantalla ya volvió a preguntar: ¿la base lo había guardado? `enviada` es la meta que se mandó; `null`,
+ * volver a la automática. Si la vigente no coincide, no se sabe nada: el aviso de corte se queda.
+ */
+export function seGuardoTrasCorte(enviada: number | null, persona: Pick<PersonaMeta, "metaMes" | "metaAjustadaMes">): boolean {
+  if (enviada === null) return persona.metaAjustadaMes === null;
+  return persona.metaMes !== null && Math.round(persona.metaMes * 100) === Math.round(enviada * 100);
 }
 
 /**

@@ -117,6 +117,7 @@
 @import "./estilos/vidrio/graficos-y-pasos.css";
 @import "./estilos/vidrio/barras.css"; /* La barra de avance «A · Tubo» y los botones de la barra de abajo «A · Gota ahumada» (inicio-lider-vidrio-2026-10) */
 @import "./estilos/vidrio/avisos-espera.css"; /* Los avisos de la esquina, el loader y «Hay una versión nueva» (avisos-espera-vidrio-2026-10) */
+@import "./estilos/vidrio/rendimiento.css"; /* Rendimiento con superpoderes (ADR-0610) */
 @import "./estilos/vidrio/pantalla-en-vidrio.css"; /* Una pantalla armada con las superficies de siempre y el kit de Finanzas, al vidrio de una vez: la placa Serena, el hilo y el pozo (Tienda web, Configuración) */
 /* El marco con vidrio (ADR-0596): la aurora del fondo, el riel del menú con su gota, la bandeja de submódulos y las dos islas
    de la cabecera. La estructura vive en components/AppShell.tsx. */
@@ -275,6 +276,13 @@
   --color-sede-lim: #1d8a72;
   --color-sede-tal: #8a4fa8;
   --color-sede-emp: #9a8b7b;
+  /* Las personas de una tienda en Rendimiento (ADR-0610): color de DATO, validado para daltonismo. Va siempre con su nombre o sus iniciales, y es relleno, no texto. */
+  --color-persona-0: #b84a7a;
+  --color-persona-1: #2f6aa3;
+  --color-persona-2: #c26a2e;
+  --color-persona-3: #1d8a72;
+  --color-persona-4: #8a4fa8;
+  --color-persona-5: #7c8a2e;
   /* Los colores del círculo de «Dónde está» (Felipe 2026-10-28: «más color, el verde claro y los terracotas de CAYLA»): color de DATO, como los
      de sede. Verdes para los bancos, terracotas y arcilla para las tiendas, pizarra clara para lo que viene en camino. Son relleno, no texto: el
      nombre de cada cuenta va escrito al lado, así que no se mide su contraste como texto. Se mezclan con los de la paleta (verde, rojo, rojo-profundo,

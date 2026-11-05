@@ -94,7 +94,7 @@ las piezas que ya eligió Felipe y toda pantalla trae (los botones gota, la cabe
 | **Mis compras** (página entera: `app/(app)/compras/mi-plata`, ADR-0559) | `components/mi-plata/` (`MesaDeLaRonda`, `Billetera`, `AccionDelDia`) | En código | Billetera A · Ahumada; «¿Qué hiciste?» A · Gota grande | `mis-compras-vidrio-2026-11/` |
 | **Conteo** (página entera: `app/(app)/inventario/conteo` y `conteo/[id]`) | `ConteoVista`, `components/conteo/` (`ContarConteo`, `ListaConteo`, `FilaConteo`, `PasosConteo`) | En código (la planilla conserva su cara de tabla, ADR-0358) | Planilla A · Placa Serena; pasos A · Ranura con gotas (el riel compartido con Recibir) | `conteo-vidrio-2026-11/` |
 | **Frescura del piso** (página entera: `app/(app)/gestion/frescura`, ADR-0208; el piloto de /formidable) | `components/frescura/` (`FrescuraPanel`, `FrescuraPiso`, `FrescuraAguja`, `FrescuraFila`) | En código (armada con las piezas elegidas; los colores de los tramos no cambian) | La aguja B · Lentes del tono; por decidir B · Fila hundida | `frescura-vidrio-2026-11/` |
-| **Rendimiento** (página entera: `app/(app)/rendimiento`, ADR-0219 y ADR-0325; el plan es de Dany, solo cambia el material) | `rendimiento/ComparativoTiendas`, `rendimiento/PanelRendimiento` (el historial de cambios de meta) | Maqueta lista | Las tarjetas de las tiendas (A · La elegida se levanta, recomendada); el historial de cambios (A · Placa que se abre, recomendada) | `rendimiento-vidrio-2026-11/` |
+| **Rendimiento** (`app/(app)/rendimiento`, ADR-0219, ADR-0325 y ADR-0610: Felipe aprobó rediseñarla el 2026-11-04, ya no «solo cambia el material») | `components/rendimiento/*`, `app/estilos/vidrio/rendimiento.css` | En código, en local: la placa Serena con el brillo y el filo de «Mi perfil», sin pegar su migración | `rendimiento-superpoderes-2026-11/` |
 | **Preguntas del equipo** (página entera: `app/(app)/gestion/preguntas`, ADR-0536) | `asistente/PreguntasEquipo`, `asistente/InformeSemanal` | Maqueta lista | Lo que conviene mejorar (A · Placa con su número en gota, recomendada) | `preguntas-equipo-vidrio-2026-11/` |
 | **Movimientos** (página entera: `app/(app)/inventario/movimientos`, ADR-0353) | `MovimientosLista`, `FilaMovimiento`, `components/movimientos/` (`SelloTipo`, `TiposMovimiento`), `estilos/movimientos-sellos.css` | En código (con el mismo movimiento de los sellos) | El sello A · Lente del tono; los tipos A · Placas con su tono | `movimientos-vidrio-2026-11/` |
 | **Plan de campaña** (página entera: `app/(app)/compras/plan`, ADR-0349) | `PlanCampana`, `BarraRango`, `CentroDeAvisos` (`estilos/centro-avisos.css`), `CifrasPlan`, `ListaCategorias`; fuera la hoja «Configuración» (ADR-0488) | En código | La barra de rango A · Banda esmerilada; el centro de avisos B · Lentes del tono | `plan-campana-vidrio-2026-11/` |
@@ -139,8 +139,7 @@ Comprobantes · Inventario: Existencias, Movimientos, Traslados, Conteo, Recibir
 Atributos, Liquidación · Compras: Plan de campaña, Mis compras, Proveedores · Gestión: Frescura del piso, Plan del piso · Producción:
 Órdenes, Insumos · Clientes: Fichas · Colaboradores: Equipo · Configuración: Tiendas. El detalle de cada cara, en las tablas de arriba.
 
-**Con maqueta y sin elegir** (se cerraron así; no se implementan hasta que Felipe elija): Gestión ▸ Rendimiento
-(`docs/maquetas/rendimiento-vidrio-2026-11/`) y Gestión ▸ Preguntas del equipo (`docs/maquetas/preguntas-equipo-vidrio-2026-11/`).
+**Con maqueta y sin elegir** (se cerraron así; no se implementan hasta que Felipe elija): Gestión ▸ Preguntas del equipo (`docs/maquetas/preguntas-equipo-vidrio-2026-11/`).
 
 ### 4.3 Lo que falta auditar (sin maqueta propia)
 

@@ -17,7 +17,7 @@ import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
-import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
+import { alinearAvisoDeCaja, cajaProxima, loQueHayEnCuentas, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
@@ -133,7 +133,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const pagosDeCompra = ajustes.enCaja && proyeccion ? pagosDeLaCompra(campanas, proyeccion, ajustes.conIgv, elegidas) : [];
   const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver, inversion: pagosDeCompra.length ? { pagos: pagosDeCompra, dias: 42 } : null });
   // «¿Cuánto tienes?» de CAYLA entera dice de qué está hecho; una sede no lleva los bancos ni lo que las máquinas deben, así que ahí no se reparte.
-  const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, caja.saldoHoy) : null;
+  const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, loQueHayEnCuentas(caja)) : null;
   // Lo de CLAURE es de la empresa entera, como los bancos: mirando una sola sede no se reparte.
   const saldoClaure = claure && r.ver.todas && claure.saldo !== null ? { saldo: claure.saldo } : null;
   // Si la lectura de CLAURE se cayó, «¿Cuánto tienes?» lo dice (un chip), no se inventa un reparto ni se calla.

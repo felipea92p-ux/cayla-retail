@@ -147,6 +147,16 @@ test("el archivo se lee: los pasos que la simulación necesita están, con su id
   assert.ok(existsSync(join(RAIZ, "scripts", "migraciones", "deriva-pegados.mjs")));
 });
 
+test("levanta main con el mismo CLI y los mismos servicios que el CI: un `npx supabase` sin versión la dejó sin comparar", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  const de = (yml, clave) => yml.match(new RegExp(`^\\s+${clave}: (.+)$`, "m"))?.[1];
+  for (const clave of ["SUPABASE_CLI", "SIN_SERVICIOS"]) {
+    assert.ok(de(ci, clave), `ci.yml ya no declara ${clave}`);
+    assert.equal(de(WORKFLOW, clave), de(ci, clave), `${clave} tiene que ser igual en ci.yml y deriva-diaria.yml`);
+  }
+  assert.doesNotMatch(WORKFLOW, /npx supabase\b/);
+});
+
 test("compara producción con main MÁS lo pegado, no con main a secas (ADR-0402)", () => {
   const comparar = pasos(WORKFLOW).find((p) => p.id === "comparar").run;
   assert.match(comparar, /deriva\.mjs "\$RUNNER_TEMP\/main-mas-pegados\.tsv" "\$RUNNER_TEMP\/produccion\.tsv" --resumen --con-pegados/);

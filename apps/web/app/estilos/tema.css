@@ -76,6 +76,12 @@
     --color-sede-lim: #2fa585;
     --color-sede-tal: #a26cc6;
     --color-sede-emp: #8a7d70;
+    --color-persona-0: #cc6b98;
+    --color-persona-1: #5b93cc;
+    --color-persona-2: #cf7f3f;
+    --color-persona-3: #2fa98a;
+    --color-persona-4: #9f78cc;
+    --color-persona-5: #8f9c40;
 
     /* El círculo de «Dónde está»: los mismos tonos, ajustados para leerse sobre el fondo oscuro. */
     --color-reparto-verde-claro: #8fcf79;
@@ -164,6 +170,12 @@
     --color-sede-lim: #1d8a72;
     --color-sede-tal: #8a4fa8;
     --color-sede-emp: #9a8b7b;
+    --color-persona-0: #b84a7a;
+    --color-persona-1: #2f6aa3;
+    --color-persona-2: #c26a2e;
+    --color-persona-3: #1d8a72;
+    --color-persona-4: #8a4fa8;
+    --color-persona-5: #7c8a2e;
     --color-reparto-verde-claro: #78b060;
     --color-reparto-menta: #b7d8a6;
     --color-reparto-terracota: #cb6a42;

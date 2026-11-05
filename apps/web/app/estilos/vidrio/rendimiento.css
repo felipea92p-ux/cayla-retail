@@ -1,0 +1,1164 @@
+/* ====================================================================
+   Rendimiento con superpoderes (ADR-0610; Felipe 2026-11-04: «seguir el estilo de liquid glass al máximo, lo más sofisticado y futurista posible»;
+   maqueta docs/maquetas/rendimiento-superpoderes-2026-11/). Pantalla: components/rendimiento/MesaRendimiento.tsx.
+
+   Se arma con las recetas de recetas.css: aquí no se inventa otro vidrio. Lo que suma es el LÍQUIDO, la misma luz de «Mi perfil» (perfil-vidrio.css):
+   un brillo que sigue al mouse y un filo que gira hacia él, nunca solos. Movimiento: excepción de ADR-0136 (act. 2026-11-04): todo responde a un gesto o
+   entra una vez, sin rebote ni bucle, y se apaga con `prefers-reduced-motion`. Solo tokens; el color de una persona es dato (`--c`, siempre con su nombre).
+   ==================================================================== */
+
+.mesa {
+  --mesa-hueco: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mesa-hueco);
+}
+.mesa-entra {
+  animation: mesa-sube 600ms var(--ease-cayla) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes mesa-sube {
+  from { opacity: 0; transform: translateY(16px); filter: blur(6px); }
+}
+
+/* ---------- La luz líquida: sobre cualquier placa de la pantalla ---------- */
+.liquido {
+  position: relative;
+  isolation: isolate;
+  --vidrio-x: 50%;
+  --vidrio-y: 0%;
+}
+.liquido::before,
+.liquido::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* El brillo especular. */
+.liquido::before {
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(380px circle at var(--vidrio-x) var(--vidrio-y), color-mix(in srgb, var(--color-vidrio) 62%, transparent), transparent 70%);
+  transition: opacity 320ms var(--ease-cayla);
+}
+/* El filo: un borde de luz que da la cara al mouse. */
+.liquido::after {
+  z-index: 2;
+  padding: 1.25px;
+  background: conic-gradient(
+    from var(--vidrio-angulo),
+    transparent 0 8%,
+    color-mix(in srgb, var(--color-vidrio) 96%, transparent) 16%,
+    transparent 30% 55%,
+    color-mix(in srgb, var(--color-vidrio) 66%, transparent) 64%,
+    transparent 78%
+  );
+  -webkit-mask: linear-gradient(var(--color-tinta) 0 0) content-box, linear-gradient(var(--color-tinta) 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: --vidrio-angulo 620ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .liquido:hover::before { opacity: 1; }
+}
+@media screen {
+  [data-tema="oscuro"] .liquido::before {
+    background: radial-gradient(380px circle at var(--vidrio-x) var(--vidrio-y), color-mix(in srgb, var(--color-tinta) 15%, transparent), transparent 70%);
+  }
+  [data-tema="oscuro"] .liquido::after {
+    background: conic-gradient(
+      from var(--vidrio-angulo),
+      transparent 0 8%,
+      color-mix(in srgb, var(--color-tinta) 46%, transparent) 16%,
+      transparent 30% 55%,
+      color-mix(in srgb, var(--color-tinta) 26%, transparent) 64%,
+      transparent 78%
+    );
+  }
+}
+
+/* Una placa de la pantalla, con su luz. */
+.mesa-placa {
+  border-radius: 22px;
+  border: 1px solid var(--serena-borde);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+}
+
+/* Al llegar, una luz cruza cada placa, una sola vez. */
+.mesa-barrido {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.mesa-barrido::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 42%;
+  background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--color-vidrio) 58%, transparent), transparent);
+  transform: translateX(-130%);
+  animation: mesa-barre 1300ms var(--ease-cayla) both;
+  animation-delay: calc(240ms + var(--i, 0) * 80ms);
+}
+@keyframes mesa-barre {
+  to { transform: translateX(340%); }
+}
+@media screen {
+  [data-tema="oscuro"] .mesa-barrido::before {
+    background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--color-tinta) 18%, transparent), transparent);
+  }
+}
+
+/* ---------- Las tiendas: cada una dice cuánto lleva contra su propia meta ---------- */
+.mesa-herramientas {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+.mesa-sedes {
+  position: relative;
+  display: inline-flex;
+  flex: 0 1 auto;
+  max-width: 100%;
+  gap: 4px;
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: 18px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.mesa-sedes-gota {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  border-radius: 14px;
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+  transition: transform 460ms var(--ease-cayla), width 460ms var(--ease-cayla);
+}
+.mesa-sede {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  height: 46px;
+  padding: 0 14px 0 8px;
+  border-radius: 14px;
+  font-size: 14px;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+  transition: color 200ms var(--ease-cayla);
+}
+.mesa-sede[aria-selected="true"] {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mesa-sede-aro {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  transform: rotate(-90deg);
+}
+.mesa-sede-aro circle {
+  fill: none;
+  stroke-width: 4;
+}
+.mesa-sede-aro .pista {
+  stroke: var(--tubo-anillo);
+}
+.mesa-sede-aro .arco {
+  stroke: var(--color-tinta);
+  stroke-linecap: round;
+  stroke-dasharray: 0 100;
+  transition: stroke-dasharray 1100ms var(--ease-cayla);
+}
+.mesa-sede small {
+  font-size: 13px;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.mesa-sede:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: -2px;
+}
+
+/* ---------- El buscador que entiende y las acciones ---------- */
+.mesa-buscador {
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.mesa-sugerencias {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+}
+.mesa-sin-entender {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+.mesa-entra-rapido {
+  animation: mesa-aparece 240ms var(--ease-cayla) both;
+}
+.mesa-descarga {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -6px;
+}
+
+/* Desde la frase se llega a la fila: que no quede bajo la cabecera de la tabla. */
+.mesa-marco [data-fila] {
+  scroll-margin-top: 132px;
+}
+
+/* ---------- La frase ---------- */
+.mesa-frase {
+  max-width: 72ch;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.3;
+  color: var(--color-tinta);
+}
+.mesa-frase .btn-enlace {
+  font: inherit;
+}
+.mesa-frase[data-cambia] {
+  animation: mesa-frase 460ms var(--ease-cayla) both;
+}
+@keyframes mesa-frase {
+  from { opacity: 0; transform: translateY(6px); filter: blur(3px); }
+}
+
+/* ---------- Las cifras: se tocan, y se voltean para explicarse ---------- */
+.mesa-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+@container (max-width: 1040px) {
+  .mesa-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 520px) {
+  .mesa-cifras { grid-template-columns: minmax(0, 1fr); }
+}
+.mesa-marco {
+  container-type: inline-size;
+  min-width: 0;
+}
+.volteable {
+  position: relative;
+  min-width: 0;
+  perspective: 1200px;
+}
+.volteable-giro {
+  display: grid;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 640ms var(--ease-cayla);
+}
+.volteable[data-vuelta] .volteable-giro {
+  transform: rotateY(180deg);
+}
+.volteable-cara {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 176px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.volteable-cara > .tarjeta-cifra {
+  flex: 1;
+  /* El giro y `backdrop-filter` no se llevan: el desenfoque aplanaría la cara. El vidrio es el del fondo de la placa. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.volteable-tras {
+  transform: rotateY(180deg);
+}
+.volteable-tras p {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.42;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+.volteable-tras b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.volteable-boton {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+  transition: transform 300ms var(--ease-cayla), color 200ms;
+}
+@media (hover: hover) {
+  .volteable-boton:hover {
+    color: var(--color-tinta);
+    transform: scale(1.12);
+  }
+}
+.volteable-boton:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+
+/* La línea que sube dentro de una cifra. */
+.mesa-trazo {
+  display: block;
+  width: 100%;
+  height: 42px;
+  margin-top: 10px;
+  overflow: visible;
+}
+.mesa-trazo path {
+  fill: none;
+  stroke: var(--color-tinta);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.mesa-trazo .area {
+  fill: var(--color-tinta);
+  stroke: none;
+  opacity: 0.08;
+}
+
+/* La balanza: arriba o abajo de lo que tocaba, desde el centro. */
+.mesa-balanza {
+  position: relative;
+  height: 12px;
+  margin-top: 12px;
+  border-radius: 99px;
+  background: var(--tubo-fondo);
+  box-shadow: var(--tubo-sombra);
+}
+.mesa-balanza i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 99px;
+  background: var(--tubo-brillo), var(--c);
+  box-shadow: var(--tubo-luz);
+  transition: left 800ms var(--ease-cayla), width 800ms var(--ease-cayla), background-color 300ms;
+}
+.mesa-balanza::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-tinta);
+}
+
+/* La barra para probar. */
+.mesa-rango {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin-top: 8px;
+  background: none;
+  cursor: ew-resize;
+}
+.mesa-rango::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--tubo-brillo), linear-gradient(90deg, var(--color-tinta) var(--v, 50%), color-mix(in srgb, var(--color-tinta) 10%, transparent) var(--v, 50%));
+  box-shadow: var(--tubo-sombra);
+}
+.mesa-rango::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -7px;
+  border-radius: 50%;
+  border: 1px solid var(--gota-borde, var(--serena-borde));
+  background: var(--gota-marca), var(--color-crema);
+  box-shadow: var(--gota-luz), 0 4px 10px -3px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  transition: transform 200ms var(--ease-cayla);
+}
+.mesa-rango:active::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+.mesa-rango::-moz-range-track {
+  height: 10px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+}
+.mesa-rango::-moz-range-progress {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--color-tinta);
+}
+.mesa-rango::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--color-borde-control);
+  background: var(--color-crema);
+}
+.mesa-rango:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* El equipo: la pila de personas y los tres grupos, que filtran. */
+.mesa-persona-boton {
+  border-radius: 50%;
+  transition: transform 260ms var(--ease-cayla), opacity 240ms, margin 300ms var(--ease-cayla);
+}
+.mesa-persona-boton .avatar {
+  background: var(--c);
+  color: var(--color-crema-fija);
+}
+.mesa-persona-boton[data-apagada] {
+  opacity: 0.35;
+}
+@media (hover: hover) {
+  .mesa-persona-boton:hover {
+    transform: translateY(-3px);
+  }
+}
+.mesa-grupos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.mesa-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.15;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+  transition: opacity 240ms var(--ease-cayla);
+}
+.mesa-grupo b {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-tinta);
+}
+.mesa-grupo i {
+  display: block;
+  height: 10px;
+  border-radius: 99px;
+  background: var(--tubo-brillo), var(--c);
+  box-shadow: var(--tubo-luz);
+  transition: transform 240ms var(--ease-cayla), box-shadow 200ms;
+}
+.mesa-grupo span {
+  min-height: 2.3em;
+}
+.mesa-grupo[aria-pressed="true"] i {
+  box-shadow: var(--tubo-luz), 0 0 0 2px var(--color-crema), 0 0 0 4px var(--c);
+}
+.mesa-grupo[data-apagada] {
+  opacity: 0.42;
+}
+@media (hover: hover) {
+  .mesa-grupo:hover i {
+    transform: scaleY(1.35);
+  }
+}
+.mesa-grupo:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ---------- El gráfico: el mismo dibujo que se transforma ---------- */
+.mesa-grafico {
+  padding: 18px 22px 14px;
+  user-select: none;
+}
+.mesa-grafico-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 8px;
+}
+.mesa-grafico-titulo {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.mesa-grafico-frase {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-grafico-mandos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mesa-grafico-mandos button[data-puesto] {
+  background: var(--hundido-fondo);
+  border-color: var(--hundido-borde);
+  box-shadow: var(--hundido-sombra);
+}
+.mesa-lienzo {
+  position: relative;
+  height: 320px;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+.mesa-lienzo svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+}
+.mesa-reja {
+  transition: transform 750ms var(--ease-cayla);
+}
+.mesa-reja line {
+  stroke: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+}
+.mesa-reja text,
+.mesa-marca {
+  font-size: 12px;
+  fill: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: gráfico sobre crema, papel */
+}
+.mesa-marca-hoy {
+  font-weight: 700;
+  fill: var(--color-tinta);
+}
+.mesa-eje {
+  stroke: color-mix(in srgb, var(--color-tinta) 24%, transparent);
+}
+.mesa-columna {
+  fill: color-mix(in srgb, var(--color-tinta) 7%, transparent);
+  animation: mesa-aparece 120ms var(--ease-cayla) both;
+}
+@keyframes mesa-aparece {
+  from { opacity: 0; }
+}
+.mesa-barra {
+  fill: var(--color-grafico-neutro);
+  transition: x 750ms var(--ease-cayla), y 750ms var(--ease-cayla), width 750ms var(--ease-cayla), height 750ms var(--ease-cayla), rx 750ms var(--ease-cayla), fill 240ms var(--ease-cayla), opacity 240ms var(--ease-cayla);
+  transition-delay: calc(var(--k, 0) * 9ms);
+}
+.mesa-barra-brillo {
+  fill: url(#mesa-brillo-barra);
+  pointer-events: none;
+  transition: x 750ms var(--ease-cayla), y 750ms var(--ease-cayla), width 750ms var(--ease-cayla), height 750ms var(--ease-cayla), opacity 240ms var(--ease-cayla);
+  transition-delay: calc(var(--k, 0) * 9ms);
+}
+.mesa-barra-brillo[data-fuera] {
+  opacity: 0.32;
+}
+.mesa-lienzo[data-foco] .mesa-barra-brillo {
+  opacity: 0;
+}
+.mesa-lienzo[data-arrastrando] .mesa-barra {
+  transition: opacity 120ms, fill 120ms;
+}
+.mesa-lienzo[data-modo="dia"] .mesa-barra[data-hoy] {
+  fill: var(--color-tinta);
+}
+.mesa-lienzo[data-modo="persona"] .mesa-barra {
+  fill: var(--c);
+}
+.mesa-lienzo[data-modo="suma"] .mesa-barra {
+  fill: var(--color-tinta);
+}
+.mesa-barra[data-fuera] {
+  opacity: 0.32;
+}
+/* Pasar por una persona en cualquier pieza la enciende aquí. */
+.mesa-lienzo[data-foco] .mesa-barra {
+  opacity: 0.3;
+}
+.mesa-lienzo[data-foco] .mesa-barra[data-foco] {
+  opacity: 1;
+  fill: var(--c);
+}
+.mesa-linea {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: d 750ms var(--ease-cayla), stroke 300ms;
+}
+.mesa-linea-meta,
+.mesa-linea-tocaba {
+  stroke: color-mix(in srgb, var(--color-tinta) 56%, transparent); /* contraste: gráfico sobre crema, papel */
+  stroke-width: 1.5;
+  stroke-dasharray: 2 5;
+}
+.mesa-linea-tope {
+  stroke: var(--color-tinta);
+  stroke-width: 1.5;
+}
+.mesa-linea-sumada {
+  stroke: var(--color-tinta);
+  stroke-width: 2.75;
+}
+.mesa-area {
+  fill: var(--color-tinta);
+  opacity: 0.08;
+  transition: d 750ms var(--ease-cayla);
+}
+.mesa-linea-cierre {
+  stroke: var(--color-tinta);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+  opacity: 0.7;
+}
+.mesa-linea-cierre[data-simulado] {
+  transition: none;
+  opacity: 1;
+}
+.mesa-linea-pasado {
+  stroke: var(--color-pizarra);
+  stroke-width: 2;
+  stroke-dasharray: 1 5;
+  animation: mesa-aparece 500ms var(--ease-cayla) both;
+}
+.mesa-rotulo {
+  font-size: 12.5px;
+  font-weight: 600;
+  fill: var(--color-tinta);
+  paint-order: stroke;
+  stroke: var(--color-crema);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+/* La lente: el tramo elegido. Lo de afuera lo apagan las barras (`data-fuera`). */
+.mesa-lente {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 26%, transparent), color-mix(in srgb, var(--color-vidrio) 4%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  box-shadow: inset 0 1px 0 var(--color-vidrio), inset 0 -12px 22px -18px color-mix(in srgb, var(--color-sombra) 32%, transparent), 0 14px 30px -18px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+  transition: transform 520ms var(--ease-cayla), width 520ms var(--ease-cayla);
+}
+/* El canto de la lente dobla lo que tiene detrás, como el borde de una gota. Solo el canto: el centro se lee sin deformar, porque ahí hay cifras. */
+.mesa-lente-canto {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  overflow: hidden;
+}
+.mesa-lente-canto[data-lado="izq"] { left: 0; border-radius: 14px 0 0 14px; }
+.mesa-lente-canto[data-lado="der"] { right: 0; border-radius: 0 14px 14px 0; }
+@supports (backdrop-filter: url(#mesa-refraccion)) {
+  .mesa-lente-canto {
+    backdrop-filter: url(#mesa-refraccion);
+  }
+}
+.mesa-lente-manija {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 34px;
+  margin-top: -17px;
+  border-radius: 99px;
+  background: var(--gota-marca), var(--color-crema);
+  box-shadow: var(--gota-luz), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 22%, transparent);
+}
+.mesa-lente-manija[data-lado="izq"] { left: -4px; }
+.mesa-lente-manija[data-lado="der"] { right: -4px; }
+.mesa-lente-rotulo {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--ahumado-texto, var(--color-crema));
+  background: var(--ahumado-fondo);
+  border: 1px solid var(--ahumado-borde);
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  transition: transform 520ms var(--ease-cayla);
+}
+.mesa-lienzo[data-arrastrando] :is(.mesa-lente, .mesa-lente-rotulo) {
+  transition: none;
+}
+.mesa-globo {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  width: 188px;
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  pointer-events: none;
+  color: var(--color-crema);
+  background: var(--ahumado-fondo);
+  border: 1px solid var(--ahumado-borde);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  transition: transform 160ms var(--ease-cayla);
+}
+.mesa-globo b {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+.mesa-globo p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.mesa-globo-meta {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid color-mix(in srgb, var(--color-crema) 22%, transparent);
+}
+.mesa-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 6px;
+  font-size: 13.5px;
+}
+.mesa-leyenda :is(button, .mesa-leyenda-sin) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  transition: background-color 200ms var(--ease-cayla);
+}
+.mesa-leyenda i {
+  width: 11px;
+  height: 11px;
+  border-radius: 4px;
+  background: var(--c);
+}
+.mesa-leyenda i[data-trazo] {
+  width: 18px;
+  height: 0;
+  border-radius: 0;
+  background: none;
+  border-top: 2px dotted color-mix(in srgb, var(--color-tinta) 56%, transparent); /* contraste: gráfico sobre crema, papel */
+}
+.mesa-leyenda i[data-trazo="cierre"] {
+  border-top: 2px dashed var(--color-tinta);
+}
+.mesa-leyenda i[data-trazo="pasado"] {
+  border-top-color: var(--color-pizarra);
+}
+@media (hover: hover) {
+  .mesa-leyenda button:hover {
+    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
+  }
+}
+.mesa-pista {
+  margin-top: 6px;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-dia-vivo {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.tv-tabla[data-foco] .tv-fila:not([data-foco]) {
+  opacity: 0.45;
+}
+.tv-fila {
+  transition: background-color 180ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
+}
+
+/* ---------- La tabla: lo propio de Rendimiento dentro de TablaViva ---------- */
+.mesa-fila-persona {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.mesa-fila-persona .avatar {
+  background: var(--c);
+  color: var(--color-crema-fija);
+}
+.mesa-fila-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  font-weight: 500;
+}
+.tv-celda:has(> .tv-monto > .mesa-avance) .tv-monto {
+  display: block;
+  min-width: 0;
+  text-align: left;
+}
+.mesa-avance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.mesa-avance-barra {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+.mesa-avance-pct {
+  flex: none;
+  min-width: 3.1em;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mesa-visto {
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  border-radius: 50%;
+  color: var(--color-crema-fija);
+  background: var(--c);
+  box-shadow: var(--tubo-luz);
+  animation: mesa-visto 420ms var(--ease-cayla) both;
+}
+.mesa-visto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  opacity: 0;
+  animation: mesa-onda 900ms var(--ease-cayla) 200ms 1;
+}
+@keyframes mesa-visto {
+  from { opacity: 0; transform: scale(0.6); }
+}
+@keyframes mesa-onda {
+  from { opacity: 0.8; transform: scale(1); }
+  to { opacity: 0; transform: scale(2.4); }
+}
+.mesa-poco {
+  color: var(--color-ambar);
+}
+.mesa-curva {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+  height: 30px;
+}
+.mesa-curva i {
+  flex: 0 1 3px;
+  min-width: 2px;
+  height: var(--h, 8%);
+  border-radius: 1px 1px 0 0;
+  background: color-mix(in srgb, var(--color-tinta) 22%, transparent);
+  transition: height 600ms var(--ease-cayla), background-color 240ms var(--ease-cayla);
+}
+.mesa-curva i[data-en] {
+  background: var(--c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesa-barrido::before,
+  .mesa-entra-rapido,
+  .mesa-abierta,
+  .mesa-abierta[data-cerrando],
+  .mesa-calendario button,
+  .mesa-visto,
+  .mesa-visto::after,
+  .mesa-entra,
+  .mesa-frase[data-cambia] {
+    animation: none;
+  }
+  .volteable-giro,
+  .mesa-sedes-gota,
+  .mesa-sede-aro .arco,
+  .mesa-balanza i,
+  .liquido::before,
+  .liquido::after,
+  .mesa-barra,
+  .mesa-barra-brillo,
+  .mesa-linea,
+  .mesa-area,
+  .mesa-reja,
+  .mesa-lente,
+  .mesa-lente-rotulo,
+  .mesa-globo {
+    transition: none;
+  }
+  .mesa-linea-pasado,
+  .mesa-columna {
+    animation: none;
+  }
+}
+
+/* ---------- La fila que se abre en su lugar ---------- */
+.mesa-fila-abrir {
+  text-align: left;
+  font-weight: inherit;
+  color: inherit;
+  border-radius: 6px;
+}
+.mesa-fila-abrir:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.tv-detalle:has(> .mesa-abierta) {
+  padding: 0;
+}
+.mesa-abierta {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: mesa-abre 420ms var(--ease-cayla) both;
+  background: color-mix(in srgb, var(--c) 6%, transparent);
+  box-shadow: inset 0 1px 0 var(--hilo-fila, transparent), inset 0 -1px 0 var(--hilo-fila, transparent);
+}
+.mesa-abierta > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.mesa-abierta[data-cerrando] {
+  animation: mesa-cierra 300ms var(--ease-cayla) both;
+}
+@keyframes mesa-abre {
+  from { grid-template-rows: 0fr; opacity: 0; }
+}
+@keyframes mesa-cierra {
+  to { grid-template-rows: 0fr; opacity: 0; }
+}
+.mesa-abierta-cuerpo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(320px, 1.3fr);
+  gap: 20px 32px;
+  padding: 16px 22px 22px;
+  cursor: default;
+}
+@container tv (max-width: 1059.98px) {
+  .mesa-abierta-cuerpo { grid-template-columns: auto minmax(0, 1fr); }
+  .mesa-ajuste { grid-column: 1 / -1; }
+}
+@container tv (max-width: 659.98px) {
+  .mesa-abierta-cuerpo { grid-template-columns: minmax(0, 1fr); padding: 14px 18px 18px; }
+}
+.mesa-abierta-titulo {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-calendario {
+  display: grid;
+  grid-template-columns: repeat(7, 36px);
+  gap: 3px;
+}
+@container tv (max-width: 659.98px) {
+  .mesa-calendario { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+}
+.mesa-calendario > span {
+  font-size: 11px;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.mesa-calendario button {
+  height: 32px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+  background: color-mix(in srgb, var(--c) var(--n, 0%), color-mix(in srgb, var(--color-tinta) 6%, transparent));
+  animation: mesa-dia 300ms var(--ease-cayla) both;
+  animation-delay: calc(var(--k, 0) * 14ms);
+  transition: transform 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+@keyframes mesa-dia {
+  from { opacity: 0; transform: scale(0.82); }
+}
+.mesa-calendario button[data-fuerte] {
+  color: var(--color-crema-fija);
+}
+.mesa-calendario button:disabled {
+  background: none;
+  cursor: default;
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 12%, transparent);
+}
+.mesa-calendario button[data-en] {
+  box-shadow: 0 0 0 1.5px var(--color-tinta);
+}
+.mesa-calendario button[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--color-tinta);
+}
+@media (hover: hover) {
+  .mesa-calendario button:not(:disabled):hover {
+    transform: scale(1.12);
+  }
+}
+.mesa-calendario button:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.mesa-va-bien {
+  display: grid;
+  gap: 8px;
+  font-size: 14.5px;
+  line-height: 1.42;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+.mesa-va-bien b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.mesa-meta-cifra {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.mesa-ajuste {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.mesa-que-pasaria {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+}
+.mesa-que-pasaria [data-falta] {
+  color: var(--color-ambar);
+}
+.mesa-motivos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* En la tarjeta del celular, la barra toma todo lo que queda de la línea. */
+@container tv (max-width: 659.98px) {
+  .tv-fila > .tv-celda:has(.mesa-avance) {
+    flex: 1 1 150px;
+    min-width: 0;
+  }
+  .tv-fila > .tv-celda:has(.mesa-avance) .tv-monto {
+    width: 100%;
+  }
+}
+
+/* ---------- Lo de la tienda: las horas, las prendas y los cambios de meta ---------- */
+.mesa-medidas {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr);
+  gap: 12px;
+}
+@container (max-width: 760px) {
+  .mesa-medidas { grid-template-columns: minmax(0, 1fr); }
+}
+.mesa-horas {
+  padding: 18px 22px;
+}
+.mesa-historial {
+  padding: 16px 22px;
+}
+.mesa-historial summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.mesa-historial ul {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  animation: mesa-sube 360ms var(--ease-cayla) both;
+}
+.mesa-historial li + li {
+  padding-top: 10px;
+  border-top: 1px solid var(--hilo-fila, transparent);
+}
+
+/* A 320 px los tres modos no caben: el segmento se desplaza por dentro, y la pantalla no. */
+.mesa-grafico-mandos {
+  min-width: 0;
+  max-width: 100%;
+}
+.mesa-grafico-mandos > div {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* En oscuro los colores de persona suben de luz: lo que se escribe encima va en tinta fija, que es la que pasa el contraste sobre todos. */
+@media screen {
+  [data-tema="oscuro"] :is(.mesa-persona-boton, .mesa-fila-persona) .avatar,
+  [data-tema="oscuro"] .mesa-calendario button[data-fuerte],
+  [data-tema="oscuro"] .mesa-visto {
+    color: var(--color-tinta-fija);
+  }
+}

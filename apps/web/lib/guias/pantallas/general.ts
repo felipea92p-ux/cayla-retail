@@ -154,8 +154,8 @@ export const GUIA_INICIO: Guia = {
       opcional: true,
       requiere: ["inicio.obs-total"],
       titulo: "Comparar con otra",
-      texto: "Suma al gráfico una tercera línea: toda CAYLA u otra tienda, para ver si el día flojo fue de todas o solo de esta. «Sola» la quita. Te mostramos la de CAYLA.",
-      demostrar: [{ tipo: "clic", ancla: "inicio.obs-comparar-cayla" }],
+      texto: "Cambia el gráfico por la ventaja: cuántos soles le saca esta tienda a otra, o al promedio de las demás, y desde cuándo. Si la línea sube, va ganando terreno; si cruza «Parejas», cambió quién va adelante. «Sola» vuelve al ritmo. Te mostramos una.",
+      demostrar: [{ tipo: "clic", ancla: "inicio.obs-comparar-rival" }],
     },
     {
       id: "obs-tienda-revisar",
