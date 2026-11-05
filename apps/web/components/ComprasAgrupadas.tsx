@@ -127,7 +127,7 @@ export function ComprasAgrupadas({
                   key={compra.ventaId}
                   data-guia="posventa.compra"
                   style={{ "--i": Math.min(d * 2 + c + 2, 12) } as CSSProperties}
-                  className="anim-sube rounded-[20px] bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_55%,transparent)]"
+                  className="anim-sube rounded-tarjeta bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_55%,transparent)]"
                 >
                   <header className="px-6 pb-1 pt-4">
                     <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />

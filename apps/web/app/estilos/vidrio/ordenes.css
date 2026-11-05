@@ -87,7 +87,7 @@
 .op-paso.card-cayla {
   --op-paso-borde: var(--serena-borde);
   position: relative;
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--op-paso-borde);
   background: var(--placa-paso-fondo);
   -webkit-backdrop-filter: var(--vidrio-hoja-filtro);
