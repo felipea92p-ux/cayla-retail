@@ -97,8 +97,11 @@
   transition: background-color 0.2s var(--ease-cayla), color 0.2s var(--ease-cayla), border-color 0.2s var(--ease-cayla), transform 0.2s var(--ease-cayla);
 }
 span.sede-telar { cursor: default; }
+/* Lo que no aplica en esta pantalla (tarea 26): se ve apagado, y `.mesa-telar-dice` dice por qué. */
+.sede-telar:disabled { opacity: 0.5; cursor: not-allowed; }
+.mesa-telar-no-aplica { opacity: 0.5; cursor: not-allowed; }
 @media (hover: hover) {
-  button.sede-telar:hover {
+  button.sede-telar:hover:not(:disabled) {
     border-color: var(--color-taupe);
     transform: translateY(-1px);
   }
