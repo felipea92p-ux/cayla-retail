@@ -94,8 +94,8 @@ select pg_temp.reemplazar_anclado(
 -- La orden en una lectura los devuelve.
 select pg_temp.reemplazar_anclado(
   (select p.oid::regprocedure::text from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'fn_orden_produccion'),
-  $v$p.inventariado_at, p.ingreso_al_stock, p.cantidad_plan$v$,
-  $n$p.inventariado_at, p.ingreso_al_stock, p.motivo_orden, p.tienda_destino_id, p.urgente, p.muestra_aprobada_por, p.cantidad_plan$n$
+  $v$p.ingreso_al_stock, p.cantidad_plan, p.cantidad_buenas,$v$,
+  $n$p.ingreso_al_stock, p.cantidad_plan, p.cantidad_buenas, p.motivo_orden, p.tienda_destino_id, p.urgente, p.muestra_aprobada_por,$n$
 );
 select pg_temp.reemplazar_anclado(
   (select p.oid::regprocedure::text from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'fn_orden_produccion'),
