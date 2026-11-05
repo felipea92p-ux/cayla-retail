@@ -433,7 +433,9 @@ cada clic; `<Modal>` va anclado arriba en escritorio; `ComboResponsable` y `Comb
 Lo que sí te toca: **un bloque que cambia de alto con cada opción de un mismo control** (los datos de cada medio de
 pago) reserva su propio lugar —apila las variantes invisibles en una celda de grid, como `LineasPago`— para que ni
 siquiera aparezca aire; no abras listas **dentro** del contenido (usa `usePosicionLista`), y una paginación al pie
-lleva la vista al inicio de la tabla (las navegaciones por URL no las cubre la regla global). Detalle:
+lleva la vista al inicio de la tabla (las navegaciones por URL no las cubre la regla global). **Un clic que cambia de VISTA sin cambiar de
+URL (un paso, una pantalla de éxito) no es un bloque que se encogió:** llama a `soltarPaginaEstable()` en un `useLayoutEffect`, o la vista queda
+sobre aire; un flujo con `<EncabezadoFlujo>` lo hace con `useVistaDelPaso(paso)` (`lib/flujo-guiado-vista.test.ts`). Detalle:
 `docs/adr/0185-la-pagina-no-se-encoge-bajo-el-mouse.md`.
 
 ## Buscador y paginado de combos (regla — ADR-0209)

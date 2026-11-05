@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, type ReactNode, type RefObject } from "react";
 import { Anillo } from "@/components/ui/Anillo";
 import { AlertTriangle, Check, Clock } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
@@ -9,6 +9,8 @@ import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 
 // Las piezas que Cambios y Devoluciones comparten (2026-09-18): las dos son un flujo
 // guiado en la misma página —sin modal, ADR-0044— con "Paso X de N", validaciones en vivo
@@ -25,11 +27,31 @@ export const OPCION =
 export const OPCION_INACTIVA = `${OPCION} posv-opcion`;
 export const OPCION_ACTIVA = `${OPCION} posv-opcion posv-opcion-puesta`;
 
-/** El foco sigue al paso: quien navega con teclado o lector de pantalla oye dónde está. */
+/** El foco sigue al paso: quien navega con teclado o lector de pantalla oye dónde está. Con el loader a la vista la página está `inert` y
+ *  `focus()` no hace nada (lo normal al guardar: la respuesta pasa de 200 ms): se espera a que se libere, como `TrasladoEnviado` (ADR-0149). */
 export function useFocoAlCambiarDePaso(ref: RefObject<HTMLElement | null>, paso: unknown) {
   useEffect(() => {
-    ref.current?.focus();
+    if (!esperaOcupada()) {
+      ref.current?.focus();
+      return;
+    }
+    const dejarDeEscuchar = suscribirEspera(() => {
+      if (esperaOcupada()) return;
+      dejarDeEscuchar();
+      ref.current?.focus();
+    });
+    return dejarDeEscuchar;
   }, [ref, paso]);
+}
+
+/** Entrar al flujo, cambiar de paso y salir es cambiar de VISTA, no un bloque que se encogió: se suelta <PaginaEstable> (ADR-0185) antes de pintar.
+ *  Sin esto, a 375 px, «Registrar devolución» acortaba la página y ella devolvía la vista adonde estaba el botón: 1205 px de aire y el aviso de
+ *  éxito 970 px más arriba. Igual al entrar desde abajo de una lista, cortando el viaje hacia arriba. El navegador ya deja la vista donde corresponde. */
+export function useVistaDelPaso(paso: unknown) {
+  useLayoutEffect(() => {
+    soltarPaginaEstable();
+    return soltarPaginaEstable;
+  }, [paso]);
 }
 
 /** Escape retrocede un paso. Dentro de un campo (input, select, textarea) Escape es del
