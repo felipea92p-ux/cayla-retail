@@ -37,12 +37,17 @@ const PUNTOS_POR_LINEA = 6;
 export function recortarFondo(puntos: Uint8Array | Uint8ClampedArray, ancho: number, alto: number): CajaDePrenda | null {
   const total = ancho * alto;
   const fondo = new Uint8Array(total);
+  // Algunas fotos no tienen el fondo blanco sino crema o gris: se mira el color de las esquinas, si son claras y coinciden entre sí.
+  const esquinas = [0, ancho - 1, (alto - 1) * ancho, total - 1].map((i) => [puntos[i * 4], puntos[i * 4 + 1], puntos[i * 4 + 2]]);
+  const base = [0, 1, 2].map((c) => esquinas.reduce((suma, e) => suma + e[c], 0) / 4);
+  const fondoClaro = Math.min(...base) >= 190 && esquinas.every((e) => e.every((v, c) => Math.abs(v - base[c]) <= 10));
   const esFondo = (i: number) => {
     const p = i * 4;
     if (puntos[p + 3] < 16) return true;
     const r = puntos[p];
     const g = puntos[p + 1];
     const b = puntos[p + 2];
+    if (fondoClaro && Math.abs(r - base[0]) <= 14 && Math.abs(g - base[1]) <= 14 && Math.abs(b - base[2]) <= 14) return true;
     const menor = Math.min(r, g, b);
     const dif = Math.max(r, g, b) - menor;
     return (menor >= 168 && dif <= 14) || (menor >= 225 && dif <= 24);
@@ -105,6 +110,7 @@ export function recortarFondo(puntos: Uint8Array | Uint8ClampedArray, ancho: num
   if (prenda / total < PARTE_MINIMA) return null;
 
   // El fondo se vuelve transparente y su gris queda como sombra negra: funciona sobre cualquier color.
+  const luzDelFondo = fondoClaro ? (base[0] + base[1] + base[2]) / 3 : 255;
   for (let i = 0; i < total; i++) {
     if (!fondo[i]) continue;
     const p = i * 4;
@@ -114,7 +120,8 @@ export function recortarFondo(puntos: Uint8Array | Uint8ClampedArray, ancho: num
     }
     const luz = (puntos[p] + puntos[p + 1] + puntos[p + 2]) / 3;
     puntos[p] = puntos[p + 1] = puntos[p + 2] = 0;
-    puntos[p + 3] = luz >= 246 ? 0 : Math.min(150, (255 - luz) * 1.1);
+    // La sombra se mide contra el color del fondo: el crema de una foto no es una sombra.
+    puntos[p + 3] = luz >= luzDelFondo - 9 ? 0 : Math.min(150, (luzDelFondo - luz) * 1.1);
   }
   // La orilla: un punto de prenda junto al fondo trae mezclado el blanco de la foto.
   for (let i = 0; i < total; i++) {

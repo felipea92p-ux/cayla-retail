@@ -53,6 +53,14 @@ describe("recortar la prenda de su foto", () => {
     expect(recortarFondo(foto(100, 100, () => null), 100, 100)).toBeNull();
   });
 
+  it("también quita un fondo claro que no es blanco, como el crema de algunas fotos", () => {
+    const crema: Color = [236, 226, 208];
+    const p = foto(200, 200, (x, y) => (x >= 50 && x < 150 && y >= 40 && y < 160 ? VINO : crema));
+    expect(recortarFondo(p, 200, 200)).toEqual({ izquierda: 48, arriba: 38, ancho: 104, alto: 128 });
+    expect(alfa(p, 200, 5, 5)).toBe(0);
+    expect(alfa(p, 200, 100, 100)).toBe(255);
+  });
+
   it("respeta la transparencia que ya traía la foto", () => {
     const p = foto(100, 100, (x, y) => (x >= 20 && x < 80 && y >= 20 && y < 80 ? VINO : null));
     for (let i = 0; i < 100; i++) p[i * 4 + 3] = 0;
