@@ -59,6 +59,23 @@ const CONTADOR: PasoGuia = {
   texto: "Cada cuadro del contador trae su botón: baja solo ese cuadro, con sus cuentas, en un archivo que abre Excel. No cambia nada en el sistema. En la demo no lo descargamos.",
 };
 
+/** En los cuatro estados la fecha no es la de la barra: es la de su calendario (ADR-0611). La barra se explica sin su mes. */
+const TELAR_SIN_MES: PasoGuia[] = TELAR.filter((p) => p.id !== "telar-mes");
+
+const FECHAS: PasoGuia = {
+  id: "fecha",
+  ancla: "fin-estados.fecha",
+  titulo: "Qué fechas mirar",
+  texto: "Las flechas pasan al período de al lado, del mismo largo. Tocando el nombre se abre el calendario: un atajo, un mes de la fila o dos días, el primero y el último. También se pueden escribir. Los cuatro estados miran las mismas fechas.",
+};
+
+const FECHA_DEL_BALANCE: PasoGuia = {
+  id: "fecha",
+  ancla: "fin-estados.fecha",
+  titulo: "A qué fecha",
+  texto: "El Balance es una foto de un solo día. Las flechas van de un cierre de mes a otro; tocando la fecha eliges o escribes cualquier día. Es la misma fecha final que miran los otros estados.",
+};
+
 /** Las cuatro pestañas de Estados financieros (Felipe 2026-11-05, ADR-0611): se explican, no se tocan. */
 const VISTAS: PasoGuia = {
   id: "vistas",
@@ -1030,7 +1047,8 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       titulo: "¿Ganamos?",
       texto: "Lo que se vendió en el mes, menos lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
     },
-    ...TELAR,
+    ...TELAR_SIN_MES,
+    FECHAS,
     VISTAS,
     PARA_EL_CONTADOR,
     CONTADOR,
@@ -1201,7 +1219,8 @@ export const GUIA_FIN_FLUJO: Guia = {
       titulo: "¿Vendí bien y no hay plata?",
       texto: "Vender no es lo mismo que tener plata: una factura grande, un retiro o una máquina nueva se la llevan. Aquí ves de dónde vino y a dónde fue la plata en el mes, y lo que viene en las próximas semanas. Es una demo.",
     },
-    ...TELAR,
+    ...TELAR_SIN_MES,
+    FECHAS,
     VISTAS,
     PARA_EL_CONTADOR,
     CONTADOR,
@@ -1435,7 +1454,8 @@ export const GUIA_FIN_BALANCE: Guia = {
       titulo: "¿Cuánto vale CAYLA?",
       texto: "Lo que CAYLA tiene (plata, mercadería, muebles), contra lo que debe (proveedores, impuestos) y lo que es tuyo. Mirando una tienda, ves cuánta plata tiene metida y cuánto le rinde. Es una demo.",
     },
-    ...TELAR,
+    ...TELAR_SIN_MES,
+    FECHA_DEL_BALANCE,
     VISTAS,
     PARA_EL_CONTADOR,
     CONTADOR,
@@ -1445,13 +1465,6 @@ export const GUIA_FIN_BALANCE: Guia = {
       opcional: true,
       titulo: "Cuánto vale",
       texto: "Lo que es tuyo: lo que tiene CAYLA menos lo que debe. Sale solo si el Balance cuadra.",
-    },
-    {
-      id: "fecha",
-      ancla: "fin-vale.fecha",
-      opcional: true,
-      titulo: "A qué fecha",
-      texto: "Por defecto, el último día del mes de la barra (hoy, en el mes en curso). Puedes mirar el cierre de otro mes.",
     },
     {
       id: "balanza",
@@ -1610,7 +1623,8 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       titulo: "¿Lo tuyo creció?",
       texto: "Lo tuyo es lo que tiene CAYLA menos lo que debe. Aquí ves cuánto era al empezar el mes, qué lo movió (lo que ganaste, lo que pusiste y lo que retiraste) y cuánto quedó. Sale del mismo diario que el Balance: nadie lo escribe. Es una demo.",
     },
-    ...TELAR,
+    ...TELAR_SIN_MES,
+    FECHAS,
     VISTAS,
     PARA_EL_CONTADOR,
     CONTADOR,

@@ -458,6 +458,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // El telar (ADR-0493): la hoja nueva de «Registrar gasto». Cuentan como «falta» lo que `validarHoja` exige (monto, sede, en qué, qué
   // fue, si tiene comprobante; con comprobante, el RUC y la serie; a crédito, cuándo vence; si no, de dónde salió) y el responsable;
   // `lib/hoja-gasto-reglas.test.ts` cruza la guía con la validación en cada camino.
+  "components/finanzas/estados/SelectorPeriodo.tsx": { estado: "no-aplica", motivo: "En el celular, el calendario de Estados financieros (ADR-0611) es una hoja. Elige qué fechas mirar y no guarda nada: cada toque se aplica, y sus dos campos son la misma fecha escrita, con su error en la línea de arriba." },
   "components/finanzas/gastos/HojaRegistrarGasto.tsx": { estado: "aplicada", evidencia: ["components/finanzas/gastos/HojaRegistrarGasto.tsx"] },
   // ADR-0588: los dos datos llegan llenos del gasto; lo que falta es CAMBIAR algo (lo que apaga «Guardar») y el responsable.
   // `lib/gastos-corregir-reglas.test.ts` cruza la guía con lo que bloquea guardar.

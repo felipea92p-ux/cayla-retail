@@ -2,18 +2,16 @@
 
 import { useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Balanza } from "@/components/finanzas/estados/Balanza";
 import type { FormaEstado } from "@/lib/estados-financieros-reglas";
-import { CabeceraBloque, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { CabeceraBloque, PieTabla, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { SaldosArranqueModal } from "@/components/finanzas/SaldosArranqueModal";
 import {
   agrupar,
   causaCorta,
   cifraChequeo,
-  cortesDisponibles,
   enlaceDeCausa,
   iconoChequeo,
   motivoNoCuadra,
@@ -82,36 +80,11 @@ export function BalancePanel({
   /** La respuesta (la balanza) o el formato formal (el balance del contador, cómo se comprobó y los saldos de arranque). */
   forma?: FormaEstado;
 }) {
-  const router = useRouter();
-  const ruta = usePathname();
-  const params = useSearchParams();
   const [arranqueAbierto, setArranqueAbierto] = useState(false);
 
   const verCayla = veTodo && ver === "cayla";
   const unidad = verCayla ? null : (unidades.find((u) => u.ubicacionId === ver) ?? unidades[0] ?? null);
   const arranque = chequeos.find((c) => c.arranque)?.arranque ?? saldos.find((s) => s.vigente)?.fecha ?? null;
-  const cortes = cortesDisponibles(hoy, veTodo ? arranque : null);
-
-  const ir = (cambios: Record<string, string | null>) => {
-    const p = new URLSearchParams(params.toString());
-    for (const [k, v] of Object.entries(cambios)) {
-      if (v === null) p.delete(k);
-      else p.set(k, v);
-    }
-    router.push(`${ruta}?${p.toString()}`, { scroll: false });
-  };
-
-
-
-  const selectorCorte = (
-    <SelectFin
-      etiqueta="Fecha del Balance"
-      className="w-fit min-w-[190px]"
-      valor={corte}
-      onValor={(v) => ir({ corte: v === hoy ? null : v })}
-      opciones={[...(cortes.some((c) => c.valor === corte) ? [] : [{ valor: corte, texto: tituloCorte(corte, hoy) }]), ...cortes]}
-    />
-  );
 
   return (
     <div className="space-y-6">
@@ -128,14 +101,13 @@ export function BalancePanel({
           chequeos={chequeos}
           lineas={lineas}
           unidades={unidades}
-          selectorCorte={selectorCorte}
           costoDelMes={costoDelMes}
           esLider={esLider}
           onArranque={() => setArranqueAbierto(true)}
           forma={forma}
         />
       ) : (
-        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} selectorCorte={selectorCorte} veTodo={veTodo} />
+        <VistaTienda unidad={unidad} hoy={hoy} corte={corte} veTodo={veTodo} />
       )}
 
       {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} propuestaInicial={propuestaArranque} onCerrar={() => setArranqueAbierto(false)} />}
@@ -154,7 +126,6 @@ function VistaCayla({
   chequeos,
   lineas,
   unidades,
-  selectorCorte,
   costoDelMes,
   esLider,
   onArranque,
@@ -165,7 +136,6 @@ function VistaCayla({
   chequeos: Chequeo[];
   lineas: LineaBalance[];
   unidades: UnidadBalance[];
-  selectorCorte: React.ReactNode;
   costoDelMes: number | null;
   esLider: boolean;
   onArranque: () => void;
@@ -190,7 +160,6 @@ function VistaCayla({
           lineas={lineas}
           corte={corte}
           hoy={hoy}
-          selectorCorte={selectorCorte}
           costoDelMes={costoDelMes}
           pie={
             unidades.length > 0 ? (
@@ -204,7 +173,6 @@ function VistaCayla({
     return (
       <div className="space-y-4" data-guia="fin-vale.formal">
         <div className="flex flex-wrap items-center gap-2.5">
-          {selectorCorte}
           {esLider && (
             <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
               Saldos de arranque
@@ -233,7 +201,6 @@ function VistaCayla({
             titulo="Antes de dibujarlo, el sistema lo comprueba"
             bajada="Cada cuenta se calcula por dos caminos. Si no coinciden, el Balance no se muestra."
           >
-            {selectorCorte}
             {esLider && (
               <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
                 Saldos de arranque
@@ -534,13 +501,11 @@ function VistaTienda({
   unidad,
   hoy,
   corte,
-  selectorCorte,
   veTodo,
 }: {
   unidad: UnidadBalance | null;
   hoy: string;
   corte: string;
-  selectorCorte: React.ReactNode;
   veTodo: boolean;
 }) {
   if (!unidad) {
@@ -580,8 +545,7 @@ function VistaTienda({
       <div {...entra(5)}>
         <Superficie pad className="fin-balance-tarjeta">
           <CabeceraBloque titulo={tituloCorte(corte, hoy)} bajada={`Lo que es de ${unidad.nombre}.`}>
-            {selectorCorte}
-          </CabeceraBloque>
+            </CabeceraBloque>
           <div className="fin-balance" data-guia="fin-balance.tienda-detalle">
             <div>
               <h3>Lo que tiene</h3>

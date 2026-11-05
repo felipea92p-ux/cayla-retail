@@ -5,16 +5,13 @@ import {
   cambiosDelSistema,
   causaCorta,
   cifraChequeo,
-  cortesDisponibles,
   csvBalance,
   cuadreArranque,
   cuentaLinea,
-  diaAnterior,
   enlaceDeCausa,
   iconoChequeo,
   ladoDeCuenta,
   leerChequeo,
-  leerCorte,
   leerLinea,
   leerMontoArranque,
   leerPropuesta,
@@ -229,23 +226,6 @@ describe("cifras, fechas y nombres", () => {
     expect(g.tiene.map((l) => l.cuenta)).toEqual(["101", "201", "391"]);
     expect(g.totalTiene).toBe(1305);
     expect(g.totalDebe + g.totalTuyo).toBe(1285);
-  });
-  it("la fecha del Balance: una que no pase de hoy, o hoy", () => {
-    expect(leerCorte("2026-08-31", "2026-09-24")).toBe("2026-08-31");
-    expect(leerCorte("2026-10-01", "2026-09-24")).toBe("2026-09-24");
-    expect(leerCorte("31/08/2026", "2026-09-24")).toBe("2026-09-24");
-    expect(leerCorte(undefined, "2026-09-24")).toBe("2026-09-24");
-  });
-  it("las fechas que se ofrecen: hoy y cada fin de mes, sin pasar del día anterior al arranque", () => {
-    const todas = cortesDisponibles("2026-09-24", null);
-    expect(todas).toHaveLength(13);
-    expect(todas[0]).toEqual({ valor: "2026-09-24", texto: "Hoy, 24 sep" });
-    expect(todas[1]).toEqual({ valor: "2026-08-31", texto: "Al 31 ago" });
-    expect(todas[12].valor).toBe("2025-09-30");
-    expect(cortesDisponibles("2026-09-24", "2026-07-01").map((c) => c.valor)).toEqual(["2026-09-24", "2026-08-31", "2026-07-31", "2026-06-30"]);
-    expect(cortesDisponibles("2026-09-24", "2026-09-10").map((c) => c.valor)).toEqual(["2026-09-24"]);
-    expect(cortesDisponibles("2024-03-15", null)[1].valor).toBe("2024-02-29");
-    expect(diaAnterior("2024-03-01")).toBe("2024-02-29");
   });
 });
 

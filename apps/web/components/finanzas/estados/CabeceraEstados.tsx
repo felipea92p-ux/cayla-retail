@@ -1,8 +1,11 @@
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { DescargarCuadro } from "@/components/finanzas/estados/DescargarContador";
 import { MenuContador } from "@/components/finanzas/estados/MenuContador";
+import { SelectorPeriodo } from "@/components/finanzas/estados/SelectorPeriodo";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { getParametrosFinanzas } from "@/lib/configuracion";
+import { conElRango, leerPeriodo } from "@/lib/estados-periodo";
 import { requirePersonaActualV2, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { conForma, ESTADOS, type ClaveEstado, type FormaEstado } from "@/lib/estados-financieros-reglas";
@@ -43,10 +46,11 @@ export async function CabeceraEstados({
   const actuales = [...params];
   const mesDeHoy = mesDelDia(hoy);
   const sinForma = actuales.filter(([k]) => k !== "forma");
-  // El mismo estado conserva sus parámetros (la fecha del Balance, las semanas); otro estado, solo la sede y el mes.
+  // El mismo estado conserva sus parámetros (las semanas); otro estado, solo la sede y el período: los cuatro miran las mismas fechas.
   const hrefEstado = (clave: ClaveEstado, f: FormaEstado) => {
     const e = ESTADOS.find((x) => x.clave === clave)!;
-    return conForma(hrefTelar(e.ruta, sinForma, {}, { mismaPantalla: clave === activa, mesDeHoy }), f);
+    const base = hrefTelar(e.ruta, sinForma, {}, { mismaPantalla: clave === activa, mesDeHoy });
+    return conForma(clave === activa ? base : conElRango(base, sinForma), f);
   };
   const hrefCuentas = (v: VerCuentas) => {
     const base = hrefTelar(RUTA_CUENTAS, actuales, {}, { mismaPantalla: false, mesDeHoy });
@@ -55,14 +59,28 @@ export async function CabeceraEstados({
   const veTodo = veEstadosFinancierosDeTodoDe(persona);
   const delContador = opcionesVer({ pantalla, hrefEstado, hrefCuentas, veTodo }).filter((o) => !o.motivo && o.clave !== "respuestas");
   const cuadro = vista === "respuestas" ? null : ARCHIVOS_CONTADOR.find((a) => a.clave === vista)!;
+  // Los cuatro estados eligen sus fechas con el calendario; los cuadros del contador van por mes, con el mes de la barra.
+  const periodo = activa ? leerPeriodo(Object.fromEntries(actuales), hoy) : null;
+  const una = activa === "vale";
+  const parametros = activa ? await getParametrosFinanzas() : null;
+  const dicho = !periodo
+    ? `Cómo le fue a CAYLA en ${mesNombre(mes)}${mes === mesDeHoy ? " (a la fecha)" : ""}.`
+    : una
+      ? `Una foto de lo que tiene CAYLA ${periodo.al.toLowerCase()}.`
+      : `Cómo le fue a CAYLA ${periodo.en}${periodo.hasta === hoy ? " (a la fecha)" : ""}.`;
   return (
     <div className="space-y-4">
       <div className="placa-estados estados-cabecera">
         <EncabezadoPagina
           sede={nombre ?? "Todas las sedes"}
           titulo="Estados financieros"
-          subtitulo={`Cómo le fue a CAYLA en ${mesNombre(mes)}${mes === mesDeHoy ? " (a la fecha)" : ""}.`}
-          acciones={<MenuContador opciones={delContador.map((o) => ({ clave: o.clave, etiqueta: o.etiqueta, href: o.href }))} />}
+          subtitulo={dicho}
+          acciones={
+            <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
+              {periodo && <SelectorPeriodo desde={periodo.desde} hasta={periodo.hasta} hoy={hoy} minimo={parametros?.inicioFinanzas ?? null} una={una} sede={sede} />}
+              <MenuContador opciones={delContador.map((o) => ({ clave: o.clave, etiqueta: o.etiqueta, href: o.href }))} />
+            </div>
+          }
         />
       </div>
       <Pestanas

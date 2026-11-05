@@ -1,12 +1,13 @@
 import { exigirModulo, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe, rangoMes } from "@/lib/gastos-reglas";
-import { leerSemanas, proyectar, rangoDelMes } from "@/lib/flujo-caja-reglas";
+import { leerSemanas, proyectar } from "@/lib/flujo-caja-reglas";
+import { leerPeriodo } from "@/lib/estados-periodo";
 import { getFlujoReal, getProyeccion } from "@/lib/flujo-caja";
 import { getEstadoResultados } from "@/lib/resultados";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { filaDeLaSede, formaDe, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
+import { filaDeLaSede, formaDe, paramsDe } from "@/lib/estados-financieros-reglas";
 import { fraseDeLaPlata, recomendacionesPlata } from "@/lib/plata-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { PlataPanel } from "@/components/finanzas/estados/PlataPanel";
@@ -17,15 +18,14 @@ import { SoloLiderFlujo } from "@/components/finanzas/SoloLiderFlujo";
 // entró y salió en el mes de la barra (`?mes=`, hasta hoy en el mes en curso), lo que viene (`?semanas=4|6|8`), la ganancia del mes (para
 // decir por qué la plata no la siguió) y el último mes completo (lo que usa «¿Y si…?», que es Escenarios). Es de CAYLA entera: lo ve quien
 // tiene el módulo (`fn_exigir_estados_financieros_de_todo`); una terminal no, y la pantalla lo explica en lugar de fallar.
-export default async function FlujoPage({ searchParams }: { searchParams: Promise<{ mes?: string; semanas?: string; sede?: string; ver?: string; forma?: string }> }) {
+export default async function FlujoPage({ searchParams }: { searchParams: Promise<{ mes?: string; desde?: string; hasta?: string; semanas?: string; sede?: string; ver?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   if (!veEstadosFinancierosDeTodoDe(persona)) return <SoloLiderFlujo pestana="flujo" />;
   const sp = await searchParams;
   const hoy = hoyLima();
-  const mes = mesDeLosEstados(sp.mes, hoy);
+  const { desde, hasta, mes } = leerPeriodo(sp, hoy);
   const enCurso = mes === mesDe(hoy);
   const semanas = leerSemanas(sp.semanas);
-  const { desde, hasta } = rangoDelMes(mes, hoy);
   const mesBase = mesAnterior(mesDe(hoy));
   const base = rangoMes(mesBase);
 

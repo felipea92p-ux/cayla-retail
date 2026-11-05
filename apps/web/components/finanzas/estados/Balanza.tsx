@@ -20,14 +20,12 @@ export function Balanza({
   lineas,
   corte,
   hoy,
-  selectorCorte,
   costoDelMes,
   pie,
 }: {
   lineas: LineaBalance[];
   corte: string;
   hoy: string;
-  selectorCorte: ReactNode;
   costoDelMes: number | null;
   /** Lo que va al final de la tarjeta (lo de cada tienda). */
   pie?: ReactNode;
@@ -69,7 +67,6 @@ export function Balanza({
         formal={`Balance general · ${tituloCorte(corte, hoy).replace(/^A/, "a")}`}
         respuesta={`CAYLA vale ${solesBalance(tuyo)}`}
         bajada={`Es lo que tiene, ${solesBalance(totalTiene)}, menos lo que debe, ${solesBalance(deudas)}.`}
-        derecha={<div data-guia="fin-vale.fecha">{selectorCorte}</div>}
         guia="fin-vale.respuesta"
       />
 

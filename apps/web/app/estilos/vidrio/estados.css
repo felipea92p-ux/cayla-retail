@@ -113,6 +113,567 @@
   letter-spacing: -0.02em;
 }
 
+/* ---------- La fecha: el control de la cabecera ---------- */
+.estados-fecha {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+}
+.estados-fecha-flecha {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--color-tinta);
+  transition: background-color var(--t-resp) var(--ease-cayla);
+}
+.estados-fecha-flecha:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.estados-fecha-boton {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  text-align: left;
+  color: var(--color-tinta);
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 72%), var(--estados-fondo-fuerte);
+  box-shadow: inset 0 1px 0 var(--estados-luz), 0 8px 18px -10px var(--color-sombra);
+  transition: translate var(--t-resp) var(--ease-cayla), scale var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-fecha-boton:active {
+  scale: 0.98;
+}
+.estados-fecha-icono {
+  flex: none;
+}
+.estados-fecha-texto {
+  display: flex;
+  min-width: 172px;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.estados-fecha-texto b {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.estados-fecha-texto small {
+  font-size: 14px;
+  color: var(--estados-secundario);
+  white-space: nowrap;
+}
+.estados-fecha-giro {
+  flex: none;
+  transition: rotate var(--t-hoja) var(--ease-cayla);
+}
+.estados-fecha-boton[aria-expanded="true"] .estados-fecha-giro {
+  rotate: 180deg;
+}
+@media (hover: hover) {
+  .estados-fecha-flecha:not(:disabled):hover {
+    background: var(--estados-luz-suave);
+  }
+  .estados-fecha-boton:hover {
+    translate: 0 -1px;
+    box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz), 0 14px 26px -12px var(--color-sombra);
+  }
+}
+
+/* ---------- El calendario: una placa de vidrio más llena, porque flota sobre las cifras ---------- */
+.estados-cal {
+  position: fixed;
+  width: min(868px, calc(100vw - 16px));
+  overflow-y: auto;
+  padding: 22px 24px 20px;
+  background: var(--estados-cal-fondo);
+  -webkit-backdrop-filter: var(--estados-cal-filtro);
+  backdrop-filter: var(--estados-cal-filtro);
+  box-shadow: var(--estados-cal-sombra);
+  transform-origin: calc(100% - 180px) 0;
+}
+.estados-cal-marco {
+  container-type: inline-size;
+}
+.estados-cal-cuerpo {
+  display: grid;
+  grid-template-columns: 186px minmax(0, 1fr);
+  gap: 16px 20px;
+}
+.estados-cal-cabeza {
+  position: relative;
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 18px;
+  padding-right: 44px;
+}
+.estados-cal-paso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--estados-secundario);
+  transition: color var(--t-cambio) var(--ease-cayla);
+}
+.estados-cal-paso::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-borde-control);
+  transition: background-color var(--t-cambio) var(--ease-cayla);
+}
+.estados-cal-paso[data-tono] {
+  font-weight: 500;
+  color: var(--color-rojo);
+}
+.estados-cal-paso[data-tono]::before {
+  background: var(--color-rojo);
+}
+.estados-cal-titulo {
+  margin-top: 4px;
+  font-family: var(--letra-estados), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  color: var(--color-tinta);
+}
+.estados-cal-tipeo {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+.estados-cal-tipeo > * {
+  width: 132px;
+}
+.estados-cal-tipeo > button {
+  width: auto;
+}
+.estados-cal-cerrar {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--estados-secundario);
+  transition: background-color var(--t-resp) var(--ease-cayla), color var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-atajos {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 14px;
+  border-right: 1px solid var(--color-sand);
+}
+.estados-cal-atajo {
+  display: grid;
+  padding: 9px 12px;
+  border-radius: 15px;
+  text-align: left;
+  color: var(--color-tinta);
+  transition: background-color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-atajo b {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.estados-cal-atajo small {
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--estados-secundario);
+}
+.estados-cal-atajo[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 80%), var(--estados-fondo-fuerte);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave), 0 8px 16px -10px var(--color-sombra);
+}
+.estados-cal-lado {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+.estados-cal-hilo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  font-size: 14px;
+  color: var(--color-tinta);
+}
+.estados-cal-hilo-titulo span {
+  font-weight: 500;
+}
+.estados-cal-hilo-titulo small {
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-cal-hilo {
+  display: grid;
+  grid-template-columns: repeat(var(--columnas), minmax(34px, 1fr));
+  gap: 3px;
+  overflow-x: auto;
+  padding: 4px;
+  border-radius: 18px;
+  background: var(--hundido-fondo);
+  box-shadow: var(--hundido-sombra);
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+.estados-cal-hilo-mes {
+  position: relative;
+  display: flex;
+  height: 66px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 5px 1px 4px;
+  border-radius: 13px;
+  font-size: 13px;
+  color: var(--estados-secundario);
+  user-select: none;
+  transition: background-color var(--t-resp) var(--ease-cayla), color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-hilo-mes[data-anio]::before {
+  content: attr(data-anio);
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 11px;
+  color: var(--estados-secundario);
+}
+.estados-cal-hilo-barra {
+  display: block;
+  width: 62%;
+  max-width: 20px;
+  height: var(--h);
+  min-height: 3px;
+  border-radius: 6px 6px 3px 3px;
+  background: var(--f);
+  opacity: 0.62;
+  transform-origin: bottom;
+  transition: opacity var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-hilo-mes[data-cubre="entero"] {
+  font-weight: 600;
+  color: var(--color-tinta);
+  background: linear-gradient(180deg, var(--estados-luz-suave), transparent 90%), var(--estados-fondo-fuerte);
+  box-shadow: inset 0 1px 0 var(--estados-luz), inset 0 0 0 1px var(--estados-luz-suave);
+}
+.estados-cal-hilo-mes[data-cubre="entero"] .estados-cal-hilo-barra {
+  opacity: 1;
+}
+.estados-cal-hilo-mes[data-cubre="parte"] {
+  color: var(--color-tinta);
+  box-shadow: inset 0 0 0 1px var(--color-borde-control);
+}
+.estados-cal-paginado {
+  position: relative;
+}
+.estados-cal-paginas {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  gap: 2px;
+}
+.estados-cal-paginas .estados-fecha-flecha {
+  width: 36px;
+  height: 36px;
+}
+.estados-cal-meses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.estados-cal-meses[data-uno] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.estados-cal-mes-nombre {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-cal-semana,
+.estados-cal-dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.estados-cal-semana span {
+  padding-bottom: 4px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--estados-secundario);
+}
+.estados-cal-dia {
+  position: relative;
+  isolation: isolate;
+  height: 36px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-cal-dia::before {
+  content: "";
+  position: absolute;
+  inset: 3px 0;
+  z-index: -2;
+  background: transparent;
+  transition: background-color var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-dia::after {
+  content: "";
+  position: absolute;
+  inset: 2px 3px;
+  z-index: -1;
+  border-radius: 13px;
+  transition: background-color var(--t-resp) var(--ease-cayla), box-shadow var(--t-resp) var(--ease-cayla);
+}
+.estados-cal-dia i {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--color-verde);
+  opacity: calc(var(--n) * 0.9);
+}
+.estados-cal-dia:disabled {
+  cursor: default;
+  color: var(--estados-secundario);
+  opacity: 0.34;
+}
+.estados-cal-dia:disabled i {
+  display: none;
+}
+.estados-cal-dia[data-tramo]::before {
+  background: color-mix(in srgb, var(--color-tinta) 9%, transparent);
+}
+.estados-cal-dia[data-punta="inicio"]::before {
+  left: 50%;
+  border-radius: 0;
+}
+.estados-cal-dia[data-punta="fin"]::before {
+  right: 50%;
+}
+.estados-cal-dia[data-izquierda]:not([data-punta="inicio"])::before {
+  border-top-left-radius: 13px;
+  border-bottom-left-radius: 13px;
+}
+.estados-cal-dia[data-derecha]:not([data-punta="fin"])::before {
+  border-top-right-radius: 13px;
+  border-bottom-right-radius: 13px;
+}
+.estados-cal-dia[data-punta] {
+  color: var(--color-crema);
+}
+.estados-cal-dia[data-punta]::after {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta) 86%, var(--color-taupe)), var(--color-tinta));
+  box-shadow: inset 0 1px 0 var(--estados-luz-suave), 0 8px 14px -8px var(--color-sombra);
+}
+.estados-cal-dia[data-punta] i {
+  background: var(--color-crema);
+}
+.estados-cal-dia[data-hoy]:not([data-punta])::after {
+  box-shadow: inset 0 0 0 1.5px var(--color-rojo);
+}
+.estados-cal-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 14px;
+  color: var(--estados-secundario);
+}
+.estados-cal-leyenda-ventas,
+.estados-cal-leyenda-hoy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.estados-cal-leyenda-ventas i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-verde);
+  opacity: var(--n);
+}
+.estados-cal-leyenda-ventas i:last-of-type {
+  margin-right: 4px;
+}
+.estados-cal-leyenda-hoy i {
+  width: 12px;
+  height: 12px;
+  margin-right: 3px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1.5px var(--color-rojo);
+}
+@media (hover: hover) {
+  .estados-cal-cerrar:hover {
+    background: var(--estados-luz-suave);
+    color: var(--color-tinta);
+  }
+  .estados-cal-atajo:hover {
+    background: var(--estados-luz-suave);
+  }
+  .estados-cal-hilo-mes:hover {
+    background: var(--estados-luz-suave);
+    color: var(--color-tinta);
+  }
+  .estados-cal-hilo-mes:hover .estados-cal-hilo-barra {
+    opacity: 1;
+  }
+  .estados-cal-dia:not(:disabled, [data-punta]):hover::after {
+    background: var(--estados-luz-suave);
+    box-shadow: inset 0 0 0 1px var(--estados-luz);
+  }
+}
+/* Sin espacio para el costado, los atajos pasan a ser una fila que corre. */
+@container (max-width: 700px) {
+  .estados-cal-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .estados-cal-atajos {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-right: 0;
+    border-right: 0;
+    scrollbar-width: none;
+  }
+  .estados-cal-atajo {
+    flex: none;
+  }
+  .estados-cal-tipeo {
+    width: 100%;
+    margin-left: 0;
+  }
+  .estados-cal-tipeo > * {
+    flex: 1;
+    width: auto;
+  }
+  .estados-cal-tipeo > button {
+    flex: none;
+  }
+}
+/* En el celular el control ocupa la fila y se dice sin adornos: el texto es lo que importa. */
+@media (max-width: 639.98px) {
+  .estados-fecha {
+    display: flex;
+    width: 100%;
+  }
+  .estados-fecha-boton {
+    flex: 1;
+    justify-content: space-between;
+  }
+  .estados-fecha-icono {
+    display: none;
+  }
+  .estados-fecha-texto {
+    min-width: 0;
+    overflow: hidden;
+  }
+  /* La fecha no se corta: una fecha a medias es otra fecha. Si no cabe, baja de línea. */
+  .estados-fecha-texto b {
+    font-size: 15px;
+    white-space: normal;
+    text-wrap: balance;
+  }
+  .estados-fecha-texto small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .estados-cal-cabeza {
+    padding-right: 0;
+  }
+}
+/* Con el dedo, cada día y cada flecha se tocan en 44 px (ADR-0611, mejora 5). */
+@media (pointer: coarse) {
+  .estados-cal-dia {
+    height: 44px;
+  }
+  .estados-cal-dia::after {
+    inset: 3px;
+  }
+  .estados-cal-paginas .estados-fecha-flecha {
+    width: 44px;
+    height: 44px;
+  }
+  .estados-cal-hilo {
+    grid-template-columns: repeat(var(--columnas), minmax(44px, 1fr));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .estados-cal {
+    animation: estados-cal-entra var(--t-hoja) var(--ease-cayla) both;
+  }
+  .estados-cal-atajo {
+    animation: estados-cal-sube var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i) * 13ms + 28ms);
+  }
+  .estados-cal-hilo-barra {
+    animation: estados-cal-brota var(--t-momento) var(--ease-cayla) both;
+    animation-delay: calc(var(--i) * 10ms);
+  }
+  .estados-cal-dia {
+    animation: estados-cal-sube var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i) * 2.5ms);
+  }
+}
+@keyframes estados-cal-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes estados-cal-sube {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes estados-cal-brota {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
 /* ---------- Quien pidió menos transparencia o más contraste: la tela se apaga y el vidrio ya es macizo (`recetas.css`) ---------- */
 @media (prefers-reduced-transparency: reduce) {
   .tela-hilos canvas {

@@ -5,6 +5,7 @@ import { Check, Plus } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
 import { TeToca } from "@/components/finanzas/telar/TeToca";
 import { SelectorMes } from "@/components/ui/SelectorMes";
+import { ESTADOS } from "@/lib/estados-financieros-reglas";
 import { rutaActiva } from "@/lib/menu";
 import {
   aceptaVariasSedes,
@@ -113,12 +114,15 @@ export function MesaDeMando({
             ))
           )}
         </div>
-        <SelectorMes
-          valor={{ anio, mes: m }}
-          actual={{ anio: anioHoy, mes: mHoy }}
-          onCambiar={(x) => router.push(aqui({ mes: mesTelar(x.anio, x.mes) }), { scroll: false })}
-          guia="telar.mes"
-        />
+        {/* Los cuatro estados financieros eligen sus fechas con el calendario de su cabecera (ADR-0611): un solo control de la fecha en la pantalla. */}
+        {!ESTADOS.some((e) => e.ruta === pathname) && (
+          <SelectorMes
+            valor={{ anio, mes: m }}
+            actual={{ anio: anioHoy, mes: mHoy }}
+            onCambiar={(x) => router.push(aqui({ mes: mesTelar(x.anio, x.mes) }), { scroll: false })}
+            guia="telar.mes"
+          />
+        )}
         {/* El Resumen cuelga aquí su ícono «Qué se ve» (`AjustesResumen`): solo esa pantalla lo dibuja, el resto de Finanzas no. */}
         <span id={SLOT_AJUSTES_RESUMEN} className="contents" />
         {puedeElegir && (
