@@ -74,3 +74,13 @@ Tres cambios propuestos; Felipe dio el OK y están aplicados:
 
 Segunda ciega, otra lectora (Sonnet, sobre capturas con datos de ejemplo, sin mouse): **5 de 10**. Ya sabe qué falta en cada sede, cómo cambiar un dato y que la empresa solo se lee. Después de esa ronda, «Cierra» pasó a «Hora de cierre» y las series dicen «Boleta B001». Lo que sigue dudoso: qué cuenta el aro, qué significan «Cerró» y «Hasta» en la carga, qué hace el asistente y qué pasa al llegar a su tope. Falta probarla con una colaboradora real.
 
+## Metas, Dinero, Gastos e Impuestos (2026-11-05)
+
+Ciega (Sonnet, sobre capturas, sin mouse y sin abrir el «?», con pocos datos de prueba): **Metas 5 · Dinero 4 · Gastos 6 · Impuestos 4**. Oficio [Medido]: sin desborde a 375, 1024, 1280, 1440 y 1920 px, y de 1,1 a 2,9 pantallas de alto.
+Lo que más la frenó es la jerga, no el dibujo: no le quedó claro qué hacer primero en Metas ni en Dinero, y en Impuestos sí, porque la pantalla empieza por lo que falta confirmar. Hay que confirmarlo con una persona real: estas pantallas son del líder, no de una colaboradora de sede.
+
+Tres cambios propuestos, **esperan el OK de Felipe**:
+
+1. **Palabras de tienda en Dinero:** «Máquinas y planilla», «Quienes cobran en BCP», «Finanzas cuenta desde: Sin corte» y «Poner» no se entendieron.
+2. **Un primer paso a la vista:** en Metas y Dinero, una línea que diga por dónde empezar cuando falta algo (por ejemplo, «Falta elegir la cuenta de Yape, Plin y Transferencia»).
+3. **Lo que explica un término de SUNAT, junto al término:** UIT, Pago a cuenta y Movilidad llevan una línea corta en vez de depender del «?», y «+ Nueva tasa» y sus hermanos suben de tamaño.
