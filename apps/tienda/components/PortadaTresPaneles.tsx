@@ -22,7 +22,7 @@ function Prenda({ prenda, ancho, ocultaEn, primera }: { prenda: PrendaDePortada;
   return (
     <picture>
       <source media={ocultaEn} srcSet={VACIO} />
-      {/* eslint-disable-next-line @next/next/no-img-element -- ya viene liviana y guardada: pasarla por el optimizador le quitaría la transparencia que importa */}
+      {/* Un <img> común: ya viene liviana y guardada, y el optimizador no la necesita. */}
       <img src={urlDeRecorte(prenda.foto, ancho) ?? prenda.foto} alt="" loading={primera ? "eager" : "lazy"} fetchPriority={primera ? "high" : "auto"} onError={alFallar} />
     </picture>
   );
