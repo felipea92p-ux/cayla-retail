@@ -3,7 +3,7 @@ import { Lightbulb } from "lucide-react";
 import { HeroeEstado } from "@/components/finanzas/estados/HeroeEstado";
 import { LibroDelContador } from "@/components/finanzas/estados/LibroDelContador";
 import { DetalleDeParte, MesaDePartes, TarjetasDePartes, TuboDePartes } from "@/components/finanzas/estados/PartesDelEstado";
-import type { FilaDelLibro, ParteEstado } from "@/lib/estados-partes";
+import type { FilaDelLibro, LadoDelLibro, ParteEstado } from "@/lib/estados-partes";
 
 export type LecturaDelEstado = {
   valor: number;
@@ -55,7 +55,7 @@ export function EstadoVidrio({
   columnasDeTarjetas?: number;
   /** «Mes a mes». */
   tituloColumnas: string;
-  libro: { titulo: string; detalle: string; filas: readonly FilaDelLibro[] };
+  libro: { titulo: string; detalle: string; filas?: readonly FilaDelLibro[]; lados?: readonly LadoDelLibro[] };
   /** Lo que cierra el libro: la ecuación del Balance. */
   pieDeLibro?: ReactNode;
 }) {
@@ -79,6 +79,7 @@ export function EstadoVidrio({
             titulo={libro.titulo}
             detalle={libro.detalle}
             filas={libro.filas}
+            lados={libro.lados}
             guia={guiaLibro}
             pie={pieDeLibro}
             nota={

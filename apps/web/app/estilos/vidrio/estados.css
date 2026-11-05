@@ -963,6 +963,27 @@
   opacity: 0.8;
 }
 
+/* ---------- Los dos tubos del Balance ---------- */
+.estados-tubos {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+}
+.estados-tubo-rotulo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-tubo-rotulo b {
+  font-weight: 600;
+}
+
 /* ---------- Lo de abajo: a dónde se fue, parte por parte ---------- */
 .estados-debajo {
   padding: 24px 32px 26px;
@@ -1458,6 +1479,44 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-rojo) 22%, transparent);
 }
 
+.estados-libro-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 32px;
+}
+.estados-libro-dos h4 {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--estados-secundario);
+}
+.estados-libro-dos .estados-libro-fila {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+}
+.estados-libro-dos .estados-libro-fila > u {
+  grid-row: 2;
+  grid-column: 1 / -1;
+}
+.estados-ecuacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-verde) 10%, transparent);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-verde);
+}
+.estados-ecuacion small {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--estados-secundario);
+}
+
 /* ---------- Qué te recomiendo y lo que sigue a un toque ---------- */
 .estados-recos {
   display: grid;
@@ -1472,6 +1531,12 @@
 .estados-mas-boton {
   display: flex;
   justify-content: center;
+}
+.estados-mas-boton .ver-mas-enlace {
+  height: auto;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
 }
 .estados-mas-contenido {
   display: flex;
@@ -1520,6 +1585,9 @@
   }
   .estados-linea-meses span[data-alterno] {
     display: none;
+  }
+  .estados-libro-dos {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 639.98px) {

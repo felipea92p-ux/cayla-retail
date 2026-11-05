@@ -76,6 +76,13 @@ export function pasosDelLibro(filas: readonly FilaDelLibro[]): PasoDelLibro[] {
   }));
 }
 
+/** Un lado de un cuadro de dos lados (el Balance): cada fila con una barra proporcional al total. */
+export type LadoDelLibro = { titulo: string; total: number; filas: readonly FilaDelLibro[] };
+
+export function pasosDelLado({ total, filas }: LadoDelLibro): PasoDelLibro[] {
+  return filas.map((f) => ({ ...f, desde: 0, ancho: total > 0 ? Math.max(Math.min((Math.abs(f.valor) / total) * 100, 100), 0) : 0, color: f.tipo === "total" ? "var(--estados-parte-1)" : "var(--estados-parte-2)" }));
+}
+
 /** «Ver más: sedes, campañas y lo planeado». Sin nada que ofrecer, `null`: el botón no se dibuja. */
 export function textoDeVerMas(cosas: readonly string[]): string | null {
   if (!cosas.length) return null;
