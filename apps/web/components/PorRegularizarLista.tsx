@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { CalendarArrowDown, CalendarArrowUp, UserRound } from "lucide-react";
+import { ArrowDown, UserRound } from "lucide-react";
 import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, ORDEN_INICIAL, VENTAS_POR_PAGINA, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
 import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar, type CuadresPorSede } from "@/lib/cola-arranque-reglas";
@@ -196,16 +196,16 @@ export function PorRegularizarLista({
               ))}
             </div>
             <div data-guia="regularizar.herramientas" className="ml-auto flex flex-wrap items-center gap-2">
-              {/* Un solo botón chico que alterna el orden por fecha de venta: el ícono y la palabra dicen cómo está ordenada hoy; tocarlo la invierte. */}
+              {/* Un solo botón que alterna el orden por fecha de venta: la flecha dice cómo está ordenada hoy (↓ lo más reciente arriba) y tocarlo la invierte. */}
               <button
                 type="button"
                 onClick={() => setOrden({ campo: "vendio", dir: orden.dir === "desc" ? "asc" : "desc" })}
                 title={orden.dir === "asc" ? "Primero las ventas más antiguas · toca para ver primero las recientes" : "Primero las ventas más recientes · toca para ver primero las antiguas"}
                 aria-label={orden.dir === "desc" ? "Ordenadas de la más reciente a la más antigua. Cambiar a la más antigua primero" : "Ordenadas de la más antigua a la más reciente. Cambiar a la más reciente primero"}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:bg-hueso"
+                className="pildora-cayla gap-1.5"
               >
-                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden className="h-3.5 w-3.5 shrink-0" />}
-                <span className="hidden md:inline">{orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
+                Fecha
+                <ArrowDown aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ease-cayla ${orden.dir === "asc" ? "rotate-180" : ""}`} />
               </button>
               <DesplegablePildora
                 icono={UserRound}

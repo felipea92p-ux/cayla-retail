@@ -110,6 +110,7 @@
 @import "./estilos/vidrio/recetas.css";
 /* La pantalla (cabecera, tarjetas de cifra, pestañas, tablas) antes que la hoja: dentro de una hoja manda la lámina de la hoja. */
 @import "./estilos/vidrio/pantalla.css";
+@import "./estilos/tabla-corte.css"; /* la tabla mira su ancho, no el de la ventana */
 @import "./estilos/vidrio/tabla-viva.css"; /* La tabla con superpoderes (TablaViva) */
 @import "./estilos/vidrio/hoja.css";
 @import "./estilos/vidrio/campos-y-botones.css";
