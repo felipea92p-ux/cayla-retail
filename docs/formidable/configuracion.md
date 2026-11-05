@@ -79,8 +79,11 @@ Segunda ciega, otra lectora (Sonnet, sobre capturas con datos de ejemplo, sin mo
 Ciega (Sonnet, sobre capturas, sin mouse y sin abrir el «?», con pocos datos de prueba): **Metas 5 · Dinero 4 · Gastos 6 · Impuestos 4**. Oficio [Medido]: sin desborde a 375, 1024, 1280, 1440 y 1920 px, y de 1,1 a 2,9 pantallas de alto.
 Lo que más la frenó es la jerga, no el dibujo: no le quedó claro qué hacer primero en Metas ni en Dinero, y en Impuestos sí, porque la pantalla empieza por lo que falta confirmar. Hay que confirmarlo con una persona real: estas pantallas son del líder, no de una colaboradora de sede.
 
-Tres cambios propuestos, **esperan el OK de Felipe**:
+Tres cambios propuestos; Felipe dio el OK y están aplicados:
 
 1. **Palabras de tienda en Dinero:** «Máquinas y planilla», «Quienes cobran en BCP», «Finanzas cuenta desde: Sin corte» y «Poner» no se entendieron.
 2. **Un primer paso a la vista:** en Metas y Dinero, una línea que diga por dónde empezar cuando falta algo (por ejemplo, «Falta elegir la cuenta de Yape, Plin y Transferencia»).
 3. **Lo que explica un término de SUNAT, junto al término:** UIT, Pago a cuenta y Movilidad llevan una línea corta en vez de depender del «?», y «+ Nueva tasa» y sus hermanos suben de tamaño.
+
+Segunda ciega, otra lectora (Sonnet, sobre capturas, sin mouse): **Metas 6 · Dinero 6 · Gastos 7 · Impuestos 3**. Ahora dice sola por dónde empezar en Metas y Dinero. Son lectoras distintas, así que el cambio de nota orienta pero no mide. Impuestos no mejoró: sabe qué le pide la pantalla, pero no qué está confirmando («Sola no la toco»). Es la pestaña del líder con su contador; falta ver si con una persona real pasa lo mismo.
+Queda sin entender: «CLAURE» y «Por depositar» (un nombre propio y el nombre de una cuenta) y que las cápsulas de los días de Metas se escriben.
