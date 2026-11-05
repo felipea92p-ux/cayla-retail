@@ -280,7 +280,7 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
               type="submit"
               peso="primario"
               cargando={guardando}
-              disabled={!congelada && !guia.puedeConfirmar}
+              confirma={congelada ? undefined : guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
             >

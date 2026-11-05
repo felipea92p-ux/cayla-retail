@@ -310,7 +310,7 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
               cargando={Boolean(trabajando || intento.enviando)}
               textoCargando={modo === "enviar" ? "Enviando…" : "Cancelando…"}
               onClick={() => void (modo === "enviar" ? enviar() : cancelar())}
-              disabled={revisando || !guia.puedeConfirmar}
+              disabled={revisando} confirma={guia}
               title={guia.frase ?? undefined}
               className={`tp-grande ${guia.claseConfirmar}`}
             >

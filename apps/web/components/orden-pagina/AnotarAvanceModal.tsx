@@ -329,7 +329,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
               peso="primario"
               cargando={cargando}
               textoCargando="Anotando…"
-              disabled={!guia.puedeConfirmar || problemasDeTela.length > 0}
+              disabled={problemasDeTela.length > 0} confirma={guia}
               title={guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}
               className={guia.claseConfirmar}
             >

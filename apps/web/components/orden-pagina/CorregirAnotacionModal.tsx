@@ -265,7 +265,7 @@ export function CorregirAnotacionModal({ datos, fase, anotacion, onClose }: { da
                 peso="primario"
                 cargando={cargando === "corregir"}
                 textoCargando="Guardando…"
-                disabled={!guia.puedeConfirmar || cargando !== null}
+                disabled={cargando !== null} confirma={guia}
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={guia.claseConfirmar}
               >

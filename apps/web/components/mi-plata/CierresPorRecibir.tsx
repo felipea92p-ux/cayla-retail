@@ -188,7 +188,7 @@ export function DetalleCierre({ cierre, cuentas, alTerminar }: { cierre: CierreP
               peso="primario"
               cargando={guardando}
               textoCargando="Guardando…"
-              disabled={!guia.puedeConfirmar}
+              confirma={guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               data-guia="fondos.cierre-recibir"

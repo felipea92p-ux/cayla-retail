@@ -103,7 +103,7 @@ export function VitrinaLoteHoja({
               type="submit"
               peso="primario"
               cargando={guardando}
-              disabled={!guia.puedeConfirmar || cambian === 0}
+              disabled={cambian === 0} confirma={guia}
               title={guia.frase ?? (cambian === 0 ? "Ninguno de los elegidos cambia." : undefined)}
               className={guia.claseConfirmar}
             >

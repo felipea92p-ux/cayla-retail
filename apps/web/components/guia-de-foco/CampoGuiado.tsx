@@ -50,6 +50,10 @@ export function CampoGuiado({
 
   // El error queda unido al control, sea cual sea: el lector de pantalla lo lee al llegar a él.
   useEffect(() => {
+    // Si la ayuda del campo ya decía lo mismo, no se dice dos veces: queda el error.
+    caja.current?.querySelectorAll<HTMLElement>("[id$='-pie']").forEach((pie) => {
+      pie.hidden = Boolean(error) && pie.textContent?.trim() === error;
+    });
     const control = caja.current?.querySelector<HTMLElement>(CONTROL_DEL_CAMPO);
     if (!control) return;
     const previo = (control.getAttribute("aria-describedby") ?? "").split(" ").filter((x) => x && x !== idError);

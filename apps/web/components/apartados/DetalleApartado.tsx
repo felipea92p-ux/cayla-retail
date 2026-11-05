@@ -545,7 +545,7 @@ function AplazarFormulario({
           peso="primario"
           cargando={enviando}
           textoCargando="Aplazando…"
-          disabled={!guia.puedeConfirmar}
+          confirma={guia}
           title={guia.frase ?? undefined}
           onClick={aplazar}
           className={guia.claseConfirmar}
@@ -639,7 +639,7 @@ function EnviarFormulario({
           peso="primario"
           cargando={enviando}
           textoCargando="Marcando…"
-          disabled={!guia.puedeConfirmar}
+          confirma={guia}
           title={guia.frase ?? undefined}
           onClick={enviar}
           className={guia.claseConfirmar}

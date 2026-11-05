@@ -1051,11 +1051,15 @@ export function HiloEnEspera({ claro = false }: { claro?: boolean }) {
   );
 }
 
+/** Lo que `Boton` necesita de la guía de foco (`useGuiaCampos` ya lo da). */
+export type BotonConfirma = { puedeConfirmar: boolean; revisar: () => boolean };
+
 export function Boton({
   peso = "fantasma",
   cargando,
   textoCargando = "Guardando…",
   className = "",
+  confirma,
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -1064,10 +1068,31 @@ export function Boton({
   cargando?: boolean;
   /** Otro verbo mientras espera, si lo que hace no es guardar («Abriendo…», «Cerrando…», «Anulando…»). */
   textoCargando?: string;
+  /**
+   * La guía de foco de la hoja. El botón no se apaga por lo que falta: apagado no dice qué falta ni deja preguntar. Al tocarlo, cada campo
+   * pendiente dice su error y el cursor va al primero (ADR-0611, mejora 4). Lo vigila `lib/boton-confirma.test.ts`.
+   */
+  confirma?: BotonConfirma;
 }) {
   const guarda = cargando !== undefined;
+  const falta = confirma && !confirma.puedeConfirmar;
   return (
-    <button {...props} disabled={props.disabled || cargando} aria-busy={cargando || undefined} className={claseBoton(peso, className)}>
+    <button
+      {...props}
+      onClickCapture={
+        falta
+          ? (e) => {
+              // En la captura: frena también el envío del formulario y el `onClick` de quien lo usa. Enter en un campo pasa por aquí.
+              e.preventDefault();
+              e.stopPropagation();
+              confirma.revisar();
+            }
+          : props.onClickCapture
+      }
+      disabled={props.disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={claseBoton(peso, className)}
+    >
       {guarda ? (
         <PalabraEnEspera cargando={Boolean(cargando)} texto={textoCargando}>
           {conMas(children)}

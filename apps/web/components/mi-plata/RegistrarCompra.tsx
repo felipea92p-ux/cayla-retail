@@ -1017,7 +1017,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             peso="primario"
             cargando={guardando}
             textoCargando="Guardando…"
-            disabled={!guia.puedeConfirmar}
+            confirma={guia}
             title={guia.frase ?? undefined}
             className={`${guia.claseConfirmar} xl:col-span-2`}
             data-guia="compra.guardar"

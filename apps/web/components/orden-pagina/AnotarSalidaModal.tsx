@@ -201,7 +201,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar || problemaTela !== null} title={guia.frase ?? problemaTela ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={problemaTela !== null} confirma={guia} title={guia.frase ?? problemaTela ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               {total > 0 ? `Mandar ${total}` : "Mandar"}
             </Boton>
           </div>

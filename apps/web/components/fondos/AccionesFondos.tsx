@@ -293,7 +293,7 @@ function EntregarFondoModal({
             <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Entregando…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Entregando…" type="submit" peso="primario" cargando={guardando} confirma={congelada ? undefined : guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {congelada ? (
                 "Volver a intentar"
               ) : (
@@ -481,7 +481,7 @@ function DevolverFondoModal({
             <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} confirma={congelada ? undefined : guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {congelada ? "Volver a intentar" : fraseDevolver(montoLeido)}
             </Boton>
           </div>
@@ -624,7 +624,7 @@ function AnularMovimientoFondoModal({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {`Anular ${art} ${que}`}
             </Boton>
           </div>
@@ -828,7 +828,7 @@ function PagarDeudaFondoModal({
             <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} confirma={congelada ? undefined : guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {congelada ? "Volver a intentar" : frasePagarDeuda(montoLeido)}
             </Boton>
           </div>

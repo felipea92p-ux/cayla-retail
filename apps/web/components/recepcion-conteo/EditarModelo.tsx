@@ -78,7 +78,7 @@ export function EditarModelo({
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Guardar
             </Boton>
           </div>

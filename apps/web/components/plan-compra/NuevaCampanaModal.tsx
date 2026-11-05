@@ -128,7 +128,7 @@ export function NuevaCampanaModal({
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={trabajando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={trabajando} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
                 Armar plan
               </Boton>
             </div>

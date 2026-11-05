@@ -211,7 +211,7 @@ export function PedirYApartarModal({
             </button>
             <Boton peso="primario" cargando={enviando} textoCargando="Pidiendo…"
               type="button"
-              disabled={enviando || !guia.puedeConfirmar}
+              disabled={enviando} confirma={guia}
               title={responsable.motivo ?? guia.frase ?? undefined}
               onClick={() => pedir(cerrar)}
               className={`flex-1 ${guia.claseConfirmar}`}

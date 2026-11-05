@@ -127,7 +127,7 @@ export function RevisarRecorteHoja({
               type="button"
               cargando={guardando === "descartar"}
               textoCargando="Descartando…"
-              disabled={!guia.puedeConfirmar || guardando !== null || r?.estado === "descartado"}
+              disabled={guardando !== null || r?.estado === "descartado"} confirma={guia}
               title={guia.frase ?? undefined}
               onClick={() => void decidir(false)}
             >
@@ -138,7 +138,7 @@ export function RevisarRecorteHoja({
               peso="primario"
               cargando={guardando === "usar"}
               textoCargando="Guardando…"
-              disabled={!guia.puedeConfirmar || guardando !== null || r?.estado === "listo"}
+              disabled={guardando !== null || r?.estado === "listo"} confirma={guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               onClick={() => void decidir(true)}

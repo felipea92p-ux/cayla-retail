@@ -128,7 +128,7 @@ export function CambioConMotivoModal({ datos, cambio, onClose }: { datos: OrdenP
                 peso={quita ? "peligro" : "primario"}
                 cargando={cargando}
                 textoCargando={quita ? "Quitando…" : "Restaurando…"}
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={guia.claseConfirmar}
               >

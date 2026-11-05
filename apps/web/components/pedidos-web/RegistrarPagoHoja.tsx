@@ -293,7 +293,7 @@ export function RegistrarPagoHoja({
                 peso="primario"
                 cargando={envio.enviando}
                 textoCargando="Registrando…"
-                disabled={!guia.puedeConfirmar || revisando}
+                disabled={revisando} confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
                 onClick={() => registrar(cerrar)}

@@ -579,7 +579,7 @@ export function HojaRegistrarGasto({
             Guardar y registrar otro
           </Boton>
         )}
-        <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar(false)} disabled={guardando || revisando || !responsable.listo} title="Registrar (⌘↵)">
+        <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar(false)} disabled={guardando || revisando} title="Registrar (⌘↵)">
           {intento.incierto ? "Volver a intentar" : egreso ? "Guardar como gasto" : "Registrar gasto"}
         </Boton>
       </PieAcciones>

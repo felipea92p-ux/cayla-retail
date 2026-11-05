@@ -159,7 +159,7 @@ export function AnularPagoHoja({
                 peso="peligro"
                 cargando={guardando}
                 textoCargando="Anulando…"
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 onClick={() => anular(cerrar)}
               >

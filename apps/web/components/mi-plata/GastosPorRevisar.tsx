@@ -245,7 +245,7 @@ export function DetalleGasto({ gasto, alTerminar }: { gasto: GastoConFoto; alTer
                   peso="primario"
                   cargando={guardando}
                   textoCargando="Guardando…"
-                  disabled={!guia.puedeConfirmar}
+                  confirma={guia}
                   title={guia.frase ?? undefined}
                   className={guia.claseConfirmar}
                   data-guia="fondos.gasto-revisar"

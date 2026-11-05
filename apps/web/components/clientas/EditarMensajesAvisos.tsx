@@ -260,7 +260,7 @@ export function EditarMensajesAvisos({
             peso="primario"
             onClick={() => void guardar()}
             cargando={guardando}
-            disabled={!guia.puedeConfirmar || sinCambios}
+            disabled={sinCambios} confirma={guia}
             title={responsable.motivo ?? guia.frase ?? (sinCambios ? "No cambiaste ningún mensaje." : undefined)}
             className={sinCambios ? "" : guia.claseConfirmar}
           >

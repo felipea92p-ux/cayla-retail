@@ -254,7 +254,7 @@ export function PonerPrecioSedeModal({
                 type="submit"
                 peso="primario"
                 cargando={guardando}
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={responsable.motivo ?? guia.frase ?? undefined}
                 className={guia.claseConfirmar}
               >
@@ -356,7 +356,7 @@ export function QuitarPrecioSedeModal({
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
-              <Boton textoCargando="Quitando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined}>
+              <Boton textoCargando="Quitando…" type="submit" peso="peligro" cargando={guardando} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined}>
                 Quitar precio de {precio.sede}
               </Boton>
             </div>
@@ -442,7 +442,7 @@ export function QuitarPrecioDeTallaModal({
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
-              <Boton textoCargando="Quitando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined}>
+              <Boton textoCargando="Quitando…" type="submit" peso="peligro" cargando={guardando} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined}>
                 Quitar precio de {talla}
               </Boton>
             </div>

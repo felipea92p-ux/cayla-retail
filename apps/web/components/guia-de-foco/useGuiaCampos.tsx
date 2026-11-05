@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
+import { avisar } from "@/components/ui/Avisos";
 import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
@@ -13,7 +14,7 @@ import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, p
 //   ]);
 //   <CampoGuiado guia={guia} id="monto"><CampoTexto etiqueta={guia.etiqueta("monto", "Monto")} … /></CampoGuiado>
 //   <PieGuia guia={guia} />
-//   <Boton disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>Guardar</Boton>
+//   <Boton confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>Guardar</Boton>
 //
 // `hecho` y `requerido` salen de la validación REAL del modal (la misma regla que apaga su botón): la guía no inventa reglas.
 
@@ -112,7 +113,9 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
       const primero = primeroQueBloquea(campos);
       if (!primero) return true;
       setRevisados((r) => new Set([...r, ...pendientesAlRevisar(campos)]));
-      irAlIdCampo(primero.id, { cursor: true, enModal });
+      // Tocar el botón nunca queda sin respuesta: si ese campo no se está dibujando (está plegado o en otro paso), se dice en un aviso.
+      if (!document.querySelector(`[data-campo="${CSS.escape(primero.id)}"]`)) avisar.aviso(primero.pendiente || `Falta: ${primero.nombre}.`);
+      else irAlIdCampo(primero.id, { cursor: true, enModal });
       return false;
     },
     errorDe: (id) => errorDeCampo(campos, id, revisados.has(id), externos[id]),

@@ -153,7 +153,7 @@ export function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }
           <Boton peso="primario" cargando={enviando}
             type="submit"
             className={`${guia.claseConfirmar}`}
-            disabled={enviando || !guia.puedeConfirmar}
+            disabled={enviando} confirma={guia}
             title={responsable.motivo ?? guia.frase ?? undefined}
           >
             Guardar

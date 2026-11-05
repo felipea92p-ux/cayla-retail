@@ -151,7 +151,7 @@ export function HojaTallas({
                 <Boton type="button" onClick={cerrar} disabled={guardando}>
                   Dejar para después
                 </Boton>
-                <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar || (!!dueno && !dueno.duenoId)} title={guia.frase ?? (dueno && !dueno.duenoId ? "Elige de quién es la mercadería" : undefined)} className={guia.claseConfirmar}>
+                <Boton type="submit" peso="primario" cargando={guardando} disabled={!!dueno && !dueno.duenoId} confirma={guia} title={guia.frase ?? (dueno && !dueno.duenoId ? "Elige de quién es la mercadería" : undefined)} className={guia.claseConfirmar}>
                   {textoListo}
                 </Boton>
               </div>

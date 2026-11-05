@@ -69,7 +69,7 @@ export function DescribirNuevas({
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Guardar lo que son
             </Boton>
           </div>

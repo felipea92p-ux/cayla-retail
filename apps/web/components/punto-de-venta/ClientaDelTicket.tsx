@@ -739,7 +739,7 @@ function RegistrarClientaEnTicket({
           <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
             Volver
           </Boton>
-          <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+          <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
             Registrar
           </Boton>
         </div>

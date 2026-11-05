@@ -366,7 +366,7 @@ function RevisarRendicionModal({
                     peso="primario"
                     cargando={guardando}
                     textoCargando="Aprobando…"
-                    disabled={!guia.puedeConfirmar || lectura !== "lista"}
+                    disabled={lectura !== "lista"} confirma={guia}
                     title={pieListaRevisar(lectura) ?? guia.frase ?? undefined}
                     className={guia.claseConfirmar}
                   >
