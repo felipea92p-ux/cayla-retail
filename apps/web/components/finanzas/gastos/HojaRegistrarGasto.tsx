@@ -27,6 +27,8 @@ import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFecha
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
+import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
@@ -201,6 +203,9 @@ export function HojaRegistrarGasto({
   const fijoDelGasto = fijo ?? fijoElegido;
   const campos = camposDeLaHoja(h, { proveedorListo, proveedorSinRuc: fijoSinRuc, salidaLista, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
+  // Lo mal escrito se dice al salir del campo, no a la primera letra (ADR-0611, mejora 2).
+  const avisoMonto = useValidarAlSalir(motivoDelMonto(h.monto));
+  const avisoSerie = useValidarAlSalir(h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : null);
   const ticket = ticketDeLaHoja(h, {
     categoriaNombre: categoria?.nombre ?? null,
     sedeNombre: sede?.nombre ?? null,
@@ -229,8 +234,10 @@ export function HojaRegistrarGasto({
   }
 
   async function guardar(otro: boolean) {
+    // Si falta algo, cada campo dice su error y se va al primero (ADR-0611, mejora 1): un aviso en la esquina no dice dónde está el problema.
+    if (!guia.revisar()) return;
     const v0 = validarHoja(h, existente?.id ?? "x", salidaHoja, hoy, proveedorListo);
-    if (!v0.ok) return avisar.error(v0.error);
+    if (!v0.ok) return v0.campo ? guia.marcarError(v0.campo, v0.error) : avisar.error(v0.error);
     const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { categoria: h.categoria, fecha: h.fecha }) : null;
     if (choque) return avisar.error(choque.mensaje);
     // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
@@ -372,7 +379,7 @@ export function HojaRegistrarGasto({
           )}
 
           <CampoGuiado id="monto" guia={guia} titulo="Cuánto">
-            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoDelMonto(h.monto)} pie={motivoDelMonto(h.monto) ?? undefined} tono={motivoDelMonto(h.monto) ? "aviso" : undefined} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
+            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!avisoMonto.motivo} pie={avisoMonto.motivo ?? undefined} tono={avisoMonto.motivo ? "error" : undefined} onBlur={avisoMonto.alSalir} leer={leerMontoPlata} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">
@@ -437,17 +444,18 @@ export function HojaRegistrarGasto({
                   onBlur={() => {
                     const legible = serieNumeroLegible(h.serieNumero);
                     if (legible) poner("serieNumero", legible);
+                    avisoSerie.alSalir();
                   }}
                   placeholder={sugerirSerie(h.comprobante)}
-                  pie={h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : undefined}
-                  tono={h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "aviso" : undefined}
+                  pie={avisoSerie.motivo ?? undefined}
+                  tono={avisoSerie.motivo ? "error" : undefined}
                 />
               </CampoGuiado>
             </div>
           )}
 
           <div className="grid gap-x-3 sm:grid-cols-2">
-            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} />
+            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} max={hoy} motivoMax="La fecha no puede ser futura." estricto required />
             {papel && !egreso && (
               <div>
                 <span className="campo-etiqueta">¿Ya lo pagaste?</span>
@@ -469,7 +477,7 @@ export function HojaRegistrarGasto({
 
           {credito ? (
             <CampoGuiado id="vence" guia={guia}>
-              <CampoFecha etiqueta="Cuándo vence" valor={h.vence} onValor={(v) => poner("vence", v)} ayuda="Queda en Cuentas y dinero ▸ Por pagar hasta ese día." />
+              <CampoFecha etiqueta="Cuándo vence" valor={h.vence} onValor={(v) => poner("vence", v)} min={h.fecha} motivoMin="No puede vencer antes de la fecha del gasto." estricto required ayuda="Queda en Cuentas y dinero ▸ Por pagar hasta ese día." />
             </CampoGuiado>
           ) : !h.sede || egreso ? null : (
             // «Salió de» depende de la sede (un gasto de una tienda sale de SU cajón): aparece cuando ya se eligió.
@@ -571,7 +579,7 @@ export function HojaRegistrarGasto({
             Guardar y registrar otro
           </Boton>
         )}
-        <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar(false)} disabled={guardando || revisando || !responsable.listo} title="Registrar (⌘↵)">
+        <Boton type="button" peso="primario" cargando={guardando} onClick={() => void guardar(false)} disabled={guardando || revisando} title="Registrar (⌘↵)">
           {intento.incierto ? "Volver a intentar" : egreso ? "Guardar como gasto" : "Registrar gasto"}
         </Boton>
       </PieAcciones>

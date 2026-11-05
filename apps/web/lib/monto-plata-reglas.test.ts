@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costoUnitarioIlegible, costoUnitarioTexto, lecturaCampoMonto, leerCostoUnitario, leerMontoPlata, montoIlegible, numeroDeCostoUnitario, numeroDeMonto } from "./monto-plata-reglas";
+import { costoUnitarioIlegible, costoUnitarioTexto, lecturaCampoMonto, leerCostoUnitario, leerMontoPlata, montoIlegible, numeroDeCostoUnitario, numeroDeMonto, montoParaMostrar } from "./monto-plata-reglas";
 
 describe("leerMontoPlata (el monto de una hoja del fondo, /chaos 2026-10-14)", () => {
   it("la coma decimal se entiende: «1299,50» es S/ 1,299.50 y «150,5» es S/ 150.50 (antes, 129 950 y 1 505)", () => {
@@ -52,7 +52,7 @@ describe("leerMontoPlata (el monto de una hoja del fondo, /chaos 2026-10-14)", (
   });
 });
 
-describe("lecturaCampoMonto: lo que `CampoMonto` le avisa al padre (ADR-0419, /chaos 2026-10-15)", () => {
+describe("lecturaCampoMonto: lo que `EntradaMonto` le avisa al padre (ADR-0419, /chaos 2026-10-15)", () => {
   it("la coma decimal se entiende: «2,5» es S/ 2.50, no S/ 25 (el `type=number` del navegador borraba la coma)", () => {
     expect(lecturaCampoMonto("2,5")).toEqual({ valor: 2.5, ilegible: false });
     expect(lecturaCampoMonto("12,50")).toEqual({ valor: 12.5, ilegible: false });
@@ -121,5 +121,29 @@ describe("leerCostoUnitario: el costo por unidad de un insumo, con hasta 4 decim
     expect(costoUnitarioTexto(0.0451)).toBe("S/\u00a00.0451");
     expect(costoUnitarioTexto(12.5)).toBe("S/\u00a012.50");
     expect(costoUnitarioTexto(0.05)).toBe("S/\u00a00.05");
+  });
+});
+
+describe("montoParaMostrar — miles y dos decimales al salir del campo (ADR-0611, mejora 3)", () => {
+  it("ordena lo que todas las pantallas leen igual", () => {
+    expect(montoParaMostrar("1299.5")).toBe("1,299.50");
+    expect(montoParaMostrar("1299")).toBe("1,299.00");
+    expect(montoParaMostrar("0")).toBe("0.00");
+    expect(montoParaMostrar("1000000")).toBe("1,000,000.00");
+  });
+
+  it("nunca dice otra cifra: lo ambiguo o lo que no entiende se queda como se escribió", () => {
+    for (const t of ["", "  ", "12.500", "2,5", "1,299.50", "abc", "-5", "1e3", "0x10", "0.045"]) expect(montoParaMostrar(t)).toBe(t);
+  });
+
+  it("no le cambia el valor a lo que el padre va a leer: lo mostrado se lee igual que lo escrito", () => {
+    for (const t of ["1299.5", "1299", "0.5", "1000000", "999.99"]) expect(leerMontoPlata(montoParaMostrar(t))).toBe(leerMontoPlata(t));
+  });
+
+  it("quien lee con leerMontoPlata también ordena la coma decimal", () => {
+    expect(montoParaMostrar("1299,50", leerMontoPlata)).toBe("1,299.50");
+    expect(montoParaMostrar("1.299,50", leerMontoPlata)).toBe("1,299.50");
+    expect(montoParaMostrar("12.500", leerMontoPlata)).toBe("12.500");
+    expect(montoParaMostrar("-5", leerMontoPlata)).toBe("-5");
   });
 });

@@ -226,7 +226,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, provee
             <Boton type="button" onClick={onClose}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Ingresando…" peso="primario" type="submit" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Ingresando…" peso="primario" type="submit" cargando={cargando} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               {esCompra ? "Registrar la compra y abrir el lote" : "Abrir lote y sumar al saldo"}
             </Boton>
           </div>

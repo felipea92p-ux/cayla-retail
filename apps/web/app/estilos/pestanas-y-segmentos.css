@@ -53,7 +53,7 @@
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
-    transition: color 200ms, background-color 200ms;
+    transition: color var(--t-cambio), background-color var(--t-cambio);
   }
   @media (hover: hover) {
     .pestana-cayla:hover {
@@ -82,7 +82,7 @@
     border-radius: 10px;
     background: var(--color-tinta);
     box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
-    transition-duration: 450ms;
+    transition-duration: var(--t-hoja);
   }
   @media (max-width: 639px) {
     .pestana-cayla {
@@ -262,7 +262,7 @@
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
-    transition: color 150ms, background-color 150ms;
+    transition: color var(--t-resp), background-color var(--t-resp);
   }
   @media (hover: hover) {
     .segmento-cayla__opcion:hover {

@@ -693,7 +693,7 @@ const TIRA_DE_DIGITOS = /\bruc\b|Ruc\b|celular|telefono/;
 /** Los que borran con razón y su línea no lo dice. Una caja de cantidad nunca entra aquí: se limpia con `limpiarCantidad`. */
 const TIRAS_CONOCIDAS: Record<string, string> = {
   "components/recepcion-envio/FormularioRecepcion.tsx": "el contador de una clave interna",
-  "components/ui/CampoFecha.tsx": "los dígitos de una fecha",
+  "lib/campo-fecha-reglas.ts": "los dígitos de una fecha",
   "lib/club-reglas.ts": "un celular",
   "lib/existencias-flujos.ts": "un celular",
   "lib/gastos-viaje-reglas.ts": "el número de una orden, para ordenarlas",

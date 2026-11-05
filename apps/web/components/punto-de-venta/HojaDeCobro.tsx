@@ -6,7 +6,7 @@ import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos, nombreMaquina, type PagoAplicado, preguntaMaquina } from "@/lib/vender-reglas";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { CLASE_MONTO_ILEGIBLE, CampoMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { CLASE_MONTO_ILEGIBLE, EntradaMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
 import { CerrarHoja } from "@/components/punto-de-venta/CerrarHoja";
@@ -263,7 +263,7 @@ export function HojaDeCobro({
                     {varios && pago && (
                       <label className="hoja-cobro-monto">
                         <span className="text-sm opacity-85">S/</span>
-                        <CampoMonto
+                        <EntradaMonto
                           aria-label={`Monto en ${NOMBRE_METODO[m]}`}
                           data-monto-medio={m}
                           valor={pago.monto}

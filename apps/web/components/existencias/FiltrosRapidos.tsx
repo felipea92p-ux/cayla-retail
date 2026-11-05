@@ -89,7 +89,7 @@ export function FiltrosRapidos({
               aria-label={rotulo}
               title={pausado ? (avisoPausa ?? undefined) : a.ayuda}
               onClick={() => onCambiar(a.cambios)}
-              className={`inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border pl-2.5 pr-2 text-sm transition-colors ${
+              className={`area-dedo inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border pl-2.5 pr-2 text-sm transition-colors ${
                 puesto ? TONO_ENCENDIDO[a.clave] : "border-tinta/15 bg-papel text-tinta/75 hover:border-tinta/30 hover:text-tinta"
               }`}
             >

@@ -243,7 +243,7 @@ export function CorregirIngresoModal({ insumo, lote, veCostos, onClose }: { insu
                 peso="primario"
                 cargando={cargando === "corregir"}
                 textoCargando="Guardando…"
-                disabled={!guia.puedeConfirmar || cargando !== null}
+                disabled={cargando !== null} confirma={guia}
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={guia.claseConfirmar}
               >

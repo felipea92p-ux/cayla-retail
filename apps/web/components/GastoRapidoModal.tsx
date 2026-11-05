@@ -580,7 +580,7 @@ export function GastoRapidoModal({
                 cargando={guardando}
                 disabled={revisando}
                 title={guia.frase ?? undefined}
-                aria-disabled={!guia.puedeConfirmar || undefined}
+                aria-disabled={undefined} confirma={guia}
                 className={`gr-registrar ${guia.claseConfirmar}`}
               >
                 <span key={textoBoton} className="gr-registrar-texto tabular-nums">

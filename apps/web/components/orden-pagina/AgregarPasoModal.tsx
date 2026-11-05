@@ -405,7 +405,7 @@ export function AgregarPasoModal({
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar || (esOtro && (!esLider || problemaNombre !== null || otroTarde !== undefined))} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Agregando…" disabled={(esOtro && (!esLider || problemaNombre !== null || otroTarde !== undefined))} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               {tarde ? "Agregar tarde" : "Agregar el paso"}
             </Boton>
           </div>

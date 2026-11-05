@@ -204,7 +204,7 @@
       "Boton «Descartar ticket»"
     ],
     "components/punto-de-venta/HojaDeCobro.tsx": [
-      "CampoMonto «{`Monto en ${NOMBRE_METODO[m]}»",
+      "EntradaMonto «{`Monto en ${NOMBRE_METODO[m]}»",
       "button «→() => onMaquina?.(indice, m.cuentaId)»",
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",

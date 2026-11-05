@@ -205,7 +205,7 @@ export function EditarCampanaModal({
                 type="submit"
                 peso="primario"
                 cargando={trabajando}
-                disabled={!guia.puedeConfirmar || !cambio}
+                disabled={!cambio} confirma={guia}
                 title={responsable.motivo ?? guia.frase ?? (cambio ? undefined : "No cambiaste nada")}
                 className={guia.claseConfirmar}
               >

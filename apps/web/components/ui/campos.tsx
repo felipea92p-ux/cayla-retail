@@ -8,6 +8,7 @@ import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, enfocaBuscadorAlAbrir, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { montoParaMostrar } from "@/lib/monto-plata-reglas";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -111,6 +112,14 @@ const TONO_PIE = {
   ok: "text-verde-profundo",
 } as const;
 
+/** El id del pie de un campo: el control se une a él para que el lector de pantalla lea el error o la ayuda al llegar (ADR-0611, mejora 1). */
+const idPieDe = (idControl: string) => `${idControl}-pie`;
+/** Lo que el control de un campo necesita para quedar unido a su pie. Quien pasa su propio `aria-describedby` o `aria-invalid` manda. */
+const unidoAlPie = (id: string, pie: ReactNode, tono: CampoProps["tono"]) => ({
+  "aria-describedby": pie ? idPieDe(id) : undefined,
+  "aria-invalid": tono === "error" ? true : undefined,
+});
+
 export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, sinPie = false, children }: CampoProps) {
   return (
     // `campo`: la etiqueta se oscurece mientras su caja está encendida (ADR-0358, ronda 6; app/estilos/campos-y-casillas.css).
@@ -120,11 +129,11 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
         {ayuda}
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
-      {sinPie && !pie ? null : <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
+      {sinPie && !pie ? null : <div id={htmlFor ? idPieDe(htmlFor) : undefined} className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
         {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
         {pie ? (
           tono === "error" ? (
-            <span className="pie-error trazo-dibuja anim-revelar">
+            <span role="alert" className="pie-error trazo-dibuja anim-revelar">
               <CircleAlert aria-hidden />
               <span>{pie}</span>
             </span>
@@ -200,6 +209,7 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
           // de contactos de quien está en la caja: el ícono azul de persona. En el ERP nunca se escribe el contacto
           // propio en un campo de catálogo o de clienta. Un campo que sí quiera autocompletar pasa su `autoComplete`.
           autoComplete="off"
+          {...unidoAlPie(id, pie, tono)}
           {...props}
           className={`self-stretch py-0 ${mono ? "font-mono tabular-nums tracking-wider" : ""} ${
             props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""
@@ -226,10 +236,15 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
   etiquetaOculta?: boolean;
   /** Sin el renglón reservado para un error bajo la caja: la hoja dice lo que falta en otro lado (su «Falta: …»). */
   sinPie?: boolean;
+  /** Cómo lee esta hoja lo escrito, si entiende más que cifras (`leerMontoPlata`): así también ordena «1299,50» al salir. */
+  leer?: (texto: string) => number | null;
 };
 
-export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", ...props }: CampoMontoProps) {
+export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", leer, ...props }: CampoMontoProps) {
   const id = useId();
+  // Con el foco se edita lo escrito; sin él, se ve con miles y dos decimales (ADR-0611, mejora 3). Es solo lo que se ve: `value` sigue siendo del padre.
+  const [enFoco, setEnFoco] = useState(false);
+  const formatea = !enFoco && props.type !== "number" && (typeof props.value === "string" || typeof props.value === "number");
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta} sinPie={sinPie}>
       {/* La caja que se enciende, de 48 px (ADR-0358, ronda 6): la cifra sigue siendo lo más grande de la hoja. */}
@@ -239,7 +254,21 @@ export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiqueta
         </span>
         <input
           id={id}
+          {...unidoAlPie(id, pie, tono)}
           {...props}
+          value={formatea ? montoParaMostrar(String(props.value), leer) : props.value}
+          onFocus={(e) => {
+            const caja = e.currentTarget;
+            props.onFocus?.(e);
+            // Si quien lo usa selecciona todo al entrar, se vuelve a seleccionar tras repintar sin los miles.
+            const todo = caja.value !== "" && caja.selectionStart === 0 && caja.selectionEnd === caja.value.length;
+            setEnFoco(true);
+            if (todo) requestAnimationFrame(() => caja.select());
+          }}
+          onBlur={(e) => {
+            setEnFoco(false);
+            props.onBlur?.(e);
+          }}
           // Las flechitas del type=number rompen la lectura de instrumento.
           className={`font-display self-stretch py-0 text-2xl leading-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
         />
@@ -1022,11 +1051,15 @@ export function HiloEnEspera({ claro = false }: { claro?: boolean }) {
   );
 }
 
+/** Lo que `Boton` necesita de la guía de foco (`useGuiaCampos` ya lo da). */
+export type BotonConfirma = { puedeConfirmar: boolean; revisar: () => boolean };
+
 export function Boton({
   peso = "fantasma",
   cargando,
   textoCargando = "Guardando…",
   className = "",
+  confirma,
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -1035,10 +1068,31 @@ export function Boton({
   cargando?: boolean;
   /** Otro verbo mientras espera, si lo que hace no es guardar («Abriendo…», «Cerrando…», «Anulando…»). */
   textoCargando?: string;
+  /**
+   * La guía de foco de la hoja. El botón no se apaga por lo que falta: apagado no dice qué falta ni deja preguntar. Al tocarlo, cada campo
+   * pendiente dice su error y el cursor va al primero (ADR-0611, mejora 4). Lo vigila `lib/boton-confirma.test.ts`.
+   */
+  confirma?: BotonConfirma;
 }) {
   const guarda = cargando !== undefined;
+  const falta = confirma && !confirma.puedeConfirmar;
   return (
-    <button {...props} disabled={props.disabled || cargando} aria-busy={cargando || undefined} className={claseBoton(peso, className)}>
+    <button
+      {...props}
+      onClickCapture={
+        falta
+          ? (e) => {
+              // En la captura: frena también el envío del formulario y el `onClick` de quien lo usa. Enter en un campo pasa por aquí.
+              e.preventDefault();
+              e.stopPropagation();
+              confirma.revisar();
+            }
+          : props.onClickCapture
+      }
+      disabled={props.disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={claseBoton(peso, className)}
+    >
       {guarda ? (
         <PalabraEnEspera cargando={Boolean(cargando)} texto={textoCargando}>
           {conMas(children)}

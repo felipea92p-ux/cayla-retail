@@ -290,7 +290,7 @@ export function HojaPrenda({
             <Boton
               type="submit"
               peso="primario"
-              disabled={!guia.puedeConfirmar}
+              confirma={guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               data-guia="compra.agregar"

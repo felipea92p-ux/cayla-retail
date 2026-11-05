@@ -257,7 +257,7 @@ export function FichaDeConsumoHoja({ tallerId, productoId, referencia, insumos, 
                   <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
                     Cancelar
                   </Boton>
-                  <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Guardando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+                  <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Guardando…" confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
                     Guardar en la ficha
                   </Boton>
                 </div>

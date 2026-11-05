@@ -15,7 +15,7 @@ import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CanalDelApartado } from "@/components/apartados/CanalDelApartado";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
-import { CampoMonto } from "@/components/ui/CampoMonto";
+import { EntradaMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -1105,12 +1105,12 @@ export function ApartarVista({
                           </span>
                           <span className="flex items-center gap-1 border-b border-tinta/20 text-sm">
                             <span className="text-tinta/50">S/</span>
-                            <CampoMonto aria-label={`Monto en ${pg.metodo}`} valor={pg.monto} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, monto: v } : y)) }))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
+                            <EntradaMonto aria-label={`Monto en ${pg.metodo}`} valor={pg.monto} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, monto: v } : y)) }))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
                           </span>
                           {pg.metodo === "efectivo" && (
                             <span className="flex items-center gap-1 border-b border-tinta/20 text-sm" title="Con cuánto pagó (para el vuelto)">
                               <span className="text-sm text-tinta/50">Recibe</span>
-                              <CampoMonto aria-label="Efectivo recibido" valor={pg.recibido ?? 0} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, recibido: v || undefined } : y)) }))} className="w-16 bg-transparent py-1 text-right tabular-nums outline-none" />
+                              <EntradaMonto aria-label="Efectivo recibido" valor={pg.recibido ?? 0} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, recibido: v || undefined } : y)) }))} className="w-16 bg-transparent py-1 text-right tabular-nums outline-none" />
                             </span>
                           )}
                           <button type="button" aria-label={`Quitar ${pg.metodo}`} onClick={() => setF((x) => ({ ...x, pagos: x.pagos.filter((_, j) => j !== i) }))} className="p-1 text-rojo-profundo">

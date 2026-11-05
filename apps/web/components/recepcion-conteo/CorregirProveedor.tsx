@@ -102,7 +102,7 @@ export function CorregirProveedor({
             <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Corrigiendo…" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Corrigiendo…" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Corregir el proveedor
             </Boton>
           </div>

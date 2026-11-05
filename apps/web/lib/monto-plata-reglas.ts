@@ -68,6 +68,26 @@ export function lecturaCampoMonto(texto: string): { valor: number; ilegible: boo
   return n === null ? { valor: 0, ilegible: true } : { valor: n, ilegible: false };
 }
 
+/** Solo cifras y, si hay, un punto con 1 o 2 decimales: lo único que leen igual `Number`, `leerMonto` y `leerMontoPlata`. */
+function leerSoloCifras(texto: string): number | null {
+  const t = texto.trim();
+  return /^\d+(\.\d{1,2})?$/.test(t) ? Number(t) : null;
+}
+
+/**
+ * Cómo se ve un monto cuando el campo no tiene el foco: con miles y dos decimales, «1299.5» es «1,299.50» (ADR-0611, mejora 3). Es solo lo que se ve:
+ * el padre sigue guardando lo que se escribió, así que ninguna cuenta cambia, y al volver al campo se ve lo escrito.
+ *
+ * Un monto mal mostrado es peor que uno sin formato, y cada pantalla lee lo escrito a su manera. Por eso, por defecto solo se le da formato a lo que todas
+ * leen igual; lo demás («12.500», «2,5», un costo de tres decimales) se queda como se escribió. Quien lee con `leerMontoPlata` lo pasa en `leer` y también
+ * se ordena «1299,50».
+ */
+export function montoParaMostrar(texto: string, leer: (t: string) => number | null = leerSoloCifras): string {
+  const n = leer(texto);
+  if (n === null || n < 0 || Math.round(n * 100) / 100 !== n) return texto;
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 /** El reemplazo de `Number(texto)` en un campo de plata que guarda lo escrito como texto: vacío es 0 (como `Number`), lo que no se
  *  entiende es `NaN` (así `> 0` es falso y `|| 0` da 0: ningún botón guarda un monto adivinado), y lo demás se lee con `leerMontoPlata`. */
 export function numeroDeMonto(texto: string): number {

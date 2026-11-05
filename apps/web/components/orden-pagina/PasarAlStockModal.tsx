@@ -419,7 +419,7 @@ export function PasarAlStockModal({
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={cargando} textoCargando={yaEstabaEfectivo ? "Cerrando…" : "Pasando…"} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando={yaEstabaEfectivo ? "Cerrando…" : "Pasando…"} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
                 {orden.esMuestra ? "Terminar muestra" : yaEstabaEfectivo ? "Cerrar la orden" : total > 0 ? `Pasar ${total} al stock` : "Pasar al stock"}
               </Boton>
             </div>

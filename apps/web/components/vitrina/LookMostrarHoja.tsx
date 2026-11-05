@@ -106,7 +106,7 @@ export function LookMostrarHoja({
               type="submit"
               peso="primario"
               cargando={guardando}
-              disabled={!guia.puedeConfirmar || Boolean(impide)}
+              disabled={Boolean(impide)} confirma={guia}
               title={guia.frase ?? impide ?? undefined}
               className={guia.claseConfirmar}
             >

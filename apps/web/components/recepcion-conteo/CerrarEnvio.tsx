@@ -1055,7 +1055,7 @@ export function CerrarEnvio({
                   peso="primario"
                   cargando={guardando}
                   textoCargando="Cerrando…"
-                  disabled={!guia.puedeConfirmar || esperandoGuardar}
+                  disabled={esperandoGuardar} confirma={guia}
                   title={sinGuardar > 0 ? "Hay líneas que no se pudieron guardar" : esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
                   className={guia.claseConfirmar}
                   data-guia="recepcion.cerrar-boton"

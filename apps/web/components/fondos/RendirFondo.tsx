@@ -317,7 +317,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
               Cancelar
             </Boton>
             {!vacio && (
-              <Boton textoCargando="Rindiendo…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && (!guia.puedeConfirmar || items === null)} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              <Boton textoCargando="Rindiendo…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && items === null} confirma={congelada ? undefined : guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                 {congelada ? "Volver a intentar" : fraseRendir(cuenta)}
               </Boton>
             )}

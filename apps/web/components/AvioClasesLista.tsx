@@ -218,7 +218,7 @@ function HojaDeClase({ clase, onGuardada, onClose }: { clase: ClaseDeAvio | null
           <Boton type="button" onClick={onClose}>
             Cancelar
           </Boton>
-          <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+          <Boton type="submit" peso="primario" cargando={cargando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
             {clase ? "Guardar" : "Crear la clase"}
           </Boton>
         </div>

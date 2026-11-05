@@ -413,7 +413,7 @@ export function HojaDeCampanaCalendario({
                 type="submit"
                 peso="primario"
                 cargando={trabajando}
-                disabled={!guia.puedeConfirmar || (!cambio && !nueva)}
+                disabled={!cambio && !nueva} confirma={guia}
                 title={responsable.motivo ?? guia.frase ?? (cambio || nueva ? undefined : "No cambiaste nada")}
                 className={guia.claseConfirmar}
               >
