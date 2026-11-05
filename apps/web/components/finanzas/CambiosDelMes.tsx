@@ -56,7 +56,7 @@ export function CambiosDelMesPieza({ cambios }: { cambios: CambiosMes }) {
           ))}
         </ul>
       )}
-      <p className="nota-cayla mt-3">Compara con el mismo tramo del mes pasado ({cambios.contra}), para que sea justo. Un número verde ayuda a lo que te deja; uno en taupe lo resta.</p>
+      <p className="nota-cayla mt-3">Compara con el mismo tramo del mes pasado ({cambios.contra}), para que sea justo.{cambios.antesDeSueldos ? " A esta fecha el mes pasado todavía no llevaba sueldos, así que aquí no se cuentan en ninguno de los dos." : ""} Un número verde ayuda a lo que te deja; uno en taupe lo resta.</p>
     </Superficie>
   );
 }

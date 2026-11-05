@@ -422,7 +422,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
@@ -473,7 +473,7 @@ export function RegistrarPagoModal({
                     type="submit"
                     peso="primario"
                     cargando={loading}
-                    disabled={loading || excede || favorExcedido || suma <= 0}
+                    disabled={loading || excede || favorExcedido || suma <= 0 || cuentas.falla}
                     className="pie-acciones-ancho"
                   >
                     {`Registrar pago de ${soles(suma)}`}

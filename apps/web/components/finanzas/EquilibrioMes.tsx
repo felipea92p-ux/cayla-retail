@@ -14,6 +14,7 @@ const ESTADO: Record<EstadoEquilibrio, { texto: string; tono: TonoChip }> = {
   cubierto: { texto: "Pagado", tono: "verde" },
   en_camino: { texto: "En camino", tono: "ambar" },
   no_llega: { texto: "No alcanza", tono: "rojo" },
+  sin_confirmar: { texto: "Por confirmar", tono: "pizarra" },
 };
 
 /** La posición de una etiqueta sobre el camino: pegada a su rayita, pero sin salirse de la tarjeta. */

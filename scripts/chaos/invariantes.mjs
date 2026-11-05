@@ -620,6 +620,38 @@ select l.id as lote_id, l.insumo_id, l.ubicacion_id, l.cantidad_ingresada as can
     corrompe: `update retail.insumo_lotes set cantidad_ingresada = cantidad_ingresada + 1
  where ctid = (select ctid from retail.insumo_lotes where anulado_at is null limit 1);`,
   },
+  {
+    id: "INV-27",
+    nombre: "compra_anulada_sin_pagos",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una factura de proveedor anulada no tiene pagos: `anular_compra` lo prohíbe, porque la plata saldría del banco sin una deuda que la respalde (tarea 36 de «Las 36»).",
+    sql: `
+select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(p.monto) as pagado
+  from retail.compras c
+  join retail.compra_pagos p on p.compra_id = c.id
+ where c.estado = 'anulada'
+ group by c.id, c.serie, c.numero`,
+    corrompe: `update retail.compras set estado = 'anulada', motivo_anulacion = 'autoprueba chaos', anulada_at = now()
+ where ctid = (select c.ctid from retail.compras c where c.estado = 'vigente'
+                and exists (select 1 from retail.compra_pagos p where p.compra_id = c.id) limit 1);`,
+  },
+  {
+    id: "INV-28",
+    nombre: "compra_pagado_igual_a_sus_pagos",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Lo que una factura vigente dice que tiene pagado es la suma de sus pagos. Si no, Por pagar y el banco cuentan dos historias de la misma deuda (tarea 36 de «Las 36»).",
+    sql: `
+select c.id as compra_id, c.serie || '-' || c.numero as factura, c.pagado, coalesce(sum(p.monto), 0) as suma_pagos
+  from retail.compras c
+  left join retail.compra_pagos p on p.compra_id = c.id
+ where c.estado = 'vigente'
+ group by c.id, c.serie, c.numero, c.pagado
+having c.pagado <> coalesce(sum(p.monto), 0)`,
+    corrompe: `update retail.compra_pagos set monto = monto + 1
+ where ctid = (select p.ctid from retail.compra_pagos p join retail.compras c on c.id = p.compra_id where c.estado = 'vigente' limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────

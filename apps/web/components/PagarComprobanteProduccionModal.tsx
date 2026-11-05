@@ -90,12 +90,12 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, faltante 
           </Aviso>
         )}
 
-        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} totalComprobante={c.total} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} totalComprobante={c.total} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }} />
 
         <CampoTexto etiqueta="Fecha del pago" type="date" value={fecha} min={c.fechaEmision} max={hoy} onChange={(e) => setFecha(e.target.value)} tono={errorFecha ? "error" : "neutro"} pie={errorFecha ?? undefined} />
 
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <Boton textoCargando="Registrando…" peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+        <Boton textoCargando="Registrando…" peso="primario" type="submit" cargando={cargando} disabled={!listo || cuentas.falla || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
           {reparto.suma > 0 ? (quedaria > 0 ? `Pagar ${soles(reparto.suma)} · quedan ${soles(quedaria)}` : `Pagar ${soles(reparto.suma)} y saldar`) : "Pagar"}
         </Boton>
       </form>
