@@ -72,7 +72,8 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
   const limpiarError = useCallback((id: string) => {
     setExternos((e) => {
       if (!(id in e)) return e;
-      const { [id]: _quitado, ...resto } = e;
+      const resto = { ...e };
+      delete resto[id];
       return resto;
     });
   }, []);

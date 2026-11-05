@@ -80,20 +80,22 @@ export function SelectorMes({
   }, [abierto, pos]);
 
   // Flechas por la grilla de meses (ADR-0611, mejora 8). Un mes que todavía no llega se ve pero no recibe el foco: el foco se queda donde está.
-  const [mesConFoco, setMesConFoco] = useState<number | null>(null);
+  const focoAlCambiarDeAnio = useRef<number | null>(null);
+  const enfocarMes = (mes: number) => panel.current?.querySelector<HTMLElement>(`[data-mes="${mes}"]:not(:disabled)`)?.focus();
   useEffect(() => {
-    if (mesConFoco === null) return;
-    panel.current?.querySelector<HTMLElement>(`[data-mes="${mesConFoco}"]:not(:disabled)`)?.focus();
-    setMesConFoco(null);
-  }, [mesConFoco, anio]);
+    if (focoAlCambiarDeAnio.current === null) return;
+    enfocarMes(focoAlCambiarDeAnio.current);
+    focoAlCambiarDeAnio.current = null;
+  }, [anio]);
   function alTeclearGrilla(e: React.KeyboardEvent<HTMLDivElement>) {
-    const actualEnFoco = (e.target as HTMLElement).closest<HTMLElement>("[data-mes]");
-    const destino = actualEnFoco ? mesPorTecla(anio, Number(actualEnFoco.dataset.mes), e.key) : null;
+    const enFoco = (e.target as HTMLElement).closest<HTMLElement>("[data-mes]");
+    const destino = enFoco ? mesPorTecla(anio, Number(enFoco.dataset.mes), e.key) : null;
     if (!destino) return;
     e.preventDefault();
     if (destino.anio < anioMinimo || destino.anio > actual.anio) return;
+    if (destino.anio === anio) return enfocarMes(destino.mes);
+    focoAlCambiarDeAnio.current = destino.mes;
     setAnio(destino.anio);
-    setMesConFoco(destino.mes);
   }
 
   // Escape cierra el panel y se queda con la tecla: la hoja de abajo sigue abierta.
