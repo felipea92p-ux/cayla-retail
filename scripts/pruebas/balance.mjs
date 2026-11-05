@@ -405,6 +405,16 @@ set local session_replication_role = origin;
 select 'P1 completar el papel baja lo facturado por recibir: de 400 a 0', :'antes'::numeric = 400 and (select (detalle ->> 'por_recibir')::numeric = 0 from retail.fn_balance_general('2024-03-31') where cuenta = '201');
 select 'P2 la 201 no queda sin explicar', (select count(*) = 0 from retail.fn_conciliacion_contable('2024-03-31'), jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'sin_explicar');
 `;
+// Lo que apareció antes del corte de los sobrantes (tarea 6): no pega al resultado, da nota en la 201 y no bloquea.
+const CASOS_SOBRANTES = `
+select (select monto from retail.fn_balance_general('2024-03-31') where cuenta = 'resultado_mes') as res0 \\gset
+select pg_temp.mov('SB1', :'p2', :'tru', 'ajuste', 2, 'conteo', '2024-03-29 12:00-05') as _m \\gset
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'S1 antes del corte no asienta: el resultado no cambia', (select monto = :'res0'::numeric from retail.fn_balance_general('2024-03-31') where cuenta = 'resultado_mes') and (select count(*) = 0 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'sobrante');
+select 'S2 da nota en la 201 con su propia causa, no «otras entradas»', (select estado = 'nota' from con where clave = '201')
+  and (select (c ->> 'acepta')::boolean from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'sobrantes_sin_asiento')
+  and (select count(*) = 0 from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' in ('otras_entradas', 'sin_explicar'));
+`;
 const CASOS_ARRANQUE = `
 select 'N4 sin arranque la comprobación dice que falta y el Balance no se dibuja', (select count(*) = 1 and bool_and(clave = 'arranque' and estado = 'falta') from retail.fn_conciliacion_contable('2024-03-31'))
   and (select count(*) = 0 from retail.fn_balance_general('2024-03-31'));
@@ -459,6 +469,7 @@ function main() {
   verificar("Cuenta nueva", correr(base + CASOS_CUENTA_NUEVA), casosDe(CASOS_CUENTA_NUEVA));
   verificar("Venta sin prenda", correr(base + CASOS_VENTA_SIN_PRENDA), casosDe(CASOS_VENTA_SIN_PRENDA));
   verificar("Recibido antes", correr(base + CASOS_RECIBIDO_ANTES), casosDe(CASOS_RECIBIDO_ANTES));
+  verificar("Sobrantes antes del corte", correr(base + CASOS_SOBRANTES), casosDe(CASOS_SOBRANTES));
   verificar("Tienda", correr(base + CASOS_TIENDA), casosDe(CASOS_TIENDA));
   verificar("Sin clasificar", correr(base + CASOS_SIN_CLASIFICAR), casosDe(CASOS_SIN_CLASIFICAR));
   verificar("Antes del arranque", correr(base + CASOS_ANTES), casosDe(CASOS_ANTES));
