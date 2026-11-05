@@ -34,7 +34,7 @@ import {
   type MaquinaPos,
   type MedioCobro,
 } from "@/lib/cuentas-dinero-reglas";
-import { cobrosDeSede, curvaHilo, destinosDeSede, detalleDeDestino, gruposDeCuentas, maquinaSinTarifa, saldoDeCuenta, sedesDeCobro, tarifaDeMaquina, textoDeLoPlegado } from "@/lib/dinero-config-reglas";
+import { primerPasoCobros, cobrosDeSede, curvaHilo, destinosDeSede, detalleDeDestino, gruposDeCuentas, maquinaSinTarifa, saldoDeCuenta, sedesDeCobro, tarifaDeMaquina, textoDeLoPlegado } from "@/lib/dinero-config-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { consecuenciaCorte, corteParaBase, fechaDelCorte, opcionesCorte, SIN_CORTE } from "@/lib/finanzas-arranque-reglas";
 import { BANCOS_CON_CUENTA, TEXTO_BANCO, type CuentaPlanilla } from "@/lib/planilla-salidas-reglas";
@@ -104,6 +104,7 @@ function Cobros({ medios, activas, guardar, guardando }: { medios: readonly Fila
   const cobros = useMemo(() => (sede ? cobrosDeSede(medios, sede.id) : []), [medios, sede]);
   const destinos = useMemo(() => destinosDeSede(cobros, activas), [cobros, activas]);
   const { flujo, hilos } = useHilos(cobros);
+  const primerPaso = useMemo(() => (sede ? primerPasoCobros(medios, sede.id) : null), [medios, sede]);
   const [encima, setEncima] = useState<MedioCobro | null>(null);
 
   if (!sede) {
@@ -139,6 +140,7 @@ function Cobros({ medios, activas, guardar, guardando }: { medios: readonly Fila
       >
         A dónde entra cada cobro
       </TituloSeccion>
+      {primerPaso && <p className="cv-primer-paso">{primerPaso}</p>}
       <div className="cv-flujo" ref={flujo} key={sede.id}>
         <svg className="cv-hilos" aria-hidden>
           {hilos.map((h, k) => (
@@ -265,7 +267,7 @@ function FilaMaquina({ maquina, i, guardando, alTarifa }: { maquina: MaquinaPos;
         <span data-guia="config.maquina-tarifa">
           {sinTarifa ? (
             <button type="button" className="vs-accion poner" disabled={guardando} onClick={alTarifa} aria-label={`Poner la tarifa de ${maquina.nombre}`}>
-              Poner
+              Poner tarifa
             </button>
           ) : (
             <LapizEditar que={`la tarifa de ${maquina.nombre}`} disabled={guardando} onClick={alTarifa} />
@@ -281,8 +283,8 @@ function MaquinasYPlanilla({ maquinas, planilla, activas, guardar, guardando, al
   const bancos = activas.filter((c) => c.tipo === "banco");
   return (
     <section className="vs-liquido cv-bloque" data-luz style={{ "--e": 2 } as React.CSSProperties}>
-      <TituloSeccion ayuda="Con qué máquina se cobra tarjeta y QR en cada tienda y cuánto se lleva: la tarifa solo estima la comisión, la real sale de cada depósito. Y de qué cuenta de CAYLA sale la planilla de quienes cobran en cada banco; quien no tiene banco en Dynamic sale aparte. Cambiar esto no mueve lo ya registrado.">
-        Máquinas y planilla
+      <TituloSeccion ayuda="Con qué máquina se cobra tarjeta y QR en cada tienda y cuánto se lleva: la tarifa solo estima la comisión, la real sale de cada depósito. Y de qué cuenta de CAYLA se pagan los sueldos (la planilla) según el banco de cada persona; quien no tiene banco en Dynamic sale aparte. Cambiar esto no mueve lo ya registrado.">
+        Máquinas de cobro y sueldos
       </TituloSeccion>
       {maquinas && (
         <div className="cv-tarjetas una" data-guia="config.maquinas">
@@ -295,21 +297,21 @@ function MaquinasYPlanilla({ maquinas, planilla, activas, guardar, guardando, al
       )}
       {planilla && (
         <div className="cv-subgrupo" data-guia="config.planilla-cuentas">
-          <TituloGrupo>La planilla sale de</TituloGrupo>
+          <TituloGrupo>De dónde se pagan los sueldos</TituloGrupo>
           <div className="cv-tarjetas una sin-margen">
             {BANCOS_CON_CUENTA.map((banco, i) => (
               <div key={banco} className="cv-fila cv-tope" style={{ "--i": i } as React.CSSProperties}>
-                <span className="cv-frase">Quienes cobran en {TEXTO_BANCO[banco]}</span>
+                <span className="cv-frase">Equipo con cuenta {TEXTO_BANCO[banco]}</span>
                 <ComboCuenta
-                  etiqueta={`De qué cuenta sale la planilla de quienes cobran en ${TEXTO_BANCO[banco]}`}
+                  etiqueta={`De qué cuenta se paga al equipo con cuenta ${TEXTO_BANCO[banco]}`}
                   actual={planilla.find((p) => p.banco === banco)?.cuentaId ?? ""}
                   cuentas={bancos}
                   deshabilitado={guardando}
                   alCambiar={(cuentaId) =>
                     guardar(
                       () => createClient().rpc("guardar_cuenta_planilla" as never, { p_banco: banco, p_cuenta_id: cuentaId || null } as never),
-                      "cambiar de qué cuenta sale la planilla",
-                      cuentaId ? `La planilla de quienes cobran en ${TEXTO_BANCO[banco]} sale de ${bancos.find((c) => c.id === cuentaId)?.nombre ?? "esa cuenta"}.` : `La planilla de quienes cobran en ${TEXTO_BANCO[banco]} ya no propone cuenta.`,
+                      "cambiar de qué cuenta se pagan los sueldos",
+                      cuentaId ? `Los sueldos del equipo con cuenta ${TEXTO_BANCO[banco]} salen de ${bancos.find((c) => c.id === cuentaId)?.nombre ?? "esa cuenta"}.` : `Los sueldos del equipo con cuenta ${TEXTO_BANCO[banco]} ya no propone cuenta.`,
                     )
                   }
                 />
@@ -399,7 +401,7 @@ function CuandoAvisa({ parametros, guardar, guardando, responsableListo }: { par
           <div className="vs-dato" data-guia="config.caja-corte" style={{ "--i": 3 } as React.CSSProperties}>
             <GotaDinero trazo="reloj" i={3} />
             <span className="vs-textos">
-              <span className="vs-rotulo">Finanzas cuenta desde</span>
+              <span className="vs-rotulo">Los reportes cuentan desde</span>
               <Desplegable forma="campo" className="cv-combo" etiquetaAccesible="Desde cuándo cuenta Finanzas" valor={corte} onValor={setCorte} opciones={opciones} deshabilitado={guardando} />
               {corte !== corteBase && <span className="vs-rotulo cv-consecuencia">{consecuenciaCorte(corteParaBase(corte))}</span>}
             </span>

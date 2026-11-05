@@ -31,7 +31,7 @@ import {
 import type { CampanaConfig, ConfiguracionMetas as DatosMetas, ConfiguracionTiendas as Datos, FechaMeta, TiendaConfig } from "@/lib/configuracion-reglas";
 import { semanaConCambio, semanaDelMesConCambio } from "@/lib/metas-frescas-reglas";
 import { NO_SE_PUDO_LEER, semanaDelMesFresca, tiendaFresca } from "@/lib/metas-frescas";
-import { alturas, heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva } from "@/lib/metas-tubos-reglas";
+import { alturas, heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva, primerPasoMetas } from "@/lib/metas-tubos-reglas";
 
 // Configuración ▸ Metas (Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/; metas por mes y por fecha, ADR-0435): ¿cuánto tiene que vender cada tienda? Un
 // tubo por mes que se llena según su meta y, al tocarlo, los siete días de ese mes: siete casillas en vez de cuarenta y dos. Cada casilla se guarda sola al salir de ella, firmada
@@ -252,11 +252,12 @@ export function VistaMetas({ datos, metas, metaDeHoy }: { datos: Datos; metas: D
   const tienda = datos.tiendas.find((t) => t.id === sedeId) ?? datos.tiendas[0];
   const tMetas = metas?.tiendas.find((t) => t.id === tienda?.id) ?? null;
   const meses = useMemo(() => tMetas?.meses ?? [], [tMetas]);
-  const [elegido, setElegido] = useState<string>(meses[0]?.mes ?? LO_NORMAL);
+  const [elegido, setElegido] = useState<string>(tienda && heredaLoNormal(tienda.metas) ? LO_NORMAL : (meses[0]?.mes ?? LO_NORMAL));
 
   if (!tienda) return <div className="nota-cayla">No hay tiendas activas para configurar.</div>;
 
   const normal = tienda.metas;
+  const primerPaso = primerPasoMetas(normal);
   const totalNormal = mesTipico(normal);
   const niveles = alturas([totalNormal, ...meses.map((m) => m.total)]);
   const mes = meses.find((m) => m.mes === elegido) ?? null;
@@ -337,6 +338,7 @@ export function VistaMetas({ datos, metas, metaDeHoy }: { datos: Datos; metas: D
           Cuánto vender
         </TituloSeccion>
 
+        {primerPaso && <p className="cv-primer-paso">{primerPaso}</p>}
         <div className="cv-meses">
           <button type="button" className="cv-mes" aria-pressed={esNormal} data-guia="config.tiendas-normal" aria-label={`Lo normal: ${totalNormal === null ? "sin meta" : solesRedondo(totalNormal)} al mes, aproximado`} onClick={() => setElegido(LO_NORMAL)}>
             <Tubo nivel={niveles[0] ?? 0} />

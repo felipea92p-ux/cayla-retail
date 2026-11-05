@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cobrosDeSede, curvaHilo, destinosDeSede, detalleDeDestino, gruposDeCuentas, maquinaSinTarifa, saldoDeCuenta, sedesDeCobro, tarifaDeMaquina, textoDeLoPlegado } from "./dinero-config-reglas";
+import { primerPasoCobros, cobrosDeSede, curvaHilo, destinosDeSede, detalleDeDestino, gruposDeCuentas, maquinaSinTarifa, saldoDeCuenta, sedesDeCobro, tarifaDeMaquina, textoDeLoPlegado } from "./dinero-config-reglas";
 import type { CuentaDinero, FilaMedio, MedioCobro, TarifaPos, TipoCuenta } from "./cuentas-dinero-reglas";
 
 const medio = (ubicacionId: string, ubicacionNombre: string, m: MedioCobro, cuentaId: string | null) => ({ ubicacionId, ubicacionNombre, medio: m, cuentaId, cuentaNombre: null }) as FilaMedio;
@@ -83,5 +83,30 @@ describe("las máquinas", () => {
     expect(tarifaDeMaquina({ sedes: [sede("tarjeta", tarifa(3)), sede("qr", tarifa(3))] })).toBe("3 % + IGV · deposita al día hábil siguiente");
     expect(tarifaDeMaquina({ sedes: [sede("tarjeta", tarifa(3)), sede("qr", tarifa(2))] })).toBe("Tarjeta: 3 % + IGV · deposita al día hábil siguiente · QR: 2 % + IGV · deposita al día hábil siguiente");
     expect(tarifaDeMaquina({ sedes: [] })).toBe("");
+  });
+});
+
+describe("por dónde empezar en los cobros", () => {
+  it("nombra lo que no tiene cuenta en esta sede y avisa de las otras", () => {
+    const m = [...MEDIOS, medio("lim", "Tienda LIM", "yape", null)];
+    expect(primerPasoCobros(m, "tru")).toBe("Falta elegir la cuenta de Plin. También falta en LIM.");
+  });
+
+  it("varios se unen con «y»; sin nada aquí, solo dice dónde falta", () => {
+    const todos = (["yape", "plin", "tarjeta", "qr", "transferencia"] as const).map((x) => medio("a", "Tienda LIM", x, x === "yape" || x === "plin" ? null : "bcp"));
+    const otra = (["yape", "plin", "tarjeta", "qr", "transferencia"] as const).map((x) => medio("b", "Tienda TRU", x, "bcp"));
+    expect(primerPasoCobros([...todos, ...otra], "a")).toBe("Falta elegir la cuenta de Yape y Plin.");
+    expect(primerPasoCobros([...todos, ...otra], "b")).toBe("Falta en LIM.");
+  });
+
+  it("la sede que solo paga pide de qué cuenta paga", () => {
+    const m = [medio("tal", "Taller", "transferencia", null), ...(["yape", "plin", "tarjeta", "qr", "transferencia"] as const).map((x) => medio("a", "Tienda LIM", x, "bcp"))];
+    expect(primerPasoCobros(m, "tal")).toBe("Falta elegir de qué cuenta paga.");
+  });
+
+  it("con todo elegido o una sede que no existe, no dice nada", () => {
+    const m = (["yape", "plin", "tarjeta", "qr", "transferencia"] as const).map((x) => medio("a", "Tienda LIM", x, "bcp"));
+    expect(primerPasoCobros(m, "a")).toBeNull();
+    expect(primerPasoCobros(m, "zzz")).toBeNull();
   });
 });

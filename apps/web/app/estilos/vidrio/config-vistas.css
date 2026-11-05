@@ -180,3 +180,4 @@
 .cv-vig .cv-gota { flex: none; width: 48px; height: 48px; }
 .cv-corta { flex-wrap: nowrap; }
 .cv-corta .cv-frase { flex: 1 1 0; min-width: 0; }
+.cv-primer-paso { margin-top: 6px; font-size: 15px; line-height: 1.35; color: var(--color-ambar-profundo); }

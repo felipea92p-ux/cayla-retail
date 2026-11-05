@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alturas, heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva } from "./metas-tubos-reglas";
+import { primerPasoMetas, alturas, heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva } from "./metas-tubos-reglas";
 
 describe("los tubos de Metas", () => {
   it("«Lo normal» se lleva a 30 días para compararse; sin metas no vale nada", () => {
@@ -35,5 +35,12 @@ describe("los tubos de Metas", () => {
   it("el mes más alto ignora los que no tienen dato", () => {
     expect(mesMasAlto([{ total: null, n: "a" }, { total: 50, n: "b" }, { total: 80, n: "c" }])?.n).toBe("c");
     expect(mesMasAlto([{ total: null }])).toBeNull();
+  });
+});
+
+describe("por dónde empezar en Metas", () => {
+  it("una tienda sin semana normal empieza por ahí; con un día escrito, ya no lo dice", () => {
+    expect(primerPasoMetas([null, null, null, null, null, null, null])).toContain("Normal");
+    expect(primerPasoMetas([700, null, null, null, null, null, null])).toBeNull();
   });
 });

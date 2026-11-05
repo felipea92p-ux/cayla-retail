@@ -3,6 +3,7 @@
 // Contrato — PROMETE: ordenar lo que la base ya trae para dibujarlo: qué cobra una sede y a dónde entra, qué cuentas van a la vista y cuáles se pliegan, cómo se lee una máquina.
 // NO decide a qué cuenta puede entrar un cobro (`tiposParaMedio` y `guardar_medio_de_cobro` lo hacen) ni qué sede solo paga (`idsSoloTransferencia`).
 
+import { nombreCortoSede } from "./finanzas-telar-reglas";
 import { solesRedondo } from "./gastos-reglas";
 import {
   MEDIOS_COBRO,
@@ -34,6 +35,23 @@ export function cobrosDeSede(medios: readonly FilaMedio[], sedeId: string): Cobr
     medio,
     cuentaId: medios.find((x) => x.ubicacionId === sedeId && x.medio === medio)?.cuentaId ?? "",
   }));
+}
+
+const unir = (l: readonly string[]) => (l.length > 1 ? `${l.slice(0, -1).join(", ")} y ${l[l.length - 1]}` : (l[0] ?? ""));
+
+/** Por dónde empezar: qué cobro de esta sede no tiene cuenta y qué otra sede tiene alguno así. Sin nada que elegir, `null`. No bloquea nada: solo lo dice (prueba ciega, 2026-11-05). */
+export function primerPasoCobros(medios: readonly FilaMedio[], sedeId: string): string | null {
+  const sedes = sedesDeCobro(medios);
+  const sede = sedes.find((s) => s.id === sedeId);
+  if (!sede) return null;
+  const sinCuenta = (id: string) => cobrosDeSede(medios, id).filter((c) => !c.cuentaId);
+  const aqui = sinCuenta(sedeId);
+  const otras = sedes.filter((s) => s.id !== sedeId && sinCuenta(s.id).length).map((s) => nombreCortoSede(s.nombre));
+  const frases = [
+    aqui.length ? (sede.soloPaga ? "Falta elegir de qué cuenta paga." : `Falta elegir la cuenta de ${unir(aqui.map((c) => TEXTO_MEDIO_COBRO[c.medio]))}.`) : null,
+    otras.length ? `${aqui.length ? "También falta" : "Falta"} en ${unir(otras)}.` : null,
+  ].filter(Boolean);
+  return frases.length ? frases.join(" ") : null;
 }
 
 /** Las cuentas a las que llega algo en esta sede, sin repetir y en el orden en que aparecen: la columna de la derecha, a donde corren los hilos. */

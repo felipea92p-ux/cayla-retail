@@ -1056,13 +1056,13 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.maquina-tarifa",
       opcional: true,
       titulo: "La tarifa de cada máquina",
-      texto: "El lápiz, o «Poner» si aún no la tiene, abre su tarifa: la tasa, si lleva IGV, el cargo fijo por pago y en cuántos días hábiles deposita. Solo sirve para estimar la comisión y avisar si la máquina se atrasa; la real sale de cada depósito.",
+      texto: "El lápiz, o «Poner tarifa» si aún no la tiene, abre su tarifa: la tasa, si lleva IGV, el cargo fijo por pago y en cuántos días hábiles deposita. Solo sirve para estimar la comisión y avisar si la máquina se atrasa; la real sale de cada depósito.",
     },
     {
       id: "planilla-cuentas",
       ancla: "config.planilla-cuentas",
       opcional: true,
-      titulo: "De qué cuenta sale la planilla",
+      titulo: "De dónde se pagan los sueldos",
       texto: "Dynamic le paga a cada persona en el banco donde cobra. Aquí eliges de qué cuenta de CAYLA sale lo de quienes cobran en cada banco.",
     },
     {

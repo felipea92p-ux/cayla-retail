@@ -39,3 +39,8 @@ export function semanaEfectiva(semana: readonly (number | null)[], normal: reado
 export function mesMasAlto<T extends { total: number | null }>(meses: readonly T[]): T | null {
   return meses.reduce<T | null>((mejor, m) => (m.total !== null && m.total > (mejor?.total ?? 0) ? m : mejor), null);
 }
+
+/** Por dónde empezar en una tienda sin metas: la semana «Normal», de la que salen todos los meses. Con al menos un día escrito, `null` (prueba ciega, 2026-11-05). */
+export function primerPasoMetas(normal: readonly (number | null)[]): string | null {
+  return heredaLoNormal(normal) ? "Empieza por «Normal»: escribe cuánto vender cada día de la semana. Vale para todos los meses." : null;
+}

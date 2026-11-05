@@ -64,7 +64,6 @@ function PorConfirmar({ parametros, guardar }: { parametros: ParametroFila[]; gu
             {sigue.has(p.clave) ? (
               <Boton
                 peso="fantasma"
-                className="btn-chico"
                 type="button"
                 cargando={enCurso === p.clave}
                 disabled={enCurso !== null}
@@ -175,7 +174,7 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
     <>
       <div className="cv-reg">
         <div>
-          <span className="vs-rotulo">Régimen {anio}</span>
+          <span className="vs-rotulo">Régimen {anio}: cómo tributa CAYLA</span>
           {/* Sin régimen propio para ese año, el marcador dice cuál rige («Como antes: …»). */}
           <Desplegable
             forma="campo"
@@ -206,7 +205,7 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
           <div className="cv-escala" aria-hidden>
             {limite.avisoPct !== null && avisoVigente?.valor && (
               <span className="aviso" style={conVar({ "--x": `${limite.avisoPct}%` })}>
-                Aviso · {avisoVigente.valor} UIT
+                Te avisa · {avisoVigente.valor} UIT
               </span>
             )}
             <span className="tope">Límite · {umbralVigente?.valor ?? "—"} UIT</span>
@@ -217,7 +216,7 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
         <div className="cv-fila cv-tope" style={conVar({ "--i": 0 })}>
           <span className="vs-textos">
             <span className="cv-frase">Límite</span>
-            {enSoles !== null && <span className="vs-rotulo">{solesRedondo(enSoles)}</span>}
+            <span className="vs-rotulo">{enSoles !== null ? `${solesRedondo(enSoles)} en ventas del año` : "Ventas del año"}</span>
           </span>
           <CasillaManual valor={borrador.umbral} guardado={guardado.umbral} onValor={poner("umbral")} onEnter={guardarAnio} bloqueada={guardandoAnio} placeholder={umbralVigente ? valorEnCasilla(umbralVigente) : "—"} etiqueta={`Límite de ventas de ${anio}, en UIT`} ancho="w-20" />
           <span className="cv-unidad">UIT</span>
@@ -225,7 +224,7 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
         <div className="cv-fila cv-tope" style={conVar({ "--i": 1 })}>
           <span className="vs-textos">
             <span className="cv-frase">Aviso</span>
-            {avisoEnSoles !== null && <span className="vs-rotulo">{solesRedondo(avisoEnSoles)}</span>}
+            <span className="vs-rotulo">{avisoEnSoles !== null ? `${solesRedondo(avisoEnSoles)}: te avisa antes del límite` : "Te avisa antes del límite"}</span>
           </span>
           <CasillaManual valor={borrador.aviso} guardado={guardado.aviso} onValor={poner("aviso")} onEnter={guardarAnio} bloqueada={guardandoAnio} placeholder={avisoVigente ? valorEnCasilla(avisoVigente) : "—"} etiqueta={`Aviso anticipado de ${anio}, en UIT de ventas del año`} ancho="w-20" />
           <span className="cv-unidad">UIT</span>
@@ -233,6 +232,7 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
         <div className="cv-fila cv-tope" style={conVar({ "--i": 2 })}>
           <span className="vs-textos">
             <span className="cv-frase">Pago a cuenta</span>
+            <span className="vs-rotulo">Adelanto de renta sobre lo vendido cada mes</span>
           </span>
           <CasillaManual valor={borrador.renta} guardado={guardado.renta} onValor={poner("renta")} onEnter={guardarAnio} bloqueada={guardandoAnio} placeholder={rentaVigente ? valorEnCasilla(rentaVigente) : "—"} etiqueta={`Pago a cuenta de renta de ${anio}, en %`} ancho="w-20" />
           <span className="cv-unidad">%</span>
@@ -242,7 +242,6 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         <Boton
           peso={cambiados.length ? "primario" : "fantasma"}
-          className="btn-chico"
           type="button"
           cargando={guardandoAnio}
           disabled={!aGuardar.length}
@@ -273,7 +272,7 @@ function LimiteDelAnio({ parametros, anioActual, umbral, guardar }: { parametros
             ))}
             <button
               type="button"
-              className="btn-cayla btn-sutil btn-chico"
+              className="btn-cayla btn-sutil"
               onClick={() => {
                 const nuevo = Math.max(...anios) + 1;
                 setExtra((x) => [...x, nuevo]);
@@ -321,6 +320,7 @@ function Tasas({ parametros, anioActual, casilla, abrir }: { parametros: Paramet
     <div className="cv-tres">
       <section className="vs-liquido cv-bloque" data-luz data-guia="config.impuestos-igv" style={conVar({ "--e": 2 })}>
         <TituloSeccion ayuda="La tasa con la que se calcula el IGV de los gastos con factura. Solo se agregan filas: el pasado no se reescribe.">IGV</TituloSeccion>
+        <p className="vs-rotulo cv-consecuencia">El impuesto que va en cada factura</p>
         <div className="cv-filas">
           {tasas.map((t, i) => (
             <Vigencia key={t.vigenteDesde} p={t} trazo="porcentaje" etiqueta={`Desde ${fechaCorta(t.vigenteDesde, true)}`} i={i} despues="%">
@@ -328,13 +328,14 @@ function Tasas({ parametros, anioActual, casilla, abrir }: { parametros: Paramet
             </Vigencia>
           ))}
         </div>
-        <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => abrir("igv")} aria-haspopup="dialog" data-guia="config.nueva-tasa">
+        <button type="button" className="btn-cayla btn-sutil mt-3" onClick={() => abrir("igv")} aria-haspopup="dialog" data-guia="config.nueva-tasa">
           + Nueva tasa
         </button>
       </section>
 
       <section className="vs-liquido cv-bloque" data-luz data-guia="config.impuestos-uit" style={conVar({ "--e": 3 })}>
         <TituloSeccion ayuda="La medida de SUNAT: marca el límite de ventas del régimen y la renta. Cada año tiene la suya.">UIT</TituloSeccion>
+        <p className="vs-rotulo cv-consecuencia">La medida de SUNAT para los límites</p>
         <div className="cv-filas">
           {aniosUit.map((anio, i) => {
             const u = delAnio(parametros, "uit", anio);
@@ -345,13 +346,14 @@ function Tasas({ parametros, anioActual, casilla, abrir }: { parametros: Paramet
             );
           })}
         </div>
-        <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setAniosUitExtra((a) => [...a, Math.max(anioActual, ...aniosUit) + 1])}>
+        <button type="button" className="btn-cayla btn-sutil mt-3" onClick={() => setAniosUitExtra((a) => [...a, Math.max(anioActual, ...aniosUit) + 1])}>
           + UIT de un año nuevo
         </button>
       </section>
 
       <section className="vs-liquido cv-bloque" data-luz data-guia="config.impuestos-tope" style={conVar({ "--e": 4 })}>
         <TituloSeccion ayuda="Cuánto se acepta por persona y por día en taxis y cargadores sin comprobante. Lo fija el contador: lo que pase se deja registrar y queda «no deducible». Mientras no haya tope, no se marca nada.">Movilidad</TituloSeccion>
+        <p className="vs-rotulo cv-consecuencia">Tope diario de taxis y cargadores sin comprobante</p>
         <div className="cv-filas">
           {topes.length === 0 ? (
             <Vigencia p={null} trazo="movilidad" etiqueta={<span className="cv-falta-txt">Falta el tope por día</span>} i={0}>
@@ -365,7 +367,7 @@ function Tasas({ parametros, anioActual, casilla, abrir }: { parametros: Paramet
             ))
           )}
         </div>
-        <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => abrir("tope_planilla_movilidad")} aria-haspopup="dialog" data-guia="config.nuevo-tope">
+        <button type="button" className="btn-cayla btn-sutil mt-3" onClick={() => abrir("tope_planilla_movilidad")} aria-haspopup="dialog" data-guia="config.nuevo-tope">
           {topes.length ? "+ Tope desde una fecha" : "+ Poner el tope"}
         </button>
       </section>
@@ -388,6 +390,7 @@ function ParaArrancar({ parametros, anioActual, casilla, abrir }: { parametros: 
       >
         Para arrancar
       </TituloSeccion>
+      <p className="vs-rotulo cv-consecuencia">Se llena una vez, con la última declaración</p>
       <FilasDeMas abierto={abierto} id="cv-arranque">
         <div className="cv-subgrupo" data-guia="config.impuestos-saldo">
           <TituloGrupo nota="de la última declaración">Saldo a favor de IGV</TituloGrupo>
@@ -406,7 +409,7 @@ function ParaArrancar({ parametros, anioActual, casilla, abrir }: { parametros: 
               ))}
             </div>
           )}
-          <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => abrir("saldo_favor_igv")} aria-haspopup="dialog" data-guia="config.nuevo-saldo">
+          <button type="button" className="btn-cayla btn-sutil mt-3" onClick={() => abrir("saldo_favor_igv")} aria-haspopup="dialog" data-guia="config.nuevo-saldo">
             + Saldo de un mes
           </button>
         </div>

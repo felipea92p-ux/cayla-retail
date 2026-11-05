@@ -51,7 +51,7 @@ export const corteParaBase = (elegido: string): string | null => (/^\d{4}-\d{2}-
 export function opcionesCorte(hoy: string, inicio: string | null): { valor: string; texto: string }[] {
   const meses = mesesRecientes(hoy, 12);
   if (inicio && !meses.includes(mesDelCorte(inicio))) meses.push(mesDelCorte(inicio));
-  return [{ valor: SIN_CORTE, texto: "Sin corte: cuenta todo" }, ...meses.map((m) => ({ valor: `${m}-01`, texto: `Desde ${mesTitulo(m)}` }))];
+  return [{ valor: SIN_CORTE, texto: "Desde el principio" }, ...meses.map((m) => ({ valor: `${m}-01`, texto: `Desde ${mesTitulo(m)}` }))];
 }
 
 /** Qué cambia con ese corte, dicho para quien no sabe de contabilidad. */
