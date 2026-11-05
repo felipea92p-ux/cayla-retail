@@ -377,6 +377,34 @@ select 'N1 la diferencia del banco suma 1,000 menos: lo que el libro de bancos t
 select 'N2 la causa cuenta_nueva explica esos 1,000, con el mismo signo que la diferencia', (select (c ->> 'monto')::numeric = -1000 from con, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'cuenta_nueva');
 select 'N3 no queda nada sin explicar', (select count(*) = 0 from con, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'sin_explicar');
 `;
+// Una venta sin prenda saca su costo de la 201 sin mover stock (tarea 5 de «Las 36»): se explica sola y da nota, y lo que la deshace vuelve.
+const CASOS_VENTA_SIN_PRENDA = `
+insert into retail.ventas (id, ubicacion_id, caja_id, estado, created_at) values (pg_temp.k('VSP'), :'tru', (select id from retail.cajas where ubicacion_id = :'tru' limit 1), 'completada', '2024-03-25 12:00-05');
+insert into retail.venta_items (id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario, costo_unitario)
+values (pg_temp.k('VSPi'), pg_temp.k('VSP'), '22222222-2222-4222-8222-222222222222', 2, 100, 0, 25);
+insert into retail.venta_pagos (venta_id, metodo, monto) values (pg_temp.k('VSP'), 'efectivo', 200);
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'V1 la causa venta_sin_prenda explica los S/ 50 que salieron de la 201', (select (c ->> 'monto')::numeric = -50 and (c ->> 'acepta')::boolean from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'venta_sin_prenda');
+select 'V2 la 201 queda en nota, no en «no cuadra», y no se dibuja «sin explicar»', (select estado = 'nota' from con where clave = '201') and (select count(*) = 0 from con, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'sin_explicar');
+select 'V3 el Balance se dibuja', (select count(*) > 0 from retail.fn_balance_general('2024-03-31'));
+update retail.ventas set estado = 'anulada', anulado_en = '2024-03-26 12:00-05', motivo_anulacion = 'prueba' where id = pg_temp.k('VSP');
+create temp table con2 as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'V4 anulada, ya no hay nada que explicar', (select count(*) = 0 from con2, jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'venta_sin_prenda');
+`;
+// Lo recibido antes de tener su papel cuenta como recibido (tarea 5): si no, cada papel completado contaría otra vez como «por recibir».
+const CASOS_RECIBIDO_ANTES = `
+select (select (detalle ->> 'por_recibir')::numeric from retail.fn_balance_general('2024-03-31') where cuenta = '201') as antes \\gset
+select pg_temp.entrada_con_costo('RA', :'p2', :'tru', 4, 100, 'recepcion', '2024-03-28 11:00-05') as _r \\gset
+select p.id as persona from public.personas p where p.auth_user_id = '${FELIPE}' \\gset
+-- Solo importa el enlace del papel con el movimiento: sin llaves foráneas, para no armar un envío entero.
+set local session_replication_role = replica;
+insert into retail.despacho_recibidos (id, despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, variante_id, cantidad, costo_unitario, movimiento_id, creado_por)
+  values (pg_temp.k('RRA'), gen_random_uuid(), gen_random_uuid(), :'prov', gen_random_uuid(), gen_random_uuid(), :'p2', 4, 100, pg_temp.k('RA'), :'persona');
+insert into retail.compra_item_recibido_antes (compra_item_id, despacho_recibido_id, cantidad, creado_por) values (pg_temp.k('CM1i'), pg_temp.k('RRA'), 4, :'persona');
+set local session_replication_role = origin;
+select 'P1 completar el papel baja lo facturado por recibir: de 400 a 0', :'antes'::numeric = 400 and (select (detalle ->> 'por_recibir')::numeric = 0 from retail.fn_balance_general('2024-03-31') where cuenta = '201');
+select 'P2 la 201 no queda sin explicar', (select count(*) = 0 from retail.fn_conciliacion_contable('2024-03-31'), jsonb_array_elements(causas) c where clave = '201' and c ->> 'clave' = 'sin_explicar');
+`;
 const CASOS_ARRANQUE = `
 select 'N4 sin arranque la comprobación dice que falta y el Balance no se dibuja', (select count(*) = 1 and bool_and(clave = 'arranque' and estado = 'falta') from retail.fn_conciliacion_contable('2024-03-31'))
   and (select count(*) = 0 from retail.fn_balance_general('2024-03-31'));
@@ -429,6 +457,8 @@ function main() {
   verificar("Marzo", correr(base + CASOS_MARZO), casosDe(CASOS_MARZO));
   verificar("Abril", correr(base + CASOS_ABRIL), casosDe(CASOS_ABRIL));
   verificar("Cuenta nueva", correr(base + CASOS_CUENTA_NUEVA), casosDe(CASOS_CUENTA_NUEVA));
+  verificar("Venta sin prenda", correr(base + CASOS_VENTA_SIN_PRENDA), casosDe(CASOS_VENTA_SIN_PRENDA));
+  verificar("Recibido antes", correr(base + CASOS_RECIBIDO_ANTES), casosDe(CASOS_RECIBIDO_ANTES));
   verificar("Tienda", correr(base + CASOS_TIENDA), casosDe(CASOS_TIENDA));
   verificar("Sin clasificar", correr(base + CASOS_SIN_CLASIFICAR), casosDe(CASOS_SIN_CLASIFICAR));
   verificar("Antes del arranque", correr(base + CASOS_ANTES), casosDe(CASOS_ANTES));
