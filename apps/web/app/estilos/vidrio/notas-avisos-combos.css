@@ -77,7 +77,7 @@
 }
 .lista-flotante [role="option"] {
   border-radius: 14px;
-  transition: background 180ms var(--ease-cayla), box-shadow 180ms var(--ease-cayla), padding 300ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), padding var(--t-cambio) var(--ease-cayla);
 }
 /* La gota: opaca sobre papel, para que la fila fija de «Registrar…» siga sin dejar leer lo que pasa por debajo (por eso era opaca). */
 .lista-flotante .opcion-activa,
@@ -143,7 +143,7 @@
    demás; y lo que no se puede (`aria-disabled`, con su motivo) no recibe la gota. */
 .lista-menu [role="menuitem"] {
   border-radius: 14px;
-  transition: background 180ms var(--ease-cayla), box-shadow 180ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla);
 }
 .lista-menu .opcion-activa[data-peligro] {
   background:

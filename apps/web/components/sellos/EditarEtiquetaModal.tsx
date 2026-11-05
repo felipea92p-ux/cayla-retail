@@ -151,7 +151,7 @@ export function EditarEtiquetaModal({
               <div className={`grid gap-4 sm:grid-cols-2 ${repeticion ? "mt-3" : ""}`}>
                 {/* Cada calendario pinta la temporada entera: se elige una punta viendo dónde está la otra. */}
                 <CampoFecha etiqueta="Desde" valor={fDesde} onValor={setFDesde} tono={pDesde.ok ? undefined : "error"} rango={rango} disabled={guardando} />
-                <CampoFecha etiqueta="Hasta" valor={fHasta} onValor={setFHasta} tono={pHasta.ok && !objecion ? undefined : "error"} pie={objecion ?? undefined} rango={rango} disabled={guardando} />
+                <CampoFecha etiqueta="Hasta" min={rango.desde ?? undefined} motivoMin="No puede terminar antes de «Desde»." valor={fHasta} onValor={setFHasta} tono={pHasta.ok && !objecion ? undefined : "error"} pie={objecion ?? undefined} rango={rango} disabled={guardando} />
               </div>
               {/* Al repetir, sumar un año cambia el día de la semana: si la fiesta va siempre el mismo día, un toque corre la temporada entera. */}
               {avisoDia && repeticion?.mismoDia && (

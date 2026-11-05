@@ -115,7 +115,7 @@ export function RepartoModal({
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={trabajando} disabled={!guia.puedeConfirmar || cambiadas.length === 0} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={trabajando} disabled={cambiadas.length === 0} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
                 Guardar
               </Boton>
             </div>

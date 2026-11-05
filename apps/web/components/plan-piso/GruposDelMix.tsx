@@ -413,7 +413,7 @@ function HojaGuardarGrupos({
           <Boton peso="primario" cargando={enviando}
             type="submit"
             className={`${choque ? "" : guia.claseConfirmar}`}
-            disabled={enviando || (!choque && !guia.puedeConfirmar)}
+            disabled={enviando} confirma={choque ? undefined : guia}
             title={choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}
           >
             {choque ? "Actualizar y revisar" : "Guardar"}

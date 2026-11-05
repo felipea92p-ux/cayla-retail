@@ -6,6 +6,7 @@ import {
   lineasDeStock,
   hrefEnExistencias,
   SIN_EXISTENCIAS,
+  lugaresDeStock,
   stockDeTarjeta,
   MENSAJE_SIN_RESULTADOS,
 } from "./productos-stock";
@@ -175,6 +176,46 @@ describe("mensajeSinResultados — «Hay en [sede]» sí trae descontinuadas", (
   it("con «Hay en …» el vacío es el de siempre, no culpa a la Disponibilidad", () => {
     expect(mensajeSinResultados({ estado: "descontinuado", stock: "en_sede" })).toBe(MENSAJE_SIN_RESULTADOS);
     expect(mensajeSinResultados({ estado: "descontinuado", stock: "sin_red" })).toContain("filtro de Disponibilidad");
+  });
+});
+
+describe("lugaresDeStock — en qué sede está, a la vista en la tarjeta (Felipe 2026-11-05)", () => {
+  const otra = (sede: string, disponible: number) => ({ ubicacionId: sede, sede, disponible });
+
+  it("nombra las tres tiendas, sin agruparlas: la elegida primero y después de más a menos", () => {
+    const e = { ...SIN_EXISTENCIAS, aqui: 2, otras: [otra("Tienda Lima", 1), otra("Tienda Arequipa", 5)] };
+    expect(lugaresDeStock(e, "Tienda Trujillo", 8)).toEqual([
+      { lugar: "Trujillo", n: 2 },
+      { lugar: "Arequipa", n: 5 },
+      { lugar: "Lima", n: 1 },
+    ]);
+  });
+  it("con los nombres de producción dice la ciudad, nunca la sigla: Trujillo, Arequipa y Lima", () => {
+    const e = { ...SIN_EXISTENCIAS, aqui: 1, otras: [otra("Tienda AQP", 3), otra("Tienda LIM", 2)] };
+    expect(lugaresDeStock(e, "Tienda TRU", 6)?.map((l) => l.lugar)).toEqual(["Trujillo", "Arequipa", "Lima"]);
+  });
+  it("una tienda de otra ciudad queda con su nombre", () => {
+    expect(lugaresDeStock({ ...SIN_EXISTENCIAS, aqui: 1 }, "Tienda Piura", 1)?.[0].lugar).toBe("Piura");
+  });
+  it("la sede elegida va aunque tenga 0: responde «¿la tengo aquí?»", () => {
+    const e = { ...SIN_EXISTENCIAS, otras: [otra("Tienda Lima", 1)] };
+    expect(lugaresDeStock(e, "Tienda Arequipa", 1)).toEqual([
+      { lugar: "Arequipa", n: 0 },
+      { lugar: "Lima", n: 1 },
+    ]);
+  });
+  it("el Taller va al final: el total de la tarjeta también lo cuenta", () => {
+    const e = { ...SIN_EXISTENCIAS, aqui: 1, enTaller: 40, otras: [otra("Tienda Lima", 3)] };
+    expect(lugaresDeStock(e, "Tienda Trujillo", 44)?.map((l) => l.lugar)).toEqual(["Trujillo", "Lima", "Taller"]);
+  });
+  it("con unidades que no se pueden vender (apartadas), dice el 0 de la sede: no esconde la línea", () => {
+    expect(lugaresDeStock({ ...SIN_EXISTENCIAS, apartadoAqui: 1 }, "Tienda Lima", 1)).toEqual([{ lugar: "Lima", n: 0 }]);
+  });
+  it("sin nada en ninguna parte no hay línea: ya lo dice «Sin stock»", () => {
+    expect(lugaresDeStock(SIN_EXISTENCIAS, "Tienda Trujillo", 0)).toBeNull();
+  });
+  it("si no se pudo leer, no inventa ceros", () => {
+    expect(lugaresDeStock(null, "Tienda Trujillo", 5)).toBeNull();
   });
 });
 

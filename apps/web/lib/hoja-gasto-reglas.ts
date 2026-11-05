@@ -111,17 +111,17 @@ export function validarHoja(
   proveedorListo = true,
   /** El gasto fijo que cierra (ver `borradorDeLaHoja`). */
   gastoFijoId?: string,
-): { ok: true; valor: PayloadGasto } | { ok: false; error: string } {
+): { ok: true; valor: PayloadGasto } | { ok: false; error: string; campo?: string } {
   // En el orden de la guía (el /chaos del 2026-10-23 vio «Di si tiene comprobante» con la hoja vacía, cuando la guía marcaba el monto):
   // el primer aviso es el primer campo que la guía enciende. Los textos son los de `camposDeLaHoja`.
   const monto = montoDentroDelTope(parsearMonto(h.monto));
-  if (!monto.ok) return { ok: false, error: h.monto.trim() ? monto.error : "Escribe cuánto se pagó." };
-  if (!h.sede) return { ok: false, error: "Elige a qué sede se le carga." };
-  if (!h.categoria) return { ok: false, error: "Elige en qué se gastó." };
-  if (!h.descripcion.trim()) return { ok: false, error: "Escribe qué se pagó." };
-  if (!h.comprobante) return { ok: false, error: "Di si tiene comprobante." };
-  if (conComprobante(h) && !proveedorListo) return { ok: false, error: validarRuc(h.ruc).valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." };
-  if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, error: "Escribe la serie y el número, como F001-2231." };
+  if (!monto.ok) return { ok: false, campo: "monto", error: h.monto.trim() ? monto.error : "Escribe cuánto se pagó." };
+  if (!h.sede) return { ok: false, campo: "sede", error: "Elige a qué sede se le carga." };
+  if (!h.categoria) return { ok: false, campo: "categoria", error: "Elige en qué se gastó." };
+  if (!h.descripcion.trim()) return { ok: false, campo: "descripcion", error: "Escribe qué se pagó." };
+  if (!h.comprobante) return { ok: false, campo: "comprobante", error: "Di si tiene comprobante." };
+  if (conComprobante(h) && !proveedorListo) return { ok: false, campo: "ruc", error: validarRuc(h.ruc).valido ? "Escribe la razón social." : "Escribe el RUC del comprobante." };
+  if (conComprobante(h) && !serieNumeroLegible(h.serieNumero)) return { ok: false, campo: "serie", error: "Escribe la serie y el número, como F001-2231." };
   if (aCredito(h) && (!h.vence || h.vence < h.fecha)) return { ok: false, error: "Di cuándo vence (no antes de la fecha)." };
   if (!aCredito(h) && !h.egresoId && !salida.medio) return { ok: false, error: "Di de dónde salió la plata." };
   return validarGasto(borradorDeLaHoja(h, proveedorId, salida, gastoFijoId), hoy);
@@ -148,7 +148,7 @@ export function camposDeLaHoja(h: HojaGasto, ctx: ContextoGuia): CampoDeGuia[] {
   const papel = conComprobante(h);
   const credito = aCredito(h);
   const campos: CampoDeGuia[] = [
-    { id: "monto", nombre: "Monto", requerido: true, hecho: monto.ok, pendiente: "Escribe cuánto se pagó." },
+    { id: "monto", nombre: "Monto", requerido: true, hecho: monto.ok, pendiente: !monto.ok && h.monto.trim() ? monto.error : "Escribe cuánto se pagó." },
     { id: "sede", nombre: "Sede", requerido: true, hecho: Boolean(h.sede), pendiente: "Elige a qué sede se le carga." },
     { id: "categoria", nombre: "En qué", requerido: true, hecho: Boolean(h.categoria), pendiente: "Elige en qué se gastó." },
     { id: "descripcion", nombre: "Qué fue", requerido: true, hecho: Boolean(h.descripcion.trim()), pendiente: "Escribe qué se pagó." },

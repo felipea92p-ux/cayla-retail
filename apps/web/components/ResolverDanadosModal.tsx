@@ -504,7 +504,7 @@ export function ResolverDanadosModal({
                 <Boton type="button" onClick={() => setEditandoLugar(false)} disabled={guardandoLugar}>
                   Cancelar
                 </Boton>
-                <Boton type="button" peso="primario" onClick={guardarLugar} cargando={guardandoLugar} disabled={guardandoLugar || !guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+                <Boton type="button" peso="primario" onClick={guardarLugar} cargando={guardandoLugar} disabled={guardandoLugar} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
                   Guardar el lugar
                 </Boton>
               </div>
@@ -703,7 +703,7 @@ export function ResolverDanadosModal({
                           peso="primario"
                           onClick={() => confirmarSalida(p)}
                           cargando={resolviendo === p.id}
-                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          disabled={resolviendo !== null} confirma={guia}
                           title={responsable.motivo ?? guia.frase ?? undefined}
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >
@@ -740,7 +740,7 @@ export function ResolverDanadosModal({
                           peso="primario"
                           onClick={() => confirmarNoPudo(p)}
                           cargando={resolviendo === p.id}
-                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          disabled={resolviendo !== null} confirma={guia}
                           title={responsable.motivo ?? guia.frase ?? undefined}
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >
@@ -818,7 +818,7 @@ export function ResolverDanadosModal({
                           peso="primario"
                           onClick={() => confirmarArreglo(p)}
                           cargando={resolviendo === p.id}
-                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          disabled={resolviendo !== null} confirma={guia}
                           title={responsable.motivo ?? guia.frase ?? undefined}
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >
@@ -855,7 +855,7 @@ export function ResolverDanadosModal({
                           onClick={() => confirmarDevolucion(p)}
                           cargando={resolviendo === p.id}
                           textoCargando="Devolviendo…"
-                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          disabled={resolviendo !== null} confirma={guia}
                           title={responsable.motivo ?? guia.frase ?? undefined}
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >

@@ -207,7 +207,7 @@ export function HojaCorregirGasto({ gastoId, onClose, volverA }: { gastoId: stri
                       type="submit"
                       peso="primario"
                       cargando={guardando}
-                      disabled={!guia.puedeConfirmar || cambios.length === 0}
+                      disabled={cambios.length === 0} confirma={guia}
                       title={guia.frase ?? undefined}
                       className={guia.claseConfirmar}
                     >

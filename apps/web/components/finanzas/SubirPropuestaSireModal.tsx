@@ -130,7 +130,7 @@ export function SubirPropuestaSireModal({ registro, mes, onClose }: { registro: 
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={trabajando} textoCargando="Subiendo…" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={trabajando} textoCargando="Subiendo…" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                 Comparar
               </Boton>
             </div>

@@ -1,0 +1,220 @@
+<title>Nuestros campos frente a los grandes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Informe de comparación. Una columna de lectura con tablas y un laboratorio de movimiento. Colores: los tokens del ERP. */
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e0d6c4;--control:#96786a;--tinta:#1a1a18;--taupe:#6f4e40;--rojo:#8b2a1f;--acento:#b8412d;--verde:#3f5637;--ambar:#74501a;--verde-s:#dfe6d6;--ambar-s:#f0e3c8;--rojo-s:#f3dcd5;--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--serif:"EB Garamond",ui-serif,Georgia,serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--control:#8d7a6c;--tinta:#f5f0e8;--taupe:#d3bcae;--rojo:#efa899;--acento:#e8806a;--verde:#a8d69a;--ambar:#e0b872;--verde-s:#2d3a29;--ambar-s:#40331c;--rojo-s:#472820;color-scheme:dark}}
+:root[data-theme="dark"]{--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--control:#8d7a6c;--tinta:#f5f0e8;--taupe:#d3bcae;--rojo:#efa899;--acento:#e8806a;--verde:#a8d69a;--ambar:#e0b872;--verde-s:#2d3a29;--ambar-s:#40331c;--rojo-s:#472820;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--crema);color:var(--tinta);font:400 16px/1.55 var(--sans);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px}
+main{max-width:1120px;margin-inline:auto;display:flex;flex-direction:column;gap:44px}
+h1,h2{font-family:var(--serif);font-weight:500;margin:0;text-wrap:balance}
+h1{font-size:clamp(36px,5vw,54px);line-height:1.05}
+h2{font-size:clamp(27px,3vw,34px);line-height:1.1}
+h3{margin:0;font-size:17px;font-weight:600;line-height:1.3}
+p{margin:0}
+a{color:inherit;text-underline-offset:3px;text-decoration-color:var(--control)}
+.lead{margin-top:14px;font-size:clamp(18px,2vw,21px);line-height:1.42;max-width:58ch}
+.sub{margin-top:6px;color:var(--taupe);max-width:72ch}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px}
+.res>div{padding:18px 20px;background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.res b{display:block;margin-bottom:6px}
+.res ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.t{overflow-x:auto;border:1px solid var(--sand);border-radius:16px;background:var(--papel)}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th{text-align:left;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe);padding:12px 14px;border-bottom:1px solid var(--sand)}
+td{padding:11px 14px;border-bottom:1px solid var(--sand);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:500}
+.ch{display:inline-block;padding:1px 9px;border-radius:999px;font-size:14px;font-weight:500;white-space:nowrap}
+.ad{background:var(--verde-s);color:var(--verde)}.pa{background:var(--hueso);color:var(--tinta)}.at{background:var(--rojo-s);color:var(--rojo)}
+.mejoras{display:flex;flex-direction:column;gap:10px;counter-reset:m}
+details{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+summary{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;padding:14px 18px;cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{counter-increment:m;content:counter(m);font:500 22px/1 var(--serif);color:var(--acento)}
+summary small{grid-column:2;color:var(--taupe);font-size:15px}
+summary em{grid-column:3;grid-row:1;font-style:normal;font-size:14px;color:var(--taupe);white-space:nowrap}
+details[open] summary{border-bottom:1px solid var(--sand)}
+.tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:16px 18px 18px}
+.tres div{min-width:0}
+.et{display:block;margin-bottom:4px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe)}
+code{font-size:14px;overflow-wrap:anywhere}
+.bar{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) 88px;gap:10px;align-items:center;padding:4px 0}
+.bar span:first-child{font-size:15px}
+.pista{position:relative;height:12px;border-radius:999px;background:var(--hueso)}
+.pista i{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--taupe)}
+.nos .pista i{background:var(--acento)}
+.bar b{font-weight:500;font-size:14px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.grupo-b{padding:16px 18px;background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.grupo-b h3{margin:10px 0 2px}.grupo-b h3:first-child{margin-top:0}
+.lab{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px}
+.lab article{position:relative;display:flex;flex-direction:column;gap:6px;padding:14px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;min-width:0}
+.esc{position:relative;height:138px;margin-top:6px;border-radius:12px;background:var(--hueso);overflow:hidden;display:grid;place-items:center}
+.hoja{width:78%;height:78px;border-radius:16px;background:var(--papel);box-shadow:0 12px 24px -12px rgba(0,0,0,.4);padding:12px}
+.hoja i{display:block;height:9px;border-radius:9px;background:var(--sand);margin-top:8px}.hoja i:first-child{width:55%;margin-top:0;background:var(--control)}
+.lab small{color:var(--taupe);font-size:14px}
+.lab code{font-size:13px;color:var(--taupe)}
+button{font:500 15px var(--sans);color:var(--crema);background:var(--tinta);border:0;border-radius:999px;padding:10px 20px;min-height:44px;cursor:pointer}
+:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+.nota{padding:14px 18px;border-radius:14px;background:var(--hueso);max-width:80ch}
+.deci{display:grid;gap:10px}.deci div{padding:16px 18px;background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.deci p{margin-top:4px}
+.fuentes{columns:2;column-gap:32px;font-size:15px;padding-left:18px;margin:0}.fuentes li{break-inside:avoid;margin-bottom:5px}
+@media (max-width:760px){.tres{grid-template-columns:minmax(0,1fr)}.bar{grid-template-columns:minmax(0,1fr) 88px}.bar .pista{grid-column:1/-1;grid-row:2}.fuentes{columns:1}summary em{grid-column:2;grid-row:auto}}
+</style>
+
+<main>
+<header>
+  <h1>Nuestros campos frente a los grandes</h1>
+  <p class="lead">En estética y movimiento no estamos por debajo de nadie. Donde perdemos es en lo que pasa cuando alguien se equivoca, en el tamaño para el dedo y en cuánto se mueve lo que se usa todo el día.</p>
+  <p class="sub">Comparé los componentes del ERP y de la maqueta con Apple, Google, Microsoft, IBM, Shopify, Atlassian, GOV.UK, Stripe, Vercel y Linear, más estudios de usabilidad. Las calificaciones son mi lectura; los datos de cada sistema llevan su fuente.</p>
+</header>
+
+<section aria-labelledby="t1">
+  <h2 id="t1">Dónde estamos, pieza por pieza</h2>
+  <div class="t"><table>
+    <thead><tr><th>Pieza</th><th>Experiencia</th><th>Movimiento</th><th>Estética</th><th>La razón principal</th></tr></thead>
+    <tbody>
+    <tr><td>Campo de texto</td><td><span class="ch at">Atrás</span></td><td><span class="ch ad">Adelante</span></td><td><span class="ch pa">A la par</span></td><td>El hilo que se enciende no lo tiene nadie, pero la validación es desigual y falla al guardar</td></tr>
+    <tr><td>Monto</td><td><span class="ch at">Atrás</span></td><td><span class="ch pa">A la par</span></td><td><span class="ch ad">Adelante en la maqueta</span></td><td>Hay dos componentes, y no ordena miles ni decimales al salir</td></tr>
+    <tr><td>Fecha</td><td><span class="ch pa">A la par</span></td><td><span class="ch pa">A la par</span></td><td><span class="ch ad">Adelante en la maqueta</span></td><td>Se escribe y se maneja con teclado; le faltan límites y rango real</td></tr>
+    <tr><td>Lista y búsqueda</td><td><span class="ch ad">Adelante</span></td><td><span class="ch pa">A la par</span></td><td><span class="ch pa">A la par</span></td><td>Crea sin salir y entiende sinónimos; no resalta lo buscado</td></tr>
+    <tr><td>Botón</td><td><span class="ch pa">A la par</span></td><td><span class="ch at">Se pasa</span></td><td><span class="ch ad">Adelante</span></td><td>Brillo de 650 ms en cada botón, y 40 px en pantalla táctil</td></tr>
+    <tr><td>Avisos</td><td><span class="ch ad">Adelante</span></td><td><span class="ch pa">A la par</span></td><td><span class="ch pa">A la par</span></td><td>«Deshacer» en 21 archivos, pausa al tocar y sin encimarse al cargar</td></tr>
+    <tr><td>Hojas y cajones</td><td><span class="ch ad">Adelante</span></td><td><span class="ch pa">A la par</span></td><td><span class="ch ad">Adelante</span></td><td>Gestos, «atrás» del celular, Esc por capas y aviso al salir con cambios</td></tr>
+    <tr><td>Tablas</td><td><span class="ch at">Atrás</span></td><td><span class="ch pa">A la par</span></td><td><span class="ch pa">A la par</span></td><td>Una sola densidad y sin acciones en lote; encabezado fijo solo en una variante</td></tr>
+    <tr><td>Cifras</td><td><span class="ch ad">Adelante</span></td><td><span class="ch ad">Adelante</span></td><td><span class="ch ad">Adelante</span></td><td>Ya tenemos la rueda de números que otros toman de una librería</td></tr>
+    <tr><td>Vidrio</td><td><span class="ch at">Atrás</span></td><td><span class="ch pa">A la par</span></td><td><span class="ch ad">Adelante</span></td><td>Se ve mejor, pero no responde a «aumentar contraste» y cubre a medias «reducir transparencia»</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="t2">
+  <h2 id="t2">Qué mejorar, en este orden</h2>
+  <p class="sub">Primero lo que evita errores con plata y cuesta poco. Toca una fila para ver qué hacen ellos, qué hacemos y qué propongo.</p>
+  <div class="mejoras">
+    <details open><summary><span><h3>Al guardar con un error, llevar a la persona al campo</h3></span><em>Esfuerzo medio</em><small>Experiencia · Todo el ERP</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>Vercel: al enviar, el foco va al primer error. GOV.UK: resumen arriba con enlaces a cada campo y foco en él. NN/g: el error va junto a su campo, nunca solo en un resumen.</div>
+      <div><span class="et">Hoy</span>«Registrar gasto» avisa el error en una notificación y no mueve el foco (<code>HojaRegistrarGasto.tsx:233</code>). <code>aria-describedby</code> no está conectado en el campo común.</div>
+      <div><span class="et">Propongo</span>Una sola conducta en <code>Campo</code>: error debajo, foco y destello en el primero, y anuncio para el lector de pantalla. Se reutiliza el «Falta:» de la guía de foco.</div></div></details>
+    <details><summary><span><h3>Validar al salir del campo, no con cada tecla</h3></span><em>Esfuerzo chico</em><small>Experiencia · Todo el ERP</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>Estudio de 22 personas (2009): validar en línea dio 22 % más de éxito y 42 % menos de tiempo, y validar al salir fue 7 a 10 s más rápido que mientras se escribe. Baymard: al salir, o al completar la longitud si es fija. Carbon y Atlassian coinciden. GOV.UK prefiere validar al enviar.</div>
+      <div><span class="et">Hoy</span>Cada pantalla decide. El monto y la serie de Gastos reaccionan al teclear; las fechas, al salir.</div>
+      <div><span class="et">Propongo</span>Regla única: al salir; el error se borra apenas se corrige; el RUC se consulta al llegar a 11 números.</div></div></details>
+    <details><summary><span><h3>Un solo campo de monto</h3></span><em>Esfuerzo medio</em><small>Experiencia · Todo el ERP</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>Shopify tiene un campo de dinero propio, con moneda y límites. GOV.UK: el lector de pantalla no lee «£», así que la unidad va también en la etiqueta. Vercel: 0 o 2 decimales, nunca mezclados.</div>
+      <div><span class="et">Hoy</span>Dos componentes con el mismo nombre (<code>campos.tsx:231</code>, <code>ui/CampoMonto.tsx</code>). Entiende «1.299,50», pero al salir muestra el número sin miles ni decimales fijos.</div>
+      <div><span class="et">Propongo</span>Una pieza: S/ visible, etiqueta que diga soles, miles y dos decimales al salir, y números del mismo ancho. Como es dinero, no cambia cómo se calcula.</div></div></details>
+    <details><summary><span><h3>Que el botón apagado no deje a nadie adivinando</h3></span><em>Esfuerzo chico</em><small>Experiencia · Todo el ERP y maqueta</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>Vercel: no apagar el botón antes de tiempo. Carbon: apagarlo solo en formularios cortos y mientras envía. Los dos: apagarlo mientras guarda, para no duplicar.</div>
+      <div><span class="et">Hoy</span>Varias hojas lo apagan sin decir por qué. La maqueta también, aunque tenga la lista «Falta».</div>
+      <div><span class="et">Propongo</span>Dejarlo activo. Si falta algo, al tocarlo lleva al primer campo pendiente. Se apaga solo mientras guarda.</div></div></details>
+    <details><summary><span><h3>Tamaños para el dedo, con su prueba</h3></span><em>Esfuerzo chico</em><small>Experiencia · Todo el ERP</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>Apple: 44 × 44 pt de fábrica. Vercel: 24 px con mouse y 44 con dedo. WCAG 2.2: mínimo de 24 px.</div>
+      <div><span class="et">Hoy</span>Botón general de 40 px, interruptor de 38 × 22, días del calendario de 32. Nuestra propia regla pide 44 con dedo, y no hay prueba que la vigile.</div>
+      <div><span class="et">Propongo</span>Ampliar el área que se toca sin cambiar cómo se ve, solo en pantallas táctiles, y sumar una prueba automática. Vender y Cambios son los primeros.</div></div></details>
+    <details><summary><span><h3>Tiempos con nombre, y menos en lo repetido</h3></span><em>Esfuerzo medio</em><small>Movimiento · Todo el ERP</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>IBM tiene seis tiempos con nombre, de 70 a 700 ms. Apple: evitar movimiento en lo que ocurre con frecuencia. NN/g: cuanto más frecuente, más corto y sutil. Emil Kowalski: quitarlo si se ve cientos de veces al día.</div>
+      <div><span class="et">Hoy</span>Dos curvas compartidas, cero tiempos compartidos. Cada botón lleva brillo de 650 ms y onda de 450; cada hoja, una cascada de 500.</div>
+      <div><span class="et">Propongo</span>Cuatro tiempos: respuesta, cambio, hoja y momento. Lo vistoso se reserva para entrar a una pantalla y para los logros; lo diario responde en menos de 200 ms. Está abajo, en «Por decidir».</div></div></details>
+    <details><summary><span><h3>Vidrio que aguante cualquier ajuste</h3></span><em>Esfuerzo medio</em><small>Estética · Todo el ERP</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>Apple: el vidrio no va en la capa de contenido; sobre fondos brillantes pide una capa oscura de 35 %, y su apariencia cambia con «reducir transparencia» y «aumentar contraste». NN/g critica los controles que se vuelven invisibles. Microsoft limita su material translúcido a menús y paneles que se cierran.</div>
+      <div><span class="et">Hoy</span>«Reducir transparencia» cubre lo principal, no todo. «Aumentar contraste» no existe. La prueba mide los colores, no lo que queda de verdad sobre el vidrio.</div>
+      <div><span class="et">Propongo</span>Completar los dos ajustes y medir el texto sobre el vidrio real, como hice en la maqueta. Texto importante siempre sobre placa densa.</div></div></details>
+    <details><summary><span><h3>Fechas: límites, rango y calendario</h3></span><em>Esfuerzo medio</em><small>Experiencia · Todo el ERP y maqueta</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>IBM: siempre debe poder escribirse; calendario cuando importa la relación entre días; límites para evitar errores; el rango lleva inicio y fin. Shopify separa el campo de fecha del calendario. Apple: el selector aparece junto al campo.</div>
+      <div><span class="et">Hoy</span>El ERP se escribe y va con teclado, pero no tiene mínimo ni máximo, y el rango son dos campos. En la maqueta el calendario es mejor, aunque la fecha no se puede escribir.</div>
+      <div><span class="et">Propongo</span>Unir lo mejor: el teclado del ERP con el calendario de la maqueta, más límites y rango real.</div></div></details>
+    <details><summary><span><h3>Tablas con más opciones</h3></span><em>Esfuerzo grande</em><small>Experiencia · Todo el ERP</small></summary><div class="tres">
+      <div><span class="et">Ellos</span>IBM: filas de 24 a 64 px, barra de acciones en lote, acciones a la vista si son menos de tres y esqueleto en vez de cargador. Atlassian: editar en la misma fila, con Enter y Esc, para datos que cambian seguido.</div>
+      <div><span class="et">Hoy</span>Una densidad, sin lote común y con cargador global por regla (ADR-0149). El encabezado fijo solo está en <code>TablaViva</code>.</div>
+      <div><span class="et">Propongo</span>Dos densidades, barra en lote y encabezado fijo. Editar en la fila, solo después de probarlo en Finanzas. Es un trabajo aparte.</div></div></details>
+  </div>
+</section>
+
+<section aria-labelledby="t3">
+  <h2 id="t3">Movimiento: mira la diferencia</h2>
+  <p class="sub">Los mismos tiempos, a la misma escala. Las barras rojas son nuestras. Nuestro problema no es lo largo de una animación suelta, sino lo largo de lo que se repite muchas veces al día.</p>
+  <div class="grupo-b" id="barras"></div>
+  <h3>Laboratorio: la misma hoja con cuatro movimientos</h3>
+  <div><button type="button" id="play">Reproducir los cuatro</button></div>
+  <div class="lab" id="lab"></div>
+  <p class="nota"><b>Ojo con el rebote.</b> Google lo usa de fábrica (su modo Expresivo) y reserva un modo Estándar para productos utilitarios. Tu regla actual es sin rebote, y para dinero creo que sigue siendo lo correcto. La versión Estándar sobrepasa apenas el final: es lo más lejos que iría.</p>
+</section>
+
+<section aria-labelledby="t4">
+  <h2 id="t4">Lo que ya hacemos mejor</h2>
+  <div class="res">
+    <div><b>Experiencia</b><ul><li>La guía «Sigue aquí» y «Falta» no aparece en ninguno de los sistemas que leí</li><li>Ejemplos que cambian según lo que eliges</li><li>«Deshacer» extendido por todo el ERP</li><li>Crear dentro de la misma lista</li></ul></div>
+    <div><b>Movimiento</b><ul><li>Entrar tarda más que salir, como pide NN/g</li><li>Rueda de números propia, y se apaga con «reducir movimiento»</li><li>Gestos del celular con cierre por distancia o velocidad</li></ul></div>
+    <div><b>Estética</b><ul><li>Pruebas automáticas que vigilan colores y contraste en claro y oscuro</li><li>Una pieza por función, vigilada</li><li>Filo de luz e hilo rojo: identidad propia</li></ul></div>
+  </div>
+</section>
+
+<section aria-labelledby="t5">
+  <h2 id="t5">Por decidir</h2>
+  <div class="deci">
+    <div><h3>¿Cuánto se mueve lo que se usa todo el día?</h3><p>Pediste todas las animaciones posibles sin abrumar. Las fuentes dicen que lo frecuente debe moverse poco. <b>Recomiendo:</b> dejar lo vistoso al entrar a una pantalla, en la portada de un estado y en los logros, y que los botones y listas respondan en menos de 200 ms. Ganas rapidez diaria; pagas con perder el brillo de 650 ms en cada botón.</p></div>
+    <div><h3>¿Vidrio también en el contenido?</h3><p>Apple dice que no: vidrio solo en lo que flota. Tu dirección lo usa en placas de contenido, y te gusta. <b>Recomiendo:</b> mantenerlo, porque es la identidad que elegiste, con placa densa bajo todo texto importante y los dos ajustes de sistema completos. Ganas identidad; pagas con cuidar el contraste pieza por pieza.</p></div>
+    <div><h3>¿Etiqueta adentro o arriba?</h3><p>La maqueta la pone dentro del campo, fija y visible. NN/g prefiere afuera; de lo que leí, solo Stripe (en su modo compacto) y Google la llevan adentro. La nuestra no desaparece al escribir, que es el problema real. <b>Recomiendo:</b> adentro en Finanzas y medirlo con personas de la tienda.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="t6">
+  <h2 id="t6">Lo que encontré en la maqueta</h2>
+  <p class="sub">Eran fallas mías. Las corregí en la maqueta el mismo 5 de noviembre, junto con las nueve mejoras, para que se puedan probar antes de decidir.</p>
+  <div class="res"><div><ul>
+    <li>La fecha no se puede escribir, solo elegir; el ERP sí deja escribirla</li>
+    <li>El RUC corta con <code>maxlength</code>: pegar uno con espacios lo recorta, y GOV.UK advierte de eso</li>
+    <li>«Registrar gasto» se apaga en vez de llevarte a lo que falta</li>
+    <li>Los errores no están conectados al campo para quien usa lector de pantalla</li>
+    <li>El monto mezcla «560» con «1,200.50»: deberían llevar los mismos decimales</li>
+    <li>No medí el contraste de las piezas nuevas de Campos</li>
+  </ul></div></div>
+</section>
+
+<section aria-labelledby="t7">
+  <h2 id="t7">Qué tan firme es esto</h2>
+  <p class="nota"><b>Medido con personas:</b> solo el estudio de validación (2009, 22 personas) y Baymard, cuyo tamaño de muestra no pude ver. Lo demás son guías y opinión experta, incluida la crítica de NN/g al vidrio. <b>No pude leer:</b> las especificaciones por dentro de Mercury, Ramp o Revolut, que no son públicas; de Shopify, solo sus campos de texto, dinero y fecha; de Microsoft, sus fechas; de Atlassian, su movimiento. <b>Del ERP:</b> el resumen sale de revisar el código, y confirmé a mano lo principal, no cada línea.</p>
+  <ul class="fuentes">
+    <li><a href="https://developer.apple.com/design/human-interface-guidelines/materials" target="_blank" rel="noopener">Apple: materiales</a></li>
+    <li><a href="https://developer.apple.com/design/human-interface-guidelines/motion" target="_blank" rel="noopener">Apple: movimiento</a></li>
+    <li><a href="https://developer.apple.com/design/human-interface-guidelines/accessibility" target="_blank" rel="noopener">Apple: accesibilidad</a></li>
+    <li><a href="https://m3.material.io/styles/motion/overview/specs" target="_blank" rel="noopener">Google Material 3: movimiento</a></li>
+    <li><a href="https://m3.material.io/components/text-fields/guidelines" target="_blank" rel="noopener">Google Material 3: campos</a></li>
+    <li><a href="https://fluent2.microsoft.design/material" target="_blank" rel="noopener">Microsoft Fluent: materiales</a></li>
+    <li><a href="https://carbondesignsystem.com/elements/motion/overview/" target="_blank" rel="noopener">IBM Carbon: movimiento</a></li>
+    <li><a href="https://carbondesignsystem.com/patterns/forms-pattern/" target="_blank" rel="noopener">IBM Carbon: formularios</a></li>
+    <li><a href="https://carbondesignsystem.com/components/data-table/usage/" target="_blank" rel="noopener">IBM Carbon: tablas</a></li>
+    <li><a href="https://shopify.dev/docs/api/app-home/polaris-web-components/forms/moneyfield" target="_blank" rel="noopener">Shopify: campo de dinero</a></li>
+    <li><a href="https://atlassian.design/components/inline-edit/usage" target="_blank" rel="noopener">Atlassian: editar en la fila</a></li>
+    <li><a href="https://design-system.service.gov.uk/patterns/validation/" target="_blank" rel="noopener">GOV.UK: validación</a></li>
+    <li><a href="https://design-system.service.gov.uk/components/text-input/" target="_blank" rel="noopener">GOV.UK: campo de texto</a></li>
+    <li><a href="https://docs.stripe.com/elements/appearance-api" target="_blank" rel="noopener">Stripe: apariencia</a></li>
+    <li><a href="https://vercel.com/design/guidelines" target="_blank" rel="noopener">Vercel: guías de interfaz</a></li>
+    <li><a href="https://linear.app/now/how-we-redesigned-the-linear-ui" target="_blank" rel="noopener">Linear: su rediseño</a></li>
+    <li><a href="https://alistapart.com/article/inline-validation-in-web-forms/" target="_blank" rel="noopener">A List Apart: estudio de validación</a></li>
+    <li><a href="https://baymard.com/blog/inline-form-validation" target="_blank" rel="noopener">Baymard: validación</a></li>
+    <li><a href="https://www.nngroup.com/articles/liquid-glass/" target="_blank" rel="noopener">NN/g: crítica al vidrio</a></li>
+    <li><a href="https://www.nngroup.com/articles/animation-duration/" target="_blank" rel="noopener">NN/g: duración</a></li>
+    <li><a href="https://emilkowal.ski/ui/you-dont-need-animations" target="_blank" rel="noopener">Emil Kowalski: cuándo no animar</a></li>
+    <li><a href="https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html" target="_blank" rel="noopener">WCAG 2.2: tamaño</a></li>
+  </ul>
+</section>
+</main>
+
+<script>
+const ESC=800;
+const B=[["Ellos",[["Carbon: botones y casillas",70],["NN/g: respuesta simple",100],["Carbon: respuesta al tocar",90,120],["Carbon: expansión chica",150],["Material: color y opacidad",150,300],["Carbon: avisos",240],["NN/g: cambios grandes",200,300],["Emil Kowalski: tope general",300],["Material: movimiento",350,650],["Carbon: expansión grande",400],["Carbon: oscurecer el fondo",700]]],
+["Nosotros",[["Presionar un botón",120],["Velo y salida de hoja",220],["Entrada de cajón",380],["Entrada de hoja",420],["Onda en cada botón",450],["Cascada en cada hoja",500],["Brillo en cada botón",650],["Rueda de números",700]]]];
+document.getElementById("barras").innerHTML=B.map(([t,l],g)=>`<h3>${t}</h3><div class="${g?"nos":""}">${l.map(([n,a,z])=>`<div class="bar"><span>${n}</span><span class="pista"><i style="left:${z?a/ESC*100:0}%;width:${((z?z-a:a)/ESC*100)}%"></i></span><b>${z?`${a}–${z}`:a} ms</b></div>`).join("")}</div>`).join("");
+const C=[["Nuestra hoja hoy","Entrada lenta y frenada larga","0.32,0.72,0.24,1",420],["IBM productivo","Rápido, para trabajo diario","0.2,0,0.38,0.9",240],["Material estándar","Sobrepasa apenas el final","0.27,1.06,0.18,1",350],["Material expresivo","Con rebote: no para dinero","0.42,1.67,0.21,0.9",350]];
+const lab=document.getElementById("lab");lab.innerHTML=C.map(([n,d,c,t])=>`<article><h3>${n}</h3><small>${d}</small><code>${t} ms · ${c}</code><div class="esc"><div class="hoja"><i></i><i></i><i></i></div></div></article>`).join("");
+const hojas=[...lab.querySelectorAll(".hoja")];
+function jugar(){hojas.forEach((h,i)=>{const[,,c,t]=C[i];h.getAnimations().forEach(a=>a.cancel());h.animate([{opacity:0,transform:"translateY(46px) scale(.96)"},{opacity:1,transform:"none"}],{duration:t,easing:`cubic-bezier(${c})`,fill:"backwards"})})}
+document.getElementById("play").addEventListener("click",jugar);
+</script>

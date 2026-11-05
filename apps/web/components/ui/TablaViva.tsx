@@ -43,6 +43,7 @@ import {
    filas ya están todas en el navegador (no una que pagina en la base con `?q=`: el globo contaría solo la página). Lo que suma:
      1. Letra que cualquiera lee: el dato a 15 px, lo de debajo a 14 (el piso de lectura del ERP), la cabecera a 12,5 en tinta. Y
         «Letra grande» (17 px), que se recuerda en el aparato (`localStorage`, con try/catch: sin él, vale mientras dure la página).
+        Y «Compacta» (filas de 44 px en vez de 60, ADR-0611, mejora 9), que se recuerda igual.
      2. Todo al centro, cabecera y dato; los montos, en una caja del ancho del más largo con las cifras a la derecha.
      3. Filtrar y ordenar desde la cabecera: tocar el nombre de una columna que filtra abre el globo con las flechas de «Ordenar» (↑ ↓, sin
         texto: Felipe 2026-11-05) y «Mostrar solo» (cuántas filas tiene cada opción); una columna que solo ordena cambia su flecha al tocarla,
@@ -165,36 +166,42 @@ export function useTablaViva<F>({
   };
 }
 
-// ---------- «Letra grande»: una preferencia del aparato, como el tema (ADR-0336) ----------
-const CLAVE_LETRA = "cayla-letra-tabla";
-const EVENTO_LETRA = "cayla-letra-tabla";
-/** Si el navegador no deja guardar (ventana privada, datos bloqueados), la elección vale mientras dure la página. */
-let letraSinGuardar: boolean | null = null;
-function leerLetraGrande(): boolean {
-  if (letraSinGuardar !== null) return letraSinGuardar;
-  try {
-    return window.localStorage.getItem(CLAVE_LETRA) === "grande";
-  } catch {
-    return false;
-  }
-}
-function suscribirLetra(avisar: () => void) {
-  window.addEventListener(EVENTO_LETRA, avisar);
-  window.addEventListener("storage", avisar);
-  return () => {
-    window.removeEventListener(EVENTO_LETRA, avisar);
-    window.removeEventListener("storage", avisar);
+// ---------- «Letra grande» y «Compacta»: preferencias del aparato, como el tema (ADR-0336) ----------
+function preferenciaDelAparato(clave: string, si: string, no: string) {
+  const evento = clave;
+  /** Si el navegador no deja guardar (ventana privada, datos bloqueados), la elección vale mientras dure la página. */
+  let sinGuardar: boolean | null = null;
+  return {
+    leer(): boolean {
+      if (sinGuardar !== null) return sinGuardar;
+      try {
+        return window.localStorage.getItem(clave) === si;
+      } catch {
+        return false;
+      }
+    },
+    suscribir(avisar: () => void) {
+      window.addEventListener(evento, avisar);
+      window.addEventListener("storage", avisar);
+      return () => {
+        window.removeEventListener(evento, avisar);
+        window.removeEventListener("storage", avisar);
+      };
+    },
+    poner(activa: boolean) {
+      try {
+        window.localStorage.setItem(clave, activa ? si : no);
+        sinGuardar = null;
+      } catch {
+        sinGuardar = activa;
+      }
+      window.dispatchEvent(new Event(evento));
+    },
   };
 }
-function ponerLetraGrande(grande: boolean) {
-  try {
-    window.localStorage.setItem(CLAVE_LETRA, grande ? "grande" : "normal");
-    letraSinGuardar = null;
-  } catch {
-    letraSinGuardar = grande;
-  }
-  window.dispatchEvent(new Event(EVENTO_LETRA));
-}
+const LETRA = preferenciaDelAparato("cayla-letra-tabla", "grande", "normal");
+/** Más filas a la vista, para quien revisa muchas seguidas (ADR-0611, mejora 9). Con el dedo la fila sigue en 44 px. */
+const DENSIDAD = preferenciaDelAparato("cayla-densidad-tabla", "compacta", "comoda");
 
 type Globo = { tipo: "columna"; clave: string } | { tipo: "orden" };
 
@@ -246,7 +253,8 @@ export function TablaViva<F>({
   guiaPie?: string;
 }) {
   const { columnas, filas, visibles, filtros, orden } = tabla;
-  const letraGrande = useSyncExternalStore(suscribirLetra, leerLetraGrande, () => false);
+  const letraGrande = useSyncExternalStore(LETRA.suscribir, LETRA.leer, () => false);
+  const compacta = useSyncExternalStore(DENSIDAD.suscribir, DENSIDAD.leer, () => false);
   const [globo, setGlobo] = useState<Globo | null>(null);
   const ancla = useRef<HTMLElement | null>(null);
   const tablaRef = useRef<HTMLDivElement>(null);
@@ -401,7 +409,8 @@ export function TablaViva<F>({
           {frase.map((p, k) => (p.fuerte ? <b key={k}>{p.texto}</b> : <Fragment key={k}>{p.texto}</Fragment>))}
         </p>
         <div className="tv-letra">
-          <Interruptor activo={letraGrande} onActivo={ponerLetraGrande} etiqueta="Letra grande" />
+          <Interruptor activo={compacta} onActivo={DENSIDAD.poner} etiqueta="Compacta" />
+          <Interruptor activo={letraGrande} onActivo={LETRA.poner} etiqueta="Letra grande" />
         </div>
         {pildoras.length > 0 && (
           <div className="tv-puestos">
@@ -461,7 +470,7 @@ export function TablaViva<F>({
           })}
       </div>
 
-      <div ref={tablaRef} className="tv-tabla" role="table" aria-label={etiqueta} data-guia={guia} data-letra={letraGrande ? "grande" : undefined} style={estiloTabla}>
+      <div ref={tablaRef} className="tv-tabla" role="table" aria-label={etiqueta} data-guia={guia} data-letra={letraGrande ? "grande" : undefined} data-densidad={compacta ? "compacta" : undefined} style={estiloTabla}>
         <div className="tv-fondo" aria-hidden />
         <div ref={cabezaRef} className="tv-cabeza" role="rowgroup">
           <div className="tv-enc" role="row">

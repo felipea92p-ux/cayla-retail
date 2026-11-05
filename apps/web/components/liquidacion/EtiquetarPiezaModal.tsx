@@ -162,7 +162,7 @@ export function EtiquetarPiezaModal({
                 type="submit"
                 peso="primario"
                 cargando={guardando}
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
               >

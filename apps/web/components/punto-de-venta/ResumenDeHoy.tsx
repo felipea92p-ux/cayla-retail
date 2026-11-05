@@ -47,7 +47,7 @@ export function ResumenDeHoy({
         onClick={() => setAbierto(true)}
         aria-haspopup="dialog"
         title={r.pctMeta !== null ? `${r.pctMeta} % de la meta del día · ver las ventas` : "Ver las ventas de hoy"}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md px-1.5 text-sm text-tinta/65 transition-colors hover:text-tinta"
+        className="area-dedo inline-flex h-9 items-center gap-1.5 rounded-md px-1.5 text-sm text-tinta/65 transition-colors hover:text-tinta"
       >
         <Clock className="h-3.5 w-3.5" aria-hidden />
         Hoy <b className="font-semibold text-tinta tabular-nums">{soles(r.total)}</b>

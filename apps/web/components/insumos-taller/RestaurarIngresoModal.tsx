@@ -105,7 +105,7 @@ export function RestaurarIngresoModal({ insumo, eliminado, onClose }: { insumo: 
               <Boton type="button" onClick={onClose}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Restaurando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Restaurando…" confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
                 Restaurar el ingreso
               </Boton>
             </PieAcciones>

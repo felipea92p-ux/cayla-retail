@@ -173,7 +173,7 @@ export function ProcesoModal({ proceso, catalogo, onClose }: { proceso: FaseDelC
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando === "guardar"} disabled={!guia.puedeConfirmar || cargando !== null} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando === "guardar"} disabled={cargando !== null} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               {proceso ? "Guardar el proceso" : "Dar de alta el proceso"}
             </Boton>
           </div>

@@ -527,7 +527,7 @@ export function DetallePapel({
                 peso="primario"
                 cargando={guardando}
                 textoCargando="Guardando…"
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
                 data-guia="fondos.papel-completar"

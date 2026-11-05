@@ -1151,7 +1151,7 @@ export function NuevaOrdenProduccionForm({
                 cargando={cargando}
                 textoCargando="Abriendo…"
                 type="submit"
-                disabled={cargando || !guia.puedeConfirmar || !responsable.listo}
+                disabled={cargando || !responsable.listo} confirma={guia}
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={`flex-1 ${guia.claseConfirmar}`}
               >

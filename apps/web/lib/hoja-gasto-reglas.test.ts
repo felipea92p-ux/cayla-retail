@@ -59,6 +59,18 @@ describe("la guía de la hoja dice lo mismo que su validación", () => {
     expect(sePuedeConfirmar(campos)).toBe(v.ok);
   });
 
+  it.each(caminos)("%s: el error de guardar lleva a un campo que está en la hoja", (_nombre, h, ctx, salida) => {
+    const v = validarHoja(h, ctx.proveedorListo ? "prov-1" : "", salida, HOY);
+    if (v.ok || !v.campo) return;
+    expect(camposDeLaHoja(h, ctx).map((c) => c.id)).toContain(v.campo);
+  });
+
+  it("un monto mal escrito dice por qué bajo el campo, no «escribe cuánto se pagó»", () => {
+    const monto = camposDeLaHoja(llena({ monto: "abc" }), listo).find((c) => c.id === "monto");
+    expect(monto?.pendiente).not.toBe("Escribe cuánto se pagó.");
+    expect(camposDeLaHoja(llena({ monto: "" }), listo).find((c) => c.id === "monto")?.pendiente).toBe("Escribe cuánto se pagó.");
+  });
+
   it("sin comprobante no pide RUC ni serie; a crédito pide cuándo vence en vez de «salió de»", () => {
     expect(camposDeLaHoja(llena(), listo).map((c) => c.id)).toEqual(["monto", "sede", "categoria", "descripcion", "comprobante", "salida", "responsable"]);
     expect(camposDeLaHoja(llena({ comprobante: "factura", pagado: "no" }), listo).map((c) => c.id)).toEqual([

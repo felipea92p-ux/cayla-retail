@@ -199,7 +199,7 @@ export function PrepararRecortesHoja({
                 <Boton type="button" onClick={onClose}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" disabled={!guia.puedeConfirmar || total === 0} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                <Boton type="submit" peso="primario" disabled={total === 0} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                   Empezar
                 </Boton>
               </>

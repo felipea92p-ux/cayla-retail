@@ -213,7 +213,7 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               {total > 0 ? `Anotar vuelta de ${total}` : "Anotar vuelta"}
             </Boton>
           </div>

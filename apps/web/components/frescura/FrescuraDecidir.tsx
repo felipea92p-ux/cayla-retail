@@ -194,7 +194,7 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
           <Boton peso="primario" cargando={enviando} textoCargando="Anotando…"
             type="submit"
             className={`w-full sm:w-auto ${guia.claseConfirmar}`}
-            disabled={enviando || !guia.puedeConfirmar || !responsable.listo}
+            disabled={enviando || !responsable.listo} confirma={guia}
             title={responsable.motivo ?? guia.frase ?? undefined}
           >
             Anotar
@@ -285,7 +285,7 @@ export function FrescuraQuitar({ decisionId, sede, onNo, onListo }: { decisionId
         <button type="button" className="btn-cayla btn-sutil" onClick={onNo} disabled={enviando}>
           No
         </button>
-        <Boton cargando={enviando} textoCargando="Quitando…" type="submit" className={`${guia.claseConfirmar}`} disabled={enviando || !guia.puedeConfirmar || !responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined}>
+        <Boton cargando={enviando} textoCargando="Quitando…" type="submit" className={`${guia.claseConfirmar}`} disabled={enviando || !responsable.listo} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined}>
           Quitar
         </Boton>
       </div>

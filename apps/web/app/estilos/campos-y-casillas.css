@@ -24,7 +24,7 @@
     padding: 0 0.75rem;
     font-size: 14px;
     color: var(--color-tinta);
-    transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
+    transition: background-color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla);
   }
   @media (hover: hover) {
     /* P2 de la familia (2026-10-26): en reposo el borde ya es el de control (3:1), así que hover y encendida suben UN escalón: una mezcla de
@@ -53,7 +53,7 @@
     transform: scaleX(0);
     transform-origin: center;
     pointer-events: none;
-    transition: transform 320ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+    transition: transform var(--t-cambio) var(--ease-cayla), background-color var(--t-cambio) var(--ease-cayla);
   }
   .caja-campo:has(:is(input, textarea):focus)::after,
   .caja-campo[aria-expanded="true"]::after,
@@ -88,7 +88,7 @@
   button.caja-campo { width: 100%; justify-content: space-between; text-align: left; cursor: pointer; }
   button.caja-campo:disabled { cursor: not-allowed; }
   /* La flecha de un combo: chevron de 16 px; con el mouse se oscurece; abierta gira media vuelta y se pone roja. */
-  .caja-campo .combo-flecha { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: transform 320ms var(--ease-cayla), color 200ms; } /* contraste: gráfico sobre hueso, papel */
+  .caja-campo .combo-flecha { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: transform var(--t-cambio) var(--ease-cayla), color var(--t-cambio); } /* contraste: gráfico sobre hueso, papel */
   @media (hover: hover) {
     .caja-campo:hover .combo-flecha { color: var(--color-tinta); }
   }
@@ -110,7 +110,7 @@
     background-size: 0 2px;
     font-size: 14px;
     color: var(--color-tinta);
-    transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
+    transition: background-color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla), background-size var(--t-cambio) var(--ease-cayla);
   }
   @media (hover: hover) {
     .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
@@ -124,7 +124,7 @@
   .caja-campo-input:disabled { opacity: 0.55; cursor: not-allowed; }
   textarea.caja-campo-input { min-height: 4rem; padding-block: 0.625rem; line-height: 1.45; }
   /* La lupa de un combo donde se escribe para buscar (ComboBuscable): se oscurece con la caja encendida. */
-  .caja-campo .combo-lupa { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); transition: color 200ms; } /* contraste: gráfico sobre hueso, papel */
+  .caja-campo .combo-lupa { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); transition: color var(--t-cambio); } /* contraste: gráfico sobre hueso, papel */
   .caja-campo:has([aria-expanded="true"]) .combo-lupa,
   .caja-campo:has(input:focus) .combo-lupa { color: var(--color-tinta); }
   /* El valor elegido entra subiendo (no salta). */
@@ -145,7 +145,7 @@
     display: grid; place-items: center; flex: none;
     height: calc(100% - 6px); aspect-ratio: 1; border-radius: 8px;
     color: color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: gráfico sobre hueso, papel */
-    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), transform 120ms var(--ease-cayla);
+    transition: background-color var(--t-cambio) var(--ease-cayla), color var(--t-cambio) var(--ease-cayla), transform var(--t-resp) var(--ease-cayla);
   }
   .paso-cantidad[data-tam="celda"] .paso-cantidad-b { height: calc(100% - 4px); border-radius: 5px; }
   .paso-cantidad-b svg { width: 14px; height: 14px; }
@@ -245,7 +245,7 @@
     border: 1px solid var(--color-sand);
     background: var(--color-papel);
     color: color-mix(in srgb, var(--color-tinta) 78%, transparent);
-    transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), color 220ms var(--ease-cayla);
+    transition: background-color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla), color var(--t-cambio) var(--ease-cayla);
   }
   @media (hover: hover) {
     .pildora-filtro:hover { border-color: color-mix(in srgb, var(--color-taupe) 70%, transparent); color: var(--color-tinta); }
@@ -269,14 +269,14 @@
     cursor: pointer;
   }
   .pildora-filtro[data-quitable] .pildora-filtro-boton { padding-right: 4px; }
-  .pildora-filtro-icono { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; transition: opacity 220ms; }
+  .pildora-filtro-icono { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; transition: opacity var(--t-cambio); }
   .pildora-filtro[data-puesta] .pildora-filtro-icono { opacity: 0.8; }
   @media (hover: hover) {
     .pildora-filtro:hover .pildora-filtro-icono { opacity: 0.8; }
   }
   .pildora-filtro[data-puesta] .pildora-filtro-nombre { opacity: 0.75; }
   .pildora-filtro-valor { display: flex; min-width: 0; max-width: 16rem; align-items: center; gap: 6px; font-weight: 600; }
-  .pildora-filtro-flecha { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.55; transition: transform 320ms var(--ease-cayla), color 200ms, opacity 200ms; }
+  .pildora-filtro-flecha { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.55; transition: transform var(--t-cambio) var(--ease-cayla), color var(--t-cambio), opacity var(--t-cambio); }
   .pildora-filtro[data-abierta] .pildora-filtro-flecha { transform: rotate(-180deg); color: var(--color-rojo); opacity: 1; }
   .pildora-filtro-quitar {
     display: inline-grid;
@@ -290,7 +290,7 @@
     background: none;
     color: color-mix(in srgb, var(--color-crema) 75%, transparent);
     cursor: pointer;
-    transition: background-color 150ms, color 150ms;
+    transition: background-color var(--t-resp), color var(--t-resp);
   }
   .pildora-filtro-quitar svg { width: 12px; height: 12px; }
   @media (hover: hover) {
@@ -318,7 +318,7 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
-    transition: color 200ms var(--ease-cayla);
+    transition: color var(--t-cambio) var(--ease-cayla);
   }
   .campo:has(:is(input, textarea):focus, [aria-expanded="true"]) .campo-etiqueta { color: var(--color-tinta); }
 
@@ -340,7 +340,7 @@
     border-radius: 6px;
     border: 1.5px solid var(--color-borde-control); /* P2 de la familia: antes tinta al 35 % (2.2:1 en claro) */
     background: var(--color-papel);
-    transition: border-color 150ms, scale 120ms var(--ease-cayla);
+    transition: border-color var(--t-resp), scale var(--t-resp) var(--ease-cayla);
   }
   @media (hover: hover) {
     .casilla-input:hover:not(:disabled) { border-color: var(--color-tinta); }
@@ -356,7 +356,7 @@
     scale: 0.4;
     opacity: 0;
     pointer-events: none;
-    transition: scale 220ms var(--ease-cayla), opacity 160ms var(--ease-cayla);
+    transition: scale var(--t-cambio) var(--ease-cayla), opacity var(--t-cambio) var(--ease-cayla);
   }
   .casilla-input:is(:checked, :indeterminate) ~ .casilla-fondo { scale: 1; opacity: 1; }
   /* El ✓ (o el guion de «a medias») se traza después de que el fondo llega. */
@@ -372,7 +372,7 @@
   .casilla-marca :is(path, polyline, line) {
     stroke-dasharray: 24;
     stroke-dashoffset: 24;
-    transition: stroke-dashoffset 260ms var(--ease-cayla);
+    transition: stroke-dashoffset var(--t-cambio) var(--ease-cayla);
   }
   .casilla-input:checked:not(:indeterminate) ~ .casilla-visto :is(path, polyline),
   .casilla-input:indeterminate ~ .casilla-medio :is(path, line) {
@@ -390,7 +390,7 @@
     background: color-mix(in srgb, var(--color-tinta) 22%, transparent);
     /* Apagado: el aro de control (P2 de la familia; el relleno solo daba 1.6:1). Prendido: el relleno de tinta ya lo identifica. */
     box-shadow: inset 0 0 0 1.5px var(--color-borde-control);
-    transition: background-color 280ms var(--ease-cayla), box-shadow 280ms var(--ease-cayla);
+    transition: background-color var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla);
   }
   .interruptor[aria-checked="true"] { background: var(--color-tinta); box-shadow: none; }
   .interruptor:disabled { cursor: not-allowed; }
@@ -404,7 +404,7 @@
     border-radius: 999px;
     background: var(--color-papel);
     box-shadow: 0 1px 3px color-mix(in srgb, var(--color-sombra) 30%, transparent);
-    transition: translate 280ms var(--ease-cayla), width 160ms var(--ease-cayla);
+    transition: translate var(--t-cambio) var(--ease-cayla), width var(--t-cambio) var(--ease-cayla);
   }
   .interruptor[aria-checked="true"] .interruptor-perilla { translate: 16px 0; }
   .interruptor:active:not(:disabled) .interruptor-perilla { width: 21px; }
@@ -431,7 +431,7 @@
     font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 85%, transparent);
     cursor: pointer;
-    transition: background-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla);
+    transition: background-color var(--t-resp) var(--ease-cayla), color var(--t-resp) var(--ease-cayla);
     animation: cayla-entrada 360ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--i, 0) * 30ms);
   }
@@ -449,7 +449,7 @@
     border-radius: 999px;
     background: var(--color-rojo);
     transform: scaleY(0);
-    transition: transform 200ms var(--ease-cayla);
+    transition: transform var(--t-cambio) var(--ease-cayla);
   }
   .sugerencia[data-activa] .sugerencia-canto { transform: scaleY(1); }
   .sugerencia-texto { display: flex; min-width: 0; flex: 1; flex-direction: column; }
@@ -470,7 +470,7 @@
     color: var(--color-taupe);
     opacity: 0;
     transform: translateX(-4px);
-    transition: opacity 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
+    transition: opacity var(--t-cambio) var(--ease-cayla), transform var(--t-cambio) var(--ease-cayla);
   }
   .sugerencia-tecla svg { width: 12px; height: 12px; }
   .sugerencia[data-activa] .sugerencia-tecla { opacity: 1; transform: none; }

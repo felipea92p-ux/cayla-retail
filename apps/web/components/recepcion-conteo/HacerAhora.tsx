@@ -583,7 +583,7 @@ function SepararAhora({
                 <Boton type="button" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar || (!!dueno && !dueno.duenoId)} title={guia.frase ?? (dueno && !dueno.duenoId ? "Elige de quién es la mercadería" : undefined)} className={guia.claseConfirmar}>
+                <Boton type="submit" peso="primario" cargando={guardando} disabled={!!dueno && !dueno.duenoId} confirma={guia} title={guia.frase ?? (dueno && !dueno.duenoId ? "Elige de quién es la mercadería" : undefined)} className={guia.claseConfirmar}>
                   Guardar
                 </Boton>
               </div>

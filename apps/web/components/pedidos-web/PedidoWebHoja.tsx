@@ -430,7 +430,7 @@ export function PedidoWebHoja({
                     peso="primario"
                     cargando={guardando}
                     textoCargando="Confirmando…"
-                    disabled={!guia.puedeConfirmar}
+                    confirma={guia}
                     title={guia.frase ?? undefined}
                     className={guia.claseConfirmar}
                     onClick={() => guardar("confirmar", cerrar)}
@@ -481,7 +481,7 @@ export function PedidoWebHoja({
                     peso="primario"
                     cargando={guardando}
                     textoCargando="Cerrando…"
-                    disabled={!guia.puedeConfirmar}
+                    confirma={guia}
                     title={guia.frase ?? undefined}
                     onClick={() => guardar("no_confirmar", cerrar)}
                   >
@@ -591,7 +591,7 @@ export function PedidoWebHoja({
                     peso="primario"
                     cargando={guardando}
                     textoCargando="Reservando…"
-                    disabled={!guia.puedeConfirmar}
+                    confirma={guia}
                     title={guia.frase ?? undefined}
                     className={guia.claseConfirmar}
                     onClick={() => guardar("reservar", cerrar)}
@@ -635,7 +635,7 @@ export function PedidoWebHoja({
                     peso="primario"
                     cargando={guardando}
                     textoCargando="Anulando…"
-                    disabled={!guia.puedeConfirmar}
+                    confirma={guia}
                     title={guia.frase ?? undefined}
                     onClick={() => guardar("anular", cerrar)}
                   >
@@ -727,7 +727,7 @@ export function PedidoWebHoja({
                       peso="primario"
                       cargando={entrega.enviando}
                       textoCargando="Entregando…"
-                      disabled={!guia.puedeConfirmar || revisando}
+                      disabled={revisando} confirma={guia}
                       title={guia.frase ?? undefined}
                       className={guia.claseConfirmar}
                       onClick={() => entregar(cerrar)}

@@ -148,7 +148,7 @@ export function EncontreTelaModal({ datos, onClose }: { datos: OrdenPagina; onCl
               Cancelar
             </Boton>
             {telas.length > 0 && (
-              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
                 Anotar la tela
               </Boton>
             )}

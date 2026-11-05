@@ -263,7 +263,7 @@ export function NuevoModelo({
             <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Agregando…" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {yaEsta ? "Ir a contarlo" : "+ Agregar y contar"}
             </Boton>
           </div>

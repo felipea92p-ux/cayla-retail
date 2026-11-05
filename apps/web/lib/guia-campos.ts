@@ -73,6 +73,49 @@ export function fraseDeLoQueFalta(campos: readonly CampoDeGuia[]): string | null
   return `${faltan.length === 1 ? "Falta" : "Faltan"}: ${lista}`;
 }
 
+/** El primer campo que de verdad impide confirmar: a él lleva `revisar()` al intentar guardar con algo pendiente. null si nada bloquea. */
+export function primeroQueBloquea(campos: readonly CampoDeGuia[]): CampoDeGuia | null {
+  return campos.find((c) => c.requerido && !c.hecho) ?? null;
+}
+
+/**
+ * De los campos con un mismo nombre, el de la hoja de más arriba: la pila de Gastos tiene su «En qué» detrás de la hoja de Registrar gasto, y «llevarte al
+ * campo» tiene que ir al que se ve. `hojaDe` dice en qué hoja está cada uno, por orden de apertura (-1, en la pantalla).
+ */
+export function campoDeMasArriba<T>(campos: readonly T[], hojaDe: (campo: T) => number): T | null {
+  let elegido: T | null = null;
+  let masArriba = Number.NEGATIVE_INFINITY;
+  for (const campo of campos) {
+    const hoja = hojaDe(campo);
+    if (hoja > masArriba) {
+      elegido = campo;
+      masArriba = hoja;
+    }
+  }
+  return elegido;
+}
+
+/** Los campos que faltaban al intentar guardar: solo esos dicen su error. Uno que aparece después (el RUC, al elegir «Factura») no regaña a quien recién llega a él. */
+export function pendientesAlRevisar(campos: readonly CampoDeGuia[]): string[] {
+  return campos.filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+}
+
+/** Cuando ya no falta nada se olvida lo revisado: una hoja que se limpia para el siguiente («Guardar y registrar otro») empieza sin regañar. */
+export function revisadosVigentes(revisados: ReadonlySet<string>, campos: readonly CampoDeGuia[]): ReadonlySet<string> {
+  return revisados.size > 0 && sePuedeConfirmar(campos) ? new Set<string>() : revisados;
+}
+
+/**
+ * Qué error dice UN campo bajo su control (ADR-0611, mejora 1). Se avisa solo si estaba pendiente al intentar guardar (`revisado`): un campo vacío
+ * no regaña a quien todavía no llega a él. Un error que el guardado devolvió para este campo (`externo`) manda, y se borra apenas se corrige.
+ */
+export function errorDeCampo(campos: readonly CampoDeGuia[], id: string, revisado: boolean, externo?: string | null): string | null {
+  if (externo) return externo;
+  if (!revisado) return null;
+  const campo = campos.find((c) => c.id === id);
+  return campo && campo.requerido && !campo.hecho ? campo.pendiente || null : null;
+}
+
 /** El grado de un campo por hacer en una palabra, para escribirla junto a su título: «obligatorio» (sin él no se confirma), «conviene» (casi siempre se llena, no bloquea)
  *  u «opcional». Un campo hecho no dice nada: ya lleva su ✓. Solo lo usan las hojas que lo piden (`useGuiaCampos` con `conGrado`). */
 export function palabraDeGrado(c: CampoDeGuia): "obligatorio" | "conviene" | "opcional" | null {

@@ -147,10 +147,10 @@
 }
 /* Los dos tramos del flujo (el JavaScript solo dice cuándo pasa al segundo). */
 .cmp-ind-gota[data-fluye="estira"] {
-  transition-duration: 220ms;
+  transition-duration: var(--t-cambio);
 }
 .cmp-ind-gota[data-fluye="recoge"] {
-  transition-duration: 300ms;
+  transition-duration: var(--t-cambio);
 }
 
 /* ---------- Las tablas: la placa Serena, sin rayado, un hilo entre filas ---------- */
@@ -668,6 +668,24 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
 .prod-stock[data-tono="cero"] {
   font-weight: 600;
   color: color-mix(in srgb, var(--color-rojo) 78%, var(--color-tinta));
+}
+/* En qué sede está (Felipe 2026-11-05): «Trujillo 2 · Arequipa 5 · Lima 1». Cada lugar es una pieza que no se parte; si no caben, baja el lugar entero. */
+.prod-lugares {
+  font-size: 14px;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre crema, papel */
+}
+.prod-lugar {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.prod-lugar b {
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+.prod-lugar[data-cero] b {
+  font-weight: 400;
+  color: inherit;
 }
 /* La tarjeta angosta (dos o tres columnas en un teléfono, «Pequeño»): el precio baja bajo el nombre y el nombre puede tomar dos líneas. */
 @container (max-width: 180px) {

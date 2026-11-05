@@ -163,7 +163,7 @@ raro, el log de Postgres (`query_logs`, `source = 'postgres_logs'`) muestra el t
 
 **Todo modal nuevo se hace con `<Modal>` (`apps/web/components/ui/Modal.tsx`; por URL, `<ModalRuta>`) y hereda solo el
 efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada (título, bajada y campos,
-55 ms de desfase) → salida corta. En el celular la hoja llega desde el borde, con asa, se baja con el dedo y aleja lo de atrás
+18 ms de desfase, en los cuatro tiempos con nombre de `globals.css`: `--t-resp`, `--t-cambio`, `--t-hoja`, `--t-momento`, ritmo «Rápido», ADR-0611) → salida corta. En el celular la hoja llega desde el borde, con asa, se baja con el dedo y aleja lo de atrás
 («B · Hoja viva con profundidad», ADR-0479): `<Modal>` y `<Cajon>` ya lo hacen.** Y un `:hover` de nuestro CSS va siempre dentro de
 `@media (hover: hover)` (en el teléfono se queda pegado tras un toque; el `hover:` de Tailwind ya lo hace solo): lo vigila `lib/hover-con-mouse.test.ts`. No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
@@ -240,6 +240,12 @@ botones, la opción activa de una lista, la fila del menú) · **lo que explica 
 Nada sólido sobre el vidrio. Dos cosas que no se tocan sin leer el ADR: **la hoja no lleva `backdrop-filter`** (la volvería el bloque
 contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque lo pone el velo), y **una pieza nueva no inventa su vidrio**:
 usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
+
+**El vidrio aguanta (ADR-0611, mejora 7):** quien en su aparato pidió menos transparencia o más contraste ve las mismas piezas macizas y sin desenfoque. Una receta nueva con fondo translúcido
+agrega su versión maciza al final de `recetas.css`: `lib/vidrio-que-aguanta.test.ts` falla si no.
+
+**Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5):** `app/estilos/tacto.css`, solo con `pointer: coarse`. Una pieza nueva del sistema se suma ahí; un botón de ícono sin clase propia lleva
+`area-dedo`, que agranda su área sin cambiar su dibujo. Se mide con `pnpm --filter web tacto:medir`.
 
 **Lo que flota sobre contenido que se desplaza lleva fondo de vidrio, nunca «en el aire» (regla — Felipe 2026-11-04):** una cabecera, una
 barra pegada o una fila de herramientas que se queda quieta mientras la pantalla corre por detrás no puede quedar transparente: lo que pasa
@@ -490,7 +496,10 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
 5. **La lógica es pura, en `lib/<pantalla>-guia.ts`, con su prueba, y NO agrega reglas de negocio**: sale de lo que la validación real
    ya bloquea, y una prueba exige que coincidan (modelo: `lib/alta-producto-guia.test.ts`, que recorre 19 escenarios contra
    `problemasAlta`). Lo opcional de verdad no se lista como «falta»; lo recomendado que no bloquea es «sugerido» y **nunca un candado**.
-6. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; **la luz tampoco se va del campo donde la persona está
+6. **El botón que confirma no se apaga por lo que falta (ADR-0611, mejora 4):** `<Boton confirma={guia}>`. Al tocarlo (o con Enter en un campo), cada campo pendiente dice su error
+   bajo él y el cursor va al primero. Lo que no se arregla llenando un campo sí lo apaga (`disabled={enviando}`). Un error que devuelve el guardado para un campo va con
+   `guia.marcarError(campo, mensaje)`, nunca en un aviso de esquina. **Lo mal escrito se dice al salir del campo, no a la primera letra:** `useValidarAlSalir(motivo)`. Lo vigila `lib/boton-confirma.test.ts`.
+7. **Tacto:** nunca se desplaza la página mientras hay foco en un campo de texto; **la luz tampoco se va del campo donde la persona está
    escribiendo hasta que sale de él** (una letra no la manda al siguiente; `CampoGuiado` ya lo hace) y un combo con valor de fábrica que
    importa entra a la guía como «sugerido» (ADR-0284 act. h); solo se mueve lo que no se ve; sin animación con
    `prefers-reduced-motion`. Movimiento de ADR-0136 (sin bucle ni rebote); el rojo de la luz es el de la marca como señal de «mira aquí», nunca el de un error, y solo

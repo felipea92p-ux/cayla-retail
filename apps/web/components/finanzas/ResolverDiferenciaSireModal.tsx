@@ -103,7 +103,7 @@ export function ResolverDiferenciaSireModal({ registro, mes, pedido, onClose }: 
                 peso="primario"
                 cargando={trabajando}
                 textoCargando={deshacer ? "Deshaciendo…" : "Guardando…"}
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
               >

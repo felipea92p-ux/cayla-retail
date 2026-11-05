@@ -28,7 +28,7 @@ export function useAtajoBusqueda(campoRef: RefObject<HTMLInputElement | null>, a
 }
 
 const CHIP_ACCION =
-  "inline-flex h-10 items-center gap-2 rounded-full bg-papel px-4 text-sm font-medium text-tinta ring-1 ring-tinta/[0.14] transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:ring-tinta/30";
+  "area-dedo inline-flex h-10 items-center gap-2 rounded-full bg-papel px-4 text-sm font-medium text-tinta ring-1 ring-tinta/[0.14] transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:ring-tinta/30";
 
 /**
  * El área de acción de Cambios y de Devoluciones (2026-09-18): responde "¿qué quiero
