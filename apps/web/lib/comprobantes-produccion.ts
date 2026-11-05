@@ -3,6 +3,7 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import type { ComprobanteProduccion, CondicionComprobante } from "@/lib/comprobantes-produccion-reglas";
 import type { FaltanteDePedido } from "@/lib/faltante-por-pagar-reglas";
 import type { UnidadInsumo } from "@/lib/insumos-reglas";
+import { servicioDesdeCrudo, type ServicioCrudo, type ServicioPorPagar } from "@/lib/servicios-por-pagar-reglas";
 
 // Comprobantes de Producción (ADR-0133, F4b; D-H). Solo lectura: toda escritura pasa por `registrar_comprobante_produccion` y
 // `anular_comprobante_produccion`. Lo pagado y el saldo NO son columnas: los DERIVA `fn_comprobantes_produccion`. Solo el líder
@@ -51,6 +52,16 @@ export async function getComprobantesProduccion(): Promise<ComprobanteProduccion
     estadoPago: f.estado_pago as ComprobanteProduccion["estadoPago"],
     vencido: f.vencido,
   }));
+}
+
+/** Lo que se le debe a los servicios de afuera y todavía no tiene papel (ADR-0614). La base lo deriva; a quien no es líder le devuelve cero filas. */
+export async function getServiciosPorPagar(): Promise<ServicioPorPagar[]> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await (supabase.rpc as unknown as (f: string) => PromiseLike<{ data: ServicioCrudo[] | null; error: { message: string } | null }>)("fn_servicios_por_pagar"),
+    "lo que se les debe a los servicios",
+  );
+  return (filas as ServicioCrudo[]).map(servicioDesdeCrudo);
 }
 
 /**

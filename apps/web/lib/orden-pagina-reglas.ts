@@ -844,9 +844,9 @@ export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | 
   return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
 }
 
-/** ¿Se puede registrar quién hizo esta fase? Una fase pendiente, en cualquier momento (aunque ya empezó) mientras la orden siga en proceso (la base: `fase_no_pendiente`, `orden_cerrada`). */
+/** ¿Se puede registrar quién hizo esta fase? Una fase pendiente, en cualquier momento (aunque ya empezó, y aunque la orden ya pasó al stock: ADR-0614), salvo en una orden anulada (la base: `fase_no_pendiente`, `orden_cerrada`). */
 export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
-  return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && esPendienteDeRegistrar(f);
+  return p.permisos.puedeOperar && p.orden.estado !== "anulada" && esPendienteDeRegistrar(f);
 }
 
 /**

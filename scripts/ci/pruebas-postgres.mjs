@@ -1901,6 +1901,10 @@ export const PRUEBAS = [
   // o cierre, en orden inverso sí se puede, y el par cierre + reversión no sale en la pestaña «Costo». ROLLBACK.
   "pruebas:produccion-revertir-costo",
 
+  // Lo que se le debe a un servicio llega a Por pagar (ADR-0614, actividad 3): devengado menos lo documentado, se suma a la deuda de Producción,
+  // solo lo ve el líder, y el nombre se registra con la orden cerrada sin tocar el monto. ROLLBACK.
+  "pruebas:produccion-servicios-por-pagar",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 

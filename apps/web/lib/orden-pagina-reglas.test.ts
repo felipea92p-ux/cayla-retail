@@ -438,7 +438,8 @@ describe("las fases", () => {
     expect(puedeRegistrarQuien(pendiente, p)).toBe(true); // …pero SÍ se registra quién fue
     expect(puedeRegistrarQuien(costura, p)).toBe(false);
     expect(puedeRegistrarQuien(pendiente, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
-    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
+    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(true); // ADR-0614: el nombre se registra también con la orden cerrada
+    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "anulada" } })).toBe(false);
   });
 
   it("puedeCambiarQuien: solo mientras la fase no empezó y la orden está en proceso", () => {

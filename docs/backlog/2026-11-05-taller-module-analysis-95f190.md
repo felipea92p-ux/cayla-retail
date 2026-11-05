@@ -4,8 +4,8 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 2 · OP-1 a OP-4 cerradas en producción el 2026-11-05, con la orden de Felipe y desde su cuenta (OP-1 con «ya estaban registradas»). Comprobado en la base: OP-2, OP-3 y OP-4 tienen su entrada al stock y su costo; OP-1 no sumó stock ni movió el costo.
   - [ ] **La encargada:** declarar y anotar la tela de OP-5 y OP-6 antes de cerrarlas (Felipe no tiene el dato). «Pasar al stock» las frena si falta.
   - [ ] **OP-2 tiene tela anotada solo en 4 de sus 9 colores y sus botones sin descontar:** su costo por prenda puede estar corto. Revisar con quien la cortó.
-  - [ ] **Falta el nombre de 4 servicios:** OP-1 (Corte, Ojales y botones), OP-2 (Planchado) y OP-4 (Corte). Hoy solo se registra con la orden abierta: la actividad 3 lo abre también con la orden cerrada.
-- [ ] 3 · La deuda de un servicio llega a Por pagar.
+  - [ ] **Falta el nombre de 4 servicios:** OP-1 (Corte, Ojales y botones), OP-2 (Planchado) y OP-4 (Corte). Ya se puede con la orden cerrada (actividad 3), cuando se publique.
+- [x] 3 · La deuda de un servicio llega a Por pagar, y el nombre se registra con la orden cerrada. **POR PEGAR:** `20261105221000_servicios_del_taller_por_pagar.sql`, una parte, con el OK de Felipe, antes de publicar la web. Finanzas ▸ Por pagar (`fn_por_pagar_consolidado`) todavía no lista estos servicios: su botón «Pagar» espera una factura.
 - [ ] 4 · Pagar desde la vuelta, con su papel.
 - [ ] 5 · «Llegó una compra», en hoja sencilla.
 - [ ] 6 · Regularizar los lotes de compra sin proveedor y reemplazar una nota provisional.

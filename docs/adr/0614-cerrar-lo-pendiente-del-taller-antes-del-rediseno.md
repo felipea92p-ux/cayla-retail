@@ -28,3 +28,11 @@ SE ROMPE SI: alguien lee `costo_historial` sin saber de las filas `reversion` y 
 **Límite conocido:** una prenda con un cierre revertido sigue con su costo bloqueado a mano (`fn_variantes_con_costo_oficial` solo mira si tiene historial).
 
 Prueba: `pnpm pruebas:produccion-revertir-costo`. **En producción desde el 2026-11-05,** con el OK de Felipe; sin ninguna orden cerrada todavía, no se ha revertido ningún cierre real.
+
+## Actividad 3: lo que se le debe a un servicio llega a Por pagar (migración `20261105221000`)
+
+**El problema.** La orden calculaba lo que se le debe a un servicio, pero Por pagar solo lee facturas: sin papel, no era deuda para nadie.
+
+DECIDÍ: derivarla (`fn_servicios_por_pagar` = devengado − líneas de comprobante vigentes que apuntan a la fase con `fase_id`). Se cuenta sin IGV, porque la tarifa es sin IGV. El nombre de un servicio se registra también con la orden terminada, sin cambiar tarifa ni fijo, que ya entraron al costo.
+DESCARTÉ: (1) crear una factura automática por vuelta: exigiría serie y proveedor que no se conocen, y al anular una vuelta habría que anular papeles; (2) una tabla propia de pagos a servicios: Finanzas, IGV, flujo y balance ya leen `comprobantes_produccion`, y habría que enseñarles otra.
+SE ROMPE SI: alguien factura un servicio sin apuntar la línea a su fase: esa deuda se contaría dos veces. La actividad 4 hace que el pago desde Por pagar la apunte sola; la factura suelta sigue pudiendo hacerlo mal.

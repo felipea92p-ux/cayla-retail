@@ -9,3 +9,8 @@
   POR QUÉ ASÍ: sus prendas tenían costo cero y la tela y las tarifas ya estaban anotadas; lo que Felipe no sabe (nombres de servicios, tela de OP-5 y OP-6) no impedía cerrar estas cuatro.
   QUÉ SE ROMPERÍA SIN ESTO: seguirían sin stock del Taller ni costo real, y Eficiencia sin ninguna cifra.
   Verificado con una consulta de solo lectura: estado, entradas, stock y costo de cada orden. Quedó pendiente lo que dice el backlog.
+- **Actividad 3 · Lo que se le debe a un servicio llega a Por pagar (migración `20261105221000`).**
+  QUÉ HICE: `fn_servicios_por_pagar` deriva devengado menos lo documentado, se suma a la deuda de Producción y sale en Por pagar del Taller. El nombre de un servicio ahora se registra también con la orden cerrada, sin tocar el monto.
+  POR QUÉ ASÍ: copiar la deuda a otra tabla daría dos verdades; derivada cambia sola con otra vuelta o una anulación. Se cuenta sin IGV porque la tarifa es sin IGV.
+  QUÉ SE ROMPERÍA SIN ESTO: el Taller debería plata a quien le cose sin que ninguna pantalla de dinero lo dijera.
+  Verificado: `pruebas:produccion-servicios-por-pagar` 12/12 y en el navegador local, de la lista a registrar el nombre en una orden cerrada. Sin mirar a 375 px ni en oscuro (va con el rediseño). Sin pegar en producción.

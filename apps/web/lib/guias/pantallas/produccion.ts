@@ -1616,6 +1616,20 @@ export const GUIA_PROD_POR_PAGAR: Guia = {
       texto: "Abre la ventana del pago: cuánto, con qué medio y desde qué cuenta. Puedes pagar una parte; el saldo baja solo y, al llegar a cero, la factura sale de la lista. En la demo no lo tocamos.",
     },
     {
+      id: "servicios",
+      ancla: "prod-por-pagar.servicios",
+      opcional: true,
+      titulo: "Lo que se debe a los servicios",
+      texto: "Cuando un servicio devuelve prendas, lo que se le debe aparece aquí, aunque todavía no te haya dado papel. Sale de la orden: nadie lo escribe.",
+    },
+    {
+      id: "registrar-quien",
+      ancla: "prod-por-pagar.registrar-quien",
+      opcional: true,
+      titulo: "Falta decir quién",
+      texto: "Si el paso quedó sin nombre, este botón te lleva a la orden para registrarlo. En la demo no lo tocamos.",
+    },
+    {
       id: "deuda-total",
       ancla: "prod-por-pagar.deuda-total",
       titulo: "Deuda total de CAYLA",
