@@ -43,7 +43,8 @@ import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 // La plantilla de la tabla (<Tabla>, ADR-0358): la campaña y una columna por tienda. Cuántas tiendas hay se sabe al dibujar, así que
 // las columnas viajan en una variable que pone la <Tabla> (`--columnas-historial`); en celular también (cada celda dice su tienda).
-const PLANTILLA_HISTORIAL = "grid-cols-[var(--columnas-historial)]";
+// Bajo 560 px de tabla la campaña va arriba, a lo ancho, y sus tiendas debajo, de a una por columna: el nombre de cada una lo lleva su celda.
+const PLANTILLA_HISTORIAL = "grid-cols-[repeat(var(--tiendas-historial),minmax(0,1fr))] @min-[560px]:grid-cols-[var(--columnas-historial)]";
 
 const solesSinCentimos = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 
@@ -242,15 +243,15 @@ export function HistorialCampanas({
 
       {/* Las columnas dependen de cuántas tiendas hay: la plantilla de <Tabla> (ADR-0358) las lee de esta variable, la misma para el
           encabezado y cada fila. */}
-      <Tabla guia="plan-historial.tabla" style={{ ["--columnas-historial" as string]: columnas }}>
+      <Tabla guia="plan-historial.tabla" style={{ ["--columnas-historial" as string]: columnas, ["--tiendas-historial" as string]: tiendas.length }}>
         {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. De entrada, la de ahora y las que vienen. */}
         <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
           <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
-          <div className="ml-auto">
+          <div className="ml-auto min-w-0 max-w-full">
             <DesplegablePildora icono={ArrowUpDown} etiqueta="Ordenar por" valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} valorPorDefecto="ahora" />
           </div>
         </div>
-        <Encabezado plantilla={PLANTILLA_HISTORIAL} columnas={[{ titulo: `Campaña · ${anio}` }, ...tiendas.map((t) => ({ titulo: t.nombre }))]} />
+        <Encabezado visible="hidden @min-[560px]:grid" plantilla={PLANTILLA_HISTORIAL} columnas={[{ titulo: `Campaña · ${anio}` }, ...tiendas.map((t) => ({ titulo: t.nombre }))]} />
         {visibles.length === 0 && (
           <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna campaña de ${anio} se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
             Prueba con otra palabra o borra la búsqueda.
@@ -267,8 +268,8 @@ export function HistorialCampanas({
             aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}
             aria-current={abierta?.clave === campana.clave ? "true" : undefined}
           >
-            <span className={celda("izq", "col-span-full sm:col-span-1")}>
-              <span className="flex items-center gap-1.5 font-semibold text-tinta">
+            <span className={celda("izq", "col-span-full whitespace-normal @min-[560px]:col-span-1")}>
+              <span className="flex flex-wrap items-center gap-1.5 font-semibold text-tinta">
                 {campana.nombre}
                 <ChevronRight aria-hidden className="h-4 w-4 text-taupe" />
                 {/* Dónde estás parado en el calendario: la campaña que cae en estos días (en otro año, «en esta fecha»). */}
@@ -281,7 +282,7 @@ export function HistorialCampanas({
             {/* En el orden de las columnas (la tienda de la cabecera primero), no en el de la base. */}
             {tiendas.flatMap((t) => celdas.filter((c) => c.tienda.id === t.id)).map((c) => (
               <span key={c.tienda.id} className="min-w-0">
-                <span className="block text-sm text-taupe sm:hidden">{c.tienda.nombre}</span>
+                <span className="block text-sm text-taupe @min-[560px]:hidden">{c.tienda.nombre}</span>
                 <Celda c={c} anio={anio} />
               </span>
             ))}

@@ -14,15 +14,15 @@
    JavaScript solo mide UNA vez (al pintar, al cambiar el ancho o la letra) dónde está el borde. Donde el navegador no sabe hacerlo
    (Firefox, por ahora), queda el respaldo simple: la cabecera opaca y las filas pasando por debajo.
 
-   Responsive por el ancho de la propia tabla (`container: tv`): todas las columnas desde 1060 px; bajo 1060 y bajo 840 se van las que lo
-   declaran y su dato pasa a la línea de debajo de la principal; bajo 660 cada fila es una tarjeta.
+   Responsive por el ancho de la propia tabla (`container: tv`): todas las columnas desde 1060 px; bajo 1060, 960, 840 y 740 se van las que
+   lo declaran, de una en una, y su dato pasa a la línea de debajo de la principal; bajo 660 cada fila es una tarjeta. Las pistas de una
+   tabla que quiera aprovechar una pantalla muy ancha reparten lo que sobra (`minmax(108px,0.6fr)`): así una sola columna no se lo lleva todo.
    ==================================================================== */
 
 .tv-zona {
   container: tv / inline-size;
   /* Dónde se pega la cabecera: bajo las islas del marco (marco.css: 8 + 52 px en el celular, 12 + 52 desde 640), con 8 px de aire. */
   --tv-tope: calc(env(safe-area-inset-top, 0px) + 68px);
-  --tv-texto-tenue: color-mix(in srgb, var(--color-tinta) 80%, transparent);
   --tv-cab-reposo: color-mix(in srgb, var(--color-vidrio) 64%, transparent);
   --tv-cab-fondo: color-mix(in srgb, var(--color-vidrio) 98%, transparent);
   --tv-cab-sombra: 0 1px 0 color-mix(in srgb, var(--color-tinta) 16%, transparent), 0 14px 26px -18px color-mix(in srgb, var(--color-sombra) 55%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
@@ -31,6 +31,12 @@
   .tv-zona {
     --tv-tope: calc(env(safe-area-inset-top, 0px) + 72px);
   }
+}
+/* El globo y la hoja de filtros se cuelgan fuera de la tabla (portal): su color de texto se declara también para ellos. */
+.tv-zona,
+.tv-globo,
+.tv-globo-cuerpo {
+  --tv-texto-tenue: color-mix(in srgb, var(--color-tinta) 80%, transparent);
 }
 /* Dentro de una hoja o un cajón no hay islas encima: la cabecera se pega al borde de la hoja, y la hoja ya es el vidrio. */
 :is(.hoja-serena, .cajon-serena) .tv-zona {
@@ -145,7 +151,7 @@
   gap: 6px;
   max-width: 100%;
   min-height: 32px;
-  padding: 0 10px;
+  padding: 0 8px;
   border-radius: 999px;
   font-size: 12.5px;
   font-weight: 600;
@@ -155,7 +161,13 @@
   transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
 }
 .tv-izq > .tv-col {
-  margin-left: -10px;
+  margin-left: -8px;
+}
+/* Con el dedo, el nombre que se toca mide lo que pide el dedo (la tablet de la tienda). */
+@media (pointer: coarse) {
+  .tv-col {
+    min-height: 44px;
+  }
 }
 .tv-col-nombre {
   overflow: hidden;
@@ -172,8 +184,13 @@
 .tv-col[data-ordenada] .tv-col-flecha {
   color: var(--color-tinta);
 }
-.tv-col[data-ordenada="asc"] .tv-col-flecha {
+.tv-col[data-ordenada="asc"] .tv-col-flecha,
+.tv-flecha-puesta[data-dir="asc"] {
   transform: rotate(180deg);
+}
+.tv-flecha-puesta {
+  flex: none;
+  transition: transform 300ms var(--ease-cayla);
 }
 .tv-col-punto {
   display: none;
@@ -203,6 +220,9 @@
   .tv-col:not(.tv-col-quieta):hover {
     color: var(--color-tinta);
     background: color-mix(in srgb, var(--color-tinta) 6%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
+  }
+  .tv-col:hover .tv-col-flecha {
+    color: var(--color-tinta);
   }
 }
 .tv-col-quieta {
@@ -293,15 +313,15 @@
 }
 
 /* ---------- Lo que se va pasa a la línea de debajo de la principal ---------- */
+/* Cada dato es una pieza que baja entera a la línea siguiente: ni un «·» huérfano al empezar la línea, ni un monto partido. */
 .tv-debajo {
   display: none;
 }
 .tv-en-1060,
-.tv-en-840 {
+.tv-en-960,
+.tv-en-840,
+.tv-en-740 {
   display: none;
-}
-.tv-debajo > span + span::before {
-  content: " · ";
 }
 @container tv (max-width: 1059.98px) {
   .tv-tabla {
@@ -311,9 +331,22 @@
     display: none;
   }
   .tv-debajo {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 12px;
   }
   .tv-en-1060 {
+    display: inline;
+  }
+}
+@container tv (max-width: 959.98px) {
+  .tv-tabla {
+    --tv-cols: var(--tv-cols-960);
+  }
+  .tv-se-va-960 {
+    display: none;
+  }
+  .tv-en-960 {
     display: inline;
   }
 }
@@ -325,6 +358,17 @@
     display: none;
   }
   .tv-en-840 {
+    display: inline;
+  }
+}
+@container tv (max-width: 739.98px) {
+  .tv-tabla {
+    --tv-cols: var(--tv-cols-740);
+  }
+  .tv-se-va-740 {
+    display: none;
+  }
+  .tv-en-740 {
     display: inline;
   }
 }
@@ -340,17 +384,13 @@
   .tv-filtros-m {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
     margin: 0 0 14px;
-    padding: 2px 2px 4px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .tv-filtros-m::-webkit-scrollbar {
-    display: none;
   }
   .tv-pildora-m {
     flex: none;
     gap: 6px;
+    max-width: 100%;
   }
   .tv-fila {
     display: flex;
@@ -415,19 +455,21 @@
   }
 }
 
-/* ---------- El globo: vidrio que flota bajo la cabecera ---------- */
+/* ---------- El globo: el vidrio de las hojas, flotando bajo la cabecera ---------- */
+/* Mide lo que pide su contenido, y nunca corre de lado: un texto largo se corta en su fila, no empuja al resto. */
 .tv-globo {
   z-index: 50;
-  width: 300px;
-  max-width: calc(100vw - 16px);
-  overflow: auto;
+  width: max-content;
+  min-width: 232px;
+  max-width: min(320px, calc(100vw - 16px));
+  overflow: hidden auto;
   padding: 14px;
-  border-radius: 22px;
-  border: 1px solid var(--serena-borde);
-  background: var(--vidrio-flota-fondo);
-  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
-  backdrop-filter: var(--vidrio-flota-filtro);
-  box-shadow: var(--vidrio-flota-sombra);
+  border-radius: 24px;
+  border: 1px solid var(--vidrio-hoja-borde);
+  background: var(--globo-tabla-fondo);
+  -webkit-backdrop-filter: var(--globo-tabla-filtro);
+  backdrop-filter: var(--globo-tabla-filtro);
+  box-shadow: var(--globo-tabla-sombra);
   transform-origin: top center;
   animation: tv-brota 260ms var(--ease-cayla) both;
   outline: 0;
@@ -440,21 +482,57 @@
   }
 }
 .tv-globo-titulo {
-  margin: 2px 4px 8px;
+  margin: 0 4px 8px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--tv-texto-tenue);
 }
+/* «Ordenar» y sus dos flechas en una línea; si abajo viene «Mostrar solo», un hilo las separa. */
 .tv-globo-orden {
   display: flex;
-  width: 100%;
-  margin-bottom: 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
-.tv-globo-orden > * {
-  flex: 1 1 0;
+.tv-globo-orden > .tv-globo-titulo {
+  margin-block: 0;
+}
+.tv-globo-orden:not(:last-child) {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  box-shadow: inset 0 -1px 0 var(--hilo-cabeza);
+}
+.tv-flechas .segmento-cayla__opcion {
   justify-content: center;
+  padding-inline: 11px;
+}
+@media (pointer: coarse) {
+  .tv-flechas .segmento-cayla__opcion {
+    min-width: 44px;
+  }
+}
+/* La lista de ordenar en el celular: cada columna, con sus dos flechas a la derecha. */
+.tv-orden-lista {
+  display: grid;
+  gap: 2px;
+}
+.tv-orden-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding: 4px 4px 4px 10px;
+  font-size: 15px;
+  color: var(--color-tinta);
+}
+.tv-orden-fila + .tv-orden-fila {
+  box-shadow: inset 0 1px 0 var(--hilo-fila);
+}
+.tv-orden-fila[data-elegida] {
+  font-weight: 600;
 }
 .tv-globo-buscar {
   margin-bottom: 8px;

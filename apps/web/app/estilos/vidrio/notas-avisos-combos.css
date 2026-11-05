@@ -91,6 +91,27 @@
     background: var(--gota-marca), var(--color-hueso);
   }
 }
+/* El globo de un filtro con campos (`CapaDeFiltro`, Compras y Recibidas): el mismo vidrio del globo de TablaViva. El desenfoque va en un
+   `::before` y no en el globo: un `backdrop-filter` en él sería el bloque contenedor del calendario `fixed` que se le cuelga adentro y lo recortaría. */
+.globo-filtro {
+  position: relative;
+  isolation: isolate;
+  border-radius: 20px;
+  border: 1px solid var(--vidrio-hoja-borde);
+  box-shadow: var(--globo-tabla-sombra);
+  /* Una animación que se queda aplicada (`both`) le quita el desenfoque a todo lo de adentro: el navegador la toma como el fondo del `backdrop-filter`. */
+  animation-fill-mode: backwards;
+}
+.globo-filtro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--globo-tabla-fondo);
+  -webkit-backdrop-filter: var(--globo-tabla-filtro);
+  backdrop-filter: var(--globo-tabla-filtro);
+}
 /* El buscador de la lista: un pozo en píldora. */
 .lista-flotante .combo-buscar {
   margin: 4px 6px 6px;

@@ -203,7 +203,9 @@ export function usePosicionLista(
       // el borde de la hoja; calculada contra la ventana, abría hacia arriba más alta que su lugar y el buscador y las primeras
       // opciones quedaban bajo el borde (Felipe, 2026-11-01, filtros de Productos con el teclado abierto). En escritorio no se acota.
       const hoja = control.current.closest<HTMLElement>('[role="dialog"]');
-      const caja = marco ?? (hoja && window.matchMedia("(max-width: 639.98px)").matches ? hoja.getBoundingClientRect() : null);
+      // Un globo de Radix (`CapaDeFiltro`) también atrapa a los `fixed`, pero no recorta: el calendario de adentro puede salirse de él, y lo que manda es la ventana.
+      const enGlobo = !!control.current.closest("[data-radix-popper-content-wrapper]");
+      const caja = enGlobo ? null : (marco ?? (hoja && window.matchMedia("(max-width: 639.98px)").matches ? hoja.getBoundingClientRect() : null));
       const techo = Math.max(conVisible ? vv.offsetTop : 0, caja?.top ?? -Infinity);
       const piso = Math.min(conVisible ? vv.offsetTop + vv.height : window.innerHeight, caja?.bottom ?? Infinity);
       const { haciaAbajo, maxHeight } = airePara({ controlTop: r.top, controlBottom: r.bottom, techo, piso, alto, separacion, entero, recortada: !!caja });

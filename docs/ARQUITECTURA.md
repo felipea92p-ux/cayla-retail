@@ -1951,7 +1951,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   **Desde el 2026-11-04 «Tiendas y caja» son dos pestañas: `?tab=metas` (`ConfiguracionMetas.tsx`) y `?tab=empresa` («Las vitrinas», `components/vitrinas-sedes/`, reglas en `lib/vitrinas-sedes-reglas.ts`; fondo de caja y hora de cierre viven aquí, y la hoja de la carga inicial sigue en `ConfiguracionCargaInicial.tsx`); ADR-0195, actualizaciones de ese día. Lo que sigue la nombra como era.**
   Desde ADR-0328 (actividad 4) la pestaña «Tiendas y caja» trae además «Carga inicial de cada sede» (`ConfiguracionCargaInicial.tsx`
   ← `lib/carga-inicial.ts` → `fn_carga_inicial_sedes`; la hoja guarda con `fijar_cierre_carga_inicial`).
-  **Caja y avisos** (`ConfiguracionCajaAvisos.tsx`) también fija «Desde cuándo cuenta Finanzas» (ADR-0332): RPC `guardar_inicio_finanzas` →
+  **Dinero** (`components/vistas-config/VistaDinero.tsx`, antes Caja y avisos) también fija «Desde cuándo cuenta Finanzas» (ADR-0332): RPC `guardar_inicio_finanzas` →
   `parametros_finanzas.inicio_finanzas`; lo leen `fn_asientos`/`fn_estado_resultados` (cortan lo anterior) y, vía `fn_parametros_finanzas`,
   el Resumen, el Cierre y Reportes (`lib/finanzas-arranque-reglas.ts` pone el corte en palabras). La proyección de caja y los impuestos no se cortan.
   **Metas por mes y por fecha** (2026-10-17, ADR-0435, `20261017020000`): «Tiendas y caja» suma «Meta mes por mes» y «Fechas especiales»
@@ -2034,7 +2034,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     sistema `renta_utilidad_previa`/`renta_sin_papel_previo`/`renta_pagada_previa`) y el inicio de Finanzas. La regla vive en `lib/renta-anual-reglas.ts`
     (`clasePapel`, `proyectarRenta`, `armarRentaDelAno`, `proveedoresSinFactura`) y se dibuja en `components/finanzas/ImpuestosRenta.tsx` (tarjeta «Renta de
     2026») e `ImpuestosProveedores.tsx` (cajón «A quién pedirle factura»). Lo de antes del sistema se escribe en Configuración ▸ Impuestos
-    (`ConfiguracionImpuestos`, `guardar_parametro_tributario`). Prueba: `pnpm pruebas:sustento-costos`.
+    (`vistas-config/VistaImpuestos`, `guardar_parametro_tributario`). Prueba: `pnpm pruebas:sustento-costos`.
     **CLAURE fuera del Inicio y del Observatorio (actividad 6a, 20261029023000):** `fn_item_es_de_claure(línea, sede, fecha)` (interna) es la regla de «esta línea de venta es de CLAURE» —la misma de
     `fn_claure_ventas`: sede donde opera CLAURE, venta desde `empresas.cuenta_corriente_desde`, dueño real de la línea (`fn_dueno_de_la_linea`)— y la reusan 6b, 6c y 6d. `fn_observatorio` (todas las tiendas) y
     `fn_observatorio_tienda` (una tienda) suman solo lo de CAYLA (reemplazos anclados: una venta solo de CLAURE no cuenta ni como ticket, la mixta cuenta por sus líneas de CAYLA, y las prendas «quietas» miden solo
@@ -2254,7 +2254,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     (`lib/rendicion-acciones.ts`); se dibuja con `components/MarcaNoDeducible.tsx` en `ComprobantePagos`, `PorPagarVistaRapida`,
     `GastosDeOrden`, `RendirFondo` y `RevisarRendicion`. El aviso al pagar es `components/AvisoNoDeducible.tsx` con `avisoBancarizacion` /
     `avisoBancarizacionLote` (`lib/no-deducible-reglas.ts`), en `LineasPago`, `MediosDePago` (de `PagoPiezas` y la del Taller),
-    `GastoDelViaje`, `RegistrarGastoModal` y `GastoRapidoModal`. El tope se fija en Configuración ▸ Impuestos (`ConfiguracionImpuestos`,
+    `GastoDelViaje`, `RegistrarGastoModal` y `GastoRapidoModal`. El tope se fija en Configuración ▸ Impuestos (`vistas-config/VistaImpuestos`,
     `guardar_parametro_tributario`).
     **Saldar la deuda de un faltante** (actividad 7, `20261014145000`): en Fondos por rendir, «Registrar su pago» (`PagarDeudaFondo`,
     `components/fondos/AccionesFondos.tsx`, con `camposPagarDeuda` de `lib/deuda-fondo-reglas.ts`) → `pagar_deuda_fondo`; «Anular» de

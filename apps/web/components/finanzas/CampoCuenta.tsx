@@ -52,7 +52,7 @@ export const PROPUESTA_DEL_TALLER = ["transferencia", "deposito", "otro"] as con
 
 /**
  * El id del Taller activo, para pedir las cuentas de un pago de Producción con SU propuesta («Sale de» = la cuenta que el líder
- * eligió para sus transferencias en Configuración ▸ Cuentas y cobros). Los comprobantes de Producción no llevan sede, así que sin esto
+ * eligió para sus transferencias en Configuración ▸ Dinero). Los comprobantes de Producción no llevan sede, así que sin esto
  * se pediría con sede vacía y la propuesta sería «el primer banco». Es una lectura de `ubicaciones` (la ve toda cuenta con sesión,
  * y un GET no abre el loader). Si no responde o no hay Taller, devuelve `null`: el formulario se comporta como antes (principio 9).
  * Hay un solo Taller activo; si algún día hubiera dos, se toma el más antiguo (`created_at`), el mismo criterio con que la base sella
@@ -131,7 +131,7 @@ export function useCuentasParaElegir(
   return { cuentas: propuestas, listo: estado.clave === clave };
 }
 
-const SIN_CUENTAS = "Sin cuentas para este medio: se agregan en Configuración ▸ Cuentas y cobros";
+const SIN_CUENTAS = "Sin cuentas para este medio: se agregan en Configuración ▸ Dinero";
 
 type PropsCampo = {
   cuentas: readonly CuentaElegible[];

@@ -271,7 +271,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 49;
+export const MODALES_PENDIENTES_HOY = 47;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -311,7 +311,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ComprobanteProduccionDetalle.tsx": PENDIENTE, // 2 controles
   "components/ComprobanteProduccionForm.tsx": PENDIENTE, // 13 controles
   "components/ComprobantesPanel.tsx": PENDIENTE, // 6 controles
-  "components/ConfiguracionImpuestos.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionImpuestos.tsx"] },
+  "components/vistas-config/NuevaVigenciaModal.tsx": { estado: "aplicada", evidencia: ["components/vistas-config/NuevaVigenciaModal.tsx"] },
   "components/ConfirmarConResponsable.tsx": { estado: "no-aplica", motivo: "Confirmación corta de una acción de un clic (aprobar, desactivar, reactivar), hoy sin responsable: un solo botón, no hay camino que indicar." },
   "components/ConfirmarTransmision.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/CotizacionesMaquilaPanel.tsx": PENDIENTE, // 6 controles
@@ -510,8 +510,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ficha-producto/FotosPorColor.tsx": PENDIENTE, // 2 controles
   "components/finanzas/CierreMes.tsx": PENDIENTE, // 5 controles
-  "components/finanzas/ConfiguracionCuentas.tsx": PENDIENTE, // 9 controles
-  "components/finanzas/ConfiguracionPresupuesto.tsx": PENDIENTE, // 4 controles
+  // Felipe 2026-11-05: «Agregar cuenta», salida de Configuración ▸ Dinero. Falta = lo mismo que frena `agregar`: el nombre, una fecha que no sea futura y quién lo hace.
+  "components/finanzas/AgregarCuentaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/AgregarCuentaModal.tsx"] },
+  // Felipe 2026-11-05: la hoja de la propuesta solo muestra lo que cambiaría; lo único que se llena es el Responsable, que ya trae su candado.
+  "components/vistas-config/TopesDeGasto.tsx": { estado: "no-aplica", motivo: "La hoja solo muestra lo propuesto y confirma; su único control es el Responsable." },
   "components/finanzas/CuentasDinero.tsx": PENDIENTE, // 20 controles
   "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
   // ADR-0429 (act. 4): «Cambiar la tarifa» de una máquina de cobro. Falta = lo mismo que apaga «Guardar» (`validarTarifa`): la tasa, los

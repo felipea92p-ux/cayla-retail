@@ -74,3 +74,18 @@ Tres cambios propuestos; Felipe dio el OK y están aplicados:
 
 Segunda ciega, otra lectora (Sonnet, sobre capturas con datos de ejemplo, sin mouse): **5 de 10**. Ya sabe qué falta en cada sede, cómo cambiar un dato y que la empresa solo se lee. Después de esa ronda, «Cierra» pasó a «Hora de cierre» y las series dicen «Boleta B001». Lo que sigue dudoso: qué cuenta el aro, qué significan «Cerró» y «Hasta» en la carga, qué hace el asistente y qué pasa al llegar a su tope. Falta probarla con una colaboradora real.
 
+## Metas, Dinero, Gastos e Impuestos (2026-11-05)
+
+Ciega (Sonnet, sobre capturas, sin mouse y sin abrir el «?», con pocos datos de prueba): **Metas 5 · Dinero 4 · Gastos 6 · Impuestos 4**. Oficio [Medido]: sin desborde a 375, 1024, 1280, 1440 y 1920 px, y de 1,1 a 2,9 pantallas de alto.
+Lo que más la frenó es la jerga, no el dibujo: no le quedó claro qué hacer primero en Metas ni en Dinero, y en Impuestos sí, porque la pantalla empieza por lo que falta confirmar. Hay que confirmarlo con una persona real: estas pantallas son del líder, no de una colaboradora de sede.
+
+Tres cambios propuestos; Felipe dio el OK y están aplicados:
+
+1. **Palabras de tienda en Dinero:** «Máquinas y planilla», «Quienes cobran en BCP», «Finanzas cuenta desde: Sin corte» y «Poner» no se entendieron.
+2. **Un primer paso a la vista:** en Metas y Dinero, una línea que diga por dónde empezar cuando falta algo (por ejemplo, «Falta elegir la cuenta de Yape, Plin y Transferencia»).
+3. **Lo que explica un término de SUNAT, junto al término:** UIT, Pago a cuenta y Movilidad llevan una línea corta en vez de depender del «?», y «+ Nueva tasa» y sus hermanos suben de tamaño.
+
+Segunda ciega, otra lectora (Sonnet, sobre capturas, sin mouse): **Metas 6 · Dinero 6 · Gastos 7 · Impuestos 3**. Ahora dice sola por dónde empezar en Metas y Dinero. Son lectoras distintas, así que el cambio de nota orienta pero no mide. Impuestos no mejoró: sabe qué le pide la pantalla, pero no qué está confirmando («Sola no la toco»). Es la pestaña del líder con su contador; falta ver si con una persona real pasa lo mismo.
+Queda sin entender: «CLAURE» y «Por depositar» (un nombre propio y el nombre de una cuenta) y que las cápsulas de los días de Metas se escriben.
+
+Impuestos, una vuelta más (Felipe pidió arreglarla antes del PR): la pantalla le pide al contador en vez de a la persona («Pregúntale a tu contador si esto está bien», «Copiar la lista», «Está bien»), cada dato se lee en palabras de tienda y lo medido en UIT dice sus soles, el límite abre con un veredicto («Vas bien: todavía no llegas al aviso») y lo que casi nunca se toca quedó plegado. Tercera ciega, otra lectora, y esta vez en el papel de dueña con contador: **6 de 10**. Ya sabe qué hacer y qué dice «Está bien»; siguen sin entenderse UIT, IGV y Movilidad, y no sabe qué pasa al cambiar un número. El papel cambió, así que esa nota no se compara directo con el 3.

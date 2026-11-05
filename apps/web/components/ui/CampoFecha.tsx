@@ -352,7 +352,7 @@ export function CampoFecha({
               setAbierto(false);
               entrada.current?.focus();
             }}
-            className="anim-revelar fixed z-50 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md"
+            className="anim-revelar lista-flotante fixed z-50 w-[17rem] p-3"
           >
             <div className="mb-2 flex items-center justify-between">
               <button

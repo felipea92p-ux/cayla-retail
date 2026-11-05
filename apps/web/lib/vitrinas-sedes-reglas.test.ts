@@ -197,7 +197,7 @@ describe("Metas ya no cambia el fondo", () => {
   });
 
   it("la pantalla de Metas no vuelve a pedir el fondo ni la hora de cierre", () => {
-    const metas = readFileSync(join(__dirname, "../components/ConfiguracionMetas.tsx"), "utf8");
+    const metas = readFileSync(join(__dirname, "../components/vistas-config/VistaMetas.tsx"), "utf8");
     expect(metas).not.toMatch(/guardar_hora_cierre_tienda/);
     expect(metas).not.toMatch(/Fondo de caja de/);
   });

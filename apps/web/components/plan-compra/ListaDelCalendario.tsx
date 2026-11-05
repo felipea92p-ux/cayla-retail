@@ -35,8 +35,8 @@ const COLUMNAS = (tienda: string | null): Columna[] => [
 // laptop de 1024 px con el lateral abierto) van bajo el nombre; y bajo 640 px, todo se apila (el celular). La última columna es de ancho fijo: con `auto` cada fila calcularía el
 // suyo y las columnas se descuadrarían entre filas (ver `Tabla`).
 const PLANTILLA =
-  "grid-cols-[2.75rem_minmax(0,1fr)] @min-[640px]:grid-cols-[2.75rem_minmax(8rem,1.2fr)_minmax(7rem,.8fr)_minmax(9rem,1.2fr)_9rem] @min-[920px]:grid-cols-[2.75rem_minmax(11rem,1.2fr)_minmax(8rem,.8fr)_minmax(12rem,1.3fr)_17.5rem]";
-const ENCABEZADO_VISIBLE = "hidden @min-[640px]:grid";
+  "grid-cols-[2.75rem_minmax(0,1fr)] @min-[720px]:grid-cols-[2.75rem_minmax(8rem,1.2fr)_minmax(9rem,.8fr)_minmax(9rem,1.2fr)_9rem] @min-[920px]:grid-cols-[2.75rem_minmax(11rem,1.2fr)_minmax(8rem,.8fr)_minmax(12rem,1.3fr)_17.5rem]";
+const ENCABEZADO_VISIBLE = "hidden @min-[720px]:grid";
 
 export function ListaDelCalendario({
   grupos,
@@ -212,7 +212,7 @@ function FilaDeCampana({
     </Chip>
   ));
   return (
-    <div className={fila(PLANTILLA, "cal-fila sm:items-center! @min-[640px]:items-center!")} data-uso={c.uso}>
+    <div className={fila(PLANTILLA, "cal-fila sm:items-center! @min-[720px]:items-center!")} data-uso={c.uso}>
       <span className="flex items-center">
         <button
           type="button"
@@ -235,16 +235,16 @@ function FilaDeCampana({
         {/* Con la tarjeta no tan ancha, los chips van bajo el nombre (en la ancha tienen su columna). */}
         <span className="mt-1 flex flex-wrap gap-1.5 @min-[920px]:hidden">{chips}</span>
       </span>
-      <span className="min-w-0 @max-[639px]:col-span-2">
+      <span className="min-w-0 @max-[719px]:col-span-2">
         <Chip tono={v.tono} versalitas={false}>
           {v.texto}
         </Chip>
         {evidencia && pocaHistoria(evidencia) && <span className="mt-0.5 block text-sm text-taupe">{textoDeAnios(evidencia.porAnio.length)}: poca historia</span>}
       </span>
-      <span className="min-w-0 @max-[639px]:col-span-2" data-guia="calendario.rango">
+      <span className="min-w-0 @max-[719px]:col-span-2" data-guia="calendario.rango">
         <RangoDeVentas evidencia={evidencia} />
       </span>
-      <span className="flex flex-wrap items-center justify-end gap-1.5 @max-[639px]:col-span-2 @max-[639px]:justify-start">
+      <span className="flex flex-wrap items-center justify-end gap-1.5 @max-[719px]:col-span-2 @max-[719px]:justify-start">
         <span className="hidden flex-wrap items-center justify-end gap-1.5 @min-[920px]:flex">{chips}</span>
         {sePuedeArmar(c, hoy) && (
           <Boton peso="fantasma" className="btn-chico" onClick={() => alArmar(c)}>

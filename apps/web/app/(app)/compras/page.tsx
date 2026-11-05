@@ -50,7 +50,7 @@ import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorial
 // La fila entera es un enlace que abre el detalle como modal encima de esta lista (ruta interceptada
 // `@modal/(.)factura/[compraId]`): la lista no se desmonta y al cerrar se vuelve exactamente donde se
 // estaba, con scroll y filtros intactos. La flecha «›» es la señal de que se puede abrir.
-const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
+const PLANTILLA = "sm:grid-cols-[6.5rem_1fr_7.5rem_10rem_9.5rem_6.5rem_1rem]";
 
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
