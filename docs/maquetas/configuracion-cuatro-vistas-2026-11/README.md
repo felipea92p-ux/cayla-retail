@@ -7,4 +7,4 @@ Abrir `index.html` (o con la config `maquetas`). Tocable: las sedes, los meses, 
 
 ## Lo que decidió Felipe
 
-(pendiente)
+2026-11-05: vio las cuatro vistas y la lista de actividades y dijo «Sí, construye». Quedan 5 pestañas. Las decisiones que tomó Claude por defecto, sin objeción: Campañas plegada en Metas, «Vendido este año» en Impuestos y «Cuenta contable» solo al editar una cuenta.

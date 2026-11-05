@@ -1,5 +1,5 @@
 // Finanzas cuenta DESDE una fecha (ADR-0332; `20261004190000_finanzas_cuenta_desde.sql`). Lógica pura: la usan el Resumen,
-// Configuración ▸ Caja y avisos, el Cierre de mes y sus pruebas.
+// Configuración ▸ Dinero, el Cierre de mes y sus pruebas.
 //
 // Qué NO hace este archivo: cortar nada. El corte lo hace la base (`fn_asientos` y `fn_estado_resultados` no devuelven lo
 // anterior); aquí solo se LEE la fecha y se dice, con palabras, qué significa. Así una pantalla que muestra un mes anterior

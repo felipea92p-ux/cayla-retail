@@ -159,7 +159,7 @@ export function FijosDelMes({
               ) : null
             }
           >
-            El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles ya están registrados y cuáles faltan.
+            El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles ya están registrados y cuáles faltan.
           </Vacio>
         </Superficie>
         <NotaFijos />

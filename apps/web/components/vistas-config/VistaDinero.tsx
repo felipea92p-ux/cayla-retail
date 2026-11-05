@@ -20,6 +20,7 @@ import { GotaDinero, TRAZO_DE_CUENTA, TRAZO_DE_MEDIO } from "@/components/vistas
 import { useLuzDelMouse } from "@/components/vitrinas-sedes/useLuzDelMouse";
 import { colorDeSede, nombreCortoSede } from "@/lib/finanzas-telar-reglas";
 import { validarParametrosFinanzas, type ParametrosFinanzasConCorte } from "@/lib/configuracion-reglas";
+import { NO_SE_PUDO_LEER, parametrosFinanzasFrescos } from "@/lib/metas-frescas";
 import {
   TEXTO_MEDIO_COBRO,
   TEXTO_TIPO_CUENTA,
@@ -335,7 +336,13 @@ function CuandoAvisa({ parametros, guardar, guardando, responsableListo }: { par
   }
 
   async function guardarAviso(campo: CampoAviso, nuevo: string) {
-    const v = validarParametrosFinanzas({ minimoCaja: String(parametros.minimoCaja), avisoGastoPct: String(parametros.avisoGastoPct), avisoVenceDias: String(parametros.avisoVenceDias), [campo]: nuevo });
+    // La función reemplaza los tres números: los otros dos salen de lo último que hay en la base, no de lo que quedó en esta pantalla (otra pestaña, o dos casillas seguidas).
+    const fresco = await parametrosFinanzasFrescos();
+    if (!fresco) {
+      avisar.error(NO_SE_PUDO_LEER);
+      return false;
+    }
+    const v = validarParametrosFinanzas({ minimoCaja: String(fresco.minimoCaja), avisoGastoPct: String(fresco.avisoGastoPct), avisoVenceDias: String(fresco.avisoVenceDias), [campo]: nuevo });
     if (!v.ok) {
       avisar.error(v.error);
       return false;

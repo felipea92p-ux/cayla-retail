@@ -631,3 +631,9 @@ Felipe pidió «full animaciones y sofisticada», «siempre siguiendo el estilo 
 una gota de vidrio, y se arma una vez al entrar o al guardarlo: el haz que escanea el QR, la aguja del dial, el líquido que sube, la estrella del asistente, la caja que se sella, el RUC que rueda y
 el aro por tramos. Sin rebote ni bucle, cada pieza en 1,2 s o menos y con la curva del sistema. Lo único que sigue vivo es lo que sigue al mouse (el filo de luz, el brillo y una inclinación de
 menos de 1,5°), que no se mueve solo. Todo se apaga con `prefers-reduced-motion`. Lo vigila `lib/vitrinas-movimiento.test.ts`.
+
+## Actualización 2026-11-05: las vistas de Configuración (Metas, Dinero, Gastos, Impuestos)
+
+Felipe aprobó extender el lenguaje de Las vitrinas a las otras cuatro pestañas (`docs/maquetas/configuracion-cuatro-vistas-2026-11/`). Los bloques entran enfocándose en cascada; los tubos de Metas se
+llenan, los hilos de Dinero se dibujan de cada cobro a su cuenta, los días de Gastos asoman sobre la línea del mes que se llena y la barra del límite de Impuestos es la del sistema. Una vez, sin rebote
+ni bucle, cada pieza en 1,2 s o menos y con la curva del sistema; el filo y el brillo siguen al mouse sin moverse solos. Todo se apaga con `prefers-reduced-motion`. Lo vigila `lib/config-vistas-movimiento.test.ts`.

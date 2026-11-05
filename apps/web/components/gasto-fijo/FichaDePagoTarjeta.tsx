@@ -61,7 +61,7 @@ export function FichaDePagoTarjeta({ gastoFijoId, hoy }: { gastoFijoId: string; 
   if (!hayAlgo) {
     return (
       <p className="nota-cayla anim-revelar mb-4">
-        Este gasto fijo todavía no tiene a quién ni cómo se le paga. Se completa en <b>Configuración ▸ Gastos fijos</b>.
+        Este gasto fijo todavía no tiene a quién ni cómo se le paga. Se completa en <b>Configuración ▸ Gastos</b>.
       </p>
     );
   }
@@ -146,7 +146,7 @@ export function FichaDePagoTarjeta({ gastoFijoId, hoy }: { gastoFijoId: string; 
             : ""}
         </p>
       )}
-      {falta && <p className="nota-cayla">{falta}: complétalo en Configuración ▸ Gastos fijos.</p>}
+      {falta && <p className="nota-cayla">{falta}: complétalo en Configuración ▸ Gastos.</p>}
     </div>
   );
 }
