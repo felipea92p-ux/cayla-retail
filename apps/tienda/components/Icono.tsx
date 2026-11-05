@@ -1,5 +1,6 @@
 // Los íconos de la tienda: los mismos trazos de la maqueta aprobada (docs/maquetas/tienda-online-2026-10).
 const TRAZOS = {
+  percha: <path d="M12 7a2 2 0 1 0-2-2M12 7v2l8.5 6.2c.9.7.4 2.1-.7 2.1H4.200c-1.100 0-1.600-1.400-.7-2.100L12 9"/>,
   bolsa: <><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
   persona: <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5" /></>,
   tienda: <><path d="M4 9h16l-1.4-4.5H5.4L4 9Z" /><path d="M5 9v11h14V9" /><path d="M10 20v-5h4v5" /></>,
