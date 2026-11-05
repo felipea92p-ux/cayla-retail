@@ -143,6 +143,7 @@
 @import "./estilos/vidrio/vitrinas-sedes.css"; /* Configuración ▸ Empresa y tiendas: Las vitrinas, un instrumento por dato (Felipe 2026-11-04). */
 @import "./estilos/vidrio/config-vistas.css"; /* Configuración ▸ Metas, Dinero, Gastos e Impuestos: el lenguaje de Las vitrinas (Felipe 2026-11-05). */
 @import "./estilos/vidrio/tienda-web.css"; /* Tienda web con vidrio, armada con las piezas elegidas (tablero docs/vidrio/README.md, 4.3): placa Serena, vidrio claro, pozo, gota y ahumado */
+@import "./estilos/vidrio/estados.css"; /* Estados financieros: la tela de hilos, el vidrio con filo de luz y las cifras en Inter (ADR-0611). */
 @import "./estilos/tacto.css"; /* Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5). Va al final y sin capa: le gana a las piezas solo en una pantalla táctil. */
 
 /* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
