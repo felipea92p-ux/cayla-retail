@@ -66,12 +66,32 @@ function queEs(p: ParametroFila): string {
   return `${ES_RENTA_PREVIA.get(p.nombre) ?? p.nombre} ${a}`;
 }
 
-export type PendienteContador = { clave: string; que: string; parametro: ParametroFila };
+// Lo mismo en palabras de tienda (prueba ciega, 2026-11-05: «no sé qué estoy confirmando»). `que` sigue siendo el nombre técnico: es el que entiende el contador.
+function enPalabras(p: ParametroFila): string {
+  const a = anioDe(p);
+  if (p.nombre === "regimen") return `Cómo tributa CAYLA en ${a}`;
+  if (p.nombre === "umbral_uit") return `Hasta cuánto puede vender en ${a}`;
+  if (p.nombre === "aviso_umbral_uit") return `Cuándo te avisa en ${a}`;
+  if (p.nombre === "renta_pago_cuenta") return `Adelanto de renta de cada mes, ${a}`;
+  if (p.nombre === "igv") return `IGV de las facturas desde el ${fechaCorta(p.vigenteDesde, true)}`;
+  if (p.nombre === "uit") return `Valor de la UIT ${a}`;
+  return queEs(p);
+}
 
-/** El valor de una fila como se lee: el régimen por su nombre y lo demás con su unidad. */
-export function valorDeFila(p: ParametroFila): string {
+export type PendienteContador = { clave: string; que: string; enPalabras: string; parametro: ParametroFila };
+
+/** El valor de una fila como se lee: el régimen por su nombre y lo demás con su unidad. Lo que se mide en UIT dice también sus soles, si se sabe la UIT de ese año. */
+export function valorDeFila(p: ParametroFila, parametros: readonly ParametroFila[] = []): string {
   if (p.nombre === "regimen") return TEXTO_REGIMEN[p.texto as Regimen] ?? p.texto ?? "";
-  return valorLegible(p.nombre as Exclude<NombreParametro, "regimen" | NombreEscalaRenta>, p.valor ?? 0);
+  const valor = valorLegible(p.nombre as Exclude<NombreParametro, "regimen" | NombreEscalaRenta>, p.valor ?? 0);
+  if (p.nombre !== "umbral_uit" && p.nombre !== "aviso_umbral_uit") return valor;
+  const uit = vigenteEnAnio(parametros, "uit", Number(anioDe(p)))?.valor;
+  return uit && p.valor ? `${solesRedondo(uit * p.valor)} (${valor})` : valor;
+}
+
+/** Lo que se le manda al contador: con los nombres técnicos, que son los suyos. */
+export function mensajeParaContador(lista: readonly PendienteContador[], parametros: readonly ParametroFila[]): string {
+  return ["Hola, ¿me confirmas si estos datos de CAYLA están bien?", ...lista.map((p) => `- ${p.que}: ${valorDeFila(p.parametro, parametros)}`)].join("\n");
 }
 
 export const clavePendiente = (p: Pick<ParametroFila, "nombre" | "vigenteDesde">) => `${p.nombre}|${p.vigenteDesde}`;
@@ -81,7 +101,7 @@ export function pendientesDelContador(parametros: readonly ParametroFila[]): Pen
   return parametros
     .filter((p) => p.provisional && ORDEN.includes(p.nombre))
     .sort((a, b) => anioDe(b).localeCompare(anioDe(a)) || ORDEN.indexOf(a.nombre) - ORDEN.indexOf(b.nombre))
-    .map((p) => ({ clave: clavePendiente(p), que: queEs(p), parametro: p }));
+    .map((p) => ({ clave: clavePendiente(p), que: queEs(p), enPalabras: enPalabras(p), parametro: p }));
 }
 
 export type LimiteDibujado = {
@@ -92,7 +112,10 @@ export type LimiteDibujado = {
   pct: number;
   /** Dónde cae la rayita del aviso, de 0 a 100; `null` sin aviso. */
   avisoPct: number | null;
+  avisoSoles: number | null;
   tono: "tinta" | "ambar" | "rojo";
+  /** Cómo va, en una frase: lo mismo que dice la barra, para quien no sabe qué es una UIT. */
+  veredicto: string;
 };
 
 /** Lo vendido contra el límite de ESE año. Solo el año que la base está midiendo: de otro año no hay cifra que dibujar. Sin límite o sin ventas, `null`: no se dibuja nada. */
@@ -104,7 +127,9 @@ export function limiteParaDibujar(u: PanelImpuestos["umbral"] | null | undefined
     umbralSoles: u.umbralSoles,
     pct: (u.ventasAnio / u.umbralSoles) * 100,
     avisoPct: u.avisoSoles === null ? null : Math.min(100, (u.avisoSoles / u.umbralSoles) * 100),
+    avisoSoles: u.avisoSoles,
     tono: u.cruzado ? "rojo" : u.avisoAlcanzado ? "ambar" : "tinta",
+    veredicto: u.cruzado ? "Pasaste el límite: habla con tu contador." : u.avisoAlcanzado ? "Llegaste al aviso: habla con tu contador." : u.avisoSoles === null ? "Vas bien: todavía no llegas al límite." : "Vas bien: todavía no llegas al aviso.",
   };
 }
 

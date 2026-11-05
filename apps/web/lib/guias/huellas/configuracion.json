@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 113,
+  "total": 115,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -108,9 +108,11 @@
       "ComboResponsable «{responsable}» #2"
     ],
     "components/vistas-config/VistaImpuestos.tsx": [
-      "Boton «Ya lo confirmó»",
+      "BotonCopiar «la lista para tu contador»",
+      "Boton «Está bien»",
       "Desplegable «{borrador.regimen as Regimen}»",
       "Boton «→() => void guardarAnio()»",
+      "BotonVerMas «config.impuestos-ajustes»",
       "button «{a}»",
       "button «+ Año nuevo»",
       "Casilla «{`Tasa de IGV desde el ${fechaCorta(t.vigenteDesde, true)}»",

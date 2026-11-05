@@ -8,6 +8,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton, Desplegable } from "@/components/ui/campos";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { Chip } from "@/components/ui/Chip";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
@@ -21,7 +22,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta, solesRedondo, textoMes } from "@/lib/gastos-reglas";
 import { REGIMENES, TEXTO_REGIMEN, aniosDeRegimen, delAnio, diaDelRegistro, parsearParametro, porcentaje, valorEnCasilla, vigenteEnAnio, type NombreEscalaRenta, type NombreParametro, type PanelImpuestos, type ParametroFila, type Regimen } from "@/lib/impuestos-reglas";
-import { RENTA_PREVIA, clavePendiente, escalaDeRenta, limiteParaDibujar, pendientesDelContador, valorDeFila, valorLegible } from "@/lib/impuestos-config-reglas";
+import { RENTA_PREVIA, clavePendiente, escalaDeRenta, limiteParaDibujar, mensajeParaContador, pendientesDelContador, valorDeFila, valorLegible } from "@/lib/impuestos-config-reglas";
 
 // Configuración ▸ Impuestos (ADR-0195 F8; Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/): primero lo que falta confirmar con el contador, después el límite
 // del año con lo vendido, las tres tasas y, plegado, lo de arranque. Las casillas se guardan solas al salir, firmadas con el responsable; las del año llevan su «Guardar» (Felipe
@@ -49,17 +50,19 @@ function PorConfirmar({ parametros, guardar }: { parametros: ParametroFila[]; gu
   return (
     <section className="vs-liquido cv-bloque" data-luz data-guia="config.impuestos-confirmar" style={conVar({ "--e": 0 })}>
       <TituloSeccion
-        ayuda="Son los valores con los que arrancó el sistema. Pregúntale a tu contador: si está bien, «Ya lo confirmó»; si no, cámbialo abajo. Hasta entonces, las cuentas se hacen igual con estos valores."
+        ayuda="Son los valores con los que arrancó el sistema. Mándaselos a tu contador: si te dice que están bien, marca «Está bien». Hasta entonces, las cuentas se hacen igual con estos valores. Si te equivocas no pasa nada: se cambia abajo y la historia guarda los dos."
         dato={`${lista.length - faltan} de ${lista.length}`}
+        accion={faltan > 0 ? <BotonCopiar chico texto={mensajeParaContador(lista.filter((p) => sigue.has(p.clave)), parametros)} que="la lista para tu contador">Copiar la lista</BotonCopiar> : undefined}
       >
-        {faltan ? `Falta confirmar ${faltan} con el contador` : "El contador ya lo confirmó todo"}
+        {faltan ? "Pregúntale a tu contador si esto está bien" : "Tu contador ya lo confirmó todo"}
       </TituloSeccion>
+      {faltan > 0 && <p className="vs-rotulo cv-consecuencia">¿Alguno está mal? Se cambia más abajo.</p>}
       <div className="cv-tarjetas">
         {lista.map((p, i) => (
           <div key={p.clave} className="cv-fila cv-tope" style={conVar({ "--i": i })}>
             <span className="vs-textos">
-              <span className="vs-rotulo">{p.que}</span>
-              <span className="cv-nombre">{valorDeFila(parametros.find((x) => clavePendiente(x) === p.clave) ?? p.parametro)}</span>
+              <span className="vs-rotulo">{p.enPalabras}</span>
+              <span className="cv-nombre">{valorDeFila(parametros.find((x) => clavePendiente(x) === p.clave) ?? p.parametro, parametros)}</span>
             </span>
             {sigue.has(p.clave) ? (
               <Boton
@@ -73,7 +76,7 @@ function PorConfirmar({ parametros, guardar }: { parametros: ParametroFila[]; gu
                   setEnCurso(null);
                 }}
               >
-                Ya lo confirmó
+                Está bien
               </Boton>
             ) : (
               <Chip tono="verde">Confirmado</Chip>
@@ -127,6 +130,8 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
   // Lo que arrancó provisional se confirma con el mismo valor: la base solo lo deja de marcar al volver a escribirlo.
   const aGuardar = CAMPOS_ANIO.filter((c) => cambiados.includes(c) || filas[c]?.provisional);
   const limite = limiteParaDibujar(umbral, anio);
+  // Lo que casi nunca se toca va plegado. Sin cifras que mostrar (otro año, o la lectura falló), solo quedan los ajustes: se abren solos.
+  const [ajustes, setAjustes] = useState(!limite);
   const enSoles = uitVigente?.valor && umbralVigente?.valor ? uitVigente.valor * umbralVigente.valor : null;
   const avisoEnSoles = uitVigente?.valor && avisoVigente?.valor ? uitVigente.valor * avisoVigente.valor : null;
   const estado = cambiados.length
@@ -172,6 +177,29 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
 
   return (
     <>
+      {limite && <p className={`cv-veredicto ${limite.tono === "rojo" ? "text-rojo" : limite.tono === "ambar" ? "cv-falta-txt" : ""}`}>{limite.veredicto}</p>}
+      {limite && (
+        <div className="cv-reg">
+          <div>
+            <span className="vs-rotulo">Vendido este año</span>
+            <b>{solesRedondo(limite.vendido)}</b>
+          </div>
+          <div>
+            <span className="vs-rotulo">{limite.quedan > 0 ? "Te quedan" : "Pasaste el límite"}</span>
+            <b className={limite.tono === "rojo" ? "text-rojo" : limite.tono === "ambar" ? "cv-falta-txt" : undefined}>{solesRedondo(limite.quedan)}</b>
+          </div>
+        </div>
+      )}
+      {limite && (
+        <div className="cv-limite">
+          <BarraAvance pct={limite.pct} alto="gruesa" tono={limite.tono} marca={limite.avisoPct} etiqueta={`Vendido: ${porcentaje(limite.pct / 100, 0)} del límite del año`} />
+          <div className="cv-escala" aria-hidden>
+            {limite.avisoSoles !== null && <span>Te avisa en {solesRedondo(limite.avisoSoles)}</span>}
+            <span>Límite: {solesRedondo(limite.umbralSoles)}</span>
+          </div>
+        </div>
+      )}
+      <FilasDeMas abierto={ajustes} id={`cv-ajustes-${anio}`}>
       <div className="cv-reg">
         <div>
           <span className="vs-rotulo">Régimen {anio}: cómo tributa CAYLA</span>
@@ -186,32 +214,7 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
             opciones={REGIMENES.map((r) => ({ valor: r, texto: TEXTO_REGIMEN[r] }))}
           />
         </div>
-        {limite && (
-          <>
-            <div>
-              <span className="vs-rotulo">Vendido este año</span>
-              <b>{solesRedondo(limite.vendido)}</b>
-            </div>
-            <div>
-              <span className="vs-rotulo">{limite.quedan > 0 ? "Te quedan" : "Pasaste el límite"}</span>
-              <b className={limite.tono === "rojo" ? "text-rojo" : limite.tono === "ambar" ? "cv-falta-txt" : undefined}>{solesRedondo(limite.quedan)}</b>
-            </div>
-          </>
-        )}
       </div>
-      {limite && (
-        <div className="cv-limite">
-          <BarraAvance pct={limite.pct} alto="gruesa" tono={limite.tono} marca={limite.avisoPct} etiqueta={`Vendido: ${porcentaje(limite.pct / 100, 0)} del límite del año`} />
-          <div className="cv-escala" aria-hidden>
-            {limite.avisoPct !== null && avisoVigente?.valor && (
-              <span className="aviso" style={conVar({ "--x": `${limite.avisoPct}%` })}>
-                Te avisa · {avisoVigente.valor} UIT
-              </span>
-            )}
-            <span className="tope">Límite · {umbralVigente?.valor ?? "—"} UIT</span>
-          </div>
-        </div>
-      )}
       <div className="cv-tarjetas cv-tres-casillas">
         <div className="cv-fila cv-tope" style={conVar({ "--i": 0 })}>
           <span className="vs-textos">
@@ -251,6 +254,8 @@ function ElAnio({ anio, parametros, umbral, guardar }: { anio: number; parametro
           {cambiados.length || !aGuardar.length ? "Guardar" : "Confirmar"}
         </Boton>
       </div>
+      </FilasDeMas>
+      {limite && <BotonVerMas abierto={ajustes} onCambiar={setAjustes} texto="Cambiar el régimen y los límites" controla={`cv-ajustes-${anio}`} className="cv-ver-mas" data-guia="config.impuestos-ajustes" />}
     </>
   );
 }
@@ -298,7 +303,6 @@ function Vigencia({ p, trazo, etiqueta, i, antes, despues, children }: { p: Para
       <GotaDinero trazo={trazo} i={i} />
       <span className="vs-textos">
         <span className="cv-frase">{etiqueta}</span>
-        {p?.provisional && <span className="vs-rotulo cv-falta-txt">Por confirmar</span>}
       </span>
       {antes && <span className="cv-unidad">{antes}</span>}
       {children}
@@ -385,12 +389,12 @@ function ParaArrancar({ parametros, anioActual, casilla, abrir }: { parametros: 
   return (
     <section className="vs-liquido cv-bloque" data-luz style={conVar({ "--e": 5 })}>
       <TituloSeccion
-        ayuda="Se llena una vez, con la última declaración y lo que te dé el contador."
+        ayuda="Lo que el sistema no puede saber solo porque pasó antes de empezar a usarlo. Te lo da tu contador, de la última declaración."
         accion={saldos.length === 0 ? <Chip tono="ambar">Falta el saldo a favor</Chip> : undefined}
       >
-        Para arrancar
+        Datos de tu última declaración
       </TituloSeccion>
-      <p className="vs-rotulo cv-consecuencia">Se llena una vez, con la última declaración</p>
+      <p className="vs-rotulo cv-consecuencia">Se llenan una vez, con tu contador</p>
       <FilasDeMas abierto={abierto} id="cv-arranque">
         <div className="cv-subgrupo" data-guia="config.impuestos-saldo">
           <TituloGrupo nota="de la última declaración">Saldo a favor de IGV</TituloGrupo>
@@ -455,7 +459,7 @@ function ParaArrancar({ parametros, anioActual, casilla, abrir }: { parametros: 
           <p className="vs-rotulo cv-consecuencia">{escala ?? "La escala de la renta todavía no está en la base."} Si un mes ya está en Finanzas, no lo sumes aquí.</p>
         </div>
       </FilasDeMas>
-      <BotonVerMas abierto={abierto} onCambiar={setAbierto} texto="Ver lo de arranque" controla="cv-arranque" className="cv-ver-mas" data-guia="config.impuestos-arranque" />
+      <BotonVerMas abierto={abierto} onCambiar={setAbierto} texto="Ver estos datos" controla="cv-arranque" className="cv-ver-mas" data-guia="config.impuestos-arranque" />
     </section>
   );
 }

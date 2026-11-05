@@ -165,14 +165,7 @@
 .cv-reg > div { display: grid; align-content: center; gap: 2px; min-width: 0; padding: 10px 14px; border-radius: 18px; background: var(--placa-fondo); box-shadow: var(--placa-luz); }
 .cv-reg b { font: 500 26px/1.15 var(--font-serif); font-variant-numeric: lining-nums; }
 .cv-limite { margin: 18px 4px 0; }
-.cv-escala { position: relative; height: 20px; margin-top: 8px; font-size: 14px; color: var(--color-taupe); }
-.cv-escala span { position: absolute; top: 0; white-space: nowrap; }
-.cv-escala .aviso { left: var(--x); transform: translateX(-50%); }
-.cv-escala .tope { right: 0; }
-@media (max-width: 1199px) {
-  .cv-escala { display: flex; justify-content: space-between; gap: 12px; height: auto; }
-  .cv-escala .aviso, .cv-escala .tope { position: static; transform: none; }
-}
+.cv-escala { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 18px; margin-top: 8px; font-size: 14px; color: var(--color-taupe); }
 .cv-tres-casillas { margin-top: 14px; }
 .cv-tres { display: grid; gap: 18px; align-items: start; }
 @media (min-width: 1100px) { .cv-tres { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -181,3 +174,4 @@
 .cv-corta { flex-wrap: nowrap; }
 .cv-corta .cv-frase { flex: 1 1 0; min-width: 0; }
 .cv-primer-paso { margin-top: 6px; font-size: 15px; line-height: 1.35; color: var(--color-ambar-profundo); }
+.cv-veredicto { margin-top: 4px; font: 500 21px/1.25 var(--font-serif); }

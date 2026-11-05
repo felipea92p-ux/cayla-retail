@@ -1136,8 +1136,8 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.impuestos-confirmar",
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-impuestos" }],
-      titulo: "Lo que falta confirmar",
-      texto: "Los valores con los que arrancó el sistema. Pregúntale a tu contador: si está bien, «Ya lo confirmó»; si no, se cambia abajo. Mientras tanto, las cuentas se hacen igual con estos valores.",
+      titulo: "Lo que le preguntas a tu contador",
+      texto: "Los valores con los que arrancó el sistema. «Copiar la lista» te la deja para mandársela. Si te dice que están bien, «Está bien»; si no, se cambia abajo. Mientras tanto, las cuentas se hacen igual con estos valores.",
     },
     {
       id: "impuestos-regimen",
@@ -1145,7 +1145,14 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "config.tab-impuestos" }],
       titulo: "El límite de ventas del año",
-      texto: "En qué régimen tributa CAYLA cada año, cuánto vendió y cuánto le queda antes del límite; la rayita es el aviso. Eliges el año arriba. Estas casillas no se guardan solas: tienen su botón «Guardar» y, si no cambiaste nada, «Confirmar».",
+      texto: "Cómo vas, cuánto vendió CAYLA y cuánto le queda antes del límite; la rayita es el aviso. Eliges el año arriba.",
+    },
+    {
+      id: "impuestos-ajustes",
+      ancla: "config.impuestos-ajustes",
+      opcional: true,
+      titulo: "Cambiar el régimen y los límites",
+      texto: "Aquí abajo, plegado, porque casi nunca se toca: el régimen, el límite, el aviso y el adelanto de renta de cada año. Estas casillas no se guardan solas: tienen su botón «Guardar».",
     },
     {
       id: "impuestos-igv",
@@ -1202,8 +1209,8 @@ export const GUIA_CONFIGURACION: Guia = {
       id: "impuestos-arranque",
       ancla: "config.impuestos-arranque",
       opcional: true,
-      titulo: "Para arrancar",
-      texto: "Lo que se llena una vez, con la última declaración y lo que te dé el contador. Queda plegado para que no estorbe. Te lo abrimos.",
+      titulo: "Los datos de tu última declaración",
+      texto: "Lo que se llena una vez, con lo que te dé tu contador. Queda plegado para que no estorbe. Te lo abrimos.",
       demostrar: [{ tipo: "clic", ancla: "config.impuestos-arranque" }],
     },
     {
