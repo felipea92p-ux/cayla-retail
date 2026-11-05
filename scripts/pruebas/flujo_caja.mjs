@@ -563,10 +563,10 @@ ${COMPROBANTE}
 select retail.fn_flujo_caja_proyeccion(12) as antes \\gset
 select pg_temp.comp(:'tru', 'boleta', 'B981', 1, 1180000, 'aceptado', 'produccion', :'hoy'::date) as b1 \\gset
 select retail.fn_flujo_caja_proyeccion(12) as p \\gset
-select pg_temp.salidas(:'p', 'impuesto', 'igv:%') > 0
-   and pg_temp.salidas(:'p', 'impuesto', 'igv:%') = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', :'hoy'::date)::date, date_trunc('month', :'hoy'::date)::date) m);
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM')) > 0
+   and pg_temp.salidas(:'p', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM')) = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', :'hoy'::date)::date, date_trunc('month', :'hoy'::date)::date) m);
 select pg_temp.salidas(:'p', 'impuesto', 'renta:%') - pg_temp.salidas(:'antes', 'impuesto', 'renta:%');
-select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' like 'igv:%' limit 1)
+select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = 'igv:' || to_char(:'hoy'::date, 'YYYY-MM') limit 1)
      = ((date_trunc('month', :'hoy'::date) + interval '1 month')::date + 14);
 select (:'p'::jsonb->>'incluye_impuestos');`);
   const [igv, renta, fecha15, incluye] = lineas(r);
@@ -587,8 +587,8 @@ select retail.fn_flujo_caja_proyeccion(12) as sin \\gset
 select retail.guardar_parametro_tributario('saldo_favor_igv', date_trunc('month', retail.fn_hoy_lima())::date, 5000000) as _g \\gset
 select retail.fn_flujo_caja_proyeccion(12) as con \\gset
 select (:'sin'::jsonb->>'saldo_favor_igv_declarado') || '|' || (:'con'::jsonb->>'saldo_favor_igv_declarado');
-select pg_temp.salidas(:'sin', 'impuesto', 'igv:%') > 0;
-select pg_temp.salidas(:'con', 'impuesto', 'igv:%');
+select pg_temp.salidas(:'sin', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM')) > 0;
+select pg_temp.salidas(:'con', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM'));
 select pg_temp.salidas(:'con', 'impuesto', 'renta:%') = pg_temp.salidas(:'sin', 'impuesto', 'renta:%');`);
   const [flags, haIgv, igvConSaldo, rentaIgual] = lineas(r);
   esperar("sin saldo declarado la base dice false; declarado, true", r.ok && flags === "false|true", r);
@@ -596,6 +596,50 @@ select pg_temp.salidas(:'con', 'impuesto', 'renta:%') = pg_temp.salidas(:'sin', 
   esperar("con S/ 5,000,000 a favor declarados al empezar el mes, el IGV proyectado desaparece (180,000 − 5,000,000 < 0: no se paga)", r.ok && Number(igvConSaldo) === 0, r);
   esperar("y el pago a cuenta de renta no cambia (el saldo de IGV no lo toca)", r.ok && rentaIgual === "t", r);
 }
+
+// 10e. El IGV y la renta del mes ANTERIOR, que vencen ESTE mes (tarea 11 de «Las 36»). Antes la proyección solo miraba el mes en curso: del 1 al 15
+// de cada mes no traía lo que estaba por vencer. La línea cae el día 15 o, pasado ese día, mañana; un pago a SUNAT de este mes la baja.
+{
+  const MES_ANT = `date_trunc('month', :'hoy'::date)::date - 1`;
+  const ID_ANT = `to_char((${MES_ANT}), 'YYYY-MM')`;
+  const r = correr(`${ESCENA}
+${COMPROBANTE}
+select retail.fn_flujo_caja_proyeccion(6) as antes \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B982', 1, 1180000, 'aceptado', 'produccion', (${MES_ANT})) as b1 \\gset
+select retail.fn_flujo_caja_proyeccion(6) as p \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT})
+     = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', (${MES_ANT}))::date, date_trunc('month', (${MES_ANT}))::date) m)
+   and pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) > 0;
+select pg_temp.salidas(:'p', 'impuesto', 'renta:' || ${ID_ANT}) - pg_temp.salidas(:'antes', 'impuesto', 'renta:' || ${ID_ANT});
+select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = 'igv:' || ${ID_ANT})
+     = greatest(date_trunc('month', :'hoy'::date)::date + 14, :'hoy'::date + 1);
+select retail.registrar_movimiento_dinero('pago_sunat', 500, :'bcp', null, null, 'IGV de prueba tarea 11') as m1 \\gset
+select retail.fn_flujo_caja_proyeccion(6) as tras_pago \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) - pg_temp.salidas(:'tras_pago', 'impuesto', 'igv:' || ${ID_ANT});`);
+  const [igv, renta, fecha, baja] = lineas(r);
+  esperar("el IGV del mes anterior sale en la proyección, con lo que dice Impuestos", r.ok && igv === "t", r);
+  esperar("el pago a cuenta de renta del mes anterior suma el 1 % de lo vendido sin IGV: S/ 10,000", r.ok && Number(renta) === 10000, r);
+  esperar("cae el día 15 de este mes o, si ya pasó, mañana: nunca fuera de lo que viene", r.ok && fecha === "t", r);
+  esperar("un pago a SUNAT de S/ 500 hecho este mes baja la línea en S/ 500", r.ok && Number(baja) === 500, r);
+}
+
+// 10f. El mes anterior ya pagado completo no vuelve a salir, ni el IGV ni la renta.
+{
+  const MES_ANT = `date_trunc('month', :'hoy'::date)::date - 1`;
+  const ID_ANT = `to_char((${MES_ANT}), 'YYYY-MM')`;
+  const r = correr(`${ESCENA}
+${COMPROBANTE}
+select pg_temp.comp(:'tru', 'boleta', 'B983', 1, 11800, 'aceptado', 'produccion', (${MES_ANT})) as b1 \\gset
+select retail.fn_flujo_caja_proyeccion(6) as p \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) + pg_temp.salidas(:'p', 'impuesto', 'renta:' || ${ID_ANT}) as total \\gset
+insert into retail.movimientos_dinero (tipo, fecha, cuenta_origen_id, monto, referencia)
+values ('pago_sunat', :'hoy'::date, :'bcp', :'total'::numeric, 'Pago completo de prueba tarea 11');
+select retail.fn_flujo_caja_proyeccion(6) as tras_pago \\gset
+select pg_temp.salidas(:'tras_pago', 'impuesto', 'igv:' || ${ID_ANT}) + pg_temp.salidas(:'tras_pago', 'impuesto', 'renta:' || ${ID_ANT});`);
+  const [resto] = lineas(r);
+  esperar("con todo pagado este mes, el mes anterior ya no sale en lo que viene", r.ok && Number(resto) === 0, r);
+}
+
 
 // 11. El pago de la planilla y el pago a SUNAT (20261016002000, ADR-0417 situaciones 15 y 16) son SALIDAS del Flujo real, cada una en su categoría
 // («planilla», «impuestos»), y no cambian lo que sale en un «día normal» de la proyección (la planilla ya se suma aparte; un pago a SUNAT cae un día).
