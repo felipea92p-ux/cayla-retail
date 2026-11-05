@@ -24,6 +24,7 @@ import {
   PieDelPaso,
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
+  useVistaDelPaso,
 } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { etiquetaDia, primerBloqueo, unidadesDisponibles, varianteLegible, type Validacion } from "@/lib/cambios-reglas";
@@ -185,6 +186,7 @@ export function DevolucionesFlujo({
     esTotal: esDevolucionTotal(venta, cantidades),
   });
 
+  useVistaDelPaso(paso);
   useFocoAlCambiarDePaso(titulo, paso);
   // Si la base rechazó la devolución, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);

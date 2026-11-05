@@ -23,6 +23,7 @@ import {
   PieDelPaso,
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
+  useVistaDelPaso,
 } from "@/components/FlujoGuiado";
 import { CambioReemplazo } from "@/components/CambioReemplazo";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
@@ -262,6 +263,7 @@ export function CambiosFlujo({
         })
       : null;
 
+  useVistaDelPaso(paso);
   useFocoAlCambiarDePaso(titulo, paso);
   // Si la base rechazó el cambio, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);
