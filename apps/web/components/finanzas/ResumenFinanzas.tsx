@@ -61,6 +61,7 @@ type Props = {
   /** El tramo con que se compara (el mes pasado a la misma fecha); `null` si no se pudo leer. */
   estadoAntes: FilaER[] | null;
   faltaDelMes: readonly FaltaDelMes[] | null;
+  planillaSinSalida: number | null;
   /** Lo vendido por día de cada tienda; `null` si la cuenta no ve Rendimiento. */
   ventasPorDia: { series: DiaVenta[][]; incompleta: boolean } | null;
   sedes: SedeTelar[];
@@ -77,7 +78,7 @@ type Props = {
 
 const FRASE = "De lo que vendes a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -160,7 +161,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. «Tienes» dice cuánto es de CAYLA
           y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
-      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, plata })} />
+      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata })} />
       {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
       <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} />
       {dock}

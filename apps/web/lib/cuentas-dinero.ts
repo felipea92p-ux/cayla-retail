@@ -85,9 +85,11 @@ export async function getMediosDeCobro(): Promise<Lectura<FilaMedio[]>> {
  *  nada más cambia. */
 export async function getMaquinasPos(): Promise<MaquinaPos[] | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_pos_maquinas" as never);
+  const [{ data, error }, bancos] = await Promise.all([supabase.rpc("fn_pos_maquinas" as never), supabase.rpc("fn_pos_bancos_de_maquinas" as never)]);
   if (error) return null;
-  return agruparMaquinas((data ?? []) as Fila[]);
+  // Sin el banco (la base todavía no tiene la función, o no respondió) la máquina se ve igual: solo no trae propuesta.
+  const bancoDe = new Map(((bancos.data ?? []) as Fila[]).map((f) => [String(f.maquina_id), f.banco_id ? String(f.banco_id) : null]));
+  return agruparMaquinas((data ?? []) as Fila[]).map((m) => ({ ...m, bancoId: bancoDe.get(m.id) ?? null }));
 }
 
 /** Solo el líder: por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4). Vacío si la base todavía

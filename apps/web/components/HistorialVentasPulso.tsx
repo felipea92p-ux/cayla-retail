@@ -71,7 +71,7 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
 
 
   return (
-    <section aria-label="Ventas por día" className="anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]" style={{ "--i": 3 } as CSSProperties}>
+    <section aria-label="Ventas por día" className="anim-sube rounded-tarjeta bg-papel p-5 ring-1 ring-tinta/[0.07]" style={{ "--i": 3 } as CSSProperties}>
       <TituloSeccion>{porSemana ? "Ventas por semana" : "Ventas por día"}</TituloSeccion>
       <p className="mt-0.5 text-sm text-tinta/60">{periodo}</p>
 

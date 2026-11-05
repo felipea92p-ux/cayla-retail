@@ -634,7 +634,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-monto",
       opcional: true,
       titulo: "Monto y voucher",
-      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión.",
+      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión. Si la comisión se aleja más de 1 punto de la tarifa, te pide confirmarla contra el extracto.",
     },
     {
       id: "mov-fecha",

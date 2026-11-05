@@ -14,7 +14,7 @@ export default function LoadingLiquidacion() {
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 rounded-[20px] bg-sand/50" />
+            <div key={i} className="h-24 rounded-tarjeta bg-sand/50" />
           ))}
         </div>
         <div className="card-cayla divide-y divide-sand">

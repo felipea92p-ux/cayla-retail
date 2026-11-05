@@ -15,7 +15,7 @@
 .caja-cayla {
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla), transform var(--t-cambio) var(--ease-cayla);
 }
 .caja-campo:has(:is(input, textarea):focus),
@@ -31,7 +31,7 @@
    escribir sube a vidrio claro, sin volverse sólido. */
 .caja-campo-input {
   border-color: var(--color-borde-control); /* pleno: al 80 % bajaba a 2.64:1 y lo único que identifica este control es su borde (ADR-0516) */
-  border-radius: 14px;
+  border-radius: var(--radius-campo);
   background-color: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
   transition: background-color var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla), background-size var(--t-cambio) var(--ease-cayla);
@@ -73,7 +73,7 @@
 
 /* ---------- el botón: la píldora ---------- */
 .btn-cayla:not(.btn-enlace) {
-  border-radius: 999px;
+  border-radius: var(--radius-boton);
   min-height: 2.5rem;
   padding-inline: 1.125rem;
 }
