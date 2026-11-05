@@ -298,7 +298,8 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
               disabled={bloqueado}
               aria-label="Cerrar"
               {...(variante === "papel" ? {} : { "data-sin-cascada": true })}
-              className="cerrar-hoja absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+              // En el celular baja a la altura del título: arriba quedaría bajo la franja del asa (`asa-hoja-fija`, los primeros 24 px).
+              className={`cerrar-hoja absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo ${conAsa ? "max-sm:top-6" : ""}`}
             >
               <X aria-hidden className="h-4 w-4" />
             </button>

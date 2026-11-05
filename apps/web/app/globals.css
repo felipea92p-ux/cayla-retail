@@ -2016,9 +2016,10 @@ html[data-buscando] [data-resultados] {
       background: color-mix(in srgb, var(--color-tinta) 20%, transparent);
       transition: width 260ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
     }
-    /* En una hoja que scrollea el asa no corre con el contenido: va pegada arriba (sticky) y tapa lo que pasa por debajo con el
-       fondo de la hoja. Su margen negativo la ubica en el relleno de la hoja (p-6) sin mover nada del contenido. El `top` también va
-       negativo: el navegador cuenta el «pegado» desde dentro del relleno, y con `top: 0` la franja se bajaba 24 px y tapaba el título. */
+    /* En una hoja que scrollea el asa no corre con el contenido: va pegada arriba (sticky) y desenfoca lo que pasa por debajo
+       (`estilos/vidrio/hoja.css`). Su margen negativo la ubica en el relleno de la hoja (p-6) sin mover nada del contenido. `top: -1.5rem` y no
+       `0`, como el `bottom` de `.pie-hoja-fijo`: el navegador mide el pegado desde el borde de adentro del padding, y con `0` la franja
+       bajaba 24 px y se montaba sobre el título de toda hoja en el celular (medido a 375 px: asa de 25 a 49, título desde 31). */
     .asa-hoja.asa-hoja-fija {
       position: sticky;
       top: -1.5rem;
@@ -2026,9 +2027,9 @@ html[data-buscando] [data-resultados] {
       right: auto;
       z-index: 20;
       margin: -1.5rem -1.5rem 0;
-      background: var(--fondo-hoja, var(--color-papel));
+      /* Recibe el dedo: con el contenido corrido, un toque aquí abría el teclado de un campo que pasaba por detrás, sin verse. */
+      pointer-events: auto;
     }
-    .hoja-vidrio > .asa-hoja.asa-hoja-fija { background: none; }
     /* Mientras el dedo la lleva, el asa se estira un poco y se oscurece: la hoja «se agarró». */
     [data-arrastrando] > .asa-hoja::before {
       width: 2.75rem;
