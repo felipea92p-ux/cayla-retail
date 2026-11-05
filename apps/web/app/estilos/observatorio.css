@@ -141,8 +141,7 @@
 .o-graf .ln { stroke: var(--o-resto); stroke-width: 1.6; }
 .o-graf .ln.f { stroke: var(--o-foco); stroke-width: 2.6; }
 .o-graf .ln.ant { stroke: var(--o-tx3); stroke-width: 1.4; stroke-dasharray: 2 5; }
-.o-graf .ln.cmp { stroke: var(--color-taupe); stroke-width: 1.8; stroke-dasharray: 7 4; }
-[data-tema="oscuro"] .obs .o-graf .ln.cmp { stroke: var(--o-tx2); }
+.o-graf .cero { stroke: var(--o-tx3); stroke-width: 1.2; stroke-dasharray: 3 4; }
 .o-graf .ar { fill: var(--o-lavado); stroke: none; }
 .o-revela { clip-path: inset(-30% 100% -30% 0); transition: clip-path 1.6s var(--o-ease) 0.15s; }
 .o-revela.ya { clip-path: inset(-30% -4% -30% 0); }
@@ -324,12 +323,26 @@
 @media (hover: hover) {
   .o-ritmo .capa:hover ~ .cruz { opacity: 1; }
 }
-.o-cmp { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
-.o-ley { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--o-tx2); }
+/* El control va primero y solo en su fila: al elegir una opción no se mueve bajo el mouse. La leyenda y el titular guardan el
+   mismo alto (una línea y la de las metas) para que el gráfico tampoco salte al cambiar de una a otra (ADR-0185). */
+.o-cmp { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.o-ley { display: flex; gap: 12px; flex-wrap: wrap; align-content: flex-start; min-height: 2.9em; font-size: 14px; color: var(--o-tx2); }
 .o-ley span { display: inline-flex; align-items: center; gap: 6px; }
 .o-ley i { width: 16px; height: 0; border-top: 2.5px solid var(--o-foco); }
 .o-ley i.ant { border-top: 2px dotted var(--o-tx3); }
-.o-ley i.cmp { border-top: 2px dashed var(--color-taupe); }
+/* La ventaja (ADR-0322, act. 2026-11-05): el titular reemplaza a la leyenda y la línea cuenta soles sobre «Parejas». La cifra del
+   final se corre a la izquierda de su punto, por encima o por debajo de la línea, para no salirse del panel. */
+.o-vent { margin: 0; min-height: 2.9em; font-size: 14px; line-height: 1.4; color: var(--o-tx2); }
+.o-vent b { color: var(--o-tx); font-weight: 600; }
+.o-vent small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--o-tx3); }
+.o-ritmo .pt-l.izq-arriba { transform: translate(-100%, -135%); }
+.o-ritmo .pt-l.izq-abajo { transform: translate(-100%, 35%); }
+.o-vent-lado, .o-vent-cero { position: absolute; font-size: 10.5px; color: var(--o-tx3); white-space: nowrap; pointer-events: none; }
+.o-vent-lado { left: 0; }
+.o-vent-lado.arriba { top: 0; }
+.o-vent-lado.abajo { bottom: 0; }
+.o-vent-cero { right: 0; transform: translateY(-120%); }
+.o-vent-cero.bajo { transform: translateY(20%); }
 /* Horas pico: una columna por hora (`--n`, de la primera a la última con ventas) y un color que sube de dorado a rojo y, en lo
    más fuerte, a rojo profundo; lo vacío queda en gris tenue. `--h1`, `--h2` y `--p` los pone `tonoPico` (observatorio-reglas.ts). */
 .o-hm { display: grid; grid-template-columns: 22px repeat(var(--n, 11), minmax(0, 1fr)); gap: 3px; align-items: center; }
