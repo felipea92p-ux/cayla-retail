@@ -12,7 +12,7 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 export async function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }) {
   const sedes = await leerSedes();
   // Los mismos cuatro pasos de «Cómo separar» (`pasosParaSeparar`), con su título y UNA frase corta bajo cada uno (Pasarela: el número
-  // grande en Didone, el título y una línea); el detalle completo vive en «Cómo separar».
+  // grande en la letra de títulos, el título y una línea); el detalle completo vive en «Cómo separar».
   const [elige] = pasosParaSeparar(
     sedes.map((s) => s.nombre),
     conCuenta,

@@ -27,7 +27,7 @@
 /* El enlace mide 16 px de alto: su zona de toque crece a 44 sin mover nada (el relleno y el margen negativo se anulan). */
 .t-ruta a { color: var(--taupe); padding-block: 14px; margin-block: -14px; }
 .t-ruta a:hover { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
-/* G · Pasarela (ADR-0524): la cabecera de la lista va centrada, con su título enorme en Didone (la maqueta, `p-cat-cab`). */
+/* G · Pasarela (ADR-0524): la cabecera de la lista va centrada, con su título enorme (la maqueta, `p-cat-cab`). */
 .t-lista-cab { padding-block: clamp(40px, 6cqi, 80px) 28px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .t-lista-cab h1 { margin: 10px 0 0; font-family: var(--display); text-transform: uppercase; font-weight: 400; font-size: clamp(52px, 10cqi, 160px); line-height: .9; letter-spacing: -.01em; text-wrap: balance; }
 .t-lista-cab h1 em { font-style: normal; color: inherit; }
@@ -183,7 +183,7 @@
 .t-insignia.cp-insignia-nuevo { background: var(--t-papel-fijo); color: var(--t-tinta-fija); box-shadow: none; }
 
 .t-card-info { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 2px; padding-top: 12px; text-align: center; }
-/* El nombre en Didone recta; al pasar el mouse por la tarjeta, en cursiva (la maqueta, `p-pie-foto`). */
+/* El nombre en letra recta; al pasar el mouse por la tarjeta, en cursiva (la maqueta, `p-pie-foto`). */
 .t-card-nom { padding-block: 2px; font-family: var(--nombre); font-style: normal; font-size: 19px; font-weight: 400; line-height: 1.15; letter-spacing: -.005em; color: var(--tinta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .t-card-nom:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (hover: hover) { .t-card:hover .t-card-nom { font-style: italic; } }

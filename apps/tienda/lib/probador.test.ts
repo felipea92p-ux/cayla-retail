@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import type { StockModelo } from "./stock";
+import { notaDeStock, type StockModelo } from "./stock";
 import {
   agotada,
   armarProbador,
@@ -28,7 +28,6 @@ import {
   lookInicial,
   memoriaInicial,
   notaDeLaFoto,
-  notaDelColor,
   piezasDelLook,
   textoAgregarAlLook,
   piezasParaLasTallas,
@@ -155,22 +154,22 @@ describe("la foto de cada color: solo fotos reales", () => {
   });
 });
 
-describe("notaDelColor: cada color dice cuánto hay", () => {
+describe("la nota de cada color del probador: dice cuánto hay", () => {
   const stock = (sedes: Record<string, "hay" | number>, total: "hay" | number) => ({ sedes, total });
   it("con una tienda elegida, la nota de la tarjeta", () => {
-    expect(notaDelColor(stock({ [TRU.id]: 2 }, 2), TRU, [TRU, LIM])).toEqual({ texto: "Quedan 2 en Trujillo", tono: "poco" });
-    expect(notaDelColor(stock({ [TRU.id]: 0 }, 0), TRU, [TRU, LIM])).toEqual({ texto: "No hay en Trujillo", tono: "no" });
+    expect(notaDeStock(stock({ [TRU.id]: 2 }, 2), TRU, [TRU, LIM])).toEqual({ texto: "Quedan 2", tono: "poco" });
+    expect(notaDeStock(stock({ [TRU.id]: 0 }, 0), TRU, [TRU, LIM])).toEqual({ texto: "No hay por ahora", tono: "no" });
   });
-  it("con «Todas», también donde la tarjeta calla porque hay de sobra", () => {
-    expect(notaDelColor(stock({ [TRU.id]: "hay", [LIM.id]: "hay", [AQP.id]: 1 }, "hay"), null, [TRU, LIM, AQP])).toEqual({ texto: "Hay en todas las tiendas", tono: "ok" });
-    expect(notaDelColor(stock({ [TRU.id]: "hay", [LIM.id]: 2, [AQP.id]: 0 }, "hay"), null, [TRU, LIM, AQP])).toEqual({ texto: "Hay en 2 tiendas", tono: "ok" });
-    expect(notaDelColor(stock({ [TRU.id]: "hay" }, "hay"), null, [TRU])).toEqual({ texto: "Hay en Trujillo", tono: "ok" });
-    expect(notaDelColor(stock({ [TRU.id]: 0, [LIM.id]: 3 }, 3), null, [TRU, LIM])).toEqual({ texto: "Solo en Lima", tono: "poco" });
-    expect(notaDelColor(stock({}, 0), null, [TRU, LIM])).toEqual({ texto: "No hay por ahora", tono: "no" });
+  it("con «Todas», también cuando hay de sobra", () => {
+    expect(notaDeStock(stock({ [TRU.id]: "hay", [LIM.id]: "hay", [AQP.id]: 1 }, "hay"), null, [TRU, LIM, AQP])).toEqual({ texto: "En todas las tiendas", tono: "ok" });
+    expect(notaDeStock(stock({ [TRU.id]: "hay", [LIM.id]: 2, [AQP.id]: 0 }, "hay"), null, [TRU, LIM, AQP])).toEqual({ texto: "Hay en Trujillo y Lima", tono: "ok" });
+    expect(notaDeStock(stock({ [TRU.id]: "hay" }, "hay"), null, [TRU])).toEqual({ texto: "Disponible", tono: "ok" });
+    expect(notaDeStock(stock({ [TRU.id]: 0, [LIM.id]: 3 }, 3), null, [TRU, LIM])).toEqual({ texto: "Solo en Lima", tono: "poco" });
+    expect(notaDeStock(stock({}, 0), null, [TRU, LIM])).toEqual({ texto: "No hay por ahora", tono: "no" });
   });
   it("sin el dato o sin tiendas en la web, nada (no se afirma lo que no se sabe)", () => {
-    expect(notaDelColor(null, null, [TRU])).toBeNull();
-    expect(notaDelColor(stock({}, "hay"), null, [])).toBeNull();
+    expect(notaDeStock(null, null, [TRU])).toBeNull();
+    expect(notaDeStock(stock({}, "hay"), null, [])).toBeNull();
   });
 });
 
@@ -239,7 +238,7 @@ describe("armarProbador: el catálogo y lo del probador, juntos", () => {
 
   it("con una tienda elegida, «hay» es de esa tienda y no hay insignia de «solo en»", () => {
     const enLima = armarProbador(catalogo, lectura, { elegida: LIM, tiendas: [TRU, LIM], optimizable: () => false });
-    expect(enLima[1].colores[0]).toMatchObject({ hay: false, solo: null, nota: { texto: "No hay en Lima", tono: "no" } });
+    expect(enLima[1].colores[0]).toMatchObject({ hay: false, solo: null, nota: { texto: "Hay en Trujillo", tono: "no" } });
     expect(agotada(enLima[1])).toBe(true);
     // Sin el dato del stock, sí hay (no se esconde lo que no se sabe).
     expect(enLima[2].colores[0].hay).toBe(true);
