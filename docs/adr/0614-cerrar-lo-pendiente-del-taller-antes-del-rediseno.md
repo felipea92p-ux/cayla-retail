@@ -27,4 +27,4 @@ SE ROMPE SI: alguien lee `costo_historial` sin saber de las filas `reversion` y 
 
 **Límite conocido:** una prenda con un cierre revertido sigue con su costo bloqueado a mano (`fn_variantes_con_costo_oficial` solo mira si tiene historial).
 
-Prueba: `pnpm pruebas:produccion-revertir-costo`.
+Prueba: `pnpm pruebas:produccion-revertir-costo`. **En producción desde el 2026-11-05,** con el OK de Felipe; sin ninguna orden cerrada todavía, no se ha revertido ningún cierre real.

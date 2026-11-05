@@ -1,6 +1,6 @@
 ## Taller: cerrar lo pendiente antes del rediseño (2026-11-05, ADR-0614)
 Lista de 16 actividades aprobada por Felipe el 2026-11-05.
-- [x] 1 · Revertir restaura el costo de la prenda. **POR PEGAR:** `20261105213000_revertir_cierre_restaura_el_costo.sql`, una parte, con el OK de Felipe.
+- [x] 1 · Revertir restaura el costo de la prenda. `20261105213000_revertir_cierre_restaura_el_costo.sql` **en producción desde el 2026-11-05** (OK de Felipe; lo pegado coincidió por SHA-256 con el archivo y se verificó en solo lectura). Falta publicar la frase nueva de la hoja y refrescar el diccionario (`costo_historial` tiene dos columnas nuevas).
 - [ ] 2 · Cerrar OP-1 a OP-4 y anotar la tela de OP-5 y OP-6 (espera datos de Felipe).
 - [ ] 3 · La deuda de un servicio llega a Por pagar.
 - [ ] 4 · Pagar desde la vuelta, con su papel.
