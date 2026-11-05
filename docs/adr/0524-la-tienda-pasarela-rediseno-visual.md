@@ -4,6 +4,8 @@
 - **Decidió:** Felipe
 - **Relacionados:** ADR-0446 (letras y logo oficial; la tienda tiene identidad propia), ADR-0455 (A · Muro y «siempre una tienda»), ADR-0466 (el velo y el título que se cuelga), ADR-0445 (esqueletos fieles y paso suave entre vistas), ADR-0430 y ADR-0136 (movimiento: «ricas, una vez, sin rebote ni bucle»), ADR-0408 (la tienda online), ADR-0450 (si la base no responde). Maquetas: `docs/maquetas/tienda-rediseno-2026-10/g-pasarela.html` (la elegida), `docs/maquetas/tienda-cambio-de-sede-y-pestana-2026-10/` (el movimiento) y las rondas descartadas `docs/maquetas/tienda-paleta-2026-10/` y `docs/maquetas/tienda-spike-2026-10/`.
 
+> **Actualización 2026-11-05 (ADR-0612):** la letra de títulos ya no es Bodoni Moda, sino DM Serif Display. Lo demás de esta decisión sigue vigente.
+
 ## El problema
 
 Felipe dijo el 2026-10-24 que no le convencían la paleta ni la estética de la tienda («A · Muro»: yeso frío y grafito, Archivo ancha en versalitas), que la sentía
