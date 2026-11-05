@@ -135,7 +135,7 @@ export default async function Inicio({ searchParams }: Props) {
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
       {gruposL.length > 0 ? (
-        <PortadaTresPaneles grupos={gruposL} hrefArmar={sede ? `/looks/arma?sede=${encodeURIComponent(sede)}` : "/looks/arma"} />
+        <PortadaTresPaneles grupos={gruposL} hrefArmar={sede ? `/looks/arma?sede=${encodeURIComponent(sede)}` : "/looks/arma"} hrefNuevo={lista("nuevo")} />
       ) : (
         <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
       )}

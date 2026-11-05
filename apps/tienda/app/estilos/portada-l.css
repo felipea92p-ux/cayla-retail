@@ -25,3 +25,39 @@
 .pl-tot small { display: block; font-size: 12.5px; line-height: 1.25; opacity: .82; }
 .pl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 16px; background: #f4f1ea; color: #0b0b0b; font-size: 14.5px; font-weight: 500; border-radius: 2px; white-space: nowrap; }
 .pl-btn svg { width: 17px; height: 17px; }
+
+/* En la computadora: tres paneles, con «Lo nuevo» cruzándolos. */
+.pl-pc { display: none; }
+@container tienda (min-width: 960px) {
+  .pl-cel { display: none; }
+  .pl-pc { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: clamp(540px, calc(100svh - 112px - 68px), 960px); /* 68 px: la barra no queda debajo del botón flotante de Recomendaciones, y asoma lo que sigue */ }
+}
+.pl-tri { display: flex; min-height: 0; container-type: size; }
+.pl-p { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; display: block; background: var(--f); color: var(--t); transition: flex-grow .6s cubic-bezier(.76, 0, .24, 1), background-color .7s var(--ease, ease) calc(var(--n) * 90ms), color .5s ease calc(var(--n) * 90ms); }
+@media (hover: hover) {
+  .pl-p:hover { flex-grow: 1.35; }
+  .pl-p:hover .pl-p-tx b { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+}
+.pl-t { position: absolute; top: 0; left: calc(var(--n) * -100%); width: 300%; text-align: center; font-family: var(--nombre); font-size: min(24.6cqi, 44cqh); line-height: 1; letter-spacing: -.025em; white-space: nowrap; pointer-events: none; }
+.pl-im { position: absolute; inset: min(33.5cqh, 20cqi) 7% 12cqh; display: block; opacity: 0; transform: translateY(14px); transition: opacity .55s ease calc(var(--n) * 90ms), transform .8s ease calc(var(--n) * 90ms); }
+.pl-im[data-on] { opacity: 1; transform: none; }
+.pl-im picture { display: contents; }
+.pl-im img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+.pl-p-tx { position: absolute; left: clamp(16px, 2.6cqi, 40px); bottom: clamp(14px, 2.4cqh, 24px); display: block; }
+.pl-p-tx b { display: block; font-family: var(--nombre); font-weight: 400; font-size: clamp(18px, 1.6cqi, 24px); line-height: 1.2; }
+.pl-p-tx small { font-size: 14px; opacity: .85; }
+.pl-bar-pc { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 10px clamp(16px, 3.5cqi, 48px); background: #0b0b0b; color: #f4f1ea; }
+.pl-bar-iz { display: flex; align-items: center; gap: clamp(14px, 1.6cqi, 24px); min-width: 0; }
+.pl-bar-de { display: flex; align-items: center; gap: 20px; flex: none; }
+.pl-rayas { display: flex; align-items: center; gap: 6px; flex: none; }
+.pl-rayas button { position: relative; width: 34px; height: 32px; padding: 0; background: none; border: 0; color: inherit; cursor: pointer; }
+.pl-rayas button:not(.pl-pausa)::after { content: ""; position: absolute; left: 0; right: 0; top: 15px; height: 2px; background: currentColor; opacity: .3; transition: opacity .25s; }
+.pl-rayas button[aria-current="true"]::after { opacity: 1; }
+.pl-pausa { display: grid; place-items: center; width: 32px; }
+.pl-pausa svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pl-frase { font-size: 15px; }
+.pl-frase b { font-weight: 600; }
+.pl-ver { font-size: 14px; font-weight: 500; border-bottom: 1px solid currentColor; padding-bottom: 2px; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .pl-p, .pl-im { transition: none; }
+}
