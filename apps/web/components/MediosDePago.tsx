@@ -28,7 +28,7 @@ export function MediosDePago({
   exacto: boolean;
   etiquetaEsperado?: string;
   /** ADR-0195 F3b: con las cuentas, cada medio dice «Sale de» (propuesta según el medio). */
-  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean; falla?: boolean; reintentar?: () => void };
   /** ADR-0362 (fase 6 · actividad 6): el total del COMPROBANTE; de S/ 2 000 o más avisa lo que queda «no deducible». */
   totalComprobante?: number;
 }) {
@@ -109,7 +109,7 @@ export function MediosDePago({
 }
 
 /** «Sale de» en una línea, bajo cada medio (F3b): la cuenta propuesta según el medio; del cajón, resta del cierre. */
-function SaleDeCompacto({ cuentas, medio: m, i, onCuenta }: { cuentas: { lista: readonly CuentaElegible[]; listo: boolean }; medio: MedioForm; i: number; onCuenta: (v: string) => void }) {
+function SaleDeCompacto({ cuentas, medio: m, i, onCuenta }: { cuentas: { lista: readonly CuentaElegible[]; listo: boolean; falla?: boolean; reintentar?: () => void }; medio: MedioForm; i: number; onCuenta: (v: string) => void }) {
   const hay = cuentas.listo && hayCuentasPara(cuentas.lista, "pago", m.metodo);
   const valor = hay ? (cuentaEfectiva(cuentas.lista, "pago", m.metodo, m.cuentaId) ?? "") : "";
   return (
@@ -122,10 +122,25 @@ function SaleDeCompacto({ cuentas, medio: m, i, onCuenta }: { cuentas: { lista: 
           valor={valor}
           onValor={onCuenta}
           opciones={hay ? opcionesDeCuenta(cuentas.lista, "pago", m.metodo) : []}
-          marcador={!cuentas.listo ? "…" : hay ? undefined : "Sin cuentas: se agregan en Configuración"}
+          marcador={!cuentas.listo ? "…" : cuentas.falla ? "No se pudieron leer las cuentas" : hay ? undefined : "Sin cuentas: se agregan en Configuración"}
           deshabilitado={!hay}
         />
-        <span className="text-sm text-tinta/60">{hay ? ayudaCuenta(cuentas.lista.find((c) => c.id === valor) ?? null, "sale") : "Queda «sin cuenta»; el pago se registra igual."}</span>
+        <span className="text-sm text-tinta/60">
+          {cuentas.falla ? (
+            <>
+              No se pudieron leer las cuentas.{" "}
+              {cuentas.reintentar && (
+                <button type="button" className="btn-enlace" onClick={cuentas.reintentar}>
+                  Volver a intentar
+                </button>
+              )}
+            </>
+          ) : hay ? (
+            ayudaCuenta(cuentas.lista.find((c) => c.id === valor) ?? null, "sale")
+          ) : (
+            "Queda «sin cuenta»; el pago se registra igual."
+          )}
+        </span>
       </span>
     </div>
   );

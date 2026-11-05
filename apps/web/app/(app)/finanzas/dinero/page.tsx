@@ -42,12 +42,12 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar, claure, planilla, cuentasPlanilla] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
-    ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve([]),
+    ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider ? getProyeccion(6) : Promise.resolve({ datos: null, falla: null }),
     // Las máquinas que se atrasaron con su depósito (ADR-0429, act. 4): solo el líder; vacío si la base no lo sabe todavía.
     ctx.esLider ? getAlertasPos() : Promise.resolve([]),
     deLaEmpresa ? Promise.resolve(sinEfectivo) : getEfectivo(ctx.ver.ubicacionId),
-    deLaEmpresa ? Promise.resolve([]) : getCierresConDiferencia(ctx.ver.ubicacionId),
+    deLaEmpresa ? Promise.resolve({ datos: [], falla: null }) : getCierresConDiferencia(ctx.ver.ubicacionId),
     getSedesDelTelar(),
     // Lo que se le debe a CLAURE (ADR-0560, actividad 4): la plata de los bancos y las máquinas de CAYLA incluye lo de Claudia, así que «tienes» dice cuánto es suyo y cuánto
     // queda disponible. Solo cuando se mira CAYLA entera o la empresa (una sede no lleva los bancos) y quien lo ve es el líder. Si no se pudo leer, no se inventa nada.
@@ -73,7 +73,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   // La campana «Estado de las cuentas»: los mismos datos de la pantalla, ordenados por lo que pide mirada (lib/dinero-estados-reglas.ts).
   const atrasadas = new Set(alertas.filter((a) => a.atrasados > 0).map((a) => a.cuentaId));
   const filasEstado = filasDeEstado(grupos, atrasadas);
-  const filasCierres = filasDeCierres(cierres);
+  const filasCierres = filasDeCierres(cierres.datos);
   const avisosPlanilla = avisosDePlanilla(planilla, cuentasPlanilla ?? []);
   const pendientes = porRegistrar(alertas, avisosPlanilla);
   const contador = contadorDeCampana(filasEstado, filasCierres, pendientes);
@@ -101,7 +101,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       cuentas={ctx.cuentas.datos}
       deuda={ctx.deuda}
       hoy={hoy}
-      fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, efectivo.falla].filter((f): f is string => !!f)}
+      fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, efectivo.falla, ctx.plataFalla, sinCuenta.falla, cierres.falla, proyeccion.falla].filter((f): f is string => !!f)}
       panorama
       campana={<CampanaDinero filas={filasEstado} cierres={filasCierres} pendientes={pendientes} planilla={avisosPlanilla} cuentas={ctx.cuentas.datos} contador={contador} esLider={ctx.esLider} />}
     >
@@ -118,14 +118,14 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
         movimientos={movimientosVisibles}
         hoy={hoy}
         items={itemsAtencion}
-        alcanza={<AlcanzaDinero alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado)} deCaylaEntera={!!sedeId} />}
+        alcanza={<AlcanzaDinero alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado, !!proyeccion.falla)} deCaylaEntera={!!sedeId} />}
         ultimos={<MovimientosEnPantalla movimientos={movimientosVisibles} hoy={hoy} />}
       />
       {/* Solo el líder y con todas las sedes: lo del dueño es de CAYLA entera, y a qué cuenta entra cada cobro se explica sede por sede (no la empresa). */}
-      {ctx.esLider && !sedeId && <PlataDelDueno deuda={ctx.deuda} prestamos={deudaConDueno(ctx.plata).prestamos} movimientos={movimientosDelDueno(movimientosVisibles)} />}
+      {ctx.esLider && !sedeId && !ctx.plataFalla && <PlataDelDueno deuda={ctx.deuda} prestamos={deudaConDueno(ctx.plata).prestamos} movimientos={movimientosDelDueno(movimientosVisibles)} />}
       {ctx.esLider && !sedeId && !deLaEmpresa && <CobrosDinero filas={filasDeCobros(medios.datos, ctx.cuentas.datos)} />}
       <CuentasPanel
-        sinCuenta={sinCuenta}
+        sinCuenta={sinCuenta.datos}
         ver={ctx.ver}
         esLider={ctx.esLider}
       />

@@ -24,7 +24,7 @@ const TELAR: PasoGuia[] = [
     id: "telar-mes",
     ancla: "telar.mes",
     titulo: "Qué mes mirar",
-    texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede.",
+    texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede. Donde la sede o el mes no aplican, la barra los apaga y lo dice.",
   },
   {
     id: "telar-te-toca",

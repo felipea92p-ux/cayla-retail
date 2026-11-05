@@ -24,7 +24,13 @@ function quien(r: ResumenFinanzas): string {
  * que septiembre a esta fecha»; sin él, no se inventa. `provisional`
  * (la confianza del número es baja, ADR-0417): el chip lo dice, como en la respuesta del Pulso.
  */
-export function respuestaResumen(r: ResumenFinanzas, anterior: readonly FilaER[] | null, provisional: boolean, enCurso = true): RespuestaResumen {
+export function respuestaResumen(
+  r: ResumenFinanzas,
+  anterior: readonly FilaER[] | null,
+  provisional: boolean,
+  enCurso = true,
+  antesDeSueldos = false,
+): RespuestaResumen {
   const mes = mesNombre(r.mes);
   const vende = r.ver.todas || r.ver.tipo === "tienda";
   const pregunta = vende
@@ -48,8 +54,8 @@ export function respuestaResumen(r: ResumenFinanzas, anterior: readonly FilaER[]
   if (f.resultado < 0) chips.push({ texto: enCurso ? "Este mes vas perdiendo plata" : "Este mes perdió plata", tono: "ambar" });
   const antes = anterior ? filaDeVer(anterior, r.ver) : undefined;
   if (antes) {
-    const dif = Math.round(f.resultado - antes.resultado);
-    const contra = `${mesNombre(r.mesAnterior)}${enCurso ? " a esta fecha" : ""}`;
+    const dif = Math.round((antesDeSueldos ? sinSueldos(f) : f).resultado - antes.resultado);
+    const contra = `${mesNombre(r.mesAnterior)}${enCurso ? " a esta fecha" : ""}${antesDeSueldos ? ", antes de sueldos" : ""}`;
     if (Math.abs(dif) >= 1) chips.push({ texto: `${soles(Math.abs(dif))} ${dif > 0 ? "más" : "menos"} que ${contra}`, tono: dif > 0 ? "verde" : "ambar" });
     else chips.push({ texto: `Igual que ${contra}`, tono: "pizarra" });
   }
@@ -161,15 +167,29 @@ export function tramoDeSueldos(mes: string, hoy: string): { desde: string; hasta
   return { desde: t.desde, hasta: `${mes}-${String(ultimo).padStart(2, "0")}` };
 }
 
+/** La misma columna sin sueldos: los saca de la planilla, de los gastos, de su línea 62 y de lo que deja. */
+function sinSueldos(f: FilaER): FilaER {
+  if (!f.planilla) return f;
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const detalleGastos = f.detalleGastos
+    .map((d) => (d.cuenta === "62" ? { ...d, monto: r2(d.monto - f.planilla) } : d))
+    .filter((d) => d.cuenta !== "62" || Math.abs(d.monto) >= 0.005);
+  return { ...f, planilla: 0, planillaEstimada: 0, gastos: r2(f.gastos - f.planilla), resultado: r2(f.resultado + f.planilla), detalleGastos };
+}
+
 /**
- * El mes pasado solo sirve de comparación si lleva sueldos igual que el actual. Finanzas cuenta desde su fecha de inicio (ADR-0332): el primer
- * mes puede tener los sueldos del período en curso y el anterior, que Dynamic pagó antes de esa fecha, ninguno; comparar los dos mostraría una
- * caída que es solo esa diferencia. Sin base común no se compara (como cuando no hay mes pasado: no se inventa).
+ * Con qué se compara el mes, sobre una base común. Dynamic paga el día 28: del 1 al 27 este mes ya lleva sueldos devengados y el mismo tramo del
+ * mes pasado todavía no (ADR-0453). Comparar así mostraría una caída que es solo esa diferencia, y descartar la comparación se leía como un error
+ * que no ocurrió (tarea 25 de «Las 36»). Sin base común se comparan los dos ANTES de sueldos, y se dice. `null` en `antes` es una falla de lectura.
  */
-export function mesPasadoComparable(ahora: readonly FilaER[], antes: readonly FilaER[] | null): readonly FilaER[] | null {
-  if (!antes) return null;
+export function comparacionMesPasado(
+  ahora: readonly FilaER[],
+  antes: readonly FilaER[] | null,
+): { ahora: readonly FilaER[]; antes: readonly FilaER[] | null; antesDeSueldos: boolean } {
+  if (!antes) return { ahora, antes: null, antesDeSueldos: false };
   const llevaSueldos = (fs: readonly FilaER[]) => fs.some((f) => f.planilla > 0);
-  return llevaSueldos(ahora) === llevaSueldos(antes) ? antes : null;
+  if (llevaSueldos(ahora) === llevaSueldos(antes)) return { ahora, antes, antesDeSueldos: false };
+  return { ahora: ahora.map(sinSueldos), antes: antes.map(sinSueldos), antesDeSueldos: true };
 }
 
 /** El mes anterior a «AAAA-MM». */

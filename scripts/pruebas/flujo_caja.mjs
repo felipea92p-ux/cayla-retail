@@ -563,10 +563,10 @@ ${COMPROBANTE}
 select retail.fn_flujo_caja_proyeccion(12) as antes \\gset
 select pg_temp.comp(:'tru', 'boleta', 'B981', 1, 1180000, 'aceptado', 'produccion', :'hoy'::date) as b1 \\gset
 select retail.fn_flujo_caja_proyeccion(12) as p \\gset
-select pg_temp.salidas(:'p', 'impuesto', 'igv:%') > 0
-   and pg_temp.salidas(:'p', 'impuesto', 'igv:%') = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', :'hoy'::date)::date, date_trunc('month', :'hoy'::date)::date) m);
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM')) > 0
+   and pg_temp.salidas(:'p', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM')) = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', :'hoy'::date)::date, date_trunc('month', :'hoy'::date)::date) m);
 select pg_temp.salidas(:'p', 'impuesto', 'renta:%') - pg_temp.salidas(:'antes', 'impuesto', 'renta:%');
-select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' like 'igv:%' limit 1)
+select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = 'igv:' || to_char(:'hoy'::date, 'YYYY-MM') limit 1)
      = ((date_trunc('month', :'hoy'::date) + interval '1 month')::date + 14);
 select (:'p'::jsonb->>'incluye_impuestos');`);
   const [igv, renta, fecha15, incluye] = lineas(r);
@@ -587,8 +587,8 @@ select retail.fn_flujo_caja_proyeccion(12) as sin \\gset
 select retail.guardar_parametro_tributario('saldo_favor_igv', date_trunc('month', retail.fn_hoy_lima())::date, 5000000) as _g \\gset
 select retail.fn_flujo_caja_proyeccion(12) as con \\gset
 select (:'sin'::jsonb->>'saldo_favor_igv_declarado') || '|' || (:'con'::jsonb->>'saldo_favor_igv_declarado');
-select pg_temp.salidas(:'sin', 'impuesto', 'igv:%') > 0;
-select pg_temp.salidas(:'con', 'impuesto', 'igv:%');
+select pg_temp.salidas(:'sin', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM')) > 0;
+select pg_temp.salidas(:'con', 'impuesto', 'igv:' || to_char(:'hoy'::date, 'YYYY-MM'));
 select pg_temp.salidas(:'con', 'impuesto', 'renta:%') = pg_temp.salidas(:'sin', 'impuesto', 'renta:%');`);
   const [flags, haIgv, igvConSaldo, rentaIgual] = lineas(r);
   esperar("sin saldo declarado la base dice false; declarado, true", r.ok && flags === "false|true", r);
@@ -596,6 +596,50 @@ select pg_temp.salidas(:'con', 'impuesto', 'renta:%') = pg_temp.salidas(:'sin', 
   esperar("con S/ 5,000,000 a favor declarados al empezar el mes, el IGV proyectado desaparece (180,000 − 5,000,000 < 0: no se paga)", r.ok && Number(igvConSaldo) === 0, r);
   esperar("y el pago a cuenta de renta no cambia (el saldo de IGV no lo toca)", r.ok && rentaIgual === "t", r);
 }
+
+// 10e. El IGV y la renta del mes ANTERIOR, que vencen ESTE mes (tarea 11 de «Las 36»). Antes la proyección solo miraba el mes en curso: del 1 al 15
+// de cada mes no traía lo que estaba por vencer. La línea cae el día 15 o, pasado ese día, mañana; un pago a SUNAT de este mes la baja.
+{
+  const MES_ANT = `date_trunc('month', :'hoy'::date)::date - 1`;
+  const ID_ANT = `to_char((${MES_ANT}), 'YYYY-MM')`;
+  const r = correr(`${ESCENA}
+${COMPROBANTE}
+select retail.fn_flujo_caja_proyeccion(6) as antes \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B982', 1, 1180000, 'aceptado', 'produccion', (${MES_ANT})) as b1 \\gset
+select retail.fn_flujo_caja_proyeccion(6) as p \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT})
+     = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', (${MES_ANT}))::date, date_trunc('month', (${MES_ANT}))::date) m)
+   and pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) > 0;
+select pg_temp.salidas(:'p', 'impuesto', 'renta:' || ${ID_ANT}) - pg_temp.salidas(:'antes', 'impuesto', 'renta:' || ${ID_ANT});
+select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = 'igv:' || ${ID_ANT})
+     = greatest(date_trunc('month', :'hoy'::date)::date + 14, :'hoy'::date + 1);
+select retail.registrar_movimiento_dinero('pago_sunat', 500, :'bcp', null, null, 'IGV de prueba tarea 11') as m1 \\gset
+select retail.fn_flujo_caja_proyeccion(6) as tras_pago \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) - pg_temp.salidas(:'tras_pago', 'impuesto', 'igv:' || ${ID_ANT});`);
+  const [igv, renta, fecha, baja] = lineas(r);
+  esperar("el IGV del mes anterior sale en la proyección, con lo que dice Impuestos", r.ok && igv === "t", r);
+  esperar("el pago a cuenta de renta del mes anterior suma el 1 % de lo vendido sin IGV: S/ 10,000", r.ok && Number(renta) === 10000, r);
+  esperar("cae el día 15 de este mes o, si ya pasó, mañana: nunca fuera de lo que viene", r.ok && fecha === "t", r);
+  esperar("un pago a SUNAT de S/ 500 hecho este mes baja la línea en S/ 500", r.ok && Number(baja) === 500, r);
+}
+
+// 10f. El mes anterior ya pagado completo no vuelve a salir, ni el IGV ni la renta.
+{
+  const MES_ANT = `date_trunc('month', :'hoy'::date)::date - 1`;
+  const ID_ANT = `to_char((${MES_ANT}), 'YYYY-MM')`;
+  const r = correr(`${ESCENA}
+${COMPROBANTE}
+select pg_temp.comp(:'tru', 'boleta', 'B983', 1, 11800, 'aceptado', 'produccion', (${MES_ANT})) as b1 \\gset
+select retail.fn_flujo_caja_proyeccion(6) as p \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:' || ${ID_ANT}) + pg_temp.salidas(:'p', 'impuesto', 'renta:' || ${ID_ANT}) as total \\gset
+insert into retail.movimientos_dinero (tipo, fecha, cuenta_origen_id, monto, referencia)
+values ('pago_sunat', :'hoy'::date, :'bcp', :'total'::numeric, 'Pago completo de prueba tarea 11');
+select retail.fn_flujo_caja_proyeccion(6) as tras_pago \\gset
+select pg_temp.salidas(:'tras_pago', 'impuesto', 'igv:' || ${ID_ANT}) + pg_temp.salidas(:'tras_pago', 'impuesto', 'renta:' || ${ID_ANT});`);
+  const [resto] = lineas(r);
+  esperar("con todo pagado este mes, el mes anterior ya no sale en lo que viene", r.ok && Number(resto) === 0, r);
+}
+
 
 // 11. El pago de la planilla y el pago a SUNAT (20261016002000, ADR-0417 situaciones 15 y 16) son SALIDAS del Flujo real, cada una en su categoría
 // («planilla», «impuestos»), y no cambian lo que sale en un «día normal» de la proyección (la planilla ya se suma aparte; un pago a SUNAT cae un día).
@@ -616,6 +660,70 @@ select pg_temp.num(:'p_despues', 'salidas_diarias') = pg_temp.num(:'p_antes', 's
   esperar("la planilla pagada es una salida de S/ 1,000 en «planilla» y el pago a SUNAT una de S/ 500 en «impuestos»", r.ok && cats.split("|").map(Number).join(",") === "1000,500", r);
   esperar("salió +1,500 y lo que entró no cambia (antes caían en «entre cuentas» y no se contaban)", r.ok && lados.split("|").map(Number).join(",") === "1500,0", r);
   esperar("lo que sale en un día normal no se mueve por esos pagos (no se cuenta dos veces la planilla)", r.ok && diarias === "t", r);
+}
+
+// 12. Lo que falta del mes (tarea 24 de «Las 36»): los fijos sin gasto de este mes, sin IGV y sin la parte de CLAURE. Solo los de la sede que se ve.
+{
+  const r = correr(`${ESCENA}
+select codigo as cat from retail.categorias_gasto limit 1 \\gset
+select id as claure from retail.empresas where clave = 'claure' \\gset
+update retail.empresas set cuenta_corriente_desde = :'hoy'::date - 60, activo = true where id = :'claure';
+insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (:'claure', :'lim') on conflict do nothing;
+delete from retail.empresa_sedes where empresa_id = :'claure' and ubicacion_id = :'tru';
+insert into retail.gasto_reparto_claure (categoria, pct_claure) values (:'cat', 50) on conflict (categoria) do update set pct_claure = 50;
+update retail.gastos_fijos set activo = false;
+insert into retail.gastos_fijos (ubicacion_id, categoria, descripcion, comprobante_tipo, monto, dia_del_mes) values
+  (:'tru', :'cat', 'Fijo con factura prueba', 'factura', 1180, 20),
+  (:'lim', :'cat', 'Fijo con CLAURE prueba', 'boleta', 1000, 20);
+select coalesce(sum(fijos), 0) from retail.fn_lo_que_falta_del_mes(:'hoy'::date) where ubicacion_id = :'tru';
+select coalesce(sum(fijos), 0) from retail.fn_lo_que_falta_del_mes(:'hoy'::date) where ubicacion_id = :'lim';
+${cambiaA(MICAELA)}
+select pg_temp.intento($q$select * from retail.fn_lo_que_falta_del_mes(retail.fn_hoy_lima())$q$);`);
+  const [tru, lim, micaela] = lineas(r);
+  esperar("un fijo con factura de S/ 1,180 cuenta S/ 1,000: sin IGV, como el Estado de resultados", r.ok && Number(tru) === 1000, r);
+  esperar("de un fijo de S/ 1,000 en la sede de CLAURE con 50 % de reparto, cuenta la mitad", r.ok && Number(lim) === 500, r);
+  esperar("quien no ve el Estado de resultados no lo lee", r.ok && /Reportes financieros/.test(micaela ?? ""), r);
+}
+
+// 13. Lo que solo cambia de lugar y lo que se deshace (tarea 36 de «Las 36»): `fn_flujo_disponible` es el saldo total que cada pantalla repite. Mover plata
+// entre bancos no lo cambia, y anular un movimiento o un gasto deja el total EXACTO de antes, céntimo por céntimo.
+{
+  const r = correr(`${ESCENA}
+select retail.crear_cuenta_dinero('Interbank prueba F6', 'banco', 500, retail.fn_hoy_lima() - 20) as ibk \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d0 \\gset
+select retail.registrar_movimiento_dinero('entre_cuentas', 300, :'bcp', :'ibk') as m1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d1 \\gset
+select :'d1'::numeric - :'d0'::numeric;
+select retail.anular_movimiento_dinero(:'m1', 'Prueba: se registró mal') as _a1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d2 \\gset
+select :'d2'::numeric - :'d0'::numeric;
+select retail.registrar_movimiento_dinero('pago_sunat', 120.55, :'bcp', null, null, 'Prueba') as m2 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d3 \\gset
+select :'d3'::numeric - :'d0'::numeric;
+select retail.anular_movimiento_dinero(:'m2', 'Prueba: se registró mal') as _a2 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d4 \\gset
+select :'d4'::numeric - :'d0'::numeric;
+select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio de prueba', :'hoy'::date, 77.10, p_medio_pago => 'transferencia', p_cuenta_id => :'bcp') as g1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d5 \\gset
+select :'d5'::numeric - :'d0'::numeric;
+select retail.anular_gasto(:'g1', 'Prueba: se registró mal') as _a3 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d6 \\gset
+select :'d6'::numeric - :'d0'::numeric;
+select pg_temp.cuadra(${REAL});
+select set_config('request.headers', '{"x-responsable-omitido": "fondo_entregar"}', true) \\g /dev/null
+select c.persona_id as persona from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${MICAELA}' limit 1 \\gset
+select retail.entregar_fondo(:'persona', :'bcp', 100, 'Fondo de prueba', null, null) as e1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d7 \\gset
+select :'d7'::numeric - :'d0'::numeric;`);
+  const [entre, anEntre, sunat, anSunat, gasto, anGasto, cuadra, fondo] = lineas(r);
+  esperar("mover S/ 300 entre dos bancos no cambia el disponible", r.ok && Number(entre) === 0, r);
+  esperar("anularlo tampoco", r.ok && Number(anEntre) === 0, r);
+  esperar("un pago a SUNAT de S/ 120.55 baja el disponible en S/ 120.55", r.ok && Number(sunat) === -120.55, r);
+  esperar("anularlo lo devuelve exacto", r.ok && Number(anSunat) === 0, r);
+  esperar("un gasto de S/ 77.10 por banco baja el disponible en S/ 77.10", r.ok && Number(gasto) === -77.1, r);
+  esperar("anular ese gasto lo devuelve exacto", r.ok && Number(anGasto) === 0, r);
+  esperar("después de todo eso, el flujo sigue cuadrando", r.ok && cuadra === "t", r);
+  esperar("entregar un fondo de S/ 100 no cambia el disponible: sigue siendo plata de CAYLA, en otras manos", r.ok && Number(fondo) === 0, r);
 }
 
 console.log(`\n${casos - fallos}/${casos} casos en verde.`);

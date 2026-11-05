@@ -178,7 +178,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, provee
             medios={medios}
             onMedios={setMedios}
             total={totales.total}
-            cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }}
+            cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }}
           />
         )}
         <div className="grid grid-cols-2 gap-3">
