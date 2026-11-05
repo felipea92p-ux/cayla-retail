@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 111,
+  "total": 113,
   "controles": {
     "components/ConfiguracionCargaInicial.tsx": [
       "button «(sin nombre)»",
@@ -11,28 +11,8 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ConfiguracionCasilla.tsx": [
-      "input «{etiqueta}»"
-    ],
-    "components/ConfiguracionImpuestos.tsx": [
       "input «{etiqueta}»",
-      "button «ya lo confirmó»",
-      "ComboResponsable «{responsable}»",
-      "Casilla «{`Tasa de IGV desde el ${fechaCorta(t.vigenteDesde, true)}»",
-      "button «config.nueva-tasa»",
-      "Casilla «{`UIT de ${anio}»",
-      "button «+ UIT de un año nuevo»",
-      "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
-      "button «config.nuevo-tope»",
-      "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
-      "button «config.nuevo-saldo»",
-      "Casilla «{`Ajuste de ventas de ${anio}»",
-      "Casilla «{`${r.nombre_visible}»",
-      "button «+ Año nuevo»",
-      "input «{etiqueta}» #2",
-      "Boton «→() => void guardarFila()»",
-      "ComboResponsable «{responsable}» #2",
-      "button «Cancelar»",
-      "Boton «Agregar»"
+      "input «{etiqueta}» #2"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -87,6 +67,11 @@
       "Casilla «{TEXTO_BILLETERA[b]}»",
       "textarea «ficha-notas»"
     ],
+    "components/vistas-config/NuevaVigenciaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Boton «Agregar»"
+    ],
     "components/vistas-config/TopesDeGasto.tsx": [
       "Boton «config.presupuesto-sugerir»",
       "Boton «{textoOrigen(\"mes_anterior\", mes)}»",
@@ -121,6 +106,25 @@
       "BotonVerMas «{`Ver ${plegadas.length}»",
       "ComboResponsable «{responsable}»",
       "ComboResponsable «{responsable}» #2"
+    ],
+    "components/vistas-config/VistaImpuestos.tsx": [
+      "Boton «Ya lo confirmó»",
+      "Desplegable «{borrador.regimen as Regimen}»",
+      "Boton «→() => void guardarAnio()»",
+      "button «{a}»",
+      "button «+ Año nuevo»",
+      "Casilla «{`Tasa de IGV desde el ${fechaCorta(t.vigenteDesde, true)}»",
+      "button «config.nueva-tasa»",
+      "Casilla «{`UIT de ${anio}»",
+      "button «+ UIT de un año nuevo»",
+      "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
+      "button «config.nuevo-tope»",
+      "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
+      "button «config.nuevo-saldo»",
+      "Casilla «{`Ajuste de ventas de ${anio}»",
+      "Casilla «{`${r.nombreVisible}»",
+      "BotonVerMas «config.impuestos-arranque»",
+      "ComboResponsable «{responsable}»"
     ],
     "components/vistas-config/VistaMetas.tsx": [
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",

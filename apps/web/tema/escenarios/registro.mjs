@@ -1685,8 +1685,8 @@ ESCENARIOS.push(
     ruta: "/configuracion",
     cuentas: ["admin"],
     abre: "[role=dialog]",
-    nombre: "Configuración ▸ Impuestos · «+ Tope desde una fecha» (la planilla de movilidad)",
-    preparar: secuencia(clicPestana(/^Impuestos/i), clicRol("button", /Tope desde una fecha/i)),
+    nombre: "Configuración ▸ Impuestos · el tope de la planilla de movilidad",
+    preparar: secuencia(clicPestana(/^Impuestos/i), clicRol("button", /Tope desde una fecha|Poner el tope/i)),
   },
 );
 
@@ -1917,7 +1917,7 @@ ESCENARIOS.push(
   { id: "configuracion.carga-inicial", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Empresa y tiendas · la hoja de la carga inicial", preparar: secuencia(clicPestana(/^Empresa/i), async (pagina) => { await pagina.locator('[data-guia="config.carga-inicial"]').click({ timeout: 8000 }); await esperar(pagina, 900); }) },
   { id: "configuracion.dinero", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Dinero»", preparar: secuencia(clicPestana(/^Dinero/i), (pagina) => esperar(pagina, 2600)) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos»", preparar: secuencia(clicPestana(/^Gastos/i), (pagina) => esperar(pagina, 2600)) },
-  { id: "configuracion.impuestos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Impuestos»", preparar: clicPestana(/^Impuestos/i) },
+  { id: "configuracion.impuestos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Impuestos»", preparar: secuencia(clicPestana(/^Impuestos/i), (pagina) => esperar(pagina, 2600)) },
   { id: "configuracion.empresa", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Empresa y tiendas»", preparar: secuencia(clicPestana(/^Empresa/i), (pagina) => esperar(pagina, 2600) /* la entrada de Las vitrinas dura 2,4 s: se mide terminada */) },
   { id: "actividad.modulo", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Módulo»", preparar: clicRol("combobox", /^Módulo/i) },
   { id: "actividad.persona", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Persona»", preparar: clicRol("combobox", /^Persona/i) },

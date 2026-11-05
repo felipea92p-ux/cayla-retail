@@ -9,11 +9,11 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { VistaDinero } from "@/components/vistas-config/VistaDinero";
 import { VistaGastos } from "@/components/vistas-config/VistaGastos";
+import { VistaImpuestos } from "@/components/vistas-config/VistaImpuestos";
 import { VistaMetas } from "@/components/vistas-config/VistaMetas";
 import { VistaEmpresaTiendas } from "@/components/vitrinas-sedes/VistaEmpresaTiendas";
 import { armarVitrinas } from "@/lib/vitrinas-sedes-reglas";
-import { getParametrosTributarios } from "@/lib/impuestos";
-import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
+import { getPanelImpuestos, getParametrosTributarios } from "@/lib/impuestos";
 import { getMaquinasPos, getMediosDeCobro, getPlanillaCuentas, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
@@ -150,11 +150,12 @@ async function SeccionGastos({ mes, esLider }: { mes: string | undefined; esLide
 
 // Impuestos (ADR-0195 F8): tasa de IGV, UIT y régimen de cada año, con vigencia. Solo se agregan filas.
 async function SeccionImpuestos() {
-  const parametros = await getParametrosTributarios();
+  // Lo vendido es un extra: si esa lectura falla (o esta cuenta no la ve), el límite se dibuja sin la barra y lo demás sigue igual.
+  const [parametros, panel] = await Promise.all([getParametrosTributarios(), getPanelImpuestos().catch(() => null)]);
   return (
     <>
       {parametros.falla && <FallaDeSeccion falla={parametros.falla} />}
-      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={anioLima()} />
+      <VistaImpuestos parametros={parametros.datos} anioActual={anioLima()} umbral={panel?.datos?.umbral ?? null} />
     </>
   );
 }

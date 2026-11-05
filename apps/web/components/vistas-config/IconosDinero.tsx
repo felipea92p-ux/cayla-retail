@@ -18,9 +18,12 @@ const TRAZOS = {
   gasto: ["M15 42V30M24 42V24M33 42V34M42 42V14"],
   calendario: ["M14 18h30v26H14z", "M14 25h30M22 13v8M36 13v8"],
   reloj: ["M29 13a16 16 0 1 0 16 16", "M29 20v9h8"],
+  porcentaje: ["M16 43 42 15", "M20 14a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z", "M38 33a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z"],
+  regla: ["M9 22h40v14H9z", "M16 22v6M23 22v4M30 22v6M37 22v4M44 22v6"],
+  movilidad: ["M12 36l4-11h26l4 11v7H12z", "M12 36h34", "M19 43v3M39 43v3"],
 } as const;
 
-type TrazoDinero = keyof typeof TRAZOS;
+export type TrazoDinero = keyof typeof TRAZOS;
 
 export const TRAZO_DE_MEDIO: Record<MedioCobro, TrazoDinero> = { yape: "celular", plin: "plin", tarjeta: "tarjeta", qr: "qr", transferencia: "transferencia" };
 export const TRAZO_DE_CUENTA: Record<TipoCuenta, TrazoDinero> = { banco: "banco", por_abonar: "maquina", tarjeta_credito: "tarjeta", cajon: "cajon", caja_fuerte: "fuerte", por_rendir: "rendir" };

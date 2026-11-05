@@ -736,7 +736,6 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": [
       { "archivo": "app/estilos/finanzas.css", "motivo": "ADR-0195: el CSS del kit de Finanzas (su comentario nombra la tabla del spike)" },
-      { "archivo": "components/ConfiguracionImpuestos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/vistas-config/VistaMetas.tsx", "motivo": "ADR-0195/ADR-0435: las tarjetas de metas por mes y por fecha son de Configuración ▸ Metas y usan la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
       { "archivo": "components/GastosFijosYActivos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/GastosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
@@ -906,7 +905,7 @@ export const DECISIONES = {
       { "archivo": "components/GastoRapidoModal.tsx", "motivo": "ADR-0368: el monto del gasto rápido de Caja (gr-monto) tiene su diseño y su movimiento por decisión" },
       { "archivo": "components/IngresoRapidoModal.tsx", "motivo": "ADR-0375: el monto de Registrar ingreso es el del gasto rápido (gr-monto), por decisión" },
       { "archivo": "components/finanzas/kit.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
-      { "archivo": "components/ConfiguracionImpuestos.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
+      { "archivo": "components/vistas-config/NuevaVigenciaModal.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
       { "archivo": "components/ConfiguracionCasilla.tsx", "motivo": "ADR-0195: la casilla de Configuración ▸ Metas (fin-control), sacada de ConfiguracionTiendas para compartirla con las metas por mes y por fecha (ADR-0435); queda con el kit de Finanzas" },
       { "archivo": "components/vitrinas-sedes/VistaEmpresaTiendas.tsx", "motivo": "el dato de una vitrina se escribe en la misma casilla de Configuración (MarcoCasilla, fin-control): se guarda solo al salir" },
       { "archivo": "components/vistas-config/VistaMetas.tsx", "motivo": "ADR-0195/ADR-0435: las metas por mes y por fecha usan el kit de Finanzas (fin-control, SelectFin) como el resto de Metas" },

@@ -72,10 +72,14 @@ export function MarcoCasilla({ vez, children }: { vez: number; children: ReactNo
   );
 }
 
-/** Una casilla numérica que se guarda al salir (blur) si su texto cambió. Si el guardado falla, vuelve a lo de antes. */
+/**
+ * Una casilla numérica que se guarda al salir (blur) si su texto cambió. Si el guardado falla, vuelve a lo de antes. Mientras guarda no se edita (/chaos 2026-10-14): con la red
+ * lenta, dos cambios seguidos llegaban en desorden y quedaba el primero aunque se escribió el segundo.
+ */
 export function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { valor: string; etiqueta: string; ancho: string; alGuardar: (nuevo: string) => Promise<boolean>; placeholder?: string }) {
   const [t, setT] = useState(valor);
   const [antes, setAntes] = useState(valor);
+  const [guardando, setGuardando] = useState(false);
   const visto = useVistoGuardado();
   // Si la base trae otro valor (otro guardado, un refresco), la casilla lo toma.
   if (valor !== antes) {
@@ -89,16 +93,42 @@ export function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—"
         inputMode="decimal"
         value={t}
         placeholder={placeholder}
+        readOnly={guardando}
+        aria-busy={guardando || undefined}
         onChange={(e) => setT(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          if (e.key === "Escape") setT(valor);
+          if (e.key === "Escape" && !guardando) setT(valor);
         }}
         onBlur={async () => {
-          if (!cambioLaCasilla(t, valor)) return;
+          if (guardando || !cambioLaCasilla(t, valor)) return;
+          setGuardando(true);
           const ok = await alGuardar(t);
+          setGuardando(false);
           if (ok) visto.marcar();
           else setT(valor);
+        }}
+        className={`fin-control fin-num inline-block ${ancho}`}
+      />
+    </MarcoCasilla>
+  );
+}
+
+/** Una casilla que NO se guarda sola: lo tipeado vive afuera hasta que se aprieta «Guardar». Enter guarda; Escape devuelve lo guardado. */
+export function CasillaManual({ valor, guardado, onValor, onEnter, etiqueta, ancho, placeholder = "—", bloqueada }: { valor: string; guardado: string; onValor: (nuevo: string) => void; onEnter: () => void; etiqueta: string; ancho: string; placeholder?: string; bloqueada: boolean }) {
+  return (
+    <MarcoCasilla vez={0}>
+      <input
+        aria-label={etiqueta}
+        inputMode="decimal"
+        value={valor}
+        placeholder={placeholder}
+        readOnly={bloqueada}
+        aria-busy={bloqueada || undefined}
+        onChange={(e) => onValor(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onEnter();
+          if (e.key === "Escape" && !bloqueada) onValor(guardado);
         }}
         className={`fin-control fin-num inline-block ${ancho}`}
       />

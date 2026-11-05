@@ -311,7 +311,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ComprobanteProduccionDetalle.tsx": PENDIENTE, // 2 controles
   "components/ComprobanteProduccionForm.tsx": PENDIENTE, // 13 controles
   "components/ComprobantesPanel.tsx": PENDIENTE, // 6 controles
-  "components/ConfiguracionImpuestos.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionImpuestos.tsx"] },
+  "components/vistas-config/NuevaVigenciaModal.tsx": { estado: "aplicada", evidencia: ["components/vistas-config/NuevaVigenciaModal.tsx"] },
   "components/ConfirmarConResponsable.tsx": { estado: "no-aplica", motivo: "Confirmación corta de una acción de un clic (aprobar, desactivar, reactivar), hoy sin responsable: un solo botón, no hay camino que indicar." },
   "components/ConfirmarTransmision.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/CotizacionesMaquilaPanel.tsx": PENDIENTE, // 6 controles
