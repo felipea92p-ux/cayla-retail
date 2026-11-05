@@ -1,0 +1,69 @@
+/* Va después de `recetas.css` (lo vigila `lib/vidrio-que-aguanta.test.ts`): estas variables pisan las de las recetas sin ganar por especificidad, solo por orden.
+   No vive en `recetas.css` porque ahí solo caben variables en tres formas, para que Dynamic las traiga (contrato de familia v4, `lib/familia.test.ts`). */
+
+/* ---------- El vidrio que aguanta (ADR-0611, mejora 7) ----------
+   El vidrio es lindo, pero baja el contraste y no todos lo pueden leer. Quien en su aparato pidió menos transparencia o más contraste ve las mismas piezas macizas: nada
+   translúcido detrás y nada desenfocado (Apple pide lo mismo para su Liquid Glass). Es automático, lo decide el sistema operativo, y una receta nueva cuyo fondo sea
+   translúcido se agrega aquí: lo vigila `lib/vidrio-que-aguanta.test.ts`. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root,
+  :root[data-tema="oscuro"] {
+    --gota-fondo: var(--color-papel);
+    --gota-fondo-encima: var(--color-papel);
+    --gota-marca: var(--color-hueso);
+    --gota-chica-fondo: var(--color-papel);
+    --gota-crema-fondo: var(--color-crema);
+    --pozo-fondo: var(--color-hueso);
+    --pozo-encendido-fondo: var(--color-papel);
+    --hundido-fondo: var(--color-hueso);
+    --bandeja-fondo: var(--color-hueso);
+    --hueco-fondo: var(--color-hueso);
+    --tubo-fondo: var(--color-hueso);
+    --estante-tubo-fondo: var(--color-papel);
+    --lente-fondo: var(--color-papel);
+    --lente-avatar-fondo: var(--color-sand);
+    --marco-vidrio-fondo: var(--color-papel);
+    --ahumado-fondo: var(--color-tinta);
+    --ahumado-denso-fondo: var(--color-tinta);
+    --ahumado-hover: var(--color-rojo-profundo);
+    --gota-roja-fondo: var(--color-rojo);
+    --gota-roja-hover: var(--color-rojo-profundo);
+    --tubo-brillo: none;
+    /* Más contraste no es solo más sólido: sin transparencia, las recetas de arriba (`prefers-reduced-transparency`) también valen aquí. */
+    --vidrio-hoja-fondo: var(--color-papel);
+    --vidrio-pie-fondo: var(--color-papel);
+    --vidrio-flota-fondo: var(--color-papel);
+    --globo-tabla-fondo: var(--color-papel);
+    --cajon-movil-fondo: var(--color-papel);
+    --placa-fondo: var(--color-papel);
+    --lamina-fondo: var(--color-papel);
+    --serena-fondo: var(--color-papel);
+    --serena-fondo-encima: var(--color-papel);
+    --lente-grande-fondo: var(--color-papel);
+    --lamina-mapa-fondo: var(--color-papel);
+    --ticket-placa-fondo: var(--color-papel);
+    --placa-paso-fondo: var(--color-papel);
+  }
+  *,
+  *::before,
+  *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Más contraste: además de macizo, el texto secundario pasa a tinta y lo que se toca lleva un borde que se ve. */
+@media (prefers-contrast: more) {
+  :root,
+  :root[data-tema="oscuro"] {
+    --color-taupe: var(--color-tinta);
+    --color-taupe-profundo: var(--color-tinta);
+    --color-borde-control: var(--color-tinta);
+  }
+  [class*="text-tinta/"] {
+    color: var(--color-tinta);
+  }
+  :is(.caja-campo, .buscador, .fin-control, .btn-cayla.btn-secundario, .pildora-cayla, .combo-pastilla, .casilla-input) {
+    border: 1.5px solid var(--color-tinta);
+  }
+}

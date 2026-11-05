@@ -100,7 +100,7 @@ export function HistorialVentasLista({
               >
                 {etiqueta}
               </SeparadorDia>
-              <div className="historial-placa rounded-[20px]">
+              <div className="historial-placa rounded-tarjeta">
                 <ul className="p-1.5">
                   {dia.filas.map((v) => (
                     <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} puedeFacturar={contexto.puedeFacturar} empresas={empresas} lineas={porVenta[v.id] ?? []} />

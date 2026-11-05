@@ -7,7 +7,7 @@ import { ordenarTallas, type Ranking } from "@/lib/reportes-ranking-reglas";
 // «Las tallas que se llevan» y «Los colores que se llevan» del Ranking de prendas (maqueta docs/maquetas/reportes-ventas-2026-11/): lo mismo que dice la
 // tabla, pero cortado por talla y por color, CON LOS MISMOS filtros. Es `<BarraAvance>` (ADR-0358, «La barra a escala»: tinta, nunca verde). El color de
 // la prenda es dato, no tema: lleva `data-color-dato` (ADR-0336).
-const bloque = "anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]";
+const bloque = "anim-sube rounded-tarjeta bg-papel p-5 ring-1 ring-tinta/[0.07]";
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 
 export function PanelTallasColores({ r }: { r: Ranking }) {

@@ -140,7 +140,7 @@
   min-height: 78px;
   padding: 10px 12px 10px 10px;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   text-align: left;
   color: var(--color-tinta);
   background: var(--placa-fondo);

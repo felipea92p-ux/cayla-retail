@@ -108,6 +108,7 @@
 /* El vidrio «Serena» (ADR-0596): las recetas (placa, gota, pozo, ahumado) y las piezas que se arman con ellas. Va después de todo:
    sin capa, le gana a las utilidades y a `components`, así que una pieza cambia aquí y cambia en todo el ERP. */
 @import "./estilos/vidrio/recetas.css";
+@import "./estilos/vidrio/aguanta.css"; /* La versión maciza de las recetas (ADR-0611, mejora 7). */
 /* La pantalla (cabecera, tarjetas de cifra, pestañas, tablas) antes que la hoja: dentro de una hoja manda la lámina de la hoja. */
 @import "./estilos/vidrio/pantalla.css";
 @import "./estilos/tabla-corte.css"; /* la tabla mira su ancho, no el de la ventana */
@@ -335,6 +336,13 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 20px;           /* «flotante» de la guía oficial (2026-09-22): modal, drawer, buscador. Antes 22. */
+
+  /* Los radios de cada pieza de vidrio (contrato de familia v4, docs/familia/contrato.json). Los de arriba se quedan para lo que aún no es vidrio. */
+  --radius-boton: 999px;
+  --radius-campo: 14px;
+  --radius-tarjeta: 22px;
+  --radius-cajon: 28px;
+  --radius-hoja: 32px;
 
   /* Ancho del lateral — UNA sola fuente de verdad. El <aside>, la cabecera
      fija y el <main> leen el mismo token (`w-lateral`, `left-lateral`,
