@@ -572,3 +572,12 @@ de la empresa y una tarjeta por sede reemplazan a las cuatro tablas (`components
 - **Son 5 vitrinas o menos a propósito.** Como ADR-0596 pide no desenfocar «muchas tarjetas iguales», si CAYLA crece mucho en sedes hay que volver a mirarlo.
 
 Siguen siendo 8 pestañas hasta construir Dinero y Gastos. Sin funciones nuevas ni migración.
+
+## Actualización 2026-11-05: Configuración queda en 5 pestañas (Felipe)
+
+De 8 pestañas quedan 5: Empresa y tiendas, Metas, Dinero (junta Cuentas y cobros con Caja y avisos), Gastos (junta Gastos fijos, Presupuesto y Reparto CLAURE) e Impuestos. Felipe vio la maqueta y aprobó
+(`docs/maquetas/configuracion-cuatro-vistas-2026-11/`). Las direcciones viejas (`?tab=cuentas`, `caja`, `fijos`, `presupuesto`, `claure`) siguen llegando a su pestaña nueva. **Sin migraciones ni funciones nuevas:**
+cada casilla guarda con la misma función de antes y las reglas de validación no cambiaron. Lo que cambió es el orden y la cara: lo que espera una acción va primero (Impuestos empieza por lo que falta confirmar con el
+contador), lo que casi nadie toca se pliega (los efectos de campaña, las cuentas archivadas, el reparto en 0 %, lo de arranque), y estas cuatro pantallas ya no se dibujan con el kit de tablas de Finanzas sino con el
+vidrio de Las vitrinas. **Lo que queda del kit:** las hojas (`NuevaVigenciaModal`, `GastoFijoModal`, la hoja de la propuesta de topes) siguen con sus campos, tal cual. «Vendido este año» en Impuestos lee `getPanelImpuestos`:
+si esa lectura falla o la cuenta no la ve, el bloque se dibuja sin la barra.

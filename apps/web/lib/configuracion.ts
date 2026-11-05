@@ -53,7 +53,7 @@ export async function getParametrosCaja(ubicacionId: string, fecha: string): Pro
   return leerParametrosCaja(fila);
 }
 
-/** Configuración ▸ Caja y avisos (20260925103000): el mínimo de caja y los umbrales de aviso. `null` si la base aún no los
+/** Configuración ▸ Dinero (20260925103000): el mínimo de caja y los umbrales de aviso. `null` si la base aún no los
  *  tiene o la cuenta no ve Finanzas. */
 export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCorte | null> {
   const supabase = await createClient();

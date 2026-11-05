@@ -334,7 +334,7 @@ export function avisosClaure(filas: readonly FilaClaure[], pagos: readonly PagoC
       marca: "%",
       titulo: `${plural(r.sinTarifa, "cobro", "cobros")} con tarjeta sin tarifa`,
       detalle: "Su comisión no está en la cuenta: el saldo está de más hasta cargar la tarifa de la máquina.",
-      accion: { texto: "Cargar la tarifa", href: "/configuracion?tab=cuentas" },
+      accion: { texto: "Cargar la tarifa", href: "/configuracion?tab=dinero" },
     });
   const sinCuenta = filas.filter((f) => f.contado && f.monto > 0 && f.cuentaNombre === null).length;
   if (sinCuenta > 0)
@@ -345,7 +345,7 @@ export function avisosClaure(filas: readonly FilaClaure[], pagos: readonly PagoC
       marca: "?",
       titulo: `${plural(sinCuenta, "cobro", "cobros")} sin cuenta asignada`,
       detalle: "Entró plata de CLAURE a un medio que no tiene cuenta en Configuración.",
-      accion: { texto: "Asignar la cuenta", href: "/configuracion?tab=cuentas" },
+      accion: { texto: "Asignar la cuenta", href: "/configuracion?tab=dinero" },
     });
   const ultimo = pagos.reduce<PagoClaure | null>((m, p) => (!m || p.fecha > m.fecha ? p : m), null);
   if (ultimo && puedePagar && r.saldo > 0) {

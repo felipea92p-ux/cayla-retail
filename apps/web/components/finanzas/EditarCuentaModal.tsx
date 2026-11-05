@@ -15,7 +15,7 @@ import { cambiosDeCuenta, formInicial, leerDetalleCuenta, salidaDeCuenta, textoU
 import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { Boton } from "@/components/ui/campos";
 
-// Configuración ▸ Cuentas y cobros ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25). Lo que se puede cambiar lo
+// Configuración ▸ Dinero ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25). Lo que se puede cambiar lo
 // dice la base (`fn_cuenta_dinero_detalle`) y lo vuelve a exigir al guardar: el nombre y el número siempre; el tipo mientras
 // nadie la usó; el saldo inicial sin conciliación vigente y con su mes abierto. Una cuenta sin uso se ELIMINA de verdad;
 // una usada se archiva (sus movimientos se quedan). Todo firmado con el responsable.

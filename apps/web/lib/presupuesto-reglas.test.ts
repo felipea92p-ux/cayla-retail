@@ -71,7 +71,7 @@ describe("cómo se escribe", () => {
   });
 });
 
-describe("Configuración ▸ Presupuesto", () => {
+describe("Configuración ▸ Gastos", () => {
   const DATOS = leerConfigPpto({
     mes: "2026-09-01",
     unidades: [
