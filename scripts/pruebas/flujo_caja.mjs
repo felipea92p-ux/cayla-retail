@@ -662,6 +662,29 @@ select pg_temp.num(:'p_despues', 'salidas_diarias') = pg_temp.num(:'p_antes', 's
   esperar("lo que sale en un día normal no se mueve por esos pagos (no se cuenta dos veces la planilla)", r.ok && diarias === "t", r);
 }
 
+// 12. Lo que falta del mes (tarea 24 de «Las 36»): los fijos sin gasto de este mes, sin IGV y sin la parte de CLAURE. Solo los de la sede que se ve.
+{
+  const r = correr(`${ESCENA}
+select codigo as cat from retail.categorias_gasto limit 1 \\gset
+select id as claure from retail.empresas where clave = 'claure' \\gset
+update retail.empresas set cuenta_corriente_desde = :'hoy'::date - 60, activo = true where id = :'claure';
+insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (:'claure', :'lim') on conflict do nothing;
+delete from retail.empresa_sedes where empresa_id = :'claure' and ubicacion_id = :'tru';
+insert into retail.gasto_reparto_claure (categoria, pct_claure) values (:'cat', 50) on conflict (categoria) do update set pct_claure = 50;
+update retail.gastos_fijos set activo = false;
+insert into retail.gastos_fijos (ubicacion_id, categoria, descripcion, comprobante_tipo, monto, dia_del_mes) values
+  (:'tru', :'cat', 'Fijo con factura prueba', 'factura', 1180, 20),
+  (:'lim', :'cat', 'Fijo con CLAURE prueba', 'boleta', 1000, 20);
+select coalesce(sum(fijos), 0) from retail.fn_lo_que_falta_del_mes(:'hoy'::date) where ubicacion_id = :'tru';
+select coalesce(sum(fijos), 0) from retail.fn_lo_que_falta_del_mes(:'hoy'::date) where ubicacion_id = :'lim';
+${cambiaA(MICAELA)}
+select pg_temp.intento($q$select * from retail.fn_lo_que_falta_del_mes(retail.fn_hoy_lima())$q$);`);
+  const [tru, lim, micaela] = lineas(r);
+  esperar("un fijo con factura de S/ 1,180 cuenta S/ 1,000: sin IGV, como el Estado de resultados", r.ok && Number(tru) === 1000, r);
+  esperar("de un fijo de S/ 1,000 en la sede de CLAURE con 50 % de reparto, cuenta la mitad", r.ok && Number(lim) === 500, r);
+  esperar("quien no ve el Estado de resultados no lo lee", r.ok && /Reportes financieros/.test(micaela ?? ""), r);
+}
+
 console.log(`\n${casos - fallos}/${casos} casos en verde.`);
 if (fallos) {
   console.error(`${fallos} caso(s) fallaron.`);
