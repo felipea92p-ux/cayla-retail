@@ -64,3 +64,31 @@ página → 0 px de salto; lo mismo dentro de una ventana con scroll → 0 px, y
 antes y después); abrir y elegir en el Responsable → 0 px, lista `fixed` dentro de la vista; un `scrollTo(0)`
 pedido tras un clic → se respeta; al subir, la reserva se suelta. Cambio de medio en `LineasPago` a 768/390/320 px
 → 0 px en los 36 casos. Reglas puras: 7 pruebas en `pagina-estable-reglas.test.ts`.
+
+## Actualización 2026-11-05: entrar, cambiar de paso y salir de un flujo guiado es cambiar de vista
+
+**El problema.** A 375 px, «Registrar devolución» dejaba la pantalla en blanco y la persona no sabía si se había guardado. Medido con clic
+real cada 30 ms: a los 97 ms el título «Devolución registrada» estaba a 231 px, a la vista; a los 122 ms la regla de esta decisión reservaba
+1205 px de aire y devolvía la vista adonde estaba el botón (`scrollY` 1351, título en −973). Cumplía las tres condiciones de `reservaNecesaria`:
+se acortó, la vista subió, quedó pegada al final. La regla no distingue «un bloque que se acortó» de «esta ya es otra vista». Lo mismo al entrar:
+«Iniciar devolución» desde abajo de una lista cortaba el viaje hacia arriba (`scrollY` 2198, 1977 px de aire), y con solo dos resultados el
+título del paso quedaba fuera, con 367 px de aire debajo. Cambios usa las mismas piezas y fallaba igual al entrar.
+
+**La decisión.** `useVistaDelPaso(paso)` (`components/FlujoGuiado.tsx`) suelta la reserva antes de pintar al entrar, con cada paso y al salir;
+lo llaman los dos flujos y `lib/flujo-guiado-vista.test.ts` falla si un flujo con `<EncabezadoFlujo>` no lo declara. Además,
+`useFocoAlCambiarDePaso` espera a que se vaya el loader: con la respuesta sobre los 200 ms (lo normal al guardar) la página está `inert`, `focus()`
+no hace nada y el foco se perdía en `BODY`, tanto en el éxito como en el aviso de error.
+
+**Lo que se descartó.** Soltar la reserva solo en el paso de éxito, como se pidió: el mismo defecto seguía al entrar. Tocar `reservaNecesaria`
+aquí: ver abajo.
+
+**Lo que sigue abierto: una red en la regla.** Este es el sexto arreglo local del mismo defecto (Nuevo producto, Traslados, el ticket de Vender,
+el buscador de Vender, la ficha de Clientes y ahora los flujos), y cada uno se hizo después de que alguien lo viera. Si volver adonde estaba
+dejara la pantalla casi sin contenido, no hay nada que mantener estable: la regla podría no reservar. No se hizo aquí porque cambia una pieza que
+usa todo el ERP y es decisión de Felipe; no reemplaza a `useVistaDelPaso`, porque con dos resultados quedaban 445 px de contenido a la vista y el
+título igual se perdía.
+
+**Verificación.** A 375 px y con clic real: entrar desde abajo de la lista (Devoluciones `scrollY` 2314 → 0, Cambios 3316 → 0, sin aire);
+registrar con respuesta rápida y con 800 ms de demora dentro de la base, para que saliera el loader (`scrollY` 147, título a 231 px, foco en el título al
+irse el loader); un rechazo de la base (foco en el aviso, a la vista); retroceder de paso y salir a la lista en Cambios. A 1440 px, registrar (`scrollY`
+0, título a 325 px). Capturas en `docs/capturas/2026-11-05-devoluciones-en-blanco/`. No se probó en un iPhone real.

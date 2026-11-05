@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { PieAcciones } from "@/components/ui/PieAcciones";
@@ -150,13 +150,14 @@ export function AnularPagoHoja({
             )}
             {/* Con un «no» de la base a la vista, «Todo listo» la contradiría. */}
             {!errorBase && <PieGuia guia={guia} />}
+            <AvisoNoSeDeshace />
             <PieAcciones>
               <Boton type="button" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
               <Boton
                 type="button"
-                peso="peligro"
+                peso="primario"
                 cargando={guardando}
                 textoCargando="Anulando…"
                 confirma={guia}

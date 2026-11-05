@@ -1,14 +1,14 @@
 /* ==================================================================
    «Cerrar caja» que se nota (ADR-0318). Solo tokens de globals.css.
-   Nivel 0 = rojo de acento · nivel 1 = tinta (pasó la hora de cierre) · nivel 2 = rojo profundo (30 min o más).
+   La barra: nivel 0 = clara · nivel 1 = tinta (pasó la hora de cierre) · nivel 2 = rojo profundo (30 min o más). El botón es el principal, negro (Felipe 2026-11-05).
    Movimiento (ADR-0136): UN destello cuando el botón sube de nivel; nada en bucle. Con reduced-motion no hay destello.
    ================================================================== */
 .cc-boton {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   border-radius: 11px; padding: 15px 28px;
-  background: var(--color-rojo); color: var(--color-crema);
+  background: var(--color-tinta); color: var(--color-crema);
   font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
-  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--color-rojo) 75%, transparent);
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--color-sombra) 55%, transparent);
   transition: background-color 200ms var(--ease-cayla), transform 150ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
 }
 @media (hover: hover) {
@@ -16,8 +16,8 @@
 }
 .cc-boton:active { transform: scale(0.98); }
 .cc-boton:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
-/* El cuadrado «Cerrar» de la barra del celular (BarraCajaMovil): el único en rojo de acento. Sin capa, le gana al `bg-papel` del cuadrado. */
-.cc-cuadrado-cerrar { border-color: var(--color-rojo); background: var(--color-rojo); color: var(--color-crema); }
+/* El cuadrado «Cerrar» de la barra del celular (BarraCajaMovil): el único negro. Sin capa, le gana al `bg-papel` del cuadrado. */
+.cc-cuadrado-cerrar { border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
 
 /* La barra fija de escritorio: se pega al borde de abajo mientras se recorre la pantalla. */
 .cc-barra-pie { position: sticky; bottom: 0; z-index: 20; padding: 10px 0 14px; background: linear-gradient(to top, var(--color-crema) 60%, transparent); }

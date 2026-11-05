@@ -130,18 +130,19 @@ export function FamiliasLista({
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {activas.map((f) => (
           <div key={f.codigo} data-guia="familias.tarjeta" className="card-cayla p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
+            {/* Si la tarjeta queda angosta, los botones bajan de línea y se quedan a la derecha: nunca se salen de la tarjeta. */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 flex-1 basis-28">
                 <p className="text-sm font-medium text-tinta">{f.nombre}</p>
                 <p className="mt-0.5 text-sm text-tinta/65">
                   {f.categoriasActivas} {f.categoriasActivas === 1 ? "categoría" : "categorías"}
                 </p>
               </div>
               {puedeEditar && (
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <div className="ml-auto flex shrink-0 flex-col items-end gap-1.5">
                   <LapizEditar que={f.nombre} guia="familias.editar" onClick={() => setBorrador({ codigo: f.codigo, nombre: f.nombre, entraAMotores: f.entraAMotores })} />
                   <Boton textoCargando="Desactivando…"
                     peso="peligro"

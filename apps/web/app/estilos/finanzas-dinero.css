@@ -109,6 +109,8 @@
     flex-direction: column;
     gap: 20px;
     min-width: 0;
+    /* El saldo y «¿Qué saldo dice el banco?» van lado a lado solo si este bloque tiene con qué: a 1024 px la lista de bancos y el lateral le dejan 292 px. */
+    container: din-cuad-det / inline-size;
   }
   .din-cuad-hero {
     display: grid;
@@ -144,10 +146,15 @@
   .din-cuad-avance-barra {
     width: 160px;
   }
+  @container din-cuad-det (max-width: 520px) {
+    .din-cuad-hero {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
   @media (max-width: 980px) {
     .din-cuad,
     .din-cuad-hero {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .din-cuad-lista {
       position: static;

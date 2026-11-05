@@ -131,7 +131,7 @@ export function RevisarProductoHoja({
                 </Boton>
                 <Boton
                   type="button"
-                  peso={modo === "rechazar" ? "peligro" : "primario"}
+                  peso="primario"
                   onClick={() => void confirmar()}
                   cargando={guardando}
                   disabled={!responsable.listo}

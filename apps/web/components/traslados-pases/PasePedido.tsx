@@ -306,7 +306,7 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
             </button>
             <Boton
               type="button"
-              peso={modo === "enviar" ? "primario" : "peligro"}
+              peso="primario"
               cargando={Boolean(trabajando || intento.enviando)}
               textoCargando={modo === "enviar" ? "Enviando…" : "Cancelando…"}
               onClick={() => void (modo === "enviar" ? enviar() : cancelar())}

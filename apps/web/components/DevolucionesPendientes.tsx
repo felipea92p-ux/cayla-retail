@@ -10,7 +10,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CampoSelect } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { formatearHora } from "@/components/ComprasAgrupadas";
-import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
+import { BotonPrincipal, BotonSecundario } from "@/components/FlujoGuiado";
 import type { DevolucionPendiente } from "@/lib/devoluciones";
 import { DIAS_PLAZO_CAMBIO, METODOS_DIFERENCIA, estadoPlazoCambio, etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
 import { etiquetaCondicion, medioSugeridoReembolso, revisarAprobacion } from "@/lib/devoluciones-reglas";
@@ -378,10 +378,10 @@ function PanelResolver({
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonRojo onClick={aprobar} cargando={cargando} textoCargando="Aprobando…" disabled={!!revision.bloqueo || !responsable.listo}>
+            <BotonPrincipal onClick={aprobar} cargando={cargando} textoCargando="Aprobando…" disabled={!!revision.bloqueo || !responsable.listo}>
               <Check className="h-4 w-4" aria-hidden />
               Aprobar devolución
-            </BotonRojo>
+            </BotonPrincipal>
           </div>
         </div>
       )}

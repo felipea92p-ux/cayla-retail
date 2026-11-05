@@ -281,3 +281,16 @@ cambio es el mismo que el de Productos. **Modo oscuro** (`tema:auditar` a 375 px
 Vender, Apartados, Por pagar, Nuevo producto y Bajar al piso): **0 hallazgos solo en oscuro** en 45 visitas (33 heredados del claro); 8
 escenarios de escritorio no abrieron a 375 px («Todo de la prenda» de Vender y los pasos de Nuevo producto), sin relación con la barra.
 
+## Actualización 2026-11-05 — el asa no tapa el título
+
+La franja pegada del asa (`asa-hoja-fija`) se montaba sobre el título de toda hoja: el navegador mide el pegado desde el borde de adentro del
+relleno, y con `top: 0` bajaba 24 px. Queda en `top: -1.5rem`, como el `bottom` de `.pie-hoja-fijo` (ese arreglo entró con `29ee17c78`). Tres consecuencias que no se tocan sin leer esto:
+
+- **La franja no lleva relleno, solo desenfoque** (`app/estilos/vidrio/hoja.css`): con el relleno de vidrio se veía una banda más clara sobre el
+  título con la hoja quieta. Sin relleno, la diferencia es de 1 a 2 niveles de color. Con `prefers-reduced-transparency`, relleno sólido y sin desenfoque.
+- **La franja recibe el dedo** (`pointer-events: auto`): con `none`, un toque con el contenido corrido le llegaba al campo que pasaba por detrás y abría
+  el teclado. Y `useHojaArrastre` no cuenta lo que corre cuando el dedo nace en el asa: tirar de ella siempre mueve la hoja.
+- **La × y «Cerrar sesión» bajan a 24 px en el celular:** arriba quedarían desenfocadas y sin recibir el dedo en su borde de arriba.
+
+Lo vigila `lib/hoja-asa.test.ts`, que lee el CSS: no ve el navegador. Medido en Chrome emulando 375 px, en claro y oscuro, con eventos de dedo simulados
+sobre el elemento que devuelve `elementFromPoint`. **Sin probar en un iPhone real.**

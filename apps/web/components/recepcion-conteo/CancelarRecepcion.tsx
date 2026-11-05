@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
@@ -100,11 +100,12 @@ export function CancelarRecepcion({
           </CampoGuiado>
           {error && <Aviso tono="error" titulo="No se pudo cancelar">{error}</Aviso>}
           {guia.faltan.length > 0 && <PieGuia guia={guia} />}
+          <AvisoNoSeDeshace />
           <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Seguir recibiendo
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={guardando} textoCargando="Cancelando…" disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Cancelando…" disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Cancelar recepción
             </Boton>
           </div>

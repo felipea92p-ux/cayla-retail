@@ -1,6 +1,6 @@
 /* =====================================================================================================
    TIENDA ONLINE CAYLA · la identidad «G · Pasarela» (Felipe 2026-10-26, ADR-0524; antes «A · Muro», ADR-0408). La inspiración es la manera de
-   las casas de alta costura de París: blanco, negro y marfil puros, una Didone de alto contraste (Bodoni Moda) con Public Sans para el texto, y una
+   las casas de alta costura de París: blanco, negro y marfil puros, DM Serif Display con Public Sans para el texto (ADR-0612; antes, Bodoni Moda), y una
    portada que es un desfile: cada prenda sale a un escenario negro, cruza hacia la luz y sigue su camino. Lo demás es el programa del desfile.
    La tienda tiene identidad propia (CLAUDE.md, «Skills de diseño de afuera», punto 3): esta paleta y estas letras son SOLO de apps/tienda; el ERP
    sigue con la suya. Los tokens conservan su nombre (crema, papel, hueso…) para que ninguna pieza tenga que cambiar el suyo: cambió el color que
@@ -29,11 +29,11 @@
   --qr-fondo: #ffffff; --qr-tinta: #0b0b0b;
   --tinta-60: color-mix(in srgb, var(--tinta) 64%, transparent);
   --tinta-40: color-mix(in srgb, var(--tinta) 42%, transparent);
-  /* Las letras: Public Sans para todo el texto y las versalitas; Bodoni Moda (la Didone) para los títulos —en mayúsculas los de una página, en
+  /* Las letras: Public Sans para todo el texto y las versalitas; DM Serif Display (ADR-0612, un solo peso) para los títulos —en mayúsculas los de una página, en
      minúsculas con la cursiva los de una sección—, el nombre de cada prenda y las cifras grandes (`--nombre` y `--display` son la misma letra; `--serif`
      queda como su alias). La palabra CAYLA es el dibujo del logo (`--t-logo`). `--ancho` ya no ancha nada: Public Sans no tiene ese eje. */
   --sans: var(--font-public), "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --nombre: var(--font-bodoni), "Bodoni Moda", "Didot", ui-serif, Georgia, "Times New Roman", serif;
+  --nombre: var(--font-titulos), "DM Serif Display", Georgia, ui-serif, "Times New Roman", serif;
   --display: var(--nombre);
   --serif: var(--nombre);
   --ancho: normal;
@@ -262,7 +262,8 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; }
-body { background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+/* La letra de títulos tiene un solo peso: el navegador no le inventa una negrita (un `<b>` con ella se vería borroso). */
+body { background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; font-synthesis-weight: none; }
 a { color: inherit; text-decoration: none; }
 /* Como la maqueta: un botón lee con la letra de la tienda (sin esto, el navegador le pone la suya: Arial). */
 button, input, textarea { font: inherit; color: inherit; }

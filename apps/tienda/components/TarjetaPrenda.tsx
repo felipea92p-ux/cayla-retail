@@ -23,7 +23,7 @@ import { RapidoDeTarjeta } from "./RapidoDeTarjeta";
  * La tarjeta de una prenda en la grilla (maqueta v4, `tarjeta`): su foto (o su silueta), sus insignias (el puesto en Más vendidos, la
  * campaña y «Nuevo», y las que se le asignaron en Catálogo ▸ Insignias: hasta 3 en total y un «+N», ADR-0489), el corazón de favoritos arriba a la derecha (actividad 12), «Agregar» con la talla al pasar el mouse (actividad
  * 7, desde 960 px), su nombre, el precio que paga el cliente en la tienda elegida (con el precio del modelo tachado si hay descuento),
- * sus colores y la nota de cuánto hay («Quedan 2 en Lima», «Solo en Trujillo», `notaDeStock`). La foto y el nombre llevan a su
+ * sus colores y la nota de cuánto hay («Disponible», «Quedan 2», «Solo en Trujillo», `notaDeStock`). La foto y el nombre llevan a su
  * ficha, con la tienda elegida. El corazón sabe solo si está guardado (`ProveedorGuardados`, en el marco del catálogo); fuera de él
  * («Mi cuenta») se lo dice `guardado`.
  */

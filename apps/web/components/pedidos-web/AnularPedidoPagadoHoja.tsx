@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ReceiptText } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Aviso } from "@/components/ui/Aviso";
+import { Aviso, AvisoNoSeDeshace } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Chip } from "@/components/ui/Chip";
@@ -306,13 +306,14 @@ export function AnularPedidoPagadoHoja({
               // Con un «no» de la base a la vista, «Todo listo» la contradiría.
               <PieGuia guia={guia} listo={`Todo listo: se le devuelven ${soles(total)} y se anula su boleta.`} />
             )}
+            <AvisoNoSeDeshace />
             <PieAcciones guia="anular-pedido.acciones">
               <Boton type="button" onClick={cerrar} disabled={envio.enviando || envio.incierto}>
                 Cancelar
               </Boton>
               <Boton
                 type="button"
-                peso="peligro"
+                peso="primario"
                 cargando={envio.enviando}
                 textoCargando="Anulando…"
                 disabled={revisando} confirma={guia}

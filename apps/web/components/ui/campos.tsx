@@ -995,7 +995,7 @@ const PESO_BOTON = {
   primario: "btn-primario",
   fantasma: "btn-secundario",
   discreto: "btn-sutil",
-  // Lo que borra, anula o desactiva: rojo desde el principio (ronda 4, la A).
+  // Lo que borra, anula o desactiva y NO es la acción principal de la hoja: la gota con letra roja (Felipe 2026-11-05). La principal es `primario`.
   peligro: "btn-peligro",
 } as const;
 
@@ -1100,7 +1100,7 @@ export function Boton({
       ) : (
         <span className="relative">{conMas(children)}</span>
       )}
-      {cargando && <HiloEnEspera claro={peso === "primario" || peso === "peligro"} />}
+      {cargando && <HiloEnEspera claro={peso === "primario"} />}
     </button>
   );
 }

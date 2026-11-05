@@ -185,8 +185,8 @@
      ahumada de la píldora puesta; la talla que no hay aquí, el hueco punteado de Vender. Las tarjetas de opción (`posv-tarjeta-opcion`:
      «Impecable» / «Con defecto o uso») son la gota grande y la elegida lleva el filo de tinta (la `.opcion` de la maqueta). Si una trae su
      ícono de 20 px, el duotono le llega solo (vidrio/pantalla.css).
-   · El botón principal es `btn-primario` (el ahumado, vidrio/campos-y-botones.css), en píldora. El rojo del paso final (`posv-boton-rojo`)
-     es la gota roja de «Cerrar caja» (`--gota-roja-*`, recetas.css), con la letra en crema (el negro cálido en oscuro).
+   · El botón principal es `btn-primario` (el ahumado, vidrio/campos-y-botones.css), en píldora, también en el paso final (Felipe 2026-11-05:
+     antes, la gota roja).
    Sin movimiento nuevo: el de siempre (`mov-boton`, el que sube 1 px de una opción), y lo que cambia de tono lo hace en 200 ms.
    ===================================================================== */
 
@@ -269,21 +269,6 @@
   border-color: var(--color-tinta);
   background: var(--gota-marca);
   box-shadow: inset 0 0 0 1px var(--color-tinta), var(--gota-luz);
-}
-
-/* ---------- el botón rojo del paso final: la gota roja ---------- */
-.posv-boton-rojo {
-  border: 1px solid var(--gota-roja-borde);
-  color: var(--color-crema);
-  background: var(--gota-roja-fondo);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--gota-roja-luz);
-}
-@media (hover: hover) {
-  .posv-boton-rojo:hover:not(:disabled) {
-    background: var(--gota-roja-hover);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

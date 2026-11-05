@@ -102,8 +102,8 @@
   }
   .aviso-linea-ic { grid-column: 1; grid-row: 1 / span 2; display: grid; place-items: center; width: 18px; height: 22px; color: var(--cp); --trazo-ms: 520ms; --trazo-espera: 220ms; }
   .aviso-linea-ic svg { width: 16px; height: 16px; stroke-width: 2.2; }
-  .aviso-linea-tit { grid-column: 2; grid-row: 1; margin: 1px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--cp); }
-  .aviso-linea-det { grid-column: 2; margin: 0; font-size: 14px; /* ronda 19 */ line-height: 1.5; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+  .aviso-linea-tit { overflow-wrap: anywhere; grid-column: 2; grid-row: 1; margin: 1px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--cp); }
+  .aviso-linea-det { overflow-wrap: anywhere; grid-column: 2; margin: 0; font-size: 14px; /* ronda 19 */ line-height: 1.5; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
   .aviso-linea-det.solo { grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
   .aviso-linea-acc :is(a, button) {
