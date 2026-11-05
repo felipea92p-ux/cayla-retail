@@ -1,35 +1,91 @@
+import { Suspense } from "react";
 import { exigirModulo, veEstadosFinancierosDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
-import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { mesDe } from "@/lib/gastos-reglas";
+import { hrefTelar, mesDelDia, nombreCortoSede, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
 import { formaDe, paramsDe } from "@/lib/estados-financieros-reglas";
-import { leerPeriodo } from "@/lib/estados-periodo";
-import { getPatrimonioCambios } from "@/lib/estados-financieros";
-import { recomendacionesTuyo } from "@/lib/patrimonio-reglas";
+import { etiquetaDelPeriodo, leerPeriodo, periodoDe, periodosAnteriores } from "@/lib/estados-periodo";
+import { getPatrimonioCambios, getPatrimonioEnFechas } from "@/lib/estados-financieros";
+import { lecturaDelPatrimonio, libroDelPatrimonio, partesDelPatrimonio, tituloDelPatrimonio } from "@/lib/estados-patrimonio";
+import { getParametrosFinanzas } from "@/lib/configuracion";
+import { getEstadoResultados } from "@/lib/resultados";
+import { recomendacionesTuyo, tieneExtremos } from "@/lib/patrimonio-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
-import { PatrimonioPanel } from "@/components/finanzas/estados/PatrimonioPanel";
+import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
+import { LineaDePatrimonio } from "@/components/finanzas/estados/LineaDePatrimonio";
+import { LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
+import { PatrimonioFormal, PatrimonioSinArranque } from "@/components/finanzas/estados/PatrimonioPanel";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 import { SoloLiderFlujo } from "@/components/finanzas/SoloLiderFlujo";
 
-// Finanzas ▸ Estados financieros ▸ ¿Lo tuyo creció? (cambios en el patrimonio; ADR-0585). Lee `fn_patrimonio_cambios` del mes de la barra
-// (`?mes=`). Es de CAYLA entera, como el Balance entero: lo ve quien ve los Estados financieros de todo; una terminal, no.
+/** Un mes entero se lee con la función de siempre; otras fechas, con la que las recibe. */
+function leerPatrimonio(desde: string, hasta: string, hoy: string) {
+  const p = periodoDe(desde, hasta, hoy);
+  return p.unMes ? getPatrimonioCambios(p.mes) : getPatrimonioEnFechas(desde, hasta);
+}
+
+// Finanzas ▸ Estados financieros ▸ Cambios en el patrimonio (ADR-0585, ADR-0611). Lee lo tuyo en las fechas del calendario y en los dos períodos de antes, y la ganancia de esas fechas (para
+// abrirla por sede). La línea de los meses llega aparte, con su `Suspense`. Es de CAYLA entera, como el Balance entero: lo ve quien ve los Estados financieros de todo; una terminal, no.
 export default async function PatrimonioPage({ searchParams }: { searchParams: Promise<{ mes?: string; desde?: string; hasta?: string; sede?: string; ver?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   if (!veEstadosFinancierosDeTodoDe(persona)) return <SoloLiderFlujo pestana="patrimonio" />;
   const sp = await searchParams;
   const hoy = hoyLima();
-  const { mes } = leerPeriodo(sp, hoy);
+  const periodo = leerPeriodo(sp, hoy);
+  const { desde, hasta, mes } = periodo;
   const params = paramsDe(sp);
+  const forma = formaDe(sp.forma);
   const href = (ruta: string) => hrefTelar(ruta, params, {}, { mismaPantalla: false, mesDeHoy: mesDelDia(hoy) });
-  const patrimonio = await getPatrimonioCambios(mes);
-  const recomendaciones = recomendacionesTuyo({ datos: patrimonio.datos, href });
+  const parametros = await getParametrosFinanzas();
+  const anteriores = periodosAnteriores(periodo, hoy, parametros?.inicioFinanzas ?? null);
+
+  const [patrimonio, comparadas, er] = await Promise.all([
+    leerPatrimonio(desde, hasta, hoy),
+    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await leerPatrimonio(c.desde, c.hasta, hoy) }))),
+    getEstadoResultados(desde, hasta),
+  ]);
+  const datos = patrimonio.datos;
+  const recomendaciones = recomendacionesTuyo({ datos, href });
+  const porSede = er.falla
+    ? []
+    : er.datos.filter((f) => f.unidad !== "consolidado").map((f) => ({ nombre: f.unidad === "empresa" ? "Empresa" : nombreCortoSede(f.nombre), valor: f.resultado }));
+
   return (
-    <div className="space-y-6">
-      <CabeceraEstados pantalla="tuyo" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={formaDe(sp.forma)} />
-      <div className={`grid items-start gap-6 ${recomendaciones.length ? "xl:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
-        <PatrimonioPanel datos={patrimonio.datos} falla={patrimonio.falla} mes={mes} enCurso={mes === mesDe(hoy)} forma={formaDe(sp.forma)} />
-        {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}
-      </div>
+    <div className="space-y-4">
+      <CabeceraEstados pantalla="tuyo" mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={params} forma={forma} />
+      {patrimonio.falla ? (
+        <Aviso tono="error" titulo="No se pudo leer lo tuyo">
+          {patrimonio.falla}
+        </Aviso>
+      ) : !tieneExtremos(datos) ? (
+        <PatrimonioSinArranque />
+      ) : forma === "formal" ? (
+        <PatrimonioFormal datos={datos} titulo={periodo.titulo} />
+      ) : (
+        <EstadoVidrio
+          nombre={`Cambios en el patrimonio · ${periodo.titulo}`}
+          lectura={lecturaDelPatrimonio(datos)}
+          grafico={
+            <Suspense fallback={<LineaEsperando />}>
+              <LineaDePatrimonio hoy={hoy} periodo={periodo} final={datos.fin.total} />
+            </Suspense>
+          }
+          guiaRespuesta="fin-patrimonio.respuesta"
+          guiaPartes="fin-patrimonio.partes"
+          guiaLibro="fin-patrimonio.libro"
+          titulo={tituloDelPatrimonio}
+          partes={partesDelPatrimonio({
+            datos,
+            comparadas: comparadas.map((c) => ({ etiqueta: c.etiqueta, datos: c.lectura.falla ? null : c.lectura.datos })),
+            etiquetaActual: etiquetaDelPeriodo(periodo),
+            periodo,
+            porSede,
+          })}
+          tituloColumnas={periodo.unMes ? "Mes a mes" : "Período a período"}
+          libro={{ titulo: "Cambios en el patrimonio", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: libroDelPatrimonio(datos) }}
+        />
+      )}
+      {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}
     </div>
   );
 }

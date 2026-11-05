@@ -1,15 +1,12 @@
 // Estados financieros ▸ ¿Lo tuyo creció? (estado de cambios en el patrimonio; ADR-0585, actividad 7).
 //
-// PROMETE: lo tuyo del mes contado como un puente (al empezar → lo que ganaste → lo que pusiste → lo que retiraste → al cerrar), la frase
-// que dice qué parte de lo ganado retiraste, la línea de lo tuyo mes a mes, el cuadro formal (capital, aportes y resultados por columna)
-// y las recomendaciones.
+// PROMETE: el cuadro formal (capital, aportes y resultados por columna) y las recomendaciones. Las palabras y las partes de la pantalla están en `estados-patrimonio.ts`.
 // ASUME: toda cifra viene de `fn_patrimonio_cambios` (el mismo diario que el Balance). Aquí no se suma plata nueva: se ordena lo que la
 // base dio. Lo que la ganancia, los aportes y los retiros no explican (`otros`) se muestra aparte, nunca se esconde.
 
 import { soles } from "./flujo-caja-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 import type { Recomendacion } from "./ganamos-reglas";
-import type { FilaCascada } from "./cascada-estados-reglas";
 
 type ConExtremos = PatrimonioCambios & { inicio: NonNullable<PatrimonioCambios["inicio"]>; fin: NonNullable<PatrimonioCambios["fin"]> };
 
@@ -21,36 +18,6 @@ const pesa = (n: number) => Math.round(n) !== 0;
 
 /** Cuánto cambió lo tuyo en el mes (al cerrar − al empezar). */
 export const cambioDelMes = (p: ConExtremos) => r2(p.fin.total - p.inicio.total);
-
-/** «Qué lo movió», como la cascada de la maqueta: lo que ganaste (o perdiste), lo que pusiste, lo que retiraste y lo que la base no
- *  explica, cada uno con su signo y sin los que son cero; al final, cuánto creció (o bajó). Las filas suman el final. */
-export function filasTuyo(p: ConExtremos): FilaCascada[] {
-  const filas: FilaCascada[] = [];
-  if (pesa(p.ganancia))
-    filas.push({ clave: "ganancia", nombre: p.ganancia >= 0 ? "Lo que ganaste" : "Lo que perdiste", detalle: "Viene de ¿Ganamos?", valor: r2(p.ganancia), tipo: "paso" });
-  if (pesa(p.aportes)) filas.push({ clave: "aportes", nombre: "Lo que pusiste", detalle: "Aportes", valor: r2(p.aportes), tipo: "paso" });
-  if (pesa(p.retiros)) filas.push({ clave: "retiros", nombre: "Lo que retiraste", detalle: "Utilidades que sacaste para ti", valor: r2(-p.retiros), tipo: "paso" });
-  if (pesa(p.otros)) filas.push({ clave: "otros", nombre: "Sin explicar", detalle: "Un ajuste a mano: el Balance dice de dónde sale", valor: r2(p.otros), tipo: "paso" });
-  const cambio = cambioDelMes(p);
-  filas.push({ clave: "cambio", nombre: Math.round(cambio) >= 0 ? "Creció" : "Bajó", valor: cambio, tipo: "final" });
-  return filas;
-}
-
-/** La frase bajo la respuesta: qué parte de lo ganado retiraste, o por qué bajó. */
-export function fraseTuyo(p: ConExtremos): string {
-  const g = Math.round(p.ganancia);
-  const r = Math.round(p.retiros);
-  const a = Math.round(p.aportes);
-  const puso = a > 0 ? ` y pusiste ${soles(a)}` : "";
-  if (g > 0 && r > 0) {
-    const pct = Math.round((r / g) * 100);
-    return r > g ? `Ganaste ${soles(g)} y retiraste ${soles(r)}: más de lo que ganaste${puso}.` : `De los ${soles(g)} que ganaste, retiraste ${soles(r)}: el ${pct} %${puso}.`;
-  }
-  if (g > 0) return `Ganaste ${soles(g)} y no retiraste nada${puso}.`;
-  if (g < 0) return `Perdiste ${soles(-g)} en el mes${r > 0 ? ` y retiraste ${soles(r)}` : ""}${puso}.`;
-  if (r > 0) return `No hubo ganancia y retiraste ${soles(r)}${puso}.`;
-  return a > 0 ? `Pusiste ${soles(a)}.` : "No se movió en el mes.";
-}
 
 /** Cuántos meses seguidos bajó lo tuyo, contando hacia atrás desde el último cierre de la serie. */
 export function mesesBajando(serie: PatrimonioCambios["serie"]): number {

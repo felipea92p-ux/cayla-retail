@@ -9,6 +9,7 @@
  *   · Un mes no se mezcla con el siguiente: el retiro de abril no está en marzo, y lo tuyo al empezar abril es lo de cerrar marzo.
  *   · La serie: lo tuyo al cierre de cada mes, sin los meses anteriores al arranque.
  *   · Un mes anterior al arranque dice «sin arranque»; un mes que no empezó se rechaza.
+ *   · Unas fechas cualquiera (`fn_patrimonio_en_fechas`, ADR-0611): un mes entero da lo mismo que `fn_patrimonio_cambios`, y un tramo solo cuenta lo suyo.
  *   · Permisos: lo ve quien ve los Estados financieros de CAYLA entera (el líder o quien tiene el módulo); sin el módulo, 42501; anon no.
  *
  * LA ESCENA vive en MARZO Y ABRIL DE 2024 (la base local no tiene datos de nadie ahí): todo lo de antes queda dentro de los saldos de
@@ -112,6 +113,10 @@ create temp table abr as select retail.fn_patrimonio_cambios('2024-04-01', 2) as
 create temp table pat_feb as select coalesce(sum(monto), 0) as t from retail.fn_balance_general('2024-02-29') where seccion = 'patrimonio';
 create temp table pat_mar as select coalesce(sum(monto), 0) as t from retail.fn_balance_general('2024-03-31') where seccion = 'patrimonio';
 create temp table res_mar as select monto as t from retail.fn_balance_general('2024-03-31') where cuenta = 'resultado_mes';
+create temp table en_marzo as select retail.fn_patrimonio_en_fechas('2024-03-01', '2024-03-31') as j;
+create temp table tramo as select retail.fn_patrimonio_en_fechas('2024-03-20', '2024-04-10') as j;
+create temp table pat_19 as select coalesce(sum(monto), 0) as t from retail.fn_balance_general('2024-03-19') where seccion = 'patrimonio';
+create temp table pat_10 as select coalesce(sum(monto), 0) as t from retail.fn_balance_general('2024-04-10') where seccion = 'patrimonio';
 `;
 
 const CASOS_MES = `
@@ -138,6 +143,31 @@ select 'L1 un mes anterior al arranque dice «sin arranque»', (select (retail.f
 select 'L2 un mes que todavía no empieza se rechaza', (select pg_temp.intento($$select retail.fn_patrimonio_cambios('2099-01-01')$$) like '%todavía no empieza%');
 `;
 
+// ADR-0611, actividad 7: las mismas cuentas, con un inicio y un fin a elegir.
+const CASOS_FECHAS = `
+select 'F1 un mes entero da lo mismo que fn_patrimonio_cambios, cifra por cifra',
+  (select r.j -> 'inicio' = m.j -> 'inicio' and r.j -> 'fin' = m.j -> 'fin'
+          and r.j ->> 'ganancia' = m.j ->> 'ganancia' and r.j ->> 'aportes' = m.j ->> 'aportes'
+          and r.j ->> 'retiros' = m.j ->> 'retiros' and r.j ->> 'otros' = m.j ->> 'otros'
+     from en_marzo r, mar m);
+select 'F2 unas fechas solo cuentan lo suyo: el retiro del 25-mar y el del 5-abr, sin el aporte del 12-mar',
+  (select (j ->> 'retiros')::numeric = 350 and (j ->> 'aportes')::numeric = 0 from tramo);
+select 'F3 empiezan con lo tuyo del día anterior: la sección «patrimonio» del Balance al 19-mar', (select (j -> 'inicio' ->> 'total')::numeric = (select t from pat_19) from tramo);
+select 'F4 terminan con lo tuyo de ese día: la del Balance al 10-abr', (select (j -> 'fin' ->> 'total')::numeric = (select t from pat_10) from tramo);
+select 'F5 cuadra: lo que no explican la ganancia, los aportes y los retiros es 0', (select (j ->> 'otros')::numeric = 0 from tramo);
+select 'F6 el cambio es lo que lo movió: fin − inicio = ganancia + aportes − retiros',
+  (select (j -> 'fin' ->> 'total')::numeric - (j -> 'inicio' ->> 'total')::numeric = (j ->> 'ganancia')::numeric + (j ->> 'aportes')::numeric - (j ->> 'retiros')::numeric from tramo);
+select 'F7 un solo día: el del retiro de abril', (select (retail.fn_patrimonio_en_fechas('2024-04-05', '2024-04-05') ->> 'retiros')::numeric = 50);
+select 'F8 un día sin movimientos no mueve nada y cuadra',
+  (select (j ->> 'retiros')::numeric = 0 and (j ->> 'otros')::numeric = 0 and (j -> 'inicio' ->> 'total') = (j -> 'fin' ->> 'total') from (select retail.fn_patrimonio_en_fechas('2024-03-28', '2024-03-28') as j) x);
+select 'F9 antes del arranque dice «sin arranque»', (select (retail.fn_patrimonio_en_fechas('2024-01-01', '2024-01-31') ->> 'sin_arranque')::boolean);
+select 'F10 unas fechas que empiezan antes del arranque parten de cero y lo cuentan como su movimiento, sin explicar',
+  (select (j -> 'inicio' ->> 'total')::numeric = 0 and (j -> 'fin' ->> 'total')::numeric = (select t from pat_mar) from (select retail.fn_patrimonio_en_fechas('2024-01-01', '2024-03-31') as j) x);
+select 'F11 al revés se rechaza', (select pg_temp.intento($$select retail.fn_patrimonio_en_fechas('2024-03-10', '2024-03-01')$$) like '%no son válidas%');
+select 'F12 lo que todavía no empieza se rechaza', (select pg_temp.intento($$select retail.fn_patrimonio_en_fechas('2099-01-01', '2099-01-02')$$) like '%todavía no empiezan%');
+select 'F13 una fecha final futura se queda en hoy', (select (j ->> 'corte')::date = retail.fn_hoy_lima() from (select retail.fn_patrimonio_en_fechas('2024-03-01', '2099-01-01') as j) x);
+`;
+
 const CASOS_PERMISOS = `
 ${cambiaA(MICAELA)}
 select 'P1 sin el módulo no lo ve (42501, con su motivo)', (select pg_temp.intento($$select retail.fn_patrimonio_cambios('2024-03-01')$$) like '%Estados financieros%');
@@ -146,10 +176,15 @@ select 'P2 con el módulo ve lo mismo que el líder', (select retail.fn_patrimon
 reset role;
 select 'P3 anon no la llama; una sesión sí', not has_function_privilege('anon', 'retail.fn_patrimonio_cambios(date, integer)', 'execute')
   and has_function_privilege('authenticated', 'retail.fn_patrimonio_cambios(date, integer)', 'execute');
+select 'P5 las fechas: sin el módulo no se ven (la sesión de arriba ya lo tiene: se comprueba el candado)', (select pg_get_functiondef('retail.fn_patrimonio_en_fechas(date, date)'::regprocedure) like '%fn_exigir_estados_financieros_de_todo%');
+select 'P6 las fechas: anon no la llama; una sesión sí; solo lee', not has_function_privilege('anon', 'retail.fn_patrimonio_en_fechas(date, date)', 'execute')
+  and has_function_privilege('authenticated', 'retail.fn_patrimonio_en_fechas(date, date)', 'execute')
+  and (select provolatile = 's' from pg_proc where oid = 'retail.fn_patrimonio_en_fechas(date, date)'::regprocedure);
 select 'P4 solo lee (STABLE)', (select provolatile = 's' from pg_proc where oid = 'retail.fn_patrimonio_cambios(date, integer)'::regprocedure);
 `;
 
 verificar("Un mes y el siguiente", correr(`${ESCENA}${CASOS_MES}`), casosDe(CASOS_MES));
+verificar("Unas fechas cualquiera", correr(`${ESCENA}${CASOS_FECHAS}`), casosDe(CASOS_FECHAS));
 verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);

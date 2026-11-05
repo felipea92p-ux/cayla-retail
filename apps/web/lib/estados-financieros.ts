@@ -9,6 +9,14 @@ import { leerPatrimonio, type PatrimonioCambios } from "@/lib/estados-financiero
 
 type Lectura<T> = { datos: T; falla: string | null };
 
+/** Lo mismo que `getPatrimonioCambios`, para unas fechas que no son un mes entero (`fn_patrimonio_en_fechas`, migración 20261105230000). Sin serie: esa va por meses. */
+export const getPatrimonioEnFechas = cache(async function getPatrimonioEnFechas(desde: string, hasta: string): Promise<Lectura<PatrimonioCambios | null>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_patrimonio_en_fechas" as never, { p_desde: desde, p_hasta: hasta } as never);
+  if (error) return { datos: null, falla: `No se pudo leer lo tuyo de esas fechas: ${error.message}` };
+  return { datos: leerPatrimonio(data), falla: null };
+});
+
 /** Lo tuyo al empezar y al cerrar el mes, y lo que lo movió (`fn_patrimonio_cambios`, migración 20261030235100). */
 export const getPatrimonioCambios = cache(async function getPatrimonioCambios(mes: string, meses = 6): Promise<Lectura<PatrimonioCambios | null>> {
   const supabase = await createClient();

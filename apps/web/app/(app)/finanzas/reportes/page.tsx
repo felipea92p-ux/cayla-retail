@@ -138,7 +138,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           )}
         </>
       )}
-      <Recomendaciones recomendaciones={recomendaciones} enFila />
+      <Recomendaciones recomendaciones={recomendaciones} />
       {textoMas && (
         <MasDelEstado texto={textoMas} guia="fin-ganamos.mas">
           <MasDeGanancias

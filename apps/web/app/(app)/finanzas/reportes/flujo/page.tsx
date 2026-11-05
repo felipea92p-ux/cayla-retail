@@ -93,7 +93,7 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
           libro={{ titulo: "Flujo de efectivo", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: libroDelFlujo(real.datos) }}
         />
       )}
-      <Recomendaciones recomendaciones={recomendaciones} enFila />
+      <Recomendaciones recomendaciones={recomendaciones} />
       <MasDelEstado texto={textoDeVerMas(["lo que viene", "qué pasa si cambias algo"])!} guia="fin-plata.mas">
         <MasDelFlujo real={real.datos} proyeccion={proyeccion.datos} falla={proyeccion.falla} semanas={semanas} hoy={hoy} escenarios={{ resultados: erBase.falla ? null : erBase.datos, mesBase }} />
       </MasDelEstado>

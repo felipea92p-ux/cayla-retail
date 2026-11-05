@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes",
   "ruta": "/finanzas/reportes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 30,
+  "total": 29,
   "controles": {
     "components/finanzas/EstadoResultadosPanel.tsx": [
       "input «→(e) => ir({ comparar: e.target.checked ? \"1\" : null»",
@@ -30,8 +30,7 @@
       "button «Cerrar el detalle»"
     ],
     "components/finanzas/estados/Recomendaciones.tsx": [
-      "BotonVer «{r.accion.texto}»",
-      "BotonVer «{r.accion.texto}» #2"
+      "BotonVer «{r.accion.texto}»"
     ],
     "components/finanzas/estados/SelectorPeriodo.tsx": [
       "button «{`Ver el ${queSeMira}»",

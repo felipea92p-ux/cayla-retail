@@ -157,7 +157,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
       {!conVidrio && !(forma === "respuesta" && deUnaSede) && (
         <BalancePanel esLider={esLider} hoy={hoy} corte={corte} chequeos={chequeos.datos} lineas={lineas.datos} unidades={unidades.datos} saldos={saldos.datos} fallas={forma === "respuesta" ? [] : fallas} />
       )}
-      <Recomendaciones recomendaciones={recomendaciones} enFila />
+      <Recomendaciones recomendaciones={recomendaciones} />
       {conVidrio && !deUnaSede && (
         <MasDelEstado texto={textoDeVerMas(["dos preguntas que importan", "lo de cada sede", "cómo se comprobó"])!} guia="fin-vale.mas">
           <MasDelBalance esLider={esLider} hoy={hoy} chequeos={chequeos.datos} unidades={unidades.datos} saldos={saldos.datos} medidas={medidas} />
