@@ -55,6 +55,29 @@ acepta un mes, lo cual lleva migración y pegado en producción.
 - **Fondos Arena, Atardecer, Rojo, Dunas, Ventana, Trama y Niebla:** comparados en la maqueta. El rojo como fondo se lee además como pérdida.
 - **Las capturas de referencia en el repo:** son de terceros y el repo es público. Viven en un tablero privado.
 
+## Las mejoras de los componentes, ya en el ERP (2026-11-05)
+
+Salieron de comparar los componentes con otros sistemas (`docs/investigacion/2026-11-05-componentes-frente-a-sistemas.html`) y de probarlas en la maqueta. Felipe ordenó: «Empieza por 1 a 5 y luego elijo
+"rápido" para avanzar hasta la 8 y dejar la 9 para el final». **Valen para todo el ERP, no solo para Finanzas**, y son independientes de la reconstrucción de Estados financieros, que sigue propuesta.
+
+| # | Qué | Dónde vive | Alcance real |
+|---|---|---|---|
+| 1 | Guardar con algo pendiente lleva al campo y dice el error ahí | `useGuiaCampos` (`revisar`, `errorDe`, `marcarError`), `CampoGuiado` | Toda hoja con guía que use `confirma`; `marcarError` solo en Registrar gasto |
+| 2 | Lo mal escrito se avisa al salir y se va al corregirlo | `useValidarAlSalir`, `lib/validar-al-salir.ts` | Gastos, `ConsultaDocumento`, `EntradaMonto`; los `<input>` con `CLASE_MONTO_ILEGIBLE` no se marcan con el foco |
+| 3 | El monto se ve con miles y dos decimales al salir | `montoParaMostrar` | `CampoMonto` (31 archivos) y `EntradaMonto` (4). Los `<input>` propios con `atributosMontoTexto` o `CLASE_MONTO_ILEGIBLE` (17 archivos), no |
+| 4 | El botón no se apaga por lo que falta | `<Boton confirma={guia}>` | 117 botones en 100 archivos |
+| 5 | Con el dedo, 44 px | `app/estilos/tacto.css`, `pnpm --filter web tacto:medir` | Medido en 8 rutas a 375 px. Fuera: los puntos de color de Existencias, que no caben sin pisarse |
+| 6 | Cuatro tiempos con nombre, ritmo «Rápido» | `--t-resp`, `--t-cambio`, `--t-hoja`, `--t-momento` | Piezas del sistema. Las excepciones de ADR-0136 siguen con los suyos |
+| 7 | Vidrio macizo con menos transparencia o más contraste | Final de `recetas.css` | Automático en todo el ERP |
+| 8 | Fechas con límites, fechas cortas y teclado en el mes | `CampoFecha` (`min`, `max`), `lib/campo-fecha-reglas.ts`, `SelectorMes` | Límites puestos en Registrar gasto y en las etiquetas. 18 archivos siguen con `type="date"` del navegador |
+| 9 | Tabla | «Compacta» en `TablaViva` | Parcial: ver abajo |
+
+**Decisiones que se tomaron al construir.** Lo mostrado nunca dice otra cifra: como cada pantalla lee lo escrito a su manera, por defecto solo se da formato a lo que todas leen igual, y lo ambiguo se queda como
+se escribió. El límite de una fecha no borra lo tipeado: si lo borrara, un «Hasta» opcional se guardaría vacío mientras la pantalla muestra un error, y por eso la validación de quien usa el campo sigue mandando.
+Al poner límites a un rango solo se limita «Hasta»: si «Desde» también tuviera tope, mover una temporada hacia adelante obligaría a cambiar primero el final.
+
+**La mejora 9 está abierta porque pide decisiones de Felipe.** El encabezado fijo y el orden ya existen en `TablaViva`, pero solo 2 pantallas la usan (Rendimiento y Movimientos ▸ Ingresos) y las otras 75 tablas son `<Tabla>`: pasarlas es por pantalla, porque TablaViva exige tener todas las filas en el navegador. El lote ya existe en Por pagar («Pagar juntos»), Productos, Existencias y Apartados: lo abierto es si hace falta otro. Hoy toda corrección va en su hoja, y el monto de un gasto ni ahí se cambia (ADR-0588). ADR-0149 ya admite un esqueleto parcial en una sección; lo que reabriría esa decisión es reemplazar el loader.
+
 ## Cómo se verifica
 
 Cada actividad se abre en el navegador en local, en claro y oscuro, a 1440, 1920 y 375 px. Al cierre: `tema:auditar`, guías, `/formidable` y `/unificar`.

@@ -71,6 +71,8 @@ Aplicadas aquí (2026-11-05) para decidir si llegan al ERP, según `docs/investi
 8. Fechas que se escriben, con límites, teclado en el calendario y rango escrito.
 9. Tabla con dos densidades, encabezado fijo, orden, lote, edición en la fila y carga con esqueleto.
 
+**Construidas en el ERP (2026-11-05):** de la 1 a la 8, y «Compacta» de la 9. Detalle y alcance real en ADR-0611.
+
 **Medido en Campos:** el texto da 4,8:1 o más sobre el vidrio en claro y oscuro con vidrio normal, sólido y de contraste.
 
 ## Qué reglas toca
