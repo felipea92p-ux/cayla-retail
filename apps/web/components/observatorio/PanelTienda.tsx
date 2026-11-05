@@ -12,7 +12,11 @@ import {
   fechaCorta,
   grillaPico,
   hora12,
+  PICO_DESDE,
+  PICO_HASTA,
+  rangoPico,
   sumarDias,
+  tonoPico,
   ventanaDe,
   type AvisoObs,
   type Calculo,
@@ -188,7 +192,9 @@ function Ritmo({
     );
   };
 
-  const grilla = datos ? grillaPico(datos.pico) : null;
+  const { desde: picoDesde, hasta: picoHasta } = datos ? rangoPico(datos.pico) : { desde: PICO_DESDE, hasta: PICO_HASTA };
+  const picoHoras = picoHasta - picoDesde + 1;
+  const grilla = datos ? grillaPico(datos.pico, picoDesde, picoHasta) : null;
   const mxPico = grilla ? Math.max(1, ...grilla.flat()) : 1;
 
   return (
@@ -257,14 +263,20 @@ function Ritmo({
         <NoSePudo que="las horas pico" onReintentar={onReintentar} />
       ) : (
         <>
-          <div className="o-hm">
+          <div className="o-hm" style={{ "--n": picoHoras } as CSSProperties}>
             {["L", "M", "M", "J", "V", "S", "D"].map((d, r) => (
-              <HmFila key={r} d={d} r={r} fila={grilla ? grilla[r] : Array<number>(11).fill(0)} mx={mxPico} tip={tip} />
+              <HmFila key={r} d={d} r={r} desde={picoDesde} fila={grilla ? grilla[r] : Array<number>(picoHoras).fill(0)} mx={mxPico} tip={tip} />
             ))}
             <span />
-            {Array.from({ length: 11 }, (_, n) => {
-              const h = 10 + n;
-              return <span key={h}>{h % 2 === 0 ? (h === 12 ? "12" : h > 12 ? h - 12 : h) : ""}</span>;
+            {Array.from({ length: picoHoras }, (_, n) => {
+              const h = picoDesde + n;
+              // Una etiqueta por hora, con «a»/«p» para no confundir las 9 de la mañana con las 9 de la noche.
+              return (
+                <span key={h} className={n % 2 === 1 ? "o-hm-h par" : "o-hm-h"}>
+                  {h % 12 || 12}
+                  <small>{h >= 12 ? "p" : "a"}</small>
+                </span>
+              );
             })}
           </div>
           <div className="o-hm-ley">
@@ -278,23 +290,27 @@ function Ritmo({
   );
 }
 
-function HmFila({ d, r, fila, mx, tip }: { d: string; r: number; fila: readonly number[]; mx: number; tip: ReturnType<typeof useTip> }) {
+function HmFila({ d, r, desde, fila, mx, tip }: { d: string; r: number; desde: number; fila: readonly number[]; mx: number; tip: ReturnType<typeof useTip> }) {
   return (
     <>
       <span>{d}</span>
-      {fila.map((v, c) => (
-        <i
-          key={c}
-          style={{ "--p": `${(5 + (v / mx) * 68).toFixed(0)}%`, "--r": r, "--c": c } as CSSProperties}
-          {...tip(() => (
-            <>
-              <b>{fmt("s", v)}</b> en promedio
-              <br />
-              {DIAS[r]} · {hora12((10 + c) * 60)}
-            </>
-          ))}
-        />
-      ))}
+      {fila.map((v, c) => {
+        const t = tonoPico(v, mx);
+        return (
+          <i
+            key={c}
+            className={v > 0 ? undefined : "vacia"}
+            style={{ "--h1": `${t.h1}%`, "--h2": `${t.h2}%`, "--p": `${t.p}%`, "--r": r, "--c": c } as CSSProperties}
+            {...tip(() => (
+              <>
+                <b>{fmt("s", v)}</b> en promedio
+                <br />
+                {DIAS[r]} · {hora12((desde + c) * 60)}
+              </>
+            ))}
+          />
+        );
+      })}
     </>
   );
 }

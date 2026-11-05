@@ -307,14 +307,44 @@ export function parsearTienda(j: unknown): Omit<DatosTienda, "agotar" | "traslad
   };
 }
 
-/** Las horas pico en una grilla de 7 filas (lunes a domingo) por 11 columnas (10:00 a 20:00). */
-export function grillaPico(pico: readonly { d: number; h: number; s: number }[]): number[][] {
-  const g = Array.from({ length: 7 }, () => Array<number>(11).fill(0));
+/** Las horas que dibuja la grilla de horas pico cuando todavía no hay ventas que la ensanchen (10:00 a 20:59). */
+export const PICO_DESDE = 10;
+export const PICO_HASTA = 20;
+
+/**
+ * El rango de horas (inclusive) que dibuja la grilla de horas pico: de 10 a 20 como mínimo, y se ensancha a la hora más
+ * temprana y a la más tardía en que de verdad hubo ventas. Antes la grilla era fija de 10 a 20 y lo vendido a las 9 o a
+ * las 10 de la noche se amontonaba, en silencio, en la columna de las 8 pm (Arequipa cierra más tarde que las otras sedes).
+ */
+export function rangoPico(pico: readonly { d: number; h: number; s: number }[]): { desde: number; hasta: number } {
+  let desde = PICO_DESDE;
+  let hasta = PICO_HASTA;
+  for (const x of pico) {
+    if (x.d < 1 || x.d > 7 || x.s === 0 || !Number.isFinite(x.s) || x.h < 0 || x.h > 23) continue;
+    desde = Math.min(desde, x.h);
+    hasta = Math.max(hasta, x.h);
+  }
+  return { desde, hasta };
+}
+
+/** Las horas pico en una grilla de 7 filas (lunes a domingo) por una columna por hora, de `desde` a `hasta` (inclusive). */
+export function grillaPico(pico: readonly { d: number; h: number; s: number }[], desde: number = PICO_DESDE, hasta: number = PICO_HASTA): number[][] {
+  const n = hasta - desde + 1;
+  const g = Array.from({ length: 7 }, () => Array<number>(n).fill(0));
   for (const x of pico) {
     if (x.d < 1 || x.d > 7) continue;
-    g[x.d - 1][recortar(x.h - 10, 0, 10)] += x.s;
+    g[x.d - 1][recortar(x.h - desde, 0, n - 1)] += x.s;
   }
   return g;
+}
+
+/**
+ * El color de una celda de la grilla: `t` es qué tan cerca está de la hora más fuerte (0 a 1). Va de dorado a rojo y, en
+ * lo más fuerte, a rojo profundo; `h1` y `h2` son los porcentajes de mezcla y `p` la opacidad (lo flojo se ve tenue).
+ */
+export function tonoPico(v: number, mx: number): { t: number; h1: number; h2: number; p: number } {
+  const t = mx > 0 ? recortar(v / mx, 0, 1) : 0;
+  return { t, h1: Math.round(recortar(t / 0.5, 0, 1) * 100), h2: Math.round(recortar((t - 0.5) / 0.5, 0, 1) * 100), p: Math.round(32 + t * 68) };
 }
 
 /** Lo que se va a agotar: variantes con ritmo medido y pocos días de stock, de la que menos dura a la que más (hasta `n`). */
