@@ -102,7 +102,7 @@
   box-shadow: var(--vidrio-hoja-sombra);
 }
 @media (min-width: 640px) {
-  .cajon-serena { top: 12px; bottom: 12px; right: 12px; height: auto; border-radius: 28px; overflow: hidden; }
+  .cajon-serena { top: 12px; bottom: 12px; right: 12px; height: auto; border-radius: var(--radius-cajon); overflow: hidden; }
 }
 @media (max-width: 639.98px) {
   .cajon-serena { border-radius: 26px 26px 0 0; overflow: hidden; }
