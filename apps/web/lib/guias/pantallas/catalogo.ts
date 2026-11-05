@@ -106,7 +106,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.precio-stock",
       opcional: true,
       titulo: "Precio y cuántas hay",
-      texto: "Junto al nombre, lo que cobra la caja en la tienda elegida arriba (si una campaña la rebaja hoy, con el de lista tachado y su «−20 %» sobre la foto). Abajo a la derecha, cuántas hay en la empresa: «Quedan 8» si son pocas, «Sin stock» si no queda en ninguna. Deja el mouse encima y te dice la marca y cuántas hay aquí.",
+      texto: "Junto al nombre, lo que cobra la caja en la tienda elegida arriba (si una campaña la rebaja hoy, con el de lista tachado y su «−20 %» sobre la foto). Abajo, cuántas hay en la empresa («Quedan 8», «Sin stock») y en qué sede están: Trujillo, Arequipa, Lima y el Taller.",
     },
     {
       id: "colores",
