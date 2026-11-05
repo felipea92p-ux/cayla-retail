@@ -95,9 +95,9 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
             ))}
           </ul>
         )}
-        <ul aria-label="Cada tienda" className="mt-4 divide-y divide-sand border-t border-sand">
+        <ul aria-label="Cada tienda" className="@container mt-4 divide-y divide-sand border-t border-sand">
           {red.tiendas.map((t) => (
-            <li key={t.id} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-3 sm:grid-cols-[minmax(140px,1fr)_minmax(200px,2fr)_minmax(0,2fr)]">
+            <li key={t.id} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-3 @[36rem]:grid-cols-[minmax(140px,1fr)_minmax(200px,2fr)_minmax(0,2fr)]">
               <span className="text-[14.5px] font-semibold leading-tight">
                 {/* Un <a> simple: abrir la ruta cambia la tienda del selector, nunca se pide por adelantado. */}
                 <a href={enlaceATienda(t.id)} className="btn-cayla btn-enlace inline-flex min-h-6 items-center gap-0.5 text-[14.5px] font-semibold">
@@ -107,7 +107,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 {t.principal && <span className="text-sm font-normal tabular-nums text-taupe"> · {unidades(t.principal.total)}</span>}
               </span>
               {t.fallo ? (
-                <span className="text-sm text-taupe sm:col-span-2">{t.fallo}</span>
+                <span className="text-sm text-taupe @[36rem]:col-span-2">{t.fallo}</span>
               ) : t.principal && t.principal.total > 0 ? (
                 <>
                   <BarraApilada segmentos={segmentosDelPiso(t.principal)} alto={8} unidad="unidades colgadas" />
@@ -117,7 +117,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                   </span>
                 </>
               ) : (
-                <span className="text-sm text-taupe sm:col-span-2">Nada colgado todavía.</span>
+                <span className="text-sm text-taupe @[36rem]:col-span-2">Nada colgado todavía.</span>
               )}
               <RegistroDeTienda t={t} />
             </li>
@@ -185,7 +185,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
 function RegistroDeTienda({ t }: { t: DatosRed["tiendas"][number] }) {
   if (t.registro.length === 0 && !t.decidido) return null;
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm leading-snug text-taupe sm:col-span-3">
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm leading-snug text-taupe @[36rem]:col-span-3">
       {t.registro.length > 0 && <span>Registro al colgar:</span>}
       {t.registro.map((r) => (
         <span key={r.mes} className="inline-flex items-center gap-1.5">
