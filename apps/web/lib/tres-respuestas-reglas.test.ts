@@ -48,6 +48,13 @@ describe("tresRespuestas", () => {
     expect(t.reparto!.reduce((a, p) => a + p.monto, 0)).toBe(t.valor);
   });
 
+  it("la planilla que ya salió y no se registró se dice en «¿Cuánto tienes?» (tarea 1)", () => {
+    const [t] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, planillaSinSalida: 35861 });
+    expect(t.chips.map((c) => texto(c.texto))).toContain("Incluye S/ 35,861 de planilla que ya salió");
+    const [sinNada] = tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, planillaSinSalida: null });
+    expect(sinNada.chips.map((c) => c.texto)).toEqual(["Te alcanza"]);
+  });
+
   it("sin deuda con CLAURE no reparte nada; con saldo a favor de CAYLA lo dice aparte; mirando una sede tampoco reparte", () => {
     const sin = (claure: { saldo: number } | null) => tresRespuestas({ r: leerResumen(fixture.todas), caja: cajaCayla(), deja: DEJA, hrefDinero: null, hrefPorPagar: null, claure })[0];
     expect(sin(null).reparto).toBeUndefined();
