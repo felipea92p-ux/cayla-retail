@@ -127,58 +127,61 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
       {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
           directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
-      <div data-guia="compras.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <TarjetaCifra
-          viva
-          className="anim-entra"
-          style={{ ["--i" as string]: 1 }}
-          punto="ambar"
-          detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
-          etiqueta="Por pagar"
-          valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
-          href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
-          reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
-        >
-          {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
-        </TarjetaCifra>
-        <TarjetaCifra
-          viva
-          className="anim-entra"
-          style={{ ["--i" as string]: 2 }}
-          punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
-          detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
-          etiqueta="Por recibir"
-          valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
-          unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
-          href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
-          reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
-        >
-          {resumen.porRecibir === 0 ? (
-            "Nada por recibir"
-          ) : (
-            <>
-              {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-              {soles(extra.valorPorRecibir)}
-            </>
-          )}
-        </TarjetaCifra>
-        <TarjetaCifra
-          className="anim-entra"
-          style={{ ["--i" as string]: 3 }}
-          etiqueta={`Compras de ${mesActual}`}
-          valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
-        >
-          {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)}: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
-        </TarjetaCifra>
-        <TarjetaCifra
-          className="anim-entra"
-          style={{ ["--i" as string]: 4 }}
-          punto="verde"
-          etiqueta="IGV del mes"
-          valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
-        >
-          Solo facturas
-        </TarjetaCifra>
+      {/* Cuatro en fila solo si cada una tiene con qué: mira el ancho que deja el lateral, no el de la ventana (a 640 px serían 68 px cada una). */}
+      <div className="@container">
+        <div data-guia="compras.cifras" className="grid grid-cols-2 gap-3 @[36rem]:grid-cols-4">
+          <TarjetaCifra
+            viva
+            className="anim-entra"
+            style={{ ["--i" as string]: 1 }}
+            punto="ambar"
+            detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
+            etiqueta="Por pagar"
+            valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
+            href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
+            reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
+          >
+            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
+          </TarjetaCifra>
+          <TarjetaCifra
+            viva
+            className="anim-entra"
+            style={{ ["--i" as string]: 2 }}
+            punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
+            detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
+            etiqueta="Por recibir"
+            valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
+            unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
+            href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
+            reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
+          >
+            {resumen.porRecibir === 0 ? (
+              "Nada por recibir"
+            ) : (
+              <>
+                {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
+                {soles(extra.valorPorRecibir)}
+              </>
+            )}
+          </TarjetaCifra>
+          <TarjetaCifra
+            className="anim-entra"
+            style={{ ["--i" as string]: 3 }}
+            etiqueta={`Compras de ${mesActual}`}
+            valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
+          >
+            {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)}: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
+          </TarjetaCifra>
+          <TarjetaCifra
+            className="anim-entra"
+            style={{ ["--i" as string]: 4 }}
+            punto="verde"
+            etiqueta="IGV del mes"
+            valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
+          >
+            Solo facturas
+          </TarjetaCifra>
+        </div>
       </div>
 
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van

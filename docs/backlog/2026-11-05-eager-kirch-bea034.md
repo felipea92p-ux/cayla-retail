@@ -1,10 +1,10 @@
 ## Scroll lateral a 640 px exactos (medido 2026-11-05)
 
-El lateral aparece desde 640 px y deja 288 px de contenido. Ahí, y solo ahí entre los anchos medidos (375, 640, 768, 1024, 1280 y 1440), quedan tres pantallas con scroll lateral:
+El lateral aparece desde 640 px y deja 308 px de contenido. En un barrido de las 113 rutas sin parámetros, con Felipe en Tienda Lima, quedan tres con scroll lateral a ese ancho:
 
-- `/vender/historial`: +104, una píldora de la fila de filtros (`button.pildora-cayla`, `shrink-0`).
-- `/productos/categorias`: +91, el botón principal, que no baja de línea.
-- `/compras`: +15, una cifra de la cabecera (`font-display whitespace-nowrap`).
+- `/colaboradores`: +116.
+- `/compras/por-pagar`: +59.
+- `/compras/plan/presupuesto/pagos`: +43.
 
 ## Aviso de hidratación en las pestañas
 
