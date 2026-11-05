@@ -383,7 +383,7 @@ describe("las fases", () => {
     expect(volvio).toEqual({ cifra: "46", de: "de 48", detalle: "Hecha el mar 20 oct · 1 segunda · 1 faltante" });
   });
 
-  it("cantidadesQueFaltan: en Corte es el plan menos lo cortado (aunque la base deje cortar un 10 % más); en las demás, lo que entró menos lo terminado", () => {
+  it("cantidadesQueFaltan: en Corte es el plan menos lo cortado (aunque la base deje cortar 3 más por talla y color); en las demás, lo que entró menos lo terminado", () => {
     const sinCortar: FasePagina = { ...corte, estado: "pendiente", porVariante: corte.porVariante.map((v) => ({ ...v, hechas: 0, entrada: 9, plan: 8 })) };
     expect(cantidadesQueFaltan(sinCortar, p.fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
     const cortoDeMas: FasePagina = { ...corte, porVariante: corte.porVariante.map((v) => ({ ...v, hechas: 9, entrada: 9, plan: 8 })) };
@@ -804,10 +804,10 @@ describe("Salida y Vuelta — lo que se puede mandar y lo que está afuera, por 
     const p = orden();
     const corte = p.fases.find((f) => f.clave === "corte")!;
     const costuraListo = (extra: Partial<FasePagina> = {}, v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...costura(p), porVariante: costura(p).porVariante.map((x) => ({ ...x, entrada: 8, salieron: 0, afuera: 0, ...v })), ...extra });
-    /** Corte mandado afuera sin registrar quién (Pendiente de registrar): el plan es 8 por talla y color y la base deja salir hasta 9 (8 + 10 %, hacia arriba). */
+    /** Corte mandado afuera sin registrar quién (Pendiente de registrar): el plan es 8 por talla y color y la base deja salir un poco más (el margen de corte). */
     const corteAfuera = (v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...corte, quien: "servicio", proveedorId: null, proveedorNombre: null, porVariante: corte.porVariante.map((x) => ({ ...x, plan: 8, entrada: 9, hechas: 0, salieron: 0, afuera: 0, ...v })) });
 
-    it("en Corte parte del plan, no del margen del 10 %: 8 por talla y color, no 9 (el 57 que se volvía 72)", () => {
+    it("en Corte parte del plan, no del margen de corte: 8 por talla y color, no 9", () => {
       const f = corteAfuera();
       const fases = [f, ...p.fases.slice(1)];
       expect(cantidadesDeFabricaDeSalida(f, fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));

@@ -742,7 +742,7 @@ export function pendienteConCosto(f: Pick<FasePagina, "tarifaPrenda" | "fijoOrde
   return (f.tarifaPrenda ?? 0) > 0 || f.fijoOrden > 0;
 }
 
-/** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
+/** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más 3 prendas por talla y color (ADR-0614), y para «lo que falta» se cuenta contra el plan. */
 export function esPrimeraFase(f: FasePagina, fases: readonly FasePagina[]): boolean {
   if (f.hito) return false;
   return fases.every((otra) => otra.hito || otra.secuencia >= f.secuencia);
@@ -1840,8 +1840,8 @@ export function cantidadesQuePuedenSalir(f: FasePagina): Record<string, number> 
 }
 
 /**
- * Lo que «Salida» trae escrito de fábrica. Es lo que puede salir, salvo en la primera fase (Corte): ahí lo que la base deja mandar es el plan más un 10 % redondeado hacia arriba en cada talla
- * y color (el margen por si se corta de más), y precargarlo entero hacía que 57 prendas pedidas salieran como 72. De fábrica parte del plan (menos lo que ya salió), que es lo que se pidió;
+ * Lo que «Salida» trae escrito de fábrica. Es lo que puede salir, salvo en la primera fase (Corte): ahí lo que la base deja mandar es el plan más 3 prendas en cada talla
+ * y color (el margen por si se corta de más), y precargarlo entero hacía que las prendas pedidas salieran de más. De fábrica parte del plan (menos lo que ya salió), que es lo que se pidió;
  * el margen sigue como tope en `cantidadesQuePuedenSalir` y quien cortó de más lo escribe a mano. Es el mismo criterio de `cantidadesQueFaltan` para «Terminé».
  */
 export function cantidadesDeFabricaDeSalida(f: FasePagina, fases: readonly FasePagina[]): Record<string, number> {

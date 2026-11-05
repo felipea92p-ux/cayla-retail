@@ -29,3 +29,8 @@
   POR QUÉ ASÍ: el ajuste baja como merma, que el lote y el libro ya saben contar, sin tocar lo que entró ni lo recibido de la factura. Completar el proveedor no crea deuda: no se sabe si se debe.
   QUÉ SE ROMPERÍA SIN ESTO: esos datos solo se arreglaban con SQL a mano o anulando, y una compra ya recibida no se puede anular.
   Verificado: `pruebas:produccion-regularizar-lotes` 16/16, reglas en verde y en el navegador local: 15 m → 12 m como merma de 3 m, y S/P-000001 → F002-88 con S/ 118 de total y el lote con su documento nuevo. «Decir a quién» se probó en la base, no con clics. Sin mirar a 375 px ni en oscuro. Sin pegar en producción.
+- **Actividades 8 y 9 · Tope de corte y paso incompleto (migración `20261105232000`).**
+  QUÉ HICE: el tope de cortar de más pasó del 10 % a 3 prendas por talla y color, como decidió Felipe el 16-oct. La actividad 9 no llevó código: «Terminé» con prendas perdidas ya cierra un paso incompleto con su motivo desde ADR-0570.
+  POR QUÉ ASÍ: un porcentaje da margen de sobra en un plan grande y casi nada en uno chico; la regla vive en una sola función.
+  QUÉ SE ROMPERÍA SIN ESTO: un plan de 200 por talla seguiría dejando cortar 20 de más sin avisar.
+  Verificado: `pruebas:produccion-tope-de-corte` 4/4, avances 29/29, «Terminé» con falla 21/21, cierre 20/20 y corte con su tela 20/20. Sin pegar en producción.

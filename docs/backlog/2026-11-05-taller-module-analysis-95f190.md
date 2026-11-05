@@ -10,8 +10,8 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 5 · «Llegó una compra», en hoja sencilla: varias líneas, por metro, kilo o rollo, y un aviso si el proveedor tiene un pedido abierto. «Ingresar insumo» pasó a «Saldo inicial». **POR PEGAR:** `20261105223000_llego_una_compra.sql`, una parte, DESPUÉS de `20261105222000` y antes de publicar la web. **Sin kilos en un avío ni rollos con código de lote:** el código solo se pide en metros; va con el rediseño.
 - [x] 6 · «Decir a quién» en un lote de compra sin proveedor (hay 7 en producción, por completar) y «Llegó el papel» en un comprobante S/P. **POR PEGAR:** `20261105225000_regularizar_lotes_y_papeles.sql`, una parte, DESPUÉS de `20261105223000` y antes de publicar la web.
 - [x] 7 · Ajustar lo que queda de un lote ya usado: baja como merma; si hay más, es «Saldo inicial». Misma migración. Una lectura de producción del 5-nov confirmó que el saldo del libro y el de los lotes cuadran en todos los insumos: no hay nada que convertir.
-- [ ] 8 · Tope de corte de 3 prendas por talla y color.
-- [ ] 9 · Cerrar un paso incompleto, con motivo.
+- [x] 8 · Tope de corte de 3 prendas por talla y color. **POR PEGAR:** `20261105232000_tope_de_corte_tres_prendas.sql`, una parte.
+- [x] 9 · Cerrar un paso incompleto con motivo: **ya existía** desde ADR-0570, actividad 2 (en producción desde el 29-oct): «Terminé» anota las prendas que se perdieron, con su motivo, y el paso cierra (`pruebas:produccion-termine-con-falla`, casos B3 y B5). Sin código nuevo.
 - [ ] 10 · Anular con tela cortada pregunta qué hacer.
 - [ ] 11 · Datos al abrir una orden.
 - [ ] 12 · Cambiar una orden abierta, con motivo.

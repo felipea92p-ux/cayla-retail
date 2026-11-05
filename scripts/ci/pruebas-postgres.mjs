@@ -1914,6 +1914,9 @@ export const PRUEBAS = [
   // Regularizar lo que ya entró (ADR-0614, actividades 6 y 7): proveedor de un lote, papel provisional y ajustar lo que queda como merma. ROLLBACK.
   "pruebas:produccion-regularizar-lotes",
 
+  // Cortar de más: hasta 3 por talla y color (ADR-0614, actividad 8). ROLLBACK.
+  "pruebas:produccion-tope-de-corte",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 
