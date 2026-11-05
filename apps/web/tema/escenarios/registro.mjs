@@ -350,6 +350,21 @@ ESCENARIOS.push(
     },
   },
   {
+    // En 30 días, para que haya línea aunque hoy todavía no se haya vendido. La línea tarda 1.6 s en dibujarse: se espera de más
+    // para medir el titular y las cifras ya quietos.
+    id: "inicio.obs-ventaja",
+    ruta: "/",
+    cuentas: ["admin"],
+    ancho: "escritorio",
+    nombre: "Observatorio · la ventaja sobre otra tienda («vs»)",
+    async preparar(pagina) {
+      await clicEn(".obs", "30 días", "tab", 3000)(pagina);
+      await pagina.locator('.obs [data-guia="inicio.obs-comparar-rival"]').first().click();
+      await esperar(pagina, 2400);
+    },
+    abre: ".obs [data-ventaja]",
+  },
+  {
     id: "inicio.global-zoom",
     ruta: "/",
     cuentas: ["admin-global"],
