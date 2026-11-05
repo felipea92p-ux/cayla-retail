@@ -59,6 +59,16 @@ export function leerFechaEscrita(texto: string, anioActual: number): string | nu
   return `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+/**
+ * Enter y ⌘↵ guardan sin salir del campo, así que lo escrito tiene que contar antes: si se entiende se usa, y si no se entiende se frena el guardado. Sin esto,
+ * «3/11» se guardaba con la fecha de antes mientras el campo decía 3/11.
+ */
+export function alConfirmarConEnter(texto: string, anioActual: number): { accion: "nada" | "frenar" } | { accion: "usar"; iso: string } {
+  if (!texto.trim()) return { accion: "nada" };
+  const iso = leerFechaEscrita(texto, anioActual);
+  return iso ? { accion: "usar", iso } : { accion: "frenar" };
+}
+
 /** A qué mes va una tecla en la grilla de meses, de 3 columnas: flechas, Inicio y Fin; RePág y AvPág cambian de año. Devuelve null si la tecla no es de la grilla. */
 export function mesPorTecla(anio: number, mes0: number, tecla: string): { anio: number; mes: number } | null {
   const salto: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3, PageUp: -12, PageDown: 12 };

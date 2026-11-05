@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conBarras, leerFechaEscrita, mesAlAlcance, mesPorTecla, motivoFueraDeLimites } from "./campo-fecha-reglas";
+import { alConfirmarConEnter, conBarras, leerFechaEscrita, mesAlAlcance, mesPorTecla, motivoFueraDeLimites } from "./campo-fecha-reglas";
 
 /** Lo que queda escrito al teclear de una en una, como una persona. */
 const teclear = (s: string) => [...s].reduce((t, c) => conBarras(t + c), "");
@@ -92,5 +92,22 @@ describe("mesPorTecla — la grilla de meses, de 3 columnas", () => {
     expect(mesPorTecla(2026, 5, "End")).toEqual({ anio: 2026, mes: 11 });
     expect(mesPorTecla(2026, 5, "PageUp")).toEqual({ anio: 2025, mes: 5 });
     expect(mesPorTecla(2026, 5, "Enter")).toBeNull();
+  });
+});
+
+describe("Enter y ⌘↵ guardan sin salir del campo: lo escrito cuenta antes (/chaos 2026-11-05)", () => {
+  it("lo que se entiende se usa: «3/11» no puede guardarse con la fecha de antes", () => {
+    expect(alConfirmarConEnter("3/11", 2026)).toEqual({ accion: "usar", iso: "2026-11-03" });
+    expect(alConfirmarConEnter("03/11/2026", 2026)).toEqual({ accion: "usar", iso: "2026-11-03" });
+    expect(alConfirmarConEnter("3/11/26", 2030)).toEqual({ accion: "usar", iso: "2026-11-03" });
+  });
+
+  it("lo que no se entiende frena el guardado: nunca se guarda otra fecha en silencio", () => {
+    for (const t of ["03/1/2", "03/11/202", "31/02", "5", "5/", "13/13/2026"]) expect(alConfirmarConEnter(t, 2026), t).toEqual({ accion: "frenar" });
+  });
+
+  it("vacío no opina: de eso se ocupa quien guarda", () => {
+    expect(alConfirmarConEnter("", 2026)).toEqual({ accion: "nada" });
+    expect(alConfirmarConEnter("   ", 2026)).toEqual({ accion: "nada" });
   });
 });

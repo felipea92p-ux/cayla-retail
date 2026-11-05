@@ -455,7 +455,7 @@ export function HojaRegistrarGasto({
           )}
 
           <div className="grid gap-x-3 sm:grid-cols-2">
-            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} max={hoy} motivoMax="La fecha no puede ser futura." />
+            <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} max={hoy} motivoMax="La fecha no puede ser futura." estricto required />
             {papel && !egreso && (
               <div>
                 <span className="campo-etiqueta">¿Ya lo pagaste?</span>
@@ -477,7 +477,7 @@ export function HojaRegistrarGasto({
 
           {credito ? (
             <CampoGuiado id="vence" guia={guia}>
-              <CampoFecha etiqueta="Cuándo vence" valor={h.vence} onValor={(v) => poner("vence", v)} min={h.fecha} motivoMin="No puede vencer antes de la fecha del gasto." ayuda="Queda en Cuentas y dinero ▸ Por pagar hasta ese día." />
+              <CampoFecha etiqueta="Cuándo vence" valor={h.vence} onValor={(v) => poner("vence", v)} min={h.fecha} motivoMin="No puede vencer antes de la fecha del gasto." estricto required ayuda="Queda en Cuentas y dinero ▸ Por pagar hasta ese día." />
             </CampoGuiado>
           ) : !h.sede || egreso ? null : (
             // «Salió de» depende de la sede (un gasto de una tienda sale de SU cajón): aparece cuando ya se eligió.

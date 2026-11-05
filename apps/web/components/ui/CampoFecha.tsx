@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Campo } from "@/components/ui/campos";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
-import { conBarras, leerFechaEscrita, mesAlAlcance, motivoFueraDeLimites } from "@/lib/campo-fecha-reglas";
+import { alConfirmarConEnter, conBarras, leerFechaEscrita, mesAlAlcance, motivoFueraDeLimites } from "@/lib/campo-fecha-reglas";
 
 /* ====================================================================
    CampoFecha · elegir un día (2026-09-14)
@@ -43,7 +43,8 @@ import { conBarras, leerFechaEscrita, mesAlAlcance, motivoFueraDeLimites } from 
    Límites (2026-11-05, ADR-0611, mejora 8) — opt-in, `min` y `max`: en el calendario los días de afuera se
    ven apagados, dicen por qué y no se eligen. Lo tipeado fuera del límite NO se borra ni se corrige: sigue
    llegando al llamador, cuya validación es la que manda, y el campo dice el porqué al salir. Y lo que se dice
-   de corrido se entiende al salir: «5/11» es este año, «5/11/26» es 2026.
+   de corrido se entiende al salir: «5/11» es este año, «5/11/26» es 2026. Enter y ⌘↵ guardan sin salir: lo
+   escrito cuenta antes, y lo que no se entiende frena el guardado y lo dice.
    ==================================================================== */
 
 const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
@@ -169,6 +170,8 @@ export function CampoFecha({
   const [abierto, setAbierto] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
   const [tocado, setTocado] = useState(false);
+  // Enter con una fecha que no se entiende: no guardó y lo dice, hasta que se corrija.
+  const [frenado, setFrenado] = useState(false);
   // El calendario nace anclado al borde izquierdo del campo. Si el campo está cerca del borde derecho de la pantalla (los filtros de
   // Conteo van a la derecha de su tarjeta) no cabría: se mide AL ABRIR y, si hace falta y cabe, se ancla al borde derecho.
   const [haciaIzquierda, setHaciaIzquierda] = useState(false);
@@ -226,6 +229,7 @@ export function CampoFecha({
 
   function alTipear(crudo: string) {
     const t = conBarras(crudo);
+    setFrenado(false);
     setTexto(t);
     if (t === "") {
       onValor("");
@@ -244,20 +248,23 @@ export function CampoFecha({
     }
   }
 
+  /** Lo escrito de corrido ya tiene fecha: se ordena en el campo y le llega a quien lo usa. */
+  function usarEscrita(iso: string) {
+    const dia = deIso(iso);
+    setTexto(aTexto(dia));
+    if (dia) setCursor(dia);
+    if (iso !== valor) onValor(iso);
+  }
+
   // Al salir del campo, lo tipeado a medias o imposible vuelve a la última
   // fecha válida: nunca queda un texto que no corresponde a ningún día.
   // (Con `estricto` se queda, para corregirlo: ver el comentario de arriba.)
   function alSalir() {
     setEnfocado(false);
     // «5/11» o «5/11/26»: se entiende al salir, no mientras se escribe (a medias podría ser otra cosa).
+    setFrenado(false);
     const corta = deTexto(texto) ? null : leerFechaEscrita(texto, hoy().a);
-    if (corta) {
-      const dia = deIso(corta);
-      setTexto(aTexto(dia));
-      if (dia) setCursor(dia);
-      onValor(corta);
-      return;
-    }
+    if (corta) return usarEscrita(corta);
     if (estricto) setTocado(true);
     else setTexto(aTexto(elegido));
   }
@@ -266,6 +273,17 @@ export function CampoFecha({
     if (e.key === "ArrowDown" && !abierto) {
       e.preventDefault();
       abrir();
+    }
+    // Enter (formulario) y ⌘↵ (Registrar gasto) guardan sin salir del campo: lo escrito tiene que contar antes (/chaos 2026-11-05).
+    if (e.key === "Enter" && !abierto) {
+      const r = alConfirmarConEnter(texto, hoy().a);
+      if (r.accion === "usar") usarEscrita(r.iso);
+      if (r.accion === "frenar") {
+        // `stopPropagation` también frena el atajo que escucha en `window`, y `preventDefault`, el envío del formulario.
+        e.preventDefault();
+        e.stopPropagation();
+        setFrenado(true);
+      }
     }
     if (e.key === "Escape" && abierto) {
       // Este Escape cerró el calendario: que no siga y cierre también el modal (useEscapeLibre.ts).
@@ -311,7 +329,7 @@ export function CampoFecha({
   // Solo `estricto`: sin fecha válida (vacío en un campo obligatorio, a medias o imposible) y ya sea
   // porque se salió del campo o porque el llamador lo pide. Mientras se escribe, sin avisos.
   const sinFecha = estricto && (texto === "" ? required : deTexto(texto) === null);
-  const conError = sinFecha && (revelarError || (tocado && !enfocado));
+  const conError = frenado || (sinFecha && (revelarError || (tocado && !enfocado)));
   // Lo tipeado fuera de los límites: se dice al salir, sin pisar lo que el llamador ya esté diciendo.
   const diaTipeado = deTexto(texto);
   const fuera = !conError && !enfocado && !pie && diaTipeado ? motivoFueraDeLimites(aIso(diaTipeado), limites) : null;
