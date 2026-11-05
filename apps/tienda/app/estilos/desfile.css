@@ -27,7 +27,7 @@
 .t-escenario-cab { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 20px; }
 .t-escena { position: relative; display: grid; place-items: center; min-height: 420px; }
 
-/* El título: enorme, en Didone, detrás de la luz. Las letras suben una a una. */
+/* El título: enorme, en la letra de títulos, detrás de la luz. Las letras suben una a una. */
 .t-escena-tit {
   position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-58%); margin: 0; text-align: center; pointer-events: none;
   /* Ancho de 4,2 letras de alto: «Lo nuevo» siempre se parte en dos renglones («LO» arriba, «NUEVO» abajo), como en la maqueta, sea cual sea el ancho de la pantalla. */

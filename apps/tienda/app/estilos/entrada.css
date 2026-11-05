@@ -215,7 +215,7 @@
 .en-o { display: flex; align-items: center; gap: 12px; margin: 2px 0 0; font-size: 12px; color: var(--tinta-60); }
 .en-o::before, .en-o::after { content: ""; flex: 1; height: 1px; background: var(--sand); }
 
-/* G · Pasarela: el título del formulario es el titular de la maqueta («ENTRAR»), al centro, en Didone y en mayúsculas. */
+/* G · Pasarela: el título del formulario es el titular de la maqueta («ENTRAR»), al centro y en mayúsculas. */
 .en-form .w-titulo { font-size: clamp(30px, 8cqi, 38px); font-weight: 400; letter-spacing: -.01em; text-align: center; line-height: 1.06; }
 .en-partida[data-titulo="corto"] .w-titulo { font-size: clamp(40px, 11cqi, 56px); text-transform: uppercase; line-height: .98; }
 @container tienda (min-width: 960px) {

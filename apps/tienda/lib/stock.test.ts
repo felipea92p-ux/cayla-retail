@@ -23,21 +23,22 @@ describe("el nivel", () => {
 });
 
 describe("la nota de la tarjeta", () => {
-  it("con una tienda elegida: hay, quedan, última o no hay, en esa tienda", () => {
-    expect(notaDeStock(stock("hay", "hay", 0), TRU, TIENDAS)).toEqual({ texto: "Hay en Trujillo", tono: "ok" });
-    expect(notaDeStock(stock("hay", "hay", 2), LIM, TIENDAS)).toEqual({ texto: "Quedan 2 en Lima", tono: "poco" });
-    expect(notaDeStock(stock(1, 0, 1), LIM, TIENDAS)).toEqual({ texto: "Última en Lima", tono: "poco" });
-    expect(notaDeStock(stock("hay", "hay", 0), LIM, TIENDAS)).toEqual({ texto: "No hay en Lima", tono: "no" });
+  it("con una tienda elegida: dice si hay sin repetir la tienda; si ahí no hay, dónde sí", () => {
+    expect(notaDeStock(stock("hay", "hay", 0), TRU, TIENDAS)).toEqual({ texto: "Disponible", tono: "ok" });
+    expect(notaDeStock(stock("hay", "hay", 2), LIM, TIENDAS)).toEqual({ texto: "Quedan 2", tono: "poco" });
+    expect(notaDeStock(stock(1, 0, 1), LIM, TIENDAS)).toEqual({ texto: "Última", tono: "poco" });
+    expect(notaDeStock(stock("hay", "hay", 0), LIM, TIENDAS)).toEqual({ texto: "Hay en Trujillo", tono: "no" });
+    expect(notaDeStock(stock(0, 0, 0), LIM, TIENDAS)).toEqual({ texto: "No hay por ahora", tono: "no" });
   });
 
-  it("con «Todas»: solo en una, quedan pocas, no hay, o nada si hay de sobra", () => {
+  it("con «Todas»: solo en una, quedan pocas, no hay, o en cuáles si hay de sobra", () => {
     expect(notaDeStock(stock("hay", "hay", 0), null, TIENDAS)).toEqual({ texto: "Solo en Trujillo", tono: "poco" });
     expect(notaDeStock(stock(3, 1, 2), null, TIENDAS)).toEqual({ texto: "Quedan pocas", tono: "poco" });
     expect(notaDeStock(stock(0, 0, 0), null, TIENDAS)).toEqual({ texto: "No hay por ahora", tono: "no" });
-    expect(notaDeStock(stock("hay", "hay", 2), null, TIENDAS)).toBeNull();
+    expect(notaDeStock(stock("hay", "hay", 2), null, TIENDAS)).toEqual({ texto: "En todas las tiendas", tono: "ok" });
     // Con una sola tienda en la web, «Solo en …» no dice nada: se mira si quedan pocas.
     expect(notaDeStock(stock(2, 2, 0), null, [TRU])).toEqual({ texto: "Quedan pocas", tono: "poco" });
-    expect(notaDeStock(stock("hay", "hay", 0), null, [TRU])).toBeNull();
+    expect(notaDeStock(stock("hay", "hay", 0), null, [TRU])).toEqual({ texto: "Disponible", tono: "ok" });
   });
 
   it("sin dato del stock o sin tiendas en la web, no dice nada", () => {
