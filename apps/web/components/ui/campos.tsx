@@ -8,6 +8,7 @@ import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, enfocaBuscadorAlAbrir, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { montoParaMostrar } from "@/lib/monto-plata-reglas";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -235,10 +236,15 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
   etiquetaOculta?: boolean;
   /** Sin el renglón reservado para un error bajo la caja: la hoja dice lo que falta en otro lado (su «Falta: …»). */
   sinPie?: boolean;
+  /** Cómo lee esta hoja lo escrito, si entiende más que cifras (`leerMontoPlata`): así también ordena «1299,50» al salir. */
+  leer?: (texto: string) => number | null;
 };
 
-export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", ...props }: CampoMontoProps) {
+export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", leer, ...props }: CampoMontoProps) {
   const id = useId();
+  // Con el foco se edita lo escrito; sin él, se ve con miles y dos decimales (ADR-0611, mejora 3). Es solo lo que se ve: `value` sigue siendo del padre.
+  const [enFoco, setEnFoco] = useState(false);
+  const formatea = !enFoco && props.type !== "number" && (typeof props.value === "string" || typeof props.value === "number");
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta} sinPie={sinPie}>
       {/* La caja que se enciende, de 48 px (ADR-0358, ronda 6): la cifra sigue siendo lo más grande de la hoja. */}
@@ -250,6 +256,19 @@ export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiqueta
           id={id}
           {...unidoAlPie(id, pie, tono)}
           {...props}
+          value={formatea ? montoParaMostrar(String(props.value), leer) : props.value}
+          onFocus={(e) => {
+            const caja = e.currentTarget;
+            props.onFocus?.(e);
+            // Si quien lo usa selecciona todo al entrar, se vuelve a seleccionar tras repintar sin los miles.
+            const todo = caja.value !== "" && caja.selectionStart === 0 && caja.selectionEnd === caja.value.length;
+            setEnFoco(true);
+            if (todo) requestAnimationFrame(() => caja.select());
+          }}
+          onBlur={(e) => {
+            setEnFoco(false);
+            props.onBlur?.(e);
+          }}
           // Las flechitas del type=number rompen la lectura de instrumento.
           className={`font-display self-stretch py-0 text-2xl leading-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
         />

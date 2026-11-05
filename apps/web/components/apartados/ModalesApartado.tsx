@@ -6,7 +6,7 @@ import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { BadgePercent, Check, MessageCircle } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { CampoMonto } from "@/components/ui/CampoMonto";
+import { EntradaMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { RAZON_CAMPANA, descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import {
@@ -718,7 +718,7 @@ export function AbonarFormulario({
         <span className="text-sm">Abona</span>
         <span className="flex items-center gap-1 border-b border-tinta/20 text-lg">
           <span className="text-tinta/50">S/</span>
-          <CampoMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
+          <EntradaMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
         </span>
       </label>
       <div className="flex flex-wrap gap-1.5">

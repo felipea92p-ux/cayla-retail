@@ -28,6 +28,7 @@ import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/Camp
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
+import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
@@ -378,7 +379,7 @@ export function HojaRegistrarGasto({
           )}
 
           <CampoGuiado id="monto" guia={guia} titulo="Cuánto">
-            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!avisoMonto.motivo} pie={avisoMonto.motivo ?? undefined} tono={avisoMonto.motivo ? "error" : undefined} onBlur={avisoMonto.alSalir} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
+            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!avisoMonto.motivo} pie={avisoMonto.motivo ?? undefined} tono={avisoMonto.motivo ? "error" : undefined} onBlur={avisoMonto.alSalir} leer={leerMontoPlata} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">
