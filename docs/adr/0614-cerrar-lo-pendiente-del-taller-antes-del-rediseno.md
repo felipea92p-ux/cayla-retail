@@ -52,3 +52,9 @@ SE ROMPE SI: alguien factura el servicio por «Facturas de insumos» sin apuntar
 DECIDÍ: `registrar_compra_de_insumos` con una lista de líneas, compuesta con `registrar_comprobante_produccion` y `recibir_comprobante_produccion`; `recibir_insumo_comprado` la llama. La conversión vive en la pantalla (`lineaAlLibro`): el rinde lo da la ficha o lo corrige quien midió, y queda en la nota del lote. En una factura, el total es el del papel (`p_total`): a 4 decimales, los metros pueden perder un centavo.
 DESCARTÉ: (1) convertir en la base: tendría que conocer la ficha y lo medido, y el costo saldría igual; (2) repetir un insumo a dos precios en una misma compra: la recepción lo rechaza; se registran dos compras; (3) «solo el precio es obligatorio» (ADR-0570): el 2 de noviembre Felipe eligió pedir proveedor y papel (P03), con la salida «Todavía no tengo el papel».
 SE ROMPE SI: una boleta por kilos difiere un centavo del papel: sin IGV, la base exige que el total sea la suma de las líneas. Se acepta: es un centavo y el saldo no queda mal.
+
+## Actividades 6 y 7: regularizar lo que ya entró (migración `20261105225000`)
+
+DECIDÍ: `ajustar_lote_usado` escribe una `merma` por lo que falta, sin tocar `cantidad_ingresada`; `asignar_proveedor_a_lote` solo escribe el nombre; `reemplazar_papel_provisional` cambia la cabecera del comprobante y el documento de sus lotes, sin tocar líneas ni pagos.
+DESCARTÉ: (1) subir o bajar `cantidad_ingresada` en un lote usado: lo recibido de la factura se lee de ahí y mentiría; (2) ajustar hacia arriba: si hay más, es otra tela con su propio costo y se anota como «Saldo inicial»; (3) crear la deuda al completar un proveedor: no se sabe si esa compra se pagó.
+SE ROMPE SI: una factura real trae otras cantidades o precios que el papel provisional: `reemplazar_papel_provisional` no cambia las líneas. Ahí se anula y se registra de nuevo, si nadie la recibió ni la pagó.

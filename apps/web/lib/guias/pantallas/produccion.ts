@@ -1165,7 +1165,15 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Corregir un ingreso anotado mal",
-      texto: "En cada lote, el lápiz corrige un ingreso que se anotó mal: cantidad, costo, día, documento o código. Solo mientras nadie haya usado ese lote; si ya salió tela, el lápiz se apaga y dice por qué.",
+      texto: "En cada lote, el lápiz corrige un ingreso que se anotó mal: cantidad, costo, día, documento o código. Si ya salió tela de ese lote, lo que entró no se cambia: el lápiz ajusta lo que queda.",
+    },
+    {
+      id: "decir-a-quien",
+      ancla: "prod-insumos.decir-a-quien",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Una compra sin proveedor",
+      texto: "Un lote de compra de antes puede no decir a quién se le compró. Aquí lo completas; no crea una deuda.",
     },
     {
       id: "corregir-ingreso-hoja",

@@ -321,6 +321,7 @@
     "pruebas:produccion-servicios-por-pagar": "node scripts/pruebas/produccion_servicios_por_pagar.mjs",
     "pruebas:produccion-pagar-servicio": "node scripts/pruebas/produccion_pagar_servicio.mjs",
     "pruebas:produccion-llego-una-compra": "node scripts/pruebas/produccion_llego_una_compra.mjs",
+    "pruebas:produccion-regularizar-lotes": "node scripts/pruebas/produccion_regularizar_lotes.mjs",
     "pruebas:produccion-tela": "node scripts/pruebas/produccion_tela.mjs",
     "pruebas:produccion-tarifas": "node scripts/pruebas/produccion_tarifas.mjs",
     "pruebas:produccion-tela-del-taller": "node scripts/pruebas/produccion_tela_del_taller.mjs",

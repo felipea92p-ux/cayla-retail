@@ -8,8 +8,8 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 3 · La deuda de un servicio llega a Por pagar, y el nombre se registra con la orden cerrada. **POR PEGAR:** `20261105221000_servicios_del_taller_por_pagar.sql`, una parte, con el OK de Felipe, antes de publicar la web. Finanzas ▸ Por pagar (`fn_por_pagar_consolidado`) todavía no lista estos servicios: su botón «Pagar» espera una factura.
 - [x] 4 · Pagar a un servicio desde Por pagar, con su papel. **POR PEGAR:** `20261105222000_pagar_servicio_de_la_orden.sql`, una parte, DESPUÉS de `20261105221000` y antes de publicar la web. Al publicar, Por pagar mostrará lo que se les debe a los servicios de las órdenes ya anotadas: si Felipe ya les pagó fuera del ERP, se registra con «Ya lo pagué» y su fecha.
 - [x] 5 · «Llegó una compra», en hoja sencilla: varias líneas, por metro, kilo o rollo, y un aviso si el proveedor tiene un pedido abierto. «Ingresar insumo» pasó a «Saldo inicial». **POR PEGAR:** `20261105223000_llego_una_compra.sql`, una parte, DESPUÉS de `20261105222000` y antes de publicar la web. **Sin kilos en un avío ni rollos con código de lote:** el código solo se pide en metros; va con el rediseño.
-- [ ] 6 · Regularizar los lotes de compra sin proveedor y reemplazar una nota provisional.
-- [ ] 7 · Ajustar lo que queda de un lote ya usado.
+- [x] 6 · «Decir a quién» en un lote de compra sin proveedor (hay 7 en producción, por completar) y «Llegó el papel» en un comprobante S/P. **POR PEGAR:** `20261105225000_regularizar_lotes_y_papeles.sql`, una parte, DESPUÉS de `20261105223000` y antes de publicar la web.
+- [x] 7 · Ajustar lo que queda de un lote ya usado: baja como merma; si hay más, es «Saldo inicial». Misma migración. Una lectura de producción del 5-nov confirmó que el saldo del libro y el de los lotes cuadran en todos los insumos: no hay nada que convertir.
 - [ ] 8 · Tope de corte de 3 prendas por talla y color.
 - [ ] 9 · Cerrar un paso incompleto, con motivo.
 - [ ] 10 · Anular con tela cortada pregunta qué hacer.

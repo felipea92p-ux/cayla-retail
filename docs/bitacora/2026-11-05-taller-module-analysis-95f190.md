@@ -24,3 +24,8 @@
   POR QUÉ ASÍ: reutiliza las dos funciones de siempre. El factor de kilos a metros sale de la ficha y se puede corregir, y queda escrito en la nota del lote.
   QUÉ SE ROMPERÍA SIN ESTO: una factura con varios colores no cabía en el camino corto, y comprar por kilo obligaba a convertir de memoria.
   Verificado: `pruebas:produccion-llego-una-compra` 12/12, la compra de una línea 23/23, reglas en verde y en el navegador local 100 kg a S/ 18: 333 m a S/ 5.4054, factura de S/ 2,124 y la nota «100 kg × 3.33 m/kg». Sin mirar a 375 px ni en oscuro. Sin pegar en producción.
+- **Actividades 6 y 7 · Regularizar lo que ya entró (migración `20261105225000`).**
+  QUÉ HICE: en cada lote, «Decir a quién» completa el proveedor de una compra vieja y el lápiz de un lote usado ajusta lo que queda. En una factura S/P, «Llegó el papel» pone su tipo, número y total reales.
+  POR QUÉ ASÍ: el ajuste baja como merma, que el lote y el libro ya saben contar, sin tocar lo que entró ni lo recibido de la factura. Completar el proveedor no crea deuda: no se sabe si se debe.
+  QUÉ SE ROMPERÍA SIN ESTO: esos datos solo se arreglaban con SQL a mano o anulando, y una compra ya recibida no se puede anular.
+  Verificado: `pruebas:produccion-regularizar-lotes` 16/16, reglas en verde y en el navegador local: 15 m → 12 m como merma de 3 m, y S/P-000001 → F002-88 con S/ 118 de total y el lote con su documento nuevo. «Decir a quién» se probó en la base, no con clics. Sin mirar a 375 px ni en oscuro. Sin pegar en producción.
