@@ -239,6 +239,10 @@ export const PRUEBAS = [
   // otra tienda ni otro día, cuadra con fn_rendimiento_serie, y quien no ve esa tienda recibe 42501. ROLLBACK.
   "pruebas:rendimiento-detalle",
 
+  // Lo de cada persona, día por día (ADR-0610, fn_rendimiento_persona_dias): ventas, soles, prendas y su meta de ese día; cuadra con la serie, una venta
+  // sin quien atendió no se pierde, solo lo de CAYLA, 42501 a otra tienda y 22023 a un rango roto. ROLLBACK.
+  "pruebas:rendimiento-persona-dias",
+
   // Actividad de Existencias, Conteos y Traslados (ADR-0207, act. 2026-10-02): una línea por operación (no por
   // prenda), lo de un producto nuevo no sale en Existencias, y si anotar falla la operación se guarda igual. ROLLBACK.
   "pruebas:actividad-inventario",
