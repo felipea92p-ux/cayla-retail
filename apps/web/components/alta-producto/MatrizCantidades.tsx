@@ -4,8 +4,10 @@ import { useRef, useState, type InputHTMLAttributes, type KeyboardEvent, type Re
 import { Punto } from "./Punto";
 import { SegmentoDeslizante } from "../ui/SegmentoDeslizante";
 import { PasoCantidad } from "../ui/PasoCantidad";
+import { Aviso } from "../ui/Aviso";
 import { RAYADO_FUERA } from "./rayado";
-import { limpiarCantidad, type CeldaAlta } from "../../lib/alta-producto";
+import { useCantidadEscrita } from "./useCantidadEscrita";
+import { leerCantidad, limpiarCantidad, textoCantidadRechazada, type CeldaAlta } from "../../lib/alta-producto";
 import { fondoDeMuestra } from "../../lib/colores-familias";
 import {
   cambiosDeRelleno,
@@ -31,8 +33,8 @@ import {
 // ahora con una caja por celda. Misma forma a propósito: quien acaba de armar la tabla reconoce cada celda sin volver
 // a leerla. Un segmento arriba decide qué se escribe en ella (las mismas tres que Editar producto, `MatrizStockFicha`):
 //
-//   * «Cuántas tienes hoy» (la carga inicial, ADR-0212): vacío = 0; solo dígitos, hasta 4 (una cantidad imposible ni se
-//     tipea); total por color, por talla y general (la fila «Total» queda fija abajo). «Llenar todas con [n]» pone la
+//   * «Cuántas tienes hoy» (la carga inicial, ADR-0212): vacío = 0; lo que no es un entero de 0 a 9999 se ve en rojo y no
+//     llega a la pantalla (`useCantidadEscrita`); total por color, por talla y general (la fila «Total» queda fija abajo). «Llenar todas con [n]» pone la
 //     misma cantidad en todas las celdas de un golpe (72 en el peor caso real) y después se corrige a mano lo distinto;
 //   * «Precios»: una caja de precio por celda; vacía = el precio de venta (su placeholder); la que difiere se ve en ámbar.
 //     Antes esto vivía en la tabla de variantes, con un botón «Poner un precio distinto»;
@@ -72,6 +74,12 @@ type Comunes = {
   teclado?: boolean;
   /** Algo junto al nombre de un color (el «×» que lo quita). Solo en las filas con color. De fábrica, nada. */
   accionFila?: (color: { codigo: string; nombre: string }) => ReactNode;
+  /** Lo que va en una columna extra a la DERECHA de la última talla (el «+ Talla» de «Nueva orden»). Solo cantidades; de fábrica, nada. */
+  alFinalDeTallas?: ReactNode;
+  /** Lo que va en una fila extra DEBAJO del último color (el «+ Color» de «Nueva orden»). De fábrica, nada. */
+  alFinalDeColores?: ReactNode;
+  /** Para el botón que sigue de la pantalla (`useCantidadEscrita`): que no se lleve lo que acaba de rechazarse sin que se lea. */
+  freno?: Ref<() => boolean>;
 };
 
 /** Nuevo producto (paso 4): cantidades, precios y costos por celda. */
@@ -86,16 +94,16 @@ type ConPrecios = Comunes & {
   onCosto: (clave: string, valor: string) => void;
   /** Dónde entra el stock, en palabras de tienda: «TRU · Real Plaza». */
   destinoEtiqueta: string;
-  /** La carga inicial de la sede ya se cerró (ADR-0328): «Cuántas tienes hoy» no se ofrece —queda apagado, con esta frase al
-   *  pasar el mouse— y la tabla solo sirve para el precio y el costo distintos. `null` = abierta, como siempre. */
-  cantidadesCerradas?: string | null;
+  /** La carga inicial de la sede ya se cerró (ADR-0328 act. 2026-10-28): lo que se escribe no es «lo que tienes hoy» sino lo que
+   *  LLEGÓ del proveedor, y la tabla lo dice así («Cuántas llegaron»). De fábrica, `false`: la carga inicial, como siempre. */
+  llegada?: boolean;
 };
 
 /** «Nueva orden de producción» (ADR-0396, A2): solo cantidades, sin segmento ni precios ni costos, sin − y +, con «Llenar todas con» siempre a la vista. */
 type SoloCantidades = Comunes & { soloCantidades: true };
 
 export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
-  const { celdas, tallas, colores, excluidas, cantidades, onCantidad, preguntaCelda = "Cuántas tienes de", fantasma, tituloDe, teclado = false, accionFila } = props;
+  const { celdas, tallas, colores, excluidas, cantidades, onCantidad, preguntaCelda: preguntaPropia, fantasma, tituloDe, teclado = false, accionFila, alFinalDeTallas, alFinalDeColores } = props;
   const solo = props.soloCantidades === true;
   const precioBase = props.soloCantidades ? "" : props.precioBase;
   const precios = props.soloCantidades ? {} : props.precios;
@@ -104,11 +112,14 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
   const costos = props.soloCantidades ? {} : props.costos;
   const onCosto = props.soloCantidades ? undefined : props.onCosto;
   const destinoEtiqueta = props.soloCantidades ? "" : props.destinoEtiqueta;
-  const cantidadesCerradas = props.soloCantidades ? null : (props.cantidadesCerradas ?? null);
+  const llegada = props.soloCantidades ? false : (props.llegada ?? false);
+  const preguntaCelda = preguntaPropia ?? (llegada ? "Cuántas llegaron de" : "Cuántas tienes de");
 
-  const [modoElegido, setModo] = useState<Modo>("cantidades");
-  const modo: Modo = cantidadesCerradas ? "precios" : modoElegido;
+  const [modo, setModo] = useState<Modo>("cantidades");
   const [relleno, setRelleno] = useState("");
+  const escrita = useCantidadEscrita(undefined, props.freno);
+  // Las celdas al entrar a «Llenar todas con»: adonde vuelven si lo que se escribe ahí no es una cantidad.
+  const antesDelRelleno = useRef(cantidades);
   // Las cajas de las celdas, para que el teclado sepa a cuál llevar el cursor. Solo se llena con `teclado` (un ref no se dibuja: el HTML no cambia).
   const campos = useRef(new Map<string, HTMLInputElement>());
 
@@ -126,13 +137,16 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
   const baseCosto = Number(costoBase) > 0 ? Number(costoBase).toFixed(2) : "0.00";
   const enCostos = modo === "costos";
   const porTalla = teclado ? columnasEditables(filas, columnas, celdas, excluidas) : [];
+  const rellenoInvalido = leerCantidad(relleno) === null;
+  const problema = rellenoInvalido ? textoCantidadRechazada(relleno, false) : escrita.problema;
 
   // Se aplica (o se borra) sola, en cada tecla: ya no hay un «Aplicar» que presionar ni que mis-clickear.
   function escribirRelleno(valor: string) {
     const limpio = limpiarCantidad(valor);
     setRelleno(limpio);
+    escrita.olvidar();
     // Vaciar la caja deja vacías las celdas en Nuevo producto (el reverso de llenarlas); en la orden no toca nada: una tecla de más no debe borrar lo escrito (`cambiosDeRelleno`).
-    for (const { clave, valor: v } of cambiosDeRelleno(celdas, excluidas, limpio, !solo)) onCantidad(clave, v);
+    for (const { clave, valor: v } of cambiosDeRelleno(celdas, excluidas, limpio, !solo, antesDelRelleno.current)) onCantidad(clave, v);
   }
 
   // El cursor se mueve con Enter y las flechas (ver `movimientoDeTecla`). Enter NUNCA envía el formulario desde una celda, aunque no haya a dónde ir (la última): quien sigue
@@ -162,7 +176,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
             valor={modo}
             onCambio={(m) => setModo(m as typeof modo)}
             opciones={[
-              { clave: "cantidades", etiqueta: "Cuántas tienes hoy", deshabilitada: !!cantidadesCerradas, ayuda: cantidadesCerradas || undefined },
+              { clave: "cantidades", etiqueta: llegada ? "Cuántas llegaron" : "Cuántas tienes hoy" },
               { clave: "precios", etiqueta: "Precios" },
               { clave: "costos", etiqueta: "Costos" },
             ]}
@@ -177,19 +191,31 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            maxLength={4}
+            maxLength={7}
             autoComplete="off"
             placeholder="1"
             value={relleno}
             tabIndex={enCantidades ? undefined : -1}
+            aria-invalid={rellenoInvalido || undefined}
             data-sin-cursor={solo ? "" : undefined}
             onChange={(e) => escribirRelleno(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
+            onFocus={(e) => {
+              antesDelRelleno.current = cantidades;
+              e.currentTarget.select();
+            }}
+            onBlur={() => {
+              // Lo que no es una cantidad no llenó nada: la caja queda vacía y las celdas, como estaban (si no, seguiría en rojo, y en «Precios» estaría escondida).
+              if (!rellenoInvalido) return;
+              escrita.rechazar(relleno);
+              setRelleno("");
+            }}
             onKeyDown={(e) => {
               // Ya se aplica sola en cada tecla: Enter solo evita que envíe el formulario del alta.
               if (e.key === "Enter") e.preventDefault();
             }}
-            className="h-10 w-[72px] rounded-[9px] border border-transparent bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe"
+            className={`h-10 w-[72px] rounded-[9px] border ${rellenoInvalido ? "border-rojo" : "border-borde-control"} bg-hueso px-1.5 text-center text-base font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 ${
+              rellenoInvalido ? "focus:border-rojo" : "focus:border-taupe"
+            }`}
           />
         </div>
       </div>
@@ -198,7 +224,8 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
       {!solo && (
         <div className="grid text-[12.5px] text-taupe">
           <p className={`col-start-1 row-start-1 ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
-            Lo que hay hoy en {destinoEtiqueta}. Lo que no tengas, déjalo vacío. <span className="text-tinta/45">—</span> = no existe.
+            {llegada ? `Lo que llegó a ${destinoEtiqueta}.` : `Lo que hay hoy en ${destinoEtiqueta}.`} Lo que no tengas, déjalo vacío.{" "}
+            <span className="text-tinta/45">—</span> = no existe.
           </p>
           <p className={`col-start-1 row-start-1 ${modo === "precios" ? "" : "invisible"}`} aria-hidden={modo !== "precios"}>
             Escribe solo el precio que cambia. Vacía = {textoPrecioBase(precioBase)}.
@@ -221,6 +248,11 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                   {textoTalla(t)}
                 </th>
               ))}
+              {alFinalDeTallas && (
+                <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-1.5 py-1 text-center">
+                  {alFinalDeTallas}
+                </th>
+              )}
               {conColumnaTotal && (
                 <th scope="col" className="sticky top-0 z-[2] whitespace-nowrap border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe sm:px-3">
                   Total
@@ -281,6 +313,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                     const propio = (enCostos ? costos[cel.clave] : precios[cel.clave]) ?? "";
                     const distinto = enCostos ? costoDistinto(propio, costoBase) : precioDistinto(propio, precioBase);
                     const valorCelda = cantidades[cel.clave] ?? "";
+                    const invalida = escrita.invalida(cel.clave);
                     // El número de la celda: el mismo con − y + (Nuevo producto) que sin ellos (la orden de producción, que se carga tecleando).
                     const numero: CampoNumero = {
                       ref: teclado
@@ -292,14 +325,19 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                       type: "text",
                       inputMode: "numeric",
                       pattern: "[0-9]*",
-                      maxLength: 4,
+                      maxLength: 7,
                       autoComplete: "off",
                       "aria-label": `${preguntaCelda} ${etiqueta}`,
+                      "aria-invalid": invalida || undefined,
                       title: tituloDe?.(cel.clave),
                       placeholder: fantasma ? fantasma(cel.clave) : "0",
-                      value: valorCelda,
-                      onChange: (e) => onCantidad(cel.clave, limpiarCantidad(e.target.value)),
-                      onFocus: (e) => e.currentTarget.select(),
+                      value: escrita.texto(cel.clave) ?? valorCelda,
+                      onChange: (e) => escrita.escribir(cel.clave, e.target.value, valorCelda, (v) => onCantidad(cel.clave, v)),
+                      onFocus: (e) => {
+                        escrita.empezar(cel.clave, valorCelda);
+                        e.currentTarget.select();
+                      },
+                      onBlur: () => escrita.terminar(cel.clave),
                       onKeyDown: teclado ? (e) => alTeclear(e, cel.clave) : undefined,
                     };
                     return (
@@ -313,14 +351,34 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                             <PasoCantidad
                               tamano="celda"
                               sinTab
-                              menos={{ onClick: () => onCantidad(cel.clave, pasoCantidad(valorCelda, -1)), deshabilitado: valorCelda === "", etiqueta: `Restar a ${etiqueta}` }}
-                              mas={{ onClick: () => onCantidad(cel.clave, pasoCantidad(valorCelda, 1)), etiqueta: `Sumar a ${etiqueta}` }}
+                              tono={invalida ? "error" : undefined}
+                              menos={{
+                                onClick: () => {
+                                  escrita.olvidar();
+                                  onCantidad(cel.clave, pasoCantidad(valorCelda, -1));
+                                },
+                                deshabilitado: valorCelda === "",
+                                etiqueta: `Restar a ${etiqueta}`,
+                              }}
+                              mas={{
+                                onClick: () => {
+                                  escrita.olvidar();
+                                  onCantidad(cel.clave, pasoCantidad(valorCelda, 1));
+                                },
+                                etiqueta: `Sumar a ${etiqueta}`,
+                              }}
                               // El «0» de una celda vacía es un fantasma a propósito (25 %): la tabla se lee por lo que SÍ se cargó.
                               campo={{ ...numero, className: "placeholder:text-tinta/25" }}
                             />
                           ) : enCantidades ? (
                             // La orden de producción no lleva − ni +: es una caja para escribir, no un paso de cantidad.
-                            <span className="inline-flex items-center gap-0.5 rounded-[7px] border border-transparent bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel">
+                            <span
+                              className={
+                                invalida
+                                  ? "inline-flex items-center gap-0.5 rounded-[7px] border border-rojo bg-papel pl-0.5 pr-0.5"
+                                  : "inline-flex items-center gap-0.5 rounded-[7px] border border-borde-control bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel"
+                              }
+                            >
                               <input
                                 {...numero}
                                 // El número gris DICE algo (lo que sugiere la red): más legible que el «0» de siempre (3,6:1 en claro y 4,7:1 en oscuro, antes 1,7 y 2,1).
@@ -339,7 +397,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                               value={propio}
                               onChange={(e) => (enCostos ? onCosto : onPrecio)?.(cel.clave, limpiarPrecio(e.target.value))}
                               onFocus={(e) => e.currentTarget.select()}
-                              className={`w-[58px] rounded-[7px] border border-transparent bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px] ${
+                              className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel sm:w-[66px] ${
                                 distinto ? "font-semibold text-ambar" : "text-tinta"
                               }`}
                             />
@@ -348,12 +406,21 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                       </td>
                     );
                   })}
+                  {alFinalDeTallas && <td className={`border-l border-t border-sand ${fondoFila}`} />}
                   {conColumnaTotal && (
                     <td className={`border-l border-t border-sand px-2 text-center tabular-nums text-taupe sm:px-3 ${fondoFila}`}>{totalFila || ""}</td>
                   )}
                 </tr>
               );
             })}
+            {alFinalDeColores && (
+              <tr>
+                <th scope="row" className="sticky left-0 z-[1] border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left sm:pl-3.5">
+                  {alFinalDeColores}
+                </th>
+                <td colSpan={columnas.length + (alFinalDeTallas ? 1 : 0) + (conColumnaTotal ? 1 : 0)} className="border-t border-sand bg-papel" />
+              </tr>
+            )}
           </tbody>
           {conFilaTotal && (
             <tfoot>
@@ -366,6 +433,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                     {totales.porColumna[claveEje(talla)] || ""}
                   </td>
                 ))}
+                {alFinalDeTallas && <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso" />}
                 {conColumnaTotal && (
                   <td className="sticky bottom-0 z-[1] border-l border-t border-sand bg-hueso px-2 py-2 text-center font-semibold tabular-nums text-tinta sm:px-3">{totales.total}</td>
                 )}
@@ -374,6 +442,13 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
           )}
         </table>
       </div>
+
+      {/* También en las otras pestañas: si se esconde, el freno del botón detendría un clic sin decir por qué. */}
+      {problema && (
+        <Aviso tono="atencion" chico>
+          {problema}
+        </Aviso>
+      )}
     </div>
   );
 }

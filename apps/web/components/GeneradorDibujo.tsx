@@ -74,7 +74,7 @@ export function GeneradorDibujo({
         maxLength={120}
         autoFocus
       />
-      <p className="text-xs text-tinta/70">
+      <p className="text-sm text-tinta/70">
         <span className="text-tinta">Entendí:</span> {lectura.entendido}
         {!lectura.reconocido && (
           <span className="text-tinta/60">
@@ -103,16 +103,16 @@ export function GeneradorDibujo({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Boton peso="fantasma" className="px-3 py-2 text-[11px]" onClick={onCancelar} disabled={preparando}>
+        <Boton peso="fantasma" className="px-3 py-2 text-sm" onClick={onCancelar} disabled={preparando}>
           Cancelar
         </Boton>
-        <Boton peso="discreto" className="px-3 py-2 text-[11px]" onClick={() => setRonda((r) => r + 1)} disabled={preparando}>
+        <Boton peso="discreto" className="px-3 py-2 text-sm" onClick={() => setRonda((r) => r + 1)} disabled={preparando}>
           <span className="inline-flex items-center gap-1.5">
             <Shuffle className="h-3.5 w-3.5" aria-hidden />
             Otras variantes
           </span>
         </Boton>
-        <Boton peso="primario" className="ml-auto px-3 py-2 text-[11px]" onClick={usar} cargando={preparando}>
+        <Boton peso="primario" className="ml-auto px-3 py-2 text-sm" onClick={usar} cargando={preparando}>
           Usar este dibujo
         </Boton>
       </div>

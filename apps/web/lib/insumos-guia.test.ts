@@ -1,64 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar } from "./guia-campos";
-import { camposDeFichaDeLaTela, camposDeIngresoDeInsumo, camposDeInsumoNuevo, ingresoListo, problemasDeInsumoNuevo, type EntradaInsumoNuevo } from "./insumos-guia";
+import { camposDeFichaDeLaTela, camposDeIngresoDeInsumo, ingresoListo } from "./insumos-guia";
+import { CANTIDAD_ILEGIBLE } from "./insumos-reglas";
+import { COSTO_UNITARIO_ILEGIBLE } from "./monto-plata-reglas";
 
-// La guía de las hojas de Insumos dice lo mismo que la hoja: se puede guardar exactamente cuando `problemasDeInsumoNuevo` no encuentra nada y alguien firma.
-
-const base: EntradaInsumoNuevo = { tipo: "tela", codigo: "LIN-01", nombre: "Lino", merma: "", minimo: "", tejidoId: "", colorCodigo: "", responsableListo: true };
-
-describe("problemasDeInsumoNuevo", () => {
-  it("código y nombre son obligatorios; la merma va de 0 a menos de 50 %; el mínimo es un número desde cero", () => {
-    expect(problemasDeInsumoNuevo(base)).toEqual([]);
-    expect(problemasDeInsumoNuevo({ ...base, codigo: " " })).toEqual(["Ponle un código y un nombre al insumo."]);
-    expect(problemasDeInsumoNuevo({ ...base, nombre: "" })).toEqual(["Ponle un código y un nombre al insumo."]);
-    for (const m of ["50", "75", "-1", "abc"]) expect(problemasDeInsumoNuevo({ ...base, merma: m }), m).toEqual(["La merma va de 0 % a menos de 50 %."]);
-    for (const m of ["0", "5", "49.9"]) expect(problemasDeInsumoNuevo({ ...base, merma: m }), m).toEqual([]);
-    for (const m of ["-3", "abc"]) expect(problemasDeInsumoNuevo({ ...base, minimo: m }), m).toEqual(["El mínimo es un número desde 0 (o déjalo vacío si no hay)."]);
-    for (const m of ["0", "12.5"]) expect(problemasDeInsumoNuevo({ ...base, minimo: m }), m).toEqual([]);
-  });
-});
-
-describe("la guía de «Nuevo insumo»", () => {
-  const casos: [string, Partial<EntradaInsumoNuevo>][] = [
-    ["completa", {}],
-    ["sin código", { codigo: "" }],
-    ["sin nombre", { nombre: "  " }],
-    ["merma buena", { merma: "5" }],
-    ["merma rota", { merma: "80" }],
-    ["mínimo bueno", { minimo: "20" }],
-    ["mínimo roto", { minimo: "x" }],
-    ["un avío", { tipo: "avio" }],
-    ["con tejido y color", { tejidoId: "t1", colorCodigo: "VEBO" }],
-  ];
-  for (const [nombre, cambio] of casos) {
-    for (const firma of [true, false]) {
-      it(`${nombre}${firma ? "" : " · sin responsable"}: el botón se enciende justo cuando la hoja lo aceptaría`, () => {
-        const e = { ...base, ...cambio, responsableListo: firma };
-        expect(sePuedeConfirmar(camposDeInsumoNuevo(e))).toBe(problemasDeInsumoNuevo(e).length === 0 && firma);
-      });
-    }
-  }
-
-  it("el tejido y el color se SUGIEREN (se ven en «falta») pero nunca bloquean", () => {
-    const campos = camposDeInsumoNuevo(base);
-    expect(faltanDe(campos).map((c) => c.id)).toEqual(["tejido", "color"]);
-    expect(sePuedeConfirmar(campos)).toBe(true);
-  });
-
-  it("un avío no pide tejido", () => {
-    expect(camposDeInsumoNuevo({ ...base, tipo: "avio" }).map((c) => c.id)).not.toContain("tejido");
-  });
-
-  it("lo opcional vacío no se lista; escrito bien marca ✓", () => {
-    const vacio = estadosDe(camposDeInsumoNuevo(base));
-    expect(vacio).toMatchObject({ minimo: "opcional", merma: "opcional" });
-    expect(estadosDe(camposDeInsumoNuevo({ ...base, minimo: "10", merma: "5" }))).toMatchObject({ minimo: "hecho", merma: "hecho" });
-  });
-
-  it("lo que sigue es lo primero que falta, en el orden de la hoja", () => {
-    expect(estadosDe(camposDeInsumoNuevo({ ...base, codigo: "", nombre: "", responsableListo: false }))).toMatchObject({ codigo: "ahora", nombre: "falta", tejido: "falta", quien: "falta" });
-  });
-});
+// La guía de las hojas de Insumos dice lo mismo que la hoja: se puede guardar exactamente cuando la validación de esa hoja no encuentra nada y alguien firma.
+// (El alta de una tela se prueba en `tela-nueva-reglas.test.ts` y la de un avío en `avio-nuevo-reglas.test.ts`; «Nuevo insumo» se retiró con ADR-0580.)
 
 describe("la guía de la «Ficha de la tela»", () => {
   it("solo exige quién la anota; el tejido y el color se sugieren; un avío no pide tejido", () => {
@@ -91,5 +38,30 @@ describe("la guía de «Ingresar insumo»", () => {
   it("un costo de cero escrito es válido (un regalo), un costo vacío no", () => {
     expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo: "0" })).toBe(true);
     expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo: " " })).toBe(false);
+  });
+
+  it("la coma decimal se entiende en la cantidad y en el costo", () => {
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "48,2", costo: "2,5" })).toBe(true);
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "48.2", costo: "2.5" })).toBe(true);
+    // Un botón a S/ 0.045 (G13 de la revisión de «una tela con sus colores»): el costo por unidad admite hasta 4 decimales.
+    for (const costo of ["0.045", "0,045", "0.0451"]) expect(ingresoListo({ tieneInsumo: true, cantidad: "288", costo }), costo).toBe(true);
+  });
+
+  it("un costo que no se entiende NO se lee como cero: la hoja no deja guardar (antes «2,5,5» abría el lote gratis)", () => {
+    for (const costo of ["abc", "2,5,5", "1e3", "S/ x"]) expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo }), costo).toBe(false);
+  });
+
+  it("una cantidad ambigua no se adivina: «1,299» ¿mil doscientos noventa y nueve o uno con tres?", () => {
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "1,299", costo: "2" })).toBe(false);
+  });
+
+  it("la guía dice QUÉ no se entendió, no solo que falta", () => {
+    const campos = camposDeIngresoDeInsumo({ tieneInsumo: true, cantidad: "1,299", costo: "abc", responsableListo: true });
+    expect(campos.find((c) => c.id === "cantidad")?.pendiente).toBe(CANTIDAD_ILEGIBLE);
+    expect(campos.find((c) => c.id === "costo")?.pendiente).toBe(COSTO_UNITARIO_ILEGIBLE);
+    // Vacío no es «ilegible»: dice lo que falta.
+    const vacios = camposDeIngresoDeInsumo({ tieneInsumo: true, cantidad: "", costo: "", responsableListo: true });
+    expect(vacios.find((c) => c.id === "cantidad")?.pendiente).toBe("Escribe cuánto llegó (más de cero).");
+    expect(vacios.find((c) => c.id === "costo")?.pendiente).toBe("Escribe el costo por unidad, sin IGV (0 si fue un regalo).");
   });
 });

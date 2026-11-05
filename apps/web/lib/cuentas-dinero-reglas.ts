@@ -25,16 +25,7 @@ export const TIPOS_QUE_SE_AGREGAN: readonly { tipo: TipoCuenta; texto: string }[
   { tipo: "tarjeta_credito", texto: "Tarjeta de crédito de CAYLA (451)" },
 ];
 
-/** Cómo agrupa el spike las cuentas (`vistaCuentas`): cada grupo con su cuenta contable. */
-export const GRUPOS_CUENTAS: readonly { clave: string; tipos: readonly TipoCuenta[]; titulo: string; cuenta: string }[] = [
-  { clave: "bancos", tipos: ["banco"], titulo: "Bancos", cuenta: "104" },
-  { clave: "por_abonar", tipos: ["por_abonar"], titulo: "Por depositar", cuenta: "105" },
-  { clave: "cajones", tipos: ["cajon"], titulo: "Cajones y fondo fijo", cuenta: "101" },
-  { clave: "fuertes", tipos: ["caja_fuerte", "por_rendir"], titulo: "Cajas fuertes y efectivo por rendir", cuenta: "101" },
-  { clave: "tarjetas", tipos: ["tarjeta_credito"], titulo: "Tarjetas de crédito de CAYLA · lo que se debe", cuenta: "451" },
-];
-
-export type TipoMovimiento = "aporte" | "prestamo" | "retiro" | "devolucion_prestamo" | "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat";
+export type TipoMovimiento = "aporte" | "prestamo" | "retiro" | "devolucion_prestamo" | "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure";
 export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   aporte: "Aporte del dueño",
   prestamo: "Préstamo del dueño",
@@ -47,6 +38,8 @@ export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   // ADR-0417, situaciones 15 y 16: salen de un banco y bajan una deuda (sueldos por pagar · IGV), no van a otra cuenta.
   pago_planilla: "Pago de la planilla",
   pago_sunat: "Pago a SUNAT (IGV)",
+  // ADR-0560: sale de un banco y baja lo que se le debe a CLAURE (la empresa de Claudia).
+  pago_claure: "Pago a CLAURE",
 };
 
 /** En el orden de la tabla de Configuración y de `fn_medios_de_cobro` (ADR-0429: el QR tiene su fila, como la tarjeta). */
@@ -149,6 +142,12 @@ function numeroOCero(texto: string): Resultado<number> {
   return parsearMonto(t);
 }
 
+/** Lo que le falta a los días de abono, o `null`: un entero de 0 a 15, como exige la base. */
+export function problemaDeDiasAbono(texto: string): string | null {
+  const t = texto.trim();
+  return /^\d{1,2}$/.test(t) && Number(t) <= 15 ? null : "Los días de abono van de 0 a 15.";
+}
+
 export function validarTarifa(b: BorradorTarifa, maquinaId: string): Resultado<PayloadTarifa> {
   const tasa = numeroOCero(b.tasa);
   if (!tasa.ok) return { ok: false, error: `Tasa: ${tasa.error.charAt(0).toLowerCase()}${tasa.error.slice(1)}` };
@@ -156,7 +155,8 @@ export function validarTarifa(b: BorradorTarifa, maquinaId: string): Resultado<P
   const fijo = numeroOCero(b.cargoFijo);
   if (!fijo.ok) return { ok: false, error: `Cargo fijo: ${fijo.error.charAt(0).toLowerCase()}${fijo.error.slice(1)}` };
   if (fijo.valor > 50) return { ok: false, error: `El cargo fijo por pago va de ${soles2(0)} a ${soles2(50)}.` };
-  if (!/^\d{1,2}$/.test(b.diasAbono.trim()) || Number(b.diasAbono) > 15) return { ok: false, error: "Los días de abono van de 0 a 15." };
+  const dias = problemaDeDiasAbono(b.diasAbono);
+  if (dias) return { ok: false, error: dias };
   return {
     ok: true,
     valor: { p_maquina_id: maquinaId, p_medio: b.medio, p_tasa_pct: Math.round(tasa.valor * 100) / 100, p_igv_sobre_tasa: b.igvSobreTasa, p_cargo_fijo: Math.round(fijo.valor * 100) / 100, p_dias_abono: Number(b.diasAbono) },
@@ -344,10 +344,6 @@ export function leerEfectivo(f: Fila): EfectivoFila {
     fondo: numONull(f.fondo),
   };
 }
-/** Lo que entra y sale del cajón que no es venta ni egreso: ingresos, devoluciones y cambios en efectivo. */
-export function otrosDelCajon(f: Pick<EfectivoFila, "ingresos" | "reembolsos" | "cambios">): number {
-  return Math.round((f.ingresos - f.reembolsos + f.cambios) * 100) / 100;
-}
 
 export type CierreConDiferencia = { cajaId: string; ubicacionNombre: string; cerradaEn: string; diferencia: number; cerradaPor: string | null };
 export function leerCierre(c: Fila): CierreConDiferencia {
@@ -453,25 +449,42 @@ export function cuentasVisibles(cuentas: readonly CuentaDinero[], ubicacionId: s
   return cuentas.filter((c) => !c.archivada && !c.soloDestino && (c.ubicacionId === null || ubicacionId === null || c.ubicacionId === ubicacionId));
 }
 
-/** Los grupos del spike con sus cuentas (los vacíos no salen). */
-export function agruparCuentas(cuentas: readonly CuentaDinero[]) {
-  return GRUPOS_CUENTAS.map((g) => ({ ...g, cuentas: cuentas.filter((c) => g.tipos.includes(c.tipo)) })).filter((g) => g.cuentas.length > 0);
+/** Las sedes que solo guardan la cuenta de sus TRANSFERENCIAS: el Taller no cobra a clientes, pero paga a sus proveedores
+ *  por transferencia y «Sale de» propone la cuenta que se eligió aquí. Se reconocen por lo que la base les devuelve
+ *  (`fn_medios_de_cobro` lista al Taller solo con ese medio), sin que la web conozca el tipo de ubicación: si la base aún
+ *  no lo lista (migración sin pegar), la función devuelve un conjunto vacío y todo se ve como siempre. */
+export function idsSoloTransferencia(medios: readonly Pick<FilaMedio, "ubicacionId" | "medio">[]): Set<string> {
+  const conOtroMedio = new Set(medios.filter((m) => m.medio !== "transferencia").map((m) => m.ubicacionId));
+  return new Set(medios.filter((m) => !conOtroMedio.has(m.ubicacionId)).map((m) => m.ubicacionId));
 }
 
 /** «Yape de TRU y AQP · transferencias»: qué cobros entran hoy a una cuenta, dicho en palabras (sale de `medios_de_cobro`). */
 export function textoRecibe(cuenta: Pick<CuentaDinero, "id">, medios: readonly FilaMedio[]): string | null {
-  const tiendas = [...new Set(medios.map((m) => m.ubicacionId))];
+  const soloTransferencia = idsSoloTransferencia(medios);
+  // «Las N tiendas» cuenta las sedes que cobran con todos los medios: el Taller (solo transferencia) no es una tienda.
+  const tiendas = [...new Set(medios.map((m) => m.ubicacionId).filter((id) => !soloTransferencia.has(id)))];
   // Como en el spike: lo que llega de todas las tiendas va primero («Plin de las 3 tiendas · Yape de LIM») y las
   // transferencias al final («Yape de TRU y AQP · transferencias»).
   const partes: { texto: string; orden: number }[] = [];
   for (const medio of MEDIOS_COBRO) {
     const aqui = medios.filter((m) => m.medio === medio && m.cuentaId === cuenta.id);
     if (!aqui.length) continue;
-    const todas = aqui.length === tiendas.length && tiendas.length > 1;
     const de = listaY(aqui.map((m) => corto(m.ubicacionNombre)));
     const nombre = medio === "tarjeta" ? "tarjeta" : TEXTO_MEDIO_COBRO[medio];
-    if (medio === "transferencia") partes.push({ texto: todas || tiendas.length === 1 ? "transferencias" : `transferencias de ${de}`, orden: 2 });
-    else partes.push({ texto: todas ? `${nombre} de las ${tiendas.length} tiendas` : `${nombre} de ${de}`, orden: todas ? 0 : 1 });
+    if (medio === "transferencia") {
+      // Lo que ENTRA por transferencia es de las tiendas; el Taller no cobra: de esa cuenta SALEN sus pagos a proveedores, y se dice así.
+      const deTiendas = aqui.filter((m) => !soloTransferencia.has(m.ubicacionId));
+      const deTaller = aqui.filter((m) => soloTransferencia.has(m.ubicacionId));
+      if (deTiendas.length) {
+        const todas = deTiendas.length === tiendas.length && tiendas.length > 1;
+        const lista = listaY(deTiendas.map((m) => corto(m.ubicacionNombre)));
+        partes.push({ texto: todas || tiendas.length === 1 ? "transferencias" : `transferencias de ${lista}`, orden: 2 });
+      }
+      if (deTaller.length) partes.push({ texto: `pagos de ${listaY(deTaller.map((m) => corto(m.ubicacionNombre)))}`, orden: 3 });
+    } else {
+      const todas = aqui.length === tiendas.length && tiendas.length > 1;
+      partes.push({ texto: todas ? `${nombre} de las ${tiendas.length} tiendas` : `${nombre} de ${de}`, orden: todas ? 0 : 1 });
+    }
   }
   if (!partes.length) return null;
   const t = [...partes].sort((a, b) => a.orden - b.orden).map((p) => p.texto).join(" · ");
@@ -567,7 +580,7 @@ export function deudaConDueno(movs: readonly MovimientoDueno[]): { deuda: number
 // ---- El modal «Registrar movimiento» ----------------------------------------------------------------------------------
 
 /** «Qué pasó» en palabras del negocio. Poner y sacar plata del dueño se abren en dos (aporte o préstamo; devolución o retiro). */
-export type QuePaso = "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "dueno_pone" | "dueno_saca";
+export type QuePaso = "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "pago_planilla" | "pago_sunat" | "pago_claure" | "dueno_pone" | "dueno_saca";
 export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLider: boolean; origen: readonly TipoCuenta[] | null; destino: readonly TipoCuenta[] | null }[] = [
   { valor: "deposito", texto: "Depósito al banco", soloLider: false, origen: ["cajon", "caja_fuerte", "por_rendir"], destino: ["banco"] },
   { valor: "abono_tarjeta", texto: "Depósito de la máquina (tarjeta y QR)", soloLider: true, origen: ["por_abonar"], destino: ["banco"] },
@@ -575,6 +588,7 @@ export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLi
   { valor: "entre_cuentas", texto: "Entre cuentas", soloLider: true, origen: ["banco"], destino: ["banco"] },
   { valor: "pago_planilla", texto: "Pagar la planilla", soloLider: true, origen: ["banco"], destino: null },
   { valor: "pago_sunat", texto: "Pagar a SUNAT (el IGV)", soloLider: true, origen: ["banco"], destino: null },
+  { valor: "pago_claure", texto: "Pagar a CLAURE", soloLider: true, origen: ["banco"], destino: null },
   { valor: "dueno_pone", texto: "Poner plata del dueño", soloLider: true, origen: null, destino: ["banco", "caja_fuerte", "por_rendir"] },
   { valor: "dueno_saca", texto: "Sacar plata del dueño", soloLider: true, origen: ["banco", "cajon", "caja_fuerte", "por_rendir"], destino: null },
 ];
@@ -801,13 +815,6 @@ export function cuentaParaConciliar(cuentas: readonly ConciliacionCuenta[], pedi
   const bancos = cuentas.filter((c) => c.tipo === "banco");
   const lista = bancos.length ? bancos : [...cuentas];
   return [...lista].sort((a, b) => (a.ultimaFecha ?? "0000").localeCompare(b.ultimaFecha ?? "0000"))[0] ?? null;
-}
-
-/** «Hoy, jueves 24»: el título de Efectivo por tienda. */
-export function hoyEnPalabras(hoy: string): string {
-  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-  const d = new Date(`${hoy}T12:00:00Z`);
-  return `Hoy, ${dias[d.getUTCDay()]} ${d.getUTCDate()}`;
 }
 
 /** «martes 22»: el día de un cierre, en hora de Lima (cinco horas detrás de UTC todo el año, como `diaYHoraLima`). */

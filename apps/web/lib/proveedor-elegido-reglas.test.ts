@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faltaDelProveedor, telefonoDelProveedor } from "./proveedor-elegido-reglas";
+import { estadoDeLosBancarios, faltaDelProveedor, telefonoDelProveedor } from "./proveedor-elegido-reglas";
 
 const cuenta = { cuentaBancaria: "191-123", cci: null, celularBilletera: null };
 const vacia = { cuentaBancaria: null, cci: null, celularBilletera: null };
@@ -29,5 +29,22 @@ describe("proveedor elegido en un gasto", () => {
     expect(telefonoDelProveedor("01 444 5555")).toEqual({ texto: "01 444 5555", whatsapp: null });
     expect(telefonoDelProveedor("")).toBeNull();
     expect(telefonoDelProveedor(null)).toBeNull();
+  });
+});
+
+describe("estado de los datos bancarios del proveedor elegido", () => {
+  const fila = { cci: null };
+  it("sin lectura, o de otro proveedor, todavía está cargando", () => {
+    expect(estadoDeLosBancarios(null, "p1")).toBe("cargando");
+    expect(estadoDeLosBancarios({ id: "p0", datos: fila, fallo: false }, "p1")).toBe("cargando");
+  });
+  it("una fila (aunque vacía) es «listo»: quien puede verlos y el proveedor aún no tiene cuenta", () => {
+    expect(estadoDeLosBancarios({ id: "p1", datos: fila, fallo: false }, "p1")).toBe("listo");
+  });
+  it("cero filas sin error es «sin permiso» — nunca «no tiene cuenta»", () => {
+    expect(estadoDeLosBancarios({ id: "p1", datos: null, fallo: false }, "p1")).toBe("sin_permiso");
+  });
+  it("un error es «no se pudo leer», distinto de «sin permiso» (no se sabe)", () => {
+    expect(estadoDeLosBancarios({ id: "p1", datos: null, fallo: true }, "p1")).toBe("no_se_pudo");
   });
 });

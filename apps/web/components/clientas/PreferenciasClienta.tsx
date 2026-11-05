@@ -130,7 +130,7 @@ export function PreferenciasClienta({ clientaId, version, guardadas, soloLectura
           </Boton>
         </div>
       )}
-      <p className="text-xs text-tinta/55">Solo listas, sin notas libres: así no se guardan datos de salud (Ley 29733).</p>
+      <p className="text-sm text-tinta/55">Solo listas, sin notas libres: así no se guardan datos de salud (Ley 29733).</p>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  agruparCuentas,
   agruparMaquinas,
   avisosDeMaquinas,
   cuadra,
@@ -14,7 +13,7 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   explicacionCuenta,
-  hoyEnPalabras,
+  idsSoloTransferencia,
   insigniaCuenta,
   leerConciliacion,
   leerCuenta,
@@ -22,7 +21,6 @@ import {
   leerLotePendiente,
   lotesPorDefecto,
   mediosDeMaquina,
-  otrosDelCajon,
   resumenAbono,
   resumenConciliacion,
   textoLote,
@@ -100,16 +98,6 @@ describe("qué cuentas se ven y cómo se agrupan (spike `vistaCuentas`)", () => 
   it("una cuenta que solo es destino (el banco para quien solo deposita) no se dibuja como tarjeta", () => {
     expect(cuentasVisibles([{ ...bcp, soloDestino: true, saldo: null }, cajonTru], TRU).map((c) => c.id)).toEqual(["cTRU"]);
   });
-  it("los grupos del spike, en su orden, con su cuenta contable; los vacíos no salen", () => {
-    expect(agruparCuentas(cuentasVisibles(TODAS, TRU)).map((g) => `${g.titulo} ${g.cuenta}: ${g.cuentas.map((c) => c.id).join(",")}`)).toEqual([
-      "Bancos 104: bcp,ibk",
-      "Por depositar 105: pos",
-      "Cajones y fondo fijo 101: cTRU",
-      "Cajas fuertes y efectivo por rendir 101: fTRU,rend",
-      "Tarjetas de crédito de CAYLA · lo que se debe 451: visa",
-    ]);
-    expect(agruparCuentas([bcp]).map((g) => g.clave)).toEqual(["bancos"]);
-  });
 });
 
 describe("de dónde le llega la plata a cada cuenta, en palabras", () => {
@@ -137,6 +125,35 @@ describe("de dónde le llega la plata a cada cuenta, en palabras", () => {
     expect(tiposParaMedio("qr")).toEqual(["por_abonar", "banco"]);
     expect(tiposParaMedio("tarjeta")).toEqual(["por_abonar", "banco"]);
     expect(tiposParaMedio("yape")).toEqual(["banco"]);
+  });
+});
+
+describe("el Taller solo guarda la cuenta de sus transferencias", () => {
+  const TALLER = "taller-1";
+  const fila = (ubicacionId: string, ubicacionNombre: string, medio: FilaMedio["medio"], cuentaId: string | null): FilaMedio => ({ ubicacionId, ubicacionNombre, medio, cuentaId, cuentaNombre: cuentaId, vigenteDesde: null });
+  // Las 2 tiendas de siempre más el Taller, que la base lista solo con «transferencia».
+  const conTaller: FilaMedio[] = [...medios, fila(TALLER, "Taller", "transferencia", "ibk")];
+  const conQr: FilaMedio[] = [...conTaller, fila(TRU, "Tienda TRU", "qr", "pos"), fila(LIM, "Tienda LIM", "qr", "pos")];
+
+  it("reconoce al Taller por lo que la base le lista, y a ninguna tienda", () => {
+    expect([...idsSoloTransferencia(conTaller)]).toEqual([TALLER]);
+    expect(idsSoloTransferencia(medios).size).toBe(0);
+  });
+  it("«Plin de las 2 tiendas» sigue diciendo 2: el Taller no cuenta como tienda", () => {
+    expect(textoRecibe(ibk, conTaller)).toBe("Plin de las 2 tiendas · Yape de LIM · pagos de Taller");
+    expect(textoRecibe(pos, conQr)).toBe("Tarjeta de las 2 tiendas · QR de las 2 tiendas");
+  });
+  it("si todas las sedes usan la misma cuenta, las transferencias de las tiendas no repiten sedes y lo del Taller se dice como pagos", () => {
+    const todas = conTaller.map((m) => (m.medio === "transferencia" ? { ...m, cuentaId: "bcp" } : m));
+    expect(textoRecibe(bcp, todas)).toBe("Yape de TRU · transferencias · pagos de Taller");
+  });
+  it("si el Taller usa otra cuenta, la de las tiendas no lo menciona y la del Taller dice que de ahí paga", () => {
+    expect(textoRecibe(bcp, conTaller)).toBe("Yape de TRU · transferencias");
+    expect(textoRecibe(cuenta({ id: "solo", tipo: "banco" }), [...medios, fila(TALLER, "Taller", "transferencia", "solo")])).toBe("Pagos de Taller");
+  });
+  it("sin la migración (la base no lista al Taller) todo se ve exactamente como antes", () => {
+    expect(textoRecibe(bcp, medios)).toBe("Yape de TRU · transferencias");
+    expect(textoRecibe(ibk, medios)).toBe("Plin de las 2 tiendas · Yape de LIM");
   });
 });
 
@@ -215,10 +232,16 @@ describe("el formulario «Registrar movimiento»", () => {
       valor: { p_tipo: "pago_planilla", p_monto: 25400, p_cuenta_origen_id: "bcp", p_cuenta_destino_id: null, p_fecha: hoy, p_referencia: "Planilla de octubre", p_comision: 0, p_caja_id: null, p_caja_movimiento_id: null },
     });
     expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "bcp", destino: "", monto: "9,290" }, ctx)).toMatchObject({ ok: true, valor: { p_tipo: "pago_sunat", p_monto: 9290, p_cuenta_destino_id: null } });
+    // El pago a CLAURE (ADR-0560) es de la misma familia: sale de un banco, sin destino, con su n.º de operación.
+    expect(validarMovimiento({ ...base, que: "pago_claure", origen: "bcp", destino: "", monto: "234.34", referencia: "OP-12345" }, ctx)).toMatchObject({
+      ok: true,
+      valor: { p_tipo: "pago_claure", p_monto: 234.34, p_cuenta_origen_id: "bcp", p_cuenta_destino_id: null, p_referencia: "OP-12345" },
+    });
+    expect(validarMovimiento({ ...base, que: "pago_claure", origen: "cTRU", destino: "" }, ctx)).toEqual({ ok: false, error: "Esa cuenta no sirve de origen para este movimiento." });
     // Desde el cajón o la caja fuerte no: solo un banco.
     expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "cTRU", destino: "" }, ctx)).toEqual({ ok: false, error: "Esa cuenta no sirve de origen para este movimiento." });
     // Y son solo del líder.
-    expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat").every((o) => o.soloLider && o.destino === null)).toBe(true);
+    expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat" || o.valor === "pago_claure").every((o) => o.soloLider && o.destino === null)).toBe(true);
   });
 
   it("depósito del cajón con la caja abierta: sale de esa caja (su egreso lo crea la base), sin fecha (es hoy)", () => {
@@ -335,11 +358,7 @@ describe("conciliación", () => {
 });
 
 describe("efectivo por tienda y fechas", () => {
-  it("«± Otros» junta ingresos, devoluciones y cambios en efectivo", () => {
-    expect(otrosDelCajon({ ingresos: 50, reembolsos: 80, cambios: 10.5 })).toBe(-19.5);
-  });
-  it("«Hoy, jueves 24» y el día de un cierre en hora de Lima", () => {
-    expect(hoyEnPalabras("2026-09-24")).toBe("Hoy, jueves 24");
+  it("el día de un cierre en hora de Lima", () => {
     // 02:00 UTC del 23 = 21:00 del martes 22 en Lima.
     expect(diaYNumero("2026-09-23T02:00:00Z")).toBe("martes 22");
   });

@@ -24,6 +24,9 @@
   .barra-avance[data-tono="verde"] .barra-avance-lleno { background: var(--color-verde); }
   .barra-avance[data-tono="ambar"] .barra-avance-lleno { background: var(--color-ambar); }
   .barra-avance[data-tono="rojo"] .barra-avance-lleno { background: var(--color-rojo); }
+  /* Sobre tinta (la billetera de Mis compras): la pista y el relleno en crema; en oscuro la tarjeta se invierte y ellos con ella. */
+  .barra-avance[data-sobre-tinta] { background: color-mix(in srgb, var(--color-crema) 22%, transparent); }
+  .barra-avance[data-sobre-tinta] .barra-avance-lleno { background: var(--color-crema); }
   /* La rayita de «a esta hora tocaba» (o de un mínimo): 2 px, 6 px más alta que la barra. */
   .barra-avance-marca {
     position: absolute; top: 50%; left: var(--m); width: 2px; height: calc(100% + 6px); border-radius: 1px; background: var(--color-taupe);

@@ -1,0 +1,4 @@
+## 2026-10-23 (Campaña «Fin de año» con su ícono de copas)
+Qué hice: creé en producción la campaña «Fin de año» (26 al 31 de dic de 2026, aprobada, sin descuento, con `crear_campana` firmada por la cuenta de Felipe) y le di su ícono propio —dos copas de brindis con una chispa— en el ERP (papel de la etiqueta, Insignias) y en la tienda (`findeano` en `packages/shared/src/insignias-visual.ts`; lo reconoce «fin de año», «año nuevo» y «nochevieja»).
+Por qué así: el ERP y la tienda eligen el ícono por el nombre; sin una regla, «Fin de año» caía en la etiqueta genérica y no se parecía a Navidad ni a Halloween. Termina el 31 y no el 1 de enero porque el Plan y el Historial cuentan una campaña en el año en que termina.
+Qué se rompería sin esto: la semana del 26 al 31 de diciembre sin campaña vigente (sin etiquetas, sin sello en la tienda web ni plan de compra) y, con la campaña pero sin ícono, un chip genérico distinto del resto del calendario.

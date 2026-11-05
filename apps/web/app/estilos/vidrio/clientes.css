@@ -1,0 +1,55 @@
+/* ====================================================================
+   Clientes ▸ Fichas con vidrio: «A · Filas en la placa» (Felipe 2026-11-02, docs/maquetas/clientes-fichas-vidrio-2026-11/).
+   Ya no es una tarjeta por persona: las filas viven en la placa de la tabla (`tabla-cayla`, ya en vidrio Serena), sin borde ni fondo propio.
+   Entre filas, un hilo fino (tinta al 9 %) que nace después del avatar (bajo 640 px, a 14 px del borde). Al pasar el mouse, la fila se
+   ilumina con la gota clara. El avatar va en su lente. Solo cambia el material: lo que dice cada fila, quién ve el DNI y el celular y las
+   reglas son del plan de Clientas (de Dany).
+   ==================================================================== */
+.clientas-filas {
+  padding: 6px;
+}
+.clientas-filas > li {
+  position: relative;
+}
+.clientas-filas > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 72px; /* 16 de aire + 40 del avatar + 16 de separación: el hilo nace después del avatar */
+  right: 16px;
+  height: 1px;
+  background: var(--hilo-fila);
+  pointer-events: none;
+}
+.clientas-fila {
+  border-radius: 14px;
+  transition: background 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .clientas-fila:hover {
+    background: var(--gota-marca);
+    box-shadow: var(--gota-luz);
+  }
+  /* La fila iluminada tapa su hilo y el de la siguiente: la gota no se ve cortada. */
+  .clientas-filas > li:hover::before,
+  .clientas-filas > li:hover + li::before {
+    opacity: 0;
+  }
+}
+.clientas-fila:focus-visible {
+  outline: var(--foco-ancho) solid var(--foco-color);
+  outline-offset: calc(var(--foco-ancho) * -1);
+}
+.clientas-avatar {
+  background: var(--lente-avatar-fondo);
+  box-shadow: var(--lente-avatar-luz), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+}
+@media (max-width: 639.98px) {
+  .clientas-filas > li + li::before {
+    left: 14px;
+    right: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clientas-fila { transition: none; }
+}

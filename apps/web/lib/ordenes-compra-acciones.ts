@@ -4,6 +4,7 @@ import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { ArgsCrearOrden, ArgsEditarOrden } from "@/lib/orden-compra-alta";
 import { leerResultadoComprobante, type ArgsRegistrarComprobante, type ResultadoComprobante } from "@/lib/comprobante-orden-reglas";
 import { leerResultadoEnvio, leerVersionDeEnvio, type ArgsCrearEnvio, type ResultadoEnvio } from "@/lib/envio-orden-reglas";
+import { leerProveedorRegistrado, type ArgsRegistrarProveedor, type ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import {
   RPC_ANULAR_COMPROBANTE,
   RPC_ANULAR_ENVIO,
@@ -13,6 +14,7 @@ import {
   RPC_DETALLE_ENVIO,
   RPC_EDITAR_ORDEN,
   RPC_REGISTRAR_COMPROBANTE,
+  RPC_REGISTRAR_PROVEEDOR_ORDEN,
 } from "@/lib/ordenes-compra-reglas";
 
 // Órdenes de compra (ADR-0362): lo que la pantalla le pide a la base para guardar. Las reglas viven en la función; aquí solo se arma
@@ -32,6 +34,19 @@ export async function crearOrdenCompra(
     numero: typeof fila?.numero === "number" ? fila.numero : null,
     error: error ?? null,
   };
+}
+
+/**
+ * Registra un proveedor nuevo con lo básico (`registrar_proveedor_de_orden`), o devuelve el que ya estaba (`yaExistia`). Se firma con
+ * `firmaOmitida("proveedor_de_orden")` desde cualquier cuenta: con la de una persona firma ella; desde una terminal queda sin persona (un
+ * proveedor no necesita autor, a diferencia de una orden). Sin error y sin `proveedor`, la base contestó algo que la pantalla no entiende.
+ */
+export async function registrarProveedorDeOrden(
+  args: ArgsRegistrarProveedor,
+  firma: Firma | FirmaOmitida | null,
+): Promise<{ proveedor: ProveedorRegistrado | null; error: ErrorDeBase }> {
+  const { data, error } = await firmar(createClient().rpc(RPC_REGISTRAR_PROVEEDOR_ORDEN as never, args as never), firma);
+  return { proveedor: error ? null : leerProveedorRegistrado(data), error: error ?? null };
 }
 
 /** Guarda los cambios de una orden «generada». `version` es la que devolvió la base: igual a la de antes si no había nada que cambiar

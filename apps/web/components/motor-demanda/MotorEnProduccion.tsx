@@ -41,7 +41,7 @@ export function MotorEnProduccion({
           <p className="flex items-center gap-2 text-sm font-medium text-tinta">
             Lo que dice el motor de demanda <Chip tono="pizarra">Para comparar</Chip>
           </p>
-          <p className="mt-0.5 text-xs text-tinta/65">
+          <p className="mt-0.5 text-sm text-tinta/65">
             {habla
               ? `${fraseDeQuienHabla(curva.hablan)} Cuenta solo los días en que la prenda estuvo colgada y apoya a cada una en su grupo (categoría, talla y color).`
               : "Todavía no recomienda: sus datos aún no alcanzan en ninguna tienda."}
@@ -59,17 +59,17 @@ export function MotorEnProduccion({
         )}
       </div>
 
-      {motor.falla && <p className="text-xs text-tinta/65">{motor.falla}.</p>}
+      {motor.falla && <p className="text-sm text-tinta/65">{motor.falla}.</p>}
 
       {!habla ? (
-        <ul className="space-y-1 text-xs text-tinta/70">
+        <ul className="space-y-1 text-sm text-tinta/70">
           {motor.sedes.map((s) => (
             <li key={s.ubicacionId}>{s.frase}</li>
           ))}
         </ul>
       ) : (
         <>
-          <ul className="divide-y divide-tinta/10 text-[13px]">
+          <ul className="divide-y divide-tinta/10 text-sm">
             {modelo.variantes
               .filter((v) => (curva.porVariante.get(v.varianteId) ?? 0) > 0)
               .map((v) => (
@@ -83,8 +83,8 @@ export function MotorEnProduccion({
           </ul>
           {faltan.length > 0 && (
             <div className="rounded-md bg-hueso px-3 py-2">
-              <p className="text-xs font-medium text-tinta">Se vendió rápido y falta{modelo.categoria ? ` en ${modelo.categoria}` : ""}</p>
-              <ul className="mt-1 space-y-0.5 text-xs text-tinta/75">
+              <p className="text-sm font-medium text-tinta">Se vendió rápido y falta{modelo.categoria ? ` en ${modelo.categoria}` : ""}</p>
+              <ul className="mt-1 space-y-0.5 text-sm text-tinta/75">
                 {faltan.slice(0, 6).map((f) => (
                   <li key={f.clave}>
                     Talla {f.talla ?? "única"}

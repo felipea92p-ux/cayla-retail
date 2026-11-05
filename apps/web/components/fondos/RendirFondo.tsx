@@ -89,7 +89,7 @@ function ListaItems({ items, alSubir, deshabilitado }: { items: ItemRendicion[] 
         <li key={i.clave} className="flex items-start gap-3 px-3.5 py-2.5 text-sm">
           <div className="min-w-0 flex-1">
             <p className="font-medium text-tinta">{etiquetaItem(i)}</p>
-            <p className="truncate text-xs text-taupe" title={i.detalle}>
+            <p className="truncate text-sm text-taupe" title={i.detalle}>
               {i.detalle || "—"}
               {i.fecha ? ` · ${diaMes(i.fecha)}` : ""}
             </p>
@@ -98,7 +98,7 @@ function ListaItems({ items, alSubir, deshabilitado }: { items: ItemRendicion[] 
                 <Chip tono={i.conFoto ? "verde" : "ambar"}>{textoPapel(i)}</Chip>
                 {i.tipo === "gasto" && i.refId && i.conFoto && <VerFoto gastoId={i.refId} />}
                 {i.tipo === "gasto" && i.refId && !i.conFoto && alSubir && <SubirFoto gastoId={i.refId} alSubir={alSubir} deshabilitado={deshabilitado} />}
-                {i.tipo === "pago" && !i.conFoto && <span className="text-xs text-taupe">Se adjunta en su comprobante.</span>}
+                {i.tipo === "pago" && !i.conFoto && <span className="text-sm text-taupe">Se adjunta en su comprobante.</span>}
               </div>
             )}
             <MarcaNoDeducible nd={i.noDeducible} montoDeLaFila={i.monto} className="mt-1" />
@@ -249,7 +249,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
             ) : (
               <ListaItems items={items} alSubir={cargar} deshabilitado={guardando} />
             )}
-            {fraseSinFoto(sinFoto) && <p className="nota-cayla text-xs">{fraseSinFoto(sinFoto)}</p>}
+            {fraseSinFoto(sinFoto) && <p className="nota-cayla text-sm">{fraseSinFoto(sinFoto)}</p>}
           </section>
 
           {vacio ? (
@@ -273,7 +273,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
                 />
                 {fraseCuenta(cuenta, deuda) && (
                   <p
-                    className={`mt-1.5 text-xs ${cuenta.estado === "cuadra" ? "text-verde-profundo" : cuenta.estado === "falta" ? "text-ambar-profundo" : "text-tinta/75"}`}
+                    className={`mt-1.5 text-sm ${cuenta.estado === "cuadra" ? "text-verde-profundo" : cuenta.estado === "falta" ? "text-ambar-profundo" : "text-tinta/75"}`}
                     role="status"
                   >
                     {fraseCuenta(cuenta, deuda)}
@@ -295,7 +295,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
                       setExplicacion(e.target.value);
                     }}
                   />
-                  <p className="mt-1.5 text-xs text-taupe">Con tu explicación, quien revisa decide si lo asume CAYLA; sin ella, queda como deuda tuya.</p>
+                  <p className="mt-1.5 text-sm text-taupe">Con tu explicación, quien revisa decide si lo asume CAYLA; sin ella, queda como deuda tuya.</p>
                 </CampoGuiado>
               )}
             </fieldset>

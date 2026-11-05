@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-qh="placa" data-cmp="columnas">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Proveedores con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Compras ▸ Proveedores con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/compras/proveedores → components/ProveedoresPanel.tsx; el ranking de Mercadería, dirección «C · Filas con su venta»,
+   Felipe 2026-10-26, components/ProveedoresRanking.tsx): la cabecera con «Nuevo proveedor», las pestañas Mercadería · Servicios, «Ordenar por»
+   prendas o costo, el buscador y los filtros, y el ranking: la casilla para comparar, el puesto, el proveedor (con lo que se le debe), la línea de
+   ventas por día, el anillo de lo vendido, la barra de lo que te llegó (lo oscuro ya se vendió) y «Se vende en» con su insignia. A la derecha,
+   desde 1280 px, la columna «Qué hacer» (ProveedoresLoQueNoSeVe, forma «B»); al marcar proveedores, «Comparar» arriba y «Para hoy» debajo
+   (ProveedoresComparar); en el celular, la isla oscura con los marcados.
+   Armada SOLO con lo ya elegido: cabecera A con sus gotas, pestañas A, el segmento de modo, buscador A · Pozo, filtros A · Gotas, tabla B ·
+   Placa Serena, insignia A, globito A, gráficos B · Tinta sobre vidrio (la línea, el anillo y la barra apilada), la isla oscura del celular y
+   botones gota.
+   Lo PROPIO, con sus caras:
+     1. La columna «Qué hacer» (la lista de tareas con su verbo, su número y su flecha).
+     2. «Comparar» (hasta 3 proveedores lado a lado).
+   Solo tokens. Sin movimiento nuevo; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+
+/* ---------- la barra de arriba de la lista ---------- */
+.pv-nav{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
+.pest .glb{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:8px;padding:0 6px;border-radius:999px;font-size:11px;letter-spacing:0;color:var(--t65);background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.medida{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}.medida .vs{font-size:11px}
+.medida .modo button{display:inline-flex;align-items:center;gap:6px;letter-spacing:.02em;text-transform:none;font-size:13px;font-weight:500}
+.medida .modo button b{font-weight:600;font-variant-numeric:tabular-nums}.medida .modo svg{width:16px;height:16px}
+.medida small{font-size:12px;color:var(--t65)}
+
+/* ---------- la página con su columna ---------- */
+.pv-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 23rem;gap:24px;align-items:start;margin-top:18px}
+.pv-col{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;position:sticky;top:12px}
+@container disp (max-width:1279px){.pv-cuerpo{grid-template-columns:minmax(0,1fr)}.pv-col{position:static}}
+@container disp (min-width:1700px){.pv-cuerpo{grid-template-columns:minmax(0,1fr) 26rem}}
+
+/* ---------- el ranking ---------- */
+.rk{overflow:visible}
+.rk .herr{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 20px}
+.rk .herr .pv-der{display:flex;gap:8px;flex-wrap:wrap}
+.rk-cab,.rk-f{display:grid;grid-template-columns:1.25rem 1.5rem minmax(11rem,1.7fr) 7rem 3.5rem minmax(9rem,1.2fr) 8rem 1rem;gap:10px 16px;align-items:center;padding:0 20px}
+.rk-cab{min-height:46px;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.rk-cab span{text-align:center;line-height:1.25}.rk-cab span:nth-child(3){text-align:left}.rk-cab small{display:block;font-size:10.5px;opacity:.85}
+.rk-f{position:relative;min-height:70px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);cursor:pointer;transition:background-color .2s var(--ease)}
+@media (hover:hover){.rk-f:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}.rk-f:hover .rk-flecha{opacity:1;transform:none}}
+.rk-f[data-marcado]{background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.cas{width:18px;height:18px;border-radius:6px;display:grid;place-items:center;border:1.5px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));position:relative;z-index:1}
+.cas[aria-checked="true"]{border-color:transparent;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));color:var(--crema)}
+.cas svg{width:12px;height:12px;stroke-width:3;opacity:0}.cas[aria-checked="true"] svg{opacity:1}
+.rk-p{text-align:center;font-size:14px;color:var(--t65)}
+.rk-n b{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-n small{display:block;font-size:12px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-n small a{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent)}.rk-n .venc{color:var(--rojo-p);font-weight:600}
+[data-tema="oscuro"] .rk-n .venc{color:var(--rojo)}
+.chip.sube{--c:var(--tinta);height:20px;padding:0 8px;font-size:11px}.chip.sube::before{display:none}
+.rk-v{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;color:var(--t65)}.rk-v svg{width:88px;height:24px;overflow:visible}
+.rk-v path.l{fill:none;stroke:var(--tinta);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.rk-v path.a{fill:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.rk-v b{color:var(--tinta);font-weight:600}
+.anillo{position:relative;justify-self:center;width:40px;height:40px;display:grid;place-items:center;font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.anillo svg{position:absolute;inset:0;transform:rotate(-90deg)}.anillo circle{fill:none;stroke-width:4}
+.anillo .pista{stroke:color-mix(in srgb,var(--tinta) 8%,transparent)}.anillo .arco{stroke:var(--tinta);stroke-linecap:round}
+.rk-b{display:flex;align-items:center;gap:10px;min-width:0}
+.ap2{flex:1;min-width:0;display:flex;height:8px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.ap2 i{display:block;height:100%}.ap2 .vend{background:var(--tinta)}.ap2 .queda{background:color-mix(in srgb,var(--tinta) 28%,transparent)}
+.rk-b b{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}.rk-b b svg{width:14px;height:14px;opacity:.6}
+.rk-s{display:flex;flex-direction:column;align-items:center;gap:3px}.rk-s small{font-size:12px;color:var(--t65);font-variant-numeric:tabular-nums}
+.rk-flecha{width:16px;height:16px;opacity:0;transform:translateX(-6px);transition:opacity .3s var(--ease),transform .3s var(--ease);color:var(--t65)}
+.rk-pie{display:flex;justify-content:center;padding:12px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:13px;color:var(--t65)}
+@container disp (max-width:1700px){.rk-cab,.rk-f{grid-template-columns:1.25rem 1.5rem minmax(9rem,1.7fr) 3.5rem minmax(7rem,1fr) 7.5rem 1rem}.rk-cab span:nth-child(4),.rk-f>.rk-v{display:none}}
+@container disp (max-width:900px){.rk-cab{display:none}.rk-f{grid-template-columns:1.25rem 1.5rem minmax(0,1fr) auto;padding:12px 16px;gap:8px 12px}.rk-f>.anillo,.rk-f>.rk-flecha{display:none}.rk-f>.rk-n{grid-column:3/5}.rk-f>.rk-b{grid-column:3;grid-row:2}.rk-f>.rk-s{grid-column:4;grid-row:2}.rk-s small{display:none}.rk .herr{padding:14px 16px}}
+
+/* ============ 1 · LA COLUMNA «QUÉ HACER» ============ */
+.qh{padding:12px}
+.qh h3,.cmp h3{display:flex;align-items:center;gap:8px;padding:4px 10px 6px;font-family:'EB Garamond',serif;font-weight:400;font-size:21px}
+.qh-l{display:grid}
+.tar{--c:var(--t65);display:grid;grid-template-columns:1.5rem minmax(0,1fr) auto 1rem;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;text-align:left;font-size:14.5px;line-height:1.35}
+.tar+.tar{border-top:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.tar .ti{display:grid;place-items:center;color:var(--c)}.tar .ti svg{width:16px;height:16px}
+.tar b{font-weight:600}.tar .tcif{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.tar[data-t="urgente"]{--c:var(--rojo-p)}.tar[data-t="urgente"] .tcif{color:var(--rojo-p)}.tar[data-t="bien"]{--c:var(--verde)}.tar[data-t="ambar"]{--c:var(--ambar)}
+[data-tema="oscuro"] .tar[data-t="urgente"]{--c:var(--rojo)}[data-tema="oscuro"] .tar[data-t="urgente"] .tcif{color:var(--rojo)}
+.tar .fl{width:16px;height:16px;color:var(--taupe);transition:transform .3s var(--ease)}
+@media (hover:hover){.tar:hover .fl{transform:translateX(3px)}}
+.qh-pie{margin:8px 10px 2px;padding-top:10px;border-top:1px solid var(--sand);font-size:12px;line-height:1.6;color:var(--taupe)}
+.qh-sep{margin:6px 10px 2px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+/* Como ahora: la tarjeta de papel. */
+[data-qh="ahora"] .qh{border-radius:16px;border:1px solid var(--sand);background:var(--papel);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+@media (hover:hover){[data-qh="ahora"] .tar:hover{background:color-mix(in srgb,var(--hueso) 70%,transparent)}}
+/* A · Placa con filas: la placa Serena; cada tarea, una fila de la lista; el ícono de la urgente, en su gota roja; al pasar, la fila se aclara como las del combo. */
+[data-qh="placa"] .tar .ti{width:28px;height:28px;border-radius:50%;margin-left:-2px}
+[data-qh="placa"] .tar[data-t="urgente"] .ti{color:var(--crema-fija);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 80%,transparent),color-mix(in srgb,var(--rojo) 96%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 35%,transparent)}
+[data-qh="placa"] .tar[data-t="urgente"] .ti svg{width:14px;height:14px}
+[data-qh="placa"] .tar{grid-template-columns:1.75rem minmax(0,1fr) auto 1rem}
+[data-qh="placa"] .tar+.tar{border-top-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+@media (hover:hover){[data-qh="placa"] .tar:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}[data-tema="oscuro"][data-qh="placa"] .tar:hover{background:color-mix(in srgb,var(--tinta) 9%,transparent)}}
+/* B · Tareas en gotas: cada tarea es su propia gota clara, separadas; la urgente, una lente roja. */
+[data-qh="gotas"] .qh-l{gap:8px;padding:2px}
+[data-qh="gotas"] .tar{border-radius:16px;border:1px solid color-mix(in srgb,var(--borde) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 60%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-qh="gotas"] .tar+.tar{border-top:1px solid color-mix(in srgb,var(--borde) 70%,transparent)}
+[data-qh="gotas"] .tar[data-t="urgente"]{border-color:color-mix(in srgb,var(--rojo) 28%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 5%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--rojo) 11%,color-mix(in srgb,var(--vidrio) 60%,transparent)))}
+[data-tema="oscuro"][data-qh="gotas"] .tar{background:color-mix(in srgb,var(--tinta) 6%,transparent);box-shadow:none;border-color:color-mix(in srgb,var(--tinta) 14%,transparent)}
+[data-tema="oscuro"][data-qh="gotas"] .tar[data-t="urgente"]{background:color-mix(in srgb,var(--rojo) 12%,transparent);border-color:color-mix(in srgb,var(--rojo) 34%,transparent)}
+
+/* ============ 2 · «COMPARAR» ============ */
+.cmp{padding:12px 14px;animation:sube .4s var(--ease) backwards}
+.cmp h3{justify-content:space-between;padding:4px 2px 8px}
+.cmp h3 .btn{height:30px;padding:0 12px;font-size:12.5px;font-family:'DM Sans',sans-serif}
+.cmp-g{display:grid;gap:0 12px}
+.cmp-g{grid-template-rows:repeat(6,auto)}
+.cmp-c{display:grid;grid-row:span 6;grid-template-rows:subgrid;min-width:0}
+.cmp-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;min-height:46px;padding:8px 0}
+.cmp-cab b{font-family:'EB Garamond',serif;font-weight:400;font-size:16px;line-height:1.15;overflow-wrap:anywhere}
+.cmp-x{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--hueso)}.cmp-x svg{width:13px;height:13px}
+.cmp-d{display:flex;flex-direction:column;gap:3px;min-height:58px;padding:9px 0;border-top:1px solid var(--sand);font-size:13.5px}
+.cmp-d .t{font-size:11.5px;font-weight:600;color:var(--taupe)}.cmp-d b{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}.cmp-d small{font-size:11.5px;color:var(--t65)}
+.cmp-d .ap2{flex:none;width:100%;height:6px}
+.cmp-d .t.vacio{visibility:hidden}
+/* Como ahora: la tarjeta de papel. */
+[data-cmp="ahora"] .cmp{border-radius:16px;border:1px solid var(--sand);background:var(--papel);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+/* A · Placa con columnas: la placa Serena; el nombre de cada uno arriba con su × en gota; las filas, separadas por rayas finas. */
+[data-cmp="columnas"] .cmp-x{border:1px solid var(--borde);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-cmp="columnas"] .cmp-x{background:color-mix(in srgb,var(--tinta) 10%,transparent);box-shadow:none}
+[data-cmp="columnas"] .cmp-d{border-top-color:color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* B · Columnas hundidas: cada proveedor vive en su pozo, de arriba abajo: se ve de un golpe qué dato es de quién. */
+[data-cmp="pozos"] .cmp-g{gap:0 8px}
+[data-cmp="pozos"] .cmp-c{padding:0 10px 4px;border-radius:16px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-cmp="pozos"] .cmp-c{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-cmp="pozos"] .cmp-d{border-top-color:color-mix(in srgb,var(--tinta) 7%,transparent)}
+[data-cmp="pozos"] .cmp-x{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));border:1px solid var(--borde)}
+
+/* ---------- la isla del celular ---------- */
+.pv-isla{display:none}
+@container disp (max-width:1279px){.pv-isla{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;gap:12px;margin:16px 0 4px;padding:10px 10px 10px 18px;border-radius:18px;color:var(--crema);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent));-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 18px 40px -16px color-mix(in srgb,var(--sombra) 60%,transparent);animation:sube .4s var(--ease) backwards}
+  .pv-isla[hidden]{display:none}
+  .pv-isla div{flex:1;min-width:0}.pv-isla b{display:block;font-size:15px}.pv-isla small{display:block;font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pv-isla .btn{flex:none;height:38px;color:var(--tinta);background:var(--crema);border-color:transparent}}
+@container disp (max-width:640px){.cmp-d b{font-size:14.5px}.cmp-cab b{font-size:15px}}
+@media (prefers-reduced-motion:reduce){.cmp,.pv-isla{animation:none}.rk-flecha,.tar .fl{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Compras ▸ Proveedores, con vidrio: la página entera con las piezas elegidas</span>
+  <span class="tag">«Qué hacer»</span><div class="seg-m" data-ctl="qh"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa con filas</button><button data-v="gotas">B · Tareas en gotas</button></div>
+  <span class="tag">«Comparar»</span><div class="seg-m" data-ctl="cmp"><button data-v="ahora">Como ahora</button><button data-v="columnas">A · Placa con columnas</button><button data-v="pozos">B · Columnas hundidas</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+  <span class="tag">Ver</span><button class="accion" data-acc="comparar">Marcar dos para comparar</button>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>components/ProveedoresPanel.tsx</code>): la cabecera con «Nuevo proveedor», las pestañas Mercadería · Servicios, «Ordenar por» prendas o costo, y el ranking de Mercadería (dirección «C», Felipe 2026-10-26): la casilla para comparar, el puesto, el proveedor con lo que se le debe, las ventas por día, el anillo de lo vendido, la barra de lo que te llegó y «Se vende en» con su insignia.</li>
+      <li><b>«Qué hacer»</b> (forma «B», Felipe 2026-10-26): a la derecha desde 1280 px, una <b>tarjeta de papel</b> con una lista de tareas —un verbo, un número y una flecha—; lo urgente arriba y en rojo; lo que no pide hacer nada, en una línea gris al pie.</li>
+      <li><b>«Comparar»</b>: al marcar hasta 3, entra arriba de la columna en una <b>tarjeta de papel</b> con cada proveedor en su columna y cada dato en su fila; «Para hoy» queda debajo. En el celular, la isla oscura dice cuántos marcaste.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>«Qué hacer»</b></td><td>A · Placa con filas <span class="ev">Recomendada</span></td><td>Una placa más de la página; cada tarea es una fila que se aclara al pasar, como la lista de los combos; la urgente lleva su ícono en una gota roja. Se lee como lista de tareas, que es lo que Felipe eligió.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Tareas en gotas</td><td>Cada tarea es un botón que se ve tocable; la urgente, una lente roja.</td><td>Seis gotas apiladas pesan más que la lista y la columna crece; se pierde el «una línea, una tarea».</td></tr>
+      <tr><td rowspan="2"><b>«Comparar»</b></td><td>A · Placa con columnas <span class="ev">Recomendada</span></td><td>La placa Serena con cada dato en su fila, la × en gota. Se lee de izquierda a derecha, dato por dato, que es para lo que existe.</td><td>Con tres proveedores las columnas quedan angostas, como hoy.</td></tr>
+      <tr><td>B · Columnas hundidas</td><td>Cada proveedor en su pozo, de arriba abajo: nunca se confunde de quién es una cifra.</td><td>Los pozos cortan la lectura por fila (comparar el mismo dato) y quitan ancho.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>El orden del ranking y lo que mide cada columna, el anillo, la barra (lo oscuro ya se vendió), las insignias de ritmo (Repón, A su ritmo, Frena compras), la fila entera que abre la vista rápida, el enlace a Por pagar, hasta 3 para comparar, «Para hoy» debajo de «Comparar», y la columna que baja bajo 1280 px.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', abajo: 'M6 9l6 6 6-6', der: 'M9 6l6 6-6 6', ok: 'M20 6 9 17l-5-5', x: 'M18 6 6 18M6 6l12 12',
+    polo: 'M20.4 6.6 16 4a4 4 0 0 1-8 0L3.6 6.6a1 1 0 0 0-.5 1.2l.9 2.7a1 1 0 0 0 1.2.6L7 10v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V10l1.8.9a1 1 0 0 0 1.2-.6l.9-2.7a1 1 0 0 0-.5-1.2z',
+    billete: 'M2 6h20v12H2z M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M6 12h.01M18 12h.01', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+    camion: 'M14 18V6H2v12h2 M14 9h4l4 4v5h-2 M8 18h8 M6 16a2 2 0 1 0 0 4a2 2 0 1 0 0-4z M18 16a2 2 0 1 0 0 4a2 2 0 1 0 0-4z', menos: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M8 12h8',
+    repon: 'M3 12a9 9 0 0 1 15-6.7L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-15 6.7L3 16 M3 21v-5h5', baja: 'M22 17l-8.5-8.5-5 5L2 7 M16 17h6v-6', sube: 'M12 19V5M5 12l7-7 7 7' };
+  const s = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  // [puesto, nombre, debe, vencido, cambio, vendidoPct, llegó, ritmo, semanas, ventas por día (28), costo]
+  const azar = (n, k) => Array.from({ length: 28 }, (_, i) => Math.max(0, Math.round(n + Math.sin(i * 0.9 + k) * n * 0.5 + Math.cos(i * 0.37 + k * 2) * n * 0.3)));
+  const PROV = [[1, 'Textiles Andinos SAC', 4280, 1200, 0, 72, 640, 'rapido', '4 sem', azar(6, 1), 18420], [2, 'Confecciones Rímac', 0, 0, 1, 64, 510, 'medio', '9 sem', azar(4, 2), 16950],
+    [3, 'Moda Gamarra EIRL', 2150, 0, -1, 58, 480, 'medio', '12 sem', azar(3.5, 3), 12300], [4, 'Hilos del Norte', 0, 0, 0, 31, 390, 'lento', '22 sem', azar(1.5, 4), 9870],
+    [5, 'Punto Fino SAC', 860, 860, 0, 77, 220, 'rapido', '3 sem', azar(2.5, 5), 7140], [6, 'Tejidos Trujillo', 0, 0, 0, 12, 18, 'nomide', '', azar(0.4, 6), 610]];
+  const RIT = { rapido: ['verde', 'Repón'], medio: ['pizarra', 'A su ritmo'], lento: ['ambar', 'Frena compras'], nomide: ['tinta', 'Poco para medir'] };
+  const soles = (n) => 'S/ ' + Math.round(n).toLocaleString('es-PE');
+  let marcados = [];
+  const linea = (v) => { const mx = Math.max(...v, 1), x = (i) => (i / 27) * 88, y = (n) => 22 - (n / mx) * 20;
+    const d = v.map((n, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(n).toFixed(1)}`).join(' '); return `<svg viewBox="0 0 88 24" aria-hidden="true"><path class="a" d="${d} L88 24 L0 24Z"/><path class="l" d="${d}"/></svg>`; };
+  const anillo = (p) => { const c = 2 * Math.PI * 17; return `<span class="anillo" role="img" aria-label="${p} % vendido"><svg viewBox="0 0 40 40"><circle class="pista" cx="20" cy="20" r="17"/><circle class="arco" cx="20" cy="20" r="17" stroke-dasharray="${(p / 100) * c} ${c}"/></svg>${p}%</span>`; };
+  const barra = (ll, p, mx) => `<span class="ap2" style="max-width:${(ll / mx) * 100}%"><i class="vend" style="width:${p}%"></i><i class="queda" style="width:${100 - p}%"></i></span>`;
+  const MAX = Math.max(...PROV.map((p) => p[6]));
+  function fila(p) { const [pu, n, debe, venc, cam, vp, ll, ri, sem, v] = p; const [t, pal] = RIT[ri]; const m = marcados.includes(pu);
+    return `<div class="rk-f"${m ? ' data-marcado' : ''}><button class="cas" role="checkbox" aria-checked="${m}" data-marca="${pu}" aria-label="Comparar ${n}">${s(D.ok)}</button><span class="rk-p">${pu}</span>
+      <span class="rk-n"><b><span style="overflow:hidden;text-overflow:ellipsis">${n}</span>${cam > 0 ? `<span class="chip sube">${s(D.sube)}${cam}</span>` : ''}</b><small>${debe ? `Le debes <a href="#">${soles(debe)}</a>${venc ? `<span class="venc"> · ${venc >= debe ? 'todo vencido' : soles(venc) + ' vencido'}</span>` : ''}` : 'Al día'}</small></span>
+      <span class="rk-v">${linea(v)}<span><b>${v.slice(-7).reduce((a, b) => a + b, 0)}</b> esta semana</span></span>${anillo(vp)}
+      <span class="rk-b">${barra(ll, vp, MAX)}<b>${s(D.polo)}${ll}</b></span><span class="rk-s">${sem ? `<small>${sem}</small>` : ''}<span class="chip ${t}">${pal}</span></span>${s(D.der, 'ic rk-flecha')}</div>`; }
+  const TAREAS = [['urgente', 'alerta', 'Paga', 'lo vencido', 'S/ 2,060'], ['urgente', 'camion', 'Reclama', 'la entrega atrasada', '1'], ['ambar', 'menos', 'Frena', 'compras', '1'], ['bien', 'repon', 'Repón', 'a los que se agotan', '2'], ['', 'baja', 'Pide mejor costo', 'a Hilos del Norte', '']];
+  const tarea = ([t, ic, v, r, c]) => `<button class="tar" data-t="${t}"><span class="ti">${s(D[ic])}</span><span><b>${v}</b> ${r}</span><span class="tcif">${c}</span>${s(D.der, 'ic fl')}</button>`;
+  function comparar() { const ps = marcados.map((m) => PROV.find((p) => p[0] === m)); const n = ps.length;
+    const datos = [['Te llegó · prendas', (p) => `<b>${p[6]}</b>${barra(p[6], p[5], MAX)}`], ['Vendiste', (p) => `<b>${p[5]} %</b>`], ['Se vende en', (p) => `<b>${p[8] || '—'}</b><span class="chip ${RIT[p[7]][0]}">${RIT[p[7]][1]}</span>`],
+      ['Ventas · 4 semanas', (p) => `<span class="rk-v" style="align-items:flex-start">${linea(p[9])}</span><small><b style="font-size:13px">${p[9].slice(-7).reduce((a, b) => a + b, 0)}</b> esta semana</small>`], ['Le debes', (p) => `<b>${p[2] ? soles(p[2]) : '—'}</b>`]];
+    return `<section class="placa cmp" aria-label="Comparar proveedores"><h3>Comparar <button class="btn sec" data-acc="comparar">Quitar todos</button></h3>
+      <div class="cmp-g" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${ps.map((p) => `<div class="cmp-c"><div class="cmp-cab"><b>${p[1]}</b><button class="cmp-x" data-marca="${p[0]}" aria-label="Quitar ${p[1]}">${s(D.x)}</button></div>
+        ${datos.map(([t, f], i) => `<div class="cmp-d"><span class="t${p === ps[0] ? '' : ' vacio'}">${t}</span>${f(p)}</div>`).join('')}</div>`).join('')}</div></section>`; }
+  function lado() { const cmp = marcados.length > 0;
+    return `${cmp ? comparar() : ''}<section class="placa qh"><h3>${cmp ? 'Para hoy' : 'Qué hacer'}</h3><div class="qh-l">${TAREAS.slice(0, cmp ? 2 : 5).map(tarea).join('')}</div>${cmp ? '' : '<p class="qh-pie">61 % vendido de 2,258 prendas · costos por confirmar: el 8 % vino en la carga inicial · 2 sin compra en 90 días</p>'}</section>`; }
+  function pantalla() {
+    const nm = marcados.map((m) => PROV.find((p) => p[0] === m)[1]);
+    $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Proveedores', frase: 'A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante.', acciones: [['pri', 'Nuevo proveedor', 'mas']] })}
+      <div class="pv-nav"><nav class="pest" aria-label="Tipo de proveedor"><a href="#" aria-current="page">Mercadería<span class="glb">6</span></a><a href="#">Servicios<span class="glb">9</span></a></nav>
+        <div class="medida"><span class="vs">Ordenar por</span><div class="modo"><button aria-pressed="true">${s(D.polo)}Prendas <b>2,258</b></button><button>${s(D.billete)}Costo <b>S/ 65,290</b></button></div><small>te llegaron de 6 proveedores</small></div></div>
+      <div class="pv-cuerpo"><div style="min-width:0"><section class="placa rk"><div class="herr"><div class="pozo-b">${s(D.lupa)}<span>Busca un proveedor o una marca</span></div>
+          <div class="pv-der"><button class="fp">Ritmo ${s(D.abajo)}</button><button class="fp">Le debes</button></div></div>
+        <div class="rk-cab"><span></span><span>#</span><span>Proveedor</span><span>Ventas<small>por día · 4 semanas</small></span><span>Vendido</span><span>Te llegó · prendas<small>lo oscuro ya se vendió</small></span><span>Se vende en</span><span></span></div>
+        ${PROV.map(fila).join('')}<p class="rk-pie">Producción propia · Taller Lima: 312 prendas. No entra al ranking: es lo que hace el Taller.</p></section>
+        <div class="pv-isla"${marcados.length ? '' : ' hidden'}><div><b>${marcados.length === 1 ? '1 marcado' : marcados.length + ' marcados'}</b><small>${nm.join(' · ')}</small></div><button class="btn">Comparar</button></div></div>
+        <div class="pv-col">${lado()}</div></div>`;
+    $$('#cont [data-marca]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); const k = +b.dataset.marca;
+      marcados = marcados.includes(k) ? marcados.filter((x) => x !== k) : marcados.length < 3 ? [...marcados, k] : marcados; pantalla(); }));
+  }
+  Marco.iniciar({ estado: { qh: 'placa', cmp: 'columnas' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); },
+    alAccion: (a) => { if (a === 'comparar') { marcados = marcados.length ? [] : [1, 4]; pantalla(); } } });
+})();
+</script>
+</body>
+</html>

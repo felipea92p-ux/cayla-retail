@@ -86,3 +86,21 @@ encontró a #975 repitiendo dos migraciones de #788 y a #600 con un ADR-0262 dis
 - Alguien renombra el job «Pruebas de RPC contra Postgres»: ningún PR se podría fusionar. Lo vigila `pruebas-postgres.test.mjs`.
 - Una sesión elige el número a mano y no reserva: el candado solo avisa, y el choque vuelve a salir tarde.
 - Se fusionan PR con squash con otro asunto: `alcance.mjs` reconoce «Merge pull request #N» y «… (#N)», nada más.
+
+## Actualización 2026-10-31: 6 tandas y «Tipos, lint y pruebas» en tres jobs a la vez
+
+Medido en el PR #1500 (corrida 41169684593): el CI tardaba 8–9 min y el ruleset (rama al día) lo hacía correr de 7 a 10 veces
+por rama mientras otras sesiones fusionaban. Las pruebas de Postgres ya sumaban ~1.300 s (397 pruebas, 209 sin medir), así que
+4 tandas de ~5 min eran el camino más largo; y «Tipos, lint y pruebas» corría tipos (1:39), lint (2:13) y pruebas (2:06) en fila.
+
+- **6 tandas** (`TANDAS`), con las duraciones medidas de nuevo en esa corrida: ~217 s cada una. No más de 6: el plan gratis de
+  Actions corre 20 jobs a la vez en toda la cuenta, y una corrida completa ya ocupa ~11 en su pico; con dos PR a la vez, más
+  tandas se harían fila entre ellas y no ganarían nada.
+- **Tipos, lint y pruebas en tres jobs paralelos** (`tipos`, que también lleva los candados chicos; `lint`; `pruebas-unidad`).
+  El check obligatorio «Tipos, lint y pruebas» pasa a ser un job que junta los tres resultados, como «Pruebas de RPC contra
+  Postgres» junta sus tandas: el ruleset no se toca. Lo vigila `scripts/ci/alcance.test.mjs`.
+- **Descarté guardar el caché de ESLint y de `tsc` entre corridas:** con los jobs en paralelo, ninguno de los dos es el camino
+  más largo (lo son las tandas), y un caché agrega un estado más que puede quedar viejo sin que nadie lo vea.
+
+Se rompe si las pruebas de Postgres siguen creciendo ~3 s cada una: a las ~500 pruebas, las tandas vuelven a pasar de 5 min y
+lo que sigue es cortar el arranque de la base (las 1.018 migraciones), no sumar tandas.

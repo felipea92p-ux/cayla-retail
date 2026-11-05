@@ -12,6 +12,7 @@ import { CampanitaConEspera } from "../campanita/Campanita";
 import { Cabecera } from "../Cabecera";
 import { CabeceraConCuenta } from "../CabeceraConCuenta";
 import { Pie } from "../Pie";
+import type { OpcionTienda } from "@/lib/sede-elegida";
 import type { Portada } from "@/lib/portada";
 import Link from "next/link";
 import { Icono } from "../Icono";
@@ -38,6 +39,8 @@ export async function MarcoCuenta({
   enPagina,
   conPie = false,
   visitante = false,
+  tiendas = null,
+  prendasEnBolsa = 0,
 }: {
   children: React.ReactNode;
   conCuenta?: boolean;
@@ -48,6 +51,11 @@ export async function MarcoCuenta({
   /** Con `conCuenta`: la página de la tienda (la bolsa) la ve también quien NO tiene sesión. Lleva la misma cabecera, pero su persona
    *  ofrece «Entrar» y «Crear mi cuenta», sin nombre, sin anotar la entrada y con el pie de quien aún no tiene cuenta. */
   visitante?: boolean;
+  /** La tienda que se mira, para elegirla en la cabecera (la bolsa, ADR-0465: en la bolsa también se ve en qué tienda se está). Con menos de
+   *  dos tiendas en la web, nada. */
+  tiendas?: OpcionTienda[] | null;
+  /** Cuántas prendas lleva la bolsa: cambiar de tienda la vacía, y el selector lo avisa antes. */
+  prendasEnBolsa?: number;
 }) {
   if (segunSesion) {
     const [{ campana }, anio] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0)]);
@@ -121,6 +129,8 @@ export async function MarcoCuenta({
             bolsa={<BotonBolsa />}
             campanita={conSesion ? <CampanitaConEspera prendas={catalogo?.prendas ?? []} hrefNuevo={datosCabecera.nuevo.href} /> : null}
             visitante={visitante}
+            tiendas={tiendas}
+            prendasEnBolsa={prendasEnBolsa}
           />
         ) : (
           <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />

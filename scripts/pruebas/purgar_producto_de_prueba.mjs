@@ -34,6 +34,13 @@
  *     ROJA); uno que intentó salir sin decir a qué entorno; uno que se está enviando ahora; una venta anulada; un aviso a
  *     la clienta (una tabla que cita la separación); una mención SIN llave foránea (una proforma); un libro que ya no
  *     cuadraba; parámetros faltantes; el producto o la venta inexistentes.
+ *   · UN RESPALDO VIEJO se restaura aunque la tabla haya ganado columnas después (casos 10d–10f): las líneas de conteo sin
+ *     `aplicada_sin_contar` ni `completada_con_atajo` vuelven con `false`; cualquier columna `NOT NULL` con valor de fábrica
+ *     (texto, entero, `now()`, json) vuelve con ese valor; una opcional queda nula; una `NOT NULL` SIN valor de fábrica no se
+ *     inventa: la restauración se niega diciendo tabla y columna. Los casos 10e y 10f agregan columnas de mentira a
+ *     `pedidos_no_atendidos` DENTRO de la transacción (el ROLLBACK las deshace; un `lock_timeout` de 5 s evita que esperen
+ *     eternamente a la tienda si la base es compartida). CONTROL que muerde: `RESTAURAR_SCRIPT=<restaurar-purga.sql anterior al
+ *     arreglo>` pone los 7 comprobantes de esos casos en rojo (el error es el 23502 de la columna que el respaldo no trae).
  *   · LA SERIE de notas no retrocede si la nota purgada NO era la última: sin huecos ni repetidos.
  *   · Repetirla no hace nada: el producto ya no existe.
  *
@@ -248,6 +255,8 @@ update retail.conteo_items set movimiento_id = :'m5' where id = :'ci';
 insert into retail.conteo_items (conteo_id, variante_id, cantidad_sistema, cantidad_contada) values (:'conteo', :'o1', 5, 5) returning id as ci_otro \\gset
 -- Un pedido que no se pudo atender.
 insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id) values (:'ubic', :'prod');
+-- Su fila de la vitrina de la tienda online: un producto nuevo ya nace con ella (ADR-0457); sin la purga conociéndola, la frenaría.
+insert into retail.vitrina_productos (producto_id, publicado, publicado_en) values (:'prod', true, now()) on conflict (producto_id) do nothing;
 -- Dos renglones de la libreta de «Ya decidí» (Frescura del piso, ADR-0208 paso 4b): la purga la conoce, la respalda y la
 -- devuelve; sin esto, un producto decidido pararía la purga («otra parte del sistema todavía lo usa»).
 insert into retail.frescura_decisiones (ubicacion_id, producto_id, color_codigo, accion, plazo_dias, persona_id, token_cliente)
@@ -790,6 +799,81 @@ ${RESTAURAR}`
     );
     esperar("restaurar: la nota nueva tomó el número devuelto por la purga", r.lineas[0] === "t", r);
     esperar("restaurar: se niega con un mensaje claro — ese número ya lo tiene otro comprobante", !r.ok && /Esos números ya los tiene otro comprobante/.test(r.err), r.err.slice(0, 800));
+  }
+
+  // 10d. Un respaldo VIEJO: hecho antes de que `conteo_items` ganara columnas `boolean not null default false`
+  // (`aplicada_sin_contar`, `completada_con_atajo`). Esas claves no vienen en el respaldo y `jsonb_populate_recordset` las entrega
+  // como NULL, no como el valor de fábrica: antes del arreglo el insert moría con 23502 y la restauración ENTERA se abortaba.
+  // Se imita quitándole esas claves a lo respaldado (si `completada_con_atajo` aún no existe en la base, quitarla no hace nada).
+  // CONTROL que muerde: `RESTAURAR_SCRIPT=<el restaurar-purga.sql de antes del arreglo>` debe poner este caso en rojo.
+  {
+    const r = correr(
+      `${escenaDocs()}
+select pg_temp.foto(${QUEDAN_IGUAL}) as foto_antes \\gset
+${purgaDocsDefinitiva()}
+drop function pg_temp.libro_descuadra();
+select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'conteo_items';
+update respaldo_purgas.filas set fila = fila - 'aplicada_sin_contar' - 'completada_con_atajo' where purga = :'nombre_purga' and tabla = 'conteo_items';
+select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'conteo_items' and (fila ? 'aplicada_sin_contar' or fila ? 'completada_con_atajo');
+select count(*) >= 1 from information_schema.columns where table_schema = 'retail' and table_name = 'conteo_items'
+   and column_name in ('aplicada_sin_contar', 'completada_con_atajo') and is_nullable = 'NO' and column_default is not null;
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}
+select to_jsonb(c) ->> 'aplicada_sin_contar', coalesce(to_jsonb(c) ->> 'completada_con_atajo', 'false') from retail.conteo_items c where c.id = :'ci';
+select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto(${QUEDAN_IGUAL})) || ']';
+select ${LIBRO};`
+    );
+    const [enRespaldo, conClaves, muerde, valores, distintas, libro] = ultimas(r);
+    esperar("docs · respaldo viejo: el caso muerde — la línea de conteo está respaldada, ya sin las claves nuevas, y esas columnas son NOT NULL con valor de fábrica", r.ok && enRespaldo === "1" && conClaves === "0" && muerde === "t", r);
+    esperar("docs · respaldo viejo: restaurar NO se aborta — la línea de conteo vuelve con el valor de fábrica (false) en las columnas que el respaldo no trae", r.ok && valores === "false|false", r);
+    esperar("docs · respaldo viejo: y la base entera vuelve a ser la de antes, tabla por tabla", r.ok && distintas === "[]", r);
+    esperar("docs · respaldo viejo: el libro cuadra después de restaurar", r.ok && libro === "0", r);
+  }
+
+  // 10e. Lo mismo, pero PARA CUALQUIER columna futura (no solo las dos de conteo): se agregan, después de la purga, columnas NOT NULL
+  // de varios tipos con valor de fábrica a `pedidos_no_atendidos` (una tabla chica y poco usada, para no estorbar a la tienda si
+  // la prueba corre en una base compartida; el ALTER se deshace con el ROLLBACK). Una columna OPCIONAL (nullable) con valor de
+  // fábrica NO se rellena: para ella un NULL es un dato, y el respaldo no puede distinguir «no la traía» de «era nula».
+  {
+    const r = correr(
+      `${escenaDocs()}
+${purgaDocsDefinitiva()}
+drop function pg_temp.libro_descuadra();
+set local lock_timeout = '5s';
+alter table retail.pedidos_no_atendidos
+  add column zz_texto text not null default 'abierto',
+  add column zz_entero integer not null default 7,
+  add column zz_cuando timestamptz not null default now(),
+  add column zz_json jsonb not null default '{}'::jsonb,
+  add column zz_opcional text default 'x';
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}
+select concat_ws('|', zz_texto, zz_entero, zz_cuando is not null, zz_json::text, coalesce(zz_opcional, '<nulo>')) from retail.pedidos_no_atendidos where producto_id = :'prod';
+select ${LIBRO};`
+    );
+    const [valores, libro] = ultimas(r);
+    esperar("docs · respaldo viejo: cualquier columna NOT NULL con valor de fábrica (texto, entero, fecha de ahora, json) vuelve con ese valor; la opcional queda nula", r.ok && valores === "abierto|7|t|{}|<nulo>", r);
+    esperar("docs · respaldo viejo: con columnas nuevas el libro también cuadra", r.ok && libro === "0", r);
+  }
+
+  // 10f. Una columna NOT NULL SIN valor de fábrica que el respaldo no trae NO se inventa: la restauración se niega y el mensaje dice
+  // qué tabla y qué columna es (en vez del 23502 pelado), y no se restaura nada.
+  {
+    const r = correr(
+      `${escenaDocs()}
+${purgaDocsDefinitiva()}
+drop function pg_temp.libro_descuadra();
+set local lock_timeout = '5s';
+alter table retail.pedidos_no_atendidos add column zz_sin_valor text not null default 'x';
+alter table retail.pedidos_no_atendidos alter column zz_sin_valor drop default;
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}`
+    );
+    esperar(
+      "docs · respaldo viejo: una columna NOT NULL sin valor de fábrica no se inventa — se niega diciendo la tabla y la columna",
+      !r.ok && /\[restaurar\] No se restaura nada[^\n]*pedidos_no_atendidos[^\n]*zz_sin_valor/.test(r.err) && !/\[restaurar\] HECHO/.test(r.err),
+      r.err.slice(-900)
+    );
   }
 
   // 11. RECHAZOS con documentos: no se borra nada, y el mensaje dice qué impide.

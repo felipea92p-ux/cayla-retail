@@ -83,14 +83,14 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
           {ok.cierres} {ok.cierres === 1 ? "faltante cerrado" : "faltantes cerrados"}. Quedan en el historial del comprobante.
         </p>
       )}
-      {/* El documento del proveedor no se registra acá: se reclama en su módulo (solo líder — `porReclamar` llega en 0 para el resto). */}
+      {/* Lo que el proveedor debe se reclama en «Nos debe» de Proveedores (ADR-0480: las notas de crédito no se manejan por ahora). */}
       {ok.porReclamar > 0 && (
         <p className="flex max-w-lg flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-tinta/70">
           <span>
-            El proveedor te debe <b className="font-semibold tabular-nums text-ambar-profundo">{soles(ok.porReclamar)}</b> en notas de crédito.
+            El proveedor te debe <b className="font-semibold tabular-nums text-ambar-profundo">{soles(ok.porReclamar)}</b> por lo que no llegó.
           </span>
-          <Link href="/compras/notas-credito" className="rounded-full transition-opacity hover:opacity-80">
-            <Chip tono="ambar">Se reclama en Notas de crédito ↗</Chip>
+          <Link href="/compras/proveedores" className="rounded-full transition-opacity hover:opacity-80">
+            <Chip tono="ambar">Se reclama en «Nos debe» ↗</Chip>
           </Link>
         </p>
       )}
@@ -99,18 +99,18 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
         <ol aria-label="Movimientos que dejó el envío" className="relative mt-4 w-full max-w-xl pl-[22px] text-left">
           <span aria-hidden className="recibir-hilo absolute bottom-1.5 left-[5px] top-1.5 w-0.5 bg-taupe/50" />
           {ver.map((m, i) => (
-            <li key={i} style={{ "--i": i } as React.CSSProperties} className="anim-movimiento relative grid grid-cols-[3.2rem_1fr_auto] gap-2.5 py-1.5 text-[13.5px]">
+            <li key={i} style={{ "--i": i } as React.CSSProperties} className="anim-movimiento relative grid grid-cols-[3.2rem_1fr_auto] gap-2.5 py-1.5 text-[15px]">
               <span aria-hidden className="absolute -left-[21px] top-[14px] h-2 w-2 rounded-full border-2 border-taupe bg-papel" />
               <b className="font-display text-lg font-normal tabular-nums text-verde-profundo">+{m.cantidad}</b>
               <span className="min-w-0 truncate text-tinta">
                 {m.referencia}
                 {m.detalle ? ` · ${m.detalle}` : ""}
               </span>
-              <small className="text-xs text-tinta/55">{m.origen}</small>
+              <small className="text-sm text-tinta/55">{m.origen}</small>
             </li>
           ))}
           {mas > 0 && (
-            <li style={{ "--i": ver.length } as React.CSSProperties} className="anim-movimiento py-1.5 text-xs text-tinta/55">
+            <li style={{ "--i": ver.length } as React.CSSProperties} className="anim-movimiento py-1.5 text-sm text-tinta/55">
               y {mas} {mas === 1 ? "movimiento más" : "movimientos más"}…
             </li>
           )}

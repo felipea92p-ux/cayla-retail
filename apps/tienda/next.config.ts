@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { REDIRECCIONES_DE_SHOPIFY } from "./lib/redirecciones-shopify";
 
 // La tienda online (ADR-0408) es una app aparte del ERP: se publica sola, con su dominio. No comparte llaves ni código con
 // apps/web; habla con la base del ERP solo por las funciones `retail.tienda_*` (lib/base.ts).
@@ -56,10 +57,16 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // Sin «X-Powered-By: Next.js»: no se anuncia con qué está hecha la tienda.
   poweredByHeader: false,
+  // Los enlaces viejos de la tienda de Shopify que vivía en cayla.pe (ADR-0595).
+  async redirects() {
+    return REDIRECCIONES_DE_SHOPIFY;
+  },
   async headers() {
     return [
       { source: "/:path*", headers: CABECERAS_DE_SEGURIDAD },
       { source: "/:archivo(cayla-[^/]+\\.png)", headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES_FIJAS }] },
+      // Los escudos de las ciudades de la cabecera (2026-10-26): salen en todas las páginas, así que el mismo trato que los íconos.
+      { source: "/escudos/:archivo", headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES_FIJAS }] },
     ];
   },
   // La raíz del monorepo, como en apps/web: sin esto Next la adivina buscando lockfiles hacia arriba y, en un worktree

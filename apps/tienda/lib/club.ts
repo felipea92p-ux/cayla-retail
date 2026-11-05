@@ -182,104 +182,9 @@ export function fechaDicha(iso: string, hoy: Dia): string {
 /** «S/ 20», «S/ 25.50» (como los términos del Club). */
 export const montoDicho = (n: number) => soles(Math.round(n * 100) / 100);
 
-const pctDicho = (pct: number) => `${Number.isInteger(pct) ? pct : pct.toFixed(1)} %`;
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
-
-/* ------------------------------------------------------------------ Lo que dice «Mi perfil» de sus beneficios */
-
-/** El próximo cumpleaños: «14 de octubre» este año o, si ya pasó, «14 de octubre de 2027». */
-export function proximoCumple(dia: number, mes: number, hoy: Dia): string {
-  const yaPaso = mes < hoy.mes || (mes === hoy.mes && dia < hoy.dia);
-  const anio = yaPaso ? hoy.anio + 1 : hoy.anio;
-  return fechaDicha(`${anio}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`, hoy);
-}
-
-export type Beneficio = {
-  titulo: string;
-  texto: string;
-  /** «Disponible»: se puede usar hoy. */
-  disponible: boolean;
-  /** Lo que lleva hacia el vale (0 a 1), solo si todavía no le toca. */
-  avance: number | null;
-};
-
-/** El descuento de cumpleaños, con la regla de la caja (ADR-0288 D-5: en su mes, una vez por año, en tienda con su DNI). */
-export function beneficioCumple(c: Cumple, conPublicidad: boolean, hoy: Dia): Beneficio {
-  const pct = pctDicho(c.pct);
-  switch (c.estado) {
-    case "disponible":
-      return {
-        titulo: `Tu descuento de cumpleaños: ${pct}`,
-        texto: `Es tu mes: úsalo en una compra en cualquier tienda CAYLA${c.hasta ? ` hasta el ${fechaDicha(c.hasta, hoy)}` : ""}. En caja, con tu DNI.`,
-        disponible: true,
-        avance: null,
-      };
-    case "canjeado":
-      return {
-        titulo: "Descuento de cumpleaños: ya lo usaste este año",
-        texto:
-          `${c.canjeadoEl ? `Lo usaste el ${fechaDicha(c.canjeadoEl, hoy)}. ` : ""}` +
-          (c.mes ? `Vuelve a estar disponible en ${MESES[c.mes - 1]} de ${hoy.anio + 1}.` : "Vuelve a estar disponible el próximo año."),
-        disponible: false,
-        avance: null,
-      };
-    case "proximo":
-      return {
-        titulo: c.dia && c.mes ? `Descuento de cumpleaños: ${proximoCumple(c.dia, c.mes, hoy)}` : "Descuento de cumpleaños",
-        texto: `${pct} en una compra en tienda durante tu mes. ${conPublicidad ? "Te avisamos por WhatsApp y también lo ves aquí." : "Lo ves aquí cuando llegue tu mes."}`,
-        disponible: false,
-        avance: null,
-      };
-    case "sin_fecha":
-      return {
-        titulo: "Descuento de cumpleaños",
-        texto: "Tu ficha del Club no tiene tu cumpleaños. Díselo a la tienda en tu próxima compra y lo ves aquí.",
-        disponible: false,
-        avance: null,
-      };
-    default:
-      return { titulo: "Descuento de cumpleaños", texto: "No disponible: tu ficha del Club no está activa.", disponible: false, avance: null };
-  }
-}
-
-/** El vale por aniversario, con la regla de la caja (ADR-0288 G-9 y G-13: un año cuenta con N compras o S/ M; se usa en X días). */
-export function beneficioAniversario(a: Aniversario, conPublicidad: boolean, hoy: Dia): Beneficio {
-  const meta = `${plural(a.comprasMeta, "compra", "compras")} o ${montoDicho(a.montoMeta)}`;
-  const llevas =
-    a.compras === 0 && a.monto === 0
-      ? "Todavía no tienes compras este año."
-      : `Llevas ${plural(a.compras, "compra", "compras")} y ${montoDicho(a.monto)}.`;
-  const avance = Math.max(0, Math.min(1, Math.max(a.compras / a.comprasMeta, a.monto / a.montoMeta)));
-  const proximo = a.proximo ? fechaDicha(a.proximo, hoy) : null;
-  const siguiente = a.siguienteMonto ? montoDicho(a.siguienteMonto) : null;
-
-  if (a.estado === "vale" && a.valeMonto) {
-    return {
-      titulo: `Tienes un vale de ${montoDicho(a.valeMonto)}`,
-      texto: `Por tu aniversario con CAYLA. Úsalo en una compra en cualquier tienda CAYLA${a.valeVence ? ` hasta el ${fechaDicha(a.valeVence, hoy)}` : ""}. En caja, con tu DNI.`,
-      disponible: true,
-      avance: null,
-    };
-  }
-  if (a.estado === "sin_club") {
-    return { titulo: "Vale por tu aniversario con CAYLA", texto: "No disponible: tu ficha del Club no está activa.", disponible: false, avance: null };
-  }
-  const usado = a.estado === "canjeado" && a.valeMonto ? `Usaste tu vale de ${montoDicho(a.valeMonto)}${a.valeCanjeadoEl ? ` el ${fechaDicha(a.valeCanjeadoEl, hoy)}` : ""}. ` : "";
-  if (a.anioCuenta) {
-    return {
-      titulo: siguiente ? `Vale por tu aniversario: ${siguiente}` : "Vale por tu aniversario con CAYLA",
-      texto: `${usado}Este año ya cuenta: ${proximo ? `el ${proximo}` : "en tu aniversario"} recibes tu vale${conPublicidad ? " y te avisamos por WhatsApp" : ""}.`,
-      disponible: false,
-      avance: 1,
-    };
-  }
-  return {
-    titulo: "Vale por tu aniversario con CAYLA",
-    texto: `${usado}${proximo ? `El ${proximo}` : "En tu aniversario"} recibes ${siguiente ? `un vale de ${siguiente}` : "tu vale"} si este año sumas ${meta}. ${llevas}`,
-    disponible: false,
-    avance,
-  };
-}
+/* ------------------------------------------------------------------ Lo que dice «Mi perfil» */
+// El descuento de cumpleaños y el vale de aniversario se retiraron el 2026-10-19 (programa de puntos): lo que «Mi perfil» dice de los puntos
+// vive en lib/puntos.ts. `tienda_mi_club` todavía los devuelve (sus campos se leen para no tumbar la lectura), pero ya no se dicen.
 
 /** «Llegaron 3 prendas desde tu última visita.» (propuesta i). */
 export function tituloNovedades(n: MiClub["novedades"]): string {
@@ -345,10 +250,17 @@ export function etiquetaBotonAvisame(talla: string, sedeNombre: string | null): 
 }
 
 /** El aviso de abajo después de pedirlo (maqueta, `agregarAviso`). */
-export function textoAvisoAnotado(talla: string, sedeNombre: string | null): string {
+export function textoAvisoAnotado(talla: string, sedeNombre: string | null, whatsapp = false): string {
   const que = sinNombre(talla) ? "cuando llegue" : `cuando llegue la talla ${talla.trim()}`;
-  return `Te avisaremos en tu cuenta ${que}${sedeNombre ? ` a ${sedeNombre}` : ""}.`;
+  return `Te avisaremos en tu cuenta ${que}${sedeNombre ? ` a ${sedeNombre}` : ""}${whatsapp ? " y también por WhatsApp" : ""}.`;
 }
+
+/** Lo que dice la casilla de «Avísame» (2026-10-31): el permiso de WhatsApp se pide aquí, apagado de fábrica, y solo vale para ESE aviso. */
+export const TEXTO_CASILLA_WHATSAPP = {
+  titulo: "Escríbeme por WhatsApp cuando llegue",
+  ayuda: "Solo para avisarte de esta prenda. Si quitas el aviso, dejamos de escribirte.",
+  sinCelular: "Anotado en tu cuenta. No tenemos tu celular, así que no podemos escribirte por WhatsApp.",
+} as const;
 
 /**
  * «Te avisaremos cuando llegue» ya pedido se puede quitar desde la misma ficha (antes, solo desde «Mi cuenta»). Lo que oye el lector de
@@ -429,11 +341,11 @@ export function leerRespuestaFavorito(dato: unknown): EstadoFavorito {
 }
 
 /** La respuesta de `tienda_avisame`: el estado y, si se anotó, su id. */
-export function leerRespuestaAviso(dato: unknown): { estado: EstadoAviso; esperaId: string | null } {
-  const r = z.object({ estado: z.string(), id: z.string().uuid().optional() }).safeParse(dato);
-  if (!r.success || !(ESTADOS_AVISO as readonly string[]).includes(r.data.estado)) return { estado: "sin_respuesta", esperaId: null };
-  if (r.data.estado === "anotada" && !r.data.id) return { estado: "sin_respuesta", esperaId: null };
-  return { estado: r.data.estado as EstadoAviso, esperaId: r.data.id ?? null };
+export function leerRespuestaAviso(dato: unknown): { estado: EstadoAviso; esperaId: string | null; whatsapp: boolean } {
+  const r = z.object({ estado: z.string(), id: z.string().uuid().optional(), whatsapp: z.boolean().optional() }).safeParse(dato);
+  if (!r.success || !(ESTADOS_AVISO as readonly string[]).includes(r.data.estado)) return { estado: "sin_respuesta", esperaId: null, whatsapp: false };
+  if (r.data.estado === "anotada" && !r.data.id) return { estado: "sin_respuesta", esperaId: null, whatsapp: false };
+  return { estado: r.data.estado as EstadoAviso, esperaId: r.data.id ?? null, whatsapp: r.data.whatsapp === true };
 }
 
 /** La respuesta de `tienda_quitar_avisame`. */

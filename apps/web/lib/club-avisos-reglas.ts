@@ -13,8 +13,9 @@
 import { numeroWhatsApp } from "./facturacion-comprobantes-reglas";
 import { enmascararCelular } from "./proveedores-reglas";
 
-/** Los cuatro avisos del club, en el orden en que se muestran (los cupones primero: son promesas del club). */
-export const TIPOS_AVISO = ["cumpleanos", "aniversario", "novedades", "rebaja"] as const;
+/** Los cuatro avisos del club, en el orden en que se muestran (los del club primero: son promesas, no promociones). El de aniversario
+ *  dejó de salir con el programa de puntos (2026-10-19); sus envíos viejos quedan en la base como historia. */
+export const TIPOS_AVISO = ["cumpleanos", "puntos", "novedades", "rebaja"] as const;
 export type TipoAviso = (typeof TIPOS_AVISO)[number];
 
 export type InfoTipoAviso = {
@@ -22,7 +23,7 @@ export type InfoTipoAviso = {
   titulo: string;
   /** El chip de cada fila: «Rebaja» (una), no «Rebajas». */
   chip: string;
-  /** Cuenta para el tope de 2 promociones al mes (CL-21). Cumpleaños y aniversario no: son promesas del club. */
+  /** Cuenta para el tope de 2 promociones al mes (CL-21). Cumpleaños y puntos no: son promesas del club. */
   promocional: boolean;
   /** Lo que dice la cabecera de su grupo. */
   nota: string;
@@ -33,13 +34,13 @@ export const INFO_TIPO_AVISO: Record<TipoAviso, InfoTipoAviso> = {
     titulo: "Cumpleaños",
     chip: "Cumpleaños",
     promocional: false,
-    nota: "Su cupón del mes, todavía sin canjear. No cuenta para el tope de promociones.",
+    nota: "Su regalo de puntos del mes, todavía sin recibir. No cuenta para el tope de promociones.",
   },
-  aniversario: {
-    titulo: "Aniversario",
-    chip: "Aniversario",
+  puntos: {
+    titulo: "Puntos por vencer",
+    chip: "Puntos",
     promocional: false,
-    nota: "Su vale de aniversario, listo para usar. No cuenta para el tope de promociones.",
+    nota: "Sus puntos se eliminan en 30 días o menos si no compra. No cuenta para el tope de promociones.",
   },
   novedades: {
     titulo: "Novedades",
@@ -71,7 +72,7 @@ export type FilaAvisoPendiente = {
 };
 
 export type AvisoPendiente = {
-  /** Única por socia, tipo y referencia (el año del cumpleaños, el vale, la semana de novedades…): la llave de la fila. */
+  /** Única por socia, tipo y referencia (el año del cumpleaños, la fecha en que se eliminan sus puntos, la semana de novedades…): la llave de la fila. */
   clave: string;
   clientaId: string;
   nombre: string;
@@ -119,13 +120,6 @@ export type GrupoDeAvisos = { tipo: TipoAviso; avisos: AvisoPendiente[] };
 /** Los avisos por tipo, en el orden de `TIPOS_AVISO`; dentro de cada grupo, el orden en que llegaron. Sin grupos vacíos. */
 export function agruparPorTipo(avisos: readonly AvisoPendiente[]): GrupoDeAvisos[] {
   return TIPOS_AVISO.map((tipo) => ({ tipo, avisos: avisos.filter((a) => a.tipo === tipo) })).filter((g) => g.avisos.length > 0);
-}
-
-/** Cuántos hay de cada tipo (los cuatro, aunque sea 0) y en total. */
-export function contarPorTipo(avisos: readonly AvisoPendiente[]): Record<TipoAviso | "total", number> {
-  const cuenta = { cumpleanos: 0, aniversario: 0, novedades: 0, rebaja: 0, total: avisos.length };
-  for (const a of avisos) cuenta[a.tipo] += 1;
-  return cuenta;
 }
 
 /** «9•• ••• 321»: la clienta de al lado ve la pantalla de la tienda. Sin un celular que se entienda, «Sin celular». */

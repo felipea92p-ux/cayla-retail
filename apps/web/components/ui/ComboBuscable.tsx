@@ -68,7 +68,9 @@ export function ComboBuscable<T extends string>({
   crear,
   crearArriba = false,
   alEscribir,
+  ampliar,
   campoRef,
+  varios = false,
 }: {
   valor: T | "";
   onValor: (v: T) => void;
@@ -98,8 +100,17 @@ export function ComboBuscable<T extends string>({
   caja?: boolean;
   /** Una acción que aparece primera solo cuando lo escrito la pide (ver `OpcionAlEscribir`). */
   alEscribir?: (texto: string) => OpcionAlEscribir | null;
+  /** Una fila fija al PIE de la lista, después de todas, que AMPLÍA lo que se ofrece sin cerrarla («Ver todas (45)»: Nueva orden de
+   *  compra muestra primero lo que maneja el proveedor, 2026-10-21). Quien la pasa cambia `opciones` en `onAmpliar` y deja de pasarla;
+   *  la lista sigue abierta y la búsqueda sigue en pie. Se alcanza con las flechas y Enter como cualquier fila, y no se pierde con
+   *  «Nada coincide»: justo ahí hace falta. Sin la prop, todo queda como estaba. */
+  ampliar?: { texto: string; onAmpliar: () => void };
   /** El input, para quien lo escucha desde afuera (la pistola de Cambios: `usePistola` necesita saber cuál es su campo). */
   campoRef?: RefObject<HTMLInputElement | null>;
+  /** Elegir VARIOS seguidos (los colores de una tela o un avío): al elegir una opción la lista NO se cierra ni se vuelve a montar, el buscador queda
+   *  vacío con el cursor adentro y la lista sigue donde estaba, con lo elegido a la vista. Quien lo pide muestra lo ya elegido (`detalle: "elegido"`) y
+   *  decide qué hace `onValor` con una opción repetida. El valor del combo no cambia (queda `""`). Sin la prop, todo queda como estaba. */
+  varios?: boolean;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -107,6 +118,8 @@ export function ComboBuscable<T extends string>({
   const [texto, setTexto] = useState(elegida?.texto ?? "");
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
+  // Cada elección en modo `varios` pide traer lo elegido a la vista aunque su número de fila no haya cambiado (el buscador se vació y la lista cambió de largo).
+  const [veniaDe, setVeniaDe] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
   // La lista va en `fixed`, medida contra el input: dentro de un <Modal> o de una tabla con scroll, una lista
@@ -155,6 +168,9 @@ export function ComboBuscable<T extends string>({
   const indiceCrear = hayCrear ? (crearArriba ? 0 : mostradas.length) : -1;
   const opcionEn = (fila: number) => mostradas[fila - base];
   const ultimo = mostradas.length - 1 + (hayCrear ? 1 : 0);
+  // La fila de «ampliar» es la ÚLTIMA de todas (después de la de crear, si va abajo).
+  const indiceAmpliar = ampliar ? ultimo + 1 : -1;
+  const ultimoTotal = ampliar ? ultimo + 1 : ultimo;
   // Lo resaltado al abrir o al tipear: la primera opción real, aunque crear vaya arriba (Enter elige, no crea); si no
   // hay ninguna, la de crear.
   // (Lo que se acaba de tipear todavía no está en `filtradas`: se pregunta si ALGUNA opción responde a ese texto.)
@@ -164,7 +180,7 @@ export function ComboBuscable<T extends string>({
   useEffect(() => {
     if (!abierto) return;
     lista.current?.querySelector<HTMLElement>(`[data-i="${activo}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [activo, abierto]);
+  }, [activo, abierto, veniaDe]);
 
   function abrir() {
     const i = filtradas.findIndex((o) => o.valor === valor);
@@ -183,8 +199,23 @@ export function ComboBuscable<T extends string>({
       return;
     }
     onValor(o.valor);
+    if (varios) {
+      // La lista sigue abierta y el buscador vacío: lo que sigue es elegir otro. Se resalta (y se trae a la vista) la opción recién elegida DENTRO de la lista completa.
+      const i = opciones.findIndex((x) => x.valor === o.valor);
+      setTexto("");
+      setActivo(i >= 0 ? i + (hayCrearPara("") && crearArriba ? 1 : 0) : primeraFila(""));
+      mostrarDesde(Math.max(0, i));
+      setVeniaDe((v) => v + 1);
+      return;
+    }
     setTexto(o.texto);
     setAbierto(false);
+  }
+
+  /** Pide ver más opciones SIN cerrar la lista (a diferencia de elegir o crear): la lista crece y lo resaltado vuelve a la primera. */
+  function ampliarLista() {
+    ampliar?.onAmpliar();
+    setActivo(primeraFila(texto));
   }
 
   function crearDesdeTexto() {
@@ -203,16 +234,27 @@ export function ComboBuscable<T extends string>({
       abrir();
       return;
     }
-    if (!abierto) return;
+    if (!abierto) {
+      // Con la lista cerrada, el Enter sigue siendo del combo: sin esto cae al `<form>` como envío implícito y guarda la
+      // hoja sin que nadie toque el botón. Se llega aquí por tres caminos —elegir con Enter, elegir con el mouse, cerrar
+      // con Escape— y en los tres el foco se queda en la caja. Reabrir la lista es lo que ya hace `Desplegable`
+      // (`campos.tsx`), así que la tecla siempre tiene dueño y una respuesta visible (/chaos 2026-10-31).
+      if (e.key === "Enter") {
+        e.preventDefault();
+        abrir();
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActivo((a) => Math.min(ultimo, a + 1));
+      setActivo((a) => Math.min(ultimoTotal, a + 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActivo((a) => Math.max(0, a - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (hayCrear && activo === indiceCrear) crearDesdeTexto();
+      if (ampliar && activo === indiceAmpliar) ampliarLista();
+      else if (hayCrear && activo === indiceCrear) crearDesdeTexto();
       else if (opcionEn(activo)) elegir(opcionEn(activo));
     } else if (e.key === "Escape") {
       e.preventDefault();
@@ -222,8 +264,11 @@ export function ComboBuscable<T extends string>({
       cerrarSinElegir();
     } else if (e.key === "Tab") {
       // Tab elige lo resaltado si hay una sola coincidencia clara: es lo
-      // que uno espera al tipear "lino" y saltar al siguiente campo.
-      if (filtradas.length === 1) elegir(filtradas[0]);
+      // que uno espera al tipear "lino" y saltar al siguiente campo. Solo si se
+      // ESCRIBIÓ algo: con el campo vacío y una sola opción (el prefiltro de Nueva
+      // orden deja una sola categoría a un proveedor), pasar por él con Tab no
+      // debe elegir nada por la persona (revisión independiente, 2026-10-21).
+      if (filtradas.length === 1 && clave(texto) !== "") elegir(filtradas[0]);
       else cerrarSinElegir();
     }
   }
@@ -272,7 +317,7 @@ export function ComboBuscable<T extends string>({
         aria-label={etiquetaAccesible}
         aria-expanded={abierto}
         aria-controls={`${id}-lista`}
-        aria-activedescendant={abierto && (opcionEn(activo) || activo === indiceCrear) ? `${id}-op-${activo}` : undefined}
+        aria-activedescendant={abierto && (opcionEn(activo) || activo === indiceCrear || activo === indiceAmpliar) ? `${id}-op-${activo}` : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         autoFocus={autoFocus}
@@ -361,6 +406,23 @@ export function ComboBuscable<T extends string>({
             <li className="px-3 py-2 text-xs text-tinta/55">+{filtradas.length - mostradas.length} más: sigue escribiendo</li>
           )}
           {!crearArriba && filaCrear}
+          {ampliar && (
+            <li
+              id={`${id}-op-${indiceAmpliar}`}
+              data-i={indiceAmpliar}
+              role="option"
+              aria-selected={false}
+              onMouseEnter={() => setActivo(indiceAmpliar)}
+              // mousedown y no click (el blur del input cerraría la lista antes), y sin cerrarla: es una acción, no un valor.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                ampliarLista();
+              }}
+              className={`cursor-pointer border-t border-sand px-3 py-2.5 text-sm font-semibold ${activo === indiceAmpliar ? "opcion-activa text-tinta" : "text-tinta/70"}`}
+            >
+              {ampliar.texto}
+            </li>
+          )}
         </ul>,
           destino
         )}

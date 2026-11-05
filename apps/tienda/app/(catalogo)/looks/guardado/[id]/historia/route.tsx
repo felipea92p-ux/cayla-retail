@@ -10,7 +10,7 @@ import { indizar } from "@/lib/probador";
 import { leerSesion } from "@/lib/sesion-servidor";
 
 // GET /looks/guardado/<id>/historia — la imagen para estados de un look guardado (ADR-0434, actividad 9; lienzo v3, pantalla 9):
-// 1080×1920, con el nombre del look, sus prendas como polaroids y «Arma el tuyo en tienda.cayla.pe». Lleva el nombre que la persona le
+// 1080×1920, con el nombre del look, sus prendas como polaroids y «Arma el tuyo en cayla.pe». Lleva el nombre que la persona le
 // puso, así que solo la arma para la cuenta dueña del look (la base solo le devuelve los suyos); nunca es pública ni se guarda en la red.
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

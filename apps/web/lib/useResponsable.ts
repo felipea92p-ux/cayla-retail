@@ -44,6 +44,9 @@ export type ControlResponsable = {
   recargando: boolean;
   /** La lista es la que este navegador recordaba (pantalla abierta sin red, ADR-0210): la hora de esa lectura. */
   deMemoria: string | null;
+  /** ADR-0454 (temporal): el nombre de la persona a cuyo nombre firma esta terminal, si tiene firma de respaldo (no pide responsable).
+   *  `null` en todo lo demás. El combo lo muestra como una línea informativa en vez de pedir nada. */
+  firmaDeRespaldo: string | null;
   /** Hay un responsable vigente: se puede guardar. */
   listo: boolean;
   /** Por qué no se puede guardar todavía (`null` si `listo`). */
@@ -77,8 +80,10 @@ export function useResponsable(
   // El Admin firma él, sin lista ni asistencia (20260924171300): ni se pregunta quién está de turno.
   const adminId = activa?.esAdmin ? (activa.personaSesionId ?? null) : null;
   const nombreAdmin = activa?.nombreSesion ?? "";
+  // ADR-0454 (temporal): una terminal con firma de respaldo (hoy Caja y Almacén de Lima) no pide responsable ni mira quién está de turno.
+  const respaldo = adminId ? null : (activa?.firmaRespaldo ?? null);
   const propuesto = proponeSesion(modo) ? (activa?.personaSesionId ?? null) : null;
-  const deTurno = useDeTurno(adminId ? null : ubicacionId);
+  const deTurno = useDeTurno(adminId || respaldo ? null : ubicacionId);
   // Lo que se tocó en el combo; `undefined` = nadie lo tocó todavía y vale el propuesto.
   const [tocado, setTocado] = useState<string | undefined>(undefined);
   // Lo recordado (el responsable que abrió el conteo): el servidor dibuja sin él (`null`) y el navegador lo lee del almacenamiento.
@@ -87,19 +92,29 @@ export function useResponsable(
     () => (recordarEn ? recordarResponsableLeer(recordarEn) : null),
     () => null,
   );
-  const elegido = adminId ?? responsableInicial(tocado ?? recordado ?? undefined, propuesto);
+  // Con respaldo, quien firma es esa persona. Donde se ATIENDE a la clienta (Punto de venta, Cambios, Devoluciones) el responsable es también
+  // la asesora de la venta (`p_asesora_id`): ahí NO se rellena con el respaldo —le regalaría a una persona todas las ventas de Lima en las
+  // metas y las comisiones—; queda vacío y la venta se guarda sin asesora, igual que una venta sin conexión sin nadie elegido.
+  const elegido = adminId ?? (respaldo ? (proponeSesion(modo) ? respaldo.personaId : null) : responsableInicial(tocado ?? recordado ?? undefined, propuesto));
 
   // Con Admin, la lista es solo él: así las pantallas que buscan el nombre del elegido («Atendió», «Cerró») lo encuentran.
+  // Con respaldo, igual (solo fuera de la atención a la clienta, por la razón de arriba).
   const lista = useMemo(
     () =>
       adminId
         ? { elegibles: [{ personaId: adminId, nombre: nombreAdmin, enPausa: false, deOtraSede: false }], enPausa: [], salieron: 0 }
-        : listaResponsable(deTurno.filas),
-    [adminId, nombreAdmin, deTurno.filas],
+        : respaldo
+          ? {
+              elegibles: proponeSesion(modo) ? [{ personaId: respaldo.personaId, nombre: respaldo.nombre, enPausa: false, deOtraSede: false }] : [],
+              enPausa: [],
+              salieron: 0,
+            }
+          : listaResponsable(deTurno.filas),
+    [adminId, nombreAdmin, respaldo, modo, deTurno.filas],
   );
   const elegidoId = useMemo(() => responsableVigente(lista, elegido), [lista, elegido]);
-  const estado = estadoCombo({ cargo: deTurno.cargo, fallo: deTurno.fallo, lista, elegidoId: elegido, admin: adminId !== null });
-  const listo = (estado === "listo" || estado === "admin") && ubicacionId !== null;
+  const estado = estadoCombo({ cargo: deTurno.cargo, fallo: deTurno.fallo, lista, elegidoId: elegido, admin: adminId !== null, respaldo: respaldo !== null });
+  const listo = (estado === "listo" || estado === "admin" || estado === "respaldo") && ubicacionId !== null;
 
   // «Limpiar» (venta nueva, cancelar) vuelve a como vino al abrir: la persona de la sesión, o vacío.
   const limpiar = useCallback(() => setTocado(undefined), []);
@@ -112,10 +127,15 @@ export function useResponsable(
   );
   const { recargar } = deTurno;
 
+  const respaldoId = respaldo?.personaId ?? null;
   const firma = useCallback(
-    (momento?: string | null): Firma | null =>
-      elegidoId && ubicacionId ? { responsableId: elegidoId, ubicacionId, momento: momento ?? null } : null,
-    [elegidoId, ubicacionId],
+    (momento?: string | null): Firma | null => {
+      // Con respaldo la base ignora el responsable y firma sola: no se manda nada, salvo la hora de una venta sin conexión (`x-momento`),
+      // que sí tiene que viajar (la base la valida antes de decidir quién firma).
+      if (respaldoId) return momento && ubicacionId ? { responsableId: respaldoId, ubicacionId, momento } : null;
+      return elegidoId && ubicacionId ? { responsableId: elegidoId, ubicacionId, momento: momento ?? null } : null;
+    },
+    [elegidoId, ubicacionId, respaldoId],
   );
 
   const despues = useCallback<ControlResponsable["despues"]>(
@@ -146,6 +166,7 @@ export function useResponsable(
     recargar,
     recargando: deTurno.recargando,
     deMemoria: deTurno.deMemoria,
+    firmaDeRespaldo: respaldo ? respaldo.nombre : null,
     listo,
     motivo: listo ? null : motivoSinResponsable(estado, sede, modo),
     firma,

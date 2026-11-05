@@ -7,7 +7,8 @@ import {
   conCodigoDelCatalogo,
   descuentoDeCampana,
   descuentoResultante,
-  descuentoUnitarioPorMonto,
+  descuentosPedidos,
+  entraAlDescuento,
   descuentoUnitarioPorPorcentaje,
   desgloseIgv,
   metodoDeAtajo,
@@ -171,21 +172,68 @@ describe("descuentoUnitarioPorPorcentaje — un % se vuelve monto por unidad, co
   });
 });
 
-describe("descuentoUnitarioPorMonto — un S/ por unidad, la otra entrada del apartado", () => {
-  it("un monto menor al precio se aplica tal cual, a 2 decimales", () => {
-    expect(descuentoUnitarioPorMonto(79.9, 15)).toBe(15);
-    expect(descuentoUnitarioPorMonto(79.9, 15.005)).toBe(15.01);
+describe("descuentosPedidos — en S/ el monto es del total de lo elegido y se reparte según el precio (Felipe, 2026-10-24)", () => {
+  const prenda = (claveLinea: string, precioUnitario: number, cantidad = 1) => ({ claveLinea, precioUnitario, cantidad });
+  const suma = (lineas: { claveLinea: string; cantidad: number }[], m: Map<string, number>) =>
+    lineas.reduce((c, l) => c + l.cantidad * Math.round((m.get(l.claveLinea) ?? 0) * 100), 0) / 100;
+
+  it("el caso que lo pidió: S/ 100 sobre dos prendas que suman S/ 139.80 no deja nada en 0", () => {
+    const lineas = [prenda("a", 79.9), prenda("b", 59.9)];
+    const m = descuentosPedidos("monto", 100, lineas);
+    expect(suma(lineas, m)).toBe(100);
+    expect(m.get("a")).toBe(57.15);
+    expect(m.get("b")).toBe(42.85);
+  });
+  it("una sola prenda: el monto tal cual, recortado a su precio", () => {
+    expect(descuentosPedidos("monto", 15, [prenda("a", 79.9)]).get("a")).toBe(15);
+    expect(descuentosPedidos("monto", 80, [prenda("a", 50)]).get("a")).toBe(50);
   });
   it("no se redondea al S/0.10: lo que la colaboradora escribe es lo que se descuenta (ADR-0403)", () => {
-    expect(descuentoUnitarioPorMonto(79.9, 13.33)).toBe(13.33);
+    expect(descuentosPedidos("monto", 13.33, [prenda("a", 79.9)]).get("a")).toBe(13.33);
   });
-  it("nunca supera el precio — el candado de venta_items lo rechazaría igual", () => {
-    expect(descuentoUnitarioPorMonto(50, 80)).toBe(50);
+  it("una línea de 2 unidades cuenta como 2 prendas: S/ 100 sobre 2 × 69.50 descuenta 50 a cada una", () => {
+    expect(descuentosPedidos("monto", 100, [prenda("a", 69.5, 2)]).get("a")).toBe(50);
+  });
+  it("nunca descuenta más que lo elegido: S/ 200 sobre S/ 139.80 deja todo en 0, no en negativo", () => {
+    const lineas = [prenda("a", 79.9), prenda("b", 59.9)];
+    const m = descuentosPedidos("monto", 200, lineas);
+    expect([m.get("a"), m.get("b")]).toEqual([79.9, 59.9]);
+  });
+  it("si el resto no se parte por unidades se queda corto por céntimos, nunca se pasa", () => {
+    // S/ 20 entre 3 unidades iguales: 6.66 cada una (19.98).
+    expect(descuentosPedidos("monto", 20, [prenda("a", 50, 3)]).get("a")).toBe(6.66);
+  });
+  it("con cualquier mezcla de precios y cantidades, la suma nunca pasa el monto ni el total", () => {
+    for (const monto of [1, 10, 33.33, 100, 150, 999]) {
+      for (const lineas of [
+        [prenda("a", 79.9), prenda("b", 59.9), prenda("c", 39, 2)],
+        [prenda("a", 129.9, 3), prenda("b", 0.5)],
+        [prenda("a", 89.9, 7)],
+      ]) {
+        const m = descuentosPedidos("monto", monto, lineas);
+        const total = lineas.reduce((c, l) => c + l.cantidad * Math.round(l.precioUnitario * 100), 0) / 100;
+        expect(suma(lineas, m)).toBeLessThanOrEqual(Math.min(monto, total));
+        for (const l of lineas) expect(m.get(l.claveLinea)!).toBeLessThanOrEqual(l.precioUnitario);
+      }
+    }
   });
   it("un monto inválido (0, negativo, NaN) no descuenta nada", () => {
-    expect(descuentoUnitarioPorMonto(79.9, 0)).toBe(0);
-    expect(descuentoUnitarioPorMonto(79.9, -5)).toBe(0);
-    expect(descuentoUnitarioPorMonto(79.9, Number.NaN)).toBe(0);
+    for (const v of [0, -5, Number.NaN]) expect(descuentosPedidos("monto", v, [prenda("a", 79.9)]).get("a")).toBe(0);
+  });
+  it("en % cada prenda sale de su propio precio, como siempre", () => {
+    const m = descuentosPedidos("porcentaje", 10, [prenda("a", 79.9), prenda("b", 179.9)]);
+    expect([m.get("a"), m.get("b")]).toEqual([8, 18]);
+  });
+});
+
+describe("entraAlDescuento — lo elegido, menos las piezas de liquidación (ADR-0379)", () => {
+  it("todo el ticket (null o vacío) alcanza a todas; con claves, solo a esas", () => {
+    expect(entraAlDescuento({ claveLinea: "a" }, null)).toBe(true);
+    expect(entraAlDescuento({ claveLinea: "a" }, [])).toBe(true);
+    expect(entraAlDescuento({ claveLinea: "a" }, ["b"])).toBe(false);
+  });
+  it("una pieza de liquidación nunca entra", () => {
+    expect(entraAlDescuento({ claveLinea: "a", liquidacion: { codigo: "LQ1" } }, null)).toBe(false);
   });
 });
 
@@ -226,11 +274,18 @@ describe("aplicarDescuento — a todo el ticket o solo a las prendas elegidas", 
   });
 });
 
-describe("aplicarDescuentoMonto — lo mismo que aplicarDescuento, pero en S/", () => {
-  const carrito = [linea("a", 79.9), linea("b", 50)];
+describe("aplicarDescuentoMonto — un monto en S/ para todo lo alcanzado, repartido", () => {
+  const carrito = [{ ...linea("a", 79.9), cantidad: 1 }, { ...linea("b", 59.9), cantidad: 1 }];
 
-  it("aplica el mismo monto por unidad a las líneas alcanzadas, recortado al precio", () => {
-    expect(aplicarDescuentoMonto(carrito, 60, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([60, 50]);
+  it("reparte el monto entre las líneas alcanzadas según su precio", () => {
+    expect(aplicarDescuentoMonto(carrito, 100, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([57.15, 42.85]);
+  });
+  it("con claves, el monto entero va a las elegidas y las demás quedan como estaban", () => {
+    expect(aplicarDescuentoMonto(carrito, 60, ["a"], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([60, 0]);
+  });
+  it("una pieza de liquidación no recibe parte: todo va a las demás", () => {
+    const conLiquidacion = [...carrito, { ...linea("c", 30), cantidad: 1, liquidacion: { codigo: "LQ1" } }];
+    expect(aplicarDescuentoMonto(conLiquidacion, 100, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([57.15, 42.85, 0]);
   });
   it("guarda el motivo igual que la versión por %", () => {
     expect(aplicarDescuentoMonto(carrito, 10, ["a"], cumpleanos)[0].razonDescuento).toBe("cumpleanos_clienta_top");

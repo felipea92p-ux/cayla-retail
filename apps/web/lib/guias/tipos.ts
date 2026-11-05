@@ -16,6 +16,10 @@ export type AccionGuia =
   | { tipo: "escribir"; ancla: string; texto: string | { palabraDe: string } }
   /** Vacía el campo anclado (para dejar la pantalla como estaba). */
   | { tipo: "vaciar"; ancla: string }
+  /** Solo «Pregúntale a CAYLA» (ADR-0536, actividad 6), nunca una guía escrita a mano: escribe en el campo anclado el dato que la
+   *  persona dijo en su pregunta. El piloto se niega si el campo no está marcado `data-asistente="rellenable"`, y lo deja marcado
+   *  «Lo escribió CAYLA» hasta que la persona lo toca. No guarda nada: el botón que guarda lo aprieta ella. */
+  | { tipo: "rellenar"; ancla: string; texto: string }
   /** Escape: cierra el modal o la lista que la guía abrió. */
   | { tipo: "escape" };
 
@@ -61,6 +65,9 @@ export type Guia = {
   pasos: readonly PasoGuia[];
   /** Lo que el piloto hace al terminar o al salir, para dejar la pantalla como estaba (vaciar el buscador, cerrar). */
   alSalir?: readonly AccionGuia[];
+  /** Un tramo del asistente que rellenó un campo: al terminar NO se vacía lo escrito ni se cierra lo abierto, porque lo que sigue (el
+   *  botón que guarda) lo hace la persona ahí mismo. Solo lo pone `guiaDelTramo`. */
+  dejarComoQuedo?: true;
 };
 
 /** Cómo se ve, para la regla de «no tocar», la pieza que el piloto está por tocar. Lo arma el motor desde el DOM. */
@@ -78,6 +85,9 @@ export type PiezaATocar = {
   /** ¿Declara `aria-haspopup` (dialog, menu, listbox…)? Un botón que abre una ventana o un menú no guarda: se puede tocar aunque
    *  se llame «Dar acceso» o «Pedir a otra sede». Lo que guarda es el botón de ADENTRO de esa ventana, y ese sigue prohibido. */
   abreVentana?: boolean;
+  /** ¿Declara `aria-expanded`? Es un pliegue («Ver y cambiar», «Ver 3 más»): solo muestra u oculta lo que ya está en la pantalla, no
+   *  escribe nada, aunque su texto lleve un verbo. Lo que guarda es un control de ADENTRO de lo desplegado, y ese sigue prohibido. */
+  esPliegue?: boolean;
   /** El `role` ARIA del control («tab», «switch»…), o null. Una pestaña solo cambia de vista: se puede tocar aunque se llame
    *  «Apartar» o «Entregar». */
   rol: string | null;

@@ -28,14 +28,18 @@ describe("el formulario: dos paneles dentro del <form>", () => {
     expect(fichaCierra).toBeLessThan(cierra);
     // Un solo botón de enviar y la rejilla es el propio <form> (la ficha es su hija directa).
     expect(form.match(/type="submit"/g)).toHaveLength(1);
-    expect(form).toMatch(/<form onSubmit=\{onSubmit\} className="[^"]*\bgrid\b[^"]*min-\[980px\]:grid-cols-\[minmax\(0,1fr\)_332px\]/);
+    expect(form).toMatch(/<form onSubmit=\{onSubmit\} className="[^"]*\bgrid\b[^"]*@min-\[880px\]:grid-cols-\[minmax\(0,1fr\)_332px\]/);
   });
 
-  it("la hoja es ancha y de la variante «hoja»; ya no hay pie pegado ni la hoja de 672 px", () => {
-    expect(form).toMatch(/variante="hoja"/);
-    expect(form).toContain("max-w-[1080px]");
-    expect(form).not.toContain("pie-hoja-fijo");
-    expect(form).not.toContain("max-w-2xl");
+  it("la orden se arma en la página, no en una hoja (ADR-0509): el formulario no dibuja un <Modal> ni fija el ancho de una hoja, y el marco lo pone la lista", () => {
+    for (const hoja of ["<Modal", 'variante="hoja"', "max-w-[1080px]", "pie-hoja-fijo", "max-w-2xl"]) expect(form, hoja).not.toContain(hoja);
+    expect(form).toContain("marco: MarcoDeLaOrden;");
+    const marco = readFileSync(new URL("../components/ordenes-lista/MarcoDePagina.tsx", import.meta.url), "utf8");
+    // El ancho que decide si la ficha va a la derecha o en una barra es el de la tarjeta del compositor, no el de la pantalla.
+    expect(marco).toContain("@container");
+    expect(marco).toContain("data-compositor-orden");
+    const lista = readFileSync(new URL("../components/ordenes-lista/OrdenesLista.tsx", import.meta.url), "utf8");
+    expect(lista).toContain("marco={MarcoDePagina}");
   });
 
   it("lo que cierra la orden conserva su ancla de guía y sus botones no envían por accidente (Cancelar y las del aviso son type=button)", () => {
@@ -69,10 +73,12 @@ describe("la ficha: presentacional y accesible", () => {
     expect(ficha).toContain("shrink-0");
   });
 
-  it("bajo 980 px es una barra pegada abajo y publica su alto (la guía de foco y la carta de colores no quedan detrás); el nombre no es un h3 hecho a mano", () => {
+  it("es una barra pegada abajo cuando el marco es angosto y publica su alto (la guía de foco y la carta de colores no quedan detrás); decide el ancho del marco, no el de la pantalla; el nombre no es un h3 hecho a mano", () => {
     expect(ficha).toContain("--alto-barra-ficha");
-    expect(ficha).toContain("max-width: 979px");
-    expect(ficha).toMatch(/sticky bottom-\[-1\.5rem\]/);
+    expect(ficha).toContain("scroll-padding-bottom");
+    expect(ficha).toMatch(/sticky bottom-0/);
+    expect(ficha).toContain("@min-[880px]:");
+    expect(ficha).not.toMatch(/min-\[980px\]|max-\[979px\]|matchMedia/);
     expect(ficha).not.toMatch(/<h[1-6]/);
   });
 });

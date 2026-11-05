@@ -1,0 +1,6 @@
+## Mis compras rediseñada (2026-10-26)
+- **Hecho (en la rama `claude/mis-compras-rediseno-65f92b`):** inicio, lista, «Compré ropa» en sus 3 pasos, «Algo nuevo» y el cierre bloqueado si falta mandar. Detalle en `docs/bitacora/2026-10-26-mis-compras-rediseno-65f92b.md`.
+- **Pendiente · banco en «Me dieron plata» (necesita migración y tu OK):** con «Transferencia» preguntar «¿De qué banco salió?» (BCP de fábrica, o Interbank). Hoy `anotar_plata_compras(p_medio, p_monto, p_foto_ruta, p_token)` no recibe cuenta y Compras la elige en `confirmar_plata_compras(p_cuenta_origen_id)`. Hace falta una columna con la cuenta que dijo la compradora, un parámetro nuevo y que la hoja de confirmar la traiga ya elegida. Maqueta: `docs/maquetas/mis-compras-rediseno-2026-10/` («Me dieron plata»).
+- **Pendiente · guía de «Mis compras»:** su demo deja abiertas las hojas de plata y de gasto (la guardia «¿Salir sin guardar?» no cede al Escape). Arreglar sin cambiar lo que guarda la pantalla: `apps/web/lib/guias/pantallas/compras.ts` (pasos `medio`, `concepto`) o la guardia `useSalidaSinGuardar`.
+- **Pendiente · `/formidable` de las pantallas de «Mis compras»** (tablero `docs/formidable/README.md`).
+- **Pendiente · `RondasAnteriores` y el cierre en escritorio** (1440 y 1920 px): se revisó a 375 px; falta mirarlo ancho.

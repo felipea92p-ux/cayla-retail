@@ -1,0 +1,158 @@
+/* =====================================================================================================
+   LA HOJA «CONFIGURACIÓN» DE UNA CAMPAÑA — la II de docs/maquetas/campana-configuracion-2026-10/ (Felipe la eligió el 2026-10-23,
+   ADR-0488). Es el armado de «Prendas» (`.eqp-hoja`, etiqueta-prendas.css): la etiqueta y el pie a la derecha, siempre a la vista, y a
+   la izquierda el formulario en vez de la lista. Lo único propio está aquí: el formulario corre por dentro.
+
+   El relleno con su margen negativo es el aire del halo de la guía de foco y del foco de cada campo: sin él, `overflow` los cortaba
+   contra el borde de la columna.
+   ===================================================================================================== */
+.cph-form {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 20px;
+  padding: 8px 12px 20px 8px;
+  margin: -8px -12px 0 -8px;
+}
+
+/* «Cuánto baja»: la caja grande de <PasoCantidad> (68 px) y, a su lado, los descuentos de siempre en una grilla de dos filas del MISMO
+   alto (32 px por opción, el objetivo con mouse), que llena el ancho que queda. Si no caben al lado, bajan enteros a su fila: nunca
+   estiran la caja (eso descentraba el número en la v2 de la maqueta). */
+.cph-paso-fila { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; }
+.cph-paso { flex: 0 0 13.75rem; }
+.cph-rapidos {
+  flex: 1 1 14.75rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  height: 4.25rem;
+}
+.cph-rapidos > .pildora-cayla { min-height: 0; justify-content: center; padding: 0 6px; border-radius: 9px; }
+.cph-rapidos > :first-child { grid-column: span 2; }
+/* En el celular, o en cualquier pantalla táctil: la caja a lo ancho y las opciones debajo, de 44 px para el dedo. */
+@media (max-width: 639.98px), (pointer: coarse) {
+  .cph-paso-fila { flex-direction: column; }
+  .cph-paso { flex: none; width: 100%; }
+  .cph-rapidos { flex: none; height: calc(2 * 44px + 4px); }
+}
+
+/* «Categorías»: la grilla de casillas por familia (`CategoriasDeCampana`). Cada fila se toca entera (es un <label> con su <Casilla>);
+   la elegida queda en hueso. Tres columnas a lo ancho, dos en una hoja angosta o en el celular; las familias chicas comparten fila. */
+.cph-categorias { display: grid; gap: 14px; }
+.cph-buscador { max-width: 22rem; }
+/* La fila del título de una familia se toca entera, de 32 px (el objetivo con mouse; 44 con el dedo). */
+.cph-fam-cab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 2rem;
+  padding: 0 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .cph-fam-cab:hover { background: color-mix(in srgb, var(--color-hueso) 60%, transparent); }
+}
+.cph-fam-t { flex: 1; min-width: 0; }
+/* La flecha que pliega una familia (`plegables`): cierra hacia la derecha y abre hacia abajo. Todo el título se toca, la flecha es su señal. */
+.cph-fam-plegar { display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin-right: -6px; border-radius: 999px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background-color 200ms var(--ease-cayla); } /* contraste: gráfico sobre papel, hueso */
+.cph-fam-plegar svg { width: 16px; height: 16px; transition: transform 200ms var(--ease-cayla); }
+.cph-fam-plegar:not([data-abierta]) svg { transform: rotate(-90deg); }
+@media (hover: hover) {
+  .cph-fam-plegar:hover { background: var(--color-hueso); color: var(--color-tinta); }
+}
+/* 13,5 rem por columna: con 11 rem, a 1024 px entraban tres de 186 px y se cortaban «Pañuelos y Pañoletas» y otras tres (/formidable
+   2026-10-23); así entran dos y ningún nombre se corta. */
+.cph-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 2px 6px; margin-top: 4px; }
+.cph-cat {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 2.375rem;
+  padding: 0 10px 2px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent); /* contraste: texto sobre papel, hueso */
+  cursor: pointer;
+  transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .cph-cat:hover { background: color-mix(in srgb, var(--color-hueso) 60%, transparent); }
+}
+.cph-cat[data-elegida] { background: var(--color-hueso); color: var(--color-tinta); font-weight: 600; }
+.cph-cat-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cph-cat-c { font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre papel, hueso */
+.cph-cat-b { position: absolute; left: 40px; right: 10px; bottom: 5px; width: auto; }
+/* La barra a escala es la del sistema (`BarraAvance` en tinta, grafico.escala); en una lista tan densa, la de una fila no elegida va
+   tenue para no pesar, y se enciende entera al elegirla. */
+.cph-cat:not([data-elegida]) .cph-cat-b { opacity: 0.4; transition: opacity 200ms var(--ease-cayla); }
+.cph-chicas { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 14px; }
+.cph-chicas .cph-cats { grid-template-columns: 1fr; }
+.cph-sinp { border-top: 1px solid var(--color-sand); padding-top: 10px; }
+.cph-sinp > summary { cursor: pointer; font-size: 12.5px; font-weight: 500; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); } /* contraste: texto sobre papel */
+.cph-sinp > summary > span { font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre papel */
+.cph-sinp > .cph-cats { margin-top: 8px; }
+@media (max-width: 639.98px) {
+  .cph-buscador { max-width: none; }
+  .cph-cats, .cph-chicas { grid-template-columns: 1fr 1fr; }
+  .cph-cat, .cph-fam-cab { min-height: 2.75rem; }
+  .cph-fam-plegar { width: 40px; height: 40px; }
+  /* Dos columnas de 160 px: el nombre baja a una segunda línea en vez de cortarse (la fila de 44 px la tiene). */
+  .cph-cat-n { white-space: normal; overflow-wrap: break-word; line-height: 1.2; padding: 6px 0 8px; }
+}
+
+/* La etiqueta viva (`EtiquetaDeCampana`): lo que no trae la de «Prendas». Las piezas del mosaico son categorías, no prendas: no se tocan
+   (no llevan a ninguna fila). «En caja» va al pie de la tarjeta, con ‹ › para recorrer las prendas de ejemplo. */
+.cph-pieza { cursor: default; }
+.cph-ej-b { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); transition: background-color 200ms var(--ease-cayla); } /* contraste: gráfico sobre papel */
+.cph-ej-b svg { width: 16px; height: 16px; }
+@media (hover: hover) {
+  .cph-ej-b:hover { background: var(--color-hueso); color: var(--color-tinta); }
+}
+.cph-caja { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 6px; }
+.cph-caja > :first-child { border-radius: 8px; }
+.cph-caja-precio { display: block; font-family: var(--font-serif); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* El sello de la campaña, estampado al guardar sobre la esquina de la etiqueta (`SelloTinta` trae su propio estampado, una vez). */
+.cph-sello { position: absolute; right: 10px; top: 46px; pointer-events: none; }
+/* En el celular la etiqueta es una franja baja: el sello la taparía entera (el aviso de después ya dice que se guardó). */
+@media (max-width: 767.98px) {
+  .cph-sello { display: none; }
+}
+
+/* ---- El movimiento de la hoja (ADR-0136, excepción del 2026-10-23, ADR-0488: Felipe pidió «full animaciones») ----------------------
+   Todo UNA vez y con la curva del sistema, sin rebote ni bucle: el hilo de la etiqueta se dibuja, la etiqueta baja y se asienta, el
+   descuento entra subiendo cada vez que cambia, las casillas de las categorías entran en cascada y cada pieza del mosaico aparece. La
+   categoría que vuela de su casilla a su pieza (`vuelo.ts`) y el sello que se estampa al guardar (`SelloTinta`) traen su propio
+   movimiento. Con «reducir movimiento», nada se mueve: todo aparece en su lugar. Lo vigila lib/campana-hoja-movimiento.test.ts. */
+.cph-hoja .eqp-hilo { stroke-dasharray: 80; stroke-dashoffset: 80; animation: cph-hilo 900ms var(--ease-cayla) 250ms both; }
+.cph-hoja .eqp-punta { transform-box: fill-box; transform-origin: center; animation: cph-punta 450ms var(--ease-cayla) 150ms both; }
+.cph-hoja .eqp-tarjeta { animation: cph-baja 1100ms var(--ease-cayla) 450ms both; }
+.cph-hoja .eqp-tarjeta.eqp-se-asienta { animation: eqp-asienta 420ms var(--ease-cayla) 1; }
+.cph-rueda { animation: cph-rueda 450ms var(--ease-cayla) both; }
+.cph-cat { animation: cph-asoma 500ms var(--ease-cayla) both; animation-delay: calc(var(--i, 0) * 18ms + 150ms); }
+.cph-pieza { animation: cph-pieza 420ms var(--ease-cayla) both; }
+@keyframes cph-hilo { to { stroke-dashoffset: 0; } }
+@keyframes cph-punta { from { transform: scale(0); } }
+@keyframes cph-baja { from { opacity: 0; transform: translateY(-28px) rotate(5deg); } }
+@keyframes cph-rueda { from { opacity: 0; transform: translateY(35%); } }
+@keyframes cph-asoma { from { opacity: 0; transform: translateY(6px); } }
+@keyframes cph-pieza { from { opacity: 0; transform: scale(0.7); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cph-hoja .eqp-hilo,
+  .cph-hoja .eqp-punta,
+  .cph-hoja .eqp-tarjeta,
+  .cph-hoja .eqp-tarjeta.eqp-se-asienta,
+  .cph-rueda,
+  .cph-cat,
+  .cph-pieza { animation: none; }
+  .cph-hoja .eqp-hilo { stroke-dashoffset: 0; }
+  .cph-cat,
+  .cph-cat:not([data-elegida]) .cph-cat-b,
+  .cph-fam-plegar,
+  .cph-fam-plegar svg,
+  .cph-ej-b { transition: none; }
+}

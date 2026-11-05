@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Costo de la prenda · v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA v2 · «A · La escalera», más amigable (2026-10-24)
+   Felipe: «Me gusta la A pero podría ser mucho más amigable y entendible para el usuario».
+   Qué cambia respecto de la v1 (index.html):
+     1. Arriba, la respuesta en una frase: cuánto cuesta hoy cada prenda y si subió o bajó.
+     2. El gráfico tiene UNA sola marca: la línea. Cada vez que cambió lleva un número (①②③), y ese número es una tarjeta
+        abajo que lo cuenta en palabras de tienda. Tocar el número o la tarjeta enciende los dos (nada depende del mouse).
+     3. «Ya tenías / llegaron» vive dentro de cada tarjeta, junto a lo que pasó, no en una franja aparte.
+     4. Los errores arreglados salen del gráfico: un lápiz sobre la fecha y una lista aparte, «Errores arreglados».
+     5. Cero palabras de analista: ni «promedio», ni «corrección», ni «recepción» a la vista; el cálculo, a un toque.
+     6. «Tus 47 prendas de hoy»: cuántas son de cada compra, como estimado (decisión 3, aún abierta).
+   Ronda 2 (Felipe: «la parte de abajo más compacta, solo información importante y precisa, sin tanto texto»): las tarjetas
+   pasan a una tabla de una fila por compra (fecha · llegaron · ya tenías · costo queda en · factura), la cuenta a un «?»;
+   «hoy» es una sola barra 23 | 24; cada error arreglado es una línea (fecha · antes → después · dónde), el motivo al pasar.
+   Tokens de apps/web/app/globals.css y estilos/tema.css. Movimiento de una vez, sin rebote ni bucle.
+   DATOS INVENTADOS (ver index.html: en producción no hay todavía una prenda con dos compras en días distintos).
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--neutro:#d3c8b4;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.66);--t50:rgba(26,26,24,.55);--t30:rgba(26,26,24,.3);--t15:rgba(26,26,24,.15);--t08:rgba(26,26,24,.08);
+--lienzo:#ece5d8;--sombra:rgba(26,26,24,.35);--tinta-fija:#1a1a18;--ease:cubic-bezier(.32,.72,.24,1);--suave:cubic-bezier(.16,1,.3,1)}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--neutro:#57534c;
+--t80:rgba(245,240,232,.85);--t65:rgba(245,240,232,.68);--t50:rgba(245,240,232,.58);--t30:rgba(245,240,232,.3);--t15:rgba(245,240,232,.15);--t08:rgba(245,240,232,.08);
+--lienzo:#121211;--sombra:rgba(0,0,0,.6)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.g{font-family:'EB Garamond',serif}
+.cap{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--t65)}
+.tenue{color:var(--t65)}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.s{width:14px;height:14px}svg.ic.m{width:20px;height:20px}
+
+.lamina{max-width:1240px;margin:0 auto;padding:28px 16px 80px}
+.barra{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;justify-content:space-between;margin-bottom:18px}
+.barra h1{font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.1}
+.barra p{color:var(--t65);max-width:70ch;margin-top:4px}
+.inventado{display:inline-flex;align-items:center;gap:8px;border:1px dashed var(--ambar);color:var(--ambar);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600}
+.tema{border:1px solid var(--t15);border-radius:999px;padding:6px 14px;font-size:12.5px;background:var(--papel)}
+.cambios{display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--t80)}
+.cambios b{color:var(--tinta)}
+
+/* ---- la pantalla Historial ---- */
+.pantalla{background:var(--crema);border:1px solid var(--sand);border-radius:14px;padding:28px 28px 32px}
+.pantalla h3.titulo{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1}
+.pantalla .frase{color:var(--taupe);margin-top:6px}
+.pildoras{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px}
+.pildora{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--t15);border-radius:999px;padding:6px 14px;font-size:13.5px;background:var(--papel)}
+.pildora .p{width:7px;height:7px;border-radius:50%}
+.pildora .n{color:var(--t50);font-size:12px}
+.pildora.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pildora.on .n{color:color-mix(in srgb,var(--crema) 70%,transparent)}
+
+/* ---- 1 · la respuesta ---- */
+.respuesta{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:end;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 24px;margin-bottom:14px}
+.respuesta .pre{font-size:15px;color:var(--t80)}
+.respuesta .grande{font-family:'EB Garamond',serif;font-size:54px;line-height:1.02;margin:2px 0 8px}
+.respuesta .dice{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:14px;color:var(--t80)}
+.flecha{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px 4px 8px;font-weight:600;font-size:13.5px;background:var(--hueso)}
+.flecha.sube{color:var(--ambar)}.flecha.baja{color:var(--verde)}
+.respuesta .lado{text-align:right;font-size:13px;color:var(--t65)}
+.respuesta .lado b{display:block;font-family:'EB Garamond',serif;font-size:30px;color:var(--tinta);font-weight:500;line-height:1.1}
+
+/* ---- 2 · el gráfico ---- */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 20px 16px;margin-bottom:14px}
+.tarjeta .cab{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between;margin-bottom:4px}
+.tarjeta h4{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.ayuda{font-size:12.5px;color:var(--t65)}
+.grafico{position:relative}
+.grafico svg{display:block;width:100%;height:auto;overflow:visible}
+.ejes text{font-size:11.5px;fill:var(--t65);font-family:'DM Sans',sans-serif}
+.ejes line{stroke:var(--t08)}
+.paso circle.fondo{fill:var(--papel);stroke:var(--tinta);stroke-width:2;transition:fill .25s var(--ease)}
+.paso text.n{font-size:12px;font-weight:700;fill:var(--tinta);font-family:'DM Sans',sans-serif;pointer-events:none;transition:fill .25s var(--ease)}
+.paso text.et{font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif}
+.paso{cursor:pointer;outline:none}
+.paso.on circle.fondo,.paso:focus-visible circle.fondo{fill:var(--tinta)}
+.paso.on text.n,.paso:focus-visible text.n{fill:var(--crema)}
+.lapiz{cursor:pointer}
+.lapiz circle{fill:var(--papel);stroke:var(--pizarra);stroke-width:1.5;stroke-dasharray:3 2}
+
+/* ---- 3 · las compras: una fila cada una ---- */
+.tabla{margin-top:4px}
+.tr{display:grid;grid-template-columns:30px 64px 1.1fr 1.1fr 1.3fr auto;gap:12px;align-items:center;width:100%;text-align:left;padding:10px 10px;border-radius:10px;font-size:13.5px}
+.th{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--t65);padding-top:4px;padding-bottom:6px;border-bottom:1px solid var(--sand);border-radius:0}
+.fila-compra{border-bottom:1px solid var(--sand);animation:entra .45s var(--suave) both;animation-delay:calc(.2s + var(--i,0)*70ms)}
+.fila-compra:last-child{border-bottom:0}
+.compra{transition:background .2s var(--ease),box-shadow .2s var(--ease)}
+@media (hover:hover){.compra:hover{background:color-mix(in srgb,var(--hueso) 55%,transparent)}}
+.compra.on{background:var(--hueso);box-shadow:inset 3px 0 0 var(--rojo)}
+.compra:focus-visible{outline:2px solid var(--rojo);outline-offset:-2px}
+.nro{width:24px;height:24px;border-radius:50%;border:2px solid var(--tinta);display:grid;place-items:center;font-size:11.5px;font-weight:700;transition:background .2s var(--ease),color .2s var(--ease)}
+.compra.on .nro{background:var(--tinta);color:var(--crema)}
+.c-f{color:var(--t65)}
+.c-y{color:var(--t80)}
+.c-q{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.c-q b{font-family:'EB Garamond',serif;font-size:19px;font-weight:500}
+.c-q em{font-style:normal;font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;background:var(--hueso)}
+.compra.on .c-q em{background:var(--papel)}
+em.sube{color:var(--ambar)}em.baja{color:var(--verde)}em.igual{color:var(--t65)}
+.q{width:18px;height:18px;border-radius:50%;border:1px solid var(--t30);display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;color:var(--t65);cursor:pointer}
+@media (hover:hover){.q:hover{border-color:var(--tinta);color:var(--tinta)}}
+.c-d{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t65);white-space:nowrap;justify-self:end}
+.av{width:22px;height:22px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:10.5px;flex:none;color:var(--tinta);border:1px solid var(--t15)}
+.cuenta{display:none;margin:0 10px 10px 52px;font-size:12.5px;color:var(--t80)}
+.cuenta.ver{display:block;animation:entra .3s var(--suave) both}
+
+/* ---- 4 y 5 · hoy y errores ---- */
+.dos{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.tarjeta.chica{padding:14px 18px}
+.tag{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t65);border:1px dashed var(--t30);border-radius:999px;padding:1px 8px;cursor:help}
+.reparto{display:flex;gap:2px;height:32px;border-radius:8px;overflow:hidden;margin-top:8px}
+.reparto span{display:flex;align-items:center;gap:4px;padding:0 10px;font-size:12.5px;white-space:nowrap;transform-origin:left;animation:crece .7s var(--suave) both}
+.reparto .c2{background:color-mix(in srgb,var(--taupe) 75%,var(--papel));color:var(--tinta-fija)}
+.reparto .c3{background:var(--tinta);color:var(--crema)}
+.reparto-ley{display:flex;font-size:11.5px;color:var(--t65);margin-top:4px}
+.reparto-ley span{flex:1}
+.arreglo{display:grid;grid-template-columns:24px 52px auto 1fr;gap:10px;align-items:center;padding:7px 0;font-size:13px;border-top:1px dashed var(--sand);transition:background .3s var(--ease);cursor:help}
+.arreglo:first-child{border-top:0}
+.arreglo.destello{background:color-mix(in srgb,var(--pizarra) 12%,transparent);border-radius:8px}
+.arreglo .ic-l{width:24px;height:24px;border-radius:50%;border:1.5px dashed var(--pizarra);display:grid;place-items:center;color:var(--pizarra)}
+.arreglo .fe{color:var(--t65);font-size:12.5px}
+.arreglo .tach{text-decoration:line-through;color:var(--t50)}
+.arreglo .donde{color:var(--t65);font-size:12.5px;text-align:right}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:0 8px 0 6px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;border:1px solid currentColor;white-space:nowrap;vertical-align:middle}
+.chip::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.chip.ambar{color:var(--ambar)}
+
+@keyframes crece{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.trazo{stroke-dasharray:1400;stroke-dashoffset:1400;animation:dibuja 1.2s var(--ease) forwards}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+.asoma{opacity:0;animation:asoma .45s var(--suave) forwards;animation-delay:calc(.6s + var(--i,0)*140ms)}
+@keyframes asoma{to{opacity:1}}
+.cascada > *{animation:entra .5s var(--suave) both;animation-delay:calc(var(--i,0)*80ms)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.trazo{stroke-dashoffset:0}.asoma{opacity:1}}
+
+@media (max-width:860px){.dos{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .th{display:none}
+  .tr{grid-template-columns:28px 1fr auto;grid-template-areas:"n f q" "n l q" "n y q";gap:2px 10px}
+  .nro{grid-area:n;align-self:start}
+  .c-f{grid-area:f;font-size:12px}
+  .c-l{grid-area:l}.c-y{grid-area:y;font-size:12.5px}
+  .c-q{grid-area:q;flex-direction:column;align-items:flex-end;gap:3px;align-self:start}
+  .c-d{display:none}
+  .c-y::before{content:attr(data-et) " ";color:var(--t65)}
+  .arreglo{grid-template-columns:24px 46px 1fr;row-gap:2px}
+  .arreglo .donde{grid-column:3;text-align:left}
+  .cuenta{margin-left:48px}
+}
+@media (max-width:640px){
+  .pantalla{padding:18px 14px}
+  .pantalla h3.titulo{font-size:34px}
+  .respuesta{grid-template-columns:1fr;padding:18px}
+  .respuesta .grande{font-size:42px}
+  .respuesta .lado{text-align:left}
+  .grafico{overflow-x:auto;margin:0 -8px;padding:0 8px}
+  .grafico svg{min-width:600px}
+}
+</style>
+</head>
+<body>
+<div class="lamina">
+  <div class="barra">
+    <div>
+      <h1>«La escalera», más amigable</h1>
+      <p>La misma idea que elegiste, contada como se la explicarías a alguien en la tienda: primero la respuesta, después qué pasó paso a paso.</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="inventado">⚠ Ejemplo inventado</span>
+      <button class="tema" id="tema">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="cambios">
+    <span><b>1 · La respuesta primero.</b> Cuánto cuesta hoy cada prenda y si subió o bajó, en una frase.</span>
+    <span><b>2 · Una sola línea.</b> Cada vez que cambió lleva un número; el número es una tarjeta que lo cuenta.</span>
+    <span><b>3 · Palabras de tienda.</b> Sin «promedio», «corrección» ni «recepción»: «llegaron», «ya tenías», «se arregló».</span>
+    <span><b>4 · Los errores, aparte.</b> No ensucian el gráfico: un lápiz en la fecha y su lista abajo.</span>
+  </div>
+
+  <div class="pantalla">
+    <h3 class="titulo">Historial</h3>
+    <p class="frase">«Polo Basico Manga Corta» · Polos · lo que cambió en esta prenda, quién lo hizo y cuándo</p>
+    <div class="pildoras">
+      <span class="pildora">Todo <span class="n">12</span></span>
+      <span class="pildora"><span class="p" style="background:var(--taupe)"></span>Precio <span class="n">2</span></span>
+      <span class="pildora on"><span class="p" style="background:var(--crema)"></span>Costo <span class="n">5</span></span>
+      <span class="pildora"><span class="p" style="background:var(--pizarra)"></span>Colores y tallas <span class="n">3</span></span>
+      <span class="pildora"><span class="p" style="background:var(--rojo-p)"></span>Insignias y campañas <span class="n">2</span></span>
+    </div>
+
+    <div class="cascada">
+      <!-- 1 · la respuesta -->
+      <section class="respuesta" style="--i:0">
+        <div>
+          <div class="pre">Hoy cada prenda te cuesta</div>
+          <div class="grande num">S/ 19.57</div>
+          <div class="dice">
+            <span class="flecha sube"><svg class="ic s" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>S/ 1.57 más que al principio</span>
+            <span>Empezó en S/ 18.00 · cambió 2 veces, siempre al llegar mercadería</span>
+          </div>
+        </div>
+        <div class="lado">En stock<b class="num">47</b>prendas</div>
+      </section>
+
+      <!-- 2 · el gráfico -->
+      <section class="tarjeta" style="--i:1">
+        <div class="cab">
+          <h4>Cuánto te costó cada prenda</h4>
+          <span class="ayuda">Toca un número para ver qué pasó</span>
+        </div>
+        <div class="grafico" id="g"></div>
+      </section>
+
+      <!-- 3 · las compras, en una tabla corta -->
+      <section class="tarjeta" style="--i:2">
+        <div class="cab"><h4>Compras que movieron el costo</h4></div>
+        <div class="tabla" role="table" aria-label="Compras que movieron el costo">
+          <div class="tr th" role="row"><span></span><span>Fecha</span><span>Llegaron</span><span>Ya tenías</span><span>Costo queda en</span><span></span></div>
+          <div id="compras"></div>
+        </div>
+      </section>
+
+      <!-- 4 y 5 · hoy y errores, en una franja -->
+      <div class="dos" style="--i:3">
+        <section class="tarjeta chica">
+          <div class="cab"><h4>Hoy: 47 prendas</h4><span class="tag" title="Suponemos que se vende primero lo que llegó antes">estimado</span></div>
+          <div class="reparto" role="img" aria-label="23 prendas a S/ 20.50 y 24 a S/ 19.50">
+            <span class="c2" style="flex:23"><b>23</b> a S/&nbsp;20.50</span><span class="c3" style="flex:24"><b>24</b> a S/&nbsp;19.50</span>
+          </div>
+          <div class="reparto-ley"><span>de la compra ②</span><span>de la compra ③</span></div>
+        </section>
+        <section class="tarjeta chica" id="errores">
+          <div class="cab"><h4>Errores arreglados</h4><span class="ayuda">no cambian el costo</span></div>
+          <div id="arreglos"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------- datos inventados (los mismos de index.html)
+const D = d => new Date(d + "T12:00:00");
+const S = n => "S/ " + n.toFixed(2); // el monto no se parte entre líneas (ADR-0413)
+const pasos = [
+  { n: 1, f: "2026-10-05", fe: "lunes 5 de octubre", corta: "5 oct", llegan: 30, cNuevo: 18.00, ya: 12, cAnt: 18.00, prom: 18.00, quien: "Janis Revilla", ini: "JR", doc: "Factura F001-455 · Textiles Rocío" },
+  { n: 2, f: "2026-10-14", fe: "miércoles 14 de octubre", corta: "14 oct", llegan: 40, cNuevo: 20.50, ya: 22, cAnt: 18.00, prom: 19.61, quien: "Daniel Ruiz", ini: "DR", doc: "Factura F001-482 · Textiles Rocío" },
+  { n: 3, f: "2026-10-22", fe: "jueves 22 de octubre", corta: "22 oct", llegan: 24, cNuevo: 19.50, ya: 35, cAnt: 19.61, prom: 19.57, quien: "Janis Revilla", ini: "JR", doc: "Factura F001-501 · Textiles Rocío" },
+];
+const arreglos = [
+  { f: "2026-09-12", fe: "12 sep", quien: "Daniel Ruiz", de: 19.00, a: 18.00, donde: "al crear", motivo: "«puse 19, era 18»", propuesta: false },
+  { f: "2026-10-14", fe: "14 oct", quien: "Felipe Alvarez", de: 25.00, a: 20.50, donde: "compra ②", motivo: "«tecleé mal la factura»", propuesta: true },
+];
+const inicio = { f: "2026-09-12", prom: 18.00 }, hoy = "2026-10-24";
+const ns = "http://www.w3.org/2000/svg";
+const el = (t, a = {}, p) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const lapizSvg = `<svg class="ic s" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>`;
+
+// ---------------------------------------------------------------- encender un paso (gráfico + tarjeta a la vez)
+let activo = null;
+function encender(n, desplazar) {
+  activo = activo === n ? null : n;
+  document.querySelectorAll(".paso").forEach(p => p.classList.toggle("on", +p.dataset.n === activo));
+  document.querySelectorAll(".compra").forEach(p => p.classList.toggle("on", +p.dataset.n === activo));
+  if (activo && desplazar) { const t = document.querySelector(`.compra[data-n="${activo}"]`); const r = t.getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) t.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }); }
+}
+
+// ---------------------------------------------------------------- el gráfico: una línea, números en cada cambio
+function grafico() {
+  const cont = document.getElementById("g"); cont.innerHTML = "";
+  const W = 760, H = 240, m = { l: 56, r: 84, t: 30, b: 44 };
+  const x0 = D("2026-09-10"), x1 = D("2026-10-26");
+  const X = d => m.l + (D(d) - x0) / (x1 - x0) * (W - m.l - m.r);
+  const yMin = 17, yMax = 21, Y = v => m.t + (yMax - v) / (yMax - yMin) * (H - m.t - m.b);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Cada prenda costaba S/ 18.00 en septiembre; subió a S/ 19.61 el 14 de octubre y hoy cuesta S/ 19.57" });
+  const ejes = el("g", { class: "ejes" }, svg);
+  for (const v of [18, 19, 20]) { el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) }, ejes); el("text", { x: m.l - 10, y: Y(v) + 4, "text-anchor": "end" }, ejes).textContent = "S/ " + v; }
+  el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: "var(--t15)" }, ejes);
+  for (const [d, t] of [["2026-09-12", "12 sep"], ["2026-10-01", "1 oct"], ["2026-10-14", "14 oct"], ["2026-10-24", "hoy"]]) el("text", { x: X(d), y: H - m.b + 32, "text-anchor": "middle" }, ejes).textContent = t;
+  // la línea en escalones
+  const pts = [[inicio.f, inicio.prom], ...pasos.map(p => [p.f, p.prom]), [hoy, pasos.at(-1).prom]];
+  let d = `M${X(pts[0][0])},${Y(pts[0][1])}`;
+  for (let i = 1; i < pts.length; i++) d += ` H${X(pts[i][0])} V${Y(pts[i][1])}`;
+  el("path", { d: d + ` V${H - m.b} H${X(pts[0][0])} Z`, fill: "var(--tinta)", opacity: ".05" }, svg);
+  el("path", { d, fill: "none", stroke: "var(--tinta)", "stroke-width": "3", "stroke-linejoin": "round", class: "trazo" }, svg);
+  // inicio y hoy, con su cifra
+  el("text", { x: X(inicio.f), y: Y(inicio.prom) - 12, "font-size": "12", fill: "var(--t65)", "font-family": "DM Sans" }, svg).textContent = "Empezó en S/ 18.00";
+  el("circle", { cx: X(hoy), cy: Y(pasos.at(-1).prom), r: 5, fill: "var(--tinta)" }, svg);
+  const tHoy = el("text", { x: X(hoy) + 12, y: Y(pasos.at(-1).prom) + 7, "font-family": "EB Garamond, serif", "font-size": "22", fill: "var(--tinta)" }, svg); tHoy.textContent = S(pasos.at(-1).prom);
+  // los números, en la esquina de cada cambio, con lo que pasó en dos palabras
+  pasos.forEach((p, i) => {
+    const sube = +(p.prom - p.cAnt).toFixed(2);
+    const g = el("g", { class: "paso asoma", style: `--i:${i}`, tabindex: 0, role: "button", "data-n": p.n, "aria-label": `Paso ${p.n}, ${p.fe}: ${sube === 0 ? "no cambió" : (sube > 0 ? "subió " : "bajó ") + S(Math.abs(sube))}` }, svg);
+    const cx = X(p.f), cy = Y(p.prom);
+    el("circle", { cx, cy, r: 22, fill: "transparent" }, g);
+    el("circle", { class: "fondo", cx, cy, r: 13 }, g);
+    el("text", { class: "n", x: cx, y: cy + 4, "text-anchor": "middle" }, g).textContent = p.n;
+    const et = el("text", { class: "et", x: cx, y: sube < 0 ? cy + 32 : cy - 22, "text-anchor": "middle", fill: sube > 0 ? "var(--ambar)" : sube < 0 ? "var(--verde)" : "var(--t65)" }, g);
+    et.textContent = sube === 0 ? "igual" : (sube > 0 ? "↑ subió " : "↓ bajó ") + S(Math.abs(sube));
+    g.addEventListener("click", () => encender(p.n, true));
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); encender(p.n, true); } });
+  });
+  // los errores arreglados: un lápiz sobre la fecha, fuera de la línea
+  arreglos.forEach((a, i) => {
+    const g = el("g", { class: "lapiz asoma", style: `--i:${i + 3}`, tabindex: 0, role: "button", "aria-label": `Error arreglado el ${a.fe}` }, svg);
+    const cx = X(a.f) + (i ? 14 : 0), cy = H - m.b + 12;
+    el("circle", { cx, cy, r: 9 }, g);
+    // el lápiz dibujado en el propio SVG (un foreignObject se corre en Safari)
+    el("path", { d: "M4 20h4L19 9l-4-4L4 16z", transform: `translate(${cx - 5.4} ${cy - 5.4}) scale(.45)`, fill: "none", stroke: "var(--pizarra)", "stroke-width": "4", "stroke-linejoin": "round" }, g);
+    const ir = () => { const f = document.querySelector(`.arreglo[data-i="${i}"]`); f.scrollIntoView({ behavior: "smooth", block: "center" }); f.classList.add("destello"); setTimeout(() => f.classList.remove("destello"), 1200); };
+    g.addEventListener("click", ir); g.addEventListener("keydown", e => { if (e.key === "Enter") ir(); });
+  });
+  cont.appendChild(svg);
+}
+
+// ---------------------------------------------------------------- las compras, una fila cada una
+function compras() {
+  document.getElementById("compras").innerHTML = pasos.map((p, i) => {
+    const sube = +(p.prom - p.cAnt).toFixed(2);
+    const cambio = sube === 0 ? `<em class="igual">igual</em>` : `<em class="${sube > 0 ? "sube" : "baja"}">${sube > 0 ? "↑" : "↓"} ${Math.abs(sube).toFixed(2)}</em>`;
+    const total = p.ya + p.llegan;
+    return `<div class="fila-compra" style="--i:${i}">
+      <button class="tr compra" role="row" data-n="${p.n}">
+        <span class="nro">${p.n}</span>
+        <span class="c-f">${p.corta}</span>
+        <span class="c-l num"><b>+${p.llegan}</b> a ${S(p.cNuevo)}</span>
+        <span class="c-y num" data-et="ya tenías">${p.ya} a ${S(p.cAnt)}</span>
+        <span class="c-q num"><b>${S(p.prom)}</b> ${cambio}<i class="q" data-porque role="button" tabindex="0" aria-label="¿Cómo se calcula?">?</i></span>
+        <span class="c-d">${p.doc.split(" · ")[0].replace("Factura ", "")} <span class="av">${p.ini}</span>›</span>
+      </button>
+      <div class="cuenta num">${p.ya} × ${S(p.cAnt)} + ${p.llegan} × ${S(p.cNuevo)} = ${S(p.ya * p.cAnt + p.llegan * p.cNuevo)} ÷ ${total} = <b>${S(p.prom)}</b></div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".compra").forEach(t => t.addEventListener("click", e => {
+    if (e.target.closest("[data-porque]")) { t.nextElementSibling.classList.toggle("ver"); e.stopPropagation(); return; }
+    encender(+t.dataset.n, false);
+  }));
+}
+
+// ---------------------------------------------------------------- errores arreglados: una línea cada uno
+function errores() {
+  document.getElementById("arreglos").innerHTML = arreglos.map((a, i) => `
+    <div class="arreglo" data-i="${i}" title="${a.quien} · ${a.motivo}">
+      <span class="ic-l">${lapizSvg}</span>
+      <span class="fe">${a.fe}</span>
+      <span class="num"><span class="tach">${S(a.de)}</span> → <b>${S(a.a)}</b></span>
+      <span class="donde">${a.donde}${a.propuesta ? ` <span class="chip ambar">nuevo</span>` : ""}</span>
+    </div>`).join("");
+}
+
+grafico(); compras(); errores();
+// En el celular el gráfico se desliza de lado: arranca mostrando lo más reciente, que es donde están los cambios.
+const alFinal = () => { const g = document.getElementById("g"); g.scrollLeft = g.scrollWidth; };
+alFinal(); addEventListener("resize", alFinal);
+document.getElementById("tema").addEventListener("click", e => {
+  const r = document.documentElement, osc = r.dataset.tema !== "oscuro"; r.dataset.tema = osc ? "oscuro" : "claro";
+  e.target.textContent = osc ? "Ver en claro" : "Ver en oscuro";
+});
+</script>
+</body>
+</html>

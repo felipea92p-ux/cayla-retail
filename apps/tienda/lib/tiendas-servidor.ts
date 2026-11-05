@@ -29,7 +29,7 @@ async function sedesGuardadas(): Promise<unknown> {
  *  en la misma página las comparte. */
 export const leerSedes = cache(async (): Promise<Sede[]> => {
   try {
-    return interpretarSedes(await sedesGuardadas());
+    return interpretarSedes(await sedesGuardadas(), process.env.TIENDA_FOTOS_ORIGEN);
   } catch (error) {
     console.error(JSON.stringify({ evento: "tienda_sedes_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
     return SEDES_SIN_DATOS;

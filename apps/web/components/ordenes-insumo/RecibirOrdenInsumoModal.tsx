@@ -46,7 +46,7 @@ import { recibirOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 // fijo de una hoja larga.
 
 // El título de cada caja de una línea (la caja hundida deja su etiqueta solo para el lector).
-const TITULO = "mb-1 text-[12px] font-semibold text-tinta";
+const TITULO = "mb-1 text-sm font-semibold text-tinta";
 
 /** Qué decir cuando se corta la señal: la recepción pudo llegar a la base y perderse solo la respuesta; repetir igual no duplica nada. */
 const AVISO_DE_CORTE =
@@ -142,8 +142,7 @@ export function RecibirOrdenInsumoModal({
           className="space-y-4"
         >
           <p className="text-sm text-tinta/75">
-            Escribe cuánto llegó de cada insumo: en blanco es todo lo que queda, y «0» si de ese insumo no llegó nada esta vez. El costo es el de
-            esta orden: corrígelo si el papel dice otro.
+            Cuánto llegó de cada insumo: en blanco es todo lo que queda; «0» si no llegó nada. Corrige el costo si el papel dice otro.
           </p>
           <ul className="space-y-3">
             {o.lineas.map((l) => (
@@ -159,7 +158,7 @@ export function RecibirOrdenInsumoModal({
           </ul>
           {campos.some((c) => c.id === "llega") && (
             <CampoGuiado id="llega" guia={guia}>
-              <p className="text-xs text-taupe">Si no llegó nada de ningún insumo, no hay nada que registrar todavía.</p>
+              <p className="text-sm text-taupe">Si no llegó nada de ningún insumo, no hay nada que registrar todavía.</p>
             </CampoGuiado>
           )}
           <CampoGuiado id="nota" guia={guia} titulo="Nota de la entrega">
@@ -248,14 +247,14 @@ function LineaParaRecibir({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="min-w-0 text-[14px] text-tinta">
             {l.insumo}
-            {l.codigo && <span className="ml-1.5 text-xs text-taupe">{l.codigo}</span>}
+            {l.codigo && <span className="ml-1.5 text-sm text-taupe">{l.codigo}</span>}
           </p>
-          <p className="text-xs tabular-nums text-tinta/70">
+          <p className="text-sm tabular-nums text-tinta/70">
             quedan <b className="font-semibold text-tinta">{cantidadConUnidad(l.queda, l.unidad)}</b>
           </p>
         </div>
         {(contexto.length > 0 || l.tipo === "papel") && (
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-taupe">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-taupe">
             {l.tipo === "papel" && <Chip tono="pizarra">No estaba en la orden{l.documento ? ` · ${l.documento}` : ""}</Chip>}
             {contexto.length > 0 && <span>{contexto.join(" · ")}</span>}
           </p>
@@ -275,7 +274,7 @@ function LineaParaRecibir({
                 onChange={(ev) => onCambio({ llego: ev.target.value })}
                 />
               </div>
-              <span aria-hidden className="shrink-0 text-[13px] text-taupe-profundo">
+              <span aria-hidden className="shrink-0 text-sm text-taupe-profundo">
                 {nombreUnidad(l.unidad, m != null ? m / 1000 : null)}
               </span>
             </div>
@@ -309,7 +308,7 @@ function LineaParaRecibir({
         {/* Lo que no va a llegar (actividad 4): solo si se escribió cuánto llegó y todavía queda algo (en blanco llega todo). */}
         {e.llego.trim() !== "" && resto != null && resto > 0 && (
           <div className="mt-2.5 space-y-2">
-            <label className="flex items-center gap-2 text-[13px] text-tinta/80">
+            <label className="flex items-center gap-2 text-sm text-tinta/80">
               <Casilla
                 marcada={e.noLlegara}
                 onCambio={() => onCambio({ noLlegara: !e.noLlegara })}
@@ -325,7 +324,7 @@ function LineaParaRecibir({
                 opciones={MOTIVOS_NO_LLEGA.map((x) => ({ valor: x.valor, texto: x.etiqueta }))}
               />
             )}
-            {textoDelResto && <p className="text-xs text-taupe">{textoDelResto}</p>}
+            {textoDelResto && <p className="text-sm text-taupe">{textoDelResto}</p>}
           </div>
         )}
       </CampoGuiado>

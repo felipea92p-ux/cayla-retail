@@ -11,6 +11,7 @@ import {
   leerFicha,
   leerResumenFicha,
   normalizarFicha,
+  proveedoresParaElegirEnGasto,
   problemaDeLaFicha,
   TEXTO_FORMA_DE_PAGO,
   textoContratoPorVencer,
@@ -175,5 +176,20 @@ describe("contrato por vencer", () => {
     expect(textoContratoPorVencer({ dias: 30, vencido: false })).toBe("El contrato vence en 30 días");
     expect(textoContratoPorVencer({ dias: -1, vencido: true })).toBe("Contrato vencido ayer");
     expect(textoContratoPorVencer({ dias: -9, vencido: true })).toBe("Contrato vencido hace 9 días");
+  });
+});
+
+describe("proveedoresParaElegirEnGasto", () => {
+  const luz = { id: "luz", rubros: ["Gastos"] };
+  const telas = { id: "telas", rubros: ["Telas"] };
+  const mixto = { id: "mixto", rubros: ["Telas", "gastos "] };
+  const sinRubro = { id: "nada" };
+
+  it("ofrece solo los de servicios, no la mercadería", () => {
+    expect(proveedoresParaElegirEnGasto([luz, telas, mixto, sinRubro], "").map((p) => p.id)).toEqual(["luz", "mixto"]);
+  });
+
+  it("deja el ya elegido aunque sea de mercadería", () => {
+    expect(proveedoresParaElegirEnGasto([luz, telas], "telas").map((p) => p.id)).toEqual(["luz", "telas"]);
   });
 });

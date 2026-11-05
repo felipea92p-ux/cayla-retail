@@ -16,7 +16,7 @@ export type EstadoCotizacion = "vigente" | "porVencer" | "vencida";
 type CotizacionParaEstado = Pick<CotizacionMaquila, "vigenteHasta">;
 
 /** `>=`, no `>`: el día que vence todavía cuenta como vigente — mismo criterio que la RPC
- *  `fn_cotizacion_maquila_vigente` (`vigente_hasta >= current_date`). Los dos tienen que
+ *  `fn_cotizacion_maquila_vigente` (`vigente_hasta >= fn_hoy_lima()`, 20261031150000). Los dos tienen que
  *  decir lo mismo: si la pantalla mostrara "vencida" un día antes que la base, alguien
  *  renovaría una cotización que la RPC todavía consideraba buena. */
 export function estadoDeCotizacion(c: CotizacionParaEstado, hoy: string): EstadoCotizacion {

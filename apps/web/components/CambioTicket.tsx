@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { MessageCircle, Plus, ShoppingBag } from "lucide-react";
@@ -78,7 +78,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
       titulo="Cambio registrado"
       subtitulo={
         ticket.vaACuarentena
-          ? "La prenda que trajo quedó en cuarentena, esperando que un líder decida qué hacer con ella."
+          ? "La prenda que trajo quedó en cuarentena, esperando que se decida qué hacer con ella."
           : "El stock ya refleja la prenda que volvió y la que salió."
       }
       onClose={onCerrar}
@@ -97,7 +97,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               <span className="font-semibold tabular-nums">{textoDiferencia(ticket.diferencia)}</span>
             </Linea>
             <div className="my-1.5 border-t border-dashed border-sand" />
-            <p className="text-xs text-tinta/60">
+            <p className="text-sm text-tinta/60">
               {ticket.atendio ? `Atendió ${ticket.atendio} · ` : ""}
               {ticket.sede} · {fecha} {hora}
             </p>
@@ -127,7 +127,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               Nuevo cambio
             </button>
           </div>
-          <p className="mt-3 text-center text-xs text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>
+          <p className="mt-3 text-center text-sm text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>
 
           {typeof document !== "undefined" && createPortal(<TicketCambioTermico ticket={ticket} />, document.body)}
         </>
@@ -144,8 +144,8 @@ function TicketCambioTermico({ ticket }: { ticket: TicketCambio }) {
   return (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <Image src="/cayla-isotipo.png" alt="" width={221} height={150} priority unoptimized className="rt-logo" />
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-tienda">{ticket.sede}</p>
       </header>
       <div className="rt-doble" />

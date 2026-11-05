@@ -1,0 +1,526 @@
+<title>Mis compras más simple</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Maqueta navegable: un teléfono de 375 px por dirección, al lado lo que cambia. Tokens de la guía «CAYLA Dynamic» del ERP
+   (apps/web/app/globals.css), con su oscuro (tinta y crema intercambiados, estilos/tema.css). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --sand: #e8e0d0; --hueso: #eae1d2; --taupe: #805c4c;
+  --rojo: #b8412d; --rojo-p: #8b2a1f; --verde: #48603f; --verde-suave: #e3e4d9; --ambar: #74501a; --ambar-suave: #ece0cf;
+  --pizarra: #4c5d6e; --velo: rgba(26,26,24,.32); --sobre-tinta: #f5f0e8;
+  --serif: "EB Garamond", Georgia, "Times New Roman", serif;
+  --sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --crema: #1a1a18; --papel: #24231f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894;
+  --rojo: #d9674f; --rojo-p: #e58a74; --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022;
+  --pizarra: #a9b8c6; --velo: rgba(0,0,0,.55); --sobre-tinta: #1a1a18; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --crema: #1a1a18; --papel: #24231f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894;
+  --rojo: #d9674f; --rojo-p: #e58a74; --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022;
+  --pizarra: #a9b8c6; --velo: rgba(0,0,0,.55); --sobre-tinta: #1a1a18; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.envoltura { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46px); line-height: 1.05; margin: 6px 0 8px; text-wrap: balance; }
+.bajada { max-width: 62ch; color: var(--taupe); margin: 0; }
+.ejemplo { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--pizarra); background: var(--hueso);
+  border-radius: 999px; padding: 3px 10px; margin-top: 10px; }
+
+.pestanas { display: flex; gap: 6px; flex-wrap: wrap; background: var(--hueso); padding: 5px; border-radius: 14px; width: fit-content; max-width: 100%; }
+.pestanas button { border: 0; background: transparent; padding: 9px 14px; border-radius: 10px; font-weight: 600; font-size: 13px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--taupe); }
+.pestanas button[aria-selected="true"] { background: var(--tinta); color: var(--sobre-tinta); }
+
+.escena { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 860px) { .escena { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- El teléfono ---------- */
+.telefono { width: 100%; max-width: 390px; margin: 0 auto; border-radius: 40px; border: 7px solid var(--tinta); background: var(--crema);
+  height: 760px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.barra-sistema { height: 30px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 22px;
+  font-size: 12px; font-weight: 600; }
+.pantalla { flex: 1; overflow-y: auto; padding: 6px 18px 120px; display: flex; flex-direction: column; gap: 14px; }
+.pantalla::-webkit-scrollbar { width: 0; }
+.cab { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.cab .volver { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; flex: none; }
+.cab .que { font-size: 12px; color: var(--taupe); }
+.titulo { font-family: var(--serif); font-size: 30px; line-height: 1.05; margin: 0; font-weight: 400; text-wrap: balance; }
+.sub { font-size: 13px; color: var(--taupe); margin: 0; }
+
+.saldo { background: var(--tinta); color: var(--sobre-tinta); border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; }
+.saldo .eyebrow { color: color-mix(in srgb, var(--sobre-tinta) 70%, transparent); }
+.saldo .cifra { font-family: var(--serif); font-size: 44px; line-height: 1; font-variant-numeric: tabular-nums; }
+.saldo .cifra small { font-size: 20px; margin-right: 4px; }
+.saldo .linea { font-size: 13px; color: color-mix(in srgb, var(--sobre-tinta) 78%, transparent); }
+
+.btn { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; min-height: 48px; padding: 0 16px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform .15s; }
+.btn:active { transform: scale(.98); }
+.btn.primario { background: var(--tinta); color: var(--sobre-tinta); border-color: var(--tinta); }
+.btn.grande { min-height: 60px; font-size: 17px; border-radius: 18px; width: 100%; }
+.btn.ancho { width: 100%; }
+.btn.enlace { border: 0; background: transparent; min-height: 40px; color: var(--taupe); text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.lista { display: flex; flex-direction: column; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; }
+.fila { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--sand); text-align: left; background: transparent; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; }
+.fila:first-child { border-top: 0; }
+.fila .ico { width: 36px; height: 36px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; font-size: 15px; }
+.fila .t { font-weight: 600; font-size: 14px; }
+.fila .d { font-size: 12px; color: var(--taupe); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila .m { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.mas { color: var(--verde); }
+.vacio { padding: 18px; color: var(--taupe); font-size: 13px; text-align: center; }
+
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo > span { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.caja { background: var(--hueso); border: 1px solid transparent; border-radius: 12px; min-height: 48px; padding: 0 14px; font: inherit; color: var(--tinta); width: 100%; }
+.caja:focus { background: var(--papel); border-color: var(--tinta); outline: none; }
+.monto { display: flex; align-items: baseline; gap: 6px; background: var(--hueso); border-radius: 16px; padding: 10px 16px; }
+.monto span { font-family: var(--serif); font-size: 22px; color: var(--taupe); }
+.monto input { border: 0; background: transparent; font-family: var(--serif); font-size: 40px; width: 100%; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.monto input:focus { outline: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; min-height: 40px; padding: 0 14px; font-weight: 500; font-size: 14px; }
+.chip[aria-pressed="true"] { background: var(--tinta); color: var(--sobre-tinta); border-color: var(--tinta); }
+.foto { border: 1.5px dashed var(--sand); border-radius: 14px; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px;
+  background: transparent; width: 100%; text-align: left; color: var(--taupe); font-size: 14px; }
+.foto b { color: var(--tinta); font-weight: 600; }
+.foto[data-lista="1"] { border-style: solid; color: var(--verde); }
+
+.paso { display: flex; align-items: center; gap: 0; background: var(--hueso); border-radius: 12px; height: 40px; }
+.paso button { width: 40px; height: 40px; border: 0; background: transparent; font-size: 20px; }
+.paso b { min-width: 26px; text-align: center; font-variant-numeric: tabular-nums; }
+.prenda { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--sand); }
+.prenda:first-child { border-top: 0; }
+.prenda .mini { width: 44px; height: 44px; border-radius: 10px; background: var(--hueso); display: grid; place-items: center; font-size: 20px; }
+.prenda .n { font-weight: 600; font-size: 14px; }
+.prenda .c { font-size: 12px; color: var(--taupe); }
+.prenda .c button { border: 0; background: transparent; padding: 0; color: var(--taupe); text-decoration: underline; text-underline-offset: 2px; font-size: 12px; }
+
+.barra-abajo { position: absolute; left: 12px; right: 12px; bottom: 14px; z-index: 4; background: var(--tinta); color: var(--sobre-tinta); border-radius: 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 10px 10px 16px; }
+.barra-abajo .r { font-size: 12px; opacity: .8; }
+.barra-abajo .c { font-family: var(--serif); font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.barra-abajo .btn { background: var(--sobre-tinta); color: var(--tinta); border-color: transparent; min-height: 46px; }
+.barra-clara { background: var(--papel); color: var(--tinta); border: 1px solid var(--sand); padding: 8px; }
+.barra-clara .btn { flex: 1; background: var(--papel); color: var(--tinta); border: 1px solid var(--sand); min-height: 52px; flex-direction: column; gap: 0; font-size: 13px; }
+.barra-clara .btn.primario { background: var(--tinta); color: var(--sobre-tinta); border-color: var(--tinta); }
+.barra-clara .btn i { font-style: normal; font-size: 18px; line-height: 1.1; }
+
+.velo { position: absolute; inset: 0; background: var(--velo); z-index: 5; display: flex; align-items: flex-end; animation: entra .2s ease-out; }
+.hoja { background: var(--papel); width: 100%; border-radius: 24px 24px 0 0; padding: 10px 18px 22px; max-height: 92%; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 14px; animation: sube .26s cubic-bezier(.2,.8,.2,1); }
+.hoja .asa { width: 40px; height: 5px; border-radius: 3px; background: var(--sand); margin: 0 auto 2px; }
+.hoja h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0; }
+@keyframes sube { from { transform: translateY(18px); opacity: .6 } }
+@keyframes entra { from { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .velo, .hoja { animation: none; } }
+
+.aviso { position: absolute; left: 16px; right: 16px; top: 40px; z-index: 6; background: var(--verde); color: var(--sobre-tinta);
+  border-radius: 14px; padding: 12px 14px; font-size: 14px; font-weight: 600; animation: entra .2s; }
+.listo { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding-top: 50px; }
+.listo .sello { width: 72px; height: 72px; border-radius: 50%; background: var(--verde-suave); color: var(--verde); display: grid; place-items: center; font-size: 34px; }
+
+/* El cuaderno (dirección C) */
+.cuaderno { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 4px 0; background-image:
+  repeating-linear-gradient(to bottom, transparent 0 51px, var(--sand) 51px 52px); }
+.renglon { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 52px; padding: 0 14px; }
+.renglon .h { font-size: 12px; color: var(--taupe); font-variant-numeric: tabular-nums; }
+.renglon .t { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.renglon .t small { display: block; font-weight: 400; font-size: 12px; color: var(--taupe); }
+.renglon .m { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.renglon .m small { display: block; font-weight: 400; font-size: 11px; color: var(--taupe); }
+.renglon.total { border-top: 2px solid var(--tinta); }
+
+/* ---------- Al lado: qué cambia ---------- */
+.notas { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.notas h2 { font-family: var(--serif); font-weight: 400; font-size: 30px; margin: 0; line-height: 1.1; }
+.notas .lema { color: var(--taupe); margin: 4px 0 0; max-width: 60ch; }
+.tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.tarjeta h4 { margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+.tarjeta ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.toques { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; font-size: 14px; }
+.toques .barra { height: 10px; border-radius: 6px; background: var(--hueso); overflow: hidden; }
+.toques .barra i { display: block; height: 100%; background: var(--tinta); border-radius: 6px; }
+.toques .hoy i { background: var(--taupe); }
+.toques b { font-variant-numeric: tabular-nums; }
+.ok { background: var(--ambar-suave); border-color: transparent; }
+.ok h4 { color: var(--ambar); }
+.reiniciar { align-self: flex-start; }
+</style>
+
+<div class="envoltura">
+  <header>
+    <div class="eyebrow">Compras ▸ Mis compras · maqueta tocable · 24 de octubre de 2026</div>
+    <h1>Mis compras, más simple</h1>
+    <p class="bajada">Tres formas de que quien sale a comprar anote menos y piense menos. Toca el teléfono: se puede anotar una compra, la plata,
+      un gasto y terminar el día de punta a punta. La foto del papel es opcional en las tres.</p>
+    <span class="ejemplo">● Datos de ejemplo: Marisol compra para Lima, Trujillo y Arequipa</span>
+  </header>
+
+  <div class="pestanas" role="tablist" aria-label="Direcciones">
+    <button role="tab" id="tab-a" aria-selected="true" data-dir="a">A · Un botón</button>
+    <button role="tab" id="tab-b" aria-selected="false" data-dir="b">B · Solo la plata</button>
+    <button role="tab" id="tab-c" aria-selected="false" data-dir="c">C · Cuaderno</button>
+  </div>
+
+  <section class="escena">
+    <div class="telefono" aria-label="Teléfono de ejemplo">
+      <div class="barra-sistema"><span>10:24</span><span>● ● ▮</span></div>
+      <div class="pantalla" id="pantalla"></div>
+      <div id="capa"></div>
+    </div>
+    <div class="notas" id="notas"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const S = (n) => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const TIENDAS = ["Lima", "Trujillo", "Arequipa"];
+  const PROVEEDORES = [
+    { id: "rosa", nombre: "Textiles Rosa", vende: "Blusas y polos", prendas: [
+      { id: "emma", n: "Blusa Emma", e: "👚", costo: 20, venta: 59.9 }, { id: "tito", n: "Polo Tito", e: "👕", costo: 15, venta: 39.9 },
+      { id: "luz", n: "Blusa Luz", e: "👚", costo: 22, venta: 64.9 } ] },
+    { id: "andina", nombre: "Andina Jeans", vende: "Jeans", prendas: [
+      { id: "mom", n: "Jean Mom", e: "👖", costo: 45, venta: 119.9 }, { id: "recto", n: "Jean Recto", e: "👖", costo: 42, venta: 109.9 } ] },
+    { id: "gamarra", nombre: "Moda Gamarra", vende: "Casacas", prendas: [ { id: "casaca", n: "Casaca Corta", e: "🧥", costo: 55, venta: 149.9 } ] },
+  ];
+  const INICIO = () => ({
+    tiene: 680, ronda: "RC-000612", vista: "inicio", hoja: null, aviso: null, terminado: false,
+    items: [
+      { tipo: "plata", hora: "08:40", t: "Me dieron plata", d: "Yape · con foto", monto: 1000 },
+      { tipo: "compra", hora: "09:15", t: "Moda Gamarra", d: "4 prendas · va a Arequipa", monto: -220, tiendas: { Arequipa: 4 } },
+      { tipo: "gasto", hora: "09:50", t: "Taxi", d: "Sin papel", monto: -18 },
+      { tipo: "compra", hora: "10:05", t: "Andina Jeans", d: "2 prendas · va a Lima", monto: -82, tiendas: { Lima: 2 } },
+    ],
+    borrador: null,
+  });
+  let dir = "a";
+  let st = INICIO();
+  const $ = (s) => document.querySelector(s);
+  const pantalla = $("#pantalla"), capa = $("#capa"), notas = $("#notas");
+  const ahora = () => { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+  const ICO = { compra: "🛍", plata: "＋", gasto: "🚕" };
+
+  // ---------- Lo común ----------
+  function filaItem(i) {
+    return `<div class="fila"><span class="ico" aria-hidden="true">${ICO[i.tipo]}</span>
+      <span style="min-width:0"><div class="t">${i.t}</div><div class="d">${i.d}</div></span>
+      <span class="m ${i.monto > 0 ? "mas" : ""}">${i.monto > 0 ? "+" : "−"}${S(Math.abs(i.monto))}</span></div>`;
+  }
+  function porMandar() {
+    const t = {};
+    for (const i of st.items) if (i.tiendas) for (const [k, v] of Object.entries(i.tiendas)) t[k] = (t[k] || 0) + v;
+    return t;
+  }
+  function textoMandar() {
+    const t = porMandar();
+    const p = Object.entries(t).map(([k, v]) => `${k} ${v}`);
+    return p.length ? p.join(", ") : "nada";
+  }
+  function avisar(txt) { st.aviso = txt; render(); setTimeout(() => { st.aviso = null; render(); }, 1800); }
+  function hojaPlata() {
+    return `<div class="velo" data-cerrar="1"><div class="hoja" role="dialog" aria-label="Me dieron plata">
+      <div class="asa"></div><h3>Me dieron plata</h3>
+      <div class="monto"><span>S/</span><input id="m-plata" inputmode="decimal" value="500" aria-label="Cuánto te dieron"></div>
+      <div class="campo"><span>¿Cómo?</span><div class="chips" data-grupo="medio">
+        <button class="chip" aria-pressed="true">Yape</button><button class="chip" aria-pressed="false">Efectivo</button><button class="chip" aria-pressed="false">Transferencia</button></div></div>
+      <button class="foto" data-foto="1">📷 <span><b>Foto del voucher</b> · opcional</span></button>
+      <div class="par"><button class="btn" data-accion="cerrar">Cancelar</button><button class="btn primario" data-accion="guardar-plata">Guardar</button></div>
+    </div></div>`;
+  }
+  function hojaGasto() {
+    return `<div class="velo" data-cerrar="1"><div class="hoja" role="dialog" aria-label="Otro gasto">
+      <div class="asa"></div><h3>Otro gasto</h3>
+      <div class="chips" data-grupo="concepto">
+        <button class="chip" aria-pressed="true">🚕 Taxi</button><button class="chip" aria-pressed="false">🍽 Comida</button>
+        <button class="chip" aria-pressed="false">📦 Envío</button><button class="chip" aria-pressed="false">🛍 Bolsas</button><button class="chip" aria-pressed="false">Otro</button></div>
+      <div class="monto"><span>S/</span><input id="m-gasto" inputmode="decimal" value="12" aria-label="Cuánto gastaste"></div>
+      <button class="foto" data-foto="1">📷 <span><b>Foto del papel</b> · opcional</span></button>
+      <div class="par"><button class="btn" data-accion="cerrar">Cancelar</button><button class="btn primario" data-accion="guardar-gasto">Guardar</button></div>
+    </div></div>`;
+  }
+  function hojaTerminar() {
+    const quedan = st.tiene;
+    return `<div class="velo" data-cerrar="1"><div class="hoja" role="dialog" aria-label="Terminé por hoy">
+      <div class="asa"></div><h3>Terminé por hoy</h3>
+      <p class="sub">Te quedan <b style="color:var(--tinta)">${S(quedan)}</b>. Lo que compraste sale solo a cada tienda: <b style="color:var(--tinta)">${textoMandar()}</b>.</p>
+      <div class="chips" data-grupo="sobra" style="flex-direction:column">
+        <button class="chip" aria-pressed="true" style="justify-content:flex-start;text-align:left">Lo devuelvo a Compras</button>
+        <button class="chip" aria-pressed="false" style="justify-content:flex-start;text-align:left">Me lo quedo para la próxima</button></div>
+      <div class="par"><button class="btn" data-accion="cerrar">Todavía no</button><button class="btn primario" data-accion="terminar">Terminar</button></div>
+    </div></div>`;
+  }
+  function pantallaTerminada() {
+    return `<div class="listo"><div class="sello">✓</div><h2 class="titulo">Listo por hoy</h2>
+      <p class="sub">Las prendas salieron a ${textoMandar()}. Compras recibe lo que te quedó y revisa todo desde su escritorio.</p>
+      <button class="btn primario grande" data-accion="reiniciar" style="margin-top:20px">Volver a empezar la demo</button></div>`;
+  }
+  function saldo(nota) {
+    return `<div class="saldo"><span class="eyebrow">Tienes para comprar</span><div class="cifra"><small>S/</small>${st.tiene.toLocaleString("es-PE", { minimumFractionDigits: 2 })}</div>
+      <div class="linea">${nota}</div></div>`;
+  }
+
+  // ---------- A · Un botón ----------
+  const A = {
+    inicio() {
+      return `<div class="cab"><div><div class="que">Hola, Marisol</div><h2 class="titulo">Mis compras</h2></div></div>
+        ${saldo(`Compraste ${S(st.items.filter(i => i.tipo === "compra").reduce((s, i) => s - i.monto, 0))} hoy`)}
+        <button class="btn primario grande" data-accion="compra">＋ Anotar una compra</button>
+        <div class="par"><button class="btn" data-hoja="plata">Me dieron plata</button><button class="btn" data-hoja="gasto">Otro gasto</button></div>
+        <div class="eyebrow" style="margin-top:4px">Hoy</div>
+        <div class="lista">${st.items.slice().reverse().map(filaItem).join("") || `<div class="vacio">Todavía nada hoy.</div>`}</div>
+        <button class="btn enlace" data-hoja="terminar">Terminé por hoy</button>`;
+    },
+    proveedor() {
+      return `<div class="cab"><button class="volver" data-accion="inicio" aria-label="Volver">←</button><span class="que">1 de 3</span></div>
+        <h2 class="titulo">¿A quién le compraste?</h2>
+        <input class="caja" placeholder="Busca el proveedor" aria-label="Busca el proveedor">
+        <div class="lista">${PROVEEDORES.map(p => `<button class="fila" data-prov="${p.id}"><span class="ico">${p.nombre[0]}</span>
+          <span style="min-width:0"><div class="t">${p.nombre}</div><div class="d">${p.vende}</div></span><span>›</span></button>`).join("")}</div>
+        <button class="btn ancho" data-accion="nada">＋ Es un proveedor nuevo</button>`;
+    },
+    prendas() {
+      const b = st.borrador, p = PROVEEDORES.find(x => x.id === b.prov);
+      const total = p.prendas.reduce((s, x) => s + (b.cant[x.id] || 0) * x.costo, 0);
+      const n = Object.values(b.cant).reduce((s, v) => s + v, 0);
+      return `<div class="cab"><button class="volver" data-accion="compra" aria-label="Volver">←</button><span class="que">2 de 3 · ${p.nombre}</span></div>
+        <h2 class="titulo">¿Qué compraste?</h2>
+        <div class="campo"><span>Va a</span><div class="chips" data-grupo="tienda">${TIENDAS.map(t => `<button class="chip" aria-pressed="${b.tienda === t}" data-tienda="${t}">${t}</button>`).join("")}</div></div>
+        <div class="lista">${p.prendas.map(x => `<div class="prenda"><span class="mini">${x.e}</span>
+          <span style="min-width:0"><div class="n">${x.n}</div><div class="c">${S(x.costo)} c/u · <button data-accion="nada">cambiar</button></div></span>
+          <span class="paso"><button data-menos="${x.id}" aria-label="Una menos">−</button><b>${b.cant[x.id] || 0}</b><button data-mas="${x.id}" aria-label="Una más">+</button></span></div>`).join("")}</div>
+        <button class="btn ancho" data-accion="nada">＋ Algo nuevo</button>
+        <div class="barra-abajo"><span><span class="r">${n} prendas</span><div class="c">${S(total)}</div></span>
+          <button class="btn" data-accion="pago" ${n ? "" : "disabled"}>Seguir →</button></div>`;
+    },
+    pago() {
+      const b = st.borrador;
+      return `<div class="cab"><button class="volver" data-accion="prendas" aria-label="Volver">←</button><span class="que">3 de 3</span></div>
+        <h2 class="titulo">¿Cuánto pagaste?</h2>
+        <div class="monto"><span>S/</span><input id="m-pago" inputmode="decimal" value="${b.total.toFixed(2)}" aria-label="Cuánto pagaste"></div>
+        <div class="chips" data-grupo="quien"><button class="chip" aria-pressed="true">Pagué yo</button><button class="chip" aria-pressed="false">Paga Compras después</button></div>
+        <div class="chips" data-grupo="medio"><button class="chip" aria-pressed="true">Yape</button><button class="chip" aria-pressed="false">Efectivo</button></div>
+        <button class="foto" data-foto="1">📷 <span><b>Foto del papel</b> · opcional</span></button>
+        <p class="sub">El tipo de papel y su número los copia Compras desde la foto, si la hay.</p>
+        <button class="btn primario grande" data-accion="guardar-compra">Guardar la compra</button>`;
+    },
+    notas: {
+      titulo: "A · Un botón",
+      lema: "La pantalla de hoy, sin lo que no hace falta pensar: un solo botón grande, y la ronda y «mandar a la tienda» pasan solos.",
+      cambia: [
+        "Arriba solo «Tienes para comprar» y un botón: «Anotar una compra». La plata y los gastos, dos botones chicos.",
+        "La ronda se abre sola con lo primero que anotas; ya no hay «Abrir mi ronda».",
+        "La tienda se elige una vez por compra, arriba; las prendas se suman con − y + en la misma lista.",
+        "Ya no se elige el tipo de papel ni se escribe el monto del papel: «¿Cuánto pagaste?» viene con el total y basta con tocar «Guardar».",
+        "«Mandar a la tienda» desaparece: al tocar «Terminé por hoy», todo sale a cada tienda.",
+      ],
+      toques: 8,
+      ok: [
+        "Que la ronda se abra sola (hoy hay que abrirla).",
+        "Que el tipo y el número del papel los complete Compras (hoy los marca quien compra).",
+        "Que «Terminé por hoy» mande todo a las tiendas sin armar fardos.",
+      ],
+    },
+  };
+
+  // ---------- B · Solo la plata ----------
+  const B = {
+    inicio() {
+      return `<div class="cab"><div><div class="que">Hola, Marisol</div><h2 class="titulo">Mis compras</h2></div></div>
+        ${saldo("Anota cuánto pagaste: las prendas las cuenta la tienda")}
+        <button class="btn primario grande" data-accion="compra">＋ Pagué una compra</button>
+        <div class="par"><button class="btn" data-hoja="plata">Me dieron plata</button><button class="btn" data-hoja="gasto">Otro gasto</button></div>
+        <div class="eyebrow" style="margin-top:4px">Hoy</div>
+        <div class="lista">${st.items.slice().reverse().map(filaItem).join("")}</div>
+        <button class="btn enlace" data-hoja="terminar">Terminé por hoy</button>`;
+    },
+    proveedor() {
+      const b = st.borrador;
+      const n = Object.values(b.reparto).reduce((s, v) => s + v, 0);
+      return `<div class="cab"><button class="volver" data-accion="inicio" aria-label="Volver">←</button><span class="que">Una sola pantalla</span></div>
+        <h2 class="titulo">Pagué una compra</h2>
+        <div class="campo"><span>¿A quién?</span><div class="chips" data-grupo="prov">${PROVEEDORES.map(p => `<button class="chip" aria-pressed="${b.prov === p.id}" data-provb="${p.id}">${p.nombre}</button>`).join("")}<button class="chip" data-accion="nada">＋ Otro</button></div></div>
+        <div class="campo"><span>¿Cuánto pagaste?</span><div class="monto"><span>S/</span><input id="m-b" inputmode="decimal" value="${b.monto}" aria-label="Cuánto pagaste"></div></div>
+        <div class="campo"><span>¿Cuántas prendas y a dónde?</span>
+          <div class="lista">${TIENDAS.map(t => `<div class="prenda" style="grid-template-columns:minmax(0,1fr) auto"><span class="n">${t}</span>
+            <span class="paso"><button data-menosb="${t}" aria-label="Una menos a ${t}">−</button><b>${b.reparto[t] || 0}</b><button data-masb="${t}" aria-label="Una más a ${t}">+</button></span></div>`).join("")}</div></div>
+        <button class="foto" data-foto="1">📷 <span><b>Foto del papel</b> · opcional</span></button>
+        <div class="barra-abajo"><span><span class="r">${n} prendas</span><div class="c">${S(Number(b.monto) || 0)}</div></span>
+          <button class="btn" data-accion="guardar-compra" ${n && b.prov ? "" : "disabled"}>Guardar</button></div>`;
+    },
+    notas: {
+      titulo: "B · Solo la plata",
+      lema: "Quien compra anota solo lo que pagó: a quién, cuánto, cuántas prendas y a qué tienda. Qué prendas son lo dice la tienda al recibirlas.",
+      cambia: [
+        "Anotar una compra es una sola pantalla con cuatro preguntas; sin prendas, costos ni precios de venta.",
+        "La foto del papel es la única ayuda para la tienda y para Compras, y es opcional.",
+        "La tienda, al recibir, dice qué prendas llegaron y su precio (ya lo hace con «Llegó mercadería»).",
+        "La ronda se abre sola y «Terminé por hoy» manda todo, como en A.",
+      ],
+      toques: 5,
+      ok: [
+        "El costo por prenda deja de salir de quien compra: Compras o la tienda lo reparte desde el total (cambia cómo se calcula el costo).",
+        "La tienda pasa a decir qué prendas son al recibir: más trabajo en la tienda, menos en la calle.",
+        "Lo de A: ronda sola y «Terminé» que manda todo.",
+      ],
+    },
+  };
+
+  // ---------- C · Cuaderno ----------
+  const C = {
+    inicio() {
+      let saldoCorre = 0;
+      const renglones = st.items.map(i => { saldoCorre += i.monto; return `<div class="renglon"><span class="h">${i.hora}</span>
+        <span class="t">${i.t}<small>${i.d}</small></span><span class="m ${i.monto > 0 ? "mas" : ""}">${i.monto > 0 ? "+" : "−"}${S(Math.abs(i.monto))}<small>queda ${S(saldoCorre + 0)}</small></span></div>`; }).join("");
+      return `<div class="cab"><div><div class="que">Viernes 24 · ${st.ronda}</div><h2 class="titulo">Mi cuaderno</h2></div></div>
+        <div class="cuaderno">${renglones}
+          <div class="renglon total"><span class="h">Ahora</span><span class="t">Tienes para comprar</span><span class="m">${S(st.tiene)}</span></div></div>
+        <button class="btn enlace" data-hoja="terminar">Cerrar el cuaderno de hoy</button>
+        <div class="barra-abajo barra-clara">
+          <button class="btn primario" data-accion="compra"><i>🛍</i>Compré</button>
+          <button class="btn" data-hoja="plata"><i>＋</i>Me dieron</button>
+          <button class="btn" data-hoja="gasto"><i>🚕</i>Gasté</button></div>`;
+    },
+    proveedor() {
+      const b = st.borrador;
+      const p = b.prov ? PROVEEDORES.find(x => x.id === b.prov) : null;
+      const n = b.detalle && p ? p.prendas.reduce((s, x) => s + (b.cant[x.id] || 0), 0) : b.prendas;
+      const total = b.detalle && p ? p.prendas.reduce((s, x) => s + (b.cant[x.id] || 0) * x.costo, 0) : Number(b.monto) || 0;
+      return `<div class="cab"><button class="volver" data-accion="inicio" aria-label="Volver">←</button><span class="que">Un renglón del cuaderno</span></div>
+        <h2 class="titulo">Compré</h2>
+        <div class="chips" data-grupo="prov">${PROVEEDORES.map(x => `<button class="chip" aria-pressed="${b.prov === x.id}" data-provc="${x.id}">${x.nombre}</button>`).join("")}</div>
+        <div class="par">
+          <div class="campo"><span>Pagué</span><div class="monto" style="padding:6px 12px"><span>S/</span><input id="m-c" inputmode="decimal" value="${b.detalle ? total.toFixed(2) : b.monto}" aria-label="Cuánto pagaste" style="font-size:28px" ${b.detalle ? "readonly" : ""}></div></div>
+          <div class="campo"><span>Prendas</span><div class="paso" style="height:56px;justify-content:space-between"><button data-accion="menos-c" aria-label="Una menos" ${b.detalle ? "disabled" : ""}>−</button><b>${n}</b><button data-accion="mas-c" aria-label="Una más" ${b.detalle ? "disabled" : ""}>+</button></div></div>
+        </div>
+        <div class="campo"><span>Va a</span><div class="chips">${TIENDAS.map(t => `<button class="chip" aria-pressed="${b.tienda === t}" data-tiendac="${t}">${t}</button>`).join("")}</div></div>
+        ${p ? (b.detalle ? `<div class="lista">${p.prendas.map(x => `<div class="prenda"><span class="mini">${x.e}</span>
+            <span style="min-width:0"><div class="n">${x.n}</div><div class="c">${S(x.costo)} c/u</div></span>
+            <span class="paso"><button data-menos="${x.id}" aria-label="Una menos">−</button><b>${b.cant[x.id] || 0}</b><button data-mas="${x.id}" aria-label="Una más">+</button></span></div>`).join("")}</div>`
+          : `<button class="btn ancho" data-accion="detalle">Decir qué prendas son · opcional</button>`) : ""}
+        <button class="foto" data-foto="1">📷 <span><b>Foto del papel</b> · opcional</span></button>
+        <button class="btn primario grande" data-accion="guardar-compra" ${b.prov && n ? "" : "disabled"}>Anotar en el cuaderno</button>`;
+    },
+    notas: {
+      titulo: "C · Cuaderno",
+      lema: "Como el cuaderno que ya llevan en la calle: cada cosa es un renglón con su hora y lo que queda. Tres botones abajo, siempre a mano.",
+      cambia: [
+        "La pantalla es un cuaderno: plata, compras y gastos en orden de hora, con lo que te va quedando en cada renglón.",
+        "Abajo, siempre a la vista: «Compré», «Me dieron», «Gasté».",
+        "Anotar una compra es un renglón: a quién, cuánto, cuántas y a qué tienda. Decir qué prendas son es opcional, a un toque.",
+        "«Cerrar el cuaderno de hoy» reemplaza a cerrar la ronda y manda todo a las tiendas.",
+      ],
+      toques: 6,
+      ok: [
+        "Que el detalle de prendas sea opcional: si no se dice, la tienda lo completa al recibir (como B).",
+        "Que cerrar el cuaderno mande todo a las tiendas (como A).",
+      ],
+    },
+  };
+  const DIRS = { a: A, b: B, c: C };
+
+  // ---------- Pintar ----------
+  function render() {
+    const D = DIRS[dir];
+    if (st.terminado) pantalla.innerHTML = pantallaTerminada();
+    else pantalla.innerHTML = (D[st.vista] || D.inicio)();
+    capa.innerHTML = (st.hoja === "plata" ? hojaPlata() : st.hoja === "gasto" ? hojaGasto() : st.hoja === "terminar" ? hojaTerminar() : "")
+      + (st.aviso ? `<div class="aviso" role="status">✓ ${st.aviso}</div>` : "");
+    const n = D.notas, maxT = 14;
+    notas.innerHTML = `<div><h2>${n.titulo}</h2><p class="lema">${n.lema}</p></div>
+      <div class="tarjeta"><h4>Toques para anotar una compra</h4>
+        <div class="toques"><span>Hoy</span><span class="barra hoy"><i style="width:${(14 / maxT) * 100}%"></i></span><b>14</b>
+          <span>${n.titulo.split(" · ")[0]}</span><span class="barra"><i style="width:${(n.toques / maxT) * 100}%"></i></span><b>${n.toques}</b></div>
+        <p class="sub" style="margin:0">Desde «Mis compras» hasta «Guardado», con un proveedor de siempre y una prenda. Hoy: abrir la ronda, elegir proveedor, tocar la prenda, cuántas, tienda, agregar, seguir, tipo de papel, monto, pago, guardar y, aparte, mandar a la tienda.</p></div>
+      <div class="tarjeta"><h4>Qué cambia</h4><ul>${n.cambia.map(x => `<li>${x}</li>`).join("")}</ul></div>
+      <div class="tarjeta ok"><h4>Necesita tu OK (cambia cómo opera)</h4><ul>${n.ok.map(x => `<li>${x}</li>`).join("")}</ul></div>
+      <button class="btn reiniciar" data-accion="reiniciar">Reiniciar la demo</button>`;
+  }
+
+  function guardarCompra() {
+    const b = st.borrador;
+    let monto, n, tiendas, nombre;
+    if (dir === "a") {
+      const p = PROVEEDORES.find(x => x.id === b.prov);
+      n = Object.values(b.cant).reduce((s, v) => s + v, 0);
+      monto = Number(($("#m-pago") || {}).value) || b.total; tiendas = { [b.tienda]: n }; nombre = p.nombre;
+    } else if (dir === "b") {
+      monto = Number(($("#m-b") || {}).value) || 0; tiendas = Object.fromEntries(Object.entries(b.reparto).filter(([, v]) => v > 0));
+      n = Object.values(tiendas).reduce((s, v) => s + v, 0); nombre = PROVEEDORES.find(x => x.id === b.prov).nombre;
+    } else {
+      const p = PROVEEDORES.find(x => x.id === b.prov);
+      n = b.detalle ? p.prendas.reduce((s, x) => s + (b.cant[x.id] || 0), 0) : b.prendas;
+      monto = b.detalle ? p.prendas.reduce((s, x) => s + (b.cant[x.id] || 0) * x.costo, 0) : Number(($("#m-c") || {}).value) || 0;
+      tiendas = { [b.tienda]: n }; nombre = p.nombre;
+    }
+    const donde = Object.keys(tiendas).join(" y ");
+    st.items.push({ tipo: "compra", hora: ahora(), t: nombre, d: `${n} prendas · va a ${donde}${b.foto ? " · con foto" : ""}`, monto: -monto, tiendas });
+    st.tiene -= monto; st.vista = "inicio"; st.borrador = null;
+    avisar(`Guardaste ${S(monto)} a ${nombre}`);
+  }
+
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("button, .velo");
+    if (!el) return;
+    if (el.classList.contains("velo")) { if (e.target === el) { st.hoja = null; render(); } return; }
+    const d = el.dataset;
+    if (d.dir) { dir = d.dir; st = INICIO(); document.querySelectorAll("[data-dir]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.dir === dir))); try { history.replaceState(null, "", "#" + dir); } catch {} render(); return; }
+    if (d.foto) { el.dataset.lista = "1"; el.innerHTML = `✓ <span><b>Foto lista</b> · tócala para cambiarla</span>`; if (st.borrador) st.borrador.foto = true; return; }
+    const grupo = el.closest("[data-grupo]");
+    if (grupo && el.classList.contains("chip") && !d.accion && !d.tienda && !d.provb && !d.provc && !d.tiendac) {
+      grupo.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === el))); return;
+    }
+    if (d.hoja) { st.hoja = d.hoja; render(); return; }
+    if (d.prov) { st.borrador = { prov: d.prov, cant: {}, tienda: "Lima" }; st.vista = "prendas"; render(); return; }
+    if (d.tienda) { st.borrador.tienda = d.tienda; render(); return; }
+    if (d.mas) { st.borrador.cant[d.mas] = (st.borrador.cant[d.mas] || 0) + 1; render(); return; }
+    if (d.menos) { st.borrador.cant[d.menos] = Math.max(0, (st.borrador.cant[d.menos] || 0) - 1); render(); return; }
+    if (d.provb) { st.borrador.monto = ($("#m-b") || {}).value || st.borrador.monto; st.borrador.prov = d.provb; render(); return; }
+    if (d.masb) { st.borrador.monto = ($("#m-b") || {}).value || st.borrador.monto; st.borrador.reparto[d.masb] = (st.borrador.reparto[d.masb] || 0) + 1; render(); return; }
+    if (d.menosb) { st.borrador.monto = ($("#m-b") || {}).value || st.borrador.monto; st.borrador.reparto[d.menosb] = Math.max(0, (st.borrador.reparto[d.menosb] || 0) - 1); render(); return; }
+    if (d.provc) { st.borrador.monto = ($("#m-c") || {}).value || st.borrador.monto; st.borrador.prov = d.provc; st.borrador.cant = {}; render(); return; }
+    if (d.tiendac) { st.borrador.monto = ($("#m-c") || {}).value || st.borrador.monto; st.borrador.tienda = d.tiendac; render(); return; }
+    switch (d.accion) {
+      case "inicio": st.vista = "inicio"; st.borrador = null; break;
+      case "compra":
+        if (dir === "a") { st.vista = "proveedor"; }
+        else if (dir === "b") { st.vista = "proveedor"; st.borrador = { prov: null, monto: "300", reparto: { Lima: 0, Trujillo: 0, Arequipa: 0 } }; }
+        else { st.vista = "proveedor"; st.borrador = { prov: null, monto: "300", prendas: 0, tienda: "Lima", detalle: false, cant: {} }; }
+        break;
+      case "prendas": st.vista = "prendas"; break;
+      case "pago": {
+        const p = PROVEEDORES.find(x => x.id === st.borrador.prov);
+        st.borrador.total = p.prendas.reduce((s, x) => s + (st.borrador.cant[x.id] || 0) * x.costo, 0); st.vista = "pago"; break;
+      }
+      case "mas-c": st.borrador.monto = ($("#m-c") || {}).value || st.borrador.monto; st.borrador.prendas++; break;
+      case "menos-c": st.borrador.monto = ($("#m-c") || {}).value || st.borrador.monto; st.borrador.prendas = Math.max(0, st.borrador.prendas - 1); break;
+      case "detalle": st.borrador.detalle = true; break;
+      case "guardar-compra": guardarCompra(); return;
+      case "guardar-plata": { const m = Number(($("#m-plata") || {}).value) || 0; st.items.push({ tipo: "plata", hora: ahora(), t: "Me dieron plata", d: "Por confirmar en Compras", monto: m }); st.tiene += m; st.hoja = null; avisar(`Anotaste ${S(m)}`); return; }
+      case "guardar-gasto": { const m = Number(($("#m-gasto") || {}).value) || 0; const c = (capa.querySelector('[data-grupo="concepto"] [aria-pressed="true"]') || {}).textContent || "Gasto";
+        st.items.push({ tipo: "gasto", hora: ahora(), t: c.replace(/^\S+\s/, ""), d: "Compras lo revisa", monto: -m }); st.tiene -= m; st.hoja = null; avisar(`Anotaste ${S(m)}`); return; }
+      case "terminar": st.hoja = null; st.terminado = true; break;
+      case "cerrar": st.hoja = null; break;
+      case "reiniciar": st = INICIO(); break;
+      case "nada": return;
+      default: return;
+    }
+    render();
+    pantalla.scrollTop = 0;
+  });
+
+  const h = (location.hash || "").slice(1);
+  if (DIRS[h]) { dir = h; document.querySelectorAll("[data-dir]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.dir === dir))); }
+  render();
+})();
+</script>

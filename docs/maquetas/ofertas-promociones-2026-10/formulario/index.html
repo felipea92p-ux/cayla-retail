@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Formulario de ofertas y promociones · 5 opciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.66);--t30:rgba(26,26,24,.3);--lienzo:#ddd5c6;--ease:cubic-bezier(.32,.72,.24,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo);height:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.top{background:#171614;color:#f5f0e8;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 16px}
+.top .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.top .sp{margin-left:auto;font-size:12px;color:rgba(245,240,232,.6)}
+.tabs{background:var(--papel);border-bottom:1px solid var(--sand);padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.tabs button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px 0 6px;border-radius:999px;border:1px solid var(--sand);background:var(--crema);font-size:13px;color:var(--t80);transition:background .2s}
+.tabs button b{min-width:22px;height:22px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-size:11px;font-weight:700}
+.tabs button:hover{background:var(--hueso)}
+.tabs button.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.tabs button.on b{background:var(--crema);color:var(--tinta)}
+.tabs .sep{width:1px;height:22px;background:var(--sand);margin:0 4px}
+.lema{padding:10px 16px;background:var(--papel);border-bottom:1px solid var(--sand);font-size:13px;color:var(--t80)}
+.lema b{font-weight:600}
+.cuerpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr)}
+iframe{width:100%;height:100%;border:0;background:var(--lienzo)}
+.cmp{padding:18px 16px 40px;overflow:auto}
+.cmp h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;margin-bottom:4px}
+.cmp p.baj{color:var(--t65);max-width:70ch;margin-bottom:14px}
+table{border-collapse:collapse;width:100%;max-width:1180px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+th,td{padding:10px 12px;border-bottom:1px solid var(--sand);text-align:left;vertical-align:top;font-size:13px}
+th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);font-weight:700;background:var(--crema)}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
+td small{display:block;color:var(--t65);font-size:12px}
+@media (max-width:720px){.top .sp{display:none}}
+</style>
+</head>
+<body>
+<div class="top"><span class="tag">Maqueta · formulario de ofertas y promociones</span><span class="sp">Elige una opción y pruébala con los 4 casos · nada se guarda</span></div>
+<div class="tabs" id="tabs"></div>
+<div class="lema" id="lema"></div>
+<div class="cuerpo" id="cuerpo"></div>
+<script>
+/* Las cinco opciones y, para comparar, el formulario de hoy. Cada una es un archivo aparte, autocontenido. */
+const OPC = [
+  {k:'hoy',  n:'Hoy',               f:'../index.html',                      l:'<b>El formulario de hoy</b> (paso 2 de su barra): 12 grupos, ~2 460 px de alto, 42 controles. Es contra lo que se compara.'},
+  {k:'1',    n:'La frase',          f:'opcion-1-frase.html',                l:'<b>La frase.</b> Todo el formulario es una oración con los controles dentro: «Quiero que [todas las prendas] tengan [20 % menos] hasta [el 25 oct]».'},
+  {k:'2',    n:'Recetas',           f:'opcion-2-recetas.html',              l:'<b>Recetas.</b> Eliges una tarjeta que reconoces («2 por un precio», «Si gasta, ahorra») y solo llenas 1–3 números.'},
+  {k:'3',    n:'Tres preguntas ★',   f:'opcion-3-tres-preguntas.html',       l:'<b>Tres preguntas · la elegida por Felipe</b>, ahora con <b>días de la semana</b> en la pregunta 3 («Solo algunos días»). Para probarlos, abre <b>Halloween</b> o el <b>Día del Gato</b> con «Configurar»: Aniversario solo tiene viernes, sábado y domingo por delante.'},
+  {k:'4',    n:'La ficha que se toca', f:'opcion-4-ficha.html',             l:'<b>La ficha que se toca.</b> No hay formulario: hay un resumen ya armado cuyas partes se tocan para corregirlas.'},
+  {k:'5',    n:'Fila rápida',       f:'opcion-5-fila-rapida.html',          l:'<b>Fila rápida.</b> Registrar es agregar una fila a la lista, sin salir de «Ya registradas».'}
+];
+/* Los números de «Cómo se mide» los llena cada agente en su archivo; aquí se resumen para compararlos. */
+const MEDIDAS = {
+  hoy:{visibles:'42',alto:'2 460 px · 3,2 pantallas',c1:'1 (viene armado, pero hay que recorrerlo)',c2:'—',c3:'—',c4:'≈ 7 (cuenta, no medido)',oculta:'Nada: todo está a la vista.',peor:'Es demasiado: 12 grupos, 33 chips y 7 verificaciones en verde.'},
+  1:{visibles:'7 (16 con lista y pie)',alto:'≈ 700 px · 0,9 pantalla',c1:'1',c2:'3',c3:'3',c4:'11',oculta:'«Cambiar»: tiendas, se suma, dejar fuera, Claurè, días en el piso, nombre. Prendas y fechas, dentro de sus pastillas.',peor:'Caso 4 (11 toques). Las pastillas de la frase parecen texto y solo la flecha avisa que se tocan.'},
+  2:{visibles:'10 al abrir (5–11 con una tarjeta)',alto:'≈ 680 px · 1 pantalla',c1:'2',c2:'3',c3:'2',c4:'6',oculta:'«Cambiar»: categorías, fechas, tiendas, se suma, nombre. Un nivel más: dejar fuera, Claurè, días.',peor:'Caso 4 (6 toques): «solo Polos» no está en la tarjeta, vive en «Cambiar». Los contadores no se escriben.'},
+  3:{visibles:'5–14 (máx. 19)',alto:'≈ 470 px por pregunta · sin scroll',c1:'2 con atajo (4 largo)',c2:'2 (4 largo)',c3:'2 (3 largo)',c4:'9, sin atajo · caso 5 (solo mar y jue): 7',oculta:'«Cambiar» (pregunta 2): categorías, tiendas, qué prendas cuentan. «Más opciones» (pregunta 3): nombre, no acumulable.',peor:'Caso 4 (9 toques en 3 pantallas). Es la más lenta para quien ya sabe; el atajo guarda siempre como borrador.'},
+  4:{visibles:'10',alto:'≈ 340 px · cabe en 1 pantalla',c1:'1',c2:'3',c3:'3',c4:'8',oculta:'Detrás de cada pastilla: valores, categorías, fechas, suma. «Cede ≈ S/ …» abre el cálculo.',peor:'Caso 4 (8 toques). Si alguien no sabe que las pastillas se tocan, no ve el formulario. Los 15 tipos se ven en 4 columnas.'},
+  5:{visibles:'10 (14 en cantidades; 27 con «Más opciones»)',alto:'fila ≈ 200–283 px · hoja ≈ 640 px',c1:'2',c2:'4',c3:'4',c4:'11',oculta:'«Más opciones»: tiendas, dejar fuera, Claurè, días, no acumulable, nombre. «Lo que cedes».',peor:'Caso 4 (11 toques). Para quien la usa una vez, 5 columnas a la vez; el valor de fábrica empuja a activar.'}
+};
+let cur = (location.hash||'#3').slice(1);
+if(!OPC.some(o=>o.k===cur) && cur!=='cmp') cur = '1';
+function ver(){
+  document.getElementById('tabs').innerHTML = OPC.map(o=>`<button class="${o.k===cur?'on':''}" data-k="${o.k}"><b>${o.k==='hoy'?'·':o.k}</b>${o.n}</button>`).join('<span class="sep" hidden></span>') + `<button class="${cur==='cmp'?'on':''}" data-k="cmp" style="margin-left:auto"><b>≡</b>Comparar en una tabla</button>`;
+  const o = OPC.find(x=>x.k===cur) || OPC[1];
+  document.getElementById('lema').innerHTML = cur==='cmp' ? '<b>Las cinco, lado a lado.</b> Los números salen de lo que cada una declaró en su «Cómo se mide»; ábrelas para comprobarlos.' : o.l;
+  document.getElementById('cuerpo').innerHTML = cur==='cmp' ? tabla() : `<iframe src="${o.f}" title="${o.n}"></iframe>`;
+}
+function tabla(){
+  const filas = OPC.map(o=>{ const m = MEDIDAS[o.k]||{}; return `<tr><td><b>${o.k==='hoy'?'Hoy':o.k+' · '+o.n}</b></td><td>${m.visibles??'—'}</td><td>${m.alto??'—'}</td><td class="num">${m.c1??'—'}</td><td class="num">${m.c2??'—'}</td><td class="num">${m.c3??'—'}</td><td class="num">${m.c4??'—'}</td><td>${m.oculta??''}<small>${m.peor??''}</small></td></tr>`; }).join('');
+  return `<div class="cmp"><h2>Comparación</h2><p class="baj">«Visibles» = controles a la vista a la vez. «Alto» = alto del formulario (una pantalla de laptop mide ≈ 770 px). Toques que declaró cada opción: <b>caso 1</b> −20 % a todo · <b>caso 2</b> 3x2 · <b>caso 3</b> S/ 30 menos desde S/ 300 · <b>caso 4</b> 2 polos por S/ 59.90, solo Polos, 2 tiendas, desde el fin de semana. Los números son de cada archivo; ábrelos para comprobarlos.</p>
+  <table><thead><tr><th>Opción</th><th>Visibles</th><th>Alto</th><th>Caso 1</th><th>Caso 2</th><th>Caso 3</th><th>Caso 4</th><th>Qué se esconde · lo que peor sale</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+}
+document.getElementById('tabs').addEventListener('click',e=>{ const b = e.target.closest('[data-k]'); if(!b) return; cur = b.dataset.k; history.replaceState(null,'','#'+cur); ver(); });
+ver();
+</script>
+</body>
+</html>

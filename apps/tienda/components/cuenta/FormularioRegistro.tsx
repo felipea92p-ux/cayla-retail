@@ -280,13 +280,7 @@ export function FormularioRegistro() {
         crear();
       }}
     >
-      <div>
-        <span className="t-ceja">Crea tu cuenta</span>
-        <h1 className="w-titulo">
-          Solo lo necesario. <em>Lo demás, cuando separes.</em>
-        </h1>
-        <p className="w-texto-sec">Con tu cuenta separas, guardas tus favoritos y sigues tus pedidos. El Club CAYLA empieza cuando separas tu primera prenda.</p>
-      </div>
+      <h1 className="w-titulo">Crear cuenta</h1>
 
       <BotonGoogle volver={volver} texto="Crear mi cuenta con Google" />
 

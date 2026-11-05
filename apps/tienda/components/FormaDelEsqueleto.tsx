@@ -5,9 +5,9 @@ import { Suspense, useLayoutEffect } from "react";
 import { formaDeLaRuta, prendaDeLaRuta, tituloDeEspera, type FormaEsqueleto, type TituloDeEspera } from "@/lib/esqueleto";
 import { useBolsaVista } from "./bolsa/BolsaRecordada";
 import { useCabeceraVista } from "./CabeceraConCuenta";
+import { EscenarioDelDesfile } from "./desfile/EscenarioDelDesfile";
 import { Icono } from "./Icono";
 import { usePrendaTocada } from "./PrendaTocada";
-import { TiendasDeEspera } from "./TiendasRecordadas";
 import { fotoQueViaja } from "./Vistas";
 import "@/app/estilos/probador.css";
 
@@ -27,17 +27,14 @@ export function FormaDelEsqueleto({
   forma,
   heroe = null,
   destino = null,
-  sinFranja = false,
 }: {
   forma?: FormaEsqueleto;
   heroe?: React.ReactNode;
   destino?: DestinoDeEspera | null;
-  /** Sin la franja «Ver lo que hay en»: la página de antes ya la tiene a la vista (`EnCamino`). */
-  sinFranja?: boolean;
 }) {
   // Leer la dirección en una página que se arma por adelantado (una ficha cuyo id aún no se sabe) frena el armado: se lee en su propio
   // <Suspense>, con la grilla mientras tanto (ADR-0432). Con la forma dicha de antemano no se lee nada.
-  if (forma) return <FormaDicha la={forma} heroe={heroe} destino={destino} sinFranja={sinFranja} />;
+  if (forma) return <FormaDicha la={forma} heroe={heroe} destino={destino} />;
   return (
     <Suspense fallback={<FormaDicha la="grilla" heroe={heroe} />}>
       <FormaSegunLaRuta heroe={heroe} />
@@ -50,18 +47,14 @@ function FormaSegunLaRuta({ heroe }: { heroe: React.ReactNode }) {
   return <FormaDicha la={formaDeLaRuta(ruta ?? "")} heroe={heroe} />;
 }
 
-const CON_FRANJA: readonly FormaEsqueleto[] = ["inicio", "grilla", "ficha", "probador", "looks", "look"];
-
 function FormaDicha({
   la,
   heroe,
   destino = null,
-  sinFranja = false,
 }: {
   la: FormaEsqueleto;
   heroe: React.ReactNode;
   destino?: DestinoDeEspera | null;
-  sinFranja?: boolean;
 }) {
   // La página que viene empieza arriba. Next sube la página al llegar a otra, pero con el esqueleto propio de la ficha (un segmento
   // adentro del catálogo) dejaba de hacerlo: tocada una prenda de abajo del Inicio o de «Mi perfil», la ficha llegaba con la página
@@ -73,8 +66,6 @@ function FormaDicha({
   }, []);
   return (
     <>
-      {/* La franja «Ver lo que hay en» de las páginas del catálogo, con las tiendas de la última que se vio. */}
-      {CON_FRANJA.includes(la) && !sinFranja && <TiendasDeEspera />}
       {/* El Inicio va de borde a borde (su héroe); las demás, en el ancho de la página. */}
       <div className={`${la === "inicio" ? "" : "t-ancho "}t-esqueleto`} data-forma={la} role="status">
         <span className="t-solo-lector">Cargando…</span>
@@ -125,7 +116,8 @@ function marcarTrasEsqueleto() {
 
 /* ---------------- Piezas ---------------- */
 
-/** Una tarjeta de prenda que espera: la foto que brilla y dos líneas (el nombre y el precio), con las cajas de `TarjetaPrenda`. */
+/** Una tarjeta de prenda que espera: la foto que brilla y dos líneas (el nombre y el precio), con las cajas de `TarjetaPrenda`. Quieta: lo que se
+ *  mueve al cambiar de pestaña es la página entera, que entra de lado (ADR-0524, «la raya que viaja»). */
 function Tarjeta() {
   return (
     <div className="t-card">
@@ -151,6 +143,20 @@ function Tarjetas({ cuantas }: { cuantas: number }) {
   );
 }
 
+/**
+ * El título de una lista en su esqueleto: el real de la pestaña tocada, quieto y escrito igual que lo escribe la página (`<h1>` con su última parte en
+ * cursiva), así al llegar la página nada se corre. Antes cada palabra subía desde su línea («el título se cuelga», ADR-0466); desde ADR-0524 el
+ * movimiento del cambio de pestaña es la raya de la cabecera que viaja y la página que entra de lado, y el título solo espera.
+ */
+function TituloQuieto({ primera, cursiva }: { primera: string; cursiva: string }) {
+  return (
+    <h1>
+      {primera ? `${primera} ` : null}
+      <em>{cursiva}</em>
+    </h1>
+  );
+}
+
 /** Lo de arriba de una lista (`.t-lista-cab`): escrito si se sabe; si no, sus líneas. */
 function CabeceraDeLista({ titulo }: { titulo: TituloDeEspera | null }) {
   if (!titulo)
@@ -164,10 +170,7 @@ function CabeceraDeLista({ titulo }: { titulo: TituloDeEspera | null }) {
   return (
     <header className="t-lista-cab" aria-hidden="true">
       <span className="t-ceja">{titulo.ceja}</span>
-      <h1>
-        {primera ? `${primera} ` : null}
-        <em>{cursiva}</em>
-      </h1>
+      <TituloQuieto primera={primera} cursiva={cursiva} />
       {titulo.frase && <p>{titulo.frase}</p>}
     </header>
   );
@@ -183,16 +186,7 @@ function Inicio({ heroe }: { heroe: React.ReactNode }) {
   const circulos = cabecera ? cabecera.menus.reduce((n, m) => n + m.grupos.reduce((k, g) => k + g.categorias.length, 0), 0) || 8 : 8;
   return (
     <div aria-hidden="true">
-      {heroe ?? (
-        <section className="t-hero t-hero-inicio sin-campana t-hero-espera">
-          <div className="t-hero-texto">
-            <i className="t-esq-hero-ceja" />
-            <i className="t-esq-hero-titulo" />
-            <i className="t-esq-hero-titulo corto" />
-            <i className="t-esq-hero-linea" />
-          </div>
-        </section>
-      )}
+      {heroe ?? <EscenarioDelDesfile enEspera piezas={[]} modo="portada" ceja="Llegó en los últimos 30 días" titulo="Lo nuevo" boton={{ texto: "Ver lo nuevo", href: null }} />}
       <div className="t-carril-envol t-circs-envol">
         <div className="t-circs">
           {Array.from({ length: circulos }, (_, i) => (
@@ -205,21 +199,21 @@ function Inicio({ heroe }: { heroe: React.ReactNode }) {
           ))}
         </div>
       </div>
-      <section className="t-sec t-ancho">
-        <div className="t-sec-cab">
-          <div>
-            <span className="t-ceja">Recién llegado</span>
-            <h2>
-              Lo <em>nuevo</em>
-            </h2>
-            <p>Lo que llegó a nuestras tiendas en los últimos 30 días.</p>
-          </div>
+      <section className="t-programa-sec t-ancho">
+        <div className="t-cab-centro">
+          <span className="t-ceja">El programa</span>
+          <h2>
+            En las <em>tiendas</em>
+          </h2>
+          <p>Lo que llegó a nuestras tiendas. Mira cuánto hay en cada una y sepáralo sin pagar.</p>
         </div>
-        <div className="t-carril-envol t-carril-inicio">
-          <div className="t-carril">
-            <Tarjetas cuantas={5} />
-          </div>
-        </div>
+        <ol className="t-salidas">
+          {Array.from({ length: 5 }, (_, i) => (
+            <li key={i} style={{ padding: "26px 0" }}>
+              <i className="t-esqueleto-linea" style={{ display: "block", width: `${46 - i * 4}%`, height: 28 }} />
+            </li>
+          ))}
+        </ol>
       </section>
     </div>
   );
@@ -231,20 +225,35 @@ function GrillaSegunLaDireccion() {
 
 function GrillaDe({ buscar }: { buscar: string }) {
   const cabecera = useCabeceraVista();
-  return <Grilla titulo={tituloDeEspera(new URLSearchParams(buscar), cabecera?.menus ?? null)} />;
+  const q = new URLSearchParams(buscar);
+  return <Grilla titulo={tituloDeEspera(q, cabecera?.menus ?? null)} conFiltros={q.get("lista") !== "favoritos"} />;
 }
 
-/** Una lista del catálogo: su título (`tituloDeEspera`), los filtros y el orden, el conteo y la grilla. */
-function Grilla({ titulo }: { titulo: TituloDeEspera | null }) {
+/** Una lista del catálogo: su título (`tituloDeEspera`), los filtros y el orden, el conteo y la grilla. Con filtros de color y talla (todas las
+ *  listas menos «Tus favoritos», ADR-0512) la barra lleva su fila de más: el esqueleto la guarda para que lo de abajo no baje al llegar. */
+function Grilla({ titulo, conFiltros = true }: { titulo: TituloDeEspera | null; conFiltros?: boolean }) {
+  const pildoras = (
+    <span className="t-pildoras">
+      {[64, 132, 74, 118, 76].map((ancho) => (
+        <i key={ancho} className="t-esq-pildora" style={{ width: ancho }} />
+      ))}
+    </span>
+  );
   return (
     <>
       <CabeceraDeLista titulo={titulo} />
       <div className="t-filtros t-esq-filtros" aria-hidden="true">
-        <span className="t-pildoras">
-          {[64, 132, 74, 118, 76].map((ancho) => (
-            <i key={ancho} className="t-esq-pildora" style={{ width: ancho }} />
-          ))}
-        </span>
+        {conFiltros ? (
+          <div className="t-filtros-niveles">
+            {pildoras}
+            <span className="fp-fila">
+              <i className="t-esq-pildora t-esq-palabra" />
+              <i className="t-esq-pildora t-esq-palabra" />
+            </span>
+          </div>
+        ) : (
+          pildoras
+        )}
         <span className="t-orden">
           <i className="t-esq-pildora t-esq-orden" />
         </span>
@@ -290,8 +299,12 @@ function Probador() {
         <i className="pb-esq-ceja" />
         <i className="pb-esq-titulo" />
       </div>
-      <div className="pb-escena">
-        <div className="pb-arco pb-esq-arco" />
+      {/* Como la figura de verdad: el estudio y, debajo, la franja de estado con su alto reservado (la etiqueta «Ajustando tu look…»). */}
+      <div className="pb-figura">
+        <div className="pb-escena">
+          <div className="pb-arco pb-esq-arco" />
+        </div>
+        <div className="pb-estado" />
       </div>
       <div className="pb-tira-carril pb-esq-tira">
         {Array.from({ length: 5 }, (_, i) => (
@@ -424,9 +437,7 @@ function Looks() {
     <div aria-hidden="true">
       <header className="t-lista-cab">
         <span className="t-ceja">Combinaciones listas</span>
-        <h1>
-          Arma tu <em>look</em>
-        </h1>
+        <TituloQuieto primera="Arma tu" cursiva="look" />
         <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
       </header>
       {/* De a tres, como la página con tres looks (`looksDeATres`). */}

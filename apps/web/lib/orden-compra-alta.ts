@@ -59,6 +59,8 @@ export function lineaVacia(clave: string, marcaId = ""): LineaBorrador {
 // Leer números como se tipean
 // ---------------------------------------------------------------------------------------------------------------------------------
 
+import { sinBlancosDeMiles } from "./numero-escrito";
+
 export type Lectura =
   | { tipo: "vacio" }
   | { tipo: "ok"; escalado: number }
@@ -76,9 +78,18 @@ const MILES_CON_PUNTO = /^[1-9]\d{0,2}\.\d{3}$/;
  * el precio por cien sin que nadie lo note. Más decimales de los que caben no se redondean: se avisa (la base tampoco los acepta).
  */
 export function leerNumero(texto: string, decimales: number): Lectura {
-  let t = texto.replace(/\s+/g, "").replace(/^s\//i, "");
-  if (t === "") return { tipo: "vacio" };
-  if (t.startsWith("-")) return { tipo: "mal", motivo: "negativo" };
+  // Los blancos los decide la regla única (`sinBlancosDeMiles`): un blanco adentro solo separa miles, así que pegar varias celdas de
+  // una hoja de cálculo ya no entra como un número («12 8 5» no son 1 285). El «S/» y el menos se miran antes, con el MISMO literal
+  // que `leerMontoPlata`: «S/.» es el símbolo del sol entero, no «S/» con un punto decimal, así que «S/. 25» son veinticinco SOLES.
+  // Hasta el 2026-10-31 el punto quedaba suelto y se leían veinticinco CÉNTIMOS, cien veces menos y sin que nadie lo notara, en las
+  // órdenes de compra y de insumos, la factura del proveedor y la recepción. Es el mismo caso que `/chaos` encontró el 2026-10-28 en
+  // el alta de productos («S/. 59» → 0.59) y que allá ya se había corregido (`tabla-alta-reglas.ts`); aquí faltaba.
+  const crudo = texto.trim().replace(/^s\s*\/\s*\.?/i, "").trimStart();
+  if (crudo === "") return { tipo: "vacio" };
+  if (crudo.startsWith("-")) return { tipo: "mal", motivo: "negativo" };
+  const sinBlancos = sinBlancosDeMiles(crudo);
+  if (sinBlancos === null) return { tipo: "mal", motivo: "no_numero" };
+  let t = sinBlancos;
   // Solo lo que antes pasaba en silencio: las cifras que sobran son ceros («1.500» → 1.50). «10.555» ya se rechaza por decimales.
   if (decimales < 3 && MILES_CON_PUNTO.test(t) && /^0+$/.test(t.slice(t.indexOf(".") + 1 + decimales))) return { tipo: "mal", motivo: "ambiguo" };
   if (t.includes(".")) {
@@ -191,7 +202,7 @@ export type ContextoValidacion = {
 };
 
 /** Lo que se le dice a quien escribió miles con punto: las dos lecturas y cómo escribir la que quiso. */
-const limpio = (texto: string) => texto.replace(/\s+/g, "").replace(/^s\//i, "");
+const limpio = (texto: string) => texto.replace(/\s+/g, "").replace(/^s\//i, ""); // blanco-fijo: solo arma la frase de la duda de miles, no decide ningún número
 function dudaDeCantidad(texto: string): string {
   const t = limpio(texto);
   return `¿«${t}» son ${t.replace(".", "")}? Escribe la cantidad sin punto: ${t.replace(".", "")}.`;
@@ -226,9 +237,9 @@ export function problemaDeLinea(l: LineaBorrador, ctx: ContextoValidacion): stri
   if (cant.tipo === "mal" && cant.motivo === "ambiguo") return dudaDeCantidad(l.cantidad);
   if (cant.tipo === "mal" || cant.escalado < 1 || cant.escalado > TOPES.cantidad) return "La cantidad va de 1 a 99 999 unidades, sin decimales.";
   const precio = leerNumero(l.precio, 2);
-  if (precio.tipo === "vacio") return "Escribe el precio por unidad.";
+  if (precio.tipo === "vacio") return "Escribe el costo por unidad.";
   if (precio.tipo === "mal" && precio.motivo === "ambiguo") return dudaDeMonto(l.precio);
-  if (precio.tipo === "mal" || precio.escalado > TOPES.precioCentimos) return "El precio va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales.";
+  if (precio.tipo === "mal" || precio.escalado > TOPES.precioCentimos) return "El costo va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales.";
   if (l.modoDescuento === "pct") {
     const p = leerNumero(l.descuento, 4);
     if (p.tipo === "mal" || (p.tipo === "ok" && p.escalado > 1_000_000)) return "El descuento va de 0 % a 100 %.";

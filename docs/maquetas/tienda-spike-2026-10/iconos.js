@@ -1,0 +1,40 @@
+// Los íconos de la maqueta: trazo de 1,5 px sobre 24 × 24, del color del texto que los rodea (`currentColor`). Son un juego propio, simple
+// y de la misma familia que los de la tienda (apps/tienda/components/Icono.tsx); si una dirección se construye, se mapean a los de la tienda.
+(function () {
+  const D = {
+    buscar: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+    corazon: '<path d="M12 20s-7-4.4-7-10a4.2 4.2 0 0 1 7-3 4.2 4.2 0 0 1 7 3c0 5.6-7 10-7 10Z"/>',
+    corazonlleno: '<path fill="currentColor" d="M12 20s-7-4.4-7-10a4.2 4.2 0 0 1 7-3 4.2 4.2 0 0 1 7 3c0 5.6-7 10-7 10Z"/>',
+    bolsa: '<path d="M5.5 8h13l-1 12h-11l-1-12Z"/><path d="M9 8V7a3 3 0 0 1 6 0v1"/>',
+    usuario: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.6-3.6 3.4-5.5 7-5.5s6.4 1.9 7 5.5"/>',
+    tienda: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/>',
+    chevron: '<path d="m6 9 6 6 6-6"/>',
+    flecha: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    flechaizq: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+    x: '<path d="M6 6l12 12M18 6 6 18"/>',
+    mas: '<path d="M12 5v14M5 12h14"/>',
+    menos: '<path d="M5 12h14"/>',
+    reloj: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>',
+    chispas: '<path d="m12 4 1.7 4.8L18.5 10.5l-4.8 1.7L12 17l-1.7-4.8L5.5 10.5l4.8-1.7L12 4Z"/><path d="m18.5 16 .7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8Z"/>',
+    menu: '<path d="M4 8h16M4 16h16"/>',
+    campana: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+    filtro: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+    whatsapp: '<path d="M4.5 19.5 5.7 15.6A7.8 7.8 0 1 1 8.7 18.4l-4.2 1.1Z"/><path d="M9.2 9.3c.2 2.6 2.7 5 5.3 5.2l1-1.2-1.8-1-.8.6a4 4 0 0 1-1.7-1.7l.6-.8-1-1.8-1.6.7Z"/>',
+    alerta: '<path d="M12 4 3.5 19h17L12 4Z"/><path d="M12 10v4.2M12 16.7v.1"/>',
+    info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.1"/>',
+    ojo: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>',
+    ojotachado: '<path d="M4 4l16 16"/><path d="M9.5 6a8.8 8.8 0 0 1 2.5-.5c6 0 9.5 6.5 9.5 6.5a15 15 0 0 1-2.6 3.4M6.4 8A15 15 0 0 0 2.5 12S6 18.5 12 18.5a8.4 8.4 0 0 0 3.6-.8"/><path d="M10 10a2.8 2.8 0 0 0 3.9 3.9"/>',
+    candado: '<rect x="5.5" y="11" width="13" height="9" rx="1.5"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/>',
+    copiar: '<rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6A1.5 1.5 0 0 0 14 4.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>',
+    regalo: '<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M12 9v11M3.5 9h17"/><path d="M12 9c-1.2-3.5-5-4-5-1.7C7 9 12 9 12 9Zm0 0c1.2-3.5 5-4 5-1.7C17 9 12 9 12 9Z"/>',
+    tarjeta: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/>',
+    caja: '<path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z"/><path d="m4 8.5 8 4.5 8-4.5M12 13v7"/>',
+    estrella: '<path d="m12 4 2.4 5 5.4.7-4 3.8 1 5.4L12 16.2l-4.8 2.7 1-5.4-4-3.8 5.4-.7L12 4Z"/>',
+    ayuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.6a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.9-1.1 1.7M12 16.6v.1"/>',
+    salir: '<path d="M14 4.5h4.5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H14M10 8l-4 4 4 4M6 12h9"/>',
+    desinstalar: '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14"/>',
+    zoom: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2M11 8.5v5M8.5 11h5"/>',
+  };
+  window.ICONO = (n, clase = "") => `<svg class="ic ${clase}" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${D[n] || ""}</svg>`;
+})();

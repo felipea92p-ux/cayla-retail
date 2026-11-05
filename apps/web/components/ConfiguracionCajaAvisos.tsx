@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
@@ -43,7 +44,11 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
   }
 
   if (!parametros) {
-    return <p className="nota-cayla">Falta pegar en la base la migración de Caja y avisos (20260925103000).</p>;
+    return (
+      <Aviso tono="error" titulo="No se pudo leer Caja y avisos">
+        Recarga la página; si sigue, avísale al líder.
+      </Aviso>
+    );
   }
 
   async function guardar(campo: keyof Borrador) {
@@ -122,14 +127,14 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Cada cambio queda en la historia.</p>
+        <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al salir de ella y queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
       </div>
       <section className="fin-dos-col">
         <Superficie pad className="anim-sube" guia="config.caja-caja">
-          <CabeceraBloque titulo="Caja" bajada="El piso que no quieres perforar." />
+          <CabeceraBloque titulo="Caja de toda CAYLA" bajada="Lo que no quieres que baje, entre todas las cuentas. No cuenta la tarjeta de crédito ni la parte de CLAURE." />
           {casilla("minimoCaja", "Mínimo de caja", "Si la proyección de alguna semana baja de aquí, el Resumen y el Flujo de caja avisan.", "S/")}
         </Superficie>
         <Superficie pad className="anim-sube" guia="config.caja-avisos">
@@ -139,12 +144,12 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
         </Superficie>
       </section>
       {!parametros.corteDisponible ? (
-        <p className="nota-cayla">Falta pegar en la base la migración «Finanzas cuenta desde» (20261004190000) para poder elegir desde cuándo cuenta Finanzas.</p>
+        <p className="nota-cayla">Todavía no se puede elegir desde cuándo cuenta Finanzas. Avísale al líder.</p>
       ) : (
       <Superficie pad className="anim-sube" guia="config.caja-corte">
-        <CabeceraBloque titulo="Desde cuándo cuenta Finanzas" bajada="Para un sistema que empezó a usarse a mitad de camino: lo de antes no entra a los estados." />
+        <CabeceraBloque titulo="Desde cuándo cuenta Finanzas" bajada="Para un sistema que empezó a usarse a mitad de camino: lo de antes no entra a los estados. Esto no se guarda solo: cambia lo que muestran los estados y se confirma con «Guardar»." />
         <CampoFin etiqueta="Finanzas cuenta" htmlFor="cfg-corte" ayuda={consecuenciaCorte(corteParaBase(corte))}>
-          <SelectFin id="cfg-corte" valor={corte} onValor={setCorte} opciones={opciones} deshabilitado={guardando} />
+          <SelectFin id="cfg-corte" className="max-w-md" valor={corte} onValor={setCorte} opciones={opciones} deshabilitado={guardando} />
         </CampoFin>
         <div className="fin-botones">
           <Boton peso="primario" cargando={guardando} type="button" onClick={guardarCorte} disabled={guardando || corte === corteBase || !responsable.listo}>

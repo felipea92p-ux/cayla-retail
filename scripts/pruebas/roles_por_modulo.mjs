@@ -170,7 +170,7 @@ caso(
     where not delegable and not solo_lider
       and clave in ('vender', 'caja', 'cambios', 'devoluciones', 'historial', 'facturacion', 'clientas', 'existencias',
                     'conteos', 'traslados', 'movimientos', 'productos', 'atributos', 'etiquetas', 'facturas_compra',
-                    'recibir', 'por_pagar', 'proveedores', 'notas_credito', 'produccion', 'analisis', 'colaboradores', 'roles');`,
+                    'recibir', 'por_pagar', 'proveedores', 'produccion', 'analisis', 'colaboradores', 'roles');`,
   ""
 );
 caso(
@@ -375,10 +375,11 @@ caso(
   "t,t,t,t\ntrue\ntrue\ntrue"
 );
 caso(
-  "Facturas de compra y Notas de crédito también abren los montos; un rol SIN esos módulos (Integrante) sigue sin verlos",
+  // «Notas de crédito» ya no es un módulo (ADR-0480, 2026-10-22): el segundo paso cambia el rol a solo Por pagar.
+  "Facturas de compra también abre los montos (y Por pagar sola, después); un rol SIN esos módulos (Integrante) sigue sin verlos",
   conRol("Facturas", ["facturas_compra"]) +
     como(MICAELA_AUTH) + `select concat_ws(',', fn_puede_ver_dinero_de_compras(), fn_puede_registrar_compras());\n` +
-    como(FELIPE_AUTH) + `select guardar_modulos_rol(id, array['notas_credito']) from retail.roles where nombre = 'Facturas' \\g /dev/null\n` +
+    como(FELIPE_AUTH) + `select guardar_modulos_rol(id, array['por_pagar']) from retail.roles where nombre = 'Facturas' \\g /dev/null\n` +
     como(MICAELA_AUTH) + `select concat_ws(',', fn_puede_ver_dinero_de_compras(), fn_puede_registrar_compras());\n` +
     como(FELIPE_AUTH) + `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` + FACTURA +
     como(MICAELA_AUTH) +
@@ -428,7 +429,9 @@ caso(
   }
 );
 caso(
-  "Etiquetas: sin el módulo, una etiqueta nueva es solo una propuesta y no se edita",
+  // ADR-0534 (20261027164000): lo que se crea nace aprobado para cualquiera (antes, sin el módulo, era solo una propuesta);
+  // editarla y ponerle prendas sigue siendo de quien ve Etiquetas.
+  "Etiquetas: sin el módulo, una etiqueta nueva nace aprobada (ADR-0534), pero no se edita ni se le ponen prendas",
   como(MICAELA_AUTH) +
     `set local role authenticated;\n` +
     `insert into retail.etiquetas (nombre) values ('ZZ propuesta') returning estado \\gset\nselect :'estado';\n` +
@@ -436,7 +439,7 @@ caso(
     intento(`select retail.etiquetar_variantes('[]'::jsonb)`),
   (s) => {
     const l = s.split("\n");
-    return l[0] === "pendiente" && l[1] === "0" && l[2].startsWith("42501|");
+    return l[0] === "aprobado" && l[1] === "0" && l[2].startsWith("42501|");
   }
 );
 caso(
@@ -467,7 +470,7 @@ grant select on rango to authenticated;\n` +
 );
 caso(
   "con los 5 módulos encendidos da descuento por etiqueta (incluye Etiquetas, ADR-0293), pero no es líder ni tiene Colaboradores ni Roles",
-  conRol("Todo lo abierto", ["etiquetas", "facturas_compra", "por_pagar", "notas_credito", "analisis", "productos"]) +
+  conRol("Todo lo abierto", ["etiquetas", "facturas_compra", "por_pagar", "analisis", "productos"]) +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_puede_dar_descuento_por_etiqueta(), fn_es_lider(), fn_ve_modulo('colaboradores'), fn_ve_modulo('roles'));`,
   "t,f,f,f"
@@ -801,25 +804,21 @@ caso(
     );
   }
 );
+// ADR-0480 (2026-10-22, Felipe: «por ahora no manejaremos notas de crédito»): el módulo se retiró del catálogo. No se le puede dar a
+// un rol, y registrar una nota queda solo del líder; ni Facturas de compra ni Por pagar la abren.
 caso(
-  "P1 · Notas de crédito: registra la nota y adjunta SU PDF; NO paga, NO anula y NO adjunta a la factura",
+  "ADR-0480 · «Notas de crédito» ya no es un módulo: no se le da a un rol, y la nota la registra solo el líder",
   como(FELIPE_AUTH) + FACTURA +
-    conRol("Solo notas", ["notas_credito"]) +
+    conRol("Facturas y pagos", ["facturas_compra", "por_pagar"]) +
+    intento(`select guardar_modulos_rol(id, array['facturas_compra', 'notas_credito']) from retail.roles where nombre = 'Facturas y pagos'`) + "\n" +
     como(MICAELA_AUTH) +
-    `select retail.registrar_nota_credito_compra(:'compra', 'NC-ROL-1', retail.fn_hoy_lima(), 10.00, 'descuento') as nc \\gset\n` +
-    `select pg_temp.intento(format('select retail.registrar_adjunto_compra(%L, %L, %L, %L, 1000, %L)', :'compra', :'compra' || '/nota.pdf', 'nota.pdf', 'application/pdf', :'nc'));\n` +
-    `select pg_temp.intento(format('select retail.archivar_adjunto_compra(%L)', (select id from retail.compra_adjuntos where nota_credito_id = :'nc')));\n` +
-    ADJUNTO_FACTURA + PAGAR + ANULAR +
-    `select (notas_credito = 10)::text from retail.compras where id = :'compra';`,
+    `select concat_ws(',', fn_puede_registrar_notas_credito(), fn_puede_ver_dinero_de_compras());\n` +
+    `select pg_temp.intento(format('select retail.registrar_nota_credito_compra(%L, %L, retail.fn_hoy_lima(), 10.00, %L)', :'compra', 'NC-ROL-1', 'descuento'));\n` +
+    como(FELIPE_AUTH) +
+    `select (retail.registrar_nota_credito_compra(:'compra', 'NC-ROL-2', retail.fn_hoy_lima(), 10.00, 'descuento') is not null)::text;`,
   (s) => {
     const l = s.split("\n");
-    return (
-      l[0] === "SIN_ERROR" && l[1] === "SIN_ERROR" &&
-      l[2].startsWith("42501|") && l[2].includes("Facturas de compra") &&
-      l[3].startsWith("42501|") && l[3].includes("Por pagar") &&
-      l[4].startsWith("42501|") && l[4].includes("Facturas de compra") &&
-      l[5] === "true"
-    );
+    return l[0].includes("No existe el módulo") && l[1] === "f,t" && l[2].startsWith("42501|") && l[3] === "true";
   }
 );
 caso(

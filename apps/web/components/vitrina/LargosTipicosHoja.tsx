@@ -70,7 +70,7 @@ export function LargosTipicosHoja({
   return (
     <Modal
       titulo="Largos típicos"
-      subtitulo="Con este largo sale una prenda en el probador hasta que se anote el suyo. Vacío: esa categoría no tiene típico y sus prendas entran solo con su largo."
+      subtitulo="Con este largo sale una prenda en el probador hasta que se anote el suyo."
       onClose={onClose}
       variante="hoja"
       tamano="mediana"

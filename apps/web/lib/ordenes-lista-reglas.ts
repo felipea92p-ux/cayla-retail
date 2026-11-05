@@ -10,6 +10,7 @@ import {
   quienDeFase,
   rojoDeLaOrden,
   textoColoresYTallas,
+  todasLasQueCuentanHechas,
   type CausaRoja,
   type EstadoDeLaOrden,
   type EstadoOrden,
@@ -24,7 +25,7 @@ import {
 // contradecirse porque no hay una segunda fórmula.
 //
 // CONTRATO
-//   PROMETE: que una fila dice dónde está la orden, quién la tiene y cuánto lleva ahí; que «pide algo» es exactamente `rojoDeLaOrden`; que «Hoy en el Taller» cuenta lotes y prendas
+//   PROMETE: que una fila dice dónde está la orden, quién la tiene y cuánto lleva ahí; que «pide algo» es exactamente `rojoDeLaOrden`; que «Hoy en el Taller» cuenta órdenes y prendas
 //            por la fase en que está cada orden abierta (una orden con todas las fases hechas cuenta en la última: espera pasar al stock); que una orden no se pierde al filtrar sin
 //            que la pantalla diga cuántas hay; y que la búsqueda no distingue tildes ni mayúsculas ni el guion de «OP-000012».
 //   ASUME:   las fechas llegan como `aaaa-mm-dd` y «hoy» es el de Lima (`hoyLima()`), como en la página de la orden.
@@ -98,8 +99,10 @@ function diaYNumero(iso: string): string {
 /** «Taller · 21 de 36», «Confecciones del Norte · 48 afuera», «Confecciones del Norte · por mandar». */
 function textoDeQuien(p: OrdenPagina): string {
   const actual = p.fases.find((f) => f.actual) ?? null;
-  if (!actual) return p.fases.length > 0 && p.fases.every((f) => f.estado === "hecha") ? "Taller · todas las fases listas" : "Taller";
+  if (!actual) return todasLasQueCuentanHechas(p.fases) ? "Taller · todas las fases listas" : "Taller";
   const quien = quienDeFase(actual);
+  // Una fase que se marca (Ploteo) no cuenta prendas: no hay «0 de 0» ni «por mandar», solo quién la tiene y que falta hacerla.
+  if (actual.hito) return `${quien} · por hacer`;
   if (actual.quien === "servicio") {
     if (actual.afuera > 0) return `${quien} · ${actual.afuera} afuera`;
     return actual.hechas > 0 ? `${quien} · ${actual.hechas} de ${actual.entrada}` : `${quien} · por mandar`;
@@ -112,6 +115,7 @@ function textoDeCierre(p: OrdenPagina): string | null {
   const o = p.orden;
   if (o.estado === "terminada") {
     const buenas = `${o.cantidadBuenas ?? 0} buenas de ${o.cantidadPlan}`;
+    if (o.ingresoAlStock === "ya_estaba") return `${buenas} · ya estaban registradas, no sumó al stock`;
     if (o.inventariadoEn) return `${buenas} · en el stock desde el ${diaCorto(fechaLimaDe(o.inventariadoEn))}`;
     return o.esMuestra ? `${buenas} · muestra, no entra al stock` : buenas;
   }
@@ -124,7 +128,7 @@ export function filaDeLaLista(p: OrdenPagina, hoy: string): FilaDeLista {
   const o = p.orden;
   const enProceso = o.estado === "en_proceso";
   const actual = p.fases.find((f) => f.actual) ?? null;
-  const lista = enProceso && p.fases.length > 0 && p.fases.every((f) => f.estado === "hecha");
+  const lista = enProceso && todasLasQueCuentanHechas(p.fases);
   const abierta = fechaLimaDe(o.creadoEn);
   const porColor = new Map<string, { hex: string; n: number }>();
   for (const l of p.lineas) if (l.colorHex) porColor.set(l.colorHex, { hex: l.colorHex, n: (porColor.get(l.colorHex)?.n ?? 0) + l.cantidadPlan });
@@ -208,18 +212,50 @@ export function leerListaDeOrdenes(crudo: unknown, hoy: string): ListaDeOrdenes 
 
 // ---------- Hoy en el Taller ----------
 
-export type CifraDeFase = { clave: FaseClave; titulo: string; lotes: number; prendas: number; contexto: string; atencion: boolean };
+/** `ordenes` cuenta las órdenes abiertas en la fase (lotes y muestras); `unidad` es la palabra que va junto a esa cifra. */
+export type CifraDeFase = { clave: FaseClave; titulo: string; ordenes: number; unidad: string; prendas: number; contexto: string; atencion: boolean };
 
-const TITULO_DE_FASE: Record<FaseClave, string> = { corte: "Por cortar", costura: "En costura", acabado: "En acabado", bordado: "En bordado", estampado: "En estampado", lavanderia: "En lavandería" };
-const ORDEN_DE_FASES: FaseClave[] = ["corte", "bordado", "estampado", "costura", "lavanderia", "acabado"];
+const TITULO_DE_FASE: Record<FaseClave, string> = {
+  ploteo: "Por plotear",
+  corte: "Por cortar",
+  habilitado: "En habilitado",
+  costura: "En costura",
+  ojales_botones: "En ojales y botones",
+  limpieza_revision: "En limpieza y revisión",
+  planchado: "En planchado",
+  etiquetado_embolsado: "En etiquetado",
+  acabado: "En acabado",
+  bordado: "En bordado",
+  estampado: "En estampado",
+  lavanderia: "En lavandería",
+};
+const ORDEN_DE_FASES: FaseClave[] = [
+  "ploteo",
+  "corte",
+  "habilitado",
+  "bordado",
+  "estampado",
+  "costura",
+  "ojales_botones",
+  "lavanderia",
+  "limpieza_revision",
+  "acabado",
+  "planchado",
+  "etiquetado_embolsado",
+];
+
+/** Las dos tarjetas que se ven siempre en «Hoy en el Taller»: donde empieza el lote y donde se arma la prenda. */
+const TARJETAS_SIEMPRE: readonly FaseClave[] = ["corte", "costura"];
 
 /**
- * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (lotes y prendas de las órdenes abiertas, muestras incluidas). Corte, Costura y Acabado siempre; Bordado, Estampado y
- * Lavandería solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
+ * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (órdenes y prendas de las abiertas, muestras incluidas). La cifra no llama «lotes» a una
+ * muestra (la misma pantalla pide distinguirlas, y una muestra no entra al stock): son «lotes» si todas son lotes, «muestras» si todas lo son y «órdenes» si
+ * hay de las dos, con «1 muestra» en su detalle (Formidable, 2026-10-30).
+ * Corte y Costura siempre; las demás fases (Ploteo, Habilitado, Limpiar y revisar, Planchado, Etiquetar, Acabado de las órdenes de antes, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
  */
 export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[] {
   const abiertas = filas.filter((f) => f.estado === "en_proceso" && f.grupo !== null);
-  const claves = ORDEN_DE_FASES.filter((c) => c === "corte" || c === "costura" || c === "acabado" || abiertas.some((f) => f.grupo === c));
+  const claves = ORDEN_DE_FASES.filter((c) => TARJETAS_SIEMPRE.includes(c) || abiertas.some((f) => f.grupo === c));
   return claves.map((clave) => {
     const aca = abiertas.filter((f) => f.grupo === clave);
     const prendas = aca.reduce((s, f) => s + f.cuantas, 0);
@@ -227,15 +263,19 @@ export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[
     const afuera = aca.reduce((s, f) => s + f.afuera, 0);
     const listas = aca.filter((f) => f.lista).length;
     const servicios = [...new Set(aca.filter((f) => f.afuera > 0).map((f) => f.quien.split(" · ")[0]))];
+    const muestras = aca.filter((f) => f.esMuestra).length;
+    const mezcla = muestras > 0 && muestras < aca.length;
+    const unidad = muestras === 0 ? (aca.length === 1 ? "lote" : "lotes") : mezcla ? (aca.length === 1 ? "orden" : "órdenes") : muestras === 1 ? "muestra" : "muestras";
     const partes: string[] = [];
     if (aca.length === 0) partes.push("ninguna ahora");
     else {
       partes.push(cuantas(prendas, "prenda", "prendas"));
+      if (mezcla) partes.push(cuantas(muestras, "muestra", "muestras"));
       if (afuera > 0) partes.push(`${afuera} afuera${servicios.length > 0 ? ` con ${servicios.join(" y ")}` : ""}`);
       if (sinTela > 0) partes.push(`${sinTela} sin tela`);
       if (listas > 0) partes.push(`${cuantas(listas, "lista", "listas")} para el stock`);
     }
-    return { clave, titulo: TITULO_DE_FASE[clave], lotes: aca.length, prendas, contexto: partes.join(" · "), atencion: sinTela > 0 || aca.some((f) => f.causas.length > 0) };
+    return { clave, titulo: TITULO_DE_FASE[clave], ordenes: aca.length, unidad, prendas, contexto: partes.join(" · "), atencion: sinTela > 0 || aca.some((f) => f.causas.length > 0) };
   });
 }
 
@@ -317,4 +357,41 @@ export function datoHoyEnElTaller(filas: readonly FilaDeLista[]): string {
   const piden = abiertas.filter((f) => f.causas.length > 0).length;
   if (abiertas.length === 0) return "ninguna orden abierta";
   return `${cuantas(abiertas.length, "orden abierta", "órdenes abiertas")} · ${piden === 0 ? "ninguna pide algo" : `${piden} ${piden === 1 ? "pide" : "piden"} algo`}`;
+}
+
+// ---------- La orden que se acaba de abrir (ADR-0509, actividad 1) ----------
+// `abrir_orden_produccion` ya devuelve (id, numero) y la pantalla lo tiraba: quien creaba una orden no veía dónde quedó (una muestra cae en otra pestaña) y dudaba si se guardó.
+
+export type OrdenCreada = { id: string; numero: number; numeroTexto: string; /** La página de la orden (`/produccion/ordenes/OP-000012`), la misma que lleva la fila de la lista. */ href: string };
+
+/**
+ * Lo que devuelve `abrir_orden_produccion` (`returns table (id uuid, numero integer)`: supabase-js lo entrega como una lista de una fila). Si no trae un id y un número entero positivo
+ * devuelve `null` y la pantalla sigue como siempre, sin «Ver la orden»: nunca se inventa un número.
+ */
+export function leerOrdenCreada(data: unknown): OrdenCreada | null {
+  const fila = Array.isArray(data) ? data[0] : data;
+  if (!fila || typeof fila !== "object") return null;
+  const { id, numero } = fila as Record<string, unknown>;
+  const n = typeof numero === "number" ? numero : typeof numero === "string" && /^\d+$/.test(numero) ? Number(numero) : Number.NaN;
+  if (typeof id !== "string" || id === "" || !Number.isInteger(n) || n < 1) return null;
+  const numeroTexto = `OP-${String(n).padStart(6, "0")}`;
+  return { id, numero: n, numeroTexto, href: `/produccion/ordenes/${numeroTexto}` };
+}
+
+/** La pestaña donde queda una orden recién abierta: siempre está en proceso, así que es «Muestras» o «En curso» (la misma regla de `pestanaDe`). */
+export function pestanaDeOrdenNueva(esMuestra: boolean): PestanaLista {
+  return esMuestra ? "muestras" : "en_curso";
+}
+
+/** Los parámetros con los que «Nueva orden» llega abierta desde el Resumen, Análisis o Nuevo producto (`lib/modelo-nuevo-orden-reglas.ts`). */
+const PARAMETROS_DE_NUEVA = ["nueva", "sugerida", "tipo"] as const;
+
+/**
+ * La dirección sin los parámetros con los que «Nueva orden» llegó abierta. La URL no cambia al cerrar ni al guardar, así que con F5 la hoja volvía a abrirse aunque la orden ya estuviera
+ * creada. Lo demás (`orden`, la ruta, el ancla) se conserva tal cual. Una dirección que no los trae vuelve igual.
+ */
+export function urlSinParametrosDeNueva(href: string): string {
+  const u = new URL(href, "http://cayla.local");
+  for (const p of PARAMETROS_DE_NUEVA) u.searchParams.delete(p);
+  return `${u.pathname}${u.search}${u.hash}`;
 }

@@ -129,3 +129,70 @@ Aniversario ya está corriendo: mira cómo vamos con las compras y dime qué te 
 el pliegue, pero el aviso, que es la respuesta, queda arriba. A 375 px no hay scroll horizontal. En modo oscuro hay 0 hallazgos
 (`tema:auditar`). `guias:recorrer` pasa los 24 pasos. Sin nota nueva: la recalificación de las 9 leyes queda para la próxima
 `/formidable` completa. Real: sin probar.
+
+## 2026-10-24 · el descuento de la campaña y la fecha límite para pedir (ADR-0499, rama `claude/campaign-plan-improvements-18875c`, sin publicar)
+
+- **Qué se miró:** la franja de la fecha límite, la hoja «Días para llegar» y el campo «Descuento en la campaña» de la hoja de una categoría.
+  **Escala de esta corrida:** medición del DOM a 1440 y 375 px (yo) · **una** prueba ciega (1 agente Sonnet, navegador local, sin repositorio) ·
+  **un** escéptico (1 agente Sonnet, solo código). La revisión de las 9 leyes la hice yo. Base local restaurada después (`/chaos`, mismo día).
+- **Veredicto en una línea:** «Se entiende en 5 s y se completa al primer intento, pero la hoja del plazo no dice la fecha que resulta cuando la campaña ya empezó, y la
+  franja repite los días.»
+
+### Notas (0–10; solo donde hay evidencia)
+| Eje | Nota | Evidencia |
+|---|---|---|
+| 1 Sin manual | 8 (tope) | [Observado] ciega: a los 5 s dijo «la pantalla del plan de la campaña de Halloween; la caja "Si pides hoy, llega el 07/11" es la respuesta y lo siguiente es "Cambiar los días"»; completó al primer intento con 4 acciones y 0 retrocesos · real: sin probar |
+| 3 Simplicidad profunda | 7 | [Medido] la franja traduce el plazo a un veredicto (a tiempo / justo / tarde / ya empezó). [Observado] la ciega tuvo que calcular ella la fecha con 21 días: la hoja no la dice |
+| 4 Lenguaje de tienda | 8 | [Observado] dudas: «Sigue aquí» (pieza del sistema), «Quitar el plazo» («¿borra qué?») y «Cambiar los días» («¿los de la campaña o los del proveedor?», lo resolvió por el texto de al lado) |
+| 7 Perdonar antes que preguntar | 8 | [Observado] la hoja de la categoría pregunta «¿Salir sin guardar?»; la del plazo cierra con Escape (un solo número) y «Quitar el plazo» se deshace fijando otro |
+| 8 Quitar antes de agregar | 6 | [Medido, CONFIRMADO por el escéptico] la franja dice los mismos días dos veces: «…tarda 14 días…» y «Cuenta con 14 días…» (`plan-compra-plazo.ts:73` y `:124`, juntos en `PlanCampana.tsx:399`); pasa también en «a tiempo» y «justo» |
+| 9 De punta a punta | 7 | [Observado] errores honestos (corte de red y respuesta perdida, mensaje claro y reintento idempotente). [Medido] el pie ya cabe a 375 px. [CONFIRMADO] «Plazo de 1 días guardado»; «Quitar el plazo» con 14 fijado no cambia el número y no lo dice |
+| 2, 5, 6 | sin calificar | sin evidencia en esta corrida |
+| **Leyes (promedio de las 6 con evidencia)** | **7,3** | ninguna ley en 3; la más baja es la 8 (6) |
+| **Oficio visual** | **9** | [Medido] hoja del plazo: 2 de 8 marcan, las dos son del sistema o falsos (la marca «Sigue aquí» a 10,5 px; una etiqueta solo para lector a 1 px de otro borde). Bloque del descuento: 0 de 8. La hoja entera de la categoría marca 5 de 8, todo heredado de antes y ya listado arriba |
+
+### Los 3 cambios de mayor impacto (esperan el OK de Felipe; ninguno cambia un cálculo ni una regla de dinero)
+1. **La hoja del plazo dice la fecha que resulta, y la franja dice los días una sola vez.** Antes: con la campaña empezada la hoja dice «Un pedido de hoy tarda 21 días…» y nada más, y
+   la franja repite el número. Después: la hoja muestra «Si pides hoy, llega el 14/11» mientras se escribe, y la franja junta las dos frases en una. Arregla las leyes 3 y 8 (y hace
+   verdad el texto del paso «Cuántos días tarda en llegar» de la guía, que hoy promete una fecha límite que en «ya empezó» no existe). Se verifica escribiendo 21 en la hoja y leyendo la fecha; `lib/plan-compra-plazo.test.ts` con el caso. Esfuerzo S.
+2. **El margen y el aviso «no deja ganancia» salen apenas hay precio, costo y descuento.** Antes: la frase debajo del descuento depende de `lineaViva` (`FormularioCategoria.tsx:181,190`),
+   que es null mientras falte un escenario, lo que sobra o la curva de tallas; con escribir un descuento antes de llenar los escenarios no se ve nada, y en una categoría nueva sin «lo que sobra» de
+   fábrica puede faltar incluso con los escenarios llenos. Después: se calcula con precio, costo y descuento solamente (`fraseDelMargen` ya los pide solo a ellos). Arregla las leyes 3 y 9.
+   Se verifica con una categoría sin escenarios y un descuento de 60 % sobre un costo alto. **Toca dinero solo en lo que muestra: no cambia ningún cálculo ni guardado; igual necesita tu OK.** Esfuerzo S.
+3. **«Quitar el plazo» dice qué pasa, y «1 día» se escribe bien.** Antes: el botón rojo no dice a qué vuelve ni que con 14 fijado no cambia nada, y el aviso dice «Plazo de 1 días guardado».
+   Después: una línea bajo el campo («Si lo quitas, se cuenta con el supuesto de 14 días») y el plural arreglado con el mismo ayudante que ya usa `plan-compra-plazo.ts`. Arregla las leyes 4 y 9. Esfuerzo S.
+
+### Lo que sobra (ley 8)
+La segunda frase de la franja (`fraseDeLosDias`) cuando repite el número del detalle: se propone dejar solo quién lo fijó y cuándo.
+
+### Lo que no pediste y importa más
+Las hojas hermanas «Poner el tope» y «Lo que sobra» arman su botón rojo con `mr-auto` y, a 375 px, no quedan en su propia fila como dice `pie-acciones.css` (la regla de mitades le gana en especificidad):
+quedan los tres botones en una fila de ~98 px y «Guardar el tope» se angosta. No se cortan, pero no es lo documentado. **Medido** en una réplica; la salida es `<PieAcciones izquierda>`, como la hoja del plazo.
+
+### Lista aparte (no se ejecuta)
+- «Cambiar los días» puede leerse como los de la campaña; la hoja que abre se titula «Días para llegar» (matizado por el escéptico: es opinión, el código no lo prueba).
+- Marca «Sigue aquí» a 10,5 px en todas las hojas guiadas (ya estaba en la lista aparte del 2026-10-10).
+
+### Prueba ciega
+| Medida | Resultado |
+|---|---|
+| Lectura de 5 s | coincide con la finalidad: el plan de la campaña de Halloween; la caja de arriba contesta «qué día llegaría» |
+| Primer intento | sí, sin retroceder |
+| Pasos | 4 acciones (1 clic, 2 teclas, 1 «Cancelar» para salir sin guardar) |
+| Dudas | «Si pides hoy, llega el 07/11» (¿responde mi pregunta?); «Cambiar los días» (¿cuáles?); «Quitar el plazo» (¿borra qué?); «Guardar plazo» (¿ya está guardado?); «solo avisa, nunca te impide guardar un plan» |
+| Palabras no entendidas | «Sigue aquí»; «Quitar el plazo»; «Eres admin. No necesitas autorización» |
+| Errores evitables | 0 |
+
+### Refutados o matizados por el escéptico
+H1, H2, H3 y H4: confirmados (H3 con matiz: también la oculta un «lo que sobra» vacío o una curva que no suma 100). H5: matizado (opinión, no un defecto demostrable en el código).
+Tres hallazgos que no estaban: la guía promete una fecha límite que no existe en «ya empezó» (mismo hueco que el cambio 1); «Plazo de 1 días guardado»; «Quitar el plazo» sin efecto cuando ya vale 14.
+
+### Antes de decir «listo»
+- Concurrencia: dos líderes fijando el plazo a la vez en tres rondas (`/chaos`): gana el último y queda firmado él mismo.
+- Caída externa: red cortada y respuesta perdida dan un mensaje honesto y un reintento que no cambia nada.
+- Persona sin contexto: la ciega lo completó; **real: sin probar**.
+
+### Historial
+| Fecha | SHA | Leyes | Oficio | Cambios cerrados |
+|---|---|---|---|---|
+| 2026-10-24 | rama `claude/campaign-plan-improvements-18875c` (sin publicar) | 7,3 (6 de 9 leyes con evidencia) | 9 | — (el pie de la hoja del plazo ya está arreglado; los 3 cambios esperan el OK) |

@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D · Seda — Rediseño de la tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,300;0,400;1,300;1,400&family=Ysabeau+Office:wght@300;400;500;600&family=EB+Garamond:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="marco.css">
+<style>
+/* ── D · SEDA ─ la suavidad de la tela. Perla rosada y tinta ciruela, una serif de alto contraste con una humanista suave,
+   marcos redondeados como una prenda doblada. La firma: una cinta de seda que se dibuja sola mientras bajas y cose la página
+   de arriba abajo. Todo entra como una tela que cae; nada rebota. Con «reducir movimiento», quieto y con la cinta entera. ── */
+#lienzo {
+  --perla: #f4efec; --polvo: #eaddd8; --ciruela: #2b1e24; --malva: #6e5560; --linea: #dccbc5; --cinta: #c98a95; --rosa: #b04457;
+  --gutter: clamp(16px, 4cqi, 64px); --radio: 28px;
+  background: var(--perla); color: var(--ciruela); overflow-x: clip;
+  font: 400 15.5px/1.65 "Ysabeau Office", system-ui, sans-serif;
+}
+#lienzo *, #lienzo *::before, #lienzo *::after { box-sizing: border-box; }
+#lienzo a { color: inherit; }
+#lienzo :focus-visible { outline: 1.5px solid var(--rosa); outline-offset: 3px; }
+#lienzo img { display: block; max-width: 100%; }
+:where(#lienzo) button { font: inherit; color: inherit; }
+
+.s-cap { font-weight: 500; font-size: 11.5px; letter-spacing: .2em; text-transform: uppercase; }
+.s-display { margin: 0; font-family: "Noto Serif Display", Georgia, serif; font-style: italic; font-weight: 300; line-height: .92; letter-spacing: -.02em; font-size: clamp(72px, 13.5cqi, 220px); }
+.s-titulo { margin: 0; font-family: "Noto Serif Display", Georgia, serif; font-weight: 300; line-height: 1.02; letter-spacing: -.01em; font-size: clamp(34px, 4.6cqi, 66px); }
+.s-titulo em { font-style: italic; }
+.s-nombre { font-family: "Noto Serif Display", Georgia, serif; font-weight: 400; }
+.s-tenue { color: var(--malva); }
+.s-num { font-variant-numeric: tabular-nums; }
+.s-centro { text-align: center; }
+
+/* Cabecera en dos pisos: el logo al centro y, debajo, el índice */
+.s-cab { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--perla) 88%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--linea); }
+.s-cab-arriba { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 64px; padding: 0 var(--gutter); }
+.s-cab-arriba > :last-child { justify-self: end; display: flex; gap: 22px; }
+.s-cab-indice { display: flex; justify-content: center; gap: clamp(18px, 3cqi, 44px); height: 38px; align-items: center; border-top: 1px solid var(--linea); }
+.s-cab a { text-decoration: none; }
+.s-cab-indice a, .s-cab-arriba > :last-child a { position: relative; padding: 4px 0; }
+.s-cab-indice a::after, .s-cab-arriba > :last-child a::after { content: ""; position: absolute; left: 50%; right: 50%; bottom: 0; height: 1px; background: var(--rosa); }
+.s-cab-indice a:hover::after, .s-cab-arriba > :last-child a:hover::after { left: 0; right: 0; }
+.s-logo { display: flex; align-items: center; gap: 10px; }
+.s-logo img { width: 32px; height: auto; }
+.s-logo span { font-family: "EB Garamond", serif; font-weight: 500; font-size: 22px; letter-spacing: .24em; margin-right: -.24em; }
+.s-menu { display: none; width: 40px; height: 40px; border: 0; background: none; padding: 10px 8px; }
+.s-menu i { display: block; height: 1px; background: currentColor; margin: 5px 0; }
+.s-ir-bolsa b { display: inline-block; font-weight: 600; }
+
+.s-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 32px; border: 1px solid var(--ciruela); border-radius: 999px; background: var(--ciruela); color: var(--perla) !important; font-weight: 500; letter-spacing: .02em; text-decoration: none; cursor: pointer; overflow: hidden; isolation: isolate; }
+.s-btn::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--perla) 38%, transparent) 50%, transparent 70%) no-repeat; background-size: 220% 100%; background-position: 130% 0; }
+.s-btn:hover::after { background-position: -30% 0; }
+.s-btn--claro { background: transparent; color: var(--ciruela) !important; }
+.s-btn--claro::after { background-image: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--cinta) 30%, transparent) 50%, transparent 70%); }
+.s-btn[data-hecho="si"] { background: var(--rosa); border-color: var(--rosa); }
+.s-link { text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid var(--linea); }
+.s-link:hover { border-color: var(--rosa); }
+
+/* El marco: redondeado como una prenda doblada; la foto (blanca) se funde con el rosa polvo */
+.s-marco { position: relative; display: block; aspect-ratio: 4 / 5; border-radius: var(--radio); background: var(--polvo); overflow: hidden; text-decoration: none; }
+.s-marco img { width: 100%; height: 100%; object-fit: contain; padding: 10%; mix-blend-mode: multiply; }
+.s-marco::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: radial-gradient(70% 55% at 50% 100%, color-mix(in srgb, var(--cinta) 30%, transparent), transparent 70%); opacity: 0; }
+.s-fig:hover .s-marco::after { opacity: 1; }
+.s-pie-foto { display: grid; gap: 2px; padding: 14px 4px 0; text-align: center; }
+.s-pie-foto .s-nombre { font-size: 20px; text-decoration: none; }
+.s-pie-foto .s-cap { color: var(--malva); }
+.s-dispo { font-size: 13px; color: var(--malva); }
+
+.s-pagina { position: relative; }
+.s-pagina > :not(svg) { position: relative; z-index: 1; }
+.s-cinta { position: absolute; left: 0; top: 0; width: 100%; z-index: 0; pointer-events: none; overflow: visible; }
+.s-cinta path { fill: none; stroke: var(--cinta); stroke-width: 1.6; stroke-linecap: round; }
+.s-seccion { padding: clamp(80px, 11cqi, 160px) var(--gutter) 0; }
+.s-seccion-cab { display: grid; justify-items: center; gap: 14px; margin-bottom: clamp(36px, 5cqi, 72px); text-align: center; }
+.s-acciones { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 16px 28px; }
+
+/* Portada */
+.s-hero { display: grid; justify-items: center; padding: clamp(48px, 7cqi, 104px) var(--gutter) 0; text-align: center; }
+.s-hero .s-cap { margin-bottom: 26px; }
+.s-hero p { max-width: 38ch; margin: 30px 0 30px; font-size: 18px; }
+.s-capsulas { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: clamp(16px, 3cqi, 48px); align-items: end; width: min(1100px, 100%); margin-top: clamp(48px, 6cqi, 88px); }
+.s-capsulas .s-marco { border-radius: 999px; aspect-ratio: 1 / 1.7; }
+.s-capsulas .s-marco img { padding: 18% 12%; }
+.s-capsulas > :nth-child(2) { margin-bottom: clamp(40px, 6cqi, 90px); }
+.s-sala { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 4cqi, 64px); align-items: start; }
+.s-sala > :nth-child(2) { margin-top: clamp(40px, 6cqi, 96px); }
+.s-pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(20px, 3cqi, 44px); }
+.s-paso { padding: 28px 24px; border-radius: var(--radio); background: color-mix(in srgb, var(--polvo) 55%, var(--perla)); text-align: center; }
+.s-paso .s-num-paso { display: block; font-family: "Noto Serif Display", serif; font-style: italic; font-weight: 300; font-size: 56px; line-height: 1; color: var(--rosa); margin-bottom: 14px; }
+.s-paso h3 { margin: 0 0 8px; font-family: "Noto Serif Display", serif; font-weight: 400; font-size: 21px; }
+.s-paso p { margin: 0; color: var(--malva); }
+.s-club { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6cqi, 112px); align-items: center; margin: clamp(80px, 11cqi, 160px) var(--gutter) 0; padding: clamp(48px, 7cqi, 96px); border-radius: calc(var(--radio) * 1.6); background: var(--polvo); }
+.s-club ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.s-club li { padding: 18px 0; border-top: 1px solid color-mix(in srgb, var(--malva) 30%, transparent); }
+.s-club li b { display: block; font-family: "Noto Serif Display", serif; font-weight: 400; font-size: 20px; }
+.s-club p { margin: 18px 0 30px; max-width: 34ch; }
+.s-tiendas { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(20px, 3cqi, 44px); }
+.s-tienda { padding: clamp(28px, 4cqi, 48px); border-radius: var(--radio); border: 1px solid var(--linea); background: var(--perla); text-align: center; }
+.s-tienda h3 { margin: 0 0 14px; font-family: "Noto Serif Display", serif; font-style: italic; font-weight: 300; font-size: clamp(40px, 5cqi, 72px); line-height: 1; }
+.s-tienda p { margin: 0 0 4px; }
+.s-tienda .s-acciones { margin-top: 22px; }
+.s-pie { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; padding: clamp(56px, 8cqi, 112px) var(--gutter) 40px; margin-top: clamp(80px, 11cqi, 160px); border-top: 1px solid var(--linea); }
+.s-pie ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.s-pie a { text-decoration: none; }
+.s-pie a:hover { color: var(--rosa); }
+
+/* Catálogo */
+.s-cat-cab { display: grid; justify-items: center; gap: 10px; padding: clamp(40px, 6cqi, 80px) var(--gutter) 28px; text-align: center; }
+.s-filtros { display: grid; justify-items: center; gap: 12px; padding: 0 var(--gutter); }
+.s-filtros > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 6px; }
+.s-filtros button { position: relative; height: 40px; padding: 0 16px; border: 0; background: none; cursor: pointer; color: var(--malva); }
+.s-filtros button:hover { color: var(--ciruela); }
+.s-filtros button[aria-pressed="true"] { color: var(--ciruela); }
+.s-filtros button svg { position: absolute; left: 10px; right: 10px; bottom: 2px; width: calc(100% - 20px); height: 8px; overflow: visible; }
+.s-filtros button path { fill: none; stroke: var(--rosa); stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 120; stroke-dashoffset: 120; }
+.s-filtros button[aria-pressed="true"] path { stroke-dashoffset: 0; }
+.s-rejilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(40px, 5cqi, 72px) clamp(20px, 3cqi, 48px); padding: clamp(36px, 5cqi, 64px) var(--gutter) 0; }
+.s-rejilla [hidden] { display: none; }
+
+/* Prenda */
+.s-ficha { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: clamp(28px, 6cqi, 120px); padding: clamp(28px, 4cqi, 56px) var(--gutter) 0; align-items: start; }
+.s-ficha .s-marco { border-radius: 40px; }
+.s-galeria-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+.s-galeria-mini .s-marco { border-radius: 18px; }
+.s-panel { position: sticky; top: 124px; display: grid; gap: 28px; padding-top: 8px; }
+.s-panel h1 { margin: 6px 0 0; font-family: "Noto Serif Display", serif; font-weight: 300; font-size: clamp(42px, 5cqi, 72px); line-height: 1; letter-spacing: -.02em; }
+.s-panel .s-precio { font-family: "Noto Serif Display", serif; font-size: 26px; }
+.s-campo { display: grid; gap: 12px; }
+.s-campo-cab { display: flex; justify-content: space-between; }
+.s-opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.s-talla { position: relative; min-width: 58px; height: 48px; padding: 0 18px; border: 1px solid var(--linea); border-radius: 999px; background: transparent; cursor: pointer; overflow: hidden; isolation: isolate; }
+.s-talla::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--ciruela); transform: scale(0); }
+.s-talla:hover { border-color: var(--ciruela); }
+.s-talla[aria-pressed="true"] { color: var(--perla); border-color: var(--ciruela); }
+.s-talla[aria-pressed="true"]::before { transform: scale(1); }
+.s-color { display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 18px 0 7px; border: 1px solid var(--linea); border-radius: 999px; background: transparent; cursor: pointer; }
+.s-color i { width: 32px; height: 32px; border-radius: 50%; box-shadow: inset 0 0 0 1px #0002; }
+.s-color[aria-pressed="true"] { border-color: var(--ciruela); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinta) 35%, transparent); }
+.s-stock { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.s-stock div { padding: 16px 18px; border-radius: 18px; background: color-mix(in srgb, var(--polvo) 60%, var(--perla)); }
+.s-stock dt { color: var(--malva); font-size: 13px; }
+.s-stock dd { margin: 2px 0 0; font-family: "Noto Serif Display", serif; font-size: 20px; }
+.s-aviso { min-height: 1.6em; margin: -12px 0 0; font-size: 14px; }
+.s-vacon { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 3cqi, 48px); }
+
+/* Bolsa */
+.s-bolsa-cuerpo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: clamp(28px, 6cqi, 112px); padding: 0 var(--gutter); align-items: start; }
+.s-linea { display: grid; grid-template-columns: 116px 1fr auto; gap: 22px; padding: 18px; margin-bottom: 12px; border-radius: var(--radio); background: color-mix(in srgb, var(--polvo) 45%, var(--perla)); align-items: start; }
+.s-linea .s-marco { border-radius: 18px; }
+.s-linea .s-nombre { font-size: 23px; text-decoration: none; }
+.s-linea .s-cap { display: block; margin-top: 4px; color: var(--malva); }
+.s-linea [data-hay-aqp] { display: block; margin-top: 10px; font-size: 13px; color: var(--malva); }
+.s-linea [data-falta="true"] { color: var(--rosa); }
+.s-quitar { margin-top: 10px; border: 0; background: none; padding: 0; color: var(--malva); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.s-resumen { position: sticky; top: 124px; display: grid; gap: 22px; padding: 32px; border-radius: calc(var(--radio) * 1.3); background: var(--polvo); }
+.s-tienda-op { display: grid; gap: 2px; width: 100%; padding: 16px 20px; border: 1px solid transparent; border-radius: 20px; background: var(--perla); text-align: left; cursor: pointer; }
+.s-tienda-op:hover { border-color: var(--malva); }
+.s-tienda-op[aria-pressed="true"] { border-color: var(--ciruela); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinta) 35%, transparent); }
+.s-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--malva) 30%, transparent); }
+.s-total b { font-family: "Noto Serif Display", serif; font-weight: 400; font-size: 32px; }
+.s-listo { display: grid; gap: 14px; justify-items: center; padding: 30px 26px; border-radius: 24px; background: var(--perla); text-align: center; }
+.s-listo svg { width: 120px; height: 56px; overflow: visible; }
+.s-listo svg path { fill: none; stroke: var(--rosa); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.s-listo h2 { margin: 0; font-family: "Noto Serif Display", serif; font-style: italic; font-weight: 300; font-size: 36px; line-height: 1.05; }
+.s-listo p { margin: 0; }
+.s-mensaje { margin: 0; padding: 14px 18px; border-radius: 16px; background: var(--polvo); font-size: 14px; text-align: left; white-space: pre-line; }
+
+/* Entrar */
+.s-entrar { position: relative; display: grid; justify-items: center; padding: clamp(40px, 6cqi, 88px) var(--gutter) 0; }
+.s-entrar-fondo { position: absolute; inset: 40px var(--gutter) auto; display: flex; justify-content: space-between; pointer-events: none; }
+.s-entrar-fondo .s-marco { width: clamp(140px, 17cqi, 240px); border-radius: 999px; aspect-ratio: 1 / 1.7; opacity: .9; }
+.s-entrar-fondo .s-marco img { padding: 18% 12%; }
+.s-entrar-fondo > :last-child { margin-top: 140px; }
+.s-form { position: relative; display: grid; gap: 20px; width: min(460px, 100%); padding: clamp(28px, 4cqi, 48px); border-radius: 36px; background: color-mix(in srgb, var(--perla) 88%, transparent); backdrop-filter: blur(10px); box-shadow: 0 40px 80px -50px color-mix(in srgb, var(--ciruela) 40%, transparent); }
+.s-form h1 { text-align: center; font-size: clamp(56px, 7cqi, 96px); }
+.s-form label { display: grid; gap: 8px; }
+.s-form input { height: 54px; padding: 0 20px; border: 1px solid var(--linea); border-radius: 999px; background: var(--perla); font: inherit; color: inherit; }
+.s-form input:focus { outline: none; border-color: var(--ciruela); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cinta) 35%, transparent); }
+.s-form .s-btn { width: 100%; }
+
+/* La cinta que va de «Agregar» a la bolsa */
+.s-vuelo { position: fixed; inset: 0; z-index: 300; pointer-events: none; width: 100vw; height: 100vh; }
+.s-vuelo path { fill: none; stroke: #c98a95; stroke-width: 2; stroke-linecap: round; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .s-cab-indice a::after, .s-cab-arriba > :last-child a::after { transition: left .5s cubic-bezier(.2,.7,.2,1), right .5s cubic-bezier(.2,.7,.2,1); }
+  .s-btn::after { transition: background-position 1.1s cubic-bezier(.2,.7,.2,1); }
+  .s-btn { transition: background-color .5s, border-color .5s; }
+  .s-link { transition: border-color .4s; }
+  .s-marco { transition: border-radius .9s cubic-bezier(.2,.7,.2,1); }
+  .s-marco img { transition: transform 1.4s cubic-bezier(.2,.7,.2,1); }
+  .s-marco::after { transition: opacity .8s; }
+  .s-fig:hover .s-marco { border-radius: 64px; }
+  .s-fig:hover .s-marco img { transform: scale(1.045); }
+  .s-filtros button { transition: color .4s; }
+  .s-filtros button path { transition: stroke-dashoffset .9s cubic-bezier(.65,0,.35,1); }
+  .s-talla { transition: color .45s, border-color .3s; }
+  .s-talla::before { transition: transform .55s cubic-bezier(.2,.7,.2,1); }
+  .s-color, .s-tienda-op, .s-form input { transition: border-color .35s, box-shadow .45s; }
+
+  /* La tela que cae: las letras del titular bajan girando desde arriba y se asientan */
+  .s-caida { perspective: 900px; }
+  .s-caida .letra { display: inline-block; opacity: 0; transform-origin: 50% 0; transform: rotateX(78deg) translateY(-.15em); transition: opacity .9s, transform 1.5s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.1s + var(--l, 0) * 65ms); }
+  .listo .s-caida .letra { opacity: 1; transform: none; }
+  .s-entra { opacity: 0; transform: translateY(14px); transition: opacity 1s, transform 1.1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.65s + var(--s, 0) * 110ms); }
+  .listo .s-entra { opacity: 1; transform: none; }
+  /* Las cápsulas suben y después flotan, cada una a su ritmo */
+  .s-capsulas > * { opacity: 0; transform: translateY(60px); transition: opacity 1.4s, transform 1.8s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.6s + var(--c, 0) * 160ms); }
+  .listo .s-capsulas > * { opacity: 1; transform: none; }
+  .s-flota { animation: s-flota 7s ease-in-out infinite alternate; animation-delay: calc(var(--c, 0) * -2.3s); }
+  @keyframes s-flota { from { transform: translateY(-9px); } to { transform: translateY(9px); } }
+  /* Lo que se encuentra al bajar cae como una tela: se inclina hacia atrás y se asienta */
+  [data-revela].s-cae { opacity: 0; transform-origin: 50% 0; transform: perspective(1200px) rotateX(16deg) translateY(36px); transition: opacity 1.1s, transform 1.4s cubic-bezier(.2,.7,.2,1); transition-delay: calc(var(--i, 0) * 120ms); }
+  [data-revela].s-cae.visto { opacity: 1; transform: none; }
+  .s-panel > * { opacity: 0; transform: translateY(16px); transition: opacity .9s, transform 1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.25s + var(--f, 0) * 80ms); }
+  .listo .s-panel > * { opacity: 1; transform: none; }
+  .s-ficha > div:first-child { opacity: 0; transform: scale(.96); transition: opacity 1.2s, transform 1.6s cubic-bezier(.2,.7,.2,1); }
+  .listo .s-ficha > div:first-child { opacity: 1; transform: none; }
+  .s-bolsa-cuerpo .s-linea { animation: s-cae-k 1.1s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(.15s + var(--i, 0) * 120ms); }
+  .s-resumen { animation: s-cae-k 1.1s .35s cubic-bezier(.2,.7,.2,1) both; }
+  .s-listo:not([hidden]) { animation: s-cae-k 1s cubic-bezier(.2,.7,.2,1) both; }
+  .s-listo:not([hidden]) svg path { stroke-dasharray: 400; stroke-dashoffset: 400; animation: s-traza 1.8s .15s cubic-bezier(.65,0,.35,1) forwards; }
+  .s-form > * { animation: s-cae-k 1s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(.2s + var(--f, 0) * 80ms); }
+  .s-entrar-fondo > * { animation: s-flota 8s ease-in-out infinite alternate; }
+  .s-entrar-fondo > :last-child { animation-delay: -3s; }
+  @keyframes s-cae-k { from { opacity: 0; transform: perspective(1200px) rotateX(14deg) translateY(30px); } }
+  @keyframes s-traza { to { stroke-dashoffset: 0; } }
+
+  /* De una pantalla a otra: la nueva aparece como una seda que se descorre de arriba abajo */
+  ::view-transition-old(root) { animation: .7s ease both s-vt-sale; }
+  ::view-transition-new(root) { animation: 1.1s cubic-bezier(.65,0,.35,1) both s-vt-seda; -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent 55%); mask-image: linear-gradient(to bottom, #000 45%, transparent 55%); -webkit-mask-size: 100% 260%; mask-size: 100% 260%; }
+  @keyframes s-vt-sale { to { opacity: .2; } }
+  @keyframes s-vt-seda { from { -webkit-mask-position: 0 100%; mask-position: 0 100%; } to { -webkit-mask-position: 0 0; mask-position: 0 0; } }
+}
+
+@container lienzo (max-width: 760px) {
+  .s-cab-arriba { grid-template-columns: 40px 1fr auto; height: 60px; }
+  .s-cab-indice { display: none; }
+  .s-cab-arriba > span:empty { display: none; }
+  .s-menu { display: block; grid-column: 1; grid-row: 1; }
+  .s-logo { grid-column: 2; justify-self: center; }
+  .s-cab-arriba > :last-child a:not(.s-ir-bolsa) { display: none; }
+  .s-capsulas { grid-template-columns: 1fr 1.2fr 1fr; gap: 10px; }
+  .s-capsulas > :nth-child(2) { margin-bottom: 30px; }
+  .s-sala, .s-vacon { grid-template-columns: 1fr 1fr; }
+  .s-sala > :nth-child(2) { margin-top: 40px; }
+  .s-sala > :nth-child(3), .s-vacon > :nth-child(3) { display: none; }
+  .s-pasos { grid-template-columns: 1fr; }
+  .s-club, .s-ficha, .s-bolsa-cuerpo { grid-template-columns: 1fr; }
+  .s-club { margin-left: 12px; margin-right: 12px; padding: 32px 24px; }
+  .s-tiendas { grid-template-columns: 1fr; }
+  .s-pie { grid-template-columns: 1fr 1fr; }
+  .s-pie > :first-child { grid-column: 1 / -1; }
+  .s-rejilla { grid-template-columns: 1fr 1fr; gap: 32px 14px; }
+  .s-pie-foto .s-nombre { font-size: 17px; }
+  .s-dispo { display: none; }
+  .s-filtros > div:first-child { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; max-width: 100%; scrollbar-width: none; }
+  .s-filtros button { white-space: nowrap; }
+  .s-panel, .s-resumen { position: static; }
+  .s-linea { grid-template-columns: 84px 1fr; }
+  .s-linea > .s-precio { grid-column: 2; }
+  .s-entrar-fondo { display: none; }
+  .s-resumen { padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+<main id="lienzo"></main>
+<script src="datos.js"></script>
+<script src="movimiento.js"></script>
+<script>
+(function () {
+  const C = window.CAYLA, M = window.MOV;
+  const onda = `<svg viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><path d="M1 5 C 18 1, 32 8, 50 4 S 82 1, 99 5"/></svg>`;
+  const logo = `<a class="s-logo" href="#portada" aria-label="CAYLA, ir a la portada"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></a>`;
+  const cab = () => `
+    <header class="s-cab">
+      <div class="s-cab-arriba s-cap">
+        <button class="s-menu" aria-label="Abrir el menú"><i></i><i></i></button>
+        <span></span>
+        ${logo}
+        <nav aria-label="Tu cuenta"><a href="#entrar">Entrar</a><a class="s-ir-bolsa" href="#bolsa">Bolsa <b data-cuenta-bolsa>0</b></a></nav>
+      </div>
+      <nav class="s-cab-indice s-cap" aria-label="Tienda"><a href="#catalogo">Lo nuevo</a><a href="#catalogo">Ropa</a><a href="#catalogo">Looks</a><a href="#portada">Tiendas</a></nav>
+    </header>`;
+  const pie = () => `
+    <footer class="s-pie">
+      <div>${logo}<p class="s-tenue" style="max-width:30ch;margin-top:16px">Separa online, confirma por WhatsApp y recoge en tu tienda.</p></div>
+      <div><span class="s-cap">Ayuda</span><ul><li><a href="#portada">Cómo separar</a></li><li><a href="#portada">Cambios y devoluciones</a></li><li><a href="#portada">Nuestras tiendas</a></li></ul></div>
+      <div><span class="s-cap">Tu cuenta</span><ul><li><a href="#entrar">Crear mi cuenta</a></li><li><a href="#entrar">Entrar</a></li><li><a href="#entrar">Olvidé mi contraseña</a></li></ul></div>
+      <div><span class="s-cap">CAYLA</span><ul><li><a href="#portada">Club CAYLA</a></li><li><a href="#portada">Privacidad</a></li><li><a href="#portada">Términos del Club</a></li></ul></div>
+    </footer>`;
+  const obra = (p, i, conPrecio) => `
+    <figure class="s-fig s-cae" data-revela data-id="${p.id}" style="--i:${i};margin:0" data-cat="${p.cat}" data-aqp="${p.stock.aqp}" data-tru="${p.stock.tru}">
+      <a class="s-marco" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}" loading="lazy"></a>
+      <figcaption class="s-pie-foto">
+        <a class="s-nombre" href="#prenda/${p.id}">${p.nombre}</a>
+        <span class="s-cap">${C.nombreCat(p.cat)} · ${p.colores.length === 1 ? p.colores[0][0] : p.colores.length + " colores"}</span>
+        ${conPrecio ? `<span class="s-num">${C.precio(p.precio)}</span><span class="s-dispo">Arequipa ${C.stockTexto(p.stock.aqp)} · Trujillo ${C.stockTexto(p.stock.tru)}</span>` : `<a class="s-link" href="#entrar" style="justify-self:center">Ver precio</a>`}
+      </figcaption>
+    </figure>`;
+
+  const pantallas = {
+    portada() {
+      const caps = ["tiana", "kalessi", "luna"].map(C.prenda);
+      return `${cab()}
+      <div class="s-pagina">
+        <svg class="s-cinta" data-cinta aria-hidden="true"><path/></svg>
+        <section class="s-hero">
+          <span class="s-cap s-tenue s-entra">Llegó en los últimos 30 días</span>
+          <h1 class="s-display s-caida" data-letras>Lo nuevo</h1>
+          <p class="s-entra" style="--s:1">Lo que llegó a Arequipa y Trujillo. Crea tu cuenta para ver precios, tallas y cuánto hay en cada tienda.</p>
+          <div class="s-acciones s-entra" style="--s:2"><a class="s-btn" href="#entrar">Crear mi cuenta</a><a class="s-link" href="#entrar">Ya tengo cuenta</a></div>
+          <div class="s-capsulas" data-cinta-paso>${caps.map((p, c) => `<div style="--c:${c}"><div class="s-flota" style="--c:${c}"><a class="s-marco" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}"></a></div></div>`).join("")}</div>
+        </section>
+        <section class="s-seccion" data-cinta-paso>
+          <div class="s-seccion-cab"><span class="s-cap s-tenue">En las tiendas</span><h2 class="s-titulo s-cae" data-revela>Recién <em>llegado</em></h2></div>
+          <div class="s-sala">${["alba", "strend", "cuello-v"].map((x, i) => obra(C.prenda(x), i, false)).join("")}</div>
+          <div class="s-acciones" style="margin-top:48px"><a class="s-btn s-btn--claro" href="#catalogo">Ver las ${C.prendas.length} prendas</a></div>
+        </section>
+        <section class="s-seccion" data-cinta-paso>
+          <div class="s-seccion-cab"><span class="s-cap s-tenue">Sin pagar en la web</span><h2 class="s-titulo s-cae" data-revela>Así se <em>separa</em></h2></div>
+          <div class="s-pasos">${C.pasos.map(([t, d], i) => `<div class="s-paso s-cae" data-revela style="--i:${i}"><span class="s-num-paso">${i + 1}</span><h3>${t}</h3><p>${d}</p></div>`).join("")}</div>
+        </section>
+        <section class="s-club s-cae" data-revela data-cinta-paso>
+          <div><span class="s-cap s-tenue">Club CAYLA</span><h2 class="s-titulo" style="margin-top:14px">Tu cuenta ya es <em>tu membresía</em></h2><p>Al crear tu cuenta entras al Club. No hay que llenar nada más.</p><a class="s-btn" href="#entrar">Crear mi cuenta</a></div>
+          <ul>${C.club.map(([t, d]) => `<li><b>${t}</b><span class="s-tenue">${d}</span></li>`).join("")}</ul>
+        </section>
+        <section class="s-seccion" data-cinta-paso>
+          <div class="s-seccion-cab"><span class="s-cap s-tenue">Recoge en la que te quede cerca</span><h2 class="s-titulo s-cae" data-revela>Nuestras <em>tiendas</em></h2></div>
+          <div class="s-tiendas">${C.tiendas.map((t, i) => `<div class="s-tienda s-cae" data-revela style="--i:${i}"><h3>${t.ciudad}</h3><p>${t.direccion}</p><p class="s-tenue">${t.horario}</p><div class="s-acciones"><a class="s-btn s-btn--claro" href="#portada">WhatsApp ${t.whatsapp}</a><a class="s-link" href="#portada">Cómo llegar</a></div></div>`).join("")}</div>
+        </section>
+        ${pie()}
+      </div>`;
+    },
+
+    catalogo() {
+      return `${cab()}
+      <div class="s-cat-cab"><span class="s-cap s-tenue s-entra"><b data-cuenta-prendas>${C.prendas.length}</b> prendas</span><h1 class="s-display s-caida" data-letras style="font-size:clamp(64px,10cqi,150px)">Ropa</h1></div>
+      <div class="s-filtros s-cap" data-filtros>
+        <div role="group" aria-label="Qué buscas">${C.categorias.map(([k, n], i) => `<button data-filtro="${k}" aria-pressed="${i === 0}">${n}${onda}</button>`).join("")}</div>
+        <div role="group" aria-label="En qué tienda">${[["todas", "Todas las tiendas"], ["aqp", "Arequipa"], ["tru", "Trujillo"]].map(([k, n], i) => `<button data-filtro-tienda="${k}" aria-pressed="${i === 0}">${n}${onda}</button>`).join("")}</div>
+      </div>
+      <div class="s-rejilla">${C.prendas.map((p, i) => obra(p, i % 3, true)).join("")}</div>
+      <p class="s-seccion s-tenue s-centro" data-sin-resultados hidden style="padding-top:24px">No hay prendas de este tipo en esa tienda. Prueba con «Todas las tiendas»: la tienda puede pedirla a la otra.</p>
+      ${pie()}`;
+    },
+
+    prenda({ id }) {
+      const p = C.prenda(id);
+      const va = [...new Set((C.looks.find((l) => l.prendas.includes(p.id)) || C.looks[0]).prendas.concat(C.prendas.filter((x) => x.cat !== p.cat).map((x) => x.id)))].filter((x) => x !== p.id).slice(0, 3);
+      return `${cab()}
+      <section class="s-ficha">
+        <div>
+          <div class="s-marco"><img class="s-foto-principal" src="${C.foto(p)}" alt="${p.nombre}"></div>
+          ${p.foto.length > 1 ? `<div class="s-galeria-mini">${p.foto.map((_, i) => `<div class="s-marco"><img src="${C.foto(p, i)}" alt="${p.nombre}, foto ${i + 1}"></div>`).join("")}</div>` : ""}
+        </div>
+        <div class="s-panel">
+          <div><a class="s-cap s-tenue" href="#catalogo" style="text-decoration:none">${C.nombreCat(p.cat)}</a><h1>${p.nombre}</h1></div>
+          <div class="s-precio s-num">${C.precio(p.precio)}</div>
+          <div class="s-campo"><span class="s-cap">Color</span>
+            <div class="s-opciones" data-grupo="color">${p.colores.map(([n, hex], i) => `<button class="s-color" data-valor="${n}" aria-pressed="${i === 0}"><i style="background:${hex}"></i>${n}</button>`).join("")}</div></div>
+          <div class="s-campo"><div class="s-campo-cab"><span class="s-cap">Talla</span><a class="s-link s-tenue" href="#prenda/${p.id}">Guía de tallas</a></div>
+            <div class="s-opciones" data-grupo="talla" role="group" aria-label="Talla">${p.tallas.map((t) => `<button class="s-talla" data-valor="${t}" aria-pressed="false">${t}</button>`).join("")}</div></div>
+          <dl class="s-stock">${C.tiendas.map((t) => `<div><dt>${t.ciudad}</dt><dd class="${p.stock[t.id] ? "" : "s-tenue"}">${C.stockFrase(p.stock[t.id])}</dd></div>`).join("")}</dl>
+          <button class="s-btn" data-agregar="${p.id}"><span data-texto>Agregar a la bolsa</span></button>
+          <p class="s-aviso" data-aviso role="status" aria-live="polite"></p>
+          <p class="s-tenue" style="margin:-16px 0 0">No pagas nada en la web: separas, la tienda te la guarda y pagas al recoger.</p>
+        </div>
+      </section>
+      <section class="s-seccion"><div class="s-seccion-cab"><span class="s-cap s-tenue">Para completar</span><h2 class="s-titulo s-cae" data-revela>Va <em>con</em></h2></div><div class="s-vacon">${va.map((x, i) => obra(C.prenda(x), i, true)).join("")}</div></section>
+      ${pie()}`;
+    },
+
+    bolsa({ bolsa }) {
+      const total = bolsa.reduce((s, l) => s + C.prenda(l.id).precio, 0);
+      return `${cab()}
+      <div class="s-cat-cab"><span class="s-cap s-tenue s-entra">${bolsa.length} ${bolsa.length === 1 ? "prenda" : "prendas"}</span><h1 class="s-display s-caida" data-letras style="font-size:clamp(60px,9cqi,136px)">Tu bolsa</h1></div>
+      <section class="s-bolsa-cuerpo">
+        <div>${bolsa.length === 0 ? `<p class="s-linea" style="display:block">Tu bolsa está vacía. <a class="s-link" href="#catalogo">Ver la ropa</a></p>` : bolsa.map((l, i) => { const p = C.prenda(l.id); return `
+          <div class="s-linea" style="--i:${i}">
+            <a class="s-marco" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}"></a>
+            <div><a class="s-nombre" href="#prenda/${p.id}">${p.nombre}</a><span class="s-cap">${l.color} · Talla ${l.talla}</span>
+              <span data-hay-aqp="${p.stock.aqp}" data-hay-tru="${p.stock.tru}">Elige la tienda para ver si hay</span>
+              <button class="s-quitar" data-quitar="${i}">Quitar</button></div>
+            <span class="s-precio s-num">${C.precio(p.precio)}</span>
+          </div>`; }).join("")}</div>
+        <aside class="s-resumen">
+          <div data-antes-de-separar style="display:grid;gap:22px">
+            <div class="s-campo"><span class="s-cap">Recógelo en</span>
+              <div data-grupo="tienda" style="display:grid;gap:8px">${C.tiendas.map((t) => `<button class="s-tienda-op" data-valor="${t.id}" aria-pressed="false"><b class="s-nombre" style="font-size:20px">${t.ciudad}</b><span class="s-tenue">${t.direccion}</span></button>`).join("")}</div></div>
+            <div class="s-total"><span>Total <span class="s-tenue">· pagas al recoger</span></span><b class="s-num" data-total="${total}">${C.precio(total)}</b></div>
+            <button class="s-btn" data-separar ${bolsa.length ? "" : "disabled"}>Separar</button>
+            <p class="s-aviso" data-aviso role="status" aria-live="polite" style="margin:-10px 0 0"></p>
+            <p class="s-tenue" style="margin:0;font-size:13px">Puedes tener hasta 3 separaciones abiertas a la vez.</p>
+          </div>
+          <div class="s-listo" data-confirmacion hidden>
+            <svg viewBox="0 0 120 56" aria-hidden="true"><path d="M4 40 C 30 40, 40 8, 60 8 C 80 8, 76 34, 60 34 C 44 34, 40 8, 60 8 C 80 8, 90 40, 116 40"/></svg>
+            <span class="s-cap s-tenue">Separación N.º <span data-numero>${C.deEjemplo.numero}</span> · por confirmar</span>
+            <h2 tabindex="-1">Te la guardamos en <span data-tienda-elegida></span></h2>
+            <p>Mándala por WhatsApp: la tienda la confirma y te guarda las prendas. Pagas al recoger.</p>
+            <button class="s-btn" data-whatsapp>Mandar por WhatsApp</button>
+            <p class="s-mensaje" data-mensaje hidden>Hola, CAYLA <span data-tienda-elegida></span>. Quiero confirmar mi separación N.º ${C.deEjemplo.numero}:
+${bolsa.map((l) => `· ${C.prenda(l.id).nombre} (${l.color}, talla ${l.talla})`).join("\n")}</p>
+          </div>
+        </aside>
+      </section>
+      ${pie()}`;
+    },
+
+    entrar() {
+      return `${cab()}
+      <section class="s-entrar">
+        <div class="s-entrar-fondo" aria-hidden="true">${["olenka", "amarre"].map((x) => `<div class="s-marco"><img src="${C.foto(C.prenda(x))}" alt=""></div>`).join("")}</div>
+        <form class="s-form" novalidate>
+          <h1 class="s-display">Entrar</h1>
+          <p class="s-tenue s-centro" style="margin:-8px 0 4px">Con tu cuenta ves precios, tallas y cuánto hay en cada tienda.</p>
+          <label><span class="s-cap">Correo</span><input type="email" autocomplete="email" placeholder="tucorreo@gmail.com"></label>
+          <label><span class="s-cap">Contraseña</span><input type="password" autocomplete="current-password"></label>
+          <button class="s-btn" type="submit">Entrar</button>
+          <a class="s-link s-tenue" href="#entrar" style="justify-self:center">Olvidé mi contraseña</a>
+          <p class="s-centro" style="margin:8px 0 0;padding-top:20px;border-top:1px solid var(--linea)">¿Todavía no tienes cuenta?</p>
+          <a class="s-btn s-btn--claro" href="#entrar">Crear mi cuenta</a>
+        </form>
+      </section>
+      ${pie()}`;
+    },
+  };
+
+  // ── Movimiento de D ──
+  let quitar = [];
+  const limpiar = () => { quitar.forEach((f) => f()); quitar = []; };
+
+  // La cinta: una curva que baja de lado a lado por la portada y se dibuja a medida que bajas.
+  function cinta(lienzo) {
+    const svg = lienzo.querySelector("[data-cinta]");
+    if (!svg) return;
+    const cont = svg.parentElement, trazo = svg.querySelector("path");
+    let largo = 0;
+    const armar = () => {
+      const W = cont.clientWidth, H = cont.scrollHeight, c = cont.getBoundingClientRect();
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.style.height = H + "px";
+      const ys = [...cont.querySelectorAll("[data-cinta-paso]")].map((el) => { const r = el.getBoundingClientRect(); return r.top - c.top + r.height * 0.55; });
+      // Nace a la izquierda de las cápsulas (nunca cruza el titular) y se apaga antes del pie de página.
+      let x0 = -20, y0 = ys[0], d = `M ${x0} ${y0}`;
+      ys.slice(1).forEach((y, i) => {
+        const x = i % 2 ? W * 0.06 : W * 0.94, m = (y - y0) * 0.55;
+        d += ` C ${x0 + (i ? 0 : W * 0.3)} ${y0 + m}, ${x} ${y - m}, ${x} ${y}`;
+        x0 = x; y0 = y;
+      });
+      d += ` C ${x0} ${y0 + 140}, ${W * 0.5} ${y0 + 120}, ${W * 0.5} ${y0 + 260}`;
+      trazo.setAttribute("d", d);
+      largo = trazo.getTotalLength();
+      trazo.style.strokeDasharray = largo;
+      mover();
+    };
+    const mover = () => {
+      if (M.calma()) { trazo.style.strokeDashoffset = 0; return; }
+      const c = cont.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, (innerHeight * 0.75 - c.top) / c.height));
+      trazo.style.strokeDashoffset = largo * (1 - p);
+    };
+    let pedido = false;
+    const alBajar = () => { if (!pedido) { pedido = true; requestAnimationFrame(() => { pedido = false; mover(); }); } };
+    addEventListener("scroll", alBajar, { passive: true });
+    addEventListener("resize", armar);
+    quitar.push(() => { removeEventListener("scroll", alBajar); removeEventListener("resize", armar); });
+    armar();
+    document.fonts.ready.then(armar);
+  }
+
+  // Al agregar, una cinta vuela del botón a la bolsa de la cabecera.
+  function cintaABolsa(boton) {
+    const destino = document.querySelector("#lienzo .s-ir-bolsa b");
+    if (M.calma() || !destino) return Promise.resolve();
+    const a = boton.getBoundingClientRect(), b = destino.getBoundingClientRect();
+    const x1 = a.left + a.width / 2, y1 = a.top, x2 = b.left + b.width / 2, y2 = b.top + b.height / 2;
+    const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg"), p = document.createElementNS(ns, "path");
+    svg.setAttribute("class", "s-vuelo"); svg.setAttribute("viewBox", `0 0 ${innerWidth} ${innerHeight}`);
+    p.setAttribute("d", `M ${x1} ${y1} C ${x1} ${y1 - 220}, ${x2 - 160} ${y2 + 120}, ${x2} ${y2}`);
+    svg.appendChild(p); document.body.appendChild(svg);
+    const L = p.getTotalLength();
+    p.style.strokeDasharray = `${L * 0.28} ${L}`;
+    return p.animate([{ strokeDashoffset: L * 0.28 }, { strokeDashoffset: -L }], { duration: 1000, easing: "cubic-bezier(.65,0,.35,1)" }).finished.then(() => svg.remove());
+  }
+
+  function montar(pantalla, lienzo) {
+    limpiar();
+    lienzo.classList.remove("listo");
+    lienzo.querySelectorAll("[data-letras]").forEach((h) => M.letras(h));
+    lienzo.querySelectorAll(".s-panel > *, .s-form > *").forEach((x, i) => x.style.setProperty("--f", i));
+    requestAnimationFrame(() => requestAnimationFrame(() => lienzo.classList.add("listo")));
+    M.revelar(lienzo);
+    cinta(lienzo);
+    if (pantalla === "bolsa") { const t = lienzo.querySelector("[data-total]"); if (t) M.contar(t, Number(t.dataset.total), 1300, (n) => C.precio(Math.round(n))); }
+  }
+
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-filtro],[data-filtro-tienda]")) M.flipAntes(document.querySelectorAll("#lienzo [data-cat]")); }, true);
+  document.addEventListener("cayla:filtrado", () => M.flipDespues(document.querySelectorAll("#lienzo [data-cat]")));
+  document.addEventListener("cayla:agregado", (e) => {
+    const b = e.detail.boton, texto = b.querySelector("[data-texto]");
+    texto.textContent = "Agregada a tu bolsa";
+    cintaABolsa(b).then(() => M.latir(document.querySelector("#lienzo .s-ir-bolsa b")));
+    setTimeout(() => { texto.textContent = "Agregar a la bolsa"; delete b.dataset.hecho; }, 2600);
+  });
+  document.addEventListener("cayla:separado", (e) => M.contar(e.detail.listo.querySelector("[data-numero]"), Number(C.deEjemplo.numero), 1500, (n) => String(Math.round(n)).padStart(4, "0")));
+
+  window.DIRECCION = { nombre: "D · Seda", pantallas, montar, transicion: true };
+})();
+</script>
+<script src="marco.js"></script>
+</body>
+</html>

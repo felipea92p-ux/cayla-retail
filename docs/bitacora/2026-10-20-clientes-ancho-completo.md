@@ -1,0 +1,4 @@
+## 2026-10-20 (Clientes a lo ancho y la regla: toda pantalla ocupa todo el ancho)
+Qué hice: Clientes (Fichas, Avisos, Beneficios del club) dejó la columna de 64 rem; Beneficios pone sus campos de a dos desde 1760 px y Avisos ensancha la fila de hoy. Y, a pedido de Felipe, invertí la regla del marco (ADR-0462): toda pantalla va a ancho completo; las once rutas que tenían tope quedan en `CON_TOPE_DE_ANCHO` como deuda que solo baja, vigilada por `lib/ancho-completo.test.ts`, y la regla quedó en CLAUDE.md.
+Por qué así: era la sexta vez que se pedía «ocupa todo el espacio» módulo por módulo; con el ancho completo de fábrica una pantalla nueva ya nace bien, y las viejas se revisan una por una.
+Cómo verificas: abre Clientes ▸ Avisos y Beneficios en tu pantalla: llegan de borde a borde; con una pantalla de 1920, los campos de Beneficios van de a dos.

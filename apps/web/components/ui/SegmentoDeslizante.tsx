@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { IndicadorDeslizante } from "./IndicadorDeslizante";
 
 export type OpcionSegmento = {
   clave: string;
@@ -12,6 +13,9 @@ export type OpcionSegmento = {
   deshabilitada?: boolean;
   /** Solo en `forma="modo"`: la línea que sale al pasar el mouse (`title`). */
   ayuda?: string;
+  /** Solo en `forma="modo"`: bajo `sm`, solo el icono (la palabra sigue para el lector de pantalla y en `title`): la barra gana ancho en una
+   *  pantalla chica. Vitrina ▸ Modelos, 2026-10-26. */
+  soloIcono?: boolean;
   /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0389): la demo la toca para cambiar de opción. */
   guia?: string;
 };
@@ -25,8 +29,9 @@ export type OpcionSegmento = {
  *
  * Dos formas (ADR-0358, «Pestañas y segmentos», Felipe 2026-10-06):
  * · `forma="modo"`: el segmento de MODO DE VISTA y de ORDEN con estado (Por prenda / Por talla, Acumulado / Por día),
- *   gemelo de `SegmentoEnlaces`: 36 px con piel de caja, la elegida en papel con contorno de tinta, 13,5 px en 500 y las
- *   flechas ← → para pasar de una a otra. Sin pulgar: el contorno marca la elegida. CSS: `.segmento-cayla`.
+ *   gemelo de `SegmentoEnlaces`, con las flechas ← → para pasar de una a otra. Desde el vidrio (Felipe 2026-11-02, «A · Pozo y
+ *   gota», docs/maquetas/productos-vidrio-2026-11/) es el pozo de las pestañas en chico, con la gota que FLUYE hasta la elegida
+ *   (`IndicadorDeslizante` «gota», el mismo de `Pestanas`). CSS: `.segmento-cayla` (pestanas-y-segmentos.css y vidrio/pantalla.css).
  * · `forma="campo"` (por defecto): la cara de siempre, para cuando elegir GUARDA un valor de un formulario. Esa cara
  *   no cambia hasta que Felipe decida la familia «campo». Un filtro (deja menos filas) no es ninguna de las dos: es
  *   `pildora-cayla`; y una pestaña (cambia de sección) es `Pestanas`.
@@ -94,27 +99,54 @@ function SegmentoModo({ opciones, valor, onCambio, etiqueta, className = "" }: P
             className="segmento-cayla__opcion"
           >
             {o.icono}
-            {o.etiqueta}
+            {o.soloIcono ? <span className="max-sm:sr-only">{o.etiqueta}</span> : o.etiqueta}
             {o.conteo != null && <span className="pildora-cayla__n">{o.conteo}</span>}
           </button>
         );
       })}
+      <IndicadorDeslizante activa={valor} id={`modo:${etiqueta}`} variante="gota" selector='[aria-checked="true"]' />
     </div>
   );
 }
 
-/** La cara de campo de formulario (la de siempre, ADR-0128). */
+/** La cara de campo de formulario (ADR-0128). Con el vidrio (ADR-0596, `.segmento-campo` en app/estilos/vidrio/) el pulgar es la gota
+    de «Mi perfil»: al cambiar de opción se estira hasta cubrir las dos y suelta la vieja, como una gota de agua. */
 function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: PropsSegmento) {
   const contenedor = useRef<HTMLDivElement>(null);
   const [pulgar, setPulgar] = useState<{ x: number; w: number } | null>(null);
   const [listo, setListo] = useState(false);
+  // Dónde estaba la gota, para estirarla desde ahí (la gota líquida); `null` hasta la primera vez.
+  const previo = useRef<{ x: number; w: number } | null>(null);
 
   useLayoutEffect(() => {
     const cont = contenedor.current;
     const activo = cont?.querySelector<HTMLElement>('[aria-checked="true"]');
-    if (!cont || !activo) return;
-    const medir = () => setPulgar({ x: activo.offsetLeft, w: activo.offsetWidth });
-    medir();
+    // Sin ninguna elegida (un valor que todavía no se eligió, como el tipo de un modelo nuevo) el pulgar se va: si se quedara, marcaría la opción de antes.
+    // Al elegir de nuevo se coloca sin viajar, como la primera vez.
+    if (!activo) {
+      setPulgar(null);
+      setListo(false);
+      return;
+    }
+    if (!cont) return;
+    const medir = () => {
+      const destino = { x: activo.offsetLeft, w: activo.offsetWidth };
+      previo.current = destino;
+      setPulgar(destino);
+    };
+    // La gota líquida: si ya estaba en otra opción, primero se estira hasta cubrir las dos y después suelta la vieja. Una vez, sin rebote;
+    // con movimiento reducido va directo.
+    const antes = previo.current;
+    const destino = { x: activo.offsetLeft, w: activo.offsetWidth };
+    let estirar: number | undefined;
+    if (antes && (antes.x !== destino.x || antes.w !== destino.w) && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      const x = Math.min(antes.x, destino.x);
+      setPulgar({ x, w: Math.max(antes.x + antes.w, destino.x + destino.w) - x });
+      estirar = window.setTimeout(() => {
+        estirar = undefined;
+        medir();
+      }, 190);
+    } else medir();
     // Solo el desplazamiento HORIZONTAL de la propia tira (si la opción quedó fuera en celular). Antes era
     // `scrollIntoView`, que también movía la PÁGINA en vertical: si el cambio de opción acortaba lo de abajo y el
     // control quedaba fuera de vista, la página saltaba sola (2026-09-23, ADR-0185).
@@ -122,9 +154,14 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
     const der = izq + activo.offsetWidth;
     if (izq < cont.scrollLeft) cont.scrollLeft = izq;
     else if (der > cont.scrollLeft + cont.clientWidth) cont.scrollLeft = der - cont.clientWidth;
-    const ro = new ResizeObserver(medir);
+    const ro = new ResizeObserver(() => {
+      if (estirar === undefined) medir();
+    });
     ro.observe(activo);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (estirar !== undefined) window.clearTimeout(estirar);
+    };
   }, [valor, opciones]);
 
   // Activa la transición DESPUÉS del primer pintado con pulgar colocado.
@@ -135,11 +172,11 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
   }, [pulgar, listo]);
 
   return (
-    <div ref={contenedor} role="radiogroup" aria-label={etiqueta} className={`relative inline-flex max-w-full overflow-x-auto rounded-lg border border-tinta/15 [scrollbar-width:none] ${className}`}>
+    <div ref={contenedor} role="radiogroup" aria-label={etiqueta} className={`segmento-campo relative inline-flex max-w-full overflow-x-auto rounded-lg border border-tinta/15 [scrollbar-width:none] ${className}`}>
       {pulgar && (
         <span
           aria-hidden
-          className={`absolute inset-y-0 left-0 rounded-[7px] bg-tinta ${listo ? "transition-[transform,width] duration-[340ms] ease-cayla" : ""}`}
+          className={`segmento-campo__gota absolute inset-y-0 left-0 rounded-[7px] bg-tinta ${listo ? "transition-[transform,width] duration-[340ms] ease-cayla" : ""}`}
           style={{ width: pulgar.w, transform: `translateX(${pulgar.x}px)` }}
         />
       )}
@@ -153,7 +190,7 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
             aria-checked={activa}
             data-guia={o.guia}
             onClick={() => onCambio(o.clave)}
-            className={`label-cayla relative shrink-0 whitespace-nowrap px-3.5 py-2.5 text-[11px] transition-colors duration-200 ${activa ? "text-crema" : "text-tinta/65 hover:text-rojo"}`}
+            className={`segmento-campo__op label-cayla relative shrink-0 whitespace-nowrap px-3.5 py-2.5 text-[11px] transition-colors duration-200 ${activa ? "text-crema" : "text-tinta/65 hover:text-rojo"}`}
           >
             {o.etiqueta}
             {o.conteo != null && <span className="ml-1 font-medium tracking-normal dark:opacity-85">{o.conteo}</span>}

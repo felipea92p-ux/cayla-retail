@@ -12,12 +12,11 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { CierrePulso } from "@/components/finanzas/CierrePulso";
 import { pulsoCierre } from "@/lib/cierre-pulso-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
 import { diaLima } from "@/lib/fechas-lima";
-import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import {
   avisosPendientes,
   bajadaUnidad,
@@ -32,9 +31,9 @@ import {
   nombreMes,
   primerNombre,
   puedeCerrar,
+  resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
-  textoOpcionMes,
   tituloPantalla,
   tituloUnidad,
   unidadInicial,
@@ -55,21 +54,18 @@ const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as stri
 type Accion = { tipo: "cerrar"; unidad: Unidad } | { tipo: "consolidado" } | { tipo: "reabrir"; unidad: Unidad } | null;
 
 /**
- * `inicioFinanzas` (ADR-0332): desde cuándo cuenta Finanzas; los meses anteriores no se ofrecen para cerrar (cerrar un mes que no
- * se cuenta congelaría un diario vacío y bloquearía mover el corte). `avisoCorte`: el mes que se pidió es anterior al corte;
- * en vez de un panel vacío se dice por qué.
+ * El mes y la sede los elige la barra común de Finanzas (`MesaDeMando`): la pantalla no trae otro selector de mes. `avisoCorte`
+ * (ADR-0332): el mes elegido es anterior al día desde el que cuenta Finanzas; en vez de un panel vacío se dice por qué.
  */
 export function CierreMes({
   panel,
   falla,
   unidadPedida,
-  inicioFinanzas = null,
   avisoCorte = null,
 }: {
   panel: PanelCierre | null;
   falla: string | null;
   unidadPedida: string | null;
-  inicioFinanzas?: string | null;
   avisoCorte?: string | null;
 }) {
   if (!panel) {
@@ -80,18 +76,26 @@ export function CierreMes({
       </div>
     );
   }
-  return <Pantalla panel={panel} unidadPedida={unidadPedida} inicioFinanzas={inicioFinanzas} />;
+  return <Pantalla panel={panel} unidadPedida={unidadPedida} />;
 }
 
-function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre; unidadPedida: string | null; inicioFinanzas: string | null }) {
-  const router = useRouter();
+function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: string | null }) {
   const { mes, unidades, consolidado } = panel;
   const [elegida, setElegida] = useState<string | null>(() => unidadInicial(unidades, unidadPedida));
   const [accion, setAccion] = useState<Accion>(null);
   // Si se cambió de mes y la elegida no existe en él, se abre la que corresponde por defecto.
   const u = unidades.find((x) => x.clave === elegida) ?? unidades.find((x) => x.clave === unidadInicial(unidades)) ?? null;
   const cons = estadoConsolidado(panel);
-  const irMes = (m: string) => router.push(`/finanzas/cierre?mes=${m}`, { scroll: false });
+  // Tocar una tarjeta la marca también en la barra común (`?sede=`), sin volver a pedir el panel: la barra y la matriz dicen
+  // la misma unidad, y al cambiar de mes la barra la conserva.
+  const elegir = (clave: string) => {
+    setElegida(clave);
+    const url = new URL(window.location.href);
+    url.searchParams.set("sede", clave);
+    url.searchParams.delete("u");
+    // Con `null` (no el estado de Next): así Next 16 sincroniza `useSearchParams` y la barra marca la misma sede.
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  };
 
   return (
     <div className="space-y-6">
@@ -100,18 +104,7 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
         titulo={tituloPantalla(mes)}
         accionesAbajo
         bajada="Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda, el Taller y lo de la empresa; CAYLA entera, cuando cerraron todas (ADR-0198)."
-        acciones={
-          <>
-            <Chip versalitas={false}>CAYLA entera</Chip>
-            <SelectFin
-              etiqueta="Mes que se cierra"
-              className="w-fit min-w-[150px]"
-              valor={mes}
-              onValor={irMes}
-              opciones={panel.meses.filter((m) => m.mes === mes || !mesAntesDelCorte(m.mes, inicioFinanzas)).map((m) => ({ valor: m.mes, texto: textoOpcionMes(m) }))}
-            />
-          </>
-        }
+        acciones={<Chip versalitas={false}>CAYLA entera</Chip>}
       />
 
       {/* Camino A (Felipe 2026-10-15): primero la respuesta; la matriz y los chequeos, después. */}
@@ -126,7 +119,7 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
               type="button"
               className="fin-unidad"
               aria-pressed={u?.clave === x.clave}
-              onClick={() => setElegida(x.clave)}
+              onClick={() => elegir(x.clave)}
               data-guia={i === 0 ? "fin-cierre.primera-unidad" : i === 1 ? "fin-cierre.otra-unidad" : undefined}
             >
               <span className="fin-unidad-n">{x.nombre}</span>
@@ -227,7 +220,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
       <CabeceraBloque titulo={tituloUnidad(panel.mes, u)} bajada={bajadaUnidad(u)} />
       <ul className="fin-chequeos">
         {u.chequeos.map((c, i) => {
-          const t = textoChequeo(c, panel.mes);
+          const t = textoChequeo(c, panel.mes, u);
           const href = cerrada ? null : enlaceChequeo(c, u, panel.mes);
           return (
             <li key={c.clave} {...entra(i + 1)}>
@@ -298,7 +291,9 @@ function useEjecutar() {
 
 function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad: Unidad; onCerrar: () => void; alCerrar: () => void }) {
   const { responsable, guardando, ejecutar } = useEjecutar();
+  // Lo que falta, dicho por lo que falta («conteos de inventario sin cerrar»), no por el título del chequeo, que dice el estado bueno.
   const avisos = avisosPendientes(unidad);
+  const resumen = resumenAvisos(avisos);
   const titulo = `Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`;
   async function cerrar() {
     const ok = await ejecutar(
@@ -322,8 +317,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
-          <b>Cierras con {avisos.length === 1 ? "un aviso" : `${avisos.length} avisos`}:</b>{" "}
-          {avisos.map((c) => textoChequeo(c, mes).titulo.toLowerCase()).join(" · ")}. Quedan guardados en la historia del cierre.
+          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. Quedan guardados en la historia del cierre.
         </div>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -354,7 +348,7 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
     <Modal
       variante="hoja"
       titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} de CAYLA entera`}
-      subtitulo="Todas las unidades ya cerraron. El consolidado queda congelado con su huella y es el que se le entrega al contador."
+      subtitulo="Todas las unidades cerraron. El consolidado queda congelado: es el que se entrega al contador."
       onClose={onCerrar}
       tamano="mediana"
     >

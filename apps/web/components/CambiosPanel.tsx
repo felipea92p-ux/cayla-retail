@@ -22,6 +22,7 @@ import { abrirDesdeLectura, busquedaDesdeLectura, type SedeConId } from "@/lib/c
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { CambioArmado } from "@/lib/cambios-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -66,6 +67,7 @@ export function CambiosPanel({
   colaboradora,
   cajaAbierta,
   catalogo,
+  aceptaQr,
   tallasQueNoCalzan,
   abrirItemId,
   sedes,
@@ -79,6 +81,8 @@ export function CambiosPanel({
   colaboradora: string;
   cajaAbierta: boolean;
   catalogo: VarianteCatalogo[];
+  /** `fn_acepta_qr_en_cambios` (20261021184000): si la base ya acepta el QR como medio de la diferencia. */
+  aceptaQr: boolean;
   tallasQueNoCalzan: TallaQueNoCalza[];
   abrirItemId?: string;
   /** Todas las sedes, para prellenar un traslado cuando la talla está en otra (`sedesDeOrigen`). */
@@ -189,6 +193,7 @@ export function CambiosPanel({
         esLider={puedeVerTodas}
         sedes={sedes}
         catalogo={catalogo}
+        aceptaQr={aceptaQr}
         ahora={ahora}
         onCerrar={cerrarFlujo}
         onNuevo={() => {
@@ -232,7 +237,7 @@ export function CambiosPanel({
             // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
             <span data-guia="cambios.caja" className="flex items-center gap-2 text-sm text-tinta/70">
               <Chip tono={cajaAbierta ? "verde" : "ambar"}>{cajaAbierta ? "Caja abierta" : "Caja cerrada"}</Chip>
-              <span className="hidden lg:inline">{cajaAbierta ? "una diferencia en efectivo entra a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
+              <span className="hidden lg:inline">{cajaAbierta ? "la diferencia en efectivo va a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
             </span>
           }
         />
@@ -270,7 +275,7 @@ export function CambiosPanel({
               <h2 id="actividad-reciente" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
                 Actividad reciente
               </h2>
-              <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días en {sede}: las que todavía se pueden cambiar.</p>
+              <p className="mt-0.5 text-sm text-tinta/70">Compras de los últimos 15 días: aún se pueden cambiar.</p>
             </div>
             <FiltrosActividad
               valor={filtro}
@@ -305,16 +310,12 @@ export function CambiosPanel({
 
       {/* Celular (spike 2026-09-26, opción A): lo primero que hace la colaboradora es escanear, así que va fijo abajo, al
           alcance del pulgar. Es una acción de esta pantalla, no navegación (ADR-0206). */}
-      <div data-guia="cambios.barra-movil" className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-        <button
-          type="button"
-          onClick={() => setCamara(true)}
-          className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
-        >
+      <BarraDeAbajo data-guia="cambios.barra-movil" sola className="sm:hidden">
+        <button type="button" onClick={() => setCamara(true)} className="btn-cayla btn-primario gap-2.5">
           <ScanLine size={20} aria-hidden />
           Escanear prenda o boleta
         </button>
-      </div>
+      </BarraDeAbajo>
 
       {camara && (
         <EscanerBusqueda

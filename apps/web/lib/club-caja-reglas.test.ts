@@ -34,13 +34,6 @@ const resumen = (parte: Partial<ResumenClientaCaja> = {}): ResumenClientaCaja =>
   celular: null,
   cumpleDia: null,
   cumpleMes: null,
-  cumpleDisponible: false,
-  cumplePct: 10,
-  cumpleCanjeadoEsteAnio: false,
-  cumpleCanjeadoEl: null,
-  aniversarioDisponible: false,
-  aniversarioMonto: null,
-  aniversarioVence: null,
   ...parte,
 });
 const listo = (parte: Partial<ResumenClientaCaja> = {}): LecturaClub => ({ estado: "listo", resumen: resumen(parte) });
@@ -131,23 +124,25 @@ describe("«Pídele que escanee el cartel del club» (tanda 1g)", () => {
     expect(esperaDelCartel({ visible: false, desdeMs: 0, ahoraMs: CONSULTA_CARTEL_HASTA_MS })).toBe("vencida");
   });
 
-  it("la fila dice por qué le conviene (el % sale de la base) y que se actualiza sola", () => {
-    const f = filaDelCartel({ sinDocumento: false, espera: "esperando", cumplePct: 12.5 });
+  it("la fila dice por qué le conviene (el regalo sale de la configuración de los puntos) y que se actualiza sola", () => {
+    const f = filaDelCartel({ sinDocumento: false, espera: "esperando", regaloCumple: 150 });
     expect(f.destacado).toBe("Pídele que escanee el cartel del club");
-    expect(f.bajada).toBe("Gana 12.5 % en su cumpleaños y un vale cada aniversario · se actualiza sola");
+    expect(f.bajada).toBe("Gana puntos en cada compra y 150 de regalo en su cumpleaños · se actualiza sola");
     expect(f).toMatchObject({ actualizar: false, consultar: true });
-    expect(filaDelCartel({ sinDocumento: false, espera: "esperando", cumplePct: null }).bajada).toMatch(/^Gana 10 %/);
+    // Sin la configuración (o sin regalo) no promete un número.
+    expect(filaDelCartel({ sinDocumento: false, espera: "esperando", regaloCumple: null }).bajada).toMatch(/^Gana puntos en cada compra y los cambia por cupones/);
+    expect(filaDelCartel({ sinDocumento: false, espera: "esperando", regaloCumple: 0 }).bajada).toMatch(/cupones de descuento/);
   });
 
   it("pausada no pregunta; vencida ofrece «Actualizar»", () => {
-    expect(filaDelCartel({ sinDocumento: false, espera: "pausada", cumplePct: 10 })).toMatchObject({ actualizar: false, consultar: false });
-    const vencida = filaDelCartel({ sinDocumento: false, espera: "vencida", cumplePct: 10 });
+    expect(filaDelCartel({ sinDocumento: false, espera: "pausada", regaloCumple: 100 })).toMatchObject({ actualizar: false, consultar: false });
+    const vencida = filaDelCartel({ sinDocumento: false, espera: "vencida", regaloCumple: 100 });
     expect(vencida).toMatchObject({ actualizar: true, consultar: false });
     expect(vencida.bajada).toMatch(/¿Ya se unió\? Toca «Actualizar»/);
   });
 
   it("sin documento en su ficha no espera: al unirse desde el cartel caería en otra ficha", () => {
-    const f = filaDelCartel({ sinDocumento: true, espera: "esperando", cumplePct: 10 });
+    const f = filaDelCartel({ sinDocumento: true, espera: "esperando", regaloCumple: 100 });
     expect(f).toMatchObject({ actualizar: false, consultar: false });
     expect(f.bajada).toMatch(/complétalo en Clientes/);
   });

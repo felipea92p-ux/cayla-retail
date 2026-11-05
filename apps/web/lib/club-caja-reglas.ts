@@ -1,7 +1,7 @@
 // El club en la CAJA (ADR-0288, tandas 1b y 1g): qué muestra la caja de la clienta en Cobrar, qué pide «Registrar cliente»
 // (en Cobrar y en /clientas). Lógica pura, sin React ni red: la usan la página de Vender
 // (servidor), `PuntoDeVenta`, `ClientaDelTicket` y `NuevaClientaModal`. El cumpleaños tiene su propia regla
-// (`lib/club-cumple-reglas.ts`), y sus canjes, las suyas (`club-cumple-canje-reglas.ts`, `club-aniversario-canje-reglas.ts`).
+// (`lib/club-cumple-reglas.ts`), y sus puntos y cupones, las suyas (`club-puntos-reglas.ts`, `club-cupon-reparto-reglas.ts`).
 //
 // El dibujo sigue el spike visual del club (`docs/maquetas/club-clientas-spike-2026-09/fuente/src/45-club-caja.js`, commit
 // 94f2dece): lo del club va DENTRO de la caja del nombre y el documento, plegado.
@@ -21,7 +21,6 @@
 import { celularValido, codigoClubLegible, ajustarCelular, type TextoClub, type TipoTextoClub } from "./club-reglas";
 import type { ResumenClientaCaja } from "./club-acciones";
 import { MESES_DEL_ANIO } from "./club-cumple-reglas";
-import { PCT_CUMPLE_POR_DEFECTO, pctLegible } from "./club-cumple-canje-reglas";
 import { lineaDeClienta, type ClientaDelTicket } from "./clienta-ticket-reglas";
 import { normalizarNumeroDocumento, problemaDocumento, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 import type { CampoDeGuia } from "./guia-campos";
@@ -213,13 +212,16 @@ export function esperaDelCartel(v: { visible: boolean; desdeMs: number; ahoraMs:
 export type FilaDelCartel = { destacado: string; bajada: string; ayuda: string; actualizar: boolean; consultar: boolean };
 
 /**
- * La fila de una clienta que no es socia: «Pídele que escanee el cartel del club» y, en una línea, por qué le conviene (el
- * cupón de cumpleaños y el vale de aniversario). El % sale de la base (`cumple_pct`), nunca escrito a mano.
+ * La fila de una clienta que no es socia: «Pídele que escanee el cartel del club» y, en una línea, por qué le conviene (puntos en cada
+ * compra y su regalo de cumpleaños, programa de puntos). Los puntos del regalo salen de la configuración vigente
+ * (`resumen_puntos_caja`), nunca escritos a mano; sin ella, la frase no promete un número.
  */
-export function filaDelCartel(v: { sinDocumento: boolean; espera: EsperaDelCartel; cumplePct: number | null }): FilaDelCartel {
-  const pct = pctLegible(v.cumplePct && v.cumplePct > 0 ? v.cumplePct : PCT_CUMPLE_POR_DEFECTO);
+export function filaDelCartel(v: { sinDocumento: boolean; espera: EsperaDelCartel; regaloCumple: number | null }): FilaDelCartel {
   const destacado = "Pídele que escanee el cartel del club";
-  const porQue = `Gana ${pct} % en su cumpleaños y un vale cada aniversario`;
+  const porQue =
+    v.regaloCumple && v.regaloCumple > 0
+      ? `Gana puntos en cada compra y ${v.regaloCumple.toLocaleString("es-PE")} de regalo en su cumpleaños`
+      : "Gana puntos en cada compra y los cambia por cupones de descuento";
   if (v.sinDocumento) {
     return {
       destacado,

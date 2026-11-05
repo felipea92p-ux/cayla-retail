@@ -77,6 +77,10 @@ const config: KnipConfig = {
             ignoreFiles: [
               "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos}.ts",
               "lib/*-fixture{,s}.ts",
+              // La ayuda de precio de «Nueva orden de compra» (`docs/pantallas/compras-ordenes-precio-y-stock.md`, actividad 1 de 7): las reglas
+              // puras nacen antes que su pantalla, que las importa en la actividad 4 (`components/ordenes-compra/NuevaOrdenCompra.tsx`).
+              // SE SACA DE AQUÍ al conectarla: este candado es justo para que «lo uso después» no se quede.
+              "lib/orden-compra-precio-ayuda.ts",
             ],
           }
         : {}),
@@ -90,6 +94,9 @@ const config: KnipConfig = {
     },
     // La tienda online (ADR-0408), una app aparte. Sus rutas y pruebas las encuentra Knip solo, como en la web.
     "apps/tienda": {
+      // `next.config.ts` importa `lib/redirecciones-shopify.ts` (ADR-0595), pero en producción Knip no sigue la configuración de Next:
+      // el archivo sí llega a la tienda publicada (las redirecciones) y solo en este modo parece que lo usan las pruebas.
+      ...(produccion ? { ignoreFiles: ["lib/redirecciones-shopify.ts"] } : {}),
       project: [
         // Lo que llega a la tienda publicada.
         "{app,components,lib}/**/*.{ts,tsx,css}!",
@@ -97,6 +104,12 @@ const config: KnipConfig = {
         // `scripts/rol-local.mjs` crea el usuario de la base LOCAL (`pnpm --filter tienda rol-local`): solo en la corrida normal.
         "scripts/**/*.mjs",
       ],
+    },
+    "packages/shared": {
+      project: ["src/**/*.{ts,css}!"],
+      // La hoja de los efectos de las campañas es la FUENTE de dos copias (`apps/web/app/estilos` y `apps/tienda/app/estilos`) que una prueba
+      // (`apps/web/lib/campana-efectos.test.ts`) lee como texto y mantiene idénticas: ningún archivo la importa.
+      ignore: ["src/campana-efectos.css"],
     },
     "packages/*": {
       project: ["src/**/*.{ts,css}!"],

@@ -16,7 +16,7 @@
  *   B. «Separar» (`tienda_separar`): crea el pedido «por confirmar» con el precio de la tienda de recojo y su campaña, SIN
  *      tocar el stock ni el libro; dos toques con la misma marca dan el mismo pedido (aunque entretanto cambie el precio); la
  *      marca de otro no devuelve su pedido; un precio que no cuadra, lo que ya no está en la Vitrina, lo que no se vende en esa
- *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una talla que esa
+ *      tienda, lo agotado EN ESA TIENDA (aunque otra de la web lo tenga: cada tienda maneja lo suyo, ADR-0458, 20261019223000; y tampoco lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una talla que esa
  *      tienda no ofrece (a S/ 0, ADR-0384; con precio propio de la tienda, la de ropa sí se ofrece y se separa ahí, 20261015121000: en
  *      otra tienda que no le puso precio, `no_se_vende`; si no la ofrece ninguna tienda de la web, `no_publicada`), una
  *      tienda escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones ABIERTAS a la vez por cliente
@@ -326,7 +326,7 @@ select concat_ws(',', jsonb_array_length((:'b')::jsonb -> 'lineas'), (:'b')::jso
 seccion("— B. «Separar» —");
 escenario(
   "crea el pedido «por confirmar» con el precio de la tienda de recojo y su campaña, y NO toca el stock ni el libro",
-  `select pg_temp.dejar(:'v', :'lim', :'lim_alm', 3), pg_temp.dejar(:'v2', :'tru', :'tru_piso', 2);
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 3), pg_temp.dejar(:'v2', :'tru', :'tru_piso', 2);
 select retail.poner_precio_sede(:'prod_v', :'lim', :'p_v'::numeric + 30, 'Prueba de la bolsa') is not null as _p \\gset
 insert into retail.etiquetas (nombre, estilo, activo, descuento_pct) values ('ZZ Campaña de la bolsa', 'campana', true, 20) returning id as camp \\gset
 insert into retail.variante_etiquetas (variante_id, etiqueta_id) values (:'v2', :'camp');
@@ -369,12 +369,20 @@ select concat_ws(',', split_part(:'r', '|', 2), split_part(:'r', '|', 4) = :'v',
   "tienda_separar_precio,t,tienda_separar_precio,t",
 );
 escenario(
-  "lo que está solo en OTRA tienda de la web sí se separa: la tienda de recojo la trae (y el stock no se mueve)",
-  `select pg_temp.dejar(:'v', :'lim', :'lim_alm', 1);
+  // ADR-0458 (20261019223000, Felipe 2026-10-19): cada tienda maneja lo suyo. Antes, lo que estaba solo en otra tienda de la web sí se
+  // separaba y «la tienda de recojo la trae»; nadie lo aprobó. El hint es el mismo de siempre (la web de antes lo entiende).
+  "solo separa lo que hay en la tienda de recojo (cada tienda maneja lo suyo): lo que está solo en otra tienda de la web se rechaza con tienda_separar_agotada y sin crear nada; en la tienda que lo tiene, sí se separa (y el stock no se mueve)",
+  `select pg_temp.dejar(:'v', :'lim', :'lim_alm', 1), pg_temp.dejar(:'v2', :'tru', :'tru_piso', 1), pg_temp.dejar(:'v2', :'lim', :'lim_alm', 1);
 select pg_temp.huella(:'v') as h \\gset
-${separar("c1", bolsa(L("v")))}
-select concat_ws(',', (select estado from retail.pedidos_web where codigo = :'c1'), pg_temp.huella(:'v') = :'h');`,
-  "por_confirmar,t",
+select (select count(*) from retail.pedidos_web) as antes \\gset
+select pg_temp.probar(${separarTexto(bolsa(L("v")))}) as en_tru \\gset
+-- Con dos unidades de una prenda que en la tienda solo tiene una: tampoco (cuenta lo de ESA tienda, no la suma de las dos).
+select pg_temp.probar(${separarTexto(bolsa(L("v2", 2)))}) as de_a_dos \\gset
+select (select count(*) from retail.pedidos_web) as despues \\gset
+${separar("c1", bolsa(L("v")), { sede: "lim" })}
+select concat_ws(',', split_part(:'en_tru', '|', 2), split_part(:'en_tru', '|', 4) = :'v', split_part(:'de_a_dos', '|', 2),
+  :'despues'::bigint = :'antes'::bigint, (select estado from retail.pedidos_web where codigo = :'c1'), pg_temp.huella(:'v') = :'h');`,
+  "tienda_separar_agotada,t,tienda_separar_agotada,t,por_confirmar,t",
 );
 escenario(
   // Felipe 2026-10-15 (D2, 20261016001000): a lo sumo 3 separaciones ABIERTAS por cliente (por confirmar vigentes, confirmadas y pagadas
@@ -540,8 +548,8 @@ select concat_ws(',', (:'p')::jsonb -> 'tienda_web' ->> 'nombre', (:'p')::jsonb 
   "ZZ Trujillo,987000001,t,t,t,t,f,por_confirmar",
 );
 escenario(
-  "la prenda que la tienda trae de otra dice de dónde viene con el nombre que lee el cliente («ZZ Lima», no el del sistema)",
-  `select pg_temp.dejar(:'v', :'lim', :'lim_alm', 1), pg_temp.dejar(:'v2', :'tru', :'tru_alm', 1);
+  "la prenda que el equipo reserva de otra tienda al confirmar dice de dónde viene con el nombre que lee el cliente («ZZ Lima», no el del sistema)",
+  `select pg_temp.dejar(:'v', :'lim', :'lim_alm', 1), pg_temp.dejar(:'v', :'tru', :'tru_piso', 1), pg_temp.dejar(:'v2', :'tru', :'tru_alm', 1);
 ${separar("ca", bolsa(L("v"), L("v2")))}
 select id as pid from retail.pedidos_web where codigo = :'ca' \\gset
 select retail.confirmar_pedido_web(:'pid', jsonb_build_array(

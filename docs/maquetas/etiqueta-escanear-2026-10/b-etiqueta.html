@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B · La etiqueta que se llena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+<script>
+/* ====================================================================
+   B · LA ETIQUETA QUE SE LLENA. La hoja a todo lo ancho, en dos mitades: a la izquierda el catálogo (la caja que busca y lee,
+   las píldoras, la lista); a la derecha, LA ETIQUETA MISMA, colgada de su hilo, como la que se cuelga en el piso. Cada prenda
+   que marcas o escaneas vuela de su fila a la etiqueta y se acomoda en su mosaico; la etiqueta se asienta, el número cuenta y
+   abajo se ve cuánto cobra la caja antes y después. Lo que se quita queda tenue y tachado hasta que apliques.
+   ==================================================================== */
+const { icono, esc, soles, plural, mini } = EQD;
+const MAX_MOSAICO = 24;
+const DEF = {
+  letra: "b",
+  estilos: `
+    .hoja.b{padding:0;height:100%;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) 372px}
+    .b-izq{display:flex;flex-direction:column;min-height:0;padding:26px 24px 20px 28px;gap:14px}
+    .b-der{position:relative;min-height:0;overflow:auto;background:color-mix(in srgb,var(--hueso) 55%,var(--papel));border-left:1px solid var(--sand);padding:0 24px 20px;display:flex;flex-direction:column}
+    .b-fila{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+    .b-ultima{min-height:0}
+    .b-ultima .lectura{padding:10px 12px}
+    .b-ultima .lectura .mini{width:34px;height:42px}
+    .b-caja-lista{flex:1;min-height:10rem;display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:var(--r-lg);overflow:hidden;background:var(--papel)}
+    .b-cab-lista{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 14px;border-bottom:1px solid var(--t07);font-size:12.5px;color:var(--t55)}
+    .b-scroll{flex:1;min-height:0;overflow:auto}
+    /* el clavo, el hilo y la etiqueta */
+    .b-clavo{position:relative;height:74px;flex:none}
+    .b-clavo svg{position:absolute;left:50%;top:0;width:120px;height:74px;margin-left:-60px;overflow:visible}
+    .b-clavo .hilo{fill:none;stroke:var(--taupe);stroke-width:1.4;stroke-dasharray:90;animation:trazo 900ms var(--ease) 250ms backwards;--largo:90}
+    .b-clavo .punta{fill:var(--tinta)}
+    .b-etq{position:relative;background:var(--papel);border:1px solid var(--sand);border-radius:18px 18px 14px 14px;padding:34px 22px 20px;transform-origin:50% -60px;
+      box-shadow:0 22px 40px -26px color-mix(in srgb,var(--sombra) 40%,transparent);animation:etq-cuelga 900ms var(--ease) 120ms backwards}
+    @keyframes etq-cuelga{from{opacity:0;transform:translateY(-14px) rotate(-3deg)}}
+    .b-etq.mece{animation:mece 760ms var(--ease) 1}
+    @keyframes mece{from{transform:rotate(1.8deg)}to{transform:none}}
+    .b-etq .ojal{position:absolute;left:50%;top:12px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:color-mix(in srgb,var(--hueso) 55%,var(--papel));box-shadow:inset 0 0 0 1.5px var(--sand)}
+    .b-etq .versal{color:var(--taupe);text-align:center;display:block}
+    .b-etq h3{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:34px;line-height:1;text-align:center;margin-top:6px}
+    .b-pct{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:64px;line-height:.95;text-align:center;color:var(--rojo);letter-spacing:-.02em;margin-top:8px}
+    .b-pct.info{font-size:22px;color:var(--pizarra);font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:0;margin-top:12px}
+    .b-vig{text-align:center;font-size:12.5px;color:var(--t55);margin-top:6px}
+    .perfora{border:0;height:0;border-top:1.5px dashed var(--t25);margin:16px -22px;position:relative}
+    .perfora::before,.perfora::after{content:"";position:absolute;top:-8px;width:14px;height:14px;border-radius:50%;background:color-mix(in srgb,var(--hueso) 55%,var(--papel));box-shadow:inset 0 0 0 1px var(--sand)}
+    .perfora::before{left:-8px}.perfora::after{right:-8px}
+    .b-cifra{display:flex;align-items:baseline;justify-content:center;gap:8px}
+    .b-cifra b{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:46px;line-height:1;font-variant-numeric:tabular-nums}
+    .b-cifra span{font-size:13px;color:var(--t65)}
+    .b-delta{display:flex;justify-content:center;gap:6px;min-height:24px;margin-top:6px}
+    .b-mosaico{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:14px;min-height:46px}
+    .b-mosaico .mini{width:100%;height:auto;aspect-ratio:5/6;border-radius:7px;transition:opacity 300ms var(--ease),filter 300ms var(--ease)}
+    .b-mosaico .mini svg.ic{width:16px;height:16px}
+    .b-mosaico .t{position:relative}
+    .b-mosaico .t.nueva::after{content:"";position:absolute;inset:-3px;border-radius:9px;box-shadow:0 0 0 2px var(--verde);pointer-events:none}
+    .b-mosaico .t.sale .mini{opacity:.32;filter:grayscale(1)}
+    .b-mosaico .t.sale::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:1.5px;background:var(--taupe);transform:rotate(-24deg)}
+    .b-mosaico .t.cat .mini{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--pizarra) 70%,transparent)}
+    .b-mosaico .t.espera{opacity:0}
+    .b-mosaico .mas{display:grid;place-items:center;aspect-ratio:5/6;border-radius:7px;border:1.5px dashed var(--t25);font-size:12px;color:var(--t55)}
+    .b-mosaico .hueco{aspect-ratio:5/6;border-radius:7px;border:1.5px dashed var(--t15)}
+    .b-caja{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center}
+    .b-caja small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+    .b-caja b{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:22px;font-variant-numeric:tabular-nums}
+    .b-caja .antes b{color:var(--t55);text-decoration:line-through}
+    .b-caja-pie{font-size:11.5px;color:var(--t55);text-align:center;margin-top:6px}
+    .b-acciones{margin:auto -24px -20px;padding:14px 24px 20px;display:flex;flex-direction:column;gap:10px;position:sticky;bottom:-20px;z-index:3;background:color-mix(in srgb,var(--hueso) 55%,var(--papel));border-top:1px solid var(--sand)}
+    .b-etq{margin-bottom:18px}
+    @media (max-height:960px){.b-clavo{height:52px}.b-clavo svg{height:52px}.b-pct{font-size:50px}.b-etq{padding-top:28px}.perfora{margin:12px -22px}.b-etq h3{font-size:30px}}
+    .b-acciones .botones{display:flex;gap:8px}.b-acciones .botones .btn{flex:1}
+    .b-acciones .resp{min-height:44px;font-size:13px;background:var(--papel)}
+    .b-der .revisar{padding-top:26px}
+    .b-der .antes-despues{grid-template-columns:1fr;padding:14px}
+    .b-der .antes-despues .flecha-ad{margin:auto;rotate:90deg}
+    .b-der .antes-despues .lado b{font-size:28px}
+    .b-der .pie-acciones{flex-wrap:wrap}.b-der .pie-acciones .btn{flex:1}
+    @container escena (max-width:900px){.hoja.b{grid-template-columns:minmax(0,1fr) 300px}.b-pct{font-size:50px}}
+    @container escena (max-width:640px){
+      .hoja.b{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:94%}
+      .b-der{order:-1;border-left:0;border-bottom:1px solid var(--sand);padding:0 16px 12px;overflow:visible}
+      .b-clavo{height:22px}.b-clavo svg{height:22px}
+      .b-etq{padding:12px 14px 12px 34px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 12px;border-radius:14px;margin:0}
+      .b-etq .ojal{left:12px;top:50%;margin:-7px 0 0}
+      .b-etq .versal,.b-vig,.perfora,.b-mosaico,.b-caja,.b-caja-pie{display:none}
+      .b-etq h3{font-size:22px;text-align:left;margin:0;grid-column:1;grid-row:1}
+      .b-pct{font-size:30px;margin:0;grid-column:2;grid-row:1/3;align-self:center}
+      .b-pct.info{font-size:12px;max-width:110px;text-align:right}
+      .b-cifra{grid-column:1;grid-row:2;justify-content:flex-start;gap:6px}.b-cifra b{font-size:22px}.b-cifra span{font-size:12px}
+      .b-delta{grid-column:1/-1;grid-row:3;justify-content:flex-start;margin:4px 0 0;min-height:0}
+      .b-delta .tenue{display:none}
+      .b-acciones{display:none}
+      .b-izq{padding:14px 16px 0;min-width:0}
+      .b-pie-cel{display:flex!important}
+      .b-ultima .lectura{flex-wrap:wrap}
+      .b-ultima .lectura .crece{flex:1 1 200px;min-width:0}
+      .b-ultima .lectura .acciones{width:100%}
+      .b-izq{overflow-y:auto;overflow-x:hidden}
+      .b-caja-lista{flex:none;min-height:0}.b-scroll{flex:none;overflow:visible}
+      .b-pie-cel{position:sticky;bottom:0;z-index:4}
+    }
+    .b-pie-cel{display:none;gap:8px;padding:12px 0 16px;border-top:1px solid var(--t10);background:var(--papel)}
+    .b-pie-cel .btn{flex:1}
+  `,
+  montar(api) {
+    const { modelo: m, Modelo } = api;
+    const e = m.e;
+    const hoja = api.abrirHoja(`
+      <div class="b-izq">
+        <div class="cascada">${api.cabeceraHoja(m)}</div>
+        <div data-cuerpo-izq class="cascada" style="display:flex;flex-direction:column;gap:12px;flex:1;min-height:0">
+          ${api.lectorHtml()}
+          <div class="b-fila"><div class="pildoras" data-pildoras></div>${api.segmentoHtml(m)}</div>
+          <div class="b-ultima" data-ultima data-sin-cascada></div>
+          <div class="b-caja-lista">
+            <div class="b-cab-lista"><span class="num" data-conteo></span><span class="fila" style="gap:6px"><button class="btn sut" style="min-height:30px;font-size:12.5px" data-marcar-todos>Marcar todos</button><button class="btn sut" style="min-height:30px;font-size:12.5px" data-quitar-todos>Quitar todos</button></span></div>
+            <div class="b-scroll" data-scroll><ul class="lista-prendas" data-lista></ul></div>
+          </div>
+          <div class="b-pie-cel"><button class="btn sec" data-cancelar>Cancelar</button><button class="btn pri" data-aplicar>Revisar y aplicar</button></div>
+        </div>
+      </div>
+      <aside class="b-der" data-cuerpo>
+        <div class="b-clavo" aria-hidden="true"><svg viewBox="0 0 120 74"><circle class="punta" cx="60" cy="5" r="4"/><path class="hilo" d="M60 5 C 48 30, 72 46, 60 72"/></svg></div>
+        <div class="b-etq" data-etq aria-live="polite">
+          <span class="ojal"></span>
+          <span class="versal">Etiqueta de campaña</span>
+          <h3>${esc(e.nombre)}</h3>
+          ${e.descuentoPct != null ? `<div class="b-pct">−${e.descuentoPct} %</div>` : `<div class="b-pct info">Informativa · no cambia el precio</div>`}
+          <p class="b-vig">${e.vigenteDesde ? `Del ${Number(e.vigenteDesde.slice(8))} al ${Number(e.vigenteHasta.slice(8))} de ${e.vigenteDesde.slice(5, 7) === "10" ? "octubre" : "noviembre"}` : "Sin fecha: marca prendas para encontrarlas"}${m.porCategoria.size ? " · y todos los anillos" : ""}</p>
+          <hr class="perfora">
+          <div class="b-cifra"><b data-total>0</b><span data-total-txt>prendas la llevan</span></div>
+          <div class="b-delta" data-delta></div>
+          <div class="b-mosaico" data-mosaico></div>
+          ${e.descuentoPct != null ? `<hr class="perfora"><div class="b-caja"><div class="antes"><small>Hoy en caja</small><b data-antes>S/ 0.00</b></div>${icono("der")}<div><small>Con la etiqueta</small><b data-despues>S/ 0.00</b></div></div><p class="b-caja-pie">Lo que cambia, una de cada talla y color</p>` : ""}
+        </div>
+        <div class="b-acciones">
+          ${api.responsableHtml()}
+          <div class="botones"><button class="btn sec" data-cancelar>Cancelar</button><button class="btn pri grande" data-aplicar>Revisar y aplicar</button></div>
+        </div>
+      </aside>`, { ancho: 1180, clase: "b" });
+    const $ = (s) => hoja.querySelector(s);
+    const lista = api.montarLista(hoja, {
+      scroller: $("[data-scroll]"),
+      alCambiar: (c) => {
+        // Lo que se marca a mano también vuela: de la miniatura de su fila a su lugar en la etiqueta.
+        const fuente = c.el && (c.el.querySelector?.(".mini") || c.el.closest("li")?.querySelector(".mini"));
+        pintarEtiqueta({ desde: c.tipo === "poner" ? fuente : null, ids: c.v ? [c.v.id] : c.p ? c.p.variantes.map((v) => v.id) : null });
+      },
+    });
+    api.ui = { hoja, lista, $ };
+    const seg = $("[data-segmento]"); requestAnimationFrame(() => api.moverPista(seg));
+    seg.addEventListener("click", (ev) => { const b = ev.target.closest("[data-modo]"); if (!b) return; m.modo = b.dataset.modo; seg.dataset.tono = m.modo; seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); api.moverPista(seg); });
+    $("[data-camara]").addEventListener("click", (ev) => { ev.preventDefault(); api.cam = api.abrirCamara({ titulo: `«${e.nombre}»`, resumen: () => `${Modelo.totalPrendas(m)} con la etiqueta`, alCerrar: () => { api.cam = null; pintarEtiqueta({}); } }); });
+    hoja.querySelectorAll("[data-cancelar]").forEach((b) => (b.onclick = () => api.cerrarHoja()));
+    hoja.querySelectorAll("[data-aplicar]").forEach((b) => (b.onclick = (ev) => {
+      if (e.descuentoPct == null) return api.aplicar(hoja, ev.currentTarget);
+      // Revisar ocupa la etiqueta (la columna derecha): la lista sigue a la vista.
+      api.revisarEn(hoja, { alVolver: () => DEF.montar(api) });
+      if (api.celular()) $("[data-cuerpo]").scrollIntoView();
+    }));
+
+    /** La etiqueta: el total, lo que cambia y el mosaico, que se reacomoda (FLIP). `desde` hace volar la prenda nueva. */
+    function pintarEtiqueta({ desde = null, ids = null } = {}) {
+      const mos = $("[data-mosaico]"); if (!mos) return;
+      const c = Modelo.cambio(m);
+      const nuevas = new Set(c.agregar), salen = new Set(c.quitar);
+      const her = EQD.PRODUCTOS.filter((p) => Modelo.heredada(m, p)).flatMap((p) => p.variantes.map((v) => ({ id: v.id, p, v, cat: true })));
+      const todas = [
+        ...c.agregar.map((id) => ({ id, ...Modelo.variante(id), nueva: true })),
+        ...[...m.marcadas].filter((id) => !nuevas.has(id)).map((id) => ({ id, ...Modelo.variante(id) })),
+        ...her,
+        ...c.quitar.map((id) => ({ id, ...Modelo.variante(id), sale: true })),
+      ];
+      const vistas = todas.slice(0, MAX_MOSAICO - (todas.length > MAX_MOSAICO ? 1 : 0));
+      const llegan = ids ? new Set(ids.filter((id) => nuevas.has(id))) : new Set();
+      api.flip(mos, () => {
+        mos.innerHTML = vistas.map((x) => `<span class="t ${x.nueva ? "nueva" : ""} ${x.sale ? "sale" : ""} ${x.cat ? "cat" : ""} ${desde && llegan.has(x.id) ? "espera" : ""}" data-flip="${x.id}" title="${esc(x.p.referencia)} · ${esc([x.v.talla, x.v.color].filter(Boolean).join(" · "))}${x.sale ? " (se la quitas)" : x.cat ? " (por su categoría)" : ""}">${mini(x.p.cat, x.v.colorHex)}</span>`).join("")
+          + (todas.length > vistas.length ? `<span class="mas" data-flip="mas">+${todas.length - vistas.length}</span>` : "")
+          + (todas.length === 0 ? Array.from({ length: 6 }, () => `<span class="hueco"></span>`).join("") : "");
+      });
+      // La que llega: vuela desde su fila (o desde la caja del lector) hasta su hueco, y recién ahí aparece.
+      if (desde && llegan.size) {
+        let destino = mos.querySelector(".t.espera");
+        if (destino && !destino.offsetParent) { mos.querySelectorAll(".t.espera").forEach((t) => t.classList.remove("espera")); destino = $("[data-total]"); }
+        if (destino) api.volarEl(desde, destino, { dur: 620 }).then(() => { mos.querySelectorAll(".t.espera").forEach((t) => t.classList.remove("espera")); api.reAnimar($("[data-etq]"), "mece"); });
+      } else if (ids) api.reAnimar($("[data-etq]"), "mece");
+      api.cuenta($("[data-total]"), Modelo.totalPrendas(m));
+      $("[data-total-txt]").textContent = Modelo.totalPrendas(m) === 1 ? "prenda la lleva" : "prendas la llevan";
+      $("[data-delta]").innerHTML = `${c.agregar.length ? `<span class="chip verde anim-entrada">+${c.agregar.length} hoy</span>` : ""}${c.quitar.length ? `<span class="chip taupe anim-entrada">−${c.quitar.length} se la quitas</span>` : ""}${!c.agregar.length && !c.quitar.length ? `<span class="tenue" style="font-size:12.5px">Escanea o marca prendas para sumarlas</span>` : ""}`;
+      const s = Modelo.sumaPrecios(m, c.agregar);
+      if ($("[data-antes]")) { api.cuenta($("[data-antes]"), s.antes, { fmt: soles }); api.cuenta($("[data-despues]"), s.despues, { fmt: soles }); }
+      hoja.querySelectorAll("[data-aplicar]").forEach((b) => { b.disabled = !(c.agregar.length + c.quitar.length); b.textContent = e.descuentoPct == null ? "Aplicar" : "Revisar y aplicar"; });
+    }
+    api.pintarEtiqueta = pintarEtiqueta;
+    pintarEtiqueta({});
+    setTimeout(() => $("[data-buscar]")?.focus({ preventScroll: true }), 450);
+  },
+
+  alLeer(r, api) {
+    const ui = api.ui; if (!ui || !ui.hoja.isConnected || !ui.hoja.querySelector("[data-ultima]")) return;
+    const { $ } = ui, m = api.modelo, t = api.mensaje(m, r);
+    api.barrer($("[data-lector]"), r.tono === "ambar" ? "ambar" : "verde");
+    const resto = api.Modelo.restoDeTallas(m, r);
+    const ok = r.estado === "puesta" || r.estado === "quitada";
+    const u = $("[data-ultima]");
+    u.innerHTML = `<div class="lectura entra" data-tono="${t.tono}">${api.miniDe(r)}
+      <div class="crece"><div class="fila" style="gap:8px;flex-wrap:wrap"><span class="tit" style="font-size:14px">${esc(t.titulo)}</span><span class="chip ${t.tono} punto">${esc(t.chip)}</span></div>
+      <div class="det">${esc(t.det ? t.det + " · " : "")}${esc(t.linea)}</div></div>
+      <div class="acciones">${ok && resto ? `<button class="btn sut" style="min-height:30px;font-size:12.5px" data-todas>${icono(r.modo === "poner" ? "plus" : "minus", "mas")} Otras ${resto}</button>` : ""}${ok ? `<button class="btn enlace" data-deshacer>${icono("deshacer")} Deshacer</button>` : ""}</div></div>`;
+    if (r.p) ui.lista.mostrar(r.p, r.tono); else ui.lista.refrescar();
+    // Desde la caja del lector hasta la etiqueta (con la cámara abierta, la bandeja ya hizo su propio vuelo).
+    api.pintarEtiqueta({ desde: !api.cam && r.estado === "puesta" ? u.querySelector(".mini") : null, ids: r.v ? [r.v.id] : null });
+    u.querySelector("[data-todas]")?.addEventListener("click", (ev) => { const ids = r.p.variantes.map((v) => v.id); api.Modelo.todasSusTallas(m, r); ui.lista.mostrar(r.p); api.pintarEtiqueta({ desde: r.modo === "poner" ? u.querySelector(".mini") : null, ids }); ev.currentTarget.remove(); });
+    u.querySelector("[data-deshacer]")?.addEventListener("click", () => { api.Modelo.deshacer(m, r); ui.lista.mostrar(r.p); api.pintarEtiqueta({ ids: [r.v.id] }); u.innerHTML = ""; });
+  },
+
+  async demo(api) {
+    const { pausa } = api; const $ = (s) => api.ui.hoja.querySelector(s);
+    await pausa(1200);
+    api.leer("VES-0018-OLI-M"); await pausa(1900);
+    api.leer("JEA-0006-AZU-28"); await pausa(1700);
+    $("[data-todas]")?.click(); await pausa(1700);
+    api.leer("CMS-0021-CEL-S"); await pausa(1600);
+    api.leer("CMS-0021-CEL-S"); await pausa(1600);
+    api.leer("VES-0018-VIN-XL"); await pausa(1900);
+    const cas = $('[data-casilla="p13"]'); if (cas) { cas.scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(700); cas.click(); } await pausa(1500);
+    $('[data-modo="quitar"]').click(); await pausa(700);
+    api.leer("CMS-0012-NEG-M"); await pausa(1800);
+    $('[data-modo="poner"]').click(); await pausa(800);
+    $("[data-camara]").click(); await pausa(800);
+    await api.cam.acercar("ACC-0023-OLI-STD"); await pausa(900);
+    await api.cam.acercar("TOP-0005-NEG-S"); await pausa(1200);
+    api.cam.cerrar(); await pausa(1200);
+    $(".b-acciones [data-aplicar]").click(); await pausa(2800);
+    api.ui.hoja.querySelector("[data-cuerpo] [data-aplicar]")?.click();
+  },
+};
+EQ.iniciar(DEF);
+</script>
+</body>
+</html>

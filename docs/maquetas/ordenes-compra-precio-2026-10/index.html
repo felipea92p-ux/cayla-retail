@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maqueta · Precio sugerido y avisos de compra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Maqueta · Nueva orden de compra: precio sugerido y avisos de compra (2026-10-22). Diseño: docs/pantallas/compras-ordenes-precio-y-stock.md.
+     Abrir este archivo en el navegador. Datos inventados. Las cuentas son las de §4.2 (ganancia, rebaja) y §4.4 (cobertura) del diseño;
+     lo que se ve aquí es una MAQUETA: la pantalla real usará las piezas del ERP (Aviso, Chip, BotonVerMas…) y funciones puras con pruebas. -->
+<style>
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --tinta-60:#5b544c;
+  --taupe:#805c4c; --rojo:#b8412d; --rojo-profundo:#8b2a1f; --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e;
+  --serif:'EB Garamond',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif;
+}
+:root[data-tema="oscuro"]{
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38; --tinta:#f5f0e8; --tinta-60:#b9b2a7;
+  --taupe:#c4a898; --rojo:#e8806a; --rojo-profundo:#f29a86; --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 var(--sans)}
+.pagina{max-width:1500px;margin:0 auto;padding:24px 32px 64px}
+h1{font:500 40px/1.05 var(--serif);margin:6px 0 4px}
+.sede{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);display:flex;align-items:center;gap:10px}
+.sede:before{content:"";width:40px;border-top:1px solid var(--taupe)}
+.frase{color:var(--tinta-60);margin:0 0 18px}
+.barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 20px;margin-bottom:16px}
+.card h2{font:500 22px/1.1 var(--serif);margin:0 0 12px}
+label.t{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin:0 0 5px}
+label.t small{font-weight:400;letter-spacing:0;text-transform:none;color:var(--taupe);margin-left:4px;font-size:12px}
+select,input[type=text]{width:100%;height:40px;border:1px solid transparent;border-radius:10px;background:var(--hueso);color:var(--tinta);font:inherit;padding:0 12px;outline:none}
+select:focus,input:focus{background:var(--papel);border-color:var(--tinta)}
+.fila{display:grid;grid-template-columns:1.05fr 1fr 1.25fr .7fr .8fr .85fr 1.25fr .9fr;gap:10px;align-items:end;border:1px solid var(--sand);border-radius:12px;padding:12px}
+@media (max-width:1180px){.fila{grid-template-columns:1fr 1fr 1fr 1fr}}
+@media (max-width:640px){.fila{grid-template-columns:1fr 1fr}}
+.cifra{font:500 20px var(--serif);text-align:right;padding-bottom:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--tinta);background:transparent;color:var(--tinta);border-radius:999px;font:600 12.5px var(--sans);padding:7px 14px;cursor:pointer}
+.btn:hover{background:var(--tinta);color:var(--crema)}
+.btn.sutil{border-color:var(--sand)} .btn.on{background:var(--tinta);color:var(--crema)}
+.btn.chico{padding:4px 11px;font-size:12px}
+.usar{margin-top:6px;font-size:12px;border:0;background:none;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--taupe);text-underline-offset:3px;cursor:pointer;padding:0}
+.usar:hover{color:var(--rojo-profundo)}
+.franja{margin-top:12px;border-top:1px dashed var(--sand);padding-top:12px}
+.resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-bottom:10px}
+.res{border:1px solid var(--sand);border-radius:12px;padding:8px 12px;background:var(--crema)}
+.res b{display:block;font:500 22px var(--serif)} .res span{font-size:12px;color:var(--tinta-60)}
+.res.mal b{color:var(--rojo-profundo)} .res.ojo b{color:var(--ambar)} .res.bien b{color:var(--verde)}
+.escala{position:relative;height:34px;margin:6px 4px 14px}
+.escala .pista{position:absolute;left:0;right:0;top:15px;height:4px;background:var(--sand);border-radius:2px}
+.escala .rango{position:absolute;top:13px;height:8px;background:var(--hueso);border:1px solid var(--taupe);border-radius:4px}
+.escala .mid{position:absolute;top:6px;width:2px;height:22px;background:var(--taupe)}
+.escala .px{position:absolute;top:2px;width:3px;height:30px;background:var(--tinta);border-radius:2px}
+.escala em{position:absolute;top:-4px;font-style:normal;font-size:11px;color:var(--tinta-60);white-space:nowrap;transform:translateX(-50%)}
+.aviso{display:flex;gap:10px;border-radius:10px;border:1px solid var(--sand);border-left:4px solid var(--pizarra);background:var(--crema);padding:9px 12px;margin-bottom:8px}
+.aviso.error{border-left-color:var(--rojo-profundo)} .aviso.atencion{border-left-color:var(--ambar)} .aviso.exito{border-left-color:var(--verde)}
+.aviso .ico{font:700 13px var(--sans);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none;margin-top:1px;color:var(--crema);background:var(--pizarra)}
+.aviso.error .ico{background:var(--rojo-profundo)} .aviso.atencion .ico{background:var(--ambar)} .aviso.exito .ico{background:var(--verde)}
+.aviso p{margin:0}
+.aviso .cuerpo{flex:1;min-width:0}
+.aviso .tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:700;margin-bottom:2px}
+.aviso .por{margin-top:6px;font-size:12.5px;color:var(--tinta-60);border-top:1px dotted var(--sand);padding-top:6px}
+.aviso .por b{color:var(--tinta)}
+.enlace{background:none;border:0;padding:0;font:600 12px var(--sans);color:var(--tinta);text-decoration:underline;text-decoration-color:var(--taupe);text-underline-offset:3px;cursor:pointer;margin-top:4px}
+.enlace:hover{color:var(--rojo-profundo)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--sand);background:var(--papel);color:var(--tinta);border-radius:999px;padding:4px 11px;font:500 12px var(--sans);cursor:pointer}
+.chip.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.chip:hover{border-color:var(--tinta)}
+.anotado{font-size:12px;color:var(--verde);margin-top:6px;font-weight:600}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;text-align:right;color:var(--taupe);padding:6px 8px;border-bottom:1px solid var(--sand)}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--sand);font-variant-numeric:tabular-nums}
+table.t tr.dest td{background:var(--hueso);font-weight:600}
+table.t tr.fuera td{color:var(--tinta-60)}
+.nota{font-size:12.5px;color:var(--tinta-60);background:var(--hueso);border-radius:10px;padding:8px 12px;margin-top:10px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:1000px){.cols{grid-template-columns:1fr}}
+.reglas li{margin:4px 0}
+.mono{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <div class="sede">Tienda Trujillo · miércoles, 22 de octubre · maqueta</div>
+  <h1>Nueva orden de compra</h1>
+  <p class="frase">Lo que le pides al proveedor, y ahora también el precio al que piensas venderlo, con ayuda para decidir. Datos inventados.</p>
+
+  <div class="barra" id="barra-tema"></div>
+
+  <div class="card" id="escena"></div>
+  <div class="card">
+    <h2>Lo que pides</h2>
+    <div id="linea"></div>
+  </div>
+  <div class="cols">
+    <div class="card" id="tiendas"></div>
+    <div class="card reglas" id="leyenda"></div>
+  </div>
+</div>
+
+<script>
+/* ===== Datos inventados ===== */
+const IGV = 1.18;
+const CATEGORIAS = {
+  'Polos':      { mediana: 49.90,  n: 14, min: 29.90,  max: 89.90,  margenTipico: 52,   nCostos: 4 },
+  'Pantalones': { mediana: 99.90,  n: 9,  min: 69.90,  max: 159.90, margenTipico: 54,   nCostos: 3 },
+  'Casacas':    { mediana: 189.90, n: 6,  min: 119.90, max: 299.90, margenTipico: null, nCostos: 1 },
+  'Vestidos':   { mediana: 129.90, n: 2,  min: 99.90,  max: 159.90, margenTipico: null, nCostos: 0 },
+};
+const SEDES = ['LIM', 'TRU', 'AQP'];
+const NOMBRE_SEDE = { LIM: 'Lima', TRU: 'Trujillo', AQP: 'Arequipa' };
+const ESCENAS = {
+  'sin-datos': { nombre: 'Casi no hay ventas todavía', sinReg: 0.18, ordenes: [], campana: null,
+    sedes: { LIM: { S: 3, C: 0, P: 0, u28: 6, d: 9 }, TRU: { S: 8, C: 0, P: 0, u28: 5, d: 21 }, AQP: { S: 5, C: 0, P: 0, u28: 3, d: 21 } } },
+  'hueco': { nombre: 'Se te está acabando', sinReg: 0.10, ordenes: [], campana: null,
+    sedes: { LIM: { S: 5, C: 0, P: 0, u28: 40, d: 28 }, TRU: { S: 4, C: 0, P: 0, u28: 52, d: 28 }, AQP: { S: 3, C: 0, P: 0, u28: 30, d: 28 } } },
+  'moderada': { nombre: 'Compra moderada', sinReg: 0.10, ordenes: [], campana: null,
+    sedes: { LIM: { S: 10, C: 0, P: 0, u28: 40, d: 28 }, TRU: { S: 14, C: 0, P: 0, u28: 52, d: 28 }, AQP: { S: 10, C: 0, P: 0, u28: 30, d: 28 } } },
+  'mucho': { nombre: 'Ya tienes mucho', sinReg: 0.10, ordenes: [], campana: null,
+    sedes: { LIM: { S: 60, C: 0, P: 0, u28: 40, d: 28 }, TRU: { S: 90, C: 0, P: 0, u28: 52, d: 28 }, AQP: { S: 40, C: 0, P: 0, u28: 30, d: 28 } } },
+  'pediste': { nombre: 'Ya pediste esto (viene en camino)', sinReg: 0.10, ordenes: [{ num: 'OC-000012', llega: '25 de octubre', u: 80 }], campana: null,
+    sedes: { LIM: { S: 12, C: 0, P: 30, u28: 40, d: 28 }, TRU: { S: 16, C: 0, P: 30, u28: 52, d: 28 }, AQP: { S: 12, C: 0, P: 20, u28: 30, d: 28 } } },
+  'campana': { nombre: 'Hay una campaña cerca', sinReg: 0.10, ordenes: [], campana: { nombre: 'Diciembre 2026', desde: '1 de diciembre' },
+    sedes: { LIM: { S: 30, C: 0, P: 0, u28: 40, d: 28 }, TRU: { S: 45, C: 0, P: 0, u28: 52, d: 28 }, AQP: { S: 25, C: 0, P: 0, u28: 30, d: 28 } } },
+};
+const PRESETS = {
+  'Normal':        { precio: '49.90', costo: '25.00', desc: '0' },
+  'Algo alto':     { precio: '59.90', costo: '25.00', desc: '0' },
+  'Alto':          { precio: '69.90', costo: '25.00', desc: '0' },
+  'Muy alto':      { precio: '99.90', costo: '25.00', desc: '0' },
+  'Bajo':          { precio: '39.90', costo: '25.00', desc: '0' },
+  'Muy bajo':      { precio: '19.90', costo: '8.00',  desc: '0' },
+  'Cero de más':   { precio: '499.00', costo: '25.00', desc: '0' },
+  'Bajo el costo': { precio: '20.00', costo: '25.00', desc: '0' },
+  'Margen muy alto': { precio: '59.90', costo: '2.50', desc: '0' },
+  'Sin precio':    { precio: '',      costo: '25.00', desc: '0' },
+  'Sin costo':     { precio: '59.90', costo: '',      desc: '0' },
+};
+const MOTIVOS = {
+  alto: { pregunta: '¿Qué ve el cliente que justifique pagar más? (puedes marcar varias)',
+    opciones: ['Diseño propio, no se ve en otras tiendas', 'Tela o confección mejor, se nota al tocarla', 'Calce que se nota al probársela', 'Edición corta: pocas unidades y no se repite', 'Línea que los clientes ya piden por su nombre', 'Otro motivo', 'Aún no lo sé'] },
+  bajo: { pregunta: '¿Qué estrategia aplicas con este precio? (puedes marcar varias)',
+    opciones: ['Gancho: traer gente para que lleve más', 'Entrar barato para ganar clientes y subir después', 'Rotar rápido', 'Salir de un lote de remate', 'Básico que el cliente compara con otras tiendas', 'Mi costo es más bajo (Taller o volumen)', 'Rebaja planificada: el precio ya la cuenta', 'Aún no lo sé'] },
+  perdida: { pregunta: '¿Qué quieres lograr con este precio?',
+    opciones: ['Traer gente con un gancho', 'Salir de un lote de remate', 'Fue un error, lo corrijo', 'Otro'] },
+  cero: { pregunta: '¿El precio es correcto?', opciones: ['Sí, es correcto', 'Me equivoqué con un cero, lo corrijo', 'Aún no lo sé'] },
+  sinref: { pregunta: '¿En qué te basas para este precio?', opciones: ['Una prenda parecida que ya vendemos', 'El precio de otra tienda o de Gamarra', 'El costo por un múltiplo (costo por dos, por ejemplo)', 'Aún no lo sé'] },
+};
+
+/* ===== Estado ===== */
+const E = { tema: 'claro', cat: 'Polos', marca: 'CAYLA', descripcion: 'basic', cant: '40', costo: '25.00', desc: '0', precio: '59.90',
+  factura: true, destino: 'Por repartir', escena: 'hueco', motivos: {}, abiertos: {}, verMas: false };
+
+/* ===== Utilidades ===== */
+const n2 = (s) => { const v = parseFloat(String(s).replace(',', '.')); return Number.isFinite(v) ? v : null; };
+const S_ = (v) => 'S/ ' + v.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const P_ = (v) => (Math.round(v * 10) / 10).toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %';
+const piso10 = (v) => Math.floor(Math.round(v * 100) / 10) / 10;          // hacia abajo al S/ 0.10 (ADR-0403)
+const semanas = (dias) => { const s = dias / 7; return (s < 10 ? (Math.round(s * 10) / 10).toString().replace('.', ',') : Math.round(s).toString()) + (Math.abs(s - 1) < 0.05 ? ' semana' : ' semanas'); };
+const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+/* ===== La cuenta (diseño §4.2) ===== */
+function cuenta(costo, precio, dprov, factura) {
+  const costoNeto = costo * (1 - dprov);
+  const costoReal = factura ? costoNeto / IGV : costoNeto;
+  const out = { costoNeto, costoReal };
+  if (precio != null) {
+    const ps = precio / IGV; out.ps = ps; out.ganancia = ps - costoReal; out.margen = out.ganancia / ps;
+  }
+  return out;
+}
+function conRebaja(precio, costoReal, d) {
+  const pd = piso10(precio * (1 - d)); const ps = pd / IGV; const g = ps - costoReal;
+  return { pd, g, m: ps > 0 ? g / ps : -1 };
+}
+function precioMinimoPiso(costoReal) {                                    // aguanta 35 % de rebaja dejando 20 % del precio rebajado
+  for (let p = 0.1; p < 5000; p = Math.round((p + 0.1) * 10) / 10) { const r = conRebaja(p, costoReal, 0.35); if (r.pd > 0 && r.m >= 0.2 - 1e-9) return p; }
+  return null;
+}
+
+/* ===== Avisos de precio (diseño §4.5) ===== */
+function avisosPrecio() {
+  const A = []; const cat = CATEGORIAS[E.cat];
+  const costo = n2(E.costo), precio = n2(E.precio), dprov = (n2(E.desc) || 0) / 100;
+  if (!(costo > 0)) {
+    A.push({ id: 'sin-costo', nivel: 'atencion', etiqueta: 'Falta el costo', texto: 'Falta el costo: sin él no hay ganancia que calcular. Anótalo y verás al instante cuánto te queda por prenda.',
+      por: 'Sin costo, cualquier precio parece ganancia pura y todas las cuentas salen bien por error. Si aún no lo sabes, puedes guardar igual: esto avisa, no bloquea.', teoria: 'Ganancia por prenda' });
+    return { A, calc: null };
+  }
+  const c = cuenta(costo, precio, dprov, E.factura);
+  if (precio == null || precio <= 0) {
+    if (cat.n >= 3) {
+      const gm = cat.mediana / IGV - c.costoReal, mm = gm / (cat.mediana / IGV), pmin = precioMinimoPiso(c.costoReal);
+      A.push({ id: 'ayuda-sin-precio', nivel: 'info', etiqueta: 'Antes de escribir el precio',
+        texto: `A ${S_(cat.mediana)}, el precio del medio de ${E.cat} (${cat.n} prendas), con tu costo real de ${S_(c.costoReal)} te quedarían ${S_(gm)} por prenda (${P_(mm * 100)}). Para aguantar una rebaja de 35 % necesitas cobrar desde ${S_(pmin)}.`,
+        por: 'Son dos puntos de partida, no una recomendación: lo que hoy cobra la categoría y lo que necesitas cobrar para que la prenda aguante una campaña fuerte. Tu precio puede ir arriba o abajo si tienes una razón.', teoria: 'Precio del medio de la categoría' });
+    } else {
+      const pmin = precioMinimoPiso(c.costoReal);
+      A.push({ id: 'ayuda-sin-precio', nivel: 'info', etiqueta: 'Antes de escribir el precio',
+        texto: `Con tu costo real de ${S_(c.costoReal)}, para aguantar una rebaja de 35 % necesitas cobrar desde ${S_(pmin)}. ${E.cat} tiene ${cat.n === 0 ? '0 prendas' : cat.n === 1 ? 'solo 1 prenda' : 'solo ' + cat.n + ' prendas'} para comparar, así que no hay un precio de la categoría que mostrarte.`,
+        por: 'Sin prendas parecidas, tu costo es la única guía que hay. Al escribir el precio verás tu ganancia exacta.', teoria: 'Ganancia por prenda' });
+    }
+    return { A, calc: c };
+  }
+  const razon = cat.n >= 3 ? precio / cat.mediana : null;
+  const dif = cat.n >= 3 ? precio - cat.mediana : 0;
+  const r35 = conRebaja(precio, c.costoReal, 0.35), r15 = conRebaja(precio, c.costoReal, 0.15);
+  const ceroMas = razon != null && razon >= 8, ceroMenos = razon != null && razon <= 0.125;
+  const pierde = c.ganancia <= 0;
+
+  if (pierde && !ceroMenos) {
+    A.push({ id: 'precio-no-cubre-costo', nivel: 'error', etiqueta: 'El precio no cubre el costo', motivo: 'perdida',
+      texto: `Con este precio ${c.ganancia < 0 ? 'pierdes ' + S_(-c.ganancia) : 'no ganas nada'} por prenda: cobras ${S_(c.ps)} sin IGV y la prenda te cuesta ${S_(c.costoReal)}. Conviene revisar el precio o el costo antes de comprar.`,
+      por: `De los ${S_(precio)} que paga el cliente, ${S_(precio - c.ps)} son IGV y van a SUNAT: te quedan ${S_(c.ps)}. Si eso es menos de lo que te cuesta la prenda, cada venta resta. Puede ser a propósito (un gancho, un lote de remate) o un descuido al digitar.`, teoria: 'Ganancia por prenda' });
+  }
+  if (ceroMas) A.push({ id: 'cero-de-mas', nivel: 'error', etiqueta: 'Revisa el precio', motivo: 'cero',
+    texto: `Pones ${S_(precio)}, que son ${S_(dif)} más que el precio del medio de ${E.cat} (${S_(cat.mediana)}) y ${(Math.round(razon * 10) / 10).toString().replace('.', ',')} veces su valor. ¿Sobra un cero?`,
+    por: 'Un cero de más multiplica el precio por 10 y es el error de digitación más caro. Con 8 veces el precio del medio o más, lo primero que conviene descartar es un error al escribir. Si es correcto, puedes seguir: esto avisa, no bloquea.', teoria: 'Distancia a la categoría' });
+  if (ceroMenos) A.push({ id: 'cero-de-menos', nivel: 'error', etiqueta: 'Revisa el precio', motivo: 'cero',
+    texto: `Pones ${S_(precio)}, que son ${S_(-dif)} menos que el precio del medio de ${E.cat} (${S_(cat.mediana)}) y solo el ${Math.round(razon * 100)} % de él. ¿Falta un cero?`,
+    por: 'Un cero de menos divide el precio entre 10. Con un octavo del precio del medio o menos, lo primero que conviene descartar es un error de digitación.', teoria: 'Distancia a la categoría' });
+  if (!pierde && c.margen >= 0.85 && !ceroMas && !ceroMenos) A.push({ id: 'margen-muy-alto', nivel: 'info', etiqueta: 'Margen muy alto',
+    texto: `Te quedan ${S_(c.ganancia)} por prenda (${P_(c.margen * 100)}), un margen tan alto que conviene confirmar el costo y el precio. ¿Falta un cero en el costo o sobra uno en el precio?`,
+    por: 'Un cero de menos en el costo (S/ 2.50 en vez de S/ 25.00) o de más en el precio hace que todas las cuentas salgan muy bien por error. Puede ser real, por ejemplo una prenda del Taller con costo bajo.', teoria: 'Ganancia por prenda', motivo: null });
+
+  if (!pierde) {
+    if (r35.g < 0) {
+      A.push({ id: 'rebaja-pierde', nivel: 'atencion', etiqueta: 'No aguanta una rebaja fuerte',
+        texto: `Si esta prenda entrara a una rebaja de 35 %, la cobrarías a ${S_(r35.pd)} y perderías ${S_(-r35.g)} por prenda, porque tu costo real es ${S_(c.costoReal)}. Para no perder, el precio tendría que ser desde ${S_(precioMinimoPiso(c.costoReal))}.`,
+        por: 'El 35 % es lo más que un líder puede dar a mano en caja; una campaña puede ser mayor o menor. Un precio que hoy te deja ganancia puede quedar bajo el costo con una rebaja fuerte, y el precio rebajado se redondea hacia abajo a los S/ 0.10.', teoria: 'Margen frente a rebajas' });
+    } else if (c.margen < 0.48) {
+      const pmin = precioMinimoPiso(c.costoReal);
+      const cmaxReal = 0.8 * piso10(pmin * 0.65) / IGV; const cmax = (E.factura ? cmaxReal * IGV : cmaxReal) / (1 - dprov);
+      A.push({ id: 'rebaja-poco', nivel: 'atencion', etiqueta: 'Aguanta poco una rebaja', motivo: razon != null && razon > 1.1 ? null : 'bajo',
+        texto: `Si llega a 35 % de rebaja, te quedan ${S_(r35.g)} por prenda (${P_(r35.m * 100)}) antes de pagar alquiler y sueldos. Para dejar 20 % del precio ya rebajado necesitas un precio desde ${S_(pmin)} o pagar como máximo ${S_(cmax)} por prenda.`,
+        por: 'Cuando una prenda sale a rebaja, el margen se come primero. Con menos de 48 % de ganancia al precio de lista, una rebaja de 35 % deja menos de 20 % del precio rebajado, y de eso aún falta pagar alquiler y sueldos. No es una meta: es el peor caso.', teoria: 'Margen frente a rebajas' });
+    }
+  }
+  if (razon != null && !ceroMas && !ceroMenos) {
+    const pct = Math.round(Math.abs(razon - 1) * 1000) / 10; const arriba = dif > 0;
+    const base = `${S_(Math.abs(dif))} ${arriba ? 'más' : 'menos'} que el precio del medio de ${E.cat} (${S_(cat.mediana)})`;
+    if (razon > 1.5) A.push({ id: 'precio-muy-alto', nivel: 'atencion', etiqueta: 'Precio muy alto', motivo: 'alto', texto: `Cobras ${base}, un ${P_(pct)} arriba: queda muy por encima de lo que hoy cobras ahí. Conviene comprar pocas unidades de prueba y poder defender el precio en 10 segundos frente al cliente.`,
+      por: 'Las categorías tienen escalones de precio que el cliente reconoce de un vistazo. Una prenda muy por encima del último escalón tiene pocas vecinas con quien compararse: el cliente puede dudar si es cara por buena o por error. Con poca rotación, además, el dinero queda parado.', teoria: 'Escala de precios' });
+    else if (razon > 1.25) A.push({ id: 'precio-alto', nivel: 'atencion', etiqueta: 'Precio alto', motivo: 'alto', texto: `Cobras ${base}, un ${P_(pct)} arriba. Conviene tener una razón fuerte que las demás prendas no tengan, y saber cómo la vas a mostrar.`,
+      por: 'Entre 25 y 50 % arriba, la prenda tiende a dejar de compararse con las de al lado y el cliente decide con menos referencia. Si la razón no se ve, puede leerla como cara sin motivo, rotar lento y terminar en descuentos grandes.', teoria: 'Diferenciación' });
+    else if (razon > 1.1) A.push({ id: 'precio-algo-alto', nivel: 'atencion', etiqueta: 'Precio algo alto', motivo: 'alto', texto: `Cobras ${base}, un ${P_(pct)} arriba. Conviene poder nombrar dos razones que el cliente vea o toque sin que se las expliquen.`,
+      por: 'Si el cliente compara tu prenda con la de al lado y no ve por qué cuesta más, siente que paga de más, y en los estudios eso le pesa más que un ahorro del mismo tamaño. Hasta 10 % arriba no pedimos razón.', teoria: 'Precio de referencia · Diferenciación' });
+    else if (razon >= 0.9) A.push({ id: 'precio-normal', nivel: 'info', etiqueta: 'Cerca del precio del medio', texto: dif === 0
+        ? `Tu precio de ${S_(precio)} es igual al precio del medio de ${E.cat} (${S_(cat.mediana)}, ${cat.n} prendas): se parece a lo que ya cobras en esta categoría.`
+        : `Tu precio de ${S_(precio)} está ${S_(Math.abs(dif))} ${arriba ? 'por encima del' : 'por debajo del'} precio del medio de ${E.cat} (${S_(cat.mediana)}, ${cat.n} prendas), un ${P_(pct)}: se parece a lo que ya cobras en esta categoría.`,
+      por: 'El precio del medio es el de la prenda que queda en la mitad: la mitad de la categoría cuesta menos y la otra mitad más. Si estás cerca, el cliente no tiene por qué ver tu prenda como cara ni como barata frente a las de al lado. Eso no dice que sea el precio ideal.', teoria: 'Precio del medio de la categoría' });
+    else if (pierde) { /* el error «el precio no cubre el costo» ya lo dice: no se repite como «precio bajo» */ }
+    else if (razon >= 0.5) A.push({ id: 'precio-bajo', nivel: 'info', etiqueta: 'Precio bajo', motivo: 'bajo', texto: `Cobras ${base}, un ${P_(pct)} abajo, y te quedan ${S_(c.ganancia)} por prenda (${P_(c.margen * 100)}). Si es a propósito, ¿qué estrategia es?`,
+      por: 'Cobrar menos que la categoría tiene sentido cuando trae gente con un gancho, rota más rápido, sale de un lote de remate, o cuando tu costo es de verdad más bajo y compartes esa ventaja con el cliente. Sin una de esas razones, bajar el precio es regalar ganancia.', teoria: 'Estrategias de margen bajo' });
+    else A.push({ id: 'precio-muy-bajo', nivel: 'atencion', etiqueta: 'Precio muy bajo', motivo: 'bajo', texto: `Cobras ${base} y te quedan ${S_(c.ganancia)} por prenda (${P_(c.margen * 100)}): queda muy por debajo de lo que hoy cobras ahí. ¿Qué estrategia aplicas con este precio?`,
+      por: 'Un precio muy bajo puede leerse como menos calidad y, si el margen también es bajo, deja poco espacio para campañas. Tiene sentido si traes gente con un gancho, rotas rápido, sales de un lote de remate, o si tu costo es de verdad más bajo.', teoria: 'Estrategias de margen bajo' });
+    if (c.ganancia > 0) {
+      const gm = cat.mediana / IGV - c.costoReal;
+      if (razon < 0.9 && gm > 0) { const mas = gm / c.ganancia - 1; A.push({ id: 'cuenta-mas', nivel: 'info', etiqueta: 'La cuenta de las unidades', texto: `Cobrando ${S_(precio)} en vez de ${S_(cat.mediana)}, ganas ${S_(gm - c.ganancia)} menos por prenda: para ganar lo mismo tendrías que vender ${mas <= 3 ? Math.round(mas * 100) + ' % más prendas' : 'más de 4 veces las prendas'} que al precio del medio.`,
+        por: 'Es una cuenta, no un pronóstico: ganando menos en cada prenda, necesitas vender más prendas para llegar a la misma ganancia. Cuanto más bajo es tu margen, más grande es esa diferencia. La cuenta no dice si de verdad venderás más al bajar el precio.', teoria: 'Equilibrio de unidades' }); }
+      if (razon > 1.1 && razon < 8 && gm > 0) { const menos = 1 - gm / c.ganancia; A.push({ id: 'cuenta-menos', nivel: 'info', etiqueta: 'La cuenta de las unidades', texto: `Cobrando ${S_(precio)} en vez de ${S_(cat.mediana)}, ganas ${S_(c.ganancia - gm)} más por prenda: puedes vender hasta ${Math.round(menos * 100)} % menos prendas que al precio del medio y ganar lo mismo.`,
+        por: 'Es la misma cuenta al revés: si cada prenda te deja más, necesitas menos ventas para llegar a la misma ganancia. Un precio alto suele venderse más lento, y esta cuenta no dice cuánto más lento ni cuánto te costará rebajar lo que sobre: solo marca hasta dónde te conviene.', teoria: 'Equilibrio de unidades' }); }
+    }
+  }
+  if (cat.n < 3) A.push({ id: 'sin-referencia', nivel: 'info', etiqueta: 'Sin referencia en la categoría', motivo: 'sinref', texto: `Ganas ${S_(c.ganancia)} por prenda (${P_(c.margen * 100)}), pero ${E.cat} tiene ${cat.n === 0 ? '0 prendas' : cat.n === 1 ? 'solo 1 prenda' : 'solo ' + cat.n + ' prendas'} para comparar, así que no hay con qué decirte si ${S_(precio)} es un precio normal.`,
+    por: 'Para saber si un precio es normal hace falta compararlo con prendas parecidas, y aquí no hay suficientes. Sin esa referencia tampoco se puede avisar si sobra o falta un cero; tu propio costo es la guía. Anota igual en qué te basaste.', teoria: 'Precio del medio de la categoría' });
+  else if (cat.n < 10) A.push({ id: 'referencia-debil', nivel: 'info', etiqueta: 'Referencia débil', texto: `El precio del medio de ${E.cat} (${S_(cat.mediana)}) sale de solo ${cat.n} prendas: úsalo como pista, no como regla.`,
+    por: 'El precio del medio es el de la prenda que queda en la mitad. Con pocas prendas ese medio es casi el precio de una sola. Con 10 o más ya es una referencia más estable.', teoria: 'Precio del medio de la categoría' });
+  if (!E.factura && precio) {
+    const cf = costo * (1 - dprov) / IGV; const mf = 1 - cf / (precio / IGV);
+    A.push({ id: 'sin-factura', nivel: 'info', etiqueta: 'Sin factura', texto: `Sin factura no recuperas el IGV: tu costo real es ${S_(c.costoReal)} por prenda, ${S_(c.costoReal - cf)} más que con una factura del mismo monto. Por eso tu ganancia es ${P_(c.margen * 100)} y con esa factura sería ${P_(mf * 100)}.`,
+      por: 'Con factura a nombre de la empresa, el IGV que le pagas al proveedor se resta del IGV que cobras en tus ventas, así que no es un costo. Con boleta, nota de venta o sin comprobante no se resta y ese IGV se queda dentro del costo. La comparación supone que la factura costaría lo mismo.', teoria: 'Crédito fiscal del IGV' });
+  }
+  if (!pierde && c.margen >= 0.48 && razon != null && razon >= 0.9 && razon <= 1.1 && r35.m >= 0.2 && !A.some((a) => a.nivel === 'error' || a.nivel === 'atencion')) {
+    A.push({ id: 'todo-calza', nivel: 'exito', etiqueta: 'Las cuentas cierran', texto: `Las cuentas cierran: ganas ${S_(c.ganancia)} por prenda (${P_(c.margen * 100)}), con una rebaja de 35 % aún te quedan ${S_(r35.g)}, y tu precio está a un ${P_(Math.abs(razon - 1) * 100)} del precio del medio de ${E.cat}.`,
+      por: 'Cuatro cosas cuadran a la vez: el precio cubre tu costo real con el IGV bien contado, no pierde ni con una rebaja fuerte, se parece al de las demás prendas de la categoría y deja un margen que aguanta. Eso no asegura que se venda: dice que, si se vende a este precio, la cuenta cuadra.', teoria: 'Margen frente a rebajas' });
+  }
+  if (A.some((a) => a.id === 'todo-calza')) { const i = A.findIndex((a) => a.id === 'precio-normal'); if (i >= 0) A.splice(i, 1); }   // «las cuentas cierran» ya dice lo del precio del medio
+  return { A, calc: c, r15, r35 };
+}
+
+/* ===== Avisos de stock (diseño §4.4): hueco ≤ 10 d · buena compra ≤ 14 d · ya hay mucho > 21 d ===== */
+const HUECO = 10, BUENA = 14, MUCHO = 21;
+function alcance() {
+  const esc_ = ESCENAS[E.escena]; const lista = E.destino === 'Por repartir' ? SEDES : [SEDES.find((s) => NOMBRE_SEDE[s] === E.destino)];
+  const dentro = lista.filter((s) => esc_.sedes[s].d >= 14); const fuera = lista.filter((s) => esc_.sedes[s].d < 14);
+  const sum = (k) => dentro.reduce((a, s) => a + esc_.sedes[s][k], 0);
+  const r = dentro.reduce((a, s) => a + esc_.sedes[s].u28 / Math.min(28, esc_.sedes[s].d), 0);
+  return { esc: esc_, lista, dentro, fuera, S: sum('S'), C: sum('C'), P: sum('P'), n: sum('u28'), r };
+}
+function avisosStock() {
+  const A = []; const al = alcance(); const Q = n2(E.cant) || 0; const esc_ = al.esc;
+  const datosOk = al.dentro.length > 0 && al.n >= 10;
+  const lugar = E.destino === 'Por repartir' ? 'en toda la red' : 'en ' + E.destino;
+  if (!datosOk) {
+    const solo = al.lista.length === 1;
+    const quien = al.fuera.length ? (solo ? ` ${NOMBRE_SEDE[al.fuera[0]]} recién empieza a vender (menos de 14 días de ventas).` : ` Sin contar ${al.fuera.map((s) => NOMBRE_SEDE[s]).join(' y ')}, que recién empieza a vender.`) : '';
+    const sum = (k) => al.lista.reduce((a, s) => a + esc_.sedes[s][k], 0);   // lo que hay y lo que viene se dice aunque no alcance para opinar
+    const viene0 = sum('C') + sum('P');
+    A.push({ id: 'sin-datos', nivel: 'info', etiqueta: 'Todavía sin ventas suficientes', texto: `Todavía no hay ventas suficientes de ${E.cat} para opinar sobre cuánto comprar. Hoy tienes ${sum('S')} ${lugar} y ${viene0 > 0 ? 'vienen ' + viene0 : 'no viene nada'}; decide con tu criterio.${quien}`,
+      por: 'Para decir «te sobra» o «te falta» hace falta saber a qué ritmo vendes. Con pocas ventas cualquier número sería inventado, así que se te dice lo que sí se sabe: cuánto hay y cuánto viene. Hacen falta al menos 14 días de ventas y 10 prendas vendidas.', teoria: 'Callar antes que opinar sin base' });
+    return { A, al };
+  }
+  const m = 1 / Math.sqrt(al.n), rAlto = al.r * (1 + m), rBajo = al.r * (1 - m);
+  const stock = al.S + al.C + al.P; const cob0 = stock / al.r; const cob1 = (stock + Q) / al.r;
+  const sem = (d) => semanas(d); const ritmoSem = Math.round(7 * al.r);
+  const viene = al.C + al.P;
+  if (esc_.ordenes.length) {
+    const o = esc_.ordenes[0];
+    A.push({ id: 'ya-pediste', nivel: 'atencion', etiqueta: 'Ya pediste esto', texto: `Ya pediste ${o.u} ${E.cat} ${E.marca} (${S_(o.u * 25)}) en ${o.num}, que llega el ${o.llega}. Con esta línea serían ${o.u + Q}. Con lo que tienes y lo que viene ya cubres unas ${sem(cob0)} de venta.`,
+      por: 'Antes de comprar se resta lo que ya pediste y todavía no llegó. Si no, la misma necesidad se pide dos veces y el almacén recibe el doble. Es un dato escrito en el sistema, no una predicción.', teoria: 'Stock más lo que viene' });
+  }
+  const excesoU = stock + Q - MUCHO * al.r; const muchoSinCamp = (stock + Q) / rAlto > MUCHO && excesoU >= Math.max(6, 7 * al.r);
+  let muchoMostrado = false;
+  if (muchoSinCamp) {
+    if (esc_.campana && (stock + Q) / (3 * rAlto) <= MUCHO) {
+      A.push({ id: 'campana-cerca', nivel: 'info', etiqueta: 'Hay campaña cerca', texto: `Hay campaña (${esc_.campana.nombre}) desde el ${esc_.campana.desde}: se vende más que el ritmo de hoy, así que no se puede decir si te sobra. Hoy tienes ${al.S} y ${viene > 0 ? 'vienen ' + viene : 'no viene nada'}.`,
+        por: 'En campaña se vende varias veces más que un día normal. Medir con el ritmo de hoy te haría ver «de más» una compra que puede ser justo la correcta para esa campaña. Por eso solo se muestra lo que hay y lo que viene. Solo hablaríamos si sobrara aun vendiendo 3 veces más.', teoria: 'Demanda que cambia con la campaña' });
+    } else {
+      muchoMostrado = true;
+      const exc = Math.round(excesoU);
+      A.push({ id: 'ya-hay-mucho', nivel: 'atencion', etiqueta: 'Ya hay mucho de esto', texto: `Ya tienes ${al.S} ${E.cat} y ${viene > 0 ? 'vienen ' + viene : 'no viene nada'}: alcanzan ${sem(cob0)} de venta (~${ritmoSem} por semana). Con esta línea (${Q} u, ${S_(Q * (n2(E.costo) || 0) * (1 - (n2(E.desc) || 0) / 100))}) llegarías a ${sem(cob1)}; ${exc} u quedarían más allá de las 3 semanas de venta.${esc_.campana ? ' Aun contando que en campaña se venda hasta 3 veces más, tendrías para ' + sem((stock + Q) / (3 * al.r)) + '.' : ''}`,
+        por: 'Se cuenta cuántos días te dura lo que tienes y lo que ya viene, al ritmo al que vendes hoy. Como compras 3 veces por semana y te llega en 1 a 3 días, tres semanas de venta ya es bastante. Esa plata queda dormida en prendas que quizá terminen en rebaja. Avisa solo si pasa de 3 semanas incluso vendiendo un poco más rápido de lo que se ve.', teoria: 'Cobertura de inventario' });
+    }
+  }
+  const sinRegOk = esc_.sinReg <= 0.30;
+  const buena = sinRegOk && (stock / rBajo) <= HUECO && ((stock + Q) / rBajo) <= BUENA && Q >= 7 * al.r;
+  if (!muchoMostrado && buena) {
+    A.push({ id: 'buena-compra', nivel: 'exito', etiqueta: 'Buena compra de stock', texto: `Buena compra de stock: de ${E.cat} te quedan ${al.S}${viene > 0 ? ' y vienen ' + viene : ' y no viene nada'}, que duran unos ${Math.round(cob0)} días (~${ritmoSem} por semana). Esta línea (${Q} u) lo lleva a unas ${sem(cob1)}.`,
+      por: 'Quedarte sin lo que más se vende cuesta: se pierde la venta y, a veces, el cliente se va también sin lo demás que iba a llevar. Esta línea tapa un hueco real y no se acerca a las 3 semanas de venta, donde ya sobra. Dice «de stock» a propósito: no evalúa el precio ni el margen y no promete ventas.', teoria: 'Costo de quedarse sin stock' });
+  }
+  if (!A.some((a) => a.id !== 'sin-datos')) {
+    A.push({ id: 'compra-moderada', nivel: 'info', etiqueta: 'Compra moderada', texto: `De ${E.cat} tienes ${al.S}${viene > 0 ? ' y vienen ' + viene : ' y no viene nada'}: alcanzan ${sem(cob0)}. Con esta línea (${Q} u) llegas a ${sem(cob1)}.`,
+      por: 'Esta compra no corrige un problema ni crea uno: repone a un ritmo parecido al de hoy. Se muestra para que decidas sabiendo cuánto tienes y para que sepas que sí se revisó y no apareció nada que avisar.', teoria: 'Cobertura de inventario' });
+  }
+  return { A, al, cob0, cob1 };
+}
+
+/* ===== Dibujo ===== */
+const $ = (id) => document.getElementById(id);
+const RANGO = { error: 0, atencion: 1, info: 2, exito: 3 };
+const ICONO = { error: '!', atencion: '!', info: 'i', exito: '✓' };
+function pintar() {
+  document.documentElement.setAttribute('data-tema', E.tema);
+  $('barra-tema').innerHTML = `<button class="btn" data-a="tema">${E.tema === 'claro' ? 'Ver en oscuro' : 'Ver en claro'}</button><span style="color:var(--tinta-60)">Cambia cualquier dato: la ayuda se recalcula al instante.</span>`;
+  const cat = CATEGORIAS[E.cat];
+  const ap = avisosPrecio(); const as = avisosStock();
+  /* Escena */
+  $('escena').innerHTML = `<h2>Escena de prueba</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end">
+      <div><label class="t">Proveedor</label><select data-a="factura"><option value="1" ${E.factura ? 'selected' : ''}>Con RUC (se supone factura)</option><option value="0" ${!E.factura ? 'selected' : ''}>«No tiene RUC» (sin factura)</option></select></div>
+      <div><label class="t">Llega a</label><select data-a="destino">${['Por repartir', 'Lima', 'Trujillo', 'Arequipa'].map((d) => `<option ${E.destino === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+      <div><label class="t">Cómo está el stock</label><select data-a="escena">${Object.entries(ESCENAS).map(([k, v]) => `<option value="${k}" ${E.escena === k ? 'selected' : ''}>${v.nombre}</option>`).join('')}</select></div>
+    </div>
+    <div style="margin-top:12px"><label class="t">Precio y costo de ejemplo</label><div class="barra" style="margin:0">${Object.keys(PRESETS).map((k) => `<button class="btn chico sutil" data-a="preset" data-k="${k}">${k}</button>`).join('')}</div></div>`;
+  /* Línea */
+  const costo = n2(E.costo), precio = n2(E.precio), dprov = (n2(E.desc) || 0) / 100, cant = n2(E.cant) || 0;
+  const subtotal = costo != null ? cant * costo * (1 - dprov) : null;
+  const c = ap.calc;
+  let resumen = '';
+  if (c && c.ganancia != null && precio > 0) {
+    const tono35 = ap.r35.g < 0 ? 'mal' : ap.r35.m < 0.2 ? 'ojo' : 'bien', tono15 = ap.r15.g < 0 ? 'mal' : ap.r15.m < 0.2 ? 'ojo' : 'bien';
+    const tonoG = c.ganancia <= 0 ? 'mal' : c.margen < 0.48 ? 'ojo' : 'bien';
+    resumen = `<div class="resumen">
+      <div class="res ${tonoG}"><b>${S_(c.ganancia)} · ${P_(c.margen * 100)}</b><span>Te quedan por prenda, sin IGV (${E.factura ? 'con factura' : 'sin factura'})</span></div>
+      <div class="res ${tono15}"><b>${S_(ap.r15.g)} · ${P_(ap.r15.m * 100)}</b><span>Si rebajas 15 %: la cobras a ${S_(ap.r15.pd)}</span></div>
+      <div class="res ${tono35}"><b>${S_(ap.r35.g)} · ${P_(ap.r35.m * 100)}</b><span>Si rebajas 35 % (el máximo de un líder): ${S_(ap.r35.pd)}</span></div>
+      <div class="res"><b>${cat.margenTipico != null ? cat.margenTipico + ' %' : '—'}</b><span>${cat.margenTipico != null ? `Ganancia típica de ${E.cat} (con ${cat.nCostos} prendas con costo)` : `Ganancia típica de ${E.cat}: sin datos de costo suficientes (${cat.nCostos})`}</span></div>
+    </div>
+    <div style="margin:-2px 0 8px"><button class="enlace" data-a="calc">${E.abiertos.calc ? 'Ocultar cómo se calcula' : '¿Cómo se calcula? (ganancia, recargo y rebaja)'}</button>
+    ${E.abiertos.calc ? `<div class="nota"><b>Tres palabras que no son lo mismo.</b> <b>Ganancia</b>: lo que te queda por prenda y qué parte del precio es (${S_(c.ganancia)}, ${P_(c.margen * 100)}). <b>Recargo</b>: cuántas veces el costo (cobras ${(precio / costo).toFixed(1).replace('.', ',')} veces lo que pagaste: +${Math.round((precio / costo - 1) * 100)} %); ojo, ×1,40 da 29 % de ganancia, no 40 %. <b>Rebaja</b>: lo que te queda si el precio baja. El IGV (18 %) del precio va a SUNAT; con factura, el IGV que pagaste de costo se recupera, así que el 18 % se cancela. Sin factura se queda dentro de tu costo y la ganancia baja. Todo es antes de pagar alquiler y sueldos.</div>` : ''}</div>`;
+  }
+  /* Escala de la categoría */
+  let escala = '';
+  if (cat.n >= 3 && precio > 0) {
+    const lo = Math.min(cat.min, precio) * 0.9, hi = Math.max(cat.max, precio) * 1.05; const pos = (v) => ((v - lo) / (hi - lo)) * 100;
+    escala = `<div class="escala" aria-hidden="true"><div class="pista"></div><div class="rango" style="left:${pos(cat.min)}%;width:${pos(cat.max) - pos(cat.min)}%"></div><div class="mid" style="left:${pos(cat.mediana)}%"></div><em style="left:${pos(cat.mediana)}%;top:-6px">precio del medio ${S_(cat.mediana)}</em><div class="px" style="left:${pos(precio)}%"></div><em style="left:${pos(precio)}%;top:30px">tu precio</em></div>`;
+  }
+  /* Avisos juntos, el más grave primero; el éxito solo si no hay error ni atención */
+  let todos = [...ap.A, ...as.A].sort((a, b) => RANGO[a.nivel] - RANGO[b.nivel]);
+  if (todos.some((a) => a.nivel === 'error')) todos = todos.filter((a) => a.nivel !== 'exito');   // no se aplaude una compra con un error de precio; «buena compra de stock» no evalúa el precio, así que convive con un aviso de atención
+  const visibles = E.verMas ? todos : todos.slice(0, 3), resto = todos.length - visibles.length;
+  const tarjeta = (a) => {
+    const sel = E.motivos[a.motivo] || [];
+    const motivo = a.motivo && MOTIVOS[a.motivo] ? `<div class="chips-wrap"><div style="margin-top:8px;font-weight:600;font-size:13px">${MOTIVOS[a.motivo].pregunta}</div><div class="chips">${MOTIVOS[a.motivo].opciones.map((o) => `<button class="chip ${sel.includes(o) ? 'on' : ''}" data-a="motivo" data-m="${a.motivo}" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>${sel.length ? `<div class="anotado">✓ Quedó anotado en la línea: ${esc(sel.join(' · '))}</div>` : ''}</div>` : '';
+    return `<div class="aviso ${a.nivel}"><span class="ico">${ICONO[a.nivel]}</span><div class="cuerpo"><div class="tag">${a.etiqueta}</div><p>${a.texto}</p>${motivo}<button class="enlace" data-a="por" data-id="${a.id}">${E.abiertos[a.id] ? 'Ocultar' : '¿Por qué?'}</button>${E.abiertos[a.id] ? `<div class="por">${a.por}<br><b>Idea detrás:</b> ${a.teoria}</div>` : ''}</div></div>`;
+  };
+  $('linea').innerHTML = `<div class="fila">
+      <div><label class="t">Categoría</label><select data-a="cat">${Object.keys(CATEGORIAS).map((k) => `<option ${E.cat === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+      <div><label class="t">Marca</label><select data-a="marca">${['CAYLA', 'Mía', 'Urbana'].map((k) => `<option ${E.marca === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+      <div><label class="t">Descripción <small>opcional</small></label><input type="text" data-a="descripcion" value="${esc(E.descripcion)}"></div>
+      <div><label class="t">Cantidad</label><input type="text" data-a="cant" value="${esc(E.cant)}" inputmode="numeric"></div>
+      <div><label class="t">Costo u.</label><input type="text" data-a="costo" value="${esc(E.costo)}" inputmode="decimal" placeholder="0.00"></div>
+      <div><label class="t">Descuento <small>si hay</small></label><input type="text" data-a="desc" value="${esc(E.desc)}" inputmode="decimal"></div>
+      <div><label class="t">Precio sugerido <small>sugerido</small></label><input type="text" data-a="precio" value="${esc(E.precio)}" inputmode="decimal" placeholder="0.00">
+        ${cat.n >= 3 ? `<button class="usar" data-a="usar">Usar el precio habitual: ${S_(cat.mediana)} · ${cat.n} prendas</button>` : `<span style="font-size:12px;color:var(--tinta-60);display:block;margin-top:6px">${E.cat} tiene ${cat.n === 0 ? '0 prendas' : cat.n + ' prenda' + (cat.n > 1 ? 's' : '')}: sin precio habitual.</span>`}</div>
+      <div><label class="t" style="text-align:right">Subtotal</label><div class="cifra">${subtotal != null ? S_(subtotal) : '—'}</div></div>
+    </div>
+    <div class="franja">${resumen}${escala}${visibles.map(tarjeta).join('')}
+      ${resto > 0 ? `<button class="btn chico sutil" data-a="mas">Ver ${resto} aviso${resto > 1 ? 's' : ''} más</button>` : E.verMas && todos.length > 3 ? `<button class="btn chico sutil" data-a="mas">Ver menos</button>` : ''}
+      <div class="nota">Nunca bloquea: esta ayuda avisa y explica. El precio sugerido es una <b>propuesta</b>: cuando llegue la mercadería, un líder lo confirma con un toque.</div>
+    </div>`;
+  /* Tiendas */
+  const al = as.al, esc_ = al.esc;
+  $('tiendas').innerHTML = `<h2>Stock por tienda <small style="font:500 12px var(--sans);color:var(--taupe)">(${E.cat})</small></h2>
+    <table class="t"><thead><tr><th>Tienda</th><th>Hay</th><th>En camino</th><th>Por llegar</th><th>Vende / sem</th><th>Alcanza</th></tr></thead><tbody>
+    ${SEDES.map((s) => { const x = esc_.sedes[s]; const r = x.u28 / Math.min(28, x.d); const enAlcance = al.lista.includes(s); const cob = x.d >= 14 ? semanas((x.S + x.C + x.P) / r) : 'sin ventas aún';
+      return `<tr class="${enAlcance ? 'dest' : 'fuera'}"><td>${NOMBRE_SEDE[s]}${x.d < 14 ? ' <small>(' + x.d + ' días de ventas)</small>' : ''}</td><td>${x.S}</td><td>${x.C}</td><td>${x.P}</td><td>${Math.round(7 * r)}</td><td>${cob}</td></tr>`; }).join('')}
+    </tbody></table>
+    <div class="nota">Quien tiene Órdenes de compra ve el desglose por tienda y el plan de campaña (decisión de Felipe). Con «Por repartir» se suman las tiendas con 14 días o más de ventas. Se cuenta también lo que ya viene en camino y lo ya pedido (órdenes de menos de 90 días).</div>`;
+  /* Leyenda */
+  $('leyenda').innerHTML = `<h2>Cómo se decide cada aviso</h2><ul style="margin:0;padding-left:18px">
+    <li><b>Ganancia:</b> precio ÷ 1,18 − costo real. Con factura el costo real es lo pagado ÷ 1,18 (el IGV se cancela); sin factura es lo pagado.</li>
+    <li><b>Rebaja:</b> el precio rebajado se redondea hacia abajo al S/ 0.10. <b>Piso:</b> aguanta 35 % de rebaja y deja 20 % (48 % de ganancia en lista).</li>
+    <li><b>Precio del medio:</b> normal 90–110 % · algo alto 110–125 % · alto 125–150 % · muy alto &gt; 150 % · bajo 50–90 % · muy bajo &lt; 50 % · sospecha de un cero a 8× o 1/8×. Cortes de diseño, ajustables.</li>
+    <li><b>Stock:</b> «te falta» ≤ 10 días · buena compra ≤ 2 semanas · «ya hay mucho» &gt; 3 semanas de venta (de tus tiempos: Lima el mismo día, Trujillo 1–2 días, Arequipa 2–4, y se compra 3 veces por semana).</li>
+    <li><b>Calla</b> si hay menos de 14 días de ventas, menos de 10 prendas vendidas, o más de 30 % de ventas sin registrar.</li>
+    <li>Máximo <b>3 avisos a la vista</b>, el más grave primero. «Buena compra» solo sale si no hay error ni atención.</li></ul>`;
+}
+
+/* ===== Eventos ===== */
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a;
+  if (a === 'tema') E.tema = E.tema === 'claro' ? 'oscuro' : 'claro';
+  else if (a === 'preset') { Object.assign(E, PRESETS[b.dataset.k]); }
+  else if (a === 'usar') E.precio = CATEGORIAS[E.cat].mediana.toFixed(2);
+  else if (a === 'por') E.abiertos[b.dataset.id] = !E.abiertos[b.dataset.id];
+  else if (a === 'calc') E.abiertos.calc = !E.abiertos.calc;
+  else if (a === 'mas') E.verMas = !E.verMas;
+  else if (a === 'motivo') { const m = b.dataset.m, o = b.dataset.o; const s = E.motivos[m] || []; E.motivos[m] = s.includes(o) ? s.filter((x) => x !== o) : [...s, o]; }
+  else return;
+  pintar();
+});
+document.addEventListener('change', (ev) => {
+  const t = ev.target; const a = t.dataset && t.dataset.a; if (!a) return;
+  if (a === 'factura') E.factura = t.value === '1'; else if (a === 'destino') E.destino = t.value; else if (a === 'escena') E.escena = t.value;
+  else if (a === 'cat') E.cat = t.value; else if (a === 'marca') E.marca = t.value; else return;
+  pintar();
+});
+document.addEventListener('input', (ev) => {
+  const t = ev.target; const a = t.dataset && t.dataset.a; if (!['cant', 'costo', 'desc', 'precio', 'descripcion'].includes(a || '')) return;
+  E[a] = t.value; const pos = t.selectionStart; pintar();
+  const nuevo = document.querySelector(`[data-a="${a}"]`); if (nuevo) { nuevo.focus(); try { nuevo.setSelectionRange(pos, pos); } catch (e) {} }
+});
+pintar();
+</script>
+</body>
+</html>

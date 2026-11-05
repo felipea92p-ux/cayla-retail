@@ -37,7 +37,7 @@ import "./estilos/aventurero.css";
 // declaran aquí con los valores de globals.css.
 const ESTILOS =
   "html{color-scheme:light;--ge-fondo:#f5f0e8;--ge-texto:#1a1a18;--ge-acento:#b8412d;--color-tinta-fija:#1a1a18;--color-crema-fija:#f5f0e8}" +
-  'html[data-tema="oscuro"]{color-scheme:dark;--ge-fondo:#1a1a18;--ge-texto:#f5f0e8;--ge-acento:#e8806a}' +
+  'html[data-tema="oscuro"]{color-scheme:dark;--ge-fondo:#1c1a17;--ge-texto:#f5f0e8;--ge-acento:#e8806a}' +
   ".ge-aventurero{margin:0 0 24px;border-radius:12px;overflow:hidden}";
 
 export default function ErrorGlobal({

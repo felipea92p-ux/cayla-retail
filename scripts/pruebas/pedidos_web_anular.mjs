@@ -60,7 +60,39 @@ const DE_LA_ACTIVIDAD_10 = [
   "supabase/migrations/20261015052000_pedidos_web_entregar.sql",
   "supabase/migrations/20261015053000_pedidos_web_en_finanzas.sql",
 ];
-const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder: ve todos los módulos y opera todas las tiendas
+// El cupón del Club en el pedido web (20261019224000, ADR-0459) es POSTERIOR y toca dos funciones que estas migraciones arman:
+//   - en `fn_pedido_web_verificar`, cambia el texto `vi.descuento_unitario = l.descuento` DENTRO de los bloques que 051000 y 114000
+//     insertaron (la línea de la venta lleva la campaña MÁS la parte del cupón), y suma su propio bloque del total menos el cupón;
+//   - en `fn_pedido_web_vender` (que 051000 recrea ENTERA, sin el cupón), suma el reparto del cupón, el cupón usado y los puntos.
+// Con eso, el texto «nuevo» de 051000 y de 114000 ya no está tal cual en la viva y sus reemplazos no se reconocen como aplicados: pegarlas
+// encima de 224000 DUPLICA sus bloques (y volver a pegar 224000 no los quita: lo mide el 2026-10-19 en la base de la rama). Por eso F
+// prueba lo que sí tiene que valer: con 224000 deshecha (las dos funciones vuelven a su punto de partida), estas se pegan dos veces y las
+// de la actividad 10 encima, sin duplicar nada; y volver a pegar 224000 después deja cada pieza suya una sola vez. Los pares [viejo,
+// nuevo] se leen del archivo para no copiarlos y se deshacen del último al primero; si la base no tiene uno, `replace` no cambia nada.
+const CUPON_WEB = readFileSync("supabase/migrations/20261019224000_club_puntos_pedido_web.sql", "utf8");
+const paresDe = (funcion, llamada, cierre) =>
+  [...CUPON_WEB.matchAll(
+    new RegExp(`pg_temp\\.${llamada}\\('(retail\\.${funcion}\\([^']*\\))',\\s*\\$v\\$([\\s\\S]*?)\\$v\\$,\\s*\\$v\\$([\\s\\S]*?)\\$v\\$${cierre}`, "g")
+  )].map((m) => ({ firma: m[1], viejo: m[2], nuevo: m[3] }));
+const PARES_CUPON_WEB = [
+  ...paresDe("fn_pedido_web_verificar", "reemplazar", ",\\s*1\\);"),
+  ...paresDe("fn_pedido_web_verificar", "reemplazar_todas", "\\);"),
+  ...paresDe("fn_pedido_web_vender", "reemplazar", ",\\s*1\\);"),
+];
+if (PARES_CUPON_WEB.length !== 6) {
+  console.error(`✗ Esperaba 6 reemplazos de 20261019224000 en fn_pedido_web_verificar (1 + 1 de todas) y fn_pedido_web_vender (4); encontré ${PARES_CUPON_WEB.length}.`);
+  process.exit(2);
+}
+// `replace` cambia TODAS las apariciones: también deshace el «todas» de verificar en los dos bloques.
+const DESHACER_CUPON_WEB = `do $deshacer_cupon_web$
+begin
+${[...PARES_CUPON_WEB]
+  .reverse()
+  .map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`)
+  .join("\n")}
+end $deshacer_cupon_web$;
+`;
+const FELIPE ="22222222-2222-4222-8222-000000000001"; // líder: ve todos los módulos y opera todas las tiendas
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin el módulo «Pedidos web»
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
@@ -977,10 +1009,13 @@ async function main() {
   const textos = MIGRACIONES.map((f) => readFileSync(f, "utf8"));
   const actividad10 = DE_LA_ACTIVIDAD_10.map((f) => readFileSync(f, "utf8"));
   total++;
+  // 224000 se deshace antes y se vuelve a pegar al final (ver CUPON_WEB arriba); el anular de abajo corre ya con el cupón puesto.
   const dosVeces = correr(`${PREPARAR_BASE}
+${DESHACER_CUPON_WEB}
 ${textos.join("\n")}
 ${textos.join("\n")}
 ${actividad10.join("\n")}
+${CUPON_WEB}
 set local request.jwt.claim.sub = '${FELIPE}';
 ${pagado("a")}
 select pg_temp.aceptada(:'a'), pg_temp.serie_nota(:'tru');
@@ -998,11 +1033,19 @@ select concat_ws('|', ${anular("a")} ->> 'estado',
   pg_temp.veces('retail.fn_pedidos_web_de_clienta(uuid, integer, integer)', '''devuelto'''),
   pg_temp.veces('retail.fn_bal_stock(date)', 'anulado_web as ('),
   pg_temp.veces('retail.fn_bal_stock(date)', 'vendido_web as ('),
+  -- Y lo de 224000, vuelto a pegar encima: su bloque una vez, la comparación sin la parte del club en los DOS bloques (y ninguna vieja),
+  -- y en vender el reparto, el cupón usado y los puntos una vez cada uno.
+  pg_temp.veces('retail.fn_pedido_web_verificar(uuid)', 'el total es la suma de sus prendas menos el cupón'),
+  pg_temp.veces('retail.fn_pedido_web_verificar(uuid)', 'vi.descuento_unitario - vi.descuento_club_unitario = l.descuento))'),
+  pg_temp.veces('retail.fn_pedido_web_verificar(uuid)', 'vi.descuento_unitario = l.descuento))'),
+  pg_temp.veces('retail.fn_pedido_web_vender(uuid, uuid)', 'v_cupon_partes := retail.fn_club_repartir_vale('),
+  pg_temp.veces('retail.fn_pedido_web_vender(uuid, uuid)', 'k.pedido_web_id = p.id'),
+  pg_temp.veces('retail.fn_pedido_web_vender(uuid, uuid)', 'fn_club_puntos_por_venta(v_venta)'),
   ${VERIFICAR_YA} = '');
 rollback;
 `);
-  const okDos = dosVeces.ok && dosVeces.salida.split("\n").pop() === "anulado|1|1|1|1|2|1|1|1|1|1|t";
-  console.log(`${okDos ? "✓" : "✗"} las dos migraciones se pueden pegar dos veces, y las de la actividad 10 se pueden volver a pegar después: nada se duplica y anular sigue funcionando`);
+  const okDos = dosVeces.ok && dosVeces.salida.split("\n").pop() === "anulado|1|1|1|1|2|1|1|1|1|1|1|2|0|1|1|1|t";
+  console.log(`${okDos ? "✓" : "✗"} las dos migraciones se pueden pegar dos veces, y las de la actividad 10 se pueden volver a pegar después (con el cupón web de 20261019224000 deshecho antes y vuelto a pegar al final): nada se duplica y anular sigue funcionando`);
   if (!okDos) {
     fallos++;
     console.log(`    ${dosVeces.ok ? dosVeces.salida.split("\n").pop() : dosVeces.mensaje.split("\n").slice(0, 6).join("\n    ")}`);

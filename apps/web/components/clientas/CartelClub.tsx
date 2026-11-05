@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { NIVEL_QR, ZONA_MUDA_MODULOS } from "@/lib/qr";
 import { cartelesDelClub, type CartelDeTienda } from "@/lib/club-qr-reglas";
 import { CARTEL_INVITACION, letraChicaDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
@@ -19,8 +20,9 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 // Ninguna cifra está escrita aquí: las tres líneas y la letra chica las arma `lib/club-cartel-reglas.ts` con los beneficios que
 // leyó el servidor. Sin ellos no se dibuja ningún cartel (ni en pantalla ni en la impresora): la pantalla dice por qué.
 //
-// Cada QR abre la tienda online (`DIRECCION_TIENDA_ONLINE`): ahí la persona crea su cuenta y entra al Club (Felipe 2026-10-16,
-// 20261016154000). Es la misma para todas las tiendas; los carteles impresos antes llevan a `/club/<uuid>`, que redirige ahí.
+// Cada QR abre la tienda online (`ENLACE_DEL_CARTEL`, con la marca `?utm_source=qr` para que Tienda web ▸ Tráfico cuente a quien escanea,
+// ADR-0495): ahí la persona crea su cuenta y entra al Club (Felipe 2026-10-16, 20261016154000). Es la misma para todas las tiendas; los
+// carteles impresos antes llevan a `/club/<uuid>`, que redirige ahí. Lo escrito bajo el QR sigue siendo «cayla.pe», sin la marca.
 
 const sinSuscripcion = () => () => {};
 
@@ -59,7 +61,7 @@ export function CartelClub({
       <EncabezadoPagina
         sede="Todas las sedes"
         titulo="Cartel del club"
-        subtitulo="Una hoja A4 por tienda para el mostrador: el cliente escanea el QR, crea su cuenta en tienda.cayla.pe y así entra al Club CAYLA."
+        subtitulo="Una hoja A4 por tienda para el mostrador: el cliente escanea el QR, crea su cuenta en cayla.pe y así entra al Club CAYLA."
         pie={volver}
         acciones={
           <BotonImprimir peso="primario" disabled={!hay || !textos || !montado} onClick={() => window.print()}>
@@ -99,14 +101,14 @@ export function CartelClub({
                 <b>{sinNumero.join(", ")}</b> {sinNumero.length === 1 ? "no tiene" : "no tienen"} número de WhatsApp: el cartel sirve igual, pero
                 {sinNumero.length === 1 ? "esa tienda no tiene" : "esas tiendas no tienen"} desde dónde escribir las novedades del Club. El
                 líder lo carga en{" "}
-                <Link href="/configuracion?tab=tiendas" className="btn-enlace">
-                  Configuración ▸ Tiendas y caja
+                <Link href="/configuracion?tab=empresa" className="btn-enlace">
+                  Configuración ▸ Empresa y tiendas
                 </Link>
                 .
               </p>
             )}
             <p className="nota-cayla">
-              Antes de pegarlo, escanéalo con un celular: tiene que abrir la tienda online, <b>tienda.cayla.pe</b>. Ahí el cliente crea
+              Antes de pegarlo, escanéalo con un celular: tiene que abrir la tienda online, <b>cayla.pe</b>. Ahí el cliente crea
               su cuenta y entra al Club. Al imprimir, papel A4 y, si el navegador pregunta por los márgenes, «Ninguno»: el fondo va hasta
               el borde de la hoja.
             </p>
@@ -138,8 +140,9 @@ function Cartel({ cartel, textos }: { cartel: CartelDeTienda; textos: TextosCart
       <div className="cartel-club-marco">
         <div className="cartel-club-interior">
           <div className="cartel-club-cabeza">
-            {/* eslint-disable-next-line @next/next/no-img-element -- se imprime: una <img> normal se decodifica antes de `print()` */}
-            <img src="/cayla-isotipo.png" alt="" className="cartel-club-isotipo" />
+            {/* El logo oficial (ADR-0446) en crema sobre el rojo profundo; debajo, «CLUB» en versalitas. */}
+            <LogoCayla tinta="actual" className="cartel-club-logo" />
+            <span className="sr-only">CAYLA</span>
             <span className="cartel-club-sello">{CARTEL_INVITACION.sello}</span>
           </div>
 
@@ -174,7 +177,7 @@ function Cartel({ cartel, textos }: { cartel: CartelDeTienda; textos: TextosCart
                 bgColor="transparent"
                 fgColor="currentColor"
                 role="img"
-                aria-label={`QR del Club CAYLA de ${cartel.tienda}: abre tienda.cayla.pe`}
+                aria-label={`QR del Club CAYLA de ${cartel.tienda}: abre cayla.pe`}
               />
             </div>
             <p className="cartel-club-escanea">{CARTEL_INVITACION.escanea}</p>

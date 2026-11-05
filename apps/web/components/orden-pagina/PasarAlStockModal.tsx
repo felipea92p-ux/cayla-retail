@@ -9,7 +9,8 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton } from "@/components/ui/campos";
+import { Casilla } from "@/components/ui/Casilla";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { soles } from "@/lib/compras-reglas";
@@ -17,17 +18,26 @@ import { leerCostoAtipico, type CostoAtipico } from "@/lib/costo-atipico-reglas"
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeCierre } from "@/lib/orden-pagina-guia";
 import {
+  MAX_MOTIVO_CAMBIO,
   RPC_CERRAR_PRODUCCION,
+  RPC_CERRAR_PRODUCCION_CON_MOTIVO,
+  RPC_MARCAR_YA_EN_STOCK,
+  RPC_PERMITIR_SIN_TELA,
   cantidadesTerminadas,
+  fasesSinRegistrar,
+  pendienteConCosto,
   lineasDeCierre,
+  problemaDeMotivoCambio,
   problemasDeCierre,
   resumenDeCierre,
+  TEXTO_YA_ESTABA,
   textoPasasteAlStock,
+  textoQuePasaConElStock,
   totalDeCierre,
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
-import { avisoTelaSinAnotar } from "@/lib/orden-tela-sin-anotar-reglas";
+import { MOTIVOS_SIN_TELA, avisoSinTelaDeclarada, avisoTelaSinAnotar, frenoSinTelaDeclarada, permisoSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
 import { urlLlevarATiendas } from "@/lib/produccion-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
@@ -39,10 +49,28 @@ import { useResponsable } from "@/lib/useResponsable";
 // las buenas. El costo de los servicios sale de lo devengado, ya no se teclea; quien ve los costos del Taller ve aquí cuánto sale cada prenda. Si la base dice que el costo por prenda sale
 // fuera de lo normal (`costo_atipico`), un líder lo confirma en línea, como siempre. Una muestra solo se da por terminada: no toca el stock. Un doble clic no cierra dos veces: una marca
 // síncrona corta la segunda llamada (y la base ya rechaza una orden cerrada).
-// Si la tela del lote todavía no se anotó (plan > 0 y nada usado), un aviso lo dice antes del botón: el costo por prenda saldría sin tela y alimenta el promedio de la prenda en todas las sedes
-// (ADR-0400, «Tela y costo honestos» b; OK de Felipe 2026-10-16). Es un aviso y nunca un candado: «Pasar al stock» sigue disponible, y «Anotarla ahora» deja esta hoja y abre «Anotar lo que usaste».
+// La tela sin anotar (plan > 0 y nada usado) FRENA el paso al stock desde ADR-0570 (actividad 4; Felipe 2026-10-29: «sin tela anotada no pasa al stock, salvo el Líder o el Admin con
+// motivo»): el costo por prenda saldría sin tela y alimentaría el promedio de la prenda en todas las sedes. «Anotar cuánto quedó» deja esta hoja y abre esa. Un líder puede, en cambio, dejarla
+// pasar sin tela con su porqué: la hoja llama primero a `permitir_pasar_sin_tela` (queda en la historia) y después a `cerrar_produccion`, que lo vuelve a comprobar (`cierre_sin_tela`).
+// Una orden que no declaró ninguna tela se frena igual, solo en esta hoja (ADR-0600, Felipe 2026-11-02): la salida es «Declarar la tela» o el permiso de un líder con su porqué. La base no lo exige
+// (ADR-0570, actividad 4, DESCARTÉ: 23 suites de otros módulos cierran órdenes sin tela); si alguien llama `cerrar_produccion` sin pasar por aquí, ese camino sigue abierto.
 
-export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: OrdenPagina; onClose: () => void; /** Deja esta hoja y abre «Anotar lo que usaste» con esa tela. Sin esto, el aviso se muestra sin el botón. */ alAnotarTela?: (insumoId: string) => void }) {
+export function PasarAlStockModal({
+  datos,
+  onClose,
+  alAnotarTela,
+  alDeclararTela,
+  esLider = false,
+}: {
+  datos: OrdenPagina;
+  onClose: () => void;
+  /** Deja esta hoja y abre «¿Cuánto quedó en el estante?». Sin esto, el aviso se muestra sin el botón. */
+  alAnotarTela?: () => void;
+  /** Deja esta hoja y abre «Declarar tela y avíos». Sin esto (la cuenta no puede editar la tela), el aviso se muestra sin el botón. */
+  alDeclararTela?: () => void;
+  /** La cuenta es líder: puede dejar pasar sin tela, con su porqué. */
+  esLider?: boolean;
+}) {
   const router = useRouter();
   const { orden, fases, lineas: lineasOrden } = datos;
   const responsable = useResponsable({ ubicacionId: orden.ubicacionId, etiqueta: orden.ubicacionNombre });
@@ -52,6 +80,13 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
   // Lo que contestó la base cuando el costo por prenda salió atípico; mientras haya algo aquí, la pregunta está abierta.
   const [atipico, setAtipico] = useState<CostoAtipico | null>(null);
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
+  // «Ya estaban registradas» (ADR-0551 C): la orden puede venir marcada por un líder; solo un líder la cambia aquí. Una muestra no toca el stock: no se pregunta.
+  const marcadaEnLaOrden = orden.ingresoAlStock === "ya_estaba";
+  const [yaEstaba, setYaEstaba] = useState(marcadaEnLaOrden);
+  // Lo que la base tiene ahora: si el cierre falla después de marcar (p. ej. `ya_estaba_sin_registro`) y la persona cambia de idea, la hoja sigue abierta con datos viejos.
+  const marcaEnBase = useRef(marcadaEnLaOrden);
+  const yaEstabaEfectivo = !orden.esMuestra && (esLider ? yaEstaba : marcadaEnLaOrden);
 
   const ultima = [...fases].sort((a, b) => a.secuencia - b.secuencia).at(-1) ?? null;
   const tabla = useMemo(() => tablaDeModeloExistente(lineasOrden.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [lineasOrden]);
@@ -64,10 +99,33 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
   const problemas = problemasDeCierre(fases, lineasOrden, cantidades, nombreDe);
   const resumen = resumenDeCierre(datos, total);
   const telaSinAnotar = avisoTelaSinAnotar(datos.insumos, orden.esMuestra);
-  const guia = useGuiaCampos(camposDeCierre({ total, problemas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
+  // Sin tela declarada (ADR-0600): frena igual que la tela sin anotar, pero la salida es «Declarar la tela» y no «Anotar cuánto quedó». Un freno u otro, nunca los dos.
+  const sinTelaFrena = frenoSinTelaDeclarada(datos.insumos, orden.esMuestra, yaEstabaEfectivo);
+  const bloqueoTela = telaSinAnotar ? { texto: telaSinAnotar.texto, salida: "anotar" as const } : sinTelaFrena ? { texto: sinTelaFrena.texto, salida: "declarar" as const } : null;
+  const permiso = permisoSinTela(datos.cambios);
+  const frenaTela = bloqueoTela !== null && permiso === null;
+  const [porqueSinTela, setPorqueSinTela] = useState("");
+  const problemaPorque = problemaDeMotivoCambio(porqueSinTela);
+  const sinTela = avisoSinTelaDeclarada(datos.insumos, orden.esMuestra);
+  // Fases que salieron afuera sin registrar quién (ADR-0551): las que llevan costo lo devengan igual (su costo SÍ entra al de las prendas); las que no, no suman nada. Es un aviso, nunca un candado (como la tela sin anotar).
+  const sinRegistrar = fasesSinRegistrar(fases);
+  const sinRegistrarSinCosto = sinRegistrar.filter((f) => !pendienteConCosto(f));
+  const sinRegistrarConCosto = sinRegistrar.filter((f) => pendienteConCosto(f));
+  const guia = useGuiaCampos(
+    camposDeCierre({
+      total,
+      problemas: problemas.map((p) => p.texto),
+      responsableListo: responsable.listo,
+      tela: frenaTela
+        ? esLider
+          ? { hecho: problemaPorque === null, pendiente: bloqueoTela?.salida === "declarar" ? "Declara la tela o, si de verdad pasa sin tela, cuenta por qué." : "Anota cuánto quedó de la tela o, si de verdad pasa sin tela, cuenta por qué." }
+          : { hecho: false, pendiente: bloqueoTela?.salida === "declarar" ? "Declara la tela, o pide a un líder que la deje pasar sin tela." : "Anota cuánto quedó de la tela, o pide a un líder que la deje pasar sin tela." }
+        : null,
+    })
+  );
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
-  const fotoActual = fotoFormulario({ cantidades });
+  const fotoActual = fotoFormulario({ cantidades, porqueSinTela, yaEstaba });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Cambiaste cuántas salieron buenas y todavía no se pasó nada al stock. Si cierras ahora, se pierde lo que cambiaste.");
   function cerrarTrasGuardar() {
@@ -76,10 +134,20 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
     void guardiaFuera.then(() => router.refresh());
   }
 
-  async function confirmar(confirmaCostoAtipico = false) {
+  async function confirmar(confirmaCostoAtipico = false, motivoCosto = "") {
     if (enVuelo.current) return;
     if (problemas.length > 0) {
       avisar.error(problemas[0].texto);
+      return;
+    }
+    if (frenaTela && (!esLider || problemaPorque)) {
+      avisar.error(
+        esLider
+          ? (problemaPorque ?? "")
+          : bloqueoTela?.salida === "declarar"
+            ? "Falta declarar la tela: declara cuál lleva, o pide a un líder que la deje pasar sin tela."
+            : "Falta anotar la tela: anota cuánto quedó, o pide a un líder que la deje pasar sin tela."
+      );
       return;
     }
     if (!responsable.listo) {
@@ -90,11 +158,34 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
     setCargando(true);
     let resultado;
     try {
+      // El permiso de pasar sin tela va antes, en su propia llamada: queda en la historia aunque el paso al stock falle después (y entonces no hace falta pedirlo otra vez).
+      if (frenaTela) {
+        const { error: errorPermiso } = await firmar(createClient().rpc(RPC_PERMITIR_SIN_TELA as never, { p_produccion_id: orden.id, p_motivo: porqueSinTela.trim() } as never), responsable.firma());
+        if (errorPermiso) {
+          responsable.despues(errorPermiso);
+          setCargando(false);
+          avisar.error(traducirError(errorPermiso, "dejarla pasar sin tela", { confirmarAntesDeRepetir: true }));
+          router.refresh();
+          return;
+        }
+      }
+      // La marca «ya estaban registradas» se escribe ANTES del cierre, como el permiso sin tela: la base la lee al cerrar y la vuelve a comprobar (`ya_estaba_sin_registro`). Si cambió de lo que dice la orden, se firma aparte.
+      if (esLider && !orden.esMuestra && yaEstaba !== marcaEnBase.current) {
+        const { error: errorMarca } = await firmar(createClient().rpc(RPC_MARCAR_YA_EN_STOCK as never, { p_produccion_id: orden.id, p_ya_estaba: yaEstaba } as never), responsable.firma());
+        if (errorMarca) {
+          responsable.despues(errorMarca);
+          setCargando(false);
+          avisar.error(traducirError(errorMarca, "marcar que las prendas ya estaban registradas"));
+          return;
+        }
+        marcaEnBase.current = yaEstaba;
+      }
       // Los montos van en `null` a propósito: la base toma la tela y los avíos del libro de insumos y los servicios de lo devengado.
       resultado = await firmar(
         createClient().rpc(
-          RPC_CERRAR_PRODUCCION as never,
-          { p_produccion_id: orden.id, p_buenas: lineasDeCierre(lineasOrden, cantidades), p_costo_tela: null, p_costo_avios: null, p_costo_maquila: null, ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true } : {}) } as never
+          // Confirmar un costo atípico va por la puerta con motivo (P19); lo demás, por la de siempre.
+          (confirmaCostoAtipico ? RPC_CERRAR_PRODUCCION_CON_MOTIVO : RPC_CERRAR_PRODUCCION) as never,
+          { p_produccion_id: orden.id, p_buenas: lineasDeCierre(lineasOrden, cantidades), p_costo_tela: null, p_costo_avios: null, p_costo_maquila: null, ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true, p_motivo: motivoCosto } : {}) } as never
         ),
         responsable.firma()
       );
@@ -116,9 +207,9 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
     }
     setAtipico(null);
     // «Siguiente paso: llevarlas a las tiendas»: el aviso trae el botón directo al traslado con el origen y las líneas ya puestas (solo un lote, no una muestra).
-    const llevar = orden.esMuestra ? null : urlLlevarATiendas(orden.ubicacionId, lineasDeCierre(lineasOrden, cantidades).map((l) => ({ varianteId: l.variante_id, cantidadBuenas: l.cantidad })));
-    avisar.exito(textoPasasteAlStock(total, orden.producto.referencia, orden.esMuestra), {
-      detalle: resumen.costoPorPrenda !== null && !orden.esMuestra ? `Costo real ${soles(resumen.costoPorPrenda)} por prenda` : "Siguiente paso: llevarlas a las tiendas",
+    const llevar = orden.esMuestra || yaEstabaEfectivo ? null : urlLlevarATiendas(orden.ubicacionId, lineasDeCierre(lineasOrden, cantidades).map((l) => ({ varianteId: l.variante_id, cantidadBuenas: l.cantidad })));
+    avisar.exito(textoPasasteAlStock(total, orden.producto.referencia, orden.esMuestra, yaEstabaEfectivo), {
+      detalle: resumen.costoPorPrenda !== null && !orden.esMuestra ? `Costo real ${soles(resumen.costoPorPrenda)} por prenda` : yaEstabaEfectivo ? "El stock queda como estaba" : "Siguiente paso: llevarlas a las tiendas",
       duracion: 9000,
       ...(llevar ? { accion: { texto: "Llevarlas a las tiendas", onClick: () => router.push(llevar) } } : {}),
     });
@@ -137,6 +228,8 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+          if (frenoCantidades.current?.()) return;
           void confirmar();
         }}
         className="mt-3.5 space-y-5"
@@ -145,6 +238,7 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
           <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
             <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas salieron buenas por talla y color")}</span>
             <MatrizCantidades
+              freno={frenoCantidades}
               soloCantidades
               teclado
               celdas={tabla.celdas}
@@ -165,20 +259,19 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
                 return [l?.codigo, puede > 0 ? `se terminaron ${puede}` : "no se terminó ninguna"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Solo las buenas entran al stock.</p>
+            <p className="text-sm text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Solo las buenas entran al stock.</p>
           </CampoGuiado>
         </div>
 
         <div data-guia="prod-orden-stock.resumen" className="space-y-2 rounded-xl bg-hueso px-4 py-3 text-sm">
           <p className="flex items-baseline justify-between gap-3">
             <span className="text-tinta/75">
-              {orden.esMuestra ? "La muestra se da por terminada" : `Entran ${total} ${total === 1 ? "prenda" : "prendas"} al stock del Taller`}
-              {orden.esMuestra ? "" : " y cada talla queda en Movimientos"}
+              {textoQuePasaConElStock(total, orden.esMuestra, yaEstabaEfectivo)}
             </span>
             {resumen.costoPorPrenda !== null && !orden.esMuestra && <span className="font-display text-lg tabular-nums text-tinta">{soles(resumen.costoPorPrenda)} / prenda</span>}
           </p>
           {(resumen.segundas > 0 || resumen.faltantes > 0) && (
-            <p className="text-xs text-tinta/70">
+            <p className="text-sm text-tinta/70">
               {[resumen.segundas > 0 ? `${resumen.segundas} ${resumen.segundas === 1 ? "segunda" : "segundas"}` : null, resumen.faltantes > 0 ? `${resumen.faltantes} ${resumen.faltantes === 1 ? "faltante" : "faltantes"}` : null]
                 .filter(Boolean)
                 .join(" y ")}{" "}
@@ -187,24 +280,108 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
             </p>
           )}
           {resumen.costoTotal !== null && !orden.esMuestra && total > 0 && (
-            <p className="text-xs text-tinta/65">
+            <p className="text-sm text-tinta/65">
               Costo real hasta hoy: {soles(resumen.costoTotal)} (tela, avíos y servicios, tal como están en la orden).
             </p>
           )}
         </div>
 
-        {telaSinAnotar && (
+        {!orden.esMuestra && esLider && (
+          // La lámina de vidrio de toda tarjeta dentro de una hoja (vidrio/hoja.css), no un recuadro de papel con borde arena.
+          <div data-guia="prod-orden-stock.ya-estaba" className="card-cayla px-4 py-3">
+            <label className="flex cursor-pointer items-start gap-3">
+              <Casilla marcada={yaEstaba} onCambio={() => setYaEstaba((v) => !v)} etiqueta={TEXTO_YA_ESTABA.etiqueta} disabled={cargando} className="mt-0.5" />
+              <span className="space-y-0.5">
+                <span className="block text-sm text-tinta">{TEXTO_YA_ESTABA.etiqueta}</span>
+                <span className="block text-xs text-tinta/70">{TEXTO_YA_ESTABA.ayuda}</span>
+              </span>
+            </label>
+          </div>
+        )}
+        {!orden.esMuestra && !esLider && marcadaEnLaOrden && (
+          <Aviso tono="info" chico>
+            {TEXTO_YA_ESTABA.avisoParaOtros}
+          </Aviso>
+        )}
+
+        {sinTela && !bloqueoTela && (
           <Aviso
             tono="atencion"
             accion={
-              alAnotarTela ? (
-                <Boton type="button" peso="fantasma" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(() => alAnotarTela(telaSinAnotar.insumoId))}>
-                  Anotarla ahora
+              alDeclararTela ? (
+                <Boton type="button" peso="fantasma" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(alDeclararTela)}>
+                  Declarar la tela
                 </Boton>
               ) : undefined
             }
           >
-            {telaSinAnotar.texto}
+            {sinTela.texto}
+          </Aviso>
+        )}
+
+        {sinRegistrarSinCosto.length > 0 && (
+          <Aviso tono="atencion">
+            {sinRegistrarSinCosto.map((f) => f.nombre).join(", ")} {sinRegistrarSinCosto.length === 1 ? "salió afuera sin proveedor y sin costo: no entra" : "salieron afuera sin proveedor y sin costo: no entran"} al costo de las prendas. Escribe lo que cuesta
+            (o regístralo) en la fase antes de pasar al stock; después de pasar ya no se puede.
+          </Aviso>
+        )}
+
+        {sinRegistrarConCosto.length > 0 && (
+          <Aviso tono="info">
+            {sinRegistrarConCosto.map((f) => f.nombre).join(", ")} {sinRegistrarConCosto.length === 1 ? "sigue sin proveedor registrado" : "siguen sin proveedor registrado"}: su costo sí entra al de las prendas. Cuando sepas quién fue, regístralo en la fase.
+          </Aviso>
+        )}
+
+        {bloqueoTela && frenaTela && (
+          <div data-guia="prod-orden-stock.tela" className="space-y-3">
+            <CampoGuiado id="tela" guia={guia} className="space-y-3">
+              <Aviso
+                tono="error"
+                accion={
+                  bloqueoTela.salida === "declarar" ? (
+                    alDeclararTela ? (
+                      <button type="button" className="btn-cayla btn-enlace" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(alDeclararTela)}>
+                        Declarar la tela
+                      </button>
+                    ) : undefined
+                  ) : alAnotarTela ? (
+                    <button type="button" className="btn-cayla btn-enlace" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(alAnotarTela)}>
+                      Anotar cuánto quedó
+                    </button>
+                  ) : undefined
+                }
+              >
+                {bloqueoTela.texto}
+              </Aviso>
+              {esLider ? (
+                <div className="space-y-2 rounded-xl bg-hueso px-4 py-3">
+                  <span className={campoEtiqueta}>{guia.etiqueta("tela", "¿La dejas pasar sin tela?")}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {MOTIVOS_SIN_TELA.map((m) => (
+                      <button key={m} type="button" className="pildora-cayla" aria-pressed={porqueSinTela === m} onClick={() => setPorqueSinTela(m)}>
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                  <CampoTexto
+                    id="stock-sin-tela"
+                    etiqueta="O cuéntalo con tus palabras"
+                    pie="Solo un líder. Queda en la historia de la orden y el costo de la prenda sale sin tela."
+                    value={porqueSinTela}
+                    onChange={(e) => setPorqueSinTela(e.target.value)}
+                    maxLength={MAX_MOTIVO_CAMBIO}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-tinta/70">Si de verdad pasa sin tela, un líder puede dejarla pasar desde esta misma hoja, con su porqué.</p>
+              )}
+            </CampoGuiado>
+          </div>
+        )}
+
+        {bloqueoTela && permiso && (
+          <Aviso tono="info" chico>
+            {permiso.quienNombre ?? "Un líder"} la dejó pasar sin tela: «{permiso.texto}».
           </Aviso>
         )}
 
@@ -212,7 +389,7 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
           <CampoGuiado id="quien" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
           </CampoGuiado>
-          {!atipico && <PieGuia guia={guia} listo={orden.esMuestra ? "Todo listo para terminar la muestra." : "Todo listo para pasar al stock."} conFrase />}
+          {!atipico && <PieGuia guia={guia} listo={orden.esMuestra ? "Todo listo para terminar la muestra." : yaEstabaEfectivo ? "Todo listo para cerrar la orden." : "Todo listo para pasar al stock."} conFrase />}
           {atipico && (
             <AvisoCostoAtipico
               costos={[atipico]}
@@ -224,7 +401,8 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
               listo={responsable.listo}
               motivoNoListo={responsable.motivo}
               onCorregir={() => avisoSalida.pedirAccion(onClose)}
-              onConfirmar={() => void confirmar(true)}
+              conMotivo
+              onConfirmar={(motivo) => void confirmar(true, motivo)}
             />
           )}
         </div>
@@ -241,8 +419,8 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Pasando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-                {orden.esMuestra ? "Terminar muestra" : total > 0 ? `Pasar ${total} al stock` : "Pasar al stock"}
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando={yaEstabaEfectivo ? "Cerrando…" : "Pasando…"} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+                {orden.esMuestra ? "Terminar muestra" : yaEstabaEfectivo ? "Cerrar la orden" : total > 0 ? `Pasar ${total} al stock` : "Pasar al stock"}
               </Boton>
             </div>
           </div>

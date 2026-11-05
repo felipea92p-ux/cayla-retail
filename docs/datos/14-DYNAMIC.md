@@ -503,7 +503,36 @@ Dos avisos para quien lo construya:
   se pega a la prenda, no gasto administrativo. Esa es la conexión directa con
   el módulo 10 y la razón de que D-33 y D-31 se construyan juntas.
 
+### 7.3 La planilla ESTIMADA mientras Dynamic no paga (ADR-0453, 2026-10-17)
+
+`planilla_por_sede` solo trae períodos pagados: casi todo el mes cada sede se veía sin sueldos. Retail ahora también lee la boleta EN VIVO del período
+abierto, **por la puerta oficial** `public.fn_proyeccion_periodo(periodo)` (concedida a `authenticated`, con la guardia `fn_es_admin_o_lider()` adentro; la
+misma que alimenta la pantalla de Planilla de Dynamic) y la agrega por sede en `retail.fn_planilla_provision`:
+
+| Qué | Cómo se lee |
+|---|---|
+| Qué períodos | `public.periodos_planilla` con `estado <> 'pagado'` cuyo `fecha_fin` cae en el rango (el que termina en un mes es la planilla de ese mes, D-35) |
+| Qué filas | `filas[]` de la boleta: `sede`, `tipo_vinculo` (sin `prueba`), `sueldo_fijo`, `total`, `provision_total` |
+| Cuánto cuesta | `total + provision_total`, igual que `planilla_por_sede` |
+| Hasta hoy | quien cobra por horas, lo que trae la boleta (las horas ya trabajadas); con `sueldo_fijo`, la boleta ya trae el mes ENTERO: se prorratea por los días corridos del período |
+| Al cierre | las horas al ritmo de lo trabajado + el fijo entero; solo con 7 días corridos o más |
+| Privacidad | solo importes por sede, con el mismo piso (menos de 3 personas, oculta); nunca nombre ni sueldo de una persona |
+
+**Lo que NO se usa, a propósito:** `fn_planilla_calcular` y su núcleo (Dynamic los deja sin permiso para `authenticated`: «la defensa real es nunca conceder
+EXECUTE»). **Qué rompería esto desde Dynamic:** renombrar una de las claves de arriba o dejar de devolver `filas`; la provisión saldría vacía y el mes volvería a
+verse sin sueldos, sin error. Quien toque esa boleta debe avisar a retail.
+
 ---
+
+
+**Lo de hoy (act. 2026-10-22, `20261022081000`).** Dynamic no cuenta el día en curso: `horas_trabajadas` queda NULL hasta que hay `salida_final`. Retail estima el día con
+`retail.fn_planilla_hoy_por_sede`: lee `public.marcajes` de hoy (no anuladas; entrada, `salida_*`, `retorno_*`, `salida_final`) y las tasas de la boleta
+(`pago_base`, `descuento_afp`, `provision_total`, `horas_mes`, `monto_movilidad`, `dias_trabajados`) y entrega la columna `hoy_estimado` (por sede, nula si hoy es feriado en `feriados` o
+si algo falla). Medido contra 17 días reales: ±5 % del día en 13 de 17. **Si Dynamic renombra alguna de esas claves o cambia los tipos de marcación, sale nulo sin error.**
+
+**El costo es el costo real (ADR-0474, `20261022164000`).** `retail.planilla_por_sede.costo_total` ya no es `v_planilla_pagada.costo_total` de Dynamic (`total + provision_total`, donde `total` es lo
+que RECIBE la persona): es `total + descuento_pension + retencion_4ta + aporte_essalud + provision_total` (bruto + EsSalud + provisiones). La provisión de un período abierto hace lo mismo con las claves
+`descuento_afp`, `retencion_4ta`, `aporte_essalud` de la boleta, y prorratea el EsSalud por días corridos (en un período abierto es el del mes entero). **Si Dynamic renombra esos campos, el costo vuelve a verse corto sin error.**
 
 ## 8. Qué NO se puede tocar desde retail
 

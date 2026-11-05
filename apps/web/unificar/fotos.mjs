@@ -44,10 +44,8 @@ export const RUTAS = [
   { ruta: "/caja/historial", nombre: "Historial de caja" },
   { ruta: "/clientas", nombre: "Clientes" },
   { ruta: "/clientas/avisos", nombre: "Avisos del club" },
-  { ruta: "/compras", nombre: "Facturas de proveedor" },
-  { ruta: "/compras/nueva", nombre: "Registrar factura" },
+  { ruta: "/compras", nombre: "Historial de compras" },
   { ruta: "/compras/por-pagar", nombre: "Por pagar" },
-  { ruta: "/compras/notas-credito", nombre: "Notas de crédito" },
   { ruta: "/compras/proveedores", nombre: "Proveedores" },
   { ruta: "/recibir", nombre: "Recibir mercadería" },
   { ruta: "/productos", nombre: "Productos" },
@@ -134,7 +132,7 @@ if (args.comparar) {
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Unificar · antes y después</title>
 <style>
 :root { --fondo: #f5f0e8; --papel: #fbf8f2; --linea: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c; color-scheme: light; }
-@media (prefers-color-scheme: dark) { :root { --fondo: #1a1a18; --papel: #242422; --linea: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898; color-scheme: dark; } }
+@media (prefers-color-scheme: dark) { :root { --fondo: #1c1a17; --papel: #26241f; --linea: #403b34; --tinta: #f5f0e8; --taupe: #c4a898; color-scheme: dark; } }
 body { margin: 0; background: var(--fondo); color: var(--tinta); font: 15px/1.5 system-ui, sans-serif; }
 main { max-width: 1600px; margin: 0 auto; padding: 24px 16px 80px; }
 h1 { font: 500 40px/1.1 Georgia, serif; margin: 8px 0 4px; } h2 { font: 500 28px/1.2 Georgia, serif; margin: 40px 0 8px; text-transform: capitalize; }

@@ -1,11 +1,14 @@
-import type { CSSProperties } from "react";
 import { puede, requirePersonaActualV2, veModulo, type PersonaActualV2 } from "@/lib/persona-actual";
+import { tickets, vendidoHasta } from "@/lib/caja-comparativa-reglas";
 import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getPagosDelDia, diaAnterior } from "@/lib/caja";
 import { getContextoTableroCaja } from "@/lib/caja-tablero";
-import { getCategoriasGasto, getContextoGastos, getGastosDeUbicacion, getProveedoresParaGasto } from "@/lib/gastos";
+import { getCategoriasGasto, getContextoGastos, getGastosDeCaja, getProveedoresParaGasto } from "@/lib/gastos";
 import { DIAS_FRECUENCIA, ordenarPorFrecuencia } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getVendidoPorEmpresaDeCajas } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
@@ -13,8 +16,7 @@ import { tolerar } from "@/lib/resultado";
 import { History } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonEnlace } from "@/components/ui/campos";
-import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
-import { UltimoCierreCaja } from "@/components/UltimoCierreCaja";
+import { AbrirCajaPantalla } from "@/components/caja/AbrirCajaPantalla";
 import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPanel";
 
 // Prioridad 1 (2026-09-12): Caja/POS. Sin caja abierta, la única acción
@@ -29,18 +31,24 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
   // Con los últimos 7 de la sede se dibuja además la racha de «Último cierre» (2026-10-08).
   const cierresRecientesSede = caja ? [] : await getHistorialCierres(7, false, persona.ubicacionId);
   const ultimoCierre = cierresRecientesSede[0] ?? null;
+  // Con la caja cerrada también se ve lo que ayuda a abrir bien (maqueta «2 · Hoja con resumen», 2026-11-03): lo vendido ayer, la meta de hoy
+  // y la hora de cierre. Cada lectura puede fallar sola (principio 9): lo que no llegue, no se dibuja.
+  const hoyAbrir = hoyLima();
+  const [pagosAyer, parametrosAbrir, ubicacionesAbrir] = caja
+    ? [null, null, []]
+    : await Promise.all([getPagosDelDia(persona.ubicacionId, diaAnterior(hoyAbrir)), getParametrosCaja(persona.ubicacionId, hoyAbrir), getUbicaciones()]);
+  const sedeAbrir = ubicacionesAbrir.find((u) => u.id === persona.ubicacionId) ?? null;
 
   return (
-    // `/caja` va a todo el ancho (AppShell), pero solo el tablero de la caja abierta: sin caja, lo que hay
-    // es un formulario de un campo, que conserva la columna de lectura de siempre en vez de estirarse.
-    <div className={caja ? "space-y-6" : "mx-auto max-w-5xl space-y-6"}>
+    // `/caja` va a todo el ancho (AppShell), con la caja abierta y también cerrada: «Abrir caja» llena la pantalla (2026-11-03).
+    <div className="space-y-6">
       {/* Sin caja: la misma cabecera de Cambios (`EncabezadoPagina`), con «Historial de cierres» como su acción (un botón a la
           vista desde el 2026-10-08: el enlace gris no se notaba). Con caja, la cabecera la trae el propio tablero (necesita el estado de sus modales). */}
       {!caja && (
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
           titulo="Caja"
-          subtitulo="Abre la caja para empezar a vender."
+          subtitulo="Cuenta el cajón y abre la caja para vender."
           acciones={
             <BotonEnlace href="/caja/historial" data-guia="caja.historial-todas">
               <History className="h-4 w-4" aria-hidden />
@@ -54,17 +62,16 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
           React ya lo remonta solo — `anim-sube` no necesita `key` para retriggerse,
           entra de nuevo cada vez que este `router.refresh()` cambia de rama. */}
       {!caja ? (
-        <div
-          className={`anim-sube grid items-start gap-4 ${ultimoCierre ? "md:grid-cols-[1.1fr_1fr]" : ""}`}
-          style={{ "--i": 1 } as CSSProperties}
-        >
-          {ultimoCierre && <UltimoCierreCaja cierre={ultimoCierre} recientes={cierresRecientesSede} />}
-          <AbrirCajaFormV2
-            ubicacionId={persona.ubicacionId}
-            ubicacionEtiqueta={persona.ubicacionEtiqueta}
-            esperado={ultimoCierre?.montoFondo ?? null}
-          />
-        </div>
+        <AbrirCajaPantalla
+          ubicacionId={persona.ubicacionId}
+          ubicacionEtiqueta={persona.ubicacionEtiqueta}
+          ultimo={ultimoCierre}
+          recientes={cierresRecientesSede}
+          ayer={pagosAyer ? { total: vendidoHasta(pagosAyer, null), ventas: tickets(pagosAyer) } : null}
+          meta={parametrosAbrir ? parametrosAbrir.meta : (sedeAbrir?.metaVentaDiaria ?? null)}
+          horaCierre={sedeAbrir?.horaCierre ?? null}
+          puedeVender={veModulo(persona, "vender")}
+        />
       ) : (
         <CajaConDatos caja={caja} persona={persona} abrirCierre={abrirCierre} />
       )}
@@ -84,6 +91,10 @@ async function CajaConDatos({
   const supabase = await createClient();
   const puedeCerrar = puede(persona, "gestionarCaja");
   const registraGastos = puede(persona, "registrarGastos");
+  // Registrar el gasto de hoy desde la caja es una función de Caja (ADR-0491, sobre ADR-0306): lo hace quien maneja la caja, con o sin
+  // el módulo Gastos. El formulario completo (otra fecha, a crédito, un proveedor nuevo) sigue siendo de Gastos. El candado real es
+  // `fn_puede_registrar_gasto`.
+  const gastoDesdeCaja = registraGastos || puedeCerrar;
   const hoy = hoyLima();
   const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto, pagosHoy, pagosAyer] = await Promise.all([
     getTableroCaja(caja.id),
@@ -97,23 +108,26 @@ async function CajaConDatos({
     // «Registrar gasto» abre aquí la versión rápida (mosaico ordenado por lo que más se gasta en ESTA sede, 2026-10-09) y, para un
     // proveedor nuevo o un pago a crédito, el formulario completo de Finanzas ▸ Gastos (solo a quien ve Gastos). Si la lista de
     // gastos no se puede leer, el mosaico sale en su orden de fábrica y sin ★: nunca deja de abrir (principio 9).
-    registraGastos
+    gastoDesdeCaja
       ? Promise.all([
           getCategoriasGasto(),
-          getContextoGastos(),
+          registraGastos ? getContextoGastos() : Promise.resolve(null),
           getProveedoresParaGasto(),
-          getGastosDeUbicacion(caja.ubicacionId, diasAntes(hoy, DIAS_FRECUENCIA), hoy),
+          getGastosDeCaja(caja.ubicacionId, diasAntes(hoy, DIAS_FRECUENCIA)),
         ]).then(([categorias, contexto, proveedores, recientes]) => ({
           categorias,
-          ...contexto,
+          completo: contexto,
           proveedores,
-          frecuencia: ordenarPorFrecuencia(recientes.map((g) => ({ descripcion: g.descripcion, categoria: g.categoria, montoTotal: g.montoTotal }))),
+          frecuencia: ordenarPorFrecuencia((recientes ?? []).map((g) => ({ descripcion: g.descripcion, categoria: g.categoria, montoTotal: g.montoTotal }))),
         }))
       : Promise.resolve(null),
     // Hoy contra ayer (ADR-0319): los pagos de los dos días. Si la base no tiene la lectura, `null` y Caja se ve como antes.
     getPagosDelDia(caja.ubicacionId, hoy),
     getPagosDelDia(caja.ubicacionId, diaAnterior(hoy)),
   ]);
+  // De quién es lo vendido del turno (ADR-0532): solo donde conviven CAYLA y CLAURE (Lima). Si la base no responde, Caja sale como antes.
+  const [empresasAqui, vendidoPorCaja] = await Promise.all([getEmpresasAqui(caja.ubicacionId), getVendidoPorEmpresaDeCajas([caja.id])]);
+  const repartoEmpresas = repartoDeEmpresas(vendidoPorCaja ? (vendidoPorCaja.get(caja.id) ?? []) : null, empresasAqui);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
   const filas = fallo ? [] : (filasVentas ?? []);
@@ -135,7 +149,8 @@ async function CajaConDatos({
     comprobantesPorEnviar,
     permisos: {
       apartados: veModulo(persona, "apartados"),
-      gastos: registraGastos,
+      gastos: gastoDesdeCaja,
+      gastosEnFinanzas: registraGastos,
       cambios: veModulo(persona, "cambios"),
       devoluciones: veModulo(persona, "devoluciones"),
       traslados: veModulo(persona, "traslados"),
@@ -166,6 +181,7 @@ async function CajaConDatos({
       cierresRecientes={historial}
       contexto={contexto}
       comparativa={pagosHoy && pagosAyer ? { hoy: pagosHoy, ayer: pagosAyer } : null}
+      repartoEmpresas={repartoEmpresas}
       accesos={{
         vender: veModulo(persona, "vender"),
         cambios: veModulo(persona, "cambios"),

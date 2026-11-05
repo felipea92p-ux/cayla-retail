@@ -16,7 +16,7 @@ export function PieAcciones({
   guia,
 }: {
   /** «Cancelar» y después el botón que guarda. */
-  children: ReactNode;
+  children?: ReactNode;
   /** Lo que borra o desactiva, solo a la izquierda. */
   izquierda?: ReactNode;
   className?: string;

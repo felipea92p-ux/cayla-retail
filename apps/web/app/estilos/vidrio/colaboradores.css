@@ -1,0 +1,162 @@
+/* ====================================================================
+   Colaboradores ▸ Equipo con vidrio (Felipe 2026-11-02, docs/maquetas/colaboradores-vidrio-2026-11/; tablero docs/vidrio/README.md).
+   Lo eligió mirando: el rol «A · Gotas» y «Esperan tu ok» «A · Lente ámbar». Y lo ya elegido en Clientes ▸ Fichas: las filas viven en la
+   placa de la tarjeta, sin fondo propio, con un hilo que nace después del avatar, y el avatar va en su lente.
+   Solo cambia el material: qué dice cada fila, quién aprueba un alta y quién ve qué no cambian (components/colaboradores/EquipoLista.tsx).
+   ==================================================================== */
+
+/* ---------- El rol: «A · Gotas» ----------
+   Cada rol es una gota chica y clara con su filo; el del Líder, la gota ahumada (el ahumado denso del filtro puesto): sigue siendo el único
+   oscuro de la lista y se encuentra de un vistazo, pero ya no es un bloque de tinta sólida. En oscuro el ahumado es claro (tinta es crema).
+   Contraste (2026-11-02, sobre crema, hueso, papel y la Aurora): el rol, 14,4:1 o más en claro y 8,9:1 en oscuro; el Líder, 9,7:1 y 11,1:1. */
+.rol-gota {
+  color: var(--color-tinta);
+  border-color: var(--gota-chica-borde);
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-chica-luz);
+}
+.rol-gota[data-lider] {
+  color: var(--color-crema);
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--gota-chica-ahumada-luz);
+}
+
+/* ---------- «Esperan tu ok»: «A · Lente ámbar» ----------
+   La lente del tono del aviso de la esquina (vidrio/avisos-espera.css), en grande (`--lente-tono-grande-*`) y teñida de ámbar: pide algo,
+   y se nota. Cada alta es una gota chica, con su luz. Solo aparece si hay altas por aprobar. Contraste (2026-11-02, sobre crema, hueso,
+   papel y la Aurora): el título ámbar profundo, 4,8:1 o más en claro y 6,0:1 en oscuro; el nombre, 14,5:1 y 6,7:1; la sede, 7,6:1 y 4,8:1. */
+.colab-ok {
+  --c: var(--color-ambar);
+  border-radius: 18px;
+  border-color: color-mix(in srgb, var(--c) var(--lente-tono-grande-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--lente-tono-grande-tinte-arriba), var(--lente-tono-grande-base-arriba)),
+    color-mix(in srgb, var(--c) var(--lente-tono-grande-tinte-abajo), var(--lente-tono-grande-base-abajo))
+  );
+  -webkit-backdrop-filter: var(--vidrio-hoja-filtro);
+  backdrop-filter: var(--vidrio-hoja-filtro);
+  box-shadow: var(--lente-tono-sombra);
+}
+.colab-ok-alta {
+  border-radius: 999px;
+  background: var(--gota-chica-fondo);
+  box-shadow: var(--gota-luz);
+}
+/* La sede de destino sube del 60 % al 78 % de tinta: sobre la gota teñida de ámbar, en oscuro, el 60 % se quedaba en 3,1:1. */
+.colab-ok-sede {
+  color: color-mix(in srgb, var(--color-tinta) 78%, transparent); /* contraste: texto sobre la gota chica en la lente ámbar (crema, papel, Aurora) */
+}
+
+/* En el celular, en columna: el título arriba y cada alta en su renglón, con su nombre y su sede arriba y Rechazar y Aprobar debajo,
+   cada uno con la mitad (a 320 px las dos en una línea se salían). */
+@media (max-width: 639.98px) {
+  .colab-ok {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .colab-ok-lista {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .colab-ok-alta {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    row-gap: 8px;
+    border-radius: 16px;
+    padding: 8px 8px 8px 12px;
+  }
+  .colab-ok-alta > strong {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .colab-ok-botones {
+    flex: 1 1 100%;
+    padding-right: 0;
+  }
+  .colab-ok-botones > button {
+    flex: 1 1 0;
+  }
+}
+
+/* ---------- Las filas: en la placa de la tarjeta, como Clientes ▸ Fichas ----------
+   Sin fondo propio; entre filas, el hilo (tinta al 9 %) que nace después de la cara: 10 px de aire + 36 de la cara + 14 de separación.
+   Al pasar el mouse, una gota apenas; la persona elegida (su ficha abierta), la gota que marca, con su luz. */
+.colab-filas > li {
+  position: relative;
+}
+.colab-filas > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 10px;
+  height: 1px;
+  background: var(--hilo-fila);
+  pointer-events: none;
+}
+.colab-fila {
+  border-radius: 14px;
+  transition: background 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .colab-fila:not([aria-current="true"]):hover {
+    background: var(--gota-fondo);
+    box-shadow: var(--placa-luz);
+  }
+  /* La fila iluminada tapa su hilo y el de la siguiente: la gota no se ve cortada. */
+  .colab-filas > li:hover::before,
+  .colab-filas > li:hover + li::before {
+    opacity: 0;
+  }
+}
+.colab-fila[aria-current="true"] {
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+.colab-filas > li:has(> .colab-fila[aria-current="true"])::before,
+.colab-filas > li:has(> .colab-fila[aria-current="true"]) + li::before {
+  opacity: 0;
+}
+.colab-fila:focus-visible {
+  outline: var(--foco-ancho) solid var(--foco-color);
+  outline-offset: calc(var(--foco-ancho) * -1);
+}
+@media (max-width: 639.98px) {
+  .colab-filas > li + li::before {
+    left: 10px;
+  }
+}
+
+/* ---------- La vista «Mosaico»: cada persona en una gota; la elegida, la que marca ---------- */
+.colab-tarjeta {
+  border-color: var(--placa-borde);
+  background: var(--gota-fondo-encima);
+  box-shadow: var(--placa-luz);
+  transition: background 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .colab-tarjeta:not([aria-current="true"]):hover {
+    background: var(--gota-marca);
+  }
+}
+.colab-tarjeta[aria-current="true"] {
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+
+/* ---------- La cara: el avatar en su lente; la terminal, en la misma lente (ya no un cuadro de tinta sólida) ---------- */
+:is(.colab-fila, .colab-tarjeta) .avatar,
+.colab-cara-terminal {
+  background: var(--lente-avatar-fondo);
+  box-shadow: var(--lente-avatar-luz), 0 4px 10px -6px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .colab-fila,
+  .colab-tarjeta {
+    transition: none;
+  }
+}

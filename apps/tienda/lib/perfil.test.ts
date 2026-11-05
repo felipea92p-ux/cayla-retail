@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Aniversario, Cumple, Espera, MiClub } from "./club";
-import { lineaDeMiembro, resumenAvisos, resumenClub, resumenFavoritos, resumenPedidos } from "./perfil";
+import { lineaDeMiembro, resumenAvisos, resumenFavoritos, resumenPedidos } from "./perfil";
 import type { Pedido } from "./pedidos";
 
 const ped = (estado: Pedido["estado"], listoParaRecoger = false) => ({ estado, listoParaRecoger });
@@ -61,31 +61,6 @@ describe("el cuadro de «Mis pedidos»", () => {
   });
 });
 
-describe("el cuadro de «Mi Club»", () => {
-  it("lo que se puede usar hoy va primero, en verde", () => {
-    expect(resumenClub(club({ cumple: cumple({ estado: "disponible" }) }))).toEqual({ texto: "Descuento de cumpleaños", tono: "verde" });
-    expect(resumenClub(club({ aniversario: aniv({ estado: "vale", valeMonto: 20 }) }))).toEqual({ texto: "Vale de S/\u00a020 para usar", tono: "verde" });
-    expect(resumenClub(club({ cumple: cumple({ estado: "disponible" }), aniversario: aniv({ estado: "vale", valeMonto: 25 }) }))).toEqual({
-      texto: "2 beneficios para usar",
-      tono: "verde",
-    });
-  });
-
-  it("si no hay nada para usar, cuándo llega su cumpleaños o cuánto lleva para su vale", () => {
-    expect(resumenClub(club())).toEqual({ texto: "Cumpleaños: 12\u00a0de\u00a0mayo", tono: "neutro" });
-    expect(resumenClub(club({ cumple: cumple({ estado: "canjeado" }) }))).toEqual({ texto: "Llevas 2 de 6 compras", tono: "neutro" });
-    expect(resumenClub(club({ cumple: cumple({ estado: "sin_fecha", dia: null, mes: null }), aniversario: aniv({ anioCuenta: true }) }))).toEqual({
-      texto: "Tus beneficios",
-      tono: "neutro",
-    });
-  });
-
-  it("sin ficha activa lo dice en ámbar; sin respuesta, sin inventar", () => {
-    expect(resumenClub(club({ activa: false }))).toEqual({ texto: "Tu ficha no está activa", tono: "ambar" });
-    expect(resumenClub(null)).toEqual({ texto: "No se pudo cargar", tono: "neutro" });
-  });
-});
-
 describe("los cuadros de «Favoritos» y «Te avisamos»", () => {
   it("favoritos: cuántos guardó", () => {
     expect(resumenFavoritos(0).texto).toBe("Ninguno todavía");
@@ -110,9 +85,6 @@ describe("los cuadros de «Favoritos» y «Te avisamos»", () => {
     const textos = [
       resumenPedidos([ped("confirmado")]),
       resumenPedidos([ped("pagado", true), ped("pagado", true)]),
-      resumenClub(club({ aniversario: aniv({ estado: "vale", valeMonto: 125.5 }) })),
-      resumenClub(club({ cumple: cumple({ dia: 30, mes: 9 }) })),
-      resumenClub(club({ activa: false })),
       resumenAvisos([espera({ llego: true }), espera({ llego: true }), espera({ llego: true })]),
     ].map((r) => r.texto);
     for (const t of textos) expect(t.length).toBeLessThanOrEqual(30);

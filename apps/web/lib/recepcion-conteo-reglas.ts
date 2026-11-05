@@ -11,14 +11,16 @@
 // El vocabulario (ADR-0393): ENVÍO es lo que se cuenta y se cierra; PENDIENTE es lo contado que todavía no está en el stock —sin separar
 // (no se sabe qué prendas son), detalle (se sabe la prenda, faltan tallas y colores) o crear (es nueva)—.
 
-import { leerCantidad, limpiarCantidad } from "./alta-producto";
+import { leerCantidad } from "./alta-producto";
+import { sinBlancosDeMiles } from "./numero-escrito";
 import { esFalloDeRed, traducirError } from "./error-escritura";
-import { diaLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 import { leerNumero, aTexto } from "./orden-compra-alta";
 import {
   CAUSAS_FALTANTE,
   CAUSAS_SOBRANTE,
+  OPCION_OTRO,
+  VALOR_OTRO,
   type CausaFaltante,
   type CausaSobrante,
   type Conteo,
@@ -28,7 +30,7 @@ import {
   type SolucionDanada,
   mensajeDeLaRecepcion,
 } from "./recepcion-envio-reglas";
-import { opcionReposicion } from "./nos-debe-reglas";
+import { opcionReposicion, type PrendaDebida } from "./nos-debe-reglas";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Nombres de la base
@@ -40,13 +42,28 @@ export const RPC_PENDIENTES_SEDE = "fn_recepcion_pendientes";
 /** Escrituras. `guardar_conteo_envio` se llama con `x-espera: no`: contar una línea no tapa la pantalla. */
 export const RPC_GUARDAR_CONTEO = "guardar_conteo_envio";
 export const RPC_CERRAR_CONTEO = "cerrar_conteo_envio";
+/** Cambiar el precio de venta de una prenda de este envío, desde la recepción (20261024225000). */
+export const RPC_PRECIO_RECEPCION = "cambiar_precio_en_recepcion";
+/** ¿Se podría guardar este precio?, con el motivo si no: la misma regla que `cambiar_precio_en_recepcion`, sin guardar nada (`20261026180000`). Lectura. */
+export const RPC_VALIDAR_PRECIO = "validar_precio_en_recepcion";
+/** El precio de varias combinaciones (color y talla) de una prenda del envío, todo o nada (20261028234000). */
+export const RPC_PRECIOS_RECEPCION = "cambiar_precios_en_recepcion";
+export const RPC_VALIDAR_PRECIOS = "validar_precios_en_recepcion";
 export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
+/** «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26; migración `20261026163000`). */
+export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
+/** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
+export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";
+export const RPC_COSTOS_DE_HOY = "fn_costos_de_hoy";
+export const RPC_CORREGIR_PROVEEDOR = "corregir_proveedor_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 /** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
 /** Felipe 2026-10-14: el número de guía se escribe o corrige al cerrar (`20261014205000`). */
 export const RPC_CORREGIR_GUIA = "corregir_guia_envio";
+/** Felipe 2026-10-27: la foto de un papel de la compra que llegó sin ella, desde «Los papeles de la compra» (`20261027210000`). Solo agrega. */
+export const RPC_FOTO_PAPEL = "agregar_foto_papel";
 
 export const TOPES_CONTEO = { contadas: 99999, descripcionNueva: 200, nota: 300, notaEnvio: 500, motivo: 300, guia: 40 } as const;
 
@@ -106,7 +123,15 @@ export type PrendaSeparada = {
 };
 
 /** Lo nuevo: solo cuántas (decisión 8); describirlas es parte del pendiente «crear». */
-export type NuevaSeparada = { cantidad: number; descripcion: string | null };
+export type NuevaSeparada = {
+  cantidad: number;
+  /** El nombre con que se anotó; null = «llegaron N y aún no sé cuáles». Con nombre puede estar en 0: es un modelo que todavía no se cuenta. */
+  descripcion: string | null;
+  /** Lo que describe al modelo, para no confundirlo con otro parecido (opcional). */
+  nota?: string | null;
+  /** Su nombre es provisional («Blusa 1»): no se cierra el envío hasta cambiarlo (`recepcion_modelo_sin_nombre`). */
+  porDefecto?: boolean;
+};
 
 export type Separado = { prendas: PrendaSeparada[]; nuevas: NuevaSeparada[] };
 
@@ -139,11 +164,16 @@ export function leerSeparado(v: unknown): Separado {
       const vars = Array.isArray(o.variantes) ? o.variantes.map(leerVarianteSeparada).filter((x): x is VarianteSeparada => x !== null) : null;
       return { productoId, nombre: texto(o.nombre), codigo: texto(o.codigo), cantidad: entero(o.cantidad), variantes: vars };
     })
-    .filter((p): p is PrendaSeparada => p !== null && p.cantidad > 0);
+    .filter((p): p is PrendaSeparada => p !== null);
   const nuevas = lista(r.nuevas)
     .map((n): NuevaSeparada | null => {
       const o = objeto(n);
-      return o && entero(o.cantidad) > 0 ? { cantidad: entero(o.cantidad), descripcion: texto(o.descripcion) } : null;
+      if (!o) return null;
+      const cantidad = entero(o.cantidad);
+      const descripcion = texto(o.descripcion);
+      // En 0 solo existe un modelo con nombre.
+      if (cantidad <= 0 && !descripcion) return null;
+      return { cantidad, descripcion, ...(texto(o.nota) ? { nota: texto(o.nota) } : {}), ...(o.por_defecto === true ? { porDefecto: true } : {}) };
     })
     .filter((n): n is NuevaSeparada => n !== null);
   return { prendas, nuevas };
@@ -158,11 +188,10 @@ export const detalladas = (s: Separado): number => s.prendas.filter((p) => p.var
 /** Lo separado en la forma que guarda la base (`p_separado`): sin los nombres, con las tallas en 0 fuera. */
 export function separadoParaBase(s: Separado): {
   prendas: { producto_id: string; cantidad: number; variantes: { variante_id: string; cantidad: number; danadas: number; danada_solucion: SolucionDanada | null }[] | null }[];
-  nuevas: { cantidad: number; descripcion: string | null }[];
+  nuevas: { cantidad: number; descripcion: string | null; nota?: string; por_defecto?: true }[];
 } {
   return {
     prendas: s.prendas
-      .filter((p) => p.cantidad > 0)
       .map((p) => ({
         producto_id: p.productoId,
         cantidad: p.cantidad,
@@ -173,8 +202,84 @@ export function separadoParaBase(s: Separado): {
                 .filter((v) => v.cantidad > 0)
                 .map((v) => ({ variante_id: v.varianteId, cantidad: v.cantidad, danadas: v.danadas, danada_solucion: v.danadas > 0 ? v.solucion : null })),
       })),
-    nuevas: s.nuevas.filter((n) => n.cantidad > 0).map((n) => ({ cantidad: n.cantidad, descripcion: n.descripcion?.trim() || null })),
+    // En 0 solo se guarda un modelo con nombre (`fn_envio_leer_separado`).
+    nuevas: s.nuevas
+      .filter((n) => n.cantidad > 0 || n.descripcion?.trim())
+      .map((n) => ({
+        cantidad: n.cantidad,
+        descripcion: n.descripcion?.trim() || null,
+        ...(n.nota?.trim() ? { nota: n.nota.trim() } : {}),
+        ...(n.porDefecto ? { por_defecto: true as const } : {}),
+      })),
   };
+}
+
+/** Un modelo más para contar aparte, en 0 (el «+» de la categoría). Con su nombre ya en la lista, no se repite. */
+export function agregarModeloEnCero(s: Separado, m: { nombre: string; nota?: string | null; porDefecto?: boolean }): Separado {
+  const nombre = limpiarDescripcion(m.nombre);
+  const clave = nombre.toLocaleLowerCase("es");
+  if (!nombre || s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave)) return s;
+  const nota = m.nota?.trim();
+  return { ...s, nuevas: [...s.nuevas, { cantidad: 0, descripcion: nombre, ...(nota ? { nota } : {}), ...(m.porDefecto ? { porDefecto: true } : {}) }] };
+}
+
+/** Ponerle su nombre a un modelo agregado al contar, o cambiárselo. Lo contado no cambia, y deja de ser un nombre por defecto. */
+export function renombrarModelo(s: Separado, nombre: string, cambio: { nombre: string; nota: string | null }): Separado {
+  const clave = nombre.toLocaleLowerCase("es");
+  const nota = cambio.nota?.trim();
+  return {
+    ...s,
+    nuevas: s.nuevas.map((n) =>
+      n.descripcion?.toLocaleLowerCase("es") === clave ? { cantidad: n.cantidad, descripcion: limpiarDescripcion(cambio.nombre), ...(nota ? { nota } : {}) } : n,
+    ),
+  };
+}
+
+/**
+ * Las líneas como las ve Cerrar: sin los modelos que quedaron en 0, que no se guardan (la base hace lo mismo, `fn_envio_sin_ceros`). Lo de fuera de la guía que se queda sin nada desaparece.
+ */
+export function lineasSinModelosEnCero<T extends Pick<LineaParaContar, "conteo">>(lineas: readonly T[]): T[] {
+  return lineas.map((l) =>
+    l.conteo
+      ? { ...l, conteo: { ...l.conteo, separado: { prendas: l.conteo.separado.prendas.filter((p) => p.cantidad > 0), nuevas: l.conteo.separado.nuevas.filter((n) => n.cantidad > 0) } } }
+      : l,
+  );
+}
+
+/** Lo que quien cuenta agregó y dejó en 0: al cerrar se avisa y se descarta (Felipe 2026-11-03). */
+export function modelosEnCeroDe(lineas: readonly Pick<LineaParaContar, "conteo">[]): string[] {
+  return lineas.flatMap((l) => {
+    const s = l.conteo?.separado;
+    if (!s) return [];
+    return [...s.prendas.filter((p) => p.cantidad <= 0).map((p) => p.nombre ?? p.codigo ?? "Prenda"), ...s.nuevas.filter((n) => n.cantidad <= 0 && n.descripcion).map((n) => n.descripcion as string)];
+  });
+}
+
+/** «Blusa 2 quedó en 0: no se guarda.» */
+export const textoModelosEnCero = (nombres: readonly string[]): string =>
+  `${new Intl.ListFormat("es", { type: "conjunction" }).format(nombres)} ${nombres.length === 1 ? "quedó en 0: no se guarda." : "quedaron en 0: no se guardan."}`;
+
+/** El tacho: el modelo sale de lo separado, con lo que se había contado de él. */
+export function quitarModelo(s: Separado, m: { productoId: string | null; nombre: string }): Separado {
+  if (m.productoId) return quitarPrenda(s, m.productoId);
+  const clave = m.nombre.toLocaleLowerCase("es");
+  return { ...s, nuevas: s.nuevas.filter((n) => n.descripcion?.toLocaleLowerCase("es") !== clave) };
+}
+
+/** «Deshacer» del tacho: vuelve SOLO ese modelo, sobre lo que hay ahora. Si se restaurara todo lo de antes, revivirían los que se quitaron después. */
+export function devolverModelo(s: Separado, antes: Separado, m: { productoId: string | null; nombre: string }): Separado {
+  const clave = m.nombre.toLocaleLowerCase("es");
+  const prenda = m.productoId ? antes.prendas.find((p) => p.productoId === m.productoId) : undefined;
+  const nueva = m.productoId ? undefined : antes.nuevas.find((n) => n.descripcion?.toLocaleLowerCase("es") === clave);
+  if (prenda && !s.prendas.some((p) => p.productoId === prenda.productoId)) return { ...s, prendas: [...s.prendas, prenda] };
+  if (nueva && !s.nuevas.some((n) => n.descripcion?.toLocaleLowerCase("es") === clave)) return { ...s, nuevas: [...s.nuevas, nueva] };
+  return s;
+}
+
+/** Una prenda del catálogo para contar aparte, en 0. Si ya estaba, queda como está. */
+export function agregarPrendaEnCero(s: Separado, p: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
+  if (s.prendas.some((x) => x.productoId === p.productoId)) return s;
+  return { ...s, prendas: [...s.prendas, { ...p, cantidad: 0, variantes: null }] };
 }
 
 /** Una prenda conocida más (si ya estaba, suma una). */
@@ -271,6 +376,9 @@ export function conteoDeVariantes(vs: readonly VarianteSeparada[] | null): Conte
   return { cantidades, danadas, conDanadas: Object.keys(danadas).length > 0, arreglo };
 }
 
+/** Lo que se escribe de una nueva, como se guarda: sin espacios de más y con el tope. Dos escrituras iguales dan la misma. */
+const limpiarDescripcion = (d: string): string => d.trim().replace(/\s+/g, " ").slice(0, TOPES_CONTEO.descripcionNueva);
+
 /** Cuántas nuevas sin describir (las que no tienen descripción se juntan en una sola fila «Nuevas»). */
 export const nuevasSinDescribir = (s: Separado): number => s.nuevas.filter((n) => !n.descripcion).reduce((a, n) => a + n.cantidad, 0);
 
@@ -287,7 +395,7 @@ export function cambiarNuevasSinDescribir(s: Separado, cantidad: number): Separa
  * junta; no se describen más de las que hay sin describir.
  */
 export function describirNuevas(s: Separado, descripcion: string, cantidad: number): Separado {
-  const texto = descripcion.trim().replace(/\s+/g, " ").slice(0, TOPES_CONTEO.descripcionNueva);
+  const texto = limpiarDescripcion(descripcion);
   const sin = nuevasSinDescribir(s);
   const n = Math.min(sin, Math.max(0, Math.trunc(cantidad)));
   if (!texto || n === 0) return s;
@@ -311,6 +419,18 @@ export function quitarNuevaDescrita(s: Separado, descripcion: string): Separado 
 export function cambiarCantidadNuevaDescrita(s: Separado, descripcion: string, cantidad: number): Separado {
   const n = Math.max(1, Math.min(TOPES_CONTEO.contadas, Math.trunc(cantidad)));
   return { ...s, nuevas: s.nuevas.map((x) => (x.descripcion === descripcion ? { ...x, cantidad: n } : x)) };
+}
+
+/**
+ * «Crear ahora» de una nueva ya descrita: la prenda ya existe en el catálogo, así que esas nuevas dejan de estar «por crear» y pasan a ser una
+ * prenda conocida, todavía sin tallas ni colores (de ahí en adelante le toca «Tallas y colores ahora»). Cuántas eran se conserva: lo
+ * contado no cambia ni se pierde. Si esa prenda ya estaba separada (se creó una que ya existía, «Usar esa prenda»), se juntan: una prenda va
+ * una sola vez, como pide la base. Sin esa descripción en lo separado, no toca nada.
+ */
+export function prendaCreadaDeNueva(s: Separado, descripcion: string, prenda: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
+  const nueva = s.nuevas.find((x) => x.descripcion === descripcion);
+  if (!nueva) return s;
+  return sumarPrenda({ ...s, nuevas: s.nuevas.filter((x) => x !== nueva) }, prenda, nueva.cantidad);
 }
 
 /**
@@ -351,6 +471,8 @@ export type ConteoDeLinea = {
   contadas: number;
   separado: Separado;
   costoUnitario: number | null;
+  /** ADR-0519: el costo propio de las prendas separadas de esta línea que no cuestan lo que la línea ({producto: costo}); las demás, el de la línea. */
+  costosPrendas: Readonly<Record<string, number>>;
   version: number;
   contadoPor: Persona | null;
   contadoEn: string | null;
@@ -387,12 +509,6 @@ export function esEnvioSinAviso(e: { lineas: number; ordenes: readonly string[] 
   return e.lineas === 0 && e.ordenes.length === 0;
 }
 
-/** Cómo se lee en la puerta un envío sin aviso que alguien dejó abierto: sin «0 prendas», que confunde, y de quién es si se sabe
- *  (`proveedor`: su nombre, «proveedor por confirmar», o `null` si no se pudo leer). */
-export function detalleDeEnvioSinAviso(e: { numeroGuia: string | null }, proveedor: string | null = null): string {
-  return ["Llegó sin aviso: se sigue contando", proveedor, e.numeroGuia ? `guía ${e.numeroGuia}` : null].filter(Boolean).join(" · ");
-}
-
 /** De quién es un envío sin aviso, para la puerta: su proveedor, «proveedor por confirmar», o `null` si no se sabe. */
 export function proveedorDelSinAviso(c: ConteosDelEnvio | null): string | null {
   if (!c) return null;
@@ -424,6 +540,18 @@ function leerPendiente(v: unknown): PendienteDeLinea | null {
   };
 }
 
+/** `costos_prendas` del conteo: `{ producto: costo }`. Lo que no es un monto se descarta (la base lo valida al escribirlo). */
+function leerCostosPrendas(v: unknown): Record<string, number> {
+  const o = objeto(v);
+  const r: Record<string, number> = {};
+  if (!o) return r;
+  for (const [producto, costo] of Object.entries(o)) {
+    const n = cifra(costo);
+    if (producto && n != null && n >= 0) r[producto] = n;
+  }
+  return r;
+}
+
 function leerConteoDeLinea(v: unknown): ConteoDeLinea | null {
   const r = objeto(v);
   if (!r) return null;
@@ -440,6 +568,7 @@ function leerConteoDeLinea(v: unknown): ConteoDeLinea | null {
     contadas: entero(r.contadas),
     separado: leerSeparado(r.separado),
     costoUnitario: cifra(r.costo_unitario),
+    costosPrendas: leerCostosPrendas(r.costos_prendas),
     version: Math.max(1, entero(r.version)),
     contadoPor: persona(r.contado_por),
     contadoEn: texto(r.contado_en),
@@ -517,7 +646,9 @@ export function lineasParaContar(d: Pick<DetalleEnvio, "lineas">, c: Pick<Conteo
 }
 
 /** Lo de fuera de la guía que quedó en 0 se quitó al contar: no se muestra ni se cierra. */
-export const lineaVisible = (l: LineaParaContar): boolean => l.linea !== null || (l.conteo?.contadas ?? 0) > 0;
+export const lineaVisible = (l: LineaParaContar): boolean =>
+  // Lo de fuera de la guía en 0 es lo quitado, salvo que tenga un modelo que todavía no se cuenta (ADR-0604, act. 2026-11-03).
+  l.linea !== null || (l.conteo?.contadas ?? 0) > 0 || (l.conteo?.separado.prendas.length ?? 0) + (l.conteo?.separado.nuevas.length ?? 0) > 0;
 
 /** Lo contado de una línea (0 si nadie la contó). */
 export const contadasDe = (l: LineaParaContar): number => l.conteo?.contadas ?? 0;
@@ -525,19 +656,7 @@ export const contadasDe = (l: LineaParaContar): number => l.conteo?.contadas ?? 
 /** Lo contado contra lo que dijeron: negativo, faltan; positivo, sobran; null, sin guía (nada con qué comparar). */
 export const diferenciaDe = (l: LineaParaContar): number | null => (l.dijeron == null ? null : contadasDe(l) - l.dijeron);
 
-export const textoPrendas = (n: number): string => `${n} ${n === 1 ? "prenda" : "prendas"}`;
-
-/** Lo que dice el chip del contador: «Cuadra: llegaron las 40», «Faltan 2», «Sobran 3», «12 contadas». */
-export function veredictoDe(l: LineaParaContar): { texto: string; tono: "verde" | "ambar" | "neutro" } {
-  const n = contadasDe(l);
-  if (l.dijeron == null) return n ? { texto: `${n} contadas`, tono: "neutro" } : { texto: "Cuenta y escribe el número", tono: "neutro" };
-  if (!l.conteo) return { texto: `Dijeron ${l.dijeron}. Cuenta y escribe el número.`, tono: "neutro" };
-  const d = n - l.dijeron;
-  if (d === 0) return { texto: `Cuadra: llegaron las ${l.dijeron}`, tono: "verde" };
-  return d < 0
-    ? { texto: `Faltan ${-d}. Puedes seguir: lo explicas al cerrar.`, tono: "ambar" }
-    : { texto: `Sobran ${d}. Puedes seguir: lo explicas al cerrar.`, tono: "ambar" };
-}
+export const textoPrendas = (n: number): string => `${n.toLocaleString("es-PE")} ${n === 1 ? "prenda" : "prendas"}`;
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Guardar una línea (`guardar_conteo_envio`)
@@ -625,6 +744,183 @@ export function leerCostoCierre(t: string): { valor: number | null; problema: st
   return { valor: l.escalado / 100, problema: null };
 }
 
+/** Lee el precio de venta escrito: obligatorio, mayor que cero y hasta S/ 5 000 (el tope de la base). Vacío no es un problema todavía: aún no se pidió. */
+export function leerPrecioNuevo(t: string): { valor: number | null; problema: string | null } {
+  const l = leerNumero(t, 2);
+  if (l.tipo === "vacio") return { valor: null, problema: null };
+  if (l.tipo === "mal") return { valor: null, problema: "Escribe el precio solo con números (ej. 79.90)" };
+  if (l.escalado <= 0) return { valor: null, problema: "El precio tiene que ser mayor que cero" };
+  if (l.escalado > 500000) return { valor: null, problema: "El precio va hasta S/\u00a05\u00a0000" };
+  return { valor: l.escalado / 100, problema: null };
+}
+
+/** Un cambio de precio que quien cierra va a confirmar: de compra (la línea) o de venta (la prenda). */
+export type CambioDePrecio = {
+  tipo: "compra" | "venta";
+  nombre: string;
+  antes: number | null;
+  despues: number;
+  alcance: "todas" | "sede" | null;
+  /** Solo en una venta: las tallas de la prenda valían distinto (del más barato al más caro). Entonces `antes` no existe y el precio nuevo las iguala. */
+  rango?: RangoDePrecio;
+};
+
+/** «Precio de compra · Camisas y Blusas · S/ 18.50 → S/ 19.80» o, de venta, con dónde vale. Con tallas de precios distintos, el rango («S/ 69.90 a S/ 79.90 → …»). */
+export function textoCambioDePrecio(c: CambioDePrecio, sede: string): string {
+  const monto = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const donde = c.tipo === "venta" ? (c.alcance === "sede" ? ` · solo ${sede}` : " · todas las sedes") : "";
+  const antes = c.rango ? `${monto(c.rango.desde)} a ${monto(c.rango.hasta)} → ` : c.antes != null ? `${monto(c.antes)} → ` : c.tipo === "compra" ? "sin costo → " : "sin precio → ";
+  return `${antes}${monto(c.despues)}${donde}`;
+}
+
+/**
+ * Lo que hay que saber cuando un precio de venta pasa por encima de tallas que valían distinto: todas quedan al mismo precio (en la sede, si
+ * el precio vale solo para ella). `null` si las tallas valían lo mismo o no es un precio de venta.
+ */
+export function textoIgualaTallas(c: CambioDePrecio, sede: string): string | null {
+  if (c.tipo !== "venta" || !c.rango) return null;
+  return c.alcance === "sede" ? `Hoy las tallas valen distinto: en ${sede} todas pasan a venderse a este precio.` : "Hoy las tallas valen distinto: todas pasan a valer este precio.";
+}
+
+/** El precio de compra de una línea cambió: lo escrito (válido) contra lo que traía. Sin cambio, o con algo mal escrito (eso lo dice el campo), `null`. */
+export function cambioDePrecioDeCompra(nombre: string, antes: string, ahora: string): CambioDePrecio | null {
+  const nuevo = leerCostoCierre(ahora);
+  if (nuevo.problema || nuevo.valor == null) return null;
+  const previo = leerCostoCierre(antes).valor;
+  return previo === nuevo.valor ? null : { tipo: "compra", nombre, antes: previo, despues: nuevo.valor, alcance: null };
+}
+
+/**
+ * Un costo sin nada escrito antes (lo de fuera de la guía) se compara con lo que cuesta hoy la prenda: si no, un S/ 9 999 sobre una prenda de S/ 58
+ * se leía «sin costo → S/ 9,999.00» (`/flujo-de-negocio`, 2026-11-03). Con costos distintos entre tallas, el rango; sin ningún costo conocido, igual que
+ * antes. Devuelve `null` si queda en lo mismo que ya cuesta: no hay nada que confirmar.
+ */
+export function conCostoDeHoy(c: CambioDePrecio, varianteIds: readonly string[], costosDeHoy: Readonly<Record<string, number>>): CambioDePrecio | null {
+  if (c.tipo !== "compra" || c.antes != null) return c;
+  const costos = varianteIds.map((id) => costosDeHoy[id]).filter((n): n is number => n !== undefined);
+  if (costos.length === 0) return c;
+  const desde = Math.min(...costos);
+  const hasta = Math.max(...costos);
+  if (desde !== hasta) return { ...c, rango: { desde, hasta } };
+  return desde === c.despues ? null : { ...c, antes: desde };
+}
+
+/** El precio de venta de una prenda cambió: lo escrito (válido) contra su precio de hoy. Con precios distintos entre tallas (un rango) cualquier
+ *  precio escrito es un cambio; vacío o igual al de hoy, no. */
+export function cambioDePrecioDeVenta(nombre: string, actual: { desde: number; hasta: number } | null | undefined, escrito: string, alcance: "todas" | "sede"): CambioDePrecio | null {
+  const nuevo = leerPrecioNuevo(escrito);
+  if (nuevo.problema || nuevo.valor == null || actual === undefined) return null;
+  const hoy = actual && actual.desde === actual.hasta ? actual.desde : null;
+  const tallasDistintas = actual && actual.desde !== actual.hasta ? { rango: { desde: actual.desde, hasta: actual.hasta } } : {};
+  return hoy === nuevo.valor ? null : { tipo: "venta", nombre, antes: hoy, despues: nuevo.valor, alcance, ...tallasDistintas };
+}
+
+/** Un precio de hoy: uno solo, o de el más barato al más caro cuando las tallas valen distinto. */
+export type RangoDePrecio = { desde: number; hasta: number };
+
+/** Con qué alcance nace el precio de venta de una prenda (Felipe 2026-10-26): la sede donde se recibe. «Todas las sedes» se elige a propósito. */
+export const ALCANCE_DE_FABRICA = "sede" as const;
+
+/** Lo que la pantalla sabe del precio de venta de una prenda: su precio de hoy, lo escrito, dónde vale y por qué la base no lo aceptaría. */
+export type PrecioEditado = {
+  /** El precio general de hoy (`undefined` mientras se lee, `null` si no hay). */
+  actual: RangoDePrecio | null | undefined;
+  /** El de ESTA sede hoy: el propio de la tienda si lo tiene y, si no, el general. `undefined` si no se pudo leer (entonces vale el general). */
+  actualSede?: RangoDePrecio | null | undefined;
+  valor: string;
+  alcance: "todas" | "sede";
+  /** Por qué la base no guardaría lo escrito (`validar_precio_en_recepcion`): sale junto al campo y se borra al cambiar el precio o el alcance. */
+  rechazo?: string | null;
+};
+
+/** El precio de hoy contra el que se compara lo escrito: el de la sede si el precio vale solo para ella, si no el general. */
+export function hoyDelPrecio(e: Pick<PrecioEditado, "actual" | "actualSede" | "alcance">): RangoDePrecio | null | undefined {
+  return e.alcance === "sede" && e.actualSede !== undefined ? e.actualSede : e.actual;
+}
+
+/** El precio de hoy como se escribe en el campo («79.90»); vacío si no hay uno solo (un rango, o nada). */
+export function precioComoTexto(r: RangoDePrecio | null | undefined): string {
+  return r && r.desde === r.hasta ? r.desde.toFixed(2) : "";
+}
+
+/**
+ * Los cambios de precio de venta de estas prendas, una vez por prenda (aunque esté dos veces), con su nombre: lo escrito contra su precio de
+ * hoy (el de la sede o el general, según dónde valga). Lo usan el cierre (las prendas separadas al contar) y «Hacer ahora» (las que se acaban
+ * de identificar en «Para después»).
+ */
+export function cambiosDeVentaDe(
+  prendas: readonly { productoId: string; nombre: string | null; codigo: string | null }[],
+  ventas: Readonly<Record<string, PrecioEditado>>,
+): (CambioDePrecio & { productoId: string })[] {
+  const r: (CambioDePrecio & { productoId: string })[] = [];
+  for (const p of prendas) {
+    const e = ventas[p.productoId];
+    if (!e || r.some((x) => x.productoId === p.productoId)) continue;
+    const c = cambioDePrecioDeVenta(p.nombre ?? p.codigo ?? "La prenda", hoyDelPrecio(e), e.valor, e.alcance);
+    if (c) r.push({ ...c, productoId: p.productoId });
+  }
+  return r;
+}
+
+/**
+ * Los precios escritos que no se pueden guardar (no es un número, es cero o pasa de S/ 5 000). Un precio escrito mal NO se ignora al guardar:
+ * se dice cuál y por qué, y se lleva al campo. Vacío no es un problema (es «no lo cambio»).
+ */
+export function problemasDePrecio(
+  prendas: readonly { productoId: string; nombre: string | null; codigo: string | null }[],
+  ventas: Readonly<Record<string, PrecioEditado>>,
+): { productoId: string; nombre: string; texto: string }[] {
+  const r: { productoId: string; nombre: string; texto: string }[] = [];
+  for (const p of prendas) {
+    const e = ventas[p.productoId];
+    if (!e || r.some((x) => x.productoId === p.productoId)) continue;
+    const { problema } = leerPrecioNuevo(e.valor);
+    if (problema) r.push({ productoId: p.productoId, nombre: p.nombre ?? p.codigo ?? "La prenda", texto: problema });
+  }
+  return r;
+}
+
+/** El aviso de un precio que no se puede guardar: «Revisa el precio de venta de Blusa Emma: <motivo>. No se guardó nada.» (con el punto que el motivo no traiga). */
+export function avisoDePrecioRechazado(nombre: string, motivo: string, consecuencia: string): string {
+  const m = motivo.trim().replace(/[\s.]+$/, "");
+  return `Revisa el precio de venta de ${nombre}: ${m}. ${consecuencia}`;
+}
+
+/**
+ * Lo que contestó `validar_precio_en_recepcion`: «ok»; «rechazado» con el motivo en palabras de tienda (el de la base, que no dice cuánto cuesta
+ * la prenda: el costo es dato con permiso); o «sin_respuesta» si no se pudo preguntar (la función todavía no está en la base, un corte de red):
+ * entonces se sigue y la base decide al guardar, como antes.
+ */
+export type ResultadoDeValidar = { estado: "ok" } | { estado: "rechazado"; texto: string } | { estado: "sin_respuesta" };
+
+export function leerValidacionDePrecio(data: unknown, error: { message?: string | null; hint?: string | null; code?: string | null } | null | undefined): ResultadoDeValidar {
+  if (error) return { estado: "sin_respuesta" };
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  const ok = r ? booleano(r.ok) : null;
+  if (!r || ok === null) return { estado: "sin_respuesta" };
+  if (ok) return { estado: "ok" };
+  const motivo = texto(r.motivo);
+  const veredicto = resultadoDelPrecio({ hint: texto(r.hint), message: motivo, code: texto(r.codigo) });
+  return { estado: "rechazado", texto: typeof veredicto === "object" ? veredicto.texto : (motivo ?? "No se puede guardar ese precio.") };
+}
+
+/**
+ * Qué dice la base al cambiar el precio de venta desde «Hacer ahora» (`cambiar_precio_en_recepcion` con el envío cerrado): «ok»; «ajena» —la
+ * prenda todavía no es de este envío (se acaba de identificar y aún no entró ni quedó pendiente): se vuelve a intentar con la prenda
+ * adentro—; o el texto de por qué no se pudo. Sin la migración pegada, la base sigue diciendo «solo con el envío abierto»: se avisa con
+ * palabras de tienda, no con el mensaje de la base («antes de cerrarlo»), que aquí confundiría.
+ */
+export function resultadoDelPrecio(error: { message?: string | null; hint?: string | null; code?: string | null; details?: string | null } | null | undefined): "ok" | "ajena" | { texto: string } {
+  if (!error) return "ok";
+  if (error.hint === "precio_prenda_ajena") return "ajena";
+  if (error.hint === "precio_envio_no_abierto") return { texto: "Todavía no se puede cambiar el precio desde aquí. Déjalo como estaba o cámbialo en Catálogo ▸ Productos." };
+  return { texto: mensajeAlGuardar(error, "cambiar el precio de venta") };
+}
+
+/** Un regalo de FUERA de la guía entra a S/ 0 (obsequio, Felipe 2026-10-28): no se pide ni se lee su costo, ni el de sus prendas. Lo que sobra de una línea
+ *  de la guía como regalo sigue con el costo de su orden. Es la regla de `cerrar_conteo_envio` (migración 20261028182000). */
+export const esRegaloFuera = (l: Pick<LineaParaContar, "linea">, d: Pick<DecisionCierre, "sobranteCausa">): boolean => !l.linea && d.sobranteCausa === "regalo";
+
 export type FaltaCierre = { clave: "contar" | "causa" | "costo" | "responsable"; linea: ClaveLinea | null; texto: string };
 
 /**
@@ -649,11 +945,15 @@ export function faltaParaCerrar(p: {
     const dif = diferenciaDe(l);
     if (dif != null && dif < 0 && !d.faltanteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di por qué faltan ${-dif} de ${nombre}` });
     if (dif != null && dif > 0 && !d.sobranteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di qué pasa con las ${dif} de más de ${nombre}` });
+    const sobra = (dif != null && dif > 0) || (!l.linea && !p.sinAviso && contadasDe(l) > 0);
+    // «Otro» se cuenta en una línea (la nota de la línea): sin ella la base no cierra (`recepcion_sobrante_otro`).
+    if (sobra && d.sobranteCausa === VALOR_OTRO && !d.nota.trim()) f.push({ clave: "causa", linea: l.clave, texto: `Cuenta qué fue lo de más de ${nombre}` });
+    const regalo = esRegaloFuera(l, d);
     if (!l.linea && !p.sinAviso && contadasDe(l) > 0) {
       if (!d.sobranteCausa) f.push({ clave: "causa", linea: l.clave, texto: `Di qué pasa con ${nombre} (no estaba en la guía)` });
-      if (leerCostoCierre(d.costo).valor == null) f.push({ clave: "costo", linea: l.clave, texto: `Escribe el costo de ${nombre}` });
+      if (!regalo && leerCostoCierre(d.costo).valor == null) f.push({ clave: "costo", linea: l.clave, texto: `Escribe el costo de ${nombre}` });
     }
-    if (leerCostoCierre(d.costo).problema) f.push({ clave: "costo", linea: l.clave, texto: `Corrige el costo de ${nombre}` });
+    if (!regalo && leerCostoCierre(d.costo).problema) f.push({ clave: "costo", linea: l.clave, texto: `Corrige el costo de ${nombre}` });
   }
   if (!p.responsable) f.push({ clave: "responsable", linea: null, texto: "Elige quién cierra" });
   return f;
@@ -684,7 +984,7 @@ export function camposDelCierre(
       const f = falta.find((x) => x.clave === "causa" && x.linea === l.clave);
       campos.push({ id: idCampoCierre("causa", l.clave), nombre: `Qué pasó · ${nombre}`, requerido: true, hecho: !f, pendiente: f ? `${f.texto}.` : "" });
     }
-    if (!l.linea && contadasDe(l) > 0) {
+    if (!l.linea && contadasDe(l) > 0 && !esRegaloFuera(l, p.decisiones[l.clave] ?? DECISION_VACIA)) {
       const f = falta.find((x) => x.clave === "costo" && x.linea === l.clave);
       campos.push({
         id: idCampoCierre("costo", l.clave),
@@ -709,26 +1009,6 @@ export function camposDelCierre(
 /** El id de un campo del cierre en la guía y en el DOM (`data-campo`). */
 export const idCampoCierre = (tipo: "contar" | "causa" | "costo", clave: ClaveLinea): string => `${tipo}-${clave.replace(":", "-")}`;
 
-/** Los campos de la guía del conteo: cada línea de la guía, hecha cuando ya tiene su número (aunque sea 0). Lo de fuera de la guía no
- *  pide nada (es lo que se agrega). */
-export function camposDelConteo(lineas: readonly LineaParaContar[]): CampoDeGuia[] {
-  // Sin nada en la lista (un envío sin aviso recién abierto) no se puede cerrar: lo que sigue es agregar lo que llegó.
-  if (lineas.length === 0) {
-    return [{ id: ID_CAMPO_AGREGAR, nombre: "Lo que llegó", requerido: true, hecho: false, pendiente: "Agrega la primera categoría que llegó y cuéntala." }];
-  }
-  return lineas
-    .filter((l) => l.linea)
-    .map((l) => ({
-      id: idCampoConteo(l.clave),
-      nombre: nombreDeLinea(l),
-      requerido: true,
-      hecho: l.conteo !== null,
-      pendiente: `Cuenta ${nombreDeLinea(l)} y escribe cuántas llegaron.`,
-    }));
-}
-
-export const idCampoConteo = (clave: ClaveLinea): string => `contar-${clave.replace(":", "-")}`;
-
 /** El botón «+ Agregar lo que llegó», cuando la lista está vacía. */
 export const ID_CAMPO_AGREGAR = "contar-agregar";
 
@@ -741,11 +1021,84 @@ export type LineaParaCerrar = {
   faltante_causa: CausaFaltante | null;
   sobrante_causa: CausaSobrante | null;
   nota: string | null;
+  /** ADR-0519: el costo propio de las prendas (o, desde 2026-10-28, de las combinaciones) separadas de esta línea que cuestan distinto de la línea ({producto | variante: costo}). Sin nada propio, no va. */
+  costos_prendas?: Record<string, number>;
 };
+
+/** El costo propio de cada prenda de una línea, como se escribe: `{ clave: "55.50" }`. Solo lo que quien cierra tocó. La clave es el producto de la
+ *  prenda ya identificada, o `nueva:<descripción>` para una prenda nueva descrita que todavía no se crea (la base la nombra igual). */
+export type CostosDePrendas = Readonly<Record<string, string>>;
+
+/** La clave del costo de una prenda nueva descrita (ADR-0519): su descripción tal cual quedó en el conteo. */
+export const claveCostoDeNueva = (descripcion: string): string => `nueva:${descripcion}`;
+
+/** Lo que dice el campo de costo de una prenda: lo suyo si lo tocó (aunque lo haya dejado vacío); si no, el costo de su línea. */
+export const costoDePrendaTexto = (textoLinea: string, propios: CostosDePrendas | undefined, clave: string): string =>
+  propios && Object.hasOwn(propios, clave) ? (propios[clave] ?? "") : textoLinea;
+
+/** Cada prenda de una línea que se puede costear: las identificadas (con producto) y las nuevas ya descritas. Lo que no tiene nombre todavía no
+ *  está aquí (Felipe 2026-10-26: no se cambia el costo de algo que no se sabe qué es). */
+export type PrendaConCosto = { clave: string; nombre: string; unidades: number; nueva: boolean; producto: PrendaSeparada | null };
+
+export function prendasConCosto(l: Pick<LineaParaContar, "conteo">): PrendaConCosto[] {
+  const sep = l.conteo?.separado;
+  if (!sep) return [];
+  return [
+    ...sep.prendas.map((p): PrendaConCosto => ({ clave: p.productoId, nombre: p.nombre ?? p.codigo ?? "la prenda", unidades: p.cantidad, nueva: false, producto: p })),
+    ...sep.nuevas.flatMap((n): PrendaConCosto[] =>
+      n.descripcion ? [{ clave: claveCostoDeNueva(n.descripcion), nombre: n.descripcion, unidades: n.cantidad, nueva: true, producto: null }] : [],
+    ),
+  ];
+}
+
+/** Cuántas unidades contadas de la línea todavía no son una prenda con nombre (ni identificada ni descrita): entran con el costo de la línea. */
+export function unidadesSinIdentificar(l: Pick<LineaParaContar, "conteo">): number {
+  const contadas = l.conteo?.contadas ?? 0;
+  return Math.max(0, contadas - prendasConCosto(l).reduce((a, p) => a + p.unidades, 0));
+}
+
+/** Lo que cada prenda cuesta de verdad al cerrar: su costo propio si es un monto y distinto del de la línea; vacío o igual al de la línea, el de la línea. */
+export function costosPropiosParaCerrar(l: LineaParaContar, textoLinea: string, propios: CostosDePrendas | undefined): Record<string, number> {
+  const r: Record<string, number> = {};
+  if (!propios) return r;
+  const deLinea = leerCostoCierre(textoLinea).valor;
+  for (const p of prendasConCosto(l)) {
+    if (!Object.hasOwn(propios, p.clave)) continue;
+    const c = leerCostoCierre(propios[p.clave] ?? "");
+    if (c.problema || c.valor == null || c.valor === deLinea) continue;
+    r[p.clave] = c.valor;
+  }
+  return r;
+}
+
+/** Los costos propios que están mal escritos, para frenar «Cerrar» antes de ir a la base (la base los rechaza con las mismas reglas). */
+export function costosDePrendaConProblema(
+  lineas: readonly LineaParaContar[],
+  propios: Readonly<Record<string, CostosDePrendas>>,
+): { linea: ClaveLinea; productoId: string; nombre: string; problema: string }[] {
+  const r: { linea: ClaveLinea; productoId: string; nombre: string; problema: string }[] = [];
+  for (const l of lineas) {
+    const t = propios[l.clave];
+    if (!t) continue;
+    for (const p of prendasConCosto(l)) {
+      if (!Object.hasOwn(t, p.clave)) continue;
+      const c = leerCostoCierre(t[p.clave] ?? "");
+      if (c.problema) r.push({ linea: l.clave, productoId: p.clave, nombre: p.nombre, problema: c.problema });
+    }
+  }
+  return r;
+}
 
 /** `p_lineas` de `cerrar_conteo_envio`: una por conteo, con la versión que se vio. Las causas que ya no aplican se sueltan (la base las
  *  rechaza: «De … no falta nada»). */
-export function lineasParaCerrar(lineas: readonly LineaParaContar[], decisiones: Readonly<Record<string, DecisionCierre>>, sinAviso: boolean): LineaParaCerrar[] {
+export function lineasParaCerrar(
+  lineas: readonly LineaParaContar[],
+  decisiones: Readonly<Record<string, DecisionCierre>>,
+  sinAviso: boolean,
+  costosPrendas: Readonly<Record<string, CostosDePrendas>> = {},
+  /** El costo propio de combinaciones (color y talla), por línea: `{ clave de línea: { variante_id | producto_id: costo } }` (`costosParaLinea`). */
+  costosCombinaciones: Readonly<Record<string, Readonly<Record<string, number>>>> = {},
+): LineaParaCerrar[] {
   return lineas
     .filter((l) => l.conteo !== null)
     .map((l) => {
@@ -753,15 +1106,22 @@ export function lineasParaCerrar(lineas: readonly LineaParaContar[], decisiones:
       const d = decisiones[l.clave] ?? DECISION_VACIA;
       const dif = diferenciaDe(l);
       const fuera = !l.linea;
-      const costo = leerCostoCierre(d.costo).valor;
+      const sobrante = (dif != null && dif > 0) || (fuera && !sinAviso && c.contadas > 0) ? d.sobranteCausa : null;
+      // Lo que llega sin aviso no pregunta la causa (`sobrante` null): ahí no hay regalo que valga.
+      const regalo = !l.linea && sobrante === "regalo";
+      // Un regalo de fuera de la guía entra a S/ 0: se manda 0 y ningún costo propio (la base los ignora igual).
+      const costo = regalo ? 0 : leerCostoCierre(d.costo).valor;
+      const propios = regalo ? {} : { ...costosPropiosParaCerrar(l, d.costo, costosPrendas[l.clave]), ...(costosCombinaciones[l.clave] ?? {}) };
       return {
         ...(l.linea ? { despacho_item_id: l.linea.id } : { extra_posicion: c.extraPosicion ?? 0 }),
         version: c.version,
         costo_unitario: fuera && sinAviso && costo == null ? null : costo,
-        confirma_costo: d.confirmaCosto,
+        confirma_costo: regalo ? false : d.confirmaCosto,
         faltante_causa: dif != null && dif < 0 ? d.faltanteCausa : null,
-        sobrante_causa: (dif != null && dif > 0) || (fuera && !sinAviso && c.contadas > 0) ? d.sobranteCausa : null,
-        nota: d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
+        sobrante_causa: sobrante,
+        // La nota de la línea solo es «lo que pasó» de un «Otro»: con otra causa no hay dónde escribirla y lo que quedó escrito antes no viaja.
+        nota: sobrante === VALOR_OTRO && d.nota.trim() ? d.nota.trim().slice(0, TOPES_CONTEO.nota) : null,
+        ...(Object.keys(propios).length > 0 ? { costos_prendas: propios } : {}),
       };
     });
 }
@@ -772,17 +1132,19 @@ export function causasDe(
   l: LineaParaContar,
   deudaPendiente = 0,
   sinAviso = false,
-): { tipo: "faltante" | "sobrante"; opciones: { valor: string; texto: string; ayuda: string }[] } | null {
+  prendasDebidas: readonly PrendaDebida[] = [],
+): { tipo: "faltante" | "sobrante"; opciones: { valor: string; texto: string; ayuda: string; aviso?: string }[] } | null {
   // Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta, y no se pregunta qué pasó (igual que `faltaParaCerrar`).
   if (sinAviso && !l.linea) return null;
   const dif = diferenciaDe(l);
   if (dif != null && dif < 0) return { tipo: "faltante", opciones: [...CAUSAS_FALTANTE] };
   if ((dif != null && dif > 0) || (!l.linea && contadasDe(l) > 0)) {
-    const opciones: { valor: string; texto: string; ayuda: string }[] = [...CAUSAS_SOBRANTE];
+    const opciones: { valor: string; texto: string; ayuda: string; aviso?: string }[] = [...CAUSAS_SOBRANTE];
     if (deudaPendiente > 0) {
-      const r = opcionReposicion(deudaPendiente, l.proveedor?.nombre ?? null, { categoria: l.categoria?.nombre, marca: l.marca?.nombre });
-      opciones.push({ valor: r.valor, texto: r.texto, ayuda: r.ayuda });
+      const r = opcionReposicion(deudaPendiente, l.proveedor?.nombre ?? null, { categoria: l.categoria?.nombre, marca: l.marca?.nombre, prendas: prendasDebidas });
+      opciones.push({ valor: r.valor, texto: r.texto, ayuda: r.ayuda, aviso: r.aviso });
     }
+    opciones.push({ ...OPCION_OTRO });
     return { tipo: "sobrante", opciones };
   }
   return null;
@@ -796,14 +1158,57 @@ export function marcaDeLinea(l: { marca: { id: string; nombre: string } | null }
   return l.marca ?? { id: null, nombre: "Sin marca" };
 }
 
+/** La opción de anotar lo que no se encontró. Si la búsqueda falló no se sabe si está en el catálogo, y decir que no invitaría a duplicar una prenda (`/chaos`, 2026-11-03). */
+export function textoAnotarNueva(texto: string, r: { halladas: number; fallo: boolean }): string {
+  if (r.fallo) return `No pudimos revisar el catálogo: anotar «${texto}» de todas formas`;
+  return `${r.halladas === 0 ? "No está en el catálogo:" : "No es ninguna de estas:"} anotar «${texto}» como nueva`;
+}
+
 export function nombreDeLinea(l: Pick<LineaParaContar, "categoria" | "marca" | "linea">): string {
   const base = [l.categoria?.nombre, l.categoria ? marcaDeLinea(l).nombre : null].filter(Boolean).join(" · ") || "esta línea";
   return l.linea?.descripcion ? `${base} · ${l.linea.descripcion}` : base;
 }
 
+// ---- Lo que anotó la compra: las prendas exactas de una línea, de un toque a «¿Qué blusas son?» ---------------------------------------
+
+/**
+ * Una prenda que se anotó al comprar, tal como la trae la línea del envío: la del catálogo que se eligió (`prendaElegida`) o, si se anotó
+ * «algo nuevo», la que se escribió por su nombre (`descripcion`). Cada línea del envío sale de UNA línea de la compra, así que trae una;
+ * la lista deja lugar para más sin cambiar a quien la dibuja.
+ */
+export type PrendaAnotada = {
+  /** La del catálogo; `null` si se anotó solo por su nombre (no está en el catálogo: pasa como «nueva»). */
+  productoId: string | null;
+  nombre: string;
+  codigo: string | null;
+  /** Cuántas dijeron que venían de esta prenda. */
+  cantidad: number;
+};
+
+/** Las prendas exactas que se anotaron al comprar para esta línea, con cuántas eran. Nada de lo que no venía en la guía. */
+export function prendasAnotadasDe(l: Pick<LineaParaContar, "linea" | "dijeron">): PrendaAnotada[] {
+  if (!l.linea || l.dijeron == null || l.dijeron <= 0) return [];
+  const elegida = l.linea.prendaElegida;
+  if (elegida) return [{ productoId: elegida.productoId, nombre: elegida.nombre ?? l.linea.descripcion ?? "Prenda del catálogo", codigo: elegida.codigo, cantidad: l.dijeron }];
+  const nombre = limpiarDescripcion(l.linea.descripcion ?? "");
+  return nombre ? [{ productoId: null, nombre, codigo: null, cantidad: l.dijeron }] : [];
+}
+
+/**
+ * Pasa una anotada a lo separado, como si se hubiera elegido desde el buscador: la del catálogo, como prenda conocida (sin tallas: queda por
+ * detallar); la que solo tiene nombre, como nueva ya descrita («por crear»). Una nueva sale primero de las «nuevas sin describir» que ya había
+ * (quitar una descrita las devuelve ahí): solo se suman las que faltan, así sacarla y volver a pasarla no duplica nada.
+ */
+export function separarAnotada(s: Separado, p: PrendaAnotada, cantidad: number): Separado {
+  const n = Math.max(1, Math.min(TOPES_CONTEO.contadas, Math.trunc(cantidad)));
+  if (p.productoId) return sumarPrenda(s, { productoId: p.productoId, nombre: p.nombre, codigo: p.codigo }, n);
+  const sinDescribir = nuevasSinDescribir(s);
+  return describirNuevas(cambiarNuevasSinDescribir(s, Math.max(sinDescribir, n)), p.nombre, n);
+}
+
 /** El texto del botón principal: «Cerrar el envío · 40 contadas en Tienda TRU». */
 export function textoBotonCerrar(contadas: number, sede: string | null, reabierto: boolean): string {
-  return `${reabierto ? "Cerrar de nuevo" : "Cerrar el envío"} · ${contadas} ${contadas === 1 ? "contada" : "contadas"}${sede ? ` en ${sede}` : ""}`;
+  return `${reabierto ? "Cerrar de nuevo" : "Cerrar el envío"} · ${contadas.toLocaleString("es-PE")} ${contadas === 1 ? "contada" : "contadas"}${sede ? ` en ${sede}` : ""}`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -814,6 +1219,17 @@ export type ParaDespues =
   | { tipo: "separar"; linea: ClaveLinea; cantidad: number; titulo: string; sub: string }
   | { tipo: "detalle"; linea: ClaveLinea; pendiente: PendienteDeLinea; cantidad: number; titulo: string; sub: string }
   | { tipo: "crear"; linea: ClaveLinea; pendiente: PendienteDeLinea; cantidad: number; titulo: string; sub: string };
+
+/**
+ * Lo que dice el botón de cada fila de «Para después»: lo que hace, con las mismas palabras que «¿Qué … son?» al contar («+ Crear ahora»,
+ * «Tallas y colores ahora»). Un pendiente «detalle» —una prenda que ya existe y espera sus tallas y colores, sea porque se separó sin
+ * ellas o porque se acaba de crear— dice lo que le falta, no el genérico «Hacer ahora» de «Separar».
+ */
+export const BOTON_DE_PENDIENTE: Record<ParaDespues["tipo"], string> = {
+  separar: "Hacer ahora",
+  detalle: "Tallas y colores ahora",
+  crear: "+ Crear ahora",
+};
 
 /** Lo que queda por terminar, línea por línea: lo sin separar, cada «detalle» y cada «crear» con lo que todavía no entró. */
 export function paraDespues(lineas: readonly LineaParaContar[]): ParaDespues[] {
@@ -851,9 +1267,11 @@ export function resumenDelCierre(lineas: readonly LineaParaContar[]): { sePueden
 
 /** La línea sobre el botón de cerrar: «Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.» */
 export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: number }): string {
-  const vender = `${r.sePuedenVender} ${r.sePuedenVender === 1 ? "se puede" : "se pueden"} vender ya`;
-  if (r.guardadas === 0) return `Al cerrar: ${vender}.`;
-  return `Al cerrar: ${vender} · ${r.guardadas} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después.`;
+  // Al cerrar entran al almacén, no al piso: para venderlas todavía hay que bajarlas (prueba ciega, 2026-11-03).
+  const entran = `${r.sePuedenVender.toLocaleString("es-PE")} ${r.sePuedenVender === 1 ? "queda" : "quedan"} en el almacén; bájalas al piso para venderlas`;
+  const guardadas = `${r.guardadas.toLocaleString("es-PE")} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después`;
+  if (r.sePuedenVender === 0) return r.guardadas === 0 ? "Al cerrar: todavía no hay nada contado." : `Al cerrar: ${guardadas}.`;
+  return r.guardadas === 0 ? `Al cerrar: ${entran}.` : `Al cerrar: ${entran} · ${guardadas}.`;
 }
 
 export type VeredictoDelCerrado = {
@@ -901,49 +1319,13 @@ export function veredictoDelCerrado(lineas: readonly LineaParaContar[], pendient
   // (formidable, lista aparte del 2026-10-14; Felipe mandó resolverla). Con dos o más, el botón lleva al primero.
   const unSoloPendiente = pendientes.length === 1;
   return {
-    titulo: una ? "La prenda está guardada, pero todavía no se puede vender" : `Las ${guardadas} prendas están guardadas, pero todavía no se pueden vender`,
+    titulo: una ? "La prenda está guardada, pero todavía no se puede vender" : `Las ${guardadas.toLocaleString("es-PE")} prendas están guardadas, pero todavía no se pueden vender`,
     texto: `${una ? "Está" : "Están"} en el almacén. Para ${una ? "venderla" : "venderlas"} falta ${falta}.${unSoloPendiente ? " Se hace abajo, con «Hacer ahora»." : ""}`,
     chip: null,
     accion: unSoloPendiente
       ? null
       : primera === "separar" ? (una ? "Separarla ahora" : "Separarlas ahora") : primera === "detalle" ? (una ? "Ponerle tallas ahora" : "Ponerles tallas ahora") : una ? "Crearla ahora" : "Crearlas ahora",
   };
-}
-
-/**
- * La balanza «Dijeron / Contaste» de la maqueta A: el brazo se inclina hacia donde hay más (±9°, 1,6° por prenda de diferencia) y la
- * insignia dice el veredicto. Sin lo que dijeron (un envío sin aviso), no hay con qué comparar y el brazo queda derecho.
- */
-export function veredictoDeLaBalanza(dijeron: number | null, contadas: number): { estado: "neutro" | "verde" | "ambar"; texto: string; angulo: number } {
-  if (dijeron == null) return { estado: "neutro", texto: "Llegó sin aviso: no hay con qué comparar", angulo: 0 };
-  const d = contadas - dijeron;
-  const angulo = Math.max(-9, Math.min(9, d * 1.6));
-  if (contadas === 0) return { estado: "neutro", texto: "Todavía no contaste", angulo };
-  if (d === 0) return { estado: "verde", texto: "Cuadra con lo que dijeron", angulo: 0 };
-  return { estado: "ambar", texto: d < 0 ? `Faltan ${-d}` : `Sobran ${d}`, angulo };
-}
-
-/**
- * Lo que dice el riel bajo cada paso (maqueta A): en «¿Qué llegó?», de qué envío se trata; en «Contar», cuánto va contado y cuánto queda
- * para después; en «Cerrar», qué se hace ahí o que ya se cerró.
- */
-export function subtitulosDelRiel(p: {
-  estado: string;
-  numero: string;
-  enviado: number;
-  sinAviso: boolean;
-  proveedor: string | null;
-  contadas: number;
-  paraDespues: number;
-}): Record<"1" | "2" | "3", string> {
-  const llego = p.sinAviso ? [p.proveedor, "sin aviso"].filter(Boolean).join(" · ") : `${p.numero} · ${textoPrendas(p.enviado)}`;
-  const contar =
-    p.estado === "en_camino"
-      ? "Por categoría"
-      : p.contadas === 0
-        ? "Por categoría"
-        : `${p.contadas.toLocaleString("es-PE")} ${p.contadas === 1 ? "contada" : "contadas"}${p.paraDespues > 0 ? ` · ${p.paraDespues.toLocaleString("es-PE")} para después` : ""}`;
-  return { "1": llego, "2": contar, "3": p.estado === "cerrado" ? "Cerrado" : "Lo que no cuadró y quién cerró" };
 }
 
 /** La insignia de la cabecera (maqueta A: «1 fardo en camino», «6 pendientes del fardo»): en qué está el envío, en una línea. */
@@ -1009,7 +1391,8 @@ export type ArgsResolverPendiente = {
   p_despacho_item_id: string | null;
   p_extra_posicion: number | null;
   p_pendiente_id: string | null;
-  p_separado: ReturnType<typeof separadoParaBase>;
+  /** Lo separado y, si quien termina lo pendiente cambió el costo de alguna prenda (ADR-0519), `costos`: `{ producto: costo }` de esas prendas. */
+  p_separado: ReturnType<typeof separadoParaBase> & { costos?: Record<string, number> };
   p_confirma_costo: boolean;
   p_token: string;
 };
@@ -1019,6 +1402,8 @@ export function argsResolverPendiente(p: {
   linea: Pick<LineaParaContar, "linea" | "conteo">;
   pendienteId: string | null;
   separado: Separado;
+  /** El costo propio de las prendas que se identifican ahora (`costosDeHacerAhora`); sin nada, no va y la base hace lo de siempre. */
+  costos?: Readonly<Record<string, number>>;
   confirmaCosto?: boolean;
   token: string;
 }): ArgsResolverPendiente {
@@ -1027,10 +1412,80 @@ export function argsResolverPendiente(p: {
     p_despacho_item_id: p.linea.linea?.id ?? null,
     p_extra_posicion: p.linea.linea ? null : (p.linea.conteo?.extraPosicion ?? null),
     p_pendiente_id: p.pendienteId,
-    p_separado: separadoParaBase(p.separado),
+    p_separado: { ...separadoParaBase(p.separado), ...(p.costos && Object.keys(p.costos).length > 0 ? { costos: { ...p.costos } } : {}) },
     p_confirma_costo: p.confirmaCosto ?? false,
     p_token: p.token,
   };
+}
+
+// ---- El costo de cada prenda en «Hacer ahora» (ADR-0519 sobre ADR-0393, Felipe 2026-10-27) -----------------------------------------
+
+/**
+ * El costo con el que una prenda entra en «Hacer ahora» si nadie lo toca, como se escribe en el campo: el suyo propio que ya quedó en el conteo
+ * (o el que se le puso por su descripción cuando era una prenda nueva todavía sin crear: `descripcionNueva`), y si no, el de su línea.
+ */
+export function costoInicialDePrenda(
+  l: Pick<LineaParaContar, "linea" | "conteo"> | null,
+  productoId: string,
+  descripcionNueva: string | null = null,
+): string {
+  return costoComoTexto(costoDePrendaEnLinea(l, productoId, descripcionNueva));
+}
+
+/** Lo que cuesta una prenda en su línea, como número: el suyo propio que ya quedó en el conteo (`productoId`, o `descripcionNueva` si todavía no se crea) o, si no tiene, el de la línea. */
+export function costoDePrendaEnLinea(l: Pick<LineaParaContar, "linea" | "conteo"> | null, productoId: string | null, descripcionNueva: string | null = null): number | null {
+  const propios = l?.conteo?.costosPrendas ?? {};
+  const propio = productoId && Object.hasOwn(propios, productoId) ? propios[productoId] : descripcionNueva ? propios[claveCostoDeNueva(descripcionNueva)] : undefined;
+  return propio ?? l?.conteo?.costoUnitario ?? l?.linea?.costoUnitario ?? null;
+}
+
+/**
+ * Los costos que se escribieron para las prendas que se identifican ahora (una vez por prenda): cuáles se mandan a la base (un monto válido y
+ * distinto de lo que la prenda ya costaba; vacío o igual, no), cuáles son un cambio que se confirma, y cuáles están mal escritos (se dicen junto
+ * al campo y frenan el guardado). `escritos` trae solo lo que la persona tocó; `inicial` es lo que dice el campo sin tocarlo.
+ */
+export function costosDeHacerAhora(
+  prendas: readonly { productoId: string; nombre: string | null; codigo: string | null }[],
+  escritos: Readonly<Record<string, string>>,
+  inicial: (productoId: string) => string,
+): { costos: Record<string, number>; cambios: (CambioDePrecio & { productoId: string })[]; problemas: { productoId: string; nombre: string; texto: string }[] } {
+  const costos: Record<string, number> = {};
+  const cambios: (CambioDePrecio & { productoId: string })[] = [];
+  const problemas: { productoId: string; nombre: string; texto: string }[] = [];
+  const vistos = new Set<string>();
+  for (const p of prendas) {
+    if (vistos.has(p.productoId) || !Object.hasOwn(escritos, p.productoId)) continue;
+    vistos.add(p.productoId);
+    const nombre = p.nombre ?? p.codigo ?? "La prenda";
+    const lectura = leerCostoCierre(escritos[p.productoId] ?? "");
+    if (lectura.problema) {
+      problemas.push({ productoId: p.productoId, nombre, texto: lectura.problema });
+      continue;
+    }
+    const cambio = cambioDePrecioDeCompra(nombre, inicial(p.productoId), escritos[p.productoId] ?? "");
+    if (!cambio) continue;
+    costos[p.productoId] = cambio.despues;
+    cambios.push({ ...cambio, productoId: p.productoId });
+  }
+  return { costos, cambios, problemas };
+}
+
+/**
+ * Los cambios de costo que la base NO dejó anotados: la respuesta trae el conteo de la línea con el costo de cada prenda, y si lo que se mandó no
+ * está ahí es que la base todavía no acepta el costo desde «Hacer ahora» (la migración sin pegar la deja pasar sin error y sin hacer nada). Sin
+ * respuesta no se puede saber: no se alarma.
+ */
+export function costosSinGuardar<T extends { productoId: string; despues: number }>(cambios: readonly T[], conteo: Pick<ConteoDeLinea, "costosPrendas"> | null): T[] {
+  if (!conteo) return [];
+  return cambios.filter((c) => conteo.costosPrendas[c.productoId] !== c.despues);
+}
+
+/** Lo que hay que saber del dinero antes de confirmar en «Hacer ahora»: el costo (si cambia) y el precio de venta (si cambia). */
+export function avisoDeConfirmarHacerAhora(cambios: readonly CambioDePrecio[]): string {
+  const costo = "El costo cambia lo que cuesta lo que entra ahora, y queda para lo que falte de esa prenda; lo ya recibido no se toca.";
+  const venta = "El precio de venta rige desde ahora: lo ya vendido no cambia. Queda en el historial de la prenda.";
+  const partes = [cambios.some((c) => c.tipo === "compra") ? costo : null, cambios.some((c) => c.tipo === "venta") ? venta : null].filter((t): t is string => t !== null);
+  return partes.join(" ");
 }
 
 export function leerResuelto(data: unknown): { entraron: number; quedaronPendientes: number; repetido: boolean; conteo: ConteoDeLinea | null } | null {
@@ -1038,6 +1493,41 @@ export function leerResuelto(data: unknown): { entraron: number; quedaronPendien
   if (!r) return null;
   return { entraron: entero(r.entraron), quedaronPendientes: entero(r.quedaron_pendientes), repetido: booleano(r.repetido) ?? false, conteo: leerConteoDeLinea(r.linea) };
 }
+
+export type ArgsLigarPrenda = { p_despacho_id: string; p_pendiente_id: string; p_producto_id: string };
+
+/**
+ * «Crear ahora» crea la prenda en el catálogo antes de pedir sus tallas. Si la persona deja las tallas «para después», el pendiente tiene que
+ * decirlo: pasa de «por crear» a «sin tallas» de esa prenda (`ligar_prenda_a_pendiente`). Solo un pendiente «crear» espera una prenda; un
+ * «detalle» ya la tiene y lo sin separar no es un pendiente: ahí no hay nada que ligar (`null`).
+ */
+export function argsLigarPrenda(despachoId: string, item: ParaDespues, productoId: string): ArgsLigarPrenda | null {
+  return item.tipo === "crear" ? { p_despacho_id: despachoId, p_pendiente_id: item.pendiente.id, p_producto_id: productoId } : null;
+}
+
+/**
+ * Qué pasó al ligar: «ligado» (el pendiente pasó a «sin tallas»), «sin_cambio» (ya tenía su prenda, o ya se terminó mientras tanto),
+ * «no_disponible» (la base todavía no tiene la función: la web se publica antes de pegar la migración, y entonces todo sigue como antes)
+ * o «fallo» (cualquier otra cosa: la prenda quedó creada igual, pero «Para después» seguirá diciendo «por crear»).
+ */
+export type ResultadoDeLigar = "ligado" | "sin_cambio" | "no_disponible" | "fallo";
+
+export function resultadoDeLigar(data: unknown, error: { code?: string | null; hint?: string | null } | null | undefined): ResultadoDeLigar {
+  if (error) {
+    // PGRST202 (PostgREST) y 42883 (Postgres): la función no existe todavía.
+    if (error.code === "PGRST202" || error.code === "42883") return "no_disponible";
+    return error.hint === "pendiente_ya_resuelto" ? "sin_cambio" : "fallo";
+  }
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  const ligado = r ? booleano(r.ligado) : null;
+  return ligado === null ? "fallo" : ligado ? "ligado" : "sin_cambio";
+}
+
+/** El aviso cuando no se pudo dejar la prenda en «Para después»: la prenda existe, y cómo se arregla. */
+export const AVISO_PRENDA_SIN_LIGAR = {
+  titulo: "La prenda se creó, pero «Para después» todavía la muestra como por crear",
+  detalle: "Se arregla al ponerle tallas y colores. La encuentras también en Catálogo ▸ Productos.",
+} as const;
 
 /** «4 prendas entraron al stock» / «2 quedaron por crear». */
 export function textoResuelto(r: { entraron: number; quedaronPendientes: number }): string {
@@ -1051,6 +1541,8 @@ export function textoResuelto(r: { entraron: number; quedaronPendientes: number 
 export function textoNoSeReabre(porQueNo: string | null): string {
   if (porQueNo === "reabrir_deuda_resuelta") return "Compras ya resolvió parte de lo que faltó: la corrección la hace Compras";
   if (porQueNo === "reabrir_reposicion_saldo") return "Lo de más de este envío ya saldó lo que el proveedor debía: la corrección la hace Compras";
+  // ADR-0480 (actividad 7): lo recibido ya es del comprobante de la compra.
+  if (porQueNo === "reabrir_papel_completado") return "Compras ya completó el papel de esta compra: la corrección la hace Compras";
   return "Ya no se puede reabrir";
 }
 
@@ -1074,28 +1566,6 @@ export type PendientesDeLaSede = {
 };
 
 export const SIN_PENDIENTES: PendientesDeLaSede = { porSeparar: 0, porDetallar: 0, porCrear: 0, total: 0, desde: null, envios: [] };
-
-/**
- * «Llegó esta semana» lee los lotes, y un envío cerrado sin nada en el stock no tiene lote: la prueba ciega creyó que no había llegado nada
- * (formidable, lista aparte del 2026-10-14; Felipe mandó resolverla). Lo que quedó por terminar de los envíos cerrados desde `desde` (un día
- * de Lima): cuántos envíos y cuántas prendas. Esas filas ya están en el aviso de arriba; aquí solo se cuentan para no decir «no llegó nada».
- */
-export function guardadoDesde(p: PendientesDeLaSede | null, desde: string): { envios: number; prendas: number } {
-  const envios = (p?.envios ?? []).filter((e) => {
-    const dia = diaLima(e.cerradoEn);
-    return dia != null && dia >= desde;
-  });
-  return { envios: envios.length, prendas: envios.reduce((a, e) => a + e.porSeparar + e.porDetallar + e.porCrear, 0) };
-}
-
-/** Lo que dice «Llegó esta semana» de lo guardado: el vacío (si no entró nada al stock) o la línea de abajo (si algo entró). `null` si no hay. */
-export function textoGuardadoEstaSemana(g: { envios: number; prendas: number }, sede: string, hayEnElStock: boolean): string | null {
-  if (g.prendas === 0) return null;
-  const cuantas = `${g.prendas.toLocaleString("es-PE")} ${g.prendas === 1 ? "prenda" : "prendas"}`;
-  return hayEnElStock
-    ? `Además llegaron ${cuantas} que todavía no están en el stock: arriba, en lo que falta terminar.`
-    : `Esta semana no entró nada al stock de ${sede}, pero llegaron ${cuantas} que todavía están por terminar: arriba, en lo que falta terminar.`;
-}
 
 export function leerPendientesDeLaSede(data: unknown): PendientesDeLaSede {
   const r = objeto(Array.isArray(data) ? data[0] : data);
@@ -1133,13 +1603,22 @@ export function diasDesde(desde: string | null, hoy: Date = new Date()): number 
 }
 
 /**
- * Lo que se escribe en la caja del contador. Solo dígitos, hasta 4 (como la matriz: una cantidad imposible ni se puede escribir), así la
- * caja muestra siempre lo que se guarda. Vacío NO es 0: es «todavía escribiendo», y no se guarda nada (chaos 2026-10-13: borrar para
+ * Lo que se escribe en la caja del contador. Vacío NO es 0: es «todavía escribiendo», y no se guarda nada (chaos 2026-10-13: borrar para
  * reescribir guardaba un 0, y una categoría de fuera de la guía en 0 desaparecía de la lista con la persona escribiendo).
+ *
+ * Se cuentan prendas enteras: «1.5» y «-5» no son una cantidad, y lo que no se entiende no se arregla por su cuenta (Felipe 2026-11-03; /chaos: borrarle a «1.5» el punto al teclearlo guardaba 15, «1e3»
+ * daba 13 y «99999999» se cortaba en 99,999, todo sin que nadie lo notara). Todo se queda en la caja como se escribió, `contadas` es `null` y `problema` dice por qué. Una coma o un punto seguidos de
+ * tres cifras son un millar («12,000», como se lee en pantalla). Hasta 5 cifras, lo que la base acepta (`TOPES_CONTEO`): un modelo puede llegar por miles.
  */
-export function leerContadas(t: string): { texto: string; contadas: number | null } {
-  const texto = limpiarCantidad(t);
-  return { texto, contadas: texto === "" ? null : Number(texto) };
+export function leerContadas(t: string): { texto: string; contadas: number | null; problema: string | null } {
+  // «1 200» son miles; «12 34» son dos celdas pegadas de una hoja de cálculo, y no se adivina.
+  const sinMiles = sinBlancosDeMiles(t);
+  const escrito = (sinMiles ?? t.trim()).slice(0, 16);
+  if (escrito === "") return { texto: "", contadas: null, problema: null };
+  if (sinMiles === null || !/^(\d+|\d{1,3}([.,]\d{3})+)$/.test(escrito)) return { texto: escrito, contadas: null, problema: "Solo números enteros" };
+  const texto = escrito.replace(/[.,]/g, "");
+  const contadas = Number(texto);
+  return contadas > TOPES_CONTEO.contadas ? { texto: escrito, contadas: null, problema: `Hasta ${TOPES_CONTEO.contadas.toLocaleString("es-PE")} por modelo` } : { texto, contadas, problema: null };
 }
 
 /**
@@ -1152,8 +1631,9 @@ export function lineasALaVista(lineas: readonly LineaParaContar[], agregados: Re
 
 /**
  * El error de un guardado de la recepción en palabras de tienda. La base ya habla castellano (sus pistas `recepcion_*`); la red caída no
- * se muestra cruda. Como cada guardado lleva su token (un reintento con el mismo token no repite nada), se puede decir que vuelva a
- * intentar sin miedo, aunque no se sepa si llegó a guardarse.
+ * se muestra cruda. Se puede decir que vuelva a intentar sin miedo aunque no se sepa si llegó a guardarse: los guardados de una sola vez llevan
+ * su token y un conteo se escribe sobre su propia línea, así que un reintento no repite nada. Lo único sin token es ANOTAR algo nuevo fuera de la
+ * guía (`guardar_conteo_envio` sin posición): un reintento deja otra línea en 0, que no se ve y el cierre ignora, y su hoja no usa este mensaje.
  */
 export function mensajeAlGuardar(error: { message?: string | null; hint?: string | null; code?: string | null; details?: string | null } | null | undefined, contexto: string): string {
   const deLaRecepcion = mensajeDeLaRecepcion(error);

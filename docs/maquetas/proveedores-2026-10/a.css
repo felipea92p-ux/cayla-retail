@@ -1,0 +1,81 @@
+/* Dirección A · Tres montones. Prefijo a-. Solo var(--…) de base.css. */
+
+.a-bloque{display:flex;flex-direction:column;gap:12px}
+.a-verde{--c:var(--verde)} .a-ambar{--c:var(--ambar)} .a-pizarra{--c:var(--pizarra)}
+
+/* ---------- Los tres montones ---------- */
+.a-montones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+@media (max-width:1100px){.a-montones{grid-template-columns:minmax(0,1fr)}}
+.a-monton{display:flex;flex-direction:column;gap:10px;min-width:0}
+.a-monton-cab{display:flex;gap:12px;align-items:flex-start;padding:4px 2px 10px;border-bottom:2px solid var(--c)}
+.a-monton-ic{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.a-monton-cab h2{font-size:24px;display:flex;align-items:center;gap:8px}
+.a-monton-cab p{font-size:13px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.a-cartas{display:flex;flex-direction:column;gap:10px}
+
+.a-carta{display:flex;flex-direction:column;gap:10px;text-align:left;background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:14px 16px;position:relative;overflow:hidden;
+  transition:transform .3s var(--ease-cayla),box-shadow .3s var(--ease-cayla),border-color .2s}
+.a-carta::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);transform:scaleY(0);transform-origin:top;transition:transform .35s var(--ease-cayla)}
+@media (hover:hover){.a-carta:hover{transform:translateY(-2px);box-shadow:0 12px 26px -18px color-mix(in srgb,var(--sombra) 55%,transparent);border-color:color-mix(in srgb,var(--c) 40%,var(--sand))}.a-carta:hover::before{transform:scaleY(1)}}
+.a-carta-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.a-carta-cab .nombre b{font-family:var(--serif);font-size:19px;font-weight:400}
+.a-carta-cuerpo{display:flex;gap:14px;align-items:flex-end;justify-content:space-between}
+.a-frase{font-size:13.5px;line-height:1.45;color:color-mix(in srgb,var(--tinta) 80%,transparent)}
+.a-frase b{font-weight:600;color:var(--tinta)}
+.a-reloj{display:flex;flex-direction:column;align-items:flex-end;flex:none;width:118px;text-align:right}
+.a-reloj b{font-family:var(--serif);font-size:34px;line-height:1;font-weight:400;color:var(--c)}
+.a-reloj span{font-size:10.5px;line-height:1.25;color:var(--taupe)}
+.a-carta-pie{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 72%,transparent);padding-top:8px;border-top:1px dashed var(--sand)}
+.a-dato{display:inline-flex;align-items:center;gap:6px}
+.a-sede{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block;flex:none}
+.a-banderas{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+
+/* ---------- Ficha: el veredicto ---------- */
+.a-veredicto{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:22px 32px;background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:24px 26px;position:relative;overflow:hidden}
+.a-veredicto::before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:var(--c)}
+@media (max-width:980px){.a-veredicto{grid-template-columns:minmax(0,1fr)}}
+.a-veredicto-izq{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.a-veredicto-izq h2{font-size:clamp(30px,3.4vw,44px);line-height:1.05;color:var(--c)}
+.a-veredicto-izq p{font-size:15px;color:color-mix(in srgb,var(--tinta) 78%,transparent);max-width:44ch}
+.a-preguntas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.a-preguntas{grid-template-columns:minmax(0,1fr)}}
+.a-pregunta{display:flex;flex-direction:column;gap:5px;background:color-mix(in srgb,var(--hueso) 55%,transparent);border-radius:12px;padding:14px 16px;min-width:0}
+.a-marca{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);margin-bottom:4px}
+.a-respuesta{font-family:var(--serif);font-weight:400;font-size:21px;line-height:1.15}
+.a-det{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.a-mini{display:flex;flex-direction:column;gap:4px;margin-top:6px;font-size:11.5px}
+
+/* La regla de semanas: verde hasta 6, ámbar desde 16. */
+.a-regla{position:relative;display:block;height:30px;margin-top:8px;border-bottom:2px solid var(--sand)}
+.a-regla-z{position:absolute;bottom:-2px;height:2px}
+.a-regla-z.v{left:0;background:var(--verde)}
+.a-regla-z.a{right:0;background:var(--ambar)}
+.a-regla-m{position:absolute;bottom:-18px;transform:translateX(-50%);font-size:10px;color:var(--taupe)}
+.a-regla-p{position:absolute;bottom:-7px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px var(--papel)}
+.a-pregunta:has(.a-regla){padding-bottom:26px}
+
+/* ---------- Lo que le compraste ---------- */
+.a-comprado{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.a-comprado-cifras{display:flex;flex-wrap:wrap;gap:12px 40px}
+.a-comprado-cifras>div{display:flex;flex-direction:column}
+.a-comprado-cifras b{font-size:30px;font-weight:400;line-height:1.1}
+.a-comprado-cifras .tenue{font-size:12.5px}
+.a-origen{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px dashed var(--sand)}
+
+/* ---------- Tallas y sedes ---------- */
+.a-par{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.a-par{grid-template-columns:minmax(0,1fr)}}
+.a-mitad{padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.a-mitad h3{font-size:22px;padding-right:170px}
+@media (max-width:520px){.a-mitad h3{padding-right:0;margin-top:22px}}
+.a-tallas{display:flex;gap:18px;align-items:flex-end;margin-top:8px}
+.a-talla{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;max-width:72px}
+.a-talla-col{height:130px;width:100%;max-width:44px;display:flex;flex-direction:column;justify-content:flex-end;gap:2px}
+.a-talla-col i{display:block;width:100%;background:var(--c);border-radius:4px}
+.a-talla b{font-weight:600;font-size:13px}
+.a-talla span{font-size:11.5px;color:var(--taupe)}
+.a-talla.primero b{color:var(--verde)}
+.a-talla.primero .a-talla-col{box-shadow:0 0 0 2px color-mix(in srgb,var(--verde) 40%,transparent);border-radius:6px;padding:2px}
+.a-sedes{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.a-sedefila{display:grid;grid-template-columns:7.5rem minmax(0,1fr) 6.5rem;gap:12px;align-items:center;font-size:13.5px}
+.a-sedenom{display:inline-flex;align-items:center;gap:8px}

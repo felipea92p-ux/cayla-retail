@@ -72,13 +72,13 @@ export function EnviarPedidoWebHoja({ envio, onClose, onEnviado }: { envio: Envi
     <Modal titulo={`Enviar a ${envio.tiendaPedido}`} subtitulo={`Pedido web ${envio.codigo} · sale de ${envio.desde}`} onClose={onClose} tamano="angosta" bloqueado={enviando}>
       {(cerrar) => (
         <div className="space-y-4">
-          <ul className="divide-y divide-sand rounded-xl border border-sand" data-guia="enviar-pedido-web.prendas">
+          <ul className="card-cayla divide-y divide-sand" data-guia="enviar-pedido-web.prendas">
             {envio.lineas.map((l) => (
               <li key={l.lineaId} className="flex items-center gap-3 px-4 py-2.5">
                 <MiniPrenda prenda={l} tamano="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-tinta">{[l.referencia, l.color, l.talla].filter(Boolean).join(" · ")}</span>
-                  <span className="block text-[12.5px] text-taupe">
+                  <span className="block text-sm text-taupe">
                     {l.lugar === "piso" ? "Está colgada en el piso: descuélgala para empacarla" : l.lugar === "almacen" ? "Está en el almacén" : "Reservada aquí"}
                   </span>
                 </span>
@@ -90,9 +90,8 @@ export function EnviarPedidoWebHoja({ envio, onClose, onEnviado }: { envio: Envi
               <CampoFecha etiqueta={guia.etiqueta("llega", "¿Cuándo llega?")} valor={llega} onValor={setLlega} required />
             </div>
           </CampoGuiado>
-          <p className="nota-cayla text-[13px]">
-            Sale como un traslado más{colgadas > 0 ? " (lo colgado pasa antes al almacén)" : ""}: Traslados lo muestra en camino hasta que{" "}
-            {envio.tiendaPedido} lo reciba, y ahí queda reservado solo para el pedido.
+          <p className="nota-cayla text-sm">
+            Sale como un traslado más{colgadas > 0 ? " (lo colgado pasa antes al almacén)" : ""}. Al llegar a {envio.tiendaPedido}, queda reservado para el pedido.
           </p>
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={enviando} />

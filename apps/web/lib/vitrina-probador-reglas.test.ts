@@ -162,7 +162,7 @@ describe("lo que entra al probador: la misma regla de la tienda (/formidable, 20
     for (const g of GRUPOS_DE_LA_TIENDA) for (const prefijo of g.prefijos) expect(entraAlProbador(cat(prefijo))).toBe(zonaDelProbador(prefijo) !== null);
   });
 
-  it("una categoría nueva sin lista cae donde la pone la tienda (Encima y más): entra", () => {
+  it("una categoría nueva sin lista cae donde la pone la tienda (Chompas/Abrigos): entra", () => {
     expect(entraAlProbador(cat("NUE"))).toBe(true);
     expect(entraAlProbador(cat(null, "Kimonos"))).toBe(true);
   });

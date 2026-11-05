@@ -12,7 +12,7 @@ export type Punto = { x: number; y: number };
 /** Lo que el componente mide del panel: su tamaño, el centro de cada ojal (una sede) y dónde queda la cola del ave al llegar. */
 export type MedidasDelVuelo = { ancho: number; alto: number; sedes: Punto[]; destino: Punto };
 
-/** El colibrí de la marca (los mismos trazos de `IsotipoCayla`, en su lienzo de 223×150): el ala son los dos primeros. */
+/** El colibrí de la marca (los trazos del colibrí de antes del logo oficial, en su lienzo de 223×150): el ala son los dos primeros. */
 export const TRAZOS_DEL_AVE = [
   "M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102",
   "M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87",

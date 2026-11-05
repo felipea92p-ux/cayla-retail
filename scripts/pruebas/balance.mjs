@@ -385,15 +385,18 @@ const CASOS_PERMISOS = `
 ${cambiaA(MICAELA)}
 select 'P1 sin «Reportes financieros» no ve ni lo de su tienda', (select pg_temp.intento($$select * from retail.fn_balance_por_tienda('2024-03-31')$$) like '%Reportes financieros%');
 ${conModulo("reportes_financieros")}
-select 'P2 con el módulo ve SU tienda y nada más', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_balance_por_tienda('2024-03-31'));
+-- ADR-0585 (Felipe 2026-10-30): con el módulo se ve CAYLA entera, como el líder (antes: solo su tienda). Registrar los saldos de
+-- arranque sigue siendo del líder.
+select 'P2 con el módulo ve todas las tiendas, como el líder', (select count(*) > 1 and bool_or(ubicacion_id = :'lim') from retail.fn_balance_por_tienda('2024-03-31'));
 select 'P3 con el módulo ve lo que es de su tienda en líneas', (select count(*) = 4 from retail.fn_balance_general('2024-03-31', :'tru'));
-select 'P4 no ve lo de otra tienda', (select pg_temp.intento(format($$select * from retail.fn_balance_general('2024-03-31', %L)$$, :'lim')) like '%esa tienda%');
-select 'P5 el Balance de CAYLA entera, la comprobación y los saldos de arranque son del líder',
-  (select pg_temp.intento($$select * from retail.fn_balance_general('2024-03-31')$$) like '%líder%')
-  and (select pg_temp.intento($$select * from retail.fn_conciliacion_contable('2024-03-31')$$) like '%líder%')
-  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales()$$) like '%líder%')
-  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales_propuesta('2024-03-01')$$) like '%líder%')
-  and (select pg_temp.intento($$select retail.registrar_saldo_inicial('2024-03-01', '[{"cuenta":"50","monto":1}]'::jsonb, 'Intento de prueba')$$) like '%líder%');
+select 'P4 y lo de otra tienda', (select pg_temp.intento(format($$select * from retail.fn_balance_general('2024-03-31', %L)$$, :'lim')) = 'SIN_ERROR');
+select 'P5 el Balance de CAYLA entera, la comprobación y la lectura de los saldos de arranque se abren con el módulo',
+  (select pg_temp.intento($$select * from retail.fn_balance_general('2024-03-31')$$) = 'SIN_ERROR')
+  and (select pg_temp.intento($$select * from retail.fn_conciliacion_contable('2024-03-31')$$) = 'SIN_ERROR')
+  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales()$$) = 'SIN_ERROR')
+  and (select pg_temp.intento($$select * from retail.fn_saldos_iniciales_propuesta('2024-03-01')$$) = 'SIN_ERROR');
+select 'P5 pero registrar los saldos de arranque sigue siendo del líder',
+  (select pg_temp.intento($$select retail.registrar_saldo_inicial('2024-03-01', '[{"cuenta":"50","monto":1}]'::jsonb, 'Intento de prueba')$$) like '%líder%');
 reset role;
 select 'P6 nadie lee la tabla directo ni llama a las piezas internas; anon no llama a nada',
   not has_table_privilege('authenticated', 'retail.saldos_iniciales', 'select')

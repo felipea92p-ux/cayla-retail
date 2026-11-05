@@ -9,8 +9,10 @@ const mes = (p: Partial<MesIgv>): MesIgv => ({
 });
 const PANEL: PanelImpuestos = {
   hoy: "2026-10-15", mes: "2026-09", mesActual: "2026-10", foco: mes({}), historial: [],
-  parametros: { igv: { valor: 0.18, provisional: false }, uit: { valor: 5500, provisional: false, anio: 2026 }, umbralUit: { valor: 300, provisional: false }, regimen: { texto: "rmt", provisional: false }, renta: { valor: 0.01, provisional: false } },
-  umbral: { ventas12m: 1120000, umbralSoles: 1650000, avance: 0.68, cruzado: false, primerMes: "2025-10", ventasMeses: [] },
+  parametros: { igv: { valor: 0.18, provisional: false }, uit: { valor: 5500, provisional: false, anio: 2026 }, umbralUit: { valor: 300, provisional: false }, regimen: { texto: "rmt", provisional: false }, renta: { valor: 0.01, provisional: false }, avisoUmbralUit: { valor: 250, provisional: false } },
+  umbral: {
+    anio: 2026, ventasAnio: 900000, ventasAnioErp: 900000, ajuste: 0, umbralSoles: 1650000, avance: 0.5455, cruzado: false, primerMes: "2025-10", ventasMeses: [], avisoSoles: 1375000, avisoAlcanzado: false,
+  },
   renta: { base: 89000, tasa: 0.01, monto: 890 },
   revisar: {
     boletas: { n: 2, total: 1200, gastos: 2, proveedores: ["Ferretería Lima", "Bazar Sol"] },
@@ -38,8 +40,6 @@ describe("pulsoImpuestos", () => {
       ["renta", 890, "suma"],
       ["total", 9290, "queda"],
     ]);
-    expect(p.porHacer.map((h) => h.clave)).toEqual(["rechazados", "boletas"]);
-    expect(p.porHacer[1]!.texto).toContain("Pide factura a Ferretería Lima y Bazar Sol");
   });
 
   it("a favor: no se paga IGV, el saldo pasa al mes siguiente, y la renta sí", () => {
@@ -51,13 +51,18 @@ describe("pulsoImpuestos", () => {
     expect(p.frase).toContain("te dejó S/ 1,500 de IGV a favor");
     expect(p.frase).toContain("La renta a cuenta sí se paga: S/ 890");
     expect(p.cuenta.find((t) => t.clave === "igv")).toMatchObject({ nombre: "Te queda a favor", monto: 1500 });
-    expect(p.cuenta.some((t) => t.clave === "total")).toBe(false);
+    // La cuenta cierra también a favor: lo único que sale es la renta.
+    expect(p.cuenta.find((t) => t.clave === "total")).toMatchObject({ nombre: "Pagas a SUNAT (solo la renta)", monto: 890 });
   });
 
-  it("el saldo a favor que se traía entra a la cuenta como un descuento más", () => {
-    const p = pulsoImpuestos({ ...PANEL, foco: mes({ saldoAnterior: 400, aPagar: 8000 }) });
-    if (p.estado === "sin_mes") throw new Error("hay mes");
-    expect(p.cuenta.map((t) => t.clave)).toContain("anterior");
+  it("un mes sin ventas ni compras no dice «a favor S/ 0»: dice que no hubo nada", () => {
+    const p = pulsoImpuestos({ ...PANEL, foco: mes({ comprobantes: 0, baseVentas: 0, igvVentas: 0, debito: 0, creditoMercaderia: 0, creditoGastos: 0, credito: 0, aPagar: 0, saldoAFavor: 0 }) });
+    expect(p).toEqual({ estado: "sin_mes", mes: "2026-09", frase: "En septiembre no hubo ventas ni compras con factura en el sistema: no hay IGV que pagar ni saldo a favor." });
+  });
+
+  it("un mes sin movimiento pero con saldo que arrastra sí queda a favor", () => {
+    const p = pulsoImpuestos({ ...PANEL, foco: mes({ debito: 0, credito: 0, saldoAnterior: 814, aPagar: 0, saldoAFavor: 814 }) });
+    expect(p.estado).toBe("a_favor");
   });
 
   it("sin renta conocida, la cifra es solo el IGV y no hay fila de total", () => {

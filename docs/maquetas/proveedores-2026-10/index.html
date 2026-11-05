@@ -1,0 +1,77 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Proveedores: tres direcciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="piezas.css">
+<link rel="stylesheet" href="a.css">
+<link rel="stylesheet" href="b.css">
+<link rel="stylesheet" href="c.css">
+</head>
+<body>
+<!-- Maquetas de Compras ▸ Proveedores (2026-10-26). Tres direcciones para responder en 5 segundos «¿a quién le vuelvo a comprar?».
+     La barra de arriba es de la maqueta, no del diseño: elige la dirección (A · B · C, también #a, #b, #c), la vista (lista o ficha),
+     el proveedor de la ficha y el tema. La ficha también se abre tocando un proveedor en la lista. -->
+<div class="mq-barra">
+  <span class="mq-titulo">Proveedores <small id="mq-lema"></small></span>
+  <div class="mq-seg" role="group" aria-label="Dirección">
+    <button data-dir="a">A · Montones</button><button data-dir="b">B · Reloj</button><button data-dir="c">C · Flujo</button>
+  </div>
+  <div class="mq-seg" role="group" aria-label="Vista">
+    <button data-vista="lista">Lista</button><button data-vista="ficha">Ficha</button>
+  </div>
+  <div class="mq-seg" role="group" aria-label="Proveedor de la ficha" id="mq-prov">
+    <button data-prov="deyner">Deyner</button><button data-prov="jacard">Jacard</button><button data-prov="anqori">Anqori</button><button data-prov="lasak">Lasak</button>
+  </div>
+  <button class="mq-tema" id="mq-tema" aria-label="Cambiar tema">Oscuro</button>
+</div>
+<p class="mq-nota" id="mq-nota"></p>
+<main class="pagina" id="raiz"></main>
+
+<script src="datos.js"></script>
+<script src="comun.js"></script>
+<script src="bloques.js"></script>
+<script src="a.js"></script>
+<script src="b.js"></script>
+<script src="c.js"></script>
+<script>
+(function () {
+  const C = window.C, raiz = document.getElementById("raiz");
+  const NOTAS = {
+    a: "<b>A · Tres montones.</b> La lista ya viene repartida en lo que vas a hacer con cada proveedor. La ficha abre con la respuesta en una frase y las tres preguntas que la sostienen.",
+    b: "<b>B · El reloj del ritmo.</b> Todo se mide en una sola unidad: las semanas que tardaría en venderse lo que queda. La lista es un mapa de ese reloj; la ficha, su curva «si sigue así».",
+    c: "<b>C · El flujo.</b> Se ve adónde fue cada prenda que compraste: vendida, en estantes o parada. La lista es un río de toda la mercadería; la ficha, el de un proveedor, con sus tallas en un perchero.",
+  };
+  // El tema: claro de fábrica, como el ERP (localStorage es solo comodidad).
+  const temaBtn = document.getElementById("mq-tema");
+  const ponerTema = (t) => { document.documentElement.dataset.theme = t; temaBtn.textContent = t === "dark" ? "Claro" : "Oscuro"; try { localStorage.setItem("mq-prov-tema", t); } catch (e) {} };
+  let tema = "light"; try { tema = localStorage.getItem("mq-prov-tema") || "light"; } catch (e) {}
+  ponerTema(tema);
+  temaBtn.addEventListener("click", () => ponerTema(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+
+  document.querySelectorAll("[data-dir]").forEach((b) => b.addEventListener("click", () => { const e = C.estado(); location.hash = `${b.dataset.dir}/${e.vista}${e.vista === "ficha" ? "/" + e.id : ""}`; }));
+  document.querySelectorAll("[data-vista]").forEach((b) => b.addEventListener("click", () => { const e = C.estado(); location.hash = `${e.dir}/${b.dataset.vista}${b.dataset.vista === "ficha" ? "/" + e.id : ""}`; }));
+  document.querySelectorAll("[data-prov]").forEach((b) => b.addEventListener("click", () => { const e = C.estado(); location.hash = `${e.dir}/ficha/${b.dataset.prov}`; }));
+
+  let ultimo = "";
+  function pintar() {
+    const e = C.estado(), dir = window.DIRS[e.dir];
+    const clave = `${e.dir}/${e.vista}/${e.id}`;
+    if (clave === ultimo) return; ultimo = clave;
+    document.querySelectorAll("[data-dir]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.dir === e.dir));
+    document.querySelectorAll("[data-vista]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.vista === e.vista));
+    document.querySelectorAll("[data-prov]").forEach((b) => b.setAttribute("aria-pressed", e.vista === "ficha" && b.dataset.prov === e.id));
+    document.getElementById("mq-nota").innerHTML = NOTAS[e.dir];
+    document.getElementById("mq-lema").textContent = dir.lema;
+    const p = window.PROVEEDORES.find((x) => x.id === e.id);
+    raiz.className = `pagina dir-${e.dir} vista-${e.vista}`;
+    raiz.innerHTML = e.vista === "ficha" ? dir.ficha(p) : dir.lista();
+    if (dir.despues) dir.despues(raiz, e, p);
+    C.animar(raiz);
+    window.scrollTo({ top: 0 });
+  }
+  window.addEventListener("hashchange", pintar);
+  pintar();
+})();
+</script>
+</body></html>

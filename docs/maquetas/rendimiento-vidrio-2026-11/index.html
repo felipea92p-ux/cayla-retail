@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-tt="levanta" data-hi="placa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendimiento con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · Gestión ▸ Rendimiento con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   EL PLAN ES DE DANY (ADR-0219, ADR-0325): aquí SOLO cambia el material. Ni una cifra, ni un orden, ni una palabra.
+   La pantalla real (app/(app)/rendimiento → components/rendimiento/): con varias tiendas, tres tarjetas que son a la vez pestañas
+   (ComparativoTiendas: cómo va cada tienda este mes, «Adelante / En ritmo / Por debajo», sin rojo); el panel de la tienda elegida
+   (PanelRendimiento): Hoy · Semana · Mes, las cifras, la proyección y las prendas por venta, las ventas por hora, cómo va cada persona contra
+   su meta (con su lápiz), las ventas contra la meta y el historial de cambios de meta (un <details>); abajo, los dos rankings del mes.
+   Armada SOLO con lo ya elegido: cabecera A, el segmento de modo, tarjetas de cifra A · Placa, tabla B · Placa Serena, avatar en lente,
+   insignia A, barra de avance A · Tubo con su marca, barras por tiempo con los gráficos B · Tinta sobre vidrio, nota A · Placa, lápiz en gota.
+   Lo PROPIO, con sus caras:
+     1. Las tarjetas-pestaña de las tiendas.
+     2. El historial de cambios de meta.
+   Solo tokens. Sin movimiento nuevo; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:32px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}.cif small{display:block;font-size:12.5px;color:var(--t65);margin-top:2px}.cif small b{display:inline;font:600 12.5px 'DM Sans',sans-serif;color:var(--tinta)}
+.rd-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}.rd-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.tubo{position:relative;display:block;height:8px;margin-top:10px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 18%,transparent)}
+.tubo i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--c,var(--tinta))}.tubo b{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:2px;background:var(--taupe)}
+.tubo.fina{height:5px;margin-top:6px}
+.vista{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:22px}
+.vista h2{font-family:'EB Garamond',serif;font-weight:400;font-size:24px}
+.barras-h{padding:16px 18px;margin-top:12px}.barras-h .vs{font-size:10.5px}
+.bh{display:flex;align-items:flex-end;gap:6px;height:112px;margin-top:12px}.bh span{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%}
+.bh i{display:block;width:100%;max-width:28px;border-radius:4px 4px 2px 2px;background:color-mix(in srgb,var(--taupe) 34%,transparent)}.bh span.top i{background:var(--tinta)}.bh em{font-style:normal;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
+.bh-e{display:flex;justify-content:space-between;font-size:11px;color:var(--t65);margin-top:4px}
+.barras-h p.n{margin-top:8px;font-size:12.5px;color:var(--t65)}.barras-h p.n b{color:var(--tinta)}
+.nota{display:flex;gap:10px;margin-top:12px;padding:12px 14px;border-radius:16px;font-size:13px;color:var(--t80);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent)}
+[data-tema="oscuro"] .nota{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.ts{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:26px;font-family:'EB Garamond',serif;font-size:21px}
+.rd-pt{margin-top:10px;overflow:hidden}
+.pt-c,.pt-f{display:grid;grid-template-columns:minmax(12rem,1.3fr) 7rem 7rem minmax(9rem,1.4fr) 8rem 32px;gap:8px 16px;align-items:center;padding:0 20px}
+.pt-c{min-height:42px;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}.pt-c span:nth-child(2),.pt-c span:nth-child(3){text-align:right}
+.pt-f{min-height:60px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:14px}.pt-f .rt{text-align:right;font-variant-numeric:tabular-nums}
+.pr{display:flex;align-items:center;gap:10px;min-width:0}.pr b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avl{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--sand) 70%,var(--vidrio)),color-mix(in srgb,var(--sand) 90%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent)}
+.lapiz{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t80)}.lapiz svg{width:15px;height:15px}
+@media (hover:hover){.lapiz:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}}
+.rk2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:10px}.rk2 h3{font-size:15px;font-weight:600;margin-bottom:8px}
+.rk-f{display:grid;grid-template-columns:1.5rem minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 18px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:14px}.rk-f:first-child{border-top:0}.rk-f .p{color:var(--t65);text-align:center}.rk-f .rt{font-variant-numeric:tabular-nums}
+
+/* ============ 1 · LAS TARJETAS-PESTAÑA DE LAS TIENDAS ============ */
+.tiendas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.tt{position:relative;padding:16px;border-radius:18px;text-align:left;transition:border-color .2s var(--ease),transform .26s var(--ease)}
+.tt .cab-t{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.tt .nm{font-size:14px;font-weight:600}
+.tt .s{display:block;font-family:'EB Garamond',serif;font-size:26px;line-height:1.2;margin-top:4px;font-variant-numeric:tabular-nums}.tt small{display:block;font-size:12px;color:var(--t65)}
+.chip.ses{--c:var(--t65);height:20px;padding:0 8px;font-size:11px;margin-left:6px;vertical-align:middle}.chip.ses::before{display:none}
+/* Como ahora: papel con borde arena; la elegida, borde de tinta y una raya de 3 px abajo. */
+[data-tt="ahora"] .tt{border:1px solid var(--sand);background:var(--papel)}
+[data-tt="ahora"] .tt[aria-selected="true"]{border-color:var(--tinta);box-shadow:inset 0 -3px 0 var(--tinta)}
+@media (hover:hover){[data-tt="ahora"] .tt:not([aria-selected="true"]):hover{border-color:var(--taupe)}}
+/* las dos caras nuevas: placas Serena */
+:is([data-tt="levanta"],[data-tt="hunde"]) .tt{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"]:is([data-tt="levanta"],[data-tt="hunde"]) .tt{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+/* A · La elegida se levanta: como la gota de las pestañas —la elegida es la más clara, sube 2 px con su sombra y lleva un filo de tinta—; las
+   otras quedan atrás, un poco más tenues. */
+[data-tt="levanta"] .tt:not([aria-selected="true"]){opacity:.82}
+@media (hover:hover){[data-tt="levanta"] .tt:not([aria-selected="true"]):hover{opacity:1}}
+[data-tt="levanta"] .tt[aria-selected="true"]{transform:translateY(-2px);border-color:color-mix(in srgb,var(--tinta) 45%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 18px 34px -18px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-tt="levanta"] .tt[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 14%,transparent)}
+/* B · La elegida se hunde: como la tarjeta de cifra que filtra, la elegida queda en un pozo; las otras, placas. */
+[data-tt="hunde"] .tt[aria-selected="true"]{background:color-mix(in srgb,var(--tinta) 5%,transparent);border-color:color-mix(in srgb,var(--borde) 70%,transparent);box-shadow:inset 0 2px 5px color-mix(in srgb,var(--sombra) 18%,transparent);-webkit-backdrop-filter:none;backdrop-filter:none}
+[data-tema="oscuro"][data-tt="hunde"] .tt[aria-selected="true"]{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+
+/* ============ 2 · EL HISTORIAL DE CAMBIOS DE META ============ */
+.hist{margin-top:16px;border-radius:18px}
+.hist summary{list-style:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:16px 20px;cursor:pointer;font-size:14px}
+.hist summary::-webkit-details-marker{display:none}.hist summary .che{width:16px;height:16px;transition:transform .3s var(--ease)}.hist[open] summary .che{transform:rotate(90deg)}
+.hist summary small{color:var(--t65)}
+.hist ul{margin:0 20px 16px}.hist li{display:grid;grid-template-columns:5.5rem minmax(0,1fr);gap:12px;padding:9px 0;font-size:13.5px}.hist li .d{font-size:12px;color:var(--taupe);font-variant-numeric:tabular-nums}.hist li small{display:block;font-size:12px;color:var(--t65)}
+[data-hi="ahora"] .hist{border:1px solid var(--sand);background:var(--papel)}[data-hi="ahora"] .hist li+li{border-top:1px solid var(--sand)}
+/* A · Placa que se abre: la placa Serena; abierta, los cambios bajan en un pozo dentro de la placa. */
+:is([data-hi="placa"],[data-hi="riel"]) .hist{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"]:is([data-hi="placa"],[data-hi="riel"]) .hist{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-hi="placa"] .hist ul{margin:0 10px 10px;padding:4px 12px;border-radius:14px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-hi="placa"] .hist li+li{border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent)}
+/* B · Línea del tiempo: la placa Serena; los cambios cuelgan de un riel con un punto por cambio. */
+[data-hi="riel"] .hist li{position:relative;padding-left:18px;grid-template-columns:5rem minmax(0,1fr)}
+[data-hi="riel"] .hist li::before{content:"";position:absolute;left:3px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--tinta)}
+[data-hi="riel"] .hist li:not(:last-child)::after{content:"";position:absolute;left:6px;top:26px;bottom:-9px;width:1px;background:color-mix(in srgb,var(--tinta) 15%,transparent)}
+
+@container disp (max-width:1180px){.rd-4{grid-template-columns:repeat(2,minmax(0,1fr))}.pt-c{display:none}.pt-f{grid-template-columns:minmax(0,1fr) auto 32px;padding:12px 16px}.pt-f>.rt.m{display:none}.pt-f>.br{grid-column:1/-1;grid-row:2}.pt-f>.lc{grid-column:2;grid-row:1}.rk2{grid-template-columns:minmax(0,1fr)}}
+@container disp (max-width:700px){.tiendas{grid-template-columns:minmax(0,1fr);gap:8px}.rd-2{grid-template-columns:minmax(0,1fr)}.cif b{font-size:26px}.pt-f>.rt.v{display:none}.hist summary,.hist ul{padding-left:14px;padding-right:14px}}
+@media (prefers-reduced-motion:reduce){.tt,.hist summary .che{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Gestión ▸ Rendimiento, con vidrio (el plan es de Dany: solo cambia el material)</span>
+  <span class="tag">Tarjetas de las tiendas</span><div class="seg-m" data-ctl="tt"><button data-v="ahora">Como ahora</button><button data-v="levanta">A · La elegida se levanta</button><button data-v="hunde">B · La elegida se hunde</button></div>
+  <span class="tag">Historial de cambios de meta</span><div class="seg-m" data-ctl="hi"><button data-v="ahora">Como ahora</button><button data-v="placa">A · Placa que se abre</button><button data-v="riel">B · Línea del tiempo</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <p><b>El plan es de Dany</b> (ADR-0219, ADR-0325): esta maqueta solo cambia el material; no toca una cifra, un orden ni una palabra.</p>
+    <ul>
+      <li><b>Las tarjetas-pestaña de las tiendas</b> (<code>ComparativoTiendas</code>): tres tarjetas de papel con cómo va cada tienda este mes contra su meta; la elegida lleva <b>borde de tinta y una raya de 3 px abajo</b>, y su panel se abre debajo.</li>
+      <li><b>El historial de cambios de meta</b>: un <code>&lt;details&gt;</code> en una tarjeta de papel; abierto, una línea por cambio con su fecha.</li>
+      <li>Todo lo demás (cifras, tablas, barras, gráficos, nota) son piezas ya elegidas.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Tarjetas de las tiendas</b></td><td>A · La elegida se levanta <span class="ev">Recomendada</span></td><td>Son pestañas: la elegida se comporta como la gota de las pestañas, la más clara, arriba, con su filo; las otras quedan atrás. Se ve cuál está abierta sin buscar la raya.</td><td>Las otras dos, un poco más tenues: se comparan apenas peor de un vistazo.</td></tr>
+      <tr><td>B · La elegida se hunde</td><td>Como la tarjeta de cifra que filtra: lo hundido es lo puesto.</td><td>Hundida parece «apagada» justo la que estás mirando.</td></tr>
+      <tr><td rowspan="2"><b>Historial de cambios</b></td><td>A · Placa que se abre <span class="ev">Recomendada</span></td><td>Una placa más; abierta, los cambios bajan en un pozo, como los lotes de Insumos que elegiste.</td><td>Casi nada.</td></tr>
+      <tr><td>B · Línea del tiempo</td><td>Un riel con un punto por cambio: se ve que es una historia.</td><td>Otro dibujo para una lista que casi nadie abre.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Todo lo de Dany: qué se mide, cómo se cuenta (los soles por hora contraídos), las palabras «Adelante / En ritmo / Por debajo» sin rojo, el orden de la pantalla, quién edita una meta, Hoy · Semana · Mes, y los dos rankings.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lapiz: 'M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z', che: 'M9 6l6 6-6 6' };
+  const s = (d, c = 'ic') => `<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  let tienda = 'tru';
+  const T = [['tru', 'Trujillo', 'S/ 38,420', 77, 'S/ 50,000', 70, ['verde', 'Adelante'], 1], ['aqp', 'Arequipa', 'S/ 24,980', 62, 'S/ 40,000', 70, ['ambar', 'Por debajo']], ['lim', 'Lima', 'S/ 29,150', 71, 'S/ 41,000', 70, ['pizarra', 'En ritmo']]];
+  const H = [0.2, 0.5, 0.9, 1.4, 1.1, 0.8, 1.6, 2.4, 1.9, 1.2, 0.7];
+  const P = [['AT', 'Ana Torres', 'S/ 9,840', 'S/ 11,200', 88, 70, ['verde', 'Adelante']], ['LR', 'Lucía Ramos', 'S/ 8,120', 'S/ 11,200', 72, 70, ['pizarra', 'En ritmo']], ['MQ', 'Mía Quispe', 'S/ 6,310', 'S/ 9,600', 66, 70, ['ambar', 'Por debajo']], ['RC', 'Rosa Castro', 'S/ 5,980', 'S/ 8,000', 75, 70, ['pizarra', 'En ritmo']]];
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Toda la empresa', titulo: 'Rendimiento', frase: 'Cómo va cada tienda y cada persona contra su meta, y quién vende más por hora.' })}
+      <div class="tiendas" role="tablist" aria-label="Tienda">${T.map(([id, n, so, pc, meta, toc, [tn, tx], ses]) => `<button class="tt" role="tab" data-t="${id}" aria-selected="${tienda === id}"><span class="cab-t"><span class="nm">${n}${ses ? '<span class="chip ses">Tu sesión</span>' : ''}</span><span class="chip ${tn}">${tx}</span></span><span class="s">${so}</span><small>${pc} % de ${meta} este mes</small><span class="tubo"><i style="width:${pc}%"></i><b style="left:${toc}%"></b></span></button>`).join('')}</div>
+      <div class="vista"><h2>${T.find((t) => t[0] === tienda)[1]}</h2><div class="modo"><button>Hoy</button><button>Semana</button><button aria-pressed="true">Mes</button></div></div>
+      <div class="rd-4"><div class="placa cif"><p class="vs">Soles del mes</p><b>S/ 38,420</b><small>en 312 ventas</small></div><div class="placa cif"><p class="vs">Meta de la sede</p><b>S/ 50,000</b><small>la carga Configuración</small></div><div class="placa cif"><p class="vs">Meta del mes</p><b>77 %</b><small>tocaba el 70 % a hoy</small></div><div class="placa cif"><p class="vs">Ticket promedio</p><b>S/ 123</b><small>por venta</small></div></div>
+      <div class="rd-2"><div class="placa cif"><p class="vs">Proyección del mes</p><b>S/ 52,300</b><small>A este ritmo (S/ 1,690 por día de trabajo) Trujillo cierra el mes cerca de esa cifra: <b>105 %</b> de su meta. Quedan 8 días de trabajo.</small></div><div class="placa cif"><p class="vs">Prendas por venta</p><b>1.8</b><small>562 prendas en 312 ventas este mes. Las devoluciones no restan.</small></div></div>
+      <div class="placa barras-h"><p class="vs">Ventas por hora (este mes)</p><div class="bh">${H.map((h, i) => `<span${i === 7 ? ' class="top"' : ''}>${i === 7 ? '<em>S/ 6,240</em>' : ''}<i style="height:${(h / 2.4) * 92}px"></i></span>`).join('')}</div><div class="bh-e"><span>10 h</span><span>20 h</span></div><p class="n">La mejor franja fue la de las <b>5 de la tarde</b>: S/ 6,240 en 48 ventas. Sirve para repartir turnos, no para juzgar a nadie.</p></div>
+      <p class="ts">Cómo va cada persona este mes <span class="chip tinta">Editan la líder de la sede y el Admin</span></p>
+      <section class="placa rd-pt"><div class="pt-c"><span>Persona</span><span>Vendido</span><span>Meta</span><span>Avance</span><span>Cómo va</span><span></span></div>
+        ${P.map(([ini, n, v, m, pc, toc, [tn, tx]]) => `<div class="pt-f"><span class="pr"><span class="avl">${ini}</span><b>${n}</b></span><span class="rt v">${v}</span><span class="rt m">${m}</span><span class="br"><span class="tubo fina"><i style="width:${pc}%"></i><b style="left:${toc}%"></b></span></span><span class="lc"><span class="chip ${tn}">${tx}</span></span><button class="lapiz" aria-label="Editar la meta de ${n}">${s(D.lapiz)}</button></div>`).join('')}</section>
+      <details class="hist" open><summary><span>Historial de cambios de meta <small>· 3 este mes</small></span>${s(D.che, 'ic che')}</summary><ul>
+        <li><span class="d">28 oct</span><div><b>Mía Quispe</b>: de S/ 8,800 a S/ 9,600<small>Lucía Ramos · «suma los sábados desde noviembre»</small></div></li>
+        <li><span class="d">14 oct</span><div><b>Rosa Castro</b>: de S/ 9,600 a S/ 8,000<small>Lucía Ramos · «vacaciones del 20 al 27»</small></div></li>
+        <li><span class="d">1 oct</span><div><b>La sede</b>: S/ 50,000<small>Felipe Alvarez · Configuración ▸ Tiendas y caja</small></div></li></ul></details>
+      <p class="ts">Rankings del mes</p>
+      <div class="rk2"><div><h3>Vende más por hora</h3><section class="placa">${[['Ana Torres', 'S/ 74 / h'], ['Rosa Castro', 'S/ 66 / h'], ['Lucía Ramos', 'S/ 61 / h']].map(([n, v], i) => `<div class="rk-f"><span class="p">${i + 1}</span><span>${n}</span><span class="rt">${v}</span></div>`).join('')}</section></div>
+        <div><h3>Cierra más ventas</h3><section class="placa">${[['Lucía Ramos', '96'], ['Ana Torres', '88'], ['Mía Quispe', '71']].map(([n, v], i) => `<div class="rk-f"><span class="p">${i + 1}</span><span>${n}</span><span class="rt">${v}</span></div>`).join('')}</section></div></div>`;
+    $$('#cont [data-t]').forEach((b) => b.addEventListener('click', () => { tienda = b.dataset.t; pantalla(); }));
+  }
+  Marco.iniciar({ estado: { tt: 'levanta', hi: 'placa' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

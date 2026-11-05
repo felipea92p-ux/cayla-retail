@@ -56,6 +56,16 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  // «Una tela con sus colores»: tras el script de deshacer (o antes de pegar 20261028203000) las funciones de telas ya no son de `authenticated`: no es que se cerrara la sesión.
+  { marca: "permission denied for function crear_material", frase: "Crear telas está desactivado por ahora. No se guardó nada." },
+  { marca: "permission denied for function agregar_colores_a_material", frase: "Sumar colores a una tela está desactivado por ahora. No se guardó nada." },
+  { marca: "permission denied for function editar_material", frase: "Editar telas está desactivado por ahora. No se guardó nada." },
+  // «Una tela con sus colores» (ADR-0554, revisión del 28-oct): las restricciones que la base deja sin mensaje propio. La pantalla frena casi todo antes; esto es el respaldo (y lo que ve la web vieja).
+  { marca: "insumos_tela_en_metros", frase: "Una tela se lleva en metros: el kilo y el rollo se declaran al crear la tela, en «+ Nueva tela»." },
+  { marca: "insumos_codigo_clave_unico", frase: "Ya hay un insumo con ese código (aunque cambien las mayúsculas, las tildes o los espacios). Elige otro código." },
+  { marca: "materiales_nombre_tipo_medida_unico", frase: "Ya existe una ficha con ese nombre y esa medida (quizá otra persona la creó hace un momento). Actualiza la pantalla y agrégale los colores a esa." },
+  { marca: "insumos_material_color_unico", frase: "Ese color ya está en la tela (quizá otra persona lo agregó hace un momento). Actualiza la pantalla." },
+  { marca: "materiales_medidas_plausibles", frase: "El ancho va en centímetros, entre 20 y 400 (por ejemplo 160, no 1.60), y el gramaje en gramos por metro cuadrado, entre 30 y 1500." },
   // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.
   { marca: "recibido_con_tope", frase: "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente y vuelve a intentar." },
   { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
@@ -65,6 +75,9 @@ const HUELLAS: Huella[] = [
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
   // Montos con tope en Finanzas (/chaos 2026-10-14, 20261015002000, ADR-0412): un gasto o un movimiento de dinero, hasta un millón de soles.
   { marca: "_monto_con_tope", frase: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero y vuelve a intentar." },
+  // Gasto que cierra un fijo (20260925000000, revisión del 22-oct): `registrar_gasto` levanta «Ese gasto fijo ya tiene su gasto de este mes.» con 23505
+  // ante CUALQUIER choque único cuando el gasto lleva un fijo, también un comprobante repetido. La frase no afirma cuál de los dos fue.
+  { marca: "ya tiene su gasto de este mes", frase: "No se registró: ese gasto fijo ya tiene su gasto de este mes (quizá otra persona lo registró hace un momento) o ese comprobante ya estaba registrado. Mira «Fijos del mes» antes de volver a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca
@@ -94,9 +107,10 @@ const HUELLAS: Huella[] = [
   // Cierre de la cola de arranque (ADR-0334): 20261005100100.
   {
     marca: "prenda_cerrada_sin_prenda",
-    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide a un líder que la reabra en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
+    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide que la reabran en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
   },
-  { marca: "cola_solo_lider", frase: "Solo un líder puede cerrar o reabrir ventas sin registrar de una tienda." },
+  // ADR-0534 (20261027164000): cerrar, reabrir y las sugerencias de la cola ya no son solo del líder; las hace quien ve Existencias.
+  { marca: "cola_sin_modulo", frase: "Esto se hace desde Existencias: pide que le den ese módulo a tu rol." },
   { marca: "cola_sin_persona", frase: "No se sabe quién cierra la cola. Entra con tu cuenta y vuelve a intentarlo." },
   { marca: "cola_sin_permiso_sede", frase: "No tienes permiso para cerrar la cola de esa tienda." },
   { marca: "cola_motivo_invalido", frase: "Elige por qué se cierran sin identificar la prenda." },
@@ -106,15 +120,20 @@ const HUELLAS: Huella[] = [
   { marca: "cola_corte_invalido", frase: "No se pudo fijar hasta qué venta se cierra. Recarga la página y vuelve a intentarlo." },
   { marca: "cola_sin_plazo", frase: "Esta tienda no tiene plazo abierto para cerrar su cola de ventas sin registrar." },
   { marca: "cola_plazo_vencido", frase: "El plazo para cerrar la cola de esta tienda ya venció." },
+  // ADR-0334 act. 2026-10-14 (A6), en main desde 20261027174000: cerrar en bloque pide un cuadre del piso posterior a la última venta.
+  {
+    marca: "cola_sin_cuadre",
+    frase: "Primero cuadra el piso de esta tienda (Existencias ▸ Cuadrar el piso) después de la última venta sin registrar: cerrar sin contar entierra las prendas que sí están en el sistema.",
+  },
   {
     marca: "cola_vacia",
     frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",
   },
   {
-    // ADR-0328 (20261004204000, en producción desde el 5-oct): llega con 42501 y este hint; la frase es la misma de la base.
-    // Sin esta huella caía al genérico con «avisa a Felipe. Código: …», y no es un rechazo del combo «Responsable».
-    marca: "regularizar_propia_venta",
-    frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
+    // 20261026224000 (Felipe 2026-10-26): llega con 42501 y este hint. Una terminal no cambia el precio de la prenda, que vale en
+    // todas las tiendas; la ficha ya no se lo ofrece, así que esto solo sale si una pantalla vieja o dos pestañas lo intentan.
+    marca: "terminal_precio_de_la_prenda",
+    frase: "Desde una terminal el precio se cambia solo en su tienda: usa «Precio en tu tienda» en la ficha de la prenda. No se guardó nada.",
   },
   {
     // Desde 20261004204000 «Perdió la etiqueta» descuenta solo de lo DISPONIBLE (como las cifras de la mesa): las apartadas y las
@@ -446,7 +465,8 @@ const HUELLAS: Huella[] = [
     // lista de la pantalla (solo aprobadas y activas) no muestre ninguna igual — por eso la frase lo dice.
     marca: "etiquetas_clave_unica",
     frase:
-      "Ya existe una etiqueta con ese nombre (aunque esté escrito distinto, esté pendiente de aprobar o desactivada). Búscala en Catálogo → Atributos → Etiquetas en vez de crearla otra vez.",
+      // Insignias y campañas son la misma tabla (ADR-0473): el nombre no se repite entre los dos.
+      "Ya existe una insignia o una campaña con ese nombre (aunque esté escrita distinto, pendiente de aprobar o desactivada). Búscala en Catálogo ▸ Insignias en vez de crearla otra vez.",
   },
   {
     // 20260915160000_categorias_editar_desactivar.sql — el candado real:
@@ -490,15 +510,28 @@ const HUELLAS: Huella[] = [
 ];
 
 /**
+ * Las frases que ya ve la persona cuando algo no la deja guardar, para «Pregúntale a CAYLA» (ADR-0536, actividad 7): «¿por qué no me
+ * deja…?» se contesta con la MISMA frase de la pantalla, nunca con una inventada. Solo las fijas (las que llevan un dato del error no).
+ */
+export function frasesDeErrores(): { marca: string; frase: string }[] {
+  return HUELLAS.flatMap((h) => (typeof h.frase === "string" ? [{ marca: h.marca, frase: h.frase }] : []));
+}
+
+/**
  * `hint` de las RPC de temporadas (ADR-0246) cuyo mensaje ya viene en castellano de CAYLA. Casi todos llegan como
  * `P0001` y pasarían igual; los de PERMISO (`temporada_sin_permiso`, `calendario_sin_permiso`) llevan `42501`, y sin
  * esto caían al genérico «No se pudo… Código: …» en vez de decir «Solo el líder puede cambiar el calendario».
  * Lo mismo los del fondo por rendir (ADR-0362 fase 6): `fondo_propio` («Nadie se entrega plata a sí mismo…») y `fondo_ajeno`
  * («Desde tu fondo pagas tú: elige tu nombre en «Responsable».») llegan con `42501` y una frase que dice qué hacer; y los de la rendición
  * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
- * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
+ * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»). Y `plata_ya_tenia_solo_lider` (20261027231000, Mis compras):
+ * confirmar la plata «Ya tenía» es del líder; llega con `42501` y una frase que dice a quién pedírselo. Y los de corregir o eliminar un ingreso de insumo (`ingreso_*`,
+ * 20261030134000, ADR-0570): `ingreso_sin_lider` llega con `42501` y `ingreso_no_corregible` con `23514`; sin esto caerían al genérico con «Código:». Y `paso_tarde_solo_lider`
+ * (20261031002000, Producción): agregar un paso que se olvidó es del líder (ADR-0586). Y `marca_solo_lider` (20261031160000, Producción): quitar o restaurar la marca de
+ * Ploteo es del líder (ADR-0586 act. 2).
  */
-const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion)_[a-z_]+|en_rendicion)$/;
+const HINT_EN_CASTELLANO =
+  /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion|plata_ya_tenia_solo_lider|paso_tarde_solo_lider|agregar_variante_sin_permiso|marca_solo_lider|saldo_sin_lider|editar_material_sin_lider|avio_sin_lider|copia_de_la_tela|insumo_otra_unidad|insumo_otra_tela|insumo_sin_tela|insumo_unidad_firme|material_tipo_firme|retirar_color_[a-z_]+|insumo_retirado|ingreso_[a-z_]+)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano
@@ -538,7 +571,7 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `celular_invalido`: el celular de la clienta (o el número que escribió) no tiene 9 dígitos que empiecen en 9.
  *   · `no_es_socia`: «Llegó su mensaje» de alguien que todavía no es socia.
  *   · `socia_sin_celular`: a una socia no se le puede dejar sin celular.
- *   · `whatsapp_tienda_invalido`: el WhatsApp de una tienda (Configuración ▸ Tiendas y caja) no es un celular.
+ *   · `whatsapp_tienda_invalido`: el WhatsApp de una tienda (Configuración ▸ Empresa y tiendas) no es un celular.
  *   · `socia_sin_documento`: para ser socia hacen falta documento y nombre, además del celular (CL-1).
  *   · `club_texto_cambio`: el texto `club` cambió desde que la asesora lo leyó; el permiso guarda exactamente lo leído.
  * Camino B (ADR-0288, «Actualización 2026-09-30 (c)»):
@@ -547,23 +580,19 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `celular_con_publicidad`: el celular de una socia con novedades se cambió por un camino que no se las quita (el
  *     disparador `clientas_celular_con_publicidad`). `editar_clienta` se las quita sola; la ficha lo avisa ANTES de guardar
  *     (`avisoCambioDeCelular`, lib/club-clientas-reglas.ts).
- * Tanda 1c (el canje del cumpleaños en `registrar_venta`, ADR-0288 D-5). Llegan como `P0001` con su frase; la de acá es el
- * respaldo. En Cobrar, además, la caja apaga el canje y dice qué hizo (`rechazoDelCanje`, lib/club-cumple-canje-reglas.ts):
- *   · `cumple_sin_clienta`: canjear sin clienta en el ticket.
- *   · `cumple_no_socia`: no es socia (o se archivó o anonimizó mientras se cobraba).
- *   · `cumple_fuera_de_mes`: no es el mes de su cumpleaños en Lima.
- *   · `cumple_ya_canjeado`: ya tiene un canje vivo este año (otra caja o tienda se adelantó).
- *   · `cumple_descuento_distinto`: la parte del club de una prenda no es la que calcula la base (el % pudo cambiar).
- *   · `cumple_sin_canje`: una prenda trae parte del club sin `p_canjear_cumpleanos`.
- *   · `cumple_sin_monto`: el canje no descontaría nada.
- * Tanda 1g (el vale de aniversario en `registrar_venta`, G-13), con el mismo criterio. En Cobrar, además, la caja apaga el
- * vale y dice qué hizo (`rechazoDelVale`, lib/club-aniversario-canje-reglas.ts):
- *   · `club_un_cupon_por_compra`: se mandaron las dos ventajas del club en una venta (cumpleaños y vale).
- *   · `aniversario_no_disponible`: no tiene un vale disponible (el año no cuenta, venció, o no es socia).
- *   · `aniversario_ya_canjeado`: ya usó el vale de este año de club (otra caja o tienda se adelantó).
- *   · `aniversario_sin_monto`: el vale no descontaría nada.
- *   · `aniversario_cubre_todo`: el vale cubre toda la compra (una venta en S/ 0 no se registra; decisión pendiente de Felipe).
- *   · `aniversario_descuento_distinto`: el reparto por prenda no coincide con el de la base (misma regla que `repartirVale`).
+ * Programa de puntos (2026-10-19): el cupón del Club en `registrar_venta` y el canje de puntos. Llegan con su frase; la de acá es el
+ * respaldo. En Cobrar, además, la caja quita el cupón y dice qué hizo (`rechazoDelCupon`, lib/club-puntos-reglas.ts):
+ *   · `cupon_no_existe`, `cupon_ya_usado`, `cupon_vencido`: el código no sirve (otra caja se adelantó, o venció).
+ *   · `cupon_reservado`: lo tiene un pedido web por recoger (20261019224000); `cupon_no_reservado`: al cobrar el pedido, su cupón ya
+ *     no estaba reservado para él (no debería pasar: la base lo hace imposible).
+ *   · `cupon_compra_minima`: la compra no llega al mínimo del cupón.
+ *   · `cupon_cubre_todo`, `cupon_sin_monto`: el cupón cubriría toda la compra, o no descontaría nada.
+ *   · `cupon_descuento_distinto`: el reparto por prenda no coincide con el de la base (misma regla que `repartirVale`).
+ *   · `club_un_cupon_por_compra`: va un solo cupón del Club por compra.
+ *   · `beneficio_retirado`: el 10 % de cumpleaños y el vale de aniversario ya no existen (los reemplazaron los puntos).
+ *   · `puntos_insuficientes`, `canje_menor_al_minimo`, `canje_no_multiplo`: el canje de puntos no alcanza o no es de a 100.
+ * Avisos, «Editar mensajes» (20261020144000): `mensaje_aviso_invalido` (`22023`, el mensaje no pasa `fn_club_aviso_problema`; su
+ * `detail` dice cuál) y `avisos_otra_tienda` (`42501`, 20261020151000: cada tienda edita sus mensajes, y solo donde se puede operar).
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento del cliente no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
@@ -584,19 +613,22 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["club_texto_cambio", "El texto del club cambió mientras lo invitabas: vuelve a leérselo."],
   ["ya_tiene_publicidad", "Ya recibe novedades por WhatsApp: no hace falta mostrarle su QR."],
   ["celular_con_publicidad", "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."],
-  ["cumple_sin_clienta", "El cumpleaños es de un miembro del club: elige al cliente en el ticket antes de canjearlo."],
-  ["cumple_no_socia", "El descuento de cumpleaños es para los miembros del club: este cliente no es miembro."],
-  ["cumple_fuera_de_mes", "El descuento de cumpleaños se canjea solo en el mes de su cumpleaños, y este no es."],
-  ["cumple_ya_canjeado", "Este miembro ya canjeó su cumpleaños este año."],
-  ["cumple_descuento_distinto", "El descuento de cumpleaños no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
-  ["cumple_sin_canje", "Esta venta trae un descuento de cumpleaños sin canjearlo. Vuelve a tocar «Canjear» o quítalo."],
-  ["cumple_sin_monto", "En esta venta no queda nada que descontar por el cumpleaños: no se canjea."],
-  ["club_un_cupon_por_compra", "Va una sola ventaja del club por compra: el cupón de cumpleaños o el vale de aniversario, no los dos."],
-  ["aniversario_no_disponible", "Este miembro no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
-  ["aniversario_ya_canjeado", "Este miembro ya usó su vale de aniversario de este año de club."],
-  ["aniversario_sin_monto", "En esta venta no queda nada que descontar con el vale de aniversario: no se usa."],
-  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/\u00a00 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
-  ["aniversario_descuento_distinto", "El descuento del vale de aniversario no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
+  ["club_un_cupon_por_compra", "Va un solo cupón del Club por compra: quita uno y vuelve a cobrar."],
+  ["beneficio_retirado", "El descuento de cumpleaños y el vale de aniversario ya no existen: ahora el club da puntos y cupones. Quita el canje y vuelve a cobrar."],
+  ["cupon_no_existe", "Ese código de cupón no existe. Revisa que esté completo (CAY-XXXX-XXXX)."],
+  ["cupon_ya_usado", "Ese cupón ya se usó: cada cupón vale una sola vez."],
+  ["cupon_reservado", "Ese cupón está reservado para un pedido web: se usa cuando se cobre ese pedido."],
+  ["cupon_no_reservado", "El cupón de este pedido web ya no está reservado para él. Vuelve a abrir el pedido para ver su total."],
+  ["cupon_vencido", "Ese cupón venció: sus puntos ya volvieron a su dueño."],
+  ["cupon_compra_minima", "La compra no llega al mínimo del cupón: agrega prendas o cobra sin él."],
+  ["cupon_cubre_todo", "El cupón cubriría toda la compra, y una venta en S/\u00a00 no se puede registrar: agrega otra prenda o cobra sin él."],
+  ["cupon_sin_monto", "En esta venta no queda nada que descontar con el cupón: queda para otra compra."],
+  ["cupon_descuento_distinto", "El descuento del cupón no coincide con el que calcula el sistema. Quítalo, vuelve a ponerlo y cobra."],
+  ["puntos_insuficientes", "Ya no le alcanzan los puntos para ese canje. Vuelve a abrir «Usar puntos»."],
+  ["canje_menor_al_minimo", "Todavía no llega al mínimo de puntos para canjear."],
+  ["canje_no_multiplo", "Los puntos se canjean de 100 en 100."],
+  ["mensaje_aviso_invalido", "Uno de los mensajes no se puede guardar así: revisa el que está marcado."],
+  ["avisos_otra_tienda", "No puedes cambiar los mensajes de esa tienda: elige una tienda donde trabajas en el selector de sede."],
 ]);
 
 /**
@@ -631,6 +663,18 @@ const HINTS_CONTEO: ReadonlyMap<string, string | ((mensajeDeLaBase: string) => s
  * pudo… Vuelve a intentar», que manda a reintentar algo que no se arregla reintentando.
  */
 const HINT_SIN_MODULO = /^[a-z_]+_sin_modulo$/;
+
+/**
+ * Módulos que cambiaron de nombre después de que la base escribiera su mensaje. Las funciones de Compras simple (ADR-0480) dicen «Mi plata para
+ * compras» en el texto del error; el módulo se llama «Mis compras» en el menú y en Roles y accesos, y la persona busca ese nombre. La migración que
+ * dice el nombre viejo ya está en producción (y se pega tal cual), así que el nombre nuevo se pone aquí, al mostrarlo.
+ */
+const NOMBRE_ACTUAL_DEL_MODULO: ReadonlyArray<readonly [viejo: string, nuevo: string]> = [["«Mi plata para compras»", "«Mis compras»"]];
+
+/** El mensaje de un rechazo por módulo, con el nombre de módulo vigente (`NOMBRE_ACTUAL_DEL_MODULO`). */
+export function mensajeSinModulo(mensaje: string): string {
+  return NOMBRE_ACTUAL_DEL_MODULO.reduce((texto, [viejo, nuevo]) => texto.split(viejo).join(nuevo), mensaje);
+}
 
 /**
  * ¿La base rechazó porque el rol de la cuenta no tiene el módulo? (hint `<módulo>_sin_modulo`, ver arriba). Lo usan las
@@ -786,7 +830,7 @@ function fraseDelError(error: ErrorEscritura, contexto: string, opciones: { lect
   // código (el permiso, `42501`), que se reconocen por su `hint`.
   if (error.code === "P0001" && error.message) return error.message;
   if (error.hint && HINT_EN_CASTELLANO.test(error.hint) && error.message) return error.message;
-  if (esSinModulo(error)) return error.message;
+  if (esSinModulo(error)) return mensajeSinModulo(error.message ?? "");
 
   return `No se pudo ${contexto}. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: ${crudo}`;
 }

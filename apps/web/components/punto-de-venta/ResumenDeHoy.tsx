@@ -47,7 +47,7 @@ export function ResumenDeHoy({
         onClick={() => setAbierto(true)}
         aria-haspopup="dialog"
         title={r.pctMeta !== null ? `${r.pctMeta} % de la meta del día · ver las ventas` : "Ver las ventas de hoy"}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md px-1.5 text-[12px] text-tinta/65 transition-colors hover:text-tinta"
+        className="inline-flex h-9 items-center gap-1.5 rounded-md px-1.5 text-sm text-tinta/65 transition-colors hover:text-tinta"
       >
         <Clock className="h-3.5 w-3.5" aria-hidden />
         Hoy <b className="font-semibold text-tinta tabular-nums">{soles(r.total)}</b>
@@ -63,7 +63,7 @@ export function ResumenDeHoy({
         <Clock className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
         <span className="min-w-0">
           <span className="block font-display text-2xl leading-none text-tinta tabular-nums">{soles(r.total)}</span>
-          <span className="mt-1 block text-[11.5px] text-tinta/60">
+          <span className="mt-1 block text-sm text-tinta/60">
             Hoy · {r.ventas} {r.ventas === 1 ? "venta" : "ventas"}
             {meta ? ` · meta ${soles(meta)}` : ""} · ver la lista
           </span>
@@ -71,7 +71,7 @@ export function ResumenDeHoy({
         {r.pctMeta !== null && (
           <span className="ml-auto flex items-center gap-2">
             <BarraAvance pct={ancho} decorativa className="w-16" />
-            <span className={`text-xs font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}%</span>
+            <span className={`text-sm font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}%</span>
           </span>
         )}
       </button>
@@ -96,7 +96,7 @@ export function ResumenDeHoy({
               {r.pctMeta !== null && (
                 <div className="mt-3 flex items-center gap-3">
                   <BarraAvance pct={ancho} decorativa className="min-w-0 flex-1" />
-                  <span className={`text-xs font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}% de la meta</span>
+                  <span className={`text-sm font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}% de la meta</span>
                 </div>
               )}
               <div className="mt-5">

@@ -69,7 +69,56 @@ pantalla se cae antes de la cabecera, con o sin este cambio. Tipos, lint y prueb
 - **Cotizaciones de maquila** no tiene cabecera de pantalla (es una tarjeta con su título de sección): queda anotado en el backlog.
 - **El Inicio del Admin** es el Observatorio (ADR-0322), sin esta cabecera.
 
+## Ronda 18 (2026-10-30): la frase, detrás de un «?»
+
+**Por qué:** las colaboradoras decían que el texto era chico y que nadie lo leía. La frase bajo el título (15 px, tinta al 70 %) estaba en 120
+de las 131 cabeceras: unas 85 explicaban qué es la pantalla (se lee el primer día y después es ruido) y unas 35 decían un dato (el turno de
+Caja, «42 categorías activas», el conteo, el proveedor, el veredicto de Frescura).
+
+**Lo que eligió Felipe, mirando** (fuentes y fotos en [rondas/18](rondas/18/README.md)), en dos vueltas:
+
+| Pregunta | Opciones | Eligió |
+|---|---|---|
+| ¿Cómo se esconde la frase que explica? | P1 baja en su lugar (recomendada) · **P2 un globo** · P3 un botón «Qué es esto» · A hoy | **P2** |
+| ¿Y la frase que dice un dato? | D1 se queda a la vista (recomendada) · **D2 también detrás del «?»** | **D2** |
+| ¿Con qué material? (pidió «más sofisticado, elegante, que se transparente») | **V1 vidrio esmerilado** (recomendada) · V2 tinta translúcida · V3 papel con hilo rojo | **V1** |
+
+**La pieza:** `<AyudaCabecera>` (`components/ui/AyudaCabecera.tsx`, aspecto en `app/estilos/ayuda-cabecera.css`), que `<EncabezadoPagina>` pone
+junto al título cuando hay `subtitulo` o `ayuda`; ninguna pantalla la llama a mano.
+
+- **El «?»:** una lente de vidrio de 20 px con el signo en la serif del título, colgada arriba a la derecha de la última palabra como un
+  superíndice: su borde de arriba, 2 px sobre las mayúsculas, y una unión de palabra que no lo deja bajar solo a otra línea. Felipe lo pidió
+  así al verlo aplicado (primero era de 30 px, a media altura del título). Lo que se toca es más grande que lo que se ve: 32 px con mouse,
+  44 con el dedo. El filo claro arriba y un anillo fino en tinta al 14 %; abierto, el anillo se oscurece y lo rodea un halo de 4 px. Su nombre para el lector: «Qué es <pantalla>».
+- **El globo:** vidrio de verdad (`--color-vidrio` al 52 % con desenfoque de 22 px): deja pasar el color de lo que hay detrás, con el filo
+  claro arriba, una sombra suave y un pico que apunta al «?». Arriba, el nombre de la pantalla en versalitas con su hilo taupe; después la
+  frase en 16 px tinta; y, separado por una línea fina, lo que explicaba un «!» (`ayuda`). Flota en la capa de arriba (como el de `<Ayuda>`):
+  no mueve la página; se acomoda abajo o, si no cabe, arriba; en el celular ocupa el ancho; se cierra al tocar el «?», al tocar afuera o con
+  Escape (el foco vuelve al «?»); cada vez que se entra a la pantalla está cerrado. En oscuro es vidrio ahumado; al imprimir, el «?» no sale.
+- **API:** `subtitulo` (la frase, explicación o dato) y `ayuda` (lo que estaba en un «!») van al globo; `nombre` le da el nombre cuando el
+  título no es solo texto (Buscar: el título es lo buscado); `guiaAyuda` pone el `data-guia` del «?» (`buscar.ayuda`).
+
+**Su movimiento:** al pasar el mouse el «?» sube 1 px y se oscurece su anillo; se encoge al presionar. El globo crece desde el pico, se
+enfoca y se aclara (340 ms), el hilo del nombre se dibuja y la frase sube un paso después. Una vez, sin rebote ni bucle (ADR-0136); nada con
+`prefers-reduced-motion`.
+
+**Migración (el mismo día):** todas las cabeceras a la vez (la pieza decide). Las 9 pantallas que tenían un «!» metido en el título con la
+letra de la frase (Productos, Marcas, Categorías, Atributos, Familias, Buscar, Rendimiento, Resultados e Historial del Plan de campaña) lo
+pasaron a `ayuda`: ya no hay dos botones de ayuda en una cabecera. En Productos y el Plan de campaña la frase se escondía en el celular
+(`max-sm:hidden`); ya no hace falta. Ocho textos de guías decían «el «!» junto al título»: dicen «?». El «!» queda en su lugar fuera de la
+cabecera (una cifra, un campo): eso es la siguiente ronda.
+
+Gastos, abierta: ![Gastos con el globo abierto](capturas/titulo-pagina.ayuda.gastos.jpg)
+
+Productos, con lo que explicaba su «!»: ![Productos con el globo abierto](capturas/titulo-pagina.ayuda.productos.jpg)
+
+Cambios a 375 px: ![Cambios a 375 px](capturas/titulo-pagina.ayuda.cambios-375.jpg) · En oscuro: ![Gastos en oscuro](capturas/titulo-pagina.ayuda.gastos-oscuro.jpg)
+
+**No se pudo mirar en local:** Familias y Editar producto (a la base local le falta `familias.entra_a_motores`; ver arriba).
+
 ## Firmas
 
-Un `<h1>` en la serif de la casa (`font-display`) dibujado a mano fuera de la pieza, y `<CabeceraPantalla>` fuera de Finanzas. Las
+Un `<h1>` en la serif de la casa (`font-display`) dibujado a mano fuera de la pieza, `<CabeceraPantalla>` fuera de Finanzas y, desde la
+ronda 18, el «!» metido a mano en el título con la letra de la frase (`inline-block align-middle font-sans text-[15px] leading-normal
+tracking-normal`): va en `ayuda`. Las
 excepciones de arriba, cada una con su motivo, en `apps/web/unificar/familias.mjs`.

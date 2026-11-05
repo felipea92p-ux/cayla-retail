@@ -1,6 +1,9 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
+import { aplicarProvision } from "@/lib/planilla-provision-reglas";
+import { getProvisionPlanilla } from "@/lib/planilla-provision";
 
 // Finanzas ▸ Reportes (ADR-0195 F5; contrato en 20260925130000_finanzas_diario_y_estado_de_resultados.sql). Solo LEE: toda
 // la plata se calcula en Postgres, sobre el diario `fn_asientos`, y la base ya filtra por cuenta (el líder, todo y el
@@ -10,16 +13,25 @@ import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFi
 type Lectura<T> = { datos: T; falla: string | null };
 const falla = (que: string, e: { message: string }) => `No se pudo leer ${que}: ${e.message}`;
 
-/** Una fila por ubicación que la cuenta ve; para el líder, además «De la empresa» y CAYLA. */
-export async function getEstadoResultados(desde: string, hasta: string): Promise<Lectura<FilaER[]>> {
+/**
+ * Una fila por ubicación que la cuenta ve; para el líder, además «De la empresa» y CAYLA. Los sueldos de un período que Dynamic
+ * todavía no pagó entran como ESTIMADO (lo que corresponde pagar hasta hoy según sus boletas, ADR-0453): fuera del libro, y se
+ * reemplazan solos cuando Dynamic paga. Si esa lectura falla, las cifras salen como siempre, sin los sueldos estimados.
+ * `provisionHasta` deja pedir la provisión con otro «hasta» que el diario: el Resumen mira el mes «a hoy», pero el período de Dynamic que termina
+ * más adelante en el mes (el 28) ya devenga sueldos hoy y solo aparece si se pide hasta fin de mes (`tramoDeSueldos`).
+ */
+export const getEstadoResultados = cache(async function getEstadoResultados(desde: string, hasta: string, provisionHasta: string = hasta): Promise<Lectura<FilaER[]>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_estado_resultados" as never, { p_desde: desde, p_hasta: hasta } as never);
+  const [{ data, error }, provision] = await Promise.all([
+    supabase.rpc("fn_estado_resultados" as never, { p_desde: desde, p_hasta: hasta } as never),
+    getProvisionPlanilla(desde, provisionHasta),
+  ]);
   if (error) return { datos: [], falla: falla("el estado de resultados", error) };
   return {
-    datos: ((data ?? []) as Record<string, unknown>[]).map(leerFilaER),
+    datos: aplicarProvision(((data ?? []) as Record<string, unknown>[]).map(leerFilaER), provision),
     falla: null,
   };
-}
+});
 
 /**
  * Qué unidades del mes ya están cerradas (`fn_periodos_mes`): su columna del Estado de resultados lee lo congelado y la pantalla lo dice.

@@ -15,7 +15,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { TEXTO_MEDIO_COBRO, mediosDeMaquina, textoTarifa, validarTarifa, type BorradorTarifa, type MaquinaPos, type MedioCobro } from "@/lib/cuentas-dinero-reglas";
+import { limpiarCantidad } from "@/lib/alta-producto";
+import { TEXTO_MEDIO_COBRO, mediosDeMaquina, problemaDeDiasAbono, textoTarifa, validarTarifa, type BorradorTarifa, type MaquinaPos, type MedioCobro } from "@/lib/cuentas-dinero-reglas";
 
 // Configuración ▸ Cuentas y cobros ▸ «Cambiar la tarifa» de una máquina de cobro (ADR-0429, act. 4). La tarifa SOLO estima y avisa:
 // con ella, cada día pendiente de depósito dice la comisión esperada y el ERP avisa cuando la máquina se atrasa. La comisión real
@@ -39,7 +40,9 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
 
   const v = validarTarifa(b, maquina.id);
   const tasaOk = b.tasa.trim() !== "" && (v.ok || !v.error.startsWith("Tasa") && !v.error.startsWith("La tasa"));
-  const diasOk = /^\d{1,2}$/.test(b.diasAbono.trim()) && Number(b.diasAbono) <= 15;
+  const diasOk = problemaDeDiasAbono(b.diasAbono) === null;
+  // Vacío todavía no está mal: la guía ya pide escribirlo.
+  const diasMal = b.diasAbono.trim() === "" ? null : problemaDeDiasAbono(b.diasAbono);
   const campos: CampoDeGuia[] = [
     { id: ID_TASA, nombre: "Tasa", requerido: true, hecho: tasaOk, pendiente: "Escribe la tasa que descuenta la máquina, en %; si no cobra, 0." },
     { id: ID_FIJO, nombre: "Cargo fijo", requerido: false, sugerido: false, hecho: b.cargoFijo.trim() !== "", pendiente: "Si cobra un fijo por cada pago, escríbelo." },
@@ -95,14 +98,14 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
       </div>
       <div className="fin-dos-campos">
         <CampoGuiado id={ID_DIAS} guia={guia}>
-          <CampoFin etiqueta={guia.etiqueta(ID_DIAS, "Deposita en (días hábiles)")} htmlFor={ID_DIAS} ayuda="Pasado ese plazo, el día queda «atrasado» y Cuentas y dinero avisa.">
-            <InputFin id={ID_DIAS} inputMode="numeric" value={b.diasAbono} onChange={(e) => cambiar({ diasAbono: e.target.value.replace(/\D/g, "").slice(0, 2) })} placeholder="2" /* sugerir-fijo: un número de días, no depende de nada elegido */ />
+          <CampoFin etiqueta={guia.etiqueta(ID_DIAS, "Deposita en (días hábiles)")} htmlFor={ID_DIAS} ayuda={diasMal ?? "Pasado ese plazo, el día queda «atrasado» y Cuentas y dinero avisa."} tono={diasMal ? "aviso" : undefined}>
+            <InputFin id={ID_DIAS} inputMode="numeric" value={b.diasAbono} aria-invalid={diasMal ? true : undefined} onChange={(e) => cambiar({ diasAbono: limpiarCantidad(e.target.value) })} placeholder="2" /* sugerir-fijo: un número de días, no depende de nada elegido */ />
           </CampoFin>
         </CampoGuiado>
         <CampoFin etiqueta="IGV">
           <div className="flex min-h-10 items-center">
             <Casilla marcada={b.igvSobreTasa} onCambio={() => cambiar({ igvSobreTasa: !b.igvSobreTasa })} etiqueta="La tasa lleva IGV" />
-            <span className="ml-2 text-[13px] text-tinta">La tasa lleva IGV</span>
+            <span className="ml-2 text-sm text-tinta">La tasa lleva IGV</span>
           </div>
         </CampoFin>
       </div>

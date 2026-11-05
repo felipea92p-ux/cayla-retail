@@ -9,9 +9,10 @@
  *
  * QUÉ PRUEBA (cada caso en su transacción, que termina en ROLLBACK; con claims reales y `set local role authenticated`):
  *   a. Quién aparece: la socia CON publicidad de esa tienda (club_ubicacion_id; sin ella, su sede); quién no: sin la
- *      casilla, con BAJA, de otra tienda, otro mes, con el cupón ya canjeado. El texto sale de la plantilla con su nombre de
- *      pila, el % y la tienda, y termina con «responde BAJA».
- *   b. Enviado no vuelve; deshecho, sí. El aniversario: con el vale disponible, uno por vale.
+ *      casilla, con BAJA, de otra tienda, otro mes, con el regalo de cumpleaños ya recibido este año. El texto sale de la
+ *      plantilla con su nombre de pila, los puntos del regalo y la tienda, y termina con «responde BAJA».
+ *   b. Enviado no vuelve; deshecho, sí. Puntos por eliminarse (programa de puntos, 2026-10-19): con saldo y su fecha de
+ *      conservación a 30 días o menos, uno por fecha; sin saldo o con la fecha lejos, no.
  *   c. Novedades: lo que LLEGÓ a esa tienda en 14 días (lote) con stock libre; no la carga inicial; una cada 7 días; nunca
  *      al grupo testigo.
  *   d. Rebaja: una prenda en campaña con stock libre aquí en la talla que ella compró (su talla deducida); no en otra talla;
@@ -180,20 +181,20 @@ caso(
     SOCIA("otromes", "90770004", { mes: ":otro_mes" }) + SOCIA("baja", "90770005") + SOCIA("canjeo", "90770006") + SOCIA("otra", "90770007", { ubic: ":'tru'" }) +
     `reset role;
 insert into retail.ventas (ubicacion_id, cliente_id, estado) values (:'ubic', :'canjeo', 'completada') returning id as vc \\gset
-insert into retail.club_canjes (clienta_id, venta_id, tipo, anio, pct, monto) values (:'canjeo', :'vc', 'cumpleanos', :anio_hoy, 10, 5);
+select retail.fn_club_puntos_anotar(:'canjeo', 'cumple', 100, :'vc', :anio_hoy::smallint) as _regalo \\gset
 ` + como(FELIPE) + `select retail.registrar_baja_whatsapp('990770005', :'ubic') as _b \\gset\n` +
     QUIENES("cumpleanos", ["ok", "testigo", "sinpub", "otromes", "baja", "canjeo", "otra"]) +
     QUIENES("cumpleanos", ["ok", "otra"], ":'tru'"),
   "ok,testigo\notra"
 );
 caso(
-  "(a) el texto del cumpleaños: la plantilla con su nombre de pila (Lucia), el % (10) y la tienda, termina con «responde BAJA»; referencia = el año; el teléfono es el de la ficha y el nombre completo para la encargada",
+  "(a) el texto del cumpleaños: la plantilla con su nombre de pila (Lucia), los puntos del regalo (100) y la tienda, termina con «responde BAJA»; referencia = el año; el teléfono es el de la ficha y el nombre completo para la encargada",
   SOCIA("f", "90770011") + como(FELIPE) +
-    `select nombre, telefono, referencia = :anio_hoy::text, texto like '%Lucia%' and texto like '%10 %%' and texto like '%Tienda Lima%' and texto not like '%{%',
+    `select nombre, telefono, referencia = :anio_hoy::text, texto like '%Lucia%' and texto like '%100 puntos%' and texto like '%Tienda Lima%' and texto not like '%{%',
        right(texto, ${BAJA.length}) = '${BAJA}', detalle
   from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'f' and tipo = 'cumpleanos';
 `,
-  "LUCIA PRUEBA AVISOS|990770011|t|t|t|Cupón de cumpleaños: 10 % en una compra este mes"
+  "LUCIA PRUEBA AVISOS|990770011|t|t|t|Regalo de cumpleaños: +100 puntos con su primera compra del mes"
 );
 caso(
   "(a) la tienda de una socia sin club_ubicacion_id (unida en caja antes de la 1g) es su sede: la de más compras netas en 12 meses",
@@ -207,7 +208,7 @@ select pg_temp.compra(:'f', :'tru', :'emma_bei_m') as _2 \\gset
 );
 
 // =====================================================================================================================
-// b. Enviado, deshecho, aniversario
+// b. Enviado, deshecho, puntos por eliminarse
 // =====================================================================================================================
 caso(
   "(b) enviado ya no sale; deshecho (dentro de 10 minutos), vuelve; fn_club_avisos_enviados_hoy cuenta los no deshechos de hoy por tipo",
@@ -221,21 +222,35 @@ select retail.deshacer_aviso_enviado(:'aviso') as _d2 \\gset
   "ninguna\ncumpleanos=1\nf\n0"
 );
 caso(
-  "(b) aniversario: con el vale disponible aparece (referencia = el año de club, el monto y la fecha en el texto); enviado, no vuelve",
-  SOCIA("f", "90771011", { mes: ":otro_mes" }) +
+  "(b) puntos por eliminarse: con saldo y su fecha de conservación a 30 días o menos aparece (referencia = esa fecha, los puntos y lo que valen en el texto); sin saldo o con la fecha lejos, no; enviado, no vuelve",
+  SOCIA("f", "90771011", { mes: ":otro_mes" }) + SOCIA("lejos", "90771012", { mes: ":otro_mes" }) + SOCIA("sinsaldo", "90771013", { mes: ":otro_mes" }) +
     `reset role;
-update retail.clientas set club_desde = now() - interval '1 year' - interval '3 days' where id = :'f';
-select pg_temp.compra(:'f', :'ubic', :'emma_bei_m', interval '100 days') from generate_series(1, 6);
+select pg_temp.compra(:'f', :'ubic', :'emma_bei_m', interval '3 years' - interval '20 days') as _vf \\gset
+select retail.fn_club_puntos_anotar(:'f', 'compra', 240, null, null, 'prueba') as _pf \\gset
+select pg_temp.compra(:'lejos', :'ubic', :'emma_bei_m', interval '100 days') as _vl \\gset
+select retail.fn_club_puntos_anotar(:'lejos', 'compra', 240, null, null, 'prueba') as _pl \\gset
+select pg_temp.compra(:'sinsaldo', :'ubic', :'emma_bei_m', interval '3 years' - interval '20 days') as _vs \\gset
+update retail.clientas set club_desde = now() - interval '3 years', created_at = now() - interval '3 years' where id in (:'f', :'lejos', :'sinsaldo');
+select retail.fn_club_conservacion_hasta(:'f')::text as hasta_f \\gset
 ` + como(FELIPE) +
-    `select referencia, texto like '%S/ 20 %' and texto like '%hasta el %' and texto not like '%{%', detalle like 'Vale de aniversario de S/ 20 (año 1), hasta el %'
-  from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'f' and tipo = 'aniversario';
-select texto as t from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'f' and tipo = 'aniversario' \\gset
-select retail.registrar_aviso_enviado(:'f', 'aniversario', '1', :'t', :'ubic') as _a \\gset
-` + QUIENES("aniversario", ["f"]),
-  (s) => {
-    const l = s.split("\n").filter((x) => x !== "");
-    return l.slice(-2).join("\n") === "1|t|t\nninguna";
-  }
+    `select referencia = :'hasta_f', texto like '%240 puntos%' and texto like '%valen *S/ 10*%' and texto not like '%{%', detalle like '240 puntos se eliminan si no compra hasta el %'
+  from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'f' and tipo = 'puntos';
+` + QUIENES("puntos", ["f", "lejos", "sinsaldo"]) +
+    `select texto as t, referencia as r from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'f' and tipo = 'puntos' \\gset
+select retail.registrar_aviso_enviado(:'f', 'puntos', :'r', :'t', :'ubic') as _a \\gset
+` + QUIENES("puntos", ["f"]),
+  "t|t|t\nf\nninguna"
+);
+caso(
+  "(b) puntos por eliminarse: con un pedido web que no terminó, la ficha no se elimina (fn_club_anonimizar_inactivas lo salta), así que no se le avisa (sin el pedido, el caso de arriba sí le avisa)",
+  SOCIA("f", "90771021", { mes: ":otro_mes" }) +
+    `reset role;
+select pg_temp.compra(:'f', :'ubic', :'emma_bei_m', interval '3 years' - interval '20 days') as _vf \\gset
+select retail.fn_club_puntos_anotar(:'f', 'compra', 240, null, null, 'prueba') as _pf \\gset
+update retail.clientas set club_desde = now() - interval '3 years', created_at = now() - interval '3 years' where id = :'f';
+insert into retail.pedidos_web (clienta_id, ubicacion_id) values (:'f', :'ubic') returning id as pw \\gset
+` + QUIENES("puntos", ["f"]),
+  "ninguna"
 );
 
 // =====================================================================================================================
@@ -287,7 +302,7 @@ select pg_temp.compra(:'m', :'ubic', :'emma_bei_m') as _1 \\gset
 select pg_temp.compra(:'l', :'ubic', :'emma_neg_l') as _2 \\gset
 select pg_temp.compra(:'t', :'ubic', :'emma_bei_m') as _3 \\gset
 ` + QUIENES("rebaja", ["m", "l", "t"]) + como(FELIPE) +
-    `select referencia = :'etq' || ':' || :'etq_desde', detalle, texto like '%Blusa Valentina está con 20 % de descuento en Tienda Lima%'
+    `select referencia = :'etq' || ':' || :'etq_desde', detalle, texto like '%*Blusa Valentina* está con *20 % de descuento* en Tienda Lima%'
   from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'m' and tipo = 'rebaja';
 `,
   "m\nt|Blusa Valentina talla M: 20 % menos|t"
@@ -345,11 +360,11 @@ caso(
     intentoCon(`select retail.registrar_aviso_enviado(%L, 'novedades', '2026-S40', 'Hola ${BAJA}', %L)`, ":'t'", ":'ubic'") +
     intentoCon(`select retail.registrar_aviso_enviado(%L, 'rebaja', 'x:y', 'Hola ${BAJA}', %L)`, ":'t'", ":'ubic'") +
     intentoCon(`select retail.registrar_aviso_enviado(%L, 'cumpleanos', '2026', 'Hola ${BAJA}', %L) is not null`, ":'t'", ":'ubic'") +
-    intentoCon(`select retail.registrar_aviso_enviado(%L, 'aniversario', '1', 'Hola Lucia, sin baja.', %L)`, ":'t'", ":'ubic'") +
+    intentoCon(`select retail.registrar_aviso_enviado(%L, 'puntos', '2029-01-01', 'Hola Lucia, sin baja.', %L)`, ":'t'", ":'ubic'") +
     intentoCon(`select retail.registrar_aviso_enviado(%L, 'otro', '1', 'Hola ${BAJA}', %L)`, ":'t'", ":'ubic'") +
-    intentoCon(`select retail.registrar_aviso_enviado(%L, 'aniversario', '  ', 'Hola ${BAJA}', %L)`, ":'t'", ":'ubic'") +
+    intentoCon(`select retail.registrar_aviso_enviado(%L, 'puntos', '  ', 'Hola ${BAJA}', %L)`, ":'t'", ":'ubic'") +
     `reset role;\nselect id as taller from retail.ubicaciones where tipo = 'taller' limit 1 \\gset\n` + como(FELIPE) +
-    intentoCon(`select retail.registrar_aviso_enviado(%L, 'aniversario', '1', 'Hola ${BAJA}', %L)`, ":'t'", ":'taller'"),
+    intentoCon(`select retail.registrar_aviso_enviado(%L, 'puntos', '2029-01-01', 'Hola ${BAJA}', %L)`, ":'t'", ":'taller'"),
   "P0001|aviso_sin_publicidad\nP0001|aviso_grupo_testigo\nP0001|aviso_grupo_testigo\nSIN_ERROR\n22023|aviso_sin_baja\n22023|aviso_invalido\n22023|aviso_invalido\n42501|No puedes mandar avisos desde esa tienda."
 );
 caso(

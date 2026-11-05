@@ -56,6 +56,7 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
+  const frenoCantidades = useRef<() => boolean>(null);
 
   const servicio = quienDeFase(fase);
   const tabla = useMemo(() => tablaDeModeloExistente(datos.lineas.map((l) => ({ varianteId: l.varianteId, talla: l.talla, color: l.colorNombre, colorHex: l.colorHex }))), [datos.lineas]);
@@ -100,6 +101,8 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (enVuelo.current) return;
+    // Lo escrito en la tabla no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoCantidades.current?.()) return;
     const faltas = problemasDeVuelta(fase, cantidades, motivo, nombreDe);
     if (faltas.length > 0) {
       avisar.error(faltas[0].texto);
@@ -163,6 +166,7 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
             <SegmentoDeslizante forma="modo" etiqueta="Qué anotas" valor={que} onCambio={(clave) => setQue(clave as Que)} opciones={opciones} />
             <MatrizCantidades
               key={que}
+              freno={frenoCantidades}
               soloCantidades
               teclado
               celdas={tabla.celdas}
@@ -179,7 +183,7 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
                 return [l?.codigo, hay > 0 ? `hay ${hay} afuera` : "no hay nada afuera"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65" aria-live="polite">
+            <p className="text-sm text-tinta/65" aria-live="polite">
               {quedan === 0 ? `Con esto no queda nada afuera con ${servicio}.` : `Con esto quedan ${quedan} afuera con ${servicio}.`} ¿Algo no volvió bien? Anótalo en «Segundas» o «Faltaron»: esas prendas dejan de contar como buenas. Una raya (—) es una
               combinación que este modelo no tiene.
             </p>

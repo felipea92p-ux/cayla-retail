@@ -91,6 +91,9 @@ export function Probador({
     fijos: {},
     entradas: {},
   }));
+  // Las prendas que el cliente no lleva («✕» en «Tu look»), por id: siguen en la figura, no cuentan en el total ni van a la bolsa. No viaja en
+  // la dirección ni se guarda con el look: es lo que va a comprar hoy, no cómo se ve.
+  const [sin, setSin] = useState<ReadonlySet<string>>(() => new Set());
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardados, setGuardados] = useState<LookGuardado[]>(() => [...(guardadosIniciales ?? [])]);
   const reloj = useRef<number | undefined>(undefined);
@@ -211,7 +214,8 @@ export function Probador({
   const numero: Partial<Record<Zona, number>> = Object.fromEntries(presentes(estado.look).map((z, i) => [z, i + 1]));
   const piezaElegida = estado.look[estado.zona];
   const prendaElegida = piezaElegida ? (indice.get(piezaElegida.id) ?? null) : null;
-  const t = totales(estado.look, indice);
+  const t = totales(estado.look, indice, sin);
+  const deLasPuestas = presentes(estado.look).filter((z) => indice.has(estado.look[z]!.id)).length;
 
   return (
     <div className="pb">
@@ -260,23 +264,33 @@ export function Probador({
         prendas={prendas}
         zona={estado.zona}
         fijos={estado.fijos}
+        sin={sin}
         numero={numero}
         totales={t}
         onElegir={(zona) => setEstado((s) => (s.zona === zona ? s : { ...s, zona }))}
         onFijar={(zona) => setEstado((s) => ({ ...s, fijos: { ...s.fijos, [zona]: !s.fijos[zona] } }))}
+        onNoLlevar={(zona) => {
+          const id = estado.look[zona]?.id;
+          if (!id) return;
+          setSin((antes) => {
+            const nuevo = new Set(antes);
+            if (!nuevo.delete(id)) nuevo.add(id);
+            return nuevo;
+          });
+        }}
       />
 
       {pie && <div className="pb-pie">{pie}</div>}
 
       <div className="pb-barra">
         <div className="pb-barra-total">
-          <span>{cuantasPrendas(t.cuantas)}</span>
+          <span>{t.cuantas === deLasPuestas ? cuantasPrendas(t.cuantas) : `Llevas ${t.cuantas} de ${deLasPuestas} prendas`}</span>
           <b>
             {t.desde ? "Desde " : ""}
             {soles(t.final)}
           </b>
         </div>
-        <AgregarTuLook look={estado.look} indice={indice} sedeId={sedeId} origenFotos={origenFotos} />
+        <AgregarTuLook look={estado.look} indice={indice} sedeId={sedeId} origenFotos={origenFotos} sin={sin} />
       </div>
 
       {buscar && (

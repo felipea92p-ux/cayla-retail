@@ -18,6 +18,9 @@
       "LapizEditar «la cuenta»",
       "BotonCopiar «{que}»"
     ],
+    "components/LoQueQuizaNoVes.tsx": [
+      "button «Ver»"
+    ],
     "components/PagoPiezas.tsx": [
       "BotonCopiar «{que}»",
       "Boton «Listo»",
@@ -34,11 +37,10 @@
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
       "BotonCopiar «el CCI»",
-      "BotonEditar «→() => setEditando(true)»",
-      "BotonEnlace «Registrar factura»"
+      "BotonEditar «→() => setEditando(true)»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
+      "SegmentoDeslizante «Clase de proveedor»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",
@@ -56,6 +58,9 @@
       "CampoTexto «Titular de la cuenta»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
+    ],
+    "components/ProveedorTallasSedes.tsx": [
+      "BotonVer «Ir a Traslados»"
     ],
     "components/SaldoFavorAcciones.tsx": [
       "CampoTexto «Monto devuelto»",

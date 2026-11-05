@@ -11,9 +11,13 @@
   box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--color-rojo) 75%, transparent);
   transition: background-color 200ms var(--ease-cayla), transform 150ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
 }
-.cc-boton:hover { background: var(--color-rojo-profundo); }
+@media (hover: hover) {
+  .cc-boton:hover { background: var(--color-rojo-profundo); }
+}
 .cc-boton:active { transform: scale(0.98); }
 .cc-boton:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 3px; }
+/* El cuadrado «Cerrar» de la barra del celular (BarraCajaMovil): el único en rojo de acento. Sin capa, le gana al `bg-papel` del cuadrado. */
+.cc-cuadrado-cerrar { border-color: var(--color-rojo); background: var(--color-rojo); color: var(--color-crema); }
 
 /* La barra fija de escritorio: se pega al borde de abajo mientras se recorre la pantalla. */
 .cc-barra-pie { position: sticky; bottom: 0; z-index: 20; padding: 10px 0 14px; background: linear-gradient(to top, var(--color-crema) 60%, transparent); }
@@ -24,12 +28,15 @@
   transition: background-color 400ms var(--ease-cayla), border-color 400ms var(--ease-cayla), color 400ms var(--ease-cayla);
 }
 .cc-barra b { display: block; font-size: 14px; font-weight: 700; }
-.cc-barra span.cc-bajada { font-size: 12.5px; opacity: 0.72; }
+/* Ronda 19: la bajada es una frase corta, y por eso se lee a 14 px. */
+.cc-barra span.cc-bajada { font-size: 14px; opacity: 0.8; }
 .cc-barra[data-nivel="1"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
 .cc-barra[data-nivel="2"] { background: var(--color-rojo-profundo); border-color: var(--color-rojo-profundo); color: var(--color-crema); }
 .cc-barra[data-nivel="1"] .cc-boton, .cc-barra[data-nivel="2"] .cc-boton { background: var(--color-crema); color: var(--color-tinta); box-shadow: none; }
 .cc-barra[data-nivel="2"] .cc-boton { color: var(--color-rojo-profundo); }
-.cc-barra[data-nivel="1"] .cc-boton:hover, .cc-barra[data-nivel="2"] .cc-boton:hover { background: var(--color-papel); }
+@media (hover: hover) {
+  .cc-barra[data-nivel="1"] .cc-boton:hover, .cc-barra[data-nivel="2"] .cc-boton:hover { background: var(--color-papel); }
+}
 
 @keyframes cc-destello { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-crema) 70%, transparent); } 100% { box-shadow: 0 0 0 16px transparent; } }
 .cc-destello { animation: cc-destello 900ms var(--ease-cayla) 1; }

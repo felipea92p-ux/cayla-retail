@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ACCESOS_VENTA, accesosDeMas, accesosVisibles } from "./vender-accesos";
 import { buscarVendiblePrimero, grupoDeResultado } from "./vender-buscador-reglas";
 import { hrefApartarDesdeTicket, leerPrendasDeUrl, lineasApartables } from "./apartar-desde-ticket";
-import { dniEnmascarado, lineaDeClienta, terminoBuscable } from "./clienta-ticket-reglas";
+import { numeroEnmascarado } from "./documento-clienta-reglas";
+import { lineaDeClienta, terminoBuscable } from "./clienta-ticket-reglas";
 import { precioEscribible } from "./prenda-sin-registrar-reglas";
-import { alDiaConElServidor, anchoBarraMeta, conRelectura, haceCuanto, lecturaDelServidor, nombreDeEspera, resumenDeHoy, SUGERENCIAS_ESPERA, sugerenciasLibresDeEspera, ticketParaEspera } from "./vender-hoy-reglas";
+import { alDiaConElServidor, anchoBarraMeta, conRelectura, haceCuanto, lecturaDelServidor, nombreDeEspera, resumenDeHoy, ticketParaEspera } from "./vender-hoy-reglas";
 
 const prenda = (id: string, referencia: string, stockAqui: number, almacenAqui: number | null = 0) => ({
   varianteId: id,
@@ -24,7 +25,14 @@ describe("accesos del Punto de venta", () => {
     expect(visibles.map((a) => a.texto)).toEqual(["Caja", "Cambios"]);
   });
 
-  it("«Más» lleva todo menos Apartados, que se queda a la vista", () => {
+  it("«Separé una dañada» sale solo si el rol ve Existencias, y va a la vista (no en «Más»)", () => {
+    expect(accesosVisibles(["vender"]).map((a) => a.texto)).toEqual([]);
+    const conExistencias = accesosVisibles(["vender", "existencias"]);
+    expect(conExistencias.map((a) => [a.texto, a.href])).toEqual([["Separé una dañada", "/inventario?danada=1"]]);
+    expect(accesosDeMas(conExistencias)).toEqual([]);
+  });
+
+  it("«Más» lleva todo menos Apartados y «Separé una dañada», que se quedan a la vista", () => {
     expect(accesosDeMas(accesosVisibles(ACCESOS_VENTA.map((a) => a.modulo))).map((a) => a.texto)).toEqual([
       "Caja",
       "Cambios",
@@ -35,7 +43,7 @@ describe("accesos del Punto de venta", () => {
   });
 
   it("sin ningún módulo de ventas, nada", () => {
-    expect(accesosVisibles(["existencias"])).toEqual([]);
+    expect(accesosVisibles(["productos"])).toEqual([]);
   });
 });
 
@@ -176,32 +184,6 @@ describe("un ticket en espera conserva su nombre", () => {
   });
 });
 
-describe("los nombres de un toque de la hoja «Dejar en espera»", () => {
-  it("sin nada ocupado, ofrece los tres probadores", () => {
-    expect(sugerenciasLibresDeEspera([])).toEqual([...SUGERENCIAS_ESPERA]);
-  });
-
-  it("no ofrece el de un ticket que sigue esperando", () => {
-    expect(sugerenciasLibresDeEspera(["Probador 2"])).toEqual(["Probador 1", "Probador 3"]);
-  });
-
-  // El ticket retomado ya no está en la tira, pero esa clienta sigue en ese probador: su chip no tiene nada que
-  // ofrecer (el campo ya trae el nombre escrito). Antes se volvía a ofrecer.
-  it("tampoco ofrece el del ticket que está AHORA en la caja", () => {
-    expect(sugerenciasLibresDeEspera(["María", "Probador 1"])).toEqual(["Probador 2", "Probador 3"]);
-  });
-
-  it("un ticket sin nombre no ocupa ninguno", () => {
-    expect(sugerenciasLibresDeEspera(["", "   ", undefined, null])).toEqual([...SUGERENCIAS_ESPERA]);
-  });
-
-  it("da igual cómo se escribió: mayúsculas y espacios de sobra ocupan igual", () => {
-    expect(sugerenciasLibresDeEspera(["  probador 1 ", "PROBADOR 3"])).toEqual(["Probador 2"]);
-  });
-});
-
-
-
 describe("apartar desde el ticket", () => {
   const A = "11111111-1111-4111-8111-111111111111";
   const B = "22222222-2222-4222-8222-222222222222";
@@ -228,8 +210,8 @@ describe("apartar desde el ticket", () => {
 
 describe("clienta del ticket", () => {
   it("enmascara el DNI en pantalla", () => {
-    expect(dniEnmascarado("71234482")).toBe("71•••482");
-    expect(dniEnmascarado(null)).toBeNull();
+    expect(numeroEnmascarado("71234482")).toBe("71•••482");
+    expect(numeroEnmascarado(null)).toBeNull();
   });
   it("sin nombre en la ficha, se muestra el documento", () => {
     expect(lineaDeClienta({ id: "1", nombre: null, documentoTipo: "dni", documentoNumero: "71234482", celular: null }).titulo).toBe("DNI 71•••482");

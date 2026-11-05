@@ -23,7 +23,7 @@ type Respuesta = { clave: string; parejas: ParejaSugerida[] | null };
 
 /**
  * «Identificar con sugerencias» (ADR-0334): antes de cerrar la cola de arranque, las ventas que tienen UNA sola prenda posible
- * (misma categoría, talla y color, con stock en la tienda) se identifican de una vez. La base propone; un líder CONFIRMA fila por
+ * (misma categoría, talla y color, con stock en la tienda) se identifican de una vez. La base propone; quien ve Existencias CONFIRMA fila por
  * fila: una sola candidata no es certeza (si la prenda vendida nunca se cargó, la candidata es OTRA prenda que sigue colgada y
  * quedaría con 1 de menos). Las que no se marcan siguen pendientes para identificarlas a mano o cerrarlas.
  *
@@ -54,7 +54,7 @@ export function SugerenciasColaModal({
   const [reintento, setReintento] = useState(0);
   const prendas = useMemo(() => conPrecioDeLaSede(prendasCatalogo, preciosPorSede[ubicacionId], (p) => p.id), [prendasCatalogo, preciosPorSede, ubicacionId]);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(null);
-  // Lo que el líder ELIGIÓ: nada viene marcado de fábrica. «marcadas» se deriva de esto y de lo que hay ahora (una sugerencia que ya no
+  // Lo que la persona ELIGIÓ: nada viene marcado de fábrica. «marcadas» se deriva de esto y de lo que hay ahora (una sugerencia que ya no
   // está, porque se recargó la lista, no cuenta aunque su id siga aquí).
   const [elegidas, setElegidas] = useState<ReadonlySet<string>>(new Set());
   const [guardando, setGuardando] = useState(false);
@@ -155,13 +155,13 @@ export function SugerenciasColaModal({
           {fase === "lista" && sugerencias.length === 0 && (
             <div className="rounded-md bg-hueso px-4 py-3 text-sm text-tinta">
               <p>No hay ventas con una sola prenda posible en esta tienda.</p>
-              <p className="mt-1 text-[13px] text-tinta/70">Sin sugerencias, cada venta se identifica a mano con «Regularizar» o se cierra con «Cerrar la cola de arranque».</p>
+              <p className="mt-1 text-sm text-tinta/70">Sin sugerencias, cada venta se identifica a mano con «Regularizar» o se cierra con «Cerrar la cola de arranque».</p>
             </div>
           )}
 
           {sugerencias.length > 0 && (
             <>
-              <div className="flex items-center justify-between gap-3 text-[13px] text-tinta/75">
+              <div className="flex items-center justify-between gap-3 text-sm text-tinta/75">
                 <span>
                   {pares.length} de {sugerencias.length} marcadas
                 </span>
@@ -197,14 +197,14 @@ export function SugerenciasColaModal({
                           <span className="min-w-0">
                             <span className="block text-[11px] uppercase tracking-wide text-taupe">Lo que anotó caja</span>
                             <span className="block truncate text-sm text-tinta">{s.venta.descripcion}</span>
-                            <span className="block text-xs text-taupe">
+                            <span className="block text-sm text-taupe">
                               {[s.venta.categoria, s.venta.talla, s.venta.color].join(" · ")} · {soles(s.venta.precioCobrado)} · {s.venta.vendidoPor} · {dia}
                             </span>
                           </span>
                           <span className="min-w-0">
                             <span className="block text-[11px] uppercase tracking-wide text-taupe">Sugerida</span>
                             <span className="block truncate text-sm text-tinta">{s.prenda.nombre}</span>
-                            <span className="block text-xs text-taupe">
+                            <span className="block text-sm text-taupe">
                               {s.prenda.codigo} · {[s.prenda.talla, s.prenda.color].join(" · ")} · oficial {soles(s.prenda.precio)} · {textoDiferencia(s.diferencia)} · hay {s.enStock}
                             </span>
                           </span>
@@ -214,7 +214,7 @@ export function SugerenciasColaModal({
                   );
                 })}
               </ul>
-              <p className="rounded-md bg-hueso px-3.5 py-2.5 text-[13px] text-tinta/80">
+              <p className="rounded-md bg-hueso px-3.5 py-2.5 text-sm text-tinta/80">
                 <strong className="font-semibold text-tinta">Una sola candidata no es certeza.</strong> Si la prenda vendida nunca se cargó, la sugerida es OTRA
                 prenda que sigue en la tienda y quedaría con 1 de menos. Marca solo las que reconozcas. Se descuenta 1 de cada una del stock de la tienda.
               </p>

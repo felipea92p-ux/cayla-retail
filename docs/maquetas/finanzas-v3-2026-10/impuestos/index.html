@@ -1,0 +1,739 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Impuestos v3 · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><style>
+/* Finanzas ▸ Impuestos v3 (2026-10-23) — tres direcciones sobre el camino A. Solo tokens de base.css (ADR-0169/0336);
+   movimiento de ADR-0136: una vez, sin rebote; el único bucle es el punto de «faltan 5 días» (.chip.late). */
+
+/* Toda pantalla ocupa todo el ancho (ADR-0462): la maqueta también. */
+.pagina{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+#va,#vb,#vc{display:flex;flex-direction:column;gap:22px}
+.mq-nota{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+
+/* ---------- Cabecera (CabeceraPantalla de Finanzas) ---------- */
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px 28px;flex-wrap:wrap}
+.cab-izq{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cab .linea{display:flex;align-items:center;gap:10px;min-height:32px}
+.cab .linea .versalita{color:var(--rojo-p)}
+.cab h1{font-size:clamp(34px,4.4vw,46px);line-height:1.02}
+.cab .frase{font-size:15px;max-width:62ch}
+.cab-der{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.volver{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);cursor:pointer;color:var(--tinta);flex:none;
+  transition:transform .2s var(--ease-cayla),border-color .2s}
+@media (hover:hover){.volver:hover{transform:translateX(-2px);border-color:var(--tinta)}}
+
+/* Selector de mes «‹ Septiembre 2026 ›» */
+.mes{display:inline-flex;align-items:center;gap:2px;background:var(--hueso);border-radius:999px;padding:3px}
+.mes button{border:0;background:transparent;cursor:pointer;height:34px;border-radius:999px}
+.mes .flecha{width:34px;display:grid;place-items:center}
+.mes .flecha:disabled{opacity:.3;cursor:default}
+.mes .nombre{padding:0 12px;font-family:var(--serif);font-size:17px;min-width:150px}
+@media (hover:hover){.mes button:not(:disabled):hover{background:var(--papel)}}
+
+/* Menú «Más» de las descargas */
+.mas{position:relative}
+.mas-lista{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:270px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;
+  box-shadow:0 14px 34px -14px color-mix(in srgb,var(--sombra) 35%,transparent);display:none}
+.mas.abierto .mas-lista{display:block;animation:mq-entra .24s var(--ease-cayla)}
+.mas-lista button{display:flex;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;gap:8px;align-items:center}
+@media (hover:hover){.mas-lista button:hover{background:var(--hueso)}}
+.mas-lista small{display:block;padding:6px 10px 4px;font-size:12px}
+
+/* ---------- Selector de sede (fila de píldoras con su reparto) ---------- */
+.sedes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sede{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px 0 12px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);cursor:pointer;font-size:13.5px;
+  transition:background .2s,border-color .2s,color .2s,transform .2s var(--ease-cayla)}
+.sede .s-cifra{font-variant-numeric:tabular-nums;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.sede .s-cifra.resta{color:var(--verde)}
+.sede[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.sede[aria-pressed="true"] .s-cifra{color:color-mix(in srgb,var(--crema) 75%,transparent)}
+.sede .punto{width:8px;height:8px;border-radius:50%;background:var(--c)}
+@media (hover:hover){.sede:not([aria-pressed="true"]):hover{border-color:var(--tinta);transform:translateY(-1px)}}
+.sedes-pie{font-size:12.5px;margin-top:6px}
+/* colores de lugar: dato, no decoración */
+.l-tru{--c:var(--pizarra)}.l-aqp{--c:var(--m-qr)}.l-lim{--c:var(--m-yape)}.l-taller{--c:var(--ambar)}.l-empresa{--c:var(--taupe)}
+
+/* Filtro puesto y limpiar (FiltroPuesto / BotonLimpiar) */
+.puestos{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.puesto{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border-radius:999px;background:var(--tinta);color:var(--crema);font-size:12.5px;border:0;cursor:pointer}
+.puesto .x{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--crema) 18%,transparent)}
+.limpiar{height:30px;padding:0 12px;border-radius:999px;border:1px dashed color-mix(in srgb,var(--tinta) 40%,transparent);background:none;cursor:pointer;font-size:12.5px}
+.pildora{height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
+.pildora[aria-pressed="true"]{background:var(--hueso);border-color:var(--tinta)}
+
+/* ---------- Piezas comunes ---------- */
+.tit-sec{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.tit-sec h2{font-size:21px;line-height:1.2}
+.tit-sec .bajada{font-size:13.5px;max-width:64ch}
+.globito{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);font-family:var(--sans);font-size:11.5px;font-weight:600;margin-left:6px;vertical-align:3px}
+.globito.pide{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar)}
+.chip-lugar{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;padding:2px 9px 2px 7px;border-radius:999px;border:1px solid var(--sand);white-space:nowrap}
+.chip-lugar::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c)}
+.herram{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--sand)}
+.herram b{font-size:14px;font-weight:600}
+.tabla-caja{padding:0;overflow:hidden}
+.tabla tbody tr[data-mes]{cursor:pointer}
+.tabla tr.activa{background:color-mix(in srgb,var(--hueso) 75%,transparent);box-shadow:inset 3px 0 0 var(--rojo)}
+.tabla tfoot td{font-weight:600;border-bottom:0}
+.vacio{padding:28px 16px;text-align:center;font-size:14px}
+.vacio b{display:block;font-family:var(--serif);font-weight:500;font-size:19px;margin-bottom:4px}
+.porque-caja{padding-top:12px;font-size:14px;max-width:66ch;display:flex;flex-direction:column;gap:8px}
+.porque-caja b{font-weight:600}
+.aviso-renta{font-size:13px;margin-top:8px}
+
+/* Tabla → tarjetas a 640 px (como fin-tabla en el ERP, pero sin ancho mínimo: nunca se corta) */
+@media (max-width:640px){
+  .tabla.apila thead{display:none}
+  .tabla.apila tr{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;padding:12px 14px;border-bottom:1px solid var(--sand)}
+  .tabla.apila td{border:0;padding:0;text-align:left!important}
+  .tabla.apila td::before{content:attr(data-l);display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+  .tabla.apila td.ancho{grid-column:1/-1}
+  .tabla.apila tfoot tr{background:var(--hueso)}
+}
+
+/* Lista «Antes de declarar» (una sola, con su sede) */
+.pend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pend li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:start;padding:14px 0;border-top:1px solid var(--sand)}
+.pend li:first-child{border-top:0}
+.pend .p-punto{width:10px;height:10px;border-radius:50%;background:var(--c,var(--ambar));margin-top:6px}
+.pend .p-tit{font-weight:600;font-size:14.5px}
+.pend .p-det{font-size:13.5px}
+.pend .p-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+.pend .p-plata{font-size:12.5px;color:var(--ambar);font-weight:600}
+@media (max-width:640px){.pend li{grid-template-columns:auto minmax(0,1fr)}.pend li>.btn{grid-column:2;justify-self:start}}
+
+/* Barra a escala de lo que pone cada lugar (diverge desde el cero) */
+.pone{display:flex;flex-direction:column;gap:6px}
+.pone-fila{display:grid;grid-template-columns:130px minmax(0,1fr) 92px;gap:12px;align-items:center;border:0;background:none;padding:6px 8px;margin:0 -8px;border-radius:10px;cursor:pointer;text-align:left;font-size:13.5px}
+.pone-fila[aria-pressed="true"]{background:var(--hueso)}
+@media (hover:hover){.pone-fila:hover{background:color-mix(in srgb,var(--hueso) 60%,transparent)}}
+.pone-eje{position:relative;height:14px}
+.pone-eje::before{content:"";position:absolute;left:var(--cero);top:-4px;bottom:-4px;width:1px;background:color-mix(in srgb,var(--tinta) 35%,transparent)}
+.pone-eje i{position:absolute;top:0;height:14px;border-radius:999px;background:var(--c);width:var(--w);left:var(--x);transform-origin:var(--origen)}
+.animar .pone-eje i{animation:crece-x .9s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*70ms + 200ms)}
+@keyframes crece-x{from{transform:scaleX(0)}}
+.pone-monto{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.pone-monto.resta{color:var(--verde)}
+@media (max-width:640px){.pone-fila{grid-template-columns:86px minmax(0,1fr) 74px;gap:8px;font-size:12.5px}}
+
+/* Ecuación del IGV */
+.ecu{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
+.term{flex:1 1 92px;background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.term .t-et{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.term b{font-family:var(--serif);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.term .t-pie{font-size:12px}
+.term.total{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.term.total .t-et{color:color-mix(in srgb,var(--crema) 72%,transparent)}
+.op{align-self:center;font-family:var(--serif);font-size:24px;color:var(--taupe)}
+@media (max-width:640px){.op{flex-basis:100%;text-align:center;line-height:.6}}
+
+/* Días hasta el pago */
+.dias{display:flex;align-items:center;gap:0;margin:6px 0 4px}
+.dia{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;font-size:11.5px;position:relative}
+.dia i{width:10px;height:10px;border-radius:50%;background:var(--sand);position:relative;z-index:1}
+.dia.hoy i{background:var(--tinta);width:14px;height:14px}
+.dia.paga i{background:var(--rojo);width:14px;height:14px;box-shadow:0 0 0 5px color-mix(in srgb,var(--rojo) 18%,transparent)}
+.dia:not(:last-child)::after{content:"";position:absolute;top:6px;left:50%;width:100%;height:2px;background:var(--sand)}
+.dia.fuerte span{font-weight:600}
+
+/* Límite de 300 UIT */
+.u-pista{height:14px;border-radius:999px;background:var(--hueso);position:relative;overflow:visible;margin:28px 0 30px}
+.u-pista i{position:absolute;top:0;height:100%;background:var(--c);width:var(--w);left:var(--x)}
+.u-pista i:first-child{border-radius:999px 0 0 999px}
+.u-pista i.proy{background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--tinta) 22%,transparent) 0 4px,transparent 4px 8px);border-radius:0 999px 999px 0}
+.u-raya{position:absolute;top:-8px;bottom:-8px;width:2px;background:var(--rojo);left:91.7%}
+.u-et{position:absolute;font-size:11.5px;white-space:nowrap;transform:translateX(-50%)}
+.u-et.arriba{bottom:calc(100% + 10px)}.u-et.abajo{top:calc(100% + 10px)}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda span::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c)}
+
+/* =====================================================================================
+   A · La respuesta, por sede
+   ===================================================================================== */
+.a-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:26px 48px;padding:32px 36px;align-items:center}
+@media (max-width:960px){.a-hero{grid-template-columns:minmax(0,1fr);padding:22px 18px}}
+.a-preg{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--taupe)}
+.a-grande{font-size:clamp(25px,2.8vw,33px);line-height:1.16;margin-top:6px}
+.a-monto{display:block;font-size:clamp(50px,7vw,80px);line-height:1;margin-top:6px;font-variant-numeric:tabular-nums}
+.a-monto.favor{color:var(--verde)}
+.a-vence{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:14px;font-size:13.5px}
+.a-lado{display:flex;flex-direction:column;gap:14px;min-width:0}
+.a-dos{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
+@media (max-width:1100px){.a-dos{grid-template-columns:minmax(0,1fr)}}
+.de-sede{font-size:13.5px;padding:10px 14px;border-radius:10px;background:var(--hueso)}
+
+/* =====================================================================================
+   B · Mes por mes (el expediente)
+   ===================================================================================== */
+.b-meses{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+@media (max-width:1100px){.b-meses{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:640px){.b-meses{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.b-mes{text-align:left;border:1px solid var(--sand);background:var(--papel);border-radius:14px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:8px;min-width:0;
+  transition:transform .26s var(--ease-cayla),border-color .2s}
+@media (hover:hover){.b-mes:hover{transform:translateY(-2px);border-color:var(--tinta)}}
+.b-mes .m-nom{font-family:var(--serif);font-size:20px}
+.b-mes .m-monto{font-variant-numeric:tabular-nums;font-size:15px;font-weight:600}
+.b-mes .m-barra{height:6px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.b-mes .m-barra i{display:block;height:100%;width:var(--w);background:var(--tinta);border-radius:999px}
+.b-mes.toca{border-color:var(--ambar);box-shadow:inset 0 0 0 1px var(--ambar)}
+.b-mes.curso .m-barra i{background:repeating-linear-gradient(-45deg,var(--tinta) 0 3px,transparent 3px 6px)}
+.b-exp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:16px;align-items:start}
+@media (max-width:1100px){.b-exp{grid-template-columns:minmax(0,1fr)}}
+.b-cuenta{list-style:none;margin:0;padding:0}
+.b-cuenta li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--sand);font-size:14px}
+.b-cuenta li:first-child{border-top:0}
+.b-cuenta li.total{font-weight:600;font-size:16px;border-top:2px solid var(--tinta)}
+.b-cuenta .m{font-variant-numeric:tabular-nums}
+.b-sello{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:2px solid var(--verde);color:var(--verde);border-radius:8px;font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;transform:rotate(-3deg)}
+.b-fila-lugar{cursor:pointer}
+
+/* =====================================================================================
+   C · Cada lugar, su cuenta
+   ===================================================================================== */
+.c-suma{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:stretch}
+@media (max-width:1200px){.c-suma{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:760px){.c-suma{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.c-suma{grid-template-columns:minmax(0,1fr)}}
+.c-ticket{position:relative;text-align:left;border:1px solid var(--sand);background:var(--papel);border-radius:14px 14px 4px 4px;padding:16px 16px 18px;cursor:pointer;display:flex;flex-direction:column;gap:10px;min-width:0;
+  transition:transform .26s var(--ease-cayla),border-color .2s}
+.c-ticket::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:6px;background:radial-gradient(circle at 5px -1px,var(--crema) 4px,transparent 4.5px) 0 0/12px 6px repeat-x}
+@media (hover:hover){.c-ticket:hover{transform:translateY(-3px);border-color:var(--tinta)}}
+.c-ticket .t-cab{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.c-ticket .t-nom{font-family:var(--serif);font-size:20px;display:flex;align-items:center;gap:8px}
+.c-ticket .t-nom::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
+.c-ticket ul{list-style:none;margin:0;padding:0;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.c-ticket li{display:flex;justify-content:space-between;gap:8px}
+.c-ticket li .m{font-variant-numeric:tabular-nums}
+.c-ticket .t-raya{border-top:1px dashed color-mix(in srgb,var(--tinta) 35%,transparent)}
+.c-ticket .t-total{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.c-ticket .t-total b{font-family:var(--serif);font-size:27px;font-weight:500;font-variant-numeric:tabular-nums}
+.c-ticket .t-total b.resta{color:var(--verde)}
+.c-ticket .t-nota{font-size:12px}
+.c-ticket.apagado{opacity:.45}
+.c-igual{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:20px 24px;border-radius:14px;background:var(--tinta);color:var(--crema)}
+.c-igual .i-sig{font-family:var(--serif);font-size:44px;line-height:1}
+.c-igual .i-monto{font-family:var(--serif);font-size:clamp(38px,5vw,54px);line-height:1;font-variant-numeric:tabular-nums}
+.c-igual .i-txt{font-size:14px;color:color-mix(in srgb,var(--crema) 80%,transparent);max-width:46ch}
+.c-igual .chip{background:color-mix(in srgb,var(--crema) 14%,transparent);color:var(--crema)}
+.segmento{display:inline-flex;background:var(--sand);border-radius:10px;padding:3px;gap:2px}
+.segmento button{border:0;background:none;height:30px;padding:0 12px;border-radius:8px;cursor:pointer;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--tinta) 68%,transparent)}
+.segmento button[aria-pressed="true"]{background:var(--papel);color:var(--tinta)}
+.c-det{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:1000px){.c-det{grid-template-columns:minmax(0,1fr)}}
+.c-linea{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:4px 12px;padding:10px 0;border-top:1px solid var(--sand);font-size:13.5px}
+.c-linea:first-child{border-top:0}
+.c-linea .m{text-align:right;font-variant-numeric:tabular-nums}
+.c-linea .pista{grid-column:1/-1;height:6px}
+.c-hist{display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:10px}
+.c-hist div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;height:100%;justify-content:flex-end}
+.c-hist i{width:100%;max-width:28px;border-radius:6px 6px 2px 2px;background:var(--sand);height:var(--h);transform-origin:bottom}
+.c-hist i.neg{background:color-mix(in srgb,var(--verde) 45%,transparent)}
+.c-hist div.este i{background:var(--tinta)}
+.animar .c-hist i{animation:mq-crece-alto .8s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*60ms + 200ms)}
+</style></head><body>
+
+<header class="mq-barra"><a class="mq-volver" href="../../finanzas-v2-2026-10/index.html" aria-label="Volver a las maquetas de Finanzas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas v3 · maquetas</span><b>Impuestos</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Dirección"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · Mes por mes</button><button data-ver="c">C · Cada lugar</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+
+<p class="mq-nota tenue">Hoy es <b>jueves 15 de octubre de 2026</b> (la misma historia de la v2). Se declara <b>septiembre</b>; vence el <b>martes 20</b>. Todo se puede tocar: el mes, la sede, los filtros, cada fila. Nada se guarda.</p>
+
+<main class="pagina">
+  <section class="variante" data-variante="a"><div id="va"></div></section>
+  <section class="variante" data-variante="b" hidden><div id="vb"></div></section>
+  <section class="variante" data-variante="c" hidden><div id="vc"></div></section>
+</main>
+
+<script src="base.js"></script>
+<script>
+/* ============================================================================================
+   La historia (cifras de ejemplo). Cada mes trae lo de cada lugar; los totales SIEMPRE salen de sumar los lugares,
+   así ninguna cifra contradice a otra. Orden: TRU, AQP, LIM, Taller, Toda la empresa.
+   v = IGV cobrado al vender · c = IGV que descuentas (compras con factura) · r = pago a cuenta de renta (1 %).
+   ============================================================================================ */
+const LUGARES = [
+  { k: "tru", n: "Trujillo", corto: "TRU" },
+  { k: "aqp", n: "Arequipa", corto: "AQP" },
+  { k: "lim", n: "Lima", corto: "LIM", nota: "Abre el 20 de octubre: compró ropa para abrir y todavía no vende." },
+  { k: "taller", n: "Taller", corto: "Taller", nota: "No vende: su IGV sale de los insumos (hilo, botones, avíos)." },
+  { k: "empresa", n: "Toda la empresa", corto: "Empresa", nota: "Contador, etiquetas, internet y oficina: no son de una sede." },
+];
+const MESES = {
+  "2026-04": { v: [8250, 4850, 0, 0, 0], c: [2600, 1680, 0, 1050, 870], r: [460, 270, 0, 0, 0], pago: "Pagado el 19 de mayo" },
+  "2026-05": { v: [8850, 5200, 0, 0, 0], c: [2810, 1810, 0, 1140, 940], r: [490, 290, 0, 0, 0], pago: "Pagado el 20 de junio" },
+  "2026-06": { v: [9640, 5660, 0, 0, 0], c: [3070, 1980, 0, 1240, 1030], r: [535, 315, 0, 0, 0], pago: "Pagado el 18 de julio" },
+  "2026-07": { v: [9750, 5730, 0, 0, 0], c: [3090, 1990, 0, 1250, 1030], r: [540, 320, 0, 0, 0], pago: null },
+  "2026-08": { v: [9350, 5500, 0, 0, 0], c: [2900, 1800, 320, 1180, 940], r: [520, 305, 0, 0, 0], pago: "Pagado el 19 de septiembre" },
+  "2026-09": { v: [10080, 5940, 0, 0, 0], c: [2900, 1700, 1250, 980, 790], r: [560, 330, 0, 0, 0], pago: "toca" },
+  "2026-10": { v: [5640, 2800, 0, 0, 0], c: [1220, 640, 980, 330, 240], r: [313, 156, 0, 0, 0], pago: "curso" },
+};
+const ORDEN = Object.keys(MESES);
+const NOMBRE_MES = { "04": "abril", "05": "mayo", "06": "junio", "07": "julio", "08": "agosto", "09": "septiembre", "10": "octubre", "11": "noviembre" };
+const nombreMes = (m) => NOMBRE_MES[m.slice(5)];
+const Mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const siguiente = (m) => (m === "2026-10" ? "noviembre" : nombreMes(ORDEN[ORDEN.indexOf(m) + 1]));
+
+// De dónde sale lo que descuentas en septiembre (solo el mes que se declara tiene el detalle en la maqueta).
+const DESGLOSE_SEP = {
+  tru: [["Mercadería · Textiles del Norte", 1420], ["Mercadería · Hilados Andinos", 880], ["Luz Hidrandina, internet y mantenimiento", 600]],
+  aqp: [["Mercadería · Textiles del Norte", 830], ["Mercadería · Confecciones Sur", 420], ["Luz SEAL, agua y útiles", 450]],
+  lim: [["Mercadería para abrir · Textiles del Norte", 1080], ["Bolsas, útiles y señalética", 170]],
+  taller: [["Hilo, botones y avíos", 640], ["Mantenimiento de máquinas", 340]],
+  empresa: [["Contador (con factura)", 183], ["Etiquetas · Grafinort", 54], ["Internet y oficina", 553]],
+};
+// Antes de declarar septiembre: UNA lista (hoy la pantalla tiene dos que dicen lo mismo). Cada cosa con su lugar y la plata en juego.
+const PENDIENTES = {
+  "2026-09": [
+    { id: "p1", lugar: "tru", plata: 360, tono: "ambar", tit: "Completa la factura de Textiles del Norte en el SIRE", det: "F001-2231 por S/ 2,360. SUNAT ya la tiene, pero le falta un dato tuyo. Sin él, sus S/ 360 de IGV no se descuentan.", btn: "Completar" },
+    { id: "p2", lugar: "aqp", plata: 63, tono: "ambar", tit: "Completa la factura de luz SEAL en el SIRE", det: "S/ 413 de la luz de Arequipa. Le falta para qué sede es.", btn: "Completar" },
+    { id: "p3", lugar: "empresa", plata: 54, tono: "ambar", tit: "Completa la factura de Grafinort en el SIRE", det: "Etiquetas por S/ 354. Es la primera vez que le compras: elige qué fue.", btn: "Completar" },
+    { id: "p4", lugar: "aqp", plata: 0, tono: "ambar", tit: "Deposita la detracción del alquiler de Arequipa", det: "S/ 320 (el 10 %) en la cuenta del dueño en el Banco de la Nación; el resto se lo pagas directo. Si no, SUNAT puede multarte.", btn: "Ya la deposité", porque: "En algunos servicios, como el alquiler, SUNAT pide que una parte no vaya directo al dueño del local: va a una cuenta suya en el Banco de la Nación, que solo sirve para pagar impuestos." },
+    { id: "p5", lugar: "tru", plata: 0, tono: "pizarra", tit: "1 boleta que SUNAT todavía no acepta", det: "B001-4410 por S/ 80, del lunes 29. Se reintenta sola; si mañana sigue igual, revísala en Comprobantes.", btn: "Ver en Comprobantes" },
+    { id: "p6", lugar: "aqp", plata: 70, tono: "ambar", tit: "2 ventas sin boleta ni factura", det: "S/ 460 vendidos en Arequipa con nota de venta. Su IGV (S/ 70) no está en esta cuenta: díselo al contador.", btn: "Ver las ventas" },
+    { id: "p7", lugar: "lim", plata: 36, tono: "ambar", tit: "2 compras con boleta para abrir Lima", det: "S/ 236 en la ferretería. Una boleta no deja descontar IGV: pide factura la próxima vez.", btn: "Ver gastos" },
+    { id: "p8", lugar: "empresa", plata: 0, tono: "pizarra", tit: "Pregúntale al contador por los libros", det: "En 2025 pasaste las 300 UIT. Él confirma si este año llevas el Diario y el Mayor completos.", btn: "Copiar la pregunta" },
+  ],
+  "2026-07": [
+    { id: "j1", lugar: "empresa", plata: 0, tono: "ambar", tit: "No hay pago registrado de julio", det: "S/ 8,980 a SUNAT. Si ya lo pagaste, regístralo en Cuentas y dinero para que el banco y lo que debes cuadren.", btn: "Registrar el pago" },
+  ],
+};
+// Lo vendido en 2026 sin IGV, por lugar (para el límite de 300 UIT): S/ 1.12 millones de S/ 1.65 millones.
+const ANIO = { tru: 705600, aqp: 414400 };
+const LIMITE = 1650000;
+
+/* ---------- Estado (vive en la URL: ?mes=…&sede=… ; la dirección va en #a #b #c) ---------- */
+const q = new URLSearchParams(location.search);
+const E = {
+  mes: MESES[q.get("mes")] ? q.get("mes") : "2026-09",
+  sede: LUGARES.some((l) => l.k === q.get("sede")) ? q.get("sede") : null,
+  soloPlata: false,
+  soloSinPago: false,
+  bVista: q.get("vista") === "mes" ? "mes" : "meses", // B: lista de meses o el expediente de uno
+  cVista: "suma", // C: la suma o un lugar
+  cQue: "todo", // C: igv · renta · todo
+  masAbierto: false,
+};
+function guardarUrl() {
+  const p = new URLSearchParams();
+  if (E.mes !== "2026-09") p.set("mes", E.mes);
+  if (E.sede) p.set("sede", E.sede);
+  const s = p.toString();
+  try { history.replaceState(null, "", location.pathname + (s ? "?" + s : "") + location.hash); } catch (_) {}
+}
+
+/* ---------- Cuentas ---------- */
+const fmt = (n) => Math.round(n).toLocaleString("es-PE");
+const sol = (n) => "S/ " + fmt(n);
+const signo = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n));
+const idx = (k) => LUGARES.findIndex((l) => l.k === k);
+const lugar = (k) => LUGARES[idx(k)];
+function cuenta(mes, k) {
+  const d = MESES[mes];
+  const pick = (arr) => (k ? arr[idx(k)] : arr.reduce((a, b) => a + b, 0));
+  const v = pick(d.v), c = pick(d.c), r = pick(d.r);
+  return { v, c, r, igv: v - c, total: v - c + r };
+}
+function estadoMes(mes) {
+  const p = MESES[mes].pago;
+  if (p === "toca") return { texto: "Vence el martes 20", tono: "c-ambar late", corto: "por pagar" };
+  if (p === "curso") return { texto: "En curso: se declara en noviembre", tono: "c-pizarra", corto: "en curso" };
+  if (!p) return { texto: "Sin pago registrado", tono: "c-ambar", corto: "sin pago registrado" };
+  return { texto: p, tono: "c-verde", corto: "pagado" };
+}
+const pendientes = (mes) => (PENDIENTES[mes] || []).filter((p) => (!E.sede || p.lugar === E.sede) && (!E.soloPlata || p.plata > 0));
+
+/* ---------- Piezas compartidas ---------- */
+const ICO_VOLVER = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg>';
+const ICO_BAJA = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m-3.5-3.5L8 10l3.5-3.5M3 13.5h10"/></svg>';
+const ICO_X = '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.6"><path d="M2 2l6 6M8 2 2 8"/></svg>';
+
+function cabecera({ volver, volverTexto, frase }) {
+  const iMes = ORDEN.indexOf(E.mes);
+  return `
+  <header class="cab" data-entra style="--i:0">
+    <div class="cab-izq">
+      <div class="linea">${volver ? `<button class="volver" type="button" data-accion="${volver}" aria-label="${volverTexto}" title="${volverTexto}">${ICO_VOLVER}</button>` : ""}
+        <span class="versalita">Finanzas · Impuestos${E.sede ? " · " + lugar(E.sede).n : ""}</span></div>
+      <h1>Impuestos</h1>
+      <p class="frase tenue">${frase}</p>
+    </div>
+    <div class="cab-der">
+      <div class="mes" role="group" aria-label="Mes que se mira">
+        <button class="flecha" type="button" data-accion="mes-ant" aria-label="Mes anterior" ${iMes === 0 ? "disabled" : ""}>‹</button>
+        <button class="nombre" type="button" data-accion="mes-toca" title="Volver al mes que se declara">${Mayus(nombreMes(E.mes))} 2026</button>
+        <button class="flecha" type="button" data-accion="mes-sig" aria-label="Mes siguiente" ${iMes === ORDEN.length - 1 ? "disabled" : ""}>›</button>
+      </div>
+      <button class="btn primario" type="button" data-accion="paquete">${ICO_BAJA}Descargar paquete</button>
+      <div class="mas ${E.masAbierto ? "abierto" : ""}">
+        <button class="btn sutil" type="button" data-accion="mas" aria-expanded="${E.masAbierto}">Más</button>
+        <div class="mas-lista" role="menu">
+          <button type="button" role="menuitem">${ICO_BAJA}Descargar registro de ventas</button>
+          <button type="button" role="menuitem">${ICO_BAJA}Descargar registro de compras</button>
+          <small class="tenue">Los registros son siempre de CAYLA entera: SUNAT recibe uno solo por RUC.</small>
+        </div>
+      </div>
+    </div>
+  </header>`;
+}
+
+function filaSedes(mes) {
+  const tot = cuenta(mes).total;
+  const b = (k, n, cifra, resta) =>
+    `<button class="sede ${k ? "l-" + k : ""}" type="button" data-sede="${k || ""}" aria-pressed="${(E.sede || "") === (k || "")}">
+      ${k ? '<span class="punto"></span>' : ""}${n}<span class="s-cifra ${resta ? "resta" : ""}">${cifra}</span></button>`;
+  return `
+  <div data-entra style="--i:1">
+    <div class="sedes" role="group" aria-label="Sede">
+      ${b(null, "Todas las sedes", sol(tot))}
+      ${LUGARES.map((l) => { const t = cuenta(mes, l.k).total; return b(l.k, l.n, (t < 0 ? "baja " : "pone ") + fmt(Math.abs(t)), t < 0); }).join("")}
+    </div>
+    <p class="sedes-pie tenue">SUNAT recibe un solo pago por el RUC de CAYLA. Al lado de cada lugar, lo que pone en ese pago (o lo que lo baja con sus compras).</p>
+  </div>`;
+}
+
+function puestos(extra) {
+  const f = [];
+  if (E.sede) f.push(`<button class="puesto" type="button" data-accion="quitar-sede">Sede: ${lugar(E.sede).n}<span class="x">${ICO_X}</span></button>`);
+  (extra || []).forEach((x) => f.push(x));
+  if (!f.length) return "";
+  return `<div class="puestos">${f.join("")}${f.length > 1 ? '<button class="limpiar" type="button" data-accion="limpiar">Limpiar todo</button>' : ""}</div>`;
+}
+
+function listaPendientes(mes, conFiltro) {
+  const todos = PENDIENTES[mes] || [];
+  const lista = pendientes(mes);
+  const plata = lista.reduce((a, p) => a + p.plata, 0);
+  const filtroPlata = `<button class="pildora" type="button" data-accion="solo-plata" aria-pressed="${E.soloPlata}">Solo lo que mueve el IGV</button>`;
+  const puestoPlata = E.soloPlata ? [`<button class="puesto" type="button" data-accion="solo-plata">Solo lo que mueve el IGV<span class="x">${ICO_X}</span></button>`] : [];
+  let cuerpo;
+  if (!todos.length) cuerpo = `<div class="vacio"><b>Nada pendiente</b><span class="tenue">${MESES[mes].pago === "curso" ? "Octubre todavía corre: lo que falte aparece cuando se cierre el mes." : "Este mes quedó en orden."}</span></div>`;
+  else if (!lista.length) cuerpo = `<div class="vacio"><b>${E.sede ? lugar(E.sede).n + " no tiene nada pendiente" : "Nada con esos filtros"}</b><button class="limpiar" type="button" data-accion="limpiar">Limpiar filtros</button></div>`;
+  else cuerpo = `<ol class="pend">${lista.map((p, i) => `
+    <li data-entra style="--i:${i + 2}">
+      <span class="p-punto" style="--c:var(--${p.tono})"></span>
+      <div><div class="p-tit">${p.tit}</div><div class="p-det tenue">${p.det}</div>
+        <div class="p-meta"><span class="chip-lugar l-${p.lugar}">${lugar(p.lugar).n}</span>${p.plata ? `<span class="p-plata">En juego: ${sol(p.plata)}</span>` : ""}
+        ${p.porque ? `<button class="porque" type="button" data-porque="pq-${p.id}" aria-expanded="false">¿Por qué?</button>` : ""}</div>
+        ${p.porque ? `<div class="desplegable" id="pq-${p.id}"><div><div class="porque-caja"><p>${p.porque}</p></div></div></div>` : ""}
+      </div>
+      <button class="btn chico sutil" type="button" data-marca="${p.id}">${p.btn}</button>
+    </li>`).join("")}</ol>`;
+  return `
+    <div class="tit-sec"><div><h2>Antes de declarar<span class="globito ${lista.length ? "pide" : ""}">${lista.length}</span></h2>
+      <p class="bajada tenue">${lista.length && plata ? `Hay ${sol(plata)} de IGV en juego.` : "Lo que puede hacer que pagues de más o que SUNAT te observe."}</p></div>
+      ${conFiltro && todos.length ? filtroPlata : ""}</div>
+    ${conFiltro ? puestos(puestoPlata) : ""}
+    ${cuerpo}`;
+}
+
+function bloqueLimite() {
+  const tru = ANIO.tru, aqp = ANIO.aqp, tot = tru + aqp;
+  const pct = (n) => (n / LIMITE) * 100 * 0.917;  // la raya de 300 UIT se dibuja al 91.7 % del ancho
+  const solo = E.sede && ANIO[E.sede] !== undefined ? E.sede : null;
+  return `
+  <div class="tit-sec"><div><span class="versalita">¿Cuánto me falta para el límite de 300 UIT?</span>
+    <h2>Llevas el ${Math.round((tot / LIMITE) * 100)} %; lo cruzas en diciembre</h2></div><span class="chip c-ambar">68 %</span></div>
+  <div class="u-pista" role="img" aria-label="Trujillo S/ 705,600 y Arequipa S/ 414,400: S/ 1.12 millones de S/ 1.65 millones">
+    <i class="l-tru" style="--x:0%;--w:${pct(tru)}%;${solo && solo !== "tru" ? "opacity:.3" : ""}"></i>
+    <i class="l-aqp" style="--x:${pct(tru)}%;--w:${pct(aqp)}%;${solo && solo !== "aqp" ? "opacity:.3" : ""}"></i>
+    <i class="proy" style="--x:${pct(tot)}%;--w:${91.7 - pct(tot) + 3}%"></i>
+    <span class="u-raya"></span>
+    <span class="u-et arriba" style="left:91.7%"><b>300 UIT · S/ 1.65 M</b></span>
+    <span class="u-et abajo tenue" style="left:${pct(tot)}%">hoy S/ 1.12 M</span>
+  </div>
+  <div class="leyenda"><span class="l-tru">Trujillo ${sol(tru)}</span><span class="l-aqp">Arequipa ${sol(aqp)}</span><span style="--c:color-mix(in srgb,var(--tinta) 22%,transparent)">Si sigues así, a diciembre</span></div>
+  <p style="font-size:14px;margin-top:12px">El límite es de CAYLA entera, no de cada tienda. <b>El mes que lo cruces, el pago a cuenta de renta sube de 1 % a 1.5 %.</b>
+    ${solo === "lim" || E.sede === "lim" ? "Lima suma desde que abra el 20." : ""}</p>
+  <button class="porque" type="button" data-porque="pq-uit" aria-expanded="false">¿Por qué? · la UIT</button>
+  <div class="desplegable" id="pq-uit"><div><div class="porque-caja"><p>La <b>UIT</b> es la regla que usa SUNAT para poner límites. En 2026 vale S/ 5,500: 300 UIT son S/ 1.65 millones vendidos en el año, sin IGV. Pasarlas no es malo: la tienda creció y SUNAT pide un poco más de orden.</p></div></div></div>`;
+}
+
+function tablaMeses({ conLugarFiltro }) {
+  let filas = ORDEN.filter((m) => !E.soloSinPago || estadoMes(m).corto === "sin pago registrado");
+  const puestoSinPago = E.soloSinPago ? [`<button class="puesto" type="button" data-accion="solo-sin-pago">Solo sin pago registrado<span class="x">${ICO_X}</span></button>`] : [];
+  const cuerpo = filas.length ? filas.slice().reverse().map((m, i) => {
+    const c = cuenta(m, E.sede), e = estadoMes(m);
+    return `<tr data-mes="${m}" class="${m === E.mes ? "activa" : ""}" tabindex="0" data-entra style="--i:${i}">
+      <td data-l="Mes">${Mayus(nombreMes(m))} 2026${m === "2026-10" ? " <span class='tenue'>(va al 15)</span>" : ""}</td>
+      <td class="m" data-l="IGV cobrado">${sol(c.v)}</td><td class="m" data-l="Descontado">${sol(c.c)}</td>
+      <td class="m" data-l="Renta">${sol(c.r)}</td>
+      <td class="m" data-l="${E.sede ? "Pone en el pago" : "Total a SUNAT"}"><b>${E.sede ? signo(c.total) : sol(c.total)}</b></td>
+      <td data-l="Estado" class="ancho"><span class="chip ${e.tono}">${e.texto}</span></td></tr>`;
+  }).join("") : `<tr><td colspan="6"><div class="vacio"><b>Ningún mes sin pago registrado</b><button class="limpiar" type="button" data-accion="solo-sin-pago">Quitar el filtro</button></div></td></tr>`;
+  return `
+  <article class="tarjeta tabla-caja" data-sube style="--i:5">
+    <div class="herram"><b>Mes por mes<span class="globito">${filas.length}</span></b>
+      <span class="tenue" style="font-size:12.5px">Toca un mes para verlo arriba.</span><span style="flex:1"></span>
+      <button class="pildora" type="button" data-accion="solo-sin-pago" aria-pressed="${E.soloSinPago}">Sin pago registrado</button></div>
+    ${E.sede || E.soloSinPago ? `<div class="herram">${puestos(puestoSinPago)}</div>` : ""}
+    <table class="tabla apila"><thead><tr><th>Mes</th><th class="m">IGV cobrado</th><th class="m">IGV descontado</th><th class="m">Renta a cuenta</th><th class="m">${E.sede ? "Pone en el pago" : "Total a SUNAT"}</th><th>Estado</th></tr></thead>
+    <tbody>${cuerpo}</tbody></table>
+  </article>`;
+}
+
+const notaPago = `<p class="nota" data-entra style="--i:7">El pago a SUNAT se registra en <b>Cuentas y dinero</b> («Pagar a SUNAT», sale de un banco). Mientras no se registre, el mes dice «Sin pago registrado»: el sistema no lo sabe, no quiere decir que no lo pagaste.</p>`;
+
+/* ============================================================================================
+   A · La respuesta, por sede
+   ============================================================================================ */
+function vistaA() {
+  const m = E.mes, c = cuenta(m), cs = E.sede ? cuenta(m, E.sede) : null, e = estadoMes(m);
+  const toca = MESES[m].pago === "toca", curso = MESES[m].pago === "curso";
+  const favor = c.igv < 0;
+  let grande, sub;
+  if (cs) {
+    grande = cs.total >= 0
+      ? `${lugar(E.sede).n} pone <span class="a-monto num" data-cuenta="${cs.total}" data-pre="S/ ">${sol(cs.total)}</span>`
+      : `${lugar(E.sede).n} baja el pago en <span class="a-monto favor num" data-cuenta="${-cs.total}" data-pre="S/ ">${sol(-cs.total)}</span>`;
+    sub = `<p class="de-sede">De los <b>${sol(c.total)}</b> que CAYLA le paga a SUNAT por ${nombreMes(m)}. ${lugar(E.sede).nota || (cs.total >= 0 ? `Vendió ${sol(cs.v / 0.18)} sin IGV y descontó ${sol(cs.c)} con sus compras.` : "")}</p>`;
+  } else if (curso) {
+    grande = `Octubre va en <span class="a-monto num" data-cuenta="${c.total}" data-pre="S/ ">${sol(c.total)}</span>`;
+    sub = `<p class="tenue" style="margin-top:10px">Todavía cambia: se declara en noviembre. Sirve para ir apartando la plata.</p>`;
+  } else {
+    grande = toca ? `El martes 20 le pagas a SUNAT <span class="a-monto num" data-cuenta="${c.total}" data-pre="S/ ">${sol(c.total)}</span>`
+      : `En ${siguiente(m)} le pagaste a SUNAT <span class="a-monto num" data-cuenta="${c.total}" data-pre="S/ ">${sol(c.total)}</span>`;
+    sub = "";
+  }
+  const vence = toca ? `<div class="a-vence"><span class="chip ${e.tono}">faltan 5 días</span><span class="tenue">Tu RUC termina en 3: a ti te toca el martes 20.</span></div>`
+    : `<div class="a-vence"><span class="chip ${e.tono}">${e.texto}</span>${!MESES[m].pago ? '<a href="#" class="tenue">Regístralo en Cuentas y dinero</a>' : ""}</div>`;
+  const base = cs || c;
+  const quien = E.sede ? lugar(E.sede).n : "CAYLA";
+  const maxAbs = Math.max(...LUGARES.map((l) => Math.abs(cuenta(m, l.k).total)));
+  const minNeg = Math.max(...LUGARES.map((l) => Math.max(0, -cuenta(m, l.k).total)));
+  const cero = (minNeg / (maxAbs + minNeg)) * 100;
+  return `
+  ${cabecera({ volver: E.sede ? "quitar-sede" : null, volverTexto: "Volver a todas las sedes", frase: E.sede ? `Lo que ${lugar(E.sede).n} pone en el pago de ${nombreMes(m)}. El pago sigue siendo uno solo, por el RUC de CAYLA.` : `Cuánto le debes a SUNAT por lo que vendiste en ${nombreMes(m)}, cuándo se paga y quién pone cuánto.` })}
+  ${filaSedes(m)}
+
+  <article class="tarjeta a-hero" data-sube style="--i:2">
+    <div>
+      <p class="a-preg">${E.sede ? "¿Cuánto pone " + lugar(E.sede).n + "?" : "¿Cuánto le debo a SUNAT y cuándo?"}</p>
+      <h2 class="a-grande">${grande}</h2>
+      ${vence}${sub}
+    </div>
+    <div class="a-lado">
+      ${toca && !E.sede ? `<div class="dias" role="img" aria-label="Hoy jueves 15; pagas el martes 20">
+        ${["hoy 15", "vie 16", "sáb 17", "dom 18", "lun 19", "mar 20"].map((d, i) => `<div class="dia ${i === 0 ? "hoy fuerte" : i === 5 ? "paga fuerte" : ""}"><i></i><span>${d}</span></div>`).join("")}</div>` : ""}
+      <div class="ecu" aria-label="La cuenta de ${quien}">
+        <div class="term" data-entra style="--i:3"><span class="t-et">IGV que cobraste</span><b>${fmt(base.v)}</b><span class="t-pie tenue">dentro de cada precio</span></div>
+        <span class="op">−</span>
+        <div class="term" data-entra style="--i:4"><span class="t-et">El de tus compras</span><b>${fmt(base.c)}</b><span class="t-pie tenue">con factura</span></div>
+        <span class="op">+</span>
+        <div class="term" data-entra style="--i:5"><span class="t-et">1 % de renta</span><b>${fmt(base.r)}</b><span class="t-pie tenue">adelanto del año</span></div>
+        <span class="op">=</span>
+        <div class="term total" data-entra style="--i:6"><span class="t-et">${E.sede ? (base.total < 0 ? "Baja el pago" : "Pone") : "A SUNAT"}</span><b>${fmt(Math.abs(base.total))}</b><span class="t-pie">soles</span></div>
+      </div>
+      ${favor && !E.sede ? `<p class="aviso-renta">El IGV quedó a favor y se descuenta el mes que viene; <b>la renta a cuenta sí se paga</b>.</p>` : ""}
+      <div>
+        <button class="porque" type="button" data-porque="pq-igv" aria-expanded="false">¿Por qué? · el IGV</button>
+        <div class="desplegable" id="pq-igv"><div><div class="porque-caja">
+          <p>De cada <b>S/ 118</b> que te paga un cliente, <b>S/ 18</b> los cobras por encargo de SUNAT. Cuando compras tela con factura, tú también pagas IGV, y SUNAT te deja restarlo: solo le entregas la diferencia.</p>
+          <p>Por eso una tienda que compra para abrir y todavía no vende (Lima) <b>baja</b> el pago: su IGV de compras se resta del que cobran Trujillo y Arequipa.</p>
+        </div></div></div>
+      </div>
+    </div>
+  </article>
+
+  <div class="a-dos">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <article class="tarjeta" data-sube style="--i:3">
+      <div class="tit-sec"><div><span class="versalita">¿Quién pone cuánto?</span><h2>Trujillo y Arequipa pagan; Lima, el Taller y la empresa lo bajan</h2>
+        <p class="bajada tenue">Toca un lugar para ver solo lo suyo.</p></div></div>
+      <div class="pone">${LUGARES.map((l, i) => {
+        const t = cuenta(m, l.k).total;
+        const w = (Math.abs(t) / (maxAbs + minNeg)) * 100;
+        const x = t >= 0 ? cero : cero - w;
+        return `<button class="pone-fila l-${l.k}" type="button" data-sede="${l.k}" aria-pressed="${E.sede === l.k}">
+          <span>${l.n}</span><span class="pone-eje" style="--cero:${cero}%"><i style="--w:${w}%;--x:${x}%;--origen:${t >= 0 ? "left" : "right"};--i:${i}"></i></span>
+          <span class="pone-monto ${t < 0 ? "resta" : ""}">${signo(t)}</span></button>`;
+      }).join("")}</div>
+      <p class="tenue" style="font-size:12.5px;margin-top:10px">Suma: ${LUGARES.map((l) => signo(cuenta(m, l.k).total)).join(" ")} = <b>${sol(c.total)}</b>.</p>
+    </article>
+    <article class="tarjeta" data-sube style="--i:5">${bloqueLimite()}</article>
+    </div>
+    <article class="tarjeta" data-sube style="--i:4">${listaPendientes(m, true)}</article>
+  </div>
+  ${tablaMeses({})}
+  ${notaPago}`;
+}
+
+/* ============================================================================================
+   B · Mes por mes (el expediente)
+   ============================================================================================ */
+function vistaB() {
+  if (E.bVista === "meses") {
+    const max = Math.max(...ORDEN.map((m) => cuenta(m, E.sede).total));
+    return `
+    ${cabecera({ volver: E.sede ? "quitar-sede" : null, volverTexto: "Volver a todas las sedes", frase: "Cada mes es un expediente: lo que se cobró, lo que se descontó, quién puso cuánto y si ya se pagó. Abre uno." })}
+    ${filaSedes("2026-09")}
+    <article class="tarjeta" data-sube style="--i:2">
+      <div class="tit-sec"><div><span class="versalita">Lo que toca ahora</span><h2>Septiembre: ${sol(cuenta("2026-09").total)} el martes 20</h2>
+        <p class="bajada tenue">${pendientes("2026-09").length} cosas antes de declarar · faltan 5 días.</p></div>
+        <button class="btn primario" type="button" data-abrir-mes="2026-09">Abrir septiembre</button></div>
+      <div class="b-meses">${ORDEN.map((m, i) => {
+        const c = cuenta(m, E.sede), e = estadoMes(m);
+        return `<button class="b-mes ${MESES[m].pago === "toca" ? "toca" : ""} ${MESES[m].pago === "curso" ? "curso" : ""}" type="button" data-abrir-mes="${m}" data-entra style="--i:${i + 2}">
+          <span class="m-nom">${Mayus(nombreMes(m))}</span>
+          <span class="m-monto">${E.sede ? signo(c.total) : sol(c.total)}</span>
+          <span class="m-barra"><i style="--w:${Math.max(4, (Math.abs(c.total) / max) * 100)}%"></i></span>
+          <span class="chip ${e.tono}">${e.corto}</span></button>`;
+      }).join("")}</div>
+    </article>
+    ${E.sede ? `<div>${puestos()}</div>` : ""}
+    <article class="tarjeta" data-sube style="--i:3">${bloqueLimite()}</article>
+    ${notaPago}`;
+  }
+  const m = E.mes, c = cuenta(m), e = estadoMes(m);
+  return `
+  ${cabecera({ volver: "b-meses", volverTexto: "Volver a todos los meses", frase: `El expediente de ${nombreMes(m)}: la cuenta, quién puso cuánto y lo que falta. ${e.texto}.` })}
+  ${filaSedes(m)}
+  <div class="rejilla r4" data-entra style="--i:2">
+    ${[["IGV que cobraste", c.v, "de lo vendido"], ["IGV que descuentas", c.c, "compras con factura"], ["Renta a cuenta", c.r, "1 % de lo vendido sin IGV"], ["Total a SUNAT", c.total, e.texto]].map(([et, v, pie], i) =>
+      `<div class="cifra" data-entra style="--i:${i + 2}"><span class="versalita">${et}</span><span class="valor num" data-cuenta="${v}" data-pre="S/ ">${sol(v)}</span><span class="pie">${pie}</span></div>`).join("")}
+  </div>
+  <div class="b-exp">
+    <article class="tarjeta" data-sube style="--i:3">
+      <div class="tit-sec"><div><h2>La cuenta de ${nombreMes(m)}</h2><p class="bajada tenue">${E.sede ? "Solo " + lugar(E.sede).n + "." : "CAYLA entera."}</p></div>
+        ${MESES[m].pago && MESES[m].pago !== "toca" && MESES[m].pago !== "curso" ? `<span class="b-sello" data-sello>✓ ${MESES[m].pago.replace("Pagado el ", "pagado ")}</span>` : ""}</div>
+      ${(() => { const b = cuenta(m, E.sede); return `<ul class="b-cuenta">
+        <li><span>IGV que cobraste al vender</span><span class="m">${sol(b.v)}</span></li>
+        <li><span>− IGV de tus compras con factura</span><span class="m">${sol(b.c)}</span></li>
+        <li><span>= IGV ${b.igv >= 0 ? "a pagar" : "a favor"}</span><span class="m">${sol(Math.abs(b.igv))}</span></li>
+        <li><span>+ Pago a cuenta de renta (1 %)</span><span class="m">${sol(b.r)}</span></li>
+        <li class="total"><span>${E.sede ? "Lo que pone " + lugar(E.sede).n : "Total a SUNAT"}</span><span class="m">${E.sede ? signo(b.total) : sol(b.total)}</span></li></ul>`; })()}
+      <button class="porque" type="button" data-porque="pq-b" aria-expanded="false" style="margin-top:12px">¿Por qué? · el IGV</button>
+      <div class="desplegable" id="pq-b"><div><div class="porque-caja"><p>De cada S/ 118 que cobras, S/ 18 son de SUNAT. Lo que pagaste de IGV al comprar con factura se resta: solo entregas la diferencia. El 1 % de renta es un adelanto del impuesto del año; en marzo se hace la cuenta final.</p></div></div></div>
+    </article>
+    <article class="tarjeta tabla-caja" data-sube style="--i:4">
+      <div class="herram"><b>Quién puso cuánto<span class="globito">${LUGARES.length}</span></b><span class="tenue" style="font-size:12.5px">Toca un lugar para filtrar todo el expediente.</span></div>
+      ${E.sede ? `<div class="herram">${puestos()}</div>` : ""}
+      <table class="tabla apila"><thead><tr><th>Lugar</th><th class="m">IGV cobrado</th><th class="m">IGV descontado</th><th class="m">Renta</th><th class="m">Pone</th></tr></thead>
+      <tbody>${LUGARES.map((l, i) => { const x = cuenta(m, l.k); return `<tr class="b-fila-lugar ${E.sede === l.k ? "activa" : ""}" data-sede="${l.k}" tabindex="0" data-entra style="--i:${i}">
+        <td data-l="Lugar" class="ancho"><span class="chip-lugar l-${l.k}">${l.n}</span>${l.nota ? `<div class="tenue" style="font-size:12px;margin-top:4px">${l.nota}</div>` : ""}</td>
+        <td class="m" data-l="IGV cobrado">${sol(x.v)}</td><td class="m" data-l="Descontado">${sol(x.c)}</td><td class="m" data-l="Renta">${sol(x.r)}</td>
+        <td class="m" data-l="Pone"><b style="${x.total < 0 ? "color:var(--verde)" : ""}">${signo(x.total)}</b></td></tr>`; }).join("")}</tbody>
+      <tfoot><tr><td data-l="Lugar" class="ancho">Lo que se declara (un solo RUC)</td><td class="m" data-l="IGV cobrado">${sol(c.v)}</td><td class="m" data-l="Descontado">${sol(c.c)}</td><td class="m" data-l="Renta">${sol(c.r)}</td><td class="m" data-l="Total">${sol(c.total)}</td></tr></tfoot></table>
+    </article>
+  </div>
+  <article class="tarjeta" data-sube style="--i:5">${listaPendientes(m, true)}</article>
+  ${notaPago}`;
+}
+
+/* ============================================================================================
+   C · Cada lugar, su cuenta (la suma en papel)
+   ============================================================================================ */
+function ticketValor(x) { return E.cQue === "igv" ? x.igv : E.cQue === "renta" ? x.r : x.total; }
+function vistaC() {
+  const m = E.mes;
+  if (E.cVista !== "suma" && E.sede) return vistaCLugar();
+  const c = cuenta(m), e = estadoMes(m);
+  const tot = ticketValor(c);
+  const qTxt = { todo: "IGV y renta", igv: "Solo IGV", renta: "Solo renta" };
+  return `
+  ${cabecera({ volver: null, frase: `Cada lugar trae su cuenta; juntas dan lo que CAYLA le paga a SUNAT por ${nombreMes(m)}. Toca un lugar para abrir la suya.` })}
+  <div class="tit-sec" data-entra style="--i:1;margin-bottom:0">
+    <div class="segmento" role="group" aria-label="Qué se suma">${["todo", "igv", "renta"].map((k) => `<button type="button" data-cque="${k}" aria-pressed="${E.cQue === k}">${qTxt[k]}</button>`).join("")}</div>
+  </div>
+  <div class="c-suma">${LUGARES.map((l, i) => {
+    const x = cuenta(m, l.k), val = ticketValor(x);
+    const np = (PENDIENTES[m] || []).filter((p) => p.lugar === l.k).length;
+    return `<button class="c-ticket l-${l.k} ${E.cQue === "renta" && !x.r ? "apagado" : ""}" type="button" data-abrir-lugar="${l.k}" data-sube style="--i:${i + 2}">
+      <span class="t-cab"><span class="t-nom">${l.n}</span>${np ? `<span class="globito pide" title="${np} por hacer">${np}</span>` : ""}</span>
+      <ul>${E.cQue !== "renta" ? `<li><span class="tenue">Cobró de IGV</span><span class="m">${fmt(x.v)}</span></li><li><span class="tenue">Descontó</span><span class="m">−${fmt(x.c)}</span></li>` : ""}
+          ${E.cQue !== "igv" ? `<li><span class="tenue">Renta 1 %</span><span class="m">+${fmt(x.r)}</span></li>` : ""}</ul>
+      <span class="t-raya"></span>
+      <span class="t-total"><span class="versalita">${val < 0 ? "Baja" : "Pone"}</span><b class="${val < 0 ? "resta" : ""}">${signo(val)}</b></span>
+      ${l.nota ? `<span class="t-nota tenue">${l.nota}</span>` : ""}
+    </button>`;
+  }).join("")}</div>
+  <div class="c-igual" data-sube style="--i:8">
+    <span class="i-sig">=</span><span class="i-monto num" data-cuenta="${tot}" data-pre="S/ ">${sol(tot)}</span>
+    <span class="i-txt">${E.cQue === "todo" ? `es lo que CAYLA le paga a SUNAT por ${nombreMes(m)}, en un solo pago por su RUC.` : E.cQue === "igv" ? "es el IGV a pagar del mes." : "es el pago a cuenta de renta del mes."}</span>
+    <span class="chip ${MESES[m].pago === "toca" ? "late" : ""}">${e.texto}</span>
+  </div>
+  <div class="a-dos">
+    <article class="tarjeta" data-sube style="--i:9">${listaPendientes(m, true)}</article>
+    <article class="tarjeta" data-sube style="--i:10">${bloqueLimite()}</article>
+  </div>
+  ${tablaMeses({})}
+  ${notaPago}`;
+}
+function vistaCLugar() {
+  const m = E.mes, l = lugar(E.sede), x = cuenta(m, l.k), c = cuenta(m);
+  const des = m === "2026-09" ? DESGLOSE_SEP[l.k] : null;
+  const maxD = des ? Math.max(...des.map((d) => d[1])) : 1;
+  const hist = ORDEN.map((mm) => cuenta(mm, l.k).total);
+  const maxH = Math.max(...hist.map(Math.abs), 1);
+  return `
+  ${cabecera({ volver: "c-suma", volverTexto: "Volver a todos los lugares", frase: `La cuenta de ${l.n} en ${nombreMes(m)}. ${l.nota || ""}` })}
+  ${filaSedes(m)}
+  <div class="rejilla r4" data-entra style="--i:2">
+    <div class="cifra"><span class="versalita">Cobró de IGV</span><span class="valor num">${sol(x.v)}</span><span class="pie">${x.v ? "de " + sol(x.v / 0.18) + " vendidos sin IGV" : "No vendió este mes"}</span></div>
+    <div class="cifra"><span class="versalita">Descontó</span><span class="valor num">${sol(x.c)}</span><span class="pie">compras con factura</span></div>
+    <div class="cifra"><span class="versalita">Renta a cuenta</span><span class="valor num">${sol(x.r)}</span><span class="pie">1 % de lo que vendió</span></div>
+    <div class="cifra"><span class="versalita">${x.total < 0 ? "Baja el pago en" : "Pone en el pago"}</span><span class="valor num" style="${x.total < 0 ? "color:var(--verde)" : ""}">${sol(Math.abs(x.total))}</span><span class="pie">de los ${sol(c.total)} de CAYLA</span></div>
+  </div>
+  <div class="c-det">
+    <article class="tarjeta l-${l.k}" data-sube style="--i:3">
+      <div class="tit-sec"><div><h2>De dónde sale lo que descontó</h2><p class="bajada tenue">Las facturas de mercadería se reparten por la tienda a la que llegó cada prenda.</p></div></div>
+      ${des ? des.map(([n, v]) => `<div class="c-linea"><span>${n}</span><span class="m">${sol(v)}</span><div class="pista"><i data-crece style="--w:${(v / maxD) * 100}%"></i></div></div>`).join("")
+        : `<div class="vacio"><span class="tenue">En la maqueta, el detalle solo está en septiembre.</span></div>`}
+    </article>
+    <article class="tarjeta" data-sube style="--i:4">
+      <div class="tit-sec"><div><h2>Mes por mes</h2><p class="bajada tenue">Lo que puso ${l.n} cada mes. Toca uno para verlo.</p></div></div>
+      <div class="c-hist">${ORDEN.map((mm, i) => { const t = hist[i]; return `<div class="${mm === m ? "este" : ""}" data-mes="${mm}" style="cursor:pointer"><span class="num" style="font-size:11px">${signo(t)}</span><i class="${t < 0 ? "neg" : ""}" style="--h:${Math.max(4, (Math.abs(t) / maxH) * 80)}px;--i:${i}"></i><span>${Mayus(nombreMes(mm)).slice(0, 3)}</span></div>`; }).join("")}</div>
+    </article>
+  </div>
+  <article class="tarjeta" data-sube style="--i:5">${listaPendientes(m, true)}</article>
+  ${notaPago}`;
+}
+
+/* ---------- Pintar y escuchar ---------- */
+function pintar(animarDe) {
+  document.getElementById("va").innerHTML = vistaA();
+  document.getElementById("vb").innerHTML = vistaB();
+  document.getElementById("vc").innerHTML = vistaC();
+  guardarUrl();
+  if (animarDe) window.mqAnimar(document.querySelector(`.variante:not([hidden])`));
+}
+function arriba() { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
+
+document.addEventListener("click", (ev) => {
+  const t = ev.target.closest("[data-accion],[data-sede],[data-mes],[data-abrir-mes],[data-abrir-lugar],[data-cque],[data-marca]");
+  if (!t) { if (E.masAbierto && !ev.target.closest(".mas")) { E.masAbierto = false; pintar(false); } return; }
+  if (t.dataset.marca) {  // la maqueta no guarda: el botón dice que lo haría
+    t.textContent = "Hecho ✓"; t.disabled = true; return;
+  }
+  const a = t.dataset.accion;
+  if (a === "mas") { E.masAbierto = !E.masAbierto; return pintar(false); }
+  if (a === "paquete") { t.innerHTML = "Armando…"; setTimeout(() => (t.innerHTML = ICO_BAJA + "Descargar paquete"), 900); return; }
+  if (a === "quitar-sede") { E.sede = null; E.cVista = "suma"; pintar(true); return arriba(); }
+  if (a === "limpiar") { E.sede = null; E.soloPlata = false; E.soloSinPago = false; return pintar(true); }
+  if (a === "solo-plata") { E.soloPlata = !E.soloPlata; return pintar(false); }
+  if (a === "solo-sin-pago") { E.soloSinPago = !E.soloSinPago; return pintar(false); }
+  if (a === "mes-ant" || a === "mes-sig") { const i = ORDEN.indexOf(E.mes) + (a === "mes-ant" ? -1 : 1); E.mes = ORDEN[Math.max(0, Math.min(ORDEN.length - 1, i))]; return pintar(true); }
+  if (a === "mes-toca") { E.mes = "2026-09"; return pintar(true); }
+  if (a === "b-meses") { E.bVista = "meses"; pintar(true); return arriba(); }
+  if (a === "c-suma") { E.cVista = "suma"; E.sede = null; pintar(true); return arriba(); }
+  if (t.dataset.abrirMes) { E.mes = t.dataset.abrirMes; E.bVista = "mes"; pintar(true); return arriba(); }
+  if (t.dataset.abrirLugar) { E.sede = t.dataset.abrirLugar; E.cVista = "lugar"; pintar(true); return arriba(); }
+  if (t.dataset.cque) { E.cQue = t.dataset.cque; return pintar(false); }
+  if (t.dataset.sede !== undefined) {
+    const k = t.dataset.sede || null;
+    E.sede = E.sede === k ? null : k;
+    if (document.querySelector('.variante[data-variante="c"]:not([hidden])')) E.cVista = E.sede ? "lugar" : "suma";
+    return pintar(true);
+  }
+  if (t.dataset.mes) { E.mes = t.dataset.mes; pintar(true); return arriba(); } // cambiar de mes sube: la respuesta cambió arriba
+});
+document.addEventListener("keydown", (ev) => {
+  if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches("tr[data-mes],tr[data-sede]")) { ev.preventDefault(); ev.target.click(); }
+  if (ev.key === "Escape" && E.masAbierto) { E.masAbierto = false; pintar(false); }
+});
+document.addEventListener("variante", () => { if (E.sede && document.querySelector('.variante[data-variante="c"]:not([hidden])')) E.cVista = "lugar"; pintar(false); window.mqAnimar(document.querySelector(".variante:not([hidden])")); });
+pintar(false);
+</script>
+</body></html>

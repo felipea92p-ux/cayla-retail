@@ -1,0 +1,63 @@
+/* Piezas compartidas por las tres direcciones: PasoSugerido, Aviso con «¿Por qué?», PistaPlazo, la fila del Taller, Tabla. */
+
+/* ---------- PasoSugerido ---------- */
+.paso{display:flex;align-items:center;gap:14px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--c);border-radius:12px;padding:12px 16px;flex-wrap:wrap}
+.paso-n{width:22px;height:22px;border-radius:50%;background:var(--c);color:var(--crema);font-size:12px;font-weight:600;display:grid;place-items:center;flex:none}
+.paso p{flex:1 1 280px;font-size:14.5px}
+.paso b{font-weight:600}
+
+/* ---------- Aviso (Lo que quizá no ves) ---------- */
+.avisos{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+.aviso{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:start;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 16px 14px 14px;position:relative;overflow:hidden}
+.aviso::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+.aviso-ambar{--c:var(--ambar)} .aviso-verde{--c:var(--verde)} .aviso-pizarra{--c:var(--pizarra)}
+.aviso-ic{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.aviso h3{font-family:var(--sans);font-size:14.5px;font-weight:600;line-height:1.35}
+.aviso-cuerpo{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
+.aviso-cuerpo>p{font-size:13.5px;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+.aviso details{font-size:13px}
+.aviso summary{cursor:pointer;color:var(--rojo-p);list-style:none;font-weight:500;display:inline-flex;gap:6px;align-items:center}
+.aviso summary::-webkit-details-marker{display:none}
+.aviso summary::after{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .25s var(--ease-cayla)}
+.aviso details[open] summary::after{transform:rotate(225deg) translate(-1px,-1px)}
+.aviso ul{margin:6px 0 4px;padding-left:18px;color:color-mix(in srgb,var(--tinta) 78%,transparent)}
+.aviso .regla{font-size:12.5px;color:var(--taupe)}
+.aviso .ver{align-self:center}
+
+/* ---------- PistaPlazo ---------- */
+.pista{position:relative;height:16px;margin-top:8px}
+.pista-raya{position:absolute;left:0;right:0;top:7px;height:2px;border-radius:2px;background:var(--hueso)}
+.pista-pactado{position:absolute;top:2px;width:2px;height:12px;background:var(--taupe);border-radius:2px}
+.pista-pactado::after{content:"pactado";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--taupe);white-space:nowrap}
+.pista-real{position:absolute;top:3px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--verde)}
+.pista-real.tarde{background:var(--ambar)}
+
+/* ---------- Fila del Taller ---------- */
+.taller{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;background:var(--hueso);border-radius:12px;padding:12px 18px;font-size:13.5px}
+.taller b{font-weight:600}
+.taller .tenue{margin-left:auto;font-size:12.5px}
+
+/* ---------- Tabla ---------- */
+.tabla{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);overflow:hidden}
+.tabla-fila{display:grid;grid-template-columns:var(--cols);align-items:center;gap:14px;padding:12px 18px;border-top:1px solid var(--sand);min-width:0;text-align:left;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;
+  position:relative;transition:background .2s}
+.tabla-fila:first-child{border-top:0}
+.tabla-enc{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--taupe);padding-block:10px;background:color-mix(in srgb,var(--hueso) 45%,transparent)}
+button.tabla-fila{cursor:pointer}
+button.tabla-fila::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;background:var(--rojo);transform:scaleY(0);transition:transform .3s var(--ease-cayla)}
+@media (hover:hover){button.tabla-fila:hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}button.tabla-fila:hover::before{transform:scaleY(1)}button.tabla-fila:hover .flecha{transform:translateX(4px);color:var(--rojo)}}
+.flecha{color:color-mix(in srgb,var(--tinta) 40%,transparent);transition:transform .3s var(--ease-cayla),color .2s;justify-self:end}
+.der{text-align:right;justify-self:end}
+.nombre{display:flex;flex-direction:column;min-width:0}
+.nombre b{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nombre span{font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.solo-ancha{display:block}
+@media (max-width:860px){.solo-ancha{display:none!important}}
+
+/* ---------- Leyenda ---------- */
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+.leyenda b{font-weight:600;color:var(--tinta)}
+
+/* En el teléfono, un gráfico ancho se desliza de lado: se avisa. */
+.desliza{display:none;font-size:12px;color:var(--taupe)}
+@media (max-width:820px){.desliza{display:block}}

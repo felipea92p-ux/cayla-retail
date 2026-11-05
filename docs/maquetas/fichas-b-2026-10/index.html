@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas · B refinado y Editar datos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Maqueta (2026-10-20, ronda 2): el diseño B de Fichas, refinado, y la pantalla «Editar datos».
+   Colores y letras: los tokens del ERP (globals.css / tema.css). Todos los clientes y números son EJEMPLOS INVENTADOS.
+   Editar datos sigue las reglas reales: documento completo, nombre del padrón bloqueado si hay DNI, celular obligatorio para un
+   miembro, correo opcional, cumpleaños con día y mes válidos, responsable obligatorio, y la guía «qué sigue / qué falta»
+   (una ficha que ya venía completa no se llena de marcas: solo llevan marca los campos que se tocan o que llegaron pendientes). */
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--sombra:#1a1a18}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 "DM Sans",system-ui,sans-serif}
+.serif{font-family:"EB Garamond",Georgia,serif}
+button,input,select{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tenue{color:color-mix(in srgb,var(--tinta) 66%,transparent)}.chico{font-size:12.5px}.num{font-variant-numeric:tabular-nums}
+
+.barra{position:sticky;top:0;z-index:30;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 24px;background:var(--tinta);color:var(--crema)}
+.barra b{font-weight:600;margin-right:8px}
+.barra button{border:1px solid color-mix(in srgb,var(--crema) 30%,transparent);background:transparent;color:var(--crema);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:13px}
+.barra button:hover{background:color-mix(in srgb,var(--crema) 15%,transparent)}
+.barra .sep{flex:1}
+.cambia{background:var(--hueso);border-bottom:1px solid var(--sand);padding:12px 24px;font-size:13px}
+.cambia ul{margin:4px 0 0;padding-left:18px;columns:2;column-gap:32px}.cambia li{margin:2px 0;break-inside:avoid}
+
+.pagina{max-width:1180px;margin:0 auto;padding:28px 24px 80px}
+.sede{display:flex;align-items:center;gap:10px;color:var(--taupe);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.sede:after{content:"";height:1px;width:48px;background:var(--taupe)}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:8px 0 22px}
+h1{font:400 46px/1.05 "EB Garamond",Georgia,serif;margin:0 0 6px}
+.frase{color:color-mix(in srgb,var(--tinta) 70%,transparent);margin:0;max-width:560px}
+.acciones{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font-size:13.5px;border-radius:10px;padding:9px 16px;cursor:pointer;border:1px solid var(--tinta);display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;transition:background .2s,transform .2s,border-color .2s,opacity .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.prim{background:var(--tinta);color:var(--crema)}.btn.prim:hover{background:var(--rojo-p);border-color:var(--rojo-p)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.btn.sec{border-color:var(--sand)}.btn.sec:hover{border-color:var(--taupe)}
+.btn.sutil{border-color:transparent;color:color-mix(in srgb,var(--tinta) 75%,transparent)}.btn.sutil:hover{background:var(--hueso)}
+.btn.ch{padding:6px 12px;font-size:13px}
+.cab .btn{height:40px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px}
+.nota{background:var(--hueso);border-radius:10px;padding:12px 14px;font-size:13px;margin-top:20px}
+.etq{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 62%,transparent);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.verde{color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent)}
+.chip.neutro{color:var(--tinta);background:var(--hueso)}
+.chip.pizarra{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 12%,transparent)}
+.chip.ambar{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.chip.apagado{color:color-mix(in srgb,var(--tinta) 62%,transparent);background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.chip.sp:before{display:none}
+.punto{display:inline-flex;align-items:center;gap:6px;font-size:12.5px}
+.punto:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--sand);border:1.5px solid var(--taupe)}
+.punto.si:before{background:var(--verde);border-color:var(--verde)}
+.av{border-radius:50%;background:var(--sand);display:grid;place-items:center;font:500 18px "EB Garamond",Georgia,serif;flex:none}
+.av.m{width:44px;height:44px;font-size:20px}.av.g{width:52px;height:52px;font-size:22px}.av.xl{width:84px;height:84px;font-size:36px}
+.pil{border:1px solid var(--sand);background:transparent;border-radius:999px;padding:6px 14px;font-size:12.5px;cursor:pointer;transition:background .2s}
+.pil:hover{background:var(--hueso)}
+.pil[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pil .c{margin-left:6px;opacity:.8}
+.buscador{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-radius:999px;background:var(--hueso);border:1px solid transparent}
+.buscador input{flex:1;border:0;background:transparent;outline:none;min-width:0}
+.tarjetas4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:16px 18px;text-align:left;cursor:pointer;transition:border-color .2s}
+.cifra:hover{border-color:var(--taupe)}.cifra[aria-pressed="true"]{background:var(--sand);border-color:var(--taupe)}
+.cifra .v{font:400 38px/1.05 "EB Garamond",Georgia,serif;margin:4px 0 2px}
+.cifra .d{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.top{padding:16px;display:grid;gap:12px}
+.b-grupo{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+.b-lista{display:grid;gap:10px;padding:0 16px 16px}
+.b-card{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:14px 18px;background:var(--papel);border:1px solid var(--sand);border-radius:14px;cursor:pointer;text-align:left;width:100%;transition:border-color .2s,transform .2s}
+.b-card:hover{border-color:var(--taupe);transform:translateY(-2px)}
+.b-card .nm{font:500 20px/1.2 "EB Garamond",Georgia,serif;display:block}
+.b-card .fr{font-size:13.5px;color:color-mix(in srgb,var(--tinta) 72%,transparent);display:block}
+.b-card .der{text-align:right;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent);display:grid;gap:4px;justify-items:end}
+.pie-tabla{border-top:1px solid var(--sand);padding:12px 20px;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+
+/* ---- hoja ---- */
+.velo{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--sombra) 28%,transparent);backdrop-filter:blur(3px);display:flex;justify-content:center;align-items:flex-start;padding:4vh 16px;overflow:auto;animation:velo .25s both}
+:root[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+.hoja{position:relative;background:var(--papel);border-radius:18px;width:100%;max-width:900px;border:1px solid var(--sand);animation:sube .32s cubic-bezier(.2,.7,.2,1) both}
+@keyframes velo{from{opacity:0}}@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.985)}}
+.cerrar{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:0;background:transparent;cursor:pointer;display:grid;place-items:center;z-index:2}
+.cerrar:hover{background:var(--hueso)}
+.perfil{display:grid;grid-template-columns:250px 1fr}
+.izq{background:var(--hueso);border-radius:18px 0 0 18px;padding:28px 22px;display:flex;flex-direction:column;gap:14px}
+:root[data-tema="oscuro"] .izq{background:color-mix(in srgb,var(--hueso) 60%,var(--papel))}
+.izq .av{background:var(--papel)}
+.izq .btn.sec{background:var(--papel)}
+.izq .nombre{font:400 27px/1.1 "EB Garamond",Georgia,serif;margin:4px 0 0}
+.contacto{background:var(--papel);border-radius:12px;padding:4px 14px;margin-top:4px}
+.crow{display:grid;grid-template-columns:20px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--sand);min-height:44px}
+.crow:first-child{border-top:0}
+.crow .ico{color:var(--taupe)}
+.crow small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--tinta) 55%,transparent);line-height:1.2}
+.crow span.v{font-size:13.5px;word-break:break-word;line-height:1.3}
+.copiar{border:0;background:transparent;cursor:pointer;width:28px;height:28px;border-radius:8px;color:var(--taupe);display:grid;place-items:center;opacity:.75;transition:opacity .2s,background .2s}
+.copiar:hover{opacity:1;background:var(--hueso)}.copiar.ok{color:var(--verde);opacity:1}
+.parcial{display:flex;gap:8px;font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent);align-items:flex-start;margin-top:2px}
+.der-panel{padding:28px 28px 28px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding-right:44px}
+.tile{border:1px solid var(--sand);border-radius:14px;padding:12px 14px}
+.tile .v{font:400 30px/1.1 "EB Garamond",Georgia,serif;margin-top:2px}
+.tile .d{font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.tabs{display:flex;border-bottom:1px solid var(--sand);margin:22px 0 16px}
+.tab{border:0;background:transparent;padding:10px 16px;cursor:pointer;font-size:13.5px;border-bottom:2px solid transparent;margin-bottom:-1px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.tab[aria-selected="true"]{color:var(--tinta);font-weight:600;border-bottom-color:var(--tinta)}
+.tab .g{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:999px;background:var(--hueso);font-size:11px;margin-left:6px}
+.bloque{border:1px solid var(--sand);border-radius:14px;padding:18px}.bloque+.bloque{margin-top:14px}
+.bloque h3{margin:0 0 10px;font:400 21px "EB Garamond",Georgia,serif}
+.grande{font:400 44px/1 "EB Garamond",Georgia,serif}
+.medidor{height:8px;background:var(--hueso);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+.medidor i{display:block;height:100%;background:var(--verde);border-radius:999px}
+.cupon{margin-top:12px;border:1.5px dashed var(--taupe);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.cupon .cod{font:600 14px ui-monospace,Menlo,monospace;letter-spacing:.06em}
+.aviso-i{background:var(--hueso);border-radius:12px;padding:12px 14px;font-size:13.5px}
+.etiquetas{display:flex;gap:6px;flex-wrap:wrap}.etiquetas span{background:var(--hueso);border-radius:999px;padding:3px 11px;font-size:12.5px}
+.enlace{border:0;background:transparent;cursor:pointer;color:var(--taupe);padding:4px 0;font-size:13px;display:inline-flex;gap:6px;align-items:center;text-decoration:underline;text-underline-offset:3px}
+.hist{margin:8px 0 0;padding:0;list-style:none}
+.hist li{padding:7px 0 7px 16px;border-left:2px solid var(--sand);font-size:13px;position:relative}
+.hist li:before{content:"";position:absolute;left:-5px;top:13px;width:8px;height:8px;border-radius:50%;background:var(--taupe)}
+.hist small{display:block;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.vacio{text-align:center;padding:28px 20px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}.vacio .serif{font-size:22px;color:var(--tinta);display:block}
+
+/* ---- historial en línea de tiempo ---- */
+.tl-filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tl-mes{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--tinta) 62%,transparent);margin:16px 0 6px}
+.tl-mes:first-of-type{margin-top:0}
+.tl-i{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:5px 0;position:relative}
+.tl-i:not(:last-child):after{content:"";position:absolute;left:22px;top:48px;bottom:-5px;width:2px;background:var(--sand)}
+.tl-f{width:46px;height:46px;border-radius:50%;background:var(--hueso);display:grid;place-content:center;text-align:center;position:relative;z-index:1}
+.tl-f b{font:500 19px/1 "EB Garamond",Georgia,serif}
+.tl-f span{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 62%,transparent);line-height:1.1}
+.tl-c{border:1px solid var(--sand);border-radius:12px;padding:11px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:center;transition:border-color .2s}
+.tl-c:hover{border-color:var(--taupe)}
+.tl-c .l1{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl-c .det{grid-column:1;font-size:14px}
+.tl-c .monto{grid-row:1/3;grid-column:2;font:500 17px "DM Sans";font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.pie-ficha{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+
+/* ---- editar datos ---- */
+.ed-cab{display:flex;gap:14px;align-items:center;padding:24px 28px 18px;border-bottom:1px solid var(--sand);padding-right:64px}
+.ed-cab h2{margin:0;font:400 27px/1.1 "EB Garamond",Georgia,serif}
+.ed-cuerpo{padding:22px 28px 6px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.bq{border:1px solid var(--sand);border-radius:14px;padding:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;transition:border-color .25s,box-shadow .25s,background .25s}
+.bq h3{margin:0;font:400 20px "EB Garamond",Georgia,serif;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.bq h3 small{font:400 12.5px "DM Sans";color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:90px minmax(0,1fr) 120px;gap:14px}
+.campo{min-width:0;display:grid;gap:6px;align-content:start;border-radius:12px;transition:outline-color .25s,background .25s;outline:2px solid transparent;outline-offset:8px}
+.campo.sigue{outline-color:color-mix(in srgb,var(--rojo) 40%,transparent)}
+.fl{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:20px}
+.fl label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.fl label em{font-style:normal;font-weight:400;letter-spacing:0;text-transform:none;opacity:.8}
+.marca{font-size:11.5px;display:inline-flex;align-items:center;gap:5px;font-weight:500;white-space:nowrap}
+.marca.hecho{color:var(--verde)}.marca.falta{color:var(--ambar)}.marca.error{color:var(--rojo-p)}
+.marca.sigue{background:var(--tinta);color:var(--crema);border-radius:999px;padding:1px 9px}
+.marca.sigue svg{display:none}
+.caja{min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;border-radius:10px;background:var(--hueso);border:1px solid transparent;transition:background .2s,border-color .2s;position:relative}
+.caja:focus-within,.campo.sigue .caja{background:var(--papel)}
+.caja:focus-within{border-color:var(--rojo)}
+.caja.err{border-color:var(--rojo-p)}
+.caja input,.caja select{flex:1;min-width:0;border:0;background:transparent;outline:none;appearance:none;-webkit-appearance:none;height:100%;font-size:15px}
+.caja select{cursor:pointer}
+.caja .pre{color:color-mix(in srgb,var(--tinta) 62%,transparent);font-size:13.5px;padding-right:8px;border-right:1px solid var(--sand)}
+.caja.bloq{background:color-mix(in srgb,var(--hueso) 55%,transparent);border:1px dashed var(--sand)}
+.caja.bloq span.t{flex:1;font-size:15px}
+.pie-c{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent);display:flex;gap:6px;align-items:flex-start}
+.pie-c.err{color:var(--rojo-p)}
+.aviso-a{display:flex;gap:10px;align-items:flex-start;background:color-mix(in srgb,var(--ambar) 10%,transparent);border-left:3px solid var(--ambar);border-radius:8px;padding:10px 12px;font-size:13px}
+.ed-pie{position:sticky;bottom:0;background:var(--papel);border-top:1px solid var(--sand);padding:14px 28px;margin-top:16px;border-radius:0 0 18px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;z-index:3}
+.guia{flex:1;min-width:200px;font-size:13px;display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center}
+.guia .ok{color:var(--verde);font-weight:500;display:inline-flex;gap:6px;align-items:center}
+.guia button{border:0;background:transparent;cursor:pointer;color:var(--ambar);text-decoration:underline;text-underline-offset:3px;padding:0;font-size:13px}
+.toast{position:fixed;top:64px;right:20px;z-index:60;background:var(--tinta);color:var(--crema);padding:12px 16px;border-radius:12px;font-size:13.5px;animation:sube .3s both;display:flex;gap:10px;align-items:center;max-width:340px}
+.toast small{display:block;opacity:.75}
+
+@media(max-width:860px){
+ .g2>*,.g3>*,.bq{min-width:0}.bq h3{flex-wrap:wrap}.doc-fila{grid-template-columns:118px minmax(0,1fr)!important}.caja.bloq .btn{font-size:0;gap:0;padding:0 8px!important}.guia{flex-basis:100%}.ed-pie .btn{flex:1}
+ .tarjetas4{grid-template-columns:1fr 1fr}.cambia ul{columns:1}
+ .perfil{grid-template-columns:1fr}.izq{border-radius:18px 18px 0 0}
+ .tiles{grid-template-columns:1fr;padding-right:0}.der-panel{padding:20px 16px}
+ .g2,.g3{grid-template-columns:1fr}.g3{grid-template-columns:80px minmax(0,1fr) 100px}
+ .ed-cuerpo,.ed-cab,.ed-pie{padding-left:16px;padding-right:16px}.ed-cab{padding-right:56px}
+ h1{font-size:38px}.b-card{grid-template-columns:auto 1fr}.b-card .der{grid-column:1/-1;justify-items:start;text-align:left;display:flex;flex-wrap:wrap;gap:6px 12px}
+ .tl-c{grid-template-columns:1fr}.tl-c .monto{grid-row:auto;grid-column:1;text-align:left}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <b>Fichas · B refinado</b>
+  <button data-act="abrir-ver">Abrir la ficha</button>
+  <button data-act="abrir-edit">Abrir «Editar datos»</button>
+  <span class="sep"></span>
+  <button data-act="tema">Oscuro</button>
+</div>
+<div class="cambia">
+  <b>Qué mejoré del B</b>
+  <ul>
+    <li><b>Historial en línea de tiempo.</b> Compras, cambios y apartados mezclados por fecha, con su etiqueta, la sede y el monto a la derecha; se filtra con píldoras y se agrupa por mes.</li>
+    <li><b>Contacto en su propia tarjeta.</b> Cada dato con su ícono, «copiar» siempre a la vista y una nota que dice por qué los números salen a medias.</li>
+    <li><b>La columna del perfil</b> va sobre fondo hueso, así separa «quién es» de «lo que ha hecho».</li>
+    <li><b>Las tres cifras</b> de arriba cuentan lo que importa: puntos, cuánto ha comprado y su última compra.</li>
+    <li><b>Editar datos</b> es la misma hoja: cuatro bloques con su título (Quién es, Cómo contactarla, Cumpleaños, Quién lo guarda), el campo que sigue se enciende, y abajo un pie fijo con «Falta: …» y Cancelar / Guardar.</li>
+    <li>Prueba en «Editar datos»: borra el celular, escribe un correo mal, cambia el celular de un miembro con novedades, o cambia el tipo de documento.</li>
+  </ul>
+</div>
+<div class="pagina" id="pagina"></div>
+<div id="capa"></div>
+<div id="aviso"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const ic=p=>`<svg class="i" viewBox="0 0 24 24">${p}</svg>`;
+const I={
+ search:ic('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),dl:ic('<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>'),
+ qr:ic('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M20 17v4h-3"/>'),
+ x:ic('<path d="M18 6 6 18M6 6l12 12"/>'),pen:ic('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'),
+ cp:ic('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'),ok:ic('<path d="M20 6 9 17l-5-5"/>'),
+ d:ic('<path d="m6 9 6 6 6-6"/>'),lock:ic('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+ id:ic('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h4M6 16c.6-1.6 5.4-1.6 6 0"/>'),
+ tel:ic('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/>'),
+ mail:ic('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'),
+ cake:ic('<path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s1.5-1 4-1 3 2 4 2 2.5-2 4-2 4 1 4 1M2 21h20M7 8v3M12 8v3M17 8v3M7 4h.01M12 4h.01M17 4h.01"/>'),
+ hash:ic('<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>'),
+ info:ic('<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>'),warn:ic('<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>'),
+ refresh:ic('<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/>')
+};
+const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const MESN=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"];
+
+/* ---- datos INVENTADOS ---- */
+const C=[
+ {id:1,n:"Lucía Valdivia Ramos",tipo:"dni",num:"71234582",cel:"987654321",mail:"lucia.valdivia@gmail.com",cod:"CLUB-0412",club:"14 mar 2026",frec:true,pub:"02 abr 2026",baja:null,sede:"Lima",cum:{d:"12",m:"11",a:""},pts:340,prefs:["Blusas","Vestidos","Casacas"],talla:"Blusas: M · Pantalones: M",
+  cupones:[{c:"CAY-8F2K",d:"S/ 10 de descuento · vence 30 nov",pv:true}],
+  items:[["compra",16,9,"Lima","2× Blusa (M), 1× Pantalón (M)",289],["apartado",10,9,"Lima","APT-0231 · 1× Vestido (M)",159,"Vigente"],["cambio",30,8,"Lima","Cambio de talla M → S"],["compra",28,8,"Lima","1× Casaca (M)",329],["compra",3,8,"Arequipa","2× Polo (S)",118],["compra",11,7,"Lima","1× Vestido (M)",199]],
+  hist:[["Se unió al club","Escaneó el cartel · Lima · 14 mar 2026"],["Aceptó novedades por WhatsApp","Cartel · Lima · 02 abr 2026"]]},
+ {id:2,n:"Marco Tello Quispe",tipo:"dni",num:"45221017",cel:"954128880",mail:"",cod:"CLUB-0388",club:"02 feb 2026",frec:false,falta:1,pub:null,baja:null,sede:"Trujillo",cum:{d:"3",m:"5",a:""},pts:120,prefs:["Polos"],talla:"Polos: L",cupones:[],
+  items:[["compra",29,8,"Trujillo","2× Polo (L)",118],["compra",14,7,"Trujillo","1× Camisa (L)",149]],hist:[["Se unió al club","Escaneó el cartel · Trujillo · 02 feb 2026"]]},
+ {id:3,n:"Andrea Paredes Soto",tipo:"dni",num:"70118804",cel:"",mail:"",cod:null,club:null,frec:false,pub:null,baja:null,sede:"Arequipa",cum:{d:"",m:"",a:""},pts:null,prefs:[],talla:"Vestidos: S",cupones:[],
+  items:[["compra",21,7,"Arequipa","1× Vestido (S)",199]],hist:[]}
+];
+const ini=n=>n.split(" ").slice(0,2).map(s=>s[0]).join("");
+const estado=c=>!c.club?{t:"Solo ficha",k:"pizarra"}:c.frec?{t:"Miembro frecuente",k:"verde"}:{t:"Miembro",k:"neutro"};
+const noved=c=>!c.club?null:c.pub?{t:"Recibe novedades",si:true}:c.baja?{t:"Pidió BAJA",si:false}:{t:"No recibe novedades",si:false};
+const chip=(t,k,sp)=>`<span class="chip ${k} ${sp?"sp":""}">${t}</span>`;
+const TIPO={compra:["Compra","neutro"],cambio:["Cambio","pizarra"],apartado:["Apartado","ambar"],devolucion:["Devolución","apagado"]};
+/* máscaras como en la app: a medias para quien no es líder */
+const mDoc=c=>!c.num?null:`${c.tipo==="dni"?"DNI":c.tipo==="ce"?"Carné":"Pasaporte"} ${c.num.slice(0,2)}••••${c.num.slice(-2)}`;
+const mCel=c=>c.cel?`${c.cel.slice(0,3)} ••• ${c.cel.slice(-3)}`:null;
+const mMail=c=>c.mail?c.mail.replace(/^(..)[^@]*/,"$1•••"):null;
+const cumTxt=c=>c.cum.d&&c.cum.m?`${+c.cum.d} ${MES[+c.cum.m-1]}${c.cum.a?" "+c.cum.a:""}`:null;
+const total=c=>c.items.filter(i=>i[0]==="compra").reduce((s,i)=>s+i[5],0);
+const nCompras=c=>c.items.filter(i=>i[0]==="compra").length;
+const soles=n=>`S/ ${n.toFixed(2)}`;
+const ultima={1:"hace 4 d",2:"hace 3 sem",3:"hace 2 meses"};
+
+let sel=null,mode="ver",tab="club",filtroTl="todo",verTodas=false,histAbierta=false,filtro="todos";
+
+/* ================= lista (B) ================= */
+const FILTROS={todos:()=>true,miembros:c=>!!c.club,pub:c=>!!c.pub,frec:c=>c.frec};
+function pagina(){
+ const f=C.filter(FILTROS[filtro]);
+ const cifra=(k,t,v,d)=>`<button class="cifra" data-act="filtro" data-k="${k}" aria-pressed="${filtro===k}"><span class="etq">${t}</span><div class="v">${v}</div><div class="d">${d}</div></button>`;
+ const fr=c=>{const p=[];if(!c.club)p.push("Solo tiene ficha, no está en el club");else{p.push("Miembro desde "+c.club.slice(3,6)+" "+c.club.slice(7));if(c.frec)p.push("compra seguido")}const n=noved(c);if(n)p.push(n.t==="Pidió BAJA"?"pidió BAJA":n.t.toLowerCase());return p.join(" · ")};
+ $("#pagina").innerHTML=`<div class="sede">Todas las sedes</div>
+ <div class="cab"><div><h1 class="serif">Fichas</h1><p class="frase">Aquí están los clientes que la tienda recuerda. Toca uno para ver su historia y sus beneficios.</p></div>
+ <div class="acciones"><button class="btn sec">${I.dl} Descargar lista</button><button class="btn sec">${I.qr} Cartel del club</button><button class="btn prim">+ Nuevo cliente</button></div></div>
+ <div class="tarjetas4">${cifra("todos","Clientes con ficha","1,284","Toca para ver a todos")}${cifra("miembros","Miembros del club","512","40 de cada 100 clientes")}${cifra("pub","Reciben novedades","388","124 miembros no las pidieron")}${cifra("frec","Compran seguido","96","3 compras o más en 6 meses")}</div>
+ <div class="card"><div class="top"><label class="buscador">${I.search}<input placeholder="Busca por nombre, documento, celular o código de miembro"></label></div>
+ <div class="b-lista">${f.map(c=>`<button class="b-card" data-act="abrir" data-id="${c.id}"><span class="av m">${ini(c.n)}</span><span><span class="nm">${c.n}</span><span class="fr">${fr(c)}</span></span><span class="der"><span>Última compra <b style="font-weight:500;color:var(--tinta)">${ultima[c.id]}</b></span><span>${[c.sede,mCel(c)].filter(Boolean).join(" · ")}</span></span></button>`).join("")}</div>
+ <div class="pie-tabla">${f.length} de 1,284 clientes · los datos de contacto salen a medias; un líder los ve completos</div></div>`;
+}
+
+/* ================= ficha (vista) ================= */
+const copiar=r=>`<button class="copiar" data-act="copiar" aria-label="Copiar ${r}" title="Copiar ${r}">${I.cp}</button>`;
+function fila(ic_,et,v,cop){return `<div class="crow"><span class="ico">${ic_}</span><span><small>${et}</small><span class="v">${v||'<span class="tenue">Sin dato</span>'}</span></span>${v&&cop?copiar(cop):"<span></span>"}</div>`}
+function bloquePuntos(c){
+ if(c.pts==null)return "";
+ const pct=Math.min(100,Math.round(c.pts/200*100));
+ return `<div class="bloque"><h3>Puntos</h3><div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="grande num">${c.pts}</span><span>puntos · valen <b>S/ ${(c.pts*.05).toFixed(2)}</b> en caja</span></div>
+ <div class="medidor"><i style="width:${pct}%;${c.pts<200?"background:var(--tinta)":""}"></i></div>
+ <div class="chico tenue">${c.pts>=200?"Ya puede canjear sus puntos por un cupón (desde 200 puntos).":`Le faltan <b style="color:var(--tinta)">${200-c.pts} puntos</b> para poder canjear (desde 200).`}</div>
+ ${c.cupones.map(x=>`<div class="cupon"><span><span class="cod">${x.c}</span> <span class="tenue chico">${x.d}</span></span>${x.pv?chip("Por vencer","ambar"):""}</div>`).join("")}</div>`;
+}
+function bloqueNov(c){
+ const n=noved(c);
+ return `<div class="bloque"><h3>Novedades por WhatsApp</h3><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${n.si?chip("Recibe novedades","verde")+`<span class="chico tenue">desde ${c.pub}</span>`:chip("No recibe novedades","neutro")+`<span class="chico tenue">no las pidió</span>`}${n.si?`<button class="btn sec ch" style="margin-left:auto">Registrar su BAJA</button>`:""}</div>
+ <p class="chico tenue" style="margin:10px 0 0">${n.si?"Si te escribe BAJA, regístralo aquí: vale para las 3 tiendas.":"Solo el cliente las acepta, desde el cartel."}</p></div>`;
+}
+const bloquePrefs=c=>`<div class="bloque"><h3>Qué le gusta</h3>${c.prefs.length?`<div class="etiquetas">${c.prefs.map(p=>`<span>${p}</span>`).join("")}</div>`:'<p class="chico tenue" style="margin:0">Todavía no marcó preferencias.</p>'}${c.talla?`<p class="chico tenue" style="margin:10px 0 0">Talla que suele comprar · ${c.talla}</p>`:""}</div>`;
+const bloqueHist=c=>!c.hist.length?"":`<div class="bloque"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Historial de permisos <span class="tenue chico">· ${c.hist.length}</span></h3><button class="enlace" data-act="hist">${histAbierta?"Ocultar":"Ver"}</button></div>${histAbierta?`<ul class="hist">${c.hist.map(h=>`<li>${h[0]}<small>${h[1]}</small></li>`).join("")}</ul>`:""}</div>`;
+
+function timeline(c){
+ if(!c.items.length)return `<div class="vacio"><span class="serif">Todavía no compró</span>Cuando compre, cambie algo o aparte una prenda, lo verás aquí.</div>`;
+ const cuenta=t=>c.items.filter(i=>t==="todo"||i[0]===t).length;
+ const items=c.items.filter(i=>filtroTl==="todo"||i[0]===filtroTl);
+ const lim=verTodas?items.length:5;
+ let out=`<div class="tl-filtros">${[["todo","Todo"],["compra","Compras"],["cambio","Cambios"],["apartado","Apartados"]].filter(([k])=>k==="todo"||cuenta(k)).map(([k,t])=>`<button class="pil" data-act="ftl" data-k="${k}" aria-pressed="${filtroTl===k}">${t}<span class="c num">${cuenta(k)}</span></button>`).join("")}</div>`;
+ let mesPrev=null;
+ items.slice(0,lim).forEach(i=>{
+   const [t,d,m,sede,det,monto,est]=i, key=m;
+   if(key!==mesPrev){out+=`<div class="tl-mes">${MESN[m]} 2026</div>`;mesPrev=key}
+   out+=`<div class="tl-i"><div class="tl-f"><b class="num">${String(d).padStart(2,"0")}</b><span>${MES[m]}</span></div>
+   <div class="tl-c"><div class="l1">${chip(TIPO[t][0],TIPO[t][1])}${est?chip(est,"verde","sp"):""}<span class="chico tenue">${sede}</span></div>
+   <div class="det">${det}</div>${monto!=null?`<div class="monto">${soles(monto)}</div>`:""}</div></div>`;
+ });
+ if(items.length>5&&!verTodas)out+=`<button class="enlace" data-act="vertodas">Ver las ${items.length} ${I.d}</button>`;
+ return out;
+}
+
+function hojaVer(c){
+ const conClub=!!c.club,t=conClub?tab:"act",e=estado(c),n=noved(c),cu=cumTxt(c);
+ return `<div class="hoja" role="dialog" aria-label="Ficha de ${c.n}"><button class="cerrar" data-act="cerrar" aria-label="Cerrar">${I.x}</button>
+ <div class="perfil"><aside class="izq"><span class="av xl">${ini(c.n)}</span><h2 class="nombre">${c.n}</h2>
+  <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">${chip(e.t,e.k)}${n?`<span class="punto ${n.si?"si":""}">${n.t}</span>`:""}</div>
+  <div class="contacto">${fila(I.id,"Documento",mDoc(c),"documento")}${fila(I.tel,"Celular",mCel(c),"celular")}${fila(I.mail,"Correo",mMail(c),"correo")}${fila(I.cake,"Cumpleaños",cu)}${c.cod?fila(I.hash,"Código de miembro",c.cod,"código"):""}</div>
+  <div class="parcial">${I.lock}<span>Los datos salen a medias. Un líder los ve completos.</span></div>
+  <button class="btn sec" data-act="editar">${I.pen} Editar datos</button>
+  <button class="btn sutil" data-act="nada" style="margin-top:auto">Archivar a este cliente</button></aside>
+ <section class="der-panel"><div class="tiles">
+  <div class="tile"><div class="etq">Puntos</div><div class="v num">${c.pts==null?"—":c.pts}</div><div class="d">${c.pts==null?"No es del club":"valen S/ "+(c.pts*.05).toFixed(2)}</div></div>
+  <div class="tile"><div class="etq">Ha comprado</div><div class="v num">${soles(total(c))}</div><div class="d">${nCompras(c)} compra${nCompras(c)===1?"":"s"}${c.frec?" · compra seguido":c.club?` · le falta ${c.falta} para “seguido”`:""}</div></div>
+  <div class="tile"><div class="etq">Última compra</div><div class="v" style="font-size:24px;padding:3px 0">${ultima[c.id]}</div><div class="d">en ${c.sede}</div></div></div>
+  <div class="tabs" role="tablist">${conClub?`<button class="tab" role="tab" aria-selected="${t==="club"}" data-act="tab" data-t="club">Club</button>`:""}<button class="tab" role="tab" aria-selected="${t==="act"}" data-act="tab" data-t="act">Historial<span class="g num">${c.items.length}</span></button></div>
+  ${t==="club"?`${bloquePuntos(c)}${bloqueNov(c)}${bloquePrefs(c)}${bloqueHist(c)}`:`${!conClub?`<div class="aviso-i" style="margin-bottom:14px"><b>Tiene ficha, pero no es del club.</b> Se une por su cuenta, escaneando el cartel con su celular y este mismo documento.</div>`:""}${timeline(c)}`}
+ </section></div></div>`;
+}
+
+/* ================= editar datos ================= */
+let E=null;
+function abrirEdit(c){
+ E={id:c.id,tipo:c.tipo,num:c.num,nombre:c.n,cel:c.cel,mail:c.mail,d:c.cum.d,m:c.cum.m,a:c.cum.a,resp:"",touched:{},salioMail:false,padronOk:true,
+    miembro:!!c.club,conNov:!!c.pub,cel0:c.cel};
+ // los que llegaron pendientes (si falta algo obligatorio) llevan marca desde el principio
+ E.pend={}; mode="editar";
+}
+const LONG={dni:8,ce:9,pas:6};
+function estF(f){
+ const e=E;
+ switch(f){
+  case "doc": if(e.tipo==="sin") return e.miembro?"falta":"opc";
+   if(!e.num) return e.miembro?"falta":"opc";
+   return (e.tipo==="pas"?e.num.length>=6:e.num.length===LONG[e.tipo])?"hecho":"falta";
+  case "nombre": if(e.tipo==="dni") return estF("doc")==="hecho"&&e.padronOk?"hecho":"falta";
+   if(/\d/.test(e.nombre)) return "error"; return e.nombre.trim()?"hecho":(e.miembro?"falta":"opc");
+  case "cel": if(!e.cel) return e.miembro?"falta":"opc"; return /^9\d{8}$/.test(e.cel)?"hecho":"falta";
+  case "mail": if(!e.mail) return "opc"; return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.mail)?"hecho":(e.salioMail?"error":"falta");
+  case "cumple": {const {d,m,a}=e; if(!d&&!m&&!a) return "opc"; if(!d||!m) return "falta";
+   const dias=[31,29,31,30,31,30,31,31,30,31,30,31]; if(+d<1||+d>dias[+m-1]) return "error";
+   if(a&&(a.length!==4||+a>2026||+a<1900)) return "error"; return "hecho"}
+  case "resp": return e.resp?"hecho":"falta";
+ }
+}
+const NOM={doc:"Documento",nombre:"Nombre",cel:"Celular",mail:"Correo",cumple:"Cumpleaños",resp:"Quién lo guarda"};
+const ORDEN=["doc","nombre","cel","mail","cumple","resp"];
+const REQ=f=>f==="resp"||(f==="doc"&&E.miembro)||(f==="cel"&&E.miembro)||f==="nombre"&&(E.miembro||E.tipo==="dni");
+function siguiente(){return ORDEN.find(f=>{const s=estF(f);return s==="error"||(s==="falta"&&(REQ(f)||s==="falta"&&["doc","cel","mail","cumple"].includes(f)&&touchedOrPend(f)))})||null}
+const touchedOrPend=f=>E.touched[f]||E.pend[f];
+function marcaHTML(f,sig){
+ const s=estF(f);
+ if(sig===f) return `<span class="marca sigue">Sigue aquí</span>`;
+ if(s==="error") return `<span class="marca error">${I.warn} Revisa</span>`;
+ if(s==="falta") return `<span class="marca falta">Falta</span>`;
+ if(s==="hecho"&&(E.touched[f]||E.pend[f])) return `<span class="marca hecho">${I.ok} Listo</span>`;
+ if(s==="opc"&&["mail","cumple"].includes(f)) return `<span class="marca tenue" style="color:color-mix(in srgb,var(--tinta) 55%,transparent)">opcional</span>`;
+ return "";
+}
+const campoCaja=(f,inner,err)=>`<div class="campo" data-f="${f}"><div class="fl"><label for="e-${f}">${{doc:"Documento",nombre:"Nombre",cel:"Celular (WhatsApp)",mail:'Correo <em>· opcional</em>',cumple:'Cumpleaños <em>· día y mes; el año si lo quiere decir</em>',resp:"Responsable"}[f]}</label><span class="m" data-m="${f}"></span></div>${inner}<div class="pie-c" data-p="${f}"></div></div>`;
+function hojaEditar(c){
+ const e=E;
+ return `<div class="hoja" role="dialog" aria-label="Editar datos de ${c.n}"><button class="cerrar" data-act="cancelar" aria-label="Cancelar">${I.x}</button>
+ <div class="ed-cab"><span class="av g">${ini(c.n)}</span><div><span class="etq">Editar datos</span><h2>${c.n}</h2></div></div>
+ <form class="ed-cuerpo" id="form" onsubmit="return false" autocomplete="off">
+  <section class="bq"><h3>Quién es <small>${e.miembro?"Es miembro: documento y nombre no pueden quedar vacíos":""}</small></h3>
+   <div class="g2">
+    <div class="campo" data-f="doc"><div class="fl"><label for="e-tipo">Documento</label><span class="m" data-m="doc"></span></div>
+     <div class="doc-fila" style="display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px"><div class="caja"><select id="e-tipo"><option value="dni">DNI</option><option value="ce">Carné de extranjería</option><option value="pas">Pasaporte</option><option value="sin">Sin documento</option></select>${I.d}</div>
+      <div class="caja" id="c-num"><input id="e-num" inputmode="numeric" aria-label="Número de documento" placeholder="8 dígitos"></div></div><div class="pie-c" data-p="doc"></div></div>
+    <div class="campo" data-f="nombre"><div class="fl"><label for="e-nombre">Nombre</label><span class="m" data-m="nombre"></span></div><div id="nombre-wrap"></div><div class="pie-c" data-p="nombre"></div></div>
+   </div></section>
+  <section class="bq"><h3>Cómo contactarlo</h3>
+   <div class="g2">
+    <div class="campo" data-f="cel"><div class="fl"><label for="e-cel">Celular (WhatsApp)</label><span class="m" data-m="cel"></span></div><div class="caja" id="c-cel"><span class="pre">+51</span><input id="e-cel" inputmode="numeric" placeholder="9 dígitos"></div><div class="pie-c" data-p="cel"></div></div>
+    <div class="campo" data-f="mail"><div class="fl"><label for="e-mail">Correo <em>· opcional</em></label><span class="m" data-m="mail"></span></div><div class="caja" id="c-mail"><input id="e-mail" type="email" placeholder="nombre@correo.com" spellcheck="false" autocapitalize="none"></div><div class="pie-c" data-p="mail"></div></div>
+   </div><div id="aviso-cel"></div></section>
+  <section class="bq"><h3>Cumpleaños <small>Sin él no recibe su regalo de cumpleaños</small></h3>
+   <div class="campo" data-f="cumple"><div class="fl"><label for="e-d">Día · mes · año <em>(el año, solo si lo quiere decir)</em></label><span class="m" data-m="cumple"></span></div>
+    <div class="g3"><div class="caja" id="c-d"><input id="e-d" inputmode="numeric" placeholder="Día" maxlength="2" aria-label="Día"></div><div class="caja"><select id="e-m" aria-label="Mes"><option value="">Mes</option>${MESN.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}</select>${I.d}</div><div class="caja" id="c-a"><input id="e-a" inputmode="numeric" placeholder="Año" maxlength="4" aria-label="Año"></div></div><div class="pie-c" data-p="cumple"></div></div></section>
+  <section class="bq"><h3>Quién guarda este cambio</h3>
+   <div class="campo" data-f="resp"><div class="fl"><label for="e-resp">Responsable</label><span class="m" data-m="resp"></span></div><div class="caja"><select id="e-resp"><option value="">Elige quién lo hace</option><option>Valeria Quispe · Lima</option><option>Jorge Mendoza · Lima</option><option>Karina Paz · Arequipa</option></select>${I.d}</div><div class="pie-c" data-p="resp">Queda anotado en el historial de la ficha.</div></div></section>
+  <p class="chico tenue" style="margin:0">El club y las novedades por WhatsApp no se cambian aquí: se ven y se registran en la ficha.</p>
+ </form>
+ <div class="ed-pie"><div class="guia" id="guia"></div><button class="btn sec" data-act="cancelar">Cancelar</button><button class="btn prim" id="guardar" data-act="guardar">Guardar</button></div></div>`;
+}
+function montarEdit(c){
+ const e=E,$$=id=>document.getElementById(id);
+ $$("e-tipo").value=e.tipo;$$("e-num").value=e.num;$$("e-cel").value=e.cel;$$("e-mail").value=e.mail;$$("e-d").value=e.d;$$("e-m").value=e.m;$$("e-a").value=e.a;
+ const nombreWrap=()=>{ if(e.tipo==="dni"){ $$("nombre-wrap").innerHTML=`<div class="caja bloq">${I.lock}<span class="t">${e.padronOk?e.nombre:'<span class="tenue">Se llena con el DNI</span>'}</span><button class="btn sec ch" data-act="padron" style="height:30px;padding:0 10px">${I.refresh} Actualizar</button></div>`}
+  else { $$("nombre-wrap").innerHTML=`<div class="caja" id="c-nombre"><input id="e-nombre" placeholder="Nombre completo tal como figura"></div>`; const i=$$("e-nombre"); i.value=e.nombre; i.addEventListener("input",()=>{e.nombre=i.value;e.touched.nombre=1;sync()}) } };
+ nombreWrap(); e.rehacerNombre=nombreWrap;
+ const on=(id,fn)=>$$(id).addEventListener("input",fn);
+ $$("e-tipo").addEventListener("change",ev=>{e.tipo=ev.target.value;e.num=e.tipo==="dni"?e.num.slice(0,8):e.num;$$("e-num").value=e.num;$$("e-num").placeholder={dni:"8 dígitos",ce:"9 caracteres",pas:"6 a 12 caracteres",sin:"Sin número"}[e.tipo];$$("e-num").disabled=e.tipo==="sin";if(e.tipo==="sin"){e.num="";$$("e-num").value=""}e.touched.doc=1;e.padronOk=e.tipo==="dni"&&e.num===c.num&&c.tipo==="dni";if(e.tipo!=="dni"&&!e.nombre)e.nombre="";nombreWrap();sync()});
+ on("e-num",ev=>{let v=ev.target.value;if(e.tipo==="dni")v=v.replace(/\D/g,"").slice(0,8);ev.target.value=v;e.num=v;e.touched.doc=1;e.padronOk=e.tipo==="dni"&&v.length===8;if(e.tipo==="dni"&&v.length===8&&v!==c.num)e.nombre="Nombre del padrón (se trae al guardar)";if(v===c.num)e.nombre=c.n;nombreWrap();sync()});
+ on("e-cel",ev=>{const v=ev.target.value.replace(/\D/g,"").slice(0,9);ev.target.value=v;e.cel=v;e.touched.cel=1;sync()});
+ on("e-mail",ev=>{e.mail=ev.target.value.trim();e.touched.mail=1;sync()});$$("e-mail").addEventListener("blur",()=>{e.salioMail=true;sync()});
+ on("e-d",ev=>{const v=ev.target.value.replace(/\D/g,"").slice(0,2);ev.target.value=v;e.d=v;e.touched.cumple=1;sync()});
+ $$("e-m").addEventListener("change",ev=>{e.m=ev.target.value;e.touched.cumple=1;sync()});
+ on("e-a",ev=>{const v=ev.target.value.replace(/\D/g,"").slice(0,4);ev.target.value=v;e.a=v;e.touched.cumple=1;sync()});
+ $$("e-resp").addEventListener("change",ev=>{e.resp=ev.target.value;e.touched.resp=1;sync()});
+ // marcan «pendiente desde el principio» los obligatorios que llegaron sin completar
+ ORDEN.forEach(f=>{if(REQ(f)&&estF(f)!=="hecho"&&f!=="resp")e.pend[f]=1});
+ sync();
+}
+const PIES={
+ doc:{falta:()=>E.tipo==="dni"?"El DNI tiene 8 dígitos.":E.tipo==="ce"?"El carné tiene 9 caracteres.":"El pasaporte tiene entre 6 y 12 caracteres.",ok:()=>E.tipo==="dni"?"Con DNI, el nombre sale del padrón.":""},
+ nombre:{error:()=>"El nombre no lleva números.",falta:()=>E.tipo==="dni"?"Escribe el DNI completo y el nombre se llena solo.":"Escríbelo tal como figura en su documento.",ok:()=>E.tipo==="dni"?"Viene del padrón y no se escribe a mano.":"Se guarda tal cual lo escribas, sin números."},
+ cel:{falta:()=>E.cel?"Un celular tiene 9 dígitos y empieza con 9.":"Es miembro del club: su celular no puede quedar vacío.",ok:()=>"Aquí le llegan sus novedades y avisos de cupones."},
+ mail:{error:()=>"Revisa el correo: falta algo (por ejemplo @gmail.com).",ok:()=>"Solo para contactarlo si hace falta, nunca para publicidad."},
+ cumple:{falta:()=>"Pon el día y el mes, o deja los tres vacíos.",error:()=>"Esa fecha no existe. Revisa el día, el mes o el año."},
+ resp:{falta:()=>"Elige quién hace este cambio.",ok:()=>"Queda anotado en el historial de la ficha."}
+};
+function sync(){
+ const e=E,c=C.find(x=>x.id===e.id),sig=siguiente();
+ document.querySelectorAll("[data-m]").forEach(m=>m.innerHTML=marcaHTML(m.dataset.m,sig));
+ document.querySelectorAll("[data-f]").forEach(el=>el.classList.toggle("sigue",el.dataset.f===sig));
+ document.querySelectorAll("[data-p]").forEach(p=>{const f=p.dataset.p,s=estF(f),def=PIES[f];let txt="",err=false;
+  if(def){ if(s==="error"){txt=def.error?.()||"";err=true} else if(s==="falta"&&(e.touched[f]||e.pend[f]||f==="resp"&&false)){txt=def.falta?.()||""} else txt=def.ok?.()||""}
+  if(f==="resp"&&s==="hecho")txt="Queda anotado en el historial de la ficha.";
+  p.className="pie-c"+(err?" err":"");p.innerHTML=txt?`${err?I.warn:I.info}<span>${txt}</span>`:"";});
+ ["c-num","c-cel","c-mail","c-d","c-a"].forEach(id=>{const el=document.getElementById(id);if(!el)return;const f={"c-num":"doc","c-cel":"cel","c-mail":"mail","c-d":"cumple","c-a":"cumple"}[id];el.classList.toggle("err",estF(f)==="error")});
+ // el celular de un miembro con novedades: lo que pierde, ANTES de guardar
+ const cambia=e.miembro&&e.conNov&&e.cel&&e.cel!==e.cel0&&/^9\d{8}$/.test(e.cel);
+ document.getElementById("aviso-cel").innerHTML=cambia?`<div class="aviso-a">${I.warn}<span><b>Con el celular nuevo dejará de recibir novedades.</b> Las vuelve a pedir escaneando el cartel del club.</span></div>`:"";
+ // pie guía
+ const pend=ORDEN.filter(f=>{const s=estF(f);return s==="error"||(s==="falta"&&(REQ(f)||touchedOrPend(f)))});
+ const g=document.getElementById("guia");
+ g.innerHTML=pend.length?`<span class="tenue">Falta:</span> ${pend.map(f=>`<button type="button" data-act="ir" data-f="${f}">${NOM[f]}</button>`).join('<span class="tenue">·</span>')}`:`<span class="ok">${I.ok} Todo listo para guardar.</span>`;
+ document.getElementById("guardar").disabled=pend.length>0;
+}
+
+/* ================= pintar ================= */
+function pintar(){
+ pagina();
+ const c=C.find(x=>x.id===sel);
+ if(!c){$("#capa").innerHTML="";return}
+ $("#capa").innerHTML=`<div class="velo" data-act="velo">${mode==="editar"?hojaEditar(c):hojaVer(c)}</div>`;
+ if(mode==="editar")montarEdit(c);
+}
+function toast(t,d){const a=$("#aviso");a.innerHTML=`<div class="toast">${I.ok}<span>${t}${d?`<small>${d}</small>`:""}</span></div>`;setTimeout(()=>a.innerHTML="",3200)}
+document.addEventListener("click",ev=>{
+ const t=ev.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;
+ if(a==="velo"){if(ev.target!==t)return;sel=null;mode="ver";pintar();return}
+ if(a==="tema"){const o=document.documentElement.dataset.tema==="oscuro";document.documentElement.dataset.tema=o?"":"oscuro";t.textContent=o?"Oscuro":"Claro";return}
+ if(a==="filtro"){filtro=t.dataset.k;pintar();return}
+ if(a==="abrir"){sel=+t.dataset.id;mode="ver";tab="club";filtroTl="todo";verTodas=false;histAbierta=false;pintar();return}
+ if(a==="abrir-ver"){sel=1;mode="ver";tab="club";filtroTl="todo";verTodas=false;pintar();return}
+ if(a==="abrir-edit"){sel=1;abrirEdit(C[0]);pintar();return}
+ if(a==="cerrar"){sel=null;mode="ver";pintar();return}
+ if(a==="editar"){abrirEdit(C.find(x=>x.id===sel));pintar();return}
+ if(a==="cancelar"){mode="ver";E=null;pintar();return}
+ if(a==="tab"){tab=t.dataset.t;verTodas=false;pintar();return}
+ if(a==="ftl"){filtroTl=t.dataset.k;verTodas=false;pintar();return}
+ if(a==="vertodas"){verTodas=true;pintar();return}
+ if(a==="hist"){histAbierta=!histAbierta;pintar();return}
+ if(a==="copiar"){t.classList.add("ok");t.innerHTML=I.ok;setTimeout(()=>{t.classList.remove("ok");t.innerHTML=I.cp},1400);return}
+ if(a==="padron"){toast("Nombre al día","Leído otra vez del padrón: sin cambios");return}
+ if(a==="ir"){const f=t.dataset.f,m={doc:"e-num",nombre:"e-nombre",cel:"e-cel",mail:"e-mail",cumple:"e-d",resp:"e-resp"}[f];const el=document.getElementById(m)||document.querySelector(`[data-f="${f}"]`);el.scrollIntoView({block:"center",behavior:"smooth"});el.focus?.();return}
+ if(a==="guardar"){const c=C.find(x=>x.id===sel);Object.assign(c,{tipo:E.tipo,num:E.num,cel:E.cel,mail:E.mail,cum:{d:E.d,m:E.m,a:E.a}});if(E.tipo!=="dni")c.n=E.nombre||c.n;const perdio=E.miembro&&E.conNov&&E.cel!==E.cel0;if(perdio)c.pub=null;mode="ver";E=null;pintar();toast("Ficha actualizada",perdio?"Con el celular nuevo dejó de recibir novedades.":"");return}
+});
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&sel!==null){if(mode==="editar"){mode="ver";E=null}else sel=null;pintar()}});
+pintar();
+</script>
+</body>
+</html>

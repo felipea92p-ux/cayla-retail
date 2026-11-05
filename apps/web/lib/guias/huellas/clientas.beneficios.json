@@ -1,0 +1,14 @@
+{
+  "guia": "clientas.beneficios",
+  "ruta": "/clientas/beneficios",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 4,
+  "controles": {
+    "components/clientas/BeneficiosPuntosPanel.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Guardar»",
+      "input «beneficios-compra-ejemplo»",
+      "input «{titulo}»"
+    ]
+  }
+}

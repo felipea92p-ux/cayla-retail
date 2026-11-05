@@ -1,3 +1,4 @@
+import { BotonDeFormulario } from "@/components/BotonDeFormulario";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -7,6 +8,7 @@ import { PrendaDelPedido } from "@/components/bolsa/PrendaDelPedido";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { Icono } from "@/components/Icono";
 import { soles } from "@/lib/catalogo";
+import { textoCuponLiberado } from "@/lib/cupon";
 import {
   codigoDeLaUrl,
   diaCorto,
@@ -90,7 +92,10 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
             <ol className="w-linea">
               {hitos(p).map((h) => (
                 <li key={h.nombre} className="w-hito" data-e={h.estado}>
-                  <span className="w-hito-p">{h.estado === "hecho" && <Icono nombre="check" />}</span>
+                  <span className="w-hito-p">
+                    {h.estado === "hecho" && <Icono nombre="check" />}
+                    {h.estado === "anulado" && <Icono nombre="cerrar" />}
+                  </span>
                   <span>
                     {h.nombre}
                     {h.cuando && (
@@ -116,6 +121,15 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
                 <div>
                   <span>Entrega</span>
                   <span>Recojo en {tienda}</span>
+                </div>
+              )}
+              {/* El cupón del Club (20261019224000): lo que descuenta, o que volvió a «Mi Club» y por qué. */}
+              {p.cupon && p.cupon.descuento > 0 && (
+                <div>
+                  <span>
+                    Cupón <span className="t-codigo">{p.cupon.codigo}</span>
+                  </span>
+                  <span className="num t-ahorro">−{soles(p.cupon.descuento)}</span>
                 </div>
               )}
               <div className="tot">
@@ -157,6 +171,7 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
                 </div>
               )}
             </div>
+            {p.cupon && textoCuponLiberado(p.cupon) && <p className="w-texto-sec">{textoCuponLiberado(p.cupon)}</p>}
           </div>
 
           <ConLaTienda p={p} tienda={tienda} />
@@ -331,9 +346,9 @@ function Extra({ p, tienda, diasParaCambiar }: { p: Pedido; tienda: string; dias
     return (
       <form action={volverASeparar}>
         <input type="hidden" name="codigo" value={p.codigo} />
-        <button className="t-btn t-btn-ancho" type="submit">
+        <BotonDeFormulario className="t-btn t-btn-ancho" textoPendiente="Separando…">
           Volver a separar
-        </button>
+        </BotonDeFormulario>
       </form>
     );
   }

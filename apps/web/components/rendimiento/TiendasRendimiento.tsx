@@ -78,7 +78,7 @@ export function TiendasRendimiento({
           />
         ) : (
           <p className="nota-cayla">
-            No se pudieron leer las metas de cada persona ahora. Lo demás de esta pantalla —los rankings del mes— sí está al día.
+            No se pudieron leer las metas de cada persona. Los rankings del mes sí están al día.
           </p>
         )}
         {rankings[activa.ubicacionId]}

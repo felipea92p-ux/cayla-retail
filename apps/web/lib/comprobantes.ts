@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, leerTodas, tolerar } from "@/lib/resultado";
+import { exigir, leerPorTandasDeIds, leerTodas, tolerar } from "@/lib/resultado";
 import { resumenPorEnviar, type ResumenPorEnviar } from "@/lib/facturacion-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "@/lib/transmision-reglas";
 import type { Comprobante, EstadoComprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
@@ -252,9 +252,11 @@ export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Rec
     dnis.length
       ? supabase.from("clientas").select("documento_numero, telefono_whatsapp").eq("documento_tipo", "dni").in("documento_numero", dnis)
       : Promise.resolve(null),
-    supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", ids),
-    originales.length ? supabase.from("comprobantes").select("id, serie, numero").in("id", originales) : Promise.resolve(null),
-    supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", [...notasDelMes, ...ids]),
+    // Las tres por tandas de ids: un mes tiene ~1.100 comprobantes y mil ids en la dirección (40 KB) no caben (`leerPorTandasDeIds`); si el
+    // API la rechaza, `tolerar` lo traga y la fila pierde en silencio su enlace a la nota de crédito y a la devolución.
+    leerPorTandasDeIds(ids, (tanda) => supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", tanda)),
+    originales.length ? leerPorTandasDeIds(originales, (tanda) => supabase.from("comprobantes").select("id, serie, numero").in("id", tanda)) : Promise.resolve(null),
+    leerPorTandasDeIds([...notasDelMes, ...ids], (tanda) => supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", tanda)),
   ]);
   const telefonos = new Map<string, string>();
   for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de los clientes").datos : null) ?? []) {

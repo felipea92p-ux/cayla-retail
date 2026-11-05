@@ -234,6 +234,25 @@ Cae si una escala vuelve al 45 % o si el piso del claro baja al 60 %.
 **Se rompe si** un texto se apaga con opacidad o con un color escrito de otra forma: ni el piso ni el candado lo ven, solo la auditoría
 en el navegador.
 
+## Actualización 2026-10-26 — el oscuro de la familia CAYLA: las mismas claridades, con el matiz cálido de Dynamic (P1, opción C)
+
+CAYLA Retail y CAYLA Dynamic (asistencia y planilla) son la misma empresa y tenían dos oscuros distintos: el de Retail, un gris casi neutro
+(`#1a1a18`, matiz 60°, saturación 4 %), y el de Dynamic, un café (`#1c1a16`, saturación 12 %) con el campo MÁS NEGRO que la página. El tema
+claro ya era idéntico (los 13 colores, al hex). Felipe eligió mirando (`docs/maquetas/familia-oscuro-2026-10/`) **la opción C, el «gris cálido»**:
+
+- **Las superficies conservan sus claridades** y solo toman el matiz del café (H 36°, S 10 %), calculadas para tener la misma luminancia que
+  las de antes: `crema #1c1a17`, `papel #26241f`, `hueso #33302a`, `sand #403b34` (y `vidrio`, que es el hueso). Por eso **los contrastes no
+  cambian** (el texto sobre la tarjeta pasa de 13.71:1 a 13.67:1; el rojo, de 5.72:1 a 5.70:1) y `lib/tema-tokens.test.ts` sigue midiendo lo mismo.
+- **El texto, el acento y el semáforo no cambian** (`tinta #f5f0e8`, `taupe #c4a898`, `rojo #e8806a`, `rojo-profundo #f29a86`, `verde`, `ámbar`,
+  `pizarra`): son los de Retail. Dynamic los adopta (su rojo sobre la tarjeta daba 4.28:1, bajo el 4.5 de los textos).
+- **El campo sigue siendo más claro que la página** (elevado = más claro): Dynamic pasa de «hundido = más oscuro» a esto.
+- **Lo que deja de ser cierto:** «el fondo es la tinta de siempre». El texto sigue siendo la crema del claro (`oscuro.tinta = claro.crema`), pero el
+  fondo ya no es EXACTAMENTE `tinta`: es un negro cálido de la misma claridad. La prueba de `tema-tokens.test.ts` lo dice así.
+- **Copias a mano que se actualizaron** (no leen los tokens): `app/global-error.tsx`, `public/sin-conexion.html` (su papel estaba en `#262624`, ya
+  desfasado del `#242422` de `tema.css`) y `unificar/fotos.mjs`.
+- **El contrato** `docs/familia/contrato.json` (versión 2) guarda este oscuro en la capa «marca» y `lib/familia.test.ts` lo vigila. Lo que falta:
+  aplicarlo en Dynamic (`aplicacion_pendiente` del contrato).
+
 ## Cómo se verificó (actividad 13)
 
 `tsc` sin errores y las pruebas del tema en verde. Con la herramienta, contra el `next dev` local de esta rama: las 12 rutas con 6 cuentas a 1440 px (72 visitas), 24 escenarios con Admin, Integrante y Terminal de ventas a 1440 px (58 visitas) y a 375 px (58 visitas): **0 hallazgos solo en oscuro**. Mirando las capturas: la ficha de una clienta, Roles y accesos, el cartel (ahora rojo como saldrá impreso) y las etiquetas (papel blanco, como salen) se leen bien. Los escenarios que no abren algo son por el rol.

@@ -14,6 +14,17 @@
  *  sostenida sobre varias teclas seguidas, no baja de ~60 ms. */
 export const MAX_MS_ENTRE_TECLAS = 50;
 
+/** Una pistola inalámbrica, o un equipo ocupado, a veces se atrasa UNA vez a mitad del código (2026-10-21: «el código se queda en
+ *  el buscador y no se agrega»). Con el límite de arriba esa pausa partía la lectura en dos: lo último quedaba con menos de
+ *  `TECLAS_MIN_LECTURA` teclas, no se reconocía y el código se quedaba escrito; el siguiente escaneo se pegaba detrás. Una vez
+ *  que la ráfaga ya lleva `TECLAS_PARA_PERDONAR` teclas rápidas (una persona no escribe así), se le perdona una pausa de
+ *  hasta esto. Menor que `PAUSA_FIN_LECTURA_MS`: si no, el reloj que da por cerrada la lectura la cortaría antes. */
+export const MAX_MS_DE_TROPIEZO = 110;
+
+/** Cuántas teclas a ritmo de máquina hacen falta antes de perdonar un tropiezo. Cinco teclas con menos de 50 ms entre ellas
+ *  ya no son una persona; con menos, una pausa sí puede ser el final de una palabra tecleada deprisa. */
+export const TECLAS_PARA_PERDONAR = 5;
+
 /** Cuántas teclas seguidas, a ese ritmo, hacen falta para tomarlas por una lectura. Un código de CAYLA tiene 14 o más
  *  caracteres y uno de barras 8 o más: con ocho, una palabra tecleada rápido no cuenta. */
 export const TECLAS_MIN_LECTURA = 8;
@@ -33,7 +44,8 @@ export type Rafaga = { desde: number; teclas: number; ultima: number };
  */
 export function conCambio(previa: Rafaga | null, anterior: string, valor: string, cuando: number): Rafaga | null {
   if (valor.length <= anterior.length || !valor.startsWith(anterior)) return null;
-  const sigue = previa !== null && anterior !== "" && cuando - previa.ultima <= MAX_MS_ENTRE_TECLAS;
+  const pausa = previa === null ? 0 : cuando - previa.ultima;
+  const sigue = previa !== null && anterior !== "" && (pausa <= MAX_MS_ENTRE_TECLAS || (previa.teclas >= TECLAS_PARA_PERDONAR && pausa <= MAX_MS_DE_TROPIEZO));
   return sigue ? { desde: previa.desde, teclas: previa.teclas + 1, ultima: cuando } : { desde: anterior.length, teclas: 1, ultima: cuando };
 }
 

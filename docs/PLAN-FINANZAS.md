@@ -121,7 +121,7 @@ Hoy **nadie ve** los gastos, el banco, la utilidad por tienda ni el IGV neto. Es
 | Gasto sin comprobante pagado por banco/Yape | Solo una fila en `gastos` (camino A de ADR-0117) | Movilidad pagada por Yape |
 | Gasto chico en efectivo del cajón | Egreso de caja + gasto que lo señala (caminos B y C de ADR-0117) | Mototaxi, útiles |
 | Depósito del cajón al banco | Egreso de caja señalado por un movimiento de dinero (§7) — «no es gasto» | Depósito BCP de TRU |
-| Planilla | **No se registra**: se lee de Dynamic (D-33) | Sueldos del mes |
+| Planilla | **No se registra**: se lee de Dynamic (D-33); mientras no la paga, se ve un estimado con sus boletas (ADR-0453) | Sueldos del mes |
 | Insumos del Taller | Siguen en `comprobantes_produccion` (ADR-0133, decisión de Felipe) | Tela, avíos |
 
 **Candados que lo hacen imposible de romper:**

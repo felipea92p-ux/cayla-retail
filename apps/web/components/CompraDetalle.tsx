@@ -24,7 +24,6 @@ import {
 } from "@/lib/compras";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getCierresCompra, getNotasCreditoCompra, type CierreLinea, type NotaCreditoCompra } from "@/lib/compras-faltantes";
-import { NotasCreditoCompra } from "@/components/NotasCreditoCompra";
 import { BotonCerrarFaltante } from "@/components/AccionesFaltantes";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -176,7 +175,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, datosPago, reparto, ubicaciones, acciones: permite },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -214,7 +213,7 @@ export function CompraDetalle({
       <div className="cd-detalle space-y-5" data-sin-cascada>
         {/* ADR-0195 F2: la factura de un GASTO (la luz, el contador) no trae mercadería: no hay nada que recibir. */}
         {esGasto && (
-          <p className="nota-cayla text-[13px]">
+          <p className="nota-cayla text-sm">
             Comprobante de <b>{queEs}</b>{compra.nota ? `: ${compra.nota}` : ""}. No trae mercadería. Lo que detalla vive en{" "}
             <a href="/finanzas/gastos" className="underline underline-offset-2 hover:text-rojo">Finanzas ▸ Gastos</a>, y se anula desde ahí.
           </p>
@@ -259,7 +258,7 @@ export function CompraDetalle({
 
         {/* Saldo pendiente: lo que falta y, si es a crédito, cuándo vence. Anulada no genera saldo. */}
         {!anulada && (
-          <p className="text-xs text-tinta/55">
+          <p className="text-sm text-tinta/55">
             {compra.saldo > 0 ? (
               <>
                 Saldo pendiente <b className="font-semibold tabular-nums text-tinta">{soles(compra.saldo)}</b>
@@ -294,17 +293,17 @@ export function CompraDetalle({
                       {l.productoId ? (
                         <>
                           {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
-                          {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                          {l.descripcion && <span className="block text-sm text-tinta/55">{l.descripcion}</span>}
                         </>
                       ) : (
                         <>
                           {/* La línea de un comprobante que sale de una orden de compra se pidió por «categoría + marca» (ADR-0362):
                               la prenda se crea cuando llega la mercadería, por guía. */}
                           {nombreDeLineaSinPrenda(l)}
-                          <span className="block text-xs text-tinta/55">Sin prenda todavía: llega por guía</span>
+                          <span className="block text-sm text-tinta/55">Sin prenda todavía: llega por guía</span>
                         </>
                       )}
-                      {l.cerrado > 0 && <span className="block text-xs text-ambar-profundo">{l.cerrado.toLocaleString("es-PE")} cerradas por faltante</span>}
+                      {l.cerrado > 0 && <span className="block text-sm text-ambar-profundo">{l.cerrado.toLocaleString("es-PE")} cerradas por faltante</span>}
                       {!anulada && l.pendiente > 0 && l.productoId && (
                         <BotonCerrarFaltante
                           compra={compra}
@@ -319,7 +318,7 @@ export function CompraDetalle({
                         />
                       )}
                     </span>
-                    <span className={celda("der", "text-xs tabular-nums text-tinta/65")}>
+                    <span className={celda("der", "text-sm tabular-nums text-tinta/65")}>
                       {l.cantidad} × {soles(l.costoUnitario)}
                     </span>
                     <span className={celda("der")}>
@@ -363,10 +362,10 @@ export function CompraDetalle({
                 <Encabezado plantilla={PLANTILLA_RECEPCIONES} columnas={[{ titulo: "Fecha" }, { titulo: "Guía · Destino" }, { titulo: "Unidades", alinear: "der" }]} />
                 {recepciones.map((r) => (
                   <div key={r.loteId} className={fila(PLANTILLA_RECEPCIONES)}>
-                    <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
+                    <span className={celda("izq", "text-sm tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
                     <span className={celda("izq", "text-sm")}>
                       {r.numeroGuia ? <span className="tabular-nums text-tinta">{r.numeroGuia}</span> : <span className="text-tinta/45">Sin guía</span>}
-                      <span className="block truncate text-xs text-tinta/65">{r.ubicacion}</span>
+                      <span className="block truncate text-sm text-tinta/65">{r.ubicacion}</span>
                     </span>
                     <span className={celda("der", "text-sm tabular-nums text-tinta")}>{r.unidades}</span>
                   </div>
@@ -374,8 +373,6 @@ export function CompraDetalle({
               </Tabla>
             )}
           </section>
-
-          <NotasCreditoCompra compra={compra} notas={notasCredito} cerrados={lineas.filter((l) => l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario }))} />
 
           {/* Quién puede adjuntar lo decide la RPC (`fn_puede_registrar_facturas_compra`, ADR-0161 P1). Acá solo se esconde
               a quien no tiene Facturas de compra y en una factura anulada, que la RPC también rechaza. */}
@@ -420,7 +417,7 @@ function Totales({ subtotal, igv, total }: { subtotal: number; igv: number; tota
         {filas.map((f) => (
           <div key={f.etiqueta} className="contents">
             <dt className={`text-right ${f.fuerte ? "label-cayla text-[11px] text-tinta" : "text-xs text-tinta/65"}`}>{f.etiqueta}</dt>
-            <dd className={`text-right tabular-nums ${f.fuerte ? "text-sm text-tinta" : "text-xs text-tinta/80"}`}>{soles(f.valor)}</dd>
+            <dd className={`text-right tabular-nums ${f.fuerte ? "text-sm text-tinta" : "text-sm text-tinta/80"}`}>{soles(f.valor)}</dd>
           </div>
         ))}
       </dl>

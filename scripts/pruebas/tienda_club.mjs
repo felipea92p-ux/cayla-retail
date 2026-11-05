@@ -73,6 +73,8 @@ const MIGRACIONES = [
   "supabase/migrations/20261015024000_tienda_favoritos_y_esperas.sql",
   "supabase/migrations/20261015025000_tienda_mi_club.sql",
   "supabase/migrations/20261015030000_vitrina_esperan_una_talla.sql",
+  // 2026-10-31: «Avísame» pide el permiso de WhatsApp (tienda_avisame de 4 argumentos) y el ERP dice quién espera.
+  "supabase/migrations/20261031181000_vitrina_esperan_con_quien_espera.sql",
 ];
 const ANTES = process.env.APLICAR_ANTES ?? "";
 const APLICAR_ANTES = ANTES ? (ANTES === "1" ? MIGRACIONES : ANTES.split(",")).map((m) => readFileSync(m.trim(), "utf8")).join("\n") : "";
@@ -158,7 +160,7 @@ begin
   values (p_ubic, p_cli, (p_dia::timestamp + interval '12 hours') at time zone 'America/Lima', 'completada', false)
   returning id into v;
   insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario)
-  select v, va.id, 1, p_precio, 1 from retail.variantes va order by va.id limit 1;
+  select v, va.id, 1, p_precio, 1 from retail.variantes va where va.id <> '22222222-2222-4222-8222-222222222222' order by va.id limit 1;
   return v;
 end $f$;
 -- Un modelo nuevo de una talla (el color y la talla de otra prenda), publicado en la vitrina. Devuelve su prenda.
@@ -171,7 +173,9 @@ begin
   insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo, activo)
     select v_p, v.color_codigo, v.talla_id, 50, 10, true from retail.variantes v where v.id = p_como
   returning id into v_v;
-  insert into retail.vitrina_productos (producto_id, publicado, publicado_en, en_lo_nuevo) values (v_p, true, now(), p_en_lo_nuevo);
+  -- Un producto nuevo ya nace con su fila encendida (20261019214000): aquí solo se le fija cómo entra a «Lo nuevo».
+  insert into retail.vitrina_productos (producto_id, publicado, publicado_en, en_lo_nuevo) values (v_p, true, now(), p_en_lo_nuevo)
+    on conflict (producto_id) do update set publicado = true, publicado_en = now(), en_lo_nuevo = excluded.en_lo_nuevo;
   return v_v;
 end $f$;
 -- La versión viva de una función con un pedazo cambiado (un MUTANTE). Si el pedazo no está, falla: el mutante no sería tal.
@@ -363,7 +367,7 @@ function main() {
     "cuentas_web_visitas:true:0:false,esperas_web:true:0:false,favoritos_web:true:0:false",
   );
   const DE_LA_TIENDA = [
-    "tienda_avisame(uuid,uuid,uuid)",
+    "tienda_avisame(uuid,uuid,uuid,boolean)",
     "tienda_favorito(uuid,uuid,boolean)",
     "tienda_mi_club(uuid)",
     "tienda_mis_favoritos_y_esperas(uuid)",
@@ -767,15 +771,29 @@ function main() {
     "t\nBlusa Emma|NEG|M|Tienda Trujillo|2|0|Tienda Lima:2|true # Blusa Emma|NEG|M|cualquiera|1|2|Tienda Lima:2|true",
   );
   esperarValor(
-    "sin datos personales: ni nombres, ni correos, ni DNI, ni celulares de quienes esperan; y si el modelo se oculta de la web, lo dice",
+    "sin correos, ni DNI, ni celulares de quienes no pidieron WhatsApp (el nombre sí sale, 2026-10-31); y si el modelo se oculta de la web, lo dice",
     escenario(`${ESPERAS_DE_PRUEBA}
       update retail.vitrina_productos set publicado = false where producto_id = :'emma';
       ${COMO(FELIPE)}
       select retail.fn_vitrina_esperan()::text as r \\gset
       ${COMO_POSTGRES}
-      select (:'r' ~* '(Ana Prueba|Bea Prueba|${CORREO("ana").replace(/\./g, "\\.")}|${DNI.ana}|${DNI.bea}|987000701|987000702|${U.ana}|${U.bea})')::text;
+      select (:'r' ~* '(${CORREO("ana").replace(/\./g, "\\.")}|${DNI.ana}|${DNI.bea}|987000701|987000702|${U.ana}|${U.bea})')::text;
       select string_agg(distinct x ->> 'se_ve', ',') from jsonb_array_elements(:'r'::jsonb -> 'filas') x where x ->> 'variante_id' = :'v1';`),
     "false\nfalse",
+  );
+
+  esperarValor(
+    "quien marca «escríbeme por WhatsApp» muestra su celular y lo dice; quien no, solo su nombre (permiso por espera, opción B)",
+    escenario(`${COMO_TIENDA}
+      select retail.tienda_avisame('${U.ana}', :'v1', :'tru', true) ->> 'whatsapp' as _w \\gset
+      select ${avisa(U.bea, ":'v1'", ":'tru'")} ->> 'estado' as _2 \\gset
+      ${COMO_POSTGRES}
+      ${COMO(FELIPE)}
+      select retail.fn_vitrina_esperan()::text as r \\gset
+      ${COMO_POSTGRES}
+      select string_agg((q ->> 'nombre') || '=' || coalesce(q ->> 'celular', '-') || '=' || (q ->> 'pidio_whatsapp'), ',' order by q ->> 'nombre')
+        from jsonb_array_elements(:'r'::jsonb -> 'filas') f, jsonb_array_elements(f -> 'quienes') q where f ->> 'variante_id' = :'v1';`),
+    "Ana Prueba Club=987000701=true,Bea Prueba Club=-=false",
   );
 
   // =================================================================================================================
@@ -899,7 +917,7 @@ end $f$;\n`;
   /** Las esperas de Ana y Bea, una por línea: «quién|prenda|tienda|viva o cerrada|pedido si la cerró «Separar»». */
   const ESPERAS = `select pg_temp.esperas(array[:'ana_w', :'bea_w']::uuid[], array['ana', 'bea'], array[:'v1', :'v2']::uuid[], array['v1', 'v2'],
                                           array[:'tru', :'lim']::uuid[], array['tru', 'lim']);\n`;
-  // Ana espera v1 en Trujillo y en cualquier tienda, y v2 en Trujillo; Bea, v1 en Trujillo. Después llegan 2 de v1 a Trujillo.
+  // Ana espera v1 en Trujillo y en cualquier tienda, y v2 en Trujillo; Bea, v1 en Trujillo. Después llegan 2 de v1 a Trujillo, y «Separar» recoge ahí (ADR-0458: cada tienda maneja lo suyo, ya no se separa lo que solo está en otra).
   const ESPERAS_DE_LA_S = `${COMO_TIENDA}
       select retail.tienda_avisame('${U.ana}', :'v1', :'tru') ->> 'estado' as _1 \\gset
       select retail.tienda_avisame('${U.ana}', :'v1', null) ->> 'estado' as _2 \\gset
@@ -907,10 +925,10 @@ end $f$;\n`;
       select retail.tienda_avisame('${U.bea}', :'v1', :'tru') ->> 'estado' as _4 \\gset
       ${COMO_POSTGRES}
       select pg_temp.dejar(:'v1', :'tru', :'tru_piso', 2) as _x \\gset
-      select x.precio as p_v1_lim from retail.fn_bolsa_web_precios(array[:'v1']::uuid[], array[:'lim']::uuid[]) x \\gset\n`;
-  /** «Separar» v1 para recoger en Lima (la trae Trujillo). */
-  const SEPARA = (usr, precio = ":'p_v1_lim'::numeric", token = "gen_random_uuid()") =>
-    `retail.tienda_separar('${usr}', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', ${precio})), ${token})`;
+      select x.precio as p_v1_tru from retail.fn_bolsa_web_precios(array[:'v1']::uuid[], array[:'tru']::uuid[]) x \\gset\n`;
+  /** «Separar» v1 para recoger en Trujillo (donde llegó). */
+  const SEPARA = (usr, precio = ":'p_v1_tru'::numeric", token = "gen_random_uuid()") =>
+    `retail.tienda_separar('${usr}', :'tru', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', ${precio})), ${token})`;
   const TODAS_VIVAS = "ana|v1|cualquiera|viva|- # ana|v1|tru|viva|- # ana|v2|tru|viva|- # bea|v1|tru|viva|-";
   esperarValor(
     "S1 Ana separa v1: sus dos esperas de v1 (Trujillo y cualquier tienda) se cierran con el pedido; la de v2 y la de Bea siguen, y «Mi cuenta» ya no las muestra",
@@ -926,8 +944,8 @@ end $f$;\n`;
   esperarValor(
     "S2 si «Separar» falla (el precio que vio ya no es el de la base) no se cierra nada; el mismo toque dos veces no cambia nada más; quitar a mano no deja pedido",
     escenario(`${ESPERAS_DE_LA_S}
-      select pg_temp.intento(format('select retail.tienda_separar(%L, %L, %L, %L)', '${U.ana}', :'lim',
-               jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', :'p_v1_lim'::numeric + 1)), gen_random_uuid()));
+      select pg_temp.intento(format('select retail.tienda_separar(%L, %L, %L, %L)', '${U.ana}', :'tru',
+               jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', :'p_v1_tru'::numeric + 1)), gen_random_uuid()));
       ${ESPERAS}
       select gen_random_uuid() as tok \\gset
       select ${SEPARA(U.ana, undefined, ":'tok'")} ->> 'codigo' as c1 \\gset
@@ -953,7 +971,7 @@ end $f$;\n`;
   );
   esperarValor(
     "MUTANTE avisame sin «si hay, no se espera»: con Lima surtida se anota igual (la prueba A lo nota)",
-    escenario(`select pg_temp.mutar('retail.tienda_avisame(uuid, uuid, uuid)', 'end) > 0 then', 'end) > 999999 then');
+    escenario(`select pg_temp.mutar('retail.tienda_avisame(uuid, uuid, uuid, boolean)', 'end) > 0 then', 'end) > 999999 then');
       select pg_temp.dejar(:'v1', :'lim', :'lim_piso', 2) as _x \\gset
       ${COMO_TIENDA}
       select ${avisa(U.ana, ":'v1'", "null")} ->> 'estado';`),

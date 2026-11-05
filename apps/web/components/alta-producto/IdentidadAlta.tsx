@@ -47,8 +47,8 @@ export function QuienRegistra({ control, deshabilitado = false }: { control: Con
         <h2 id="quien-registra-titulo" className="text-[13px] font-semibold text-tinta">{/* unificar-fijo: el título de un bloque de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           Quién registra
         </h2>
-        <span className="text-[12px] leading-snug text-taupe">
-          La prenda y lo que crees mientras la llenas (tejidos, colores, marcas…) quedan a su nombre. Se pide una sola vez.
+        <span className="texto-detalle leading-snug">
+          Todo lo que crees aquí queda a su nombre.
         </span>
       </div>
       <ComboResponsable control={control} deshabilitado={deshabilitado} className="max-w-sm" />

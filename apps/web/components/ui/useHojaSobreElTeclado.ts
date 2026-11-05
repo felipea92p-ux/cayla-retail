@@ -39,6 +39,7 @@ export function useHojaSobreElTeclado<T extends HTMLElement>(activo: boolean) {
     const soltar = () => {
       tocado?.style.removeProperty("top");
       tocado?.style.removeProperty("--teclado");
+      tocado?.style.removeProperty("--alto-pie");
       tocado?.removeAttribute("data-teclado");
       tocado = null;
     };
@@ -56,6 +57,8 @@ export function useHojaSobreElTeclado<T extends HTMLElement>(activo: boolean) {
       // Lo que queda tapado bajo lo visible, medido desde el fondo del contenedor (el de la pantalla).
       el.style.setProperty("--teclado", `${Math.max(0, Math.round(window.innerHeight - vv.offsetTop - vv.height))}px`);
       el.setAttribute("data-teclado", "");
+      const pie = el.querySelector<HTMLElement>(".pie-hoja-fijo");
+      el.style.setProperty("--alto-pie", `${pie?.offsetHeight ?? 0}px`);
       // Solo al subir el teclado: después, quien escribe puede desplazar la hoja sin que se la devuelvan al campo.
       if (!conTeclado) {
         const foco = document.activeElement;
@@ -64,12 +67,23 @@ export function useHojaSobreElTeclado<T extends HTMLElement>(activo: boolean) {
       conTeclado = true;
     };
 
+    // Un campo que recibe el foco con el teclado arriba («siguiente» del teclado, Tab o un toque) queda a la vista por encima
+    // del pie: `nearest` respeta el `scroll-padding-bottom` (teclado + pie) y no mueve lo que ya se ve.
+    const alEnfocar = (e: FocusEvent) => {
+      const el = contenedor.current;
+      const campo = e.target;
+      if (!conTeclado || !el || !(campo instanceof HTMLElement) || !el.contains(campo) || campo.closest(".pie-hoja-fijo")) return;
+      requestAnimationFrame(() => campo.scrollIntoView({ block: "nearest" }));
+    };
+
     ajustar();
+    document.addEventListener("focusin", alEnfocar);
     vv.addEventListener("resize", ajustar);
     vv.addEventListener("scroll", ajustar);
     // La barra del navegador que aparece o se esconde cambia `innerHeight` sin mover siempre el área visible.
     window.addEventListener("resize", ajustar);
     return () => {
+      document.removeEventListener("focusin", alEnfocar);
       vv.removeEventListener("resize", ajustar);
       vv.removeEventListener("scroll", ajustar);
       window.removeEventListener("resize", ajustar);

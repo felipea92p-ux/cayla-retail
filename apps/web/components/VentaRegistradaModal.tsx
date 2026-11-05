@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Cake, Gift } from "lucide-react";
+import { Ticket } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { EnviarBoleta } from "@/components/punto-de-venta/EnviarBoleta";
@@ -12,8 +12,7 @@ import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "@/lib/comprobantes-reglas";
 import { documentoLegibleComprobante } from "@/lib/documento-comprobante-reglas";
 import { fechaHoraLima, NOMBRE_METODO, TEXTO_REDONDEO, textoNumeroRecibo } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
-import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
-import { textoValeCobrado } from "@/lib/club-aniversario-canje-reglas";
+import { textoCuponCobrado } from "@/lib/club-puntos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
@@ -87,7 +86,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
           </div>
 
           {ok.offline && (
-            <p className="text-center text-xs text-tinta/65">{/* unificar-fijo: explica qué pasó con la venta sin internet, no es un vacío */}
+            <p className="text-center text-sm text-tinta/65">{/* unificar-fijo: explica qué pasó con la venta sin internet, no es un vacío */}
               Sin internet: quedó guardada en este equipo y sube sola cuando vuelva la conexión. No se puede emitir comprobante todavía.
             </p>
           )}
@@ -108,16 +107,16 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   <span className="text-tinta">
                     {ETIQUETA_TIPO[r.tipo]} <span className="font-mono">{textoNumeroRecibo(r)}</span>
                   </span>
-                  <span className="text-[11px] text-tinta/60">{ok.estado ? ESTADO_ETIQUETA[ok.estado] : "Emitida"}</span>
+                  <span className="text-sm text-tinta/60">{ok.estado ? ESTADO_ETIQUETA[ok.estado] : "Emitida"}</span>
                 </div>
                 {/* «Pendiente de enviar» no le dice nada a quien cobra (pasada ciega, 2026-09-30): qué es y qué no es. */}
                 {(ok.estado === "pendiente" || ok.estado === "pendiente_reintento") && (
-                  <p className="text-[11.5px] leading-snug text-tinta/65">
+                  <p className="text-sm leading-snug text-tinta/65">
                     La venta ya quedó guardada y {`la ${ETIQUETA_TIPO[r.tipo].toLowerCase()}`} tiene su número. Todavía no llegó a SUNAT: el sistema la envía solo y, si SUNAT no responde, la reintenta.
                   </p>
                 )}
                 {/* La nota de venta no desglosa IGV (ADR-0164). */}
-                {r.tipo !== "nota_venta" && <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/70">
+                {r.tipo !== "nota_venta" && <div className="space-y-0.5 border-t border-sand pt-2.5 text-sm text-tinta/70">
                   <p className="flex justify-between tabular-nums">
                     <span>Subtotal</span>
                     <span>{money(r.subtotal)}</span>
@@ -127,7 +126,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                     <span>{money(r.igv)}</span>
                   </p>
                 </div>}
-                <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs">
+                <div className="space-y-0.5 border-t border-sand pt-2.5 text-sm">
                   {r.pagos.map((p) => (
                     <p key={p.metodo} className="flex justify-between tabular-nums text-tinta/80">
                       <span>{NOMBRE_METODO[p.metodo]}</span>
@@ -141,7 +140,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                     </p>
                   )}
                 </div>
-                <p className="border-t border-sand pt-2.5 text-xs text-tinta/70">
+                <p className="border-t border-sand pt-2.5 text-sm text-tinta/70">
                   Cliente:{" "}
                   <span className="text-tinta">
                     {r.cliente.nombre?.trim() || "Cliente varios"}
@@ -153,7 +152,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               {/* Si el cliente dejó su celular: «Abrir WhatsApp con la boleta» (ADR-0288, act. 2026-10-03 (o)). No frena nada: la venta ya quedó. */}
               <EnviarBoleta ventaId={ok.ventaId ?? null} celular={ok.celular ?? null} comprobante={{ tipo: r.tipo, serie: r.serie, numero: r.numero }} enFicha={ok.celularEnFicha ?? null} />
 
-              <details className="group rounded-xl border border-sand text-xs">
+              <details className="group rounded-xl border border-sand text-sm">
                 <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-tinta/80">
                   <span>Ver las {r.lineas.length === 1 ? "1 línea" : `${r.lineas.length} líneas`} del comprobante</span>
                   <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
@@ -180,29 +179,21 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             </>
           )}
 
-          {/* El cumpleaños del club (ADR-0288 D-5; spike, «Venta registrada»): se gastó el del año, y devolver no lo trae
-              de vuelta (solo anular). Con o sin comprobante leído: la venta ya quedó. */}
-          {ok.cumple && ok.cumple.monto > 0 && (
-            <p className="flex items-start gap-1.5 text-xs text-taupe-profundo">
-              <Cake className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{textoCumpleCobrado(ok.cumple.monto)}</span>
-            </p>
-          )}
-          {/* El vale de aniversario (tanda 1g): se usó, y es de una sola vez. */}
-          {ok.vale && ok.vale.monto > 0 && (
-            <p className="flex items-start gap-1.5 text-xs text-taupe-profundo">
-              <Gift className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{textoValeCobrado(ok.vale.monto)}</span>
+          {/* El cupón del Club (programa de puntos): se usó, y es de una sola vez. */}
+          {ok.cupon && ok.cupon.monto > 0 && (
+            <p className="flex items-start gap-1.5 text-sm text-taupe-profundo">
+              <Ticket className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>{textoCuponCobrado(ok.cupon.monto)}</span>
             </p>
           )}
 
           {!ok.offline && !r && (
-            <p className="text-center text-xs text-tinta/65">
+            <p className="text-center text-sm text-tinta/65">
               La venta quedó registrada, pero no se pudo leer su comprobante para imprimirlo. Búscala en «Ventas de hoy» o en Facturación.
             </p>
           )}
           {!ok.offline && (
-            <p className="text-center text-xs text-tinta/65">Ya está descontada del stock de {ubicacionEtiqueta} y aparece abajo, en «Ventas de hoy».</p>
+            <p className="text-center text-sm text-tinta/65">Ya está descontada del stock de {ubicacionEtiqueta} y aparece abajo, en «Ventas de hoy».</p>
           )}
 
           {r ? (
@@ -222,7 +213,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   Sin imprimir
                 </button>
               </div>
-              <p className="text-center text-[11px] text-tinta/55">Enter imprime y abre una venta nueva · Esc sigue sin imprimir</p>
+              <p className="text-center text-sm text-tinta/55">Enter imprime y abre una venta nueva · Esc sigue sin imprimir</p>
             </div>
           ) : (
             <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>

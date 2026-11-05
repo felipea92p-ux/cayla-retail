@@ -6,6 +6,7 @@ import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { leerCategorias, leerGrupos, type CategoriaMix, type GrupoMix } from "@/lib/plan-piso-grupos";
 import { codigoDeTienda } from "@/lib/terminales-reglas";
 import type { LecturaParaElInicio, PisoPlanInicio } from "@/lib/inicio-piso-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 export type LecturaGruposMix = { ok: true; grupos: GrupoMix[]; categorias: CategoriaMix[] } | { ok: false; motivo: string };
 
@@ -34,6 +35,7 @@ export async function getGruposDelMix(): Promise<LecturaGruposMix> {
     }
     return { ok: true, grupos, categorias };
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Plan del piso: no se pudieron leer los grupos del mix", e);
     return { ok: false, motivo: "La base no respondió." };
   }
@@ -132,6 +134,7 @@ export async function getFotosDelEspacio(ubicacionId: string): Promise<LecturaFo
     }
     return { ok: true, fotos };
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Plan del piso: no se pudo leer la historia del espacio", e);
     return { ok: false, motivo: "La base no respondió." };
   }

@@ -3,6 +3,8 @@
  * Prueba del punto 18 de la auditoría del 2026-10-13 (decisiones de Felipe del mismo día):
  *   · `20261013161000_datos_bancarios_de_proveedores.sql`: el CCI, la cuenta, el Yape y el titular de un proveedor solo los ve
  *     quien ve Proveedores, Por pagar o Cuentas y dinero; cada cambio de cuenta queda en un historial y avisa al líder.
+ *   · `20261021200000_datos_bancarios_tambien_para_ordenes_de_compra.sql`: y también quien ve Órdenes de compra (la compradora
+ *     paga al contado desde su orden).
  *
  * Cuentas del seed: el líder (…001) y una integrante (…003) cuyo rol ve Caja y NO ve Proveedores, Por pagar ni Cuentas y
  * dinero. Cada caso corre en una transacción que TERMINA EN ROLLBACK con la migración aplicada dentro (o deshecha, en el
@@ -19,7 +21,10 @@ import { fileURLToPath } from "node:url";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
-const MIGRACIONES = leer("20261013161000_datos_bancarios_de_proveedores.sql");
+const ANTERIOR = leer("20261013161000_datos_bancarios_de_proveedores.sql");
+// 20261021200000: Órdenes de compra también ve los datos para pagar (la compradora paga al contado desde su orden). Va DESPUÉS de la
+// anterior: la regla única `fn_puede_ver_datos_bancarios` se redefine, y la última manda.
+const MIGRACIONES = `${ANTERIOR}\n${leer("20261021200000_datos_bancarios_tambien_para_ordenes_de_compra.sql")}`;
 // Lo que deshace el control (que prueba que el hueco existía), dentro de su transacción: la lectura de la tabla entera. En el CI
 // la migración ya está aplicada, así que «sin migración» se arma deshaciendo.
 const DESHACER = `grant select on retail.proveedores to authenticated;`;
@@ -45,8 +50,9 @@ update retail.proveedores set banco = 'BCP', cci = '00219300123456789012', titul
 const como = (quien, cuerpo) =>
   `set local role authenticated;\nset local request.jwt.claim.sub = '${quien}';\nset local request.jwt.claim.role = 'authenticated';\n${cuerpo}\nreset role;`;
 
-const dentro = (cuerpo, { conMigracion = true } = {}) =>
-  psql(`begin;\n${conMigracion ? MIGRACIONES : DESHACER}\n${ESCENA}\n${cuerpo}\nrollback;`);
+// `soloAnterior`: la regla del 13-oct sin la de Órdenes de compra (el control de esa segunda migración).
+const dentro = (cuerpo, { conMigracion = true, soloAnterior = false } = {}) =>
+  psql(`begin;\n${conMigracion ? (soloAnterior ? ANTERIOR : MIGRACIONES) : DESHACER}\n${ESCENA}\n${cuerpo}\nrollback;`);
 
 let fallas = 0;
 let total = 0;
@@ -97,6 +103,38 @@ caso(
   "si su rol pasa a ver Por pagar, la integrante sí los ve",
   pasa(`insert into retail.rol_modulos (rol_id, modulo) values (:'rol_integrante', 'por_pagar') on conflict do nothing;
 ${como(INTEGRANTE, `select cci = '00219300123456789012' from retail.fn_proveedor_datos_bancarios(:'prov');`)}`)
+);
+
+// Órdenes de compra (20261021200000): la compradora paga al contado desde su orden y necesita la cuenta.
+caso(
+  "CONTROL: con solo la regla del 13-oct, una integrante cuyo rol ve Órdenes de compra NO ve la cuenta (el hueco existía)",
+  pasa(
+    `insert into retail.rol_modulos (rol_id, modulo) values (:'rol_integrante', 'ordenes_compra') on conflict do nothing;
+${como(INTEGRANTE, `select count(*) = 0 from retail.fn_proveedor_datos_bancarios(:'prov');`)}`,
+    { soloAnterior: true }
+  )
+);
+caso(
+  "si su rol pasa a ver Órdenes de compra, la integrante sí los ve (la ficha por fn_proveedor_datos_bancarios)",
+  pasa(`insert into retail.rol_modulos (rol_id, modulo) values (:'rol_integrante', 'ordenes_compra') on conflict do nothing;
+${como(INTEGRANTE, `select cci = '00219300123456789012' and titular_cuenta = 'Proveedor de prueba' from retail.fn_proveedor_datos_bancarios(:'prov');`)}`)
+);
+caso(
+  "con Órdenes de compra, fn_proveedores ya no le devuelve los datos bancarios en blanco",
+  pasa(`insert into retail.rol_modulos (rol_id, modulo) values (:'rol_integrante', 'ordenes_compra') on conflict do nothing;
+${como(INTEGRANTE, `select cci = '00219300123456789012' and banco = 'BCP' from retail.fn_proveedores() where id = :'prov';`)}`)
+);
+caso(
+  "con Órdenes de compra sigue sin poder leer la tabla directo (el permiso por columna no cambia)",
+  rechaza(
+    `insert into retail.rol_modulos (rol_id, modulo) values (:'rol_integrante', 'ordenes_compra') on conflict do nothing;
+${como(INTEGRANTE, `select cci from retail.proveedores where id = :'prov';`)}`,
+    /permission denied for (column|table)/
+  )
+);
+caso(
+  "el módulo Órdenes de compra dice en su «incluye» que ve cómo se le paga al proveedor (lo que lee el líder antes de asignarlo)",
+  pasa(`select incluye ilike '%cómo se le paga a cada proveedor%' from retail.modulos where clave = 'ordenes_compra';`)
 );
 
 caso(

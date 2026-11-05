@@ -1,0 +1,186 @@
+/* =====================================================================================================
+   PRENDAS DE UNA ETIQUETA — «la etiqueta que se llena» (Felipe eligió la B de `docs/maquetas/etiqueta-escanear-2026-10/`,
+   2026-10-22). La hoja tiene el alto de la pantalla y nada más: la lista corre por dentro y la etiqueta se acomoda al alto que
+   queda (el mosaico dibuja las prendas que caben y el resto es «+N»), así que no aparece un scroll que no haga falta.
+
+   Movimiento (ADR-0136): todo responde a una acción —la prenda que vuela a la etiqueta al marcarla o escanearla (480 ms), la
+   etiqueta que se asienta una vez (420 ms), el mosaico que se reacomoda (300 ms)—, con `--ease-cayla`, sin rebote ni bucle. Con
+   `prefers-reduced-motion` no se mueve nada. Colores: solo tokens; el color de la prenda es dato (`data-color-dato`).
+   ===================================================================================================== */
+
+/* ---- La hoja: lista a la izquierda, etiqueta y pie a la derecha; en el celular, la etiqueta es una franja arriba ---- */
+.eqp-hoja {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* La lista nunca baja de lo que mide su contenido: si falta alto, el pie se corre hacia abajo y la hoja scrollea, nunca se le
+     encima (2026-10-26: con el teclado arriba, «Responsable» quedaba pintado sobre la lista). */
+  grid-template-rows: auto minmax(min-content, 1fr) auto;
+  grid-template-areas: "etiqueta" "lista" "pie";
+  gap: 12px;
+  /* El alto que deja la hoja de `<Modal>` (90 % en el celular; en escritorio, la pantalla menos su margen) menos lo que queda encima
+     y debajo de esta caja (título, frase y relleno): `--eqp-encima` lo mide la hoja al abrir. */
+  height: calc(90vh - var(--eqp-encima, 8rem));
+  min-height: 26rem;
+}
+/* Con el teclado del celular arriba, la hoja conserva el alto que tenía: el teclado pasa por encima del pie, nada se reacomoda. */
+@media (max-width: 639.98px) {
+  [data-teclado] .eqp-hoja { height: var(--eqp-alto, calc(90vh - var(--eqp-encima, 8rem))); }
+}
+@media (min-width: 640px) {
+  .eqp-hoja { height: calc(100dvh - 8vh - 1.5rem - var(--eqp-encima, 8rem)); max-height: 56rem; }
+}
+@media (min-width: 768px) {
+  .eqp-hoja {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "lista etiqueta" "lista pie";
+    column-gap: 20px;
+    row-gap: 0;
+  }
+}
+@media (min-width: 1024px) { .eqp-hoja { grid-template-columns: minmax(0, 1fr) 21rem; } }
+@media (min-width: 1440px) { .eqp-hoja { grid-template-columns: minmax(0, 1fr) 23rem; } }
+
+.eqp-lista { grid-area: lista; display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+.eqp-lado { grid-area: etiqueta; min-height: 0; min-width: 0; }
+.eqp-pie { grid-area: pie; min-width: 0; }
+
+/* El panel de la derecha (etiqueta + pie) es una sola superficie hundida, como el piso donde cuelga la etiqueta. */
+@media (min-width: 768px) {
+  .eqp-lado, .eqp-pie { background: var(--color-hueso); }
+  .eqp-lado { border-radius: 16px 16px 0 0; padding: 0 18px 14px; display: flex; flex-direction: column; overflow: hidden; }
+  .eqp-pie { border-radius: 0 0 16px 16px; padding: 14px 18px 18px; border-top: 1px solid var(--color-sand); }
+}
+@media (max-width: 767.98px) {
+  .eqp-pie { padding-top: 10px; border-top: 1px solid var(--color-sand); }
+}
+
+/* ---- La caja de la lista: su cabecera fija y las filas que corren por dentro ---- */
+.eqp-caja-lista { flex: 1; min-height: 7rem; display: flex; flex-direction: column; border: 1px solid var(--color-sand); border-radius: 12px; overflow: hidden; background: var(--color-papel); }
+/* `contain: size`: las filas no cuentan para el mínimo de la lista (la fila de `.eqp-hoja` que no baja de su contenido); el mínimo
+   lo pone `.eqp-caja-lista` y lo demás corre por dentro. */
+.eqp-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; contain: size; }
+
+/* La fila que acaba de leer la pistola o la cámara: queda a la vista y respira una vez en verde (o en taupe si se le quitó). */
+.eqp-fila-leida { animation: eqp-fila-leida 1200ms var(--ease-cayla) 1; }
+.eqp-fila-leida[data-tono="taupe"] { --eqp-tono: var(--color-taupe); }
+@keyframes eqp-fila-leida {
+  from { background: color-mix(in srgb, var(--eqp-tono, var(--color-verde)) 16%, transparent); }
+  to { background: transparent; }
+}
+
+/* ---- Lo último que se leyó: una tarjeta bajo el lector ---- */
+.eqp-leida { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 12px; border-radius: 12px; border: 1px solid var(--color-sand); background: var(--color-papel); }
+.eqp-leida[data-tono="verde"] { border-color: color-mix(in srgb, var(--color-verde) 40%, var(--color-sand)); }
+.eqp-leida[data-tono="ambar"] { border-color: color-mix(in srgb, var(--color-ambar) 45%, var(--color-sand)); background: color-mix(in srgb, var(--color-ambar) 7%, var(--color-papel)); }
+.eqp-leida-estado { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.eqp-leida[data-tono="verde"] .eqp-leida-estado { color: var(--color-verde); }
+.eqp-leida[data-tono="taupe"] .eqp-leida-estado { color: var(--color-taupe); }
+.eqp-leida[data-tono="ambar"] .eqp-leida-estado { color: var(--color-ambar); }
+.eqp-leida[data-tono="pizarra"] .eqp-leida-estado { color: var(--color-pizarra); }
+
+/* La tarjeta de la cámara (`EscanerBusqueda continuo`): el punto y el estado con el tono de lo que pasó. */
+.lectura-camara { --lc: var(--color-pizarra); }
+.lectura-camara[data-tono="verde"] { --lc: var(--color-verde); }
+.lectura-camara[data-tono="taupe"] { --lc: var(--color-taupe); }
+.lectura-camara[data-tono="ambar"] { --lc: var(--color-ambar); }
+.lectura-camara-punto { background: var(--lc); }
+.lectura-camara-estado { color: var(--lc); }
+
+/* ---- La etiqueta colgada ---- */
+.eqp-clavo { position: relative; height: 44px; flex: none; }
+.eqp-clavo svg { position: absolute; left: 50%; top: 0; width: 80px; height: 44px; margin-left: -40px; overflow: visible; }
+.eqp-clavo .eqp-hilo { fill: none; stroke: var(--color-taupe); stroke-width: 1.4; }
+.eqp-clavo .eqp-punta { fill: var(--color-tinta); }
+
+.eqp-tarjeta {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  border-radius: 18px 18px 14px 14px;
+  padding: 30px 18px 16px;
+  transform-origin: 50% -44px;
+}
+.eqp-tarjeta.eqp-se-asienta { animation: eqp-asienta 420ms var(--ease-cayla) 1; }
+@keyframes eqp-asienta { from { transform: rotate(1.4deg); } to { transform: none; } }
+
+.eqp-ojal { position: absolute; left: 50%; top: 11px; width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: var(--color-hueso); box-shadow: inset 0 0 0 1.5px var(--color-sand); }
+.eqp-nombre { font-family: var(--font-serif); font-weight: 600; font-size: 28px; line-height: 1.05; text-align: center; overflow-wrap: anywhere; }
+.eqp-pct { font-family: var(--font-serif); font-weight: 600; font-size: 54px; line-height: 0.95; text-align: center; color: var(--color-rojo); letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.eqp-pct-info { font-size: 13px; font-weight: 600; color: var(--color-pizarra); text-align: center; margin-top: 8px; }
+.eqp-perfora { border: 0; height: 0; border-top: 1.5px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); margin: 12px -18px; position: relative; flex: none; }
+.eqp-perfora::before, .eqp-perfora::after { content: ""; position: absolute; top: -7px; width: 13px; height: 13px; border-radius: 50%; background: var(--color-hueso); box-shadow: inset 0 0 0 1px var(--color-sand); }
+.eqp-perfora::before { left: -7px; }
+.eqp-perfora::after { right: -7px; }
+/* El monto de la caja crece con la columna: a 280 px «S/ 14,318.30» todavía cabe. */
+.eqp-monto { display: block; white-space: nowrap; font-size: 15px; line-height: 1.2; }
+@media (min-width: 1024px) { .eqp-monto { font-size: 18px; } }
+@media (min-width: 1440px) { .eqp-monto { font-size: 20px; } }
+.eqp-cifra { font-family: var(--font-serif); font-weight: 600; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* El mosaico ocupa lo que queda de la tarjeta; la hoja calcula cuántas piezas caben (`useCuantasCaben`, que lee de aquí la
+   separación y el relleno). El relleno de 4 px es el aire del filo y del foco: sin él, `overflow: hidden` cortaba el borde de arriba
+   de la primera fila (Felipe 2026-10-22); el margen negativo lo devuelve para que las piezas sigan alineadas con la tarjeta. */
+.eqp-mosaico { flex: 1; min-height: 52px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 8px; margin: 8px -4px 0; padding: 4px; overflow: hidden; }
+
+/* Cada pieza es un botón: al pasar el mouse dice el nombre (globito) y al hacer clic lleva a su fila en la lista, abierta. */
+.eqp-pieza { position: relative; display: block; aspect-ratio: 5 / 6; padding: 0; border: 0; background: none; border-radius: 7px; cursor: pointer; }
+.eqp-foto { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 7px; }
+.eqp-foto > * { width: 100%; height: 100%; border-radius: 7px; object-fit: cover; transition: transform 240ms var(--ease-cayla); }
+@media (hover: hover) {
+  .eqp-pieza:hover .eqp-foto > * { transform: scale(1.06); }
+}
+.eqp-pieza:focus-visible { outline: none; }
+.eqp-pieza:focus-visible::before { content: ""; position: absolute; inset: -3.5px; border-radius: 10px; box-shadow: 0 0 0 1.5px var(--color-tinta); pointer-events: none; }
+
+/* El filo de cada estado: una línea de 1,5 px pegada por fuera de la foto (antes, 2 px separados del borde: con 6 px entre piezas,
+   los filos de dos vecinas se tocaban y se veía un enrejado grueso). */
+.eqp-pieza[data-estado="nueva"]::after { content: ""; position: absolute; inset: 0; border-radius: 7px; box-shadow: 0 0 0 1.5px var(--color-verde); pointer-events: none; }
+.eqp-pieza[data-estado="categoria"]::after { content: ""; position: absolute; inset: 0; border-radius: 7px; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--color-pizarra) 70%, transparent); pointer-events: none; }
+.eqp-pieza[data-estado="sale"] > * { opacity: 0.32; filter: grayscale(1); }
+.eqp-pieza[data-estado="sale"]::after { content: ""; position: absolute; left: -2px; right: -2px; top: 50%; height: 1.5px; background: var(--color-taupe); transform: rotate(-24deg); pointer-events: none; }
+/* Cuántas tallas y colores junta la pieza: «×5» en la esquina, sobre la foto. */
+.eqp-veces { position: absolute; right: 3px; bottom: 3px; z-index: 1; min-width: 20px; padding: 1px 5px; border-radius: 999px; background: var(--color-tinta); color: var(--color-crema); font-size: 10.5px; font-weight: 600; line-height: 1.45; text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
+.eqp-pieza[data-espera] { opacity: 0; }
+.eqp-mas { display: grid; place-items: center; aspect-ratio: 5 / 6; border-radius: 7px; border: 1.5px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+.eqp-hueco { aspect-ratio: 5 / 6; border-radius: 7px; border: 1.5px dashed color-mix(in srgb, var(--color-taupe) 30%, transparent); }
+
+/* Una pantalla de hasta 960 px de alto (casi todas las laptops): la etiqueta se hace más corta para que el mosaico tenga lugar. */
+@media (min-width: 768px) and (max-height: 960px) {
+  .eqp-alto { display: none; }
+  .eqp-clavo { height: 28px; }
+  .eqp-clavo svg { height: 28px; }
+  .eqp-tarjeta { padding-top: 24px; transform-origin: 50% -28px; }
+  .eqp-nombre { font-size: 24px; }
+  .eqp-pct { font-size: 42px; }
+  .eqp-cifra { font-size: 32px; }
+  .eqp-perfora { margin: 9px -18px; }
+}
+
+/* En el celular la etiqueta es una franja: nombre, total y lo que cambia a la izquierda; el descuento a la derecha. */
+@media (max-width: 767.98px) {
+  .eqp-clavo, .eqp-mosaico, .eqp-perfora, .eqp-solo-ancho { display: none; }
+  .eqp-tarjeta { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 10px 14px 10px 32px; border-radius: 14px; background: var(--color-hueso); border-color: transparent; }
+  .eqp-ojal { left: 11px; top: 50%; margin: -6.5px 0 0; background: var(--color-papel); }
+  .eqp-nombre { font-size: 20px; text-align: left; grid-column: 1; }
+  .eqp-pct { font-size: 30px; margin: 0; grid-column: 2; grid-row: 1 / span 2; }
+  .eqp-pct-info { grid-column: 2; grid-row: 1 / span 2; max-width: 8rem; text-align: right; margin: 0; font-size: 12px; }
+  .eqp-total { grid-column: 1; justify-content: flex-start !important; }
+  .eqp-cifra { font-size: 20px; }
+}
+
+/* La prenda que vuela de su fila a la etiqueta: una copia de su miniatura, fija sobre todo. */
+.eqp-vuelo { position: fixed; z-index: 70; pointer-events: none; border-radius: 8px; overflow: hidden; will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eqp-fila-leida, .eqp-tarjeta.eqp-se-asienta { animation: none; }
+  .eqp-pieza[data-espera] { opacity: 1; }
+  .eqp-foto > * { transition: none; }
+  @media (hover: hover) {
+    .eqp-pieza:hover .eqp-foto > * { transform: none; }
+  }
+}

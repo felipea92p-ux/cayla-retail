@@ -20,6 +20,7 @@ import {
   lineasParaRegistrar,
   nombreDeCuenta,
   solesBalance,
+  solesExactos,
   tituloCorte,
   valoresIniciales,
   type LineaPropuesta,
@@ -153,7 +154,7 @@ export function SaldosArranqueModal({
         <CampoFin
           etiqueta="Día de arranque"
           htmlFor="arr-fecha"
-          ayuda="Los saldos son los de ese día al abrir, antes de vender. Lo ideal: el primer día de un mes, con el balance que te dé el contador al cierre del anterior."
+          ayuda="Los saldos de ese día al abrir, antes de vender. Lo ideal: el primer día de un mes, con el balance del contador."
         >
           <InputFin id="arr-fecha" data-guia="fin-balance.arranque-fecha" type="date" max={hoy} value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
         </CampoFin>
@@ -222,7 +223,7 @@ export function SaldosArranqueModal({
               <span className="text-verde">Cuadra</span>
             ) : (
               <span className="text-ambar">
-                {cuadre.diferencia > 0 ? "Falta explicar" : "Sobra"} {solesBalance(Math.abs(cuadre.diferencia))} en lo que era tuyo
+                {cuadre.diferencia > 0 ? "Falta explicar" : "Sobra"} {solesExactos(Math.abs(cuadre.diferencia))} en lo que era tuyo
               </span>
             )}
           </div>
@@ -234,7 +235,7 @@ export function SaldosArranqueModal({
           )}
 
           {correcciones.length > 0 && (
-            <details className="mb-4 text-[12.5px] text-taupe">
+            <details className="mb-4 text-sm text-taupe">
               <summary className="cursor-pointer">Correcciones anteriores ({correcciones.length})</summary>
               <ul className="fin-lista mt-2">
                 {correcciones.map((c) => (

@@ -29,6 +29,36 @@
   "relkind": "r",
   "rls": true
  },
+ "asistente_informes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "asistente_preguntas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "asistente_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "avio_clases": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "avisos_bandeja": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "avisos_tienda": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "bajada_piso_items": {
   "forzado": false,
   "relkind": "r",
@@ -59,6 +89,11 @@
   "relkind": "r",
   "rls": true
  },
+ "cambio_salidas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "cambios": {
   "forzado": false,
   "relkind": "r",
@@ -70,6 +105,46 @@
   "rls": true
  },
  "campana_efecto_caja": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_categorias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_regla_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_reglas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_web_disenos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_web_previas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "canales_venta": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -139,7 +214,22 @@
   "relkind": "r",
   "rls": true
  },
+ "club_avisos_textos_sede": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "club_canjes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_cupon_intentos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_cupones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -160,6 +250,21 @@
   "rls": true
  },
  "club_permisos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_puntos_config": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_puntos_movimientos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "club_puntos_saldos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -219,12 +324,42 @@
   "relkind": "r",
   "rls": true
  },
+ "compra_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_cierres_reabiertos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_gasto_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_gastos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "compra_item_cierres": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "compra_item_destinos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_item_recibido_antes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -264,12 +399,22 @@
   "relkind": "r",
   "rls": true
  },
+ "compra_papeles": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "compra_parte_por_tienda": {
   "forzado": false,
   "relkind": "v",
   "rls": false
  },
  "compra_reasignaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_rondas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -354,6 +499,11 @@
   "relkind": "r",
   "rls": true
  },
+ "costo_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "costo_historial": {
   "forzado": false,
   "relkind": "r",
@@ -409,6 +559,11 @@
   "relkind": "r",
   "rls": true
  },
+ "cuentas_web_vinculos_google": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "cuentas_web_visitas": {
   "forzado": false,
   "relkind": "r",
@@ -439,12 +594,22 @@
   "relkind": "r",
   "rls": true
  },
+ "despacho_observaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "despacho_pendientes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "despacho_recibidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_salidas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -485,6 +650,16 @@
   "rls": true
  },
  "egresos_no_gasto": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "empresa_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "empresas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -534,6 +709,11 @@
   "relkind": "r",
   "rls": true
  },
+ "fondo_plata_anotada": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "foto_recortes": {
   "forzado": false,
   "relkind": "r",
@@ -545,6 +725,16 @@
   "rls": true
  },
  "frescura_vara_cayla": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gasto_correcciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gasto_reparto_claure": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -569,7 +759,22 @@
   "relkind": "r",
   "rls": true
  },
+ "gastos_fijos_ficha": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_fijos_ficha_cambios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gastos_legado_2026_09": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_no_emiten": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -600,6 +805,11 @@
   "rls": true
  },
  "huellas_llave": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "insumo_lote_cambios": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -645,6 +855,11 @@
   "rls": true
  },
  "marcas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "materiales": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -764,12 +979,32 @@
   "relkind": "r",
   "rls": true
  },
+ "pedidos_campana": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pedidos_campana_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "pedidos_no_atendidos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "pedidos_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pedidos_web_push_aparatos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pedidos_web_push_envios": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -794,6 +1029,11 @@
   "relkind": "r",
   "rls": true
  },
+ "plan_compra_calendario": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planes_compra": {
   "forzado": false,
   "relkind": "r",
@@ -804,7 +1044,32 @@
   "relkind": "r",
   "rls": true
  },
+ "planes_compra_lineas_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planes_compra_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planes_compra_paso_2": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planes_compra_reparto": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planes_compra_versiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planilla_cuentas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -813,6 +1078,11 @@
   "forzado": false,
   "relkind": "v",
   "rls": false
+ },
+ "planilla_salidas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
  },
  "pos_abonos_lotes": {
   "forzado": false,
@@ -844,7 +1114,22 @@
   "relkind": "r",
   "rls": true
  },
+ "precios_sede_variante": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "preferencias_colaborador": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "prendas_danadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_danadas_fotos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -874,12 +1159,32 @@
   "relkind": "r",
   "rls": true
  },
+ "procesos_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "produccion_avances": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
+ "produccion_cambios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "produccion_etapas_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_fallas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_fase_marcas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -924,7 +1229,17 @@
   "relkind": "r",
   "rls": true
  },
+ "producto_avios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "producto_color_temporadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_consumo_medido": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -940,6 +1255,16 @@
   "rls": true
  },
  "producto_origen": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_procesos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_taller": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1005,6 +1330,11 @@
   "rls": true
  },
  "respaldo_b002_renumeradas_20261002": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rol_canales": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1084,7 +1414,27 @@
   "relkind": "r",
   "rls": true
  },
+ "sire_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "sire_propuestas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "sire_resoluciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "stock": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "stock_dueno": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1119,7 +1469,27 @@
   "relkind": "r",
   "rls": true
  },
+ "tickets_abiertos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "tienda_push_envios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "tienda_push_suscripciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "tipos_activo": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "trafico_web": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1144,12 +1514,22 @@
   "relkind": "r",
   "rls": true
  },
+ "ubicacion_cierres_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ubicacion_datos_fiscales": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
  "ubicacion_datos_web": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ubicacion_horario_web": {
   "forzado": false,
   "relkind": "r",
   "rls": true

@@ -13,6 +13,7 @@
  */
 
 import type { CampoDeGuia } from "./guia-campos";
+import { sinBlancosDeMiles } from "./numero-escrito";
 import { FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 /** Una sede con precio propio, como la devuelve `fn_precios_sede_producto`. */
@@ -48,12 +49,58 @@ export function leerPreciosDeSede(filas: readonly FilaPrecioSede[] | null | unde
   }));
 }
 
+/** Una combinación (color y talla) con precio propio en UNA tienda (20261028230000, Felipe 2026-10-28): gana al precio de la prenda en esa tienda. */
+export type ExcepcionDeSede = {
+  varianteId: string;
+  ubicacionId: string;
+  sede: string;
+  precio: number;
+  desde: string;
+  motivo: string;
+  creadoPor: string | null;
+};
+
+export type FilaExcepcionDeSede = {
+  variante_id: string;
+  ubicacion_id: string;
+  sede: string;
+  precio: number | string;
+  desde: string;
+  motivo: string;
+  creado_por_nombre: string | null;
+};
+
+/** Las filas de `fn_precios_sede_variantes_producto`. Una fila sin combinación, sin tienda o sin un precio válido se descarta (no se inventa). */
+export function leerExcepcionesDeSede(filas: readonly FilaExcepcionDeSede[] | null | undefined): ExcepcionDeSede[] {
+  return (filas ?? []).flatMap((f) => {
+    const precio = Number(f.precio);
+    if (!f.variante_id || !f.ubicacion_id || !Number.isFinite(precio) || precio <= 0) return [];
+    return [{ varianteId: f.variante_id, ubicacionId: f.ubicacion_id, sede: f.sede, precio, desde: f.desde, motivo: f.motivo, creadoPor: f.creado_por_nombre }];
+  });
+}
+
+/** Las excepciones de UNA tienda, en el orden en que llegaron. */
+export const excepcionesDeLaTienda = (excepciones: readonly ExcepcionDeSede[], ubicacionId: string): ExcepcionDeSede[] => excepciones.filter((e) => e.ubicacionId === ubicacionId);
+
+/**
+ * El precio de cada combinación de una tienda con sus excepciones encima: la de la ficha de «Precio por tienda» dice «S/ 79.90 en todas las tallas»
+ * solo si de verdad es uno; con una excepción, «según la talla». `precioPrenda` es el de la prenda en esa tienda (el propio o el general).
+ */
+export function precioDeLaTiendaPorTalla(precioPrenda: number | null, excepciones: readonly ExcepcionDeSede[]): { unico: boolean; precio: number | null } {
+  if (excepciones.length === 0) return { unico: precioPrenda !== null, precio: precioPrenda };
+  return { unico: false, precio: null };
+}
+
 /** Por encima de esta diferencia con el general, la hoja pregunta «¿seguro?» (no bloquea; Felipe 2026-10-09). */
 export const AVISO_DIFERENCIA = 0.3;
 
 /** El monto como lo escribe una persona: «129,90», «S/ 129.90», «129». Nada válido → null. */
 export function leerMonto(texto: string): number | null {
-  const limpio = texto.replace(/s\/?/gi, "").replace(/\s/g, "").replace(",", ".");
+  // Los blancos los decide la regla única: «1 200» son mil doscientos, pero «12 8 5» es un pegado de tres celdas y no se adivina.
+  // El punto del símbolo va con el símbolo: «S/.» es el sol entero, no «S/» con un punto decimal (Felipe 2026-10-31).
+  const sinBlancos = sinBlancosDeMiles(texto.replace(/s\/?\.?/gi, ""));
+  if (sinBlancos === null) return null;
+  const limpio = sinBlancos.replace(",", ".");
   if (limpio === "" || !/^\d+(\.\d{1,2})?$/.test(limpio)) return null;
   const n = Number(limpio);
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
@@ -155,34 +202,30 @@ export function precioEnLaSede(
  *  sin precio propio de una prenda con precio por talla vende de `precio` a `hasta` («S/ 69.90–79.90»). */
 export type PrecioDeTienda = { sede: string; precio: number; hasta?: number };
 
-/** Por prenda con algún precio propio, el precio en CADA tienda abierta: el propio (uno para toda la prenda) o, si no tiene, el de la
- *  prenda (`preciosPrenda`: de su talla más barata a la más cara; con precio por talla, un rango). Ordenado por tienda. Las prendas sin
- *  precios propios no aparecen. `porSede` es lo de `getPreciosPorSede` (solo las variantes que cambian de precio en esa tienda);
- *  `nombres`, las tiendas abiertas. */
+/** Por prenda con algún precio propio, el precio en CADA tienda abierta: lo que vale cada talla que se vende (su precio propio en esa tienda, o el de la
+ *  prenda si no lo tiene), de la más barata a la más cara. Una tienda donde todas valen lo mismo dice UN precio; si las tallas valen distinto (una excepción
+ *  por combinación, o una prenda con precio por talla) dice el rango, como siempre. Ordenado por tienda. Las prendas sin precios propios no aparecen.
+ *  `precios` = cada talla que se vende y su precio de la prenda (`variantes.precio`); `porSede` es lo de `getPreciosPorSede` (solo las variantes que cambian
+ *  de precio en esa tienda); `nombres`, las tiendas abiertas. */
 export function preciosDeTiendaPorProducto(
-  productos: readonly { productoId: string; varianteIds: readonly string[]; preciosPrenda: { desde: number; hasta: number } | null }[],
+  productos: readonly { productoId: string; precios: Readonly<Record<string, number>> }[],
   porSede: Readonly<Record<string, Readonly<Record<string, number>>>>,
   nombres: ReadonlyMap<string, string>,
 ): Record<string, PrecioDeTienda[]> {
   const out: Record<string, PrecioDeTienda[]> = {};
   for (const p of productos) {
-    const propioEn = (sedeId: string) => {
-      const precios = porSede[sedeId];
-      if (!precios) return undefined;
-      for (const id of p.varianteIds) if (precios[id] !== undefined) return precios[id];
-      return undefined;
-    };
+    const ids = Object.keys(p.precios);
+    if (ids.length === 0) continue;
     const sedes = new Set([...nombres.keys(), ...Object.keys(porSede)]);
-    if (![...sedes].some((s) => propioEn(s) !== undefined)) continue;
+    const tienePropio = (sedeId: string) => ids.some((id) => porSede[sedeId]?.[id] !== undefined);
+    if (![...sedes].some(tienePropio)) continue;
     const lista: PrecioDeTienda[] = [];
     for (const sedeId of sedes) {
       const sede = nombreCorto(nombres.get(sedeId) ?? "otra tienda");
-      const propio = propioEn(sedeId);
-      if (propio !== undefined) lista.push({ sede, precio: propio });
-      else if (p.preciosPrenda) {
-        const { desde, hasta } = p.preciosPrenda;
-        lista.push(hasta - desde >= 0.005 ? { sede, precio: desde, hasta } : { sede, precio: desde });
-      }
+      const valores = ids.map((id) => porSede[sedeId]?.[id] ?? p.precios[id]!);
+      const desde = Math.min(...valores);
+      const hasta = Math.max(...valores);
+      lista.push(hasta - desde >= 0.005 ? { sede, precio: desde, hasta } : { sede, precio: desde });
     }
     out[p.productoId] = lista.sort((a, b) => a.sede.localeCompare(b.sede, "es") || a.precio - b.precio);
   }
@@ -378,7 +421,7 @@ export function textoPonerPrecio(libres: readonly { nombre: string }[], hayPreci
 }
 
 /** Lo que dice la hoja (y la base: «Ese precio queda por debajo de lo que cuesta la prenda») cuando el precio no llega al costo. */
-export const FRASE_BAJO_COSTO = "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña (Catálogo ▸ Atributos ▸ Etiquetas).";
+export const FRASE_BAJO_COSTO = "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña o la insignia «Para liquidar» (las dos en Catálogo ▸ Insignias).";
 
 /** ¿El precio queda por debajo de lo que cuesta la talla que MÁS cuesta? Es el piso de la base (Felipe 2026-10-11, como la caja): justo
  *  en el costo se puede. `costoMaximo` null = no se sabe (quien no ve costos): no se avisa aquí y la base igual lo rechaza. Se compara en
@@ -429,4 +472,46 @@ export function camposPonerPrecio(h: {
 /** La hoja «Quitar el precio de …»: solo quién (el motivo es opcional). */
 export function camposQuitarPrecio(h: { responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
   return [{ id: "responsable", nombre: "Quién lo quita", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién lo quita." }];
+}
+
+/** Lo que pasa con el precio que una terminal escribe en la tabla de Precios (Felipe 2026-10-27: «que sea más simple, como en
+ *  costos»). El precio de una tienda es UNO para toda la prenda (ADR-0370), así que lo escrito en cualquier talla vale para todas.
+ *  `nada`: no se escribió, o es el que ya vende la tienda. `poner`: la tienda pasa a vender a ese precio (pide motivo, la base lo
+ *  exige). `quitar`: lo escrito es el precio de la prenda y la tienda tenía uno propio, así que vuelve al de la prenda (la base no
+ *  deja un precio propio igual al de la prenda). `invalido`: lo escrito no es un monto. */
+export type CambioPrecioAqui =
+  | { que: "nada" }
+  | { que: "invalido" }
+  | { que: "poner"; precio: number; antes: number | null }
+  | { que: "quitar"; antes: number; general: number };
+
+export function cambioPrecioAqui(h: {
+  /** Lo escrito en la tabla; `null` si no se tocó. */
+  escrito: string | null;
+  /** El precio propio vigente de la tienda; `null` si vende al de la prenda. */
+  propio: number | null;
+  /** El precio de la prenda GUARDADO, si todas sus tallas valen igual; si cambia según la talla, null. */
+  general: number | null;
+}): CambioPrecioAqui {
+  if (h.escrito === null) return { que: "nada" };
+  const precio = leerMonto(h.escrito);
+  if (precio === null) return { que: "invalido" };
+  const igual = (a: number | null) => a !== null && Math.abs(precio - a) < 0.005;
+  const vigente = h.propio ?? h.general;
+  if (igual(vigente)) return { que: "nada" };
+  if (igual(h.general)) return h.propio !== null ? { que: "quitar", antes: h.propio, general: h.general! } : { que: "nada" };
+  return { que: "poner", precio, antes: vigente };
+}
+
+/** El motivo que se guarda cuando una terminal cambia el precio desde la tabla. La base lo exige (`poner_precio_sede`, 3 letras como
+ *  mínimo), pero Felipe decidió no pedirlo (2026-10-27): basta saber quién lo cambió, y eso lo guarda la firma del responsable. */
+export const MOTIVO_DESDE_LA_TABLA = "Cambiado desde la tabla de precios";
+
+/** Por qué no se puede guardar lo escrito (lo que la base rechazaría), o null. */
+export function problemaPrecioAqui(c: CambioPrecioAqui, sede: string, general: number | null, costoMaximo: number | null): string | null {
+  if (c.que === "invalido") return `Escribe el precio de ${nombreCorto(sede)} (por ejemplo, 79.90).`;
+  if (c.que !== "poner") return null;
+  if (c.precio > MAX_PRECIO_PRENDA) return FRASE_PRECIO_CON_TOPE;
+  if (bajoElCostoSinIgual(c.precio, general, costoMaximo)) return FRASE_BAJO_COSTO;
+  return null;
 }

@@ -55,7 +55,7 @@ const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right
 // Guía oficial (2026-09-22, ADR-0169): cabecera en sand con los títulos en taupe, peso normal y SIN
 // versalitas (una tabla se lee, no se grita); divisiones en sand; zebra en hueso (`fila-cayla`, globals.css).
 export const TABLA = {
-  contenedor: "card-cayla divide-y divide-sand overflow-x-auto",
+  contenedor: "tabla-cayla card-cayla divide-y divide-sand overflow-x-auto",
   encabezado: "encabezado-tabla-cayla gap-x-4 px-5 py-2",
   titulo: "text-xs font-normal text-taupe",
   fila: "fila-cayla gap-x-4 gap-y-1 px-5 py-3",

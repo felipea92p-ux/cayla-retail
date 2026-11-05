@@ -144,7 +144,7 @@ export function BuscadorVentas({
         icono={escaneando ? "barras" : "lupa"}
         onBlur={() => setEscaneando(false)}
         inputMode="search"
-        placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, cliente, prenda o código"}
+        placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI o prenda"}
         maxLength={MAX_LARGO_BUSQUEDA}
         etiqueta="Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda"
         className={escaneando ? "escaneando" : ""}
@@ -192,7 +192,7 @@ export function BuscadorVentas({
       </div>
 
       {escaneando && (
-        <p className="anim-revelar text-xs text-tinta/70" role="status">
+        <p className="anim-revelar text-sm text-tinta/70" role="status">
           Listo para escanear: apunta la pistola a la etiqueta. La búsqueda sale sola.
         </p>
       )}

@@ -6,11 +6,11 @@ import Link from "next/link";
    regresar»)
 
    Una pantalla interna es la que no está en el lateral: se llega a ella
-   desde otra (Registrar factura desde Facturas de proveedor, el historial
+   desde otra (el detalle de una compra desde el Historial de compras, el historial
    de cierres desde Caja). Sin esta vuelta, la única salida es el botón
    «atrás» del navegador, que en la tablet de la tienda nadie encuentra.
 
-   Dice ADÓNDE vuelve («Volver a Facturas de proveedor»), nunca un «Volver»
+   Dice ADÓNDE vuelve («Volver a Historial de compras»), nunca un «Volver»
    a secas: quien llegó por un enlace de WhatsApp no sabe qué había
    «antes». Por eso, con `href`, es un enlace fijo a la pantalla de arriba
    y no un `history.back()`, que con la pestaña recién abierta no lleva a

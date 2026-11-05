@@ -109,5 +109,5 @@ function SegunElCamino({ children }: { children: React.ReactNode }) {
   const buscar = useSearchParams().toString();
   // Solo mientras se sigue en la página de donde se salió: la página nueva, al llegar, ya es otra dirección y se ve tal cual.
   if (!c || c.desde !== dondeEsta(ruta, buscar)) return children;
-  return <FormaDelEsqueleto forma={c.forma} destino={{ ruta: c.ruta, buscar: c.buscar }} sinFranja />;
+  return <FormaDelEsqueleto forma={c.forma} destino={{ ruta: c.ruta, buscar: c.buscar }} />;
 }

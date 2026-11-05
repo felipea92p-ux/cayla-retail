@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, enfocaBuscadorAlAbrir, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
@@ -162,6 +162,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   caja?: boolean;
   /** Sin el renglón del pie reservado: para una caja en una FILA de tabla junto a combos (ver `Campo`). */
   sinPie?: boolean;
+  /** Lo que va fijo a la izquierda, dentro de la caja y sin poder borrarse: el tipo de prenda en el nombre de Nuevo producto («Blusa ▢»). */
+  antes?: ReactNode;
 };
 
 /* Safari (macOS/iOS) dibuja el `type="date"` con su propio editor interno
@@ -173,7 +175,7 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, antes, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
@@ -187,6 +189,11 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
         data-trabajando={trabajando || undefined}
         data-tono={tono === "error" ? "error" : undefined}
       >
+        {antes != null && (
+          <span aria-hidden className="shrink-0 select-none pr-1.5 text-tinta/60">
+            {antes}
+          </span>
+        )}
         <input
           id={id}
           // Sin esto, Safari lee la etiqueta («Nombre», «Dirección», «Teléfono») y ofrece llenar el campo con la ficha
@@ -217,12 +224,14 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
   moneda?: string;
   /** La etiqueta solo para el lector de pantalla: el bloque de arriba ya la dice a la vista (un `CampoGuiado` con su título). */
   etiquetaOculta?: boolean;
+  /** Sin el renglón reservado para un error bajo la caja: la hoja dice lo que falta en otro lado (su «Falta: …»). */
+  sinPie?: boolean;
 };
 
-export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, className = "", ...props }: CampoMontoProps) {
+export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", ...props }: CampoMontoProps) {
   const id = useId();
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta} sinPie={sinPie}>
       {/* La caja que se enciende, de 48 px (ADR-0358, ronda 6): la cifra sigue siendo lo más grande de la hoja. */}
       <div className="caja-cayla caja-campo caja-campo-alta" data-tono={tono === "error" ? "error" : undefined}>
         <span aria-hidden className="font-display select-none text-base leading-none text-tinta/55">
@@ -467,8 +476,8 @@ const FORMA_DESPLEGABLE = {
   /** La `pildora-cayla` de una fila de píldoras que eligen un período (Historial: «Más años», 2026-10-12): la última píldora de la
    *  fila abre la lista de lo que no cupo. */
   pildora: { boton: "pildora-cayla", flecha: true, hilo: false, comoNativo: false, marcadorComoTexto: true },
-  /** Sola con su borde, en la cabecera (la sede). */
-  pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
+  /** Sola con su borde, en la cabecera (la sede). Con el vidrio (ADR-0596) es una gota en letra normal: `.combo-pastilla`, app/estilos/vidrio/. */
+  pastilla: { boton: "combo-pastilla gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
    *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
   caja: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },
@@ -608,11 +617,13 @@ export function Desplegable<T extends string>({
     cerrar();
   }
 
+  // Con buscador, el foco va al campo de texto (para que tipear filtre ya mismo) salvo en una pantalla táctil, donde enfocarlo sube el
+  // teclado, que se come la hoja y deja la lista sin lugar: ahí el foco va a la lista y el teclado sale solo si se toca el campo.
+  const enfocaBuscador = mostrarBuscador && enfocaBuscadorAlAbrir();
   useEffect(() => {
     if (!listaVisible) return;
-    // Con buscador, el foco va al campo de texto (para que tipear filtre ya mismo); sin buscador, a la lista
-    // (patrón de siempre: las flechas mueven `activo` con la lista enfocada).
-    if (mostrarBuscador) buscador.current?.focus();
+    // Sin buscador (o en táctil), el foco va a la lista (patrón de siempre: las flechas mueven `activo` con la lista enfocada).
+    if (enfocaBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
       // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
@@ -624,7 +635,7 @@ export function Desplegable<T extends string>({
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
-  }, [listaVisible, mostrarBuscador]);
+  }, [listaVisible, enfocaBuscador]);
 
   // Al reabrir con una opción elegida más abajo (`mostrarDesde` ya la incluyó en `mostradas`), la lista arranca
   // scrolleada arriba del todo: sin esto quedaba resaltada pero fuera de la vista.
@@ -842,9 +853,9 @@ export function Desplegable<T extends string>({
             role="listbox"
             aria-labelledby={idEtiqueta}
             aria-label={idEtiqueta ? undefined : etiquetaAccesible}
-            tabIndex={mostrarBuscador ? undefined : -1}
-            aria-activedescendant={mostrarBuscador ? undefined : `${id}-op-${activo}`}
-            onKeyDown={mostrarBuscador ? undefined : alTeclado}
+            tabIndex={enfocaBuscador ? undefined : -1}
+            aria-activedescendant={enfocaBuscador ? undefined : `${id}-op-${activo}`}
+            onKeyDown={enfocaBuscador ? undefined : alTeclado}
             onScroll={alHacerScroll}
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
           >
@@ -904,6 +915,7 @@ export function CampoSelect<T extends string>({
   caja = false,
   id,
   deshabilitado,
+  sinPie = false,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -919,10 +931,12 @@ export function CampoSelect<T extends string>({
   id?: string;
   /** No se puede abrir (p. ej. «Sale de» sin cuentas para ese medio): el marcador dice por qué. */
   deshabilitado?: boolean;
+  /** Sin el renglón del pie reservado (ver `Campo`): para filas apiladas donde un error igual aparece, pero el espacio vacío sobra. */
+  sinPie?: boolean;
 }) {
   const idEtiqueta = useId();
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja} sinPie={sinPie}>
       <Desplegable
         valor={valor}
         onValor={onValor}

@@ -25,6 +25,12 @@ export function soles(n: number): string {
   const v = Math.round(n);
   return v < 0 ? `−${solesRedondo(-v)}` : solesRedondo(v);
 }
+/** «S/ 1,752.00» o «−S/ 25.34»: siempre con céntimos, para una cifra que se compara con otra pantalla o con un extracto (ADR-0609). */
+export function solesCentimos(n: number): string {
+  const v = r2(n);
+  const cuerpo = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${v < 0 ? "−" : ""}S/\u00a0${cuerpo}`;
+}
 /** «+S/ 38,200» / «−S/ 41,300»: una línea de la lista de lo que entró o salió. */
 export function solesConSigno(n: number): string {
   return Math.round(n) < 0 ? soles(n) : `+${soles(n)}`;
@@ -34,8 +40,6 @@ export function solesConSigno(n: number): string {
 
 export type Lado = "entra" | "sale" | "ajuste";
 
-/** El orden del spike: primero cómo se cobró, después la plata del dueño y lo demás. */
-const ORDEN_ENTRA = ["efectivo", "yape", "plin", "tarjeta", "transferencia", "qr", "dueno_pone", "otros_ingresos"];
 
 export const TEXTO_CATEGORIA: Record<string, string> = {
   efectivo: "Efectivo",
@@ -53,6 +57,7 @@ export const TEXTO_CATEGORIA: Record<string, string> = {
   pago_tarjeta: "Pago de la tarjeta de crédito",
   planilla: "Pago de la planilla",
   impuestos: "Pago a SUNAT (IGV)",
+  pago_claure: "Pago a CLAURE",
   comision_pos: "Comisión del POS",
   deposito_sin_cuenta: "Llevado al banco sin decir a cuál",
   por_clasificar: "Egresos de caja por clasificar",
@@ -77,6 +82,22 @@ export const TEXTO_SIN_CUENTA: Record<string, string> = {
 
 export type CategoriaFlujo = { clave: string; lado: Lado; monto: number };
 export type SemanaReal = { desde: string; hasta: string; entro: number; salio: number; ajustes: number; saldo: number };
+/** Una cuenta que arrancó con su saldo después del primer día del período, y lo que su libro registró antes (ADR-0609). */
+export type ArranqueCuenta = {
+  cuentaId: string;
+  cuenta: string;
+  /** El día desde el que la cuenta suma (`saldo_desde`). */
+  desde: string;
+  saldoInicial: number;
+  /** Lo cobrado antes de arrancar: ya está dentro del saldo de arranque, por eso no suma en lo que entró. */
+  cobros: number;
+  /** Gastos y pagos antes de arrancar (positivo = salió plata). */
+  salidas: number;
+  /** Depósitos y abonos antes de arrancar, con su signo. */
+  entreCuentas: number;
+  /** Lo que las máquinas descontaron en ese tramo; ya está dentro de `entreCuentas`. */
+  comision: number;
+};
 export type FlujoReal = {
   desde: string;
   hasta: string;
@@ -91,6 +112,8 @@ export type FlujoReal = {
   categorias: CategoriaFlujo[];
   semanas: SemanaReal[];
   sinCuenta: { origen: string; n: number; monto: number }[];
+  /** ADR-0609. Vacío si todas las cuentas ya sumaban desde el primer día (o si la base aún no trae el dato). */
+  arranques: ArranqueCuenta[];
   planillaVisible: boolean;
   planilla: { nombre: string; fechaFin: string; pagado: number }[];
 };
@@ -119,47 +142,19 @@ export function leerFlujoReal(data: unknown): FlujoReal {
       saldo: num(s.saldo),
     })),
     sinCuenta: lista(d.sin_cuenta).map((s) => ({ origen: String(s.origen), n: num(s.n), monto: num(s.monto) })),
+    arranques: lista(d.arranques).map((a) => ({
+      cuentaId: String(a.cuenta_id),
+      cuenta: String(a.cuenta ?? ""),
+      desde: fecha(a.desde),
+      saldoInicial: num(a.saldo_inicial),
+      cobros: num(a.cobros),
+      salidas: num(a.salidas),
+      entreCuentas: num(a.entre_cuentas),
+      comision: num(a.comision),
+    })),
     planillaVisible: d.planilla_visible === true,
     planilla: lista(d.planilla).map((p) => ({ nombre: String(p.nombre ?? ""), fechaFin: fecha(p.fecha_fin), pagado: num(p.pagado) })),
   };
-}
-
-/** Las listas del spike: lo que entró (en el orden de los medios) y lo que salió (de mayor a menor); los ajustes aparte. */
-export function listasDelFlujo(f: Pick<FlujoReal, "categorias">): { entradas: CategoriaFlujo[]; salidas: CategoriaFlujo[]; ajustes: CategoriaFlujo[] } {
-  const orden = (c: CategoriaFlujo) => {
-    const i = ORDEN_ENTRA.indexOf(c.clave);
-    return i < 0 ? ORDEN_ENTRA.length : i;
-  };
-  const conMonto = f.categorias.filter((c) => Math.round(c.monto * 100) !== 0);
-  return {
-    entradas: conMonto.filter((c) => c.lado === "entra").sort((a, b) => orden(a) - orden(b)),
-    salidas: conMonto.filter((c) => c.lado === "sale").sort((a, b) => b.monto - a.monto),
-    ajustes: conMonto.filter((c) => c.lado === "ajuste").sort((a, b) => Math.abs(b.monto) - Math.abs(a.monto)),
-  };
-}
-
-/** La frase de la nota del spike: por qué la plata subió o bajó en el período. */
-export function fraseDelFlujo(f: FlujoReal): { tono: "neutro" | "aviso"; partes: Parte[] } {
-  const { salidas } = listasDelFlujo(f);
-  const neto = f.entro - f.salio;
-  if (neto >= 0) {
-    return {
-      tono: "neutro",
-      partes: [
-        "Entró ",
-        { b: `${soles(neto)} más de lo que salió` },
-        `: la plata disponible pasó de ${soles(f.saldoInicial)} a ${soles(f.saldoFinal)}.`,
-      ],
-    };
-  }
-  const mayor = salidas[0];
-  const porque =
-    mayor?.clave === "mercaderia"
-      ? ": pagaste mercadería antes de venderla. Eso es normal en moda; lo que hay que vigilar es que el saldo no baje del mínimo."
-      : mayor
-        ? `: lo que más sacó plata fue «${textoCategoria(mayor.clave).toLowerCase()}» (${soles(mayor.monto)}).`
-        : ".";
-  return { tono: "aviso", partes: ["Salió ", { b: `${soles(-neto)} más de lo que entró` }, porque] };
 }
 
 /** Un pedazo de texto; `{ b }` va en negrita. Así las frases se arman aquí y la pantalla solo las pinta. */
@@ -229,6 +224,8 @@ export type Proyeccion = {
   desde: string;
   hasta: string;
   saldoHoy: number;
+  /** Lo que se le debe a Claudia (CLAURE) y ya se restó de `saldoHoy` (ADR-0560, actividad 16). `undefined`/`null`: una base más vieja que esta web, o nada que restar. */
+  deClaudia?: number | null;
   minimoCaja: number;
   salidasDiarias: number;
   diasDeCaja: number | null;
@@ -258,6 +255,7 @@ export function leerProyeccion(data: unknown): Proyeccion {
     desde: fecha(d.desde),
     hasta: fecha(d.hasta),
     saldoHoy: num(d.saldo_hoy),
+    deClaudia: d.de_claudia === null || d.de_claudia === undefined ? null : num(d.de_claudia),
     minimoCaja: num(d.minimo_caja),
     salidasDiarias: num(d.salidas_diarias),
     diasDeCaja: d.dias_de_caja === null || d.dias_de_caja === undefined ? null : num(d.dias_de_caja),
@@ -679,39 +677,12 @@ export function rangoDelMes(mes: string, hoy: string): { desde: string; hasta: s
   return { desde: `${mes}-01`, hasta: ultimo < hoy ? ultimo : hoy };
 }
 
-const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-/** «septiembre al 24» (el mes en curso) o «agosto» (uno que ya terminó). */
-export function textoPeriodo(desde: string, hasta: string, hoy: string): string {
-  const nombre = MESES_LARGOS[Number(desde.slice(5, 7)) - 1] ?? "";
-  const anio = desde.slice(0, 4) !== hoy.slice(0, 4) ? ` ${desde.slice(0, 4)}` : "";
-  return hasta === hoy ? `${nombre}${anio} al ${dia(hasta)}` : `${nombre}${anio}`;
-}
-
 const celda = (v: string | number) => {
   const s = typeof v === "number" ? v.toFixed(2) : v;
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 /** CSV separado por «;» (Excel en español), montos exactos con punto: el mismo formato de Reportes (F5). */
 const csv = (filas: (string | number)[][]) => "﻿" + filas.map((f) => f.map(celda).join(";")).join("\r\n");
-
-/** Lo que ya pasó (semana por semana y por categoría) y lo que viene, en un archivo. */
-export function csvFlujo(real: FlujoReal | null, p: Proyeccion | null): string {
-  const filas: (string | number)[][] = [];
-  if (real) {
-    filas.push(["Lo que ya pasó", real.desde, real.hasta], ["Semana", "Entró", "Salió", "Ajustes", "Quedó"]);
-    filas.push(["Saldo al empezar", "", "", "", real.saldoInicial]);
-    for (const s of real.semanas) filas.push([etiquetaSemana(s.desde, s.hasta), s.entro, s.salio, s.ajustes, s.saldo]);
-    filas.push([], ["Categoría", "Lado", "Monto"]);
-    for (const c of real.categorias) filas.push([textoCategoria(c.clave), c.lado, c.monto]);
-    filas.push([]);
-  }
-  if (p) {
-    filas.push(["Lo que viene", p.desde, p.hasta], ["Semana", "Entra", "Sale", "Queda", "Bajo el mínimo", "Qué vence"]);
-    filas.push(["Hoy", "", "", p.saldoHoy, "", ""]);
-    for (const w of p.semanas) filas.push([etiquetaSemana(w.desde, w.hasta), w.entra, w.sale, w.saldo, w.bajoMinimo ? "sí" : "no", queVence(p.salidas, w.desde, w.hasta)]);
-  }
-  return csv(filas);
-}
 
 /** El escenario: la caja semana por semana (hoy y con el cambio) y la utilidad de cada unidad. */
 export function csvEscenario(base: readonly SemanaProy[], nuevo: readonly SemanaProy[], u: ReturnType<typeof utilidadConCambios> | null): string {

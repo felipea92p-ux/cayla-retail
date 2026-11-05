@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeftRight, ArrowRight, Check, Clock, ReceiptText, Undo2 } from "lucide-react";
 import { CLASE_BOTON_FILA, ChipEstado, ComprasAgrupadas, FilaPrendaVenta, formatearHora, type CompraAgrupada } from "@/components/ComprasAgrupadas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { actividadPreviaVenta, descripcionEntregada, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
+import { actividadPreviaVenta, descripcionEntregadaTodas, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
 import { estadoPlazoDevolucion, estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaLima, hoyLima } from "@/lib/fechas-lima";
@@ -85,21 +85,21 @@ export function DevolucionesVentas({
               <>
                 {linea.devolucionesHechas.map((d, i) =>
                   d.estado === "pendiente" ? (
-                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-xs text-ambar-profundo">
+                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-sm text-ambar-profundo">
                       <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       {d.cantidad > 1 ? `${d.cantidad} unidades: ` : ""}devolución pendiente de aprobación · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
                     </p>
                   ) : (
-                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-xs text-verde-profundo">
+                    <p key={`d${i}`} className="mt-1 flex items-center gap-1.5 text-sm text-verde-profundo">
                       <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       {linea.cantidad > 1 ? `${d.cantidad} devuelta${d.cantidad === 1 ? "" : "s"}` : "Devuelta"} · {etiquetaDia(d.creadoEn, ahora).toLowerCase()} {formatearHora(d.creadoEn)}
                     </p>
                   )
                 )}
                 {linea.cambiosHechos.map((c, i) => (
-                  <p key={`c${i}`} className="mt-1 flex items-center gap-1.5 text-xs text-verde-profundo">
+                  <p key={`c${i}`} className="mt-1 flex items-center gap-1.5 text-sm text-verde-profundo">
                     <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregada(c, linea.productoId)}
+                    {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregadaTodas(c, linea.productoId)}
                   </p>
                 ))}
               </>

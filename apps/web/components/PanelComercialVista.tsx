@@ -66,8 +66,9 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
             etiqueta="Ventas de hoy"
             ayuda={
               <Ayuda titulo="Qué cuenta como venta">
-                Lo que cobró el mostrador, con IGV incluido, igual que el cierre de caja. No cuenta lo anulado. Las
-                devoluciones aprobadas se muestran aparte, con la fecha en que se aprobaron, y no se restan solas.
+                Lo que cobró el mostrador de CAYLA, con IGV incluido. No cuenta lo anulado ni lo que se vendió de CLAURE (de Claudia, en Tienda
+                Lima): el cierre de caja sí lo cuenta, porque es lo que hay en el cajón. Las devoluciones aprobadas se muestran aparte, con la
+                fecha en que se aprobaron, y no se restan solas.
               </Ayuda>
             }
             valor={soles(total.ventasHoy)}
@@ -198,8 +199,8 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
         <summary className="cursor-pointer font-semibold text-tinta" data-guia="comercial.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
-            <strong>Venta:</strong> lo cobrado en el mostrador con IGV incluido, sin las ventas anuladas. La diferencia de un
-            cambio no cuenta como venta nueva.
+            <strong>Venta:</strong> lo cobrado en el mostrador de CAYLA con IGV incluido, sin las ventas anuladas ni lo vendido de CLAURE
+            (Caja y el Historial sí lo muestran). La diferencia de un cambio no cuenta como venta nueva.
           </li>
           <li>
             <strong>Devuelto:</strong> devoluciones aprobadas, con la fecha en que se aprobaron (igual que la caja: la plata sale

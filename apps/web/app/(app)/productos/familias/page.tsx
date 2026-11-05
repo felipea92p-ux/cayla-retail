@@ -1,7 +1,6 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { Ayuda } from "@/components/Ayuda";
 import { FamiliasLista, type Familia } from "@/components/FamiliasLista";
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -42,21 +41,16 @@ export default async function FamiliasPage() {
         <EncabezadoPagina
           sede={persona.ubicacionEtiqueta}
           volver={<Volver href="/productos/categorias" a="Categorías" />}
-          titulo={
+          titulo="Familias"
+          subtitulo={
             <>
-              Familias
-              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
-              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
-                <Ayuda titulo="Familias">
-                  El agrupador grande del catálogo — Indumentaria, Calzado, Accesorios y Complementos...
-                  — cada categoría (Blusas, Jeans, Carteras) pertenece a exactamente una. A diferencia de
-                  Colores/Tallas/Tejidos/Patrones/Etiquetas: agregar una familia no es de un clic al
-                  catalogar una prenda, es una decisión de marca — solo un Líder la agrega, edita o
-                  desactiva. No se puede desactivar una con categorías activas colgando. Una familia
-                  también puede dejar de contar en Análisis, Frescura y el plan del piso (bolsas, cajas):
-                  sus ventas siguen entrando a caja, pero no se piden ni se cuentan como demanda.
-                </Ayuda>
-              </span>
+              El agrupador grande del catálogo — Indumentaria, Calzado, Accesorios y Complementos...
+              — cada categoría (Blusas, Jeans, Carteras) pertenece a exactamente una. A diferencia de
+              Colores/Tallas/Tejidos/Patrones/Etiquetas: agregar una familia no es de un clic al
+              catalogar una prenda, es una decisión de marca — solo un Líder la agrega, edita o
+              desactiva. No se puede desactivar una con categorías activas colgando. Una familia
+              también puede dejar de contar en Análisis, Frescura y el plan del piso (bolsas, cajas):
+              sus ventas siguen entrando a caja, pero no se piden ni se cuentan como demanda.
             </>
           }
         />

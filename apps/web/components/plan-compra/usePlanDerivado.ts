@@ -1,0 +1,158 @@
+"use client";
+
+import { useMemo } from "react";
+import { avisosDelPlan, type AvisoDelPlan } from "@/lib/plan-compra-avisos";
+import { conDescuentos, leerDescuentos } from "@/lib/plan-compra-descuento";
+import { leerHistorial } from "@/lib/plan-compra-historial";
+import { leerPasos2 } from "@/lib/plan-compra-modelos";
+import { leerEnvios, resumenParaLaFila } from "@/lib/plan-compra-envio";
+import { leerPedido, type LecturaPedido } from "@/lib/plan-compra-pedido";
+import { diasDeVentasDelErp } from "@/lib/plan-compra-periodo";
+import { diasConQueSeCuenta, fraseDeLosDias, fraseDelConteoAntesDelPlazo, leerPlazoFijado, plazoDePedido, type PlazoDePedido, type PlazoFijado } from "@/lib/plan-compra-plazo";
+import { conHistorial, leerPropuesta, proponer, type LecturaPropuesta } from "@/lib/plan-compra-propuesta";
+import { leerVersiones, versionDeHoy, type LecturaVersiones, type VersionDelPlan } from "@/lib/plan-compra-versiones";
+import { tiendasParaRepartir } from "@/lib/plan-compra-reparto";
+import {
+  armarFilas,
+  confianzaDelStock,
+  leerPlan,
+  momentoDeLaCampana,
+  ranurasPorArmar,
+  totalesDelPlan,
+  type CampanasLeidas,
+  type ConfianzaDelStock,
+  type FilaPlan,
+  type LecturaPlan,
+  type Momento,
+  type TotalesPlan,
+} from "@/lib/plan-compra-reglas";
+import type { LecturaMotor } from "@/lib/motor-demanda";
+
+// Lo que se deriva de lo que la base manda para UNA campaña del Plan: las filas con su cuenta hecha, en qué momento está la campaña, el plazo para
+// pedir, la confianza del stock y los avisos. Lo comparten las pestañas del Plan (Plan, Presupuesto, Calendario): las tres muestran la misma campaña
+// y el mismo centro de avisos, y ninguna debe calcularlos por su lado. Antes vivía dentro de `PlanCampana`; salió de ahí sin cambiar nada de lo que hace
+// (Kent Beck: primero se vuelve fácil el cambio, después se hace el cambio).
+
+export type EntradaDelPlan = {
+  datos: unknown;
+  /** El descuento guardado y el que sugiere la campaña (`fn_plan_compra_descuento`), crudo. */
+  descuentos?: unknown;
+  /** Los hechos para proponer flojo, normal y bueno (`fn_plan_compra_propuesta`), crudos. */
+  propuesta?: unknown;
+  /** La misma campaña del año anterior en el historial, crudo. */
+  historia?: unknown;
+  /** Lo ya pedido en órdenes de compra, crudo. */
+  pedido?: unknown;
+  /** Los días para llegar fijados (`fn_plan_compra_plazo`), crudo. */
+  plazo?: unknown;
+  /** El precio de la plata, el tope y las versiones (`fn_plan_compra_versiones`), crudo. */
+  versiones?: unknown;
+  /** Qué categorías ya tienen su paso 2 guardado (`fn_plan_compra_pasos_2`, ADR-0526), crudo; null = la base no lo sabe. */
+  pasos2?: unknown;
+  /** Qué tiene cada categoría en Compras (`fn_plan_compra_envios`, ADR-0530), crudo; null = la base no lo sabe: las filas no dicen nada de Compras. */
+  envios?: unknown;
+  preparacion: LecturaMotor;
+  puedeContar: boolean;
+  /** Las campañas con el calendario del plan pegado: de ahí salen las que empiezan pronto y no tienen plan (aviso «por armar», ADR-0525). */
+  campanas?: CampanasLeidas | null;
+};
+
+/** Lo derivado de una campaña que SÍ existe. */
+export type PlanConPlan = {
+  plan: LecturaPlan;
+  /** Los hechos de la propuesta, aunque sean de otra campaña (la pantalla los descarta si `planId` no es el de este plan). */
+  hechos: LecturaPropuesta | null;
+  /** Los hechos, solo si son de ESTA campaña. */
+  hechosDelPlan: LecturaPropuesta | null;
+  pedido: LecturaPedido | null;
+  filas: FilaPlan[];
+  momento: Momento;
+  totales: TotalesPlan;
+  plazoFijado: PlazoFijado | null;
+  plazo: PlazoDePedido;
+  /** Categorías con algo por comprar. */
+  porPedir: number;
+  confianza: ConfianzaDelStock;
+  avisos: AvisoDelPlan[];
+  /** Las versiones del plan; null = la base no las manda (no se ofrecen ni «Usar el plan con tope»). */
+  versiones: LecturaVersiones | null;
+  /** El precio de la plata con que se calculan las filas (0 = el plan de siempre). */
+  precioDeLaPlata: number;
+  /** La versión que ES el plan de hoy; null = hay cambios que ninguna versión recuerda (o no hay versiones). */
+  versionDeHoy: VersionDelPlan | null;
+};
+
+export type PlanDerivado = { plan: null; hechos: LecturaPropuesta | null; pedido: LecturaPedido | null; filas: FilaPlan[] } | PlanConPlan;
+
+export function usePlanDerivado(e: EntradaDelPlan): PlanDerivado {
+  const { datos, descuentos = null, propuesta = null, historia = null, pedido: pedidoCrudo = null, plazo: plazoCrudo = null, versiones: versionesCrudas = null, pasos2: pasos2Crudos = null, envios: enviosCrudos = null, preparacion, puedeContar, campanas = null } = e;
+  const plan = useMemo(() => conDescuentos(leerPlan(datos), leerDescuentos(descuentos)), [datos, descuentos]);
+  const hechos = useMemo(() => {
+    const leida = leerPropuesta(propuesta);
+    return leida ? conHistorial(leida, leerHistorial(historia)) : null;
+  }, [propuesta, historia]);
+  const pedido = useMemo(() => leerPedido(pedidoCrudo), [pedidoCrudo]);
+  const versiones = useMemo(() => leerVersiones(versionesCrudas), [versionesCrudas]);
+  // Las categorías con su paso 2 guardado (ADR-0526); null = la base todavía no lo sabe: las filas no dicen nada del paso 2.
+  const pasos2 = useMemo(() => leerPasos2(pasos2Crudos), [pasos2Crudos]);
+  // Lo que cada categoría tiene en Compras (ADR-0530); null = la base todavía no lo sabe: las filas no dicen nada de Compras.
+  const envios = useMemo(() => leerEnvios(enviosCrudos), [enviosCrudos]);
+  // El precio de la plata del plan con tope que la campaña USA: cada cuenta del Plan (la tabla, la hoja de cada categoría, el simulador) lo aplica.
+  const precioDeLaPlata = versiones?.precioDeLaPlata ?? 0;
+
+  // Cada fila lleva lo que propone el sistema (C4) y el % de lo que sobra de la campaña (C5), si la base los manda para ESTA campaña.
+  const filas = useMemo(() => {
+    if (!plan) return [];
+    // Lo ya pedido en órdenes va en cada fila haya o no propuesta, y lo que falta llegar se resta de «Comprar» (ADR-0372 act. (e) y 2026-10-13 b).
+    const armadas = armarFilas(plan, pedido?.porCategoria, precioDeLaPlata);
+    const conPaso2 = pasos2 ? armadas.map((f): FilaPlan => ({ ...f, paso2: pasos2.find((x) => x.categoriaId === f.c.id) ?? null })) : armadas;
+    const base = envios ? conPaso2.map((f): FilaPlan => ({ ...f, envio: resumenParaLaFila(envios, f.c.id) })) : conPaso2;
+    if (!hechos || hechos.planId !== plan.plan.id) return base;
+    return base.map((f) => ({
+      ...f,
+      propuesta: proponer(hechos, f.c.id),
+      propuestaLeidaEn: hechos.leidaEn,
+      diasDeVentas: diasDeVentasDelErp(hechos.tiendas),
+      conCampanaAnterior: hechos.tiendas.some((t) => t.previaDisponible),
+      recuperoDefecto: hechos.recupero.pct,
+      // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
+      reparto:
+        hechos.tiendasActivas.length > 0
+          ? tiendasParaRepartir(hechos, f.c.id, (nombre) => f.sedes?.find((s) => s.ubicacion === nombre)?.unidades ?? 0)
+          : undefined,
+    }));
+  }, [plan, hechos, pedido, precioDeLaPlata, pasos2, envios]);
+
+  if (!plan) return { plan: null, hechos, pedido, filas };
+
+  const momento = momentoDeLaCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
+  const totales = totalesDelPlan(filas);
+  // La fecha límite para pedir (ADR-0499): el inicio de la campaña menos los días que tarda un pedido en llegar. Mientras ese número no se
+  // fije por campaña, es el supuesto de fábrica (14) y el aviso lo dice.
+  const plazoFijado = leerPlazoFijado(plazoCrudo);
+  const plazo = plazoDePedido(plan.plan.desde, plan.plan.hasta, plan.hoy, diasConQueSeCuenta(plazoFijado));
+  const porPedir = filas.filter((f) => (f.calculo?.comprar ?? 0) > 0).length;
+  const confianza = confianzaDelStock(preparacion);
+  const hechosDelPlan = hechos && hechos.planId === plan.plan.id ? hechos : null;
+  // El centro de avisos (Felipe 2026-10-26, spike ②): UNA lista en vez de franjas sueltas, con su número y lo urgente a la vista.
+  const avisos = avisosDelPlan(
+    {
+      estado: momento.estado,
+      plazo,
+      porPedir,
+      conPlan: totales.conPlan,
+      fraseDeLosDias: fraseDeLosDias(plazoFijado),
+      puedeCambiarDias: !!plazoFijado,
+      confianza,
+      puedeContar,
+      fraseDelConteo: fraseDelConteoAntesDelPlazo(plazo),
+      filas,
+      tope: plan.tope.valor,
+      inversion: totales.inversion,
+      precioDeLaPlata,
+      porArmar: campanas ? ranurasPorArmar(campanas, plan.hoy) : [],
+    },
+    { diasDeVentas: diasDeVentasDelErp(hechosDelPlan?.tiendas), conCampanaAnterior: hechosDelPlan?.tiendas.some((t) => t.previaDisponible) ?? false },
+  );
+  return { plan, hechos, hechosDelPlan, pedido, filas, momento, totales, plazoFijado, plazo, porPedir, confianza, avisos, versiones, precioDeLaPlata, versionDeHoy: versiones ? versionDeHoy(versiones) : null };
+}

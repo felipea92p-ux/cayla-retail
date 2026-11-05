@@ -422,6 +422,24 @@ select count(*) from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'i
   esperar("un fijo ya registrado este mes no se proyecta otra vez", r.ok && bolsas === "0", r);
 }
 
+// 8b. «Pagar N días antes» (20261023173000, ADR-0487): el fijo sale el día de pago, no el del vencimiento, y entra al horizonte aunque su
+//     mes empiece después. Con el reloj en un día fijo (20 de oct.): un fijo que vence el 1 de nov. y se paga 5 días antes sale el 27 de oct.,
+//     el último día de la semana proyectada; el mes de noviembre solo se pide por esa regla.
+{
+  const r = correr(`${ESCENA}
+create or replace function retail.fn_hoy_lima() returns date language sql stable as $f$ select date '2026-10-20' $f$;
+select retail.guardar_gasto_fijo(null, :'tru', 'suministros', 'Hilo F8b', null, 'sin_comprobante', 300, false, 1, 'dia', null, 5) as f1 \\gset
+select retail.guardar_gasto_fijo(null, :'tru', 'suministros', 'Cierres F8b', null, 'sin_comprobante', 80, false, 1) as f2 \\gset
+select retail.fn_flujo_caja_proyeccion(1) as p \\gset
+select (s->>'fecha')::date, (s->>'vence')::date, s->>'monto' from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = :'f1' || ':2026-11';
+select count(*) from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = :'f2' || ':2026-11';
+select (s->>'fecha')::date, (s->>'vence')::date, s->>'atrasada' from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' = :'f1' || ':2026-10';`);
+  const [conAnticipo, sinAnticipo, vencido] = lineas(r);
+  esperar("vence el 1 de nov. y se paga 5 días antes: sale el 27 de oct. (aunque su mes empiece después del horizonte), y dice que vence el 1", r.ok && conAnticipo === "2026-10-27|2026-11-01|300.00", r);
+  esperar("el mismo fijo sin «pagar antes» no entra: su día (el 1 de nov.) cae fuera de la semana", r.ok && sinAnticipo === "0", r);
+  esperar("el de octubre ya venció sin registrar: sale mañana (primer bloque) y está atrasado", r.ok && vencido === "2026-10-21|2026-10-01|true", r);
+}
+
 // 9. La planilla de Dynamic (con una vista de muestra): el mismo día de cada mes; sin la vista, se dice que no se ve.
 {
   const r = correr(`${ESCENA}
@@ -491,11 +509,24 @@ select bool_or(has_function_privilege('authenticated', f, 'execute')) from unnes
 select string_agg(distinct p.provolatile::text, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'retail' and p.proname in ('fn_flujo_caja_real', 'fn_flujo_caja_proyeccion', 'fn_flujo_lineas', 'fn_flujo_disponible');`);
   const [real, proy, privilegios, internas, volatil] = lineas(r);
-  esperar("con Reportes financieros y Cuentas y dinero, una colaboradora no ve el flujo de CAYLA entera", r.ok && real.includes("lo ve el líder"), r);
-  esperar("ni la proyección", r.ok && proy.includes("lo ve el líder"), r);
-  esperar("anon no las llama; authenticated sí (el candado es el líder, adentro)", r.ok && privilegios === "f|f|t", r);
+  // ADR-0585 (Felipe 2026-10-30): con el módulo se ve el flujo de CAYLA entera (antes: «por ahora lo ve el líder»).
+  esperar("con el módulo, una colaboradora ve el flujo de CAYLA entera", r.ok && real === "SIN_ERROR", r);
+  esperar("y la proyección", r.ok && proy === "SIN_ERROR", r);
+  esperar("anon no las llama; authenticated sí (el candado es el módulo, adentro)", r.ok && privilegios === "f|f|t", r);
   esperar("las piezas internas no se llaman desde afuera", r.ok && internas === "f", r);
   esperar("nada se guarda: las lecturas son STABLE", r.ok && volatil === "s", r);
+}
+
+// 11b. Sin el módulo (aunque tenga Cuentas y dinero) no ve el flujo de CAYLA entera (ADR-0585).
+{
+  const r = correr(`${ESCENA}
+${conModulo("cuentas_dinero")}
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.fn_flujo_caja_real(%L::date - 6, %L::date)', :'hoy', :'hoy'));
+select pg_temp.intento('select retail.fn_flujo_caja_proyeccion(6)');`);
+  const [real, proy] = lineas(r);
+  esperar("sin el módulo (solo con Cuentas y dinero) no ve el flujo de CAYLA entera", r.ok && real.includes("Estados financieros"), r);
+  esperar("ni la proyección", r.ok && proy.includes("Estados financieros"), r);
 }
 
 // 10b. Con qué se proyecta (ADR-0433, actividad 4): la base dice cuántos días de historia hay, si algún banco o caja fuerte declaró su saldo

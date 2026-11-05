@@ -20,6 +20,7 @@ import {
   TEXTO_TIPO_CUENTA,
   TIPOS_AUTOMATICOS,
   TIPOS_QUE_SE_AGREGAN,
+  idsSoloTransferencia,
   mediosDeMaquina,
   nombreCorto,
   textoDondeCobra,
@@ -37,10 +38,11 @@ import { CreditCard, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { LapizEditar } from "@/components/ui/BotonEditar";
+import { BANCOS_CON_CUENTA, TEXTO_BANCO, type CuentaPlanilla } from "@/lib/planilla-salidas-reglas";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
-// qué cuenta entra cada medio de cobro en cada tienda. Como en Tiendas y caja, CADA CASILLA SE GUARDA SOLA al cambiar,
+// qué cuenta entra cada medio de cobro en cada tienda. Como en Metas, CADA CASILLA SE GUARDA SOLA al cambiar,
 // firmada con el responsable. Cambiar a qué cuenta entra un cobro rige desde hoy: lo pasado no se mueve. Cada cuenta se
 // corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25). Desde el ADR-0429, también las
 // máquinas de cobro (Izipay, Vendemás): en qué tiendas cobran con tarjeta y QR y en qué cuenta «por depositar» espera esa plata.
@@ -52,12 +54,15 @@ export function ConfiguracionCuentas({
   cuentas,
   medios,
   maquinas,
+  planilla = null,
   hoy,
 }: {
   cuentas: CuentaDinero[];
   medios: FilaMedio[];
   /** Nulo = la base todavía no conoce las máquinas (falta pegar 20261016173000): la tarjeta no se dibuja. */
   maquinas: MaquinaPos[] | null;
+  /** De qué cuenta sale la planilla de cada banco (ADR-0567). Nulo = la base todavía no lo sabe (falta pegar 20261029053000). */
+  planilla?: CuentaPlanilla[] | null;
   hoy: string;
 }) {
   const router = useRouter();
@@ -87,11 +92,13 @@ export function ConfiguracionCuentas({
 
   const tiendas = [...new Map(medios.map((m) => [m.ubicacionId, m.ubicacionNombre])).entries()];
   const activas = cuentas.filter((c) => !c.archivada);
+  // El Taller no cobra a clientes: la base solo le lista «Transferencia» (de ahí paga a sus proveedores). Sus otras celdas no se dibujan.
+  const soloTransferencia = idsSoloTransferencia(medios);
 
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al cambiarla, a nombre de quien figure como responsable. Cada cambio queda en la historia.</p>
+        <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al cambiarla y queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
@@ -149,17 +156,17 @@ export function ConfiguracionCuentas({
       </Superficie>
 
       <Superficie className="anim-sube" guia="config.cuentas-cobros">
-        <TituloDeTarjeta titulo="A qué cuenta entra cada cobro" bajada="Si cambias el Yape de una tienda a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve." />
+        <TituloDeTarjeta titulo="A qué cuenta entra cada cobro" bajada="Si cambias el Yape de una sede a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve." />
         {tiendas.length === 0 ? (
           <Vacio tamano="chico" icono={<Store />}>
-            No hay tiendas activas.
+            No hay sedes activas.
           </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla fin-tabla-medios">
               <thead>
                 <tr>
-                  <th>Tienda</th>
+                  <th>Sede</th>
                   {MEDIOS_COBRO.map((m) => (
                     <th key={m}>{TEXTO_MEDIO_COBRO[m]}</th>
                   ))}
@@ -168,27 +175,38 @@ export function ConfiguracionCuentas({
               <tbody>
                 {tiendas.map(([id, nombre]) => (
                   <tr key={id}>
-                    <td data-l="Tienda">
+                    <td data-l="Sede">
                       <b>{nombre}</b>
                     </td>
-                    {MEDIOS_COBRO.map((m) => (
-                      <td key={m} data-l={TEXTO_MEDIO_COBRO[m]}>
-                        <CasillaMedio
-                          medio={m}
-                          tienda={nombre}
-                          actual={medios.find((x) => x.ubicacionId === id && x.medio === m)?.cuentaId ?? ""}
-                          cuentas={activas}
-                          deshabilitada={guardando}
-                          alCambiar={(cuentaId) =>
-                            guardar(
-                              () => createClient().rpc("guardar_medio_de_cobro" as never, { p_ubicacion_id: id, p_medio: m, p_cuenta_id: cuentaId || null } as never),
-                              "cambiar a qué cuenta entra el cobro",
-                              `${TEXTO_MEDIO_COBRO[m]} de ${nombre}: desde hoy entra a ${activas.find((c) => c.id === cuentaId)?.nombre ?? "ninguna cuenta"}.`,
-                            )
-                          }
-                        />
-                      </td>
-                    ))}
+                    {MEDIOS_COBRO.map((m) =>
+                      soloTransferencia.has(id) && m !== "transferencia" ? (
+                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className="fin-tenue">
+                          <span role="img" aria-label={`${nombre} no cobra con ${TEXTO_MEDIO_COBRO[m]}`}>
+                            —
+                          </span>
+                        </td>
+                      ) : (
+                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]}>
+                          <CasillaMedio
+                            medio={m}
+                            tienda={nombre}
+                            paga={soloTransferencia.has(id)}
+                            actual={medios.find((x) => x.ubicacionId === id && x.medio === m)?.cuentaId ?? ""}
+                            cuentas={activas}
+                            deshabilitada={guardando}
+                            alCambiar={(cuentaId) =>
+                              guardar(
+                                () => createClient().rpc("guardar_medio_de_cobro" as never, { p_ubicacion_id: id, p_medio: m, p_cuenta_id: cuentaId || null } as never),
+                                soloTransferencia.has(id) ? "cambiar de qué cuenta paga el Taller" : "cambiar a qué cuenta entra el cobro",
+                                soloTransferencia.has(id)
+                                  ? `Los pagos por transferencia de ${nombre}: desde hoy salen de ${activas.find((c) => c.id === cuentaId)?.nombre ?? "ninguna cuenta"}.`
+                                  : `${TEXTO_MEDIO_COBRO[m]} de ${nombre}: desde hoy entra a ${activas.find((c) => c.id === cuentaId)?.nombre ?? "ninguna cuenta"}.`,
+                              )
+                            }
+                          />
+                        </td>
+                      ),
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -196,13 +214,50 @@ export function ConfiguracionCuentas({
           </div>
         )}
         <PieTabla>
-          <span>El efectivo siempre cae al cajón de la tienda. La tarjeta y el QR entran a la cuenta «por depositar» de la máquina que los cobra.</span>
+          <span>
+            El efectivo siempre cae al cajón de la tienda. La tarjeta y el QR entran a la cuenta «por depositar» de la máquina que los cobra.
+            {soloTransferencia.size > 0 && " El Taller no cobra a clientes: solo guarda la cuenta de donde paga por transferencia, y esa es la que «Sale de» propone en sus pagos."}
+          </span>
         </PieTabla>
       </Superficie>
 
+      {planilla && (
+        <Superficie className="anim-sube" guia="config.planilla-cuentas">
+          <TituloDeTarjeta
+            titulo="De qué cuenta sale la planilla"
+            bajada="De qué cuenta de CAYLA sale la planilla de quienes cobran en cada banco."
+          />
+          {/* Dos campos y no una tabla: las tablas de Finanzas piden 900 px y aquí solo hay dos filas. */}
+          <div className="grid gap-4 p-[14px] sm:grid-cols-2">
+            {BANCOS_CON_CUENTA.map((banco) => (
+              <CampoFin key={banco} etiqueta={`Quienes cobran en ${TEXTO_BANCO[banco]}`} htmlFor={`planilla-${banco}`}>
+                <CasillaPlanilla
+                  banco={banco}
+                  actual={planilla.find((p) => p.banco === banco)?.cuentaId ?? ""}
+                  bancos={activas.filter((c) => c.tipo === "banco")}
+                  deshabilitada={guardando}
+                  alCambiar={(cuentaId) =>
+                    guardar(
+                      () => createClient().rpc("guardar_cuenta_planilla" as never, { p_banco: banco, p_cuenta_id: cuentaId || null } as never),
+                      "cambiar de qué cuenta sale la planilla",
+                      cuentaId
+                        ? `La planilla de quienes cobran en ${TEXTO_BANCO[banco]} sale de ${activas.find((c) => c.id === cuentaId)?.nombre ?? "esa cuenta"}.`
+                        : `La planilla de quienes cobran en ${TEXTO_BANCO[banco]} ya no propone cuenta.`,
+                    )
+                  }
+                />
+              </CampoFin>
+            ))}
+          </div>
+          <PieTabla>
+            <span>Quien no tiene banco en Dynamic sale aparte. Cambiar esto no mueve lo ya registrado.</span>
+          </PieTabla>
+        </Superficie>
+      )}
+
       {maquinas && (
         <Superficie className="anim-sube" guia="config.maquinas">
-          <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra con tarjeta y QR en cada tienda, y en qué cuenta espera lo cobrado hasta que la máquina lo deposita, sin su comisión." />
+          <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra tarjeta y QR en cada tienda, y dónde espera lo cobrado hasta el depósito." />
           {maquinas.length === 0 ? (
             <Vacio tamano="chico" icono={<CreditCard />}>
               No hay máquinas de cobro.
@@ -253,7 +308,7 @@ export function ConfiguracionCuentas({
             </div>
           )}
           <PieTabla>
-            <span>Donde una tienda tiene dos máquinas para un mismo medio, la hoja de cobro pregunta cuál y marca de entrada la de «A qué cuenta entra cada cobro». La tarifa solo sirve para estimar la comisión y avisar si la máquina se atrasa: la comisión real sale de cada depósito.</span>
+            <span>Con dos máquinas para un mismo medio, el cobro pregunta cuál. La tarifa solo estima la comisión: la real sale de cada depósito.</span>
           </PieTabla>
         </Superficie>
       )}
@@ -265,10 +320,46 @@ export function ConfiguracionCuentas({
   );
 }
 
+/** La cuenta de donde sale la planilla de un banco: se guarda al elegir. Si el guardado falla, vuelve a lo de antes. */
+function CasillaPlanilla({
+  banco,
+  actual,
+  bancos,
+  deshabilitada,
+  alCambiar,
+}: {
+  banco: CuentaPlanilla["banco"];
+  actual: string;
+  bancos: CuentaDinero[];
+  deshabilitada: boolean;
+  alCambiar: (cuentaId: string) => Promise<boolean>;
+}) {
+  const [valor, setValor] = useState(actual);
+  const [antes, setAntes] = useState(actual);
+  if (actual !== antes) {
+    setAntes(actual);
+    setValor(actual);
+  }
+  return (
+    <SelectFin
+      id={`planilla-${banco}`}
+      valor={valor}
+      deshabilitado={deshabilitada}
+      onValor={async (nuevo) => {
+        setValor(nuevo);
+        const ok = await alCambiar(nuevo);
+        if (!ok) setValor(actual);
+      }}
+      opciones={[{ valor: "", texto: "Sin cuenta" }, ...bancos.map((c) => ({ valor: c.id, texto: nombreCorto(c.nombre) }))]}
+    />
+  );
+}
+
 /** Un medio en una tienda: se guarda al elegir. Si el guardado falla, vuelve a lo de antes. */
 function CasillaMedio({
   medio,
   tienda,
+  paga = false,
   actual,
   cuentas,
   deshabilitada,
@@ -276,6 +367,8 @@ function CasillaMedio({
 }: {
   medio: MedioCobro;
   tienda: string;
+  /** El Taller no cobra: esta casilla dice de qué cuenta SALE lo que paga por transferencia. */
+  paga?: boolean;
   actual: string;
   cuentas: CuentaDinero[];
   deshabilitada: boolean;
@@ -291,7 +384,7 @@ function CasillaMedio({
   const sirven = cuentas.filter((c) => tipos.includes(c.tipo));
   return (
     <SelectFin
-      etiqueta={`A qué cuenta entra ${TEXTO_MEDIO_COBRO[medio]} de ${tienda}`}
+      etiqueta={paga ? `De qué cuenta paga ${tienda} por transferencia` : `A qué cuenta entra ${TEXTO_MEDIO_COBRO[medio]} de ${tienda}`}
       valor={valor}
       deshabilitado={deshabilitada}
       onValor={async (nuevo) => {
@@ -363,7 +456,7 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
           <InputFin id="cta-desde" type="date" max={hoy} value={desde} onChange={(e) => setDesde(e.target.value)} />
         </CampoFin>
       </div>
-      <p className="-mt-2 mb-4 text-[12.5px] text-taupe">El saldo inicial se registra una vez; después el saldo solo cambia con movimientos, cobros y pagos desde ese día.</p>
+      <p className="-mt-2 mb-4 text-sm text-taupe">El saldo inicial se registra una vez; después el saldo solo cambia con movimientos, cobros y pagos desde ese día.</p>
       <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="fin-botones mt-4">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>

@@ -327,9 +327,13 @@ export function accionTuFondo(c: Pick<CaraTuFondo, "puedeRendir" | "rendicionAbi
   return c.puedeRendir ? "Rendir" : null;
 }
 
-/** A dónde lleva la tarjeta del Inicio cuando no hay nada que rendir: a donde se compra y se paga desde el fondo, si la persona ve esa pantalla. */
+/**
+ * A dónde lleva la tarjeta del Inicio cuando no hay nada que rendir: a donde se compra y se paga desde el fondo, si la persona ve esa pantalla.
+ * Desde ADR-0480 la clave `ordenes_compra` es «Mis compras» (`/compras/mi-plata`, la entrada del menú); `/compras/ordenes` ya no tiene fila
+ * en el menú, así que la tarjeta no debe llevar a la pantalla vieja.
+ */
 export function hrefTuFondo(ve: (modulo: "ordenes_compra" | "por_pagar") => boolean): string | undefined {
-  if (ve("ordenes_compra")) return "/compras/ordenes";
+  if (ve("ordenes_compra")) return "/compras/mi-plata";
   if (ve("por_pagar")) return "/compras/por-pagar";
   return undefined;
 }
@@ -451,11 +455,20 @@ export function subtituloDevolver(tope: TopeDevolucion): string {
     : `Tiene ${soles(tope.monto)} en su fondo.`;
 }
 
-/** El monto escrito. `tope`, en la devolución: lo que la persona tiene (un número, o el tope con su rendición por aprobar). */
-export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevolucion): string | null {
+/**
+ * Los topes que la base de Mis compras ya impone a un monto (si la web no los dijera, el error salía recién al guardar, en la hoja, y no en el
+ * campo): la plata que te dan y el papel de una compra, hasta S/ 1 000 000 (`fondo_plata_anotada.monto`, `compra_papeles.monto`; 20261022235000 y
+ * 20261023005000); un gasto de otra cosa, hasta S/ 100 000 (`compra_gastos.monto`, 20261023114000).
+ */
+export const MONTO_MAXIMO_PLATA = 1_000_000;
+export const MONTO_MAXIMO_GASTO = 100_000;
+
+/** El monto escrito. `tope`, en la devolución: lo que la persona tiene (un número, o el tope con su rendición por aprobar). `maximo`: el más alto que la base acepta. */
+export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevolucion, maximo?: number): string | null {
   const m = leerMontoPlata(textoMonto);
   if (m == null) return textoMonto.trim() ? MONTO_ILEGIBLE : "Escribe cuánto.";
   if (m <= 0) return "El monto tiene que ser mayor que cero.";
+  if (maximo !== undefined && m > maximo) return `El monto no puede pasar de ${soles(maximo)}.`;
   const t = typeof tope === "number" ? topeDevolucion(tope) : tope;
   if (t != null && m > t.monto + CENTAVO / 10) {
     return t.porRendicion
@@ -516,4 +529,60 @@ export function camposDevolver(
     { id: "nota", nombre: "Nota", requerido: false, hecho: v.nota.trim() !== "" && nota === null, pendiente: nota ?? "" },
     ...campoResponsable({ ...r, quien: "Quién recibe" }),
   ];
+}
+
+// ---------- Las hojas de Revisar compras (diseño «A · Bandeja serena», Felipe 2026-10-23) ----------
+
+/**
+ * La barra de cada persona en «Quién tiene plata»: lo que le entregaron, partido en lo que gastó, lo que devolvió y lo que tiene. Un fondo
+ * en negativo (pagó de su bolsillo) no tiene plata en la mano: su tramo es 0 y lo gastado pasa de lo entregado, así que la pista crece
+ * hasta lo gastado y la barra nunca se sale de su lugar.
+ */
+export type TramosFondo = { gasto: number; devolvio: number; tiene: number; total: number };
+
+export function tramosDelFondo(f: Pick<FondoFila, "entregado" | "devuelto" | "gastado" | "saldo">): TramosFondo {
+  const gasto = redondo(Math.max(f.gastado, 0));
+  const devolvio = redondo(Math.max(f.devuelto, 0));
+  const tiene = redondo(Math.max(f.saldo, 0));
+  return { gasto, devolvio, tiene, total: redondo(Math.max(f.entregado, gasto + devolvio + tiene)) };
+}
+
+/** La plata que VUELVE a CAYLA (una devolución, el pago de una deuda) se escribe con «+» y en verde; una entrega sale. */
+export const VUELVE_A_CAYLA: Record<TipoMovimientoFondo, boolean> = {
+  entrega_fondo: false,
+  devolucion_fondo: true,
+  pago_deuda_fondo: true,
+};
+
+/**
+ * «Entregas y devoluciones», agrupada por día (`aaaa-mm-dd`), en el orden en que llega de la base (lo más nuevo arriba). Si un día
+ * aparece dos veces, se junta en su primer lugar: el separador de un día nunca sale repetido.
+ */
+export function movimientosPorDia<T extends { fecha: string }>(movimientos: readonly T[]): { dia: string; movimientos: T[] }[] {
+  const grupos = new Map<string, T[]>();
+  for (const m of movimientos) {
+    const dia = m.fecha.slice(0, 10);
+    const grupo = grupos.get(dia);
+    if (grupo) grupo.push(m);
+    else grupos.set(dia, [m]);
+  }
+  return [...grupos].map(([dia, movs]) => ({ dia, movimientos: movs }));
+}
+
+/** Con cuántas personas «¿A quién?» se elige con fichas (su cara y su nombre); con más, el combo de siempre, con su buscador. */
+export const MAX_FICHAS_PERSONA = 6;
+
+/**
+ * El nombre de cada ficha de «¿A quién?»: el primer nombre, como se habla en la tienda; si dos personas lo comparten, el nombre
+ * completo de las dos (dos «Rosa» iguales no se distinguen).
+ */
+export function nombresDeFichas(personas: readonly PersonaOpcion[]): Record<string, string> {
+  const veces = new Map<string, number>();
+  for (const p of personas) {
+    const corto = primerNombre(p.nombre).toLocaleLowerCase("es");
+    veces.set(corto, (veces.get(corto) ?? 0) + 1);
+  }
+  return Object.fromEntries(
+    personas.map((p) => [p.id, (veces.get(primerNombre(p.nombre).toLocaleLowerCase("es")) ?? 0) > 1 ? p.nombre : primerNombre(p.nombre)]),
+  );
 }

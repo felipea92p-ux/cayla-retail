@@ -3,21 +3,22 @@
 import { useEffect, useState } from "react";
 import { CuentasProveedor } from "@/components/CuentasProveedor";
 import { createClient } from "@/lib/supabase/client";
-import { faltaDelProveedor, telefonoDelProveedor, type DatosBancariosLeidos } from "@/lib/proveedor-elegido-reglas";
+import { estadoDeLosBancarios, faltaDelProveedor, telefonoDelProveedor, type DatosBancariosLeidos } from "@/lib/proveedor-elegido-reglas";
 import type { ProveedorGasto } from "@/lib/gastos-reglas";
 import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
 
 // Al elegir un proveedor en un gasto (fijo o suelto) se ve cómo contactarlo y cómo pagarle, sin ir a Compras (ADR-0440): que otra
 // persona pueda gestionar CAYLA si Felipe falta. Reutiliza `CuentasProveedor` (la misma pieza de Por pagar). Lo bancario NO viene
 // en la lista de proveedores: se pide al elegir con `fn_proveedor_datos_bancarios`, que devuelve cero filas a quien no lo puede ver
-// (entonces no se dice «sin cuenta»: no se sabe). Es solo lectura: no guarda nada.
+// (entonces no se dice «sin cuenta»: se dice «no puedes verlos»; y si la lectura falla, «no pude leerlos»: `estadoDeLosBancarios`). Lo
+// usan el gasto y la hoja «Cómo pagarle» de Nueva orden de compra (2026-10-21). Es solo lectura: no guarda nada.
 
 
 type Bancarios = { banco: string | null; cuenta_bancaria: string | null; cci: string | null; celular_billetera: string | null; billeteras: string[] | null; titular_cuenta: string | null };
 
 export function ProveedorElegido({ proveedor }: { proveedor: ProveedorGasto | undefined }) {
   const id = proveedor?.id ?? null;
-  const [leido, setLeido] = useState<{ id: string; datos: Bancarios | null } | null>(null);
+  const [leido, setLeido] = useState<{ id: string; datos: Bancarios | null; fallo: boolean } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -28,7 +29,7 @@ export function ProveedorElegido({ proveedor }: { proveedor: ProveedorGasto | un
       .then(({ data, error }) => {
         if (!vigente) return;
         const filas = (error ? [] : (data ?? [])) as Bancarios[];
-        setLeido({ id, datos: filas[0] ?? null });
+        setLeido({ id, datos: filas[0] ?? null, fallo: Boolean(error) });
       });
     return () => {
       vigente = false;
@@ -38,7 +39,8 @@ export function ProveedorElegido({ proveedor }: { proveedor: ProveedorGasto | un
   if (!proveedor) return null;
   // Lo leído de OTRO proveedor (el combo cambió y la respuesta aún no llega) no se muestra.
   const datos = leido && leido.id === proveedor.id ? leido.datos : null;
-  const cargando = !leido || leido.id !== proveedor.id;
+  const estado = estadoDeLosBancarios(leido, proveedor.id);
+  const cargando = estado === "cargando";
 
   const bancarios: DatosBancariosLeidos | null = datos
     ? { cuentaBancaria: datos.cuenta_bancaria, cci: datos.cci, celularBilletera: datos.celular_billetera }
@@ -79,6 +81,9 @@ export function ProveedorElegido({ proveedor }: { proveedor: ProveedorGasto | un
         </p>
       )}
       {pago && <CuentasProveedor datos={pago} titulo="Se le paga por" />}
+      {cargando && <p className="text-sm text-tinta/60">Buscando cómo se le paga…</p>}
+      {estado === "sin_permiso" && <p className="nota-cayla">No puedes ver sus datos de pago. Pídeselos a quien paga.</p>}
+      {estado === "no_se_pudo" && <p className="nota-cayla">No se pudieron leer sus datos de pago. Vuelve a abrir esto en un momento; si sigue, avísale a tu líder.</p>}
       {falta && <p className="nota-cayla">{falta}</p>}
     </div>
   );

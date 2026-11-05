@@ -16,14 +16,21 @@ import {
   leerMovimientosFondos,
   leerOpcionesFondos,
   leerResumenMiFondo,
+  MAX_FICHAS_PERSONA,
   mostrarTuFondo,
+  movimientosPorDia,
+  nombresDeFichas,
   opcionesDeCuentas,
   opcionesDePersonas,
+  MONTO_MAXIMO_GASTO,
+  MONTO_MAXIMO_PLATA,
   problemaDeMonto,
   problemaDeMotivo,
   problemaDePersona,
   subtituloDevolver,
   topeDevolucion,
+  tramosDelFondo,
+  VUELVE_A_CAYLA,
   type OpcionesFondos,
   type ResumenMiFondo,
 } from "./fondos-reglas";
@@ -232,8 +239,8 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
     expect(mostrarTuFondo({ ...BASE, saldo: 0, entregado: 0, rendicion: { ...R, abierta: { id: "r", en: "2026-10-13", faltante: 0 } } })).toBe(true);
   });
 
-  it("lleva a Órdenes de compra si la ve; si no, a Por pagar; si no ve ninguna, no lleva", () => {
-    expect(hrefTuFondo(() => true)).toBe("/compras/ordenes");
+  it("lleva a Mis compras si la ve; si no, a Por pagar; si no ve ninguna, no lleva", () => {
+    expect(hrefTuFondo(() => true)).toBe("/compras/mi-plata");
     expect(hrefTuFondo((m) => m === "por_pagar")).toBe("/compras/por-pagar");
     expect(hrefTuFondo(() => false)).toBeUndefined();
   });
@@ -262,6 +269,16 @@ describe("lo que falta (las mismas reglas que la base)", () => {
     expect(problemaDePersona("p-felipe", OPCIONES)).toMatch(/No puedes entregarte plata a ti/);
     expect(problemaDePersona("p-otra", OPCIONES)).toMatch(/ya no está activa/);
     expect(problemaDePersona("p-micaela", OPCIONES)).toBeNull();
+  });
+
+  it("con `maximo`, el tope de la base se dice en el campo (Mis compras): S/ 1 000 000 la plata y el papel, S/ 100 000 un gasto", () => {
+    expect(problemaDeMonto("1000000", undefined, MONTO_MAXIMO_PLATA)).toBeNull();
+    expect(problemaDeMonto("1000000.01", undefined, MONTO_MAXIMO_PLATA)).toBe("El monto no puede pasar de S/\u00a01,000,000.00.");
+    expect(problemaDeMonto("100000", undefined, MONTO_MAXIMO_GASTO)).toBeNull();
+    expect(problemaDeMonto("100000.50", undefined, MONTO_MAXIMO_GASTO)).toBe("El monto no puede pasar de S/\u00a0100,000.00.");
+    // Lo ilegible y el cero se dicen antes que el tope; sin `maximo`, no hay tope (el resto de las hojas del fondo).
+    expect(problemaDeMonto("0", undefined, MONTO_MAXIMO_GASTO)).toBe("El monto tiene que ser mayor que cero.");
+    expect(problemaDeMonto("9999999")).toBeNull();
   });
 
   it("el monto: escrito, mayor que cero y, al devolver, no más de lo que tiene", () => {
@@ -338,5 +355,59 @@ describe("lo que dicen los botones", () => {
     expect(fraseEntregar(null, null)).toBe("Entregar plata");
     expect(fraseDevolver(120)).toBe("Registrar S/\u00a0120.00 devueltos");
     expect(fraseDevolver(null)).toBe("Registrar lo devuelto");
+  });
+});
+
+// ---------- Las hojas de Revisar compras (diseño A, 2026-10-23) ----------
+
+describe("tramosDelFondo", () => {
+  it("parte lo entregado en gastó, devolvió y tiene", () => {
+    expect(tramosDelFondo({ entregado: 1200, gastado: 245, devuelto: 300, saldo: 655 })).toEqual({ gasto: 245, devolvio: 300, tiene: 655, total: 1200 });
+  });
+  it("un fondo en negativo no tiene plata en la mano y la pista crece hasta lo gastado", () => {
+    expect(tramosDelFondo({ entregado: 300, gastado: 374.4, devuelto: 0, saldo: -74.4 })).toEqual({ gasto: 374.4, devolvio: 0, tiene: 0, total: 374.4 });
+  });
+  it("sin nada entregado, todo en cero", () => {
+    expect(tramosDelFondo({ entregado: 0, gastado: 0, devuelto: 0, saldo: 0 })).toEqual({ gasto: 0, devolvio: 0, tiene: 0, total: 0 });
+  });
+});
+
+describe("movimientosPorDia", () => {
+  it("agrupa por día en el orden en que llegan y junta un día repetido en su primer lugar", () => {
+    const movs = [
+      { id: "a", fecha: "2026-10-23" },
+      { id: "b", fecha: "2026-10-22T10:00:00" },
+      { id: "c", fecha: "2026-10-23" },
+      { id: "d", fecha: "2026-10-20" },
+    ];
+    expect(movimientosPorDia(movs).map((g) => [g.dia, g.movimientos.map((m) => m.id)])).toEqual([
+      ["2026-10-23", ["a", "c"]],
+      ["2026-10-22", ["b"]],
+      ["2026-10-20", ["d"]],
+    ]);
+  });
+  it("sin movimientos, sin grupos", () => {
+    expect(movimientosPorDia([])).toEqual([]);
+  });
+});
+
+describe("VUELVE_A_CAYLA", () => {
+  it("la devolución y el pago de una deuda vuelven; la entrega sale", () => {
+    expect(VUELVE_A_CAYLA).toEqual({ entrega_fondo: false, devolucion_fondo: true, pago_deuda_fondo: true });
+  });
+});
+
+describe("nombresDeFichas", () => {
+  it("el primer nombre, salvo que dos lo compartan", () => {
+    expect(
+      nombresDeFichas([
+        { id: "1", nombre: "Marisol Ramos", sede: null },
+        { id: "2", nombre: "Rosa Quispe", sede: null },
+        { id: "3", nombre: "rosa Díaz", sede: null },
+      ]),
+    ).toEqual({ "1": "Marisol", "2": "Rosa Quispe", "3": "rosa Díaz" });
+  });
+  it("MAX_FICHAS_PERSONA es 6", () => {
+    expect(MAX_FICHAS_PERSONA).toBe(6);
   });
 });

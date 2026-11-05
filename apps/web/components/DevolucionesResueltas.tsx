@@ -13,7 +13,7 @@ import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * «Resueltas» (spike 2026-09-26, `docs/maquetas/devoluciones-2026-09`, ADR-0232): lo que ya aprobó o
- * rechazó un líder en los últimos 15 días. Cierra el círculo de la colaboradora que la registró —qué
+ * rechazó alguien en los últimos 15 días. Cierra el círculo de la colaboradora que la registró —qué
  * pasó con la devolución de la clienta— y dice adónde fue cada prenda (al piso o a cuarentena), la nota
  * de crédito y el reembolso. La nota de crédito lleva a Comprobantes ▸ Emitidos solo si la cuenta ve ese
  * módulo (ADR-0161).
@@ -56,7 +56,7 @@ export function DevolucionesResueltas({
                 </Chip>
               )}
             </p>
-            <p className="mt-0.5 text-[13px] text-tinta/70">
+            <p className="mt-0.5 text-sm text-tinta/70">
               {d.estado === "aprobada" ? "Aprobó" : "Rechazó"} {d.resueltaPorNombre} · {etiquetaDia(d.resueltaEn, ahora).toLowerCase()} {formatearHora(d.resueltaEn)}
             </p>
           </div>
@@ -70,7 +70,7 @@ export function DevolucionesResueltas({
                     {p.referencia}
                     {p.cantidad > 1 && <span className="text-tinta/70"> × {p.cantidad}</span>}
                   </span>
-                  <span className="text-[13px] text-tinta/65">{varianteLegible(p)}</span>
+                  <span className="text-sm text-tinta/65">{varianteLegible(p)}</span>
                   <Chip tono={destino.tono} versalitas={false}>
                     {destino.texto}
                   </Chip>
@@ -79,7 +79,7 @@ export function DevolucionesResueltas({
             })}
           </ul>
 
-          <div className="flex flex-col gap-0.5 text-[13px] md:items-end md:text-right">
+          <div className="flex flex-col gap-0.5 text-sm md:items-end md:text-right">
             <span className="tabular-nums text-tinta">{soles(d.valorPagado)}</span>
             {d.notaCredito &&
               (veComprobantes ? (

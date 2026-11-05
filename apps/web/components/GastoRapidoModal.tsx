@@ -534,13 +534,16 @@ export function GastoRapidoModal({
                       />
                     </CampoGuiado>
                   </div>
-                  {onFormularioCompleto && (
+                  {onFormularioCompleto ? (
                     <p className="text-[12.5px] text-taupe">
                       ¿Proveedor nuevo, o se paga a crédito?{" "}
                       <button type="button" className="btn-enlace" onClick={onFormularioCompleto}>
                         Usa el formulario completo
                       </button>
                     </p>
+                  ) : (
+                    // Sin el módulo Gastos (ADR-0491): desde Caja va lo de hoy, al contado; lo demás se registra en Finanzas.
+                    <p className="text-[12.5px] text-taupe">¿Proveedor nuevo, o se paga a crédito? Eso se registra en Finanzas ▸ Gastos: pídeselo a tu líder.</p>
                   )}
                 </div>
               </div>
@@ -567,7 +570,7 @@ export function GastoRapidoModal({
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo={textos.listo} />
-            <div className="ml-auto pie-acciones">
+            <div data-guia="gasto-rapido.pie" className="ml-auto pie-acciones">
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando || intento.incierto}>
                 Cancelar
               </Boton>

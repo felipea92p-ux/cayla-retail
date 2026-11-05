@@ -58,6 +58,7 @@ import {
 } from "@/lib/orden-insumo-alta";
 import { crearOrdenInsumo, editarOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 import type { PrecargaDePedido } from "@/lib/pedir-insumo-reglas";
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 
 // Nueva orden de insumos del Taller (ADR-0362, fase 7 · actividad 2): la gemela de «Nueva orden de compra» (fase 1, aprobada por Felipe),
 // con la línea del Taller. Arriba, a quién se le pide, a qué taller llega, cuándo y una nota; abajo, lo que se pide, una línea por
@@ -84,12 +85,12 @@ import type { PrecargaDePedido } from "@/lib/pedir-insumo-reglas";
 // (`editar_orden_insumo`, con la versión que se vio al abrir). Lo que ya venía completo no se llena de ✓. Si una línea trae un insumo cuya
 // unidad cambió desde que se hizo la orden, su cantidad viene vacía y su aviso lo dice [provisional, revisar con Felipe].
 
-const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1 text-sm font-semibold text-tinta";
 // El título de un campo de la cabecera: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier estado de la
 // guía (✓, «Sigue aquí», falta, opcional).
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 60 rem o más: una pantalla de 1440 con el menú abierto): marca de la guía y número ·
-// insumo · descripción · cantidad con su unidad («12.5 metros») · precio por unidad · descuento (caja + «% / S/») · subtotal · quitar. La
+// insumo · descripción · cantidad con su unidad («12.5 metros») · costo por unidad · descuento (caja + «% / S/») · subtotal · quitar. La
 // comparten el encabezado y cada fila. Más angosta que la de la orden de compra (56 rem): la cantidad lleva su unidad al lado.
 const FILA_ANCHA = "@min-[60rem]:grid-cols-[2.5rem_minmax(0,1.5fr)_minmax(0,1fr)_9.5rem_6rem_minmax(8.5rem,10rem)_6.5rem_2rem]";
 
@@ -354,7 +355,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
         </Aviso>
       )}
 
-      <form onSubmit={guardar} noValidate className="space-y-6">
+      <form onSubmit={guardar} onKeyDown={enterNoGuarda} noValidate className="space-y-6">
         {/* Proveedor, a qué taller llega, entrega y nota: dos por fila y, con lugar (tarjeta de 52 rem o más), los cuatro en una. */}
         <section data-guia="oi-form.datos" className="@container card-cayla p-4 sm:p-5" aria-label="Proveedor y a dónde llega">
           <div className="grid gap-x-5 gap-y-4 @min-[28rem]:grid-cols-2 @min-[52rem]:grid-cols-4">
@@ -408,7 +409,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
             <CampoGuiado id="entrega" guia={guia}>
               <p className={TITULO_FIJO}>
                 {etiqueta("entrega", "Entrega estimada")}
-                <span className="text-[12px] font-normal text-taupe">si la sabes</span>
+                <span className="text-sm font-normal text-taupe">si la sabes</span>
               </p>
               <CampoFecha
                 id="oi-entrega"
@@ -423,7 +424,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
             <CampoGuiado id="nota" guia={guia}>
               <p className={TITULO_FIJO}>
                 {etiqueta("nota", "Nota")}
-                <span className="text-[12px] font-normal text-taupe">opcional</span>
+                <span className="text-sm font-normal text-taupe">opcional</span>
               </p>
               <CampoTexto
                 id="oi-nota"
@@ -470,7 +471,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
           {/* Con lugar, una FILA por línea: los títulos van una sola vez, aquí arriba (los lectores de pantalla tienen la etiqueta de cada
               caja, por eso este encabezado se les oculta). Hablan con la misma voz que los títulos de los campos de arriba. */}
           {orden.lineas.length > 0 && (
-            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[60rem]:grid ${FILA_ANCHA}`}>
+            <div aria-hidden className={`hidden gap-x-2.5 px-3 text-sm font-semibold text-tinta @min-[60rem]:grid ${FILA_ANCHA}`}>
               <span />
               <span>Insumo</span>
               {/* Sin «opcional» a la vista: en la columna angosta se cortaba; cada caja lo dice con su ejemplo y la línea con su punto. */}
@@ -478,9 +479,9 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, e
                 Descripción
               </span>
               <span>Cantidad</span>
-              <span>Precio u.</span>
+              <span>Costo u.</span>
               <span className="truncate">
-                Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
+                Descuento <span className="text-sm font-normal text-taupe">si hay</span>
               </span>
               <span className="text-right">Subtotal</span>
               <span />
@@ -614,13 +615,13 @@ function LineaOrdenInsumo({
 
   // Dos caras, según el ancho de la SECCIÓN (`@container` de «Lo que pides»), no de la ventana: con 60 rem o más, la línea es UNA FILA
   // (los títulos van en el encabezado de arriba); más angosta (y en el celular), una tarjeta: «Línea N» con su ✕, el insumo, la
-  // descripción, cantidad y precio, el descuento y el subtotal.
+  // descripción, cantidad y costo, el descuento y el subtotal.
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[60rem]:rounded-lg @min-[60rem]:py-2">
       <div data-guia="oi-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[60rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[60rem]:col-span-1 @min-[60rem]:justify-start">
-          <p className="text-[13px] font-semibold text-tinta @min-[60rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
-          <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[60rem]:inline-flex" title={`Línea ${numero}`}>
+          <p className="text-sm font-semibold text-tinta @min-[60rem]:hidden">{etiqueta(id, `Línea ${numero}`)}</p>
+          <span className="hidden items-center gap-1 text-sm tabular-nums text-taupe @min-[60rem]:inline-flex" title={`Línea ${numero}`}>
             {estado(id) ? <MarcaCampo estado={estado(id)!} /> : <span aria-hidden className="inline-block h-[18px] w-[18px]" />}
             {numero}
           </span>
@@ -639,7 +640,7 @@ function LineaOrdenInsumo({
         </div>
         <div className="col-span-2 @min-[60rem]:col-span-1">
           <p className={`${TITULO} @min-[60rem]:hidden`}>
-            Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
+            Descripción <span className="text-sm font-normal text-taupe">opcional</span>
           </p>
           <CampoTexto
             caja
@@ -666,18 +667,18 @@ function LineaOrdenInsumo({
               />
             </div>
             {unidadALaVista && (
-              <span aria-hidden className="shrink-0 text-[13px] text-taupe-profundo">
+              <span aria-hidden className="shrink-0 text-sm text-taupe-profundo">
                 {unidadALaVista}
               </span>
             )}
           </div>
         </div>
         <div className="min-w-0">
-          <p className={`${TITULO} @min-[60rem]:hidden`}>Precio por {porUnidad}</p>
+          <p className={`${TITULO} @min-[60rem]:hidden`}>Costo por {porUnidad}</p>
           <CampoTexto
             caja
             sinPie
-            etiqueta={`Precio por ${porUnidad} de la línea ${numero}, en soles`}
+            etiqueta={`Costo por ${porUnidad} de la línea ${numero}, en soles`}
             inputMode="decimal"
             placeholder="0.00"
             value={l.precio}
@@ -686,7 +687,7 @@ function LineaOrdenInsumo({
         </div>
         <div className="col-span-2 @min-[60rem]:col-span-1">
           <p className={`${TITULO} @min-[60rem]:hidden`}>
-            Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
+            Descuento <span className="text-sm font-normal text-taupe">si hay</span>
           </p>
           <div className="flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
@@ -714,7 +715,7 @@ function LineaOrdenInsumo({
           {/* En la tarjeta, el descuento va delante del monto, en la misma línea; en la fila ancha, debajo del monto. */}
           <p className="flex items-baseline justify-end gap-x-2 @min-[60rem]:flex-col-reverse @min-[60rem]:items-end @min-[60rem]:gap-0">
             {equivalente && (
-              <span className="text-xs tabular-nums text-taupe" title={`Descuento de la línea: ${descuentoSoles} (${descuentoPct})`}>
+              <span className="text-sm tabular-nums text-taupe" title={`Descuento de la línea: ${descuentoSoles} (${descuentoPct})`}>
                 {equivalente}
                 <span className="sr-only"> de descuento</span>
               </span>

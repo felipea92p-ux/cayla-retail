@@ -1,0 +1,21 @@
+/* Recibir · B final (2026-10-29): las piezas elegidas por Felipe dentro del flujo. Solo ajustes de encaje; las piezas viven en ronda3.css y opciones.css. */
+.mesa-b{grid-template-columns:300px minmax(0,1fr) 320px}
+.riel-cats.k4a{gap:8px}
+.k4a .rc.nueva,.k4a .rc-quien{margin-top:4px}
+/* la isla con totales que ruedan: sin el hilo de antes, con la línea de dos tonos al pie */
+.isla.c9c::before{display:none}
+.isla.c9c{padding-bottom:16px}
+.isla.c9c .tot{align-items:center}
+.isla .entra{display:inline-block}
+/* el podio y la vitrina en el cierre */
+.vitrinas{display:grid;gap:14px}
+.c6c{margin:14px 0 6px}
+@media (max-width:1280px){.mesa-b{grid-template-columns:280px minmax(0,1fr)}}
+@media (max-width:980px){.mesa-b{grid-template-columns:1fr}.riel-cats.k4a{display:grid;overflow:visible}}
+@media (max-width:640px){
+  .isla.c9c .tot:first-of-type{display:none}
+  .isla.c9c .tot .odo{font-size:26px}
+}
+/* el código del envío no se parte en dos líneas en el celular */
+.t2-id b{white-space:nowrap}
+@container (max-width:860px){.t2-fila{grid-template-columns:minmax(0,1fr) auto}}

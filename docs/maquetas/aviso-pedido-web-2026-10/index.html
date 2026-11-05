@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aviso de pedido web · diseño y sonido</title>
+<style>
+  /* Tokens reales de apps/web/app/globals.css y estilos/tema.css (ADR-0169, ADR-0336). Los colores de los teléfonos (fondo de
+     pantalla, tarjeta de Android, vidrio de iOS) imitan a cada sistema: no son del ERP, son lo que el teléfono dibuja. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c;
+    --pizarra:#4c5d6e; --rojo:#c0392b; --rojo-profundo:#8f2a1f; --verde:#2f6b4f; --sombra:#1a1a18;
+    --ease:cubic-bezier(.22,1,.36,1);
+    /* Lo que dibuja el teléfono */
+    --and-fondo:#3a3f4a; --and-tarjeta:#f1f0f4; --and-texto:#1b1b1f; --and-tenue:#46464f; --and-accion:#8f2a1f;
+    --ios-fondo-1:#5a6b7d; --ios-fondo-2:#2b3440; --ios-vidrio:rgba(245,245,247,.72); --ios-texto:#000; --ios-tenue:rgba(0,0,0,.55);
+  }
+  :root[data-tema="oscuro"]{
+    --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --taupe:#c4a898;
+    --pizarra:#9db4cb; --rojo:#e8806a; --rojo-profundo:#f29a86; --verde:#7cc4a0; --sombra:#000000;
+    --and-fondo:#101114; --and-tarjeta:#2b2a30; --and-texto:#e6e1e6; --and-tenue:#c8c5ca; --and-accion:#f29a86;
+    --ios-fondo-1:#1d2430; --ios-fondo-2:#07090c; --ios-vidrio:rgba(40,40,44,.72); --ios-texto:#fff; --ios-tenue:rgba(255,255,255,.6);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif;padding:24px 16px 48px}
+  main{max-width:1180px;margin:0 auto}
+  h1{font:500 30px/1.15 "EB Garamond",Georgia,serif;margin:0 0 6px}
+  .sub{color:var(--taupe);margin:0 0 22px;max-width:78ch}
+  h2{font-weight:600;font-size:11px;line-height:1;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:30px 0 10px}
+  .controles{display:grid;gap:12px;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:16px}
+  .grupo{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .grupo > span{font-weight:600;font-size:11px;line-height:1;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);min-width:92px}
+  .pil{font-weight:500;font-size:13px;line-height:1;font-family:inherit;padding:9px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer;transition:background 200ms var(--ease),color 200ms var(--ease)}
+  .pil[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .nota{background:var(--hueso);border-radius:12px;padding:12px 14px;margin:14px 0 0;max-width:90ch;color:var(--tinta)}
+  .nota b{font-weight:600}
+
+  .direcciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:4px}
+  .dir{border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:var(--papel)}
+  .dir b{display:block;font-weight:600;margin-bottom:2px}
+  .dir small{color:var(--taupe)}
+
+  .telefonos{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+  .tel{border-radius:36px;padding:12px;background:var(--tinta);box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+  .pantalla{border-radius:26px;min-height:520px;padding:18px 12px;position:relative;overflow:hidden}
+  .pie-tel{color:var(--crema);font-weight:600;font-size:11px;line-height:1;letter-spacing:.12em;text-transform:uppercase;text-align:center;padding:10px 0 2px;opacity:.85}
+
+  /* ---- Android ---- */
+  .and{background:var(--and-fondo);color:#fff}
+  .and .reloj{font:300 64px/1 system-ui,sans-serif;text-align:center;margin:26px 0 4px;letter-spacing:-.02em}
+  .and .fecha{text-align:center;font-size:14px;opacity:.85;margin-bottom:26px}
+  .and .barra{display:flex;justify-content:space-between;font-size:12px;opacity:.9;padding:0 8px;position:absolute;top:10px;left:10px;right:10px}
+  .and .barra .chico{width:14px;height:14px;vertical-align:-2px}
+  .nt{background:var(--and-tarjeta);color:var(--and-texto);border-radius:24px;padding:14px 14px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;animation:entra 520ms var(--ease) both}
+  .nt .cab{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--and-tenue)}
+  .nt .cab .insignia{width:18px;height:18px;border-radius:50%;background:var(--rojo-profundo);display:grid;place-items:center}
+  :root[data-tema="oscuro"] .nt .cab .insignia{background:#c0392b}
+  .nt .cab .insignia svg{width:12px;height:12px}
+  .nt .t{font-weight:600;font-size:15px;line-height:1.3}
+  .nt .c{font-size:14px;color:var(--and-tenue);line-height:1.35}
+  .nt .grande{grid-row:2/span 2;grid-column:2;width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--hueso)}
+  .nt .foto{grid-column:1/-1;width:100%;aspect-ratio:2/1;object-fit:cover;border-radius:14px;margin-top:10px;background:var(--hueso)}
+  .nt .acciones{grid-column:1/-1;display:flex;gap:6px;margin-top:10px}
+  .nt .acciones span{font:600 13px/1 system-ui,sans-serif;color:var(--and-accion);padding:9px 12px;border-radius:999px;background:color-mix(in srgb,var(--and-accion) 12%,transparent)}
+  .rotulo{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin:16px 6px 6px}
+
+  /* ---- iPhone ---- */
+  .ios{background:linear-gradient(170deg,var(--ios-fondo-1),var(--ios-fondo-2));color:#fff}
+  .ios .isla{width:96px;height:28px;border-radius:20px;background:#000;margin:0 auto}
+  .ios .candado{text-align:center;margin-top:10px;font-size:14px;opacity:.9}
+  .ios .fecha{text-align:center;font-size:17px;font-weight:500;margin-top:4px;opacity:.95}
+  .ios .reloj{font:600 78px/1 -apple-system,system-ui,sans-serif;text-align:center;margin:0 0 30px;letter-spacing:-.02em}
+  .ni{background:var(--ios-vidrio);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:var(--ios-texto);border-radius:22px;padding:12px 14px;display:grid;grid-template-columns:38px 1fr auto;gap:0 10px;align-items:start;animation:entra 520ms var(--ease) both}
+  .ni img{width:38px;height:38px;border-radius:9px;grid-row:1/span 2}
+  .ni .t{font:600 15px/1.3 -apple-system,system-ui,sans-serif}
+  .ni .h{font-size:13px;color:var(--ios-tenue)}
+  .ni .c{grid-column:2/-1;font:400 15px/1.3 -apple-system,system-ui,sans-serif}
+
+  .sonidos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .son{border:1px solid var(--sand);border-radius:14px;padding:14px;background:var(--papel);display:grid;gap:8px}
+  .son[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+  .son b{font:500 20px/1.1 "EB Garamond",Georgia,serif}
+  .son small{color:var(--taupe)}
+  .son .fila{display:flex;gap:8px}
+  .btn{font-weight:500;font-size:13px;line-height:1;font-family:inherit;padding:10px 14px;border-radius:10px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer}
+  .btn.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .onda{height:28px;display:flex;align-items:center;gap:3px}
+  .onda i{display:block;width:4px;border-radius:2px;background:var(--taupe);opacity:.55}
+
+  .eleccion{position:sticky;bottom:12px;margin-top:28px;background:var(--tinta);color:var(--crema);border-radius:18px;padding:14px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .eleccion b{font-weight:600}
+  .eleccion .btn{background:var(--crema);color:var(--tinta);border-color:var(--crema)}
+
+  @keyframes entra{from{opacity:0;transform:translateY(-14px) scale(.97)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>El aviso de un pedido web nuevo</h1>
+  <p class="sub">Así llegaría a los dos teléfonos de la sede cuando un cliente separa en la tienda online. Los datos son de pedidos
+  reales (W-0018 y W-0019 de Tienda TRU). Elige un texto y un sonido abajo: los teléfonos cambian solos.</p>
+
+  <div class="controles">
+    <div class="grupo" data-grupo="texto"><span>Texto</span>
+      <button class="pil" data-v="A" aria-pressed="true">A · Directo</button>
+      <button class="pil" data-v="B">B · Con la prenda</button>
+      <button class="pil" data-v="C">C · Con el plazo</button>
+    </div>
+    <div class="grupo" data-grupo="pedido"><span>Pedido</span>
+      <button class="pil" data-v="uno" aria-pressed="true">1 prenda con foto</button>
+      <button class="pil" data-v="tres">3 prendas, sin foto</button>
+    </div>
+    <div class="grupo" data-grupo="tema"><span>Teléfono</span>
+      <button class="pil" data-v="claro" aria-pressed="true">Claro</button>
+      <button class="pil" data-v="oscuro">Oscuro</button>
+    </div>
+  </div>
+
+  <h2>Las tres versiones del texto</h2>
+  <div class="direcciones">
+    <div class="dir"><b>A · Directo</b>El número, la sede, cuántas prendas y el total. Se lee de un vistazo.<br><small>Lo que más rápido dice «hay que atender».</small></div>
+    <div class="dir"><b>B · Con la prenda</b>El título lleva el total y la frase dice qué prenda es, con talla y color.<br><small>Sirve para ir a buscarla antes de abrir el ERP.</small></div>
+    <div class="dir"><b>C · Con el plazo</b>Dice hasta qué hora hay que confirmarlo (el plazo de Tienda web ▸ Ajustes).<br><small>Empuja a atenderlo; no dice qué prenda es.</small></div>
+  </div>
+  <p class="nota"><b>Ninguna lleva el nombre del cliente:</b> el teléfono está en el mostrador y cualquiera ve la pantalla bloqueada.
+  Al tocar el aviso se abre el pedido en el ERP, con todo el detalle.</p>
+
+  <h2>Cómo se ve en cada teléfono</h2>
+  <div class="telefonos">
+    <div class="tel">
+      <div class="pantalla and">
+        <div class="barra"><span>18:42</span><span>▾ ▴ ▮</span></div>
+        <div class="reloj">18:42</div>
+        <div class="fecha">jueves, 30 de octubre</div>
+        <div class="rotulo">Llega así</div>
+        <div class="nt" id="and-corta">
+          <div class="cab"><span class="insignia"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 2c1-2 3-3 5-2l7-1-6 2c-1 3-3 6-7 8l-1 4-2-5-2-8z"/></svg></span>CAYLA · ahora</div>
+          <div class="t" data-t></div>
+          <img class="grande" data-grande alt="">
+          <div class="c" data-c></div>
+        </div>
+      </div>
+      <div class="pie-tel">Android · pantalla bloqueada</div>
+    </div>
+
+    <div class="tel">
+      <div class="pantalla and">
+        <div class="barra"><span>18:42</span><span>▾ ▴ ▮</span></div>
+        <div class="rotulo" style="margin-top:28px">Al deslizarlo hacia abajo</div>
+        <div class="nt" id="and-larga">
+          <div class="cab"><span class="insignia"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 2c1-2 3-3 5-2l7-1-6 2c-1 3-3 6-7 8l-1 4-2-5-2-8z"/></svg></span>CAYLA · ahora</div>
+          <div class="t" data-t></div>
+          <img class="grande" data-grande alt="">
+          <div class="c" data-c></div>
+          <img class="foto" data-foto alt="">
+          <div class="acciones"><span>Ver pedido</span><span>Ver todos</span></div>
+        </div>
+        <p class="rotulo" style="text-transform:none;letter-spacing:0;font-size:12px;opacity:.75;margin-top:14px" data-sin-foto-nota></p>
+      </div>
+      <div class="pie-tel">Android · abierto, con foto y botones</div>
+    </div>
+
+    <div class="tel">
+      <div class="pantalla ios">
+        <div class="isla"></div>
+        <div class="candado">🔒</div>
+        <div class="fecha">jueves, 30 de octubre</div>
+        <div class="reloj">18:42</div>
+        <div class="ni">
+          <img data-icono alt="">
+          <div class="t" data-t></div>
+          <div class="h">ahora</div>
+          <div class="c" data-c></div>
+        </div>
+        <p class="rotulo" style="text-transform:none;letter-spacing:0;font-size:12px;opacity:.8;margin-top:14px">En iPhone no hay foto ni botones: el
+        sistema muestra solo el ícono de la app, el título y la frase.</p>
+      </div>
+      <div class="pie-tel">iPhone 12 · pantalla bloqueada</div>
+    </div>
+  </div>
+
+  <h2>El sonido característico</h2>
+  <div class="sonidos" id="sonidos"></div>
+  <p class="nota"><b>Dónde suena cada uno.</b> En el <b>Android</b>, el sonido elegido se guarda una sola vez en el teléfono (Ajustes ▸ Apps ▸
+  CAYLA ▸ Notificaciones ▸ Sonido) y desde ahí suena con cada pedido. El ERP te dará el archivo para descargar y los pasos. En el
+  <b>iPhone</b> suena el tono normal de iOS: Apple no deja que una app web elija su sonido. La vibración del Android sigue el mismo ritmo del sonido.</p>
+
+  <div class="eleccion"><span>Tu elección: <b id="resumen"></b></span><button class="btn" id="copiar">Copiar mi elección</button></div>
+</main>
+
+<script>
+  // Datos reales de producción (sin cliente): W-0018 y W-0019 de Tienda TRU.
+  const PEDIDOS = {
+    uno: { codigo: "W-0018", sede: "Tienda TRU", prendas: 1, total: "S/ 109.00", prenda: "Palazo Semicadera", talla: "30", color: "Azul acero",
+           foto: "https://vovjyyiafkxteijimpuy.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/773bebab-3304-4d95-87f8-c56282f475a7.jpg",
+           hasta: "mañana a las 6:42 p. m." },
+    tres: { codigo: "W-0019", sede: "Tienda TRU", prendas: 3, total: "S/ 148.30", prenda: "Blusa Becky", talla: "Estándar", color: "Arena",
+           foto: null, hasta: "mañana a las 6:42 p. m." },
+  };
+  const ICONO = "data:image/png;base64,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"; // el ícono del ERP (apps/web/app/apple-icon.png), dentro del archivo para que abra suelto
+  const prendas = (n) => (n === 1 ? "1 prenda" : `${n} prendas`);
+
+  function textoDe(dir, p) {
+    if (dir === "A") return { t: `Pedido web nuevo · ${p.codigo}`, c: `${p.sede} · ${prendas(p.prendas)} · ${p.total}` };
+    if (dir === "B") return { t: `Nuevo pedido ${p.codigo} · ${p.total}`,
+                              c: `${p.prenda} · talla ${p.talla} · ${p.color}${p.prendas > 1 ? ` y ${p.prendas - 1} más` : ""}` };
+    return { t: `Confirma el pedido ${p.codigo}`, c: `Tienes hasta ${p.hasta} · ${prendas(p.prendas)} · ${p.total}` };
+  }
+
+  // Los sonidos: notas (frecuencia, inicio y largo en segundos), forma de onda y caída. La misma tabla genera después el archivo .wav.
+  const SONIDOS = [
+    { id: "colibri", nombre: "Colibrí", detalle: "Tres trinos cortos que suben, como el aleteo. Corto y claro, no asusta.",
+      onda: "sine", notas: [[2350, 0, .07, 2900], [2600, .11, .07, 3200], [2900, .22, .11, 3600]], caida: .09, vibra: [60, 50, 60, 50, 110] },
+    { id: "campanita", nombre: "Campanita", detalle: "Dos tonos de campana de mostrador, con eco suave. Se oye bien con ruido de tienda.",
+      onda: "sine", notas: [[1318.5, 0, .9], [1975.5, .16, 1.1]], armonicos: true, caida: .55, vibra: [120, 80, 220] },
+    { id: "marimba", nombre: "Marimba", detalle: "Tres notas de marimba hacia arriba (do, mi, sol). Alegre, como «llegó algo bueno».",
+      onda: "triangle", notas: [[1046.5, 0, .35], [1318.5, .12, .35], [1568, .24, .55]], caida: .22, vibra: [80, 60, 80, 60, 160] },
+  ];
+
+  let ctx;
+  function tocar(s) {
+    ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+    const ahora = ctx.currentTime + .02;
+    for (const [f, ini, largo, fFin] of s.notas) {
+      const capas = s.armonicos ? [[1, 1], [2.76, .25], [5.4, .08]] : [[1, 1]];
+      for (const [mult, vol] of capas) {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = s.onda; o.frequency.setValueAtTime(f * mult, ahora + ini);
+        if (fFin) o.frequency.exponentialRampToValueAtTime(fFin * mult, ahora + ini + largo);
+        g.gain.setValueAtTime(0, ahora + ini);
+        g.gain.linearRampToValueAtTime(.32 * vol, ahora + ini + .008);
+        g.gain.exponentialRampToValueAtTime(.0001, ahora + ini + largo + s.caida);
+        o.connect(g).connect(ctx.destination);
+        o.start(ahora + ini); o.stop(ahora + ini + largo + s.caida + .05);
+      }
+    }
+    if (navigator.vibrate) navigator.vibrate(s.vibra);
+  }
+
+  const estado = { texto: "A", pedido: "uno", tema: "claro", sonido: "colibri" };
+
+  function pintar() {
+    const p = PEDIDOS[estado.pedido];
+    const { t, c } = textoDe(estado.texto, p);
+    document.querySelectorAll("[data-t]").forEach((n) => (n.textContent = t));
+    document.querySelectorAll("[data-c]").forEach((n) => (n.textContent = c));
+    document.querySelectorAll("[data-icono]").forEach((n) => (n.src = ICONO));
+    document.querySelectorAll("[data-grande]").forEach((n) => (n.src = p.foto || ICONO));
+    document.querySelectorAll("[data-foto]").forEach((n) => { n.hidden = !p.foto; if (p.foto) n.src = p.foto; });
+    document.querySelector("[data-sin-foto-nota]").textContent = p.foto ? "" : "Sin foto de la prenda, el aviso abierto no muestra imagen grande: solo el colibrí.";
+    // Repite la entrada del aviso para verlo llegar.
+    document.querySelectorAll(".nt,.ni").forEach((n) => { n.style.animation = "none"; void n.offsetWidth; n.style.animation = ""; });
+    document.documentElement.dataset.tema = estado.tema === "oscuro" ? "oscuro" : "";
+    const s = SONIDOS.find((x) => x.id === estado.sonido);
+    document.getElementById("resumen").textContent = `texto ${estado.texto} + sonido ${s.nombre}`;
+    document.querySelectorAll(".son").forEach((n) => n.setAttribute("aria-pressed", String(n.dataset.id === estado.sonido)));
+  }
+
+  document.querySelectorAll("[data-grupo]").forEach((g) => g.addEventListener("click", (e) => {
+    const b = e.target.closest(".pil"); if (!b) return;
+    g.querySelectorAll(".pil").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    estado[g.dataset.grupo] = b.dataset.v; pintar();
+  }));
+
+  const cont = document.getElementById("sonidos");
+  for (const s of SONIDOS) {
+    const barras = Array.from({ length: 22 }, (_, i) => `<i style="height:${6 + Math.round(18 * Math.abs(Math.sin(i * (s.notas.length + 1) / 7)))}px"></i>`).join("");
+    const el = document.createElement("div");
+    el.className = "son"; el.dataset.id = s.id;
+    el.innerHTML = `<b>${s.nombre}</b><small>${s.detalle}</small><div class="onda">${barras}</div>
+      <div class="fila"><button class="btn" data-oir>▶ Escuchar</button><button class="btn primario" data-elegir>Elegir este</button></div>`;
+    el.querySelector("[data-oir]").onclick = () => tocar(s);
+    el.querySelector("[data-elegir]").onclick = () => { estado.sonido = s.id; tocar(s); pintar(); };
+    cont.append(el);
+  }
+  document.getElementById("copiar").onclick = async () => {
+    const txt = `Aviso de pedido web: ${document.getElementById("resumen").textContent}`;
+    try { await navigator.clipboard.writeText(txt); document.getElementById("copiar").textContent = "✓ Copiado"; } catch { prompt("Copia esto:", txt); }
+  };
+  pintar();
+</script>
+</body>
+</html>

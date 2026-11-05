@@ -1,20 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
+  UNIDADES_INSUMO,
+  agruparPorTela,
   cantidadTexto,
   capitalEnLotes,
   consumoSemanal,
   efectoEnSaldo,
   estadoInsumo,
+  leerCantidad,
   loteMasAntiguoConSaldo,
+  origenDeLote,
   previsualizarConsumo,
   previsualizarDevolucion,
   saldoDeInsumo,
   saldoDeLote,
   semanasDeCobertura,
+  textoDeCompra,
   textoDeMovimiento,
   tramoDeSaldo,
+  unidadesPermitidas,
   type LoteConSaldo,
   type LoteInsumo,
+  type MaterialVista,
   type MovimientoInsumo,
 } from "./insumos-reglas";
 
@@ -98,6 +105,11 @@ describe("estadoInsumo", () => {
   it("sin mínimo definido no puede estar «bajo»: se dice", () => {
     expect(estadoInsumo(10, null)).toEqual({ tono: "sin_minimo", etiqueta: "Sin mínimo" });
   });
+  it("el veredicto va en palabras de tienda (P10 del análisis del Taller): se acabó, bajo el mínimo, alcanza", () => {
+    expect(estadoInsumo(0, 60).etiqueta).toBe("Se acabó");
+    expect(estadoInsumo(59.9, 60).etiqueta).toBe("Bajo el mínimo");
+    expect(estadoInsumo(4438, 1).etiqueta).toBe("Alcanza");
+  });
 });
 
 describe("previsualizarConsumo (lo que hará registrar_consumo_insumo)", () => {
@@ -110,7 +122,7 @@ describe("previsualizarConsumo (lo que hará registrar_consumo_insumo)", () => {
   it("NO parte el consumo entre lotes: rechaza con el saldo exacto de ese lote", () => {
     const p = previsualizarConsumo(lotes, 30, "Lino", "metro");
     expect(p.ok).toBe(false);
-    expect(!p.ok && p.motivo).toContain("solo tiene 13 m");
+    expect(!p.ok && p.motivo).toContain("solo tiene 13.00 m");
     expect(!p.ok && p.motivo).toContain("siguiente lote");
   });
   it("pedir exactamente el saldo del lote se puede", () => {
@@ -142,11 +154,11 @@ describe("previsualizarDevolucion (lo que hará devolver_insumo_de_produccion)",
   });
   it("no devuelve más de lo descontado", () => {
     const p = previsualizarDevolucion(lotes, descontado, 121, "Lino", "metro");
-    expect(!p.ok && p.motivo).toContain("solo tiene descontado 120 m");
+    expect(!p.ok && p.motivo).toContain("solo tiene descontado 120.00 m");
   });
   it("no parte la devolución entre lotes: dice cuánto cabe en el último", () => {
     const p = previsualizarDevolucion(lotes, descontado, 50, "Lino", "metro");
-    expect(!p.ok && p.motivo).toContain("tiene 20 m de esta orden");
+    expect(!p.ok && p.motivo).toContain("tiene 20.00 m de esta orden");
   });
   it("sin nada descontado o sin cantidad, lo dice", () => {
     expect(previsualizarDevolucion(lotes, [], 5, "Lino", "metro").ok).toBe(false);
@@ -195,14 +207,80 @@ describe("capital y riel de saldo", () => {
   });
 });
 
+describe("unidades por tipo (ADR-0554)", () => {
+  it("una tela se lleva solo en metros; un avío, en cualquiera de las seis", () => {
+    expect(unidadesPermitidas("tela")).toEqual(["metro"]);
+    expect([...unidadesPermitidas("avio")].sort()).toEqual(["cono", "docena", "kilo", "metro", "par", "unidad"]);
+  });
+  it("todo lo que la hoja ofrece existe como unidad con su texto", () => {
+    for (const t of ["tela", "avio"] as const) for (const u of unidadesPermitidas(t)) expect(UNIDADES_INSUMO[u].larga).toBeTruthy();
+  });
+});
+
+describe("agruparPorTela: cada tela con sus colores juntos", () => {
+  const tela = (id: string): MaterialVista => ({ id, codigo: id.toUpperCase(), nombre: id, tipo: "tela", tejidoId: null, composicion: null, claseId: null, medida: null, unidad: "metro", merma: 0, compra: "metro", ancho: null, gramaje: null, metrosPorRollo: null, version: "v1" });
+  it("junta los colores de la misma tela aunque no vengan seguidos, y respeta el orden en que aparece cada tela", () => {
+    const g = agruparPorTela([{ id: "1", materialId: "b" }, { id: "2", materialId: "a" }, { id: "3", materialId: "b" }], [tela("a"), tela("b")]);
+    expect(g.map((x) => [x.material?.id, x.insumos.map((i) => i.id)])).toEqual([["b", ["1", "3"]], ["a", ["2"]]]);
+  });
+  it("un insumo suelto, o de una tela que no se leyó, queda solo y sin encabezado", () => {
+    const g = agruparPorTela([{ id: "1" }, { id: "2", materialId: null }, { id: "3", materialId: "x" }], [tela("a")]);
+    expect(g.map((x) => [x.material, x.insumos.length])).toEqual([[null, 1], [null, 1], [null, 1]]);
+  });
+});
+
+describe("textoDeCompra: cómo se compra, en una línea", () => {
+  const m = { tipo: "tela" as const, ancho: null, gramaje: null, metrosPorRollo: null };
+  it("por metro, por kilo (con su rinde) y por rollo (con sus metros)", () => {
+    expect(textoDeCompra({ ...m, compra: "metro" })).toBe("Se compra por metro");
+    expect(textoDeCompra({ ...m, compra: "kilo", ancho: 160, gramaje: 180 })).toBe("Se compra por kilo · rinde ≈ 3.47 m/kg");
+    expect(textoDeCompra({ ...m, compra: "kilo" })).toBe("Se compra por kilo");
+    expect(textoDeCompra({ ...m, compra: "rollo", metrosPorRollo: 80 })).toBe("Se compra por rollo · ≈ 80 m cada uno");
+  });
+  it("un avío se cuenta en su unidad", () => {
+    expect(textoDeCompra({ ...m, tipo: "avio", compra: "cono" })).toBe("Se cuenta en conos");
+    expect(textoDeCompra({ ...m, tipo: "avio", compra: "unidad" })).toBe("Se cuenta en unidades");
+  });
+});
+
+describe("leerCantidad: la coma decimal se entiende y lo ambiguo no se adivina", () => {
+  it("punto o coma, con hasta dos decimales", () => {
+    const casos: [string, number][] = [["48", 48], ["48.2", 48.2], ["48,2", 48.2], ["0", 0], ["0,5", 0.5], [",5", 0.5], ["12,", 12], [" 48,25 ", 48.25], ["1 200", 1200]];
+    for (const [texto, esperado] of casos) expect(leerCantidad(texto), texto).toBe(esperado);
+  });
+  it("tres decimales, miles, letras, signos y vacío son null (la hoja dice cómo escribirlo)", () => {
+    for (const texto of ["1.200", "1,299", "1.299,5", "12,345", "4,5,5", "-3", "abc", "1e3", "0x10", "", "   ", "S/ 5"]) expect(leerCantidad(texto), texto).toBeNull();
+  });
+});
+
 describe("texto", () => {
-  it("las cantidades llevan los decimales de su unidad", () => {
-    expect(cantidadTexto(12.54, "metro")).toBe("12.5 m");
+  it("las cantidades llevan los decimales de su unidad, siempre los mismos", () => {
+    expect(cantidadTexto(12.54, "metro")).toBe("12.54 m");
     expect(cantidadTexto(40, "unidad")).toBe("40 unid.");
     expect(cantidadTexto(2.345, "kilo")).toBe("2.35 kg");
+  });
+  it("una tela se ve con dos decimales y no se redondea a lo que no es: 0.70 m no es «1 m»", () => {
+    expect(cantidadTexto(0.7, "metro")).toBe("0.70 m");
+    expect(cantidadTexto(9, "metro")).toBe("9.00 m");
+    expect(cantidadTexto(12.25, "metro")).toBe("12.25 m");
+    expect(cantidadTexto(1234.5, "metro")).toBe("1,234.50 m");
+    expect(cantidadTexto(0, "metro")).toBe("0.00 m");
+  });
+  it("ver dos decimales no cambia cuánto se pide: eso lo manda `decimales`, no `vista`", () => {
+    expect(UNIDADES_INSUMO.metro.vista).toBe(2);
+    expect(UNIDADES_INSUMO.metro.decimales).toBe(1);
   });
   it("los movimientos se leen sin jerga", () => {
     expect(textoDeMovimiento({ tipo: "consumo", motivo: null })).toBe("Sale al cortar");
     expect(textoDeMovimiento({ tipo: "ajuste", motivo: "conteo" })).toBe("Ajuste · conteo");
+  });
+});
+
+describe("origenDeLote (P11 del análisis del Taller)", () => {
+  it("dice de dónde vino: saldo inicial, compra a alguien o, sin saberlo, compra", () => {
+    expect(origenDeLote({ origen: "saldo_inicial", proveedor: "Textiles Gamarra" })).toBe("saldo inicial");
+    expect(origenDeLote({ origen: "compra", proveedor: "Textiles Gamarra" })).toBe("compra a Textiles Gamarra");
+    expect(origenDeLote({ origen: "compra", proveedor: "  " })).toBe("compra");
+    expect(origenDeLote({ origen: "compra" })).toBe("compra");
   });
 });

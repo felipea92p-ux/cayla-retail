@@ -8,6 +8,7 @@
 //
 // Lo URGENTE no se puede ocultar: es el canal que no se apaga (Square, Zebra; investigación en el README del spike).
 
+import { diasAMedias, DIAS_PARA_RESALTAR, textoDeEnvioAMedias, type EnvioAMedias } from "./recepcion-salida-reglas";
 import type { ClaveModulo } from "./modulos";
 import { diasDesde, type PendientesDeLaSede } from "./recepcion-conteo-reglas";
 import type { Permiso } from "./menu";
@@ -17,7 +18,7 @@ import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
 import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
 import { montosSinCorte } from "./montos-sin-corte";
-import { DIAS_URGENCIA_NOTA_PROVEEDOR, hrefPrendasSinLlegar, textoNotasPorPedir, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
+import { hrefPrendasSinLlegar, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
 import { soles as solesConCentimos } from "./compras-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
@@ -34,20 +35,22 @@ export type ClaveAviso =
   | "paraEnviar"
   | "conteo"
   | "perdidas"
+  | "danadas"
   | "regularizar"
   | "porPagar"
   | "cuentasBancarias"
-  | "notasPorPedir"
+  | "planillaSalidas"
   | "prendasSinLlegar"
   | "recibir"
   | "porTerminar"
+  | "enviosAMedias"
   | "reponer"
   | "fotos"
   | "completar";
 
 export type Aviso = {
   clave: ClaveAviso;
-  grupo: "Ventas y posventa" | "Inventario" | "Compras" | "Catálogo";
+  grupo: "Ventas y posventa" | "Inventario" | "Compras" | "Finanzas" | "Catálogo";
   titulo: string;
   detalle: string;
   /** La frase de «Sigue ahora» (Inicio de Almacén): lo mismo que el aviso, dicho como tarea («Atiende 2 traslados»).
@@ -89,14 +92,19 @@ export type FuentesAvisos = {
   conteoAbierto?: boolean | null;
   /** Pérdidas que se repiten en los últimos 30 días (ADR-0328 act. 14): solo del líder, con la regla de `perdidas-reglas`. */
   perdidas?: AvisoPerdidas | null;
+  /** ADR-0564: dañadas de ESTA sede que llevan 7 días o más separadas sin que nadie las saque a arreglar ni decida (`contarDanadasViejas`).
+   *  Solo para el líder que ve Existencias. */
+  danadasViejas?: number | null;
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
   /** Proveedores que cambiaron su cuenta bancaria en los últimos 7 días (20261013161000). Solo se lee para el líder. */
   cuentasBancarias?: { cambios: number; proveedores: number; ultimoProveedorId: string | null; ultimoProveedor: string | null; ultimoEn?: string | null } | null;
+  /** ADR-0567: la planilla que Dynamic pagó sin su salida del banco registrada (o que Dynamic cambió después). Solo el líder; sin nada,
+   *  no viene. */
+  planillaSalidas?: { salidas: number; total: number; cambios: number } | null;
   /** ADR-0362 fase 5b (actividad 4): facturas cuya plata ya volvió con un documento interno y esperan la nota del proveedor (su IGV, en la
    *  cuenta puente). `dias`: lo que lleva esperando la más antigua. Para quien ve Notas de crédito. */
-  notasPorPedir?: { facturas: number; igv: number; dias: number | null } | null;
   /** ADR-0362 fase 5b (actividad 4): prendas de una factura que no llegaron y siguen sin resolver (su IGV, en el crédito fiscal sin la
    *  mercadería). Para quien ve Proveedores. */
   prendasSinLlegar?: { prendas: number; facturas: number; igv: number; proveedores: number; proveedorId: string | null } | null;
@@ -104,6 +112,8 @@ export type FuentesAvisos = {
   porRecibir?: { facturas: number; primera: string | null } | null;
   /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
   recibidoPorTerminar?: PendientesDeLaSede | null;
+  /** ADR-0393 (act. 2026-11-03): envíos abiertos con algo ya en el stock. Que no se olviden: a los 3 días se resaltan y también le aparecen al líder. */
+  enviosAMedias?: readonly EnvioAMedias[] | null;
   /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`),
    *  con la decisión del motor del piso (`lib/piso-plan.ts`). `enPausa` = cuántas tallas esperan el cuadre del piso (ADR-0328,
    *  decisión 5): con el piso sin cuadrar `tallas` es 0 y el aviso dice esa cifra, nunca «al día». */
@@ -319,6 +329,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
   // ADR-0328 act. 14 (Felipe, 2026-10-04): se avisa CUANDO SE REPITE —la misma prenda o la misma zona pierde en dos días
   // distintos de los últimos 30, o se quitaron muchas sin nota—, no cada faltante. Sin un tope en % inventado. Lleva a la
   // pestaña «Pérdidas» de Movimientos, filtrada si es un solo hallazgo. Por hacer, no urgente: no es plata que no cuadra.
+  // ADR-0564: las prendas dañadas que nadie lleva a arreglar. A los 7 días ya es plata parada: urgente, como en «Para hoy» de Existencias,
+  // y lleva a la lista de Dañadas para sacarlas a arreglar o decidir su destino.
+  if (f.danadasViejas !== undefined) {
+    const n = f.danadasViejas;
+    avisos.push({
+      clave: "danadas",
+      grupo: "Inventario",
+      titulo: "Dañadas sin decidir",
+      cantidad: n,
+      nivel: n === null ? "sinleer" : n > 0 ? "urgente" : "aldia",
+      ahora: n ? `Decide ${n} ${plural(n, "prenda dañada", "prendas dañadas")}` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna lleva 7 días separada sin decidirse." : `${n} ${plural(n, "lleva", "llevan")} 7 días o más separadas sin que nadie las lleve a arreglar.`,
+      href: "/inventario?danados=1",
+      ocultable: true,
+      urgenteSi: "Cuando una lleva 7 días o más separada",
+    });
+  }
   if (f.perdidas !== undefined) {
     const p = f.perdidas;
     const n = p === null ? null : p.cantidad;
@@ -360,10 +387,10 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     avisos.push({
       clave: "porPagar",
       grupo: "Compras",
-      titulo: p && p.vencidas > 0 ? "Facturas de proveedor vencidas" : "Facturas que vencen esta semana",
+      titulo: p && p.vencidas > 0 ? "Compras por pagar vencidas" : "Compras que vencen esta semana",
       cantidad: n,
       nivel: p === null ? "sinleer" : p.vencidas > 0 ? "urgente" : nivelDe(p.semana, "toca"),
-      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "factura vencida", "facturas vencidas")}` : `Revisa ${n} ${plural(n, "factura que vence", "facturas que vencen")} esta semana`,
+      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "compra vencida", "compras vencidas")}` : `Revisa ${n} ${plural(n, "compra que vence", "compras que vencen")} esta semana`,
       detalle:
         p === null ? SIN_LEER
           : p.vencidas > 0 ? `${soles(p.montoVencido)} ya vencido${p.semana > 0 ? ` · y ${p.semana} más vencen esta semana` : ""}.`
@@ -395,25 +422,29 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ocultable: false,
     });
   }
-  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta: es crédito
-  // fiscal que no cuadra con la mercadería. Dos avisos porque son dos acciones: pedir la nota del proveedor, o resolver lo que no llegó.
-  if (f.notasPorPedir !== undefined) {
-    const s = f.notasPorPedir;
-    const n = s === null ? null : s.facturas;
-    // El IGV con sus céntimos (no redondeado como las demás cifras del Inicio): es poco y es el que se ve en Notas de crédito.
-    const t = s === null ? null : textoNotasPorPedir(s, solesConCentimos);
+  // ADR-0567: Dynamic pagó la planilla y no se sabe de qué banco salió. No se oculta: es plata que no cuadra en el banco (su saldo en el
+  // ERP queda alto hasta registrarla) y la conciliación no cierra.
+  if (f.planillaSalidas !== undefined) {
+    const p = f.planillaSalidas;
+    const n = p === null ? null : p.salidas + p.cambios;
     avisos.push({
-      clave: "notasPorPedir",
-      grupo: "Compras",
-      titulo: "Notas de crédito por pedir",
+      clave: "planillaSalidas",
+      grupo: "Finanzas",
+      titulo: p && p.salidas === 0 ? "Dynamic cambió una planilla ya registrada" : "Planilla pagada sin su salida del banco",
       cantidad: n,
-      nivel: nivelDe(n, s && (s.dias ?? 0) > DIAS_URGENCIA_NOTA_PROVEEDOR ? "urgente" : "toca"),
-      ahora: t?.ahora ?? "",
-      detalle: t?.detalle ?? SIN_LEER,
-      href: "/compras/notas-credito",
+      nivel: nivelDe(n, "toca"),
+      ahora: !n || !p ? "" : p.salidas > 0 ? `Registra de qué banco salió la planilla (${solesConCentimos(p.total)})` : "Revisa la planilla que Dynamic cambió",
+      detalle:
+        p === null ? SIN_LEER
+          : p.salidas > 0
+            ? `Dynamic la marcó pagada: ${solesConCentimos(p.total)} en ${p.salidas} ${plural(p.salidas, "salida", "salidas")} por registrar. Hasta registrarla${plural(p.salidas, "", "s")}, el saldo del banco en el ERP queda alto.`
+            : `Dynamic cambió lo pagado después de registrar su salida: revisa si del banco salió otra cosa.`,
+      href: "/finanzas/dinero",
       ocultable: false,
     });
   }
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta: es crédito
+  // fiscal que no cuadra con la mercadería. El aviso hermano, «Notas de crédito por pedir», se retiró con su módulo (ADR-0480).
   if (f.prendasSinLlegar !== undefined) {
     const p = f.prendasSinLlegar;
     const n = p === null ? null : p.prendas;
@@ -472,6 +503,23 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/recibir",
       ocultable: true,
       urgenteSi: "Cuando lo más antiguo pasa de 7 días",
+    });
+  }
+  if (f.enviosAMedias != null && f.enviosAMedias.length > 0) {
+    const lista = f.enviosAMedias;
+    const n = lista.length;
+    const masViejo = Math.max(...lista.map((e) => diasAMedias(e.desde)));
+    avisos.push({
+      clave: "enviosAMedias",
+      grupo: "Inventario",
+      titulo: "Envíos a medias",
+      cantidad: n,
+      nivel: nivelDe(n, masViejo >= DIAS_PARA_RESALTAR ? "urgente" : "toca"),
+      ahora: `Termina de contar ${n === 1 ? lista[0].numero : `${n} envíos`}`,
+      detalle: lista.slice(0, 2).map((e) => textoDeEnvioAMedias(e)).join(". "),
+      href: n === 1 ? `/recibir/envio/${lista[0].id}` : "/recibir",
+      ocultable: false,
+      urgenteSi: `Cuando pasan ${DIAS_PARA_RESALTAR} días`,
     });
   }
   // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión

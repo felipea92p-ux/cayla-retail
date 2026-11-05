@@ -8,7 +8,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
 import { BotonAplicarTodos, ConfirmarAplicarTodos } from "@/components/conteo/AplicarTodosCompletos";
-import { ControlConteo, type EstadoGuardado, type FalloDeGuardado } from "@/components/conteo/control-conteo";
+import { ControlConteo, type EstadoGuardado, type FalloDeGuardado, type LineaDelAtajo } from "@/components/conteo/control-conteo";
 import { ListaConteo } from "@/components/conteo/ListaConteo";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
@@ -292,22 +292,48 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
   );
 
   /**
-   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante
-   * que SIGUE pendiente se cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo
-   * responsable, mismo guardado agrupado y en serie, mismo estado y progreso). Las que ya tienen número no se tocan
-   * (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Devuelve cuántas anotó.
+   * Lo que sale a la red con «Completar todo»: UNA llamada (`conteo_completar_tarjeta`) que cuenta las tallas con la misma `conteo_contar`
+   * y las marca «completadas con el atajo» (cuentan, pero Revisar lo dice; ADR-0328, opción C de Felipe). Un solo camino: la función
+   * está en la base desde antes de publicar esta pantalla, así que no hay respaldo talla por talla (ADR-0328, act. 2026-10-22).
+   */
+  const enviarCompletar = useCallback(
+    async (lineas: LineaDelAtajo[]) =>
+      await firmar(
+        createClient()
+          .rpc("conteo_completar_tarjeta", { p_conteo_id: conteo.id, p_lineas: lineas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad })) })
+          .setHeader("x-espera", "no"),
+        responsableRef.current.firma()
+      ),
+    [conteo.id]
+  );
+
+  /**
+   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante que SIGUE pendiente se
+   * cuenta con lo que debe haber: se pinta YA (como cualquier cantidad escrita) y sale UNA sola petición (`control.completar`). Las que
+   * ya tienen número no se tocan (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Si la
+   * base rechaza, las líneas vuelven a pendiente y se dice por qué. Devuelve cuántas pintó.
    */
   const completarTodo = useCallback(
     (varianteIds: string[]): number => {
-      let anotadas = 0;
-      for (const id of pendientesParaCompletar(varianteIds, control.linea)) {
-        const l = control.linea(id);
-        if (!l || !alConfirmar(id, l.debeHaber)) break;
-        anotadas++;
+      const r = responsableRef.current;
+      if (!r.listo) {
+        setAviso({ tipo: "texto", texto: r.motivo ?? "Elige quién cuenta antes de anotar." });
+        return 0;
       }
+      const items = pendientesParaCompletar(varianteIds, control.linea).flatMap((id) => {
+        const l = control.linea(id);
+        return l ? [{ varianteId: id, cantidad: l.debeHaber }] : [];
+      });
+      const { anotadas, resultado } = control.completar(items, enviarCompletar);
+      void resultado.then((res) => {
+        if (!("error" in res)) return;
+        // Un rechazo por el responsable (asistencia) vacía el combo y relee la lista, como al contar.
+        responsableRef.current.despues(res.error);
+        setAviso({ tipo: "texto", texto: traducirError(res.error, "completar esa tarjeta") });
+      });
       return anotadas;
     },
-    [control, alConfirmar]
+    [control, enviarCompletar]
   );
 
   // «Aplicar todos completos»: las que SIGUEN pendientes y nadie contó, entre las que se ven (la lista acotada y, si hay texto, lo que deja
@@ -576,7 +602,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
         <CifrasCabecera control={control} />
       </EncabezadoPagina>
       <div data-guia="conteo.pasos">
-        <PasosConteo actual="contar" />
+        <PasosConteo forma="riel" actual="contar" />
       </div>
       {notaAcotada}
 
@@ -608,7 +634,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
         <BarraInfo control={control} responsable={responsable} creadoEn={conteo.creadoEn} />
 
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso/40 px-3 py-2 text-[13px] text-taupe">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-hueso/40 px-3 py-2 text-sm text-taupe">
           <p className="flex min-w-0 items-center gap-2">
             <Info aria-hidden className="h-4 w-4 shrink-0" />
             {filtrando && hayVariantes && !vaciaPorAcotar && nCoincidencias > 0 ? (
@@ -749,7 +775,7 @@ function CifrasCabecera({ control }: { control: ControlConteo }) {
       {celdas.map((c) => (
         <div key={c.etiqueta} className="min-w-0 flex-1 px-4 py-4 lg:w-[8.75rem] lg:flex-none">
           <p className={`font-display text-2xl leading-none tabular-nums ${c.color}`}>{c.valor}</p>
-          <p className="mt-2 text-[13px] leading-tight text-tinta/70">{c.etiqueta}</p>
+          <p className="mt-2 text-sm leading-tight text-tinta/70">{c.etiqueta}</p>
         </div>
       ))}
     </section>
@@ -781,7 +807,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
       <div className={bloque}>
         <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-tinta/70">Responsable</p>
+          <p className="text-sm text-tinta/70">Responsable</p>
           {mostrarCombo ? (
             <ComboResponsable control={responsable} className="mt-1 w-full" />
           ) : (
@@ -792,7 +818,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
       <div className={bloque}>
         <Anillo pct={porcentaje} tamano="chico" decorativa />
         <div className="min-w-0">
-          <p className="text-xs text-tinta/70">Progreso</p>
+          <p className="text-sm text-tinta/70">Progreso</p>
           <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
             <span>
               {r.verificadas} de {r.variantes} {r.variantes === 1 ? "variante" : "variantes"}
@@ -804,7 +830,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
       <div className={bloque}>
         <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0">
-          <p className="text-xs text-tinta/70">Inicio del conteo</p>
+          <p className="text-sm text-tinta/70">Inicio del conteo</p>
           <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
         </div>
       </div>
@@ -827,7 +853,7 @@ function SinCoincidencias({ texto, sugeridas, alSumar }: { texto: string; sugeri
               <li key={p.varianteId} className="flex items-center justify-between gap-3 py-2">
                 <span className="min-w-0">
                   <span className="block truncate">{p.referencia}</span>
-                  <span className="block truncate text-xs text-taupe">
+                  <span className="block truncate text-sm text-taupe">
                     {detalleDe(p) || "Sin talla ni color"} · <span className="font-mono text-[11px]">{p.sku || "sin código"}</span>
                   </span>
                 </span>
@@ -851,7 +877,7 @@ function UltimaLectura({ control, prenda }: { control: ControlConteo; prenda: Pr
   const linea = useSyncExternalStore(suscribir, leer, leer);
   return (
     // Alto reservado (ADR-0185): la línea no empuja la lista al aparecer.
-    <p role="status" aria-live="polite" className="min-h-4 truncate text-xs leading-4 text-taupe">
+    <p role="status" aria-live="polite" className="min-h-4 truncate text-sm leading-4 text-taupe">
       {linea && linea.contada !== null ? (
         <>
           Última lectura: <span className="text-tinta">{nombreDe(prenda)}</span> · <span className="tabular-nums text-tinta">{linea.contada}</span>
@@ -975,7 +1001,7 @@ function ContenidoAviso({
       <X aria-hidden className="h-4 w-4" />
     </button>
   );
-  const fila = "flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs";
+  const fila = "flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm";
 
   switch (aviso.tipo) {
     case "fuera":

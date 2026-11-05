@@ -97,7 +97,7 @@
     align-items: flex-start;
     gap: 8px;
     margin: -4px 0 12px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ia-t65);
   }
   .ia-ayuda svg {
@@ -110,14 +110,16 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--color-taupe);
     transition: gap 260ms var(--ease-cayla), color 260ms var(--ease-cayla);
   }
-  .ia-enl:hover {
-    gap: 8px;
-    color: var(--color-rojo);
+  @media (hover: hover) {
+    .ia-enl:hover {
+      gap: 8px;
+      color: var(--color-rojo);
+    }
   }
   .ia-enl svg.ia-ic {
     width: 15px;
@@ -132,15 +134,17 @@
     padding: 0 14px;
     border: 1px solid var(--ia-t12);
     border-radius: 10px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
   }
-  .ia-mini:hover {
-    background: var(--color-tinta);
-    color: var(--color-crema);
-    border-color: var(--color-tinta);
+  @media (hover: hover) {
+    .ia-mini:hover {
+      background: var(--color-tinta);
+      color: var(--color-crema);
+      border-color: var(--color-tinta);
+    }
   }
   .ia-mini svg.ia-ic {
     width: 15px;
@@ -150,10 +154,12 @@
     border-color: color-mix(in srgb, var(--color-ambar) 40%, transparent);
     color: var(--color-ambar-profundo);
   }
-  .ia-mini.ia-foto:hover {
-    background: var(--color-ambar);
-    color: var(--color-crema);
-    border-color: var(--color-ambar);
+  @media (hover: hover) {
+    .ia-mini.ia-foto:hover {
+      background: var(--color-ambar);
+      color: var(--color-crema);
+      border-color: var(--color-ambar);
+    }
   }
 
   /* foco de luz que sigue al mouse (`EfectosInicio` escribe --mx y --my) */
@@ -191,9 +197,11 @@
     -webkit-mask-composite: xor;
     mask-composite: exclude;
   }
-  .ia-spot:hover::after,
-  .ia-spot:hover::before {
-    opacity: 1;
+  @media (hover: hover) {
+    .ia-spot:hover::after,
+    .ia-spot:hover::before {
+      opacity: 1;
+    }
   }
 
   /* ── la cabina: Papel ── */
@@ -314,8 +322,10 @@
     transition: box-shadow 350ms var(--ease-cayla);
     will-change: transform;
   }
-  .ia-cta:hover {
-    box-shadow: 0 0 0 6px var(--h-halo);
+  @media (hover: hover) {
+    .ia-cta:hover {
+      box-shadow: 0 0 0 6px var(--h-halo);
+    }
   }
   .ia-cta .ia-plus {
     display: grid;
@@ -327,8 +337,10 @@
     color: var(--h-btn);
     transition: transform 550ms var(--ease-cayla);
   }
-  .ia-cta:hover .ia-plus {
-    transform: rotate(90deg);
+  @media (hover: hover) {
+    .ia-cta:hover .ia-plus {
+      transform: rotate(90deg);
+    }
   }
   /* un solo brillo que barre el botón al llegar */
   .ia-cta::after {
@@ -354,8 +366,10 @@
     background: var(--h-btn);
     color: var(--h-btn-fg);
   }
-  .ia-cta.ia-cta2:hover .ia-plus {
-    transform: none;
+  @media (hover: hover) {
+    .ia-cta.ia-cta2:hover .ia-plus {
+      transform: none;
+    }
   }
   .ia-tecla {
     display: inline-flex;
@@ -378,14 +392,16 @@
     align-items: center;
     gap: 8px;
     color: var(--h-80);
-    font-size: 12.5px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: color 260ms var(--ease-cayla), gap 300ms var(--ease-cayla);
   }
-  .ia-vinc:hover {
-    color: var(--h-fg);
-    gap: 12px;
+  @media (hover: hover) {
+    .ia-vinc:hover {
+      color: var(--h-fg);
+      gap: 12px;
+    }
   }
   .ia-vinc svg.ia-ic {
     width: 15px;
@@ -425,10 +441,12 @@
     background: var(--h-glass);
     transition: background 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla), transform 350ms var(--ease-cayla);
   }
-  .ia-rs:hover {
-    border-color: var(--h-line);
-    background: var(--color-papel);
-    transform: translateX(4px);
+  @media (hover: hover) {
+    .ia-rs:hover {
+      border-color: var(--h-line);
+      background: var(--color-papel);
+      transform: translateX(4px);
+    }
   }
   .ia-rs .ia-th {
     position: relative;
@@ -460,12 +478,12 @@
     align-items: center;
     gap: 8px;
     color: var(--h-60);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-rs .ia-ya {
     margin-left: auto;
     color: var(--color-verde-profundo);
-    font-size: 12.5px;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
   }
@@ -570,8 +588,10 @@
     font-weight: 600;
     transition: gap 300ms var(--ease-cayla), transform 260ms var(--ease-cayla);
   }
-  .ia-go:hover {
-    gap: 14px;
+  @media (hover: hover) {
+    .ia-go:hover {
+      gap: 14px;
+    }
   }
   .ia-go:active {
     transform: scale(0.98);
@@ -596,8 +616,10 @@
     font-size: 14px;
     transition: background 260ms var(--ease-cayla);
   }
-  .ia-dp:hover {
-    background: var(--color-papel);
+  @media (hover: hover) {
+    .ia-dp:hover {
+      background: var(--color-papel);
+    }
   }
   .ia-dp .ia-t {
     flex: 1;
@@ -607,7 +629,7 @@
   .ia-dp .ia-n {
     min-width: 24px;
     padding: 1px 9px;
-    font-size: 12px;
+    font-size: 14px;
   }
   .ia-dp svg.ia-ic {
     width: 15px;
@@ -625,7 +647,7 @@
   }
   .ia-fila .ia-t {
     color: var(--h-80);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.35;
   }
   .ia-fila .ia-t b {
@@ -654,8 +676,10 @@
   .ia-ap.ia-f {
     border-top: 0;
   }
-  .ia-ap:hover {
-    background: var(--ia-t05);
+  @media (hover: hover) {
+    .ia-ap:hover {
+      background: var(--ia-t05);
+    }
   }
   /* el filo rojo de lo urgente va en una sombra interior: ::before y ::after ya los usa el foco de luz */
   .ia-ap.ia-u {
@@ -696,13 +720,15 @@
     font-weight: 500;
     transition: color 260ms var(--ease-cayla);
   }
-  .ia-ap:hover .ia-t {
-    color: var(--color-rojo);
+  @media (hover: hover) {
+    .ia-ap:hover .ia-t {
+      color: var(--color-rojo);
+    }
   }
   .ia-ap .ia-d {
     margin-top: 1px;
     color: var(--ia-t65);
-    font-size: 13px;
+    font-size: 14px;
   }
   .ia-tag {
     color: var(--color-rojo);
@@ -716,7 +742,7 @@
     min-width: 28px;
     padding: 2px 10px;
     border-radius: 99px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     text-align: center;
@@ -725,7 +751,7 @@
   .ia-n.ia-toca { background: var(--color-ambar); color: var(--color-crema); }
   .ia-n.ia-info { background: var(--color-pizarra); color: var(--color-crema); }
   .ia-n.ia-dia { background: var(--color-verde); color: var(--color-crema); }
-  .ia-n.ia-sinleer { background: var(--ia-t08); color: var(--ia-t80); font-size: 12px; }
+  .ia-n.ia-sinleer { background: var(--ia-t08); color: var(--ia-t80); font-size: 14px; }
   .ia-ap .ia-chev {
     flex: none;
     width: 16px;
@@ -733,9 +759,11 @@
     color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, crema */
     transition: transform 300ms var(--ease-cayla), color 260ms var(--ease-cayla);
   }
-  .ia-ap:hover .ia-chev {
-    transform: translateX(4px);
-    color: var(--color-rojo);
+  @media (hover: hover) {
+    .ia-ap:hover .ia-chev {
+      transform: translateX(4px);
+      color: var(--color-rojo);
+    }
   }
   .ia-dial {
     display: flex;
@@ -789,7 +817,7 @@
   }
   .ia-vacio span {
     color: var(--ia-t65);
-    font-size: 13px;
+    font-size: 14px;
   }
   .ia-err {
     display: flex;
@@ -832,9 +860,11 @@
     border-radius: 50%;
     transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), transform 260ms var(--ease-cayla);
   }
-  .ia-arr button:hover {
-    background: var(--color-tinta);
-    color: var(--color-crema);
+  @media (hover: hover) {
+    .ia-arr button:hover {
+      background: var(--color-tinta);
+      color: var(--color-crema);
+    }
   }
   .ia-arr button:active {
     transform: scale(0.92);
@@ -886,9 +916,11 @@
     transition: transform 450ms var(--ease-cayla), border-color 300ms var(--ease-cayla), box-shadow 400ms var(--ease-cayla);
     will-change: transform;
   }
-  .ia-pc:hover {
-    border-color: var(--color-taupe);
-    box-shadow: 0 18px 36px -18px color-mix(in srgb, var(--color-tinta) 25%, transparent);
+  @media (hover: hover) {
+    .ia-pc:hover {
+      border-color: var(--color-taupe);
+      box-shadow: 0 18px 36px -18px color-mix(in srgb, var(--color-tinta) 25%, transparent);
+    }
   }
   .ia-pc .ia-ft {
     position: relative;
@@ -904,8 +936,10 @@
     object-fit: contain;
     transition: transform 700ms var(--ease-cayla);
   }
-  .ia-pc:hover .ia-ft img {
-    transform: scale(1.07) translateY(-4px);
+  @media (hover: hover) {
+    .ia-pc:hover .ia-ft img {
+      transform: scale(1.07) translateY(-4px);
+    }
   }
   /* un barrido de luz baja por la foto al llegar (una vez) */
   .ia-pc .ia-scan {
@@ -980,7 +1014,7 @@
   .ia-sw b {
     margin-left: 8px;
     color: var(--ia-t65);
-    font-size: 11.5px;
+    font-size: 14px;
     font-weight: 500;
   }
   .ia-pie-pc {
@@ -991,7 +1025,7 @@
     margin-top: auto;
     padding-top: 10px;
     border-top: 1px dashed var(--ia-t12);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-pie-pc .ia-pr {
     font-weight: 600;
@@ -1051,7 +1085,7 @@
   .ia-k .ia-s {
     margin-top: 2px;
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   /* El anillo chico del sistema (<Anillo>, ronda 13 de /unificar), a la derecha de la cifra. */
   .ia-k .ia-k-anillo {
@@ -1087,7 +1121,7 @@
   }
   .ia-rr .ia-hd span {
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-via {
     position: relative;
@@ -1171,7 +1205,7 @@
     justify-content: space-between;
     gap: 10px;
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
 
   /* ── «Por colgar» (antes «Reponer a piso hoy») ── */
@@ -1188,8 +1222,10 @@
   .ia-rp .ia-it.ia-f {
     border-top: 0;
   }
-  .ia-rp .ia-it:hover {
-    background: var(--ia-t05);
+  @media (hover: hover) {
+    .ia-rp .ia-it:hover {
+      background: var(--ia-t05);
+    }
   }
   .ia-rp .ia-mg {
     position: relative;
@@ -1214,7 +1250,7 @@
   }
   .ia-rp .ia-cl {
     color: var(--ia-t65);
-    font-size: 12.5px;
+    font-size: 14px;
   }
   .ia-tl {
     display: flex;
@@ -1245,7 +1281,7 @@
     padding: 12px 18px;
     border-top: 1px solid var(--ia-t08);
     color: var(--ia-t65);
-    font-size: 13px;
+    font-size: 14px;
   }
 
   /* ── «Accesos» ── */
@@ -1277,24 +1313,28 @@
     height: 24px;
     transition: transform 450ms var(--ease-cayla);
   }
-  .ia-ax:hover {
-    transform: translateY(-3px);
-    border-color: var(--color-taupe);
-    color: var(--color-rojo);
-    box-shadow: 0 14px 26px -16px color-mix(in srgb, var(--color-tinta) 30%, transparent);
-  }
-  .ia-ax:hover svg.ia-ic {
-    transform: scale(1.14);
+  @media (hover: hover) {
+    .ia-ax:hover {
+      transform: translateY(-3px);
+      border-color: var(--color-taupe);
+      color: var(--color-rojo);
+      box-shadow: 0 14px 26px -16px color-mix(in srgb, var(--color-tinta) 30%, transparent);
+    }
+    .ia-ax:hover svg.ia-ic {
+      transform: scale(1.14);
+    }
   }
   .ia-ax.ia-esc {
     border-color: var(--color-tinta);
     background: var(--color-tinta);
     color: var(--color-crema);
   }
-  .ia-ax.ia-esc:hover {
-    border-color: var(--color-taupe);
-    background: var(--color-taupe);
-    color: var(--color-crema);
+  @media (hover: hover) {
+    .ia-ax.ia-esc:hover {
+      border-color: var(--color-taupe);
+      background: var(--color-taupe);
+      color: var(--color-crema);
+    }
   }
 
   /* ── el orden en pantalla ── */

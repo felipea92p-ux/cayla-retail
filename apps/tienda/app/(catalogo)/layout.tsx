@@ -5,6 +5,7 @@ import { EsqueletoDePagina } from "@/components/EsqueletoDePagina";
 import { SegunSesion } from "@/components/cuenta/SegunSesion";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
+import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anuncios } from "@/lib/portada";
 import { leerSesion } from "@/lib/sesion-servidor";
@@ -21,10 +22,12 @@ export default async function CatalogoLayout({ children }: { children: React.Rea
   // («Crea tu cuenta…» o «Tus beneficios están en Mi perfil»). Lo que mira la cuenta (quién es, qué guardó) se lee por detrás, dentro de su
   // <Suspense>, y mientras tanto se ve la cabecera con la página que brilla (ADR-0432).
   const { campana } = await leerPortada();
+  // El diseño de la campaña (si el líder la programó con uno): la franja y el héroe se visten con él; sin él, como siempre.
+  const diseno = await leerDisenoDeCampana(campana?.nombre);
   return (
     <div className="tienda">
-      <SegunSesion visitante={<Anuncio frases={anuncios(campana, false)} />} conCuenta={<Anuncio frases={anuncios(campana, true)} />} />
-      <Suspense fallback={<EsqueletoDePagina campana={campana} />}>
+      <SegunSesion visitante={<Anuncio frases={anuncios(campana, false)} diseno={diseno} />} conCuenta={<Anuncio frases={anuncios(campana, true)} diseno={diseno} />} />
+      <Suspense fallback={<EsqueletoDePagina campana={campana} diseno={diseno} />}>
         <ConSesion>{children}</ConSesion>
       </Suspense>
     </div>

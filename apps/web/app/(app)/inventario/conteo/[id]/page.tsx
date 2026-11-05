@@ -46,7 +46,7 @@ export default async function ConteoPage({
   // Abierto: lo que necesita la pantalla de contar. Son las mismas fuentes que usaba el conteo de antes para el alta al vuelo.
   const supabase = await createClient();
   const [catalogo, categorias, colores, ejes, marcas] = await Promise.all([
-    getCatalogoConteo(),
+    getCatalogoConteo(conteo.ubicacionId),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre").eq("activo", true).order("orden"),
     getEjesPorCategoria(),

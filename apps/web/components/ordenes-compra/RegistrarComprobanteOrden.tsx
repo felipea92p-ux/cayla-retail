@@ -1,5 +1,6 @@
 "use client";
 
+import { enterNoGuarda } from "@/components/ui/enterNoGuarda";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ReceiptText, X } from "lucide-react";
@@ -88,7 +89,7 @@ import { registrarComprobanteOrden } from "@/lib/ordenes-compra-acciones";
 // (Felipe 2026-10-13, /formidable): un valor de fábrica que cambia el IGV o de dónde sale la plata no se adivina, y la prueba ciega
 // guardaba sin darse cuenta factura, crédito, IGV y transferencia que no eran su caso. Sin tipo, el total es el de la orden, sin IGV.
 
-const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
+const TITULO = "mb-1 text-sm font-semibold text-tinta";
 // El título de un campo de la cabecera: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier estado de la guía.
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // Un renglón del papel con lugar (sección de 56 rem o más): marca de la guía y número · prenda · cantidad · costo · precio de venta ·
@@ -344,9 +345,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
       <form
         onSubmit={registrar}
         noValidate
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
-        }}
+        onKeyDown={enterNoGuarda}
         className="space-y-6"
       >
         <section data-guia="comprobante.papel" className="@container card-cayla p-4 sm:p-5" aria-label="El papel">
@@ -408,7 +407,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
             ) : (
               // Sin comprobante (decisión 50): no hay serie ni número que copiar; la base le pone su número interno al guardar.
               <p data-guia="comprobante.sin-papel" className="nota-cayla self-end @min-[28rem]:col-span-2">
-                Sin serie ni número: se guarda con un número interno (SC-…) para que el contador sepa que esta compra no tiene comprobante.
+                Sin serie ni número: se guarda con un número interno (SC-…).
               </p>
             )}
             <CampoGuiado id="emision" guia={guia}>
@@ -441,7 +440,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                   { clave: "contado", etiqueta: "Contado", guia: "comprobante.contado" },
                 ]}
               />
-              <p className="mt-1.5 text-xs text-taupe">
+              <p className="mt-1.5 text-sm text-taupe">
                 {condicion === "contado"
                   ? "Se registra con su pago por el total."
                   : condicion === "credito"
@@ -463,7 +462,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                   disabled={condicion !== "credito"}
                 />
               </fieldset>
-              <p className="mt-1.5 text-xs text-taupe">
+              <p className="mt-1.5 text-sm text-taupe">
                 {condicion === "contado" ? (
                   "Al contado no hay vencimiento."
                 ) : condicion === "" ? (
@@ -512,17 +511,17 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           )}
 
           {lineas.length > 0 && (
-            <div aria-hidden className={`hidden items-end gap-x-2.5 px-3 text-[13px] font-semibold text-tinta @min-[56rem]:grid ${FILA_ANCHA}`}>
+            <div aria-hidden className={`hidden items-end gap-x-2.5 px-3 text-sm font-semibold text-tinta @min-[56rem]:grid ${FILA_ANCHA}`}>
               <span />
               <span>Prenda</span>
               <span>Cantidad</span>
               <span>
                 Costo u.
-                {discriminaIgv(tipo) && <span className="block text-[12px] font-normal text-taupe">sin IGV</span>}
+                {discriminaIgv(tipo) && <span className="block text-sm font-normal text-taupe">sin IGV</span>}
               </span>
               <span>
                 Precio venta
-                <span className="block text-[12px] font-normal text-taupe">si la sabes</span>
+                <span className="block text-sm font-normal text-taupe">si la sabes</span>
               </span>
               <span className="text-right">Subtotal</span>
               <span />
@@ -567,7 +566,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                         {pendienteDe(l) === 0 ? " (llegó completa)" : ""}
                       </span>
                     </span>
-                    <Boton type="button" className="px-3 py-1.5 text-[11px]" onClick={() => ponerPedida(l)}>
+                    <Boton type="button" className="px-3 py-1.5 text-sm" onClick={() => ponerPedida(l)}>
                       {palabras.poner}
                     </Boton>
                   </li>
@@ -599,7 +598,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
               <CampoGuiado id="total-papel" guia={guia} className="pt-2">
                 <p className={TITULO}>
                   {etiqueta("total-papel", "Si el papel dice otro total")}
-                  <span className="ml-2 text-[12px] font-normal text-taupe">opcional</span>
+                  <span className="ml-2 text-sm font-normal text-taupe">opcional</span>
                 </p>
                 <CampoTexto
                   id="oc-total-papel"
@@ -611,7 +610,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                   value={totalDelPapel}
                   onChange={(e) => setTotalDelPapel(e.target.value)}
                 />
-                <p className="mt-1.5 text-xs text-taupe">Solo si difiere por centavos: ese total manda y el IGV se ajusta.</p>
+                <p className="mt-1.5 text-sm text-taupe">Solo si difiere por centavos: ese total manda y el IGV se ajusta.</p>
               </CampoGuiado>
             )}
           </div>
@@ -640,7 +639,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           <CampoGuiado id="nota" guia={guia} className="max-w-2xl">
             <p className={TITULO_FIJO}>
               {etiqueta("nota", "Nota")}
-              <span className="text-[12px] font-normal text-taupe">opcional</span>
+              <span className="text-sm font-normal text-taupe">opcional</span>
             </p>
             <CampoTexto id="oc-nota-comprobante" caja etiqueta="Nota" maxLength={TOPES_COMPROBANTE.nota} value={nota} onChange={(e) => setNota(e.target.value)} />
           </CampoGuiado>
@@ -724,14 +723,14 @@ function RenglonDelPapel({
   const prenda = pedida ? (
     <div className="min-w-0">
       <p className="text-tinta">{[pedida.categoria, pedida.marca].join(" · ")}</p>
-      {(l.descripcion || pedida.descripcion) && <p className="text-xs text-taupe">{l.descripcion || pedida.descripcion}</p>}
-      <p className="mt-0.5 text-xs text-taupe">
+      {(l.descripcion || pedida.descripcion) && <p className="text-sm text-taupe">{l.descripcion || pedida.descripcion}</p>}
+      <p className="mt-0.5 text-sm text-taupe">
         {sigueLaDeArriba
           ? "Sigue la línea de arriba: se partió para que los centavos cuadren con lo pedido."
           : `Pediste ${pedida.cantidad.toLocaleString("es-PE")}${pedida.facturado ? ` · ya en papel ${pedida.facturado.toLocaleString("es-PE")}` : ""}`}
       </p>
       {deMas && (
-        <p className="mt-0.5 text-xs text-ambar">
+        <p className="mt-0.5 text-sm text-ambar">
           Pasa lo pedido por {deMas.deMas.toLocaleString("es-PE")} {deMas.deMas === 1 ? "unidad" : "unidades"}. Se acepta y queda avisado.
         </p>
       )}
@@ -759,8 +758,8 @@ function RenglonDelPapel({
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[56rem]:rounded-lg @min-[56rem]:py-2">
       <div data-guia="comprobante.renglon" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[56rem]:items-center ${FILA_ANCHA}`}>
         <div className="col-span-2 flex items-center justify-between gap-2 @min-[56rem]:col-span-1 @min-[56rem]:justify-start">
-          <p className="text-[13px] font-semibold text-tinta @min-[56rem]:hidden">{etiqueta(id, `Renglón ${numero}`)}</p>
-          <span className="hidden items-center gap-1 text-[12px] tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Renglón ${numero}`}>
+          <p className="text-sm font-semibold text-tinta @min-[56rem]:hidden">{etiqueta(id, `Renglón ${numero}`)}</p>
+          <span className="hidden items-center gap-1 text-sm tabular-nums text-taupe @min-[56rem]:inline-flex" title={`Renglón ${numero}`}>
             {/* Sin marca (llegó completo), un hueco del mismo ancho: el número no se corre. */}
             {estado(id) ? <MarcaCampo estado={estado(id)!} /> : <span aria-hidden className="inline-block h-[18px] w-[18px]" />}
             {numero}
@@ -778,7 +777,7 @@ function RenglonDelPapel({
         </div>
         <div>
           <p className={`${TITULO} @min-[56rem]:hidden`}>
-            Precio de venta <span className="text-[12px] font-normal text-taupe">si lo sabes</span>
+            Precio de venta <span className="text-sm font-normal text-taupe">si lo sabes</span>
           </p>
           <CampoTexto caja sinPie etiqueta={`Precio de venta sugerido del renglón ${numero}, en soles`} inputMode="decimal" placeholder="0.00" value={l.precioVenta} onChange={(e) => onCambio({ precioVenta: e.target.value })} />
         </div>

@@ -181,7 +181,7 @@ export function EditarCampanaModal({
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="min-w-0 flex-1 basis-60 text-[13px] text-tinta/75">{quitar.explica}</p>
+                <p className="min-w-0 flex-1 basis-60 text-sm text-tinta/75">{quitar.explica}</p>
                 <Boton
                   type="button"
                   peso="peligro"

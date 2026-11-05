@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Existencias: el stock se carga aquí</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<!-- Maqueta 2026-10-23 (propuesta, sin implementar). La prenda, sus colores y TODAS las cantidades son EJEMPLO INVENTADO.
+     Colores: los tokens de apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro). Las reglas de la tabla son
+     las de lib/ajuste-reglas.ts y lib/existencias-flujos.ts (motivos, «Encontré» solo suma y solo en almacén, lo nuevo en la
+     tienda, lo apartado). -->
+<style>
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;
+  --verde:#48603f;--ambar:#74501a;--ambar-p:#734f15;--pizarra:#4c5d6e;--rojo:#b8412d;--rojo-p:#8b2a1f;--sombra:#1a1a18;
+  --tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+:root[data-tema="oscuro"]{
+  color-scheme:dark;
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;
+  --verde:#9ccb8d;--ambar:#e4b968;--ambar-p:#ecc676;--pizarra:#a2b8cd;--rojo:#e8806a;--rojo-p:#f29a86;--sombra:#000;
+}
+*{box-sizing:border-box;margin:0}
+html{background:var(--crema)}
+body{background:var(--crema);color:var(--tinta);font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;padding:32px 24px 120px}
+button,input{font:inherit;color:inherit}
+.serif{font-family:"EB Garamond",Georgia,serif;font-weight:500}
+.vers{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.tenue{color:var(--taupe)}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.ch{width:14px;height:14px}
+svg.i.xs{width:12px;height:12px}
+
+/* ---------- la página de la maqueta (lo que NO es pantalla) ---------- */
+.intro{max-width:1180px;margin:0 auto}
+.intro h1{font-family:"EB Garamond",serif;font-weight:500;font-size:42px;line-height:1.05}
+.intro .bajada{color:var(--taupe);max-width:860px;margin-top:8px;font-size:15px}
+.intro .bajada b{color:var(--tinta);font-weight:600}
+.decidido{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.decidido span{font-size:12.5px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:4px 11px}
+.decidido b{font-weight:600}
+.control{max-width:1180px;margin:22px auto 0;border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.control .grupo{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.control .grupo > span{font-size:12px;color:var(--taupe);margin-right:2px}
+.ctl{border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent);background:var(--papel);border-radius:10px;padding:6px 11px;font-size:13px;cursor:pointer}
+.ctl[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.ctl.op{font-weight:600}
+.ctl.op small{font-weight:400;opacity:.75;margin-left:4px}
+.escena{margin:18px auto 0;display:flex;justify-content:center;overflow-x:auto}
+.leyenda-op{max-width:1180px;margin:14px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.leyenda-op > div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px 14px;font-size:13px}
+.leyenda-op h3{font-size:13px;font-weight:700;margin-bottom:4px}
+.leyenda-op ul{padding-left:18px;display:grid;gap:3px}
+.leyenda-op .como{grid-column:1/-1}
+h2.seccion{max-width:1180px;margin:56px auto 4px;font-family:"EB Garamond",serif;font-weight:500;font-size:30px}
+p.seccion{max-width:1180px;margin:0 auto 12px;color:var(--taupe);font-size:14px}
+.laminas{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.lamina{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px;display:grid;gap:10px;align-content:start}
+.lamina > header b{display:block;font-size:15px}
+.lamina > header span{color:var(--taupe);font-size:13px}
+.lamina.ancha{grid-column:1/-1}
+@media (max-width:860px){.laminas,.leyenda-op{grid-template-columns:1fr}.lamina.ancha{grid-column:auto}}
+
+/* ---------- el marco: la pantalla del ERP ---------- */
+.marco{position:relative;container-type:inline-size;background:var(--crema);border:1px solid var(--sand);border-radius:18px;overflow:hidden;min-height:820px;flex:none;transition:width .3s var(--ease)}
+.pantalla{padding:28px 32px 40px}
+.sede{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--taupe)}
+.sede::before{content:"";width:28px;height:1px;background:var(--taupe)}
+.cab{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;margin-top:8px}
+.cab h1{font-family:"EB Garamond",serif;font-weight:500;font-size:46px;line-height:1}
+.cab p{color:var(--taupe);margin-top:6px;max-width:520px}
+.cab .acciones{margin-top:12px;display:flex;gap:8px}
+.cifras{display:flex;gap:10px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:10px 14px;min-width:150px}
+.cifra b{display:block;font-family:"EB Garamond",serif;font-weight:500;font-size:28px;line-height:1.1}
+.cifra span{font-size:12px;color:var(--taupe)}
+.lista{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
+
+/* tarjeta de Existencias (ADR-0391, «Claro y grande») */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:12px;display:grid;gap:10px;transition:opacity .25s var(--ease)}
+.tarjeta.atenuada{opacity:.45}
+.t-cab{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center}
+.miniatura{width:40px;height:46px;border-radius:9px;display:grid;place-items:center;color:var(--crema-fija)}
+.miniatura svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6}
+.t-nom{font-family:"EB Garamond",serif;font-size:17px;line-height:1.1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-cod{font-size:12px;color:var(--taupe)}
+.t-precio{font-family:"EB Garamond",serif;font-size:15px;white-space:nowrap}
+.puntos{display:flex;gap:7px;align-items:center}
+.pto{width:14px;height:14px;border-radius:999px;outline:1px solid color-mix(in srgb,var(--tinta) 20%,transparent);flex:none}
+.pto.si{width:18px;height:18px;outline:2px solid var(--tinta);outline-offset:2px}
+.puntos .nomcolor{font-size:12px;font-weight:600;margin-left:3px}
+.columnas{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.col-talla{border:1px solid var(--sand);background:var(--crema);border-radius:10px;padding:6px 4px;text-align:center}
+.col-talla .tt{font-size:11px;font-weight:600;color:var(--taupe)}
+.col-talla .nn{font-family:"EB Garamond",serif;font-size:24px;line-height:1.05}
+.col-talla .gg{font-size:11px;color:var(--taupe)}
+.col-talla.falta{border-color:color-mix(in srgb,var(--ambar) 35%,transparent);background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.col-talla.cero{border-color:color-mix(in srgb,var(--rojo) 35%,transparent);background:color-mix(in srgb,var(--rojo) 8%,transparent);color:var(--rojo-p)}
+.col-talla.recien{animation:recien 1.6s var(--ease) 1}
+@keyframes recien{0%{background:color-mix(in srgb,var(--verde) 22%,transparent)}100%{}}
+.t-pie{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.t-pie .estado{font-size:12px;color:var(--taupe)}
+
+/* botones (btn-cayla) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:10px;font-size:13.5px;font-weight:500;cursor:pointer;border:1px solid transparent;white-space:nowrap;transition:background .2s,transform .12s,border-color .2s}
+.btn:active{transform:scale(.97)}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+@media (hover:hover){.btn.prim:hover{background:var(--rojo-p)}}
+.btn.prim:disabled{opacity:.4;cursor:not-allowed;background:var(--tinta)}
+.btn.sec{background:var(--papel);border-color:color-mix(in srgb,var(--tinta) 18%,transparent)}
+@media (hover:hover){.btn.sec:hover{border-color:var(--tinta)}}
+.btn.sutil{background:transparent}
+@media (hover:hover){.btn.sutil:hover{background:color-mix(in srgb,var(--sand) 60%,transparent)}}
+.btn.chico{min-height:32px;padding:0 11px;font-size:12.5px}
+.btn.cabecera{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.enlace{background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+@media (hover:hover){.enlace:hover{color:var(--rojo-p);text-decoration-color:var(--rojo)}}
+.volver{width:32px;height:32px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;cursor:pointer;flex:none}
+.cerrar{width:32px;height:32px;border-radius:999px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--taupe)}
+@media (hover:hover){.cerrar:hover{background:color-mix(in srgb,var(--sand) 60%,transparent);color:var(--tinta)}}
+.masmenu{position:relative}
+.menu{position:absolute;right:0;bottom:44px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;min-width:190px;display:grid;z-index:5;box-shadow:0 10px 30px color-mix(in srgb,var(--sombra) 18%,transparent);animation:revelar .24s var(--ease)}
+.menu button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;gap:8px;align-items:center;font-size:13px}
+@media (hover:hover){.menu button:hover{background:var(--hueso)}}
+.menu button.top{font-weight:600}
+@keyframes revelar{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- velo y hoja (ADR-0136) ---------- */
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(3px);animation:fundido .22s var(--ease);z-index:10}
+:root[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+@keyframes fundido{from{opacity:0}}
+.hoja{position:absolute;z-index:11;left:50%;top:28px;transform:translateX(-50%);background:var(--papel);border:1px solid var(--sand);border-radius:20px;padding:22px 24px 0;max-height:calc(100% - 56px);overflow:auto;box-shadow:0 18px 50px color-mix(in srgb,var(--sombra) 22%,transparent);animation:entra .34s var(--ease)}
+@keyframes entra{from{opacity:0;transform:translate(-50%,18px) scale(.985)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+.hoja > *{animation:cascada .34s var(--ease) both}
+.hoja > *:nth-child(2){animation-delay:55ms}.hoja > *:nth-child(3){animation-delay:110ms}.hoja > *:nth-child(4){animation-delay:165ms}.hoja > *:nth-child(5){animation-delay:220ms}
+@keyframes cascada{from{opacity:0;transform:translateY(6px)}}
+.asa{display:none}
+.h-cab{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.h-cab h2{font-family:"EB Garamond",serif;font-weight:500;font-size:24px;line-height:1.1}
+.h-cab p{color:var(--taupe);font-size:13.5px;margin-top:2px}
+.pie-fijo{position:sticky;bottom:0;background:var(--papel);margin:0 -24px;padding:12px 24px 16px;border-top:1px solid var(--sand);display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.pie-fijo .resumen{margin-right:auto;font-size:13px}
+.pie-fijo .resumen b{font-weight:600}
+
+/* opción A: el modal de la prenda */
+.hoja-a{width:min(62rem,calc(100% - 48px))}
+.fila-prenda{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px}
+.a-grid{display:grid;grid-template-columns:7.5rem minmax(0,1fr);gap:22px;align-items:start}
+.a-grid > main{min-width:0}
+.a-aside{display:grid;gap:10px;position:sticky;top:0}
+.foto-grande{aspect-ratio:3/4;border-radius:12px;display:grid;place-items:center;color:var(--crema-fija);transition:background .35s var(--ease)}
+.foto-grande svg{width:40%;height:40%;stroke:currentColor;fill:none;stroke-width:1.3}
+.a-colores{display:grid;gap:4px}
+.a-colores button{display:flex;gap:7px;align-items:center;border:0;background:none;padding:4px 6px;border-radius:8px;font-size:12.5px;cursor:pointer;text-align:left}
+.a-colores button[aria-pressed="true"]{background:var(--hueso);font-weight:600}
+.a-titulo{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.a-titulo b{font-size:15px}
+.a-titulo span{font-size:12.5px;color:var(--taupe)}
+.pestanas{display:inline-flex;padding:3px;border-radius:999px;background:color-mix(in srgb,var(--sand) 70%,transparent);gap:2px}
+.pestanas button{border:0;background:none;border-radius:999px;padding:5px 12px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;cursor:pointer;color:var(--taupe)}
+.pestanas button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+
+/* opción B: la hoja propia */
+.hoja-b{width:min(60rem,calc(100% - 48px))}
+.b-prenda{display:flex;gap:10px;align-items:center}
+
+/* opción C: en la tarjeta */
+.tarjeta.expandida{grid-column:1/-1;border-color:var(--tinta);padding:16px 18px;gap:14px;animation:abre .32s var(--ease)}
+@keyframes abre{from{opacity:.4;transform:translateY(6px)}}
+.c-cab{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.c-cab .t-cab{flex:1;min-width:240px}
+.tarjeta .pie-fijo{position:static;margin:0 -18px -16px;padding:12px 18px;border-radius:0 0 16px 16px}
+
+/* ---------- la línea de la visita: motivo · dónde · quién ---------- */
+.visita{display:grid;gap:10px;background:var(--crema);border:1px solid var(--sand);border-radius:14px;padding:12px 14px}
+.visita .fila{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center}
+.visita .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe);min-width:86px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid color-mix(in srgb,var(--tinta) 16%,transparent);background:var(--papel);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer;transition:background .2s,border-color .2s}
+@media (hover:hover){.chip:hover{border-color:var(--tinta)}}
+.chip[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.chip[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.ayuda-motivo{font-size:12.5px;color:var(--taupe)}
+.ayuda-motivo a{color:inherit}
+.segmento{display:inline-flex;background:color-mix(in srgb,var(--sand) 75%,transparent);border-radius:10px;padding:3px;gap:2px}
+.segmento button{border:0;background:none;border-radius:8px;padding:5px 12px;font-size:12.5px;cursor:pointer;color:var(--taupe)}
+.segmento button[aria-pressed="true"]{background:var(--papel);color:var(--tinta);font-weight:600;box-shadow:0 0 0 1px var(--sand)}
+.segmento button[aria-disabled="true"]{cursor:not-allowed}
+.quien{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 4px;border-radius:10px;background:var(--hueso);border:1px solid var(--sand);font-size:13px;cursor:pointer}
+.avatar{width:28px;height:28px;border-radius:999px;background:var(--sand);display:grid;place-items:center;font-family:"EB Garamond",serif;font-size:13px;position:relative}
+.avatar::after{content:"";position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border-radius:999px;background:var(--verde);border:2px solid var(--hueso)}
+.nota-campo{display:grid;gap:4px;flex:1;min-width:220px}
+.nota-campo input{height:36px;border-radius:10px;border:1px solid var(--sand);background:var(--hueso);padding:0 12px;font-size:13px;outline:none}
+.nota-campo input:focus{background:var(--papel);border-color:var(--tinta)}
+.nota-campo.sigue input{box-shadow:0 0 0 3px color-mix(in srgb,var(--ambar) 22%,transparent)}
+
+/* ---------- la tabla color × talla ---------- */
+.tabla-caja{margin-top:12px;border:1px solid var(--sand);border-radius:14px;overflow-x:auto;background:var(--papel)}
+table.mz{border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%}
+table.mz th,table.mz td{border-bottom:1px solid var(--sand);padding:8px 6px;text-align:center;vertical-align:middle}
+table.mz thead th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe);background:var(--papel);padding:9px 6px}
+table.mz tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--hueso) 45%,var(--papel))}
+table.mz tbody tr:nth-child(odd) td{background:var(--papel)}
+table.mz .c-color{text-align:left;position:sticky;left:0;z-index:1;padding-left:12px}
+table.mz thead .c-color{z-index:2}
+table.mz .c-color .cn{display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px;min-width:0}
+table.mz .c-color .cn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.mz .c-color small{display:block;font-weight:400;font-size:11.5px;color:var(--taupe);margin-left:22px}
+table.mz .c-total{font-family:"EB Garamond",serif;font-size:17px}
+table.mz tfoot td{font-family:"EB Garamond",serif;font-size:16px;border-bottom:0;background:var(--papel)}
+table.mz tfoot .c-color{font-family:"DM Sans",sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.franja{width:4px;height:22px;border-radius:2px;flex:none;outline:1px solid color-mix(in srgb,var(--tinta) 22%,transparent)}
+.celda{display:grid;justify-items:center;gap:2px}
+.paso{display:inline-flex;align-items:center;height:28px;padding:0 2px;border-radius:7px;border:1px solid var(--sand);background:var(--hueso);transition:background .2s,border-color .2s}
+.paso:focus-within{background:var(--papel);border-color:var(--tinta)}
+.paso button{width:22px;height:22px;border:0;background:none;border-radius:5px;display:grid;place-items:center;cursor:pointer;color:var(--taupe);flex:none}
+@media (hover:hover){.paso button:hover{background:color-mix(in srgb,var(--sand) 70%,transparent);color:var(--tinta)}}
+.paso button:active{transform:scale(.9)}
+.paso button[aria-disabled="true"]{opacity:.3;cursor:not-allowed}
+.paso input{width:34px;height:24px;border:0;background:transparent;text-align:center;font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;outline:none;-moz-appearance:textfield}
+.paso input::-webkit-inner-spin-button{-webkit-appearance:none}
+.celda.cambio .paso{border-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,var(--papel))}
+.celda.cambio .paso input{color:var(--ambar-p)}
+.celda .bajo{font-size:11px;color:var(--taupe);line-height:1.2;white-space:nowrap}
+.celda.cambio .bajo{color:var(--ambar-p);font-weight:600}
+.celda .bajo.nueva{color:var(--pizarra)}
+.celda.choca .paso{border-color:var(--rojo-p)}
+.guion{color:color-mix(in srgb,var(--tinta) 35%,transparent);font-size:15px}
+.explica{margin-top:10px;display:flex;gap:8px;align-items:flex-start;font-size:12.5px;border-left:3px solid var(--pizarra);background:color-mix(in srgb,var(--pizarra) 8%,var(--papel));border-radius:0 10px 10px 0;padding:8px 12px}
+.explica.atencion{border-left-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,var(--papel))}
+.cambios{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.cambios span{font-size:12px;border-radius:999px;padding:2px 9px;background:color-mix(in srgb,var(--ambar) 12%,transparent);color:var(--ambar-p);font-weight:600}
+.falta{font-size:12.5px;color:var(--ambar-p)}
+.falta button{color:inherit;font-weight:600}
+.listo{font-size:12.5px;color:var(--verde);display:inline-flex;gap:4px;align-items:center}
+.leyenda-tabla{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:11.5px;color:var(--taupe);margin-top:8px}
+.leyenda-tabla i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;font-style:normal}
+
+/* aviso de éxito (esquina) y etiquetas de lo que entró */
+.aviso-ok{position:absolute;right:16px;top:16px;z-index:30;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);border-radius:0 12px 12px 0;padding:10px 14px;font-size:13px;display:flex;gap:8px;align-items:center;animation:entraAviso .3s var(--ease);box-shadow:0 10px 30px color-mix(in srgb,var(--sombra) 15%,transparent)}
+@keyframes entraAviso{from{opacity:0;transform:translateY(-8px)}}
+.hoja-etq{width:min(30rem,calc(100% - 48px));text-align:center;padding-bottom:20px}
+.visto{width:56px;height:56px;margin:0 auto;border-radius:999px;background:color-mix(in srgb,var(--verde) 14%,transparent);display:grid;place-items:center;color:var(--verde)}
+.visto svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-dasharray:30;stroke-dashoffset:30;animation:dibuja .45s var(--ease) .15s forwards}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+.etiquetas{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.etq-papel{width:112px;background:#fff;color:#1a1a18;border-radius:6px;border:1px solid #d9d2c3;padding:10px 8px 8px;font-size:11px;text-align:left;position:relative;animation:sale .4s var(--ease) both} /* tema-fijo: papel físico, se ve como saldrá impreso */
+.etq-papel:nth-child(2){animation-delay:90ms}.etq-papel:nth-child(3){animation-delay:180ms}
+@keyframes sale{from{opacity:0;transform:translateY(-10px)}}
+.etq-papel::before{content:"";position:absolute;top:5px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:999px;border:1px solid #d9d2c3}
+.etq-papel b{display:block;font-family:"EB Garamond",serif;font-size:14px;margin-top:6px}
+.etq-papel .x{position:absolute;right:6px;bottom:6px;font-weight:700;font-size:12px}
+
+/* ---------- celular (el marco a 375) ---------- */
+@keyframes subeMovil{from{transform:translateY(40px);opacity:0}}
+@container (max-width:640px){
+  .pantalla{padding:18px 16px 32px}
+  .cab h1{font-size:36px}
+  .cifras{width:100%}
+  .cifra{flex:1;min-width:0}
+  .lista{grid-template-columns:1fr}
+  .hoja{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;max-height:94%;border-radius:20px 20px 0 0;padding:10px 16px 0;animation:subeMovil .34s var(--ease)}
+  .asa{display:block;width:40px;height:5px;border-radius:999px;background:var(--sand);margin:0 auto 10px}
+  .pie-fijo{margin:0 -16px;padding:10px 16px 14px}
+  .pie-fijo .resumen{width:100%}
+  .pie-fijo .btn{flex:1}
+  .a-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  .a-aside{position:static;grid-template-columns:56px minmax(0,1fr);align-items:center}
+  .a-aside .foto-grande{aspect-ratio:auto;height:64px}
+  .a-colores{grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto}
+  .fila-prenda .btn{flex:1;padding:0 8px}
+  .visita .lbl{min-width:0;width:100%}
+  table.mz{min-width:520px}
+  .tarjeta.expandida{padding:12px}
+  .tarjeta .pie-fijo{margin:0 -12px -12px;padding:10px 12px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<section class="intro">
+  <p class="vers">Maqueta · Existencias · 23-oct-2026 · sin construir · <a href="ronda-2.html" style="color:inherit">ronda 2</a> · <a href="ronda-3.html" style="color:inherit">ronda 3 (la última) →</a></p>
+  <h1>El stock se carga en Existencias</h1>
+  <p class="bajada">
+    Hoy las chicas cargan stock en <b>Catálogo ▸ Editar producto</b> porque ahí ven <b>todo el modelo en una tabla</b> (colores × tallas),
+    tocan − y + y guardan <b>una sola vez</b>. En Existencias es <b>talla por talla, con 4 pasos cada una</b>, y una prenda que la tienda nunca
+    tuvo <b>ni siquiera aparece</b>. Aquí van <b>tres formas</b> de llevar esa misma tabla a Existencias. La tabla es la misma en las tres
+    (mismas reglas, mismo guardado: una sola llamada a <code>ajustar_inventario</code>). Lo que cambia es <b>dónde vive</b>. Tócala: los
+    − y + funcionan, se puede escribir el número, cambiar el motivo y guardar.
+  </p>
+  <div class="decidido" aria-label="Lo que ya decidiste">
+    <span><b>Ya decidido:</b> Nuevo producto sigue poniendo las unidades al crear</span>
+    <span><b>Ya decidido:</b> la ficha de Catálogo muestra los números y «Ajustar en Existencias»</span>
+    <span><b>Ya decidido:</b> arranca en «Conté y hay otro número» (hoy son casi todo correcciones)</span>
+  </div>
+</section>
+
+<div class="control" role="group" aria-label="Controles de la maqueta (no son parte de la pantalla)">
+  <div class="grupo"><span>Forma</span>
+    <button class="ctl op" data-op="A" aria-pressed="true">A · En el modal de la prenda <small>mi recomendada</small></button>
+    <button class="ctl op" data-op="B" aria-pressed="false">B · Una hoja propia</button>
+    <button class="ctl op" data-op="C" aria-pressed="false">C · En la misma tarjeta</button>
+  </div>
+  <div class="grupo"><span>Ancho</span>
+    <button class="ctl" data-ancho="1440" aria-pressed="true">Escritorio 1440</button>
+    <button class="ctl" data-ancho="1024" aria-pressed="false">Laptop 1024</button>
+    <button class="ctl" data-ancho="375" aria-pressed="false">Celular 375</button>
+  </div>
+  <div class="grupo"><span>Tema</span>
+    <button class="ctl" data-tema="claro" aria-pressed="true">Claro</button>
+    <button class="ctl" data-tema="oscuro" aria-pressed="false">Oscuro</button>
+  </div>
+  <div class="grupo">
+    <button class="ctl" id="simular">✎ Simular: contar 3 tallas</button>
+    <button class="ctl" id="reiniciar">↺ Volver a empezar</button>
+  </div>
+</div>
+
+<div class="escena"><div class="marco" id="marco" style="width:1440px"></div></div>
+<div class="leyenda-op" id="leyenda"></div>
+
+<h2 class="seccion">Lo que es igual en las tres</h2>
+<p class="seccion">Estas piezas van con cualquiera de las tres formas. Las cuatro son de Existencias, menos la última, que es cómo queda Catálogo.</p>
+<div class="laminas" id="laminas"></div>
+
+<h2 class="seccion">Qué sigue</h2>
+<div class="laminas"><div class="lamina ancha" style="font-size:13.5px">
+  <ol style="padding-left:20px;display:grid;gap:6px">
+    <li><b>Eliges A, B o C</b> (o una mezcla: «A, pero con…»). Si algo de la tabla no te convence, lo cambio aquí antes de construir.</li>
+    <li><b>Actividad 1:</b> la tabla en Existencias con la forma elegida, el botón «Ajustar stock» de la cabecera y «Etiquetas de lo que entró». Sin migración: guarda por <code>ajustar_inventario</code>, como hoy la ficha.</li>
+    <li><b>Actividad 2:</b> que Existencias encuentre las prendas que la tienda nunca tuvo (búsqueda y escáner).</li>
+    <li><b>Actividad 3, recién al final:</b> la ficha de Catálogo pasa a solo lectura con «Ajustar en Existencias». Va al final para que nadie se quede sin camino en el medio.</li>
+    <li>Cada actividad, probada en local en escritorio, a 375 px, en claro y oscuro, con su guía, <code>/chaos</code> (toca stock) y <code>/formidable</code>.</li>
+  </ol>
+</div></div>
+
+<script>
+/* =====================================================================
+   DATOS INVENTADOS. Tienda Trujillo separa piso y almacén.
+   Cada talla: p = en piso, a = en almacén, ap = apartadas, nueva = nunca estuvo en esta tienda. null = esa combinación no existe.
+   ===================================================================== */
+const TALLAS = ["S", "M", "L", "XL"];
+const BASE = [
+  { id: "negro", nombre: "Negro", hex: "#26221f", t: { S: { p: 2, a: 4, ap: 0 }, M: { p: 1, a: 6, ap: 1 }, L: { p: 0, a: 3, ap: 0 }, XL: { p: 0, a: 0, ap: 0 } } },
+  { id: "crudo", nombre: "Crudo", hex: "#e6dcc6", claro: true, t: { S: { p: 3, a: 1, ap: 0 }, M: { p: 2, a: 2, ap: 0 }, L: { p: 1, a: 0, ap: 0 }, XL: null } },
+  { id: "vino", nombre: "Vino", hex: "#6b1f2a", t: { S: { p: 0, a: 2, ap: 0 }, M: { p: 1, a: 1, ap: 0 }, L: { p: 0, a: 1, ap: 0 }, XL: { p: 0, a: 0, ap: 0, nueva: true } } },
+  { id: "azul", nombre: "Azul petróleo", hex: "#1f4b57", nota: "Solo en Lima (8)", t: { S: { p: 0, a: 0, ap: 0, nueva: true }, M: { p: 0, a: 0, ap: 0, nueva: true }, L: { p: 0, a: 0, ap: 0, nueva: true }, XL: { p: 0, a: 0, ap: 0, nueva: true } } },
+];
+const OTRAS = [
+  { nombre: "Pantalón Olivia", cod: "PAN-0088", precio: "S/ 119.90", hex: "#5b5f4a", t: [["S", 1, 2], ["M", 3, 0], ["L", 2, 1]] },
+  { nombre: "Casaca Rumi", cod: "CAS-0031", precio: "S/ 189.90", hex: "#7a5a3a", t: [["S", 0, 0], ["M", 1, 2], ["L", 1, 0], ["XL", 0, 1]] },
+];
+const MOTIVOS = [
+  { k: "conteo", t: "Conté y hay otro número", dir: "ambos", ayuda: "Escribe lo que contaste: el sistema saca la diferencia." },
+  { k: "encontre", t: "Encontré unidades", dir: "mas", ayuda: "Solo suma, y en el almacén (después se cuelgan). Di dónde estaban.", nota: "¿Dónde estaban?", ej: "En la caja del fondo del almacén" },
+  { k: "no_aparece", t: "No aparece", dir: "menos", ayuda: "La buscaste y no está: solo resta." },
+  { k: "error_cobro", t: "Error al cobrar", dir: "ambos", ayuda: "Se cobró otra talla o color: corrige las dos." },
+  { k: "uso_interno", t: "Uso interno", dir: "menos", ayuda: "Se usó en la tienda (vitrina, maniquí): solo resta." },
+  { k: "otro", t: "Otro", dir: "ambos", ayuda: "Escribe qué pasó.", nota: "¿Qué pasó?", ej: "Llegó del Taller sin guía" },
+];
+
+const I = {
+  menos: '<svg class="i xs" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+  mas: '<svg class="i xs" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  x: '<svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  flecha: '<svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+  avanza: '<svg class="i ch" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+  lapiz: '<svg class="i ch" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  tag: '<svg class="i" viewBox="0 0 24 24"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg>',
+  cartel: '<svg class="i" viewBox="0 0 24 24"><path d="M12 13v8M12 3v3M18 6a2 2 0 0 1 1.4.6l2.3 2.3a1 1 0 0 1 0 1.4l-2.3 2.3A2 2 0 0 1 18 13H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg>',
+  historia: '<svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></svg>',
+  libro: '<svg class="i" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
+  lupa: '<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+  escaner: '<svg class="i ch" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M11 8v8M15 8v8M19 8v8"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  checkch: '<svg class="i ch" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  abajo: '<svg class="i ch" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
+  info: '<svg class="i ch" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  percha: '<svg viewBox="0 0 24 24"><path d="M12 7a2 2 0 1 1 2-2"/><path d="M12 7v1.5L3 15a1.5 1.5 0 0 0 1 2.7h16a1.5 1.5 0 0 0 1-2.7l-9-6.5"/></svg>',
+  impresora: '<svg class="i" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>',
+};
+
+/* ---------------------------- estado ---------------------------- */
+let datos, st;
+function inicial() {
+  datos = JSON.parse(JSON.stringify(BASE));
+  st = { op: st?.op ?? "A", ancho: st?.ancho ?? 1440, abierta: false, lugar: "almacen", motivo: "conteo", nota: "", obj: {}, borrador: {}, razon: null, guardando: false, aviso: null, etiquetas: null, recien: new Set(), color: "negro", menu: false, aMas: false };
+}
+inicial();
+
+const clave = (c, t) => `${c}|${t}`;
+const talla = (c, t) => datos.find((x) => x.id === c).t[t];
+const hoy = (c, t) => { const v = talla(c, t); return !v ? 0 : st.lugar === "almacen" ? v.a : v.p; };
+const numero = (c, t) => st.obj[clave(c, t)] ?? hoy(c, t);
+const motivo = () => MOTIVOS.find((m) => m.k === st.motivo);
+function cambios() {
+  const out = [];
+  for (const c of datos) for (const t of TALLAS) {
+    if (!c.t[t]) continue;
+    const k = clave(c.id, t);
+    if (st.obj[k] !== undefined && st.obj[k] !== hoy(c.id, t)) out.push({ c, t, de: hoy(c.id, t), a: st.obj[k] });
+  }
+  return out;
+}
+/* Por qué el «+» o el «−» de una celda no se puede (null = se puede). Mismas reglas que lib/ajuste-reglas.ts. */
+function bloqueo(c, t, signo) {
+  const v = talla(c, t), n = numero(c, t), m = motivo(), base = hoy(c, t);
+  const nombre = `${datos.find((x) => x.id === c).nombre} ${t}`;
+  if (signo > 0) {
+    if (v.nueva && st.motivo !== "encontre") return `${nombre} nunca estuvo en esta tienda: si la encontraste, elige «Encontré unidades» (en el almacén).`;
+    if (m.dir === "menos" && n >= base) return `«${m.t}» solo resta: para sumar, elige otro motivo.`;
+  } else {
+    if (n <= 0) return null;
+    if (n <= v.ap && st.lugar === "piso") return `${nombre}: ${v.ap} ${v.ap === 1 ? "está apartada" : "están apartadas"} para un cliente; no se pueden quitar aquí.`;
+    if (m.dir === "mas" && n <= base) return `«${m.t}» solo suma: para quitar, elige otro motivo.`;
+  }
+  return null;
+}
+/* Lo que frena guardar, como `problemaDelStockDeLaVisita`: primero cada celda contra el motivo, después la nota. */
+function problema() {
+  const m = motivo();
+  for (const x of cambios()) {
+    const d = x.a - x.de, nom = `${x.c.nombre} ${x.t}`;
+    if (m.dir === "mas" && d < 0) return { texto: `«${m.t}» solo suma, y ${nom} baja de ${x.de} a ${x.a}.`, campo: "motivo" };
+    if (m.dir === "menos" && d > 0) return { texto: `«${m.t}» solo resta, y ${nom} sube de ${x.de} a ${x.a}.`, campo: "motivo" };
+    if (x.c.t[x.t].nueva && st.motivo !== "encontre") return { texto: `${nom} nunca estuvo en esta tienda: entra con «Encontré unidades».`, campo: "motivo" };
+  }
+  if (m.nota && st.nota.trim().length < 3) return { texto: m.nota.replace("¿", "").replace("?", "").toLowerCase(), campo: "nota" };
+  return null;
+}
+
+/* ---------------------------- piezas ---------------------------- */
+const foto = (c, cls = "miniatura") => `<div class="${cls}" data-color-dato style="background:${c.hex};${c.claro ? "color:var(--tinta-fija)" : ""}">${I.percha}</div>`;
+function visita(compacta) {
+  const m = motivo(), hay = cambios().length > 0, p = problema();
+  const chips = MOTIVOS.map((x) => {
+    const cerrado = x.k === "encontre" && st.lugar === "piso";
+    return `<button class="chip" data-motivo="${x.k}" aria-pressed="${st.motivo === x.k}" ${cerrado ? 'aria-disabled="true" title="En el piso no: lo encontrado se anota en el almacén y después se cuelga"' : ""}>${x.t}</button>`;
+  }).join("");
+  const nota = m.nota
+    ? `<label class="nota-campo ${p?.campo === "nota" ? "sigue" : ""}"><span class="vers">${m.nota}</span><input id="nota" value="${st.nota.replace(/"/g, "&quot;")}" placeholder="Ej. ${m.ej}" autocomplete="off"></label>`
+    : "";
+  return `<div class="visita">
+    <div class="fila"><span class="lbl">Qué pasó</span><div class="chips">${chips}</div></div>
+    <div class="fila" style="margin-top:-4px"><span class="lbl"></span><span class="ayuda-motivo">${m.ayuda} ¿Se dañó? No se resta: <button class="enlace" data-accion="danada">se reporta</button>.</span></div>
+    <div class="fila"><span class="lbl">Dónde</span>
+      <div class="segmento" role="group" aria-label="Dónde contaste">
+        <button data-lugar="almacen" aria-pressed="${st.lugar === "almacen"}" ${hay && st.lugar !== "almacen" ? 'aria-disabled="true"' : ""}>En almacén</button>
+        <button data-lugar="piso" aria-pressed="${st.lugar === "piso"}" ${hay && st.lugar !== "piso" ? 'aria-disabled="true"' : ""}>En piso</button>
+      </div>
+      ${compacta ? "" : '<span class="lbl" style="min-width:0;margin-left:8px">Quién</span>'}
+      <button class="quien" title="Responsable: quien firma el ajuste (ADR-0161)"><span class="avatar">RQ</span>Rosa Quispe ${I.abajo}</button>
+      ${nota}
+    </div>
+  </div>`;
+}
+function celda(c, t) {
+  const v = talla(c.id, t);
+  if (!v) return `<td><span class="guion" title="Esta combinación no existe en el catálogo">—</span></td>`;
+  const k = clave(c.id, t), n = st.borrador[k] ?? numero(c.id, t), base = hoy(c.id, t);
+  const cambio = st.obj[k] !== undefined && st.obj[k] !== base;
+  const bm = bloqueo(c.id, t, -1), bp = bloqueo(c.id, t, +1);
+  const otro = st.lugar === "almacen" ? v.p : v.a;
+  let bajo;
+  if (cambio) bajo = `<span class="bajo">${base} → ${st.obj[k]}</span>`;
+  else if (v.nueva) bajo = `<span class="bajo nueva">nueva aquí</span>`;
+  else bajo = `<span class="bajo">${otro} en ${st.lugar === "almacen" ? "piso" : "almacén"}</span>`;
+  const nom = `${c.nombre} ${t}`;
+  return `<td><div class="celda ${cambio ? "cambio" : ""}">
+    <span class="paso">
+      <button data-paso="-1" data-c="${c.id}" data-t="${t}" aria-label="Una menos de ${nom}" ${bm || n <= 0 ? `aria-disabled="true"` : ""} ${bm ? `data-razon="${bm}"` : ""} tabindex="-1">${I.menos}</button>
+      <input inputmode="numeric" data-c="${c.id}" data-t="${t}" data-foco="in-${k}" value="${n}" aria-label="${nom}, ${st.lugar === "almacen" ? "en almacén" : "en piso"}">
+      <button data-paso="1" data-c="${c.id}" data-t="${t}" aria-label="Una más de ${nom}" ${bp ? `aria-disabled="true" data-razon="${bp}"` : ""} tabindex="-1">${I.mas}</button>
+    </span>${bajo}</div></td>`;
+}
+function tabla() {
+  const filas = datos.map((c) => {
+    const tot = TALLAS.reduce((s, t) => s + (c.t[t] ? numero(c.id, t) : 0), 0);
+    return `<tr><td class="c-color"><div class="cn"><span class="franja" data-color-dato style="background:${c.hex}"></span><span>${c.nombre}</span></div>${c.nota ? `<small>${c.nota}</small>` : ""}</td>${TALLAS.map((t) => celda(c, t)).join("")}<td class="c-total">${tot}</td></tr>`;
+  }).join("");
+  const totT = TALLAS.map((t) => datos.reduce((s, c) => s + (c.t[t] ? numero(c.id, t) : 0), 0));
+  const totG = totT.reduce((a, b) => a + b, 0);
+  const lista = cambios();
+  const razon = st.razon ? `<div class="explica atencion">${I.info}<span>${st.razon}</span></div>` : "";
+  return `<div class="tabla-caja"><table class="mz">
+    <colgroup><col style="width:168px">${TALLAS.map(() => '<col style="min-width:86px">').join("")}<col style="width:64px"></colgroup>
+    <thead><tr><th class="c-color">${st.lugar === "almacen" ? "En almacén" : "En piso"}</th>${TALLAS.map((t) => `<th>${t}</th>`).join("")}<th>Total</th></tr></thead>
+    <tbody>${filas}</tbody>
+    <tfoot><tr><td class="c-color">Total</td>${totT.map((n) => `<td>${n}</td>`).join("")}<td>${totG}</td></tr></tfoot>
+  </table></div>
+  ${razon}
+  <div class="leyenda-tabla"><span><i style="background:color-mix(in srgb,var(--ambar) 30%,transparent)"></i>lo que cambiaste (se guarda al confirmar)</span><span><i style="background:color-mix(in srgb,var(--pizarra) 30%,transparent)"></i>nueva aquí: nunca estuvo en esta tienda</span><span>— esa combinación no existe</span></div>
+  ${lista.length ? `<div class="cambios">${lista.map((x) => `<span>${x.c.nombre} ${x.t} · ${x.de} → ${x.a}</span>`).join("")}</div>` : ""}`;
+}
+function pie(conCancelar = true) {
+  const lista = cambios(), p = problema();
+  const entran = lista.reduce((s, x) => s + Math.max(0, x.a - x.de), 0), salen = lista.reduce((s, x) => s + Math.max(0, x.de - x.a), 0);
+  const resumen = !lista.length
+    ? `<span class="tenue">Toca − o + o escribe lo que contaste. Nada se guarda hasta que confirmes.</span>`
+    : p
+      ? `<span class="falta">Falta: <button class="enlace" data-ir="${p.campo}">${p.texto}</button></span>`
+      : `<span><b>${lista.length} ${lista.length === 1 ? "cambio" : "cambios"}</b> · ${[entran && `entran ${entran}`, salen && `salen ${salen}`].filter(Boolean).join(" · ")} · <span class="listo">${I.checkch}listo para guardar</span></span>`;
+  const n = lista.length;
+  return `<div class="pie-fijo"><div class="resumen">${resumen}</div>
+    ${conCancelar ? `<button class="btn sec" data-accion="cancelar">${n ? "Descartar" : "Cancelar"}</button>` : ""}
+    <button class="btn prim" data-accion="guardar" ${!n || p || st.guardando ? "disabled" : ""}>${st.guardando ? "Guardando…" : n ? `Guardar ${n} ${n === 1 ? "cambio" : "cambios"}` : "Guardar"}</button></div>`;
+}
+
+/* ---------------------------- la pantalla de fondo ---------------------------- */
+function tarjetaEmma() {
+  const c = datos.find((x) => x.id === st.color);
+  const cols = TALLAS.filter((t) => c.t[t]).map((t) => {
+    const v = c.t[t], cls = v.p === 0 && v.a === 0 ? "cero" : v.p === 0 ? "falta" : "";
+    return `<div class="col-talla ${cls} ${st.recien.has(clave(c.id, t)) ? "recien" : ""}"><div class="tt">${t}</div><div class="nn">${v.p}</div><div class="gg">${v.a ? `+${v.a} en almacén` : "&nbsp;"}</div></div>`;
+  }).join("");
+  const sinColgar = TALLAS.filter((t) => c.t[t] && c.t[t].p === 0 && c.t[t].a > 0).length;
+  return `<div class="t-cab">${foto(c)}<div style="min-width:0"><div class="t-nom">Blusa Emma</div><div class="t-cod">BLU-0142 · Blusas</div></div><div class="t-precio">S/ 89.90</div></div>
+    <div class="puntos">${datos.map((x) => `<button class="pto ${x.id === st.color ? "si" : ""}" data-color-dato data-elige="${x.id}" title="${x.nombre}" style="background:${x.hex};border:0;cursor:pointer"></button>`).join("")}<span class="nomcolor">${c.nombre}</span></div>
+    <div class="columnas">${cols}</div>
+    <div class="t-pie"><span class="estado">${sinColgar ? `${sinColgar} ${sinColgar === 1 ? "talla" : "tallas"} sin colgar` : "Todo en el piso"}</span>
+      <div style="display:flex;gap:6px">${sinColgar ? '<button class="btn prim chico">Colgar</button>' : ""}
+        <div class="masmenu"><button class="btn sec chico" data-accion="menu">Más ${I.abajo}</button>
+        ${st.menu ? `<div class="menu"><button class="top" data-accion="abrir">${I.lapiz} Ajustar stock</button><button>Subir a almacén</button><button>Enviar a otra sede</button><button>Ver la prenda</button></div>` : ""}</div>
+      </div></div>`;
+}
+function tarjetaOtra(o) {
+  const cols = o.t.map(([t, p, a]) => `<div class="col-talla ${p === 0 && a === 0 ? "cero" : p === 0 ? "falta" : ""}"><div class="tt">${t}</div><div class="nn">${p}</div><div class="gg">${a ? `+${a} en almacén` : "&nbsp;"}</div></div>`).join("");
+  return `<article class="tarjeta ${st.op === "C" && st.abierta ? "atenuada" : ""}"><div class="t-cab">${foto(o)}<div style="min-width:0"><div class="t-nom">${o.nombre}</div><div class="t-cod">${o.cod}</div></div><div class="t-precio">${o.precio}</div></div>
+    <div class="puntos"><span class="pto si" data-color-dato style="background:${o.hex}"></span></div><div class="columnas">${cols}</div>
+    <div class="t-pie"><span class="estado">Todo en el piso</span><button class="btn sec chico">Más ${I.abajo}</button></div></article>`;
+}
+function pantalla() {
+  const cEmma = st.op === "C" && st.abierta;
+  const emma = cEmma
+    ? `<article class="tarjeta expandida" aria-label="Ajustar stock de Blusa Emma">
+        <div class="c-cab"><div class="t-cab">${foto(datos[0])}<div style="min-width:0"><div class="t-nom">Blusa Emma · Ajustar stock</div><div class="t-cod">BLU-0142 · todo el modelo · Tienda Trujillo</div></div></div>
+        <button class="cerrar" data-accion="cancelar" aria-label="Cerrar sin guardar">${I.x}</button></div>
+        ${visita(true)}${tabla()}${pie()}</article>`
+    : `<article class="tarjeta">${tarjetaEmma()}</article>`;
+  return `<div class="pantalla">
+    <div class="sede">Tienda Trujillo · jueves 23 de octubre · vista de las 16:40</div>
+    <div class="cab"><div><h1>Existencias</h1><p>Lo que hay colgado y guardado en la tienda, y lo que toca hacer hoy.</p>
+      <div class="acciones"><button class="btn sec cabecera" data-accion="buscar">${I.lapiz} Ajustar stock</button></div></div>
+      <div class="cifras"><div class="cifra"><b>403</b><span>Colgadas en el piso</span></div><div class="cifra"><b>881</b><span>Guardadas en el almacén</span></div></div>
+    </div>
+    <div class="lista">${emma}${OTRAS.map(tarjetaOtra).join("")}</div>
+  </div>`;
+}
+
+/* ---------------------------- los tres contenedores ---------------------------- */
+function contenedor() {
+  if (!st.abierta || st.op === "C") return "";
+  const c = datos.find((x) => x.id === st.color);
+  if (st.op === "A") {
+    return `<div class="velo" data-accion="velo"></div>
+      <div class="hoja hoja-a" role="dialog" aria-label="Blusa Emma">
+        <div class="asa"></div>
+        <div class="h-cab"><div><h2>Blusa Emma</h2><p>BLU-0142 · Blusas · S/ 89.90</p></div><button class="cerrar" data-accion="cancelar" aria-label="Cerrar">${I.x}</button></div>
+        <div class="fila-prenda"><button class="btn sec chico">${I.tag} Etiquetas</button><button class="btn sec chico">${I.cartel} Rótulo</button><button class="btn sec chico">${I.historia} Historial</button><button class="btn sec chico">${I.libro} Catálogo</button></div>
+        <div class="a-grid">
+          <aside class="a-aside">${foto(c, "foto-grande")}
+            <div class="a-colores">${datos.map((x) => `<button data-elige="${x.id}" aria-pressed="${x.id === st.color}"><span class="pto" data-color-dato style="background:${x.hex}"></span>${x.nombre}</button>`).join("")}</div>
+          </aside>
+          <main>
+            <div class="a-titulo"><button class="volver" data-accion="cancelar" aria-label="Volver a la talla">${I.flecha}</button>
+              <div><b>Ajustar stock · todo el modelo</b><br><span>Tienda Trujillo · 4 colores · 15 tallas</span></div></div>
+            ${visita(false)}${tabla()}
+          </main>
+        </div>
+        ${pie()}
+      </div>`;
+  }
+  return `<div class="velo" data-accion="velo"></div>
+    <div class="hoja hoja-b" role="dialog" aria-label="Ajustar stock">
+      <div class="asa"></div>
+      <div class="h-cab"><div class="b-prenda">${foto(c)}<div><h2>Ajustar stock</h2><p>Blusa Emma · BLU-0142 · Tienda Trujillo</p></div></div><button class="cerrar" data-accion="cancelar" aria-label="Cerrar">${I.x}</button></div>
+      <div style="margin-top:14px">${visita(false)}</div>
+      ${tabla()}
+      <div style="height:12px"></div>
+      ${pie()}
+    </div>`;
+}
+function etiquetasHoja() {
+  if (!st.etiquetas) return "";
+  const total = st.etiquetas.reduce((s, x) => s + x.n, 0);
+  return `<div class="velo" data-accion="cerrar-etq"></div>
+    <div class="hoja hoja-etq" role="dialog" aria-label="Etiquetas de lo que entró">
+      <div class="asa"></div>
+      <div class="visto">${I.check}</div>
+      <h2 class="serif" style="font-size:26px;margin-top:10px">${total} ${total === 1 ? "etiqueta" : "etiquetas"} por imprimir</h2>
+      <p class="tenue" style="font-size:13.5px">Entraron prendas nuevas al almacén. Las que ya estaban tienen la suya.</p>
+      <div class="etiquetas">${st.etiquetas.map((x) => `<div class="etq-papel" data-papel>BLU-0142<b>Blusa Emma</b>${x.color} · ${x.t}<br>S/ 89.90<span class="x">× ${x.n}</span></div>`).join("")}</div>
+      <div style="display:flex;gap:8px;justify-content:center"><button class="btn sec" data-accion="cerrar-etq">Más tarde</button><button class="btn prim" data-accion="cerrar-etq">${I.impresora} Imprimir ${total} ${total === 1 ? "etiqueta" : "etiquetas"}</button></div>
+    </div>`;
+}
+function buscadorHoja() {
+  if (!st.buscando) return "";
+  return `<div class="velo" data-accion="cerrar-buscar"></div>
+    <div class="hoja" style="width:min(34rem,calc(100% - 48px));padding-bottom:18px" role="dialog" aria-label="Qué prenda vas a ajustar">
+      <div class="asa"></div>
+      <div class="h-cab"><div><h2>¿Qué prenda vas a ajustar?</h2><p>Escribe su nombre o código, o escanea su etiqueta.</p></div><button class="cerrar" data-accion="cerrar-buscar">${I.x}</button></div>
+      ${laminaBuscador(true)}
+    </div>`;
+}
+
+/* ---------------------------- pintar ---------------------------- */
+const marco = document.getElementById("marco");
+function pintar() {
+  const foco = document.activeElement?.dataset?.foco;
+  marco.innerHTML = pantalla() + contenedor() + etiquetasHoja() + buscadorHoja() + (st.aviso ? `<div class="aviso-ok" role="status">${I.checkch}${st.aviso}</div>` : "");
+  if (foco) marco.querySelector(`[data-foco="${foco}"]`)?.focus();
+  document.querySelectorAll(".ctl[data-op]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.op === st.op)));
+  document.getElementById("leyenda").innerHTML = LEYENDA[st.op];
+}
+function fijar(c, t, objetivo) {
+  const k = clave(c, t), v = talla(c, t), base = hoy(c, t);
+  objetivo = Math.max(0, Math.min(999, Math.round(objetivo)));
+  const minimo = st.lugar === "piso" ? v.ap : 0;
+  if (objetivo < minimo) { st.razon = `${datos.find((x) => x.id === c).nombre} ${t}: ${v.ap} ${v.ap === 1 ? "está apartada" : "están apartadas"} para un cliente; no puede quedar en menos de ${minimo}.`; objetivo = minimo; }
+  if (objetivo === base) delete st.obj[k]; else st.obj[k] = objetivo;
+}
+marco.addEventListener("click", (e) => {
+  const b = e.target.closest("button,[data-accion]");
+  if (!b) return;
+  if (b.dataset.paso) {
+    if (b.getAttribute("aria-disabled") === "true") { st.razon = b.dataset.razon || null; pintar(); return; }
+    st.razon = null;
+    fijar(b.dataset.c, b.dataset.t, numero(b.dataset.c, b.dataset.t) + Number(b.dataset.paso));
+    pintar(); return;
+  }
+  if (b.dataset.motivo) {
+    if (b.getAttribute("aria-disabled") === "true") { st.razon = b.title; pintar(); return; }
+    st.motivo = b.dataset.motivo; st.razon = null; if (!motivo().nota) st.nota = ""; pintar(); return;
+  }
+  if (b.dataset.lugar) {
+    if (b.getAttribute("aria-disabled") === "true") { st.razon = "Primero guarda o descarta lo que cambiaste: lo contado es de un lugar."; pintar(); return; }
+    st.lugar = b.dataset.lugar; if (st.lugar === "piso" && st.motivo === "encontre") st.motivo = "conteo"; st.razon = null; pintar(); return;
+  }
+  if (b.dataset.elige) { st.color = b.dataset.elige; pintar(); return; }
+  if (b.dataset.ir) { marco.querySelector(b.dataset.ir === "nota" ? "#nota" : ".chip[aria-pressed=true]")?.focus(); return; }
+  const a = b.dataset.accion;
+  if (a === "menu") { st.menu = !st.menu; pintar(); }
+  else if (a === "abrir") { st.menu = false; abrir(); }
+  else if (a === "buscar") { st.buscando = true; pintar(); }
+  else if (a === "cerrar-buscar") { st.buscando = false; pintar(); }
+  else if (a === "elegir-prenda") { st.buscando = false; abrir(); }
+  else if (a === "velo") { if (cambios().length) { st.razon = `Tienes ${cambios().length} sin guardar: guárdalos o toca «Descartar».`; pintar(); } else { st.abierta = false; pintar(); } }
+  else if (a === "cancelar") { st.abierta = false; st.obj = {}; st.borrador = {}; st.razon = null; pintar(); }
+  else if (a === "danada") { st.razon = "«Reportar dañada» es su propia acción en el modal de la prenda: una dañada no se resta, se aparta para que el líder decida."; pintar(); }
+  else if (a === "guardar") guardar();
+  else if (a === "cerrar-etq") { st.etiquetas = null; pintar(); }
+});
+marco.addEventListener("input", (e) => {
+  if (e.target.id === "nota") { st.nota = e.target.value; refrescarPie(); return; }
+  const el = e.target;
+  if (el.dataset.c) st.borrador[clave(el.dataset.c, el.dataset.t)] = el.value.replace(/[^0-9]/g, "");
+});
+function confirmarCelda(el) {
+  const k = clave(el.dataset.c, el.dataset.t);
+  if (st.borrador[k] === undefined) return;
+  const txt = st.borrador[k]; delete st.borrador[k];
+  if (txt === "") { pintar(); return; }
+  const n = Number(txt), sube = n > hoy(el.dataset.c, el.dataset.t);
+  const b = bloqueo(el.dataset.c, el.dataset.t, sube ? 1 : -1);
+  if (b && n !== hoy(el.dataset.c, el.dataset.t) && (sube || n < numero(el.dataset.c, el.dataset.t))) { st.razon = b; pintar(); return; }
+  st.razon = null; fijar(el.dataset.c, el.dataset.t, n); pintar();
+}
+marco.addEventListener("focusout", (e) => { if (e.target.dataset?.c) setTimeout(() => confirmarCelda(e.target), 0); });
+marco.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.dataset?.c) { e.preventDefault(); confirmarCelda(e.target); }
+  if (e.key === "Escape" && (st.abierta || st.etiquetas || st.buscando)) { st.etiquetas = null; st.buscando = false; if (!cambios().length) st.abierta = false; pintar(); }
+});
+function refrescarPie() {
+  // Solo el pie y el resaltado de la nota: repintar todo le quitaría el cursor a la caja mientras se escribe.
+  const viejo = marco.querySelector(".pie-fijo");
+  if (viejo) { const t = document.createElement("div"); t.innerHTML = pie(); viejo.replaceWith(t.firstElementChild); }
+  marco.querySelector(".nota-campo")?.classList.toggle("sigue", problema()?.campo === "nota");
+}
+function abrir() { st.abierta = true; st.razon = null; pintar(); }
+function guardar() {
+  st.guardando = true; pintar();
+  setTimeout(() => {
+    const lista = cambios();
+    const entraron = lista.filter((x) => x.a > x.de && st.lugar === "almacen").map((x) => ({ color: x.c.nombre, t: x.t, n: x.a - x.de }));
+    for (const x of lista) {
+      const v = talla(x.c.id, x.t);
+      if (st.lugar === "almacen") v.a = x.a; else v.p = x.a;
+      v.nueva = false; st.recien.add(clave(x.c.id, x.t));
+    }
+    st.obj = {}; st.guardando = false; st.abierta = false;
+    st.aviso = `Stock ajustado en ${lista.length} ${lista.length === 1 ? "talla" : "tallas"} · Blusa Emma`;
+    pintar();
+    // El aviso sale después del loader (ADR-0149) y la hoja de etiquetas, después del aviso.
+    setTimeout(() => { st.etiquetas = entraron.length ? entraron : null; pintar(); }, 500);
+    setTimeout(() => { st.aviso = null; st.recien = new Set(); pintar(); }, 4200);
+  }, 700);
+}
+
+/* ---------------------------- controles de la maqueta ---------------------------- */
+document.querySelectorAll(".ctl[data-op]").forEach((b) => b.onclick = () => { const ab = st.abierta; st.op = b.dataset.op; st.abierta = ab; st.menu = false; pintar(); });
+document.querySelectorAll(".ctl[data-ancho]").forEach((b) => b.onclick = () => {
+  document.querySelectorAll(".ctl[data-ancho]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  marco.style.width = b.dataset.ancho + "px";
+});
+document.querySelectorAll(".ctl[data-tema]").forEach((b) => b.onclick = () => {
+  document.querySelectorAll(".ctl[data-tema]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  document.documentElement.dataset.tema = b.dataset.tema === "oscuro" ? "oscuro" : "";
+});
+document.getElementById("reiniciar").onclick = () => { const op = st.op; inicial(); st.op = op; pintar(); };
+document.getElementById("simular").onclick = () => {
+  inicial(); st.op = document.querySelector(".ctl[data-op][aria-pressed=true]").dataset.op; st.abierta = true; pintar();
+  const pasos = [["negro", "M", 1], ["negro", "M", 1], ["vino", "S", 1], ["vino", "S", 1], ["crudo", "S", -1]];
+  pasos.forEach(([c, t, s], i) => setTimeout(() => { fijar(c, t, numero(c, t) + s); pintar(); }, 450 + i * 380));
+};
+if (new URLSearchParams(location.search).get("tema") === "oscuro") document.querySelector('.ctl[data-tema="oscuro"]').click();
+const opUrl = new URLSearchParams(location.search).get("op");
+if (opUrl && "ABC".includes(opUrl)) st.op = opUrl;
+
+const LEYENDA = {
+  A: `<div><h3>Gana</h3><ul><li>Todo lo de la prenda queda en UN lugar: la foto, Etiquetas, Rótulo, Historial y ahora el stock de todo el modelo.</li><li>Las chicas ya conocen este modal (ADR-0391): no aprenden una pantalla nueva.</li><li>«Ajustar stock» de cada talla abre esta tabla con esa talla a la vista; el recorrido de 4 pasos se va.</li></ul></div>
+     <div><h3>Paga</h3><ul><li>La tabla tiene unos 650 px: con 7 tallas o más se desliza de lado (el color queda fijo a la izquierda).</li><li>En el celular, la foto pasa a ser una franja arriba.</li><li>Al ajustar, la foto del modal se achica de 17 rem a 7,5 rem para dejarle sitio a la tabla.</li></ul></div>
+     <div class="como"><b>Cómo se llega:</b> «Más ⌄ ▸ Ajustar stock» en la tarjeta, la acción «Ajustar stock» del modal, o el botón «Ajustar stock» de la cabecera (que primero pregunta la prenda). Prueba: abre «Más» en la tarjeta de Blusa Emma.</div>`,
+  B: `<div><h3>Gana</h3><ul><li>Es la tabla de Editar producto <b>tal cual</b>: lo que hoy prefieren, en Existencias. Cero aprendizaje.</li><li>Más ancho para la tabla: entran 8 tallas sin deslizar.</li><li>Una hoja que hace UNA cosa: ajustar.</li></ul></div>
+     <div><h3>Paga</h3><ul><li>Una hoja más en Existencias: para colgar o ver dónde está una talla, se vuelve al modal de la prenda.</li><li>Sin la foto grande, se distingue la prenda por su miniatura y su nombre.</li></ul></div>
+     <div class="como"><b>Cómo se llega:</b> igual que A (Más ⌄, la acción del modal o la cabecera), pero se abre esta hoja en vez de cambiar el modal.</div>`,
+  C: `<div><h3>Gana</h3><ul><li>Para recorrer la lista mientras cuadran: corriges una tarjeta, guardas y pasas a la de abajo, sin abrir ni cerrar nada.</li><li>Se ve lo que hay alrededor (las otras prendas siguen ahí, atenuadas).</li></ul></div>
+     <div><h3>Paga</h3><ul><li>Al abrirse, la tarjeta ocupa toda la fila y las de al lado bajan: la lista se reacomoda.</li><li>El motivo y quién se eligen en cada tarjeta.</li><li>En el celular queda casi igual que B.</li></ul></div>
+     <div class="como"><b>Cómo se llega:</b> «Más ⌄ ▸ Ajustar stock» abre la tarjeta en su lugar. El botón de la cabecera busca la prenda y la abre así.</div>`,
+};
+
+/* ---------------------------- láminas comunes ---------------------------- */
+function laminaBuscador(viva) {
+  return `<div style="display:grid;gap:10px;margin-top:${viva ? 14 : 0}px">
+    <label style="display:flex;align-items:center;gap:8px;height:44px;border-radius:999px;background:var(--hueso);border:1px solid var(--sand);padding:0 14px">${I.lupa}<input value="emma" style="border:0;background:none;outline:none;flex:1;font-size:14px" aria-label="Buscar prenda"><span class="tenue" style="font-size:12px;display:inline-flex;gap:4px;align-items:center">${I.escaner} o escanea</span></label>
+    <div class="vers">En esta tienda</div>
+    <button class="btn sec" style="justify-content:flex-start;min-height:52px;gap:10px" ${viva ? 'data-accion="elegir-prenda"' : ""}>${foto(datos[0])}<span style="text-align:left"><b>Blusa Emma</b><br><span class="tenue" style="font-size:12px">BLU-0142 · 14 en piso · 20 en almacén</span></span><span style="margin-left:auto">${I.avanza}</span></button>
+    <div class="vers">Sin stock en esta tienda · está en el catálogo</div>
+    <button class="btn sec" style="justify-content:flex-start;min-height:52px;gap:10px" ${viva ? 'data-accion="elegir-prenda"' : ""}><div class="miniatura" data-color-dato style="background:#8a6f5a">${I.percha}</div><span style="text-align:left"><b>Vestido Emma Lino</b><br><span class="tenue" style="font-size:12px">VES-0210 · nunca estuvo aquí · Lima tiene 6</span></span><span style="margin-left:auto;font-size:12.5px;font-weight:600">Ingresar stock ${I.avanza}</span></button>
+  </div>`;
+}
+document.getElementById("laminas").innerHTML = `
+  <div class="lamina"><header><b>1 · «Ajustar stock» en la cabecera, y encuentra lo que la tienda nunca tuvo</b><span>Hoy una prenda sin stock aquí no aparece en Existencias, y por eso van a Catálogo. Desde el 05-10 la cabecera no lleva botones (tu decisión); este sería el único, porque lo que no se ve no se usa.</span></header>${laminaBuscador(false)}</div>
+  <div class="lamina"><header><b>2 · Al guardar: «Etiquetas de lo que entró»</b><span>La misma hoja que hoy sale en la ficha de Catálogo: una etiqueta por cada unidad que entró, no por todo el stock. Pruébala: guarda un cambio que sume en el almacén.</span></header>
+    <div style="text-align:center;border:1px solid var(--sand);border-radius:14px;padding:14px;background:var(--crema)"><div class="visto" style="width:44px;height:44px">${I.check}</div><div class="serif" style="font-size:20px;margin-top:6px">4 etiquetas por imprimir</div>
+    <div class="etiquetas"><div class="etq-papel" data-papel>BLU-0142<b>Blusa Emma</b>Negro · M<br>S/ 89.90<span class="x">× 2</span></div><div class="etq-papel" data-papel>BLU-0142<b>Blusa Emma</b>Vino · S<br>S/ 89.90<span class="x">× 2</span></div></div></div></div>
+  <div class="lamina"><header><b>3 · Lo que la tabla dice sola</b><span>Las reglas de hoy (las de la base), dichas en la celda o bajo la tabla, nunca al guardar.</span></header>
+    <ul style="padding-left:18px;display:grid;gap:6px;font-size:13px">
+      <li><b>Escribes lo que contaste</b>, no la diferencia: la celda dice «6 → 8» en ámbar y la base guarda +2.</li>
+      <li><b>«nueva aquí»</b>: una talla que nunca estuvo en la tienda. Como la carga inicial de Trujillo ya se cerró, entra con «Encontré unidades», en el almacén (ADR-0328). Prueba el + de Vino XL.</li>
+      <li><b>Lo apartado no se quita</b>: en el piso, Negro M no baja de 1.</li>
+      <li><b>Motivo que choca</b>: «No aparece» con una celda que sube no deja guardar y dice cuál es.</li>
+      <li><b>Un lugar por vez</b>: lo contado es del almacén o del piso; para cambiar de lugar, primero se guarda o se descarta.</li>
+      <li><b>¿Se dañó?</b> No se resta: se reporta (su propia acción, el líder decide).</li>
+    </ul></div>
+  <div class="lamina"><header><b>4 · Catálogo ▸ Editar producto, de solo lectura</b><span>Tu decisión: los números se siguen viendo, sin − ni +, con el camino a Existencias. Nuevo producto sigue poniendo las unidades del día en que la prenda nace.</span></header>
+    <div style="border:1px solid var(--sand);border-radius:14px;background:var(--papel);overflow:hidden">
+      <div style="display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--sand)"><span class="pestanas"><button aria-pressed="true">Unidades de hoy</button><button>Precios</button><button>Costos</button><button>Etiquetas</button></span></div>
+      <table class="mz" style="font-size:13px"><thead><tr><th class="c-color">Color</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>Total</th></tr></thead>
+      <tbody>${BASE.map((c) => `<tr><td class="c-color"><div class="cn"><span class="franja" data-color-dato style="background:${c.hex}"></span><span>${c.nombre}</span></div></td>${TALLAS.map((t) => `<td>${c.t[t] ? c.t[t].p + c.t[t].a : '<span class="guion">—</span>'}</td>`).join("")}<td class="c-total">${TALLAS.reduce((s, t) => s + (c.t[t] ? c.t[t].p + c.t[t].a : 0), 0)}</td></tr>`).join("")}</tbody></table>
+      <div class="explica" style="margin:10px 12px 12px">${I.info}<span>El stock se cuenta y se corrige en Existencias, donde se ve qué está en el piso y qué en el almacén. <button class="enlace" style="font-weight:600">Ajustar en Existencias →</button></span></div>
+    </div></div>`;
+
+pintar();
+</script>
+</body>
+</html>

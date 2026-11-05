@@ -4,7 +4,8 @@
  *
  * QUÉ CUBRE
  *   · Crear un producto con su stock: UNA línea en Productos («creó «…» con 2 variantes … · 3 prendas de stock
- *     inicial»), en la sede de la operación, y ninguna en Existencias;
+ *     inicial»), en la sede de la operación, y ninguna en Existencias. Desde el 2026-10-19 (ADR-0457) un producto nuevo también
+ *     nace encendido en la vitrina y deja SU línea en el módulo de la vitrina («se muestra en la web …»): son las únicas dos;
  *   · un guardado de una prenda que cambia precio y categoría: UNA línea con los dos cambios y su antes → después;
  *   · el costo se anota SIN montos (solo lo ve quien ve el dinero, 20260923193700);
  *   · un cambio en bloque: «asignó la temporada … a 2 productos»; descontinuar: «descontinuó «…»»;
@@ -91,8 +92,8 @@ select descripcion || '|' || (ubicacion_id = :'tru') || '|' || (persona_id = :'f
   const l = lineas(r);
   const [desc, enTru, esFelipe] = (l.at(-1) ?? "").split("|");
   esperar(
-    "crear con stock deja UNA línea en Productos (variantes, precio, stock), en la sede de la operación, y ninguna en Existencias",
-    l.at(-2) === "productos:producto_creado" && /^creó «Blusa Actividad Alta» \(.+\) con 2 variantes \(tallas .+ · color .+\) a S\/.59\.00 · 3 prendas de stock inicial$/.test(desc ?? "") &&
+    "crear con stock deja UNA línea en Productos (variantes, precio, stock), en la sede de la operación, ninguna en Existencias y la de la vitrina (nace encendido)",
+    l.at(-2) === "vitrina_web:vitrina_mostrada,productos:producto_creado" && /^creó «Blusa Actividad Alta» \(.+\) con 2 variantes \(tallas .+ · color .+\) a S\/.59\.00 · 3 prendas de stock inicial$/.test(desc ?? "") &&
       enTru === "true" && esFelipe === "true",
     r,
   );

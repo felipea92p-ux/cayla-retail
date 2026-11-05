@@ -426,7 +426,7 @@ caso(
        || ((:'d1'::jsonb -> 'envios' -> 1 ->> 'id') = (:'r1'::jsonb ->> 'despacho_id')),
      :'pe');`,
   "1:0/10 2:0/4 / [] / 1:7/3 2:4/0 / Tienda Trujillo:en_camino:5:G-7:1:true,Tienda Trujillo:en_camino:6:-:1:true / " +
-    "despachado_en,estado,id,numero,numero_guia,sede,unidades,version / true:true / o1:3 o2:6",
+    "despachado_en,en_stock,estado,id,numero,numero_guia,sede,unidades,version / true:true / o1:3 o2:6",
 );
 
 // T. EL MISMO TOKEN -------------------------------------------------------------------------------------------------------

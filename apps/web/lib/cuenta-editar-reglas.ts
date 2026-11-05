@@ -173,5 +173,5 @@ export function salidaDeCuenta(d: DetalleCuenta): SalidaCuenta {
   if (d.puedeEliminar) return { accion: "eliminar" };
   if (d.archivada) return { accion: "reactivar" };
   const recibe = textoRecibeHoy(d.recibe);
-  return { accion: "archivar", bloqueo: recibe ? `Hoy entra a esta cuenta: ${recibe}. Cámbialo en «A qué cuenta entra cada cobro» antes de archivarla.` : null };
+  return { accion: "archivar", bloqueo: recibe ? `Hoy se usa esta cuenta para: ${recibe}. Cámbialo en «A qué cuenta entra cada cobro» antes de archivarla.` : null };
 }

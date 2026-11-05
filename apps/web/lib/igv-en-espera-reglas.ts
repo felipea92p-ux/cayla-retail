@@ -1,5 +1,4 @@
 import { diaLima, diasEntreFechas } from "./fechas-lima";
-import { DIAS_URGENCIA_RECLAMO } from "./notas-credito-reglas";
 
 // El aviso del IGV (ADR-0362, fase 5b, actividad 4; Felipe 2026-10-15: «un aviso en Inicio, que no se puede ocultar, mientras haya facturas
 // con prendas que no llegaron o sin su nota»). Lo que dice `fn_igv_en_espera`, ya leído, y las frases que comparten el Inicio y el
@@ -13,8 +12,6 @@ import { DIAS_URGENCIA_RECLAMO } from "./notas-credito-reglas";
 
 export const RPC_IGV_EN_ESPERA = "fn_igv_en_espera";
 
-/** Desde cuántos días esperando una nota del proveedor el aviso se vuelve urgente: el mismo plazo del reclamo en Notas de crédito. */
-export const DIAS_URGENCIA_NOTA_PROVEEDOR = DIAS_URGENCIA_RECLAMO;
 
 export type IgvSinNota = { documentos: number; facturas: number; igv: number; desde: string | null };
 export type IgvFaltantes = { prendas: number; facturas: number; igv: number; proveedores: number; proveedorId: string | null; proveedor: string | null; desde: string | null };
@@ -46,15 +43,6 @@ export function diasDeEspera(desde: string | null, hoy: string): number | null {
 }
 
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
-
-/** El aviso de las notas por pedir, en palabras de tienda. `soles` lo pone quien lo dibuja: con sus céntimos, como en Notas de crédito. */
-export function textoNotasPorPedir(s: Pick<IgvSinNota, "facturas" | "igv">, soles: (n: number) => string): { detalle: string; ahora: string } {
-  if (s.facturas === 0) return { detalle: "Ninguna factura espera la nota de su proveedor.", ahora: "" };
-  return {
-    detalle: `La plata ya volvió en ${s.facturas} ${plural(s.facturas, "factura", "facturas")}, pero falta la nota del proveedor: sus ${soles(s.igv)} de IGV esperan.`,
-    ahora: `Pide la nota de crédito de ${s.facturas} ${plural(s.facturas, "factura", "facturas")}`,
-  };
-}
 
 /** El aviso de las prendas de factura que no llegaron (o que se devolvieron por llegar dañadas, actividad 6b), en palabras de tienda. */
 export function textoPrendasSinLlegar(f: Pick<IgvFaltantes, "prendas" | "facturas" | "igv">, soles: (n: number) => string): { detalle: string; ahora: string } {

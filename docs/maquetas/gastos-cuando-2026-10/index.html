@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gastos · «Cuándo» · 4 propuestas</title>
+<style>
+  /* Maqueta: tokens de apps/web/app/globals.css y estilos/tema.css (ADR-0169, ADR-0336), con los colores de sede del telar (ADR-0493).
+     Datos de ejemplo, no reales. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c; --borde:#96786a;
+    --rojo:#b8412d; --verde:#48603f; --ambar:#74501a; --ease:cubic-bezier(.22,1,.36,1);
+    --s0:#2f6aa3; --s1:#c26a2e; --s2:#1d8a72; --s3:#8a4fa8; --s4:#9a8b7b;
+  }
+  :root[data-tema="oscuro"]{
+    --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --taupe:#c4a898; --borde:#8d7a6e;
+    --rojo:#e8806a; --verde:#9cbc8c; --ambar:#e0b067;
+    --s0:#4f8ad0; --s1:#d27b3c; --s2:#2fa585; --s3:#a26cc6; --s4:#8a7d70;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif;padding:24px;transition:background .3s}
+  h1{font:500 28px/1.2 "EB Garamond",Georgia,serif;margin:0 0 4px}
+  .sub{color:var(--taupe);margin:0 0 16px;max-width:86ch}
+  .barra{display:flex;gap:8px;margin-bottom:26px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:5;background:var(--crema);padding:10px 0}
+  .pil{font:500 13px/1 inherit;font-family:inherit;padding:9px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .pil i{width:8px;height:8px;border-radius:50%;display:block}
+  .sep{width:1px;height:22px;background:var(--sand);margin:0 6px}
+  .op{margin:0 0 48px}
+  .op h2{font:600 11px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:0 0 6px}
+  .op p.d{margin:0 0 12px;max-width:94ch}
+  .op p.d b{font-weight:600}
+  .tarj{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:22px 24px}
+  .tarj.angosta{max-width:380px}
+  .tit{font:500 22px/1.2 "EB Garamond",Georgia,serif;margin:0}
+  .dato{color:var(--taupe);font-size:13px}
+  .cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .frase{font:400 22px/1.3 "EB Garamond",Georgia,serif;margin:4px 0 0;max-width:40ch}
+  .frase b{font-weight:600}
+  .chip{display:inline-flex;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;font-variant-numeric:tabular-nums}
+  .chip.sube{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+  .chip.baja{color:var(--verde);background:color-mix(in srgb,var(--verde) 13%,transparent)}
+  .ley{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--taupe);align-items:center}
+  .ley span{display:inline-flex;gap:6px;align-items:center}
+  .ley i{width:8px;height:8px;border-radius:2px;display:block}
+  .tip{position:fixed;pointer-events:none;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:9px 12px;font-size:12px;opacity:0;transition:opacity .15s;box-shadow:0 8px 24px color-mix(in srgb,#000 22%,transparent);z-index:9;max-width:280px}
+  .tip b{display:block;font:500 15px/1.25 "EB Garamond",Georgia,serif}
+  .tip .l{display:flex;justify-content:space-between;gap:14px;font-variant-numeric:tabular-nums}
+  .tip .l i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}
+
+  /* El día elegido (común a las cuatro): lo que se gastó exactamente ese día, como el desglose de «En qué se va». */
+  .dia{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+  .dia.ab{grid-template-rows:1fr}
+  .dia>div{overflow:hidden}
+  .dia .in{margin-top:16px;padding:14px 16px 10px;border-radius:12px;background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+  .dia h4{margin:0;font:500 18px/1.2 "EB Garamond",Georgia,serif;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+  .dia h4 small{font:400 13px/1 "DM Sans",system-ui,sans-serif;color:var(--taupe)}
+  .dia ul{list-style:none;margin:8px 0 0;padding:0}
+  .dia li{display:grid;grid-template-columns:minmax(0,1fr) 92px 84px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--sand);font-size:13px;opacity:0;transform:translateY(-5px);animation:entra .4s var(--ease) forwards}
+  .dia li .q b{font-weight:500;display:block}.dia li .q small{color:var(--taupe);font-size:12px}
+  .dia li .s{display:flex;gap:6px;align-items:center;color:var(--taupe);font-size:12px}.dia li .s i{width:7px;height:7px;border-radius:50%}
+  .dia li .m{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  .dia li.viene{color:var(--taupe)}.dia li.viene .m{font-weight:400}
+  .dia .pie{display:flex;justify-content:flex-end;padding:8px 0 2px}
+  .enl{color:var(--rojo);font:600 11px/1 inherit;font-family:inherit;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+  @keyframes entra{to{opacity:1;transform:none}}
+
+  /* ---------- C1 · Calendario fino ---------- */
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 52px;gap:5px}
+  .cal .ds{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-align:center;color:var(--taupe);padding-bottom:2px}
+  .cal .ds.sem{text-align:right}
+  .cel{position:relative;aspect-ratio:1;border-radius:9px;border:0;padding:0;font:500 12px/1 inherit;font-family:inherit;cursor:pointer;
+    background:color-mix(in srgb,var(--tinta) calc(var(--a)*1%),var(--hueso));color:var(--tinta);overflow:hidden;
+    opacity:0;transform:scale(.6);transition:transform .5s var(--ease),opacity .4s,box-shadow .2s}
+  .go .cel{opacity:1;transform:none}
+  .cel.osc{color:var(--crema)}
+  .cel .n{position:absolute;top:6px;left:7px;font-variant-numeric:tabular-nums}
+  .cel .tira{position:absolute;left:5px;right:5px;bottom:5px;height:3px;border-radius:2px;display:flex;gap:1px;overflow:hidden}
+  .cel .tira b{display:block;height:100%}
+  .cel.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--sand);cursor:default;color:var(--taupe)}
+  .cel.fut.viene{cursor:pointer}
+  .cel .fijo{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--taupe)}
+  .cel.hoy{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--tinta)}
+  .cel.sel{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--rojo)}
+  @media (hover:hover){.cel:not(.fut):hover{transform:translateY(-2px)}}
+  .semt{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:4px;font-size:11px;color:var(--taupe);font-variant-numeric:tabular-nums}
+  .semt b{display:block;height:3px;border-radius:2px;background:var(--tinta);opacity:.55;transform-origin:right;transform:scaleX(0);transition:transform .8s var(--ease) .5s}
+  .go .semt b{transform:none}
+  .esc{display:flex;gap:3px;align-items:center}.esc i{width:14px;height:10px;border-radius:3px;display:block}
+
+  /* ---------- C2 · El ritmo del mes ---------- */
+  .lienzo{position:relative;width:100%}
+  svg.graf{display:block;width:100%;overflow:visible}
+  .graf text{fill:var(--taupe);font:11px "DM Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  .graf .eje{stroke:var(--sand);stroke-width:1}
+  .graf .hoyl{stroke:var(--taupe);stroke-width:1;stroke-dasharray:2 4}
+  .graf .ant{fill:none;stroke:var(--taupe);stroke-width:1.6;stroke-dasharray:4 5;opacity:.8}
+  .graf .act{fill:none;stroke:var(--tinta);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+  .graf .area{fill:color-mix(in srgb,var(--tinta) 8%,transparent)}
+  .graf .proy{fill:none;stroke:var(--tinta);stroke-width:2;stroke-dasharray:1 5;stroke-linecap:round;opacity:.5}
+  .graf .dib{stroke-dasharray:1;stroke-dashoffset:1;animation:dibuja 1.4s var(--ease) forwards}
+  .graf .ant.dib{stroke-dasharray:1;animation-delay:.6s}
+  @keyframes dibuja{to{stroke-dashoffset:0}}
+  .graf .aparece{opacity:0;animation:aparece .5s var(--ease) forwards}
+  @keyframes aparece{to{opacity:1}}
+  .graf .punto{fill:var(--tinta);stroke:var(--papel);stroke-width:2}
+  .graf .marca{fill:var(--papel);stroke:var(--tinta);stroke-width:1.5}
+  .graf .viene{fill:var(--papel);stroke:var(--taupe);stroke-width:1.5;stroke-dasharray:2 2}
+  .graf .etq{fill:var(--tinta);font-weight:600}
+  .graf .cifra{fill:var(--tinta);font:500 15px "EB Garamond",Georgia,serif}
+  .graf .guia{stroke:var(--tinta);stroke-width:1;opacity:0;transition:opacity .15s}
+  .graf .guiap{fill:var(--tinta);opacity:0;transition:opacity .15s}
+  .graf .sel{stroke:var(--rojo);stroke-width:1.5}
+  /* Ningún texto queda bajo una línea: cada uno lleva un borde del color del papel que corta lo que pasa por detrás. */
+  .graf text{paint-order:stroke;stroke:var(--papel);stroke-width:4px;stroke-linejoin:round}
+  .graf .hoyt{fill:var(--tinta);font-weight:600}
+  .graf .fin{font-size:12px}.graf .fin tspan{fill:var(--tinta);font-weight:600}
+  /* Las notas de los saltos, en su franja sobre el gráfico, con un hilo hasta su punto. */
+  .graf .nota{font-size:12px;fill:var(--taupe);cursor:pointer}
+  .graf .nota .etq{fill:var(--tinta);font-weight:600}
+  .graf .hilo{stroke:var(--taupe);stroke-width:1;stroke-dasharray:1 3;stroke-linecap:round;transition:stroke .2s}
+  @media (hover:hover){.graf .nota-g:hover .hilo{stroke:var(--tinta);stroke-dasharray:none}}
+  .pie-graf{margin:6px 0 0;font-size:13px;color:var(--taupe)}
+  .pie-graf b{color:var(--tinta);font-weight:600}
+
+  /* ---------- C3 · Día por día ---------- */
+  .barras{position:relative;display:grid;grid-template-columns:repeat(31,minmax(0,1fr));gap:4px;align-items:end;height:220px;padding-top:24px}
+  .barras .col{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;cursor:pointer;border-radius:6px}
+  .barras .col.finde::before{content:"";position:absolute;inset:-24px -2px -2px;border-radius:6px;background:color-mix(in srgb,var(--hueso) 55%,transparent);z-index:0}
+  .barras .pila{position:relative;z-index:1;display:flex;flex-direction:column-reverse;gap:1px;border-radius:5px 5px 2px 2px;overflow:hidden;transform-origin:bottom;transform:scaleY(0);transition:transform .7s var(--ease),opacity .2s}
+  .go .barras .pila{transform:none}
+  .barras .pila b{display:block;width:100%}
+  .barras .fant{position:relative;z-index:1;border-radius:5px 5px 2px 2px;border:1.5px dashed var(--taupe);background:color-mix(in srgb,var(--taupe) 8%,transparent);opacity:0;transition:opacity .5s .9s}
+  .go .barras .fant{opacity:1}
+  .barras .num{position:absolute;left:50%;transform:translateX(-50%);margin-bottom:4px;font-size:11px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;z-index:2}
+  .barras .num.viene{color:var(--taupe);font-weight:500}
+  .barras.fc .pila{opacity:.3}.barras.fc .col.hot .pila,.barras .col.sel .pila{opacity:1}
+  .barras .col.sel{box-shadow:inset 0 -2px 0 var(--rojo)}
+  .barras .prom{position:absolute;left:0;right:0;border-top:1.5px dashed var(--taupe);z-index:2;pointer-events:none;opacity:0;transition:opacity .4s 1s}
+  .go .barras .prom{opacity:.8}
+  .barras .prom span{position:absolute;right:0;bottom:3px;font-size:11px;color:var(--taupe);background:var(--papel);padding:0 4px;border-radius:4px}
+  .ejex{display:grid;grid-template-columns:repeat(31,minmax(0,1fr));gap:4px;margin-top:6px;font-size:10.5px;color:var(--taupe);text-align:center;font-variant-numeric:tabular-nums}
+  .ejex .hoy{color:var(--tinta);font-weight:700}
+
+  /* ---------- C4 · La lluvia ---------- */
+  .gota{transition:opacity .25s,r .25s var(--ease)}
+  .gotas.fc .gota{opacity:.15}.gotas.fc .gota.hot{opacity:1}
+  .cae{opacity:0;animation:cae .75s var(--ease) forwards}
+  @keyframes cae{from{opacity:0;transform:translateY(-120px)}to{opacity:1;transform:none}}
+  .ley .sede{cursor:pointer;padding:3px 6px;border-radius:6px}.ley .sede:hover{background:var(--hueso)}
+
+  @media (max-width:700px){
+    .barras{gap:2px}.ejex{gap:2px}.ejex span:nth-child(even){visibility:hidden}.barras .num{display:none}.barras .num.top{display:block}
+    .dia li{grid-template-columns:minmax(0,1fr) 80px}.dia li .s{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.cel,.barras .pila,.semt b{opacity:1!important;transform:none!important}.cae,.aparece,.dia li{opacity:1!important;transform:none!important}.graf .dib{stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<h1>Gastos · «Cuándo»: 4 propuestas</h1>
+<p class="sub">Octubre de ejemplo, con «hoy» el día 23 para que se vea lo que todavía viene (los gastos fijos del mes que faltan, como el internet del 25). Las cuatro responden a la sede de arriba, y en las cuatro tocar un día abre debajo lo que se gastó exactamente ese día, como el desglose de «En qué se va». <b>Toca todo</b>: cambia de sede, pasa el mouse, toca días y prueba el modo oscuro.</p>
+<div class="barra" id="barra">
+  <button class="pil on" data-s="-1">Todas</button>
+  <button class="pil" data-s="0"><i style="background:var(--s0)"></i>Trujillo</button>
+  <button class="pil" data-s="1"><i style="background:var(--s1)"></i>Arequipa</button>
+  <button class="pil" data-s="2"><i style="background:var(--s2)"></i>Lima</button>
+  <button class="pil" data-s="3"><i style="background:var(--s3)"></i>Taller</button>
+  <button class="pil" data-s="4"><i style="background:var(--s4)"></i>Empresa</button>
+  <span class="sep"></span>
+  <button class="pil" id="rep">↻ Repetir animación</button>
+  <button class="pil" id="tema">◐ Modo oscuro</button>
+</div>
+
+<section class="op">
+  <h2>C1 · Calendario fino</h2>
+  <p class="d"><b>El de hoy, bien hecho, en el mismo lugar angosto.</b> Cinco tonos fijos en vez de un degradado (el número siempre se lee, también en oscuro), una tira de colores al pie de cada día que dice qué sede gastó, el total de cada semana a la derecha, «hoy» con su anillo y un circulito en los días que viene un gasto fijo. Al pasar el mouse, el monto y lo mayor del día.</p>
+  <div class="tarj angosta" id="C1"></div>
+</section>
+
+<section class="op">
+  <h2>C2 · El ritmo del mes</h2>
+  <p class="d"><b>¿Voy gastando más rápido que el mes pasado?</b> La línea es lo gastado sumado día a día; la punteada, septiembre a la misma altura; y desde hoy, tenue, hacia dónde va si sigue así, con los fijos que faltan marcados. Los saltos grandes (el alquiler) llevan su nombre. Pasa el mouse para recorrer el mes día por día; toca uno para ver qué se gastó. Necesita el ancho de la página, debajo de «En qué se va».</p>
+  <div class="tarj" id="C2"></div>
+</section>
+
+<section class="op">
+  <h2>C3 · Día por día</h2>
+  <p class="d"><b>Cuánto se fue cada día y quién lo gastó.</b> Una barra por día, partida por sede; los fines de semana con su franja; la raya del promedio diario; el día más fuerte con su cifra; y, después de hoy, barras punteadas con los fijos que vienen. Las barras crecen una tras otra. Necesita el ancho de la página.</p>
+  <div class="tarj" id="C3"></div>
+</section>
+
+<section class="op">
+  <h2>C4 · La lluvia</h2>
+  <p class="d"><b>Cada gasto es una gota, del tamaño de lo que costó, que cae en su día.</b> Se ve de un vistazo cuándo hay un gasto grande y cuándo muchos chiquitos; el color dice de qué sede es. Pasa el mouse por una gota y te dice qué fue; por una sede de la leyenda y se encienden solo sus gotas. Las gotas huecas, después de hoy, son los fijos que vienen. Caen una vez, sin rebote. Necesita el ancho de la página.</p>
+  <div class="tarj" id="C4"></div>
+</section>
+<div class="tip" id="tip"></div>
+
+<script>
+const SEDES=["Trujillo","Arequipa","Lima","Taller","Empresa"];
+const HOY=23, DIAS=31, PRIMER=3; // octubre de 2026 empieza en jueves (lunes = 0)
+const SEMANA=["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
+function rnd(seed){let s=seed;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296}}
+const fmt=n=>"S/ "+Math.round(n).toLocaleString("en-US");
+const corto=n=>n>=1000?"S/ "+(n/1000).toFixed(n>=10000?0:1).replace(".0","")+"k":"S/ "+Math.round(n);
+const $=s=>document.querySelector(s);
+const flecha=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+
+// Los gastos de octubre (hasta hoy) y los fijos que vienen. Septiembre, sumado por día y sede, para comparar.
+function armar(seed,dias,escala){const r=rnd(seed),G=[],g=(dia,sede,que,cat,m)=>G.push({dia,sede,que,cat,m:Math.round(m*escala)});
+  g(3,0,"Alquiler del local","Alquileres",2400);g(4,1,"Alquiler del local","Alquileres",1800);g(5,2,"Alquiler del local","Alquileres",2100);g(5,3,"Alquiler del taller","Alquileres",900);
+  g(1,4,"Sistema de facturación","Software",380);g(7,4,"Plan móvil del equipo","Telefonía",140);g(10,4,"Contabilidad","Asesoría",500);
+  g(12,4,"Anuncios en redes","Publicidad",220);g(20,4,"Arbitrios","Tributos",260);
+  [230,180,210,150].forEach((m,s)=>g(15,s,"Recibo de luz","Luz",m));[48,42,55,30].forEach((m,s)=>g(18,s,"Recibo de agua","Agua",m));
+  for(let d=1;d<=dias;d++){for(const s of [0,1,2]){if(r()<.55)g(d,s,"Comisión POS","Comisiones",15+r()*45);
+      if(r()<.18)g(d,s,["Bolsas y papel seda","Tinta y etiquetas","Útiles de oficina"][Math.floor(r()*3)],"Suministros",40+r()*220);
+      if(r()<.12)g(d,s,"Refrigerios","Atención al personal",10+r()*35)}
+    if(r()<.35){const t=r()<.5;g(d,3,t?"Movilidad del taller":"Hilos y agujas",t?"Transporte":"Suministros",15+r()*120)}}
+  return G.filter(x=>x.dia<=dias)}
+const OCT=armar(11,HOY,1);
+const SEPT=armar(29,30,.93);
+const FIJOS=[{dia:25,sede:0,que:"Fibra de la tienda",cat:"Internet",m:90},{dia:25,sede:2,que:"Fibra de la tienda",cat:"Internet",m:90},
+  {dia:28,sede:4,que:"Seguro de mercadería",cat:"Seguros",m:120},{dia:30,sede:1,que:"Mantenimiento del local",cat:"Servicios",m:150}];
+
+let S=-1;const SEL={C1:null,C2:null,C3:null,C4:null}; // el día elegido en cada propuesta
+const vis=x=>S<0||x.sede===S;
+function porDia(lista,dias){const D=Array.from({length:dias+1},(_,d)=>({d,total:0,sed:[0,0,0,0,0],g:[]}));
+  lista.filter(vis).forEach(x=>{const o=D[x.dia];o.total+=x.m;o.sed[x.sede]+=x.m;o.g.push(x)});return D}
+const fijosDe=d=>FIJOS.filter(f=>vis(f)&&f.dia===d);
+const nombreDia=d=>`${SEMANA[(PRIMER+d-1)%7]} ${d} de octubre`;
+
+const tip=$("#tip");
+function verTip(html,x,y){tip.innerHTML=html;tip.style.opacity=1;const w=tip.offsetWidth,h=tip.offsetHeight;
+  tip.style.left=Math.max(8,Math.min(innerWidth-w-8,x-w/2))+"px";tip.style.top=(y-h-12<8?y+18:y-h-12)+"px"}
+const ocultarTip=()=>tip.style.opacity=0;
+function tipDia(d,D){const o=D[d],f=fijosDe(d);
+  if(d>HOY)return f.length?`<b>${nombreDia(d)}</b>Viene: ${f.map(x=>`${x.que} (${SEDES[x.sede]}) ${fmt(x.m)}`).join(", ")}`:`<b>${nombreDia(d)}</b>Todavía no llega`;
+  if(!o.total)return`<b>${nombreDia(d)}</b>Sin gastos`;
+  const top=[...o.g].sort((a,b)=>b.m-a.m).slice(0,3);
+  return`<b>${fmt(o.total)} · ${nombreDia(d)}</b>${o.g.length} ${o.g.length===1?"gasto":"gastos"}${top.map(x=>`<div class="l"><span><i style="background:var(--s${x.sede})"></i>${x.que}</span><span>${fmt(x.m)}</span></div>`).join("")}`}
+
+// El día elegido: lo que se gastó exactamente (y lo que viene, si es después de hoy).
+function panel(id){const box=$("#"+id+"d");if(!box)return;const D=porDia(OCT,HOY),DIA=SEL[id];
+  if(DIA==null){box.classList.remove("ab");return}
+  const o=DIA<=HOY?D[DIA]:{total:0,g:[]},f=fijosDe(DIA),g=[...o.g].sort((a,b)=>b.m-a.m);
+  box.innerHTML=`<div><div class="in"><h4>${nombreDia(DIA)[0].toUpperCase()+nombreDia(DIA).slice(1)}<small>${DIA>HOY?(f.length?`viene ${fmt(f.reduce((a,x)=>a+x.m,0))}`:"todavía no llega"):`${fmt(o.total)} en ${g.length} ${g.length===1?"gasto":"gastos"}`}</small></h4>
+    <ul>${g.map((x,k)=>`<li style="animation-delay:${80+k*45}ms"><span class="q"><b>${x.que}</b><small>${x.cat}</small></span><span class="s"><i style="background:var(--s${x.sede})"></i>${SEDES[x.sede]}</span><span class="m">${fmt(x.m)}</span></li>`).join("")}
+    ${f.map((x,k)=>`<li class="viene" style="animation-delay:${80+(g.length+k)*45}ms"><span class="q"><b>Viene: ${x.que}</b><small>${x.cat} · gasto fijo del mes</small></span><span class="s"><i style="background:var(--s${x.sede})"></i>${SEDES[x.sede]}</span><span class="m">${fmt(x.m)}</span></li>`).join("")}
+    ${!g.length&&!f.length?`<li style="animation-delay:80ms"><span class="q">Ese día no hubo gastos.</span></li>`:""}</ul>
+    ${g.length?`<div class="pie"><a class="enl">Ver los ${g.length} en la tabla ${flecha}</a></div>`:""}</div></div>`;
+  requestAnimationFrame(()=>box.classList.add("ab"))}
+function elegir(id,d){SEL[id]=SEL[id]===d?null:d;if(id==="C1")C1(false);if(id==="C2")marcarC2();if(id==="C3")marcarC3();panel(id)}
+function arranca(el){el.classList.remove("go");void el.offsetWidth;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add("go")))}
+
+/* ---------- C1 · Calendario fino ---------- */
+// Cinco tonos fijos: con los tres claros el número va en tinta; con los dos oscuros, en crema. Nunca un gris del medio donde ninguno se lee.
+const TONOS=[10,22,34,62,80];
+function C1(animar=true){const box=$("#C1"),D=porDia(OCT,HOY),max=Math.max(...D.map(o=>o.total),1);
+  const tono=t=>t<=0?0:TONOS[Math.min(4,Math.floor(Math.sqrt(t/max)*5))];
+  const celdas=[];for(let k=0;k<PRIMER;k++)celdas.push(null);for(let d=1;d<=DIAS;d++)celdas.push(d);while(celdas.length%7)celdas.push(null);
+  const filas=[];for(let k=0;k<celdas.length;k+=7)filas.push(celdas.slice(k,k+7));
+  const semMax=Math.max(...filas.map(f=>f.reduce((a,d)=>a+(d&&d<=HOY?D[d].total:0),0)),1);
+  let html=`<div class="cab"><div><h3 class="tit">Cuándo</h3><div class="dato">Más oscuro, más gasto</div></div></div>
+    <div class="cal">${["L","M","M","J","V","S","D"].map(x=>`<span class="ds">${x}</span>`).join("")}<span class="ds sem">Semana</span>`;
+  filas.forEach((f,fi)=>{f.forEach((d,ci)=>{const dl=(fi+ci)*28;
+      if(!d){html+=`<span></span>`;return}
+      const o=D[d]||{total:0,sed:[0,0,0,0,0]},fut=d>HOY,a=fut?0:tono(o.total),viene=fijosDe(d).length>0;
+      html+=`<button class="cel ${fut?"fut":""} ${viene?"viene":""} ${a>=62?"osc":""} ${d===HOY?"hoy":""} ${SEL.C1===d?"sel":""}" data-d="${d}" style="--a:${a};transition-delay:${animar?dl:0}ms,${animar?dl:0}ms,0ms">
+        <span class="n">${d}</span>${viene?`<i class="fijo"></i>`:""}${!fut&&o.total?`<span class="tira">${o.sed.map((x,j)=>x?`<b style="flex:${x};background:var(--s${j})"></b>`:"").join("")}</span>`:""}</button>`});
+    const st=f.reduce((a,d)=>a+(d&&d<=HOY?D[d].total:0),0);
+    html+=`<span class="semt">${st?corto(st):""}<b style="width:${st/semMax*100}%"></b></span>`});
+  html+=`</div><div class="ley" style="margin-top:14px;justify-content:space-between"><span class="esc">Menos ${TONOS.map(t=>`<i style="background:color-mix(in srgb,var(--tinta) ${t}%,var(--hueso))"></i>`).join("")} Más</span><span><i style="width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--taupe)"></i>viene un fijo</span></div>
+    <div class="dia" id="C1d"></div>`;
+  box.innerHTML=html;
+  box.querySelectorAll(".cel").forEach(c=>{const d=+c.dataset.d;
+    c.onmouseenter=()=>{const r=c.getBoundingClientRect();verTip(tipDia(d,D),r.left+r.width/2,r.top)};c.onmouseleave=ocultarTip;
+    c.onclick=()=>{if(d>HOY&&!fijosDe(d).length)return;elegir("C1",d)}});
+  if(animar)arranca(box);else box.classList.add("go");panel("C1")}
+
+/* ---------- C2 · El ritmo del mes ---------- */
+function C2(){const box=$("#C2");
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">Cuándo</h3><p class="frase" id="C2f"></p></div><div id="C2c"></div></div>
+    <div class="ley" style="margin-bottom:8px"><span><i style="width:18px;height:3px;background:var(--tinta)"></i>octubre</span><span><i style="width:18px;height:0;border-top:2px dashed var(--taupe)"></i>septiembre</span><span><i style="width:18px;height:0;border-top:2px dotted var(--tinta);opacity:.6"></i>si sigue así</span><span><i style="width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--taupe)"></i>fijo que viene</span></div>
+    <div class="lienzo"><svg class="graf" id="C2s"></svg></div><p class="pie-graf" id="C2pie"></p><div class="dia" id="C2d"></div>`;
+  dibujaC2(true);panel("C2")}
+let C2x=null;
+// Mide un texto con la letra con que se va a dibujar (su misma clase).
+function anchoDe(svg,html,cls){const t=document.createElementNS("http://www.w3.org/2000/svg","text");if(cls)t.setAttribute("class",cls);t.innerHTML=html;svg.appendChild(t);const w=t.getComputedTextLength();t.remove();return w}
+// Las notas de los saltos van en una franja SOBRE el gráfico, nunca encima de una línea. Cada una, en la fila más baja donde no choca con
+// otra nota ni su hilo atraviesa otra; empieza en su punto o, si no cabe a la derecha, termina en él. La que no cabe en tres filas no se
+// escribe (su punto sigue, y el globito la dice al pasar el mouse).
+// Son tres notas como mucho: se prueban todas las combinaciones (fila × hacia dónde crece × escribirla o no) y gana la que escribe más
+// notas; a igual cantidad, la de menos filas; y a igual, la que más notas empieza en su punto (se lee de izquierda a derecha).
+function filasDeNotas(notas,min,max,maxFilas=3){const ns=[...notas].sort((a,b)=>a.x-b.x);
+  // Dos notas conviven si en la misma fila no se tocan y si el hilo de la de arriba no atraviesa la de abajo.
+  const conviven=(o,c)=>!(o.f===c.f&&c.a<o.b+16&&o.a<c.b+16)&&!(o.f<c.f&&c.x>o.a-6&&c.x<o.b+6)&&!(o.f>c.f&&o.x>c.a-6&&o.x<c.b+6);
+  let mejor=ns.map(n=>({...n,f:-1})),puntos=-Infinity;
+  const buscar=(i,puestas)=>{if(i===ns.length){const p=puestas.filter(o=>o.f>=0),s=p.length*100-Math.max(0,...p.map(o=>o.f+1))*10-p.filter(o=>o.der).length;if(s>puntos){puntos=s;mejor=puestas}return}
+    const n=ns[i];
+    for(let f=0;f<maxFilas;f++)for(const der of [false,true]){const a=Math.max(min,Math.min(max-n.w,der?n.x-n.w+6:n.x-6)),c={...n,f,a,b:a+n.w,der};
+      if(puestas.every(o=>o.f<0||conviven(o,c)))buscar(i+1,[...puestas,c])}
+    buscar(i+1,[...puestas,{...n,f:-1}])};
+  buscar(0,[]);return mejor}
+function dibujaC2(animar){const svg=$("#C2s");if(!svg)return;const W=svg.parentElement.clientWidth,ang=W<560,p={l:52,r:ang?14:96,b:28},ALTO=230,FILA=19;
+  const D=porDia(OCT,HOY),A=porDia(SEPT,30);
+  const cum=[0],cumA=[0];for(let d=1;d<=HOY;d++)cum[d]=cum[d-1]+D[d].total;for(let d=1;d<=30;d++)cumA[d]=cumA[d-1]+A[d].total;
+  // Si sigue así: lo de un día normal (la mediana, sin los gastos fijos grandes) más los fijos que vienen, en su día.
+  const normales=D.slice(1,HOY+1).map(o=>o.g.filter(x=>!["Alquileres","Luz","Agua","Software","Asesoría","Tributos","Publicidad","Telefonía"].includes(x.cat)).reduce((a,x)=>a+x.m,0)).sort((a,b)=>a-b);
+  const med=normales[Math.floor(normales.length/2)]||0;const proy=[];proy[HOY]=cum[HOY];
+  for(let d=HOY+1;d<=DIAS;d++)proy[d]=proy[d-1]+med+fijosDe(d).reduce((a,x)=>a+x.m,0);
+  const yMax=Math.max(cum[HOY],cumA[30],proy[DIAS])*1.08||1;
+  const x=d=>p.l+(d-1)/(DIAS-1)*(W-p.l-p.r);C2x=x;
+  const paso=yMax>12000?5000:yMax>6000?2000:1000,marcas=[];for(let v=0;v<=yMax;v+=paso)marcas.push(v);
+  // Los saltos grandes, con su nombre: los de la misma categoría en días seguidos van juntos («Alquileres · 3 al 5 oct»), y como mucho tres.
+  const grandes=[];[...OCT].filter(vis).sort((a,b)=>b.m-a.m).forEach(g=>{if(g.m<yMax*.06)return;
+    const gr=grandes.find(o=>o.cat===g.cat&&g.dia>=o.desde-4&&g.dia<=o.hasta+4);
+    if(gr){gr.desde=Math.min(gr.desde,g.dia);gr.hasta=Math.max(gr.hasta,g.dia);gr.m+=g.m;gr.n++;return}
+    if(grandes.length<3&&!grandes.some(o=>g.dia>=o.desde-3&&g.dia<=o.hasta+3))grandes.push({cat:g.cat,que:g.que,sede:g.sede,desde:g.dia,hasta:g.dia,m:g.m,n:1})});
+  grandes.forEach(o=>{o.dia=o.hasta;o.m=OCT.filter(g=>vis(g)&&g.cat===o.cat&&g.dia>=o.desde&&g.dia<=o.hasta).reduce((a,g)=>a+g.m,0);o.texto=o.n>1?`${o.cat} · ${o.desde} al ${o.hasta} oct`:`${o.que.replace(/ del (local|taller)$/,"")} · ${SEDES[o.sede]}`});
+  // 1) Las notas se acomodan primero: cuántas filas ocupan decide dónde empieza el gráfico.
+  svg.innerHTML="";
+  // Con el nombre largo («Alquileres · 3 al 5 oct») si caben todas en dos filas; si no, todas con el corto («Alquileres»).
+  const conTexto=largo=>filasDeNotas(grandes.map(g=>{const html=`<tspan class="etq">${largo?g.texto:g.cat}</tspan> ${corto(g.m)}`;return{...g,html,x:x(g.dia),w:anchoDe(svg,html,"nota")}}),4,W-4);
+  let notas=ang?conTexto(false):conTexto(true);if(!ang&&notas.some(n=>n.f<0||n.f>1))notas=conTexto(false);
+  const filas=Math.max(0,...notas.map(n=>n.f+1));p.t=filas*FILA+(filas?18:12);
+  const H=p.t+ALTO+p.b,y=v=>p.t+(1-v/yMax)*ALTO,base=f=>p.t-14-f*FILA;
+  const linea=(arr,a,b)=>{let s="";for(let d=a;d<=b;d++)s+=(d===a?"M":"L")+x(d).toFixed(1)+","+y(arr[d]).toFixed(1);return s};
+  // 2) Lo que ya hay dibujado, para que ningún texto lo pise: los trazos (cada 3 px) y los puntos.
+  const obst=[];const muestra=(arr,a,b)=>{for(let d=a;d<b;d++){const x0=x(d),y0=y(arr[d]),x1=x(d+1),y1=y(arr[d+1]),n=Math.max(1,Math.ceil(Math.hypot(x1-x0,y1-y0)/3));for(let k=0;k<=n;k++)obst.push([x0+(x1-x0)*k/n,y0+(y1-y0)*k/n])}};
+  muestra(cum,1,HOY);muestra(cumA,1,30);muestra(proy,HOY,DIAS);
+  FIJOS.filter(vis).forEach(f=>obst.push([x(f.dia),y(proy[f.dia])]));notas.forEach(n=>obst.push([n.x,y(cum[n.dia])]));
+  notas.filter(n=>n.f>=0).forEach(n=>{for(let v=base(n.f)+5;v<=y(cum[n.dia])-6;v+=3)obst.push([n.x,v])}); // y sus hilos
+  // Cuánto pisa un lugar: los puntos de trazo que caen dentro (y, fuera del gráfico, muchísimo).
+  const pisa=r=>(r.x>=p.l-2&&r.x+r.w<=W-2&&r.y>=p.t-4&&r.y+r.h<=p.t+ALTO?0:1e6)+obst.filter(([ox,oy])=>ox>r.x-4&&ox<r.x+r.w+4&&oy>r.y-4&&oy<r.y+r.h+4).length;
+  // 3) La cifra de hoy, en el primer lugar libre alrededor de su punto (a la derecha abajo, a la derecha arriba, a la izquierda…); si
+  //    ninguno está libre, en el que menos pisa, y su borde de papel la deja leer igual.
+  const hoyX=x(HOY),hoyY=y(cum[HOY]),cw=anchoDe(svg,fmt(cum[HOY]),"cifra");
+  const LUGARES=[[11,20,"start"],[11,-9,"start"],[-11,-9,"end"],[-11,22,"end"],[0,-15,"middle"],[0,30,"middle"],[11,36,"start"],[-11,-26,"end"],[-11,38,"end"],[11,-26,"start"]];
+  const cifra=LUGARES.map(([dx,dy,anc],k)=>{const r={x:anc==="end"?hoyX+dx-cw:anc==="middle"?hoyX+dx-cw/2:hoyX+dx,y:hoyY+dy-12,w:cw,h:15};return{tx:hoyX+dx,ty:hoyY+dy,anc,k,p:pisa(r)}})
+    .reduce((m,c)=>c.p<m.p?c:m);
+  // 4) Al final del mes, a la derecha: septiembre y «si sigue así», separados si caen juntos.
+  const fin=[{t:`sept. ${corto(cumA[30])}`,y:y(cumA[30])+4,d:1.3},{t:`≈ <tspan>${corto(proy[DIAS])}</tspan>`,y:y(proy[DIAS])+4,d:1.8}].sort((a,b)=>a.y-b.y);
+  if(fin[1].y-fin[0].y<15){const m=(fin[0].y+fin[1].y)/2;fin[0].y=m-7.5;fin[1].y=m+7.5}
+  const ticks=[1,8,15,22,29].filter(d=>Math.abs(d-HOY)>2);
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.style.height=H+"px";
+  svg.innerHTML=`${marcas.map(v=>`<line class="eje" x1="${p.l}" x2="${W-p.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${p.l-10}" y="${y(v)+4}" text-anchor="end">${corto(v)}</text>`).join("")}
+    ${ticks.map(d=>`<text x="${x(d)}" y="${H-8}" text-anchor="middle">${d}</text>`).join("")}<text x="${hoyX}" y="${H-8}" text-anchor="middle" class="hoyt">hoy</text>
+    <line class="hoyl" x1="${hoyX}" x2="${hoyX}" y1="${p.t}" y2="${p.t+ALTO}"/>
+    <path class="ant ${animar?"dib":""}" pathLength="1" d="${linea(cumA,1,30)}"/>
+    <path class="area ${animar?"aparece":""}" style="animation-delay:.9s" d="${linea(cum,1,HOY)} L${x(HOY)},${y(0)} L${x(1)},${y(0)} Z"/>
+    <path class="act ${animar?"dib":""}" pathLength="1" d="${linea(cum,1,HOY)}"/>
+    <path class="proy ${animar?"aparece":""}" style="animation-delay:1.5s" d="${linea(proy,HOY,DIAS)}"/>
+    ${FIJOS.filter(vis).map((f,k)=>`<g class="${animar?"aparece":""}" style="animation-delay:${1.7+k*.12}s"><circle class="viene" cx="${x(f.dia)}" cy="${y(proy[f.dia])}" r="4.5"/></g>`).join("")}
+    ${notas.map((n,k)=>`<g class="${animar?"aparece":""}" style="animation-delay:${1+k*.15}s"><circle class="marca" cx="${n.x}" cy="${y(cum[n.dia])}" r="4"/></g>`).join("")}
+    <g class="${animar?"aparece":""}" style="animation-delay:1.4s"><circle class="punto" cx="${hoyX}" cy="${hoyY}" r="5.5"/></g>
+    <line class="guia" id="C2g" x1="0" x2="0" y1="${p.t}" y2="${p.t+ALTO}"/><circle class="guiap" id="C2p" r="4"/>
+    <line class="sel" id="C2sel" x1="0" x2="0" y1="${p.t}" y2="${p.t+ALTO}" style="opacity:0"/>
+    <rect id="C2r" x="${p.l}" y="${p.t-4}" width="${W-p.l-p.r}" height="${ALTO+8}" fill="transparent" style="cursor:pointer"/>
+    ${notas.filter(n=>n.f>=0).map((n,k)=>`<g class="nota-g ${animar?"aparece":""}" style="animation-delay:${1+k*.15}s" data-d="${n.dia}"><line class="hilo" x1="${n.x}" x2="${n.x}" y1="${base(n.f)+5}" y2="${y(cum[n.dia])-6}"/><text class="nota" x="${n.a}" y="${base(n.f)}">${n.html}</text></g>`).join("")}
+    <g class="${animar?"aparece":""}" style="animation-delay:1.4s"><text x="${cifra.tx}" y="${cifra.ty}" text-anchor="${cifra.anc}" class="cifra">${fmt(cum[HOY])}</text></g>
+    ${ang?"":fin.map(f=>`<g class="${animar?"aparece":""}" style="animation-delay:${f.d}s"><text class="fin" x="${W-p.r+10}" y="${f.y}">${f.t}</text></g>`).join("")}`;
+  svg.querySelectorAll(".nota-g").forEach(g=>g.onclick=()=>elegir("C2",+g.dataset.d));
+  $("#C2pie").innerHTML=ang?`Si sigue así, cierras octubre en <b>≈ ${corto(proy[DIAS])}</b>; septiembre cerró en ${corto(cumA[30])}.`:"";
+  const dif=cum[HOY]-cumA[HOY],pc=cumA[HOY]?Math.round(Math.abs(dif)/cumA[HOY]*100):0;
+  $("#C2f").innerHTML=`A hoy llevas <b>${fmt(cum[HOY])}</b>: <b>${fmt(Math.abs(dif))} ${dif>=0?"más":"menos"}</b> que septiembre a esta altura.`;
+  $("#C2c").innerHTML=`<span class="chip ${dif>=0?"sube":"baja"}">${dif>=0?"▲":"▼"} ${pc} % vs septiembre</span>`;
+  const r=$("#C2r"),gl=$("#C2g"),gp=$("#C2p");
+  const diaDe=e=>{const b=svg.getBoundingClientRect(),px=(e.clientX-b.left)*(W/b.width);return Math.max(1,Math.min(DIAS,Math.round((px-p.l)/(W-p.l-p.r)*(DIAS-1)+1)))};
+  r.onmousemove=e=>{const d=diaDe(e),v=d<=HOY?cum[d]:proy[d];gl.setAttribute("x1",x(d));gl.setAttribute("x2",x(d));gl.style.opacity=.35;gp.setAttribute("cx",x(d));gp.setAttribute("cy",y(v));gp.style.opacity=1;
+    const ant=d<=30?`<div class="l"><span>Septiembre a esa altura</span><span>${fmt(cumA[d])}</span></div>`:"";
+    const lleva=d<=HOY?`<div class="l"><span>Llevabas</span><span>${fmt(cum[d])}</span></div>`:`<div class="l"><span>Si sigue así</span><span>≈ ${fmt(proy[d])}</span></div>`;
+    verTip(tipDia(d,D)+lleva+ant,e.clientX,svg.getBoundingClientRect().top+y(v)*(svg.getBoundingClientRect().height/H))};
+  r.onmouseleave=()=>{gl.style.opacity=0;gp.style.opacity=0;ocultarTip()};
+  r.onclick=e=>elegir("C2",diaDe(e));
+  marcarC2()}
+function marcarC2(){const s=$("#C2sel"),DIA=SEL.C2;if(!s||!C2x)return;if(DIA==null){s.style.opacity=0;return}s.setAttribute("x1",C2x(DIA));s.setAttribute("x2",C2x(DIA));s.style.opacity=1}
+
+/* ---------- C3 · Día por día ---------- */
+function C3(){const box=$("#C3"),D=porDia(OCT,HOY);
+  const vienen=d=>fijosDe(d).reduce((a,x)=>a+x.m,0);
+  const max=Math.max(...D.map(o=>o.total),...Array.from({length:DIAS},(_,i)=>vienen(i+1)),1);
+  const top=D.reduce((a,o)=>o.total>a.total?o:a,{total:0,d:0});
+  const conGasto=D.slice(1,HOY+1),prom=conGasto.reduce((a,o)=>a+o.total,0)/HOY;
+  const frase=top.total?`El día más fuerte fue el <b>${top.d}</b> (${fmt(top.total)}); un día normal se van <b>${fmt(prom)}</b>.`:"";
+  let cols="";for(let d=1;d<=DIAS;d++){const o=D[d]||{total:0,sed:[0,0,0,0,0]},fut=d>HOY,v=vienen(d),finde=(PRIMER+d-1)%7>=5;
+    cols+=`<div class="col ${finde?"finde":""} ${SEL.C3===d?"sel":""}" data-d="${d}">
+      ${!fut&&o.total?`${d===top.d?`<span class="num top" style="bottom:${o.total/max*100}%">${corto(o.total)}</span>`:""}<div class="pila" style="height:${o.total/max*100}%;transition-delay:${d*25}ms">${o.sed.map((x,j)=>x?`<b style="flex:${x};background:var(--s${j})"></b>`:"").join("")}</div>`:""}
+      ${fut&&v?`<span class="num viene" style="bottom:${v/max*100}%">${corto(v)}</span><div class="fant" style="height:${v/max*100}%"></div>`:""}</div>`}
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">Cuándo</h3><p class="frase" style="font-size:19px">${frase}</p></div>
+      <div class="ley">${SEDES.map((s,j)=>S<0||S===j?`<span><i style="background:var(--s${j})"></i>${s}</span>`:"").join("")}<span><i style="border:1.5px dashed var(--taupe);background:none"></i>fijo que viene</span></div></div>
+    <div class="barras" id="C3b">${cols}<div class="prom" style="bottom:${prom/max*196}px"><span>un día normal ${corto(prom)}</span></div></div>
+    <div class="ejex">${Array.from({length:DIAS},(_,i)=>`<span class="${i+1===HOY?"hoy":""}">${i+1===HOY?"hoy":i+1}</span>`).join("")}</div>
+    <div class="dia" id="C3d"></div>`;
+  const b=$("#C3b");
+  b.querySelectorAll(".col").forEach(c=>{const d=+c.dataset.d;
+    c.onmouseenter=()=>{b.classList.add("fc");c.classList.add("hot");const r=c.getBoundingClientRect();verTip(tipDia(d,D),r.left+r.width/2,r.bottom-Math.max(30,(c.querySelector(".pila,.fant")?.offsetHeight||0)))};
+    c.onmouseleave=()=>{b.classList.remove("fc");c.classList.remove("hot");ocultarTip()};
+    c.onclick=()=>{if(d>HOY&&!vienen(d))return;elegir("C3",d)}});
+  arranca(box);panel("C3")}
+function marcarC3(){document.querySelectorAll("#C3b .col").forEach(c=>c.classList.toggle("sel",+c.dataset.d===SEL.C3))}
+
+/* ---------- C4 · La lluvia ---------- */
+let C4foco=-1;
+function C4(){const box=$("#C4");
+  box.innerHTML=`<div class="cab"><div><h3 class="tit">Cuándo</h3><div class="dato" id="C4f"></div></div>
+    <div class="ley" id="C4l">${SEDES.map((s,j)=>S<0||S===j?`<span class="sede" data-j="${j}"><i style="border-radius:50%;background:var(--s${j})"></i>${s}</span>`:"").join("")}<span><i style="border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--taupe);background:none"></i>fijo que viene</span></div></div>
+    <div class="lienzo"><svg class="graf gotas" id="C4s"></svg></div><div class="dia" id="C4d"></div>`;
+  dibujaC4(true);panel("C4")}
+function dibujaC4(animar){const svg=$("#C4s");if(!svg)return;const W=svg.parentElement.clientWidth,p={l:8,r:8,t:14,b:26},TOPE=300;
+  const D=porDia(OCT,HOY),colW=(W-p.l-p.r)/DIAS;
+  // Tamaño: el área de la gota es lo que costó. La escala la pone el ancho de la columna (ninguna gota se sale de su día); el alto del
+  // gráfico se ajusta al día más cargado (sin aire de sobra arriba), y si no cabe en el tope, las gotas se achican.
+  const pilas=Array.from({length:DIAS+1},(_,d)=>d<=HOY?[...D[d].g].sort((a,b)=>b.m-a.m):fijosDe(d).map(f=>({...f,viene:true})));
+  const maxM=Math.max(...pilas.flat().map(g=>g.m),1);
+  let k=(colW/2-1.5)/Math.sqrt(maxM);
+  const rad=m=>Math.max(3,k*Math.sqrt(m)),altoDe=pl=>pl.reduce((a,g)=>a+2*rad(g.m)+2,0);
+  let alto=Math.max(...pilas.map(altoDe));
+  if(alto>TOPE-p.t-p.b){k*=(TOPE-p.t-p.b)/alto;alto=Math.max(...pilas.map(altoDe))}
+  const H=Math.max(170,Math.round(alto+p.t+p.b+8)),base=H-p.b;
+  let gotas="",n=0;
+  pilas.forEach((pl,d)=>{if(!d)return;let y=base;const cx=p.l+(d-.5)*colW;
+    pl.forEach((g,i)=>{const r=rad(g.m);y-=r;const del=animar?(d*28+i*40):0;
+      gotas+=`<circle class="gota ${animar?"cae":""} ${g.viene?"viene":""}" data-d="${d}" data-i="${i}" data-j="${g.sede}" cx="${cx.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" style="${g.viene?"":`fill:var(--s${g.sede});`}animation-delay:${del}ms"/>`;y-=r+2;n++})});
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.style.height=H+"px";
+  const hoyX=p.l+(HOY-.5)*colW;
+  svg.innerHTML=`<line class="eje" x1="${p.l}" x2="${W-p.r}" y1="${base+.5}" y2="${base+.5}"/>
+    <line class="hoyl" x1="${hoyX+colW/2}" x2="${hoyX+colW/2}" y1="${p.t}" y2="${base}"/>
+    ${[1,5,10,15,20,25,30].map(d=>`<text x="${p.l+(d-.5)*colW}" y="${H-8}" text-anchor="middle">${d}</text>`).join("")}
+    <text x="${hoyX}" y="${H-8}" text-anchor="middle" class="etq">hoy</text>${gotas}`;
+  const total=pilas.slice(1,HOY+1).flat().length;
+  $("#C4f").textContent=`${total} gastos hasta hoy. El tamaño de cada gota es lo que costó.`;
+  svg.querySelectorAll(".gota").forEach(c=>{const d=+c.dataset.d,g=pilas[d][+c.dataset.i];
+    c.style.cursor="pointer";
+    c.onmouseenter=e=>{const r=c.getBoundingClientRect();verTip(`<b>${fmt(g.m)}${g.viene?" · viene":""}</b>${g.que} · ${SEDES[g.sede]}<br><span style="color:var(--taupe)">${g.cat} · ${nombreDia(d)}</span>`,r.left+r.width/2,r.top)};
+    c.onmouseleave=ocultarTip;c.onclick=()=>elegir("C4",d)});
+  $("#C4l").querySelectorAll(".sede").forEach(s=>{const j=+s.dataset.j;
+    s.onmouseenter=()=>{svg.classList.add("fc");svg.querySelectorAll(".gota").forEach(c=>c.classList.toggle("hot",+c.dataset.j===j))};
+    s.onmouseleave=()=>svg.classList.remove("fc")})}
+
+function todo(){C1();C2();C3();C4()}
+$("#barra").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;S=+b.dataset.s;
+  $("#barra").querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x===b));todo()});
+$("#rep").onclick=todo;
+$("#tema").onclick=()=>{const o=document.documentElement.dataset.tema==="oscuro";
+  if(o)delete document.documentElement.dataset.tema;else document.documentElement.dataset.tema="oscuro";$("#tema").textContent=o?"◐ Modo oscuro":"◑ Modo claro"};
+let espera;addEventListener("resize",()=>{clearTimeout(espera);espera=setTimeout(()=>{dibujaC2(false);dibujaC4(false)},120)});
+todo();
+</script>
+</body>
+</html>

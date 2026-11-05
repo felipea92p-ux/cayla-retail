@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esquemaNivel, hayAlgo, hayEnTienda, leyendaNiveles, notaDeStock, textoNivel, tonoNivel, type StockModelo } from "./stock";
+import { esquemaNivel, hayAlgo, hayEnTienda, notaDeStock, textoNivel, tonoNivel, type StockModelo } from "./stock";
 
 const TRU = { id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Trujillo" };
 const LIM = { id: "2d97d322-8a0a-4cd5-99c4-70e52b9c01db", nombre: "Lima" };
@@ -19,13 +19,6 @@ describe("el nivel", () => {
   it("la cifra de 4 o más no se acepta aunque llegara: solo «hay» o 0 a 3", () => {
     for (const ok of ["hay", 0, 1, 2, 3]) expect(esquemaNivel.safeParse(ok).success).toBe(true);
     for (const malo of [4, 7, 37, -1, 1.5, "3", "Hay", null]) expect(esquemaNivel.safeParse(malo).success).toBe(false);
-  });
-
-  it("la leyenda sigue al umbral de Configuración", () => {
-    expect(leyendaNiveles(3)).toBe("«Hay»: 4 o más. Si quedan 3 o menos, ves cuántas. Cambia con cada venta en tienda.");
-    expect(leyendaNiveles(2)).toBe("«Hay»: 3 o más. Si quedan 2 o menos, ves cuántas. Cambia con cada venta en tienda.");
-    expect(leyendaNiveles(1)).toBe("«Hay»: 2 o más. Si queda una, dice «Última». Cambia con cada venta en tienda.");
-    expect(leyendaNiveles(9)).toBe(leyendaNiveles(3));
   });
 });
 

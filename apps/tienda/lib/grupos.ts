@@ -22,8 +22,8 @@ export const MENUS: readonly { clave: Menu; nombre: string; todo: string; titulo
   { clave: "accesorios", nombre: "Accesorios", todo: "Todos los accesorios", titulo: ["Todos los", "accesorios"] },
 ];
 
-/** El grupo de una categoría, por su clave (el prefijo; sin prefijo, su nombre). Lo desconocido, a «Encima y más». */
-export const grupoDe: (claveDeCategoria: string) => Grupo = grupoDeLaTienda;
+/** El grupo de una categoría, por su clave (el prefijo; sin prefijo, su nombre). Lo desconocido, a «Chompas/Abrigos». */
+export const grupoDe: (claveDeCategoria: string, familia?: string | null) => Grupo = grupoDeLaTienda;
 
 /** El grupo de la URL (`?grupo=`), o null si no existe. */
 export function leerGrupo(v: string | string[] | undefined): Grupo | null {
@@ -37,7 +37,7 @@ export function leerMenu(v: string | string[] | undefined): (typeof MENUS)[numbe
   return MENUS.find((x) => x.clave === m) ?? null;
 }
 
-export type CategoriaDeGrupo = { clave: string; nombre: string; cuantas: number; prendas: Prenda[] };
+export type CategoriaDeGrupo = { clave: string; nombre: string; cuantas: number; prendas: Prenda[]; familia?: string | null };
 export type GrupoConCategorias = Grupo & { cuantas: number; categorias: CategoriaDeGrupo[] };
 
 /**
@@ -49,7 +49,7 @@ export function gruposDe(prendas: readonly Prenda[]): GrupoConCategorias[] {
   for (const p of prendas) {
     const clave = claveCategoria(p.categoria);
     if (!clave || !p.categoria) continue;
-    const c = porClave.get(clave) ?? { clave, nombre: p.categoria.nombre, cuantas: 0, prendas: [] };
+    const c = porClave.get(clave) ?? { clave, nombre: p.categoria.nombre, cuantas: 0, prendas: [], familia: p.categoria.familia };
     c.cuantas += 1;
     c.prendas.push(p);
     porClave.set(clave, c);
@@ -60,7 +60,7 @@ export function gruposDe(prendas: readonly Prenda[]): GrupoConCategorias[] {
   };
   return GRUPOS.flatMap((g) => {
     const categorias = [...porClave.values()]
-      .filter((c) => grupoDe(c.clave).clave === g.clave)
+      .filter((c) => grupoDe(c.clave, c.familia).clave === g.clave)
       .sort((a, b) => puesto(g, a.clave) - puesto(g, b.clave) || b.cuantas - a.cuantas || a.nombre.localeCompare(b.nombre, "es"));
     if (categorias.length === 0) return [];
     return [{ ...g, cuantas: categorias.reduce((n, c) => n + c.cuantas, 0), categorias }];
@@ -72,7 +72,7 @@ export function delGrupo(prendas: readonly Prenda[], grupo: Grupo | null): Prend
   if (!grupo) return [...prendas];
   return prendas.filter((p) => {
     const clave = claveCategoria(p.categoria);
-    return clave !== null && grupoDe(clave).clave === grupo.clave;
+    return clave !== null && grupoDe(clave, p.categoria?.familia).clave === grupo.clave;
   });
 }
 
@@ -81,7 +81,7 @@ export function delMenu(prendas: readonly Prenda[], menu: Menu | null): Prenda[]
   if (!menu) return [...prendas];
   return prendas.filter((p) => {
     const clave = claveCategoria(p.categoria);
-    return clave !== null && grupoDe(clave).menu === menu;
+    return clave !== null && grupoDe(clave, p.categoria?.familia).menu === menu;
   });
 }
 

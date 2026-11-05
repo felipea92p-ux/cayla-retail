@@ -199,6 +199,14 @@ const lineaBase = (id: string, cantidad: number, en: Record<string, [boolean, bo
 const enBase = (sede: string | null, lineas: unknown[]): BolsaEnBase => interpretarBolsaEnBase({ sede, sedes: sedesBase, lineas })!;
 
 describe("lo que dice la base", () => {
+  it("la empresa de cada prenda (ADR-0465): la lee; sin ella —Trujillo, o una base que aún no la manda— o con una rara, la prenda se ve igual y sin empresa", () => {
+    const empresas = (...e: unknown[]) =>
+      enBase(null, e.map((x, i) => lineaBase([A, B, M2][i], 1, { [TRU]: [true, true] }, x === undefined ? {} : { empresa: x })))
+        .lineas.map((l) => ("noEsta" in l ? "no" : l.empresa?.nombre ?? null));
+    expect(empresas({ clave: "claure", nombre: "CLAURE" }, { clave: "cayla", nombre: "CAYLA" })).toEqual(["CLAURE", "CAYLA"]);
+    expect(empresas(null, undefined, { clave: "", nombre: "" })).toEqual([null, null, null]);
+  });
+
   it("una prenda que ya no está llega sin nombre; un dato raro de una prenda la deja como «ya no está», no tumba la bolsa", () => {
     const b = enBase(null, [
       lineaBase(A, 1, { [TRU]: [true, true] }),
@@ -226,6 +234,21 @@ describe("lo que dice la base", () => {
     const entra = revisarParaAgregar(b.lineas[0]);
     expect(entra.tipo === "entra" && entra.linea.nombre).toBe("Blusa Valentina");
   });
+
+  it("al agregar con una tienda: solo cuenta lo que hay AHÍ (cada tienda maneja lo suyo), aunque otra tenga", () => {
+    const b = enBase(TRU, [
+      lineaBase(A, 1, { [TRU]: [true, true], [LIM]: [false, false] }),
+      lineaBase(B, 1, { [TRU]: [false, false], [LIM]: [true, true] }),
+      lineaBase(M1, 2, { [TRU]: [false, true], [LIM]: [true, true] }),
+    ]);
+    const tipo = (id: string, sede: string | null) => revisarParaAgregar(b.lineas.find((l) => l.varianteId === id), sede).tipo;
+    expect(tipo(A, TRU)).toBe("entra");
+    expect(tipo(B, TRU)).toBe("agotada");
+    expect(tipo(M1, TRU)).toBe("no_alcanza");
+    expect(tipo(B, LIM)).toBe("entra");
+    // Sin tienda (la web sin tiendas) vale lo de todas juntas, como antes.
+    expect(tipo(B, null)).toBe("entra");
+  });
 });
 
 describe("la página de la bolsa", () => {
@@ -243,40 +266,42 @@ describe("la página de la bolsa", () => {
     expect(vistaBolsa(interpretarBolsaEnBase({ sede: null, sedes: [], lineas: [lineaBase(A, 1, {})] })!).faltaTienda).toBe(false);
   });
 
-  it("con tienda: «Hay en Trujillo» o «No está en Trujillo: la tienda puede traerla de Lima», y se puede separar", () => {
+  it("con tienda: «Hay en Trujillo» o «Se agotó en Trujillo» (la tienda no trae de otra); lo agotado bloquea «Separar»", () => {
     const v = vistaBolsa(
       enBase(TRU, [
         lineaBase(A, 1, { [TRU]: [true, true], [LIM]: [false, false] }),
         lineaBase(B, 1, { [TRU]: [false, false], [LIM]: [true, true] }),
       ]),
     );
-    expect(v.lineas.map((l) => textoDeLaMarca(l.marca))).toEqual([
-      "Hay en Trujillo",
-      "No está en Trujillo: la tienda puede traerla de Lima",
-    ]);
-    expect(v.nota.antes).toBe("No pagas nada ahora: CAYLA Trujillo te confirma por WhatsApp.");
+    expect(v.lineas.map((l) => textoDeLaMarca(l.marca))).toEqual(["Hay en Trujillo", "Se agotó en Trujillo. Quítala para separar."]);
     expect(v.boton).toBe("Separar en Trujillo");
-    expect(v.listo).toBe(true);
-    expect(v.paraSeparar).toEqual([
+    expect(v.listo).toBe(false);
+    expect(v.nota.destacado).toBe("Hay una prenda agotada.");
+    // Con todo en la tienda elegida, se puede separar.
+    const ok = vistaBolsa(enBase(TRU, [lineaBase(A, 1, { [TRU]: [true, true], [LIM]: [false, false] }), lineaBase(B, 1, { [TRU]: [true, true], [LIM]: [true, true] })]));
+    expect(ok.nota.antes).toBe("No pagas nada ahora: CAYLA Trujillo te confirma por WhatsApp.");
+    expect(ok.listo).toBe(true);
+    expect(ok.paraSeparar).toEqual([
       { variante_id: A, cantidad: 1, precio: 69.9 },
       { variante_id: B, cantidad: 1, precio: 69.9 },
     ]);
   });
 
-  it("si en la tienda elegida hay alguna pero no todas las que lleva, no dice «No está» (sería falso): dice que no alcanzan", () => {
+  it("si en la tienda elegida hay alguna pero no todas las que lleva, no dice «agotada» (sería falso): dice que no quedan tantas; y no ofrece traer de otra", () => {
     const v = vistaBolsa(
       enBase(TRU, [
         // Lleva 2: en Trujillo hay (no alcanza), en Lima alcanza.
         lineaBase(A, 2, { [TRU]: [false, true], [LIM]: [true, true] }),
-        // Lleva 2 y en Trujillo no hay ninguna: plural.
+        // Lleva 2 y en Trujillo no hay ninguna.
         lineaBase(B, 2, { [TRU]: [false, false], [LIM]: [true, true] }),
       ]),
     );
     expect(v.lineas.map((l) => textoDeLaMarca(l.marca))).toEqual([
-      "No alcanzan en Trujillo: la tienda puede traer las que faltan de Lima",
-      "No están en Trujillo: la tienda puede traerlas de Lima",
+      "En Trujillo no quedan tantas: baja la cantidad para separar.",
+      "Se agotó en Trujillo. Quítala para separar.",
     ]);
-    expect(v.listo).toBe(true);
+    for (const l of v.lineas) expect(textoDeLaMarca(l.marca)).not.toMatch(/traer/);
+    expect(v.listo).toBe(false);
   });
 
   it("las tiendas van en orden alfabético y dicen cuánto de lo elegido tienen (cuenta filas, como la maqueta)", () => {
@@ -287,8 +312,8 @@ describe("la página de la bolsa", () => {
       ]),
     );
     expect(v.tiendas.map((t) => [t.sede.nombre, t.texto])).toEqual([
-      ["Lima", "Tiene 1 de 2; lo demás lo trae de otra tienda"],
-      ["Trujillo", "Tiene 1 de 2; lo demás lo trae de otra tienda"],
+      ["Lima", "Tiene 1 de 2"],
+      ["Trujillo", "Tiene 1 de 2"],
     ]);
     const todo = vistaBolsa(enBase(LIM, [lineaBase(A, 1, { [TRU]: [true, true], [LIM]: [true, true] })]));
     expect(todo.tiendas.find((t) => t.elegida)?.texto).toBe("Tiene todo lo que elegiste");
@@ -296,15 +321,18 @@ describe("la página de la bolsa", () => {
 
   it("una prenda agotada (o que no alcanza) bloquea «Separar» y lo dice; una que ya no está, también", () => {
     const agotada = vistaBolsa(enBase(TRU, [lineaBase(A, 1, { [TRU]: [false, false], [LIM]: [false, false] })]));
-    expect(textoDeLaMarca(agotada.lineas[0].marca)).toBe("Se agotó en todas las tiendas. Quítala para separar.");
+    expect(textoDeLaMarca(agotada.lineas[0].marca)).toBe("Se agotó en Trujillo. Quítala para separar.");
+    // Sin tienda elegida, se dice de todas.
+    const sinTienda = vistaBolsa(enBase(null, [lineaBase(A, 1, { [TRU]: [false, false], [LIM]: [false, false] })]));
+    expect(textoDeLaMarca(sinTienda.lineas[0].marca)).toBe("Se agotó en todas las tiendas. Quítala para separar.");
     expect(agotada.nota.destacado).toBe("Hay una prenda agotada.");
     expect(agotada.listo).toBe(false);
     const noAlcanza = vistaBolsa(enBase(TRU, [lineaBase(A, 3, { [TRU]: [false, true], [LIM]: [false, true] })]));
-    expect(noAlcanza.lineas[0].marca).toEqual({ tipo: "no_alcanza" });
+    expect(noAlcanza.lineas[0].marca).toEqual({ tipo: "no_alcanza", sede: "Trujillo" });
     expect(noAlcanza.listo).toBe(false);
     // Quedan algunas: no está agotada, y se arregla bajando la cantidad (no hace falta quitarla).
     expect(noAlcanza.nota).toEqual({ antes: "", destacado: "De una prenda no quedan tantas.", despues: " Baja la cantidad para separar." });
-    expect(textoDeLaMarca(noAlcanza.lineas[0].marca)).toBe("No quedan tantas en las tiendas: baja la cantidad para separar.");
+    expect(textoDeLaMarca(noAlcanza.lineas[0].marca)).toBe("En Trujillo no quedan tantas: baja la cantidad para separar.");
     // Con una agotada y otra que no alcanza, manda la agotada (esa hay que quitarla).
     const las2 = vistaBolsa(
       enBase(TRU, [lineaBase(A, 3, { [TRU]: [false, true] }), lineaBase(B, 1, { [TRU]: [false, false], [LIM]: [false, false] })]),
@@ -330,7 +358,7 @@ describe("la página de la bolsa", () => {
     const dos = vistaBolsa(
       enBase(TRU, [linea, lineaBase(B, 1, { [TRU]: [false, false], [LIM]: [true, true] }), lineaBase(M1, 1, { [TRU]: [true, true], [LIM]: [true, true] })]),
     );
-    expect(dos.tiendas.find((t) => t.elegida)?.texto).toBe("Tiene 1 de 3; 1 no se vende ahí; lo demás lo trae de otra tienda");
+    expect(dos.tiendas.find((t) => t.elegida)?.texto).toBe("Tiene 1 de 3; 1 no se vende ahí");
   });
 
   it("el total es lo que se paga con las campañas, y aparte cuánto ahorran; «Prendas» cuenta unidades", () => {
@@ -375,26 +403,25 @@ describe("la página de la bolsa", () => {
 
 describe("las marcas que dice cada prenda", () => {
   it("cubren todos los casos sin decir una cifra", () => {
-    const traslado = (parte: boolean, varias: boolean, desde: string | null): MarcaDeLinea => ({ tipo: "traslado", sede: "Lima", desde, parte, varias });
     const textos = [
       textoDeLaMarca({ tipo: "no_esta" }),
-      textoDeLaMarca({ tipo: "agotada" }),
-      textoDeLaMarca({ tipo: "no_alcanza" }),
+      ...[null, "Lima"].flatMap((sede) => [textoDeLaMarca({ tipo: "agotada", sede }), textoDeLaMarca({ tipo: "no_alcanza", sede })]),
       textoDeLaMarca({ tipo: "no_se_vende", sede: "Lima" }),
       textoDeLaMarca({ tipo: "hay", sede: "Lima" }),
-      ...[true, false].flatMap((parte) => [true, false].flatMap((varias) => [textoDeLaMarca(traslado(parte, varias, null)), textoDeLaMarca(traslado(parte, varias, "Trujillo"))])),
     ];
     for (const t of textos) expect(t).not.toMatch(/\d/);
+    // Cada tienda maneja lo suyo: ninguna marca ofrece traer de otra tienda.
+    for (const t of textos) expect(t).not.toMatch(/traer/);
     expect(textoDeLaMarca({ tipo: "nada" })).toBeNull();
-    expect(textoDeLaMarca(traslado(false, false, null))).toBe("No está en Lima: la tienda puede traerla de otra tienda");
   });
 
   it("el «+» de la cantidad no ofrece otra de lo que se agotó, no alcanza o ya no está", () => {
     expect(ofreceOtra({ tipo: "hay", sede: "Lima" })).toBe(true);
     expect(ofreceOtra({ tipo: "nada" })).toBe(true);
-    expect(ofreceOtra({ tipo: "traslado", sede: "Lima", desde: "Trujillo", parte: false, varias: false })).toBe(true);
     expect(ofreceOtra({ tipo: "no_se_vende", sede: "Lima" })).toBe(true);
-    for (const tipo of ["agotada", "no_alcanza", "no_esta"] as const) expect(ofreceOtra({ tipo })).toBe(false);
+    expect(ofreceOtra({ tipo: "agotada", sede: "Lima" })).toBe(false);
+    expect(ofreceOtra({ tipo: "no_alcanza", sede: null })).toBe(false);
+    expect(ofreceOtra({ tipo: "no_esta" })).toBe(false);
   });
 
   it("la prenda dicha entera para el lector de pantalla, sin inventar lo que no tiene", () => {

@@ -101,3 +101,8 @@ pueden pegar dos veces. Sin políticas, sin `drop trigger`, sin `alter table` (A
 
 Las huellas son el md5 del cuerpo sin comentarios ni espacios (el de `deriva.sql`); la consulta está en el encabezado de
 cada migración. Después de pegar las dos, la deriva debe quedar solo con la política de Clientas que se decide en su PR.
+
+
+## Actualización 2026-10-22 — otros dos arreglos de producción llegan a `main`
+
+La deriva del 2026-10-22 volvió a encontrar dos funciones que producción corre con otro cuerpo que `main` (la primera aplicada el 2026-10-08 desde una rama de base vieja que nunca llegó a `main`; de la segunda no se encontró origen): `fn_cuentas_con_rol()` (solo personas activas en Roles y accesos, ADR-0161) y `fn_observatorio_tienda(uuid)` (la prenda sin registrar cuenta en la categoría que declaró la cajera, ADR-0322). Se llevaron a `main` con el mismo molde de esta decisión —«YA ESTÁ EN PRODUCCIÓN, NO SE VUELVE A PEGAR», cuerpo de `pg_proc.prosrc` carácter por carácter, huella normalizada como en `deriva.sql`— en `20261022200000_cuentas_con_rol_solo_personas_activas.sql` y `20261022201000_observatorio_tienda_prenda_sin_registrar_en_su_categoria.sql`. Su prueba es `pnpm pruebas:arreglos-en-vivo-roles-observatorio` (casos de comportamiento, cada uno con su control contra la versión de antes, los permisos y la huella): una suite aparte de `pruebas:arreglos-en-vivo` porque esa mira el estado de los permisos con otro armazón de casos. Con ellas, la lista «en los dos con otra versión» de la deriva baja de 16 a 14 contra `main`.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { IconoEtiquetaPapel } from "@/components/IconoEtiquetaPapel";
@@ -84,10 +84,7 @@ export function ImprimirLoQueEntro({
         <div className="space-y-5">
           {/* La cifra: lo que hay que imprimir, contado. */}
           <div className="flex items-center gap-4 rounded-xl border border-sand bg-crema px-4 py-3.5">
-            <svg viewBox="0 0 44 44" aria-hidden className="h-11 w-11 shrink-0">
-              <circle cx="22" cy="22" r="20" className="lqe-aro" fill="none" stroke="var(--color-verde)" strokeWidth="2" />
-              <path d="M13.5 22.5 L19.5 28.5 L31 16" className="lqe-visto" fill="none" stroke="var(--color-verde)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <VistoQueSeDibuja />
             <div className="min-w-0">
               <p className="flex items-baseline gap-2">
                 <span className="font-serif text-[40px] leading-none tabular-nums text-tinta" aria-hidden>
@@ -102,57 +99,24 @@ export function ImprimirLoQueEntro({
             </div>
           </div>
 
-          {/* La tira: las etiquetas salen de la ranura de la impresora, una tras otra. */}
-          <div data-sin-cascada className="relative">
-            <div aria-hidden className="lqe-ranura mx-auto h-[7px] w-[86%] rounded-full bg-tinta/85" />
-            <ul
-              aria-label="Las etiquetas que se van a imprimir"
-              className="scroll-cayla -mt-[3px] grid max-h-[46vh] grid-cols-2 gap-2.5 overflow-y-auto overscroll-contain px-1 pb-1 pt-3 sm:grid-cols-3"
-            >
-              {lineas.map((l, i) => {
-                const color = colores.find((c) => c.codigo === l.colorCodigo);
-                const iconos = l.etiquetaIds
+          <TiraDeLoQueEntro
+            prenda={prenda}
+            papeles={lineas.map((l) => {
+              const color = colores.find((c) => c.codigo === l.colorCodigo);
+              return {
+                clave: l.varianteId,
+                color: l.color,
+                punto: color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} /> : <Punto hex={null} />,
+                talla: l.talla,
+                precio: l.precio,
+                unidades: l.unidades,
+                iconos: l.etiquetaIds
                   .map((id) => nombreEtiqueta(id))
                   .filter((x): x is string => !!x)
-                  .slice(0, 3);
-                return (
-                  <li
-                    key={l.varianteId}
-                    className="lqe-etiqueta relative flex flex-col rounded-lg border border-sand bg-papel px-3 pb-2.5 pt-3.5"
-                    style={{ animationDelay: `${ESPERA_HOJA_MS + Math.min(i, MAX_ESCALONES) * ENTRE_ETIQUETAS_MS}ms` }}
-                  >
-                    {/* El ojal de la etiqueta colgante. */}
-                    <span aria-hidden className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full border border-sand bg-crema" />
-                    <span className="absolute right-2 top-2 rounded-full bg-tinta px-1.5 py-0.5 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
-                      × {l.unidades}
-                    </span>
-                    <span className="text-[8.5px] font-semibold uppercase tracking-[0.28em] text-tinta/55">Cayla</span>
-                    <span className="mt-1 truncate text-[12px] text-tinta/75" title={prenda}>
-                      {prenda}
-                    </span>
-                    <span className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-tinta">
-                      {color ? <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} /> : <Punto hex={null} />}
-                      <span className="truncate">{l.color}</span>
-                    </span>
-                    <span className="mt-2 flex items-end justify-between gap-2">
-                      <span className="font-serif text-[26px] leading-none text-tinta">{l.talla}</span>
-                      <span className="text-[13px] font-semibold tabular-nums text-tinta">{l.precio !== null ? `S/\u00a0${precioEtiqueta(l.precio)}` : "—"}</span>
-                    </span>
-                    {iconos.length > 0 && (
-                      <span className="mt-2 flex items-center gap-1.5 border-t border-dashed border-sand pt-1.5 [&_svg]:h-3.5 [&_svg]:w-3.5">
-                        {iconos.map((nombre) => (
-                          <span key={nombre} className="inline-flex items-center gap-1 text-[10px] text-tinta/70">
-                            <IconoEtiquetaPapel icono={iconoDeEtiqueta(nombre) ?? "generico"} nombre={nombre} decorativo />
-                            {nombre}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+                  .slice(0, 3),
+              };
+            })}
+          />
 
           <div className="pie-hoja-fijo">
             <div className="flex flex-col-reverse gap-2 border-t border-sand pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -168,5 +132,78 @@ export function ImprimirLoQueEntro({
         </div>
       )}
     </Modal>
+  );
+}
+
+/** El «visto» que se dibuja una vez (el aro y la marca, 44 px): la respuesta a un guardado en que entraron prendas. */
+export function VistoQueSeDibuja() {
+  return (
+    <svg viewBox="0 0 44 44" aria-hidden className="h-11 w-11 shrink-0">
+      <circle cx="22" cy="22" r="20" className="lqe-aro" fill="none" stroke="var(--color-verde)" strokeWidth="2" />
+      <path d="M13.5 22.5 L19.5 28.5 L31 16" className="lqe-visto" fill="none" stroke="var(--color-verde)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Una etiqueta de papel de lo que entró, como se va a imprimir. */
+export type PapelQueEntro = {
+  clave: string;
+  color: string;
+  /** El punto del color (el de Nuevo producto, con su familia si se sabe). */
+  punto: ReactNode;
+  talla: string;
+  precio: number | null;
+  unidades: number;
+  /** Los nombres de sus etiquetas comerciales (Nuevo, Hecho a mano…), para su ícono en el papel; hasta 3. */
+  iconos: readonly string[];
+};
+
+/** La tira: las etiquetas salen de la ranura de la impresora, una tras otra. La misma en Editar producto (ADR-0313) y al ajustar el stock
+ *  en Existencias (ADR-0494): una función, una pieza. */
+export function TiraDeLoQueEntro({ prenda, papeles }: { prenda: string; papeles: readonly PapelQueEntro[] }) {
+  return (
+    <div data-sin-cascada className="relative">
+      <div aria-hidden className="lqe-ranura mx-auto h-[7px] w-[86%] rounded-full bg-tinta/85" />
+      <ul
+        aria-label="Las etiquetas que se van a imprimir"
+        className="scroll-cayla -mt-[3px] grid max-h-[46vh] grid-cols-2 gap-2.5 overflow-y-auto overscroll-contain px-1 pb-1 pt-3 sm:grid-cols-3"
+      >
+        {papeles.map((l, i) => (
+          <li
+            key={l.clave}
+            className="lqe-etiqueta relative flex flex-col rounded-lg border border-sand bg-papel px-3 pb-2.5 pt-3.5"
+            style={{ animationDelay: `${ESPERA_HOJA_MS + Math.min(i, MAX_ESCALONES) * ENTRE_ETIQUETAS_MS}ms` }}
+          >
+            {/* El ojal de la etiqueta colgante. */}
+            <span aria-hidden className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full border border-sand bg-crema" />
+            <span className="absolute right-2 top-2 rounded-full bg-tinta px-1.5 py-0.5 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
+              × {l.unidades}
+            </span>
+            <span className="text-[8.5px] font-semibold uppercase tracking-[0.28em] text-tinta/55">Cayla</span>
+            <span className="mt-1 truncate text-[12px] text-tinta/75" title={prenda}>
+              {prenda}
+            </span>
+            <span className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-tinta">
+              {l.punto}
+              <span className="truncate">{l.color}</span>
+            </span>
+            <span className="mt-2 flex items-end justify-between gap-2">
+              <span className="font-serif text-[26px] leading-none text-tinta">{l.talla}</span>
+              <span className="text-[13px] font-semibold tabular-nums text-tinta">{l.precio !== null ? `S/\u00a0${precioEtiqueta(l.precio)}` : "—"}</span>
+            </span>
+            {l.iconos.length > 0 && (
+              <span className="mt-2 flex items-center gap-1.5 border-t border-dashed border-sand pt-1.5 [&_svg]:h-3.5 [&_svg]:w-3.5">
+                {l.iconos.map((nombre) => (
+                  <span key={nombre} className="inline-flex items-center gap-1 text-[10px] text-tinta/70">
+                    <IconoEtiquetaPapel icono={iconoDeEtiqueta(nombre) ?? "generico"} nombre={nombre} decorativo />
+                    {nombre}
+                  </span>
+                ))}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

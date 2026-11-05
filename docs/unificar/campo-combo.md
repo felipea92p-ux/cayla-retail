@@ -95,3 +95,7 @@ se busca también por él) y dibuja el mismo título en versalitas de la lista d
 «Temporada»). Las dos cajas exentas salen de las excepciones; los escenarios del auditor abren las píldoras.
 
 ![Frescura](capturas/frescura.ronda9.jpg)
+
+**Actualización 2026-10-26 (P2 de la familia CAYLA, ADR-0516).** El borde en reposo de la caja que se enciende (`.caja-cayla`, `.caja-campo-input`) y del botón secundario pasó de `sand` (1.2:1) a `borde-control` (3.8:1 sobre la tarjeta; WCAG 1.4.11),
+que es el mismo valor en CAYLA Dynamic. Hover y encendida suben un escalón (una mezcla de tinta al 65 %); el hilo rojo, el papel y el anillo de foco no cambian. `sand` sigue siendo la línea decorativa. Felipe lo eligió mirando
+`docs/maquetas/familia-borde-control-2026-10/`.

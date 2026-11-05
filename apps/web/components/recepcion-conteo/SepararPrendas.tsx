@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ListChecks, Sparkles, X } from "lucide-react";
+import { ListChecks, Plus, Sparkles, X } from "lucide-react";
+import { avisar } from "@/components/ui/Avisos";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
@@ -16,10 +17,12 @@ import {
   cambiarCantidadPrenda,
   cambiarNuevasSinDescribir,
   describirNuevas,
+  leerContadas,
   nuevasSinDescribir,
   quitarNuevaDescrita,
   quitarPrenda,
   sumarPrenda,
+  textoAnotarNueva,
   textoPrendas,
   totalSeparado,
   type PrendaSeparada,
@@ -29,23 +32,68 @@ import {
 import { BaldosaCategoria } from "./piezas";
 import { DescribirNuevas } from "./DescribirNuevas";
 
-// «¿Qué blusas son?» (ADR-0393, decisiones 1 y 8; la maqueta A): separar lo contado por prenda, si se quiere. Una conocida se busca por su
+// «¿Qué blusas son?» (ADR-0393, decisiones 1 y 8; la maqueta A): decir qué prenda es cada una de las contadas. Una conocida se busca por su
 // nombre (entre las de esa categoría y marca) y se pone cuántas eran; con sus tallas y colores entra al stock al cerrar, sin ellas queda
-// «por detallar». Lo nuevo es solo cuántas («por crear»); si se sabe qué son, «Describir ahora» lo anota. Lo que no se separa queda «sin
-// separar»: nada de esto frena el cierre. La misma pieza sirve en «Hacer ahora», con lo que quedó de una línea ya cerrada.
+// «por detallar». Lo nuevo se anota con un nombre corto («Vestido floral») y cuántas; una nueva ya descrita se puede «Crear ahora» en el
+// catálogo: desde ahí es una prenda conocida y le toca «Tallas y colores ahora» (el mismo camino que «Para después» ofrece con el envío
+// cerrado). Al contar es OBLIGATORIO (Felipe 2026-10-27): toda prenda contada se identifica y las que suman son las contadas, sin eso no se
+// pasa a «Cerrar»; las tallas y los colores sí pueden esperar. La misma pieza sirve en «Hacer ahora», con lo que quedó de una línea ya cerrada.
 
 const BOTON_PASO =
   "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-taupe transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-30";
 
-/** − 3 + : cuántas de una fila (el paso de cantidad del sistema, `<PasoCantidad>`; el número se muestra, no se escribe). */
+/**
+ * − 3 + : cuántas de una fila (el paso de cantidad del sistema, `<PasoCantidad>`). El número también se escribe: se guarda al salir de la
+ * caja o con Enter, no con cada tecla —una prenda con sus tallas las suelta si su número cambia, y «1» camino a «12» no debe soltarlas—;
+ * lo que no vale (vacío, bajo el mínimo) vuelve a lo que había, y Escape deja lo escrito sin guardar.
+ */
 export function PasoDePrendas({ valor, onValor, etiqueta, minimo = 0 }: { valor: number; onValor: (n: number) => void; etiqueta: string; minimo?: number }) {
+  // Mientras se escribe, la caja muestra lo escrito (vacío es «todavía escribiendo», no 0); fuera de ella, siempre el valor.
+  const [escribiendo, setEscribiendo] = useState<string | null>(null);
+  // Escape quita el foco para dejar lo escrito; ese `blur` no debe guardarlo (la función de salir aún ve lo escrito).
+  const dejarlo = useRef(false);
+  const poner = (n: number) => {
+    setEscribiendo(null);
+    onValor(n);
+  };
+  const terminar = () => {
+    const { contadas, problema } = leerContadas(escribiendo ?? "");
+    const guardar = !dejarlo.current && contadas !== null && contadas >= minimo && contadas !== valor;
+    // «1.5» o «-5» no se guarda: el número vuelve a lo que era, y se dice por qué.
+    if (problema && !dejarlo.current) avisar.aviso(`${problema}: se quedó en ${valor}`);
+    dejarlo.current = false;
+    setEscribiendo(null);
+    if (guardar) onValor(contadas);
+  };
   return (
     <PasoCantidad
-      menos={{ onClick: () => onValor(valor - 1), deshabilitado: valor <= minimo, etiqueta: `Una menos de ${etiqueta}` }}
-      mas={{ onClick: () => onValor(valor + 1), etiqueta: `Una más de ${etiqueta}` }}
-    >
-      {valor}
-    </PasoCantidad>
+      menos={{ onClick: () => poner(valor - 1), deshabilitado: valor <= minimo, etiqueta: `Una menos de ${etiqueta}` }}
+      mas={{ onClick: () => poner(valor + 1), etiqueta: `Una más de ${etiqueta}` }}
+      campo={{
+        type: "text",
+        inputMode: "numeric",
+        autoComplete: "off",
+        value: escribiendo ?? String(valor),
+        "aria-label": `Cuántas de ${etiqueta}`,
+        onFocus: (e) => {
+          setEscribiendo(String(valor));
+          e.currentTarget.select();
+        },
+        onChange: (e) => setEscribiendo(leerContadas(e.target.value).texto),
+        onBlur: terminar,
+        onKeyDown: (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          } else if (e.key === "Escape" && escribiendo !== null) {
+            // Escape deshace lo escrito y es de la caja: la hoja de afuera, si la hay, no se cierra con él.
+            e.stopPropagation();
+            dejarlo.current = true;
+            e.currentTarget.blur();
+          }
+        },
+      }}
+    />
   );
 }
 
@@ -65,35 +113,55 @@ export function SepararPrendas({
   /** Hasta cuántas se pueden separar (lo contado menos lo que ya entró al stock; en «Hacer ahora», lo que queda sin separar). */
   tope,
   enHacerAhora = false,
+  idCampo,
   onSeparado,
   onTallas,
   onPrendaVista,
+  onCrearNueva,
 }: {
   categoria: CategoriaDeLinea;
   marca: MarcaDeLinea;
   separado: Separado;
   tope: number;
   enHacerAhora?: boolean;
+  /** El `data-campo` de la guía de foco: «Falta: identificar …» lleva hasta aquí. */
+  idCampo?: string;
   onSeparado: (s: Separado) => void;
   onTallas: (p: PrendaSeparada) => void;
   /** Una prenda elegida en la búsqueda (con sus tallas y colores): la pantalla la guarda para la hoja de tallas. */
   onPrendaVista: (p: PrendaRecepcion) => void;
+  /** «Crear ahora» una nueva ya descrita: la pantalla abre la hoja de la prenda. Sin ella, la nueva solo queda «por crear» (se crea después). */
+  onCrearNueva?: (nueva: { cantidad: number; descripcion: string }) => void;
 }) {
   const [describiendo, setDescribiendo] = useState(false);
   const total = totalSeparado(separado);
   const sinSeparar = Math.max(0, tope - total);
   const nuevas = nuevasSinDescribir(separado);
+  // Al contar (Felipe 2026-10-27) toda prenda contada se identifica: del catálogo, o nueva con su nombre. Las nuevas sin describir NO cuentan
+  // como identificadas. Tallas y colores sí pueden esperar. En «Hacer ahora» (ya cerrado) sigue siendo «lo que queda sin separar».
+  const sinIdentificar = sinSeparar + nuevas;
   const descritas = separado.nuevas.filter((n): n is { cantidad: number; descripcion: string } => !!n.descripcion);
   const nombre = categoria.nombre.toLowerCase();
 
   return (
-    <div data-guia="recepcion.separar" className="space-y-2.5 border-t border-sand pt-4">
+    <div data-guia="recepcion.separar" data-campo={idCampo} className="space-y-2.5 border-t border-sand pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="label-cayla text-[11px] text-tinta/75">
           ¿Qué {nombre} son?{" "}
-          {!enHacerAhora && <span className="font-medium normal-case tracking-normal text-taupe">· opcional: puedes dejarlo para después</span>}
+          {!enHacerAhora && <span className="font-medium normal-case tracking-normal text-taupe">· identifica todas las que contaste</span>}
         </p>
-        {tope > 0 && (sinSeparar > 0 ? <Chip tono="neutro">{sinSeparar} sin separar</Chip> : <Chip tono="verde">Todas separadas</Chip>)}
+        {tope > 0 &&
+          (enHacerAhora ? (
+            sinSeparar > 0 ? (
+              <Chip tono="neutro">{sinSeparar} sin separar</Chip>
+            ) : (
+              <Chip tono="verde">Todas separadas</Chip>
+            )
+          ) : sinIdentificar > 0 ? (
+            <Chip tono="ambar">{sinIdentificar === 1 ? "Falta 1 por identificar" : `Faltan ${sinIdentificar} por identificar`}</Chip>
+          ) : (
+            <Chip tono="verde">Todas identificadas</Chip>
+          ))}
       </div>
 
       <BuscarPrendaEnLinea
@@ -106,13 +174,13 @@ export function SepararPrendas({
         onEsNueva={(texto) => onSeparado(describirNuevas(cambiarNuevasSinDescribir(separado, nuevas + 1), texto, 1))}
       />
 
-      <ul className="space-y-1.5">
+      <ul className="rc-filas-sep space-y-1.5">
         {separado.prendas.map((p) => (
           <li key={p.productoId} className="rc-fila-sep">
             <BaldosaCategoria categoria={categoria} tamano="chico" />
             <span className="min-w-0">
               <b className="block truncate text-[14.5px] text-tinta">{p.nombre ?? "Prenda"}</b>
-              <small className="block text-[12.5px] text-taupe">
+              <small className="block text-sm text-taupe">
                 {[
                   marca.nombre,
                   p.variantes
@@ -139,11 +207,13 @@ export function SepararPrendas({
                       Tallas y colores ahora
                     </span>
                   </Boton>
-                  {!enHacerAhora && <span className="text-[12.5px] text-taupe">o queda pendiente</span>}
+                  {!enHacerAhora && <span className="text-sm text-taupe">o queda pendiente</span>}
                 </>
               )}
-              <PasoDePrendas valor={p.cantidad} etiqueta={p.nombre ?? "esta prenda"} minimo={1} onValor={(n) => onSeparado(cambiarCantidadPrenda(separado, p.productoId, n))} />
-              <Quitar etiqueta={p.nombre ?? "esta prenda"} onQuitar={() => onSeparado(quitarPrenda(separado, p.productoId))} />
+              <span className="inline-flex items-center gap-2">
+                <PasoDePrendas valor={p.cantidad} etiqueta={p.nombre ?? "esta prenda"} minimo={1} onValor={(n) => onSeparado(cambiarCantidadPrenda(separado, p.productoId, n))} />
+                <Quitar etiqueta={p.nombre ?? "esta prenda"} onQuitar={() => onSeparado(quitarPrenda(separado, p.productoId))} />
+              </span>
             </span>
           </li>
         ))}
@@ -155,12 +225,22 @@ export function SepararPrendas({
             </span>
             <span className="min-w-0">
               <b className="block truncate text-[14.5px] text-tinta">{n.descripcion}</b>
-              <small className="block text-[12.5px] text-taupe">Nueva · se crea después, con su nombre, tallas y precio</small>
+              <small className="block text-sm text-taupe">Nueva · se crea después, con su nombre, tallas y precio</small>
             </span>
             <span className="rc-fila-fin">
+              {onCrearNueva && (
+                <Boton type="button" peso="discreto" onClick={() => onCrearNueva(n)}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Plus aria-hidden className="h-4 w-4" />
+                    Crear ahora
+                  </span>
+                </Boton>
+              )}
               <Chip tono="pizarra">Por crear</Chip>
-              <PasoDePrendas valor={n.cantidad} etiqueta={n.descripcion} minimo={1} onValor={(c) => onSeparado(cambiarCantidadNuevaDescrita(separado, n.descripcion, c))} />
-              <Quitar etiqueta={n.descripcion} onQuitar={() => onSeparado(quitarNuevaDescrita(separado, n.descripcion))} />
+              <span className="inline-flex items-center gap-2">
+                <PasoDePrendas valor={n.cantidad} etiqueta={n.descripcion} minimo={1} onValor={(c) => onSeparado(cambiarCantidadNuevaDescrita(separado, n.descripcion, c))} />
+                <Quitar etiqueta={n.descripcion} onQuitar={() => onSeparado(quitarNuevaDescrita(separado, n.descripcion))} />
+              </span>
             </span>
           </li>
         ))}
@@ -171,26 +251,28 @@ export function SepararPrendas({
           </span>
           <span className="min-w-0">
             <b className="block text-[14.5px] text-tinta">Nuevas, no están en el catálogo</b>
-            <small className="block text-[12.5px] text-taupe">Solo cuántas; describirlas (nombre, color, tallas) puede quedar para después</small>
+            <small className="block text-sm text-taupe">
+              {enHacerAhora ? "Solo cuántas; describirlas (nombre, color, tallas) puede quedar para después" : "Pon cuántas y descríbelas con un nombre corto; el color y las tallas pueden quedar para después"}
+            </small>
           </span>
           <span className="rc-fila-fin">
             {nuevas > 0 && !enHacerAhora && (
               <BotonEditar onClick={() => setDescribiendo(true)}>Describir ahora</BotonEditar>
             )}
-            {nuevas > 0 ? <Chip tono="pizarra">Por crear</Chip> : <Chip tono="neutro">Ninguna</Chip>}
+            {nuevas > 0 ? <Chip tono={enHacerAhora ? "pizarra" : "ambar"}>{enHacerAhora ? "Por crear" : "Falta describirlas"}</Chip> : <Chip tono="neutro">Ninguna</Chip>}
             <PasoDePrendas valor={nuevas} etiqueta="nuevas" onValor={(n) => onSeparado(cambiarNuevasSinDescribir(separado, n))} />
           </span>
         </li>
       </ul>
 
-      {!enHacerAhora && sinSeparar > 0 && total > 0 && (
-        <p className="text-xs text-taupe">Las {textoPrendas(sinSeparar)} que no separes quedan como pendiente del envío: no frenan el cierre.</p>
+      {!enHacerAhora && sinIdentificar > 0 && (
+        <p className="text-sm text-taupe">Hasta que identifiques {sinIdentificar === 1 ? "la que falta" : `las ${sinIdentificar} que faltan`} no se puede pasar a «Cerrar». Las tallas y los colores pueden esperar.</p>
       )}
       {total > tope &&
         (enHacerAhora ? (
-          <p className="text-xs text-ambar">Solo quedan {textoPrendas(tope)} sin separar: si llegaron más, reabre el conteo.</p>
+          <p className="text-sm text-ambar">Solo quedan {textoPrendas(tope)} sin separar: si llegaron más, reabre el conteo.</p>
         ) : (
-          <p className="text-xs text-ambar">Separaste más de las que contaste: al guardar, lo contado sube a {total}.</p>
+          <p className="text-sm text-ambar">Separaste más de las que contaste: al guardar, lo contado sube a {total}.</p>
         ))}
 
       {describiendo && (
@@ -209,14 +291,17 @@ export function SepararPrendas({
  * El buscador de la maqueta: siempre a la vista; mientras se escribe, sugiere las prendas de esa categoría y marca (hasta 6) y, al final,
  * «No está: anotarla como nueva». Elegir una la suma a lo separado y vacía la búsqueda.
  */
-function BuscarPrendaEnLinea({
+export function BuscarPrendaEnLinea({
   categoria,
   marca,
+  corto = false,
   onElegir,
   onEsNueva,
 }: {
   categoria: CategoriaDeLinea;
   marca: MarcaDeLinea;
+  /** Al lado del Dial la columna es angosta: el ejemplo va sin la frase larga, o se cortaría a media palabra. */
+  corto?: boolean;
   onElegir: (p: PrendaRecepcion) => void;
   onEsNueva: (texto: string) => void;
 }) {
@@ -257,12 +342,12 @@ function BuscarPrendaEnLinea({
           if (!v.trim()) setPrendas(null);
         }}
         buscando={buscando}
-        placeholder={`Busca una prenda conocida por su nombre (Ej. ${sugerirNombre(categoria).texto})`}
+        placeholder={corto ? `Busca otra (Ej. ${sugerirNombre(categoria).texto})` : `Busca una prenda conocida por su nombre (Ej. ${sugerirNombre(categoria).texto})`}
         etiqueta={`Buscar entre ${categoria.nombre} · ${marca.nombre}`}
       />
       {texto && !buscando && prendas !== null && (
         <ul data-resultados className="space-y-0.5 rounded-2xl border border-sand bg-papel p-1.5 shadow-[0_8px_24px_color-mix(in_srgb,var(--color-sombra)_12%,transparent)]">
-          {fallo && <li className="px-2 py-1.5 text-[13px] text-ambar">No se pudo buscar: vuelve a escribir en un momento.</li>}
+          {fallo && <li className="px-2 py-1.5 text-sm text-ambar">No se pudo buscar: vuelve a escribir en un momento.</li>}
           {prendas.slice(0, 6).map((p) => (
             <li key={p.productoId}>
               <button
@@ -276,7 +361,7 @@ function BuscarPrendaEnLinea({
                 <MiniaturaPrenda fotoUrl={p.fotoUrl} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />
                 <span className="min-w-0 flex-1">
                   <b className="text-sm text-tinta">{p.nombre}</b>
-                  <small className="ml-1.5 text-xs text-taupe">{[p.codigo, `${new Set(p.variantes.map((v) => v.talla ?? "Única")).size} tallas`].filter(Boolean).join(" · ")}</small>
+                  <small className="ml-1.5 text-sm text-taupe">{[p.codigo, `${new Set(p.variantes.map((v) => v.talla ?? "Única")).size} tallas`].filter(Boolean).join(" · ")}</small>
                 </span>
                 <span className="label-cayla text-[10px] text-taupe">Elegir</span>
               </button>
@@ -292,7 +377,7 @@ function BuscarPrendaEnLinea({
               }}
             >
               <Sparkles aria-hidden className="h-4 w-4 text-pizarra" />
-              {prendas.length === 0 ? "No está en el catálogo:" : "No es ninguna de estas:"} anotar «{texto}» como nueva
+              {textoAnotarNueva(texto, { halladas: prendas.length, fallo })}
             </button>
           </li>
         </ul>

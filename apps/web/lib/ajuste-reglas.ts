@@ -13,6 +13,7 @@
 // `as unknown as` le tapaba el error a `tsc`: el select seguía pidiendo una columna que
 // ya no estaba y solo lo supo la base, en vivo.
 
+import { limpiarCantidad, textoCantidadRechazada } from "./alta-producto";
 import { compararTallas } from "./tallas";
 import { diaLima, diaMes } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
@@ -25,7 +26,10 @@ export type FilaAjuste = {
   /** El código de la etiqueta: es el que casi todas las variantes tienen (el `sku` es NULL, ADR-0058). */
   codigo?: string | null;
   talla: { valor: string } | null;
-  color: { nombre: string | null } | null;
+  /** El #hex lo usa la planilla de Existencias (el círculo de un color que la tienda nunca tuvo); el modal y la ficha, no. */
+  color: { nombre: string | null; hex?: string | null } | null;
+  /** `false`: ya no se vende (se desactivó). La planilla de Existencias la muestra solo si todavía tiene algo en la sede. */
+  activo?: boolean;
   /** `cantidad_apartada` es opcional solo para las pruebas: el modal siempre la pide. */
   stock: { cantidad: number; cantidad_apartada?: number; sububicacion_id: string | null }[] | null;
 };
@@ -160,6 +164,20 @@ export function modoDeAjuste(motivo: MotivoAjuste | ""): ModoAjuste {
   return motivo === "conteo_fisico" ? "contado" : "diferencia";
 }
 
+/** Lo escrito en una talla como entero, con su signo, o `null` si no lo es. Se lee por su forma: `Number` tomaría «1e1» por 10 y «0x10» por 16. */
+function enteroEscrito(texto: string): number | null {
+  const t = texto.trim();
+  return /^[+-]?\d+$/.test(t) ? Number(t) : null;
+}
+
+/** Lo que se dice de lo escrito en una talla que no es un entero («2,5», «1.5», «a4»): nadie lo cuenta como ajuste, y sin esto esa talla se iría sin
+ *  ajustar y sin avisar. Vacío no se dice, y un «-» solo es el comienzo de una resta. `null`: está bien. */
+export function textoEscritoInvalido(texto: string): string | null {
+  const t = texto.trim();
+  if (t === "" || t === "-" || enteroEscrito(t) !== null) return null;
+  return textoCantidadRechazada(t, false, "");
+}
+
 /** Las tallas con un ajuste, en el orden del modal. Lo vacío y lo que no es entero no son un ajuste, y tampoco lo que no
  *  cambia nada (sumar 0, o contar lo mismo que dice el sistema): no viajan a la base. Al contar, vacío es «no la conté»,
  *  no «conté 0». */
@@ -172,8 +190,8 @@ export function lineasDeAjuste(
   return variantes.flatMap((v) => {
     const texto = (cantidades[v.varianteId] ?? "").trim();
     if (texto === "") return [];
-    const n = Number(texto);
-    if (!Number.isInteger(n)) return [];
+    const n = enteroEscrito(texto);
+    if (n === null) return [];
     const actual = stockEn(v, lugar);
     const delta = modo === "contado" ? n - actual : n;
     if (delta === 0) return [];
@@ -253,20 +271,18 @@ export function minimoDeAjuste(v: VarianteAjuste, lugar: LugarAjuste, modo: Modo
  *  restar, vacío es 0 y volver a 0 deja la talla sin ajuste (vacía). Al contar, vacío es «no la conté»: el primer toque parte de lo
  *  que dice el sistema, no de cero. */
 export function textoTrasPaso(texto: string, paso: 1 | -1, modo: ModoAjuste, actual: number, minimo: number): string | null {
-  const t = texto.trim();
-  const escrito = t !== "" && Number.isInteger(Number(t)) ? Number(t) : null;
-  const siguiente = (escrito ?? (modo === "contado" ? actual : 0)) + paso;
+  const siguiente = (enteroEscrito(texto) ?? (modo === "contado" ? actual : 0)) + paso;
   if (siguiente < minimo) return null;
   if (modo === "diferencia" && siguiente === 0) return "";
   return String(siguiente);
 }
 
-/** Lo que se acepta al teclear en la cajita de una talla: al contar solo dígitos; al sumar o restar, un «−» al comienzo y dígitos. */
-export function limpiarTextoAjuste(crudo: string, modo: ModoAjuste): string {
-  const normal = crudo.replace(/[−–]/g, "-");
-  const digitos = normal.replace(/\D/g, "");
-  if (modo === "contado") return digitos;
-  return normal.trimStart().startsWith("-") ? `-${digitos}` : digitos;
+/** Lo que queda en la cajita de una talla al teclear o pegar: el menos de un teclado en español se vuelve «-», un «+» adelante no dice nada y los miles se juntan. Todo lo demás se
+ *  queda como se escribió, para que se vea y `textoEscritoInvalido` lo diga: borrar la coma de «2,5» ajustaba 25 prendas. Un «-4» al contar también se queda, y `textoProblemaTalla`
+ *  dice que lo contado no puede ser negativo: antes se volvía 4. */
+export function limpiarTextoAjuste(crudo: string): string {
+  const t = crudo.trim().replace(/[−–]/g, "-").replace(/^\+/, "");
+  return t.startsWith("-") ? `-${limpiarCantidad(t.slice(1))}` : limpiarCantidad(t);
 }
 
 /** La primera línea de una talla: cuánto hay en el lugar que se ajusta («2 en el almacén», «Nada en el piso»). Si el modal muestra
@@ -295,7 +311,7 @@ export function detalleDeTalla(o: {
 }): string {
   const { variante, linea, texto, modo, lugar } = o;
   const escrito = texto.trim();
-  const coincide = !linea && modo === "contado" && escrito !== "" && Number.isInteger(Number(escrito)) && Number(escrito) === stockEn(variante, lugar);
+  const coincide = !linea && modo === "contado" && enteroEscrito(escrito) === stockEn(variante, lugar);
   const partes = [
     textoQuedara(linea, modo),
     coincide ? "Coincide con el sistema" : "",
@@ -421,7 +437,7 @@ export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen:
 export type ArgumentosDeAjuste = {
   p_ubicacion_id: string;
   p_sububicacion_id: string | null;
-  p_ajustes: { variante_id: string; cantidad: number }[];
+  p_ajustes: { variante_id: string; cantidad: number; conteo_item_id?: string; esperado?: number }[];
   p_motivo: string | null;
   p_cargas: { variante_id: string; cantidad: number }[];
   p_al_piso: boolean;
@@ -429,7 +445,14 @@ export type ArgumentosDeAjuste = {
   p_token: string;
 };
 
-type LineaParaEnviar = { variante: Pick<VarianteAjuste, "varianteId">; delta: number; /** La línea de conteo donde esta prenda faltó y con la que este ajuste se enlaza (solo una suma). */ conteoItemId?: string | null };
+type LineaParaEnviar = {
+  variante: Pick<VarianteAjuste, "varianteId">;
+  delta: number;
+  /** La línea de conteo donde esta prenda faltó y con la que este ajuste se enlaza (solo una suma). */
+  conteoItemId?: string | null;
+  /** Lo que había en ese lugar cuando se contó (ADR-0494): con él, la base rechaza si otra venta o movimiento lo cambió. */
+  esperado?: number;
+};
 
 /** Arma la llamada con las dos listas del modal (`repartirLineasAjuste`). El motivo solo viaja si hay ajustes (las prendas
  *  nuevas entran como stock inicial y no lo llevan) y la nota vacía viaja como null: así el reintento con lo mismo da la
@@ -444,9 +467,15 @@ export function argumentosDeAjuste(o: {
   nota: string;
   token: string;
 }): ArgumentosDeAjuste {
-  // `conteo_item_id` solo viaja cuando hay enlace: sin él el envío es idéntico al de siempre (misma huella del reintento).
+  // `conteo_item_id` solo viaja cuando hay enlace y `esperado` solo con un conteo (ADR-0494): sin ellos el envío es idéntico al de
+  // siempre (misma huella del reintento).
   const aItems = (ls: readonly LineaParaEnviar[]) =>
-    ls.map((l) => ({ variante_id: l.variante.varianteId, cantidad: l.delta, ...(l.conteoItemId ? { conteo_item_id: l.conteoItemId } : {}) }));
+    ls.map((l) => ({
+      variante_id: l.variante.varianteId,
+      cantidad: l.delta,
+      ...(l.conteoItemId ? { conteo_item_id: l.conteoItemId } : {}),
+      ...(l.esperado !== undefined ? { esperado: l.esperado } : {}),
+    }));
   return {
     p_ubicacion_id: o.ubicacionId,
     p_sububicacion_id: o.sububicacionId,

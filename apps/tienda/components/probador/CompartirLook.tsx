@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ARCHIVO_DE_LA_HISTORIA, hrefTuLook, textoAlCompartir } from "@/lib/compartir-look";
+import { ARCHIVO_DE_LA_HISTORIA, enlaceParaCompartir, hrefTuLook, textoAlCompartir } from "@/lib/compartir-look";
 import { HojaNativa } from "../instalar/HojaNativa";
 
 type Imagen = { estado: "cargando" } | { estado: "lista"; archivo: File; url: string } | { estado: "sin_imagen" };
@@ -28,7 +28,7 @@ export function CompartirLook({ id, codigo }: { id: string; codigo: string }) {
 function HojaDeCompartir({ id, codigo, alCerrar }: { id: string; codigo: string; alCerrar: () => void }) {
   const [imagen, setImagen] = useState<Imagen>({ estado: "cargando" });
   const [copiado, setCopiado] = useState<"si" | "no" | null>(null);
-  const enlace = typeof window === "undefined" ? hrefTuLook(codigo) : `${window.location.origin}${hrefTuLook(codigo)}`;
+  const enlace = typeof window === "undefined" ? hrefTuLook(codigo) : enlaceParaCompartir(window.location.origin, codigo);
 
   useEffect(() => {
     let vivo = true;

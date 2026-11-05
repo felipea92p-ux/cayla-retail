@@ -98,6 +98,22 @@ if (!ARCHIVAR_LIDER || ARCHIVAR_LIDER[1] !== ARCHIVAR_1G) {
   process.exit(2);
 }
 const ARCHIVAR_HOY = ARCHIVAR_LIDER[2];
+// 20261019220000 (ADR-0459, puntos: «a los 3 años sin compras se eliminan los datos Y los puntos») reescribió la conservación y parchó
+// (anclado) la rutina para que se lleve los puntos. No trae tabla de md5: lo de hoy es el cuerpo que ese archivo escribe (la conservación,
+// comparada en la base con la misma normalización) y el parche que hay que deshacer para volver a pegar la PARTE 1 sobre su versión.
+const PUNTOS_CONSERVACION = readFileSync("supabase/migrations/20261019220000_club_puntos_conservacion.sql", "utf8");
+const CONSERVACION_HOY = (() => {
+  const ini = PUNTOS_CONSERVACION.indexOf("create or replace function retail.fn_club_anonimizar_inactivas()");
+  const desde = PUNTOS_CONSERVACION.indexOf("as $$\n", ini);
+  const hasta = PUNTOS_CONSERVACION.indexOf("\n$$;", desde);
+  return ini < 0 || desde < 0 || hasta < 0 ? null : PUNTOS_CONSERVACION.slice(desde + "as $$\n".length, hasta);
+})();
+const PARCHE_PUNTOS = /select pg_temp\.reemplazar\(\s*'retail\.fn_clienta_anonimizar\(uuid, uuid, boolean, text\)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/.exec(PUNTOS_CONSERVACION);
+if (!CONSERVACION_HOY || !PARCHE_PUNTOS || CONSERVACION_HOY.includes("$cuerpo$")) {
+  console.error("✗ No encontré en 20261019220000 el cuerpo de fn_club_anonimizar_inactivas o el reemplazo anclado de fn_clienta_anonimizar.");
+  process.exit(2);
+}
+const [, PUNTOS_VIEJO, PUNTOS_NUEVO] = PARCHE_PUNTOS;
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function correr(sql) {
@@ -225,10 +241,13 @@ escenario(
   "1\nt\nf",
 );
 escenario(
-  "archivar_clienta y la conservación no se tocaron aquí (su md5 es el de la regla del líder, 20261015155000, y el de 20261015055000) y la llaman con tres argumentos",
-  `select string_agg(${MD5_NORM("p.prosrc")}, '|' order by p.proname) from pg_proc p
-    where p.oid in ('retail.archivar_clienta(uuid,text,boolean,integer)'::regprocedure, 'retail.fn_club_anonimizar_inactivas()'::regprocedure);`,
-  `${ARCHIVAR_HOY}|${CONSERVACION_WEB}`,
+  "archivar_clienta y la conservación no se tocaron aquí (archivar_clienta es la de la regla del líder, 20261015155000; la conservación, la de los puntos, 20261019220000, que parte de la de 20261015055000) y la llaman con tres argumentos",
+  `select ${MD5_NORM("p.prosrc")} from pg_proc p where p.oid = 'retail.archivar_clienta(uuid,text,boolean,integer)'::regprocedure;
+   select ${MD5_NORM("p.prosrc")} = ${MD5_NORM("$cuerpo$" + CONSERVACION_HOY + "$cuerpo$")}
+     from pg_proc p where p.oid = 'retail.fn_club_anonimizar_inactivas()'::regprocedure;
+   select bool_and(pg_get_functiondef(f::regprocedure) ~ 'fn_clienta_anonimizar\\([^,()]+,[^,()]+,[^,()]+\\)')
+     from unnest(array['retail.archivar_clienta(uuid,text,boolean,integer)', 'retail.fn_club_anonimizar_inactivas()']) f;`,
+  `${ARCHIVAR_HOY}\nt\nt`,
 );
 
 seccion("— PARTE 1 · B. Anonimizar espera un pedido web pagado —");
@@ -852,6 +871,12 @@ function main() {
   const DESHACER_POSTERIORES = `do $d$ declare v text := pg_get_functiondef('retail.tienda_eliminar_mi_cuenta(uuid)'::regprocedure); begin
   if position('20261015230000' in v) > 0 then
     execute regexp_replace(v, '  -- 20261015230000:.*?\\n  end if;\\n', '');
+  end if;
+end $d$;
+-- 20261019220000 (ADR-0459) parchó la rutina para que se lleve los puntos: se deshace igual, con el texto exacto de su reemplazo anclado.
+do $d$ declare v text := pg_get_functiondef('${ANONIMIZAR}'::regprocedure); begin
+  if position($v$${PUNTOS_NUEVO}$v$ in v) > 0 then
+    execute replace(v, $v$${PUNTOS_NUEVO}$v$, $v$${PUNTOS_VIEJO}$v$);
   end if;
 end $d$;\n`;
   const dosVeces = correr(`begin;\n${DESHACER_POSTERIORES}${parte1}\n${parte2}\n${parte1}\n${parte2}\nset local search_path = retail, public, extensions;

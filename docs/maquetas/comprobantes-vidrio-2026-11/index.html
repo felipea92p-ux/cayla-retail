@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-kpi="lente" data-doc="gotas">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comprobantes con vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la página de Ventas ▸ Comprobantes con el vidrio (ADR-0596, tablero docs/vidrio/README.md, sección 3)
+   La pantalla real (app/(app)/vender/comprobantes → FacturacionShell, FacturacionCabecera, ComprobantesTarjetas, ComprobantesPanel; ADR-0124):
+   la cabecera con su línea viva y, en pruebas, la insignia del sandbox; el aviso de la cola de SUNAT; las pestañas Hoy · Series · Por enviar ·
+   Proformas con la búsqueda; «Hoy / Este mes»; las cuatro tarjetas de indicador (TarjetaKpiVidrio: el canto de 3 px del estado, el tinte que se
+   difumina y la luz que sigue al mouse, con su gráfico: tipo, hora, puntos) y la lista «Todos los comprobantes» con su fecha, el número, el
+   cliente, el total, el estado y lo que se puede hacer; en cada número, sus documentos (Ver PDF, WhatsApp, XML, CDR) y su vínculo con la nota.
+   Esta isla tenía su propio vidrio desde ADR-0124 (`.tema-vidrio`): con el vidrio de todo el ERP, se va.
+   Armada SOLO con lo ya elegido: cabecera A con sus gotas, el aviso B · Lente del tono, pestañas A con su globito, buscador A · Pozo, filtros A ·
+   Gotas, tabla B · Placa Serena, insignia A, menú «Más» en gota, barra apilada y barras por tiempo con los gráficos B · Tinta sobre vidrio, la
+   isla de pestañas del celular y botones gota.
+   Lo PROPIO, con sus caras:
+     1. Las tarjetas de indicador (la luz que sigue al mouse se queda: es su movimiento).
+     2. Los documentos de SUNAT de cada comprobante y su vínculo con la nota.
+   SOLO EL MATERIAL: nada de SUNAT ni de Lucode cambia (qué se envía, cuándo, los estados, anular, liberar).
+   Solo tokens. Sin movimiento nuevo; todo se apaga con prefers-reduced-motion. Datos inventados.
+   ==================================================================== */
+
+/* ---------- lo ya elegido ---------- */
+.placa{position:relative;border-radius:22px;border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .placa{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+.chip{--c:var(--verde);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--c);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--c) 18%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 85%,transparent),inset 0 0 0 1px color-mix(in srgb,var(--c) 26%,transparent)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{--c:var(--ambar)}.chip.pizarra{--c:var(--pizarra)}.chip.tinta{--c:var(--tinta)}
+[data-tema="oscuro"] .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 12%,transparent));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 34%,transparent)}
+.pest{display:inline-flex;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pest{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pest a{flex:none;display:flex;align-items:center;height:38px;padding:0 16px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);text-decoration:none}
+.pest a[aria-current]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio),0 6px 14px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"] .pest a[aria-current]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.pozo-b{flex:1;min-width:180px;max-width:24rem;display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:999px;font-size:14px;color:var(--t65);border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"] .pozo-b{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.pozo-b svg{width:16px;height:16px}.pozo-b span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .fp{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.fp[aria-pressed="true"]{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+.fp svg{width:14px;height:14px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.modo button{height:32px;padding:0 12px;border-radius:9px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.modo button[aria-pressed="true"]{color:var(--tinta);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .modo button[aria-pressed="true"]{background:color-mix(in srgb,var(--tinta) 18%,transparent)}
+.gota-i{width:40px;height:40px;padding:0;border-radius:50%}
+.tc-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.cif{padding:16px 18px}.cif .vs{font-size:10.5px}.cif b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.cif small{font-size:12.5px;color:var(--t65)}
+.cif.filtra{cursor:pointer}.cif.puesta{box-shadow:inset 0 1.5px 4px color-mix(in srgb,var(--sombra) 16%,transparent);background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.mini-ap{display:flex;gap:2px;height:6px;margin-top:10px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.mini-ap i{display:block;height:100%}
+
+
+.pc-g-neutro{background:color-mix(in srgb,var(--tinta) 22%,transparent)}.pc-g-alza{background:var(--verde)}.pc-g-baja{background:var(--ambar)}.pc-g-tinta{background:var(--tinta)}.pc-g-taupe{background:var(--taupe)}
+.viva{display:inline-flex;align-items:center;gap:6px}.viva::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--verde)}
+.cp-nav{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
+.pest .glb{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:8px;padding:0 6px;border-radius:999px;font-size:11px;letter-spacing:0;color:var(--t65);background:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.pest .glb.pide{color:var(--tinta);background:color-mix(in srgb,var(--ambar) 30%,transparent)}
+.lente-aviso{--c:var(--rojo);display:flex;gap:12px;align-items:flex-start;margin-top:18px;padding:14px 16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--c) 28%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 6%,color-mix(in srgb,var(--vidrio) 80%,transparent)),color-mix(in srgb,var(--c) 12%,color-mix(in srgb,var(--vidrio) 60%,transparent)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent)}
+[data-tema="oscuro"] .lente-aviso{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,transparent),color-mix(in srgb,var(--c) 8%,transparent))}
+.lente-aviso svg{flex:none;width:20px;height:20px;color:var(--c)}.lente-aviso b{display:block;font-size:14.5px}.lente-aviso p{font-size:13px;color:var(--t65);margin-top:2px}.lente-aviso a{margin-left:auto;flex:none;font-size:13px;font-weight:600;color:var(--tinta)}
+.periodo{display:flex;gap:8px;margin-top:18px}
+
+/* ============ 1 · LAS TARJETAS DE INDICADOR ============ */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+.kpi{--kc:var(--taupe);position:relative;overflow:hidden;padding:18px 18px 16px;border-radius:16px;transition:transform .26s var(--ease)}
+.kpi[data-tono="verde"]{--kc:var(--verde)}.kpi[data-tono="ambar"]{--kc:var(--ambar)}.kpi[data-tono="rojo"]{--kc:var(--rojo)}
+.kpi>*{position:relative;z-index:1}
+.kpi::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s;z-index:0;background:radial-gradient(240px 170px at var(--mx,50%) var(--my,30%),color-mix(in srgb,var(--vidrio) 70%,transparent),transparent 68%)}
+@media (hover:hover){.kpi:hover{transform:translateY(-2px)}.kpi:hover::after{opacity:1}}
+.kpi .k-cab{display:flex;align-items:center;justify-content:space-between;gap:8px}.kpi .vs{font-size:10.5px}
+.kpi .k-ic{display:inline-flex;color:var(--kc)}.kpi .k-ic svg{width:18px;height:18px}
+.kpi .k-v{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi[data-tono="ambar"] .k-v{color:var(--ambar)}.kpi[data-tono="rojo"] .k-v{color:var(--rojo-p)}[data-tema="oscuro"] .kpi[data-tono="rojo"] .k-v{color:var(--rojo)}
+.kpi small{display:block;font-size:12.5px;color:var(--t65);margin-top:2px}
+.k-ap{display:flex;gap:2px;height:8px;margin-top:12px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--tinta) 7%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 16%,transparent)}
+.k-ap i{display:block;height:100%}
+.k-ley{display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:6px;font-size:11px;color:var(--t65)}.k-ley span{display:inline-flex;align-items:center;gap:4px}.k-ley i{display:inline-block;width:7px;height:7px;border-radius:2px}.k-ley b{color:var(--tinta);font-weight:600}
+.k-tramos{display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:12px}.k-tramos span{flex:1;display:flex;flex-direction:column-reverse;gap:1px}.k-tramos i{display:block;border-radius:2px 2px 0 0}
+.k-tramos span i:first-child{border-radius:0}
+.k-eje{display:flex;justify-content:space-between;gap:6px;margin-top:4px;font-size:10.5px;color:var(--t65)}
+.k-pts{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px}.k-pts i{width:9px;height:9px;border-radius:50%}.k-pts i:not([class]){background:color-mix(in srgb,var(--tinta) 10%,transparent)}
+/* Como ahora: el vidrio de ADR-0124 (papel con su borde arena, el canto de 3 px del estado y su tinte que se difumina). */
+[data-kpi="ahora"] .kpi{border:1px solid var(--sand);border-left:3px solid var(--kc);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 72%,transparent),color-mix(in srgb,var(--papel) 42%,transparent));-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2)}
+[data-kpi="ahora"] .kpi::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(90deg,color-mix(in srgb,var(--kc) 14%,transparent),transparent 62%)}
+/* A · Lente del tono: la placa Serena; la que tiene un estado que decir (ámbar, rojo, verde) se tiñe apenas de él con su filo, como las lentes
+   que ya elegiste; la luz sigue al mouse. Sin canto. */
+:is([data-kpi="lente"],[data-kpi="canto"]) .kpi{border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 64%,transparent),color-mix(in srgb,var(--vidrio) 44%,transparent));-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 24px 50px -30px color-mix(in srgb,var(--sombra) 40%,transparent)}
+[data-tema="oscuro"]:is([data-kpi="lente"],[data-kpi="canto"]) .kpi{background:color-mix(in srgb,var(--vidrio) 70%,transparent);border-color:color-mix(in srgb,var(--tinta) 10%,transparent)}
+[data-kpi="lente"] .kpi:not([data-tono="taupe"]){border-color:color-mix(in srgb,var(--kc) 30%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--kc) 6%,color-mix(in srgb,var(--vidrio) 72%,transparent)),color-mix(in srgb,var(--kc) 12%,color-mix(in srgb,var(--vidrio) 50%,transparent)))}
+[data-tema="oscuro"][data-kpi="lente"] .kpi:not([data-tono="taupe"]){background:linear-gradient(180deg,color-mix(in srgb,var(--kc) 14%,transparent),color-mix(in srgb,var(--kc) 8%,transparent))}
+[data-kpi="lente"] .kpi .k-ic{width:32px;height:32px;margin:-6px -6px 0 0;border-radius:50%;justify-content:center;align-items:center;background:color-mix(in srgb,var(--kc) 14%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 60%,transparent)}
+/* B · Placa con su canto: la placa Serena para todas; el estado vive en una gota fina al canto izquierdo, como el canto de hoy pero de vidrio. */
+[data-kpi="canto"] .kpi{padding-left:24px}
+[data-kpi="canto"] .kpi::before{content:"";position:absolute;left:8px;top:16px;bottom:16px;width:4px;border-radius:4px;background:linear-gradient(180deg,color-mix(in srgb,var(--kc) 65%,var(--vidrio)),var(--kc))}
+
+/* ---------- la lista ---------- */
+.lista-c{margin-top:18px;overflow:visible}
+.lc-cab{padding:18px 20px 14px}.lc-cab .vs{font-size:11px}.lc-cab h2{font-family:'EB Garamond',serif;font-weight:400;font-size:21px;margin-top:2px}.lc-cab p{font-size:12px;color:var(--t65);margin-top:2px}
+.lc-filtros{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.lc-col,.lc-f{display:grid;grid-template-columns:5rem minmax(13rem,1.4fr) minmax(8rem,1fr) 7rem minmax(15rem,1.3fr);gap:8px 16px;align-items:center;padding:0 20px}
+.lc-col{min-height:40px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 10%,transparent)}
+.lc-col span:nth-child(4){text-align:right}
+.lc-f{padding-top:12px;padding-bottom:12px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);transition:background-color .15s var(--ease)}
+@media (hover:hover){.lc-f:hover{background:color-mix(in srgb,var(--tinta) 2.5%,transparent)}}
+.lc-dia b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:18px;line-height:1.1}.lc-dia small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--t65)}
+.lc-n{min-width:0}.lc-n p{font-size:15px}.lc-n p span{color:var(--t65)}.lc-n p b{font-weight:600;white-space:nowrap}
+.lc-cli{font-size:13px;color:var(--t80);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lc-n .lc-cli2{display:none;font-size:13px;color:var(--t65)}
+.lc-tot{font-family:'EB Garamond',serif;font-size:18px;text-align:right;font-variant-numeric:tabular-nums}
+.lc-est{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px}.lc-est .mot{flex-basis:100%;font-size:13px;color:var(--t65)}.lc-est .mot.rech{color:var(--rojo-p)}[data-tema="oscuro"] .lc-est .mot.rech{color:var(--rojo)}
+.lc-acc{display:flex;gap:6px;align-items:center}.lc-acc .btn{height:32px;padding:0 12px;font-size:12.5px}
+.puntos{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--t80)}.puntos svg{width:16px;height:16px}
+@media (hover:hover){.puntos:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}}
+.chip.punteado{background:none;box-shadow:none;border:1px dashed color-mix(in srgb,var(--tinta) 30%,transparent)}
+.lc-tot-pie{display:flex;flex-wrap:wrap;gap:4px 20px;padding:12px 20px;border-top:1px solid color-mix(in srgb,var(--tinta) 8%,transparent);font-size:13px;color:var(--t65)}.lc-tot-pie b{color:var(--tinta);font-weight:600}
+
+/* ============ 2 · LOS DOCUMENTOS DE SUNAT Y EL VÍNCULO ============ */
+.docs{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:4px;font-size:12.5px}
+.docs a{color:var(--tinta);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px}
+.docs a.fuerte{font-weight:600}
+.vinc{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:2px 7px;border-radius:6px;font-size:11.5px;color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 8%,transparent)}.vinc svg{width:12px;height:12px}
+/* A · Gotas chicas: «Ver PDF» y «WhatsApp», que son para el cliente, en gotas claras de 26 px; XML y CDR, el respaldo técnico, quedan como enlaces
+   tenues detrás de un punto; el vínculo con la nota, una lente pizarra. */
+[data-doc="gotas"] .docs{gap:6px}
+[data-doc="gotas"] .docs a.g{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"][data-doc="gotas"] .docs a.g{background:color-mix(in srgb,var(--tinta) 9%,transparent);border-color:color-mix(in srgb,var(--tinta) 28%,transparent);box-shadow:none}
+[data-doc="gotas"] .docs a.g svg{width:13px;height:13px}
+[data-doc="gotas"] .docs a.t{font-size:11.5px;color:var(--t65);text-decoration-color:color-mix(in srgb,var(--tinta) 20%,transparent)}
+[data-doc="gotas"] .docs .sep{color:var(--t50)}
+:is([data-doc="gotas"],[data-doc="ranura"]) .vinc{border-radius:999px;padding:2px 9px;border:1px solid color-mix(in srgb,var(--pizarra) 28%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--pizarra) 6%,color-mix(in srgb,var(--vidrio) 75%,transparent)),color-mix(in srgb,var(--pizarra) 13%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 80%,transparent)}
+[data-tema="oscuro"]:is([data-doc="gotas"],[data-doc="ranura"]) .vinc{background:color-mix(in srgb,var(--pizarra) 16%,transparent);box-shadow:none}
+/* B · Ranura: los cuatro documentos juntos, en una ranura fina con sus separadores, como un segmento que no elige nada. */
+[data-doc="ranura"] .docs{display:inline-flex;gap:0;padding:2px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1px 2px color-mix(in srgb,var(--sombra) 14%,transparent)}
+[data-tema="oscuro"][data-doc="ranura"] .docs{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+[data-doc="ranura"] .docs a{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:999px;text-decoration:none;font-size:12px}
+[data-doc="ranura"] .docs a+a{box-shadow:inset 1px 0 0 color-mix(in srgb,var(--tinta) 10%,transparent)}[data-doc="ranura"] .docs a svg{width:12px;height:12px}
+@media (hover:hover){[data-doc="ranura"] .docs a:hover{background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 96%,transparent),color-mix(in srgb,var(--vidrio) 70%,transparent))}}
+[data-doc="ranura"] .docs .sep{display:none}
+[data-doc="ahora"] .docs .sep{display:none}[data-doc="ahora"] .docs svg{display:none}
+
+/* ---------- la isla de pestañas del celular ---------- */
+.isla-p{display:none}
+@container disp (max-width:1023px){.cp-nav .pest{display:none}.isla-p{position:sticky;bottom:12px;z-index:5;display:flex;justify-content:space-between;margin-top:16px;padding:5px;border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--vidrio) 60%,transparent);background:color-mix(in srgb,var(--vidrio) 76%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 1px 0 var(--vidrio),0 18px 40px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
+  [data-tema="oscuro"] .isla-p{background:color-mix(in srgb,var(--vidrio) 90%,transparent);border-color:color-mix(in srgb,var(--tinta) 12%,transparent)}
+  .isla-p a{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;height:44px;border-radius:999px;font-size:12px;font-weight:600;color:var(--t65);text-decoration:none;white-space:nowrap}
+  .isla-p a[aria-current]{color:var(--crema);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),color-mix(in srgb,var(--tinta) 97%,transparent))}
+  .isla-p .glb{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;font-size:10.5px;background:color-mix(in srgb,var(--ambar) 30%,transparent);color:var(--tinta)}}
+@container disp (max-width:1180px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.lc-col{display:none}.lc-f{grid-template-columns:5rem minmax(0,1fr) auto}.lc-f>.lc-cli{display:none}.lc-n .lc-cli2{display:block}.lc-est{grid-column:2/-1}}
+@container disp (max-width:640px){.lc-f{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px}.lc-dia{grid-column:1/-1;display:flex;align-items:baseline;gap:8px}.lc-est{grid-column:1/-1}.lc-cab{padding:16px 14px 12px}.kpi .k-v{font-size:28px}.kpis{gap:10px}.kpi{padding:14px}[data-kpi="canto"] .kpi{padding-left:20px}.docs{display:none!important}.lc-tot-pie{padding:12px 14px}}
+@media (prefers-reduced-motion:reduce){.kpi,.kpi::after{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="titulo">Ventas ▸ Comprobantes, con vidrio: la página entera con las piezas elegidas (solo el material: nada de SUNAT cambia)</span>
+  <span class="tag">Tarjetas de indicador</span><div class="seg-m" data-ctl="kpi"><button data-v="ahora">Como ahora</button><button data-v="lente">A · Lente del tono</button><button data-v="canto">B · Placa con su canto</button></div>
+  <span class="tag">Documentos de SUNAT</span><div class="seg-m" data-ctl="doc"><button data-v="ahora">Como ahora</button><button data-v="gotas">A · Gotas chicas</button><button data-v="ranura">B · Ranura</button></div>
+  <span class="tag">Tema</span><div class="seg-m" data-ctl="tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ancho</span><div class="seg-m" data-ctl="ancho"><button data-v="m320">320</button><button data-v="movil">375</button><button data-v="tablet">Tableta 768</button><button data-v="w1024">1024</button><button data-v="w1280">1280</button><button data-v="w1440">1440</button><button data-v="w1920">1920</button><button data-v="escritorio">Tu ventana</button></div>
+</div>
+
+<div class="escena"><div class="disp" id="disp" data-ancho="escritorio">
+  <div class="lienzo" aria-hidden="true"><i></i><i></i><i></i></div>
+  <aside class="lat" id="lat" aria-label="Menú principal"></aside>
+  <button class="plegar-flota" id="plegar-flota" data-acc="plegar" aria-controls="lat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <header class="cab" id="cab"></header>
+  <main class="cont" id="cont"></main>
+  <div class="flotante" id="flotante"></div>
+</div></div>
+
+<div class="analisis">
+  <section>
+    <h2>Lo que hay hoy</h2>
+    <ul>
+      <li><b>La pantalla</b> (<code>FacturacionShell</code>, ADR-0124): la cabecera con su línea viva y, en pruebas, la insignia ámbar del sandbox; el aviso si algo lleva más de una hora sin llegar a SUNAT; las pestañas (abajo en el celular) con la búsqueda; «Hoy / Este mes»; cuatro tarjetas de indicador y la lista «Todos los comprobantes».</li>
+      <li><b>Las tarjetas de indicador</b> (<code>TarjetaKpiVidrio</code>): ya eran de vidrio desde ADR-0124 —una isla propia de esta pantalla—: papel translúcido con borde arena, un <b>canto de 3 px</b> del color del estado, un tinte que se difumina hacia la derecha y una <b>luz que sigue al mouse</b>; cada una con su gráfico (por tipo, por hora, puntos).</li>
+      <li><b>Los documentos de SUNAT</b>: bajo cada número, «Ver PDF», «WhatsApp», «XML» y «CDR» como <b>enlaces subrayados</b>; si hay nota de crédito, un rectángulo pizarra «Tiene NC01-…».</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Las caras: lo que gana y lo que cuesta</h2>
+    <table>
+      <tr><th>Pieza</th><th>Cara</th><th>Lo que gana</th><th>Lo que cuesta</th></tr>
+      <tr><td rowspan="2"><b>Tarjetas de indicador</b></td><td>A · Lente del tono <span class="ev">Recomendada</span></td><td>La placa Serena; la que tiene algo que decir (pendientes en ámbar, rechazados en rojo) se tiñe apenas de su estado, como las lentes que ya elegiste; el ícono en su gota. La isla de ADR-0124 deja de ser una isla. La luz que sigue al mouse se queda.</td><td>Se pierde el canto, que se leía de lejos.</td></tr>
+      <tr><td>B · Placa con su canto</td><td>Conserva el canto de hoy, ahora como una gota fina dentro de la placa.</td><td>Una forma más de decir un estado que solo vive aquí.</td></tr>
+      <tr><td rowspan="2"><b>Documentos de SUNAT</b></td><td>A · Gotas chicas <span class="ev">Recomendada</span></td><td>«Ver PDF» y «WhatsApp», lo que se le manda al cliente, se ven tocables; XML y CDR quedan como respaldo, tenues; el vínculo con la nota, una lente pizarra.</td><td>Dos gotas por fila suman peso a una lista larga.</td></tr>
+      <tr><td>B · Ranura</td><td>Los cuatro juntos en una ranura fina: ordenado, ocupa poco.</td><td>Los cuatro pesan igual: el PDF, que es lo que importa, no se destaca.</td></tr>
+    </table>
+    <h3>Lo que no cambia</h3>
+    <p>Nada de SUNAT ni de Lucode: qué se envía y cuándo, los estados y sus colores, el motivo de un rechazo, anular, liberar, reenviar, la cola y su aviso. Tampoco cambian la línea viva, la insignia del sandbox, lo que dice cada tarjeta y su gráfico, las columnas de la lista, el «⋯» de cada fila (en el celular los documentos viven ahí) ni los totales del pie.</p>
+  </section>
+</div>
+
+<script src="../vidrio-base-2026-10/marco.js"></script>
+<!-- Ojo: marco.js deja sus nombres en el ámbito global (SEDES, estado, pintar, boton, encabezado, activa…); esta maqueta vive en su propia función. -->
+<script>
+(() => {
+  const D = { lupa: 'M11 3a8 8 0 1 0 0 16a8 8 0 1 0 0-16z M21 21l-4.3-4.3', abajo: 'M6 9l6 6 6-6', alerta: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+    recibo: 'M4 2v20l3-2 3 2 3-2 3 2 3-2 2 2V2l-2 2-3-2-3 2-3-2-3 2z M8 8h8M8 12h8M8 16h5', soles: 'M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', reloj: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M12 6v6l4 2',
+    x: 'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z M15 9l-6 6M9 9l6 6', puntos: 'M5 12h.01M12 12h.01M19 12h.01', link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7 M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
+    pdf: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6', wa: 'M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.5A8.4 8.4 0 1 1 21 11.5z' };
+  const s = (d) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const TR = [[0, 0], [120, 0], [340, 59.9], [210, 0], [0, 0], [480, 0], [620, 89.9], [390, 0], [260, 49.9], [0, 0], [180, 0], [0, 0]];
+  const mx = Math.max(...TR.map(([a, b]) => a + b));
+  const kpis = `<div class="kpis">
+    <div class="kpi" data-tono="taupe"><div class="k-cab"><span class="vs">Emitidos hoy</span><span class="k-ic">${s(D.recibo)}</span></div><span class="k-v">23</span><small>18 boletas · 5 facturas</small>
+      <div class="k-ap"><i class="pc-g-tinta" style="flex:18"></i><i class="pc-g-taupe" style="flex:5"></i></div><div class="k-ley"><span><i class="pc-g-tinta"></i>Boletas <b>18</b></span><span><i class="pc-g-taupe"></i>Facturas <b>5</b></span></div></div>
+    <div class="kpi" data-tono="taupe"><div class="k-cab"><span class="vs">Facturado hoy</span><span class="k-ic">${s(D.soles)}</span></div><span class="k-v">S/ 2,819</span><small>aceptado por SUNAT</small>
+      <div class="k-tramos">${TR.map(([a, b]) => `<span><i class="pc-g-tinta" style="height:${(a / mx) * 32}px"></i><i class="pc-g-neutro" style="height:${(b / mx) * 32}px"></i></span>`).join('')}</div><div class="k-eje"><span>9 h</span><span>20 h</span></div></div>
+    <div class="kpi" data-tono="ambar"><div class="k-cab"><span class="vs">Pendientes de enviar</span><span class="k-ic">${s(D.reloj)}</span></div><span class="k-v">2</span><small>de cualquier mes · se reintentan solos</small>
+      <div class="k-pts">${Array.from({ length: 23 }, (_, i) => `<i${i < 21 ? ' class="pc-g-alza"' : ' class="pc-g-baja"'}></i>`).join('')}</div></div>
+    <div class="kpi" data-tono="rojo"><div class="k-cab"><span class="vs">Rechazados</span><span class="k-ic">${s(D.x)}</span></div><span class="k-v">1</span><small>revisa el motivo y corrígelo</small>
+      <div class="k-ap"><i class="pc-g-alza" style="flex:21"></i><i class="pc-g-baja" style="flex:2"></i><i class="pc-g-neutro" style="flex:1"></i></div><div class="k-ley"><span><i class="pc-g-alza"></i>Aceptados <b>21</b></span><span><i class="pc-g-baja"></i>Por enviar <b>2</b></span></div></div></div>`;
+  // [hora, tipo, serie, numero, cliente, total, chip, motivo, botones, docs, vínculo]
+  const F = [['18:42', 'Boleta', 'B001', 234, 'Rosa Quispe', 189.9, ['verde', 'Aceptado'], '', [['sec', 'Ver venta']], 1, ''], ['18:05', 'Factura', 'F001', 58, 'Inversiones Moche SAC', 742.5, ['verde', 'Aceptado'], '', [['sec', 'Ver venta']], 1, 'Tiene NC01-000012'],
+    ['17:31', 'Boleta', 'B001', 233, 'Cliente varios', 59.9, ['ambar', 'Por enviar'], 'Se reintenta solo cada 10 minutos.', [['sec', 'Enviar ahora']], 0, ''], ['16:48', 'Boleta', 'B001', 232, 'Carmen Ríos', 129.9, ['rojo', 'Rechazado'], 'El DNI del cliente no tiene 8 dígitos.', [['sec', 'Corregir']], 0, ''],
+    ['15:12', 'Nota de crédito', 'NC01', 12, 'Inversiones Moche SAC', -89.9, ['verde', 'Aceptado'], '', [['sec', 'Ver venta']], 1, 'Corrige F001-000058'], ['12:20', 'Boleta', 'B001', 231, 'Lucía Paredes', 249.8, ['verde', 'Aceptado'], '', [['sec', 'Ver venta']], 1, '']];
+  const fila = ([h, t, se, n, cli, tot, [ct, cx], mot, bt, docs, vin]) => `<div class="lc-f"><div class="lc-dia"><b>31 oct</b><small>${h}</small></div>
+    <div class="lc-n"><p><span>${t}</span> <b>${se}-${String(n).padStart(6, '0')}</b></p><p class="lc-cli2">${cli}</p>${vin ? `<span class="vinc">${s(D.link)}${vin}</span>` : ''}
+      ${docs ? `<div class="docs"><a href="#" class="g fuerte">${s(D.pdf)}Ver PDF</a><a href="#" class="g">${s(D.wa)}WhatsApp</a><span class="sep">·</span><a href="#" class="t">XML</a><a href="#" class="t">CDR</a></div>` : ''}</div>
+    <span class="lc-cli">${cli}</span><span class="lc-tot">${tot < 0 ? '− ' : ''}S/ ${Math.abs(tot).toFixed(2)}</span>
+    <div class="lc-est"><span class="chip ${ct === 'rojo' ? '' : ct}"${ct === 'rojo' ? ' style="--c:var(--rojo)"' : ''}>${cx}</span><div class="lc-acc">${bt.map(boton).join('')}<button class="puntos" aria-label="Más de ${t} ${se}-${n}">${s(D.puntos)}</button></div>${mot ? `<p class="mot${ct === 'rojo' ? ' rech' : ''}">${mot}</p>` : ''}</div></div>`;
+  function pantalla() {
+    $('#cont').innerHTML = `${encabezado({ sede: 'Trujillo', fecha: '<span class="viva">al día · hace 1 minuto</span>', titulo: 'Comprobantes', frase: 'Tus boletas y facturas: búscalas, reenvíalas al cliente o empieza un cambio. Cada venta se declara sola a SUNAT al cobrar.', pie: '<span class="chip ambar">Pruebas: se envía al sandbox, no a SUNAT</span>' })}
+      <div class="lente-aviso">${s(D.alerta)}<div><b>1 comprobante lleva más de 1 hora sin llegar a SUNAT.</b><p>El reintento automático no alcanzó: revisa el error.</p></div><a href="#">Ver Por enviar</a></div>
+      <div class="cp-nav"><nav class="pest" aria-label="Vistas de Comprobantes"><a href="#" aria-current="page">Hoy</a><a href="#">Series</a><a href="#">Por enviar<span class="glb pide">2</span></a><a href="#">Proformas<span class="glb">3</span></a></nav>
+        <div class="pozo-b">${s(D.lupa)}<span>Busca por número, cliente o DNI</span></div></div>
+      <div class="periodo"><button class="fp" aria-pressed="true">Hoy</button><button class="fp">Este mes</button></div>
+      ${kpis}
+      <section class="placa lista-c"><div class="lc-cab"><p class="vs">Hoy · 31 de octubre</p><h2>Todos los comprobantes</h2><p>Los de hoy, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
+        <div class="lc-filtros"><button class="fp">Tienda ${s(D.abajo)}</button><button class="fp">Tipo ${s(D.abajo)}</button><button class="fp">Estado ${s(D.abajo)}</button></div></div>
+        <div class="lc-col"><span>Fecha</span><span>Comprobante</span><span>Cliente</span><span>Total</span><span>Estado</span></div>
+        ${F.map(fila).join('')}<p class="lc-tot-pie"><span>Boletas: <b>4</b> · S/ 629.50</span><span>Facturas: <b>1</b> · S/ 742.50</span><span>Notas de crédito: <b>1</b> · − S/ 89.90</span><span>Sin anulados ni liberados.</span></p></section>
+      <nav class="isla-p" aria-label="Vistas de Comprobantes"><a href="#" aria-current="page">Hoy</a><a href="#">Series</a><a href="#">Por enviar<span class="glb">2</span></a><a href="#">Proformas</a></nav>`;
+    $$('#cont .kpi').forEach((k) => k.addEventListener('pointermove', (e) => { const r = k.getBoundingClientRect(); k.style.setProperty('--mx', e.clientX - r.left + 'px'); k.style.setProperty('--my', e.clientY - r.top + 'px'); }));
+  }
+  Marco.iniciar({ estado: { kpi: 'lente', doc: 'gotas' }, alPintar: () => { $('#cont').scrollTop = 0; pantalla(); } });
+})();
+</script>
+</body>
+</html>

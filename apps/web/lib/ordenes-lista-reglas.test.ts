@@ -12,10 +12,13 @@ import {
   filaDeLaLista,
   filtrarFilas,
   leerListaDeOrdenes,
+  leerOrdenCreada,
   ordenarFilas,
   pestanaDe,
+  pestanaDeOrdenNueva,
   pieDeLaLista,
   textoEntrega,
+  urlSinParametrosDeNueva,
   type FilaDeLista,
 } from "./ordenes-lista-reglas";
 import { leerOrdenPagina } from "./orden-pagina-reglas";
@@ -162,7 +165,7 @@ describe("órdenes abiertas antes de las fases", () => {
     expect(conEtapasDeAntes(muestra, { patronaje: "hecho" })).toMatchObject({ grupo: null, chip: { texto: "En muestra y aprobación" } });
     expect(conEtapasDeAntes(muestra, {})).toMatchObject({ chip: { texto: "En patronaje" } });
     const [corte] = cifrasHoyEnElTaller([conEtapasDeAntes(muestra, {})]);
-    expect(corte.lotes).toBe(0);
+    expect(corte.ordenes).toBe(0);
   });
   it("una fila con fases no se toca, aunque le pasen etapas", () => {
     const f = fila();
@@ -204,28 +207,67 @@ describe("Hoy en el Taller", () => {
     fila({ orden: { id: "c", numero: 5, numero_texto: "OP-000005", cantidad_plan: 36, es_muestra: true }, fases: [hecha("corte", 10, 36), hecha("costura", 30, 36), hecha("acabado", 60, 36)] }),
     fila({ orden: { id: "d", numero: 6, numero_texto: "OP-000006", estado: "terminada", cantidad_buenas: 45 } }),
   ];
-  it("siempre Corte, Costura y Acabado, en ese orden, con su nombre de tienda; Bordado y Lavandería solo si alguna orden está ahí", () => {
+  it("siempre Corte y Costura, y las demás fases con su nombre de tienda en el orden de la ruta solo si alguna orden está ahí (Acabado, Bordado, Lavandería, Ploteo…)", () => {
     expect(cifrasHoyEnElTaller(filas).map((c) => c.titulo)).toEqual(["Por cortar", "En costura", "En acabado"]);
     const conBordado = [...filas, fila({ orden: { id: "e", numero: 7, numero_texto: "OP-000007" }, fases: [hecha("corte", 10), fase("bordado", 20, { actual: true, entrada: 48 }), fase("costura", 30), fase("acabado", 60)] })];
     expect(cifrasHoyEnElTaller(conBordado).map((c) => c.clave)).toEqual(["corte", "bordado", "costura", "acabado"]);
-    expect(cifrasHoyEnElTaller([]).map((c) => c.clave)).toEqual(["corte", "costura", "acabado"]);
+    expect(cifrasHoyEnElTaller([]).map((c) => c.clave)).toEqual(["corte", "costura"]);
     const conLavanderia = [...filas, fila({ orden: { id: "f", numero: 8, numero_texto: "OP-000008" }, fases: [hecha("corte", 10), hecha("costura", 30), fase("lavanderia", 50, { actual: true, entrada: 48 }), fase("acabado", 60)] })];
     expect(cifrasHoyEnElTaller(conLavanderia).find((c) => c.clave === "lavanderia")?.titulo).toBe("En lavandería");
   });
-  it("cuenta lotes y prendas de las abiertas (muestras incluidas, terminadas no) y dice lo que importa de cada fase", () => {
+  it("cuenta órdenes y prendas de las abiertas (muestras incluidas, terminadas no) y dice lo que importa de cada fase", () => {
     const [corte, costura, acabado] = cifrasHoyEnElTaller(filas);
-    expect(corte).toMatchObject({ lotes: 2, prendas: 90, contexto: "90 prendas · 1 sin tela", atencion: true });
-    expect(costura).toMatchObject({ lotes: 1, prendas: 48, contexto: "48 prendas · 48 afuera con Confecciones del Norte" });
-    expect(acabado).toMatchObject({ lotes: 1, prendas: 36, contexto: "36 prendas · 1 lista para el stock" });
+    expect(corte).toMatchObject({ ordenes: 2, unidad: "lotes", prendas: 90, contexto: "90 prendas · 1 sin tela", atencion: true });
+    expect(costura).toMatchObject({ ordenes: 1, unidad: "lote", prendas: 48, contexto: "48 prendas · 48 afuera con Confecciones del Norte" });
+    expect(acabado).toMatchObject({ ordenes: 1, unidad: "muestra", prendas: 36, contexto: "36 prendas · 1 lista para el stock" });
+  });
+  it("no llama «lotes» a una muestra: «lotes» si todas son lotes, «muestras» si todas lo son, «órdenes» con «N muestra» en el detalle si hay de las dos", () => {
+    const enCorte = (id: string, numero: number, esMuestra: boolean, cantidad = 10) =>
+      fila({ orden: { id, numero, numero_texto: `OP-0000${numero}`, cantidad_plan: cantidad, es_muestra: esMuestra }, fases: [fase("corte", 10, { actual: true, entrada: cantidad }), fase("costura", 30), fase("acabado", 60)] });
+    const corteDe = (...f: FilaDeLista[]) => cifrasHoyEnElTaller(f).find((c) => c.clave === "corte")!;
+    expect(corteDe(enCorte("a", 11, false), enCorte("b", 12, true, 8))).toMatchObject({ ordenes: 2, unidad: "órdenes", contexto: "18 prendas · 1 muestra" });
+    expect(corteDe(enCorte("a", 11, false), enCorte("b", 12, true), enCorte("c", 13, true))).toMatchObject({ ordenes: 3, unidad: "órdenes", contexto: "30 prendas · 2 muestras" });
+    expect(corteDe(enCorte("a", 11, true), enCorte("b", 12, true))).toMatchObject({ ordenes: 2, unidad: "muestras", contexto: "20 prendas" });
+    expect(corteDe(enCorte("a", 11, false), enCorte("b", 12, false))).toMatchObject({ ordenes: 2, unidad: "lotes", contexto: "20 prendas" });
+    expect(corteDe(enCorte("a", 11, true))).toMatchObject({ ordenes: 1, unidad: "muestra" });
+    expect(corteDe()).toMatchObject({ ordenes: 0, unidad: "lotes", contexto: "ninguna ahora" });
+  });
+  it("con la ruta nueva: «Por plotear» aparece cuando hay un lote ahí, en el orden de la ruta, y no hay tarjeta de Acabado si nadie está en Acabado", () => {
+    const NUEVA = (extra: Crudo[]) => [...extra, fase("limpieza_revision", 55), fase("planchado", 65), fase("etiquetado_embolsado", 70)];
+    const enPloteo = fila({ orden: { id: "p1", numero: 9, numero_texto: "OP-000009", cantidad_plan: 50 }, fases: NUEVA([fase("ploteo", 5, { hito: true, actual: true }), fase("corte", 10), fase("habilitado", 15), fase("costura", 30)]) });
+    const enHabilitado = fila({ orden: { id: "p2", numero: 10, numero_texto: "OP-000010", cantidad_plan: 20 }, fases: NUEVA([fase("ploteo", 5, { hito: true, estado: "hecha", empezada: true, marcada: true }), hecha("corte", 10, 20), fase("habilitado", 15, { actual: true, entrada: 20 }), fase("costura", 30)]) });
+    const cifras = cifrasHoyEnElTaller([enPloteo, enHabilitado]);
+    expect(cifras.map((c) => c.clave)).toEqual(["ploteo", "corte", "habilitado", "costura"]);
+    expect(cifras.map((c) => c.titulo)).toEqual(["Por plotear", "Por cortar", "En habilitado", "En costura"]);
+    expect(cifras[0]).toMatchObject({ ordenes: 1, unidad: "lote", prendas: 50, contexto: "50 prendas" });
+    expect(cifras[2]).toMatchObject({ ordenes: 1, prendas: 20 });
   });
   it("una fase sin órdenes lo dice y no pide atención", () => {
     const [corte] = cifrasHoyEnElTaller([fila()]);
-    expect(corte).toMatchObject({ lotes: 0, prendas: 0, contexto: "ninguna ahora", atencion: false });
+    expect(corte).toMatchObject({ ordenes: 0, prendas: 0, contexto: "ninguna ahora", atencion: false });
   });
   it("el dato de la cabecera: cuántas abiertas y cuántas piden algo", () => {
     expect(datoHoyEnElTaller(filas)).toBe("4 órdenes abiertas · 1 pide algo");
     expect(datoHoyEnElTaller([fila()])).toBe("1 orden abierta · ninguna pide algo");
     expect(datoHoyEnElTaller([])).toBe("ninguna orden abierta");
+  });
+});
+
+describe("una fase que se marca (Ploteo) en la fila de la lista", () => {
+  const ploteo = (extra: Crudo = {}) => fase("ploteo", 5, { hito: true, actual: true, desde: null, ...extra });
+  const NUEVA = (primera: Crudo) => [primera, fase("corte", 10, { entrada: 48 }), fase("habilitado", 15), fase("costura", 30), fase("limpieza_revision", 55), fase("planchado", 65), fase("etiquetado_embolsado", 70)];
+
+  it("dice quién la tiene y que falta hacerla, sin «0 de 0» ni «por mandar»; no hay prendas afuera", () => {
+    const taller = fila({ fases: NUEVA(ploteo()) });
+    expect(taller).toMatchObject({ quien: "Taller · por hacer", chip: { texto: "En ploteo" }, grupo: "ploteo", afuera: 0 });
+    const afuera = fila({ fases: NUEVA(ploteo({ quien: "servicio", proveedor_nombre: "Plotter Lima", fijo_orden: 40 })) });
+    expect(afuera).toMatchObject({ quien: "Plotter Lima · por hacer", chip: { texto: "En ploteo · afuera" }, grupo: "ploteo", afuera: 0 });
+  });
+  it("marcado, la orden sigue por su fase de siempre; un ploteo sin marcar no impide «lista para el stock»", () => {
+    const marcado = fila({ fases: NUEVA(ploteo({ estado: "hecha", actual: false, empezada: true, marcada: true })).map((f) => (f.clave === "corte" ? { ...f, actual: true, estado: "en_curso", empezada: true, hechas: 10 } : f)) });
+    expect(marcado).toMatchObject({ grupo: "corte", chip: { texto: "En corte" } });
+    const todas = fila({ fases: [ploteo({ actual: false }), ...["corte", "habilitado", "costura", "limpieza_revision", "planchado", "etiquetado_embolsado"].map((c, i) => hecha(c, [10, 15, 30, 55, 65, 70][i]))] });
+    expect(todas).toMatchObject({ lista: true, grupo: "etiquetado_embolsado", quien: "Taller · todas las fases listas", chip: { texto: "Lista para pasar al stock" } });
   });
 });
 
@@ -311,5 +353,38 @@ describe("paridad con la migración 20261015005000", () => {
   it("las en proceso vienen todas y solo las históricas se acotan; las muestras no cuentan como «al stock»", () => {
     expect(SQL).toContain("x.estado = 'en_proceso' or x.posicion <=");
     expect(SQL).toContain("not p.es_muestra");
+  });
+});
+
+describe("la orden que se acaba de abrir (ADR-0509, actividad 1)", () => {
+  it("lee (id, numero) tal como lo entrega supabase-js: una lista de una fila", () => {
+    expect(leerOrdenCreada([{ id: "ord-1", numero: 12 }])).toEqual({ id: "ord-1", numero: 12, numeroTexto: "OP-000012", href: "/produccion/ordenes/OP-000012" });
+  });
+  it("acepta la fila sola y el número como texto (un integer de Postgres puede llegar así)", () => {
+    expect(leerOrdenCreada({ id: "ord-2", numero: "7" })?.numeroTexto).toBe("OP-000007");
+  });
+  it("su dirección es la misma que lleva la fila de la lista", () => {
+    const f = fila({ orden: { id: "o-12", numero: 12, numero_texto: "OP-000012" } });
+    expect(leerOrdenCreada([{ id: f.id, numero: f.numero }])?.href).toBe(f.href);
+  });
+  it("sin id o sin un número entero positivo no inventa nada", () => {
+    for (const malo of [null, undefined, [], {}, [{ id: "", numero: 3 }], [{ id: "x" }], [{ id: "x", numero: 0 }], [{ id: "x", numero: -2 }], [{ id: "x", numero: 1.5 }], [{ id: "x", numero: "doce" }], [{ id: 5, numero: 3 }], "OP-000012"]) {
+      expect(leerOrdenCreada(malo), JSON.stringify(malo)).toBeNull();
+    }
+  });
+  it("una orden nueva siempre está en proceso: va a «Muestras» si es muestra y a «En curso» si no, igual que `pestanaDe`", () => {
+    const base = fila();
+    expect(base.estado).toBe("en_proceso");
+    expect(pestanaDeOrdenNueva(false)).toBe(pestanaDe({ ...base, esMuestra: false }));
+    expect(pestanaDeOrdenNueva(true)).toBe(pestanaDe({ ...base, esMuestra: true }));
+  });
+  it("urlSinParametrosDeNueva quita nueva, sugerida y tipo, y deja lo demás", () => {
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?nueva=auto&sugerida=1&tipo=muestra")).toBe("/produccion/ordenes");
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?nueva=abc-123&orden=xyz")).toBe("/produccion/ordenes?orden=xyz");
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?nueva=&otro=1#lista")).toBe("/produccion/ordenes?otro=1#lista");
+  });
+  it("una dirección sin esos parámetros vuelve igual", () => {
+    expect(urlSinParametrosDeNueva("/produccion/ordenes")).toBe("/produccion/ordenes");
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?orden=xyz")).toBe("/produccion/ordenes?orden=xyz");
   });
 });

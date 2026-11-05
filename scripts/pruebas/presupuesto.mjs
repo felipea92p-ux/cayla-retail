@@ -344,9 +344,10 @@ ${cambiaA(MICAELA)}
 select 'X1 sin «Reportes financieros» no ve el presupuesto', (select pg_temp.intento('select * from retail.fn_presupuesto_vs_real(''2032-03-01'', null, ''2032-03-10'')') like '%Reportes financieros%');
 ${conModulo("reportes_financieros")}
 create temp table m as select * from retail.fn_presupuesto_vs_real('2032-03-01', null, '2032-03-10');
-select 'X2 con el módulo ve SU tienda y nada más (ni la empresa, ni el Taller, ni CAYLA)', (select count(*) > 0 and bool_and(ubicacion_id = :'tru') from m);
-select 'X2 y ve los mismos números que el líder (servicios 818.47, se pasa)', (select proyeccion = 818.47 and estado = 'se_pasa' from m where linea = '636');
-select 'X3 pedir otra tienda falla', (select pg_temp.intento(format('select * from retail.fn_presupuesto_vs_real(%L, %L, %L)', '2032-03-01', :'lim', '2032-03-10')) like '%No puedes ver%');
+-- ADR-0585 (Felipe 2026-10-30): con el módulo se ve CAYLA entera, como el líder (antes: solo su tienda). Escribir sigue sin abrirse (X4).
+select 'X2 con el módulo ve CAYLA entera: también la empresa y CAYLA', (select bool_or(unidad = 'empresa') and bool_or(unidad = 'consolidado') from m);
+select 'X2 y ve los mismos números que el líder (servicios 818.47, se pasa)', (select proyeccion = 818.47 and estado = 'se_pasa' from m where linea = '636' and ubicacion_id = :'tru');
+select 'X3 puede pedir otra tienda', (select pg_temp.intento(format('select * from retail.fn_presupuesto_vs_real(%L, %L, %L)', '2032-03-01', :'lim', '2032-03-10')) = 'SIN_ERROR');
 select 'X4 no escribe una casilla (sin el módulo Configuración; la base lo vuelve a pedir)', (select pg_temp.intento(format('select retail.guardar_presupuesto(%L, %L, %L, 1)', '2032-03-01', :'tru', '656')) like '%necesita el módulo «Configuración»%');
 select 'X4 no aplica una propuesta', (select pg_temp.intento('select retail.guardar_presupuesto_lote(''2032-03-01'', ''[{"cuenta":"656","monto":1}]'', ''mes_anterior'')') like '%necesita el módulo «Configuración»%');
 select 'X4 no propone ni lee la configuración', (select pg_temp.intento('select * from retail.fn_presupuesto_propuesta(''2032-03-01'', ''mes_anterior'')') like '%necesita el módulo «Configuración»%')

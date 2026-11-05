@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CifrasPedidosWeb } from "./pedidos-web-reglas";
-import type { ModeloVitrina } from "./vitrina-reglas";
-import { encendidosSinPrecio, fraseVentana, lecturasCaidas, pendientesDe, teselasDe, type EntradaResumen } from "./tienda-web-resumen";
+import { filtrarVitrina, type ModeloVitrina } from "./vitrina-reglas";
+import { encendidosSinPrecio, fraseSinPedidos, fraseVentana, lecturasCaidas, pendientesDe, sinPedidosAbiertos, teselasDe, vacioDePendientes, type EntradaResumen } from "./tienda-web-resumen";
 
 const HORA = 3_600_000;
 const PLAZOS = { horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7 };
@@ -37,7 +37,10 @@ describe("Tienda web ▸ Resumen: lo que pide la tienda online hoy", () => {
     const urgente = pendientesDe(conPedidos({ porConfirmar: 2, proximoVenceEnMs: 2 * HORA }));
     expect(urgente[0]).toMatchObject({ clave: "confirmar", tono: "urgente", cifra: 2, href: "/tienda-web/pedidos?pestana=confirmar" });
     expect(urgente[0]!.titulo).toBe("pedidos esperan que los confirmes");
-    expect(urgente[0]!.detalle).toContain("2 h");
+    // El reloj vive una sola vez, en el camino de abajo («El primero se cierra en 2 h»): la fila no lo repite, urgente o no.
+    expect(urgente[0]!.detalle).not.toMatch(/\d+\s*(h|horas?|min)\b/);
+    expect(urgente[0]!.accion).toBe("Revisar y confirmar");
+    expect(pendientesDe(conPedidos({ porConfirmar: 1, proximoVenceEnMs: null }))[0]!.detalle).toBe(urgente[0]!.detalle);
     const conTiempo = pendientesDe(conPedidos({ porConfirmar: 1, proximoVenceEnMs: 20 * HORA }));
     expect(conTiempo[0]).toMatchObject({ tono: "atencion", titulo: "pedido espera que lo confirmes" });
   });
@@ -100,6 +103,63 @@ const modelo = (id: string, extra: Partial<ModeloVitrina> = {}): ModeloVitrina =
   stock: [],
   vitrina: { publicado: true, enLoNuevo: "automatico", descripcionWeb: null, version: 1, actualizadoEn: null, actualizadoPor: null },
   ...extra,
+});
+
+describe("«Todo al día» solo cuando se pudo leer todo (principio 9: se degrada, no engaña)", () => {
+  it("con todo leído y nada pendiente, es «Todo al día» y cuenta como calma", () => {
+    expect(vacioDePendientes(NADA)).toMatchObject({ completo: true, titulo: "Todo al día" });
+  });
+
+  it("una lectura caída no se disfraza de calma: dice qué no se leyó", () => {
+    for (const [campo, nombre] of [["pedidos", "los pedidos"], ["vitrina", "la vitrina"], ["recomendaciones", "las recomendaciones"], ["ajustes", "los ajustes de cada tienda"]] as const) {
+      const e = { ...NADA, [campo]: { estado: "fallo" } } as EntradaResumen;
+      const v = vacioDePendientes(e);
+      expect(v.completo).toBe(false);
+      expect(v.titulo).toBe("Sin novedades en lo que se pudo leer");
+      expect(v.detalle).toContain(nombre);
+    }
+  });
+
+  it("parado fuera de una tienda no se leen los pedidos: tampoco es calma, y dice cómo verlos", () => {
+    const v = vacioDePendientes({ ...NADA, pedidos: { estado: "no_tienda" } });
+    expect(v.completo).toBe(false);
+    expect(v.detalle).toContain("elige una");
+  });
+
+  it("lo que la cuenta no ve (sin módulo) no estorba: no es suyo", () => {
+    const e: EntradaResumen = { ...NADA, pedidos: { estado: "sin_modulo" }, vitrina: { estado: "sin_modulo" }, ajustes: { estado: "sin_modulo" } };
+    expect(vacioDePendientes(e).completo).toBe(true);
+  });
+});
+
+describe("el camino de los pedidos se resume en una línea cuando no hay pedidos abiertos", () => {
+  it("sin nada por confirmar, cobrar, entregar ni devolver, y sin cobrado hoy, no hay pedidos abiertos; cualquiera de esas cosas lo cambia", () => {
+    expect(sinPedidosAbiertos(CIFRAS_EN_CERO)).toBe(true);
+    expect(sinPedidosAbiertos({ ...CIFRAS_EN_CERO, cerrados: 12 })).toBe(true);
+    for (const c of [{ porConfirmar: 1 }, { confirmados: 1 }, { porEntregar: 1 }, { porDevolver: 40 }, { cobradoHoy: 80 }] as Partial<CifrasPedidosWeb>[]) {
+      expect(sinPedidosAbiertos({ ...CIFRAS_EN_CERO, ...c }), JSON.stringify(c)).toBe(false);
+    }
+  });
+
+  it("la línea dice la tienda y cuántos se cerraron en 30 días, en singular y en plural", () => {
+    expect(fraseSinPedidos("Tienda Lima", 12)).toBe("En Tienda Lima: sin pedidos abiertos · 12 cerrados en los últimos 30 días");
+    expect(fraseSinPedidos("Tienda TRU", 1)).toBe("En Tienda TRU: sin pedidos abiertos · 1 cerrado en los últimos 30 días");
+    expect(fraseSinPedidos("Tienda TRU", 0)).toBe("En Tienda TRU: sin pedidos abiertos · ninguno cerrado en los últimos 30 días");
+  });
+});
+
+describe("los enlaces del Resumen a la Vitrina llegan ya filtrados", () => {
+  it("«sin precio» y «sin nada que separar» abren la lista con ese filtro, y el número del Resumen es el de la lista", () => {
+    const e: EntradaResumen = {
+      ...NADA,
+      vitrina: { estado: "ok", dato: { cifras: { seVen: 5, total: 9, sinStock: 2 }, encendidosSinPrecio: 1, looks: null, esperan: null } },
+    };
+    const p = pendientesDe(e);
+    expect(p.find((x) => x.clave === "sin-precio")!.href).toBe("/tienda-web/vitrina?filtro=sin_precio");
+    expect(p.find((x) => x.clave === "sin-stock")!.href).toBe("/tienda-web/vitrina?filtro=sin_stock");
+    const ms = [modelo("a", { publicable: false, porQueNo: "sin_precio" }), modelo("b", { publicable: false, porQueNo: "sin_precio", vitrina: null })];
+    expect(filtrarVitrina(ms, "sin_precio", "")).toHaveLength(encendidosSinPrecio(ms));
+  });
 });
 
 describe("la ventana de la vitrina", () => {

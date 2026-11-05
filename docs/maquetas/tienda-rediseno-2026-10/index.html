@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rediseño de la tienda · direcciones</title>
+<style>
+/* Página para comparar (no es parte de ningún diseño): letra del sistema y grises neutros a propósito. */
+:root { --fondo: #f2f2f0; --texto: #1b1b1a; --tenue: #5d5d59; --linea: #d9d9d5; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); color: var(--texto); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+main { max-width: 1320px; margin: 0 auto; padding: 48px 24px 80px; }
+h1 { margin: 0; font-size: 34px; letter-spacing: -.02em; }
+h2.grupo { margin: 56px 0 6px; font-size: 22px; }
+.bajada { max-width: 76ch; color: var(--tenue); margin: 12px 0 0; }
+.fijo { margin: 28px 0 8px; padding: 16px 20px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; }
+.fijo b { font-weight: 600; }
+.rejilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 20px; }
+.rejilla.chica { grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.rejilla.tres { grid-template-columns: repeat(3, 1fr); }
+.dir { display: flex; flex-direction: column; border: 1px solid var(--linea); border-radius: 14px; background: #fff; overflow: hidden; }
+.dir.base { outline: 2px solid var(--texto); outline-offset: -2px; }
+.vista { position: relative; display: block; aspect-ratio: 1440 / 900; overflow: hidden; border-bottom: 1px solid var(--linea); background: #ddd; }
+.vista iframe { position: absolute; top: 0; left: 0; width: 1440px; height: 900px; border: 0; transform-origin: 0 0; pointer-events: none; }
+.cuerpo { display: flex; flex-direction: column; gap: 14px; padding: 20px; flex: 1; }
+.chica .cuerpo { padding: 14px; gap: 8px; font-size: 13.5px; }
+.cuerpo h3 { margin: 0; font-size: 21px; }
+.chica .cuerpo h3 { font-size: 16px; }
+.cuerpo h3 small { font-size: 13px; font-weight: 500; color: var(--tenue); margin-left: 6px; }
+.cuerpo p { margin: 0; }
+.muestras { display: flex; gap: 6px; }
+.muestras i { width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 0 0 1px #0002; }
+dl { display: grid; grid-template-columns: 92px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
+dt { color: var(--tenue); }
+dd { margin: 0; }
+.abrir { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px; }
+.abrir a { display: inline-flex; align-items: center; height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--texto); color: var(--texto); text-decoration: none; font-weight: 500; }
+.chica .abrir a { height: 32px; padding: 0 10px; font-size: 13px; }
+.abrir a:first-child { background: var(--texto); color: #fff; }
+.abrir a:focus-visible { outline: 2px solid #3b6fd8; outline-offset: 2px; }
+.nota { margin-top: 40px; color: var(--tenue); font-size: 14px; max-width: 82ch; }
+@media (max-width: 1100px) { .rejilla.chica { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1180px) { .rejilla.tres { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 980px) { .rejilla, .rejilla.chica, .rejilla.tres { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Rediseño de la tienda online</h1>
+  <p class="bajada">Arriba, tres direcciones nuevas inspiradas en la manera de trabajar de las grandes casas de moda. Debajo siguen A, la que más te gustó, y sus hermanas D, E y F. Todas tienen sus cinco pantallas tocables, en escritorio y en celular, con movimiento de verdad. Ábrelas y recorre el camino de separar: el movimiento solo se juzga mirándolo.</p>
+  <p class="fijo"><b>Lo que no cambia en ninguna:</b> el logo (el colibrí y CAYLA en su letra); sin cuenta no se ven precios, tallas ni stock; se separa sin pagar y se confirma por WhatsApp. Los nombres y las fotos son los de la tienda en línea; <b>precios, tallas y stock son de ejemplo.</b> El movimiento está hecho sin librerías y se apaga solo si el equipo tiene activado «reducir movimiento».</p>
+
+  <h2 class="grupo">Inspiradas en las grandes casas</h2>
+  <p class="bajada" style="margin-top:4px">Toman la manera de trabajar de cada casa, no su marca: no usan sus nombres, logos ni diseños registrados. El logo de CAYLA no cambia.</p>
+  <div class="rejilla tres">
+    <article class="dir">
+      <a class="vista" href="g-pasarela.html#portada" tabindex="-1" aria-hidden="true"><iframe src="g-pasarela.html?previa#portada" title="Vista previa de G" loading="lazy"></iframe></a>
+      <div class="cuerpo">
+        <h3>G · Pasarela <small>la alta costura de París</small></h3>
+        <p>A la manera de Dior, Chanel o Saint Laurent: blanco y negro puros, una Didone de alto contraste y mayúsculas mínimas.</p>
+        <div class="muestras" aria-label="Paleta"><i style="background:#ffffff"></i><i style="background:#f1f1ef"></i><i style="background:#0b0b0b"></i><i style="background:#666664"></i><i style="background:#f4f1ea"></i></div>
+        <dl>
+          <dt>Letras</dt><dd>Bodoni Moda · Public Sans</dd>
+          <dt>Su firma</dt><dd><b>La portada es un desfile</b>: cada prenda sale al escenario negro, cruza hacia la luz, estalla el flash de los fotógrafos y sigue. Se puede pausar.</dd>
+          <dt>Movimiento</dt><dd>El programa de salidas con la prenda que asoma junto al cursor; al agregar, el visor encuadra y dispara; al separar, la confirmación llega como una invitación que se da vuelta; al cambiar de pantalla, las luces bajan y suben.</dd>
+          <dt>Ganas</dt><dd>Es la que más se siente casa de moda: la ropa es la protagonista de un show.</dd>
+          <dt>Pagas</dt><dd>El escenario delata cualquier foto floja, y lo que se mueve solo distrae a quien ya sabe qué busca (por eso se puede pausar).</dd>
+        </dl>
+        <div class="abrir"><a href="g-pasarela.html#portada">Abrir G</a><a href="g-pasarela.html?vista=celular#portada">En celular</a></div>
+      </div>
+    </article>
+    <article class="dir">
+      <a class="vista" href="h-vitrina.html#portada" tabindex="-1" aria-hidden="true"><iframe src="h-vitrina.html?previa#portada" title="Vista previa de H" loading="lazy"></iframe></a>
+      <div class="cuerpo">
+        <h3>H · Vitrina <small>el modernismo italiano</small></h3>
+        <p>A la manera de Prada o Max Mara: planos de camel, negro y blanco hueso armados como arquitectura, con una gota de rojo laca.</p>
+        <div class="muestras" aria-label="Paleta"><i style="background:#f3f1ec"></i><i style="background:#c49a6c"></i><i style="background:#e3cdb2"></i><i style="background:#151311"></i><i style="background:#a3201e"></i></div>
+        <dl>
+          <dt>Letras</dt><dd>Josefin Sans · Manrope</dd>
+          <dt>Su firma</dt><dd><b>La portada es una vitrina</b>: los planos se arman, cada prenda descansa en su nicho sobre un pedestal y un reflejo de vidrio cruza una vez.</dd>
+          <dt>Movimiento</dt><dd>Los planos se mueven a distinto ritmo al bajar, la prenda baja hasta su pedestal, la luz del nicho se enciende al pasar el mouse, al agregar la prenda se levanta del pedestal y vuela a la bolsa, y al cambiar de pantalla se abren las puertas de la vitrina.</dd>
+          <dt>Ganas</dt><dd>La más arquitectónica y segura de sí: se parece a una boutique de verdad.</dd>
+          <dt>Pagas</dt><dd>El camel domina: si las fotos de la temporada son cálidas, todo se vuelve del mismo tono.</dd>
+        </dl>
+        <div class="abrir"><a href="h-vitrina.html#portada">Abrir H</a><a href="h-vitrina.html?vista=celular#portada">En celular</a></div>
+      </div>
+    </article>
+    <article class="dir">
+      <a class="vista" href="i-pespunte.html#portada" tabindex="-1" aria-hidden="true"><iframe src="i-pespunte.html?previa#portada" title="Vista previa de I" loading="lazy"></iframe></a>
+      <div class="cuerpo">
+        <h3>I · Pespunte <small>las casas del oficio</small></h3>
+        <p>A la manera de Hermès o Loewe: marfil, tabaco y un celeste, Caslon de toda la vida y el oficio como lenguaje.</p>
+        <div class="muestras" aria-label="Paleta"><i style="background:#f5f0e6"></i><i style="background:#ebe3d4"></i><i style="background:#6b4a2f"></i><i style="background:#22190f"></i><i style="background:#8fafc4"></i></div>
+        <dl>
+          <dt>Letras</dt><dd>Libre Caslon · Libre Franklin</dd>
+          <dt>Su firma</dt><dd><b>El pespunte</b>: cada borde es una costura que se cose sola; los colores son muestras cortadas con tijera de zigzag; al separar, <b>una caja se cierra y se sella con el número</b>.</dd>
+          <dt>Movimiento</dt><dd>Las muestras se prenden con alfiler en el tablero, la puntada corre bajo el mouse como una máquina de coser, un hilo va del botón a la bolsa y otro se cose arriba al cambiar de pantalla.</dd>
+          <dt>Ganas</dt><dd>La más cálida y cercana: hace del separar un pequeño regalo.</dd>
+          <dt>Pagas</dt><dd>La costura en todo puede volverse decorado, y hay que cuidar no dar a entender que todo es hecho a mano.</dd>
+        </dl>
+        <div class="abrir"><a href="i-pespunte.html#portada">Abrir I</a><a href="i-pespunte.html?vista=celular#portada">En celular</a></div>
+      </div>
+    </article>
+  </div>
+
+  <h2 class="grupo">A y sus hermanas</h2>
+  <div class="rejilla">
+    <article class="dir base">
+      <a class="vista" href="a-muro.html#portada" tabindex="-1" aria-hidden="true"><iframe src="a-muro.html?previa#portada" title="Vista previa de A" loading="lazy"></iframe></a>
+      <div class="cuerpo">
+        <h3>A · Muro <small>la que elegiste</small></h3>
+        <p>Lujo silencioso: una galería con muros de yeso frío y cada prenda colgada como una obra, con su cédula.</p>
+        <div class="muestras" aria-label="Paleta"><i style="background:#ecebe7"></i><i style="background:#e1ded7"></i><i style="background:#1c1c1a"></i><i style="background:#615e57"></i><i style="background:#9e1d32"></i></div>
+        <dl><dt>Letras</dt><dd>Archivo ancha en mayúsculas finas · Newsreader en cursiva</dd><dt>Sirve para</dt><dd>Comparar: es la vara de las otras tres.</dd></dl>
+        <div class="abrir"><a href="a-muro.html#portada">Abrir A</a><a href="a-muro.html?vista=celular#portada">En celular</a></div>
+      </div>
+    </article>
+    <article class="dir">
+      <a class="vista" href="d-seda.html#portada" tabindex="-1" aria-hidden="true"><iframe src="d-seda.html?previa#portada" title="Vista previa de D" loading="lazy"></iframe></a>
+      <div class="cuerpo">
+        <h3>D · Seda <small>la suavidad de la tela</small></h3>
+        <p>Perla rosada y tinta ciruela, marcos redondeados como una prenda doblada, todo centrado y en calma.</p>
+        <div class="muestras" aria-label="Paleta"><i style="background:#f4efec"></i><i style="background:#eaddd8"></i><i style="background:#2b1e24"></i><i style="background:#6e5560"></i><i style="background:#c98a95"></i></div>
+        <dl>
+          <dt>Letras</dt><dd>Noto Serif Display en cursiva · Ysabeau, una humanista suave</dd>
+          <dt>Su firma</dt><dd><b>Una cinta de seda que se dibuja sola mientras bajas</b> y cose la página de arriba abajo.</dd>
+          <dt>Movimiento</dt><dd>Las letras caen como una tela, las cápsulas flotan, lo que aparece al bajar se inclina y se asienta, al agregar una cinta vuela a la bolsa, la separación dibuja un lazo y cambiar de pantalla es una seda que se descorre.</dd>
+          <dt>Ganas</dt><dd>La más femenina y suave: se ve cara sin ser fría.</dd>
+          <dt>Pagas</dt><dd>La cinta necesita una portada larga para lucirse; en una página corta casi no se ve.</dd>
+        </dl>
+        <div class="abrir"><a href="d-seda.html#portada">Abrir D</a><a href="d-seda.html?vista=celular#portada">En celular</a></div>
+      </div>
+    </article>
+    <article class="dir">
+      <a class="vista" href="e-etiqueta.html#portada" tabindex="-1" aria-hidden="true"><iframe src="e-etiqueta.html?previa#portada" title="Vista previa de E" loading="lazy"></iframe></a>
+      <div class="cuerpo">
+        <h3>E · Etiqueta <small>tienda de autor</small></h3>
+        <p>Elegancia utilitaria: celadón pálido y verde oliva, con los datos en letra de máquina.</p>
+        <div class="muestras" aria-label="Paleta"><i style="background:#e3e7df"></i><i style="background:#f4f5f1"></i><i style="background:#1e231b"></i><i style="background:#545c4e"></i><i style="background:#a9431f"></i></div>
+        <dl>
+          <dt>Letras</dt><dd>Albert Sans · Fragment Mono para precios, tallas y stock</dd>
+          <dt>Su firma</dt><dd><b>La etiqueta colgante</b>: se mece y se da vuelta para mostrar cuánto hay en cada tienda. En la ficha, toda la información es una etiqueta grande con su talón.</dd>
+          <dt>Movimiento</dt><dd>Las fotos se imprimen fila por fila, las etiquetas caen y se mecen, las cifras ruedan como un contador, al agregar el talón se arranca y vuela a la bolsa, el mensaje de WhatsApp se escribe como a máquina y cambiar de pantalla es tirar de una etiqueta.</dd>
+          <dt>Ganas</dt><dd>La más clara para comprar: precio, tallas y stock de cada prenda a la vista, sin entrar a la ficha.</dd>
+          <dt>Pagas</dt><dd>Es la menos romántica, y si se abusa de la letra de máquina se vuelve técnica.</dd>
+        </dl>
+        <div class="abrir"><a href="e-etiqueta.html#portada">Abrir E</a><a href="e-etiqueta.html?vista=celular#portada">En celular</a></div>
+      </div>
+    </article>
+    <article class="dir">
+      <a class="vista" href="f-friso.html#portada" tabindex="-1" aria-hidden="true"><iframe src="f-friso.html?previa#portada" title="Vista previa de F" loading="lazy"></iframe></a>
+      <div class="cuerpo">
+        <h3>F · Friso <small>el adobe del norte</small></h3>
+        <p>Arena y espresso, mayúsculas finas y un friso escalonado como los de Chan Chan en Trujillo, tono sobre tono.</p>
+        <div class="muestras" aria-label="Paleta"><i style="background:#d9cdbd"></i><i style="background:#eee7dc"></i><i style="background:#2a211b"></i><i style="background:#5e4c3e"></i><i style="background:#4e5a3a"></i></div>
+        <dl>
+          <dt>Letras</dt><dd>Italiana en mayúsculas · Jost</dd>
+          <dt>Su firma</dt><dd><b>El friso que se dibuja línea por línea</b>, y marcos de esquinas escalonadas que se abren desde una pequeña cruz al centro.</dd>
+          <dt>Movimiento</dt><dd>Una luz de sol que recorre el muro, letras que suben y se juntan, marcos que se abren escalón por escalón, frisos que se dibujan al llegar a ellos y cambiar de pantalla como una escalera que sube.</dd>
+          <dt>Ganas</dt><dd>La más propia de CAYLA: dice «somos del norte del Perú» sin decirlo.</dd>
+          <dt>Pagas</dt><dd>Un motivo cultural pide medida: repetido de más, se vuelve souvenir.</dd>
+        </dl>
+        <div class="abrir"><a href="f-friso.html#portada">Abrir F</a><a href="f-friso.html?vista=celular#portada">En celular</a></div>
+      </div>
+    </article>
+  </div>
+
+  <h2 class="grupo">Ronda anterior</h2>
+  <p class="bajada" style="margin-top:4px">A2 a A4 son la misma galería de A con distinto movimiento. B y C fueron las primeras alternativas. Quedan aquí por si quieres tomar algo de ellas.</p>
+  <div class="rejilla chica">
+    <article class="dir"><div class="cuerpo"><h3>A2 · Telón</h3><p>A con cine: telón de entrada y la foto que viaja de la lista a la ficha.</p><div class="abrir"><a href="a2-telon.html#portada">Abrir</a></div></div></article>
+    <article class="dir"><div class="cuerpo"><h3>A3 · Recorrido</h3><p>A en azul noche: la portada se recorre de lado al bajar, con bolsa de costado.</p><div class="abrir"><a href="a3-recorrido.html#portada">Abrir</a></div></div></article>
+    <article class="dir"><div class="cuerpo"><h3>A4 · Luz</h3><p>A en sillar: una luz que sigue al mouse y fotos que se revelan.</p><div class="abrir"><a href="a4-luz.html#portada">Abrir</a></div></div></article>
+    <article class="dir"><div class="cuerpo"><h3>B · Lookbook</h3><p>Revista de moda, con un fondo del color de cada prenda.</p><div class="abrir"><a href="b-lookbook.html#portada">Abrir</a></div></div></article>
+    <article class="dir"><div class="cuerpo"><h3>C · Cochinilla</h3><p>Vino de cochinilla y rosa, con la ropa colgada de un riel.</p><div class="abrir"><a href="c-cochinilla.html#portada">Abrir</a></div></div></article>
+  </div>
+
+  <p class="nota">Dentro de cada dirección, la barra negra de arriba cambia de dirección, de pantalla y entre escritorio y celular. Esa barra no es parte del diseño. Para ver todo el movimiento: abre la portada desde cero, baja despacio, entra a una prenda desde el catálogo, elige talla, agrégala y sepárala. Nada se guarda ni se manda.</p>
+</main>
+<script>
+  // Escala cada vista previa al ancho de su tarjeta.
+  function escalar() { document.querySelectorAll(".vista").forEach((v) => { v.querySelector("iframe").style.transform = `scale(${v.clientWidth / 1440})`; }); }
+  addEventListener("resize", escalar); escalar();
+</script>
+</body>
+</html>

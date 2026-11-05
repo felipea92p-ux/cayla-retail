@@ -57,8 +57,8 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
   it("una etiqueta repetida (aunque esté pendiente o desactivada) dice a dónde ir, sin nombrar el índice", () => {
     const salida = traducirError({ message: 'duplicate key value violates unique constraint "etiquetas_clave_unica"', code: "23505" }, "agregar la etiqueta");
     expect(salida).not.toContain("etiquetas_clave_unica");
-    expect(salida).toContain("Ya existe una etiqueta con ese nombre");
-    expect(salida).toContain("Catálogo → Atributos → Etiquetas");
+    expect(salida).toContain("Ya existe una insignia o una campaña con ese nombre");
+    expect(salida).toContain("Catálogo ▸ Insignias");
   });
 
   it("una talla y color repetidos en un producto se explican, no se citan", () => {
@@ -487,6 +487,12 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
     expect(traducirError(ajeno, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(ajeno.message);
   });
 
+  it("los de las ofertas de una campaña («Tres preguntas»): dicen qué módulo falta, sin «Código:»", () => {
+    // Desde ADR-0534 activar, cambiar y retirar ya no esperan a un líder: el único rechazo de permiso es no tener la llave de campañas.
+    const modulo = { message: "Registrar una oferta necesita el módulo «Campañas», «Campañas de la tienda web» o «Insignias» en tu rol.", code: "42501", hint: "oferta_sin_modulo" };
+    expect(traducirError(modulo, "guardar la oferta")).toBe(modulo.message);
+  });
+
   it("un 42501 de otro origen no se cuela por la regla de temporadas", () => {
     const salida = traducirError({ message: "permission denied for table temporadas", code: "42501", hint: null }, "guardar la temporada");
     expect(salida).toContain("Código:");
@@ -563,6 +569,16 @@ describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2
     expect(salida).toBe(clientas.message);
     expect(salida).not.toContain("Vuelve a intentar");
     expect(salida).not.toContain("Código:");
+  });
+
+  it("Compras simple: la base aún dice «Mi plata para compras» y la persona busca «Mis compras» (el nombre del módulo en el menú)", () => {
+    const comprar = { message: "Cerrar la ronda necesita el módulo «Mi plata para compras» en tu rol", code: "42501", hint: "ordenes_compra_sin_modulo" };
+    const salida = traducirError(comprar, "cerrar tu ronda");
+    expect(salida).toBe("Cerrar la ronda necesita el módulo «Mis compras» en tu rol");
+    expect(salida).not.toContain("Mi plata");
+    expect(salida).not.toContain("Código:");
+    // Una base que ya dice «Mis compras» (migraciones nuevas) no cambia.
+    expect(traducirError({ ...comprar, message: "Crear una marca desde una compra necesita el módulo «Mis compras» en tu rol" }, "crear la marca")).toBe("Crear una marca desde una compra necesita el módulo «Mis compras» en tu rol");
   });
 
   it("vale para cualquier módulo con la misma forma de hint: el de «Ajustar stock», que llega con 42501, deja de caer al genérico", () => {
@@ -699,15 +715,22 @@ describe("la ficha de un cliente (ADR-0416)", () => {
   });
 });
 
-describe("club de clientas: el canje del cumpleaños (ADR-0288 tanda 1c)", () => {
+// Programa de puntos (2026-10-19): el cupón del Club en `registrar_venta` y el canje de puntos. El 10 % de cumpleaños y el vale de
+// aniversario se retiraron: la base los rechaza con `beneficio_retirado`.
+describe("club: el cupón y los puntos (programa de puntos)", () => {
   const HINTS = [
-    "cumple_sin_clienta",
-    "cumple_no_socia",
-    "cumple_fuera_de_mes",
-    "cumple_ya_canjeado",
-    "cumple_descuento_distinto",
-    "cumple_sin_canje",
-    "cumple_sin_monto",
+    "cupon_no_existe",
+    "cupon_ya_usado",
+    "cupon_vencido",
+    "cupon_compra_minima",
+    "cupon_cubre_todo",
+    "cupon_sin_monto",
+    "cupon_descuento_distinto",
+    "club_un_cupon_por_compra",
+    "beneficio_retirado",
+    "puntos_insuficientes",
+    "canje_menor_al_minimo",
+    "canje_no_multiplo",
   ];
 
   it("el mensaje de la base pasa tal cual", () => {
@@ -721,27 +744,7 @@ describe("club de clientas: el canje del cumpleaños (ADR-0288 tanda 1c)", () =>
     for (const hint of HINTS) {
       const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
       expect(salida, hint).not.toContain("Código:");
-      expect(salida, hint).toMatch(/cumpleaños/);
-    }
-  });
-});
-
-// ADR-0288 tanda 1g: el vale de aniversario en `registrar_venta`, con el mismo criterio que el cumpleaños.
-describe("club de clientas: el vale de aniversario (ADR-0288 tanda 1g)", () => {
-  const HINTS = ["club_un_cupon_por_compra", "aniversario_no_disponible", "aniversario_ya_canjeado", "aniversario_sin_monto"];
-
-  it("el mensaje de la base pasa tal cual", () => {
-    for (const hint of HINTS) {
-      const message = `Mensaje de la base para ${hint}.`;
-      expect(traducirError({ message, code: "P0001", hint }, "registrar la venta"), hint).toBe(message);
-    }
-  });
-
-  it("sin mensaje de la base, cada hint tiene su frase de respaldo en castellano", () => {
-    for (const hint of HINTS) {
-      const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
-      expect(salida, hint).not.toContain("Código:");
-      expect(salida, hint).toMatch(/vale de aniversario/);
+      expect(salida, hint).toMatch(/cupón|puntos|club/);
     }
   });
 });
@@ -835,13 +838,12 @@ describe("las fechas de una factura de compra", () => {
   });
 });
 
-describe("regularizar la propia venta (ADR-0328)", () => {
-  it("dice, en palabras de tienda, que lo haga otra persona o un líder", () => {
-    const salida = traducirError(
-      { code: "42501", message: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.", hint: "regularizar_propia_venta" },
-      "regularizar la prenda",
-    );
-    expect(salida).toBe("Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.");
+describe("regularizar una prenda", () => {
+  // ADR-0534: quien vendió ya puede regularizar su propia venta; lo que falta es el módulo Existencias para la cola.
+  it("la cola sin el módulo Existencias dice dónde se hace, sin «líder» y sin «Código:»", () => {
+    const salida = traducirError({ code: "42501", message: "cola_sin_modulo", hint: "Cerrar la cola de una tienda necesita el módulo Existencias (ADR-0534)" }, "cerrar la cola");
+    expect(salida).toBe("Esto se hace desde Existencias: pide que le den ese módulo a tu rol.");
+    expect(salida).not.toMatch(/líder/);
   });
 
   // La base nombra la sede en el mensaje; pasa tal cual (P0001), sin caer al genérico.
@@ -912,9 +914,87 @@ describe("montos con tope de Finanzas", () => {
       ).toMatch(/pasa de S\/\u00a01 000 000/);
     }
   });
+  it("un gasto que cierra un fijo ya cerrado dice qué pasó en vez de «Vuelve a intentar» (que nunca funciona)", () => {
+    const frase = traducirError({ message: "Ese gasto fijo ya tiene su gasto de este mes.", code: "23505" }, "registrar el gasto");
+    expect(frase).toMatch(/ya tiene su gasto de este mes/);
+    expect(frase).toMatch(/Fijos del mes/);
+    expect(frase).not.toMatch(/Vuelve a intentar/);
+  });
   it("el vuelto con tope sigue con su propia frase", () => {
     expect(
       traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "cobrar"),
     ).toMatch(/vuelto pasa de S\/\u00a0500/);
+  });
+});
+
+// Mis compras, candados de la auditoría (20261027231000): la frase de la base llega tal cual, también la de permiso (`42501`).
+describe("Mis compras: candados de la auditoría", () => {
+  it("confirmar la plata «Ya tenía» es del líder y la frase dice a quién pedírselo", () => {
+    const mensaje = "La plata que ya tenía antes de usar el sistema la confirma un líder: no sale de ningún banco. Pídele a un líder que la confirme.";
+    expect(traducirError({ message: mensaje, code: "42501", hint: "plata_ya_tenia_solo_lider" }, "confirmar la plata")).toBe(mensaje);
+  });
+  it("una plata confirmada no se anula aparte: la frase de la base pasa tal cual", () => {
+    const mensaje = "Es plata que una compradora anotó y Compras ya confirmó: no se anula aparte.";
+    expect(traducirError({ message: mensaje, code: "P0001", hint: "movimiento_de_plata_anotada" }, "anular la entrega")).toBe(mensaje);
+  });
+});
+
+// Avisos, «Editar mensajes» (20261020144000): el mensaje de la base pasa tal cual (dice qué está mal); sin él, su respaldo.
+describe("club: editar los mensajes de los avisos", () => {
+  it("el mensaje de la base pasa tal cual y hay respaldo en castellano", () => {
+    for (const hint of ["mensaje_aviso_invalido", "avisos_otra_tienda"]) {
+      expect(traducirError({ message: "Falta {nombre}.", code: "22023", hint }, "guardar los mensajes"), hint).toBe("Falta {nombre}.");
+      expect(traducirError({ message: "", code: "42501", hint }, "guardar los mensajes"), hint).toMatch(/mensaje/);
+    }
+  });
+});
+
+describe("«una tela con sus colores» (ADR-0554, revisión del 28-oct): ningún candado de la tela sale como «Vuelve a intentar»", () => {
+  it("lo que la función levanta con su propio mensaje pasa tal cual (P0001), también lo que llega con otro código por su hint", () => {
+    expect(traducirError({ message: "Ya existe «Milano Melange» (MM-01): ponle otro nombre a esta tela.", code: "P0001", hint: "material_ya_existe" }, "guardar los cambios de la tela")).toBe("Ya existe «Milano Melange» (MM-01): ponle otro nombre a esta tela.");
+    expect(traducirError({ message: "Editar una tela es del líder.", code: "42501", hint: "editar_material_sin_lider" }, "guardar los cambios de la tela")).toBe("Editar una tela es del líder.");
+    expect(traducirError({ message: "El saldo inicial, con su costo, lo anota el líder.", code: "42501", hint: "saldo_sin_lider" }, "crear la tela")).toBe("El saldo inicial, con su costo, lo anota el líder.");
+    expect(traducirError({ message: "El tejido y la merma son de la tela, no de cada color: cámbialos en la tela.", code: "23514", hint: "copia_de_la_tela" }, "guardar la ficha")).toContain("cámbialos en la tela");
+  });
+  it("retirar un color (20261029014000): lo que la base dice de saldo, órdenes, recetas y permiso llega tal cual, también con el código de restricción", () => {
+    const casos: [string, string, string][] = [
+      ["Este color todavía tiene 9 m en Taller: solo se retira un color sin saldo.", "23514", "retirar_color_con_compromisos"],
+      ["Este color está en la orden OP-000009, que sigue en proceso: termínala o quítalo de ella primero.", "23514", "retirar_color_con_compromisos"],
+      ["Retirar un color es del líder.", "42501", "retirar_color_sin_lider"],
+      ["Ese color ya no existe. Actualiza la pantalla.", "P0001", "retirar_color_no_existe"],
+      ["Solo se retira el color de una tela. Este insumo no es el color de ninguna.", "23514", "retirar_color_sin_tela"],
+      ["El color CAR-01-ALB está retirado: no se le ingresa tela. Si lo necesitas otra vez, avisa al líder.", "23514", "insumo_retirado"],
+    ];
+    for (const [message, code, hint] of casos) expect(traducirError({ message, code, hint }, "retirar el color")).toBe(message);
+  });
+  it("las restricciones sin mensaje propio se explican sin citar el índice", () => {
+    const casos: [string, string, string][] = [
+      ['new row for relation "insumos" violates check constraint "insumos_tela_en_metros"', "23514", "se lleva en metros"],
+      ['duplicate key value violates unique constraint "insumos_codigo_clave_unico"', "23505", "Ya hay un insumo con ese código"],
+      ['duplicate key value violates unique constraint "materiales_nombre_tipo_medida_unico"', "23505", "Ya existe una ficha con ese nombre y esa medida"],
+      ['duplicate key value violates unique constraint "insumos_material_color_unico"', "23505", "Ese color ya está en la tela"],
+      ['new row for relation "materiales" violates check constraint "materiales_medidas_plausibles"', "23514", "El ancho va en centímetros"],
+    ];
+    for (const [message, code, esperado] of casos) {
+      const salida = traducirError({ message, code }, "guardar la tela");
+      expect(salida, message).toContain(esperado);
+      expect(salida, message).not.toContain("Vuelve a intentar");
+      expect(salida, message).not.toMatch(/insumos_|materiales_/);
+    }
+  });
+  it("con el deshacer pegado (las funciones ya no son de `authenticated`) NO dice que se cerró la sesión: dice que crear o editar telas está desactivado", () => {
+    for (const [funcion, esperado] of [["crear_material", "Crear telas está desactivado"], ["agregar_colores_a_material", "Sumar colores a una tela está desactivado"], ["editar_material", "Editar telas está desactivado"]] as const) {
+      const salida = traducirError({ message: `permission denied for function ${funcion}`, code: "42501" }, "guardar la tela");
+      expect(salida, funcion).toContain(esperado);
+      expect(salida, funcion).toContain("No se guardó nada");
+      expect(salida, funcion).not.toMatch(/sesión|entrar/i);
+    }
+    // Y las demás funciones siguen diciendo lo de siempre.
+    expect(traducirError({ message: "permission denied for function registrar_venta", code: "42501" }, "registrar la venta")).toContain("vuelve a entrar");
+  });
+  it("un choque de versión al editar la tela dice lo que la base dice, para ofrecer «Recargar»", () => {
+    const error = { message: "Otra persona cambió esta tela mientras la editabas. Actualiza la pantalla para ver sus cambios.", code: "PT409", hint: "version_cambiada" };
+    expect(esVersionCambiada(error)).toBe(true);
+    expect(traducirError(error, "guardar los cambios de la tela")).toBe("Otra persona cambió esta tela mientras la editabas. Actualiza la pantalla para ver sus cambios.");
   });
 });

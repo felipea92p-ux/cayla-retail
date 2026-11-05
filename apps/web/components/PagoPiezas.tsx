@@ -51,7 +51,7 @@ export type ResultadoPago = {
 };
 
 /** Píldora de atajo (mismo aire que las de medio de pago, pero en minúscula normal: lleva un monto). */
-export const PILDORA = "rounded-full border border-tinta/15 px-3 py-1 text-xs tabular-nums text-tinta/75 transition-colors duration-200 hover:border-rojo hover:text-rojo";
+export const PILDORA = "rounded-full border border-tinta/15 px-3 py-1 text-sm tabular-nums text-tinta/75 transition-colors duration-200 hover:border-rojo hover:text-rojo";
 
 /** El tilde que se DIBUJA (`pathLength="1"`): el estado nuevo se hace en vez de aparecer. */
 export function Tilde() {
@@ -97,7 +97,7 @@ function DatoSimple({ etiqueta, valor, nota }: { etiqueta: string; valor: string
     <div className="min-w-0">
       <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
       <p className="mt-1 truncate text-sm text-tinta">{valor}</p>
-      {nota && <p className="mt-0.5 text-[11px] leading-snug text-tinta/55">{nota}</p>}
+      {nota && <p className="mt-0.5 text-sm leading-snug text-tinta/55">{nota}</p>}
     </div>
   );
 }
@@ -222,7 +222,7 @@ export function Confirmacion({
       </p>
       <ul className="mx-auto mt-[18px] max-w-sm text-left">
         {filas.map((f, i) => (
-          <li key={f.documento} className="anim-revelar flex items-center justify-between gap-3 border-t border-tinta/10 py-2 text-[13.5px]" style={{ animationDelay: `${900 + i * 90}ms` }}>
+          <li key={f.documento} className="anim-revelar flex items-center justify-between gap-3 border-t border-tinta/10 py-2 text-[15px]" style={{ animationDelay: `${900 + i * 90}ms` }}>
             <span className="tabular-nums text-tinta">{f.documento}</span>
             <span className={`flex items-center gap-1.5 tabular-nums ${f.saldoFinal <= 0 ? "text-verde-profundo" : "text-tinta/75"}`}>
               {f.saldoFinal <= 0 ? (
@@ -284,7 +284,7 @@ export function PastillasMedio({ valor, onValor, conFavor = false, etiqueta = "M
           role="radio"
           aria-checked={valor === v}
           onClick={() => onValor(v)}
-          className={`rounded-full border px-3 py-1 text-[12.5px] leading-5 transition-colors duration-200 ${
+          className={`rounded-full border px-3 py-1 text-sm leading-5 transition-colors duration-200 ${
             valor === v ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-tinta/[0.04] text-tinta/75 hover:border-rojo hover:text-rojo"
           }`}
         >
@@ -494,7 +494,7 @@ export function MediosDePago({
           </button>
         )}
         {varios && (
-          <p className={`text-xs tabular-nums ${falta < 0 ? "text-rojo" : "text-tinta/65"}`} aria-live="polite">
+          <p className={`text-sm tabular-nums ${falta < 0 ? "text-rojo" : "text-tinta/65"}`} aria-live="polite">
             Suman <b className="font-semibold text-tinta"><CifraQueCuenta valor={suma} formato="soles" /></b> ·{" "}
             {exacto
               ? falta < 0

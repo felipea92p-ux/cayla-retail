@@ -2,18 +2,30 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  FASES_DE_LA_HOJA,
   FASES,
   FIJO_MAXIMO,
   HINTS_FASE,
+  HINT_TARIFA_A_CONFIRMAR,
+  TARIFA_SIN_REFERENCIA_MAXIMA,
   TARIFA_MAXIMA,
   avisoMinimo,
   costoServiciosEstimado,
+  fijoDesdePorPrenda,
+  porPrendaDeFijo,
   esFechaIso,
   faseViaja,
+  faseDe,
   fasesEncendidas,
   fasesIniciales,
+  conProcesosDelModelo,
   fasesParaRpc,
   leerEntero,
+  leerProcesos,
+  leerProcesosDeModelos,
+  procesosParaRecordar,
+  listaDeTarifas,
+  serviciosPorDefecto,
   leerServicio,
   ordenarFases,
   problemasFases,
@@ -21,6 +33,9 @@ import {
   secuenciaDe,
   serviciosConCosto,
   tarifaSugerida,
+  tarifaDesdeTotal,
+  tarifaFueraDeLoNormal,
+  totalDeLaTarifa,
   type FaseBorrador,
   type FaseClave,
   type FaseRpc,
@@ -37,7 +52,9 @@ import {
 // `scripts/pruebas/produccion_fases.mjs`.
 
 const RAIZ = join(__dirname, "..", "..", "..");
-const MIGRACION = "supabase/migrations/20261014154000_produccion_fases_y_tela_de_la_orden.sql";
+// La ruta, los nombres y el CHECK de la clave vigentes salen de 20261019191000; la normalización (con el ploteo por orden y los hints nuevos), de 20261019192000.
+const MIGRACION = "supabase/migrations/20261019191000_produccion_fases_nuevas_expandir.sql";
+const MIGRACION_NORMALIZAR = "supabase/migrations/20261019192000_produccion_ploteo_la_fase_de_un_toque.sql";
 const HOY = "2026-10-14";
 
 const CONF: ProveedorServicio = { id: "prov-conf", nombre: "Confecciones del Norte", rubro: "maquila", activo: true };
@@ -55,8 +72,26 @@ const LISTA: TarifaDeLista[] = [
 ];
 const CTX = { hoy: HOY, proveedores: PROVEEDORES, lista: LISTA };
 
-/** Las fases iniciales con una de ellas cambiada. */
-const con = (clave: FaseClave, cambios: Partial<FaseBorrador>, base: FaseBorrador[] = fasesIniciales()): FaseBorrador[] =>
+/**
+ * La hoja de ANTES de la ruta nueva (corte · costura · acabado y las tres que se encienden): casi todas las reglas de abajo no dependen de qué fases se ofrecen, y la base
+ * sigue aceptando esa ruta (`fn_produccion_fases_normalizar`). La hoja de HOY (`fasesIniciales`) tiene sus propias pruebas.
+ */
+const iniciales = (): FaseBorrador[] =>
+  ordenarFases(
+    FASES.filter((f) => f.ruta !== "nueva" && f.delSistema).map((f) => ({
+      clave: f.clave,
+      encendida: f.siempre,
+      quien: "taller" as const,
+      proveedorId: null,
+      tarifa: "",
+      fijo: "",
+      minimo: "",
+      fechaPrometida: "",
+      posicion: f.posicionable ? ("pieza" as const) : null,
+    }))
+  );
+/** Las fases iniciales de la hoja de antes con una de ellas cambiada. */
+const con = (clave: FaseClave, cambios: Partial<FaseBorrador>, base: FaseBorrador[] = iniciales()): FaseBorrador[] =>
   base.map((f) => (f.clave === clave ? { ...f, ...cambios } : f));
 /** Una fase que sale afuera, con todo en orden (Confecciones del Norte a S/ 4.50). */
 const afuera = (clave: FaseClave, cambios: Partial<FaseBorrador> = {}, base?: FaseBorrador[]) =>
@@ -64,14 +99,30 @@ const afuera = (clave: FaseClave, cambios: Partial<FaseBorrador> = {}, base?: Fa
 const hints = (fases: FaseBorrador[]) => problemasFases(fases, CTX).map((p) => p.hint);
 
 describe("el catálogo de fases", () => {
-  it("son seis: tres de la espina (corte, costura, acabado) y tres que la orden enciende; solo bordado y estampado eligen posición", () => {
-    expect(FASES).toHaveLength(6);
-    expect(FASES.filter((f) => f.siempre).map((f) => f.clave)).toEqual(["corte", "costura", "acabado"]);
+  it("son trece: las seis de siempre, las seis de la ruta nueva y Pegar cierre (ADR-0570); solo bordado y estampado eligen posición; solo Ploteo se marca en vez de contarse", () => {
+    expect(FASES).toHaveLength(13);
+    expect(FASES.filter((f) => f.ruta !== "nueva").map((f) => f.clave)).toEqual(["corte", "costura", "pegar_cierre", "bordado", "estampado", "lavanderia", "acabado"]);
+    expect(FASES.filter((f) => !f.delSistema).map((f) => f.clave)).toEqual(["pegar_cierre"]);
+    // ADR-0551: los pasos fijos son cinco; Limpiar hilos y revisar y Etiquetar y embolsar son opcionales y la hoja no los ofrece.
+    expect(FASES.filter((f) => f.ruta !== "anterior" && f.siempre).map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+    expect(FASES.filter((f) => f.ruta !== "nueva" && f.siempre).map((f) => f.clave)).toEqual(["corte", "costura", "acabado"]);
     expect(FASES.filter((f) => f.posicionable).map((f) => f.clave)).toEqual(["bordado", "estampado"]);
-    expect(FASES.map((f) => f.nombre)).toEqual(["Corte", "Costura", "Acabado", "Bordado", "Estampado", "Lavandería"]);
+    expect(FASES.filter((f) => f.hito).map((f) => f.clave)).toEqual(["ploteo"]);
     for (const f of FASES) expect(f.ayuda.length, f.clave).toBeGreaterThan(10);
   });
-  it("secuenciaDe es la tabla de la migración: 10 · 20 · 25 · 30 · 40 · 45 · 50 · 60, y un bordado sin posición no tiene lugar", () => {
+  it("la hoja de «Nueva orden» ofrece la ruta nueva: las cinco fijas, Pegar cierre, Ojales y botones y Lavado o teñido; Limpiar hilos, Etiquetar, Acabado, Bordado y Estampado no se ofrecen", () => {
+    expect(FASES_DE_LA_HOJA.map((f) => f.nombre)).toEqual(["Ploteo", "Corte", "Habilitado", "Costura", "Pegar cierre", "Ojales y botones", "Lavado o teñido", "Planchado"]);
+    expect(FASES_DE_LA_HOJA.filter((f) => f.siempre).map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+    const ofrecidas = FASES_DE_LA_HOJA.map((f) => f.clave);
+    for (const fuera of ["limpieza_revision", "etiquetado_embolsado"]) expect(ofrecidas, fuera).not.toContain(fuera);
+  });
+  it("secuenciaDe es la tabla de la migración: 5 · 10 · 15 · 20 · 25 · 30 · 35 · 40 · 45 · 50 · 55 · 60 · 65 · 70, y un bordado sin posición no tiene lugar", () => {
+    expect(secuenciaDe("ploteo", null)).toBe(5);
+    expect(secuenciaDe("habilitado", null)).toBe(15);
+    expect(secuenciaDe("ojales_botones", null)).toBe(35);
+    expect(secuenciaDe("limpieza_revision", null)).toBe(55);
+    expect(secuenciaDe("planchado", null)).toBe(65);
+    expect(secuenciaDe("etiquetado_embolsado", null)).toBe(70);
     expect(secuenciaDe("corte", null)).toBe(10);
     expect(secuenciaDe("bordado", "pieza")).toBe(20);
     expect(secuenciaDe("estampado", "pieza")).toBe(25);
@@ -87,35 +138,82 @@ describe("el catálogo de fases", () => {
 });
 
 describe("fasesIniciales y el orden de la ruta", () => {
-  it("nace con la espina encendida y en el Taller; bordado y estampado apagados sobre pieza; lavandería apagada; en el orden de la ruta", () => {
+  it("la hoja de hoy nace con la ruta nueva: las cinco fijas encendidas y en el Taller, los opcionales apagados, en el orden de la ruta", () => {
     const f = fasesIniciales();
-    expect(f.map((x) => x.clave)).toEqual(["corte", "bordado", "estampado", "costura", "lavanderia", "acabado"]);
-    expect(f.filter((x) => x.encendida).map((x) => x.clave)).toEqual(["corte", "costura", "acabado"]);
-    expect(f.every((x) => x.quien === "taller" && x.proveedorId === null && x.tarifa === "" && x.fijo === "" && x.minimo === "" && x.fechaPrometida === "")).toBe(true);
-    expect(f.find((x) => x.clave === "bordado")?.posicion).toBe("pieza");
-    expect(f.find((x) => x.clave === "estampado")?.posicion).toBe("pieza");
-    expect(f.find((x) => x.clave === "lavanderia")?.posicion).toBeNull();
+    expect(f.map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "pegar_cierre", "ojales_botones", "lavanderia", "planchado"]);
+    expect(f.filter((x) => x.encendida).map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+    expect(f.every((x) => x.quien === "taller" && x.proveedorId === null && x.tarifa === "" && x.fijo === "" && x.minimo === "" && x.fechaPrometida === "" && x.posicion === null)).toBe(true);
   });
-  it("es válido tal cual: no falta nada, y a la base viajan corte, costura y acabado en el Taller", () => {
+  it("es válida tal cual: no falta nada, y a la base viajan las cinco fijas en el Taller (sin Ojales y botones, sin Limpiar ni Etiquetar, sin la ruta anterior)", () => {
     expect(problemasFases(fasesIniciales(), CTX)).toEqual([]);
     const rpc = fasesParaRpc(fasesIniciales(), LISTA, HOY);
-    expect(rpc.map((f) => f.clave)).toEqual(["corte", "costura", "acabado"]);
-    expect(rpc.every((f) => f.quien === "taller" && f.proveedor_id === null && f.tarifa_prenda === null && f.posicion === null)).toBe(true);
+    expect(rpc.map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+    expect(rpc.every((f) => f.quien === "taller" && f.proveedor_id === null && f.tarifa_prenda === null && f.fijo_orden === null && f.posicion === null)).toBe(true);
   });
-  it("un bordado sobre prenda pasa de antes a después de costura; lavandería va antes del acabado", () => {
+  it("Ojales y botones, encendido, viaja justo después de Costura; Acabado, Bordado y Estampado no se ofrecen", () => {
+    const rpc = fasesParaRpc(con("ojales_botones", { encendida: true }, fasesIniciales()), LISTA, HOY);
+    expect(rpc.map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "ojales_botones", "planchado"]);
+    const ofrecidas = FASES_DE_LA_HOJA.map((f) => f.clave);
+    for (const fuera of ["acabado", "bordado", "estampado"]) expect(ofrecidas, fuera).not.toContain(fuera);
+  });
+  it("un bordado sobre prenda pasa de antes a después de costura; lavandería va antes del acabado (la ruta anterior, que la base sigue aceptando)", () => {
     const claves = (p: Posicion) => ordenarFases(con("bordado", { posicion: p })).map((f) => f.clave);
     expect(claves("pieza")).toEqual(["corte", "bordado", "estampado", "costura", "lavanderia", "acabado"]);
     expect(claves("prenda")).toEqual(["corte", "estampado", "costura", "bordado", "lavanderia", "acabado"]);
   });
-  it("la espina viaja aunque la fila diga apagada (la base exige corte, costura y acabado), y una clave repetida viaja una sola vez (gana la primera)", () => {
+  it("la espina viaja aunque la fila diga apagada, y una clave repetida viaja una sola vez (gana la primera)", () => {
     expect(faseViaja({ clave: "corte", encendida: false })).toBe(true);
+    expect(faseViaja({ clave: "ploteo", encendida: false })).toBe(true);
+    expect(faseViaja({ clave: "ojales_botones", encendida: false })).toBe(false);
     expect(faseViaja({ clave: "bordado", encendida: false })).toBe(false);
-    const apagada = con("corte", { encendida: false });
-    expect(fasesEncendidas(apagada).map((f) => f.clave)).toEqual(["corte", "costura", "acabado"]);
-    const repetida = [...fasesIniciales(), { ...fasesIniciales()[0], quien: "servicio" as const }];
+    const apagada = con("corte", { encendida: false }, fasesIniciales());
+    expect(fasesEncendidas(apagada).map((f) => f.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+    const repetida = [...fasesIniciales(), { ...fasesIniciales()[1], quien: "servicio" as const }];
     const viajan = fasesEncendidas(repetida);
     expect(viajan.filter((f) => f.clave === "corte")).toHaveLength(1);
     expect(viajan.find((f) => f.clave === "corte")?.quien).toBe("taller");
+  });
+});
+
+describe("Ploteo cobra por ORDEN: el fijo, sin tarifa por prenda ni mínimo", () => {
+  const PLOT: ProveedorServicio = { id: "prov-plot", nombre: "Plotter Lima", rubro: "maquila", activo: true };
+  const listaPlot: TarifaDeLista[] = [{ proveedorId: PLOT.id, faseClave: "ploteo", tarifa: 0, minimo: null, fijo: 35, vigenteDesde: "2026-09-01" }];
+  const ctx = { hoy: HOY, proveedores: [...PROVEEDORES, PLOT], lista: listaPlot };
+  const plotAfuera = (cambios: Partial<FaseBorrador> = {}) => con("ploteo", { quien: "servicio", proveedorId: PLOT.id, ...cambios }, fasesIniciales());
+  const hintsPlot = (f: FaseBorrador[]) => problemasFases(f, ctx).map((p) => p.hint);
+
+  it("leerServicio: la tarifa por prenda y el mínimo no existen aunque la caja traiga algo; el fijo escrito manda y, vacío, sale de la lista", () => {
+    const f = (c: Partial<FaseBorrador>) => leerServicio(plotAfuera(c)[0], listaPlot, HOY);
+    expect(f({ fijo: "40", tarifa: "5", minimo: "100" })).toMatchObject({ tarifaPrenda: null, cantidadMinima: null, fijoOrden: 40 });
+    expect(f({})).toMatchObject({ tarifaPrenda: null, cantidadMinima: null, fijoOrden: 35 });
+    expect(leerServicio(plotAfuera({ fijo: "" })[0], [], HOY)).toMatchObject({ tarifaPrenda: null, fijoOrden: 0 });
+  });
+  it("las faltas: sin fijo ni lista (fase_sin_fijo), fijo negativo o en cero (fase_sin_fijo), fijo con coma o texto o fuera de rango (fase_tarifa_invalida); con lista o con fijo, ninguna", () => {
+    expect(hintsPlot(plotAfuera({ fijo: "" }))).toEqual([]);
+    expect(problemasFases(plotAfuera({ fijo: "" }), { ...ctx, lista: [] }).map((p) => p.hint)).toEqual(["fase_sin_fijo"]);
+    expect(problemasFases(plotAfuera({ fijo: "0" }), { ...ctx, lista: [] }).map((p) => p.hint)).toEqual(["fase_sin_fijo"]);
+    expect(hintsPlot(plotAfuera({ fijo: "-5" }))).toEqual(["fase_sin_fijo"]);
+    expect(hintsPlot(plotAfuera({ fijo: "40,00" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hintsPlot(plotAfuera({ fijo: "abc" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hintsPlot(plotAfuera({ fijo: "100000" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hintsPlot(plotAfuera({ fijo: "40" }))).toEqual([]);
+    expect(hintsPlot(plotAfuera({ proveedorId: null, fijo: "40" }))).toEqual(["fase_sin_proveedor"]);
+  });
+  it("la frase de lo que falta nombra la fase y dice qué hacer", () => {
+    const [p] = problemasFases(plotAfuera({ fijo: "" }), { ...ctx, lista: [] });
+    expect(p.texto).toBe("Falta lo que cobra «Ploteo» por esta orden: escríbelo o guárdalo en la lista de precios del proveedor.");
+  });
+  it("viaja a la base sin tarifa por prenda ni mínimo, con el fijo (escrito o el de la lista) como texto; el costo estimado es solo el fijo, no depende de las prendas", () => {
+    const rpc = fasesParaRpc(plotAfuera({ fijo: "40", tarifa: "5", minimo: "100", fechaPrometida: "2026-10-20" }), listaPlot, HOY)[0];
+    expect(rpc).toMatchObject({ clave: "ploteo", quien: "servicio", proveedor_id: PLOT.id, tarifa_prenda: null, fijo_orden: "40", cantidad_minima: null, fecha_prometida: "2026-10-20" });
+    expect(fasesParaRpc(plotAfuera({ fijo: "" }), listaPlot, HOY)[0].fijo_orden).toBe("35");
+    expect(costoServiciosEstimado(plotAfuera({ fijo: "40" }), 50, listaPlot, HOY)).toBe(40);
+    expect(costoServiciosEstimado(plotAfuera({ fijo: "40" }), 500, listaPlot, HOY)).toBe(40);
+    expect(serviciosConCosto(plotAfuera({ fijo: "40" }), 50, listaPlot, HOY, [PLOT]).map((x) => [x.clave, x.proveedor, x.costo])).toEqual([["ploteo", "Plotter Lima", 40]]);
+  });
+  it("sin aviso de mínimo (no tiene) y una fase del Taller no dice nada aunque traiga basura", () => {
+    expect(avisoMinimo(plotAfuera({ fijo: "40" })[0], 1, listaPlot, ctx)).toBeNull();
+    expect(hintsPlot(con("ploteo", { quien: "taller", fijo: "abc", proveedorId: TELAS.id }, fasesIniciales()))).toEqual([]);
   });
 });
 
@@ -186,8 +284,8 @@ describe("problemasFases — cada hint se puede provocar desde la hoja, y solo e
       expect(hints(c.fases)).toContain(c.hint);
     });
   }
-  it("entre todos los casos aparecen los 8 hints: ninguno es inalcanzable desde la hoja", () => {
-    const vistos = new Set(casos.flatMap((c) => hints(c.fases)));
+  it("entre todos los casos aparecen los hints de las fases que cuentan prendas, y con el ploteo por orden, los 9: ninguno es inalcanzable desde la hoja", () => {
+    const vistos = new Set([...casos.flatMap((c) => hints(c.fases)), ...problemasFases(con("ploteo", { quien: "servicio", proveedorId: CONF.id, fijo: "" }, fasesIniciales()), { ...CTX, lista: [] }).map((p) => p.hint)]);
     expect([...vistos].sort()).toEqual([...HINTS_FASE].sort());
   });
   it("todo en orden: un servicio con proveedor, tarifa y fecha de hoy no tiene faltas; una tarifa vacía con lista de precios TAMPOCO (la base la copia)", () => {
@@ -225,13 +323,13 @@ describe("avisos y textos", () => {
     // El mínimo también puede venir de la lista (tarifa vacía: la base copia el mínimo de la lista).
     expect(avisoMinimo(afuera("costura", { tarifa: "", minimo: "" })[3], 50, LISTA, CTX)).toMatch(/desde 150 prendas/);
     expect(avisoMinimo(afuera("costura", { tarifa: "4.50", minimo: "" })[3], 50, LISTA, CTX)).toBeNull();
-    expect(avisoMinimo(fasesIniciales()[3], 50, LISTA, CTX)).toBeNull();
+    expect(avisoMinimo(iniciales()[3], 50, LISTA, CTX)).toBeNull();
     expect(avisoMinimo(costura, 50, LISTA, { hoy: HOY })).toBe("Este servicio cobra desde 150 prendas: esta orden lleva 50");
     // Sigue siendo un aviso: no es una falta.
     expect(hints(afuera("costura", { minimo: "150" }))).toEqual([]);
   });
   it("costoServiciosEstimado suma tarifa × prendas + fijo de lo que sale afuera; null si todo queda en el Taller", () => {
-    expect(costoServiciosEstimado(fasesIniciales(), 50, LISTA, HOY)).toBeNull();
+    expect(costoServiciosEstimado(iniciales(), 50, LISTA, HOY)).toBeNull();
     expect(costoServiciosEstimado(afuera("costura", { fijo: "100" }), 50, LISTA, HOY)).toBe(325);
     const dos = afuera("bordado", { proveedorId: BORD.id, tarifa: "" }, afuera("costura", { tarifa: "" }));
     expect(costoServiciosEstimado(dos, 50, LISTA, HOY)).toBe(50 * 5 + 50 * 1.2 + 80);
@@ -241,9 +339,63 @@ describe("avisos y textos", () => {
   });
 });
 
+describe("«pendiente de registrar» (ADR-0551): sale afuera sin saber todavía con quién; puede llevar su costo y lo devenga igual", () => {
+  const pendiente = (clave: FaseClave, cambios: Partial<FaseBorrador> = {}, base?: FaseBorrador[]) => afuera(clave, { proveedorId: null, tarifa: "", pendiente: true, ...cambios }, base);
+  it("no pide proveedor, tarifa ni fijo (el costo es opcional): no hay faltas; el mismo servicio SIN la marca sigue pidiendo proveedor (un olvido no es un pendiente)", () => {
+    expect(hints(pendiente("costura"))).toEqual([]);
+    expect(hints(pendiente("ploteo"))).toEqual([]);
+    expect(hints(afuera("costura", { proveedorId: null }))).toContain("fase_sin_proveedor");
+  });
+  it("lo que se escriba pasa los mismos topes de un servicio: tarifa 0, negativa, sin punto, de más de S/ 9,999.99; fijo negativo o de más de S/ 99,999.99; mínimo 0", () => {
+    expect(hints(pendiente("costura", { tarifa: "4.50", fijo: "15", minimo: "20" }))).toEqual([]);
+    expect(hints(pendiente("costura", { tarifa: "0" }))).toEqual(["fase_sin_tarifa"]);
+    expect(hints(pendiente("costura", { tarifa: "-2" }))).toEqual(["fase_sin_tarifa"]);
+    expect(hints(pendiente("costura", { tarifa: "4,5" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hints(pendiente("costura", { tarifa: "10000" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hints(pendiente("costura", { tarifa: "4.5", fijo: "-1" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hints(pendiente("costura", { tarifa: "4.5", minimo: "0" }))).toEqual(["fase_tarifa_invalida"]);
+  });
+  it("el ploteo se cobra por orden: su fijo en blanco o escrito vale; negativo no", () => {
+    expect(hints(pendiente("ploteo", { fijo: "40" }, fasesIniciales()))).toEqual([]);
+    expect(hints(pendiente("ploteo", { fijo: "" }, fasesIniciales()))).toEqual([]);
+    expect(hints(pendiente("ploteo", { fijo: "-5" }, fasesIniciales()))).toEqual(["fase_tarifa_invalida"]);
+    const [r] = fasesParaRpc(pendiente("ploteo", { fijo: "40", tarifa: "3", minimo: "10" }, fasesIniciales()).filter((f) => f.clave === "ploteo"), LISTA, HOY);
+    expect(r).toMatchObject({ clave: "ploteo", proveedor_id: null, tarifa_prenda: null, fijo_orden: "40", cantidad_minima: null, proveedor_pendiente: true });
+  });
+  it("una fecha prometida pasada vale; una que no es fecha se rechaza como siempre", () => {
+    expect(hints(pendiente("costura", { fechaPrometida: "2026-01-01" }))).toEqual([]);
+    expect(hints(pendiente("costura", { fechaPrometida: "mañana" }))).toEqual(["fase_fecha_invalida"]);
+  });
+  it("viaja a la base con la marca, SIN proveedor y con lo que se escribió (tarifa, fijo, mínimo); en blanco viaja sin monto", () => {
+    const [r] = fasesParaRpc(pendiente("costura", { tarifa: "9", fijo: "20", minimo: "50", fechaPrometida: "2026-10-01" }).filter((f) => f.clave === "costura"), LISTA, HOY);
+    expect(r).toMatchObject({ clave: "costura", quien: "servicio", proveedor_id: null, tarifa_prenda: "9", fijo_orden: "20", cantidad_minima: "50", fecha_prometida: "2026-10-01", proveedor_pendiente: true });
+    const [vacia] = fasesParaRpc(pendiente("costura").filter((f) => f.clave === "costura"), LISTA, HOY);
+    expect(vacia).toMatchObject({ proveedor_id: null, tarifa_prenda: null, cantidad_minima: null, proveedor_pendiente: true });
+  });
+  it("un pendiente NO toma la lista de precios de un proveedor que ya no tiene (no hay quién): lo escrito o nada", () => {
+    const [r] = fasesParaRpc(pendiente("costura", { proveedorId: CONF.id }).filter((f) => f.clave === "costura"), LISTA, HOY);
+    expect(r).toMatchObject({ proveedor_id: null, tarifa_prenda: null, proveedor_pendiente: true });
+  });
+  it("DEVENGA como un servicio: suma al costo estimado (tarifa × prendas + fijo), aparece en el reparto por prenda sin proveedor, y sin monto no suma; no avisa de cantidad mínima", () => {
+    expect(costoServiciosEstimado(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY)).toBe(470);
+    expect(costoServiciosEstimado(pendiente("costura"), 50, LISTA, HOY)).toBe(0);
+    const [fila] = serviciosConCosto(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY, PROVEEDORES);
+    expect(fila).toMatchObject({ clave: "costura", proveedor: null, pendiente: true, costo: 470 });
+    // El mínimo del pendiente avisa como el de cualquier servicio (sin nombre de proveedor: no hay).
+    expect(avisoMinimo(pendiente("costura", { minimo: "500" }).find((f) => f.clave === "costura")!, 50, LISTA, { hoy: HOY, proveedores: PROVEEDORES })).toBe("Este servicio cobra desde 500 prendas: esta orden lleva 50");
+  });
+  it("la base lo acepta: la migración del costo lee tarifa, fijo y mínimo del pendiente en `fn_produccion_fases_normalizar`, ensancha el CHECK y deja `dejar_fase_pendiente_de_registrar` con el costo", () => {
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261028084000_produccion_pendiente_con_costo_devengado.sql"), "utf8");
+    expect(sql).toContain("'proveedor_id', null, 'tarifa_prenda', v_tarifa, 'fijo_orden', v_fijo, 'cantidad_minima', v_min");
+    expect(sql).toContain("(proveedor_id is null and (clave <> 'ploteo' or tarifa_prenda is null))");
+    expect(sql).toContain("dejar_fase_pendiente_de_registrar(\n  p_fase_id uuid, p_fecha_prometida date default null,\n  p_tarifa_prenda numeric default null");
+    expect(sql).toContain("p_limpiar_costo boolean default false");
+  });
+});
+
 describe("serviciosConCosto — la cuenta de los servicios, fase por fase", () => {
   it("parte `costoServiciosEstimado` en una fila por fase de afuera, con su proveedor y en el orden de la ruta; lo que se queda en el Taller no entra", () => {
-    expect(serviciosConCosto(fasesIniciales(), 50, LISTA, HOY, PROVEEDORES)).toEqual([]);
+    expect(serviciosConCosto(iniciales(), 50, LISTA, HOY, PROVEEDORES)).toEqual([]);
     const dos = afuera("bordado", { proveedorId: BORD.id, tarifa: "" }, afuera("costura", { tarifa: "" }));
     const filas = serviciosConCosto(dos, 50, LISTA, HOY, PROVEEDORES);
     // El bordado sobre pieza va antes que la costura en la ruta; cada uno toma la tarifa vigente de su lista (costura S/ 5.00, bordado S/ 1.20 + S/ 80 fijo).
@@ -285,9 +437,9 @@ describe("fasesParaRpc — lo que viaja", () => {
     expect(vacia.fijo_orden).toBe("0");
   });
   it("las llaves de cada fase son exactamente las que `fn_produccion_fases_normalizar` lee (`v_f ->> '…'`), menos la nota, que la hoja no pide", () => {
-    const cuerpo = funcion("fn_produccion_fases_normalizar");
+    const cuerpo = funcion("fn_produccion_fases_normalizar", SQL_NORMALIZAR);
     const enSql = new Set([...cuerpo.matchAll(/v_f ->> '(\w+)'/g)].map((m) => m[1]));
-    const [corte] = fasesParaRpc(fasesIniciales(), LISTA, HOY);
+    const [corte] = fasesParaRpc(iniciales(), LISTA, HOY);
     const llaves = Object.keys(corte).sort();
     expect(llaves).toEqual([...enSql].filter((k) => k !== "nota").sort());
   });
@@ -296,46 +448,68 @@ describe("fasesParaRpc — lo que viaja", () => {
 // ---------- Paridad con la migración: lo que la pantalla dice sale del SQL, no de la memoria ----------
 
 const SQL = readFileSync(join(RAIZ, MIGRACION), "utf8");
+const SQL_NORMALIZAR = readFileSync(join(RAIZ, MIGRACION_NORMALIZAR), "utf8");
 /** El cuerpo de una función de la migración (desde su `create or replace function` hasta el `$$;` que la cierra). */
-function funcion(nombre: string): string {
-  const desde = SQL.indexOf(`create or replace function retail.${nombre}(`);
+function funcion(nombre: string, sql: string = SQL): string {
+  const desde = sql.indexOf(`create or replace function retail.${nombre}(`);
   expect(desde, nombre).toBeGreaterThan(-1);
-  return SQL.slice(desde, SQL.indexOf("$$;", desde));
+  return sql.slice(desde, sql.indexOf("$$;", desde));
 }
 
-describe("paridad con la migración 20261014154000", () => {
+describe("paridad con las migraciones 20261019191000 y 20261019192000", () => {
   it("cada hint que la pantalla puede decir existe en fn_produccion_fases_normalizar, y los de allá que no están acá son imposibles por construcción", () => {
-    const cuerpo = funcion("fn_produccion_fases_normalizar");
+    const cuerpo = funcion("fn_produccion_fases_normalizar", SQL_NORMALIZAR);
     for (const h of HINTS_FASE) expect(cuerpo, h).toContain(`hint = '${h}'`);
-    const imposibles = ["fases_espina", "fase_desconocida", "fase_repetida", "fase_con_posicion", "fase_quien", "fase_proveedor"];
+    // `fases_mezcla` no puede pasar: la hoja manda una sola ruta.
+    const imposibles = ["fases_espina", "fases_mezcla", "fase_desconocida", "fase_repetida", "fase_con_posicion", "fase_quien", "fase_proveedor"];
     const enSql = [...new Set([...cuerpo.matchAll(/hint = '([a-z_]+)'/g)].map((m) => m[1]))].sort();
     expect(enSql).toEqual([...HINTS_FASE, ...imposibles].sort());
   });
   it("la secuencia de la ruta es la de fn_fase_secuencia (se extraen los `when … then N`)", () => {
     const cuerpo = funcion("fn_fase_secuencia");
     const filas = [...cuerpo.matchAll(/when p_clave = '(\w+)'(?: and p_posicion = '(\w+)')? then (\d+)/g)];
-    expect(filas).toHaveLength(8);
+    expect(filas).toHaveLength(14);
     for (const [, clave, posicion, n] of filas) {
       expect(secuenciaDe(clave as FaseClave, (posicion as Posicion | undefined) ?? null), `${clave}/${posicion}`).toBe(Number(n));
     }
     // Las claves con posición en el SQL son exactamente las posicionables de acá, y toda clave de acá aparece allá.
     const conPosicion = new Set(filas.filter((f) => f[2]).map((f) => f[1]));
     expect([...conPosicion].sort()).toEqual(FASES.filter((f) => f.posicionable).map((f) => f.clave).sort());
-    expect(new Set(filas.map((f) => f[1]))).toEqual(new Set(FASES.map((f) => f.clave)));
+    // Los doce de antes conservan su número en el catálogo (ADR-0570): así la CHECK de `produccion_fases` sigue valiendo en las órdenes ya abiertas.
+    expect(new Set(filas.map((f) => f[1]))).toEqual(new Set(FASES.filter((f) => f.delSistema).map((f) => f.clave)));
   });
   it("los nombres son los de fn_fase_nombre y las claves las del CHECK de produccion_fases", () => {
     const nombres = new Map([...funcion("fn_fase_nombre").matchAll(/when '(\w+)' then '([^']+)'/g)].map((m) => [m[1], m[2]]));
-    expect(nombres.size).toBe(6);
-    for (const f of FASES) expect(nombres.get(f.clave), f.clave).toBe(f.nombre);
-    const check = /clave text not null check \(clave in \(([^)]+)\)\)/.exec(SQL)?.[1] ?? "";
+    expect(nombres.size).toBe(12);
+    // Lavandería pasó a llamarse «Lavado o teñido» en el catálogo (ADR-0570, actividad 5); el resto conserva su nombre.
+    for (const f of FASES.filter((x) => x.delSistema)) expect(nombres.get(f.clave), f.clave).toBe(f.clave === "lavanderia" ? "Lavandería" : f.nombre);
+    const check = /add constraint produccion_fases_clave_check check \(clave in \(([^)]+)\)\)/.exec(SQL)?.[1] ?? "";
     const claves = [...check.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
-    expect(claves).toEqual(FASES.map((f) => f.clave).sort());
+    expect(claves).toEqual(FASES.filter((f) => f.delSistema).map((f) => f.clave).sort());
+  });
+  it("el catálogo de respaldo es la siembra de 20261029210000, fila por fila (ADR-0570, actividad 5)", () => {
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261029210000_produccion_catalogo_de_procesos.sql"), "utf8");
+    const bloque = /insert into retail\.procesos_produccion \([^)]*\) values([\s\S]*?)on conflict/.exec(sql)?.[1] ?? "";
+    const filas = [...bloque.matchAll(/\('(\w+)', '([^']+)', '([^']+)', (\d+), (null|\d+), '(\w+)', (true|false), (true|false), (true|false), (true|false), '(\w+)'\)/g)];
+    expect(filas).toHaveLength(FASES.length);
+    for (const [, clave, nombre, ayuda, sec, pieza, ruta, espina, hito, sistema, hoja, quien] of filas) {
+      const f = FASES.find((x) => x.clave === clave);
+      expect(f, clave).toBeDefined();
+      expect([f?.nombre, f?.ayuda, f?.secuencia, f?.secuenciaPieza, f?.ruta, f?.siempre, f?.hito, f?.delSistema, f?.enLaHoja, f?.quienSugerido], clave).toEqual([
+        nombre, ayuda, Number(sec), pieza === "null" ? null : Number(pieza), ruta, espina === "true", hito === "true", sistema === "true", hoja === "true", quien,
+      ]);
+    }
+  });
+  it("las fases que se marcan son las de fn_fase_es_hito (hoy solo ploteo)", () => {
+    const cuerpo = funcion("fn_fase_es_hito", SQL_NORMALIZAR);
+    const enLaBase = [...cuerpo.matchAll(/p_clave = '(\w+)'/g)].map((m) => m[1]);
+    expect(enLaBase.sort()).toEqual(FASES.filter((f) => f.hito).map((f) => f.clave).sort());
   });
   it("los topes de tarifa y fijo son los de la función; el Taller no lleva proveedor ni tarifa ni fecha (el CHECK produccion_fases_quien)", () => {
-    const cuerpo = funcion("fn_produccion_fases_normalizar");
+    const cuerpo = funcion("fn_produccion_fases_normalizar", SQL_NORMALIZAR);
     expect(Number(/v_tarifa > ([\d.]+)/.exec(cuerpo)?.[1])).toBe(TARIFA_MAXIMA);
     expect(Number(/v_fijo < 0 or v_fijo > ([\d.]+)/.exec(cuerpo)?.[1])).toBe(FIJO_MAXIMO);
-    expect(SQL).toMatch(/else proveedor_id is null and tarifa_prenda is null and fecha_prometida is null and cantidad_minima is null/);
+    expect(SQL_NORMALIZAR).toMatch(/else proveedor_id is null and tarifa_prenda is null and fecha_prometida is null and cantidad_minima is null/);
     // Y la copia de la lista mira la vigente más reciente a hoy, como `tarifaSugerida`.
     expect(cuerpo).toMatch(/t\.vigente_desde <= retail\.fn_hoy_lima\(\)\s+order by t\.vigente_desde desc limit 1/);
   });
@@ -396,7 +570,7 @@ describe("la pantalla no promete lo que la base rechaza, ni frena lo que la base
     let sinProblemas = 0;
     let conServicio = 0;
     for (let i = 0; i < 1000; i++) {
-      const fases: FaseBorrador[] = fasesIniciales().map((f) => ({
+      const fases: FaseBorrador[] = iniciales().map((f) => ({
         ...f,
         encendida: r() < 0.5,
         quien: r() < 0.5 ? "taller" : "servicio",
@@ -421,5 +595,190 @@ describe("la pantalla no promete lo que la base rechaza, ni frena lo que la base
     // Que el azar de verdad llegue a «todo en orden» (y con servicios afuera), si no la prueba no probaría nada.
     expect(sinProblemas).toBeGreaterThan(20);
     expect(conServicio).toBeGreaterThan(5);
+  });
+});
+
+// ---------- ADR-0551: ojales y botones del modelo, y Ploteo y Corte afuera solo si hay a quién mandarlos ----------
+
+describe("Ojales y botones sigue a lo que dijo el modelo", () => {
+  it("un modelo que los lleva nace con el paso prendido, justo después de Costura; uno que no, o que nadie preguntó, nace apagado", () => {
+    const claves = (f: FaseBorrador[]) => f.filter((x) => x.encendida).map((x) => x.clave);
+    expect(claves(fasesIniciales({ ojalesBotones: true }))).toEqual(["ploteo", "corte", "habilitado", "costura", "ojales_botones", "planchado"]);
+    expect(claves(fasesIniciales({ ojalesBotones: false }))).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+    expect(claves(fasesIniciales({ ojalesBotones: null }))).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+    expect(claves(fasesIniciales())).toEqual(["ploteo", "corte", "habilitado", "costura", "planchado"]);
+  });
+  it("conProcesosDelModelo solo mueve los opcionales: lo que la persona ya escribió en la espina se queda (y «sin respuesta» apaga, no prende a ciegas)", () => {
+    const tocadas = con("costura", { quien: "servicio", proveedorId: CONF.id, tarifa: "4.50" }, fasesIniciales({ ojalesBotones: true }));
+    const siLleva = conProcesosDelModelo(tocadas, { ojales_botones: true, pegar_cierre: true });
+    const noLleva = conProcesosDelModelo(tocadas, { ojales_botones: false });
+    const sinRespuesta = conProcesosDelModelo(tocadas, null);
+    expect(siLleva.filter((f) => f.encendida && !faseDe(f.clave).siempre).map((f) => f.clave)).toEqual(["pegar_cierre", "ojales_botones"]);
+    expect(noLleva.find((f) => f.clave === "ojales_botones")?.encendida).toBe(false);
+    expect(sinRespuesta.find((f) => f.clave === "ojales_botones")?.encendida).toBe(false);
+    for (const r of [siLleva, noLleva, sinRespuesta]) expect(r.find((f) => f.clave === "costura")).toEqual(tocadas.find((f) => f.clave === "costura"));
+  });
+  it("el modelo prende sus procesos al nacer la hoja (delModelo), también uno propio del catálogo", () => {
+    const propio = { ...faseDe("pegar_cierre"), clave: "tenido_en_frio", nombre: "Teñido en frío", secuencia: 31, delSistema: false };
+    const catalogo = [...FASES, propio];
+    const f = fasesIniciales({ delModelo: { tenido_en_frio: true, lavanderia: true } }, catalogo);
+    expect(fasesEncendidas(f, catalogo).map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "tenido_en_frio", "lavanderia", "planchado"]);
+  });
+  it("procesosParaRecordar: lo que cambió; un proceso nunca contestado se anota solo si la orden lo lleva, salvo Ojales y botones (que se contesta siempre)", () => {
+    const f = con("pegar_cierre", { encendida: true }, fasesIniciales());
+    expect(procesosParaRecordar(f, null)).toEqual([{ clave: "pegar_cierre", lleva: true }, { clave: "ojales_botones", lleva: false }]);
+    expect(procesosParaRecordar(f, { pegar_cierre: true, ojales_botones: false })).toEqual([]);
+    expect(procesosParaRecordar(fasesIniciales(), { pegar_cierre: true, ojales_botones: false, lavanderia: false })).toEqual([{ clave: "pegar_cierre", lleva: false }]);
+  });
+  it("con Ojales y botones prendido la orden sigue siendo válida y a la base viaja entre Costura y Planchado", () => {
+    const f = fasesIniciales({ ojalesBotones: true });
+    // Un servicio de afuera necesita proveedor y precio: este paso nace en el Taller, así que no pide nada.
+    expect(problemasFases(f, CTX)).toEqual([]);
+    expect(fasesParaRpc(f, LISTA, HOY).map((x) => x.clave)).toEqual(["ploteo", "corte", "habilitado", "costura", "ojales_botones", "planchado"]);
+  });
+  it("leerProcesosDeModelos: por modelo, lo que dijo de cada proceso; lo que no se lee bien no contesta (la hoja pregunta), nunca prende un paso a ciegas", () => {
+    expect(leerProcesosDeModelos([{ producto_id: "a", proceso_clave: "ojales_botones", lleva: true }, { producto_id: "a", proceso_clave: "pegar_cierre", lleva: false }, { producto_id: "b", proceso_clave: "ojales_botones", lleva: false }])).toEqual({
+      a: { ojales_botones: true, pegar_cierre: false },
+      b: { ojales_botones: false },
+    });
+    expect(leerProcesosDeModelos([{ producto_id: "a", proceso_clave: "x", lleva: "true" }, { producto_id: 5, proceso_clave: "x", lleva: true }, null, "x", { producto_id: "c" }])).toEqual({});
+    expect(leerProcesosDeModelos(null)).toEqual({});
+  });
+  it("leerProcesos: lo que manda fn_procesos_produccion, en el orden de la ruta; una fila rota no entra y sin filas es null (la pantalla usa el respaldo)", () => {
+    const leido = leerProcesos([
+      { clave: "corte", nombre: "Corte", ayuda: "x", secuencia: 10, secuencia_pieza: null, ruta: "ambas", espina: true, hito: false, del_sistema: true, en_la_hoja: true, quien_sugerido: "taller", activo: true, usos: 4 },
+      { clave: "bordado", nombre: "Bordado", secuencia: 40, secuencia_pieza: 20, ruta: "ambas", espina: false, hito: false, del_sistema: true, en_la_hoja: false, quien_sugerido: "servicio", activo: true },
+      { clave: "Malo!", nombre: "x", secuencia: 1 },
+      { clave: "sin_nombre", nombre: " ", secuencia: 2 },
+    ]);
+    expect(leido?.map((f) => `${f.clave}:${f.secuencia}:${f.secuenciaPieza}:${f.posicionable}:${f.usos}`)).toEqual(["corte:10:null:false:4", "bordado:40:20:true:undefined"]);
+    expect(leerProcesos([])).toBeNull();
+    expect(leerProcesos("x")).toBeNull();
+  });
+});
+
+describe("Ploteo y Corte nacen afuera solo si hay a quién mandarlos", () => {
+  const PLOTTER: ProveedorServicio = { id: "prov-plotter", nombre: "Plotter Lima", rubro: "otro", activo: true };
+  const CORTADOR: ProveedorServicio = { id: "prov-corte", nombre: "Cortes Gamarra", rubro: "maquila", activo: true };
+  const T = (proveedorId: string, faseClave: FaseClave, tarifa: number, fijo = 0, vigenteDesde = "2026-10-01"): TarifaDeLista => ({ proveedorId, faseClave, tarifa, minimo: null, fijo, vigenteDesde });
+
+  it("sin proveedores o sin precio nace todo en el Taller (hoy, con un solo proveedor cargado, ninguna orden nace bloqueada)", () => {
+    expect(serviciosPorDefecto([], [], HOY)).toEqual({});
+    expect(serviciosPorDefecto(PROVEEDORES, LISTA, HOY)).toEqual({});
+    const f = fasesIniciales({ servicios: serviciosPorDefecto(PROVEEDORES, LISTA, HOY) });
+    expect(f.every((x) => x.quien === "taller")).toBe(true);
+    expect(problemasFases(f, CTX)).toEqual([]);
+  });
+  it("con UN proveedor de corte con precio vigente, Corte nace afuera con ese proveedor; Ploteo sigue en el Taller (cada fase se resuelve sola)", () => {
+    const servicios = serviciosPorDefecto([CORTADOR], [T(CORTADOR.id, "corte", 1.5)], HOY);
+    expect(servicios).toEqual({ corte: CORTADOR.id });
+    const f = fasesIniciales({ servicios });
+    expect(f.find((x) => x.clave === "corte")).toMatchObject({ quien: "servicio", proveedorId: CORTADOR.id });
+    expect(f.find((x) => x.clave === "ploteo")).toMatchObject({ quien: "taller", proveedorId: null });
+    expect(problemasFases(f, { hoy: HOY, proveedores: [CORTADOR], lista: [T(CORTADOR.id, "corte", 1.5)] })).toEqual([]);
+  });
+  it("el ploteo se cobra por ORDEN: sirve un precio con fijo, no uno por prenda; con fijo, Ploteo nace afuera", () => {
+    expect(serviciosPorDefecto([PLOTTER], [T(PLOTTER.id, "ploteo", 0, 0)], HOY)).toEqual({});
+    expect(serviciosPorDefecto([PLOTTER], [T(PLOTTER.id, "ploteo", 0, 40)], HOY)).toEqual({ ploteo: PLOTTER.id });
+  });
+  it("con VARIOS proveedores con precio nace afuera pero sin elegir: la hoja pide elegir a quién (nunca elige por la persona)", () => {
+    const otro: ProveedorServicio = { id: "prov-corte-2", nombre: "Cortes del Sur", rubro: "maquila", activo: true };
+    const servicios = serviciosPorDefecto([CORTADOR, otro], [T(CORTADOR.id, "corte", 1.5), T(otro.id, "corte", 1.4)], HOY);
+    expect(servicios).toEqual({ corte: null });
+    const f = fasesIniciales({ servicios });
+    expect(f.find((x) => x.clave === "corte")).toMatchObject({ quien: "servicio", proveedorId: null });
+    expect(hintsDe(f, [CORTADOR, otro], [T(CORTADOR.id, "corte", 1.5), T(otro.id, "corte", 1.4)])).toContain("fase_sin_proveedor");
+  });
+  it("un proveedor inactivo, de tela o de avíos, o un precio que todavía no vige, no cuentan", () => {
+    expect(serviciosPorDefecto([INACTIVO, TELAS, AVIOS], [T(INACTIVO.id, "corte", 1), T(TELAS.id, "corte", 1), T(AVIOS.id, "corte", 1)], HOY)).toEqual({});
+    expect(serviciosPorDefecto([CORTADOR], [T(CORTADOR.id, "corte", 1.5, 0, "2026-11-01")], HOY)).toEqual({});
+  });
+  it("la lista plana de precios une los de todos los proveedores", () => {
+    expect(listaDeTarifas([{ id: "p1", tarifas: [{ faseClave: "corte", tarifa: 1, minimo: 10, fijo: 0, vigenteDesde: "2026-10-01" }] }, { id: "p2", tarifas: [] }])).toEqual([
+      { proveedorId: "p1", faseClave: "corte", tarifa: 1, minimo: 10, fijo: 0, vigenteDesde: "2026-10-01" },
+    ]);
+  });
+});
+
+function hintsDe(fases: FaseBorrador[], proveedores: ProveedorServicio[], lista: TarifaDeLista[]) {
+  return problemasFases(fases, { hoy: HOY, proveedores, lista }).map((p) => p.hint);
+}
+
+describe("ploteo: total de la orden o por prenda", () => {
+  it("por prenda se convierte al total que viaja a la base, y de vuelta", () => {
+    expect(fijoDesdePorPrenda("0.26", 57)).toBe("14.82");
+    expect(fijoDesdePorPrenda("1.50", 48)).toBe("72.00");
+    expect(porPrendaDeFijo("15", 57)).toBe("0.26");
+  });
+  it("sin prendas o con un texto que no es número no inventa un total", () => {
+    expect(fijoDesdePorPrenda("0.26", 0)).toBe("");
+    expect(fijoDesdePorPrenda("abc", 57)).toBe("");
+    expect(fijoDesdePorPrenda("0,26", 57)).toBe("");
+    expect(porPrendaDeFijo("", 57)).toBe("");
+  });
+});
+
+// Nació de «Ojales y botones» a S/ 34.80 «por prenda» en una orden de 57: era el total de la orden escrito donde va el precio de una prenda.
+describe("una tarifa por prenda que parece el total de la orden", () => {
+  const ojales = (tarifa: string, extra: Partial<FaseBorrador> = {}) => afuera("lavanderia", { tarifa, ...extra });
+  const fase = (fases: FaseBorrador[], clave: FaseClave) => fases.find((f) => f.clave === clave)!;
+  const fuera = (tarifa: string, prendas = 57, lista: TarifaDeLista[] = [], extra: Partial<FaseBorrador> = {}) =>
+    tarifaFueraDeLoNormal(fase(ojales(tarifa, extra), "lavanderia"), prendas, lista, HOY);
+
+  it("sin precio de referencia, pasar de S/ 15 por prenda pregunta, y dice cuánto serían las prendas", () => {
+    expect(fuera("34.80")).toEqual({ tarifa: 34.8, totalDeLaOrden: 1983.6, tope: TARIFA_SIN_REFERENCIA_MAXIMA, deLaLista: false });
+    expect(fuera("15")).toBeNull();
+    expect(fuera("15.01")).not.toBeNull();
+    expect(fuera("0.61")).toBeNull();
+  });
+  it("con precios de otros proveedores para esa fase, el tope es el triple del mayor (con un piso de S/ 5)", () => {
+    const lista: TarifaDeLista[] = [{ proveedorId: CONF.id, faseClave: "lavanderia", tarifa: 0.6, minimo: null, fijo: 0, vigenteDesde: "2026-01-01" }];
+    expect(fuera("4.99", 57, lista)).toBeNull();
+    expect(fuera("5.50", 57, lista)).toEqual({ tarifa: 5.5, totalDeLaOrden: 313.5, tope: 5, deLaLista: true });
+    const cara: TarifaDeLista[] = [{ proveedorId: CONF.id, faseClave: "lavanderia", tarifa: 4, minimo: null, fijo: 0, vigenteDesde: "2026-01-01" }];
+    expect(fuera("11.90", 57, cara)).toBeNull();
+    expect(fuera("12.10", 57, cara)).not.toBeNull();
+  });
+  it("no pregunta con una sola prenda, con el Taller, con el ploteo ni con una tarifa que viene de la lista del proveedor", () => {
+    expect(fuera("34.80", 1)).toBeNull();
+    expect(tarifaFueraDeLoNormal(fase(con("lavanderia", { encendida: true, quien: "taller", tarifa: "34.80" }), "lavanderia"), 57, [], HOY)).toBeNull();
+    expect(tarifaFueraDeLoNormal({ ...fase(ojales("34.80"), "lavanderia"), clave: "ploteo", tarifa: "34.80", fijo: "40" }, 57, [], HOY)).toBeNull();
+    const lista: TarifaDeLista[] = [{ proveedorId: CONF.id, faseClave: "lavanderia", tarifa: 34.8, minimo: null, fijo: 0, vigenteDesde: "2026-01-01" }];
+    expect(fuera("", 57, lista)).toBeNull();
+  });
+  it("contestar «sí, es por prenda» calla la pregunta solo para ese valor: si la caja cambia, vuelve", () => {
+    expect(fuera("34.80", 57, [], { tarifaConfirmada: "34.80" })).toBeNull();
+    expect(fuera("40", 57, [], { tarifaConfirmada: "34.80" })).not.toBeNull();
+  });
+  it("problemasFases la cuenta como lo que falta SOLO si la hoja le pasa las prendas, y no la mezcla con los errores de la base", () => {
+    const f = ojales("34.80");
+    expect(problemasFases(f, CTX).map((p) => p.hint)).toEqual([]);
+    const con57 = problemasFases(f, { ...CTX, totalPrendas: 57 });
+    expect(con57.map((p) => p.hint)).toEqual([HINT_TARIFA_A_CONFIRMAR]);
+    expect(con57[0].texto).toContain("1983.60");
+    expect(problemasFases(ojales("34,80"), { ...CTX, totalPrendas: 57 }).map((p) => p.hint)).toEqual(["fase_tarifa_invalida"]);
+    expect(problemasFases(ojales("34.80", { tarifaConfirmada: "34.80" }), { ...CTX, totalPrendas: 57 })).toEqual([]);
+  });
+  it("un servicio pendiente de registrar también pregunta: ahí no hay lista de precios que lo frene", () => {
+    const f = con("lavanderia", { encendida: true, quien: "servicio", pendiente: true, tarifa: "34.80" });
+    expect(problemasFases(f, { ...CTX, totalPrendas: 57 }).map((p) => p.hint)).toEqual([HINT_TARIFA_A_CONFIRMAR]);
+  });
+});
+
+describe("servicio: total de la orden o por prenda", () => {
+  it("el total se reparte entre las prendas a dos decimales, que es lo que guarda la base", () => {
+    expect(tarifaDesdeTotal("34.80", 57)).toBe("0.61");
+    expect(tarifaDesdeTotal("85.50", 57)).toBe("1.50");
+    expect(tarifaDesdeTotal("100", 3)).toBe("33.33");
+  });
+  it("dice cuánto suman de verdad las prendas con la tarifa ya redondeada (para avisar la diferencia)", () => {
+    expect(totalDeLaTarifa("0.61", 57)).toBe("34.77");
+    expect(totalDeLaTarifa("1.50", 57)).toBe("85.50");
+  });
+  it("sin prendas o con un texto que no es número no inventa una tarifa", () => {
+    expect(tarifaDesdeTotal("34.80", 0)).toBe("");
+    expect(tarifaDesdeTotal("34,80", 57)).toBe("");
+    expect(tarifaDesdeTotal("", 57)).toBe("");
+    expect(totalDeLaTarifa("abc", 57)).toBe("");
   });
 });

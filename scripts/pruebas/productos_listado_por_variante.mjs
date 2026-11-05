@@ -21,7 +21,8 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const LISTADO = readFileSync(join(RAIZ, "supabase/migrations/20261002200000_productos_listado_por_variante.sql"), "utf8");
+// Y el filtro por empresa (20261021004000, ADR-0467): la migración vieja vuelve a crear las firmas de antes y esta deja las nuevas.
+const LISTADO = `${readFileSync(join(RAIZ, "supabase/migrations/20261002200000_productos_listado_por_variante.sql"), "utf8")}\n\\o /dev/null\n${readFileSync(join(RAIZ, "supabase/migrations/20261021004000_productos_filtro_por_empresa.sql"), "utf8")}\n\\o\n`;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed
 const LIMA = "(select id from retail.ubicaciones where nombre = 'Tienda Lima')";
 

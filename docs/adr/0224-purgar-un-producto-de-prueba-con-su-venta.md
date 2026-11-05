@@ -221,3 +221,33 @@ purga les devolvió en vez de pisar su stock con el número viejo (si la tienda 
 
 **Pendiente:** Polo Básico, cuando Felipe decida qué hacer con las 2 proformas (ampliar el script con `cayla_purga.proformas` o anularlas), y
 justo después Blusa Carlita (si va antes, NV01-4 y 5 de Polo Básico impiden que la serie vuelva al 3 y queda un hueco).
+
+## Actualización 2026-10-22 — restaurar un respaldo hecho ANTES de que una tabla ganara columnas
+
+**El problema.** `restaurar-purga.sql` reinserta lo respaldado con `jsonb_populate_recordset(null::retail.<tabla>, …)` y TODAS las columnas
+actuales de la tabla. Una clave que el respaldo no trae llega como `NULL`, **no** como el valor de fábrica de la columna. Si la columna es
+`NOT NULL` con valor de fábrica, el insert muere con 23502 y la restauración entera se aborta: quien se arrepiente de una purga se queda sin
+red. No era teórico: `conteo_items.aplicada_sin_contar` (`20261004230000`) y `conteo_items.completada_con_atajo` (`20261005233700`) son
+`boolean not null default false`, así que cualquier respaldo de líneas de conteo anterior a ellas no se podía restaurar. La migración
+`20260930010000` ya había dejado escrito el riesgo y por eso hizo NULLABLE sin valor de fábrica sus columnas; esas dos rompieron la regla.
+
+DECIDÍ: el script arma dos listas por tabla desde `information_schema.columns`: las columnas a insertar y las que se seleccionan. En una columna
+`NOT NULL` con valor de fábrica, lo seleccionado es `coalesce(columna, <valor de fábrica>)`: la fila vuelve como habría quedado si la columna
+hubiera existido siempre (es lo mismo que le hizo la migración a las filas que ya estaban). Una columna `NOT NULL` SIN valor de fábrica que el
+respaldo no trae no se inventa: el insert se atrapa (`not_null_violation`) y se re-lanza `[restaurar] No se restaura nada: …` con la tabla y la
+columna. Una columna que admite NULL se devuelve tal cual vino.
+DESCARTÉ: (a) construir la lista de columnas solo con las claves presentes en el respaldo y dejar actuar el valor de fábrica — hay que decidir
+clave por clave y fila por fila, lo que obliga a insertar fila por fila (o agrupar por conjunto de claves), contra una sola sentencia por tabla;
+(b) volver NULLABLE las dos columnas de conteo — es cambiar el esquema de producción (ya pegado) para acomodar una herramienta manual, y deja
+una tercera cara (`NULL`) a un booleano que hoy solo tiene dos; (c) `coalesce` en toda columna con valor de fábrica, también las que admiten
+NULL — convertiría un NULL legítimo del respaldo en el valor de fábrica, y el respaldo no distingue «no la traía» de «era nula».
+SE ROMPE SI: una columna `NOT NULL` con valor de fábrica cuyo valor correcto para las filas viejas NO sea su valor de fábrica (una migración que
+agrega `moneda text not null default 'PEN'` y rellena las filas viejas con otra cosa), o una columna **renombrada**: el valor del respaldo
+queda sin destino y la fila vuelve con el valor de fábrica, sin ruido. El dato no se pierde —sigue en `respaldo_purgas.filas.fila`— pero la
+restauración ya no avisa. Ver el pendiente en `docs/backlog/2026-10-22-silly-varahamihira-328115.md`.
+
+**Cómo se probó** (`scripts/pruebas/purgar_producto_de_prueba.mjs`, de 93 a 100 comprobaciones): (10d) un respaldo al que se le quitan las
+dos claves de conteo vuelve con `false`, la base entera idéntica tabla por tabla y el libro cuadrado; (10e) cuatro columnas `NOT NULL` de otros
+tipos (texto, entero, `now()`, json) agregadas a `pedidos_no_atendidos` DESPUÉS de purgar vuelven con su valor de fábrica y una opcional
+queda nula; (10f) una `NOT NULL` sin valor de fábrica se niega diciendo tabla y columna. **Control que muerde:** con
+`RESTAURAR_SCRIPT=<el restaurar-purga.sql de antes>` los 7 casos nuevos caen en rojo, y el error es el 23502 de `aplicada_sin_contar`.

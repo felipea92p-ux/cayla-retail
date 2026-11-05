@@ -1,8 +1,11 @@
+import { textoCantidadRechazada } from "./alta-producto";
 import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
-import { FASES, type FaseClave, type Posicion, type Quien } from "./orden-fases-reglas";
-import { veredictoTela } from "./orden-tela-reglas";
+import { FASES, faseDe, leerProcesos, secuenciaDe, type FaseClave, type FaseDelCatalogo, type Posicion, type Quien } from "./orden-fases-reglas";
+import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
+import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
+import { entradaDeCambioDeTipo } from "./orden-tipo-reglas";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
 // las importen la página (servidor) y sus piezas (cliente), y para probar cada frase que la persona lee sin abrir el navegador.
@@ -21,16 +24,29 @@ import { veredictoTela } from "./orden-tela-reglas";
 
 export const RPC_ORDEN_PRODUCCION = "fn_orden_produccion";
 export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
-export const RPC_REGISTRAR_AVANCE = "registrar_avance";
-export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
-export const RPC_REGISTRAR_SALIDA = "registrar_salida";
+/** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
+export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
+export const RPC_REGISTRAR_PROVEEDOR_DE_FASE = "registrar_proveedor_de_fase";
+export const RPC_QUITAR_PASO = "quitar_paso_orden";
+/** Suma UN paso a una orden en proceso (ADR-0566, migración 20261029051000). */
+export const RPC_AGREGAR_PASO = "agregar_paso_orden";
+/** ADR-0586: un líder suma un paso que se olvidó, cuando uno de después ya avanzó; entra ya hecho con todas las prendas que le llegaron. */
+export const RPC_AGREGAR_PASO_TARDE = "agregar_paso_tarde";
+export const RPC_MARCAR_FASE = "marcar_fase_hecha";
+/** La Salida a un servicio y la tela que sale con ella, en una transacción y con token (ADR-0587). */
+export const RPC_REGISTRAR_SALIDA_CON_TELA = "registrar_salida_con_tela";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
 export const RPC_ANULAR_VUELTA = "anular_vuelta";
 export const RPC_CERRAR_PRODUCCION = "cerrar_produccion";
+/** Lo mismo, más el motivo con el que un líder confirma un costo atípico (P19, 2-nov-2026; migración 20261102211000). Sin confirmar un costo atípico se sigue llamando a `cerrar_produccion`. */
+export const RPC_CERRAR_PRODUCCION_CON_MOTIVO = "cerrar_produccion_con_motivo";
+/** Un líder declara que las prendas ya estaban registradas en una sede: al cerrar la orden no suman al stock (ADR-0551 C). */
+export const RPC_MARCAR_YA_EN_STOCK = "marcar_orden_ya_en_stock";
 export const RPC_ANULAR_PRODUCCION = "anular_produccion";
 export const RPC_REVERTIR_PRODUCCION = "revertir_produccion";
+export const RPC_GUARDAR_INSUMOS_ORDEN = "guardar_insumos_orden";
 
 /** Días sin que nadie anote nada para que la orden pida atención (ADR-0400, «Pantallas» punto 1). */
 export const DIAS_SIN_MOVERSE = 4;
@@ -38,8 +54,52 @@ export const DIAS_SIN_MOVERSE = 4;
 // ---------- Lo que la página lee ----------
 
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
+
+/** Cómo entra al stock lo que salió bueno (ADR-0551 C): `movimiento` = una entrada al Taller por talla y color al cerrar; `ya_estaba` = ya estaba registrado en una sede, el cierre no toca el stock. */
+export type IngresoAlStock = "movimiento" | "ya_estaba";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
-export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion";
+export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
+/** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0581; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela, el cambio de tipo (muestra ↔ lote) y un paso
+ *  agregado tarde, con quién, cuándo y el motivo. */
+export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela" | "tipo" | "paso_tarde";
+/** Una entrada de la historia: lo que pasó en la orden o un cambio que se le hizo. */
+export type TipoEntrada = TipoEvento | AccionCambio;
+
+/** Un «Terminé» tal como quedó guardado en un cambio: sus buenas y sus fallas por talla y color, cuándo pasó y su nota. */
+export type TermineGuardado = {
+  buenas: { varianteId: string; cantidad: number }[];
+  fallas: { varianteId: string; destino: "arreglo" | "segunda" | "perdida"; cantidad: number; motivo: string }[];
+  hecho: string | null;
+  nota: string | null;
+};
+
+/** Lo que guardó un paso agregado tarde: cuántas prendas se dieron por hechas y quién las hizo. */
+export type PasoTardeGuardado = { prendas: number; quien: Quien; proveedorNombre: string | null; hecho: string | null };
+
+export type CambioOrden = {
+  id: string;
+  accion: AccionCambio;
+  /** «termine»: lo anotado con «Terminé»; «marca»: la marca de Ploteo; `null` en una nota. */
+  objeto: "termine" | "marca" | null;
+  faseClave: FaseClave | null;
+  faseNombre: string | null;
+  /** Lo que el cambio quitó (las filas originales) y lo que puso (las nuevas). */
+  quitaIds: string[];
+  poneIds: string[];
+  /** Los Deshacer que escribió: la historia los oculta y cuenta el cambio en su lugar. */
+  deshaceIds: string[];
+  antes: TermineGuardado | null;
+  despues: TermineGuardado | null;
+  /** El motivo de un cambio o el texto de una nota. */
+  texto: string;
+  /** Solo en un cambio de tipo (ADR-0581): `true` si pasó a muestra, `false` si pasó a lote; `null` en lo demás. Sale del dato guardado, no del texto. */
+  pasoAMuestra: boolean | null;
+  /** Un paso agregado tarde (ADR-0586): con cuántas prendas entró ya hecho y quién lo hizo. */
+  tarde?: PasoTardeGuardado | null;
+  restaurado: boolean;
+  quienNombre: string | null;
+  cuando: string;
+};
 
 export type ProductoPagina = {
   id: string;
@@ -61,7 +121,20 @@ export type LineaPagina = {
   cantidadBuenas: number | null;
 };
 
-export type FaseVariante = { varianteId: string; plan: number | null; entrada: number; hechas: number; salieron: number; volvieronBuenas: number; segundas: number; faltantes: number; afuera: number };
+export type FaseVariante = {
+  varianteId: string;
+  plan: number | null;
+  entrada: number;
+  hechas: number;
+  salieron: number;
+  volvieronBuenas: number;
+  segundas: number;
+  faltantes: number;
+  afuera: number;
+  /** En el Taller (ADR-0570): las segundas y las perdidas que se anotaron en «Terminé». Cierran la fase y no pasan a la siguiente. */
+  fallasSegundas: number;
+  fallasPerdidas: number;
+};
 
 export type FasePagina = {
   id: string;
@@ -89,8 +162,19 @@ export type FasePagina = {
   desde: string | null;
   diasEnFase: number | null;
   devengado: number | null;
+  /** Una fase que se MARCA «hecha» con un toque en vez de contar prendas (Ploteo): sus cantidades vienen en 0 y no entra a la cadena de la que depende cada fase (`fn_fase_es_hito`). */
+  hito: boolean;
+  /** Solo en una fase hito: tiene una marca viva (la fase está `hecha`). */
+  marcada: boolean;
   porVariante: FaseVariante[];
 };
+
+/** El consumo por talla que devuelve `fn_orden_produccion` ({"S": 1.15, "M": 1.2}) como mapa de números; null si no hay, no es un objeto o ninguna cifra se lee. */
+function porTallaLeida(crudo: unknown): Record<string, number> | null {
+  if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return null;
+  const pares = Object.entries(crudo as Record<string, unknown>).flatMap(([talla, v]) => (v !== null && v !== "" && Number.isFinite(Number(v)) && Number(v) > 0 ? [[talla, Number(v)] as const] : []));
+  return pares.length > 0 ? Object.fromEntries(pares) : null;
+}
 
 export type InsumoPagina = {
   id: string;
@@ -101,6 +185,10 @@ export type InsumoPagina = {
   colorCodigo: string | null;
   colorNombre: string | null;
   consumoPorPrenda: number;
+  /** Una cifra por talla (talla → metros o unidades), si la orden la declaró así; ausente o nulo = una sola cifra para todas las tallas (ADR-0513). */
+  consumoPorTalla?: Record<string, number> | null;
+  /** Un complemento de la prenda (forro, otra tela) y no la tela principal de su color (ADR-0563): no cuenta como «la tela del modelo» y se muestra aparte. Un avío siempre es falso: lo es por su tipo. */
+  esComplemento: boolean;
   cantidadPlan: number;
   usado: number;
   saldo: number;
@@ -170,6 +258,12 @@ export type EventoTiempo = {
   /** Solo en una anulación: qué anuló, y por qué. */
   anula: "salida" | "vuelta" | null;
   motivo: string | null;
+  /** Solo en una prenda con falla (ADR-0570): qué pasa con ella. */
+  destino: DestinoFalla | null;
+  /** Solo en una prenda con falla que todavía se puede deshacer. */
+  fallaId: string | null;
+  /** Cuándo se anotó, si no fue el mismo día en que pasó (`cuando` es el día real que eligió quien anotó). */
+  registradoEn: string | null;
 };
 
 export type OrdenPagina = {
@@ -184,6 +278,8 @@ export type OrdenPagina = {
     creadoEn: string;
     creadoPorNombre: string | null;
     inventariadoEn: string | null;
+    /** `ya_estaba`: las prendas ya estaban registradas en una sede; cerrar la orden no las suma al stock ni toca el costo de la prenda. */
+    ingresoAlStock: IngresoAlStock;
     cantidadPlan: number;
     cantidadBuenas: number | null;
     ubicacionId: string;
@@ -196,7 +292,13 @@ export type OrdenPagina = {
   /** `null`: quien mira no ve los costos del Taller (o la base no los mandó). */
   costos: CostosPagina | null;
   lineaDeTiempo: EventoTiempo[];
+  /** Las correcciones, eliminaciones, restauraciones y notas de la orden (ADR-0570, actividad 3), de la más reciente a la más vieja. */
+  cambios: CambioOrden[];
+  /** Los ids de lo anotado que ya tiene su Deshacer (por un cambio o por «Deshacer»): ya no se corrige. */
+  deshechos: string[];
   permisos: { puedeOperar: boolean; veCostos: boolean };
+  /** El catálogo de procesos (`fn_procesos_produccion`, ADR-0570 actividad 5); si no se pudo leer, el de respaldo. */
+  procesos: ReadonlyArray<FaseDelCatalogo>;
 };
 
 const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
@@ -206,27 +308,42 @@ function numero(x: unknown): number | null {
   return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
 const entero = (x: unknown, defecto = 0): number => Math.round(numero(x) ?? defecto);
-const claves = new Set<string>(FASES.map((f) => f.clave));
-const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion"]);
+// Una clave de proceso del catálogo (`procesos_produccion`): la base garantiza que existe (llave foránea); acá solo se descarta lo que no tiene forma de clave.
+const esClaveDeProceso = (c: string) => /^[a-z][a-z0-9_]{1,39}$/.test(c);
+const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion", "marca", "desmarca", "falla", "falla_deshecha"]);
 
 function leerFase(crudo: unknown): FasePagina | null {
   if (!esObjeto(crudo)) return null;
   const id = texto(crudo.id);
   const clave = texto(crudo.clave);
-  if (!id || !clave || !claves.has(clave)) return null;
+  if (!id || !clave || !esClaveDeProceso(clave)) return null;
   const estado = crudo.estado === "hecha" || crudo.estado === "en_curso" ? crudo.estado : "pendiente";
   const porVariante = Array.isArray(crudo.por_variante)
     ? crudo.por_variante.flatMap((v): FaseVariante[] => {
         if (!esObjeto(v)) return [];
         const varianteId = texto(v.variante_id);
         if (!varianteId) return [];
-        return [{ varianteId, plan: numero(v.plan), entrada: entero(v.entrada), hechas: entero(v.hechas), salieron: entero(v.salieron), volvieronBuenas: entero(v.volvieron_buenas), segundas: entero(v.segundas), faltantes: entero(v.faltantes), afuera: entero(v.afuera) }];
+        return [
+          {
+            varianteId,
+            plan: numero(v.plan),
+            entrada: entero(v.entrada),
+            hechas: entero(v.hechas),
+            salieron: entero(v.salieron),
+            volvieronBuenas: entero(v.volvieron_buenas),
+            segundas: entero(v.segundas),
+            faltantes: entero(v.faltantes),
+            afuera: entero(v.afuera),
+            fallasSegundas: entero(v.fallas_segundas),
+            fallasPerdidas: entero(v.fallas_perdidas),
+          },
+        ];
       })
     : [];
   return {
     id,
     clave: clave as FaseClave,
-    nombre: texto(crudo.nombre) ?? FASES.find((f) => f.clave === clave)?.nombre ?? clave,
+    nombre: texto(crudo.nombre) ?? faseDe(clave).nombre,
     secuencia: entero(crudo.secuencia),
     posicion: crudo.posicion === "pieza" || crudo.posicion === "prenda" ? crudo.posicion : null,
     quien: crudo.quien === "servicio" ? "servicio" : "taller",
@@ -249,6 +366,8 @@ function leerFase(crudo: unknown): FasePagina | null {
     desde: texto(crudo.desde),
     diasEnFase: numero(crudo.dias_en_fase),
     devengado: numero(crudo.devengado),
+    hito: crudo.hito === true,
+    marcada: crudo.marcada === true,
     porVariante,
   };
 }
@@ -264,7 +383,7 @@ function leerEvento(crudo: unknown): EventoTiempo | null {
     cuando,
     quienNombre: texto(crudo.quien_nombre),
     tipo: tipo as TipoEvento,
-    faseClave: faseClave && claves.has(faseClave) ? (faseClave as FaseClave) : null,
+    faseClave: faseClave && esClaveDeProceso(faseClave) ? (faseClave as FaseClave) : null,
     faseNombre: texto(crudo.fase_nombre),
     cantidad: entero(crudo.cantidad),
     detalle: texto(crudo.detalle),
@@ -275,6 +394,67 @@ function leerEvento(crudo: unknown): EventoTiempo | null {
     anulable: crudo.anulable === true,
     anula: crudo.anula === "salida" || crudo.anula === "vuelta" ? crudo.anula : null,
     motivo: texto(crudo.motivo),
+    destino: crudo.destino === "segunda" || crudo.destino === "perdida" || crudo.destino === "arreglo" ? crudo.destino : null,
+    fallaId: texto(crudo.falla_id),
+    registradoEn: texto(crudo.registrado_en),
+  };
+}
+
+const idsDe = (x: unknown): string[] => (Array.isArray(x) ? x.filter((i): i is string => typeof i === "string") : []);
+
+function leerTermineGuardado(crudo: unknown): TermineGuardado | null {
+  if (!esObjeto(crudo)) return null;
+  const filas = (x: unknown) => (Array.isArray(x) ? x.filter(esObjeto) : []);
+  return {
+    buenas: filas(crudo.buenas).flatMap((b) => {
+      const varianteId = texto(b.variante_id);
+      return varianteId ? [{ varianteId, cantidad: entero(b.cantidad) }] : [];
+    }),
+    fallas: filas(crudo.fallas).flatMap((f) => {
+      const varianteId = texto(f.variante_id);
+      const destino = f.destino === "segunda" || f.destino === "perdida" || f.destino === "arreglo" ? f.destino : null;
+      return varianteId && destino ? [{ varianteId, destino, cantidad: entero(f.cantidad), motivo: texto(f.motivo) ?? "" }] : [];
+    }),
+    hecho: texto(crudo.hecho),
+    nota: texto(crudo.nota),
+  };
+}
+
+function leerCambio(crudo: unknown): CambioOrden | null {
+  if (!esObjeto(crudo)) return null;
+  const id = texto(crudo.id);
+  const cuando = texto(crudo.cuando);
+  const accion = crudo.accion;
+  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "sin_tela" && accion !== "tipo" && accion !== "paso_tarde")) return null;
+  const faseClave = texto(crudo.fase_clave);
+  // Un cambio de tipo no guarda un «Terminé»: su antes y su después son `{ es_muestra }` y se leen aparte, no como buenas y fallas.
+  const esTipo = accion === "tipo";
+  // Un paso agregado tarde guarda otra cosa en `despues` (quién lo hizo y cuántas prendas), no un «Terminé».
+  const tarde = accion === "paso_tarde";
+  return {
+    id,
+    accion,
+    objeto: crudo.objeto === "termine" || crudo.objeto === "marca" ? crudo.objeto : null,
+    faseClave: faseClave && esClaveDeProceso(faseClave) ? (faseClave as FaseClave) : null,
+    faseNombre: texto(crudo.fase_nombre),
+    quitaIds: idsDe(crudo.quita_ids),
+    poneIds: idsDe(crudo.pone_ids),
+    deshaceIds: idsDe(crudo.deshace_ids),
+    antes: esTipo || tarde ? null : leerTermineGuardado(crudo.antes),
+    despues: esTipo || tarde ? null : leerTermineGuardado(crudo.despues),
+    texto: texto(crudo.texto) ?? "",
+    tarde: tarde && esObjeto(crudo.despues)
+      ? {
+          prendas: entero(crudo.despues.prendas),
+          quien: crudo.despues.quien === "servicio" ? "servicio" : "taller",
+          proveedorNombre: texto(crudo.despues.proveedor_nombre),
+          hecho: texto(crudo.despues.hecho),
+        }
+      : null,
+    pasoAMuestra: esTipo && esObjeto(crudo.despues) && typeof crudo.despues.es_muestra === "boolean" ? crudo.despues.es_muestra : null,
+    restaurado: crudo.restaurado === true,
+    quienNombre: texto(crudo.quien_nombre),
+    cuando,
   };
 }
 
@@ -320,6 +500,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       creadoEn: texto(o.created_at) ?? "",
       creadoPorNombre: texto(o.creado_por_nombre),
       inventariadoEn: texto(o.inventariado_at),
+      ingresoAlStock: o.ingreso_al_stock === "ya_estaba" ? "ya_estaba" : "movimiento",
       cantidadPlan: entero(o.cantidad_plan),
       cantidadBuenas: numero(o.cantidad_buenas),
       ubicacionId: texto(o.ubicacion_id) ?? "",
@@ -349,7 +530,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       const insumoId = texto(i.insumo_id);
       if (!idInsumo || !insumoId) return [];
       const pendiente = pendientes.get(insumoId);
-      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
+      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, consumoPorTalla: porTallaLeida(i.consumo_por_talla), esComplemento: i.tipo !== "avio" && i.es_complemento === true, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
     }),
     costos: costos
       ? {
@@ -366,7 +547,12 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
     lineaDeTiempo: lista(crudo.linea_de_tiempo)
       .map(leerEvento)
       .filter((e): e is EventoTiempo => e !== null),
+    cambios: lista(crudo.cambios)
+      .map(leerCambio)
+      .filter((c): c is CambioOrden => c !== null),
+    deshechos: lista(crudo.deshechos).flatMap((x) => (typeof x === "string" ? [x] : [])),
     permisos: { puedeOperar: permisos.puede_operar === true, veCostos: permisos.ve_costos === true && costos !== null },
+    procesos: leerProcesos(crudo.procesos) ?? FASES,
   };
 }
 
@@ -472,7 +658,7 @@ export type EstadoDeLaOrden = { texto: string; tono: "pizarra" | "verde" | "neut
 export function estadoDeLaOrden(o: OrdenPagina["orden"], fases: readonly FasePagina[]): EstadoDeLaOrden {
   if (o.estado === "anulada") return { texto: "Anulada", tono: "neutro" };
   if (o.estado === "terminada") return { texto: "Pasó al stock", tono: "verde" };
-  if (fases.length > 0 && fases.every((f) => f.estado === "hecha")) return { texto: "Lista para pasar al stock", tono: "verde" };
+  if (todasLasQueCuentanHechas(fases)) return { texto: "Lista para pasar al stock", tono: "verde" };
   const actual = fases.find((f) => f.actual) ?? null;
   if (!actual) return { texto: "En proceso", tono: "pizarra" };
   return { texto: `En ${actual.nombre.toLocaleLowerCase("es")}${actual.quien === "servicio" ? " · afuera" : ""}`, tono: "pizarra" };
@@ -505,32 +691,74 @@ export function cifrasDeLaOrden(p: OrdenPagina, hoy: string): CifrasDeLaOrden {
   return {
     prendas: { valor: o.estado === "terminada" && o.cantidadBuenas !== null ? o.cantidadBuenas : o.cantidadPlan, etiqueta: o.estado === "terminada" ? "Prendas buenas" : "Prendas", aparte },
     entrega,
-    costo: p.permisos.veCostos && p.costos ? { valor: p.costos.totalRealHastaHoy, nota: `de ${soles(p.costos.totalEstimado)}`, etiqueta: "Costo hasta hoy" } : null,
+    // El costo real sale del libro de insumos (lo descontado del estante): mientras nadie anote lo que se usó, la tela cuenta 0 y la cifra queda corta frente al estimado.
+    // La etiqueta lo dice para que no parezca un error de cálculo.
+    costo:
+      p.permisos.veCostos && p.costos
+        ? {
+            valor: p.costos.totalRealHastaHoy,
+            nota: `de ${soles(p.costos.totalEstimado)}`,
+            etiqueta: p.costos.telaEstimado > 0 && p.costos.telaReal <= 0 ? "Costo hasta hoy · sin la tela" : "Costo hasta hoy",
+          }
+        : null,
   };
 }
 
 // ---------- Las fases ----------
 
-/** Quién la hace, en una palabra: «Taller» o el nombre del servicio. */
-export function quienDeFase(f: FasePagina): string {
-  return f.quien === "servicio" ? (f.proveedorNombre ?? "Un servicio") : "Taller";
+/**
+ * ¿Terminaron todas las fases que cuentan prendas? Una fase que se MARCA (Ploteo) no bloquea el paso al stock aunque nadie la marcó: la base solo mira lo terminado en la
+ * ÚLTIMA fase (`cerrar_produccion`), y un modelo que se repite no vuelve a plotear. Es la misma regla de «Lista para pasar al stock» en la página y en la lista.
+ */
+export function todasLasQueCuentanHechas(fases: readonly FasePagina[]): boolean {
+  const cuentan = fases.filter((f) => !f.hito);
+  return cuentan.length > 0 && cuentan.every((f) => f.estado === "hecha");
 }
 
-/** La primera fase de la ruta (Corte): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
+/** La fase de antes que SÍ cuenta prendas (la que le da lo que entra), saltando las que se marcan: `null` en la primera. Es `fn_produccion_fase_anterior`. */
+export function previaQueCuenta(fases: readonly FasePagina[], indice: number): FasePagina | null {
+  for (let i = indice - 1; i >= 0; i--) if (!fases[i].hito) return fases[i];
+  return null;
+}
+
+/** Sale afuera pero todavía no se sabe con quién (ADR-0551 pendiente de registrar): un servicio sin proveedor. Puede llevar su costo, que se devenga igual; sin costo, no suma nada hasta que se registre. */
+export function esPendienteDeRegistrar(f: Pick<FasePagina, "quien" | "proveedorId">): boolean {
+  return f.quien === "servicio" && f.proveedorId === null;
+}
+
+/** Quién la hace, en una palabra: «Taller», el nombre del servicio o «Pendiente de registrar». */
+export function quienDeFase(f: FasePagina): string {
+  if (f.quien !== "servicio") return "Taller";
+  return f.proveedorNombre ?? (esPendienteDeRegistrar(f) ? "Pendiente de registrar" : "Un servicio");
+}
+
+/** Las fases que salieron afuera sin registrar quién, en el orden de la ruta (con o sin costo escrito). */
+export function fasesSinRegistrar(fases: readonly FasePagina[]): FasePagina[] {
+  return fases.filter(esPendienteDeRegistrar);
+}
+
+/** ¿Una fase pendiente lleva costo escrito (tarifa por prenda o fijo por orden)? Con costo se devenga como cualquier servicio (ADR-0551); sin él no suma nada hasta que se escriba o se registre. */
+export function pendienteConCosto(f: Pick<FasePagina, "tarifaPrenda" | "fijoOrden">): boolean {
+  return (f.tarifaPrenda ?? 0) > 0 || f.fijoOrden > 0;
+}
+
+/** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
 export function esPrimeraFase(f: FasePagina, fases: readonly FasePagina[]): boolean {
-  return fases.every((otra) => otra.secuencia >= f.secuencia);
+  if (f.hito) return false;
+  return fases.every((otra) => otra.hito || otra.secuencia >= f.secuencia);
 }
 
 /**
  * Lo que falta terminar en una fase del Taller, por talla y color (solo las que faltan algo): en la primera fase, el plan menos lo ya cortado; en las demás, lo que entró de la
- * fase anterior menos lo ya terminado. Es el valor de fábrica de «Terminé»: un clic y están todas. Nunca pasa de lo que `registrar_avance` acepta.
+ * fase anterior menos lo ya terminado. Las segundas y las perdidas de «Terminé» ya no faltan (ADR-0570); un arreglo sí sigue faltando. Es el valor de fábrica de «Terminé»: un clic
+ * y están todas. Nunca pasa de lo que `anotar_termine` acepta.
  */
 export function cantidadesQueFaltan(f: FasePagina, fases: readonly FasePagina[]): Record<string, number> {
   const primera = esPrimeraFase(f, fases);
   const salida: Record<string, number> = {};
   for (const v of f.porVariante) {
     const tope = primera ? (v.plan ?? v.entrada) : v.entrada;
-    const falta = Math.max(tope - v.hechas, 0);
+    const falta = Math.max(tope - v.hechas - v.fallasSegundas - v.fallasPerdidas, 0);
     if (falta > 0) salida[v.varianteId] = falta;
   }
   return salida;
@@ -546,11 +774,17 @@ export function porMandar(f: FasePagina): number {
   return Math.max(f.entrada - f.salieron, 0);
 }
 
-export type AccionFase = "terminar" | "salida" | "vuelta";
+export type AccionFase = "terminar" | "salida" | "vuelta" | "marcar" | "desmarcar";
 
-/** Las acciones que ofrece una fase: «Terminé N» en el Taller; «Salida» si queda algo por mandar y «Vuelta» si hay prendas afuera, en un servicio. Ninguna si no se puede operar. */
-export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): AccionFase[] {
-  if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso" || f.estado === "hecha") return [];
+/**
+ * Las acciones que ofrece una fase: «Terminé N» en el Taller; «Salida» si queda algo por mandar y «Vuelta» si hay prendas afuera, en un servicio; en una fase que se marca
+ * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar» (quitar la marca, con motivo): esa SOLO a un líder (ADR-0586 act. 2; la base repite: `marca_solo_lider`). Ninguna si no
+ * se puede operar.
+ */
+export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">, { esLider = false }: { esLider?: boolean } = {}): AccionFase[] {
+  if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return [];
+  if (f.hito) return f.marcada ? (esLider ? ["desmarcar"] : []) : ["marcar"];
+  if (f.estado === "hecha") return [];
   if (f.quien === "taller") return faltaTerminar(f, p.fases) > 0 ? ["terminar"] : [];
   const acciones: AccionFase[] = [];
   if (porMandar(f) > 0) acciones.push("salida");
@@ -558,14 +792,29 @@ export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "pe
   return acciones;
 }
 
+/** ADR-0586 act. 2: la marca viva de una fase que se marca (Ploteo), para quitarla desde el paso: la más reciente que nadie deshizo (la misma que la historia deja con su lápiz). */
+export function marcaVivaDeFase(f: FasePagina, p: Pick<OrdenPagina, "lineaDeTiempo" | "deshechos">): string | null {
+  if (!f.hito || !f.marcada) return null;
+  const deshechos = new Set(p.deshechos);
+  const vivas = p.lineaDeTiempo.filter((e) => e.tipo === "marca" && e.faseClave === f.clave && !deshechos.has(e.id));
+  return vivas.sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando))[0]?.id ?? null;
+}
+
+/** ADR-0586 act. 2: a quien opera pero no es líder, el paso marcado le dice cómo se arregla una marca equivocada (no busca un botón que no está). `null`: no hace falta decirlo. */
+export function avisoMarcaSoloLider(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">, { esLider = false }: { esLider?: boolean } = {}): string | null {
+  if (esLider || !f.hito || !f.marcada || !p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return null;
+  return "Si se marcó por error, un líder puede quitar la marca.";
+}
+
 export type Siguiente = { fase: FasePagina | null; accion: AccionFase | "pasar_al_stock" | "nada" };
 
 /** Qué sigue en la orden: la fase actual y lo que le toca (terminar, mandar, recibir), o pasar al stock cuando las tres terminaron. */
 export function queSigue(fases: readonly FasePagina[], estado: EstadoOrden): Siguiente {
   if (estado !== "en_proceso" || fases.length === 0) return { fase: null, accion: "nada" };
-  if (fases.every((f) => f.estado === "hecha")) return { fase: fases[fases.length - 1], accion: "pasar_al_stock" };
+  if (todasLasQueCuentanHechas(fases)) return { fase: fases[fases.length - 1], accion: "pasar_al_stock" };
   const actual = fases.find((f) => f.actual) ?? null;
   if (!actual) return { fase: null, accion: "nada" };
+  if (actual.hito) return { fase: actual, accion: "marcar" };
   if (actual.quien === "taller") return { fase: actual, accion: faltaTerminar(actual, fases) > 0 ? "terminar" : "nada" };
   if (actual.afuera > 0) return { fase: actual, accion: "vuelta" };
   return { fase: actual, accion: porMandar(actual) > 0 ? "salida" : "nada" };
@@ -577,6 +826,8 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
   if (!s.fase) return null;
   const fase = s.fase.nombre.toLocaleLowerCase("es");
   switch (s.accion) {
+    case "marcar":
+      return `Sigue: marcar ${fase} como hecho.`;
     case "terminar":
       return `Sigue: terminar ${fase} (faltan ${faltaTerminar(s.fase, fases)}).`;
     case "salida":
@@ -591,6 +842,99 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
 /** ¿Se puede cambiar quién hace esta fase? Solo mientras no empezó y la orden sigue en proceso (la base lo exige: `fase_empezada`, `orden_cerrada`). */
 export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
   return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
+}
+
+/** ¿Se puede registrar quién hizo esta fase? Una fase pendiente, en cualquier momento (aunque ya empezó) mientras la orden siga en proceso (la base: `fase_no_pendiente`, `orden_cerrada`). */
+export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && esPendienteDeRegistrar(f);
+}
+
+/**
+ * ¿Se ofrece «Quitar este paso»? Solo un paso OPCIONAL (no de la espina de su ruta), mientras no empezó y la orden sigue en proceso y quien mira puede operar. La base repite las tres
+ * cosas (`quitar_paso_orden`: `fase_empezada`, `orden_cerrada`, `paso_fijo`) y manda: esto solo evita ofrecer un botón que ya se sabe que va a rechazar.
+ */
+export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "procesos">): boolean {
+  return puedeCambiarQuien(f, p) && !faseDe(f.clave, p.procesos).siempre;
+}
+
+/** `tarde`: el paso va antes de uno que ya avanzó (ADR-0586). Solo un líder lo agrega, y entra con las prendas que ya pasaron por él (`prendas`: las que el paso siguiente ya usó). */
+export type PasoAgregable = { clave: FaseClave; nombre: string; ayuda: string; lugar: number; quienSugerido: Quien; tarde: { antesDe: string; prendas: number } | null };
+/** `yaEmpezo` es el paso de DESPUÉS que lo frena («Planchado»): la lista del combo lo dice corto, `porQue` lo dice completo. */
+export type PasoNoAgregable = { clave: FaseClave; nombre: string; porQue: string; yaEmpezo: string };
+
+/**
+ * Las prendas que YA PASARON por un paso que entra en `lugar`: las que el paso siguiente que cuenta prendas ya usó (sus buenas y sus fallas que no se arreglan, o lo que salió a su
+ * servicio). Es lo que `agregar_paso_tarde` da por hecho (ADR-0586): lo que todavía no llegó al paso siguiente no se sabe si pasó, y se anota cuando se haga.
+ */
+export function prendasQueYaPasaron(fases: ReadonlyArray<Pick<FasePagina, "secuencia" | "hito" | "hechas" | "segundas" | "faltantes" | "salieron">>, lugar: number): number {
+  const siguiente = fases.filter((f) => f.secuencia > lugar && !f.hito).sort((a, b) => a.secuencia - b.secuencia)[0];
+  return siguiente ? Math.max(siguiente.hechas + siguiente.segundas + siguiente.faltantes, siguiente.salieron, 0) : 0;
+}
+
+/** Lo que la hoja «Agregar un paso» dice de un paso que entra tarde: con cuántas prendas entra hecho y qué pasa con las demás (ADR-0586). */
+export function avisoDePasoTarde(nombre: string, tarde: { antesDe: string; prendas: number }): string {
+  if (tarde.prendas === 0) return `${tarde.antesDe} tiene algo anotado, pero ninguna prenda llegó ahí: ${nombre} entra vacío y se anota cuando se haga. Queda en la historia con tu motivo.`;
+  const cuantas_ = tarde.prendas === 1 ? "la prenda que ya está" : `las ${tarde.prendas} prendas que ya están`;
+  return `${nombre} entra hecho con ${cuantas_} en ${tarde.antesDe}. Lo que falte se anota cuando se haga. Queda en la historia con tu motivo.`;
+}
+
+/** El paso agregado tarde de esta fase, si lo fue (ADR-0586): de ahí salen su marca «Agregado tarde» y su motivo. */
+export function pasoAgregadoTarde(fase: Pick<FasePagina, "clave">, cambios: readonly CambioOrden[]): CambioOrden | undefined {
+  return cambios.find((c) => c.accion === "paso_tarde" && c.faseClave === fase.clave);
+}
+
+/**
+ * El primer paso de la ruta que va DESPUÉS de `lugar` y ya tiene algo anotado: lo que frena a la base con `paso_despues_empezado`. Como la base, cuenta también lo anotado y deshecho
+ * (un evento suyo en la línea de tiempo): un paso deshecho entero ya no «empezó», pero la base igual lo frena (ADR-0566, regla 3), y sin esto la pantalla mandaba a un camino cerrado.
+ */
+export function pasoPosteriorEmpezado(
+  fases: ReadonlyArray<Pick<FasePagina, "secuencia" | "empezada" | "estado" | "nombre" | "clave">>,
+  lugar: number,
+  linea: ReadonlyArray<Pick<EventoTiempo, "faseClave">> = []
+): { nombre: string } | undefined {
+  const conHistoria = new Set(linea.map((e) => e.faseClave).filter((c): c is FaseClave => c !== null));
+  return [...fases].sort((a, b) => a.secuencia - b.secuencia).find((f) => f.secuencia > lugar && (f.empezada || f.estado === "hecha" || conHistoria.has(f.clave)));
+}
+
+/**
+ * Lo que la hoja «Agregar un paso» dice de los pasos que NO se pueden agregar, en una frase («Ojales y botones y Pegar cierre ya no entran: Planchado ya empezó y irían antes»), o `null` si no hay.
+ * Existe porque un líder siempre ve «+ Agregar un paso» (puede dar de alta «Otro proceso…»): sin esto, un paso bloqueado desaparecía del combo sin decir por qué.
+ */
+export function textoDePasosBloqueados(bloqueados: ReadonlyArray<Pick<PasoNoAgregable, "nombre" | "yaEmpezo">>): string | null {
+  if (bloqueados.length === 0) return null;
+  const lista = new Intl.ListFormat("es", { style: "long", type: "conjunction" });
+  const empezaron = [...new Set(bloqueados.map((b) => b.yaEmpezo))];
+  return `${lista.format(bloqueados.map((b) => b.nombre))} ya no ${bloqueados.length === 1 ? "entra" : "entran"}: ${lista.format(empezaron)} ya ${empezaron.length === 1 ? "empezó" : "empezaron"} y ${bloqueados.length === 1 ? "iría" : "irían"} antes.`;
+}
+
+/**
+ * Los pasos opcionales que una orden en proceso todavía puede sumar (ADR-0566): los que la hoja «Nueva orden» ofrece (`enLaHoja`, hoy solo Ojales y botones), que no están ya en la ruta y que
+ * no se mezclan con la ruta anterior. Uno al que ya empezó un paso POSTERIOR iría antes de esas prendas: a un líder se le ofrece igual, marcado `tarde` (entra ya hecho, ADR-0586); a los demás
+ * sale en `bloqueados` con su porqué, para decirlo en vez de esconderlo.
+ * La base repite todo (`agregar_paso_orden`: `fase_repetida`, `fases_mezcla`, `paso_despues_empezado`, `orden_cerrada`) y manda; esto solo evita ofrecer un botón que ya se sabe que va a rechazar
+ * (no mira lo que se anotó y se deshizo: eso solo lo ve la base).
+ */
+export function pasosAgregables(
+  p: Pick<OrdenPagina, "orden" | "permisos" | "fases" | "procesos"> & { lineaDeTiempo?: OrdenPagina["lineaDeTiempo"] },
+  quien: { esLider?: boolean } = {}
+): { ofrecidos: PasoAgregable[]; bloqueados: PasoNoAgregable[] } {
+  const ofrecidos: PasoAgregable[] = [];
+  const bloqueados: PasoNoAgregable[] = [];
+  if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso" || p.fases.length === 0) return { ofrecidos, bloqueados };
+  const enLaRuta = new Set(p.fases.map((f) => f.clave));
+  const rutaAnterior = p.fases.some((f) => faseDe(f.clave, p.procesos).ruta === "anterior");
+  for (const c of p.procesos) {
+    if (c.siempre || !c.enLaHoja || !c.activo || enLaRuta.has(c.clave) || (rutaAnterior && c.ruta === "nueva")) continue;
+    const lugar = secuenciaDe(c.clave, null, p.procesos);
+    if (lugar === null) continue;
+    const tarde = pasoPosteriorEmpezado(p.fases, lugar, p.lineaDeTiempo);
+    // ADR-0586: el líder lo agrega igual, con lo que ya pasó por él (si el paso siguiente no usó nada, entra vacío).
+    if (!tarde) ofrecidos.push({ clave: c.clave, nombre: c.nombre, ayuda: c.ayuda, lugar, quienSugerido: c.quienSugerido, tarde: null });
+    else if (quien.esLider) ofrecidos.push({ clave: c.clave, nombre: c.nombre, ayuda: c.ayuda, lugar, quienSugerido: c.quienSugerido, tarde: { antesDe: tarde.nombre, prendas: prendasQueYaPasaron(p.fases, lugar) } });
+    else bloqueados.push({ clave: c.clave, nombre: c.nombre, porQue: `${tarde.nombre} ya empezó, y ${c.nombre} iría antes`, yaEmpezo: tarde.nombre });
+  }
+  ofrecidos.sort((a, b) => a.lugar - b.lugar);
+  return { ofrecidos, bloqueados };
 }
 
 /** El aviso de la cantidad mínima del servicio: «Confecciones del Norte cobra desde 150 prendas; esta orden lleva 48». No bloquea (ADR-0400, decisión 5). */
@@ -608,9 +952,14 @@ export type TextoDeFase = { cifra: string; de: string; detalle: string };
 export function textoDeFase(f: FasePagina, ctx: { previa: FasePagina | null; terminoEl: string | null; totalPlan: number }): TextoDeFase {
   const total = Math.max(ctx.totalPlan, f.entrada, f.hechas);
   const previa = ctx.previa ? ctx.previa.nombre : "la fase anterior";
-  const extras = [f.segundas > 0 ? cuantas(f.segundas, "segunda", "segundas") : null, f.faltantes > 0 ? cuantas(f.faltantes, "faltante", "faltantes") : null].filter((x): x is string => x !== null);
+  // En el Taller lo que no salió bien «se perdió» (ADR-0570); en un servicio, «faltó» (no volvió).
+  const extras = [
+    f.segundas > 0 ? cuantas(f.segundas, "segunda", "segundas") : null,
+    f.faltantes > 0 ? (f.quien === "taller" ? cuantas(f.faltantes, "perdida", "perdidas") : cuantas(f.faltantes, "faltante", "faltantes")) : null,
+  ].filter((x): x is string => x !== null);
   const conExtras = (base: string) => [base, ...extras].join(" · ");
   const servicio = f.quien === "servicio";
+  if (f.hito) return textoDeHito(f, ctx.terminoEl);
   const de = servicio ? `de ${total} de vuelta` : f.estado === "pendiente" && f.hechas === 0 ? `de ${total}` : `de ${total} terminadas`;
 
   if (f.estado === "hecha") {
@@ -637,11 +986,80 @@ export function textoDeFase(f: FasePagina, ctx: { previa: FasePagina | null; ter
   return { cifra: String(f.hechas), de, detalle: f.entrada > 0 ? `${cuantas(f.entrada, "prenda lista", "prendas listas")} para mandar a ${quien}` : `Empieza cuando termine ${previa}` };
 }
 
+/** Lo que dice la pieza de una fase que se marca (Ploteo): «Hecho · Marcado el jue 15», o «Por hacer» y de quién espera la marcada. No cuenta prendas. */
+function textoDeHito(f: FasePagina, terminoEl: string | null): TextoDeFase {
+  const quien = quienDeFase(f);
+  const cobra = f.quien === "servicio" && f.fijoOrden > 0 ? ` · S/\u00a0${f.fijoOrden.toFixed(2)} por orden` : "";
+  if (f.marcada) return { cifra: "Hecho", de: "", detalle: `${terminoEl ? `Marcado el ${diaCorto(fechaLimaDe(terminoEl))}` : "Marcado"}${f.quien === "servicio" ? ` · con ${quien}` : ""}${cobra}` };
+  const prometido = f.quien === "servicio" && f.fechaPrometida ? ` · prometido ${diaCorto(f.fechaPrometida)}` : "";
+  return { cifra: "Por hacer", de: "", detalle: f.quien === "servicio" ? `Con ${quien}${prometido}${cobra}` : "Se marca con un toque cuando la marcada esté lista" };
+}
+
+// ---------- La ruta viva (ADR-0570, actividad 1) ----------
+//
+// La ruta de la orden como una fila de pasos con un color cada uno —la regla de color de Producción: verde solo lo hecho, ámbar lo que toca ahora, gris lo que falta— y, debajo,
+// UN paso abierto con sus botones. Antes eran siete tarjetas iguales en una grilla: el paso hecho y el que tocaba se veían casi igual.
+
+/** Cómo se pinta un paso en la ruta. «toca» es la fase actual o una que ya empezó (en paralelo con la actual): las dos piden que alguien anote. */
+export type EstadoEnRuta = "hecha" | "toca" | "pendiente";
+
+export function estadoEnRuta(f: Pick<FasePagina, "estado" | "actual">): EstadoEnRuta {
+  if (f.estado === "hecha") return "hecha";
+  return f.actual || f.estado === "en_curso" ? "toca" : "pendiente";
+}
+
+/** El paso que la ruta muestra abierto al entrar: el actual; si ninguno lo es, el primero sin terminar; si todos terminaron, el último. `null` sin pasos. */
+export function faseAbiertaDeLaRuta<T extends Pick<FasePagina, "estado" | "actual">>(fases: readonly T[]): T | null {
+  return fases.find((f) => f.actual) ?? fases.find((f) => f.estado !== "hecha") ?? fases[fases.length - 1] ?? null;
+}
+
+/** El renglón chico bajo el nombre de cada paso en la ruta: «57 · mié 28 oct» si está hecho, «Te toca» o «12 de 57» si toca, y quién lo hará si falta. */
+export function subtituloEnRuta(f: FasePagina, terminoEl: string | null, totalPlan: number): string {
+  const estado = estadoEnRuta(f);
+  const dia = terminoEl ? diaCorto(fechaLimaDe(terminoEl)) : null;
+  if (estado === "hecha") return f.hito ? (dia ? `Hecho · ${dia}` : "Hecho") : dia ? `${f.hechas} · ${dia}` : `${f.hechas} hechas`;
+  if (estado === "toca") return f.actual ? "Te toca" : `${f.hechas} de ${Math.max(totalPlan, f.entrada, f.hechas)}`;
+  return f.quien === "servicio" ? `Afuera · ${quienDeFase(f)}` : "Taller";
+}
+
+/** El color del punto de cada entrada de la historia: lo hecho en verde, lo que salió a un servicio en pizarra (en camino), lo que se deshizo o anuló en ámbar, una prenda con falla en
+ *  rojo (lo único rojo: un problema) y la apertura en tinta. */
+export type TonoDeEntrada = "hecho" | "camino" | "cambio" | "problema" | "inicio" | "neutro";
+
+export function tonoDeEntrada(tipo: TipoEntrada): TonoDeEntrada {
+  switch (tipo) {
+    case "avance":
+    case "vuelta":
+    case "marca":
+      return "hecho";
+    case "salida":
+      return "camino";
+    case "falla":
+      return "problema";
+    case "deshacer":
+    case "anulacion":
+    case "desmarca":
+    case "falla_deshecha":
+    case "corregir":
+    case "eliminar":
+    case "restaurar":
+    case "sin_tela":
+    case "tipo":
+    case "paso_tarde":
+      return "cambio";
+    // Una nota del equipo no es un hecho de la orden: punto neutro.
+    case "nota":
+      return "neutro";
+    default:
+      return "inicio";
+  }
+}
+
 /** El instante en que se anotó lo último de una fase (avance, Salida o Vuelta), para decir «Hecha el jue 15». `null` si nunca se anotó nada. */
 export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiempo[]): string | null {
   let ultimo: string | null = null;
   for (const e of linea) {
-    if (e.faseClave !== clave || (e.tipo !== "avance" && e.tipo !== "vuelta")) continue;
+    if (e.faseClave !== clave || (e.tipo !== "avance" && e.tipo !== "vuelta" && e.tipo !== "marca" && e.tipo !== "falla")) continue;
     if (ultimo === null || Date.parse(e.cuando) > Date.parse(ultimo)) ultimo = e.cuando;
   }
   return ultimo;
@@ -651,6 +1069,10 @@ export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiem
 
 export type FilaDeTela = {
   id: string;
+  /** Una tela o un avío (botones, cierres, hilo): la sección los muestra juntos, la tela primero, y dice cuál es cuál. */
+  tipo: "tela" | "avio";
+  /** Una tela que es complemento de la prenda (forro, otra tela) en todos sus colores (ADR-0563): va después de la tela principal y lo dice. Un avío nunca. */
+  complemento: boolean;
   nombre: string;
   detalle: string;
   plan: string;
@@ -670,6 +1092,8 @@ export type FilaDeTela = {
   conLoQueViene: boolean;
   /** Es una tela y el corte ya terminó: lo que sobra de su plan ya no se va a usar, no falta nada por usar. */
   yaCortada: boolean;
+  /** Ya se cortó y la orden todavía no tiene nada descontado de esta tela: falta anotar lo que se usó (ADR-0570). Sin eso el costo de la prenda sale sin tela. */
+  porAnotar: boolean;
   /** Los pedidos de esta tela con lo que falta recibir de cada uno: «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct». */
   pedidos: string[];
 };
@@ -702,33 +1126,42 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
     const detalle =
       filas.length > 1
         ? filas.map((f) => `${color(f) ?? "toda la orden"} ${cantidadConUnidad(f.cantidadPlan, f.unidad)}`).join(" · ")
-        : base.consumoPorPrenda > 0
-          ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
-          : "";
+        : base.consumoPorTalla && Object.keys(base.consumoPorTalla).length > 0
+          ? `${Object.entries(base.consumoPorTalla).sort(([a], [b]) => compararTallas(a, b)).map(([talla, v]) => `${talla} ${cantidadConUnidad(v, base.unidad)}`).join(" · ")} por prenda`
+          : base.consumoPorPrenda > 0
+            ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
+            : "";
     return {
       id: base.insumoId,
+      tipo: base.tipo,
+      complemento: filas.every((f) => f.esComplemento),
       nombre: unColor && !base.nombre.toLocaleLowerCase("es").includes(color(base) as string) ? `${base.nombre} · ${color(base)}` : base.nombre,
       detalle,
       plan: cantidadConUnidad(plan, base.unidad),
       usado: cantidadConUnidad(usado, base.unidad),
       saldo: cantidadConUnidad(base.saldo, base.unidad),
       alcanza: v.alcanza,
-      faltan: v.alcanza ? null : cantidadConUnidad(v.faltan, base.unidad),
-      faltanNumero: v.alcanza ? null : v.faltan,
+      faltan: v.alcanza ? null : cantidadConUnidad(cantidadAPedir(v.faltan, base.unidad), base.unidad),
+      faltanNumero: v.alcanza ? null : cantidadAPedir(v.faltan, base.unidad),
       reservadoPorOtras: comprometida > 0 ? `Otras órdenes ya reservan ${cantidadConUnidad(comprometida, base.unidad)}` : null,
       enCamino: enCamino > 0 ? cantidadConUnidad(enCamino, base.unidad) : null,
       atrasado: atrasado > 0 ? cantidadConUnidad(atrasado, base.unidad) : null,
       conLoQueViene: v.conLoQueViene,
       yaCortada,
+      porAnotar: yaCortada && usado === 0,
       pedidos: base.pedidos.map(textoDePedido),
     };
-  });
+  }).sort((a, b) => lugarEnLaTabla(a) - lugarEnLaTabla(b));
 }
+
+/** La tela principal primero, luego los complementos (forro, otra tela) y los avíos al final (el orden de la base queda dentro de cada grupo: el `sort` conserva el orden). */
+const lugarEnLaTabla = (f: Pick<FilaDeTela, "tipo" | "complemento">): number => (f.tipo === "avio" ? 2 : f.complemento ? 1 : 0);
 
 // ---------- El costo ----------
 
 export type FilaDeCosto = { clave: string; concepto: string; detalle: string | null; estimado: string; real: string; realPendiente: boolean };
-export type TablaDeCosto = { filas: FilaDeCosto[]; total: { estimado: string; real: string }; porPrenda: { estimado: string; real: string; realPendiente: boolean } };
+/** `sinCosto`: no hay tela, avíos ni servicios con costo (la orden no declaró nada): el total y el costo por prenda no son cero, son «—» (se desconocen). */
+export type TablaDeCosto = { filas: FilaDeCosto[]; sinCosto: boolean; total: { estimado: string; real: string }; porPrenda: { estimado: string; real: string; realPendiente: boolean } };
 
 /**
  * Estimado contra real por concepto (tela, avíos y cada servicio de afuera), el total y el costo por prenda. Donde todavía no hay real lo dice con su momento («al volver», «al
@@ -764,18 +1197,25 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
     filas.push({
       clave: `servicio-${f.id}`,
       concepto: `${f.nombre} afuera`,
-      detalle: `${plan} × ${soles(tarifa)} · ${quienDeFase(f)}${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`,
+      // Un servicio que se cobra UNA vez por toda la orden (el ploteo) no se lee «57 × S/ 0.00 + S/ 15.00 fijo»: se dice como es, y cuánto toca por prenda.
+      detalle:
+        tarifa === 0 && f.fijoOrden > 0 && plan > 0
+          ? `Pago único por las ${plan} prendas · ${quienDeFase(f)} · ${soles(f.fijoOrden / plan)} por prenda`
+          : `${plan} × ${soles(tarifa)} · ${quienDeFase(f)}${f.fijoOrden > 0 ? ` + ${soles(f.fijoOrden)} fijo` : ""}`,
       estimado: monto(tarifa * plan + f.fijoOrden),
       real: hayVuelta ? monto(f.devengado ?? 0) : "al volver",
       realPendiente: !hayVuelta,
     });
   }
   const cerrada = p.orden.estado === "terminada" && (p.orden.cantidadBuenas ?? 0) > 0;
+  // Sin una sola fila con costo, un «0.00» diría que la orden sale gratis; el Resumen ya dice «—» con su motivo, y acá también (P13 del análisis del Taller, 2-nov-2026).
+  const sinCosto = filas.length === 0 && c.totalEstimado === 0 && c.totalRealHastaHoy === 0;
   return {
     filas,
-    total: { estimado: monto(c.totalEstimado), real: monto(c.totalRealHastaHoy) },
+    sinCosto,
+    total: sinCosto ? { estimado: "—", real: "—" } : { estimado: monto(c.totalEstimado), real: monto(c.totalRealHastaHoy) },
     porPrenda: {
-      estimado: plan > 0 ? monto(c.totalEstimado / plan) : "—",
+      estimado: plan > 0 && !sinCosto ? monto(c.totalEstimado / plan) : "—",
       real: cerrada ? monto(c.totalRealHastaHoy / (p.orden.cantidadBuenas ?? 1)) : "al cerrar",
       realPendiente: !cerrada,
     },
@@ -789,7 +1229,11 @@ export type CausaRoja = { clave: "entrega_pasada" | "tela_no_llega" | "sin_mover
 /** El último día (de Lima) en que alguien anotó algo en la orden: abrirla, terminar, deshacer, mandar o recibir. */
 function ultimoMovimiento(linea: readonly EventoTiempo[]): string | null {
   let ultimo: string | null = null;
-  for (const e of linea) if (ultimo === null || Date.parse(e.cuando) > Date.parse(ultimo)) ultimo = e.cuando;
+  // Cuándo se ANOTÓ (ADR-0570): anotar hoy algo que pasó hace tres días es anotar hoy.
+  for (const e of linea) {
+    const anotado = e.registradoEn ?? e.cuando;
+    if (ultimo === null || Date.parse(anotado) > Date.parse(ultimo)) ultimo = anotado;
+  }
   return ultimo ? fechaLimaDe(ultimo) : null;
 }
 
@@ -835,16 +1279,28 @@ export type EntradaDeTiempo = {
   cuando: string;
   hora: string;
   quien: string | null;
-  tipo: TipoEvento;
+  tipo: TipoEntrada;
+  /** El paso donde pasó (`null` en un cambio y en lo que no es de un paso): así el paso abierto encuentra lo suyo (ADR-0586 act. 3). */
+  faseClave: FaseClave | null;
   titulo: string;
   detalle: string | null;
   cuanto: string | null;
-  /** Los avances que «Deshacer» deshace: solo si TODOS los de esta entrada se pueden deshacer. `null`: no hay Deshacer. */
-  avanceIds: string[] | null;
   /** La salida o la vuelta que «Anular» anula (su id y cuál es): solo si la base dice que todavía se puede. `null`: no hay Anular. */
   anulable: { id: string; que: "salida" | "vuelta" } | null;
   /** Una salida o una vuelta que ya se anuló: se ve apagada, con su chip. */
   anulada: boolean;
+  /** «anotó el jue 29 a las 09:12» cuando se anotó otro día que el que pasó; `null` si fue el mismo día (y entonces vale `hora`). */
+  anotado: string | null;
+  /** Un «Terminé» (sus buenas o sus fallas) que todavía está vivo: se corrige o se elimina (ADR-0570, actividad 3). `null`: no se corrige. */
+  corregible: AnotacionCorregible | null;
+  /** La marca de una fase que no cuenta prendas (Ploteo), viva: se quita. */
+  marcaViva: { id: string; faseClave: FaseClave | null; faseNombre: string } | null;
+  /** Una eliminación que todavía no se restauró: su «Restaurar». `marca`: lo quitado era la marca de Ploteo, y restaurarla es de un líder (ADR-0586 act. 2). */
+  restaurable: { cambioId: string; marca: boolean } | null;
+  /** Una eliminación ya restaurada. */
+  restaurado: boolean;
+  /** Lo anotado que salió de una corrección. */
+  corregida: boolean;
 };
 
 export type DiaDeTiempo = { dia: string; etiqueta: string; hoy: boolean; entradas: EntradaDeTiempo[] };
@@ -883,20 +1339,33 @@ function resumenPorColor(eventos: readonly EventoTiempo[], lineas: readonly Line
 }
 
 /**
- * La línea de tiempo agrupada por día (del más reciente al más viejo) y con lo que se anotó de una vez junto: un «Terminé» de varias tallas es UNA entrada, con su resumen por color
- * y un solo «Deshacer» si todos sus avances todavía se pueden deshacer. Salida, Vuelta y apertura van como los dice la base.
+ * La línea de tiempo agrupada por día (del más reciente al más viejo) y con lo que se anotó de una vez junto: un «Terminé» de varias tallas es UNA entrada, con su resumen por color.
+ * Salida, Vuelta y apertura van como los dice la base. Lo que un cambio quitó (y los Deshacer que escribió) sale de la vista y en su lugar va el cambio, con su motivo (ADR-0570,
+ * actividad 3): «Corrigió lo terminado en Costura · 25 → 23 · Por qué: …». Lo anotado que sigue vivo trae lo que hace falta para corregirlo.
  */
 export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[] {
-  const ordenados = [...p.lineaDeTiempo].sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando));
+  const ocultos = new Set(p.cambios.flatMap((c) => [...c.quitaIds, ...c.deshaceIds]));
+  const deshechos = new Set(p.deshechos);
+  const corregidos = new Set(p.cambios.filter((c) => c.accion === "corregir").flatMap((c) => c.poneIds));
+  const rehechos = new Set(p.cambios.filter((c) => c.accion === "corregir" || c.accion === "restaurar").flatMap((c) => c.poneIds));
+  const ordenados = p.lineaDeTiempo.filter((e) => !ocultos.has(e.id)).sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando));
   const grupos: EventoTiempo[][] = [];
   for (const e of ordenados) {
     const previo = grupos[grupos.length - 1];
     const ref = previo?.[0];
-    const mismo = ref && (e.tipo === "avance" || e.tipo === "deshacer") && ref.tipo === e.tipo && ref.faseClave === e.faseClave && ref.quienNombre === e.quienNombre && Math.abs(Date.parse(ref.cuando) - Date.parse(e.cuando)) <= MARGEN_MS;
+    // Lo anotado de una vez: se compara cuándo se ANOTÓ (con el día real elegido, dos tallas de la misma anotación tienen el mismo «cuando» de mediodía).
+    const anotadoEn = (x: EventoTiempo) => Date.parse(x.registradoEn ?? x.cuando);
+    const mismo =
+      ref &&
+      (e.tipo === "avance" || e.tipo === "deshacer" || e.tipo === "falla" || e.tipo === "falla_deshecha") &&
+      ref.tipo === e.tipo &&
+      ref.faseClave === e.faseClave &&
+      ref.quienNombre === e.quienNombre &&
+      Math.abs(anotadoEn(ref) - anotadoEn(e)) <= MARGEN_MS;
     if (mismo) previo.push(e);
     else grupos.push([e]);
   }
-  const dias_: DiaDeTiempo[] = [];
+  const entradas: EntradaDeTiempo[] = [];
   for (const g of grupos) {
     const e = g[0];
     const total = g.reduce((s, x) => s + x.cantidad, 0);
@@ -911,27 +1380,60 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       const resumen = g.length > 1 ? resumenPorColor(g, p.lineas) : null;
       const nota = g.map((x) => x.nota).find((n): n is string => n !== null) ?? null;
       detalle = g.length > 1 ? [resumen, nota].filter(Boolean).join(" · ") || null : (e.detalle ?? null);
-    } else if (e.tipo === "salida") titulo = `Salida de ${nombreFase}`;
+    } else if (e.tipo === "falla" || e.tipo === "falla_deshecha") {
+      // ADR-0570: «2 segundas · 1 perdida» y el porqué; un Deshacer dice qué deshizo.
+      titulo = e.tipo === "falla" ? `Con falla en ${nombreFase}` : `Deshizo lo anotado con falla en ${nombreFase}`;
+      cuanto = cuantas(total, "prenda", "prendas");
+      const porDestino = { arreglo: 0, segunda: 0, perdida: 0 } as Record<DestinoFalla, number>;
+      for (const x of g) if (x.destino) porDestino[x.destino] += x.cantidad;
+      const motivos = [...new Set(g.map((x) => x.motivo).filter((m): m is string => m !== null))];
+      detalle = `${textoFallas(porDestino)}${motivos.length > 0 ? `: ${motivos.join("; ")}` : ""}`;
+    } else if (e.tipo === "marca") {
+      titulo = `Marcó ${nombreFase} como hecho`;
+      detalle = e.nota;
+    } else if (e.tipo === "desmarca") titulo = `Deshizo la marca de ${nombreFase}`;
+    else if (e.tipo === "salida") titulo = `Salida de ${nombreFase}`;
     else if (e.tipo === "anulacion") {
       titulo = `Anuló la ${e.anula ?? "anotación"} de ${nombreFase}`;
       cuanto = e.anula === "vuelta" ? cuantas(e.cantidad, "prenda buena", "prendas buenas") : cuantas(e.cantidad, "prenda", "prendas");
       detalle = e.motivo ? `Por qué: ${e.motivo}` : null;
     } else titulo = `Vuelta de ${nombreFase}`;
-    const todosDeshacibles = e.tipo === "avance" && g.every((x) => x.avanceId !== null);
-    const entrada: EntradaDeTiempo = {
+    const vivos = g.every((x) => !deshechos.has(x.id));
+    const corregida = g.some((x) => corregidos.has(x.id));
+    const rehecha = g.some((x) => rehechos.has(x.id));
+    // Anotado otro día que el que pasó (ADR-0570): la hora de «cuando» sería el mediodía puesto por la base; se dice cuándo se anotó. Lo que salió de una corrección o una
+    // restauración lo dice con su verbo: «corrigió el jue 29…», nunca «anotó», que no sería cierto.
+    const anotado =
+      e.registradoEn && fechaLimaDe(e.registradoEn) !== fechaLimaDe(e.cuando)
+        ? `${corregida ? "corrigió" : rehecha ? "restauró" : "anotó"} el ${diaCorto(fechaLimaDe(e.registradoEn))} a las ${horaLima(e.registradoEn)}`
+        : null;
+    entradas.push({
       ids: g.map((x) => x.id),
       cuando: e.cuando,
-      hora: horaLima(e.cuando),
+      // Lo rehecho por un cambio conserva el momento de antes: su hora es la de entonces, no la del cambio.
+      hora: horaLima(rehecha ? e.cuando : (e.registradoEn ?? e.cuando)),
       quien: e.quienNombre,
       tipo: e.tipo,
+      faseClave: e.faseClave,
       titulo,
       detalle,
       cuanto,
-      avanceIds: todosDeshacibles ? g.map((x) => x.avanceId as string) : null,
       anulable: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulable && !e.anulada ? { id: e.id, que: e.tipo } : null,
       anulada: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulada,
-    };
-    const dia = fechaLimaDe(e.cuando);
+      anotado,
+      corregible: (e.tipo === "avance" || e.tipo === "falla") && vivos && e.faseClave ? anotacionCorregible(g, e.faseClave, nombreFase) : null,
+      marcaViva: e.tipo === "marca" && vivos ? { id: e.id, faseClave: e.faseClave, faseNombre: nombreFase } : null,
+      restaurable: null,
+      restaurado: false,
+      corregida,
+    });
+  }
+  for (const c of p.cambios) entradas.push(entradaDeCambio(c, p.lineas));
+  // Lo que pasó y lo que se cambió, juntos y del más reciente al más viejo (un cambio va en el momento en que se hizo).
+  entradas.sort((a, b) => Date.parse(b.cuando) - Date.parse(a.cuando));
+  const dias_: DiaDeTiempo[] = [];
+  for (const entrada of entradas) {
+    const dia = fechaLimaDe(entrada.cuando);
     const ultimo = dias_[dias_.length - 1];
     if (ultimo && ultimo.dia === dia) ultimo.entradas.push(entrada);
     else dias_.push({ dia, etiqueta: etiquetaDelDia(dia, hoy), hoy: dia === hoy, entradas: [entrada] });
@@ -939,18 +1441,388 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
   return dias_;
 }
 
-/**
- * Los avances que se anotaron después de `antes` en una fase y que todavía se pueden deshacer: los ids que «Deshacer» del aviso tiene que deshacer. `registrar_avance` no devuelve los
- * ids de lo que escribió, así que se leen de la línea de tiempo recién traída y se restan los que ya estaban.
- */
-export function avancesNuevos(antes: readonly EventoTiempo[], despues: readonly EventoTiempo[], fase: FaseClave): string[] {
-  const conocidos = new Set(antes.map((e) => e.id));
-  return despues.flatMap((e) => (e.tipo === "avance" && e.faseClave === fase && e.avanceId !== null && !conocidos.has(e.id) ? [e.avanceId] : []));
-}
-
 /** El texto del aviso de éxito: «Terminaste 120 prendas de Corte». */
 export function textoTermine(total: number, faseNombre: string): string {
   return `Terminaste ${cuantas(total, "prenda", "prendas")} de ${faseNombre}`;
+}
+
+// ---------- «Terminé» con falla y con fecha (ADR-0570, actividad 2) ----------
+// Lo que no salió bien en una fase del Taller: «se arregla» (vuelve a quien la arregla y sigue pendiente aquí), «segunda» (no entra al stock) o «se perdió». Segunda y perdida cierran la
+// fase y no pasan a la siguiente; el arreglo solo se cuenta en la historia. Y el día real de lo anotado. Nada de esto decide algo nuevo: los rechazos son los de `anotar_termine`
+// (20261029164000), con sus mismos hints.
+
+// ---------- «Terminé» y la Salida con su tela, todo o nada (ADR-0587) ----------
+// La tela que quedó viaja con el «Terminé» (o con la Salida a un corte de afuera) en UNA transacción, con un token por hoja abierta: si se corta
+// la red y la persona vuelve a apretar, la base devuelve «repetido» y no anota dos veces. «Deshacer» deshace las prendas, las fallas y devuelve
+// la tela a su lote, también en una sola llamada, con los ids que devolvió el envío.
+export const RPC_ANOTAR_TERMINE_CON_TELA = "anotar_termine_con_tela";
+export const RPC_DESHACER_TERMINE = "deshacer_termine";
+
+/** Lo que «Deshacer» necesita: los ids que escribió el envío. */
+export type DeshacerTermine = { avanceIds: string[]; fallaIds: string[]; consumoIds: string[] };
+
+/**
+ * La respuesta de `anotar_termine_con_tela` o `registrar_salida_con_tela`. `repetido`: la base ya tenía ese envío (un reintento tras un corte) y no
+ * anotó nada; entonces no hay ids y no se ofrece «Deshacer». `deshacer` es null si no hay nada que deshacer (o si la respuesta no trae la forma esperada).
+ */
+export function leerEnvioConTela(json: unknown): { repetido: boolean; deshacer: DeshacerTermine | null } {
+  if (!json || typeof json !== "object") return { repetido: false, deshacer: null };
+  const r = json as Record<string, unknown>;
+  const repetido = r.repetido === true;
+  const deshacer = { avanceIds: idsDe(r.avance_ids), fallaIds: idsDe(r.falla_ids), consumoIds: idsDe(r.consumo_ids) };
+  const hay = deshacer.avanceIds.length + deshacer.fallaIds.length + deshacer.consumoIds.length > 0;
+  return { repetido, deshacer: repetido || !hay ? null : deshacer };
+}
+
+/** Los argumentos de `deshacer_termine`. */
+export function argsDeshacerTermine(d: DeshacerTermine): { p_avance_ids: string[]; p_falla_ids: string[]; p_consumo_ids: string[] } {
+  return { p_avance_ids: d.avanceIds, p_falla_ids: d.fallaIds, p_consumo_ids: d.consumoIds };
+}
+
+/**
+ * La frase de un envío con token que falló. Con el token, repetir es seguro: si no llegó el veredicto de la base (un corte de red, un 504), se dice que
+ * vuelva a apretar y que no se anota dos veces (la frase de siempre pedía revisar la historia antes de repetir, porque sin token repetir duplicaba). Un «no»
+ * de la base, la frase de siempre.
+ */
+export function fraseDelEnvioConToken(error: ErrorEscritura, contexto: string, boton: string): string {
+  if (esRespuestaIncierta(error)) return `Se cortó la conexión mientras se intentaba ${contexto}. Vuelve a apretar «${boton}»: si ya se había guardado, no se anota dos veces.`;
+  return traducirError(error, contexto);
+}
+
+
+export type DestinoFalla = "arreglo" | "segunda" | "perdida";
+
+/** Las tres salidas de una prenda con falla, en el orden en que se ofrecen (la que no se pierde, primero). */
+export const DESTINOS_FALLA: readonly { valor: DestinoFalla; texto: string; ayuda: string }[] = [
+  { valor: "arreglo", texto: "Se arregla", ayuda: "Vuelve a quien la arregla y sigue pendiente aquí." },
+  { valor: "segunda", texto: "Segunda", ayuda: "No entra al stock; su costo lo cargan las buenas." },
+  { valor: "perdida", texto: "Se perdió", ayuda: "No se vende ni se arregla." },
+];
+
+/** Lo que pasa casi siempre, a un toque; lo demás se escribe. */
+export const MOTIVOS_FALLA = ["Mancha", "Quemadura de plancha", "Costura abierta", "Medida equivocada", "Tela fallada"] as const;
+export const MAX_MOTIVO_FALLA = 200;
+
+/** Una fila de prendas con falla en la hoja «Terminé», tal como la escribe la persona. */
+export type FallaBorrador = { varianteId: string; cantidad: string; destino: DestinoFalla };
+
+const enteroDe = (s: string): number => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : 0);
+
+/** ¿Se escribió algo que no es un entero? Vacía no cuenta: todavía no dijo cuántas. */
+export const cantidadDeFallaMalEscrita = (s: string): boolean => s.trim() !== "" && !/^\d+$/.test(s.trim());
+
+/** Cuántas con falla en total (una celda vacía o que no es un entero cuenta 0). */
+export function totalFallas(fallas: readonly FallaBorrador[]): number {
+  return fallas.reduce((s, f) => s + (f.varianteId ? enteroDe(f.cantidad) : 0), 0);
+}
+
+/** Las que cierran la fase (segunda y perdida): un arreglo sigue pendiente. */
+export function fallasQueCierran(fallas: readonly FallaBorrador[]): number {
+  return fallas.reduce((s, f) => s + (f.varianteId && f.destino !== "arreglo" ? enteroDe(f.cantidad) : 0), 0);
+}
+
+function fallasPorVariante(fallas: readonly FallaBorrador[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const f of fallas) if (f.varianteId) m.set(f.varianteId, (m.get(f.varianteId) ?? 0) + enteroDe(f.cantidad));
+  return m;
+}
+
+/**
+ * Las buenas con las fallas descontadas: la hoja nace con todo lo que falta como bueno, así que al anotar 2 con falla en una talla y color, sus buenas bajan solas para que buenas +
+ * fallas no pasen de lo que falta. Nunca suben: lo que la persona bajó a mano se respeta (como «Segundas» en la Vuelta).
+ */
+export function buenasConFallas(faltan: Readonly<Record<string, number>>, cantidades: Readonly<Record<string, string>>, fallas: readonly FallaBorrador[]): Record<string, string> {
+  const salida: Record<string, string> = { ...cantidades };
+  for (const [id, conFalla] of fallasPorVariante(fallas)) {
+    const tope = Math.max((faltan[id] ?? 0) - conFalla, 0);
+    if (enteroDe(salida[id] ?? "0") > tope) salida[id] = String(tope);
+  }
+  return salida;
+}
+
+/** Lo que impide anotar las prendas con falla, en el orden en que la persona lo arregla. Vacío = la base lo aceptaría. */
+export function problemasDeFallas(
+  faltan: Readonly<Record<string, number>>,
+  cantidades: Readonly<Record<string, string>>,
+  fallas: readonly FallaBorrador[],
+  motivo: string,
+  nombreDe: (varianteId: string) => string
+): string[] {
+  const problemas: string[] = [];
+  if (fallas.some((f) => !f.varianteId)) problemas.push("Elige la talla y el color de cada prenda con falla.");
+  for (const f of fallas) {
+    if (!f.varianteId) continue;
+    // Las cuentas leen como 0 lo que no entienden: este problema frena «Anotar», y es lo que evita que esa falla se vaya sin avisar.
+    if (cantidadDeFallaMalEscrita(f.cantidad)) problemas.push(textoCantidadRechazada(f.cantidad.trim(), false, ""));
+    else if (enteroDe(f.cantidad) <= 0) problemas.push(`Escribe cuántas con falla hay en ${nombreDe(f.varianteId)}.`);
+  }
+  for (const [id, conFalla] of fallasPorVariante(fallas)) {
+    const buenas = enteroDe(cantidades[id] ?? "0");
+    const falta = faltan[id] ?? 0;
+    if (buenas + conFalla > falta) problemas.push(`En ${nombreDe(id)} faltan ${falta}: entre buenas y con falla anotaste ${buenas + conFalla}.`);
+  }
+  if (fallas.length > 0 && motivo.trim() === "") problemas.push("Cuenta qué pasó con las prendas con falla.");
+  if (motivo.trim().length > MAX_MOTIVO_FALLA) problemas.push(`Lo que cuentas de la falla es muy largo: hasta ${MAX_MOTIVO_FALLA} letras.`);
+  return problemas;
+}
+
+/** Lo que viaja a `anotar_termine` (`p_fallas`): una línea por talla, color y destino (dos filas iguales se suman), con el mismo motivo. */
+export function lineasDeFallas(fallas: readonly FallaBorrador[], motivo: string): { variante_id: string; cantidad: number; destino: DestinoFalla; motivo: string }[] {
+  const juntas = new Map<string, { variante_id: string; cantidad: number; destino: DestinoFalla; motivo: string }>();
+  for (const f of fallas) {
+    const n = enteroDe(f.cantidad);
+    if (!f.varianteId || n <= 0) continue;
+    const clave = `${f.varianteId}:${f.destino}`;
+    const previa = juntas.get(clave);
+    if (previa) previa.cantidad += n;
+    else juntas.set(clave, { variante_id: f.varianteId, cantidad: n, destino: f.destino, motivo: motivo.trim() });
+  }
+  return [...juntas.values()];
+}
+
+/** «2 segundas · 1 perdida · 1 se arregla», en el orden de los destinos y sin los que están en cero. */
+export function textoFallas(porDestino: Readonly<Record<DestinoFalla, number>>): string {
+  const partes = [
+    porDestino.segunda > 0 ? cuantas(porDestino.segunda, "segunda", "segundas") : null,
+    porDestino.perdida > 0 ? cuantas(porDestino.perdida, "perdida", "perdidas") : null,
+    porDestino.arreglo > 0 ? `${porDestino.arreglo} ${porDestino.arreglo === 1 ? "se arregla" : "se arreglan"}` : null,
+  ].filter((p): p is string => p !== null);
+  return partes.join(" · ");
+}
+
+/** El día de lo anotado: hoy de fábrica; nunca futuro ni antes de abrir la orden (la base repite: `avance_fecha_futura`, `avance_fecha_antes_de_abrir`). `null` = se puede. */
+export function problemaDeDia(dia: string, hoy: string, apertura: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return "Elige el día en que lo terminaste.";
+  if (dia > hoy) return "Ese día todavía no llega: elige hoy o un día anterior.";
+  if (dia < apertura) return `La orden se abrió el ${diaCorto(apertura)}: no puede ser antes.`;
+  return null;
+}
+
+/** El día que viaja a la base: `null` si es hoy (vale la hora en que se anota). */
+export function diaParaLaBase(dia: string, hoy: string): string | null {
+  return dia === hoy ? null : dia;
+}
+
+// ---------- Corregir, eliminar y restaurar, con su historia (ADR-0570, actividad 3) ----------
+// Felipe (2026-10-29): «editar con facilidad, eliminar con historial de cambio y comentario para entender qué pasó». Cualquier «Terminé» —de cualquier día, no solo el último— se
+// corrige (cantidades, fallas y día) o se elimina, siempre con su motivo, y lo eliminado se restaura. Nada se borra: la base deshace lo viejo y anota lo nuevo en un solo paso, y cada
+// cambio queda en `produccion_cambios`. Nada de esto decide algo nuevo: los rechazos son los de 20261029173000, con sus mismos hints.
+
+export const RPC_CORREGIR_ANOTACION = "corregir_anotacion_orden";
+export const RPC_ELIMINAR_ANOTACION = "eliminar_anotacion_orden";
+export const RPC_RESTAURAR_ANOTACION = "restaurar_anotacion_orden";
+export const RPC_COMENTAR_ORDEN = "comentar_orden";
+/** ADR-0570, actividad 4: un líder deja pasar al stock una orden con tela declarada y sin anotar (queda en la historia como un cambio «sin_tela»). */
+export const RPC_PERMITIR_SIN_TELA = "permitir_pasar_sin_tela";
+export const MAX_MOTIVO_CAMBIO = 300;
+export const MAX_NOTA_ORDEN = 500;
+/** Lo que pasa casi siempre, a un toque; lo demás se escribe. */
+export const MOTIVOS_CORREGIR = ["Cantidad equivocada", "Fecha equivocada", "Era de otra talla o color", "Se anotó dos veces"] as const;
+export const MOTIVOS_QUITAR_MARCA = ["Todavía no se hizo", "Se marcó por error"] as const;
+export const MOTIVOS_RESTAURAR = ["Se eliminó por error", "Sí se hizo"] as const;
+/** Los atajos de «por qué se agrega tarde» (ADR-0586): lo que de verdad pasa en el Taller cuando un paso hecho no quedó anotado. */
+export const MOTIVOS_PASO_TARDE = ["Se olvidó anotarlo", "Lo hizo un servicio y no se registró"] as const;
+
+export type FallaGuardada = TermineGuardado["fallas"][number];
+
+/** Un «Terminé» vivo de la historia, listo para corregirlo: sus filas, su fase, cómo quedó y su día. */
+export type AnotacionCorregible = {
+  ids: string[];
+  faseClave: FaseClave;
+  faseNombre: string;
+  buenas: Record<string, number>;
+  fallas: FallaGuardada[];
+  dia: string;
+};
+
+function anotacionCorregible(g: readonly EventoTiempo[], faseClave: FaseClave, faseNombre: string): AnotacionCorregible {
+  const buenas: Record<string, number> = {};
+  const fallas: FallaGuardada[] = [];
+  for (const x of g) {
+    if (!x.varianteId) continue;
+    if (x.tipo === "avance") buenas[x.varianteId] = (buenas[x.varianteId] ?? 0) + x.cantidad;
+    else if (x.destino) fallas.push({ varianteId: x.varianteId, destino: x.destino, cantidad: x.cantidad, motivo: x.motivo ?? "" });
+  }
+  return { ids: g.map((x) => x.id), faseClave, faseNombre, buenas, fallas, dia: fechaLimaDe(g[0].cuando) };
+}
+
+const totalBuenas = (t: TermineGuardado | null): number => (t ? t.buenas.reduce((s, b) => s + b.cantidad, 0) : 0);
+const totalAnotado = (t: TermineGuardado | null): number => totalBuenas(t) + (t ? t.fallas.reduce((s, f) => s + f.cantidad, 0) : 0);
+
+function textoFallasGuardadas(fallas: readonly FallaGuardada[]): string {
+  const porDestino = { arreglo: 0, segunda: 0, perdida: 0 } as Record<DestinoFalla, number>;
+  for (const f of fallas) porDestino[f.destino] += f.cantidad;
+  return textoFallas(porDestino);
+}
+
+/** Qué cambió de un «Terminé» a otro, en palabras: «Negro M: 25 → 23 · con falla: 2 segundas · del mié 28 oct al jue 29 oct». `null` si no se ve diferencia. */
+export function queCambio(antes: TermineGuardado, despues: TermineGuardado, lineas: readonly LineaPagina[]): string | null {
+  const partes: string[] = [];
+  const orden = lineas.map((l) => l.varianteId);
+  const ids = [...new Set([...antes.buenas, ...despues.buenas].map((b) => b.varianteId))].sort((a, b) => orden.indexOf(a) - orden.indexOf(b));
+  const de = (t: TermineGuardado, id: string) => t.buenas.find((b) => b.varianteId === id)?.cantidad ?? 0;
+  for (const id of ids) {
+    const a = de(antes, id);
+    const d = de(despues, id);
+    if (a === d) continue;
+    const l = lineas.find((x) => x.varianteId === id);
+    partes.push(`${l ? `${l.colorNombre ?? "Sin color"} ${l.talla ?? "Única"}` : "Otra talla"}: ${a} → ${d}`);
+  }
+  const fa = textoFallasGuardadas(antes.fallas);
+  const fd = textoFallasGuardadas(despues.fallas);
+  if (fa !== fd) partes.push(fd ? `con falla: ${fd}` : "sin fallas");
+  const da = antes.hecho ? fechaLimaDe(antes.hecho) : null;
+  const dd = despues.hecho ? fechaLimaDe(despues.hecho) : null;
+  if (da && dd && da !== dd) partes.push(`del ${diaCorto(da)} al ${diaCorto(dd)}`);
+  return partes.length > 0 ? partes.join(" · ") : null;
+}
+
+/** Un cambio como entrada de la historia, en el momento en que se hizo: qué se cambió, de cuánto a cuánto y por qué. Una eliminación trae su «Restaurar». */
+function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): EntradaDeTiempo {
+  const fase = c.faseNombre ?? "";
+  const porque = c.texto ? `Por qué: ${c.texto}` : null;
+  let titulo: string;
+  let cuanto: string | null = null;
+  let detalle: string | null = porque;
+  if (c.accion === "nota") {
+    titulo = "Nota";
+    detalle = c.texto;
+  } else if (c.accion === "sin_tela") {
+    titulo = "Dejó pasar al stock sin tela";
+  } else if (c.accion === "tipo") {
+    ({ titulo, detalle } = entradaDeCambioDeTipo(c.pasoAMuestra, c.texto));
+  } else if (c.accion === "paso_tarde") {
+    titulo = `Agregó ${fase} tarde`;
+    cuanto = c.tarde && c.tarde.prendas > 0 ? `${cuantas(c.tarde.prendas, "prenda", "prendas")} ya ${c.tarde.prendas === 1 ? "hecha" : "hechas"}` : null;
+    const quienLoHizo = c.tarde ? (c.tarde.quien === "servicio" ? `Afuera${c.tarde.proveedorNombre ? ` con ${c.tarde.proveedorNombre}` : ", pendiente de registrar"}` : "En el Taller") : null;
+    // El día real que eligió el líder (la Salida y la Vuelta de un servicio se ven el día en que se anotaron).
+    const diaReal = c.tarde?.hecho && c.tarde.prendas > 0 && fechaLimaDe(c.tarde.hecho) !== fechaLimaDe(c.cuando) ? `${c.tarde.quien === "servicio" ? "volvió" : "hecho"} el ${diaCorto(fechaLimaDe(c.tarde.hecho))}` : null;
+    detalle = [quienLoHizo, diaReal, porque].filter(Boolean).join(" · ") || null;
+  } else if (c.objeto === "marca") {
+    titulo = c.accion === "restaurar" ? `Volvió a marcar ${fase} como hecho` : `Quitó la marca de ${fase}`;
+  } else if (c.accion === "corregir") {
+    titulo = `Corrigió lo terminado en ${fase}`;
+    const a = totalBuenas(c.antes);
+    const d = totalBuenas(c.despues);
+    cuanto = a !== d ? `${a} → ${d}` : null;
+    detalle = [c.antes && c.despues ? queCambio(c.antes, c.despues, lineas) : null, porque].filter(Boolean).join(" · ") || null;
+  } else if (c.accion === "eliminar") {
+    titulo = `Eliminó lo terminado en ${fase}`;
+    cuanto = cuantas(totalAnotado(c.antes), "prenda", "prendas");
+    detalle = [c.antes?.hecho ? `del ${diaCorto(fechaLimaDe(c.antes.hecho))}` : null, porque].filter(Boolean).join(" · ") || null;
+  } else {
+    titulo = `Restauró lo terminado en ${fase}`;
+    cuanto = cuantas(totalAnotado(c.despues), "prenda", "prendas");
+  }
+  return {
+    ids: [c.id],
+    cuando: c.cuando,
+    hora: horaLima(c.cuando),
+    quien: c.quienNombre,
+    tipo: c.accion,
+    faseClave: null,
+    titulo,
+    detalle,
+    cuanto,
+    anulable: null,
+    anulada: false,
+    anotado: null,
+    corregible: null,
+    marcaViva: null,
+    restaurable: c.accion === "eliminar" && !c.restaurado ? { cambioId: c.id, marca: c.objeto === "marca" } : null,
+    restaurado: c.accion === "eliminar" && c.restaurado,
+    corregida: false,
+  };
+}
+
+/** Lo que cabe en la corrección, por talla y color: lo que falta en la fase más lo que ocupaba esta anotación (sus buenas, segundas y perdidas; un arreglo no ocupaba lugar). */
+export function disponiblesParaCorregir(faltan: Readonly<Record<string, number>>, a: AnotacionCorregible): Record<string, number> {
+  const salida: Record<string, number> = { ...faltan };
+  for (const [id, n] of Object.entries(a.buenas)) salida[id] = (salida[id] ?? 0) + n;
+  for (const f of a.fallas) if (f.destino !== "arreglo") salida[f.varianteId] = (salida[f.varianteId] ?? 0) + f.cantidad;
+  return salida;
+}
+
+/** Las filas de falla de una anotación, como las escribe la hoja (y el motivo que comparten). */
+export function fallasDeLaAnotacion(a: AnotacionCorregible): { fallas: FallaBorrador[]; motivo: string } {
+  return { fallas: a.fallas.map((f) => ({ varianteId: f.varianteId, cantidad: String(f.cantidad), destino: f.destino })), motivo: a.fallas[0]?.motivo ?? "" };
+}
+
+/** Lo que impide guardar las cantidades corregidas: nada anotado (eso es «Eliminar») o más buenas de las que caben en una talla y color sin fallas (con fallas lo dice `problemasDeFallas`). */
+export function problemaDeCantidadesCorregidas(
+  disponibles: Readonly<Record<string, number>>,
+  cantidades: Readonly<Record<string, string>>,
+  fallas: readonly FallaBorrador[],
+  nombreDe: (varianteId: string) => string
+): string | null {
+  const conFalla = fallasPorVariante(fallas);
+  for (const [id, s] of Object.entries(cantidades)) {
+    const n = enteroDe(s ?? "0");
+    const tope = disponibles[id] ?? 0;
+    if (!conFalla.has(id) && n > tope) return `En ${nombreDe(id)} caben ${tope}: anotaste ${n}.`;
+  }
+  const total = Object.values(cantidades).reduce((s, x) => s + enteroDe(x ?? "0"), 0) + totalFallas(fallas);
+  return total === 0 ? "Si no quedó nada de esta anotación, usa «Eliminar»." : null;
+}
+
+/** ¿La corrección es igual a como estaba? Entonces no hay nada que guardar (la base repite: `corregir_sin_cambios`). */
+export function correccionSinCambios(a: AnotacionCorregible, cantidades: Readonly<Record<string, string>>, fallas: readonly FallaBorrador[], motivoFalla: string, dia: string): boolean {
+  if (dia !== a.dia) return false;
+  const ids = new Set([...Object.keys(a.buenas), ...Object.keys(cantidades)]);
+  for (const id of ids) if ((a.buenas[id] ?? 0) !== enteroDe(cantidades[id] ?? "0")) return false;
+  const clave = (f: { variante_id: string; destino: string; cantidad: number; motivo: string }) => `${f.variante_id}:${f.destino}:${f.cantidad}:${f.motivo}`;
+  const antes = a.fallas.map((f) => clave({ variante_id: f.varianteId, destino: f.destino, cantidad: f.cantidad, motivo: f.motivo })).sort();
+  const ahora = lineasDeFallas(fallas, motivoFalla).map(clave).sort();
+  return antes.length === ahora.length && antes.every((x, i) => x === ahora[i]);
+}
+
+/** El motivo de un cambio: obligatorio y de hasta 300 letras (la base repite: `cambio_sin_motivo`, `cambio_motivo_largo`). `null` = se puede. */
+export function problemaDeMotivoCambio(motivo: string): string | null {
+  if (motivo.trim() === "") return "Cuenta por qué: queda en la historia de la orden.";
+  if (motivo.trim().length > MAX_MOTIVO_CAMBIO) return `El motivo es muy largo: hasta ${MAX_MOTIVO_CAMBIO} letras.`;
+  return null;
+}
+
+/** Una nota del equipo: no vacía y de hasta 500 letras (la base repite: `nota_vacia`, `nota_larga`). */
+export function problemaDeNota(texto: string): string | null {
+  if (texto.trim() === "") return "Escribe la nota.";
+  if (texto.trim().length > MAX_NOTA_ORDEN) return `La nota es muy larga: hasta ${MAX_NOTA_ORDEN} letras.`;
+  return null;
+}
+
+// ---------- «Lo anotado aquí»: corregir desde el paso (ADR-0586, actividad 3; Felipe 2026-10-31) ----------
+// Lo mismo que el lápiz de la historia, a un toque desde el paso abierto: sus «Terminé» y sus prendas con falla, que se corrigen, y sus Salidas y Vueltas, que se anulan. No hay regla
+// nueva: el lápiz aparece solo si la historia ya se lo pone (`corregible` o `anulable`, que vienen de la base). Lo hace quien opera el Taller, no solo el líder (Felipe lo eligió al verlo):
+// la colaboradora que se equivocó arregla su propio dato, siempre con motivo y con «Restaurar». Un hito (Ploteo) no entra: su marca tiene su propio botón (ADR-0586 act. 2).
+// Una Salida o una Vuelta viva que ya no se anula SIGUE en la lista, sin lápiz y con su porqué (revisión del 2026-11-01): si desapareciera, la colaboradora creería que se borró. La base
+// tiene un solo motivo para cada una cuando sigue viva (`fn_produccion_salida_anulable` → `anular_ya_volvio`; `fn_produccion_vuelta_anulable` → `anular_ya_avanzo`); la prueba lo lee.
+
+/** Lo anotado en un paso que sigue vivo, de lo más reciente a lo más viejo: lo que se corrige o se anula, y las Salidas y Vueltas que ya no. */
+export function anotadoDelPaso(fase: FasePagina, p: OrdenPagina, hoy: string): EntradaDeTiempo[] {
+  if (fase.hito) return [];
+  return lineaDeTiempoAgrupada(p, hoy)
+    .flatMap((d) => d.entradas)
+    .filter((e) => e.faseClave === fase.clave && (e.corregible !== null || e.anulable !== null || ((e.tipo === "salida" || e.tipo === "vuelta") && !e.anulada)));
+}
+
+/** Una fila de «Lo anotado aquí»: qué fue, cuándo pasó y quién (el paso ya se nombra arriba, así que no se repite), y debajo lo de la historia que las distingue
+ *  («2 de Beige · S»): dos «Terminó» del mismo día por la misma persona se verían iguales sin eso. `fija`: por qué ya no se cambia (sin lápiz). */
+export function filaDelPaso(e: EntradaDeTiempo): { que: string; cuando: string; quien: string | null; cuanto: string | null; detalle: string | null; fija: string | null } {
+  const que = e.tipo === "salida" ? "Salida" : e.tipo === "vuelta" ? "Vuelta" : e.tipo === "falla" ? "Prendas con falla" : "Terminó";
+  const fija =
+    e.corregible || e.anulable
+      ? null
+      : e.tipo === "salida"
+        ? "Ya no se anula: sus prendas ya volvieron. Si la vuelta estaba mal, anula primero la vuelta."
+        : e.tipo === "vuelta"
+          ? "Ya no se anula: el paso siguiente ya usó estas prendas."
+          : null;
+  return { que, cuando: `${diaCorto(fechaLimaDe(e.cuando))}, ${e.hora}`, quien: e.quien, cuanto: e.cuanto, detalle: e.detalle, fija };
+}
+
+/** La fase de una anotación de la historia, para abrir su hoja. */
+export function faseDeLaAnotacion(fases: readonly FasePagina[], faseClave: FaseClave | null): FasePagina | null {
+  return fases.find((f) => f.clave === faseClave) ?? null;
 }
 
 // ---------- Salida y Vuelta de un servicio (ADR-0400, decisión 4; actividad 4) ----------
@@ -962,6 +1834,22 @@ export function cantidadesQuePuedenSalir(f: FasePagina): Record<string, number> 
   const salida: Record<string, number> = {};
   for (const v of f.porVariante) {
     const n = Math.max(v.entrada - v.salieron, 0);
+    if (n > 0) salida[v.varianteId] = n;
+  }
+  return salida;
+}
+
+/**
+ * Lo que «Salida» trae escrito de fábrica. Es lo que puede salir, salvo en la primera fase (Corte): ahí lo que la base deja mandar es el plan más un 10 % redondeado hacia arriba en cada talla
+ * y color (el margen por si se corta de más), y precargarlo entero hacía que 57 prendas pedidas salieran como 72. De fábrica parte del plan (menos lo que ya salió), que es lo que se pidió;
+ * el margen sigue como tope en `cantidadesQuePuedenSalir` y quien cortó de más lo escribe a mano. Es el mismo criterio de `cantidadesQueFaltan` para «Terminé».
+ */
+export function cantidadesDeFabricaDeSalida(f: FasePagina, fases: readonly FasePagina[]): Record<string, number> {
+  const tope = cantidadesQuePuedenSalir(f);
+  if (!esPrimeraFase(f, fases)) return tope;
+  const salida: Record<string, number> = {};
+  for (const v of f.porVariante) {
+    const n = Math.min(tope[v.varianteId] ?? 0, Math.max((v.plan ?? v.entrada) - v.salieron, 0));
     if (n > 0) salida[v.varianteId] = n;
   }
   return salida;
@@ -1169,8 +2057,23 @@ export function resumenDeCierre(p: Pick<OrdenPagina, "fases" | "costos" | "permi
   return { buenas, segundas, faltantes, costoTotal, costoPorPrenda: costoTotal !== null && buenas > 0 ? Math.round((costoTotal / buenas) * 100) / 100 : null };
 }
 
+/** Lo que dice la hoja «Pasar al stock» sobre qué pasa con el stock al confirmar (la misma frase de siempre salvo que las prendas ya estuvieran registradas). */
+export function textoQuePasaConElStock(total: number, esMuestra: boolean, yaEstaba: boolean): string {
+  if (esMuestra) return "La muestra se da por terminada";
+  if (yaEstaba) return `${total === 1 ? "La prenda ya estaba registrada" : `Las ${total} prendas ya estaban registradas`}: no entra stock, la orden solo se cierra con su costo`;
+  return `Entran ${total} ${total === 1 ? "prenda" : "prendas"} al stock del Taller y cada talla queda en Movimientos`;
+}
+
+/** La casilla de la hoja «Pasar al stock» (solo un líder la cambia): para el caso de una orden que se abre después de que las prendas ya se cargaron en una sede. */
+export const TEXTO_YA_ESTABA = {
+  etiqueta: "Estas prendas ya estaban registradas en una sede",
+  ayuda: "Márcala si ya las cargaste en una tienda (por ejemplo, como «Encontré prendas»). La orden se cierra con su costo, pero no suma al stock: así no se duplican. Solo un líder.",
+  avisoParaOtros: "Un líder marcó que estas prendas ya estaban registradas en una sede: al pasar la orden no se suma stock.",
+} as const;
+
 /** El aviso de éxito: «48 prendas de Pantalón Lía entraron al stock del Taller» (una muestra solo se da por terminada). */
-export function textoPasasteAlStock(total: number, referencia: string, esMuestra: boolean): string {
+export function textoPasasteAlStock(total: number, referencia: string, esMuestra: boolean, yaEstaba = false): string {
+  if (!esMuestra && yaEstaba) return `Orden de ${referencia} cerrada: ${cuantas(total, "prenda", "prendas")} ya estaba${total === 1 ? "" : "n"} registrada${total === 1 ? "" : "s"}, no se sumó stock`;
   return esMuestra ? `Muestra ${referencia} terminada` : `${cuantas(total, "prenda", "prendas")} de ${referencia} ${total === 1 ? "entró" : "entraron"} al stock del Taller`;
 }
 
@@ -1187,7 +2090,8 @@ export function textoAnulasteLaOrden(referencia: string): string {
 }
 
 /** Lo que dice la hoja de revertir: qué pasa con el stock según lo que se cerró (una muestra no tocó el stock). */
-export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null }): string {
+export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null; ingresoAlStock?: IngresoAlStock }): string {
+  if (o.ingresoAlStock === "ya_estaba") return "La orden vuelve a estar en proceso. Esas prendas ya estaban registradas en una sede: no entraron al stock al cerrar, así que no hay stock que devolver. La marca «ya estaban registradas» se quita y hay que decidirla otra vez al volver a cerrar.";
   return o.inventariadoEn
     ? `Las ${o.cantidadBuenas ?? 0} prendas salen del stock del Taller (queda un movimiento de reversión: la entrada original no se borra) y la orden vuelve a estar en proceso, para corregir las buenas o los costos.`
     : "La muestra vuelve a estar en proceso. No había stock que devolver.";

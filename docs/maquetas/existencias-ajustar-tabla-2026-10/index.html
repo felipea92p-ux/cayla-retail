@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ajustar stock, la tabla</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<!-- Maqueta (2026-10-26, propuesta sin implementar): tres formas de la tabla de «Ajustar stock» en el modal de la prenda de Existencias
+     (hoy: components/existencias/AjusteDelModelo.tsx + app/estilos/ajuste-modelo.css, ADR-0494). Prendas y cantidades: EJEMPLO
+     INVENTADO. Colores: tokens de globals.css y tema.css; el color de cada prenda es dato. Movimiento: ADR-0136 act. 2026-10-23 (c),
+     una vez, sin rebote ni bucle. -->
+<style>
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;
+  --verde:#48603f;--verde-p:#3a4f33;--ambar:#74501a;--ambar-p:#734f15;--pizarra:#4c5d6e;--rojo:#b8412d;--rojo-p:#8b2a1f;--sombra:#1a1a18;
+  --tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+:root[data-tema="oscuro"]{
+  color-scheme:dark;
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;
+  --verde:#9ccb8d;--verde-p:#b5dba8;--ambar:#e4b968;--ambar-p:#ecc676;--pizarra:#a2b8cd;--rojo:#e8806a;--rojo-p:#f29a86;--sombra:#000;
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--crema)}
+body{color:var(--tinta);font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;padding:28px 24px 120px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+.vers{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.serif{font-family:"EB Garamond",serif;font-weight:500}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.ch{width:14px;height:14px}
+svg.i.gr{width:20px;height:20px}
+kbd{font:inherit;font-size:11px;min-width:20px;height:20px;display:inline-grid;place-items:center;border:1px solid var(--sand);border-radius:5px;color:var(--taupe);background:var(--papel);padding:0 5px}
+
+/* ================= la página de la maqueta (no es pantalla) ================= */
+.intro{max-width:1240px;margin:0 auto}
+.intro h1{font-family:"EB Garamond",serif;font-weight:500;font-size:40px;line-height:1.05}
+.intro .bajada{color:var(--taupe);max-width:920px;margin-top:8px;font-size:15px}
+.intro .bajada b{color:var(--tinta);font-weight:600}
+.diag{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+.diag > div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:11px 13px;font-size:12.5px;color:var(--taupe)}
+.diag b{display:block;color:var(--tinta);font-size:13.5px;margin-bottom:3px}
+.diag code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--tinta)}
+@media (max-width:980px){.diag{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.control{max-width:1240px;margin:18px auto 0;border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.control .grupo{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.control .grupo > span{font-size:12px;color:var(--taupe);margin-right:2px}
+.ctl{border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent);background:var(--papel);border-radius:10px;padding:6px 11px;font-size:13px}
+.ctl[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.ctl b{font-weight:700}
+.escena{margin:16px auto 0;display:flex;justify-content:center;overflow-x:auto;padding-bottom:6px}
+.notas{max-width:1240px;margin:16px auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.nota{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:14px 16px;font-size:13px;transition:border-color .3s,box-shadow .3s}
+.nota[data-activa="si"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.nota h3{font-family:"EB Garamond",serif;font-weight:500;font-size:21px;line-height:1.1}
+.nota .sub{color:var(--taupe);margin:2px 0 8px}
+.nota ul{padding-left:18px;display:grid;gap:4px}
+.nota .gp{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--sand)}
+.nota .gp dt{font-weight:700}
+.nota .rec{display:inline-block;margin-left:6px;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--tinta);color:var(--crema);vertical-align:3px;font-family:"DM Sans",sans-serif;letter-spacing:.04em}
+@media (max-width:980px){.notas{grid-template-columns:1fr}}
+.comun{max-width:1240px;margin:12px auto 0;font-size:13px;color:var(--taupe)}
+.comun b{color:var(--tinta)}
+
+/* ================= el marco: la pantalla, con Existencias detrás ================= */
+.marco{position:relative;background:var(--crema);border:1px solid var(--sand);border-radius:18px;overflow:hidden;flex:none}
+.fondo{position:absolute;inset:0;padding:26px 30px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;align-content:start}
+.fondo .t{height:240px;border-radius:16px;background:var(--papel);border:1px solid var(--sand)}
+.fondo h1{grid-column:1/-1;font-family:"EB Garamond",serif;font-weight:500;font-size:46px;margin-bottom:8px}
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(3px);z-index:5}
+:root[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+
+/* ================= el modal de la prenda ================= */
+.modal{position:absolute;z-index:6;left:50%;top:24px;width:min(62rem,calc(100% - 48px));max-height:calc(100% - 48px);transform:translateX(-50%);background:var(--papel);border:1px solid var(--sand);border-radius:22px;display:flex;flex-direction:column;overflow:hidden}
+.animar .modal{animation:entra 320ms var(--ease)}
+@keyframes entra{from{opacity:0;transform:translate(-50%,18px) scale(.985)}}
+.m-cuerpo{overflow:auto;padding:20px 26px 8px;flex:1;min-height:0}
+.m-cab{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.m-cab h2{font-family:"EB Garamond",serif;font-weight:500;font-size:24px;line-height:1.1}
+.m-cab p{color:var(--taupe);font-size:13.5px;margin-top:3px}
+.m-cab p b{color:var(--tinta);font-weight:600}
+.m-cab .desc{color:var(--taupe)}
+.cerrar{width:34px;height:34px;border-radius:999px;border:0;background:transparent;display:grid;place-items:center;color:var(--taupe);flex:none}
+@media (hover:hover){.cerrar:hover{background:color-mix(in srgb,var(--sand) 60%,transparent);color:var(--tinta)}}
+.m-grid{display:grid;grid-template-columns:14rem minmax(0,1fr);gap:24px;margin-top:14px;align-items:start}
+.m-izq{display:grid;gap:14px;align-content:start;min-width:0;position:sticky;top:0}
+.m-foto{position:relative;height:168px;border-radius:14px;display:grid;place-items:center;color:var(--tinta-fija);overflow:hidden;transition:background 420ms var(--ease)}
+.m-foto svg{width:40%;height:40%;stroke:currentColor;fill:none;stroke-width:1.1;opacity:.55}
+.m-foto .rotulo{position:absolute;left:10px;bottom:10px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--crema-fija) 88%,transparent);color:var(--tinta-fija)}
+.m-der{min-width:0;container-type:inline-size}
+
+/* el talón (izquierda) */
+.talon{display:grid;gap:8px}
+.talon-cab{display:flex;align-items:center;gap:8px}
+.globito{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:11.5px;font-weight:700;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar-p)}
+.globito[data-n="0"]{display:none}
+.talon-vacio{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:start;color:var(--taupe);font-size:13px}
+.talon-vacio span{width:32px;height:32px;border-radius:999px;background:var(--hueso);display:grid;place-items:center;color:var(--tinta)}
+.ticket{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--sand);border-radius:10px;background:var(--papel);font-size:12.5px;animation:entra-t 320ms var(--ease) backwards}
+@keyframes entra-t{from{opacity:0;transform:translateX(14px)}}
+.ticket .m{width:12px;height:12px;border-radius:999px;box-shadow:0 0 0 1px var(--sand)}
+.ticket b{font-weight:600}
+.ticket .tn{color:var(--taupe);font-variant-numeric:tabular-nums}
+.delta{padding:1px 7px;border-radius:999px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.delta[data-t="entra"]{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde-p)}
+.delta[data-t="sale"]{background:color-mix(in srgb,var(--ambar) 14%,transparent);color:var(--ambar-p)}
+.balanza{display:flex;height:8px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.balanza i{display:block;height:100%;transition:flex-grow 320ms var(--ease)}
+.balanza .e{background:var(--verde)}.balanza .s{background:var(--ambar)}
+.talon-pie{display:flex;justify-content:space-between;font-size:12px;color:var(--taupe)}
+.talon-pie b{font-family:"EB Garamond",serif;font-weight:500;font-size:18px;color:var(--tinta)}
+
+/* el pie fijo del modal */
+.m-pie{flex:none;margin:0 26px;padding:12px 0 16px;border-top:1px solid var(--sand);display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;background:var(--papel)}
+.responsable{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:var(--hueso);font-size:13px;color:var(--taupe)}
+.resumen{flex:1;min-width:0;font-size:13.5px;color:var(--taupe)}
+.resumen b{color:var(--tinta);font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 18px;border-radius:10px;font-size:13.5px;font-weight:500;border:1px solid transparent;white-space:nowrap;position:relative;overflow:hidden;transition:background 240ms,transform .12s,border-color 240ms}
+.btn:active{transform:scale(.97)}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+@media (hover:hover){.btn.prim:hover:not(:disabled){background:var(--rojo-p)}}
+.btn.prim:disabled{opacity:.38;cursor:not-allowed}
+.btn.sec{background:var(--papel);border-color:color-mix(in srgb,var(--tinta) 18%,transparent)}
+@media (hover:hover){.btn.sec:hover{border-color:var(--tinta)}}
+.btn.cargando::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:40%;background:var(--crema);animation:hilo 900ms linear infinite}
+@keyframes hilo{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+
+/* cabecera de la vista de ajuste (común) */
+.aj-cab{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.volver{width:36px;height:36px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;flex:none}
+.aj-cab h3{font-family:"EB Garamond",serif;font-weight:500;font-size:22px;line-height:1.1}
+.aj-cab p{font-size:12.5px;color:var(--taupe);margin-top:1px}
+.aj-cab p b{color:var(--tinta);font-weight:600}
+.etiq{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.etiq .num{width:22px;height:22px;border-radius:999px;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.etiq .num.ok{background:var(--verde)}
+.etiq b{font-size:14px;font-weight:600}
+.etiq small{font-size:12.5px;color:var(--taupe)}
+.ayuda{font-size:12.5px;color:var(--taupe);margin-top:8px}
+.pa-dec .ayuda,.pb-dec .ayuda{margin-top:0}
+.ayuda b{color:var(--tinta);font-weight:600}
+.aviso{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:start;padding:9px 12px;border-radius:12px;font-size:12.5px;border-left:3px solid var(--pizarra);background:color-mix(in srgb,var(--pizarra) 9%,var(--papel));margin-top:12px}
+.aviso.atencion{border-left-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 10%,var(--papel))}
+.aviso.atencion{animation:asoma 240ms var(--ease)}
+@keyframes asoma{from{opacity:0;transform:translateY(-4px)}}
+.pista-info{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--pizarra);margin-top:6px}
+.campo-nota{margin-top:10px;display:grid;gap:4px}
+.campo-nota input{height:40px;border-radius:10px;border:1px solid transparent;background:var(--hueso);padding:0 12px;outline:none}
+.campo-nota input:focus{background:var(--papel);border-color:var(--tinta)}
+.empieza{display:inline-flex;align-items:center;gap:4px;font-family:"DM Sans",sans-serif;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--pizarra) 14%,transparent);color:var(--pizarra);white-space:nowrap;vertical-align:2px;transition:opacity 300ms,transform 300ms var(--ease)}
+.sin-foco .empieza{opacity:0;transform:scale(.9);pointer-events:none;position:absolute}
+.muestra{display:block;flex:none;width:24px;height:24px;border-radius:999px;border:2px solid var(--papel);box-shadow:0 0 0 1px var(--sand)}
+.pill-talla{display:inline-grid;place-items:center;min-width:34px;height:24px;padding:0 10px;border-radius:999px;background:var(--hueso);font-size:11.5px;font-weight:700;letter-spacing:.05em}
+.con-foco .pill-talla[data-empieza]{background:var(--tinta);color:var(--crema)}
+.guion{color:var(--taupe);opacity:.6}
+
+/* ---- el paso de cantidad (común; en la app: <PasoCantidad>) ---- */
+.paso{position:relative;display:inline-flex;align-items:center;gap:2px;height:44px;padding:0 5px;border-radius:12px;background:var(--hueso);border:1px solid transparent;transition:background 240ms,border-color 240ms}
+.paso::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px;background:var(--rojo);transform:scaleX(0);transition:transform 320ms var(--ease)}
+.paso:focus-within{background:var(--papel);border-color:color-mix(in srgb,var(--tinta) 30%,transparent)}
+.paso:focus-within::after{transform:scaleX(1)}
+.paso button{width:28px;height:28px;border-radius:999px;border:0;background:transparent;display:grid;place-items:center;color:var(--tinta);transition:background 200ms,opacity 200ms}
+@media (hover:hover){.paso button:not([aria-disabled="true"]):hover{background:var(--sand)}}
+.paso button[aria-disabled="true"]{opacity:.28;cursor:not-allowed}
+.paso input{width:38px;text-align:center;border:0;background:transparent;font-family:"EB Garamond",serif;font-size:24px;font-weight:500;line-height:1;outline:none;font-variant-numeric:lining-nums tabular-nums;padding:0}
+.paso input::selection{background:color-mix(in srgb,var(--pizarra) 30%,transparent)}
+[data-cambio="si"] .paso{border-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 8%,var(--papel))}
+[data-cambio="si"] .paso input{color:var(--ambar-p)}
+.paso.chico{height:36px;padding:0 3px;border-radius:10px}
+.paso.chico button{width:24px;height:24px}
+.paso.chico input{width:32px;font-size:20px}
+.paso.ancho{width:100%;justify-content:space-between;height:48px}
+.paso.ancho input{font-size:30px;width:56px}
+.paso.ancho button{width:34px;height:34px}
+.sube{animation:sube 240ms var(--ease)}
+.baja{animation:baja 240ms var(--ease)}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}}
+@keyframes baja{from{opacity:0;transform:translateY(-10px)}}
+[data-sellada] .paso{border-color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,var(--papel))}
+[data-sellada] .paso input{color:var(--verde-p)}
+.bajo{display:block;font-size:11.5px;color:var(--taupe);white-space:nowrap;min-height:15px}
+[data-cambio="si"] .bajo,.bajo[data-cambio="si"]{color:var(--ambar-p);font-weight:600}
+
+/* ================= A · Lista pegada ================= */
+.pa-dec{display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px 12px;align-items:center;padding:12px 14px;border-radius:16px;border:1px solid var(--sand)}
+.pa-dec > .etiq{margin:0;align-self:center}
+.pa-dec > .pie-dec{grid-column:2}
+@container (max-width:560px){.pa-dec{grid-template-columns:1fr}.pa-dec > .pie-dec{grid-column:1}}
+.pa-lugares{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pa-op{display:grid;grid-template-columns:30px minmax(0,1fr);gap:9px;align-items:center;text-align:left;padding:6px 10px;min-height:46px;border-radius:14px;border:1.5px solid color-mix(in srgb,var(--tinta) 14%,transparent);background:var(--papel);transition:background 240ms,border-color 240ms,color 240ms}
+.pa-op .ico{width:30px;height:30px;border-radius:9px;background:var(--hueso);display:grid;place-items:center;transition:background 240ms}
+.pa-op b{display:block;font-size:13.5px;font-weight:600;line-height:1.2}
+.pa-op small{display:block;font-size:12px;color:var(--taupe);line-height:1.25}
+@media (hover:hover){.pa-op:not([aria-pressed="true"]):not([aria-disabled="true"]):hover{border-color:var(--tinta)}}
+.pa-op[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pa-op[aria-pressed="true"] .ico{background:color-mix(in srgb,var(--crema) 16%,transparent)}
+.pa-op[aria-pressed="true"] small{color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.pa-op[aria-disabled="true"]{border-style:dashed;opacity:.5;cursor:not-allowed}
+.pa-lugar{min-height:40px}
+.pa-lugar > span:last-child{display:flex;align-items:baseline;gap:8px}
+.pa-lugar .ico{width:28px;height:28px}
+.pa-motivos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@container (max-width:560px){.pa-motivos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pa-card{margin-top:12px;border:1px solid var(--sand);border-radius:18px;background:var(--papel);padding:4px 14px 8px}
+.pa-card.ajusta{width:fit-content;max-width:100%;overflow-x:auto}
+.pa-card-cab{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--tinta)}
+.pa-card-cab .fin{margin-left:auto}
+.pa-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px}
+@container (max-width:520px){.pa-lista{grid-template-columns:1fr}}
+.pa-fila{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center;padding:5px 8px;margin:0 -8px;border-bottom:1px solid var(--sand);border-radius:12px;transition:background 300ms}
+.pa-fila b{display:block;font-family:"EB Garamond",serif;font-weight:500;font-size:18px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.con-foco .pa-fila[data-empieza]{background:color-mix(in srgb,var(--pizarra) 8%,var(--papel))}
+.pa-fila[data-cambio="si"]{box-shadow:inset 3px 0 0 var(--ambar)}
+.animar .pa-fila,.animar .pa-tabla tbody tr{animation:cascada 320ms var(--ease) backwards;animation-delay:calc(var(--i,0)*45ms + 200ms)}
+@keyframes cascada{from{opacity:0;transform:translateY(8px)}}
+.pa-tabla{border-collapse:separate;border-spacing:0}
+.pa-tabla th,.pa-tabla td{padding:4px 4px;text-align:center;vertical-align:middle;font-weight:inherit}
+.pa-tabla thead th{padding:12px 6px 10px;border-bottom:1px solid var(--tinta)}
+.pa-tabla tbody tr + tr > *{border-top:1px solid var(--sand)}
+.pa-tabla .izq{text-align:left;padding-left:2px;position:sticky;left:0;background:var(--papel);z-index:1}
+.pa-color{display:flex;align-items:center;gap:10px;min-width:124px;max-width:170px}
+.pa-color b{display:block;font-family:"EB Garamond",serif;font-weight:500;font-size:18px;line-height:1.15}
+.pa-color small{font-size:11.5px;color:var(--taupe)}
+.pa-celda{display:grid;justify-items:center;gap:2px;padding:4px;border-radius:14px;transition:background 300ms}
+.con-foco .pa-celda[data-empieza]{background:color-mix(in srgb,var(--pizarra) 10%,var(--papel));box-shadow:0 0 0 1.5px color-mix(in srgb,var(--pizarra) 45%,transparent)}
+.pa-tabla .total,.pa-tabla tfoot td,.pa-tabla tfoot th{font-family:"EB Garamond",serif;font-size:18px;color:var(--taupe)}
+.pa-tabla tfoot > tr > *{border-top:1px solid var(--sand);padding-top:10px}
+
+/* ================= B · Mosaico ================= */
+.pb-dec{display:grid;gap:12px}
+.pb-lugares{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pb-lugar{position:relative;display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:center;text-align:left;padding:9px 14px;border-radius:16px;border:1.5px solid color-mix(in srgb,var(--tinta) 14%,transparent);background:var(--papel);transition:border-color 240ms,box-shadow 240ms,background 240ms}
+.pb-lugar .ico{width:44px;height:44px;border-radius:999px;background:var(--hueso);display:grid;place-items:center}
+.pb-lugar b{display:block;font-family:"EB Garamond",serif;font-weight:500;font-size:21px;line-height:1.1}
+.pb-lugar small{font-size:12.5px;color:var(--taupe)}
+.pb-lugar[aria-pressed="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta);background:color-mix(in srgb,var(--hueso) 45%,var(--papel))}
+.pb-lugar[aria-pressed="true"] .ico{background:var(--tinta);color:var(--crema)}
+.pb-check{position:absolute;right:10px;top:10px;width:22px;height:22px;border-radius:999px;background:var(--tinta);color:var(--crema);display:none;place-items:center}
+[aria-pressed="true"] > .pb-check{display:grid}
+@media (hover:hover){.pb-lugar:not([aria-pressed="true"]):hover,.pb-motivo:not([aria-pressed="true"]):not([aria-disabled="true"]):hover{border-color:var(--tinta)}}
+.pb-motivos{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@container (max-width:620px){.pb-motivos{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pb-motivo{position:relative;display:grid;align-content:start;gap:5px;text-align:left;padding:9px 10px;min-height:84px;border-radius:16px;border:1.5px solid color-mix(in srgb,var(--tinta) 14%,transparent);background:var(--papel);transition:background 240ms,border-color 240ms,color 240ms}
+.pb-motivo .signo{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:999px;background:var(--hueso);font-size:17px;font-weight:700;font-family:"DM Sans",sans-serif;line-height:1}
+.pb-motivo b{font-size:12.5px;font-weight:600;line-height:1.2}
+.pb-motivo small{font-size:11.5px;color:var(--taupe);line-height:1.2}
+.pb-motivo[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pb-motivo[aria-pressed="true"] .signo{background:var(--crema);color:var(--tinta)}
+.pb-motivo[aria-pressed="true"] small{color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.pb-motivo[aria-pressed="true"] .pb-check{background:var(--crema);color:var(--tinta)}
+.pb-motivo[aria-disabled="true"]{border-style:dashed;opacity:.5;cursor:not-allowed}
+.pb-mosaico{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:4px}
+.pb-mosaico.multi{grid-template-columns:repeat(auto-fill,minmax(196px,1fr))}
+.pb-carta{position:relative;border:1px solid var(--sand);border-radius:16px;background:var(--papel);overflow:hidden;transition:border-color 300ms,box-shadow 300ms}
+.animar .pb-carta{animation:ola 320ms var(--ease) backwards;animation-delay:calc(var(--i,0)*45ms + 200ms)}
+@keyframes ola{from{opacity:0;transform:translateY(6px) scale(.96)}}
+.pb-banda{height:14px}
+.pb-cuerpo{padding:8px 10px 10px;display:grid;gap:8px}
+.pb-cuerpo b{font-family:"EB Garamond",serif;font-weight:500;font-size:19px;line-height:1.1}
+.pb-nom{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
+.pb-nom .bajo{min-height:0}
+
+.con-foco .pb-carta[data-empieza]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta),0 10px 24px color-mix(in srgb,var(--sombra) 12%,transparent)}
+.pb-carta[data-cambio="si"]{border-color:var(--ambar)}
+.pb-carta .empieza{position:absolute;right:8px;top:4px}
+.pb-talla{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:8px}
+.pb-talla .paso{justify-self:end}
+.pb-talla[data-cambio="si"] .pill-talla{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar-p)}
+.pb-talla[data-empieza] .pill-talla{background:var(--tinta);color:var(--crema)}
+.sin-foco .pb-talla[data-empieza]:not([data-cambio="si"]) .pill-talla{background:var(--hueso);color:var(--tinta)}
+
+/* ================= C · Planilla rápida ================= */
+.pc-banda{position:sticky;top:-20px;z-index:3;display:grid;gap:6px;padding:8px 12px;border-radius:16px;background:color-mix(in srgb,var(--hueso) 75%,var(--papel));border:1px solid var(--sand)}
+.pc-fila{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:center}
+.pc-seg{display:flex;flex-wrap:wrap;gap:3px;padding:3px;border-radius:12px;background:var(--sand);width:fit-content;max-width:100%}
+.pc-seg button{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:0;border-radius:9px;background:transparent;font-size:13px;font-weight:500;white-space:nowrap;transition:background 200ms,color 200ms}
+@media (hover:hover){.pc-seg button:not([aria-pressed="true"]):not([aria-disabled="true"]):hover{background:var(--papel)}}
+.pc-seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.pc-seg button[aria-disabled="true"]{opacity:.42;cursor:not-allowed}
+.pc-seg .cuenta{font-size:11.5px;padding:0 6px;border-radius:999px;background:color-mix(in srgb,currentColor 14%,transparent)}
+.pc-banda .ayuda{margin:0 0 0 88px}
+.pc-wrap{display:grid;gap:10px}
+.pc-wrap.lado{grid-template-columns:auto minmax(190px,1fr);align-items:start;gap:14px}
+.pc-wrap.lado .pc-banda{order:2;top:0;gap:10px;padding:12px}
+.pc-wrap.lado .pc-fila{grid-template-columns:1fr;gap:6px}
+.pc-wrap.lado .pc-seg{flex-direction:column;width:100%;flex-wrap:nowrap}
+.pc-wrap.lado .pc-seg button{justify-content:flex-start;padding:7px 10px}
+.pc-wrap.lado .pc-seg .cuenta{margin-left:auto}
+.pc-wrap.lado .ayuda{margin:0}
+.pc-banda .pista-info,.pc-banda .campo-nota{margin-top:0}
+.pc-principal{min-width:0}
+@container (max-width:600px){.pc-wrap.lado{grid-template-columns:1fr}.pc-wrap.lado .pc-banda{order:0}.pc-wrap.lado .pc-seg{flex-direction:row;flex-wrap:wrap;width:fit-content}}
+.pc-hoy-movil{display:none;font-size:11.5px;color:var(--taupe)}
+@container (max-width:420px){.lado .pc-tabla .pc-hoy,.lado .pc-tabla .pc-visto,.lado .pc-tabla thead th:nth-child(2),.lado .pc-tabla thead th:last-child{display:none}.lado .pc-hoy-movil{display:block}.pc-color .empieza{display:table;margin-top:2px}.pc-pista{display:none}.pc-dif{min-width:44px}.pc-avance .pc-barra{display:none}}
+.pc-card{border:1px solid var(--sand);border-radius:18px;background:var(--papel);padding:2px 14px 8px;width:fit-content;max-width:100%;overflow-x:auto}
+.pc-card-cab{display:flex;align-items:center;gap:10px;padding:8px 2px;flex-wrap:wrap}
+.pc-avance{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12.5px;color:var(--taupe)}
+.pc-avance b{color:var(--tinta);font-weight:600}
+.pc-barra{width:90px;height:6px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.pc-barra i{display:block;height:100%;background:var(--tinta);transition:width 320ms var(--ease)}
+.pc-barra[data-lleno] i{background:var(--verde)}
+.pc-tabla{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.pc-tabla th,.pc-tabla td{padding:3px 6px;text-align:center;vertical-align:middle;font-weight:inherit;white-space:nowrap}
+.pc-tabla thead th{padding:6px;border-bottom:1px solid var(--tinta)}
+.pc-tabla tbody tr > *{border-top:1px solid var(--sand)}
+.pc-tabla tbody tr:first-child > *{border-top:0}
+.pc-tabla .izq{text-align:left;position:sticky;left:0;background:var(--papel);z-index:1}
+.pc-tabla tbody tr{transition:background 240ms}
+.animar .pc-tabla tbody tr{animation:cascada 280ms var(--ease) backwards;animation-delay:calc(var(--i,0)*35ms + 180ms)}
+.pc-color{display:flex;align-items:center;gap:10px;min-width:110px}
+.pc-color .muestra{width:18px;height:18px}
+.pc-color b{font-family:"EB Garamond",serif;font-weight:500;font-size:17px}
+.pc-hoy{color:var(--taupe);font-size:14px;min-width:44px}
+.pc-dif{min-width:64px}
+.pc-dif .delta{font-size:12.5px}
+.pc-dif .nada{color:var(--taupe);opacity:.5}
+.pc-visto{width:22px;color:var(--verde);opacity:0;transition:opacity 240ms}
+.pc-visto[data-on]{opacity:1}
+.pc .paso button{opacity:0}
+.pc .paso:focus-within button,.pc-tabla tbody tr:hover .paso button{opacity:1}
+.pc .paso button[aria-disabled="true"]{opacity:0}
+.pc .paso:focus-within button[aria-disabled="true"],.pc-tabla tbody tr:hover .paso button[aria-disabled="true"]{opacity:.28}
+@media (hover:none){.pc .paso button{opacity:1}}
+.con-foco .pc-tabla tr[data-empieza] > *{background:color-mix(in srgb,var(--pizarra) 8%,var(--papel))}
+.con-foco .pc-tabla tr[data-empieza] > .izq{box-shadow:inset 3px 0 0 var(--tinta)}
+.pc-tabla tr[data-cambio="si"] > .izq{box-shadow:inset 3px 0 0 var(--ambar)}
+.pc-tabla tfoot td,.pc-tabla tfoot th{border-top:1px solid var(--sand);padding-top:9px;font-family:"EB Garamond",serif;font-size:17px;color:var(--taupe)}
+.pc-celda{display:grid;justify-items:center;gap:1px}
+.pc-celda .bajo{font-size:10.5px;min-height:13px}
+.con-foco .pc-celda[data-empieza] .paso{box-shadow:0 0 0 1.5px var(--tinta)}
+.pc-pista{font-size:12px;color:var(--taupe);display:flex;gap:6px;align-items:center;margin:8px 2px 2px}
+
+/* el aviso flotante tras guardar */
+.toast{position:absolute;right:20px;top:20px;z-index:9;display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:center;padding:10px 14px;border-radius:14px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);font-size:13px;box-shadow:0 12px 30px color-mix(in srgb,var(--sombra) 18%,transparent);animation:asoma 300ms var(--ease)}
+.toast svg{color:var(--verde)}
+
+/* ================= celular (375) ================= */
+.marco[data-ancho="375"] .modal{left:0;top:56px;bottom:0;width:100%;max-height:none;transform:none;border-radius:22px 22px 0 0;border-bottom:0}
+.marco[data-ancho="375"].animar .modal{animation:sube-hoja 320ms var(--ease)}
+@keyframes sube-hoja{from{transform:translateY(40px);opacity:0}}
+.marco[data-ancho="375"] .m-cuerpo{padding:18px 16px 8px}
+.marco[data-ancho="375"] .m-cab h2{font-size:24px}
+.marco[data-ancho="375"] .m-cab .desc{display:none}
+.marco[data-ancho="375"] .m-grid{grid-template-columns:1fr;gap:14px;margin-top:12px}
+.marco[data-ancho="375"] .m-izq{position:static;grid-template-columns:56px 1fr;align-items:center;gap:10px}
+.marco[data-ancho="375"] .m-foto{height:56px;border-radius:12px}
+.marco[data-ancho="375"] .m-foto .rotulo{display:none}
+.marco[data-ancho="375"] .m-izq .solo-movil{display:block;font-size:13px;color:var(--taupe)}
+.marco[data-ancho="375"] .talon{display:none}
+.marco[data-ancho="375"] .m-pie{margin:0 16px}
+.marco[data-ancho="375"] .responsable{display:none}
+.marco[data-ancho="375"] .m-pie .btn{flex:1}
+.marco[data-ancho="375"] .resumen{flex-basis:100%}
+.marco[data-ancho="375"] .pc-fila{grid-template-columns:1fr;gap:4px}
+.marco[data-ancho="375"] .pc-banda .ayuda{margin:0}
+.marco[data-ancho="375"] .pc-banda{position:static}
+.marco[data-ancho="375"] .aj-cab{margin-bottom:12px}
+.solo-movil{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <p class="vers">Maqueta · Existencias ▸ modal de la prenda ▸ Ajustar stock · 2026-10-26</p>
+  <h1>La tabla de Ajustar stock, en tres formas</h1>
+  <p class="bajada">Las tres guardan igual (una sola llamada, el mismo motivo, el mismo lugar por vez). Lo que cambia es <b>cómo se ve la
+    tabla, cómo se usa el foco y cómo se eligen el lugar y el motivo</b>. Todo se toca: suma, resta, escribe un número, cambia el motivo o
+    el lugar, guarda. Datos inventados.</p>
+  <div class="diag">
+    <div><b>1 · El número queda lejos</b>La tabla mide el 100 % y la columna del color no tiene ancho (<code>ajuste-modelo.css:64</code>,
+      <code>AjusteDelModelo.tsx:223</code>): con una sola talla, el color se queda con todo el ancho y el número se va ~900 px a la derecha.</div>
+    <div><b>2 · Scroll que sobra</b>El anillo del foco (<code>inset:-7px</code>, sombra de 28 px, <code>:163-169</code>) se sale de una caja
+      con <code>overflow-x:auto</code> (<code>:59</code>): aparece la barra horizontal y el anillo se corta. Y cada fila mide ~90 px: 7 colores
+      no entran sin bajar.</div>
+    <div><b>3 · El foco apaga el resto</b>Todo lo que no es la talla de la que vienes baja al 28 % (<code>:200</code>): parece deshabilitado
+      y hay que tocar «Ver todo el modelo» o Escape para cambiar los otros colores.</div>
+    <div><b>4 · Lo de arriba no se nota</b>Los motivos son píldoras de 13 px con borde arena sobre papel, y «Dónde contaste» usa la cara de
+      pestañas, arriba a la derecha: parece navegación, no una elección que cambia toda la tabla.</div>
+  </div>
+</header>
+
+<div class="control" id="control">
+  <div class="grupo"><span>Propuesta</span>
+    <button class="ctl" data-ctl="prop" data-v="A"><b>A</b> · Lista pegada</button>
+    <button class="ctl" data-ctl="prop" data-v="B"><b>B</b> · Mosaico</button>
+    <button class="ctl" data-ctl="prop" data-v="C"><b>C</b> · Planilla rápida</button>
+  </div>
+  <div class="grupo"><span>Prenda</span>
+    <button class="ctl" data-ctl="prenda" data-v="becky">Blusa Becky · 7 colores, 1 talla</button>
+    <button class="ctl" data-ctl="prenda" data-v="lia">Vestido Lía · 4 colores × 4 tallas</button>
+  </div>
+  <div class="grupo"><span>Pantalla</span>
+    <button class="ctl" data-ctl="ancho" data-v="1280">1280 × 800</button>
+    <button class="ctl" data-ctl="ancho" data-v="1024">1024 × 768</button>
+    <button class="ctl" data-ctl="ancho" data-v="375">375 celular</button>
+  </div>
+  <div class="grupo"><span>Tema</span>
+    <button class="ctl" data-ctl="tema" data-v="claro">Claro</button>
+    <button class="ctl" data-ctl="tema" data-v="oscuro">Oscuro</button>
+  </div>
+  <button class="ctl" data-ctl="repetir">↺ Repetir la entrada</button>
+</div>
+
+<div class="escena"><div class="marco" id="marco"></div></div>
+
+<section class="notas" id="notas">
+  <article class="nota" data-p="A">
+    <h3>A · Lista pegada</h3>
+    <p class="sub">Lo de hoy, arreglado.</p>
+    <ul>
+      <li><b>Número pegado al color.</b> Con una talla, los colores van en dos columnas y el paso queda junto al nombre. Con varias, la tabla mide lo que necesita y no estira la columna del color.</li>
+      <li><b>Sin scroll de más.</b> Filas de 54 px (hoy ~90): los 7 colores entran en 4 filas y el modal cabe a 1280 × 800. Sin anillo que se salga de la caja, sin barra horizontal.</li>
+      <li><b>Foco que no apaga.</b> El color del que vienes dice «Empiezas aquí» y tiene el cursor; los demás se ven y se tocan igual.</li>
+      <li><b>Arriba, tarjetas.</b> Dónde contaste primero (con cuántas hay en cada lugar) y qué pasó en tarjetas con ícono y lo que hace: «solo suma», «solo resta».</li>
+    </ul>
+    <dl class="gp"><dt>Ganas</dt><dd>Lo más parecido a hoy: nadie tiene que aprender de nuevo.</dd><dt>Pagas</dt><dd>Con 4 tallas vuelve a bajar (~110 px a 1280 × 800) y lo de arriba ocupa su lugar.</dd></dl>
+  </article>
+  <article class="nota" data-p="B">
+    <h3>B · Mosaico</h3>
+    <p class="sub">Una carta por color.</p>
+    <ul>
+      <li><b>Ver antes que leer.</b> Cada color es una carta con su franja de color y su número grande con − y + a los lados. 7 colores en dos filas.</li>
+      <li><b>Tres pasos numerados</b> (1 Dónde · 2 Qué pasó · 3 Cuenta), con fichas grandes y el signo de lo que hace cada motivo (±, +, −).</li>
+      <li><b>Foco con borde, no con sombra.</b> La carta de la que vienes lleva borde de tinta y «Empiezas aquí»; las demás, normales.</li>
+    </ul>
+    <dl class="gp"><dt>Ganas</dt><dd>La más visual y la más cómoda con el dedo: el color se reconoce sin leer.</dd><dt>Pagas</dt><dd>Lo de arriba ocupa más alto, y con 4 tallas cada carta crece: el Vestido Lía baja ~200 px.</dd></dl>
+  </article>
+  <article class="nota" data-p="C">
+    <h3>C · Planilla rápida <span class="rec">Recomendada</span></h3>
+    <p class="sub">Contar de corrido, con el teclado.</p>
+    <ul>
+      <li><b>Hoy · Contaste · Cambio</b> en columnas justas: filas de 48 px, el número al lado del color.</li>
+      <li><b>Enter pasa al siguiente color</b> y «Revisaste 3 de 7» dice cuánto falta: pensada para cuando hay que cambiar varios.</li>
+      <li><b>− y + aparecen al pasar el mouse</b> o con el cursor (con el dedo, siempre): se escribe el número.</li>
+      <li><b>Dónde y qué pasó, al costado:</b> una lista de botones con ícono junto a la tabla (con varias tallas, una banda arriba que no se va al bajar). La única que cabe sin scroll a 1024 × 768.</li>
+    </ul>
+    <dl class="gp"><dt>Ganas</dt><dd>La más rápida desde el Mac mini y la más compacta; la que mejor sirve para cuadrar todo el modelo.</dd><dt>Pagas</dt><dd>Más «planilla», menos visual. «Revisaste» es nuevo: solo vive en la pantalla, no se guarda.</dd></dl>
+  </article>
+</section>
+<p class="comun"><b>En las tres:</b> el aviso de la carga inicial nombra «Encontré prendas», pero el botón se llama «Encontré unidades»
+  (<code>lib/ajuste-reglas.ts:325</code> contra <code>lib/existencias-ajuste-modelo.ts:52</code>): aquí ya dice el nombre del botón. Las reglas
+  no cambian: «Encontré unidades» solo suma y no va en el piso, «No aparece» y «Uso interno» solo restan, un lugar por vez.</p>
+
+<script>
+/* ---------------- datos (inventados) ---------------- */
+const P = {
+  becky: {
+    nombre: "Blusa Becky", linea: "Ivanana · Camisas y Blusas", precio: "S/ 45.00", desc: "Manga cero cuello chino con botones",
+    tallas: ["Estándar"],
+    colores: [["Arena", "#e6d9b0"], ["Blanco", "#f7f4ee"], ["Negro", "#232220"], ["Rosa palo", "#e2b4ad"], ["Celeste", "#a9c8dc"], ["Verde oliva", "#7c8456"], ["Lila", "#b9a6cc"]],
+    stock: { "Arena|Estándar": [1, 0], "Blanco|Estándar": [1, 1], "Negro|Estándar": [2, 1], "Rosa palo|Estándar": [0, 2], "Celeste|Estándar": [1, 0], "Verde oliva|Estándar": [3, 1], "Lila|Estándar": [0, 1] },
+    foco: "Arena|Estándar",
+  },
+  lia: {
+    nombre: "Vestido Lía", linea: "CAYLA · Vestidos", precio: "S/ 129.00", desc: "Midi de lino con tiras cruzadas",
+    tallas: ["S", "M", "L", "XL"],
+    colores: [["Negro", "#232220"], ["Vino", "#6e2433"], ["Azul noche", "#26324a"], ["Crema", "#efe6d2"]],
+    stock: {
+      "Negro|S": [2, 1], "Negro|M": [3, 1], "Negro|L": [1, 0], "Negro|XL": [0, 1],
+      "Vino|S": [1, 0], "Vino|M": [2, 1], "Vino|L": [0, 1], "Vino|XL": [1, 0],
+      "Azul noche|S": [0, 0], "Azul noche|M": [1, 1], "Azul noche|L": [2, 0], "Azul noche|XL": [1, 1],
+      "Crema|S": [1, 1], "Crema|M": [0, 2], "Crema|L": [1, 0],
+    },
+    foco: "Vino|M",
+  },
+};
+const MOTIVOS = [
+  { c: "conte", t: "Conté y hay otro número", s: "ambos", corto: "Sube o baja", ayuda: "Escribe lo que contaste: el sistema saca la diferencia.", ic: "clip" },
+  { c: "encontre", t: "Encontré unidades", s: "suma", corto: "Solo suma", ayuda: "Solo suma, y en el almacén: después se cuelgan.", ic: "lupaok", nota: ["¿Dónde estaban?", "Ej. en la caja de la repisa alta"] },
+  { c: "no_aparece", t: "No aparece", s: "resta", corto: "Solo resta", ayuda: "La buscaste y no está: solo resta.", ic: "lupax" },
+  { c: "error_cobro", t: "Error al cobrar", s: "ambos", corto: "Corrige las dos", ayuda: "Se cobró otra talla o color: corrige las dos.", ic: "recibo" },
+  { c: "uso_interno", t: "Uso interno", s: "resta", corto: "Solo resta", ayuda: "Se usó en la tienda (vitrina, maniquí): solo resta.", ic: "tienda" },
+  { c: "otro", t: "Otro", s: "ambos", corto: "Con una nota", ayuda: "Escribe qué pasó.", ic: "mas", nota: ["¿Qué pasó?", "Ej. tenía la etiqueta de otra talla"] },
+];
+const SIGNO = { ambos: "±", suma: "+", resta: "−" };
+const ICONOS = {
+  menos: '<path d="M5 12h14"/>', mas2: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  flecha: '<path d="m12 19-7-7 7-7M19 12H5"/>', lapiz: '<path d="M13 21h8"/><path d="m15 5 4 4"/><path d="M21.17 6.81a2.83 2.83 0 0 0-4-4L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5Z"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>', alerta: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+  escudo: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  visto: '<path d="M20 6 9 17l-5-5"/>',
+  clip: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
+  lupaok: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="m8 11 2 2 4-4"/>',
+  lupax: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="m13.5 8.5-5 5M8.5 8.5l5 5"/>',
+  recibo: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  tienda: '<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/><path d="M3 9h18"/>',
+  mas: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  caja: '<path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/>',
+  percha: '<path d="M12 7a2 2 0 1 1 2-2c0 1.2-2 1.5-2 3"/><path d="M12 8 2.6 15.2A1.6 1.6 0 0 0 3.6 18h16.8a1.6 1.6 0 0 0 1-2.8Z"/>',
+  blusa: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+  enter: '<path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/>',
+};
+const ic = (n, c = "") => `<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${ICONOS[n]}</svg>`;
+
+/* ---------------- estado ---------------- */
+const S = { prop: "C", prenda: "becky", lugar: "almacen", motivo: "conte", nota: "", n: {}, borr: {}, foco: true, vistos: new Set(), ancho: 1280, tema: "claro", razon: null, enviando: false };
+let base = JSON.parse(JSON.stringify(P));
+const pr = () => base[S.prenda];
+const multi = () => pr().tallas.length > 1;
+const idx = () => (S.lugar === "almacen" ? 0 : 1);
+const otroLugar = () => (S.lugar === "almacen" ? "piso" : "almacén");
+const claves = () => pr().colores.flatMap(([c]) => pr().tallas.map((t) => `${c}|${t}`)).filter((k) => pr().stock[k]);
+const hoy = (k) => pr().stock[k][idx()];
+const otro = (k) => pr().stock[k][1 - idx()];
+const num = (k) => (k in S.n ? S.n[k] : hoy(k));
+const cambios = () => claves().filter((k) => num(k) !== hoy(k));
+const hexDe = (c) => pr().colores.find((x) => x[0] === c)[1];
+const nombre = (k) => { const [c, t] = k.split("|"); return multi() ? `${c} · ${t}` : c; };
+const motivo = () => MOTIVOS.find((m) => m.c === S.motivo);
+const cerrado = (m) => (m.c === "encontre" && S.lugar === "piso" ? "En el piso no: lo encontrado se anota en el almacén y después se cuelga." : null);
+const totalLugar = (i) => claves().reduce((s, k) => s + pr().stock[k][i], 0);
+const prendas = (n) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+const orden = (k) => { const [c, t] = k.split("|"); return pr().tallas.indexOf(t) * 100 + pr().colores.findIndex((x) => x[0] === c); };
+
+function paso(k, tam = "") {
+  return `<div class="paso ${tam}" data-paso="${k}"><button type="button" data-d="-1" aria-label="Una menos de ${nombre(k)}">${ic("menos")}</button><input data-k="${k}" data-orden="${orden(k)}" inputmode="numeric" autocomplete="off" aria-label="${nombre(k)}, en ${S.lugar === "almacen" ? "almacén" : "piso"}" value="${num(k)}"><button type="button" data-d="1" aria-label="Una más de ${nombre(k)}">${ic("mas2")}</button></div>`;
+}
+const empieza = (k) => (k === pr().foco ? "data-empieza" : "");
+const chipEmpieza = (k) => (k === pr().foco ? ' <span class="empieza">Empiezas aquí</span>' : "");
+
+/* ---------------- piezas comunes ---------------- */
+function cabeceraAjuste() {
+  const [c, t] = pr().foco.split("|");
+  const desde = multi() ? `${c} · ${t}` : c;
+  return `<div class="aj-cab"><button class="volver" type="button" aria-label="Volver a la talla">${ic("flecha")}</button>
+    <div><h3>Ajustar stock</h3><p>Empiezas por <b>${desde}</b> · puedes cambiar cualquier ${multi() ? "talla" : "color"}</p></div></div>`;
+}
+function notaYAvisos() {
+  const m = motivo();
+  let h = "";
+  if (m.nota) h += `<label class="campo-nota"><span class="vers">${m.nota[0]}</span><input data-nota value="${S.nota}" placeholder="${m.nota[1]}"></label>`;
+  h += `<p class="pista-info">${ic("info", "ch")}<span>Carga inicial de Tienda TRU cerrada el 18-oct: lo nuevo entra por «Encontré unidades».</span></p>`;
+  return h;
+}
+const razonHTML = () => `<div id="razon">${S.razon ? `<div class="aviso atencion">${ic("alerta", "ch")}<span>${S.razon}</span></div>` : ""}</div>`;
+
+/* ---------------- A · Lista pegada ---------------- */
+function vistaA() {
+  const m = motivo();
+  const lug = (v, t, i) => `<button type="button" class="pa-op pa-lugar" data-lugar="${v}" aria-pressed="${S.lugar === v}"><span class="ico">${ic(v === "almacen" ? "caja" : "percha")}</span><span><b>${t}</b><small>${prendas(totalLugar(i))} hoy</small></span></button>`;
+  let h = cabeceraAjuste() + `<div class="pa-dec">
+    <div class="etiq"><b>Dónde contaste</b></div><div class="pa-lugares">${lug("almacen", "En almacén", 0)}${lug("piso", "En piso", 1)}</div>
+    <div class="etiq"><b>Qué pasó</b></div><div class="pa-motivos">${MOTIVOS.map((x) => { const ce = cerrado(x); return `<button type="button" class="pa-op" data-motivo="${x.c}" aria-pressed="${S.motivo === x.c}" ${ce ? `aria-disabled="true" title="${ce}"` : ""}><span class="ico">${ic(x.ic)}</span><span><b>${x.t}</b><small>${ce ? "En piso no" : x.corto}</small></span></button>`; }).join("")}</div>
+    <div class="pie-dec"><p class="ayuda">${m.ayuda} ¿Se dañó? Se reporta, no se resta.</p>${notaYAvisos()}</div></div>`;
+  const donde = S.lugar === "almacen" ? "En almacén" : "En piso";
+  if (!multi()) {
+    h += `<div class="pa-card"><div class="pa-card-cab"><span class="vers">${donde}</span><span class="pill-talla fin">${pr().tallas[0]}</span></div><div class="pa-lista">${claves().map((k, i) => {
+      const c = k.split("|")[0];
+      return `<div class="pa-fila" data-celda="${k}" ${empieza(k)} style="--i:${i}"><span class="muestra" data-color-dato style="background:${hexDe(c)}"></span><span style="min-width:0"><b>${c}${chipEmpieza(k)}</b><span class="bajo" data-delta="${k}" data-def="${otro(k)} en ${otroLugar()}"></span></span>${paso(k)}</div>`;
+    }).join("")}</div></div>`;
+  } else {
+    h += `<div class="pa-card ajusta"><table class="pa-tabla"><thead><tr><th class="izq"><span class="vers">${donde}</span></th>${pr().tallas.map((t) => `<th><span class="pill-talla" ${pr().foco.endsWith("|" + t) ? "data-empieza" : ""}>${t}</span></th>`).join("")}<th><span class="vers">Total</span></th></tr></thead><tbody>${pr().colores.map(([c, hex], i) => `<tr style="--i:${i}"><th class="izq"><span class="pa-color"><span class="muestra" data-color-dato style="background:${hex}"></span><span><b>${c}</b><small data-otro="${c}"></small></span></span></th>${pr().tallas.map((t) => { const k = `${c}|${t}`; return pr().stock[k] ? `<td><div class="pa-celda" data-celda="${k}" ${empieza(k)}>${paso(k, "chico")}<span class="bajo" data-delta="${k}" data-def=""></span></div></td>` : `<td><span class="guion" title="Esta combinación no existe en el catálogo">—</span></td>`; }).join("")}<td class="total" data-total="${c}"></td></tr>`).join("")}</tbody><tfoot><tr><th class="izq"><span class="vers">Total</span></th>${pr().tallas.map((t) => `<td data-totalt="${t}"></td>`).join("")}<td data-gran></td></tr></tfoot></table></div>`;
+  }
+  return h + razonHTML();
+}
+
+/* ---------------- B · Mosaico ---------------- */
+function vistaB() {
+  const m = motivo();
+  const lug = (v, t, i) => `<button type="button" class="pb-lugar" data-lugar="${v}" aria-pressed="${S.lugar === v}"><span class="ico">${ic(v === "almacen" ? "caja" : "percha", "gr")}</span><span><b>${t}</b><small>${prendas(totalLugar(i))} hoy</small></span><span class="pb-check">${ic("visto", "ch")}</span></button>`;
+  let h = cabeceraAjuste() + `<div class="pb-dec">
+    <div><div class="etiq"><span class="num ok">${ic("visto", "ch")}</span><b>Dónde contaste</b></div><div class="pb-lugares">${lug("almacen", "En almacén", 0)}${lug("piso", "En piso", 1)}</div></div>
+    <div><div class="etiq"><span class="num ok">${ic("visto", "ch")}</span><b>Qué pasó</b><small>· ${m.ayuda}</small></div><div class="pb-motivos">${MOTIVOS.map((x) => { const ce = cerrado(x); return `<button type="button" class="pb-motivo" data-motivo="${x.c}" aria-pressed="${S.motivo === x.c}" ${ce ? `aria-disabled="true" title="${ce}"` : ""}><span class="signo" aria-hidden="true">${SIGNO[x.s]}</span><b>${x.t}</b><small>${ce ? "En piso no" : x.corto}</small><span class="pb-check">${ic("visto", "ch")}</span></button>`; }).join("")}</div>${notaYAvisos()}</div>
+    <div><div class="etiq"><span class="num">3</span><b>Cuenta</b><small>· ${S.lugar === "almacen" ? "en almacén" : "en piso"}, ${multi() ? "talla por talla" : pr().tallas[0]}</small></div>`;
+  h += `<div class="pb-mosaico ${multi() ? "multi" : ""}">${pr().colores.map(([c, hex], i) => {
+    const ks = pr().tallas.map((t) => `${c}|${t}`).filter((k) => pr().stock[k]);
+    const k0 = ks[0];
+    const cuerpo = multi()
+      ? `<div class="pb-nom"><b>${c}</b><span class="bajo" data-otro="${c}"></span></div>${ks.map((k) => `<div class="pb-talla" data-celda="${k}" ${empieza(k)}><span class="pill-talla">${k.split("|")[1]}</span>${paso(k, "chico")}</div>`).join("")}`
+      : `<div class="pb-nom"><b>${c}</b><span class="bajo" data-delta="${k0}" data-def="${otro(k0)} en ${otroLugar()}"></span></div>${paso(k0, "ancho")}`;
+    const fc = ks.includes(pr().foco);
+    return `<div class="pb-carta" ${multi() ? `data-carta="${c}"` : `data-celda="${k0}"`} ${fc ? "data-empieza" : ""} style="--i:${i}"><div class="pb-banda" data-color-dato style="background:${hex}"></div>${fc ? '<span class="empieza">Empiezas aquí</span>' : ""}<div class="pb-cuerpo">${cuerpo}</div></div>`;
+  }).join("")}</div></div></div>`;
+  return h + razonHTML();
+}
+
+/* ---------------- C · Planilla rápida ---------------- */
+function vistaC() {
+  const m = motivo();
+  const banda = `<div class="pc-banda">
+    <div class="pc-fila"><span class="vers">Dónde</span><div class="pc-seg" role="group" aria-label="Dónde contaste">${[["almacen", "En almacén", 0, "caja"], ["piso", "En piso", 1, "percha"]].map(([v, t, i, n]) => `<button type="button" data-lugar="${v}" aria-pressed="${S.lugar === v}">${ic(n, "ch")}${t}<span class="cuenta">${totalLugar(i)}</span></button>`).join("")}</div></div>
+    <div class="pc-fila"><span class="vers">Qué pasó</span><div class="pc-seg" role="group" aria-label="Qué pasó">${MOTIVOS.map((x) => { const ce = cerrado(x); return `<button type="button" data-motivo="${x.c}" aria-pressed="${S.motivo === x.c}" ${ce ? `aria-disabled="true" title="${ce}"` : `title="${x.corto}"`}>${ic(x.ic, "ch")}${x.t}</button>`; }).join("")}</div></div>
+    <p class="ayuda">${m.ayuda} ¿Se dañó? Se reporta, no se resta.</p>${notaYAvisos()}</div>`;
+  let h = cabeceraAjuste() + `<div class="pc-wrap ${multi() ? "" : "lado"}">${banda}<div class="pc-principal">`;
+  const donde = S.lugar === "almacen" ? "En almacén" : "En piso";
+  const total = multi() ? claves().length : pr().colores.length;
+  h += `<div class="pc-card pc"><div class="pc-card-cab"><span class="vers">${donde}</span>${multi() ? "" : `<span class="pill-talla">${pr().tallas[0]}</span>`}<span class="pc-avance"><span>Revisaste <b data-revisaste>0</b> de ${total} ${multi() ? "tallas" : "colores"}</span><span class="pc-barra"><i data-barra style="width:0"></i></span></span></div>`;
+  if (!multi()) {
+    h += `<table class="pc-tabla"><thead><tr><th class="izq"><span class="vers">Color</span></th><th><span class="vers">Hoy</span></th><th><span class="vers">Contaste</span></th><th><span class="vers">Cambio</span></th><th></th></tr></thead><tbody>${claves().map((k, i) => {
+      const c = k.split("|")[0];
+      return `<tr data-celda="${k}" ${empieza(k)} style="--i:${i}"><th class="izq"><span class="pc-color"><span class="muestra" data-color-dato style="background:${hexDe(c)}"></span><span><b>${c}</b>${chipEmpieza(k)}<span class="pc-hoy-movil">hoy ${hoy(k)}</span></span></span></th><td class="pc-hoy">${hoy(k)}</td><td>${paso(k, "chico")}</td><td class="pc-dif" data-dif="${k}"></td><td class="pc-visto" data-visto="${c}">${ic("visto", "ch")}</td></tr>`;
+    }).join("")}</tbody></table>`;
+  } else {
+    h += `<table class="pc-tabla"><thead><tr><th class="izq"><span class="vers">Color</span></th>${pr().tallas.map((t) => `<th><span class="pill-talla" ${pr().foco.endsWith("|" + t) ? "data-empieza" : ""}>${t}</span></th>`).join("")}<th><span class="vers">Total</span></th><th></th></tr></thead><tbody>${pr().colores.map(([c, hex], i) => `<tr style="--i:${i}" data-fila="${c}"><th class="izq"><span class="pc-color"><span class="muestra" data-color-dato style="background:${hex}"></span><b>${c}</b></span></th>${pr().tallas.map((t) => { const k = `${c}|${t}`; return pr().stock[k] ? `<td><div class="pc-celda" data-celda="${k}" ${empieza(k)}>${paso(k, "chico")}<span class="bajo" data-delta="${k}" data-def="hoy ${hoy(k)}"></span></div></td>` : `<td><span class="guion" title="Esta combinación no existe en el catálogo">—</span></td>`; }).join("")}<td class="pc-hoy" data-total="${c}"></td><td class="pc-visto" data-visto="${c}">${ic("visto", "ch")}</td></tr>`).join("")}</tbody><tfoot><tr><th class="izq"><span class="vers">Total</span></th>${pr().tallas.map((t) => `<td data-totalt="${t}"></td>`).join("")}<td data-gran></td><td></td></tr></tfoot></table>`;
+  }
+  h += `<p class="pc-pista">${ic("enter", "ch")} <span><kbd>Enter</kbd> pasa al siguiente ${multi() ? "color de la misma talla" : "color"} · <kbd>↑</kbd> <kbd>↓</kbd> suman y restan</span></p></div></div></div>`;
+  return h + razonHTML();
+}
+
+/* ---------------- el modal ---------------- */
+function render(animar) {
+  const marco = document.getElementById("marco");
+  const alto = { 1280: 800, 1024: 768, 375: 812 }[S.ancho];
+  marco.style.width = S.ancho + "px";
+  marco.style.height = alto + "px";
+  marco.dataset.ancho = S.ancho;
+  marco.classList.toggle("animar", !!animar);
+  const p = pr();
+  const vista = { A: vistaA, B: vistaB, C: vistaC }[S.prop]();
+  const [fc] = p.foco.split("|");
+  marco.innerHTML = `<div class="fondo"><h1>Existencias</h1>${'<div class="t"></div>'.repeat(8)}</div><div class="velo"></div>
+  <div class="modal" role="dialog" aria-label="${p.nombre}">
+    <div class="m-cuerpo" id="cuerpo">
+      <div class="m-cab"><div><h2>${p.nombre}</h2><p>${p.linea} · <b>${p.precio}</b><span class="desc"> · ${p.desc}</span></p></div><button class="cerrar" type="button" aria-label="Cerrar">${ic("x")}</button></div>
+      <div class="m-grid">
+        <aside class="m-izq"><div class="m-foto" id="foto" data-color-dato style="background:${hexDe(fc)}">${'<svg viewBox="0 0 24 24">' + ICONOS.blusa + "</svg>"}<span class="rotulo">Ajustando · ${p.colores.length} colores${multi() ? ` · ${p.tallas.length} tallas` : ""}</span></div><span class="solo-movil">Ajustando · ${p.colores.length} colores${multi() ? ` · ${p.tallas.length} tallas` : ""}</span><div class="talon" id="talon"></div></aside>
+        <section class="m-der ${S.foco ? "con-foco" : "sin-foco"}" id="der">${vista}</section>
+      </div>
+    </div>
+    <div class="m-pie"><span class="responsable">${ic("escudo", "ch")} Admin · queda a tu nombre</span><span class="resumen" id="resumen"></span>
+      <button class="btn sec" type="button" data-accion="descartar" id="descartar">Cancelar</button><button class="btn prim" type="button" data-accion="guardar" id="guardar">Guardar</button></div>
+  </div>`;
+  refrescar();
+  if (animar && S.foco && matchMedia("(pointer: fine)").matches && S.ancho !== 375) {
+    setTimeout(() => { const i = marco.querySelector(`input[data-k="${p.foco}"]`); if (i) { i.focus({ preventScroll: true }); i.select(); } }, 480);
+  }
+  document.querySelectorAll(".ctl[data-ctl]").forEach((b) => {
+    const v = { prop: S.prop, prenda: S.prenda, ancho: String(S.ancho), tema: S.tema }[b.dataset.ctl];
+    if (v !== undefined) b.setAttribute("aria-pressed", String(b.dataset.v === v));
+  });
+  document.querySelectorAll(".nota").forEach((n) => (n.dataset.activa = n.dataset.p === S.prop ? "si" : "no"));
+}
+
+function bloqueos(k) {
+  const m = motivo(), n = num(k), h = hoy(k);
+  const menos = n <= 0 ? "No hay menos de 0." : m.s === "suma" && n <= h ? `Con «${m.t}» solo se suma.` : null;
+  const mas = m.s === "resta" && n >= h ? `Con «${m.t}» solo se resta.` : n >= 999 ? "Hasta 999." : null;
+  return { menos, mas };
+}
+
+function refrescar() {
+  const der = document.getElementById("der");
+  if (!der) return;
+  der.classList.toggle("con-foco", S.foco);
+  der.classList.toggle("sin-foco", !S.foco);
+  der.querySelectorAll("[data-paso]").forEach((el) => {
+    const k = el.dataset.paso, n = num(k);
+    const input = el.querySelector("input");
+    if (!(k in S.borr)) input.value = n;
+    const b = bloqueos(k);
+    const [bm, bM] = el.querySelectorAll("button");
+    bm.toggleAttribute("aria-disabled", !!b.menos); if (b.menos) bm.setAttribute("aria-disabled", "true"); bm.title = b.menos || "";
+    bM.toggleAttribute("aria-disabled", !!b.mas); if (b.mas) bM.setAttribute("aria-disabled", "true"); bM.title = b.mas || "";
+  });
+  der.querySelectorAll("[data-celda]").forEach((el) => { const k = el.dataset.celda; el.dataset.cambio = num(k) !== hoy(k) ? "si" : "no"; });
+  der.querySelectorAll("[data-delta]").forEach((el) => {
+    const k = el.dataset.delta, n = num(k), h = hoy(k);
+    el.textContent = n !== h ? `${h} → ${n}` : el.dataset.def || " ";
+    el.dataset.cambio = n !== h ? "si" : "no";
+  });
+  der.querySelectorAll("[data-dif]").forEach((el) => {
+    const k = el.dataset.dif, d = num(k) - hoy(k);
+    el.innerHTML = d === 0 ? '<span class="nada">—</span>' : `<span class="delta" data-t="${d > 0 ? "entra" : "sale"}">${d > 0 ? "+" + d : "−" + -d}</span>`;
+  });
+  const ksDe = (c) => claves().filter((k) => k.startsWith(c + "|"));
+  der.querySelectorAll("[data-total]").forEach((el) => (el.textContent = ksDe(el.dataset.total).reduce((s, k) => s + num(k), 0)));
+  der.querySelectorAll("[data-otro]").forEach((el) => (el.textContent = `${ksDe(el.dataset.otro).reduce((s, k) => s + otro(k), 0)} en ${otroLugar()}`));
+  der.querySelectorAll("[data-totalt]").forEach((el) => (el.textContent = claves().filter((k) => k.endsWith("|" + el.dataset.totalt)).reduce((s, k) => s + num(k), 0)));
+  der.querySelectorAll("[data-gran]").forEach((el) => (el.textContent = claves().reduce((s, k) => s + num(k), 0)));
+  der.querySelectorAll("[data-totalhoy]").forEach((el) => (el.textContent = claves().reduce((s, k) => s + hoy(k), 0)));
+  der.querySelectorAll("[data-grandif]").forEach((el) => {
+    const d = claves().reduce((s, k) => s + num(k) - hoy(k), 0);
+    el.innerHTML = d === 0 ? '<span class="nada">—</span>' : `<span class="delta" data-t="${d > 0 ? "entra" : "sale"}">${d > 0 ? "+" + d : "−" + -d}</span>`;
+  });
+  der.querySelectorAll("[data-visto]").forEach((el) => { const ks = ksDe(el.dataset.visto); el.toggleAttribute("data-on", ks.length > 0 && ks.every((k) => S.vistos.has(k))); });
+  const rev = der.querySelector("[data-revisaste]");
+  if (rev) {
+    const total = multi() ? claves().length : pr().colores.length;
+    const hechos = multi() ? claves().filter((k) => S.vistos.has(k)).length : pr().colores.filter(([c]) => ksDe(c).every((k) => S.vistos.has(k))).length;
+    rev.textContent = hechos;
+    const barra = der.querySelector("[data-barra]");
+    barra.style.width = (100 * hechos) / total + "%";
+    barra.parentElement.toggleAttribute("data-lleno", hechos === total);
+  }
+  const razon = document.getElementById("razon");
+  if (razon) razon.innerHTML = S.razon ? `<div class="aviso atencion">${ic("alerta", "ch")}<span>${S.razon}</span></div>` : "";
+
+  // el talón y el pie
+  const cs = cambios();
+  const entran = cs.reduce((s, k) => s + Math.max(0, num(k) - hoy(k)), 0);
+  const salen = cs.reduce((s, k) => s + Math.max(0, hoy(k) - num(k)), 0);
+  const talon = document.getElementById("talon");
+  talon.innerHTML = `<p class="talon-cab"><span class="vers">Lo que vas a guardar</span><span class="globito" data-n="${cs.length}">${cs.length}</span></p>` +
+    (cs.length === 0
+      ? `<div class="talon-vacio"><span>${ic("lapiz", "ch")}</span><p>Toca − o +, o escribe lo que contaste. Nada se guarda hasta que confirmes.</p></div>`
+      : `<div style="display:grid;gap:6px">${cs.map((k) => { const d = num(k) - hoy(k); return `<div class="ticket"><span class="m" data-color-dato style="background:${hexDe(k.split("|")[0])}"></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${nombre(k)}</b> <span class="tn">${hoy(k)} → ${num(k)}</span></span><span class="delta" data-t="${d > 0 ? "entra" : "sale"}">${d > 0 ? "+" + d : "−" + -d}</span></div>`; }).join("")}</div>
+         <div class="balanza"><i class="e" style="flex-grow:${entran}"></i><i class="s" style="flex-grow:${salen}"></i></div>
+         <p class="talon-pie"><span><b>${entran}</b> entran</span><span><b>${salen}</b> salen</span></p>`);
+  const res = document.getElementById("resumen");
+  res.innerHTML = cs.length === 0 ? "Nada cambia hasta que guardes." : `<b>${cs.length} ${cs.length === 1 ? "cambio" : "cambios"}</b>${entran ? ` · entran ${entran}` : ""}${salen ? ` · salen ${salen}` : ""}`;
+  const g = document.getElementById("guardar");
+  g.disabled = cs.length === 0 || S.enviando;
+  g.textContent = S.enviando ? "Guardando…" : cs.length ? `Guardar ${cs.length} ${cs.length === 1 ? "cambio" : "cambios"}` : "Guardar";
+  g.classList.toggle("cargando", S.enviando);
+  document.getElementById("descartar").textContent = cs.length ? "Descartar" : "Cancelar";
+}
+
+/* ---------------- acciones ---------------- */
+function rodar(k, sube) {
+  const i = document.querySelector(`input[data-k="${k}"]`);
+  if (!i) return;
+  i.classList.remove("sube", "baja"); void i.offsetWidth; i.classList.add(sube ? "sube" : "baja");
+}
+function fijar(k, v) {
+  const m = motivo(), h = hoy(k), antes = num(k);
+  if (m.s === "suma" && v < h) { S.razon = `Con «${m.t}» solo se suma: ${nombre(k)} no baja de ${h}.`; refrescar(); return; }
+  if (m.s === "resta" && v > h) { S.razon = `Con «${m.t}» solo se resta: ${nombre(k)} no sube de ${h}.`; refrescar(); return; }
+  S.razon = null;
+  if (v === h) delete S.n[k]; else S.n[k] = v;
+  S.vistos.add(k);
+  if (v !== antes) rodar(k, v > antes);
+  refrescar();
+}
+function pasoDe(k, d) {
+  const v = num(k) + d;
+  if (v < 0) { S.razon = "No hay menos de 0."; refrescar(); return; }
+  fijar(k, v);
+}
+function confirmar(k) {
+  if (!(k in S.borr)) return;
+  const t = S.borr[k];
+  delete S.borr[k];
+  if (t === "") { refrescar(); return; }
+  if (Number(t) === num(k)) { S.vistos.add(k); refrescar(); return; }
+  fijar(k, Number(t));
+}
+function soltarFoco(k) {
+  if (S.foco && k !== pr().foco) { S.foco = false; refrescar(); }
+}
+function siguiente(k) {
+  const ins = [...document.querySelectorAll("#der input[data-k]")].sort((a, b) => a.dataset.orden - b.dataset.orden);
+  const i = ins.findIndex((x) => x.dataset.k === k);
+  const sig = ins[i + 1];
+  if (sig) { sig.focus(); sig.select(); sig.closest("tr, .pa-fila, .pb-carta")?.scrollIntoView({ block: "nearest" }); }
+}
+function cambiarMotivo(c) {
+  const m = MOTIVOS.find((x) => x.c === c);
+  if (cerrado(m)) { S.razon = cerrado(m); refrescar(); return; }
+  S.motivo = c;
+  const choca = cambios().filter((k) => (m.s === "suma" && num(k) < hoy(k)) || (m.s === "resta" && num(k) > hoy(k)));
+  choca.forEach((k) => delete S.n[k]);
+  S.razon = choca.length ? `Volví ${choca.map(nombre).join(", ")} a ${choca.length === 1 ? "su número" : "sus números"}: con «${m.t}» ${m.s === "suma" ? "solo se suma" : "solo se resta"}.` : null;
+  const y = document.getElementById("cuerpo").scrollTop;
+  render(false);
+  document.getElementById("cuerpo").scrollTop = y;
+}
+function cambiarLugar(l) {
+  if (l === S.lugar) return;
+  if (cambios().length) {
+    S.razon = `Primero guarda o descarta lo que contaste ${S.lugar === "almacen" ? "en almacén" : "en piso"}: se cuenta un lugar por vez.`;
+    refrescar(); return;
+  }
+  S.lugar = l; S.vistos.clear(); S.razon = null;
+  if (cerrado(motivo())) { S.motivo = "conte"; S.razon = "En el piso no va «Encontré unidades»: quedó «Conté y hay otro número»."; }
+  const y = document.getElementById("cuerpo").scrollTop;
+  render(false);
+  document.getElementById("cuerpo").scrollTop = y;
+}
+function guardar() {
+  const cs = cambios();
+  if (!cs.length || S.enviando) return;
+  S.enviando = true; refrescar();
+  setTimeout(() => {
+    const entran = cs.reduce((s, k) => s + Math.max(0, num(k) - hoy(k)), 0);
+    const salen = cs.reduce((s, k) => s + Math.max(0, hoy(k) - num(k)), 0);
+    cs.forEach((k) => (pr().stock[k][idx()] = num(k)));
+    S.n = {}; S.enviando = false; S.razon = null; S.vistos.clear();
+    render(false);
+    cs.forEach((k) => document.querySelector(`[data-paso="${k}"]`)?.parentElement.setAttribute("data-sellada", ""));
+    setTimeout(() => document.querySelectorAll("[data-sellada]").forEach((e) => e.removeAttribute("data-sellada")), 1600);
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.innerHTML = `${ic("visto")}<span>Stock ajustado en ${cs.length} ${cs.length === 1 ? (multi() ? "talla" : "color") : multi() ? "tallas" : "colores"}${entran ? ` · entraron ${entran}` : ""}${salen ? ` · ${salen === 1 ? "salió 1" : "salieron " + salen}` : ""}.</span>`;
+    document.getElementById("marco").appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }, 900);
+}
+
+/* ---------------- eventos ---------------- */
+const marco = document.getElementById("marco");
+marco.addEventListener("pointerdown", (e) => { const c = e.target.closest("[data-paso]"); if (c) soltarFoco(c.dataset.paso); });
+marco.addEventListener("click", (e) => {
+  const d = e.target.closest("[data-d]");
+  if (d) { const k = d.closest("[data-paso]").dataset.paso; if (d.getAttribute("aria-disabled") === "true") { S.razon = d.title; refrescar(); return; } pasoDe(k, Number(d.dataset.d)); return; }
+  const l = e.target.closest("[data-lugar]"); if (l) return cambiarLugar(l.dataset.lugar);
+  const mo = e.target.closest("[data-motivo]"); if (mo) return cambiarMotivo(mo.dataset.motivo);
+  const a = e.target.closest("[data-accion]");
+  if (a?.dataset.accion === "guardar") return guardar();
+  if (a?.dataset.accion === "descartar") { S.n = {}; S.borr = {}; S.razon = null; S.vistos.clear(); refrescar(); }
+});
+marco.addEventListener("focusin", (e) => { if (e.target.matches("input[data-k]")) { soltarFoco(e.target.dataset.k); e.target.select(); } });
+marco.addEventListener("input", (e) => {
+  if (e.target.matches("[data-nota]")) { S.nota = e.target.value; return; }
+  if (!e.target.matches("input[data-k]")) return;
+  const v = e.target.value.replace(/\D/g, "").slice(0, 3);
+  e.target.value = v;
+  S.borr[e.target.dataset.k] = v;
+});
+marco.addEventListener("focusout", (e) => { if (e.target.matches("input[data-k]")) confirmar(e.target.dataset.k); });
+marco.addEventListener("keydown", (e) => {
+  if (!e.target.matches("input[data-k]")) return;
+  const k = e.target.dataset.k;
+  if (e.key === "Enter") { e.preventDefault(); confirmar(k); S.vistos.add(k); refrescar(); siguiente(k); }
+  else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); confirmar(k); pasoDe(k, e.key === "ArrowUp" ? 1 : -1); }
+});
+document.getElementById("control").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ctl]"); if (!b) return;
+  const c = b.dataset.ctl, v = b.dataset.v;
+  if (c === "tema") { S.tema = v; document.documentElement.dataset.tema = v; render(false); return; }
+  if (c === "prop") S.prop = v;
+  if (c === "prenda") { S.prenda = v; S.n = {}; S.borr = {}; S.vistos.clear(); S.razon = null; }
+  if (c === "ancho") S.ancho = Number(v);
+  if (c === "repetir") { S.n = {}; S.borr = {}; S.vistos.clear(); S.razon = null; S.lugar = "almacen"; S.motivo = "conte"; }
+  S.foco = true;
+  render(true);
+});
+render(true);
+</script>
+</body>
+</html>

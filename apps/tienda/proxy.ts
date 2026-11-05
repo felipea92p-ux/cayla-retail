@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Todo menos lo que arma Next y los archivos estáticos (el colibrí, los íconos, el manifiesto y el service worker de «instalar CAYLA»: el
-  // navegador los pide sin cookies y no debe toparse con ninguna redirección), y la ruta de la medición (ADR-0447): un envío no toca la
-  // sesión de nadie (sin esta excepción, el de quien tiene cuenta revisaría y hasta renovaría su sesión).
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/medicion|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml|js|webmanifest)$).*)"],
+  // navegador los pide sin cookies y no debe toparse con ninguna redirección), y las rutas de la medición (ADR-0447) y de las visitas
+  // (ADR-0495): un envío no toca la sesión de nadie (sin esta excepción, el de quien tiene cuenta revisaría y hasta renovaría su sesión).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/medicion|api/visita|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml|js|webmanifest)$).*)"],
 };

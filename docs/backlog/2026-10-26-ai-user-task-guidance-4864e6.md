@@ -1,0 +1,83 @@
+## «Pregúntale a CAYLA»: el asistente con IA que guía (ADR-0536, 11 actividades aprobadas por Felipe el 2026-10-26)
+
+- [x] 1 · El cajón sin IA: botón «Preguntar» en la cabecera, «?» y ⌘/, búsqueda local entre las guías del menú de la cuenta.
+- [x] 2 · La IA responde (Claude Haiku 5.5, `/api/asistente`): elige guía y paso de una lista cerrada; sin clave, sin respuesta en 8 s o con una respuesta fuera de la lista, búsqueda sin IA. ~2 s y ~US$0,0013 por pregunta (medido en local).
+- [x] 3 · Recorridos: «Muéstrame» arranca en el paso que responde, con lo que necesita abierto, y pasa solo a la pantalla del siguiente tramo (hasta 3).
+- [x] 4 · Sin acceso: si responde una pantalla de un módulo que el rol no tiene, el sistema dice dónde se hace y «pídeselo a tu líder de equipo», sin los pasos.
+- [x] 5 · Cada pregunta queda anotada (`retail.asistente_preguntas`, migración `20261027181000`), «¿Te sirvió? Sí / No» y «¿Qué buscabas?», y el tope de US$30 al mes (`fn_asistente_gasto_del_mes`). Aplicada solo en la base local.
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181646`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027181000_asistente_preguntas.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres funciones). Mientras no esté, el asistente responde igual pero no anota nada (`preguntaId: null`, sin «¿Te sirvió?») ni cuenta el tope del mes: queda solo el límite de gasto de la consola de Anthropic.
+- [ ] Refrescar el volcado de producción (`datos:refrescar` por el MCP, `datos:generar:produccion`): las cuatro migraciones del asistente ya están allá desde el 2026-10-27 y el diccionario todavía no las tiene.
+- [x] 6 · Rellenar con candados: el dato que la persona dijo, tal cual, solo en el `<Buscador>` (`data-asistente="rellenable"`, lista blanca vigilada), marcado «Lo escribió CAYLA · revísalo» hasta que la persona lo toca. Nunca guarda.
+- [ ] **Felipe:** ¿sumar otros campos rellenables (el texto de un motivo, combos de una opción)? Hoy solo el buscador.
+- [x] 7 · Reglas de tienda (`lib/asistente/reglas-de-tienda.ts`, 10 aprobadas por Felipe el 2026-10-27) y errores con la frase de la pantalla (`frasesDeErrores`). Una regla sin escribir: «Eso no lo tengo escrito todavía».
+- [ ] **Felipe (2026-10-27): «los líderes solo supervisan visualmente».** Hoy el sistema exige líder para aprobar una devolución (`aprobar_devolucion`), anular un comprobante y autorizar un descuento sobre el tope; y la guía de Caja dice «Lo hace un líder» aunque `cerrar_caja` ya no lo exige. Sacar esos candados toca dinero y permisos: va en su propia sesión, con su ADR y su migración. Mientras tanto, la regla «devolucion-aprueba» queda en borrador.
+- [x] 8 · Interruptor por sede en Configuración ▸ Tiendas y caja (`retail.asistente_sedes`, migración `20261027163000`). Lo cambia quien ve
+  Configuración (Felipe 2026-10-27), nace apagado en todas, el botón y `/api/asistente` solo responden en una sede encendida.
+  `pnpm pruebas:asistente-sedes` (12 casos). Aplicada solo en la base local, con **Tienda Lima encendida** ahí para seguir probando.
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181558`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027163000_asistente_sedes.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres
+  funciones). Ojo: **mientras no esté, el botón no sale en ninguna sede** (sin la función, sale apagado a propósito). Va junto con la de
+  preguntas, y después hay que encender la sede del piloto en Configuración.
+- [ ] El escáner de huellas de las guías (`guias/escaner.mjs`, `CONTROLES`) no cuenta `<Interruptor>` (22 en el ERP): un interruptor nuevo
+  no le avisa a su guía. Sumarlo mueve la huella de cada pantalla que ya tiene uno; va aparte, revisando esas guías.
+- [x] 9 · Gestión ▸ «Preguntas del equipo» (`/gestion/preguntas`, módulo `preguntas_equipo`, migración `20261027182000`): con el nombre de
+  quien preguntó (Felipe 2026-10-27), solo personas, nace sin rol. `pnpm pruebas:asistente-preguntas-equipo` (11 casos), guía interactiva
+  recorrida en escritorio y a 375 px. Aplicada solo en la base local.
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181726`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027182000_asistente_preguntas_equipo.sql` en producción** (OK de Felipe; va DESPUÉS de `20261027181000`). Toca
+  `fn_exigir_rol_de_terminal` con un reemplazo anclado: si la lista viva no es la esperada, se detiene sin tocar nada.
+- [ ] **Felipe:** darle «Preguntas del equipo» a las encargadas en Roles y accesos, si quiere que lo vean (hoy solo el líder).
+- [x] 10 · El informe del lunes: cron de Vercel (los lunes 7:00 de Lima) + Claude Sonnet 5.5, `retail.asistente_informes` (migración
+  `20261027183000`), botón de respaldo en Preguntas del equipo. `pnpm pruebas:asistente-informes` (14 casos). Probado en local por el camino
+  del cron con 8 preguntas de prueba de la semana del 19 oct (ruta `/prueba-informe`, quedan en la base local): 4 mejoras, US$0,009.
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181823`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027183000_asistente_informes.sql` en producción** (OK de Felipe; va después de `20261027181000` y `20261027182000`).
+  Hasta entonces el cron del lunes responde 500 (no encuentra las funciones) y lo avisa Sentry: conviene pegar las cuatro migraciones del
+  asistente juntas antes de fusionar el PR.
+- [x] 11 · Evaluación de 40 preguntas (`lib/asistente/evaluacion/`: 38 de 40 con la IA, la parte sin red en el CI), `/guia`, `/focus`, oscuro y
+  375 px, `/chaos` (semilla 529) y `/formidable` (leyes 8,3, oficio 8, con los 3 cambios aprobados por Felipe), y el PR con `/abrir-pr`.
+- [ ] **Felipe: hallazgo de seguridad de /chaos (ver chat del 2026-10-27).** Decide aparte; toca una función de la base y permisos.
+- [ ] «Sin acceso» nombra el módulo por `moduloDeRuta`, que da «Historial de compras» para `/compras/por-pagar` (la página pide Por pagar): la
+  frase dice a quién pedir el módulo equivocado en las 5 pantallas de `PIDEN_OTRO_MODULO`.
+- [ ] La evaluación oscila en 2 de 40 (Historial de cierres contra Caja; anular una venta de hoy contra Historial de ventas).
+- [ ] Preguntas del equipo: dos terminales distintas salen como «Una terminal» (mostrar su nombre pide que la función de la base lo traiga).
+- [ ] La prueba de Formidable con una colaboradora real, y la de /chaos que no se cubrió (cambiar de sede con el cajón abierto).
+- [ ] Ver en producción que un tramo encuentra su pieza a tiempo (en desarrollo, Productos tardó más de 8 s en cargar).
+- [ ] **Felipe:** ¿«¿Cómo anulo una boleta?» debe llevar a Devoluciones («Anular una venta de hoy») o a Comprobantes? Hoy la IA elige Devoluciones.
+- [ ] En una terminal la pregunta queda sin persona: el cajón todavía no manda el responsable del combo (`x-responsable`).
+
+### Para continuar desde otra sesión (2026-10-27)
+
+**Dónde está todo.** Desde la actividad 8 (2026-10-27): rama `claude/ai-guide-c654db`, worktree
+`/Users/felipealvarez/Proyectos/cayla-retail/.claude/worktrees/zen-bell-150592`, con main traído ese día; la rama de antes
+(`claude/ai-user-task-guidance-4864e6`) quedó quieta en la actividad 7 y no se usa más. Todo en commits locales (sin push, sin
+PR: la regla de Felipe es un PR al final de la obra, con `/abrir-pr`). La decisión es `docs/adr/0536-preguntale-a-cayla-asistente-con-ia.md`
+(léela entera: las 10 respuestas de Felipe, las tres tensiones y «Lo que decidí al construir»). Se construye con `/construir`, una
+actividad y un commit a la vez.
+
+**Lo que sigue, en orden** (la lista completa está arriba):
+- ~~8 · Interruptor por sede~~ hecha el 2026-10-27 (ver arriba).
+- ~~9 · Pantalla «Lo que pregunta tu equipo»~~ hecha el 2026-10-27 como «Preguntas del equipo» (ver arriba). Las 5 mejoras del lunes
+  se suman a esa pantalla (`components/asistente/PreguntasEquipo.tsx`).
+- ~~10 · Informe del lunes~~ hecha el 2026-10-27 (ver arriba), con un cron de Vercel en vez del vigía de GitHub Actions.
+- **11 · Cierre**: evaluación de 40 preguntas, `/guia`, `/focus`, `/formidable`, `/chaos`, modo oscuro, 375 px y el PR con `/abrir-pr`.
+
+**Piezas que ya existen** (para no rehacerlas): `lib/asistente/` (preselección local, respuesta y revisión de la IA, recorrido,
+sin acceso, relleno, reglas de tienda, conocimiento), `app/api/asistente/route.ts` y `app/api/asistente/sirvio/route.ts`,
+`components/guias/recorrido.ts` y los cambios en `MotorGuias.tsx`, `GuiaInteractiva.tsx` y `piloto.ts` (acción `rellenar`,
+`dejarComoQuedo`), `data-asistente="rellenable"` en `components/ui/Buscador.tsx`. Pruebas: `lib/asistente/*.test.ts`,
+`lib/asistente-rellenable.test.ts`, `pnpm pruebas:asistente-preguntas` (13 casos contra Postgres).
+
+**Base y claves.**
+- La migración `20261027181000_asistente_preguntas.sql` está aplicada **solo en la base local** (contenedor `supabase_db_cayla-retail`,
+  anotada en `supabase_migrations.schema_migrations`). Se editó después de aplicarla (tipos `regla` y `error`, columna `referencia`) y la
+  base local se puso al día a mano: si una sesión nueva la recrea, que la aplique entera de nuevo. **No está en producción**: pegarla
+  necesita el OK de Felipe.
+- `apps/web/.env.local` de este worktree tiene `ANTHROPIC_API_KEY` (la puso Felipe; nunca se imprime ni se sube). Felipe también la
+  puso en Vercel. Una pregunta cuesta ~US$0,0013 con `claude-haiku-5-5`.
+- La base local tiene 2 preguntas de prueba en `retail.asistente_preguntas` (se pueden dejar).
+
+**Para verificar en el navegador:** `preview_start` con `cayla-retail-dev` (puerto 3010), entrar como Felipe (cuenta de prueba local),
+⌘/ abre el asistente. Para otra cuenta sin cerrar la sesión del navegador se usó un script local que pide la sesión de una cuenta de
+prueba y llama a `/api/asistente` (las claves de prueba están en `apps/web/tema/cuentas.mjs`).
+
+**Sesión ligada.** «Sacar los candados de líder que ya no aplican» (`local_7c66890d-6529-4e46-b3ba-866cadb23320`) corre aparte: revisa
+`aprobar_devolucion`, anular un comprobante y el descuento sobre el tope, y el texto «Lo hace un líder» de la guía de Caja. Cuando el
+sistema deje de exigir líder para una devolución, reescribir y aprobar la regla `devolucion-aprueba` de `lib/asistente/reglas-de-tienda.ts`.

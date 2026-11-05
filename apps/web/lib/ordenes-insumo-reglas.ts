@@ -156,7 +156,7 @@ export function descuentoPorPctCentimos(importe: number, pctEscalado: number): n
 export type ModoDescuento = "pct" | "soles";
 
 const MILES_CON_PUNTO = /^[1-9]\d{0,2}\.\d{3}$/;
-const limpio = (texto: string) => texto.replace(/\s+/g, "").replace(/^s\//i, "");
+const limpio = (texto: string) => texto.replace(/\s+/g, "").replace(/^s\//i, ""); // blanco-fijo: solo detecta el punto de miles y arma su frase; el número lo lee `leerNumero`
 
 /**
  * «1.000», «1.500», «12.500» en una caja que admite tres o cuatro decimales: en el Perú así se escribe también «mil» o «mil quinientos».

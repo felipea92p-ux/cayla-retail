@@ -315,9 +315,11 @@
   text-transform: uppercase;
   transition: background-color 250ms var(--ease-cayla), color 250ms var(--ease-cayla), transform 250ms var(--ease-cayla);
 }
-.caja-cerrada-boton:hover {
-  background: var(--color-rojo);
-  color: var(--color-crema);
+@media (hover: hover) {
+  .caja-cerrada-boton:hover {
+    background: var(--color-rojo);
+    color: var(--color-crema);
+  }
 }
 .caja-cerrada-boton:active {
   transform: scale(0.985);
@@ -329,8 +331,10 @@
 .caja-cerrada-flecha {
   transition: transform 300ms var(--ease-cayla);
 }
-.caja-cerrada-boton:hover .caja-cerrada-flecha {
-  transform: translateX(5px);
+@media (hover: hover) {
+  .caja-cerrada-boton:hover .caja-cerrada-flecha {
+    transform: translateX(5px);
+  }
 }
 /* Un brillo cruza el botón una sola vez cuando termina de entrar (respuesta a su llegada, no bucle). */
 .caja-cerrada-boton::after {

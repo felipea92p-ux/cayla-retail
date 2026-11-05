@@ -35,7 +35,7 @@
 | 14 | Faltante | **La causa la elige la sede.** Cada faltante es UNA deuda del proveedor («2 polos · S/ 50») en estado «por reponer», que se cierra con un toque: **«Llegó la reposición»** (se cuenta en la próxima recepción de ese proveedor) o **«Pasar a saldo a favor»** (se descuenta del próximo pago). Sin plazos automáticos. Se ve en la ficha del proveedor y al crear su próxima orden de compra |
 | 15 | Sobrante | El motivo (regalo, se cobra aparte, se descuenta o cobra en la próxima compra) lo marca **quien recibe en la sede** |
 | 16 | Quién paga | **La encargada de compras**, desde su fondo por rendir, o administración desde la cuenta de la empresa (brief). **Reemplaza ADR-0184** («cada tienda paga su parte»; en producción, sin uso: 0 compras). Toca Compras, Por pagar y Finanzas |
-| 17 | Separación de funciones | **Quien crea la orden de compra no puede recibirla, sin excepción** (ni el líder) |
+| 17 | Separación de funciones | **Quien crea la orden de compra no puede recibirla** (ni el líder). ***Excepción desde el 2026-10-26 (ADR-0517, Felipe): la cuenta de un Admin sí puede recibir lo que él mismo compró, y queda anotado***; el Taller conserva el bloqueo íntegro |
 | 18 | Costo | **Lo corrige quien recibe, en la recepción** (brief), y **todo el que recibe ve los precios**. Reemplaza, para la recepción, la regla de ADR-0126 (la sede no ve plata) |
 | 19 | Quién compra | Una **encargada de tienda** o la **encargada general**. Lo que compra la de tienda llega **directo a su sede** (sin pasar por Lima); lo que compra la general se compra y **después se envía** desde Lima a las sedes |
 | 20 | Gastos adicionales | Se registran como dice el brief (flete, fardos, carretilla, viáticos), pero **aparte: nunca se mezclan con el costo de la prenda**. El costo de traer una compra se ve junto a ella, no dentro de `variantes.costo`. Responde también el flete de Lima a cada sede |
@@ -59,7 +59,7 @@
 | 38 | Menú | «Órdenes de compra» entra como **7.ª entrada de Compras, temporal**, con la excepción de tope que ya prevé `menu.test.ts`; se quita cuando Recibir mercadería pase a Inventario (Felipe 2026-10-10) |
 | 39 | Responsable | Crear, editar y anular una orden: **con la cuenta de una persona, firma ella sola, sin combo ni marca de entrada** (la compradora está en Gamarra, lejos del kiosco); **desde una terminal, pide el combo «Responsable»**. Es el mismo trato que «apartar una prenda» y los avisos del club: las claves `orden_compra_*` entran a `acciones_sin_responsable` (Felipe 2026-10-10) |
 | 40 | El módulo es la llave en Compras | **Quien tiene el módulo hace todo lo que hay dentro, sea líder o no, en todo Compras** (Plan de campaña, Proveedores, Órdenes, Facturas, Recibir, Por pagar, Notas de crédito): se quitan los «solo el líder». ADR-0387 (Felipe 2026-10-12) |
-| 41 | Qué tiendas se ven | Quien tiene el módulo ve **todas las tiendas** y paga a nombre de la empresa; deshace en Compras ADR-0184 y ADR-0187 (13 personas no líder afectadas el 2026-10-12). ADR-0387 (Felipe 2026-10-12) |
+| 41 | Qué tiendas se ven | Quien tiene el módulo ve **todas las tiendas** y paga a nombre de la empresa; deshace en Compras ADR-0184 y ADR-0187 (13 personas no líder afectadas el 2026-10-12). ADR-0387 (Felipe 2026-10-12). **Desde el 2026-11-03, quien solo tiene Recibir mira lo que llega a su sede** (ADR-0387, actualización; Felipe) |
 | 42 | Comprobante y contado | Registrar el comprobante de una orden y pagarlo al contado (desde una cuenta de la empresa, hasta que existan los fondos de la fase 6) piden **solo el módulo Órdenes de compra** (Felipe 2026-10-12) |
 | 43 | Más de lo pedido | Si el papel del proveedor trae más unidades o una línea que no estaba en la orden, **se acepta y se avisa** (Felipe 2026-10-12) |
 | 44 | Proveedores ve sus montos | Quien tiene el módulo Proveedores ve, dentro de Proveedores, lo que la empresa le compra y le debe a cada uno y su saldo a favor («Sí, que los vea»); revierte ADR-0161 P3. No abre los tableros de Facturas ni Por pagar. ADR-0387 (Felipe 2026-10-12) |
@@ -627,3 +627,53 @@ Fondo: cada persona tiene su cuenta «por rendir» con su nombre; entrega y devo
 rendición abierta por persona; el saldo se calcula; nadie se entrega plata a sí mismo ni aprueba su propia rendición; quien gasta
 del fondo es solo su dueña (se compara la cuenta que entró y el combo Responsable). La compradora no necesita Finanzas: ve su fondo
 como tarjeta donde compra y en Inicio. Órdenes de compra entra a la regla de celular (375 px) porque se usa en Gamarra.
+
+## Actualización 2026-10-21 · Nueva orden: prefiltro por proveedor, «Registrar proveedor», «Cómo pagarle»; y el Día de compra (decidido, sin construir)
+
+Origen: Felipe, mirando «Nueva orden de compra»: al elegir proveedor seguían saliendo todas las categorías y marcas; la compradora no puede
+registrar a un proveedor nuevo; las compras se hacen en ciertos días y ahí van varias órdenes, con presupuesto, quién compra, si se le pagó y
+sus datos de pago. Análisis completo en `docs/pantallas/compras-ordenes-nueva.md` (6 agentes, 8 revisores escépticos y 24 decisiones de
+Felipe, 20 antes del informe y 4 después). **Construida la entrega 1 (el formulario)**; las entregas 2 y 3 quedan diseñadas.
+
+### Construido (entrega 1)
+
+| Qué | Decisión de Felipe | Cómo quedó |
+|---|---|---|
+| Datos de pago visibles para la compradora | `ordenes_compra` entra a `fn_puede_ver_datos_bancarios()` (decisión 2026-10-21; antes solo Proveedores, Por pagar y Cuentas y dinero) | Migración `20261021200000`. La web distingue «no tiene cuenta» de «no puedes verlos» (`bancarios_visibles` → `ocultos`); el titular va primero |
+| «Cómo pagarle» en la orden | Hoja con teléfono y destino de la plata, con copiar | `ComoPagarle.tsx` sobre `ProveedorElegido`; cuatro estados (`estadoDeLosBancarios`) |
+| Prefiltro | Solo lo que el proveedor maneja + «Ver todas (N)» (nunca candado) | Migración `20261021201000` (`fn_proveedor_categorias`, solo lectura: sus productos, las marcas de un solo proveedor, sus órdenes generadas y sus comprobantes vigentes); `ComboBuscable` gana la prop `ampliar`. **Sin casilla «Recordar»**: guardar la orden ya es el recuerdo (se propuso retirarla; Felipe lo confirma, y si no responde se retira). La función devuelve UNA fila por proveedor: PostgREST corta toda lectura en 1.000 filas sin avisar y los pares podían pasarse |
+| Línea que no calza | Al cambiar de proveedor las líneas se quedan, marcadas | `lineaNoCalza` (derivado: A→B→A lo limpia; marca ajena = atención, categoría ajena = info) |
+| «Registrar proveedor» | Nombre + RUC o «No tiene RUC»; por el módulo Órdenes de compra; ficha «incompleta» sin columna nueva | Migración `20261021202000` (`registrar_proveedor_de_orden`: no duplica, devuelve el que ya estaba, rechaza el mismo nombre con otro RUC y un desactivado, no escribe banco ni rubros); clave `proveedor_de_orden` en `acciones_sin_responsable` (con la cuenta de una persona firma ella; **desde una terminal se elige quién**, como en las demás acciones de la orden: la base rechaza con `responsable_requerido`); «¿no será…?» obligatoria (no existe fusionar proveedores); al corregir un RUC completo se vacía el nombre de la empresa anterior |
+
+**Revisión independiente (2026-10-21):** cuatro revisores y un escéptico por hallazgo. Confirmaron y se corrigieron en la misma rama: la prueba de categorías no cubría la categoría
+de la prenda (la vía de toda factura anterior al 12-oct), la lectura se cortaba en silencio a las 1.000 filas, un RUC corregido dejaba el nombre de la empresa anterior, una terminal podía registrar
+un proveedor sin persona, Tab elegía la única categoría ofrecida sin que se escribiera nada, el WhatsApp recién registrado no llegaba a «Cómo pagarle», y dos textos y un párrafo de permisos estaban desactualizados.
+Una nota de honestidad: un escéptico, al medir la cobertura, **leyó producción (solo SELECT de conteos)**: 126 pares y 50 de 113 proveedores activos con alguna categoría derivada, 46 categorías activas y 412 productos.
+
+### Decidido, sin construir (entregas 2 y 3)
+
+- **Día de compra** = ficha propia `dias_compra`, **una fila por (compradora, fecha)** con su presupuesto y su historial (disparador); **toda orden pertenece a
+  un día** (`ordenes_compra.dia_compra_id NOT NULL`, se abre con un atajo dentro de Nueva orden); hoy a 7 días atrás, sin cierre, una orden no cambia de día; la
+  compradora fija su propio presupuesto (puede quedar en blanco) y pasarse avisa sin bloquear; la compradora se deriva del día (no se duplica en la orden).
+  Al agregar el parámetro a `crear_orden_compra`: `drop function` de la de 6 argumentos en la misma migración y un ayudante para las 18 suites con 47 `insert` directos.
+- **Quién manda: la compradora del día** (deuda, sede y regla «quien compra no recibe»); `creada_por` sigue siendo la firma, y la regla 17 excluye a ambas. Toca
+  `fn_orden_compra_gestora`, `fn_recepcion_exigir`, `recibir_orden_sin_envio`, tres banderas de pantalla y la sede del gasto del viaje (5 sitios que hoy leen `creada_por`).
+- **Quién compra:** las tres compradoras de CAYLA siempre visibles (excepción al horario: no es una firma) más una lista que edita el líder; presupuesto por compradora.
+- **«Pagó X de Y» por proveedor y día**, calculado de pagos reales (`fn_dia_compra_pagos`; Y = lo facturado si hay papel, lo pedido si no); el check abre «Registrar pago», no se tilda.
+- **Pagar al contado antes del papel:** una compra «Sin comprobante» pagada se convierte en su papel con una función nueva `completar_papel_de_compra` (hoy una SC con pagos no
+  se puede reemplazar). Dinero: se ensaya antes de pegarse. **Descartado:** una tabla de anticipos (reabre 5 funciones de Finanzas).
+- **Vista «Bitácora»** dentro de Órdenes de compra (ruta hermana, `<Pestanas href>`), sin módulo nuevo (ADR-0306).
+
+### Pendiente de Felipe (si no responde, lo recomendado)
+
+Permiso para pagar a crédito desde la bitácora (hoy exige Por pagar); qué hacer con la marca obligatoria cuando un proveedor no tiene ninguna; contra qué se mide el
+presupuesto (pedido, facturado o pagado, con o sin IGV); la regla de 7 días; si el nombre es «Presupuesto» o «Plata para hoy»; si `/compras/ordenes*` pasa a «Celular
+obligatorio»; que «toda orden pertenece a un día» no cubre las órdenes de insumos del Taller.
+
+### En producción
+
+Las tres migraciones de la entrega 1 están **sin pegar**; se pegan **en este orden** (cada una, una sola parte, re-pegable): `20261021200000` (datos de pago), `20261021201000`
+(`fn_proveedor_categorias`) y `20261021202000` (`registrar_proveedor_de_orden`). La web se puede publicar antes: sin cada función la pantalla se ve como hoy o dice que no
+está disponible todavía. **Choque conocido:** la rama sin fusionar `claude/skills-todos-agents-94f745` (Análisis: «Comprar» abre una orden armada, líneas «Por revisar») toca los
+mismos archivos; al fusionarla, `lineaNoCalza` debe saltarse las líneas `prellenadas` y se regeneran las huellas de las guías de Nueva y Editar orden.
+

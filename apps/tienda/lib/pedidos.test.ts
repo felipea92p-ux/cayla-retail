@@ -105,6 +105,13 @@ describe("el mensaje de WhatsApp (el de la maqueta, palabra por palabra)", () =>
 });
 
 describe("lo que dice la base", () => {
+  it("la empresa de cada prenda (ADR-0465): la lee; sin ella —un pedido a Trujillo, o una base que aún no la manda— o con una rara, la prenda se ve igual y sin empresa", () => {
+    const empresas = (...e: unknown[]) =>
+      unoDe(pedidoBase({ lineas: e.map((x, i) => ({ ...linea(`Prenda ${i}`, "M", "Negro"), ...(x === undefined ? {} : { empresa: x }) })) })).lineas.map((l) => l.empresa?.nombre ?? null);
+    expect(empresas({ clave: "claure", nombre: "CLAURE" }, { clave: "cayla", nombre: "CAYLA" })).toEqual(["CLAURE", "CAYLA"]);
+    expect(empresas(null, undefined, { clave: "", nombre: "" })).toEqual([null, null, null]);
+  });
+
   it("un pedido con un dato raro se deja fuera y los demás se ven; sin forma, null", () => {
     const r = interpretarMisPedidos({
       plazos: { horas_para_confirmar: 24, dias_para_recoger: 7 },
@@ -168,14 +175,19 @@ describe("la línea de tiempo y el reloj", () => {
     expect(hitos({ ...base, estado: "por_confirmar" }).map((h) => h.estado)).toEqual(["hecho", "ahora", "falta", "falta"]);
     expect(hitos({ ...base, estado: "pagado" }).map((h) => h.estado)).toEqual(["hecho", "hecho", "hecho", "ahora"]);
     expect(hitos({ ...base, estado: "entregado" }).map((h) => h.estado)).toEqual(["hecho", "hecho", "hecho", "hecho"]);
-    // Un pedido cerrado (vencido o anulado) marca hecho cada paso que tiene fecha, y ninguno como «ahora».
+    // Un pedido vencido marca hecho cada paso que tiene fecha, y ninguno como «ahora».
     expect(hitos({ ...base, estado: "vencido" }).map((h) => h.estado)).toEqual(["hecho", "falta", "falta", "falta"]);
+    // Un pedido anulado no muestra los pasos sin hacer: solo los hechos y, al final, «Anulado» (la X roja).
     expect(hitos({ ...base, confirmadoEn: "b", pagadoEn: "c", estado: "anulado" }).map((h) => h.estado)).toEqual([
       "hecho",
       "hecho",
       "hecho",
-      "falta",
+      "anulado",
     ]);
+    expect(hitos({ ...base, estado: "anulado" }).map((h) => h.nombre)).toEqual(["Separado", "Anulado"]);
+    // El paso «Anulado» lleva la fecha y hora en que se cerró el pedido.
+    const cerrado = "2026-10-19T17:30:00+00:00";
+    expect(hitos({ ...base, confirmadoEn: "b", cerradoEn: cerrado, estado: "anulado" }).at(-1)?.cuando).toBe(cerrado);
     expect(hitos({ ...base, estado: "por_confirmar" }).map((h) => h.nombre)).toEqual([
       "Separado",
       "Confirmado por la tienda",

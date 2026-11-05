@@ -15,6 +15,8 @@ export function PrendaDelPedido({ linea }: { linea: LineaPedido }) {
         color={linea.color.hex}
       />
       <span>
+        {/* La empresa de la prenda, encima de su nombre (ADR-0465; solo en un pedido a Lima, donde conviven CAYLA y CLAURE). */}
+        {linea.empresa && <span className="t-bolsa-empresa">{linea.empresa.nombre}</span>}
         <b>{linea.nombre}</b>
         <small>{detalleDeLaPrenda(linea)}</small>
         {linea.vieneDe && (

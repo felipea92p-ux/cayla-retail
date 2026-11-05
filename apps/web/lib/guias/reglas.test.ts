@@ -45,6 +45,15 @@ describe("nunca guardar: el piloto no toca lo que escribe", () => {
     expect(motivoParaNoTocar(pieza({ texto: "Guardar", abreVentana: true, tipo: "submit" }))).not.toBeNull();
   });
 
+  it("un pliegue (aria-expanded) solo muestra u oculta: se toca aunque diga «Ver y cambiar»; un submit o un enlace a otra pantalla con aria-expanded, no", () => {
+    expect(motivoParaNoTocar(pieza({ texto: "Ver y cambiar", esPliegue: true }))).toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Ver y cambiar" }))).not.toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Ver y cambiar", esPliegue: true, tipo: "submit" }))).not.toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Listo", esPliegue: true, tipo: null, enFormulario: true }))).not.toBeNull();
+    expect(motivoParaNoTocar(pieza({ etiqueta: "a", texto: "Ver y cambiar", esPliegue: true, href: "/produccion" }))).not.toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Guardar", esPliegue: false }))).not.toBeNull();
+  });
+
   it("no se confunde con palabras que contienen el verbo (Cobrador ≠ cobrar, Marca ≠ marcar)", () => {
     expect(motivoParaNoTocar(pieza({ texto: "Marca" }))).toBeNull();
     expect(motivoParaNoTocar(pieza({ texto: "Cobranzas" }))).toBeNull();

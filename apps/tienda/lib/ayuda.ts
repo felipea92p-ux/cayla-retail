@@ -56,16 +56,16 @@ type Paso = { titulo: string; texto: string };
 export type PasoParaSeparar = Paso & { hecho: boolean };
 
 /**
- * Los cuatro pasos de «Cómo separar», con las tiendas de la web: «En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima». Con una
- * sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres. Desde el 2026-10-17 (ADR-0438) primero se
+ * Los cuatro pasos de «Cómo separar», con las tiendas de la web: «En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima». Cada
+ * tienda maneja lo suyo (2026-10-19): lo que no hay en la tuya, no se trae de otra; sin tiendas (o sin base), la frase va sin nombres. Desde el 2026-10-17 (ADR-0438) primero se
  * mira y se elige, sin cuenta; la cuenta es el segundo paso y, con cuenta (`conCuenta`), ya está hecho. El documento y el celular se
  * piden al separar, y con ellos se entra al Club.
  */
 export function pasosParaSeparar(tiendas: readonly string[], conCuenta = false): PasoParaSeparar[] {
   const donde = tiendas.length > 0 ? `En cada prenda ves cuánto hay en ${listaDeNombres(tiendas)}.` : "En cada prenda ves cuánto hay en cada tienda.";
-  const traer = tiendas.length === 1 ? "" : " Lo que no está en tu tienda, la tienda puede traerlo de otra.";
+  const suyo = tiendas.length === 1 ? "" : " Cada tienda maneja lo suyo.";
   return [
-    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${traer} Sin crear nada: la tienda es de todos.`, hecho: false },
+    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${suyo} Sin crear nada: la tienda es de todos.`, hecho: false },
     conCuenta
       ? { titulo: "Ya tienes tu cuenta", texto: "Con ella separas, guardas favoritos y sigues tus pedidos.", hecho: true }
       : { titulo: "Entra o crea tu cuenta", texto: "Con tu correo, en un minuto. Solo te pedimos lo necesario.", hecho: false },
@@ -121,7 +121,7 @@ export function avisosParaSeparar(p: Plazos): { confirmar: Paso; pagar: Paso; re
 
 /**
  * «Cambios y devoluciones» en tres cosas que se leen de un vistazo: cuánto tiempo, dónde y qué llevar. Promete lo mismo que
- * `textoCambios` (la misma regla de la tienda), solo que partido: el plazo de la caja (el que imprime la boleta), cualquier tienda CAYLA,
+ * la regla de la tienda (la ficha ya no la dice en una frase, 2026-10-19): el plazo de la caja (el que imprime la boleta), cualquier tienda CAYLA,
  * la boleta y la etiqueta puesta. Sin el plazo, sin número: lo dice la boleta.
  */
 export function puntosDeCambios(p: Plazos): { plazo: Paso; donde: Paso; llevar: Paso } {
@@ -133,14 +133,6 @@ export function puntosDeCambios(p: Plazos): { plazo: Paso; donde: Paso; llevar: 
     donde: { titulo: "En cualquier tienda CAYLA", texto: "La que te quede más cerca, aunque no sea donde la recogiste." },
     llevar: { titulo: "Lleva tu boleta", texto: "Y la prenda con su etiqueta puesta." },
   };
-}
-
-/** «Cambios y devoluciones» en una frase (la ficha de cada prenda la muestra así): como en tienda, con el mismo plazo que la boleta.
- *  Sin el plazo, se dice que va impreso en la boleta. */
-export function textoCambios(p: Plazos): string {
-  return p.diasParaCambiar !== null
-    ? `Igual que en tienda: puedes cambiar o devolver tu prenda dentro de ${enDias(p.diasParaCambiar)}, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.`
-    : "Igual que en tienda: puedes cambiar o devolver tu prenda en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.";
 }
 
 // ---- Las lecturas largas (Privacidad y Términos del Club): solo cómo se dibujan, nunca qué dicen ----

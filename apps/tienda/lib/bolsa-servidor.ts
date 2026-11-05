@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { base, leerConRespaldo } from "./base";
+import { interpretarValidacion, type ValidacionCupon } from "./cupon";
 import {
   COOKIE_BOLSA,
   DIAS_DE_LA_BOLSA,
@@ -65,16 +66,21 @@ export type ResultadoSeparar =
   /** La base dijo que no (`hint`, y en `detalle` qué prenda) o no respondió (`hint` null). No quedó nada escrito. */
   | { ok: false; hint: string | null; detalle: string | null };
 
-/** «Separar»: la base vuelve a calcular cada precio, revisa todo y crea el pedido por confirmar (sin tocar el stock). */
+/**
+ * «Separar»: la base vuelve a calcular cada precio, revisa todo y crea el pedido por confirmar (sin tocar el stock). Con `cupon` (el
+ * código del Club que escribió en la bolsa), la base lo RESERVA para este pedido en la misma transacción y el pedido nace con el total
+ * rebajado (`retail.tienda_separar_con_cupon`, 20261019224000); si el cupón no sirve, no se separa nada.
+ */
 export async function separarEnBase(
   usuarioWebId: string,
   sedeId: string,
   lineas: readonly { variante_id: string; cantidad: number; precio: number }[],
   marca: string,
+  cupon: string | null = null,
 ): Promise<ResultadoSeparar> {
   try {
     const [fila] = await base()`
-      select retail.tienda_separar(${usuarioWebId}::uuid, ${sedeId}::uuid, ${JSON.stringify(lineas)}::text::jsonb, ${marca}::uuid) as r`;
+      select retail.tienda_separar_con_cupon(${usuarioWebId}::uuid, ${sedeId}::uuid, ${JSON.stringify(lineas)}::text::jsonb, ${marca}::uuid, ${cupon}::text) as r`;
     const codigo = (fila?.r as { codigo?: unknown } | undefined)?.codigo;
     if (typeof codigo === "string") return { ok: true, codigo };
     return { ok: false, hint: null, detalle: null };
@@ -82,9 +88,24 @@ export async function separarEnBase(
     const e = error as { hint?: unknown; detail?: unknown; code?: unknown };
     const hint = typeof e.hint === "string" ? e.hint : null;
     // Lo que la base explica (un precio que cambió, algo agotado) no es una falla: no se anota. Sin datos de la persona.
-    if (!hint?.startsWith("tienda_") && !hint?.startsWith("pedido_web_")) {
+    if (!hint?.startsWith("tienda_") && !hint?.startsWith("pedido_web_") && !hint?.startsWith("cupon_") && hint !== "club_un_cupon_por_compra") {
       console.error(JSON.stringify({ evento: "tienda_separar_fallo", codigo: e.code ?? null, hint }));
     }
     return { ok: false, hint, detalle: typeof e.detail === "string" ? e.detail : null };
+  }
+}
+
+/**
+ * «¿Sirve este código?» desde la bolsa (`retail.tienda_validar_cupon`): con el total de la bolsa en la tienda elegida. La base cuenta
+ * los códigos que no existen (5 en 5 minutos bloquean a este usuario) y nunca dice de quién es un cupón ajeno. `null` si no responde.
+ */
+export async function validarCuponEnBase(usuarioWebId: string, codigo: string, total: number | null): Promise<ValidacionCupon | null> {
+  try {
+    const [fila] = await base()`select retail.tienda_validar_cupon(${usuarioWebId}::uuid, ${codigo}::text, ${total}::numeric) as r`;
+    return interpretarValidacion(fila?.r);
+  } catch (error) {
+    // Sin el código ni datos de la persona: solo que falló.
+    console.error(JSON.stringify({ evento: "tienda_validar_cupon_fallo", codigo: (error as { code?: unknown }).code ?? null }));
+    return null;
   }
 }

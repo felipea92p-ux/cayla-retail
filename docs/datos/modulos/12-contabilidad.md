@@ -510,6 +510,12 @@ gestión — lo que no cae en las categorías de arriba"*. Si alguien postea una
 siguiendo el manual, la mete en el cajón de sobras. Hay que decidir cuál gana antes del
 primer asiento automático.
 
+> **Resuelto el 2026-10-22 (ADR-0483).** Las mermas y pérdidas de inventario se asientan en la **`6951`** «Gastos por
+> desvalorización de inventarios — mercaderías» (sección `mermas` del Estado de resultados), no en la `659`. Está pegado en
+> producción; el código es **provisional hasta el OK del contador**. La `659` sigue activa en el plan, en la misma sección y
+> sin movimientos: retirarla o devolverle su nombre del PCGE es decisión del contador. El diagnóstico de arriba es el de la
+> auditoría del 2026-09-12 y se deja como estaba.
+
 **En `0020` y NO en el manual** (20 códigos). Tres contradicen simplificaciones que el
 manual declara por escrito en §6:
 

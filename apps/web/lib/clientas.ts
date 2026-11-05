@@ -76,10 +76,10 @@ export async function getTiendasConWhatsapp(): Promise<{ tiendas: TiendaWhatsapp
  */
 export async function getTextosDelCartel(): Promise<{ textos: TextosCartel | null; falla: string | null }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_club_textos_legales");
+  const { data, error } = await supabase.rpc("fn_club_puntos_vigentes");
   if (error) return { textos: null, falla: `No se pudieron leer los beneficios del club: ${error.message}` };
   const textos = textosDelCartel(data);
-  if (!textos) return { textos: null, falla: "La base no dio completos los beneficios del club (el % del cumpleaños, el vale de cada año o lo que hace contar un año)." };
+  if (!textos) return { textos: null, falla: "La base no dio completa la configuración de los puntos del club (lo que se gana, lo que valen, el canje o el regalo de cumpleaños)." };
   return { textos, falla: null };
 }
 

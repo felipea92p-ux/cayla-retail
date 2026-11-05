@@ -54,7 +54,7 @@ export function claveNavegacion(url: URL): string {
  * un aviso de más; equivocarse hacia «lectura» deja guardar sin ninguna señal, que es lo que se evita.
  * Al escribir una RPC de solo lectura para el navegador: nómbrala con uno de estos prefijos.
  */
-export const PREFIJOS_RPC_DE_LECTURA = ["fn_", "previsualizar_", "campanas_", "resumen_", "buscar_", "get_"] as const;
+export const PREFIJOS_RPC_DE_LECTURA = ["fn_", "previsualizar_", "campanas_", "resumen_", "buscar_", "get_", "validar_"] as const;
 
 export function esRpcDeLectura(nombre: string): boolean {
   return PREFIJOS_RPC_DE_LECTURA.some((p) => nombre.startsWith(p));
@@ -104,6 +104,8 @@ export function clasificarPeticion(p: PeticionEspera): Clasificacion | null {
     if (metodo === "GET" || metodo === "HEAD" || metodo === "OPTIONS") return null;
     const ruta = p.url.pathname;
     if (ruta.startsWith("/auth/v1/token")) return null; // refresco de sesión en segundo plano
+    // Firmar el enlace de un archivo (la foto de un comprobante, ADR-0588) es leer: no escribe nada y no debe tapar la hoja.
+    if (ruta.startsWith("/storage/v1/object/sign/")) return null;
     const rpc = /\/rest\/v1\/rpc\/([^/?]+)/.exec(ruta);
     if (rpc && esRpcDeLectura(rpc[1])) return null;
     return { tipo: "guardado" };

@@ -12,7 +12,7 @@ export default async function Entrar() {
   const anio = await anioActual();
   return (
     <MarcoCuenta enPagina="entrar">
-      <PantallaDeEntrada panel={<PanelDelClub desde={anio} />}>
+      <PantallaDeEntrada titulo="corto" panel={<PanelDelClub desde={anio} />}>
         <FormularioEntrar />
       </PantallaDeEntrada>
     </MarcoCuenta>

@@ -1076,12 +1076,6 @@ export function leerEstadoVariantes(data: unknown): Record<string, EstadoVariant
  */
 export const NACEN_SIN_UNIDADES = "Nacen sin unidades: lo que llegó se registra al recibirlo, en «Recibir mercadería».";
 
-/** Lo mismo, dicho en los modales «Agregar color/talla» a quien SÍ puede poner stock desde la tabla (tiene «Ajustar stock»). Antes
- *  el modal mandaba a «Recibir mercadería» y, al cerrarlo, el cartel de la ficha decía «toca + en la tabla»: dos caminos que se
- *  contradecían (revisión 2026-10-03). Los dos son ciertos; cada uno para su caso. */
-export const NACEN_EN_CERO_CARGABLES =
-  "Nacen en 0: si las prendas ya están en la tienda, ponlas con «+» en la tabla y entran al guardar; si llegan de un proveedor, regístralas en «Recibir mercadería».";
-
 /**
  * El único círculo de candados que el orden de ADR-0263 T8 no cierra: una venta o un traslado de VARIAS tallas de esta
  * prenda (en otro orden que el id) en el mismo instante en que la ficha corrige esas tallas. Postgres lo corta con 40P01 y
@@ -1110,4 +1104,33 @@ export const FRASE_CHOQUE_DE_CANDADOS =
 export function avisoBloqueSinAplicar(pendiente: CampoBloque | null): string | null {
   if (pendiente === null) return null;
   return `Tienes un ${pendiente === "precio" ? "precio" : "costo"} sin aplicar: pulsa Aplicar o bórralo.`;
+}
+
+// ---------------------------------------------------------------------------
+// Unidades de partida de lo que nace (ADR-0494, actividad 3): «Agregar color / talla» pregunta con cuántas unidades nace cada variante.
+// ---------------------------------------------------------------------------
+
+/** La llave de una combinación en el mapa de unidades de partida de los modales: `color|talla` (sin color o sin talla, vacío). */
+export function llaveDeUnidades(c: Identidad): string {
+  return `${c.colorCodigo ?? ""}|${c.tallaId ?? ""}`;
+}
+
+/**
+ * De las unidades de partida que puso un modal (por combinación) a las filas NUEVAS que `agregarCombinaciones` acaba de crear (por su
+ * clave): solo las que nacieron (sin id, y que no estaban antes) y con más de 0. Una combinación que solo reactivó una variante
+ * desactivada no es un nacimiento: su stock ya es lo que es. Puro: así se prueba sin React.
+ */
+export function unidadesParaNuevas(
+  antes: readonly FilaFicha[],
+  despues: readonly FilaFicha[],
+  unidades: Readonly<Record<string, number>>
+): Record<string, number> {
+  const estaban = new Set(antes.map((f) => f.clave));
+  const salida: Record<string, number> = {};
+  for (const f of despues) {
+    if (f.id || f.guardada || estaban.has(f.clave)) continue;
+    const n = unidades[llaveDeUnidades(f)] ?? 0;
+    if (Number.isInteger(n) && n > 0) salida[f.clave] = n;
+  }
+  return salida;
 }

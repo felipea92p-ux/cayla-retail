@@ -31,7 +31,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
 
   // En paralelo: el contexto del alta, cómo es la tienda donde entra el stock de hoy (la sede activa de la cabecera) y hasta cuándo
   // esa sede acepta carga inicial (ADR-0328; `null` si la base todavía no lo sabe: el paso 4 no avisa nada).
-  const [contexto, sububicaciones, carga] = await Promise.all([getContextoAlta(), getSububicaciones(persona.ubicacionId), getCargaInicial()]);
+  const [contexto, sububicaciones, carga] = await Promise.all([getContextoAlta(persona.ubicacionId), getSububicaciones(persona.ubicacionId), getCargaInicial()]);
   const destino = {
     ubicacionId: persona.ubicacionId,
     etiqueta: persona.ubicacionEtiqueta,
@@ -74,7 +74,6 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
           contexto={contexto}
           destino={destino}
           cargaInicial={cargaInicialDe(carga, persona.ubicacionId)}
-          puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")}
         />
       )}
     </div>

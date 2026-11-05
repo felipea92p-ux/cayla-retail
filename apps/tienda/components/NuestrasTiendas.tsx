@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { EncabezadoAyuda } from "./ayuda/EncabezadoAyuda";
+import { BotonVerTienda } from "./BotonVerTienda";
+import { EstadoDeTienda } from "./EstadoDeTienda";
 import { Icono } from "./Icono";
 import { columnasDeTiendas, enlaceMapa, enlaceWhatsapp, whatsappLegible, type Sede } from "@/lib/tiendas";
 import "@/app/estilos/tiendas.css";
@@ -38,13 +40,19 @@ export function NuestrasTiendas({
   const Nombre = enPagina ? "h2" : "h3";
   const lista =
     sedes.length > 0 ? (
-      <ul className="ay-tiendas" data-columnas={columnasDeTiendas(sedes.length)}>
+      <ul className="ay-tiendas" data-revela-lista data-columnas={columnasDeTiendas(sedes.length)}>
         {sedes.map((s) => {
           const enlace = ver?.[s.id];
           return (
             <li key={s.id} className="ay-tienda" data-elegida={enlace?.actual ? "" : undefined}>
+              {s.foto && (
+                // La foto ya viene reducida por el ERP (WebP de 200 KB o menos) y se sirve desde el almacén público.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="ay-tienda-foto" src={s.foto} alt={`Fachada de la tienda de ${s.nombre}`} loading="lazy" decoding="async" />
+              )}
               <div className="ay-tienda-in">
                 <Nombre className="ay-tienda-nombre">{s.nombre}</Nombre>
+                <EstadoDeTienda dias={s.dias} cierres={s.cierres} />
                 <ul className="ay-tienda-datos">
                   <li>
                     <Icono nombre="ubicacion" />
@@ -96,24 +104,17 @@ export function NuestrasTiendas({
                 {enlace && (
                   // En el Inicio elegir la tienda deja la vista donde está (se sigue mirando esta sección); desde /tiendas se llega al
                   // Inicio desde arriba.
-                  <Link
-                    className="ay-tienda-ver"
-                    href={enlace.href}
-                    aria-current={enlace.actual ? "true" : undefined}
-                    scroll={enPagina ? undefined : false}
-                  >
-                    {enlace.actual ? (
-                      <>
-                        <Icono nombre="check" />
-                        <span>Viendo lo de {s.nombre}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Ver solo lo que hay aquí</span>
-                        <Icono nombre="flecha" />
-                      </>
-                    )}
-                  </Link>
+                  enlace.actual ? (
+                    <Link className="ay-tienda-ver" href={enlace.href} aria-current="true" scroll={enPagina ? undefined : false}>
+                      <Icono nombre="check" />
+                      <span>Viendo lo de {s.nombre}</span>
+                    </Link>
+                  ) : (
+                    <BotonVerTienda href={enlace.href} enPagina={enPagina}>
+                      <span>Ver lo que hay</span>
+                      <Icono nombre="flecha" />
+                    </BotonVerTienda>
+                  )
                 )}
               </div>
             </li>
@@ -151,9 +152,9 @@ export function NuestrasTiendas({
   }
   return (
     <section className="t-sec t-ancho ay-tiendas-sec" aria-labelledby={idTitulo}>
-      <div className="t-sec-cab">
+      <div className="t-sec-cab" data-revela>
         <div>
-          <span className="t-ceja">{laCeja}</span>
+          {laCeja && <span className="t-ceja">{laCeja}</span>}
           <h2 id={idTitulo}>
             Nuestras <em>tiendas</em>
           </h2>

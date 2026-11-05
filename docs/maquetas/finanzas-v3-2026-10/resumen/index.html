@@ -1,0 +1,577 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Resumen v3 · Finanzas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><style>
+/* Finanzas ▸ Resumen · maquetas v3 (2026-10-23). Solo var(--…) de base.css. Prefijos: v- (común), va- (A), vb- (B), vc- (C).
+   Lo nuevo frente a v2: la sede siempre a la vista con su reparto, los filtros puestos que se quitan, la flecha de vuelta en toda
+   vista interna y el ancho completo (ADR-0462). Todo se dibuja desde DATOS (abajo), así las cifras cuadran en toda sede. */
+
+/* ---------- Ancho completo (ADR-0462): sin columna angosta ---------- */
+.pagina{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+.mq-nota{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+
+/* ---------- Común: cabecera, vuelta, filtros puestos ---------- */
+.v-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px 24px;flex-wrap:wrap}
+.v-cab .linea-sede{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.v-cab .linea-sede .detalle{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--tinta)}
+.v-cab h1{font-size:clamp(34px,4.4vw,46px);line-height:1.02;margin-top:6px}
+.v-cab .frase{font-size:15px;max-width:62ch;margin-top:6px}
+.v-cab-der{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.volver{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);cursor:pointer;color:var(--tinta);
+  transition:transform .25s var(--ease-cayla),border-color .2s}
+.volver svg{width:16px;height:16px}
+@media (hover:hover){.volver:hover{transform:translateX(-3px);border-color:var(--tinta)}}
+.mes{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:3px}
+.mes button{border:0;background:none;width:30px;height:30px;border-radius:50%;cursor:pointer;color:var(--tinta)}
+.mes button[disabled]{opacity:.3;cursor:default}
+.mes span{font-size:13.5px;font-weight:500;padding:0 8px;min-width:118px;text-align:center}
+.puestos{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:32px}
+.puestos .rotulo{font-size:12.5px}
+.puesto{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 6px 0 12px;border-radius:999px;background:var(--tinta);color:var(--crema);border:0;font-size:12.5px;font-weight:500;cursor:pointer}
+.puesto i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--crema) 18%,transparent);font-size:12px}
+.limpiar{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px dashed var(--taupe);background:none;color:var(--taupe);font-size:12.5px;cursor:pointer}
+.mas{color:var(--verde)} .menos{color:var(--rojo-p)} .neutro{color:var(--taupe)}
+.v-seccion{display:flex;flex-direction:column;gap:14px}
+.v-titulo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.v-titulo h2{font-size:21px}
+.v-titulo p{font-size:13.5px}
+.globo{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--taupe);margin-left:8px;vertical-align:middle}
+.sede-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe);border:1px solid var(--sand);border-radius:999px;padding:2px 8px;white-space:nowrap}
+
+/* La cascada de verdad: cada tramo flota donde terminó el anterior */
+.cascada{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;width:100%}
+.cascada li{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) 110px;gap:12px;align-items:center;font-size:13.5px}
+.cascada li small{display:block;font-size:11.5px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.cascada .carril{position:relative;height:14px;border-radius:4px;background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.cascada .carril b{position:absolute;top:0;bottom:0;border-radius:4px;left:var(--x);width:var(--w);background:var(--tinta)}
+.cascada .carril .cero{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--taupe);left:var(--cero)}
+.cascada li[data-t="sale"] .carril b{background:var(--taupe)}
+.cascada li[data-t="queda"]{font-weight:600;border-top:1px solid var(--sand);padding-top:10px}
+.cascada li[data-t="queda"][data-s="mas"] .carril b{background:var(--verde)}
+.cascada li[data-t="queda"][data-s="menos"] .carril b{background:var(--rojo-p)}
+.cascada .m{text-align:right;font-variant-numeric:tabular-nums}
+.animar .cascada .carril b{animation:mq-aparece .7s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 80ms + 150ms)}
+@media (max-width:640px){.cascada li{grid-template-columns:minmax(0,1fr) auto}.cascada .carril{grid-column:1/-1;order:3}}
+
+/* Anillo de confianza (como <Anillo>) */
+.anillo{--p:0;width:72px;height:72px;flex:none;position:relative}
+.anillo svg{width:100%;height:100%;transform:rotate(-90deg)}
+.anillo circle{fill:none;stroke-width:7}
+.anillo .pista-a{stroke:var(--hueso)}
+.anillo .arco{stroke:var(--tinta);stroke-linecap:round}
+.anillo span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:20px}
+
+/* ---------- Selector de sede con su reparto (A) ---------- */
+.va-sedes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;border:1px solid var(--sand);border-radius:16px;background:var(--papel);padding:4px;position:relative}
+.va-sede{border:0;background:none;border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;position:relative;z-index:1;min-width:0;
+  transition:background .25s var(--ease-cayla)}
+.va-sede .n{font-size:12.5px;font-weight:600;letter-spacing:.02em}
+.va-sede .d{font-family:var(--serif);font-size:21px;line-height:1.1;font-variant-numeric:tabular-nums}
+.va-sede .s{font-size:11.5px;color:color-mix(in srgb,var(--tinta) 64%,transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.va-sede[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.va-sede[aria-pressed="true"] .s{color:color-mix(in srgb,var(--crema) 75%,transparent)}
+.va-sede[aria-pressed="true"] .mas{color:color-mix(in srgb,var(--verde) 40%,var(--crema))}
+.va-sede[aria-pressed="true"] .menos{color:color-mix(in srgb,var(--rojo) 55%,var(--crema))}
+@media (hover:hover){.va-sede:not([aria-pressed="true"]):hover{background:var(--hueso)}}
+.va-sede+.va-sede::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--sand)}
+.va-sede[aria-pressed="true"]::before,.va-sede[aria-pressed="true"]+.va-sede::before{display:none}
+@media (max-width:900px){.va-sedes{grid-template-columns:repeat(3,minmax(0,1fr))}.va-sede::before{display:none}}
+@media (max-width:420px){.va-sedes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.va-reparto{display:flex;height:8px;border-radius:999px;overflow:hidden;background:var(--hueso);gap:2px}
+.va-reparto i{display:block;height:100%;background:var(--c);flex:var(--f) 1 0}
+.va-reparto-ley{display:flex;gap:14px;flex-wrap:wrap;font-size:12px}
+.va-reparto-ley span{display:inline-flex;align-items:center;gap:6px}
+.va-reparto-ley span::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--c)}
+
+.va-cuerpo{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:1000px){.va-cuerpo{grid-template-columns:minmax(0,1fr)}}
+.va-hero{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:clamp(20px,3vw,36px)}
+.va-pregunta{font-family:var(--serif);font-style:italic;font-size:clamp(22px,2.6vw,28px);color:var(--taupe)}
+.va-te{font-family:var(--serif);font-size:clamp(24px,2.8vw,32px);line-height:1}
+.va-monto{font-family:var(--serif);font-size:clamp(64px,8vw,104px);line-height:.92;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.va-explica{font-size:15px;max-width:58ch}
+.va-lado{display:flex;flex-direction:column;gap:18px}
+.va-ritmo-pista{position:relative;height:12px;border-radius:999px;background:var(--hueso);margin-top:26px}
+.va-ritmo-pista>i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--tinta);width:var(--w)}
+.va-ritmo-pista>em{position:absolute;top:-8px;bottom:-8px;width:2px;background:var(--taupe);left:var(--x)}
+.va-ritmo-pista>em::after{content:attr(data-t);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);font-style:normal;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe);white-space:nowrap}
+.va-seguro{display:flex;gap:16px;align-items:center}
+.va-seguro ul{margin:0;padding:0;list-style:none;font-size:13px;display:flex;flex-direction:column;gap:3px}
+.va-lugares{list-style:none;margin:0;padding:0}
+.va-lugar{display:grid;grid-template-columns:minmax(140px,220px) minmax(0,1fr) 110px 24px;gap:14px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--sand);cursor:pointer;border-radius:8px;
+  transition:background .2s}
+@media (hover:hover){.va-lugar:hover{background:color-mix(in srgb,var(--hueso) 60%,transparent)}.va-lugar:hover .flecha{transform:translateX(4px);color:var(--rojo-p)}}
+.va-lugar b{font-weight:600;font-size:14px}
+.va-lugar small{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.va-eje{position:relative;height:10px}
+.va-eje::before{content:"";position:absolute;left:50%;top:-6px;bottom:-6px;width:1px;background:var(--sand)}
+.va-eje i{position:absolute;top:0;bottom:0;border-radius:999px}
+.va-eje i.mas{left:50%;width:var(--w);background:var(--verde)}
+.va-eje i.menos{right:50%;width:var(--w);background:var(--rojo-p)}
+.va-lugar .m{text-align:right;font-family:var(--serif);font-size:20px;font-variant-numeric:tabular-nums}
+.flecha{transition:transform .25s var(--ease-cayla),color .2s;color:var(--taupe);text-align:center}
+.va-total{display:grid;grid-template-columns:minmax(140px,220px) minmax(0,1fr) 110px 24px;gap:14px;padding:14px 8px 0;font-family:var(--serif);font-size:20px}
+.va-total .m{text-align:right}
+@media (max-width:640px){.va-lugar,.va-total{grid-template-columns:minmax(0,1fr) auto 16px}.va-lugar .va-eje,.va-total>span:nth-child(2){display:none}}
+.avisos{list-style:none;margin:0;padding:0}
+.aviso{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--sand)}
+.aviso:first-child{border-top:1px solid var(--sand)}
+.aviso .punto{width:8px;height:8px;border-radius:50%;background:var(--c);grid-row:1/3;align-self:start;margin-top:7px}
+.aviso h3{font-family:var(--sans);font-size:14.5px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.aviso p{font-size:13px;grid-column:2}
+.aviso .acc{grid-row:1/3;grid-column:3}
+.aviso .monto{font-family:var(--serif);font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:640px){.aviso{grid-template-columns:auto minmax(0,1fr)}.aviso .acc{grid-row:auto;grid-column:2;justify-self:start}}
+
+/* ---------- B · La mesa por sede ---------- */
+.vb-barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px 16px;border-bottom:1px solid var(--sand)}
+.pildora{position:relative}
+.pildora>button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);cursor:pointer;font-size:13px}
+.pildora>button[data-puesta="1"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pildora>button::after{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);opacity:.7}
+.pildora .lista{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:220px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;
+  box-shadow:0 12px 32px color-mix(in srgb,var(--sombra) 18%,transparent);display:none;animation:mq-entra .24s var(--ease-cayla)}
+.pildora.abierta .lista{display:block}
+.pildora .lista button{white-space:nowrap;display:flex;justify-content:space-between;gap:12px;width:100%;border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13.5px}
+.pildora .lista button[aria-checked="true"]{font-weight:600}
+.pildora .lista button[aria-checked="true"]::after{content:"✓";color:var(--rojo-p)}
+@media (hover:hover){.pildora .lista button:hover{background:var(--hueso)}}
+.vb-tabla th.sede{cursor:pointer}
+@media (hover:hover){.vb-tabla th.sede:hover{color:var(--rojo-p)}}
+.vb-tabla th.m{text-align:right}
+.vb-tabla td.m.elegida,.vb-tabla th.elegida{background:color-mix(in srgb,var(--hueso) 70%,transparent)}
+.vb-tabla tr.total td{font-weight:600;border-bottom:0;font-family:var(--serif);font-size:17px}
+.vb-tabla tr.sub td{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 68%,transparent);padding-top:6px;padding-bottom:6px}
+.vb-tabla tr.abre td:first-child{cursor:pointer}
+.vb-tabla tr.abre td:first-child::before{content:"›";display:inline-block;width:14px;transition:transform .25s var(--ease-cayla);color:var(--taupe)}
+.vb-tabla tr.abre[aria-expanded="true"] td:first-child::before{transform:rotate(90deg)}
+.vb-mini{display:flex;height:6px;border-radius:999px;overflow:hidden;gap:2px;background:var(--hueso);margin-top:4px}
+.vb-mini i{display:block;background:var(--c);flex:var(--f) 1 0}
+.cifra .valor small{font-family:var(--sans);font-size:12px;margin-left:6px}
+.cifra.filtra{background:var(--hueso)}
+
+/* Cajón lateral (como <Cajon>) */
+.cajon-velo{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(3px);animation:mq-aparece .25s var(--ease-cayla)}
+.cajon{position:fixed;top:0;right:0;bottom:0;z-index:61;width:min(100%,456px);background:var(--papel);border-left:1px solid var(--sand);display:flex;flex-direction:column;animation:vc-desliza .38s var(--ease-cayla)}
+@keyframes vc-desliza{from{transform:translateX(40px);opacity:0}}
+.cajon header{display:flex;gap:12px;align-items:flex-start;padding:20px;border-bottom:1px solid var(--sand)}
+.cajon header h2{font-size:24px}
+.cajon .cuerpo{padding:20px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.cerrar{margin-left:auto;width:32px;height:32px;border-radius:50%;border:0;background:none;cursor:pointer;font-size:18px;color:var(--tinta)}
+@media (hover:hover){.cerrar:hover{background:var(--hueso)}}
+
+/* ---------- C · Cada sede, su tarjeta ---------- */
+.vc-total{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:24px;align-items:center}
+@media (max-width:900px){.vc-total{grid-template-columns:minmax(0,1fr)}}
+.vc-total .grande{font-family:var(--serif);font-size:clamp(48px,6vw,72px);line-height:.95;font-variant-numeric:tabular-nums}
+.vc-aporte{display:flex;flex-direction:column;gap:8px}
+.vc-aporte-barra{display:flex;height:22px;border-radius:6px;overflow:hidden;gap:2px}
+.vc-aporte-barra i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;font-weight:600;color:var(--crema-fija);flex:var(--f) 1 0;min-width:0;overflow:hidden;white-space:nowrap}
+.vc-aporte-barra i.mas{background:var(--verde)} .vc-aporte-barra i.menos{background:var(--rojo-p)}
+.vc-aporte-barra i.mas:nth-child(2){background:color-mix(in srgb,var(--verde) 72%,var(--papel))}
+.vc-grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:14px}
+.vc-tarjeta{display:flex;flex-direction:column;gap:12px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:transform .26s var(--ease-cayla),border-color .2s}
+@media (hover:hover){.vc-tarjeta:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--taupe) 50%,var(--sand))}.vc-tarjeta:hover .ver{color:var(--rojo-p)}.vc-tarjeta:hover .ver::after{transform:translateX(4px)}}
+.vc-tarjeta .cab{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vc-tarjeta .cab b{font-family:var(--serif);font-size:22px;font-weight:500}
+.vc-tarjeta .deja{font-family:var(--serif);font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.vc-tarjeta .linea{display:flex;justify-content:space-between;font-size:12.5px;gap:8px}
+.vc-tarjeta .ver{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe);display:inline-flex;gap:6px;transition:color .2s;margin-top:auto}
+.vc-tarjeta .ver::after{content:"→";transition:transform .25s var(--ease-cayla)}
+.vc-comparar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+.vc-dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:1000px){.vc-dos{grid-template-columns:minmax(0,1fr)}}
+.vc-vs{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(2,minmax(0,1fr));font-size:13.5px}
+.vc-vs>div{padding:10px 8px;border-bottom:1px solid var(--sand)}
+.vc-vs .m{text-align:right;font-variant-numeric:tabular-nums}
+.vc-vs .h{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+</style></head>
+<body>
+<header class="mq-barra">
+  <a class="mq-volver" href="../../finanzas-v2-2026-10/index.html" aria-label="Volver a las maquetas de Finanzas v2">←</a>
+  <span class="mq-titulo"><span class="versalita">Finanzas v3 · 23 de octubre</span><b>Resumen</b></span>
+  <span class="mq-espacio"></span>
+  <span class="mq-ejemplo">Cifras de ejemplo</span>
+  <div class="mq-selector" role="group" aria-label="Elegir camino">
+    <button data-ver="a" aria-pressed="true">A · La respuesta por sede</button>
+    <button data-ver="b" aria-pressed="false">B · La mesa por sede</button>
+    <button data-ver="c" aria-pressed="false">C · Cada sede, su tarjeta</button>
+  </div>
+  <button class="mq-tema" type="button">Oscuro</button>
+</header>
+<p class="mq-nota tenue">Las tres parten del camino A que elegiste el 15-oct («La respuesta») y le suman lo que pediste: <b>la sede siempre a la vista</b> (todas juntas con su reparto, o una sola), <b>filtros que se ven puestos y se quitan con ✕</b>, y <b>la flecha de vuelta</b> en toda vista interna. Toca una sede, una fila o una tarjeta: todo responde. Octubre al día 15, sin IGV salvo el ritmo.</p>
+
+<main class="pagina">
+  <section class="variante" data-variante="a" id="vA"></section>
+  <section class="variante" data-variante="b" id="vB" hidden></section>
+  <section class="variante" data-variante="c" id="vC" hidden></section>
+</main>
+<div id="capa"></div>
+
+<script src="base.js"></script>
+<script>
+/* ===================== DATOS (de ejemplo; cuadran entre sí) =====================
+   Octubre al jueves 15, sin IGV. Deja = vendido − ropa − comisiones − sueldos − alquiler − servicios − desgaste.
+   TRU 6,120 + AQP 2,480 − LIM 1,450 − Taller 620 − Empresa 2,680 = 3,850. */
+const SEDES = [
+  { id:"tru", nombre:"Trujillo", sigla:"TRU", tipo:"tienda", c:"var(--tinta)", vendido:30900, ropa:14800, comis:340, sueldos:6900, alquiler:1940, servicios:520, desgaste:280,
+    ventas:412, porDia:2431, necesita:1620, cierre:12600, efectivo:6700, seguro:91, sep:{vendido:58200, deja:9800}, faltaSeguro:["1 factura de luz por revisar"] },
+  { id:"aqp", nombre:"Arequipa", sigla:"AQP", tipo:"tienda", c:"var(--taupe)", vendido:16000, ropa:7700, comis:180, sueldos:3600, alquiler:1550, servicios:370, desgaste:120,
+    ventas:224, porDia:1259, necesita:1000, cierre:5000, efectivo:4400, seguro:78, sep:{vendido:30800, deja:3900}, faltaSeguro:["2 depósitos de tarjeta sin llegar","El 22 % del costo es estimado"] },
+  { id:"lim", nombre:"Lima", sigla:"LIM", tipo:"tienda", c:"var(--pizarra)", vendido:0, ropa:0, comis:0, sueldos:0, alquiler:1350, servicios:100, desgaste:0,
+    ventas:0, porDia:0, necesita:900, cierre:-1900, efectivo:0, seguro:100, sep:{vendido:0, deja:0}, nota:"Abre el martes 20. Hasta entonces paga su local sin vender.", faltaSeguro:[] },
+  { id:"taller", nombre:"Taller", sigla:"Taller", tipo:"taller", c:"var(--ambar)", vendido:0, ropa:0, comis:0, sueldos:500, alquiler:0, servicios:120, desgaste:0,
+    ventas:0, porDia:0, necesita:0, cierre:-1300, efectivo:0, seguro:84, sep:{vendido:0, deja:-1100}, nota:"No vende: su sueldo y su local ya van al costo de cada prenda. Aquí queda lo que no se usó.", faltaSeguro:["2 facturas de tela por revisar"] },
+  { id:"emp", nombre:"Empresa", sigla:"Empresa", tipo:"empresa", c:"var(--rojo-p)", vendido:0, ropa:0, comis:0, sueldos:0, alquiler:0, servicios:2600, desgaste:80,
+    ventas:0, porDia:0, necesita:0, cierre:-6450, efectivo:0, seguro:88, sep:{vendido:0, deja:-5200}, nota:"Contador S/ 600 · publicidad en Meta S/ 1,500 · oficina y bancos S/ 500. No es de ninguna sede y no se reparte.", faltaSeguro:["1 movimiento del banco sin explicar"] },
+];
+SEDES.forEach(s => { s.deja = s.vendido - s.ropa - s.comis - s.sueldos - s.alquiler - s.servicios - s.desgaste; s.gastos = s.comis + s.sueldos + s.alquiler + s.servicios + s.desgaste; });
+const suma = k => SEDES.reduce((a, s) => a + s[k], 0);
+const TODAS = { id:"todas", nombre:"Todas las sedes", sigla:"Todas", tipo:"todas", vendido:suma("vendido"), ropa:suma("ropa"), comis:suma("comis"), sueldos:suma("sueldos"),
+  alquiler:suma("alquiler"), servicios:suma("servicios"), desgaste:suma("desgaste"), deja:suma("deja"), gastos:suma("gastos"), ventas:suma("ventas"),
+  porDia:3690, necesita:3100, cierre:suma("cierre"), efectivo:suma("efectivo"), seguro:86, sep:{vendido:89000, deja:7400} };
+const PLATA = { bancos:28280, porDepositar:3450 }; // + efectivo de cada sede = 42,830
+const AVISOS = [
+  { sede:"taller", tono:"ambar", titulo:"Textiles del Norte vence en 4 días", texto:"Factura de tela del Taller. Si pagas el lunes no hay recargo.", monto:6800, acc:"Pagar" },
+  { sede:"todas",  tono:"rojo",  titulo:"La caja baja de tu mínimo el 31", texto:"Sueldos y alquileres de noviembre salen juntos: llegas a S/ 11,200 y tu mínimo es S/ 15,000.", monto:-3800, acc:"Probar escenario" },
+  { sede:"aqp",    tono:"ambar", titulo:"2 depósitos de tarjeta no llegaron", texto:"Izipay del lunes y el martes. Lo normal es que lleguen en 2 días.", monto:2140, acc:"Ver depósitos" },
+  { sede:"lim",    tono:"pizarra", titulo:"Lima necesita S/ 900 al día", texto:"Para pagar su local desde que abre el martes 20.", monto:null, acc:"Ver la meta" },
+  { sede:"tru",    tono:"pizarra", titulo:"1 factura de luz por revisar", texto:"Hidrandina, local de Trujillo. SUNAT ya la trae a tu RUC.", monto:410, acc:"Revisar" },
+  { sede:"taller", tono:"pizarra", titulo:"2 facturas de tela por revisar", texto:"Textiles del Norte (la regla ya la conoce) y Grafinort (nueva).", monto:4190, acc:"Revisar" },
+];
+
+/* ===================== Utilidades ===================== */
+const fmt = n => Math.round(Math.abs(n)).toLocaleString("en-US");
+const S = n => (n < 0 ? "−" : "") + "S/ " + fmt(n);
+const SS = n => (n > 0 ? "+" : n < 0 ? "−" : "") + "S/ " + fmt(n);
+const signo = n => n > 0 ? "mas" : n < 0 ? "menos" : "neutro";
+const sede = id => id === "todas" ? TODAS : SEDES.find(s => s.id === id);
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const FLECHA = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4 3 8l4 4"/></svg>';
+const vende = s => s.tipo === "tienda" || s.tipo === "todas";
+const pregunta = s => s.tipo === "taller" ? "¿Cuánto cuesta el Taller?" : s.tipo === "empresa" ? "¿Cuánto cuesta lo de la empresa?" : "¿Estoy ganando plata?";
+const avisosDe = id => AVISOS.filter(a => id === "todas" || a.sede === id || (a.sede === "todas"));
+const tono = t => ({ rojo:"var(--rojo-p)", ambar:"var(--ambar)", pizarra:"var(--pizarra)" })[t];
+const nombreSede = id => id === "todas" ? "CAYLA" : sede(id).nombre;
+
+function respuesta(s) {
+  if (!vende(s)) return { chip:'<span class="chip c-pizarra">Cuesta</span>', te:"te cuesta", monto:S(-s.deja), cls:"neutro",
+    explica: s.nota };
+  if (s.deja >= 0) return { chip:'<span class="chip c-verde">Sí</span>', te:"te quedan", monto:S(s.deja), cls:"",
+    explica:`De los ${S(s.vendido)} que ${s.id === "todas" ? "vendiste" : "vendió " + s.nombre}, esto es lo que queda después de pagar la ropa, las máquinas de tarjeta, los sueldos, ${s.id === "todas" ? "los locales" : "su local"} y los servicios de estos 15 días.` };
+  return { chip:'<span class="chip c-ambar">Todavía no</span>', te:"te faltan", monto:S(-s.deja), cls:"menos",
+    explica: s.nota || "Lo que vendió no alcanza todavía a pagar lo que causó." };
+}
+function tramos(s) {
+  const t = [];
+  if (s.vendido) t.push({ n:"Vendiste", d:`${s.ventas} ventas · sin IGV`, v:s.vendido, t:"entra" });
+  if (s.ropa) t.push({ n:"La ropa que vendiste", d:s.id === "aqp" ? "22 % estimado (venta sin prenda)" : "lo que costó cada prenda", v:-s.ropa, t:"sale" });
+  if (s.comis) t.push({ n:"Máquinas de tarjeta", d:"comisión de Izipay y Vendemás", v:-s.comis, t:"sale" });
+  if (s.sueldos) t.push({ n:"Sueldos", d:s.tipo === "taller" ? "horas pagadas sin prendas" : "15 días, con las boletas de Dynamic", v:-s.sueldos, t:"sale" });
+  if (s.alquiler) t.push({ n:"Alquiler", d:s.id === "todas" ? "3 locales, 15 de 31 días" : "15 de 31 días", v:-s.alquiler, t:"sale" });
+  if (s.servicios) t.push({ n:"Servicios y otros", d:s.tipo === "empresa" ? "contador, publicidad, oficina" : "luz, agua, internet, útiles", v:-s.servicios, t:"sale" });
+  if (s.desgaste) t.push({ n:"Desgaste de equipos", d:"máquinas y muebles, por mes", v:-s.desgaste, t:"sale" });
+  return t;
+}
+function cascadaHTML(s) {
+  const ts = tramos(s); let run = 0; const pts = [0];
+  ts.forEach(t => { run += t.v; pts.push(run); });
+  const lo = Math.min(0, ...pts), hi = Math.max(...pts, 1), esc = v => (v - lo) / (hi - lo) * 100;
+  run = 0;
+  const filas = ts.map((t, i) => { const a = run; run += t.v; const x = esc(Math.min(a, run)), w = Math.max(esc(Math.max(a, run)) - x, .6);
+    return `<li data-t="${t.t}" style="--i:${i}"><span>${t.n}<small>${t.d}</small></span><span class="carril" style="--cero:${esc(0)}%"><b style="--x:${x}%;--w:${w}%"></b>${lo < 0 ? '<span class="cero"></span>' : ""}</span><span class="m">${t.v > 0 ? "" : "−"}${S(Math.abs(t.v))}</span></li>`; }).join("");
+  const x = esc(Math.min(0, run)), w = Math.max(esc(Math.max(0, run)) - x, .6);
+  return `<ol class="cascada" aria-label="De dónde sale el número">${filas}<li data-t="queda" data-s="${signo(run)}" style="--i:${ts.length}"><span>${run >= 0 ? "Te queda" : vende(s) ? "Te falta" : "Cuesta"}</span><span class="carril" style="--cero:${esc(0)}%"><b style="--x:${x}%;--w:${w}%"></b></span><span class="m ${signo(run)}">${S(run)}</span></li></ol>`;
+}
+function anillo(p) { const r = 30, c = 2 * Math.PI * r;
+  return `<div class="anillo" role="img" aria-label="${p} % seguro"><svg viewBox="0 0 72 72"><circle class="pista-a" cx="36" cy="36" r="${r}"/><circle class="arco" cx="36" cy="36" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - p / 100)}" style="${p >= 90 ? "stroke:var(--verde)" : ""}"/></svg><span>${p}</span></div>`; }
+function mesHTML() { return `<div class="mes" role="group" aria-label="Mes"><button type="button" aria-label="Septiembre">‹</button><span>Octubre 2026</span><button type="button" disabled aria-label="Noviembre todavía no llega">›</button></div>`; }
+function puestosHTML(lista, rotulo) {
+  if (!lista.length) return `<div class="puestos"><span class="rotulo tenue">${rotulo || "Mirando todas las sedes juntas · octubre al día 15"}</span></div>`;
+  return `<div class="puestos"><span class="rotulo tenue">Filtros puestos:</span>${lista.map(f => `<button class="puesto" type="button" data-quitar="${f.k}" aria-label="Quitar ${f.t}">${f.t}<i>✕</i></button>`).join("")}${lista.length > 1 ? '<button class="limpiar" type="button" data-quitar="todo">Limpiar todo</button>' : ""}</div>`;
+}
+function avisosHTML(id, conTag) {
+  const ls = avisosDe(id);
+  return `<ul class="avisos">${ls.map((a, i) => `<li class="aviso" data-entra style="--i:${i}"><span class="punto" style="--c:${tono(a.tono)}"></span>
+    <h3>${a.titulo}${conTag ? ` <span class="sede-tag">${a.sede === "todas" ? "CAYLA" : sede(a.sede).sigla}</span>` : ""}</h3>
+    <div class="acc"><button class="btn sutil chico" type="button">${a.acc}</button></div>
+    <p class="tenue">${a.texto}${a.monto !== null ? ` · <b class="${a.monto < 0 ? "menos" : ""}">${a.monto < 0 ? "faltan " + S(-a.monto) : S(a.monto) + " en juego"}</b>` : ""}</p></li>`).join("")}</ul>`;
+}
+
+/* ===================== A · La respuesta por sede ===================== */
+const stA = { sede:"todas", porque:false };
+function renderA() {
+  const s = sede(stA.sede), r = respuesta(s), todas = s.id === "todas";
+  const totalV = TODAS.vendido;
+  const rep = SEDES.filter(x => x.vendido > 0);
+  document.getElementById("vA").innerHTML = `
+  <div class="v-cab" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede">${todas ? "" : `<button class="volver" type="button" data-sede="todas" aria-label="Volver a todas las sedes">${FLECHA}</button>`}<span class="versalita">Finanzas · ${todas ? "Todas las sedes" : s.nombre} · jueves 15 de octubre</span></div>
+      <h1>Resumen</h1>
+      <p class="frase tenue">${todas ? "Cómo va CAYLA este mes. Toca una sede para ver solo lo suyo." : `Solo ${s.nombre}${s.tipo === "tienda" ? ": sus ventas, lo que causó y lo que le toca decidir." : "."}`}</p>
+    </div>
+    <div class="v-cab-der">${mesHTML()}</div>
+  </div>
+
+  <div class="v-seccion" data-entra style="--i:1">
+    <div class="va-sedes" role="group" aria-label="Qué sede mirar">
+      ${[TODAS, ...SEDES].map(x => `<button class="va-sede" type="button" data-sede="${x.id}" aria-pressed="${x.id === stA.sede}">
+        <span class="n">${x.id === "todas" ? "Todas las sedes" : x.nombre}</span>
+        <span class="d ${signo(x.deja)}">${SS(x.deja)}</span>
+        <span class="s">${x.vendido ? "vendió " + S(x.vendido) : x.tipo === "tienda" ? "abre el 20" : x.tipo === "taller" ? "no vende" : "no se reparte"}</span></button>`).join("")}
+    </div>
+    ${todas ? `<div class="va-reparto" aria-hidden="true">${rep.map(x => `<i style="--c:${x.c};--f:${x.vendido}"></i>`).join("")}</div>
+    <div class="va-reparto-ley tenue">${rep.map(x => `<span style="--c:${x.c}">${x.nombre} ${pct(x.vendido, totalV)} % de lo vendido</span>`).join("")}<span style="--c:var(--hueso)">Lima 0 % · abre el 20</span></div>`
+    : puestosHTML([{ k:"sede", t:"Sede: " + s.nombre }])}
+  </div>
+
+  <div class="va-cuerpo">
+    <div class="tarjeta va-hero" data-sube style="--i:2">
+      <p class="va-pregunta">${pregunta(s)}</p>
+      <p>${r.chip}&nbsp; En lo que va de octubre,</p>
+      <p class="va-te">${r.te}</p>
+      <p class="va-monto ${r.cls}">${r.monto}</p>
+      <p class="va-explica tenue">${r.explica}</p>
+      <button class="porque" type="button" aria-expanded="${stA.porque}" data-a-porque>¿Por qué ${r.monto}?</button>
+      <div class="desplegable ${stA.porque ? "abierto" : ""}" style="width:100%"><div>${cascadaHTML(s)}</div></div>
+    </div>
+    <div class="va-lado">
+      ${vende(s) && s.porDia + s.necesita > 0 ? `<div class="tarjeta" data-entra style="--i:3">
+        <div class="v-titulo"><h2>Tu ritmo</h2><span class="versalita">con IGV</span></div>
+        <p class="tenue" style="font-size:14px;margin-top:6px">${s.porDia ? `Vendes <b>${S(s.porDia)}</b> al día; ${s.id === "todas" ? "CAYLA necesita" : s.nombre + " necesita"} <b>${S(s.necesita)}</b> para cubrir el mes.` : `Desde el martes 20 necesita <b>${S(s.necesita)}</b> al día para pagar su local.`}</p>
+        <div class="va-ritmo-pista" role="img" aria-label="Vas en ${S(s.porDia)} al día; necesitas ${S(s.necesita)}"><i style="--w:${Math.min(100, s.porDia / (Math.max(s.porDia, s.necesita) * 1.25) * 100)}%" data-crece></i><em data-t="necesitas ${S(s.necesita)}" style="--x:${s.necesita / (Math.max(s.porDia, s.necesita) * 1.25) * 100}%"></em></div>
+        <p style="margin-top:14px;font-family:var(--serif);font-size:19px">Si sigues así, cierras octubre con <span class="${signo(s.cierre)}">≈ ${S(s.cierre)}</span>.</p>
+      </div>` : `<div class="nota" data-entra style="--i:3">${s.nota}</div>`}
+      <div class="tarjeta" data-entra style="--i:4">
+        <div class="v-titulo"><h2>Qué tan seguro es</h2></div>
+        <div class="va-seguro" style="margin-top:10px">${anillo(s.seguro)}
+          <ul>${(todas ? ["2 depósitos de tarjeta sin llegar (AQP)", "3 facturas por revisar", "El 12 % del costo es estimado"] : s.faltaSeguro.length ? s.faltaSeguro : ["Todo lo de octubre está confirmado"]).map(t => `<li>${t}</li>`).join("")}</ul></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="rejilla r4" aria-label="Las cifras del mes">
+    ${cifrasA(s).map((c, i) => `<div class="cifra" data-entra style="--i:${i + 5}"><span class="versalita">${c.e}</span><span class="valor ${c.cls || ""}">${c.v}</span><span class="pie">${c.p}</span></div>`).join("")}
+  </section>
+
+  ${todas ? `<div class="tarjeta v-seccion" data-entra style="--i:9">
+    <div class="v-titulo"><h2>Qué deja cada sede<span class="globo">5</span></h2><p class="tenue">Después de pagar lo que cada una causa. Toca una para ver solo lo suyo.</p></div>
+    <ul class="va-lugares">${SEDES.map((x, i) => `<li class="va-lugar" data-sede="${x.id}" role="button" tabindex="0" data-entra style="--i:${i}">
+      <span><b>${x.nombre}</b><small>${x.vendido ? "Vendió " + S(x.vendido) : x.nota.split(".")[0]}</small></span>
+      <span class="va-eje" aria-hidden="true"><i class="${signo(x.deja)}" style="--w:${Math.abs(x.deja) / 6120 * 50}%"></i></span>
+      <span class="m ${signo(x.deja)}">${SS(x.deja)}</span><span class="flecha" aria-hidden="true">›</span></li>`).join("")}</ul>
+    <div class="va-total"><span>Te quedan</span><span></span><span class="m mas">${S(TODAS.deja)}</span><span></span></div>
+  </div>` : `<div class="tarjeta v-seccion" data-entra style="--i:9">
+    <div class="v-titulo"><h2>${s.nombre} contra septiembre</h2><p class="tenue">Septiembre completo contra octubre al día 15.</p></div>
+    <div class="vc-vs">
+      <div class="h">Concepto</div><div class="h m">Sept. completo</div><div class="h m">Oct. al día 15</div>
+      ${vende(s) ? `<div>Vendió</div><div class="m">${S(s.sep.vendido)}</div><div class="m">${S(s.vendido)}</div>` : ""}
+      <div>Deja</div><div class="m ${signo(s.sep.deja)}">${SS(s.sep.deja)}</div><div class="m ${signo(s.deja)}">${SS(s.deja)}</div>
+    </div>
+    <p class="tenue" style="font-size:13px">${s.id === "lim" ? "Lima no existía en septiembre." : "A mitad de mes, lo normal es estar cerca de la mitad de septiembre."}</p>
+  </div>`}
+
+  <div class="tarjeta v-seccion" data-entra style="--i:10">
+    <div class="v-titulo"><h2>Para decidir hoy<span class="globo">${avisosDe(s.id).length}</span></h2><p class="tenue">${todas ? "De todas las sedes. Primero lo que más cuesta si se deja pasar." : `Lo de ${s.nombre} y lo de CAYLA entera que le toca.`}</p></div>
+    ${avisosHTML(s.id, todas)}
+  </div>
+  <p class="nota" data-entra style="--i:11">Todo sale de lo que ya registran Ventas, Caja, Compras, Producción y Dynamic. Lo de la empresa (contador, publicidad, oficina) no se reparte entre las sedes: por eso la suma de las tiendas es más alta que lo que te queda.</p>`;
+  mqAnimar(document.getElementById("vA"));
+}
+function cifrasA(s) {
+  const todas = s.id === "todas";
+  const mb = s.vendido - s.ropa;
+  const plata = todas ? PLATA.bancos + PLATA.porDepositar + TODAS.efectivo : s.efectivo;
+  return [
+    { e:"Vendido", v:vende(s) ? S(s.vendido) : "—", p:todas ? "TRU 30,900 · AQP 16,000 · LIM 0" : vende(s) ? `${s.ventas} ventas · sin IGV` : (s.tipo === "taller" ? "El Taller no vende" : "La empresa no vende") },
+    { e:"Margen de la ropa", v:mb ? S(mb) : "—", p:mb ? `${pct(mb, s.vendido)} de cada 100 soles vendidos` : "Sin ventas" },
+    { e:"Gastos del mes", v:S(s.gastos), p:todas ? "sueldos, locales, servicios, comisiones" : "lo que causó en 15 días" },
+    { e:todas ? "Plata disponible" : "Efectivo en la sede", v:plata ? S(plata) : "—", p:todas ? "bancos 28,280 · cajas 10,100 · por depositar 3,450" : plata ? "cajón y caja fuerte · los bancos son de CAYLA" : "Sin caja propia" },
+  ];
+}
+document.getElementById("vA").addEventListener("click", e => {
+  const b = e.target.closest("[data-sede]"); if (b) { stA.sede = b.dataset.sede; stA.porque = false; renderA(); scrollTo({ top:0, behavior:"smooth" }); return; }
+  if (e.target.closest("[data-quitar]")) { stA.sede = "todas"; renderA(); return; }
+  const p = e.target.closest("[data-a-porque]"); if (p) { stA.porque = !stA.porque; p.setAttribute("aria-expanded", stA.porque); p.nextElementSibling.classList.toggle("abierto", stA.porque); }
+});
+document.getElementById("vA").addEventListener("keydown", e => { const li = e.target.closest(".va-lugar"); if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); li.click(); } });
+
+/* ===================== B · La mesa por sede ===================== */
+const stB = { sede:"todas", comparar:false, abiertas:{}, lista:null, cajon:null };
+const FILAS = [
+  { k:"vendido", n:"Vendido", signo:1 },
+  { k:"ropa", n:"La ropa que se vendió", signo:-1 },
+  { k:"comis", n:"Máquinas de tarjeta", signo:-1 },
+  { k:"sueldos", n:"Sueldos", signo:-1 },
+  { k:"alquiler", n:"Alquiler", signo:-1 },
+  { k:"servicios", n:"Servicios y otros", signo:-1, sub:{ tru:[["Luz y agua",310],["Internet",120],["Útiles y bolsas",90]], aqp:[["Luz y agua",220],["Internet",90],["Útiles y bolsas",60]], lim:[["Internet",100]], taller:[["Luz de máquinas",120]], emp:[["Contador",600],["Publicidad en Meta",1500],["Oficina y bancos",500]] } },
+  { k:"desgaste", n:"Desgaste de equipos", signo:-1 },
+];
+// Septiembre por concepto: el mismo reparto de costos de octubre, escalado para que cierre en lo que dejó (cifras de ejemplo).
+const COSTOS = ["ropa", "comis", "sueldos", "alquiler", "servicios", "desgaste"];
+function sepDe(s) {
+  if (s.id === "todas") { const o = { vendido:0 }; COSTOS.forEach(k => o[k] = 0); SEDES.forEach(x => { const y = sepDe(x); o.vendido += y.vendido; COSTOS.forEach(k => o[k] += y[k]); }); return o; }
+  const costoOct = COSTOS.reduce((a, k) => a + s[k], 0), costoSep = s.sep.vendido - s.sep.deja, f = costoOct ? costoSep / costoOct : 0;
+  const o = { vendido:s.sep.vendido }; let acum = 0;
+  COSTOS.forEach((k, i) => { o[k] = i < COSTOS.length - 1 ? Math.round(s[k] * f / 10) * 10 : 0; acum += o[k]; });
+  o.desgaste = costoSep - acum; return o;
+}
+function renderB() {
+  const s = sede(stB.sede), todas = s.id === "todas";
+  const cols = todas ? [...SEDES, TODAS] : [s];
+  const filtros = [];
+  if (!todas) filtros.push({ k:"sede", t:"Sede: " + s.nombre });
+  if (stB.comparar) filtros.push({ k:"comparar", t:"Contra septiembre" });
+  const rep = SEDES.filter(x => x.vendido > 0);
+  const cifras = [
+    { e:"Vendido", v:S(s.vendido), barra:todas ? rep.map(x => [x.c, x.vendido]) : null, p:todas ? "TRU 66 % · AQP 34 %" : `${s.ventas} ventas` },
+    { e:"Te queda", v:S(s.deja), cls:signo(s.deja), barra:null, p:todas ? "TRU +6,120 · AQP +2,480 · resto −4,750" : `septiembre completo: ${SS(s.sep.deja)}` },
+    { e:"Gastos del mes", v:S(s.gastos), barra:todas ? SEDES.map(x => [x.c, x.gastos]) : null, p:todas ? "por sede, en el mismo orden" : "sin la ropa" },
+    { e:"Ritmo al día", v:s.porDia ? S(s.porDia) : "—", p:s.necesita ? `necesita ${S(s.necesita)} · con IGV` : "no vende" },
+    { e:"Qué tan seguro", v:s.seguro + " %", p:todas ? "AQP 78 % es la más baja" : (s.faltaSeguro[0] || "todo confirmado") },
+  ];
+  document.getElementById("vB").innerHTML = `
+  <div class="v-cab" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede">${todas ? "" : `<button class="volver" type="button" data-b-sede="todas" aria-label="Volver a todas las sedes">${FLECHA}</button>`}<span class="versalita">Finanzas · ${todas ? "Todas las sedes" : s.nombre} · jueves 15 de octubre</span></div>
+      <h1>Resumen</h1>
+      <p class="frase tenue">${todas ? "Todo el mes en una mesa: cada sede en su columna. Toca el nombre de una sede para mirar solo esa." : `Solo ${s.nombre}, concepto por concepto.`}</p>
+    </div>
+    <div class="v-cab-der">${mesHTML()}<button class="btn sutil" type="button">↓ Descargar Excel</button></div>
+  </div>
+  <section class="rejilla" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))" aria-label="Las cifras del mes">
+    ${cifras.map((c, i) => `<div class="cifra" data-entra style="--i:${i + 1}"><span class="versalita">${c.e}</span><span class="valor ${c.cls || ""}">${c.v}</span>
+      ${c.barra ? `<span class="vb-mini" aria-hidden="true">${c.barra.map(([col, f]) => `<i style="--c:${col};--f:${f}"></i>`).join("")}</span>` : ""}<span class="pie">${c.p}</span></div>`).join("")}
+  </section>
+  <div class="tarjeta" style="padding:0;--i:6" data-entra>
+    <div class="vb-barra">
+      <div class="pildora ${stB.lista === "sede" ? "abierta" : ""}"><button type="button" data-lista="sede" data-puesta="${todas ? 0 : 1}" aria-expanded="${stB.lista === "sede"}">${todas ? "Sede" : s.nombre}</button>
+        <div class="lista" role="menu">${[TODAS, ...SEDES].map(x => `<button type="button" role="menuitemradio" aria-checked="${x.id === stB.sede}" data-b-sede="${x.id}">${x.id === "todas" ? "Todas las sedes" : x.nombre} <span class="tenue">${SS(x.deja)}</span></button>`).join("")}</div></div>
+      <div class="pildora"><button type="button" data-b-comparar data-puesta="${stB.comparar ? 1 : 0}">${stB.comparar ? "Contra septiembre" : "Comparar"}</button></div>
+      <span style="flex:1"></span>
+      <span class="tenue" style="font-size:12.5px">Sin IGV · octubre al día 15</span>
+    </div>
+    <div style="padding:10px 16px 0">${puestosHTML(filtros, "Sin filtros: todas las sedes, octubre al día 15")}</div>
+    <div class="desliza" style="padding:4px 4px 8px">
+      <table class="tabla vb-tabla">
+        <thead><tr><th>Concepto</th>${cols.map(c => `<th class="m ${c.id !== "todas" && todas ? "sede" : ""}" ${c.id !== "todas" && todas ? `data-b-sede="${c.id}" title="Ver solo ${c.nombre}"` : ""}>${c.id === "todas" ? "Total" : c.sigla}</th>`).join("")}${stB.comparar ? '<th class="m">Sept. completo</th>' : ""}</tr></thead>
+        <tbody>
+        ${FILAS.map(f => {
+          if (cols.every(c => !c[f.k])) return "";
+          const abre = f.sub && (todas || f.sub[s.id]);
+          let h = `<tr class="${abre ? "abre" : ""}" ${abre ? `aria-expanded="${!!stB.abiertas[f.k]}" data-b-abre="${f.k}"` : ""}><td>${f.n}</td>${cols.map(c => `<td class="m ${c.id === "todas" ? "" : ""}">${c[f.k] ? (f.signo < 0 ? "−" : "") + fmt(c[f.k]) : "·"}</td>`).join("")}${stB.comparar ? `<td class="m tenue">${sepDe(s)[f.k] ? (f.signo < 0 ? "−" : "") + fmt(sepDe(s)[f.k]) : "·"}</td>` : ""}</tr>`;
+          if (abre && stB.abiertas[f.k]) {
+            const nombres = [...new Set(Object.values(f.sub).flat().map(x => x[0]))];
+            nombres.forEach(nm => { h += `<tr class="sub"><td style="padding-left:28px">${nm}</td>${cols.map(c => { const v = c.id === "todas" ? Object.values(f.sub).flat().filter(x => x[0] === nm).reduce((a, x) => a + x[1], 0) : ((f.sub[c.id] || []).find(x => x[0] === nm) || [0, 0])[1]; return `<td class="m">${v ? "−" + fmt(v) : "·"}</td>`; }).join("")}${stB.comparar ? "<td></td>" : ""}</tr>`; });
+          }
+          return h; }).join("")}
+        <tr class="total"><td>Deja</td>${cols.map(c => `<td class="m ${signo(c.deja)}">${SS(c.deja)}</td>`).join("")}${stB.comparar ? `<td class="m ${signo(s.sep.deja)}">${SS(s.sep.deja)}</td>` : ""}</tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tarjeta v-seccion" data-entra style="--i:7">
+    <div class="v-titulo"><h2>Para decidir hoy<span class="globo">${avisosDe(s.id).length}</span></h2><p class="tenue">Toca uno para ver el detalle sin salir de aquí.</p></div>
+    ${avisosHTML(s.id, todas)}
+  </div>
+  <p class="nota" data-entra style="--i:8">«Deja» es lo que queda en cada sede después de pagar lo que ella misma causa. Lo de la empresa va en su propia columna y no se reparte. Los «·» son ceros.</p>`;
+  mqAnimar(document.getElementById("vB"));
+}
+function abrirCajonB(i) {
+  const a = avisosDe(stB.sede)[i]; if (!a) return;
+  document.getElementById("capa").innerHTML = `<div class="cajon-velo" data-cerrar></div><aside class="cajon" role="dialog" aria-label="${a.titulo}">
+    <header><span class="punto" style="width:10px;height:10px;border-radius:50%;background:${tono(a.tono)};margin-top:12px"></span><div><span class="versalita">${a.sede === "todas" ? "CAYLA" : sede(a.sede).nombre}</span><h2>${a.titulo}</h2></div><button class="cerrar" type="button" data-cerrar aria-label="Cerrar">✕</button></header>
+    <div class="cuerpo"><p>${a.texto}</p>${a.monto !== null ? `<p class="serif" style="font-size:36px">${S(Math.abs(a.monto))}</p>` : ""}<p class="nota">En la app, este botón te lleva a la pantalla que lo resuelve con la sede ya puesta, y desde ahí vuelves con la flecha.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sutil" data-cerrar type="button">Cancelar</button><button class="btn primario" type="button">${a.acc}</button></div></div></aside>`;
+}
+document.getElementById("vB").addEventListener("click", e => {
+  const l = e.target.closest("[data-lista]"); if (l) { stB.lista = stB.lista ? null : "sede"; renderB(); return; }
+  const sb = e.target.closest("[data-b-sede]"); if (sb) { stB.sede = sb.dataset.bSede; stB.lista = null; renderB(); return; }
+  if (e.target.closest("[data-b-comparar]")) { stB.comparar = !stB.comparar; renderB(); return; }
+  const q = e.target.closest("[data-quitar]"); if (q) { const k = q.dataset.quitar; if (k === "sede" || k === "todo") stB.sede = "todas"; if (k === "comparar" || k === "todo") stB.comparar = false; renderB(); return; }
+  const ab = e.target.closest("[data-b-abre]"); if (ab) { const k = ab.dataset.bAbre; stB.abiertas[k] = !stB.abiertas[k]; renderB(); return; }
+  const av = e.target.closest(".aviso"); if (av) { abrirCajonB([...av.parentNode.children].indexOf(av)); }
+});
+document.addEventListener("click", e => { if (e.target.closest("[data-cerrar]")) document.getElementById("capa").innerHTML = ""; if (stB.lista && !e.target.closest(".pildora")) { stB.lista = null; renderB(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { document.getElementById("capa").innerHTML = ""; if (stB.lista) { stB.lista = null; renderB(); } } });
+
+/* ===================== C · Cada sede, su tarjeta ===================== */
+const stC = { sede:null, contra:null, porque:false };
+function renderC() {
+  const el = document.getElementById("vC");
+  if (!stC.sede) {
+    const pos = SEDES.filter(x => x.deja > 0), neg = SEDES.filter(x => x.deja < 0);
+    el.innerHTML = `
+    <div class="v-cab" data-entra style="--i:0">
+      <div><div class="linea-sede"><span class="versalita">Finanzas · Todas las sedes · jueves 15 de octubre</span></div>
+        <h1>Resumen</h1><p class="frase tenue">Cada sede en su tarjeta. Toca una para entrar a lo suyo.</p></div>
+      <div class="v-cab-der">${mesHTML()}</div>
+    </div>
+    <div class="tarjeta vc-total" data-sube style="--i:1">
+      <div><p class="va-pregunta">¿Estoy ganando plata?</p><p style="margin-top:6px"><span class="chip c-verde">Sí</span>&nbsp; En lo que va de octubre, CAYLA te deja</p>
+        <p class="vc-total grande mas" style="display:block;margin-top:6px">${S(TODAS.deja)}</p>
+        <p class="tenue" style="font-size:13.5px;margin-top:8px">Vas en ${S(TODAS.porDia)} al día y necesitas ${S(TODAS.necesita)}: si sigues así cierras con ≈ ${S(TODAS.cierre)}. Seguro al ${TODAS.seguro} %.</p></div>
+      <div class="vc-aporte">
+        <span class="versalita">Quién suma y quién resta</span>
+        <div class="vc-aporte-barra" aria-hidden="true">${pos.map(x => `<i class="mas" style="--f:${x.deja}">${x.sigla}</i>`).join("")}</div>
+        <div class="vc-aporte-barra" aria-hidden="true">${neg.map(x => `<i class="menos" style="--f:${-x.deja}">${x.sigla}</i>`).join("")}<i style="--f:${TODAS.deja};background:var(--verde);opacity:.18"></i></div>
+        <p class="tenue" style="font-size:12.5px">Arriba lo que dejan Trujillo y Arequipa (${S(pos.reduce((a, x) => a + x.deja, 0))}). Abajo lo que cuestan Lima, el Taller y la empresa (${S(-neg.reduce((a, x) => a + x.deja, 0))}); el hueco claro es lo que te queda.</p>
+      </div>
+    </div>
+    <div class="vc-grilla">${SEDES.map((x, i) => { const est = x.tipo !== "tienda" ? ["c-pizarra", x.tipo === "taller" ? "No vende" : "No se reparte"] : !x.vendido ? ["c-pizarra", "Abre el 20"] : x.porDia >= x.necesita ? ["c-verde", "Cubre el mes"] : ["c-ambar", "No llega"];
+      const av = AVISOS.filter(a => a.sede === x.id);
+      return `<button class="tarjeta vc-tarjeta" type="button" data-c-sede="${x.id}" data-entra style="--i:${i + 2}">
+        <span class="cab"><b>${x.nombre}</b><span class="chip ${est[0]}">${est[1]}</span></span>
+        <span><span class="versalita">${x.deja >= 0 ? "Deja" : "Cuesta"}</span><br><span class="deja ${signo(x.deja)}">${SS(x.deja)}</span></span>
+        ${x.vendido ? `<span class="pista" style="height:8px"><i data-crece style="--w:${Math.min(100, x.porDia / x.necesita * 66)}%;--c:var(--tinta)"></i></span><span class="linea tenue"><span>${S(x.porDia)} al día</span><span>necesita ${S(x.necesita)}</span></span>` : `<span class="tenue" style="font-size:12.5px">${x.nota.split(".")[0]}.</span>`}
+        <span class="linea"><span class="tenue">${x.vendido ? "Vendió " + S(x.vendido) : "Seguro al " + x.seguro + " %"}</span><span>${av.length ? `<span class="globo" style="margin:0;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)">${av.length}</span> por decidir` : ""}</span></span>
+        <span class="ver">Ver ${x.nombre}</span></button>`; }).join("")}</div>
+    <div class="tarjeta v-seccion" data-entra style="--i:8"><div class="v-titulo"><h2>Lo de CAYLA entera<span class="globo">1</span></h2><p class="tenue">Lo que no es de ninguna sede.</p></div>${avisosHTML("__cayla", false)}</div>
+    <p class="nota" data-entra style="--i:9">Cada tarjeta es lo que la sede deja después de pagar lo que ella misma causa. Lo de la empresa no se reparte: por eso las sedes suman más de lo que te queda.</p>`;
+  } else {
+    const s = sede(stC.sede), r = respuesta(s), o = stC.contra ? sede(stC.contra) : null;
+    const filtros = [{ k:"sede", t:"Sede: " + s.nombre }]; if (o) filtros.push({ k:"contra", t:"Contra " + o.nombre });
+    el.innerHTML = `
+    <div class="v-cab" data-entra style="--i:0">
+      <div><div class="linea-sede"><button class="volver" type="button" data-c-volver aria-label="Volver a todas las sedes">${FLECHA}</button><span class="versalita">Finanzas · Resumen</span><span class="detalle">${s.nombre}</span></div>
+        <h1>Resumen</h1><p class="frase tenue">Solo ${s.nombre}. La flecha te devuelve a todas las sedes.</p></div>
+      <div class="v-cab-der">${mesHTML()}</div>
+    </div>
+    <div class="vc-comparar" data-entra style="--i:1">${puestosHTML(filtros)}<span class="tenue">Comparar con</span>${SEDES.filter(x => x.id !== s.id).map(x => `<button class="btn sutil chico" type="button" data-c-contra="${x.id}" ${stC.contra === x.id ? 'style="border-color:var(--tinta)"' : ""}>${x.nombre}</button>`).join("")}</div>
+    <div class="vc-dos">
+      <div class="tarjeta va-hero" data-sube style="--i:2">
+        <p class="va-pregunta">${pregunta(s)}</p><p>${r.chip}&nbsp; En lo que va de octubre, ${s.nombre}</p>
+        <p class="va-te">${r.te === "te cuesta" ? "cuesta" : r.te.replace("te ", "le ")}</p><p class="va-monto ${r.cls}" style="font-size:clamp(56px,7vw,88px)">${r.monto}</p>
+        <p class="va-explica tenue">${r.explica}</p>
+        <div style="width:100%;margin-top:10px">${cascadaHTML(s)}</div>
+      </div>
+      <div class="va-lado">
+        ${o ? `<div class="tarjeta" data-entra style="--i:3"><div class="v-titulo"><h2>${s.nombre} y ${o.nombre}</h2></div>
+          <div class="vc-vs" style="margin-top:8px"><div class="h">Concepto</div><div class="h m">${s.sigla}</div><div class="h m">${o.sigla}</div>
+          ${[["Vendió", "vendido"], ["La ropa", "ropa"], ["Sueldos", "sueldos"], ["Alquiler", "alquiler"], ["Servicios y otros", "servicios"]].map(([n, k]) => `<div>${n}</div><div class="m">${s[k] ? S(s[k]) : "·"}</div><div class="m">${o[k] ? S(o[k]) : "·"}</div>`).join("")}
+          <div><b>Deja</b></div><div class="m ${signo(s.deja)}"><b>${SS(s.deja)}</b></div><div class="m ${signo(o.deja)}"><b>${SS(o.deja)}</b></div></div></div>` :
+          `<div class="tarjeta" data-entra style="--i:3"><div class="v-titulo"><h2>Contra septiembre</h2></div>
+          <div class="vc-vs" style="margin-top:8px"><div class="h">Concepto</div><div class="h m">Sept.</div><div class="h m">Oct. al 15</div>
+          ${vende(s) ? `<div>Vendió</div><div class="m">${S(s.sep.vendido)}</div><div class="m">${S(s.vendido)}</div>` : ""}<div>Deja</div><div class="m ${signo(s.sep.deja)}">${SS(s.sep.deja)}</div><div class="m ${signo(s.deja)}">${SS(s.deja)}</div></div>
+          <p class="tenue" style="font-size:12.5px;margin-top:8px">Elige otra sede arriba para ponerlas lado a lado.</p></div>`}
+        <div class="tarjeta" data-entra style="--i:4"><div class="v-titulo"><h2>Qué tan seguro es</h2></div><div class="va-seguro" style="margin-top:10px">${anillo(s.seguro)}<ul>${(s.faltaSeguro.length ? s.faltaSeguro : ["Todo lo de octubre está confirmado"]).map(t => `<li>${t}</li>`).join("")}</ul></div></div>
+      </div>
+    </div>
+    <div class="tarjeta v-seccion" data-entra style="--i:5"><div class="v-titulo"><h2>Para decidir hoy<span class="globo">${avisosDe(s.id).length}</span></h2><p class="tenue">Lo de ${s.nombre} y lo de CAYLA que le toca.</p></div>${avisosHTML(s.id, false)}</div>
+    <p class="nota" data-entra style="--i:6">${s.nota || "Lo que deja la sede ya descuenta su local, su equipo y sus máquinas de tarjeta; lo de la empresa no se le carga."}</p>`;
+  }
+  mqAnimar(el);
+}
+document.getElementById("vC").addEventListener("click", e => {
+  const t = e.target.closest("[data-c-sede]"); if (t) { stC.sede = t.dataset.cSede; stC.contra = null; renderC(); scrollTo({ top:0, behavior:"smooth" }); return; }
+  if (e.target.closest("[data-c-volver]")) { stC.sede = null; stC.contra = null; renderC(); return; }
+  const c = e.target.closest("[data-c-contra]"); if (c) { stC.contra = stC.contra === c.dataset.cContra ? null : c.dataset.cContra; renderC(); return; }
+  const q = e.target.closest("[data-quitar]"); if (q) { if (q.dataset.quitar === "contra") stC.contra = null; else { stC.sede = null; stC.contra = null; } renderC(); }
+});
+
+renderA(); renderB(); renderC();
+document.addEventListener("variante", e => { ({ a:renderA, b:renderB, c:renderC })[e.detail](); });
+</script>
+</body></html>

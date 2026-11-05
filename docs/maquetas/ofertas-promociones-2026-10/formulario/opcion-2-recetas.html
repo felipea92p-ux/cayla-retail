@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nueva oferta o promoción · opción 2 · Recetas · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · «Nueva oferta o promoción» · OPCIÓN 2 · RECETAS (2026-10-23)
+   Idea: la persona no elige un «tipo» de una lista de 15; reconoce una RECETA (9 tarjetas con su nombre de tienda, su ejemplo y un dibujo
+   de antes → después). Al tocarla, la tarjeta se expande en su lugar con 1–3 contadores y una oración viva («Lleva 3, paga 2: ¡3x2!»).
+   Debajo, UNA franja con los valores de siempre (prendas, tiendas, fechas, se suma) y «Cambiar» para tocarlos.
+   Tokens = los de ../index.html (crema, papel, tinta, rojo, rojo-p, sand, taupe, verde, ámbar, hueso, pizarra), claro y oscuro. Ningún hex nuevo.
+   Datos inventados salvo las campañas y el −10 % de Aniversario (producción, solo lectura, 2026-10-23). Hoy simulado = vie 23 oct 2026.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.66);--t50:rgba(26,26,24,.55);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);
+--lienzo:#ddd5c6;--sombra:rgba(26,26,24,.35);--oscuro:#171614;--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+--t80:rgba(245,240,232,.85);--t65:rgba(245,240,232,.68);--t50:rgba(245,240,232,.58);--t30:rgba(245,240,232,.3);--t10:rgba(245,240,232,.1);--lienzo:#0f0f0e;--sombra:rgba(0,0,0,.6)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.m{width:20px;height:20px}svg.l{width:24px;height:24px}
+.serif{font-family:'EB Garamond',serif;font-weight:500}
+.num{font-variant-numeric:tabular-nums}
+@keyframes sube{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sale{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes fundir{from{opacity:0}to{opacity:1}}
+@keyframes subeh{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+/* La tarjeta que se expande en su lugar: la cáscara del panel nace del tamaño y el sitio de la tarjeta tocada (los números los mide el JS) y crece; el contenido aparece después. */
+@keyframes expande{from{transform:translate(var(--dx,0),var(--dy,0)) scale(var(--sx,1),var(--sy,1));opacity:.55}to{transform:none;opacity:1}}
+@keyframes aparece{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---- barra de la maqueta ---- */
+.spk{position:sticky;top:0;z-index:200;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.72)}
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600}
+.spk .go{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.35);font-size:12.5px;color:#f5f0e8}
+.spk .go:hover{background:rgba(245,240,232,.12)}
+.escena{padding:18px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.ley{max-width:1180px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--t80)}.ley b{font-weight:600}
+.ley .ej{display:inline-block;margin:2px 0 0 6px;padding:1px 8px;border-radius:999px;background:var(--hueso);font-size:11px;color:var(--taupe);font-weight:600}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.marco,.sx>.tel{margin:0 auto}
+/* ---- marcos ---- */
+.marco{container-type:inline-size;flex:none;position:relative;overflow:hidden;background:var(--crema);box-shadow:0 30px 60px -30px var(--sombra)}
+.marco.desk{width:1180px;height:780px;border-radius:14px;border:1px solid var(--t30)}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px var(--sombra);flex:none}
+.marco.cel{width:375px;height:796px;border-radius:39px}
+.pant{position:absolute;inset:0;overflow:hidden}
+/* ---- piezas (las mismas de ../index.html) ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:background .2s,transform .2s,color .2s}
+.btn:hover{background:var(--rojo-p);border-color:var(--rojo-p);color:#fbf8f2;transform:translateY(-2px)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--t30)}.btn.sec:hover{background:var(--hueso);color:var(--tinta);border-color:var(--t30)}
+.btn.n{font-size:13.5px;letter-spacing:0;text-transform:none;height:38px}
+.btn.chico{height:30px;padding:0 11px;font-size:12.5px;border-radius:8px;letter-spacing:0;text-transform:none}
+.volver{width:34px;height:34px;border-radius:50%;border:1px solid var(--t30);display:grid;place-items:center;flex:none;transition:background .2s}.volver:hover{background:var(--hueso)}
+.enl{color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--taupe);font-size:13px}.enl:hover{color:var(--rojo-p)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--hueso);color:var(--t80);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.chip.nodot::before{display:none}
+.chip.v{color:var(--verde);background:color-mix(in srgb,var(--verde) 14%,transparent)}.chip.a{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+.chip.p{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 14%,transparent)}.chip.t{background:var(--tinta);color:var(--crema)}
+.nota{margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80);display:flex;gap:9px;align-items:flex-start}
+.nota .ic{margin-top:2px;color:var(--taupe);flex:none}
+.nota.am{background:color-mix(in srgb,var(--ambar) 13%,transparent)}.nota.am .ic{color:var(--ambar)}
+.nota .btn{margin-left:6px}
+.foto{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:22px;color:rgba(26,26,24,.55)}
+.lbl{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.toast{position:absolute;left:50%;bottom:100px;transform:translateX(-50%);z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;border-radius:12px;font-size:13px;max-width:calc(100% - 32px);box-shadow:0 12px 30px -10px var(--sombra);animation:sale .3s var(--ease) both}
+.sublbl{font-size:12px;font-weight:600;color:var(--t65);margin:10px 0 6px}.sublbl span{font-weight:400}
+.dtochip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;background:var(--tinta);color:var(--crema);font-size:11px;font-weight:700;white-space:nowrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.opc{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:5px 12px;border-radius:12px;border:1px solid var(--sand);background:var(--hueso);font-size:13px;transition:background .2s}
+.opc:hover{background:var(--sand)}.opc.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.opc small{font-size:11.5px;opacity:.7}
+.pq{display:inline-flex;align-items:center;border:1px solid var(--sand);background:var(--hueso);border-radius:12px;height:46px;overflow:hidden}
+.pq button{width:42px;height:100%;display:grid;place-items:center}.pq button:hover{background:var(--sand)}.pq button:disabled{opacity:.3;pointer-events:none}
+.pq b{min-width:92px;padding:0 4px;text-align:center;font-family:'EB Garamond',serif;font-size:25px;font-weight:500;white-space:nowrap}
+.campo{display:flex;align-items:center;gap:8px;height:42px;padding:0 12px;border:1px solid var(--sand);border-radius:12px;background:var(--hueso);transition:background .2s,border-color .2s}
+.campo:focus-within{background:var(--papel);border-color:var(--tinta)}.campo input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:14px}
+.dosc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dosc label{display:block}.dosc label span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:5px}
+.seg-modo{display:inline-flex;flex-wrap:wrap;border:1px solid var(--sand);border-radius:10px;background:var(--hueso);padding:3px}
+.seg-modo button{height:28px;padding:0 12px;border-radius:7px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t65);display:inline-flex;gap:6px;align-items:center;transition:background .2s,color .2s}
+.seg-modo button:hover{color:var(--tinta)}.seg-modo button.on{background:var(--tinta);color:var(--crema)}
+/* ---- fondo (la pantalla Insignias, de cartón) ---- */
+.erp{display:grid;grid-template-columns:208px minmax(0,1fr);height:100%;background:var(--crema)}
+.lat{border-right:1px solid var(--sand);background:var(--papel);padding:16px 12px;font-size:13px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.lat .logo{font-weight:700;letter-spacing:.16em;color:var(--rojo);font-size:17px;padding:2px 10px 12px}
+.lat .g{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--t50);padding:12px 10px 4px}
+.lat a{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:8px;color:var(--t80)}.lat a.sub{padding-left:22px}.lat a.on{background:var(--tinta);color:var(--crema);font-weight:600}
+.fon-enc{padding:22px 28px 0}.fon-enc .sede{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.fon-enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin-top:6px}
+.fon-sk{margin:22px 28px;display:grid;gap:12px}.fon-sk i{display:block;height:74px;border-radius:20px;background:var(--papel);border:1px solid var(--sand)}
+.mtop{display:none}
+/* ---- la hoja «Configuración» ---- */
+.velo{position:absolute;inset:0;z-index:40;display:grid;place-items:center;padding:22px}
+.velo-fondo{position:absolute;inset:0;background:color-mix(in srgb,#000 48%,transparent);backdrop-filter:blur(3px)}
+.hoja{position:relative;display:flex;flex-direction:column;width:min(1080px,100%);max-height:100%;background:var(--papel);border:1px solid var(--sand);border-radius:20px;overflow:hidden}
+.velo.entra .velo-fondo{animation:fundir .3s var(--ease) both}.velo.entra .hoja{animation:subeh .38s var(--ease) both}
+.hoja-cab{padding:16px 28px 4px}.hoja-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.15}.hoja-cab p{color:var(--t65);font-size:14px;margin-top:2px}
+.strip{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12.5px;padding:7px 12px;background:var(--hueso);border-radius:10px;width:fit-content;max-width:100%;flex-wrap:wrap}.strip .ic{color:var(--taupe)}.strip b{font-weight:600}
+.cuerpo2{overflow:auto;padding:12px 28px 14px;flex:1;min-height:0;scrollbar-width:thin}
+.hoja-pie{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 28px;border-top:1px solid var(--sand);background:var(--papel)}
+.hoja-pie .falta{margin-right:auto;font-size:12.5px;color:var(--t65);text-align:left}.hoja-pie .falta b{color:var(--ambar);font-weight:600}
+button.falta{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--t30)}button.falta:hover{color:var(--tinta)}
+/* dos columnas: lo ya registrado a la izquierda y, a la derecha, lo nuevo */
+.dos{display:grid;grid-template-columns:292px minmax(0,1fr);gap:28px;align-items:start}
+.izq{border-right:1px solid var(--sand);padding-right:24px;position:sticky;top:0;align-self:start}
+.der{min-width:0}
+.sec-of{display:flex;gap:10px;align-items:center;margin:2px 0 8px}.sec-of b{font-family:'EB Garamond',serif;font-weight:500;font-size:23px;line-height:1.2}
+.sec-of .cn{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--hueso);font-size:11px;font-weight:700}
+.sec-of .sg{font-size:11px;font-weight:600;color:var(--taupe);padding:1px 8px;border-radius:999px;background:var(--hueso);margin-left:auto}
+.regs{display:grid;gap:6px}
+.rg-w{display:grid;grid-template-columns:minmax(0,1fr);gap:4px}.regs{min-width:0}
+.rg{display:grid;grid-template-columns:minmax(0,1fr);gap:3px;text-align:left;min-width:0;padding:9px 12px;border:1px solid var(--sand);border-radius:12px;background:var(--crema);transition:background .2s}
+.rg:hover{background:var(--hueso)}.rg.recien{background:color-mix(in srgb,var(--verde) 9%,transparent)}
+.rg.edit{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta);background:var(--papel)}
+.rg .r1{display:flex;gap:8px;align-items:center;justify-content:space-between}.rg .r1{align-items:flex-start}.rg .r1 b{font-size:13.5px;font-weight:600;line-height:1.3;min-width:0;overflow-wrap:anywhere}.rg .r1 .chip{flex:none}
+.rg .r2{display:flex;gap:6px;align-items:center;color:var(--t65);font-size:12px;line-height:1.35}
+.rg .hist{display:flex;gap:4px;align-items:center;color:var(--taupe);font-size:12px}
+.rg-w .btn{justify-self:start}.espera{font-size:11.5px;color:var(--ambar);padding-left:4px}
+.mas-r{margin-top:8px}
+.nota-r{margin-top:10px;font-size:12px;color:var(--t65);line-height:1.45}
+/* ---- el buscador y la cuadrícula de recetas ---- */
+.busca2{display:flex;align-items:center;gap:10px;height:44px;padding:0 6px 0 14px;border:1px solid var(--sand);border-radius:12px;background:var(--hueso);transition:background .2s,border-color .2s}
+.busca2:focus-within{background:var(--papel);border-color:var(--tinta)}.busca2 .ic{color:var(--taupe)}
+.busca2 input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:14.5px}.busca2 input::placeholder{color:var(--t50)}
+.busca2 .x{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--t65)}.busca2 .x:hover{background:var(--sand)}
+.recs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.rec{text-align:left;display:grid;gap:9px;align-content:start;padding:10px;border:1px solid var(--sand);border-radius:14px;background:var(--crema);transition:background .2s,border-color .2s,transform .2s}
+.rec:hover{background:var(--hueso);transform:translateY(-2px)}
+.rec .rt b{display:block;font-size:14.5px;font-weight:600;line-height:1.25}
+.rec .rt small{display:block;color:var(--taupe);font-size:12.5px;font-weight:600;margin-top:2px;line-height:1.35}
+.il{height:46px;border-radius:10px;background:var(--hueso);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;font-size:12px;color:var(--tinta);white-space:nowrap;overflow:hidden}
+.il s{color:var(--t50)}.il b{font-weight:700}.il i{font-style:normal;color:var(--t65);font-weight:600}
+.il svg.ic{width:18px;height:18px}.il svg.s{width:14px;height:14px;color:var(--t65)}.il svg.gh{opacity:.4;stroke-dasharray:3 2.5}
+.il .bar{width:54px;height:7px;border-radius:99px;background:var(--sand);overflow:hidden}.il .bar i{display:block;height:100%;width:78%;background:var(--tinta);border-radius:inherit}
+.vacio{display:grid;justify-items:center;gap:6px;text-align:center;padding:26px 18px;margin-top:12px;border:1px dashed var(--t30);border-radius:16px}
+.vacio .ic{width:30px;height:30px;color:var(--taupe)}.vacio b{font-family:'EB Garamond',serif;font-weight:500;font-size:22px}.vacio p{color:var(--t65);font-size:13px;max-width:44ch}
+.sigue-g{border-radius:14px;padding:10px;margin:-10px;background:color-mix(in srgb,var(--tinta) 4%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 8%,transparent)}
+.fx-grid{animation:aparece .35s var(--ease) both}
+/* ---- la receta abierta ---- */
+.pn{position:relative;isolation:isolate;padding:12px 16px 14px;margin-top:2px}
+.pn::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--crema);border:1px solid var(--sand);border-radius:16px;transform-origin:0 0}
+.pn.fx::before{animation:expande .42s var(--ease) both}
+.pn.fx>*{animation:aparece .32s var(--ease) .12s both}
+.pn-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pn-cab h3{font-family:'EB Garamond',serif;font-weight:500;font-size:23px;line-height:1.15}
+.pn-cab .fam{margin-left:auto}
+.vars{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}.vars .vt{font-size:12.5px;color:var(--t65);font-weight:600}
+.pn-g{display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:20px;margin-top:10px;align-items:start}
+.oracion{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.18}
+.oracion b{font-weight:500;background:linear-gradient(transparent 64%,color-mix(in srgb,var(--tinta) 12%,transparent) 64%);padding:0 2px;border-radius:2px;white-space:nowrap}
+.quien{display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:13px;color:var(--t80)}.quien .ic{margin-top:2px;color:var(--taupe)}
+.expl{margin-top:2px;font-size:12.5px;color:var(--t65);padding-left:22px;line-height:1.4}
+.cts{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}.ct{display:grid;gap:5px}
+.vista .lbl{display:block;margin-bottom:6px;font-size:10.5px}
+.vp-t{display:grid;grid-template-columns:70px 1fr;gap:10px;padding:10px;border-radius:14px;background:var(--papel);border:1px solid var(--sand)}
+.vp-t .foto{aspect-ratio:4/5;border-radius:8px;font-size:24px}
+.vp-t h5{font-size:13.5px;font-weight:600;line-height:1.25}
+.vp-t .pr{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;margin-top:2px}.vp-t .pr s{color:var(--t50);font-size:12.5px}.vp-t .pr b{font-size:18px;font-weight:700}
+.vp-t .etq{white-space:normal;height:auto;min-height:20px;padding:2px 8px;line-height:1.3;margin-top:4px}
+.vp-t .co{font-size:11.5px;color:var(--t65);line-height:1.35;margin-top:3px}
+.vp-t .foto.ico{aspect-ratio:auto;height:100%;min-height:70px;background:var(--hueso);color:var(--taupe)}
+.vista .enl{display:inline-block;margin-top:8px;font-size:12.5px}
+.cede{margin-top:6px;padding:9px 11px;border-radius:10px;background:var(--hueso);font-size:12px;color:var(--t80);line-height:1.4;animation:entra .3s var(--ease) both}.cede b{font-family:'EB Garamond',serif;font-size:24px;font-weight:500;display:block;line-height:1.1}
+.franja{display:flex;align-items:center;gap:6px 10px;margin-top:12px;padding:9px 12px;border-radius:12px;background:var(--hueso);font-size:13px;flex-wrap:wrap}
+.franja .ok{color:var(--verde);display:inline-flex}.franja .tx{flex:1;min-width:220px;line-height:1.4}.franja .tx b{font-weight:600}.fr-i{font-weight:600;text-decoration:underline dotted;text-underline-offset:3px;text-decoration-color:var(--t50);text-align:left}.fr-i:hover{text-decoration-style:solid;color:var(--rojo-p)}.franja .tx span.d{color:var(--t65)}
+.cmb{display:grid;grid-template-columns:1fr 1fr;gap:14px 26px;margin-top:8px;padding:14px 16px;border:1px dashed var(--t30);border-radius:14px;animation:entra .3s var(--ease) both;background:var(--papel)}
+.cmb .tt{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--t65);margin-bottom:6px;display:block}
+.cmb .gp+.gp{margin-top:12px}.peq{font-size:12px;color:var(--t65);margin-top:5px}.opc:disabled{opacity:.4;pointer-events:none}
+.cmb .sublbl{margin:8px 0 5px}
+.cmb .nota{margin-top:8px}
+.cmb .dosc{grid-template-columns:1fr 1fr}
+.avisos{display:grid;gap:0}
+/* ---- responsivo: el marco es el contenedor ---- */
+@container (max-width:900px){.dos{grid-template-columns:1fr}.izq{position:static;border-right:0;padding-right:0;order:2;border-top:1px solid var(--sand);padding-top:12px;margin-top:6px}.der{order:1}}
+@container (max-width:760px){
+ .erp{grid-template-columns:1fr}.lat{display:none}
+ .velo{padding:0;place-items:stretch}.hoja{border-radius:0;width:100%;height:100%;border:0}
+ .hoja-cab,.cuerpo2,.hoja-pie{padding-left:16px;padding-right:16px}.hoja-cab h2{font-size:23px}.hoja-pie{flex-wrap:wrap;gap:8px}.hoja-pie .falta{flex:1 1 100%}.hoja-pie .btn{flex:1 1 auto;padding:0 8px;letter-spacing:.06em;font-size:10.5px;white-space:nowrap}
+ .strip{display:grid;grid-template-columns:auto 1fr;width:100%;gap:2px 8px}.strip .enl{grid-column:2;justify-self:start}
+ .recs{grid-template-columns:1fr}.rec{grid-template-columns:140px 1fr;align-items:center;gap:12px}.il{gap:5px;padding:0 6px}
+ .pn{padding:12px 12px}.pn-g{grid-template-columns:1fr}.oracion{font-size:24px}
+ .cmb{grid-template-columns:1fr}.fon-enc h1{font-size:32px}.fon-enc{padding:16px 16px 0}.fon-sk{margin:16px}
+ .seg-modo{display:grid;grid-template-columns:1fr 1fr;width:100%}.seg-modo button{justify-content:center;padding:0 6px;font-size:11px;height:32px}
+ .cts{gap:12px}.ct{flex:1 1 140px}.pq{width:100%;justify-content:space-between}.pq button{width:38px}.pq b{flex:1;min-width:0;font-size:20px;padding:0}
+ .franja{display:grid;grid-template-columns:auto 1fr;gap:6px 8px}.franja .tx{min-width:0}.franja>.btn{grid-column:1/-1}
+ .toast{bottom:120px}.hoja-pie .d{display:none}
+}
+/* ---- recuadro «Cómo se mide» (fuera del marco) ---- */
+.medida{max-width:1180px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 16px;font-size:12.5px;color:var(--t80)}
+.medida h4{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--t65);margin-bottom:8px}
+.medida table{width:100%;border-collapse:collapse}.medida td{padding:6px 10px 6px 0;border-top:1px solid var(--sand);vertical-align:top}.medida td:first-child{width:250px;color:var(--t65)}
+.medida td b{font-weight:600}.medida .vivo{margin-top:8px;padding:7px 10px;border-radius:8px;background:var(--hueso);color:var(--t80)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></symbol>
+<symbol id="i-chevd" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chevu" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+<!-- la camiseta (lucide «shirt») y la falda (trazo propio) para los dibujos de las recetas -->
+<symbol id="i-shirt" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></symbol>
+<symbol id="i-skirt" viewBox="0 0 24 24"><path d="M8 3h8l4.5 17.5a.8.8 0 0 1-.8 1H4.3a.8.8 0 0 1-.8-1z"/><path d="M8 3c.9 1.6 2.3 2.2 4 2.2S15.1 4.6 16 3"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="escena"><div class="ley" id="ley"></div><div id="esc" class="sx"></div><div class="medida" id="medida"></div></div>
+<script>
+/* =========================== datos (los de ../index.html, recortados a lo que usa este formulario) =========================== */
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const HOY = '2026-10-23';
+const CATS = [
+  {id:'blusas',   n:'Blusas',     prendas:18, unid:96,  v30:62,  ej:{n:'Blusa Carlita',      p:90,   c:38, col:'#ece6dc'}},
+  {id:'vestidos', n:'Vestidos',   prendas:11, unid:54,  v30:30,  ej:{n:'Vestido Lucía',      p:159,  c:70, col:'#b9c9a8'}},
+  {id:'pantalones',n:'Pantalones',prendas:9,  unid:70,  v30:41,  ej:{n:'Jean Palazzo',       p:129,  c:52, col:'#a9bfd6'}},
+  {id:'polos',    n:'Polos',      prendas:14, unid:210, v30:150, ej:{n:'Polo Básico M/corta',p:39.9, c:14, col:'#d8c3a5'}},
+  {id:'casacas',  n:'Casacas',    prendas:6,  unid:28,  v30:9,   ej:{n:'Casaca Aurora',      p:219,  c:98, col:'#4a4744'}},
+  {id:'faldas',   n:'Faldas',     prendas:8,  unid:40,  v30:18,  ej:{n:'Falda Midi Sara',    p:99,   c:41, col:'#e3c1b8'}}
+];
+const SEDES = ['TRU','AQP','LIM'];
+const camp0 = o => Object.assign({estilo:'campana',activo:true,estado:'aprobado',manu:0,catIds:[],prendas:0,unid:0,v30:0,modelos:0,ej:'blusas',hist:[],b:{unid:0,v30:0,mod:0}}, o);
+const ETQS = [
+  camp0({id:'halloween',   n:'Halloween',                  desde:'2026-09-15', hasta:'2026-10-31', manu:47, catIds:['casacas'], prendas:53,  unid:190,  v30:48,  modelos:14, ej:'casacas'}),
+  camp0({id:'aniversario', n:'Aniversario CAYLA',          desde:'2026-10-01', hasta:'2026-10-25', manu:339, prendas:339, unid:1210, v30:410, modelos:61, ej:'blusas'}),
+  camp0({id:'gato',        n:'Día Internacional del Gato', desde:'2026-10-24', hasta:'2026-10-30', manu:7,  prendas:7,   unid:7,    v30:3,   modelos:5,  ej:'polos'}),
+  camp0({id:'madre',       n:'Día de la Madre',            desde:'2026-04-26', hasta:'2026-05-10'}),
+  camp0({id:'navidad',     n:'Navidad',                    desde:'2026-12-11', hasta:'2026-12-25', ej:'vestidos'})
+];
+const REG = {basta:{t:'Arreglo de basta gratis',sub:'lo hace el taller',costo:6}, bolsa:{t:'Bolsa de regalo',sub:'empaque',costo:1.5}, panuelo:{t:'Pañuelo de regalo',sub:'accesorio',costo:4}};
+const mm = s => s.mezcla ? 'de las prendas elegidas' : 'del mismo modelo';
+/* Los 15 tipos de siempre. «cond» es lo que el cliente tiene que hacer: sin condición = oferta, con condición = promoción. */
+const TIPOS = {
+  pct:         {cond:'ninguna', da:s=>`−${s.pct} %`,                    quien:()=>'Nada: el precio ya viene rebajado'},
+  soles:       {cond:'ninguna', da:s=>`${sol(s.desc)} menos por prenda`, quien:()=>'Nada: el precio ya viene rebajado'},
+  precio:      {cond:'ninguna', da:s=>`A ${fmt(s.precio)}`,              quien:()=>'Nada: el precio ya viene rebajado'},
+  combo:       {cond:'cantidad',da:s=>`${s.qty} por ${fmt(s.precio)}`,   quien:s=>`Llevar ${s.qty} ${mm(s)}`},
+  segunda:     {cond:'cantidad',da:s=>`La ${s.nth}.ª ${s.pct2>=100?'gratis':`con ${s.pct2} % menos`}`, quien:s=>`Llevar ${s.nth} ${mm(s)}`},
+  nxm:         {cond:'cantidad',da:s=>`${s.n}x${s.m}`,                  quien:s=>`Llevar ${s.n} y pagar ${s.m}`},
+  volumen:     {cond:'cantidad',da:s=>`−${s.pct} % desde ${s.qty} prendas`, quien:s=>`Llevar ${s.qty} o más ${mm(s)}`},
+  look:        {cond:'cantidad',da:s=>`Conjunto por ${fmt(s.precio)}`,   quien:s=>`Llevar ${s.partes.map(id=>CATS.find(c=>c.id===id).n.toLowerCase()).join(' + ')}`},
+  monto:       {cond:'monto',   da:s=>`${sol(s.desc)} menos`,           quien:s=>`Comprar desde ${sol(s.min)}`},
+  montopct:    {cond:'monto',   da:s=>`−${s.pct} % en la compra`,       quien:s=>`Comprar desde ${sol(s.min)}`},
+  regalo:      {cond:'monto',   da:s=>REG[s.regalo].t,                   quien:s=>`Comprar desde ${sol(s.min)}`},
+  club_pct:    {cond:'club',    da:s=>`−${s.pct} % para miembros`,       quien:()=>'Ser miembro del Club'},
+  club_cupon:  {cond:'club',    da:s=>`${s.pct} % en su 1.ª compra`,     quien:()=>'Ser miembro nuevo del Club'},
+  club_privada:{cond:'club',    da:s=>`Compra ${s.horas} h antes`,       quien:()=>'Ser miembro del Club'},
+  club_puntos: {cond:'club',    da:s=>`Puntos x${s.mult}`,               quien:()=>'Ser miembro del Club'}
+};
+/* Topes de los contadores. El precio termina en .90 (con S/ 19.90 de piso y S/ 499.90 de techo) para que los pasos de 5 no pierdan el .90. */
+const LIM = {pct:[5,70,5], qty:[2,6,1], precio:[19.9,499.9,5], pct2:[10,100,10], nth:[2,6,1], n:[2,6,1], m:[1,5,1], min:[100,600,50], desc:[10,100,5]};
+const limites = (W,f) => (W.tipo==='club_cupon'&&f==='pct') ? [5,30,5] : f==='m' ? [1,W.n-1,1] : LIM[f];
+const base = o => Object.assign({camp:null,tipo:'pct',cats:[],sedes:[...SEDES],dias:0,pct:20,qty:2,precio:59.9,pct2:50,nth:2,n:3,m:2,min:300,desc:30,regalo:'basta',horas:24,mult:2,mezcla:false,partes:['blusas','faldas'],acum:true,nocats:[],claure:false,borrador:false,hist:[],excl:[]}, o);
+const CAMP = [
+  base({id:'c1',camp:'halloween',n:'Casacas · −30 %',tipo:'pct',pct:30,cats:['casacas'],desde:'2026-10-12',hasta:'2026-10-31'}),
+  base({id:'c2',camp:'aniversario',n:'2 polos por S/ 59.90',tipo:'combo',qty:2,precio:59.9,cats:['polos'],desde:'2026-10-01',hasta:'2026-10-25'}),
+  base({id:'c3',camp:'aniversario',n:'S/ 30 menos desde S/ 300',tipo:'monto',min:300,desc:30,cats:['all'],desde:'2026-10-15',hasta:'2026-10-25'}),
+  base({id:'c4',camp:'aniversario',n:'Puntos dobles · fin de semana',tipo:'club_puntos',mult:2,cats:['all'],desde:'2026-10-24',hasta:'2026-10-25'}),
+  /* El único descuento real de una campaña en producción: el −10 % de Aniversario. */
+  base({id:'c5',camp:'aniversario',n:'Toda la campaña · −10 %',tipo:'pct',pct:10,cats:['e:aniversario'],desde:'2026-10-01',hasta:'2026-10-25',legado:true}),
+  base({id:'c6',camp:'madre',n:'Blusas y vestidos · −20 %',tipo:'pct',pct:20,cats:['blusas','vestidos'],desde:'2026-05-04',hasta:'2026-05-10'}),
+  base({id:'c7',camp:'gato',n:'Prendas del Gato · −10 %',tipo:'pct',pct:10,cats:['e:gato'],desde:'2026-10-24',hasta:'2026-10-30'}),
+  base({id:'c9',camp:'navidad',n:'Vestidos · −15 %',tipo:'pct',pct:15,cats:['vestidos'],desde:'2026-12-11',hasta:'2026-12-25',borrador:true})
+];
+const SNAP = JSON.stringify(CAMP);
+const ROLES = {lider:{t:'Líder',act:true}, etq:{t:'Con Insignias',act:false}};
+const CAMPID = 'aniversario';
+
+/* =========================== las 9 recetas =========================== */
+/* Cada receta agrupa tipos relacionados; «vt» es la pregunta del selector chico; «vl» el nombre corto de cada variante; «kw» lo que busca el buscador (sin tildes). */
+const RECETAS = [
+  {k:'rebaja',  t:'Rebaja de precio',          ej:'20 % menos en todo',          tipos:['pct','soles'], vt:'¿Cómo se rebaja?', vl:{pct:'En %',soles:'En soles'},
+    kw:'rebaja rebajar descuento oferta baja precio porcentaje menos', kv:{pct:'porcentaje %',soles:'soles'}},
+  {k:'precio',  t:'Todo a un mismo precio',    ej:'Todas a S/ 29.90',            tipos:['precio'],
+    kw:'precio unico mismo precio todas a todo a un precio fijo unico'},
+  {k:'paquete', t:'2 por un precio · 3x2',     ej:'2 polos por S/ 59.90 · 3x2',  tipos:['combo','nxm'], vt:'¿Cuál de las dos?', vl:{combo:'Varias por un precio',nxm:'Lleva y paga menos (3x2)'},
+    kw:'paquete pack combo dos por 2 por un precio lleva paga llevas', kv:{combo:'combo pack varias por un precio 2 por dos por',nxm:'3x2 2x1 4x3 lleva paga gratis dos por uno 2 por 1 tres por dos'}},
+  {k:'segunda', t:'La segunda más barata',     ej:'La 2.ª al 50 %',              tipos:['segunda'],
+    kw:'segunda 2da la segunda mas barata mitad al 50 tercera cuarta gratis la 2 la 3'},
+  {k:'volumen', t:'Más compras, más descuento',ej:'3 o más, 15 % menos',         tipos:['volumen'],
+    kw:'volumen mas compras mas descuento desde 3 o mas varias prendas escalonado cantidad'},
+  {k:'look',    t:'Blusa + falda juntas',      ej:'Las dos por S/ 149.90',       tipos:['look'],
+    kw:'conjunto look outfit juntas blusa falda set combinacion armado'},
+  {k:'gasta',   t:'Si gasta, ahorra',          ej:'S/ 30 menos desde S/ 300',    tipos:['monto','montopct'], vt:'¿Cuánto baja?', vl:{monto:'En soles',montopct:'En %'},
+    kw:'gasta gasto ahorra monto compra desde ticket soles menos desde un monto 300', kv:{monto:'soles',montopct:'porcentaje %'}},
+  {k:'regalo',  t:'Un regalo con la compra',   ej:'Basta gratis desde S/ 200',   tipos:['regalo'],
+    kw:'regalo obsequio gratis basta bolsa panuelo detalle premio con la compra'},
+  {k:'club',    t:'Para miembros del Club',    ej:'10 % menos, cupón, puntos x2',tipos:['club_pct','club_cupon','club_privada','club_puntos'], vt:'¿Qué reciben?', vl:{club_pct:'% menos',club_cupon:'Cupón de bienvenida',club_privada:'Compra privada',club_puntos:'Puntos extra'},
+    kw:'club miembros miembro socios vip fidelidad', kv:{club_pct:'porcentaje % menos descuento miembros',club_cupon:'cupon bienvenida primera compra nuevo',club_privada:'compra privada horas antes anticipada',club_puntos:'puntos x2 x3 dobles doble extra'}}
+];
+/* El ejemplo de cada variante: cuando el buscador cae justo en una, la tarjeta enseña ese ejemplo y no el general. */
+const VE = {pct:'20 % menos en todo',soles:'S/ 10 menos en cada prenda',combo:'2 polos por S/ 59.90',nxm:'3x2 · 2x1',monto:'S/ 30 menos desde S/ 300',montopct:'10 % menos desde S/ 300',club_pct:'10 % menos para miembros',club_cupon:'10 % en su 1.ª compra',club_privada:'Compran 24 h antes',club_puntos:'Puntos dobles (x2)'};
+const recDe = tipo => RECETAS.find(r=>r.tipos.includes(tipo));
+const nrm = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9% ]/g,' ').replace(/\s+/g,' ').trim();
+/* El buscador: cada palabra tiene que aparecer en el nombre, el ejemplo o las palabras de la receta; si coincide con una variante, esa variante se abre elegida. */
+function buscar(q){
+  const toks = nrm(q).split(' ').filter(Boolean); if(!toks.length) return RECETAS.map(r=>({r,v:null}));
+  return RECETAS.map(r=>{
+    const vs = Object.entries(r.kv||{});
+    const general = nrm(`${r.t} ${r.ej} ${r.kw} ${vs.map(([k,x])=>x).join(' ')}`);
+    if(!toks.every(t=>general.includes(t))) return null;
+    const v = vs.find(([k,x])=>{ const s = nrm(`${x} ${r.vl[k]}`); return toks.every(t=>s.includes(t)); });
+    return {r, v: v ? v[0] : null};
+  }).filter(Boolean);
+}
+
+/* =========================== utilidades =========================== */
+const $ = s => document.querySelector(s);
+const fmt = n => 'S/ ' + Number(n).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const r2 = n => Math.round(n*100)/100;
+const sol = n => Number.isInteger(n) ? 'S/ '+n : fmt(n);
+const plural = (n,s,p) => n+' '+(n===1?s:p);
+const rebaja = (p,pct) => r2(Math.floor(p*(1-pct/100)-0.9+1e-9)+0.9);
+const rebajaP = (p,pct) => pct>=100 ? 0 : rebaja(p,pct);
+const precioSug = W => r2(Math.round(W.qty*(catsDe(W)[0]||CATS[3]).ej.p*.75/5)*5-.1);
+const precioLook = W => r2(Math.round(W.partes.reduce((t,id)=>t+CATS.find(c=>c.id===id).ej.p,0)*.8/5)*5-.1);
+const D = s => new Date(s+'T00:00:00');
+const campanaDe = id => ETQS.find(e=>e.id===id);
+const reglasDe = id => CAMP.filter(c=>c.camp===id);
+const sinFechas = e => !e.desde || !e.hasta;
+const fechaTxt = s => { const d=D(s); return d.getDate()+' '+MES[d.getMonth()]; };
+const diasEntre = (a,b) => Math.round((D(b)-D(a))/864e5);
+const estadoDe = c => c.borrador ? 'Borrador' : c.desde>HOY ? 'Programada' : c.hasta<HOY ? 'Terminada' : 'Vigente';
+const fam = c => TIPOS[c.tipo].cond==='ninguna' ? 'Oferta' : 'Promoción';
+const etqGrupo = e => ({id:'e:'+e.id, n:e.n, etq:true, prendas:e.prendas, unid:e.unid, v30:e.v30, ej:CATS.find(c=>c.id===e.ej).ej});
+const catsDe = c => { const t = c.cats.includes('all') ? CATS : [...CATS.filter(x=>c.cats.includes(x.id)), ...ETQS.filter(e=>c.cats.includes('e:'+e.id)).map(etqGrupo)]; return (c.nocats||[]).length ? t.filter(x=>!c.nocats.includes(x.id)) : t; };
+const catsTxt = c => c.cats.includes('all') ? 'Todo' : (catsDe(c).length<=2 ? catsDe(c).map(x=>x.etq?'Toda la campaña':x.n).join(' y ') : catsDe(c).length+' grupos');
+const deCompra = t => ['monto','montopct','regalo','club_cupon','club_puntos'].includes(t);
+const esPrecio = c => ['pct','soles','precio','combo','segunda','nxm','volumen','look'].includes(c.tipo);
+const unitario = (s,p) => s.tipo==='pct' ? rebaja(p,s.pct) : s.tipo==='soles' ? r2(Math.max(0,p-s.desc)) : s.tipo==='precio' ? s.precio : p;
+const ic = (n,c='') => `<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const chipEstado = e => `<span class="chip ${e==='Vigente'?'v':e==='Programada'?'p':e==='Borrador'?'a':''}">${e}</span>`;
+const chipFam = f => `<span class="chip nodot ${f==='Oferta'?'t':'p'}">${f}</span>`;
+const esc = t => String(t).replace(/"/g,'&quot;');
+const rangoTxt = (a,b) => { if(a===b) return fechaTxt(a); const da=D(a), db=D(b); return da.getMonth()===db.getMonth() ? `${da.getDate()} al ${db.getDate()} ${MES[db.getMonth()]}` : `${fechaTxt(a)} al ${fechaTxt(b)}`; };
+const sumaDias = (s,n) => { const d = D(s); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+
+/* =========================== cálculos (de ../index.html) =========================== */
+function alcance(s){
+  const f = {0:1,60:.5,90:.3,120:.15}[s.dias]||1;
+  const cs = catsDe(s), e = campanaDe(s.camp);
+  let prendas = Math.round(cs.reduce((t,c)=>t+c.prendas,0)*f), unid = Math.round(cs.reduce((t,c)=>t+c.unid,0)*f);
+  if(e && !deCompra(s.tipo)){ prendas = Math.min(prendas,Math.round(e.prendas*f)); unid = Math.min(unid,Math.round(e.unid*f)); }
+  return {prendas, unid, f};
+}
+function costoEst(s){
+  const cs = catsDe(s), f = alcance(s).f, sf = s.sedes.length/SEDES.length;
+  let t = 0;
+  for(const c of cs){
+    const u = c.v30*f*sf, p = c.ej.p;
+    if(['pct','soles','precio'].includes(s.tipo)) t += u*Math.max(0,p-unitario(s,p));
+    else if(s.tipo==='combo') t += (u*.5/s.qty)*(s.qty*p-s.precio);
+    else if(s.tipo==='segunda') t += (u*.5/s.nth)*(p*s.pct2/100);
+    else if(s.tipo==='nxm') t += (u*.5/s.n)*((s.n-s.m)*p);
+    else if(s.tipo==='volumen') t += (u*.5)*(p*s.pct/100);
+  }
+  if(s.tipo==='look') t = Math.min(...cs.map(c=>c.v30))*.3*sf*Math.max(0,cs.reduce((a,c)=>a+c.ej.p,0)-s.precio);
+  if(s.tipo==='monto') t = 40*sf*s.desc;
+  if(s.tipo==='montopct') t = 40*sf*(s.pct/100)*(s.min+12);
+  if(s.tipo==='club_pct') t = 30*sf*(s.pct/100)*90;
+  if(s.tipo==='regalo') t = 35*sf*REG[s.regalo].costo;
+  if(s.tipo==='club_cupon') t = 12*(s.pct/100)*140;
+  if(s.tipo==='club_puntos') t = 3000*(s.mult-1)*0.05;
+  if(s.tipo==='club_privada') t = 0;
+  return Math.round(t/10)*10;
+}
+const defNombre = s => s.tipo==='monto' ? `${sol(s.desc)} menos desde ${sol(s.min)}`
+  : s.tipo==='montopct' ? `${s.pct} % menos desde ${sol(s.min)}`
+  : s.tipo==='regalo' ? `${REG[s.regalo].t} desde ${sol(s.min)}`
+  : s.tipo.startsWith('club') ? `${TIPOS[s.tipo].da(s)} · Club`
+  : `${catsTxt(s)} · ${TIPOS[s.tipo].da(s)}`;
+function cruces(s){
+  if(!esPrecio(s)) return [];
+  return CAMP.filter(c=>c.id!==s.editId && estadoDe(c)!=='Terminada' && esPrecio(c) && c.desde<=s.hasta && s.desde<=c.hasta &&
+    (c.cats.includes('all')||s.cats.includes('all')||c.cats.some(x=>s.cats.includes(x))||(c.camp===s.camp&&(c.cats.some(x=>x.startsWith('e:'))||s.cats.some(x=>x.startsWith('e:'))))) && c.sedes.some(x=>s.sedes.includes(x)));
+}
+/* Las verificaciones de siempre; aquí solo se enseñan las que piden una decisión (ámbar) y el cruce con otra oferta. */
+function revisar(s){
+  const out = [];
+  const fin = D(s.hasta) >= D(s.desde);
+  if(!fin) out.push({t:'a',x:'La fecha de término es anterior a la de inicio'});
+  const ec = campanaDe(s.camp);
+  if(!ec) out.push({t:'a',x:'Elige la campaña'});
+  else if(sinFechas(ec)) out.push({t:'a',x:`«${ec.n}» no tiene fechas todavía`,s:'Ponle fechas a la campaña; mientras tanto esta oferta rige solo por las fechas que elijas aquí.'});
+  else if(s.desde<ec.desde||s.hasta>ec.hasta) out.push({t:'a',x:`Las fechas se salen de «${ec.n}» (${fechaTxt(ec.desde)} – ${fechaTxt(ec.hasta)})`,s:'Una oferta no puede regir fuera de su campaña.',act:'encajar'});
+  if(esPrecio(s)){
+    if(s.cats.length && alcance(s).prendas===0) out.push({t:'a',x:'Todavía no alcanza ninguna prenda',s:`${catsDe(s).filter(c=>c.etq&&c.prendas===0).map(c=>`«${c.n}»`).join(', ')||'La campaña'} no tiene prendas marcadas. Márcalas en «Prendas» o suma categorías en la campaña.`});
+    if(s.tipo==='combo'){
+      const sin = catsDe(s).filter(c=>s.precio>=s.qty*c.ej.p);
+      if(sin.length) out.push({t:'a',x:`El paquete no es una rebaja en ${sin.map(c=>c.etq?`las prendas de «${c.n}»`:c.n).join(', ')}`,s:`${s.qty} cuestan ${fmt(s.qty*sin[0].ej.p)} por separado y el paquete ${fmt(s.precio)}. Un precio de paquete que no baja el precio es el engaño que Indecopi sanciona.`});
+    }
+    if(s.tipo==='look'){
+      const suma = s.partes.reduce((t,id)=>t+CATS.find(c=>c.id===id).ej.p,0);
+      if(s.partes.length<2) out.push({t:'a',x:'Un conjunto necesita al menos 2 prendas distintas'});
+      else if(s.precio>=suma) out.push({t:'a',x:'El conjunto no es una rebaja',s:`Por separado cuestan ${fmt(suma)} y el conjunto ${fmt(s.precio)}. Un precio de conjunto que no baja el precio es el engaño que Indecopi sanciona.`});
+    }
+    const jean = (s.cats.includes('all')||s.cats.includes('pantalones')) && !s.excl.includes('jean');
+    if(jean) out.push({t:'a',x:'Jean Palazzo subió de S/ 119 a S/ 129 hace 6 días',s:'Si la rebajas ahora, el «antes» no es un precio normal y Indecopi puede tomarlo como engaño. Cuántos días de precio estable hacen falta lo confirma un abogado.',act:'excl'});
+    if(s.tipo==='precio'){
+      const sin = catsDe(s).filter(c=>s.precio>=c.ej.p);
+      if(sin.length) out.push({t:'a',x:`A ${fmt(s.precio)} no es una rebaja en ${sin.map(c=>c.etq?`las prendas de «${c.n}»`:c.n).join(', ')}`,s:`Su precio de lista es ${fmt(sin[0].ej.p)}. Un «precio especial» que no baja el precio es el engaño que Indecopi sanciona.`});
+    }
+    if(['pct','soles','precio'].includes(s.tipo)){
+      const bajo = catsDe(s).filter(c=>unitario(s,c.ej.p)<c.ej.c);
+      if(bajo.length) out.push({t:'a',x:`Por debajo del costo: ${bajo.map(c=>c.etq?`las prendas de «${c.n}»`:c.n).join(', ')}`,s:'No se bloquea, pero quedas en pérdida por prenda: pásale al contador cuánto se desvaloriza el stock.'});
+    }
+    const cr = cruces(s);
+    if(cr.length) out.push({t:'i',x:`Se cruza con «${cr[0].n}»${cr.length>1?` y ${cr.length-1} más`:''}`,s:'Gana la que deja al cliente con el mejor precio: una sola por prenda, no se suman.'});
+  } else if(s.tipo==='regalo'){
+    out.push({t:'a',x:'Un regalo es una transferencia gratuita',s:'Pregúntale al contador cómo se declara en la boleta antes de activarlo.'});
+  }
+  if(s.claure) out.push({t:'a',x:'Entran las prendas de Claurè',s:'Lo elegiste a propósito. Es otra empresa: confirma con su dueña que acepta el descuento.'});
+  return out;
+}
+/* Lo que pasa después de vender, a un toque (antes era una verificación más del panel lateral). */
+function despues(s){
+  const d = [];
+  if(['cantidad','monto'].includes(TIPOS[s.tipo].cond)) d.push('Si el cliente devuelve, la oferta se pierde: lo que se queda vuelve a su precio y esa diferencia se descuenta de lo que se le devuelve.');
+  d.push('Cambio de talla o color: la prenda nueva va a precio normal.','Apartado: se cobra el precio del día en que retira.');
+  if(esPrecio(s)) d.push('Etiquetas de papel: el sistema avisa reimprimirlas la víspera de que empiece y de que termine.');
+  return d.join(' ');
+}
+
+/* =========================== estado =========================== */
+const nuevoW = () => { const W = Object.assign(base({}), {camp:CAMPID, rec:null, editId:null, nombre:'', nombreMan:false, desde:HOY, hasta:HOY, precioMan:false, catsUser:null}); fechasDeCampana(W); return W; };
+const S = {mas:false, dev:'escritorio', tema:'claro', rol:'lider', W:null, q:'', verTodas:false, cambiar:false, cede:false, recien:null, toast:null, fx:null, desdeRect:null, mAnim:true, tope:true};
+function fechasDeCampana(W){ const e = campanaDe(W.camp); if(e && !sinFechas(e)){ W.desde = e.desde>HOY ? e.desde : HOY; W.hasta = e.hasta; } }
+S.W = nuevoW();
+
+/* Ponerle a la oferta el tipo que corresponde a la receta (o a su variante) sin perder lo que la persona ya cambió en «Cambiar». */
+const DEFAULTS = {pct:{pct:20}, soles:{desc:10}, precio:{precio:29.9}, combo:{qty:2}, segunda:{nth:2,pct2:50}, nxm:{n:3,m:2}, volumen:{qty:3,pct:15}, look:{partes:['blusas','faldas']},
+  monto:{min:300,desc:30}, montopct:{min:300,pct:10}, regalo:{min:200,regalo:'basta'}, club_pct:{pct:10}, club_cupon:{pct:10}, club_privada:{horas:24}, club_puntos:{mult:2}};
+function aplicarCats(W){
+  if(deCompra(W.tipo)) W.cats = ['all'];
+  else if(W.tipo==='look') W.cats = [...W.partes];
+  else W.cats = W.catsUser ? [...W.catsUser] : ['e:'+W.camp];
+}
+function elegirTipo(W,tipo){
+  Object.assign(W, {tipo, precioMan:false}, JSON.parse(JSON.stringify(DEFAULTS[tipo])));
+  aplicarCats(W);
+  if(tipo==='combo') W.precio = precioSug(W);
+  if(tipo==='look') W.precio = precioLook(W);
+}
+const resugerir = W => { if(W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W); };
+
+/* =========================== los dibujos de las tarjetas (antes → después) =========================== */
+const sh = (c='') => `<svg class="ic ${c}"><use href="#i-shirt"/></svg>`;
+const IL = {
+  rebaja:  `<s>90</s>${ic('right','s')}<b>71.90</b><span class="dtochip">−20 %</span>`,
+  precio:  `<s>39.90</s><s>99</s><s>129</s>${ic('right','s')}<b>29.90</b>`,
+  paquete: `${sh()}${sh()}${sh('gh')}<b>3x2</b>`,
+  segunda: `${sh()}${sh('gh')}<span class="dtochip">−50 %</span>`,
+  volumen: `${sh()}${sh()}${sh()}<span class="dtochip">−15 %</span>`,
+  look:    `${sh()}<i>+</i><svg class="ic"><use href="#i-skirt"/></svg><i>=</i><b>149.90</b>`,
+  gasta:   `<span class="bar"><i></i></span><b>−S/ 30</b>`,
+  regalo:  `<span>S/ 200</span>${ic('right','s')}${ic('gift')}<b>gratis</b>`,
+  club:    `${ic('star')}<span class="dtochip">−10 %</span><span class="dtochip">x2</span>`
+};
+
+/* =========================== la receta abierta =========================== */
+const CONT = {
+  pct:W=>[['pct','Cuánto menos',`−${W.pct} %`]],
+  soles:W=>[['desc','Cuántos soles menos',sol(W.desc)]],
+  precio:W=>[['precio','Todas a',fmt(W.precio)]],
+  combo:W=>[['qty','Cuántas lleva',plural(W.qty,'prenda','prendas')],['precio','Por cuánto',fmt(W.precio)]],
+  nxm:W=>[['n','Lleva',plural(W.n,'prenda','prendas')],['m','Paga',plural(W.m,'prenda','prendas')]],
+  segunda:W=>[['nth','Cuál prenda',`La ${W.nth}.ª`],['pct2','Cuánto menos',W.pct2>=100?'Gratis':`−${W.pct2} %`]],
+  volumen:W=>[['qty','Desde cuántas',plural(W.qty,'prenda','prendas')],['pct','Cuánto menos en todas',`−${W.pct} %`]],
+  look:W=>[['precio','Precio del conjunto',fmt(W.precio)]],
+  monto:W=>[['min','Desde cuánto',sol(W.min)],['desc','Cuánto se descuenta',sol(W.desc)]],
+  montopct:W=>[['min','Desde cuánto',sol(W.min)],['pct','Cuánto se descuenta',`−${W.pct} %`]],
+  regalo:W=>[['min','Desde cuánto',sol(W.min)]],
+  club_pct:W=>[['pct','Cuánto menos para miembros',`−${W.pct} %`]],
+  club_cupon:W=>[['pct','En su primera compra',`−${W.pct} %`]],
+  club_privada:()=>[], club_puntos:()=>[]
+};
+function stepper(f,txt,W,lab){
+  const [mn,mx,st] = limites(W,f), v = W[f];
+  return `<div class="ct"><span class="lbl">${lab}</span><div class="pq"><button data-a="step" data-f="${f}" data-d="${-st}" ${v<=mn+1e-9?'disabled':''} aria-label="Menos: ${lab}">${ic('minus')}</button><b class="num">${txt}</b><button data-a="step" data-f="${f}" data-d="${st}" ${v>=mx-1e-9?'disabled':''} aria-label="Más: ${lab}">${ic('plus')}</button></div></div>`;
+}
+/* Lo que se elige entre pocas opciones (qué prendas forman el conjunto, qué regalo, cuántas horas, cuántos puntos) son chips, como hoy. */
+function opciones(W){
+  const chip = (on,a,v,t,s='') => `<button class="opc ${on?'on':''}" data-a="${a}" data-v="${v}">${t}${s?` <small>${s}</small>`:''}</button>`;
+  if(W.tipo==='look') return `<div class="ct" style="flex:1 1 100%"><span class="lbl">Qué prendas forman el conjunto · elige 2 o 3</span><div class="chips">${CATS.map(c=>chip(W.partes.includes(c.id),'parte',c.id,c.n)).join('')}</div></div>`;
+  if(W.tipo==='regalo') return `<div class="ct" style="flex:1 1 100%"><span class="lbl">Qué se regala</span><div class="chips">${Object.entries(REG).map(([k,v])=>chip(W.regalo===k,'regalo',k,v.t,v.sub)).join('')}</div></div>`;
+  if(W.tipo==='club_privada') return `<div class="ct" style="flex:1 1 100%"><span class="lbl">Cuántas horas antes</span><div class="chips">${[12,24,48].map(h=>chip(W.horas===h,'horas',h,h+' horas')).join('')}</div></div>`;
+  if(W.tipo==='club_puntos') return `<div class="ct" style="flex:1 1 100%"><span class="lbl">Cuántos puntos por cada S/ 1</span><div class="chips">${[2,3].map(m=>chip(W.mult===m,'mult',m,'x'+m,m+' puntos por cada S/ 1')).join('')}</div></div>`;
+  return '';
+}
+function ambito(W){
+  if(deCompra(W.tipo)) return 'Toda la compra';
+  if(W.tipo==='look') return W.partes.map(id=>CATS.find(c=>c.id===id).n).join(' + ');
+  const fuera = W.nocats.length ? ` (sin ${W.nocats.map(id=>CATS.find(x=>x.id===id).n.toLowerCase()).join(', ')})` : '';
+  if(W.cats.some(x=>x.startsWith('e:'))) return 'Todas las prendas de la campaña' + fuera;
+  const n = catsDe(W).map(c=>c.n); return (n.length<=2 ? n.join(' y ') : n.slice(0,2).join(', ')+` y ${n.length-2} más`);
+}
+/* La oración viva: lo que el sistema va a hacer, dicho como lo diría una vendedora. */
+function oracion(W){
+  const b = x => `<b>${x}</b>`, cs = catsDe(W), uno = cs.length===1 && !cs[0].etq ? cs[0].n.toLowerCase() : 'prendas', amb = ambito(W);
+  switch(W.tipo){
+    case 'pct': return `${amb} con ${b(W.pct+' % menos')}.`;
+    case 'soles': return `${amb} con ${b(sol(W.desc)+' menos')} cada una.`;
+    case 'precio': return `${amb} a ${b(fmt(W.precio))}.`;
+    case 'combo': return `Lleva ${b(W.qty)} ${uno}${W.mezcla?'':' del mismo modelo'} por ${b(fmt(W.precio))}.`;
+    case 'nxm': return `Lleva ${b(W.n)}, paga ${b(W.m)}: ¡${b(W.n+'x'+W.m)}!`;
+    case 'segunda': return `La ${b(W.nth+'.ª')} prenda ${W.pct2>=100?b('gratis'):'con '+b(W.pct2+' % menos')}.`;
+    case 'volumen': return `Desde ${b(W.qty)} prendas, ${b(W.pct+' % menos')} en todas.`;
+    case 'look': return `${b(amb)} juntas por ${b(fmt(W.precio))}.`;
+    case 'monto': return `Compra desde ${b(sol(W.min))} y ahorra ${b(sol(W.desc))}.`;
+    case 'montopct': return `Compra desde ${b(sol(W.min))} y ahorra ${b(W.pct+' %')}.`;
+    case 'regalo': return `Compra desde ${b(sol(W.min))} y llévate ${b(REG[W.regalo].t.toLowerCase())}.`;
+    case 'club_pct': return `Los miembros del Club pagan ${b(W.pct+' % menos')}.`;
+    case 'club_cupon': return `Cupón de bienvenida: ${b(W.pct+' % menos')} en su primera compra.`;
+    case 'club_privada': return `Los miembros compran ${b(W.horas+' horas antes')} que el resto.`;
+    case 'club_puntos': return `Los miembros ganan ${b('puntos x'+W.mult)} en cada compra.`;
+  }
+}
+function explica(W){
+  switch(W.tipo){
+    case 'combo': return `Se repite por cada ${W.qty}; la que sobra va a precio normal.`;
+    case 'nxm': return `De cada ${W.n} prendas, ${W.n-W.m===1?'1 sale gratis (la más barata)':`${W.n-W.m} salen gratis (las más baratas)`}.`;
+    case 'segunda': return W.pct2>=100 ? `«La ${W.nth}.ª gratis» es lo mismo que un ${W.nth}x${W.nth-1}. Se repite cada ${W.nth}.` : `Se repite: con ${2*W.nth} prendas, la ${W.nth}.ª y la ${2*W.nth}.ª llevan el descuento.`;
+    case 'volumen': return `Con ${W.qty} o más prendas, el descuento va en cada una.`;
+    case 'look': return 'Se arma con una prenda de cada tipo; lo que sobra va a precio normal.';
+    case 'monto': case 'montopct': return 'El monto cuenta lo que el cliente paga, después de las demás ofertas.';
+    case 'regalo': return W.regalo==='basta' ? 'El arreglo lo hace el taller: a CAYLA le cuesta ≈ S/ 6.' : 'El regalo sale del stock de empaque.';
+    case 'club_pct': case 'club_cupon': case 'club_privada': case 'club_puntos': return 'Solo se aplica a quien se identifica como miembro (con su DNI).';
+    default: return 'El precio baja al .90 más cercano, igual que en la caja.';
+  }
+}
+function vistaCliente(W){
+  const T = TIPOS[W.tipo], cs = catsDe(W), ej = (cs[0]||CATS[3]).ej, uni = alcance(W).unid, hasta = `Hasta el ${fechaTxt(W.hasta)} · ${plural(uni,'unidad','unidades')} hoy`;
+  const foto = () => `<div class="foto" style="background:${ej.col}">${ej.n[0]}</div>`, fi = n => `<div class="foto ico">${ic(n,'l')}</div>`, etq = `<span class="dtochip etq">${T.da(W)}</span>`;
+  let t;
+  if(['pct','soles','precio'].includes(W.tipo)) t = `${foto()}<div><h5>${ej.n}</h5><div class="pr"><s>${fmt(ej.p)}</s><b>${fmt(unitario(W,ej.p))}</b></div>${etq}<div class="co">${hasta}</div></div>`;
+  else if(esPrecio(W)) t = `${foto()}<div><h5>${W.tipo==='look'?W.partes.map(id=>CATS.find(c=>c.id===id).ej.n).join(' + '):ej.n}</h5><div class="pr"><b>${W.tipo==='look'?fmt(W.precio):fmt(ej.p)}</b></div>${etq}<div class="co">${T.quien(W)}. ${hasta}</div></div>`;
+  else if(W.tipo==='monto'||W.tipo==='montopct') t = `${fi('wallet')}<div><h5>${T.da(W)}</h5><div class="co">En compras desde ${fmt(W.min)} · hasta el ${fechaTxt(W.hasta)}</div></div>`;
+  else if(W.tipo==='regalo') t = `${fi('gift')}<div><h5>${REG[W.regalo].t}</h5><div class="co">En compras desde ${fmt(W.min)} · hasta el ${fechaTxt(W.hasta)}</div></div>`;
+  else t = `${fi('star')}<div><h5>${T.da(W)}</h5><div class="co">Solo miembros del Club · hasta el ${fechaTxt(W.hasta)}</div></div>`;
+  const costo = costoEst(W);
+  return `<div class="vista"><span class="lbl">Así lo verá el cliente</span><div class="vp-t">${t}</div>
+    <button class="enl" data-a="cede" aria-expanded="${S.cede}">Lo que cedes y qué pasa después ${ic(S.cede?'chevu':'chevd','s')}</button>
+    ${S.cede?`<div class="cede"><b class="num">${costo?'≈ '+fmt(costo):'S/ 0'}</b>${costo?'si vendes como en los últimos 30 días. Es una estimación, no una promesa.':'esta oferta no baja ningún precio.'}<br><br>${despues(W)}</div>`:''}</div>`;
+}
+/* La franja de los valores de siempre. */
+function franja(W){
+  const cant = ['combo','segunda','nxm','volumen'].includes(W.tipo);
+  const pren = deCompra(W.tipo) ? 'Toda la compra' : W.tipo==='look' ? 'Las prendas del conjunto' : ambito(W) + (W.claure?' + Claurè':'') + (W.dias?`, con ${W.dias}+ días sin venderse`:'');
+  const tiendas = W.sedes.length===SEDES.length ? '3 tiendas' : W.sedes.length ? W.sedes.join(' · ') : 'ninguna tienda';
+  const fb = t => `<button class="fr-i" data-a="cambiar" title="Cambiar">${t}</button>`;
+  const partes = [fb(pren), fb(tiendas), fb(rangoTxt(W.desde,W.hasta)), `<span class="d">${W.acum?'se suma con las demás':'no se suma con otras'}</span>`];
+  if(cant) partes.push(`<span class="d">cuentan prendas ${mm(W)}</span>`);
+  return `<div class="franja"><span class="ok">${ic('check','m')}</span><div class="tx"><span class="lbl" style="margin-right:6px">Se aplica a</span>${partes.join(' · ')}</div><button class="btn n sec chico" data-a="cambiar" aria-expanded="${S.cambiar}">${S.cambiar?'Listo':'Cambiar'}</button></div>`;
+}
+/* Todo lo que casi nunca se toca, en un solo panel. */
+function panelCambiar(W){
+  const camp = campanaDe(W.camp), sf = sinFechas(camp), cant = ['combo','segunda','nxm','volumen'].includes(W.tipo);
+  const comp = deCompra(W.tipo), look = W.tipo==='look', todas = W.cats.some(x=>x.startsWith('e:')) && !comp && !look;
+  /* Los atajos de fechas se recortan a la campaña y no se repiten (en Aniversario, «7 días» y «hasta fin de mes» serían «toda la campaña»). */
+  const clip = (a,b) => { const lo = sf ? a : (a<camp.desde?camp.desde:a), hi = sf ? b : (b>camp.hasta?camp.hasta:b); return lo<=hi && hi>=HOY ? [lo<HOY?HOY:lo,hi] : null; };
+  const sab = (()=>{ const d = D(HOY); const k = (6-d.getDay()+7)%7; const s = sumaDias(HOY,k); return [s,sumaDias(s,1)]; })();
+  const cand = [['Toda la campaña', sf?null:clip(camp.desde,camp.hasta)], ['Fin de semana', clip(...sab)], ['7 días', clip(HOY,sumaDias(HOY,6))], ['Hasta fin de mes', clip(HOY,'2026-10-31')]];
+  const vistos = new Set(), presets = cand.filter(([t,r])=>{ if(!r) return false; const k = r.join(); if(vistos.has(k)) return false; vistos.add(k); return true; });
+  const masN = (W.nocats.length?1:0) + (W.claure?1:0) + (W.dias?1:0);
+  const mas = S.mas ? `<div class="sublbl">Dejar fuera <span>· opcional</span></div><div class="chips">${CATS.map(c=>`<button class="opc ${W.nocats.includes(c.id)?'on':''}" data-a="nocat" data-v="${c.id}" ${todas?'':'disabled'}>${W.nocats.includes(c.id)?'Sin ':''}${c.n}</button>`).join('')}</div>${todas?'':'<div class="sublbl">Solo se puede dejar fuera algo cuando entran todas las de la campaña.</div>'}
+       <div class="sublbl">Claurè <span>· es otra empresa: sus prendas no entran salvo que las incluyas a propósito</span></div><div class="chips"><button class="opc ${W.claure?'on':''}" data-a="claure">Incluir las prendas de Claurè</button></div>
+       <div class="sublbl">Solo lo que lleva tiempo sin venderse <span>· opcional</span></div><div class="chips">${[[0,'Todas'],[60,'60+ días'],[90,'90+ días'],[120,'120+ días']].map(([d,t])=>`<button class="opc ${W.dias===d?'on':''}" data-a="dias" data-v="${d}">${t}</button>`).join('')}</div>` : '';
+  const prendas = comp ? `<div class="nota" style="margin-top:0">${ic('wallet','s')}<span><b>Toda la compra</b> · cuenta lo que el cliente paga, sin importar qué prendas lleve.</span></div>`
+    : look ? `<div class="nota" style="margin-top:0">${ic('search','s')}<span>Las del conjunto que elegiste, dentro de las prendas de «${camp.n}».</span></div>`
+    : `<div class="chips"><button class="opc ${todas?'on':''}" data-a="cattodas">Todas las de la campaña <small>${camp.prendas}</small></button>${CATS.map(c=>`<button class="opc ${W.cats.includes(c.id)?'on':''}" data-a="cat" data-v="${c.id}">${c.n} <small>${c.prendas}</small></button>`).join('')}</div>
+       <button class="enl" style="margin-top:8px;display:inline-block" data-a="masf" aria-expanded="${S.mas}">Dejar fuera, Claurè y días sin venderse${masN?` · ${masN} puesto${masN>1?'s':''}`:''} ${ic(S.mas?'chevu':'chevd','s')}</button>${mas}`;
+  const cuentan = cant ? `<div class="gp"><span class="tt">Qué prendas cuentan</span><div class="chips"><button class="opc ${!W.mezcla?'on':''}" data-a="mezcla" data-v="0">Del mismo modelo</button><button class="opc ${W.mezcla?'on':''}" data-a="mezcla" data-v="1">Cualquiera de las elegidas</button></div><div class="peq">${W.mezcla?'El descuento va a la prenda de menor precio.':'Cuentan todas las del mismo modelo, de cualquier color o talla.'}</div></div>` : '';
+  return `<div class="cmb">
+    <div><div class="gp"><span class="tt">Prendas</span>${prendas}</div>
+      <div class="gp"><span class="tt">Cuándo rige</span><div class="dosc"><label><span>Desde</span><div class="campo"><input type="date" value="${W.desde}" data-f="desde" ${sf?'':`min="${camp.desde}" max="${camp.hasta}"`}></div></label><label><span>Hasta</span><div class="campo"><input type="date" value="${W.hasta}" data-f="hasta" ${sf?'':`min="${camp.desde}" max="${camp.hasta}"`}></div></label></div>
+        <div class="chips" style="margin-top:8px">${presets.map(([t,r])=>`<button class="opc ${W.desde===r[0]&&W.hasta===r[1]?'on':''}" data-a="rango" data-v="${r.join(',')}">${t}</button>`).join('')}</div></div></div>
+    <div><div class="gp"><span class="tt">Dónde</span><div class="chips">${SEDES.map(x=>`<button class="opc ${W.sedes.includes(x)?'on':''}" data-a="sede" data-v="${x}">${x}</button>`).join('')}</div>
+        <div class="peq">La tienda web siempre cobra lo mismo que las tiendas.</div></div>
+      ${cuentan}
+      <div class="gp"><span class="tt">Con las demás ofertas</span><div class="chips"><button class="opc ${W.acum?'on':''}" data-a="acum" data-v="1">Se suma</button><button class="opc ${!W.acum?'on':''}" data-a="acum" data-v="0">No se suma</button></div>
+        <div class="peq">${W.acum?'Primero la prenda, luego el ticket y al final el cupón del Club.':'Si la prenda lleva esta oferta, no recibe las demás.'}</div></div>
+      <div class="gp"><span class="tt">Nombre <span style="font-weight:400;letter-spacing:0;text-transform:none">· se arma solo</span></span><div class="campo"><input value="${esc(W.nombreMan?W.nombre:defNombre(W))}" data-f="nombre" aria-label="Nombre de la oferta"></div></div>
+    </div></div>`;
+}
+function avisosHtml(W){
+  const av = revisar(W).filter(c=>c.t==='a'||c.t==='i');
+  return `<div class="avisos">${av.map(c=>`<div class="nota ${c.t==='a'?'am':''}">${ic(c.t==='a'?'alert':'info','s')}<span><b>${c.x}</b>${c.s?`<br><span style="color:var(--t65)">${c.s}</span>`:''}${c.act==='excl'?`<br><button class="btn n sec chico" style="margin:6px 0 0" data-a="excl">Sacar Jean Palazzo de la oferta</button>`:''}${c.act==='encajar'?`<br><button class="btn n sec chico" style="margin:6px 0 0" data-a="encajar">Ajustar a la campaña</button>`:''}</span></div>`).join('')}</div>`;
+}
+function panel(W){
+  const R = RECETAS.find(r=>r.k===W.rec), T = TIPOS[W.tipo], edit = !!W.editId;
+  const vars = R.tipos.length>1 ? `<div class="vars"><span class="vt">${R.vt}</span><div class="seg-modo" role="group" aria-label="${R.vt}">${R.tipos.map(t=>`<button class="${W.tipo===t?'on':''}" data-a="var" data-v="${t}" aria-pressed="${W.tipo===t}">${R.vl[t]}</button>`).join('')}</div></div>` : '';
+  const q = TIPOS[W.tipo].quien(W);
+  const editando = edit ? `<div class="nota am">${ic('alert','s')}<span><b>Editando «${W.nombreMan?W.nombre:defNombre(W)}».</b> Los cambios valen desde ahora; lo que ya se vendió se queda como estaba.<button class="btn n sec chico" data-a="otra">Registrar otra en vez de editar</button></span></div>` : '';
+  return `${editando}<div class="pn ${S.fx==='expande'?'fx':''}" data-pn>
+    <div class="pn-cab"><button class="volver" data-a="atras" aria-label="${edit?'Dejar de editar':'Volver a elegir qué quieres hacer'}">${ic('left','s')}</button><h3>${R.t}</h3><span class="fam">${chipFam(fam(W))}</span></div>
+    ${vars}
+    <div class="pn-g"><div>
+      <div class="oracion" aria-live="polite">${oracion(W)}</div>
+      <div class="quien">${ic(T.cond==='ninguna'?'check':T.cond==='club'?'star':T.cond==='monto'?'wallet':'layers','s')}<span>${T.cond==='ninguna'?'El cliente <b style="font-weight:600">no tiene que hacer nada</b>: el precio ya viene rebajado.':`El cliente tiene que <b style="font-weight:600">${q.charAt(0).toLowerCase()+q.slice(1)}</b>.`}</span></div>
+      <div class="expl">${explica(W)}</div>
+      <div class="cts">${CONT[W.tipo](W).map(([f,l,t])=>stepper(f,t,W,l)).join('')}${opciones(W)}</div>
+    </div>${vistaCliente(W)}</div>
+    ${franja(W)}${S.cambiar?panelCambiar(W):''}${avisosHtml(W)}
+  </div>`;
+}
+/* La cuadrícula de recetas con su buscador. */
+function tarjetas(){
+  const hits = buscar(S.q);
+  if(!hits.length) return `<div class="vacio">${ic('search')}<b>No encontré «${esc(S.q)}»</b><p>Prueba con una palabra de tienda: <b>regalo</b>, <b>3x2</b>, <b>club</b>, <b>conjunto</b>, <b>puntos</b>.</p><button class="btn n sec chico" data-a="borrarq">Borrar la búsqueda</button></div>`;
+  return `<div class="recs ${S.fx==='grid'?'fx-grid':''}">${hits.map(({r,v})=>`<button class="rec" data-a="rec" data-v="${r.k}" ${v?`data-var="${v}"`:''} aria-label="${r.t}. ${r.ej}"><div class="il" aria-hidden="true">${IL[r.k]}</div><div class="rt"><b>${r.t}</b><small>${v?VE[v]:r.ej}</small></div></button>`).join('')}</div>`;
+}
+function cuadricula(){
+  return `<div class="sigue-g"><div class="sec-of" style="margin-bottom:10px"><b>Nueva oferta o promoción</b><span class="sg">Sigue aquí</span></div>
+    <label class="busca2">${ic('search')}<input id="q" value="${esc(S.q)}" placeholder="¿Qué quieres hacer? Ej. regalo, 3x2, club" autocomplete="off" aria-label="¿Qué quieres hacer?"><button class="x" data-a="borrarq" aria-label="Borrar la búsqueda" ${S.q?'':'style="display:none"'}>${ic('x','s')}</button></label>
+    <div id="recs">${tarjetas()}</div></div>`;
+}
+
+/* =========================== la hoja =========================== */
+function listaReg(){
+  const camp = campanaDe(CAMPID), P = ROLES[S.rol], W = S.W;
+  const rs = reglasDe(CAMPID).slice().reverse().sort((a,b)=>(b.id===S.recien)-(a.id===S.recien));
+  const vis = S.verTodas ? rs : rs.slice(0,3), mas = rs.length-vis.length;
+  const fila = c => `<div class="rg-w"><button class="rg ${S.recien===c.id?'recien':''} ${W.editId===c.id?'edit':''}" data-a="editar" data-v="${c.id}"><span class="r1"><b>${c.n}</b>${chipEstado(estadoDe(c))}</span><span class="r2">${chipFam(fam(c))}<span>${TIPOS[c.tipo].da(c)} · ${fechaTxt(c.desde)} – ${fechaTxt(c.hasta)}${!c.acum?' · no se suma':''}</span></span>${c.legado?`<span class="hist">${ic('undo','s')} el descuento que tenía la campaña</span>`:''}${c.hist.length?`<span class="hist">${ic('undo','s')} ${plural(c.hist.length,'cambio','cambios')} · antes: ${c.hist[c.hist.length-1]}</span>`:''}</button>${c.borrador?(P.act?`<button class="btn n sec chico" data-a="activar" data-v="${c.id}">Activar</button>`:`<span class="espera">espera a un líder</span>`):''}</div>`;
+  return `<div class="sec-of"><b>Ya registradas</b><span class="cn">${rs.length}</span></div>
+    <div class="regs">${vis.map(fila).join('')}</div>
+    ${rs.length>3?`<button class="enl mas-r" data-a="vermas">${S.verTodas?'Ver menos':`Ver ${mas} más`}</button>`:''}
+    <div class="nota-r">Toca una para editarla: vale desde ese momento, lo ya vendido no cambia y queda su historial.</div>`;
+}
+function hoja(){
+  const W = S.W, camp = campanaDe(CAMPID), P = ROLES[S.rol], edit = !!W.editId;
+  const dias = diasEntre(camp.desde,camp.hasta)+1;
+  const faltan = [!W.rec&&'elegir qué quieres hacer', W.rec&&!W.sedes.length&&'elegir al menos una tienda', W.rec&&W.tipo==='look'&&W.partes.length<2&&'elegir al menos 2 prendas del conjunto'].filter(Boolean);
+  const ok = !faltan.length;
+  const botones = edit
+    ? `<button class="btn sec" data-a="cancelar">Cancelar</button><button class="btn" data-a="cambios" ${ok?'':'disabled'}>${ic('check','s')} Guardar cambios</button>`
+    : P.act
+      ? `<button class="btn sec" data-a="cancelar">Cancelar</button><button class="btn sec" data-a="borrador" ${ok?'':'disabled'}>Guardar<span class="d"> como</span> borrador</button><button class="btn" data-a="activarnueva" ${ok?'':'disabled'}>${ic('check','s')} Activar</button>`
+      : `<button class="btn sec" data-a="cancelar">Cancelar</button><button class="btn" data-a="borrador" ${ok?'':'disabled'}>Guardar<span class="d"> como</span> borrador</button>`;
+  const falta = faltan.length ? `<button class="falta" data-a="irfalta">Falta: <b>${faltan[0]}</b></button>` : `<span class="falta">${edit ? 'Vale desde ahora; lo ya vendido no cambia' : P.act ? 'Todo listo: actívala o déjala como borrador' : 'Queda como borrador: un líder la activa'}</span>`;
+  return `<div class="velo ${S.mAnim?'entra':''}"><div class="velo-fondo"></div>
+    <div class="hoja" role="dialog" aria-modal="true" aria-label="Configuración «${camp.n}»">
+      <div class="hoja-cab"><h2>Configuración «${camp.n}»</h2><p>Cuándo rige, qué prendas lleva y qué ofertas y promociones tiene.</p>
+        <div class="strip">${ic('cal','s')}<span><b>La campaña:</b> ${fechaTxt(camp.desde)} – ${fechaTxt(camp.hasta)} · ${plural(dias,'día','días')} · ${plural(camp.prendas,'prenda a la venta','prendas a la venta')}</span><button class="enl" data-a="campana">Cambiar fechas o prendas</button></div></div>
+      <div class="cuerpo2"><div class="dos"><div class="izq">${listaReg()}</div><div class="der">${W.rec ? panel(W) : cuadricula()}</div></div></div>
+      <div class="hoja-pie">${falta}${botones}</div>
+    </div></div>`;
+}
+function fondo(){
+  const lat = `<aside class="lat"><div class="logo">CAYLA</div>${['Inicio','Ventas','Inventario'].map(n=>`<a>${n}</a>`).join('')}<div class="g">Catálogo</div>${['Productos','Categorías','Marcas','Atributos','Insignias','Liquidación'].map(n=>`<a class="sub ${n==='Insignias'?'on':''}">${n}</a>`).join('')}<div class="g">Más</div>${['Compras','Finanzas','Clientes'].map(n=>`<a>${n}</a>`).join('')}</aside>`;
+  return `<div class="erp">${lat}<div><div class="fon-enc"><div class="sede">Lima · Vie 23 oct</div><h1>Insignias</h1></div><div class="fon-sk"><i></i><i></i><i></i></div></div></div>`;
+}
+
+/* =========================== barra, render =========================== */
+const LEY = `<b>Opción 2 · Recetas.</b> No eliges un «tipo» de una lista de 15: reconoces lo que quieres hacer (9 tarjetas con su ejemplo y su dibujo). Al tocarla se abre con 1–3 contadores y una frase viva; lo de siempre (prendas, tiendas, fechas, se suma) viene puesto y se cambia en «Cambiar».
+  <span class="ej">1 · −20 % a todo</span><span class="ej">2 · 3x2</span><span class="ej">3 · S/ 30 menos desde S/ 300</span><span class="ej">4 · 2 polos por S/ 59.90, solo Polos, 2 tiendas, fin de semana</span>`;
+function barra(){
+  $('#spk').innerHTML = `<span class="tag">Maqueta · Nueva oferta o promoción · Opción 2 · Recetas</span>
+  <div class="seg"><button class="${S.dev==='escritorio'?'on':''}" data-a="dev" data-v="escritorio">Escritorio</button><button class="${S.dev==='celular'?'on':''}" data-a="dev" data-v="celular">Celular</button></div>
+  <div class="seg"><button class="${S.tema==='claro'?'on':''}" data-a="tema" data-v="claro">Claro</button><button class="${S.tema==='oscuro'?'on':''}" data-a="tema" data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ver como</span><div class="seg">${Object.entries(ROLES).map(([k,r])=>`<button class="${S.rol===k?'on':''}" data-a="rol" data-v="${k}">${r.t}</button>`).join('')}</div>
+  <button class="go" data-a="reiniciar">Reiniciar</button><span style="margin-left:auto;color:rgba(245,240,232,.6);font-size:12px">Campañas de producción · cifras inventadas · hoy = vie 23 oct 2026</span>`;
+  $('#ley').innerHTML = LEY;
+}
+function render(){
+  document.documentElement.dataset.tema = S.tema;
+  barra();
+  const hb = document.querySelector('.cuerpo2'); const st = hb && !S.irArriba ? hb.scrollTop : 0;
+  const marco = `<div class="marco ${S.dev==='escritorio'?'desk':'cel'}"><div class="pant">${fondo()}</div>${hoja()}${S.toast?`<div class="toast">${S.toast}</div>`:''}</div>`;
+  $('#esc').innerHTML = S.dev==='escritorio' ? marco : `<div class="tel">${marco}</div>`;
+  const nb = document.querySelector('.cuerpo2'); if(nb) nb.scrollTop = st;
+  S.mAnim = false; S.irArriba = false;
+  /* Al abrir «Cambiar», la franja sube al borde de arriba para que se vea junto con su panel. */
+  if(S.irA && nb){ const t = nb.querySelector(S.irA); if(t){ const dy = t.getBoundingClientRect().top - nb.getBoundingClientRect().top; if(dy>0) nb.scrollTop = nb.scrollTop + dy - 8; } S.irA = null; }
+  /* La tarjeta que se abre: el panel nace del sitio y del tamaño de la tarjeta tocada y crece hasta el suyo. */
+  if(S.fx==='expande' && S.desdeRect){
+    const pn = document.querySelector('[data-pn]');
+    if(pn){ const r = pn.getBoundingClientRect(), d = S.desdeRect; pn.style.setProperty('--dx',(d.left-r.left)+'px'); pn.style.setProperty('--dy',(d.top-r.top)+'px'); pn.style.setProperty('--sx',(d.width/r.width).toFixed(3)); pn.style.setProperty('--sy',(d.height/r.height).toFixed(3)); }
+  }
+  S.fx = null; S.desdeRect = null;
+  medir();
+}
+let tt;
+function avisar(t){ S.toast = t; clearTimeout(tt); tt = setTimeout(()=>{S.toast=null; render();}, 3200); }
+
+/* =========================== acciones =========================== */
+const listo = W => !!W.rec && W.sedes.length>0 && !(W.tipo==='look' && W.partes.length<2);
+function encajar(W){
+  const e = campanaDe(W.camp); if(!e || sinFechas(e)) return;
+  const ini = e.desde>HOY ? e.desde : HOY;
+  if(W.desde<ini || W.desde>e.hasta) W.desde = ini;
+  if(W.hasta>e.hasta || W.hasta<W.desde) W.hasta = e.hasta;
+}
+function guardar(borrador){
+  const W = S.W, camp = campanaDe(CAMPID);
+  const n = W.nombreMan && W.nombre.trim() ? W.nombre.trim() : defNombre(W), id = 'n'+(CAMP.length+1);
+  const c = base(Object.assign({}, W, {id, n, borrador, hist:[], cats:[...W.cats], partes:[...W.partes], nocats:[...W.nocats], excl:[...W.excl]})); delete c.editId; delete c.rec; delete c.catsUser; CAMP.push(c);
+  S.recien = id; S.verTodas = false; S.W = nuevoW(); S.cambiar = false; S.cede = false; S.q = ''; S.fx = 'grid'; S.irArriba = true;
+  avisar(borrador ? `Guardada como borrador dentro de «${camp.n}»: «${n}». ${ROLES[S.rol].act?'Actívala cuando quieras.':'Un líder tiene que activarla.'}` : `Activada dentro de «${camp.n}»: «${n}». ${c.desde>HOY?'Empieza el '+fechaTxt(c.desde):'Ya rige'}.`);
+}
+function cargarParaEditar(c){
+  const W = Object.assign(nuevoW(), JSON.parse(JSON.stringify(c)), {editId:c.id, camp:CAMPID, rec:recDe(c.tipo).k, nombre:c.n, nombreMan:c.n!==defNombre(c)});
+  W.catsUser = (deCompra(c.tipo) || c.tipo==='look' || c.cats.some(x=>x.startsWith('e:'))) ? null : [...c.cats];
+  S.W = W;
+}
+function act(a,v,el){
+  const W = S.W;
+  switch(a){
+    case 'dev': S.dev = v; break;
+    case 'tema': S.tema = v; break;
+    case 'rol': S.rol = v; break;
+    case 'reiniciar': CAMP.splice(0,CAMP.length,...JSON.parse(SNAP).map(o=>base(o))); Object.assign(S,{rol:'lider',W:nuevoW(),q:'',verTodas:false,cambiar:false,cede:false,recien:null,toast:null,mAnim:true,irArriba:true}); break;
+    case 'rec': { S.mas = false; S.desdeRect = el.getBoundingClientRect(); const r = RECETAS.find(x=>x.k===v); elegirTipo(W, el.dataset.var || r.tipos[0]); W.rec = v; S.q = ''; S.cambiar = false; S.cede = false; S.fx = 'expande'; S.irArriba = true; break; }
+    case 'var': elegirTipo(W,v); break;
+    case 'atras': S.W = nuevoW(); S.cambiar = false; S.cede = false; S.fx = 'grid'; S.irArriba = true; break;
+    case 'borrarq': S.q = ''; S.fx = 'grid'; break;
+    case 'cambiar': S.cambiar = !S.cambiar; S.irA = S.cambiar ? '.franja' : null; break;
+    case 'masf': S.mas = !S.mas; break;
+    case 'cede': S.cede = !S.cede; break;
+    case 'vermas': S.verTodas = !S.verTodas; break;
+    case 'campana': avisar('En la versión real abre lo de siempre: las fechas de la campaña y sus prendas («Prendas», «Categorías»). No cambia con este formulario.'); return;
+    case 'step': { const f = el.dataset.f, d = +el.dataset.d; const [mn,mx] = limites(W,f); W[f] = r2(Math.min(mx,Math.max(mn,W[f]+d))); if(f==='precio'){ W.precio = Math.round(W.precio*10)/10; W.precioMan = true; }
+      if(f==='n' && W.m>=W.n) W.m = W.n-1;
+      if(f==='qty') resugerir(W); break; }
+    case 'parte': { W.partes = W.partes.includes(v) ? W.partes.filter(x=>x!==v) : (W.partes.length<3 ? [...W.partes,v] : W.partes); W.cats = [...W.partes]; if(!W.precioMan && W.partes.length>=2) W.precio = precioLook(W); break; }
+    case 'regalo': W.regalo = v; break;
+    case 'horas': W.horas = +v; break;
+    case 'mult': W.mult = +v; break;
+    case 'cattodas': W.catsUser = null; aplicarCats(W); resugerir(W); break;
+    case 'cat': { const cur = W.catsUser||[]; W.catsUser = cur.includes(v) ? cur.filter(x=>x!==v) : [...cur,v]; if(!W.catsUser.length) W.catsUser = null; W.nocats = W.nocats.filter(x=>!(W.catsUser||[]).includes(x)); aplicarCats(W); resugerir(W); break; }
+    case 'nocat': W.nocats = W.nocats.includes(v) ? W.nocats.filter(x=>x!==v) : [...W.nocats,v]; break;
+    case 'claure': W.claure = !W.claure; break;
+    case 'dias': W.dias = +v; break;
+    case 'mezcla': W.mezcla = v==='1'; resugerir(W); break;
+    case 'sede': W.sedes = W.sedes.includes(v) ? W.sedes.filter(x=>x!==v) : [...W.sedes,v]; break;
+    case 'rango': { const [d,h] = v.split(','); W.desde = d; W.hasta = h; break; }
+    case 'acum': W.acum = v==='1'; break;
+    case 'excl': W.excl = [...W.excl,'jean']; break;
+    case 'encajar': encajar(W); break;
+    case 'irfalta': if(!W.rec){ const q = $('#q'); if(q) q.focus(); return; } S.cambiar = true; break;
+    case 'borrador': if(!listo(W)) return; guardar(true); break;
+    case 'activarnueva': if(!listo(W) || !ROLES[S.rol].act) return; guardar(false); break;
+    case 'activar': { if(!ROLES[S.rol].act) break; const c = CAMP.find(x=>x.id===v); c.borrador = false; S.recien = v; avisar(`Activada: «${c.n}». ${c.desde>HOY?'Empieza el '+fechaTxt(c.desde):'Ya rige'}.`); break; }
+    case 'editar': { const c = CAMP.find(x=>x.id===v); if(!c) break; cargarParaEditar(c); S.cambiar = false; S.mas = false; S.cede = false; S.fx = 'expande'; S.desdeRect = el.getBoundingClientRect(); S.irArriba = true; break; }
+    case 'otra': S.W = nuevoW(); S.fx = 'grid'; S.cambiar = false; break;
+    case 'cambios': { const c = CAMP.find(x=>x.id===W.editId); if(!c || !listo(W)) break;
+      const antes = `${TIPOS[c.tipo].da(c)} · ${fechaTxt(c.desde)} – ${fechaTxt(c.hasta)}`;
+      Object.keys(base({})).filter(x=>!['hist','borrador','camp'].includes(x)).forEach(x=>{ c[x] = Array.isArray(W[x]) ? [...W[x]] : W[x]; });
+      c.n = W.nombreMan && W.nombre.trim() ? W.nombre.trim() : defNombre(W); c.hist = [...c.hist, `${antes}, hasta el ${fechaTxt(HOY)}`]; c.legado = false;
+      S.recien = c.id; S.W = nuevoW(); S.cambiar = false; S.fx = 'grid'; S.irArriba = true;
+      avisar(`Cambios guardados en «${c.n}»: valen desde ahora; lo ya vendido no cambia y queda en el historial.`); break; }
+    case 'cancelar': S.W = nuevoW(); S.cambiar = false; S.cede = false; S.q = ''; S.fx = 'grid'; S.irArriba = true; avisar('Cancelado. En la versión real esto cierra la hoja; aquí solo vuelve a empezar.'); return;
+  }
+  render();
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-a]'); if(!b) return;
+  act(b.dataset.a, b.dataset.v, b);
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ if(S.cambiar){ S.cambiar = false; render(); } else if(S.W.rec){ act('atras'); } }
+  if(e.key==='Enter' && e.target && e.target.id==='q'){ const p = buscar(S.q); if(p.length){ const b = document.querySelector('.rec'); if(b) b.click(); } }
+});
+/* El buscador no redibuja la hoja (perdería el cursor): solo cambia las tarjetas. */
+document.addEventListener('input', e=>{
+  if(e.target.id==='q'){ S.q = e.target.value; const g = $('#recs'); if(g) g.innerHTML = tarjetas(); const x = document.querySelector('.busca2 .x'); if(x) x.style.display = S.q ? '' : 'none'; medir(); }
+});
+document.addEventListener('change', e=>{
+  const f = e.target.dataset && e.target.dataset.f; if(!f) return;
+  const W = S.W;
+  if(f==='nombre'){ W.nombre = e.target.value; W.nombreMan = true; return; }
+  if(f==='desde'||f==='hasta'){ W[f] = e.target.value; render(); }
+});
+
+/* =========================== «Cómo se mide» =========================== */
+function medir(){
+  const hoja = document.querySelector('.hoja'), der = document.querySelector('.der'), cuerpo = document.querySelector('.cuerpo2'), cab = document.querySelector('.hoja-cab'), pie = document.querySelector('.hoja-pie');
+  if(!hoja) return;
+  const nuevos = der.querySelectorAll('button:not([disabled]), input').length;
+  const todos = hoja.querySelectorAll('button:not([disabled]), input').length;
+  const alto = cab.offsetHeight + cuerpo.scrollHeight + pie.offsetHeight;
+  const altoForm = der.offsetHeight;
+  const v = $('#medida-vivo'); if(!v) return;
+  v.innerHTML = `<b>Ahora, en esta pantalla:</b> ${nuevos} controles en el formulario nuevo (${todos} en toda la hoja) · el formulario mide ${altoForm} px y la hoja entera ${alto} px (≈ ${(alto/768).toFixed(1).replace('.',',')} pantallas de laptop de 768 px)${cuerpo.scrollHeight>cuerpo.clientHeight+2?' · aquí ya hace scroll':' · cabe sin scroll'}.`;
+}
+function medida(){
+  $('#medida').innerHTML = `<h4>Cómo se mide · Opción 2 · Recetas</h4>
+  <table>
+   <tr><td>Controles del formulario a la vez</td><td><b>10</b> al abrir (el buscador y las 9 tarjetas) · <b>5 a 11</b> con una receta abierta (volver, el selector de variante, los contadores, «Cambiar» y «Lo que cedes») · <b>18 a 28</b> solo si abres «Cambiar». Hoy el formulario trae <b>42</b> controles a la vez y 33 chips, siempre.</td></tr>
+   <tr><td>Alto en pantallas (aproximado)</td><td>Al abrir, la hoja entera mide <b>≈ 680 px</b> (el formulario nuevo, 476 px) y con una receta abierta <b>≈ 610–700 px</b> (el formulario, 350–500 px): <b>una sola pantalla de laptop, sin scroll</b>. Con «Cambiar» abierto sube a ≈ 880–1 120 px (1,2 a 1,5 pantallas) y la hoja corre por dentro con los botones de guardar siempre a la vista. Hoy el formulario solo mide 2 460 px. Parte del ahorro viene de poner «Ya registradas» al lado (columna izquierda) y no encima. En celular (375 px) todo va en una columna y la hoja corre por dentro; «Guardar» y «Activar» no se mueven del pie.</td></tr>
+   <tr><td>Toques · caso 1 («−20 % a todo»)</td><td><b>2</b>: la tarjeta «Rebaja de precio» y «Activar» (o «Guardar como borrador»). Los valores de fábrica ya son −20 %, toda la campaña, las 3 tiendas, 23 al 25 oct y se suma.</td></tr>
+   <tr><td>Toques · caso 2 («3x2»)</td><td><b>3</b>: «2 por un precio · 3x2», «Lleva y paga menos (3x2)» y «Activar». Con el buscador, escribir «3x2» abre esa tarjeta con la variante ya elegida: 2 toques.</td></tr>
+   <tr><td>Toques · caso 3 («S/ 30 menos desde S/ 300»)</td><td><b>2</b>: «Si gasta, ahorra» y «Activar» (los valores de fábrica ya son S/ 30 desde S/ 300).</td></tr>
+   <tr><td>Toques · caso 4 («2 polos por S/ 59.90», solo Polos, 2 tiendas, fin de semana)</td><td><b>6</b>: la tarjeta, «Cambiar», «Polos», quitar una tienda, «Fin de semana» y «Activar». El precio se ajusta solo a S/ 59.90 al elegir Polos.</td></tr>
+   <tr><td>Qué se esconde y dónde</td><td>Detrás de <b>«Cambiar»</b>: qué prendas (categorías), cuándo (fechas y atajos), dónde (tiendas), con las demás ofertas (se suma o no), el nombre y, en las cantidades, qué prendas cuentan. Un nivel más adentro, <b>«Dejar fuera, Claurè y días sin venderse»</b>. Detrás de <b>«Lo que cedes y qué pasa después»</b>: cuánto margen cede (estimado) y qué pasa con devoluciones, cambios y apartados. Los avisos (Indecopi, Jean Palazzo, bajo el costo, regalo, cruce con otra oferta) solo salen si aplican.</td></tr>
+  </table><div class="vivo" id="medida-vivo"></div>`;
+}
+medida();
+render();
+</script>
+</body>
+</html>

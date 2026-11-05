@@ -29,17 +29,26 @@ describe("pulsoCierre", () => {
     expect(p.cosas.map((c) => [c.clave, c.bloquea])).toEqual([["tru:egresos", true], ["aqp:cajas", true], ["tru:cerrada_sin_prenda", false]]);
     expect(p.cosas[0]!.href).toBe("/finanzas/gastos?tab=egresos&ver=tru");
     expect(p.cosas[0]!.unidad).toBe("Tienda Trujillo");
+    // El botón dice lo mismo que en los chequeos de abajo: una venta cerrada sin prenda solo se mira.
+    expect(p.cosas.map((c) => c.enlace)).toEqual(["Resolver", "Resolver", "Ver ventas"]);
   });
 
   it("sin nada que frene, se puede cerrar; lo que solo avisa queda en la lista", () => {
     const listo = { ...PANEL, unidades: [unidad({ ...TRU, chequeos: TRU.chequeos.map((c) => (c.clave === "egresos" ? { ...c, ok: true } : c)) }), unidad({ ...AQP, chequeos: AQP.chequeos.map((c) => (c.clave === "cajas" ? { ...c, ok: true } : c)) }), EMP] };
     const p = pulsoCierre(listo);
-    expect(p.estado).toBe("faltan");
+    // «listo» (el anillo verde con su ✓), nunca «faltan» con un 0: el anillo decía «0 cosas».
+    expect(p.estado).toBe("listo");
     expect(p.faltan).toBe(0);
     expect(p.pct).toBe(100);
     expect(p.frase).toBe("Puedes cerrar octubre.");
     expect(p.explica).toContain("Tienda Trujillo, Tienda Arequipa y De la empresa ya están listas");
     expect(p.cosas.map((c) => c.clave)).toEqual(["tru:cerrada_sin_prenda"]);
+  });
+
+  it("sin ningún chequeo que frene, el anillo igual se cierra (no queda vacío)", () => {
+    const sinFrenos = unidad({ clave: "lim", nombre: "Tienda Lima", chequeos: [chequeo("cerrada_sin_prenda", false, false, { n: 1 }), chequeo("huella", false, false)] });
+    const p = pulsoCierre({ ...PANEL, unidades: [sinFrenos] });
+    expect(p).toMatchObject({ estado: "listo", total: 0, faltan: 0, pct: 100, frase: "Puedes cerrar octubre." });
   });
 
   it("todas las unidades cerradas: queda CAYLA entera", () => {
@@ -60,5 +69,55 @@ describe("pulsoCierre", () => {
   it("una sola cosa, en singular", () => {
     const p = pulsoCierre({ ...PANEL, unidades: [TRU, EMP] });
     expect(p.frase).toBe("Te falta 1 cosa para cerrar octubre.");
+  });
+});
+
+describe("pulsoCierre con los pendientes por sede (envíos, conteos, sobrantes, facturas)", () => {
+  const con = (bloquea: boolean) =>
+    unidad({
+      clave: "lim", nombre: "Tienda Lima",
+      chequeos: [
+        chequeo("cajas", true), chequeo("egresos", true),
+        chequeo("envios_con_diferencia", false, bloquea, { n: 2, unidades: 9, monto: 180 }),
+        chequeo("conteos_abiertos", true, bloquea, { n: 0 }), chequeo("sobrantes_traslado", true, bloquea, { n: 0 }), chequeo("facturas_sin_recibir", true, bloquea, { n: 0 }),
+        chequeo("diario", true),
+      ],
+    });
+  it("en octubre avisan: no cuentan como lo que falta, pero salen en la lista con la sede en la frase y su enlace", () => {
+    const p = pulsoCierre({ ...PANEL, unidades: [con(false)] });
+    expect(p.estado).toBe("listo");
+    expect(p.faltan).toBe(0);
+    expect(p.frase).toBe("Puedes cerrar octubre.");
+    expect(p.total).toBe(3); // cajas, egresos y diario: los cuatro nuevos todavía no frenan
+    expect(p.cosas.map((c) => [c.clave, c.bloquea, c.href])).toEqual([["lim:envios_con_diferencia", false, "/compras/proveedores"]]);
+    expect(p.cosas[0]!.detalle).toMatch(/^2 envíos recibidos en Lima tienen faltantes sin resolver .* Puedes cerrar octubre igual/);
+  });
+  it("desde noviembre frenan: el que falla cuenta como pendiente y los que pasan suman a lo hecho", () => {
+    const p = pulsoCierre({ ...PANEL, mes: "2026-11", unidades: [con(true)] });
+    expect(p.faltan).toBe(1);
+    expect(p.total).toBe(7); // los 3 de siempre + los 4 nuevos
+    expect(p.hechos).toBe(6);
+    expect(p.frase).toBe("Te falta 1 cosa para cerrar noviembre.");
+    expect(p.cosas[0]).toMatchObject({ clave: "lim:envios_con_diferencia", bloquea: true, href: "/compras/proveedores" });
+    expect(p.cosas[0]!.detalle).toMatch(/Resuélvelo en «Nos debe», en la ficha del proveedor para poder cerrar noviembre$/);
+  });
+});
+
+describe("pulsoCierre para una cuenta que no ve la plata de proveedores (el `monto` llega nulo)", () => {
+  it("las dos frases con plata dicen lo que falta sin ninguna cifra (ni «S/ 0»)", () => {
+    const lim = unidad({
+      clave: "lim", nombre: "Tienda Lima",
+      chequeos: [
+        chequeo("cajas", true),
+        chequeo("envios_con_diferencia", false, false, { n: 1, unidades: 5, monto: null }),
+        chequeo("facturas_sin_recibir", false, false, { n: 1, unidades: 50, monto: null }),
+        chequeo("diario", true),
+      ],
+    });
+    const p = pulsoCierre({ ...PANEL, unidades: [lim] });
+    expect(p.cosas.map((c) => c.clave)).toEqual(["lim:envios_con_diferencia", "lim:facturas_sin_recibir"]);
+    expect(p.cosas[0]!.detalle).toMatch(/^1 envío recibido en Lima tiene faltantes sin resolver con el proveedor: 5 prendas\. Puedes cerrar octubre igual/);
+    expect(p.cosas[1]!.detalle).toMatch(/^1 factura de mercadería en Lima tiene prendas sin recibir: 50 prendas por llegar\. Puedes cerrar octubre igual/);
+    for (const c of p.cosas) expect(c.detalle).not.toMatch(/S\/|\(/);
   });
 });

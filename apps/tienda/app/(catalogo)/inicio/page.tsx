@@ -2,32 +2,30 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
-import { CarrilConFlechas } from "@/components/CarrilConFlechas";
-import { ConfianzaPortada } from "@/components/portada/ConfianzaPortada";
-import { FotoTarjeta } from "@/components/FotoTarjeta";
+import { EscenarioDelDesfile } from "@/components/desfile/EscenarioDelDesfile";
+import { ListaDeSalidas } from "@/components/desfile/ListaDeSalidas";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
-import { PendienteDelEnlace } from "@/components/PendienteDelEnlace";
+import { OfertasPorCampana } from "@/components/OfertasPorCampana";
 import { SeccionClub } from "@/components/SeccionClub";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import {
   campanasDe,
-  colorDeDibujo,
   filtrarYOrdenar,
-  formaDe,
-  fotoOptimizable,
-  fotosDeTarjeta,
   hrefLista,
   leerCampana,
   type Prenda,
 } from "@/lib/catalogo";
-import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
-import { categoriasDelInicio, heroDelInicio } from "@/lib/inicio";
+import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
+import { piezasDelDesfile } from "@/lib/desfile";
+import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
@@ -35,7 +33,8 @@ import { hrefLooks } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anioLima, fechaCorta, pctTexto } from "@/lib/portada";
-import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
@@ -65,13 +64,13 @@ const hrefInicio = (sede: string | null, oferta: string | null = null) => {
 export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, { campana }, sesion, lecturaLooks, beneficios] = await Promise.all([
+  const pedida = await sedeDeLaPagina(sp, sedes, "/inicio", claveDeSede);
+  const [catalogo, { campana }, sesion, lecturaLooks, puntosDelClub] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerLooks(pedida?.id ?? null),
-    leerBeneficiosDelClub(),
+    leerConfigDePuntosDelClub(),
   ]);
   const [lectura, avisosDelClub, mias, vistos] =
     sesion.estado === "con_sesion"
@@ -97,17 +96,22 @@ export default async function Inicio({ searchParams }: Props) {
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const prendas = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
-  const enTxt = elegida ? ` en ${elegida.nombre}` : "";
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
   const hero = heroDelInicio(campana, prendas);
-  const categorias = categoriasDelInicio(prendas);
+  // El diseño de la campaña que anuncia la portada (la misma que la franja): viste el héroe y el sello de sus prendas; sin él, todo como siempre.
+  const diseno = await leerDisenoDeCampana(campana?.nombre);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
+  // Lo que llegó hace menos, con foto primero: las salidas del desfile (hasta 6) y las filas de su programa (hasta 8) siguen el mismo orden y la misma numeración.
+  const nuevas = lasNuevas(prendas);
+  // Sin nada que llegara hace menos de 30 días el programa sigue (Felipe 2026-10-27): lista lo que hay en la tienda, el mismo orden del desfile.
+  const delPrograma = nuevas.length > 0 ? nuevas : lasEnVitrina(prendas);
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
   const ofertaElegida = campanas.find((c) => c.id === leerCampana(sp.oferta)) ?? null;
-  const ofertasVistas = ofertaElegida ? ofertas.filter((p) => p.campana?.id === ofertaElegida.id) : ofertas;
+  const grillaDe = (lista: Prenda[]) =>
+    lista.slice(0, 8).map((p) => <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} diseno={diseno} />);
   const vendidos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "vendidos" }).slice(0, 8);
   const lista = (l: "nuevo" | "ofertas" | "vendidos", campanaId: string | null = null) =>
     hrefLista({ sede, categoria: null, orden: "destacado", lista: l, campana: campanaId });
@@ -123,9 +127,17 @@ export default async function Inicio({ searchParams }: Props) {
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
-      <HeroeDelInicio hero={hero} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
-      {/* Quien todavía no tiene sesión ve de un vistazo lo que la tienda cumple (la franja que era de la portada). */}
-      {!conSesion && <ConfianzaPortada tiendas={sedes.map((s) => s.nombre)} />}
+      <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      {/* Con una campaña vigente la portada es la de la campaña y el desfile baja a su propia sección (ADR-0524); sin campaña, el desfile ES la portada. */}
+      {hero.tipo === "campana" && nuevas.length > 0 && (
+        <EscenarioDelDesfile
+          piezas={piezasDelDesfile(nuevas, sede, origenFotos)}
+          modo="seccion"
+          ceja="Llegó en los últimos 30 días"
+          titulo="Lo nuevo"
+          boton={{ texto: "Ver lo nuevo", href: lista("nuevo") }}
+        />
+      )}
 
       {catalogo === null ? (
         <div className="t-ancho">
@@ -140,75 +152,38 @@ export default async function Inicio({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          {/* Los círculos de las categorías: en la computadora, centrados si caben y, si no, desde la primera (antes se cortaban
-              las primeras ocho a la izquierda, sin forma de verlas), con flechas para el mouse (`CarrilConFlechas`). */}
-          {categorias.length > 0 && (
-            <CarrilConFlechas className="t-circs-envol">
-              <nav className="t-circs" aria-label="Categorías">
-                {categorias.map((c) => {
-                  const foto = fotosDeTarjeta(c.prenda)[0];
-                  return (
-                    <Link key={c.clave} className="t-circ" href={hrefLista({ sede, categoria: c.clave, orden: "destacado" })} data-nuevo={c.nueva ? "" : undefined}>
-                      <span className="t-circ-img">
-                        <FotoTarjeta
-                          foto={foto}
-                          segunda={null}
-                          optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, false]}
-                          nombre=""
-                          forma={formaDe(c.prenda.categoria?.prefijo)}
-                          color={colorDeDibujo(c.prenda)}
-                          tamanos="96px"
-                        />
-                      </span>
-                      <b>{c.corto}</b>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </CarrilConFlechas>
-          )}
-
-          {nuevos.length > 0 && (
-            <section className="t-sec t-ancho" aria-labelledby="lo-nuevo">
-              <div className="t-sec-cab">
-                <div>
-                  <span className="t-ceja">Recién llegado{enTxt}</span>
-                  <h2 id="lo-nuevo">
-                    Lo <em>nuevo</em>
-                  </h2>
-                  <p>Lo que llegó a nuestras tiendas en los últimos 30 días.</p>
-                </div>
-                <Link className="t-ver" href={lista("nuevo")}>
-                  Ver todo <b>{nuevos.length}</b>
-                  <Icono nombre="flecha" />
+          {delPrograma.length > 0 && (
+            <section className="t-programa-sec t-ancho" aria-labelledby="lo-nuevo">
+              <div className="t-cab-centro" data-revela>
+                <span className="t-ceja">El programa</span>
+                <h2 id="lo-nuevo">
+                  En las <em>tiendas</em>
+                </h2>
+                <p>Lo que llegó a nuestras tiendas. Mira cuánto hay en cada una y sepáralo sin pagar.</p>
+              </div>
+              <ListaDeSalidas piezas={piezasDelDesfile(delPrograma, sede, origenFotos, 8)} />
+              <div className="t-programa-pie">
+                <Link className="t-btn t-btn-sec" href={nuevas.length > 0 ? lista("nuevo") : hrefLista({ sede, categoria: null, orden: "destacado" })}>
+                  {nuevas.length > 0 ? `Ver las ${nuevos.length} salidas` : "Ver toda la tienda"}
                 </Link>
               </div>
-              <CarrilConFlechas className="t-carril-inicio">
-                <div className="t-carril">
-                  {nuevos.slice(0, 10).map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo />
-                  ))}
-                </div>
-              </CarrilConFlechas>
             </section>
           )}
 
           {looks.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
-                  <span className="t-ceja">Combinaciones listas</span>
                   <h2 id="arma-tu-look">
                     Arma tu <em>look</em>
                   </h2>
-                  <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
                 </div>
                 <Link className="t-ver" href={hrefLooks(sede)}>
                   Ver todos <b>{looks.length}</b>
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-looks-inicio">
+              <div className="t-looks-inicio" data-revela-lista>
                 {looks.slice(0, 3).map((l) => (
                   <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
                 ))}
@@ -219,67 +194,49 @@ export default async function Inicio({ searchParams }: Props) {
           {ofertas.length > 0 && (
             <section className="t-ofertas" id="ofertas" aria-labelledby="las-ofertas">
               <div className="t-ancho">
-                <div className="t-sec-cab">
-                  <div>
-                    <span className="t-ceja">Campañas vigentes{enTxt}</span>
-                    <h2 id="las-ofertas">
-                      Las <em>ofertas</em>
-                    </h2>
-                    <p>El descuento de cada campaña, sobre el precio de tu tienda.</p>
-                  </div>
-                  <Link className="t-ver" href={lista("ofertas", ofertaElegida?.id ?? null)}>
-                    Ver todas <b>{ofertaElegida ? ofertaElegida.cuantas : ofertas.length}</b>
-                    <Icono nombre="flecha" />
-                  </Link>
-                </div>
-                <nav className="t-pildoras" aria-label="Campañas">
-                  <Link className="t-pildora" href={`${hrefInicio(sede)}#ofertas`} scroll={false} aria-current={ofertaElegida ? undefined : "true"}>
-                    Todas <small>{ofertas.length}</small>
-                    <PendienteDelEnlace />
-                  </Link>
-                  {campanas.map((c) => (
-                    <Link
-                      key={c.id}
-                      className="t-pildora"
-                      href={`${hrefInicio(sede, c.id)}#ofertas`}
-                      scroll={false}
-                      aria-current={ofertaElegida?.id === c.id ? "true" : undefined}
-                    >
-                      {c.nombre} −{pctTexto(c.pct)} % <small>{c.hasta ? `hasta ${fechaCorta(c.hasta)}` : "sin fecha"}</small>
-                      <PendienteDelEnlace />
-                    </Link>
-                  ))}
-                </nav>
-                <div className="t-grilla">
-                  {ofertasVistas.slice(0, 8).map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} />
-                  ))}
-                </div>
+                <OfertasPorCampana
+                  inicial={ofertaElegida?.id ?? null}
+                  titulo={
+                    <div>
+                      <h2 id="las-ofertas">
+                        Las <em>ofertas</em>
+                      </h2>
+                    </div>
+                  }
+                  campanas={[
+                    { id: null, nombre: "Todas", hasta: null, cuantas: ofertas.length, href: `${hrefInicio(sede)}#ofertas`, verTodas: lista("ofertas"), grilla: grillaDe(ofertas) },
+                    ...campanas.map((c) => ({
+                      id: c.id,
+                      nombre: `${c.nombre} −${pctTexto(c.pct)} %`,
+                      hasta: c.hasta ? `hasta ${fechaCorta(c.hasta)}` : null,
+                      cuantas: c.cuantas,
+                      href: `${hrefInicio(sede, c.id)}#ofertas`,
+                      verTodas: lista("ofertas", c.id),
+                      grilla: grillaDe(ofertas.filter((p) => p.campana?.id === c.id)),
+                    })),
+                  ]}
+                />
               </div>
             </section>
           )}
 
           {vendidos.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="mas-vendidos">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
-                  <span className="t-ceja">Lo que más se llevan</span>
                   <h2 id="mas-vendidos">
                     Más <em>vendidos</em>
                   </h2>
-                  <p>Por modelo, en los últimos 30 días.</p>
                 </div>
                 <Link className="t-ver" href={lista("vendidos")}>
-                  Ver el ranking <Icono nombre="flecha" />
+                  Ver todo <Icono nombre="flecha" />
                 </Link>
               </div>
               <ol className="t-top">
-                {vendidos.map((p, i) => (
+                {/* El orden de izquierda a derecha ya es el ranking (la lista es ordenada): sin números grandes sobre las fotos. */}
+                {vendidos.map((p) => (
                   <li key={p.id}>
-                    <span className="t-top-n" aria-hidden="true">
-                      {i + 1}
-                    </span>
-                    <TarjetaPrenda prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} />
+                    <TarjetaPrenda prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo diseno={diseno} />
                   </li>
                 ))}
               </ol>
@@ -294,11 +251,12 @@ export default async function Inicio({ searchParams }: Props) {
         desde={cuenta?.clubDesde ?? anioLima()}
         conCuenta={conSesion}
         esDelClub={cuenta?.esDelClub ?? conSesion}
-        cumplePct={beneficios?.pct ?? null}
+        regaloCumple={puntosDelClub?.regaloCumple ?? null}
       />
       {sedes.length > 0 && (
         <NuestrasTiendas
           sedes={sedes}
+          ceja=""
           ver={Object.fromEntries(sedes.map((s) => [s.id, { href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id }]))}
         />
       )}

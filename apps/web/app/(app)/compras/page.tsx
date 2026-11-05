@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, veModulo } from "@/lib/persona-actual";
+import { entradaDeCompras } from "@/lib/compras-pestanas-reglas";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
-import { nombresDeDestinos } from "@/lib/reparto-reglas";
+import { destinosCortos } from "@/lib/reparto-reglas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -15,15 +17,16 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { BotonEnlace } from "@/components/ui/campos";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
 import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
-import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorialCompras";
 
-// Comprobantes de proveedores (ADR-0035, rediseño ADR-0111): la lista de lo que se compró. Cada
+// Historial de compras (ADR-0035, rediseño ADR-0111; solo lectura desde el 2026-10-23, ADR-0480 act.): la lista de lo que
+// se compró, con su papel —factura, boleta, nota de venta o sin comprobante—. Aquí ya no se registra nada: la compra nace en
+// «Mis compras» y su comprobante, en «Revisar compras». Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
 // debajo, no solo con un chip. Filtros, vistas y paginado viven en la URL y se resuelven en
 // Postgres (`listar_compras`): la página nunca recibe más de 50 filas, haya 300 comprobantes o
@@ -52,9 +55,13 @@ const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  // 20260923130000: la lista de facturas es del módulo Facturas de compra. ADR-0387 (Felipe 2026-10-12): con el módulo se ven
+  // 20260923130000: la lista es del módulo `facturas_compra` (en pantalla, «Historial de compras»). ADR-0387 (Felipe 2026-10-12): con el módulo se ven
   // las facturas de TODAS las tiendas, como el líder (lo filtra la base); ya no hay «tu parte» en comprobantes de otra tienda.
-  await exigirModulo("facturas_compra");
+  // ADR-0504: esta ruta es la de la fila «Historial de compras» del menú, que se abre con cualquiera de los tres módulos (Historial, Revisar
+  // compras o Por pagar). Quien no ve el Historial cae en la primera pestaña que sí ve, no en «Sin acceso».
+  const persona = await exigirModulo("facturas_compra", "fondos", "por_pagar");
+  if (!veModulo(persona, "facturas_compra")) redirect(entradaDeCompras(persona.modulos.map((m) => m.clave)) ?? "/");
+  const vePorPagar = veModulo(persona, "por_pagar");
   const params = await searchParams;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -104,23 +111,17 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Desde ADR-0387 quien tiene el módulo ve las
-          facturas de todas las tiendas: eso dice la línea de arriba. */}
-      <EncabezadoPagina
-        sede="Todas las tiendas"
-        titulo="Facturas de proveedor"
-        subtitulo="Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella."
+      {/* La cabecera de las tres pestañas de «Historial de compras» (ADR-0504). Desde ADR-0387 quien tiene el módulo ve las facturas de
+          todas las tiendas: eso dice la línea de arriba. Esta pantalla ya leyó lo que se debe (`resumen`): no se vuelve a pedir. */}
+      <CabeceraHistorialCompras
+        activa="historial"
+        conteos={{ porPagar: { conSaldo: resumen.conSaldo, vencidas: resumen.vencidas } }}
         acciones={
-          <>
-            {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
-                quien tiene el módulo descarga las facturas de todas las tiendas, como el líder. */}
-            <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
-              Descargar el mes
-            </BotonDescargar>
-            <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
-              + Registrar factura
-            </BotonEnlace>
-          </>
+          // El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
+          // quien tiene el módulo descarga las compras de todas las tiendas, como el líder. Registrar ya no vive aquí (ADR-0480 act.).
+          <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
+            Descargar el mes
+          </BotonDescargar>
         }
       />
 
@@ -135,7 +136,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
           etiqueta="Por pagar"
           valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
-          href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar"}
+          href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
           reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
         >
           {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
@@ -148,7 +149,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
           etiqueta="Por recibir"
           valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
-          unidad={resumen.porRecibir === 1 ? "factura" : "facturas"}
+          unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
           href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
           reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
         >
@@ -157,7 +158,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           ) : (
             <>
               {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-              {soles(extra.valorPorRecibir)} por llegar
+              {soles(extra.valorPorRecibir)}
             </>
           )}
         </TarjetaCifra>
@@ -167,7 +168,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           etiqueta={`Compras de ${mesActual}`}
           valor={<CifraQueCuenta valor={extra.comprasMes} formato="soles" alMontar />}
         >
-          {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)} completo: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
+          {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)}: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
         </TarjetaCifra>
         <TarjetaCifra
           className="anim-entra"
@@ -176,14 +177,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           etiqueta="IGV del mes"
           valor={<CifraQueCuenta valor={extra.igvMes} formato="soles" alMontar />}
         >
-          Crédito fiscal · solo facturas
+          Solo facturas
         </TarjetaCifra>
       </div>
 
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
           con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
           maqueta de ADR-0111. La vista sigue en la URL. */}
-      <nav aria-label="Vistas de facturas" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
+      <nav aria-label="Vistas del historial" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
         {(
           [
             { clave: "todos", etiqueta: "Todos", conteo: resumen.registradas },
@@ -207,7 +208,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           visibles={["proveedor", "pago", "recepcion", "destino", "condicion", "tipo", "fechas", "vencidas"]}
           accionesDespues={
             <SegmentoEnlaces
-              etiquetaAccesible="Ordenar facturas"
+              etiquetaAccesible="Ordenar compras"
               guia="compras.orden"
               activo={orden}
               opciones={[
@@ -251,14 +252,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                   >
                     <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">{diaMes(c.fechaEmision)}</span>
-                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
+                      <span className={`block text-sm ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
                     </span>
                     <span className={celda()} data-guia="compras.proveedor">
                       <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
                         <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
                       </span>
                       {c.proveedorRuc && (
-                        <span className="block text-xs tabular-nums text-tinta/70">
+                        <span className="block text-sm tabular-nums text-tinta/70">
                           RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
                         </span>
                       )}
@@ -267,24 +268,27 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <span className="block">
                         <Resaltado texto={c.documento} busqueda={busqueda} />
                       </span>
-                      <span className="block text-xs text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
+                      <span className="block text-sm text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
                     </span>
                     <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.recepcion">
                       <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                      <span className="mt-0.5 block text-xs text-tinta/70">{recepcion.sub}</span>
+                      {c.estado !== "anulada" && <span className="mt-0.5 block text-sm text-tinta/70">{recepcion.sub}</span>}
                       {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
                       {c.ubicacionesDestino.length > 1 && (
-                        <span className="mt-0.5 block text-xs text-tinta/70">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                        <span className="mt-0.5 block text-sm text-tinta/70">{destinosCortos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
                       )}
                       {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                       <AvanceFino pct={recepcion.pct} />
                     </span>
                     <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.pago">
+                      {/* Una anulada ya lo dice en Recepción, y una pagada no necesita más que su chip: «Contado» o «Vence» van bajo la emisión. */}
                       {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
-                      <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
-                        {pago.texto}
-                      </Chip>
-                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/70">{pago.sub}</span>
+                      {c.estado !== "anulada" && (
+                        <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
+                          {pago.texto}
+                        </Chip>
+                      )}
+                      {c.estado !== "anulada" && c.estadoPago !== "pagada" && <span className="mt-0.5 block text-sm tabular-nums text-tinta/70">{pago.sub}</span>}
                       <AvanceFino pct={pago.pct} />
                       {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
                       <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />

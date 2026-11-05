@@ -26,7 +26,8 @@ import {
 import { leerMisLooksEnBase } from "@/lib/looks-guardados-servidor";
 import { armarProbador, codificarLook, colorDeLaPieza, hrefDelProbador, indizar, notaDeLaFoto, presentes, totales } from "@/lib/probador";
 import { leerProbador } from "@/lib/probador-servidor";
-import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
@@ -55,7 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function LookGuardado({ params, searchParams }: Props) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
+  const pedida = await sedeDeLaPagina(sp, sedes, `/looks/guardado/${id}`, claveDeSede);
   const [catalogo, lectura, looks, hoy] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerProbador(pedida?.id ?? null),

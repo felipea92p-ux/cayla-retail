@@ -24,7 +24,9 @@ import {
   leerMonto,
   muyLejos,
   bajoElCostoSinIgual,
+  excepcionesDeLaTienda,
   soles,
+  type ExcepcionDeSede,
   type PrecioDeSede,
 } from "@/lib/precio-sede-reglas";
 import { sugerirMotivo } from "@/lib/sugerencias-precio-sede";
@@ -77,6 +79,7 @@ export function PonerPrecioSedeModal({
   precioAntesEn,
   ubicacionActual,
   actual,
+  excepciones = [],
   onClose,
   onGuardado,
 }: {
@@ -95,6 +98,8 @@ export function PonerPrecioSedeModal({
   ubicacionActual: string | null;
   /** Cambiar el precio que ya tiene una tienda. */
   actual?: PrecioDeSede;
+  /** Las tallas con otro precio en alguna tienda (2026-10-28): un precio nuevo de la prenda en esa tienda las reemplaza. */
+  excepciones?: readonly ExcepcionDeSede[];
   onClose: () => void;
   onGuardado: () => void;
 }) {
@@ -108,6 +113,8 @@ export function PonerPrecioSedeModal({
   const responsable = useResponsable();
 
   const tienda = tiendas.find((t) => t.id === tiendaId) ?? null;
+  // Un precio nuevo de la prenda en una tienda archiva sus excepciones por talla (la base lo hace sola: 20261028232000): se dice antes de guardar.
+  const tallasConOtroPrecio = tienda ? excepcionesDeLaTienda(excepciones, tienda.id).length : 0;
   const precio = leerMonto(monto);
   const campos = camposPonerPrecio({
     tiendaId: tienda?.id ?? null,
@@ -206,6 +213,12 @@ export function PonerPrecioSedeModal({
           {lejos && !bajoCosto && precio !== null && general !== null && (
             <Aviso tono="atencion" titulo="Revisa el precio" chico>
               {soles(precio)} está muy lejos del precio de la prenda ({soles(general)}). Revisa que no sobre o falte un número; si es correcto, guárdalo igual.
+            </Aviso>
+          )}
+
+          {tallasConOtroPrecio > 0 && tienda && (
+            <Aviso tono="atencion" titulo="Hay tallas con otro precio" chico>
+              En {tienda.nombre}, {tallasConOtroPrecio === 1 ? "1 talla tiene" : `${tallasConOtroPrecio} tallas tienen`} otro precio. Al guardar, toda la prenda pasa a este precio ahí y ese precio de talla se quita.
             </Aviso>
           )}
 
@@ -345,6 +358,92 @@ export function QuitarPrecioSedeModal({
               </Boton>
               <Boton textoCargando="Quitando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined}>
                 Quitar precio de {precio.sede}
+              </Boton>
+            </div>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * Quitar el precio propio de UNA talla en una tienda (la excepción por combinación, 2026-10-28): esa talla vuelve al precio de la prenda ahí.
+ * Lo demás de la tienda no se toca. Queda en el historial. Mismo formulario que quitar el precio de la prenda: por qué (opcional) y quién firma.
+ */
+export function QuitarPrecioDeTallaModal({
+  excepcion,
+  talla,
+  precioDeLaPrenda,
+  onClose,
+  onGuardado,
+}: {
+  excepcion: ExcepcionDeSede;
+  /** Cómo se llama la combinación («Negro · M»). */
+  talla: string;
+  /** A cuánto vuelve esa talla en esa tienda (el precio de la prenda ahí, si es uno solo); `null` si cambia según la talla. */
+  precioDeLaPrenda: number | null;
+  onClose: () => void;
+  onGuardado: () => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const responsable = useResponsable();
+  const campos = camposQuitarPrecio({ responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
+  const guia = useGuiaCampos(campos);
+
+  async function onQuitar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!sePuedeConfirmar(campos)) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    setGuardando(true);
+    const { error } = await firmar(
+      createClient().rpc("quitar_precio_sede_variante" as never, { p_variante_id: excepcion.varianteId, p_ubicacion_id: excepcion.ubicacionId, p_motivo: motivo.trim() || undefined } as never),
+      responsable.firma(),
+    );
+    setGuardando(false);
+    responsable.despues(error);
+    if (error) {
+      avisar.error(traducirError(error, "quitar el precio de la talla"));
+      return;
+    }
+    avisar.exito(`${talla} vuelve al precio de la prenda en ${excepcion.sede}`, {
+      detalle: precioDeLaPrenda !== null ? `Ahí se vende otra vez a ${soles(precioDeLaPrenda)}.` : "Ahí se vende otra vez al precio de la prenda.",
+    });
+    onGuardado();
+  }
+
+  return (
+    <Modal
+      titulo={`Quitar el precio de ${talla} en ${excepcion.sede}`}
+      subtitulo={`Hoy esa talla se vende ahí a ${soles(excepcion.precio)}. Al quitarlo vuelve al precio de la prenda en ${excepcion.sede}.`}
+      onClose={onClose}
+      variante="hoja"
+    >
+      {(cerrar) => (
+        <form onSubmit={onQuitar} className="space-y-6">
+          <CampoTexto
+            etiqueta="Por qué (opcional)"
+            caja
+            maxLength={160}
+            // sugerir-fijo: quitar no tiene elección previa que el ejemplo deba seguir; es una instrucción, no un ejemplo
+            placeholder="Por qué vuelve al precio de la prenda"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+          />
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+          <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
+            <PieGuia guia={guia} listo="Listo para quitarlo." />
+            <div className="ml-auto pie-acciones">
+              <Boton type="button" onClick={cerrar}>
+                Cancelar
+              </Boton>
+              <Boton textoCargando="Quitando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined}>
+                Quitar precio de {talla}
               </Boton>
             </div>
           </div>

@@ -1,0 +1,109 @@
+/* =====================================================================
+   «A dónde va la plata» (Finanzas ▸ Resumen, 2026-10-29): el anillo con lo que sale del recorrido de la plata y su leyenda.
+   Reemplaza al recorrido en hilos y a «¿Y de cada S/ 100?». Solo tokens (ADR-0169, ADR-0336). Movimiento de ADR-0136: los tramos entran una
+   vez, en cascada, sin rebote ni bucle; con `prefers-reduced-motion` quedan quietos.
+   ===================================================================== */
+
+.fin-donut {
+  display: grid;
+  grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr);
+  gap: 1.25rem 2rem;
+  align-items: center;
+}
+.fin-donut-dibujo {
+  position: relative;
+  width: 100%;
+  max-width: 15rem;
+  margin-inline: auto;
+}
+.fin-donut-dibujo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.fin-donut-tramo {
+  cursor: pointer;
+  transition: opacity 0.2s var(--ease-cayla);
+  animation: fin-donut-entra 0.5s var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.fin-donut[data-hay] .fin-donut-tramo:not([data-en]) {
+  opacity: 0.3;
+}
+@keyframes fin-donut-entra {
+  from { opacity: 0; }
+}
+/* El centro es HTML encima del dibujo (un foreignObject se corre en Safari). */
+.fin-donut-centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  padding: 0 22%;
+  text-align: center;
+  pointer-events: none;
+}
+.fin-donut-centro span {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--color-taupe-profundo);
+}
+.fin-donut-centro b {
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--color-tinta);
+}
+.fin-donut-ley {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fin-donut-ley button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 2.5rem;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.4375rem 0.5rem;
+  border: 0;
+  border-radius: 0.625rem;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--color-tinta);
+}
+.fin-donut-ley button[data-en] {
+  background: var(--color-hueso);
+}
+@media (hover: hover) {
+  .fin-donut-ley button:hover {
+    background: var(--color-hueso);
+  }
+}
+.fin-donut-ley i {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.25rem;
+}
+.fin-donut-ley span:last-child {
+  text-align: right;
+}
+@media (max-width: 40rem) {
+  .fin-donut {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fin-donut-tramo {
+    animation: none;
+    transition: none;
+  }
+}

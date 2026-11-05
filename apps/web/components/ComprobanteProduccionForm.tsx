@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, X, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { MediosDePago } from "@/components/MediosDePago";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -25,9 +26,11 @@ import {
 } from "@/lib/comprobantes-produccion-reglas";
 import { UNIDADES_INSUMO } from "@/lib/insumos-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
-import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/components/finanzas/CampoCuenta";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
+import { pedidosSinFacturaDe, type OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 
 // Alta de un comprobante de Producción (ADR-0133, F4b; D-H): la factura del proveedor de tela, avíos o maquila. Con `<Modal>` del
@@ -52,12 +55,14 @@ export function ComprobanteProduccionForm({
   insumos,
   hoy,
   proveedorInicialId,
+  pedidosPorRecibir,
   onClose,
 }: {
   proveedores: ProveedorProduccion[];
   insumos: InsumoParaComprobante[];
   hoy: string;
   proveedorInicialId: string | null;
+  pedidosPorRecibir: OrdenInsumoPorRecibir[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -74,14 +79,19 @@ export function ComprobanteProduccionForm({
   const [lineas, setLineas] = useState<LineaForm[]>([{ ...LINEA_VACIA }]);
   const [totalPapel, setTotalPapel] = useState("");
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo()]);
-  // ADR-0195 F3b: «Sale de» en cada medio del pago al contado (el Taller no cobra: se propone la primera cuenta que sirve).
-  const cuentas = useCuentasParaElegir("pago", null);
+  // ADR-0195 F3b: «Sale de» en cada medio del pago al contado. Se pide con la sede del Taller: así propone la cuenta que el líder
+  // eligió para sus transferencias; si no hay ninguna (o el Taller no responde), la primera cuenta que sirve, como siempre.
+  const taller = useIdDelTaller();
+  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { propuestaSoloDe: PROPUESTA_DEL_TALLER });
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el comprobante firma con quien se elige en el combo (lista de la sede activa).
   const responsable = useResponsable();
 
   const proveedor = proveedores.find((p) => p.id === proveedorId) ?? null;
+  // Si ese proveedor tiene un pedido con tela sin factura, esta factura puede ser de ese pedido: registrarla suelta la dejaría para recibir dos
+  // veces en Recibir (ADR-0587, mejora 3). Se pregunta, no se bloquea: otra compra del mismo proveedor es normal.
+  const pedidosSinFactura = pedidosSinFacturaDe(pedidosPorRecibir, proveedor?.nombre ?? null);
   const totales = calcularTotales(lineas, tipo);
   const form = { proveedorId, tipo, serie, numero, fechaEmision, condicion, fechaVencimiento, lineas, totalPapel };
   const totalFinal = totalPapel.trim() !== "" && Number(totalPapel.replace(",", ".")) >= 0 ? redondear2(Number(totalPapel.replace(",", "."))) : totales.total;
@@ -162,6 +172,41 @@ export function ComprobanteProduccionForm({
           marcador="Elige un proveedor…"
         />
         </div>
+        {proveedor && pedidosSinFactura.length > 0 && (
+          <Aviso
+            tono="atencion"
+            chico
+            guia="prod-factura-nueva.pedido-abierto"
+            className="-mt-2"
+            titulo={pedidosSinFactura.length === 1 ? `${proveedor.nombre} tiene un pedido sin factura` : `${proveedor.nombre} tiene ${pedidosSinFactura.length} pedidos sin factura`}
+          >
+            {/* El botón va bajo el texto, no en `accion`: a la derecha le quitaba el ancho al texto en el celular (291 px de alto a 375 px), y así
+                las dos formas del aviso —uno o varios pedidos— llevan lo que se toca en el mismo lugar. */}
+            {pedidosSinFactura.length === 1 ? (
+              <>
+                {pedidosSinFactura[0].documento}: {pedidosSinFactura[0].detalle}. Si esta factura es de ese pedido, regístrala desde el pedido: así la tela no se recibe dos veces.
+                <span className="mt-2 flex">
+                  <BotonEnlace href={`/ordenes-insumos/comprobante/${pedidosSinFactura[0].id}`} peso="fantasma" onClick={onClose}>
+                    Registrarla en el pedido
+                  </BotonEnlace>
+                </span>
+              </>
+            ) : (
+              <>
+                Si esta factura es de uno de ellos, regístrala desde ese pedido, así la tela no se recibe dos veces:{" "}
+                {pedidosSinFactura.map((p, i) => (
+                  <span key={p.id}>
+                    {i > 0 ? " · " : null}
+                    <Link href={`/ordenes-insumos/comprobante/${p.id}`} className="btn-enlace" onClick={onClose}>
+                      {p.documento}
+                    </Link>{" "}
+                    ({p.detalle})
+                  </span>
+                ))}
+              </>
+            )}
+          </Aviso>
+        )}
         {proveedores.length === 0 && (
           <Vacio tamano="chico" alinear="izquierda" className="-mt-3 px-0" icono={<Truck />}>
             Todavía no hay proveedores de Producción. Agrégalos en Proveedores.
@@ -219,19 +264,21 @@ export function ComprobanteProduccionForm({
               pie={proveedor?.plazoCreditoDias ? `${proveedor.nombre} da ${proveedor.plazoCreditoDias} días` : undefined}
             />
           ) : (
-            <p className="self-end pb-2 text-xs text-tinta/65">Se paga hoy: elige abajo con qué medio o medios.</p>
+            <p className="self-end pb-2 text-sm text-tinta/65">Se paga hoy: elige abajo con qué medio o medios.</p>
           )}
         </div>
 
         <fieldset data-guia="prod-factura-nueva.lineas">
           <legend className="label-cayla text-[11px] text-tinta/65">Qué se compró · costo unitario sin IGV</legend>
-          <ul className="mt-2 space-y-2">
+          <ul className="mt-2 space-y-2 max-sm:space-y-3">
             {lineas.map((l, i) => {
               const insumo = insumos.find((x) => x.id === l.insumoId);
               const subtotalLinea = Number(l.cantidad.replace(",", ".")) > 0 && l.costo.trim() !== "" ? redondear2(Number(l.cantidad.replace(",", ".")) * Number(l.costo.replace(",", "."))) : null;
               return (
-                <li key={i} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-start gap-2 max-sm:grid-cols-[minmax(0,1fr)_5rem_5rem_auto]">
-                  <div className="space-y-1.5">
+                // En el celular la línea ocupa dos filas: arriba qué se compró (a todo el ancho) y abajo cantidad, costo y ✕. Con las cuatro
+                // columnas en una fila la descripción se quedaba con ~105 px: el combo decía «Otro c…» y «Qué se compró» salía cortado.
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-start gap-2 max-sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] max-sm:border-b max-sm:border-tinta/10 max-sm:pb-3 max-sm:last:border-b-0 max-sm:last:pb-0">
+                  <div className="space-y-1.5 max-sm:col-span-3">
                     <Desplegable
                       valor={l.insumoId ?? (l.descripcion || l.insumoId === null ? CONCEPTO_LIBRE : "")}
                       onValor={(v) => cambiarLinea(i, v === CONCEPTO_LIBRE ? { insumoId: null } : { insumoId: v, descripcion: "" })}
@@ -251,7 +298,7 @@ export function ComprobanteProduccionForm({
                         className="caja-campo-input"
                       />
                     )}
-                    {subtotalLinea !== null && <p className="text-xs tabular-nums text-tinta/65">Línea: {soles(subtotalLinea)}</p>}
+                    {subtotalLinea !== null && <p className="text-sm tabular-nums text-tinta/65">Línea: {soles(subtotalLinea)}</p>}
                   </div>
                   <input
                     aria-label={`Línea ${i + 1}: cantidad${insumo ? ` en ${UNIDADES_INSUMO[insumo.unidad].corta}` : ""}`}
@@ -291,7 +338,7 @@ export function ComprobanteProduccionForm({
           </button>
         </fieldset>
 
-        <dl data-guia="prod-factura-nueva.totales" className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
+        <dl data-guia="prod-factura-nueva.totales" className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-sm">
           <div className="flex justify-between gap-3 px-3 py-2">
             <dt>Subtotal</dt>
             <dd className="tabular-nums">{soles(totales.subtotal)}</dd>
@@ -325,7 +372,7 @@ export function ComprobanteProduccionForm({
         </div>
 
         <div data-guia="prod-factura-nueva.registrar" className="space-y-1.5">
-          <p className="min-h-4 text-xs text-tinta/65" role="status">
+          <p className="min-h-4 text-sm text-tinta/65" role="status">
             {error && (proveedorId || serie || numero || totales.lineasCompletas > 0) ? error : ""}
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />

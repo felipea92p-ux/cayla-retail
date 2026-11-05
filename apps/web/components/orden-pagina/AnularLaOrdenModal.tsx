@@ -58,7 +58,7 @@ export function AnularLaOrdenModal({ datos, onClose }: { datos: OrdenPagina; onC
     <Modal titulo="¿Anulamos esta orden?" subtitulo={`${orden.numeroTexto} · ${orden.producto.referencia} · ${orden.cantidadPlan} ${orden.cantidadPlan === 1 ? "prenda" : "prendas"}`} variante="hoja" tamano="mediana" onClose={onClose}>
       <form onSubmit={onSubmit} className="mt-3.5 space-y-4">
         <p className="text-sm text-tinta/75">
-          La orden queda anulada y no toca el stock de prendas. Sigue a la vista en Terminadas, para que no se pierda el registro.
+          La orden queda anulada, sin tocar el stock, y sigue a la vista en Terminadas.
         </p>
         {afuera && (
           <Aviso tono="atencion" chico>

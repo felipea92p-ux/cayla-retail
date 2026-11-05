@@ -1,0 +1,934 @@
+<title>Compras, más clara</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Maqueta navegable de Compras simple (ADR-0480), rediseñada con «Formidable» (ADR-0350).
+   Composición: arriba quién usa la pantalla (tres personas); al centro el aparato real (celular o escritorio con el marco del ERP);
+   al costado, qué mejora y el mapa de pantallas. Colores y letras: SOLO los tokens del ERP (globals.css y su oscuro en tema.css). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --taupe: #805c4c; --rojo: #b8412d; --rojo-profundo: #8b2a1f;
+  --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --sombra: #1a1a18;
+  --tinta-fija: #1a1a18; --crema-fija: #f5f0e8;
+  --m-transferencia: #2f6aa3; --m-yape: #6d3fa3; --m-efectivo: #d19a12; --m-efectivo-tinta: #6b4a00;
+  --serif: "EB Garamond", ui-serif, Georgia, serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898;
+  --rojo: #e8806a; --rojo-profundo: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --sombra: #000000;
+  --m-transferencia: #78b0e6; --m-yape: #b79be0; --m-efectivo-tinta: #f0c35a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898;
+  --rojo: #e8806a; --rojo-profundo: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --sombra: #000000;
+  --m-transferencia: #78b0e6; --m-yape: #b79be0; --m-efectivo-tinta: #f0c35a; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 14px; line-height: 1.45; margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.serif { font-family: var(--serif); }
+.tenue { color: color-mix(in srgb, var(--tinta) 64%, transparent); }
+.taupe { color: var(--taupe); }
+.versal { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 500; }
+
+/* ---------- La lámina ---------- */
+.lamina { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.cab-lamina { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+.cab-lamina .linea { display: flex; align-items: center; gap: 10px; color: var(--taupe); }
+.cab-lamina .linea::before { content: ""; width: 28px; height: 1px; background: var(--taupe); }
+.cab-lamina h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 5vw, 46px); line-height: 1.05; margin: 8px 0 6px; text-wrap: balance; }
+.cab-lamina p { margin: 0; max-width: 62ch; color: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.ejemplo { display: inline-block; margin-top: 10px; font-size: 12px; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--ambar) 14%, transparent); color: var(--ambar); }
+.tema-btn { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 7px 14px; font-size: 13px; }
+
+.personas { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+.persona { display: flex; gap: 12px; align-items: center; text-align: left; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--sand); background: var(--papel); transition: background .2s var(--ease), color .2s var(--ease); }
+.persona .ic { width: 38px; height: 38px; flex: none; border-radius: 50%; display: grid; place-items: center; border: 1px solid currentColor; opacity: .85; }
+.persona b { display: block; font-weight: 500; }
+.persona small { display: block; font-size: 12px; opacity: .75; }
+.persona[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+@media (max-width: 720px) { .personas { grid-template-columns: 1fr; } }
+
+.escena { display: grid; grid-template-columns: minmax(0,1fr); gap: 24px; align-items: start; }
+.escena:not(.cel) .lado { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr); gap: 28px; }
+@media (max-width: 900px) { .escena:not(.cel) .lado { grid-template-columns: minmax(0,1fr); } }
+.escena.cel { grid-template-columns: 400px minmax(0,1fr); }
+@media (max-width: 1100px) { .escena, .escena.cel { grid-template-columns: minmax(0,1fr); } }
+
+.lado { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.lado h2 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0; line-height: 1.15; }
+.mejoras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mejoras li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; max-width: 60ch; }
+.mejoras li::before { content: "✓"; color: var(--verde); font-weight: 600; }
+.mejoras .antes { display: block; font-size: 12.5px; color: var(--taupe); }
+.mapa { display: flex; flex-direction: column; gap: 4px; }
+.mapa button { display: flex; gap: 10px; align-items: center; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 10px; color: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.mapa button:hover { background: var(--papel); }
+.mapa button[aria-current="true"] { background: var(--papel); color: var(--tinta); box-shadow: inset 2px 0 0 var(--rojo); }
+.mapa .n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; border: 1px solid var(--sand); flex: none; }
+.pista { font-size: 12.5px; color: var(--taupe); }
+
+/* ---------- El celular ---------- */
+.telefono { width: 390px; max-width: 100%; height: 800px; border-radius: 46px; border: 10px solid var(--tinta-fija); background: var(--crema); position: relative; overflow: hidden; margin: 0 auto; box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--sombra) 45%, transparent); }
+.telefono .isla { position: absolute; top: 9px; left: 50%; translate: -50% 0; width: 104px; height: 28px; border-radius: 20px; background: var(--tinta-fija); z-index: 30; }
+.telefono .estado { height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 26px; font-size: 13px; font-weight: 600; }
+.pantalla { position: absolute; inset: 44px 0 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; }
+.pantalla::-webkit-scrollbar { display: none; }
+.cuerpo { padding: 6px 18px 24px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+.barra-cel { position: sticky; bottom: 0; padding: 12px 18px 22px; background: linear-gradient(to top, var(--crema) 70%, transparent); display: flex; flex-direction: column; gap: 8px; z-index: 5; }
+.top-cel { display: flex; align-items: center; gap: 10px; padding: 4px 14px 2px; min-height: 44px; }
+.volver { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; flex: none; }
+.top-cel .t { flex: 1; min-width: 0; }
+.top-cel .t b { display: block; font-weight: 500; font-size: 14px; }
+.top-cel .t small { color: var(--taupe); font-size: 12px; }
+.pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0 18px; }
+.pasos span { height: 4px; border-radius: 4px; background: var(--sand); }
+.pasos span.hecho { background: var(--tinta); }
+.pasos span.ahora { background: var(--rojo); }
+.pregunta { font-family: var(--serif); font-size: 29px; line-height: 1.1; margin: 4px 0 0; font-weight: 400; text-wrap: balance; }
+.sub { margin: -8px 0 0; color: color-mix(in srgb, var(--tinta) 66%, transparent); font-size: 13.5px; }
+
+/* ---------- Piezas ---------- */
+.btn { border-radius: 999px; padding: 0 20px; height: 48px; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; font-size: 15px; transition: transform .15s var(--ease), background .2s var(--ease); }
+.btn:active { transform: scale(.98); }
+.btn-primario { background: var(--tinta); color: var(--crema); }
+.btn-primario:hover { background: var(--rojo-profundo); }
+.btn-secundario { background: var(--papel); border-color: color-mix(in srgb, var(--taupe) 55%, transparent); }
+.btn-chico { height: 36px; font-size: 13.5px; padding: 0 14px; }
+.btn-ancho { width: 100%; }
+.btn[disabled] { opacity: .4; pointer-events: none; }
+.enlace { border: 0; background: none; padding: 0; color: var(--tinta); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--tinta) 30%, transparent); text-underline-offset: 3px; }
+.tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.ambar { color: var(--ambar); background: color-mix(in srgb, var(--ambar) 13%, transparent); }
+.chip.verde { color: var(--verde); background: color-mix(in srgb, var(--verde) 13%, transparent); }
+.chip.pizarra { color: var(--pizarra); background: color-mix(in srgb, var(--pizarra) 13%, transparent); }
+.chip.rojo { color: var(--rojo-profundo); background: color-mix(in srgb, var(--rojo) 12%, transparent); }
+.globito { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--hueso); font-size: 11.5px; font-weight: 600; }
+.globito.pide { background: color-mix(in srgb, var(--ambar) 18%, transparent); color: var(--ambar); }
+.titulo-sec { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 21px; margin: 0; font-weight: 400; }
+.caja { background: var(--hueso); border: 1px solid transparent; border-radius: 12px; height: 48px; padding: 0 14px; display: flex; align-items: center; gap: 10px; transition: background .2s var(--ease), border-color .2s var(--ease); }
+.caja:focus-within, .caja.encendida { background: var(--papel); border-color: var(--tinta); box-shadow: 0 0 0 4px color-mix(in srgb, var(--rojo) 10%, transparent); }
+.caja input { border: 0; background: none; outline: none; flex: 1; min-width: 0; height: 100%; }
+.etq { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 500; color: color-mix(in srgb, var(--tinta) 72%, transparent); display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.etq .ok { color: var(--verde); letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 12px; }
+.etq .sigue { color: var(--rojo-profundo); letter-spacing: 0; text-transform: none; font-size: 12px; }
+.paso-cant { display: inline-flex; align-items: center; background: var(--hueso); border-radius: 12px; height: 44px; }
+.paso-cant button { width: 44px; height: 44px; border: 0; background: none; font-size: 20px; }
+.paso-cant span { min-width: 34px; text-align: center; font-weight: 600; }
+.icono { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icono.s { width: 16px; height: 16px; }
+.icono.g { width: 24px; height: 24px; }
+.aviso-ok { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--verde) 12%, transparent); color: var(--verde); font-size: 13.5px; animation: entra .35s var(--ease); }
+@keyframes entra { from { opacity: 0; transform: translateY(-6px); } }
+.nota { background: var(--hueso); border-radius: 12px; padding: 10px 14px; font-size: 13px; color: color-mix(in srgb, var(--tinta) 80%, transparent); }
+
+/* Prenda sin foto: ícono de su categoría sobre el color de la prenda (ADR-0333). */
+.mosaico { border-radius: 12px; display: grid; place-items: center; color: var(--crema-fija); flex: none; }
+.mosaico.claro { color: var(--tinta-fija); }
+
+/* ---------- Mi plata: lo de la compradora ---------- */
+.hola { display: flex; justify-content: space-between; align-items: center; }
+.hola .f { font-family: var(--serif); font-size: 26px; line-height: 1.1; }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--sand); display: grid; place-items: center; font-family: var(--serif); font-size: 15px; }
+.billetera { background: var(--tinta); color: var(--crema); border-radius: 22px; padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+.billetera .cifra { font-family: var(--serif); font-size: 46px; line-height: 1; letter-spacing: -.01em; }
+.billetera .cifra small { font-size: 24px; opacity: .7; margin-right: 4px; }
+.reparto { display: flex; height: 6px; border-radius: 6px; overflow: hidden; background: color-mix(in srgb, var(--crema) 18%, transparent); }
+.reparto i { display: block; height: 100%; }
+.leyenda { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 11.5px; }
+.leyenda b { display: block; font-size: 13px; font-weight: 500; }
+.leyenda span { opacity: .72; display: flex; align-items: center; gap: 5px; }
+.leyenda span i { width: 7px; height: 7px; border-radius: 2px; }
+.revisa { display: flex; gap: 8px; align-items: center; font-size: 12px; padding: 7px 10px; border-radius: 10px; background: color-mix(in srgb, var(--crema) 10%, transparent); }
+.acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.accion { border: 1px solid var(--sand); background: var(--papel); border-radius: 18px; padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 10px; transition: transform .15s var(--ease), border-color .2s var(--ease); }
+.accion:hover { border-color: var(--taupe); transform: translateY(-2px); }
+.accion .ic { width: 40px; height: 40px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; }
+.accion b { font-family: var(--serif); font-weight: 400; font-size: 20px; line-height: 1.1; display: block; }
+.accion small { color: var(--taupe); font-size: 12px; }
+.accion.grande { grid-column: 1 / -1; flex-direction: row; align-items: center; background: var(--papel); border-color: var(--tinta); }
+.accion.grande .ic { width: 52px; height: 52px; background: var(--tinta); color: var(--crema); }
+.accion.grande b { font-size: 24px; }
+.falta { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--ambar) 60%, transparent); background: color-mix(in srgb, var(--ambar) 7%, transparent); text-align: left; width: 100%; }
+.falta .ic { color: var(--ambar); }
+.falta b { display: block; font-weight: 500; }
+.falta small { color: color-mix(in srgb, var(--tinta) 66%, transparent); }
+.dia { display: flex; flex-direction: column; }
+.mov { display: grid; grid-template-columns: 36px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--sand); }
+.mov:last-child { border-bottom: 0; }
+.mov .ic { width: 36px; height: 36px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; }
+.mov b { display: block; font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mov small { color: var(--taupe); font-size: 12px; }
+.mov .der { display: flex; flex-direction: column; align-items: end; gap: 4px; font-size: 14px; }
+.mas { color: var(--verde); }
+
+/* hoja de abajo del celular */
+.velo { position: absolute; inset: 0; background: color-mix(in srgb, var(--sombra) 40%, transparent); z-index: 20; animation: aparece .25s var(--ease); }
+@keyframes aparece { from { opacity: 0; } }
+.hoja { position: absolute; left: 0; right: 0; bottom: 0; max-height: 92%; background: var(--papel); border-radius: 26px 26px 0 0; z-index: 21; display: flex; flex-direction: column; animation: sube .35s var(--ease); }
+@keyframes sube { from { transform: translateY(40px); opacity: 0; } }
+.hoja .cerrar { position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--hueso); display: grid; place-items: center; }
+.hoja .asa { width: 40px; height: 5px; border-radius: 5px; background: var(--sand); margin: 8px auto 4px; flex: none; }
+.hoja .dentro { overflow-y: auto; padding: 6px 20px 16px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: none; }
+.hoja .pie { padding: 10px 20px 22px; border-top: 1px solid var(--sand); display: flex; flex-direction: column; gap: 8px; }
+.hoja h3 { font-family: var(--serif); font-size: 26px; font-weight: 400; margin: 0; line-height: 1.1; }
+.medios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.medio { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; }
+.medio .punto { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--crema-fija); }
+.medio[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); background: var(--crema); }
+.monto-grande { display: flex; align-items: baseline; gap: 6px; padding: 10px 16px; border-radius: 16px; background: var(--hueso); font-family: var(--serif); font-size: 40px; line-height: 1.1; }
+.monto-grande small { font-size: 22px; color: var(--taupe); }
+.monto-grande input { border: 0; background: none; outline: none; font: inherit; width: 100%; }
+.foto { border: 1.5px dashed color-mix(in srgb, var(--taupe) 55%, transparent); border-radius: 16px; padding: 14px; display: flex; gap: 12px; align-items: center; background: none; width: 100%; text-align: left; }
+.foto .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--hueso); display: grid; place-items: center; }
+.foto.lista { border-style: solid; border-color: var(--verde); }
+.casilla { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--sand); text-align: left; background: none; width: 100%; }
+.casilla .c { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--taupe); display: grid; place-items: center; flex: none; margin-top: 1px; }
+.casilla .c svg { opacity: 0; }
+.casilla[aria-pressed="true"] .c svg { opacity: 1; }
+.casilla[aria-pressed="true"] .c { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+
+/* Compré ropa */
+.buscar { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; border-radius: 999px; background: var(--hueso); }
+.buscar input { border: 0; background: none; outline: none; flex: 1; min-width: 0; }
+.prov { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px; border-radius: 16px; border: 1px solid var(--sand); background: var(--papel); text-align: left; width: 100%; }
+.prov .ini { width: 44px; height: 44px; border-radius: 12px; background: var(--sand); display: grid; place-items: center; font-family: var(--serif); font-size: 17px; }
+.prov b { display: block; font-weight: 500; }
+.prov small { color: var(--taupe); font-size: 12px; }
+.cats { display: flex; flex-wrap: wrap; gap: 8px; }
+.cat { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 7px 12px; font-size: 13px; }
+.habituales { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hab { border: 1px solid var(--sand); background: var(--papel); border-radius: 18px; padding: 10px; display: flex; flex-direction: column; gap: 8px; text-align: left; position: relative; transition: border-color .2s var(--ease); }
+.hab .mosaico { width: 100%; aspect-ratio: 4 / 3; max-width: 100%; }
+.hab b { font-weight: 500; font-size: 13.5px; line-height: 1.25; }
+.hab small { color: var(--taupe); font-size: 11.5px; line-height: 1.3; }
+.hab.elegida { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.hab .marca-ok { position: absolute; top: 16px; right: 16px; width: 26px; height: 26px; border-radius: 50%; background: var(--tinta); color: var(--crema); display: grid; place-items: center; font-size: 12px; font-weight: 600; }
+.hab.nuevo { border-style: dashed; align-items: center; justify-content: center; min-height: 170px; color: color-mix(in srgb, var(--tinta) 75%, transparent); }
+.carrito { display: flex; align-items: center; gap: 12px; background: var(--tinta); color: var(--crema); border-radius: 999px; padding: 6px 6px 6px 18px; }
+.carrito .t { flex: 1; min-width: 0; font-size: 13px; }
+.carrito .t b { font-weight: 500; font-size: 15px; display: block; }
+.carrito .btn { background: var(--crema); color: var(--tinta); height: 44px; }
+.fila-precio { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fila-precio > div { min-width: 0; }
+.atajo { border: 1px solid var(--sand); background: var(--crema); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center; margin-top: 8px; }
+.atajo[aria-pressed="true"] { border-color: var(--verde); color: var(--verde); }
+.ganas { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--verde) 9%, transparent); font-size: 13.5px; }
+.ganas b { color: var(--verde); font-weight: 600; }
+.tiendas { display: flex; flex-direction: column; gap: 10px; }
+.tienda { display: grid; grid-template-columns: 52px minmax(0,1fr) 24px; gap: 14px; align-items: center; padding: 14px; border-radius: 18px; border: 1px solid var(--sand); background: var(--papel); text-align: left; width: 100%; }
+.tienda .sigla { width: 52px; height: 52px; border-radius: 14px; background: var(--hueso); display: grid; place-items: center; font-family: var(--serif); font-size: 18px; }
+.tienda b { font-weight: 500; display: block; font-size: 15px; }
+.tienda small { color: var(--taupe); font-size: 12px; }
+.tienda .radio { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--taupe); }
+.tienda[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.tienda[aria-pressed="true"] .radio { border: 7px solid var(--tinta); }
+.linea-compra { display: grid; grid-template-columns: 46px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--sand); }
+.linea-compra .mosaico { width: 46px; height: 46px; }
+.linea-compra b { font-weight: 500; font-size: 14px; display: block; }
+.linea-compra small { color: var(--taupe); font-size: 12px; }
+.total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 6px; }
+.total .serif { font-size: 30px; }
+.papeles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.papel-op { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 12px; text-align: left; }
+.papel-op b { display: block; font-weight: 500; }
+.papel-op small { color: var(--taupe); font-size: 12px; }
+.papel-op[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); background: var(--crema); }
+.cuadra { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--verde); }
+.sello { width: 96px; height: 96px; border-radius: 50%; background: var(--verde); color: var(--crema); display: grid; place-items: center; margin: 24px auto 4px; }
+.sello svg { width: 46px; height: 46px; stroke-dasharray: 40; stroke-dashoffset: 40; animation: dibuja .5s .2s var(--ease) forwards; }
+@keyframes dibuja { to { stroke-dashoffset: 0; } }
+.conceptos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.concepto { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; }
+.concepto[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); background: var(--crema); }
+.cuaderno { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 6px 16px; background-image: repeating-linear-gradient(to bottom, transparent 0 43px, var(--sand) 43px 44px); }
+.cuaderno .r { display: flex; justify-content: space-between; height: 44px; align-items: center; font-size: 14.5px; }
+.cuaderno .r.fin { font-family: var(--serif); font-size: 22px; height: 52px; }
+.opcion { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 12px; padding: 14px; border-radius: 16px; border: 1px solid var(--sand); background: var(--papel); text-align: left; width: 100%; }
+.opcion .radio { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--taupe); margin-top: 1px; }
+.opcion[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.opcion[aria-pressed="true"] .radio { border: 7px solid var(--tinta); }
+.opcion b { font-weight: 500; display: block; }
+.opcion small { color: var(--taupe); font-size: 12.5px; }
+.envio { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.envio .cab { display: flex; gap: 12px; align-items: center; }
+.miniaturas { display: flex; gap: 4px; }
+.miniaturas .mosaico { width: 34px; height: 34px; border-radius: 8px; }
+
+/* La foto del papel (dibujada: es un ejemplo inventado) */
+.recibo { background: #fffdf8; /* tema-fijo: papel físico, se ve igual en los dos temas */ color: #2a2620; /* tema-fijo: tinta del papel físico */ font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; line-height: 1.55; padding: 16px 16px 20px; border-radius: 4px; box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--sombra) 60%, transparent); rotate: -1.6deg; position: relative; }
+.recibo .c { text-align: center; }
+.recibo .r { display: flex; justify-content: space-between; gap: 8px; }
+.recibo hr { border: 0; border-top: 1px dashed #b9b0a0; /* tema-fijo: papel físico */ margin: 6px 0; }
+.recibo .tot { font-weight: 700; font-size: 12px; }
+.recibo .marca-agua { position: absolute; right: 18px; top: 92px; rotate: -12deg; border: 2px solid #b8412d; /* tema-fijo: sello en tinta del papel */ color: #b8412d; /* tema-fijo: sello en tinta del papel */ padding: 2px 8px; font-weight: 700; letter-spacing: .1em; opacity: .7; }
+.foto-chica { width: 54px; height: 64px; border-radius: 8px; overflow: hidden; flex: none; background: #fffdf8; /* tema-fijo: miniatura del papel físico */ border: 1px solid var(--sand); display: flex; flex-direction: column; gap: 3px; padding: 7px 6px; }
+.foto-chica i { display: block; height: 3px; border-radius: 2px; background: #cfc6b6; /* tema-fijo: miniatura del papel físico */ }
+.foto-chica i.c { width: 60%; margin: 0 auto 3px; height: 4px; background: #8f8676; /* tema-fijo: miniatura del papel físico */ }
+
+/* ---------- Escritorio con el marco del ERP ---------- */
+.marco-desk { border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; background: var(--crema); min-width: 0; }
+.desk-scroll { overflow-x: auto; }
+.desk { min-width: 1120px; display: grid; grid-template-columns: 220px minmax(0,1fr); min-height: 780px; }
+.lateral { background: var(--papel); border-right: 1px solid var(--sand); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.lateral .marca { font-family: var(--serif); font-size: 22px; letter-spacing: .14em; padding: 0 10px 14px; }
+.lateral .g { padding: 7px 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; color: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.lateral .g.abierto { color: var(--tinta); font-weight: 500; }
+.lateral .h { padding: 6px 10px 6px 40px; border-radius: 10px; color: color-mix(in srgb, var(--tinta) 68%, transparent); display: flex; justify-content: space-between; align-items: center; }
+.lateral .h.activo { background: var(--hueso); color: var(--tinta); font-weight: 500; }
+.contenido { padding: 26px 32px 40px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.encabezado .sede { display: flex; align-items: center; gap: 10px; color: var(--taupe); }
+.encabezado .sede::after { content: ""; width: 40px; height: 1px; background: var(--taupe); }
+.encabezado h2 { font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 1; margin: 10px 0 6px; }
+.encabezado p { margin: 0; color: color-mix(in srgb, var(--tinta) 70%, transparent); max-width: 64ch; }
+.cifras { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+.cifra-t { text-align: left; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; transition: background .2s var(--ease); }
+.cifra-t .v { font-family: var(--serif); font-size: 34px; line-height: 1; }
+.cifra-t small { color: var(--taupe); font-size: 12px; }
+.cifra-t[aria-pressed="true"] { background: var(--sand); border-color: var(--taupe); }
+.bandeja { display: grid; grid-template-columns: 360px minmax(0,1fr); gap: 16px; align-items: start; }
+.lista-b { display: flex; flex-direction: column; overflow: hidden; }
+.item-b { display: grid; grid-template-columns: 54px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--sand); background: none; text-align: left; position: relative; }
+.item-b:last-child { border-bottom: 0; }
+.item-b[aria-current="true"] { background: var(--crema); }
+.item-b[aria-current="true"]::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--rojo); }
+.item-b b { display: block; font-weight: 500; font-size: 14px; }
+.item-b small { color: var(--taupe); font-size: 12px; }
+.item-b .der { display: flex; flex-direction: column; align-items: end; gap: 5px; }
+.detalle { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.detalle h3 { font-family: var(--serif); font-weight: 400; font-size: 28px; margin: 0; line-height: 1.1; }
+.dos { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 22px; align-items: start; }
+.visor { background: var(--hueso); border-radius: 16px; padding: 22px 20px; position: relative; }
+.visor .zoom { position: absolute; right: 10px; top: 10px; width: 32px; height: 32px; border-radius: 50%; background: var(--papel); border: 1px solid var(--sand); display: grid; place-items: center; }
+.campos { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.comparar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--crema); border: 1px solid var(--sand); }
+.comparar .v { font-family: var(--serif); font-size: 24px; }
+.comparar small { color: var(--taupe); font-size: 12px; display: block; }
+.llego { display: flex; flex-direction: column; gap: 8px; }
+.barra-av { height: 6px; border-radius: 6px; background: var(--sand); overflow: hidden; }
+.barra-av i { display: block; height: 100%; background: var(--tinta); border-radius: 6px; transition: width .5s var(--ease); }
+.barra-av i.lleno { background: var(--verde); }
+.pie-d { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; border-top: 1px solid var(--sand); padding-top: 16px; }
+.combo { justify-content: space-between; }
+.guia-pie { font-size: 12.5px; color: var(--taupe); margin-right: auto; align-self: center; }
+
+/* Recibir en la tienda */
+.recibir { display: grid; grid-template-columns: 340px minmax(0,1fr); gap: 20px; align-items: start; }
+.anoto { display: flex; flex-direction: column; gap: 0; }
+.anoto .linea-compra { padding: 10px 16px; }
+.etapas { display: flex; gap: 8px; flex-wrap: wrap; }
+.etapa { display: flex; gap: 8px; align-items: center; padding: 6px 12px 6px 6px; border-radius: 999px; font-size: 13px; border: 1px solid var(--sand); background: var(--papel); }
+.etapa .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); font-size: 12px; }
+.etapa.hecha .n { background: var(--verde); color: var(--crema); }
+.etapa.ahora { border-color: var(--tinta); }
+.etapa.ahora .n { background: var(--tinta); color: var(--crema); }
+.pregunta-t { display: flex; gap: 14px; align-items: center; padding: 16px; border-radius: 16px; background: var(--crema); border: 1px solid var(--sand); }
+.matriz { width: 100%; border-collapse: collapse; }
+.matriz th { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 500; color: var(--taupe); text-align: center; padding: 6px; }
+.matriz th:first-child { text-align: left; }
+.matriz td { padding: 6px; text-align: center; border-top: 1px solid var(--sand); }
+.matriz td:first-child { text-align: left; }
+.celda { display: inline-flex; align-items: center; background: var(--hueso); border-radius: 10px; height: 34px; }
+.celda button { width: 28px; height: 34px; border: 0; background: none; }
+.celda span { min-width: 22px; font-weight: 600; }
+.punto-color { display: inline-flex; align-items: center; gap: 8px; }
+.punto-color i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--sand); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .sello svg { stroke-dashoffset: 0; } }
+</style>
+
+<div class="lamina">
+  <header class="cab-lamina">
+    <div>
+      <div class="linea versal">Maqueta navegable · Compras · 23 de octubre</div>
+      <h1>Compras, más clara</h1>
+      <p>Las mismas funciones que construyó la sesión «Módulo de compras» (ADR-0480), rediseñadas para entenderse en 5 segundos. Elige quién la usa y toca la pantalla: todo avanza.</p>
+      <span class="ejemplo">Nombres, montos y prendas son un ejemplo inventado: no existen en el sistema.</span>
+    </div>
+    <button class="tema-btn" id="tema" type="button">Ver en modo oscuro</button>
+  </header>
+
+  <nav class="personas" aria-label="Quién usa la pantalla">
+    <button class="persona" data-persona="compradora" type="button"><span class="ic" data-i="phone"></span><span><b>La compradora</b><small>En la calle o con el proveedor · celular</small></span></button>
+    <button class="persona" data-persona="tienda" type="button"><span class="ic" data-i="store"></span><span><b>La tienda</b><small>Recibe lo comprado · escritorio</small></span></button>
+    <button class="persona" data-persona="compras" type="button"><span class="ic" data-i="check"></span><span><b>Compras</b><small>Confirma y pasa a los libros · escritorio</small></span></button>
+  </nav>
+
+  <main id="escena" class="escena cel"></main>
+</div>
+
+<script>
+// ---------- Íconos (trazos de lucide, a mano) ----------
+const IC = {
+  phone: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+  store: '<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  bag: '<path d="M6 7h12l1 14H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+  coins: '<circle cx="9" cy="9" r="6"/><path d="M15.5 9.5a6 6 0 1 1-6 6"/><path d="M9 6.5v5"/>',
+  receipt: '<path d="M5 2v20l2.5-1.5L10 22l2-1.5L14 22l2.5-1.5L19 22V2l-2.5 1.5L14 2l-2 1.5L10 2 7.5 3.5z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  truck: '<path d="M2 6h11v10H2z"/><path d="M13 9h4l4 4v3h-8"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  back: '<path d="M15 18l-6-6 6-6"/>',
+  right: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  camera: '<path d="M3 8h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13.5" r="3.5"/>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  zoom: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/>',
+  shirt: '<path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/>',
+  jacket: '<path d="M8 3 4 6v15h5V9M16 3l4 3v15h-5V9M8 3l4 4 4-4M12 7v14"/>',
+  pants: '<path d="M6 3h12l1 18h-5l-2-11-2 11H5z"/>',
+  car: '<path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="13" r=".5"/><circle cx="16.5" cy="13" r=".5"/>',
+  box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  food: '<path d="M7 3v8a2 2 0 0 0 2 2v8M7 3v5M11 3v5M17 3c-2 2-2 6 0 8v10"/>',
+  person: '<circle cx="12" cy="7" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+  dots: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  bank: '<path d="M3 10 12 4l9 6"/><path d="M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>',
+  wallet: '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18"/>',
+  alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
+};
+const ic = (n, c = "") => `<svg class="icono ${c}" viewBox="0 0 24 24" aria-hidden="true">${IC[n] || ""}</svg>`;
+document.querySelectorAll("[data-i]").forEach((el) => (el.innerHTML = ic(el.dataset.i)));
+
+const S = (n) => "S/ " + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ---------- Datos de ejemplo (inventados) ----------
+const PROVEEDORES = [
+  { id: "rosa", nombre: "Textiles Rosa", ini: "TR", detalle: "Le compraste hace 6 días · 4 compras", vende: "Blusas, polos" },
+  { id: "andina", nombre: "Confecciones Andina", ini: "CA", detalle: "Le compraste hace 12 días · 2 compras", vende: "Casacas, pantalones" },
+  { id: "gamarra", nombre: "Galería Gamarra 412", ini: "G4", detalle: "Le compraste hace un mes · 1 compra", vende: "Polos" },
+];
+const HABITUALES = [
+  { id: "blusa", nombre: "Blusa manga globo", cat: "Blusas", icono: "shirt", color: "#b8412d", claro: false, cant: 12, costo: 17.5, venta: 39.9, vez: "12 a S/ 17.50 · hace 6 días" },
+  { id: "polo", nombre: "Polo básico algodón", cat: "Polos", icono: "shirt", color: "#e8e0d0", claro: true, cant: 20, costo: 9, venta: 24.9, vez: "20 a S/ 9.00 · hace 6 días" },
+  { id: "casaca", nombre: "Casaca jean corta", cat: "Casacas", icono: "jacket", color: "#2f4a6b", claro: false, cant: 6, costo: 42, venta: 99.9, vez: "6 a S/ 42.00 · hace 3 semanas" },
+  { id: "pantalon", nombre: "Pantalón palazzo", cat: "Pantalones", icono: "pants", color: "#48603f", claro: false, cant: 8, costo: 28, venta: 69.9, vez: "8 a S/ 28.00 · hace un mes" },
+];
+const TIENDAS = [
+  { id: "aqp", sigla: "AQP", nombre: "Tienda AQP", detalle: "Arequipa · la que más vende blusas" },
+  { id: "tru", sigla: "TRU", nombre: "Tienda TRU", detalle: "Trujillo" },
+  { id: "lim", sigla: "LIM", nombre: "Tienda LIM", detalle: "Lima" },
+];
+
+// ---------- Estado ----------
+const st = {
+  persona: "compradora", pantalla: "inicio", hoja: null, aviso: null,
+  plataMedio: "yape", plataMonto: "500.00", plataFoto: true,
+  prov: null, lineas: {}, editando: null, tienda: "aqp", papel: "factura", papelFoto: false, papelMonto: null,
+  gasto: "taxi", gastoMonto: "12.00",
+  fardosAqp: 2, fardosLim: 1, mandadas: [],
+  quedo: "queda", guardadas: 0,
+  revTipo: "papel", revSel: "p1", serie: "", numero: "", cuentaPlata: "BCP soles · 191-…-04",
+  recibir: "contar", sonEstas: false,
+};
+const tiene = () => 1874 - st.guardadas * 0;
+
+// ---------- Mapa de cada persona: pantallas, en orden ----------
+const MAPA = {
+  compradora: [
+    ["inicio", "Mi plata para compras"], ["plata", "Me dieron plata"], ["prov", "Compré ropa · el proveedor"], ["prendas", "Compré ropa · qué le compras"],
+    ["tienda", "Compré ropa · a qué tienda"], ["revisar", "Compré ropa · revisar"], ["papel", "Compré ropa · el papel"], ["listo", "Compra guardada"],
+    ["gasto", "Gasté en otra cosa"], ["mandar", "Mandar a la tienda"], ["terminar", "Terminé de comprar hoy"],
+  ],
+  tienda: [["recibir", "Recibir lo que compró Marisol"]],
+  compras: [["papel", "Compras por completar"], ["plata", "Plata por confirmar"], ["gasto", "Gastos por revisar"], ["cierre", "Cierres del día"]],
+};
+
+// Qué mejora cada pantalla contra la de hoy (lo que se ve en la rama de la sesión).
+const MEJORAS = {
+  inicio: {
+    t: "Mi plata para compras",
+    m: [
+      ["La plata se lee como en una billetera: una cifra grande y de dónde sale.", "Hoy: «Tienes para comprar» es una tarjeta de cifra igual a las de un reporte."],
+      ["«Compré ropa» es la acción grande; las otras dos, a su lado.", "Hoy: tres filas iguales, y «Me dieron plata» y «Gasté» se ven como botones sueltos."],
+      ["Un solo «Hoy» con todo lo que pasó, en orden y con su ícono.", "Hoy: tres listas separadas (compraste, gastaste, anotaste) que hay que juntar en la cabeza."],
+    ],
+  },
+  plata: { t: "Me dieron plata", m: [
+    ["Cómo te llegó, con el color de cada medio (el mismo de Vender).", "Hoy: fichas sin color."],
+    ["El monto en grande, como se escribe en un celular.", "Hoy: un campo de 40 px igual a cualquier otro."],
+    ["«Ya tenía plata de antes» se explica en la casilla, solo la primera vez.", null],
+  ] },
+  prov: { t: "¿A quién le compras?", m: [
+    ["Una barra de 4 tramos dice dónde vas: proveedor, prendas, tienda, papel.", "Hoy: «una pregunta a la vez» sin saber cuántas faltan."],
+    ["Los proveedores recientes primero, con cuándo y cuántas veces.", null],
+    ["Buscar por lo que vende, con chips de un toque.", null],
+  ] },
+  prendas: { t: "¿Qué le compras hoy?", m: [
+    ["Sus prendas habituales como tarjetas con la miniatura de su categoría y su color.", "Hoy: una lista de texto."],
+    ["Un toque la elige con lo de la vez pasada; la barra negra suma prendas y plata en vivo.", "Hoy: cantidad, costo y venta son tres preguntas seguidas por cada prenda."],
+    ["«Algo nuevo de este proveedor» es una tarjeta más, al final.", null],
+  ] },
+  tienda: { t: "¿A qué tienda va?", m: [["Tres tarjetas grandes; la elegida se marca como en el celular.", null], ["«Repartir entre tiendas» queda a un toque, sin estorbar al caso de siempre.", null]] },
+  revisar: { t: "Revisar la compra", m: [["Cada prenda con su miniatura, cantidad × costo y su tienda.", null], ["El total en grande y lo que vas a ganar si se vende todo.", "Hoy: no se ve la ganancia."]] },
+  papel: { t: "El papel", m: [["Los cuatro papeles como tarjetas con su ayuda («Con RUC», «No me dieron nada»).", null], ["El monto viene con el total y dice si cuadra con lo anotado, en verde.", "Hoy: el monto se repite sin decir si coincide."]] },
+  listo: { t: "Compra guardada", m: [["Un visto que se dibuja y cuánto te queda.", null], ["El siguiente paso lógico en grande: mandar a la tienda.", null]] },
+  gasto: { t: "Gasté en otra cosa", m: [["Seis conceptos con su ícono en una grilla de 3.", "Hoy: chips de texto."], ["El monto en grande y la foto opcional, dicho así.", null]] },
+  mandar: { t: "Mandar a la tienda", m: [["Una tarjeta por tienda con las miniaturas de lo que va.", "Hoy: solo texto."], ["Los fardos con − y +, nunca escribiendo.", null]] },
+  terminar: { t: "Terminé de comprar hoy", m: [["La cuenta del día como un cuaderno rayado: tenías, te dieron, compraste, te queda.", null], ["Una sola pregunta con dos respuestas grandes.", null]] },
+  recibir: { t: "Recibir mirando la foto", m: [
+    ["La foto del papel siempre a la vista, a la izquierda, mientras se cuenta.", "Hoy: «Papeles de la compra» es un bloque más dentro de la recepción."],
+    ["«La compradora anotó Blusa manga globo. ¿Son estas?» es la pregunta principal, con su respuesta de un toque.", null],
+    ["Una barra dice cuánto llevas contado contra lo que anotó la compradora.", null],
+  ] },
+  rev: { t: "Revisar compras", m: [
+    ["Cuatro cifras arriba que filtran: plata por confirmar, compras por completar, gastos y cierres.", "Hoy: cuatro secciones una debajo de otra, en una página larga."],
+    ["Bandeja a la izquierda, detalle a la derecha: se pasa de uno a otro sin perder el lugar.", null],
+    ["La foto del papel al lado de los campos que se copian de ella; la guía enciende el que sigue.", "Hoy: la foto y los campos quedan en bloques distintos."],
+  ] },
+};
+
+// ---------- Piezas ----------
+const mosaico = (h, tam = 46) => `<span class="mosaico ${h.claro ? "claro" : ""}" data-color-dato style="background:${h.color};width:${tam}px;height:${tam}px">${ic(h.icono, tam > 50 ? "g" : "")}</span>`;
+const pasos = (n) => `<div class="pasos" aria-label="Paso ${n} de 4">${[1, 2, 3, 4].map((i) => `<span class="${i < n ? "hecho" : i === n ? "ahora" : ""}"></span>`).join("")}</div>`;
+const topCel = (titulo, sub, a = "inicio") => `<div class="top-cel"><button class="volver" data-ir="${a}" aria-label="Volver">${ic("back", "s")}</button><div class="t"><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ""}</div></div>`;
+const lineasArr = () => Object.entries(st.lineas).map(([id, l]) => ({ ...HABITUALES.find((h) => h.id === id), ...l }));
+const totalCompra = () => lineasArr().reduce((s, l) => s + l.cant * l.costo, 0);
+const unidades = () => lineasArr().reduce((s, l) => s + l.cant, 0);
+const recibo = (prov = "TEXTILES ROSA E.I.R.L.", tot = 525) => `
+  <div class="recibo" data-papel>
+    <div class="c"><b>${prov}</b><br>RUC 20601234567<br>Jr. Gamarra 1180 · La Victoria</div><hr>
+    <div class="c"><b>FACTURA ELECTRÓNICA</b><br>F001 - 000482</div><hr>
+    <div class="r"><span>12 BLUSA MANGA GLOBO</span><span>210.00</span></div>
+    <div class="r"><span>20 POLO BASICO</span><span>180.00</span></div>
+    <div class="r"><span>&nbsp;&nbsp;3 CASACA JEAN</span><span>126.00</span></div>
+    <div class="r"><span>&nbsp;&nbsp;BOLSAS</span><span>9.00</span></div><hr>
+    <div class="r"><span>OP. GRAVADA</span><span>444.92</span></div>
+    <div class="r"><span>IGV 18%</span><span>80.08</span></div>
+    <div class="r tot"><span>TOTAL S/</span><span>${tot.toFixed(2)}</span></div>
+    <div class="c" style="margin-top:6px">22/10/2026 11:20</div>
+    <span class="marca-agua">PAGADO</span>
+  </div>`;
+const fotoChica = () => `<span class="foto-chica" data-papel><i class="c"></i><i></i><i></i><i style="width:70%"></i><i></i><i style="width:50%"></i></span>`;
+
+// ---------- Pantallas del celular ----------
+const CEL = {
+  inicio() {
+    return `<div class="cuerpo">
+      <div class="hola"><div><div class="versal taupe">Jueves 23 de octubre</div><div class="f">Hola, Marisol</div></div><span class="avatar">MR</span></div>
+      ${st.aviso ? `<div class="aviso-ok">${ic("check", "s")} ${st.aviso}</div>` : ""}
+      <section class="billetera" aria-label="Tu plata para compras">
+        <div class="versal" style="opacity:.75">Tienes para comprar</div>
+        <div class="cifra num"><small>S/</small>1,874.00</div>
+        <div class="reparto" aria-hidden="true"><i style="width:54%;background:var(--crema)"></i><i style="width:43%;background:color-mix(in srgb,var(--crema) 45%,transparent)"></i><i style="width:3%;background:color-mix(in srgb,var(--crema) 25%,transparent)"></i></div>
+        <div class="leyenda num">
+          <span><i style="background:var(--crema)"></i>Te queda<br></span><span><i style="background:color-mix(in srgb,var(--crema) 45%,transparent)"></i>Compraste</span><span><i style="background:color-mix(in srgb,var(--crema) 25%,transparent)"></i>Gastos</span>
+          <b>1,874.00</b><b>1,520.00</b><b>106.00</b>
+        </div>
+        <div class="revisa">${ic("coins", "s")} S/ 500.00 que anotaste hoy · Compras lo revisa, ya lo puedes usar</div>
+      </section>
+      <section class="acciones" aria-label="¿Qué hiciste?">
+        <button class="accion grande" data-ir="prov"><span class="ic">${ic("bag", "g")}</span><span><b>Compré ropa</b><small>A un proveedor, en la calle o por pedido</small></span></button>
+        <button class="accion" data-hoja="plata"><span class="ic">${ic("coins")}</span><span><b>Me dieron plata</b><small>Yape, transferencia o efectivo</small></span></button>
+        <button class="accion" data-hoja="gasto"><span class="ic">${ic("receipt")}</span><span><b>Gasté en otra cosa</b><small>Taxi, cargador, comida…</small></span></button>
+      </section>
+      ${st.mandadas.length < 2 ? `<button class="falta" data-ir="mandar"><span class="ic">${ic("truck", "g")}</span><span style="flex:1"><b>Te falta mandar ${st.mandadas.includes("aqp") ? "7 prendas a LIM" : "37 prendas a 2 tiendas"}</b><small>Arma los fardos y avisa a la tienda</small></span>${ic("right", "s")}</button>` : ""}
+      <section class="dia">
+        <h3 class="titulo-sec">Hoy <span class="globito">4</span></h3>
+        <div class="mov"><span class="ic">${ic("bag", "s")}</span><span><b>Compra a Textiles Rosa</b><small>35 prendas · Factura · AQP</small></span><span class="der num">− ${S(525)}<span class="chip ambar">Por completar</span></span></div>
+        <div class="mov"><span class="ic">${ic("car", "s")}</span><span><b>Taxi a Gamarra</b><small>Sin papel</small></span><span class="der num">− ${S(12)}<span class="chip ambar">Por revisar</span></span></div>
+        <div class="mov"><span class="ic">${ic("coins", "s")}</span><span><b>Te yapearon</b><small>Yape o Plin · con foto</small></span><span class="der num"><span class="mas">+ ${S(500)}</span><span class="chip ambar">Por confirmar</span></span></div>
+        <div class="mov"><span class="ic">${ic("bag", "s")}</span><span><b>Compra a Confecciones Andina</b><small>14 prendas · Boleta · LIM</small></span><span class="der num">− ${S(995)}<span class="chip verde">Completa</span></span></div>
+        <button class="enlace" style="align-self:start;margin-top:8px">Ver días anteriores</button>
+      </section>
+      <button class="btn btn-secundario btn-ancho" data-ir="terminar">${ic("moon", "s")} Terminé de comprar hoy</button>
+    </div>`;
+  },
+  prov() {
+    return `${topCel("Compré ropa", "Paso 1 de 4 · el proveedor")}${pasos(1)}
+    <div class="cuerpo">
+      <h2 class="pregunta">¿A quién le compras?</h2>
+      <label class="buscar">${ic("search", "s")}<input id="busca-prov" placeholder="Nombre del proveedor" aria-label="Buscar proveedor"></label>
+      <div class="versal taupe">Les compraste hace poco</div>
+      ${PROVEEDORES.map((p) => `<button class="prov" data-prov="${p.id}"><span class="ini">${p.ini}</span><span><b>${p.nombre}</b><small>${p.detalle}</small></span>${ic("right", "s")}</button>`).join("")}
+      <div class="versal taupe">O busca por lo que vende</div>
+      <div class="cats">${["Blusas", "Polos", "Casacas", "Pantalones", "Vestidos", "Accesorios"].map((c) => `<button class="cat">${c}</button>`).join("")}</div>
+    </div>
+    <div class="barra-cel"><button class="btn btn-secundario btn-ancho">${ic("plus", "s")} Es un proveedor nuevo</button></div>`;
+  },
+  prendas() {
+    const p = PROVEEDORES.find((x) => x.id === st.prov) || PROVEEDORES[0];
+    const n = Object.keys(st.lineas).length;
+    return `${topCel(p.nombre, "Paso 2 de 4 · las prendas", "prov")}${pasos(2)}
+    <div class="cuerpo">
+      <h2 class="pregunta">¿Qué le compras hoy?</h2>
+      <p class="sub">Toca una prenda: viene con lo de la vez pasada.</p>
+      <div class="habituales">
+        ${HABITUALES.map((h) => { const l = st.lineas[h.id]; return `<button class="hab ${l ? "elegida" : ""}" data-hab="${h.id}">
+          ${mosaico(h, 160).replace(/width:160px;height:160px/, "")}
+          ${l ? `<span class="marca-ok num">${l.cant}</span>` : ""}
+          <b>${h.nombre}</b><small>${l ? `${l.cant} × ${S(l.costo)}` : `La vez pasada: ${h.vez}`}</small></button>`; }).join("")}
+        <button class="hab nuevo">${ic("plus", "g")}<b>Algo nuevo</b><small>de este proveedor</small></button>
+      </div>
+    </div>
+    <div class="barra-cel">${n ? `<div class="carrito"><span class="t num"><b>${unidades()} prendas · ${S(totalCompra())}</b>${n} modelo${n > 1 ? "s" : ""}</span><button class="btn" data-ir="tienda">Seguir ${ic("right", "s")}</button></div>` : `<p class="pista" style="text-align:center;margin:0">Elige al menos una prenda para seguir</p>`}</div>
+    ${st.editando ? hojaPrenda() : ""}`;
+  },
+  tienda() {
+    return `${topCel("Compré ropa", "Paso 3 de 4 · la tienda", "prendas")}${pasos(3)}
+    <div class="cuerpo">
+      <h2 class="pregunta">¿A qué tienda va?</h2>
+      <p class="sub">Ahí la van a recibir y contar.</p>
+      <div class="tiendas">${TIENDAS.map((t) => `<button class="tienda" data-tienda="${t.id}" aria-pressed="${st.tienda === t.id}"><span class="sigla">${t.sigla}</span><span><b>${t.nombre}</b><small>${t.detalle}</small></span><span class="radio"></span></button>`).join("")}</div>
+      <button class="enlace" style="align-self:start">Repartir entre varias tiendas</button>
+    </div>
+    <div class="barra-cel"><button class="btn btn-primario btn-ancho" data-ir="revisar">Seguir ${ic("right", "s")}</button></div>`;
+  },
+  revisar() {
+    const t = TIENDAS.find((x) => x.id === st.tienda);
+    const ls = lineasArr();
+    const venta = ls.reduce((s, l) => s + l.cant * l.venta, 0);
+    return `${topCel("Compré ropa", "Revisa antes del papel", "tienda")}${pasos(3)}
+    <div class="cuerpo">
+      <h2 class="pregunta">¿Está bien así?</h2>
+      <div>${ls.map((l) => `<div class="linea-compra">${mosaico(l)}<span><b>${l.cant} · ${l.nombre}</b><small class="num">${l.cant} × ${S(l.costo)} · va a ${t.sigla}</small></span><span class="num">${S(l.cant * l.costo)}</span></div>`).join("")}</div>
+      <button class="enlace" data-ir="prendas" style="align-self:start">${ic("plus", "s")} Otra prenda de este proveedor</button>
+      <div class="total"><span class="tenue">Pagaste</span><span class="serif num">${S(totalCompra())}</span></div>
+      <div class="ganas num"><span>Si se vende todo, ganas<br><small class="taupe">vendes ${S(venta)}</small></span><b style="font-size:17px">${S(venta - totalCompra())}</b></div>
+    </div>
+    <div class="barra-cel"><button class="btn btn-primario btn-ancho" data-ir="papel">Sigue: el papel ${ic("right", "s")}</button></div>`;
+  },
+  papel() {
+    const tot = totalCompra();
+    const m = st.papelMonto ?? tot;
+    const cuadra = Math.abs(m - tot) < 0.005;
+    return `${topCel("Compré ropa", "Paso 4 de 4 · el papel", "revisar")}${pasos(4)}
+    <div class="cuerpo">
+      <h2 class="pregunta">¿Qué papel te dieron?</h2>
+      <div class="papeles">${[["factura", "Factura", "Con RUC"], ["boleta", "Boleta", "Con número"], ["nota_venta", "Nota de venta", "Papel simple"], ["sin", "Sin papel", "No me dieron nada"]].map(([k, n, a]) => `<button class="papel-op" data-papel="${k}" aria-pressed="${st.papel === k}"><b>${n}</b><small>${a}</small></button>`).join("")}</div>
+      ${st.papel !== "sin" ? `<div><div class="etq"><span>Foto del papel</span>${st.papelFoto ? '<span class="ok">✓ Lista</span>' : '<span class="sigue">Sigue aquí</span>'}</div>
+      <button class="foto ${st.papelFoto ? "lista" : ""}" data-accion="foto-papel">${st.papelFoto ? fotoChica() : `<span class="ic">${ic("camera")}</span>`}<span><b style="font-weight:500">${st.papelFoto ? "Factura F001-000482" : "Tomar la foto"}</b><br><small class="taupe">${st.papelFoto ? "Toca para cambiarla" : "Que se lea el total y el número"}</small></span></button></div>` : ""}
+      <div><div class="etq"><span>¿Cuánto dice el papel?</span></div>
+      <div class="monto-grande num"><small>S/</small><input id="papel-monto" inputmode="decimal" value="${m.toFixed(2)}" aria-label="Monto del papel"></div>
+      <div class="cuadra" style="margin-top:8px;${cuadra ? "" : "color:var(--ambar)"}">${ic(cuadra ? "check" : "alert", "s")} ${cuadra ? "Cuadra con lo que anotaste" : `Anotaste ${S(tot)}. Si el papel dice otro total, deja el del papel: Compras lo revisa.`}</div></div>
+    </div>
+    <div class="barra-cel"><button class="btn btn-primario btn-ancho" data-accion="guardar-compra" ${st.papel !== "sin" && !st.papelFoto ? "disabled" : ""}>Guardar la compra · ${S(m)}</button></div>`;
+  },
+  listo() {
+    const t = TIENDAS.find((x) => x.id === st.tienda);
+    return `<div class="cuerpo" style="text-align:center;justify-content:center">
+      <div class="sello"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h2 class="pregunta" style="text-align:center">Compra guardada</h2>
+      <p class="sub" style="margin:0">${unidades()} prendas a Textiles Rosa por ${S(totalCompra())}.<br>Te quedan <b class="num">${S(1874 - totalCompra())}</b> para comprar.</p>
+      <div class="nota" style="text-align:left">Compras copia el número del papel después. Tú ya terminaste con esta compra.</div>
+    </div>
+    <div class="barra-cel"><button class="btn btn-primario btn-ancho" data-ir="mandar">${ic("truck", "s")} Mandarla a ${t.nombre} ahora</button><button class="btn btn-secundario btn-ancho" data-ir="prov">${ic("plus", "s")} Anotar otra compra</button><button class="enlace" data-accion="a-inicio" style="align-self:center">Ver mi plata</button></div>`;
+  },
+  mandar() {
+    const tarjeta = (id, nombre, prendas, compras, fardos, minis) => st.mandadas.includes(id)
+      ? `<div class="tarjeta envio"><div class="aviso-ok">${ic("check", "s")} Mandado a ${nombre}: ${prendas} prendas en ${fardos} fardo${fardos > 1 ? "s" : ""}. La tienda ya lo ve en camino.</div></div>`
+      : `<div class="tarjeta envio"><div class="cab"><span class="sigla serif" style="font-size:22px">${id.toUpperCase()}</span><span style="flex:1"><b style="font-weight:500">${nombre}</b><br><small class="taupe">${prendas} prendas de ${compras}</small></span><span class="miniaturas">${minis.map((h) => mosaico(HABITUALES.find((x) => x.id === h), 34)).join("")}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span>¿Cuántos fardos?</span><span class="paso-cant"><button data-fardo="${id}:-1" aria-label="Uno menos">−</button><span class="num">${fardos}</span><button data-fardo="${id}:1" aria-label="Uno más">+</button></span></div>
+        <button class="btn btn-primario btn-ancho" data-mandar="${id}">Mandar a ${nombre}</button></div>`;
+    return `${topCel("Mandar a la tienda", "Un envío por tienda")}
+    <div class="cuerpo">
+      <h2 class="pregunta">¿Qué sale hoy?</h2>
+      <p class="sub">Toca «Mandar» cuando entregues el fardo al transporte. La tienda ya sabe que le llega.</p>
+      ${tarjeta("aqp", "Tienda AQP", 30, "1 compra", st.fardosAqp, ["blusa", "polo", "casaca"])}
+      ${tarjeta("lim", "Tienda LIM", 7, "1 compra", st.fardosLim, ["pantalon"])}
+    </div>`;
+  },
+  terminar() {
+    return `${topCel("Terminé de comprar hoy", "La cuenta del día")}
+    <div class="cuerpo">
+      <h2 class="pregunta">Así cerró tu día</h2>
+      <div class="cuaderno num">
+        <div class="r"><span>Te quedó de antes</span><span>${S(3000)}</span></div>
+        <div class="r"><span>Te dieron hoy</span><span class="mas">+ ${S(500)}</span></div>
+        <div class="r"><span>Compraste (2 compras)</span><span>− ${S(1520)}</span></div>
+        <div class="r"><span>Gastaste en otras cosas</span><span>− ${S(106)}</span></div>
+        <div class="r fin"><span>Te queda</span><span>${S(1874)}</span></div>
+      </div>
+      <h3 class="titulo-sec">¿Qué haces con lo que te queda?</h3>
+      <button class="opcion" data-quedo="queda" aria-pressed="${st.quedo === "queda"}"><span class="radio"></span><span><b>Me lo quedo para mi próxima compra</b><small>Sigue siendo plata de CAYLA para comprar.</small></span></button>
+      <button class="opcion" data-quedo="devuelvo" aria-pressed="${st.quedo === "devuelvo"}"><span class="radio"></span><span><b>Lo devuelvo hoy</b><small>Lo entregas en caja y Compras lo recibe.</small></span></button>
+      ${st.mandadas.length < 2 ? `<div class="nota">${ic("truck", "s")} Te falta mandar 7 prendas a LIM. Puedes terminar igual.</div>` : ""}
+    </div>
+    <div class="barra-cel"><button class="btn btn-primario btn-ancho" data-accion="terminar">Terminar el día</button></div>`;
+  },
+};
+
+function hojaPrenda() {
+  const h = HABITUALES.find((x) => x.id === st.editando);
+  const l = st.lineas[h.id] || { cant: h.cant, costo: h.costo, venta: h.venta };
+  st._borrador = st._borrador && st._borrador.id === h.id ? st._borrador : { id: h.id, ...l };
+  const b = st._borrador;
+  return `<div class="velo" data-accion="cerrar-prenda"></div>
+  <div class="hoja" role="dialog" aria-label="${h.nombre}"><div class="asa"></div><button class="cerrar" data-accion="cerrar-prenda" aria-label="Cerrar">✕</button>
+    <div class="dentro">
+      <div style="display:flex;gap:14px;align-items:center">${mosaico(h, 56)}<div><h3>${h.nombre}</h3><small class="taupe">${h.cat} · La vez pasada: ${h.vez}</small></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="etq" style="margin:0">¿Cuántas?</span><span class="paso-cant"><button data-cant="-1" aria-label="Una menos">−</button><span class="num">${b.cant}</span><button data-cant="1" aria-label="Una más">+</button></span></div>
+      <div class="fila-precio">
+        <div><div class="etq"><span>Te costó c/u</span></div><div class="caja num"><span class="taupe">S/</span><input value="${b.costo.toFixed(2)}" aria-label="Costo"></div><button class="atajo" aria-pressed="true">${ic("check", "s")} La vez pasada</button></div>
+        <div><div class="etq"><span>Se vende a</span></div><div class="caja num"><span class="taupe">S/</span><input value="${b.venta.toFixed(2)}" aria-label="Precio de venta"></div><button class="atajo" aria-pressed="true">${ic("check", "s")} Del catálogo</button></div>
+      </div>
+      <div class="ganas num"><span>Por cada una ganas</span><b>${S(b.venta - b.costo)}</b></div>
+    </div>
+    <div class="pie">
+      <button class="btn btn-primario btn-ancho" data-accion="agregar-prenda">${st.lineas[h.id] ? "Guardar" : "Agregar"} ${b.cant} · ${S(b.cant * b.costo)}</button>
+      ${st.lineas[h.id] ? `<button class="btn btn-secundario btn-ancho" data-accion="quitar-prenda">Quitar de la compra</button>` : ""}
+    </div>
+  </div>`;
+}
+
+const HOJAS = {
+  plata() {
+    const medios = [["transferencia", "Transferencia", "var(--m-transferencia)", "bank"], ["yape", "Yape o Plin", "var(--m-yape)", "phone"], ["efectivo", "Efectivo", "var(--m-efectivo)", "wallet"]];
+    return `<div class="velo" data-accion="cerrar"></div><div class="hoja" role="dialog" aria-label="Me dieron plata"><div class="asa"></div><button class="cerrar" data-accion="cerrar" aria-label="Cerrar">✕</button>
+      <div class="dentro">
+        <h3>Me dieron plata</h3>
+        <div><div class="etq"><span>¿Cómo te llegó?</span><span class="ok">✓</span></div>
+        <div class="medios">${medios.map(([k, n, c, i]) => `<button class="medio" data-medio="${k}" aria-pressed="${st.plataMedio === k}"><span class="punto" data-color-dato style="background:${c}">${ic(i, "s")}</span>${n}</button>`).join("")}</div></div>
+        <div><div class="etq"><span>¿Cuánto te dieron?</span></div><div class="monto-grande num"><small>S/</small><input id="plata-monto" inputmode="decimal" value="${st.plataMonto}" aria-label="Monto"></div></div>
+        <div><div class="etq"><span>Foto del voucher · opcional</span></div>
+        <button class="foto ${st.plataFoto ? "lista" : ""}" data-accion="foto-plata">${st.plataFoto ? fotoChica() : `<span class="ic">${ic("camera")}</span>`}<span><b style="font-weight:500">${st.plataFoto ? "Voucher de Yape" : "Tomar la foto"}</b><br><small class="taupe">${st.plataFoto ? "Toca para cambiarla" : "Ayuda a Compras a confirmarla rápido"}</small></span></button></div>
+        <button class="casilla" aria-pressed="false" data-accion="casilla"><span class="c">${ic("check", "s")}</span><span><b style="font-weight:500">Ya tenía plata de antes</b><br><small class="taupe">Solo esta primera vez: la que te quedó antes de usar el sistema.</small></span></button>
+      </div>
+      <div class="pie"><button class="btn btn-primario btn-ancho" data-accion="anotar-plata">Anotar ${S(parseFloat(st.plataMonto) || 0)}</button><small class="pista" style="text-align:center">Ya la puedes usar. Compras la confirma después.</small></div></div>`;
+  },
+  gasto() {
+    const cs = [["taxi", "Taxi", "car"], ["cargador", "Cargador", "person"], ["comida", "Comida", "food"], ["envio", "Envío", "truck"], ["bolsas", "Bolsas", "box"], ["otro", "Otro", "dots"]];
+    return `<div class="velo" data-accion="cerrar"></div><div class="hoja" role="dialog" aria-label="Gasté en otra cosa"><div class="asa"></div><button class="cerrar" data-accion="cerrar" aria-label="Cerrar">✕</button>
+      <div class="dentro">
+        <h3>Gasté en otra cosa</h3>
+        <div><div class="etq"><span>¿En qué gastaste?</span></div><div class="conceptos">${cs.map(([k, n, i]) => `<button class="concepto" data-gasto="${k}" aria-pressed="${st.gasto === k}">${ic(i)}${n}</button>`).join("")}</div></div>
+        <div><div class="etq"><span>¿Cuánto fue?</span></div><div class="monto-grande num"><small>S/</small><input id="gasto-monto" inputmode="decimal" value="${st.gastoMonto}" aria-label="Monto"></div></div>
+        <button class="foto"><span class="ic">${ic("camera")}</span><span><b style="font-weight:500">Foto del papel · si te dieron</b><br><small class="taupe">Un taxi o un cargador pueden ir sin papel</small></span></button>
+      </div>
+      <div class="pie"><button class="btn btn-primario btn-ancho" data-accion="anotar-gasto">Anotar gasto · ${S(parseFloat(st.gastoMonto) || 0)}</button></div></div>`;
+  },
+};
+
+// ---------- Escritorio: marco del ERP ----------
+function lateral(activo) {
+  const h = (n, k) => `<div class="h ${k === activo ? "activo" : ""}"><span>${n}</span></div>`;
+  return `<aside class="lateral" aria-label="Menú (maqueta)"><div class="marca">CAYLA</div>
+    <div class="g">${ic("store", "s")} Inicio</div><div class="g">${ic("bag", "s")} Ventas</div>
+    <div class="g ${activo === "recibir" ? "abierto" : ""}">${ic("box", "s")} Inventario</div>${activo === "recibir" ? h("Existencias") + h("Recibir mercadería", "recibir") + h("Traslados") : ""}
+    <div class="g">${ic("shirt", "s")} Catálogo</div>
+    <div class="g ${activo !== "recibir" ? "abierto" : ""}">${ic("receipt", "s")} Compras</div>
+    ${activo !== "recibir" ? h("Plan de campaña") + h("Mi plata para compras") + `<div class="h activo"><span>Revisar compras</span><span class="globito pide">7</span></div>` + h("Proveedores") + h("Facturas de proveedor") + h("Por pagar") : ""}
+    <div class="g">${ic("coins", "s")} Finanzas</div></aside>`;
+}
+
+const REV = {
+  papel: [
+    { id: "p1", quien: "Marisol Rojas", que: "Textiles Rosa · Factura", monto: 525, chip: ["verde", "Llegó todo"], foto: true, cuando: "Ayer 11:20" },
+    { id: "p2", quien: "Marisol Rojas", que: "Confecciones Andina · Boleta", monto: 995, chip: ["ambar", "Faltaron 2"], foto: true, cuando: "Ayer 15:05" },
+  ],
+  plata: [{ id: "a1", quien: "Marisol Rojas", que: "Yape o Plin · con foto", monto: 500, chip: ["ambar", "Por confirmar"], cuando: "Hoy 13:10" }],
+  gasto: [
+    { id: "g1", quien: "Marisol Rojas", que: "Taxi · sin papel", monto: 12, chip: ["ambar", "Por revisar"], cuando: "Hoy 9:40" },
+    { id: "g2", quien: "Marisol Rojas", que: "Cargador · sin papel", monto: 20, chip: ["ambar", "Por revisar"], cuando: "Hoy 10:15" },
+    { id: "g3", quien: "Lucía Paredes", que: "Envío · con foto", monto: 74, chip: ["ambar", "Por revisar"], cuando: "Ayer 18:30" },
+  ],
+  cierre: [{ id: "c1", quien: "Lucía Paredes", que: "Devuelve en caja", monto: 374, chip: ["pizarra", "Lo devuelve"], cuando: "Ayer 19:02" }],
+};
+const CIFRAS = [["plata", "Plata por confirmar", "S/ 500.00 de 1 compradora"], ["papel", "Compras por completar", "Copiar serie y número"], ["gasto", "Gastos por revisar", "Taxis, cargadores, envíos"], ["cierre", "Cierres del día", "Plata que devuelven"]];
+
+function detalleRev() {
+  const it = REV[st.revTipo].find((x) => x.id === st.revSel) || REV[st.revTipo][0];
+  if (st.revTipo === "papel") {
+    const serieOk = st.serie.trim().length > 0, numOk = st.numero.trim().length > 0;
+    const sigue = !serieOk ? "serie" : !numOk ? "numero" : null;
+    const p2 = it.id === "p2";
+    return `<div class="detalle tarjeta">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px"><div><div class="versal taupe">Compró ${it.quien} · ${it.cuando}</div><h3>${p2 ? "Boleta" : "Factura"} de ${S(it.monto)}</h3></div><span class="chip ambar">Por completar</span></div>
+      <div class="dos">
+        <div class="visor"><button class="zoom" aria-label="Ver la foto en grande">${ic("zoom", "s")}</button>${recibo(p2 ? "CONFECCIONES ANDINA S.A.C." : undefined, it.monto)}</div>
+        <div class="campos">
+          <div><div class="etq"><span>Proveedor</span><span class="ok">✓ Lo eligió ${it.quien.split(" ")[0]}</span></div><div class="caja combo"><span>${p2 ? "Confecciones Andina" : "Textiles Rosa"} · RUC 20601234567</span>${ic("pencil", "s")}</div></div>
+          <div class="par">
+            <div><div class="etq"><span>Serie</span>${serieOk ? '<span class="ok">✓</span>' : sigue === "serie" ? '<span class="sigue">Sigue aquí</span>' : ""}</div><label class="caja ${sigue === "serie" ? "encendida" : ""}"><input id="serie" value="${st.serie}" placeholder="F001" aria-label="Serie"></label></div>
+            <div><div class="etq"><span>Número</span>${numOk ? '<span class="ok">✓</span>' : sigue === "numero" ? '<span class="sigue">Sigue aquí</span>' : ""}</div><label class="caja ${sigue === "numero" ? "encendida" : ""}"><input id="numero" value="${st.numero}" placeholder="000482" aria-label="Número"></label></div>
+          </div>
+          <div class="comparar num"><div><small>Dice el papel</small><span class="v">${S(it.monto)}</span></div><span class="chip verde">Cuadra</span><div style="text-align:right"><small>Anotó ${it.quien.split(" ")[0]}</small><span class="v">${S(it.monto)}</span></div></div>
+          <div class="llego">
+            <div class="etq" style="margin:0"><span>Llegó a la tienda</span><span class="${p2 ? "sigue" : "ok"}">${p2 ? "12 de 14" : "✓ 35 de 35"}</span></div>
+            <div class="barra-av"><i class="${p2 ? "" : "lleno"}" style="width:${p2 ? 86 : 100}%"></i></div>
+            <small class="taupe">${p2 ? "Tienda LIM marcó 2 pantalones como «No vino»: quedan en «Nos debe» del proveedor." : "Tienda AQP lo contó y cerró ayer a las 17:40."}</small>
+          </div>
+        </div>
+      </div>
+      <div class="pie-d"><span class="guia-pie">${sigue ? `Falta: <button class="enlace" data-foco="${sigue}">${sigue === "serie" ? "la serie" : "el número"}</button>` : "Todo listo"}</span><button class="btn btn-secundario btn-chico">Más tarde</button><button class="btn btn-primario btn-chico" data-accion="completar" ${sigue ? "disabled" : ""}>Completar y pasar a los libros</button></div>
+    </div>`;
+  }
+  if (st.revTipo === "plata") return `<div class="detalle tarjeta">
+      <div><div class="versal taupe">${it.quien} · ${it.cuando}</div><h3>Le yapearon ${S(it.monto)}</h3></div>
+      <div class="dos"><div class="visor" style="display:grid;place-items:center;min-height:300px"><div class="recibo" data-papel style="rotate:0deg;width:200px;text-align:center"><div style="font-size:13px;font-weight:700">¡Yapeaste!</div><div style="font-size:26px;font-weight:700;margin:8px 0">S/ 500</div>A: Marisol R.<br>23 oct. 2026 · 01:08 p.m.<br>Nro. de operación<br>08311472</div></div>
+      <div class="campos">
+        <div><div class="etq"><span>Monto</span><span class="ok">✓ Coincide con el voucher</span></div><div class="caja num"><span class="taupe">S/</span><input value="500.00" aria-label="Monto"></div></div>
+        <div><div class="etq"><span>¿De qué cuenta salió?</span><span class="ok">Sugerida</span></div><div class="caja combo"><span>${ic("bank", "s")} ${st.cuentaPlata}</span>${ic("dots", "s")}</div></div>
+        <div class="nota">Al confirmar, la plata entra al fondo de ${it.quien.split(" ")[0]} y sale del banco en los libros.</div>
+      </div></div>
+      <div class="pie-d"><button class="btn btn-secundario btn-chico">Cambiar el monto</button><button class="btn btn-primario btn-chico" data-accion="confirmar-plata">${ic("check", "s")} Confirmar ${S(it.monto)}</button></div>
+    </div>`;
+  if (st.revTipo === "gasto") return `<div class="detalle tarjeta">
+      <div><div class="versal taupe">${it.quien} · ${it.cuando}</div><h3>${it.que.split(" · ")[0]} · ${S(it.monto)}</h3></div>
+      <div class="campos" style="max-width:520px">
+        <div><div class="etq"><span>¿Qué papel le dieron?</span></div><div class="papeles" style="grid-template-columns:repeat(4,1fr)">${[["Sin papel", "Planilla de movilidad"], ["Boleta", "Con número"], ["Factura", "Separa el IGV"], ["Ticket", "De una máquina"]].map(([p, a], i) => `<button class="papel-op" aria-pressed="${i === 0}"><b>${p}</b><small>${a}</small></button>`).join("")}</div></div>
+        <div class="nota">Sin papel: va a la planilla de movilidad. Pasa a los gastos del viaje de ${it.quien.split(" ")[0]}, de su compra de ese día.</div>
+      </div>
+      <div class="pie-d"><button class="btn btn-primario btn-chico" data-accion="revisar-gasto">Pasar a los gastos del viaje</button></div>
+    </div>`;
+  return `<div class="detalle tarjeta">
+      <div><div class="versal taupe">${it.quien} · ${it.cuando}</div><h3>Cerró su día y devuelve ${S(it.monto)}</h3></div>
+      <div class="dos"><div class="cuaderno num"><div class="r"><span>Tenía</span><span>${S(1200)}</span></div><div class="r"><span>Compró</span><span>− ${S(752)}</span></div><div class="r"><span>Gastó</span><span>− ${S(74)}</span></div><div class="r fin"><span>Le quedó</span><span>${S(374)}</span></div></div>
+      <div class="campos"><div><div class="etq"><span>¿Dónde entra la plata?</span></div><div class="caja combo"><span>${ic("wallet", "s")} Caja fuerte · Tienda AQP</span>${ic("dots", "s")}</div></div><div class="nota">Cuéntala antes de recibirla. Si falta, recíbela por lo que contaste.</div></div></div>
+      <div class="pie-d"><button class="btn btn-primario btn-chico" data-accion="recibir-cierre">Recibir ${S(it.monto)}</button></div>
+    </div>`;
+}
+
+function deskCompras() {
+  const lista = REV[st.revTipo];
+  return `<div class="desk">${lateral("rev")}<div class="contenido">
+    <div class="encabezado" style="display:flex;justify-content:space-between;align-items:end;gap:16px"><div><div class="sede versal">Tienda AQP · jueves 23 de octubre</div><h2>Revisar compras</h2><p>Lo que anotaron las compradoras desde el celular. Confírmalo y pásalo a los libros.</p></div><div style="display:flex;gap:8px;flex:none"><button class="btn btn-secundario btn-chico">Quién tiene plata</button><button class="btn btn-primario btn-chico">${ic("plus", "s")} Entregar plata</button></div></div>
+    ${st.aviso ? `<div class="aviso-ok">${ic("check", "s")} ${st.aviso}</div>` : ""}
+    <div class="cifras">${CIFRAS.map(([k, n, s]) => `<button class="cifra-t" data-rev="${k}" aria-pressed="${st.revTipo === k}"><span class="versal taupe">${n}</span><span class="v num">${REV[k].length}</span><small>${s}</small></button>`).join("")}</div>
+    <div class="bandeja">
+      <div class="tarjeta lista-b">${lista.length ? lista.map((it) => `<button class="item-b" data-sel="${it.id}" aria-current="${it.id === st.revSel}">${st.revTipo === "papel" ? fotoChica() : `<span class="ic" style="width:54px;height:54px;border-radius:14px;background:var(--hueso);display:grid;place-items:center">${ic(st.revTipo === "plata" ? "coins" : st.revTipo === "gasto" ? "receipt" : "moon")}</span>`}<span style="min-width:0"><b>${it.que}</b><small>${it.quien} · ${it.cuando}</small></span><span class="der num">${S(it.monto)}<span class="chip ${it.chip[0]}">${it.chip[1]}</span></span></button>`).join("") : `<div style="padding:30px;text-align:center" class="tenue">${ic("check", "g")}<p>Nada por revisar aquí.</p></div>`}</div>
+      ${lista.length ? detalleRev() : `<div class="tarjeta detalle"><h3>Todo al día</h3><p class="tenue">Elige otra cifra de arriba.</p></div>`}
+    </div></div></div>`;
+}
+
+function deskTienda() {
+  const ls = HABITUALES.slice(0, 3);
+  const cant = [12, 20, 3];
+  return `<div class="desk">${lateral("recibir")}<div class="contenido">
+    <div class="encabezado"><div class="sede versal">Tienda AQP · jueves 23 de octubre</div><h2>Recibir mercadería</h2><p>Envío de Marisol Rojas · 2 fardos · salió ayer 16:05</p></div>
+    <div class="etapas"><span class="etapa hecha"><span class="n">✓</span>¿Qué llegó?</span><span class="etapa ahora"><span class="n">2</span>Contar</span><span class="etapa"><span class="n">3</span>Cerrar</span></div>
+    <div class="recibir">
+      <div class="tarjeta" style="padding:16px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h3 class="titulo-sec">El papel de la compra</h3><button class="zoom volver" aria-label="Ver en grande">${ic("zoom", "s")}</button></div>
+        <div class="visor" style="padding:18px">${recibo()}</div>
+        <small class="taupe">Textiles Rosa · Factura · compró Marisol el 22 de octubre</small>
+        <div class="versal taupe">Lo que anotó Marisol</div>
+        <div class="anoto">${ls.map((h, i) => `<div class="linea-compra" style="padding:8px 0">${mosaico(h, 40)}<span><b>${cant[i]} · ${h.nombre}</b><small>${h.cat}</small></span><span>${i === 0 && st.sonEstas ? '<span class="chip verde">Contada</span>' : i === 0 ? '<span class="chip pizarra">Ahora</span>' : ""}</span></div>`).join("")}</div>
+      </div>
+      <div class="tarjeta" style="padding:20px;display:flex;flex-direction:column;gap:18px;min-width:0">
+        <div class="llego"><div class="etq" style="margin:0"><span>Llevas contadas</span><span class="num">${st.sonEstas ? 12 : 0} de 35</span></div><div class="barra-av"><i style="width:${st.sonEstas ? 34 : 2}%"></i></div></div>
+        ${!st.sonEstas ? `<div class="pregunta-t">${mosaico(HABITUALES[0], 56)}<div style="flex:1"><small class="taupe">La compradora anotó</small><div class="serif" style="font-size:24px;line-height:1.1">Blusa manga globo × 12</div><small class="taupe">¿Son estas las que tienes en la mano?</small></div><div style="display:flex;flex-direction:column;gap:8px"><button class="btn btn-primario btn-chico" data-accion="son-estas">Son estas (12)</button><button class="btn btn-secundario btn-chico">Es otra prenda</button></div></div>`
+        : `<div class="pregunta-t">${mosaico(HABITUALES[0], 56)}<div style="flex:1"><div class="serif" style="font-size:24px;line-height:1.1">Blusa manga globo</div><small class="taupe">Reparte las 12 por color y talla</small></div><span class="chip verde">12 de 12</span></div>
+          <div style="overflow-x:auto"><table class="matriz num"><thead><tr><th>Color</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>Total</th></tr></thead><tbody>
+          ${[["Rojo", "#b8412d", [1, 2, 2, 1]], ["Crudo", "#efe6d6", [1, 2, 2, 1]]].map(([n, c, v]) => `<tr><td><span class="punto-color"><i data-color-dato style="background:${c}"></i>${n}</span></td>${v.map((x) => `<td><span class="celda"><button aria-label="Una menos">−</button><span>${x}</span><button aria-label="Una más">+</button></span></td>`).join("")}<td><b>6</b></td></tr>`).join("")}
+          </tbody></table></div>
+          <div class="par"><div><div class="etq"><span>Costo c/u</span><span class="ok">✓ Del papel</span></div><div class="caja num"><span class="taupe">S/</span><input value="17.50" aria-label="Costo"></div></div><div><div class="etq"><span>Precio de venta</span><span class="ok">Lo sugirió Marisol</span></div><div class="caja num"><span class="taupe">S/</span><input value="39.90" aria-label="Precio de venta"></div></div></div>
+          <div class="pie-d"><span class="guia-pie">Sigue: Polo básico algodón × 20</span><button class="btn btn-primario btn-chico">Siguiente prenda ${ic("right", "s")}</button></div>`}
+      </div>
+    </div></div></div>`;
+}
+
+// ---------- Dibujo ----------
+const escena = document.getElementById("escena");
+function dibujar() {
+  document.querySelectorAll(".persona").forEach((b) => b.setAttribute("aria-pressed", b.dataset.persona === st.persona));
+  const mapa = MAPA[st.persona];
+  const clave = st.persona === "compradora" ? st.pantalla : st.persona === "tienda" ? "recibir" : "rev";
+  const mej = MEJORAS[clave] || MEJORAS.inicio;
+  const lado = `<aside class="lado">
+      <div><div class="versal taupe">Qué mejora</div><h2>${mej.t}</h2><p class="pista" style="margin:8px 0 0">Toca los botones de la pantalla: avanza como la de verdad. Nada se guarda.</p></div>
+      <ul class="mejoras">${mej.m.map(([a, b]) => `<li><span>${a}${b ? `<span class="antes">${b}</span>` : ""}</span></li>`).join("")}</ul>
+      <div><div class="versal taupe" style="margin-bottom:6px">Pantallas</div><div class="mapa">${mapa.map(([k, n], i) => {
+        const actual = st.persona === "compradora" ? k === st.pantalla : st.persona === "compras" ? k === st.revTipo : true;
+        return `<button data-mapa="${k}" aria-current="${actual}"><span class="n">${i + 1}</span>${n}</button>`; }).join("")}</div></div>
+    </aside>`;
+  if (st.persona === "compradora") {
+    escena.className = "escena cel";
+    const hoja = st.hoja ? HOJAS[st.hoja]() : "";
+    escena.innerHTML = `<div class="telefono"><div class="isla"></div><div class="estado"><span>15:24</span><span>●●● 5G</span></div><div class="pantalla" id="pant">${CEL[st.pantalla]()}</div>${hoja}</div>${lado}`;
+  } else {
+    escena.className = "escena";
+    escena.innerHTML = `<div class="marco-desk"><div class="desk-scroll">${st.persona === "tienda" ? deskTienda() : deskCompras()}</div></div>${lado}`;
+  }
+}
+function ir(p) { st.pantalla = p; st.hoja = null; dibujar(); const el = document.getElementById("pant"); if (el) el.scrollTop = 0; }
+function avisar(t) { st.aviso = t; dibujar(); clearTimeout(avisar._t); avisar._t = setTimeout(() => { st.aviso = null; dibujar(); }, 3200); }
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button, [data-accion]");
+  if (!b) return;
+  const d = b.dataset;
+  if (d.persona) { st.persona = d.persona; st.aviso = null; dibujar(); return; }
+  if (d.mapa) {
+    if (st.persona === "compradora") {
+      if (["prendas", "tienda", "revisar", "papel", "listo"].includes(d.mapa) && !Object.keys(st.lineas).length) { st.prov = "rosa"; st.lineas = { blusa: { cant: 12, costo: 17.5, venta: 39.9 }, polo: { cant: 20, costo: 9, venta: 24.9 }, casaca: { cant: 3, costo: 42, venta: 99.9 } }; }
+      if (["plata", "gasto"].includes(d.mapa)) { st.pantalla = "inicio"; st.hoja = d.mapa; dibujar(); return; }
+      ir(d.mapa);
+    } else if (st.persona === "compras") { st.revTipo = d.mapa; st.revSel = REV[d.mapa][0]?.id; dibujar(); }
+    return;
+  }
+  if (d.ir) { if (d.ir === "prov") { st.lineas = {}; st.papelFoto = false; st.papelMonto = null; } ir(d.ir); return; }
+  if (d.hoja) { st.hoja = d.hoja; dibujar(); return; }
+  if (d.prov) { st.prov = d.prov; ir("prendas"); return; }
+  if (d.hab) { st.editando = d.hab; st._borrador = null; dibujar(); return; }
+  if (d.cant) { st._borrador.cant = Math.max(1, st._borrador.cant + +d.cant); dibujar(); return; }
+  if (d.tienda) { st.tienda = d.tienda; dibujar(); return; }
+  if (d.papel) { st.papel = d.papel; dibujar(); return; }
+  if (d.medio) { st.plataMedio = d.medio; dibujar(); return; }
+  if (d.gasto) { st.gasto = d.gasto; dibujar(); return; }
+  if (d.quedo) { st.quedo = d.quedo; dibujar(); return; }
+  if (d.fardo) { const [t, n] = d.fardo.split(":"); const k = t === "aqp" ? "fardosAqp" : "fardosLim"; st[k] = Math.max(1, st[k] + +n); dibujar(); return; }
+  if (d.mandar) { st.mandadas.push(d.mandar); dibujar(); return; }
+  if (d.rev) { st.revTipo = d.rev; st.revSel = REV[d.rev][0]?.id; st.aviso = null; dibujar(); return; }
+  if (d.sel) { st.revSel = d.sel; st.serie = ""; st.numero = ""; dibujar(); return; }
+  if (d.foco) { document.getElementById(d.foco)?.focus(); return; }
+  switch (d.accion) {
+    case "cerrar": st.hoja = null; dibujar(); break;
+    case "cerrar-prenda": st.editando = null; dibujar(); break;
+    case "agregar-prenda": { const x = st._borrador; st.lineas[x.id] = { cant: x.cant, costo: x.costo, venta: x.venta }; st.editando = null; dibujar(); break; }
+    case "quitar-prenda": delete st.lineas[st.editando]; st.editando = null; dibujar(); break;
+    case "foto-papel": st.papelFoto = !st.papelFoto; dibujar(); break;
+    case "foto-plata": st.plataFoto = !st.plataFoto; dibujar(); break;
+    case "casilla": b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); break;
+    case "guardar-compra": st.guardadas++; ir("listo"); break;
+    case "a-inicio": st.pantalla = "inicio"; avisar("Compra guardada. Compras la completa después."); break;
+    case "anotar-plata": st.hoja = null; avisar(`Anotaste ${S(parseFloat(st.plataMonto) || 0)}. Ya la puedes usar.`); break;
+    case "anotar-gasto": st.hoja = null; avisar(`Gasto anotado: ${S(parseFloat(st.gastoMonto) || 0)}.`); break;
+    case "terminar": st.pantalla = "inicio"; avisar(st.quedo === "queda" ? "Día cerrado. Lo que te queda sigue en tu plata." : "Día cerrado. Entrega la plata en caja."); break;
+    case "son-estas": st.sonEstas = true; dibujar(); break;
+    case "completar": quitarRev("Comprobante creado y pagado desde el fondo de Marisol. Ya está en Facturas de proveedor."); break;
+    case "confirmar-plata": quitarRev("Plata confirmada: S/ 500.00 entran al fondo de Marisol."); break;
+    case "revisar-gasto": quitarRev("Pasó a los gastos del viaje de Marisol."); break;
+    case "recibir-cierre": quitarRev("Recibiste S/ 374.00 de Lucía en la caja fuerte."); break;
+  }
+});
+function quitarRev(msg) {
+  REV[st.revTipo] = REV[st.revTipo].filter((x) => x.id !== st.revSel);
+  st.revSel = REV[st.revTipo][0]?.id; st.serie = ""; st.numero = "";
+  avisar(msg);
+}
+document.addEventListener("input", (e) => {
+  const id = e.target.id;
+  if (id === "plata-monto") { st.plataMonto = e.target.value; const btn = document.querySelector('[data-accion="anotar-plata"]'); if (btn) btn.textContent = "Anotar " + S(parseFloat(st.plataMonto) || 0); }
+  if (id === "gasto-monto") { st.gastoMonto = e.target.value; const btn = document.querySelector('[data-accion="anotar-gasto"]'); if (btn) btn.textContent = "Anotar gasto · " + S(parseFloat(st.gastoMonto) || 0); }
+  if (id === "papel-monto") { const v = parseFloat(e.target.value); if (!Number.isNaN(v)) st.papelMonto = v; }
+});
+document.addEventListener("change", (e) => {
+  if (e.target.id === "papel-monto") dibujar();
+  if (e.target.id === "serie" || e.target.id === "numero") { st[e.target.id] = e.target.value; dibujar(); const sig = !st.serie ? "serie" : !st.numero ? "numero" : null; if (sig) document.getElementById(sig)?.focus(); }
+});
+
+// Tema: claro, oscuro (solo para mirar la maqueta).
+const tbtn = document.getElementById("tema");
+tbtn.addEventListener("click", () => {
+  const r = document.documentElement;
+  const oscuro = r.dataset.theme === "dark" || (!r.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  r.dataset.theme = oscuro ? "light" : "dark";
+  tbtn.textContent = oscuro ? "Ver en modo oscuro" : "Ver en modo claro";
+});
+if (matchMedia("(prefers-color-scheme: dark)").matches) tbtn.textContent = "Ver en modo claro";
+
+// Abrir la persona del enlace (#compradora, #tienda, #compras).
+const h = location.hash.replace("#", "");
+if (MAPA[h]) st.persona = h;
+dibujar();
+</script>

@@ -1,0 +1,80 @@
+<!--
+  La barra de abajo del celular (ADR-0479, actividad 12): dos propuestas para que TODA barra de abajo sea una sola pieza.
+  Fragmento para /unificar: solo tokens, los botones del sistema (btn-cayla) y clases prop-*. Bajo 640 px.
+
+  P1 «Vidrio»: la de Por pagar (BarraFija) para todas, de borde a borde, con el vidrio, su línea arriba y el margen de la barrita.
+  P2 «Isla»: la forma de la barra del ticket de Vender para todas, flotando a 12 px de los bordes; clara (papel) para lo que toca
+     hacer en la pantalla, oscura (tinta) para lo que llevas elegido.
+  En las dos: un resumen opcional a la izquierda (la cifra en serif, el detalle en taupe), las acciones a la derecha, y con una sola
+  acción, el botón a todo el ancho. Botones de 44 px (dedo, ADR-0350). Entra una vez, subiendo 12 px (260 ms, --ease-cayla, sin rebote);
+  la cifra cuenta al cambiar. Con «reducir movimiento», aparece de una.
+-->
+<style>
+  .prop-barra-movil {
+    position: fixed;
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    animation: prop-barra-entra 260ms var(--ease-cayla) both;
+  }
+  .prop-barra-movil[data-forma="vidrio"] {
+    inset-inline: 0;
+    bottom: 0;
+    padding: 12px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    border-top: 1px solid var(--color-sand);
+    background: color-mix(in srgb, var(--color-crema) 86%, transparent);
+    backdrop-filter: blur(14px) saturate(1.15);
+  }
+  .prop-barra-movil[data-forma="isla"] {
+    inset-inline: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 10px 10px 10px 16px;
+    border: 1px solid var(--color-sand);
+    border-radius: 18px;
+    background: var(--color-papel);
+    box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--color-sombra) 38%, transparent);
+  }
+  .prop-barra-movil[data-forma="isla"][data-tono="tinta"] {
+    border-color: transparent;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .prop-barra-movil .prop-resumen { min-width: 0; flex: 1 1 auto; }
+  .prop-barra-movil .prop-cifra { font-family: var(--font-eb-garamond); font-size: 24px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .prop-barra-movil .prop-detalle { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--color-taupe); }
+  .prop-barra-movil[data-tono="tinta"] .prop-detalle { color: color-mix(in srgb, var(--color-crema) 72%, transparent); }
+  /* Si el resumen es largo, las acciones bajan a su propia fila, pero siempre a la derecha (donde va el pulgar). */
+  .prop-barra-movil .prop-acciones { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; margin-left: auto; }
+  .prop-barra-movil .btn-cayla { min-height: 44px; padding-inline: 18px; border-radius: 12px; }
+  .prop-barra-movil .prop-entera { display: flex; flex: 1 1 100%; justify-content: center; }
+  .prop-barra-movil[data-tono="tinta"] .btn-primario { background: var(--color-crema); color: var(--color-tinta); }
+  .prop-barra-movil .prop-siguiente { flex: 1 1 100%; font-size: 13px; }
+  .prop-barra-movil .btn-enlace { min-height: 0; padding-inline: 0; }
+  /* Sobre unas pestañas de abajo (Apartados, Comprobantes) la barra se apoya en ellas: \`--sobre\` es su alto. */
+  .prop-barra-movil[style*="--sobre"][data-forma="vidrio"] { bottom: var(--sobre); padding-bottom: 12px; }
+  .prop-barra-movil[style*="--sobre"][data-forma="isla"] { bottom: calc(var(--sobre) + 12px); }
+  /* Una sola acción en la isla: la isla ES el botón (sin tarjeta alrededor), como la barra del ticket de Vender. */
+  .prop-barra-movil[data-forma="isla"][data-sola] { padding: 0; border: 0; background: none; box-shadow: none; }
+  .prop-barra-movil[data-forma="isla"][data-sola] .btn-cayla { min-height: 52px; border-radius: 18px; box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--color-sombra) 45%, transparent); }
+  @keyframes prop-barra-entra { from { opacity: 0; transform: translate3d(0, 12px, 0); } }
+  @media (prefers-reduced-motion: reduce) { .prop-barra-movil { animation: none; } }
+</style>
+
+<!-- Una sola acción (Existencias): el botón a todo el ancho. -->
+<div class="prop-barra-movil" data-forma="isla" data-sola>
+  <button type="button" class="btn-cayla btn-primario prop-entera">Escanear prenda</button>
+</div>
+
+<!-- Resumen y acciones (Por pagar): la cifra a la izquierda, Limpiar y Pagar juntos a la derecha. -->
+<div class="prop-barra-movil" data-forma="vidrio">
+  <div class="prop-resumen"><div class="prop-cifra">S/ 5,133.60</div><div class="prop-detalle">1 comprobante · Textiles Andina SAC</div></div>
+  <div class="prop-acciones"><button type="button" class="btn-cayla btn-enlace">Limpiar</button><button type="button" class="btn-cayla btn-primario">Pagar juntos</button></div>
+</div>
+
+<!-- Lo que llevas elegido (el ticket de Vender): la isla oscura. -->
+<div class="prop-barra-movil" data-forma="isla" data-tono="tinta">
+  <div class="prop-resumen"><div class="prop-cifra">S/79.90</div><div class="prop-detalle">1 prenda · Blusa Emma</div></div>
+  <div class="prop-acciones"><button type="button" class="btn-cayla btn-primario">Ver ticket</button></div>
+</div>

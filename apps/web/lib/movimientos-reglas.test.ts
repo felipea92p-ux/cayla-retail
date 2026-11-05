@@ -37,7 +37,6 @@ import {
   parDeOperacion,
   plegarBajadas,
   resumirBajadas,
-  unidades,
   ventasAnuladas,
   volverAMovimientos,
   ENCABEZADOS_CSV_MOVIMIENTOS,
@@ -755,13 +754,6 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     expect(lima.entrada.operaciones).toBe(4);
     expect(lima.salida.operaciones).toBe(2);
     expect(Object.keys(lima).sort()).toEqual(["ajuste", "cliente", "colgada", "entrada", "guardada", "interno", "llegada", "salida", "todos", "transferencia", "traslado", "venta"]);
-  });
-
-  it("singular y plural de la unidad", () => {
-    expect(unidades(1)).toBe("unidad");
-    expect(unidades(-1)).toBe("unidad");
-    expect(unidades(0)).toBe("unidades");
-    expect(unidades(80)).toBe("unidades");
   });
 });
 

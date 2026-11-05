@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
@@ -21,7 +21,9 @@ import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
    pasa por fetch existen `useEsperando` y `esperar`; para la carga en frío, `<EsperaPantalla />`
    dentro de cada `loading.tsx`.
 
-   Cómo se ve: el aviso de cambio de sede, generalizado. Va en un portal a `body`, POR ENCIMA de
+   Cómo se ve: «B · Lente sola» del vidrio «Serena» (Felipe 2026-11-01, docs/maquetas/avisos-espera-vidrio-2026-10/): sin
+   tarjeta, toda la pantalla se esmerila y en el centro queda una lente con el colibrí y su arco; las palabras van sueltas
+   debajo, con un halo de crema detrás. El material vive en `estilos/vidrio/avisos-espera.css`. Va en un portal a `body`, POR ENCIMA de
    todo (lateral z-40, cabecera z-30, modales z-50), y mientras está a la vista el resto de la app
    queda `inert`: el velo frena el ratón pero solo `inert` frena el teclado, y una tecla podía actuar
    sobre datos que se están dejando. No es un diálogo (no se cierra con Escape): es un estado, `role="status"`.
@@ -122,7 +124,8 @@ const sinEspera = new Map<string, number>();
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
  * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Las otras excepciones: el refresco que sigue a bajar al piso o subir
  * al almacén desde el panel de Existencias (`PanelTalla`, Felipe 2026-10-08), que ya confirma con el aviso destacado y no debe tapar la
- * lista, y los dos refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`) y el que sigue a un guardado sin respuesta
+ * lista, y los tres refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`), el de Existencias cuando el stock de la sede
+ * cambia por el WebSocket (`useRefrescoEnVivo`, ADR-0603) y el que sigue a un guardado sin respuesta
  * (`RefrescoTrasCorte`, ADR-0411), que no deben dejar `inert` la pantalla bajo quien escribe.
  */
 export function navegacionSinEspera(href: string) {
@@ -321,19 +324,16 @@ export function EsperaGlobal() {
       role="status"
       data-espera
       aria-live="polite"
-      className={`fixed inset-0 z-[60] flex cursor-progress items-center justify-center bg-crema/60 px-4 backdrop-blur-[3px] ${
+      className={`espera-velo fixed inset-0 z-[60] flex cursor-progress items-center justify-center px-4 ${
         saliendo ? "anim-velo-salida" : "anim-velo"
       }`}
     >
-      <div
-        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 ring-tinta/[0.07] ${
-          saliendo ? "anim-modal-sale" : "anim-modal-entra"
-        }`}
-      >
-        <div className="relative mx-auto mb-3.5 grid h-16 w-16 place-items-center">
-          <Image src="/cayla-isotipo.png" alt="" width={34} height={34} priority className="h-[34px] w-auto" />
-          <svg aria-hidden viewBox="0 0 64 64" fill="none" strokeWidth={2} className="absolute inset-0 h-full w-full">
-            <circle cx="32" cy="32" r="29" className="stroke-sand" />
+      <div className={`espera-hoja ${saliendo ? "anim-modal-sale" : "anim-modal-entra"}`}>
+        <div className="espera-marca">
+          {/* El colibrí del logo oficial (ADR-0446), el mismo del lateral, mirado a través de la lente. */}
+          <LogoCayla soloColibri className="h-6" />
+          <svg aria-hidden viewBox="0 0 64 64" fill="none" strokeWidth={2} className="espera-anillo">
+            <circle cx="32" cy="32" r="29" className="espera-pista" />
             <circle
               cx="32"
               cy="32"
@@ -349,8 +349,8 @@ export function EsperaGlobal() {
           {titulo}
           {resalte ? <> <span className="text-rojo-profundo">{resalte}</span></> : null}
         </p>
-        {linea ? <p className="mt-2 text-[13px] text-tinta/65">{linea}</p> : null}
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
+        {linea ? <p className="mt-2 text-[13px] text-tinta/80">{linea}</p> : null}
+        <span aria-hidden className="espera-hilo">
           <span className="block h-full w-1/3 bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite] motion-reduce:animate-none" />
         </span>
       </div>

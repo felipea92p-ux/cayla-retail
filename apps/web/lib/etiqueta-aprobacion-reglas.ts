@@ -14,6 +14,10 @@
 //  · Mientras una propuesta está pendiente NO se puede usar: el alta de producto solo acepta etiquetas aprobadas y activas
 //    (`crear_producto_con_variantes`), «Prendas» también (`etiquetar_variantes`), y las listas de la web solo ofrecen
 //    aprobadas. Por eso el aviso de una propuesta no promete «ya la puedes usar».
+//  · Desde ADR-0534 (2026-10-27) lo que se crea nace aprobado, lo cree quien lo cree: «pendiente» queda solo para lo que ya
+//    esperaba de antes (y para una base que todavía no tenga ese cambio).
+
+import { TEXTOS_MODO, type ModoEtiquetas } from "./sellos-campanas";
 
 export type EstadoEtiqueta = "pendiente" | "aprobado" | "rechazado";
 
@@ -32,12 +36,16 @@ export function verboAprobacion(estado: EstadoEtiqueta): "Aprobar" | "Reactivar"
 
 /** Para qué se pide el comentario, en palabras del negocio (la base solo dice «exige un comentario breve»). */
 export const AYUDA_COMENTARIO_APROBAR =
-  "Una línea para quien etiquete después: para qué sirve y en qué se distingue de las etiquetas que ya existen. Se muestra como ayuda junto al nombre.";
+  "Una línea para quien etiquete después: para qué sirve y en qué se distingue de lo que ya existe. Se muestra como ayuda junto al nombre.";
 
-/** El aviso al agregar una etiqueta. Una propuesta (pendiente) dice la verdad: hasta que un Líder la apruebe, no se puede usar. */
-export function avisoEtiquetaAgregada(nombre: string, estado: EstadoEtiqueta): { titulo: string; detalle?: string } {
+/** El aviso al agregar una insignia o una campaña (ADR-0473). Desde ADR-0534 nace aprobada; si la base aún la dejara pendiente,
+ *  el aviso dice la verdad: hasta aprobarla, con su comentario, no se puede poner en una prenda (ya no espera a un líder). */
+export function avisoEtiquetaAgregada(nombre: string, estado: EstadoEtiqueta, modo: ModoEtiquetas = "sellos"): { titulo: string; detalle?: string } {
+  const T = TEXTOS_MODO[modo];
+  const lo = T.o === "o" ? "lo" : "la";
   if (estado === "pendiente") {
-    return { titulo: `${nombre} propuesta`, detalle: "Un Líder tiene que aprobarla antes de que la puedas poner en una prenda." };
+    return { titulo: `${nombre} quedó por aprobar`, detalle: `Todavía no ${lo} puedes poner en una prenda: falta aprobar${lo} con un comentario.` };
   }
-  return { titulo: `Etiqueta ${nombre} agregada` };
+  const nombreUno = T.uno.charAt(0).toUpperCase() + T.uno.slice(1);
+  return { titulo: `${nombreUno} ${nombre} agregad${T.o}` };
 }

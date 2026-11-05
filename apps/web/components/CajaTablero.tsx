@@ -24,6 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { claveLocal, guardar, leer } from "@/lib/almacen-local";
@@ -51,6 +52,7 @@ import { diaLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const soles0 = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
@@ -88,7 +90,7 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
           <span className="text-[26px]">.{centimos}</span>
         </p>
       )}
-      <p className="mt-3.5 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-tinta/65 tabular-nums">
+      <p className="texto-detalle mt-3.5 flex flex-wrap gap-x-3 gap-y-1 tabular-nums">
         {piezas.map((p, i) => (
           <span key={p.etiqueta} className="whitespace-nowrap">
             {i > 0 && <span className="mr-2 text-tinta/40 dark:text-tinta/55">{p.signo}</span>}
@@ -96,7 +98,7 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
           </span>
         ))}
       </p>
-      <p className="mt-auto hidden pt-3 text-xs text-tinta/50 sm:block">Tarjeta, Yape y transferencias no entran al cajón.</p>
+      <p className="texto-detalle mt-auto hidden pt-3 sm:block">Tarjeta, Yape y transferencias no van al cajón.</p>
     </div>
   );
 }
@@ -245,9 +247,10 @@ export function BarraCajaMovil({
 }) {
   const cuadrado = "flex h-14 w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-sand bg-papel text-[10px] font-semibold text-tinta/80 active:scale-[0.97]";
   return (
-    <div data-guia="caja.barra-movil" className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
+    // La barra de abajo del celular es la Isla (ADR-0479, actividad 12): Vender y los cuadrados, dentro de la isla clara.
+    <BarraDeAbajo data-guia="caja.barra-movil" className="flex-nowrap gap-2 p-2 sm:hidden">
       {vender && (
-        <Link href="/vender" className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema">
+        <Link href="/vender" className="btn-cayla btn-primario min-h-14 flex-1 gap-2.5 text-[15px]">
           <ShoppingBag size={16} aria-hidden /> Vender
         </Link>
       )}
@@ -262,13 +265,14 @@ export function BarraCajaMovil({
         Ingreso
       </button>
       {onCerrar && (
-        // ADR-0318: «Cerrar» es el único cuadrado en rojo de acento: lo que hay que hacer al terminar el turno.
-        <button type="button" onClick={onCerrar} className={`${cuadrado} !border-rojo !bg-rojo !text-crema`} aria-label="Cerrar caja">
+        // ADR-0318: «Cerrar» es el único cuadrado en rojo de acento: lo que hay que hacer al terminar el turno (la gota roja de
+        // «Cerrar caja», `cc-cuadrado-cerrar`: estilos/caja-cierre.css y vidrio/caja.css).
+        <button type="button" onClick={onCerrar} className={`${cuadrado} cc-cuadrado-cerrar`} aria-label="Cerrar caja">
           <Lock size={16} aria-hidden />
           Cerrar
         </button>
       )}
-    </div>
+    </BarraDeAbajo>
   );
 }
 
@@ -364,8 +368,8 @@ function CabeceraPanel({ titulo, bajada, derecha }: { titulo: string; bajada: st
   return (
     <div className="mb-2 flex items-start justify-between gap-2">
       <div>
-        <p className="text-sm font-bold text-tinta">{titulo}</p>
-        <p className="text-xs text-tinta/50">{bajada}</p>
+        <TituloSeccion nivel={3}>{titulo}</TituloSeccion>
+        <p className="texto-bajada">{bajada}</p>
       </div>
       {derecha}
     </div>
@@ -454,9 +458,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                 ? `Del cajón ${soles(g.total)} · con Yape o Plin ${soles(g.totalApp)}`
                 : `Salieron del cajón · ${soles(g.total)}`
           }
-          derecha={
-            <EnlaceVer href="/finanzas/gastos">Ver en Finanzas</EnlaceVer>
-          }
+          derecha={contexto.gastosEnFinanzas ? <EnlaceVer href="/finanzas/gastos">Ver en Finanzas</EnlaceVer> : undefined}
         />
         {!g ? (
           <SinLectura />
@@ -567,8 +569,8 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
     <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": indice } as CSSProperties}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2.5">
         <div>
-          <p className="text-sm font-bold text-tinta">Cierres anteriores</p>
-          <p className="text-xs text-tinta/50">{info.bajada}</p>
+          <TituloSeccion nivel={3}>Cierres anteriores</TituloSeccion>
+          <p className="texto-bajada">{info.bajada}</p>
         </div>
         {/* Modo de vista (los mismos cierres de otra forma): el segmento del sistema, con la elegida en contorno de tinta
             (ADR-0358), no la pista hueso del spike. */}

@@ -8,9 +8,20 @@ describe("sugerirNotaDeOrden", () => {
   it("todos los tipos tienen un ejemplo, no vacío y que cabe", () => {
     for (const tipo of TIPOS_DE_ORDEN) {
       const t = sugerirNotaDeOrden(tipo);
-      expect(t.trim().length, tipo).toBeGreaterThan(0);
-      expect(t.length, tipo).toBeLessThanOrEqual(MAX_NOTA_ORDEN);
+      expect(t.trim().length, String(tipo)).toBeGreaterThan(0);
+      expect(t.length, String(tipo)).toBeLessThanOrEqual(MAX_NOTA_ORDEN);
     }
+  });
+  it("sin tipo elegido (un modelo nuevo) el ejemplo es neutro: no promete ni un lote ni una muestra", () => {
+    const neutro = sugerirNotaDeOrden(null);
+    expect(neutro).not.toBe(sugerirNotaDeOrden("produccion"));
+    expect(neutro).not.toBe(sugerirNotaDeOrden("muestra"));
+    expect(neutro).not.toMatch(/cliente|urgencia|prueba|aprueba/i);
+  });
+  it("sin tipo → elige → vuelve a sin tipo da lo mismo", () => {
+    const a = sugerirNotaDeOrden(null);
+    sugerirNotaDeOrden("muestra");
+    expect(sugerirNotaDeOrden(null)).toBe(a);
   });
   it("una muestra y una producción no comparten ejemplo", () => {
     expect(sugerirNotaDeOrden("muestra")).not.toBe(sugerirNotaDeOrden("produccion"));

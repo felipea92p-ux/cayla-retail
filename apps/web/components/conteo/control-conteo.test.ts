@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ControlConteo, type ErrorGuardado, type FalloDeGuardado, type PeticionGuardado } from "./control-conteo";
+import { ControlConteo, type ErrorGuardado, type FalloDeGuardado, type LineaDelAtajo, type PeticionGuardado } from "./control-conteo";
 import type { LineaConteo } from "../../lib/conteo-reglas";
 
 // Fecha fija: la hora solo la lee `verificadoEn`, que no se compara.
@@ -359,5 +359,117 @@ describe("ControlConteo · «Aplicar todos completos» (ADR-0328): nada se pinta
     expect(control.linea("a")?.aplicadaSinContar).toBe(true);
     control.contar("a", 4);
     expect(control.linea("a")).toMatchObject({ contada: 4, aplicadaSinContar: false, estado: "con_diferencia" });
+  });
+});
+
+describe("ControlConteo · «Completar todo» de una tarjeta (ADR-0328, opción C): se pinta YA y sale UNA sola petición", () => {
+  type Resp = { data: unknown; error: ErrorGuardado | null };
+  /** Un `enviar` que no responde solo: la prueba decide cuándo y con qué contesta la base. */
+  function envioControlado() {
+    const pedidas: LineaDelAtajo[][] = [];
+    let responder!: (r: Resp) => void;
+    const enviar = (lineas: LineaDelAtajo[]) => {
+      pedidas.push(lineas);
+      return new Promise<Resp>((r) => (responder = r));
+    };
+    return { pedidas, enviar, responder: (r: Resp) => responder(r) };
+  }
+  /** La línea como la devuelve `conteo_completar_tarjeta`: la de siempre (`fn_conteo_lineas_json`). */
+  const dejada = (id: string, debeHaber: number, contada: number) => respuesta(id, { debeHaber, contada });
+  const contadaYa = (varianteId: string, n: number): LineaConteo => ({ ...pendiente(varianteId, n), contada: n, verificadoEn: AHORA, estado: "correcta", diferencia: 0 });
+
+  it("pinta al instante las pendientes pedidas y manda UNA petición con todas (no una por talla); con la respuesta queda guardado", async () => {
+    const { control, envios } = armar([pendiente("a", 5), pendiente("b", 3), pendiente("c", 4)]);
+    const { pedidas, enviar, responder } = envioControlado();
+    const { anotadas, resultado } = control.completar([{ varianteId: "a", cantidad: 5 }, { varianteId: "b", cantidad: 3 }], enviar);
+    expect(anotadas).toBe(2);
+    expect(control.linea("a")).toMatchObject({ contada: 5, estado: "correcta" }); // YA, sin esperar a la red
+    expect(control.linea("c")).toMatchObject({ contada: null, estado: "pendiente" }); // la que no se pidió, intacta
+    expect(control.estadoGuardado()).toBe("guardando");
+    await microtareas();
+    expect(pedidas).toEqual([[{ varianteId: "a", cantidad: 5 }, { varianteId: "b", cantidad: 3 }]]);
+    expect(envios).toHaveLength(0); // ni un guardado suelto por talla
+    responder({ data: { completadas: 2, lineas: [dejada("a", 5, 5), dejada("b", 3, 3)] }, error: null });
+    expect(await resultado).toEqual({ completadas: 2 });
+    expect(control.estadoGuardado()).toBe("guardado");
+    expect(control.resumen()).toMatchObject({ verificadas: 2, pendientes: 1 });
+  });
+
+  it("no entran las que ya tienen cifra, las repetidas ni las que no están en el conteo; sin nada que completar no manda nada", async () => {
+    const { control } = armar([contadaYa("a", 5), pendiente("b", 3)]);
+    const enviar = vi.fn(async () => ({ data: null, error: null }));
+    const vacio = control.completar([{ varianteId: "a", cantidad: 5 }, { varianteId: "zzz", cantidad: 2 }], enviar);
+    expect(vacio.anotadas).toBe(0);
+    expect(await vacio.resultado).toEqual({ completadas: 0 });
+    expect(enviar).not.toHaveBeenCalled();
+    const { pedidas, enviar: enviar2, responder } = envioControlado();
+    const { anotadas } = control.completar([{ varianteId: "b", cantidad: 3 }, { varianteId: "b", cantidad: 3 }], enviar2);
+    expect(anotadas).toBe(1);
+    await microtareas();
+    expect(pedidas).toEqual([[{ varianteId: "b", cantidad: 3 }]]);
+    responder({ data: { completadas: 1, lineas: [dejada("b", 3, 3)] }, error: null });
+  });
+
+  it("la respuesta de la base MANDA: si otra persona contó una talla mientras tanto, queda su cifra y no la que se pintó", async () => {
+    const { control } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    const { enviar, responder } = envioControlado();
+    const { resultado } = control.completar([{ varianteId: "a", cantidad: 5 }, { varianteId: "b", cantidad: 3 }], enviar);
+    await microtareas();
+    responder({ data: { completadas: 1, lineas: [dejada("a", 5, 5), dejada("b", 3, 2)] }, error: null }); // b: alguien ya había contado 2
+    expect(await resultado).toEqual({ completadas: 1 });
+    expect(control.linea("b")).toMatchObject({ contada: 2, estado: "con_diferencia", diferencia: -1 });
+  });
+
+  it("va en la MISMA fila que los guardados sueltos: primero sale lo que esperaba su turno, y el lote espera a que la base lo conteste", async () => {
+    const { control, envios } = armar([pendiente("a", 5), pendiente("b", 3), pendiente("c", 4)]);
+    control.contar("c", 2); // esperaba sus 600 ms
+    const { pedidas, enviar, responder } = envioControlado();
+    const { resultado } = control.completar([{ varianteId: "a", cantidad: 5 }], enviar);
+    await microtareas();
+    expect(envios.map((e) => e.p.varianteId)).toEqual(["c"]); // salió ya, sin esperar los 600 ms
+    expect(pedidas).toEqual([]); // y el lote espera a que la base conteste ese guardado
+    envios[0].resolver({ data: respuesta("c", { debeHaber: 4, contada: 2 }), error: null });
+    await microtareas();
+    expect(pedidas).toHaveLength(1);
+    responder({ data: { completadas: 1, lineas: [dejada("a", 5, 5)] }, error: null });
+    expect(await resultado).toEqual({ completadas: 1 });
+  });
+
+  it("si la base rechaza, o contesta algo ilegible, o se corta: cada línea vuelve a pendiente, queda en «error» y se devuelve el error", async () => {
+    const { control } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    const r1 = control.completar([{ varianteId: "a", cantidad: 5 }, { varianteId: "b", cantidad: 3 }], async () => ({ data: null, error: { message: "Ese conteo ya está cerrado" } }));
+    expect(await r1.resultado).toEqual({ error: { message: "Ese conteo ya está cerrado" } });
+    expect(control.linea("a")).toMatchObject({ contada: null, estado: "pendiente" });
+    expect(control.linea("b")).toMatchObject({ contada: null, estado: "pendiente" });
+    expect(control.estadoGuardado()).toBe("error");
+    const r2 = control.completar([{ varianteId: "a", cantidad: 5 }], async () => ({ data: { completadas: "1" }, error: null }));
+    expect(await r2.resultado).toEqual({ error: { message: "La respuesta del conteo llegó mal formada." } });
+    const r3 = control.completar([{ varianteId: "a", cantidad: 5 }], async () => {
+      throw new Error("sin red");
+    });
+    expect(await r3.resultado).toEqual({ error: { message: "sin red" } });
+    expect(control.linea("a")).toMatchObject({ contada: null });
+  });
+
+  it("si la persona vuelve a tocar una talla mientras el lote viaja, la base no le pisa la cifra, ni si responde bien ni si rechaza", async () => {
+    const { control } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    const bien = envioControlado();
+    const buena = control.completar([{ varianteId: "a", cantidad: 5 }, { varianteId: "b", cantidad: 3 }], bien.enviar);
+    await microtareas();
+    control.contar("a", 9); // la persona corrige a mano
+    bien.responder({ data: { completadas: 2, lineas: [dejada("a", 5, 5), dejada("b", 3, 3)] }, error: null });
+    await buena.resultado;
+    expect(control.linea("a")).toMatchObject({ contada: 9 }); // la suya manda; de la base solo valen los hechos
+    expect(control.linea("b")).toMatchObject({ contada: 3 });
+
+    const { control: otro } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    const mal = envioControlado();
+    const rota = otro.completar([{ varianteId: "a", cantidad: 5 }, { varianteId: "b", cantidad: 3 }], mal.enviar);
+    await microtareas();
+    otro.contar("a", 9);
+    mal.responder({ data: null, error: { message: "boom" } });
+    expect(await rota.resultado).toEqual({ error: { message: "boom" } });
+    expect(otro.linea("a")).toMatchObject({ contada: 9 }); // no se revierte lo que la persona ya cambió
+    expect(otro.linea("b")).toMatchObject({ contada: null, estado: "pendiente" });
   });
 });

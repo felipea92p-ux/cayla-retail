@@ -1,4 +1,4 @@
-// Los cuatro grupos en que se ordenan las etiquetas, y en qué orden: los mismos en Catálogo ▸ Atributos ▸ Etiquetas y en el
+// Los cuatro grupos en que se ordenan las etiquetas, y en qué orden: los mismos en Catálogo ▸ Insignias y en el
 // campo «Etiquetas» de Nuevo producto. Una sola fuente: si un día se agrega un grupo, cambia acá y las dos pantallas lo siguen.
 // El color del punto sale de la paleta (nunca rojo: es el acento de la marca, máx. 2 por pantalla).
 

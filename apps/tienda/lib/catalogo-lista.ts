@@ -68,8 +68,8 @@ export function gruposConLoElegido(
 ): GrupoConCategorias[] {
   if (!grupo) return [...grupos];
   let suyo: GrupoConCategorias = grupos.find((g) => g.clave === grupo.clave) ?? { ...grupo, cuantas: 0, categorias: [] };
-  if (categoria && grupoDe(categoria.clave).clave === grupo.clave && !suyo.categorias.some((c) => c.clave === categoria.clave)) {
-    const categorias = [...suyo.categorias, { clave: categoria.clave, nombre: categoria.nombre, cuantas: 0, prendas: [] }];
+  if (categoria && grupoDe(categoria.clave, categoria.familia).clave === grupo.clave && !suyo.categorias.some((c) => c.clave === categoria.clave)) {
+    const categorias = [...suyo.categorias, { clave: categoria.clave, nombre: categoria.nombre, cuantas: 0, prendas: [], familia: categoria.familia }];
     categorias.sort((a, b) => puestoEn(grupo, a.clave) - puestoEn(grupo, b.clave));
     suyo = { ...suyo, categorias };
   }
@@ -79,7 +79,7 @@ export function gruposConLoElegido(
 /** Las categorías de los filtros (cuando van todas en una fila) con la elegida siempre a la vista: si aquí no tiene nada, sale al final, con 0. */
 export function categoriasConLaElegida(categorias: readonly CategoriaLista[], elegida: CategoriaLista | null): CategoriaLista[] {
   if (!elegida || categorias.some((c) => c.clave === elegida.clave)) return [...categorias];
-  return [...categorias, { clave: elegida.clave, nombre: elegida.nombre, cuantas: 0 }];
+  return [...categorias, { clave: elegida.clave, nombre: elegida.nombre, cuantas: 0, familia: elegida.familia }];
 }
 
 /**

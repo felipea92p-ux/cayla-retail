@@ -1,3 +1,4 @@
+import { getEnviosAMedias } from "@/lib/recepcion-envio";
 import { Suspense } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, getMiMeta, type HoyDeLaSede } from "@/lib/inicio";
-import { mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
+import { mostrarHoy, notaClaureDeHoy, resumirHoy } from "@/lib/inicio-reglas";
 import { pisoQueSeVe } from "@/lib/inicio-piso-reglas";
 import type { MiMeta } from "@/lib/mi-meta-reglas";
 import {
@@ -22,7 +23,6 @@ import {
   type AvisosVisibles,
   type ClaveAccesoIcono,
   type MiembroEquipo,
-  type NivelAviso,
 } from "@/lib/inicio-avisos";
 import { aterrizajeDe } from "@/lib/menu";
 import { ICONO_DEL_ACCESO, TRAZOS_MENU } from "@/lib/menu-iconos";
@@ -43,6 +43,7 @@ import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/in
 import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
 import { getResumenMiFondo } from "@/lib/fondos";
 import { hrefTuFondo, mostrarTuFondo } from "@/lib/fondos-reglas";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -143,7 +144,8 @@ export default async function InicioPage() {
       comprobantesAtascados,
     }
   );
-  const avisos = avisosInicio(datosAlmacen ? { ...fuentes, ...fuentesDeAlmacen(datosAlmacen) } : fuentes);
+  const enviosAMedias = ve("recibir") || esLider ? await getEnviosAMedias(persona.ubicacionId) : undefined;
+  const avisos = avisosInicio({ ...(datosAlmacen ? { ...fuentes, ...fuentesDeAlmacen(datosAlmacen) } : fuentes), enviosAMedias });
   const cookie = cookieEleccion(persona.personaId);
   const eleccion = leerEleccion((await cookies()).get(cookie)?.value);
   const visibles = avisosVisibles(avisos, eleccion, esLider);
@@ -200,7 +202,9 @@ export default async function InicioPage() {
       : null;
 
   return (
-    <div className={`space-y-6 ${fijo ? "pb-24 sm:pb-0" : ""}`}>
+    // `data-inicio`: el gancho del vidrio del Inicio (app/estilos/vidrio/inicio.css): títulos con hilo, «Te toca» y el equipo en la
+    // placa, los accesos en gotas y la barra de la meta en el tubo (Felipe 2026-11-01, docs/maquetas/inicio-lider-vidrio-2026-10/).
+    <div data-inicio="" className={`space-y-6 ${fijo ? "pb-24 sm:pb-0" : ""}`}>
       {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la sede y la fecha arriba, el saludo de título. */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
@@ -251,11 +255,12 @@ export default async function InicioPage() {
       </div>
 
       {fijo && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <Link href={fijo.href} className="flex h-13 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema" data-guia="inicio.fijo">
+        // La barra de abajo del celular es la Isla (ADR-0479, actividad 12): con una sola acción, la isla es el botón.
+        <BarraDeAbajo sola className="sm:hidden">
+          <Link href={fijo.href} className="btn-cayla btn-primario gap-2.5" data-guia="inicio.fijo">
             <Icono clave={fijo.icono} /> {fijo.etiqueta}
           </Link>
-        </div>
+        </BarraDeAbajo>
       )}
     </div>
   );
@@ -292,6 +297,11 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
             {esLider && r.meta ? ` · meta ${formatoSoles(r.meta.meta)}` : ""}.
           </p>
         </div>
+        {esLider && notaClaureDeHoy(hoy.deClaure) && (
+          <p className="nota-cayla mt-3" data-guia="inicio.claure">
+            {notaClaureDeHoy(hoy.deClaure)}
+          </p>
+        )}
       </section>
     );
   }
@@ -332,20 +342,20 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
           </TarjetaCifra>
         )}
       </div>
+      {/* Caja cuenta todo lo cobrado en la sede; el «Hoy» solo lo de CAYLA. Si se dejó algo fuera, se dice cuánto (ADR-0560, 6a). */}
+      {esLider && notaClaureDeHoy(hoy.deClaure) && (
+        <p className="nota-cayla mt-3" data-guia="inicio.claure">
+          {notaClaureDeHoy(hoy.deClaure)}
+        </p>
+      )}
     </section>
   );
 }
 
 // ── Te toca ──────────────────────────────────────────────────────────────────────────────────────
 
-const PUNTO: Record<NivelAviso, string> = { urgente: "bg-rojo", toca: "bg-ambar", info: "bg-pizarra", sinleer: "bg-tinta/30", aldia: "bg-verde" };
-const CANTIDAD: Record<NivelAviso, string> = {
-  urgente: "bg-rojo text-crema",
-  toca: "bg-ambar text-crema",
-  info: "bg-pizarra text-crema",
-  sinleer: "bg-tinta/10 text-tinta/75",
-  aldia: "bg-verde text-crema",
-};
+// El color de cada nivel (el punto en su lente y la cantidad en su globito teñido) lo pone `data-nivel` en app/estilos/vidrio/inicio.css:
+// una sola fuente para el punto, el globito y la marca roja de lo urgente.
 
 function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: React.ReactNode }) {
   const { activos, alDia, ocultosConAlgo } = visibles;
@@ -353,18 +363,17 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
   if (activos.length === 0 && alDia.length === 0 && ocultosConAlgo === 0) return null;
   return (
     <section data-guia="inicio.te-toca">
-      <div className="mb-2.5 flex items-center justify-between gap-2">
-        <p className="label-cayla text-[11px] text-tinta/65">Te toca</p>
-        <span data-guia="inicio.ajustar">{ajustar}</span>
-      </div>
+      <Etiqueta cuenta={activos.length > 0 ? activos.length : undefined} accion={<span data-guia="inicio.ajustar">{ajustar}</span>}>
+        Te toca
+      </Etiqueta>
       {/* «Ver N más» en celular sin JavaScript: una casilla oculta; marcada, el contenedor muestra las filas extra. */}
-      <div className="card-cayla divide-y divide-tinta/10 overflow-hidden [&:has(input[data-ver-mas]:checked)_[data-extra]]:flex">
+      <div className="inicio-placa inicio-te-toca card-cayla divide-y divide-tinta/10 overflow-hidden [&:has(input[data-ver-mas]:checked)_[data-extra]]:flex">
         {activos.length === 0 ? (
           <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
             <span className="size-2 shrink-0 rounded-full bg-verde" />
             <div>
               <p className="text-sm font-medium text-tinta">Nada pendiente</p>
-              <p className="text-xs text-tinta/65">Todo lo que elegiste ver está al día.</p>
+              <p className="text-sm text-tinta/65">Todo lo que elegiste ver está al día.</p>
             </div>
           </div>
         ) : (
@@ -373,32 +382,33 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
               key={a.clave}
               href={a.href}
               data-extra={i >= corte ? "" : undefined}
-              className={`group items-start gap-3 px-4 py-3.5 transition-colors hover:bg-tinta/5 sm:px-5 ${i >= corte ? "hidden sm:flex" : "flex"}`}
+              data-nivel={a.nivel}
+              className={`inicio-aviso group items-start gap-3 px-4 py-3.5 transition-colors sm:px-5 ${i >= corte ? "hidden sm:flex" : "flex"}`}
             >
-              <span className={`mt-1.5 size-2 shrink-0 rounded-full ${PUNTO[a.nivel]}`} />
+              <span className="inicio-aviso-punto mt-1.5 size-2 shrink-0 rounded-full" />
               <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-baseline gap-x-2 text-sm font-medium text-tinta group-hover:text-rojo">
+                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-medium text-tinta">
                   {a.titulo}
-                  {a.nivel === "urgente" && <span className="text-[10px] font-bold tracking-[0.1em] text-rojo uppercase">Urgente</span>}
-                  {a.forzado && <span className="rounded-md bg-rojo/8 px-1.5 text-[10.5px] font-normal text-rojo-profundo">Lo ocultaste, pero es urgente</span>}
+                  {a.nivel === "urgente" && <span className="inicio-aviso-urgente text-[10px] font-bold tracking-[0.1em] text-rojo uppercase">Urgente</span>}
+                  {a.forzado && <span className="rounded-md bg-rojo/8 px-1.5 text-sm font-normal text-rojo-profundo">Lo ocultaste, pero es urgente</span>}
                 </p>
-                <p className="mt-0.5 text-xs text-tinta/65">{a.detalle}</p>
+                <p className="mt-0.5 text-sm text-tinta/65">{a.detalle}</p>
               </div>
-              <span className={`min-w-6 self-center rounded-full px-2 text-center text-xs font-semibold tabular-nums ${CANTIDAD[a.nivel]}`}>
+              <span className="inicio-aviso-cantidad min-w-6 self-center rounded-full px-2 text-center text-sm font-semibold tabular-nums">
                 {a.cantidad === null ? "Sin leer" : a.cantidad}
               </span>
-              <Icono clave="chevron" className="size-4 self-center text-tinta/30" />
+              <Icono clave="chevron" className="inicio-aviso-flecha size-4 self-center text-tinta/30" />
             </Link>
           ))
         )}
         {activos.length > corte && (
-          <label className="block cursor-pointer px-4 py-3 text-center text-[13px] text-taupe has-[:checked]:hidden sm:hidden">
+          <label className="block cursor-pointer px-4 py-3 text-center text-sm text-taupe has-[:checked]:hidden sm:hidden">
             <input type="checkbox" data-ver-mas className="sr-only" />
             Ver {activos.length - corte} más
           </label>
         )}
         {alDia.length > 0 && (
-          <p className="flex items-center gap-2.5 px-4 py-3 text-xs text-tinta/65 sm:px-5">
+          <p className="flex items-center gap-2.5 px-4 py-3 text-sm text-tinta/65 sm:px-5">
             <Icono clave="check" className="size-4 text-verde" />
             <span>
               <span className="font-semibold text-verde">Al día:</span> {alDia.map((a) => a.titulo.toLowerCase()).join(" · ")}
@@ -406,7 +416,7 @@ function TeToca({ visibles, ajustar }: { visibles: AvisosVisibles; ajustar: Reac
           </p>
         )}
         {ocultosConAlgo > 0 && (
-          <p className="px-4 py-3 text-xs text-taupe sm:px-5">
+          <p className="px-4 py-3 text-sm text-taupe sm:px-5">
             {ocultosConAlgo} {ocultosConAlgo === 1 ? "aviso que ocultaste tiene" : "avisos que ocultaste tienen"} algo pendiente.
           </p>
         )}
@@ -427,9 +437,11 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
           <Link
             key={a.href}
             href={a.href}
-            className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
+            className="inicio-acceso flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-sm text-tinta"
           >
-            <Icono clave={a.icono} className="size-5" />
+            <span className="inicio-acceso-lente">
+              <Icono clave={a.icono} className="size-5" />
+            </span>
             {a.etiqueta}
           </Link>
         ))}
@@ -443,8 +455,8 @@ const hora = new Intl.DateTimeFormat("es-PE", { hour: "numeric", minute: "2-digi
 function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLider: boolean }) {
   return (
     <section data-guia="inicio.equipo">
-      <Etiqueta>Equipo de hoy</Etiqueta>
-      <div className="card-cayla divide-y divide-tinta/10">
+      <Etiqueta cuenta={equipo && equipo.length > 0 ? equipo.length : undefined}>Equipo de hoy</Etiqueta>
+      <div className="inicio-placa inicio-equipo card-cayla divide-y divide-tinta/10">
         {equipo === null ? (
           <p role="status" className="px-4 py-3 text-sm text-tinta/75">
             No se pudo leer quién está hoy. Lo demás sí está al día.
@@ -453,29 +465,32 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
           <p className="px-4 py-3 text-sm text-tinta/65">Nadie marcó asistencia todavía en esta sede.</p>
         ) : (
           equipo.map((m) => (
-            <div key={m.personaId} className="flex items-start gap-3 px-4 py-3">
-              <span className="font-display relative grid size-[34px] shrink-0 place-items-center rounded-full bg-sand text-[15px] text-tinta">
+            <div key={m.personaId} className="inicio-persona flex items-start gap-3 px-4 py-3">
+              <span className="inicio-avatar font-display relative grid size-[34px] shrink-0 place-items-center rounded-full bg-sand text-[15px] text-tinta">
                 {m.nombre.slice(0, 1)}
-                {m.estado === "presente" && <span className="absolute -right-px -bottom-px size-2.5 rounded-full border-2 border-papel bg-verde" />}
+                {m.estado === "presente" && <span className="inicio-avatar-turno absolute -right-px -bottom-px size-2.5 rounded-full border-2 border-papel bg-verde" />}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-tinta">{m.nombre}</p>
-                <p className="text-xs text-tinta/65">
+                <p className="text-sm text-tinta/65">
                   {textoEstado(m.estado)}
                   {m.ventas ? ` · ${m.ventas} ${m.ventas === 1 ? "venta" : "ventas"}` : ""}
                 </p>
                 {m.ultima && (
-                  <p className="mt-1 rounded-lg bg-hueso px-2 py-1 text-xs text-tinta/80">
-                    {m.ultima.texto} · {hora.format(new Date(m.ultima.hora))}
+                  <p className="inicio-persona-ultima mt-1 rounded-lg bg-hueso px-2 py-1 text-sm text-tinta/80">
+                    <Icono clave="reloj" className="inicio-persona-ultima-icono hidden size-3.5" />
+                    <span>
+                      {m.ultima.texto} · {hora.format(new Date(m.ultima.hora))}
+                    </span>
                   </p>
                 )}
               </div>
-              {m.monto !== null && <span className="shrink-0 text-sm text-tinta tabular-nums">{m.monto > 0 ? formatoSoles(m.monto) : "—"}</span>}
+              {m.monto !== null && <span className="inicio-persona-monto shrink-0 text-sm text-tinta tabular-nums">{m.monto > 0 ? formatoSoles(m.monto) : "—"}</span>}
             </div>
           ))
         )}
         {!esLider && equipo && equipo.length > 0 && (
-          <p className="px-4 py-2.5 text-xs text-tinta/60">Ves quién está; las cifras de cada una las ve la líder.</p>
+          <p className="px-4 py-2.5 text-sm text-tinta/60">Ves quién está; las cifras de cada una las ve la líder.</p>
         )}
       </div>
     </section>
@@ -487,7 +502,7 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
 // lib/menu-iconos.ts; 2026-10-13, Felipe: «alinea los otros dos lugares de íconos»). «Buscar» y «Nuevo producto» son acciones,
 // no pantallas: conservan su trazo propio.
 
-const TRAZOS: Record<ClaveAccesoIcono | "vender" | "chevron" | "check", string> = {
+const TRAZOS: Record<ClaveAccesoIcono | "vender" | "chevron" | "check" | "reloj", string> = {
   vender: TRAZOS_MENU[ICONO_DEL_ACCESO.vender],
   caja: TRAZOS_MENU[ICONO_DEL_ACCESO.caja],
   apartados: TRAZOS_MENU[ICONO_DEL_ACCESO.apartados],
@@ -501,6 +516,8 @@ const TRAZOS: Record<ClaveAccesoIcono | "vender" | "chevron" | "check", string> 
   nuevoProducto: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 8v8M8 12h8",
   chevron: "M9 6l6 6-6 6",
   check: "M5 12l4 4 10-10",
+  // Lo último que hizo cada una en «Equipo de hoy» (la línea con su ícono, maqueta inicio-lider-vidrio-2026-10).
+  reloj: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2",
 };
 
 function Icono({ clave, className = "size-[18px]" }: { clave: keyof typeof TRAZOS; className?: string }) {

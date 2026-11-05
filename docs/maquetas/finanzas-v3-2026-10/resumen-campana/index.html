@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resumen y campañas</title>
+<link rel="stylesheet" href="base.css">
+<style>
+:root{--sede-tru:#2f6aa3;--sede-aqp:#c26a2e;--sede-lim:#1d8a72;--sede-tal:#8a4fa8;--sede-emp:#9a8b7b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-tal:#a26cc6;--sede-emp:#8a7d70}}
+:root[data-theme="dark"]{--sede-tru:#4f8ad0;--sede-aqp:#d27b3c;--sede-lim:#2fa585;--sede-tal:#a26cc6;--sede-emp:#8a7d70}
+
+.ficha{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.ficha>div{background:var(--hueso);border-radius:12px;padding:12px 14px;font-size:13px}
+.ficha>div>b:first-child{display:block;margin-bottom:2px}
+.sub{display:inline-flex;padding:3px;border-radius:999px;background:var(--hueso);gap:2px;flex-wrap:wrap}
+.sub button{border:0;background:transparent;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:600;cursor:pointer;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.sub button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.opcion[hidden]{display:none!important}
+.cab-bloque{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cab-bloque h3{font-size:21px}
+.cab-bloque p{font-size:13.5px;max-width:64ch}
+.titular{font-family:var(--serif);font-size:clamp(20px,2.6vw,26px);line-height:1.18;text-wrap:balance}
+.verbo{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.grande{font-family:var(--serif);font-size:clamp(34px,5vw,48px);line-height:1;font-variant-numeric:tabular-nums}
+.rayado{background:repeating-linear-gradient(135deg,transparent 0 9px,color-mix(in srgb,var(--taupe) 22%,transparent) 9px 10px);border:1px dashed color-mix(in srgb,var(--taupe) 50%,transparent);border-radius:var(--radio);padding:16px;color:color-mix(in srgb,var(--tinta) 66%,transparent);font-size:13.5px;display:flex;flex-direction:column;gap:4px;justify-content:center;min-height:84px}
+.rayado b{color:var(--tinta);font-family:var(--serif);font-size:18px;font-weight:500}
+.marca-nueva{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--verde);border:1px solid color-mix(in srgb,var(--verde) 45%,transparent);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.marca-vieja{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe);border:1px solid color-mix(in srgb,var(--taupe) 45%,transparent);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.dos{display:grid;gap:14px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+.tres{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){.dos{grid-template-columns:minmax(0,1fr)}.tres{grid-template-columns:minmax(0,1fr)}}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--tinta)}
+.svg-c{width:100%;height:auto;display:block;overflow:visible}
+.svg-c text{font-family:var(--sans);fill:var(--tinta)}
+.t-tenue{fill:color-mix(in srgb,var(--tinta) 62%,transparent)!important}
+.desliza-min{min-width:640px}
+
+/* Tres respuestas */
+.resp{display:flex;flex-direction:column;gap:6px}
+.resp .valor{font-family:var(--serif);font-size:clamp(30px,4vw,40px);line-height:1;font-variant-numeric:tabular-nums}
+.resp .pie{font-size:13px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+/* Semáforo */
+.sem{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:14px;align-items:center;padding:13px 4px;border-bottom:1px solid var(--sand)}
+.sem:last-child{border-bottom:0}
+.sem .punto{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.sem b{display:block;font-size:15px}
+.sem span.d{font-size:13.5px;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+/* Peldaños */
+.escalera{counter-reset:p;display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.escalera li{counter-increment:p;display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;font-size:14px}
+.escalera li::before{content:counter(p);width:26px;height:26px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-weight:600;font-size:13px}
+.escalera small{display:block;color:color-mix(in srgb,var(--tinta) 66%,transparent);font-size:12.5px}
+/* Barra apilada */
+.apilada{display:flex;height:14px;border-radius:8px;overflow:hidden;background:var(--hueso);gap:2px}
+.apilada i{display:block;height:100%;background:var(--c);width:var(--w)}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;margin-top:8px}
+.hilo{display:inline-flex;align-items:center;gap:6px}
+.hilo i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.camp{padding:14px 0;border-bottom:1px solid var(--sand);display:grid;gap:8px}
+.camp:last-child{border-bottom:0}
+.camp-cab{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.camp-cab h4{font-family:var(--serif);font-size:19px;font-weight:500}
+.interruptor{position:relative;width:38px;height:22px;border-radius:99px;border:0;background:var(--sand);cursor:pointer;flex:none;transition:background .25s var(--ease-cayla)}
+.interruptor::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--papel);transition:transform .25s var(--ease-cayla)}
+.interruptor[aria-checked="true"]{background:var(--tinta)}
+.interruptor[aria-checked="true"]::after{transform:translateX(16px)}
+.fila-sw{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--sand);font-size:14px}
+.fila-sw:last-child{border-bottom:0}
+.fila-sw small{display:block;color:color-mix(in srgb,var(--tinta) 66%,transparent);font-size:12.5px;max-width:52ch}
+/* Tabla de opciones */
+.opts{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{border:1px solid var(--sand);background:var(--papel);border-radius:var(--radio);padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;text-align:left;font:inherit;color:inherit;position:relative}
+.opt[aria-pressed="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.opt h4{font-family:var(--serif);font-size:19px;font-weight:500}
+.opt dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:13px}
+.opt dt{color:color-mix(in srgb,var(--tinta) 68%,transparent)}
+.opt dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.reco{position:absolute;top:-10px;right:12px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;background:var(--verde);color:var(--crema-fija);padding:3px 10px;border-radius:99px}
+/* Historia */
+.fila-h{display:grid;grid-template-columns:minmax(96px,.9fr) minmax(0,2fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--sand);font-size:14px}
+.fila-h:last-child{border-bottom:0}
+.fila-h small{display:block;color:color-mix(in srgb,var(--tinta) 62%,transparent);font-size:12px}
+.sug{display:grid;grid-template-columns:minmax(80px,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--sand);font-size:14px}
+.sug:last-child{border-bottom:0}
+.rango{font-size:12px;color:color-mix(in srgb,var(--tinta) 62%,transparent);font-variant-numeric:tabular-nums}
+.lista-b{display:flex;flex-direction:column}
+.fila-b{display:grid;grid-template-columns:minmax(120px,1.1fr) minmax(0,2fr) 92px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--sand);font-size:14px}
+.fila-b:last-child{border-bottom:0}
+.fila-b small{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.fila-b .m{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+@media (max-width:560px){.fila-b,.fila-h{grid-template-columns:1fr auto}.fila-b .pista,.fila-h .pista{grid-column:1/-1;order:3}}
+.pasos{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));counter-reset:q}
+@media (max-width:760px){.pasos{grid-template-columns:minmax(0,1fr)}}
+.paso{background:var(--hueso);border-radius:12px;padding:14px;font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+.paso>b:first-child{font-family:var(--serif);font-size:17px;font-weight:500}
+@media (max-width:640px){
+  .mq-barra{flex-wrap:nowrap;overflow:hidden;gap:8px}
+  .mq-barra .mq-titulo{display:none}
+  .mq-selector{max-width:calc(100vw - 110px);overflow-x:auto;scrollbar-width:none}
+  .mq-selector button{white-space:nowrap}
+  .mq-tema{flex:none}
+}
+</style>
+</head>
+<body>
+<header class="mq-barra">
+  <div class="mq-titulo"><span class="versalita">Finanzas · Resumen</span><b>Resumen y campañas</b></div>
+  <div class="mq-espacio"></div>
+  <div class="mq-selector" role="group" aria-label="Spike">
+    <button data-ver="primero" aria-pressed="true">1 · Qué ver primero</button>
+    <button data-ver="campana" aria-pressed="false">2 · Con la campaña</button>
+    <button data-ver="cuando" aria-pressed="false">3 · ¿Cuándo compro?</button>
+    <button data-ver="historia" aria-pressed="false">4 · Lo que dice la historia</button>
+    <button data-ver="cuesta" aria-pressed="false">5 · ¿Cuánto cuesta?</button>
+    <button data-ver="ajustes" aria-pressed="false">6 · Ajustes</button>
+  </div>
+  <span class="mq-ejemplo">Cifras de ejemplo</span>
+  <button class="mq-tema" type="button">Oscuro</button>
+</header>
+
+<p class="mq-nota tenue">Hoy es <b>lunes 26 de octubre</b>. Campañas de ejemplo: <b>Cyber Wow</b> (27–30 nov) y <b>Navidad</b> (1–24 dic). Todo lo ya construido en el Resumen va <b>rayado</b>.
+  Una compra de mercadería <b>no es un gasto</b> (es inventario hasta que se vende): aquí se llama <b>plata comprometida</b> y no entra a «Te deja».</p>
+
+<main class="pagina" id="pagina"></main>
+
+<script src="base.js"></script>
+<script>
+/* ============================ Datos de ejemplo ============================ */
+const S = (n) => (n < 0 ? "−" : "") + "S/ " + Math.round(Math.abs(n)).toLocaleString("en-US");
+const E = (id) => document.getElementById(id);
+const entra = (i) => `data-entra style="--i:${i}"`;
+
+const HOY = { caja: 21500, minimo: 15000, debe7: 6840, deja: 3850, dejaAntes: 1400, diasCaja: 12 };
+const CATS = [ // categoría, costo unitario, comprado/vendido en Navidad 2025, día en que se acabó (null = no), sugerido 2026 (flojo, central, bueno)
+  { n: "Casacas",    c: 36,   ant: [120, 120], fin: 9,    sug: [130, 150, 170] },
+  { n: "Vestidos",   c: 43,   ant: [90, 85],   fin: 21,   sug: [88, 95, 105] },
+  { n: "Blusas",     c: 17.4, ant: [200, 164], fin: null, sug: [170, 190, 215] },
+  { n: "Pantalones", c: 20.7, ant: [150, 117], fin: null, sug: [120, 140, 160] },
+  { n: "Faldas",     c: 21.7, ant: [80, 52],   fin: null, sug: [45, 60, 75] },
+  { n: "Polos",      c: 9,    ant: [220, 90],  fin: null, sug: [80, 100, 130] },
+  { n: "Accesorios", c: 3.3,  ant: [160, 131], fin: null, sug: [130, 150, 175] },
+];
+const COSTO = { Casacas: 5400, Vestidos: 4100, Blusas: 3300, Pantalones: 2900, Faldas: 1300, Polos: 900, Accesorios: 500 };   // cantidad sugerida × costo unitario, redondeado
+CATS.forEach(k => { k.costo = COSTO[k.n]; k.pct = Math.round(k.ant[1] / k.ant[0] * 100); });
+const PLAN_NAV = CATS.reduce((a, k) => a + k.costo, 0);        // ≈ 18,400
+const CAMPS = [
+  { id: "nav", nombre: "Navidad", fechas: "1–24 dic", plan: PLAN_NAV, pedido: 9200, pagado: 3000, tope: 20000, limite: "12 nov", faltan: 17, ok: true },
+  { id: "cyb", nombre: "Cyber Wow", fechas: "27–30 nov", plan: 6200, pedido: 6200, pagado: 6200, tope: 7000, limite: "8 nov", faltan: 13, ok: true },
+];
+/* Caja sin campaña (saldo al cierre de cada semana, desde el 26 oct) y compras de Navidad según cuántas tandas. */
+const BASE = [21500, 16800, 20100, 24300, 29800, 21500, 36800, 47200, 55600, 52000];   // 26 oct, 2 nov … 28 dic
+const FECHA0 = Date.UTC(2026, 9, 26);
+const dia = (m, d) => Math.round((Date.UTC(2026, m - 1, d) - FECHA0) / 864e5);
+const OPCIONES = [
+  { id: "a", n: "Todo junto", sub: "Pagas todo al pedir", pagos: [[dia(11, 10), 1]], alAbrir: 100, repone: 0 },
+  { id: "b", n: "Dos tandas", sub: "70 % ahora, 30 % para reponer", pagos: [[dia(11, 10), .7], [dia(11, 24), .3]], alAbrir: 70, repone: 30 },
+  { id: "c", n: "Pago a plazo", sub: "Pides todo, pagas en 3 meses", pagos: [[dia(11, 10), .4], [dia(12, 10), .3], [dia(13, 9), .3]], alAbrir: 100, repone: 0, requiere: "Tu proveedor tiene que darte crédito: confírmalo antes de contar con esto." },
+];
+function base(d) { const i = Math.min(8, Math.floor(d / 7)), f = (d - i * 7) / 7; return BASE[i] + (BASE[i + 1] - BASE[i]) * f; }
+function saldo(op, d) { return base(d) - (op ? op.pagos.reduce((a, [x, p]) => a + (d >= x ? p * PLAN_NAV : 0), 0) : 0); }
+function resumenOp(op) {
+  let min = Infinity, dmin = 0, bajo = 0;
+  for (let d = 0; d <= 63; d++) { const s = saldo(op, d); if (s < min) { min = s; dmin = d; } if (s < HOY.minimo) bajo++; }
+  return { min, dmin, bajo };
+}
+OPCIONES.forEach(o => Object.assign(o, resumenOp(o)));
+const fechaDe = (d) => { const f = new Date(FECHA0 + d * 864e5); return f.getUTCDate() + " " + ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][f.getUTCMonth()]; };
+const RECO = OPCIONES.filter(o => !o.requiere && o.min >= 0 && o.alAbrir >= 70).sort((a, b) => a.bajo - b.bajo)[0];
+
+/* Estado de la pantalla (lo que cambian los controles) */
+const EST = { nombre: "Compras de campaña", global: true, ver: { nav: true, cyb: true }, enCaja: true, opcion: RECO.id };
+
+/* ============================ Piezas ============================ */
+const tarjeta = (titulo, bajada, cuerpo, i = 0, extra = "") =>
+  `<section class="tarjeta" ${entra(i)} ${extra}><div class="cab-bloque"><div><h3>${titulo}</h3>${bajada ? `<p class="tenue">${bajada}</p>` : ""}</div></div>${cuerpo}</section>`;
+const ficha = (r, d, c) => `<div class="ficha" ${entra(1)}><div><b>Responde</b>${r}</div><div><b>El dato</b>${d}</div><div><b>Lo que cuesta</b>${c}</div></div>`;
+const sub = (id, items) => `<div class="sub" role="group" data-sub="${id}">${items.map(([k, t], i) => `<button data-op="${k}" aria-pressed="${i === 0}">${t}</button>`).join("")}</div>`;
+const cab = (sede, titulo, frase) => `<div class="encabezado" ${entra(0)}><div><div class="linea-sede versalita">${sede}</div><h1>${titulo}</h1><p class="frase tenue">${frase}</p></div></div>`;
+const rayado = (t, d, i = 2) => `<div class="rayado" ${entra(i)}><span class="marca-vieja" style="align-self:flex-start">Ya construido</span><b>${t}</b><span>${d}</span></div>`;
+
+/* La barra apilada de una compra: cada sol del plan está en UNA etapa (pagado · pedido sin pagar · falta pedir) y el resto es hueco hasta el tope. */
+function barraCompra(c) {
+  const pend = c.plan - c.pedido, ped = c.pedido - c.pagado, w = (v) => (v / c.tope * 100) + "%";
+  return `<div class="apilada" role="img" aria-label="De ${S(c.plan)} planeados: ${S(c.pagado)} pagados, ${S(ped)} pedidos sin pagar, ${S(pend)} por pedir. Tu tope es ${S(c.tope)}">
+    <i data-crece style="--c:var(--verde);--w:${w(c.pagado)}"></i><i data-crece style="--c:var(--taupe);--w:${w(ped)}"></i><i data-crece style="--c:color-mix(in srgb,var(--tinta) 22%,var(--papel));--w:${w(pend)}"></i></div>
+    <div class="leyenda"><span class="hilo" style="--c:var(--verde)"><i></i>Pagado ${S(c.pagado)}</span><span class="hilo" style="--c:var(--taupe)"><i></i>Pedido, por pagar ${S(ped)}</span><span class="hilo" style="--c:color-mix(in srgb,var(--tinta) 22%,var(--papel))"><i></i>Falta pedir ${S(pend)}</span><span class="tenue">Tu tope: ${S(c.tope)}</span></div>`;
+}
+const sw = (id, on, etiqueta) => `<button class="interruptor" role="switch" aria-checked="${on}" aria-label="${etiqueta}" data-sw="${id}"></button>`;
+
+/* Línea de caja con la compra (SVG a mano: la pieza real <Linea> admite UNA referencia; aquí hacen falta dos). */
+function lineaCaja(op, alto = 270) {
+  const W = 1000, H = alto, L = 60, R = 24, T = 20, B = 40, MIN = 0, MAX = 60000;
+  const x = (d) => L + d / 63 * (W - L - R), y = (v) => T + (1 - (v - MIN) / (MAX - MIN)) * (H - T - B);
+  const ruta = (f) => [...Array(64)].map((_, d) => `${d ? "L" : "M"}${x(d).toFixed(1)} ${y(f(d)).toFixed(1)}`).join(" ");
+  const marcas = [[0, "hoy"], [14, "9 nov"], [28, "23 nov"], [42, "7 dic"], [56, "21 dic"]].map(([d, t]) => `<text x="${x(d)}" y="${H - 14}" text-anchor="middle" font-size="12.5" class="t-tenue">${t}</text>`).join("");
+  const rayas = [0, 20000, 40000, 60000].map(v => `<line x1="${L}" x2="${W - L + 36}" y1="${y(v)}" y2="${y(v)}" stroke="var(--sand)"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" class="t-tenue">${v ? v / 1000 + " mil" : "0"}</text>`).join("");
+  const pagos = op ? op.pagos.map(([d, p]) => `<g><line x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}" stroke="var(--taupe)" stroke-dasharray="2 4" opacity=".7"/><text x="${x(d) + 5}" y="${T + 12}" font-size="11.5" class="t-tenue">−${S(p * PLAN_NAV).replace("S/ ", "")}</text></g>`).join("") : "";
+  const m = op ? `<circle cx="${x(op.dmin)}" cy="${y(op.min)}" r="6" fill="${op.min < 0 ? "var(--rojo-p)" : "var(--ambar)"}" stroke="var(--papel)" stroke-width="3"/><text x="${x(op.dmin) + 10}" y="${y(op.min) + 20}" font-size="12.5" font-weight="600">punto más bajo ${S(op.min)} · ${fechaDe(op.dmin)}</text>` : "";
+  return `<div class="desliza"><div class="desliza-min"><svg class="svg-c" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tu caja hasta fin de año">${rayas}
+    <line x1="${L}" x2="${W - R}" y1="${y(HOY.minimo)}" y2="${y(HOY.minimo)}" stroke="var(--tinta)" stroke-dasharray="6 6" opacity=".8"/><text x="${W - R}" y="${y(HOY.minimo) - 7}" text-anchor="end" font-size="12.5" class="t-tenue">tu mínimo ${S(HOY.minimo)}</text>
+    <path d="${ruta(d => base(d))}" fill="none" stroke="var(--taupe)" stroke-width="2.5" stroke-dasharray="3 5" opacity=".85"/>
+    ${op ? `<path d="${ruta(d => saldo(op, d))}" fill="none" stroke="var(--tinta)" stroke-width="3" data-dibuja pathLength="1"/>` : ""}${pagos}${m}${marcas}</svg></div></div>`;
+}
+
+/* ---------- 1 · Qué ver primero ---------- */
+function tresRespuestas() {
+  const c = (verbo, valor, pie, chip, i) => `<div class="tarjeta resp" ${entra(i)}><span class="verbo">${verbo}</span><span class="valor num" data-cuenta="${valor}" data-pre="S/ ">0</span><span class="pie">${pie}</span>${chip}</div>`;
+  return `<div class="tres">
+    ${c("¿Cuánto tienes?", HOY.caja, `Aguantas <b>${HOY.diasCaja} días</b> de gastos con lo que hay.`, `<span class="chip c-verde" style="align-self:flex-start">Sobre tu mínimo (${S(HOY.minimo)})</span>`, 2)}
+    ${c("¿Cuánto debes pagar pronto?", HOY.debe7, `3 facturas en los próximos 7 días; <b>1 vencida</b> (S/ 1,200).`, `<span class="chip c-ambar" style="align-self:flex-start">Vence esta semana</span>`, 3)}
+    ${c("¿Cuánto te deja este mes?", HOY.deja, `El mes pasado, a esta fecha, ${S(HOY.dejaAntes)}.`, `<span class="chip c-pizarra" style="align-self:flex-start">Provisional · seguro al 86 %</span>`, 4)}
+  </div>`;
+}
+function semaforo() {
+  const f = (c, t, d, v, i) => `<div class="sem" ${entra(i)} style="--c:var(--${c})"><span class="punto"></span><span><b>${t}</b><span class="d">${d}</span></span><button class="btn chico sutil">${v}</button></div>`;
+  return `<div class="tarjeta" ${entra(2)} style="padding-block:6px">${f("verde", "¿Tengo plata?", `Sí: ${S(HOY.caja)}. Aguantas ${HOY.diasCaja} días de gastos.`, "Ver caja", 2)}
+    ${f("ambar", "¿Puedo pagar lo que viene?", "Los sueldos y alquileres del 31 te dejan bajo tu mínimo.", "Ver el día", 3)}
+    ${f("verde", "¿Estoy ganando?", `Sí: este mes te deja ${S(HOY.deja)} (el mes pasado, ${S(HOY.dejaAntes)}).`, "Ver por qué", 4)}
+    ${f("ambar", "¿Qué campaña viene?", "Navidad: pide antes del 12 nov (faltan 17 días) y te falta pedir S/ 9,200.", "Ver la campaña", 5)}</div>`;
+}
+function spikePrimero() {
+  return `${cab("Finanzas · Resumen", "¿Qué ve primero quien sabe poco de números?", "Hoy el Resumen abre con «Te deja S/ 3,850»: lo que dejó el mes. Pero casi toda empresa chica se queda sin plata siendo rentable: lo primero es la plata y lo que vence.")}
+  ${ficha("Cinco preguntas, en este orden: ¿cuánto tengo? · ¿me alcanza lo que viene? · ¿estoy ganando? · ¿qué se viene? · ¿por qué cambió?", "Xero y QuickBooks abren con banco, facturas por pagar y por cobrar; la utilidad va después porque llega tarde. Todo esto ya existe en el Resumen y en Dinero.", "S, solo web. Sube lo que ya se calcula; no hay cifra nueva.")}
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap" ${entra(2)}>${sub("pri", [["a", "A · Tres respuestas"], ["b", "B · Semáforo de preguntas"]])}<span class="marca-nueva">Cambia el orden de arriba</span></div>
+  <div class="opcion" data-op="a">${tresRespuestas()}${tarjeta("Para decidir hoy", "Primero lo que más cuesta si se deja pasar.", `<div class="lista-b">${[["Factura vencida: proveedor de telas", "S/ 5,134 · hace 45 días", "Pagar"], ["La caja baja de tu mínimo el 31 de oct", "Sueldos y alquileres salen juntos", "Probar escenario"], ["Navidad: te faltan S/ 9,200 por pedir", "Pide antes del 12 nov", "Ver la campaña"]].map(([t, d, b], i) => `<div class="fila-b" ${entra(i + 4)} style="grid-template-columns:minmax(0,1fr) auto"><span><b>${t}</b><small>${d}</small></span><button class="btn chico sutil">${b}</button></div>`).join("")}</div>`, 5)}</div>
+  <div class="opcion" data-op="b" hidden>${semaforo()}</div>
+  ${tarjeta("El orden que proponemos", "Lo que decide si mañana abres la tienda, arriba. Lo que explica el porqué, abajo.", `<ol class="escalera"><li><span><b>La plata que tienes</b><small>Efectivo, cajas fuertes y bancos, con tu mínimo.</small></span></li><li><span><b>Lo que vence</b><small>Facturas, planilla e IGV de las próximas dos semanas.</small></span></li><li><span><b>Lo que te deja el mes</b><small>Contra el mes pasado y dicho en soles de cada 100.</small></span></li><li><span><b>Lo que viene: la campaña</b><small>Cuánto vas a comprar, hasta cuándo pedir y cómo lo pagas.</small></span></li><li><span><b>Por qué cambió</b><small>Recorrido de la plata, lo que más se movió, cada sede.</small></span></li></ol>`, 6)}`;
+}
+
+/* ---------- 2 · Con la campaña (el Resumen compuesto) ---------- */
+function bandaCampanas() {
+  const visibles = CAMPS.filter(c => EST.global && EST.ver[c.id]);
+  if (!visibles.length) return `<div class="nota" ${entra(3)}>Las compras de campaña están ocultas en el Resumen. Se vuelven a mostrar en <b>Ajustes</b> (pestaña 6). Siguen existiendo en el Plan de campaña y en Compras.</div>`;
+  return tarjeta(`${EST.nombre}`, `Lo que vas a poner en mercadería para las campañas que vienen. <b>No entra a «Te deja»</b>: es plata comprometida, y se vuelve costo cuando vendes.`, visibles.map(c => `<div class="camp">
+      <div class="camp-cab"><h4>${c.nombre} <span class="tenue" style="font-size:14px;font-family:var(--sans)">· ${c.fechas}</span></h4>
+        <span class="chip ${c.pedido >= c.plan ? "c-verde" : "c-ambar"}">${c.pedido >= c.plan ? "Todo pedido" : `Pide antes del ${c.limite} (faltan ${c.faltan} días)`}</span></div>
+      ${barraCompra(c)}</div>`).join(""), 3);
+}
+function spikeCampana() {
+  const nombres = ["Compras de campaña", "Plata en la campaña", "Inversión en mercadería"];
+  const op = OPCIONES.find(o => o.id === EST.opcion);
+  return `${cab("Todas las sedes · lunes, 26 de octubre", "Resumen", "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.")}
+  ${ficha("«Ya sé cuánto gané. ¿Y cuánto voy a poner en Navidad, hasta cuándo pido y cómo lo pago?»", "El Plan de campaña ya guarda la inversión, el tope, lo pedido y el plazo (ADR-0372, ADR-0499). Falta leerlo desde Finanzas. Contrato propuesto abajo.", "M, solo web sobre lo que ya existe. Lo nuevo en la base (qué campañas se ven, en cuántas tandas) lo decide Felipe.")}
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap" ${entra(2)}><span class="verbo">Cómo se llama</span>${sub("nom", nombres.map((n, i) => [String(i), n]))}<span class="marca-nueva">Pieza nueva</span></div>
+  <div id="resumenCompuesto">${tresRespuestas()}</div>
+  <div id="bandaCamp">${bandaCampanas()}</div>
+  ${tarjeta("Tu caja con la campaña", "La línea punteada es tu caja sin la campaña; la oscura, con la compra de Navidad en la forma que elijas en la pestaña 3.", `<label class="chk" style="margin-bottom:8px"><input type="checkbox" id="enCaja" ${EST.enCaja ? "checked" : ""}> Mostrar la compra en mi caja</label><div id="cajaCamp">${EST.enCaja ? lineaCaja(op, 230) : lineaCaja(null, 230)}</div>`, 4)}
+  <div class="dos">${rayado("Por dónde pasa la plata", "El recorrido de la plata, ya construido.", 5)}${rayado("Hoy te toca", "Los avisos, ya construidos. La campaña suma «Navidad: te falta pedir S/ 9,200».", 6)}</div>`;
+}
+
+/* ---------- 3 · ¿Cuándo compro? ---------- */
+function frase(o) {
+  return `<b>${o.n}</b>: la caja baja a ${S(o.min)} el ${fechaDe(o.dmin)} y pasas ${o.bajo} días bajo tu mínimo. ${o.alAbrir} % de la compra llega a tiempo para abrir la campaña${o.repone ? ` y ${o.repone} % queda para reponer lo que se acabe` : ""}.${o.requiere ? " " + o.requiere : ""}`;
+}
+function cuandoA() {
+  const o = OPCIONES.find(x => x.id === EST.opcion);
+  return tarjeta("Tu caja hasta fin de año, según cómo compres Navidad", `Compra total de Navidad: <b>${S(PLAN_NAV)}</b>. Lo que pidas después del 12 nov llega con la campaña ya empezada: sirve para reponer, no para abrir.`,
+    `<div class="sub" style="margin-bottom:12px" data-sub="opc">${OPCIONES.map(x => `<button data-op="${x.id}" aria-pressed="${x.id === EST.opcion}">${x.n}</button>`).join("")}</div>
+     <p class="titular" style="margin-bottom:10px" id="fraseOp">${frase(o)}</p><div id="lineaOp">${lineaCaja(o)}</div>
+     <div class="leyenda"><span class="hilo" style="--c:var(--tinta)"><i></i>Con la compra</span><span class="hilo" style="--c:var(--taupe)"><i></i>Sin la campaña</span><span>tu mínimo ${S(HOY.minimo)} · rayas verticales = pagos (los de enero quedan fuera del gráfico)</span></div>`, 2);
+}
+function cuandoB() {
+  return `<div class="opts" ${entra(2)}>${OPCIONES.map(o => `<button class="opt" data-pick="${o.id}" aria-pressed="${o.id === EST.opcion}">${o.id === RECO.id ? '<span class="reco">La mejor mezcla</span>' : ""}<h4>${o.n}</h4><span class="tenue" style="font-size:13px">${o.sub}</span>
+      <dl><dt>Pagos</dt><dd>${o.pagos.map(([d, p]) => `${Math.round(p * 100)} % el ${fechaDe(d)}`).join(" · ")}</dd><dt>Tu caja más baja</dt><dd style="color:${o.min < 0 ? "var(--rojo-p)" : "inherit"}">${S(o.min)} (${fechaDe(o.dmin)})</dd><dt>Días bajo tu mínimo</dt><dd>${o.bajo}</dd><dt>Llega a tiempo para abrir</dt><dd>${o.alAbrir} %</dd><dt>Queda para reponer</dt><dd>${o.repone} %</dd></dl>${o.requiere ? `<span class="chip c-ambar" style="align-self:flex-start">Necesita crédito del proveedor</span>` : ""}</button>`).join("")}</div>
+    <p class="nota" ${entra(3)}><b>Cómo se elige «la mejor mezcla»:</b> entre las opciones que no dependen de nadie más, nunca dejan la caja en negativo y llegan a tiempo con al menos el 70 % de lo que abre la campaña, la que pasa menos días bajo tu mínimo. «Pago a plazo» es la más liviana para tu caja, pero solo si tu proveedor te da el crédito. Es una regla, no una orden: tú decides.</p>`;
+}
+function spikeCuando() {
+  return `${cab("Finanzas · Resumen", "¿Cuándo compro y cómo lo pago?", "Todo en un mes o de a poco: la respuesta cambia el día en que te quedas sin aire y cuánto puedes reponer si algo se acaba.")}
+  ${ficha("«Si compro todo ahora, ¿llego al 31? Si compro de a poco, ¿me quedo sin prendas?»", "Tu caja de hoy + lo que vence (Por pagar) + la compra en la forma elegida. Es el mismo cálculo de «Escenarios», con «un gasto nuevo» (Reportes ▸ Escenarios).", "M. Nada se guarda hasta que lo apruebes; el plan solo guarda cómo piensas pagarlo.")}
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap" ${entra(2)}>${sub("cu", [["a", "A · Línea de caja"], ["b", "B · Tres opciones lado a lado"]])}<span class="marca-nueva">Pieza nueva</span></div>
+  <div class="opcion" data-op="a">${cuandoA()}</div>
+  <div class="opcion" data-op="b" hidden>${cuandoB()}</div>`;
+}
+
+/* ---------- 4 · Lo que dice la historia ---------- */
+function spikeHistoria() {
+  const filas = [...CATS].sort((a, b) => b.pct - a.pct).map((k, i) => {
+    const agot = k.fin ? `<span class="chip c-rojo">Se acabó el día ${k.fin}</span>` : k.pct >= 85 ? `<span class="chip c-ambar">Casi se acaba</span>` : k.pct < 60 ? `<span class="chip c-pizarra">Sobró ${100 - k.pct} %</span>` : "";
+    return `<div class="fila-h" ${entra(i + 3)}><span><b>${k.n}</b><small>compraste ${k.ant[0]} · vendiste ${k.ant[1]}</small></span><span class="pista" style="height:10px"><i data-crece style="--w:${k.pct}%;--c:${k.fin ? "var(--rojo-p)" : "var(--tinta)"}"></i></span><span style="text-align:right"><b class="num">${k.pct} %</b>${agot ? `<div style="margin-top:4px">${agot}</div>` : ""}</span></div>`;
+  }).join("");
+  const sug = CATS.map((k, i) => {
+    const d = Math.round((k.sug[1] / k.ant[0] - 1) * 100), t = d > 0 ? "c-verde" : d < 0 ? "c-ambar" : "c-pizarra";
+    return `<div class="sug" ${entra(i + 3)}><span><b>${k.n}</b><div class="rango">entre ${k.sug[0]} y ${k.sug[2]}</div></span><b class="num">${k.sug[1]} prendas</b><span class="chip ${t}">${d > 0 ? "+" : ""}${d} %</span></div>`;
+  }).join("");
+  return `${cab("Finanzas · Resumen", "Lo que dice la historia", "Qué se compró de más, qué se acabó y qué conviene pedir para esta campaña, con las ventas de la campaña pasada y de los últimos meses.")}
+  ${ficha("«¿Qué compré demasiado y qué me faltó la vez pasada?»", "Ventas por categoría de la campaña anterior y de los últimos 3 meses (Sinatra + ventas del sistema), y lo que ya está pedido y en las tiendas.", "M. Es el paso 2 del Plan de campaña: aquí solo viaja un resumen de 3 líneas al Resumen.")}
+  <div class="dos">
+    ${tarjeta("Lo que pasó en Navidad 2025", "Cuánto de lo que compraste se vendió. En rojo, lo que se acabó antes de que terminara la campaña.", filas, 2)}
+    ${tarjeta("Qué conviene pedir para Navidad 2026", `Un rango, no un número: ${S(PLAN_NAV)} en total. Ya contando lo que hay hoy en las tiendas.`, sug + `<p class="nota" style="margin-top:12px"><b>Pocos datos:</b> solo hay 1 campaña anterior. Con tan poca historia el sistema acerca cada categoría al promedio y muestra un rango. <b>Casacas se acabó el día 9</b>: vendiste todo lo que tenías, no todo lo que pedían; por eso se sugiere más de lo que vendiste.</p>`, 3)}
+  </div>`;
+}
+
+/* ---------- 5 · ¿Cuánto cuesta? ---------- */
+function spikeCuesta() {
+  const colores = ["var(--taupe)", "var(--tinta)", "var(--pizarra)", "var(--ambar)", "var(--verde)", "var(--sede-tal)", "var(--sede-emp)"];
+  const orden = [...CATS].sort((a, b) => b.costo - a.costo);
+  const barra = `<div class="apilada" role="img" aria-label="Costo por categoría">${orden.map((k, i) => `<i data-crece style="--c:${colores[i]};--w:${k.costo / 20000 * 100}%"></i>`).join("")}</div>
+    <div class="leyenda">${orden.map((k, i) => `<span class="hilo" style="--c:${colores[i]}"><i></i>${k.n} ${S(k.costo)}</span>`).join("")}</div>`;
+  const filas = [["Lo que esperas vender (ya con el −20 %)", "52,000", 52000, 1], ["Lo que costaron las prendas que se venden", "21,000", -21000, -1], ["Publicidad de la campaña", "2,500", -2500, -1], ["Comisión de tarjeta", "900", -900, -1]];
+  const lista = filas.map(([n, t, v, s], i) => `<div class="fila-b" ${entra(i + 4)}><span><b>${n}</b></span><span class="pista" style="height:6px"><i data-crece style="--w:${Math.abs(v) / 52000 * 100}%;--c:${s > 0 ? "var(--tinta)" : "var(--taupe)"}"></i></span><span class="m" style="color:${s > 0 ? "var(--verde)" : "var(--taupe)"}">${s > 0 ? "+" : "−"}S/ ${t}</span></div>`).join("") + `<div class="fila-b" ${entra(8)}><span><b>Te deja la campaña</b></span><span></span><span class="m" style="font-family:var(--serif);font-size:20px">S/ 27,600</span></div>`;
+  return `${cab("Finanzas · Resumen", "¿Cuánto cuesta la campaña?", "La respuesta tiene dos partes que no se mezclan: la plata que pones en mercadería y lo que la campaña te deja de verdad.")}
+  ${ficha("«¿Cuánto me cuesta Navidad y cuánto me deja?»", "Plan de campaña (cantidad × costo, tope) + Reportes ▸ Campañas (ventas y margen de campañas pasadas) + Gastos (publicidad con la campaña).", "M. La publicidad de la campaña sí es un gasto: hay que poder marcarla con la campaña.")}
+  <div class="dos">
+    ${tarjeta("La plata que pones en la mercadería", `Navidad: ${S(PLAN_NAV)} de tu tope de ${S(20000)}. Quedan ${S(20000 - PLAN_NAV)} de aire.`, barra, 2)}
+    ${tarjeta("¿Por qué no es un gasto?", "Porque lo que compras sigue siendo tuyo hasta que lo vendes.", `<div class="pasos"><div class="paso"><b>1 · Compras</b><span>Pagas S/ 18,400. Son prendas en tu estante: <b>inventario</b>, no gasto. Sale de tu caja, no de «Te deja».</span></div><div class="paso"><b>2 · Vendes</b><span>Cada prenda vendida pasa a ser <b>costo de lo vendido</b>. Ahí recién baja «Te deja».</span></div><div class="paso"><b>3 · Sobra</b><span>Lo que no se vendió (aquí, S/ 2,760) <b>sigue siendo inventario</b>: no se perdió.</span></div></div>`, 3)}
+  </div>
+  ${tarjeta("Cuánto te deja la campaña", "Lo que esperas vender menos lo que cuesta venderlo. Incluye el descuento: las ventas ya vienen con −20 %.", `<div class="lista-b">${lista}</div><p class="nota" style="margin-top:12px">Del lado de <b>gastos de verdad</b> están la publicidad, la comisión de la tarjeta y el descuento que regalas. La mercadería va por otro camino: <b>caja</b> cuando pagas, <b>costo</b> cuando vendes.</p>`, 4)}`;
+}
+
+/* ---------- 6 · Ajustes ---------- */
+function spikeAjustes() {
+  return `${cab("Finanzas · Resumen · Ajustes", "Qué se ve en el Resumen", "Por defecto se ve todo. Ocultar no borra nada: la campaña sigue en el Plan de campaña y en Compras.")}
+  ${ficha("«Quiero ver la campaña… pero no siempre.»", "Una columna por campaña (se ve o no) y un interruptor general. Hoy no existe: es la única parte que toca la base.", "S–M. Una columna y una función. Va firmada por quien la cambia, como el tope de inversión.")}
+  ${tarjeta("Compras de campaña en el Resumen", "El interruptor general apaga el bloque entero; los de cada campaña, solo esa.", `
+    <div class="fila-sw"><span><b>Mostrar compras de campaña en el Resumen</b><small>Apagado: el bloque no aparece y la caja no cuenta las compras que aún no pediste. Lo ya pedido y por pagar sigue en «Por pagar».</small></span>${sw("global", EST.global, "Mostrar compras de campaña")}</div>
+    ${CAMPS.map(c => `<div class="fila-sw"><span><b>${c.nombre}</b> <span class="tenue">· ${c.fechas}</span><small>${S(c.plan)} planeados · pedido ${S(c.pedido)}</small></span>${sw(c.id, EST.ver[c.id], "Mostrar " + c.nombre)}</div>`).join("")}
+    <div class="fila-sw"><span><b>Contar la compra en «Tu caja»</b><small>Muestra cómo cambia tu caja si compras en la forma elegida. Es una proyección, no un pago.</small></span>${sw("caja", EST.enCaja, "Contar la compra en Tu caja")}</div>`, 2)}
+  <div id="efecto" class="nota" ${entra(3)}></div>`;
+}
+function pintaEfecto() {
+  const el = E("efecto"); if (!el) return;
+  const v = CAMPS.filter(c => EST.global && EST.ver[c.id]).map(c => c.nombre);
+  el.innerHTML = EST.global && v.length ? `<b>En el Resumen se ve:</b> ${v.join(" y ")}${EST.enCaja ? ", y la caja cuenta la compra de Navidad." : "; la caja no cuenta compras sin pedir."}` : "<b>En el Resumen no se ve ninguna compra de campaña.</b> La caja solo cuenta lo ya pedido y por pagar.";
+}
+
+/* ============================ Montaje ============================ */
+const SPIKES = { primero: spikePrimero, campana: spikeCampana, cuando: spikeCuando, historia: spikeHistoria, cuesta: spikeCuesta, ajustes: spikeAjustes };
+function montar() { E("pagina").innerHTML = Object.entries(SPIKES).map(([k, f]) => `<div class="variante" data-variante="${k}" hidden>${f()}</div>`).join(""); pintaEfecto(); }
+montar();
+
+function repintar(que) {
+  if (que.includes("camp")) { const v = document.querySelector('.variante[data-variante="campana"]'); const op = OPCIONES.find(o => o.id === EST.opcion);
+    E("bandaCamp").innerHTML = bandaCampanas(); E("cajaCamp").innerHTML = lineaCaja(EST.enCaja ? op : null, 230); mqAnimar(v); }
+  if (que.includes("cuando")) { const o = OPCIONES.find(x => x.id === EST.opcion); const f = E("fraseOp"); if (f) { f.innerHTML = frase(o); E("lineaOp").innerHTML = lineaCaja(o); }
+    document.querySelectorAll("[data-pick]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pick === EST.opcion)));
+    document.querySelectorAll('[data-sub="opc"] button').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.op === EST.opcion))); }
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".sub button");
+  if (b) {
+    const g = b.closest(".sub"), v = b.closest(".variante");
+    g.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    if (g.dataset.sub === "opc") { EST.opcion = b.dataset.op; repintar(["cuando", "camp"]); return; }
+    if (g.dataset.sub === "nom") { EST.nombre = ["Compras de campaña", "Plata en la campaña", "Inversión en mercadería"][Number(b.dataset.op)]; repintar(["camp"]); return; }
+    v.querySelectorAll(":scope > .opcion").forEach(o => (o.hidden = o.dataset.op !== b.dataset.op));
+    mqAnimar(v);
+  }
+  const p = e.target.closest("[data-pick]"); if (p) { EST.opcion = p.dataset.pick; repintar(["cuando", "camp"]); }
+  const s = e.target.closest("[data-sw]");
+  if (s) { const k = s.dataset.sw, on = s.getAttribute("aria-checked") !== "true"; s.setAttribute("aria-checked", String(on));
+    if (k === "global") EST.global = on; else if (k === "caja") EST.enCaja = on; else EST.ver[k] = on; pintaEfecto(); repintar(["camp"]); }
+});
+document.addEventListener("change", (e) => { if (e.target.id === "enCaja") { EST.enCaja = e.target.checked; repintar(["camp"]); } });
+</script>
+</body>
+</html>

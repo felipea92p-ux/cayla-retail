@@ -396,7 +396,9 @@ export function AbrirConteo({
         <aside
           data-guia="conteo.tu-conteo"
           aria-label="Resumen del conteo"
-          className="sticky bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-b-[inherit] border-t border-sand bg-papel px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-b-none @[46rem]:rounded-r-[inherit] @[46rem]:border-l @[46rem]:border-t-0 @[46rem]:bg-hueso/50 @[46rem]:p-7"
+          // En una tarjeta angosta, la Isla pegada abajo (ADR-0479, actividad 12); en una ancha, la columna de la derecha de siempre.
+          data-pegada
+          className="barra-abajo z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-none @[46rem]:rounded-r-[inherit] @[46rem]:border-0 @[46rem]:border-l @[46rem]:border-sand @[46rem]:bg-hueso/50 @[46rem]:p-7 @[46rem]:shadow-none @[46rem]:animate-none"
         >
           <p className="eyebrow-cayla hidden !text-taupe @[46rem]:block">Tu conteo</p>
 
@@ -405,7 +407,7 @@ export function AbrirConteo({
               <span className={`font-display text-[26px] leading-none @[46rem]:text-[52px] ${cuantas === null ? "text-taupe/50" : "text-tinta"}`}>
                 {cuantas === null ? "—" : <CifraQueCuenta valor={cuantas} />}
               </span>
-              <span className="text-xs text-taupe @[46rem]:text-sm">
+              <span className="text-sm text-taupe @[46rem]:text-sm">
                 {cuantas === null ? (
                   // Sin cifra todavía: en la tarjeta ancha se dice qué falta elegir; en la barra angosta, una línea (el «Falta:» de abajo ya lo dice).
                   <>
@@ -432,7 +434,7 @@ export function AbrirConteo({
             <Fila etiqueta="Qué" valor={textoQue} />
             <Fila etiqueta="Cuenta" valor={nombreElegido} />
           </dl>
-          <p className="hidden text-[12.5px] leading-relaxed text-taupe @[46rem]:block">
+          <p className="hidden text-sm leading-relaxed text-taupe @[46rem]:block">
             Al empezar se congela lo que CAYLA dice que hay, para compararlo con lo que cuentes.
           </p>
 
@@ -534,8 +536,8 @@ function TarjetasOpcion<T extends string>({
           >
             <span className={`mb-2 transition-colors duration-200 ${activa ? "text-tinta" : "text-taupe"}`}>{o.icono}</span>
             <span className="block text-[15px] font-medium text-tinta">{o.titulo}</span>
-            <span className="block text-xs text-tinta-60">{o.linea}</span>
-            {o.cifra && <span className="block text-xs text-taupe">{o.cifra}</span>}
+            <span className="block text-sm text-tinta-60">{o.linea}</span>
+            {o.cifra && <span className="block text-sm text-taupe">{o.cifra}</span>}
             <span
               aria-hidden
               className={`absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-tinta text-crema transition-[opacity,transform] duration-200 ease-cayla ${
@@ -617,12 +619,12 @@ function ElegirCategoria({
               tabIndex={(elegida === -1 ? i === 0 : activa) ? 0 : -1}
               onClick={() => onValor(c.id)}
               onKeyDown={(e) => alTeclado(e, i)}
-              className={`inline-flex items-baseline gap-1.5 rounded-full border px-3.5 py-1.5 text-[13.5px] transition-colors duration-150 ease-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 ${
+              className={`inline-flex items-baseline gap-1.5 rounded-full border px-3.5 py-1.5 text-[15px] transition-colors duration-150 ease-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/60 ${
                 activa ? "border-tinta bg-tinta text-crema" : `border-sand bg-papel hover:border-taupe/45 ${cifraDe && cifraDe(c.id) === 0 ? "text-tinta/55" : "text-tinta"}`
               }`}
             >
               {c.nombre}
-              {cifraDe && <small className={`text-xs ${activa ? "text-crema/70" : "text-taupe"}`}>{cifraDe(c.id).toLocaleString("es-PE")}</small>}
+              {cifraDe && <small className={`text-sm ${activa ? "text-crema/70" : "text-taupe"}`}>{cifraDe(c.id).toLocaleString("es-PE")}</small>}
             </button>
           );
         })}

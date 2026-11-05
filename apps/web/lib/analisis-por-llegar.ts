@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { LlegadaPrenda } from "@/lib/analisis-tipos";
 import { leerPorLlegar, RPC_POR_LLEGAR } from "@/lib/analisis-por-llegar-lectura";
+import { unstable_rethrow } from "next/navigation";
 
 // Análisis v4 (ADR-0357): lo que viene en camino a una tienda, por prenda (`retail.fn_analisis_por_llegar`, migración
 // 20261006215000): traslados que ya salieron hacia ella (de un almacén, del Taller o de otra tienda) y compras repartidas a ella
@@ -32,6 +33,7 @@ export async function getPorLlegar(ubicacionId: string): Promise<LecturaPorLlega
     }
     return { porVariante, falla: null };
   } catch (e) {
+    unstable_rethrow(e);
     console.error(`${RPC_POR_LLEGAR} (${ubicacionId}): ${e instanceof Error ? e.message : String(e)}`);
     return { porVariante: {}, falla: NO_SE_PUDO };
   }

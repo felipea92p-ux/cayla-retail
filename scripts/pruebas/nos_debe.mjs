@@ -89,6 +89,8 @@ const MIGRACIONES = SIN_MIGRACION
       // Fase 5b, actividad 1: pasar a saldo a favor con el documento interno (esquema y funciones).
       "20261015145000_nos_debe_saldo_a_favor_esquema.sql",
       "20261015150000_nos_debe_saldo_a_favor.sql",
+      // ADR-0604: la deuda dice qué prenda, y la reposición salda primero esa.
+      "20261103144000_nos_debe_por_prenda.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -398,10 +400,10 @@ caso(
     "abiertas,cerradas,deudas,monto,monto_con_igv,proveedor,unidades",
     "1:3:60.00:60.00:1:0",
     "anotado_por,cantidad,categoria,causa,con_igv,costo_unitario,descripcion,despacho_id,diferencia_id,envio,estado,fecha,marca,monto," +
-      "monto_pendiente,monto_pendiente_con_igv,nota,orden,papel,pendiente,prenda_danada_id,proveedor,resoluciones,resuelto,saldada_en,sede,sin_papel",
+      "monto_pendiente,monto_pendiente_con_igv,nota,orden,papel,pendiente,prenda,prenda_danada_id,proveedor,resoluciones,resuelto,saldada_en,sede,sin_papel",
     "ENV:Tienda Trujillo:OC1:Polos Nos Debe:Marca Nos Debe Prueba:Polo básico:3:0:3:por_reponer:20.00:60.00:60.00:false:-:sin papel:" +
       "Faltó una bolsa:Micaela Vendedora:0:true",
-    "Proveedor Nos Debe Prueba:1:3:60.00:60.00:categoria,categoria_id,marca,marca_id,monto,unidades=Polos Nos Debe·Marca Nos Debe Prueba·3·60.00",
+    "Proveedor Nos Debe Prueba:1:3:60.00:60.00:categoria,categoria_id,marca,marca_id,monto,prendas,unidades=Polos Nos Debe·Marca Nos Debe Prueba·3·60.00",
     "0 de prov2",
     NO_ES_DEUDA,
     NO_ES_DEUDA,
@@ -782,8 +784,10 @@ caso(
      (select count(*) from retail.fn_impuestos_compras(retail.fn_hoy_lima(), retail.fn_hoy_lima()) x
        where x.id = (:'np'::jsonb ->> 'nota_proveedor_id')::uuid and x.origen = 'nota_credito' and x.igv = -10.80 and x.da_credito) || ' en Impuestos',
      :'reg' || ' en el registro', :'diario', :'glosa', :'tablero',
-     (select string_agg(a.modulo || ':' || ${DI("a.descripcion")} || ':' || (a.persona_id = :'felipe_p'), ',') from retail.actividad a
-       where a.accion = 'nota_proveedor_adjunta' and a.detalle ->> 'compra_id' = :'fac'));`,
+     -- ADR-0480 (2026-10-22): el módulo «Notas de crédito» se retiró y la función ya no tiene pantalla (queda solo del líder). Su
+     -- anotación en Actividad nombraba ese módulo: ya no puede escribirse y la función sigue sin ella (avisa con un warning).
+     (select count(*) from retail.actividad a
+       where a.accion = 'nota_proveedor_adjunta' and a.detalle ->> 'compra_id' = :'fac') || ' en Actividad');`,
   [
     "comprobante,documentos,fecha,igv,monto,nota_proveedor_id,serie_numero,subtotal",
     "FC01-000777:60.00:10.80:70.80:DI-N:F001-901",
@@ -797,7 +801,7 @@ caso(
     "4011:0:10.80,4019:10.80:0",
     "Nota de crédito FC01-000777 del proveedor: el IGV sale de por regularizar",
     "true:FC01-000777:true",
-    "notas_credito:adjuntó la nota FC01-000777 de Proveedor Nos Debe Prueba a DI-N (F001-901):true",
+    "0 en Actividad",
   ].join(" / "),
 );
 caso(
@@ -1166,7 +1170,7 @@ caso(
   [
     "OK", "OK",
     "Polos Nos Debe=4,Chompas Nos Debe=0",
-    "categoria_id,costo_unitario,marca_id,pendiente,proveedor_id=4@20.00:true:true",
+    "categoria_id,costo_unitario,marca_id,pendiente,prendas,proveedor_id=4@20.00:true:true",
     "P0001|recepcion_reposicion_de_mas|Marcaste 5 como reposición de Polos Nos Debe · Marca Nos Debe Prueba, pero Proveedor Nos Debe Prueba " +
       "solo debe 4: lo que pase de eso es un sobrante con otra causa",
     "P0001|recepcion_reposicion_sin_deuda|Proveedor Nos Debe Prueba no debe nada de Chompas Nos Debe · Marca Nos Debe Prueba: elige otra causa para lo de más",
@@ -1180,6 +1184,71 @@ caso(
     "ENV:1:ENV:1",
     "1",
   ].join(" / "),
+);
+caso(
+  "R1b por prenda: la reposición salda primero la deuda de ESA prenda, aunque haya otra más antigua de la misma categoría y marca",
+  `${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 4, 2)}
+   ${DEUDA("x2", "l3", 3, 1)}
+   set local session_replication_role = replica;
+   update retail.despacho_diferencias set creado_en = creado_en - interval '2 days' where id = :'x1';
+   set local session_replication_role = origin;
+   ${ENVIA("d3", [["l3", 1]])}${ITEM("d3", "l3")}
+   ${como(MICAELA)}${EN_TIENDA}
+   ${ABRE("d3")}
+   select ${RECIBE("d3", A(LIN("di_l3", [V("vp_s", 3)], { sobr: "reposicion_faltante" })))} as r \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), 'básico ' || ${ESTADO("x1")}, 'cuello V ' || ${ESTADO("x2")});`,
+  "OK / básico 0/2 / cuello V 2/2",
+);
+caso(
+  "R1c por prenda: lo que llegó sin que la línea lo pidiera salda su deuda antes que una más antigua; sin coincidir, la más antigua; y las lecturas dicen qué prenda se debe",
+  `${rolDeMicaela("recibir", "proveedores")}
+   set local session_replication_role = replica;
+   update retail.orden_compra_items set producto_id = :'p_polo' where id = :'l3';
+   set local session_replication_role = origin;
+   ${DEUDA("x1", "l1", 4, 2)}
+   ${DEUDA("x2", "l3", 3, 1)}
+   set local session_replication_role = replica;
+   update retail.despacho_diferencias set creado_en = creado_en - interval '2 days' where id = :'x1';
+   set local session_replication_role = origin;
+   ${ENVIA("d2", [["l2", 6]])}${ITEM("d2", "l2")}
+   ${como(MICAELA)}${EN_TIENDA}
+   ${ABRE("d2")}
+   select pg_temp.debe(:'prov') as f \\gset
+   select pg_temp.resumen(0) as res \\gset
+   select pg_temp.detalle(:'d2') as det \\gset
+   select ${RECIBE("d2", A(LIN("di_l2", [V("vc_s", 6)])), { extras: A(EXTRA({ prov: ":'prov'", vars: [V("vp_m", 1)] })) })} as r \\gset
+   select pg_temp.debe(:'prov') as f2 \\gset
+   reset role;
+   select concat_ws(' / ',
+     (select string_agg((x -> 'prenda' ->> 'nombre') || '=' || (x ->> 'pendiente'), ',' order by x -> 'prenda' ->> 'nombre' collate "C") from jsonb_array_elements(:'f'::jsonb -> 'abiertas') x),
+     (select string_agg((p ->> 'nombre') || '=' || (p ->> 'unidades'), ',' order by p ->> 'nombre' collate "C")
+        from jsonb_array_elements(:'res'::jsonb) r2 cross join jsonb_array_elements(r2 -> 'detalle') d cross join jsonb_array_elements(d -> 'prendas') p
+       where (r2 ->> 'proveedor_id') = :'prov'),
+     (select string_agg((p ->> 'nombre') || '=' || (p ->> 'unidades'), ',' order by p ->> 'nombre' collate "C")
+        from jsonb_array_elements(:'det'::jsonb -> 'deudas_del_proveedor') d cross join jsonb_array_elements(d -> 'prendas') p
+       where (d ->> 'categoria_id') = :'cat'),
+     pg_temp.e(:'r'::jsonb),
+     'básico ' || ${ESTADO("x1")}, 'el polo ' || ${ESTADO("x2")},
+     (select string_agg((x -> 'prenda' ->> 'nombre') || '=' || (x ->> 'pendiente'), ',' order by x -> 'prenda' ->> 'nombre' collate "C") from jsonb_array_elements(:'f2'::jsonb -> 'abiertas') x));`,
+  "Polo Nos Debe=2,Polo básico=2 / Polo Nos Debe=2,Polo básico=2 / Polo Nos Debe=2,Polo básico=2 / OK / básico 0/2 / el polo 1/2 / Polo Nos Debe=1,Polo básico=2",
+);
+caso(
+  "R1d por prenda: lo que no dice qué prenda es sigue saldándose de la más antigua a la más nueva",
+  `${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 4, 2)}
+   ${DEUDA("x2", "l1", 3, 1)}
+   set local session_replication_role = replica;
+   update retail.despacho_diferencias set creado_en = creado_en - interval '2 days' where id = :'x2';
+   set local session_replication_role = origin;
+   ${ENVIA("d3", [["l1", 1]])}${ITEM("d3", "l1")}
+   ${como(MICAELA)}${EN_TIENDA}
+   ${ABRE("d3")}
+   select ${RECIBE("d3", A(LIN("di_l1", [V("vp_s", 2)], { sobr: "reposicion_faltante" })))} as r \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'r'::jsonb), 'x1 ' || ${ESTADO("x1")}, 'x2 ' || ${ESTADO("x2")});`,
+  "OK / x1 0/2 / x2 1/2",
 );
 caso(
   "R2 no salda una deuda de la MISMA recepción: lo que falta en una línea y sobra en otra es un cruce, no una reposición",
@@ -1236,10 +1305,13 @@ caso(
    select concat_ws(' / ', ${CLAVES(":'det'::jsonb")}, ${CLAVES(":'det'::jsonb -> 'lineas' -> 0")},
      (:'det'::jsonb -> 'lineas' -> 0 ->> 'deuda_pendiente') || ':' || (:'det'::jsonb ->> 'deudas_del_proveedor'));`,
   [
-    "abierto_en,abierto_por,anulado_en,anulado_por,cerrado_en,cerrado_por,creado_por_mi,despachado_en,despachado_por,deudas_del_proveedor," +
-      "diferencias,estado,id,lineas,motivo_anulacion,nota,nota_recepcion,numero,numero_guia,proveedores,recepcion,recibidos,sede,unidades,version",
+    "abierto_en,abierto_por,anulado_en,anulado_por,bultos,cerrado_en,cerrado_por,compro_quien_mira,creado_por_mi,despachado_en,despachado_por,deudas_del_proveedor," +
+      // `papeles` y `producto` (por línea): ADR-0480, actividad 6 (20261023121000), lo comprado desde el celular.
+      // `bultos`: ADR-0480, 2026-10-26 (20261026214000), cuántos fardos mandó la compradora.
+      // `compro_quien_mira` y `recibio_quien_compro`: el rastro de que un Admin recibe lo que él mismo compró (ADR-0517, 20261026161000).
+      "diferencias,estado,id,lineas,motivo_anulacion,nota,nota_recepcion,numero,numero_guia,papeles,proveedores,recepcion,recibidos,recibio_quien_compro,sede,unidades,version",
     "cantidad,categoria,categoria_id,compra_item_id,descripcion,deuda_pendiente,id,marca,marca_id,orden,orden_compra_id,orden_compra_item_id," +
-      "posicion,precio_unitario,precio_venta_sugerido,proveedor",
+      "posicion,precio_unitario,precio_venta_sugerido,producto,proveedor",
     "0:[]",
   ].join(" / "),
 );
@@ -1447,6 +1519,18 @@ caso(
     "devuelta:2:2:40.00:true",
     "existencias:devolvió al proveedor Proveedor Nos Debe Prueba: 2 de Polos Nos Debe (llegaron con daño en ENV)",
   ].join(" / "),
+);
+caso(
+  "E1b por prenda: lo devuelto dañado se nombra por la prenda que se devolvió, no por lo que decía la línea",
+  `${rolDeMicaela("recibir", "existencias")}
+   ${DANADA("p1", "l1", 5, 2)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select gen_random_uuid() as tok \\gset
+   select pg_temp.devuelve(:'p1', 'La tela vino rota', :'tok') as r \\gset
+   reset role;
+   select (select d.nombre from retail.despacho_diferencias_vigentes x cross join retail.fn_prenda_de_la_diferencia(x.id) d where x.prenda_danada_id = :'p1')
+     || ' / ' || (select di.descripcion from retail.despacho_items di join retail.despacho_diferencias_vigentes x on x.despacho_item_id = di.id where x.prenda_danada_id = :'p1');`,
+  "Polo Nos Debe / Polo básico",
 );
 caso(
   "E2 «Devolver al proveedor» lo que no se acepta: sin Existencias, 42501; sin responsable; sin token; nota larga; lo que no llegó dañado en una recepción; ya resuelta; el mismo token con otra nota; sin escribir nada",

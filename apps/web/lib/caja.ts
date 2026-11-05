@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigirOpcional, exigir } from "@/lib/resultado";
+import { exigirOpcional, exigir, leerTodas } from "@/lib/resultado";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
 import { leerPagos, type PagoDelDia } from "@/lib/caja-comparativa-reglas";
@@ -157,8 +157,8 @@ export async function getTableroCaja(cajaId: string): Promise<{ resumen: Resumen
 /**
  * Total vendido (todos los métodos) de esta ubicación entre el inicio del día de
  * Lima de hace 7 días y la misma hora de ese día — el comparativo "vs. mismo día de
- * la semana pasada" de la barra de meta. Ventana acotada a una hora (`hastaEstaHora`
- * en el caller, vía `horaDelDiaLima`) para no comparar un día completo contra lo que
+ * la semana pasada" de la barra de meta. Ventana acotada a una hora (la del
+ * caller, vía `horaDelDiaLima`) para no comparar un día completo contra lo que
  * llevamos hoy. Independiente de `getTableroCaja`: mira TODAS las ventas de la sede
  * ese día, no solo las de una caja puntual (una sede puede abrir/cerrar caja varias
  * veces en el día).
@@ -447,15 +447,20 @@ export type AperturaPorRevisar = {
  */
 export async function getAperturasPorRevisar(): Promise<AperturaPorRevisar[] | null> {
   const supabase = await createClient();
-  const res = await supabase
-    .from("cajas")
-    .select("id, ubicacion_id, abierta_en, abierta_por, monto_apertura, monto_apertura_esperado, motivo_diferencia_apertura")
-    .not("motivo_diferencia_apertura", "is", null)
-    .is("apertura_revisada_en", null)
-    .eq("es_prueba", false)
-    .order("abierta_en", { ascending: false })
-    .limit(50);
-  if (res.error) return null;
+  // Sin tope de 50: las aperturas con diferencia son plata sin revisar, y con un tope se escondían las más viejas (las que más llevan sin revisión)
+  // sin decir «y N más». Por páginas, que PostgREST corta en 1.000; `id` desempata el orden.
+  const res = await leerTodas((desde, hasta) =>
+    supabase
+      .from("cajas")
+      .select("id, ubicacion_id, abierta_en, abierta_por, monto_apertura, monto_apertura_esperado, motivo_diferencia_apertura")
+      .not("motivo_diferencia_apertura", "is", null)
+      .is("apertura_revisada_en", null)
+      .eq("es_prueba", false)
+      .order("abierta_en", { ascending: false })
+      .order("id")
+      .range(desde, hasta),
+  );
+  if (res.error || !res.data) return null;
   const filas = res.data;
   if (filas.length === 0) return [];
   const [ubicaciones, nombres] = await Promise.all([

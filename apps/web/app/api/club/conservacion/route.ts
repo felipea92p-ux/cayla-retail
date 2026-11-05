@@ -4,8 +4,10 @@ import { capturarError } from "@/lib/errores";
 
 // GET /api/club/conservacion — el trabajo programado de Vercel (`vercel.json` → `crons`), una vez al día a las 3:00 de Lima (08:00
 // UTC). ADR-0288 act. g, G-15: los datos del club se guardan 3 años desde la última compra (sin compras: desde que se registró); pasado
-// eso, la ficha se anonimiza sola con la misma rutina de «Archivar» y su historia guarda el permiso `anonimizar`. Lo decide y lo hace
-// la base (`fn_club_anonimizar_inactivas`); esta ruta solo la llama y dice cuántas fichas anonimizó.
+// eso, la ficha se anonimiza sola con la misma rutina de «Archivar» y su historia guarda el permiso `anonimizar`; sus PUNTOS se eliminan
+// con ella (movimiento «pierde», Términos 5.7). Lo decide y lo hace la base (`fn_club_anonimizar_inactivas`, con la misma fecha que «Mi
+// Club» le muestra a la persona); esta ruta solo la llama y dice cuántas fichas anonimizó. Una ficha que no se puede anonimizar se avisa en
+// los registros de la base y no frena a las demás.
 //
 // Vercel manda `Authorization: Bearer $CRON_SECRET`; sin esa variable, o con otra clave, no pasa nadie (la ruta lo comprueba aunque
 // `proxy.ts` también lo haga). No trae sesión de persona: entra con la llave de servicio, y la función es solo del servidor (ni `anon`

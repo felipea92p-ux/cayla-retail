@@ -2,9 +2,10 @@
 // `CerrarCajaModalV2`, `AbrirCajaFormV2`, el historial de cierres y sus pruebas. Los mismos candados viven en la base
 // (`cerrar_caja`, `abrir_caja`, `caja_traslados`); aquí solo se adelantan para que la pantalla explique antes de enviar.
 
+import { reglaDeEntero } from "./cantidad-escrita-reglas";
 import { leerMontoPlata } from "./monto-plata-reglas";
 
-export type DestinoTraslado = "caja_fuerte" | "banco" | "lider";
+export type DestinoTraslado = "caja_fuerte" | "banco" | "lider" | "claudia";
 
 export const DESTINOS_TRASLADO: {
   valor: DestinoTraslado;
@@ -17,7 +18,14 @@ export const DESTINOS_TRASLADO: {
   { valor: "caja_fuerte", etiqueta: "Caja fuerte de la sede", referencia: null, exigeReferencia: false },
   { valor: "banco", etiqueta: "Depósito bancario", referencia: "N.º de operación del voucher", exigeReferencia: false },
   { valor: "lider", etiqueta: "Entregado al líder de equipo", referencia: "¿A quién se lo entregaste?", exigeReferencia: true },
+  // Solo donde opera CLAURE (ADR-0560, actividad 11): el efectivo de CAYLA que Claudia guarda sale del cajón y baja lo que se le debe.
+  { valor: "claudia", etiqueta: "Se queda con Claudia", referencia: null, exigeReferencia: false },
 ];
+
+/** Los destinos que ofrece el cierre: «Se queda con Claudia» solo en una tienda donde opera CLAURE (la base lo exige igual). */
+export function destinosDelCierre(hayClaure: boolean): typeof DESTINOS_TRASLADO {
+  return DESTINOS_TRASLADO.filter((d) => d.valor !== "claudia" || hayClaure);
+}
 
 export function etiquetaDestino(destino: string): string {
   return DESTINOS_TRASLADO.find((d) => d.valor === destino)?.etiqueta ?? destino;
@@ -28,6 +36,9 @@ export function etiquetaDestino(destino: string): string {
 export function leerMonto(texto: string): number | null {
   return leerMontoPlata(texto);
 }
+
+/** Cuántos billetes o monedas de cada uno: cualquier entero, sin tope. Lo que no lo es no le llega a la suma, que lee con `parseInt` («2,5» sería 2, y «-5», -5): `useCantidadEscrita`. */
+export const REGLA_BILLETES = reglaDeEntero();
 
 export const cuadra = (a: number, b: number) => Math.abs(a - b) < 0.01;
 

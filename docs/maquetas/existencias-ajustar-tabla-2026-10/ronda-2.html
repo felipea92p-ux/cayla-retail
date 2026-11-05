@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planilla rápida, ronda 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<!-- Maqueta ronda 2 (2026-10-26, propuesta sin implementar): Felipe eligió la C · Planilla rápida de index.html y pidió que
+     «Dónde» y «Qué pasó» no cambien de lugar, que la tabla no se confunda con el fondo, que la columna del color no se transparente al
+     deslizar en el celular, la franja de color al inicio de la fila (como la matriz de Catálogo ▸ Productos), un alto fijo para la tabla
+     (que no se pierda nada al bajar) y un aviso que se note. Prendas y cantidades: EJEMPLO INVENTADO. Colores: tokens de globals.css y
+     tema.css; el color de cada prenda es dato. Movimiento: ADR-0136, una vez, sin rebote ni bucle. -->
+<style>
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;
+  --verde:#48603f;--verde-p:#3a4f33;--ambar:#74501a;--ambar-p:#734f15;--pizarra:#4c5d6e;--rojo:#b8412d;--rojo-p:#8b2a1f;--sombra:#1a1a18;
+  --tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --ease:cubic-bezier(.32,.72,.24,1);
+  /* El fondo de cada fila: opaco SIEMPRE (mezclado con papel, nunca con transparente), para que la columna fija del color tape lo que
+     pasa por detrás al deslizar. */
+  --fila:var(--papel);
+  --fila-par:color-mix(in srgb,var(--hueso) 42%,var(--papel));
+  --fila-empieza:color-mix(in srgb,var(--pizarra) 11%,var(--papel));
+  --fila-cambio:color-mix(in srgb,var(--ambar) 9%,var(--papel));
+}
+:root[data-tema="oscuro"]{
+  color-scheme:dark;
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;
+  --verde:#9ccb8d;--verde-p:#b5dba8;--ambar:#e4b968;--ambar-p:#ecc676;--pizarra:#a2b8cd;--rojo:#e8806a;--rojo-p:#f29a86;--sombra:#000;
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--crema)}
+body{color:var(--tinta);font-family:"DM Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;padding:28px 24px 120px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+.vers{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.ch{width:14px;height:14px}
+kbd{font:inherit;font-size:11px;min-width:20px;height:20px;display:inline-grid;place-items:center;border:1px solid var(--sand);border-radius:5px;color:var(--taupe);background:var(--papel);padding:0 5px}
+
+/* ================= la página de la maqueta (no es pantalla) ================= */
+.intro{max-width:1240px;margin:0 auto}
+.intro h1{font-family:"EB Garamond",serif;font-weight:500;font-size:40px;line-height:1.05}
+.intro .bajada{color:var(--taupe);max-width:940px;margin-top:8px;font-size:15px}
+.intro .bajada b{color:var(--tinta);font-weight:600}
+.intro a{color:inherit}
+.pedidos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.pedidos > div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:11px 13px;font-size:12.5px;color:var(--taupe)}
+.pedidos b{display:block;color:var(--tinta);font-size:13.5px;margin-bottom:3px}
+.pedidos code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--tinta)}
+@media (max-width:980px){.pedidos{grid-template-columns:1fr}}
+.control{max-width:1240px;margin:18px auto 0;border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.control .grupo{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.control .grupo > span{font-size:12px;color:var(--taupe);margin-right:2px}
+.ctl{border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent);background:var(--papel);border-radius:10px;padding:6px 11px;font-size:13px}
+.ctl[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.escena{margin:16px auto 0;display:flex;justify-content:center;overflow-x:auto;padding-bottom:6px}
+.prueba{max-width:1240px;margin:12px auto 0;font-size:13px;color:var(--taupe)}
+.prueba b{color:var(--tinta)}
+
+/* ================= el marco: la pantalla, con Existencias detrás ================= */
+.marco{position:relative;background:var(--crema);border:1px solid var(--sand);border-radius:18px;overflow:hidden;flex:none}
+.fondo{position:absolute;inset:0;padding:26px 30px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;align-content:start}
+.fondo .t{height:240px;border-radius:16px;background:var(--papel);border:1px solid var(--sand)}
+.fondo h1{grid-column:1/-1;font-family:"EB Garamond",serif;font-weight:500;font-size:46px;margin-bottom:8px}
+.velo{position:absolute;inset:0;background:color-mix(in srgb,var(--sombra) 25%,transparent);backdrop-filter:blur(3px);z-index:5}
+:root[data-tema="oscuro"] .velo{background:color-mix(in srgb,var(--sombra) 55%,transparent)}
+
+/* ================= el modal: alto fijo; lo único que se desliza es la tabla ================= */
+.modal{position:absolute;z-index:6;left:50%;top:24px;bottom:24px;width:min(62rem,calc(100% - 48px));transform:translateX(-50%);background:var(--papel);border:1px solid var(--sand);border-radius:22px;display:flex;flex-direction:column;overflow:hidden}
+.animar .modal{animation:entra 320ms var(--ease)}
+@keyframes entra{from{opacity:0;transform:translate(-50%,18px) scale(.985)}}
+.m-cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;padding:20px 26px 0}
+.m-cab{flex:none;display:flex;gap:12px;align-items:center}
+.m-tit{flex:1;min-width:0}
+.m-cab h2 .modo{color:var(--taupe)}
+.m-cab h2{font-family:"EB Garamond",serif;font-weight:500;font-size:24px;line-height:1.1}
+.m-cab p{color:var(--taupe);font-size:13.5px;margin-top:3px}
+.m-cab p b{color:var(--tinta);font-weight:600}
+.cerrar{width:34px;height:34px;border-radius:999px;border:0;background:transparent;display:grid;place-items:center;color:var(--taupe);flex:none}
+@media (hover:hover){.cerrar:hover{background:color-mix(in srgb,var(--sand) 60%,transparent);color:var(--tinta)}}
+.m-grid{flex:1;min-height:0;display:grid;grid-template-columns:13rem minmax(0,1fr);gap:22px;margin-top:12px;padding-bottom:12px}
+.m-izq{display:flex;flex-direction:column;gap:12px;min-height:0}
+.m-foto{flex:none;position:relative;height:150px;border-radius:14px;display:grid;place-items:center;color:var(--tinta-fija);overflow:hidden;transition:background 420ms var(--ease)}
+.m-foto svg{width:40%;height:40%;stroke:currentColor;fill:none;stroke-width:1.1;opacity:.55}
+.m-foto .rotulo{position:absolute;left:10px;bottom:10px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--crema-fija) 88%,transparent);color:var(--tinta-fija)}
+.m-der{min-width:0;min-height:0;display:flex;flex-direction:column;gap:10px;container-type:inline-size;overflow:auto}
+
+/* el talón (izquierda): se desliza solo él si crece */
+.talon{flex:1;min-height:0;overflow:auto;display:grid;gap:8px;align-content:start}
+.talon-cab{display:flex;align-items:center;gap:8px}
+.globito{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:11.5px;font-weight:700;background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar-p)}
+.globito[data-n="0"]{display:none}
+.talon-vacio{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:start;color:var(--taupe);font-size:13px}
+.talon-vacio span{width:32px;height:32px;border-radius:999px;background:var(--hueso);display:grid;place-items:center;color:var(--tinta)}
+.ticket{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--sand);border-radius:10px;background:var(--papel);font-size:12.5px;animation:entra-t 320ms var(--ease) backwards}
+@keyframes entra-t{from{opacity:0;transform:translateX(14px)}}
+.ticket .m{width:12px;height:12px;border-radius:999px;box-shadow:0 0 0 1px var(--sand)}
+.ticket b{font-weight:600}
+.ticket .tn{color:var(--taupe);font-variant-numeric:tabular-nums}
+.delta{padding:1px 7px;border-radius:999px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.delta[data-t="entra"]{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde-p)}
+.delta[data-t="sale"]{background:color-mix(in srgb,var(--ambar) 14%,transparent);color:var(--ambar-p)}
+.balanza{display:flex;height:8px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.balanza i{display:block;height:100%;transition:flex-grow 320ms var(--ease)}
+.balanza .e{background:var(--verde)}.balanza .s{background:var(--ambar)}
+.talon-pie{display:flex;justify-content:space-between;font-size:12px;color:var(--taupe)}
+.talon-pie b{font-family:"EB Garamond",serif;font-weight:500;font-size:18px;color:var(--tinta)}
+
+/* el pie fijo del modal */
+.m-pie{flex:none;margin:0 26px;padding:12px 0 16px;border-top:1px solid var(--sand);display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;background:var(--papel)}
+.responsable{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:var(--hueso);font-size:13px;color:var(--taupe)}
+.resumen{flex:1;min-width:0;font-size:13.5px;color:var(--taupe)}
+.resumen b{color:var(--tinta);font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 18px;border-radius:10px;font-size:13.5px;font-weight:500;border:1px solid transparent;white-space:nowrap;position:relative;overflow:hidden;transition:background 240ms,transform .12s,border-color 240ms}
+.btn:active{transform:scale(.97)}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+@media (hover:hover){.btn.prim:hover:not(:disabled){background:var(--rojo-p)}}
+.btn.prim:disabled{opacity:.38;cursor:not-allowed}
+.btn.sec{background:var(--papel);border-color:color-mix(in srgb,var(--tinta) 18%,transparent)}
+@media (hover:hover){.btn.sec:hover{border-color:var(--tinta)}}
+.btn.chico{min-height:32px;padding:0 12px;font-size:12.5px}
+.btn.cargando::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:40%;background:var(--crema);animation:hilo 900ms linear infinite}
+@keyframes hilo{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+
+/* ================= la vista de ajuste ================= */
+.aj-cab{flex:none;display:flex;align-items:center;gap:12px}
+.volver{width:36px;height:36px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;flex:none}
+.aj-cab h3{font-family:"EB Garamond",serif;font-weight:500;font-size:22px;line-height:1.1}
+.aj-cab p{font-size:12.5px;color:var(--taupe);margin-top:1px}
+.aj-cab p b{color:var(--tinta);font-weight:600}
+
+/* La banda: SIEMPRE arriba y en el mismo lugar, con una o con varias tallas. */
+.banda{flex:none;display:grid;gap:8px;padding:10px 12px;border-radius:16px;background:color-mix(in srgb,var(--hueso) 60%,var(--papel));border:1px solid color-mix(in srgb,var(--tinta) 10%,transparent)}
+.b-fila{display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;border:1px solid color-mix(in srgb,var(--tinta) 16%,transparent);background:var(--papel);font-size:13px;font-weight:500;white-space:nowrap;transition:background 200ms,color 200ms,border-color 200ms}
+@media (hover:hover){.seg button:not([aria-pressed="true"]):not([aria-disabled="true"]):hover{border-color:var(--tinta)}}
+.seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.seg button[aria-disabled="true"]{opacity:.42;cursor:not-allowed;border-style:dashed}
+.seg .cuenta{font-size:11.5px;padding:0 6px;border-radius:999px;background:color-mix(in srgb,currentColor 14%,transparent)}
+.seg button[data-pide]{border-color:var(--ambar);box-shadow:0 0 0 2px color-mix(in srgb,var(--ambar) 30%,transparent)}
+.b-ayuda{margin-left:86px;font-size:12.5px;color:var(--taupe);display:grid;gap:2px}
+.b-ayuda .info{display:flex;gap:6px;align-items:center;color:var(--pizarra);font-size:12px}
+.campo-nota{margin-left:86px;display:grid;gap:4px}
+.campo-nota input{height:36px;border-radius:10px;border:1px solid transparent;background:var(--papel);padding:0 12px;outline:none}
+.campo-nota input:focus{border-color:var(--tinta)}
+
+/* El aviso: fuera de lo que se desliza, entre la banda y la tabla; se nota y dice qué hacer. */
+#aviso:empty{display:none}
+.aviso{flex:none;display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;border:1.5px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 15%,var(--papel));animation:asoma 260ms var(--ease),destello 1100ms var(--ease) 260ms 1}
+.aviso .ico{width:30px;height:30px;border-radius:999px;background:var(--ambar);color:var(--papel);display:grid;place-items:center}
+.aviso b{display:block;font-size:13.5px;font-weight:600}
+.aviso p{font-size:12.5px;color:var(--tinta);opacity:.85}
+.aviso .acciones{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.aviso .x{width:28px;height:28px;border-radius:999px;border:0;background:transparent;display:grid;place-items:center;color:var(--tinta);align-self:start}
+@keyframes asoma{from{opacity:0;transform:translateY(-6px)}}
+@keyframes destello{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ambar) 45%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+
+/* ---- La planilla: una bandeja en hueso con las filas en papel; alto fijo y se desliza por dentro ---- */
+.planilla{flex:1;min-height:220px;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;background:var(--hueso);border:1px solid color-mix(in srgb,var(--tinta) 16%,transparent)}
+.p-barra{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;flex-wrap:wrap;white-space:nowrap}
+.p-barra .lugar{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+.pill-talla{display:inline-grid;place-items:center;min-width:32px;height:22px;padding:0 9px;border-radius:999px;background:var(--papel);font-size:11.5px;font-weight:700;letter-spacing:.05em;border:1px solid color-mix(in srgb,var(--tinta) 12%,transparent)}
+.p-barra .pill-talla{background:var(--papel)}
+.avance{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12.5px;color:var(--taupe)}
+.avance b{color:var(--tinta);font-weight:600}
+.avance .barra{width:90px;height:6px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent);overflow:hidden}
+.avance .barra i{display:block;height:100%;background:var(--tinta);transition:width 320ms var(--ease)}
+.avance .barra[data-lleno] i{background:var(--verde)}
+.p-vista{flex:1;min-height:0;overflow:auto;background:var(--papel);border-top:1px solid color-mix(in srgb,var(--tinta) 14%,transparent);overscroll-behavior:contain}
+.p-pista{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:var(--taupe)}
+.p-pista kbd{height:18px;min-width:18px;font-size:10.5px}
+
+table.t{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.t th,.t td{padding:4px 8px;text-align:center;vertical-align:middle;font-weight:inherit;white-space:nowrap;background:var(--fila)}
+.t thead th{position:sticky;top:0;z-index:3;background:var(--hueso);padding:7px 8px;border-bottom:1px solid color-mix(in srgb,var(--tinta) 18%,transparent)}
+.t tfoot th,.t tfoot td{position:sticky;bottom:0;z-index:3;background:var(--hueso);border-top:1px solid color-mix(in srgb,var(--tinta) 18%,transparent);font-family:"EB Garamond",serif;font-size:17px;color:var(--tinta)}
+.t tbody tr > *{border-top:1px solid var(--sand)}
+.t tbody tr:first-child > *{border-top:0}
+.t tbody tr:nth-child(even){--fila:var(--fila-par)}
+.con-foco .t tbody tr[data-empieza]{--fila:var(--fila-empieza)}
+.t tbody tr[data-celda][data-cambio="si"]{--fila:var(--fila-cambio)}
+.t .relleno{width:100%;text-align:left}
+/* La columna del color: fija a la izquierda, con fondo opaco (el de su fila) y la franja de su color, como la matriz de Catálogo. */
+.t .izq{position:sticky;left:0;z-index:2;text-align:left;padding-left:16px;min-width:190px;max-width:220px}
+.t.multi .izq{min-width:150px}
+.t thead .izq,.t tfoot .izq{z-index:4}
+.t thead .izq{text-align:center}
+.p-vista[data-desliza] .t .izq{box-shadow:8px 0 10px -8px color-mix(in srgb,var(--sombra) 40%,transparent)}
+.franja{position:absolute;left:0;top:0;bottom:0;width:6px;box-shadow:inset -1px 0 0 color-mix(in srgb,var(--tinta) 18%,transparent)}
+.t tbody tr:first-child .franja{top:0}
+.color{display:flex;align-items:center;gap:8px;min-width:0}
+.color b{font-family:"EB Garamond",serif;font-weight:500;font-size:17.5px;overflow:hidden;text-overflow:ellipsis}
+.color .hoy-movil{display:none;font-size:11.5px;color:var(--taupe)}
+.c-hoy{color:var(--taupe);font-size:14px;min-width:46px}
+.c-cambio{min-width:70px}
+.c-cambio .nada,.c-otro .nada{color:var(--taupe);opacity:.55}
+.c-otro{color:var(--taupe);font-size:13px}
+.visto{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;color:var(--verde);opacity:0;transition:opacity 240ms;vertical-align:middle;margin-left:6px}
+.visto[data-on]{opacity:1}
+.c-total{font-family:"EB Garamond",serif;font-size:17px;color:var(--taupe);min-width:52px}
+.guion{color:var(--taupe);opacity:.6}
+.animar .t tbody tr{animation:cascada 280ms var(--ease) backwards;animation-delay:calc(var(--i,0)*35ms + 200ms)}
+@keyframes cascada{from{opacity:0}}
+
+/* ---- el paso de cantidad (en la app: <PasoCantidad>) ---- */
+.paso{position:relative;display:inline-flex;align-items:center;gap:1px;height:36px;padding:0 3px;border-radius:10px;background:var(--hueso);border:1px solid transparent;transition:background 240ms,border-color 240ms}
+.paso::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;border-radius:2px;background:var(--rojo);transform:scaleX(0);transition:transform 320ms var(--ease)}
+.paso:focus-within{background:var(--papel);border-color:color-mix(in srgb,var(--tinta) 30%,transparent)}
+.paso:focus-within::after{transform:scaleX(1)}
+.paso button{width:24px;height:24px;border-radius:999px;border:0;background:transparent;display:grid;place-items:center;color:var(--tinta);opacity:0;transition:background 200ms,opacity 200ms}
+.paso:focus-within button,.t tbody tr:hover .paso button{opacity:1}
+@media (hover:none){.paso button{opacity:1}}
+@media (hover:hover){.paso button:not([aria-disabled="true"]):hover{background:var(--sand)}}
+.paso button[aria-disabled="true"]{cursor:not-allowed}
+.paso:focus-within button[aria-disabled="true"],.t tbody tr:hover .paso button[aria-disabled="true"]{opacity:.28}
+.paso input{width:34px;text-align:center;border:0;background:transparent;font-family:"EB Garamond",serif;font-size:20px;font-weight:500;line-height:1;outline:none;font-variant-numeric:lining-nums tabular-nums;padding:0}
+.paso input::selection{background:color-mix(in srgb,var(--pizarra) 30%,transparent)}
+[data-celda][data-cambio="si"] .paso{border-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 8%,var(--papel))}
+[data-celda][data-cambio="si"] .paso input{color:var(--ambar-p)}
+.con-foco .celda[data-empieza] .paso,.con-foco tr[data-celda][data-empieza] .paso{box-shadow:0 0 0 1.5px var(--tinta)}
+.sube{animation:sube 240ms var(--ease)}
+.baja{animation:baja 240ms var(--ease)}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}}
+@keyframes baja{from{opacity:0;transform:translateY(-10px)}}
+[data-sellada] .paso{border-color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,var(--papel))}
+.celda{display:grid;justify-items:center;gap:1px}
+.celda .era{font-size:10.5px;color:var(--taupe);min-height:13px}
+.celda[data-cambio="si"] .era{color:var(--ambar-p);font-weight:600}
+
+.toast{position:absolute;right:20px;top:20px;z-index:9;display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:center;padding:10px 14px;border-radius:14px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);font-size:13px;box-shadow:0 12px 30px color-mix(in srgb,var(--sombra) 18%,transparent);animation:asoma 300ms var(--ease)}
+.toast svg{color:var(--verde)}
+
+/* ================= celular (375): hoja desde abajo; la foto y el talón se van; la tabla se queda con el resto ================= */
+.marco[data-ancho="375"] .modal{left:0;top:44px;bottom:0;width:100%;transform:none;border-radius:22px 22px 0 0;border-bottom:0}
+.marco[data-ancho="375"].animar .modal{animation:sube-hoja 320ms var(--ease)}
+@keyframes sube-hoja{from{transform:translateY(40px);opacity:0}}
+.marco[data-ancho="375"] .m-cuerpo{padding:14px 14px 0}
+.marco[data-ancho="375"] .m-cab h2{font-size:21px}
+.marco[data-ancho="375"] .m-cab .desc{display:none}
+.marco[data-ancho="375"] .m-grid{grid-template-columns:1fr;margin-top:8px;padding-bottom:10px}
+.marco[data-ancho="375"] .m-izq{display:none}
+.marco[data-ancho="375"] .m-pie{margin:0 14px;padding-bottom:14px}
+.marco[data-ancho="375"] .responsable{display:none}
+.marco[data-ancho="375"] .m-pie .btn{flex:1}
+.marco[data-ancho="375"] .resumen{flex-basis:100%}
+.marco[data-ancho="375"] .m-cab h2 .modo{display:none}
+.marco[data-ancho="375"] .volver{width:32px;height:32px}
+@container (max-width:460px){
+  .b-fila{grid-template-columns:1fr;gap:5px}
+  .b-ayuda,.campo-nota{margin-left:0}
+  .seg.desliza{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-right:-10px;padding-right:10px;-webkit-mask-image:linear-gradient(90deg,var(--tinta) 85%,transparent);mask-image:linear-gradient(90deg,var(--tinta) 85%,transparent)}
+  .b-ayuda .info{display:none}
+  .seg button{padding:5px 9px;font-size:12.5px}
+  .banda{padding:9px 10px}
+  .t .izq,.t.multi .izq{width:1%;min-width:0;max-width:none;padding-left:12px;padding-right:8px}
+  .color b{white-space:nowrap}
+  .t .c-otro,.t .col-otro,.t .c-hoy,.t .col-hoy{display:none}
+  .color{flex-wrap:wrap;gap:0 6px}
+  .color b{font-size:16px;max-width:100%}
+  .color .hoy-movil{display:block;flex-basis:100%}
+  .p-pista{display:none}
+  .avance .barra{display:none}
+  .t th,.t td{padding:4px 5px}
+  .aviso{grid-template-columns:26px minmax(0,1fr) auto;padding:9px 10px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <p class="vers">Maqueta · Existencias ▸ modal de la prenda ▸ Ajustar stock · ronda 2 · 2026-10-26</p>
+  <h1>C · Planilla rápida, ronda 2</h1>
+  <p class="bajada">La que elegiste en la <a href="index.html">ronda 1</a>, con lo que pediste. <b>El modal ya no se desliza: lo único que
+    se desliza es la tabla</b>, con alto fijo; arriba quedan siempre «Dónde» y «Qué pasó», y abajo, el botón de guardar. Todo se toca.
+    Datos inventados.</p>
+  <div class="pedidos">
+    <div><b>Siempre en el mismo lugar</b>«Dónde» y «Qué pasó» van arriba, en una banda, con una talla o con muchas (en la ronda 1 se
+      iban al costado con una sola talla).</div>
+    <div><b>La tabla se distingue del fondo</b>Una bandeja en hueso con borde, la cabecera en hueso que no se va al bajar, filas
+      alternadas y la franja del color al inicio de cada fila, como la matriz de Catálogo ▸ Productos.</div>
+    <div><b>La columna del color tapa lo de atrás</b>Al deslizar de lado, cada fila tiene un fondo <i>opaco</i> y la columna del color
+      lleva una sombra que marca el borde. Catálogo tiene el mismo problema: su columna fija usa <code>bg-hueso/40</code>, semitransparente
+      (<code>MatrizStockFicha.tsx:365</code>).</div>
+    <div><b>Alto fijo para la tabla</b>Ocupa lo que queda entre la banda y el pie, y se desliza por dentro con la cabecera fija: lo
+      importante nunca se pierde de vista. El talón también se desliza solo.</div>
+    <div><b>Un aviso que se nota</b>Sale entre la banda y la tabla (fuera de lo que se desliza), en ámbar, con un destello una vez, y dice
+      qué hacer: «Guardar y pasar a almacén», «Descartar y pasar» o quedarse.</div>
+    <div><b>En el celular</b>La foto y el talón se van (el pie ya dice cuántos cambios); la tabla se queda con todo el alto que sobra.
+      «Hoy» va debajo del nombre para que no haya que deslizar con una talla.</div>
+  </div>
+</header>
+
+<div class="control" id="control">
+  <div class="grupo"><span>Prenda</span>
+    <button class="ctl" data-ctl="prenda" data-v="becky">Blusa Becky · 7 colores, 1 talla</button>
+    <button class="ctl" data-ctl="prenda" data-v="lia">Vestido Lía · 4 × 4</button>
+    <button class="ctl" data-ctl="prenda" data-v="polo">Polo Franco · 10 colores × 5 tallas</button>
+  </div>
+  <div class="grupo"><span>Pantalla</span>
+    <button class="ctl" data-ctl="ancho" data-v="1280">1280 × 800</button>
+    <button class="ctl" data-ctl="ancho" data-v="1024">1024 × 768</button>
+    <button class="ctl" data-ctl="ancho" data-v="375">375 celular</button>
+  </div>
+  <div class="grupo"><span>Tema</span>
+    <button class="ctl" data-ctl="tema" data-v="claro">Claro</button>
+    <button class="ctl" data-ctl="tema" data-v="oscuro">Oscuro</button>
+  </div>
+  <button class="ctl" data-ctl="repetir">↺ Repetir la entrada</button>
+</div>
+<p class="prueba"><b>Para ver el aviso:</b> pasa a «En piso», cambia un número y toca «En almacén».</p>
+
+<div class="escena"><div class="marco" id="marco"></div></div>
+
+<script>
+/* ---------------- datos (inventados) ---------------- */
+function grilla(colores, tallas, semilla, faltan = []) {
+  const stock = {};
+  let s = semilla;
+  const azar = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+  colores.forEach(([c]) => tallas.forEach((t) => { if (!faltan.includes(`${c}|${t}`)) stock[`${c}|${t}`] = [Math.floor(azar() * 4), Math.floor(azar() * 3)]; }));
+  return stock;
+}
+const P = {
+  becky: {
+    nombre: "Blusa Becky", linea: "Ivanana · Camisas y Blusas", precio: "S/ 45.00", desc: "Manga cero cuello chino con botones",
+    tallas: ["Estándar"],
+    colores: [["Arena", "#e6d9b0"], ["Blanco", "#f7f4ee"], ["Negro", "#232220"], ["Rosa palo", "#e2b4ad"], ["Celeste", "#a9c8dc"], ["Verde oliva", "#7c8456"], ["Lila", "#b9a6cc"]],
+    stock: { "Arena|Estándar": [1, 0], "Blanco|Estándar": [1, 1], "Negro|Estándar": [2, 1], "Rosa palo|Estándar": [0, 2], "Celeste|Estándar": [1, 0], "Verde oliva|Estándar": [3, 1], "Lila|Estándar": [0, 1] },
+    foco: "Arena|Estándar",
+  },
+  lia: {
+    nombre: "Vestido Lía", linea: "CAYLA · Vestidos", precio: "S/ 129.00", desc: "Midi de lino con tiras cruzadas",
+    tallas: ["S", "M", "L", "XL"],
+    colores: [["Negro", "#232220"], ["Vino", "#6e2433"], ["Azul noche", "#26324a"], ["Crema", "#efe6d2"]],
+    stock: null, faltan: ["Crema|XL"], semilla: 7,
+    foco: "Vino|M",
+  },
+  polo: {
+    nombre: "Polo Franco", linea: "CAYLA · Polos", precio: "S/ 59.00", desc: "Piqué de algodón, cuello con botones",
+    tallas: ["S", "M", "L", "XL", "XXL"],
+    colores: [["Blanco", "#f7f4ee"], ["Negro", "#232220"], ["Marino", "#1f2b45"], ["Rojo", "#a8322a"], ["Mostaza", "#c9962f"], ["Verde botella", "#1f4a36"], ["Gris jaspe", "#a5a29b"], ["Celeste", "#a9c8dc"], ["Coral", "#e5806b"], ["Lavanda", "#b9a6cc"]],
+    stock: null, faltan: ["Coral|XXL", "Lavanda|XXL"], semilla: 31,
+    foco: "Mostaza|L",
+  },
+};
+for (const p of Object.values(P)) if (!p.stock) p.stock = grilla(p.colores, p.tallas, p.semilla, p.faltan);
+
+const MOTIVOS = [
+  { c: "conte", t: "Conté y hay otro número", s: "ambos", ayuda: "Escribe lo que contaste: el sistema saca la diferencia.", ic: "clip" },
+  { c: "encontre", t: "Encontré unidades", s: "suma", ayuda: "Solo suma, y en el almacén: después se cuelgan.", ic: "lupaok", nota: ["¿Dónde estaban?", "Ej. en la caja de la repisa alta"] },
+  { c: "no_aparece", t: "No aparece", s: "resta", ayuda: "La buscaste y no está: solo resta.", ic: "lupax" },
+  { c: "error_cobro", t: "Error al cobrar", s: "ambos", ayuda: "Se cobró otra talla o color: corrige las dos.", ic: "recibo" },
+  { c: "uso_interno", t: "Uso interno", s: "resta", ayuda: "Se usó en la tienda (vitrina, maniquí): solo resta.", ic: "tienda" },
+  { c: "otro", t: "Otro", s: "ambos", ayuda: "Escribe qué pasó.", ic: "mas", nota: ["¿Qué pasó?", "Ej. tenía la etiqueta de otra talla"] },
+];
+const ICONOS = {
+  menos: '<path d="M5 12h14"/>', mas2: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  flecha: '<path d="m12 19-7-7 7-7M19 12H5"/>', lapiz: '<path d="M13 21h8"/><path d="m15 5 4 4"/><path d="M21.17 6.81a2.83 2.83 0 0 0-4-4L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5Z"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>', alerta: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+  escudo: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  visto: '<path d="M20 6 9 17l-5-5"/>',
+  clip: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
+  lupaok: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="m8 11 2 2 4-4"/>',
+  lupax: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="m13.5 8.5-5 5M8.5 8.5l5 5"/>',
+  recibo: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  tienda: '<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/><path d="M3 9h18"/>',
+  mas: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  caja: '<path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/>',
+  percha: '<path d="M12 7a2 2 0 1 1 2-2c0 1.2-2 1.5-2 3"/><path d="M12 8 2.6 15.2A1.6 1.6 0 0 0 3.6 18h16.8a1.6 1.6 0 0 0 1-2.8Z"/>',
+  blusa: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+  enter: '<path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/>',
+};
+const ic = (n, c = "") => `<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${ICONOS[n]}</svg>`;
+
+/* ---------------- estado ---------------- */
+const S = { prenda: "becky", lugar: "almacen", motivo: "conte", nota: "", n: {}, borr: {}, foco: true, vistos: new Set(), ancho: 1280, tema: "claro", aviso: null, enviando: false, nAviso: 0 };
+const pr = () => P[S.prenda];
+const multi = () => pr().tallas.length > 1;
+const idx = () => (S.lugar === "almacen" ? 0 : 1);
+const nomLugar = (l) => (l === "almacen" ? "almacén" : "piso");
+const otroLugar = () => (S.lugar === "almacen" ? "piso" : "almacén");
+const claves = () => pr().colores.flatMap(([c]) => pr().tallas.map((t) => `${c}|${t}`)).filter((k) => pr().stock[k]);
+const hoy = (k) => pr().stock[k][idx()];
+const otro = (k) => pr().stock[k][1 - idx()];
+const num = (k) => (k in S.n ? S.n[k] : hoy(k));
+const cambios = () => claves().filter((k) => num(k) !== hoy(k));
+const hexDe = (c) => pr().colores.find((x) => x[0] === c)[1];
+const nombre = (k) => { const [c, t] = k.split("|"); return multi() ? `${c} · ${t}` : c; };
+const motivo = () => MOTIVOS.find((m) => m.c === S.motivo);
+const cerrado = (m) => (m.c === "encontre" && S.lugar === "piso" ? "En el piso no: lo encontrado se anota en el almacén y después se cuelga." : null);
+const totalLugar = (i) => claves().reduce((s, k) => s + pr().stock[k][i], 0);
+const orden = (k) => { const [c, t] = k.split("|"); return pr().tallas.indexOf(t) * 100 + pr().colores.findIndex((x) => x[0] === c); };
+const ksDe = (c) => claves().filter((k) => k.startsWith(c + "|"));
+const signo = (d) => (d > 0 ? "+" + d : "−" + -d);
+
+function paso(k) {
+  return `<div class="paso" data-paso="${k}"><button type="button" data-d="-1" aria-label="Una menos de ${nombre(k)}">${ic("menos", "ch")}</button><input data-k="${k}" data-orden="${orden(k)}" inputmode="numeric" autocomplete="off" aria-label="${nombre(k)}, en ${nomLugar(S.lugar)}" value="${num(k)}"><button type="button" data-d="1" aria-label="Una más de ${nombre(k)}">${ic("mas2", "ch")}</button></div>`;
+}
+
+/* ---------------- la vista ---------------- */
+function banda() {
+  const m = motivo();
+  return `<div class="banda">
+    <div class="b-fila"><span class="vers">Dónde</span><div class="seg" role="group" aria-label="Dónde contaste">${[["almacen", "En almacén", 0, "caja"], ["piso", "En piso", 1, "percha"]].map(([v, t, i, n]) => `<button type="button" data-lugar="${v}" aria-pressed="${S.lugar === v}" ${S.aviso?.tipo === "lugar" && S.aviso.a === v ? "data-pide" : ""}>${ic(n, "ch")}${t}<span class="cuenta">${totalLugar(i)}</span></button>`).join("")}</div></div>
+    <div class="b-fila"><span class="vers">Qué pasó</span><div class="seg desliza" role="group" aria-label="Qué pasó">${MOTIVOS.map((x) => { const ce = cerrado(x); return `<button type="button" data-motivo="${x.c}" aria-pressed="${S.motivo === x.c}" ${ce ? `aria-disabled="true" title="${ce}"` : ""}>${ic(x.ic, "ch")}${x.t}</button>`; }).join("")}</div></div>
+    ${m.nota ? `<label class="campo-nota"><span class="vers">${m.nota[0]}</span><input data-nota value="${S.nota}" placeholder="${m.nota[1]}"></label>` : ""}
+    <div class="b-ayuda"><span>${m.ayuda} ¿Se dañó? Se reporta, no se resta.</span><span class="info">${ic("info", "ch")}Carga inicial de Tienda TRU cerrada el 18-oct: lo nuevo entra por «Encontré unidades».</span></div>
+  </div>`;
+}
+
+function tabla() {
+  const p = pr();
+  const donde = S.lugar === "almacen" ? "En almacén" : "En piso";
+  const total = multi() ? claves().length : p.colores.length;
+  let h = `<div class="planilla"><div class="p-barra"><span class="lugar">${ic(S.lugar === "almacen" ? "caja" : "percha", "ch")}${donde}</span>${multi() ? "" : `<span class="pill-talla">${p.tallas[0]}</span>`}<span class="p-pista" title="Enter pasa al siguiente ${multi() ? "color de la misma talla" : "color"}; ↑ y ↓ suman y restan"><kbd>Enter</kbd> pasa al siguiente</span><span class="avance"><span>Revisaste <b data-revisaste>0</b> de ${total} ${multi() ? "tallas" : "colores"}</span><span class="barra"><i data-barra style="width:0"></i></span></span></div><div class="p-vista" id="vista">`;
+  const celdaColor = (c, hex, extra = "") => `<th scope="row" class="izq"><span class="franja" data-color-dato style="background:${hex}"></span><span class="color"><b>${c}</b>${extra}</span></th>`;
+  if (!multi()) {
+    h += `<table class="t"><thead><tr><th class="izq"><span class="vers">Color</span></th><th class="col-hoy"><span class="vers">Hoy</span></th><th><span class="vers">Contaste</span></th><th><span class="vers">Cambio</span></th><th class="relleno col-otro"><span class="vers">En ${otroLugar()}</span></th></tr></thead><tbody>${claves().map((k, i) => {
+      const c = k.split("|")[0];
+      const ext = `<span class="hoy-movil">hoy ${hoy(k)}</span>`;
+      return `<tr data-celda="${k}" ${k === p.foco ? "data-empieza" : ""} style="--i:${i}">${celdaColor(c, hexDe(c), ext)}<td class="c-hoy">${hoy(k)}</td><td>${paso(k)}</td><td class="c-cambio" data-dif="${k}"></td><td class="relleno c-otro">${otro(k)}<span class="visto" data-visto="${c}">${ic("visto", "ch")}</span></td></tr>`;
+    }).join("")}</tbody></table>`;
+  } else {
+    h += `<table class="t multi"><thead><tr><th class="izq"><span class="vers">Color</span></th>${p.tallas.map((t) => `<th><span class="pill-talla">${t}</span></th>`).join("")}<th><span class="vers">Total</span></th><th class="relleno"></th></tr></thead><tbody>${p.colores.map(([c, hex], i) => {
+      const empieza = p.foco.startsWith(c + "|");
+      return `<tr data-fila="${c}" ${empieza ? "data-empieza" : ""} style="--i:${i}">${celdaColor(c, hex)}${p.tallas.map((t) => { const k = `${c}|${t}`; return p.stock[k] ? `<td><div class="celda" data-celda="${k}" ${k === p.foco ? "data-empieza" : ""}>${paso(k)}<span class="era" data-era="${k}"></span></div></td>` : `<td><span class="guion" title="Esta combinación no existe en el catálogo">—</span></td>`; }).join("")}<td class="c-total" data-total="${c}"></td><td class="relleno"><span class="visto" data-visto="${c}">${ic("visto", "ch")}</span></td></tr>`;
+    }).join("")}</tbody><tfoot><tr><th class="izq"><span class="vers">Total</span></th>${p.tallas.map((t) => `<td data-totalt="${t}"></td>`).join("")}<td data-gran></td><td class="relleno"></td></tr></tfoot></table>`;
+  }
+  h += `</div></div>`;
+  return h;
+}
+
+function avisoHTML() {
+  const a = S.aviso;
+  if (!a) return "";
+  if (a.tipo === "lugar") {
+    const n = cambios().length;
+    return `<div class="aviso" role="alert" data-n="${S.nAviso}"><span class="ico">${ic("alerta", "ch")}</span><div><b>Tienes ${n} ${n === 1 ? "cambio" : "cambios"} sin guardar en ${nomLugar(S.lugar)}</b><p>Se cuenta un lugar por vez. ¿Qué hacemos con lo que contaste antes de pasar a ${nomLugar(a.a)}?</p></div><button class="x" type="button" data-accion="cerrar-aviso" aria-label="Seguir en ${nomLugar(S.lugar)}">${ic("x", "ch")}</button>
+      <div class="acciones"><button class="btn prim chico" type="button" data-accion="guardar-y-pasar">Guardar y pasar a ${nomLugar(a.a)}</button><button class="btn sec chico" type="button" data-accion="descartar-y-pasar">Descartar y pasar</button><button class="btn sec chico" type="button" data-accion="cerrar-aviso">Seguir en ${nomLugar(S.lugar)}</button></div></div>`;
+  }
+  return `<div class="aviso" role="alert" data-n="${S.nAviso}"><span class="ico">${ic("alerta", "ch")}</span><div><b>${a.titulo}</b>${a.texto ? `<p>${a.texto}</p>` : ""}</div><button class="x" type="button" data-accion="cerrar-aviso" aria-label="Cerrar el aviso">${ic("x", "ch")}</button></div>`;
+}
+
+function render(animar) {
+  const marco = document.getElementById("marco");
+  const alto = { 1280: 800, 1024: 768, 375: 812 }[S.ancho];
+  marco.style.width = S.ancho + "px";
+  marco.style.height = alto + "px";
+  marco.dataset.ancho = S.ancho;
+  marco.classList.toggle("animar", !!animar);
+  const p = pr();
+  const [fc, ft] = p.foco.split("|");
+  const vistaY = document.getElementById("vista")?.scrollTop ?? 0;
+  const vistaX = document.getElementById("vista")?.scrollLeft ?? 0;
+  marco.innerHTML = `<div class="fondo"><h1>Existencias</h1>${'<div class="t"></div>'.repeat(8)}</div><div class="velo"></div>
+  <div class="modal" role="dialog" aria-label="${p.nombre}">
+    <div class="m-cuerpo">
+      <div class="m-cab"><button class="volver" type="button" aria-label="Volver a la talla">${ic("flecha")}</button><div class="m-tit"><h2>${p.nombre} <span class="modo">· Ajustar stock</span></h2><p>Empiezas por <b>${multi() ? `${fc} · ${ft}` : fc}</b>, puedes cambiar cualquier ${multi() ? "talla" : "color"}<span class="desc"> · ${p.linea} · ${p.precio}</span></p></div><button class="cerrar" type="button" aria-label="Cerrar">${ic("x")}</button></div>
+      <div class="m-grid">
+        <aside class="m-izq"><div class="m-foto" data-color-dato style="background:${hexDe(fc)}">${'<svg viewBox="0 0 24 24">' + ICONOS.blusa + "</svg>"}<span class="rotulo">Ajustando · ${p.colores.length} colores${multi() ? ` · ${p.tallas.length} tallas` : ""}</span></div><div class="talon" id="talon"></div></aside>
+        <section class="m-der ${S.foco ? "con-foco" : "sin-foco"}" id="der">
+          ${banda()}
+          <div id="aviso">${avisoHTML()}</div>
+          ${tabla()}
+        </section>
+      </div>
+    </div>
+    <div class="m-pie"><span class="responsable">${ic("escudo", "ch")} Admin · queda a tu nombre</span><span class="resumen" id="resumen"></span>
+      <button class="btn sec" type="button" data-accion="descartar" id="descartar">Cancelar</button><button class="btn prim" type="button" data-accion="guardar" id="guardar">Guardar</button></div>
+  </div>`;
+  const vista = document.getElementById("vista");
+  vista.addEventListener("scroll", () => vista.toggleAttribute("data-desliza", vista.scrollLeft > 2), { passive: true });
+  if (!animar) { vista.scrollTop = vistaY; vista.scrollLeft = vistaX; }
+  // En el celular, el motivo elegido queda a la vista en su fila deslizable.
+  const elegido = marco.querySelector(".seg.desliza [aria-pressed='true']");
+  if (elegido) elegido.parentElement.scrollLeft = Math.max(0, elegido.offsetLeft - elegido.parentElement.offsetLeft - 8);
+  refrescar();
+  if (animar && S.foco && matchMedia("(pointer: fine)").matches && S.ancho !== 375) {
+    setTimeout(() => {
+      const i = marco.querySelector(`input[data-k="${p.foco}"]`);
+      if (!i) return;
+      i.focus({ preventScroll: true }); i.select(); verEnLaVista(i);
+    }, 480);
+  }
+  document.querySelectorAll(".ctl[data-ctl]").forEach((b) => {
+    const v = { prenda: S.prenda, ancho: String(S.ancho), tema: S.tema }[b.dataset.ctl];
+    if (v !== undefined) b.setAttribute("aria-pressed", String(b.dataset.v === v));
+  });
+}
+
+/* Lleva una celda a la vista DENTRO de la tabla (no mueve el modal ni la página). */
+function verEnLaVista(el) {
+  const vista = document.getElementById("vista");
+  const v = vista.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const cab = vista.querySelector("thead")?.offsetHeight ?? 0;
+  const pie = vista.querySelector("tfoot")?.offsetHeight ?? 0;
+  const izq = vista.querySelector("tbody .izq")?.offsetWidth ?? 0;
+  if (r.top < v.top + cab) vista.scrollTop -= v.top + cab - r.top + 6;
+  else if (r.bottom > v.bottom - pie) vista.scrollTop += r.bottom - (v.bottom - pie) + 6;
+  if (r.left < v.left + izq) vista.scrollLeft -= v.left + izq - r.left + 6;
+  else if (r.right > v.right) vista.scrollLeft += r.right - v.right + 6;
+}
+
+function bloqueos(k) {
+  const m = motivo(), n = num(k), h = hoy(k);
+  const menos = n <= 0 ? "No hay menos de 0." : m.s === "suma" && n <= h ? `Con «${m.t}» solo se suma.` : null;
+  const mas = m.s === "resta" && n >= h ? `Con «${m.t}» solo se resta.` : n >= 999 ? "Hasta 999." : null;
+  return { menos, mas };
+}
+
+function refrescar() {
+  const der = document.getElementById("der");
+  if (!der) return;
+  der.classList.toggle("con-foco", S.foco);
+  der.classList.toggle("sin-foco", !S.foco);
+  der.querySelectorAll("[data-paso]").forEach((el) => {
+    const k = el.dataset.paso;
+    const input = el.querySelector("input");
+    if (!(k in S.borr)) input.value = num(k);
+    const b = bloqueos(k);
+    const [bm, bM] = el.querySelectorAll("button");
+    if (b.menos) bm.setAttribute("aria-disabled", "true"); else bm.removeAttribute("aria-disabled");
+    if (b.mas) bM.setAttribute("aria-disabled", "true"); else bM.removeAttribute("aria-disabled");
+    bm.title = b.menos || ""; bM.title = b.mas || "";
+  });
+  der.querySelectorAll("[data-celda]").forEach((el) => { const k = el.dataset.celda; el.dataset.cambio = num(k) !== hoy(k) ? "si" : "no"; });
+  der.querySelectorAll("tr[data-fila]").forEach((tr) => (tr.dataset.cambio = ksDe(tr.dataset.fila).some((k) => num(k) !== hoy(k)) ? "si" : "no"));
+  der.querySelectorAll("[data-era]").forEach((el) => { const k = el.dataset.era, n = num(k), h = hoy(k); el.textContent = n !== h ? `era ${h}` : " "; });
+  der.querySelectorAll("[data-dif]").forEach((el) => {
+    const d = num(el.dataset.dif) - hoy(el.dataset.dif);
+    el.innerHTML = d === 0 ? '<span class="nada">—</span>' : `<span class="delta" data-t="${d > 0 ? "entra" : "sale"}">${signo(d)}</span>`;
+  });
+  der.querySelectorAll("[data-total]").forEach((el) => (el.textContent = ksDe(el.dataset.total).reduce((s, k) => s + num(k), 0)));
+  der.querySelectorAll("[data-totalt]").forEach((el) => (el.textContent = claves().filter((k) => k.endsWith("|" + el.dataset.totalt)).reduce((s, k) => s + num(k), 0)));
+  der.querySelectorAll("[data-gran]").forEach((el) => (el.textContent = claves().reduce((s, k) => s + num(k), 0)));
+  der.querySelectorAll("[data-visto]").forEach((el) => { const ks = ksDe(el.dataset.visto); el.toggleAttribute("data-on", ks.length > 0 && ks.every((k) => S.vistos.has(k))); });
+  const total = multi() ? claves().length : pr().colores.length;
+  const hechos = multi() ? claves().filter((k) => S.vistos.has(k)).length : pr().colores.filter(([c]) => ksDe(c).every((k) => S.vistos.has(k))).length;
+  der.querySelector("[data-revisaste]").textContent = hechos;
+  const barra = der.querySelector("[data-barra]");
+  barra.style.width = (100 * hechos) / total + "%";
+  barra.parentElement.toggleAttribute("data-lleno", hechos === total);
+
+  const cs = cambios();
+  const entran = cs.reduce((s, k) => s + Math.max(0, num(k) - hoy(k)), 0);
+  const salen = cs.reduce((s, k) => s + Math.max(0, hoy(k) - num(k)), 0);
+  document.getElementById("talon").innerHTML = `<p class="talon-cab"><span class="vers">Lo que vas a guardar</span><span class="globito" data-n="${cs.length}">${cs.length}</span></p>` +
+    (cs.length === 0
+      ? `<div class="talon-vacio"><span>${ic("lapiz", "ch")}</span><p>Toca − o +, o escribe lo que contaste. Nada se guarda hasta que confirmes.</p></div>`
+      : `<div style="display:grid;gap:6px">${cs.map((k) => { const d = num(k) - hoy(k); return `<div class="ticket"><span class="m" data-color-dato style="background:${hexDe(k.split("|")[0])}"></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${nombre(k)}</b> <span class="tn">${hoy(k)} → ${num(k)}</span></span><span class="delta" data-t="${d > 0 ? "entra" : "sale"}">${signo(d)}</span></div>`; }).join("")}</div>
+         <div class="balanza"><i class="e" style="flex-grow:${entran}"></i><i class="s" style="flex-grow:${salen}"></i></div>
+         <p class="talon-pie"><span><b>${entran}</b> entran</span><span><b>${salen}</b> salen</span></p>`);
+  document.getElementById("resumen").innerHTML = cs.length === 0 ? "Nada cambia hasta que guardes." : `<b>${cs.length} ${cs.length === 1 ? "cambio" : "cambios"} en ${nomLugar(S.lugar)}</b>${entran ? ` · entran ${entran}` : ""}${salen ? ` · salen ${salen}` : ""}`;
+  const g = document.getElementById("guardar");
+  g.disabled = cs.length === 0 || S.enviando;
+  g.textContent = S.enviando ? "Guardando…" : cs.length ? `Guardar ${cs.length} ${cs.length === 1 ? "cambio" : "cambios"}` : "Guardar";
+  g.classList.toggle("cargando", S.enviando);
+  document.getElementById("descartar").textContent = cs.length ? "Descartar" : "Cancelar";
+}
+
+/* ---------------- acciones ---------------- */
+function avisar(a) {
+  S.aviso = a; S.nAviso++;
+  document.getElementById("aviso").innerHTML = avisoHTML();
+  document.querySelectorAll("[data-lugar]").forEach((b) => b.toggleAttribute("data-pide", a?.tipo === "lugar" && a.a === b.dataset.lugar));
+}
+function rodar(k, sube) {
+  const i = document.querySelector(`input[data-k="${k}"]`);
+  if (!i) return;
+  i.classList.remove("sube", "baja"); void i.offsetWidth; i.classList.add(sube ? "sube" : "baja");
+}
+function fijar(k, v) {
+  const m = motivo(), h = hoy(k), antes = num(k);
+  if (m.s === "suma" && v < h) return avisar({ tipo: "regla", titulo: `«${m.t}» solo suma`, texto: `${nombre(k)} no baja de ${h}. Para restar, elige otro motivo arriba.` });
+  if (m.s === "resta" && v > h) return avisar({ tipo: "regla", titulo: `«${m.t}» solo resta`, texto: `${nombre(k)} no sube de ${h}. Para sumar, elige otro motivo arriba.` });
+  if (S.aviso) avisar(null);
+  if (v === h) delete S.n[k]; else S.n[k] = v;
+  S.vistos.add(k);
+  if (v !== antes) rodar(k, v > antes);
+  refrescar();
+}
+function pasoDe(k, d) {
+  const v = num(k) + d;
+  if (v < 0) return avisar({ tipo: "regla", titulo: "No hay menos de 0", texto: `${nombre(k)} ya está en 0 ${S.lugar === "almacen" ? "en almacén" : "en piso"}.` });
+  fijar(k, v);
+}
+function confirmar(k) {
+  if (!(k in S.borr)) return;
+  const t = S.borr[k];
+  delete S.borr[k];
+  if (t === "") return refrescar();
+  if (Number(t) === num(k)) { S.vistos.add(k); return refrescar(); }
+  fijar(k, Number(t));
+}
+function soltarFoco(k) { if (S.foco && k !== pr().foco) { S.foco = false; refrescar(); } }
+function siguiente(k) {
+  const ins = [...document.querySelectorAll("#der input[data-k]")].sort((a, b) => a.dataset.orden - b.dataset.orden);
+  const sig = ins[ins.findIndex((x) => x.dataset.k === k) + 1];
+  if (sig) { sig.focus({ preventScroll: true }); sig.select(); verEnLaVista(sig); }
+}
+function cambiarMotivo(c) {
+  const m = MOTIVOS.find((x) => x.c === c);
+  if (cerrado(m)) return avisar({ tipo: "regla", titulo: "En el piso no va «Encontré unidades»", texto: "Lo encontrado se anota en el almacén y después se cuelga." });
+  S.motivo = c;
+  const choca = cambios().filter((k) => (m.s === "suma" && num(k) < hoy(k)) || (m.s === "resta" && num(k) > hoy(k)));
+  choca.forEach((k) => delete S.n[k]);
+  S.aviso = choca.length ? { tipo: "regla", titulo: `Volví ${choca.length === 1 ? "un número" : choca.length + " números"} a como estaban`, texto: `${choca.map(nombre).join(", ")}: con «${m.t}» ${m.s === "suma" ? "solo se suma" : "solo se resta"}.` } : null;
+  S.nAviso++;
+  render(false);
+}
+function pasarA(l) {
+  S.lugar = l; S.vistos.clear(); S.aviso = null; S.n = {}; S.borr = {};
+  if (cerrado(motivo())) { S.motivo = "conte"; S.aviso = { tipo: "regla", titulo: "Quedó «Conté y hay otro número»", texto: "En el piso no va «Encontré unidades»." }; }
+  render(false);
+}
+function cambiarLugar(l) {
+  if (l === S.lugar) return;
+  if (cambios().length) return avisar({ tipo: "lugar", a: l });
+  pasarA(l);
+}
+function guardar(luego) {
+  const cs = cambios();
+  if (!cs.length || S.enviando) return;
+  S.enviando = true; refrescar();
+  setTimeout(() => {
+    const entran = cs.reduce((s, k) => s + Math.max(0, num(k) - hoy(k)), 0);
+    const salen = cs.reduce((s, k) => s + Math.max(0, hoy(k) - num(k)), 0);
+    const donde = nomLugar(S.lugar);
+    cs.forEach((k) => (pr().stock[k][idx()] = num(k)));
+    S.n = {}; S.enviando = false; S.aviso = null; S.vistos.clear();
+    if (luego) luego(); else render(false);
+    if (!luego) {
+      cs.forEach((k) => document.querySelector(`[data-paso="${k}"]`)?.parentElement.setAttribute("data-sellada", ""));
+      setTimeout(() => document.querySelectorAll("[data-sellada]").forEach((e) => e.removeAttribute("data-sellada")), 1600);
+    }
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.innerHTML = `${ic("visto")}<span>Guardado en ${donde}: ${cs.length} ${cs.length === 1 ? "cambio" : "cambios"}${entran ? ` · entraron ${entran}` : ""}${salen ? ` · ${salen === 1 ? "salió 1" : "salieron " + salen}` : ""}.</span>`;
+    document.getElementById("marco").appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }, 900);
+}
+
+/* ---------------- eventos ---------------- */
+const marco = document.getElementById("marco");
+marco.addEventListener("pointerdown", (e) => { const c = e.target.closest("[data-paso]"); if (c) soltarFoco(c.dataset.paso); });
+marco.addEventListener("click", (e) => {
+  const d = e.target.closest("[data-d]");
+  if (d) {
+    const k = d.closest("[data-paso]").dataset.paso;
+    if (d.getAttribute("aria-disabled") === "true") { const m = motivo(); return d.dataset.d === "-1" && num(k) <= 0 ? pasoDe(k, -1) : avisar({ tipo: "regla", titulo: d.title.replace(/\.$/, ""), texto: `Para ${d.dataset.d === "1" ? "sumar" : "restar"} en ${nombre(k)}, elige otro motivo arriba.` }); }
+    return pasoDe(k, Number(d.dataset.d));
+  }
+  const l = e.target.closest("[data-lugar]"); if (l) return cambiarLugar(l.dataset.lugar);
+  const mo = e.target.closest("[data-motivo]"); if (mo) return cambiarMotivo(mo.dataset.motivo);
+  const a = e.target.closest("[data-accion]")?.dataset.accion;
+  if (a === "guardar") return guardar();
+  if (a === "descartar") { S.n = {}; S.borr = {}; S.vistos.clear(); avisar(null); return refrescar(); }
+  if (a === "cerrar-aviso") return avisar(null);
+  if (a === "guardar-y-pasar") { const l2 = S.aviso.a; return guardar(() => pasarA(l2)); }
+  if (a === "descartar-y-pasar") return pasarA(S.aviso.a);
+});
+marco.addEventListener("focusin", (e) => { if (e.target.matches("input[data-k]")) { soltarFoco(e.target.dataset.k); e.target.select(); } });
+marco.addEventListener("input", (e) => {
+  if (e.target.matches("[data-nota]")) { S.nota = e.target.value; return; }
+  if (!e.target.matches("input[data-k]")) return;
+  const v = e.target.value.replace(/\D/g, "").slice(0, 3);
+  e.target.value = v;
+  S.borr[e.target.dataset.k] = v;
+});
+marco.addEventListener("focusout", (e) => { if (e.target.matches("input[data-k]")) confirmar(e.target.dataset.k); });
+marco.addEventListener("keydown", (e) => {
+  if (!e.target.matches("input[data-k]")) return;
+  const k = e.target.dataset.k;
+  if (e.key === "Enter") { e.preventDefault(); confirmar(k); S.vistos.add(k); refrescar(); siguiente(k); }
+  else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); confirmar(k); pasoDe(k, e.key === "ArrowUp" ? 1 : -1); }
+});
+document.getElementById("control").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ctl]"); if (!b) return;
+  const c = b.dataset.ctl, v = b.dataset.v;
+  if (c === "tema") { S.tema = v; document.documentElement.dataset.tema = v; return render(false); }
+  if (c === "prenda") { S.prenda = v; S.n = {}; S.borr = {}; S.vistos.clear(); S.aviso = null; }
+  if (c === "ancho") S.ancho = Number(v);
+  if (c === "repetir") { S.n = {}; S.borr = {}; S.vistos.clear(); S.aviso = null; S.lugar = "almacen"; S.motivo = "conte"; }
+  S.foco = true;
+  render(true);
+});
+render(true);
+</script>
+</body>
+</html>

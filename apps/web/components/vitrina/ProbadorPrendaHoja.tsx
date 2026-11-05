@@ -91,7 +91,7 @@ export function ProbadorPrendaHoja({
       bloqueado={guardando}
     >
       <form onSubmit={guardar} className="space-y-5">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-tinta">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta">
           <Chip tono={veredicto.sale ? "verde" : "ambar"}>{veredicto.texto}</Chip>
           <span>{queHacerConLaPrenda(veredicto)}</span>
         </p>
@@ -103,7 +103,7 @@ export function ProbadorPrendaHoja({
               sinFoto
             )}
           </div>
-          <div className="space-y-3 text-[13px] text-tinta">
+          <div className="space-y-3 text-sm text-tinta">
             <p>
               <span className="text-taupe">Recortes · </span>
               {p.recortes.listos > 0 ? `${p.recortes.listos} ${p.recortes.listos === 1 ? "listo" : "listos"}` : "ninguno listo"}
@@ -126,7 +126,7 @@ export function ProbadorPrendaHoja({
                 ))}
               </ul>
               {porFotografiar.length > 0 && (
-                <p className="mt-2 text-[12.5px] text-taupe">Un color sin foto se elige igual en el probador: se ve otra foto de la prenda y se avisa.</p>
+                <p className="mt-2 text-sm text-taupe">Un color sin foto se elige igual en el probador: se ve otra foto de la prenda y se avisa.</p>
               )}
             </div>
             <EnlaceVer href={`/productos/${p.productoId}/editar`} alNavegar={onClose}>

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-fondo="aurora" data-cara="ahora" data-ver="ambas">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tarjeta de prenda en vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../vidrio-base-2026-10/marco.css">
+<style>
+/* ====================================================================
+   MAQUETA · la tarjeta de prenda en vidrio, en Vender y en Catálogo ▸ Productos (ADR-0596; Felipe 2026-11-03)
+   Felipe: «las prendas del Catálogo están en el aire; si les agregamos un card como en Punto de venta… pero ese card es de un color sólido:
+   ¿se puede hacer glass también? Muéstrame cómo quedaría en las dos pantallas».
+   HOY (leído en el código):
+     · Vender (`pv-prenda`, vidrio/vender.css): placa de «vidrio claro» = `--vidrio-claro-fondo`, el vidrio blanco al 86 % → 66 %. Sobre el crema
+       del fondo, un blanco al 86 % se lee como papel macizo: es translúcido en el CSS pero sólido a la vista.
+     · Catálogo ▸ Productos (`prod-tarjeta`, vidrio/pantalla.css): «foto al aire», sin tarjeta. Cada foto trae su fondo (blanco, durazno,
+       terracota) y se ve suelta sobre el fondo.
+   Las caras (las dos pantallas llevan LA MISMA pieza: «una función, una pieza», ADR-0358):
+     X · Como ahora   — Vender con su placa casi blanca; Catálogo sin tarjeta.
+     A · Vidrio claro — la placa baja de 86 % a 46 % → 22 % de vidrio, con filo de luz; sin desenfoque (la grilla repite 20–40 tarjetas).
+     B · Esmerilado   — A + desenfoque de 16 px y un reflejo en la esquina: deja ver las nubes del fondo a través.
+     C · Pie de vidrio — la foto sigue al aire y solo el texto vive en una tira de vidrio esmerilado que cuelga sobre su borde de abajo.
+   Datos inventados. Fotos dibujadas (las reales traen su propio fondo: blanco, durazno, terracota). Solo tokens del marco.
+   ==================================================================== */
+.pag{padding:20px 16px 48px;display:grid;gap:26px;justify-items:center}
+.pant{position:relative;width:min(1320px,100%);border-radius:20px;overflow:hidden;border:1px solid var(--t25);isolation:isolate;padding:22px 24px 30px}
+.pant>.lienzo{z-index:-1}
+.rotulo{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:0 2px 14px}
+.rotulo h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.1}
+.rotulo .vs{font-size:11px}
+[data-ver="vender"] #p-cat,[data-ver="catalogo"] #p-ven{display:none}
+
+/* ---------- las barras de arriba (buscador pozo, píldoras gota): ya elegidas, tal cual ---------- */
+.fila-b{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px}
+.bus{flex:1 1 260px;display:flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--borde) 80%,transparent);
+  background:color-mix(in srgb,var(--tinta) 5%,transparent);box-shadow:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 14%,transparent);font-size:14px;color:var(--t65)}
+[data-tema="oscuro"] .bus{background:color-mix(in srgb,var(--sombra) 30%,transparent)}
+.bus svg,.pil svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pil{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid var(--borde);color:var(--t80);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 75%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .pil{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.pil.on{color:var(--crema);border-color:color-mix(in srgb,var(--tinta) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),var(--tinta));box-shadow:none}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 18px}
+
+/* ---------- las dos mesas ---------- */
+.mesa-v{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+.grilla{display:grid;gap:22px 16px}
+.mesa-v .grilla{grid-template-columns:repeat(4,minmax(0,1fr))}
+#p-cat .grilla{grid-template-columns:repeat(5,minmax(0,1fr));row-gap:30px}
+
+/* ---------- LA TARJETA DE PRENDA (una sola, en las dos pantallas) ---------- */
+.tp{position:relative;display:flex;flex-direction:column;container-type:inline-size;animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--i,0) * 40ms + 100ms);
+  transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.tp-foto{position:relative;overflow:hidden;isolation:isolate;border-radius:18px;background:var(--fb,#fff);display:grid;place-items:center;
+  box-shadow:0 16px 28px -20px color-mix(in srgb,var(--sombra) 55%,transparent);transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.tp-foto::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 9%,transparent);pointer-events:none}
+#p-ven .tp-foto{aspect-ratio:1}
+#p-cat .tp-foto{aspect-ratio:4/5}
+.tp-foto svg.pr{width:62%;height:auto;overflow:visible;filter:drop-shadow(0 6px 8px color-mix(in srgb,var(--sombra) 18%,transparent))}
+.glob{position:absolute;top:8px;right:8px;z-index:2;min-width:22px;height:22px;padding:0 6px;border-radius:99px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--crema);background:var(--tinta)}
+.tp-info{display:grid;grid-template-columns:minmax(0,1fr);gap:3px;padding:12px 2px 2px;min-width:0}
+.tp-info>*{min-width:0}
+.l1{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:15px;line-height:1.3}
+.nom{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pre{flex:none;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.l2{font-size:14px;line-height:1.35;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l3{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px;min-height:24px}
+.pts{display:flex;align-items:center;gap:0;margin-left:-6px}
+.pts i{position:relative;width:24px;height:24px;display:grid;place-items:center}
+.pts i::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sombra) 25%,transparent)}
+.pts i.on::after{content:"";position:absolute;inset:2.5px;border-radius:50%;border:1.5px solid var(--tinta)}
+.st{font-size:14px;color:var(--t65);font-variant-numeric:tabular-nums;white-space:nowrap}
+.st.poco{color:color-mix(in srgb,var(--ambar) 82%,var(--tinta));font-weight:600}
+/* tallas y precio de Vender (solo está en esa pantalla) */
+.tallas{display:none;flex-wrap:wrap;gap:4px;margin-top:6px}
+#p-ven .tallas{display:flex}
+.talla{min-width:34px;height:28px;padding:0 9px;display:grid;place-items:center;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--borde);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 90%,transparent),color-mix(in srgb,var(--vidrio) 55%,transparent));box-shadow:inset 0 1px 0 var(--vidrio)}
+[data-tema="oscuro"] .talla{border-color:color-mix(in srgb,var(--tinta) 30%,transparent);background:color-mix(in srgb,var(--tinta) 9%,transparent);box-shadow:none}
+.talla.cero{border-style:dashed;color:var(--t50);background:none;box-shadow:none}
+#p-ven .tp-info .l2{display:none}
+#p-ven .tp-info .l1{font-size:14px}
+@media (hover:hover){.tp:hover{transform:translateY(-3px)}.tp:hover .tp-foto{box-shadow:0 22px 34px -20px color-mix(in srgb,var(--sombra) 60%,transparent)}}
+
+/* X · COMO AHORA ---------------------------------------------------------------- */
+/* Vender: la placa de vidrio claro (86 % → 66 % del vidrio): sobre el crema se lee como papel */
+[data-cara="ahora"] #p-ven .tp{padding:8px 8px 12px;border:1px solid color-mix(in srgb,var(--vidrio) 70%,transparent);border-radius:22px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 86%,transparent),color-mix(in srgb,var(--vidrio) 66%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),0 12px 28px -18px color-mix(in srgb,var(--sombra) 35%,transparent)}
+[data-tema="oscuro"][data-cara="ahora"] #p-ven .tp{border-color:color-mix(in srgb,var(--tinta) 10%,transparent);background:color-mix(in srgb,var(--vidrio) 80%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 12%,transparent)}
+[data-cara="ahora"] #p-ven .tp-foto{border-radius:14px;box-shadow:none}
+[data-cara="ahora"] #p-ven .tp-info{padding:12px 4px 0}
+@media (hover:hover){[data-cara="ahora"] #p-ven .tp:hover .tp-foto{box-shadow:none}}
+/* Catálogo: «foto al aire», nada más (lo que ya hay) */
+
+/* A · VIDRIO CLARO: la misma placa en los dos lados, mucho más transparente; sin desenfoque (la grilla repite decenas) ---- */
+:is([data-cara="a"],[data-cara="b"]) .tp{padding:8px 8px 12px;border:1px solid color-mix(in srgb,var(--vidrio) 78%,transparent);border-radius:22px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));
+  box-shadow:inset 0 1px 0 var(--vidrio),inset 0 -1px 0 color-mix(in srgb,var(--sombra) 5%,transparent),0 16px 30px -20px color-mix(in srgb,var(--sombra) 38%,transparent)}
+[data-tema="oscuro"]:is([data-cara="a"],[data-cara="b"]) .tp{border-color:color-mix(in srgb,var(--tinta) 14%,transparent);
+  background:linear-gradient(160deg,color-mix(in srgb,var(--tinta) 9%,transparent),color-mix(in srgb,var(--tinta) 3%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 16%,transparent),0 16px 30px -20px var(--sombra)}
+:is([data-cara="a"],[data-cara="b"]) .tp-foto{border-radius:15px;box-shadow:none}
+:is([data-cara="a"],[data-cara="b"]) .tp-info{padding:12px 6px 0}
+@media (hover:hover){:is([data-cara="a"],[data-cara="b"]) .tp:hover{box-shadow:inset 0 1px 0 var(--vidrio),0 22px 38px -20px color-mix(in srgb,var(--sombra) 48%,transparent)}
+  :is([data-cara="a"],[data-cara="b"]) .tp:hover .tp-foto{box-shadow:none}}
+
+/* B · ESMERILADO: lo de A + desenfoque y un reflejo en la esquina; deja ver las nubes del fondo a través */
+[data-cara="b"] .tp{-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);
+  background:linear-gradient(160deg,color-mix(in srgb,var(--vidrio) 44%,transparent),color-mix(in srgb,var(--vidrio) 16%,transparent))}
+[data-cara="b"] .tp::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--vidrio) 55%,transparent) 0,transparent 34%)}
+[data-cara="b"] .tp>*{position:relative;z-index:1}
+[data-tema="oscuro"][data-cara="b"] .tp::before{background:linear-gradient(135deg,color-mix(in srgb,var(--tinta) 14%,transparent) 0,transparent 34%)}
+
+/* C · PIE DE VIDRIO: la foto al aire y solo el texto en una tira esmerilada que cuelga sobre su borde de abajo ---------- */
+[data-cara="c"] .tp-foto{padding-bottom:40px}
+[data-cara="c"] .tp-foto svg.pr{width:56%}
+[data-cara="c"] .tp-info{position:relative;z-index:2;margin:-36px 8px 0;padding:11px 14px 12px;border-radius:16px;border:1px solid color-mix(in srgb,var(--vidrio) 75%,transparent);
+  background:linear-gradient(160deg,color-mix(in srgb,var(--vidrio) 66%,transparent),color-mix(in srgb,var(--vidrio) 40%,transparent));
+  -webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 14px 26px -16px color-mix(in srgb,var(--sombra) 50%,transparent)}
+[data-tema="oscuro"][data-cara="c"] .tp-info{border-color:color-mix(in srgb,var(--tinta) 16%,transparent);background:linear-gradient(160deg,color-mix(in srgb,var(--vidrio) 70%,transparent),color-mix(in srgb,var(--vidrio) 52%,transparent));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tinta) 14%,transparent),0 14px 26px -16px var(--sombra)}
+[data-cara="c"] #p-ven .tp-info{padding-bottom:12px}
+
+/* ---------- el ticket de Vender (la placa Serena de su columna, ya elegida; solo para ver la tarjeta en su lugar) ---------- */
+.tk{position:sticky;top:12px;padding:18px 18px 16px;border-radius:24px;display:grid;gap:12px}
+.tk h3{font-family:'EB Garamond',serif;font-weight:500;font-size:22px}
+.tk .lin{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:10px 0;border-top:1px solid var(--t12)}
+.tk .lin small{display:block;color:var(--t65);font-size:12.5px}
+.tk .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--t12);padding-top:12px;font-size:15px}
+.tk .tot b{font-family:'EB Garamond',serif;font-size:28px;font-weight:500}
+.cobrar{height:48px;border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 84%,transparent),var(--tinta));color:var(--crema);font-weight:600;font-size:14px;letter-spacing:.04em}
+
+/* ---------- la barra de la maqueta: la nota de cada cara ---------- */
+#nota{width:100%;font-size:12.5px;line-height:1.45;color:rgba(245,240,232,.78)} /* tema-fijo: barra de la maqueta */
+#nota b{color:#f5f0e8} /* tema-fijo: barra de la maqueta */
+@media (max-width:1100px){.mesa-v{grid-template-columns:minmax(0,1fr)}.tk{position:static}.mesa-v .grilla{grid-template-columns:repeat(3,minmax(0,1fr))}#p-cat .grilla{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.pant{padding:16px 12px 22px}.mesa-v .grilla,#p-cat .grilla{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){.tp{animation:none}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="chaleco" viewBox="0 0 100 120"><path style="fill:var(--g);stroke:color-mix(in srgb,var(--tinta-fija) 22%,transparent);stroke-width:.8" d="M30 8 L43 8 L50 38 L57 8 L70 8 L86 30 L81 112 L19 112 L14 30 Z"/><path style="fill:none;stroke:color-mix(in srgb,var(--tinta-fija) 28%,transparent);stroke-width:.9;stroke-linecap:round" d="M50 38 L50 108 M30 8 L50 38 L70 8"/><circle style="fill:var(--bt)" cx="50" cy="56" r="2.4"/><circle style="fill:var(--bt)" cx="50" cy="72" r="2.4"/><circle style="fill:var(--bt)" cx="50" cy="88" r="2.4"/></symbol>
+    <symbol id="vestido" viewBox="0 0 100 120"><path style="fill:var(--g);stroke:color-mix(in srgb,var(--tinta-fija) 22%,transparent);stroke-width:.8" d="M34 6 L45 6 L50 22 L55 6 L66 6 L82 24 L76 56 L72 62 L78 116 L22 116 L28 62 L24 56 L18 24 Z"/><path style="fill:none;stroke:color-mix(in srgb,var(--tinta-fija) 28%,transparent);stroke-width:.9;stroke-linecap:round" d="M50 22 L50 54 M30 62 L70 62 M40 8 L50 22 L60 8"/><circle style="fill:var(--bt)" cx="50" cy="30" r="2"/><circle style="fill:var(--bt)" cx="50" cy="40" r="2"/></symbol>
+    <symbol id="polo" viewBox="0 0 100 120"><path style="fill:var(--g);stroke:color-mix(in srgb,var(--tinta-fija) 22%,transparent);stroke-width:.8" d="M31 8 L44 8 Q50 24 56 8 L69 8 L77 40 L71 108 L29 108 L23 40 Z"/><circle style="fill:var(--fl)" cx="42" cy="46" r="11"/><circle style="fill:var(--fl)" cx="58" cy="70" r="13"/><circle style="fill:var(--fl)" cx="44" cy="88" r="9"/><circle style="fill:var(--fl)" cx="62" cy="40" r="7"/></symbol>
+    <symbol id="peplum" viewBox="0 0 100 120"><path style="fill:var(--g);stroke:color-mix(in srgb,var(--tinta-fija) 22%,transparent);stroke-width:.8" d="M32 6 L44 6 L50 30 L56 6 L68 6 L84 28 L76 64 Q88 100 90 114 L10 114 Q12 100 24 64 L16 28 Z"/><path style="fill:none;stroke:color-mix(in srgb,var(--tinta-fija) 28%,transparent);stroke-width:.9;stroke-linecap:round" d="M50 30 L50 100 M32 6 L50 30 L68 6"/><circle style="fill:var(--bt)" cx="50" cy="50" r="2.4"/><circle style="fill:var(--bt)" cx="50" cy="64" r="2.4"/><circle style="fill:var(--bt)" cx="50" cy="78" r="2.4"/></symbol>
+  </defs>
+</svg>
+
+<div class="spk">
+  <div class="titulo">La tarjeta de prenda en vidrio · Vender y Catálogo ▸ Productos</div>
+  <span class="tag">Tarjeta</span>
+  <span class="seg-m" id="seg-cara">
+    <button data-v="ahora" class="on">X · Como ahora</button><button data-v="a">A · Vidrio claro</button><button data-v="b">B · Esmerilado</button><button data-v="c">C · Pie de vidrio</button>
+  </span>
+  <span class="tag">Tema</span>
+  <span class="seg-m" id="seg-tema"><button data-v="claro" class="on">Claro</button><button data-v="oscuro">Oscuro</button></span>
+  <span class="tag">Ver</span>
+  <span class="seg-m" id="seg-ver"><button data-v="ambas" class="on">Las dos</button><button data-v="vender">Vender</button><button data-v="catalogo">Catálogo</button></span>
+  <div id="nota"></div>
+</div>
+
+<main class="pag">
+
+  <!-- ================= VENDER ================= -->
+  <section class="pant" id="p-ven" data-fondo="aurora">
+    <div class="lienzo"><i></i><i></i><i></i></div>
+    <div class="rotulo"><h2 class="serif">Vender</h2><span class="vs">Punto de venta · catálogo y ticket</span></div>
+    <div class="fila-b"><div class="bus"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Buscar por nombre, código o color…</div><span class="pil on">Solo con stock</span></div>
+    <div class="cats"><span class="pil on">Todo</span><span class="pil">Chalecos</span><span class="pil">Vestidos</span><span class="pil">Polos</span><span class="pil">Blusas</span></div>
+    <div class="mesa-v">
+      <div class="grilla" id="g-ven"></div>
+      <aside class="tk vidrio">
+        <h3>Ticket</h3>
+        <div class="lin"><span>Chaleco Valeria Mia<small>Gris · M</small></span><b>S/ 69.90</b></div>
+        <div class="lin"><span>Vestido Perlita<small>Beige · S</small></span><b>S/ 89.90</b></div>
+        <div class="tot"><span>Total</span><b>S/ 159.80</b></div>
+        <button class="cobrar">COBRAR</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= CATÁLOGO ▸ PRODUCTOS ================= -->
+  <section class="pant" id="p-cat" data-fondo="aurora">
+    <div class="lienzo"><i></i><i></i><i></i></div>
+    <div class="rotulo"><h2 class="serif">Productos</h2><span class="vs">Catálogo · grilla</span></div>
+    <div class="fila-b"><div class="bus"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Buscar un producto…</div><span class="pil">Filtros</span><span class="pil on">Grilla</span><span class="pil">Tabla</span></div>
+    <div class="grilla" id="g-cat"></div>
+  </section>
+
+</main>
+
+<script>
+// Datos inventados. `fb` = el fondo de SU foto (cada foto real trae el suyo).
+const P=[
+  {n:"Chaleco Cuadros Zenit",t:"Chalecos",c:"Crudo",pre:"69.90",s:3,sym:"chaleco",g:"#d9c9a8",fb:"#ffffff",pts:["#f1ece2","#8c8f93","#6e4a33"],tallas:["S","M","L"]},
+  {n:"Chaleco Valeria Mia",t:"Chalecos",c:"Gris",pre:"69.90",s:3,sym:"chaleco",g:"#c9cbd2",fb:"#ffffff",pts:["#8c8f93","#3d3d3d"],tallas:["S","M","L"],cero:["L"],bt:"#222"},
+  {n:"Vestido Perlita",t:"Vestidos",c:"Beige",pre:"89.90",s:2,sym:"vestido",g:"#b9a888",fb:"#ffffff",pts:["#c9b79a","#f6f1e7","#a8744a"],tallas:["S","M"],cero:["M"]},
+  {n:"Polo Floreado Manga Cero",t:"Polos",c:"Amarillo limón",pre:"45.90",s:6,sym:"polo",g:"#f1c79c",fb:"#f4cfa8",pts:["#ecd44a","#f6f1e7","#f0b184"],mas:3,tallas:["S","M","L"],fl:"#d8454f"},
+  {n:"Chaleco Magnolia",t:"Chalecos",c:"Terracota",pre:"45.90",s:1,sym:"peplum",g:"#c4553f",fb:"#cf6a52",pts:["#a8472f"],tallas:["S"],poco:true,bt:"#d9b46a"},
+  {n:"Chaleco Cuadros Zenit",t:"Chalecos",c:"Crudo",pre:"69.90",s:3,sym:"chaleco",g:"#d9c9a8",fb:"#ffffff",pts:["#f1ece2","#8c8f93","#6e4a33"],tallas:["S","M","L"]},
+  {n:"Vestido Perlita",t:"Vestidos",c:"Beige",pre:"89.90",s:2,sym:"vestido",g:"#b9a888",fb:"#ffffff",pts:["#c9b79a","#f6f1e7","#a8744a"],tallas:["S","M"]},
+  {n:"Polo Floreado Manga Cero",t:"Polos",c:"Amarillo limón",pre:"45.90",s:6,sym:"polo",g:"#f1c79c",fb:"#f4cfa8",pts:["#ecd44a","#f6f1e7","#f0b184"],mas:3,tallas:["S","M","L"],fl:"#d8454f"},
+];
+function tarjeta(p,i,vender){
+  const pts=p.pts.map((c,k)=>`<i class="${k===0?"on":""}" style="--c:${c}"></i>`).join("")+(p.mas?`<i style="width:auto;padding:0 6px;font-size:11px;font-weight:600;color:var(--t65)">+${p.mas}</i>`:"");
+  const tallas=p.tallas.map(t=>`<span class="talla${(p.cero||[]).includes(t)?" cero":""}">${t}</span>`).join("");
+  const st=vender?`${p.s} en piso`:`${p.s} en stock`;
+  return `<article class="tp" style="--i:${i}">
+    <div class="tp-foto" style="--fb:${p.fb};--g:${p.g};--fl:${p.fl||"#d8454f"};--bt:${p.bt||"#4a3f35"}">
+      ${vender&&i===1?'<span class="glob">1</span>':''}
+      <svg class="pr" viewBox="0 0 100 120"><use href="#${p.sym}"/></svg>
+    </div>
+    <div class="tp-info">
+      <div class="l1"><span class="nom">${p.n}</span><span class="pre">S/ ${p.pre}</span></div>
+      <div class="l2">${p.t} · ${p.c}</div>
+      <div class="tallas">${tallas}</div>
+      <div class="l3"><span class="pts">${pts}</span><span class="st${p.poco?" poco":""}">${st}</span></div>
+    </div>
+  </article>`;
+}
+document.getElementById("g-ven").innerHTML=P.slice(0,4).map((p,i)=>tarjeta(p,i,true)).join("");
+document.getElementById("g-cat").innerHTML=P.slice(0,5).map((p,i)=>tarjeta(p,i,false)).join("");
+
+const NOTAS={
+  ahora:"<b>X · Como ahora.</b> Vender: placa de vidrio claro al 86 % → 66 %, que sobre el crema se lee como papel. Catálogo: sin tarjeta, cada foto con su propio fondo flotando.",
+  a:"<b>A · Vidrio claro.</b> La misma placa en las dos pantallas, pero al 50 % → 20 % de vidrio con filo de luz arriba: el fondo se transparenta. Sin desenfoque: cuesta casi nada con 40 tarjetas. Cuesta cambiar 3 variables de <code>vidrio/vender.css</code> y darle la placa a <code>.prod-tarjeta</code>.",
+  b:"<b>B · Esmerilado.</b> A más desenfoque de 16 px y un reflejo en la esquina: las nubes del fondo se ven borrosas a través. Es el más «vidrio», y el único que cuesta: 20–40 capas de <code>backdrop-filter</code> en una grilla que se desplaza.",
+  c:"<b>C · Pie de vidrio.</b> La foto sigue al aire y el texto vive en una tira esmerilada que cuelga sobre el borde de la foto (se ve la foto borrosa detrás). Una capa de desenfoque por tarjeta, pero chica. Es el que mejor se lee sobre fotos de fondos muy distintos."
+};
+const $=s=>document.querySelector(s), R=document.documentElement;
+function seg(id,attr,fn){document.querySelectorAll(id+" button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(id+" button").forEach(x=>x.classList.toggle("on",x===b));R.setAttribute(attr,b.dataset.v);fn&&fn(b.dataset.v)}))}
+seg("#seg-cara","data-cara",v=>{$("#nota").innerHTML=NOTAS[v]});
+seg("#seg-tema","data-tema");
+seg("#seg-ver","data-ver");
+$("#nota").innerHTML=NOTAS.ahora;
+</script>
+</body>
+</html>

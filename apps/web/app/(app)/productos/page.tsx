@@ -19,6 +19,8 @@ import {
   getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { getDisponibleEnSede } from "@/lib/inventario-v2";
 import { cantidadCobrable } from "@/lib/vender-stock-local";
 import { tarjetasDesdeVariantes } from "@/lib/combinar-reglas";
@@ -29,7 +31,6 @@ import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
-import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 import { limitesRedondeados } from "@/lib/productos-filtro-precio";
@@ -42,6 +43,8 @@ import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
 import { variantesQueSeVenden } from "@/lib/productos-vista";
+import { campanasQueCobra } from "@/lib/etiquetas-precio";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -79,7 +82,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
   const enSede = persona.vista !== "global";
-  const filtros = conSede(filtrosProductosDesdeParams(params), enSede ? persona.ubicacionId : null);
+  // ADR-0505: CLAURE solo existe donde opera (Lima). En una sede con una sola empresa la lista pide solo esa, aunque la URL diga
+  // otra; en Lima y en CAYLA Global, la elegida en «Tienda». Va antes de la lista porque la decide. Sin respuesta, como antes.
+  const empresasAqui = await getEmpresasAqui(enSede ? persona.ubicacionId : null).catch(() => null);
+  const desdeUrl = filtrosProductosDesdeParams(params);
+  const filtros = conSede({ ...desdeUrl, empresaId: empresaDelListado(desdeUrl.empresaId, empresasAqui) }, enSede ? persona.ubicacionId : null);
   const pagina = paginaProductosDesdeParams(params);
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
@@ -128,6 +135,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
     getPendientesDeLaSede(persona.ubicacionId),
   ]);
+  // ADR-0467 + ADR-0505: la píldora «Tienda» solo donde conviven dos empresas (Lima, Global); en Trujillo no hay nada que elegir.
+  const empresas = opcionesDeEmpresa(empresasAqui);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
   // lista. «A quién pedirle» se quitó el 2026-10-07 (Felipe): repetía Disponibilidad ▸ «Pedir a proveedor» + Proveedor.
@@ -144,7 +153,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [existencias, preciosTiendas, catalogoSede, pisoSede] = await Promise.all([
+  const [existencias, preciosTiendas, catalogoSede, pisoSede, campanas] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
@@ -155,20 +164,22 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
     getCatalogo().catch(() => null),
     getDisponibleEnSede(persona.ubicacionId).catch(() => null),
+    // Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
+    // las tarjetas muestran el precio de lista, como antes de esto: la lista no se cae por una campaña.
+    campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);
-  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(catalogoSede, (id) => cantidadCobrable(pisoSede.get(id))) : [];
+  const campanasHoy = campanas ? Object.fromEntries(campanas) : undefined;
+  // «Combina bien con» tampoco sugiere una prenda de CLAURE fuera de Lima (ADR-0505).
+  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(soloLasDeAqui(catalogoSede, empresasAqui), (id) => cantidadCobrable(pisoSede.get(id))) : [];
   // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
   // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
   // CAYLA Global no hay tienda: el de la prenda.
   const preciosTienda = preciosDeTiendaPorProducto(
-    resultado.productos.map((p) => {
-      const precios = variantesQueSeVenden(p.variantes).map((v) => v.precio).filter((n) => n > 0);
-      return {
-        productoId: p.productoId,
-        varianteIds: p.variantes.map((v) => v.varianteId),
-        preciosPrenda: precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null,
-      };
-    }),
+    // Cada talla que se vende y su precio de la prenda: el precio de una tienda se arma talla por talla (una excepción por combinación, 2026-10-28).
+    resultado.productos.map((p) => ({
+      productoId: p.productoId,
+      precios: Object.fromEntries(variantesQueSeVenden(p.variantes).filter((v) => v.precio > 0).map((v) => [v.varianteId, v.precio])),
+    })),
     preciosTiendas.porSede,
     preciosTiendas.nombres,
   );
@@ -179,9 +190,11 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // Cada producto lleva el prefijo y la familia de su categoría (de la misma lectura de arriba, sin otra consulta): de ahí sale el
   // ícono de su miniatura cuando no tiene foto (ADR-0333). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
   const categoriaPorId = new Map(categoriasLeidas.map((c) => [c.id, c] as const));
+  // Y la insignia de su empresa donde conviven dos (ADR-0505): «CLAURE» en Lima y en Global; nada en Trujillo ni para CAYLA.
   const productos = resultado.productos.map((p) => {
     const c = p.categoriaId ? categoriaPorId.get(p.categoriaId) : undefined;
-    return c ? { ...p, categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : p;
+    const empresa = insigniaDeEmpresa(p.empresaId, empresasAqui);
+    return { ...p, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
   });
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
   const fichasDeColor: ColorConFicha[] = exigir(colores, "los colores").map((c) => ({
@@ -198,9 +211,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     .map((t) => ({ id: t.id, nombre: t.valor }))
     .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
-  // El «!» con lo que la frase no alcanza a decir. En el celular va junto al título, porque ahí la frase se esconde (Felipe, 2026-10-09).
+  // Lo que la frase no alcanza a decir: en el globo del «?», un paso más abajo (ronda 18 de /unificar, 2026-10-30).
   const ayudaProductos = (
-    <Ayuda titulo="Productos">
+    <>
       <span className="block">
         Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
       </span>
@@ -212,7 +225,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </Link>
         .
       </span>
-    </Ayuda>
+    </>
   );
 
   return (
@@ -220,22 +233,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo={
-          <>
-            Productos
-            {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 36 px. */}
-            <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayudaProductos}</span>
-          </>
-        }
-        subtitulo={
-          // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
-          // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
-          <>
-            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero) y el «!» sube junto al título. */}
-            <span className="max-sm:hidden">Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.</span>
-            <span className="max-sm:hidden">{ayudaProductos}</span>
-          </>
-        }
+        titulo="Productos"
+        subtitulo="Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede."
+        ayuda={ayudaProductos}
         acciones={
           <>
             {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su
@@ -340,6 +340,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
+        empresas={empresas}
         // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
         // prendas. Solo en la Grilla: la Tabla no tiene tarjetas. La `key` es porque `FiltrosProductos` lo dibuja entre hermanos y React
         // pide key a un elemento que llega del servidor (aviso «unique key prop» en la consola, 2026-10-10).
@@ -363,6 +364,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             tamanoInicial={tamanoGrilla}
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
             colores={fichasDeColor}
             tarjetasLook={tarjetasLook}
           />
@@ -380,6 +382,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             hrefLimpiar="/productos?vista=tabla"
             preciosTienda={preciosTienda}
             preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
           />
         )}
 

@@ -584,6 +584,43 @@ rollback;
   ([n]) => Number(n) === 1
 );
 
+// ---------------------------------------------------------------------------
+// QR como medio de la diferencia (20261021183000 + 20261021184000). El 2026-10-21 una clienta pagó la diferencia de un
+// cambio con el QR de Izipay; el cambio no lo aceptaba, la colaboradora anotó «transferencia» y quedaron dos cuentas
+// (Por depositar Izipay e Interbank) mal por la misma plata.
+// ---------------------------------------------------------------------------
+
+exito(
+  "la diferencia de un cambio se puede cobrar con QR: queda sellada en la máquina de la tienda y entra a «Cobros con QR» del libro",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 20 })}
+select coalesce(sum(l.monto), 0) as qr_antes from retail.fn_dinero_libro(retail.fn_hoy_lima()) l
+  where l.ubicacion_id = :'ubic' and l.detalle ilike 'Cobros con QR%' \\gset
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'qr', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia, c.metodo_pago_diferencia,
+  (select d.nombre from retail.cuentas_dinero d where d.id = c.cuenta_dinero_id),
+  (select coalesce(sum(l.monto), 0) from retail.fn_dinero_libro(retail.fn_hoy_lima()) l
+    where l.ubicacion_id = :'ubic' and l.detalle ilike 'Cobros con QR%') - :'qr_antes'
+from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia, metodo, cuenta, entraAlLibro]) =>
+    Number(diferencia) === 20 && metodo === "qr" && cuenta === "Por depositar Izipay" && Number(entraAlLibro) === 20
+);
+
+error(
+  "un medio que no existe sigue rechazado por el candado, aunque ahora se acepte el QR",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'bitcoin', gen_random_uuid());
+`
+  ),
+  "cambios_metodo_pago_diferencia_check"
+);
+
 function main() {
   try {
     execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]);

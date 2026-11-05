@@ -50,6 +50,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { sqlDeshacer } from "./_deshacer_claure.mjs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unionDeAntes } from "./union-de-fichas-de-antes.mjs";
@@ -60,6 +61,12 @@ const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260930210000_club_paso1f_lista_y_ficha.sql"), "utf8");
+
+// Una migración POSTERIOR puede cambiar a propósito una función que esta fija por su md5 (la sección 0 es un candado de versión: «no se reemplaza a ciegas»).
+// Hoy: 20261029035000 (ADR-0560, 6c) parcha `fn_club_compras_netas` para que una compra solo de CLAURE no cuente. Los casos que miran el cuerpo VIVO de esa función
+// (o que vuelven a pegar este archivo) la devuelven antes, dentro de su transacción, a lo que escribió este archivo: se lee el reemplazo anclado de esa migración y
+// se aplica al revés. Sin esa migración (una base que no la tiene), no hay nada que deshacer.
+const DESHACER_POSTERIORES = sqlDeshacer("20261029035000_claure_fuera_del_club_y_las_clientes.sql", ["retail.fn_club_compras_netas(uuid)"]);
 
 // La tabla del candado de versión de la sección 0: firma → md5 normalizado «antes» (null: no existía) y «después».
 const VERSIONES = [
@@ -699,12 +706,12 @@ caso(
 // =====================================================================================================================
 caso(
   "(j) los md5 «después» de la sección 0 son los de las funciones vivas",
-  VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
+  DESHACER_POSTERIORES + VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
   VERSIONES.map((v) => v.despues).join("\n")
 );
 caso(
   `(j) las ${CREADAS.length} funciones que crea el archivo están vivas con el cuerpo del archivo (una sola firma cada una)`,
-  CREADAS.map(
+  DESHACER_POSTERIORES + CREADAS.map(
     (f) =>
       `select '${f}' || ':' || count(*) || ':' || bool_and(${md5Norm("p.prosrc")} = ${md5Norm(`$cuerpo_1f$${cuerpoDe(f)}$cuerpo_1f$`)}) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = '${f.slice(7)}';\n`
   ).join(""),
@@ -739,7 +746,7 @@ select md5(string_agg(x, '|' order by x)) from (
 const PEGAR = `reset role;\n${MIGRACION}\nset local search_path = retail, public, extensions;\n`;
 caso(
   "(j) pegarla otra vez deja todo igual: funciones, permisos, columna, candados, índices, disparadores, RLS y catálogo",
-  FOTO + PEGAR + FOTO,
+  DESHACER_POSTERIORES + FOTO + PEGAR + FOTO,
   (s) => {
     const l = s.split("\n").filter(Boolean);
     return l.length === 2 && l[0] === l[1];
@@ -747,7 +754,7 @@ caso(
 );
 caso(
   "(j) pegarla otra vez no revive un valor apagado ni le cambia el orden (on conflict do nothing)",
-  `reset role;
+  DESHACER_POSTERIORES + `reset role;
 update retail.club_etiquetas set activa = false, orden = 7 where grupo = 'estilo' and valor = 'Tendencia';
 ` + PEGAR + `select activa, orden from retail.club_etiquetas where grupo = 'estilo' and valor = 'Tendencia';\n`,
   "f|7"
@@ -763,12 +770,12 @@ $q$;
 `;
 caso(
   "(j) candado de versión: con fn_cifras_clientas cambiada en vivo, la migración aborta con un mensaje claro…",
-  CAMBIADA_EN_VIVO + PEGAR,
+  DESHACER_POSTERIORES + CAMBIADA_EN_VIVO + PEGAR,
   (o) => o.startsWith("ERROR_DE_SCRIPT") && o.includes("retail.fn_cifras_clientas() cambió desde que se escribió esta migración")
 );
 caso(
   "(j) …y no pisa NADA: la función sigue con su cambio y lo demás queda como estaba",
-  CAMBIADA_EN_VIVO + FOTO +
+  DESHACER_POSTERIORES + CAMBIADA_EN_VIVO + FOTO +
     `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${MIGRACION}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
     `set local search_path = retail, public, extensions;\n` +
     FOTO +

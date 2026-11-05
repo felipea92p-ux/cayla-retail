@@ -1,0 +1,3 @@
+- 2026-10-30 · Tráfico: «Hasta dónde llega la gente» deja los 100 puntos por paso y pasa a ser **la línea de la tienda** (Felipe eligió «F» entre dos rondas de maquetas, `docs/maquetas/trafico-recorrido-2026-10/`): estaciones con ícono y personas reales, sin «de cada 100».
+- «Entraron» ya muestra el día de hoy: punteado hasta un punto hueco con «hasta ahora» (`graficoDe` → `enCurso`, prop nueva `enCurso` en `<Linea>`). ADR-0568, act. 2026-10-30.
+- Verificado con una página temporal de datos inventados (ya borrada): escritorio 1440, oscuro y 375 px; 744 archivos de prueba, tipos y Knip en verde. Falta mirarlo con visitas reales de producción.

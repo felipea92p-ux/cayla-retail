@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A3 · Recorrido — Rediseño de la tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Newsreader:ital,opsz,wght@1,6..72,300..500&family=EB+Garamond:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="marco.css">
+<style>
+/* ── A3 · RECORRIDO ─ la galería de A, para caminarla. Hueso cálido y azul noche. Al bajar, las prendas pasan de lado como
+   si recorrieras la sala; un cursor propio dice «Ver» sobre cada obra; la bolsa se abre de costado al agregar; cambiar de
+   pantalla es pasar a la sala de al lado. Con «reducir movimiento», todo queda quieto y se recorre deslizando. ── */
+#lienzo {
+  --hueso: #f0ede7; --papel: #e6e2da; --noche: #182030; --pizarra: #5a6070; --linea: #d3cec5; --ocre: #9a6b2f; --ocre-texto: #7e5524;
+  --ancho: "wdth" 125; --gutter: clamp(16px, 4cqi, 64px);
+  background: var(--hueso); color: var(--noche); overflow-x: clip;
+  font: 400 15px/1.65 "Archivo", system-ui, sans-serif; font-variation-settings: "wdth" 100;
+}
+/* El cajón de la bolsa vive fuera del lienzo (el lienzo es un contenedor y no dejaría que el cajón se fije a la ventana):
+   por eso repite los colores. */
+.r-capa { --hueso: #f0ede7; --papel: #e6e2da; --noche: #182030; --pizarra: #5a6070; --linea: #d3cec5; --ocre: #9a6b2f; --ancho: "wdth" 125; }
+#lienzo *, #lienzo *::before, #lienzo *::after, .r-capa, .r-capa * { box-sizing: border-box; }
+#lienzo a, .r-capa a { color: inherit; }
+#lienzo :focus-visible, .r-capa :focus-visible { outline: 1.5px solid var(--ocre); outline-offset: 3px; }
+#lienzo img, .r-capa img { display: block; max-width: 100%; }
+:where(#lienzo, .r-capa) button { font: inherit; color: inherit; }
+
+.r-cap { font-variation-settings: var(--ancho); font-weight: 500; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+.r-display { margin: 0; font-variation-settings: var(--ancho); font-weight: 150; text-transform: uppercase; letter-spacing: .02em; line-height: .9; font-size: clamp(52px, 11cqi, 168px); }
+.r-titulo { margin: 0; font-variation-settings: var(--ancho); font-weight: 200; text-transform: uppercase; letter-spacing: .06em; line-height: 1.05; font-size: clamp(22px, 2.6cqi, 34px); }
+.r-nombre { font-family: "Newsreader", Georgia, serif; font-style: italic; font-weight: 400; }
+.r-tenue { color: var(--pizarra); }
+.r-num { font-variant-numeric: tabular-nums; }
+
+/* El aviso de arriba: una frase que pasa despacio */
+.r-aviso { overflow: hidden; height: 34px; display: flex; align-items: center; background: var(--noche); color: var(--hueso); }
+.r-aviso-pista { display: flex; flex: none; gap: 48px; padding-right: 48px; white-space: nowrap; }
+.r-aviso-pista span::after { content: "·"; margin-left: 48px; opacity: .5; }
+
+.r-cab { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 70px; padding: 0 var(--gutter); background: color-mix(in srgb, var(--hueso) 90%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--linea); }
+.r-cab nav { display: flex; gap: clamp(14px, 2.4cqi, 32px); }
+.r-cab nav:last-child { justify-content: flex-end; }
+.r-cab nav a { position: relative; text-decoration: none; padding: 6px 0; }
+.r-cab nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 2px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: 100% 50%; }
+.r-cab nav a:hover::after { transform: scaleX(1); transform-origin: 0 50%; }
+.r-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.r-logo img { width: 30px; height: auto; }
+.r-logo span { font-family: "EB Garamond", serif; font-weight: 500; font-size: 21px; letter-spacing: .22em; margin-right: -.22em; }
+.r-menu { display: none; width: 40px; height: 40px; border: 0; background: none; padding: 10px 8px; }
+.r-menu i { display: block; height: 1px; background: currentColor; margin: 5px 0; }
+.r-ir-bolsa b { display: inline-block; font-weight: 500; }
+
+.r-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; padding: 0 30px; border: 1px solid var(--noche); background: var(--noche); color: var(--hueso) !important; text-decoration: none; cursor: pointer; overflow: hidden; isolation: isolate; }
+.r-btn::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--hueso); transform: translateY(101%); }
+.r-btn:hover { color: var(--noche) !important; }
+.r-btn:hover::before { transform: none; }
+.r-btn--claro { background: transparent; color: var(--noche) !important; }
+.r-btn--claro::before { background: var(--noche); }
+.r-btn--claro:hover { color: var(--hueso) !important; }
+.r-btn .r-carga { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--ocre); transform: scaleX(0); transform-origin: 0 50%; }
+.r-link { position: relative; text-decoration: none; padding-bottom: 3px; }
+.r-link::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--linea); }
+.r-link::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--noche); transform: scaleX(0); transform-origin: 0 50%; z-index: 1; }
+.r-link:hover::before { transform: scaleX(1); }
+
+.r-obra { position: relative; display: block; aspect-ratio: 4 / 5; background: var(--papel); overflow: hidden; text-decoration: none; }
+.r-obra img { width: 100%; height: 100%; object-fit: contain; padding: 9%; mix-blend-mode: multiply; }
+.r-cedula { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding-top: 14px; }
+.r-cedula .r-nombre { font-size: 21px; line-height: 1.2; text-decoration: none; }
+.r-cedula .r-cap { grid-column: 1 / -1; color: var(--pizarra); }
+.r-dispo { grid-column: 1 / -1; margin-top: 4px; font-size: 13px; color: var(--pizarra); }
+
+.r-seccion { padding: clamp(72px, 10cqi, 150px) var(--gutter) 0; }
+.r-seccion-cab { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: clamp(32px, 5cqi, 64px); }
+
+/* Portada: el titular y, debajo, el recorrido */
+.r-hero { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 32px; padding: clamp(40px, 7cqi, 104px) var(--gutter) clamp(32px, 4cqi, 56px); }
+.r-hero .r-cap { display: block; margin-bottom: 26px; }
+.r-hero p { max-width: 34ch; margin: 0 0 8px; font-size: 17px; }
+.r-hero .r-acciones { margin-top: 28px; }
+.r-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+/* El recorrido: la sala se queda quieta y las prendas pasan de lado mientras bajas */
+.r-recorrido { position: relative; height: calc(var(--n, 7) * 46vh + 100vh); }
+.r-recorrido-fijo { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 36px; overflow: hidden; border-top: 1px solid var(--linea); }
+.r-pista { display: flex; align-items: center; gap: clamp(32px, 6cqi, 112px); padding: 0 var(--gutter); will-change: transform; }
+.r-pista > * { flex: none; }
+.r-pista .r-fig { width: clamp(240px, 27cqi, 400px); margin: 0; transform-origin: 50% 60%; }
+.r-pista .r-fig:nth-child(odd) { margin-top: 9vh; }
+.r-intro { width: clamp(220px, 24cqi, 340px); }
+.r-intro .r-nombre { font-size: clamp(30px, 3.2cqi, 46px); line-height: 1.05; display: block; margin: 14px 0 18px; }
+.r-progreso { display: flex; align-items: center; gap: 20px; padding: 0 var(--gutter); }
+.r-progreso-linea { position: relative; flex: 1; height: 1px; background: var(--linea); }
+.r-progreso-linea i { position: absolute; inset: 0; background: var(--ocre); transform: scaleX(var(--p, 0)); transform-origin: 0 50%; }
+.r-progreso-cuenta { min-width: 64px; text-align: right; }
+.r-pasos { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; padding-top: 44px; }
+.r-pasos::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--linea); }
+.r-pasos::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--ocre); transform: scaleX(var(--p, 0)); transform-origin: 0 50%; }
+.r-paso { position: relative; }
+.r-paso::before { content: ""; position: absolute; top: -50px; left: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--hueso); border: 1px solid var(--linea); transition: background .5s, border-color .5s, transform .5s; }
+.r-paso.encendido::before { background: var(--ocre); border-color: var(--ocre); transform: scale(1.25); }
+.r-paso .r-nombre { display: block; font-size: 48px; line-height: 1; margin-bottom: 14px; }
+.r-paso h3 { margin: 0 0 8px; font-size: 16px; font-weight: 500; }
+.r-paso p { margin: 0; color: var(--pizarra); }
+.r-club { display: grid; grid-template-columns: 1fr 1.2fr; gap: clamp(32px, 6cqi, 120px); padding: clamp(56px, 8cqi, 112px) var(--gutter); margin-top: clamp(72px, 10cqi, 150px); background: var(--noche); color: var(--hueso); }
+.r-club .r-tenue { color: #b9bfcc; }
+.r-club ul { list-style: none; margin: 0; padding: 0; }
+.r-club li { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 22px 0; border-top: 1px solid #ffffff26; }
+.r-club li b { font-weight: 500; }
+.r-club li span { grid-column: 1; color: #b9bfcc; }
+.r-club li::after { content: "→"; grid-row: 1 / span 2; grid-column: 2; align-self: center; opacity: 0; transform: translateX(-10px); transition: opacity .4s, transform .5s cubic-bezier(.2,.7,.2,1); }
+.r-club li:hover::after { opacity: 1; transform: none; }
+.r-club .r-btn { background: var(--hueso); color: var(--noche) !important; border-color: var(--hueso); }
+.r-club .r-btn::before { background: var(--noche); }
+.r-club .r-btn:hover { color: var(--hueso) !important; }
+.r-tiendas { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4cqi, 64px); }
+.r-tienda { padding: 26px 0 0; border-top: 1px solid var(--noche); }
+.r-tienda h3 { margin: 0 0 16px; }
+.r-tienda p { margin: 0 0 4px; }
+.r-tienda .r-acciones { margin-top: 20px; }
+.r-pie { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; padding: clamp(56px, 8cqi, 112px) var(--gutter) 40px; margin-top: clamp(72px, 10cqi, 150px); border-top: 1px solid var(--linea); }
+.r-pie ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.r-pie a { text-decoration: none; }
+
+/* Catálogo */
+.r-cat-cab { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding: clamp(40px, 6cqi, 80px) var(--gutter) 28px; }
+.r-filtros { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px 32px; margin: 0 var(--gutter); padding: 14px 0; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+.r-filtros [role="group"] { position: relative; display: flex; flex-wrap: wrap; gap: 2px; }
+.r-filtros button { position: relative; z-index: 1; height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: none; cursor: pointer; color: var(--pizarra); }
+.r-filtros button:hover { color: var(--noche); }
+.r-filtros button[aria-pressed="true"] { color: var(--hueso); }
+.r-filtros .indicador { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--noche); pointer-events: none; }
+.r-rejilla { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(36px, 5cqi, 64px) clamp(16px, 2.4cqi, 36px); padding: clamp(36px, 5cqi, 56px) var(--gutter) 0; }
+.r-rejilla [hidden] { display: none; }
+.r-ver { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--hueso); font-size: 13px; opacity: 0; transform: translateY(12px); }
+
+/* Prenda */
+.r-ruta { padding: 24px var(--gutter) 0; }
+.r-ruta a { text-decoration: none; }
+.r-ficha { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(28px, 6cqi, 120px); padding: 24px var(--gutter) 0; align-items: start; }
+.r-ficha .r-obra img { will-change: transform; }
+.r-galeria-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+.r-panel { position: sticky; top: 100px; display: grid; gap: 28px; }
+.r-panel h1 { margin: 0; font-size: clamp(36px, 4.2cqi, 56px); line-height: 1.05; }
+.r-panel .r-precio { font-size: 20px; margin-top: 10px; }
+.r-campo { display: grid; gap: 12px; }
+.r-campo-cab { display: flex; justify-content: space-between; }
+.r-opciones { position: relative; display: flex; flex-wrap: wrap; gap: 6px; }
+.r-talla { position: relative; z-index: 1; min-width: 54px; height: 46px; padding: 0 14px; border: 1px solid var(--linea); border-radius: 999px; background: transparent; cursor: pointer; }
+.r-talla:hover { border-color: var(--noche); }
+.r-talla[aria-pressed="true"] { color: var(--hueso); border-color: var(--noche); }
+[data-grupo="talla"] .indicador { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--noche); pointer-events: none; }
+.r-color { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 7px; border: 1px solid var(--linea); border-radius: 999px; background: transparent; cursor: pointer; }
+.r-color i { width: 30px; height: 30px; border-radius: 50%; box-shadow: inset 0 0 0 1px #0002; }
+.r-color[aria-pressed="true"] { border-color: var(--noche); }
+.r-stock { display: grid; margin: 0; }
+.r-stock div { display: flex; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--linea); }
+.r-stock div:last-child { border-bottom: 1px solid var(--linea); }
+.r-stock dd { margin: 0; }
+.r-aviso-campo { min-height: 1.6em; margin: -12px 0 0; font-size: 14px; }
+.r-vacon { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(16px, 2.4cqi, 36px); }
+
+/* El cajón de la bolsa: se abre de costado al agregar o al tocar «Bolsa» */
+.r-velo { position: fixed; inset: 0; z-index: 140; background: color-mix(in srgb, var(--noche) 32%, transparent); opacity: 0; pointer-events: none; }
+.r-cajon { position: fixed; top: 0; right: 0; bottom: 0; z-index: 150; width: min(440px, 100vw); display: grid; grid-template-rows: auto 1fr auto; background: var(--hueso); color: var(--noche); transform: translateX(102%); visibility: hidden; box-shadow: -30px 0 80px -40px #0006; font: 400 15px/1.6 "Archivo", system-ui, sans-serif; }
+.r-cajon.abierto { transform: none; visibility: visible; }
+.r-velo.abierto { opacity: 1; pointer-events: auto; }
+.r-cajon-cab { display: flex; justify-content: space-between; align-items: center; padding: 22px 26px; border-bottom: 1px solid var(--linea); }
+.r-cajon-cab h2:focus { outline: none; }
+.r-cajon-cab h2 { margin: 0; font-family: "Newsreader", serif; font-style: italic; font-weight: 400; font-size: 26px; }
+.r-cerrar { width: 40px; height: 40px; border: 0; background: none; font-size: 22px; cursor: pointer; }
+.r-cajon-lista { overflow: auto; padding: 8px 26px; }
+.r-cajon-linea { display: grid; grid-template-columns: 72px 1fr auto; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--linea); }
+.r-cajon-linea .r-obra { aspect-ratio: 4 / 5; }
+.r-cajon-linea .r-nombre { font-size: 18px; }
+.r-cajon-pie { display: grid; gap: 12px; padding: 22px 26px; border-top: 1px solid var(--linea); }
+.r-cajon-pie .r-total { display: flex; justify-content: space-between; align-items: baseline; }
+.r-cajon-pie .r-total b { font-weight: 400; font-size: 24px; }
+
+/* Bolsa */
+.r-bolsa-cuerpo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: clamp(28px, 6cqi, 112px); padding: 0 var(--gutter); align-items: start; }
+.r-linea { display: grid; grid-template-columns: 120px 1fr auto; gap: 24px; padding: 24px 0; border-top: 1px solid var(--linea); align-items: start; }
+.r-linea:last-child { border-bottom: 1px solid var(--linea); }
+.r-linea .r-nombre { font-size: 22px; text-decoration: none; }
+.r-linea .r-cap { display: block; margin-top: 4px; color: var(--pizarra); }
+.r-linea [data-hay-aqp] { display: block; margin-top: 10px; font-size: 13px; color: var(--pizarra); }
+.r-linea [data-falta="true"] { color: var(--ocre-texto); }
+.r-quitar { margin-top: 12px; border: 0; background: none; padding: 0; color: var(--pizarra); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.r-resumen { position: sticky; top: 100px; display: grid; gap: 24px; padding: 32px; background: var(--papel); }
+.r-tienda-op { position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 2px 14px; width: 100%; text-align: left; padding: 16px 18px; border: 1px solid var(--linea); background: var(--hueso); cursor: pointer; }
+.r-tienda-op::before { content: ""; grid-row: span 2; align-self: center; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--pizarra); box-shadow: inset 0 0 0 8px var(--hueso); background: var(--noche); }
+.r-tienda-op[aria-pressed="true"] { border-color: var(--noche); }
+.r-tienda-op[aria-pressed="true"]::before { border-color: var(--noche); box-shadow: inset 0 0 0 3px var(--hueso); }
+.r-total-grande { display: flex; justify-content: space-between; align-items: baseline; padding-top: 20px; border-top: 1px solid var(--linea); }
+.r-total-grande b { font-weight: 400; font-size: 26px; }
+.r-listo { padding: 32px; background: var(--hueso); border: 1px solid var(--noche); display: grid; gap: 16px; }
+.r-listo h2 { margin: 0; font-size: 34px; line-height: 1.1; }
+.r-listo p { margin: 0; }
+.r-mensaje { margin: 0; padding: 16px 18px; background: var(--papel); font-size: 14px; white-space: pre-line; }
+
+/* Entrar: a un lado la ropa pasa despacio; al otro, el formulario */
+.r-entrar { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 104px); }
+.r-desfile { display: grid; align-content: center; gap: 24px; overflow: hidden; background: var(--papel); }
+.r-desfile-fila { display: flex; gap: 24px; width: max-content; }
+.r-desfile-fila .r-obra { width: 200px; background: var(--hueso); }
+.r-form { display: grid; align-content: center; gap: 22px; width: min(420px, 100%); margin: 0 auto; padding: 48px var(--gutter); }
+.r-form h1 { margin-bottom: 8px; font-size: clamp(40px, 5cqi, 64px); }
+.r-flota { position: relative; display: block; }
+.r-flota input { width: 100%; height: 58px; padding: 20px 2px 4px; border: 0; border-bottom: 1px solid var(--linea); background: linear-gradient(var(--noche), var(--noche)) no-repeat left bottom / 0% 1px; font: inherit; color: inherit; }
+.r-flota input:focus { outline: none; background-size: 100% 1px; }
+.r-flota span { position: absolute; left: 2px; top: 19px; color: var(--pizarra); pointer-events: none; transform-origin: 0 0; }
+.r-flota input:focus + span, .r-flota input:not(:placeholder-shown) + span { transform: translateY(-16px) scale(.78); letter-spacing: .08em; }
+.r-form .r-btn { width: 100%; }
+
+/* El cursor propio: un punto que se vuelve «Ver» sobre una prenda */
+.r-cursor { position: fixed; left: 0; top: 0; z-index: 400; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--noche, #182030); color: #f0ede7; display: grid; place-items: center; pointer-events: none; font: 500 11px/1 "Archivo", system-ui; letter-spacing: .14em; text-transform: uppercase; opacity: 0; transition: width .45s cubic-bezier(.2,.7,.2,1), height .45s cubic-bezier(.2,.7,.2,1), margin .45s cubic-bezier(.2,.7,.2,1), background-color .3s, opacity .3s; }
+.r-cursor span { opacity: 0; transition: opacity .25s; }
+.r-cursor.activo { opacity: 1; }
+.r-cursor.ver { width: 86px; height: 86px; margin: -43px 0 0 -43px; background: #182030; }
+.r-cursor.ver span { opacity: 1; transition-delay: .12s; }
+.r-cursor.enlace { width: 34px; height: 34px; margin: -17px 0 0 -17px; background: transparent; box-shadow: inset 0 0 0 1px #182030; }
+.con-cursor [data-cursor="ver"] { cursor: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .r-aviso-pista { animation: r-pasa 48s linear infinite; }
+  .r-aviso:hover .r-aviso-pista { animation-play-state: paused; }
+  @keyframes r-pasa { to { transform: translateX(-100%); } }
+  .r-cab nav a::after { transition: transform .5s cubic-bezier(.76,0,.24,1); }
+  .r-btn::before { transition: transform .6s cubic-bezier(.76,0,.24,1); }
+  .r-btn { transition: color .45s; }
+  .r-link::before { transition: transform .6s cubic-bezier(.76,0,.24,1); }
+  .r-filtros .indicador, [data-grupo="talla"] .indicador { transition: transform .6s cubic-bezier(.2,.7,.2,1), width .6s cubic-bezier(.2,.7,.2,1), height .6s; }
+  .r-filtros button, .r-talla { transition: color .45s, border-color .3s; }
+  .r-flota span { transition: transform .45s cubic-bezier(.2,.7,.2,1), letter-spacing .45s, color .3s; }
+  .r-flota input { transition: background-size .7s cubic-bezier(.76,0,.24,1); }
+  .r-velo { transition: opacity .55s; }
+  .r-cajon { transition: transform .75s cubic-bezier(.76,0,.24,1), visibility 0s .75s; }
+  .r-cajon.abierto { transition: transform .75s cubic-bezier(.76,0,.24,1), visibility 0s; }
+  .r-cajon.abierto .r-cajon-linea { animation: r-entra-der .8s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(.3s + var(--i, 0) * 90ms); }
+  .r-btn.cargando .r-carga { transform: scaleX(1); transition: transform .7s cubic-bezier(.76,0,.24,1); }
+
+  /* Al llegar: el titular entra letra a letra y lo demás sube */
+  .r-letras .letra { display: inline-block; opacity: 0; transform: translateY(.35em) rotate(4deg); transition: opacity .8s, transform 1.1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.1s + var(--l, 0) * 45ms); }
+  .listo .r-letras .letra { opacity: 1; transform: none; }
+  .r-sube { opacity: 0; transform: translateY(18px); transition: opacity .9s, transform 1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.45s + var(--s, 0) * 90ms); }
+  .listo .r-sube, .r-sube.visto { opacity: 1; transform: none; }
+  /* El recorte va en un elemento de adentro: el detector de «a la vista» no ve un elemento recortado entero */
+  .r-titulo[data-revela] > span { display: inline-block; clip-path: inset(0 100% 0 0); transition: clip-path 1.3s cubic-bezier(.76,0,.24,1); }
+  .r-titulo.visto > span { clip-path: inset(0); }
+  .r-fig[data-revela] { opacity: 0; transform: translateY(40px); transition: opacity 1s, transform 1.2s cubic-bezier(.2,.7,.2,1); transition-delay: calc(var(--i, 0) * 80ms); }
+  .r-fig.visto { opacity: 1; transform: none; }
+  .r-obra img { transition: transform 1.3s cubic-bezier(.2,.7,.2,1); }
+  .r-fig:hover .r-obra img { transform: translateY(-3%) scale(1.04); }
+  .r-ver { transition: opacity .45s, transform .55s cubic-bezier(.2,.7,.2,1); }
+  .r-fig:hover .r-ver { opacity: 1; transform: none; }
+  .r-tienda[data-revela], .r-club[data-revela] > * { opacity: 0; transform: translateY(26px); transition: opacity 1s, transform 1.1s cubic-bezier(.2,.7,.2,1); }
+  .r-tienda.visto, .r-club.visto > * { opacity: 1; transform: none; }
+  .r-club[data-revela] > :last-child { transition-delay: .18s; }
+  .r-panel > * { opacity: 0; transform: translateX(24px); transition: opacity .8s, transform .9s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.2s + var(--f, 0) * 70ms); }
+  .listo .r-panel > * { opacity: 1; transform: none; }
+  .r-ficha > div:first-child { clip-path: inset(0 0 0 100%); transition: clip-path 1.3s cubic-bezier(.76,0,.24,1) .05s; }
+  .listo .r-ficha > div:first-child { clip-path: inset(0); }
+  .r-bolsa-cuerpo .r-linea { animation: r-entra-der 1s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(.2s + var(--i, 0) * 110ms); }
+  .r-resumen { animation: r-sube-k 1s .35s cubic-bezier(.2,.7,.2,1) both; }
+  .r-listo:not([hidden]) { animation: r-entra-der 1s cubic-bezier(.2,.7,.2,1) both; }
+  .r-tienda-op::before { transition: box-shadow .45s cubic-bezier(.2,.7,.2,1), border-color .3s; }
+  .r-desfile-fila { animation: r-pasa 70s linear infinite; }
+  .r-desfile-fila:nth-child(2) { animation-direction: reverse; animation-duration: 84s; }
+  .r-form > * { animation: r-sube-k .9s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(.2s + var(--f, 0) * 80ms); }
+  @keyframes r-entra-der { from { opacity: 0; transform: translateX(44px); } }
+  @keyframes r-sube-k { from { opacity: 0; transform: translateY(26px); } }
+
+  /* Cambiar de pantalla es pasar a la sala de al lado */
+  ::view-transition-old(root) { animation: .55s cubic-bezier(.76,0,.24,1) both r-vt-sale; }
+  ::view-transition-new(root) { animation: .8s cubic-bezier(.2,.7,.2,1) .05s both r-vt-entra; }
+  @keyframes r-vt-sale { to { opacity: 0; transform: translateX(-5%); } }
+  @keyframes r-vt-entra { from { opacity: 0; transform: translateX(7%); } }
+}
+
+/* Sin movimiento (o en el celular): el recorrido se desliza con el dedo */
+@media (prefers-reduced-motion: reduce) {
+  .r-recorrido { height: auto; }
+  .r-recorrido-fijo { position: static; height: auto; padding: 48px 0; }
+  .r-pista { overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--gutter); scrollbar-width: none; }
+  .r-pista > * { scroll-snap-align: start; }
+  .r-aviso { justify-content: center; }
+  .r-aviso-pista:nth-child(2) { display: none; }
+}
+
+@container lienzo (max-width: 760px) {
+  .r-cab { grid-template-columns: 40px 1fr auto; height: 60px; }
+  .r-cab nav:first-child { display: none; }
+  .r-menu { display: block; grid-column: 1; grid-row: 1; }
+  .r-logo { justify-self: center; grid-column: 2; }
+  .r-cab nav:last-child a:not(.r-ir-bolsa) { display: none; }
+  .r-hero { grid-template-columns: 1fr; }
+  .r-recorrido { height: auto; }
+  .r-recorrido-fijo { position: static; height: auto; padding: 40px 0; gap: 24px; }
+  .r-pista { overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--gutter); scrollbar-width: none; transform: none !important; gap: 16px; }
+  .r-pista > * { scroll-snap-align: start; }
+  .r-pista .r-fig { width: 72cqi; }
+  .r-pista .r-fig:nth-child(odd) { margin-top: 0; }
+  .r-intro { width: 64cqi; }
+  .r-pasos { grid-template-columns: 1fr; gap: 28px; padding: 0 0 0 28px; }
+  .r-pasos::before, .r-pasos::after { left: 5px; right: auto; top: 0; bottom: 0; width: 1px; height: auto; transform: scaleY(var(--p, 0)); transform-origin: 50% 0; }
+  .r-pasos::before { transform: none; }
+  .r-paso::before { top: 6px; left: -28px; }
+  .r-club, .r-ficha, .r-bolsa-cuerpo, .r-entrar { grid-template-columns: 1fr; }
+  .r-tiendas { grid-template-columns: 1fr; }
+  .r-pie { grid-template-columns: 1fr 1fr; }
+  .r-pie > :first-child { grid-column: 1 / -1; }
+  .r-rejilla { grid-template-columns: 1fr 1fr; gap: 32px 14px; }
+  .r-vacon { grid-template-columns: 1fr 1fr; }
+  .r-vacon > :nth-child(n + 3) { display: none; }
+  .r-cedula { grid-template-columns: 1fr; }
+  .r-cedula .r-nombre { font-size: 17px; }
+  .r-dispo, .r-ver { display: none; }
+  .r-filtros [role="group"]:first-child { flex-wrap: nowrap; overflow-x: auto; margin-right: calc(-1 * var(--gutter)); scrollbar-width: none; }
+  .r-filtros button { white-space: nowrap; }
+  .r-panel, .r-resumen { position: static; }
+  .r-linea { grid-template-columns: 88px 1fr; }
+  .r-linea > .r-precio { grid-column: 2; }
+  .r-desfile { min-height: 300px; }
+  .r-desfile-fila .r-obra { width: 130px; }
+  .r-resumen { padding: 24px 20px; margin: 0 calc(-1 * var(--gutter)); }
+}
+</style>
+</head>
+<body>
+<main id="lienzo"></main>
+<script src="datos.js"></script>
+<script src="movimiento.js"></script>
+<script>
+(function () {
+  const C = window.CAYLA, M = window.MOV;
+  const avisos = ["Separa online", "Recoge en Arequipa o Trujillo", "Pagas al recoger", "Con tu cuenta entras al Club CAYLA"];
+  const logo = `<a class="r-logo" href="#portada" aria-label="CAYLA, ir a la portada"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></a>`;
+  const cab = () => `
+    <div class="r-aviso r-cap" role="note" aria-label="${avisos.join(". ")}">${[0, 1].map(() => `<div class="r-aviso-pista" aria-hidden="true">${avisos.concat(avisos).map((a) => `<span>${a}</span>`).join("")}</div>`).join("")}</div>
+    <header class="r-cab">
+      <nav class="r-cap" aria-label="Tienda"><a href="#catalogo">Lo nuevo</a><a href="#catalogo">Ropa</a><a href="#catalogo">Looks</a></nav>
+      <button class="r-menu" aria-label="Abrir el menú"><i></i><i></i></button>
+      ${logo}
+      <nav class="r-cap" aria-label="Tu cuenta"><a href="#portada">Tiendas</a><a href="#entrar">Entrar</a><a class="r-ir-bolsa" href="#bolsa">Bolsa <b data-cuenta-bolsa>0</b></a></nav>
+    </header>`;
+  const pie = () => `
+    <footer class="r-pie">
+      <div>${logo}<p class="r-tenue" style="max-width:30ch;margin-top:16px">Separa online, confirma por WhatsApp y recoge en tu tienda.</p></div>
+      <div><span class="r-cap">Ayuda</span><ul><li><a class="r-link" href="#portada">Cómo separar</a></li><li><a class="r-link" href="#portada">Cambios y devoluciones</a></li><li><a class="r-link" href="#portada">Nuestras tiendas</a></li></ul></div>
+      <div><span class="r-cap">Tu cuenta</span><ul><li><a class="r-link" href="#entrar">Crear mi cuenta</a></li><li><a class="r-link" href="#entrar">Entrar</a></li><li><a class="r-link" href="#entrar">Olvidé mi contraseña</a></li></ul></div>
+      <div><span class="r-cap">CAYLA</span><ul><li><a class="r-link" href="#portada">Club CAYLA</a></li><li><a class="r-link" href="#portada">Privacidad</a></li><li><a class="r-link" href="#portada">Términos del Club</a></li></ul></div>
+    </footer>`;
+  const obra = (p, i, conPrecio, revela = true) => `
+    <figure class="r-fig" ${revela ? "data-revela" : ""} data-id="${p.id}" style="--i:${i};margin:0" data-cat="${p.cat}" data-aqp="${p.stock.aqp}" data-tru="${p.stock.tru}">
+      <a class="r-obra" href="#prenda/${p.id}" data-cursor="ver" aria-label="Ver ${p.nombre}"><img src="${C.foto(p)}" alt="${p.nombre}" loading="lazy">${conPrecio ? `<span class="r-ver" aria-hidden="true"><span>Ver la prenda</span><span>→</span></span>` : ""}</a>
+      <figcaption class="r-cedula">
+        <a class="r-nombre" href="#prenda/${p.id}">${p.nombre}</a>
+        ${conPrecio ? `<span class="r-precio r-num">${C.precio(p.precio)}</span>` : `<a class="r-link r-precio" href="#entrar">Ver precio</a>`}
+        <span class="r-cap">${C.nombreCat(p.cat)} · ${p.colores.length === 1 ? p.colores[0][0] : p.colores.length + " colores"}${conPrecio ? ` · ${p.tallas[0]}–${p.tallas[p.tallas.length - 1]}` : ""}</span>
+        ${conPrecio ? `<span class="r-dispo">Arequipa ${C.stockTexto(p.stock.aqp)} · Trujillo ${C.stockTexto(p.stock.tru)}</span>` : ""}
+      </figcaption>
+    </figure>`;
+  const cajon = () => `
+    <div class="r-velo r-capa" data-cerrar-cajon></div>
+    <aside class="r-cajon r-capa" role="dialog" aria-modal="true" aria-labelledby="r-cajon-titulo" aria-hidden="true">
+      <div class="r-cajon-cab"><h2 id="r-cajon-titulo" tabindex="-1">Tu bolsa</h2><button class="r-cerrar" data-cerrar-cajon aria-label="Cerrar la bolsa">×</button></div>
+      <div class="r-cajon-lista" data-cajon-lista></div>
+      <div class="r-cajon-pie"><div class="r-total"><span>Total <span class="r-tenue">· pagas al recoger</span></span><b class="r-num" data-cajon-total></b></div>
+        <a class="r-btn" href="#bolsa" data-cerrar-cajon>Ver la bolsa y separar</a><button class="r-btn r-btn--claro" data-cerrar-cajon>Seguir mirando</button></div>
+    </aside>`;
+
+  const pantallas = {
+    portada() {
+      const enSala = C.prendas.slice(0, 7);
+      return `${cab()}
+      <section class="r-hero">
+        <div>
+          <span class="r-cap r-tenue r-sube">Llegó en los últimos 30 días</span>
+          <h1 class="r-display r-letras" data-letras>Lo nuevo</h1>
+        </div>
+        <div>
+          <p class="r-sube" style="--s:1">Lo que llegó a Arequipa y Trujillo. Crea tu cuenta para ver precios, tallas y cuánto hay en cada tienda.</p>
+          <div class="r-acciones r-sube" style="--s:2"><a class="r-btn" href="#entrar">Crear mi cuenta</a><a class="r-link" href="#entrar">Ya tengo cuenta</a></div>
+        </div>
+      </section>
+      <section class="r-recorrido" data-recorrido style="--n:${enSala.length}" aria-label="Recorrido por lo nuevo">
+        <div class="r-recorrido-fijo">
+          <div class="r-pista" data-pista>
+            <div class="r-intro"><span class="r-cap r-tenue">En las tiendas</span><span class="r-nombre">Recorre lo nuevo, prenda por prenda</span><p class="r-tenue" data-instruccion>Baja para pasar de una a otra.</p><a class="r-link r-cap" href="#catalogo">Ver las ${C.prendas.length} prendas</a></div>
+            ${enSala.map((p, i) => obra(p, i, false, false)).join("")}
+          </div>
+          <div class="r-progreso"><span class="r-progreso-linea"><i data-progreso></i></span><span class="r-progreso-cuenta r-cap r-num"><b data-actual>1</b> / ${enSala.length}</span></div>
+        </div>
+      </section>
+      <section class="r-seccion">
+        <div class="r-seccion-cab"><h2 class="r-titulo" data-revela>Así se separa</h2><span class="r-cap r-tenue">Sin pagar en la web</span></div>
+        <div class="r-pasos" data-pasos>${C.pasos.map(([t, d], i) => `<div class="r-paso"><span class="r-nombre">${i + 1}</span><h3>${t}</h3><p>${d}</p></div>`).join("")}</div>
+      </section>
+      <section class="r-club" data-revela>
+        <div><span class="r-cap r-tenue">Club CAYLA</span><h2 class="r-titulo" style="margin-top:16px">Tu cuenta ya es<br>tu membresía</h2><p class="r-tenue" style="margin:20px 0 32px;max-width:36ch">Al crear tu cuenta entras al Club. No hay que llenar nada más.</p><a class="r-btn" href="#entrar">Crear mi cuenta</a></div>
+        <ul>${C.club.map(([t, d]) => `<li><b>${t}</b><span>${d}</span></li>`).join("")}</ul>
+      </section>
+      <section class="r-seccion">
+        <div class="r-seccion-cab"><h2 class="r-titulo" data-revela>Nuestras tiendas</h2><span class="r-cap r-tenue">Recoge en la que te quede cerca</span></div>
+        <div class="r-tiendas">${C.tiendas.map((t) => `<div class="r-tienda" data-revela><h3 class="r-titulo">${t.ciudad}</h3><p>${t.direccion}</p><p class="r-tenue">${t.horario}</p><div class="r-acciones"><a class="r-btn r-btn--claro" href="#portada">WhatsApp ${t.whatsapp}</a><a class="r-link" href="#portada">Cómo llegar</a></div></div>`).join("")}</div>
+      </section>
+      ${pie()}`;
+    },
+
+    catalogo() {
+      return `${cab()}
+      <div class="r-cat-cab"><h1 class="r-display r-letras" data-letras style="font-size:clamp(48px,8cqi,120px)">Ropa</h1><span class="r-cap r-tenue r-sube"><b data-cuenta-prendas>${C.prendas.length}</b> prendas</span></div>
+      <div class="r-filtros r-cap" data-filtros>
+        <div role="group" aria-label="Qué buscas">${C.categorias.map(([k, n], i) => `<button data-filtro="${k}" aria-pressed="${i === 0}">${n}</button>`).join("")}</div>
+        <div role="group" aria-label="En qué tienda">${[["todas", "Todas las tiendas"], ["aqp", "Arequipa"], ["tru", "Trujillo"]].map(([k, n], i) => `<button data-filtro-tienda="${k}" aria-pressed="${i === 0}">${n}</button>`).join("")}</div>
+      </div>
+      <div class="r-rejilla">${C.prendas.map((p, i) => obra(p, i % 4, true)).join("")}</div>
+      <p class="r-seccion r-tenue" data-sin-resultados hidden style="padding-top:24px">No hay prendas de este tipo en esa tienda. Prueba con «Todas las tiendas»: la tienda puede pedirla a la otra.</p>
+      ${pie()}`;
+    },
+
+    prenda({ id }) {
+      const p = C.prenda(id);
+      const va = [...new Set((C.looks.find((l) => l.prendas.includes(p.id)) || C.looks[0]).prendas.concat(C.prendas.filter((x) => x.cat !== p.cat).map((x) => x.id)))].filter((x) => x !== p.id).slice(0, 4);
+      return `${cab()}
+      <div class="r-ruta r-cap r-tenue"><a class="r-link" href="#catalogo">Ropa</a> &nbsp;/&nbsp; <a class="r-link" href="#catalogo">${C.nombreCat(p.cat)}</a></div>
+      <section class="r-ficha">
+        <div>
+          <div class="r-obra" data-paralaje><img class="r-foto-principal" src="${C.foto(p)}" alt="${p.nombre}"></div>
+          ${p.foto.length > 1 ? `<div class="r-galeria-mini">${p.foto.map((_, i) => `<div class="r-obra"><img src="${C.foto(p, i)}" alt="${p.nombre}, foto ${i + 1}"></div>`).join("")}</div>` : ""}
+        </div>
+        <div class="r-panel">
+          <div><h1 class="r-nombre">${p.nombre}</h1><div class="r-precio r-num">${C.precio(p.precio)}</div></div>
+          <div class="r-campo"><div class="r-campo-cab"><span class="r-cap">Color</span></div>
+            <div class="r-opciones" data-grupo="color">${p.colores.map(([n, hex], i) => `<button class="r-color" data-valor="${n}" aria-pressed="${i === 0}"><i style="background:${hex}"></i>${n}</button>`).join("")}</div></div>
+          <div class="r-campo"><div class="r-campo-cab"><span class="r-cap">Talla</span><a class="r-link r-tenue" href="#prenda/${p.id}">Guía de tallas</a></div>
+            <div class="r-opciones" data-grupo="talla" role="group" aria-label="Talla">${p.tallas.map((t) => `<button class="r-talla" data-valor="${t}" aria-pressed="false">${t}</button>`).join("")}</div></div>
+          <dl class="r-stock"><span class="r-cap" style="margin-bottom:8px">En tienda</span>${C.tiendas.map((t) => `<div><dt>${t.ciudad}</dt><dd class="${p.stock[t.id] ? "" : "r-tenue"}">${C.stockFrase(p.stock[t.id])}</dd></div>`).join("")}</dl>
+          <button class="r-btn" data-agregar="${p.id}"><span data-texto>Agregar a la bolsa</span><i class="r-carga" aria-hidden="true"></i></button>
+          <p class="r-aviso-campo" data-aviso role="status" aria-live="polite"></p>
+          <p class="r-tenue" style="margin:-16px 0 0">No pagas nada en la web: separas, la tienda te la guarda y pagas al recoger.</p>
+        </div>
+      </section>
+      <section class="r-seccion"><div class="r-seccion-cab"><h2 class="r-titulo" data-revela>Va con</h2></div><div class="r-vacon">${va.map((x, i) => obra(C.prenda(x), i, true)).join("")}</div></section>
+      ${pie()}`;
+    },
+
+    bolsa({ bolsa }) {
+      const total = bolsa.reduce((s, l) => s + C.prenda(l.id).precio, 0);
+      return `${cab()}
+      <div class="r-cat-cab"><h1 class="r-display r-letras" data-letras style="font-size:clamp(44px,7cqi,104px)">Tu bolsa</h1><span class="r-cap r-tenue r-sube">${bolsa.length} ${bolsa.length === 1 ? "prenda" : "prendas"}</span></div>
+      <section class="r-bolsa-cuerpo">
+        <div>${bolsa.length === 0 ? `<p style="padding:24px 0;border-top:1px solid var(--linea)">Tu bolsa está vacía. <a class="r-link" href="#catalogo">Ver la ropa</a></p>` : bolsa.map((l, i) => { const p = C.prenda(l.id); return `
+          <div class="r-linea" style="--i:${i}">
+            <a class="r-obra" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}"></a>
+            <div><a class="r-nombre" href="#prenda/${p.id}">${p.nombre}</a><span class="r-cap">${l.color} · Talla ${l.talla}</span>
+              <span data-hay-aqp="${p.stock.aqp}" data-hay-tru="${p.stock.tru}">Elige la tienda para ver si hay</span>
+              <button class="r-quitar" data-quitar="${i}">Quitar</button></div>
+            <span class="r-precio r-num">${C.precio(p.precio)}</span>
+          </div>`; }).join("")}</div>
+        <aside class="r-resumen">
+          <div data-antes-de-separar style="display:grid;gap:24px">
+            <div class="r-campo"><span class="r-cap">Recógelo en</span>
+              <div data-grupo="tienda" style="display:grid;gap:8px">${C.tiendas.map((t) => `<button class="r-tienda-op" data-valor="${t.id}" aria-pressed="false"><b style="font-weight:500">${t.ciudad}</b><span class="r-tenue">${t.direccion}</span></button>`).join("")}</div></div>
+            <div class="r-total-grande"><span>Total <span class="r-tenue">· pagas al recoger</span></span><b class="r-num" data-total="${total}">${C.precio(total)}</b></div>
+            <button class="r-btn" data-separar ${bolsa.length ? "" : "disabled"}>Separar</button>
+            <p class="r-aviso-campo" data-aviso role="status" aria-live="polite" style="margin:-12px 0 0"></p>
+            <p class="r-tenue" style="margin:0;font-size:13px">Puedes tener hasta 3 separaciones abiertas a la vez.</p>
+          </div>
+          <div class="r-listo" data-confirmacion hidden>
+            <span class="r-cap r-tenue">Separación N.º <span data-numero>${C.deEjemplo.numero}</span> · por confirmar</span>
+            <h2 class="r-nombre" tabindex="-1">Te la guardamos en <span data-tienda-elegida></span></h2>
+            <p>Mándala por WhatsApp: la tienda la confirma y te guarda las prendas. Pagas al recoger.</p>
+            <button class="r-btn" data-whatsapp>Mandar por WhatsApp</button>
+            <p class="r-mensaje" data-mensaje hidden>Hola, CAYLA <span data-tienda-elegida></span>. Quiero confirmar mi separación N.º ${C.deEjemplo.numero}:
+${bolsa.map((l) => `· ${C.prenda(l.id).nombre} (${l.color}, talla ${l.talla})`).join("\n")}</p>
+          </div>
+        </aside>
+      </section>
+      ${pie()}`;
+    },
+
+    entrar() {
+      const filas = [C.prendas.slice(0, 7), C.prendas.slice(6, 13)];
+      return `${cab()}
+      <section class="r-entrar">
+        <div class="r-desfile" aria-hidden="true">${filas.map((f) => `<div class="r-desfile-fila">${f.concat(f).map((p) => `<div class="r-obra"><img src="${C.foto(p)}" alt="" loading="lazy"></div>`).join("")}</div>`).join("")}</div>
+        <form class="r-form" novalidate>
+          <h1 class="r-display">Entrar</h1>
+          <p class="r-tenue" style="margin:-10px 0 4px">Con tu cuenta ves precios, tallas y cuánto hay en cada tienda.</p>
+          <label class="r-flota"><input type="email" autocomplete="email" placeholder=" "><span>Correo</span></label>
+          <label class="r-flota"><input type="password" autocomplete="current-password" placeholder=" "><span>Contraseña</span></label>
+          <button class="r-btn" type="submit">Entrar</button>
+          <a class="r-link r-tenue" href="#entrar" style="justify-self:start">Olvidé mi contraseña</a>
+          <p style="margin:12px 0 0;padding-top:20px;border-top:1px solid var(--linea)">¿Todavía no tienes cuenta?</p>
+          <a class="r-btn r-btn--claro" href="#entrar">Crear mi cuenta</a>
+        </form>
+      </section>
+      ${pie()}`;
+    },
+  };
+
+  // ── Movimiento de A3 ──
+  let quitar = [];
+  const limpiar = () => { quitar.forEach((f) => f()); quitar = []; };
+  const alScroll = (f) => { let pedido = false; const h = () => { if (!pedido) { pedido = true; requestAnimationFrame(() => { pedido = false; f(); }); } }; addEventListener("scroll", h, { passive: true }); addEventListener("resize", h); quitar.push(() => { removeEventListener("scroll", h); removeEventListener("resize", h); }); f(); };
+  const angosto = (lienzo) => lienzo.clientWidth < 760;
+
+  // El recorrido: mientras bajas, la pista de prendas se corre de lado y la del centro se acerca un poco.
+  function recorrido(lienzo) {
+    const sec = lienzo.querySelector("[data-recorrido]");
+    if (!sec) return;
+    const pista = sec.querySelector("[data-pista]"), barra = sec.querySelector("[data-progreso]"), actual = sec.querySelector("[data-actual]");
+    const figs = [...pista.querySelectorAll(".r-fig")];
+    const quieto = M.calma() || angosto(lienzo);
+    if (quieto) {
+      sec.querySelector("[data-instruccion]").textContent = "Desliza para pasar de una a otra.";
+      const mirar = () => { const max = pista.scrollWidth - pista.clientWidth; const p = max > 0 ? pista.scrollLeft / max : 0; barra.style.setProperty("--p", p); actual.textContent = Math.min(figs.length, 1 + Math.round(p * (figs.length - 1))); };
+      pista.addEventListener("scroll", mirar, { passive: true }); mirar();
+      return;
+    }
+    alScroll(() => {
+      const r = sec.getBoundingClientRect(), recorrible = sec.offsetHeight - innerHeight;
+      const p = Math.min(1, Math.max(0, -r.top / recorrible));
+      const desplazar = pista.scrollWidth - lienzo.clientWidth;
+      pista.style.transform = `translate3d(${-p * desplazar}px,0,0)`;
+      barra.style.setProperty("--p", p);
+      const centro = lienzo.clientWidth / 2;
+      let cerca = 0, mejor = Infinity;
+      figs.forEach((f, i) => {
+        const b = f.getBoundingClientRect(), d = (b.left + b.width / 2 - centro) / lienzo.clientWidth;
+        const k = Math.min(1, Math.abs(d) * 1.6);
+        f.style.transform = `scale(${1.04 - k * 0.1})`;
+        f.querySelector(".r-cedula").style.opacity = String(1 - k * 0.7);
+        if (Math.abs(d) < mejor) { mejor = Math.abs(d); cerca = i; }
+      });
+      actual.textContent = cerca + 1;
+    });
+  }
+
+  // Los pasos se encienden uno a uno mientras bajas, y la línea que los une se llena.
+  function pasos(lienzo) {
+    const caja = lienzo.querySelector("[data-pasos]");
+    if (!caja) return;
+    const items = [...caja.children];
+    if (M.calma()) { caja.style.setProperty("--p", 1); items.forEach((x) => x.classList.add("encendido")); return; }
+    alScroll(() => {
+      const r = caja.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, (innerHeight * 0.85 - r.top) / (innerHeight * 0.6)));
+      caja.style.setProperty("--p", p);
+      items.forEach((x, i) => x.classList.toggle("encendido", p >= (i + 0.2) / items.length));
+    });
+  }
+
+  // La foto de la prenda baja más lento que la página: profundidad.
+  function paralaje(lienzo) {
+    const caja = lienzo.querySelector("[data-paralaje]");
+    if (!caja || M.calma()) return;
+    const img = caja.querySelector("img");
+    alScroll(() => { const r = caja.getBoundingClientRect(); img.style.transform = `translateY(${(r.top + r.height / 2 - innerHeight / 2) * -0.06}px) scale(1.06)`; });
+  }
+
+  // El cursor propio: se crea una vez y vive fuera de las pantallas.
+  let cursor = null;
+  function crearCursor() {
+    if (cursor || M.calma() || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    cursor = document.createElement("div");
+    cursor.className = "r-cursor"; cursor.setAttribute("aria-hidden", "true"); cursor.innerHTML = "<span>Ver</span>";
+    document.body.appendChild(cursor);
+    M.seguir((x, y) => { cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`; });
+    addEventListener("pointerover", (e) => {
+      const lienzo = document.getElementById("lienzo");
+      const dentro = lienzo.contains(e.target) && lienzo.dataset.vista !== "celular";
+      document.documentElement.classList.toggle("con-cursor", dentro);
+      cursor.classList.toggle("activo", dentro);
+      cursor.classList.toggle("ver", !!e.target.closest('[data-cursor="ver"]'));
+      cursor.classList.toggle("enlace", !e.target.closest('[data-cursor="ver"]') && !!e.target.closest("a, button"));
+    });
+    document.addEventListener("pointerleave", () => cursor.classList.remove("activo"));
+  }
+
+  // El cajón de la bolsa.
+  let ultimoFoco = null;
+  function crearCajon() {
+    if (document.querySelector(".r-cajon")) return;
+    const caja = document.createElement("div");
+    caja.innerHTML = cajon();
+    document.body.append(...caja.children);
+  }
+  function abrirCajon() {
+    const cajonEl = document.querySelector(".r-cajon");
+    if (!cajonEl) return false;
+    const l = window.MARCO.bolsa.leer();
+    cajonEl.querySelector("[data-cajon-lista]").innerHTML = l.length ? l.map((x, i) => { const p = C.prenda(x.id); return `<div class="r-cajon-linea" style="--i:${i}"><div class="r-obra"><img src="${C.foto(p)}" alt=""></div><div><span class="r-nombre">${p.nombre}</span><br><span class="r-cap r-tenue">${x.color} · Talla ${x.talla}</span></div><span class="r-num">${C.precio(p.precio)}</span></div>`; }).join("") : `<p class="r-tenue">Tu bolsa está vacía.</p>`;
+    const total = l.reduce((s, x) => s + C.prenda(x.id).precio, 0);
+    M.contar(cajonEl.querySelector("[data-cajon-total]"), total, 900, (n) => C.precio(Math.round(n)));
+    ultimoFoco = document.activeElement;
+    cajonEl.classList.add("abierto");
+    cajonEl.setAttribute("aria-hidden", "false");
+    document.querySelector(".r-velo").classList.add("abierto");
+    setTimeout(() => cajonEl.querySelector("h2").focus(), 60);
+    return true;
+  }
+  function cerrarCajon() {
+    const cajonEl = document.querySelector(".r-cajon");
+    if (!cajonEl || !cajonEl.classList.contains("abierto")) return;
+    cajonEl.setAttribute("aria-hidden", "true");
+    document.querySelectorAll(".r-cajon, .r-velo").forEach((x) => x.classList.remove("abierto"));
+    if (ultimoFoco && document.contains(ultimoFoco)) ultimoFoco.focus();
+  }
+
+  function montar(pantalla, lienzo) {
+    limpiar();
+    lienzo.classList.remove("listo");
+    lienzo.querySelectorAll("[data-letras]").forEach((h) => M.letras(h));
+    lienzo.querySelectorAll(".r-titulo[data-revela]").forEach((t) => (t.innerHTML = `<span>${t.innerHTML}</span>`));
+    lienzo.querySelectorAll(".r-panel > *, .r-form > *").forEach((x, i) => x.style.setProperty("--f", i));
+    requestAnimationFrame(() => requestAnimationFrame(() => lienzo.classList.add("listo")));
+    M.revelar(lienzo);
+    lienzo.querySelectorAll('.r-filtros [role="group"], [data-grupo="talla"]').forEach((g) => M.indicador(g));
+    recorrido(lienzo); pasos(lienzo); paralaje(lienzo); crearCursor(); crearCajon(); cerrarCajon();
+    if (pantalla === "bolsa") { const t = lienzo.querySelector("[data-total]"); if (t) M.contar(t, Number(t.dataset.total), 1200, (n) => C.precio(Math.round(n))); }
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-filtro],[data-filtro-tienda]")) M.flipAntes(document.querySelectorAll("#lienzo [data-cat]"));
+    const irBolsa = e.target.closest(".r-ir-bolsa");
+    if (irBolsa && window.MARCO.ruta().pantalla !== "bolsa" && abrirCajon()) e.preventDefault();
+    if (e.target.closest("[data-cerrar-cajon]")) cerrarCajon();
+  }, true);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarCajon(); });
+  document.addEventListener("cayla:filtrado", (e) => { M.flipDespues(document.querySelectorAll("#lienzo [data-cat]")); M.indicador(e.detail.boton.closest('[role="group"]')); });
+  document.addEventListener("cayla:elegido", (e) => { const g = e.detail.boton.closest("[data-grupo]"); if (g.dataset.grupo === "talla") M.indicador(g); });
+  // Al agregar: la línea del botón se llena, el botón dice que quedó y la bolsa se abre de costado.
+  document.addEventListener("cayla:agregado", (e) => {
+    const b = e.detail.boton, texto = b.querySelector("[data-texto]");
+    b.classList.add("cargando");
+    setTimeout(() => { texto.textContent = "Agregada a tu bolsa"; b.classList.remove("cargando"); M.latir(document.querySelector("#lienzo .r-ir-bolsa b")); abrirCajon(); }, M.calma() ? 0 : 720);
+    setTimeout(() => (texto.textContent = "Agregar a la bolsa"), 3200);
+  });
+  document.addEventListener("cayla:separado", (e) => M.contar(e.detail.listo.querySelector("[data-numero]"), Number(C.deEjemplo.numero), 1400, (n) => String(Math.round(n)).padStart(4, "0")));
+  addEventListener("resize", () => document.querySelectorAll('#lienzo .r-filtros [role="group"], #lienzo [data-grupo="talla"]').forEach((g) => M.indicador(g)));
+
+  window.DIRECCION = { nombre: "A3 · Recorrido", pantallas, montar, transicion: true };
+})();
+</script>
+<script src="marco.js"></script>
+</body>
+</html>

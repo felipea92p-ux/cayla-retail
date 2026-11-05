@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Globito } from "@/components/ui/Globito";
 import Link from "next/link";
-import { ArrowUpDown, Bookmark, FileText, History, LayoutGrid, Undo2, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowUpDown, Bandage, Bookmark, FileText, History, LayoutGrid, Undo2, Wallet, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { accesosDeMas, type AccesoVenta, type IconoAcceso } from "@/lib/vender-accesos";
 
@@ -14,10 +14,11 @@ const ICONO: Record<IconoAcceso, LucideIcon> = {
   devoluciones: Undo2,
   historial: History,
   proformas: FileText,
+  danada: Bandage,
 };
 
 const BOTON =
-  "inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-crema px-2.5 text-[12.5px] text-tinta/80 transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-taupe hover:text-tinta active:translate-y-px";
+  "inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-crema px-2.5 text-sm text-tinta/80 transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-taupe hover:text-tinta active:translate-y-px";
 
 /**
  * «Más» del Punto de venta (spike «el ticket a lo alto», `docs/maquetas/punto-venta-ticket-alto-2026-09/`, Felipe
@@ -50,7 +51,7 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
                         key={a.href}
                         href={a.href}
                         onClick={cerrar}
-                        className="flex flex-col items-center gap-2 rounded-xl border border-sand bg-crema px-2 py-4 text-center text-[13px] text-tinta transition-colors hover:border-taupe active:translate-y-px"
+                        className="flex flex-col items-center gap-2 rounded-xl border border-sand bg-crema px-2 py-4 text-center text-sm text-tinta transition-colors hover:border-taupe active:translate-y-px"
                       >
                         <Icono className="h-5 w-5 text-tinta/70" aria-hidden />
                         {a.texto}
@@ -69,6 +70,19 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
 }
 
 /**
+ * «Separé una dañada» a la vista (ADR-0564, actividad 3): la prenda que se ve dañada en el piso se separa en el momento. Lleva a
+ * Existencias con el buscador de «¿Qué prenda está dañada?» abierto; el ticket en curso se queda guardado como con cualquier otro acceso.
+ */
+export function BotonSepararDanada({ href }: { href: string }) {
+  return (
+    <Link href={href} data-guia="vender.danada" className={BOTON}>
+      <Bandage className="h-4 w-4" aria-hidden />
+      Separé una dañada
+    </Link>
+  );
+}
+
+/**
  * «Apartados» a la vista (spike «el ticket a lo alto»): es el único acceso que se lleva el ticket. Con prendas dice
  * «Apartar N» y, al tocarlo, las lleva a Apartados ya cargadas (`onApartar`, `lib/apartar-desde-ticket.ts`) —antes eso
  * era un botón aparte en el pie del ticket—; con el ticket vacío abre Apartados tal cual.
@@ -82,7 +96,7 @@ export function BotonApartados({ prendas, onApartar, deshabilitado }: { prendas:
         data-guia="vender.apartados"
         disabled={deshabilitado}
         title={`Lleva ${prendas === 1 ? "la prenda" : `las ${prendas} prendas`} del ticket a Apartados`}
-        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-[12.5px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-sm text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
       >
         <Bookmark className="h-4 w-4" aria-hidden />
         Apartar

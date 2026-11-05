@@ -22,7 +22,7 @@ export function PestanasComprobantesMovil({ conteos }: { conteos: ConteosPestana
       <nav
         data-guia="comprobantes.pestanas-movil"
         aria-label="Vistas de Comprobantes"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:pr-[env(safe-area-inset-right)] lg:hidden"
       >
         {PESTANAS.map((p) => {
           const Icono = ICONO[p.clave];
@@ -34,7 +34,7 @@ export function PestanasComprobantesMovil({ conteos }: { conteos: ConteosPestana
               href={hrefPestana(p, mes)}
               aria-current={esActiva ? "page" : undefined}
               style={{ height: ALTO_PESTANAS_MOVIL }}
-              className={`relative flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${esActiva ? "font-semibold text-tinta" : "text-tinta/55"}`}
+              className={`relative flex flex-col items-center justify-center gap-1 text-sm transition-colors ${esActiva ? "font-semibold text-tinta" : "text-tinta/55"}`}
             >
               <Icono aria-hidden size={20} className={esActiva ? "text-rojo" : undefined} />
               {p.etiqueta}

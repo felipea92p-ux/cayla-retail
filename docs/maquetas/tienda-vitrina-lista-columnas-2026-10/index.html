@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitrina ▸ Lista · una columna o dos · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Spike (2026-10-26): ¿la «Lista» de Vitrina ▸ Modelos va en una columna, en dos, o en una columna que aproveche el ancho?
+   Datos inventados. Mide lo que se puede medir (alto de la página, nombres cortados, stock partido en renglones, hueco entre el nombre y
+   el stock) en 6 anchos de pantalla, con nombres normales y largos y con 3 y 5 tiendas. Paleta: guía «CAYLA Dynamic». */
+:root {
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+  --verde:#48603f; --ambar:#74501a; --lienzo:#e6ddcd; --vidrio:#fff; --sombra:rgba(26,26,24,.16); --tinta-fija:#1a1a18; --crema-fija:#f5f0e8;
+  --tinta-60:color-mix(in srgb,var(--tinta) 64%,transparent);
+  --serif:"EB Garamond",ui-serif,Georgia,serif; --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif; --ease:cubic-bezier(.2,.7,.2,1);
+}
+:root[data-theme="dark"] {
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38; --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --rojo-profundo:#f29a86;
+  --verde:#9ccb8d; --ambar:#e4b968; --lienzo:#121211; --vidrio:#2c2b28; --sombra:rgba(0,0,0,.55); color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--lienzo);color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+.ic{width:16px;height:16px;flex:none}
+.barra{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 16px;background:color-mix(in srgb,var(--lienzo) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--sand)}
+.barra b{font-family:var(--serif);font-size:20px;font-weight:500;margin-right:auto}
+.grupo{display:inline-flex;align-items:center;gap:6px}
+.etq{font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+.seg{display:inline-flex;padding:3px;gap:2px;border-radius:999px;background:var(--hueso);border:1px solid var(--sand)}
+.seg button{height:28px;padding:0 11px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--taupe);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+main{max-width:1700px;margin:0 auto;padding:16px 16px 60px;display:grid;gap:16px}
+.caja{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px 18px}
+.caja h3{margin:0 0 8px;font-family:var(--serif);font-weight:500;font-size:20px}
+.vista{overflow:auto;border-radius:18px}
+.marco{background:var(--crema);border:1px solid var(--sand);border-radius:18px;padding:22px 32px 28px;margin:0 auto;transform-origin:top left}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:20px;overflow:clip}
+.tool{display:flex;gap:12px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--sand)}
+.buscador{flex:1;height:38px;border-radius:12px;background:var(--hueso);display:flex;align-items:center;padding:0 14px;color:var(--taupe);font-size:13.5px}
+.modo{display:inline-flex;padding:3px;border-radius:12px;background:var(--hueso)}.modo span{height:30px;padding:0 12px;display:inline-flex;align-items:center;border-radius:9px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}.modo span.on{background:var(--papel);color:var(--tinta)}
+.cab-l{display:grid;align-items:center;gap:14px;padding:11px 20px;background:var(--hueso);font-size:13px;color:var(--tinta-60)}
+/* --- las filas, comunes --- */
+.fila{display:grid;align-items:center;gap:14px;padding:10px 20px;border-top:1px solid var(--sand);min-width:0}
+.fila[data-sel]{background:color-mix(in srgb,var(--rojo) 4.5%,transparent)}
+.cas{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--crema)}
+.cas.on{background:var(--tinta);border-color:var(--tinta)}
+.quien{display:flex;align-items:center;gap:12px;min-width:0}
+.mini{width:40px;height:48px;border-radius:8px;background:var(--c);color:var(--ic);display:grid;place-items:center;flex:none}.mini svg{width:20px}
+.txt{min-width:0}.nom{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sub{display:block;font-size:12px;color:var(--taupe);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;background:color-mix(in srgb,var(--ambar) 15%,transparent);color:var(--ambar);white-space:nowrap}
+.stock{font-size:13px;font-variant-numeric:tabular-nums}.stock .c{color:color-mix(in srgb,var(--tinta) 42%,transparent)}.stock i{font-style:normal;color:var(--taupe)}
+.sw{width:40px;height:24px;border-radius:999px;background:var(--sand);position:relative;justify-self:end}.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:99px;background:var(--papel)}.sw.on{background:var(--tinta)}.sw.on::after{transform:translateX(16px)}
+/* A · una columna, como hoy */
+.A .fila,.A .cab-l{grid-template-columns:1.5rem minmax(0,1fr) 12rem 4.5rem}
+.A .stock{white-space:normal}
+/* B · columnas del navegador (CSS multicol): cuántas caben lo decide el ancho y la cantidad de tiendas; la lista se llena de arriba abajo
+   y sigue por la columna de al lado (orden alfabético), sin JavaScript. Con poco ancho es una sola columna, como hoy. */
+.B .lista{columns:var(--min-col);column-gap:0;column-rule:1px solid var(--sand)}
+.B .fila{break-inside:avoid;border-top:0;border-bottom:1px solid var(--sand);grid-template-columns:1.5rem minmax(0,1fr) auto 3rem;gap:12px;padding:10px 16px}
+.B .stock{white-space:nowrap}
+.B .nom{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* C · una columna que usa el ancho: una columna por tienda, con su título */
+.C .fila,.C .cab-l{grid-template-columns:1.5rem minmax(14rem,1.8fr) minmax(7rem,1fr) 4.5rem repeat(var(--tiendas),3.6rem) minmax(7rem,.9fr) 3rem}
+.C .num{text-align:right;font-size:13px;font-variant-numeric:tabular-nums}.C .num.c{color:color-mix(in srgb,var(--tinta) 42%,transparent)}
+.C .cab-l .num{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.nota{margin:12px 0 0;font-size:13px;color:var(--tinta-60)}
+.tabla{width:100%;border-collapse:collapse;font-size:12.5px}.tabla th,.tabla td{padding:7px 9px;border-top:1px solid var(--sand);text-align:right;font-variant-numeric:tabular-nums}.tabla th:first-child,.tabla td:first-child{text-align:left}
+.tabla th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);border-top:0}
+.ok{color:var(--verde);font-weight:600}.mal{color:var(--rojo-profundo);font-weight:600}.fa{color:var(--ambar);font-weight:600}
+.dos-tablas{display:grid;gap:16px}@media(min-width:1200px){.dos-tablas{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></symbol>
+<symbol id="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></symbol>
+</defs></svg>
+<header class="barra">
+  <b>Vitrina ▸ Lista · ¿una columna o dos?</b>
+  <span class="grupo"><span class="etq">Opción</span><span class="seg" id="s-op"><button data-v="A" aria-pressed="true">A · una (hoy)</button><button data-v="B" aria-pressed="false">B · dos columnas</button><button data-v="C" aria-pressed="false">C · una, con columnas por tienda</button></span></span>
+  <span class="grupo"><span class="etq">Pantalla</span><span class="seg" id="s-an"><button data-v="1024">1024</button><button data-v="1280">1280</button><button data-v="1366">1366</button><button data-v="1440" aria-pressed="true">1440</button><button data-v="1536">1536</button><button data-v="1920">1920</button></span></span>
+  <span class="grupo"><span class="etq">Nombres</span><span class="seg" id="s-no"><button data-v="n" aria-pressed="true">Normales</button><button data-v="l">Largos</button></span></span>
+  <span class="grupo"><span class="etq">Tiendas</span><span class="seg" id="s-ti"><button data-v="3" aria-pressed="true">3</button><button data-v="5">5</button></span></span>
+  <span class="grupo"><span class="etq">Marcados</span><span class="seg" id="s-se"><button data-v="0" aria-pressed="true">Ninguno</button><button data-v="1">Algunos</button></span></span>
+  <button class="seg" style="padding:0 12px;height:34px;font-weight:600;font-size:12.5px" id="tema">Oscuro / claro</button>
+</header>
+<main>
+  <div class="vista" id="vista"></div>
+  <div class="caja"><h3>Lo que se midió, en todos los escenarios</h3>
+    <p class="nota" style="margin-top:0">Cada celda es la página de <b>40 modelos</b> dibujada de verdad en ese ancho. «Alto» es lo que mide la lista (menos es menos scroll). «Cortados» son los nombres que se ven con «…», y «Partidos», el stock que baja a dos renglones: con cualquiera de los dos, esa opción no cabe en ese ancho. «Hueco» es lo que el ojo recorre entre el final del nombre y el primer dato de stock.</p>
+    <div class="dos-tablas" id="tablas"></div></div>
+  <div class="caja" id="lectura"></div>
+</main>
+<script>
+(() => {
+  const NOM = ["Adelle Wide Leg","Alas de Hada","Anillo para Bufanda","Anillos","Antifaz Encaje","Aretes Calavera","Aretes Grandes","Aretes Medianos","Blusa Emma","Blusa Valentina","Bolso Tote Sol","Cartera Mía","Cartera Noa","Casaca Luciana","Casaca Ximena","Cinturón Clásico","Collar Perla","Diadema Lucía","Enterizo Aurora","Falda Renata","Jean Mom Fit","Pantalón Palazzo","Polo Abril","Vestido Sofía","Vestido Camila","Top Julieta","Short Lino","Chompa Alpaca","Bufanda Tejida","Gorro Lana","Medias Altas","Pijama Seda","Camisa Oxford","Cardigan Largo","Enagua Midi","Bata Algodón","Body Encaje","Legging Deportivo","Mono Corto","Kimono Floral"];
+  const LARGOS = ["Conjunto Falda Plisada y Top Manga Globo Premium","Vestido Largo Sin Mangas con Cinturón de Lino Natural","Blusa Cuello Alto Manga Farol Algodón Pima Edición Limitada","Pantalón Palazzo Cintura Alta con Bolsillos Laterales","Aretes Grandes de Resina Artesanal Acabado Dorado","Casaca Bomber Reversible Acolchada Invierno Ligera"];
+  const CATS = ["Jeans","Accesorios de moda","Camisas y Blusas","Anillos","Vestidos","Casacas","Faldas","Bolsos y Carteras"];
+  const COLS = ["#c9a84c","#b9bcc2","#2b2b2d","#f4f6fb","#d4bb98","#8f3b34","#5b6b4c","#3f5a73"];
+  const SEDES = ["AQP","LIM","TRU","CUS","PIU"];
+  const luz = (h) => { const n = parseInt(h.slice(1), 16); return (0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255; };
+  const S = { op: "A", an: 1440, no: "n", ti: 3, se: 0 };
+  const $ = (s, r = document) => r.querySelector(s);
+
+  function datos(no, ti) {
+    return Array.from({ length: 40 }, (_, i) => {
+      const nombre = no === "l" && i % 3 === 0 ? LARGOS[(i / 3) % LARGOS.length | 0] : NOM[i];
+      const stock = SEDES.slice(0, ti).map((s, k) => ({ s, n: ((i * (k + 3) + k * 5) % 7 === 0) ? (i * 3 + k * 4) % 24 + 1 : 0 }));
+      return { id: i, nombre, cat: CATS[i % 8], cols: 1 + (i % 3), sinFoto: i % 4 === 0 ? 2 : 0, hex: COLS[i % 8], stock, chip: i === 7 ? "Sin precio: no se ve" : i === 13 ? "Fijado en Lo nuevo" : "", on: i !== 13 && i !== 22 };
+    });
+  }
+  const sw = (m) => `<span class="sw ${m.on ? "on" : ""}"></span>`;
+  const cas = (m, sel) => `<span class="cas ${sel ? "on" : ""}">${sel ? '<svg class="ic" style="width:14px;height:14px"><use href="#ck"/></svg>' : ""}</span>`;
+  const quien = (m) => `<span class="quien"><span class="mini" style="--c:${m.hex};--ic:${luz(m.hex) > .55 ? "var(--tinta-fija)" : "var(--crema-fija)"}"><svg><use href="#g"/></svg></span><span class="txt"><span class="nom">${m.nombre}</span><span class="sub">${m.cat} · ${m.cols} ${m.cols === 1 ? "color" : "colores"}${m.sinFoto ? ` · ${m.sinFoto} sin foto propia` : ""}</span>${m.chip ? `<span class="chip" style="margin-top:4px">${m.chip}</span>` : ""}</span></span>`;
+  const stockTxt = (m) => `<span class="stock">${m.stock.map((x, i) => `${i ? '<i> · </i>' : ""}<span class="${x.n ? "" : "c"}">${x.s} ${x.n}</span>`).join("")}</span>`;
+
+  function filaA(m, sel) { return `<div class="fila" ${sel ? "data-sel" : ""}>${cas(m, sel)}${quien(m)}${stockTxt(m)}${sw(m)}</div>`; }
+  function filaB(m, sel) { return `<div class="fila" ${sel ? "data-sel" : ""}>${cas(m, sel)}${quien(m)}${stockTxt(m)}${sw(m)}</div>`; }
+  function filaC(m, sel) { return `<div class="fila" ${sel ? "data-sel" : ""}>${cas(m, sel)}${quienC(m)}<span class="sub" style="color:var(--taupe)">${m.cat}</span><span class="num">${m.cols} col.</span>${m.stock.map((x) => `<span class="num ${x.n ? "" : "c"}">${x.n}</span>`).join("")}<span>${m.chip ? `<span class="chip">${m.chip}</span>` : m.on ? '<span class="sub">Se ve en la web</span>' : '<span class="sub">No se ve</span>'}</span>${sw(m)}</div>`; }
+  // En C el nombre y la categoría ya no comparten renglón: la categoría tiene su columna.
+  function quienC(m) { return quien(m).replace(/<span class="sub">[^<]*<\/span>/, `<span class="sub">${m.sinFoto ? m.sinFoto + " sin foto propia" : "&nbsp;"}</span>`); }
+
+  function html(op, an, no, ti, se) {
+    const ms = datos(no, ti);
+    const sel = (i) => se && i % 5 < 2;
+    const cabA = `<div class="cab-l"><span><span class="cas"></span></span><span>Modelo</span><span>Libre en tiendas</span><span style="text-align:right">En la web</span></div>`;
+    const cabC = `<div class="cab-l"><span><span class="cas"></span></span><span>Modelo</span><span>Categoría</span><span class="num">Colores</span>${SEDES.slice(0, ti).map((s) => `<span class="num">${s}</span>`).join("")}<span>En la web</span><span></span></div>`;
+    let lista;
+    if (op === "A") lista = cabA + `<div class="lista">${ms.map((m, i) => filaA(m, sel(i))).join("")}</div>`;
+    else if (op === "B") { lista = `<div class="lista">${ms.map((m, i) => filaB(m, sel(i))).join("")}</div>`; }
+    else lista = cabC + `<div class="lista">${ms.map((m, i) => filaC({ ...m }, sel(i))).join("")}</div>`;
+    return `<div class="tarjeta ${op}" style="--tiendas:${ti};--min-col:${30 + (ti - 3) * 5}rem"><div class="tool"><div class="buscador">Busca un modelo</div><span class="modo"><span>Vitrina</span><span class="on">Lista</span></span></div>${lista}</div>`;
+  }
+
+  /* Medir de verdad: se dibuja la tarjeta en un contenedor del ancho que tendría y se cuentan los problemas. */
+  function medir(op, an, no, ti) {
+    const caja = document.createElement("div");
+    caja.style.cssText = `position:absolute;left:-99999px;top:0;width:${an - 248 - 64}px`;
+    caja.innerHTML = html(op, an, no, ti, 0);
+    document.body.append(caja);
+    const filas = [...caja.querySelectorAll(".fila")];
+    const lista = caja.querySelector(".lista");
+    const alto = Math.round(lista.getBoundingClientRect().height);
+    const cortados = [...caja.querySelectorAll(".nom")].filter((e) => e.scrollWidth > e.clientWidth + 1).length;
+    const partidos = [...caja.querySelectorAll(".stock")].filter((e) => e.getBoundingClientRect().height > 22).length;
+    // Hueco: del final del texto del nombre al principio del primer dato de stock.
+    const huecos = filas.slice(0, 12).map((f) => {
+      const n = f.querySelector(".nom"); const dato = f.querySelector(".stock") || f.querySelector(".num:nth-of-type(n+1)");
+      if (!n || !dato) return 0;
+      const r = document.createRange(); r.selectNodeContents(n); const fin = r.getBoundingClientRect().right;
+      return Math.max(0, dato.getBoundingClientRect().left - fin);
+    });
+    const hueco = Math.round(huecos.reduce((a, b) => a + b, 0) / Math.max(1, huecos.length));
+    const conDato = op === "C" ? [...caja.querySelectorAll(".fila")].slice(0, 12).map((f) => { const n = f.querySelector(".nom"); const d = f.querySelector(".num"); const r = document.createRange(); r.selectNodeContents(n); return Math.max(0, d.getBoundingClientRect().left - r.getBoundingClientRect().right); }) : null;
+    const h = conDato ? Math.round(conDato.reduce((a, b) => a + b, 0) / conDato.length) : hueco;
+    caja.remove();
+    return { alto, cortados, partidos, hueco: h, filasVistas: Math.floor(Math.max(0, 900 - 330) / (alto / (op === "B" ? 20 : 40))) * (op === "B" ? 2 : 1) };
+  }
+
+  const ANCHOS = [1024, 1280, 1366, 1440, 1536, 1920];
+  function tabla(no, ti, titulo) {
+    const cel = (r) => { const malo = r.cortados + r.partidos; return `<td>${r.alto.toLocaleString("es-PE")} px</td><td class="${malo ? "mal" : "ok"}">${r.cortados}/${r.partidos}</td><td class="${r.hueco > 400 ? "mal" : r.hueco > 220 ? "fa" : "ok"}">${r.hueco}</td>`; };
+    const cab = ["A · una (hoy)", "B · columnas que caben", "C · una con cols."].map((n) => `<th colspan="3" style="text-align:center">${n}</th>`).join("");
+    const sub = ["A", "B", "C"].map(() => "<th>Alto</th><th>Cort./Part.</th><th>Hueco</th>").join("");
+    const filas = ANCHOS.map((an) => `<tr><td><b>${an}</b></td>${["A", "B", "C"].map((op) => cel(medir(op, an, no, ti))).join("")}</tr>`).join("");
+    return `<div><h3 style="margin:0 0 6px;font-family:var(--serif);font-weight:500;font-size:17px">${titulo}</h3><table class="tabla"><thead><tr><th></th>${cab}</tr><tr><th>Pantalla</th>${sub}</tr></thead><tbody>${filas}</tbody></table></div>`;
+  }
+
+  function pintar() {
+    const marcoAn = S.an - 248;
+    const disp = $("#vista").clientWidth || 1200;
+    const z = Math.min(1, (disp - 2) / marcoAn);
+    $("#vista").innerHTML = `<div class="marco" style="width:${marcoAn}px;zoom:${z}">${html(S.op, S.an, S.no, S.ti, S.se)}<p class="nota">${{ A: "Hoy: el modelo se estira y los datos quedan pegados a la derecha: el ojo recorre el hueco en cada fila.", B: "Columnas del navegador: las que caben (mínimo 30 rem cada una, 5 más por cada tienda de más). En orden alfabético de arriba abajo y luego por la columna de al lado; el nombre puede pasar a dos renglones. Con poco ancho, una sola, como hoy.", C: "Una columna, pero el ancho se usa para lo que ayuda a decidir: categoría, colores y el stock de cada tienda en su propia columna, con título." }[S.op]}</p></div>`;
+    document.querySelectorAll(".seg").forEach((sg) => { const k = { "s-op": "op", "s-an": "an", "s-no": "no", "s-ti": "ti", "s-se": "se" }[sg.id]; if (!k) return; sg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(String(S[k]) === b.dataset.v))); });
+  }
+  [["s-op", "op"], ["s-an", "an"], ["s-no", "no"], ["s-ti", "ti"], ["s-se", "se"]].forEach(([id, k]) => $("#" + id).addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S[k] = k === "an" || k === "ti" || k === "se" ? Number(b.dataset.v) : b.dataset.v; pintar(); }));
+  $("#tema").addEventListener("click", () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark"; });
+  const u = new URLSearchParams(location.search);
+  if (u.get("op")) S.op = u.get("op"); if (u.get("an")) S.an = Number(u.get("an")); if (u.get("no")) S.no = u.get("no"); if (u.get("ti")) S.ti = Number(u.get("ti")); if (u.get("se")) S.se = Number(u.get("se")); if (u.get("tema")) document.documentElement.dataset.theme = u.get("tema");
+  document.fonts.ready.then(() => {
+    pintar();
+    $("#tablas").innerHTML = tabla("n", 3, "Nombres normales · 3 tiendas (hoy)") + tabla("l", 5, "Nombres largos · 5 tiendas (si CAYLA crece)");
+    window.__medidas = true;
+  });
+  window.addEventListener("resize", () => pintar());
+})();
+</script>
+</body>
+</html>

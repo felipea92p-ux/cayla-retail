@@ -30,6 +30,8 @@ async function leerCatalogo(): Promise<DatosCatalogo> {
       .eq("activo", true)
       .eq("productos.estado", "activo")
       .eq("productos.es_prueba", false)
+      // Sin un orden único, dos vueltas pueden repetir una variante o saltarse otra (el contador de modelos por talla sale desviado).
+      .order("id")
       .range(i * POR_VUELTA, (i + 1) * POR_VUELTA - 1);
     if (error) throw error;
     for (const v of data ?? []) variantes.push({ producto_id: v.producto_id, talla_id: v.talla_id, color_codigo: v.color_codigo });

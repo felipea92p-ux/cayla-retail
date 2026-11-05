@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
-import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useRetenerLuz, type ModoRetencion } from "./useRetenerLuz";
+import { separarFaltan } from "@/lib/guia-campos";
 import type { GuiaCampos } from "./useGuiaCampos";
 
 // Las dos piezas de la guía de foco para un modal (CLAUDE.md «Guía de foco», ADR-0284). Sus estilos: `app/estilos/alta-guia.css`
@@ -21,6 +21,7 @@ export function CampoGuiado({
   guia,
   titulo,
   ayuda,
+  ayudaAbajo = false,
   retiene,
   className = "",
   children,
@@ -29,6 +30,8 @@ export function CampoGuiado({
   guia: GuiaCampos;
   titulo?: ReactNode;
   ayuda?: ReactNode;
+  /** La ayuda va en su propia línea, bajo el título (Felipe 2026-10-28), en vez de a su derecha. Por defecto no cambia nada para los demás modales. */
+  ayudaAbajo?: boolean;
   /** `"fila"` para un campo de VARIAS opciones (chips que se marcan de a uno): la luz espera mientras se siga eligiendo aquí. Por defecto
    *  espera solo mientras se teclea en una caja de texto. */
   retiene?: ModoRetencion;
@@ -41,10 +44,13 @@ export function CampoGuiado({
   return (
     <div {...retener} data-campo={id} data-estado={estado} className={`hilo-luz ${className}`}>
       {titulo && (
-        <p className="mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta">
-          <ConMarca estado={estado}>{titulo}</ConMarca>
-          {ayuda && <span className="text-[12px] font-normal text-taupe">{ayuda}</span>}
-        </p>
+        <>
+          <p className={`${ayuda && ayudaAbajo ? "" : "mb-1.5 "}flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta`}>
+            {guia.etiqueta(id, titulo)}
+            {ayuda && !ayudaAbajo && <span className="text-[12px] font-normal text-taupe">{ayuda}</span>}
+          </p>
+          {ayuda && ayudaAbajo && <p className="mb-1.5 mt-0.5 text-[12px] font-normal text-taupe">{ayuda}</p>}
+        </>
       )}
       {children}
     </div>
@@ -54,12 +60,16 @@ export function CampoGuiado({
 /** «Falta: ● Nombre ○ Motivo» sobre el botón principal, cada cosa tocable (lleva a su campo); con todo listo, «Todo listo.».
  *  `conFrase`: además, escribe A LA VISTA qué hacer con el campo que sigue («El precio va con punto, por ejemplo 12.50.»). Sin esto la frase solo vive en el
  *  `title` de cada chip (pasar el mouse), que no se ve con el dedo ni con el teclado (ley 6 de Formidable). Por defecto no cambia nada para los demás modales. */
-export function PieGuia({ guia, listo = "Todo listo.", conFrase = false }: { guia: GuiaCampos; listo?: string; conFrase?: boolean }) {
+export function PieGuia({ guia, listo = "Todo listo.", conFrase = false, tope }: { guia: GuiaCampos; listo?: string; conFrase?: boolean; /** Cuántas cosas que faltan se listan a lo sumo; las demás se cuentan. */ tope?: number }) {
   if (guia.faltan.length > 0) {
     const siguiente = guia.faltan.find((c) => c.id === guia.ahora) ?? guia.faltan[0];
     return (
       <div className="space-y-1 pt-1">
-        <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
+        {guia.conGrado ? (
+          <PieSeparado guia={guia} />
+        ) : (
+          <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} tope={tope} />
+        )}
         {conFrase && siguiente?.pendiente && (
           <p role="status" className="text-[12.5px] text-tinta/80">
             {siguiente.pendiente}
@@ -72,5 +82,16 @@ export function PieGuia({ guia, listo = "Todo listo.", conFrase = false }: { gui
     <p role="status" className="pt-1 text-[12.5px] text-verde">
       {listo}
     </p>
+  );
+}
+
+/** Con `conGrado`: «Faltan: …» (lo que bloquea) y, en otra línea, «Conviene: …» (lo que no). Quien solo tiene cosas que convienen no ve ningún «Falta». */
+function PieSeparado({ guia }: { guia: GuiaCampos }) {
+  const { obligatorios, convienen } = separarFaltan(guia.faltan);
+  return (
+    <>
+      {obligatorios.length > 0 && <FaltanDelPaso faltan={obligatorios} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />}
+      {convienen.length > 0 && <FaltanDelPaso faltan={convienen} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} rotulo="Conviene" />}
+    </>
   );
 }

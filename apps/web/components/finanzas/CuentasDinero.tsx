@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import Link from "next/link";
+import { createContext, useContext, useEffect, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -10,41 +9,29 @@ import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
+import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
 import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SalidaFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
-import { horaLima } from "@/lib/fechas-lima";
+import { fechaCorta, solesRedondo, type Ver } from "@/lib/gastos-reglas";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
-  MEDIOS_COBRO,
   OPCIONES_QUE_PASO,
-  TEXTO_MEDIO_COBRO,
   TEXTO_MOVIMIENTO,
   TEXTO_SIN_CUENTA,
-  agruparCuentas,
-  avisosDeMaquinas,
   cuadra,
   cuentasPara,
-  cuentasVisibles,
-  deudaConDueno,
-  diaYNumero,
   ejemploMontoDeposito,
   ejemploReferenciaDeposito,
-  explicacionCuenta,
-  hoyEnPalabras,
-  insigniaCuenta,
   leerEgresoParaMovimiento,
   leerLotePendiente,
   lotesPorDefecto,
-  nombreCorto,
   nombreDeMaquinaDeLaPuente,
   saldoConCentimos,
   tituloDelMovimiento,
   opcionQuePaso,
-  otrosDelCajon,
   resumenAbono,
   resumenConciliacion,
   textoLote,
@@ -52,26 +39,29 @@ import {
   tipoDeMovimiento,
   validarAbonoPos,
   validarMovimiento,
-  type AlertaPos,
   type BorradorMovimiento,
-  type CierreConDiferencia,
   type Conciliacion,
   type ConciliacionCuenta,
   type CuentaDinero,
-  type EfectivoFila,
   type EgresoParaMovimiento,
-  type FilaMedio,
   type LotePendiente,
   type MovimientoDinero,
-  type MovimientoDueno,
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { Boton } from "@/components/ui/campos";
+import { UltimosMovimientos } from "@/components/finanzas/dinero/HistorialDinero";
 import { Casilla } from "@/components/ui/Casilla";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
-import { ArrowLeftRight, Landmark, Store } from "lucide-react";
+import { ArrowLeftRight, Landmark } from "lucide-react";
+import { Volver } from "@/components/ui/Volver";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { avanceDeLineas, bancosParaCuadrar, camposDeAnotarSaldo, estadoDeBanco, estadoPar, filtrarLineas, inicialesDeBanco, respuestaCuadre, textoLadoBanco, textoPeriodo, textoUltimaVez, type FiltroLineas } from "@/lib/cuadrar-reglas";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
@@ -81,84 +71,105 @@ import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 /** Una consulta a la base SIN ejecutar: `firmar` le agrega el responsable antes de mandarla. */
 type Consulta = PromiseLike<{ error: unknown }>;
-const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
 // ---- La pantalla: cabecera, «Ver» y el modal de registrar, compartidos por las tres pestañas ------------------------------
 
 /** `origenId`: la cuenta de la que sale la plata, si quien abre ya lo sabe (el aviso de una máquina atrasada abre SU depósito). */
-type AbrirMovimiento = (que?: QuePaso, origenId?: string) => void;
+type AbrirMovimiento = (que?: QuePaso, origenId?: string, monto?: string) => void;
 const ContextoMovimiento = createContext<AbrirMovimiento>(() => {});
+
+/** Abre «Registrar movimiento» desde una pieza de adentro de la pantalla (`monto`: lo que ya viene escrito, p. ej. el saldo con CLAURE). */
+export function useAbrirMovimiento(): AbrirMovimiento {
+  return useContext(ContextoMovimiento);
+}
 
 export function PantallaDinero({
   pestana,
   esLider,
   conteos,
-  ubicaciones,
+  sede,
+  respuesta,
+  orillo,
+  sedes,
   ver,
-  deCaylaEntera = false,
   cuentas,
   deuda,
   hoy,
   fallas,
+  campana,
+  acciones,
+  panorama = false,
+  subtitulo,
   children,
 }: {
   pestana: PestanaDinero;
   esLider: boolean;
   conteos?: Partial<Record<PestanaDinero, number>>;
-  ubicaciones: UbicacionGastos[];
+  /** La sede que se mira, como la dice la cabecera («Todas las sedes», «Trujillo»). */
+  sede: string;
+  /** La respuesta grande de esta cara (El telar). */
+  respuesta: ComponentProps<typeof CabeceraDinero>["respuesta"];
+  /** Cuánto pone cada sede en esta cara; `null` si la cara es de CAYLA entera. */
+  orillo: ComponentProps<typeof CabeceraDinero>["orillo"];
+  sedes: SedeTelar[];
   ver: Ver;
-  /** Conciliación es de CAYLA entera: en lugar de «Ver», lo dice. */
-  deCaylaEntera?: boolean;
   /** Las cuentas que el modal ofrece (con su saldo si la cuenta lo ve). */
   cuentas: CuentaDinero[];
   /** Lo que CAYLA le debe al dueño (tope de una devolución). */
   deuda: number;
   hoy: string;
   fallas: string[];
+  /** La campana «Estado de las cuentas», a la izquierda de «+ Registrar movimiento» (solo «Dónde está»). */
+  campana?: ReactNode;
+  /** La acción de la cabecera si no es «+ Registrar movimiento» (CLAURE: «Pagar a CLAURE»); `null` = ninguna (el dock sigue con «Registrar movimiento»). */
+  acciones?: ReactNode;
+  /** La cara dibuja su propio resumen (la tarjeta de total de «Dónde está»): la cabecera no repite la respuesta grande ni el orillo. */
+  panorama?: boolean;
+  /** La frase bajo el título, si la cara dice la suya. */
+  subtitulo?: string;
   children: ReactNode;
 }) {
-  const router = useRouter();
-  const ruta = usePathname();
   const params = useSearchParams();
-  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string } | null>(null);
-  const nombreSede = ver.ubicacionId ? (ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "tu tienda") : "Todas las tiendas";
-
-  const irA = (v: string) => {
-    const p = new URLSearchParams(params.toString());
-    p.set("ver", v);
-    router.push(`${ruta}?${p.toString()}`, { scroll: false });
-  };
+  const ruta = usePathname();
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string } | null>(null);
+  // El dock de las otras caras lleva aquí con `?registrar=1`: la hoja abre sola, como si se hubiera tocado el botón, y el parámetro
+  // sale de la dirección (recargar no la vuelve a abrir).
+  const pideRegistrar = params.get("registrar") === "1";
+  useEffect(() => {
+    if (!pideRegistrar) return;
+    const p = new URLSearchParams(window.location.search);
+    p.delete("registrar");
+    window.history.replaceState(null, "", p.size ? `${ruta}?${p}` : ruta);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- la hoja abierta desde el primer pintado no dejaba hidratar la página (medido 2026-10-23): se abre al montar, como el #fotos de ProductoForm
+    setModal({ que: "deposito" });
+  }, [pideRegistrar, ruta]);
 
   return (
-    <ContextoMovimiento.Provider value={(que, origenId) => setModal({ que: que ?? "deposito", origenId })}>
+    <ContextoMovimiento.Provider value={(que, origenId, monto) => setModal({ que: que ?? "deposito", origenId, monto })}>
       <div className="space-y-6">
         <CabeceraDinero
           pestana={pestana}
           esLider={esLider}
           conteos={conteos}
+          sede={sede}
+          respuesta={respuesta}
+          orillo={orillo}
+          sedes={sedes}
+          hoy={hoy}
+          onRegistrar={() => setModal({ que: "deposito" })}
+          panorama={panorama}
+          subtitulo={subtitulo}
           acciones={
-            <>
-              {deCaylaEntera ? (
-                <Chip tono="neutro" versalitas={false}>
-                  CAYLA entera
-                </Chip>
-              ) : esLider ? (
-                <label className="fin-ver" data-guia="fin-ver.combo">
-                  <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                  <SelectFin
-                    etiqueta="Qué mirar"
-                    valor={ver.clave}
-                    onValor={irA}
-                    opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))]}
-                  />
-                </label>
-              ) : (
-                <Chip versalitas={false}>{nombreSede}</Chip>
-              )}
-              <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
-                + Registrar movimiento
-              </Boton>
-            </>
+            acciones !== undefined ? (
+              acciones
+            ) : (
+              <>
+                {campana}
+                <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+                  + Registrar movimiento
+                </Boton>
+              </>
+            )
           }
         />
         {fallas.map((f) => (
@@ -172,6 +183,7 @@ export function PantallaDinero({
         <RegistrarMovimientoModal
           inicial={modal.que}
           origenInicial={modal.origenId}
+          montoInicial={modal.monto}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -186,201 +198,35 @@ export function PantallaDinero({
 
 // ---- Pestaña «Cuentas» ------------------------------------------------------------------------------------------------
 
+/** «Últimos movimientos» con su detalle (donde se anula con motivo): vive en la columna derecha de «Dónde está» (`PanoramaDinero`). */
+export function MovimientosEnPantalla({ movimientos, hoy }: { movimientos: MovimientoDinero[]; hoy: string }) {
+  const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
+  return (
+    <>
+      <UltimosMovimientos movimientos={movimientos} hoy={hoy} onElegir={setDetalle} />
+      {detalle && <MovimientoDetalleModal movimiento={detalle} onCerrar={() => setDetalle(null)} />}
+    </>
+  );
+}
+
 export function CuentasPanel({
-  cuentas,
-  movimientos,
-  medios,
-  plata,
   sinCuenta,
-  alertas,
-  ubicaciones,
-  talleres,
   ver,
   esLider,
-  hoy,
 }: {
-  cuentas: CuentaDinero[];
-  movimientos: MovimientoDinero[];
-  medios: FilaMedio[];
-  plata: MovimientoDueno[];
   sinCuenta: SinCuenta[];
-  /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
-  alertas?: AlertaPos[];
-  ubicaciones: UbicacionGastos[];
-  /** Las sedes que son el Taller (su cajón es un fondo fijo). */
-  talleres: string[];
   ver: Ver;
   esLider: boolean;
-  hoy: string;
 }) {
-  const abrir = useContext(ContextoMovimiento);
-  const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
-  const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
+  // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: lo que no dice su cuenta. La plata del dueño y a qué cuenta entra cada
+  // cobro tienen sus propias tarjetas (PlataDelDueno, CobrosDinero).
   const verTodas = !ver.ubicacionId;
-  const visibles = cuentasVisibles(cuentas, ver.ubicacionId);
-  const grupos = agruparCuentas(visibles);
-  const nombreSede = ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "tu tienda";
-  const dueno = deudaConDueno(plata);
   const totalSinCuenta = sinCuenta.reduce((a, s) => a + s.monto, 0);
 
   return (
     <>
-      {esLider && !verTodas && (
-        <p className="nota-cayla anim-sube">
-          Los bancos son de CAYLA entera: se ven igual en cualquier tienda. El cajón y la caja fuerte son los de {nombreSede}.
-        </p>
-      )}
-      {/* La máquina que no depositó a tiempo (ADR-0429, act. 4): se dice arriba de las cuentas, con el camino para registrarlo. */}
-      {avisosMaquinas.map((a) => (
-        <Aviso
-          key={a.maquina.maquinaId}
-          tono="atencion"
-          titulo={a.titulo}
-          guia="fin-dinero.aviso-maquina"
-          accion={
-            <button type="button" className="btn-cayla btn-enlace" onClick={() => abrir("abono_tarjeta", a.maquina.cuentaId)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-registrar">
-              Registrar el depósito
-            </button>
-          }
-        >
-          {a.detalle}
-        </Aviso>
-      ))}
-
-      {grupos.length === 0 ? (
-        <Superficie>
-          <Vacio icono={<Landmark />} titulo="Todavía no hay cuentas: agrega los bancos de CAYLA">
-            Los cajones y las cajas fuertes nacen con cada tienda. Los bancos, las billeteras, el POS y la tarjeta se agregan en Configuración ▸ Cuentas y cobros.
-          </Vacio>
-        </Superficie>
-      ) : (
-        grupos.map((g, i) => (
-          <section key={g.clave} {...entra(i + 1)} data-guia="fin-dinero.cuentas">
-            <p className="fin-etq">
-              {g.titulo} · cuenta {g.cuenta}
-            </p>
-            <div className="fin-cuentas">
-              {g.cuentas.map((c) => {
-                const insignia = insigniaCuenta(c, hoy);
-                return (
-                  <article key={c.id} className="fin-cuenta">
-                    <div className="fin-cuenta-cab">
-                      <b>{c.nombre}</b>
-                      {insignia && <Chip tono={insignia.tono}>{insignia.texto}</Chip>}
-                    </div>
-                    {c.saldo === null ? (
-                      <div className="fin-cuenta-saldo" data-oculto>
-                        Lo ve quien cierra la caja
-                      </div>
-                    ) : (
-                      <div className="fin-cuenta-saldo" data-debe={c.saldo < 0 ? "" : undefined}>
-                        {c.saldo < 0 ? `−${verSaldo(c, -c.saldo)}` : verSaldo(c, c.saldo)}
-                      </div>
-                    )}
-                    <p>{explicacionCuenta(c, medios, c.ubicacionId !== null && talleres.includes(c.ubicacionId))}</p>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        ))
-      )}
-
-      {esLider && verTodas && (
-        <Superficie pad className="anim-sube" guia="fin-dinero.dueno">
-          <CabeceraBloque
-            titulo="Plata del dueño"
-            bajada={
-              <>
-                Cuando pones plata en un mal momento, eliges si es un <b className="font-semibold text-tinta">aporte</b> (se queda en CAYLA) o un <b className="font-semibold text-tinta">préstamo</b> (CAYLA te lo devuelve).
-              </>
-            }
-          >
-            <div className="flex shrink-0 gap-2">
-              <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrir("dueno_pone")} aria-haspopup="dialog" data-guia="fin-dinero.poner-plata">
-                Poner plata
-              </button>
-              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => abrir("dueno_saca")} aria-haspopup="dialog">
-                Sacar plata
-              </button>
-            </div>
-          </CabeceraBloque>
-          <div className="fin-dueno-cifras">
-            <div>
-              <span className="fin-etq block">CAYLA te debe</span>
-              <div className="fin-cuenta-saldo">{solesRedondo(dueno.deuda)}</div>
-            </div>
-            <ul className="fin-lista-mov min-w-0 flex-1 border-t border-sand">
-              {dueno.prestamos.length === 0 ? (
-                <li>
-                  <span className="text-taupe">Sin préstamos del dueño.</span>
-                  <span />
-                </li>
-              ) : (
-                dueno.prestamos.map((p) => (
-                  <li key={p.id}>
-                    <span>
-                      {fechaCorta(p.fecha)} · préstamo{p.referencia ? ` · ${p.referencia}` : ""}
-                    </span>
-                    <span>
-                      {solesRedondo(p.monto)} · devuelto {solesRedondo(p.devuelto)}
-                    </span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-        </Superficie>
-      )}
-
-      {esLider && verTodas && medios.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-dinero.medios">
-          <Herramientas className="justify-between">
-            <div className="fin-herramientas-titulo min-w-0">
-              <b>A qué cuenta entra cada cobro</b>
-              <p>Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</p>
-            </div>
-            <Link href="/configuracion?tab=cuentas" className="btn-cayla btn-sutil btn-chico">
-              Cambiar en Configuración
-            </Link>
-          </Herramientas>
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla fin-tabla-medios">
-              <thead>
-                <tr>
-                  <th>Tienda</th>
-                  <th>Efectivo</th>
-                  {MEDIOS_COBRO.map((m) => (
-                    <th key={m}>{TEXTO_MEDIO_COBRO[m]}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filasMedios(medios).map((f) => (
-                  <tr key={f.ubicacionId}>
-                    <td data-l="Tienda">
-                      <b>{f.ubicacionNombre}</b>
-                    </td>
-                    <td data-l="Efectivo">
-                      <span className="fin-metodo" data-m="efectivo" />
-                      {(cuentas.find((c) => c.tipo === "cajon" && c.ubicacionId === f.ubicacionId)?.nombre ?? "Su cajón").replace("Cajón · ", "Cajón ")}
-                    </td>
-                    {MEDIOS_COBRO.map((m) => (
-                      <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className={f.porMedio[m] ? undefined : "fin-tenue"}>
-                        <span className="fin-metodo" data-m={m} />
-                        {f.porMedio[m] ? nombreCorto(f.porMedio[m]) : "Sin cuenta"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Superficie>
-      )}
-
       {esLider && verTodas && totalSinCuenta !== 0 && (
         <p className="nota-cayla anim-sube" data-guia="fin-dinero.sin-cuenta">
           Este mes, <b>{soles(Math.abs(totalSinCuenta))}</b> movieron plata sin decir de qué cuenta:{" "}
@@ -396,212 +242,24 @@ export function CuentasPanel({
         </p>
       )}
       {decirCuenta && <PagosSinCuentaModal onClose={() => setDecirCuenta(false)} />}
-
-      <Superficie className="anim-sube" guia="fin-dinero.movimientos">
-        <Herramientas>
-          <b className="text-sm font-semibold text-tinta">Movimientos entre cuentas</b>
-          <span className="text-[12.5px] text-taupe">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span>
-        </Herramientas>
-        {movimientos.length === 0 ? (
-          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Sin movimientos todavía. Un depósito del cajón o el depósito de una máquina se registra con «+ Registrar movimiento».
-          </Vacio>
-        ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Qué</th>
-                  <th>De</th>
-                  <th>A</th>
-                  <th className="fin-num">Monto</th>
-                  <th>Responsable</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movimientos.map((m) => (
-                  <tr
-                    key={m.id}
-                    data-clic
-                    tabIndex={0}
-                    className={m.estado === "anulado" ? "fin-anulada" : undefined}
-                    data-guia="fin-dinero.movimiento"
-                    onClick={() => setDetalle(m)}
-                    onKeyDown={(ev) => {
-                      if (ev.key === "Enter" || ev.key === " ") {
-                        ev.preventDefault();
-                        setDetalle(m);
-                      }
-                    }}
-                  >
-                    <td data-l="Fecha" className="whitespace-nowrap">
-                      {fechaCorta(m.fecha)}
-                    </td>
-                    <td className="fin-ancha" data-l="Qué">
-                      <b>{TEXTO_MOVIMIENTO[m.tipo]}</b>
-                      <span className="fin-sub">
-                        {[m.referencia, m.comision > 0 ? `comisión ${soles(m.comision)} → gasto` : null, m.estado === "anulado" ? `anulado: ${m.motivoAnulacion}` : null].filter(Boolean).join(" · ") || " "}
-                      </span>
-                    </td>
-                    <td data-l="De">{m.origenNombre ? nombreCorto(m.origenNombre) : <span className="fin-tenue">El dueño</span>}</td>
-                    <td data-l="A">{m.destinoNombre ? nombreCorto(m.destinoNombre) : <span className="fin-tenue">Sale del negocio</span>}</td>
-                    <td className="fin-num" data-l="Monto">
-                      {soles(m.monto)}
-                    </td>
-                    <td data-l="Responsable" className="whitespace-nowrap">
-                      {m.registradoPor ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <PieTabla>
-          <span>Solo se agregan filas; un error se anula con motivo.</span>
-        </PieTabla>
-      </Superficie>
-
-      {detalle && <MovimientoDetalleModal movimiento={detalle} onCerrar={() => setDetalle(null)} />}
-    </>
-  );
-}
-
-function filasMedios(medios: readonly FilaMedio[]) {
-  const porTienda = new Map<string, { ubicacionId: string; ubicacionNombre: string; porMedio: Partial<Record<string, string>> }>();
-  for (const m of medios) {
-    const f = porTienda.get(m.ubicacionId) ?? { ubicacionId: m.ubicacionId, ubicacionNombre: m.ubicacionNombre, porMedio: {} };
-    if (m.cuentaNombre) f.porMedio[m.medio] = m.cuentaNombre;
-    porTienda.set(m.ubicacionId, f);
-  }
-  return [...porTienda.values()];
-}
-
-// ---- Pestaña «Efectivo por tienda» -------------------------------------------------------------------------------------
-
-export function EfectivoPanel({ filas, cierres, hoy }: { filas: EfectivoFila[]; cierres: CierreConDiferencia[]; hoy: string }) {
-  const hayOtros = filas.some((f) => f.abierta && otrosDelCajon(f) !== 0);
-  const ocultos = filas.some((f) => f.abierta && f.esperado === null);
-  return (
-    <>
-      <Superficie className="anim-sube" guia="fin-dinero.efectivo">
-        <Herramientas className="justify-between">
-          <div className="fin-herramientas-titulo min-w-0">
-            <b>{hoyEnPalabras(hoy)}</b>
-            <p>Lo que debería haber en cada cajón ahora mismo. El conteo lo hace cada tienda al cerrar su caja.</p>
-          </div>
-        </Herramientas>
-        {filas.length === 0 ? (
-          <Vacio tamano="chico" icono={<Store />}>
-            No hay tiendas que mirar.
-          </Vacio>
-        ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Tienda</th>
-                  <th>Caja</th>
-                  <th className="fin-num">Apertura</th>
-                  <th className="fin-num">+ Ventas en efectivo</th>
-                  {hayOtros && <th className="fin-num">± Otros</th>}
-                  <th className="fin-num">− Egresos</th>
-                  <th className="fin-num">− Depósitos</th>
-                  <th className="fin-num">Debería haber</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((f) => (
-                  <tr key={f.ubicacionId} className={f.abierta ? undefined : "fin-suave"}>
-                    <td className="fin-ancha" data-l="Tienda">
-                      <b>{f.ubicacionNombre}</b>
-                    </td>
-                    <td data-l="Caja">
-                      {f.abierta ? (
-                        <>
-                          <Chip tono="verde">abierta {f.abiertaEn ? horaLima(f.abiertaEn) : ""}</Chip>
-                          {f.abiertaPor && <span className="fin-sub">{f.abiertaPor}</span>}
-                        </>
-                      ) : (
-                        <>
-                          <Chip tono="neutro">cerrada</Chip>
-                          {f.cerradaEn && <span className="fin-sub">desde el {diaYNumero(f.cerradaEn)}</span>}
-                        </>
-                      )}
-                    </td>
-                    <td className="fin-num" data-l="Apertura">
-                      {f.abierta ? solesRedondo(f.apertura) : "—"}
-                    </td>
-                    <td className="fin-num" data-l="Ventas en efectivo">
-                      {f.abierta ? solesRedondo(f.ventasEfectivo) : "—"}
-                    </td>
-                    {hayOtros && (
-                      <td className="fin-num" data-l="Otros">
-                        {f.abierta ? solesRedondo(otrosDelCajon(f)) : "—"}
-                      </td>
-                    )}
-                    <td className="fin-num" data-l="Egresos">
-                      {f.abierta ? solesRedondo(f.egresos) : "—"}
-                    </td>
-                    <td className="fin-num" data-l="Depósitos">
-                      {f.abierta ? solesRedondo(f.depositos) : "—"}
-                    </td>
-                    <td className="fin-num" data-l={f.abierta ? "Debería haber" : "Quedó en el cajón"}>
-                      {f.abierta ? (
-                        f.esperado === null ? (
-                          <span className="fin-tenue">lo ve quien cierra</span>
-                        ) : (
-                          <b className="font-display text-[19px]">{solesRedondo(f.esperado)}</b>
-                        )
-                      ) : (
-                        <span className="font-display text-[19px]">{f.fondo === null ? "—" : solesRedondo(f.fondo)}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {(hayOtros || ocultos) && (
-          <PieTabla>
-            <span>
-              {hayOtros ? "«± Otros» son los ingresos al cajón, las devoluciones y los cambios pagados en efectivo. " : ""}
-              {ocultos ? "Lo que debería haber lo ve solo quien puede cerrar la caja (el mismo candado que el cierre)." : ""}
-            </span>
-          </PieTabla>
-        )}
-      </Superficie>
-
-      {cierres.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-dinero.diferencias">
-          <Herramientas>
-            <b className="text-sm font-semibold text-tinta">Últimos cierres con diferencia</b>
-          </Herramientas>
-          <ul className="fin-lista-mov px-[14px] pb-1.5">
-            {cierres.map((c) => (
-              <li key={c.cajaId}>
-                <span>
-                  {c.ubicacionNombre} · {diaYNumero(c.cerradaEn)} · {c.diferencia < 0 ? "faltaron" : "sobraron"} {soles(Math.abs(c.diferencia))}
-                </span>
-                <span>{c.cerradaPor ? `Lo cerró ${c.cerradaPor}.` : ""}</span>
-              </li>
-            ))}
-          </ul>
-        </Superficie>
-      )}
-
-      <p className="nota-cayla anim-sube">
-        Esto ya lo calcula Caja, tienda por tienda: es la misma cuenta del cierre. Finanzas solo lo junta. Los gastos pagados con plata del cajón y los depósitos al banco bajan este número el mismo día.
-      </p>
     </>
   );
 }
 
 // ---- Pestaña «Conciliación» (solo el líder) ----------------------------------------------------------------------------
 
-export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: ConciliacionCuenta[]; actual: Conciliacion | null; hoy: string }) {
+export function ConciliacionPanel({
+  cuentas,
+  actual,
+  hoy,
+  deUnaFecha = false,
+}: {
+  cuentas: ConciliacionCuenta[];
+  actual: Conciliacion | null;
+  hoy: string;
+  /** Se mira una conciliación pasada (`?hasta=`): la flecha vuelve a la de hoy. */
+  deUnaFecha?: boolean;
+}) {
   const router = useRouter();
   const ruta = usePathname();
   const responsable = useResponsable();
@@ -609,19 +267,22 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
   const [fecha, setFecha] = useState(actual?.hasta ?? hoy);
   const [guardando, setGuardando] = useState(false);
   const [anulando, setAnulando] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroLineas>("pendientes");
+  // La guía de foco de «¿Qué saldo dice el banco?» (ADR-0284): enciende lo que sigue; «falta» es lo mismo que bloquea `anotar()`.
+  const guia = useGuiaCampos(camposDeAnotarSaldo({ responsableListo: responsable.listo, saldo, fecha, hoy }), { enModal: false });
 
   if (!actual) {
     return (
       <Superficie>
         <Vacio guia="fin-conciliacion.vacia" icono={<Landmark />} titulo="No hay bancos que conciliar">
-          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros. Cada viernes se anota lo que dice el banco y el sistema dice si coincide.
+          Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros.
         </Vacio>
       </Superficie>
     );
   }
   const r = resumenConciliacion(actual.lineas);
   const k = actual.conciliacion;
-  const otras = cuentas.filter((c) => c.id !== actual.cuenta.id);
+  const respuesta = respuestaCuadre(actual);
   const ir = (cuenta: string, hasta?: string) => router.push(`${ruta}?cuenta=${cuenta}${hasta ? `&hasta=${hasta}` : ""}`, { scroll: false });
 
   async function ejecutar(hacer: () => Consulta, que: string, listo: string) {
@@ -665,172 +326,229 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
     }
   }
 
-  const periodo = `del ${fechaCorta(actual.desde)} al ${fechaCorta(actual.hasta)}`;
+  const periodo = textoPeriodo(actual.desde, actual.hasta, hoy);
+  const av = avanceDeLineas(actual.lineas);
+  const visibles = filtrarLineas(actual.lineas, filtro);
+  const totalPendientes = cuentas.reduce((a, c) => a + c.pendientes, 0);
 
   return (
-    <>
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">Cada viernes, anota el saldo que muestra la banca por internet: el sistema dice si coincide y qué movimientos del período faltan revisar.</p>
-        <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
+    <div className="din-cuad">
+      {/* «B · Lista y detalle» (Felipe 2026-10-31): a la izquierda, los bancos con su estado de un vistazo; a la derecha, el del elegido. */}
+      <aside className="card-cayla din-cuad-lista anim-sube" data-guia="fin-conciliacion.otras" aria-label="Tus bancos">
+        <header className="din-cuad-lista-cab">
+          <TituloSeccion cuenta={totalPendientes}>Tus bancos</TituloSeccion>
+          <p className="din-cuad-tenue">{totalPendientes === 0 ? "Todo revisado." : `${totalPendientes} ${totalPendientes === 1 ? "línea" : "líneas"} por revisar.`}</p>
+        </header>
+        <div role="group" aria-label="Qué cuenta cuadrar">
+          {bancosParaCuadrar(cuentas).map((c) => {
+            const e = estadoDeBanco(c);
+            return (
+              <button key={c.id} type="button" className="din-cuad-it" aria-pressed={c.id === actual.cuenta.id} onClick={() => ir(c.id)}>
+                <span className="din-cuad-ini" aria-hidden="true">
+                  {inicialesDeBanco(c.nombre)}
+                </span>
+                <span className="min-w-0">
+                  <b className="block truncate text-sm font-semibold text-tinta">{c.nombre}</b>
+                  <small className="din-cuad-tenue block">{textoUltimaVez(c.ultimaFecha)}</small>
+                </span>
+                <span className="din-cuad-it-der">
+                  <b className="din-cuad-num">{soles(c.saldoHoy)}</b>
+                  <Chip tono={e.tono} versalitas={false}>
+                    {e.texto}
+                  </Chip>
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </aside>
 
-      <Superficie className="anim-sube" guia="fin-conciliacion.lineas">
-        <Herramientas className="justify-between">
-          <div className="fin-herramientas-titulo min-w-0">
-            <b>
-              {actual.cuenta.nombre} · movimientos {periodo}
-            </b>
-            <p>
-              El sistema dice <b className="font-semibold text-tinta">{soles(actual.saldoSistema)}</b> al {fechaCorta(actual.hasta)}. Marca cada línea cuando la veas en el extracto.
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Chip tono={r.total > 0 && r.revisadas === r.total ? "verde" : "pizarra"}>
-                {r.revisadas} de {r.total} revisadas
-              </Chip>
+      <div className="din-cuad-det">
+        <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
+          <CampoGuiado id="responsable" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
+          </CampoGuiado>
+        </div>
+
+        <section className="card-cayla din-cuad-hero anim-sube" aria-label={`Saldo de ${actual.cuenta.nombre}`}>
+          <div className="din-cuad-hero-lado">
+            <span className="label-cayla">{actual.cuenta.nombre} · el sistema dice</span>
+            <b className="din-cuad-cifra">{soles(actual.saldoSistema)}</b>
+            <span className="[&>*]:!whitespace-normal">
+              <Chip tono={respuesta.tono}>{respuesta.texto}</Chip>
+            </span>
+          </div>
+          {k ? (
+            <div className="din-cuad-hero-lado">
+              <span className="label-cayla">El banco dijo</span>
+              <b className="din-cuad-cifra din-cuad-cifra-chica">{soles(k.saldoBanco)}</b>
+              <p className="din-cuad-tenue">
+                {cuadra(k.diferencia) ? "Coincide con el sistema." : `Diferencia de ${soles(Math.abs(k.diferencia))} con el sistema.`} Anotado al {fechaCorta(actual.hasta)}
+                {k.registradoPor ? ` por ${k.registradoPor}` : ""}.
+              </p>
+              <span>
+                <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setAnulando(true)}>
+                  Anular este saldo…
+                </button>
+              </span>
+            </div>
+          ) : (
+            <div className="din-cuad-hero-lado" data-guia="fin-conciliacion.anotar">
+              <span className="label-cayla">¿Qué saldo dice el banco?</span>
+              <p className="din-cuad-tenue">Lo que muestra la banca por internet al cierre del día; se compara con el del sistema.</p>
+              <div className="grid gap-3">
+                <CampoGuiado id="saldo" guia={guia}>
+                  <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
+                    <InputFin id="conc-saldo" inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="38,420.00" />
+                  </CampoFin>
+                </CampoGuiado>
+                <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+                  <CampoGuiado id="fecha" guia={guia}>
+                    <CampoFin etiqueta="Al" htmlFor="conc-fecha" className="!mb-0">
+                      <InputFin
+                        id="conc-fecha"
+                        type="date"
+                        value={fecha}
+                        min={actual.cuenta.saldoDesde?.slice(0, 10) ?? undefined}
+                        max={hoy}
+                        onChange={(e) => {
+                          setFecha(e.target.value);
+                          if (e.target.value) ir(actual.cuenta.id, e.target.value);
+                        }}
+                      />
+                    </CampoFin>
+                  </CampoGuiado>
+                  <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar} className={guia.claseConfirmar} title={guia.frase ?? undefined}>
+                    Anotar
+                  </Boton>
+                </div>
+              </div>
+              <PieGuia guia={guia} listo="Todo listo para anotar el saldo." />
+            </div>
+          )}
+        </section>
+
+        <Superficie className="anim-sube" guia="fin-conciliacion.lineas">
+          <Herramientas className="justify-between">
+            <div className="fin-herramientas-titulo min-w-0">
+              <b className="flex items-center gap-2">
+                {deUnaFecha && <Volver onClick={() => ir(actual.cuenta.id)} a="Volver a hoy" />}
+                {actual.cuenta.nombre} · movimientos {periodo}
+              </b>
+              <p>A la izquierda, lo que anotó CAYLA; a la derecha, si está en el extracto del banco.</p>
+            </div>
+            <SegmentoDeslizante
+              etiqueta="Qué líneas ver"
+              forma="modo"
+              valor={filtro}
+              onCambio={(v) => setFiltro(v as FiltroLineas)}
+              opciones={[
+                { clave: "pendientes", etiqueta: `Por revisar ${av.faltan}` },
+                { clave: "revisadas", etiqueta: `Revisadas ${av.revisadas}` },
+                { clave: "todas", etiqueta: "Todas" },
+              ]}
+            />
+          </Herramientas>
+          {av.total > 0 && (
+            <div className="din-cuad-avance">
+              <div className="din-cuad-avance-barra">
+                <BarraAvance pct={av.pct} alto="normal" decorativa />
+              </div>
+              <span className="din-cuad-tenue">
+                {av.revisadas} de {av.total} revisadas
+              </span>
               {r.porRevisar.length > 0 && (
                 <button type="button" className="btn-cayla btn-primario btn-chico" disabled={guardando} onClick={() => marcar(r.porRevisar.map((l) => ({ clave: l.clave, monto: l.monto })), true)}>
                   {r.porRevisar.length === 1 ? "Marcar la que falta como revisada" : `Marcar las ${r.porRevisar.length} como revisadas`}
                 </button>
               )}
             </div>
-          </div>
-        </Herramientas>
-        {actual.lineas.length === 0 ? (
-          <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Nada entró ni salió de esta cuenta {periodo}.
-          </Vacio>
-        ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Lo que registró el sistema</th>
-                  <th className="fin-num">Monto</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {actual.lineas.map((l) => (
-                  <tr key={l.clave} className={l.revisado ? "fin-hecha" : undefined}>
-                    <td data-l="Fecha" className="whitespace-nowrap">
-                      {fechaCorta(l.fecha)}
-                    </td>
-                    <td className="fin-ancha" data-l="Movimiento">
-                      <b>{l.detalle}</b>
-                      {l.montoRevisado !== null && <span className="fin-sub fin-cambio">Cambió desde que se revisó (era {soles(l.montoRevisado)}): revísala otra vez.</span>}
-                      {l.revisado && l.revisadoPor && <span className="fin-sub">revisada por {l.revisadoPor}</span>}
-                    </td>
-                    <td className={`fin-num ${l.monto < 0 ? "fin-sale" : ""}`} data-l="Monto">
-                      {l.monto < 0 ? "−" : "+"}
-                      {soles(Math.abs(l.monto))}
-                    </td>
-                    <td className="fin-num">
-                      {l.revisado ? (
-                        <button type="button" className="btn-enlace text-[12.5px]" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)}>
+          )}
+          {actual.lineas.length === 0 ? (
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              Nada entró ni salió de esta cuenta {periodo}.
+            </Vacio>
+          ) : visibles.length === 0 ? (
+            <Vacio tamano="chico" icono={<ArrowLeftRight />}>
+              {filtro === "pendientes" ? "No queda nada por revisar." : "Todavía no hay líneas revisadas."}
+            </Vacio>
+          ) : (
+            <ul className="din-pares" aria-label={`Líneas de ${actual.cuenta.nombre}`}>
+              {visibles.map((l, i) => {
+                const estado = estadoPar(l);
+                return (
+                  <li key={l.clave} className="din-par anim-entra" data-estado={estado} style={{ ["--i" as string]: Math.min(i, 12) } as CSSProperties}>
+                    <div className="din-par-lado">
+                      <b className={`din-par-monto ${l.monto < 0 ? "fin-sale" : ""}`}>
+                        {l.monto < 0 ? "−" : "+"}
+                        {soles(Math.abs(l.monto))}
+                      </b>
+                      <span>
+                        {fechaCorta(l.fecha)} · {l.detalle}
+                      </span>
+                    </div>
+                    <svg className="din-par-hilo" viewBox="0 0 90 24" preserveAspectRatio="none" aria-hidden="true">
+                      <path d="M0 12 C30 2, 60 22, 90 12" pathLength={1} />
+                    </svg>
+                    <div className="din-par-lado">
+                      <span className="din-par-banco">{textoLadoBanco(l)}</span>
+                    </div>
+                    <div className="din-par-accion">
+                      {estado === "revisada" ? (
+                        <button type="button" className="btn-enlace text-sm" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], false)} aria-label={`Desmarcar ${l.detalle}`}>
                           <Chip tono="verde">revisada</Chip>
                         </button>
                       ) : (
                         <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={guardando} onClick={() => marcar([{ clave: l.clave, monto: l.monto }], true)}>
-                          Revisada
+                          Sí, está
                         </button>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <PieTabla>
-          {k ? (
-            cuadra(k.diferencia) ? (
-              <span>
-                <b className="text-verde">{actual.cuenta.nombre} coincide con el banco</b> al {fechaCorta(actual.hasta)}: {soles(k.saldoBanco)}.
-              </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <PieTabla>
+            {k ? (
+              cuadra(k.diferencia) ? (
+                <span>
+                  <b className="text-verde">{actual.cuenta.nombre} coincide con el banco</b> al {fechaCorta(actual.hasta)}: {soles(k.saldoBanco)}.
+                </span>
+              ) : (
+                <span>
+                  El banco dijo <b className="text-tinta">{soles(k.saldoBanco)}</b> y el sistema <b className="text-tinta">{soles(k.saldoSistema)}</b>: la diferencia es{" "}
+                  <b className="text-rojo-profundo">{soles(k.diferencia)}</b>. Busca en las líneas sin revisar lo que falta registrar.
+                </span>
+              )
             ) : (
-              <span>
-                El banco dijo <b className="text-tinta">{soles(k.saldoBanco)}</b> y el sistema <b className="text-tinta">{soles(k.saldoSistema)}</b>: la diferencia es{" "}
-                <b className="text-rojo-profundo">{soles(k.diferencia)}</b>. Busca en las líneas sin revisar lo que falta registrar.
-              </span>
-            )
-          ) : (
-            <span>Cuando todas estén revisadas y anotes el saldo del banco, el sistema dice si coinciden.</span>
-          )}
-          {k && (
-            <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setAnulando(true)}>
-              Anular este saldo…
-            </button>
-          )}
-        </PieTabla>
-      </Superficie>
-
-      {!k && (
-        <Superficie pad className="anim-sube" guia="fin-conciliacion.anotar">
-          <CabeceraBloque titulo="¿Qué saldo dice el banco?" bajada={`Lo que muestra la banca por internet al cierre del día. Se compara con los ${soles(actual.saldoSistema)} que suma el sistema.`} />
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-            <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
-              <InputFin id="conc-saldo" inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="38,420.00" />
-            </CampoFin>
-            <CampoFin etiqueta="Al" htmlFor="conc-fecha" className="!mb-0">
-              <InputFin
-                id="conc-fecha"
-                type="date"
-                value={fecha}
-                max={hoy}
-                onChange={(e) => {
-                  setFecha(e.target.value);
-                  if (e.target.value) ir(actual.cuenta.id, e.target.value);
-                }}
-              />
-            </CampoFin>
-            <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar}>
-              Anotar
-            </Boton>
-          </div>
+              <span>Cuando todas estén revisadas y anotes el saldo del banco, el sistema dice si coinciden.</span>
+            )}
+          </PieTabla>
         </Superficie>
-      )}
 
-      {actual.historial.length > 0 && (
-        <Superficie className="anim-sube" guia="fin-conciliacion.historial">
-          <Herramientas>
-            <b className="text-sm font-semibold text-tinta">Conciliaciones de {actual.cuenta.nombre}</b>
-          </Herramientas>
-          <ul className="fin-lista-mov px-[14px] pb-1.5">
-            {actual.historial.map((h) => (
-              <li key={h.id}>
-                <button type="button" className="btn-enlace text-left text-[13px]" onClick={() => ir(actual.cuenta.id, h.fecha)}>
-                  {fechaCorta(h.fecha, true)} · banco {soles(h.saldoBanco)} · sistema {soles(h.saldoSistema)}
-                </button>
-                <span>{cuadra(h.diferencia) ? "coincide" : `diferencia ${soles(h.diferencia)}`}</span>
-              </li>
-            ))}
-          </ul>
-        </Superficie>
-      )}
+        {actual.historial.length > 0 && (
+          <Superficie className="anim-sube" guia="fin-conciliacion.historial">
+            <Herramientas>
+              <b className="text-sm font-semibold text-tinta">Conciliaciones de {actual.cuenta.nombre}</b>
+            </Herramientas>
+            <ul className="fin-lista-mov px-[14px] pb-1.5">
+              {actual.historial.map((h) => (
+                <li key={h.id}>
+                  <button type="button" className="btn-enlace text-left text-sm" onClick={() => ir(actual.cuenta.id, h.fecha)}>
+                    {fechaCorta(h.fecha, true)} · banco {soles(h.saldoBanco)} · sistema {soles(h.saldoSistema)}
+                  </button>
+                  <span>{cuadra(h.diferencia) ? "coincide" : `diferencia ${soles(h.diferencia)}`}</span>
+                </li>
+              ))}
+            </ul>
+          </Superficie>
+        )}
 
-      {otras.map((c) => (
-        <Superficie key={c.id} pad className="anim-sube" guia="fin-conciliacion.otras">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <b className="text-sm font-semibold text-tinta">{c.nombre}</b>
-              <p className="mt-0.5 text-[12.5px] text-taupe">
-                {c.ultimaFecha ? `Conciliada el ${fechaCorta(c.ultimaFecha)}` : "Nunca conciliada"}. El sistema dice {soles(c.saldoHoy)}.
-                {c.pendientes > 0 ? ` ${c.pendientes} ${c.pendientes === 1 ? "línea" : "líneas"} por revisar.` : ""}
-              </p>
-            </div>
-            <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => ir(c.id)}>
-              Conciliar
-            </button>
-          </div>
-        </Superficie>
-      ))}
-
-      <p className="nota-cayla anim-sube">
-        Si el banco no deja descargar el extracto, se escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal es hacerlo <b>cada viernes</b>. Subir el extracto (Excel o CSV) para que el sistema proponga cada pareja queda para después.
-      </p>
+        <p className="nota-cayla anim-sube">
+          Escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal: <b>cada viernes</b>.
+        </p>
+      </div>
 
       {anulando && k && (
         <AnularModal
@@ -843,7 +561,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
           que="anular la conciliación"
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -852,6 +570,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
 function RegistrarMovimientoModal({
   inicial,
   origenInicial,
+  montoInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -862,6 +581,8 @@ function RegistrarMovimientoModal({
   inicial: QuePaso;
   /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
   origenInicial?: string;
+  /** El monto con que arranca, si una pantalla ya lo sabe (el saldo con CLAURE); la persona lo puede cambiar. */
+  montoInicial?: string;
   cuentas: CuentaDinero[];
   esLider: boolean;
   ubicacionId: string | null;
@@ -876,7 +597,7 @@ function RegistrarMovimientoModal({
   const [guardando, setGuardando] = useState(false);
   const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
   const [b, setB] = useState<BorradorMovimiento>(() => {
-    const base = inicialDe(inicial, cuentas, ubicacionId, deuda, hoy);
+    const base = { ...inicialDe(inicial, cuentas, ubicacionId, deuda, hoy), ...(montoInicial ? { monto: montoInicial } : {}) };
     const origenDelAviso = origenDeArranque(inicial, origenInicial, cuentas);
     return origenDelAviso ? { ...base, origen: origenDelAviso.id, fuente: fuenteInicial(origenDelAviso) } : base;
   });
@@ -986,7 +707,7 @@ function RegistrarMovimientoModal({
 
       {b.que === "dueno_pone" && (
         <div data-sin-cascada>
-          <span className="fin-etiqueta mb-1.5 block text-xs text-taupe">¿Cómo entra esta plata?</span>
+          <span className="fin-etiqueta mb-1.5 block text-sm text-taupe">¿Cómo entra esta plata?</span>
           <OpcionesFin
             guia="fin-dinero.mov-dueno"
             nombre="mov-dueno"
@@ -1002,7 +723,7 @@ function RegistrarMovimientoModal({
       )}
       {b.que === "dueno_saca" && (
         <div data-sin-cascada>
-          <span className="fin-etiqueta mb-1.5 block text-xs text-taupe">¿Qué es esta salida?</span>
+          <span className="fin-etiqueta mb-1.5 block text-sm text-taupe">¿Qué es esta salida?</span>
           <OpcionesFin
             nombre="mov-saca"
             etiqueta="Qué es esta salida"

@@ -23,7 +23,7 @@ const VERBOS_QUE_ESCRIBEN = [
   "aprobar", "rechazar", "aceptar", "transferir", "imprimir", "abrir caja", "cerrar caja", "apartar", "liberar", "descartar",
   "subir", "recibir", "despachar", "crear", "agregar", "anadir", "dejar en espera", "soltar", "aplicar", "cerrar el conteo",
   "marcar", "suspender", "reactivar", "devolver", "cambiar", "canjear", "entregar", "retirar", "reponer", "bajar", "ajustar",
-  "descargar", "compartir", "whatsapp", "llamar", "salir", "cerrar sesion", "anotar", "corregir", "pedir", "avisar", "unir",
+  "programar", "pasar a borrador", "descargar", "compartir", "whatsapp", "llamar", "salir", "cerrar sesion", "anotar", "corregir", "pedir", "avisar", "unir",
   "archivar", "desactivar", "activar", "asignar", "dar acceso", "revertir", "reintentar", "conciliar", "transmitir", "cargar",
 ] as const;
 
@@ -46,6 +46,9 @@ export function motivoParaNoTocar(p: PiezaATocar): string | null {
     if (/^(https?:|mailto:|tel:|whatsapp:)/i.test(p.href)) return "sale del ERP";
     if (destino && destino !== p.rutaActual) return "lleva a otra pantalla";
   }
+  // Un pliegue (`aria-expanded`) muestra u oculta lo que ya está en la pantalla: se toca aunque diga «Ver y cambiar». Va DESPUÉS de
+  // las reglas de envío y de los enlaces, así que un submit o un enlace a otra pantalla con `aria-expanded` sigue prohibido.
+  if (p.esPliegue) return null;
   const texto = normalizar(p.texto);
   for (const verbo of VERBOS_QUE_ESCRIBEN) {
     if (new RegExp(`(^|[^a-z])${verbo}([^a-z]|$)`).test(texto)) return `es un botón que hace algo («${verbo}»)`;
@@ -109,6 +112,15 @@ export function recorteDe(pieza: Caja, ventana: Ventana, margen = 8): Caja {
   const bottom = Math.min(ventana.alto - 4, pieza.top + pieza.height + margen);
   const right = Math.min(ventana.ancho - 4, pieza.left + pieza.width + margen);
   return { top, left, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}
+
+/** El velo: toda la ventana, menos un rectángulo redondeado (el agujero) por donde se ve la pieza. Sin agujero, el velo entero. */
+export function caminoDelVelo(v: Ventana, a: Caja): string {
+  const fuera = `M0 0H${v.ancho}V${v.alto}H0Z`;
+  if (a.width < 1 || a.height < 1) return fuera;
+  const r = Math.min(14, a.width / 2, a.height / 2);
+  const { left: x, top: y, width: w, height: h } = a;
+  return `${fuera}M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
 }
 
 export type LadoTarjeta = "abajo" | "arriba" | "derecha" | "izquierda" | "centro";

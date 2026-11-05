@@ -6,6 +6,7 @@ import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { Aviso } from "@/components/ui/Aviso";
+import { Casilla } from "@/components/ui/Casilla";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CampoMonto, CampoSelect, CampoTexto, type Opcion } from "@/components/ui/campos";
 import { campoEtiqueta } from "@/components/ui/Modal";
@@ -13,14 +14,21 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import {
   FASES,
   FIJO_MAXIMO,
+  HINT_TARIFA_A_CONFIRMAR,
   TARIFA_MAXIMA,
   avisoMinimo,
   faseDe,
+  fasesDeLaHoja,
+  fijoDesdePorPrenda,
   leerServicio,
   ordenarFases,
+  porPrendaDeFijo,
   proveedoresQueSirven,
+  tarifaDesdeTotal,
+  totalDeLaTarifa,
   type FaseBorrador,
   type FaseClave,
+  type FaseDelCatalogo,
   type Posicion,
   type ProblemaFase,
   type ProveedorServicio,
@@ -29,11 +37,11 @@ import {
   type TarifaDeLista,
 } from "@/lib/orden-fases-reglas";
 
-// «Fases y quién las hace», el bloque de la hoja «Nueva orden de producción» (ADR-0400, decisiones 2, 3 y 5; «Pantallas» punto 3). Una FILA por
-// fase en el orden de la ruta —Corte · Costura · Acabado siempre; Bordado, Estampado y Lavandería se encienden desde una línea de chips— y en cada
-// fila la pregunta de siempre de la prueba ciega: ¿la hace el Taller o sale afuera, y a quién? Cuando sale afuera aparecen el proveedor (solo los
-// que hacen servicios), la tarifa por prenda (precargada en gris desde su lista de precios), la cantidad mínima, la fecha prometida y, plegado, el
-// fijo por orden (ponchado, matriz). Bordado y estampado dicen además si van sobre la pieza cortada o sobre la prenda armada.
+// «Fases y quién las hace», el bloque de la hoja «Nueva orden de producción» (ADR-0400, decisiones 2, 3 y 5; act. k y l; «Pantallas» punto 3). Una FILA por
+// fase en el orden de la ruta —Ploteo · Corte · Habilitado · Costura · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar siempre; Ojales y botones se
+// enciende desde una línea de chips si el modelo lo lleva— y en cada fila la pregunta de siempre de la prueba ciega: ¿la hace el Taller o sale afuera, y a quién?
+// Cuando sale afuera aparecen el proveedor (solo los que hacen servicios), la tarifa por prenda (precargada en gris desde su lista de precios), la cantidad
+// mínima, la fecha prometida y, plegado, el fijo por orden. Ploteo se cobra por ORDEN: no lleva tarifa por prenda ni mínimo, y su fijo se pide a la vista.
 //
 // No tiene estado de negocio: el formulario es el dueño de `fases` (una fila por fase del catálogo, `fasesIniciales()`), lee las faltas con
 // `problemasFases` y las pasa en `problemas`; acá solo se dibuja lo que dice `lib/orden-fases-reglas.ts` y se llama a `onFases` con la lista entera.
@@ -41,9 +49,23 @@ import {
 // neutro (es un camino, no un error) y lo que está mal escrito —una tarifa con coma, una fecha pasada— en rojo. La cantidad mínima del servicio
 // solo avisa (`avisoMinimo`): la base no bloquea (decisión 5).
 
+/** El valor del combo de proveedor que quiere decir «pendiente de registrar» (no es un id: la hoja lo traduce a `pendiente: true`). */
+const PENDIENTE = "__pendiente__";
 const OPCIONES_QUIEN = [
   { clave: "taller", etiqueta: "Taller" },
   { clave: "servicio", etiqueta: "Afuera" },
+];
+
+// El ploteo se paga una sola vez por toda la orden, pero se puede escribir como el total o como lo que toca por prenda: en la base siempre vive el total.
+const OPCIONES_MODO_FIJO = [
+  { clave: "total", etiqueta: "Total de la orden" },
+  { clave: "prenda", etiqueta: "Por prenda" },
+];
+
+// Un servicio de afuera se paga por prenda, pero quien tiene en la mano el TOTAL de la orden lo escribe como está y el sistema lo reparte (ADR-0400 act. de 2026-10-31).
+const OPCIONES_MODO_TARIFA = [
+  { clave: "prenda", etiqueta: "Por prenda" },
+  { clave: "total", etiqueta: "Total" },
 ];
 
 const OPCIONES_POSICION = [
@@ -71,9 +93,14 @@ function lugarDe(p: ProblemaFase, s: ServicioLeido | null): Lugar {
     case "fase_proveedor_rubro":
       return "proveedor";
     case "fase_sin_tarifa":
+    case HINT_TARIFA_A_CONFIRMAR:
       return "tarifa";
+    case "fase_sin_fijo":
+      return "fijo";
     case "fase_tarifa_invalida": {
       if (!s) return "tarifa";
+      // Una fase que cobra por orden (el ploteo) solo tiene el fijo: todo lo que se escribe mal es ahí.
+      if (s.cantidadMinima === null && s.tarifaPrenda === null && s.tarifa.tipo === "vacio" && s.fijo.tipo !== "vacio") return "fijo";
       if (s.tarifa.tipo === "coma" || s.tarifa.tipo === "invalido") return "tarifa";
       if (s.fijo.tipo === "coma" || s.fijo.tipo === "invalido") return "fijo";
       if (s.minimo.tipo === "invalido") return "minimo";
@@ -92,7 +119,7 @@ function lugarDe(p: ProblemaFase, s: ServicioLeido | null): Lugar {
 
 /** Una falta que todavía no se escribió es un camino (pie neutro); una que se escribió mal es un error (rojo). Sin rojo salvo el error real. */
 function esFalta(p: ProblemaFase, fase: FaseBorrador): boolean {
-  return p.hint === "fase_sin_proveedor" || (p.hint === "fase_sin_tarifa" && fase.tarifa.trim() === "") || p.hint === "fase_sin_posicion";
+  return p.hint === "fase_sin_proveedor" || (p.hint === "fase_sin_tarifa" && fase.tarifa.trim() === "") || (p.hint === "fase_sin_fijo" && fase.fijo.trim() === "") || p.hint === "fase_sin_posicion";
 }
 
 const dosDecimales = (n: number) => n.toFixed(2);
@@ -112,14 +139,22 @@ export type PropsFasesDeLaOrden = {
   guia: GuiaCampos;
   /** Lo que dijo `problemasFases` (el formulario lo calcula una vez y lo comparte con su guía de foco). */
   problemas: ProblemaFase[];
+  /** Lo que el modelo elegido dijo de ojales y botones (ADR-0551): `null` = nadie lo ha preguntado y lo que se elija se recuerda; `true`/`false` = ya contestó; sin modelo elegido, no se pasa. */
+  ojalesDelModelo?: boolean | null;
+  /** «+ Registrar proveedor nuevo» bajo el combo de cada fase de afuera (ver `useAltaDeProveedorServicio`). */
+  onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
+  /** El catálogo de procesos leído de la base (ADR-0570, actividad 5); sin él, el de respaldo. */
+  catalogo?: ReadonlyArray<FaseDelCatalogo>;
+  /** «Recordar en la ficha del modelo» (ADR-0570, actividad 5): sin modelo que exista no se ofrece. */
+  recordar?: { marcada: boolean; onCambio: () => void };
 };
 
-export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas }: PropsFasesDeLaOrden) {
+export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas, ojalesDelModelo, onAgregarProveedor, catalogo = FASES, recordar }: PropsFasesDeLaOrden) {
   const sirven = proveedoresQueSirven(proveedores);
   const opcionesProveedor: Opcion<string>[] = sirven.map((p) => ({ valor: p.id, texto: p.nombre }));
-  const encendidas = ordenarFases(fases).filter((f) => f.encendida || faseDe(f.clave).siempre);
-  // Las que se pueden encender, en el orden del catálogo (Bordado · Estampado · Lavandería), no en el de la ruta.
-  const apagadas = FASES.filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
+  const encendidas = ordenarFases(fases, catalogo).filter((f) => f.encendida || faseDe(f.clave, catalogo).siempre);
+  // Las que se pueden encender, en el orden del catálogo (Pegar cierre · Ojales y botones · Lavado o teñido y los que dé de alta el líder).
+  const apagadas = fasesDeLaHoja(catalogo).filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
   const sinServicios = opcionesProveedor.length === 0 && encendidas.some((f) => f.quien === "servicio");
 
   function cambiar(clave: FaseClave, parche: Partial<FaseBorrador>) {
@@ -131,7 +166,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
     else
       onFases([
         ...fases,
-        { clave, encendida: true, quien: "taller", proveedorId: null, tarifa: "", fijo: "", minimo: "", fechaPrometida: "", posicion: faseDe(clave).posicionable ? "pieza" : null },
+        { clave, encendida: true, quien: "taller", proveedorId: null, tarifa: "", fijo: "", minimo: "", fechaPrometida: "", posicion: faseDe(clave, catalogo).posicionable ? "pieza" : null },
       ]);
   }
 
@@ -153,11 +188,13 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
               problemas={problemas.filter((p) => p.clave === fase.clave)}
               onCambiar={(parche) => cambiar(fase.clave, parche)}
               onApagar={() => cambiar(fase.clave, { encendida: false })}
+              onAgregarProveedor={onAgregarProveedor}
+              catalogo={catalogo}
             />
           ))}
           {apagadas.length > 0 && (
             <div role="group" aria-label="Fases que se pueden agregar" className="flex flex-wrap items-center gap-2 px-3.5 py-2.5">
-              <span className="text-[12.5px] text-tinta/70">Si la orden también lleva</span>
+              <span className="text-sm text-tinta/70">Si la orden también lleva</span>
               {apagadas.map((def) => (
                 <ChipOpcion key={def.clave} elegido={false} onClick={() => encender(def.clave)}>
                   {def.nombre}
@@ -166,6 +203,18 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
             </div>
           )}
         </div>
+        {recordar && (
+          <label className="flex items-start gap-2.5 text-sm text-tinta" data-guia="prod-orden-nueva.recordar">
+            <Casilla marcada={recordar.marcada} onCambio={recordar.onCambio} etiqueta="Recordar en la ficha del modelo" />
+            <span>
+              Recordar en la ficha del modelo
+              <span className="block text-sm text-tinta/70">
+                {ojalesDelModelo === null ? "Nadie ha dicho todavía qué procesos lleva este modelo. " : ""}
+                Las próximas órdenes nacen con los mismos procesos; en cada una se pueden cambiar.
+              </span>
+            </span>
+          </label>
+        )}
         {sinServicios && (
           <Aviso tono="info" chico>
             Todavía no hay proveedores de servicio en el directorio del Taller. Regístralos en Abastecimiento ▸ Proveedores y vuelve.
@@ -188,6 +237,9 @@ export function FilaFase({
   problemas,
   onCambiar,
   onApagar,
+  onAgregarProveedor,
+  catalogo = FASES,
+  sinFechaPrometida = false,
 }: {
   fase: FaseBorrador;
   totalPrendas: number;
@@ -198,20 +250,38 @@ export function FilaFase({
   problemas: ProblemaFase[];
   onCambiar: (parche: Partial<FaseBorrador>) => void;
   onApagar?: () => void;
+  /** Abre el alta de un proveedor de servicio; `alRegistrar` recibe el id del nuevo para elegirlo en esta fase. Sin ella, no se ofrece (la hoja que lo usa no lo permite). */
+  onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
+  /** El catálogo de procesos (el nombre de un proceso propio); sin él, el de respaldo. */
+  catalogo?: ReadonlyArray<FaseDelCatalogo>;
+  /** Un paso que entra ya hecho (ADR-0586, «Agregar un paso» tarde) no promete fecha de vuelta: ya volvió. */
+  sinFechaPrometida?: boolean;
 }) {
-  const def = faseDe(fase.clave);
+  const def = faseDe(fase.clave, catalogo);
   const nombreEnFrase = def.nombre.toLocaleLowerCase("es");
   const servicio = fase.quien === "servicio";
   const lectura = servicio ? leerServicio(fase, tarifas, hoy) : null;
   const sugerida = lectura?.sugerida ?? null;
   // El fijo por orden vive plegado: casi ningún servicio lo cobra. Se despliega al tocar el enlace, si ya trae algo escrito o si la base lo rechazó.
   const [fijoDesplegado, setFijoDesplegado] = useState(false);
+  // Cómo se escribe el pago único del ploteo: el total o por prenda (el texto por prenda se guarda aparte para que no se «redondee» mientras se escribe).
+  const [modoFijo, setModoFijo] = useState<"total" | "prenda">("total");
+  const [porPrendaTexto, setPorPrendaTexto] = useState("");
+  // Cómo se escribe lo que cobra un servicio por prenda: por prenda o el total de la orden (el texto del total se guarda aparte para que no se «redondee» mientras se escribe).
+  const [modoTarifa, setModoTarifa] = useState<"prenda" | "total">("prenda");
+  const [totalTexto, setTotalTexto] = useState("");
   const aviso = avisoMinimo(fase, totalPrendas, tarifas, { hoy, proveedores });
 
   // La primera falta de cada campo va en su pie; las que ninguna caja explica, en una línea aparte.
   const pies = new Map<Lugar, { pie: string; tono: "neutro" | "error" }>();
   const sueltos: ProblemaFase[] = [];
+  // La pregunta «¿es por prenda o es el total?» no es una falta de un campo: lleva sus dos botones, aparte.
+  let pregunta: ProblemaFase | null = null;
   for (const p of problemas) {
+    if (p.hint === HINT_TARIFA_A_CONFIRMAR) {
+      pregunta ??= p;
+      continue;
+    }
     const lugar = lugarDe(p, lectura);
     if (lugar === "fila") sueltos.push(p);
     else if (!pies.has(lugar)) pies.set(lugar, { pie: p.texto, tono: esFalta(p, fase) ? "neutro" : "error" });
@@ -223,11 +293,40 @@ export function FilaFase({
   const elegidoFuera = fase.proveedorId && !opcionesProveedor.some((o) => o.valor === fase.proveedorId) ? proveedores.find((p) => p.id === fase.proveedorId) : null;
   const opciones: Opcion<string>[] = elegidoFuera ? [{ valor: elegidoFuera.id, texto: `${elegidoFuera.nombre} · ya no hace servicios`, deshabilitada: true }, ...opcionesProveedor] : opcionesProveedor;
 
+  const idBase = `fase-${fase.clave}`;
+  // «Pendiente de registrar» (ADR-0551 pendiente de registrar): la primera opción, siempre. Sale afuera sin saber todavía con quién; lo que se escriba de costo ya cuenta, y en blanco no suma nada hasta que se registre.
+  const opcionesConPendiente: Opcion<string>[] = [{ valor: PENDIENTE, texto: "Pendiente de registrar" }, ...opciones];
+  // Debajo del combo, la salida para quien SÍ se conoce pero todavía no está en el directorio: el alta de Producción, sin salir de la hoja.
+  const comboProveedor = (
+    <div>
+      <CampoSelect
+        id={`${idBase}-proveedor`}
+        etiqueta="Proveedor"
+        valor={fase.pendiente ? PENDIENTE : (fase.proveedorId ?? "")}
+        onValor={(v) => onCambiar(v === PENDIENTE ? { pendiente: true, proveedorId: null } : { pendiente: false, proveedorId: v || null })}
+        opciones={opcionesConPendiente}
+        marcador="Elegir a quién"
+        {...pieDe("proveedor", opcionesProveedor.length === 0 ? "aún no hay proveedores de servicio cargados" : undefined)}
+      />
+      {onAgregarProveedor && (
+        <button type="button" onClick={() => onAgregarProveedor((id) => onCambiar({ pendiente: false, proveedorId: id }))} className="btn-cayla btn-enlace mt-1 text-[13px]">
+          + Registrar proveedor nuevo
+        </button>
+      )}
+    </div>
+  );
+  // El pendiente lleva su costo como cualquier servicio (ADR-0551): sin proveedor, lo que se escribe ya cuenta y se devenga al volver las prendas; en blanco, no suma nada.
+  const avisoPendiente = fase.pendiente ? (
+    <div className="sm:col-span-2">
+      <Aviso tono="info" chico>
+        Aún sin proveedor, esto ya cuenta como costo. Si no sabes cuánto, déjalo en blanco.
+      </Aviso>
+    </div>
+  ) : null;
   const tarifaVacia = fase.tarifa.trim() === "";
   const pieTarifa = sugerida ? (tarifaVacia ? "de su lista de precios" : `su lista dice S/\u00a0${dosDecimales(sugerida.tarifa)}`) : "sin IGV";
   const minimoVacio = fase.minimo.trim() === "";
   const pieMinimo = sugerida?.minimo != null && minimoVacio ? "de su lista de precios" : "desde cuántas prendas cobra";
-  const idBase = `fase-${fase.clave}`;
 
   return (
     <div className="space-y-3 px-3.5 py-3">
@@ -238,7 +337,7 @@ export function FilaFase({
             {/* La misma × de una fila de color (A2): apagar una fase opcional no borra lo escrito en ella; si vuelve a encenderse, reaparece. */}
             {!def.siempre && onApagar && <QuitarColor nombre={def.nombre} onQuitar={onApagar} />}
           </p>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-tinta/65">{def.ayuda}</p>
+          <p className="mt-0.5 text-sm leading-snug text-tinta/65">{def.ayuda}</p>
         </div>
         <SegmentoDeslizante
           etiqueta={`Quién hace ${nombreEnFrase}`}
@@ -256,31 +355,106 @@ export function FilaFase({
             onCambio={(v) => onCambiar({ posicion: v === "prenda" ? "prenda" : ("pieza" satisfies Posicion) })}
             opciones={OPCIONES_POSICION}
           />
-          <span className="text-[12.5px] text-tinta/70">{AYUDA_POSICION[fase.posicion ?? "pieza"]}</span>
+          <span className="text-sm text-tinta/70">{AYUDA_POSICION[fase.posicion ?? "pieza"]}</span>
         </div>
       )}
 
-      {servicio && (
+      {servicio && def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
-          <CampoSelect
-            id={`${idBase}-proveedor`}
-            etiqueta="Proveedor"
-            valor={fase.proveedorId ?? ""}
-            onValor={(v) => onCambiar({ proveedorId: v || null })}
-            opciones={opciones}
-            marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
-            deshabilitado={opciones.length === 0}
-            {...pieDe("proveedor")}
-          />
-          <CampoMonto
-            id={`${idBase}-tarifa`}
-            etiqueta="Por prenda"
-            inputMode="decimal"
-            placeholder={sugerida ? dosDecimales(sugerida.tarifa) : "0.00"}
-            value={fase.tarifa}
-            onChange={(e) => onCambiar({ tarifa: e.target.value })}
-            {...pieDe("tarifa", pieTarifa)}
-          />
+          {comboProveedor}
+          <div className="grid content-start gap-1.5">
+            <CampoMonto
+              id={`${idBase}-fijo`}
+              etiqueta={modoFijo === "prenda" ? "Cobra por prenda" : "Cobra por esta orden"}
+              inputMode="decimal"
+              placeholder={sugerida && sugerida.fijo > 0 ? (modoFijo === "prenda" ? porPrendaDeFijo(String(sugerida.fijo), totalPrendas) || "0.00" : dosDecimales(sugerida.fijo)) : "0.00"}
+              value={modoFijo === "prenda" ? porPrendaTexto : fase.fijo}
+              onChange={(e) => {
+                if (modoFijo === "prenda") {
+                  setPorPrendaTexto(e.target.value);
+                  onCambiar({ fijo: fijoDesdePorPrenda(e.target.value, totalPrendas) });
+                } else onCambiar({ fijo: e.target.value });
+              }}
+              {...pieDe(
+                "fijo",
+                modoFijo === "prenda"
+                  ? fase.fijo.trim() !== ""
+                    ? `${dosDecimales(lectura?.fijoOrden ?? 0)} en total por las ${totalPrendas} prendas, sin IGV`
+                    : `se multiplica por las ${totalPrendas} prendas de la orden, sin IGV`
+                  : sugerida && sugerida.fijo > 0 && fase.fijo.trim() === ""
+                    ? "de su lista de precios"
+                    : fase.fijo.trim() !== "" && totalPrendas > 0
+                      ? `una sola vez por la orden, sin IGV · ${porPrendaDeFijo(fase.fijo, totalPrendas) || "—"} por prenda`
+                      : "una sola vez por la orden, sin IGV"
+              )}
+            />
+            <SegmentoDeslizante
+              etiqueta="Cómo escribes el cobro del ploteo"
+              valor={modoFijo}
+              onCambio={(v) => {
+                if (v === "prenda") {
+                  if (totalPrendas <= 0) return;
+                  setPorPrendaTexto(porPrendaDeFijo(fase.fijo, totalPrendas));
+                  setModoFijo("prenda");
+                } else setModoFijo("total");
+              }}
+              opciones={OPCIONES_MODO_FIJO}
+            />
+          </div>
+          {!sinFechaPrometida && (
+            <CampoFecha
+              id={`${idBase}-fecha`}
+              etiqueta="Prometido para"
+              valor={fase.fechaPrometida}
+              onValor={(iso) => onCambiar({ fechaPrometida: iso })}
+              {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+            />
+          )}
+          {avisoPendiente}
+        </div>
+      )}
+
+      {servicio && !def.hito && (
+        <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
+          {comboProveedor}
+          <div className="grid content-start gap-1.5">
+            <CampoMonto
+              id={`${idBase}-tarifa`}
+              etiqueta={modoTarifa === "total" ? `Total por las ${totalPrendas} prendas` : "Por prenda"}
+              inputMode="decimal"
+              placeholder={sugerida ? (modoTarifa === "total" ? totalDeLaTarifa(String(sugerida.tarifa), totalPrendas) || "0.00" : dosDecimales(sugerida.tarifa)) : "0.00"}
+              value={modoTarifa === "total" ? totalTexto : fase.tarifa}
+              onChange={(e) => {
+                if (modoTarifa === "total") {
+                  setTotalTexto(e.target.value);
+                  // Escribir el total ES decir que no es por prenda: la tarifa que resulta no vuelve a preguntar.
+                  const t = tarifaDesdeTotal(e.target.value, totalPrendas);
+                  onCambiar({ tarifa: t, tarifaConfirmada: t });
+                } else onCambiar({ tarifa: e.target.value });
+              }}
+              {...pieDe(
+                "tarifa",
+                modoTarifa === "total"
+                  ? fase.tarifa.trim() !== ""
+                    ? `queda S/\u00a0${fase.tarifa.trim()} por prenda${totalDeLaTarifa(fase.tarifa, totalPrendas) !== Number(totalTexto).toFixed(2) ? ` · las ${totalPrendas} prendas suman S/\u00a0${totalDeLaTarifa(fase.tarifa, totalPrendas)}` : ""} · sin IGV`
+                    : `se reparte entre las ${totalPrendas} prendas · sin IGV`
+                  : pieTarifa
+              )}
+            />
+            {totalPrendas >= 2 && (
+              <SegmentoDeslizante
+                etiqueta={`Cómo escribes lo que cobra ${nombreEnFrase}`}
+                valor={modoTarifa}
+                onCambio={(v) => {
+                  if (v === "total") {
+                    setTotalTexto(totalDeLaTarifa(fase.tarifa, totalPrendas));
+                    setModoTarifa("total");
+                  } else setModoTarifa("prenda");
+                }}
+                opciones={OPCIONES_MODO_TARIFA}
+              />
+            )}
+          </div>
           <CampoTexto
             id={`${idBase}-minimo`}
             etiqueta="Cantidad mínima"
@@ -291,13 +465,15 @@ export function FilaFase({
             onChange={(e) => onCambiar({ minimo: e.target.value })}
             {...pieDe("minimo", pieMinimo)}
           />
-          <CampoFecha
-            id={`${idBase}-fecha`}
-            etiqueta="Prometido para"
-            valor={fase.fechaPrometida}
-            onValor={(iso) => onCambiar({ fechaPrometida: iso })}
-            {...pieDe("fecha", "opcional · cuándo lo devuelve")}
-          />
+          {!sinFechaPrometida && (
+            <CampoFecha
+              id={`${idBase}-fecha`}
+              etiqueta="Prometido para"
+              valor={fase.fechaPrometida}
+              onValor={(iso) => onCambiar({ fechaPrometida: iso })}
+              {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+            />
+          )}
           <div className="sm:col-span-2">
             {verFijo ? (
               <CampoMonto
@@ -315,9 +491,33 @@ export function FilaFase({
               </button>
             )}
           </div>
+          {avisoPendiente}
         </div>
       )}
 
+      {pregunta && (
+        <Aviso tono="atencion" chico>
+          {/* Los dos botones van DEBAJO de la frase, no a su lado: en el celular el texto se quedaba en una columna de una palabra. */}
+          <span className="block">{pregunta.texto}</span>
+          <span className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={() => onCambiar({ tarifaConfirmada: fase.tarifa.trim() })} className="btn-cayla btn-sutil btn-chico">
+              Sí, es por prenda
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTotalTexto(fase.tarifa.trim());
+                setModoTarifa("total");
+                const t = tarifaDesdeTotal(fase.tarifa, totalPrendas);
+                onCambiar({ tarifa: t, tarifaConfirmada: t });
+              }}
+              className="btn-cayla btn-sutil btn-chico"
+            >
+              Es el total de la orden
+            </button>
+          </span>
+        </Aviso>
+      )}
       {aviso && (
         <Aviso tono="atencion" chico>
           {aviso}

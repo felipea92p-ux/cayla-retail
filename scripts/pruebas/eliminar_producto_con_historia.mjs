@@ -496,7 +496,9 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
   // de un proveedor» (movimientos con lote), así que nunca llega a borrarse.
   // traslado_sobrantes (ADR-0404): lo contado de más al recibir un traslado cita los movimientos de su revisión; cuelga de una
   // recepción de traslado de la misma prenda, que ya frena el borrado, así que nunca llega a borrarse.
-  const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial", "despacho_recibidos", "traslado_sobrantes"];
+  // costo_correcciones (ADR-0515): la corrección del costo de una compra cita el movimiento de esa compra; cuelga de una fila de
+  // costo_historial de la misma prenda, que ya frena el borrado, así que nunca llega a borrarse.
+  const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial", "costo_correcciones", "despacho_recibidos", "traslado_sobrantes"];
   // Se van solas, en cascada, cuando la función borra su movimiento: una marca que solo une filas que ya se borran (la
   // corrección «en la mano» con su bajada, ADR-0328). No se respaldan: restaurar una purga devuelve la corrección y la
   // bajada, sin la marca que las unía.

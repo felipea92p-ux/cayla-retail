@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
+import type { EmpresaElegible } from "@/lib/dueno-reglas";
 import { BloquePrenda } from "@/components/recepcion-envio/BloquePrenda";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { sumasDe, type CategoriaDeLinea, type Conteo, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
@@ -31,6 +33,8 @@ export function HojaTallas({
   error = null,
   onListo,
   onAbrirHoja,
+  precioDe,
+  dueno = null,
   onCerrar,
 }: {
   prenda: PrendaRecepcion;
@@ -51,6 +55,10 @@ export function HojaTallas({
   onListo: (prenda: PrendaRecepcion, variantes: VarianteSeparada[]) => void;
   /** «Es nueva» o «+ talla o color»: la pantalla abre la hoja de la prenda y vuelve aquí con la que quedó. */
   onAbrirHoja: (modo: "nueva" | "agregar", prenda: PrendaRecepcion | null) => void;
+  /** El precio de venta de la prenda elegida (Felipe 2026-10-26: «Hacer ahora» lo ofrece una vez identificada); sigue a «Cambiar». */
+  precioDe?: (prenda: PrendaRecepcion) => ReactNode;
+  /** Una sede con dos empresas (ADR-0542): de quién es lo que entra. Sin `empresas`, no se pregunta. */
+  dueno?: { empresas: readonly EmpresaElegible[]; duenoId: string; onElegir: (id: string) => void } | null;
   onCerrar: () => void;
 }) {
   const [prenda, setPrenda] = useState<PrendaRecepcion | null>(prendaInicial);
@@ -114,6 +122,7 @@ export function HojaTallas({
             marca={marca}
             colores={colores}
             enviado={sugeridas}
+            antesDelConteo={dueno && <DuenoDeLoQueEntra {...dueno} deshabilitado={guardando} />}
             onPrenda={(p) => {
               setPrenda(p);
               setConteo(conteoDeVariantes(null));
@@ -121,6 +130,7 @@ export function HojaTallas({
             onConteo={(cambios) => setConteo((c) => ({ ...c, ...cambios }))}
             onAbrirHoja={(modo) => onAbrirHoja(modo, prenda)}
           />
+          {prenda && precioDe?.(prenda)}
           {maximo == null && sugeridas != null && prenda && s.contado > 0 && s.contado !== sugeridas && (
             <p className="text-xs text-taupe">Contaste {sugeridas.toLocaleString("es-PE")} de esta prenda: al guardar, pasan a ser {s.contado.toLocaleString("es-PE")}.</p>
           )}
@@ -141,7 +151,7 @@ export function HojaTallas({
                 <Boton type="button" onClick={cerrar} disabled={guardando}>
                   Dejar para después
                 </Boton>
-                <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar || (!!dueno && !dueno.duenoId)} title={guia.frase ?? (dueno && !dueno.duenoId ? "Elige de quién es la mercadería" : undefined)} className={guia.claseConfirmar}>
                   {textoListo}
                 </Boton>
               </div>

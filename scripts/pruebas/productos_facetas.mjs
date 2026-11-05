@@ -21,7 +21,8 @@ import { fileURLToPath } from "node:url";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
-const MIGRACIONES = `${leer("20261002200000_productos_listado_por_variante.sql")}\n${leer("20261002200100_productos_facetas.sql")}`;
+// Y la del filtro por empresa (20261021004000, ADR-0467): pega las firmas VIEJAS de nuevo y esta deja las nuevas, como en producción.
+const MIGRACIONES = `${leer("20261002200000_productos_listado_por_variante.sql")}\n${leer("20261002200100_productos_facetas.sql")}\n\\o /dev/null\n${leer("20261021004000_productos_filtro_por_empresa.sql")}\n\\o\n`;
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const LIMA = "(select id from retail.ubicaciones where nombre = 'Tienda Lima')";
 const SIN = "'00000000-0000-0000-0000-000000000000'::uuid";

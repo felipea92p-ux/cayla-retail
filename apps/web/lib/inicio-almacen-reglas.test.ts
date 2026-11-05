@@ -17,6 +17,7 @@ import {
   filasDelPiso,
   HREF_COLGAR_EN_TANDAS,
   hrefColgarEnTandas,
+  hrefSepararDanada,
   filtrarNuevos,
   fuentesDeAlmacen,
   inicioDeAyerLima,
@@ -650,6 +651,20 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     const taller = existenciasDeAlmacen([talla("Blusa Emma", "Azul", "M", null, null)], []);
     expect(taller.enAlmacen).toBeNull();
     expect(fuentesDeAlmacen({ existencias: taller, fotos: null, porCompletar: null }).porColgar).toBeUndefined();
+  });
+});
+
+describe("hrefSepararDanada: «Separé una dañada» del Inicio de Almacén (ADR-0564)", () => {
+  const conPiso = { enAlmacen: 12, porColgar: { tallas: 0, unidades: 0, prendas: 0, enPausa: 0 }, primeras: [], hrefBajar: "/inventario/bajar" };
+
+  it("se ofrece donde se ofrece «Colgar en tandas»: la cuenta ve Existencias y la sede separa piso y almacén", () => {
+    expect(hrefSepararDanada(conPiso)).toBe("/inventario?danada=1");
+    expect(hrefSepararDanada(null)).toBe("/inventario?danada=1");
+  });
+
+  it("sin Existencias, o en una sede sin piso y almacén (sin cuarentena), no se ofrece", () => {
+    expect(hrefSepararDanada(undefined)).toBeNull();
+    expect(hrefSepararDanada({ ...conPiso, enAlmacen: null })).toBeNull();
   });
 });
 

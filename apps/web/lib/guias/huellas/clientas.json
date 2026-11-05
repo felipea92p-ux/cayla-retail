@@ -2,7 +2,7 @@
   "guia": "clientas",
   "ruta": "/clientas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 45,
+  "total": 48,
   "controles": {
     "components/CampoDocumentoClienta.tsx": [
       "CampoSelect «{etiqueta}»",
@@ -10,10 +10,10 @@
     ],
     "components/ClientaFichaModal.tsx": [
       "Boton «Cancelar»",
-      "Pestanas «{[ ...(conClub ? [{ clave: \"club\", etiqueta: \"Club\"}»",
-      "BotonEditar «(sin nombre)»",
+      "BotonEditar «Editar datos»",
+      "button «Archivar a este cliente»",
+      "Pestanas «{[ { clave: \"club\", etiqueta: \"Club\"}»",
       "Boton «Registrar su BAJA»",
-      "button «Archivar»",
       "ComboResponsable «{responsable}»",
       "Boton «Reactivar»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
@@ -24,14 +24,14 @@
       "ComboResponsable «{responsable}» #3",
       "Boton «{guia.frase ?? undefined}»",
       "ComboResponsable «{responsable}» #4",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "BotonVerMas «{`Ver las ${total}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ClientasPanel.tsx": [
       "BotonDescargar «Solo un Admin puede descargar la lista completa»",
+      "BotonEnlace «clientas.cartel»",
       "Boton «clientas.nuevo»",
       "Link «{f.texto}»",
-      "button «clientas.fila»"
+      "button «{guiaPrimera ? \"clientas.fila\" : undefined}»"
     ],
     "components/NuevaClientaModal.tsx": [
       "button «Abrir su ficha»",
@@ -39,6 +39,11 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/clientas/FichaDelCliente.tsx": [
+      "BotonCopiar «{que}»",
+      "BotonFiltro «{f.texto}»",
+      "BotonVerMas «{`Ver las ${filtrados.length}»"
     ],
     "components/clientas/NombreDelPadron.tsx": [
       "button «Volver a intentar»",

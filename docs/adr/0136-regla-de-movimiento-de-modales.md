@@ -449,3 +449,185 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Dónde vive:** `apps/web/components/ui/Aventurero.tsx`, `apps/web/app/estilos/aventurero.css` (que también importa `global-error.tsx`,
   pintada sin globals.css) y la foto en `apps/web/public/aventurero.webp` (recortada para que el texto no tape al gato; la pantalla del
   monitor y el teléfono no se leen a ese tamaño).
+
+## Actualización 2026-10-22 — la hoja del celular: llega desde el borde, se baja con el dedo y aleja lo de atrás (ADR-0479)
+
+- **Qué cambia, solo bajo 640 px:** el paso 2 de la tabla («en móvil sube desde el borde») ahora es literal: la hoja de `<Modal>` y de
+  `<Cajon>` llega desde el borde de abajo (`cayla-hoja-movil-entra`, 460 ms) y se va entera (`cayla-hoja-movil-sale`, 300 ms). Antes subía
+  24 px con un fundido. Tiene asa, sigue al dedo y, al soltarla, va a su punto en 180–420 ms según la velocidad del dedo.
+- **Lo de atrás se aleja** (la «B» que eligió Felipe): la cabecera, el contenido y la persiana de Caja cerrada se alejan a 0,92 mientras la
+  hoja está abierta y vuelven al ritmo del dedo. Es parte del movimiento de la hoja, no adorno suelto: dice que la pantalla sigue ahí.
+- **Lo que no cambia:** el velo, la cascada del contenido (los mismos 55 ms), la salida corta, el escritorio entero y la cámara. Sin rebote:
+  tirada más arriba de abierta, la hoja resiste y se frena, nunca vuelve pasándose. Sin bucle. Con `prefers-reduced-motion` la hoja aparece
+  y se va de una y lo de atrás no se mueve; el dedo la sigue igual (es el dedo, no una animación).
+- **Detalle, números y verificación:** `docs/adr/0479-la-hoja-del-celular-viva-y-con-profundidad.md` y `docs/unificar/hoja-movil.md`.
+
+## Actualización 2026-10-22 — Catálogo ▸ Insignias (se llamó «Sellos» hasta el 2026-10-23), la billetera de pases (ADR-0481), pedido por Felipe
+
+- **Qué:** el sello de tinta se estampa al aparecer (baja, gira a su lugar y deja un anillo de tinta que se abre), el pase se abre y se cierra
+  (su cuerpo baja de 0fr a 1fr y lo de adentro entra en cascada), el pase cerrado sube 8 px al pasar el mouse, el título del pase abierto sube
+  por su ranura, la frase y las prendas entran en cascada, las cifras cuentan desde cero (`CifraQueCuenta`) y el visto de «Lo que ya tiene» se
+  dibuja.
+- **Por qué se admite:** Felipe pidió «sofisticado, elegante y con full animaciones» y eligió esta maqueta entre seis (docs/maquetas/sellos-2026-10/).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, solo tokens del tema, y con `prefers-reduced-motion` todo queda quieto.
+  **Nada en bucle:** el punto que respiraba junto a «rige hoy» en la maqueta no entró; un bucle nuevo es otra decisión de Felipe.
+- **Dónde vive:** `apps/web/app/estilos/sellos.css`, `components/sellos/` y lo vigila `lib/sellos-movimiento.test.ts`.
+
+## Actualización 2026-10-23 — la hoja «Configuración» de una campaña, la etiqueta viva (ADR-0488), pedido por Felipe
+
+- **Qué:** el hilo de la etiqueta se dibuja y la etiqueta baja y se asienta al abrir la hoja, el descuento de la etiqueta entra subiendo cada
+  vez que cambia, las casillas de las categorías entran en cascada, cada pieza del mosaico aparece, la categoría que se marca vuela de su
+  casilla a su pieza (el vuelo de «Prendas») y, al guardar, el sello de la campaña se estampa sobre la etiqueta (`SelloTinta`, el de Insignias)
+  antes de que la hoja se cierre.
+- **Por qué se admite:** Felipe pidió «elegante, sofisticado y con full animaciones» y eligió la «II · La etiqueta» mirándola
+  (docs/maquetas/campana-configuracion-2026-10/), con «ricas, una vez, sin bucle».
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, cada pieza en 1,2 s o menos, solo tokens del tema, y con
+  `prefers-reduced-motion` todo queda quieto (la hoja se cierra al instante al guardar). **Nada en bucle.**
+- **Dónde vive:** `apps/web/app/estilos/campana-hoja.css`, `components/campana-hoja/` y lo vigila `lib/campana-hoja-movimiento.test.ts`.
+
+## Actualización 2026-10-23 (b) — El telar de Finanzas (ADR-0493), aprobado por Felipe
+
+- **Qué:** en la barra común de Finanzas, los hilos de sede que crecen bajo la sede elegida, el orillo que se teje al entrar y se reacomoda al
+  cambiar de sede, la cifra de la respuesta que cuenta y el dock que sube. En cada submódulo, su gráfico propio entra una vez: el retazo y el
+  calendario de Gastos, los frascos de Cuentas y dinero, la biblioteca de Reportes, la balanza de Impuestos y el mapa del Cierre.
+- **Por qué se admite:** Felipe eligió «El telar de Finanzas» mirando la maqueta (docs/maquetas/finanzas-telar-2026-10/), que pedía «muchas
+  animaciones», y aprobó la excepción acotada a lo que la maqueta muestra (decisión b, 2026-10-23).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote y solo con tokens del tema; con `prefers-reduced-motion`, todo queda
+  quieto. **Nada en bucle**, salvo las señales que esta regla ya admite.
+- **Dónde vive:** `apps/web/app/estilos/telar.css` y `components/finanzas/telar/`.
+
+## Actualización 2026-10-23 (c) — «Ajustar stock» en el modal de la prenda de Existencias, la planilla (ADR-0494), pedido por Felipe
+
+- **Qué:** al abrir el modal, una luz cruza la banda «¿No es lo que ves en la tienda?» y su lápiz se dibuja. Al tocarla, la foto se achica
+  y dice «Ajustando», lo de la prenda se pliega, el modal crece solo si la planilla no cabe, el hilo de la cabecera se dibuja columna por
+  columna, las filas llegan en cascada y las celdas en una ola en diagonal (las que no están en foco llegan ya en sombra), y un anillo se
+  cierra sobre la talla en foco. Al contar, el número rueda hacia arriba o hacia abajo y el talón de la izquierda entra con su cambio. Al
+  guardar, el hilo del botón corre mientras la base responde, cada talla se sella en verde una tras otra, el talón recibe el sello
+  «Guardado», salen las etiquetas por la ranura (la tira de Editar producto) y las cifras de «Dónde está» cuentan desde el número viejo.
+- **Por qué se admite:** Felipe pidió que la vista de ajuste sea «sofisticada, elegante y full animaciones» y eligió la ronda 3 mirándola
+  (docs/maquetas/existencias-ajustar-stock-2026-10/ronda-3.html), con el contrato de siempre: rico, una vez, sin bucle.
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, cada pieza en 1,2 s o menos, solo tokens del tema, y con
+  `prefers-reduced-motion` todo queda quieto (el sellado no espera). **Nada en bucle** (el hilo del botón ya era una excepción).
+- **Dónde vive:** `apps/web/app/estilos/ajuste-modelo.css`, `components/existencias/AjusteDelModelo.tsx` y `PanelTalla.tsx`; lo vigila
+  `lib/ajuste-modelo-movimiento.test.ts`.
+
+## Actualización 2026-10-23 (d) — Tienda web ▸ Tráfico, la vitrina por miradas (ADR-0495), elegida por Felipe
+
+- **Qué:** las tarjetas de la pantalla suben en cascada con `anim-sube` (la del sistema); en la vitrina, cada baldosa crece desde casi su
+  tamaño en cascada (de la más mirada a la menos), su etiqueta de papel se cuelga girando a su lugar y, cuando ya están todas, una luz cruza
+  el mosaico una vez. Las barras del recorrido, de «De dónde vienen» y de las horas son `BarraAvance` y `BarrasTiempo`, con su propio
+  movimiento.
+- **Por qué se admite:** Felipe eligió la maqueta C «La vitrina» entre tres, con este movimiento (docs/maquetas/trafico-cero-2026-10/), y la
+  lista de actividades aprobada lo incluía.
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, cada pieza en 1,2 s o menos, solo tokens del tema, y con
+  `prefers-reduced-motion` todo queda quieto. **Un solo bucle, que es señal y no adorno:** el punto verde de «Ahora, N mirando» respira
+  (una onda que se abre cada 2,4 s) solo mientras alguien mira la tienda online; si nadie mira, el punto no se dibuja.
+- **Dónde vive:** `apps/web/app/estilos/trafico.css`, `components/trafico/` y lo vigila `lib/trafico-movimiento.test.ts`.
+
+## Actualización 2026-10-27 — El stock inicial se sella (ADR-0494, actividad 3)
+
+Dos movimientos de una sola vez, sin rebote ni bucle y apagados con «reducir movimiento»: **el sello de «Stock inicial»** de Nuevo producto (la
+pantalla de «Se creó…»: gira de 22° a −8° mientras baja de 1,7× a su tamaño, 780 ms con `--ease-cayla`) y **el destello del candado** de una variante
+que acaba de guardarse con sus unidades de partida (la caja pasa de ámbar a verde y el grillete se cierra, 900 ms). En «Agregar color / talla», la fila
+nueva de «Así quedará en la tabla» entra con `anim-revelar`. El sello (`.sello-stock-inicial`) vive en `app/estilos/alta-guia.css` y el candado
+(`.matriz-paso[data-sellada]`) en `app/estilos/ficha-taller.css`.
+
+
+## Actualización 2026-10-28 — la gota del aviso «Hay una versión nueva»: un rebote, con nombre propio
+
+Felipe pidió, mirando maquetas (`docs/maquetas/version-nueva-2026-10/gota.html`), que el aviso de versión nueva (ADR-0422) entre como una gota. Es una
+excepción a «sin rebote»: **la única pieza del ERP con un rebote, y es uno solo**, una vez al aparecer y otra al irse, sin bucle.
+
+- **Entrada (~2,2 s):** cae suave hasta lo más bajo de la sección del aviso, **rebota una vez** y sube suave al centro; desde ahí se riega como un
+  líquido —primero por el suelo, con la punta redonda, después sube el nivel ondulado— hasta ser la píldora; el texto aparece al final.
+- **Salida con la ✕ (1,45 s):** la entrada al revés: el texto se apaga, el nivel baja, el líquido se recoge al centro hasta ser una gota, que se desprende
+  y cae desvaneciéndose. «Más tarde» sigue callando 30 min.
+- **Cómo se hace:** círculos y columnas de borde redondo que un filtro SVG de «goteo» (`#liquido`, blur + contraste del alfa) funde en una masa blanda,
+  recortada por la forma de la píldora; `--m` (la mitad del ancho, medida al montar) hace que llegue a las paredes con cualquier texto. Detalle y tiempos
+  en `app/estilos/avisos.css`.
+- **Lo que lo mantiene discreto:** una vez, menos de 2,5 s, nunca en bucle, y con `prefers-reduced-motion` aparece y se va ya hecha.
+- **Se rompe si:** se publican muchas versiones por hora y la gota deja de ser una señal y pasa a ser ruido (ver ADR-0422, «Opciones»); o si alguien reutiliza
+  el rebote en otra pieza: esta excepción es solo del aviso. Pruebas: `lib/version-nueva-reglas.test.ts`.
+
+## Actualización 2026-10-28 (b) — El vuelo de la prenda a «Tu compra» en «Apunte de compras», pedido por Felipe
+
+Al agregar una prenda a una compra (Compras ▸ Mis compras ▸ Apunte de compras, paso «¿Qué le compraste?»), su miniatura sale de donde se tocó
+(el botón «Agregar» de la hoja, o su lugar en la lista si fue el «+ 9 como la vez pasada»), cruza en arco y aterriza en su línea de «Tu compra»
+(en el celular, en la barra negra de abajo). Es la respuesta a una acción del contenido, como el sello al guardar, pero **sale de la franja de
+200–500 ms** (dura 520–680 ms según la distancia), por eso se escribe aquí:
+
+- **Una vez, sin rebote, sin bucle.** Curva del sistema (`cubic-bezier(0.32, 0.72, 0.24, 1)` para lo que entra; el arco usa dos curvas suaves, una por eje).
+- **Mientras vuela**, «Tu compra» y la barra siguen diciendo lo de antes y la línea de la prenda ya tiene su lugar (nada se corre); **al aterrizar**,
+  la línea se ilumina una vez (900 ms), el recuadro hace un pulso (800 ms) y el total cuenta hasta la cifra nueva (520 ms).
+- **Corregir** una prenda que ya iba no vuela: solo cambia su línea.
+- **Con `prefers-reduced-motion` no vuela**: la línea y el total aparecen ya hechos.
+- **Dónde vive:** la trayectoria en `lib/vuelo-reglas.ts` (con prueba), el navegador en `components/mi-plata/vuelo.ts`, la cifra que cuenta en
+  `components/ui/useCifraQueCuenta.ts` y la forma en `app/estilos/compra-celular.css`. Maqueta elegida por Felipe mirando:
+  `docs/maquetas/mis-compras-prendas-2026-10/`.
+- **Se rompe si:** el vuelo se usa en una pantalla donde agregar es frecuente y rápido (un escáner, Vender): ahí sería ruido, no una señal. Esta excepción es solo de «Apunte de compras».
+
+## Actualización 2026-10-29 — Tienda web ▸ Tráfico, «Observatorio» (ADR-0568)
+
+La vitrina de baldosas de Tráfico (act. 2026-10-23 (d)) se fue: su cascada, la etiqueta que se cuelga y la luz que cruza ya no existen. Lo que
+queda propio de la pantalla: **los 100 puntos de «Hasta dónde llega la gente» se encienden una vez**, paso tras paso (90 ms) y punto tras punto
+(6 ms), 360 ms cada uno con `--ease-cayla`, sin rebote; y el único bucle sigue siendo la señal del punto verde de «N mirando ahora», que respira
+solo mientras alguien mira. Todo quieto con `prefers-reduced-motion`. Lo vigila `lib/trafico-movimiento.test.ts`.
+
+## Actualización 2026-10-29 (b) — Recibir mercadería «B», piezas vivas (ADR-0575)
+
+Felipe pidió Recibir «más visual, con full animaciones» y eligió mirando cada pieza en `docs/maquetas/recibir-b-2026-10/`. Todo corre una vez,
+sin rebote ni bucle, con `--ease-cayla`, y se apaga con `prefers-reduced-motion` (`app/estilos/recepcion-viva.css`):
+
+- **Trayecto:** al llegar, el camino se llena (1,2 s) con una luz que lo cruza una vez, las paradas aparecen en cascada (110 ms), la bola viaja a
+  su parada y suelta un halo (1,2 s).
+- **Dial:** el aro se llena al abrir la categoría (1,1 s) con sus cortes en cascada; al sumar, el arco avanza (600 ms) y la perilla suelta una chispa;
+  al cuadrar, un brillo recorre el aro, un halo verde se abre y el visto se dibuja. El número rueda cifra por cifra (600 ms).
+- **Acordeón:** la categoría se abre (400 ms) y sus prendas entran en cascada (55 ms); los puntos se llenan al identificar.
+- **Totales que ruedan:** las cifras de la barra ruedan al cambiar y la línea de dos tonos avanza (700 ms).
+- **Podio:** las columnas crecen en cascada (130 ms) y la llave aparece después.
+- **Vitrina:** la etiqueta de precio se estampa al llegar y al cambiar el precio (520 ms); los alfileres de sede se encienden en cascada.
+- **Sello de lacre:** el lacre cae y se asienta (600 ms) y las cuatro cifras ruedan desde 0.
+- **Se rompe si:** alguna de estas se pone en bucle o se copia a otra pantalla sin pasar por `/unificar`.
+
+## Actualización 2026-10-31 — «Mi perfil», la hoja de vidrio (elegida por Felipe)
+
+Felipe pidió rehacer «Mi perfil» («está demasiado básico», con liquid glass y las tendencias de hoy) y eligió, mirando tres maquetas
+tocables (`docs/maquetas/mi-perfil-2026-10/`), la **«A · Cristal líquido»**. Es la única hoja de vidrio del ERP: `<Modal variante="vidrio">`
+(`components/ui/Modal.tsx`), estilos en `app/estilos/perfil-vidrio.css`, usada solo por `components/PerfilModal.tsx`.
+
+- **La hoja:** vidrio esmerilado (`--color-vidrio` al 54 %, `backdrop-filter: blur(28px) saturate(1.9)`) sobre un velo más liviano
+  (`--color-sombra` al 16 %; 42 % en oscuro) para que se vea la pantalla de atrás. Lleva sombra: sin ella el vidrio no se despega (es la
+  excepción de «hojas sin sombra» de la ronda 12). Su título y su frase quedan para lectores: la cabecera la dibuja el perfil.
+- **Entrada (una vez):** la hoja sube 18 px y crece desde .94 (620 ms); el filo de luz da su vuelta (1,6 s); la lente de la foto aparece
+  desenfocada (800 ms); el nombre sube palabra por palabra por su ranura (700 ms, 70 ms entre palabras).
+- **La gota:** «Tú · Cuenta · Seguridad» es un segmento cuya gota se estira hasta tocar la pestaña nueva y recién ahí suelta la vieja
+  (520 ms, se aplana a .86 en el medio). No rebota: nunca pasa de su lugar. El panel cambia de alto sin saltar (420 ms) y su contenido
+  entra desenfocado y se enfoca (450 ms). Por decisión de Felipe no es `<Pestanas>` (lleva su `unificar-fijo`).
+- **Lo que sigue al mouse:** el filo de luz gira hacia el mouse (600 ms) y un brillo lo sigue. No es un bucle: si el mouse no se mueve,
+  nada se mueve; con una pantalla táctil o con `prefers-reduced-motion`, quietos.
+- **Cerrar sesión** (pedido por Felipe al elegir): un ícono sutil junto a la ×, con «Cerrar sesión» para el lector y al pasar el mouse. Usa
+  la misma salida que «Salir» del lateral (`useCerrarSesion`, `components/LogoutButton.tsx`): el colibrí, las copias sin conexión y la
+  pregunta si hay trabajo sin subir; el perfil se cierra antes para que el colibrí no vuele bajo la hoja.
+- **Se rompe si:** el vidrio se copia a otra hoja sin pasar por `/unificar`, o el filo o el brillo empiezan a moverse solos.
+
+## Actualización 2026-10-31 (b) — la cifra rueda del valor viejo al nuevo (`CifraAnimada`, Felipe)
+
+`<CifraAnimada>` contaba desde 0 hasta su valor en 900 ms y, como se armaba de nuevo con cada valor (`key={valor}`, el arreglo del
+2026-10-28), **volvía a contar desde cero** cada vez que la cifra cambiaba: al pasar de una sede a otra, S/ 23,480 → 0 → S/ 6,120. Desde
+el 2026-10-31 cada dígito es una columna que **gira** a su valor (como la librería NumberFlow, sin su resorte): al aparecer, desde 0; al
+cambiar, del valor viejo al nuevo. 700 ms con `--ease-cayla`, una vez, sin rebote; quieta con `prefers-reduced-motion`. Lo eligió Felipe
+mirando la lámina 08 de `docs/maquetas/gastos-benchmark-2026-10/` y vale para todas las pantallas que la usan (Finanzas, Comprobantes,
+Proformas, Resumen de sede).
+
+- **Dónde vive:** las columnas y sus claves en `lib/cifra-rueda.ts` (pura, con su prueba); la pieza en `components/ui/CifraAnimada.tsx`;
+  el CSS en `app/estilos/cifra-rueda.css`. Cada columna mide `1ch` por `1lh`: la cifra no cambia de tamaño. La tira del 0 al 9 se
+  escribe con CSS (`::before`), no con texto: no aparece al copiar la cifra ni en lo que lee una prueba; el lector lee el valor entero.
+- **Lo que no puede volver:** el número que se ve sale siempre del valor de ahora; cada dígito solo guarda si está en su primer cuadro.
+  Así no reaparece el error del 2026-10-28 (la plata de otra sede), y `lib/cifra-rueda.test.ts` lo vigila en el código.
+
+## Actualización 2026-11-04: Las vitrinas de Configuración ▸ Empresa y tiendas
+
+Felipe pidió «full animaciones y sofisticada», «siempre siguiendo el estilo de liquid glass» (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). Cada dato de una sede es un instrumento en
+una gota de vidrio, y se arma una vez al entrar o al guardarlo: el haz que escanea el QR, la aguja del dial, el líquido que sube, la estrella del asistente, la caja que se sella, el RUC que rueda y
+el aro por tramos. Sin rebote ni bucle, cada pieza en 1,2 s o menos y con la curva del sistema. Lo único que sigue vivo es lo que sigue al mouse (el filo de luz, el brillo y una inclinación de
+menos de 1,5°), que no se mueve solo. Todo se apaga con `prefers-reduced-motion`. Lo vigila `lib/vitrinas-movimiento.test.ts`.

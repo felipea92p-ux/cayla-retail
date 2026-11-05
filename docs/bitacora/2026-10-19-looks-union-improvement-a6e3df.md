@@ -1,0 +1,5 @@
+## 2026-10-19 (Probador: la unión sigue el bajo curvo y la figura quieta también se une — ADR-0449, actualización)
+Qué hice: la prenda de abajo ahora arranca en el punto más alto del bajo de la prenda de arriba (un perfil de 24 franjas medido del recorte, `lib/union-prendas.ts`), no en el más bajo; y la figura quieta (looks guardados, tarjetas de «Tus looks», look compartido) usa la misma unión (`FiguraQuietaUnida`).
+Por qué así: con un bajo en diagonal o con caída (la blusa de cuadros, el encaje asimétrico, la camisa bordada) el pantalón quedaba bajo el punto más bajo y dejaba aire en el otro lado; la prenda de arriba va delante, así que lo que cuelga más abajo tapa la pretina. Un look debe verse igual al armarlo que al guardarlo o compartirlo.
+Qué se rompería sin esto: los looks con bajo asimétrico se seguirían viendo «despegados», y un look guardado se vería distinto de como lo armó la clienta.
+Felipe se lleva: mirar `/looks/guardado/<id>` y una tarjeta de «Tus looks» con una cuenta real (aquí solo se comprobaron tipos, las 676 pruebas de la tienda y la medida sobre 9 recortes reales), y decir si el encaje rosa con caída fuerte queda bien.

@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt, Store } from "lucide-react";
-import { Popover } from "radix-ui";
 import { Buscador } from "@/components/ui/Buscador";
 import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { CapaDeFiltro } from "@/components/ui/CapaDeFiltro";
 import {
   destinoDesdeParam,
   ETIQUETA_ESTADO_PAGO,
@@ -319,25 +319,28 @@ function PildoraFechas({ desde, hasta, onCambiar }: { desde: string; hasta: stri
   const activa = Boolean(desde || hasta);
   const texto = activa ? `${desde ? fechaCorta(desde) : "…"} – ${hasta ? fechaCorta(hasta) : "…"}` : "Emisión";
   return (
-    <Popover.Root open={abierto} onOpenChange={setAbierto}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
-            activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
-          }`}
-        >
-          <CalendarRange aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
-          {texto}
-          <Hilo activo={abierto} reposo={false} />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content sideOffset={6} align="start" className="anim-revelar z-50 w-64 space-y-3 rounded-lg border border-sand bg-papel p-3 shadow-md">
-          <CampoFecha etiqueta="Emitida desde" valor={desde} onValor={(v) => onCambiar(v, hasta)} />
-          <CampoFecha etiqueta="Emitida hasta" valor={hasta} onValor={(v) => onCambiar(desde, v)} />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+    // En escritorio, el globo junto a la píldora; en el celular, la hoja del sistema (CapaDeFiltro, ADR-0479).
+    <CapaDeFiltro
+      abierta={abierto}
+      onAbierta={setAbierto}
+      titulo="Fecha de emisión"
+      disparador={
+          <button
+            type="button"
+            className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
+              activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
+            }`}
+          >
+            <CalendarRange aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
+            {texto}
+            <Hilo activo={abierto} reposo={false} />
+          </button>
+      }
+    >
+      <div className="space-y-3 p-3">
+        <CampoFecha etiqueta="Emitida desde" valor={desde} onValor={(v) => onCambiar(v, hasta)} />
+        <CampoFecha etiqueta="Emitida hasta" valor={hasta} onValor={(v) => onCambiar(desde, v)} />
+      </div>
+    </CapaDeFiltro>
   );
 }

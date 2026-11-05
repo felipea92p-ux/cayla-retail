@@ -3,8 +3,10 @@
 import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto, Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { ListaSugerencias } from "@/components/ui/ListaSugerencias";
+import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { IconoCategoria } from "@/components/IconoCategoria";
@@ -14,6 +16,9 @@ import { tonoDeCategoria } from "@/components/MuestraCategoria";
 import { camposGuiaPrenda } from "@/lib/prenda-sin-registrar-guia";
 import { arranqueDeCorreccion, cambioEnCorreccion, type AnotadoPorCaja } from "@/lib/corregir-prenda-sin-registrar-reglas";
 import { sinonimosDeCategoria, sugerenciaParaMostrar } from "@/lib/sugerir-categoria-sin-registrar";
+import { detalleDePosible, fraseDePosibles, type ElegidoEnLaHoja, type PrendaPosible } from "@/lib/prenda-sin-registrar-posibles";
+import { fraseDeReferencia, fraseFueraDeRango, precioNecesitaConfirmacion, veredictoDePrecio, type RangoDePrecios } from "@/lib/prenda-sin-registrar-precio";
+import { Aviso } from "@/components/ui/Aviso";
 import {
   faltaEnPrendaSinRegistrar,
   gruposDeTallas,
@@ -63,10 +68,17 @@ const tallasDe = (listas: ListasPrendaLibre, id: string): Talla[] =>
  * Con `corregir` (ADR-0369) es la misma hoja para cambiar lo anotado DESPUÉS de la venta, desde Ventas sin registrar: arranca con lo
  * que anotó caja, el precio queda fijo (es dinero: lo dice la venta y el comprobante), pide el «Responsable» y guarda con «Guardar
  * cambios», que solo se enciende si algo cambió. Una sola hoja para anotar y corregir: lo que se corrige es lo que la caja ofrece.
+ *
+ * «¿Es alguna de estas?» (A2, auditoría 2026-10-14): con categoría, talla y color elegidos, si en el piso de esta tienda hay prendas
+ * del catálogo que coinciden (`posibles`), la hoja las muestra ANTES de la descripción y «Es esta» (`onEsEsta`) la mete al ticket como
+ * venta normal. El 69 % de lo vendido entraba por aquí sin stock ni costo; muchas de esas prendas sí estaban en el sistema.
  */
 export function PrendaSinRegistrarModal({
   listas,
   onAgregar,
+  posibles,
+  onEsEsta,
+  rangoDePrecio,
   onClose,
   alCerrarEnfocar,
   corregir,
@@ -74,6 +86,13 @@ export function PrendaSinRegistrarModal({
   listas: ListasPrendaLibre;
   /** Vender: agrega la prenda al ticket. (En modo `corregir` no se usa.) */
   onAgregar?: (d: DatosPrendaSinRegistrar) => void;
+  /** Vender: las prendas del catálogo que coinciden con lo elegido y se pueden cobrar ahora (`prendasPosibles`). Sin esto, no se ofrece nada. */
+  posibles?: (elegido: ElegidoEnLaHoja) => PrendaPosible[];
+  /** Vender: la persona reconoció la prenda en la lista; entra al ticket como cualquier otra y la hoja se cierra. */
+  onEsEsta?: (varianteId: string) => void;
+  /** Vender: cuánto cuestan las prendas de una categoría en el catálogo (`rangoDePreciosDeCategoria`). Con esto, un precio fuera de
+   *  rango pide confirmarse antes de agregar (A3, auditoría 2026-10-14). Sin esto, el precio sigue libre. */
+  rangoDePrecio?: (categoriaId: string) => RangoDePrecios | null;
   onClose: () => void;
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   corregir?: {
@@ -117,13 +136,24 @@ export function PrendaSinRegistrarModal({
 
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
+  // Las prendas del catálogo que coinciden con lo elegido (solo al anotar en Vender; al corregir, la venta ya existe).
+  const idPosibles = useId();
+  const listaPosibles = useMemo(
+    () => (!corregir && posibles && onEsEsta && categoriaId && tallaId && colorCodigo ? posibles({ categoriaId, tallaId, colorCodigo }) : []),
+    [corregir, posibles, onEsEsta, categoriaId, tallaId, colorCodigo],
+  );
   const cambio = corregir ? cambioEnCorreccion(corregir.inicial, datos) : true;
   const guia = useGuiaCampos(
     corregir
       ? [...camposGuiaPrenda(datos), { id: "responsable", nombre: "Responsable", requerido: true, hecho: corregir.responsable.listo, pendiente: "Elige quién hace la corrección." }]
       : camposGuiaPrenda(datos),
   );
-  const puedeConfirmar = falta === null && cambio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
+  // El precio con referencia (solo al anotar): el rango de la categoría en el catálogo y, si lo tecleado se sale, la confirmación de ESE precio.
+  const [precioConfirmado, setPrecioConfirmado] = useState<number | null>(null);
+  const rango = useMemo(() => (!corregir && rangoDePrecio && categoriaId ? rangoDePrecio(categoriaId) : null), [corregir, rangoDePrecio, categoriaId]);
+  const veredicto = veredictoDePrecio(datos.precio, rango);
+  const faltaConfirmarPrecio = !corregir && precioNecesitaConfirmacion(veredicto, datos.precio, precioConfirmado);
+  const puedeConfirmar = falta === null && cambio && !faltaConfirmarPrecio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
 
   const opcionesCategoria = useMemo(
     () =>
@@ -330,6 +360,32 @@ export function PrendaSinRegistrarModal({
             />
           </CampoGuiado>
 
+          {/* «¿Es alguna de estas?»: la respuesta a haber elegido los tres datos (ADR-0136: entra con `anim-revelar`, una vez). La lista
+              es la pieza única de lo que se sugiere (`ListaSugerencias`, ADR-0358); sin fila activa ni tecla, porque no hay un buscador que
+              la controle: se toca con el mouse o con Tab. Si no es ninguna, se sigue anotando como siempre. */}
+          {listaPosibles.length > 0 && (
+            <div key={`${categoriaId}-${tallaId}-${colorCodigo}`} className="anim-revelar space-y-2" data-posibles data-sin-cascada>
+              <p className="text-[13px] font-semibold text-tinta">{fraseDePosibles(listaPosibles.length)}</p>
+              <ListaSugerencias
+                id={idPosibles}
+                etiqueta="Prendas del catálogo que coinciden con lo elegido"
+                sugerencias={listaPosibles.map((p) => ({
+                  clave: p.varianteId,
+                  miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex ?? null} tamano="md" prefijo={p.categoriaPrefijo} familia={p.categoriaFamilia} categoria={p.categoria} />,
+                  titulo: p.referencia,
+                  detalle: detalleDePosible(p),
+                  derecha: `S/\u00a0${p.precio.toFixed(2)}`,
+                }))}
+                activa={null}
+                tecla={null}
+                retenerFoco={false}
+                enLinea
+                onElegir={(i) => onEsEsta?.(listaPosibles[i]!.varianteId)}
+              />
+              <p className="text-xs text-tinta/65">Tócala y entra al ticket como venta normal. Si no es ninguna, sigue anotando.</p>
+            </div>
+          )}
+
           <CampoGuiado id="descripcion" guia={guia} titulo={<Titulo icono={<PenLine />}>Descripción corta</Titulo>}>
             <CampoTexto
               id={idDescripcion}
@@ -385,6 +441,35 @@ export function PrendaSinRegistrarModal({
                 />
               </span>
             </label>
+            {/* La referencia, antes de teclear: cuánto cuestan las prendas de esa categoría en el catálogo. */}
+            {rango && categoria && (veredicto === "dentro" || veredicto === "sin_precio") && (
+              <p className="mt-1.5 text-xs text-tinta/65" data-referencia-precio>
+                {fraseDeReferencia(categoria.nombre, rango)}
+              </p>
+            )}
+            {/* Fuera de rango: la misma forma que el costo atípico de Compras (corregir o confirmar), sin rojo: no es un error, es una decisión. */}
+            {rango && categoria && (veredicto === "bajo" || veredicto === "alto") && (
+              <Aviso
+                tono="atencion"
+                titulo={fraseFueraDeRango(datos.precio, categoria.nombre, rango, veredicto).titulo}
+                className="mt-3"
+                key={`${veredicto}-${datos.precio}`}
+              >
+                <p>{fraseFueraDeRango(datos.precio, categoria.nombre, rango, veredicto).detalle}</p>
+                {faltaConfirmarPrecio ? (
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <Boton type="button" peso="fantasma" className="sm:flex-1" onClick={() => document.getElementById(idPrecio)?.focus()}>
+                      Corregir el precio
+                    </Boton>
+                    <Boton type="button" peso="primario" className="sm:flex-1" onClick={() => setPrecioConfirmado(datos.precio)}>
+                      Sí, cobré S/&nbsp;{datos.precio.toFixed(2)}
+                    </Boton>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs">Confirmado: entra al ticket con ese precio.</p>
+                )}
+              </Aviso>
+            )}
           </CampoGuiado>
           )}
         </div>
@@ -409,7 +494,15 @@ export function PrendaSinRegistrarModal({
           )}
           <PieGuia
             guia={guia}
-            listo={corregir ? (cambio ? "Listo para guardar." : "Todavía no cambiaste nada.") : "Lista para el ticket. Enter en el precio también la agrega."}
+            listo={
+              corregir
+                ? cambio
+                  ? "Listo para guardar."
+                  : "Todavía no cambiaste nada."
+                : faltaConfirmarPrecio
+                  ? "El precio se sale de lo usual: confírmalo o corrígelo antes de agregar."
+                  : "Lista para el ticket. Enter en el precio también la agrega."
+            }
           />
           <Boton
             type="button"

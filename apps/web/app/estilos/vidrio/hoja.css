@@ -1,0 +1,133 @@
+/* =====================================================================
+   LA HOJA Y EL CAJÓN «SERENA» (ADR-0596; maqueta docs/maquetas/modales-vidrio-2026-10/). La cara de toda hoja (`<Modal>`) y de todo
+   cajón (`<Cajon>`), salvo la cámara, el ticket y «Mi perfil» (que es el vidrio «Completo», perfil-vidrio.css).
+
+   Vidrio al 70 % con su borde de luz, su sombra larga y 32 px de radio; la × es una gota; el título en serif sube un punto; la hoja entra
+   desenfocada y su contenido se enfoca en cascada (el movimiento de Mi perfil, una vez y sin rebote). Una hoja con algo peligroso (un
+   botón rojo) vuelve a papel: una decisión seria no se mira a través de nada.
+
+   POR QUÉ EL DESENFOQUE LO HACE EL VELO Y NO LA HOJA (2026-10-31): un `backdrop-filter` en la hoja la vuelve el bloque contenedor de todo
+   `position: fixed` de adentro, y la hoja es además la que hace scroll: la lista de un combo (el Responsable con que se firma casi todo,
+   ADR-0161) quedaría recortada por la hoja y se iría con su scroll. Así que el velo desenfoca la pantalla de atrás y la hoja es vidrio
+   translúcido encima: se ve igual de esmerilado y ningún combo cambia de comportamiento. «Mi perfil» sí lleva su propio desenfoque: no
+   tiene combos.
+   ===================================================================== */
+
+/* ---------- el velo: más liviano que el de papel, y es el que desenfoca ---------- */
+:where([data-state="open"]):has(+ div > :is(.hoja-serena, .cajon-serena)),
+:where([data-state="closed"]):has(+ div > :is(.hoja-serena, .cajon-serena)) {
+  background: var(--vidrio-velo);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+}
+
+/* ---------- la hoja ---------- */
+.hoja-serena {
+  isolation: isolate;
+  background: var(--vidrio-hoja-fondo);
+  border: 1px solid var(--vidrio-hoja-borde);
+  box-shadow: var(--vidrio-hoja-sombra);
+  /* El pie pegado (`pie-hoja-fijo`) pinta este fondo: vidrio, no un bloque de papel. */
+  --fondo-hoja: var(--vidrio-pie-fondo);
+}
+@media (min-width: 640px) {
+  .hoja-serena { border-radius: var(--vidrio-hoja-radio); padding: 1.75rem; }
+}
+@media (max-width: 639.98px) {
+  .hoja-serena { border-radius: 26px 26px 0 0; }
+}
+/* El título y la bajada: el serif sube a 27 px (Serena), como en la maqueta. */
+.hoja-serena > h2.font-display { font-size: 27px; line-height: 1.1; }
+@media (max-width: 639.98px) {
+  .hoja-serena > h2.font-display { font-size: 25px; }
+}
+/* Una hoja con algo irreversible (un botón rojo) vuelve a papel. */
+.hoja-serena:has(.btn-peligro) {
+  background: color-mix(in srgb, var(--color-papel) 96%, transparent);
+  --fondo-hoja: var(--color-papel);
+}
+/* Donde se lee en serio (una tabla dentro de la hoja), la lámina casi papel: el contraste no depende de lo que hay detrás. */
+.hoja-serena :is(table, [role="table"]) { background: var(--lamina-fondo); }
+/* El pie pegado: vidrio que desenfoca lo que pasa por debajo (su propio filtro; adentro no hay listas que se recorten). */
+.hoja-serena .pie-hoja-fijo {
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+
+/* ---------- la × de la hoja y del cajón: una gota redonda ---------- */
+:is(.hoja-serena, .cajon-serena) .cerrar-hoja {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--placa-borde);
+  background: var(--gota-fondo);
+  box-shadow: var(--gota-luz);
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+  transition: background 200ms, color 200ms, transform 250ms var(--ease-cayla);
+}
+@media (min-width: 640px) {
+  .hoja-serena > .cerrar-hoja { top: 16px; right: 16px; }
+}
+@media (hover: hover) {
+  :is(.hoja-serena, .cajon-serena) .cerrar-hoja:hover { background: var(--gota-fondo-encima); color: var(--color-tinta); transform: scale(1.05); }
+}
+
+/* ---------- el cajón: flota a 12 px de los bordes en escritorio ---------- */
+/* El cajón SÍ desenfoca lo de atrás: casi siempre se abre sin velo (la lista sigue viva detrás) y sin desenfoque se leía la pantalla a
+   través de él. Sus pocos combos se abren dentro de su alto (y `marcoDelFijo` ya convierte la posición al marco del cajón). */
+.cajon-serena {
+  isolation: isolate;
+  -webkit-backdrop-filter: var(--vidrio-hoja-filtro);
+  backdrop-filter: var(--vidrio-hoja-filtro);
+  background: var(--vidrio-hoja-fondo);
+  border: 1px solid var(--vidrio-hoja-borde);
+  box-shadow: var(--vidrio-hoja-sombra);
+}
+@media (min-width: 640px) {
+  .cajon-serena { top: 12px; bottom: 12px; right: 12px; height: auto; border-radius: 28px; overflow: hidden; }
+}
+@media (max-width: 639.98px) {
+  .cajon-serena { border-radius: 26px 26px 0 0; overflow: hidden; }
+}
+/* Las líneas de la banda y del pie del cajón: luz del vidrio, no tinta. */
+.cajon-serena :is(.border-b, .border-t) { border-color: var(--placa-borde); }
+
+/* ---------- la entrada: la de Mi perfil (desenfocada, crece y se enfoca), una vez ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @media (min-width: 640px) {
+    .hoja-serena.anim-modal-entra { animation: vidrio-entra 560ms var(--ease-cayla) backwards; }
+  }
+  .hoja-serena.cascada-modal > :not(form):not([data-sin-cascada]),
+  .hoja-serena.cascada-modal > form > :not([data-sin-cascada]) {
+    animation-name: vidrio-enfoca;
+  }
+}
+
+/* ---------- una tarjeta dentro de una hoja o un cajón: la lámina de vidrio ---------- */
+/* «B · Lámina de vidrio» (la lista de prendas de Detalle de la venta, Felipe 2026-10-31): una placa de vidrio en vez de una losa de papel,
+   con las filas separadas por la luz del vidrio. Vale para toda `card-cayla` dentro de una hoja (líneas, pagos, resúmenes). */
+:is(.hoja-serena, .cajon-serena) .card-cayla {
+  background: var(--placa-fondo);
+  border-color: var(--placa-borde);
+  box-shadow: var(--placa-luz);
+  border-radius: 20px;
+}
+/* Lo que era hueso, papel o crema SÓLIDO dentro de una hoja o un cajón (una nota, un resumen, una caja con borde, la pista de una barra): la
+   placa de vidrio, en UN solo lugar y no pantalla por pantalla (Felipe 2026-11-02: «muchos módulos tienen el mismo problema»; son ~150
+   archivos con hoja). Mismo modelo que `.pantalla-en-vidrio .bg-hueso`. Se quedan opacos a propósito: lo que flota o se pega (`sticky`, `fixed`,
+   `absolute`, `rounded-full`: globos, menús, los puntos de una línea de tiempo, encabezados de tabla que tapan lo que pasa por debajo), el papel físico y el color
+   de dato, y los controles, que ya tienen su receta (campos, botones). Un `hover:bg-…` o un `bg-…/50` no se tocan: son otra clase. */
+:is(.hoja-serena, .cajon-serena)
+  :is(.bg-hueso, .bg-papel, .bg-crema):not(
+    .sticky, .fixed, .absolute, .rounded-full, .card-cayla, input, textarea, select, button,
+    .papel-fijo, .papel-fijo *, [data-papel], [data-papel] *, [data-color-dato], [data-color-dato] *
+  ) {
+  background: var(--placa-fondo);
+  border-color: var(--placa-borde);
+}
+:is(.hoja-serena, .cajon-serena) :is(.divide-sand, .divide-tinta\/10) > :not(:first-child) {
+  border-color: color-mix(in srgb, var(--color-tinta) 9%, transparent);
+}

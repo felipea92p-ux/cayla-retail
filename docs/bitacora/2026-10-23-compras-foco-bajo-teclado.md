@@ -1,0 +1,4 @@
+## 2026-10-23 (el campo enfocado ya no queda debajo del pie de la hoja con el teclado abierto)
+Qué hice: en el celular, con el teclado abierto, la hoja dejaba el campo enfocado justo encima del teclado pero debajo del pie fijo («Cancelar / Agregar»). Felipe lo vio en Compras ▸ «Algo nuevo» en Android: con la tecla «siguiente» el foco pasó a «Costo» y quedó tapado. `useHojaSobreElTeclado` ahora mide el pie (`--alto-pie`), que se suma al `scroll-padding-bottom` de la hoja, y trae a la vista por encima del pie cada campo que recibe el foco con el teclado arriba.
+Por qué así: el arreglo vive en la pieza de la hoja (`<Modal>`), así que sirve a toda hoja con `pie-hoja-fijo`, no solo a Compras. Un campo que ya se ve no se mueve (`block: "nearest"`).
+Estado: probado a 375 px con el teclado simulado (un `visualViewport` falso de 330 px de teclado): «Costo» pasó de 410–456 (detrás del pie, que empieza en 418) a 356–402. Falta verlo en un Android de verdad.

@@ -57,6 +57,7 @@ export function OrdenCierre({
   // Lo que contestó la base cuando el costo por prenda salió atípico; mientras haya algo aquí, la pregunta está abierta.
   const [atipico, setAtipico] = useState<CostoAtipico | null>(null);
   const seccion = useRef<HTMLElement>(null);
+  const frenoBuenas = useRef<() => boolean>(null);
   // Responsable (ADR-0161/0162): el cierre firma con quien se elige en el combo (la lista sale del Taller, la sede activa).
   const responsable = useResponsable();
 
@@ -76,7 +77,9 @@ export function OrdenCierre({
     seccion.current?.querySelector<HTMLInputElement>('[data-campo="cierre-tela"]')?.focus();
   }
 
-  async function confirmar(confirmaCostoAtipico = false) {
+  async function confirmar(confirmaCostoAtipico = false, motivoCosto = "") {
+    // Lo escrito en una casilla no valió: antes de meter al stock lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (frenoBuenas.current?.()) return;
     if (total <= 0) {
       avisar.error("No salió ninguna prenda buena — si el lote se perdió, anula la orden en vez de cerrarla.");
       return;
@@ -92,7 +95,7 @@ export function OrdenCierre({
       return;
     }
     setCargando(true);
-    const { error } = await firmar(createClient().rpc("cerrar_produccion", {
+    const { error } = await firmar(createClient().rpc((confirmaCostoAtipico ? "cerrar_produccion_con_motivo" : "cerrar_produccion") as never, {
       p_produccion_id: orden.id,
       p_buenas: orden.lineas.map((l) => ({ variante_id: l.varianteId, cantidad: Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0)) })),
       p_costo_tela: esLider ? Number(tela) || 0 : CONSERVAR,
@@ -100,8 +103,8 @@ export function OrdenCierre({
       p_costo_maquila: esLider ? Number(maquila) || 0 : CONSERVAR,
       // Solo en el reintento tras `costo_atipico`: el primer intento no manda el parámetro, así la pantalla nueva
       // funciona igual contra una base que todavía no lo conoce.
-      ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true } : {}),
-    }), responsable.firma());
+      ...(confirmaCostoAtipico ? { p_confirma_costo_atipico: true, p_motivo: motivoCosto } : {}),
+    } as never), responsable.firma());
     responsable.despues(error);
     setCargando(false);
     if (error) {
@@ -133,13 +136,14 @@ export function OrdenCierre({
           matriz={matriz}
           modo="cierre"
           buenas={buenas}
+          freno={frenoBuenas}
           onCambio={(id, v) => {
             setBuenas((b) => ({ ...b, [id]: v }));
             setAtipico(null);
           }}
         />
       </div>
-      <p className="mt-2 text-xs text-tinta/75">
+      <p className="mt-2 text-sm text-tinta/75">
         {total} buenas de {orden.cantidadPlan}
         {perdidas > 0 && (
           <>
@@ -165,12 +169,12 @@ export function OrdenCierre({
             </span>
             <span className="font-display text-lg tabular-nums text-tinta">{soles(unitario)} / prenda</span>
           </div>
-          <p className="mt-2 text-xs text-tinta/65">El costo se reparte entre las buenas, no entre las planeadas: una segunda sube el costo de las demás.</p>
+          <p className="mt-2 text-sm text-tinta/65">El costo se reparte entre las buenas, no entre las planeadas: una segunda sube el costo de las demás.</p>
         </>
       )}
 
       {!orden.esMuestra && (
-        <p className="mt-3 text-xs text-tinta/65">
+        <p className="mt-3 text-sm text-tinta/65">
           Al confirmar, cada talla entra al stock del Taller y queda registrada en Movimientos.{" "}
           {esLider
             ? "Revertir la orden devuelve el stock, pero no deshace el costo de la prenda: revisa el costo antes de confirmar."
@@ -193,7 +197,8 @@ export function OrdenCierre({
           listo={responsable.listo}
           motivoNoListo={responsable.motivo}
           onCorregir={corregirMontos}
-          onConfirmar={() => confirmar(true)}
+          conMotivo
+          onConfirmar={(motivo) => confirmar(true, motivo)}
         />
       ) : (
         <Boton textoCargando="Cerrando…" peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>

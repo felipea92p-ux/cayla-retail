@@ -4,7 +4,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ConfiguracionTiendaWeb } from "@/components/ConfiguracionTiendaWeb";
 
-// Tienda web ▸ Datos y plazos (ADR-0430; módulo `ajustes_web`, 20261016223000; la ruta sigue siendo /ajustes; antes Configuración ▸ Tienda web, ADR-0408 act. 6): lo que la tienda online le muestra al cliente de
+// Tienda web ▸ Conf. Tienda (antes «Datos y plazos»; ADR-0430; módulo `ajustes_web`, 20261016223000; la ruta sigue siendo /ajustes; antes Configuración ▸ Tienda web, ADR-0408 act. 6): lo que la tienda online le muestra al cliente de
 // cada tienda —nombre, WhatsApp, dirección y horario, y si se muestra— y los plazos de los pedidos web. Es de CAYLA entera (la web es una
 // sola), así que también se abre en CAYLA Global, como Configuración.
 export default async function AjustesTiendaWebPage() {
@@ -17,7 +17,7 @@ export default async function AjustesTiendaWebPage() {
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         detalle="Tienda web"
-        titulo="Datos y plazos"
+        titulo="Conf. Tienda"
         subtitulo="Lo que la tienda online le muestra al cliente de cada tienda, y cuánto espera un pedido en cada paso."
       />
       {datos ? (

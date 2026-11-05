@@ -1,0 +1,640 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cuentas y dinero v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css">
+<style>
+/* Finanzas v3 · Cuentas y dinero — solo var(--…) de base.css. Prefijo d- (común); va- / vb- / vc- (cada camino). */
+
+/* La pantalla ocupa todo el ancho (ADR-0462): la maqueta también. */
+.pagina{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+.mq-nota{max-width:none;padding-inline:clamp(16px,3vw,40px)}
+#va,#vb,#vc{display:flex;flex-direction:column;gap:22px}
+.d-cab + .d-sedes{margin-top:-6px}
+
+/* ---------- Cabecera (EncabezadoPagina / CabeceraPantalla con la vuelta en la línea de sede) ---------- */
+.d-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:18px 28px;flex-wrap:wrap}
+.d-cab-izq{display:flex;flex-direction:column;gap:6px;min-width:0}
+.d-cab .linea-sede{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.d-cab .linea-sede::after{content:"";width:72px;height:1px;background:var(--taupe);opacity:.55}
+.d-cab h1{font-size:clamp(34px,5vw,46px);line-height:1.02}
+.d-cab .frase{font-size:15.5px;max-width:62ch}
+.d-cab-acc{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.d-volver{width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);display:inline-grid;place-items:center;cursor:pointer;color:var(--tinta);
+  transition:transform .25s var(--ease-cayla),border-color .2s}
+.d-volver svg{transition:transform .25s var(--ease-cayla)}
+@media (hover:hover){.d-volver:hover{border-color:var(--tinta)}.d-volver:hover svg{transform:translateX(-3px)}}
+.btn.versal{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+
+/* ---------- La tira de sedes: el selector ES el reparto ---------- */
+.d-sedes{display:flex;flex-direction:column;gap:10px}
+.d-sedes-fila{display:flex;flex-wrap:wrap;gap:8px}
+.d-sede{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 14px 6px 10px;cursor:pointer;
+  font-size:13.5px;transition:background .2s var(--ease-cayla),color .2s,border-color .2s,transform .2s var(--ease-cayla)}
+.d-sede i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.d-sede .n{font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--tinta) 66%,transparent);font-size:12.5px}
+.d-sede[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.d-sede[aria-pressed="true"] .n{color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.d-sede[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--crema)}
+.d-sede.vacia .n{font-style:italic}
+@media (hover:hover){.d-sede:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--taupe) 55%,var(--sand))}}
+.d-reparto{display:flex;gap:3px;height:8px;border-radius:999px;overflow:hidden;background:var(--hueso)}
+.d-reparto>i{display:block;height:100%;background:var(--c);width:var(--w);transition:opacity .25s,filter .25s}
+.d-reparto.elegida>i:not(.esta){opacity:.25}
+.d-reparto-pie{font-size:12.5px}
+
+/* ---------- Filtros puestos (FiltroPuesto + BotonLimpiar) ---------- */
+.d-herr{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--sand)}
+.d-herr .titulo{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:0}
+.d-herr .titulo b{font-size:14.5px;font-weight:600}
+.d-herr .titulo small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.d-filtros{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--sand);background:color-mix(in srgb,var(--hueso) 45%,transparent)}
+.d-filtros:empty{display:none}
+.d-puesto{display:inline-flex;align-items:center;gap:6px;background:var(--tinta);color:var(--crema);border:0;border-radius:999px;padding:4px 6px 4px 12px;font-size:12.5px;cursor:pointer}
+.d-puesto span.x{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;background:color-mix(in srgb,var(--crema) 18%,transparent);font-size:11px}
+.d-limpiar{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--taupe);background:transparent;border-radius:999px;padding:4px 12px;font-size:12.5px;cursor:pointer;color:var(--tinta)}
+.d-pild{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer}
+.d-pild[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.d-buscar{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:999px;padding:0 12px;height:34px;min-width:min(100%,220px)}
+.d-buscar input{border:0;background:transparent;font:inherit;font-size:13px;color:var(--tinta);outline:0;width:100%}
+.d-buscar svg{flex:none;opacity:.6}
+
+/* ---------- Cifras (TarjetaCifra) que filtran ---------- */
+.d-cifras{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+.d-cifra{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:14px 16px;display:flex;flex-direction:column;gap:5px;text-align:left;min-width:0;
+  cursor:pointer;font:inherit;color:inherit;transition:transform .25s var(--ease-cayla),border-color .2s,background .2s}
+.d-cifra .etq{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.d-cifra .val{font-family:var(--serif);font-size:30px;line-height:1.05;font-variant-numeric:tabular-nums}
+.d-cifra .pie{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 68%,transparent)}
+.d-cifra[aria-pressed="true"]{background:var(--hueso);border-color:var(--taupe)}
+.d-cifra.rojo .val{color:var(--rojo-p)}
+.d-cifra.fija{cursor:default}
+@media (hover:hover){.d-cifra:not(.fija):hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--taupe) 55%,var(--sand))}}
+@media (max-width:640px){.d-cifras{grid-template-columns:1fr 1fr}.d-cifra .val{font-size:24px}}
+
+/* ---------- Tarjeta con tabla ---------- */
+.d-tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);min-width:0;overflow:hidden}
+.d-tarjeta .tabla td,.d-tarjeta .tabla th{padding-inline:16px}
+.d-tarjeta .tabla tr:last-child td{border-bottom:0}
+.d-pie-t{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;padding:12px 16px;border-top:1px solid var(--sand);font-size:12.5px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.tabla .sub{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.tabla tr.clic{cursor:pointer}
+.tabla tr.total td{font-weight:600;background:color-mix(in srgb,var(--hueso) 50%,transparent)}
+.tabla .sale{color:var(--rojo-p)}
+.d-sedechip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap}
+.d-sedechip i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.d-vacio{padding:28px 16px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.d-vacio b{font-family:var(--serif);font-size:21px;font-weight:500}
+/* En el celular, cada fila es una ficha (sin scroll lateral) */
+@media (max-width:640px){
+  .tabla.apila thead{display:none}
+  .tabla.apila,.tabla.apila tbody,.tabla.apila tr,.tabla.apila td{display:block;width:100%}
+  .tabla.apila tr{padding:10px 0;border-bottom:1px solid var(--sand)}
+  .tabla.apila td{border:0;padding:3px 16px;display:flex;justify-content:space-between;gap:12px;text-align:right}
+  .tabla.apila td::before{content:attr(data-l);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;text-align:left}
+  .tabla.apila td.ancha{display:block;text-align:left}.tabla.apila td.ancha::before{display:none}
+  .tabla.apila td.sin::before{display:none}
+}
+
+/* ---------- Común: chips, nota, ¿Por qué?, sello ---------- */
+.d-nota{background:var(--hueso);border-radius:12px;padding:14px 16px 14px 42px;font-size:14px;position:relative;max-width:110ch}
+.d-nota::before{content:"i";position:absolute;left:14px;top:14px;width:18px;height:18px;border-radius:50%;border:1px solid var(--taupe);color:var(--taupe);font:600 11px/16px var(--serif);text-align:center;font-style:italic}
+.d-aviso{display:flex;gap:12px;align-items:flex-start;border-left:3px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,var(--papel));border-radius:0 12px 12px 0;padding:12px 16px;font-size:14px}
+.d-aviso b{font-weight:600}
+.d-aviso .acc{margin-left:auto;flex:none}
+@media (max-width:640px){.d-aviso{flex-wrap:wrap}.d-aviso .acc{margin-left:0}}
+.d-enlace{border:0;background:none;padding:0;cursor:pointer;color:var(--rojo-p);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.d-enlace::after{content:"→";transition:transform .25s var(--ease-cayla)}
+@media (hover:hover){.d-enlace:hover::after{transform:translateX(4px)}}
+.d-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.d-lista li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.d-lista li:last-child{border-bottom:0}
+.d-lista small{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.d-sello{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--verde);color:var(--verde);border-radius:8px;padding:3px 10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;transform:rotate(-3deg)}
+.d-sello.estampa{animation:mq-sello .55s var(--ease-cayla) both}
+.d-segmento{display:inline-flex;background:var(--hueso);border-radius:999px;padding:3px;gap:2px}
+.d-segmento button{border:0;background:transparent;border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+.d-segmento button[aria-pressed="true"]{background:var(--papel);color:var(--tinta);box-shadow:0 1px 3px color-mix(in srgb,var(--sombra) 14%,transparent)}
+.d-pista{height:8px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.d-pista>i{display:block;height:100%;width:var(--w);background:var(--c,var(--tinta));border-radius:999px}
+.animar .d-pista>i,.animar .d-reparto>i{animation:mq-crece .9s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 70ms + 200ms)}
+
+/* ================= A · La respuesta, sede por sede ================= */
+.va-hero{display:grid;gap:18px 40px;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:end}
+@media (max-width:900px){.va-hero{grid-template-columns:1fr}}
+.va-grande{font-family:var(--serif);font-size:clamp(46px,7vw,84px);line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.va-grande small{display:block;font-family:var(--sans);font-size:14px;letter-spacing:0;color:color-mix(in srgb,var(--tinta) 66%,transparent);margin-bottom:6px}
+.va-leyenda{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.va-leyenda li{display:grid;grid-template-columns:12px 1fr auto auto;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;font-size:14px;cursor:pointer;transition:background .2s}
+.va-leyenda li i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.va-leyenda li .pc{font-size:12px;color:color-mix(in srgb,var(--tinta) 60%,transparent);font-variant-numeric:tabular-nums}
+.va-leyenda li b{font-variant-numeric:tabular-nums;font-weight:600}
+.va-leyenda li.fija{cursor:default}
+@media (hover:hover){.va-leyenda li:not(.fija):hover{background:var(--hueso)}}
+.va-preguntas{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.va-preg{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.va-preg .resp{font-family:var(--serif);font-size:28px;line-height:1.12}
+.va-preg .resp .num{white-space:nowrap}
+.va-preg .resp .bajo{color:var(--rojo-p)}
+.va-preg .pie{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:6px}
+.va-minis{display:flex;flex-direction:column;gap:8px}
+.va-mini{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;font-size:13px}
+.va-mini .n{font-variant-numeric:tabular-nums;text-align:right;min-width:72px}
+.va-curva svg{width:100%;height:84px;display:block;overflow:visible}
+
+/* ================= B · Cuatro pestañas ordenadas ================= */
+.vb-pestanas{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--vidrio);border:1px solid var(--sand);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  max-width:100%;flex-wrap:wrap}
+.vb-pestanas button{border:0;background:transparent;border-radius:999px;padding:8px 14px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;cursor:pointer;display:inline-flex;gap:8px;align-items:center;color:color-mix(in srgb,var(--tinta) 75%,transparent)}
+.vb-pestanas button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.vb-globito{min-width:20px;height:20px;border-radius:999px;background:var(--hueso);color:var(--tinta);display:inline-grid;place-items:center;font-size:11px;letter-spacing:0;padding:0 6px}
+.vb-pestanas button[aria-pressed="true"] .vb-globito{background:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+.vb-globito.pide{background:color-mix(in srgb,var(--ambar) 20%,transparent);color:var(--ambar)}
+
+/* ================= C · El mapa sede por sede ================= */
+.vc-mapa .tabla td,.vc-mapa .tabla th{text-align:right}
+.vc-mapa .tabla td:first-child,.vc-mapa .tabla th:first-child{text-align:left}
+.vc-celda{display:inline-flex;flex-direction:column;align-items:flex-end;gap:4px;border:0;background:none;padding:6px 8px;margin:-6px -8px;border-radius:8px;cursor:pointer;font:inherit;color:inherit;font-variant-numeric:tabular-nums}
+.vc-celda i{display:block;height:4px;border-radius:999px;background:var(--c);width:var(--w);min-width:2px;max-width:90px;opacity:.85}
+.vc-celda.cero{color:color-mix(in srgb,var(--tinta) 38%,transparent);cursor:default}
+@media (hover:hover){.vc-celda:not(.cero):hover{background:var(--hueso)}}
+.vc-neto.neg{color:var(--rojo-p)}
+.vc-fila-sede{display:flex;align-items:center;gap:10px}
+.vc-fila-sede i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.vc-fila-sede small{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 60%,transparent)}
+.vc-tipo{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);white-space:nowrap}
+@media (max-width:640px){.vc-mapa .tabla.apila td{text-align:right}}
+</style>
+</head><body>
+<header class="mq-barra"><a class="mq-volver" href="../../finanzas-v2-2026-10/index.html" aria-label="Volver a las maquetas de Finanzas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3L5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas v3 · maquetas</span><b>Cuentas y dinero</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Camino"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · Pestañas</button><button data-ver="c">C · El mapa</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+
+<p class="mq-nota tenue"><b>Tres caminos para lo mismo.</b> Los tres separan por sede (la fila de sedes es también el reparto), dejan ver y quitar cada filtro, y toda vista de adentro tiene su flecha para volver. Toca las sedes, las cifras y las filas: todo responde. Nada se guarda.</p>
+
+<main class="pagina">
+<section class="variante" data-variante="a"><div id="va"></div></section>
+<section class="variante" data-variante="b" hidden><div id="vb"></div></section>
+<section class="variante" data-variante="c" hidden><div id="vc"></div></section>
+</main>
+
+<script src="datos.js"></script>
+<script src="base.js"></script>
+<script>
+(function () {
+  const D = window.DINERO;
+  const $ = (s, r = document) => r.querySelector(s);
+  const S = (n) => "S/ " + Math.round(Math.abs(n)).toLocaleString("es-PE");
+  const Sd = (n) => (n < 0 ? "−" : "") + S(n);
+  const sede = (id) => D.SEDES.find((s) => s.id === id);
+  const pct = (a, b) => (!b || !a ? 0 : a / b < 0.01 ? "<1" : Math.round((a / b) * 100));
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  /* ---------- Estado: la sede y la vista viven en la URL (?sede=tru&vista=debes), como en Cierre ---------- */
+  const url = new URLSearchParams(location.search);
+  const E = {
+    sede: url.get("sede") || "todas",
+    vista: { a: url.get("vista") || "inicio", b: url.get("vista") || "cuentas", c: url.get("vista") || "mapa" },
+    f: { tramo: null, tipo: null, q: "", estado: null, mov: null },
+    cuenta: url.get("cuenta"),
+    banco: url.get("banco") || "ibk",
+    resueltas: {},
+  };
+  let actual = "a";
+  function aUrl() {
+    const p = new URLSearchParams();
+    if (E.sede !== "todas") p.set("sede", E.sede);
+    const v = E.vista[actual];
+    if (v && v !== { a: "inicio", b: "cuentas", c: "mapa" }[actual]) p.set("vista", v);
+    if (E.cuenta && (v === "cuenta")) p.set("cuenta", E.cuenta);
+    try { history.replaceState(null, "", (p.toString() ? "?" + p : location.pathname) + "#" + actual); } catch (_) {}
+  }
+  const deLaSede = (x) => E.sede === "todas" || x === E.sede;
+  const deSede = (id) => (id === "tal" ? "del Taller" : id === "emp" ? "de CAYLA entera" : "de " + sede(id).nombre);
+  const nombreVista = () => (E.sede === "todas" ? "Todas las sedes" : sede(E.sede).nombre);
+
+  /* ---------- Cuentas de la historia ---------- */
+  const tiene = (id) => D.CUENTAS.filter((c) => c.tipo !== "tarjeta" && (id === "todas" || c.sede === id)).reduce((a, c) => a + c.saldo, 0);
+  const saldoDeuda = (d) => d.total - d.pagado;
+  const debe = (id) => D.DEUDAS.filter((d) => id === "todas" || d.sede === id).reduce((a, d) => a + saldoDeuda(d), 0);
+  const cajonAhora = (id) => D.EFECTIVO.filter((e) => (id === "todas" || e.sede === id) && e.deberia).reduce((a, e) => a + e.deberia, 0);
+  const lineasPorRevisar = (id) => Object.entries(D.BANCOS).flatMap(([k, b]) => b.lineas.filter((l) => !E.resueltas[l.id] && (id === "todas" || l.sede === id))).length;
+  const tramoDe = (d) => D.TRAMOS.find((t) => d.dias >= t.de && d.dias <= t.a).id;
+
+  /* ---------- Piezas comunes ---------- */
+  const flecha = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>';
+  const lupa = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+
+  function cabecera({ titulo, frase, volver, detalle, acciones }) {
+    const v = volver ? `<button class="d-volver" type="button" data-volver="${volver.accion}" aria-label="${esc(volver.a)}" title="${esc(volver.a)}">${flecha}</button>` : "";
+    return `<header class="d-cab" data-entra style="--i:0"><div class="d-cab-izq">
+      <div class="linea-sede">${v}<span class="versalita">Finanzas · ${esc(nombreVista())} · jueves 15 de octubre${detalle ? " · " + esc(detalle) : ""}</span></div>
+      <h1>${esc(titulo)}</h1>${frase ? `<p class="frase tenue">${frase}</p>` : ""}</div>
+      <div class="d-cab-acc">${acciones ?? '<button class="btn primario versal" type="button" data-registrar>+ Registrar movimiento</button>'}</div></header>`;
+  }
+
+  /* La fila de sedes: cada píldora dice su cifra en lo que miras (lo que tiene, lo que debe, el cajón ahora, lo que falta cuadrar). */
+  function tiraSedes(modo, sinBarra = false) {
+    const valor = { tiene, debe, efectivo: cajonAhora, cuadrar: lineasPorRevisar }[modo];
+    const fmt = (n) => (modo === "cuadrar" ? (n ? `${n} por revisar` : "al día") : S(n));
+    const todas = valor("todas");
+    const sedes = D.SEDES.filter((s) => !(modo === "efectivo" && s.id === "emp"));
+    const pild = (id, nombre, color, n, nota) =>
+      `<button class="d-sede${n === 0 && modo !== "cuadrar" ? " vacia" : ""}" type="button" data-sede="${id}" aria-pressed="${E.sede === id}" style="--c:${color}">${color ? "<i></i>" : ""}<span>${esc(nombre)}</span><span class="n">${n === 0 && nota && modo !== "cuadrar" ? esc(nota) : fmt(n)}</span></button>`;
+    const reparto = !sinBarra && (modo === "tiene" || modo === "debe")
+      ? `<div class="d-reparto${E.sede !== "todas" ? " elegida" : ""}" role="img" aria-label="Reparto por sede">${sedes.filter((s) => valor(s.id) > 0).map((s, i) => `<i class="${E.sede === s.id ? "esta" : ""}" style="--i:${i};--c:${s.color};--w:${(valor(s.id) / todas) * 100}%"></i>`).join("")}</div>`
+      : "";
+    return `<div class="d-sedes" data-entra style="--i:1"><div class="d-sedes-fila" role="group" aria-label="Separar por sede">
+      ${pild("todas", "Todas las sedes", "", todas)}${sedes.map((s) => pild(s.id, s.nombre, s.color, valor(s.id), s.nota)).join("")}</div>${reparto}</div>`;
+  }
+
+  function filtrosPuestos(lista) {
+    if (!lista.length) return '<div class="d-filtros"></div>';
+    return `<div class="d-filtros" aria-label="Filtros puestos">${lista.map((f) => `<button class="d-puesto" type="button" data-quitar="${f.clave}">${esc(f.texto)}<span class="x" aria-hidden="true">✕</span><span class="sr" style="position:absolute;left:-9999px">Quitar</span></button>`).join("")}
+      ${lista.length > 1 ? '<button class="d-limpiar" type="button" data-limpiar>Limpiar todo</button>' : ""}</div>`;
+  }
+  /* Los filtros que se ven puestos: la sede también es uno, y se quita igual. */
+  function puestos(extra) {
+    const l = [];
+    if (E.sede !== "todas") l.push({ clave: "sede", texto: "Sede: " + sede(E.sede).nombre });
+    return l.concat(extra.filter(Boolean));
+  }
+  const sedeChip = (id) => `<span class="d-sedechip" style="--c:${sede(id).color}"><i></i>${esc(sede(id).corto === "Empresa" ? "CAYLA entera" : sede(id).nombre)}</span>`;
+  /* Una cifra que filtra es un botón (se rellena de arena al elegirla); una que solo informa, no. */
+  const cifra = ({ etq, val, pie, filtro, activa, rojo, i }) => {
+    const dentro = `<span class="etq">${esc(etq)}</span><span class="val">${val}</span><span class="pie">${pie}</span>`;
+    const clase = `d-cifra${rojo ? " rojo" : ""}${filtro ? "" : " fija"}`;
+    return filtro
+      ? `<button class="${clase}" type="button" data-filtro="${filtro}" aria-pressed="${!!activa}" data-entra style="--i:${i ?? 2}">${dentro}</button>`
+      : `<div class="${clase}" data-entra style="--i:${i ?? 2}">${dentro}</div>`;
+  };
+  const vacio = (titulo, frase) => `<tr><td colspan="9" class="sin"><div class="d-vacio"><b>${esc(titulo)}</b><span class="tenue">${frase}</span><button class="d-limpiar" type="button" data-limpiar>Limpiar los filtros</button></div></td></tr>`;
+
+  /* ================= Las vistas que comparten A y B ================= */
+
+  function vistaDebes(conCifras = true) {
+    const filas = D.DEUDAS.filter((d) => deLaSede(d.sede) && (!E.f.tramo || tramoDe(d) === E.f.tramo) && (!E.f.tipo || d.tipo === E.f.tipo) &&
+      (!E.f.q || (d.proveedor + d.doc + d.que).toLowerCase().includes(E.f.q.toLowerCase())));
+    const base = D.DEUDAS.filter((d) => deLaSede(d.sede));
+    const tipos = [...new Set(base.map((d) => d.tipo))];
+    const cifras = D.TRAMOS.map((t, i) => {
+      const del = base.filter((d) => tramoDe(d) === t.id);
+      return cifra({ etq: t.texto, val: S(del.reduce((a, d) => a + saldoDeuda(d), 0)), pie: del.length ? `${del.length} ${del.length === 1 ? "cuenta" : "cuentas"}${t.id === "semana" ? " · la primera, el " + del[0].vence : ""}` : "nada", filtro: "tramo:" + t.id, activa: E.f.tramo === t.id, rojo: t.id === "vencido" && del.length, i: i + 2 });
+    }).join("");
+    const total = filas.reduce((a, d) => a + saldoDeuda(d), 0);
+    return `${conCifras ? `<div class="d-cifras">${cifras}</div>` : ""}
+    <div class="d-tarjeta" data-sube style="--i:6">
+      <div class="d-herr"><div class="titulo"><b>${E.sede === "todas" ? "Todo lo que CAYLA debe" : "Lo que debe " + (E.sede === "tal" ? "el Taller" : sede(E.sede).nombre)}</b><small>Facturas de proveedores, insumos del Taller y la tarjeta, en una sola lista.</small></div>
+        <label class="d-buscar">${lupa}<input type="search" placeholder="Buscar un proveedor o una factura" value="${esc(E.f.q)}" data-buscar aria-label="Buscar"></label>
+        ${tipos.map((t) => `<button class="d-pild" type="button" data-filtro="tipo:${esc(t)}" aria-pressed="${E.f.tipo === t}">${esc(t)}</button>`).join("")}</div>
+      ${filtrosPuestos(puestos([E.f.tramo && { clave: "tramo", texto: "Vence: " + D.TRAMOS.find((t) => t.id === E.f.tramo).texto.toLowerCase() }, E.f.tipo && { clave: "tipo", texto: "Tipo: " + E.f.tipo }, E.f.q && { clave: "q", texto: "Busca: «" + E.f.q + "»" }]))}
+      <div class="desliza"><table class="tabla apila"><thead><tr><th>Vence</th><th>Proveedor · factura</th><th>Tipo</th><th>Sede</th><th class="m">Total</th><th class="m">Pagado</th><th class="m">Saldo</th><th></th></tr></thead><tbody class="d-filas">
+      ${filas.length ? filas.map((d, i) => `<tr data-entra style="--i:${i}"><td data-l="Vence" class="num"><span>${esc(d.vence)}<span class="sub">${d.dias <= 7 ? '<span class="chip late c-ambar">en ' + d.dias + " días</span>" : "en " + d.dias + " días"}</span></span></td>
+        <td class="ancha"><b>${esc(d.proveedor)}</b><span class="sub">${esc(d.doc)} · ${esc(d.que)}</span></td><td data-l="Tipo">${esc(d.tipo)}</td><td data-l="Sede">${sedeChip(d.sede)}</td>
+        <td data-l="Total" class="m">${S(d.total)}</td><td data-l="Pagado" class="m">${S(d.pagado)}</td><td data-l="Saldo" class="m"><b>${S(saldoDeuda(d))}</b></td>
+        <td class="m sin"><button class="btn chico sutil" type="button" data-pagar="${d.id}">Pagar</button></td></tr>`).join("")
+        : !E.f.tramo && !E.f.tipo && !E.f.q && E.sede !== "todas" ? `<tr><td colspan="9" class="sin"><div class="d-vacio"><b>${esc(sede(E.sede).nombre)} no debe nada</b><span class="tenue">Ninguna factura pedida por ${esc(sede(E.sede).nombre)} tiene saldo.</span></div></td></tr>`
+        : vacio("Nada que pagar con estos filtros", "Quita un filtro para ver más.")}
+      </tbody></table></div>
+      <div class="d-pie-t"><span>${filas.length} ${filas.length === 1 ? "cuenta" : "cuentas"} · <b>${S(total)}</b> por pagar</span><span>Lo pagado y lo anulado no aparecen.</span></div>
+    </div>
+    <p class="d-nota" data-entra style="--i:8">Cada factura cuenta entera para la sede que la pidió. La planilla no está aquí: la paga Dynamic. «Pagar» abre el mismo pago de Compras (o de Producción, para la tela del Taller).</p>`;
+  }
+
+  function vistaEfectivo() {
+    const filas = D.EFECTIVO.filter((e) => deLaSede(e.sede));
+    const fuertes = D.CUENTAS.filter((c) => c.tipo === "fuerte" && deLaSede(c.sede));
+    const cierres = D.CIERRES.filter((c) => deLaSede(c.sede));
+    const abiertas = filas.filter((e) => e.estado === "abierta");
+    const cifras = [
+      cifra({ etq: "En los cajones ahora", val: S(abiertas.reduce((a, e) => a + e.deberia, 0)), pie: `${abiertas.length} ${abiertas.length === 1 ? "caja abierta" : "cajas abiertas"} · 16:40`, fija: true, i: 2 }),
+      cifra({ etq: "En las cajas fuertes", val: S(fuertes.reduce((a, c) => a + c.saldo, 0)), pie: fuertes.some((c) => c.aviso) ? "Arequipa: 6 días sin depositar" : "depositadas al día", fija: true, i: 3 }),
+      cifra({ etq: "Diferencias del mes", val: Sd(cierres.reduce((a, c) => a + c.dif, 0)), pie: cierres.length ? `${cierres.length} cierres · con motivo` : "ningún cierre descuadró", fija: true, i: 4 }),
+    ].join("");
+    const fuerteDe = (id) => D.CUENTAS.find((c) => c.tipo === "fuerte" && c.sede === id);
+    const sumar = (k) => abiertas.reduce((a, e) => a + e[k], 0);
+    return `<div class="d-cifras">${cifras}</div>
+    ${fuertes.some((c) => c.aviso) ? `<div class="d-aviso" data-entra style="--i:5"><span><b>La caja fuerte de Arequipa lleva 6 días sin depositar (S/ 3,900).</b> Si la depositas mañana, el sábado 31 no bajas tanto del mínimo.</span><button class="btn chico sutil acc" type="button" data-registrar>Registrar el depósito</button></div>` : ""}
+    <div class="d-tarjeta" data-sube style="--i:6">
+      <div class="d-herr"><div class="titulo"><b>Lo que debería haber en cada cajón ahora</b><small>Es la misma cuenta del cierre de caja: Finanzas solo la junta. El conteo lo hace cada sede al cerrar.</small></div></div>
+      ${filtrosPuestos(puestos([]))}
+      <div class="desliza"><table class="tabla apila"><thead><tr><th>Sede</th><th>Caja</th><th class="m">Abrió con</th><th class="m">+ Vendido en efectivo</th><th class="m">− Salió</th><th class="m">− Depositado</th><th class="m">Debería haber</th><th class="m">Caja fuerte</th></tr></thead><tbody class="d-filas">
+      ${filas.map((e, i) => {
+        const cf = fuerteDe(e.sede);
+        if (e.estado !== "abierta") return `<tr data-entra style="--i:${i}"><td class="ancha">${sedeChip(e.sede)}</td><td data-l="Caja"><span class="chip c-taupe">${e.estado === "fondo" ? "fondo fijo" : "sin abrir"}</span></td><td colspan="4" class="tenue ancha">${esc(e.nota)}</td><td data-l="Debería haber" class="m">${e.deberia ? S(e.deberia) : "—"}</td><td data-l="Caja fuerte" class="m">${cf ? S(cf.saldo) : "—"}</td></tr>`;
+        return `<tr data-entra style="--i:${i}"><td class="ancha">${sedeChip(e.sede)}</td><td data-l="Caja"><span class="chip c-verde">abierta</span><span class="sub">${esc(e.abrio)}</span></td>
+          <td data-l="Abrió con" class="m">${S(e.apertura)}</td><td data-l="+ Vendido en efectivo" class="m">${S(e.ventas)}</td><td data-l="− Salió" class="m">${e.egresos ? S(e.egresos) + `<span class="sub">${esc(e.egresoQue)}</span>` : S(0)}</td>
+          <td data-l="− Depositado" class="m">${S(e.depositos)}</td><td data-l="Debería haber" class="m"><b class="serif" style="font-size:19px">${S(e.deberia)}</b></td>
+          <td data-l="Caja fuerte" class="m">${cf ? S(cf.saldo) + `<span class="sub">${cf.aviso ? '<span class="chip c-ambar">' + esc(cf.aviso) + "</span>" : "al día"}</span>` : "—"}</td></tr>`;
+      }).join("")}
+      ${abiertas.length > 1 ? `<tr class="total"><td class="ancha">Total</td><td class="sin"></td><td data-l="Abrió con" class="m">${S(sumar("apertura"))}</td><td data-l="+ Vendido" class="m">${S(sumar("ventas"))}</td><td data-l="− Salió" class="m">${S(sumar("egresos"))}</td><td data-l="− Depositado" class="m">${S(sumar("depositos"))}</td><td data-l="Debería haber" class="m">${S(sumar("deberia"))}</td><td data-l="Caja fuerte" class="m">${S(fuertes.reduce((a, c) => a + c.saldo, 0))}</td></tr>` : ""}
+      </tbody></table></div>
+      ${cierres.length ? `<div class="d-pie-t"><span><b>Cierres con diferencia:</b> ${cierres.map((c) => `${sede(c.sede).nombre} el ${c.dia}, faltaron ${S(c.dif)} (${esc(c.quien)})`).join(" · ")}.</span><span class="chip c-verde">con motivo: ${esc(cierres[0].motivo.toLowerCase())}</span></div>` : ""}
+    </div>
+    <p class="d-nota" data-entra style="--i:8">Lo que sale del cajón para un gasto o un depósito baja este número el mismo día. Lima no aparece con caja hasta que abra el martes 20.</p>`;
+  }
+
+  function vistaConciliar() {
+    const b = D.BANCOS[E.banco];
+    const todas = b.lineas;
+    const lineas = todas.filter((l) => deLaSede(l.sede) && (!E.f.estado || (E.f.estado === "sola" ? l.estado === "sola" : l.estado === "sugerida")));
+    const pend = todas.filter((l) => !E.resueltas[l.id]);
+    // Lo que la persona explica aquí (un cobro del banco, plata del dueño) se anota en CAYLA: el saldo del sistema se acerca al del banco.
+    const sistema = b.saldoSistema + todas.filter((l) => l.estado === "sola" && E.resueltas[l.id]).reduce((a, l) => a + l.monto, 0);
+    const dif = b.saldoBanco - sistema;
+    const cuadra = pend.length === 0;
+    const cifras = [
+      cifra({ etq: "En el extracto", val: String(b.movs), pie: "movimientos al " + b.al, fija: true, i: 2 }),
+      cifra({ etq: "Se cruzaron solos", val: String(b.solos), pie: pct(b.solos, b.movs) + " % sin tocar nada", fija: true, i: 3 }),
+      cifra({ etq: "Sugeridos", val: String(todas.filter((l) => l.estado === "sugerida" && !E.resueltas[l.id]).length), pie: "el sistema cree saber qué son", filtro: "estado:sugerida", activa: E.f.estado === "sugerida", i: 4 }),
+      cifra({ etq: "Sin pareja", val: String(todas.filter((l) => l.estado === "sola" && !E.resueltas[l.id]).length), pie: "hay que decir qué es", filtro: "estado:sola", activa: E.f.estado === "sola", rojo: todas.some((l) => l.estado === "sola" && !E.resueltas[l.id]), i: 5 }),
+    ].join("");
+    return `<div data-entra style="--i:2;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="versalita">Banco</span>
+      <div class="d-segmento" role="group" aria-label="Banco">${Object.entries(D.BANCOS).map(([k, x]) => `<button type="button" data-banco="${k}" aria-pressed="${E.banco === k}">${esc(x.nombre)}</button>`).join("")}</div>
+      <span class="tenue" style="font-size:13px">Los bancos son de CAYLA entera. Con una sede elegida, ves solo las líneas que salieron de ella.</span></div>
+    <div class="d-cifras">${cifras}</div>
+    <div class="d-tarjeta" data-sube style="--i:6">
+      <div class="d-herr"><div class="titulo"><b>¿Cuadra ${esc(b.nombre)}?</b><small>${cuadra ? "Todo explicado: el banco y el sistema dicen lo mismo." : dif ? `El banco dice <b>${S(b.saldoBanco)}</b> y el sistema <b>${S(sistema)}</b>: falta explicar <b>${Sd(dif)}</b>.` : `Los saldos ya coinciden (${S(sistema)}): confirma las líneas sugeridas.`}</small></div>
+        ${cuadra ? '<span class="d-sello estampa">Cuadra · ' + esc(b.al) + "</span>" : ""}</div>
+      ${filtrosPuestos(puestos([E.f.estado && { clave: "estado", texto: E.f.estado === "sola" ? "Solo sin pareja" : "Solo sugeridos" }]))}
+      <div class="desliza"><table class="tabla apila"><thead><tr><th>Fecha</th><th>Dice el banco</th><th>Lo anotado en CAYLA</th><th>Sede</th><th class="m">Monto</th><th></th></tr></thead><tbody class="d-filas">
+      ${lineas.length ? lineas.map((l, i) => `<tr data-entra style="--i:${i}"><td data-l="Fecha">${esc(l.fecha)}</td><td class="ancha"><code style="font-family:var(--mono);font-size:12.5px">${esc(l.banco)}</code></td>
+        <td data-l="En CAYLA">${l.sistema ? esc(l.sistema) : '<span class="chip c-ambar">sin pareja</span>'}</td><td data-l="Sede">${sedeChip(l.sede)}</td>
+        <td data-l="Monto" class="m ${l.monto < 0 ? "sale" : ""}">${l.monto < 0 ? "−" : "+"}${S(l.monto)}</td>
+        <td class="m sin">${E.resueltas[l.id] ? `<span class="d-sello estampa">${esc(E.resueltas[l.id])}</span>` : l.estado === "sugerida"
+          ? `<button class="btn chico sutil" type="button" data-resolver="${l.id}" data-texto="Cruzada">Sí, es esto</button>`
+          : `<button class="btn chico sutil" type="button" data-resolver="${l.id}" data-texto="${l.monto < 0 ? "Cobro del banco" : "Plata del dueño"}">${l.monto < 0 ? "Un cobro del banco" : "La puse yo"}</button>`}</td></tr>`).join("")
+        : vacio("Nada por revisar aquí", E.sede !== "todas" ? "Ninguna línea de este banco salió de " + sede(E.sede).nombre + "." : "Quita el filtro para ver todas las líneas.")}
+      </tbody></table></div>
+      <div class="d-pie-t"><span>${b.solos} de ${b.movs} cruzados solos · ${pend.length} por revisar</span><span>Una línea revisada no se borra: queda marcada con quién la revisó.</span></div>
+    </div>
+    <p class="d-nota" data-entra style="--i:8">Cada viernes, anota el saldo que muestra la banca por internet. El sistema cruza solo lo que coincide en fecha y monto; lo demás te lo pregunta aquí.</p>`;
+  }
+
+  function vistaCuenta(idCuenta) {
+    const c = D.CUENTAS.find((x) => x.id === idCuenta) || D.CUENTAS[0];
+    const movs = D.MOVIMIENTOS.filter((m) => m.cuentas.includes(c.id));
+    return `<div class="d-cifras">
+      ${cifra({ etq: c.tipo === "tarjeta" ? "Debes" : "Tiene hoy", val: S(c.saldo), pie: esc(c.que), fija: true, i: 2 })}
+      ${cifra({ etq: "Sede", val: `<span style="font-size:22px">${esc(sede(c.sede).nombre)}</span>`, pie: c.sede === "emp" ? "los bancos no son de una sede" : "su efectivo es de esta sede", fija: true, i: 3 })}
+      ${cifra({ etq: "Último movimiento", val: `<span style="font-size:22px">${esc(c.ultimo)}</span>`, pie: c.conciliada ? "conciliada al " + c.conciliada : "no se concilia: no tiene extracto", fija: true, i: 4 })}</div>
+    <div class="d-tarjeta" data-sube style="--i:6"><div class="d-herr"><div class="titulo"><b>Lo que entró y salió de ${esc(c.nombre)}</b><small>Solo se agregan filas; un error se anula con su motivo.</small></div></div>
+      <div class="desliza"><table class="tabla apila"><thead><tr><th>Fecha</th><th>Qué</th><th>De</th><th>A</th><th class="m">Monto</th><th>Responsable</th></tr></thead><tbody>
+      ${movs.length ? movs.map((m, i) => `<tr data-entra style="--i:${i}"><td data-l="Fecha">${esc(m.fecha)}</td><td class="ancha"><b>${esc(m.tipo)}</b>${m.comision ? `<span class="sub">comisión ${S(m.comision)} → gasto</span>` : ""}</td><td data-l="De">${esc(m.de)}</td><td data-l="A">${esc(m.a)}</td><td data-l="Monto" class="m">${S(m.monto)}</td><td data-l="Responsable">${esc(m.quien)}</td></tr>`).join("")
+        : `<tr><td colspan="6" class="sin"><div class="d-vacio"><b>Sin movimientos todavía</b><span class="tenue">Un depósito o un pago desde aquí aparece en esta lista.</span></div></td></tr>`}
+      </tbody></table></div></div>`;
+  }
+
+  /* Movimientos entre cuentas, con su filtro de tipo y la sede. */
+  function tarjetaMovimientos(i) {
+    const tipos = [...new Set(D.MOVIMIENTOS.map((m) => m.tipo))];
+    const filas = D.MOVIMIENTOS.filter((m) => (E.sede === "todas" || m.sedes.includes(E.sede)) && (!E.f.mov || m.tipo === E.f.mov));
+    return `<div class="d-tarjeta" data-sube style="--i:${i}">
+      <div class="d-herr"><div class="titulo"><b>Movimientos entre cuentas</b><small>Depósitos, abonos de las máquinas, transferencias. No son ventas ni gastos: la plata cambia de lugar.</small></div>
+        ${tipos.map((t) => `<button class="d-pild" type="button" data-filtro="mov:${esc(t)}" aria-pressed="${E.f.mov === t}">${esc(t)}</button>`).join("")}</div>
+      ${filtrosPuestos(puestos([E.f.mov && { clave: "mov", texto: "Qué: " + E.f.mov }]))}
+      <div class="desliza"><table class="tabla apila"><thead><tr><th>Fecha</th><th>Qué</th><th>De</th><th>A</th><th>Sede</th><th class="m">Monto</th><th>Responsable</th></tr></thead><tbody class="d-filas">
+      ${filas.length ? filas.map((m, k) => `<tr data-entra style="--i:${k}"><td data-l="Fecha">${esc(m.fecha)}</td><td class="ancha"><b>${esc(m.tipo)}</b>${m.comision ? `<span class="sub">comisión ${S(m.comision)} → gasto</span>` : ""}</td><td data-l="De">${esc(m.de)}</td><td data-l="A">${esc(m.a)}</td><td data-l="Sede">${m.sedes.map(sedeChip).join(" ")}</td><td data-l="Monto" class="m">${S(m.monto)}</td><td data-l="Responsable">${esc(m.quien)}</td></tr>`).join("")
+        : vacio("Sin movimientos con estos filtros", "Quita un filtro para ver más.")}
+      </tbody></table></div></div>`;
+  }
+
+  /* ================= A · La respuesta, sede por sede ================= */
+  function pintarA() {
+    const v = E.vista.a;
+    const volverInicio = { a: "Volver a Cuentas y dinero", accion: "inicio" };
+    if (v === "debes") return cabecera({ titulo: "Lo que debes", frase: "Qué vence primero y de qué sede es cada cuenta.", volver: volverInicio }) + tiraSedes("debe") + vistaDebes();
+    if (v === "efectivo") return cabecera({ titulo: "Efectivo de las sedes", frase: "Lo que hay en cada cajón y en cada caja fuerte, ahora mismo.", volver: volverInicio }) + tiraSedes("efectivo") + vistaEfectivo();
+    if (v === "conciliar") return cabecera({ titulo: "¿Cuadra con el banco?", frase: "El extracto del banco contra lo que anotó CAYLA, línea por línea.", volver: volverInicio }) + tiraSedes("cuadrar") + vistaConciliar();
+    if (v === "cuenta") { const c = D.CUENTAS.find((x) => x.id === E.cuenta) || D.CUENTAS[0]; return cabecera({ titulo: c.nombre, frase: esc(c.que) + ".", volver: volverInicio, detalle: "Cuentas" }) + vistaCuenta(c.id); }
+
+    // Inicio: la respuesta grande, partida por sede.
+    const id = E.sede;
+    const total = tiene(id);
+    const enSede = id !== "todas";
+    const partes = enSede
+      ? Object.entries(D.TIPOS).filter(([t]) => t !== "tarjeta").map(([t, x]) => ({ clave: t, texto: x.texto, color: x.color, n: D.CUENTAS.filter((c) => c.tipo === t && c.sede === id).reduce((a, c) => a + c.saldo, 0) })).filter((p) => p.n > 0)
+      : D.SEDES.map((s) => ({ clave: s.id, texto: s.id === "emp" ? "CAYLA entera · bancos" : s.nombre, color: s.color, n: tiene(s.id), sede: s.id, nota: s.nota })).filter((p) => p.n > 0 || p.nota);
+    const hero = `<article class="tarjeta" data-sube style="--i:2"><div class="va-hero">
+      <div style="display:flex;flex-direction:column;gap:10px"><span class="versalita">¿Dónde está la plata?</span>
+        <p class="va-grande"><small>${enSede ? (id === "emp" ? "En los bancos de CAYLA hay" : sede(id).nombre + " tiene") : "Tienes"}</small><span class="num" data-cuenta="${total}" data-pre="S/ " data-dur="1200">${S(total)}</span></p>
+        <p class="tenue" style="max-width:52ch">${enSede
+          ? id === "emp" ? "Los bancos no son de ninguna sede: ahí llega lo que todas depositan y de ahí salen sueldos, alquileres y proveedores. Además debes S/ 2,300 en la tarjeta." : id === "lim" ? "Lima todavía no tiene plata: abre el martes 20 y su cajón se carga el lunes 19." : `Es el efectivo que guarda ${sede(id).nombre} y lo que sus máquinas todavía no depositan. Los bancos son de CAYLA entera.`
+          : "Sumando los bancos, lo que viene en camino y el efectivo de cada sede. No resta lo que debes: eso va abajo."}</p>
+        <div><button class="porque" type="button" data-porque="va-p-donde" aria-expanded="false">¿Por qué?</button></div>
+        <div class="desplegable" id="va-p-donde"><div><ul class="d-lista" style="margin-top:6px">${D.CUENTAS.filter((c) => c.tipo !== "tarjeta" && (!enSede || c.sede === id)).map((c) => `<li><span><button class="d-enlace" type="button" data-cuenta="${c.id}" style="letter-spacing:0;text-transform:none;font-size:13.5px;font-weight:500">${esc(c.nombre)}</button><small>${esc(c.que)}</small></span><span class="num">${S(c.saldo)}</span></li>`).join("")}</ul></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="d-reparto" style="height:14px" role="img" aria-label="Cómo se reparte">${partes.filter((p) => p.n > 0).map((p, i) => `<i style="--i:${i};--c:${p.color};--w:${(p.n / (total || 1)) * 100}%"></i>`).join("")}</div>
+        <ul class="va-leyenda">${partes.map((p, i) => `<li class="${p.sede ? "" : "fija"}" ${p.sede ? `data-sede="${p.sede}"` : ""} data-entra style="--i:${i + 3}"><i style="--c:${p.color}"></i><span>${esc(p.texto)}${p.n === 0 && p.nota ? ` <small class="tenue">· ${esc(p.nota)}</small>` : ""}</span><span class="pc">${p.n ? pct(p.n, total) + " %" : ""}</span><b>${S(p.n)}</b></li>`).join("")}</ul>
+      </div></div></article>`;
+
+    // Las cuatro preguntas. ¿Me alcanza? es de CAYLA entera y lo dice cuando hay una sede elegida.
+    const fuerte = D.CUENTAS.find((c) => c.tipo === "fuerte" && c.sede === id);
+    const alcanza = `<article class="va-preg" data-sube style="--i:3"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="versalita">¿Me alcanza a fin de mes?</span>${enSede ? '<span class="chip c-pizarra">de CAYLA entera</span>' : ""}</div>
+      <p class="resp">El ${D.ALCANZA.dia} bajas a <span class="num bajo">${S(D.ALCANZA.baja)}</span>, bajo tu mínimo de ${S(D.ALCANZA.minimo)}.</p>
+      <div class="va-curva"><svg viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="300" y1="46" y2="46" stroke="var(--taupe)" stroke-dasharray="3 4" stroke-width="1"/>
+        <path d="M0 30 L60 26 L90 40 L120 34 L170 30 L210 28 L240 70 L262 66 L300 24" fill="none" stroke="var(--tinta)" stroke-width="2.5" pathLength="1" data-dibuja/><circle cx="240" cy="70" r="4" fill="var(--rojo-p)"/></svg></div>
+      <p class="tenue" style="font-size:13.5px">${enSede ? (fuerte ? `Lo que ${sede(id).nombre} puede poner: depositar su caja fuerte (${S(fuerte.saldo)}) antes del ${D.ALCANZA.dia}.` : `Los sueldos y alquileres salen del banco: no es de ${sede(id).nombre}.`) : "El vie 30 salen sueldos y alquileres (S/ 37,900). Depositar las cajas fuertes (S/ 10,100) lo evita."}</p>
+      <div class="pie"><button class="d-enlace" type="button">Ver el flujo semana a semana</button></div></article>`;
+    const deudasSede = D.DEUDAS.filter((d) => deLaSede(d.sede));
+    const prox = deudasSede[0];
+    const debes = `<article class="va-preg" data-sube style="--i:4"><span class="versalita">¿Qué debes?</span>
+      <p class="resp">${deudasSede.length ? `${enSede ? sede(id).nombre + " debe" : "Debes"} <span class="num">${S(debe(id))}</span>` : `${enSede ? sede(id).nombre : "CAYLA"} no debe nada`}</p>
+      ${prox ? `<p class="tenue" style="font-size:13.5px">Lo próximo: <b>${esc(prox.proveedor)}</b>, ${S(saldoDeuda(prox))}, el ${esc(prox.vence)} <span class="chip ${prox.dias <= 7 ? "late c-ambar" : "c-taupe"}">en ${prox.dias} días</span></p>` : ""}
+      ${!enSede ? `<div class="va-minis">${D.SEDES.filter((s) => debe(s.id) > 0).map((s, i) => `<button type="button" class="va-mini" data-sede="${s.id}" style="border:0;background:none;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit"><span>${esc(s.corto)}</span><span class="d-pista"><i style="--i:${i};--c:${s.color};--w:${(debe(s.id) / debe("todas")) * 100}%"></i></span><span class="n num">${S(debe(s.id))}</span></button>`).join("")}</div>` : ""}
+      <div class="pie"><button class="btn chico sutil" type="button" data-ir="debes">Ver lo que debes →</button></div></article>`;
+    const ef = D.EFECTIVO.filter((e) => deLaSede(e.sede) && e.estado === "abierta");
+    const efectivo = `<article class="va-preg" data-sube style="--i:5"><span class="versalita">¿Cuánto hay en los cajones ahora?</span>
+      <p class="resp">${ef.length ? `<span class="num">${S(ef.reduce((a, e) => a + e.deberia, 0))}</span> en ${ef.length === 1 ? "el cajón" : ef.length + " cajones abiertos"}` : enSede && id === "lim" ? "Lima abre el martes 20" : enSede && id === "tal" ? "El Taller tiene un fondo fijo de S/ 150" : "Ningún cajón abierto"}</p>
+      ${ef.length ? `<div class="va-minis">${ef.map((e) => `<div class="va-mini"><span>${esc(sede(e.sede).corto)}</span><span class="tenue" style="font-size:12.5px">${esc(e.abrio)}</span><span class="n num">${S(e.deberia)}</span></div>`).join("")}</div>` : ""}
+      ${deLaSede("aqp") ? '<p style="font-size:13.5px"><span class="chip late c-ambar">Arequipa</span> lleva 6 días sin depositar su caja fuerte (S/ 3,900).</p>' : ""}
+      <div class="pie"><button class="btn chico sutil" type="button" data-ir="efectivo">Ver el efectivo →</button></div></article>`;
+    const porRevisar = lineasPorRevisar(id);
+    const cuadra = `<article class="va-preg" data-sube style="--i:6"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="versalita">¿Cuadra con el banco?</span>${enSede ? '<span class="chip c-pizarra">líneas de esta sede</span>' : ""}</div>
+      <p class="resp">${porRevisar ? `Casi: falta explicar ${porRevisar} ${porRevisar === 1 ? "movimiento" : "movimientos"}` : "Sí, todo explicado"}</p>
+      <div class="va-minis">${Object.entries(D.BANCOS).map(([k, b], i) => { const p = b.lineas.filter((l) => !E.resueltas[l.id]).length; const hechos = b.movs - p; return `<div class="va-mini"><span>${esc(b.nombre)}</span><span class="d-pista"><i style="--i:${i};--c:var(--verde);--w:${(hechos / b.movs) * 100}%"></i></span><span class="n num">${hechos} de ${b.movs}</span></div>`; }).join("")}</div>
+      <div class="pie"><button class="btn chico sutil" type="button" data-ir="conciliar">Revisar Interbank →</button></div></article>`;
+
+    return cabecera({ titulo: "Cuentas y dinero", frase: "Dónde está tu plata, qué debes y si cuadra con el banco. Elige una sede para ver solo lo suyo.", volver: enSede ? { a: "Volver a todas las sedes", accion: "sede" } : null }) +
+      tiraSedes("tiene", true) + hero + `<div class="va-preguntas">${alcanza}${debes}${efectivo}${cuadra}</div>` + tarjetaMovimientos(7) +
+      `<p class="d-nota" data-entra style="--i:9">Un saldo nunca se escribe a mano: se suma de los movimientos. Los bancos y la tarjeta son de CAYLA entera; el efectivo y lo que traen las máquinas, de la sede que lo cobró.</p>`;
+  }
+
+  /* ================= B · Cuatro pestañas ordenadas ================= */
+  const PESTANAS_B = [
+    { id: "cuentas", texto: "Cuentas" },
+    { id: "efectivo", texto: "Efectivo por sede" },
+    { id: "debes", texto: "Por pagar", n: () => D.DEUDAS.filter((d) => deLaSede(d.sede) && d.dias <= 7).length, pide: true },
+    { id: "conciliar", texto: "Conciliación", n: () => lineasPorRevisar(E.sede), pide: true },
+  ];
+  function pintarB() {
+    const v = E.vista.b;
+    if (v === "cuenta") {
+      const c = D.CUENTAS.find((x) => x.id === E.cuenta) || D.CUENTAS[0];
+      return cabecera({ titulo: c.nombre, frase: esc(c.que) + ".", volver: { a: "Volver a Cuentas", accion: "cuentas" }, detalle: "Cuentas" }) + vistaCuenta(c.id);
+    }
+    const modo = { cuentas: "tiene", efectivo: "efectivo", debes: "debe", conciliar: "cuadrar" }[v];
+    const pest = `<nav class="vb-pestanas" aria-label="Secciones de Cuentas y dinero" data-entra style="--i:2">${PESTANAS_B.map((p) => { const n = p.n ? p.n() : 0; return `<button type="button" data-tab="${p.id}" aria-pressed="${v === p.id}">${esc(p.texto)}${n ? `<span class="vb-globito${p.pide ? " pide" : ""}">${n}</span>` : ""}</button>`; }).join("")}</nav>`;
+    let cuerpo = "";
+    if (v === "debes") cuerpo = vistaDebes();
+    else if (v === "efectivo") cuerpo = vistaEfectivo();
+    else if (v === "conciliar") cuerpo = vistaConciliar();
+    else {
+      const ctas = D.CUENTAS.filter((c) => deLaSede(c.sede) && (!E.f.tipo || c.tipo === E.f.tipo));
+      const tiposVis = Object.entries(D.TIPOS).filter(([t]) => D.CUENTAS.some((c) => c.tipo === t && deLaSede(c.sede)));
+      cuerpo = `<div class="d-cifras">${tiposVis.map(([t, x], i) => { const n = D.CUENTAS.filter((c) => c.tipo === t && deLaSede(c.sede)).reduce((a, c) => a + c.saldo, 0); return cifra({ etq: x.texto, val: Sd(n), pie: (() => { const k = D.CUENTAS.filter((c) => c.tipo === t && deLaSede(c.sede)).length; return `${k} ${t === "banco" ? (k === 1 ? "banco" : "bancos") : k === 1 ? "lugar" : "lugares"}`; })(), filtro: "tipo:" + t, activa: E.f.tipo === t, rojo: t === "tarjeta", i: i + 2 }); }).join("")}</div>
+      <div class="d-tarjeta" data-sube style="--i:6"><div class="d-herr"><div class="titulo"><b>${E.sede === "todas" ? "Las cuentas de CAYLA" : "Las cuentas " + deSede(E.sede)}</b><small>Toca una para ver lo que entró y salió.</small></div></div>
+        ${filtrosPuestos(puestos([E.f.tipo && { clave: "tipo", texto: "Solo: " + D.TIPOS[E.f.tipo].corto.toLowerCase() }]))}
+        <div class="desliza"><table class="tabla apila"><thead><tr><th>Lugar</th><th>Sede</th><th>Para qué</th><th>Último movimiento</th><th class="m">Saldo</th></tr></thead><tbody class="d-filas">
+        ${ctas.length ? ctas.map((c, i) => `<tr class="clic" data-cuenta="${c.id}" tabindex="0" data-entra style="--i:${i}"><td class="ancha"><b>${esc(c.nombre)}</b>${c.aviso ? ` <span class="chip late c-ambar">${esc(c.aviso)}</span>` : ""}</td><td data-l="Sede">${sedeChip(c.sede)}</td><td data-l="Para qué" class="tenue">${esc(c.que)}</td><td data-l="Último">${esc(c.ultimo)}</td><td data-l="Saldo" class="m ${c.saldo < 0 ? "sale" : ""}"><b>${Sd(c.saldo)}</b></td></tr>`).join("")
+          : vacio("Ninguna cuenta con estos filtros", "Quita un filtro para ver más.")}
+        </tbody></table></div>
+        <div class="d-pie-t"><span>${ctas.length} cuentas · tienes <b>${S(ctas.filter((c) => c.saldo > 0).reduce((a, c) => a + c.saldo, 0))}</b></span><span>Un saldo nunca se escribe a mano: se suma de los movimientos.</span></div></div>
+      ${tarjetaMovimientos(7)}
+      <p class="d-nota" data-entra style="--i:9">Los bancos y la tarjeta son de CAYLA entera; por eso con una sede elegida no aparecen. El efectivo y lo que traen las máquinas son de la sede que cobró.</p>`;
+    }
+    const frase = { cuentas: "Cada lugar donde CAYLA tiene plata, sede por sede.", efectivo: "Lo que debería haber en cada cajón y caja fuerte ahora.", debes: "Lo que vence, de qué sede es y quién lo paga.", conciliar: "El extracto del banco contra lo que anotó CAYLA." }[v];
+    return cabecera({ titulo: "Cuentas y dinero", frase, volver: E.sede !== "todas" ? { a: "Volver a todas las sedes", accion: "sede" } : null }) + tiraSedes(modo) + pest + cuerpo;
+  }
+
+  /* ================= C · El mapa: sede por sede ================= */
+  const COLS_C = [
+    { id: "cajon", texto: "Cajón", tipo: "cajon" },
+    { id: "fuerte", texto: "Caja fuerte", tipo: "fuerte" },
+    { id: "camino", texto: "En camino", tipo: "camino" },
+    { id: "banco", texto: "Bancos", tipo: "banco" },
+  ];
+  function pintarC() {
+    if (E.vista.c === "cuenta") {
+      const c = D.CUENTAS.find((x) => x.id === E.cuenta) || D.CUENTAS[0];
+      return cabecera({ titulo: c.nombre, frase: esc(c.que) + ".", volver: { a: E.sede === "todas" ? "Volver al mapa" : "Volver a " + sede(E.sede).nombre, accion: "mapa" }, detalle: "Cuentas" }) + vistaCuenta(c.id);
+    }
+    if (E.sede !== "todas") return fichaSedeC(E.sede);
+    const max = Math.max(...D.SEDES.flatMap((s) => COLS_C.map((col) => D.CUENTAS.filter((c) => c.sede === s.id && c.tipo === col.tipo).reduce((a, c) => a + c.saldo, 0))));
+    const celda = (sid, col) => {
+      const n = D.CUENTAS.filter((c) => c.sede === sid && c.tipo === col.tipo).reduce((a, c) => a + c.saldo, 0);
+      return n ? `<button class="vc-celda" type="button" data-sede="${sid}"><span>${S(n)}</span><i style="--c:${D.TIPOS[col.tipo].color};--w:${(n / max) * 90}px"></i></button>` : '<span class="vc-celda cero">—</span>';
+    };
+    const filas = D.SEDES.map((s, i) => {
+      const t = tiene(s.id), d = debe(s.id), neto = t - d;
+      return `<tr class="clic" data-sede="${s.id}" data-entra style="--i:${i}"><td class="ancha"><span class="vc-fila-sede" style="--c:${s.color}"><i></i><span><b>${esc(s.nombre)}</b><small>${esc(s.nota ?? (s.id === "tal" ? "fondo fijo, sin caja" : "caja abierta hoy"))}</small></span></span></td>
+        ${COLS_C.map((col) => `<td data-l="${col.texto}">${celda(s.id, col)}</td>`).join("")}
+        <td data-l="Tiene" class="m"><b>${S(t)}</b></td><td data-l="Debe" class="m">${d ? S(d) : "—"}</td><td data-l="Le queda" class="m"><b class="vc-neto ${neto < 0 ? "neg" : ""}">${Sd(neto)}</b></td></tr>`;
+    }).join("");
+    const T = tiene("todas"), Dd = debe("todas");
+    return cabecera({ titulo: "Cuentas y dinero", frase: "Cada sede en una fila: dónde tiene su plata, cuánto debe y cuánto le queda. Toca una sede para abrirla." }) + tiraSedes("tiene") +
+      `<div class="d-cifras">${cifra({ etq: "Tienes", val: `<span data-cuenta="${T}" data-pre="S/ ">${S(T)}</span>`, pie: "bancos, en camino y efectivo", fija: true, i: 2 })}${cifra({ etq: "Debes", val: S(Dd), pie: "4 cuentas · la primera, el lun 19", fija: true, i: 3 })}${cifra({ etq: "Te queda", val: S(T - Dd), pie: "si pagaras todo hoy", fija: true, i: 4 })}${cifra({ etq: "Por cuadrar", val: String(lineasPorRevisar("todas")), pie: "líneas del banco sin explicar", fija: true, rojo: true, i: 5 })}</div>
+      <div class="d-tarjeta vc-mapa" data-sube style="--i:6"><div class="d-herr"><div class="titulo"><b>Sede por sede</b><small>Lo de cada lugar suma a la derecha. Los bancos y la tarjeta son de CAYLA entera: van en su propia fila.</small></div><span class="tenue" style="font-size:12.5px">Contado hoy a primera hora · el cajón en vivo, en la ficha de cada sede</span></div>
+        <div class="desliza"><table class="tabla apila"><thead><tr><th>Sede</th>${COLS_C.map((c) => `<th>${c.texto}</th>`).join("")}<th class="m">Tiene</th><th class="m">Debe</th><th class="m">Le queda</th></tr></thead><tbody class="d-filas">${filas}
+          <tr class="total"><td class="ancha">CAYLA</td>${COLS_C.map((col) => `<td data-l="${col.texto}" class="m">${S(D.CUENTAS.filter((c) => c.tipo === col.tipo).reduce((a, c) => a + c.saldo, 0))}</td>`).join("")}<td data-l="Tiene" class="m">${S(T)}</td><td data-l="Debe" class="m">${S(Dd)}</td><td data-l="Le queda" class="m">${S(T - Dd)}</td></tr></tbody></table></div>
+        <div class="d-pie-t"><span>«Le queda» es lo que tiene menos lo que debe. Que el Taller o Lima den negativo no es un error: deben antes de vender.</span><span>«Debe» incluye la tarjeta (S/ 2,300) en CAYLA entera.</span></div></div>
+      <div class="d-aviso" data-entra style="--i:8"><span><b>Arequipa lleva 6 días sin depositar su caja fuerte (S/ 3,900)</b> y el sáb 31 bajas a S/ 11,200, bajo tu mínimo. Depositar las dos cajas fuertes lo evita.</span><button class="btn chico sutil acc" type="button" data-sede="aqp">Abrir Arequipa</button></div>
+      <p class="d-nota" data-entra style="--i:9">Por pagar y Conciliación viven dentro de cada fila: toca una sede y verás lo suyo. Para ver todo lo que vence de una vez, abre la fila de CAYLA entera.</p>`;
+  }
+
+  /* La ficha de una sede en C: todo lo suyo en una lista, con píldoras para filtrar. */
+  function fichaSedeC(id) {
+    const s = sede(id);
+    const t = tiene(id), d = debe(id);
+    const ef = D.EFECTIVO.find((e) => e.sede === id);
+    const cosas = [
+      ...D.CUENTAS.filter((c) => c.sede === id).map((c) => ({ k: "cuenta", fecha: c.ultimo, titulo: c.nombre, det: c.que, monto: c.saldo, signo: c.saldo < 0 ? "−" : "", cuenta: c.id, aviso: c.aviso })),
+      ...D.DEUDAS.filter((x) => x.sede === id).map((x) => ({ k: "debe", fecha: x.vence, titulo: x.proveedor + " · " + x.doc, det: x.que + " · vence en " + x.dias + " días", monto: saldoDeuda(x), signo: "−", urgente: x.dias <= 7 })),
+      ...D.MOVIMIENTOS.filter((m) => m.sedes.includes(id)).map((m) => ({ k: "mov", fecha: m.fecha, titulo: m.tipo, det: m.de + " → " + m.a, monto: m.monto })),
+      ...D.CIERRES.filter((c) => c.sede === id).map((c) => ({ k: "cierre", fecha: c.dia, titulo: "Cierre con diferencia", det: c.quien + " · " + c.motivo, monto: c.dif, signo: "−" })),
+      ...Object.values(D.BANCOS).flatMap((b) => b.lineas.filter((l) => l.sede === id && !E.resueltas[l.id]).map((l) => ({ k: "banco", fecha: l.fecha, titulo: b.nombre + " · " + l.banco, det: l.sistema ?? "sin pareja: hay que decir qué es", monto: l.monto, signo: l.monto < 0 ? "−" : "+" }))),
+    ];
+    const KIND = { cuenta: ["Cuentas", "var(--pizarra)"], debe: ["Por pagar", "var(--rojo-p)"], mov: ["Movimientos", "var(--verde)"], cierre: ["Cierres", "var(--ambar)"], banco: ["Por cuadrar", "var(--taupe)"] };
+    const vis = cosas.filter((c) => !E.f.tipo || c.k === E.f.tipo);
+    const kinds = Object.keys(KIND).filter((k) => cosas.some((c) => c.k === k));
+    return cabecera({ titulo: s.nombre, frase: id === "emp" ? "Los bancos, la tarjeta y lo que debe la empresa, que no es de ninguna sede." : `Todo el dinero ${deSede(id)}: dónde está, qué debe y qué falta cuadrar.`, volver: { a: "Volver al mapa", accion: "sede" }, detalle: "Cuentas y dinero",
+      acciones: `<button class="d-volver" type="button" data-paso="-1" aria-label="Sede anterior">${flecha}</button><button class="d-volver" type="button" data-paso="1" aria-label="Sede siguiente" style="transform:scaleX(-1)">${flecha}</button><button class="btn primario versal" type="button" data-registrar>+ Registrar movimiento</button>` }) + tiraSedes("tiene") +
+      `<div class="d-cifras">${cifra({ etq: id === "emp" ? "En los bancos" : "Tiene", val: S(t), pie: id === "lim" ? "abre el martes 20" : "sin contar lo de CAYLA entera", fija: true, i: 2 })}${cifra({ etq: "Debe", val: d ? S(d) : "S/ 0", pie: d ? "toca «Por pagar» para verlo" : "nada pendiente", filtro: d ? "tipo:debe" : null, activa: E.f.tipo === "debe", fija: !d, i: 3 })}${cifra({ etq: "Le queda", val: Sd(t - d), pie: t - d < 0 ? "debe antes de vender: es normal" : "si pagara todo hoy", fija: true, rojo: t - d < 0, i: 4 })}${ef && ef.deberia ? cifra({ etq: ef.estado === "fondo" ? "Fondo fijo" : "Cajón ahora", val: S(ef.deberia), pie: ef.abrio ?? ef.nota, fija: true, i: 5 }) : ""}</div>
+      <div class="d-tarjeta" data-sube style="--i:6"><div class="d-herr"><div class="titulo"><b>Lo ${esc(deSede(id))}</b><small>Cuentas, lo que debe, lo que se movió y lo que falta cuadrar, en una sola lista.</small></div>
+        ${kinds.map((k) => `<button class="d-pild" type="button" data-filtro="tipo:${k}" aria-pressed="${E.f.tipo === k}">${KIND[k][0]} <span class="tenue">${cosas.filter((c) => c.k === k).length}</span></button>`).join("")}</div>
+      ${filtrosPuestos(E.f.tipo ? [{ clave: "tipo", texto: "Solo: " + KIND[E.f.tipo][0].toLowerCase() }] : [])}
+      <div class="desliza"><table class="tabla apila"><thead><tr><th>Qué</th><th>Cuándo</th><th>Detalle</th><th class="m">Monto</th></tr></thead><tbody class="d-filas">
+      ${vis.length ? vis.map((c, i) => `<tr ${c.cuenta ? `class="clic" data-cuenta="${c.cuenta}" tabindex="0"` : ""} data-entra style="--i:${i}"><td class="ancha"><span class="vc-tipo" style="--c:${KIND[c.k][1]}">${KIND[c.k][0]}</span> <b>${esc(c.titulo)}</b>${c.aviso ? ` <span class="chip late c-ambar">${esc(c.aviso)}</span>` : ""}${c.urgente ? ' <span class="chip late c-ambar">vence pronto</span>' : ""}</td><td data-l="Cuándo">${esc(c.fecha)}</td><td data-l="Detalle" class="tenue">${esc(c.det)}</td><td data-l="Monto" class="m ${c.signo === "−" ? "sale" : ""}">${c.signo ?? ""}${S(c.monto)}</td></tr>`).join("")
+        : `<tr><td colspan="4" class="sin"><div class="d-vacio"><b>${id === "lim" ? "Lima todavía no mueve plata" : "Nada aquí"}</b><span class="tenue">${id === "lim" ? "Abre el martes 20: el lunes 19 se carga su cajón." : "Quita el filtro para ver todo."}</span></div></td></tr>`}
+      </tbody></table></div></div>
+      <p class="d-nota" data-entra style="--i:8">Las flechas de arriba a la derecha (o ← → del teclado) pasan a la sede de al lado sin volver al mapa. Un saldo nunca se escribe a mano: se suma de los movimientos.</p>`;
+  }
+
+  /* ================= Pintar y responder ================= */
+  const pintores = { a: ["#va", pintarA], b: ["#vb", pintarB], c: ["#vc", pintarC] };
+  function pintar(animar = true) {
+    const [sel, fn] = pintores[actual];
+    const raiz = $(sel);
+    raiz.innerHTML = fn();
+    const sec = raiz.closest(".variante");
+    if (animar) window.mqAnimar(sec);
+    aUrl();
+  }
+  function pintarSuave() {
+    // Un filtro no repite toda la entrada: solo las filas nuevas entran en cascada.
+    const [sel, fn] = pintores[actual];
+    const raiz = $(sel);
+    const foco = document.activeElement?.matches?.("[data-buscar]") ? document.activeElement.selectionStart : null;
+    raiz.innerHTML = fn();
+    raiz.querySelectorAll(".d-filas").forEach((t) => window.mqAnimar(t));
+    if (foco !== null) { const i = raiz.querySelector("[data-buscar]"); if (i) { i.focus(); i.setSelectionRange(foco, foco); } }
+    aUrl();
+  }
+  const limpiar = () => { E.f = { tramo: null, tipo: null, q: "", estado: null, mov: null }; };
+
+  document.addEventListener("variante", (e) => { actual = e.detail; limpiar(); pintar(false); });
+
+  document.addEventListener("click", (e) => {
+    const paso = e.target.closest("[data-paso]");
+    if (paso) { const ids = D.SEDES.map((s) => s.id); const i = ids.indexOf(E.sede); E.sede = ids[(i + Number(paso.dataset.paso) + ids.length) % ids.length]; limpiar(); return pintar(); }
+    const t = e.target.closest("[data-sede],[data-volver],[data-ir],[data-tab],[data-filtro],[data-quitar],[data-limpiar],[data-cuenta],[data-banco],[data-resolver],[data-registrar],[data-pagar]");
+    if (!t || !t.closest("main")) return;
+    if (t.dataset.registrar !== undefined) return avisar("Aquí se abre «Registrar movimiento» (la hoja de siempre). En la maqueta no se guarda nada.");
+    if (t.dataset.pagar) return avisar("«Pagar» abre el pago de Compras o de Producción de esa factura, como hoy.");
+    if (t.dataset.resolver) { E.resueltas[t.dataset.resolver] = t.dataset.texto; return pintarSuave(); }
+    if (t.dataset.banco) { E.banco = t.dataset.banco; E.f.estado = null; return pintarSuave(); }
+    if (t.dataset.cuenta) { E.cuenta = t.dataset.cuenta; E.vista[actual] = "cuenta"; return pintar(); }
+    if (t.dataset.limpiar !== undefined) { limpiar(); E.sede = "todas"; return pintarSuave(); }
+    if (t.dataset.quitar) { if (t.dataset.quitar === "sede") E.sede = "todas"; else E.f[t.dataset.quitar] = t.dataset.quitar === "q" ? "" : null; return pintarSuave(); }
+    if (t.dataset.filtro) { const [k, v] = t.dataset.filtro.split(/:(.*)/s); E.f[k] = E.f[k] === v ? null : v; return pintarSuave(); }
+    if (t.dataset.tab) { E.vista.b = t.dataset.tab; limpiar(); return pintar(); }
+    if (t.dataset.ir) { E.vista[actual] = t.dataset.ir; limpiar(); return pintar(); }
+    if (t.dataset.volver) {
+      const a = t.dataset.volver;
+      if (a === "sede") { E.sede = "todas"; limpiar(); if (actual === "c") E.vista.c = "mapa"; }
+      else { E.vista[actual] = a; if (actual === "c" && a === "mapa") E.vista.c = "mapa"; limpiar(); }
+      return pintar();
+    }
+    if (t.dataset.sede) {
+      const id = t.dataset.sede;
+      E.sede = E.sede === id && actual !== "c" ? "todas" : id;
+      if (actual === "c") { E.vista.c = "mapa"; limpiar(); return pintar(); }
+      return E.vista[actual] === "inicio" || E.vista[actual] === "cuentas" ? pintar() : pintarSuave();
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches("tr.clic")) { e.preventDefault(); e.target.click(); }
+    // En C, las flechas ‹ › (← →) pasan de una sede a otra dentro de la ficha.
+    if (actual === "c" && E.sede !== "todas" && E.vista.c === "mapa" && (e.key === "ArrowLeft" || e.key === "ArrowRight") && !e.target.matches("input")) {
+      const ids = D.SEDES.map((s) => s.id); const i = ids.indexOf(E.sede);
+      E.sede = ids[(i + (e.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length]; limpiar(); pintar();
+    }
+  });
+  document.addEventListener("input", (e) => { if (e.target.matches("[data-buscar]")) { E.f.q = e.target.value; pintarSuave(); } });
+
+  /* Un aviso chico, arriba a la derecha (como avisar.*). */
+  function avisar(texto) {
+    let a = $(".d-avisito");
+    if (!a) { a = document.createElement("div"); a.className = "d-avisito"; a.setAttribute("role", "status"); document.body.appendChild(a);
+      a.style.cssText = "position:fixed;top:72px;right:16px;max-width:340px;z-index:80;background:var(--tinta);color:var(--crema);border-radius:12px;padding:12px 14px;font-size:13.5px;box-shadow:0 10px 30px color-mix(in srgb,var(--sombra) 28%,transparent);transition:opacity .25s,transform .3s var(--ease-cayla)"; }
+    a.textContent = texto; a.style.opacity = "1"; a.style.transform = "none";
+    clearTimeout(a._t); a._t = setTimeout(() => { a.style.opacity = "0"; a.style.transform = "translateY(-6px)"; }, 3200);
+  }
+
+  actual = (location.hash || "").replace("#", "") || "a";
+  pintar(false);
+})();
+</script>
+</body></html>

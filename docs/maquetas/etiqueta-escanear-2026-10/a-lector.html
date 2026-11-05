@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A · El lector en la caja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+<script>
+/* ====================================================================
+   A · EL LECTOR EN LA CAJA. La hoja de hoy, ordenada alrededor de una sola caja que busca Y lee: escribes y filtra, disparas
+   la pistola (o abres la cámara) y la prenda se marca. Lo leído aparece como una tarjeta bajo la caja —la prenda, su talla y
+   color, el precio que baja contando— y su fila respira en la lista. Debajo, la tira de lo que llevas leído en esta pasada.
+   El pie dice el cambio con las miniaturas de lo que cambia, y nada se guarda hasta «Revisar y aplicar».
+   ==================================================================== */
+const { icono, esc, soles, plural, mini } = EQD;
+const DEF = {
+  letra: "a",
+  estilos: `
+    .hoja.a{padding:26px 28px 0;display:flex;flex-direction:column;height:100%;overflow:hidden}
+    .hoja.a>[data-cuerpo]{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+    .a-etq{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+    .a-cuerpo{display:flex;flex-direction:column;gap:14px;margin-top:18px;flex:1;min-height:0}
+    .a-fila{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+    .a-lecturas{display:flex;flex-direction:column;gap:10px}
+    .a-pista{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-lg);border:1px dashed var(--t25);color:var(--t65);font-size:13.5px}
+    .a-pista .ilus{position:relative;width:46px;height:34px;flex:none;color:var(--taupe)}
+    .a-pista .ilus svg.ic{position:absolute;width:26px;height:26px;stroke-width:1.5}
+    .a-pista .ilus .p{left:0;top:4px}
+    .a-pista .ilus .q{right:0;top:2px;width:20px;height:20px}
+    .a-pista .ilus i{position:absolute;left:22px;top:13px;width:12px;height:2px;background:var(--rojo);border-radius:2px;animation:rayo 1.6s var(--ease) 600ms 2 both}
+    @keyframes rayo{0%{transform:scaleX(0);transform-origin:left;opacity:1}50%{transform:scaleX(1);transform-origin:left}100%{transform:scaleX(0);transform-origin:right;opacity:.2}}
+    .a-tira{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--t55)}
+    .a-caja-lista{border:1px solid var(--sand);border-radius:var(--r-lg);background:var(--papel);overflow:hidden;flex:1;min-height:11rem;display:flex;flex-direction:column}
+    .a-cab-lista{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 14px;border-bottom:1px solid var(--t07);font-size:12.5px;color:var(--t55);background:color-mix(in srgb,var(--hueso) 40%,transparent)}
+    .a-scroll{flex:1;min-height:0;overflow:auto;scroll-behavior:smooth}
+    .a-pie{flex:none;background:var(--papel);margin-top:16px;padding:14px 0 20px;border-top:1px solid var(--t10);display:grid;grid-template-columns:1fr auto;gap:12px 16px;align-items:center;z-index:5}
+    .a-resumen{display:flex;align-items:center;gap:12px;min-height:40px;font-size:13.5px;color:var(--t75)}
+    .a-resumen b{color:var(--tinta);font-weight:600}
+    .a-botones{display:flex;gap:8px;align-items:center}
+    .a-pie .resp{min-height:40px;font-size:13px}
+    @container escena (max-width:640px){
+      .hoja.a{padding:20px 16px 0}
+      .a-pie{grid-template-columns:1fr;margin-top:14px;padding:12px 0 16px}
+      .a-botones .btn{flex:1}
+      .hoja.a{height:94%}
+      .lectura{flex-wrap:wrap;gap:10px;padding:10px 12px}
+      .lectura .mini.grande{width:40px;height:48px}.lectura .mini.grande svg.ic{width:20px;height:20px}
+      .lectura .det+.det{display:none}
+      .lectura .cifra-precio{width:100%;display:flex;align-items:baseline;gap:8px;text-align:left}
+      .lectura .cifra-precio b{font-size:20px}
+      .a-caja-lista{flex:none;min-height:0}
+      .a-scroll{flex:none;overflow:visible}
+      .a-pie{position:sticky;bottom:0}
+      .tallas{padding-left:14px}
+    }
+  `,
+  montar(api) {
+    const { modelo: m, Modelo } = api;
+    const e = m.e;
+    const chips = [
+      e.descuentoPct != null ? `<span class="chip rojo">−${e.descuentoPct} %</span>` : `<span class="chip pizarra">Informativa</span>`,
+      e.vigenteDesde ? `<span class="chip neutro">${e.vigenteDesde.slice(8)} → ${e.vigenteHasta.slice(8)} ${e.vigenteDesde.slice(5, 7) === "10" ? "oct" : "nov"}</span>` : "",
+      m.porCategoria.size ? `<span class="chip pizarra punto">Anillos entra por categoría</span>` : "",
+    ].join("");
+    const hoja = api.abrirHoja(`
+      <div class="cascada">${api.cabeceraHoja(m)}<div class="a-etq">${chips}</div></div>
+      <div data-cuerpo>
+        <div class="a-cuerpo cascada">
+          ${api.lectorHtml()}
+          <div class="a-fila"><div class="pildoras" data-pildoras></div>${api.segmentoHtml(m)}</div>
+          <div class="a-lecturas" data-lecturas data-sin-cascada>
+            <div class="a-pista" data-pista><span class="ilus">${icono("pistola", "p")}<i></i>${icono("qr", "q")}</span>
+              <span>Dispara la pistola sobre la etiqueta, o toca <b>Cámara</b> si estás con el teléfono: la prenda se marca sola y te la mostramos aquí.</span></div>
+          </div>
+          <div class="a-caja-lista">
+            <div class="a-cab-lista"><span class="num" data-conteo></span><span class="fila" style="gap:6px"><button class="btn sut" style="min-height:30px;font-size:12.5px" data-marcar-todos>Marcar todos</button><button class="btn sut" style="min-height:30px;font-size:12.5px" data-quitar-todos>Quitar todos</button></span></div>
+            <div class="a-scroll" data-scroll><ul class="lista-prendas" data-lista></ul></div>
+          </div>
+        </div>
+        <div class="a-pie">
+          <div class="a-resumen" data-resumen aria-live="polite"></div>
+          <div class="a-botones"><button class="btn sec" data-cancelar>Cancelar</button><button class="btn pri" data-aplicar disabled>Revisar y aplicar</button></div>
+        </div>
+      </div>`, { ancho: 860, clase: "a" });
+    const $ = (s) => hoja.querySelector(s);
+    const lista = api.montarLista(hoja, { scroller: $("[data-scroll]"), alCambiar: () => pintarPie() });
+    api.ui = { hoja, lista, $ };
+    const seg = $("[data-segmento]"); requestAnimationFrame(() => api.moverPista(seg));
+    seg.addEventListener("click", (ev) => { const b = ev.target.closest("[data-modo]"); if (!b) return; m.modo = b.dataset.modo; seg.dataset.tono = m.modo; seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); api.moverPista(seg); $("[data-buscar]").focus(); });
+    $("[data-camara]").addEventListener("click", (ev) => { ev.preventDefault(); abrirCam(); });
+    $("[data-cancelar]").onclick = () => api.cerrarHoja();
+    $("[data-aplicar]").onclick = (ev) => revisar(ev.currentTarget);
+
+    function abrirCam() {
+      api.cam = api.abrirCamara({ titulo: `«${e.nombre}»`, resumen: () => `${plural(Modelo.cambio(m).agregar.length, "prenda nueva", "prendas nuevas")} con la etiqueta`, alCerrar: () => { api.cam = null; pintarPie(); } });
+    }
+    function revisar(boton) {
+      if (e.descuentoPct == null) return api.aplicar(hoja, boton);
+      api.revisarEn(hoja, { alVolver: () => { api.cerrarHoja(true); api.montarDeNuevo(); } });
+    }
+    // Volver desde Revisar: la hoja se rehace con lo que ya marcaste (el modelo no se toca).
+    api.montarDeNuevo = () => DEF.montar(api);
+
+    function pintarPie() {
+      const c = Modelo.cambio(m), r = $("[data-resumen]"), b = $("[data-aplicar]");
+      if (!r) return;
+      const ids = [...c.agregar, ...c.quitar];
+      r.innerHTML = ids.length
+        ? `<span class="pila">${ids.slice(0, 4).map((id) => { const { p, v } = Modelo.variante(id); return mini(p.cat, v.colorHex); }).join("")}${ids.length > 4 ? `<span class="mas">+${ids.length - 4}</span>` : ""}</span><span>${esc(Modelo.textoCambio(m))}</span>`
+        : `<span class="tenue">Marca, quita o escanea prendas: aquí verás el cambio antes de aplicarlo.</span>`;
+      b.disabled = !ids.length;
+      b.textContent = e.descuentoPct == null ? "Aplicar" : "Revisar y aplicar";
+    }
+    pintarPie();
+    api.pintarPie = pintarPie;
+    setTimeout(() => $("[data-buscar]")?.focus({ preventScroll: true }), 450);
+  },
+
+  /** Una lectura: barrido en la caja, la tarjeta que baja, la fila que respira, la tira que crece. */
+  alLeer(r, api) {
+    const ui = api.ui; if (!ui || !ui.hoja.isConnected || !ui.hoja.querySelector("[data-lecturas]")) return;
+    const { $ } = ui, m = api.modelo;
+    const t = api.mensaje(m, r);
+    api.barrer($("[data-lector]"), r.tono === "ambar" ? "ambar" : "verde");
+    const cont = $("[data-lecturas]");
+    $("[data-pista]")?.remove();
+    const pr = r.v && api.Modelo.precio(m, r.v.precio);
+    const resto = api.Modelo.restoDeTallas(m, r);
+    const mostrarPrecio = pr && (r.estado === "puesta" || r.estado === "quitada");
+    const card = document.createElement("div");
+    card.className = "lectura entra"; card.dataset.tono = t.tono;
+    card.innerHTML = `${api.miniDe(r, "grande")}
+      <div class="crece">
+        <div class="fila" style="gap:8px;flex-wrap:wrap"><span class="tit">${esc(t.titulo)}</span><span class="chip ${t.tono} punto">${esc(t.chip)}</span></div>
+        <div class="det">${esc(t.det)}${t.det ? " · " : ""}<span class="mono">${esc(r.codigo)}</span></div>
+        <div class="det" style="margin-top:2px">${esc(t.linea)}</div>
+        <div class="acciones" style="margin-top:8px">
+          ${(r.estado === "puesta" || r.estado === "quitada") && resto ? `<button class="btn sut" style="min-height:30px;font-size:12.5px" data-todas>${icono(r.modo === "poner" ? "plus" : "minus", "mas")} ${r.modo === "poner" ? "Ponérsela" : "Quitársela"} a sus otras ${plural(resto, "talla", "tallas")}</button>` : ""}
+          ${r.estado === "puesta" || r.estado === "quitada" ? `<button class="btn enlace" data-deshacer>${icono("deshacer")} Deshacer</button>` : ""}
+          ${r.estado === "desconocido" ? `<button class="btn sut" style="min-height:30px;font-size:12.5px" data-por-nombre>${icono("buscar")} Buscar por nombre</button>` : ""}
+        </div>
+      </div>
+      ${mostrarPrecio ? `<div class="cifra-precio"><s>${r.estado === "puesta" ? soles(pr.antes) : soles(pr.despues)}</s><b data-precio-vivo>${r.estado === "puesta" ? soles(pr.antes) : soles(pr.despues)}</b><small class="tenue">en caja</small></div>` : ""}`;
+    const previa = cont.querySelector(".lectura");
+    if (previa) previa.remove();
+    let tira = cont.querySelector(".a-tira");
+    if (!tira) { tira = document.createElement("div"); tira.className = "a-tira"; tira.innerHTML = `<span class="tira" data-tira></span><span class="num" data-n-sesion></span>`; cont.appendChild(tira); }
+    cont.prepend(card);
+    // El precio cuenta hasta el de la campaña (o vuelve al de etiqueta).
+    const vivo = card.querySelector("[data-precio-vivo]");
+    if (vivo) {
+      const hasta = r.estado === "puesta" ? pr.despues : pr.antes; vivo.dataset.v = r.estado === "puesta" ? pr.antes : pr.despues;
+      setTimeout(() => api.cuenta(vivo, hasta, { dur: 900, fmt: soles, ultimo: hasta === 0 ? "Gratis" : undefined }), api.quieto() ? 0 : 320);
+    }
+    // La tira: la lectura entra a la izquierda con su sello.
+    const h = document.createElement("button"); h.className = "h"; h.dataset.r = r.id; h.title = `${t.titulo} · ${t.chip}`;
+    h.innerHTML = `${api.miniDe(r)}<b class="${t.tono}"></b>`;
+    const tiraEl = tira.querySelector("[data-tira]"); tiraEl.prepend(h); while (tiraEl.children.length > 10) tiraEl.lastChild.remove();
+    tira.querySelector("[data-n-sesion]").textContent = `Esta pasada: ${plural(m.sesion.length, "lectura", "lecturas")}`;
+    h.onclick = () => r.p && ui.lista.mostrar(r.p, r.tono);
+    if (r.p) ui.lista.mostrar(r.p, r.tono); else ui.lista.refrescar();
+    card.querySelector("[data-todas]")?.addEventListener("click", (ev) => {
+      const n = api.Modelo.todasSusTallas(m, r); ui.lista.mostrar(r.p); api.pintarPie(); ev.currentTarget.outerHTML = `<span class="chip verde">${icono("check")} ${plural(n, "talla más", "tallas más")}</span>`;
+    });
+    card.querySelector("[data-deshacer]")?.addEventListener("click", () => {
+      api.Modelo.deshacer(m, r); ui.lista.mostrar(r.p); api.pintarPie(); h.classList.add("deshecha");
+      card.animate([{ opacity: 1 }, { opacity: 0, transform: "translateY(-6px)" }], { duration: 260, easing: "ease-out" }).onfinish = () => card.remove();
+    });
+    card.querySelector("[data-por-nombre]")?.addEventListener("click", () => $("[data-buscar]").focus());
+    api.pintarPie();
+  },
+
+  async demo(api) {
+    const { pausa } = api; const $ = (s) => api.ui.hoja.querySelector(s);
+    await pausa(900);
+    await api.tipear($("[data-buscar]"), "vestido", 90); await pausa(900);
+    $("[data-buscar]").value = ""; $("[data-buscar]").dispatchEvent(new Event("input", { bubbles: true })); await pausa(500);
+    api.leer("VES-0018-OLI-M"); await pausa(2200);
+    api.leer("JEA-0006-AZU-28"); await pausa(1900);
+    $("[data-todas]")?.click(); await pausa(1600);
+    api.leer("VES-0018-OLI-M"); await pausa(1900);
+    api.leer("7750885001237"); await pausa(2200);
+    $('[data-modo="quitar"]').click(); await pausa(700);
+    api.leer("CMS-0012-NEG-M"); await pausa(2000);
+    $('[data-modo="poner"]').click(); await pausa(600);
+    $("[data-camara]").click(); await pausa(800);
+    await api.cam.acercar("CMP-0004-CAM-M"); await pausa(1100);
+    await api.cam.acercar("TOP-0005-NEG-S"); await pausa(1300);
+    api.cam.cerrar(); await pausa(900);
+    $("[data-aplicar]").click(); await pausa(2600);
+    api.ui.hoja.querySelector("[data-aplicar]")?.click();
+  },
+};
+EQ.iniciar(DEF);
+</script>
+</body>
+</html>

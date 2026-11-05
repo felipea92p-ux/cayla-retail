@@ -14,6 +14,7 @@ salen de correrlos viven en `.flujo-de-negocio/` (fuera de git, porque el repo e
 | Traslado entre sedes | `traslados/` | colaboradora · líder | ninguno todavía |
 | Caja: abrir y cerrar | `caja/` | colaboradora · líder | ninguno todavía |
 | Inventario: revisar, reponer, ajustar | `inventario/` | colaboradora · líder | ninguno todavía |
+| Recibir mercadería | `recibir/` | colaboradora · líder | `sin-aviso-de-punta-a-punta` (aprobado 2026-11-03) |
 
 **Para agregar un flujo:** una carpeta nueva, una fila en esta tabla y sus casos con la plantilla. La skill no cambia: lee
 esta tabla para saber qué existe. Orden de trabajo acordado con Felipe (2026-09-30): primero **Venta completa**, y su forma

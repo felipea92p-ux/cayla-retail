@@ -22,6 +22,8 @@ const AVISOS: Record<string, string> = {
   "cuenta-creada": "Tu cuenta quedó creada. Entra con tu correo y tu contraseña.",
   // Crear la cuenta o entrar con Google por primera vez (ADR-0438): ya puede separar; el Club empieza cuando complete sus datos.
   "cuenta-lista": "¡Listo! Tu cuenta está creada.",
+  // Entró con Google y su correo ya estaba en CAYLA (ADR-0469): la cuenta se unió a sus datos. Sin la palabra «ficha» (Felipe 2026-10-16).
+  "cuenta-vinculada": "¡Listo! Te reconocimos: tu cuenta quedó unida a tus datos de CAYLA.",
   // «Mi cuenta» (Felipe 2026-10-15): cambiar el correo, restablecer el acceso pedido en tienda y eliminar la cuenta.
   correo: "Listo: ahora entras con tu correo nuevo.",
   "acceso-restablecido": "Listo: recuperaste tu cuenta. Desde ahora entras con tu correo nuevo.",

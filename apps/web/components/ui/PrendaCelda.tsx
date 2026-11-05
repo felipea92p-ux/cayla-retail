@@ -44,10 +44,11 @@ export function MiniaturaPrenda({
   prefijo,
   familia,
   categoria,
-}: { fotoUrl: string | null; colorHex?: string | null; tamano?: "sm" | "md" | "lg" | "xl" } & CategoriaDePrenda) {
+}: { fotoUrl: string | null; colorHex?: string | null; tamano?: "sm" | "md" | "lg" | "xl" | "2xl" } & CategoriaDePrenda) {
   // `md` (44 px): la miniatura de las listas de Existencias del diseño aprobado (2026-09-28).
   // `xl` (60 px): la miniatura de la tarjeta de producto de Conteo ▸ Contar (2026-09-29).
-  const [clase, px] = tamano === "xl" ? ["h-[60px] w-[60px]", 60] : tamano === "lg" ? ["h-12 w-12", 48] : tamano === "md" ? ["h-11 w-11", 44] : ["h-9 w-9", 36];
+  // `2xl` (84 px): la foto de lo que se está contando en Recibir (2026-11-02).
+  const [clase, px] = tamano === "2xl" ? ["h-[84px] w-[84px]", 84] : tamano === "xl" ? ["h-[60px] w-[60px]", 60] : tamano === "lg" ? ["h-12 w-12", 48] : tamano === "md" ? ["h-11 w-11", 44] : ["h-9 w-9", 36];
   const sinFoto = <SinFoto tamano={clase} colorHex={colorHex} prefijo={prefijo} familia={familia} categoria={categoria} />;
   if (!fotoUrl) return sinFoto;
   // La foto se sirve al tamaño en que se ve (`ImagenDePrenda`, ADR-0168): una miniatura de 36 a 60 px bajaba el original de ~90 KB.

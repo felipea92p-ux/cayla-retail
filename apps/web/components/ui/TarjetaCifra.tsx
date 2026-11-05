@@ -42,7 +42,9 @@ import type { CSSProperties, ReactNode } from "react";
    misma altura). `accion` es un btn-enlace de 24 px de alto con la flecha (el enlace de 11 px de antes medía 16).
    Una cifra que se toca entera no lleva adentro ni (!) ni acción: un control dentro de otro no es HTML válido.
 
-   Se fueron `compacta` (el relleno es uno solo), `fila` + `icono` (nadie las usaba), `vacia` (es `valor={null}`) y el
+   `compacta` volvió el 2026-10-26 como opt-in, solo en la Vitrina (Felipe: «hagamos más compactos los KPI»): contexto en el renglón del
+   número y ~74 px de alto en vez de ~135; las demás pantallas siguen con la tarjeta de siempre hasta que él decida extenderla. Se fueron
+   `fila` + `icono` (nadie las usaba), `vacia` (es `valor={null}`) y el
    `activa` en sand/40 (no se distinguía del encima: 1,02:1).
 
    Quedan como estaban, opt-in, hasta que Felipe decida (la propuesta las deja fuera): `viva` (se alza y la cruza un
@@ -89,6 +91,10 @@ type PropsComunes = {
   activa?: boolean;
   /** Barra fina bajo el contexto: `fraccion` (0–1) es lo urgente del total; se llena una vez al aparecer. */
   reparto?: { fraccion: number; tono: "rojo" | "ambar" };
+  /** Variante baja (opt-in, Felipe 2026-10-26, «hagamos más compactos los KPI», Vitrina): el contexto va en el MISMO renglón del número y el
+   *  relleno baja a 10 px; ~72 px de alto en vez de ~140. Solo con contexto de texto (no con `pie`, `accion` ni `reparto`). Las demás
+   *  pantallas siguen con la tarjeta de siempre hasta que Felipe decida extenderla. */
+  compacta?: boolean;
   /** Borde izquierdo en rojo: la tarjeta que pide algo (opt-in por decidir, ADR-0105). */
   acento?: boolean;
   /** Como `acento`, pero el filete se dibuja al llegar la tarjeta (crece desde arriba). Excluyente con `acento`. */
@@ -151,6 +157,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     onClick,
     activa,
     reparto,
+    compacta = false,
     acento = false,
     acentoTrazo = false,
     puntoPulsa = false,
@@ -175,15 +182,15 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
   const clase = [
     // `@container` encierra lo que se sale (es un contexto de apilamiento): con el «!» abierto, la tarjeta sube por encima de lo que
     // viene después, o la tarjeta de al lado o la tabla de abajo tapan el globo (Plan de campaña, 2026-10-12).
-    "card-cayla @container flex flex-col p-4 text-left sm:px-5 has-[.anim-globo]:relative has-[.anim-globo]:z-30",
+    `card-cayla @container flex flex-col text-left has-[.anim-globo]:relative has-[.anim-globo]:z-30 ${compacta ? "px-4 py-2.5" : "p-4 sm:px-5"}`,
     tocable ? "w-full cursor-pointer" : "",
     // `viva` no lleva la transición de utilidad: le ganaría a la de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
     esViva ? "alza-cayla cmp-viva" : tocable ? "transition-[background-color,border-color] duration-200 ease-cayla motion-reduce:transition-none" : "",
-    // El encima y la puesta de la B, la tarjeta de Compras que eligió Felipe (2026-10-06): fondo arena al 30 % al pasar el
-    // mouse y al 40 % la que está filtrando.
-    tocable && !puesta ? "hover:bg-sand/30" : "",
-    puesta ? "bg-sand/40" : "",
-    sinDato && !fallo ? "border-dashed bg-transparent" : "",
+    // La cara es la placa Serena (ADR-0596, «A · Placa Serena», Felipe 2026-10-31; CSS en vidrio/pantalla.css): la que lleva se alza y
+    // su flecha avanza, la que filtra puesta se HUNDE (`data-puesta`), la que no tiene dato es el borde punteado sin vidrio
+    // (`data-sin-dato`). Antes, la tarjeta de papel con su arena al pasar el mouse (B de Compras, 2026-10-06).
+    "tarjeta-cifra",
+    sinDato && !fallo ? "border-dashed" : "",
     acento ? "border-l-2 border-l-rojo" : "",
     acentoTrazo ? "relative overflow-hidden" : "",
     className,
@@ -191,12 +198,19 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     .filter(Boolean)
     .join(" ");
 
+  // Lo que la placa necesita saber para dibujarse (vidrio/pantalla.css), sin depender de una clase de utilidad.
+  const marcas = {
+    "data-conducta": filtra ? "filtra" : lleva ? "lleva" : "informa",
+    "data-puesta": puesta ? "" : undefined,
+    "data-sin-dato": sinDato && !fallo ? "" : undefined,
+  };
+
   const tonoContexto = fallo ? "text-tinta" : (detalleTono ?? "text-taupe");
   const conAyuda = Boolean(ayuda) && !tocable;
   const conAccion = accion && !tocable;
   const piePropio = pie;
   // La flecha de «lleva» va a la derecha del ÚLTIMO renglón con texto: el pie, si no el contexto, si no el del número.
-  const flechaEn: "pie" | "contexto" | "valor" | null = !lleva ? null : piePropio ? "pie" : children ? "contexto" : "valor";
+  const flechaEn: "pie" | "contexto" | "valor" | null = !lleva ? null : compacta ? "valor" : piePropio ? "pie" : children ? "contexto" : "valor";
 
   const contenido = (
     <>
@@ -210,7 +224,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
         )}
         {conAyuda ? nombreConAyuda(etiqueta, ayuda) : etiqueta}
       </p>
-      <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+      <p className={`flex flex-wrap items-baseline gap-x-2 ${compacta ? "mt-0.5" : "mt-1"}`}>
         {antes !== undefined && antes !== null && (
           <span className="font-display inline-flex items-baseline gap-1.5 whitespace-nowrap text-[17px] leading-tight text-taupe lining-nums tabular-nums @max-[148px]:text-[15px]">
             <span className="sr-only">Período A: </span>
@@ -219,7 +233,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
           </span>
         )}
         <span
-          className={`font-display whitespace-nowrap text-[28px] leading-tight lining-nums tabular-nums @max-[148px]:text-[22px] ${
+          className={`font-display whitespace-nowrap leading-tight lining-nums tabular-nums @max-[148px]:text-[22px] ${compacta ? "text-[24px]" : "text-[28px]"} ${
             sinDato ? "text-tinta/65" : (tono ?? "text-tinta")
           }`}
         >
@@ -236,17 +250,20 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
           )}
         </span>
         {unidad && !sinDato && <span className="whitespace-nowrap text-sm text-taupe">{unidad}</span>}
+        {compacta && children && <span className={`text-sm ${tonoContexto}`}>{children}</span>}
         {flechaEn === "valor" && <Flecha viva={esViva} className="ml-auto self-center" />}
       </p>
+      {/* El detalle va a 14 px desde la ronda 19 (Felipe 2026-10-30): a 12 no se leía. */}
       {/* `div` y no `p`: el contexto puede llevar una barra dentro (Concentración de Por pagar) y un bloque no cabe en un párrafo. */}
       {children &&
+        !compacta &&
         (flechaEn === "contexto" ? (
-          <div className={`mt-1 flex items-end gap-1 text-xs ${tonoContexto}`}>
+          <div className={`mt-1 flex items-end gap-1 text-sm ${tonoContexto}`}>
             <div className="min-w-0 flex-1">{children}</div>
             <Flecha viva={esViva} className="mb-px" />
           </div>
         ) : (
-          <div className={`mt-1 text-xs ${tonoContexto}`}>{children}</div>
+          <div className={`mt-1 text-sm ${tonoContexto}`}>{children}</div>
         ))}
       {reparto && (
         <span aria-hidden className="cmp-reparto">
@@ -254,7 +271,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
         </span>
       )}
       {(piePropio || conAccion) && (
-        <div className={`mt-auto pt-2 text-xs ${puesta ? "font-semibold text-tinta" : "text-taupe"}`}>
+        <div className={`mt-auto pt-2 text-sm ${puesta ? "font-semibold text-tinta" : "text-taupe"}`}>
           {flechaEn === "pie" ? (
             <div className="flex items-end gap-1">
               <div className="min-w-0 flex-1">{piePropio}</div>
@@ -285,20 +302,20 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
 
   if (href) {
     return (
-      <Link href={href} id={id} data-guia={guia} className={clase} style={style}>
+      <Link href={href} id={id} data-guia={guia} className={clase} {...marcas} style={style}>
         {contenido}
       </Link>
     );
   }
   if (onClick) {
     return (
-      <button type="button" id={id} data-guia={guia} onClick={onClick} className={clase} aria-pressed={filtra ? puesta : undefined} style={style}>
+      <button type="button" id={id} data-guia={guia} onClick={onClick} className={clase} {...marcas} aria-pressed={filtra ? puesta : undefined} style={style}>
         {contenido}
       </button>
     );
   }
   return (
-    <div id={id} data-guia={guia} className={clase} style={style}>
+    <div id={id} data-guia={guia} className={clase} {...marcas} style={style}>
       {contenido}
     </div>
   );

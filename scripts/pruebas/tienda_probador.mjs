@@ -278,6 +278,11 @@ esperarValor(
 select retail.vitrina_guardar_look(null, 'ZZ Look del probador', null, true,
          jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'NEG'), jsonb_build_object('producto_id', :'carla', 'color', :'carla_color')),
          null, null) ->> 'id' as look \\gset
+-- ADR-0468 (20261021010000): el look sale en una tienda solo si cada prenda, en su color, tiene algo libre ahí. Trujillo tiene la blusa negra
+-- y el pantalón; con «Todas» sale por Trujillo. (Lima no: este escenario compara precios, no tiendas.)
+${poner("neg_m", "tru", "tru_piso", 5)}insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+select v.id, :'tru', :'tru_piso', 5, 0 from retail.variantes v where v.producto_id = :'carla' and v.activo and v.color_codigo = :'carla_color'
+on conflict on constraint stock_variante_ubicacion_sububicacion_key do update set cantidad = 5, cantidad_apartada = 0;
 create function pg_temp.del_look(p_sede uuid) returns text language sql as $f$
   select concat_ws('/', pz -> 'prenda' ->> 'precio', pz -> 'prenda' ->> 'precio_final', pz -> 'prenda' ->> 'desde', coalesce(pz -> 'prenda' -> 'campana' ->> 'nombre', '-'))
     from jsonb_array_elements(retail.tienda_look((select id from retail.vitrina_looks where nombre = 'ZZ Look del probador'), p_sede) -> 'look' -> 'piezas') pz

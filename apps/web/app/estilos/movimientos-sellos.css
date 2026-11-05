@@ -93,7 +93,7 @@
   border-radius: 9999px;
   background: var(--color-hueso);
   padding: 0.125rem 0.625rem 0.125rem 0.5rem;
-  font-size: 11.5px;
+  font-size: 13px; /* ronda 19: el texto del ERP sube; el chip del trayecto, de 11,5 a 13 */
   font-weight: 600;
   line-height: 1.5;
   color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
@@ -102,7 +102,7 @@
 .mv-punto[data-fuera] { background: transparent; border: 1px dashed color-mix(in srgb, var(--color-tinta) 35%, transparent); padding-block: 0.0625rem; }
 .mv-punto svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .mv-punto span { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; }
-.mv-solo { font-size: 11.5px; color: var(--color-taupe); }
+.mv-solo { font-size: 14px; color: var(--color-taupe); }
 .mv-riel { position: relative; flex: 1 1 40px; min-width: 28px; max-width: 150px; height: 2px; border-radius: 2px; background: var(--color-sand); }
 .mv-riel i { position: absolute; }
 .mv-riel .mv-relleno { inset: 0; border-radius: 2px; background: var(--mv-c); transform-origin: left; transform: scaleX(1); }
@@ -146,8 +146,14 @@
   transform: scaleY(0.3);
   transition: opacity 0.25s var(--ease-cayla), transform 0.35s var(--ease-cayla);
 }
-.mv-fila:hover, .mv-fila:focus-within { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
-.mv-fila:hover::before, .mv-fila:focus-within::before, .mv-fila[data-sel]::before { opacity: 1; transform: none; }
+.mv-fila:focus-within { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
+@media (hover: hover) {
+  .mv-fila:hover { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
+}
+.mv-fila:focus-within::before, .mv-fila[data-sel]::before { opacity: 1; transform: none; }
+@media (hover: hover) {
+  .mv-fila:hover::before { opacity: 1; transform: none; }
+}
 .mv-fila[data-sel] { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); }
 .mv-rotulo { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mv-c); }
 .mv-cant {
@@ -165,6 +171,10 @@
   .mv-riel { flex: 0 0 24px; min-width: 24px; }
   .mv-punto { padding-right: 0.5rem; }
   .mv-punto span { max-width: 7.5rem; }
+  /* La fila de la lista: solo el ícono de cada lugar (el nombre queda en `aria-label` y `title`); el detalle conserva el texto. */
+  .mv-ruta[data-solo-iconos] .mv-punto { padding: 0.25rem; }
+  .mv-ruta[data-solo-iconos] .mv-punto span { display: none; }
+  .mv-ruta[data-solo-iconos] .mv-punto svg { width: 16px; height: 16px; }
 }
 
 /* ── La columna de los siete tipos: cada botón es el filtro y su cifra ── */
@@ -187,23 +197,31 @@
   transition: background-color 0.25s var(--ease-cayla), border-color 0.25s var(--ease-cayla), opacity 0.3s var(--ease-cayla), transform 0.3s var(--ease-cayla);
 }
 @media (min-width: 1024px) { .mv-tipo { min-width: 0; } }
-.mv-tipo:hover { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); border-color: color-mix(in srgb, var(--mv-c) 30%, var(--color-sand)); }
+@media (hover: hover) {
+  .mv-tipo:hover { background: color-mix(in srgb, var(--mv-c) 7%, var(--color-papel)); border-color: color-mix(in srgb, var(--mv-c) 30%, var(--color-sand)); }
+}
 .mv-tipo[aria-current] { background: color-mix(in srgb, var(--mv-c) 15%, var(--color-papel)); border-color: var(--mv-c); }
 @media (min-width: 1024px) {
-  .mv-tipo:hover { transform: translateX(-3px); }
+  @media (hover: hover) {
+    .mv-tipo:hover { transform: translateX(-3px); }
+  }
   .mv-tipo[aria-current] { transform: translateX(-6px); }
 }
 ul[data-hay] .mv-tipo:not([aria-current]) { opacity: 0.6; }
-ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
+@media (hover: hover) {
+  ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
+}
 .mv-tipo[data-vacio] { opacity: 0.45; cursor: default; }
-.mv-tipo[data-vacio]:hover { background: var(--color-papel); border-color: var(--color-sand); transform: none; }
+@media (hover: hover) {
+  .mv-tipo[data-vacio]:hover { background: var(--color-papel); border-color: var(--color-sand); transform: none; }
+}
 .mv-tipo:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
 .mv-tipo .mv-sello { grid-area: s; }
-.mv-tipo-nombre { grid-area: n; align-self: end; font-size: 13px; font-weight: 600; line-height: 1.2; }
-.mv-tipo-prendas { grid-area: u; align-self: start; font-size: 11.5px; line-height: 1.35; color: var(--color-taupe); }
+.mv-tipo-nombre { grid-area: n; align-self: end; font-size: 15px; font-weight: 600; line-height: 1.2; }
+.mv-tipo-prendas { grid-area: u; align-self: start; font-size: 14px; line-height: 1.35; color: var(--color-taupe); }
 .mv-tipo-cifra { grid-area: c; display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
 .mv-tipo-cifra b { font-family: var(--font-serif); font-size: 2rem; font-weight: 400; color: var(--color-tinta); }
-.mv-tipo-cifra small { margin-top: 2px; font-size: 10px; color: var(--color-taupe); }
+.mv-tipo-cifra small { margin-top: 2px; font-size: 12px; color: var(--color-taupe); }
 .mv-tipo-barra { grid-area: b; display: block; height: 3px; margin-top: 0.5rem; overflow: hidden; border-radius: 3px; background: var(--color-sand); }
 .mv-tipo-barra i { display: block; height: 100%; background: var(--mv-c); transform-origin: left; animation: mv-barra 0.9s 0.25s var(--ease-cayla) both; }
 @keyframes mv-barra { from { transform: scaleX(0); } to { transform: none; } }
@@ -235,7 +253,10 @@ ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
 .mv-dia-nombre b { font-family: var(--font-serif); font-size: 1.375rem; font-weight: 500; letter-spacing: 0.02em; color: var(--color-tinta); }
 .mv-codigo { display: flex; min-width: 0; flex: 1 1 8rem; align-items: flex-end; gap: 3px; height: 12px; }
 .mv-codigo button { height: 100%; min-width: 3px; max-width: 22px; flex: 1 1 0; border-radius: 3px; background: var(--mv-c); opacity: 0.9; transform: scaleY(0); transform-origin: bottom; animation: mv-franja 0.5s var(--ease-cayla) both; animation-delay: calc(var(--k, 0) * 22ms + 200ms); transition: opacity 0.2s, height 0.2s; }
-.mv-codigo button:hover, .mv-codigo button:focus-visible { height: 150%; opacity: 1; }
+.mv-codigo button:focus-visible { height: 150%; opacity: 1; }
+@media (hover: hover) {
+  .mv-codigo button:hover { height: 150%; opacity: 1; }
+}
 @keyframes mv-franja { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @media (max-width: 639px) { .mv-codigo { flex-basis: 100%; order: 3; } }
 
@@ -259,3 +280,110 @@ ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
   .mv-riel .mv-viaje { display: none; }
 }
 
+
+/* ====================================================================
+   El vidrio de Movimientos (ADR-0596 sobre ADR-0353; maqueta docs/maquetas/movimientos-vidrio-2026-11/). Felipe, 2026-11-02: la página
+   pasa al vidrio CON EL MISMO MOVIMIENTO —ningún `@keyframes` ni ningún `[data-go]` de arriba cambia: aquí solo cambia el MATERIAL—.
+   Eligió mirando el sello «A · Lente del tono» (el sello, una lente teñida de su tipo con su luz, como la insignia; los lugares del
+   trayecto, gotas claras; el riel, una ranura) y los tipos «A · Placas con su tono» (cada tipo, una placa clara; el elegido, teñido de
+   su tipo con su filo). Va al final y sin capa para ganarle a lo de arriba; los colores de cada tipo (`--mv-c`) son dato y no cambian,
+   ni el borde punteado de lo hecho a mano (ajuste, conteo). Las recetas son las de `vidrio/recetas.css`.
+   ==================================================================== */
+
+/* ── El sello: la lente del tono (`--lente-sello-*`) ── */
+.mv-sello {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mv-c) var(--lente-sello-tinte-arriba), var(--lente-sello-base-arriba)),
+    color-mix(in srgb, var(--mv-c) var(--lente-sello-tinte-abajo), var(--lente-sello-base-abajo))
+  );
+  box-shadow:
+    var(--lente-sello-luz),
+    inset 0 0 0 1px color-mix(in srgb, var(--mv-c) var(--lente-sello-filo), transparent),
+    0 6px 14px -8px color-mix(in srgb, var(--mv-c) var(--lente-sello-sombra-tono), transparent);
+}
+/* Lo hecho a mano: casi transparente, con su borde punteado (el mismo de arriba) y sin luz ni sombra. */
+.mv-sello[data-punteado] {
+  background: color-mix(in srgb, var(--mv-c) 6%, var(--lente-tono-base-abajo));
+  box-shadow: none;
+}
+
+/* ── El trayecto: los lugares, gotas claras; el riel, una ranura con el relleno adentro ── */
+.mv-punto {
+  border: 1px solid color-mix(in srgb, var(--color-borde-control) 45%, transparent);
+  background: var(--gota-marca);
+  box-shadow: var(--placa-luz);
+  padding-block: 0.0625rem; /* el filo suma 1 px arriba y abajo: el lugar mide lo mismo que antes */
+}
+.mv-punto[data-fuera] { background: transparent; box-shadow: none; }
+.mv-riel {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+.mv-riel .mv-relleno { inset: 2px 0; }
+
+/* ── La fila: el velo del tono sobre el vidrio (no sobre papel) y el hilo entre filas ── */
+:is(.mv-fila, .mv-mazo) { border-color: var(--hilo-fila); }
+.mv-fila:focus-within,
+.mv-fila[data-sel] { background: color-mix(in srgb, var(--mv-c) 7%, transparent); }
+@media (hover: hover) {
+  .mv-fila:hover { background: color-mix(in srgb, var(--mv-c) 7%, transparent); }
+}
+@keyframes mv-destello { 0%, 100% { background: transparent; } 25% { background: color-mix(in srgb, var(--mv-c) 17%, transparent); } }
+/* El mazo (no está en la maqueta: sigue la misma regla): su cifra, sus capas y sus hijos, teñidos sobre el vidrio, no sobre papel. */
+.mv-veces { background: color-mix(in srgb, var(--mv-c) 15%, transparent); }
+.mv-capas i {
+  border-color: color-mix(in srgb, var(--mv-c) 26%, transparent);
+  background: color-mix(in srgb, var(--mv-c) 9%, var(--lente-tono-base-abajo));
+}
+.mv-mazo-hijos > ul { background: color-mix(in srgb, var(--mv-c) 4%, transparent); }
+
+/* ── El día: de la franja de hueso a una ranura fina (su franja de colores no cambia) ── */
+.mv-dia {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+
+/* ── Los tipos: placas claras; el elegido, teñido de su tipo con su filo; la barra, un pozo ── */
+.mv-tipo {
+  border: 1px solid var(--serena-borde);
+  border-radius: 18px;
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--placa-luz);
+}
+/* Al pasar el mouse y el elegido: el vidrio de la lente del tono (`--lente-tono-base-*`, la base del aviso de la esquina: más llena que
+   la placa) teñido del tipo, más tono abajo. La base es la receta (en oscuro, vidrio oscuro; sin transparencia, papel) y el tipo solo pone
+   su color. No es `--serena-fondo-encima`: en oscuro lleva crema y aclaraba la tarjeta (el texto taupe del elegido bajaba a 3,2:1). */
+@media (hover: hover) {
+  .mv-tipo:hover {
+    border-color: var(--serena-borde);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--mv-c) 5%, var(--lente-tono-base-arriba)),
+      color-mix(in srgb, var(--mv-c) 9%, var(--lente-tono-base-abajo))
+    );
+  }
+  .mv-tipo[data-vacio]:hover { border-color: var(--serena-borde); background: var(--serena-fondo); }
+}
+.mv-tipo[aria-current] {
+  border-color: color-mix(in srgb, var(--mv-c) 55%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mv-c) 8%, var(--lente-tono-base-arriba)),
+    color-mix(in srgb, var(--mv-c) 16%, var(--lente-tono-base-abajo))
+  );
+  box-shadow: var(--placa-luz), 0 10px 22px -14px color-mix(in srgb, var(--mv-c) 50%, transparent);
+}
+/* El texto tenue del elegido (cuántas prendas, «operaciones») sube del taupe a 78 % de tinta, como el detalle del pase de Traslados: sobre
+   la placa teñida de su tono el taupe bajaba a 4,0:1 en claro (tinta) y a 3,9:1 en oscuro (medido el 2026-11-02). */
+.mv-tipo[aria-current] :is(.mv-tipo-prendas, .mv-tipo-cifra small) { color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+.mv-tipo-barra {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}

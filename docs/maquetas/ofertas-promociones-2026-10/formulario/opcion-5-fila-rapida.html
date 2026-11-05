@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opción 5 · Fila rápida · Nueva oferta o promoción · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   OPCIÓN 5 · FILA RÁPIDA (2026-10-23). Registrar una oferta o promoción = agregar una fila a la lista «Ya registradas».
+   La última fila de la lista es una fila vacía: «+ Agregar una oferta o promoción». Al tocarla se abre EN SU LUGAR, con las mismas
+   columnas que la lista: Qué le das al cliente · Cuánto · A qué prendas · Cuándo · Guardar. Todo lo demás (tiendas, dejar fuera, Claurè,
+   días en el piso, no acumulable, nombre) está en «Más opciones», debajo de la fila.
+   Tokens = los de ../index.html (apps/web/app/globals.css, ADR-0169), claro y oscuro. Datos inventados salvo el −10 % de Aniversario.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.66);--t50:rgba(26,26,24,.55);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);
+--lienzo:#ddd5c6;--sombra:rgba(26,26,24,.35);--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+--t80:rgba(245,240,232,.85);--t65:rgba(245,240,232,.68);--t50:rgba(245,240,232,.58);--t30:rgba(245,240,232,.3);--t10:rgba(245,240,232,.1);--lienzo:#0f0f0e;--sombra:rgba(0,0,0,.6)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer;text-align:inherit}
+button:focus-visible,input:focus-visible,[role=button]:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.m{width:20px;height:20px}
+.serif{font-family:'EB Garamond',serif;font-weight:500}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes sale{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes fundir{from{opacity:0}to{opacity:1}}
+@keyframes subeh{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---- barra de la maqueta ---- */
+.spk{position:sticky;top:0;z-index:200;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.72)}
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600}
+.spk .go{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.35);font-size:12.5px;color:#f5f0e8}
+.spk .go:hover{background:rgba(245,240,232,.12)}
+.escena{padding:18px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.ley{max-width:1180px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--t80)}.ley b{font-weight:600}
+.ley .ej{display:inline-block;margin:4px 0 0 6px;padding:1px 8px;border-radius:999px;background:var(--hueso);font-size:11px;color:var(--taupe);font-weight:600}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.marco,.sx>.tel{margin:0 auto}
+/* ---- marcos ---- */
+.marco{container-type:inline-size;flex:none;position:relative;overflow:hidden;background:var(--crema);box-shadow:0 30px 60px -30px var(--sombra)}
+.marco.desk{width:1180px;height:780px;border-radius:14px;border:1px solid var(--t30)}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px var(--sombra);flex:none}
+.marco.cel{width:375px;height:796px;border-radius:39px}
+.pant{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+/* ---- piezas (las de ../index.html) ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:background .2s,transform .2s,color .2s,box-shadow .2s;white-space:nowrap}
+.btn:hover{background:var(--rojo-p);border-color:var(--rojo-p);color:#fbf8f2;transform:translateY(-2px)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--t30)}.btn.sec:hover{background:var(--hueso);color:var(--tinta);border-color:var(--t30)}
+.btn.sutil{background:var(--hueso);border-color:transparent;color:var(--tinta)}.btn.sutil:hover{background:var(--sand);color:var(--tinta)}
+.btn.n{font-size:13.5px;letter-spacing:0;text-transform:none;height:38px}
+.btn.chico{height:30px;padding:0 11px;font-size:12.5px;border-radius:8px;letter-spacing:0;text-transform:none}
+.btn.sigue{box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 16%,transparent)}
+.enl{color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--taupe);font-size:inherit;display:inline}.enl:hover{color:var(--rojo-p)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--hueso);color:var(--t80);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.chip.nodot::before{display:none}
+.chip.v{color:var(--verde);background:color-mix(in srgb,var(--verde) 14%,transparent)}.chip.a{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+.chip.p{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 14%,transparent)}.chip.t{background:var(--tinta);color:var(--crema)}
+.lbl{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.nota{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80);display:flex;gap:9px;align-items:flex-start}.nota .ic{margin-top:2px;color:var(--taupe)}
+.toast{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;border-radius:12px;font-size:13px;max-width:calc(100% - 32px);box-shadow:0 12px 30px -10px var(--sombra);animation:sale .3s var(--ease) both}
+.opc{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 13px;border-radius:12px;border:1px solid var(--sand);background:var(--hueso);font-size:13px;transition:background .2s;text-align:left}
+.opc:hover{background:var(--sand)}.opc.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.opc small{font-size:11.5px;opacity:.7}
+.opc.s{min-height:32px;padding:4px 11px;font-size:12.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.sublbl{font-size:12px;font-weight:600;color:var(--t65);margin:10px 0 6px}.sublbl span{font-weight:400}
+.mini-pil{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:12px;font-weight:500;transition:background .2s;white-space:nowrap}
+.mini-pil:hover{background:var(--hueso)}.mini-pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.campo{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:1px solid var(--sand);border-radius:12px;background:var(--hueso);transition:background .2s,border-color .2s}
+.campo:focus-within{background:var(--papel);border-color:var(--tinta)}.campo input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:14.5px}
+.dosc{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dosc label{display:block}.dosc label span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:5px}
+.dtochip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;background:var(--tinta);color:var(--crema);font-size:11px;font-weight:700;white-space:nowrap}
+.espera{font-size:11.5px;color:var(--ambar);white-space:nowrap}
+/* ---- el ERP detrás de la hoja (solo contexto) ---- */
+.erp{display:grid;grid-template-columns:208px minmax(0,1fr);min-height:100%;background:var(--crema)}
+.lat{position:sticky;top:0;align-self:start;height:780px;border-right:1px solid var(--sand);background:var(--papel);padding:16px 12px;font-size:13px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.lat .logo{font-weight:700;letter-spacing:.16em;color:var(--rojo);font-size:17px;padding:2px 10px 12px}
+.lat .g{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--t50);padding:12px 10px 4px}
+.lat a{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:8px;color:var(--t80);cursor:default}.lat a.sub{padding-left:22px}.lat a.on{background:var(--tinta);color:var(--crema);font-weight:600}
+.mtop{display:none}.cont{min-width:0}
+.enc{padding:22px 28px 0}.enc .sede{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe);display:flex;align-items:center;gap:12px}.enc .sede::after{content:"";flex:1;height:1px;background:var(--taupe);opacity:.4;min-width:40px}
+.enc h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.05;margin-top:6px}.enc p{color:var(--t65);margin-top:4px;max-width:600px}
+.cuerpo{padding:18px 28px 44px}
+.pasebg{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:16px 18px;border:1px solid var(--sand);border-radius:16px;background:var(--papel)}
+.pasebg b{font-size:15.5px;font-weight:600;display:block}.pasebg small{color:var(--t65);font-size:12.5px}.pasebg .btn{margin-left:auto}
+/* ---- la hoja «Configuración» (ADR-0136: velo con desenfoque, la hoja sube y crece) ---- */
+.velo{position:absolute;inset:0;z-index:40;display:grid;place-items:center;padding:22px}
+.velo-fondo{position:absolute;inset:0;background:color-mix(in srgb,#000 48%,transparent);backdrop-filter:blur(3px)}
+.hoja{position:relative;display:flex;flex-direction:column;width:min(1080px,100%);max-height:100%;background:var(--papel);border:1px solid var(--sand);border-radius:20px;overflow:hidden}
+.velo.entra .velo-fondo{animation:fundir .3s var(--ease) both}.velo.entra .hoja{animation:subeh .38s var(--ease) both}
+.hoja-cab{padding:22px 18px 10px}.hoja-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.15}.hoja-cab p{color:var(--t65);font-size:14px;margin-top:4px}
+.hoja-cuerpo{overflow:auto;padding:4px 18px 18px;flex:1;min-height:0;scrollbar-width:thin}
+.hoja-pie{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--sand);background:var(--papel)}
+.hoja-pie .falta{margin-right:auto;font-size:12.5px;color:var(--t65)}.hoja-pie .falta b{color:var(--ambar);font-weight:600}
+.p-cel{display:none;gap:8px;align-items:center;flex:1 1 100%;justify-content:flex-end}
+/* «La campaña», resumida en una línea */
+.cl{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;padding:9px 14px;border:1px solid var(--sand);border-radius:12px;background:var(--crema);font-size:13px}
+.cl .it{display:inline-flex;gap:8px;align-items:center}.cl .it .ic{color:var(--taupe)}.cl .it b{font-weight:600}.cl .it small{color:var(--t65);font-size:12px}
+.cl .bt{margin-left:auto;display:flex;gap:6px}
+.cl-p{margin-top:8px;padding:12px 14px;border:1px dashed var(--t30);border-radius:12px}
+.sec-of{display:flex;gap:10px;align-items:center;margin:18px 0 8px}.sec-of b{font-family:'EB Garamond',serif;font-weight:500;font-size:23px}
+.sec-of .cn{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--hueso);font-size:11px;font-weight:700}
+.sec-of small{margin-left:4px;color:var(--t65);font-size:12.5px}
+/* ====================================================================  LA LISTA Y SU FILA  */
+.tb{--cols:minmax(0,196px) minmax(0,1fr) minmax(0,204px) minmax(0,154px) 148px;background:var(--papel);border:1px solid var(--sand);border-radius:14px}
+.tb-cab{display:grid;grid-template-columns:var(--cols);gap:10px;padding:9px 14px;background:var(--crema);border-bottom:1px solid var(--sand);border-radius:13px 13px 0 0;position:sticky;top:0;z-index:4;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--t65)}
+.rf{display:grid;grid-template-columns:var(--cols);gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--sand);width:100%;transition:background .2s;cursor:pointer}
+.rf:hover{background:var(--crema)}.rf.recien{background:color-mix(in srgb,var(--verde) 9%,transparent)}
+.rf>div{min-width:0}.rf b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf small{display:block;color:var(--t65);font-size:12px;line-height:1.4}.rf small .chip{height:18px;font-size:10.5px;padding:0 7px;margin-right:4px}
+.rf small.hist{display:flex;gap:4px;align-items:center;color:var(--taupe)}.rf small.hist .ic{flex:none}
+.rf .c5{display:flex;gap:6px;align-items:center}.rf:hover .c1 b{text-decoration:underline;text-decoration-color:var(--taupe);text-underline-offset:3px}
+.ag{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border-radius:0 0 13px 13px;transition:background .2s}
+.ag.sola{border-radius:13px}.ag:hover{background:var(--hueso)}
+.ag .mc{width:26px;height:26px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;flex:none}
+.ag b{font-weight:600;font-size:14px}.ag small{margin-left:auto;color:var(--taupe);font-size:12.5px}
+/* la fila abierta: mismas columnas que la lista */
+.nf{margin:6px;padding:12px 8px 10px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--tinta);background:var(--papel);position:relative}
+.an-nf{animation:entra .3s var(--ease) both}
+.nf-1,.nf-2{display:grid;grid-template-columns:var(--cols);gap:10px;align-items:start}
+.nf-1>div{position:relative;min-width:0}
+.lbl-m{display:none;margin-bottom:5px}
+.cb{display:flex;align-items:center;gap:6px;width:100%;min-height:44px;padding:4px 8px 4px 11px;border:1px solid var(--sand);border-radius:12px;background:var(--hueso);transition:background .2s,border-color .2s}
+.cb:hover{background:var(--sand)}.cb[aria-expanded="true"]{background:var(--papel);border-color:var(--tinta)}
+.cb .tx{flex:1;min-width:0}.cb .tx b{display:block;font-size:13px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb .tx small{display:block;font-size:11.5px;color:var(--t65);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb>.ic{color:var(--taupe);transition:transform .2s}.cb[aria-expanded="true"]>.ic{transform:rotate(180deg)}
+.cb.falta{border-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 10%,transparent)}.cb.falta .tx small{color:var(--ambar)}
+.cb.fijo{background:transparent;border-style:dashed;cursor:default}.cb.fijo:hover{background:transparent}
+.der{display:flex;gap:6px;align-items:flex-start;margin-top:6px;font-size:11.5px;color:var(--t65);line-height:1.35}.der .chip{height:18px;font-size:10.5px;padding:0 7px;flex:none}
+.vals{display:flex;flex-wrap:wrap;align-items:center;gap:6px 6px;min-height:44px}
+.vals .w{font-size:13px;color:var(--t65)}
+.vals .mini-pil{height:32px;padding:0 12px;font-size:12.5px}
+.vals .cuentan{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px 6px;align-items:center}
+.st{display:inline-flex;align-items:center;border:1px solid var(--sand);background:var(--hueso);border-radius:10px;height:36px;overflow:hidden;flex:none}
+.st button{width:30px;height:100%;display:grid;place-items:center}.st button:hover{background:var(--sand)}.st button:disabled{opacity:.3;pointer-events:none}
+.st.sm button{width:26px}.st.sm b{min-width:30px;padding:0}
+.vu{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.st b{min-width:60px;padding:0 4px;text-align:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nf-2{margin-top:10px}
+.nf-2 .cap{display:block;margin-bottom:3px;font-size:10px}
+.or{grid-column:1/3;font-size:13px;line-height:1.5;color:var(--t65)}.or b.lead{font-weight:600;color:var(--tinta)}.or .cm{color:var(--tinta);font-weight:600}
+.or .enl{font-weight:600}
+.prev{grid-column:3/5;min-width:0}
+.pv{display:inline-flex;align-items:center;gap:8px;max-width:100%;min-height:34px;padding:4px 12px 4px 4px;border-radius:999px;background:var(--hueso);font-size:12.5px;overflow:hidden;white-space:nowrap}
+.pv .th{width:26px;height:26px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px;flex:none;color:var(--taupe)}
+.pv .pn{overflow:hidden;text-overflow:ellipsis;min-width:0}.pv s{color:var(--t50)}.pv b{font-weight:700}
+.nf-3{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:10px}
+.nf-3 .sp{flex:1}.nf-3 .tg .ic{transition:transform .2s}.nf-3 .tg[aria-expanded="true"] .ic{transform:rotate(180deg)}
+.gl{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--tinta);color:var(--crema);font-size:10.5px;font-weight:700}
+.mas-p{margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--crema);border:1px solid var(--sand);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 22px}
+.mas-p .g>.lbl{display:block;margin-bottom:6px}.mas-p .sublbl{margin:6px 0 0;font-weight:400}.mas-p .full{grid-column:1/-1}
+.av{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;margin-top:8px;padding:8px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80)}
+.av .ic{margin-top:2px;color:var(--pizarra)}.av.a{background:color-mix(in srgb,var(--ambar) 13%,transparent)}.av.a .ic{color:var(--ambar)}
+.av small{display:block;color:var(--t65);font-size:12px;margin-top:1px}.av b{font-weight:600}
+.ced{margin-top:8px;padding:10px 14px;border-radius:10px;border:1px dashed var(--t30);font-size:12.5px;color:var(--t80)}
+.ced .big{font-family:'EB Garamond',serif;font-size:28px;line-height:1.1;display:block;color:var(--tinta)}
+.ced ul{margin:6px 0 0 16px;color:var(--t65);font-size:12px}.ced li{margin-top:2px}
+/* los desplegables de la fila */
+.pop{position:absolute;z-index:30;top:calc(100% + 6px);left:0;background:var(--papel);border:1px solid var(--tinta);border-radius:14px;padding:10px;box-shadow:0 18px 36px -20px var(--sombra);animation:entra .2s var(--ease) both}
+.pop.tipo{width:830px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 12px}
+.pop.pre{width:340px}.pop.cuando{width:340px;left:auto;right:0}
+.mg h6{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--t65);padding:2px 10px 0}
+.mg .mgn{display:flex;gap:6px;align-items:flex-start;padding:4px 10px 6px;font-size:11.5px;color:var(--t65);line-height:1.3}.mg .mgn .chip{height:18px;font-size:10.5px;padding:0 7px;flex:none}
+.mi{display:block;width:100%;padding:7px 10px;border-radius:10px;transition:background .2s}.mi:hover{background:var(--hueso)}.mi.on{background:var(--tinta);color:var(--crema)}
+.mi b{display:block;font-size:13.5px;font-weight:600;line-height:1.25}.mi small{display:block;font-size:12px;color:var(--taupe);line-height:1.3}.mi.on small{color:inherit;opacity:.75}
+.pop .pp{display:flex;justify-content:flex-end;margin-top:8px}.pop .chips{padding:6px 4px 0}
+.pop .nota{margin-top:8px}
+/* ====================================================================  CELULAR (el marco es el contenedor)  */
+@container (max-width:760px){
+ .erp{grid-template-columns:1fr}.lat{display:none}
+ .mtop{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--sand);font-size:12px;color:var(--t65);background:var(--papel)}.mtop b{color:var(--rojo);letter-spacing:.14em}
+ .enc{padding:16px 16px 0}.enc h1{font-size:32px}.cuerpo{padding:14px 16px 40px}
+ .velo{padding:0;place-items:stretch}.hoja{border-radius:0;width:100%;height:100%;border:0}
+ .hoja-cab,.hoja-cuerpo,.hoja-pie{padding-left:16px;padding-right:16px}.hoja-cab h2{font-size:22px}.hoja-cab p{font-size:13px}
+ .hoja-pie{flex-wrap:wrap}.hoja-pie .falta{flex:1 1 100%}
+ .hoja-pie.con-form .p-listo{display:none}.hoja-pie.con-form .p-cel{display:flex}.p-cel .btn{height:44px}.p-cel .btn.chico{padding:0 12px;font-size:13px}.p-cel .btn.prim{flex:1}
+ .cl .bt{margin-left:0;flex:1 1 100%}.cl .it b{white-space:nowrap}.sec-of{flex-wrap:wrap}.sec-of small{flex:1 1 100%;margin:0}
+ .tb{--cols:1fr}.tb-cab{display:none}
+ .rf{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"a e" "b b" "c d";gap:4px 10px;padding:12px}
+ .rf .c1{grid-area:a}.rf .c5{grid-area:e;justify-content:flex-end}.rf .c2{grid-area:b}.rf .c3{grid-area:c}.rf .c4{grid-area:d}
+ .rf .c3 b,.rf .c4 b{font-weight:500;font-size:12.5px;color:var(--t80)}
+ .nf{margin:6px;padding:12px 10px}
+ .nf-1,.nf-2{grid-template-columns:1fr;gap:12px}
+ .lbl-m{display:block}
+ .or,.prev{grid-column:auto}
+ .cb{min-height:48px}.st{height:44px}.st button{width:44px}.st b{min-width:72px}.st.sm b{min-width:56px}.st.sm button{width:44px}.vals .mini-pil{height:40px}
+ .vals{min-height:0}
+ .solo-desk{display:none!important}
+ .mas-p{grid-template-columns:1fr}
+ .opc.s{min-height:40px}
+ .pop{position:static;width:auto!important;margin-top:6px;box-shadow:none;border-color:var(--sand)}
+ .pop.tipo{grid-template-columns:1fr}
+ .dosc{grid-template-columns:1fr 1fr}
+ .ag small{display:none}
+ .nf-3 .tg{height:40px}
+}
+.tel .marco.cel{width:375px}
+/* ---- recuadro «Cómo se mide» (fuera del marco) ---- */
+.medida{max-width:1180px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px 16px;font-size:12.5px;color:var(--t80)}
+.medida h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--t65);margin-bottom:8px}
+.medida table{width:100%;border-collapse:collapse}.medida td{padding:5px 8px 5px 0;border-top:1px solid var(--sand);vertical-align:top}.medida td:first-child{width:260px;color:var(--t65)}
+.medida td b{font-weight:600;color:var(--tinta)}.medida .viv{margin-top:8px;color:var(--t65)}.medida .viv b{color:var(--tinta)}
+@media (max-width:700px){.medida td:first-child{width:130px}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="escena">
+  <div class="ley" id="ley"></div>
+  <div id="esc" class="sx"></div>
+  <div class="medida" id="medida">
+    <h3>Cómo se mide · Opción 5 «Fila rápida»</h3>
+    <table>
+      <tr><td>Campos a la vez (fila abierta, caso 1)</td><td><b>10 controles</b> (líder; 9 con Insignias) · antes eran 42 · en los tipos por cantidad (3x2…) 14 · con «Más opciones» abierto 27</td></tr>
+      <tr><td>Alto en pantallas (aprox.)</td><td>La fila abierta mide <b>~200 px</b> (un tercio de una pantalla de laptop; 240–285 px en los tipos por cantidad); con «Más opciones», <b>~440 px</b>. La hoja entera con la fila abierta: ~640 px de contenido, o sea <b>1 pantalla</b> (antes 2 460 px, más de 4). Con la lista cerrada cabe sin desplazarse</td></tr>
+      <tr><td>Toques · caso 1 (−20 % en todo)</td><td><b>2</b>: «+ Agregar» → «Activar» (líder) o «Guardar borrador» (Insignias)</td></tr>
+      <tr><td>Toques · casos 2 y 3 (3x2 · S/ 30 menos desde S/ 300)</td><td><b>4</b>: «+ Agregar» → tipo → elegir → Activar. Los valores de fábrica ya son 3x2 y S/ 30 desde S/ 300</td></tr>
+      <tr><td>Toques · caso 4 (2 polos · Polos · 2 tiendas · fin de semana)</td><td><b>11</b>: Agregar · tipo · elegir · prendas · Polos · Listo · cuándo · Fin de semana · Más opciones · quitar una tienda · Activar</td></tr>
+      <tr><td>Lo que se esconde, y dónde</td><td>Detrás de <b>«Más opciones»</b>: tiendas, dejar fuera, Claurè, días en el piso, no acumulable, nombre (y un número en el botón si cambiaste alguno). Detrás de <b>«Lo que cedes»</b>: la estimación, las unidades y lo que pasa después de vender. Detrás de los <b>3 desplegables de la fila</b>: los 15 tipos, las categorías y las fechas</td></tr>
+      <tr><td>Dónde flaquea</td><td>Quien registra una sola vez ve 5 columnas a la vez y un menú de 15 tipos en 4 columnas (denso). Y el caso 1 deja una oferta viva en las 3 tiendas en 2 toques: la pantalla lo dice («Rige desde hoy en cuanto la actives») y el líder puede dejarla como borrador</td></tr>
+    </table>
+    <div class="viv" id="vivo"></div>
+  </div>
+</div>
+<script>
+/* =========================== datos inventados =========================== */
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const HOY = '2026-10-23';
+const CATS = [
+  {id:'blusas',   n:'Blusas',     prendas:18, unid:96,  v30:62,  ej:{n:'Blusa Carlita',      p:90,   c:38}},
+  {id:'vestidos', n:'Vestidos',   prendas:11, unid:54,  v30:30,  ej:{n:'Vestido Lucía',      p:159,  c:70}},
+  {id:'pantalones',n:'Pantalones',prendas:9,  unid:70,  v30:41,  ej:{n:'Jean Palazzo',       p:129,  c:52}},
+  {id:'polos',    n:'Polos',      prendas:14, unid:210, v30:150, ej:{n:'Polo Básico M/corta',p:39.9, c:14}},
+  {id:'casacas',  n:'Casacas',    prendas:6,  unid:28,  v30:9,   ej:{n:'Casaca Aurora',      p:219,  c:98}},
+  {id:'faldas',   n:'Faldas',     prendas:8,  unid:40,  v30:18,  ej:{n:'Falda Midi Sara',    p:99,   c:41}}
+];
+const SEDES = ['TRU','AQP','LIM'];   /* la tienda web siempre cobra lo mismo que las tiendas: no se elige */
+/* La campaña de la hoja (de producción: nombre y fechas; las cifras son inventadas). Sus 339 prendas están marcadas a mano. */
+const CAMPANA = {id:'aniversario', n:'Aniversario CAYLA', desde:'2026-10-01', hasta:'2026-10-25', manu:339, prendas:339, unid:1210, v30:410, ej:'blusas'};
+const GRUPO = {id:'e:'+CAMPANA.id, n:CAMPANA.n, etq:true, prendas:CAMPANA.prendas, unid:CAMPANA.unid, v30:CAMPANA.v30, ej:CATS.find(c=>c.id===CAMPANA.ej).ej};
+const ROLES = {lider:{t:'Líder', act:true}, etq:{t:'Con Insignias', act:false}};
+const REG = {basta:{t:'Arreglo de basta gratis',corto:'Basta gratis',sub:'lo hace el taller',costo:6}, bolsa:{t:'Bolsa de regalo',corto:'Bolsa',sub:'empaque',costo:1.5}, panuelo:{t:'Pañuelo de regalo',corto:'Pañuelo',sub:'accesorio',costo:4}};
+const mm = s => s.mezcla ? 'de las prendas elegidas' : 'del mismo modelo';
+/* «cond» es lo que el cliente tiene que hacer: sin condición = OFERTA; con condición = PROMOCIÓN. */
+const TIPOS = {
+  pct:         {cond:'ninguna', da:s=>`−${s.pct} %`,                    quien:()=>'Nada: el precio ya viene rebajado'},
+  soles:       {cond:'ninguna', da:s=>`${sol(s.desc)} menos por prenda`, quien:()=>'Nada: el precio ya viene rebajado'},
+  precio:      {cond:'ninguna', da:s=>`A ${fmt(s.precio)}`,              quien:()=>'Nada: el precio ya viene rebajado'},
+  combo:       {cond:'cantidad',da:s=>`${s.qty} por ${fmt(s.precio)}`,   quien:s=>`Llevar ${s.qty} ${mm(s)}`},
+  segunda:     {cond:'cantidad',da:s=>`La ${s.nth}.ª ${s.pct2>=100?'gratis':`con ${s.pct2} % menos`}`, quien:s=>`Llevar ${s.nth} ${mm(s)}`},
+  nxm:         {cond:'cantidad',da:s=>`${s.n}x${s.m}`,                  quien:s=>`Llevar ${s.n} y pagar ${s.m}`},
+  volumen:     {cond:'cantidad',da:s=>`−${s.pct} % desde ${s.qty} prendas`, quien:s=>`Llevar ${s.qty} o más ${mm(s)}`},
+  look:        {cond:'cantidad',da:s=>`Conjunto por ${fmt(s.precio)}`,   quien:s=>`Llevar ${s.partes.map(id=>CATS.find(c=>c.id===id).n.toLowerCase()).join(' + ')}`},
+  monto:       {cond:'monto',   da:s=>`${sol(s.desc)} menos`,           quien:s=>`Comprar desde ${sol(s.min)}`},
+  montopct:    {cond:'monto',   da:s=>`−${s.pct} % en la compra`,       quien:s=>`Comprar desde ${sol(s.min)}`},
+  regalo:      {cond:'monto',   da:s=>REG[s.regalo].t,                   quien:s=>`Comprar desde ${sol(s.min)}`},
+  club_pct:    {cond:'club',    da:s=>`−${s.pct} % para miembros`,       quien:()=>'Ser miembro del Club'},
+  club_cupon:  {cond:'club',    da:s=>`${s.pct} % en su 1.ª compra`,     quien:()=>'Ser miembro nuevo del Club'},
+  club_privada:{cond:'club',    da:s=>`Compra ${s.horas} h antes`,       quien:()=>'Ser miembro del Club'},
+  club_puntos: {cond:'club',    da:s=>`Puntos x${s.mult}`,               quien:()=>'Ser miembro del Club'}
+};
+const LIM = {pct:[5,70,5], qty:[2,6,1], precio:[20,500,5], pct2:[10,100,10], nth:[2,6,1], n:[2,6,1], m:[1,5,1], min:[100,600,50], desc:[10,100,5]};
+const limites = (W,f) => (W.tipo==='club_cupon'&&f==='pct') ? [5,30,5] : f==='m' ? [1,W.n-1,1] : LIM[f];
+const DEF = {
+  pct:{pct:20}, soles:{desc:10}, precio:{precio:29.9},
+  combo:{qty:2}, segunda:{nth:2,pct2:50}, nxm:{n:3,m:2}, volumen:{qty:3,pct:15}, look:{partes:['blusas','faldas']},
+  monto:{min:300,desc:30}, montopct:{min:300,pct:10}, regalo:{min:200,regalo:'basta'},
+  club_pct:{pct:10}, club_cupon:{pct:10}, club_privada:{horas:24}, club_puntos:{mult:2}
+};
+/* Los 15 tipos, en palabras de tienda y agrupados por lo que el cliente tiene que hacer. «Oferta» o «promoción» no se pregunta: se deduce. */
+const MENU = [
+  {g:'Bajar el precio', fam:'Oferta', nota:'El cliente no tiene que hacer nada', o:[
+    {k:'pct',   t:'Un % menos',            s:'20 % menos'},
+    {k:'soles', t:'Soles menos por prenda',s:'S/ 10 menos en cada una'},
+    {k:'precio',t:'Todas al mismo precio', s:'todas a S/ 29.90'}]},
+  {g:'Si lleva varias prendas', fam:'Promoción', nota:'El cliente lleva más y recibe algo', o:[
+    {k:'combo',  t:'Varias por un precio',   s:'2 polos por S/ 59.90'},
+    {k:'segunda',t:'La 2.ª con descuento',   s:'la 2.ª al 50 % · la 4.ª gratis'},
+    {k:'nxm',    t:'Lleva más, paga menos',  s:'3x2 · 2x1'},
+    {k:'volumen',t:'% menos si lleva más',s:'3 o más, 15 % menos'},
+    {k:'look',   t:'Conjunto a un precio',   s:'blusa + falda por S/ 149.90'}]},
+  {g:'Si gasta un monto', fam:'Promoción', nota:'El cliente llega a un monto de compra', o:[
+    {k:'monto',   t:'Soles menos al gastar',s:'S/ 30 menos desde S/ 300',c:'S/ 30 desde S/ 300'},
+    {k:'montopct',t:'% menos al gastar',    s:'10 % menos desde S/ 300',c:'10 % desde S/ 300'},
+    {k:'regalo',  t:'Regalo al gastar',  s:'arreglo de basta gratis desde S/ 200',c:'basta gratis'}]},
+  {g:'Para miembros del Club', fam:'Promoción', nota:'El cliente es miembro del Club', o:[
+    {k:'club_pct',    t:'% menos para miembros',s:'10 % menos'},
+    {k:'club_cupon',  t:'Cupón de bienvenida',  s:'10 % en su 1.ª compra'},
+    {k:'club_privada',t:'Compra privada',       s:'miembros compran 24 h antes',c:'24 h antes'},
+    {k:'club_puntos', t:'Puntos extra',         s:'puntos dobles'}]}
+];
+const TI = {}; MENU.forEach(g=>g.o.forEach(o=>TI[o.k]={t:o.t,s:o.s,c:o.c||o.s,fam:g.fam}));
+/* La lista de «Ya registradas» de esta campaña (inventada salvo el −10 %, que es el único descuento real de una campaña en producción). */
+const base = o => Object.assign({id:null,nom:'',tipo:'pct',cats:[],sedes:[...SEDES],dias:0,pct:20,qty:2,precio:59.9,pct2:50,nth:2,n:3,m:2,min:300,desc:30,regalo:'basta',horas:24,mult:2,mezcla:false,partes:['blusas','faldas'],acum:true,nocats:[],claure:false,borrador:false,hist:[],vendidas:0,desde:null,hasta:null}, o);
+const CAMP0 = () => [
+  base({id:'c5',nom:'Toda la campaña · −10 %',tipo:'pct',pct:10,cats:['e:aniversario'],desde:'2026-10-01',hasta:'2026-10-25',vendidas:12,legado:true}),
+  base({id:'c4',nom:'Puntos dobles · fin de semana',tipo:'club_puntos',mult:2,cats:['all'],desde:'2026-10-24',hasta:'2026-10-25'}),
+  base({id:'c8',nom:'Faldas · −15 %',tipo:'pct',pct:15,cats:['faldas'],desde:'2026-10-23',hasta:'2026-10-25',borrador:true})
+];
+let CAMP = CAMP0(), NID = 0;
+/* =========================== utilidades =========================== */
+const $ = s => document.querySelector(s);
+const fmt = n => 'S/ ' + Number(n).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const r2 = n => Math.round(n*100)/100;
+const sol = n => Number.isInteger(n) ? 'S/ '+n : fmt(n);
+const plural = (n,s,p) => n+' '+(n===1?s:p);
+const esc = t => String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const rebaja = (p,pct) => r2(Math.floor(p*(1-pct/100)-0.9+1e-9)+0.9);   /* el precio rebajado baja al .90 más cercano (ADR-0182) */
+const rebajaP = (p,pct) => pct>=100 ? 0 : rebaja(p,pct);
+const D = s => new Date(s+'T00:00:00');
+const fechaTxt = s => { const d=D(s); return d.getDate()+' '+MES[d.getMonth()]; };
+const rangoCorto = (d,h) => { const a = D(d), b = D(h); return d===h ? fechaTxt(d) : (a.getMonth()===b.getMonth() ? `${a.getDate()} – ${fechaTxt(h)}` : `${fechaTxt(d)} – ${fechaTxt(h)}`); };
+const diasEntre = (a,b) => Math.round((D(b)-D(a))/864e5);
+const estadoDe = c => c.borrador ? 'Borrador' : c.desde>HOY ? 'Programada' : c.hasta<HOY ? 'Terminada' : 'Vigente';
+const fam = c => TIPOS[c.tipo].cond==='ninguna' ? 'Oferta' : 'Promoción';
+const chipEstado = e => `<span class="chip ${e==='Vigente'?'v':e==='Programada'?'p':e==='Borrador'?'a':''}">${e}</span>`;
+const chipFam = f => `<span class="chip nodot ${f==='Oferta'?'t':'p'}">${f}</span>`;
+const ic = (n,c='') => `<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const baja1 = t => t.charAt(0).toLowerCase()+t.slice(1);
+const unitario = (s,p) => s.tipo==='pct' ? rebaja(p,s.pct) : s.tipo==='soles' ? r2(Math.max(0,p-s.desc)) : s.tipo==='precio' ? s.precio : p;
+/* Unas reglas miran PRENDAS (las de la campaña o solo algunas categorías de ellas) y otras miran la COMPRA entera. */
+const deCompra = t => ['monto','montopct','regalo','club_cupon','club_puntos'].includes(t);
+const esPrecio = c => ['pct','soles','precio','combo','segunda','nxm','volumen','look'].includes(c.tipo);
+/* Las prendas que de verdad cuentan: la compra entera, las del conjunto o las que la persona eligió. */
+const catsEf = W => deCompra(W.tipo) ? ['all'] : W.tipo==='look' ? [...W.partes] : W.cats;
+const ef = W => Object.assign({}, W, {cats:catsEf(W)});
+const catsDe = c => { const t = c.cats.includes('all') ? CATS : [...CATS.filter(x=>c.cats.includes(x.id)), ...(c.cats.includes(GRUPO.id)?[GRUPO]:[])]; return (c.nocats||[]).length ? t.filter(x=>!c.nocats.includes(x.id)) : t; };
+const gn = c => c.etq ? 'las prendas de la campaña' : c.n;
+const catsTxt = c => c.cats.includes('all') ? 'Todo' : (catsDe(c).length<=2 ? catsDe(c).map(x=>x.etq?'Toda la campaña':x.n).join(' y ') : catsDe(c).length+' categorías');
+const precioSug = W => r2(Math.round(W.qty*(catsDe(ef(W))[0]||CATS[3]).ej.p*.75/5)*5-.1);
+const precioLook = W => r2(Math.round(W.partes.reduce((t,id)=>t+CATS.find(c=>c.id===id).ej.p,0)*.8/5)*5-.1);
+const rangoCamp = () => [CAMPANA.desde>HOY?CAMPANA.desde:HOY, CAMPANA.hasta];
+const PRESETS = () => [['Toda la campaña',rangoCamp()],['Fin de semana',['2026-10-24','2026-10-25']],['7 días',['2026-10-26','2026-11-01']],['Hasta fin de mes',['2026-10-26','2026-10-31']]]
+  .filter(([t,r])=>r[0]>=CAMPANA.desde && r[1]<=CAMPANA.hasta && r[0]>=HOY);
+/* Las fechas de una oferta nueva no empiezan antes de hoy ni se salen de su campaña. */
+const iniMin = W => CAMPANA.desde>HOY ? CAMPANA.desde : (W.editId ? CAMPANA.desde : HOY);
+function alcance(s){
+  const f = {0:1,60:.5,90:.3,120:.15}[s.dias]||1, cs = catsDe(s);
+  let prendas = Math.round(cs.reduce((t,c)=>t+c.prendas,0)*f), unid = Math.round(cs.reduce((t,c)=>t+c.unid,0)*f);
+  if(!deCompra(s.tipo)){ prendas = Math.min(prendas,Math.round(CAMPANA.prendas*f)); unid = Math.min(unid,Math.round(CAMPANA.unid*f)); }
+  return {prendas, unid, f};
+}
+function costoEst(W){
+  const s = ef(W), cs = catsDe(s), f = alcance(s).f, sf = s.sedes.length/SEDES.length;
+  let t = 0;
+  for(const c of cs){
+    const u = c.v30*f*sf, p = c.ej.p;
+    if(['pct','soles','precio'].includes(s.tipo)) t += u*Math.max(0,p-unitario(s,p));
+    else if(s.tipo==='combo') t += (u*.5/s.qty)*(s.qty*p-s.precio);
+    else if(s.tipo==='segunda') t += (u*.5/s.nth)*(p*s.pct2/100);
+    else if(s.tipo==='nxm') t += (u*.5/s.n)*((s.n-s.m)*p);
+    else if(s.tipo==='volumen') t += (u*.5)*(p*s.pct/100);
+  }
+  if(s.tipo==='look') t = Math.min(...cs.map(c=>c.v30))*.3*sf*Math.max(0,cs.reduce((a,c)=>a+c.ej.p,0)-s.precio);
+  if(s.tipo==='monto') t = 40*sf*s.desc;
+  if(s.tipo==='montopct') t = 40*sf*(s.pct/100)*(s.min+12);
+  if(s.tipo==='club_pct') t = 30*sf*(s.pct/100)*90;
+  if(s.tipo==='regalo') t = 35*sf*REG[s.regalo].costo;
+  if(s.tipo==='club_cupon') t = 12*(s.pct/100)*140;
+  if(s.tipo==='club_puntos') t = 3000*(s.mult-1)*0.05;
+  return Math.round(t/10)*10;
+}
+const defNombre = W => { const s = ef(W); return s.tipo==='monto' ? `${sol(s.desc)} menos desde ${sol(s.min)}`
+  : s.tipo==='montopct' ? `${s.pct} % menos desde ${sol(s.min)}`
+  : s.tipo==='regalo' ? `${REG[s.regalo].t} desde ${sol(s.min)}`
+  : s.tipo.startsWith('club') ? `${TIPOS[s.tipo].da(s)} · Club`
+  : `${catsTxt(s)} · ${TIPOS[s.tipo].da(s)}`; };
+const nombreFinal = W => W.nombreMan && W.nombre.trim() ? W.nombre.trim() : defNombre(W);
+function cruces(W){
+  const s = ef(W); if(!esPrecio(s)) return [];
+  return CAMP.filter(c=>c.id!==W.editId && estadoDe(c)!=='Terminada' && esPrecio(c) && c.desde<=s.hasta && s.desde<=c.hasta &&
+    (c.cats.includes('all')||s.cats.includes('all')||c.cats.some(x=>s.cats.includes(x))||c.cats.some(x=>x.startsWith('e:'))||s.cats.some(x=>x.startsWith('e:'))) && c.sedes.some(x=>s.sedes.includes(x)));
+}
+/* =========================== estado =========================== */
+const nuevoW = () => { const [d,h] = rangoCamp(); return Object.assign(base({}),{editId:null,nombre:'',nombreMan:false,excl:[],desde:d,hasta:h,fechasMan:false,precioMan:false,cats:[GRUPO.id]}); };
+const S = {dev:'escritorio',tema:'claro',rol:'lider',abierta:true,form:null,W:null,pop:null,mas:false,cedes:false,cfgFechas:false,recien:null,toast:null,mAnim:true,animNF:false,scrollA:null};
+function tipoSel(W,k){
+  Object.assign(W,{mezcla:false,precioMan:false,tipo:k},DEF[k]);
+  if(DEF[k].partes) W.partes = [...DEF[k].partes];
+  if(k==='combo') W.precio = precioSug(W);
+  if(k==='look') W.precio = precioLook(W);
+}
+/* Lo que falta para poder guardar (la guía de foco: cada cosa lleva al campo). */
+function faltan(W){
+  const f = [];
+  if(W.tipo==='look' && W.partes.length<2) f.push({x:'elegir al menos 2 prendas del conjunto',foco:'prendas'});
+  else if(!catsEf(W).length) f.push({x:'elegir las categorías',foco:'prendas'});
+  if(!W.sedes.length) f.push({x:'elegir en qué tiendas',foco:'mas'});
+  if(D(W.hasta)<D(W.desde)) f.push({x:'arreglar las fechas',foco:'cuando'});
+  return f;
+}
+/* =========================== lo que se ve =========================== */
+function prendasInfo(W){
+  const e = ef(W);
+  if(deCompra(W.tipo)) return {fijo:true,t:'Toda la compra',s:'cuenta lo que el cliente paga'};
+  if(W.tipo==='look') return W.partes.length<2 ? {falta:true,t:'Elige 2 o 3 prendas',s:'las que forman el conjunto'} : {t:W.partes.map(id=>CATS.find(c=>c.id===id).n).join(' + '),s:'dentro de la campaña'};
+  const al = alcance(e), todas = W.cats.includes(GRUPO.id);
+  const extra = [(W.nocats.length||W.excl.includes('jean'))?'sin '+[...W.nocats.map(id=>CATS.find(c=>c.id===id).n.toLowerCase()),...(W.excl.includes('jean')?['Jean Palazzo']:[])].join(', '):'', W.dias?`${W.dias}+ días en el piso`:'', W.claure?'con Claurè':''].filter(Boolean);
+  if(!todas && !W.cats.length) return {falta:true,t:'Elige las categorías',s:'dentro de la campaña'};
+  return {t:todas?'Todas las de la campaña':(catsDe(e).length<=2?catsDe(e).map(c=>c.n).join(' y '):catsDe(e).length+' categorías'), s:[plural(al.prendas,'prenda','prendas'),...extra].join(' · ')};
+}
+function cuandoInfo(W){
+  const n = diasEntre(W.desde,W.hasta)+1, p = PRESETS().find(([t,r])=>r[0]===W.desde&&r[1]===W.hasta);
+  return {t:p?p[0]:(W.desde===W.hasta?`El ${fechaTxt(W.desde)}`:'Fechas a medida'), s:`${rangoCorto(W.desde,W.hasta)} · ${n>0?plural(n,'día','días'):'revisa las fechas'}`, fab: !p};
+}
+const DAR = {
+  pct:W=>`${W.pct} % menos`, soles:W=>`${sol(W.desc)} menos en cada prenda`, precio:W=>`Todas a ${fmt(W.precio)}`,
+  combo:W=>`Lleva ${W.qty} por ${fmt(W.precio)}`, segunda:W=>`La ${W.nth}.ª prenda ${W.pct2>=100?'gratis':`con ${W.pct2} % menos`}`, nxm:W=>`Lleva ${W.n} y paga ${W.m}`,
+  volumen:W=>`${W.pct} % menos si lleva ${W.qty} o más`, look:W=>`Conjunto ${W.partes.map(id=>CATS.find(c=>c.id===id).n.toLowerCase()).join(' + ')} por ${fmt(W.precio)}`,
+  monto:W=>`${sol(W.desc)} menos desde ${sol(W.min)} de compra`, montopct:W=>`${W.pct} % menos desde ${sol(W.min)} de compra`, regalo:W=>`${REG[W.regalo].t} desde ${sol(W.min)} de compra`,
+  club_pct:W=>`${W.pct} % menos para miembros del Club`, club_cupon:W=>`${W.pct} % menos en la primera compra de un miembro nuevo`,
+  club_privada:W=>`Los miembros compran ${W.horas} h antes`, club_puntos:W=>`Puntos x${W.mult} para miembros del Club`
+};
+/* La oración viva: lo que se va a registrar, en una frase. Lo que no es de fábrica va resaltado. */
+function oracion(W){
+  const e = ef(W), p = [], [d0,h0] = rangoCamp();
+  p.push(`<b class="lead">${DAR[W.tipo](W)}</b>`);
+  if(deCompra(W.tipo)) p.push('sobre toda la compra');
+  else if(W.tipo!=='look'){ const todas = W.cats.includes(GRUPO.id); p.push(todas?'en todas las prendas de la campaña':`<span class="cm">solo en ${catsDe(e).map(c=>c.n.toLowerCase()).join(' y ')}</span>`); }
+  if((W.nocats.length||W.excl.includes('jean')) && !deCompra(W.tipo)) p.push(`<span class="cm">sin ${[...W.nocats.map(id=>CATS.find(c=>c.id===id).n.toLowerCase()),...(W.excl.includes('jean')?['el Jean Palazzo']:[])].join(', ')}</span>`);
+  if(W.dias && !deCompra(W.tipo)) p.push(`<span class="cm">solo lo que lleva ${W.dias}+ días en el piso</span>`);
+  if(W.claure && !deCompra(W.tipo)) p.push('<span class="cm">con prendas de Claurè</span>');
+  p.push(W.sedes.length===SEDES.length?'en las 3 tiendas':`<span class="cm">solo en ${W.sedes.join(' y ')}</span>`);
+  const mismo = W.desde===d0 && W.hasta===h0, a = D(W.desde), b = D(W.hasta);
+  const rango = W.desde===W.hasta ? `el ${fechaTxt(W.desde)}` : (a.getMonth()===b.getMonth() ? `del ${a.getDate()} al ${fechaTxt(W.hasta)}` : `del ${fechaTxt(W.desde)} al ${fechaTxt(W.hasta)}`);
+  p.push(mismo?rango:`<span class="cm">${rango}</span>`);
+  p.push(W.acum?'se suma con otras ofertas':'<span class="cm">no se suma con otras ofertas</span>');
+  return p.join(' · ');
+}
+/* Así lo verá el cliente: una pastilla, no un panel. */
+function previa(W){
+  const e = ef(W), T = TIPOS[W.tipo], cs = catsDe(e), ej = (cs[0]||CATS[3]).ej, th = ej.n.charAt(0);
+  if(['pct','soles','precio'].includes(W.tipo)) return `<span class="pv"><span class="th">${th}</span><span class="pn">${ej.n}</span><s>${fmt(ej.p)}</s><b>${fmt(unitario(W,ej.p))}</b><span class="dtochip">${T.da(W)}</span></span>`;
+  if(esPrecio(W)) return `<span class="pv"><span class="th">${th}</span><span class="pn">${ej.n}</span><b>${fmt(ej.p)}</b><span class="dtochip">${T.da(W)}</span></span>`;
+  const ico = W.tipo==='regalo'?'gift':deCompra(W.tipo)&&TIPOS[W.tipo].cond==='monto'?'wallet':'star';
+  const donde = TIPOS[W.tipo].cond==='monto' ? `En compras desde ${sol(W.min)}` : 'Solo miembros del Club';
+  return `<span class="pv"><span class="th">${ic(ico,'s')}</span><span class="pn"><b>${W.tipo==='regalo'?REG[W.regalo].t:T.da(W)}</b> · ${donde}</span></span>`;
+}
+function stepper(f,txt,W){
+  const [mn,mx,st] = limites(W,f);
+  return `<span class="st${String(txt).length<=4?' sm':''}"><button data-a="step" data-f="${f}" data-d="${-st}" ${W[f]<=mn?'disabled':''} aria-label="Menos">${ic('minus','s')}</button><b>${txt}</b><button data-a="step" data-f="${f}" data-d="${st}" ${W[f]>=mx?'disabled':''} aria-label="Más">${ic('plus','s')}</button></span>`;
+}
+/* Los valores del tipo, como contadores en línea que se leen como una frase. */
+function valores(W){
+  const P = (f,t) => stepper(f,t,W), w = t => `<span class="w">${t}</span>`, u = (...x) => `<span class="vu">${x.join('')}</span>`;
+  const pil = (a,v,on,t,ti='') => `<button class="mini-pil ${on?'on':''}" data-a="${a}" data-v="${v}" ${ti?`title="${ti}"`:''}>${t}</button>`;
+  const cuentan = () => `<div class="cuentan">${w('Cuentan:')}${pil('mezcla','0',!W.mezcla,'mismo modelo','Cuentan las prendas del mismo modelo, en cualquier color o talla')}${pil('mezcla','1',W.mezcla,'cualquiera','Cuentan cualquiera de las prendas elegidas: el descuento va a la de menor precio')}</div>`;
+  switch(W.tipo){
+    case 'pct': return u(P('pct',`${W.pct} %`),w('de descuento'));
+    case 'soles': return u(P('desc',sol(W.desc)),w('menos en cada prenda'));
+    case 'precio': return u(w('Todas a'),P('precio',fmt(W.precio)));
+    case 'combo': return u(w('Lleva'),P('qty',W.qty))+u(w('por'),P('precio',fmt(W.precio)))+cuentan();
+    case 'segunda': return u(w('La'),P('nth',`${W.nth}.ª`))+u(w('prenda:'),P('pct2',W.pct2>=100?'gratis':`−${W.pct2} %`))+cuentan();
+    case 'nxm': return u(w('Lleva'),P('n',W.n))+u(w('paga'),P('m',W.m))+cuentan();
+    case 'volumen': return u(w('Desde'),P('qty',W.qty),w('prendas:'))+u(P('pct',`−${W.pct} %`))+cuentan();
+    case 'look': return u(w('Conjunto por'),P('precio',fmt(W.precio)));
+    case 'monto': return u(w('Desde'),P('min',sol(W.min)),w('de compra:'))+u(P('desc',sol(W.desc)),w('menos'));
+    case 'montopct': return u(w('Desde'),P('min',sol(W.min)),w('de compra:'))+u(P('pct',`−${W.pct} %`),w('menos'));
+    case 'regalo': return u(w('Desde'),P('min',sol(W.min)),w('de compra, de regalo:'))+Object.entries(REG).map(([k,v])=>pil('regalo',k,W.regalo===k,v.corto)).join('');
+    case 'club_pct': return u(P('pct',`−${W.pct} %`),w('para miembros del Club'));
+    case 'club_cupon': return u(P('pct',`−${W.pct} %`),w('en su primera compra'));
+    case 'club_privada': return u(w('Compran'))+[12,24,48].map(h=>pil('horas',h,W.horas===h,h+' h')).join('')+u(w('antes'));
+    case 'club_puntos': return u(w('Puntos'))+[2,3].map(m=>pil('mult',m,W.mult===m,'x'+m)).join('');
+  }
+}
+/* Los avisos: solo los que piden una decisión (o una cosa que conviene saber). Nunca una lista de verificaciones en verde. */
+function avisos(W){
+  const s = ef(W), out = [], ec = CAMPANA;
+  if(D(s.hasta) < D(s.desde)) out.push({t:'a',x:'La fecha de término es anterior a la de inicio'});
+  else if(s.desde<ec.desde||s.hasta>ec.hasta||(!W.editId&&s.desde<HOY)) out.push({t:'a',x:`Las fechas se salen de «${ec.n}» (${fechaTxt(ec.desde)} – ${fechaTxt(ec.hasta)})`,s:'Una oferta no puede regir fuera de su campaña ni empezar antes de hoy.',act:'encajar'});
+  if(esPrecio(s)){
+    if(s.cats.length && alcance(s).prendas===0) out.push({t:'a',x:'Todavía no llega a ninguna prenda',s:'La campaña no tiene prendas de esas categorías. Márcalas en «Prendas».'});
+    if(s.tipo==='combo'){ const sin = catsDe(s).filter(c=>s.precio>=s.qty*c.ej.p); if(sin.length) out.push({t:'a',x:`El paquete no es una rebaja en ${sin.map(gn).join(', ')}`,s:`${s.qty} cuestan ${fmt(s.qty*sin[0].ej.p)} por separado y el paquete ${fmt(s.precio)}. Un precio de paquete que no baja el precio es el engaño que Indecopi sanciona.`}); }
+    if(s.tipo==='look'){ const suma = s.partes.reduce((t,id)=>t+CATS.find(c=>c.id===id).ej.p,0); if(s.partes.length>=2 && s.precio>=suma) out.push({t:'a',x:'El conjunto no es una rebaja',s:`Por separado cuestan ${fmt(suma)} y el conjunto ${fmt(s.precio)}. Un precio de conjunto que no baja el precio es el engaño que Indecopi sanciona.`}); }
+    if((s.cats.includes('all')||s.cats.includes('pantalones')) && !W.excl.includes('jean')) out.push({t:'a',x:'Jean Palazzo subió de S/ 119 a S/ 129 hace 6 días',s:'Si la rebajas ahora, el «antes» no es un precio normal y Indecopi puede tomarlo como engaño. Cuántos días de precio estable hacen falta lo confirma un abogado.',act:'excl'});
+    if(s.tipo==='precio'){ const sin = catsDe(s).filter(c=>s.precio>=c.ej.p); if(sin.length) out.push({t:'a',x:`A ${fmt(s.precio)} no es una rebaja en ${sin.map(gn).join(', ')}`,s:`Su precio de lista es ${fmt(sin[0].ej.p)}. Un «precio especial» que no baja el precio es el engaño que Indecopi sanciona.`}); }
+    if(['pct','soles','precio'].includes(s.tipo)){ const bajo = catsDe(s).filter(c=>unitario(s,c.ej.p)<c.ej.c); if(bajo.length) out.push({t:'a',x:`Por debajo del costo en ${bajo.map(gn).join(', ')}`,s:'No se bloquea, pero quedas en pérdida por prenda: pásale al contador cuánto se desvaloriza el stock.'}); }
+    const cr = cruces(W);
+    if(cr.length) out.push({t:'i',x:`Se cruza con «${cr[0].nom}»${cr.length>1?` y ${cr.length-1} más`:''}`,s:'Si una prenda cae en dos ofertas, gana la que deja al cliente con el mejor precio: una sola por prenda. No se suman.'});
+  } else if(s.tipo==='monto'||s.tipo==='montopct') out.push({t:'i',x:'El monto se cuenta sobre lo que el cliente paga',s:'Después de las demás ofertas: una prenda ya rebajada cuenta con su precio rebajado.'});
+  else if(s.tipo==='regalo') out.push({t:'a',x:'Un regalo es una transferencia gratuita',s:'Pregúntale al contador cómo se declara en la boleta antes de activarlo.'});
+  if(s.claure && !deCompra(s.tipo)) out.push({t:'a',x:'Entran las prendas de Claurè',s:'Lo elegiste a propósito. Es otra empresa: confirma con su dueña que acepta el descuento.'});
+  return out;
+}
+function despues(W){
+  const s = ef(W), d = [];
+  if(['cantidad','monto'].includes(TIPOS[s.tipo].cond)) d.push('Devolución: la oferta se pierde; lo que se queda vuelve a su precio y se descuenta del reintegro.');
+  d.push('Cambio de talla o color: la prenda nueva va a precio normal.','Apartado: se cobra el precio del día en que retira.');
+  if(esPrecio(s)) d.push('Etiquetas de papel: el sistema avisa reimprimirlas la víspera de que empiece y de que termine.');
+  if(TIPOS[s.tipo].cond==='club') d.push('Solo se aplica a quien se identifica como miembro: sin DNI, la caja no puede darlo.');
+  return d;
+}
+/* ---- los desplegables ---- */
+function popTipo(W){
+  return `<div class="pop tipo" role="menu" aria-label="Qué le das al cliente">${MENU.map(g=>`<div class="mg"><h6>${g.g}</h6><div class="mgn">${chipFam(g.fam)}<span>${g.nota}</span></div>${g.o.map(o=>`<button class="mi ${W.tipo===o.k?'on':''}" role="menuitem" data-a="tipo" data-v="${o.k}"><b>${o.t}</b><small>${o.s}</small></button>`).join('')}</div>`).join('')}</div>`;
+}
+function popPrendas(W){
+  if(W.tipo==='look') return `<div class="pop pre" role="dialog" aria-label="Qué prendas forman el conjunto"><div class="sublbl" style="margin-top:2px">Qué prendas forman el conjunto <span>· elige 2 o 3</span></div><div class="chips">${CATS.map(c=>`<button class="opc s ${W.partes.includes(c.id)?'on':''}" data-a="parte" data-v="${c.id}">${c.n}</button>`).join('')}</div><div class="pp"><button class="btn chico" data-a="popcerrar">Listo</button></div></div>`;
+  const todas = W.cats.includes(GRUPO.id);
+  return `<div class="pop pre" role="dialog" aria-label="A qué prendas">
+    <button class="mi ${todas?'on':''}" data-a="cattodas"><b>Todas las de la campaña</b><small>${plural(CAMPANA.prendas,'prenda','prendas')}</small></button>
+    <div class="sublbl" style="margin:10px 0 0 10px">…o solo de estas categorías <span>· toca una o varias</span></div>
+    <div class="chips">${CATS.map(c=>`<button class="opc s ${!todas&&W.cats.includes(c.id)?'on':''}" data-a="cat" data-v="${c.id}">${c.n} <small>${c.prendas}</small></button>`).join('')}</div>
+    <div class="pp"><button class="btn chico" data-a="popcerrar">Listo</button></div></div>`;
+}
+function popCuando(W){
+  const ini = iniMin(W), pr = PRESETS();
+  return `<div class="pop cuando" role="dialog" aria-label="Cuándo rige">
+    <span class="lbl">Atajos</span><div class="chips" style="padding:6px 0 4px">${pr.map(([t,r])=>`<button class="opc s ${W.desde===r[0]&&W.hasta===r[1]?'on':''}" data-a="rango" data-v="${r.join(',')}">${t} <small>${fechaTxt(r[0])}${r[0]===r[1]?'':' – '+fechaTxt(r[1])}</small></button>`).join('')}</div>
+    <div class="dosc" style="margin-top:8px"><label><span>Desde</span><div class="campo"><input type="date" value="${W.desde}" data-f="desde" min="${ini}" max="${CAMPANA.hasta}"></div></label><label><span>Hasta</span><div class="campo"><input type="date" value="${W.hasta}" data-f="hasta" min="${ini}" max="${CAMPANA.hasta}"></div></label></div>
+    <div class="sublbl">Va dentro de «${CAMPANA.n}» (${fechaTxt(CAMPANA.desde)} – ${fechaTxt(CAMPANA.hasta)}): no empieza antes de hoy ni se sale de esas fechas.${pr.length<4?' Los atajos que no caben en la campaña no aparecen.':''}</div>
+    <div class="pp"><button class="btn chico" data-a="popcerrar">Listo</button></div></div>`;
+}
+function panelMas(W){
+  const deC = deCompra(W.tipo);
+  return `<div class="mas-p">
+    <div class="g"><span class="lbl">Dónde</span><div class="chips">${SEDES.map(x=>`<button class="opc s ${W.sedes.includes(x)?'on':''}" data-a="sede" data-v="${x}">${x}</button>`).join('')}</div><div class="sublbl">La tienda web cobra lo mismo que las tiendas.</div></div>
+    <div class="g"><span class="lbl">Con las demás ofertas</span><div class="chips"><button class="opc s ${W.acum?'on':''}" data-a="acum" data-v="1">Se suma</button><button class="opc s ${!W.acum?'on':''}" data-a="acum" data-v="0">No acumulable <small>no se suma con otras</small></button></div><div class="sublbl">${W.acum?'Si dos ofertas caben en una prenda, gana la mejor para el cliente.':'Si la prenda lleva esta oferta, no recibe las demás.'}</div></div>
+    <div class="g"><span class="lbl">Nombre <span style="text-transform:none;letter-spacing:0;font-weight:400">· se arma solo</span></span><div class="campo"><input value="${esc(nombreFinal(W))}" data-f="nombre" aria-label="Nombre de la oferta"></div></div>
+    ${deC?'':`<div class="g"><span class="lbl">Dejar fuera</span><div class="chips">${CATS.map(c=>`<button class="opc s ${W.nocats.includes(c.id)?'on':''}" data-a="nocat" data-v="${c.id}">${W.nocats.includes(c.id)?'Sin ':''}${c.n}</button>`).join('')}</div></div>
+    <div class="g"><span class="lbl">Solo lo que lleva tiempo sin moverse</span><div class="chips">${[[0,'Todas'],[60,'60+ días'],[90,'90+ días'],[120,'120+ días']].map(([d,t])=>`<button class="opc s ${W.dias===d?'on':''}" data-a="dias" data-v="${d}">${t}</button>`).join('')}</div></div>
+    <div class="g"><span class="lbl">Claurè</span><div class="chips"><button class="opc s ${W.claure?'on':''}" data-a="claure">Incluir sus prendas <small>${W.claure?'entran a propósito':'hoy no entran'}</small></button></div></div>`}
+  </div>`;
+}
+const cuantasMas = W => [W.sedes.length<SEDES.length, !W.acum, W.nocats.length>0, W.dias>0, W.claure, W.nombreMan && W.nombre.trim() && W.nombre.trim()!==defNombre(W)].filter(Boolean).length;
+/* ---- una fila de la lista ---- */
+function prendasReg(c){ if(deCompra(c.tipo)) return 'Toda la compra'; if(c.cats.includes(GRUPO.id)) return 'Todas las de la campaña'; if(c.cats.includes('all')) return 'Todo el catálogo'; return catsDe(c).map(x=>x.n).join(' y '); }
+function filaReg(c){
+  const T = TIPOS[c.tipo], est = estadoDe(c), P = ROLES[S.rol], q = T.cond==='ninguna' ? '' : T.quien(c);
+  return `<div class="rf ${S.recien===c.id?'recien':''}" role="button" tabindex="0" data-a="editar" data-v="${c.id}" aria-label="Editar «${esc(c.nom)}»">
+    <div class="c1"><b>${esc(c.nom)}</b><small>${chipFam(fam(c))}${TI[c.tipo].t}${c.legado?' · el descuento que tenía la campaña':''}</small>${c.hist.length?`<small class="hist">${ic('undo','s')} ${plural(c.hist.length,'cambio','cambios')} · antes: ${c.hist[c.hist.length-1]}</small>`:''}</div>
+    <div class="c2"><b>${T.da(c)}</b>${q?`<small>${q}</small>`:''}</div>
+    <div class="c3"><b>${prendasReg(c)}</b>${c.nocats.length?`<small>sin ${c.nocats.map(id=>CATS.find(x=>x.id===id).n.toLowerCase()).join(', ')}</small>`:''}</div>
+    <div class="c4"><b>${fechaTxt(c.desde)} – ${fechaTxt(c.hasta)}</b>${c.sedes.length<3?`<small>solo ${c.sedes.join(' y ')}</small>`:''}</div>
+    <div class="c5">${chipEstado(est)}${c.borrador?(P.act?`<button class="btn n sec chico" data-a="activar" data-v="${c.id}">Activar</button>`:`<span class="espera">espera a un líder</span>`):''}</div></div>`;
+}
+/* ---- la fila abierta ---- */
+function formulario(){
+  const W = S.W, T = TIPOS[W.tipo], P = ROLES[S.rol], edit = !!W.editId, fl = faltan(W), pr = prendasInfo(W), cu = cuandoInfo(W), ok = !fl.length;
+  const av = avisos(W), nMas = cuantasMas(W), costo = costoEst(W);
+  const foco = fl.length ? fl[0].foco : null;
+  const c1 = `<div class="ce"><span class="lbl lbl-m">Qué le das al cliente</span>
+      <button class="cb" data-a="pop" data-v="tipo" aria-haspopup="true" aria-expanded="${S.pop==='tipo'}" title="${esc(TI[W.tipo].t)}"><span class="tx"><b>${TI[W.tipo].t}</b><small>ej. ${TI[W.tipo].c}</small></span>${ic('chev','s')}</button>
+      <div class="der">${chipFam(fam(W))}<span>${T.cond==='ninguna'?'No pide nada al cliente':'Pide al cliente: '+baja1(T.quien(W))}</span></div>${S.pop==='tipo'?popTipo(W):''}</div>`;
+  const c2 = `<div class="ce"><span class="lbl lbl-m">Cuánto</span><div class="vals">${valores(W)}</div></div>`;
+  const c3 = `<div class="ce"><span class="lbl lbl-m">A qué prendas</span>${pr.fijo
+      ? `<div class="cb fijo" title="Esta promoción no mira prendas: cuenta lo que el cliente paga"><span class="tx"><b>${pr.t}</b><small>${pr.s}</small></span></div>`
+      : `<button class="cb ${pr.falta?'falta':''}" data-a="pop" data-v="prendas" aria-haspopup="true" aria-expanded="${S.pop==='prendas'}" title="${esc(pr.t)}"><span class="tx"><b>${pr.t}</b><small>${pr.s}</small></span>${ic('chev','s')}</button>`}${S.pop==='prendas'&&!pr.fijo?popPrendas(W):''}</div>`;
+  const c4 = `<div class="ce"><span class="lbl lbl-m">Cuándo</span><button class="cb ${D(W.hasta)<D(W.desde)?'falta':''}" data-a="pop" data-v="cuando" aria-haspopup="true" aria-expanded="${S.pop==='cuando'}"><span class="tx"><b>${cu.t}</b><small>${cu.s}</small></span>${ic('chev','s')}</button>${S.pop==='cuando'?popCuando(W):''}</div>`;
+  const halo = ok ? 'sigue' : '';
+  const prim = edit ? `<button class="btn n ${halo}" data-a="cambios" ${ok?'':'disabled'}>${ic('check','s')} Guardar cambios</button>`
+    : P.act ? `<button class="btn n ${halo}" data-a="guardar" ${ok?'':'disabled'}>${ic('check','s')} Activar</button>`
+    : `<button class="btn n ${halo}" data-a="guardarb" ${ok?'':'disabled'}>Guardar borrador</button>`;
+  const c5 = `<div class="ce solo-desk">${prim}</div>`;
+  const falta = `Falta: ${fl.map(f=>`<button class="enl" data-a="falta" data-v="${f.foco}">${f.x}</button>`).join(' · ')}`;
+  const nota = edit ? 'Los cambios valen desde ahora; lo ya vendido no cambia y queda en el historial.' : P.act ? 'Rige desde hoy en cuanto la actives.' : 'Queda como borrador: un líder la activa.';
+  const l2 = `<div class="nf-2"><div class="or"><span class="lbl cap">Lo que registras</span>${fl.length?falta:oracion(W)}</div><div class="prev"><span class="lbl cap">Así lo verá el cliente</span>${previa(W)}</div></div>`;
+  const l3 = `<div class="nf-3"><button class="btn sutil chico tg" data-a="mas" aria-expanded="${S.mas}">Más opciones ${nMas?`<span class="gl" title="Cambiaste ${nMas} de fábrica">${nMas}</span>`:''}${ic('chev','s')}</button>
+      <button class="btn sutil chico tg" data-a="cedes" aria-expanded="${S.cedes}">Lo que cedes ${ic('chev','s')}</button><span class="sp"></span><span class="espera solo-desk" style="color:var(--t65)">${nota}</span>
+      <button class="btn sec chico solo-desk" data-a="cancelar">Cancelar</button>${(P.act&&!edit)?`<button class="btn sec chico solo-desk" data-a="guardarb" ${ok?'':'disabled'}>Guardar como borrador</button>`:''}</div>`;
+  const ced = S.cedes ? `<div class="ced"><span class="big">${costo?'≈ '+fmt(costo):'S/ 0'}</span>${costo?'es lo que cedes si vendes como en los últimos 30 días. Es una estimación, no una promesa.':'esta oferta no baja ningún precio.'}<ul>${esPrecio(W)?`<li>Unidades: sin tope. La tienda dirá cuántas quedan (${alcance(ef(W)).unid} hoy); Indecopi pide decirlo y el sistema da la cifra.</li>`:''}${despues(W).map(x=>`<li>${x}</li>`).join('')}</ul></div>` : '';
+  const avs = av.map(a=>`<div class="av ${a.t}">${ic(a.t==='a'?'alert':'info','s')}<div><b>${a.x}</b>${a.s?`<small>${a.s}</small>`:''}</div>${a.act==='excl'?`<button class="btn n sec chico" data-a="excl">Sacarla de la oferta</button>`:a.act==='encajar'?`<button class="btn n sec chico" data-a="encajar">Ajustar a la campaña</button>`:'<span></span>'}</div>`).join('');
+  return `<div class="nf ${S.animNF?'an-nf':''}" data-nf="${edit?W.editId:'nueva'}"><div class="nf-1">${c1}${c2}${c3}${c4}${c5}</div>${l2}${l3}${S.mas?panelMas(W):''}${ced}${avs}</div>`;
+}
+function tabla(){
+  const rs = CAMP, hayForm = !!S.form;
+  const filas = rs.map(c => S.form===c.id ? formulario() : filaReg(c)).join('');
+  const ag = S.form==='nueva' ? formulario()
+    : `<button class="ag ${rs.length?'':'sola'}" data-a="nueva"><span class="mc">${ic('plus','s')}</span><b>${rs.length?'Agregar otra oferta o promoción':'Agregar una oferta o promoción'}</b><small>por ejemplo: −20 % · 3x2 · S/ 30 menos desde S/ 300</small></button>`;
+  return `<div class="tb">${rs.length?`<div class="tb-cab"><span>Qué le das al cliente</span><span>Cuánto</span><span>A qué prendas</span><span>Cuándo</span><span>Estado</span></div>`:''}${filas}${ag}</div>`;
+}
+function hoja(){
+  const P = ROLES[S.rol], dias = diasEntre(CAMPANA.desde,CAMPANA.hasta)+1, quedan = diasEntre(HOY,CAMPANA.hasta)+1, form = !!S.form;
+  const W = S.W, ok = form && !faltan(W).length, edit = form && W.editId;
+  const pFalta = form ? 'Guarda o cancela la fila antes de cerrar.' : `Cada oferta o promoción se guarda en su propia fila. ${P.act?'':'Aquí quedan como borrador: un líder las activa.'}`;
+  const pc = form ? `<div class="p-cel"><button class="btn sec chico" data-a="cancelar">Cancelar</button>${(P.act&&!edit)?`<button class="btn sec chico" data-a="guardarb" ${ok?'':'disabled'}><span>Borrador</span></button>`:''}${edit?`<button class="btn prim" data-a="cambios" ${ok?'':'disabled'}>${ic('check','s')} Guardar cambios</button>`:P.act?`<button class="btn prim" data-a="guardar" ${ok?'':'disabled'}>${ic('check','s')} Activar</button>`:`<button class="btn prim" data-a="guardarb" ${ok?'':'disabled'}>Guardar borrador</button>`}</div>` : '';
+  const panelF = S.cfgFechas ? `<div class="cl-p"><div class="dosc" style="max-width:520px"><label><span>Desde</span><div class="campo"><input type="date" value="${CAMPANA.desde}" data-f="cdesde"></div></label><label><span>Hasta</span><div class="campo"><input type="date" value="${CAMPANA.hasta}" data-f="chasta"></div></label></div><div class="sublbl" style="margin-top:8px">Las ofertas ya registradas conservan las fechas con las que nacieron. Cada cambio queda en el historial de la campaña.</div></div>` : '';
+  return `<div class="velo ${S.mAnim?'entra':''}"><div class="velo-fondo" data-a="listo"></div>
+    <div class="hoja" role="dialog" aria-modal="true" aria-label="Configuración «${CAMPANA.n}»">
+      <div class="hoja-cab"><h2>Configuración «${CAMPANA.n}»</h2><p>Cuándo rige, qué prendas lleva y qué ofertas y promociones tiene.</p></div>
+      <div class="hoja-cuerpo">
+        <div class="cl"><span class="it">${ic('cal','s')}<b>${fechaTxt(CAMPANA.desde)} – ${fechaTxt(CAMPANA.hasta)}</b><small>${plural(dias,'día','días')} · quedan ${quedan}</small></span><span class="it">${ic('bag','s')}<b>${plural(CAMPANA.prendas,'prenda','prendas')}</b><small>a la venta · todas marcadas a mano</small></span><span class="bt"><button class="btn n sec chico" data-a="cfgfechas">${S.cfgFechas?'Listo':'Cambiar fechas'}</button><button class="btn n sec chico" data-a="prendas">Prendas</button></span></div>${panelF}
+        <div class="sec-of"><b>Ofertas y promociones</b><span class="cn">${CAMP.length}</span><small>Ya registradas: toca una fila para cambiarla, o la última para agregar otra.</small></div>
+        ${tabla()}
+      </div>
+      <div class="hoja-pie ${form?'con-form':''}"><span class="falta">${pFalta}</span><button class="btn p-listo" data-a="listo">Listo</button>${pc}</div>
+    </div></div>`;
+}
+function lateral(){
+  const sub = n => `<a class="sub ${n==='Insignias'?'on':''}">${n}</a>`, top = n => `<a>${n}</a>`;
+  return `<aside class="lat"><div class="logo">CAYLA</div>${['Inicio','Ventas','Inventario'].map(top).join('')}<div class="g">Catálogo</div>${['Productos','Categorías','Marcas','Atributos','Insignias','Liquidación'].map(sub).join('')}<div class="g">Más</div>${['Compras','Finanzas','Clientes','Colaboradores'].map(top).join('')}</aside>`;
+}
+function fondo(){
+  return `<div class="erp">${lateral()}<div class="cont"><div class="mtop"><b>CAYLA</b><span>Catálogo ▸ Insignias</span></div>
+    <div class="enc"><div class="sede">Lima · Vie 23 oct</div><h1>Insignias</h1><p>Las fechas del año en que se vende distinto: cuándo rige cada una, sus ofertas y promociones y en qué prendas.</p></div>
+    <div class="cuerpo"><div class="pasebg"><div><b>${CAMPANA.n}</b><small>Rige hoy · quedan ${diasEntre(HOY,CAMPANA.hasta)+1} días · ${plural(CAMP.length,'oferta o promoción','ofertas y promociones')}</small></div><button class="btn n sutil" data-a="abrir">Configurar</button></div></div></div></div>`;
+}
+/* =========================== marco, barra, render =========================== */
+function barra(){
+  $('#spk').innerHTML = `<span class="tag">Maqueta · Opción 5 · Fila rápida</span>
+  <div class="seg"><button class="${S.dev==='escritorio'?'on':''}" data-a="dev" data-v="escritorio">Escritorio</button><button class="${S.dev==='celular'?'on':''}" data-a="dev" data-v="celular">Celular</button></div>
+  <div class="seg"><button class="${S.tema==='claro'?'on':''}" data-a="tema" data-v="claro">Claro</button><button class="${S.tema==='oscuro'?'on':''}" data-a="tema" data-v="oscuro">Oscuro</button></div>
+  <span class="tag">Ver como</span><div class="seg">${Object.entries(ROLES).map(([k,r])=>`<button class="${S.rol===k?'on':''}" data-a="rol" data-v="${k}">${r.t}</button>`).join('')}</div>
+  <button class="go" data-a="reiniciar">Reiniciar</button><span style="margin-left:auto;color:rgba(245,240,232,.6);font-size:12px">Aniversario CAYLA · datos inventados · hoy = vie 23 oct 2026</span>`;
+  $('#ley').innerHTML = `<b>Opción 5 · Fila rápida.</b> Registrar es <b>agregar una fila a la lista</b>, sin salir de «Ofertas y promociones»: toca la última fila («+ Agregar»), cambia lo que quieras en esa misma fila y guarda; al guardar queda en la lista y aparece otra fila lista para la siguiente. Lo avanzado está en «Más opciones». <span class="ej">Prueba 1 · −20 % en todo</span><span class="ej">2 · 3x2</span><span class="ej">3 · S/ 30 menos desde S/ 300</span><span class="ej">4 · 2 polos por S/ 59.90 solo en Polos, 2 tiendas, fin de semana</span><span class="ej">«Ver como» ▸ Con Insignias guarda borrador</span>`;
+}
+function foco(){ const a = document.activeElement; if(!a || !a.dataset || !a.dataset.a) return null; return {a:a.dataset.a,v:a.dataset.v,f:a.dataset.f,d:a.dataset.d}; }
+function volverAlFoco(f){ if(!f) return; const q = [...document.querySelectorAll('[data-a]')].find(e=>e.dataset.a===f.a && e.dataset.v===f.v && e.dataset.f===f.f && e.dataset.d===f.d && !e.disabled); if(q) q.focus({preventScroll:true}); }
+function render(){
+  const f0 = foco();
+  const prev = document.querySelector('.hoja-cuerpo'); const st = prev && !S.mAnim ? prev.scrollTop : 0;
+  document.documentElement.dataset.tema = S.tema;
+  barra();
+  const modal = S.abierta ? hoja() : '';
+  const marco = `<div class="marco ${S.dev==='escritorio'?'desk':'cel'}"><div class="pant">${fondo()}</div>${modal}${S.toast?`<div class="toast" role="status">${S.toast}</div>`:''}</div>`;
+  $('#esc').innerHTML = S.dev==='escritorio' ? marco : `<div class="tel">${marco}</div>`;
+  S.mAnim = false;
+  const cu = document.querySelector('.hoja-cuerpo'); if(cu){ cu.scrollTop = st; ajustes(cu); }
+  S.animNF = false; S.scrollA = null;
+  volverAlFoco(f0);
+  medir();
+}
+/* Deja a la vista la fila que se abre y el desplegable que se abre (el cuerpo de la hoja es el que se desplaza). */
+function ajustes(cu){
+  const cr = () => cu.getBoundingClientRect();
+  const ver = el => { const r = el.getBoundingClientRect(), c = cr(); if(r.bottom > c.bottom-10) cu.scrollTop += r.bottom-c.bottom+16; else if(r.top < c.top+36) cu.scrollTop -= (c.top+44-r.top); };
+  const nf = cu.querySelector('.nf');
+  if(S.scrollA==='nf' && nf) ver(nf);
+  if(S.scrollA==='ag'){ const ag = cu.querySelector('.ag') || cu.querySelector('.rf.recien'); if(ag) ver(ag); }
+  const pop = cu.querySelector('.pop'); if(pop) ver(pop);
+  if(S.scrollA==='mas'){ const m = cu.querySelector('.mas-p'); if(m) ver(m); }
+}
+let tt;
+function avisar(t){ S.toast = t; clearTimeout(tt); tt = setTimeout(()=>{ S.toast=null; render(); }, 3200); }
+/* Mide lo que hay a la vista en la fila abierta (se actualiza solo). */
+function medir(){
+  const out = $('#vivo'); if(!out) return;
+  const nf = document.querySelector('.nf');
+  if(!nf){ out.innerHTML = 'Medida en vivo: abre una fila para contar sus controles.'; return; }
+  const vis = [...nf.querySelectorAll('button,input,select')].filter(el=>el.offsetParent!==null);
+  out.innerHTML = `Medida en vivo · fila abierta con lo que ves ahora: <b>${vis.length} controles</b> a la vista · <b>${Math.round(nf.getBoundingClientRect().height)} px</b> de alto (con sus avisos, si hay).`;
+}
+/* =========================== acciones =========================== */
+function encajar(W){
+  const ini = iniMin(W);
+  if(W.desde<ini || W.desde>CAMPANA.hasta) W.desde = ini;
+  if(W.hasta>CAMPANA.hasta || W.hasta<W.desde) W.hasta = CAMPANA.hasta;
+}
+function cerrarForm(){ S.form = null; S.W = null; S.pop = null; S.mas = false; S.cedes = false; }
+function guardarNueva(borrador){
+  const W = S.W; if(faltan(W).length) return;
+  const e = ef(W), id = 'n'+(++NID), nom = nombreFinal(W), c = base({});
+  Object.keys(c).forEach(k=>{ if(k in e) c[k] = Array.isArray(e[k]) ? [...e[k]] : e[k]; });
+  Object.assign(c,{id,nom,borrador,hist:[],vendidas:0});
+  CAMP.push(c); cerrarForm(); S.recien = id; S.scrollA = 'ag';
+  const est = estadoDe(c);
+  avisar(borrador ? `Guardada como borrador dentro de «${CAMPANA.n}»: «${nom}». ${ROLES[S.rol].act?'Actívala cuando quieras.':'Un líder tiene que activarla.'}` : `Activada dentro de «${CAMPANA.n}»: «${nom}». ${est==='Programada'?'Empieza el '+fechaTxt(c.desde):'Ya rige'}.`);
+}
+const KEEP = ['cat','parte'];
+function act(a,v,el){
+  const W = S.W;
+  S.animNF = false; S.scrollA = null; S.recien = a==='editar'||a==='nueva' ? null : S.recien;
+  if(S.pop && a!=='pop' && !KEEP.includes(a)) S.pop = null;
+  switch(a){
+    case 'dev': S.dev = v; S.mAnim = false; break;
+    case 'tema': S.tema = v; break;
+    case 'rol': S.rol = v; break;
+    case 'reiniciar': CAMP = CAMP0(); NID = 0; Object.assign(S,{abierta:true,form:null,W:null,pop:null,mas:false,cedes:false,cfgFechas:false,recien:null,toast:null,mAnim:true}); break;
+    case 'abrir': S.abierta = true; S.mAnim = true; break;
+    case 'listo': S.abierta = false; cerrarForm(); break;
+    case 'cfgfechas': S.cfgFechas = !S.cfgFechas; break;
+    case 'prendas': avisar('En la versión real abre «Prendas»: marcar las prendas sueltas de la campaña. Es la hoja de hoy, sin cambios.'); return;
+    case 'nueva': S.W = nuevoW(); S.form = 'nueva'; S.pop = null; S.mas = false; S.cedes = false; S.animNF = true; S.scrollA = 'nf'; break;
+    case 'editar': { const c = CAMP.find(x=>x.id===v); if(!c) break;
+      S.W = Object.assign(nuevoW(), JSON.parse(JSON.stringify(c)), {editId:c.id, nombre:c.nom, nombreMan:c.nom!==defNombre(c), precioMan:true, fechasMan:true, excl:[]});
+      S.form = c.id; S.pop = null; S.mas = false; S.cedes = false; S.animNF = true; S.scrollA = 'nf'; break; }
+    case 'cancelar': cerrarForm(); S.scrollA = 'ag'; break;
+    case 'pop': S.pop = S.pop===v ? null : v; break;
+    case 'popcerrar': S.pop = null; break;
+    case 'tipo': tipoSel(W,v); break;
+    case 'step': { const f = el.dataset.f, d = +el.dataset.d; const [mn,mx] = limites(W,f); W[f] = r2(Math.min(mx,Math.max(mn,W[f]+d)));
+      if(f==='precio'){ W.precio = Math.round(W.precio*10)/10; W.precioMan = true; }
+      if(f==='n' && W.m>=W.n) W.m = W.n-1;
+      if(f==='qty' && W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W);
+      break; }
+    case 'mezcla': W.mezcla = v==='1'; break;
+    case 'regalo': W.regalo = v; break;
+    case 'horas': W.horas = +v; break;
+    case 'mult': W.mult = +v; break;
+    case 'cattodas': W.cats = [GRUPO.id]; if(W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W); break;
+    case 'cat': W.cats = W.cats.filter(x=>x!=='all' && x!==GRUPO.id); W.cats = W.cats.includes(v) ? W.cats.filter(x=>x!==v) : [...W.cats,v];
+      if(W.tipo==='combo' && !W.precioMan) W.precio = precioSug(W); break;
+    case 'parte': W.partes = W.partes.includes(v) ? W.partes.filter(x=>x!==v) : (W.partes.length<3 ? [...W.partes,v] : W.partes);
+      if(!W.precioMan && W.partes.length>=2) W.precio = precioLook(W); break;
+    case 'rango': { const [d,h] = v.split(','); W.desde = d; W.hasta = h; W.fechasMan = true; break; }
+    case 'encajar': encajar(W); W.fechasMan = true; break;
+    case 'excl': W.excl = [...W.excl,'jean']; break;
+    case 'sede': W.sedes = W.sedes.includes(v) ? W.sedes.filter(x=>x!==v) : [...W.sedes,v]; break;
+    case 'nocat': W.nocats = W.nocats.includes(v) ? W.nocats.filter(x=>x!==v) : [...W.nocats,v]; break;
+    case 'claure': W.claure = !W.claure; break;
+    case 'dias': W.dias = +v; break;
+    case 'acum': W.acum = v==='1'; break;
+    case 'mas': S.mas = !S.mas; if(S.mas) S.scrollA = 'mas'; break;
+    case 'cedes': S.cedes = !S.cedes; if(S.cedes) S.scrollA = 'mas'; break;
+    case 'falta': if(v==='mas'){ S.mas = true; S.scrollA = 'mas'; } else if(v==='prendas'||v==='cuando'){ S.pop = v; } break;
+    case 'guardar': guardarNueva(!ROLES[S.rol].act); break;
+    case 'guardarb': guardarNueva(true); break;
+    case 'activar': { if(!ROLES[S.rol].act) break; const c = CAMP.find(x=>x.id===v); c.borrador = false; S.recien = v;
+      avisar(`Activada: «${c.nom}». ${c.desde>HOY?'Empieza el '+fechaTxt(c.desde):'Ya rige'}.`); break; }
+    case 'cambios': { const c = CAMP.find(x=>x.id===W.editId); if(!c || faltan(W).length) break;
+      const antes = `${TIPOS[c.tipo].da(c)} · ${fechaTxt(c.desde)} – ${fechaTxt(c.hasta)}`, e = ef(W);
+      Object.keys(base({})).filter(x=>!['id','nom','hist','vendidas','borrador'].includes(x)).forEach(x=>{ if(x in e) c[x] = Array.isArray(e[x]) ? [...e[x]] : e[x]; });
+      c.nom = nombreFinal(W); c.hist = [...c.hist, `${antes}, hasta el ${fechaTxt(HOY)}`]; c.legado = false;
+      S.recien = c.id; cerrarForm(); avisar(`Cambios guardados en «${c.nom}»: valen desde ahora; lo ya vendido no cambia y queda en el historial.`); break; }
+  }
+  render();
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-a]');
+  if(b){ act(b.dataset.a, b.dataset.v, b); return; }
+  if(S.pop && !e.target.closest('.pop')){ S.pop = null; render(); }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && S.abierta){ if(S.pop) S.pop = null; else if(S.form) cerrarForm(); else { S.abierta = false; } render(); return; }
+  if((e.key==='Enter'||e.key===' ') && e.target.matches && e.target.matches('.rf[data-a]')){ e.preventDefault(); act(e.target.dataset.a, e.target.dataset.v, e.target); }
+});
+document.addEventListener('change', e=>{
+  const f = e.target.dataset && e.target.dataset.f; if(!f) return;
+  const W = S.W;
+  if(f==='nombre'){ const t = e.target.value.trim(); W.nombre = t; W.nombreMan = !!t && t!==defNombre(W); return; }
+  if(f==='cdesde'||f==='chasta'){ CAMPANA[f==='cdesde'?'desde':'hasta'] = e.target.value || CAMPANA[f==='cdesde'?'desde':'hasta']; render(); return; }
+  if(f==='desde'||f==='hasta'){ W[f] = e.target.value || W[f]; W.fechasMan = true; render(); }
+});
+render();
+</script>
+</body>
+</html>

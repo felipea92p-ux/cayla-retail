@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- es la plantilla de `next/og` (satori), no la página: ahí `next/image` no existe. */
 import "server-only";
 import { bordesDe, DOMINIO_A_LA_VISTA, fotoContenida, tarjetasDelLook, type PiezaDeLaImagen, type Tarjeta } from "./compartir-look";
-import { COLIBRI, LOGO, type PiezaDeMarca } from "./marca";
+import { COLIBRI, LOGO, type PiezaDeMarca } from "@cayla-retail/shared/marca";
 
 // Las dos imágenes de un look compartido (ADR-0434, actividad 9), como las dibuja `next/og` (satori: estilos en línea, sin las clases
 // ni las variables de la tienda). Los colores son los MISMOS de `app/globals.css`, escritos aquí porque `next/og` no lee CSS: el oscuro
@@ -43,7 +43,7 @@ async function comoDato(url: string): Promise<string | null> {
 export const cargarFotos = (piezas: readonly PiezaDeLaImagen[]): Promise<PiezaConFoto[]> =>
   Promise.all(piezas.map(async (p) => ({ ...p, dato: await comoDato(p.foto.url) })));
 
-/** Una pieza del logo oficial (`lib/marca.ts`) como imagen suelta del color pedido: `next/og` no lee la página ni su CSS. Sale del mismo
+/** Una pieza del logo oficial (`packages/shared/src/marca.ts`) como imagen suelta del color pedido: `next/og` no lee la página ni su CSS. Sale del mismo
  *  trazo que la tienda, sin pedirlo a la red: la marca nunca falta en la imagen. */
 function piezaComoDato(pieza: PiezaDeMarca, color: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${pieza.viewBox}"><path fill="${color}" fill-rule="evenodd" d="${pieza.trazo}"/></svg>`;

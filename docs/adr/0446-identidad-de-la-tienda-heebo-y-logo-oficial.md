@@ -71,3 +71,13 @@
   ancha que EB Garamond: en la maqueta, el título de la campaña en la computadora tuvo que topar en 100 px para no montarse sobre las fotos.
 - **Sin probar:** la imagen de la historia de un look guardado (pide una cuenta con un look guardado); usa la misma pieza que `/tu-look/vista`.
 - **Decisión de Felipe:** si el ERP, los tickets y las etiquetas pasan al colibrí y al rojo del logo oficial.
+
+## Actualización 2026-10-19 — Heebo sale; quedan el logo oficial y el colibrí
+
+Felipe eligió la dirección «A · Muro» del rediseño completo de la tienda (`docs/maquetas/tienda-rediseno-2026-10/a-muro.html`, mirando doce
+maquetas) y, ante el choque con este ADR, **A completa**: la tienda escribe con **Archivo** (ensanchada y en mayúsculas para los títulos) y
+**Newsreader en cursiva** para el nombre de cada prenda y las cifras grandes. Heebo ya no se carga (`app/layout.tsx`), y las cifras en
+columna que traía se consiguen con `font-variant-numeric: tabular-nums` sobre Archivo donde haga falta. **Lo que este ADR decidió sobre la
+marca sigue en pie:** la palabra CAYLA es el dibujo del logo oficial (`components/Marca.tsx`, `--t-logo`), el colibrí oficial en los íconos y
+las imágenes para compartir, y Ahellya queda en espera del permiso de su autor. Lo que pasa con el ERP, los tickets y las etiquetas sigue
+siendo decisión pendiente de Felipe. El registro del rediseño: `docs/backlog/2026-10-17-install-design-skills-4f1aae.md`.

@@ -38,39 +38,7 @@ export function juntarTiendas(porSede: Record<string, readonly FilaDeSede[]>): M
   return suma;
 }
 
-export type RotacionEtiqueta = { tallas: number; unidades: number; vendidas: number; agotadas: number };
-
-/** Lo de las prendas a la venta que lleva una etiqueta (a mano o por su categoría): cuántas unidades quedan, cuántas se vendieron y
- *  cuántas de sus tallas ya no tienen ninguna. */
-export function rotacionDeEtiqueta(
-  aLaVenta: readonly { id: string; categoriaId: string | null }[],
-  categoriaIds: ReadonlySet<string>,
-  manuales: ReadonlySet<string>,
-  porTalla: ReadonlyMap<string, RotacionTalla>,
-): RotacionEtiqueta {
-  const r: RotacionEtiqueta = { tallas: 0, unidades: 0, vendidas: 0, agotadas: 0 };
-  for (const p of aLaVenta) {
-    if (!manuales.has(p.id) && !(p.categoriaId !== null && categoriaIds.has(p.categoriaId))) continue;
-    const t = porTalla.get(p.id) ?? { stock: 0, vendidas: 0 };
-    r.tallas++;
-    r.unidades += t.stock;
-    r.vendidas += t.vendidas;
-    if (t.stock === 0) r.agotadas++;
-  }
-  return r;
-}
-
 const unidades = (n: number) => `${n.toLocaleString("es-PE")} ${n === 1 ? "unidad" : "unidades"}`;
-
-/** La línea de la tarjeta, en unidades (lo que se decide en Rotación), no en tallas: «Quedan 1 unidad · 7 vendidas en 30 días · 3
- *  tallas agotadas». `null` sin prendas: la tarjeta ya dice «Sin prendas a la venta». */
-export function textoRotacion(r: RotacionEtiqueta): string | null {
-  if (r.tallas === 0) return null;
-  const quedan = r.unidades === 0 ? "No queda ninguna unidad" : `${r.unidades === 1 ? "Queda" : "Quedan"} ${unidades(r.unidades)}`;
-  const vendidas = r.vendidas === 0 ? `ninguna vendida en ${DIAS_ROTACION} días` : `${r.vendidas.toLocaleString("es-PE")} ${r.vendidas === 1 ? "vendida" : "vendidas"} en ${DIAS_ROTACION} días`;
-  const agotadas = r.agotadas > 0 && r.unidades > 0 ? ` · ${r.agotadas} ${r.agotadas === 1 ? "talla agotada" : "tallas agotadas"}` : "";
-  return `${quedan} · ${vendidas}${agotadas}`;
-}
 
 /** La nota sobre las tarjetas de Rotación: con cuántos datos se juzga. Si 6 de cada 10 prendas vendidas salieron sin decir cuál
  *  fueron (producción, 2026-10-17), «Top ventas» y «Para liquidar» miran solo una parte; hay que decirlo. `null` si todo lo vendido

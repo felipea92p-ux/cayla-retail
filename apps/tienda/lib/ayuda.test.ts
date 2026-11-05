@@ -7,7 +7,6 @@ import {
   pasosParaSeparar,
   puntosDeCambios,
   seccionQueSeLee,
-  textoCambios,
 } from "./ayuda";
 
 // Lo que devuelve `retail.tienda_ayuda()` con los plazos de fábrica de Configuración ▸ Tienda web y el de cambio de la caja.
@@ -52,17 +51,17 @@ describe("Cómo separar", () => {
     const pasos = pasosParaSeparar(["Trujillo", "Arequipa", "Lima"]);
     expect(pasos.map((p) => p.titulo)).toEqual(["Elige tus prendas y tu tienda", "Entra o crea tu cuenta", "Toca «Separar» y mándalo por WhatsApp", "Paga y recógelo"]);
     expect(pasos[0].texto).toBe(
-      "En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+      "En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Cada tienda maneja lo suyo. Sin crear nada: la tienda es de todos.",
     );
     expect(pasosParaSeparar(["Trujillo", "Lima"])[0].texto).toBe(
-      "En cada prenda ves cuánto hay en Trujillo y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+      "En cada prenda ves cuánto hay en Trujillo y Lima. Cada tienda maneja lo suyo. Sin crear nada: la tienda es de todos.",
     );
   });
 
-  it("con una sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres", () => {
+  it("con una sola tienda no hace falta decir que cada una maneja lo suyo; sin tiendas (o sin base), la frase va sin nombres", () => {
     expect(pasosParaSeparar(["Trujillo"])[0].texto).toBe("En cada prenda ves cuánto hay en Trujillo. Sin crear nada: la tienda es de todos.");
     expect(pasosParaSeparar([])[0].texto).toBe(
-      "En cada prenda ves cuánto hay en cada tienda. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+      "En cada prenda ves cuánto hay en cada tienda. Cada tienda maneja lo suyo. Sin crear nada: la tienda es de todos.",
     );
   });
 
@@ -113,34 +112,13 @@ describe("Cómo separar", () => {
 });
 
 describe("Cambios y devoluciones", () => {
-  it("igual que en tienda, con el plazo de la caja (el que imprime la boleta)", () => {
-    expect(textoCambios(interpretarAyuda(DE_FABRICA))).toBe(
-      "Igual que en tienda: puedes cambiar o devolver tu prenda dentro de 15 días, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.",
-    );
-  });
-
-  it("sin el plazo, sin número: va impreso en la boleta", () => {
-    const texto = textoCambios(PLAZOS_SIN_DATOS);
-    expect(texto).toBe(
-      "Igual que en tienda: puedes cambiar o devolver tu prenda en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.",
-    );
-    expect(texto).not.toMatch(/\d/);
-  });
-
-  it("la página lo parte en tres (cuánto tiempo, dónde, qué llevar) y promete lo mismo que la frase de la ficha", () => {
+  it("la página lo parte en tres (cuánto tiempo, dónde, qué llevar)", () => {
     const p = puntosDeCambios(interpretarAyuda(DE_FABRICA));
     expect(p).toEqual({
       plazo: { titulo: "Tienes 15 días", texto: "Para cambiar o devolver tu prenda, igual que en tienda." },
       donde: { titulo: "En cualquier tienda CAYLA", texto: "La que te quede más cerca, aunque no sea donde la recogiste." },
       llevar: { titulo: "Lleva tu boleta", texto: "Y la prenda con su etiqueta puesta." },
     });
-    // Lo mismo que la frase de la ficha: el plazo, cualquier tienda CAYLA, la boleta y la etiqueta puesta. Ni una condición más.
-    const frase = textoCambios(interpretarAyuda(DE_FABRICA));
-    const puntos = Object.values(p).map((x) => `${x.titulo} ${x.texto}`).join(" ");
-    for (const dato of ["15 días", "cualquier tienda CAYLA", "boleta", "etiqueta puesta"]) {
-      expect(frase).toContain(dato);
-      expect(puntos).toContain(dato);
-    }
     expect(puntosDeCambios({ ...PLAZOS_SIN_DATOS, diasParaCambiar: 1 }).plazo.titulo).toBe("Tienes 1 día");
   });
 

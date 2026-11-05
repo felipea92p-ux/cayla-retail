@@ -5,8 +5,8 @@
  *
  * Es una comodidad y puede faltar (sin Web Audio, o si el navegador todavía no dejó sonar, no suena y el guardado no cambia en
  * nada). Se puede apagar por dispositivo (`preferencia-local.ts`): una boutique con música baja no quiere campanitas, y esa
- * decisión es del lugar, no de la cuenta. Distinto del bip del conteo (`sonido-conteo.ts`), que es de lectura con pistola y no se
- * apaga. Mismo motor de audio: `reproducirPatron`.
+ * decisión es del lugar, no de la cuenta. Distinto del bip del conteo (`sonido-conteo.ts`), que confirma una lectura (pistola o
+ * cámara) y no se apaga. Mismo motor de audio: `reproducirPatron`.
  */
 
 import { preferenciaLocal } from "./preferencia-local";

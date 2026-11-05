@@ -1,0 +1,891 @@
+<title>Hojas del celular</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Maqueta de /unificar, familia nueva «hoja-movil» (2026-10-22). Los colores son los tokens de apps/web/app/globals.css y
+   estilos/tema.css; el movimiento, el de ADR-0136 (--ease-cayla, sin rebote, sin bucle). Teléfono a la derecha en escritorio;
+   en el celular, la maqueta ocupa la pantalla. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --taupe: #805c4c; --rojo: #b8412d; --rojo-profundo: #8b2a1f;
+  --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --sombra: #1a1a18;
+  --tinta-fija: #1a1a18; --crema-fija: #f5f0e8;
+  /* Color de prenda: es dato, no se oscurece (ADR-0336, regla 3). */
+  --prenda-beige: #d9c4a6; --prenda-oliva: #6d7247; --prenda-marino: #2f3b52; --prenda-terracota: #b4664a;
+  --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --ease-salida: cubic-bezier(0.4, 0, 1, 1);
+  --serif: "EB Garamond", Georgia, "Times New Roman", serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38;
+    --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --rojo-profundo: #f29a86;
+    --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --sombra: #000000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38;
+  --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --rojo-profundo: #f29a86;
+  --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --sombra: #000000;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.serif { font-family: var(--serif); font-weight: 400; letter-spacing: -0.01em; }
+.versal { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; }
+
+/* ---------- Página ---------- */
+.cabecera { max-width: 1180px; margin: 0 auto; padding-top: 28px; display: grid; gap: 14px; }
+.cabecera .sede { color: var(--taupe); display: flex; align-items: center; gap: 10px; }
+.cabecera .sede::before { content: ""; width: 28px; height: 1px; background: var(--taupe); }
+.cabecera h1 { margin: 0; font-size: clamp(34px, 6vw, 46px); line-height: 1.05; text-wrap: balance; }
+.cabecera p { margin: 0; max-width: 62ch; color: var(--taupe); }
+.pestanas { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--tinta) 6%, transparent); width: fit-content; }
+.pestanas a { text-decoration: none; padding: 8px 16px; border-radius: 999px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; color: var(--tinta); transition: background-color 260ms var(--ease-cayla), color 260ms var(--ease-cayla); }
+.pestanas a[aria-current="page"] { background: var(--tinta); color: var(--crema); }
+
+main { max-width: 1180px; margin: 24px auto 0; }
+[data-vista][hidden] { display: none !important; }
+
+.probar { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 40px; align-items: start; }
+.lado { display: grid; gap: 22px; min-width: 0; }
+.selector { display: grid; gap: 8px; }
+.opcion { display: grid; grid-template-columns: 22px 1fr; gap: 4px 12px; text-align: left; padding: 14px 16px; border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); transition: border-color 260ms var(--ease-cayla), background-color 260ms var(--ease-cayla); }
+.opcion .punto { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--tinta) 35%, transparent); margin-top: 2px; display: grid; place-items: center; }
+.opcion .punto::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--crema); transform: scale(0); transition: transform 260ms var(--ease-cayla); }
+.opcion[aria-checked="true"] { border-color: var(--tinta); }
+.opcion[aria-checked="true"] .punto { background: var(--tinta); border-color: var(--tinta); }
+.opcion[aria-checked="true"] .punto::after { transform: scale(1); }
+.opcion b { font-weight: 600; }
+.opcion span.det { grid-column: 2; color: var(--taupe); font-size: 13.5px; }
+.que { border-top: 1px solid var(--sand); padding-top: 18px; }
+.que h2 { margin: 0 0 10px; font-size: 21px; }
+.que ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.que li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; font-size: 14px; }
+.que li svg { margin-top: 3px; }
+.que li.no { color: color-mix(in srgb, var(--tinta) 64%, transparent); }
+.prueba { font-size: 13.5px; color: var(--taupe); background: color-mix(in srgb, var(--hueso) 60%, transparent); border-radius: 12px; padding: 12px 14px; }
+
+/* ---------- El teléfono ---------- */
+.telefono { position: sticky; top: 16px; width: 390px; padding: 7px; border-radius: 52px; background: var(--tinta-fija); box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--sombra) 45%, transparent); }
+.pantalla { --seguro: 34px; position: relative; height: 780px; border-radius: 45px; overflow: hidden; background: var(--crema); isolation: isolate; }
+.pantalla::after { /* el indicador de inicio del iPhone */
+  content: ""; position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px;
+  background: var(--tinta); opacity: 0.85; z-index: 90; pointer-events: none;
+}
+.isla { position: absolute; top: 11px; left: 50%; width: 118px; height: 34px; margin-left: -59px; border-radius: 20px; background: var(--tinta-fija); z-index: 95; pointer-events: none; }
+
+/* Lo de atrás: la pantalla de Vender */
+.fondo { position: absolute; inset: 0; background: var(--crema); transform-origin: 50% 0; overflow: hidden; will-change: transform; }
+.barra-sup { height: 104px; padding: 54px 18px 0; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--sand); }
+.barra-sup .sede-chip { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--tinta); }
+.contenido { padding: 18px 18px 120px; height: calc(100% - 104px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.contenido::-webkit-scrollbar { display: none; }
+.contenido .ojo { color: var(--taupe); display: flex; gap: 8px; align-items: center; }
+.contenido .ojo::before { content: ""; width: 22px; height: 1px; background: var(--taupe); }
+.contenido h3 { margin: 6px 0 2px; font-size: 36px; line-height: 1.05; }
+.contenido .frase { margin: 0 0 16px; color: var(--taupe); font-size: 14px; }
+.acciones-app { display: flex; gap: 8px; margin-bottom: 16px; }
+.grilla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.prenda { text-align: left; border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 0; overflow: hidden; display: grid; transition: transform 160ms var(--ease-cayla); }
+.prenda:active { transform: scale(0.98); }
+.prenda .mosaico { aspect-ratio: 1 / 0.9; display: grid; place-items: center; color: var(--crema-fija); }
+.prenda .mosaico.claro { color: var(--tinta-fija); }
+.prenda .datos { padding: 9px 11px 11px; display: grid; gap: 1px; }
+.prenda .datos b { font-weight: 500; font-size: 14px; }
+.prenda .datos span { font-size: 12.5px; color: var(--taupe); }
+
+/* Botones: las dos caras del ERP */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid transparent; font-size: 13.5px; font-weight: 500; white-space: nowrap; transition: background-color 200ms var(--ease-cayla), scale 120ms var(--ease-cayla), translate 260ms var(--ease-cayla); -webkit-tap-highlight-color: transparent; }
+.btn:active { scale: 0.97; }
+.btn-primario { background: var(--tinta); color: var(--crema); }
+.btn-secundario { background: transparent; border-color: color-mix(in srgb, var(--tinta) 22%, transparent); }
+.btn-pildora { height: 36px; border-radius: 999px; border-color: color-mix(in srgb, var(--tinta) 18%, transparent); background: var(--papel); padding: 0 14px; }
+@media (hover: hover) {
+  .btn-primario:hover { background: var(--rojo-profundo); }
+  .opcion:hover { background: color-mix(in srgb, var(--hueso) 45%, var(--papel)); }
+}
+.btn-enlace { background: none; border: 0; padding: 0; height: auto; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--tinta) 30%, transparent); text-underline-offset: 3px; }
+
+/* La barra de abajo, la misma en toda pantalla de mostrador */
+.barra-movil { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 14px 14px calc(12px + var(--seguro)); background: linear-gradient(to top, var(--crema) 72%, color-mix(in srgb, var(--crema) 0%, transparent)); }
+.barra-movil .btn { width: 100%; height: 52px; justify-content: space-between; padding: 0 18px; border-radius: 14px; font-size: 14px; }
+.barra-movil .btn .cuenta { display: flex; align-items: center; gap: 10px; }
+.barra-movil .btn .total { font-family: var(--serif); font-size: 21px; }
+
+/* ---------- El velo y las hojas ---------- */
+.velo { position: absolute; inset: 0; z-index: 40; background: color-mix(in srgb, var(--sombra) 35%, transparent); opacity: 0; pointer-events: none; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.velo.activo { pointer-events: auto; }
+:root[data-theme="dark"] .velo { background: color-mix(in srgb, var(--sombra) 60%, transparent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .velo { background: color-mix(in srgb, var(--sombra) 60%, transparent); } }
+
+.hoja { position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; flex-direction: column; max-height: calc(100% - 58px); background: var(--papel); border: 1px solid var(--sand); border-bottom: 0; border-radius: 22px 22px 0 0; outline: none; will-change: transform; }
+.hoja[hidden] { display: none; }
+.hoja.alta { height: calc(100% - 58px); }
+.hoja.arrastrando, .hoja.arrastrando * { user-select: none; -webkit-user-select: none; }
+.hoja-cab { position: relative; padding: 22px 22px 0; touch-action: none; }
+.asa { position: absolute; top: 0; left: 50%; width: 88px; height: 22px; margin-left: -44px; display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: grab; }
+.asa::before { content: ""; width: 38px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--tinta) 22%, transparent); transition: background-color 200ms var(--ease-cayla), width 260ms var(--ease-cayla); }
+.hoja.arrastrando .asa::before { background: color-mix(in srgb, var(--tinta) 40%, transparent); width: 46px; }
+.hoja-titulo { margin: 0; font-size: 24px; line-height: 1.15; padding-right: 36px; }
+.hoja-frase { margin: 4px 0 0; font-size: 13.5px; color: var(--taupe); }
+.cerrar { position: absolute; top: 16px; right: 14px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: none; display: grid; place-items: center; color: color-mix(in srgb, var(--tinta) 60%, transparent); }
+.hoja-cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 22px 8px; scrollbar-width: thin; }
+.hoja-pie { position: relative; z-index: 2; flex: none; display: flex; gap: 10px; justify-content: flex-end; padding: 14px 22px calc(16px + var(--seguro)); border-top: 1px solid color-mix(in srgb, var(--tinta) 8%, transparent); background: var(--papel); }
+.hoja-pie .btn { flex: 1; height: 46px; }
+
+/* La cascada del contenido (la de siempre, ADR-0136): cada pieza sube 10 px, 55 ms de desfase */
+@keyframes cascada { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
+.hoja.entra .cascada > * { animation: cascada 500ms var(--ease-cayla) backwards; animation-delay: calc(var(--k, 0) * 55ms + 120ms); }
+
+/* HOY: la hoja sube 24 px con un fundido y se va igual; no hay asa ni arrastre */
+@keyframes hoy-entra { from { opacity: 0; transform: translate3d(0, 24px, 0); } }
+@keyframes hoy-sale { to { opacity: 0; transform: translate3d(0, 24px, 0); } }
+@keyframes hoy-cajon-entra { from { opacity: 0; transform: translate3d(28px, 0, 0); } }
+@keyframes hoy-cajon-sale { to { opacity: 0; transform: translate3d(28px, 0, 0); } }
+.pantalla[data-modo="hoy"] .asa { display: none; }
+.pantalla[data-modo="hoy"] .hoja-pie { padding-bottom: 24px; }
+.pantalla[data-modo="hoy"] .hoja.hoy-entra { animation: hoy-entra 380ms var(--ease-cayla) backwards; }
+.pantalla[data-modo="hoy"] .hoja.hoy-sale { animation: hoy-sale 220ms var(--ease-salida) both; }
+.pantalla[data-modo="hoy"] .hoja-cajon { top: 0; max-height: none; height: 100%; border-radius: 0; border: 0; border-left: 1px solid var(--sand); }
+.pantalla[data-modo="hoy"] .hoja-cajon.hoy-entra { animation: hoy-cajon-entra 380ms var(--ease-cayla) backwards; }
+.pantalla[data-modo="hoy"] .hoja-cajon.hoy-sale { animation: hoy-cajon-sale 240ms var(--ease-salida) both; }
+.pantalla[data-modo="hoy"] .hoja-cajon .hoja-cab { padding-top: 62px; }
+.pantalla[data-modo="hoy"] .solo-vivo { display: none !important; }
+.pantalla:not([data-modo="hoy"]) .solo-hoy { display: none !important; }
+
+/* ---------- Contenido de cada hoja ---------- */
+.linea { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid color-mix(in srgb, var(--tinta) 8%, transparent); }
+.linea .mini { width: 44px; height: 52px; border-radius: 8px; display: grid; place-items: center; }
+.linea b { font-weight: 500; font-size: 14.5px; display: block; }
+.linea span { font-size: 12.5px; color: var(--taupe); }
+.linea .precio { font-variant-numeric: tabular-nums; font-weight: 500; }
+.paso { display: inline-flex; align-items: center; border-radius: 10px; background: var(--hueso); height: 34px; }
+.paso button { width: 32px; height: 34px; border: 0; background: none; font-size: 16px; }
+.paso output { width: 22px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 500; }
+.nota-campo { margin-top: 16px; display: grid; gap: 6px; }
+.etq { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; color: color-mix(in srgb, var(--tinta) 70%, transparent); }
+.caja { height: 44px; border-radius: 10px; border: 1px solid transparent; background: var(--hueso); padding: 0 14px; width: 100%; font-size: 16px; transition: background-color 200ms var(--ease-cayla), box-shadow 260ms var(--ease-cayla); }
+.caja:focus { outline: none; background: var(--papel); box-shadow: inset 0 -2px 0 var(--rojo), 0 0 0 1px var(--sand); }
+.total-cobro { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 4px 12px; margin-bottom: 4px; }
+.total-cobro .num { font-family: var(--serif); font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--tinta); }
+.total-cobro .det { font-size: 12.5px; color: var(--taupe); display: grid; }
+.pie-ticket { flex-direction: column; align-items: stretch; }
+.pie-ticket .btn { height: 52px; flex: none; justify-content: space-between; padding: 0 18px; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; }
+.campos { display: grid; gap: 16px; }
+.campo { display: grid; gap: 6px; }
+.campo small { color: var(--taupe); font-size: 12.5px; }
+.confirmar { display: none; margin: 0 22px 12px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--ambar) 12%, var(--papel)); border-left: 3px solid var(--ambar); font-size: 13.5px; }
+.confirmar.visible { display: grid; gap: 10px; animation: cascada 320ms var(--ease-cayla) backwards; }
+.confirmar .botones { display: flex; gap: 8px; }
+.confirmar .btn { height: 36px; flex: 1; }
+.grupo-filtro { display: grid; gap: 10px; padding-bottom: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tinta) 16%, transparent); background: var(--papel); font-size: 13.5px; transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
+.chip:active { scale: 0.96; }
+.chip[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.muestras { display: flex; gap: 10px; flex-wrap: wrap; }
+.muestra { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--papel); box-shadow: 0 0 0 1px var(--sand); }
+.muestra[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--tinta); }
+
+/* El cajón (detalle de una prenda) */
+.banda { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; }
+.banda .marca { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; }
+.desliza { will-change: transform, opacity; }
+.tallas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+.tallas div { border: 1px solid var(--sand); border-radius: 12px; padding: 10px; text-align: center; }
+.tallas b { display: block; font-family: var(--serif); font-size: 24px; font-weight: 400; line-height: 1.1; }
+.tallas span { font-size: 11px; letter-spacing: 0.12em; color: var(--taupe); }
+.dato { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid color-mix(in srgb, var(--tinta) 8%, transparent); font-size: 14px; }
+.dato span { color: var(--taupe); }
+.nav-reg { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12.5px; color: color-mix(in srgb, var(--tinta) 60%, transparent); font-variant-numeric: tabular-nums; }
+.nav-reg button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--tinta) 15%, transparent); background: none; display: grid; place-items: center; }
+.puntos-reg { display: flex; justify-content: center; gap: 6px; padding-top: 4px; }
+.puntos-reg i { width: 6px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--tinta) 18%, transparent); transition: width 260ms var(--ease-cayla), background-color 260ms var(--ease-cayla); }
+.puntos-reg i.ahora { width: 18px; background: var(--tinta); }
+
+/* El aviso de arriba */
+.aviso { position: absolute; top: 58px; left: 12px; right: 12px; z-index: 80; display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--papel); border: 1px solid var(--sand); box-shadow: 0 12px 30px -14px color-mix(in srgb, var(--sombra) 40%, transparent); font-size: 13.5px; touch-action: none; overflow: hidden; }
+.aviso[hidden] { display: none; }
+.aviso .tiempo { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--verde); transform-origin: left; }
+@keyframes tiempo { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes aviso-entra { from { opacity: 0; transform: translate3d(0, -110%, 0); } }
+@keyframes aviso-hoy { from { opacity: 0; transform: translate3d(0, -6px, 0); } }
+@keyframes visto { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+.aviso .visto path { stroke-dasharray: 24; animation: visto 420ms var(--ease-cayla) 160ms backwards; }
+
+/* ---------- Hallazgos ---------- */
+.hallazgos { display: grid; gap: 34px; max-width: 920px; }
+.hallazgos > * { min-width: 0; }
+.cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.cifra { border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); padding: 14px 16px; display: grid; gap: 2px; }
+.cifra b { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cifra span { font-size: 13px; color: var(--taupe); }
+.hallazgos h2 { margin: 0 0 6px; font-size: 26px; }
+.hallazgos h2 + p { margin: 0 0 14px; color: var(--taupe); max-width: 68ch; }
+.lista-h { list-style: none; margin: 0; padding: 0; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); overflow: hidden; }
+.lista-h li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 16px; padding: 14px 18px; border-top: 1px solid color-mix(in srgb, var(--tinta) 8%, transparent); }
+.lista-h li:first-child { border-top: 0; }
+.lista-h .nivel { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; height: 22px; align-self: start; }
+.lista-h .nivel::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.nivel.alto { color: var(--rojo); } .nivel.medio { color: var(--ambar); } .nivel.bajo { color: var(--pizarra); }
+.lista-h b { font-weight: 600; }
+.lista-h p { margin: 2px 0 0; font-size: 14px; color: color-mix(in srgb, var(--tinta) 78%, transparent); }
+.lista-h code { font-size: 12px; background: var(--hueso); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+.tabla-envuelta { overflow-x: auto; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+th, td { text-align: left; padding: 11px 14px; border-top: 1px solid color-mix(in srgb, var(--tinta) 8%, transparent); vertical-align: top; }
+thead th { border-top: 0; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--tinta) 64%, transparent); }
+td.si { color: var(--verde); } td.no { color: color-mix(in srgb, var(--tinta) 55%, transparent); }
+.pasos { counter-reset: p; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.pasos li { counter-increment: p; display: grid; grid-template-columns: 34px 1fr; gap: 12px; }
+.pasos li::before { content: counter(p); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); font-size: 13px; font-weight: 600; }
+.pasos p { margin: 2px 0 0; color: color-mix(in srgb, var(--tinta) 78%, transparent); font-size: 14px; }
+
+.selector-mini { display: none; }
+
+/* ---------- Celular: la maqueta ocupa la pantalla ---------- */
+@media (max-width: 860px) {
+  .selector-mini { display: grid; scroll-margin-top: 8px; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; margin-bottom: 10px; border-radius: 999px; background: var(--hueso); }
+  .selector-mini button { height: 36px; border: 0; border-radius: 999px; background: none; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; transition: background-color 260ms var(--ease-cayla), color 260ms var(--ease-cayla); }
+  .selector-mini button[aria-checked="true"] { background: var(--tinta); color: var(--crema); }
+  .probar { grid-template-columns: 1fr; gap: 20px; }
+  .telefono { order: -1; position: relative; top: 0; width: 100%; max-width: 420px; margin: 0 auto; padding: 0; background: none; box-shadow: none; border-radius: 0; }
+  /* El selector (44 px + 10) y el teléfono caben juntos en la pantalla: nada tapa lo de arriba de la maqueta. */
+  .pantalla { --seguro: 0px; height: max(560px, calc(100dvh - 72px)); border-radius: 22px; border: 1px solid var(--sand); }
+  .pantalla::after, .isla { display: none; }
+  .barra-sup { height: 60px; padding-top: 0; }
+  .contenido { height: calc(100% - 60px); }
+  .aviso { top: 12px; }
+  .pantalla[data-modo="hoy"] .hoja-cajon .hoja-cab { padding-top: 22px; }
+  .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .lista-h li { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+}
+</style>
+
+<header class="cabecera">
+  <div class="sede versal">CAYLA · /unificar · jueves 22 de octubre</div>
+  <h1 class="serif">Hojas del celular</h1>
+  <p>Una hoja que sube desde abajo en el teléfono tiene que portarse como una hoja: asa, se baja con el dedo, entra desde el borde y no tapa nada importante. Prueba las tres formas con el dedo (o el mouse) y elige.</p>
+  <nav class="pestanas" aria-label="Secciones">
+    <a href="#probar" data-ir="probar" aria-current="page">Probar</a>
+    <a href="#hallazgos" data-ir="hallazgos">Lo que encontré</a>
+  </nav>
+</header>
+
+<main>
+  <!-- ===================== PROBAR ===================== -->
+  <section data-vista="probar" class="probar">
+    <div class="lado">
+      <div class="selector" role="radiogroup" aria-label="Forma de la hoja">
+        <button class="opcion" role="radio" aria-checked="false" data-modo="hoy">
+          <span class="punto"></span><b>Hoy</b>
+          <span class="det">Como está en el ERP: sube 24 px con un fundido, sin asa; se cierra solo con la × o un botón.</span>
+        </button>
+        <button class="opcion" role="radio" aria-checked="true" data-modo="viva">
+          <span class="punto"></span><b>A · Hoja viva</b>
+          <span class="det">Entra desde el borde, tiene asa y se baja con el dedo. Las listas abren a media altura y se estiran.</span>
+        </button>
+        <button class="opcion" role="radio" aria-checked="false" data-modo="profunda">
+          <span class="punto"></span><b>B · Hoja viva con profundidad</b>
+          <span class="det">Todo lo de A y, además, la pantalla de atrás se aleja un poco y vuelve mientras arrastras.</span>
+        </button>
+      </div>
+
+      <div class="que" id="que"></div>
+
+      <p class="prueba"><b>Qué probar:</b> toca la barra negra (el ticket), «Registrar cliente» (escribe algo y bájala), «Filtros» (estírala hacia arriba) y una prenda (desliza a los lados para pasar a la siguiente). La maqueta no guarda nada.</p>
+    </div>
+
+    <div class="telefono">
+      <div class="selector-mini" role="radiogroup" aria-label="Forma de la hoja (celular)">
+        <button type="button" role="radio" aria-checked="false" data-modo="hoy">Hoy</button>
+        <button type="button" role="radio" aria-checked="true" data-modo="viva">A · Viva</button>
+        <button type="button" role="radio" aria-checked="false" data-modo="profunda">B · Profunda</button>
+      </div>
+      <div class="pantalla" id="pantalla" data-modo="viva">
+        <div class="isla" aria-hidden="true"></div>
+        <div class="fondo" id="fondo">
+          <div class="barra-sup">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <span class="sede-chip versal">Tienda Lima <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </div>
+          <div class="contenido">
+            <div class="ojo versal">Tienda Lima · Jueves 22</div>
+            <h3 class="serif">Vender</h3>
+            <p class="frase">Toca una prenda para verla. El ticket vive abajo.</p>
+            <div class="acciones-app">
+              <button class="btn btn-pildora" data-abrir="filtros">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M7 12h10M10 18h4"/></svg> Filtros
+              </button>
+              <button class="btn btn-secundario" data-abrir="cliente">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Registrar cliente
+              </button>
+            </div>
+            <div class="grilla" id="grilla"></div>
+          </div>
+          <div class="barra-movil">
+            <button class="btn btn-primario" data-abrir="ticket">
+              <span class="cuenta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg> Ticket · 2 prendas</span>
+              <span class="total">S/ 159.80</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="velo" id="velo"></div>
+
+        <!-- El ticket: una hoja alta con su pie fijo -->
+        <section class="hoja alta" data-hoja="ticket" role="dialog" aria-modal="true" aria-labelledby="t-ticket" tabindex="-1" hidden>
+          <div class="hoja-cab cascada">
+            <button class="asa solo-vivo" type="button" aria-label="Arrastra hacia abajo para cerrar" tabindex="-1"></button>
+            <h2 class="hoja-titulo serif" id="t-ticket">Ticket actual</h2>
+            <p class="hoja-frase">2 prendas · Tienda Lima</p>
+            <button class="cerrar" type="button" data-cerrar aria-label="Cerrar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <div class="hoja-cuerpo cascada">
+            <div class="linea"><div class="mini" style="background:var(--prenda-beige)"></div><div><b>Blusa Emma</b><span>Beige · Talla M</span></div><div class="paso"><button type="button" aria-label="Uno menos">−</button><output>1</output><button type="button" aria-label="Uno más">+</button></div></div>
+            <div class="linea"><div class="mini" style="background:var(--prenda-oliva)"></div><div><b>Pantalón Lía</b><span>Oliva · Talla S</span></div><div class="paso"><button type="button" aria-label="Uno menos">−</button><output>1</output><button type="button" aria-label="Uno más">+</button></div></div>
+            <div class="nota-campo"><label class="etq" for="nota">Nota para esta venta · opcional</label><input id="nota" class="caja" placeholder="Lo recoge el sábado"></div>
+            <div style="height:220px" aria-hidden="true"></div>
+            <p class="hoja-frase" style="text-align:center">Lo de arriba se desplaza; con el cuerpo arriba del todo, el dedo baja la hoja.</p>
+          </div>
+          <div class="hoja-pie pie-ticket">
+            <div class="total-cobro"><span class="det"><span>Subtotal S/ 135.42</span><span>IGV (18%) S/ 24.38</span></span><span class="num">S/ 159.80</span></div>
+            <button class="btn btn-primario" type="button" data-aviso="Esto es una maqueta: no cobra nada.">Cobrar <span class="serif" style="font-size:20px;letter-spacing:0;text-transform:none">S/ 159.80</span></button>
+          </div>
+        </section>
+
+        <!-- Registrar cliente: un formulario corto (si escribiste algo, bajarla pregunta) -->
+        <section class="hoja" data-hoja="cliente" role="dialog" aria-modal="true" aria-labelledby="t-cliente" tabindex="-1" hidden>
+          <div class="hoja-cab cascada">
+            <button class="asa solo-vivo" type="button" aria-label="Arrastra hacia abajo para cerrar" tabindex="-1"></button>
+            <h2 class="hoja-titulo serif" id="t-cliente">Registrar cliente</h2>
+            <p class="hoja-frase">Solo su documento: vino, preguntó, se probó.</p>
+          </div>
+          <div class="hoja-cuerpo">
+            <div class="campos cascada">
+              <div class="campo"><label class="etq" for="dni">DNI</label><input id="dni" class="caja" inputmode="numeric" maxlength="8" placeholder="8 dígitos" autocomplete="off"></div>
+              <div class="campo"><label class="etq" for="cel">Celular · opcional</label><input id="cel" class="caja" inputmode="tel" placeholder="9 dígitos" autocomplete="off"><small>Para avisarle cuando llegue su talla.</small></div>
+            </div>
+          </div>
+          <div class="confirmar" id="confirmar" role="alert">
+            <div><b>¿Salir sin guardar?</b> Lo que escribiste se pierde.</div>
+            <div class="botones"><button class="btn btn-secundario" type="button" data-seguir>Seguir aquí</button><button class="btn btn-primario" type="button" data-salir>Salir</button></div>
+          </div>
+          <div class="hoja-pie">
+            <button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button>
+            <button class="btn btn-primario" type="button" data-registrar>Registrar</button>
+          </div>
+        </section>
+
+        <!-- Filtros: una lista de opciones, abre a media altura -->
+        <section class="hoja alta" data-hoja="filtros" data-alturas="media" role="dialog" aria-modal="true" aria-labelledby="t-filtros" tabindex="-1" hidden>
+          <div class="hoja-cab cascada">
+            <button class="asa solo-vivo" type="button" aria-label="Arrastra hacia arriba para ver todo, o hacia abajo para cerrar" tabindex="-1"></button>
+            <h2 class="hoja-titulo serif" id="t-filtros">Filtros</h2>
+            <p class="hoja-frase">Elige qué mostrar en el mostrador.</p>
+          </div>
+          <div class="hoja-cuerpo cascada">
+            <div class="grupo-filtro"><span class="etq">Categoría</span><div class="chips" data-chips>
+              <button class="chip" aria-pressed="true">Blusas</button><button class="chip" aria-pressed="false">Vestidos</button><button class="chip" aria-pressed="false">Pantalones</button><button class="chip" aria-pressed="false">Casacas</button><button class="chip" aria-pressed="false">Faldas</button><button class="chip" aria-pressed="false">Polos</button><button class="chip" aria-pressed="false">Chompas</button><button class="chip" aria-pressed="false">Accesorios</button>
+            </div></div>
+            <div class="grupo-filtro"><span class="etq">Talla</span><div class="chips" data-chips>
+              <button class="chip" aria-pressed="false">XS</button><button class="chip" aria-pressed="false">S</button><button class="chip" aria-pressed="true">M</button><button class="chip" aria-pressed="false">L</button><button class="chip" aria-pressed="false">XL</button>
+            </div></div>
+            <div class="grupo-filtro"><span class="etq">Color</span><div class="muestras" data-chips>
+              <button class="muestra" aria-pressed="false" aria-label="Beige" style="background:var(--prenda-beige)"></button><button class="muestra" aria-pressed="false" aria-label="Oliva" style="background:var(--prenda-oliva)"></button><button class="muestra" aria-pressed="false" aria-label="Marino" style="background:var(--prenda-marino)"></button><button class="muestra" aria-pressed="false" aria-label="Terracota" style="background:var(--prenda-terracota)"></button>
+            </div></div>
+            <div class="grupo-filtro"><span class="etq">Dónde está</span><div class="chips" data-chips>
+              <button class="chip" aria-pressed="true">En piso</button><button class="chip" aria-pressed="false">En almacén</button><button class="chip" aria-pressed="false">En camino</button>
+            </div></div>
+            <div class="grupo-filtro"><span class="etq">Precio</span><div class="chips" data-chips>
+              <button class="chip" aria-pressed="false">Hasta S/ 60</button><button class="chip" aria-pressed="false">S/ 60 – 120</button><button class="chip" aria-pressed="false">Más de S/ 120</button>
+            </div></div>
+          </div>
+          <div class="hoja-pie">
+            <button class="btn btn-secundario" type="button" data-limpiar>Limpiar</button>
+            <button class="btn btn-primario" type="button" data-cerrar>Ver 24 prendas</button>
+          </div>
+        </section>
+
+        <!-- El cajón de una prenda: hoy entra por la derecha; en A y B es una hoja alta que se desliza entre prendas -->
+        <section class="hoja alta hoja-cajon" data-hoja="prenda" role="dialog" aria-modal="true" aria-labelledby="t-prenda" tabindex="-1" hidden>
+          <div class="hoja-cab cascada">
+            <button class="asa solo-vivo" type="button" aria-label="Arrastra hacia abajo para cerrar" tabindex="-1"></button>
+            <div class="banda desliza" id="banda"></div>
+            <button class="cerrar" type="button" data-cerrar aria-label="Cerrar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <div class="hoja-cuerpo cascada"><div class="desliza" id="ficha"></div></div>
+          <div class="hoja-pie" style="align-items:center">
+            <button class="btn btn-primario" type="button" style="flex:0 1 auto" data-aviso="Agregada al ticket (maqueta).">Agregar al ticket</button>
+            <div class="nav-reg"><span id="cuenta-reg">1 de 4</span>
+              <button type="button" data-nav="-1" aria-label="Prenda anterior"><svg class="solo-vivo" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg><svg class="solo-hoy" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+              <button type="button" data-nav="1" aria-label="Prenda siguiente"><svg class="solo-vivo" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg><svg class="solo-hoy" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            </div>
+          </div>
+        </section>
+
+        <div class="aviso" id="aviso" role="status" hidden>
+          <svg class="visto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--verde)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+          <span id="aviso-texto"></span>
+          <button class="btn btn-enlace" type="button" id="aviso-deshacer">Deshacer</button>
+          <i class="tiempo" id="aviso-tiempo"></i>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== HALLAZGOS ===================== -->
+  <section data-vista="hallazgos" class="hallazgos" hidden id="hallazgos-cuerpo">
+    <div class="cifras">
+      <div class="cifra"><b data-n="hojas">0 de 61</b><span>hojas tienen asa o se cierran con el dedo</span></div>
+      <div class="cifra"><b data-n="altas">41 de 61</b><span>ocupan del 85 al 100 % del alto: casi todo es pantalla completa</span></div>
+      <div class="cifra"><b>8</b><span>formas distintas de barra de abajo, más 2 de pestañas abajo</span></div>
+      <div class="cifra"><b>225</b><span>reglas <code>:hover</code> en el CSS propio; solo 7 bloques las apagan en pantallas táctiles</span></div>
+    </div>
+
+    <div>
+      <h2 class="serif">Lo que se rompe o confunde, de peor a menos malo</h2>
+      <p>Medido en local a 375 × 812 con pantalla táctil, abriendo las hojas reales de 98 escenarios del auditor de tema con la cuenta Admin (82 abrieron: 61 hojas y 21 listas; los otros 16 no tienen datos en la base local), más una lectura del código. «Medido» es lo que el navegador midió; «en el código» es lo que se lee en el archivo.</p>
+      <ul class="lista-h">
+        <li><span class="nivel alto">Alto</span><div><b>Ninguna hoja se baja con el dedo, y en muchas la salida no se ve.</b><p>Medido: 0 de <span data-n="h">61</span> hojas tienen asa; al arrastrar desde arriba, ninguna se mueve. En <span data-n="sinx">29</span> no hay ×: la única salida es «Cancelar» al pie, y en 5 ese pie queda bajo el pliegue (Pagar a proveedor, Nueva proforma, la prenda de una proforma, Campaña de Atributos, Acciones de Existencias). <code>components/ui/Modal.tsx</code></p></div></li>
+        <li><span class="nivel alto">Alto</span><div><b>Tras tocar un botón, se queda «levantado».</b><p>En el código: el movimiento de botón (<code>app/globals.css:1589</code>) sube 2 px, deja la sombra y gira el «+» con <code>:hover</code>. En un teléfono el <code>:hover</code> se queda pegado después del toque hasta tocar otra cosa. Tailwind ya protege sus clases <code>hover:</code>; el CSS propio no: hay 225 reglas <code>:hover</code> y solo 7 bloques <code>@media (hover: hover)</code>. A confirmar en un iPhone real.</p></div></li>
+        <li><span class="nivel alto">Alto</span><div><b>El aviso esconde su ✕ hasta pasarle el mouse.</b><p>En el código: <code>app/estilos/avisos.css:85</code> la muestra solo con <code>:hover</code>, así que en el teléfono no aparece, y el aviso no se aparta con el dedo. Además se pega arriba a la derecha (<code>Avisos.tsx:288</code>) sin dejar lugar a la isla del iPhone.</p></div></li>
+        <li><span class="nivel alto">Alto</span><div><b>El cajón de un registro tapa toda la pantalla y entra de costado.</b><p>Medido: en Movimientos y en la ficha de un proveedor, el cajón ocupa el 100 % y entra 28 px desde la derecha, sin velo ni nada de lo de atrás a la vista; se pasa al siguiente con ↑ ↓. Son 10 archivos sobre <code>components/ui/Cajon.tsx</code>.</p></div></li>
+        <li><span class="nivel medio">Medio</span><div><b>La hoja aparece; no llega desde el borde.</b><p>Medido: <span data-n="anim">57</span> hojas entran con <code>cayla-hoja</code> (sube 24 px con un fundido, 380 ms) y salen igual. En escritorio está bien; en el teléfono no se lee como algo que viene de abajo y se puede devolver.</p></div></li>
+        <li><span class="nivel medio">Medio</span><div><b>El fondo se va con el dedo cuando la hoja termina.</b><p>Medido: 1 de <span data-n="h2">61</span> hojas tiene <code>overscroll-behavior: contain</code>. En las demás, al llegar al final del contenido el gesto sigue de largo (en Android puede recargar la página).</p></div></li>
+        <li><span class="nivel medio">Medio</span><div><b>Los márgenes del iPhone valen cero.</b><p>En el código: <code>app/layout.tsx</code> no declara <code>viewport-fit=cover</code>, así que los 25 <code>env(safe-area-inset-*)</code> del ERP no hacen nada. En Safari no se nota porque su barra ocupa ese lugar; si un día se instala como app, la barra de abajo y el pie de las hojas quedan bajo el indicador de inicio.</p></div></li>
+        <li><span class="nivel medio">Medio</span><div><b>Ocho barras de abajo distintas.</b><p>En el código: el mismo degradado copiado a mano en 5 pantallas (Inicio, Caja, Cambios, Devoluciones, Inventario), el dock del almacén (la única que entra animada), <code>BarraFija</code> fija y animada, la barra negra de Apartados y tres píldoras flotantes (una sin margen del iPhone). Las pestañas de abajo de Comprobantes y Apartados también difieren.</p></div></li>
+        <li><span class="nivel medio">Medio</span><div><b>Las listas flotan igual que en escritorio.</b><p>Medido: <span data-n="listas">21</span> listas de combos y menús abren como globo junto a su botón; «Ordenar por» en Productos llega al borde y corta su última opción. Ninguna tiene velo ni se cierra con el dedo.</p></div></li>
+        <li><span class="nivel bajo">Bajo</span><div><b>Tres capas hechas a mano.</b><p>En el código: <code>ProveedorModal.tsx</code> arma su propia hoja (sin el ajuste del teclado ni la cascada); <code>FiltrosCompras.tsx</code> y <code>FiltrosRecibidas.tsx</code> son globos de 256 y 304 px que en el teléfono flotan sobre la lista.</p></div></li>
+        <li><span class="nivel bajo">Bajo</span><div><b>El menú lateral no se cierra deslizando.</b><p>En el código: <code>AppShell.tsx</code> lo cierra con el velo, la ✕, Escape o un enlace; arrastrarlo hacia la izquierda no hace nada.</p></div></li>
+      </ul>
+    </div>
+
+    <div>
+      <h2 class="serif">Qué cambia con cada forma</h2>
+      <p>Las dos propuestas respetan el movimiento del ERP: solo <code>--ease-cayla</code>, sin rebote, sin bucle, y con «reducir movimiento» todo aparece de una.</p>
+      <div class="tabla-envuelta"><table>
+        <thead><tr><th>En el teléfono</th><th>Hoy</th><th>A · Hoja viva</th><th>B · Con profundidad</th></tr></thead>
+        <tbody>
+          <tr><td>Asa arriba</td><td class="no">No</td><td class="si">Sí</td><td class="si">Sí</td></tr>
+          <tr><td>Se baja con el dedo</td><td class="no">No</td><td class="si">Sí, 1 a 1; cierra pasado un tercio o de un tirón</td><td class="si">Igual que A</td></tr>
+          <tr><td>Si escribiste algo</td><td class="no">Pregunta solo con Escape, el velo o la ×</td><td class="si">Bajarla también pregunta, en la misma hoja</td><td class="si">Igual que A</td></tr>
+          <tr><td>Entrada</td><td>Sube 24 px con fundido (380 ms)</td><td class="si">Desde el borde (460 ms) + cascada</td><td class="si">Igual, y lo de atrás se aleja</td></tr>
+          <tr><td>Listas y filtros</td><td>A toda altura</td><td class="si">A media altura, se estira</td><td class="si">Igual que A</td></tr>
+          <tr><td>Detalle de un registro (cajón)</td><td>Pantalla completa desde la derecha, ↑ ↓</td><td class="si">Hoja alta; desliza a los lados</td><td class="si">Igual que A</td></tr>
+          <tr><td>Aviso</td><td>Se va solo; la ✕ no se ve</td><td class="si">Se aparta con el dedo; barra de tiempo</td><td class="si">Igual que A</td></tr>
+          <tr><td>Fondo al llegar al final</td><td class="no">Se mueve el fondo</td><td class="si">Se queda quieto</td><td class="si">Se queda quieto</td></tr>
+          <tr><td>Lo de atrás</td><td>Velo con desenfoque</td><td>Velo que se aclara al arrastrar</td><td class="si">Se aleja, se redondea y vuelve al ritmo del dedo</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div>
+      <h2 class="serif">Cómo lo llevaría al ERP</h2>
+      <p>Casi todo vive en dos piezas: <code>&lt;Modal&gt;</code> está en 140 archivos (197 hojas) y <code>&lt;Cajon&gt;</code> en 10. Cambiarlas bajo 640 px le llega a todas sin tocar una pantalla. En escritorio no cambia nada.</p>
+      <ol class="pasos">
+        <li><div><b>La hoja del teléfono, una sola vez en <code>&lt;Modal&gt;</code>.</b><p>Asa, arrastre con su umbral, entrada desde el borde, <code>antesDeCerrar</code> también al arrastrar, <code>overscroll-behavior: contain</code>, alto en <code>dvh</code> y el pie a la vista. La lógica del gesto va pura en <code>lib/</code> con su prueba; Vender, Cambios y Devoluciones se revisan a 375 px.</p></div></li>
+        <li><div><b><code>&lt;Cajon&gt;</code> pasa a ser una hoja alta en el teléfono</b><p>Con su banda arriba y deslizar a los lados para pasar de registro (las ↑ ↓ del pie siguen para el teclado).</p></div></li>
+        <li><div><b>Los toques no dejan nada pegado.</b><p>Envolver el <code>:hover</code> del CSS propio en <code>@media (hover: hover)</code> y sumar una prueba que lo exija, como la de colores sueltos. Declarar <code>viewport-fit=cover</code> para que los márgenes del iPhone valgan.</p></div></li>
+        <li><div><b>El aviso en el teléfono.</b><p>✕ siempre a la vista en pantallas táctiles, se aparta con el dedo y cuelga bajo la isla.</p></div></li>
+        <li><div><b>Una sola barra de abajo.</b><p>Una pieza <code>&lt;BarraMovil&gt;</code> (con su entrada, la del dock del almacén) que reemplaza las ocho, y una sola cara de pestañas abajo. Pasa por <code>/unificar</code> como familia nueva.</p></div></li>
+        <li><div><b>Listas largas como hoja (si lo eliges).</b><p>Un combo o un menú con más de 8 opciones abre en el teléfono como hoja a media altura con su buscador arriba. La regla del combo no cambia, solo dónde se dibuja.</p></div></li>
+        <li><div><b>Las tres capas a mano pasan a <code>&lt;Modal&gt;</code>.</b><p>Proveedor, Filtros de Compras y Filtros de Recibidas.</p></div></li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const pantalla = $("#pantalla"), fondo = $("#fondo"), velo = $("#velo");
+  const reducido = matchMedia("(prefers-reduced-motion: reduce)");
+  const EASE = "cubic-bezier(0.32, 0.72, 0.24, 1)", SALIDA = "cubic-bezier(0.4, 0, 1, 1)", SOLTAR = "cubic-bezier(0.2, 0.7, 0.3, 1)";
+  let modo = "viva";
+  let abierta = null; // { el, nombre, y, alto, media, quien }
+  let tVelo = 0;
+
+  // ---------- Las prendas (datos de ejemplo) ----------
+  const PRENDAS = [
+    { nombre: "Blusa Emma", cat: "Blusas", color: "Beige", hex: "var(--prenda-beige)", claro: true, precio: "S/ 79.90", tallas: [2, 6, 4, 1], piso: 8, almacen: 5, vendidas: 14 },
+    { nombre: "Pantalón Lía", cat: "Pantalones", color: "Oliva", hex: "var(--prenda-oliva)", precio: "S/ 79.90", tallas: [0, 3, 5, 2], piso: 6, almacen: 4, vendidas: 9 },
+    { nombre: "Casaca Noa", cat: "Casacas", color: "Marino", hex: "var(--prenda-marino)", precio: "S/ 149.00", tallas: [1, 2, 2, 0], piso: 3, almacen: 2, vendidas: 4 },
+    { nombre: "Vestido Inti", cat: "Vestidos", color: "Terracota", hex: "var(--prenda-terracota)", precio: "S/ 119.00", tallas: [1, 4, 3, 1], piso: 5, almacen: 4, vendidas: 11 },
+  ];
+  const percha = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7a2 2 0 1 1 2-2"/><path d="M12 7v1.5L3.5 15a1.6 1.6 0 0 0 1 2.9h15a1.6 1.6 0 0 0 1-2.9L12 8.5"/></svg>';
+  $("#grilla").innerHTML = PRENDAS.map((p, i) => `
+    <button class="prenda" data-prenda="${i}">
+      <span class="mosaico${p.claro ? " claro" : ""}" style="background:${p.hex}">${percha}</span>
+      <span class="datos"><b>${p.nombre}</b><span>${p.color} · ${p.precio}</span></span>
+    </button>`).join("");
+  let iPrenda = 0;
+  function pintarPrenda() {
+    const p = PRENDAS[iPrenda];
+    $("#banda").innerHTML = `<span class="marca${p.claro ? "" : ""}" style="background:${p.hex};color:${p.claro ? "var(--tinta-fija)" : "var(--crema-fija)"}">${percha.replace('width="34" height="34"', 'width="22" height="22"')}</span>
+      <div><div class="versal" style="color:var(--taupe)">${p.cat}</div><h2 class="hoja-titulo serif" id="t-prenda">${p.nombre}</h2><p class="hoja-frase">${p.color} · ${p.precio}</p></div>`;
+    $("#ficha").innerHTML = `<div class="tallas">${["S", "M", "L", "XL"].map((t, k) => `<div><b>${p.tallas[k]}</b><span>${t}</span></div>`).join("")}</div>
+      <div class="dato"><span>En el piso</span><b>${p.piso}</b></div>
+      <div class="dato"><span>En el almacén</span><b>${p.almacen}</b></div>
+      <div class="dato"><span>Vendidas este mes</span><b>${p.vendidas}</b></div>
+      <div class="puntos-reg solo-vivo" style="padding-top:18px">${PRENDAS.map((_, k) => `<i class="${k === iPrenda ? "ahora" : ""}"></i>`).join("")}</div>
+      <p class="hoja-frase solo-vivo" style="text-align:center;margin-top:10px">Desliza a los lados para pasar de prenda.</p>`;
+    $("#cuenta-reg").textContent = `${iPrenda + 1} de ${PRENDAS.length}`;
+  }
+  pintarPrenda();
+
+  // ---------- Qué cambia en cada forma ----------
+  const ok = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--verde)" stroke-width="2.4" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
+  const no = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12h12"/></svg>';
+  const QUE = {
+    hoy: { t: "Hoy en el ERP", l: [
+      [0, "Sin asa: nada dice que la hoja se pueda bajar."],
+      [0, "El dedo no la mueve: hay que buscar la × o «Cancelar»."],
+      [0, "Entra subiendo 24 px con un fundido: parece aparecer, no llegar desde el borde."],
+      [0, "Las listas (Filtros) abren a toda altura aunque tengan dos opciones."],
+      [0, "El detalle de una prenda entra por la derecha y tapa todo: se pasa de prenda con ↑ ↓."],
+      [0, "El aviso sale y se va solo; no se puede apartar."],
+    ] },
+    viva: { t: "A · Hoja viva", l: [
+      [1, "Asa arriba: se ve que se puede bajar."],
+      [1, "Sigue al dedo 1 a 1; suelta pasado un tercio, o de un tirón, y se cierra. Si no, vuelve a su lugar sin rebotar."],
+      [1, "Con el contenido arriba del todo, bajar el dedo baja la hoja; si no, desplaza el contenido."],
+      [1, "Si escribiste algo, bajarla pregunta «¿Salir sin guardar?» en la misma hoja."],
+      [1, "Entra desde el borde (460 ms) y su contenido en cascada, como hoy."],
+      [1, "Filtros abre a media altura y se estira hacia arriba."],
+      [1, "La prenda es una hoja alta: se desliza a los lados para pasar a la siguiente."],
+      [1, "El aviso se aparta con el dedo."],
+    ] },
+    profunda: { t: "B · Con profundidad", l: [
+      [1, "Todo lo de A."],
+      [1, "La pantalla de atrás se aleja y se redondea al abrir la hoja: se entiende que sigue ahí, debajo."],
+      [1, "Mientras arrastras, lo de atrás vuelve de a poco, al ritmo del dedo."],
+      [0, "Cuesta un poco más dibujarlo en un teléfono viejo: se apaga con «reducir movimiento»."],
+    ] },
+  };
+  function pintarQue() {
+    const q = QUE[modo];
+    $("#que").innerHTML = `<h2 class="serif">${q.t}</h2><ul>${q.l.map(([b, t]) => `<li class="${b ? "" : "no"}">${b ? ok : no}<span>${t}</span></li>`).join("")}</ul>`;
+  }
+
+  // ---------- Elegir la forma ----------
+  function elegir(m) {
+    if (abierta) { abierta.el.hidden = true; abierta.el.style.transform = ""; abierta.el.classList.remove("hoy-entra", "hoy-sale", "arrastrando"); velo.classList.remove("activo"); velo.style.opacity = "0"; fondo.style.transform = ""; fondo.style.borderRadius = ""; abierta = null; limpiarFormulario(); }
+    $$(".hoja-pie").forEach((p) => { p.style.transform = ""; p.style.transition = ""; });
+    modo = m;
+    pantalla.dataset.modo = modo;
+    $$("[role=radio][data-modo]").forEach((o) => o.setAttribute("aria-checked", String(o.dataset.modo === m)));
+    pintarQue();
+    try { localStorage.setItem("hojas-modo", modo); } catch {}
+  }
+  $$("[role=radio][data-modo]").forEach((b) => b.addEventListener("click", () => elegir(b.dataset.modo)));
+  pintarQue();
+
+  // ---------- Abrir y cerrar ----------
+  const ALTO_PANTALLA = () => pantalla.clientHeight;
+  function hoja(nombre) { return $(`.hoja[data-hoja="${nombre}"]`); }
+  function numerarCascada(el) {
+    $$(".cascada", el).forEach((c) => [...c.children].forEach((h, k) => h.style.setProperty("--k", Math.min(k, 7))));
+  }
+
+  function abrir(nombre, quien) {
+    if (abierta) return;
+    const el = hoja(nombre);
+    el.hidden = false;
+    el.classList.remove("hoy-entra", "hoy-sale");
+    $("#confirmar").classList.remove("visible");
+    numerarCascada(el);
+    el.classList.remove("entra"); void el.offsetWidth; el.classList.add("entra");
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("entra"), 1300);
+    const alto = el.getBoundingClientRect().height;
+    const media = el.dataset.alturas === "media" ? Math.round(alto - ALTO_PANTALLA() * 0.5) : null;
+    abierta = { el, nombre, y: 0, alto, media, quien };
+    velo.classList.add("activo");
+    if (modo === "hoy") {
+      el.style.transform = ""; el.style.transition = "";
+      el.classList.add("hoy-entra");
+      velo.style.transition = `opacity 220ms ${EASE}`; velo.style.opacity = "1";
+    } else {
+      el.style.transition = "none";
+      ponerY(alto, 0);
+      void el.offsetWidth;
+      ponerY(media ?? 0, reducido.matches ? 0 : 460, EASE);
+    }
+    setTimeout(() => el.focus({ preventScroll: true }), 30);
+  }
+
+  /** Cierre animado. `forzar` salta la pregunta de «sin guardar». */
+  function cerrar(forzar = false) {
+    if (!abierta) return;
+    if (!forzar && sucia()) { pedirConfirmacion(); return; }
+    const { el, quien } = abierta;
+    const fin = () => {
+      el.hidden = true; el.classList.remove("hoy-sale", "hoy-entra", "arrastrando");
+      el.style.transform = ""; el.style.transition = "";
+      velo.classList.remove("activo");
+      fondo.style.transform = ""; fondo.style.borderRadius = ""; fondo.style.transition = "";
+      abierta = null;
+      limpiarFormulario();
+      quien?.focus?.({ preventScroll: true });
+    };
+    if (modo === "hoy") {
+      el.classList.remove("hoy-entra"); el.classList.add("hoy-sale");
+      velo.style.transition = `opacity 220ms ${SALIDA}`; velo.style.opacity = "0";
+      setTimeout(fin, reducido.matches ? 0 : 230);
+    } else {
+      const dur = reducido.matches ? 0 : 300;
+      ponerY(abierta.alto + 2, dur, SALIDA);
+      setTimeout(fin, dur + 20);
+    }
+  }
+
+  /** Mueve la hoja a `y` (0 = abierta del todo) y, con ella, el velo y (en B) lo de atrás. */
+  function ponerY(y, dur = 0, ease = EASE) {
+    const a = abierta ?? { el: null };
+    const el = a.el ?? $(".hoja:not([hidden])");
+    if (abierta) abierta.y = y;
+    const alto = abierta?.alto ?? el.getBoundingClientRect().height;
+    const t = dur ? `${dur}ms ${ease}` : "0ms";
+    el.style.transition = `transform ${t}`;
+    el.style.transform = `translate3d(0, ${y}px, 0)`;
+    const p = Math.min(1, Math.max(0, y / alto));
+    // A media altura el pie (el botón que confirma) se queda a la vista: sube lo que la hoja bajó, hasta la media altura.
+    const pie = $(".hoja-pie", el);
+    if (pie && abierta?.media != null) {
+      const comp = Math.min(Math.max(y, 0), abierta.media);
+      pie.style.transition = `transform ${t}`;
+      pie.style.transform = comp ? `translate3d(0, ${-comp}px, 0)` : "";
+    }
+    velo.style.transition = `opacity ${t}`;
+    velo.style.opacity = String(1 - p);
+    if (modo === "profunda") {
+      fondo.style.transition = `transform ${t}, border-radius ${t}`;
+      const s = 0.92 + 0.08 * p;
+      fondo.style.transform = `translate3d(0, ${Math.round(12 * (1 - p))}px, 0) scale(${s.toFixed(4)})`;
+      fondo.style.borderRadius = `${Math.round(22 * (1 - p))}px`;
+    }
+  }
+
+  // ---------- «Salir sin guardar» ----------
+  const sucia = () => abierta?.nombre === "cliente" && ($("#dni").value.trim() !== "" || $("#cel").value.trim() !== "");
+  function pedirConfirmacion() {
+    const c = $("#confirmar");
+    c.classList.remove("visible"); void c.offsetWidth; c.classList.add("visible");
+    if (modo !== "hoy" && abierta) ponerY(0, 320, EASE);
+    $("[data-seguir]", c).focus();
+  }
+  function limpiarFormulario() { $("#dni").value = ""; $("#cel").value = ""; $("#confirmar").classList.remove("visible"); }
+  $("[data-seguir]").addEventListener("click", () => { $("#confirmar").classList.remove("visible"); $("#dni").focus(); });
+  $("[data-salir]").addEventListener("click", () => cerrar(true));
+
+  // ---------- Botones ----------
+  pantalla.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-abrir]");
+    if (a) return abrir(a.dataset.abrir, a);
+    const p = e.target.closest("[data-prenda]");
+    if (p) { iPrenda = +p.dataset.prenda; pintarPrenda(); return abrir("prenda", p); }
+    if (e.target.closest("[data-cerrar]")) return cerrar(e.target.closest("[data-cerrar]").textContent.trim() === "Cancelar" ? false : true);
+    const av = e.target.closest("[data-aviso]");
+    if (av) { cerrar(true); return setTimeout(() => avisar(av.dataset.aviso, false), modo === "hoy" ? 240 : 320); }
+    if (e.target.closest("[data-registrar]")) {
+      const dni = $("#dni").value.trim();
+      if (dni.length !== 8) { $("#dni").focus(); return; }
+      cerrar(true); return setTimeout(() => avisar(`Cliente con DNI ${dni} registrado (maqueta).`, true), 320);
+    }
+    const n = e.target.closest("[data-nav]");
+    if (n) return navegar(+n.dataset.nav);
+    const ch = e.target.closest("[data-chips] > *");
+    if (ch) ch.setAttribute("aria-pressed", String(ch.getAttribute("aria-pressed") !== "true"));
+    if (e.target.closest("[data-limpiar]")) $$('[data-hoja="filtros"] [aria-pressed]').forEach((c) => c.setAttribute("aria-pressed", "false"));
+    const paso = e.target.closest(".paso button");
+    if (paso) { const o = paso.parentElement.querySelector("output"); o.textContent = Math.max(0, +o.textContent + (paso.textContent === "+" ? 1 : -1)); }
+  });
+  velo.addEventListener("click", () => cerrar(false));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && abierta) { e.preventDefault(); cerrar(false); } });
+
+  // ---------- Pasar de prenda ----------
+  function navegar(d, desdeDedo = 0) {
+    const nuevo = (iPrenda + d + PRENDAS.length) % PRENDAS.length;
+    const piezas = [$("#banda"), $("#ficha")];
+    const dir = d > 0 ? -1 : 1;
+    const salir = reducido.matches ? 0 : 160;
+    piezas.forEach((p) => { p.style.transition = `transform ${salir}ms ${SALIDA}, opacity ${salir}ms ${SALIDA}`; p.style.transform = `translate3d(${dir * 36}px,0,0)`; p.style.opacity = "0"; });
+    setTimeout(() => {
+      iPrenda = nuevo; pintarPrenda();
+      const piezas2 = [$("#banda"), $("#ficha")];
+      piezas2.forEach((p) => { p.style.transition = "none"; p.style.transform = `translate3d(${-dir * 36}px,0,0)`; p.style.opacity = "0"; void p.offsetWidth;
+        p.style.transition = `transform 300ms ${EASE}, opacity 300ms ${EASE}`; p.style.transform = ""; p.style.opacity = ""; });
+    }, salir);
+  }
+
+  // ---------- El dedo ----------
+  const goma = (d) => (1 - 1 / (d / 160 + 1)) * 44; // tirar más allá del tope: resiste y se frena, nunca rebota
+  let g = null;
+  function empezar(x, y, target) {
+    if (modo === "hoy" || !abierta || abierta.el.contains(target) === false) return;
+    if (target.closest("input, textarea, .chip, .muestra, .paso, .confirmar")) return;
+    const cuerpo = target.closest(".hoja-cuerpo");
+    g = { x0: x, y0: y, y: abierta.y, cuerpo, eje: null, m: [{ t: performance.now(), x, y }], cruzado: false };
+  }
+  function mover(x, y, e) {
+    if (!g || !abierta) return;
+    const dx = x - g.x0, dy = y - g.y0;
+    if (!g.eje) {
+      const arribaDelTodo = !g.cuerpo || g.cuerpo.scrollTop <= 0;
+      const enCompleta = abierta.y <= 1;
+      const cuerpoCorre = g.cuerpo && g.cuerpo.scrollHeight > g.cuerpo.clientHeight + 1;
+      // Mientras se decide, si el dedo baja con el cuerpo arriba, se frena el desplazamiento del navegador (si no, no se recupera)
+      if (e?.cancelable && dy > 0 && arribaDelTodo) e.preventDefault();
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      if (Math.abs(dx) > Math.abs(dy) * 1.2) g.eje = abierta.nombre === "prenda" ? "x" : "nada";
+      else if (g.cuerpo && cuerpoCorre && enCompleta && !(arribaDelTodo && dy > 0)) g.eje = "nada";
+      else g.eje = "y";
+      if (g.eje === "nada") { g = null; return; }
+      abierta.el.classList.add("arrastrando");
+    }
+    if (e?.cancelable) e.preventDefault();
+    g.m.push({ t: performance.now(), x, y }); if (g.m.length > 8) g.m.shift();
+    if (g.eje === "y") {
+      let yy = g.y + dy;
+      if (yy < 0) yy = -goma(-yy);
+      ponerY(yy);
+      const pasa = yy > abierta.alto * 0.33;
+      if (pasa !== g.cruzado) { g.cruzado = pasa; try { navigator.vibrate?.(6); } catch {} }
+    } else {
+      [$("#banda"), $("#ficha")].forEach((p) => { p.style.transition = "none"; p.style.transform = `translate3d(${dx * 0.85}px,0,0)`; p.style.opacity = String(1 - Math.min(0.6, Math.abs(dx) / 260)); });
+    }
+  }
+  function soltar() {
+    if (!g || !abierta) { g = null; return; }
+    const gg = g; g = null;
+    abierta.el.classList.remove("arrastrando");
+    // La velocidad sale de los últimos 100 ms: si el dedo se detuvo antes de soltar, no hay tirón.
+    const b = gg.m[gg.m.length - 1];
+    const a = gg.m.find((s) => b.t - s.t <= 100) ?? gg.m[0];
+    const dt = Math.max(16, b.t - a.t);
+    const vy = (b.y - a.y) / dt, vx = (b.x - a.x) / dt; // px por ms
+    if (gg.eje === "x") {
+      const dx = b.x - gg.x0;
+      if (Math.abs(dx) > 70 || Math.abs(vx) > 0.45) navegar(dx < 0 ? 1 : -1);
+      else [$("#banda"), $("#ficha")].forEach((p) => { p.style.transition = `transform 300ms ${EASE}, opacity 300ms ${EASE}`; p.style.transform = ""; p.style.opacity = ""; });
+      return;
+    }
+    if (gg.eje !== "y") return;
+    const y = abierta.y, alto = abierta.alto;
+    const puntos = [0, ...(abierta.media != null ? [abierta.media] : []), alto];
+    const proyectado = y + vy * 180;
+    let destino = puntos.reduce((m, p) => (Math.abs(p - proyectado) < Math.abs(m - proyectado) ? p : m), puntos[0]);
+    // Un tirón decide el sentido aunque el dedo haya recorrido poco
+    const base = gg.y;
+    if (vy > 0.5) destino = puntos.find((p) => p > base + 1) ?? alto;
+    if (vy < -0.5) destino = [...puntos].reverse().find((p) => p < base - 1) ?? 0;
+    if (destino === alto) {
+      if (sucia()) { pedirConfirmacion(); return; }
+      const dur = Math.round(Math.min(320, Math.max(180, (alto - y) / Math.max(vy, 1.1))));
+      ponerY(alto + 2, reducido.matches ? 0 : dur, SOLTAR);
+      const { el, quien } = abierta;
+      setTimeout(() => cerrar(true), (reducido.matches ? 0 : dur) - 299 > 0 ? dur - 299 : 0);
+      return;
+    }
+    const dur = Math.round(Math.min(420, Math.max(220, Math.abs(destino - y) / Math.max(Math.abs(vy), 0.9))));
+    ponerY(destino, reducido.matches ? 0 : dur, EASE);
+  }
+  // Táctil (con preventDefault para quitarle el gesto al navegador) y mouse (para probar en el computador)
+  pantalla.addEventListener("touchstart", (e) => { const t = e.touches[0]; if (e.touches.length === 1) empezar(t.clientX, t.clientY, e.target); }, { passive: true });
+  pantalla.addEventListener("touchmove", (e) => { const t = e.touches[0]; mover(t.clientX, t.clientY, e); }, { passive: false });
+  pantalla.addEventListener("touchend", soltar);
+  pantalla.addEventListener("touchcancel", soltar);
+  pantalla.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    empezar(e.clientX, e.clientY, e.target);
+    if (!g) return;
+    const mv = (ev) => mover(ev.clientX, ev.clientY, null);
+    const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); soltar(); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+  });
+
+  // ---------- El aviso ----------
+  const aviso = $("#aviso");
+  let tAviso = 0, ga = null;
+  function avisar(texto, conDeshacer) {
+    clearTimeout(tAviso);
+    $("#aviso-texto").textContent = texto;
+    $("#aviso-deshacer").hidden = !conDeshacer;
+    aviso.hidden = false;
+    aviso.style.transition = "none"; aviso.style.transform = ""; aviso.style.opacity = "";
+    aviso.style.animation = "none"; void aviso.offsetWidth;
+    aviso.style.animation = modo === "hoy" ? `aviso-hoy 260ms ${EASE} backwards` : `aviso-entra 420ms ${EASE} backwards`;
+    const visto = $(".visto path", aviso); visto.style.animation = "none"; void visto.offsetWidth; visto.style.animation = "";
+    const ms = conDeshacer ? 7000 : 4000;
+    const barra = $("#aviso-tiempo"); barra.style.animation = "none"; void barra.offsetWidth; barra.style.animation = `tiempo ${ms}ms linear forwards`;
+    barra.hidden = modo === "hoy";
+    tAviso = setTimeout(() => quitarAviso(0, -1), ms);
+  }
+  function quitarAviso(dx, dy) {
+    clearTimeout(tAviso);
+    const dur = reducido.matches ? 0 : 220;
+    aviso.style.animation = "none";
+    aviso.style.transition = `transform ${dur}ms ${SALIDA}, opacity ${dur}ms ${SALIDA}`;
+    aviso.style.transform = dx ? `translate3d(${Math.sign(dx) * 110}%,0,0)` : `translate3d(0,${modo === "hoy" ? -6 : -130}px,0)`;
+    aviso.style.opacity = "0";
+    setTimeout(() => { aviso.hidden = true; }, dur);
+  }
+  $("#aviso-deshacer").addEventListener("click", () => quitarAviso(0, -1));
+  const avEmpieza = (x, y) => { if (modo !== "hoy") { ga = { x0: x, y0: y, t: performance.now() }; clearTimeout(tAviso); $("#aviso-tiempo").style.animationPlayState = "paused"; } };
+  const avMueve = (x, y, e) => {
+    if (!ga) return; e?.cancelable && e.preventDefault();
+    const dx = x - ga.x0, dy = Math.min(0, y - ga.y0);
+    ga.dx = dx; ga.dy = dy;
+    aviso.style.animation = "none"; aviso.style.transition = "none";
+    aviso.style.transform = `translate3d(${dx}px, ${dy + (y - ga.y0 > 0 ? goma(y - ga.y0) * 0.3 : 0)}px, 0)`;
+    aviso.style.opacity = String(1 - Math.min(0.7, Math.max(Math.abs(dx) / 260, -dy / 90)));
+  };
+  const avSuelta = () => {
+    if (!ga) return; const { dx = 0, dy = 0, t } = ga; ga = null;
+    const v = Math.max(Math.abs(dx), Math.abs(dy)) / Math.max(16, performance.now() - t);
+    if (Math.abs(dx) > 80 || dy < -28 || v > 0.6) quitarAviso(Math.abs(dx) > -dy ? dx : 0, -1);
+    else { aviso.style.transition = `transform 300ms ${EASE}, opacity 300ms ${EASE}`; aviso.style.transform = ""; aviso.style.opacity = ""; $("#aviso-tiempo").style.animationPlayState = "running"; tAviso = setTimeout(() => quitarAviso(0, -1), 2500); }
+  };
+  aviso.addEventListener("touchstart", (e) => { e.stopPropagation(); avEmpieza(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  aviso.addEventListener("touchmove", (e) => { e.stopPropagation(); avMueve(e.touches[0].clientX, e.touches[0].clientY, e); }, { passive: false });
+  aviso.addEventListener("touchend", (e) => { e.stopPropagation(); avSuelta(); });
+  aviso.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.target.closest("button")) return;
+    e.stopPropagation(); avEmpieza(e.clientX, e.clientY);
+    const mv = (ev) => avMueve(ev.clientX, ev.clientY, null);
+    const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); avSuelta(); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+  });
+
+  // ---------- Pestañas de la página ----------
+  function irA(v) {
+    $$("[data-vista]").forEach((s) => (s.hidden = s.dataset.vista !== v));
+    $$("[data-ir]").forEach((a) => (a.dataset.ir === v ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+  }
+  $$("[data-ir]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); irA(a.dataset.ir); history.replaceState(null, "", `#${a.dataset.ir}`); }));
+  if (location.hash === "#hallazgos") irA("hallazgos");
+  try { const m = localStorage.getItem("hojas-modo"); if (m && QUE[m]) elegir(m); } catch {}
+})();
+</script>

@@ -26,6 +26,9 @@ export const MIN_MS_ENTRE_PREGUNTAS = 60_000;
 /** Cuánto calla la franja después de «Más tarde». Pasado ese tiempo, si sigue habiendo versión nueva, vuelve. */
 export const MS_MAS_TARDE = 30 * 60_000;
 
+/** Lo que dura la salida de la píldora al pulsar la ✕ (la gota que cae, `avisos.css`): 950 ms de recogerse + 500 ms de caer. */
+export const MS_SALIDA = 1450;
+
 /** La versión de una compilación fuera de Vercel (`next dev` en una máquina): ahí no hay nada que comparar. */
 export const VERSION_SIN_DATO = "desarrollo";
 

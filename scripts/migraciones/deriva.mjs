@@ -60,6 +60,34 @@ export const CONOCIDAS = [
     motivo:
       "Tablas «respaldo_…» que deja en producción un arreglo de datos hecho allá (la renumeración de comprobantes de octubre): no vienen de una migración y no van al repo. Su lugar es el schema respaldo_purgas.",
   },
+  {
+    // Solo la forma de la tabla archivada de #1190 (columnas, candados e índices). Un permiso a anon/authenticated/PUBLIC, una
+    // política o un disparador sobre ella SÍ se ven; su permiso de service_role y su RLS van congelados en la entrada de abajo.
+    patron: /^(columna|candado|indice)\tcampana_disenos(\.|_|$)/,
+    motivo:
+      "La tabla campana_disenos de #1190 (ADR-0436), pegada en producción el 2026-10-17 y archivada por ADR-0476: vacía, sin políticas, no se borra. La migración 20261024155000 cerró #1190; su definición vive en la rama de #1190, no en main.",
+  },
+  {
+    // CONGELADAS: si la entrada trae `huellas`, solo cubre las claves listadas y solo mientras la huella sea ESA. Así, un EXECUTE
+    // que vuelve a abrirse sobre el editor archivado (re-pegar 20261017160000 o 231000) cambia la huella y sale en la revisión.
+    patron: /^(fn\t(campana_diseno|campanas_lista|campanas_portada_dias|fn_campana_en_portada|fn_campana_para_disenar|fn_colores_de_portada_validos|fn_diseno_json|guardar_diseno_borrador|publicar_diseno_campana|volver_al_diseno_anterior)\()|^(rls\tcampana_disenos|permiso\tcampana_disenos\.service_role)$/,
+    huellas: {
+      "fn\tcampana_diseno(p_etiqueta_id uuid)": "4aaf6226ced7",
+      "fn\tcampanas_lista()": "b46eaddfd677",
+      "fn\tcampanas_portada_dias(p_desde date, p_hasta date)": "427e44f8c4bd",
+      "fn\tfn_campana_en_portada(p_dia date)": "a6a99caadcea",
+      "fn\tfn_campana_para_disenar(p_etiqueta_id uuid)": "85eab65236bb",
+      "fn\tfn_colores_de_portada_validos(c jsonb)": "34d32ed7dd3b",
+      "fn\tfn_diseno_json(d retail.campana_disenos)": "bdafd42d8326",
+      "fn\tguardar_diseno_borrador(p_etiqueta_id uuid, p_diseno jsonb, p_version integer)": "a211970c4382",
+      "fn\tpublicar_diseno_campana(p_etiqueta_id uuid, p_version integer)": "52f4e2a36941",
+      "fn\tvolver_al_diseno_anterior(p_etiqueta_id uuid)": "2d93963b0a2a",
+      "permiso\tcampana_disenos.service_role": "0aa2355c1753",
+      "rls\tcampana_disenos": "b5a4aba65cef",
+    },
+    motivo:
+      "Las 10 funciones de diseño de campaña de #1190 y el permiso de service_role de su tabla, archivadas sin borrar (ADR-0476 y la migración 20261024155000): ya nadie las llama, ni anon ni authenticated pueden ejecutarlas. Van CONGELADAS con su huella de después de archivar.",
+  },
 ];
 
 /**
@@ -126,7 +154,8 @@ export function compararHuellas(main, deProduccion, conocidas = CONOCIDAS, alias
     const enProd = produccion.get(clave);
     if (enMain === enProd) continue;
     const [g, k] = clave.split("\t");
-    const conocida = conocidas.find((c) => c.patron.test(clave));
+    // Una entrada con `huellas` está CONGELADA: solo cubre las claves que lista y solo con esa huella exacta.
+    const conocida = conocidas.find((c) => c.patron.test(clave) && (!c.huellas || (clave in c.huellas && c.huellas[clave] === enProd)));
     if (conocida) {
       r.conocidas.push({ g, k, motivo: conocida.motivo });
       continue;

@@ -224,7 +224,7 @@ export function EditarMetaModal({
             </button>
           )}
 
-          <div className="min-h-[1rem] text-xs text-rojo" role="alert">
+          <div className="min-h-[1rem] text-sm text-rojo" role="alert">
             {error}
           </div>
 

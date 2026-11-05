@@ -19,12 +19,14 @@ import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
 import { avisoDatosDeHoy, META_CON_PRENDA, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
 import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
 import { pisoFrescuraParaElInicio, type LecturaParaElInicio, type PisoFrescuraInicio } from "@/lib/inicio-piso-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
+import { unstable_rethrow } from "next/navigation";
 
 // La parte que LEE de Postgres para Frescura del piso (ADR-0208, pasos 3 y 4 del 3c): solo dice a quién preguntar. Qué se
 // pide, en qué orden, cómo falla cada bloque y qué significan los datos vive en `frescura-reglas.ts` (`armarFrescuraLider`,
@@ -174,7 +176,7 @@ async function preciosDelPiso(supabase: Supabase, sedeId: string, lectura: Datos
     for (let i = 0; i < ids.length; i += IDS_POR_CONSULTA) trozos.push(ids.slice(i, i + IDS_POR_CONSULTA));
     const [lecturas, propios] = await Promise.all([
       Promise.all(trozos.map((t) => supabase.from("variantes").select("id, precio").in("id", t))),
-      supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: sedeId }),
+      leerPreciosPropiosDeSede(supabase, sedeId),
     ]);
     if (lecturas.some((l) => l.error)) return {};
     const generales = new Map<string, number>();
@@ -392,6 +394,7 @@ export async function getPisoDeFrescuraParaElInicio(persona: Pick<PersonaActualV
     if (!lectura.datos.separaPiso) return { estado: "no_aplica" };
     return { estado: "ok", datos: pisoFrescuraParaElInicio(lectura.datos, puerta) };
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Inicio: no se pudo leer el piso de Frescura", e);
     return { estado: "fallo" };
   }
@@ -412,6 +415,7 @@ export async function getLecturaFrescuraDeTienda(sede: { id: string; nombre: str
     const { respaldo } = await leerRespaldoCayla(rpc, new Date().toISOString());
     return (await armarFrescuraSede(sede, rpc, FRESCURA_DIAS_LECTURA, respaldo, undefined, cargarDudasCon(supabase))).lectura;
   } catch (e) {
+    unstable_rethrow(e);
     return { datos: null, fallo: e instanceof Error ? e.message : String(e) };
   }
 }

@@ -66,18 +66,24 @@
       color 260ms var(--ease-cayla);
   }
   .gr-baldosa[data-otro] { border-style: dashed; }
-  .gr-baldosa:hover { border-color: var(--color-taupe); }
+  @media (hover: hover) {
+    .gr-baldosa:hover { border-color: var(--color-taupe); }
+  }
   .gr-baldosa:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
   /* Con una elegida, las demás dan un paso atrás (sin desaparecer: se puede cambiar de idea). */
   .gr-baldosa[data-atenuada] { opacity: 0.62; }
-  .gr-baldosa[data-atenuada]:hover { opacity: 1; }
+  @media (hover: hover) {
+    .gr-baldosa[data-atenuada]:hover { opacity: 1; }
+  }
 
   .gr-icono {
     width: 24px;
     height: 24px;
     transition: translate 300ms var(--ease-cayla), color 260ms var(--ease-cayla);
   }
-  .gr-baldosa:hover .gr-icono { translate: 0 -2px; }
+  @media (hover: hover) {
+    .gr-baldosa:hover .gr-icono { translate: 0 -2px; }
+  }
   .gr-nombre { position: relative; }
   .gr-veces {
     font-size: 10.5px;
@@ -214,8 +220,10 @@
     cursor: pointer;
     transition: color 200ms var(--ease-cayla);
   }
-  .gr-factura-boton:hover,
   .gr-factura[data-abierto] .gr-factura-boton { color: var(--color-tinta); }
+  @media (hover: hover) {
+    .gr-factura-boton:hover { color: var(--color-tinta); }
+  }
   .gr-factura-mas {
     position: relative;
     width: 22px;

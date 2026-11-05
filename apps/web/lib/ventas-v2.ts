@@ -178,12 +178,15 @@ export async function idsDeVentasBuscadas(ubicacionId: string, texto: string, to
 
 /** Un cambio ya hecho sobre una línea: lo que se le entregó a la clienta y cuándo. */
 export type CambioHecho = {
+  /** Cuántas unidades de la línea se devolvieron en este cambio (no cuántas prendas se llevó: eso es `salidas`). */
   cantidad: number;
   creadoEn: string;
   productoId: string;
   referencia: string;
   talla: string | null;
   color: string | null;
+  /** Un cambio por VARIAS prendas (ADR-0470): todas las que se llevó, cada una con su cantidad. Ausente en un cambio de una por una. */
+  salidas?: { productoId: string; referencia: string; talla: string | null; color: string | null; cantidad: number }[];
 };
 
 /** Una devolución ya registrada sobre una línea — pendiente de aprobar o aprobada. Las
@@ -324,7 +327,8 @@ export async function getVentasRecientes(
       .from("cambios")
       .select(
         `venta_item_id, cantidad, created_at,
-         variante_nueva:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( id, referencia ) )`
+         variante_nueva:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( id, referencia ) ),
+         salidas:cambio_salidas ( cantidad, variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( id, referencia ) ) )`
       )
       .in("venta_item_id", ids)
       .order("created_at"),
@@ -357,6 +361,17 @@ export async function getVentasRecientes(
       referencia: c.variante_nueva?.producto?.referencia ?? "",
       talla: c.variante_nueva?.talla?.valor ?? null,
       color: c.variante_nueva?.color?.nombre ?? null,
+      ...(c.salidas && c.salidas.length > 0
+        ? {
+            salidas: c.salidas.map((x) => ({
+              cantidad: x.cantidad,
+              productoId: x.variante?.producto?.id ?? "",
+              referencia: x.variante?.producto?.referencia ?? "",
+              talla: x.variante?.talla?.valor ?? null,
+              color: x.variante?.color?.nombre ?? null,
+            })),
+          }
+        : {}),
     });
     cambiosPorItem.set(c.venta_item_id, lista);
   }

@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
-import { tolerar } from "@/lib/resultado";
+import { leerPorTandasDeIds, tolerar } from "@/lib/resultado";
 
 /* ====================================================================
    Apariencia de una variante · la miniatura y el color de una prenda
@@ -45,18 +45,20 @@ export type Apariencia = {
 
 type Cliente = SupabaseClient<Database, "retail">;
 
-/** La apariencia de cada variante pedida, por id. Pensada para decenas de ids (viajan en la
- *  URL de la consulta), no para miles: para un conteo entero, pídela dentro de la misma
- *  consulta que trae las líneas, como hace `getConteoDetalle`. */
+/** La apariencia de cada variante pedida, por id. Los ids viajan en la URL de la consulta, así que se piden por tandas
+ *  (`leerPorTandasDeIds`: Frescura pide ~450 prendas por tienda y una dirección de 17 KB puede rechazarse, dejando toda la tabla sin foto
+ *  ni color); para un conteo entero, pídela dentro de la misma consulta que trae las líneas, como hace `getConteoDetalle`. */
 export async function getAparienciaVariantes(supabase: Cliente, ids: string[]): Promise<Map<string, Apariencia>> {
   const unicos = [...new Set(ids)];
   if (unicos.length === 0) return new Map();
 
   const { datos, fallo } = tolerar(
-    await supabase
-      .from("variantes")
-      .select("id, sku, codigo, color:colores ( hex ), producto:productos ( producto_fotos ( url, orden, es_principal ) )")
-      .in("id", unicos),
+    await leerPorTandasDeIds(unicos, (tanda) =>
+      supabase
+        .from("variantes")
+        .select("id, sku, codigo, color:colores ( hex ), producto:productos ( producto_fotos ( url, orden, es_principal ) )")
+        .in("id", tanda),
+    ),
     "las miniaturas y los colores"
   );
   if (fallo) console.error(fallo);

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -9,6 +9,8 @@ import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
@@ -26,6 +28,8 @@ import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
 import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getStockPorDueno } from "@/lib/stock-por-dueno";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -62,7 +66,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas] = await Promise.all([
-    getCatalogo(),
+    // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
+    getCatalogoDeLaSede(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
     getUbicaciones(),
@@ -71,7 +76,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // a verificar `registrar_venta`. Es un dato secundario: si no carga, se vende sin
     // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
     // producción (PGRST202) no hay campañas que aplicar: sin aviso.
-    supabase.rpc("campanas_vigentes"),
+    // Por páginas: una campaña de todas las categorías pasa de las 1.000 filas que PostgREST entrega (2.518 en TRU el 2026-10-23).
+    leerCampanasVigentes(supabase, persona.ubicacionId),
     // Listas cerradas del modal «Prenda sin registrar» (ADR-0179), las mismas que usa Ventas sin registrar al corregir (ADR-0369).
     // Si alguna no carga, la caja sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
     leerListasPrendaLibre(),
@@ -95,7 +101,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     getPedidosConCliente(persona.ubicacionId),
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
-    supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: persona.ubicacionId }),
+    leerPreciosPropiosDeSede(supabase, persona.ubicacionId),
     // La ficha de cada color (ADR-0316; Felipe 2026-10-10): qué transmite y con qué se combina, para «Todo de la prenda». Secundario y
     // chico (~90 filas): si falla, la hoja no dice nada del color y se vende igual. La lee cualquier sesión (`colores_select`).
     supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true),
@@ -134,6 +140,11 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const familiasFueraDeMotores = new Set(
     resFamiliasApagadas.error ? [] : (resFamiliasApagadas.data ?? []).map((f) => f.codigo),
   );
+  // De quién son las unidades de cada prenda aquí (ADR-0542): solo donde conviven dos empresas (Lima). La cajera elige de cuál sale cuando hay
+  // de las dos. Dato secundario: si la base no responde, no se pregunta y la base decide (rechaza si de verdad hay duda).
+  const empresasAqui = await getEmpresasAqui(persona.ubicacionId).catch(() => null);
+  const repartoDeStock = await getStockPorDueno(persona.ubicacionId, empresasAqui);
+  const duenosPorVariante = repartoDeStock ? Object.fromEntries(repartoDeStock) : null;
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
     .map((v) => ({
@@ -146,11 +157,15 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       color: v.color,
       colorHex: v.colorHex ?? null,
       colorCodigo: v.colorCodigo ?? null,
+      // Con el color, la llave de «¿Es alguna de estas?» en Prenda sin registrar (`prendasPosibles`).
+      tallaId: v.tallaId ?? null,
+      categoriaId: v.categoriaId ?? null,
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
       fueraDeMotores: v.categoriaFamilia ? familiasFueraDeMotores.has(v.categoriaFamilia) : false,
       marca: v.marca,
+      empresa: v.empresa ?? null,
       precio: preciosDeEstaSede.get(v.varianteId) ?? v.precio,
       precioDeSede: preciosDeEstaSede.has(v.varianteId),
       campana: campanaPorVariante.get(v.varianteId) ?? null,
@@ -256,6 +271,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         fondoUltimoCierre={fondoUltimoCierre}
         cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
         variantes={variantesParaVenta}
+        duenosPorVariante={duenosPorVariante}
         colores={coloresConFicha}
         listasPrendaLibre={listasPrendaLibre}
         campanasNoCargaron={campanasNoCargaron}
@@ -266,6 +282,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
         // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
         puedeBuscarClienta={modulos.includes("clientas")}
+        // A5 (auditoría 2026-10-14): el enlace a la mesa de Ventas sin registrar, que vive en Existencias (ADR-0306).
+        verMesaRegularizar={modulos.includes("existencias")}
         club={club}
         qrDisponible={resQr.data === true}
         maquinasCobro={leerMaquinasDeCobro(resMaquinas.error ? [] : ((resMaquinas.data ?? []) as Record<string, unknown>[]))}

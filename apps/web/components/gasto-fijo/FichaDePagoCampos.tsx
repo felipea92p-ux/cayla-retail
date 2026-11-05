@@ -17,11 +17,13 @@ import {
   type FormaDePago,
   type TipoDocumento,
 } from "@/lib/gasto-fijo-ficha-reglas";
-import { sugerirFicha } from "@/lib/sugerencias-gasto-fijo";
+import { formasParaElegir, pideVence, sugerirFicha } from "@/lib/sugerencias-gasto-fijo";
 
 // La ficha de pago de un gasto fijo dentro de su hoja (ADR-0452): a quién se le paga, cómo, y cómo reconocerlo. Todo es opcional,
 // se completa de a poco. Los campos de la cuenta solo existen para quien puede verlos (líder y admin): para el resto ni se piden
-// ni se mandan. Los ejemplos siguen a la categoría elegida (`sugerirFicha`, ADR-0290). Solo dibuja: guardar es de `GastoFijoModal`.
+// ni se mandan. Los ejemplos, los títulos, las ayudas y qué campos se piden siguen a la categoría elegida (`sugerirFicha`, ADR-0290 y
+// ADR-0452 act. 2026-10-22): un alquiler no tiene «recibo» ni «servicio», y «Vence el contrato» no es de un arbitrio. Solo dibuja:
+// guardar es de `GastoFijoModal`.
 
 export function FichaDePagoCampos({
   valor,
@@ -40,11 +42,18 @@ export function FichaDePagoCampos({
   const sug = sugerirFicha(categoria);
   const { cuenta, billetera } = camposDePago(valor);
   const alternar = (b: Billetera) => onCambio("billeteras", valor.billeteras.includes(b) ? valor.billeteras.filter((x) => x !== b) : [...valor.billeteras, b]);
+  // Sin contrato en esta categoría y sin fecha cargada, la caja ni se pide (con una fecha cargada se muestra siempre).
+  const verVence = pideVence(sug, valor.contratoVence);
+  const campoVence = (
+    <CampoFin etiqueta={sug.vence?.titulo ?? "Vence el contrato"} htmlFor="ficha-contrato" ayuda={sug.vence?.ayuda}>
+      <InputFin id="ficha-contrato" type="date" value={valor.contratoVence} onChange={(e) => onCambio("contratoVence", e.target.value)} disabled={deshabilitado} />
+    </CampoFin>
+  );
 
   return (
     <div className="mt-5">
       <TituloGrupo className="mb-3" nota="todo es opcional: complétalo cuando tengas el dato">A quién se le paga</TituloGrupo>
-      <CampoFin etiqueta="Propietario o empresa" htmlFor="ficha-beneficiario">
+      <CampoFin etiqueta={sug.tituloBeneficiario} htmlFor="ficha-beneficiario">
         <InputFin
           id="ficha-beneficiario"
           data-campo="ficha-beneficiario"
@@ -101,7 +110,7 @@ export function FichaDePagoCampos({
           valor={valor.formaDePago}
           onValor={(v) => onCambio("formaDePago", v)}
           deshabilitado={deshabilitado}
-          opciones={[{ valor: "", texto: "Sin elegir todavía" }, ...FORMAS_DE_PAGO.map((f) => ({ valor: f, texto: TEXTO_FORMA_DE_PAGO[f] }))]}
+          opciones={[{ valor: "", texto: "Sin elegir todavía" }, ...formasParaElegir(sug, FORMAS_DE_PAGO, valor.formaDePago).map((f) => ({ valor: f, texto: TEXTO_FORMA_DE_PAGO[f] }))]}
         />
       </CampoFin>
       {!puedeVerBanco && (cuenta || billetera) && (
@@ -148,14 +157,13 @@ export function FichaDePagoCampos({
 
       <TituloGrupo className="mb-3 mt-2">Para reconocerlo y no perderlo</TituloGrupo>
       <div className="fin-dos-campos">
-        <CampoFin etiqueta="Código del servicio" htmlFor="ficha-codigo" ayuda="El que sale en el recibo: suministro, contrato o cliente.">
+        {verVence && sug.vencePrimero && campoVence}
+        <CampoFin etiqueta={sug.tituloCodigo} htmlFor="ficha-codigo" ayuda={sug.ayudaCodigo}>
           <InputFin id="ficha-codigo" data-campo="ficha-codigo" value={valor.codigoServicio} onChange={(e) => onCambio("codigoServicio", e.target.value)} placeholder={sug.codigo} maxLength={TOPES_FICHA.codigo} disabled={deshabilitado} />
         </CampoFin>
-        <CampoFin etiqueta="Vence el contrato" htmlFor="ficha-contrato">
-          <InputFin id="ficha-contrato" type="date" value={valor.contratoVence} onChange={(e) => onCambio("contratoVence", e.target.value)} disabled={deshabilitado} />
-        </CampoFin>
+        {verVence && !sug.vencePrimero && campoVence}
       </div>
-      <CampoFin etiqueta="Cómo llega el recibo" htmlFor="ficha-recibo">
+      <CampoFin etiqueta={sug.tituloRecibo} htmlFor="ficha-recibo">
         <InputFin id="ficha-recibo" value={valor.reciboLlega} onChange={(e) => onCambio("reciboLlega", e.target.value)} placeholder={sug.recibo} maxLength={TOPES_FICHA.recibo} disabled={deshabilitado} />
       </CampoFin>
       <CampoFin etiqueta="Notas para quien herede esto" htmlFor="ficha-notas" ayuda="No escribas claves ni contraseñas: aquí las puede leer quien tenga acceso a este gasto.">

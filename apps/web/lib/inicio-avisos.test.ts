@@ -33,6 +33,19 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ apartados: { vencidos: 0, hoy: 0, manana: 0, primeraClienta: null } })[0]!.nivel).toBe("aldia");
   });
 
+  it("ADR-0564: las dañadas de 7 días o más sin decidirse son urgentes para el líder, llevan a la lista de Dañadas y salen aunque las oculte; con cero, «al día»; sin leer, no es 0", () => {
+    const con = avisosInicio({ danadasViejas: 2 })[0]!;
+    expect([con.clave, con.nivel, con.cantidad, con.href]).toEqual(["danadas", "urgente", 2, "/inventario?danados=1"]);
+    expect(con.detalle).toBe("2 llevan 7 días o más separadas sin que nadie las lleve a arreglar.");
+    expect(con.ahora).toBe("Decide 2 prendas dañadas");
+    expect(avisosInicio({ danadasViejas: 1 })[0]!.detalle).toMatch(/^1 lleva 7 días/);
+    expect(avisosInicio({ danadasViejas: 0 })[0]!.nivel).toBe("aldia");
+    const sinLeer = avisosInicio({ danadasViejas: null })[0]!;
+    expect([sinLeer.nivel, sinLeer.cantidad]).toEqual(["sinleer", null]);
+    expect(avisosInicio({}).some((a) => a.clave === "danadas")).toBe(false);
+    expect(avisosVisibles(avisosInicio({ danadasViejas: 2 }), { danadas: false }, true).activos[0]).toMatchObject({ clave: "danadas", forzado: true });
+  });
+
   it("ADR-0328 act. 17: un pedido entre sedes con 48 h sin respuesta es urgente para el líder y sale aunque lo oculte", () => {
     const [a] = avisosInicio({ pedidosSinRespuesta: { tePiden: 1, pediste: 1, detalle: "Tienda Lima te pidió hace 50 h y nadie respondió.", ahora: "Responde 1 pedido de otra sede" } });
     expect(a).toMatchObject({ clave: "pedidosSede", cantidad: 2, nivel: "urgente", href: "/inventario/traslados", ahora: "Responde 1 pedido de otra sede" });
@@ -102,7 +115,7 @@ describe("avisosInicio", () => {
   it("una factura vencida es urgente; una que vence en la semana, por hacer", () => {
     const vencida = avisosInicio({ porPagar: { vencidas: 2, montoVencido: 3480, semana: 1, montoSemana: 500 } })[0]!;
     expect(vencida.nivel).toBe("urgente");
-    expect(vencida.titulo).toBe("Facturas de proveedor vencidas");
+    expect(vencida.titulo).toBe("Compras por pagar vencidas");
     expect(avisosInicio({ porPagar: { vencidas: 0, montoVencido: 0, semana: 1, montoSemana: 500 } })[0]!.nivel).toBe("toca");
   });
 
@@ -123,16 +136,22 @@ describe("avisosInicio", () => {
     expect(avisosInicio({})).toEqual([]);
   });
 
-  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta.
-  it("las notas de crédito por pedir llevan a Notas de crédito, no se ocultan y se vuelven urgentes pasadas dos semanas", () => {
-    const [a] = avisosInicio({ notasPorPedir: { facturas: 2, igv: 18, dias: 3 } });
-    expect(a).toMatchObject({ clave: "notasPorPedir", grupo: "Compras", cantidad: 2, nivel: "toca", href: "/compras/notas-credito", ocultable: false });
-    expect(a!.ahora).toBe("Pide la nota de crédito de 2 facturas");
-    expect(a!.detalle).toBe("La plata ya volvió en 2 facturas, pero falta la nota del proveedor: sus S/\u00a018.00 de IGV esperan.");
-    expect(avisosInicio({ notasPorPedir: { facturas: 1, igv: 3.6, dias: 15 } })[0]!.nivel).toBe("urgente");
-    expect(avisosInicio({ notasPorPedir: { facturas: 0, igv: 0, dias: null } })[0]!.nivel).toBe("aldia");
-    expect(avisosInicio({ notasPorPedir: null })[0]).toMatchObject({ nivel: "sinleer", ocultable: false });
+  // ADR-0567: la planilla que Dynamic pagó sin su salida del banco registrada. No se oculta.
+  it("la planilla sin su salida del banco avisa al líder, dice cuánto y no se puede ocultar", () => {
+    const [a] = avisosInicio({ planillaSalidas: { salidas: 2, total: 18258.12, cambios: 0 } });
+    expect(a).toMatchObject({ clave: "planillaSalidas", grupo: "Finanzas", cantidad: 2, nivel: "toca", href: "/finanzas/dinero", ocultable: false });
+    expect(a!.titulo).toBe("Planilla pagada sin su salida del banco");
+    expect(a!.ahora).toContain("Registra de qué banco salió la planilla");
+    expect(a!.detalle).toContain("2 salidas por registrar");
+    expect(avisosVisibles([a!], { planillaSalidas: false }, true).activos.map((x) => x.clave)).toEqual(["planillaSalidas"]);
+    // Solo un cambio de Dynamic después de registrar: otro título y otra tarea.
+    const [c] = avisosInicio({ planillaSalidas: { salidas: 0, total: 0, cambios: 1 } });
+    expect(c!.titulo).toBe("Dynamic cambió una planilla ya registrada");
+    expect(c!.ahora).toBe("Revisa la planilla que Dynamic cambió");
+    expect(avisosInicio({ planillaSalidas: null })[0]!.nivel).toBe("sinleer");
   });
+
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta.
   it("las prendas de factura que no llegaron llevan a la ficha del proveedor (o al directorio) y no se ocultan", () => {
     const [a] = avisosInicio({ prendasSinLlegar: { prendas: 3, facturas: 1, igv: 10.8, proveedores: 1, proveedorId: "p1" } });
     expect(a).toMatchObject({ clave: "prendasSinLlegar", grupo: "Compras", cantidad: 3, nivel: "toca", href: "/compras/proveedores/p1", ocultable: false });
@@ -140,8 +159,8 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ prendasSinLlegar: { prendas: 4, facturas: 2, igv: 14.4, proveedores: 2, proveedorId: null } })[0]!.href).toBe("/compras/proveedores");
     expect(avisosInicio({ prendasSinLlegar: { prendas: 0, facturas: 0, igv: 0, proveedores: 0, proveedorId: null } })[0]!.nivel).toBe("aldia");
     // Ninguno de los dos se apaga desde «Ajustar».
-    const todos = avisosInicio({ notasPorPedir: { facturas: 1, igv: 3.6, dias: 1 }, prendasSinLlegar: { prendas: 1, facturas: 1, igv: 3.6, proveedores: 1, proveedorId: "p1" } });
-    expect(avisosVisibles(todos, { notasPorPedir: false, prendasSinLlegar: false }, true).activos.map((x) => x.clave)).toEqual(["notasPorPedir", "prendasSinLlegar"]);
+    const todos = avisosInicio({ prendasSinLlegar: { prendas: 1, facturas: 1, igv: 3.6, proveedores: 1, proveedorId: "p1" } });
+    expect(avisosVisibles(todos, { prendasSinLlegar: false }, true).activos.map((x) => x.clave)).toEqual(["prendasSinLlegar"]);
   });
 
   // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
@@ -382,5 +401,18 @@ describe("armarEquipo", () => {
       { ocurrio_at: "2026-09-26T22:00:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda por S/ 50", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 50 } },
     ]);
     expect(e.find((m) => m.personaId === "m")!.monto).toBe(50);
+  });
+});
+
+describe("envíos a medias", () => {
+  const e = (dias: number) => ({ id: "e1", numero: "ENV-000012", sede: "Lima", enStock: 12, contadas: 70, desde: new Date(Date.now() - dias * 86_400_000).toISOString() });
+  it("lleva a terminarlo, y a los 3 días es urgente", () => {
+    const a = avisosInicio({ enviosAMedias: [e(1)] }).find((x) => x.clave === "enviosAMedias");
+    expect(a).toMatchObject({ nivel: "toca", href: "/recibir/envio/e1", ahora: "Termina de contar ENV-000012" });
+    expect(avisosInicio({ enviosAMedias: [e(3)] }).find((x) => x.clave === "enviosAMedias")?.nivel).toBe("urgente");
+  });
+  it("sin envíos a medias o sin poder leerlos, no sale", () => {
+    expect(avisosInicio({ enviosAMedias: [] }).some((x) => x.clave === "enviosAMedias")).toBe(false);
+    expect(avisosInicio({ enviosAMedias: null }).some((x) => x.clave === "enviosAMedias")).toBe(false);
   });
 });

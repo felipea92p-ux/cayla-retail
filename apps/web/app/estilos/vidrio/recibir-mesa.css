@@ -1,0 +1,405 @@
+/* =====================================================================
+   CONTAR EN TRES COLUMNAS (Felipe 2026-11-02, a partir de su boceto; maqueta docs/maquetas/recibir-boceto-2026-11/, ADR-0604).
+
+   Arriba, Re stock y Producto nuevo. Abajo, la mesa: las categorías con sus modelos, lo que se está contando y el resumen del envío, alineados
+   arriba y abajo y cada uno con su propio scroll, hasta el borde de la ventana. Se fue la barra de abajo: lo que hacía vive en el resumen.
+   Decide por el ancho de la pantalla de adentro, no de la ventana: con el menú abierto o plegado la pantalla es otra.
+
+   Solo recetas de recetas.css y tokens (el oscuro llega solo). Movimiento de ADR-0136: una vez por cambio, sin rebote ni bucle; todo quieto con
+   «reducir movimiento». Lo que sigue siendo del Dial y del Trayecto vive en recepcion-viva.css.
+   ===================================================================== */
+
+.rc-conteo { container: rc-conteo / inline-size; display: grid; gap: 16px; min-width: 0; }
+/* La mesa llena la ventana: abajo, solo el aire que ella misma deja. */
+main:has(.rc-conteo) { padding-bottom: 16px; }
+
+/* ---------- El avance: el Trayecto toma el color de lo que se lleva y cambia de a poco ---------- */
+@property --tc { syntax: "<color>"; inherits: true; initial-value: #74501a; } /* tema-fijo: solo el valor de partida de una propiedad registrada; cada Trayecto trae el suyo */
+@property --pp { syntax: "<number>"; inherits: true; initial-value: 0; }
+.rc-tray { transition: --tc 600ms var(--ease-cayla); }
+.rc-tray-bola { transition: --pp 600ms var(--ease-cayla); }
+/* En la cabecera se leen las cinco paradas, si caben. */
+.rc-tray-cabecera { container: rc-tray / inline-size; }
+@container rc-tray (min-width: 340px) {
+  .rc-tray-parada em { opacity: 1; }
+}
+
+/* ---------- Re stock y Producto nuevo ---------- */
+.rc-tipos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.rc-tipo {
+  display: flex; align-items: center; gap: 14px; min-width: 0; min-height: 72px; padding: 10px 18px 10px 12px;
+  border: 1px solid var(--serena-borde); border-radius: 20px; background: var(--serena-fondo); box-shadow: var(--serena-sombra);
+  text-align: left; animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+  transition: background-color 250ms var(--ease-cayla), box-shadow 250ms var(--ease-cayla), border-color 250ms var(--ease-cayla);
+}
+.rc-tipo:nth-child(2) { animation-delay: 60ms; }
+@media (hover: hover) {
+  .rc-tipo:not([data-activa]):hover { background: var(--serena-fondo-encima); box-shadow: var(--serena-sombra-encima); }
+}
+.rc-tipo:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-tipo[data-activa] { border-color: transparent; background: var(--menu-activa-fondo); box-shadow: var(--menu-activa-sombra); }
+.rc-lente { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--lente-fondo); box-shadow: var(--lente-luz); color: var(--color-tinta); }
+.rc-tipo[data-activa] .rc-lente { color: var(--color-rojo-profundo); }
+.rc-tipo-textos { display: grid; flex: 1 1 0; gap: 1px; min-width: 0; }
+.rc-tipo-textos b { color: var(--color-tinta); font-size: 16px; font-weight: 600; line-height: 1.3; }
+.rc-tipo-textos span { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-tipo-mini { display: none; color: var(--color-taupe); font-size: 14px; font-weight: 400; }
+.rc-tipo-cifra { flex: none; display: grid; gap: 5px; }
+.rc-tipo-cifra span { color: var(--color-taupe); font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rc-tipo-cifra b { color: var(--color-tinta); font-weight: 600; }
+.rc-tipo-marca { flex: none; min-width: 5.25rem; color: var(--color-rojo-profundo); font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
+.rc-tipo-marca:empty { min-width: 0; }
+.rc-radio { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid var(--color-borde-control); border-radius: 50%; transition: border-color 200ms var(--ease-cayla); }
+.rc-radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--color-rojo-profundo); transform: scale(0); transition: transform 200ms var(--ease-cayla); }
+[data-activa] > .rc-radio, [aria-checked="true"] > .rc-radio { border-color: var(--color-rojo-profundo); }
+[data-activa] > .rc-radio::after, [aria-checked="true"] > .rc-radio::after { transform: scale(1); }
+
+/* ---------- La mesa: tres columnas alineadas arriba y abajo ---------- */
+.rc-mesa { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.rc-panel {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+  border: 1px solid var(--serena-borde); border-radius: 24px; background: var(--serena-fondo); box-shadow: var(--serena-sombra);
+  -webkit-backdrop-filter: var(--serena-filtro); backdrop-filter: var(--serena-filtro);
+  animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+}
+.rc-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* Bajo las tres columnas, el resumen va después de lo que se cuenta: encima dejaba el contador bajo el pliegue, y el orden con Tab al revés. */
+.rc-resumen { order: 3; }
+
+/* Dos columnas: la lista y la placa; el resumen va arriba, en una tira. */
+@container rc-conteo (min-width: 680px) {
+  .rc-mesa { grid-template-columns: minmax(280px, 5fr) minmax(0, 7fr); }
+  .rc-resumen { grid-column: 1 / -1; }
+  .rc-lista { align-self: stretch; max-height: calc(100dvh - 120px); }
+  .rc-placa { position: sticky; top: 76px; align-self: start; max-height: calc(100dvh - 92px); }
+}
+/* Tres columnas: la mesa llena la ventana. `--rc-mesa-arriba` lo mide la pantalla: dónde empieza la mesa, con lo que tenga encima. */
+@container rc-conteo (min-width: 1040px) {
+  .rc-mesa {
+    grid-template-columns: minmax(300px, 4fr) minmax(0, 6.2fr) minmax(270px, 3.4fr);
+    height: max(540px, calc(100dvh - var(--rc-mesa-arriba, 300px) - 16px));
+    align-items: stretch;
+  }
+  .rc-resumen { grid-column: auto; }
+  .rc-lista { max-height: none; }
+  .rc-placa { position: static; align-self: stretch; max-height: none; }
+}
+
+/* ---------- La lista: título, buscador, filtros y las categorías ---------- */
+.rc-lista { container: rc-lista / inline-size; }
+/* La cabeza de la categoría abierta va pegada arriba: al pasar con Tab o al llevar a una fila, esa fila queda bajo ella, nunca detrás. */
+.rc-lista .rc-scroll { scroll-padding-top: 72px; }
+.rc-lista-cabeza { display: grid; gap: 8px; padding: 16px 16px 12px; border-bottom: 1px solid var(--hilo-cabeza); }
+.rc-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rc-filtros .pildora-filtro { min-width: 0; max-width: 100%; }
+.rc-filtros [data-orden] { margin-left: auto; }
+.rc-puestos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* Con la columna angosta, las píldoras sin su ícono: así caben en una fila con las flechas. */
+@container rc-lista (max-width: 359px) {
+  .rc-filtros .pildora-filtro-icono { display: none; }
+  .rc-filtros .pildora-filtro-boton { padding-inline: 10px 8px; }
+  .rc-filtros .segmento-cayla__opcion { padding-inline: 8px; }
+  .rc-modelo .chip-cayla { padding-inline: 8px; }
+  .rc-modelos { margin-left: 6px; padding-left: 5px; }
+}
+
+/* Las categorías llevan su propio color (pizarra, el único tono que no se parece a los demás de la pantalla), para no confundirse con los modelos de adentro. */
+.rc-lista {
+  --rc-cat-fondo: color-mix(in srgb, var(--color-pizarra) 12%, var(--color-vidrio));
+  --rc-cat-encima: color-mix(in srgb, var(--color-pizarra) 19%, var(--color-vidrio));
+  --rc-cat-filo: color-mix(in srgb, var(--color-pizarra) 42%, transparent);
+  --rc-cat-suave: color-mix(in srgb, var(--color-tinta) 74%, var(--color-pizarra)); /* contraste: texto sobre papel, hueso, crema */
+}
+.rc-cat { padding: 0 8px; animation: cayla-entrada 380ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--i, 0), 8) * 45ms); }
+.rc-cat-tira { position: relative; padding: 4px 0; }
+/* La abierta se queda pegada arriba mientras pasan sus modelos: casi llena, para que no se lean a través de ella. */
+.rc-cat[data-abierta] > .rc-cat-tira { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--color-papel) 94%, transparent); }
+.rc-cat-cabeza { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 8px 10px 8px 8px; border-radius: 14px; background: var(--rc-cat-fondo); box-shadow: inset 0 0 0 1px var(--rc-cat-filo), 0 2px 6px -4px color-mix(in srgb, var(--color-sombra) 30%, transparent); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-cat[data-abierta] .rc-cat-cabeza { background: var(--rc-cat-encima); }
+@media (hover: hover) {
+  .rc-cat:not([data-abierta]) .rc-cat-cabeza:hover { background: var(--rc-cat-encima); }
+}
+.rc-cat-cabeza:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-cat-cabeza .rc-cat-ic { flex: none; background: var(--color-vidrio); box-shadow: none; color: var(--color-pizarra); }
+.rc-cat-textos { display: grid; flex: 1 1 0; gap: 2px; min-width: 0; }
+.rc-cat-textos b { overflow: hidden; color: var(--color-tinta); font-size: 15px; font-weight: 700; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+/* Hace falta leerlo entero («Dijeron 20 · Contaste 12 · Faltan 8»): baja a otra línea en vez de cortarse. */
+.rc-cat-resumen { color: var(--rc-cat-suave); font-size: 14px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.rc-cat-barra { display: block; margin-top: 3px; }
+/* Las barras chicas, un poco más gruesas: el color tiene que leerse desde lejos. */
+:is(.rc-cat-barra, .rc-tipo-cifra) .barra-avance:not([data-sobre-tinta])[data-alto="fina"] { --tubo-aire: 2px; height: 11px; }
+/* El «+» de otro modelo, al lado del check. Vive fuera del botón de la categoría y se apoya sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
+.rc-cat-hueco-mas { flex: none; width: 32px; height: 32px; }
+.rc-cat-mas { position: absolute; top: 50%; right: 64px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--color-tinta); transform: translateY(-50%); background: var(--color-vidrio); }
+/* Con el dedo, 44 px (ADR-0350). */
+@media (pointer: coarse) {
+  .rc-cat-hueco-mas, .rc-cat-mas, .rc-cat-tacho, .rc-modelo-tacho { width: 44px; height: 44px; }
+  .rc-cat-tacho { right: 118px; }
+  .rc-modelo[data-con-tacho] { padding-right: 52px; }
+  .rc-modelo-tacho { right: 0; }
+}
+.rc-cat-tacho { position: absolute; top: 50%; right: 106px; display: grid; width: 32px; height: 32px; place-items: center; border-radius: 999px; color: var(--rc-cat-suave); transform: translateY(-50%); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-cat-tacho:hover { color: var(--color-rojo-profundo); background: var(--pozo-fondo); }
+}
+.rc-cat-tacho:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-cat-mas:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-cat-sin-modelos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 12px 10px; color: var(--rc-cat-suave); font-size: 14px; }
+.rc-cat-flecha { flex: none; color: var(--rc-cat-suave); transition: transform 300ms var(--ease-cayla); }
+.rc-cat[data-abierta] .rc-cat-flecha { transform: rotate(180deg); }
+.rc-cat-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }
+.rc-cat[data-abierta] .rc-cat-cuerpo { grid-template-rows: 1fr; }
+.rc-cat-dentro { overflow: hidden; min-height: 0; }
+/* Los modelos cuelgan de su categoría: la raya del color de la categoría los junta. */
+/* El tacho de lo agregado: fuera del botón de la fila, sobre su lugar reservado (ADR-0604, act. 2026-11-03). */
+.rc-modelo-fila { position: relative; }
+.rc-modelo[data-con-tacho] { padding-right: 40px; }
+.rc-modelo-tacho { position: absolute; top: 50%; right: 6px; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 999px; color: var(--rc-cat-suave); transform: translateY(-50%); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-modelo-tacho:hover { color: var(--color-rojo-profundo); background: var(--pozo-fondo); }
+}
+.rc-modelo-tacho:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-modelos { display: grid; gap: 2px; margin: 0 0 8px 15px; padding: 2px 0 2px 8px; border-left: 2px solid var(--rc-cat-filo); }
+.rc-modelo { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 7px 10px 7px 7px; border-radius: 14px; text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-modelo:not([data-activa]):hover { background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
+}
+.rc-modelo:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: -2px; }
+.rc-modelo[data-activa] { background: var(--menu-activa-fondo); box-shadow: var(--menu-activa-sombra); }
+.rc-modelo-textos { display: grid; flex: 1 1 0; gap: 1px; min-width: 0; }
+.rc-modelo-nombre { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.rc-modelo-nombre b { overflow: hidden; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.rc-modelo-cifras { overflow: hidden; color: var(--color-taupe); font-size: 14px; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.rc-modelo-cifras b { color: var(--color-tinta); font-weight: 600; }
+.rc-modelo .chip-cayla { flex: none; }
+/* Con la columna angosta el nombre va en su propia línea y el estado junto a las cifras: al lado de dos chips, «Vestido Sofía» se leía «Ve…». */
+@container rc-lista (max-width: 519px) {
+  .rc-modelo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; }
+  .rc-modelo > :first-child { grid-row: 1 / span 2; }
+  .rc-modelo-textos { display: contents; }
+  .rc-modelo-nombre { grid-column: 2 / -1; }
+  .rc-modelo-cifras { grid-column: 2; }
+  .rc-modelo > .chip-cayla { grid-column: 3; align-self: center; }
+  /* El tacho, a la altura del estado (Felipe 2026-11-03): los dos en la línea de abajo, y el nombre conserva su línea entera. */
+  .rc-modelo-tacho { top: auto; bottom: 4px; transform: none; translate: none; }
+}
+.rc-lista-agregar { padding: 10px 12px 12px; }
+.rc-acord-agregar { width: 100%; border-radius: 18px; }
+
+/* «Cerrar el conteo» apagado: se ve apagado, pero recibe el mouse y el toque para decir qué falta. */
+.rc-cierre-apagado { opacity: 0.5; cursor: not-allowed; }
+.rc-cierre-globo.rc-cierre-globo { border: 1px solid var(--color-sand); background: color-mix(in srgb, var(--color-vidrio) 94%, transparent); color: var(--color-tinta); box-shadow: 0 8px 24px color-mix(in srgb, var(--color-sombra) 22%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.rc-cierre-globo > :last-child:is(span, svg) { display: none; }
+@media (hover: hover) {
+  .rc-cierre-apagado.btn-primario:hover { background: var(--ahumado-fondo, inherit); }
+}
+
+/* ---------- La placa: lo que se está contando ---------- */
+.rc-placa { container: rc-placa / inline-size; }
+.rc-placa-cabeza { display: flex; align-items: flex-start; gap: 16px; padding: 16px 16px 12px; }
+.rc-placa-textos { display: grid; flex: 1 1 0; gap: 4px; min-width: 0; }
+.rc-placa-textos .titulo-seccion { flex-wrap: wrap; }
+.rc-placa-textos .titulo-seccion-texto { font-size: 28px; font-weight: 500; line-height: 1.12; letter-spacing: -0.01em; }
+.rc-placa-textos > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.rc-placa-derecha { flex: none; display: grid; justify-items: end; align-content: space-between; gap: 6px; align-self: stretch; }
+.rc-placa-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 14px; }
+.rc-guardado { min-height: 20px; color: var(--color-taupe); font-size: 14px; white-space: nowrap; }
+.rc-placa-observaciones { padding: 0 16px 12px; }
+.rc-placa-error { padding: 0 16px 12px; }
+
+.rc-cuenta { display: grid; grid-template-columns: 192px minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px 24px; padding: 4px 16px 16px; }
+.rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1 / span 2; }
+.rc-cuenta-lado { grid-column: 2; grid-row: 1; display: grid; align-content: start; gap: 8px; min-width: 0; }
+.rc-cuenta-lado > p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-pista { min-height: 2.7em; }
+/* Los botones del contador: sumar en su bandeja, «Llegaron» en verde porque es lo que más se usa y deja el modelo listo, y «No llegó» aparte, más callado. */
+.rc-atajos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rc-suma { display: inline-flex; gap: 3px; padding: 3px; border-radius: 14px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); }
+.rc-suma button { min-width: 56px; height: 32px; padding: 0 12px; border-radius: 10px; background: var(--gota-marca); box-shadow: var(--gota-luz); color: var(--color-tinta); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+.rc-atajo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--color-borde-control); border-radius: 12px; color: var(--color-tinta); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; transition: translate 160ms var(--ease-cayla), scale 120ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+.rc-atajo svg { flex: none; }
+/* Por tocar resalta; ya hecho se apaga: lo que sigue es «Listo, siguiente», no este botón. */
+.rc-atajo-llegaron { border-color: color-mix(in srgb, var(--color-verde) 60%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 14%, var(--color-vidrio)), color-mix(in srgb, var(--color-verde) 30%, var(--color-vidrio))); box-shadow: var(--gota-luz); color: var(--color-verde-profundo); }
+.rc-atajo-llegaron[data-hecho] { border-color: transparent; background: color-mix(in srgb, var(--color-verde) 13%, transparent); box-shadow: none; color: var(--color-verde-profundo); cursor: default; }
+.rc-atajo-cero { margin-top: 4px; background: transparent; color: var(--color-taupe-profundo); }
+.rc-atajo-cero[data-hecho] { border-color: transparent; background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); color: var(--color-tinta); cursor: default; }
+@media (hover: hover) {
+  .rc-suma button:hover { translate: 0 -1px; background: var(--gota-fondo-encima); }
+  .rc-atajo:not([data-hecho]):hover { translate: 0 -1px; }
+  .rc-atajo-llegaron:not([data-hecho]):hover { background: linear-gradient(180deg, color-mix(in srgb, var(--color-verde) 22%, var(--color-vidrio)), color-mix(in srgb, var(--color-verde) 42%, var(--color-vidrio))); }
+  .rc-atajo-cero:not([data-hecho]):hover { background: var(--pozo-fondo); color: var(--color-tinta); }
+}
+.rc-suma button:active, .rc-atajo:not([data-hecho]):active { scale: 0.96; translate: 0 0; }
+.rc-suma button:focus-visible, .rc-atajo:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+/* El + y el − del aro, un poco más grandes: son los que se tocan una y otra vez. */
+.rc-placa .rc-dial-boton { width: 48px; height: 48px; }
+/* Los enlaces de arriba de la placa no van dentro de una frase: se tocan solos, y necesitan su alto. */
+.rc-placa-acciones .btn-cayla { min-height: 24px; }
+/* «Anterior» y «Listo, siguiente», del mismo alto y lado a lado. */
+.rc-seguir { grid-column: 2; grid-row: 2; align-self: end; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.rc-seguir .btn-cayla { flex: 0 1 auto; min-height: 40px; white-space: nowrap; }
+
+@container rc-placa (max-width: 619px) {
+  .rc-placa-cabeza { flex-wrap: wrap; }
+  .rc-placa-textos { flex-basis: 12rem; }
+  .rc-placa-derecha { flex: 1 1 100%; grid-auto-flow: column; justify-content: space-between; align-items: center; }
+  .rc-cuenta { grid-template-rows: auto auto; gap: 12px 16px; }
+  .rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1; }
+  .rc-cuenta-lado { grid-column: 2; grid-row: 1; }
+  /* Con la placa angosta van a lo ancho, debajo del contador: al lado no caben los dos. */
+  .rc-seguir { grid-column: 1 / -1; grid-row: 2; flex-wrap: nowrap; }
+  .rc-seguir .btn-cayla { flex: 1 1 0; }
+  .rc-atajos .rc-atajo { flex: 1 1 auto; }
+  .rc-placa-textos .titulo-seccion-texto { font-size: 25px; }
+}
+@container rc-placa (max-width: 439px) {
+  .rc-cuenta { grid-template-columns: minmax(0, 1fr); }
+  .rc-cuenta > .rc-dial { grid-column: 1; grid-row: 1; justify-self: center; }
+  .rc-cuenta-lado { grid-column: 1; grid-row: 2; justify-items: stretch; }
+  .rc-seguir { grid-row: 3; }
+  /* En el teléfono no caben iguales: «Anterior» a su medida y «Listo, siguiente» con lo que queda. */
+  .rc-seguir .btn-cayla { flex: 0 0 auto; }
+  .rc-seguir .btn-primario { flex: 1 1 auto; }
+  .rc-atajos { justify-content: center; }
+  .rc-cuenta-lado > p { text-align: center; }
+}
+
+.rc-seccion { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hilo-fila); }
+.rc-seccion-titulo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--color-tinta); font-size: 15px; font-weight: 600; }
+.rc-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rc-opcion { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--placa-borde); border-radius: 14px; background: var(--placa-fondo); box-shadow: var(--placa-luz); text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-opcion b { display: block; color: var(--color-tinta); font-size: 14px; font-weight: 600; line-height: 1.3; }
+.rc-opcion small { display: block; color: var(--color-taupe); font-size: 14px; line-height: 1.3; }
+.rc-opcion > .rc-radio { margin-top: 1px; width: 20px; height: 20px; }
+.rc-opcion[aria-checked="true"] { border-color: transparent; background: var(--menu-activa-fondo); box-shadow: var(--menu-activa-sombra); }
+@media (hover: hover) {
+  .rc-opcion:not([aria-checked="true"]):not(:disabled):hover { background: var(--gota-fondo-encima); }
+}
+.rc-opcion:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.rc-opcion:disabled { cursor: not-allowed; opacity: 0.55; }
+@container rc-placa (max-width: 479px) {
+  .rc-opciones { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Tallas y colores, en la misma pantalla. */
+.rc-matriz-caja { overflow-x: auto; border: 1px solid var(--hilo-cabeza); border-radius: 14px; }
+.rc-tabla-tallas { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rc-tabla-tallas th { padding: 7px 4px; border-bottom: 1px solid var(--hilo-cabeza); color: var(--color-taupe); font-size: 13px; font-weight: 600; text-align: center; white-space: nowrap; }
+.rc-tabla-tallas thead th:first-child { padding-left: 12px; text-align: left; }
+/* La columna del color no se va al desplazar la tabla: con muchas tallas se sigue sabiendo de qué color es cada fila. */
+.rc-matriz-caja[data-desborda] .rc-tabla-tallas :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: color-mix(in srgb, var(--color-papel) 92%, transparent); }
+/* Cada talla es una etiqueta que se quita, a la vista (nunca solo al pasar el mouse): en el teléfono no hay mouse. */
+.rc-talla { display: inline-flex; align-items: center; gap: 1px; min-height: 26px; padding: 0 2px 0 9px; border: 1px solid var(--gota-chica-borde); border-radius: 999px; background: var(--gota-chica-fondo); box-shadow: var(--gota-chica-luz); color: var(--color-tinta); font-size: 13px; font-weight: 600; white-space: nowrap; animation: cayla-entrada 240ms var(--ease-cayla) both; }
+.rc-talla > span:only-child { padding-right: 7px; }
+.rc-talla-quitar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-talla-quitar:hover { background: var(--pozo-fondo); color: var(--color-rojo-profundo); }
+}
+.rc-talla-quitar:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 1px; }
+.rc-tabla-tallas td { padding: 4px; border-bottom: 1px solid var(--hilo-fila); text-align: center; }
+.rc-tabla-tallas tbody tr:last-child td { border-bottom: 0; }
+.rc-tabla-tallas tbody td:first-child { padding-left: 12px; text-align: left; white-space: nowrap; }
+.rc-color { display: inline-flex; align-items: center; gap: 8px; color: var(--color-tinta); }
+.rc-celda { width: 100%; min-width: 46px; max-width: 72px; height: 32px; padding: 0 4px; border: 0; border-radius: 9px; background: var(--pozo-fondo); box-shadow: var(--pozo-sombra); color: var(--color-tinta); outline: 0; text-align: center; font-variant-numeric: tabular-nums; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-celda:focus { background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra), inset 0 -2px 0 var(--color-rojo); }
+.rc-celda[aria-invalid="true"] { box-shadow: var(--pozo-sombra), inset 0 0 0 1.5px var(--color-ambar); }
+.rc-celda:disabled { opacity: 0.4; }
+.rc-celda-falta { display: inline-grid; place-items: center; width: 100%; min-width: 46px; height: 32px; border-radius: 9px; color: var(--color-taupe); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  button.rc-celda-falta:hover { background: var(--pozo-fondo); color: var(--color-tinta); }
+}
+button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 1px; }
+.rc-fila-total { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc-matriz-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.rc-matriz-botones { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-matriz-total { color: var(--color-taupe); font-size: 14px; font-variant-numeric: tabular-nums; }
+.rc-matriz-total b { font-family: var(--font-serif); font-size: 20px; font-weight: 600; }
+.rc-matriz-total[data-tono="verde"] b { color: var(--color-verde-profundo); }
+.rc-matriz-total[data-tono="ambar"] b { color: var(--color-ambar-profundo); }
+
+.rc-otra { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hilo-fila); animation: cayla-entrada 300ms var(--ease-cayla) both; }
+.rc-otra:empty { display: none; }
+.rc-chipitos { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-etiqueta-chica { color: var(--color-taupe); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* ---------- El resumen: lo que hacía la barra de abajo ---------- */
+.rc-resumen-cuerpo { display: grid; align-content: start; gap: 8px; padding: 16px 16px 12px; }
+.rc-totales { display: grid; gap: 4px; }
+.rc-total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rc-total dt { color: var(--color-taupe); font-size: 14px; }
+.rc-total dd { color: var(--color-tinta); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rc-total[data-grande] dt { color: var(--color-tinta); font-weight: 600; }
+.rc-total[data-grande] dd { display: flex; align-items: center; font-family: var(--font-serif); font-size: 26px; line-height: 1.1; }
+.rc-total[data-tono="verde"] dd { color: var(--color-verde-profundo); }
+.rc-total[data-tono="ambar"] dd { color: var(--color-ambar-profundo); }
+.rc-avance { display: grid; gap: 5px; }
+.rc-avance p { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--color-taupe); font-size: 14px; }
+.rc-avance b { color: var(--color-tinta); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-estados { display: grid; gap: 1px; margin: 0 -8px; }
+.rc-estado { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 32px; padding: 3px 8px; border-radius: 10px; color: var(--color-tinta); font-size: 14px; text-align: left; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-estado b { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc-estado[aria-pressed="true"] { background: var(--hundido-fondo); box-shadow: var(--hundido-sombra); }
+@media (hover: hover) {
+  .rc-estado:not([aria-pressed="true"]):hover { background: var(--pozo-fondo); }
+}
+.rc-estado:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 1px; }
+.rc-estado-punto { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; }
+.rc-estado-punto[data-tono="verde"] { background: color-mix(in srgb, var(--color-verde) 18%, transparent); color: var(--color-verde-profundo); }
+.rc-estado-punto[data-tono="ambar"] { background: color-mix(in srgb, var(--color-ambar) 18%, transparent); color: var(--color-ambar-profundo); }
+.rc-estado-punto[data-tono="neutro"] { background: var(--pozo-fondo); color: var(--color-taupe); }
+.rc-estado-punto[data-tono="pizarra"] { background: color-mix(in srgb, var(--color-pizarra) 16%, transparent); color: var(--color-pizarra); }
+.rc-separador { height: 1px; margin: 3px 8px; background: var(--hilo-fila); }
+.rc-quien { display: grid; gap: 4px; }
+.rc-quien-titulo { display: flex; align-items: center; gap: 2px; }
+.rc-resumen-pie { display: grid; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--hilo-cabeza); }
+.rc-resumen-pie p { color: var(--color-taupe); font-size: 14px; line-height: 1.35; }
+.rc-resumen-pie .btn-cayla { width: 100%; }
+.rc-resumen-nota { text-align: center; }
+.rc-fotos-boton { width: 100%; }
+.rc-fotos-nota { color: var(--color-taupe); font-size: 14px; line-height: 1.35; text-align: center; }
+.rc-fotos-boton small { color: var(--color-taupe); font-size: 14px; font-weight: 500; }
+
+/* Con la mesa angosta el resumen es una tira arriba: las cifras, los estados con su número y lo que sigue, sin gastar alto. */
+@container rc-conteo (max-width: 1039px) {
+  .rc-resumen { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .rc-resumen > .rc-scroll { flex: 1 1 24rem; min-width: 0; overflow: visible; }
+  .rc-resumen-cuerpo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 10px 14px; }
+  .rc-resumen-titulo { display: none; }
+  .rc-totales { flex: 0 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+  .rc-total { gap: 6px; align-items: center; }
+  .rc-total[data-grande] dd { font-size: 22px; }
+  .rc-avance { flex: 1 1 12rem; }
+  .rc-estados { display: flex; flex-direction: row; flex-wrap: wrap; margin: 0; gap: 2px; }
+  .rc-estado { width: auto; min-height: 32px; gap: 5px; padding: 3px 8px 3px 4px; }
+  .rc-estado b { margin-left: 0; }
+  .rc-estado-nombre, .rc-separador { display: none; }
+  .rc-quien { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+  .rc-fotos-boton { width: auto; }
+  .rc-fotos-texto, .rc-fotos-nota { display: none; }
+  .rc-resumen-pie { flex: 0 1 auto; padding: 10px 14px; border-top: 0; }
+  .rc-resumen-pie p { display: none; }
+  .rc-resumen-pie .btn-cayla { width: auto; white-space: nowrap; }
+}
+@container rc-conteo (max-width: 679px) {
+  .rc-tipos { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .rc-tipo-textos span { display: none; }
+  .rc-tipo { min-height: 60px; }
+  .rc-resumen-pie { flex: 1 1 100%; padding-top: 0; }
+  .rc-resumen-pie .btn-cayla { width: 100%; }
+  .rc-lista .rc-scroll { max-height: 60dvh; }
+}
+@container rc-conteo (max-width: 1239px) {
+  .rc-tipo-cifra { display: none; }
+  .rc-tipo-mini { display: inline; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-tipo, .rc-panel, .rc-cat, .rc-otra, .rc-talla { animation: none; }
+  .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-estado, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-tipo, .rc-radio, .rc-radio::after, .rc-talla-quitar { transition: none; }
+}
+
+/* Al reabrir: lo que ya entró al stock, con candado. No es un modelo que se cuenta: no lleva botón ni cifra que cambie. */
+.rc-ya-en-stock { display: grid; gap: 8px; margin-top: 12px; padding: 12px 8px 0; border-top: 1px solid var(--color-sand); }
+.rc-ya-en-stock ul { display: grid; gap: 4px; }
+.rc-ya-en-stock li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COLIBRI, LOGO, PALABRA, partirPorLaMarca } from "./marca";
+import { COLIBRI, LOGO, PALABRA, partirPorLaMarca } from "@cayla-retail/shared/marca";
 
 describe("el logo oficial", () => {
   it("el logo completo es el colibrí más la palabra, sin repetir el dibujo", () => {

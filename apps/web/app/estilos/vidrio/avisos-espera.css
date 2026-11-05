@@ -1,0 +1,157 @@
+/* =====================================================================
+   EL SISTEMA QUE HABLA, CON EL VIDRIO «SERENA» (ADR-0596; maqueta docs/maquetas/avisos-espera-vidrio-2026-10/). Tres piezas que ninguna
+   pantalla monta: salen solas cuando el ERP tiene algo que decir. Elegidas por Felipe mirando, el 2026-11-01:
+
+   · Los AVISOS de la esquina (`components/ui/Avisos.tsx`, coreografía en `estilos/avisos.css`): «B · Lente del tono». La placa de
+     vidrio de las hojas, teñida apenas de lo que dice (verde, rojo, ámbar; el proceso queda neutro) y con un filo del tono: la misma
+     lente del aviso de las hojas y de la insignia. Un error se reconoce de reojo, antes de leerlo.
+   · El LOADER a pantalla completa (`components/ui/Espera.tsx`, ADR-0149): «B · Lente sola». Sin tarjeta: toda la pantalla se esmerila y
+     en el centro queda una lente con el colibrí y su arco; las palabras van sueltas debajo, con un halo de crema detrás (sin borde ni
+     forma) que asegura su contraste aunque detrás pase una tabla o el Observatorio.
+   · «HAY UNA VERSIÓN NUEVA» (`components/VersionNueva.tsx`, ADR-0422): «A · Gota ahumada». El mismo líquido de tinta, al 88 %: deja
+     ver lo de atrás, desenfocado; arriba le llega su luz y lleva un filo. «Actualizar» es la gota clara.
+
+   Solo cambia el MATERIAL. Dónde sale cada pieza, sus tiempos, su orden y su movimiento (la gota con su único rebote, el arco y el hilo
+   del loader, la coreografía de los avisos) siguen en sus archivos. El vidrio de la píldora llega a los 1,65 s, cuando el líquido termina
+   de llenar, con el mismo fundido del contenido: así la gota que cae sigue siendo gota. Las recetas, en `recetas.css`.
+   ===================================================================== */
+
+/* ---------- 1 · El aviso de la esquina: la lente de su tono ---------- */
+.aviso-tarjeta {
+  border-radius: 20px;
+  border-color: color-mix(in srgb, var(--c) var(--lente-tono-filo), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) var(--lente-tono-tinte-arriba), var(--lente-tono-base-arriba)),
+    color-mix(in srgb, var(--c) var(--lente-tono-tinte-abajo), var(--lente-tono-base-abajo))
+  );
+  -webkit-backdrop-filter: var(--vidrio-hoja-filtro);
+  backdrop-filter: var(--vidrio-hoja-filtro);
+  box-shadow: var(--lente-tono-sombra);
+}
+/* El detalle sube de 65 % a 78 % de tinta: sobre papel macizo bastaba, pero el vidrio deja pasar lo de atrás. Medido el 2026-11-01 con
+   la crema detrás pasa 7,3:1 (claro) y 5,1:1 (oscuro, el peor tono); con media tinta detrás (un botón principal esmerilado), 5,7:1 y
+   4,1:1. Con 65 % se quedaba en 4,1:1 sobre la crema, en oscuro. */
+.aviso-tarjeta .aviso-det { color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+/* El proceso no dice ni bien ni mal: su tinte es el de la tinta, apenas, y su filo el del vidrio. */
+.aviso-tarjeta[data-tono="proceso"] { border-color: var(--placa-borde); }
+/* «Cerrar todos» (con tres avisos o más) es una gota sobre la pila, no un botón de papel. */
+.aviso-cerrar-todos {
+  background: var(--gota-fondo-encima);
+  -webkit-backdrop-filter: var(--vidrio-flota-filtro);
+  backdrop-filter: var(--vidrio-flota-filtro);
+  box-shadow: var(--gota-luz);
+}
+
+/* ---------- 2 · El loader: la pantalla esmerilada y la lente sola ---------- */
+.espera-velo {
+  background: var(--espera-velo-fondo);
+  -webkit-backdrop-filter: var(--espera-velo-filtro);
+  backdrop-filter: var(--espera-velo-filtro);
+}
+/* El grupo de la lente y las palabras: sin fondo, sin sombra, sin borde. `isolation` deja el halo detrás de las palabras y no detrás
+   de toda la pantalla. */
+.espera-hoja {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+/* El halo: una mancha de crema que se desvanece hacia afuera, sin forma. Se centra en las PALABRAS (arranca a media lente, no arriba
+   de ella: la lente es vidrio y no lo necesita) y su núcleo pleno llega al 62 %: así cada línea, también las dos de «Está tardando más
+   de lo normal», queda en la parte llena. Medido el 2026-11-01 en el peor caso —detrás, un bloque de tinta, lo más opuesto a la crema,
+   esmerilado por el velo—: el título pasa 13,8:1 (claro) y 13,4:1 (oscuro), el detalle 7,9:1 y 9,1:1, y la etiqueta en versalitas
+   4,7:1 y 6,8:1. Sin halo, la etiqueta caía a 1,4:1. */
+.espera-hoja::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 64px -100px -48px;
+  pointer-events: none;
+  background: radial-gradient(closest-side, var(--espera-halo) 62%, transparent);
+}
+/* La lente: el círculo de vidrio que sobresale (la lente grande de los orbes del Observatorio), con el colibrí adentro. */
+.espera-marca {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 18px;
+  border-radius: 999px;
+  border: 1px solid var(--lente-grande-borde);
+  background: var(--lente-grande-fondo);
+  -webkit-backdrop-filter: var(--lente-grande-filtro);
+  backdrop-filter: var(--lente-grande-filtro);
+  box-shadow: var(--lente-grande-sombra);
+}
+/* El arco gira por fuera del canto de la lente; la pista no se dibuja: el canto ya es la pista. */
+.espera-anillo {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+}
+.espera-pista { stroke: transparent; }
+/* El hilo que barre ya no es el borde de una tarjeta: es una ranura corta bajo las palabras. */
+.espera-hilo {
+  position: relative;
+  display: block;
+  width: 120px;
+  height: 2px;
+  margin: 18px auto 0;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--tubo-fondo);
+}
+
+/* ---------- 3 · «Hay una versión nueva»: la gota ahumada ---------- */
+.version-nueva-agua { opacity: var(--version-agua-opacidad); }
+/* La luz: lo de atrás, desenfocado, se ve a través del líquido. Llega con el contenido, cuando la píldora ya está llena. */
+.version-nueva-luz {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  -webkit-backdrop-filter: var(--globo-filtro);
+  backdrop-filter: var(--globo-filtro);
+  animation: cayla-version-luz 380ms var(--ease-cayla) 1650ms forwards;
+}
+/* El filo: la luz de arriba y el canto, encima de todo (no recibe clics). */
+.version-nueva::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: var(--version-filo);
+  animation: cayla-version-luz 380ms var(--ease-cayla) 1650ms forwards;
+}
+.version-nueva-sale .version-nueva-luz,
+.version-nueva.version-nueva-sale::after { animation: cayla-version-apaga 200ms var(--ease-cayla) both; }
+/* «Actualizar»: la gota clara sobre el ahumado (crema con su luz arriba), a la medida de la píldora. Va aquí, sin capa, porque la gota
+   de todo botón secundario (campos-y-botones.css) también va sin capa y le ganaría. */
+.version-nueva .btn-cayla.btn-secundario {
+  min-height: 2rem;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  border-color: transparent;
+  color: var(--color-tinta);
+  background: var(--version-gota-clara);
+  box-shadow: var(--version-gota-clara-luz);
+}
+@media (hover: hover) {
+  .version-nueva .btn-cayla.btn-secundario:hover:not(:disabled) { background: var(--color-hueso); color: var(--color-tinta); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Sin gota, la píldora llega ya hecha: el ahumado, su luz y su filo, quietos. */
+  .version-nueva { background: var(--version-ahumado-quieto); }
+  .version-nueva-luz,
+  .version-nueva::after { animation: none; opacity: 1; }
+}
+@keyframes cayla-version-luz {
+  to { opacity: 1; }
+}

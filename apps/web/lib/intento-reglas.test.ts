@@ -5,7 +5,6 @@ import {
   avisoDeResolucion,
   avisoDeTraslado,
   cobrosGuardados,
-  cobrosPorResolver,
   conCobro,
   faseTrasError,
   hayQueRevisar,
@@ -83,12 +82,6 @@ describe("el cobro en curso de Vender", () => {
     expect(conCobro(lista, c("a", "z")).map((x) => x.token)).toEqual(["b", "a"]);
     expect(sinCobro(lista, "a").map((x) => x.token)).toEqual(["b"]);
   });
-  it("solo se pregunta por un cobro que salió hace más del tope (otra pestaña puede estar mandándolo)", () => {
-    const ahora = Date.parse("2026-10-13T10:00:30Z");
-    const lista = [c("viejo", "2026-10-13T09:59:00Z"), c("nuevo", "2026-10-13T10:00:25Z"), c("roto", "no es fecha")];
-    expect(cobrosPorResolver(lista, ahora).map((x) => x.token)).toEqual(["viejo", "roto"]);
-    expect(cobrosPorResolver(lista, ahora + TOPE_ESPERA_MS).map((x) => x.token)).toEqual(["viejo", "nuevo", "roto"]);
-  });
   it("el aviso dice lo que pasó, con el comprobante si lo hay", () => {
     const cobro = c("a", "x");
     expect(avisoDeResolucion({ tipo: "no_llego" }, cobro)).toMatchObject({ tono: "info", titulo: "El cobro de S/\u00a0149.90 no se registró" });
@@ -147,7 +140,8 @@ describe("la lista de operaciones es la de la base", () => {
     // texto nuevo y no el viejo.
     const sumadas = TODAS.slice(i + 1).flatMap((m) =>
       [...m.matchAll(/pg_temp\.reemplazar\('retail\.fn_resolver_intento\(text, uuid\)',\s*\$v\$([^$]*)\$v\$,\s*\$n\$([^$]*)\$n\$/g)]
-        .filter(([, viejo]) => viejo.includes("'separar_pedido_para_apartar'"))
+        // La plata anotada (ADR-0480, 20261022235000) ancla en la última línea de la lista, la que termina en `…') then`.
+        .filter(([, viejo]) => viejo.includes("'separar_pedido_para_apartar'") || viejo.includes("'enviar_pedido_a_otra_sede') then"))
         .flatMap(([, viejo, nuevo]) => (nuevo.match(/'([a-z_]+)'/g) ?? []).map((x) => x.slice(1, -1)).filter((op) => !viejo.includes(`'${op}'`))),
     );
     expect([...new Set([...delResolver, ...sumadas])].sort()).toEqual([...OPERACIONES_CON_MARCA].sort());
@@ -163,9 +157,7 @@ describe("la lista de operaciones es la de la base", () => {
  * Los archivos que llaman a una de esas funciones SIN `useIntento` (la marca atada al contenido). Es deuda de otro módulo
  * (se cierra con su /chaos), nunca un archivo nuevo: la prueba falla si uno aparece, y si uno de la lista ya no lo necesita.
  */
-const SIN_INTENTO_TODAVIA: Record<string, string> = {
-  "components/GastosPanel.tsx": "Finanzas: registra cada gasto con un token nuevo por llamada; va con el /chaos de Finanzas.",
-};
+const SIN_INTENTO_TODAVIA: Record<string, string> = {};
 
 function archivos(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(join(RAIZ_WEB, dir), { withFileTypes: true })) {

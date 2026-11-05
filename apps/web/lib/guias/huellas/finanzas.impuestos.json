@@ -2,19 +2,36 @@
   "guia": "finanzas.impuestos",
   "ruta": "/finanzas/impuestos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 8,
+  "total": 15,
   "controles": {
     "components/ImpuestosPanel.tsx": [
-      "Boton «fin-impuestos.registro-ventas»",
-      "Boton «fin-impuestos.registro-compras»",
-      "Boton «fin-impuestos.paquete»",
-      "Link «Configurarla»",
-      "Link «Registrar el pago»",
-      "BotonVer «{p.accion.texto}»"
+      "BotonVer «Comparar con SUNAT»",
+      "button «fin-impuestos.ir-a-declarar»",
+      "Link «Ver la cuenta con CLAURE»"
     ],
-    "components/finanzas/ImpuestosPulso.tsx": [
-      "button «{porque ? \"Cerrar\" : \"¿Por qué?\"}»",
-      "Link «Ir»"
+    "components/finanzas/ImpuestosCuenta.tsx": [
+      "BotonEnlace «Anota el pago que hiciste desde un banco, en Cuentas y dinero»",
+      "button «− IGV de tus compras»"
+    ],
+    "components/finanzas/ImpuestosFila.tsx": [
+      "Link «{cuerpo}»"
+    ],
+    "components/finanzas/ImpuestosRenta.tsx": [
+      "button «fin-impuestos.pedir-factura»",
+      "Link «Carga lo de tu contador»"
+    ],
+    "components/finanzas/telar/DockTelar.tsx": [
+      "Link «{`${a.texto}»",
+      "button «{`${a.texto}»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "button «Todas»",
+      "button «{marcada && <Check className=\"h-3 w-3\" />}»",
+      "BotonEnlace «telar.registrar»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
     ]
   }
 }

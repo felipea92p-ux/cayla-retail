@@ -1,0 +1,3 @@
+## Insignias sin frases en cursiva (2026-10-23) — lo que queda
+- [x] Quitadas la frase de cada pestaña y la del pase abierto (`SellosPantalla.tsx`, `lib/sellos-pases.ts`, `sellos.css`, guía de Catálogo ▸ Insignias); tipos, pruebas de Insignias/guías/unificar, eslint y Knip en verde.
+- [ ] **Mirar el pase con prendas reales** (por ejemplo «Aniversario CAYLA») a 1440, 1920 y 375 px una vez publicado: la base local no trae ninguna insignia con prendas y ahí solo se vieron los estados vacíos. Si la fila de prendas queda muy pegada al título, subir el `mt-6` de `.sl-lookbook` en `SellosPantalla.tsx`.

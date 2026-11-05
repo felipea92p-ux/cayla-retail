@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ARBOL, type Nodo } from "./menu";
 
 // Toda pantalla interna tiene cómo volver (Felipe, 2026-09-26). Una pantalla interna es la que NO está en el lateral:
-// se llega a ella desde otra (Registrar factura desde Facturas de proveedor). Sin una vuelta, la única salida es el
+// se llega a ella desde otra (el detalle de una compra desde el Historial de compras). Sin una vuelta, la única salida es el
 // «atrás» del navegador, que en la tablet de la tienda nadie encuentra. La vuelta es `components/ui/Volver.tsx`.
 //
 // Esta prueba recorre TODAS las `page.tsx` de `app/(app)` y le exige a cada una que no esté en el menú una vuelta: un
@@ -21,6 +21,9 @@ const EXCEPCIONES: Record<string, string> = {
   "/movimientos": "solo redirige a /inventario/movimientos",
   "/inventario/mover": "solo redirige a /inventario/traslados/nuevo (ADR-0242 D-4); el formulario nuevo sí tiene su «← Traslados»",
   "/finanzas": "solo redirige a Resumen o Gastos",
+  "/finanzas/reportes/presupuesto": "solo redirige a ¿Ganamos?: el presupuesto vive ahí (ADR-0585)",
+  "/finanzas/reportes/escenarios": "solo redirige a «¿Y si…?», dentro de ¿Dónde está la plata? (ADR-0585)",
+  "/compras/notas-credito": "solo redirige a /compras: las notas de crédito se retiraron (ADR-0480)",
   "/gestion": "solo redirige a la primera de sus cuatro pantallas que la cuenta ve (ADR-0392)",
   "/buscar": "la abre la lupa de la cabecera, desde cualquier pantalla: no cuelga de un submódulo",
   "/produccion/cotizaciones-maquila": "no se llega desde ninguna pantalla todavía (URL directa, D-82)",
@@ -34,17 +37,22 @@ const EXCEPCIONES: Record<string, string> = {
   "/finanzas/dinero/conciliacion": "pestaña de Cuentas y dinero",
   "/finanzas/dinero/efectivo": "pestaña de Cuentas y dinero",
   "/finanzas/dinero/por-pagar": "pestaña de Cuentas y dinero",
-  "/finanzas/reportes/balance": "pestaña de Reportes",
-  "/finanzas/reportes/campanas": "pestaña de Reportes",
-  "/finanzas/reportes/escenarios": "pestaña de Reportes",
-  "/finanzas/reportes/flujo": "pestaña de Reportes",
-  "/finanzas/reportes/presupuesto": "pestaña de Reportes",
+  "/finanzas/reportes/balance": "una de las cuatro respuestas de Estados financieros: su tarjeta es la pestaña (ADR-0585)",
+  "/finanzas/reportes/flujo": "una de las cuatro respuestas de Estados financieros: su tarjeta es la pestaña (ADR-0585)",
+  "/finanzas/reportes/patrimonio": "una de las cuatro respuestas de Estados financieros: su tarjeta es la pestaña (ADR-0585)",
+  "/finanzas/reportes/cuentas": "Ver ▸ Saldos por cuenta o Libro diario de Estados financieros: las cuatro tarjetas y el menú «Ver» de su cabecera siempre están a la vista y son la navegación (ADR-0585)",
   "/vender/comprobantes/emitidos": "pestaña de Comprobantes",
   "/vender/comprobantes/por-reintentar": "pestaña de Comprobantes",
   "/vender/comprobantes/proformas": "pestaña de Comprobantes",
   "/vender/comprobantes/series": "pestaña de Comprobantes",
+  "/vender/reportes/ranking": "pestaña de Reportes de ventas (la fila «Ventas del mes · Ranking de prendas» siempre está a la vista)",
   "/produccion/eficiencia": "pestaña del Resumen de Producción",
+  "/compras/fondos": "pestaña de Historial de compras (ADR-0504)",
+  "/compras/por-pagar": "pestaña de Historial de compras (ADR-0504)",
   "/compras/plan/historial": "pestaña del Plan de campaña",
+  "/compras/plan/presupuesto": "pestaña del Plan de campaña",
+  "/compras/plan/presupuesto/pagos": "parte del Presupuesto, pestaña del Plan de campaña (su selector «Costos y tope» queda arriba)",
+  "/compras/plan/calendario": "pestaña del Plan de campaña",
   "/compras/plan/resultados": "pestaña del Plan de campaña",
 };
 

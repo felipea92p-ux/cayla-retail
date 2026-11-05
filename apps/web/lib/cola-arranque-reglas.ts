@@ -1,4 +1,4 @@
-// Reglas del «cierre de la cola de arranque» (ADR-0334): un líder da por hechas, en bloque y sin identificar la prenda, las ventas
+// Reglas del «cierre de la cola de arranque» (ADR-0334): quien ve Existencias (ADR-0534; antes, solo un líder) da por hechas, en bloque y sin identificar la prenda, las ventas
 // sin registrar de UNA tienda mientras dura la adopción. Lógica pura: la usan la lista de Ventas sin registrar y el modal que cierra.
 //
 // CONTRATO
@@ -25,7 +25,7 @@ export function motivoLegible(clave: string | null | undefined): string {
 
 export type MotivoReapertura = "devolucion_o_cambio" | "ya_se_sabe" | "cierre_por_error";
 
-/** Por qué un líder reabre una venta cerrada (`reabrir_prenda_cerrada`, 20261005110000): la lista cerrada de la base, en palabras del negocio. */
+/** Por qué se reabre una venta cerrada (`reabrir_prenda_cerrada`, 20261005110000): la lista cerrada de la base, en palabras del negocio. */
 export const MOTIVOS_REAPERTURA: readonly { clave: MotivoReapertura; titulo: string; ayuda: string }[] = [
   { clave: "devolucion_o_cambio", titulo: "Quien la compró la quiere devolver o cambiar", ayuda: "Reabierta, se regulariza con su prenda real y recién entonces se puede devolver." },
   { clave: "ya_se_sabe", titulo: "Ya se sabe qué prenda era", ayuda: "Se identifica ahora y el stock de esa prenda queda cuadrado." },
@@ -42,14 +42,28 @@ export type SedeParaCerrar = {
   soles: number;
   /** La venta pendiente más vieja y la más nueva (texto de la base, sin tocar): el rango que verá quien cierra. */
   desde: string;
-  /** El momento que se manda como `p_hasta`: la venta pendiente más nueva QUE VIO el líder. Lo que entre después no se cierra. */
+  /** El momento que se manda como `p_hasta`: la venta pendiente más nueva QUE VIO quien cierra. Lo que entre después no se cierra. */
   corte: string;
   /** Último día del plazo (AAAA-MM-DD, Lima), o null si la tienda no tiene plazo: sin plazo no hay botón. */
   plazoHasta: string | null;
   /** Días que quedan contando hoy: 0 = hoy es el último día. null si no hay plazo o ya venció. */
   diasDePlazo: number | null;
+  /** Desde 20261015004000 (ADR-0334 act. 2026-10-14, A6) cerrar en bloque exige un cuadre del piso guardado DESPUÉS de la última venta
+   *  que se cierra. `true` = no lo hay (o el último es anterior al corte): sin botón, con su aviso. Sin dato de cuadres, no se juzga. */
+  sinCuadre: boolean;
   puedeCerrar: boolean;
 };
+
+/** Cuándo se guardó el último cuadre del piso de cada tienda (`fn_cuadre_piso_estado.cuadrado_en`, ISO): `null` = nunca. Una tienda que
+ *  no está en el mapa no se juzga (no se pudo leer): la base vuelve a exigirlo al cerrar. */
+export type CuadresPorSede = Readonly<Record<string, string | null>>;
+
+/** Hace falta cuadrar: la tienda está en el mapa y su último cuadre no existe o es anterior al corte (la venta pendiente más nueva). */
+export function faltaCuadre(cuadres: CuadresPorSede | undefined, ubicacionId: string, corte: string): boolean {
+  if (!cuadres || !(ubicacionId in cuadres)) return false;
+  const ultimo = cuadres[ubicacionId];
+  return ultimo === null || new Date(ultimo).getTime() < new Date(corte).getTime();
+}
 
 /** El plazo vale hasta el final de su último día (la base lo compara con `fn_hoy_lima()`: inclusivo). */
 export function plazoVigente(plazoHasta: string | null, hoy: string): boolean {
@@ -71,7 +85,12 @@ export function diasDePlazo(plazoHasta: string | null, hoy: string): number | nu
  * regularizado, cerrado o anulado no se cierra otra vez. Una tienda sin plazo (o con el plazo vencido) aparece igual —para que la
  * pantalla pueda decir por qué no se puede— pero con `puedeCerrar: false`.
  */
-export function sedesParaCerrar(filas: readonly FilaDeCola[], plazos: Readonly<Record<string, string>>, ahora: Date = new Date()): SedeParaCerrar[] {
+export function sedesParaCerrar(
+  filas: readonly FilaDeCola[],
+  plazos: Readonly<Record<string, string>>,
+  ahora: Date = new Date(),
+  cuadres?: CuadresPorSede,
+): SedeParaCerrar[] {
   const hoy = hoyLima(ahora);
   const porSede = new Map<string, SedeParaCerrar & { _ms: number; _msDesde: number }>();
   for (const f of filas) {
@@ -89,6 +108,7 @@ export function sedesParaCerrar(filas: readonly FilaDeCola[], plazos: Readonly<R
         corte: f.vendidoEn,
         plazoHasta,
         diasDePlazo: diasDePlazo(plazoHasta, hoy),
+        sinCuadre: false,
         puedeCerrar: plazoVigente(plazoHasta, hoy),
         _ms: ms,
         _msDesde: ms,
@@ -107,22 +127,27 @@ export function sedesParaCerrar(filas: readonly FilaDeCola[], plazos: Readonly<R
     }
   }
   return [...porSede.values()]
-    .map((s) => ({
-      ubicacionId: s.ubicacionId,
-      sede: s.sede,
-      pendientes: s.pendientes,
-      soles: Math.round(s.soles * 100) / 100,
-      desde: s.desde,
-      corte: s.corte,
-      plazoHasta: s.plazoHasta,
-      diasDePlazo: s.diasDePlazo,
-      puedeCerrar: s.puedeCerrar,
-    }))
+    .map((s) => {
+      // El corte es la venta pendiente más nueva: el cuadre tiene que ser posterior a ella.
+      const sinCuadre = faltaCuadre(cuadres, s.ubicacionId, s.corte);
+      return {
+        ubicacionId: s.ubicacionId,
+        sede: s.sede,
+        pendientes: s.pendientes,
+        soles: Math.round(s.soles * 100) / 100,
+        desde: s.desde,
+        corte: s.corte,
+        plazoHasta: s.plazoHasta,
+        diasDePlazo: s.diasDePlazo,
+        sinCuadre,
+        puedeCerrar: s.puedeCerrar && !sinCuadre,
+      };
+    })
     .sort((a, b) => a.sede.localeCompare(b.sede, "es"));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
-// «Identificar con sugerencias» (20261005120000): la base propone parejas (venta sin registrar → prenda) y un líder confirma.
+// «Identificar con sugerencias» (20261005120000): la base propone parejas (venta sin registrar → prenda) y quien ve Existencias confirma.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Lo que devuelve `fn_cola_arranque_candidatas`: la pareja y cuántas unidades hay de esa prenda en la tienda. */
@@ -177,20 +202,23 @@ export const diaMes = (fecha: string) => {
 };
 
 /**
- * Lo que la pantalla le dice a un líder sobre el plazo de cada tienda con ventas pendientes. Sin esto, vencido el plazo el botón
+ * Lo que la pantalla le dice a quien cierra sobre el plazo de cada tienda con ventas pendientes. Sin esto, vencido el plazo el botón
  * desaparecía sin explicación: quien lo buscaba no sabía si era un permiso, un error o una fecha.
  */
 export function avisosDePlazo(sedes: readonly SedeParaCerrar[]): string[] {
   return sedes.map((s) => {
     if (s.plazoHasta === null) return `${s.sede}: no tiene plazo abierto para cerrar su cola de arranque.`;
-    if (!s.puedeCerrar) return `${s.sede}: el plazo para cerrar su cola de arranque venció el ${diaMes(s.plazoHasta)}. Si hace falta más tiempo, avisa a quien administra el sistema.`;
+    // `diasDePlazo` es null con el plazo vencido (o sin plazo, que ya salió arriba): el plazo se dice antes que el cuadre.
+    if (s.diasDePlazo === null) return `${s.sede}: el plazo para cerrar su cola de arranque venció el ${diaMes(s.plazoHasta)}. Si hace falta más tiempo, avisa a quien administra el sistema.`;
+    // A6 (ADR-0334 act. 2026-10-14): sin un cuadre del piso después de la última venta, el cierre en bloque no se ofrece.
+    if (s.sinCuadre) return `${s.sede}: para cerrar su cola de arranque, primero cuadra el piso (Existencias ▸ Cuadrar el piso) después de la última venta sin registrar; cerrar sin contar entierra las prendas que sí están en el sistema.`;
     if (s.diasDePlazo === 0) return `${s.sede}: hoy es el último día para cerrar su cola de arranque.`;
     const dias = s.diasDePlazo ?? 0;
     return `${s.sede}: puedes cerrar su cola de arranque hasta el ${diaMes(s.plazoHasta)} (${dias} ${dias === 1 ? "día" : "días"} más).`;
   });
 }
 
-/** El aviso de éxito del cierre: con la cifra que cerró la BASE (puede ser menor que la que vio el líder si otra persona regularizó mientras tanto). */
+/** El aviso de éxito del cierre: con la cifra que cerró la BASE (puede ser menor que la que vio quien cierra si otra persona regularizó mientras tanto). */
 export function textoCierreHecho(sede: string, cerradas: number | null): string {
   if (cerradas === null) return `Las ventas sin registrar de ${sede} quedaron cerradas sin prenda.`;
   return cerradas === 1 ? `1 prenda de ${sede} quedó cerrada sin prenda.` : `${cerradas} prendas de ${sede} quedaron cerradas sin prenda.`;
@@ -202,7 +230,7 @@ export type ErrorDeLaBase = { message?: string | null; hint?: string | null } | 
 const CAMBIO_MIENTRAS_SE_REVISABA = ["prenda_sin_stock_para_descontar", "prenda_ya_regularizada", "cola_pares_invalidos"];
 
 /**
- * Cuando «Identificar con sugerencias» falla porque algo cambió mientras el líder revisaba (alguien vendió la última unidad, alguien ya
+ * Cuando «Identificar con sugerencias» falla porque algo cambió mientras se revisaba (alguien vendió la última unidad, alguien ya
  * regularizó una de las ventas, una pareja ya no calza): un texto propio de ESTA hoja y la orden de volver a buscar. El mensaje genérico de
  * `regularizar_prenda` manda a «Llegó nueva», una opción que esta hoja no tiene. null = otro error: que lo traduzca `traducirError`.
  */

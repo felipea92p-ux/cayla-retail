@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   alcanceCampana,
+  alternarSede,
   avisoReimprimir,
   chipDeTarjeta,
   conteoDeTarjeta,
@@ -14,7 +15,9 @@ import {
   prendasPorCategoria,
   prendasQueCambianDePrecioHoy,
   textoConteoTarjeta,
+  textoSedesDeCampana,
   type PrendaConCosto,
+  type TiendaOpcion,
 } from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
 
@@ -166,6 +169,28 @@ describe("cuánto alcanza una campaña, antes de guardar", () => {
   });
 });
 
+// /formidable 2026-10-23 (ADR-0488): la hoja decía «23 prendas» (tallas) y el pase de la misma campaña «8 prendas» (modelo y color).
+// Una prenda es un modelo en un color, como en el pase: sus tallas cuentan una vez.
+describe("una prenda es un modelo en un color, como en el pase de Insignias", () => {
+  const conModelo = [
+    { id: "jean-28", categoriaId: "jeans", modelo: "jean·AZU" },
+    { id: "jean-30", categoriaId: "jeans", modelo: "jean·AZU" },
+    { id: "jean-28n", categoriaId: "jeans", modelo: "jean·NEG" },
+    { id: "polo-s", categoriaId: "polos", modelo: "polo·BLA" },
+    { id: "polo-m", categoriaId: "polos", modelo: "polo·BLA" },
+  ];
+
+  it("las tallas de un mismo modelo y color cuentan una vez, por categoría y en total", () => {
+    expect(prendasPorCategoria(conModelo).get("jeans")).toBe(2);
+    expect(prendasPorCategoria(conModelo).get("polos")).toBe(1);
+    expect(alcanceCampana(conModelo, new Set(["jeans"]), new Set(["polo-s", "polo-m", "jean-30"]))).toEqual({ porCategoria: 2, aMano: 1, total: 3 });
+  });
+
+  it("un modelo que entra por su categoría no cuenta además como marcado a mano", () => {
+    expect(alcanceCampana(conModelo, new Set(["polos"]), new Set(["polo-s"]))).toEqual({ porCategoria: 1, aMano: 0, total: 1 });
+  });
+});
+
 describe("la tarjeta cuenta lo mismo que su hoja", () => {
   const aLaVenta = [
     { id: "jean-28", categoriaId: "jeans" },
@@ -222,7 +247,7 @@ describe("prendasQueCambianDePrecioHoy — el papel que queda viejo al guardar u
   ];
   const manuales = new Set(["polo"]);
   type Campana = Parameters<typeof prendasQueCambianDePrecioHoy>[0];
-  const vigente: Campana = { descuentoPct: 20, vigenteDesde: "2026-09-01", vigenteHasta: "2026-12-31", categoriaIds: ["c-blusas"] };
+  const vigente: Campana = { descuentoPct: 20, vigenteDesde: "2026-09-01", vigenteHasta: "2026-12-31", categoriaIds: ["c-blusas"], sedeIds: [] };
   const cambian = (antes: Campana, despues: Campana) => {
     const r = prendasQueCambianDePrecioHoy(antes, despues, aLaVenta, manuales, HOY_);
     return [...r.quedan, ...r.salen].sort();
@@ -251,8 +276,8 @@ describe("prendasQueCambianDePrecioHoy — el papel que queda viejo al guardar u
     expect(cambian(viene, { ...viene, descuentoPct: 40 })).toEqual([]);
   });
   it("separa las que quedan rebajadas de las que vuelven a su precio", () => {
-    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, categoriaIds: ["c-faldas"] }, aLaVenta, manuales, HOY_)).toEqual({ quedan: ["falda"], salen: ["blusa"] });
-    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, descuentoPct: null }, aLaVenta, manuales, HOY_)).toEqual({ quedan: [], salen: ["blusa", "polo"] });
+    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, categoriaIds: ["c-faldas"] }, aLaVenta, manuales, HOY_)).toMatchObject({ quedan: ["falda"], salen: ["blusa"] });
+    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, descuentoPct: null }, aLaVenta, manuales, HOY_)).toMatchObject({ quedan: [], salen: ["blusa", "polo"] });
   });
   it("sin fechas rige siempre", () => {
     const siempre: Campana = { ...vigente, vigenteDesde: null, vigenteHasta: null };
@@ -279,17 +304,167 @@ describe("destinoReimprimir — un enlace que el servidor acepte", () => {
 });
 
 describe("avisoReimprimir", () => {
+  // Un cambio igual en todas las tiendas: `n` prendas que se imprimen desde aquí.
+  const parejo = (n: number) => ({ quedan: Array.from({ length: n }, (_, i) => `v${i}`), salen: [], total: n, dondeCambia: null, aqui: null });
   it("sin enlace, dice por dónde imprimirlas y no ofrece botón", () => {
-    expect(avisoReimprimir(354, false)).toEqual({
+    expect(avisoReimprimir(parejo(354), false)).toEqual({
       detalle: "Cambió el precio en caja de 354 prendas: sus etiquetas de papel dicen el de antes. Son muchas para abrirlas juntas: imprímelas por categoría desde Existencias.",
       boton: null,
     });
   });
   it("sin prendas que cambien, no hay nada que imprimir", () => {
-    expect(avisoReimprimir(0)).toBeNull();
+    expect(avisoReimprimir(parejo(0))).toBeNull();
   });
   it("dice cuántas prendas y ofrece imprimir sus etiquetas, sin prometer un número de etiquetas", () => {
-    expect(avisoReimprimir(12)).toEqual({ detalle: "Cambió el precio en caja de 12 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
-    expect(avisoReimprimir(1)).toEqual({ detalle: "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes.", boton: "Imprimir su etiqueta" });
+    expect(avisoReimprimir(parejo(12))).toEqual({ detalle: "Cambió el precio en caja de 12 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
+    expect(avisoReimprimir(parejo(1))).toEqual({ detalle: "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes.", boton: "Imprimir su etiqueta" });
+  });
+});
+
+// ---- En qué tiendas rige una campaña (ADR-0486) ---------------------------------------------------------------------------
+
+const TRU: TiendaOpcion = { id: "tru", nombre: "Tienda Trujillo" };
+const AQP: TiendaOpcion = { id: "aqp", nombre: "Tienda Arequipa" };
+const LIM: TiendaOpcion = { id: "lim", nombre: "Tienda Lima" };
+const TRES = [AQP, LIM, TRU];
+
+describe("alternarSede", () => {
+  it("marca una tienda y la desmarca", () => {
+    const una = alternarSede(new Set(), "tru", TRES);
+    expect([...una]).toEqual(["tru"]);
+    expect([...alternarSede(una, "tru", TRES)]).toEqual([]);
+  });
+
+  it("marcar dos deja dos", () => {
+    expect([...alternarSede(new Set(["tru"]), "aqp", TRES)].sort()).toEqual(["aqp", "tru"]);
+  });
+
+  it("marcar TODAS las tiendas es «todas las sedes»: lista vacía, para que una tienda nueva no quede fuera", () => {
+    expect(alternarSede(new Set(["tru", "aqp"]), "lim", TRES).size).toBe(0);
+  });
+
+  it("no cambia el conjunto que recibe", () => {
+    const antes = new Set(["tru"]);
+    alternarSede(antes, "aqp", TRES);
+    expect([...antes]).toEqual(["tru"]);
+  });
+
+  it("con una sola tienda en el ERP, marcarla es «todas»: no hay nada que limitar", () => {
+    expect(alternarSede(new Set(), "tru", [TRU]).size).toBe(0);
+  });
+});
+
+describe("textoSedesDeCampana", () => {
+  it("una campaña de todas las sedes no dice nada", () => {
+    expect(textoSedesDeCampana([], TRES)).toBeNull();
+  });
+
+  it("una tienda: «Solo Tienda Trujillo»", () => {
+    expect(textoSedesDeCampana(["tru"], TRES)).toBe("Solo Tienda Trujillo");
+  });
+
+  it("dos tiendas: en el orden en que se eligieron, unidas con «y»", () => {
+    expect(textoSedesDeCampana(["lim", "tru"], TRES)).toBe("Solo Tienda Lima y Tienda Trujillo");
+  });
+
+  it("tres: con comas y «y»", () => {
+    expect(textoSedesDeCampana(["aqp", "lim", "tru"], TRES)).toBe("Solo Tienda Arequipa, Tienda Lima y Tienda Trujillo");
+  });
+
+  it("una tienda que ya no se conoce no inventa un nombre", () => {
+    expect(textoSedesDeCampana(["x"], TRES)).toBe("Solo en una tienda");
+    expect(textoSedesDeCampana(["tru", "x"], TRES)).toBe("Solo en 2 tiendas");
+    expect(textoSedesDeCampana(["tru"], [])).toBe("Solo en una tienda");
+  });
+});
+
+describe("reimprimir cuando cambia dónde rige (ADR-0486): el papel viejo queda en otras tiendas", () => {
+  const HOY_ = "2026-10-17";
+  const aLaVenta = [
+    { id: "blusa", categoriaId: "c-blusas" },
+    { id: "falda", categoriaId: "c-faldas" },
+    { id: "polo", categoriaId: "c-polos" },
+  ];
+  const manuales = new Set(["polo"]);
+  type Campana = Parameters<typeof prendasQueCambianDePrecioHoy>[0];
+  const todas: Campana = { descuentoPct: 20, vigenteDesde: "2026-09-01", vigenteHasta: "2026-12-31", categoriaIds: ["c-blusas"], sedeIds: [] };
+  const soloTru: Campana = { ...todas, sedeIds: ["tru"] };
+  const guardar = (antes: Campana, despues: Campana, aqui: string | null) =>
+    prendasQueCambianDePrecioHoy(antes, despues, aLaVenta, manuales, HOY_, { tiendas: TRES, aqui });
+
+  describe("solo cambian las tiendas: de todas las sedes a solo Trujillo", () => {
+    it("cambia en Arequipa y Lima, no en Trujillo", () => {
+      const c = guardar(todas, soloTru, "tru");
+      expect(c.total).toBe(2);
+      expect(c.dondeCambia).toEqual([AQP, LIM]);
+    });
+    it("guardado desde Trujillo: su papel no cambió, así que no hay botón y el aviso pide imprimirlas allá", () => {
+      const c = guardar(todas, soloTru, "tru");
+      expect(c).toMatchObject({ quedan: [], salen: [], aqui: null });
+      expect(avisoReimprimir(c, destinoReimprimir(c, "aniv") !== null)).toEqual({
+        detalle: "Cambió el precio en caja de 2 prendas en Tienda Arequipa y Tienda Lima: sus etiquetas de papel dicen el de antes. Imprímelas en esas tiendas.",
+        boton: null,
+      });
+    });
+    it("guardado desde Arequipa: el botón imprime las suyas, que vuelven a su precio", () => {
+      const c = guardar(todas, soloTru, "aqp");
+      expect(c).toMatchObject({ quedan: [], salen: ["blusa", "polo"], aqui: AQP });
+      expect(destinoReimprimir(c, "aniv")).toBe("/etiquetas-de-precio?variantes=blusa,polo");
+      expect(avisoReimprimir(c)?.boton).toBe("Imprimir las de Tienda Arequipa");
+    });
+    it("y de vuelta, de solo Trujillo a todas: las mismas tiendas, ahora con el descuento", () => {
+      expect(guardar(soloTru, todas, "lim")).toMatchObject({ quedan: ["blusa", "polo"], salen: [], total: 2, dondeCambia: [AQP, LIM], aqui: LIM });
+    });
+  });
+
+  describe("se suma una tienda: de solo Trujillo a Trujillo y Arequipa", () => {
+    const truYAqp: Campana = { ...todas, sedeIds: ["tru", "aqp"] };
+    it("cambia solo en la que entra", () => {
+      expect(guardar(soloTru, truYAqp, "tru")).toMatchObject({ total: 2, dondeCambia: [AQP], aqui: null, quedan: [], salen: [] });
+    });
+    it("el aviso la nombra; desde ella, el botón imprime las suyas con el descuento", () => {
+      expect(avisoReimprimir(guardar(soloTru, truYAqp, "tru"))?.detalle).toBe(
+        "Cambió el precio en caja de 2 prendas en Tienda Arequipa: sus etiquetas de papel dicen el de antes. Imprímelas en esa tienda.",
+      );
+      const desdeAqp = guardar(soloTru, truYAqp, "aqp");
+      expect(desdeAqp).toMatchObject({ quedan: ["blusa", "polo"], salen: [] });
+      expect(avisoReimprimir(desdeAqp)?.boton).toBe("Imprimir las de Tienda Arequipa");
+    });
+  });
+
+  describe("sin tiendas = todas", () => {
+    it("marcar las tres tiendas es lo mismo que todas las sedes: no cambia ningún precio", () => {
+      expect(guardar(todas, { ...todas, sedeIds: ["aqp", "lim", "tru"] }, "tru").total).toBe(0);
+    });
+    it("otro % de una campaña de todas las sedes cambia igual en cada tienda: el aviso no lista tiendas", () => {
+      const c = guardar(todas, { ...todas, descuentoPct: 30 }, "lim");
+      expect(c).toMatchObject({ quedan: ["blusa", "polo"], total: 2, dondeCambia: null, aqui: null });
+      expect(avisoReimprimir(c)).toEqual({ detalle: "Cambió el precio en caja de 2 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
+    });
+  });
+
+  it("otro % de una campaña de solo Trujillo: solo Trujillo; desde Lima no hay nada que imprimir", () => {
+    const c = guardar(soloTru, { ...soloTru, descuentoPct: 30 }, "lim");
+    expect(c).toMatchObject({ total: 2, dondeCambia: [TRU], aqui: null, quedan: [], salen: [] });
+    expect(avisoReimprimir(c)?.detalle).toContain("en Tienda Trujillo:");
+  });
+
+  it("cambia en todas, pero no lo mismo: las nombra a todas y el botón imprime solo lo de aquí", () => {
+    // Solo Trujillo con Blusas → todas las sedes con Blusas y Faldas: Trujillo suma la falda; Arequipa y Lima, las tres prendas.
+    const c = guardar(soloTru, { ...todas, categoriaIds: ["c-blusas", "c-faldas"] }, "tru");
+    expect(c).toMatchObject({ total: 3, dondeCambia: [AQP, LIM, TRU], aqui: TRU, quedan: ["falda"], salen: [] });
+    expect(avisoReimprimir(c)).toEqual({
+      detalle: "Cambió el precio en caja de 3 prendas en Tienda Arequipa, Tienda Lima y Tienda Trujillo: sus etiquetas de papel dicen el de antes.",
+      boton: "Imprimir la de Tienda Trujillo",
+    });
+  });
+
+  it("sin saber las tiendas (la base sin la migración) no inventa nombres ni se pierde una campaña limitada", () => {
+    const c = prendasQueCambianDePrecioHoy(soloTru, { ...soloTru, descuentoPct: 30 }, aLaVenta, manuales, HOY_);
+    expect(c).toMatchObject({ total: 2, dondeCambia: null, quedan: [], salen: [] });
+    expect(avisoReimprimir(c)).toEqual({
+      detalle: "Cambió el precio en caja de 2 prendas: sus etiquetas de papel dicen el de antes. Imprímelas en cada tienda.",
+      boton: null,
+    });
   });
 });

@@ -104,6 +104,31 @@ test("un respaldo «respaldo_…» de un arreglo hecho en producción se aparta,
   assert.equal(compararHuellas(new Map(), expuesto).soloProduccion.length, 9);
 });
 
+test("el diseño archivado de #1190 se aparta, pero reabrir su EXECUTE (otra huella), un permiso a authenticated o una función con otra firma SÍ se ven (cierre de #1190)", () => {
+  const archivado = leerHuellas(
+    celda(
+      ["columna", "campana_disenos.id", "1"],
+      ["candado", "campana_disenos.campana_disenos_pkey", "2"],
+      ["indice", "campana_disenos_un_publicado", "3"],
+      ["rls", "campana_disenos", "b5a4aba65cef"],
+      ["permiso", "campana_disenos.service_role", "0aa2355c1753"],
+      ["fn", "campana_diseno(p_etiqueta_id uuid)", "4aaf6226ced7"],
+      ["fn", "campanas_lista()", "b46eaddfd677"],
+    ),
+  );
+  const r = compararHuellas(new Map(), archivado);
+  assert.equal(r.soloProduccion.length, 0);
+  assert.equal(r.conocidas.length, 7);
+  // El mismo objeto con otra huella: alguien volvió a darle EXECUTE a authenticated (re-pegó 20261017160000 o 231000).
+  const reabierto = leerHuellas(celda(["fn", "campanas_lista()", "e3688c25ac81"], ["fn", "campana_diseno(p_etiqueta_id uuid)", "ffffffffffff"]));
+  assert.deepEqual(compararHuellas(new Map(), reabierto).soloProduccion.map((x) => x.k), ["campana_diseno(p_etiqueta_id uuid)", "campanas_lista()"]);
+  // Lo que no está en la lista de congeladas no se aparta aunque se llame parecido.
+  const parecido = leerHuellas(
+    celda(["fn", "campanas_lista(p int)", "1"], ["permiso", "campana_disenos.authenticated", "2"], ["politica", "campana_disenos.todos", "3"], ["disparador", "campana_disenos.t", "4"]),
+  );
+  assert.equal(compararHuellas(new Map(), parecido).soloProduccion.length, 4);
+});
+
 test("cada conocida tiene su porqué escrito", () => {
   for (const c of CONOCIDAS) assert.ok(c.motivo.length > 40, `${c.patron} sin motivo`);
 });

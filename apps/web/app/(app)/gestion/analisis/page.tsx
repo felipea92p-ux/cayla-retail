@@ -29,7 +29,7 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     existencias: veModulo(persona, "existencias"),
     traslados: veModulo(persona, "traslados"),
     pedir: veModulo(persona, "traslados") || veModulo(persona, "analisis"),
-    compras: veModulo(persona, "facturas_compra") && puede(persona, "verDineroCompras"),
+    compras: veModulo(persona, "ordenes_compra"),
     produccion: veModulo(persona, "produccion"),
     etiquetas: true,
     movimientos: veModulo(persona, "movimientos"),

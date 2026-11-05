@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar, siguienteDe } from "./guia-campos";
-import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
+import { camposDeAgregarPaso, camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeEditarTela, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
 import { problemaDeAnulacion } from "./orden-pagina-reglas";
 import { problemasFases, type FaseBorrador, type ProveedorServicio, type TarifaDeLista } from "./orden-fases-reglas";
 
@@ -14,12 +14,31 @@ describe("camposDeAvance — la guía coincide con lo que registrar_avance exige
   it("al abrir la hoja precargada con lo que falta, solo sigue «quién lo anota»", () => {
     const campos = camposDeAvance({ total: 48, responsableListo: false });
     expect(siguienteDe(campos)?.id).toBe("quien");
-    expect(estadosDe(campos)).toEqual({ cantidades: "hecho", quien: "ahora" });
+    expect(estadosDe(campos)).toEqual({ cantidades: "hecho", dia: "hecho", quien: "ahora" });
   });
   it("si se borra todo, sigue «cuántas» y dice qué hacer", () => {
     const campos = camposDeAvance({ total: 0, responsableListo: true });
     expect(siguienteDe(campos)).toMatchObject({ id: "cantidades", pendiente: "Escribe cuántas terminaste en cada talla y color." });
     expect(faltanDe(camposDeAvance({ total: 0, responsableListo: false })).map((c) => c.id)).toEqual(["cantidades", "quien"]);
+  });
+});
+
+describe("camposDeAvance con falla y con fecha (ADR-0570) — la guía coincide con lo que anotar_termine exige", () => {
+  it("una anotación de solo fallas vale: «cuántas» queda hecha con 0 buenas y 2 con falla", () => {
+    const campos = camposDeAvance({ total: 0, conFalla: 2, hayFallas: true, problemaFallas: null, responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(true);
+    expect(estadosDe(campos)).toMatchObject({ cantidades: "hecho", fallas: "hecho" });
+  });
+  it("una falla a medias detiene la hoja y dice qué falta; sin filas de falla, el campo no existe", () => {
+    const campos = camposDeAvance({ total: 6, conFalla: 2, hayFallas: true, problemaFallas: "Cuenta qué pasó con las prendas con falla.", responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(siguienteDe(campos)).toMatchObject({ id: "fallas", pendiente: "Cuenta qué pasó con las prendas con falla." });
+    expect(camposDeAvance({ total: 6, responsableListo: true }).map((c) => c.id)).toEqual(["cantidades", "dia", "quien"]);
+  });
+  it("un día que no vale detiene la hoja con su frase", () => {
+    const campos = camposDeAvance({ total: 6, problemaDia: "Ese día todavía no llega: elige hoy o un día anterior.", responsableListo: true });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(siguienteDe(campos)?.id).toBe("dia");
   });
 });
 
@@ -138,5 +157,55 @@ describe("camposDeCierre — la guía coincide con lo que cerrar_produccion exig
   it("lo que dice la guía de lo que falta es lo que dice la base: el primer problema, o cómo completar", () => {
     expect(camposDeCierre({ total: 9, problemas: ["No puedes pasar al stock 9 de X: en Acabado se terminaron 8."], responsableListo: true })[0].pendiente).toBe("No puedes pasar al stock 9 de X: en Acabado se terminaron 8.");
     expect(camposDeCierre({ total: 0, problemas: [], responsableListo: true })[0].pendiente).toBe("Escribe cuántas salieron buenas en cada talla y color.");
+  });
+});
+
+describe("camposDeEditarTela — la guía coincide con lo que guardar_insumos_orden acepta", () => {
+  // La base acepta una lista válida (`problemasTela` + no quitar lo usado) con alguien que firma. «Sin cambios» no es una falta de la base, pero guardar lo mismo no hace nada: la guía no lo da por hecho.
+  const laBaseAcepta = (faltas: readonly string[], hayCambios: boolean, responsableListo: boolean) => faltas.length === 0 && hayCambios && responsableListo;
+
+  it("recorre las combinaciones: «se puede confirmar» es exactamente «hay algo que guardar y la base lo acepta»", () => {
+    for (const faltas of [[], ["Escribe cuánto lleva cada prenda de «Lino», por ejemplo 1.200."]]) {
+      for (const hayCambios of [true, false]) {
+        for (const responsableListo of [true, false]) {
+          expect(sePuedeConfirmar(camposDeEditarTela({ faltas, hayCambios, responsableListo })), `${faltas.length}/${hayCambios}/${responsableListo}`).toBe(laBaseAcepta(faltas, hayCambios, responsableListo));
+        }
+      }
+    }
+  });
+  it("al abrir la hoja sin tocar nada, lo primero que sigue es la lista de tela y avíos", () => {
+    const campos = camposDeEditarTela({ faltas: [], hayCambios: false, responsableListo: false });
+    expect(siguienteDe(campos)?.id).toBe("tela");
+    expect(campos[0].pendiente).toBe("Cambia algo de la tela o de los avíos para guardar.");
+  });
+  it("con una falta, la guía dice la falta (la misma frase que lee la persona bajo el campo)", () => {
+    expect(camposDeEditarTela({ faltas: ["No se quita «Lino»: ya se anotó que se usó en esta orden."], hayCambios: true, responsableListo: true })[0].pendiente).toBe("No se quita «Lino»: ya se anotó que se usó en esta orden.");
+  });
+  it("con la lista lista y los cambios hechos, solo falta quién lo anota", () => {
+    const campos = camposDeEditarTela({ faltas: [], hayCambios: true, responsableListo: false });
+    expect(estadosDe(campos).tela).toBe("hecho");
+    expect(siguienteDe(campos)?.id).toBe("quien");
+  });
+});
+
+describe("camposDeAgregarPaso — la guía de «Agregar un paso» dice lo mismo que la de «Cambiar quién»", () => {
+  it("la fila entera es UN campo y después quién lo anota: nada se puede confirmar con una falta o sin responsable", () => {
+    for (const faltas of [[], ["Si «Ojales y botones» sale afuera, elige a quién."]]) {
+      for (const responsableListo of [true, false]) {
+        expect(sePuedeConfirmar(camposDeAgregarPaso({ faltas, responsableListo })), JSON.stringify({ faltas, responsableListo })).toBe(faltas.length === 0 && responsableListo);
+      }
+    }
+  });
+  it("dice lo primero que falta con sus palabras, y sin faltas pasa a quién lo anota", () => {
+    expect(siguienteDe(camposDeAgregarPaso({ faltas: ["Si «Ojales y botones» sale afuera, elige a quién."], responsableListo: true }))).toMatchObject({ id: "fase", pendiente: "Si «Ojales y botones» sale afuera, elige a quién." });
+    expect(estadosDe(camposDeAgregarPaso({ faltas: [], responsableListo: false }))).toEqual({ fase: "hecho", quien: "ahora" });
+  });
+  it("un paso que entra tarde (ADR-0586) pide además el día y el motivo, en ese orden, y sin cualquiera de los dos no se confirma", () => {
+    const tarde = (problemaDia: string | null, problemaMotivo: string | null) => camposDeAgregarPaso({ faltas: [], responsableListo: true, tarde: { problemaDia, problemaMotivo } });
+    expect(tarde(null, "Cuenta por qué: queda en la historia de la orden.").map((c) => c.id)).toEqual(["fase", "dia", "porque", "quien"]);
+    expect(siguienteDe(tarde(null, "Cuenta por qué: queda en la historia de la orden."))).toMatchObject({ id: "porque", pendiente: "Cuenta por qué: queda en la historia de la orden." });
+    expect(sePuedeConfirmar(tarde("Ese día todavía no llega: elige hoy o un día anterior.", null))).toBe(false);
+    expect(sePuedeConfirmar(tarde(null, null))).toBe(true);
+    expect(camposDeAgregarPaso({ faltas: [], responsableListo: true, tarde: null }).map((c) => c.id)).toEqual(["fase", "quien"]);
   });
 });

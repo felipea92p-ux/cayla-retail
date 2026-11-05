@@ -67,7 +67,7 @@ mueve. Los números no son decorativos: son los que tu contador espera ver.
 | **634** | Mantenimiento | |
 | **637** | Publicidad | Marketing |
 | **656** | Suministros | Bolsas, empaques, útiles |
-| **659** | Desmedros y otros | **Las mermas** |
+| **6951** | Desvalorización de inventarios — mercaderías | **Las mermas** (antes en la 659; ADR-0483, código provisional hasta el OK del contador) |
 
 ### ⭐ La regla que evita que esto se vuelva un monstruo
 
@@ -96,7 +96,7 @@ Estas son **todas** las operaciones del negocio. No hay una décimo-quinta escon
 | 8 | **Flete del fardo** | 609 Costos de compra | 101 Caja |
 | 9 | **Gasto operativo** | 62/63x/65x + 4011 IGV | 101 Caja / 104 Banco |
 | 10 | **Depósito al banco** | 104 Banco | 101 Caja |
-| 11 | **Merma** | 659 Desmedros | 201 Mercaderías |
+| 11 | **Merma** | 6951 Desvalorización de inventarios | 201 Mercaderías |
 | 12 | **Taller entrega producción** | 211 Productos terminados | 711 Variación |
 | 13 | **Compra de mueble/equipo** | 335/336 + 4011 IGV | 101 Caja / 104 Banco |
 | 14 | **Bajada a tienda / traslado** | *(sin asiento)* | *(sin asiento)* |
@@ -115,7 +115,7 @@ asiento ahí sería inventar movimiento contable donde solo hubo movimiento fís
    Ventas (7011 + 7012)
  − Costo de ventas (691)
  − Fletes de compra (609)
- − Mermas (659)
+ − Mermas (6951)
  ─────────────────────────────
  = MARGEN BRUTO
  − Gastos de operación (62, 631, 634, 635, 636, 637, 656)
@@ -184,7 +184,8 @@ resuelve solo.
 
 ### ③ Las mermas no son un gasto de operar: reducen el margen
 Ya lo hacemos bien (van junto al COGS, no entre alquiler y luz). Se mantiene, ahora con
-cuenta propia: **659**.
+cuenta propia: **6951** (desde el 2026-10-22; antes iban a la 659, que en el plan peruano es «Otros gastos de
+gestión» y no una pérdida de inventario). El código es provisional hasta que el contador lo confirme (ADR-0483).
 
 ### ④ Los descuentos permanentes (markdowns) merecen medirse
 Cuando bajas el precio de una prenda que no rota, contablemente la venta vale lo que

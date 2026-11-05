@@ -1,0 +1,4 @@
+## 2026-10-26 (Existencias: los colores de la tarjeta no salen de ella)
+Qué hice: en la tarjeta de Existencias, los puntos de color de un modelo con muchos colores (Polo Manga Cero, más de 13) ya no pasan el borde: bajan a una segunda línea dentro de la tarjeta, y el nombre del color que se ve va detrás del último punto o debajo. Con pocos colores la tarjeta queda igual. `components/ExistenciasTarjetas.tsx`, solo clases.
+Por qué así: la fila de puntos era `shrink-0` sin `flex-wrap`, así que con muchos colores seguía de largo. Se eligió que bajen de línea y no un «+N» porque así todos los colores siguen a un toque, sin esconder ninguno.
+Felipe se lleva: PR para fusionar. Verificado en local con 16 puntos simulados en la página (la base local no tiene modelos con tantos colores) a 1440 y 375 px: dentro de la tarjeta y sin ensanchar la página.

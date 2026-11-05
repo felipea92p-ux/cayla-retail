@@ -32,10 +32,11 @@ describe("confirmacionCatalogo — la ventana de los botones de un clic del Cat�
 // botones de un clic abren `ConfirmarConResponsable`. Si una lista vuelve a poner un combo suelto, esto avisa.
 describe("las 9 listas del Catálogo no llevan combo arriba", () => {
   // Temporadas (ADR-0246) no aprueba ni desactiva, pero cambiar la de una categoría y asignar en lote confirman igual.
-  const LISTAS = ["Categorias", "Familias", "Colores", "Tallas", "Tejidos", "Patrones", "Etiquetas", "Marcas", "Temporadas"];
-  for (const nombre of LISTAS) {
-    const fuente = readFileSync(new URL(`../components/${nombre}Lista.tsx`, import.meta.url), "utf8");
-    it(`${nombre}Lista confirma con el combo adentro y no tiene combo flotante`, () => {
+  // Los sellos dejaron de ser una lista el 2026-10-22: son la billetera de pases de Catálogo ▸ Insignias, que confirma igual.
+  const LISTAS = ["Categorias", "Familias", "Colores", "Tallas", "Tejidos", "Patrones", "Marcas", "Temporadas"].map((n) => [`${n}Lista`, `${n}Lista.tsx`]);
+  for (const [nombre, archivo] of [...LISTAS, ["SellosPantalla", "sellos/SellosPantalla.tsx"]]) {
+    const fuente = readFileSync(new URL(`../components/${archivo}`, import.meta.url), "utf8");
+    it(`${nombre} confirma con el combo adentro y no tiene combo flotante`, () => {
       expect(fuente).toContain("<ConfirmarConResponsable");
       expect(fuente).not.toMatch(/<ComboResponsable[^>]*hacia="abajo"/);
       // Ningún botón de una tarjeta (la fila de la lista: `t`, `c`, `m`…) guarda directo: pasa por

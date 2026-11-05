@@ -32,6 +32,25 @@ revientan con llave duplicada. No necesita base de datos y corre en CI (paso «V
 de migración»). Si sale rojo, renombra la que **aún no corrió en producción** — nunca la
 que ya se pegó allá — y actualiza sus referencias con `git grep`.
 
+## Ayudantes `pg_temp`: un nombre, una firma
+
+Varias migraciones se ayudan de una función temporal (`pg_temp.reemplazar`, `pg_temp.reemplazar_anclado`,
+`pg_temp.reemplazar_una_vez`…) para parchar una función viva. Vive solo en la sesión que la crea. **En producción cada
+pegada del SQL Editor es su propia sesión, así que nunca choca con otra; el CLI de Supabase (`supabase start`, `db reset`)
+aplica TODAS las migraciones en una sola sesión, y `pg_temp` se arrastra de una a otra.** Si dos migraciones definen
+`pg_temp.f(…)` con los mismos tipos de argumento pero otro nombre de parámetro, la segunda falla con
+`42P13 cannot change name of input parameter` y la base no se arma. Pasó el 2026-10-23: `20261023212000` definió
+`reemplazar_una_vez(p_firma, p_ancla, …)` y dos migraciones de septiembre y octubre ya la tenían con `p_viejo`. Su propio CI
+no lo vio (una migración nueva de un PR se aparta y se aplica en su sesión), así que `main` quedó sin poder armar una base
+desde cero y se cayeron las tandas de Postgres de los PR siguientes.
+
+`pnpm migraciones:pg-temp` recorre las migraciones en orden de versión y falla nombrando los dos archivos. Qué hacer: dale
+un nombre propio al ayudante de la migración nueva (`reemplazar_una_vez_ancla`) o suelta el viejo antes con
+`drop function if exists pg_temp.<nombre>(<tipos>);`. Corre en el CI (paso «Ayudantes pg_temp sin choque») y no necesita
+base de datos. Es un análisis de texto: no ve una función creada con `execute '…'` ni mira el tipo de retorno; la prueba
+completa es armar la base desde cero, que es lo que hacen las tandas de Postgres del CI. Si la migración que choca ya está en
+`main`, el check «SQL pegado» no deja editarla (ni cuando el cambio no toca ningún objeto de la base): decide Felipe.
+
 ## Qué significa cada resultado
 
 | Resultado | Qué puedes afirmar |

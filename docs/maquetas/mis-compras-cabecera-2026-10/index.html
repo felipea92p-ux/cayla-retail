@@ -1,0 +1,150 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compré ropa · cabecera compacta</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Cuatro formas de compactar la cabecera de «Compré ropa», al lado de la de hoy. Tokens de la guía «CAYLA Dynamic» (globals.css y su oscuro). */
+:root { --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --sand:#e8e0d0; --hueso:#eae1d2; --taupe:#805c4c; --rojo:#b8412d; --verde:#48603f;
+  --serif:"EB Garamond",Georgia,serif; --sans:"DM Sans",system-ui,sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --crema:#1a1a18; --papel:#24231f; --tinta:#f5f0e8; --sand:#3a3730; --hueso:#2e2c27; --taupe:#c7a894; --rojo:#d9674f; --verde:#9db48f; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:15px; line-height:1.4; padding:28px 16px 56px; }
+.envoltura { max-width:1280px; margin:0 auto; display:flex; flex-direction:column; gap:22px; }
+.eyebrow { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--taupe); font-weight:600; }
+h1 { font-family:var(--serif); font-weight:400; font-size:clamp(30px,5vw,42px); line-height:1.05; margin:6px 0 8px; }
+.bajada { max-width:70ch; color:var(--taupe); margin:0; }
+.fila { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:26px; align-items:start; }
+.opcion { display:flex; flex-direction:column; gap:10px; }
+.opcion h2 { font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--taupe); margin:0; font-weight:600; }
+.opcion h2 b { color:var(--tinta); }
+.nota { font-size:13px; color:var(--taupe); margin:0; }
+.nota b { color:var(--tinta); }
+.tel { width:100%; max-width:375px; border:7px solid var(--tinta); border-radius:36px; background:var(--crema); overflow:hidden; }
+.sis { height:26px; display:flex; justify-content:space-between; align-items:center; padding:0 20px; font-size:11px; font-weight:600; }
+.top { display:flex; align-items:center; justify-content:space-between; height:48px; padding:0 18px; border-bottom:1px solid var(--sand); font-size:13px; color:var(--taupe); }
+.pant { padding:14px 18px 18px; display:flex; flex-direction:column; gap:12px; }
+.cab-h { min-height:0; }
+.sede { display:flex; align-items:center; gap:8px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--taupe); font-weight:600; }
+.sede i { display:block; width:22px; border-top:1px solid var(--taupe); opacity:.6; }
+.titulo { font-family:var(--serif); font-weight:400; font-size:40px; line-height:1.04; margin:6px 0 0; }
+.titulo.chico { font-size:28px; margin:0; }
+.frase { margin:6px 0 0; color:var(--taupe); font-size:14.5px; }
+.volver { width:34px; height:34px; border-radius:50%; border:1px solid var(--sand); background:var(--papel); display:grid; place-items:center; flex:none; font-size:15px; }
+.paso-l { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--taupe); }
+.camino { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+.camino div { display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--taupe); }
+.camino i { display:block; height:4px; border-radius:3px; background:var(--sand); }
+.camino .hecho { color:var(--verde); } .camino .hecho i { background:var(--verde); }
+.camino .ahora { color:var(--tinta); font-weight:600; } .camino .ahora i { background:var(--tinta); }
+.pegado { position:sticky; top:0; background:var(--crema); z-index:2; }
+.pregunta { font-family:var(--serif); font-size:28px; line-height:1.1; margin:2px 0 0; }
+.sub { font-size:13.5px; color:var(--taupe); margin:0; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.tarj { border:1px solid var(--sand); background:var(--papel); border-radius:18px; padding:10px; display:flex; flex-direction:column; gap:6px; }
+.tarj .foto { aspect-ratio:4/3; border-radius:12px; background:var(--hueso); }
+.tarj b { font-size:13.5px; font-weight:600; } .tarj span { font-size:11.5px; color:var(--taupe); }
+.ver { font-size:12px; color:var(--taupe); padding:6px 10px; background:var(--hueso); border-radius:999px; align-self:flex-start; }
+.puntos { display:flex; gap:5px; align-items:center; margin-left:auto; font-size:12px; color:var(--taupe); }
+.puntos s { width:9px; height:9px; border-radius:50%; background:var(--sand); text-decoration:none; display:block; }
+.puntos s.h { background:var(--verde); } .puntos s.a { background:var(--tinta); }
+.fila-unica { display:flex; align-items:center; gap:10px; }
+.fila-unica .nombre { font-weight:600; font-size:15px; }
+.medida { font-size:12px; color:var(--taupe); }
+.medida b { color:var(--rojo); }
+</style>
+<div class="envoltura">
+  <header>
+    <div class="eyebrow">Compras ▸ Mis compras ▸ Compré ropa · cabecera · 26 de octubre de 2026</div>
+    <h1>Compactar la cabecera de «Compré ropa»</h1>
+    <p class="bajada">Hoy la cabecera ocupa casi un tercio del teléfono antes de la primera pregunta. Aquí están la de hoy y cuatro formas de acortarla, todas en el paso 2 («¿Qué le compraste?») para ver cuánto sube el contenido. Nada se implementa hasta que elijas una.</p>
+  </header>
+  <section class="fila">
+
+    <div class="opcion">
+      <h2>Hoy</h2>
+      <div class="tel"><div class="sis"><span>10:24</span><span>● ● ▮</span></div>
+        <div class="top"><span>☰</span><span>TIENDA LIMA ⌄</span><span>⌕</span></div>
+        <div class="pant"><div class="cab-h" data-medir>
+          <div class="sede"><i></i>Tienda Lima · lunes, 26 de octubre · 10:24</div>
+          <h3 class="titulo" style="margin-bottom:0">Compré ropa</h3>
+          <p class="frase">A quién le compraste, qué prendas y el papel que te dieron.</p>
+          <div class="paso-l" style="margin-top:14px"><span class="volver">←</span><span>CAYLA · paso 2 de 3</span></div>
+          <div class="camino" style="margin-top:12px"><div class="hecho"><i></i>✓ El proveedor</div><div class="ahora"><i></i>Las prendas</div><div><i></i>Papel y pago</div></div></div>
+          <h4 class="pregunta">¿Qué le compraste?</h4>
+          <p class="sub">Toca una prenda de las suyas: viene con lo de la vez pasada.</p>
+          <div class="grid2"><div class="tarj"><div class="foto"></div><b>Blusa Emma</b><span>La vez pasada: 6 a S/ 20</span></div><div class="tarj"><div class="foto"></div><b>Polo Tito</b><span>La vez pasada: 10 a S/ 15</span></div></div>
+        </div></div>
+      <p class="nota">La de ahora: sede y fecha, título de 46 px, frase, flecha con «paso 2 de 3» y el camino. <span class="medida">Cabecera: <b data-px></b></span></p>
+    </div>
+
+    <div class="opcion">
+      <h2><b>A</b> · Sin frase, flecha junto al camino</h2>
+      <div class="tel"><div class="sis"><span>10:24</span><span>● ● ▮</span></div>
+        <div class="top"><span>☰</span><span>TIENDA LIMA ⌄</span><span>⌕</span></div>
+        <div class="pant"><div class="cab-h" data-medir>
+          <div class="sede"><i></i>Tienda Lima · lunes, 26 de octubre</div>
+          <h3 class="titulo" style="margin-bottom:12px">Compré ropa</h3>
+          <div class="fila-unica"><span class="volver">←</span><div style="flex:1"><div class="camino"><div class="hecho"><i></i>✓ El proveedor</div><div class="ahora"><i></i>Las prendas</div><div><i></i>Papel y pago</div></div></div></div></div>
+          <h4 class="pregunta">¿Qué le compraste?</h4>
+          <p class="sub">Toca una prenda de las suyas: viene con lo de la vez pasada.</p>
+          <div class="grid2"><div class="tarj"><div class="foto"></div><b>Blusa Emma</b><span>La vez pasada: 6 a S/ 20</span></div><div class="tarj"><div class="foto"></div><b>Polo Tito</b><span>La vez pasada: 10 a S/ 15</span></div></div>
+        </div></div>
+      <p class="nota">Se va la frase y la línea «paso 2 de 3»: el camino ya dice en cuál vas. La flecha pasa al lado del camino. <b>Casi no cambia lo que ya conoces.</b> <span class="medida">Cabecera: <b data-px></b></span></p>
+    </div>
+
+    <div class="opcion">
+      <h2><b>B</b> · Título chico y camino fijo arriba</h2>
+      <div class="tel"><div class="sis"><span>10:24</span><span>● ● ▮</span></div>
+        <div class="top"><span>☰</span><span>TIENDA LIMA ⌄</span><span>⌕</span></div>
+        <div class="pant"><div class="cab-h pegado" data-medir>
+          <div class="fila-unica" style="margin-bottom:10px"><span class="volver">←</span><div style="flex:1;min-width:0"><div class="titulo chico">Compré ropa</div><div class="medida">CAYLA · paso 2 de 3</div></div></div>
+          <div class="camino"><div class="hecho"><i></i>✓ El proveedor</div><div class="ahora"><i></i>Las prendas</div><div><i></i>Papel y pago</div></div></div>
+          <h4 class="pregunta">¿Qué le compraste?</h4>
+          <p class="sub">Toca una prenda de las suyas: viene con lo de la vez pasada.</p>
+          <div class="grid2"><div class="tarj"><div class="foto"></div><b>Blusa Emma</b><span>La vez pasada: 6 a S/ 20</span></div><div class="tarj"><div class="foto"></div><b>Polo Tito</b><span>La vez pasada: 10 a S/ 15</span></div></div>
+        </div></div>
+      <p class="nota">Sin sede, fecha ni frase: una flecha, «Compré ropa» en chico y el camino, que se queda fijo al bajar por las prendas. <b>La más compacta con nombres.</b> Se aparta de la cabecera del resto del ERP mientras dura la compra. <span class="medida">Cabecera: <b data-px></b></span></p>
+    </div>
+
+    <div class="opcion">
+      <h2><b>C</b> · Una fila con puntos</h2>
+      <div class="tel"><div class="sis"><span>10:24</span><span>● ● ▮</span></div>
+        <div class="top"><span>☰</span><span>TIENDA LIMA ⌄</span><span>⌕</span></div>
+        <div class="pant"><div class="cab-h pegado" data-medir>
+          <div class="fila-unica"><span class="volver">←</span><div class="nombre">Compré ropa · CAYLA</div><div class="puntos"><s class="h"></s><s class="a"></s><s></s>&nbsp;2 de 3</div></div></div>
+          <h4 class="pregunta">¿Qué le compraste?</h4>
+          <p class="sub">Toca una prenda de las suyas: viene con lo de la vez pasada.</p>
+          <div class="grid2"><div class="tarj"><div class="foto"></div><b>Blusa Emma</b><span>La vez pasada: 6 a S/ 20</span></div><div class="tarj"><div class="foto"></div><b>Polo Tito</b><span>La vez pasada: 10 a S/ 15</span></div></div>
+        </div></div>
+      <p class="nota">Todo en una línea: flecha, a quién le compras y tres puntos. <b>Lo más corto, pero los pasos pierden su nombre</b> («El proveedor», «Las prendas», «Papel y pago»), que hoy explican el camino a quien nunca lo usó. <span class="medida">Cabecera: <b data-px></b></span></p>
+    </div>
+
+    <div class="opcion">
+      <h2><b>D</b> · Cabecera del ERP, con la flecha arriba</h2>
+      <div class="tel"><div class="sis"><span>10:24</span><span>● ● ▮</span></div>
+        <div class="top"><span>☰</span><span>TIENDA LIMA ⌄</span><span>⌕</span></div>
+        <div class="pant"><div class="cab-h" data-medir>
+          <div class="sede"><span class="volver" style="width:28px;height:28px;font-size:13px">←</span><i></i>Tienda Lima · lunes, 26 de octubre</div>
+          <h3 class="titulo" style="margin-bottom:8px">Compré ropa</h3>
+          <p class="frase" style="margin:0 0 12px">CAYLA · paso 2 de 3</p>
+          <div class="camino"><div class="hecho"><i></i>✓ El proveedor</div><div class="ahora"><i></i>Las prendas</div><div><i></i>Papel y pago</div></div></div>
+          <h4 class="pregunta">¿Qué le compraste?</h4>
+          <p class="sub">Toca una prenda de las suyas: viene con lo de la vez pasada.</p>
+          <div class="grid2"><div class="tarj"><div class="foto"></div><b>Blusa Emma</b><span>La vez pasada: 6 a S/ 20</span></div><div class="tarj"><div class="foto"></div><b>Polo Tito</b><span>La vez pasada: 10 a S/ 15</span></div></div>
+        </div></div>
+      <p class="nota">La cabecera de todo el ERP tal cual: la flecha va <b>en la línea de sede</b> (como en las demás pantallas) y la frase pasa a ser «CAYLA · paso 2 de 3». <b>La más fiel al sistema</b>, ahorra poco y pide mover la cabecera dentro de la pantalla de compra. <span class="medida">Cabecera: <b data-px></b></span></p>
+    </div>
+
+  </section>
+</div>
+<script>
+// Mide cada cabecera dibujada y lo escribe bajo ella: la comparación no es de ojo.
+const hoy = document.querySelector("[data-medir]").getBoundingClientRect().height;
+document.querySelectorAll(".opcion").forEach((o) => {
+  const m = o.querySelector("[data-medir]"), px = o.querySelector("[data-px]");
+  if (!m || !px) return;
+  const h = Math.round(m.getBoundingClientRect().height);
+  px.textContent = o === document.querySelector(".opcion") ? `${h} px` : `${h} px (${h - Math.round(hoy) >= 0 ? "+" : "−"}${Math.abs(h - Math.round(hoy))} px)`;
+});
+</script>

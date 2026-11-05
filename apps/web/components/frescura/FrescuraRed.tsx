@@ -44,7 +44,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
         {cabecera("¿Está fresco el piso de CAYLA?")}
         <section className="card-cayla px-4 py-5 sm:px-5">
           <Vacio tamano="chico" alinear="izquierda" icono={<Store />}>
-            Por ahora, la frescura de las tres tiendas juntas la lee el líder. Para ver una tienda, elígela en el selector de arriba.
+            Las tres tiendas juntas las ve el líder. Para ver una, elígela en el selector de sede.
           </Vacio>
         </section>
       </div>
@@ -71,7 +71,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
         {principal && (
           <>
             <BarraApilada segmentos={segmentosDelPiso(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
-            <p className="mt-2 text-[13px] tabular-nums text-taupe">
+            <p className="mt-2 text-sm tabular-nums text-taupe">
               {lineaDelPiso(principal)}
               {respuesta.antes && (
                 <>
@@ -86,11 +86,11 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
           <ul aria-label="Cada familia" className="mt-3 divide-y divide-sand">
             {familias.map((f) => (
               <li key={f.codigo ?? "otras"} className="grid grid-cols-1 items-center gap-x-4 gap-y-1.5 py-2 sm:grid-cols-[minmax(140px,1fr)_minmax(200px,2fr)_minmax(0,2fr)]">
-                <span className="text-[13.5px] font-semibold leading-tight">
-                  {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
+                <span className="text-[15px] font-semibold leading-tight">
+                  {f.nombre} <span className="text-sm font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
                 </span>
                 <BarraApilada segmentos={segmentosDelPiso(f)} alto={8} unidad="unidades colgadas" />
-                <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
+                <span className="text-sm leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
               </li>
             ))}
           </ul>
@@ -104,26 +104,26 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                   {t.nombre}
                   <ChevronRight aria-hidden className="h-3.5 w-3.5" />
                 </a>
-                {t.principal && <span className="text-[12.5px] font-normal tabular-nums text-taupe"> · {unidades(t.principal.total)}</span>}
+                {t.principal && <span className="text-sm font-normal tabular-nums text-taupe"> · {unidades(t.principal.total)}</span>}
               </span>
               {t.fallo ? (
-                <span className="text-[13px] text-taupe sm:col-span-2">{t.fallo}</span>
+                <span className="text-sm text-taupe sm:col-span-2">{t.fallo}</span>
               ) : t.principal && t.principal.total > 0 ? (
                 <>
                   <BarraApilada segmentos={segmentosDelPiso(t.principal)} alto={8} unidad="unidades colgadas" />
-                  <span className="text-[12.5px] leading-snug tabular-nums text-taupe">
+                  <span className="text-sm leading-snug tabular-nums text-taupe">
                     {lineaDelPiso(t.principal)}
                     {razonDeLaTienda(t.puerta) && <span className="block text-ambar-profundo">{razonDeLaTienda(t.puerta)}</span>}
                   </span>
                 </>
               ) : (
-                <span className="text-[13px] text-taupe sm:col-span-2">Nada colgado todavía.</span>
+                <span className="text-sm text-taupe sm:col-span-2">Nada colgado todavía.</span>
               )}
               <RegistroDeTienda t={t} />
             </li>
           ))}
         </ul>
-        <ul aria-label="Qué significa cada color" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-taupe">
+        <ul aria-label="Qué significa cada color" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe">
           {TRAMOS_DEL_100.map((t) => (
             <li key={t} className="flex items-center gap-1.5">
               <MuestraTramo clase={CLASE_TRAMO_PISO[t]} />
@@ -137,7 +137,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
         <Tabla>
           <div className="px-5 py-4">
             <TituloSeccion>Qué envejece en cada tienda</TituloSeccion>
-            <p className="mt-1 text-[12.5px] text-taupe">De cada 100 unidades colgadas de la categoría, cuántas ya pasaron lo que tarda en venderse.</p>
+            <p className="mt-1 text-sm text-taupe">De cada 100 unidades colgadas de la categoría, cuántas ya pasaron lo que tarda en venderse.</p>
           </div>
           <Encabezado plantilla={plantilla} columnas={[{ titulo: "Categoría" }, ...red.tiendas.map((t) => ({ titulo: t.nombre, alinear: "der" as const }))]} />
           {filas.map((f) => (
@@ -147,7 +147,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 const tienda = red.tiendas[i];
                 return (
                   <span key={tienda.id} className={celda("der")}>
-                    <span className="text-[12px] text-taupe sm:hidden">{tienda.nombre}: </span>
+                    <span className="text-sm text-taupe sm:hidden">{tienda.nombre}: </span>
                     {c === null ? (
                       <span className="text-taupe">—</span>
                     ) : (
@@ -163,8 +163,8 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                         ) : (
                           <>
                             <span className={c.deMas ? "font-semibold text-ambar-profundo" : ""}>{c.envejeciendo} %</span>
-                            <span className="text-[12px] text-taupe"> de {c.unidades}</span>
-                            {c.sinSaber > 0 && <span className="block text-[12px] text-taupe">{c.sinSaber === 1 ? "1 aún no se sabe" : `${c.sinSaber} aún no se saben`}</span>}
+                            <span className="text-sm text-taupe"> de {c.unidades}</span>
+                            {c.sinSaber > 0 && <span className="block text-sm text-taupe">{c.sinSaber === 1 ? "1 aún no se sabe" : `${c.sinSaber} aún no se saben`}</span>}
                           </>
                         )}
                       </a>
@@ -185,7 +185,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
 function RegistroDeTienda({ t }: { t: DatosRed["tiendas"][number] }) {
   if (t.registro.length === 0 && !t.decidido) return null;
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] leading-snug text-taupe sm:col-span-3">
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm leading-snug text-taupe sm:col-span-3">
       {t.registro.length > 0 && <span>Registro al colgar:</span>}
       {t.registro.map((r) => (
         <span key={r.mes} className="inline-flex items-center gap-1.5">

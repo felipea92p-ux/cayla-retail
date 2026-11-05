@@ -139,6 +139,23 @@ const DIBUJOS: Record<IconoEtiqueta | "generico", ReactElement> = {
     </>
   ),
 
+  // Dos copas de brindis que se inclinan una hacia la otra, con una chispa arriba (en el papel, el brindis va lleno: sin medios tonos).
+  findeano: (
+    <>
+      <g transform="translate(-6 1) rotate(16)">
+        <path d="M-2.9 -5 H2.9 L2.6 -1 Q0 1.2 -2.6 -1 Z" fill={K} />
+        <path d="M-3.2 -10 H3.2 L2.6 -1 Q0 1.2 -2.6 -1 Z" stroke={K} strokeWidth={1.8} strokeLinejoin="round" fill="none" />
+        <path d="M0 1 V9 M-3.5 9.5 H3.5" stroke={K} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+      </g>
+      <g transform="translate(6 1) rotate(-16)">
+        <path d="M-2.9 -5 H2.9 L2.6 -1 Q0 1.2 -2.6 -1 Z" fill={K} />
+        <path d="M-3.2 -10 H3.2 L2.6 -1 Q0 1.2 -2.6 -1 Z" stroke={K} strokeWidth={1.8} strokeLinejoin="round" fill="none" />
+        <path d="M0 1 V9 M-3.5 9.5 H3.5" stroke={K} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+      </g>
+      <path d="M0 -14.5 Q0.7 -12.4 2.6 -11.6 Q0.7 -10.8 0 -8.8 Q-0.7 -10.8 -2.6 -11.6 Q-0.7 -12.4 0 -14.5 Z" fill={K} />
+    </>
+  ),
+
   // Bandera en tres franjas: llenas a los lados, vacía al centro.
   patrias: (
     <>

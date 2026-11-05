@@ -129,9 +129,17 @@ export function datosDeLaFicha(l: FichaLeida): FichaFijo {
   return Object.fromEntries(Object.keys(FICHA_VACIA).map((k) => [k, l[k as keyof FichaFijo]])) as FichaFijo;
 }
 
-/** ¿Es un proveedor de gastos (luz, agua, internet…) y no de mercadería? Los que nacen al sumar uno desde Gastos llevan el rubro «Gastos». */
+/** ¿Es un proveedor de gastos (luz, agua, internet…) y no de mercadería? Los que nacen al sumar uno desde Gastos llevan el rubro «Gastos».
+ *  Mira «ALGÚN rubro es Gastos» (el combo de Gastos ofrece a todo el que sirva para pagar un servicio). Lo contrario, para los combos de
+ *  mercadería, es `esSoloDeGastos` de `proveedores-reglas.ts` («TODOS sus rubros son Gastos»): un proveedor con «Telas» y «Gastos» sale en los dos. */
 export function esProveedorDeGasto(p: { rubros?: readonly string[] | null }): boolean {
   return (p.rubros ?? []).some((r) => claveTexto(r) === "gastos");
+}
+
+/** Los que ofrece el combo «Proveedor» al registrar un gasto: solo los de servicios (luz, agua, internet…), no la mercadería. El ya elegido
+ *  se queda aunque no sea de Gastos (un gasto que viene de un fijo o de una orden con ese proveedor), para que el combo no lo esconda. */
+export function proveedoresParaElegirEnGasto<T extends { id: string; rubros?: readonly string[] | null }>(proveedores: readonly T[], elegidoId: string): T[] {
+  return proveedores.filter((p) => esProveedorDeGasto(p) || p.id === elegidoId);
 }
 
 /** Lo que cada fila de `fn_gastos_fijos_fichas` dice de un fijo (sin cuentas): para la lista y su «qué falta». */
@@ -172,7 +180,7 @@ export function normalizarFicha(f: FichaFijo): FichaFijo {
   return {
     ...f,
     beneficiario: limpio(f.beneficiario),
-    documentoNumero: dni ? f.documentoNumero.replace(/[\s.-]/g, "") : limpio(f.documentoNumero),
+    documentoNumero: dni ? f.documentoNumero.replace(/[\s.-]/g, "") : limpio(f.documentoNumero), // blanco-fijo: un DNI no es una cifra que se sume
     telefono: limpio(f.telefono),
     correo: limpio(f.correo).toLowerCase(),
     banco: limpio(f.banco),

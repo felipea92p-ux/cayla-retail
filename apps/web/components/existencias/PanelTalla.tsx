@@ -3,9 +3,9 @@
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowLeftRight, Bandage, BookOpen, Check, ChevronRight, History, PencilLine, ShoppingBag, SignpostBig, Tag, Truck, Warehouse, ZoomIn } from "lucide-react";
+import { Archive, ArrowLeftRight, Bandage, BookOpen, Check, ChevronRight, History, ShoppingBag, SignpostBig, Tag, Truck, Warehouse, ZoomIn } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { Chip } from "@/components/ui/Chip";
@@ -18,6 +18,12 @@ import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { BandaAjustar, ListoDelAjuste, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste, useTopeDeLaPlanilla } from "@/components/existencias/AjusteDelModelo";
+import { useAjusteDelModelo, type AjusteGuardado } from "@/components/existencias/useAjusteDelModelo";
+import { anchoDelModalAlAjustar, lugarInicial } from "@/lib/existencias-ajuste-modelo";
+import { sonarConfirmacion } from "@/lib/sonido-confirmar";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
 import { accionesDeTalla, insigniaDelModelo, insigniaDeTalla, lineaDeLoQueFalta, lineaNoAhora, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, separarAcciones, subtituloColgarVarias, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
@@ -26,6 +32,7 @@ import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencia
 import { celdaTarjeta, tallasSinColgar } from "@/lib/existencias-tarjeta-compacta";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
+import { CLAVE_CASA, lineaDeDuenos, textoDeDueno } from "@/lib/stock-por-dueno-reglas";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
 import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
@@ -36,8 +43,9 @@ type Vista = "talla" | "todas";
 type Prenda = PrendaAgrupada<FilaExistencias>;
 type Icono = ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
 
-/** El flujo que el panel abre de entrada (las acciones rápidas de la tarjeta y «Colgar primero» abren el panel YA en su paso). */
-export type FlujoPedido = { tipo: TipoFlujo; datos?: DatosFlujo; paso?: number };
+/** El flujo que el panel abre de entrada (las acciones rápidas de la tarjeta y «Colgar primero» abren el panel YA en su paso). «ajustar»
+ *  no es un paso: abre la planilla del modelo entero con esa talla en foco (ADR-0494). */
+export type FlujoPedido = { tipo: TipoFlujo; datos?: DatosFlujo; paso?: number } | { tipo: "ajustar" };
 
 /** Lo que el filtro de la lista marca en este modelo («Sin stock atrás en este modelo · 2»), con la talla que más se vende primero. */
 export type MarcaDelFiltro = {
@@ -57,7 +65,6 @@ const ICONO: Record<ClaveAccionTalla, Icono> = {
   enviar: Truck,
   apartar: ShoppingBag,
   pedir: ArrowLeftRight,
-  ajustar: PencilLine,
   danada: Bandage,
 };
 
@@ -117,6 +124,7 @@ export function PanelTalla({
   claveInicial,
   varianteInicial,
   flujoInicial = null,
+  volverAEditar = null,
   ubicacionId,
   sedeNombre,
   separa,
@@ -133,6 +141,7 @@ export function PanelTalla({
   marcaDelFiltro = null,
   enSedeActiva,
   puedeReportarDanada = false,
+  lugarDanadas = null,
   hrefCatalogo,
   fotoDesde = null,
   onAjustarCompleto,
@@ -147,6 +156,8 @@ export function PanelTalla({
   varianteInicial?: string;
   /** Abrir directamente en un paso (acción rápida de la tarjeta, «Colgar primero»). Cambia con cada pedido. */
   flujoInicial?: FlujoPedido | null;
+  /** La ficha de Editar producto de donde se llegó (candado → «Ajustar stock»): la vuelta de la planilla va ahí, no a la talla. */
+  volverAEditar?: string | null;
   ubicacionId: string;
   sedeNombre: string;
   separa: boolean;
@@ -171,6 +182,8 @@ export function PanelTalla({
   /** Mirando la sede propia: Etiquetas e Historial trabajan sobre ella. */
   enSedeActiva: boolean;
   puedeReportarDanada?: boolean;
+  /** Dónde deja la tienda las prendas dañadas (ADR-0564): «Reportar dañada» lo repite. */
+  lugarDanadas?: string | null;
   /** El enlace a Catálogo ▸ Productos con esta prenda, solo si el rol ve Productos. */
   hrefCatalogo?: (referencia: string) => string;
   /** La miniatura de la tarjeta desde la que se abrió: la foto cruza desde ahí hasta el modal. `null`: entra sin cruzar. */
@@ -187,6 +200,14 @@ export function PanelTalla({
   const [clave, setClave] = useState(claveInicial);
   const [varianteId, setVarianteId] = useState<string | undefined>(varianteInicial);
   const [flujo, setFlujo] = useState<FlujoPedido | null>(flujoInicial);
+  // La talla de la que se viene al abrir «Ajustar stock»: queda en foco hasta que se toque otra o «Ver todo el modelo» (ronda 3).
+  const [focoAjuste, setFocoAjuste] = useState<string | null>(flujoInicial?.tipo === "ajustar" ? (varianteInicial ?? null) : null);
+  // Lo recién guardado, si entraron prendas: el modal muestra «Etiquetas de lo que entró» antes de volver a la talla.
+  const [listoAjuste, setListoAjuste] = useState<AjusteGuardado | null>(null);
+  // Lo recién guardado mientras cada talla se sella en verde, una tras otra (unos 0,7 s), antes del «listo» o de volver a la talla.
+  const [sellando, setSellando] = useState<AjusteGuardado | null>(null);
+  // Las cifras de «Dónde está» de la talla de antes de guardar: al volver, cuentan desde ellas hasta el número nuevo.
+  const [cifrasAntes, setCifrasAntes] = useState<{ varianteId: string; piso: number; almacen: number; disponible: number } | null>(null);
   const [hecho, setHecho] = useState<string | null>(null);
   // «Todas»: ver solo lo del piso o solo lo del almacén (Felipe, 2026-10-09). `null` = las dos mitades de cada celda.
   const [capa, setCapa] = useState<"piso" | "almacen" | null>(null);
@@ -200,6 +221,10 @@ export function PanelTalla({
     setVarianteId(varianteInicial);
     setVista("talla");
     setFlujo(flujoInicial);
+    setFocoAjuste(flujoInicial?.tipo === "ajustar" ? (varianteInicial ?? null) : null);
+    setListoAjuste(null);
+    setSellando(null);
+    setCifrasAntes(null);
     setHecho(null);
   }
 
@@ -207,9 +232,49 @@ export function PanelTalla({
   // (un dato cambiado, un paso avanzado, un guardado en camino) primero se pregunta «¿Salir sin guardar?». La pregunta la hace
   // `useSalidaSinGuardar`; el `<Modal>` le pasa su cierre por `antesDeCerrar`.
   const [pasoSucio, setPasoSucio] = useState(false);
+  // «Ajustar stock» (ADR-0494): la planilla del modelo entero. El hook se llama siempre y trabaja solo con la planilla abierta; entra en el
+  // lugar donde la talla elegida tiene más unidades (Felipe, ronda 3).
+  const modoAjuste = flujo?.tipo === "ajustar";
+  // Con la planilla a la vista, la hoja no se desliza (desde 640 px; en el celular sí, con el pie pegado): solo la planilla (ronda 2 de la
+  // «Planilla rápida», Felipe 2026-10-26). Las
+  // etiquetas de lo que entró vuelven a la hoja de siempre.
+  const planillaFija = modoAjuste && !listoAjuste;
+  // Pasar a la planilla es un cambio de VISTA, no un bloque que se encogió: se suelta <PaginaEstable> antes de pintar (ADR-0185, como
+  // los pasos de Nuevo producto). Sin esto, quien bajó la hoja de la talla y tocó «Ajustar stock» la encontraba con 862 px de relleno
+  // dentro de la hoja de alto fijo: la planilla aplastada y el pie encima de «Dónde» (/chaos 2026-10-26, H1).
+  useLayoutEffect(() => {
+    if (planillaFija) soltarPaginaEstable();
+  }, [planillaFija]);
+  const prendaDeAhora = colores.find((c) => c.clave === clave) ?? colores[0];
+  const filaDeAhora = prendaDeAhora?.tallas.find((t) => t.varianteId === varianteId) ?? prendaDeAhora?.tallas[0];
+  const ajuste = useAjusteDelModelo({
+    activo: modoAjuste && Boolean(prendaDeAhora),
+    productoId: prendaDeAhora?.productoId ?? "",
+    ubicacionId,
+    separa,
+    sububicacionPisoId,
+    sububicacionAlmacenId,
+    puedeBajarAlPiso: puedeReponer,
+    ordenColores: colores.map((c) => c.color),
+    ubicadoInicial: lugarInicial({ piso: filaDeAhora?.piso ?? 0, almacen: filaDeAhora?.almacen ?? 0 }, separa),
+  });
+  // La última versión del ajuste, para lo que corre después de guardar (el cambio de lugar de «Guardar y pasar a almacén»): la del render
+  // que guardó todavía tiene lo contado y rechazaría el cambio.
+  const ajusteAhora = useRef(ajuste);
+  useEffect(() => {
+    ajusteAhora.current = ajuste;
+  });
+  // «Guardar y pasar a almacén» (ronda 2 de la «Planilla rápida»): tras guardar se sigue en el otro lugar, no se vuelve a la talla.
+  const [pasarDespues, setPasarDespues] = useState<"piso" | "almacen" | null>(null);
+  // El lugar en el que el aviso «¿Qué hacemos con lo que contaste?» se abrió: mientras sigue ahí, el «Guardar» del pie es secundario. Se guarda
+  // el lugar y no un sí/no: al cambiar de lugar (la planilla empieza de nuevo) deja de valer solo.
+  const [avisoLugarEn, setAvisoLugarEn] = useState<string | null>(null);
+  const ajusteSucio = modoAjuste && (ajuste.lineas.length > 0 || ajuste.enviando || ajuste.incierto);
   const { pedirAccion, retirarYa, aviso } = useSalidaSinGuardar(
-    Boolean(flujo) && pasoSucio,
-    "Dejaste esta acción a medias y todavía no se guardó. Si sales ahora, se pierde lo que llenaste."
+    ajusteSucio || (Boolean(flujo) && !modoAjuste && pasoSucio),
+    modoAjuste
+      ? "Tocaste el stock de este modelo y todavía no se guardó. Si sales ahora, se pierde lo que contaste."
+      : "Dejaste esta acción a medias y todavía no se guardó. Si sales ahora, se pierde lo que llenaste."
   );
   // ↑ ↓ cambian el color (como la maqueta), por la pieza de los cajones (ADR-0128): ignora la flecha de un campo o de otro portal.
   const [pasoColor, setPasoColor] = useState<{ delta: 1 | -1; n: number } | null>(null);
@@ -219,6 +284,8 @@ export function PanelTalla({
   const ultimaTecla = useRef(0);
   // Al abrir, el teclado entra al modal (como la maqueta): ← → ↑ ↓ y 1–7 funcionan sin tocar el mouse.
   const raiz = useRef<HTMLDivElement>(null);
+  // En el celular la hoja de la planilla se desliza entera: la planilla se topa en lo que se ve sobre el pie (Felipe 2026-10-26).
+  useTopeDeLaPlanilla(raiz, planillaFija && !sellando);
   // Quien tenía el foco al abrir (el botón de la talla, la miniatura, «Más»): al cerrar, el foco vuelve ahí y no al inicio de la página.
   // Radix solo lo devuelve si el modal se abrió desde su propio disparador, y este se abre por estado (/chaos TEC-06, 2026-10-12).
   // Se toma UNA vez, al montar (un `useState` perezoso: leer un ref durante el render lo prohíbe el compilador de React).
@@ -315,7 +382,7 @@ export function PanelTalla({
   const origenes: SedeConCantidad[] = origenesDeTalla(fila.enRed, sedesParaPedir);
   const acciones = accionesDeTalla(
     fila,
-    { puedeReponer, puedeEnviar: puedeEnviar && destinos.length > 0, puedeAjustar, puedeApartar, puedePedir: puedePedir && sedesParaPedir.length > 0, origenes, puedeReportarDanada },
+    { puedeReponer, puedeEnviar: puedeEnviar && destinos.length > 0, puedeApartar, puedePedir: puedePedir && sedesParaPedir.length > 0, origenes, puedeReportarDanada },
     separa
   );
   const { posibles, noAhora } = separarAcciones(acciones);
@@ -347,6 +414,8 @@ export function PanelTalla({
   const codigo = fila.codigosBarras?.[0] ?? fila.sku ?? null;
   // Cuánto tiene cada otra sede de esta talla.
   const otrasSedes = (fila.enRed ?? []).map((s) => `${nombreCortoSede(s.sede)} ${s.cantidad}`).join(" · ");
+  // De quién son las unidades de esta talla aquí (ADR-0542): solo donde conviven dos empresas y solo si alguien que no es la casa tiene.
+  const duenosDeLaTalla = lineaDeDuenos(fila.duenos);
   const insignia = insigniaDeTalla(queToca);
   // «Todas»: las sumas del modelo entero (todos los colores) y cuántas tallas faltan colgar o se acabaron.
   const tallasModelo = colores.flatMap((c) => c.tallas);
@@ -370,10 +439,14 @@ export function PanelTalla({
   // imprimir en vez de abrir una pantalla vacía (la lista se refresca tras cada guardado, así que no hay una lectura vieja que engañe).
   const unidadesDelColor = prenda.tallas.reduce((n, t) => n + Math.max(0, separa ? (t.pisoDisponible ?? 0) + (t.almacenDisponible ?? 0) : t.disponible), 0);
 
+  // Las cifras de antes de ajustar, solo para la talla que se ajustó y solo hasta mirar otra.
+  const antesDeEsta = cifrasAntes?.varianteId === fila.varianteId ? cifrasAntes : null;
+
   function irA(c: Prenda, t: FilaExistencias) {
     setClave(c.clave);
     setVarianteId(t.varianteId);
     setHecho(null);
+    setCifrasAntes(null);
   }
 
   function elegirColor(c: Prenda) {
@@ -399,14 +472,74 @@ export function PanelTalla({
       case "pedir":
         // Directo a «cuántas», con la tienda que más tiene ya elegida.
         return pedirRapido(prenda!, fila!);
-      case "ajustar":
-        return lanzar("ajustar");
       case "danada":
         return lanzar("danada");
       case "apartar":
         // La separación de Vender, con esta talla puesta: ahí se pide el cliente, el adelanto y se cobra con la caja abierta.
         return router.push(hrefApartarDesdeTicket([{ varianteId: fila!.varianteId, cantidad: 1 }]));
     }
+  }
+
+  // «Ajustar stock» (ADR-0494): el modal se vuelve la planilla del modelo entero, con ESTA talla en foco.
+  function abrirAjuste() {
+    setHecho(null);
+    setListoAjuste(null);
+    setCifrasAntes(null);
+    setVista("talla");
+    setFocoAjuste(fila!.varianteId);
+    setFlujo({ tipo: "ajustar" });
+  }
+  // Volver a la talla: si hay algo tocado sin guardar, primero «¿Salir sin guardar?».
+  const volverDeAjuste = () =>
+    pedirAccion(() => {
+      if (volverAEditar) {
+        router.push(volverAEditar);
+        return;
+      }
+      setFlujo(null);
+      setFocoAjuste(null);
+      setListoAjuste(null);
+      raiz.current?.focus({ preventScroll: true });
+    });
+  async function guardarAjuste(luego?: "piso" | "almacen") {
+    const antes = { varianteId: fila!.varianteId, piso: fila!.pisoDisponible ?? 0, almacen: fila!.almacenDisponible ?? 0, disponible: fila!.disponible };
+    const r = await ajuste.guardar();
+    if (!r) return;
+    setCifrasAntes(antes);
+    const n = r.lineas.length;
+    const texto = r.yaEstaba ? "Esto ya estaba guardado. No se repitió." : `Stock ajustado en ${n} ${n === 1 ? "talla" : "tallas"}`;
+    if (r.yaEstaba) avisar.aviso(texto, { detalle: prenda!.referencia });
+    else {
+      sonarConfirmacion();
+      avisar.exito(texto, { detalle: `${prenda!.referencia} · ${r.lineas.map((l) => `${l.nombre} ${l.actual} → ${l.resultado}`).join(" · ")}` });
+    }
+    // La lista de atrás se pone al día sin el loader con el logo (como Colgar y Subir).
+    navegacionSinEspera(window.location.href);
+    router.refresh();
+    setHecho(texto);
+    // Cada talla guardada se sella en verde, una tras otra (ADR-0136, excepción de la planilla); después, si entraron prendas, sus
+    // etiquetas (como en Editar producto), y si solo se restó, de vuelta a la talla. Con movimiento reducido, sin espera.
+    setFocoAjuste(null);
+    setSellando(r);
+    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.setTimeout(
+      () => {
+        setSellando(null);
+        // Si entraron prendas, primero sus etiquetas; con «Guardar y pasar», «Más tarde» sigue en el otro lugar.
+        if (!r.yaEstaba && r.lineas.some((l) => l.delta > 0)) {
+          setListoAjuste(r);
+          setPasarDespues(luego ?? null);
+          return;
+        }
+        if (luego) {
+          ajusteAhora.current.cambiarLugar(luego);
+          return;
+        }
+        setFlujo(null);
+        raiz.current?.focus({ preventScroll: true });
+      },
+      quieto ? 0 : Math.min(r.lineas.length, 10) * 70 + 650
+    );
   }
 
   // «Pedir» rápido: la tienda que más tiene, 1 unidad, directo al paso de cuántas.
@@ -432,11 +565,15 @@ export function PanelTalla({
       // y se cancela si llega otra tecla enseguida (`MS_ENTRE_TECLAS`).
       // La tecla es de la acción (Colgar = 1 … Reportar dañada = 7), no de su lugar: el orden cambia con lo que la talla necesita.
       const a = acciones.find((x) => x.tecla === Number(e.key));
-      if (!a?.ok) return;
+      // La 6 es «Ajustar stock», que dejó la lista por la banda de «Dónde está» (ADR-0494) y conserva su tecla.
+      const ajustar = e.key === "6" && puedeAjustar;
+      if (!a?.ok && !ajustar) return;
       e.preventDefault();
       const marca = e.timeStamp;
       window.setTimeout(() => {
-        if (ultimaTecla.current === marca) alAccionar(a.clave);
+        if (ultimaTecla.current !== marca) return;
+        if (ajustar) abrirAjuste();
+        else if (a) alAccionar(a.clave);
       }, MS_ENTRE_TECLAS + 10);
     }
   }
@@ -452,7 +589,8 @@ export function PanelTalla({
   /** Una de las cuatro casillas (en piso · en almacén · apartadas · dañadas), con su ícono: en 0 se apaga (borde punteado), salvo las
    *  del piso que faltan (ámbar). Las dos primeras llevan a «Todas» con su capa; apartadas y dañadas con algo abren su lista (las mismas
    *  ventanas de siempre). Los rótulos son «En piso / En almacén» (Felipe, 2026-10-13: antes «colgadas / guardadas»). */
-  const casilla = (valor: number, rotulo: string, Ico: Icono, clase?: "falta" | "apartada" | "danada", abre?: () => void, queHace = "ver cuáles") => {
+  // `desde`: la cifra de antes de ajustar el stock: al volver de la planilla cuenta desde ella hasta la nueva (ADR-0494).
+  const casilla = (valor: number, rotulo: string, Ico: Icono, clase?: "falta" | "apartada" | "danada", abre?: () => void, queHace = "ver cuáles", desde?: number) => {
     const fondo =
       clase === "falta"
         ? "border border-ambar/45 bg-ambar/[0.12] text-ambar-profundo"
@@ -465,8 +603,8 @@ export function PanelTalla({
               : "bg-hueso text-tinta";
     const cuerpo = (
       <>
-        <b className="block font-display text-[22px] font-medium leading-none tabular-nums">{valor}</b>
-        <small className="text-[11.5px] text-taupe">{rotulo}</small>
+        <b className="block font-display text-[22px] font-medium leading-none tabular-nums">{desde === undefined ? valor : <CifraQueCuenta valor={valor} desde={desde} />}</b>
+        <small className="text-sm text-taupe">{rotulo}</small>
         <Ico aria-hidden className="absolute right-2 top-2 h-3.5 w-3.5 text-taupe" />
         {abre && <ChevronRight aria-hidden className="absolute bottom-2 right-1.5 h-3.5 w-3.5 text-taupe" />}
       </>
@@ -504,7 +642,7 @@ export function PanelTalla({
           <Icono aria-hidden className="h-4 w-4 shrink-0" />
           <b className="block font-display text-[22px] font-medium leading-none tabular-nums text-tinta">{valor}</b>
         </span>
-        <small className="whitespace-nowrap text-[12px] font-semibold text-tinta sm:text-[12.5px]">{rotulo}</small>
+        <small className="whitespace-nowrap text-sm font-semibold text-tinta sm:text-sm">{rotulo}</small>
         {elegida && <Check aria-hidden className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-tinta" />}
       </button>
     );
@@ -517,11 +655,11 @@ export function PanelTalla({
     if (capa === "almacen") return <div className="grid h-[52px] place-items-center rounded-[9px] bg-hueso text-[17px] font-semibold tabular-nums text-tinta">{almacenN}</div>;
     return (
       <div className="grid h-[52px] grid-rows-2 overflow-hidden rounded-[9px] bg-hueso tabular-nums text-tinta">
-        <span className="flex items-center justify-center gap-1 text-[13.5px] font-semibold">
+        <span className="flex items-center justify-center gap-1 text-[15px] font-semibold">
           <IconoPercha aria-hidden className="h-3 w-3 text-taupe" />
           {pisoN}
         </span>
-        <span className="flex items-center justify-center gap-1 border-t border-sand text-[13.5px] font-semibold">
+        <span className="flex items-center justify-center gap-1 border-t border-sand text-[15px] font-semibold">
           <Archive aria-hidden className="h-3 w-3 text-taupe" />
           {almacenN}
         </span>
@@ -540,7 +678,7 @@ export function PanelTalla({
       )}
       {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
       {prenda.precioDeSede && <span className="font-semibold text-ambar-profundo"> · precio de esta tienda</span>}
-      {descripcion && <span className="mt-1 block whitespace-pre-line break-words text-[13px] leading-snug text-tinta/80">{descripcion}</span>}
+      {descripcion && !modoAjuste && <span className="mt-1 block whitespace-pre-line break-words text-sm leading-snug text-tinta/80">{descripcion}</span>}
     </>
   );
 
@@ -549,17 +687,30 @@ export function PanelTalla({
       <Modal
         alCerrarEnfocar={abridor}
         variante="hoja"
-        ancho="max-w-[62rem]" /* unificar-fijo: el modal de la prenda de Existencias es de diseño propio (ADR-0344) */
+        ancho={`max-w-[62rem] transition-[max-width] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? anchoDelModalAlAjustar(ajuste.modelo?.tallas.length ?? tallasDeTodos.length).clase : ""}`} /* unificar-fijo: el modal de la prenda de Existencias es de diseño propio (ADR-0344); al ajustar crece solo si la planilla no cabe (ADR-0494) */
         conCerrar
-        titulo={prenda.referencia}
+        altoFijo={planillaFija}
+        titulo={
+          modoAjuste ? (
+            <>
+              {prenda.referencia}
+              <span className="text-taupe"> · Ajustar stock</span>
+            </>
+          ) : (
+            prenda.referencia
+          )
+        }
         subtitulo={subtitulo}
         onClose={onCerrar}
         antesDeCerrar={(cerrar) => pedirAccion(cerrar)}
       >
         {(cerrar) => (
-          <div ref={raiz} tabIndex={-1} onKeyDown={alTeclear} data-guia="existencias.cajon" className="outline-none">
+          <div ref={raiz} tabIndex={-1} onKeyDown={alTeclear} data-guia="existencias.cajon" className={`outline-none ${planillaFija ? "flex min-h-0 flex-auto flex-col" : ""}`}>
             {/* ¿Qué prenda? Lo que es del MODELO, no de la talla (ADR-0391): las mismas cuatro de la vista rápida de Catálogo. */}
-            <div data-guia="existencias.cajon-prenda" className="mb-4 flex flex-wrap gap-2">
+            {/* Al ajustar, lo de la prenda se pliega: la planilla necesita el lugar (ronda 2 de la maqueta), y vuelve al salir. */}
+            <div className="ajuste-repliega" data-plegado={modoAjuste ? "si" : undefined} aria-hidden={modoAjuste || undefined}>
+              <div>
+            <div data-guia="existencias.cajon-prenda" className="mb-4 flex flex-wrap gap-2 p-0.5">
               {enSedeActiva && hrefEtiquetas && (
                 <EnlaceEtiquetas
                   href={hrefEtiquetas}
@@ -592,10 +743,15 @@ export function PanelTalla({
                 </Link>
               )}
             </div>
+              </div>
+            </div>
 
-            <div className="grid gap-5 sm:grid-cols-[17rem_minmax(0,1fr)] sm:gap-6">
-              {/* ¿Cuál? La foto, las vistas, el color, la talla y su código. */}
-              <aside className="grid content-start gap-3">
+            <div
+              className={`grid gap-5 transition-[grid-template-columns] duration-[420ms] ease-[var(--ease-cayla)] sm:gap-6 ${modoAjuste ? "sm:grid-cols-[14rem_minmax(0,1fr)]" : "sm:grid-cols-[17rem_minmax(0,1fr)]"} ${planillaFija ? "min-h-0 flex-auto grid-rows-[minmax(0,1fr)]" : ""}`}
+            >
+              {/* ¿Cuál? La foto, las vistas, el color, la talla y su código. Al ajustar, la foto y el talón (en el celular se van: el pie ya
+                  dice cuántos cambios, y la planilla se queda con el alto). */}
+              <aside className={planillaFija ? "flex min-h-0 flex-col gap-3 max-sm:hidden" : "grid content-start gap-3"}>
                 <div
                   ref={fotoGrandeRef}
                   onClick={prenda.fotoUrl ? () => setFotoGrande(true) : undefined}
@@ -604,7 +760,7 @@ export function PanelTalla({
                   onKeyDown={prenda.fotoUrl ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setFotoGrande(true)) : undefined}
                   aria-label={prenda.fotoUrl ? `Ver la foto de ${prenda.referencia} en grande` : undefined}
                   title={prenda.fotoUrl ? "Ver la foto en grande" : undefined}
-                  className={`group relative h-36 w-full overflow-hidden rounded-[14px] bg-sand/50 outline-none ring-tinta/40 transition-shadow sm:aspect-[3/4] sm:h-auto ${prenda.fotoUrl ? "cursor-zoom-in hover:ring-2 focus-visible:ring-2" : ""}`}
+                  className={`group relative w-full overflow-hidden rounded-[14px] bg-sand/50 outline-none ring-tinta/40 transition-[box-shadow,height] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? "h-20 sm:h-[168px]" : "h-36 sm:h-[362px]"} ${prenda.fotoUrl ? "cursor-zoom-in hover:ring-2 focus-visible:ring-2" : ""}`}
                 >
                   {prenda.fotoUrl ? (
                     <>
@@ -616,11 +772,18 @@ export function PanelTalla({
                   ) : (
                     <SinFoto tamano="h-full w-full" colorHex={prenda.colorHex} {...categoriaDe(prenda)} />
                   )}
+                  {modoAjuste && (
+                    <span className="ajuste-rotulo">
+                      Ajustando · {ajuste.modelo?.colores.length ?? colores.length} {(ajuste.modelo?.colores.length ?? colores.length) === 1 ? "color" : "colores"}
+                    </span>
+                  )}
                 </div>
 
-                {flujo ? (
+                {modoAjuste ? (
+                  <TalonDelAjuste control={ajuste} guardadas={listoAjuste?.lineas ?? sellando?.lineas} sellado={Boolean(listoAjuste || sellando)} />
+                ) : flujo ? (
                   // En un paso, el color y la talla no se cambian: el chip dice sobre cuál se está trabajando.
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-hueso px-3 py-1.5 text-[12.5px] text-taupe">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-hueso px-3 py-1.5 text-sm text-taupe">
                     <i aria-hidden className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />
                     {prenda.color ?? "Sin color"} · Talla {fila.talla ?? "Única"}
                   </span>
@@ -694,14 +857,14 @@ export function PanelTalla({
                               </span>
                             )}
                             <b className="text-base font-semibold">{t.talla ?? "Única"}</b>
-                            <small className={`text-[11px] tabular-nums ${sel ? "text-sand" : pie.afuera ? "font-medium text-pizarra" : "text-taupe"}`}>{pie.texto}</small>
+                            <small className={`text-sm tabular-nums ${sel ? "text-sand" : pie.afuera ? "font-medium text-pizarra" : "text-taupe"}`}>{pie.texto}</small>
                           </button>
                         );
                       })}
                     </div>
                     {/* Lo que falta en el piso, en UNA línea y sin volver a nombrar las tallas: el fondo ámbar de arriba ya dice cuáles. */}
                     {lineaFalta && (
-                      <p className="text-[12.5px] leading-snug text-taupe">
+                      <p className="text-sm leading-snug text-taupe">
                         {!falta?.enPausa && <span aria-hidden className="mr-1.5 inline-block h-3 w-3.5 translate-y-px rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />}
                         {lineaFalta}
                       </p>
@@ -709,7 +872,7 @@ export function PanelTalla({
                     {/* El código es de la TALLA, no de la prenda: va junto a la talla, y se copia de un toque (para Buscar o Vender). */}
                     {/* Copiar es la pieza del sistema (ronda 13): el código a la vista y, junto a él, el ícono que lo copia. */}
                     {codigo && (
-                      <span data-guia="existencias.cajon-codigo" className="inline-flex w-fit items-center gap-1 px-1.5 py-1 text-[12.5px] text-taupe">
+                      <span data-guia="existencias.cajon-codigo" className="inline-flex w-fit items-center gap-1 px-1.5 py-1 text-sm text-taupe">
                         código <b className="font-mono text-[12.5px] font-semibold text-tinta select-all">{codigo}</b>
                         <BotonCopiar forma="icono" texto={codigo} que="el código de esta talla" alCopiar={() => avisar.exito(`Código copiado: ${codigo}`)} className="-my-1.5" />
                       </span>
@@ -719,8 +882,45 @@ export function PanelTalla({
               </aside>
 
               {/* ¿Dónde está? ¿Qué hago? ¿Cómo se vende? — o el paso en curso, o «Todas». */}
-              <section key={`${vista}-${prenda.clave}-${flujo?.tipo ?? ""}`} className="anim-asentar grid min-w-0 content-start gap-3.5">
-                {flujo ? (
+              <section key={`${vista}-${prenda.clave}-${flujo?.tipo ?? ""}`} className={`anim-asentar min-w-0 ${planillaFija ? "flex min-h-0 flex-col" : "grid content-start gap-3.5"}`}>
+                {flujo?.tipo === "ajustar" && listoAjuste ? (
+                  <ListoDelAjuste
+                    guardado={listoAjuste}
+                    prenda={prenda.referencia}
+                    hexDe={(c) => ajuste.modelo?.colores.find((x) => x.color === c)?.hex ?? null}
+                    precioDe={(c) => colores.find((x) => x.color === c)?.precio ?? prenda.precio ?? null}
+                    onMasTarde={() => {
+                      setListoAjuste(null);
+                      if (pasarDespues) {
+                        ajuste.cambiarLugar(pasarDespues);
+                        setPasarDespues(null);
+                        return;
+                      }
+                      setFlujo(null);
+                      setFocoAjuste(null);
+                      raiz.current?.focus({ preventScroll: true });
+                    }}
+                  />
+                ) : flujo?.tipo === "ajustar" ? (
+                  <PlanillaDelAjuste
+                    // Al cambiar de lugar la planilla empieza de nuevo: «Revisaste» y el aviso son de lo contado en un lugar.
+                    key={ajuste.ubicado}
+                    control={ajuste}
+                    foco={focoAjuste}
+                    onApagarFoco={() => setFocoAjuste(null)}
+                    onVolver={volverDeAjuste}
+                    volverA={volverAEditar ? "Editar producto" : undefined}
+                    onAbrirConteo={(id) => {
+                      // Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza a ese conteo.
+                      const f = colores.flatMap((c) => c.tallas).find((t) => t.varianteId === id);
+                      if (f) onAjustarCompleto(f);
+                    }}
+                    onGuardarYPasar={(u) => void guardarAjuste(u)}
+                    onAvisoLugar={(abierto) => setAvisoLugarEn(abierto ? ajuste.ubicado : null)}
+                    sedeNombre={sedeNombre}
+                    sellados={sellando?.lineas.map((l) => l.variante.varianteId)}
+                  />
+                ) : flujo ? (
                   <FlujoTalla
                     key={`${flujo.tipo}-${fila.varianteId}`}
                     tipo={flujo.tipo}
@@ -735,8 +935,7 @@ export function PanelTalla({
                     destinos={destinos}
                     origenes={origenes}
                     puedePedirParaCliente={puedePedirParaCliente}
-                    sububicacionPisoId={sububicacionPisoId}
-                    sububicacionAlmacenId={sububicacionAlmacenId}
+                    lugarDanadas={lugarDanadas}
                     onHecho={(texto, opciones) => {
                       setFlujo(null);
                       // Colgar y subir (Felipe, 2026-10-08): lo confirma el aviso destacado y el modal se va con su salida de siempre; la lista
@@ -761,7 +960,6 @@ export function PanelTalla({
                     }}
                     onCambiar={(tipo, datos) => setFlujo({ tipo, datos, paso: 0 })}
                     onCambios={setPasoSucio}
-                    onAjustarCompleto={() => onAjustarCompleto(fila)}
                   />
                 ) : (
                   <>
@@ -781,15 +979,15 @@ export function PanelTalla({
                             <Chip tono={TONO_CHIP[insignia.tono]} versalitas={false}>
                               {insignia.texto}
                             </Chip>
-                            {insignia.frase && <span className="text-[12.5px] text-taupe">{insignia.frase}</span>}
+                            {insignia.frase && <span className="text-sm text-taupe">{insignia.frase}</span>}
                           </p>
                           <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
-                            {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "En piso" : "disponibles", IconoPercha, separa && insignia.tono === "ambar" ? "falta" : undefined, separa ? () => irATodas("piso") : undefined, "ver todas las tallas y colores en el piso")}
-                            {separa && casilla(fila.almacenDisponible ?? 0, "En almacén", Archive, undefined, () => irATodas("almacen"), "ver todas las tallas y colores en el almacén")}
+                            {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "En piso" : "disponibles", IconoPercha, separa && insignia.tono === "ambar" ? "falta" : undefined, separa ? () => irATodas("piso") : undefined, "ver todas las tallas y colores en el piso", antesDeEsta ? (separa ? antesDeEsta.piso : antesDeEsta.disponible) : undefined)}
+                            {separa && casilla(fila.almacenDisponible ?? 0, "En almacén", Archive, undefined, () => irATodas("almacen"), "ver todas las tallas y colores en el almacén", antesDeEsta?.almacen)}
                             {casilla(fila.apartado, fila.apartado === 1 ? "apartada" : "apartadas", ShoppingBag, "apartada", fila.apartado > 0 ? onVerApartadas : undefined)}
                             {casilla(fila.danado ?? 0, (fila.danado ?? 0) === 1 ? "dañada" : "dañadas", Bandage, "danada", (fila.danado ?? 0) > 0 ? onVerDanadas : undefined, puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles")}
                           </div>
-                          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-taupe">
+                          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-taupe">
                             <span className="inline-flex items-center gap-1.5">
                               <Truck aria-hidden className="h-3.5 w-3.5" />
                               En camino: <b className="font-semibold text-tinta">{Math.max(0, fila.enTransito ?? 0)}</b>
@@ -798,7 +996,27 @@ export function PanelTalla({
                               Otras sedes: <b className="font-semibold text-tinta">{otrasSedes || "ninguna la tiene"}</b>
                             </span>
                           </p>
+                          {duenosDeLaTalla && (
+                            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-taupe">
+                              <span>De quién es:</span>
+                              {duenosDeLaTalla.map((d) => (
+                                <Chip key={d.empresaId} tono={d.clave === CLAVE_CASA ? "tinta" : "pizarra"} versalitas={false} title={`${d.cantidad} de ${d.nombre} en esta tienda`}>
+                                  {textoDeDueno(d)}
+                                </Chip>
+                              ))}
+                            </p>
+                          )}
                         </div>
+
+                        {/* «Ajustar stock» (ADR-0494, Felipe: la banda bajo los números): justo bajo lo que se corrige. Abre la planilla del modelo
+                            entero con esta talla en foco; reemplaza la fila «Ajustar stock» de «Qué hago», que era la sexta de siete. */}
+                        {puedeAjustar && (
+                          <BandaAjustar
+                            que={`${prenda.color ?? "esta prenda"}${tallasDeTodos.length > 1 ? ` ${fila.talla ?? "Única"}` : ""}`}
+                            conResto={colores.length > 1 || tallasDeTodos.length > 1}
+                            onAjustar={abrirAjuste}
+                          />
+                        )}
 
                         {/* ¿Qué hago? Solo lo que hoy se puede, la sugerida primero y teñida; lo demás, en una línea con su porqué. */}
                         <div className="grid gap-2">
@@ -823,7 +1041,7 @@ export function PanelTalla({
                                       </span>
                                       <span className="min-w-0 flex-1">
                                         <b className="block text-[14px] font-semibold text-tinta">{a.texto}</b>
-                                        <small className="block text-xs text-taupe">{a.sub}</small>
+                                        <small className="block text-sm text-taupe">{a.sub}</small>
                                       </span>
                                       <kbd className="hidden rounded border border-sand px-1.5 text-[10.5px] text-taupe sm:inline">{a.tecla}</kbd>
                                       <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
@@ -834,7 +1052,7 @@ export function PanelTalla({
                             </ul>
                           )}
                           {noAhora.length > 0 && (
-                            <p data-guia="existencias.cajon-no-ahora" className="text-xs leading-relaxed text-taupe">
+                            <p data-guia="existencias.cajon-no-ahora" className="text-sm leading-relaxed text-taupe">
                               {lineaNoAhora(noAhora)}
                             </p>
                           )}
@@ -847,7 +1065,7 @@ export function PanelTalla({
                             <div className="min-w-0">
                               {ritmo && <p>{prenda.color ? `${prenda.color}: ${ritmo.charAt(0).toLocaleLowerCase("es")}${ritmo.slice(1)}` : ritmo}</p>}
                               {vendidasTalla !== null && (
-                                <p className="text-[12.5px] text-taupe">
+                                <p className="text-sm text-taupe">
                                   De esta talla: {vendidasTalla} {vendidasTalla === 1 ? "vendida" : "vendidas"} en los últimos {VENTANA_RITMO_RECIENTE_DIAS} días
                                 </p>
                               )}
@@ -877,7 +1095,7 @@ export function PanelTalla({
                               {agotadasModelo} {agotadasModelo === 1 ? "talla se acabó" : "tallas se acabaron"}
                             </Chip>
                           )}
-                          <span className="text-[12.5px] text-taupe">
+                          <span className="text-sm text-taupe">
                             {colores.length} {colores.length === 1 ? "color" : "colores"} · {tallasDeTodos.length} {tallasDeTodos.length === 1 ? "talla" : "tallas"}
                           </span>
                         </p>
@@ -890,7 +1108,7 @@ export function PanelTalla({
                         {separa &&
                           (capa ? (
                             // Con una capa elegida, la línea dice qué se está viendo y cómo volver a ver las dos.
-                            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-tinta">
+                            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tinta">
                               {capa === "piso" ? <IconoPercha aria-hidden className="h-3.5 w-3.5 text-verde" /> : <Archive aria-hidden className="h-3.5 w-3.5 text-pizarra" />}
                               <span>
                                 Solo lo que está <b className="font-semibold">{capa === "piso" ? "en el piso" : "en el almacén"}</b>
@@ -901,7 +1119,7 @@ export function PanelTalla({
                               </button>
                             </p>
                           ) : (
-                            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-taupe">
+                            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-taupe">
                               <span className="inline-flex items-center gap-1.5">
                                 <i aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-verde/[0.22]" />
                                 Arriba: en piso
@@ -930,16 +1148,16 @@ export function PanelTalla({
                             </colgroup>
                             <thead>
                               <tr>
-                                <th scope="col" className="text-left text-[10.5px] font-medium text-taupe">
+                                <th scope="col" className="text-left text-sm font-medium text-taupe">
                                   color \ talla
                                 </th>
                                 {tallasDeTodos.map((t) => (
-                                  <th key={t} scope="col" className="px-[3px] text-xs font-semibold text-taupe">
+                                  <th key={t} scope="col" className="px-[3px] text-sm font-semibold text-taupe">
                                     {/* La talla que se estaba viendo, en negro: la tabla responde «¿y las demás?» sin perder cuál era la mía. */}
                                     <span className={`inline-block rounded-full px-2 py-0.5 ${t === (fila.talla ?? "Única") ? "bg-tinta text-crema" : ""}`}>{t}</span>
                                   </th>
                                 ))}
-                                <th scope="col" className="text-xs font-semibold text-taupe">
+                                <th scope="col" className="text-sm font-semibold text-taupe">
                                   Total
                                 </th>
                               </tr>
@@ -953,7 +1171,7 @@ export function PanelTalla({
                                 const colorAbierto = c.clave === prenda.clave;
                                 return (
                                   <tr key={c.clave} className={vacioEnCapa ? "opacity-40" : ""}>
-                                    <th scope="row" className={`truncate rounded-lg pl-1.5 pr-1.5 text-left text-[13px] font-semibold text-tinta ${colorAbierto ? "bg-hueso" : ""}`}>
+                                    <th scope="row" className={`truncate rounded-lg pl-1.5 pr-1.5 text-left text-sm font-semibold text-tinta ${colorAbierto ? "bg-hueso" : ""}`}>
                                       <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
                                       {c.color ?? "Sin color"}
                                     </th>
@@ -984,23 +1202,23 @@ export function PanelTalla({
                                       return (
                                         <td key={t} className="px-[3px]">
                                           {celda.estado === "agotada" ? (
-                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-xs font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
+                                            <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[52px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-sm font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
                                               Se acabó
                                             </button>
                                           ) : (
                                             <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
                                               {verPiso && (
-                                                <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[13.5px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe"}`}>
+                                                <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[15px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe"}`}>
                                                   <span className="inline-flex items-center gap-1">
                                                     <IconoPercha aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} />
                                                     {celda.piso}
                                                   </span>
                                                   {/* Dentro de la capa del piso, la que falta colgar dice cuántas hay atrás: el filtro subraya el problema, no lo esconde. */}
-                                                  {grande && capa === "piso" && celda.estado === "falta" && <small className="text-[10px] font-semibold leading-none">falta · +{celda.almacen} atrás</small>}
+                                                  {grande && capa === "piso" && celda.estado === "falta" && <small className="text-sm font-semibold leading-none">falta · +{celda.almacen} atrás</small>}
                                                 </span>
                                               )}
                                               {verAlmacen && (
-                                                <span className={`flex w-full flex-1 items-center justify-center gap-1 tabular-nums ${grande ? "text-[17px] font-bold" : "border-t border-sand text-[13.5px] font-semibold"} ${celda.almacen === 0 ? "text-taupe/60" : "bg-pizarra/[0.12] text-pizarra"}`}>
+                                                <span className={`flex w-full flex-1 items-center justify-center gap-1 tabular-nums ${grande ? "text-[17px] font-bold" : "border-t border-sand text-[15px] font-semibold"} ${celda.almacen === 0 ? "text-taupe/60" : "bg-pizarra/[0.12] text-pizarra"}`}>
                                                   <Archive aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} />
                                                   {celda.almacen}
                                                 </span>
@@ -1016,7 +1234,7 @@ export function PanelTalla({
                               })}
                               {/* La fila de totales por talla: cuántas de cada talla hay en el modelo (en la capa elegida, solo esa). */}
                               <tr>
-                                <th scope="row" className="pl-1.5 text-left text-[12px] font-semibold text-taupe">
+                                <th scope="row" className="pl-1.5 text-left text-sm font-semibold text-taupe">
                                   Total
                                 </th>
                                 {tallasDeTodos.map((t) => {
@@ -1048,7 +1266,7 @@ export function PanelTalla({
                             </span>
                             <span className="min-w-0 flex-1">
                               <b className="block text-[14px] font-semibold text-tinta">Colgar varias tallas y colores</b>
-                              <small className="block text-xs text-taupe">
+                              <small className="block text-sm text-taupe">
                                 {subtituloColgarVarias({ porColgar: porColgarModelo, sinColgar: sinColgarModelo, almacen: sumaModelo.almacen })}
                               </small>
                             </span>
@@ -1061,6 +1279,12 @@ export function PanelTalla({
                 )}
               </section>
             </div>
+            {modoAjuste && !listoAjuste && !sellando && (
+              <PieDelAjuste
+                control={ajuste}
+                secundario={avisoLugarEn === ajuste.ubicado && ajuste.lineas.length > 0}
+                onCancelar={() => (ajuste.lineas.length > 0 ? ajuste.descartar() : volverDeAjuste())} onGuardar={() => void guardarAjuste()} />
+            )}
           </div>
         )}
       </Modal>

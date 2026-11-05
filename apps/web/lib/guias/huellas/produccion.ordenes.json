@@ -2,11 +2,12 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 101,
+  "total": 141,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
+      "CampoTexto «Por qué es correcto este costo · obligatorio»",
       "Boton «{textoCorregir}»",
-      "Boton «{motivoNoListo ?? undefined}»"
+      "Boton «{problemaMotivo ?? motivoNoListo ?? undefined}»"
     ],
     "components/MatrizOrden.tsx": [
       "input «{`Buenas de ${c.nombre}»"
@@ -20,14 +21,16 @@
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
       "SegmentoDeslizante «Tipo de orden»",
-      "Link «Editar producto»",
+      "button «{anclaGuia ? \"prod-orden-nueva.talla-nueva-boton\" : undefined}»",
+      "Boton «Retomarla»",
+      "Boton «Descartarla»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
       "Link «Ponle precio en Editar producto»",
       "ComboResponsable «{responsable}»",
       "Boton «Usar ese modelo»",
       "Boton «Es otro modelo, crearlo igual»",
-      "button «Cancelar»",
+      "button «prod-orden-nueva.cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/OrdenCierre.tsx": [
@@ -70,6 +73,9 @@
       "Boton «(sin nombre)»",
       "button «Reabrir»"
     ],
+    "components/ProduccionSoloEnTaller.tsx": [
+      "BotonVer «Volver al inicio»"
+    ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
       "CampoTexto «{etiqueta}»"
@@ -95,9 +101,8 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
@@ -110,6 +115,16 @@
       "button «{`Quitar ${nombre}»",
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
     ],
+    "components/orden-produccion/AgregarColorAlModeloModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
+    "components/orden-produccion/AgregarTallaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
     "components/orden-produccion/ConsejoDeLaRed.tsx": [
       "Boton «{`Usarla: pone las ${curva.total}»",
       "button «prod-orden-nueva.red-abrir»",
@@ -121,22 +136,55 @@
       "button «Cambiar»"
     ],
     "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "Casilla «Recordar en la ficha del modelo»",
+      "CampoSelect «Proveedor»",
+      "button «+ Registrar proveedor nuevo»",
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
       "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
-      "CampoSelect «Proveedor»",
-      "CampoMonto «Por prenda»",
-      "CampoTexto «Cantidad mínima»",
+      "CampoMonto «{modoFijo === \"prenda\" ? \"Cobra por prenda\" : \"Cobra por esta orden\"}»",
+      "SegmentoDeslizante «Cómo escribes el cobro del ploteo»",
       "CampoFecha «Prometido para»",
+      "CampoMonto «{modoTarifa === \"total\" ? `Total por las ${totalPrendas}»",
+      "SegmentoDeslizante «{`Cómo escribes lo que cobra ${nombreEnFrase}»",
+      "CampoTexto «Cantidad mínima»",
+      "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
-      "button «+ fijo por orden (ponchado, matriz)»"
+      "button «+ fijo por orden (ponchado, matriz)»",
+      "button «Sí, es por prenda»",
+      "button «Es el total de la orden»"
+    ],
+    "components/orden-produccion/FichaDeConsumoHoja.tsx": [
+      "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»",
+      "SegmentoDeslizante «Cuántas cifras»",
+      "CampoTexto «{`Talla ${t}»",
+      "CampoTexto «{variasTallas ? \"Todas las tallas\" : \"Metros por prenda\"}»",
+      "CampoSelect «Avío»",
+      "CampoSelect «Para»",
+      "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
+      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»",
+      "Boton «{oferta.etiqueta}»",
+      "Boton «Sí,»",
+      "Boton «Mejor no»"
+    ],
+    "components/orden-produccion/NivelDos.tsx": [
+      "BotonVerMas «prod-orden-nueva.nivel2-abrir»"
     ],
     "components/orden-produccion/TelaDeLaOrden.tsx": [
+      "Boton «Ficha del modelo»",
       "CampoSelect «Tela»",
-      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"m\"}»",
+      "CampoTexto «{`${unidadDeLaFila}»",
+      "CampoTexto «{`Talla ${x.talla}»",
+      "button «Una cifra para todas las tallas»",
+      "button «Separar por talla»",
       "Casilla «Dejar este consumo como el del modelo»",
-      "CampoSelect «Avío»",
+      "CampoSelect «Material»",
       "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
-      "Boton «+ Agregar avío»"
+      "CampoSelect «Para»",
+      "Boton «+ Agregar material»",
+      "Casilla «Dejar estos avíos como los del modelo»"
     ],
     "components/ordenes-lista/FilaDeOrden.tsx": [
       "button «{`Abrir ${f.numeroTexto}»",
@@ -147,6 +195,8 @@
       "Boton «prod-ordenes.nueva»",
       "Pestanas «→(clave) => setPestana(clave as PestanaLista)»",
       "button «{f.texto}»",
+      "Boton «Retomar»",
+      "Boton «Descartar»",
       "Boton «+ Crear el primer modelo»"
     ]
   }

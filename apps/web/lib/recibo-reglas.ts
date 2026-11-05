@@ -57,13 +57,9 @@ export type ReciboVenta = {
   vueltoTotal: number;
   /** Quién atendió a la clienta (nombre corto), si la caja lo sabe. Ausente/`null` en las ventas anteriores o sin elección. */
   atendio?: string | null;
-  /** El cumpleaños del club que canjeó la venta (ADR-0288 D-5): el descuento de cada prenda ya lo trae (es el TOTAL de
-   *  `venta_items`), y el papel dice cuánto de eso es del club. Ausente/`null` sin canje o en una reimpresión (el historial
-   *  no lo lee todavía). */
-  cumple?: { pct: number; monto: number } | null;
-  /** El vale de aniversario del club que usó la venta (ADR-0288, tanda 1g): como el cumpleaños, el descuento de cada prenda
-   *  ya lo trae y el papel dice cuánto de eso es del vale. Ausente/`null` sin vale o en una reimpresión. */
-  vale?: { monto: number } | null;
+  /** El cupón del Club que usó la venta (programa de puntos): el descuento de cada prenda ya lo trae (es el TOTAL de `venta_items`), y
+   *  el papel dice cuánto de eso es del cupón. Ausente/`null` sin cupón o en una reimpresión (el historial no lo lee todavía). */
+  cupon?: { monto: number } | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -107,10 +103,8 @@ export function armarRecibo(entrada: {
   tasaIgv: number;
   /** Nombre y apellido de quien atendió; ver `atendioDelTicket` en `vender-reglas.ts`. */
   atendio?: string | null;
-  /** El cumpleaños canjeado en esta venta: las líneas ya traen su descuento total (con la parte del club). */
-  cumple?: { pct: number; monto: number } | null;
-  /** El vale de aniversario usado en esta venta: igual que el cumpleaños. */
-  vale?: { monto: number } | null;
+  /** El cupón del Club usado en esta venta: las líneas ya traen su descuento total (con la parte del cupón). */
+  cupon?: { monto: number } | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,
@@ -143,8 +137,7 @@ export function armarRecibo(entrada: {
     redondeo: redondear2(Math.max(0, entrada.redondeo ?? 0)),
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
     atendio: entrada.atendio ?? null,
-    cumple: entrada.cumple && entrada.cumple.monto > 0 ? entrada.cumple : null,
-    vale: entrada.vale && entrada.vale.monto > 0 ? entrada.vale : null,
+    cupon: entrada.cupon && entrada.cupon.monto > 0 ? entrada.cupon : null,
   };
 }
 

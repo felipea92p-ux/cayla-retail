@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E · Etiqueta — Rediseño de la tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600&family=Fragment+Mono&family=EB+Garamond:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="marco.css">
+<style>
+/* ── E · ETIQUETA ─ la elegancia de una tienda de autor: celadón pálido, verde oliva y los datos en letra de máquina. La firma
+   es la etiqueta colgante de cada prenda: cuelga de su hilo, se mece al llegar y se da vuelta para mostrar cuánto hay en cada
+   tienda. En la prenda, toda la ficha es una etiqueta grande con su talón: al agregar, el talón se arranca y va a la bolsa. ── */
+#lienzo {
+  --celadon: #e3e7df; --papel: #f4f5f1; --oliva: #1e231b; --musgo: #545c4e; --linea: #c9cfc2; --senal: #a9431f; --hilo: #8f9887;
+  --gutter: clamp(16px, 3.4cqi, 56px);
+  background: var(--celadon); color: var(--oliva); overflow-x: clip;
+  font: 400 15px/1.6 "Albert Sans", system-ui, sans-serif;
+}
+#lienzo *, #lienzo *::before, #lienzo *::after { box-sizing: border-box; }
+#lienzo a { color: inherit; }
+#lienzo :focus-visible { outline: 1.5px solid var(--senal); outline-offset: 3px; }
+#lienzo img { display: block; max-width: 100%; }
+:where(#lienzo) button { font: inherit; color: inherit; }
+
+.e-mono { font-family: "Fragment Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .02em; }
+.e-display { margin: 0; font-weight: 300; letter-spacing: -.055em; line-height: .86; font-size: clamp(72px, 14cqi, 230px); }
+.e-titulo { margin: 0; font-weight: 300; letter-spacing: -.035em; line-height: 1; font-size: clamp(36px, 5cqi, 72px); }
+.e-tenue { color: var(--musgo); }
+.e-senal { color: var(--senal); }
+
+.e-cab { position: sticky; top: 0; z-index: 10; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 32px; height: 60px; padding: 0 var(--gutter); background: color-mix(in srgb, var(--celadon) 90%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--linea); }
+.e-cab nav { display: flex; gap: 26px; }
+.e-cab a { text-decoration: none; }
+.e-cab nav a { position: relative; }
+.e-cab nav a::before { content: "→"; position: absolute; left: -16px; opacity: 0; transform: translateX(-6px); }
+.e-cab nav a:hover::before { opacity: 1; transform: none; }
+.e-cuenta { display: flex; gap: 22px; align-items: center; }
+.e-logo { display: flex; align-items: center; gap: 10px; }
+.e-logo img { width: 28px; height: auto; }
+.e-logo span { font-family: "EB Garamond", serif; font-weight: 500; font-size: 20px; letter-spacing: .22em; margin-right: -.22em; }
+.e-menu { display: none; width: 40px; height: 40px; border: 0; background: none; padding: 10px 8px; }
+.e-menu i { display: block; height: 1px; background: currentColor; margin: 5px 0; }
+.e-ir-bolsa { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--oliva); border-radius: 999px; }
+
+.e-btn { position: relative; display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 52px; padding: 0 22px; border: 1px solid var(--oliva); background: var(--oliva); color: var(--papel) !important; font-weight: 500; text-decoration: none; cursor: pointer; overflow: hidden; }
+.e-btn .e-flecha { display: inline-block; }
+.e-btn:hover .e-flecha { transform: translateX(5px); }
+.e-btn--claro { background: transparent; color: var(--oliva) !important; }
+.e-btn--claro:hover { background: var(--oliva); color: var(--papel) !important; }
+.e-link { text-decoration: underline; text-decoration-color: var(--linea); text-underline-offset: 4px; }
+.e-link:hover { text-decoration-color: var(--oliva); }
+
+/* La foto: papel sobre celadón; la foto (blanca) se funde con el papel */
+.e-foto { position: relative; display: block; aspect-ratio: 4 / 5; background: var(--papel); text-decoration: none; overflow: hidden; }
+.e-foto img { width: 100%; height: 100%; object-fit: contain; padding: 11%; mix-blend-mode: multiply; }
+.e-fig { position: relative; margin: 0; }
+.e-pie-foto { display: flex; justify-content: space-between; gap: 12px; padding-top: 10px; }
+.e-pie-foto a { text-decoration: none; }
+
+/* La etiqueta colgante: cuelga de un hilo desde la esquina, con su ojal; por detrás, el stock por tienda */
+.e-tag { position: absolute; top: 34px; right: 16px; z-index: 2; width: 108px; transform-origin: 50% -34px; transform: rotate(-7deg); perspective: 700px; }
+.e-tag::before { content: ""; position: absolute; left: 50%; top: -34px; width: 1px; height: 42px; background: var(--hilo); }
+.e-tag::after { content: ""; position: absolute; left: calc(50% - 3px); top: -37px; width: 6px; height: 6px; border-radius: 50%; background: var(--musgo); }
+.e-tag-cara { position: relative; transform-style: preserve-3d; }
+.e-tag-frente, .e-tag-dorso { display: grid; gap: 2px; padding: 20px 10px 10px; background: var(--papel); backface-visibility: hidden; clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px); text-align: center; box-shadow: inset 0 0 0 1px var(--linea); }
+.e-tag-frente::before, .e-tag-dorso::before { content: ""; justify-self: center; width: 9px; height: 9px; margin: -12px 0 6px; border-radius: 50%; background: var(--celadon); box-shadow: inset 0 0 0 1px var(--hilo); }
+.e-tag-dorso { position: absolute; inset: 0; transform: rotateY(180deg); background: var(--oliva); color: var(--papel); box-shadow: none; }
+.e-tag-dorso::before { background: var(--celadon); box-shadow: none; }
+.e-tag b { font-family: "Fragment Mono", monospace; font-weight: 400; font-size: 14px; }
+
+.e-seccion { padding: clamp(72px, 10cqi, 140px) var(--gutter) 0; }
+.e-seccion-cab { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: clamp(28px, 4cqi, 52px); padding-bottom: 14px; border-bottom: 1px solid var(--oliva); }
+.e-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; }
+
+/* Portada */
+.e-hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(24px, 4cqi, 72px); align-items: end; padding: clamp(40px, 6cqi, 88px) var(--gutter) 0; }
+.e-hero-texto { display: grid; gap: 28px; padding-bottom: 12px; }
+.e-hero-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 12px 0; border-top: 1px solid var(--oliva); border-bottom: 1px solid var(--linea); }
+.e-hero p { max-width: 38ch; margin: 0; font-size: 17px; }
+.e-hero .e-fig .e-tag { width: 150px; top: 54px; right: 28px; transform-origin: 50% -54px; }
+.e-hero .e-fig .e-tag::before { top: -54px; height: 62px; }
+.e-hero .e-fig .e-tag::after { top: -57px; }
+.e-hero .e-fig .e-tag b { font-size: 16px; }
+.e-fila { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(12px, 1.6cqi, 24px); }
+.e-pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(12px, 1.6cqi, 24px); padding-top: 40px; }
+.e-paso { position: relative; padding: 34px 20px 22px; background: var(--papel); clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%, 0 22px); transform-origin: 50% -40px; }
+.e-paso::before { content: ""; position: absolute; left: calc(50% - 6px); top: 12px; width: 12px; height: 12px; border-radius: 50%; background: var(--celadon); box-shadow: inset 0 0 0 1px var(--hilo); }
+.e-paso .e-mono { display: block; margin-bottom: 22px; color: var(--senal); }
+.e-paso h3 { margin: 0 0 8px; font-weight: 500; font-size: 18px; letter-spacing: -.01em; }
+.e-paso p { margin: 0; color: var(--musgo); }
+.e-club { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6cqi, 112px); align-items: center; padding: clamp(56px, 8cqi, 112px) var(--gutter); margin-top: clamp(72px, 10cqi, 140px); background: var(--oliva); color: var(--papel); }
+.e-club .e-tenue { color: #b6bead; }
+.e-club ul { list-style: none; margin: 0; padding: 0; }
+.e-club li { display: grid; grid-template-columns: 34px 1fr; gap: 2px 12px; padding: 16px 0; border-top: 1px solid #ffffff22; }
+.e-club li .e-mono { grid-row: span 2; color: #b6bead; padding-top: 3px; }
+.e-club li b { font-weight: 500; }
+.e-club .e-btn { background: var(--papel); color: var(--oliva) !important; border-color: var(--papel); }
+.e-carnet { position: relative; justify-self: center; width: min(420px, 100%); padding: 30px 28px 24px; background: var(--papel); color: var(--oliva); clip-path: polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%, 0 24px); }
+.e-carnet::before { content: ""; position: absolute; left: calc(50% - 7px); top: 12px; width: 14px; height: 14px; border-radius: 50%; background: var(--oliva); }
+.e-carnet .e-talon { margin-top: 26px; padding-top: 16px; border-top: 2px dashed var(--linea); display: flex; justify-content: space-between; }
+.e-tiendas { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 1.6cqi, 24px); }
+.e-tienda { padding: 26px 24px; background: var(--papel); }
+.e-tienda h3 { margin: 0 0 14px; font-weight: 300; font-size: clamp(36px, 4.4cqi, 64px); letter-spacing: -.04em; line-height: 1; }
+.e-tienda .e-mono { display: block; margin-bottom: 4px; }
+.e-tienda .e-acciones { margin-top: 20px; }
+.e-pie { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; padding: clamp(56px, 8cqi, 104px) var(--gutter) 40px; margin-top: clamp(72px, 10cqi, 140px); border-top: 1px solid var(--oliva); }
+.e-pie ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.e-pie a { text-decoration: none; }
+.e-pie a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Catálogo: el índice a la izquierda, la ropa a la derecha */
+.e-cat-cab { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding: clamp(36px, 5cqi, 72px) var(--gutter) 20px; border-bottom: 1px solid var(--oliva); margin: 0 var(--gutter); padding-left: 0; padding-right: 0; }
+.e-catalogo { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: clamp(24px, 3cqi, 48px); padding: 28px var(--gutter) 0; }
+.e-filtros { position: sticky; top: 84px; align-self: start; display: grid; gap: 28px; }
+.e-filtros [role="group"] { display: grid; gap: 2px; }
+.e-filtros button { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 7px 0; border: 0; border-bottom: 1px solid var(--linea); background: none; cursor: pointer; color: var(--musgo); text-align: left; }
+.e-filtros button span:first-child { position: relative; }
+.e-filtros button span:first-child::before { content: "→"; position: absolute; left: -18px; opacity: 0; transform: translateX(-8px); color: var(--senal); }
+.e-filtros button:hover { color: var(--oliva); }
+.e-filtros button[aria-pressed="true"] { color: var(--oliva); padding-left: 18px; border-color: var(--oliva); }
+.e-filtros button[aria-pressed="true"] span:first-child::before { opacity: 1; transform: none; }
+.e-rejilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px clamp(12px, 1.6cqi, 24px); }
+.e-rejilla [hidden] { display: none; }
+
+/* Prenda: la ficha es una etiqueta grande con su talón */
+.e-ficha { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: clamp(28px, 5cqi, 96px); padding: clamp(28px, 4cqi, 56px) var(--gutter) 0; align-items: start; }
+.e-galeria-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+.e-ficha-tag { position: sticky; top: 120px; transform-origin: 50% -64px; }
+.e-ficha-tag::before { content: ""; position: absolute; left: 50%; top: -64px; width: 1px; height: 80px; background: var(--hilo); z-index: 1; }
+.e-ficha-tag .e-cuerpo { position: relative; display: grid; gap: 24px; padding: 48px clamp(22px, 3cqi, 40px) 28px; background: var(--papel); clip-path: polygon(34px 0, calc(100% - 34px) 0, 100% 34px, 100% 100%, 0 100%, 0 34px); }
+.e-ficha-tag .e-cuerpo::before { content: ""; position: absolute; left: calc(50% - 9px); top: 16px; width: 18px; height: 18px; border-radius: 50%; background: var(--celadon); box-shadow: inset 0 0 0 1px var(--hilo); }
+.e-ficha-tag h1 { margin: 0; font-weight: 300; font-size: clamp(38px, 4.4cqi, 62px); letter-spacing: -.04em; line-height: 1; }
+.e-precio { font-family: "Fragment Mono", monospace; font-size: 22px; }
+.e-campo { display: grid; gap: 10px; }
+.e-campo-cab { display: flex; justify-content: space-between; }
+.e-opciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.e-talla { min-width: 52px; height: 44px; padding: 0 14px; border: 1px solid var(--linea); background: transparent; cursor: pointer; font-family: "Fragment Mono", monospace; }
+.e-talla:hover { border-color: var(--oliva); }
+.e-talla[aria-pressed="true"] { background: var(--oliva); color: var(--papel); border-color: var(--oliva); }
+.e-color { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 6px; border: 1px solid var(--linea); background: transparent; cursor: pointer; }
+.e-color i { width: 26px; height: 26px; box-shadow: inset 0 0 0 1px #0002; }
+.e-color[aria-pressed="true"] { border-color: var(--oliva); }
+.e-aviso { min-height: 1.6em; margin: -10px 0 0; font-size: 14px; }
+/* El talón: se separa por la línea punteada, con sus dos muescas */
+.e-talon-ficha { position: relative; padding: 22px clamp(22px, 3cqi, 40px); background: var(--papel); border-top: 2px dashed var(--linea); -webkit-mask: radial-gradient(circle 10px at 0 0, transparent 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 10px at 100% 0, transparent 98%, #000) right / 51% 100% no-repeat; mask: radial-gradient(circle 10px at 0 0, transparent 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 10px at 100% 0, transparent 98%, #000) right / 51% 100% no-repeat; }
+.e-talon-ficha dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 0; }
+.e-talon-ficha dt { color: var(--musgo); }
+.e-talon-ficha dd { margin: 0; font-family: "Fragment Mono", monospace; font-size: 14px; }
+.e-vacon { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(12px, 1.6cqi, 24px); }
+
+/* Las cifras que ruedan como un contador */
+.e-rueda { display: inline-block; height: 1.15em; overflow: hidden; vertical-align: -0.2em; line-height: 1.15; }
+.e-rueda > span { display: flex; flex-direction: column; }
+.e-rueda i { font-style: normal; height: 1.15em; }
+/* Lo que lee un lector de pantalla: la cifra entera, no los diez dígitos de cada rueda */
+.e-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Bolsa */
+.e-bolsa-cuerpo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: clamp(28px, 5cqi, 96px); padding: 0 var(--gutter); align-items: start; }
+.e-linea { display: grid; grid-template-columns: 110px 1fr auto; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--linea); align-items: start; }
+.e-linea:first-child { border-top: 1px solid var(--oliva); }
+.e-linea h3 { margin: 0; font-weight: 400; font-size: 20px; letter-spacing: -.01em; }
+.e-linea .e-mono { display: block; margin-top: 4px; color: var(--musgo); }
+.e-linea [data-hay-aqp] { display: block; margin-top: 8px; font-size: 13px; color: var(--musgo); }
+.e-linea [data-falta="true"] { color: var(--senal); }
+.e-quitar { margin-top: 10px; padding: 0; border: 0; background: none; color: var(--musgo); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.e-resumen { position: sticky; top: 84px; display: grid; gap: 20px; padding: 28px; background: var(--papel); }
+.e-tienda-op { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 14px 16px; border: 1px solid var(--linea); background: transparent; text-align: left; cursor: pointer; }
+.e-tienda-op:hover { border-color: var(--oliva); }
+.e-tienda-op[aria-pressed="true"] { background: var(--oliva); color: var(--papel); border-color: var(--oliva); }
+.e-tienda-op[aria-pressed="true"] .e-tenue { color: #b6bead; }
+.e-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 16px; border-top: 1px solid var(--oliva); }
+.e-total b { font-family: "Fragment Mono", monospace; font-weight: 400; font-size: 26px; }
+.e-listo { display: grid; gap: 14px; }
+.e-recibo { padding: 22px 20px; background: var(--celadon); font-family: "Fragment Mono", monospace; font-size: 13px; white-space: pre-line; }
+.e-listo h2 { margin: 0; font-weight: 300; font-size: 34px; letter-spacing: -.03em; line-height: 1.05; }
+.e-listo p { margin: 0; }
+
+/* Entrar */
+.e-entrar { display: grid; justify-items: center; padding: clamp(80px, 9cqi, 130px) var(--gutter) 0; }
+.e-form { position: relative; display: grid; gap: 18px; width: min(460px, 100%); padding: 56px clamp(24px, 4cqi, 44px) 32px; background: var(--papel); clip-path: polygon(36px 0, calc(100% - 36px) 0, 100% 36px, 100% 100%, 0 100%, 0 36px); transform-origin: 50% -70px; }
+.e-entrar-hilo { width: 1px; height: 70px; margin-bottom: -2px; background: var(--hilo); }
+.e-form::before { content: ""; position: absolute; left: calc(50% - 10px); top: 18px; width: 20px; height: 20px; border-radius: 50%; background: var(--celadon); box-shadow: inset 0 0 0 1px var(--hilo); }
+.e-form h1 { text-align: center; font-size: clamp(56px, 7cqi, 96px); }
+.e-form label { display: grid; gap: 6px; }
+.e-form input { height: 50px; padding: 0 14px; border: 1px solid var(--linea); background: var(--celadon); font: inherit; color: inherit; }
+.e-form input:focus { outline: none; border-color: var(--oliva); }
+.e-form .e-btn { width: 100%; }
+
+/* El talón que se arranca vuela fuera del lienzo */
+.e-talon-vuela { position: fixed; z-index: 300; pointer-events: none; background: #f4f5f1; border-top: 2px dashed #c9cfc2; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .e-cab nav a::before, .e-filtros button span:first-child::before { transition: opacity .35s, transform .45s cubic-bezier(.2,.7,.2,1); }
+  .e-filtros button { transition: padding-left .5s cubic-bezier(.2,.7,.2,1), color .3s, border-color .3s; }
+  .e-btn .e-flecha { transition: transform .45s cubic-bezier(.2,.7,.2,1); }
+  .e-btn--claro { transition: background-color .35s, color .35s; }
+  .e-foto img { transition: transform 1.1s cubic-bezier(.2,.7,.2,1); }
+  .e-fig:hover .e-foto img { transform: translateY(-2%) scale(1.03); }
+  .e-tag-cara { transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+  .e-fig:hover .e-tag-cara, .e-fig:focus-within .e-tag-cara { transform: rotateY(180deg); }
+  .e-talla, .e-color, .e-tienda-op { transition: background-color .3s, color .3s, border-color .3s; }
+
+  /* Las fotos se imprimen de arriba abajo, fila por fila */
+  .e-fig[data-revela] .e-foto { clip-path: inset(0 0 100% 0); transition: clip-path 1.1s cubic-bezier(.76,0,.24,1); transition-delay: calc(var(--i, 0) * 110ms); }
+  .e-fig.visto .e-foto { clip-path: inset(0); }
+  .e-fig[data-revela] .e-pie-foto { opacity: 0; transition: opacity .8s; transition-delay: calc(.5s + var(--i, 0) * 110ms); }
+  .e-fig.visto .e-pie-foto { opacity: 1; }
+  /* La etiqueta cae colgada de su hilo y se mece hasta quedarse */
+  .e-fig[data-revela] .e-tag { opacity: 0; }
+  .e-fig.visto .e-tag { animation: e-cae 1.9s cubic-bezier(.3,.6,.4,1) both; animation-delay: calc(.55s + var(--i, 0) * 110ms); }
+  .e-fig.visto:hover .e-tag { animation: e-mece 1.4s ease-out; }
+  @keyframes e-cae { 0% { opacity: 0; transform: translateY(-26px) rotate(-30deg); } 18% { opacity: 1; } 38% { transform: rotate(10deg); } 58% { transform: rotate(-11deg); } 76% { transform: rotate(-4deg); } 90% { transform: rotate(-8deg); } 100% { opacity: 1; transform: rotate(-7deg); } }
+  @keyframes e-mece { 0% { transform: rotate(-7deg); } 30% { transform: rotate(5deg); } 60% { transform: rotate(-10deg); } 82% { transform: rotate(-5deg); } 100% { transform: rotate(-7deg); } }
+  /* El titular entra de abajo, letra por letra, como tipos que se componen */
+  .e-letras .letra { display: inline-block; opacity: 0; transform: translateY(.5em); transition: opacity .6s, transform 1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.1s + var(--l, 0) * 40ms); }
+  .listo .e-letras .letra { opacity: 1; transform: none; }
+  .e-entra { opacity: 0; transform: translateY(12px); transition: opacity .8s, transform .9s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.5s + var(--s, 0) * 90ms); }
+  .listo .e-entra { opacity: 1; transform: none; }
+  .e-hero-meta { clip-path: inset(0 100% 0 0); transition: clip-path 1.2s cubic-bezier(.76,0,.24,1) .45s; }
+  .listo .e-hero-meta { clip-path: inset(0); }
+  .e-seccion-cab[data-revela] { opacity: 0; border-bottom-color: transparent; transition: opacity .8s, border-color 1s .3s; }
+  .e-seccion-cab.visto { opacity: 1; border-bottom-color: var(--oliva); }
+  .e-paso[data-revela] { opacity: 0; }
+  .e-paso.visto { animation: e-cae-ficha 1.9s cubic-bezier(.3,.6,.4,1) both; animation-delay: calc(var(--i, 0) * 140ms); }
+  .e-club[data-revela] > * { opacity: 0; transform: translateY(24px); transition: opacity .9s, transform 1s cubic-bezier(.2,.7,.2,1); }
+  .e-club.visto > * { opacity: 1; transform: none; }
+  .e-club.visto .e-carnet { animation: e-cae-ficha 2s cubic-bezier(.3,.6,.4,1) both .25s; }
+  .e-tienda[data-revela] { opacity: 0; transform: translateY(24px); transition: opacity .9s, transform 1.1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(var(--i, 0) * 120ms); }
+  .e-tienda.visto { opacity: 1; transform: none; }
+  .e-ficha-tag { animation: e-cae-ficha 2s cubic-bezier(.3,.6,.4,1) both .2s; }
+  @keyframes e-cae-ficha { 0% { opacity: 0; transform: translateY(-40px) rotate(-6deg); } 25% { opacity: 1; } 45% { transform: rotate(3deg); } 70% { transform: rotate(-1.4deg); } 100% { opacity: 1; transform: none; } }
+  .e-ficha > div:first-child .e-foto { clip-path: inset(0 0 100% 0); transition: clip-path 1.3s cubic-bezier(.76,0,.24,1) .1s; }
+  .listo .e-ficha > div:first-child .e-foto { clip-path: inset(0); }
+  .e-rueda > span { transform: translateY(0); transition: transform 1.3s cubic-bezier(.2,.7,.2,1); transition-delay: calc(var(--k, 0) * 70ms); }
+  .rodando .e-rueda > span { transform: translateY(calc(var(--d) * -1.15em)); }
+  .e-bolsa-cuerpo .e-linea { animation: e-imprime .9s cubic-bezier(.76,0,.24,1) both; animation-delay: calc(.1s + var(--i, 0) * 110ms); }
+  .e-resumen { animation: e-imprime 1s .3s cubic-bezier(.76,0,.24,1) both; }
+  .e-listo:not([hidden]) { animation: e-imprime 1.1s cubic-bezier(.76,0,.24,1) both; }
+  @keyframes e-imprime { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+  .e-form { animation: e-cae-ficha 2s cubic-bezier(.3,.6,.4,1) both .15s; }
+  .e-entrar-hilo { transform-origin: 50% 0; animation: e-hilo .8s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes e-hilo { from { transform: scaleY(0); } }
+
+  /* De una pantalla a otra: la nueva entra como una etiqueta que se tira de lado */
+  ::view-transition-old(root) { animation: .6s cubic-bezier(.76,0,.24,1) both e-vt-sale; }
+  ::view-transition-new(root) { animation: .8s cubic-bezier(.76,0,.24,1) both e-vt-entra; }
+  @keyframes e-vt-sale { to { opacity: .4; transform: translateX(-3%); } }
+  @keyframes e-vt-entra { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0); } }
+}
+
+@container lienzo (max-width: 760px) {
+  .e-cab { grid-template-columns: 40px 1fr auto; height: 56px; gap: 12px; }
+  .e-cab nav { display: none; }
+  .e-menu { display: block; }
+  .e-logo { justify-self: center; }
+  .e-cuenta a:not(.e-ir-bolsa) { display: none; }
+  .e-hero, .e-club, .e-ficha, .e-bolsa-cuerpo { grid-template-columns: 1fr; }
+  .e-fila, .e-pasos, .e-vacon { grid-template-columns: 1fr 1fr; }
+  .e-vacon > :nth-child(n + 3) { display: none; }
+  .e-tiendas { grid-template-columns: 1fr; }
+  .e-pie { grid-template-columns: 1fr 1fr; }
+  .e-pie > :first-child { grid-column: 1 / -1; }
+  .e-catalogo { grid-template-columns: 1fr; }
+  .e-filtros { position: static; gap: 10px; }
+  .e-filtros [role="group"] { display: flex; overflow-x: auto; gap: 6px; scrollbar-width: none; margin-right: calc(-1 * var(--gutter)); }
+  .e-filtros button { width: auto; flex: none; gap: 8px; padding: 8px 12px; border: 1px solid var(--linea); }
+  .e-filtros button[aria-pressed="true"] { padding-left: 12px; background: var(--oliva); color: var(--papel); }
+  .e-filtros button span:first-child::before { display: none; }
+  .e-rejilla { grid-template-columns: 1fr 1fr; gap: 28px 12px; }
+  .e-tag { width: 100px; right: 8px; }
+  .e-tag b { font-size: 12px; }
+  .e-tag-frente .e-tenue { display: none; }
+  .e-pie-foto { flex-direction: column; gap: 2px; }
+  .e-ficha-tag, .e-resumen { position: static; }
+  .e-ficha-tag { margin-top: 64px; }
+  .e-linea { grid-template-columns: 84px 1fr; }
+  .e-linea > .e-precio-linea { grid-column: 2; }
+}
+</style>
+</head>
+<body>
+<main id="lienzo"></main>
+<script src="datos.js"></script>
+<script src="movimiento.js"></script>
+<script>
+(function () {
+  const C = window.CAYLA, M = window.MOV;
+  const logo = `<a class="e-logo" href="#portada" aria-label="CAYLA, ir a la portada"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></a>`;
+  const flecha = `<span class="e-flecha" aria-hidden="true">→</span>`;
+  const cab = () => `
+    <header class="e-cab">
+      <button class="e-menu" aria-label="Abrir el menú"><i></i><i></i></button>
+      ${logo}
+      <nav aria-label="Tienda"><a href="#catalogo">Lo nuevo</a><a href="#catalogo">Ropa</a><a href="#catalogo">Looks</a><a href="#portada">Tiendas</a></nav>
+      <div class="e-cuenta"><a href="#entrar">Entrar</a><a class="e-ir-bolsa" href="#bolsa"><span>Bolsa</span><b class="e-mono" data-cuenta-bolsa>0</b></a></div>
+    </header>`;
+  const pie = () => `
+    <footer class="e-pie">
+      <div>${logo}<p class="e-tenue" style="max-width:30ch;margin-top:16px">Separa online, confirma por WhatsApp y recoge en tu tienda.</p></div>
+      <div><span class="e-mono e-tenue">Ayuda</span><ul><li><a href="#portada">Cómo separar</a></li><li><a href="#portada">Cambios y devoluciones</a></li><li><a href="#portada">Nuestras tiendas</a></li></ul></div>
+      <div><span class="e-mono e-tenue">Tu cuenta</span><ul><li><a href="#entrar">Crear mi cuenta</a></li><li><a href="#entrar">Entrar</a></li><li><a href="#entrar">Olvidé mi contraseña</a></li></ul></div>
+      <div><span class="e-mono e-tenue">CAYLA</span><ul><li><a href="#portada">Club CAYLA</a></li><li><a href="#portada">Privacidad</a></li><li><a href="#portada">Términos del Club</a></li></ul></div>
+    </footer>`;
+  // La etiqueta: con cuenta, adelante el precio y las tallas, atrás cuánto hay en cada tienda; sin cuenta, solo «Ver precio».
+  const etiqueta = (p, conCuenta) => `
+    <span class="e-tag" aria-hidden="true"><span class="e-tag-cara">
+      <span class="e-tag-frente">${conCuenta ? `<b>${C.precio(p.precio)}</b><span class="e-mono e-tenue">${p.tallas.join(" ")}</span>` : `<b>Ver precio</b><span class="e-mono e-tenue">con tu cuenta</span>`}</span>
+      <span class="e-tag-dorso">${conCuenta ? `<span class="e-mono">AQP ${C.stockTexto(p.stock.aqp)}</span><span class="e-mono">TRU ${C.stockTexto(p.stock.tru)}</span>` : `<span class="e-mono">Crea tu</span><span class="e-mono">cuenta</span>`}</span>
+    </span></span>`;
+  const obra = (p, i, conCuenta) => `
+    <figure class="e-fig" data-revela data-id="${p.id}" style="--i:${i}" data-cat="${p.cat}" data-aqp="${p.stock.aqp}" data-tru="${p.stock.tru}">
+      <a class="e-foto" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}" loading="lazy"></a>
+      ${etiqueta(p, conCuenta)}
+      <figcaption class="e-pie-foto"><a href="#prenda/${p.id}">${p.nombre}</a>${conCuenta ? `<span class="e-mono">${C.precio(p.precio)}</span>` : `<a class="e-link" href="#entrar">Ver precio</a>`}</figcaption>
+    </figure>`;
+
+  const pantallas = {
+    portada() {
+      const h = C.prenda("kalessi"), fila = ["tiana", "alba", "strend", "luna"].map(C.prenda);
+      return `${cab()}
+      <section class="e-hero">
+        <div class="e-hero-texto">
+          <h1 class="e-display e-letras" data-letras>lo nuevo.</h1>
+          <div class="e-hero-meta e-mono"><span>${C.prendas.length} prendas</span><span>Arequipa</span><span>Trujillo</span><span>Llegó en los últimos 30 días</span></div>
+          <p class="e-entra" style="--s:1">Lo que llegó a Arequipa y Trujillo. Crea tu cuenta para ver precios, tallas y cuánto hay en cada tienda.</p>
+          <div class="e-acciones e-entra" style="--s:2"><a class="e-btn" href="#entrar">Crear mi cuenta ${flecha}</a><a class="e-link" href="#entrar">Ya tengo cuenta</a></div>
+        </div>
+        ${obra(h, 0, false)}
+      </section>
+      <section class="e-seccion">
+        <div class="e-seccion-cab" data-revela><h2 class="e-titulo">En las tiendas</h2><a class="e-link e-mono" href="#catalogo">Ver las ${C.prendas.length} prendas →</a></div>
+        <div class="e-fila">${fila.map((p, i) => obra(p, i, false)).join("")}</div>
+      </section>
+      <section class="e-seccion">
+        <div class="e-seccion-cab" data-revela><h2 class="e-titulo">Así se separa</h2><span class="e-mono e-tenue">Sin pagar en la web</span></div>
+        <div class="e-pasos">${C.pasos.map(([t, d], i) => `<div class="e-paso" data-revela style="--i:${i}"><span class="e-mono">${String(i + 1).padStart(2, "0")} / 04</span><h3>${t}</h3><p>${d}</p></div>`).join("")}</div>
+      </section>
+      <section class="e-club" data-revela>
+        <div><span class="e-mono e-tenue">Club CAYLA</span><h2 class="e-titulo" style="margin:14px 0 24px">Tu cuenta ya es tu membresía</h2>
+          <ul>${C.club.map(([t, d], i) => `<li><span class="e-mono">${String(i + 1).padStart(2, "0")}</span><b>${t}</b><span class="e-tenue">${d}</span></li>`).join("")}</ul>
+          <div style="margin-top:28px"><a class="e-btn" href="#entrar">Crear mi cuenta ${flecha}</a></div></div>
+        <div class="e-carnet" aria-hidden="true"><span class="e-mono e-tenue">Miembro del Club</span><div style="font-size:34px;font-weight:300;letter-spacing:-.03em;margin-top:8px">Tu nombre aquí</div><div class="e-talon e-mono"><span>CAYLA</span><span>desde 2026</span></div></div>
+      </section>
+      <section class="e-seccion">
+        <div class="e-seccion-cab" data-revela><h2 class="e-titulo">Nuestras tiendas</h2><span class="e-mono e-tenue">Recoge en la que te quede cerca</span></div>
+        <div class="e-tiendas">${C.tiendas.map((t, i) => `<div class="e-tienda" data-revela style="--i:${i}"><h3>${t.ciudad}</h3><span class="e-mono">${t.direccion}</span><span class="e-mono e-tenue">${t.horario}</span><div class="e-acciones"><a class="e-btn e-btn--claro" href="#portada">WhatsApp ${t.whatsapp} ${flecha}</a><a class="e-link" href="#portada">Cómo llegar</a></div></div>`).join("")}</div>
+      </section>
+      ${pie()}`;
+    },
+
+    catalogo() {
+      const cuenta = (k) => (k === "todo" ? C.prendas.length : C.prendas.filter((p) => p.cat === k).length);
+      return `${cab()}
+      <div class="e-cat-cab"><h1 class="e-display e-letras" data-letras style="font-size:clamp(64px,11cqi,170px)">ropa.</h1><span class="e-mono"><span data-cuenta-prendas>${C.prendas.length}</span> prendas</span></div>
+      <div class="e-catalogo">
+        <div class="e-filtros" data-filtros>
+          <div role="group" aria-label="Qué buscas">${C.categorias.map(([k, n], i) => `<button data-filtro="${k}" aria-pressed="${i === 0}"><span>${n}</span><span class="e-mono">${String(cuenta(k)).padStart(2, "0")}</span></button>`).join("")}</div>
+          <div role="group" aria-label="En qué tienda">${[["todas", "Todas las tiendas"], ["aqp", "Arequipa"], ["tru", "Trujillo"]].map(([k, n], i) => `<button data-filtro-tienda="${k}" aria-pressed="${i === 0}"><span>${n}</span><span class="e-mono">${k === "todas" ? "" : k.toUpperCase()}</span></button>`).join("")}</div>
+        </div>
+        <div><div class="e-rejilla">${C.prendas.map((p, i) => obra(p, i % 3, true)).join("")}</div>
+          <p class="e-tenue" data-sin-resultados hidden style="padding-top:24px">No hay prendas de este tipo en esa tienda. Prueba con «Todas las tiendas»: la tienda puede pedirla a la otra.</p></div>
+      </div>
+      ${pie()}`;
+    },
+
+    prenda({ id }) {
+      const p = C.prenda(id);
+      const va = [...new Set((C.looks.find((l) => l.prendas.includes(p.id)) || C.looks[0]).prendas.concat(C.prendas.filter((x) => x.cat !== p.cat).map((x) => x.id)))].filter((x) => x !== p.id).slice(0, 4);
+      return `${cab()}
+      <section class="e-ficha">
+        <div>
+          <div class="e-foto"><img src="${C.foto(p)}" alt="${p.nombre}"></div>
+          ${p.foto.length > 1 ? `<div class="e-galeria-mini">${p.foto.map((_, i) => `<div class="e-foto"><img src="${C.foto(p, i)}" alt="${p.nombre}, foto ${i + 1}"></div>`).join("")}</div>` : ""}
+        </div>
+        <div class="e-ficha-tag">
+          <div class="e-cuerpo">
+            <div><a class="e-mono e-tenue" href="#catalogo" style="text-decoration:none">${C.nombreCat(p.cat)}</a><h1>${p.nombre}</h1></div>
+            <div class="e-precio" data-rueda="${C.precio(p.precio)}">${C.precio(p.precio)}</div>
+            <div class="e-campo"><span class="e-mono e-tenue">Color</span>
+              <div class="e-opciones" data-grupo="color">${p.colores.map(([n, hex], i) => `<button class="e-color" data-valor="${n}" aria-pressed="${i === 0}"><i style="background:${hex}"></i>${n}</button>`).join("")}</div></div>
+            <div class="e-campo"><div class="e-campo-cab"><span class="e-mono e-tenue">Talla</span><a class="e-link e-tenue" href="#prenda/${p.id}">Guía de tallas</a></div>
+              <div class="e-opciones" data-grupo="talla" role="group" aria-label="Talla">${p.tallas.map((t) => `<button class="e-talla" data-valor="${t}" aria-pressed="false">${t}</button>`).join("")}</div></div>
+            <button class="e-btn" data-agregar="${p.id}"><span data-texto>Agregar a la bolsa</span>${flecha}</button>
+            <p class="e-aviso" data-aviso role="status" aria-live="polite"></p>
+          </div>
+          <div class="e-talon-ficha" data-talon>
+            <dl>${C.tiendas.map((t) => `<dt>${t.ciudad}</dt><dd class="${p.stock[t.id] ? "" : "e-tenue"}">${C.stockFrase(p.stock[t.id])}</dd>`).join("")}</dl>
+            <p class="e-mono e-tenue" style="margin:14px 0 0">No pagas en la web: separas y pagas al recoger.</p>
+          </div>
+        </div>
+      </section>
+      <section class="e-seccion"><div class="e-seccion-cab" data-revela><h2 class="e-titulo">Va con</h2></div><div class="e-vacon">${va.map((x, i) => obra(C.prenda(x), i, true)).join("")}</div></section>
+      ${pie()}`;
+    },
+
+    bolsa({ bolsa }) {
+      const total = bolsa.reduce((s, l) => s + C.prenda(l.id).precio, 0);
+      return `${cab()}
+      <div class="e-cat-cab"><h1 class="e-display e-letras" data-letras style="font-size:clamp(60px,10cqi,150px)">tu bolsa.</h1><span class="e-mono">${String(bolsa.length).padStart(2, "0")} ${bolsa.length === 1 ? "prenda" : "prendas"}</span></div>
+      <section class="e-bolsa-cuerpo" style="padding-top:28px">
+        <div>${bolsa.length === 0 ? `<p style="padding:20px 0;border-top:1px solid var(--oliva)">Tu bolsa está vacía. <a class="e-link" href="#catalogo">Ver la ropa</a></p>` : bolsa.map((l, i) => { const p = C.prenda(l.id); return `
+          <div class="e-linea" style="--i:${i}">
+            <a class="e-foto" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}"></a>
+            <div><h3>${p.nombre}</h3><span class="e-mono">${l.color} · ${l.talla}</span>
+              <span data-hay-aqp="${p.stock.aqp}" data-hay-tru="${p.stock.tru}">Elige la tienda para ver si hay</span>
+              <button class="e-quitar" data-quitar="${i}">Quitar</button></div>
+            <span class="e-mono e-precio-linea">${C.precio(p.precio)}</span>
+          </div>`; }).join("")}</div>
+        <aside class="e-resumen">
+          <div data-antes-de-separar style="display:grid;gap:20px">
+            <div class="e-campo"><span class="e-mono e-tenue">Recógelo en</span>
+              <div data-grupo="tienda" style="display:grid;gap:6px">${C.tiendas.map((t) => `<button class="e-tienda-op" data-valor="${t.id}" aria-pressed="false"><b style="font-weight:500">${t.ciudad}</b><span class="e-mono e-tenue">${t.direccion}</span></button>`).join("")}</div></div>
+            <div class="e-total"><span>Total <span class="e-tenue">· pagas al recoger</span></span><b data-total="${C.precio(total)}">${C.precio(total)}</b></div>
+            <button class="e-btn" data-separar ${bolsa.length ? "" : "disabled"}>Separar ${flecha}</button>
+            <p class="e-aviso" data-aviso role="status" aria-live="polite" style="margin:-8px 0 0"></p>
+            <p class="e-mono e-tenue" style="margin:0">Hasta 3 separaciones abiertas a la vez.</p>
+          </div>
+          <div class="e-listo" data-confirmacion hidden>
+            <span class="e-mono e-senal">Separación N.º <span data-numero>${C.deEjemplo.numero}</span> · por confirmar</span>
+            <h2 tabindex="-1">Te la guardamos en <span data-tienda-elegida></span></h2>
+            <p class="e-tenue">Mándala por WhatsApp: la tienda la confirma y te guarda las prendas. Pagas al recoger.</p>
+            <button class="e-btn" data-whatsapp>Mandar por WhatsApp ${flecha}</button>
+            <p class="e-recibo" data-mensaje hidden{TIENDA}"}. Quiero confirmar mi separación N.º ${C.deEjemplo.numero}:
+${bolsa.map((l) => `· ${C.prenda(l.id).nombre} (${l.color}, talla ${l.talla})`).join("\n")}">Hola, CAYLA <span data-tienda-elegida></span>. Quiero confirmar mi separación N.º ${C.deEjemplo.numero}:
+${bolsa.map((l) => `· ${C.prenda(l.id).nombre} (${l.color}, talla ${l.talla})`).join("\n")}</p>
+          </div>
+        </aside>
+      </section>
+      ${pie()}`;
+    },
+
+    entrar() {
+      return `${cab()}
+      <section class="e-entrar">
+        <div class="e-entrar-hilo" aria-hidden="true"></div>
+        <form class="e-form" novalidate>
+          <h1 class="e-display">entrar.</h1>
+          <p class="e-tenue" style="margin:-6px 0 6px;text-align:center">Con tu cuenta ves precios, tallas y cuánto hay en cada tienda.</p>
+          <label><span class="e-mono e-tenue">Correo</span><input type="email" autocomplete="email" placeholder="tucorreo@gmail.com"></label>
+          <label><span class="e-mono e-tenue">Contraseña</span><input type="password" autocomplete="current-password"></label>
+          <button class="e-btn" type="submit">Entrar ${flecha}</button>
+          <a class="e-link e-tenue" href="#entrar" style="justify-self:center">Olvidé mi contraseña</a>
+          <p style="margin:8px 0 0;padding-top:18px;border-top:2px dashed var(--linea);text-align:center">¿Todavía no tienes cuenta?</p>
+          <a class="e-btn e-btn--claro" href="#entrar">Crear mi cuenta ${flecha}</a>
+        </form>
+      </section>
+      ${pie()}`;
+    },
+  };
+
+  // ── Movimiento de E ──
+  // Una cifra que rueda como un contador mecánico, dígito por dígito.
+  function rodar(el, texto) {
+    if (!el) return;
+    if (M.calma()) { el.textContent = texto; return; }
+    el.classList.remove("rodando");
+    el.setAttribute("aria-label", texto);
+    let k = 0;
+    el.innerHTML = [...texto].map((ch) => (/\d/.test(ch)
+      ? `<span class="e-rueda" aria-hidden="true"><span style="--d:${ch};--k:${k++}">${[..."0123456789"].map((n) => `<i>${n}</i>`).join("")}</span></span>`
+      : `<span aria-hidden="true">${ch === " " ? "&nbsp;" : ch}</span>`)).join("") + `<span class="e-oculto">${texto}</span>`;
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("rodando")));
+  }
+
+  // Al agregar: el talón se arranca por su línea punteada, cae y vuela a la bolsa; en su lugar aparece uno nuevo.
+  function arrancarTalon() {
+    const talon = document.querySelector("#lienzo [data-talon]"), destino = document.querySelector("#lienzo .e-ir-bolsa");
+    if (M.calma() || !talon || !destino) return Promise.resolve();
+    const a = talon.getBoundingClientRect(), b = destino.getBoundingClientRect();
+    const copia = talon.cloneNode(true);
+    copia.className = "e-talon-ficha e-talon-vuela";
+    Object.assign(copia.style, { left: a.left + "px", top: a.top + "px", width: a.width + "px", height: a.height + "px", padding: getComputedStyle(talon).padding, font: getComputedStyle(talon).font, color: "#1e231b" });
+    document.body.appendChild(copia);
+    talon.animate([{ opacity: 0 }, { opacity: 0, offset: 0.7 }, { opacity: 1 }], { duration: 1300 });
+    const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top - a.top;
+    return copia.animate([
+      { transform: "translate(0,0) rotate(0)", opacity: 1 },
+      { transform: "translate(6px, 26px) rotate(5deg)", opacity: 1, offset: 0.25 },
+      { transform: `translate(${dx * 0.6}px, ${dy * 0.4}px) rotate(-8deg) scale(.6)`, opacity: 0.85, offset: 0.65 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(-14deg) scale(.08)`, opacity: 0 },
+    ], { duration: 1150, easing: "cubic-bezier(.5,0,.3,1)" }).finished.then(() => copia.remove());
+  }
+
+  // El mensaje de WhatsApp se escribe como en una máquina.
+  function escribir(el) {
+    if (!el || M.calma()) return;
+    const final = el.textContent;
+    el.textContent = "";
+    let i = 0;
+    const paso = () => { i += 2; el.textContent = final.slice(0, i); if (i < final.length) setTimeout(paso, 14); };
+    paso();
+  }
+
+  function montar(pantalla, lienzo) {
+    lienzo.classList.remove("listo");
+    lienzo.querySelectorAll("[data-letras]").forEach((h) => M.letras(h));
+    requestAnimationFrame(() => requestAnimationFrame(() => lienzo.classList.add("listo")));
+    M.revelar(lienzo);
+    lienzo.querySelectorAll("[data-rueda]").forEach((x) => setTimeout(() => rodar(x, x.dataset.rueda), 600));
+    if (pantalla === "bolsa") { const t = lienzo.querySelector("[data-total]"); if (t) setTimeout(() => rodar(t, t.dataset.total), 500); }
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-filtro],[data-filtro-tienda]")) M.flipAntes(document.querySelectorAll("#lienzo [data-cat]"));
+    if (e.target.closest("[data-whatsapp]")) setTimeout(() => { const m = document.querySelector("#lienzo [data-mensaje]"); if (m && !m.hidden) escribir(m); }, 0);
+  }, true);
+  document.addEventListener("cayla:filtrado", (e) => { M.flipDespues(document.querySelectorAll("#lienzo [data-cat]")); rodar(document.querySelector("#lienzo [data-cuenta-prendas]"), String(e.detail.visibles)); });
+  document.addEventListener("cayla:agregado", (e) => {
+    const b = e.detail.boton, texto = b.querySelector("[data-texto]");
+    texto.textContent = "Agregada a tu bolsa";
+    arrancarTalon().then(() => { const c = document.querySelector("#lienzo [data-cuenta-bolsa]"); rodar(c, c.textContent); M.latir(document.querySelector("#lienzo .e-ir-bolsa")); });
+    setTimeout(() => { texto.textContent = "Agregar a la bolsa"; delete b.dataset.hecho; }, 2600);
+  });
+  document.addEventListener("cayla:separado", (e) => rodar(e.detail.listo.querySelector("[data-numero]"), C.deEjemplo.numero));
+
+  window.DIRECCION = { nombre: "E · Etiqueta", pantallas, montar, transicion: true };
+})();
+</script>
+<script src="marco.js"></script>
+</body>
+</html>

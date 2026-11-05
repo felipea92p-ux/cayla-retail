@@ -4,7 +4,7 @@ import { useState } from "react";
 import { agregarLookALaBolsa } from "@/app/acciones/bolsa";
 import { tallasDeTuLook } from "@/app/acciones/probador";
 import { avisoDelLook, type LineaLook, type Look as LookDeCayla } from "@/lib/looks";
-import { lookParaLaHoja, piezasDelLook, presentes, type Look, type PrendaDelProbador } from "@/lib/probador";
+import { lookParaLaHoja, piezasDelLook, presentes, textoAgregarAlLook, type Look, type PrendaDelProbador, type SinLlevar } from "@/lib/probador";
 import { useAvisoBreve } from "../club/useAvisoBreve";
 import { Icono } from "../Icono";
 import { AgregarLook } from "../looks/AgregarLook";
@@ -24,7 +24,8 @@ export function AgregarTuLook({
   sedeId,
   origenFotos,
   className = "pb-agregar-bolsa",
-  texto = "Agregar a mi bolsa",
+  texto,
+  sin,
 }: {
   look: Look;
   indice: ReadonlyMap<string, PrendaDelProbador>;
@@ -33,8 +34,13 @@ export function AgregarTuLook({
   origenFotos: string | undefined;
   /** Dónde va el botón: en la barra del probador (por omisión) o a lo ancho, en la página de un look guardado. */
   className?: string;
+  /** Lo que dice el botón; sin él, cuántas prendas se agregan («Agregar 3 prendas a mi bolsa»). */
   texto?: string;
+  /** Las prendas que el cliente no lleva: no se piden sus tallas ni entran a la bolsa. */
+  sin?: SinLlevar;
 }) {
+  const llevo = piezasDelLook(look, sin).length;
+  const boton = texto ? { texto, apagado: false } : textoAgregarAlLook(llevo);
   const { aviso, mostrar } = useAvisoBreve();
   // Cada vez que se abre, una hoja nueva con las tallas recién pedidas (`vuelta`: la vuelve a montar).
   const [hoja, setHoja] = useState<{ vuelta: number; look: LookDeCayla } | null>(null);
@@ -44,9 +50,9 @@ export function AgregarTuLook({
     if (pidiendo) return;
     setPidiendo(true);
     try {
-      const tallas = await tallasDeTuLook(piezasDelLook(look), sedeId);
+      const tallas = await tallasDeTuLook(piezasDelLook(look, sin), sedeId);
       if (!tallas) mostrar(SIN_TALLAS, false);
-      else setHoja((h) => ({ vuelta: (h?.vuelta ?? 0) + 1, look: lookParaLaHoja(look, indice, tallas) }));
+      else setHoja((h) => ({ vuelta: (h?.vuelta ?? 0) + 1, look: lookParaLaHoja(look, indice, tallas, sin) }));
     } catch {
       mostrar(SIN_TALLAS, false);
     } finally {
@@ -74,11 +80,11 @@ export function AgregarTuLook({
         className={`t-btn ${className}`}
         aria-haspopup="dialog"
         aria-busy={pidiendo}
-        disabled={pidiendo || presentes(look).length === 0}
+        disabled={pidiendo || presentes(look).length === 0 || boton.apagado}
         onClick={abrir}
       >
         <Icono nombre="bolsa" />
-        {pidiendo ? "Buscando tallas…" : texto}
+        {pidiendo ? "Buscando tallas…" : boton.texto}
       </button>
       {hoja && (
         <AgregarLook

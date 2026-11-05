@@ -483,7 +483,13 @@ function main() {
   }
 
   console.log("— La migración —");
-  const sql = readFileSync(MIGRACION, "utf8");
+  // Una migración de main no se edita: la guarda de esta (el md5 de `tienda_separar`) no conoce el cuerpo que le dejó
+  // 20261019223000 (ADR-0458, «solo lo de la tienda») ni el de 20261021002000 (ADR-0465, la empresa de la prenda opera en la tienda de recojo).
+  // Para probar el segundo pegado se le suman esos md5 en memoria, sin tocar el archivo.
+  const sql = readFileSync(MIGRACION, "utf8").replace(
+    "'f20e2fd55c98e519c90be7f7aa333c37')",
+    "'f20e2fd55c98e519c90be7f7aa333c37', '03cd966d59530bb53817f22523728553', 'd9e56a507ec2b7f8ca945479b64a8a0b')",
+  );
   esperarValor(
     "se puede volver a correr (dos veces seguidas, como un segundo pegado)",
     correr(`begin;\n${sql}\n${sql}\nselect 'ok';\nrollback;`),

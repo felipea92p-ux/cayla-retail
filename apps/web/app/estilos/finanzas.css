@@ -49,8 +49,10 @@
     white-space: nowrap;
     transition: color 150ms, border-color 150ms;
   }
-  .fin-pestana:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-pestana:hover {
+      color: var(--color-tinta);
+    }
   }
   .fin-pestana[aria-selected="true"],
   .fin-pestana[aria-current="page"] {
@@ -97,7 +99,7 @@
     align-items: center;
     padding: 12px 14px;
     border-top: 1px solid var(--color-sand);
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   /* Cabecera de un bloque dentro de una superficie: título serif + bajada, y a la derecha su acción. */
@@ -118,7 +120,7 @@
   }
   .fin-bloque-cab p {
     margin: 2px 0 0;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   /* Cabecera de la franja de herramientas cuando lleva título en vez de filtros (Configuración). */
@@ -129,7 +131,7 @@
   }
   .fin-herramientas-titulo p {
     margin: 2px 0 0;
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
 
@@ -195,13 +197,13 @@
   .fin-campo > .fin-etiqueta {
     display: block;
     margin-bottom: 6px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-ayuda {
     display: block;
     margin-top: 5px;
-    font-size: 11.5px;
+    font-size: 14px;
     line-height: 1.4;
     color: var(--color-taupe);
   }
@@ -233,7 +235,7 @@
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
     background: var(--color-hueso);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.3;
     color: var(--color-tinta);
     cursor: pointer;
@@ -280,10 +282,10 @@
   }
   .fin-opciones b {
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 15px;
   }
   .fin-opciones span {
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
 
@@ -308,7 +310,7 @@
     gap: 12px;
     padding: 10px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-lista li > span:first-child {
@@ -321,7 +323,7 @@
   }
   .fin-lista li small {
     color: var(--color-taupe);
-    font-size: 12px;
+    font-size: 14px;
     text-align: right;
   }
 
@@ -333,7 +335,7 @@
     width: 100%;
     min-width: 900px;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-tabla thead {
@@ -343,7 +345,7 @@
     padding: 9px 14px;
     text-align: left;
     font-weight: 400;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
     white-space: nowrap;
   }
@@ -362,7 +364,7 @@
   }
   .fin-tabla .fin-sub {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-tabla .fin-tenue {
@@ -374,8 +376,10 @@
   .fin-tabla tbody tr:nth-child(even) {
     background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
   }
-  .fin-tabla tbody tr:hover {
-    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  @media (hover: hover) {
+    .fin-tabla tbody tr:hover {
+      background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+    }
   }
   .fin-tabla tbody tr[data-clic] {
     cursor: pointer;
@@ -439,6 +443,13 @@
     gap: 16px;
     align-items: start;
   }
+  /* Las tarjetas de las tiendas (Tienda web ▸ Conf. Tienda): todas en una fila mientras quepan, a 18 rem como mínimo cada una. */
+  .fin-sedes-fila {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
   .fin-columna {
     display: flex;
     flex-direction: column;
@@ -454,7 +465,8 @@
   }
   .fin-fijo {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    /* La última columna mide lo mismo en todas las filas con botón (7,5 rem): así los montos quedan alineados aunque diga «Registrar» o «Registrar monto». */
+    grid-template-columns: 1fr auto minmax(7.5rem, auto);
     gap: 12px;
     align-items: center;
     padding: 12px 0;
@@ -463,15 +475,18 @@
   .fin-fijos .fin-fijo:first-child {
     border-top: 0;
   }
+  .fin-fijo > :last-child {
+    justify-self: end;
+  }
   .fin-fijo b {
     display: block;
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-fijo .fin-sub {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-fijo .fin-monto {
@@ -479,6 +494,19 @@
     font-size: 19px;
     white-space: nowrap;
     color: var(--color-tinta);
+  }
+  /* Fijos del mes como cola (2026-10-22): los grupos se separan con aire, y en el celular el botón baja bajo el nombre en vez de partirlo. */
+  .fin-fijos-grupo {
+    margin-top: 18px;
+  }
+  @media (max-width: 639px) {
+    .fin-fijo {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .fin-fijo > :last-child {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
   }
 
   /* Par de entradas en una celda (Configuración: «% · fondo»). */
@@ -498,7 +526,7 @@
     max-width: 160px;
   }
   .fin-con-unidad span {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
 
@@ -637,13 +665,13 @@
     padding-top: 12px;
   }
   .fin-decidir b {
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-decidir p {
     margin: 3px 0 0;
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -688,12 +716,12 @@
     align-items: center;
     padding: 9px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-vigencias small {
     display: block;
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-vigencias input.fin-control {
@@ -704,7 +732,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
 
@@ -757,7 +785,7 @@
     gap: 4px 8px;
   }
   .fin-cuenta-cab b {
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--color-tinta);
   }
@@ -781,7 +809,7 @@
   }
   .fin-cuenta p {
     margin: 0;
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -810,14 +838,14 @@
     gap: 12px;
     padding: 10px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-lista-mov li:first-child {
     border-top: 0;
   }
   .fin-lista-mov li > span:last-child {
-    font-size: 12px;
+    font-size: 14px;
     text-align: right;
     color: var(--color-taupe);
   }
@@ -871,13 +899,13 @@
     width: 100%;
     min-width: 860px;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-eerr th {
     padding: 10px 14px;
     font-weight: 400;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
     text-align: right;
     white-space: nowrap;
@@ -898,7 +926,7 @@
   .fin-eerr td.fin-eerr-cta {
     width: 44px;
     text-align: left;
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-eerr td.fin-eerr-vacia {
@@ -912,8 +940,10 @@
     cursor: pointer;
     border-radius: 4px;
   }
-  .fin-eerr td:has(> button.fin-eerr-celda):hover {
-    background: var(--color-hueso);
+  @media (hover: hover) {
+    .fin-eerr td:has(> button.fin-eerr-celda):hover {
+      background: var(--color-hueso);
+    }
   }
   .fin-eerr button.fin-eerr-celda:focus-visible {
     outline: 2px solid var(--color-rojo);
@@ -933,7 +963,7 @@
   .fin-eerr tr.fin-eerr-pct td {
     padding-top: 0;
     border-top: 0;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-eerr .fin-eerr-cons {
@@ -999,9 +1029,13 @@
   .fin-grafico-barra.fin-grafico-mala path {
     fill: var(--color-rojo);
   }
-  .fin-grafico-barra:hover path,
   .fin-grafico-barra:focus path {
     opacity: 0.8;
+  }
+  @media (hover: hover) {
+    .fin-grafico-barra:hover path {
+      opacity: 0.8;
+    }
   }
   .fin-grafico-barra:focus {
     outline: none;
@@ -1150,8 +1184,10 @@
     color: inherit;
     cursor: pointer;
   }
-  .fin-etq-select:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-etq-select:hover {
+      color: var(--color-tinta);
+    }
   }
   /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
   .fin-h-flujo {
@@ -1175,7 +1211,7 @@
     gap: 12px;
     padding: 10px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-flujo-lista li b {
@@ -1199,7 +1235,7 @@
     align-items: baseline;
     gap: 6px 10px;
     margin: 0 0 6px;
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -1223,7 +1259,7 @@
     min-width: 420px;
   }
   .fin-tabla td.fin-que-vence {
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-chip-campana {
@@ -1288,7 +1324,7 @@
     align-items: baseline;
     gap: 10px;
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-campo-esc > label b {
@@ -1310,7 +1346,7 @@
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
     background: var(--color-hueso);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--color-tinta);
     transition: border-color 150ms, background-color 150ms;
@@ -1337,7 +1373,7 @@
   }
   .fin-opcion-esc-fila small {
     display: block;
-    font-size: 12.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-opcion-esc-campos {
@@ -1351,7 +1387,7 @@
     margin: 0;
     padding-left: 18px;
     list-style: disc;
-    font-size: 13.5px;
+    font-size: 15px;
     line-height: 1.5;
     color: var(--color-tinta);
   }
@@ -1395,24 +1431,26 @@
   button.fin-unidad {
     transition: border-color 150ms;
   }
-  button.fin-unidad:hover {
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  @media (hover: hover) {
+    button.fin-unidad:hover {
+      border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+    }
   }
   button.fin-unidad[aria-pressed="true"] {
     border-color: var(--color-tinta);
   }
   .fin-unidad-n {
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 600;
   }
   .fin-unidad-sub {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.4;
     color: var(--color-taupe);
   }
   .fin-unidad-h {
     font-family: ui-monospace, Menlo, monospace;
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-unidad-cons {
@@ -1433,7 +1471,7 @@
     gap: 10px;
     align-items: start;
     padding: 10px 12px;
-    font-size: 13px;
+    font-size: 14px;
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-md);
     background: var(--color-papel);
@@ -1444,7 +1482,7 @@
   }
   .fin-chequeos p {
     margin: 2px 0 0;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -1472,7 +1510,7 @@
     margin: 14px 0 0;
     padding: 0;
     list-style: none;
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--color-taupe);
   }
@@ -1495,7 +1533,7 @@
   }
   .fin-pasos-cierre p {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--color-taupe);
   }
@@ -1547,17 +1585,17 @@
   .fin-sin-cuenta-que b {
     display: block;
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 15px;
     color: var(--color-tinta);
   }
   .fin-sin-cuenta-que span {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-sin-cuenta-monto {
     font-variant-numeric: tabular-nums;
-    font-size: 13.5px;
+    font-size: 15px;
     color: var(--color-tinta);
     text-align: right;
   }
@@ -1587,7 +1625,7 @@
     border: 1px solid var(--color-sand);
     border-radius: var(--radius-lg);
     background: var(--color-papel);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-chequeos > li > div > b {
@@ -1595,7 +1633,7 @@
   }
   .fin-chequeos > li > div > p {
     margin: 2px 0 0;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-chequeos > li > span:last-child {
@@ -1634,7 +1672,7 @@
     border-top: 1px dashed var(--color-sand);
     display: grid;
     gap: 4px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-causas li {
@@ -1676,12 +1714,12 @@
     gap: 8px;
     padding: 8px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
     font-variant-numeric: tabular-nums;
   }
   .fin-balance li > span:first-child {
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-balance li > span:last-child {
@@ -1690,7 +1728,7 @@
   }
   .fin-balance li small {
     display: block;
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-balance li.fin-balance-tot {
@@ -1710,7 +1748,7 @@
     border-radius: var(--radius-lg);
     background: color-mix(in oklab, var(--color-ambar) 10%, transparent);
     border: 1px solid color-mix(in oklab, var(--color-ambar) 28%, transparent);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--color-tinta);
   }
@@ -1736,16 +1774,16 @@
     align-items: center;
     padding: 8px 0;
     border-top: 1px solid var(--color-sand);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-arranque-linea > span:first-child {
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
   .fin-arranque-linea small {
     display: block;
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--color-taupe);
     line-height: 1.4;
   }
@@ -1767,7 +1805,7 @@
     padding: 12px 14px;
     border-radius: var(--radius-lg);
     background: var(--color-hueso);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
     font-variant-numeric: tabular-nums;
   }
@@ -1828,14 +1866,14 @@
   }
   .fin-frase-t {
     margin: 0;
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 600;
     line-height: 1.35;
     color: var(--color-tinta);
   }
   .fin-frase-d {
     margin: 4px 0 0;
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--color-taupe);
   }
@@ -1844,20 +1882,24 @@
   .fin-cifras.fin-cinco {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
+  /* Seis cifras (CLAURE, con «Gastos suyos» cuando CAYLA le pagó gastos). */
+  .fin-cifras.fin-seis {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 
   /* «Para decidir hoy»: lo que está en juego, en tinta, y de qué pantalla sale, en taupe. */
   .fin-decidir .fin-impacto {
     margin-top: 4px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-tinta);
   }
   .fin-decidir .fin-aviso {
-    font-size: 13.5px;
+    font-size: 15px;
     line-height: 1.35;
   }
   .fin-decidir .fin-origen {
-    font-size: 11.5px;
+    font-size: 14px;
     font-weight: 400;
     color: var(--color-taupe);
   }
@@ -1870,7 +1912,7 @@
     padding: 10px 0 0;
     border-top: 1px solid var(--color-sand);
     list-style: none;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--color-taupe);
   }
@@ -1893,12 +1935,14 @@
   }
 
   @media (max-width: 1180px) {
-    .fin-cifras.fin-cinco {
+    .fin-cifras.fin-cinco,
+    .fin-cifras.fin-seis {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
   @media (max-width: 860px) {
-    .fin-cifras.fin-cinco {
+    .fin-cifras.fin-cinco,
+    .fin-cifras.fin-seis {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .fin-frase > b {
@@ -1906,7 +1950,8 @@
     }
   }
   @media (max-width: 480px) {
-    .fin-cifras.fin-cinco {
+    .fin-cifras.fin-cinco,
+    .fin-cifras.fin-seis {
       grid-template-columns: 1fr;
     }
   }
@@ -1931,7 +1976,7 @@
     border: 1px solid var(--color-sand);
     border-radius: 0.5rem;
     background: var(--color-papel);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-tinta);
   }
   .fin-lote-texto {
@@ -1940,7 +1985,7 @@
     white-space: nowrap;
   }
   .fin-lote-dias {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--color-taupe);
     white-space: nowrap;
   }
@@ -1976,65 +2021,8 @@
   }
 }
 
-/* ---- El medidor de confianza (ADR-0417, Fase 1): un arco que se dibuja hasta el porcentaje, la frase y las piezas. ---- */
+/* ---- El medidor de confianza (ADR-0417; spike 5-A, 2026-10-24): bajo la respuesta, «Seguro al N %» y, a un toque, las piezas. ---- */
 @layer components {
-  .fin-confianza {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .fin-confianza-cab {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .fin-confianza-arco {
-    position: relative;
-    flex: none;
-    width: 132px;
-  }
-  .fin-confianza-arco svg {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-  .fin-confianza-pista,
-  .fin-confianza-valor {
-    fill: none;
-    stroke-width: 9;
-    stroke-linecap: round;
-  }
-  .fin-confianza-pista {
-    stroke: var(--color-hueso);
-  }
-  .fin-confianza-valor {
-    stroke: var(--color-verde);
-    stroke-dasharray: 1;
-    animation: fin-confianza-dibuja 900ms var(--ease-cayla) backwards;
-  }
-  .fin-confianza[data-nivel="medio"] .fin-confianza-valor {
-    stroke: var(--color-ambar);
-  }
-  .fin-confianza[data-nivel="bajo"] .fin-confianza-valor {
-    stroke: var(--color-rojo-profundo);
-  }
-  @keyframes fin-confianza-dibuja {
-    from {
-      stroke-dashoffset: 1;
-    }
-  }
-  .fin-confianza-pct {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 2px;
-    text-align: center;
-    font-family: var(--font-serif);
-    font-size: 26px;
-    line-height: 1;
-    color: var(--color-tinta);
-  }
   .fin-confianza-piezas {
     list-style: none;
     margin: 0;
@@ -2054,27 +2042,21 @@
   .fin-confianza-piezas > li > div > b {
     display: block;
     font-weight: 600;
-    font-size: 13.5px;
+    font-size: 15px;
   }
   .fin-confianza-piezas > li > div > p {
-    font-size: 13px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel y hueso (ADR-0336: desde 64 % pasa) */
   }
   @media (max-width: 720px) {
-    .fin-confianza-cab {
-      flex-direction: column-reverse;
-      align-items: stretch;
-    }
-    .fin-confianza-arco {
-      width: 120px;
-    }
     .fin-confianza-piezas {
       grid-template-columns: 1fr;
     }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .fin-confianza-valor {
-      animation: none;
+  /* La animación del arco de «Cierre» (`fin-cierre-valor`) la usa todavía: la del medidor se fue con el arco. */
+  @keyframes fin-confianza-dibuja {
+    from {
+      stroke-dashoffset: 1;
     }
   }
 }
@@ -2095,98 +2077,14 @@
     font-size: 22px;
     color: var(--color-taupe);
   }
-  .fin-pulso-si {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-  }
-  .fin-pulso-respuesta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1;
-    gap: 6px;
-  }
   .fin-pulso-verbo {
     font-family: var(--font-serif);
     font-size: 26px;
-  }
-  .fin-pulso-monto {
-    font-family: var(--font-serif);
-    font-size: clamp(48px, 8vw, 84px);
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-  }
-  .fin-pulso-monto[data-estado="pierde"] {
-    color: var(--color-rojo-profundo);
   }
   .fin-pulso-explica {
     max-width: 62ch;
     font-size: 15px;
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
-  }
-  .fin-pulso-porque {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-  }
-  .fin-pulso-cascada {
-    width: 100%;
-    max-width: 640px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    text-align: left;
-  }
-  .fin-pulso-tramo {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 4px 12px;
-    align-items: baseline;
-    font-size: 14px;
-  }
-  .fin-pulso-tramo-nombre small {
-    display: block;
-    font-size: 12px;
-    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
-  }
-  .fin-pulso-tramo-monto {
-    font-variant-numeric: tabular-nums;
-  }
-  .fin-pulso-tramo[data-tipo="queda"] {
-    font-weight: 600;
-    padding-top: 6px;
-    border-top: 1px solid var(--color-sand);
-  }
-  .fin-pulso-tramo-barra {
-    grid-column: 1 / -1;
-    display: block;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-hueso);
-    overflow: hidden;
-  }
-  .fin-pulso-tramo-barra > i {
-    display: block;
-    height: 100%;
-    width: var(--w, 0%);
-    border-radius: 999px;
-    background: var(--color-tinta);
-    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
-    animation-delay: calc(var(--i, 0) * 60ms);
-  }
-  .fin-pulso-tramo[data-tipo="sale"] .fin-pulso-tramo-barra > i {
-    background: var(--color-taupe);
-  }
-  .fin-pulso-tramo[data-tipo="queda"] .fin-pulso-tramo-barra > i {
-    background: var(--color-verde);
   }
   @keyframes fin-pulso-crece {
     from {
@@ -2280,7 +2178,7 @@
   }
   .fin-pulso-lugar-nombre small {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
   }
   .fin-pulso-lugar-eje {
@@ -2346,8 +2244,12 @@
   @media (prefers-reduced-motion: reduce) {
     .fin-pulso-tramo-barra > i,
     .fin-pulso-ritmo-relleno,
-    .fin-pulso-lugar-eje > i {
+    .fin-pulso-lugar-eje > i,
+    .fin-pulso-tramo-lineas {
       animation: none;
+    }
+    .fin-pulso-tramo-flecha {
+      transition: none;
     }
   }
 }
@@ -2370,7 +2272,7 @@
     padding: 6px 12px;
     border-radius: 999px;
     background: var(--color-hueso);
-    font-size: 13px;
+    font-size: 14px;
   }
   .fin-dinero-partes > li > b {
     font-weight: 600;
@@ -2390,7 +2292,7 @@
   }
   .fin-dinero-ver {
     flex-basis: 100%;
-    font-size: 13.5px;
+    font-size: 15px;
     margin-top: 6px;
   }
 }
@@ -2415,7 +2317,7 @@
     margin-top: 4px;
   }
   .fin-gastos-cosa > div > p {
-    font-size: 13.5px;
+    font-size: 15px;
     margin-top: 4px;
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre hueso (ADR-0336: desde 64 % pasa) */
   }
@@ -2433,7 +2335,7 @@
   }
   .fin-gastos-cosa-mas {
     margin-top: 10px;
-    font-size: 13.5px;
+    font-size: 15px;
   }
   @media (max-width: 560px) {
     .fin-gastos-cosa {
@@ -2504,5 +2406,225 @@
     .fin-cierre-valor {
       animation: none;
     }
+  }
+}
+
+/* ---- Impuestos · «E · B++» (Felipe 2026-10-28, ADR-0573) ----
+   Arriba, UNA respuesta grande («Pagas») y la cuenta en líneas; debajo, en una fila, pendientes con monto, el límite del año y el IGV de
+   cada mes. Solo tokens (ADR-0169/0336): la tarjeta de «Pagas» es tinta con texto crema, que se invierten juntos en oscuro. Movimiento de
+   ADR-0136: el de siempre (`anim-sube`, la cifra que cuenta una vez), sin rebote ni bucle. */
+@layer components {
+  .fin-imp-arriba {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+  }
+  .fin-imp-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .fin-imp-arriba,
+    .fin-imp-fila {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* La respuesta */
+  .fin-pagas {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+    padding: 26px 28px;
+    border-radius: 16px;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .fin-pagas-nombre {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-crema) 78%, transparent); /* contraste: texto sobre tinta, 78 % de crema */
+  }
+  .fin-pagas-cifra {
+    font-family: var(--font-serif);
+    font-size: clamp(52px, 6.4vw, 84px);
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .fin-pagas-chip {
+    align-self: flex-start;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    background: color-mix(in srgb, var(--color-crema) 16%, transparent);
+  }
+  .fin-pagas-frase {
+    max-width: 46ch;
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--color-crema) 88%, transparent); /* contraste: texto sobre tinta, 88 % de crema */
+  }
+
+  /* El botón de la respuesta: papel sobre la tarjeta de tinta (en oscuro los dos se invierten juntos). */
+  .fin-pagas .btn-secundario {
+    background: var(--color-crema);
+    color: var(--color-tinta);
+    border-color: var(--color-crema);
+  }
+
+  /* La cuenta en líneas */
+  .fin-cuenta-fila {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-sand);
+    font-size: 14.5px;
+  }
+  .fin-cuenta-fila small {
+    display: block;
+    font-size: 14px;
+    color: var(--color-taupe-profundo);
+  }
+  .fin-cuenta-monto {
+    font-family: var(--font-serif);
+    font-size: 21px;
+    font-variant-numeric: lining-nums tabular-nums;
+    white-space: nowrap;
+  }
+  .fin-cuenta-base {
+    padding-top: 0;
+  }
+  .fin-cuenta-base .fin-cuenta-monto,
+  .fin-cuenta-total .fin-cuenta-monto {
+    font-size: 26px;
+  }
+  .fin-cuenta-total {
+    margin-top: 2px;
+    border-top: 2px solid var(--color-tinta);
+    border-bottom: 0;
+    padding-bottom: 0;
+    font-weight: 600;
+  }
+  .fin-cuenta-abrir svg {
+    display: inline-block;
+    margin-left: 4px;
+    vertical-align: -2px;
+    transition: transform 0.25s var(--ease-cayla);
+  }
+  .fin-cuenta-abrir[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+  .fin-cuenta-det {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 0 8px 14px;
+    border-bottom: 1px solid var(--color-sand);
+    font-size: 14px;
+  }
+  .fin-cuenta-det > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* Cabecera de cada tarjeta de la fila */
+  .fin-imp-cab {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .fin-imp-titulo {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+
+  /* Pendientes con su monto */
+  .fin-imp-lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fin-imp-pend {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto 16px;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-sand);
+    color: inherit;
+    text-decoration: none;
+  }
+  .fin-imp-lista li:first-child .fin-imp-pend {
+    border-top: 0;
+  }
+  .fin-imp-pend b {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-imp-pend small {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--color-taupe-profundo);
+  }
+  .fin-imp-monto {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-variant-numeric: lining-nums tabular-nums;
+    white-space: nowrap;
+  }
+  @media (hover: hover) {
+    a.fin-imp-pend:hover b {
+      text-decoration: underline;
+    }
+  }
+
+  /* El límite del año: lo vendido en grande, la marca del aviso sobre la barra y su rótulo debajo */
+  .fin-imp-vendido {
+    margin: 4px 0 2px;
+    font-family: var(--font-serif);
+    font-size: 28px;
+    line-height: 1.1;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .fin-umbral-envuelto {
+    position: relative;
+  }
+  .fin-umbral-aviso {
+    position: absolute;
+    top: 9px;
+    width: 2px;
+    height: 18px;
+    margin-left: -1px;
+    background: var(--color-ambar);
+  }
+  .fin-umbral-escala {
+    position: relative;
+    height: 18px;
+    margin-bottom: 6px;
+    font-size: 11.5px;
+    color: var(--color-taupe-profundo);
+  }
+  .fin-umbral-escala span {
+    position: absolute;
+    top: 0;
+    white-space: nowrap;
+    transform: translateX(-100%);
   }
 }

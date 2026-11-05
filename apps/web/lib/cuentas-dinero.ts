@@ -26,6 +26,8 @@ import {
 } from "@/lib/cuentas-dinero-reglas";
 import { deudaConDueno } from "@/lib/cuentas-dinero-reglas";
 import { leerVer, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
+import { leerCuentaPlanilla, leerTramo, planillaParaElInicio, type CuentaPlanilla, type PlanillaParaElInicio, type TramoPlanilla } from "@/lib/planilla-salidas-reglas";
+import { esFuncionAusente } from "@/lib/compras-reglas";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_cuentas_dinero_ubicaciones`: el líder, todas; con el módulo, su sede). Los saldos los SUMA la base. Si una lectura
@@ -97,6 +99,49 @@ export async function getAlertasPos(): Promise<AlertaPos[]> {
   return ((data ?? []) as Fila[]).map(leerAlertaPos);
 }
 
+/** La planilla que Dynamic marcó pagada y todavía no dice de qué banco salió (ADR-0567): `undefined` si la base todavía no tiene la función
+ *  (falta pegar 20261029052000); si no responde, lanza. Solo el líder que ve la planilla en Dynamic recibe filas. */
+async function leerTramosPlanilla(): Promise<TramoPlanilla[] | undefined> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_planilla_salidas_por_registrar" as never);
+  if (error) {
+    if (esFuncionAusente(error)) return undefined;
+    throw new Error(`No se pudo leer la planilla por registrar: ${error.message}`);
+  }
+  return ((data ?? []) as Fila[]).map(leerTramo);
+}
+
+/** Para Cuentas y dinero: si no se puede leer, no hay aviso y la pantalla sigue igual. */
+export async function getPlanillaPorRegistrar(): Promise<TramoPlanilla[]> {
+  try {
+    return (await leerTramosPlanilla()) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** El aviso del Inicio del líder: `undefined` si no hay nada que registrar o la base no tiene la función (el aviso no existe); si la base
+ *  no responde, lanza y `tolerarLectura` lo vuelve «no se pudo leer». */
+export async function getPlanillaParaElInicio(): Promise<PlanillaParaElInicio | undefined> {
+  const tramos = await leerTramosPlanilla();
+  return tramos ? (planillaParaElInicio(tramos) ?? undefined) : undefined;
+}
+
+/** El aviso del Observatorio del Admin: los tramos y la cuenta de cada banco; `undefined` si la base no tiene la función; lanza si no responde. */
+export async function getPlanillaParaElObservatorio(): Promise<{ tramos: TramoPlanilla[]; cuentas: CuentaPlanilla[] } | undefined> {
+  const [tramos, cuentas] = await Promise.all([leerTramosPlanilla(), getPlanillaCuentas()]);
+  return tramos ? { tramos, cuentas: cuentas ?? [] } : undefined;
+}
+
+/** De qué cuenta sale la planilla de quienes cobran en BCP y en Interbank (ADR-0567). Nulo = la base todavía no lo sabe (falta pegar
+ *  20261029053000): Configuración no dibuja la tarjeta y el aviso no propone cuenta. */
+export async function getPlanillaCuentas(): Promise<CuentaPlanilla[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_planilla_cuentas" as never);
+  if (error) return null;
+  return ((data ?? []) as Fila[]).map(leerCuentaPlanilla);
+}
+
 /** Solo el líder: lo que movió plata este mes y todavía no dice de qué cuenta. */
 export async function getSinCuenta(): Promise<SinCuenta[]> {
   const supabase = await createClient();
@@ -150,14 +195,16 @@ export async function getContextoDinero(
   conciliacion: Lectura<ConciliacionCuenta[]>;
 }> {
   const esLider = persona.rol === "lider";
-  const { ubicaciones, talleres } = await getUbicacionesDinero();
-  // «Ver» aquí es una sede o todas: la empresa no tiene cajón.
-  const ver = leerVer(verParam === "empresa" ? undefined : verParam, ubicaciones, esLider, persona.ubicacionId);
-  const [cuentas, plata, conciliacion] = await Promise.all([
+  // Las sedes y los saldos se leen a la vez (ADR-0583): los saldos no dependen de la sede que se mira.
+  const [{ ubicaciones, talleres }, cuentas, plata, conciliacion] = await Promise.all([
+    getUbicacionesDinero(),
     getSaldos(null),
     esLider ? getPlataDelDueno() : Promise.resolve([]),
     esLider ? getConciliacionCuentas() : Promise.resolve({ datos: [], falla: null }),
   ]);
+  // «Ver» es una sede, todas o la empresa (`ver.soloEmpresa`: los bancos y lo que no es de ninguna sede). La empresa no tiene cajón, pero
+  // sí cuentas: leerla como «todas» (lo que se hacía hasta el 2026-10-28) le mostraba a Felipe las cajas de las tiendas en «Empresa».
+  const ver = leerVer(verParam, ubicaciones, esLider, persona.ubicacionId);
   return { ubicaciones, talleres, ver, esLider, cuentas, plata, deuda: deudaConDueno(plata).deuda, conciliacion };
 }
 

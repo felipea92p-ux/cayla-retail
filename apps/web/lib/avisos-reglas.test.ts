@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { DURACION, DURACION_CON_ACCION, conVisto, duracionDe, retirarLoVisto, type EnLaPila } from "./avisos-reglas";
+import {
+  DURACION,
+  DURACION_CON_ACCION,
+  conVisto,
+  duracionDe,
+  ejeDelAviso,
+  opacidadDelAviso,
+  posicionDelAviso,
+  retirarLoVisto,
+  salidaDelAviso,
+  type EnLaPila,
+} from "./avisos-reglas";
 
 // Regresión del 2026-10-14 (ADR-0146, «Actualización 2026-10-14»): en Producción, «Traer de vuelta» y luego
 // «Enviar a maquila» dejaban DOS «Deshacer» a la vista (el primero re-aplicaba una etapa vieja), y el «Deshacer»
@@ -88,5 +99,49 @@ describe("retirarLoVisto (la pantalla se ocupó)", () => {
     // 4. Responde: se pide el aviso B. Al liberarse, solo B está a la vista.
     p = [...p, { id: 2, tono: "exito", visto: false }];
     expect(retirarLoVisto(p).map((a) => a.id)).toEqual([2]);
+  });
+});
+
+describe("apartar un aviso con el dedo (ADR-0479)", () => {
+  it("no decide hasta que el dedo recorre lo mínimo, y lo que va más de lado que de alto es de lado", () => {
+    expect(ejeDelAviso(3, -4)).toBeNull();
+    expect(ejeDelAviso(20, 8)).toBe("x");
+    expect(ejeDelAviso(-20, 8)).toBe("x");
+    expect(ejeDelAviso(4, -20)).toBe("y");
+    expect(ejeDelAviso(10, 10)).toBe("y");
+  });
+
+  it("de lado y hacia arriba sigue al dedo; hacia abajo resiste y nunca pasa de 24 px", () => {
+    expect(posicionDelAviso("x", -80)).toBe(-80);
+    expect(posicionDelAviso("y", -30)).toBe(-30);
+    expect(posicionDelAviso("y", 10)).toBeLessThan(10);
+    expect(posicionDelAviso("y", 400)).toBeLessThan(24);
+    expect(posicionDelAviso("y", 0)).toBe(0);
+  });
+
+  it("de lado: se va pasado un tercio del ancho o con un tirón en ese sentido", () => {
+    expect(salidaDelAviso("x", 130, 0, 343)).toBe("derecha");
+    expect(salidaDelAviso("x", -130, 0, 343)).toBe("izquierda");
+    expect(salidaDelAviso("x", 60, 0, 343)).toBeNull();
+    expect(salidaDelAviso("x", 40, 0.6, 343)).toBe("derecha");
+    // Un tirón al revés de donde quedó no lo saca: lo devuelve.
+    expect(salidaDelAviso("x", 40, -0.6, 343)).toBeNull();
+    expect(salidaDelAviso("x", 0, 0.9, 343)).toBeNull();
+  });
+
+  it("hacia arriba: se va pasada la mitad de su alto o con un tirón; hacia abajo nunca", () => {
+    expect(salidaDelAviso("y", -40, 0, 64)).toBe("arriba");
+    expect(salidaDelAviso("y", -20, 0, 64)).toBeNull();
+    expect(salidaDelAviso("y", -12, -0.5, 64)).toBe("arriba");
+    expect(salidaDelAviso("y", 30, 2, 64)).toBeNull();
+  });
+
+  it("se apaga con el recorrido sin desaparecer, y no se apaga al tirarlo hacia abajo", () => {
+    expect(opacidadDelAviso("x", 0, 343)).toBe(1);
+    expect(opacidadDelAviso("x", 343, 343)).toBe(0.25);
+    expect(opacidadDelAviso("x", -171.5, 343)).toBeCloseTo(0.625);
+    expect(opacidadDelAviso("y", 20, 64)).toBe(1);
+    expect(opacidadDelAviso("y", -32, 64)).toBeCloseTo(0.625);
+    expect(opacidadDelAviso("x", 50, 0)).toBe(1);
   });
 });

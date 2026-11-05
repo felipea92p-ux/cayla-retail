@@ -1,0 +1,46 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA · La ventana flotante de Recomendaciones (Felipe 2026-10-31, maqueta «A · Esquina»:
+   docs/maquetas/tienda-recomendaciones-flotante-2026-10/). El botón abajo a la derecha y la hoja que abre. Esquinas rectas como el resto de la
+   tienda; solo los tokens de app/globals.css (en oscuro se invierten solos). Entra una vez, sin rebote ni bucle; se apaga con
+   prefers-reduced-motion. En el celular la hoja sube desde el borde, con velo.
+   ===================================================================================================== */
+.rv-boton { position: fixed; right: 20px; bottom: 20px; z-index: 35; display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 18px 0 14px; border: 1px solid var(--tinta); border-radius: 0; background: var(--tinta); color: var(--crema); font-size: 11.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 10px 28px -14px var(--sombra); cursor: pointer; transition: transform .25s var(--ease), opacity .2s var(--ease); }
+.rv-boton .ic { width: 18px; height: 18px; }
+@media (hover: hover) { .rv-boton:hover { transform: translateY(-2px); } }
+.rv-boton:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
+.rv-boton[data-abierta] { opacity: 0; pointer-events: none; }
+
+.rv-velo { display: none; }
+.rv-ventana { position: fixed; right: 20px; bottom: 20px; z-index: 36; width: 380px; max-height: min(680px, calc(100dvh - 40px)); display: flex; flex-direction: column; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); box-shadow: 0 24px 60px -24px var(--sombra); transform-origin: bottom right; animation: rv-entra .28s var(--ease) both; }
+.rv-ventana[hidden], .rv-velo[hidden] { display: none; }
+.rv-asa { display: none; }
+.rv-cab { display: flex; align-items: flex-start; gap: 10px; padding: 16px 16px 8px; }
+.rv-titulo { margin: 0; font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.12; text-transform: uppercase; letter-spacing: -.01em; }
+.rv-titulo em { font-style: italic; color: var(--rojo); }
+.rv-x { margin-left: auto; flex: none; width: 32px; height: 32px; display: grid; place-items: center; border: 0; background: none; color: var(--taupe); cursor: pointer; }
+.rv-x .ic { width: 18px; height: 18px; }
+@media (hover: hover) { .rv-x:hover { background: var(--hueso); } }
+.rv-x:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.rv-pestanas { display: flex; gap: 0; margin: 0 16px 8px; border: 1px solid var(--sand); }
+.rv-pestanas button { flex: 1; min-height: 38px; border: 0; background: none; color: var(--taupe); font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
+.rv-pestanas button[aria-selected="true"] { background: var(--tinta); color: var(--crema); }
+.rv-cuantas { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; background: var(--rojo); color: var(--crema); font-size: 10.5px; letter-spacing: 0; }
+.rv-cuerpo { overflow-y: auto; padding: 0 16px 16px; display: grid; gap: 12px; }
+.rv-bajada { margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
+/* Dentro de la hoja, el formulario y las respuestas no repiten su propia ficha: la hoja ya es el papel. */
+.rv-ventana .r-form { padding: 0; border: 0; margin-top: 0; }
+.rv-ventana .r-mias { margin: 0; padding: 0; border: 0; background: transparent; }
+.rv-falla { display: grid; gap: 12px; justify-items: start; }
+
+@keyframes rv-entra { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes rv-sube { from { transform: translateY(100%); } to { transform: none; } }
+
+/* Celular: el botón se achica al ícono y la hoja sube desde el borde, con velo y asa. */
+@media (max-width: 640px) {
+  .rv-boton { right: 14px; bottom: 14px; width: 46px; padding: 0; justify-content: center; }
+  .rv-boton-txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .rv-velo { display: block; position: fixed; inset: 0; z-index: 35; background: var(--velo); }
+  .rv-ventana { left: 0; right: 0; bottom: 0; width: auto; max-height: 88dvh; border-width: 1px 0 0; transform-origin: bottom; animation: rv-sube .32s var(--ease) both; }
+  .rv-asa { display: block; width: 38px; height: 4px; margin: 8px auto 0; background: var(--sand); }
+}
+@media (prefers-reduced-motion: reduce) { .rv-ventana, .rv-boton { animation: none; transition: none; } }

@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const persona = await requirePersonaActualV2();
   // 20260923130000: quien ve los montos y el módulo Facturas de compra (antes, solo el líder).
   if (!puede(persona, "verDineroCompras") || !veModulo(persona, "facturas_compra")) {
-    return Response.json({ error: "Exportar el registro de compras necesita el módulo Facturas de compra en tu rol." }, { status: 403 });
+    return Response.json({ error: "Exportar el registro de compras necesita el módulo Historial de compras en tu rol." }, { status: 403 });
   }
 
   const mes = new URL(request.url).searchParams.get("mes") ?? hoyLima().slice(0, 7);

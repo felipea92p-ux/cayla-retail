@@ -2,27 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
 import { destinoDelBoton, type EstadoProducto } from "@/lib/cambiar-estado-productos-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
-import { colorPrincipal, coloresDe, rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
+import { colorPrincipal, coloresDe, variantesQueSeVenden } from "@/lib/productos-vista";
+import { detalleCampana, insigniaCampana, precioDeHoy, type CampanaDeVariante } from "@/lib/precio-de-hoy";
+import { rangoDeCatalogo } from "@/lib/precio-de-catalogo";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
 import { SIZES_TARJETA_PRODUCTOS as SIZES_FOTO, SIZES_VISTA_RAPIDA } from "@/lib/fotos-tamanos";
-import {
-  alertaDeStock,
-  textoDeStock,
-  lineasDeStock,
-  EXPLICACION_STOCK_TOTAL,
-  MENSAJE_SIN_RESULTADOS,
-  SIN_EXISTENCIAS,
-  type ExistenciasProducto,
-} from "@/lib/productos-stock";
+import { stockDeTarjeta, MENSAJE_SIN_RESULTADOS, SIN_EXISTENCIAS, type ExistenciasProducto } from "@/lib/productos-stock";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type LugaresDeModelo, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
@@ -45,6 +39,11 @@ import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
  * — si un color todavía no tiene foto, la tarjeta muestra un tinte derivado
  * de ese color en vez de un ícono de "foto rota": un placeholder honesto,
  * nunca genérico.
+ *
+ * La tarjeta es «A · Catálogo de moda» (Felipe 2026-11-02, docs/maquetas/productos-vidrio-2026-11/): la foto al aire, como en Vender
+ * (sin tarjeta de papel; esquinas de 18 px y su sombra, sube al pasar el mouse), con solo sus insignias encima; debajo, tres renglones
+ * apretados: el nombre y el precio (sin «.00»), qué es y de qué color, y los puntos de color con el stock tenue. Marca · proveedor y
+ * lo de la sede van en el `title` del stock (y en la vista rápida). Los estilos: `.prod-*` en app/estilos/vidrio/pantalla.css.
  */
 
 export function ProductosGrilla({
@@ -61,10 +60,14 @@ export function ProductosGrilla({
   tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
   preciosTienda = {},
   preciosAqui,
+  campanasHoy,
   colores,
   tarjetasLook,
 }: {
   productos: ProductoListado[];
+  /** La campaña que cobra la caja hoy por variante (`campanasQueCobra`, ADR-0472): la tarjeta tacha el precio de lista y dice el de
+   *  la caja. Ausente = no se pudo leer: el precio de siempre. */
+  campanasHoy?: Record<string, CampanaDeVariante>;
   /** La ficha de cada color activo (ADR-0316): la vista rápida dice con qué se combina el color de la foto. Ausente = no dice nada. */
   colores?: ColorConFicha[];
   /** El catálogo de la sede como tarjetas prenda×color con piso: la frase «Combina bien con un jean…» de la vista rápida. */
@@ -115,7 +118,7 @@ export function ProductosGrilla({
   }
 
   return (
-    <div className={`grid ${CLASES_GRILLA[tamano]}`}>
+    <div className={`prod-grilla grid ${CLASES_GRILLA[tamano]}`}>
       {productos.map((p) => (
         <TarjetaProducto
           key={p.productoId}
@@ -129,9 +132,9 @@ export function ProductosGrilla({
           sede={sede}
           puedeEditar={puedeEditar}
           puedeEliminar={puedeEliminar}
-          compacta={tamano === "pequeno"}
           otrosPrecios={preciosTienda[p.productoId]}
           preciosAqui={preciosAqui}
+          campanasHoy={campanasHoy}
           fichasColor={colores}
           tarjetasLook={tarjetasLook}
         />
@@ -151,15 +154,16 @@ function TarjetaProducto({
   sede,
   puedeEditar,
   puedeEliminar,
-  compacta = false,
   otrosPrecios,
   preciosAqui,
+  campanasHoy,
   fichasColor,
   tarjetasLook,
 }: {
   producto: ProductoListado;
   otrosPrecios?: PrecioDeTienda[];
   preciosAqui?: Record<string, number>;
+  campanasHoy?: Record<string, CampanaDeVariante>;
   /** Las fichas de color del vocabulario (ADR-0316), para la vista rápida. `colores`, abajo, son los de ESTA prenda. */
   fichasColor?: ColorConFicha[];
   tarjetasLook?: TarjetaLook[];
@@ -174,8 +178,6 @@ function TarjetaProducto({
   sede: string;
   puedeEditar: boolean;
   puedeEliminar: boolean;
-  /** Tamaño «Pequeño»: la tarjeta angosta deja solo lo que se lee de un vistazo (nombre, código, precio, stock, colores). */
-  compacta?: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
   const [colorFijo, setColorFijo] = useState<string | null>(null);
@@ -195,20 +197,20 @@ function TarjetaProducto({
       <div className="absolute inset-0">
         <MosaicoPrenda forma="relleno" colorHex={activo?.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none transition-colors duration-300" />
       </div>
-      <span className="label-cayla absolute right-2.5 top-2.5 rounded-full bg-papel/85 px-2 py-1 text-[9px] text-tinta/70">
+      <span className="prod-sobre-foto label-cayla absolute right-2.5 top-2.5 rounded-full px-2 py-1 text-[9px] text-tinta/70">
         Muestra{activo ? ` — ${activo.nombre}` : ""}
       </span>
     </>
   );
 
-  // Una prenda descontinuada no dispara alertas y se ve como tal; «Sin stock» no es rojo (lib/productos-stock.ts).
-  // /70 y no /55: el número de una descontinuada con stock (una liquidación) es justo el que más hay que poder leer.
   const descontinuado = producto.estado !== "activo";
-  const alerta = alertaDeStock(producto);
-  // ADR-0270: lo de la sede elegida en grande y el resto aparte. «Sin stock» (nada en ninguna sede) sigue siendo el chip.
-  const lineas = existencias && alerta !== "sin_stock" ? lineasDeStock(existencias) : null;
-  const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
-  const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
+  const enSede = stock === "error" ? "error" : stock ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
+  // El stock tenue de la tarjeta: solo pesa si es poco o nada (las alertas de la red); marca · proveedor y lo de la sede, en su title.
+  const enStock = stockDeTarjeta(producto, { existencias, enSede, sede });
+  // El precio de la tienda elegida arriba (su precio propio, si tiene) y, si una campaña lo rebaja hoy, lo que cobra la caja (ADR-0472).
+  const precios = variantesQueSeVenden(producto.variantes).map((v) => ({ id: v.varianteId, precio: preciosAqui?.[v.varianteId] ?? v.precio }));
+  const deHoy = campanasHoy ? precioDeHoy(precios, (id) => campanasHoy[id]) : null;
+  const queEs = [producto.categoria, activo?.nombre].filter(Boolean).join(" · ") || "Sin categoría";
 
   return (
     <div
@@ -220,19 +222,38 @@ function TarjetaProducto({
         precargarMiniaturas([activo?.fotoUrl], SIZES_VISTA_RAPIDA);
         precargarMiniaturas(colores.map((c) => c.fotoUrl), SIZES_FOTO);
       }}
-      className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
+      className="prod-tarjeta flex flex-col"
     >
       <button
         type="button"
         onClick={() => setVistaRapida(true)}
         aria-label={`Vista rápida de ${producto.referencia}${descontinuado ? " (descontinuado)" : ""}`}
-        className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
+        className="prod-foto relative aspect-[4/5] w-full overflow-hidden bg-sand/40 text-left outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
       >
+        {/* Detrás de una foto recortada (fondo transparente) se ve la arena suave de la foto de Vender, no el fondo de la pantalla. */}
         {activo?.fotoUrl ? <ImagenDePrenda src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes={SIZES_FOTO} className="object-cover" fondo={activo.hex} fallback={sinFoto} /> : sinFoto}
+        {/* Sobre la foto solo van las insignias, en gota: la empresa (ADR-0505: «CLAURE» en Lima), la campaña que la rebaja hoy y
+            «2 precios» si otra tienda la vende a otro. Arriba a la izquierda, donde no chocan con «Muestra — color» (a la derecha). */}
+        {(!!producto.empresa || !!deHoy || (otrosPrecios?.length ?? 0) > 0) && (
+          <span className="absolute top-2.5 left-2.5 flex flex-col items-start gap-1">
+            {producto.empresa && (
+              <span className="prod-sobre-foto rounded-full">
+                <InsigniaEmpresa nombre={producto.empresa} />
+              </span>
+            )}
+            {deHoy && (
+              <span className="prod-sobre-foto rounded-full" title={detalleCampana(deHoy)}>
+                <Chip tono="pizarra" versalitas={false}>
+                  {insigniaCampana(deHoy)}
+                </Chip>
+              </span>
+            )}
+            <InsigniaPrecios lista={otrosPrecios} className="prod-sobre-foto rounded-full" />
+          </span>
+        )}
         {descontinuado && (
           // Abajo a la izquierda: arriba a la derecha ya vive «Muestra — color» y en una tarjeta angosta chocarían.
-          // Con fondo propio: sobre una foto oscura, un chip transparente no se lee.
-          <span className="absolute bottom-2.5 left-2.5 rounded-full bg-papel/90">
+          <span className="prod-sobre-foto absolute bottom-2.5 left-2.5 rounded-full">
             <Chip tono="apagado" tachado={false}>
               Descontinuado
             </Chip>
@@ -240,69 +261,36 @@ function TarjetaProducto({
         )}
       </button>
 
-      <div className={`flex flex-1 flex-col ${compacta ? "gap-2 px-3 py-3" : "gap-2.5 px-4 py-4"}`}>
-        <div>
-          <p data-guia="productos.nombre" className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
-          <p className="label-cayla mt-0.5 truncate text-[10px] text-tinta/55">
-            {compacta ? (producto.codigo ?? "sin código") : `${producto.codigo ?? "sin código"} · ${producto.categoria ?? "sin categoría"}`}
+      {/* Los tres renglones, pegados a la foto: lo que se busca primero (nombre y precio), qué es y de qué color, y sus colores con
+          el stock. En una tarjeta angosta (consulta de contenedor) el precio baja bajo el nombre y el stock bajo los puntos. */}
+      <div data-guia="productos.precio-stock" className="prod-info">
+        <div className="prod-renglon-1">
+          <p data-guia="productos.nombre" className="prod-nombre" title={producto.referencia}>
+            {producto.referencia}
           </p>
-          {/* De quién es y quién lo trae (ADR-0109). En «Pequeño» solo la marca: el proveedor no cabe y se ve en la Tabla. */}
-          {/* Lo que falta sale como chip ámbar (ADR-0283): un producto puede crearse sin marca y/o sin proveedor. */}
-          <MarcaProveedorLinea marca={producto.marca} proveedor={producto.proveedor} compacta={compacta} className="mt-0.5 truncate text-[11px] text-tinta/60" />
+          {/* El precio de la tienda elegida arriba (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10). */}
+          {deHoy ? (
+            <span className="prod-precio" title={detalleCampana(deHoy)}>
+              <span className="sr-only">{detalleCampana(deHoy)}</span>
+              <s aria-hidden className="prod-precio-lista">
+                {rangoDeCatalogo([deHoy.lista.desde, deHoy.lista.hasta])}
+              </s>{" "}
+              <span aria-hidden>{rangoDeCatalogo([deHoy.cobra.desde, deHoy.cobra.hasta])}</span>
+            </span>
+          ) : (
+            <span className="prod-precio">{rangoDeCatalogo(precios.map((p) => p.precio)) ?? "—"}</span>
+          )}
         </div>
-        <div className="h-px bg-sand" />
-        {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
-        <div data-guia="productos.precio-stock" className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
-          <span className="text-[15px] font-semibold tabular-nums text-tinta">
-            {/* El precio de la tienda elegida arriba (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10). */}
-            {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => preciosAqui?.[v.varianteId] ?? v.precio)) ?? "—"}
-            <InsigniaPrecios lista={otrosPrecios} className="ml-1.5 align-middle" />
+        <p className="prod-renglon-2" title={queEs}>
+          {queEs}
+        </p>
+        <div className="prod-renglon-3">
+          <div data-guia="productos.colores">
+            <SwatchesColor forma="punto" colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
+          </div>
+          <span className="prod-stock" data-tono={enStock.tono} title={enStock.titulo}>
+            {enStock.texto}
           </span>
-          <span
-            title={EXPLICACION_STOCK_TOTAL}
-            className={`ml-auto font-semibold tabular-nums ${compacta ? "text-[11.5px]" : "whitespace-nowrap text-[12.5px]"} ${tonoStock}`}
-          >
-            {alerta === "sin_stock" ? (
-              <Chip tono="neutro" versalitas={false}>
-                Sin stock
-              </Chip>
-            ) : lineas ? (
-              lineas.principal
-            ) : alerta === "bajo" ? (
-              <Chip tono="ambar" versalitas={false}>
-                Stock bajo: {producto.stockTotal}
-              </Chip>
-            ) : (
-              textoDeStock(producto.stockTotal)
-            )}
-            {/* Sin la cifra única (SQL sin pegar), el total de la red y debajo las unidades de la sede. Con ella, «N aquí» ya
-                lo dice arriba: dos cifras de «aquí» que no coinciden (una cuenta apartadas y dañadas) confunden (ADR-0270). */}
-            {!lineas && <span
-              className="mt-1 block text-right text-[11.5px] font-normal text-tinta/60"
-              title={stock === "error" ? "No se pudo leer el stock de la tienda" : `Unidades en ${sede || "tu sede"}`}
-            >
-              En tu sede:{" "}
-              <span className={`font-semibold ${enSede === null ? "text-tinta/30" : enSede === 0 ? "text-tinta/45" : "text-tinta"}`}>
-                {enSede === null ? "—" : enSede.toLocaleString("es-PE")}
-              </span>
-            </span>}
-          </span>
-        </div>
-        {lineas && (lineas.detalle || lineas.avisos.length > 0 || alerta === "bajo") && (
-          <p className="-mt-1.5 text-right text-[11px] leading-snug text-tinta/60">
-            {alerta === "bajo" && (
-              <span className="mr-1 inline-block align-middle">
-                <Chip tono="ambar" versalitas={false}>
-                  Stock bajo
-                </Chip>
-              </span>
-            )}
-            {[lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ")}
-          </p>
-        )}
-        <div data-guia="productos.colores" className="flex items-center justify-between gap-2">
-          <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
-          <span className="min-w-0 truncate text-right text-[11px] text-tinta/55" title={activo?.nombre ?? undefined}>{activo?.nombre ?? ""}</span>
         </div>
       </div>
 
@@ -317,6 +305,7 @@ function TarjetaProducto({
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
           preciosAqui={preciosAqui}
+          campanasHoy={campanasHoy}
           colores={fichasColor}
           tarjetasLook={tarjetasLook}
           veExistencias={veExistencias}

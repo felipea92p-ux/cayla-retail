@@ -43,12 +43,15 @@ export function ArbolCategoria({
   categoriaId,
   onElegir,
   onCambiar,
+  pausado = false,
 }: {
   familias: FamiliaAlta[];
   categorias: CategoriaAlta[];
   categoriaId: string;
   onElegir: (id: string) => void;
   onCambiar: () => void;
+  /** Falta elegir la tienda (ADR-0463): la luz «Sigue aquí» está en ese campo, no aquí. */
+  pausado?: boolean;
 }) {
   const [familiaAbierta, setFamiliaAbierta] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -94,7 +97,7 @@ export function ArbolCategoria({
             <p className="text-sm font-medium text-tinta">
               {familiaDeElegida?.nombre ?? "Sin familia"} <span className="text-tinta/40">›</span> {nombreVisible(elegida)}
             </p>
-            {elegida.prefijo && <p className="text-xs text-tinta/60">Código empieza con {elegida.prefijo}-</p>}
+            {elegida.prefijo && <p className="text-sm text-tinta/60">Código empieza con {elegida.prefijo}-</p>}
           </div>
         </div>
         <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace text-xs">
@@ -132,7 +135,7 @@ export function ArbolCategoria({
         <IconoFamilia familia={f.codigo as Familia} className="h-5 w-5 text-tinta/70" />
         <span className="min-w-0">
           <span className="block break-words text-sm font-medium leading-tight text-tinta">{f.nombre}</span>
-          <span className="text-xs text-tinta/55">
+          <span className="text-sm text-tinta/55">
             {n} categoría{n === 1 ? "" : "s"}
           </span>
         </span>
@@ -168,7 +171,7 @@ export function ArbolCategoria({
                   className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm text-tinta hover:bg-tinta/[0.04]"
                 >
                   <span>{nombreVisible(c)}</span>
-                  <span className="text-xs text-tinta/55">{familias.find((f) => f.codigo === c.familia)?.nombre}</span>
+                  <span className="text-sm text-tinta/55">{familias.find((f) => f.codigo === c.familia)?.nombre}</span>
                 </button>
               </li>
             ))}
@@ -179,7 +182,7 @@ export function ArbolCategoria({
       <div data-guia="nuevo.familias">
         <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
           Familia
-          {!familiaAbierta && <EtiquetaAhora />}
+          {!pausado && !familiaAbierta && <EtiquetaAhora />}
         </p>
         <div className="grid grid-cols-2 gap-2 @2xl:grid-cols-4">
           {aLaVista.map((f) => tarjeta(f))}
@@ -198,7 +201,7 @@ export function ArbolCategoria({
               <span className="min-w-0">
                 <span className="block text-sm font-medium leading-tight">{/* unificar-fijo: una tecla más entre las tarjetas de familia (dice lo que esconde), no el pie de una lista */}{verTodas ? "Ver menos" : "Ver más"}</span>
                 {/* Los nombres de lo escondido, no «3 más»: quien busca zapatos tiene que leer «Calzado» para saber dónde tocar. */}
-                <span className="line-clamp-2 text-xs text-tinta/55" title={nombresOcultos}>
+                <span className="line-clamp-2 text-sm text-tinta/55" title={nombresOcultos}>
                   {verTodas ? "Solo las principales" : nombresOcultos}
                 </span>
               </span>
@@ -211,7 +214,7 @@ export function ArbolCategoria({
         <div id="categorias-de-la-familia" data-guia="nuevo.categorias" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
           <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
             Categoría
-            <EtiquetaAhora />
+            {!pausado && <EtiquetaAhora />}
           </p>
           <div className="grid grid-cols-2 gap-2 @xl:grid-cols-3 @4xl:grid-cols-4">
             {categoriasDeLaFamilia.map((c) => (

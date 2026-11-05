@@ -41,7 +41,6 @@ export function PuenteUnion({
   prenda,
   disponible,
   notaStock = null,
-  propiaVenta = null,
   deducida = null,
   forma,
   onForma,
@@ -60,9 +59,6 @@ export function PuenteUnion({
   /** La nota en ámbar de una prenda sin unidades libres (`notaSinUnidades`): si nunca entró a la tienda, la MISMA frase con que la base
    *  la va a rechazar (20261004204000); `null` = nada que decir. */
   notaStock?: string | null;
-  /** Nadie regulariza su propia venta, salvo el líder firmando él mismo (`motivoPropiaVenta`, 20261004204000): se dice bajo el
-   *  «Responsable», antes del botón. Solo avisa: la guía y el botón no cambian. */
-  propiaVenta?: string | null;
   /** Lo que dice el libro de esta prenda a la hora de la venta (ADR-0328 act. 5): la respuesta sugerida y su porqué, o `null` si no hay
    *  nada que decir. Solo SUGIERE: no elige ni cambia qué se puede confirmar. */
   deducida?: FormaDeducida | null;
@@ -244,11 +240,6 @@ export function PuenteUnion({
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando || hecho} compacto />
           </CampoGuiado>
-          {propiaVenta && (
-            <p className="vsr-aviso-stock" role="note">
-              {propiaVenta}
-            </p>
-          )}
 
           <div className="vsr-pu-fin" data-guia="regularizar.guardar">
             <PieGuia guia={guia} />

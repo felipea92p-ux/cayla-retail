@@ -52,12 +52,16 @@
     background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--luz-especular) 65%, transparent), transparent);
     transform: translate3d(-120%, 0, 0) skewX(-12deg);
   }
-  .cmp-viva:hover::after { animation: cayla-brillo 900ms var(--ease-cayla); }
+  @media (hover: hover) {
+    .cmp-viva:hover::after { animation: cayla-brillo 900ms var(--ease-cayla); }
+  }
   .cmp-flecha {
     display: inline-block;
     transition: transform 260ms var(--ease-cayla);
   }
-  .cmp-viva:hover .cmp-flecha { transform: translateX(4px); }
+  @media (hover: hover) {
+    .cmp-viva:hover .cmp-flecha { transform: translateX(4px); }
+  }
 
   /* ---------- Barra: reparto (4 px). El avance de cada fila es la barra de avance del sistema (<BarraAvance>, ronda 13). ---------- */
   .cmp-reparto {
@@ -126,10 +130,14 @@
     pointer-events: none;
     transition: transform 350ms var(--ease-cayla);
   }
-  .cmp-fila:hover,
   .cmp-fila:focus-visible { background-color: color-mix(in srgb, var(--color-tinta) 3%, transparent); }
-  .cmp-fila:hover::before,
+  @media (hover: hover) {
+    .cmp-fila:hover { background-color: color-mix(in srgb, var(--color-tinta) 3%, transparent); }
+  }
   .cmp-fila:focus-visible::before { transform: scaleY(1); }
+  @media (hover: hover) {
+    .cmp-fila:hover::before { transform: scaleY(1); }
+  }
   /* La orden recién guardada (Órdenes de compra, Formidable 2026-10-10): la barrita queda puesta, en verde —lo que quedó guardado—, y
      la fila con un tinte suave, para que se vea al volver a la lista. Sin animación propia: entra como las demás. */
   /* `:nth-child(n of .fila-cayla)` le gana al rayado de la tabla (`.fila-cayla:nth-child(even of .fila-cayla)`, globals.css): sin él,
@@ -151,10 +159,14 @@
       transform 260ms var(--ease-cayla),
       color 260ms var(--ease-cayla);
   }
-  .cmp-fila:hover .cmp-flecha-fila,
   .cmp-fila:focus-visible .cmp-flecha-fila { transform: translateX(4px); color: var(--color-rojo); }
+  @media (hover: hover) {
+    .cmp-fila:hover .cmp-flecha-fila { transform: translateX(4px); color: var(--color-rojo); }
+  }
   .cmp-total { transition: transform 260ms var(--ease-cayla); }
-  .cmp-fila:hover .cmp-total { transform: translateX(-2px); }
+  @media (hover: hover) {
+    .cmp-fila:hover .cmp-total { transform: translateX(-2px); }
+  }
 
   /* ---------- «Vencida»: el punto que late ---------- */
   .cmp-punto-vivo {
@@ -191,8 +203,10 @@
     .cmp-fila,
     .cmp-fila::before { transition-duration: 1ms; }
     .cmp-viva::after { display: none; }
-    .cmp-viva:hover .cmp-flecha,
-    .cmp-fila:hover .cmp-total { transform: none; }
+    @media (hover: hover) {
+      .cmp-viva:hover .cmp-flecha,
+      .cmp-fila:hover .cmp-total { transform: none; }
+    }
     .cmp-punto-vivo,
     .cmp-sk { animation: none; }
   }

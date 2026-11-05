@@ -40,7 +40,7 @@ export const TEXTOS_CUENTA = {
 export const QUE_SE_BORRA: readonly string[] = [
   "Tu cuenta de la tienda online: ya no podrás entrar con tu correo y tu contraseña.",
   "Tus datos: tu nombre, tu DNI, tu celular, tus correos, tu cumpleaños y tus tallas.",
-  "Tu lugar en el Club CAYLA: dejas de ser miembro y pierdes tu descuento de cumpleaños y tu vale de aniversario.",
+  "Tu lugar en el Club CAYLA: dejas de ser miembro y se eliminan tus puntos. Un cupón que ya creaste vale hasta su fecha.",
   "Tus favoritos y tus avisos de «Avísame cuando llegue».",
 ];
 

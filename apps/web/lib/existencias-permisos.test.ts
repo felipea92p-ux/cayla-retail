@@ -74,7 +74,7 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
   });
 
   it("Reportar dañada (ADR-0328 act. 10): quien ve Existencias, en su sede, donde hay piso, almacén y cuarentena", () => {
-    // Es una función de Existencias (ADR-0306), no del líder: lo que se decide con la dañada sí es del líder, en Dañadas.
+    // Es una función de Existencias (ADR-0306), no del líder; lo que se decide con la dañada también (ADR-0534), en Dañadas.
     expect(permisosDelDetalle(TODO).reportarDanada).toBe(true);
     expect(permisosDelDetalle({ ...TODO, puedeAjustar: false, veApartados: false, veTraslados: false, editaCatalogo: false }).reportarDanada).toBe(true);
     // Sin Existencias en su sede (`puedeBajarAlPiso` ya lo dice), mirando otra sede, en el Taller o sin cuarentena: no.

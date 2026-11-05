@@ -5,27 +5,24 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { CampoFin, InputFin, PieTabla, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { CampoFin, InputFin } from "@/components/finanzas/kit";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import {
   avisoCargaInicial,
-  chipCargaInicial,
   consecuenciaDelCierre,
   estadoCargaInicial,
   fechaCorta,
   validarCierre,
-  type LecturaCargaInicial,
   type SedeCargaInicial,
 } from "@/lib/carga-inicial-reglas";
 import { Boton } from "@/components/ui/campos";
 
-// Configuración ▸ Tiendas y caja ▸ «Carga inicial de cada sede» (ADR-0328, actividad 4). La carga inicial sin papeles (alta con
+// Configuración ▸ Empresa y tiendas: la hoja de la carga inicial de una sede (ADR-0328, actividad 4; el dato vive en «Las vitrinas», `vitrinas-sedes/`). La carga inicial sin papeles (alta con
 // stock, stock inicial de una prenda nueva en la tienda) se cierra POR SEDE y SOLA en su fecha: el último día abierto. Aquí se ve
 // la fecha de cada sede y se cambia con `fijar_cierre_carga_inicial`, que es quien decide de verdad (la pantalla solo lo dice
 // antes): apretar —poner fecha, adelantarla— es del líder; aflojar —reabrir, quitarla, correrla más adelante— solo del Admin.
@@ -34,74 +31,7 @@ import { Boton } from "@/components/ui/campos";
 // que la tienda puede hacer desde mañana, y una fecha mal tocada por un Tab de más no debería cerrarla. La hoja dice antes de
 // confirmar qué va a pasar (`consecuenciaDelCierre`) y firma con el responsable.
 
-export function ConfiguracionCargaInicial({ lectura, esLider, esAdmin }: { lectura: LecturaCargaInicial; esLider: boolean; esAdmin: boolean }) {
-  const [abierta, setAbierta] = useState<SedeCargaInicial | null>(null);
-
-  return (
-    <Superficie className="anim-sube" guia="config.carga-inicial">
-      <TituloDeTarjeta
-        titulo="Carga inicial de cada sede"
-        bajada="Hasta qué día cada sede carga, sin comprobante, lo que ya tenía al pasar al sistema. Pasada esa fecha, lo que aparezca entra por «Encontré prendas» (Existencias ▸ Ajustar), con su nota."
-      />
-      <div className="fin-tabla-wrap">
-        <table className="fin-tabla fin-tabla-apretada">
-          <thead>
-            <tr>
-              <th>Sede</th>
-              <th>Último día de carga</th>
-              <th>Estado</th>
-              <th aria-label="Acción" />
-            </tr>
-          </thead>
-          <tbody>
-            {lectura.sedes.map((s) => {
-              const e = estadoCargaInicial(s.hasta, lectura.hoy);
-              const chip = chipCargaInicial(e);
-              // Reabrir una sede cerrada es aflojar: solo el Admin. Al líder no se le ofrece un botón que la base rechazaría.
-              const puede = esLider && (e.tipo !== "cerrada" || esAdmin);
-              return (
-                <tr key={s.ubicacionId} className={e.tipo === "cerrada" ? "fin-suave" : undefined}>
-                  <td className="fin-ancha" data-l="Sede">
-                    <b>{s.nombre}</b>
-                    {s.tipo !== "tienda" && <span className="fin-sub">{s.tipo === "taller" ? "Taller" : "Almacén"}</span>}
-                  </td>
-                  <td data-l="Último día de carga">{s.hasta ? fechaCorta(s.hasta) : <span className="fin-tenue">sin fecha</span>}</td>
-                  <td data-l="Estado">
-                    <Chip tono={chip.tono}>{chip.texto}</Chip>
-                  </td>
-                  <td data-l="">
-                    <button
-                      type="button"
-                      className="btn-cayla btn-secundario btn-chico"
-                      disabled={!puede}
-                      title={!esLider ? "La fecha de cierre la fija un líder." : !puede ? "Reabrir una sede cerrada lo hace un Admin." : undefined}
-                      onClick={() => setAbierta(s)}
-                    >
-                      {e.tipo === "cerrada" ? "Reabrir" : s.hasta ? "Cambiar fecha" : "Poner fecha"}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <PieTabla>
-        <span>
-          {esLider
-            ? esAdmin
-              ? "Como Admin puedes también reabrir una sede, quitarle la fecha o correr el cierre más adelante."
-              : "Puedes poner la fecha o adelantarla. Reabrir una sede, quitarle la fecha o correr el cierre más adelante lo hace un Admin."
-            : "La fecha la fija un líder."}{" "}
-          Cada cambio queda en la historia con quién lo hizo.
-        </span>
-      </PieTabla>
-      {abierta && <CierreCargaInicialModal sede={abierta} hoy={lectura.hoy} esLider={esLider} esAdmin={esAdmin} onClose={() => setAbierta(null)} />}
-    </Superficie>
-  );
-}
-
-function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sede: SedeCargaInicial; hoy: string; esLider: boolean; esAdmin: boolean; onClose: () => void }) {
+export function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sede: SedeCargaInicial; hoy: string; esLider: boolean; esAdmin: boolean; onClose: () => void }) {
   const router = useRouter();
   // Firma quien decide, de turno en la sede ACTIVA, como el resto de Configuración (revisión adversarial): con la sede que se
   // configura, el cierre de AQP decidido por un líder de TRU lo firmaba alguien de turno en AQP, o no se podía guardar.
@@ -171,7 +101,7 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
   return (
     <Modal variante="hoja" titulo="Cierre de la carga inicial" subtitulo={sede.nombre} onClose={onClose} bloqueado={enviando}>
       <form onSubmit={guardar} className="space-y-4" noValidate>
-        <p className="text-[13px] text-taupe">{aviso ?? `${sede.nombre} todavía no tiene fecha: la carga inicial sigue abierta.`}</p>
+        <p className="text-sm text-taupe">{aviso ?? `${sede.nombre} todavía no tiene fecha: la carga inicial sigue abierta.`}</p>
 
         <CampoGuiado id="fecha" guia={guia}>
           <CampoFin
@@ -207,7 +137,7 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
           )}
         </CampoGuiado>
 
-        <div className="min-h-[1rem] text-xs text-rojo-profundo" role="alert">
+        <div className="min-h-[1rem] text-sm text-rojo-profundo" role="alert">
           {error}
         </div>
 

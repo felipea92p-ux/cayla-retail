@@ -1,0 +1,86 @@
+/* ── 6 · ROJO COLIBRÍ ─ el rojo del logo, usado de verdad: un campo de color entero en la portada con degradado y una palabra fantasma, letra
+   grande en mayúsculas y todo lo demás en blanco y negro, sin curvas. Dos tarjetas apiladas cruzan del rojo al blanco, como si las prendas
+   salieran de la pared. Claro: blanco cálido. Oscuro: casi negro con el mismo rojo, que no cambia: es la marca. ── */
+:root[data-d="rojo"] {
+  --bg: #fbfaf7; --panel: #f1eee8; --panel-2: #e4e0d7; --ink: #17110f; --mute: #645d57; --line: #e5e0d7; --line-2: #cdc7bb;
+  --btn-bg: #17110f; --btn-ink: #ffffff; --acc: #d13730; --acc-ink: #ffffff; --acc-texto: #b72d27; --logo: #d13730;
+  --ok: #1f6b44; --aviso-c: #9a5b00; --error: #a31d17;
+  --placa: #efece6; --placa-2: #e0dcd3; --luz: #f8f6f1; --sobre-placa-bg: rgba(255, 255, 255, .92); --sobre-placa-ink: #17110f;
+  --band: #d13730; --band-ink: #ffffff; --band-fondo: radial-gradient(110% 150% at 85% 0%, #e0463e 0%, #d13730 45%, #b52a24 100%);
+  --velo: rgba(23, 17, 15, .5);
+  --f-display: "Syne", system-ui, sans-serif; --f-body: "Work Sans", system-ui, sans-serif;
+  --w-display: 700; --ls-display: -.015em; --lh-display: .94; --tt-display: uppercase; --em-color: var(--acc-texto);
+  --r: 0; --r-foto: 0; --r-btn: 0; --r-chip: 0; --r-campo: 0; --logo-h: 22px; --pad-foto: 8%; --ls-cap: .1em;
+  --sombra-s: 0 1px 0 rgba(23, 17, 15, .04); --sombra-m: 0 26px 40px -26px rgba(23, 17, 15, .42); --sombra-l: 0 44px 64px -36px rgba(23, 17, 15, .55);
+  --grano: .05; background: var(--bg);
+}
+:root[data-d="rojo"][data-tema="oscuro"] {
+  --bg: #120d0c; --panel: #1d1514; --panel-2: #2a1f1d; --ink: #f6f1ec; --mute: #b3a8a1; --line: #2c2220; --line-2: #4a3a37;
+  --btn-bg: #f6f1ec; --btn-ink: #120d0c; --acc: #d13730; --acc-ink: #ffffff; --acc-texto: #ef6a62;
+  --ok: #55c28a; --aviso-c: #e5a64d; --error: #f2766d;
+  --velo: rgba(0, 0, 0, .66);
+  --sombra-s: 0 1px 0 rgba(0, 0, 0, .3); --sombra-m: 0 26px 40px -26px rgba(0, 0, 0, .85); --sombra-l: 0 44px 64px -36px rgba(0, 0, 0, .95);
+}
+[data-d="rojo"] .anu { background: var(--ink); color: var(--bg); letter-spacing: .08em; text-transform: uppercase; font-size: 12px; font-weight: 500; }
+[data-d="rojo"] .anu b { color: #ff8b84; }
+[data-d="rojo"] .t-h1 { font-size: clamp(36px, 5.2cqi, 78px); }
+[data-d="rojo"] .t-h2 { font-size: clamp(20px, 2.2cqi, 30px); }
+[data-d="rojo"] .nav-b, [data-d="rojo"] .ico-t { font-weight: 500; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+[data-d="rojo"] .btn { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 13px; }
+[data-d="rojo"] .tj-nom, [data-d="rojo"] .cat-nom { font-weight: 600; }
+[data-d="rojo"] .paso-n { color: color-mix(in srgb, var(--acc) 40%, transparent); font-weight: 700; }
+[data-d="rojo"] .cats button[aria-pressed="true"] { border-bottom: 2px solid var(--acc); }
+[data-d="rojo"] .talla[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: #fff; }
+[data-d="rojo"] .swatch[aria-pressed="true"], [data-d="rojo"] .op-tienda[aria-pressed="true"] { border-color: var(--acc); box-shadow: inset 0 0 0 1px var(--acc); }
+[data-d="rojo"] .club { margin-inline: 0; padding-inline: var(--gutter); }
+[data-d="rojo"] .club .btn { --btn-bg: #fff; --btn-ink: #d13730; }
+[data-d="rojo"] .tienda { border: 0; border-top: 2px solid var(--ink); background: transparent; box-shadow: none; padding: 22px 0 0; }
+[data-d="rojo"] .precio b { font-weight: 600; }
+[data-d="rojo"] .res-filas .tot .num { color: var(--acc-texto); }
+[data-d="rojo"] .total b { color: var(--acc-texto); }
+[data-d="rojo"] .tj-rapido { background: var(--acc); color: #fff; }
+[data-d="rojo"] .tj-rapido .tj-talla { color: #fff; border-color: rgba(255, 255, 255, .5); }
+@media (hover: hover) { [data-d="rojo"] .tj-rapido .tj-talla:hover:not(:disabled) { background: #fff; color: var(--acc); } }
+[data-d="rojo"] .look-fondo { background: var(--acc); }
+[data-d="rojo"] .miembro { --miembro-fondo: linear-gradient(135deg, #e0463e, #a82620); --miembro-ink: #fff; }
+[data-d="rojo"] .auth-arte { background: var(--band-fondo); }
+[data-d="rojo"] .ofertas { background: #17110f; }
+:root[data-d="rojo"][data-tema="oscuro"] .ofertas { background: var(--band-fondo); }
+[data-d="rojo"] .ofertas .ins-oferta { background: #fff; color: #d13730; }
+:root[data-d="rojo"][data-tema="oscuro"] .ofertas .ins-oferta { background: #fff; color: #d13730; }
+[data-d="rojo"] .btn-wsp { --btn-bg: #1f7a4d; --btn-ink: #fff; }
+[data-d="rojo"] .logo-a { color: var(--logo); }
+
+/* Portada: el campo rojo de lado a lado, con una palabra fantasma, y dos tarjetas apiladas que lo cruzan. */
+[data-d="rojo"] .h-campo { position: relative; display: grid; }
+[data-d="rojo"] .campo-rojo { grid-area: 1 / 1; position: relative; overflow: hidden; background: var(--band-fondo); color: var(--band-ink); padding: clamp(40px, 6cqi, 96px) var(--gutter) clamp(150px, 19cqi, 300px); display: flex; flex-direction: column; align-items: flex-start; }
+[data-d="rojo"] .campo-rojo > :not(.fantasma) { position: relative; z-index: 1; }
+[data-d="rojo"] .fantasma { position: absolute; left: calc(var(--gutter) - .5cqi); bottom: -3cqi; font-family: var(--f-display); font-weight: 800; font-size: 18cqi; line-height: .8; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 2px rgba(255, 255, 255, .22); white-space: nowrap; pointer-events: none; }
+[data-d="rojo"] .campo-rojo .ceja { margin-bottom: 24px; opacity: .92; }
+[data-d="rojo"] .h-tit { font-size: clamp(40px, 5.9cqi, 96px); margin-bottom: 28px; }
+[data-d="rojo"] .campo-rojo p { max-width: 40ch; margin: 0 0 28px; font-size: 16px; }
+[data-d="rojo"] .campo-rojo .btn { --btn-bg: #fff; --btn-ink: #d13730; }
+[data-d="rojo"] .campo-rojo .btn:hover { color: #fff !important; }
+[data-d="rojo"] .campo-rojo .link { border-bottom-color: rgba(255, 255, 255, .55); }
+[data-d="rojo"] .campo-rojo .cuenta { color: #fff; }
+[data-d="rojo"] .campo-foto, [data-d="rojo"] .campo-foto2 { grid-area: 1 / 1; align-self: end; background: var(--bg); text-decoration: none; }
+[data-d="rojo"] .campo-foto { z-index: 3; justify-self: end; width: clamp(220px, 26cqi, 400px); margin: 0 calc(var(--gutter) + 10cqi) calc(-1 * clamp(48px, 7cqi, 112px)) 0; padding: 14px 14px 16px; display: grid; gap: 12px; box-shadow: var(--sombra-l); }
+[data-d="rojo"] .campo-foto2 { z-index: 2; justify-self: end; width: clamp(170px, 19cqi, 300px); margin: 0 calc(var(--gutter) + 2cqi) calc(-1 * clamp(20px, 3.5cqi, 56px)) 0; padding: 12px; rotate: 4deg; box-shadow: var(--sombra-m); }
+[data-d="rojo"] .campo-foto .placa-ins { position: absolute; z-index: 2; left: 12px; top: 12px; }
+[data-d="rojo"] .h-leyenda { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 0 2px; }
+[data-d="rojo"] .h-campo + .franja { margin-top: clamp(112px, 14cqi, 184px); }
+[data-d="rojo"] .h-campo + .sec { padding-top: clamp(112px, 14cqi, 184px); }
+
+@media (max-width: 760px) {
+  [data-d="rojo"] .campo-rojo { padding-bottom: 56px; }
+  [data-d="rojo"] .h-tit { font-size: clamp(30px, 9.4cqi, 60px); }
+  [data-d="rojo"] .t-h1 { font-size: clamp(28px, 8.4cqi, 44px); }
+  [data-d="rojo"] .fantasma { display: none; }
+  [data-d="rojo"] .h-campo { display: block; }
+  [data-d="rojo"] .campo-foto { position: relative; width: auto; margin: -24px var(--gutter) 0; translate: none; }
+  [data-d="rojo"] .campo-foto2 { display: none; }
+  [data-d="rojo"] .h-campo + .sec, [data-d="rojo"] .h-campo + .franja { margin-top: 0; padding-top: 56px; }
+  [data-d="rojo"] .h-campo + .franja { margin-top: 56px; padding-top: 0; }
+  [data-d="rojo"] .campo-rojo .acciones .link { color: #fff; }
+  [data-d="rojo"] .look-fondo { left: 0; top: 30%; }
+}

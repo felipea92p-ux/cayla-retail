@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 115,
+  "total": 120,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -18,10 +18,11 @@
       "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
       "button «Seguir»",
       "button «{responsable.motivo ?? undefined}»",
-      "CampoTexto «Nombre»",
-      "CampoTexto «Descripción»",
+      "CampoTexto «Cómo lo llama el proveedor»",
+      "CampoTexto «Detalle»",
       "CampoMonto «Precio de venta»",
       "CampoMonto «Costo»",
+      "button «Elegir proveedor»",
       "button «{quienRegistra ? \"Cambiar\" : \"Elegir\"}»"
     ],
     "components/SelectorColor.tsx": [
@@ -57,9 +58,9 @@
       "button «{c.nombre}»"
     ],
     "components/alta-producto/ElegirEtiquetas.tsx": [
-      "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
+      "Boton «{enLinea ? undefined : \"Crear una insignia necesita internet\"}»",
       "Boton «+ Crear «»",
-      "CampoTexto «Nombre de la etiqueta»",
+      "CampoTexto «Nombre de la insignia»",
       "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
@@ -118,6 +119,10 @@
       "button «Quitar»",
       "button «Listo»"
     ],
+    "components/alta-producto/NombreDePrenda.tsx": [
+      "button «{libre ? `Volver a «${tipos[0]}»",
+      "CampoTexto «{libre ? \"Nombre\" : `Nombre de la ${tipo.toLocaleLowerCase(\"es\")}»"
+    ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
       "ComboBuscable «nm-marca»",
@@ -134,9 +139,8 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
     ],
     "components/alta-producto/ParecidasDelAlta.tsx": [
       "button «{TEXTO.verYComparar}»",
@@ -155,7 +159,7 @@
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
-      "Boton «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? faltaExiste ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [
@@ -170,6 +174,11 @@
     "components/alta-producto/TiraParecidas.tsx": [
       "Link «{interior}»",
       "button «{interior}»"
+    ],
+    "components/alta-producto/YaExiste.tsx": [
+      "button «{`Ver ${c.referencia}»",
+      "button «Cambiar»",
+      "button «Ninguna, es un diseño nuevo»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",

@@ -1,0 +1,210 @@
+/* Proveedores v4. Prefijo x-. Solo var(--…) de base.css.
+   Color = ritmo, siempre con su forma y su palabra: ● verde Repón · ■ pizarra A su ritmo · ▲ ámbar Frena · ○ Poco para medir · ✕ rojo vencido.
+   El ámbar de los gráficos (--g-baja) se usa en los rellenos porque el ámbar de texto se lee café; sobre él, la letra es la tinta fija. */
+
+.pagina{gap:18px;padding-top:20px}
+.rapido{--c:var(--verde)} .medio{--c:var(--pizarra)} .lento{--c:var(--g-baja)} .nomide{--c:var(--taupe)}
+.x-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;align-items:start}
+@media (min-width:1700px){.x-cuerpo{grid-template-columns:minmax(0,1fr) 420px}}
+@media (max-width:1100px){.x-cuerpo{grid-template-columns:minmax(0,1fr)}}
+.x-principal{display:flex;flex-direction:column;gap:12px;min-width:0}
+.x-visual{padding:18px 20px 16px;position:relative}
+.x-mapa{position:relative}
+.x-mapa-cab{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.x-mapa-cab h2{font-size:clamp(24px,2.3vw,30px);line-height:1.1}
+.x-mapa-cab p{font-size:15px;color:color-mix(in srgb,var(--tinta) 74%,transparent);max-width:90ch}
+
+/* ---------- Formas ---------- */
+.x-forma{display:inline-block;width:11px;height:11px;flex:none;background:var(--c);vertical-align:-1px}
+.x-forma.circulo{border-radius:50%}
+.x-forma.cuadrado{border-radius:2px}
+.x-forma.triangulo{width:13px;height:12px;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.x-forma.anillo{background:none;border:2px solid var(--c);border-radius:50%}
+.x-forma.cruz{--c:var(--rojo);clip-path:polygon(20% 0,50% 30%,80% 0,100% 20%,70% 50%,100% 80%,80% 100%,50% 70%,20% 100%,0 80%,30% 50%,0 20%)}
+.x-forma.rombo{--c:var(--pizarra);width:10px;height:10px;transform:rotate(45deg);border-radius:1px}
+.x-rojo{color:var(--rojo-p);font-weight:600}
+
+/* ---------- Controles ---------- */
+.x-controles{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+.x-orden{display:inline-flex;background:var(--hueso);border-radius:12px;padding:4px;gap:2px}
+.x-orden button{border:0;background:transparent;border-radius:9px;height:38px;padding:0 18px;font-size:15px;font-weight:600;color:color-mix(in srgb,var(--tinta) 72%,transparent);transition:background .25s var(--ease-cayla),color .2s}
+.x-orden button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.x-chips{display:flex;flex-wrap:wrap;gap:6px;order:3;flex:1 1 100%}
+.x-chip{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 10px 0 12px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13.5px;font-weight:500;transition:border-color .2s,background .2s}
+.x-chip .globito{background:var(--hueso);color:var(--tinta)}
+.x-chip.on{border-color:var(--tinta);background:var(--tinta);color:var(--crema)}
+.x-chip.on .globito{background:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+@media (hover:hover){.x-chip:hover{border-color:var(--taupe)}}
+.x-buscar{display:flex;align-items:center;gap:8px;margin-left:auto;height:40px;padding:0 12px;border-radius:10px;background:var(--hueso);color:var(--taupe);min-width:240px}
+.x-buscar input{border:0;background:transparent;outline:none;font:inherit;font-size:14.5px;color:var(--tinta);width:100%}
+.x-buscar:focus-within{background:var(--papel);box-shadow:inset 0 0 0 1.5px var(--tinta)}
+@media (max-width:760px){.x-buscar{margin-left:0;flex:1 1 100%}.x-orden{flex:1 1 100%}.x-orden button{flex:1;padding:0 8px}}
+[data-p]{transition:opacity .3s var(--ease-cayla)}
+[data-p].apagado{opacity:.13}
+
+/* ---------- La tarjeta que aparece al pasar el mouse ---------- */
+.x-tip{position:absolute;left:0;top:0;z-index:5;width:240px;pointer-events:none;display:flex;flex-direction:column;gap:3px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:10px 12px;font-size:13.5px;
+  box-shadow:0 12px 28px -14px color-mix(in srgb,var(--sombra) 45%,transparent);transition:transform .15s var(--ease-cayla)}
+.x-tip[hidden]{display:none}
+.x-tip>b{font-family:var(--serif);font-weight:400;font-size:18px}
+.x-tip span{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.x-tip b.num{font-weight:600}
+
+/* ---------- A · Mapa de decisiones ---------- */
+.x-lienzo{position:relative;overflow-x:auto;margin:0 -6px}
+.x-svg{display:block;width:100%;height:auto}
+.x-lienzo .x-svg{min-width:720px}
+.x-zona.verde{fill:color-mix(in srgb,var(--verde) 6%,transparent)} .x-zona.verde.fuerte{fill:color-mix(in srgb,var(--verde) 13%,transparent)}
+.x-zona.ambar{fill:color-mix(in srgb,var(--g-baja) 6%,transparent)} .x-zona.ambar.fuerte{fill:color-mix(in srgb,var(--g-baja) 14%,transparent)}
+.x-guias line{stroke:var(--sand);stroke-dasharray:2 4}
+.x-guias text,.x-guia-t{font-size:12px;fill:var(--taupe);font-family:var(--sans)}
+.x-corte{stroke:var(--tinta);stroke-width:1.5;stroke-dasharray:5 5;opacity:.6}
+.x-corte-t{font-size:12.5px;font-weight:600;fill:var(--tinta);font-family:var(--sans)}
+.x-eje{font-size:13px;fill:color-mix(in srgb,var(--tinta) 72%,transparent);font-family:var(--sans)}
+.x-rot{font-size:13px;font-weight:700;letter-spacing:.1em;font-family:var(--sans)}
+.x-rot.verde{fill:var(--verde)} .x-rot.ambar{fill:var(--ambar)} .x-rot.suave{opacity:.75}
+.x-punto{cursor:pointer;outline:none;transition:transform .9s var(--ease-cayla),opacity .3s}
+.x-burb{fill:color-mix(in srgb,var(--c) 58%,var(--papel));stroke:var(--c);stroke-width:1.5;transition:stroke-width .2s}
+.x-punto.nomide .x-burb{fill:var(--papel);stroke-dasharray:3 2}
+.x-etq{font-size:12.5px;font-weight:600;fill:var(--tinta);font-family:var(--sans);paint-order:stroke;stroke:var(--papel);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+@media (hover:hover){.x-punto:hover .x-burb{stroke-width:3.5}}
+.x-punto:focus-visible .x-burb,.x-punto.elegido .x-burb{stroke:var(--tinta);stroke-width:3.5}
+.x-visual:not(.llega) .x-burb{opacity:0}
+.llega .x-punto:not(.quieto) .x-burb{animation:asoma .6s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 22ms + 300ms);transform-box:fill-box;transform-origin:center}
+
+/* ---------- B · Sol de proveedores ---------- */
+.x-sol-caja{position:relative;max-width:900px;margin:-10px auto -20px}
+.x-guia-c{fill:none;stroke:var(--sand);stroke-dasharray:2 5}
+.x-rayo{cursor:pointer;outline:none;transition:transform 1s var(--ease-cayla),opacity .3s}
+.x-r-fondo{fill:transparent}
+.x-r-queda{fill:var(--g-neutro);transition:y 1s var(--ease-cayla),height 1s var(--ease-cayla),fill .2s}
+.x-r-vend{fill:var(--tinta);transition:y 1s var(--ease-cayla),height 1s var(--ease-cayla)}
+.x-r-punta{transition:transform 1s var(--ease-cayla)}
+.x-r-marca{fill:var(--c)}
+.x-r-marca.nomide{fill:none;stroke:var(--taupe);stroke-width:1.5}
+@media (hover:hover){.x-rayo:hover .x-r-queda{fill:color-mix(in srgb,var(--tinta) 35%,var(--papel))}}
+.x-rayo.elegido .x-r-queda,.x-rayo:focus-visible .x-r-queda{fill:color-mix(in srgb,var(--tinta) 35%,var(--papel));stroke:var(--tinta);stroke-width:1}
+.x-sol-etq{font-size:12.5px;font-weight:600;fill:var(--tinta);font-family:var(--sans);pointer-events:none}
+.x-sol-etq .n{fill:var(--taupe);font-weight:700}
+.x-etiquetas{transition:opacity .3s var(--ease-cayla)}
+.x-etiquetas.cambia{opacity:0}
+.x-centro-c{fill:var(--crema);stroke:var(--sand)}
+.x-centro{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:23%;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;pointer-events:none}
+.x-centro b.num{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,34px);line-height:1}
+.x-centro span:not(.versalita){font-size:13px;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+.x-centro em{font-style:normal;font-size:13px;display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:center}
+.x-centro em b{font-weight:600}
+.x-c-nom{font-family:var(--serif);font-weight:400;font-size:clamp(15px,1.6vw,20px);line-height:1.1}
+@keyframes rayo{from{transform:scale(.0)}to{transform:scale(1)}}
+.x-visual:not(.llega) .x-crece{transform:scale(0)}
+.llega .x-crece{animation:rayo 1s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 20ms + 200ms);transform-origin:0 0}
+.x-visual:not(.llega) .x-r-punta circle,.x-visual:not(.llega) .x-etiquetas{opacity:0}
+.llega .x-r-punta circle{animation:funde .5s var(--ease-cayla) both;animation-delay:1.1s}
+.llega .x-etiquetas{animation:funde .6s var(--ease-cayla) both;animation-delay:1.2s}
+
+/* ---------- C · Mapa de calor ---------- */
+.x-celda{display:grid;place-items:center;width:44px;height:30px;border-radius:6px;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tinta)}
+.x-celda em{font-style:normal}
+.s1{background:var(--verde);color:var(--crema)}
+.s2{background:color-mix(in srgb,var(--verde) 45%,var(--papel))}
+.s3{background:var(--hueso);color:color-mix(in srgb,var(--tinta) 78%,transparent)}
+.s4{background:color-mix(in srgb,var(--g-baja) 38%,var(--papel))}
+.s5{background:var(--g-baja);color:var(--tinta-fija)}
+.s0{background:transparent;box-shadow:inset 0 0 0 1px var(--sand)}
+.s9{background:transparent;box-shadow:inset 0 0 0 1px var(--sand);color:var(--taupe)}
+.x-escala{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-bottom:10px}
+.x-escala-t{font-size:13.5px;margin-left:8px;color:color-mix(in srgb,var(--tinta) 78%,transparent)}
+.x-escala-t b{font-weight:600}
+.x-htabla{overflow-x:auto;margin:0 -8px;padding:0 8px}
+.x-hfila{display:grid;grid-template-columns:2rem minmax(9rem,1.2fr) minmax(9rem,1fr) auto auto 5.5rem;gap:14px;align-items:center;width:100%;min-width:720px;text-align:left;background:none;border:0;border-top:1px solid var(--sand);padding:4px 10px;min-height:40px;position:relative;cursor:pointer;transition:background .2s,opacity .3s}
+.x-hfila::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:2px;background:var(--rojo);transform:scaleY(0);transition:transform .3s var(--ease-cayla)}
+@media (hover:hover){.x-hfila:not(.x-henc):not(.x-htienda):hover{background:color-mix(in srgb,var(--tinta) 3%,transparent)}.x-hfila:not(.x-henc):hover::before{transform:scaleY(1)}}
+.x-hfila.elegido{background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.x-hfila.elegido::before{transform:scaleY(1)}
+.x-henc{cursor:default;border-top:0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--taupe);min-height:30px}
+.x-henc .x-h-celdas span{width:44px;text-align:center}
+.x-htienda{cursor:default;background:color-mix(in srgb,var(--hueso) 45%,transparent);border-radius:8px;border-top:0;margin-bottom:4px}
+.x-htienda .chip-nuevo{font-size:11px}
+.x-h-pos{font-size:13px;color:var(--taupe);text-align:right}
+.x-h-nom b{font-size:14.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x-h-barra{display:flex;align-items:center;gap:8px;min-width:0}
+.x-h-barra i{display:block;height:10px;border-radius:3px;background:var(--g-neutro);overflow:hidden;flex:none;max-width:calc(100% - 64px)}
+.x-h-barra i em{display:block;height:100%;background:var(--tinta)}
+.x-h-barra b{font-size:13.5px;font-weight:600;white-space:nowrap}
+.x-h-celdas{display:grid;grid-auto-flow:column;gap:3px}
+.x-h-celdas+.x-h-celdas{padding-left:10px;border-left:1px dashed var(--sand)}
+.x-h-total{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;border-radius:8px;padding:0 8px;justify-self:end;min-width:5rem}
+.x-h-total b{font-size:14px}
+.x-henc .x-h-total{background:none}
+.x-pie-calor{display:flex;align-items:center;gap:8px;font-size:13.5px;color:color-mix(in srgb,var(--tinta) 72%,transparent);margin-top:10px}
+.x-visual:not(.llega) .x-hfila[data-p]{opacity:0}
+.llega .x-hfila[data-p]:not(.sin-entrada){animation:entra .5s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 22ms + 150ms)}
+.llega .x-hfila[data-p]:not(.sin-entrada) .x-celda{animation:asoma .45s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 22ms + var(--j,0) * 45ms + 350ms)}
+
+/* ---------- La columna derecha ---------- */
+.x-lado{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow:auto;display:flex;flex-direction:column;gap:14px;background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:16px 16px 18px;scrollbar-width:thin}
+@media (max-width:1100px){.x-lado{position:static;max-height:none}}
+.x-lado h2{font-size:23px;line-height:1.1}
+.x-lado-cab{display:flex;flex-direction:column;gap:10px}
+.x-resumen{display:flex;align-items:center;gap:12px;background:var(--crema);border-radius:12px;padding:10px 12px;font-size:14px}
+.x-resumen b{font-weight:600}
+.x-anillo{flex:none}
+.x-anillo .pista{fill:none;stroke:var(--hueso);stroke-width:6}
+.x-anillo .arco{fill:none;stroke-width:6;stroke-linecap:round;animation:dibuja 1.2s var(--ease-cayla) both;animation-delay:.3s}
+.x-anillo text{font-size:12px;font-weight:700;fill:var(--tinta);font-family:var(--sans)}
+.x-grupo{display:flex;flex-direction:column;gap:8px}
+.x-grupo h3{font-family:var(--sans);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--taupe)}
+.x-card{display:flex;flex-direction:column;gap:8px;border-left:3px solid var(--c,var(--sand));background:var(--crema);border-radius:4px 10px 10px 4px;padding:10px 12px;animation:entra .5s var(--ease-cayla) both}
+.x-card.rojo{--c:var(--rojo)} .x-card.ambar{--c:var(--g-baja)} .x-card.verde{--c:var(--verde)} .x-card.pizarra{--c:var(--pizarra)}
+.x-card .chip-nuevo{align-self:flex-start}
+.x-card-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:14px;line-height:1.35}
+.x-card-cab>b.num{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1}
+.x-card-cab .x-forma{align-self:center}
+.x-con-anillo{flex-wrap:nowrap;align-items:center}
+.x-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:14px}
+.x-lista li{display:flex;justify-content:space-between;gap:10px}
+.x-lista button,.x-enl{border:0;background:none;padding:0;font:inherit;color:var(--rojo-p);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--rojo-p) 35%,transparent);text-underline-offset:3px;text-align:left;cursor:pointer}
+.x-barritas{display:flex;flex-direction:column;gap:5px}
+.x-barritas button{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 2.5rem;gap:8px;align-items:center;border:0;background:none;padding:0;font-size:13.5px;text-align:left;cursor:pointer}
+.x-barritas span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x-barritas i{display:block;height:10px;border-radius:3px;background:var(--g-baja);transform-origin:left;animation:crece-x .9s var(--ease-cayla) both;animation-delay:.4s}
+.x-barritas b{text-align:right;font-weight:600}
+.x-celdas{display:flex;flex-wrap:wrap;gap:5px}
+.x-celdas .x-celda{width:auto;min-width:64px;height:auto;padding:6px 8px;flex-direction:column;display:flex;align-items:flex-start;gap:0;border-radius:8px}
+.x-celdas .x-celda b{font-size:14px;font-weight:600}
+.x-celdas .x-celda em{font-size:12px;font-weight:500}
+
+/* El detalle de un proveedor */
+.x-det{display:flex;flex-direction:column;gap:12px;animation:entra .45s var(--ease-cayla) both}
+.x-volver{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font-size:13.5px;font-weight:600;color:var(--rojo-p);align-self:flex-start;cursor:pointer}
+.x-det h2{font-size:28px}
+.x-det-dec{display:flex;gap:8px;align-items:baseline;font-size:14.5px}
+.x-det-dec b{font-weight:600}
+.x-det-nums{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.x-det-nums div{display:flex;flex-direction:column;background:var(--crema);border-radius:10px;padding:10px 12px}
+.x-det-nums div.rapido,.x-det-nums div.lento,.x-det-nums div.medio{box-shadow:inset 3px 0 0 var(--c)}
+.x-det-nums span{font-size:12.5px;color:var(--taupe);font-weight:600}
+.x-det-nums b{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.1}
+.x-det-nums em{font-style:normal;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 70%,transparent);min-height:1em}
+.x-det-bloque{display:flex;flex-direction:column;gap:6px}
+.x-det-bloque .chip-nuevo{align-self:flex-start}
+.x-det-plata p{display:flex;justify-content:space-between;gap:10px;font-size:14px;border-bottom:1px dotted var(--sand);padding:4px 0}
+.x-det-plata b{font-weight:600}
+.x-det .btn{align-self:flex-start}
+@media (max-width:760px){
+  .x-lado{padding:14px}
+  /* En el teléfono el sol entra entero: sin nombres alrededor (se toca un rayo y su detalle baja a la derecha) y el centro más chico. */
+  .x-etiquetas{display:none}
+  .x-centro{width:32%}
+  .x-centro .versalita{font-size:9px}
+  .x-centro b.num{font-size:19px}.x-centro span:not(.versalita),.x-centro em{font-size:10.5px}.x-c-nom{font-size:13px}
+  /* El calor: sin la barra ni el puesto, el nombre fijo a la izquierda y las celdas a la vista. */
+  .x-hfila{grid-template-columns:minmax(7rem,1fr) auto auto 3.6rem;min-width:470px;gap:8px;padding:4px 6px}
+  .x-hfila>.x-h-pos,.x-hfila>.x-h-barra{display:none}
+  .x-h-nom{position:sticky;left:0;background:var(--papel);z-index:1}
+  .x-htienda .x-h-nom{background:transparent}
+  .x-celda{width:34px;font-size:11.5px}
+  .x-henc .x-h-celdas span{width:34px}
+  .x-h-total{min-width:3.6rem;padding:0 4px;gap:4px}
+}
+@media (prefers-reduced-motion:reduce){.x-crece,.x-burb,.x-hfila,.x-celda,.x-card,.x-det,.x-barritas i,.x-anillo .arco{animation:none!important;transform:none;opacity:1!important}.x-visual:not(.llega) .x-crece{transform:none}}

@@ -3,9 +3,11 @@
  * La tienda online carga rápido sin cambiar lo que muestra (optimización del 2026-10-17) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Las tres migraciones que bajaron el catálogo de la tienda de ~2,4 s a ~0,3 s en producción:
- *   1. `20261017171000_tienda_precio_una_vez_por_talla.sql`: en una carga del catálogo, `fn_precio_en_sede` se llama UNA vez por talla
- *      y por tienda de la web (antes, 9 veces: 31 914 llamadas con 1 773 tallas), y `fn_tienda_precio_talla` devuelve lo mismo que la
- *      versión sin materializar, con «Todas», con cada tienda y con campaña. Mutante: sin el `materialized`, las llamadas suben.
+ *   1. `20261017171000_tienda_precio_una_vez_por_talla.sql`: `fn_tienda_precio_talla` devuelve lo mismo que la versión sin
+ *      materializar, con «Todas», con cada tienda y con campaña. Desde `20261031161000_tienda_precio_por_lotes.sql` el precio de todas
+ *      las tallas sale de UNA consulta (`fn_precios_en_sedes`): una carga del catálogo ya no llama a `fn_precio_en_sede` ni una vez
+ *      (antes de la de octubre 17, 31 914 veces; después, una por talla y tienda). Mutante: con la pregunta talla por talla de vuelta,
+ *      las llamadas aparecen. Lo demás de esa migración lo prueba `pnpm pruebas:tienda-precio-por-lotes`.
  *   2. `20261017172000_tienda_revisar_prenda_sin_replanear.sql`: la cadena «¿se puede mostrar?» (`fn_tienda_modelo_se_ve`,
  *      `fn_vitrina_publicable`, `fn_vitrina_por_que_no`, `fn_categoria_entra_a_motores`) está en PL/pgSQL, con su `security definer`,
  *      su `search_path` y sus permisos de antes, y la regla sigue diciendo lo mismo. Mutante: una de vuelta en SQL.
@@ -37,6 +39,7 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const M1 = "supabase/migrations/20261017171000_tienda_precio_una_vez_por_talla.sql";
 const M2 = "supabase/migrations/20261017172000_tienda_revisar_prenda_sin_replanear.sql";
 const M3 = "supabase/migrations/20261017173000_tienda_catalogo_por_prenda_una_vez.sql";
+const M_POR_LOTES = "supabase/migrations/20261031161000_tienda_precio_por_lotes.sql";
 
 function psql(sql) {
   return execFileSync(
@@ -148,32 +151,31 @@ begin
   execute replace(d, $q$${de}$q$, $q$${a}$q$);
 end $m$;\n`;
 
-// ---------------------------------------------------------------- 1. El precio, una vez por talla y tienda (20261017171000)
-console.log("— 1. El precio, una vez por talla y tienda —");
-/** ¿Una carga del catálogo llamó a `fn_precio_en_sede` exactamente (tallas activas publicadas × tiendas que cuentan) veces? */
-const UNA_VEZ = (sede, tiendas) => `set local track_functions = 'all';
-select jsonb_array_length(retail.tienda_catalogo(${sede}) -> 'prendas') \\gset n_
-select coalesce((select calls from pg_stat_xact_user_functions where schemaname = 'retail' and funcname = 'fn_precio_en_sede'), 0)
-       = (select count(*) * ${tiendas} from retail.variantes v where v.producto_id in (:'emma', :'carla', :'falda') and v.activo);\n`;
+// ---------------------------------------------------------------- 1. El precio, de una vez (20261017171000 y 20261031161000)
+console.log("— 1. El precio, de una vez —");
+/** ¿Una carga del catálogo armó sus precios sin llamar a `fn_precio_en_sede` ni una vez (20261031161000)? */
+const SIN_LLAMADAS = (sede) => `set local track_functions = 'all';
+select jsonb_array_length(retail.tienda_catalogo(${sede}) -> 'prendas') as prendas \\gset n_
+select :n_prendas > 0 and coalesce((select calls from pg_stat_xact_user_functions where schemaname = 'retail' and funcname = 'fn_precio_en_sede'), 0) = 0;\n`;
 esperarValor(
-  "con «Todas», una carga del catálogo calcula el precio de cada talla UNA vez en cada una de las 2 tiendas de la web",
-  correr(`${PREPARAR}${VARIADO}${UNA_VEZ("null", 2)}rollback;`),
+  "con «Todas», una carga del catálogo saca el precio de todas las tallas en las 2 tiendas de la web sin preguntar talla por talla",
+  correr(`${PREPARAR}${VARIADO}${SIN_LLAMADAS("null")}rollback;`),
   "t",
 );
 esperarValor(
-  "con una tienda elegida, una vez por talla, solo en esa tienda",
-  correr(`${PREPARAR}${VARIADO}${UNA_VEZ(":'tru'", 1)}rollback;`),
+  "con una tienda elegida, igual",
+  correr(`${PREPARAR}${VARIADO}${SIN_LLAMADAS(":'tru'")}rollback;`),
   "t",
 );
 {
-  // Sin el `materialized` (la versión de antes), cada precio se vuelve a calcular en cada lugar donde se nombra.
-  const r = correr(`${PREPARAR}${VARIADO}${mutar("retail.fn_tienda_precio_talla(uuid[], uuid)", "  base as materialized (", "  base as (")}${mutar(
+  // Con la pregunta talla por talla de antes (20261017171000), cada precio vuelve a ser una llamada a `fn_precio_en_sede`.
+  const r = correr(`${PREPARAR}${VARIADO}${mutar(
     "retail.fn_tienda_precio_talla(uuid[], uuid)",
-    "  con_campana as materialized (",
-    "  con_campana as (",
-  )}${UNA_VEZ("null", 2)}rollback;`);
+    "then v.precio else pt.precio end as precio_lista",
+    "then v.precio else (select max(retail.fn_precio_en_sede(v.id, s.id)) from unnest(d.sedes) as s (id)) end as precio_lista",
+  )}${SIN_LLAMADAS("null")}rollback;`);
   esperar(
-    "MUTANTE sin el materialized: el catálogo vuelve a calcular cada precio varias veces, y la prueba lo ve",
+    "MUTANTE con la pregunta talla por talla de vuelta, el catálogo llama a fn_precio_en_sede, y la prueba lo ve",
     r.ok && r.salida.split("\n").at(-1) === "f",
     r.ok ? r.salida : r.mensaje,
   );
@@ -335,10 +337,15 @@ end;
 $function$;
 `;
 /** ¿El catálogo nuevo devuelve, byte a byte, lo mismo que el de antes con «Todas», Trujillo, Lima y el Taller (que no está en la web)? */
-const IGUALES = `select concat_ws('|', retail.tienda_catalogo()::text = pg_temp.catalogo_de_antes()::text,
-    retail.tienda_catalogo(:'tru')::text = pg_temp.catalogo_de_antes(:'tru')::text,
-    retail.tienda_catalogo(:'lim')::text = pg_temp.catalogo_de_antes(:'lim')::text,
-    retail.tienda_catalogo(:'taller')::text = pg_temp.catalogo_de_antes(:'taller')::text);\n`;
+// Desde ADR-0465 el catálogo trae `empresa` en cada prenda (null fuera de una tienda con dos o más empresas) y esconde lo de una empresa que no
+// opera en la tienda; desde 20261021163000 trae también `categoria_familia`; desde 20261023205000 (ADR-0489, act. c), `insignias`. Esta prueba mide que la
+// reescritura no cambie lo demás, así que compara sin esas claves (en esta base ninguna prenda es de CLAURE).
+const SIN_EMPRESA = `create or replace function pg_temp.sin_empresa(j jsonb) returns jsonb language sql as $f$
+  select jsonb_set(j, '{prendas}', coalesce((select jsonb_agg(p - 'empresa' - 'categoria_familia' - 'insignias' order by n) from jsonb_array_elements(j -> 'prendas') with ordinality t (p, n)), '[]'::jsonb)) $f$;\n`;
+const IGUALES = `${SIN_EMPRESA}select concat_ws('|', pg_temp.sin_empresa(retail.tienda_catalogo())::text = pg_temp.catalogo_de_antes()::text,
+    pg_temp.sin_empresa(retail.tienda_catalogo(:'tru'))::text = pg_temp.catalogo_de_antes(:'tru')::text,
+    pg_temp.sin_empresa(retail.tienda_catalogo(:'lim'))::text = pg_temp.catalogo_de_antes(:'lim')::text,
+    pg_temp.sin_empresa(retail.tienda_catalogo(:'taller'))::text = pg_temp.catalogo_de_antes(:'taller')::text);\n`;
 esperarValor(
   "el catálogo nuevo devuelve EXACTAMENTE el JSON de antes: con «Todas», Trujillo, Lima y el Taller; sin tiendas en la web; con la vitrina vacía",
   correr(`${PREPARAR}${VARIADO}${CATALOGO_DE_ANTES}${IGUALES}
@@ -373,10 +380,29 @@ esperarValor(
 
 // ---------------------------------------------------------------- 4. Las migraciones
 console.log("— 4. Las migraciones —");
+// `20261017173000` reescribe `tienda_catalogo` ENTERO («se vuelve a escribir igual»): vuelve a su cuerpo de siempre y se lleva lo que le sumaron
+// 20261031161000 (las empresas leídas una vez), 20261021000000 y 20261021001000 (ADR-0465: el filtro por empresa y la clave `empresa`), 20261021163000 (`categoria_familia`) y 20261023205000 (ADR-0489:
+// las insignias). Para medir que el segundo pegado no cambia nada, se parte de ese cuerpo: se les quita lo de los parches posteriores antes de medir.
+const ANCLA_EMPRESAS = [...readFileSync(M_POR_LOTES, "utf8").matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$/g)][1];
+const SIN_PARCHES_DE_EMPRESA = `do $quitar$
+declare v_def text := pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure);
+begin
+  -- 20261031161000: las empresas leídas una vez vuelven a ser la pregunta por prenda (y esa la quita la línea de ADR-0465, más abajo).
+  v_def := replace(v_def, $nuevo$${ANCLA_EMPRESAS[2]}$nuevo$, $antes$${ANCLA_EMPRESAS[1]}$antes$);
+  v_def := regexp_replace(v_def, '\\n\\s*-- ADR-0465: de qué empresa es la prenda[^\\n]*\\n\\s*''empresa'', case when[^\\n]*\\n\\s*then [^\\n]*end,', '');
+  v_def := replace(v_def, E'\\n                  and retail.fn_tienda_empresa_se_ve(vp.producto_id, v_sede)', '');
+  v_def := regexp_replace(v_def, '\\n\\s*''categoria_familia'', c\\.familia,', '');
+  -- ADR-0489, act. c (20261023205000): la CTE de las insignias, su llave en cada prenda y su unión.
+  v_def := replace(v_def, chr(10) || '    insignias_de as (select * from retail.fn_tienda_insignias_de(v_ids, v_sede, v_sedes)),', '');
+  v_def := replace(v_def, '''insignias'', coalesce(ins.insignias, ''[]''::jsonb),' || chr(10) || '        ', '');
+  v_def := replace(v_def, chr(10) || '    left join insignias_de ins on ins.producto_id = m.id', '');
+  execute v_def;
+end $quitar$;`;
 const sql = (archivo) => readFileSync(archivo, "utf8");
 esperarValor(
   "las tres se pueden volver a correr (dos veces seguidas, como un segundo pegado) y no cambian nada",
   correr(`begin;
+${SIN_PARCHES_DE_EMPRESA}
 select md5(string_agg(md5(pg_get_functiondef(p.oid)), ',' order by p.proname)) as antes from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'retail' and p.proname in ('fn_tienda_precio_talla', 'fn_categoria_entra_a_motores', 'fn_tienda_modelo_se_ve', 'fn_vitrina_por_que_no', 'fn_vitrina_publicable', 'tienda_catalogo') \\gset
 set client_min_messages = warning;

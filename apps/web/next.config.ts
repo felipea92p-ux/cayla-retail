@@ -15,6 +15,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.N
 const versionDeEstaCompilacion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "desarrollo";
 
 const nextConfig: NextConfig = {
+  // Solo en `next dev`: otros equipos de la misma red (celular de la tienda, otro computador) abren el ERP local por la IP de
+  // esta máquina; sin esto Next 16 les bloquea los recursos de desarrollo (`/_next/*`, HMR) por venir de otro origen. No afecta
+  // a producción: la opción solo la lee `next dev`.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "172.*.*.*", "*.local"],
+
   // En qué entorno corre esta versión (ADR-0424), escrito dentro del código al armarla: Sentry solo avisa en `production`. Vercel da
   // `VERCEL_ENV` al armar (production, preview); en local no existe y queda «local». Se escribe aquí y no se lee de
   // `NEXT_PUBLIC_VERCEL_ENV` porque esa depende de una casilla del panel de Vercel.
@@ -124,7 +129,11 @@ const nextConfig: NextConfig = {
       { source: "/productos/tallas", destination: "/productos/atributos?tipo=tallas", permanent: false },
       { source: "/productos/tejidos", destination: "/productos/atributos?tipo=tejidos", permanent: false },
       { source: "/productos/patrones", destination: "/productos/atributos?tipo=patrones", permanent: false },
-      { source: "/productos/etiquetas", destination: "/productos/atributos?tipo=etiquetas", permanent: false },
+      // Los sellos dejaron de ser una pestaña de Atributos y Campañas dejó de ser una fila aparte (Felipe 2026-10-22): las dos viven en
+      // Catálogo ▸ Insignias, con las campañas como primera vista. Los enlaces guardados a cualquiera de las tres siguen llegando.
+      { source: "/productos/etiquetas", destination: "/productos/insignias?vista=rotacion", permanent: false },
+      { source: "/productos/atributos", has: [{ type: "query", key: "tipo", value: "etiquetas" }], destination: "/productos/insignias?vista=rotacion", permanent: false },
+      { source: "/productos/campanas", destination: "/productos/insignias", permanent: false },
       // Facturación pasó a llamarse Comprobantes (2026-09-22, D-60): el envío a SUNAT es automático y
       // la pantalla es de series. Los enlaces viejos siguen llegando: la lista del mes es «Emitidos»,
       // y el Resumen y los códigos de descuento (que ya no se muestran) caen en Series.

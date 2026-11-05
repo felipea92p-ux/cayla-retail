@@ -2,10 +2,24 @@
   "guia": "compras.ordenes.nueva",
   "ruta": "/compras/ordenes/nueva",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 17,
+  "total": 30,
   "controles": {
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
+    ],
     "components/ordenes-compra/NuevaOrdenCompra.tsx": [
       "Volver «/compras/ordenes»",
+      "button «orden-form.como-pagarle»",
       "ComboBuscable «oc-proveedor»",
       "CampoSelect «Llega a»",
       "CampoFecha «Entrega estimada»",
@@ -19,9 +33,16 @@
       "ComboBuscable «{l.marcaId}»",
       "CampoTexto «{`Descripción de la línea ${numero}»",
       "CampoTexto «{`Cantidad de la línea ${numero}»",
-      "CampoTexto «{`Precio por unidad de la línea ${numero}»",
+      "CampoTexto «{`Costo por unidad de la línea ${numero}»",
       "CampoTexto «{`Descuento de la línea ${numero}»",
       "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
+    ],
+    "components/ordenes-compra/RegistrarProveedorOrden.tsx": [
+      "CampoTexto «Nombre del proveedor»",
+      "Casilla «No tiene RUC»",
+      "CampoTexto «WhatsApp del proveedor»",
+      "Boton «Cancelar»",
+      "Boton «{faltaResponsable ? (responsable.motivo ?? undefined) : (guia.frase ?? undefined)}»"
     ]
   }
 }

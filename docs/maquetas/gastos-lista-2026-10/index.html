@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gastos · la lista · 4 propuestas</title>
+<style>
+  /* Maqueta: tokens de apps/web/app/globals.css y estilos/tema.css (ADR-0169, ADR-0336), con los colores de sede del telar (ADR-0493).
+     Datos de ejemplo, no reales: octubre de 2026 con «hoy» = 23. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c; --borde:#96786a;
+    --rojo:#b8412d; --verde:#48603f; --ambar:#74501a; --pizarra:#4f5b66; --ease:cubic-bezier(.22,1,.36,1);
+    --s0:#2f6aa3; --s1:#c26a2e; --s2:#1d8a72; --s3:#8a4fa8; --s4:#9a8b7b;
+  }
+  :root[data-tema="oscuro"]{
+    --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --taupe:#c4a898; --borde:#8d7a6e;
+    --rojo:#e8806a; --verde:#9cbc8c; --ambar:#e0b067; --pizarra:#a9b4bf;
+    --s0:#4f8ad0; --s1:#d27b3c; --s2:#2fa585; --s3:#a26cc6; --s4:#8a7d70;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif;padding:24px;transition:background .3s}
+  h1{font:500 28px/1.2 "EB Garamond",Georgia,serif;margin:0 0 4px}
+  .sub{color:var(--taupe);margin:0 0 16px;max-width:92ch}
+  .barra{display:flex;gap:8px;margin-bottom:26px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:5;background:var(--crema);padding:10px 0}
+  .pil{font:500 13px/1 inherit;font-family:inherit;padding:9px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .pil i{width:8px;height:8px;border-radius:50%;display:block}
+  .sep{width:1px;height:22px;background:var(--sand);margin:0 6px}
+  .busca{flex:1 1 220px;max-width:360px;display:flex;align-items:center;gap:8px;padding:0 14px;height:38px;border-radius:999px;background:var(--hueso);border:1px solid var(--borde)}
+  .busca input{flex:1;border:0;background:none;font:inherit;color:var(--tinta);outline:none;min-width:0}
+  .busca input::placeholder{color:var(--taupe)}
+  .op{margin:0 0 52px}
+  .op h2{font:600 11px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);margin:0 0 6px}
+  .op p.d{margin:0 0 12px;max-width:96ch}
+  .op p.d b{font-weight:600}
+  .tarj{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:20px 22px}
+  .cab{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+  .tit{font:500 21px/1.2 "EB Garamond",Georgia,serif;margin:0}
+  .dato{color:var(--taupe);font-size:13px}
+  .num{font-variant-numeric:tabular-nums}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .chip.ambar{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+  .chip.pizarra{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 13%,transparent)}
+  .chip.rojo{color:var(--rojo);background:color-mix(in srgb,var(--rojo) 12%,transparent)}
+  .sede{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--taupe);white-space:nowrap}
+  .sede i{width:8px;height:8px;border-radius:2px;display:block}
+  .sede i.emp{background:repeating-linear-gradient(45deg,var(--s4) 0 2px,color-mix(in srgb,var(--s4) 45%,transparent) 2px 4px)}
+  .anulado .monto{text-decoration:line-through;color:var(--taupe)}
+  .anulado b{color:var(--taupe);font-weight:500}
+  .vacio{padding:18px 4px;color:var(--taupe);font-size:13px}
+  .enl{color:var(--rojo);font:600 11px/1 inherit;font-family:inherit;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;gap:6px;align-items:center;cursor:pointer;background:none;border:0;padding:6px 0}
+  .vermas{display:flex;justify-content:center;gap:6px;align-items:center;width:100%;padding:12px;border:0;border-top:1px solid var(--sand);background:none;color:var(--taupe);font:500 13px/1 inherit;font-family:inherit;cursor:pointer;margin-top:6px}
+  .vermas svg,.flecha{transition:transform .35s var(--ease)}
+  .vermas[aria-expanded="true"] svg,[aria-expanded="true"]>.flecha{transform:rotate(180deg)}
+  .btn{font:500 13px/1 inherit;font-family:inherit;padding:9px 14px;border-radius:10px;border:1px solid var(--borde);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+  .btn.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  @media (hover:hover){.pil:hover{border-color:var(--borde)}.btn:hover{border-color:var(--tinta)}.vermas:hover{color:var(--tinta)}}
+
+  /* La fila de un gasto (común): qué y su detalle, la sede, lo que pide y el monto. Se toca y abriría la hoja del gasto, como hoy. */
+  .fila{display:grid;grid-template-columns:minmax(0,1fr) 112px 196px 110px;gap:14px;align-items:center;padding:10px 12px;border-radius:10px;cursor:pointer;position:relative;
+    opacity:0;transform:translateY(-4px);animation:entra .45s var(--ease) forwards}
+  .fila .que b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fila .que small{display:block;color:var(--taupe);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fila .monto{text-align:right;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .fila .pide{justify-self:end;display:flex;gap:6px}
+  .fila.sel{background:color-mix(in srgb,var(--hueso) 60%,transparent);box-shadow:inset 2px 0 0 var(--rojo)}
+  @media (hover:hover){.fila:hover{background:color-mix(in srgb,var(--hueso) 45%,transparent)}}
+  @keyframes entra{to{opacity:1;transform:none}}
+  .cajon{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease)}
+  .cajon.ab{grid-template-rows:1fr}
+  .cajon>div{min-height:0;overflow:hidden}
+  .sub-fila{padding-left:28px}
+  .flecha{width:14px;height:14px;color:var(--taupe);flex:none}
+
+  /* ---------- L1 · El extracto por día ---------- */
+  .dia-sep{position:sticky;top:58px;z-index:2;display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 12px 6px;background:var(--papel);border-bottom:1px solid var(--sand)}
+  .dia-sep b{font:500 15px/1.2 "EB Garamond",Georgia,serif}
+  .dia-sep span{font-size:12.5px;color:var(--taupe);font-variant-numeric:tabular-nums}
+  .dia-sep span strong{color:var(--tinta);font-weight:600}
+  .grupo-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);font-size:11.5px;font-weight:600;margin-left:6px;vertical-align:1px}
+
+  /* ---------- L2 · Primero lo que pide algo ---------- */
+  .pendientes{display:grid;gap:8px;margin-bottom:6px}
+  .pend{display:grid;grid-template-columns:4px minmax(0,1fr) auto 110px;gap:14px;align-items:center;padding:12px 14px 12px 0;border-radius:12px;background:color-mix(in srgb,var(--hueso) 45%,transparent);
+    opacity:0;transform:translateY(-4px);animation:entra .45s var(--ease) forwards}
+  .pend .canto{align-self:stretch;border-radius:4px 0 0 4px;background:var(--ambar)}
+  .pend.pizarra .canto{background:var(--pizarra)}
+  .pend .que b{display:block;font-weight:500}
+  .pend .que small{display:block;color:var(--taupe);font-size:12.5px}
+  .pend .que em{display:block;font-style:normal;font-size:13px;color:var(--tinta);margin-top:2px}
+  .pend .monto{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+  .orden{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 12px;border-top:1px solid var(--sand);margin-top:10px}
+  .orden b{font-weight:600}
+  .visto{display:inline-flex;width:22px;height:22px;border-radius:50%;align-items:center;justify-content:center;background:color-mix(in srgb,var(--verde) 15%,transparent);color:var(--verde);margin-right:8px;vertical-align:-6px}
+
+  /* ---------- L3 · La tabla, depurada ---------- */
+  .tabla{width:100%;border-collapse:separate;border-spacing:0}
+  .tabla th{position:sticky;top:58px;z-index:2;background:var(--hueso);text-align:left;font-size:12px;font-weight:500;color:var(--taupe);padding:10px 12px;white-space:nowrap}
+  .tabla th:first-child{border-radius:10px 0 0 10px}.tabla th:last-child{border-radius:0 10px 10px 0;text-align:right}
+  .tabla th button{all:unset;cursor:pointer;display:inline-flex;gap:4px;align-items:center}
+  .tabla th button[aria-sort]{color:var(--tinta);font-weight:600}
+  .tabla td{padding:10px 12px;border-bottom:1px solid var(--sand);vertical-align:middle}
+  .tabla tr{cursor:pointer;opacity:0;animation:entra .4s var(--ease) forwards}
+  .tabla td small{display:block;color:var(--taupe);font-size:12.5px}
+  .tabla td b{font-weight:500}
+  .tabla td.m{text-align:right;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tabla td.f{color:var(--taupe);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tabla tr.sel td{background:color-mix(in srgb,var(--hueso) 60%,transparent)}
+  @media (hover:hover){.tabla tbody tr:hover td{background:color-mix(in srgb,var(--hueso) 40%,transparent)}}
+  .tabla tfoot td{border:0;padding-top:14px;color:var(--taupe);font-size:13px}
+  .tabla tfoot td.m{color:var(--tinta);font-weight:600}
+
+  /* ---------- L4 · Lo que se repite, junto ---------- */
+  .concepto{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,260px) 110px 20px;gap:16px;align-items:center;padding:11px 12px;border-radius:10px;cursor:pointer;
+    opacity:0;transform:translateY(-4px);animation:entra .45s var(--ease) forwards}
+  @media (hover:hover){.concepto:hover{background:color-mix(in srgb,var(--hueso) 45%,transparent)}}
+  .concepto[aria-expanded="true"]{background:color-mix(in srgb,var(--hueso) 50%,transparent)}
+  .concepto .que b{font-weight:500}
+  .concepto .que small{display:block;color:var(--taupe);font-size:12.5px}
+  .concepto .monto{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+  .tira{display:grid;grid-template-columns:repeat(31,minmax(0,1fr));gap:2px;height:16px;align-items:center}
+  .tira span{height:4px;border-radius:2px;background:var(--sand)}
+  .tira span.si{height:12px;background:var(--tinta);opacity:.75;transform-origin:bottom;transform:scaleY(0);animation:crece .5s var(--ease) forwards}
+  .tira span.fut{background:transparent;box-shadow:inset 0 0 0 1px var(--sand)}
+  @keyframes crece{to{transform:none}}
+  .detalle-concepto{padding:2px 12px 10px 24px}
+  .detalle-concepto .fila{grid-template-columns:70px minmax(0,1fr) minmax(0,auto) 110px}
+  .detalle-concepto .f{color:var(--taupe);font-variant-numeric:tabular-nums}
+
+  .aviso{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--tinta);color:var(--crema);padding:10px 16px;border-radius:12px;font-size:13px;transition:opacity .25s,transform .3s var(--ease);z-index:9;pointer-events:none}
+  .aviso.ve{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:700px){
+    body{padding:16px}
+    .tarj{padding:14px 12px}
+    .fila{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}
+    .fila .que b,.fila .que small{white-space:normal}
+    .fila .sede{grid-column:1;grid-row:2}
+    .fila .pide{grid-column:2;grid-row:2;justify-self:end}
+    .fila .monto{grid-column:2;grid-row:1}
+    .detalle-concepto .fila{grid-template-columns:minmax(0,1fr) auto}
+    .detalle-concepto .f{display:none}
+    .pend{grid-template-columns:4px minmax(0,1fr) auto;row-gap:8px}
+    .pend .canto{grid-column:1;grid-row:1 / 3}
+    .pend .que{grid-column:2;grid-row:1}
+    .pend .monto{grid-column:3;grid-row:1;align-self:start}
+    .pend .acc{grid-column:2 / -1;grid-row:2;justify-self:start}
+    .concepto{grid-template-columns:minmax(0,1fr) auto 16px}
+    .concepto .tira{grid-column:1 / -1;grid-row:2}
+    .tabla .c-sede,.tabla .c-pago{display:none}
+    .tabla{table-layout:fixed}.tabla th,.tabla td{padding:9px 6px}.tabla th:first-child,.tabla td.f{width:50px}.tabla th:last-child,.tabla td.m{width:104px}
+    .tabla td{overflow-wrap:anywhere}
+    .tabla td.m{white-space:normal}.tabla td .chip{white-space:normal;text-align:left}
+    .dia-sep,.tabla th{top:0}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.fila,.pend,.concepto,.tabla tr{opacity:1!important;transform:none!important}.tira span.si{transform:none}}
+</style>
+</head>
+<body>
+<h1>Gastos · la lista: 4 propuestas</h1>
+<p class="sub">La pestaña «Gastos» de abajo, donde se revisa y se confirma lo del mes. Hoy es una tabla de 8 columnas con los 86 gastos seguidos, donde casi todo se repite («Sin proveedor», «Pagado» en cada fila). Las cuatro usan los mismos datos de ejemplo (octubre, «hoy» = 23): el buscador y la sede de arriba mueven las cuatro, y tocar una fila abriría la hoja del gasto de siempre.</p>
+
+<div class="barra" id="barra">
+  <button class="pil on" data-s="-1">Todas</button>
+  <button class="pil" data-s="0"><i style="background:var(--s0)"></i>Trujillo</button>
+  <button class="pil" data-s="1"><i style="background:var(--s1)"></i>Arequipa</button>
+  <button class="pil" data-s="2"><i style="background:var(--s2)"></i>Lima</button>
+  <button class="pil" data-s="3"><i style="background:var(--s3)"></i>Taller</button>
+  <button class="pil" data-s="4"><i style="background:var(--s4)"></i>Empresa</button>
+  <label class="busca"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Busca «luz», un proveedor o un número" autocomplete="off"></label>
+  <span class="sep"></span>
+  <button class="pil" id="rep">↻ Repetir animación</button>
+  <button class="pil" id="tema">◐ Modo oscuro</button>
+</div>
+
+<section class="op">
+  <h2>L1 · El extracto por día</h2>
+  <p class="d"><b>Como el estado de cuenta del banco.</b> Los gastos van por día, del más nuevo al más viejo, y cada día dice cuánto se fue y en cuántos gastos (el día queda pegado arriba al bajar). Cada fila dice qué fue y, debajo, en qué y cómo se pagó; solo se marca lo que no es normal (por pagar, sin comprobante en algo grande, anulado). Lo que se repite el mismo día en la misma sede («Baño» seis veces) va en una sola fila que se abre.</p>
+  <div class="tarj" id="L1"></div>
+</section>
+
+<section class="op">
+  <h2>L2 · Primero lo que te pide algo</h2>
+  <p class="d"><b>Una cola de revisión arriba, y todo lo demás en orden debajo.</b> Arriba, solo los gastos que piden algo, cada uno con su porqué en una frase y su botón (una factura por pagar, un gasto grande sin comprobante). Debajo, «Lo demás está en orden» con la cuenta y el total, y la lista por día que se abre si la quieres ver. Los anulados, al final, en una línea. <i>Qué cuenta como «pide algo» es una regla de dinero: la decides tú.</i></p>
+  <div class="tarj" id="L2"></div>
+</section>
+
+<section class="op">
+  <h2>L3 · La tabla, depurada</h2>
+  <p class="d"><b>La misma tabla de hoy, con la mitad de las columnas.</b> Fecha · gasto (con su categoría debajo) · sede · cómo se pagó (con el comprobante debajo) · monto. «Pagado» ya no sale en cada fila: solo lo que no es normal. Se ordena por fecha o por monto tocando la cabecera, que queda pegada arriba; al pie, el total. Las primeras 20 y «Ver las demás».</p>
+  <div class="tarj" id="L3"></div>
+</section>
+
+<section class="op">
+  <h2>L4 · Lo que se repite, junto</h2>
+  <p class="d"><b>Un renglón por cada cosa que se paga, del que más suma al que menos.</b> «Movilidad · Lima» es una fila con cuántas veces se pagó en el mes y una tira de 31 días que muestra cuándo; el alquiler, una sola vez. Tocar una abre sus gastos, uno por uno. Responde «¿en qué se nos va la plata, de verdad?» al nivel de cada cosa, no de cada categoría.</p>
+  <div class="tarj" id="L4"></div>
+</section>
+<div class="aviso" id="aviso"></div>
+
+<script>
+const SEDES=["Trujillo","Arequipa","Lima","Taller","Empresa"];
+const HOY=23, DIAS=31, PRIMER=3; // octubre de 2026 empieza en jueves (lunes = 0)
+const SEMANA=["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
+function rnd(seed){let s=seed;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296}}
+const sinTildes=t=>t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const fmt=n=>"S/ "+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0=n=>"S/ "+Math.round(n).toLocaleString("en-US");
+const $=s=>document.querySelector(s);
+const nombreDia=d=>`${SEMANA[(PRIMER+d-1)%7]} ${d} de octubre`;
+const conMayuscula=s=>s[0].toUpperCase()+s.slice(1);
+const flecha=`<svg class="flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+const sedeHtml=s=>`<span class="sede"><i class="${s===4?"emp":""}" style="${s===4?"":`background:var(--s${s})`}"></i>${SEDES[s]}</span>`;
+
+// Los gastos de octubre: lo grande del mes (alquileres, servicios, contador) y lo chico de cada día que entra por el cajón de cada tienda.
+function armar(){const r=rnd(7),G=[];let id=0;
+  const g=o=>G.push({id:++id,papel:"sin",num:null,prov:null,pago:"cajon",credito:null,anulado:null,...o});
+  g({dia:3,sede:0,que:"Alquiler del local",cat:"Alquileres",prov:"Inmobiliaria Rímac",papel:"factura",num:"F001-882",pago:"transferencia",m:2400});
+  g({dia:4,sede:1,que:"Alquiler del local",cat:"Alquileres",prov:"Juana Paredes",papel:"recibo",num:"E001-31",pago:"transferencia",m:1800});
+  g({dia:5,sede:2,que:"Alquiler del local",cat:"Alquileres",prov:"Inversiones Larco",papel:"factura",num:"F002-1450",pago:"transferencia",m:2100});
+  g({dia:5,sede:3,que:"Alquiler del taller",cat:"Alquileres",prov:"Pedro Huamán",pago:"transferencia",m:900});
+  g({dia:1,sede:4,que:"Sistema de facturación",cat:"Software y suscripciones",prov:"Lucode",papel:"factura",num:"F001-9921",pago:"tarjeta",m:380});
+  g({dia:10,sede:4,que:"Contabilidad de septiembre",cat:"Asesoría y honorarios",prov:"Estudio Ríos y Asociados",papel:"factura",num:"F001-210",pago:"credito",credito:{vence:"28 oct",dias:5,saldo:500},m:500});
+  g({dia:17,sede:4,que:"Anuncios en redes",cat:"Publicidad y marketing",prov:"Meta Platforms",papel:"factura",num:"FA-88213",pago:"tarjeta",m:220});
+  g({dia:15,sede:0,que:"Recibo de luz",cat:"Luz",prov:"Hidrandina",papel:"factura",num:"S001-55120",pago:"transferencia",m:230});
+  g({dia:15,sede:1,que:"Recibo de luz",cat:"Luz",prov:"SEAL",papel:"factura",num:"S002-19341",pago:"transferencia",m:180});
+  g({dia:15,sede:2,que:"Recibo de luz",cat:"Luz",prov:"Luz del Sur",papel:"factura",num:"S003-77102",pago:"transferencia",m:210});
+  g({dia:18,sede:0,que:"Recibo de agua",cat:"Agua",prov:"Sedalib",papel:"boleta",num:"B001-4410",pago:"transferencia",m:48});
+  g({dia:18,sede:2,que:"Recibo de agua",cat:"Agua",prov:"Sedapal",papel:"boleta",num:"B002-9981",pago:"transferencia",m:55});
+  g({dia:12,sede:2,que:"Pintura de la vitrina",cat:"Mantenimiento y reparaciones",pago:"cajon",m:850});
+  g({dia:21,sede:1,que:"Técnico de la máquina de cobro",cat:"Mantenimiento y reparaciones",pago:"cajon",m:380});
+  g({dia:20,sede:4,que:"Arbitrios",cat:"Tributos y licencias",prov:"Municipalidad de Trujillo",papel:"recibo",num:"0045812",pago:"transferencia",m:260});
+  g({dia:8,sede:2,que:"Bolsas de regalo",cat:"Bolsas y empaque",prov:"Envases Lima",papel:"boleta",num:"B001-332",m:140});
+  g({dia:8,sede:2,que:"Bolsas de regalo",cat:"Bolsas y empaque",prov:"Envases Lima",papel:"boleta",num:"B001-332",m:140,anulado:"Se registró dos veces"});
+  g({dia:19,sede:3,que:"Tela para muestras",cat:"Suministros y útiles",prov:"Textil San Jorge",papel:"factura",num:"F003-551",pago:"credito",credito:{vence:"18 nov",dias:26,saldo:640},m:640});
+  for(let d=1;d<=HOY;d++){
+    for(const s of [0,1,2]){
+      const nMov=r()<.6?1+Math.floor(r()*2):0;for(let k=0;k<nMov;k++)g({dia:d,sede:s,que:"Movilidad",cat:"Transporte y movilidad",m:Math.round((8+r()*27)*2)/2});
+      if(r()<.15)g({dia:d,sede:s,que:"Refrigerio del turno",cat:"Atención al personal",m:Math.round(10+r()*22)});
+      if(r()<.12)g({dia:d,sede:s,que:["Útiles de oficina","Cinta y etiquetas","Papel seda"][Math.floor(r()*3)],cat:"Suministros y útiles",papel:r()<.5?"boleta":"sin",num:"B00"+(1+Math.floor(r()*3))+"-"+(100+Math.floor(r()*800)),m:Math.round(25+r()*120)});
+    }
+    if(r()<.5){const nBano=1+Math.floor(r()*5);for(let k=0;k<nBano;k++)g({dia:d,sede:2,que:"Baño",cat:"Servicios básicos",m:.8})}
+    if(r()<.3)g({dia:d,sede:3,que:"Hilos y agujas",cat:"Suministros y útiles",m:Math.round(15+r()*90)});
+  }
+  return G.map(x=>({...x,num:x.papel==="sin"?null:x.num}))}
+const TODOS=armar();
+
+let S=-1,Q="";
+const visibles=()=>TODOS.filter(g=>(S<0||g.sede===S)&&(!Q||sinTildes(`${g.que} ${g.cat} ${g.prov??""} ${g.num??""} ${SEDES[g.sede]}`).includes(Q)));
+const pagoTxt=g=>g.pago==="cajon"?(g.sede===3?"Fondo del Taller":g.sede===4?"Caja de la empresa":`Cajón de ${SEDES[g.sede]}`):g.pago==="transferencia"?"Transferencia":g.pago==="tarjeta"?"Tarjeta":"A crédito";
+const papelTxt=g=>g.papel==="sin"?"Sin comprobante":`${{factura:"Factura",boleta:"Boleta",recibo:"Recibo"}[g.papel]} ${g.num}`;
+const igvPerdible=g=>Math.round(g.m*18/118);
+// Lo que pide algo (la regla es de Felipe; esto es solo un ejemplo para ver la forma): una factura por pagar, o algo de S/ 300 o más sin comprobante.
+function pide(g){if(g.anulado)return{tono:"pizarra",chip:"Anulado"};
+  if(g.credito)return{tono:g.credito.dias<=7?"ambar":"pizarra",chip:`Por pagar · vence ${g.credito.vence}`,frase:`Factura a crédito: faltan ${fmt0(g.credito.saldo)}, vence el ${g.credito.vence} (en ${g.credito.dias} días).`,boton:"Ir a Por pagar"};
+  if(g.papel==="sin"&&g.m>=300)return{tono:"ambar",chip:"Sin comprobante",frase:`Sin boleta ni factura: con factura recuperarías ${fmt0(igvPerdible(g))} de IGV.`,boton:"Anotar comprobante"};
+  return null}
+const chipHtml=p=>p?`<span class="chip ${p.tono}">${p.chip}</span>`:"";
+// Debajo de qué fue: en qué, cómo se pagó y su comprobante (sin comprobante no se escribe: es lo normal en lo chico; en lo grande, lo dice el chip).
+function detalle(g){return[g.cat,pagoTxt(g),g.papel==="sin"?null:papelTxt(g)].filter(Boolean).join(" · ")}
+function fila(g,i,extra=""){const p=pide(g);
+  return`<div class="fila ${g.anulado?"anulado":""} ${extra}" data-id="${g.id}" style="animation-delay:${Math.min(i,25)*28}ms">
+    <span class="que"><b>${g.que}${g.prov?` · <span style="font-weight:400;color:var(--taupe)">${g.prov}</span>`:""}</b><small>${detalle(g)}${g.anulado?` · ${g.anulado}`:""}</small></span>
+    ${sedeHtml(g.sede)}<span class="pide">${chipHtml(p)}</span><span class="monto">${fmt(g.m)}</span></div>`}
+function avisar(t){const a=$("#aviso");a.textContent=t;a.classList.add("ve");clearTimeout(avisar.t);avisar.t=setTimeout(()=>a.classList.remove("ve"),1800)}
+function tocable(box){box.querySelectorAll("[data-id]").forEach(el=>el.onclick=e=>{if(e.target.closest("button"))return;
+  box.querySelectorAll(".sel").forEach(x=>x.classList.remove("sel"));el.classList.add("sel");const g=TODOS.find(x=>x.id===+el.dataset.id);avisar(`Abriría la hoja de «${g.que}» (${fmt(g.m)})`)})}
+function vacio(){return`<div class="vacio">Nada con «${$("#q").value}» en ${S<0?"todas las sedes":SEDES[S]}. <button class="enl" onclick="document.getElementById('q').value='';Q='';todo()">Borrar la búsqueda</button></div>`}
+
+// Los gastos de cada día, del más nuevo al más viejo; lo que se repite el mismo día en la misma sede, junto (si son dos o más y cada uno chico).
+function porDia(lista){const dias=new Map();lista.forEach(g=>{(dias.get(g.dia)||dias.set(g.dia,[]).get(g.dia)).push(g)});return[...dias.entries()].sort((a,b)=>b[0]-a[0])}
+function juntarRepetidos(gs){const grupos=new Map(),solos=[];
+  gs.forEach(g=>{if(g.anulado||g.m>=50||pide(g))return solos.push(g);const k=`${g.que}|${g.sede}`;(grupos.get(k)||grupos.set(k,[]).get(k)).push(g)});
+  const out=[...solos.map(g=>({g}))];grupos.forEach(v=>v.length>1?out.push({grupo:v}):out.push({g:v[0]}));
+  return out.sort((a,b)=>(b.g?.m??b.grupo.reduce((s,x)=>s+x.m,0))-(a.g?.m??a.grupo.reduce((s,x)=>s+x.m,0)))}
+
+/* ---------- L1 ---------- */
+const DIAS_A_LA_VISTA=5;let verDias=false;
+function L1(){const box=$("#L1"),lista=visibles(),vigentes=lista.filter(g=>!g.anulado),total=vigentes.reduce((s,g)=>s+g.m,0);
+  let html=`<div class="cab"><h3 class="tit">Gastos de octubre</h3><span class="dato num">${vigentes.length} gastos · ${fmt0(total)}</span></div>`;
+  if(!lista.length){box.innerHTML=html+vacio();return}
+  let i=0;const dias=porDia(lista),aLaVista=Q?dias.length:DIAS_A_LA_VISTA;
+  dias.forEach(([d,gs],nDia)=>{if(nDia===aLaVista)html+=`<div class="cajon ${verDias?"ab":""}" id="L1antes"><div>`;
+    const v=gs.filter(g=>!g.anulado),t=v.reduce((s,g)=>s+g.m,0);
+    html+=`<div class="dia-sep"><b>${conMayuscula(nombreDia(d))}${d===HOY?" · hoy":""}</b><span><strong>${fmt(t)}</strong> · ${v.length} ${v.length===1?"gasto":"gastos"}</span></div>`;
+    for(const it of juntarRepetidos(gs)){
+      if(it.g){html+=fila(it.g,i++);continue}
+      const g0=it.grupo[0],t=it.grupo.reduce((s,x)=>s+x.m,0),key=`${d}-${g0.que}-${g0.sede}`;
+      html+=`<div class="fila" data-grupo="${key}" aria-expanded="false" style="animation-delay:${Math.min(i++,25)*28}ms">
+        <span class="que"><b>${g0.que}<span class="grupo-n">×${it.grupo.length}</span></b><small>${g0.cat} · ${pagoTxt(g0)}</small></span>
+        ${sedeHtml(g0.sede)}<span class="pide">${flecha}</span><span class="monto">${fmt(t)}</span></div>
+        <div class="cajon" data-de="${key}"><div>${it.grupo.map((g,k)=>fila(g,k,"sub-fila")).join("")}</div></div>`}
+  });
+  if(dias.length>aLaVista)html+=`</div></div><button class="vermas" id="L1mas" aria-expanded="${verDias}">${verDias?"Ver menos":`Ver los ${dias.length-aLaVista} días de antes`}${flecha}</button>`;
+  box.innerHTML=html;tocable(box);
+  const mas=$("#L1mas");if(mas)mas.onclick=()=>{verDias=!verDias;$("#L1antes").classList.toggle("ab",verDias);mas.setAttribute("aria-expanded",verDias);mas.firstChild.textContent=verDias?"Ver menos":`Ver los ${dias.length-aLaVista} días de antes`};
+  box.querySelectorAll("[data-grupo]").forEach(el=>el.onclick=()=>{const ab=el.getAttribute("aria-expanded")!=="true";el.setAttribute("aria-expanded",ab);box.querySelector(`[data-de="${el.dataset.grupo}"]`).classList.toggle("ab",ab)})}
+
+/* ---------- L2 ---------- */
+let verResto=false;
+function L2(){const box=$("#L2"),lista=visibles(),piden=lista.filter(g=>!g.anulado&&pide(g)),anulados=lista.filter(g=>g.anulado),resto=lista.filter(g=>!g.anulado&&!pide(g));
+  const total=resto.reduce((s,g)=>s+g.m,0);
+  let html=`<div class="cab"><h3 class="tit">${piden.length?`${piden.length} ${piden.length===1?"gasto te pide":"gastos te piden"} algo`:"Nada te pide nada"}</h3><span class="dato">del más urgente al que puede esperar</span></div>`;
+  if(!lista.length){box.innerHTML=html+vacio();return}
+  html+=`<div class="pendientes">${piden.sort((a,b)=>(pide(a).tono==="ambar"?0:1)-(pide(b).tono==="ambar"?0:1)||b.m-a.m).map((g,i)=>{const p=pide(g);
+    return`<div class="pend ${p.tono}" data-id="${g.id}" style="animation-delay:${i*60}ms"><span class="canto"></span>
+      <span class="que"><b>${g.que}${g.prov?` · ${g.prov}`:""}</b><small>${conMayuscula(nombreDia(g.dia))} · ${SEDES[g.sede]}</small><em>${p.frase}</em></span>
+      <span class="acc"><button class="btn ${i===0?"primario":""}">${p.boton}</button></span><span class="monto">${fmt(g.m)}</span></div>`}).join("")}</div>`;
+  html+=`<div class="orden"><span><span class="visto"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span><b>Lo demás está en orden:</b> ${resto.length} gastos · ${fmt0(total)}</span>
+    <button class="btn" id="L2ver" aria-expanded="${verResto}">${verResto?"Esconder":"Ver la lista"}</button></div>
+    <div class="cajon ${verResto?"ab":""}" id="L2resto"><div>${porDia(resto).map(([d,gs])=>`<div class="dia-sep"><b>${conMayuscula(nombreDia(d))}</b><span><strong>${fmt(gs.reduce((s,g)=>s+g.m,0))}</strong> · ${gs.length}</span></div>${gs.sort((a,b)=>b.m-a.m).map((g,k)=>fila(g,k)).join("")}`).join("")}</div></div>`;
+  if(anulados.length)html+=`<div class="orden" style="font-size:13px;color:var(--taupe)"><span>${anulados.length} ${anulados.length===1?"anulado":"anulados"}: ${anulados.map(g=>`${g.que} del ${g.dia} (${g.anulado.toLowerCase()})`).join("; ")}</span></div>`;
+  box.innerHTML=html;tocable(box);
+  $("#L2ver").onclick=()=>{verResto=!verResto;$("#L2resto").classList.toggle("ab",verResto);$("#L2ver").setAttribute("aria-expanded",verResto);$("#L2ver").textContent=verResto?"Esconder":"Ver la lista"};
+  box.querySelectorAll(".pend .btn").forEach(b=>b.onclick=()=>avisar(b.textContent==="Ir a Por pagar"?"Llevaría a Compras ▸ Por pagar, con esa factura":"Abriría la hoja del gasto en «Comprobante»"))}
+
+/* ---------- L3 ---------- */
+let orden={por:"fecha",desc:true},verTodas3=false;
+function L3(){const box=$("#L3"),lista=visibles().sort((a,b)=>orden.por==="fecha"?(orden.desc?b.dia-a.dia||b.m-a.m:a.dia-b.dia||b.m-a.m):(orden.desc?b.m-a.m:a.m-b.m)),vig=lista.filter(g=>!g.anulado);
+  const muestra=verTodas3?lista:lista.slice(0,20),flechaO=p=>orden.por===p?(orden.desc?"↓":"↑"):"";
+  if(!lista.length){box.innerHTML=vacio();return}
+  box.innerHTML=`<table class="tabla"><thead><tr>
+    <th><button data-o="fecha" ${orden.por==="fecha"?'aria-sort="x"':""}>Fecha ${flechaO("fecha")}</button></th><th>Gasto</th><th class="c-sede">Sede</th><th class="c-pago">Cómo se pagó</th><th><button data-o="monto" ${orden.por==="monto"?'aria-sort="x"':""}>Monto ${flechaO("monto")}</button></th></tr></thead>
+    <tbody>${muestra.map((g,i)=>{const p=pide(g);return`<tr data-id="${g.id}" class="${g.anulado?"anulado":""}" style="animation-delay:${Math.min(i,20)*25}ms">
+      <td class="f">${g.dia} oct</td><td><b>${g.que}</b><small>${g.cat}${g.prov?` · ${g.prov}`:""}</small></td>
+      <td class="c-sede">${sedeHtml(g.sede)}</td><td class="c-pago">${pagoTxt(g)}<small>${papelTxt(g)}</small></td>
+      <td class="m"><span class="monto">${fmt(g.m)}</span>${p?`<div style="margin-top:4px">${chipHtml(p)}</div>`:""}</td></tr>`}).join("")}</tbody>
+    <tfoot><tr><td colspan="4" class="c-tot">${vig.length} gastos${lista.length>vig.length?` (y ${lista.length-vig.length} anulado)`:""}</td><td class="m">${fmt(vig.reduce((s,g)=>s+g.m,0))}</td></tr></tfoot></table>
+    ${lista.length>20?`<button class="vermas" id="L3mas" aria-expanded="${verTodas3}">${verTodas3?"Ver menos":`Ver las ${lista.length-20} que faltan`}${flecha}</button>`:""}`;
+  tocable(box);
+  box.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const p=b.dataset.o;orden=orden.por===p?{por:p,desc:!orden.desc}:{por:p,desc:true};L3()});
+  const m=$("#L3mas");if(m)m.onclick=()=>{verTodas3=!verTodas3;L3()}}
+
+/* ---------- L4 ---------- */
+let verCosas=false;
+function L4(){const box=$("#L4"),lista=visibles().filter(g=>!g.anulado);
+  const por=new Map();lista.forEach(g=>{const k=`${g.que}|${g.sede}`;(por.get(k)||por.set(k,[]).get(k)).push(g)});
+  const conceptos=[...por.values()].map(v=>({v,t:v.reduce((s,g)=>s+g.m,0)})).sort((a,b)=>b.t-a.t);
+  let html=`<div class="cab"><h3 class="tit">En qué se pagó, cosa por cosa</h3><span class="dato">${conceptos.length} cosas distintas · ${fmt0(lista.reduce((s,g)=>s+g.m,0))}</span></div>`;
+  if(!lista.length){box.innerHTML=html+vacio();return}
+  html+=conceptos.map(({v,t},i)=>{const g0=v[0],dias=new Set(v.map(g=>g.dia)),key=`c${i}`,p=v.map(pide).find(Boolean);
+    return`<div class="concepto" data-c="${key}" aria-expanded="false" style="animation-delay:${Math.min(i,25)*30}ms">
+      <span class="que"><b>${g0.que}</b> ${sedeHtml(g0.sede)} ${p?chipHtml(p):""}<small>${g0.cat} · ${v.length===1?`el ${g0.dia} oct`:`${v.length} veces`}</small></span>
+      <span class="tira" aria-label="Días con este gasto">${Array.from({length:DIAS},(_,k)=>`<span class="${dias.has(k+1)?"si":k+1>HOY?"fut":""}" style="animation-delay:${200+k*12}ms"></span>`).join("")}</span>
+      <span class="monto">${fmt(t)}</span>${flecha}</div>
+      <div class="cajon" data-de="${key}"><div class="detalle-concepto">${v.sort((a,b)=>b.dia-a.dia).map((g,k)=>`<div class="fila" data-id="${g.id}" style="animation-delay:${k*25}ms"><span class="f">${g.dia} oct</span><span class="que"><small style="color:var(--tinta);font-size:13px">${pagoTxt(g)}${g.papel==="sin"?"":` · ${papelTxt(g)}`}</small></span><span class="pide">${chipHtml(pide(g))}</span><span class="monto">${fmt(g.m)}</span></div>`).join("")}</div></div>`}).join("");
+  // Las 10 que más suman, a la vista; las demás, guardadas (con una búsqueda, todas).
+  const partes=html.split('<div class="concepto"');const cabeza=partes.shift();const aLaVista4=Q?partes.length:10;
+  html=cabeza+partes.slice(0,aLaVista4).map(x=>'<div class="concepto"'+x).join("")+(partes.length>aLaVista4?`<div class="cajon ${verCosas?"ab":""}" id="L4mas-cajon"><div>${partes.slice(aLaVista4).map(x=>'<div class="concepto"'+x).join("")}</div></div><button class="vermas" id="L4mas" aria-expanded="${verCosas}">${verCosas?"Ver menos":`Ver las ${partes.length-aLaVista4} que faltan`}${flecha}</button>`:"");
+  box.innerHTML=html;tocable(box);
+  const mas4=$("#L4mas");if(mas4)mas4.onclick=()=>{verCosas=!verCosas;$("#L4mas-cajon").classList.toggle("ab",verCosas);mas4.setAttribute("aria-expanded",verCosas);mas4.firstChild.textContent=verCosas?"Ver menos":`Ver las ${partes.length-aLaVista4} que faltan`};
+  box.querySelectorAll("[data-c]").forEach(el=>el.onclick=()=>{const ab=el.getAttribute("aria-expanded")!=="true";el.setAttribute("aria-expanded",ab);box.querySelector(`[data-de="${el.dataset.c}"]`).classList.toggle("ab",ab)})}
+
+function todo(){L1();L2();L3();L4()}
+$("#barra").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;S=+b.dataset.s;
+  $("#barra").querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x===b));todo()});
+$("#q").addEventListener("input",e=>{Q=sinTildes(e.target.value.trim());todo()});
+$("#rep").onclick=todo;
+$("#tema").onclick=()=>{const o=document.documentElement.dataset.tema==="oscuro";
+  if(o)delete document.documentElement.dataset.tema;else document.documentElement.dataset.tema="oscuro";$("#tema").textContent=o?"◐ Modo oscuro":"◑ Modo claro"};
+todo();
+</script>
+</body>
+</html>

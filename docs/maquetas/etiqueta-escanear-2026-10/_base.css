@@ -1,0 +1,523 @@
+/* ====================================================================
+   BASE COMPARTIDA de las 3 maquetas de «Prendas de una etiqueta» con escaneo (copiada de recibir-fardo-2026-10 y ampliada).
+   Tokens = apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro, ADR-0336): los MISMOS nombres, con tinta y
+   crema intercambiadas. Piezas = las únicas del ERP (ADR-0358): btn-cayla, Chip, pildora, TarjetaCifra, Vacio, nota-cayla,
+   EncabezadoPagina. Movimiento = ADR-0136 (--ease-cayla, sin rebote, sin bucle salvo las señales permitidas) y el de los
+   botones (.mov-boton: sube 2 px, luz que cruza, onda donde se tocó). Lo que NO es parte de la pantalla: la barra punteada (.spike).
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--verde-p:#44583a;--ambar:#74501a;--ambar-p:#734f15;
+  --sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --oliva:color-mix(in srgb,var(--verde) 66%,var(--ambar));
+  --ease:cubic-bezier(.32,.72,.24,1);--ease-salida:cubic-bezier(.4,0,1,1);
+  --r-sm:6px;--r-md:8px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+  --sh-sm:0 1px 2px color-mix(in srgb,var(--sombra) 6%,transparent);
+  --sh-md:0 8px 24px -8px color-mix(in srgb,var(--sombra) 18%,transparent);
+  --sh-lg:0 18px 44px -14px color-mix(in srgb,var(--sombra) 22%,transparent);
+  --velo:35%;
+}
+:root[data-tema="oscuro"]{
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--sombra:#000000;--vidrio:#31302d;
+  --tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--verde-p:#a8d49a;--ambar:#e4b968;--ambar-p:#ecc676;--pizarra:#a2b8cd;
+  --sh-md:0 8px 24px -8px rgba(0,0,0,.5);--sh-lg:0 18px 44px -14px rgba(0,0,0,.6);
+  --velo:55%;
+}
+:root{
+  --t85:color-mix(in srgb,var(--tinta) 85%,transparent);--t75:color-mix(in srgb,var(--tinta) 75%,transparent);
+  --t65:color-mix(in srgb,var(--tinta) 65%,transparent);--t55:color-mix(in srgb,var(--tinta) 55%,transparent);
+  --t45:color-mix(in srgb,var(--tinta) 45%,transparent);--t35:color-mix(in srgb,var(--tinta) 35%,transparent);
+  --t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t15:color-mix(in srgb,var(--tinta) 15%,transparent);
+  --t10:color-mix(in srgb,var(--tinta) 10%,transparent);--t07:color-mix(in srgb,var(--tinta) 7%,transparent);
+  --t04:color-mix(in srgb,var(--tinta) 4%,transparent);
+}
+/* En oscuro los tonos tenues suben al piso de legibilidad (ADR-0336, act. 8). */
+:root[data-tema="oscuro"]{--t45:color-mix(in srgb,var(--tinta) 58%,transparent);--t35:color-mix(in srgb,var(--tinta) 52%,transparent)}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;overflow:hidden}
+button,input,a,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;text-align:left}
+a{text-decoration:none}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.cat{stroke-width:1.5}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.versal{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tenue{color:var(--t55)}
+.taupe{color:var(--taupe)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+
+/* ---------- barra de la maqueta (no es parte de la pantalla) ---------- */
+.spike{position:relative;z-index:80;background:var(--crema);padding:8px 14px;border-bottom:1px dashed var(--t25);
+  display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:var(--t55)}
+.spike .tit{font-weight:700;color:var(--tinta)}
+.spike .grupo{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.spike .grupo>span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--t45);margin-right:2px}
+.spike a.nav,.spike button.op{border:1px solid var(--t25);border-radius:8px;padding:4px 9px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t75);background:var(--papel);cursor:pointer}
+.spike a.nav[aria-current=page],.spike button.op[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike button.op.rojo{border-color:color-mix(in srgb,var(--rojo) 50%,transparent);color:var(--rojo-p)}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+
+/* ---------- escena (la pantalla del ERP, sin el menú lateral) ---------- */
+#marco{position:relative;height:calc(100dvh - var(--alto-spike,52px));display:flex;justify-content:center;background:var(--crema)}
+#escena{position:relative;width:100%;height:100%;overflow:auto;container:escena/inline-size;background:var(--crema);scroll-behavior:smooth}
+.celular #marco{background:var(--hueso);padding:14px 0;align-items:flex-start}
+.celular #escena{width:375px;height:min(812px,100%);border-radius:34px;box-shadow:0 0 0 8px var(--tinta-fija)}
+.pagina{padding:28px 32px 48px;max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:24px;min-height:100%}
+@container escena (max-width:640px){.pagina{padding:18px 16px 40px;gap:18px}}
+
+/* ---------- cabecera de módulo (EncabezadoPagina, ADR-0220) ---------- */
+.cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px}
+.cab .sede{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.cab .sede::before{content:"";display:block;width:32px;height:1px;background:var(--taupe);transform-origin:left;animation:dibuja-x 1.1s var(--ease) 250ms backwards}
+.cab h1{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+.cab .frase{margin-top:10px;max-width:460px;font-size:15px;color:var(--t65)}
+.cab .der{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.cab [data-voz="cabecera"] .btn{min-height:40px;text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+@container escena (max-width:640px){.cab h1{font-size:34px}.cab .frase{font-size:14px}}
+
+/* ---------- piezas del sistema ---------- */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl)}
+.caja{display:flex;align-items:center;gap:8px;background:var(--hueso);border:1px solid var(--sand);border-radius:var(--r-md);padding:0 12px;min-height:44px;transition:border-color 200ms var(--ease),background-color 200ms var(--ease),box-shadow 300ms var(--ease)}
+.caja input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:15px;padding:10px 0}
+.caja input::placeholder{color:var(--t45)}
+.caja:focus-within{border-color:var(--t45);background:var(--papel)}
+.label{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--t65)}
+.nota{background:color-mix(in oklab,var(--hueso) 85%,transparent);border-radius:var(--r-xl);padding:14px 18px;font-size:13px;line-height:1.6;color:var(--taupe);display:flex;gap:10px;align-items:flex-start}
+.nota .i{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:11px;font-weight:700;font-family:'EB Garamond',serif;margin-top:2px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;letter-spacing:.02em;line-height:1.35;white-space:nowrap}
+.chip.punto::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.verde{background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde-p)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar-p)}
+.chip.rojo{background:color-mix(in srgb,var(--rojo) 12%,var(--papel));color:var(--rojo-p)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 14%,var(--papel));color:var(--pizarra)}
+.chip.neutro{background:var(--hueso);color:var(--t75)}
+.chip.taupe{background:color-mix(in srgb,var(--taupe) 14%,var(--papel));color:var(--taupe)}
+.chip.tinta{background:var(--tinta);color:var(--crema)}
+.chip.vivo::before{animation:pulso-vivo 2.2s var(--ease) infinite} /* el único latido permitido: señal de «pasa ahora» */
+
+.pildora{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);white-space:nowrap;transition:background-color 150ms,border-color 150ms,color 150ms}
+.pildora:hover{border-color:var(--t45);color:var(--tinta)}
+.pildora[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:var(--r-md);
+  font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;border:1px solid transparent;
+  transition:translate 260ms var(--ease),scale 120ms var(--ease),box-shadow 260ms var(--ease),background-color 200ms var(--ease),border-color 200ms var(--ease),color 200ms var(--ease)}
+.btn svg.ic{width:16px;height:16px}
+.btn.grande{min-height:48px;padding:0 22px;font-size:15px;border-radius:var(--r-lg)}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.pri:hover:not(:disabled){background:var(--rojo-p);color:var(--crema-fija)}
+.btn.sec{background:var(--papel);border-color:var(--t25);color:var(--tinta)}
+.btn.sec:hover:not(:disabled){background:var(--hueso);border-color:var(--t45)}
+.btn.sut{color:var(--t75);border-color:var(--t15)}
+.btn.sut:hover:not(:disabled){background:var(--hueso);color:var(--tinta)}
+.btn.pel{background:color-mix(in srgb,var(--rojo) 10%,var(--papel));color:var(--rojo-p);border-color:color-mix(in srgb,var(--rojo) 35%,transparent)}
+.btn.pel:hover:not(:disabled){background:var(--rojo);color:var(--crema-fija)}
+.btn.enlace{min-height:32px;padding:0 8px;color:var(--t75);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px;overflow:visible}
+.btn.enlace:hover{color:var(--rojo);text-decoration-color:currentColor}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* .mov-boton (ADR-0358): sube 2 px con sombra, una luz cruza, onda donde se tocó, el «+» gira un cuarto, la flecha avanza. */
+.btn:not(.enlace)::after{content:"";position:absolute;top:0;bottom:0;left:0;width:36%;pointer-events:none;background:linear-gradient(100deg,transparent,color-mix(in srgb,currentColor 26%,transparent),transparent);transform:translate3d(-120%,0,0) skewX(-12deg);opacity:0}
+.btn:not(.enlace):hover:not(:disabled){translate:0 -2px;box-shadow:var(--sh-md)}
+.btn:not(.enlace):hover:not(:disabled)::after{animation:brillo 650ms var(--ease)}
+.btn:not(.enlace):active:not(:disabled){translate:0 0;scale:.97;box-shadow:var(--sh-sm)}
+.btn .mas{transition:rotate 300ms var(--ease)}
+.btn:hover:not(:disabled) .mas{rotate:90deg}
+.btn .flecha{transition:translate 300ms var(--ease)}
+.btn:hover:not(:disabled) .flecha{translate:4px 0}
+.btn:not(.enlace)::before{content:"";position:absolute;pointer-events:none;border-radius:999px;left:var(--ox,50%);top:var(--oy,50%);width:var(--od,0px);height:var(--od,0px);translate:-50% -50%;background:color-mix(in srgb,currentColor 24%,transparent);opacity:0}
+.btn[data-onda]::before{animation:onda 450ms var(--ease)}
+
+/* Tarjeta de cifra (TarjetaCifra) */
+.tc{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);padding:14px 16px;min-width:150px;position:relative}
+.tc .label{display:flex;align-items:center;gap:7px;color:var(--taupe);font-weight:700}
+.tc .label i{width:6px;height:6px;border-radius:50%;background:var(--t35);flex:none}
+.tc .label i.verde{background:var(--verde)}.tc .label i.ambar{background:var(--ambar)}.tc .label i.rojo{background:var(--rojo)}.tc .label i.pizarra{background:var(--pizarra)}
+.tc .valor{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:34px;line-height:1.1;margin-top:4px;display:flex;align-items:baseline;gap:6px}
+.tc .valor small{font-family:'DM Sans',sans-serif;font-weight:500;font-size:13px;color:var(--t55)}
+.tc .pie{font-size:12.5px;color:var(--t55);margin-top:2px}
+
+/* Vacío (Vacio) */
+.vacio{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:40px 24px}
+.vacio svg.ic{width:34px;height:34px;color:var(--t45);stroke-width:1.4}
+.vacio h3{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:22px}
+.vacio p{font-size:14px;color:var(--t65);max-width:380px}
+
+/* Ícono de categoría sobre el color de la prenda (MosaicoPrenda / SinFoto, ADR-0333) */
+.mini{--c:#d8c3a5;width:40px;height:48px;border-radius:8px;background:var(--c);display:grid;place-items:center;flex:none;color:var(--crema-fija)}
+.mini[data-oscura="no"]{color:var(--tinta-fija)}
+.mini svg.ic{width:20px;height:20px;stroke-width:1.5}
+.mini.grande{width:56px;height:68px;border-radius:10px}.mini.grande svg.ic{width:28px;height:28px}
+.mini.chica{width:28px;height:34px;border-radius:6px}.mini.chica svg.ic{width:14px;height:14px}
+.cat-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--hueso);color:var(--tinta);flex:none}
+.cat-ic svg.ic{width:22px;height:22px;stroke-width:1.5}
+
+/* Avatar (iniciales) */
+.av{--av:30px;--tono:var(--taupe);width:var(--av);height:var(--av);border-radius:50%;display:inline-grid;place-items:center;flex:none;font-size:calc(var(--av)*.36);font-weight:700;letter-spacing:.02em;color:var(--tono);background:color-mix(in srgb,var(--tono) 16%,var(--papel));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--tono) 45%,transparent)}
+
+/* Guía de foco (ADR-0284): marca del campo y luz del que sigue */
+.marca{position:relative;display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border-radius:999px;transition:background-color 240ms var(--ease),border-color 240ms var(--ease)}
+.marca[data-estado="hecho"]{background:var(--verde);color:var(--crema)}
+.marca[data-estado="hecho"] svg{width:11px;height:11px;stroke:var(--crema-fija);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.marca[data-estado="hecho"] svg path{stroke-dasharray:14;animation:trazo14 320ms var(--ease) 60ms backwards}
+:root[data-tema="oscuro"] .marca[data-estado="hecho"] svg{stroke:var(--tinta-fija)}
+.marca[data-estado="ahora"]{background:var(--tinta)}
+.marca[data-estado="ahora"]::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--crema)}
+.marca[data-estado="ahora"]::after{content:"";position:absolute;inset:0;border-radius:999px;border:1.5px solid var(--tinta);animation:pulso-uno 900ms var(--ease) 120ms 1 both;pointer-events:none}
+.marca[data-estado="falta"]{border:1.5px solid var(--t25)}
+.marca[data-estado="opcional"]{border:1.5px dashed var(--t25);animation:gira 8s linear infinite}
+.luz{transition:box-shadow 300ms var(--ease),background-color 300ms var(--ease)}
+.luz[data-estado="ahora"]{box-shadow:0 0 0 1.5px var(--t25),0 0 0 6px var(--t04);background:color-mix(in srgb,var(--hueso) 45%,transparent);animation:luz-llega 700ms var(--ease) 1 both}
+.sigue{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta)}
+.sigue::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--tinta)}
+.falta-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.falta-chips .fc{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--t15);border-radius:999px;padding:4px 10px 4px 6px;font-size:12.5px;color:var(--t75);transition:background-color 200ms var(--ease),border-color 200ms var(--ease)}
+.falta-chips .fc:hover{background:var(--hueso);border-color:var(--t45);color:var(--tinta)}
+
+/* Barra de avance (BarraApilada, ADR-0358) */
+.barra{height:8px;border-radius:999px;background:var(--hueso);overflow:hidden;position:relative}
+.barra>i{display:block;height:100%;border-radius:999px;background:var(--tinta);width:0;transition:width 900ms var(--ease),background-color 400ms var(--ease)}
+.barra>i.verde{background:var(--verde)}.barra>i.ambar{background:var(--ambar)}.barra>i.oliva{background:var(--oliva)}
+.barra.fina{height:4px}
+
+/* Cifra que rueda al cambiar (caja-rueda) */
+.rueda{display:inline-block;animation:rueda 260ms var(--ease) both}
+
+/* ---------- movimiento (ADR-0136): entradas, respuestas; nada en bucle salvo lo señalado ---------- */
+@keyframes sube{from{opacity:0;transform:translate3d(0,16px,0)}}
+@keyframes dibuja-x{from{transform:scaleX(0)}}
+@keyframes crece-y{from{transform:scaleY(0)}}
+@keyframes pop{40%{transform:scale(1.07)}}
+@keyframes trazo14{from{stroke-dashoffset:14}}
+@keyframes trazo{from{stroke-dashoffset:var(--largo,100)}}
+@keyframes brillo{from{opacity:1;transform:translate3d(-120%,0,0) skewX(-12deg)}to{opacity:1;transform:translate3d(320%,0,0) skewX(-12deg)}}
+@keyframes onda{from{opacity:1;scale:0}to{opacity:0;scale:1}}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+@keyframes revelar{from{opacity:0;transform:translate3d(0,-3px,0)}}
+@keyframes entrada{from{opacity:0;transform:translate3d(0,8px,0) scale(.985)}}
+@keyframes asentar{from{opacity:.35;transform:translate3d(0,4px,0)}}
+@keyframes rueda{from{opacity:0;transform:translateY(.35em)}}
+@keyframes pulso-uno{from{transform:scale(1);opacity:.6}to{transform:scale(2.2);opacity:0}}
+@keyframes pulso-vivo{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent)}70%,100%{box-shadow:0 0 0 7px transparent}}
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes luz-llega{from{box-shadow:0 0 0 1.5px var(--t25),0 0 0 0 var(--t10)}}
+@keyframes destello{0%,100%{background-color:transparent}30%{background-color:var(--hueso)}}
+@keyframes late{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:.75}}
+@keyframes velo-in{from{opacity:0}}
+@keyframes hoja-in{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+@keyframes hoja-in-movil{from{opacity:0;transform:translate3d(0,60px,0)}}
+@keyframes hoja-out{to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+@keyframes velo-out{to{opacity:0}}
+@keyframes ondas-sello{from{transform:scale(.6);opacity:.55}to{transform:scale(1.9);opacity:0}}
+@keyframes verde-flash{0%,100%{box-shadow:0 0 0 0 transparent}25%{box-shadow:0 0 0 4px color-mix(in srgb,var(--verde) 35%,transparent)}}
+@keyframes ambar-flash{0%,100%{box-shadow:0 0 0 0 transparent}25%{box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 40%,transparent)}}
+@keyframes laser{from{left:-10%;opacity:0}15%{opacity:1}85%{opacity:1}to{left:105%;opacity:0}}
+
+.anim-sube{animation:sube 850ms var(--ease) backwards;animation-delay:calc(var(--i,0)*70ms + 80ms)}
+.anim-pop{animation:pop 500ms var(--ease)}
+.anim-entrada{animation:entrada 320ms var(--ease) backwards}
+.anim-asentar{animation:asentar 420ms var(--ease) both}
+.anim-destello{animation:destello 900ms var(--ease) 1}
+.cascada>:not([data-sin-cascada]){animation:cascada 500ms var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.cascada>:nth-child(1){--k:0}.cascada>:nth-child(2){--k:1}.cascada>:nth-child(3){--k:2}.cascada>:nth-child(4){--k:3}
+.cascada>:nth-child(5){--k:4}.cascada>:nth-child(6){--k:5}.cascada>:nth-child(7){--k:6}.cascada>:nth-child(n+8){--k:7}
+.check-trazo path{stroke-dasharray:var(--largo,24);animation:trazo 550ms var(--ease) backwards;animation-delay:var(--d,300ms)}
+.flash-verde{animation:verde-flash 700ms var(--ease) 1}
+.flash-ambar{animation:ambar-flash 700ms var(--ease) 1}
+
+/* Modal (hoja) del sistema: velo con desenfoque → hoja que sube 18 px → cascada */
+.velo{position:absolute;inset:0;z-index:50;background:color-mix(in srgb,var(--sombra) var(--velo),transparent);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:velo-in 220ms var(--ease) both}
+.capa{position:absolute;inset:0;z-index:51;display:flex;justify-content:center;align-items:flex-start;padding:min(6%,48px) 24px 24px;pointer-events:none}
+.hoja{pointer-events:auto;position:relative;width:100%;max-width:560px;max-height:100%;overflow:auto;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-2xl);padding:24px;box-shadow:0 30px 80px -30px color-mix(in srgb,var(--sombra) 45%,transparent);animation:hoja-in 420ms var(--ease) backwards}
+.hoja h2{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:26px;line-height:1.1}
+.hoja .bajada{font-size:14px;color:var(--t65);margin-top:4px}
+.hoja .cerrar{position:absolute;right:14px;top:14px;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--t25);display:grid;place-items:center;transition:background-color 220ms var(--ease),border-color 220ms var(--ease)}
+.hoja .cerrar:hover{background:var(--hueso);border-color:var(--tinta)}
+.cerrando .velo{animation:velo-out 220ms var(--ease-salida) both}
+.cerrando .hoja{animation:hoja-out 220ms var(--ease-salida) both}
+@container escena (max-width:640px){
+  .capa{align-items:flex-end;padding:0}
+  .hoja{border-radius:var(--r-2xl) var(--r-2xl) 0 0;max-height:94%;border-bottom:0;animation-name:hoja-in-movil;animation-duration:380ms}
+}
+
+/* Sello de «Recibido»: el círculo y el visto se dibujan, dos ondas salen una vez */
+.sello{position:relative;width:88px;height:88px;display:grid;place-items:center}
+.sello svg{width:88px;height:88px;position:absolute;inset:0}
+.sello .aro{fill:none;stroke:var(--verde);stroke-width:2.5;stroke-dasharray:264;animation:trazo 900ms var(--ease) 100ms backwards;--largo:264}
+.sello .visto{fill:none;stroke:var(--verde);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;animation:trazo 600ms var(--ease) 700ms backwards;--largo:60}
+.sello .onda{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--verde);animation:ondas-sello 1.3s var(--ease) 1 both;pointer-events:none}
+.sello .onda.dos{animation-delay:220ms}
+
+/* ---------- sin movimiento: prefers-reduced-motion y el botón «Sin» de la barra ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important;scroll-behavior:auto!important}
+}
+.quieto *,.quieto *::before,.quieto *::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}
+.quieto #escena{scroll-behavior:auto}
+
+/* ---------- utilidades mínimas ---------- */
+.fila{display:flex;align-items:center;gap:10px}
+.fila.entre{justify-content:space-between}
+.fila.arriba{align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:10px}
+.envuelve{flex-wrap:wrap}
+.crece{flex:1;min-width:0}
+.oculto-cel{display:initial}
+@container escena (max-width:640px){.oculto-cel{display:none!important}.solo-cel{display:initial}}
+.solo-cel{display:none}
+
+/* ====================================================================
+   LO NUEVO de «Prendas de una etiqueta» con escaneo: el fondo (Campañas ▸ Etiquetas), la barra del lector, el segmento
+   Poner/Quitar, la fila de prenda rediseñada, la tarjeta de lectura, la pila de prendas, la cámara, Revisar y el sello.
+   ==================================================================== */
+.vuelo{position:fixed;z-index:200;pointer-events:none;left:0;top:0}
+.aviso-flotante{position:absolute;right:16px;z-index:90;opacity:0;transform:translateY(-8px);transition:opacity 240ms var(--ease),transform 240ms var(--ease);pointer-events:none}
+.aviso-flotante.ver{opacity:1;transform:none}
+
+/* ---------- fondo: Campañas ▸ Etiquetas (la pantalla desde la que se abre la hoja) ---------- */
+.grupo-tit{display:flex;align-items:center;gap:10px;margin:6px 0 12px}
+.grupo-tit::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--t35)}
+.tarjetas-etq{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.tarjeta-etq{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);padding:16px;display:flex;flex-direction:column;gap:10px}
+.tarjeta-etq .ilus{height:90px;border-radius:var(--r-lg);background:var(--hueso);display:grid;place-items:center;color:var(--taupe)}
+.tarjeta-etq .ilus svg.ic{width:44px;height:44px;stroke-width:1.3}
+.tarjeta-etq h3{font-size:17px;font-weight:500}
+.tarjeta-etq .btn{width:100%}
+
+/* ---------- la barra del lector: el buscador que también lee la pistola ---------- */
+.lector{position:relative;display:flex;align-items:center;gap:10px;min-height:54px;padding:0 8px 0 16px;border-radius:var(--r-lg);
+  background:var(--hueso);border:1px solid var(--sand);overflow:hidden;isolation:isolate;
+  transition:border-color 220ms var(--ease),background-color 220ms var(--ease),box-shadow 300ms var(--ease)}
+.lector:focus-within{background:var(--papel);border-color:var(--t45)}
+.lector::after{content:"";position:absolute;left:50%;right:50%;bottom:-1px;height:2px;background:var(--rojo);transition:left 380ms var(--ease),right 380ms var(--ease);z-index:2}
+.lector:focus-within::after{left:0;right:0}
+.lector input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:15px;padding:12px 0}
+.lector input::placeholder{color:var(--t45)}
+.lector .lupa{position:relative;width:20px;height:20px;flex:none;color:var(--t55)}
+.lector .lupa svg{position:absolute;inset:0;width:20px;height:20px;transition:opacity 260ms var(--ease),transform 360ms var(--ease)}
+.lector .lupa .b{opacity:0;transform:scale(.6) rotate(-20deg)}
+.lector[data-leyendo] .lupa .a{opacity:0;transform:scale(.6) rotate(20deg)}
+.lector[data-leyendo] .lupa .b{opacity:1;transform:none;color:var(--verde)}
+.lector .listo{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--t55);white-space:nowrap;padding-right:4px}
+.lector .listo i{width:7px;height:7px;border-radius:50%;background:var(--verde);color:var(--verde);animation:pulso-vivo 2.2s var(--ease) infinite}
+.lector .tecla{border:1px solid var(--t25);border-radius:5px;padding:0 6px;font-size:11px;color:var(--t55);line-height:18px}
+.lector .barrido{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;
+  background:linear-gradient(90deg,transparent 0,color-mix(in srgb,var(--verde) 0%,transparent) 30%,color-mix(in srgb,var(--verde) 22%,transparent) 50%,transparent 62%);background-size:260% 100%}
+.lector[data-barrido="verde"] .barrido{animation:barrido 620ms var(--ease) 1}
+.lector[data-barrido="ambar"] .barrido{background-image:linear-gradient(90deg,transparent 30%,color-mix(in srgb,var(--ambar) 26%,transparent) 50%,transparent 62%);animation:barrido 620ms var(--ease) 1}
+@keyframes barrido{from{opacity:1;background-position:100% 0}to{opacity:1;background-position:-30% 0}}
+.btn.cam-btn{min-height:40px;padding:0 12px}
+@container escena (max-width:640px){.lector .listo span,.lector .tecla{display:none}}
+
+/* ---------- segmento Poner / Quitar (SegmentoDeslizante) ---------- */
+.segmento{position:relative;display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--sand);border-radius:10px;padding:3px;isolation:isolate}
+.segmento button{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--t65);border-radius:8px;transition:color 220ms var(--ease);white-space:nowrap}
+.segmento button[aria-pressed=true]{color:var(--tinta)}
+.segmento .pista{position:absolute;z-index:0;top:3px;bottom:3px;left:3px;border-radius:8px;background:var(--papel);box-shadow:var(--sh-sm);transition:transform 340ms var(--ease),width 340ms var(--ease)}
+.segmento[data-tono="quitar"] button[aria-pressed=true]{color:var(--rojo-p)}
+.segmento svg.ic{width:14px;height:14px}
+
+/* ---------- fila de prenda ---------- */
+.lista-prendas{list-style:none}
+.lista-prendas>li{border-bottom:1px solid var(--t07)}
+.lista-prendas>li:last-child{border-bottom:0}
+.fp{display:flex;align-items:center;gap:12px;padding:10px 14px;position:relative;transition:background-color 220ms var(--ease)}
+.fp:hover{background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.fp::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;background:var(--rojo);transform:scaleY(0);transition:transform 300ms var(--ease)}
+.fp[aria-expanded=true]::before{transform:scaleY(1)}
+.fp .abre{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-align:left}
+.fp .nom{display:block;font-size:14.5px;color:var(--tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp .meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t55);margin-top:1px;white-space:nowrap;overflow:hidden}
+.fp .meta .mono{font-size:11px;color:var(--t45)}
+.fp .chev{width:16px;height:16px;color:var(--t35);transition:transform 300ms var(--ease)}
+.fp[aria-expanded=true] .chev{transform:rotate(90deg)}
+.fp .precio{text-align:right;font-variant-numeric:tabular-nums;line-height:1.2;min-width:78px}
+.fp .precio s{display:block;font-size:11px;color:var(--t45)}
+.fp .precio b{font-weight:500;font-size:14px}
+.fp .precio .tenue{font-size:13px}
+.fp[data-recien]{animation:respira 1.8s var(--ease) 1}
+@keyframes respira{0%{background-color:transparent}20%{background-color:color-mix(in srgb,var(--verde) 16%,transparent)}100%{background-color:transparent}}
+.fp[data-recien="ambar"]{animation-name:respira-ambar}
+@keyframes respira-ambar{20%{background-color:color-mix(in srgb,var(--ambar) 14%,transparent)}}
+/* puntos de tallas: uno por talla y color; lleno = lleva la etiqueta */
+.puntos{display:inline-flex;gap:3px;align-items:center}
+.puntos i{width:6px;height:6px;border-radius:50%;border:1px solid var(--t35);transition:background-color 260ms var(--ease),border-color 260ms var(--ease),transform 260ms var(--ease)}
+.puntos i.si{background:var(--verde);border-color:var(--verde)}
+.puntos i.cat{background:var(--pizarra);border-color:var(--pizarra)}
+.puntos i.pop{animation:pop 420ms var(--ease)}
+/* tallas al abrir: píldoras que se prenden */
+.tallas{display:flex;flex-wrap:wrap;gap:6px;padding:2px 14px 14px 66px;animation:revelar 260ms var(--ease) both}
+.vp{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--t15);border-radius:999px;padding:5px 11px 5px 7px;font-size:12.5px;color:var(--t75);background:var(--papel);
+  transition:background-color 220ms var(--ease),border-color 220ms var(--ease),color 220ms var(--ease)}
+.vp:hover:not(:disabled){border-color:var(--t45);color:var(--tinta)}
+.vp .dot{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tinta-fija) 18%,transparent)}
+.vp .tic{width:14px;height:14px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--t25);transition:all 220ms var(--ease)}
+.vp .tic svg{width:9px;height:9px;stroke:var(--crema-fija);stroke-width:3;fill:none;opacity:0}
+.vp[aria-pressed=true]{background:color-mix(in srgb,var(--verde) 10%,var(--papel));border-color:color-mix(in srgb,var(--verde) 45%,transparent);color:var(--tinta)}
+.vp[aria-pressed=true] .tic{background:var(--verde);border-color:var(--verde)}
+.vp[aria-pressed=true] .tic svg{opacity:1}
+.vp[aria-pressed=true] .tic svg path{stroke-dasharray:14;animation:trazo14 300ms var(--ease) both}
+.vp:disabled{opacity:.55;cursor:not-allowed}
+.vp .sku{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--t45)}
+
+/* casilla del sistema (Casilla): el fondo crece y el ✓ se dibuja; a medias, una raya */
+.casilla{position:relative;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--t35);flex:none;display:grid;place-items:center;background:var(--papel);transition:border-color 200ms var(--ease)}
+.casilla::before{content:"";position:absolute;inset:-1.5px;border-radius:6px;background:var(--tinta);transform:scale(0);transition:transform 240ms var(--ease)}
+.casilla svg{position:relative;width:12px;height:12px;stroke:var(--crema);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.casilla[data-estado="todas"]::before,.casilla[data-estado="algunas"]::before{transform:scale(1)}
+.casilla[data-estado="todas"] .v{opacity:1}
+.casilla[data-estado="todas"] .v path{stroke-dasharray:20;animation:trazo 300ms var(--ease) 60ms both;--largo:20}
+.casilla[data-estado="algunas"] .m{opacity:1}
+.casilla:disabled{opacity:.5;cursor:not-allowed}
+.casilla[data-cat]::before{background:var(--pizarra);transform:scale(1)}
+.casilla[data-cat] .v{opacity:1}
+
+/* ---------- tarjeta de lectura: lo que acaba de leer el lector ---------- */
+.lectura{position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r-lg);background:var(--papel);border:1px solid var(--sand);overflow:hidden}
+.lectura::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--verde);transform-origin:top;animation:crece-y 420ms var(--ease) both}
+.lectura[data-tono="ambar"]::before{background:var(--ambar)}
+.lectura[data-tono="pizarra"]::before{background:var(--pizarra)}
+.lectura[data-tono="taupe"]::before{background:var(--taupe)}
+.lectura.entra{animation:lectura-in 460ms var(--ease) both}
+@keyframes lectura-in{from{opacity:0;transform:translate3d(0,-10px,0) scale(.985)}}
+.lectura .mini{animation:mini-in 520ms var(--ease) 80ms both}
+@keyframes mini-in{from{opacity:0;transform:scale(.7) rotate(-6deg)}}
+.lectura .tit{font-size:15px;font-weight:500}
+.lectura .det{font-size:12.5px;color:var(--t55)}
+.lectura .det .mono{font-size:11px}
+.lectura .cifra-precio{text-align:right;font-variant-numeric:tabular-nums;line-height:1.15}
+.lectura .cifra-precio s{font-size:12px;color:var(--t45)}
+.lectura .cifra-precio b{display:block;font-family:'EB Garamond',Georgia,serif;font-size:26px;font-weight:600}
+.lectura .acciones{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.visto{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--verde)}
+.visto svg{width:13px;height:13px;stroke:var(--crema-fija);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.visto svg path{stroke-dasharray:20;animation:trazo 420ms var(--ease) 260ms both;--largo:20}
+:root[data-tema="oscuro"] .visto svg{stroke:var(--tinta-fija)}
+.visto.ambar{background:var(--ambar)}.visto.pizarra{background:var(--pizarra)}.visto.taupe{background:var(--taupe)}
+
+/* historial: las últimas lecturas, una tira de miniaturas con su sello */
+.tira{display:flex;align-items:center;gap:6px;min-height:34px}
+.tira .h{position:relative;animation:entrada 320ms var(--ease) backwards}
+.tira .h .mini{width:26px;height:32px;border-radius:6px}
+.tira .h .mini svg.ic{width:13px;height:13px}
+.tira .h b{position:absolute;right:-4px;bottom:-4px;width:14px;height:14px;border-radius:50%;background:var(--verde);border:2px solid var(--papel);display:grid;place-items:center}
+.tira .h b.ambar{background:var(--ambar)}.tira .h b.pizarra{background:var(--pizarra)}.tira .h b.taupe{background:var(--taupe)}
+.tira .h.deshecha{opacity:.35}
+
+/* pila de prendas (como PilaPersonas, con miniaturas) */
+.pila{display:inline-flex;align-items:center}
+.pila .mini{width:26px;height:32px;border-radius:6px;box-shadow:0 0 0 2px var(--papel);margin-left:-8px;transition:margin 300ms var(--ease)}
+.pila .mini:first-child{margin-left:0}
+.pila .mini svg.ic{width:13px;height:13px}
+.pila:hover .mini{margin-left:-2px}
+.pila .mas{margin-left:6px;font-size:12px;color:var(--t55)}
+
+/* responsable (ComboResponsable, simulado) */
+.resp{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 12px;border-radius:var(--r-md);background:var(--hueso);border:1px solid var(--sand);font-size:14px}
+.resp .av{--av:30px}
+.resp small{color:var(--t55)}
+
+/* ---------- la cámara del teléfono (como EscanerCamara: video negro, visor con esquinas, bandeja crema) ---------- */
+.cam{position:absolute;inset:0;z-index:70;background:var(--tinta-fija);color:var(--crema-fija);overflow:hidden;display:flex;flex-direction:column;animation:velo-in 260ms var(--ease) both}
+.cam.cerrando{animation:velo-out 240ms var(--ease-salida) both}
+.cam-feed{position:absolute;inset:0;background:radial-gradient(120% 90% at 30% 20%,var(--c1,#6e2433) 0,transparent 60%),radial-gradient(90% 80% at 80% 90%,var(--c2,#3d3c38) 0,transparent 70%),#262522;filter:saturate(.8) brightness(.75);transition:background 600ms var(--ease)} /* tema-fijo: simula la imagen de la cámara */
+.cam-feed::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 7px)} /* tema-fijo: trama de la tela en la cámara simulada */
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam-etq{position:absolute;left:50%;top:44%;width:150px;padding:14px 14px 12px;border-radius:10px;background:#fbf8f2;color:#1a1a18;box-shadow:0 18px 40px -12px rgba(0,0,0,.6);transform:translate(-50%,-50%) rotate(-4deg);opacity:0;text-align:center} /* tema-fijo: la etiqueta impresa es papel */
+.cam-etq::before{content:"";position:absolute;top:7px;left:50%;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:#262522}
+.cam-etq .qr{width:110px;height:110px;margin:10px auto 6px;display:block}
+.cam-etq .t{font-size:10px;letter-spacing:.14em;font-weight:700}
+.cam-etq .c{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;opacity:.7}
+.cam-etq.llega{animation:etq-llega 900ms var(--ease) both}
+.cam-etq.se-va{animation:etq-se-va 420ms var(--ease-salida) both}
+@keyframes etq-llega{from{opacity:0;transform:translate(-20%,40%) rotate(8deg) scale(.7)}to{opacity:1;transform:translate(-50%,-50%) rotate(-3deg) scale(1)}}
+@keyframes etq-se-va{from{opacity:1;transform:translate(-50%,-50%) rotate(-3deg)}to{opacity:0;transform:translate(-120%,-40%) rotate(-14deg) scale(.8)}}
+.cam-visor{position:absolute;left:50%;top:44%;width:min(62vw,250px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:22px;box-shadow:0 0 0 2000px color-mix(in srgb,var(--tinta-fija) 55%,transparent);transition:transform 380ms var(--ease)}
+.cam-visor.lee{animation:visor-lee 520ms var(--ease) 1}
+@keyframes visor-lee{35%{transform:translate(-50%,-50%) scale(.9)}}
+.cam-visor .esq{position:absolute;width:34px;height:34px;border:3px solid var(--crema-fija);opacity:.95}
+.cam-visor .esq:nth-child(1){left:0;top:0;border-right:0;border-bottom:0;border-top-left-radius:22px}
+.cam-visor .esq:nth-child(2){right:0;top:0;border-left:0;border-bottom:0;border-top-right-radius:22px}
+.cam-visor .esq:nth-child(3){left:0;bottom:0;border-right:0;border-top:0;border-bottom-left-radius:22px}
+.cam-visor .esq:nth-child(4){right:0;bottom:0;border-left:0;border-top:0;border-bottom-right-radius:22px}
+.cam-visor .laser{position:absolute;left:12%;right:12%;height:2px;top:10%;border-radius:2px;background:var(--rojo);box-shadow:0 0 14px 2px color-mix(in srgb,var(--rojo) 70%,transparent);animation:laser-y 2.4s var(--ease) infinite alternate}
+@keyframes laser-y{from{top:10%}to{top:88%}}
+.cam-visor .destello{position:absolute;inset:0;border-radius:22px;opacity:0;pointer-events:none}
+.cam-visor .destello.verde{animation:dest-cam 600ms var(--ease) 1;background:color-mix(in srgb,var(--verde) 45%,transparent);box-shadow:0 0 0 3px var(--verde)}
+.cam-visor .destello.ambar{animation:dest-cam 600ms var(--ease) 1;background:color-mix(in srgb,var(--ambar) 45%,transparent);box-shadow:0 0 0 3px var(--ambar)}
+@keyframes dest-cam{20%{opacity:1}100%{opacity:0}}
+.cam-top{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:16px}
+.cam-top .redondo{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--tinta-fija) 55%,transparent);border:1px solid color-mix(in srgb,var(--crema-fija) 25%,transparent);color:var(--crema-fija)}
+.cam-top .redondo svg.ic{width:18px;height:18px}
+.cam-top .redondo[aria-pressed=true]{background:var(--crema-fija);color:var(--tinta-fija)}
+.cam-top h3{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:21px;text-align:center;line-height:1.1}
+.cam-top h3 small{display:block;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:400;opacity:.75;margin-top:2px}
+.cam-pista{position:absolute;z-index:3;left:0;right:0;top:calc(44% + min(31vw,125px) + 18px);text-align:center;font-size:13px;opacity:.85}
+.cam-pista .btn{margin-top:10px}
+.cam-ficha{position:absolute;z-index:4;left:50%;top:44%;width:min(80%,300px);transform:translate(-50%,-50%);display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:var(--crema-fija);color:var(--tinta-fija);box-shadow:0 24px 50px -16px rgba(0,0,0,.7)} /* tema-fijo: sombra sobre el video negro */
+.cam-ficha .mini{width:44px;height:54px}
+.cam-ficha .tit{font-weight:600;font-size:14px;line-height:1.2}
+.cam-ficha .det{font-size:12px;opacity:.7}
+.cam-ficha .chip{margin-top:4px}
+.cam-ficha.aparece{animation:ficha-cam 360ms var(--ease) both}
+@keyframes ficha-cam{from{opacity:0;transform:translate(-50%,-40%) scale(.9)}}
+.cam-bandeja{position:relative;z-index:3;margin-top:auto;width:min(100%,560px);margin-left:auto;margin-right:auto;background:var(--crema-fija);color:var(--tinta-fija);border-radius:22px 22px 0 0;padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px}
+.cam-bandeja .ult{display:flex;flex-direction:column;gap:6px;min-height:20px}
+.cam-bandeja .ult .u{display:flex;align-items:center;gap:10px;font-size:13px;animation:entrada 320ms var(--ease) backwards}
+.cam-bandeja .ult .u .mini{width:26px;height:32px;border-radius:6px}
+.cam-bandeja .ult .u .mini svg.ic{width:13px;height:13px}
+.cam-bandeja .ult .u small{color:color-mix(in srgb,var(--tinta-fija) 60%,transparent)}
+.cam-bandeja .pie{display:flex;align-items:center;gap:12px}
+.cam-bandeja .cuenta{display:flex;align-items:center;gap:10px}
+.cam-bandeja .cuenta .etq-ic{width:42px;height:42px;border-radius:12px;background:var(--tinta-fija);color:var(--crema-fija);display:grid;place-items:center;position:relative}
+.cam-bandeja .cuenta .etq-ic.late{animation:pop 480ms var(--ease)}
+.cam-bandeja .cuenta b{font-family:'EB Garamond',Georgia,serif;font-size:24px;line-height:1}
+.cam-bandeja .btn.pri{background:var(--tinta-fija);color:var(--crema-fija)}
+.cam-bandeja .segmento{background:color-mix(in srgb,var(--tinta-fija) 10%,var(--crema-fija))}
+.cam-bandeja .segmento .pista{background:#fbf8f2} /* tema-fijo: la bandeja de la cámara es crema en los dos temas */
+.cam-bandeja .segmento button{color:color-mix(in srgb,var(--tinta-fija) 60%,transparent)}
+.cam-bandeja .segmento button[aria-pressed=true]{color:var(--tinta-fija)}
+.cam-error{position:absolute;inset:0;z-index:5;display:grid;place-items:center;text-align:center;padding:24px}
+
+/* ---------- Revisar y aplicar, y el sello ---------- */
+.revisar{display:flex;flex-direction:column;gap:16px}
+.antes-despues{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:18px;border-radius:var(--r-xl);background:var(--hueso)}
+.antes-despues .lado{text-align:center}
+.antes-despues .lado .versal{color:var(--taupe)}
+.antes-despues .lado b{display:block;font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums}
+.antes-despues .lado.antes b{color:var(--t55);text-decoration:line-through;text-decoration-thickness:1.5px}
+.antes-despues .flecha-ad{width:40px;height:40px;border-radius:50%;background:var(--papel);display:grid;place-items:center;animation:sube 600ms var(--ease) 300ms backwards}
+.bloque-cambio{border:1px solid var(--sand);border-radius:var(--r-lg);padding:14px 16px;display:flex;align-items:center;gap:14px}
+.bloque-cambio .crece b{font-weight:600}
+.bloque-cambio .crece p{font-size:13px;color:var(--t65)}
+.listo-final{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:18px 0 6px}
+.listo-final h3{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:28px}
+.listo-final p{color:var(--t65);max-width:380px}
+
+/* ---------- etiquetas de prueba (NO es parte de la pantalla: sirve para probar la pistola y la cámara de verdad) ---------- */
+.prueba-velo{position:fixed;inset:0;z-index:150;background:color-mix(in srgb,var(--sombra) 45%,transparent);display:grid;place-items:center;padding:20px;animation:velo-in 200ms var(--ease) both}
+.prueba{background:var(--crema);border:1px dashed var(--t45);border-radius:16px;padding:18px;max-width:900px;max-height:90vh;overflow:auto}
+.prueba h4{font-size:14px;font-weight:700}
+.prueba p{font-size:12.5px;color:var(--t65);margin:4px 0 14px;max-width:640px}
+.prueba-grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.etq-p{position:relative;background:#fbf8f2;color:#1a1a18;border-radius:10px;padding:18px 10px 10px;text-align:center;border:1px solid #e8e0d0;cursor:pointer;transition:translate 200ms var(--ease)} /* tema-fijo: una etiqueta impresa es papel blanco */
+.etq-p:hover{translate:0 -2px}
+.etq-p::before{content:"";position:absolute;top:7px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#e8e0d0} /* tema-fijo: el ojal de la etiqueta impresa */
+.etq-p svg{width:120px;height:120px;display:block;margin:4px auto}
+.etq-p b{display:block;font-size:11px}
+.etq-p small{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;opacity:.7}
+.menu-cat{position:absolute;z-index:30;top:calc(100% + 6px);left:0;min-width:220px;max-height:280px;overflow:auto;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-lg);padding:6px;box-shadow:var(--sh-lg);animation:revelar 240ms var(--ease) both}
+.menu-cat button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;font-size:13.5px}
+.menu-cat button:hover{background:var(--hueso)}
+.menu-cat button svg.ic{width:16px;height:16px}
+.menu-cat button svg.ic:last-child:not(.cat){margin-left:auto;color:var(--rojo)}
+.pildoras{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@container escena (max-width:640px){.pildoras{flex-wrap:nowrap;overflow-x:auto;padding:2px 0;scrollbar-width:none;max-width:100%}.pildoras>*{flex:none}}
+.pildora [data-cat-x] svg.ic{width:13px;height:13px}
+.pildora svg.ic{width:14px;height:14px}

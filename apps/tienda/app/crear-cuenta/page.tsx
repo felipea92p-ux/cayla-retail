@@ -15,7 +15,7 @@ export default async function CrearCuenta() {
   const hoy = await hoyDeLima();
   return (
     <MarcoCuenta enPagina="crear-cuenta">
-      <PantallaDeEntrada alto="largo" ancho="ancho" panel={<PanelDelClub desde={hoy.anio} nombreVivo />}>
+      <PantallaDeEntrada titulo="corto" alto="largo" ancho="ancho" panel={<PanelDelClub desde={hoy.anio} nombreVivo />}>
         <FormularioRegistro />
       </PantallaDeEntrada>
     </MarcoCuenta>

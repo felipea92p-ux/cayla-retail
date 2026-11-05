@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import type { Bloque, Trozo } from "@/lib/club-registro-reglas";
 
 // Las piezas que comparten las páginas PÚBLICAS del Club CAYLA (ADR-0288 act. g): la política de privacidad y los términos (el
@@ -7,16 +7,14 @@ import type { Bloque, Trozo } from "@/lib/club-registro-reglas";
 // `app/(app)`: sin menú ni cabecera del ERP, una columna angosta pensada primero para el celular de ella (375 px). Su aspecto
 // (el del diseño aprobado el 2026-10-01) vive en `app/estilos/club-publico.css`.
 
-/** El colibrí y «CAYLA · CLUB» arriba a la izquierda y, si se sabe, la tienda del cartel a la derecha. */
+/** El logo oficial de CAYLA y «CLUB» arriba a la izquierda y, si se sabe, la tienda del cartel a la derecha. */
 export function CabezaClub({ tienda }: { tienda?: string }) {
   return (
     <div className="club-cabeza">
       <div className="club-marca">
-        <IsotipoCayla className="club-marca-colibri" color="currentColor" />
-        <span className="club-marca-texto">
-          <span className="club-marca-cayla">CAYLA</span>
-          <span className="club-marca-club">CLUB</span>
-        </span>
+        <LogoCayla className="club-marca-logo" />
+        <span className="sr-only">CAYLA</span>
+        <span className="club-marca-club">CLUB</span>
       </div>
       {tienda && <span className="club-cabeza-tienda">{tienda}</span>}
     </div>
