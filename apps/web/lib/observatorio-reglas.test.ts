@@ -12,6 +12,8 @@ import {
   parsearObservatorio,
   parsearTienda,
   porAgotarse,
+  rangoPico,
+  tonoPico,
   rankear,
   sumarDias,
   textoDelPeriodo,
@@ -160,6 +162,37 @@ describe("lecturas", () => {
     expect(t.categorias.d7).toEqual([]);
     expect(t.quietas).toEqual({ variantes: 3, unidades: 8 });
     expect(grillaPico(t.pico)[5][6]).toBe(520);
+  });
+
+  it("horas pico: la grilla se ensancha a las horas con ventas y no amontona lo tardío en las 8 pm", () => {
+    // Arequipa vende hasta las 22 h; antes esas ventas caían en la columna de las 20 h.
+    const pico = [
+      { d: 5, h: 20, s: 100 },
+      { d: 5, h: 21, s: 300 },
+      { d: 5, h: 22, s: 50 },
+    ];
+    expect(rangoPico(pico)).toEqual({ desde: 10, hasta: 22 });
+    const g = grillaPico(pico, 10, 22);
+    expect(g[4]).toHaveLength(13);
+    expect(g[4][10]).toBe(100); // 20 h
+    expect(g[4][11]).toBe(300); // 21 h
+    expect(g[4][12]).toBe(50); // 22 h
+  });
+
+  it("horas pico: sin ventas, o con ventas dentro de 10 a 20, queda el rango de siempre; una hora sin ventas no ensancha", () => {
+    expect(rangoPico([])).toEqual({ desde: 10, hasta: 20 });
+    expect(rangoPico([{ d: 1, h: 14, s: 5 }])).toEqual({ desde: 10, hasta: 20 });
+    expect(rangoPico([{ d: 1, h: 23, s: 0 }])).toEqual({ desde: 10, hasta: 20 });
+    expect(rangoPico([{ d: 1, h: 22, s: -40 }])).toEqual({ desde: 10, hasta: 22 });
+    expect(rangoPico([{ d: 1, h: 9, s: 5 }])).toEqual({ desde: 9, hasta: 20 });
+    expect(grillaPico([])[0]).toHaveLength(11);
+  });
+
+  it("horas pico: el color sube con lo vendido (ámbar, rojo, rojo profundo) y lo flojo se ve tenue", () => {
+    expect(tonoPico(0, 100)).toMatchObject({ t: 0, h1: 0, h2: 0, p: 32 });
+    expect(tonoPico(50, 100)).toMatchObject({ h1: 100, h2: 0 });
+    expect(tonoPico(100, 100)).toMatchObject({ h1: 100, h2: 100, p: 100 });
+    expect(tonoPico(5, 0).t).toBe(0);
   });
 
   it("lo que se va a agotar: solo con ritmo medido y pocos días, del que menos dura al que más", () => {

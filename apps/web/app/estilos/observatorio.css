@@ -312,14 +312,19 @@
 .o-ley i { width: 16px; height: 0; border-top: 2.5px solid var(--o-foco); }
 .o-ley i.ant { border-top: 2px dotted var(--o-tx3); }
 .o-ley i.cmp { border-top: 2px dashed var(--color-taupe); }
-.o-hm { display: grid; grid-template-columns: 22px repeat(11, minmax(0, 1fr)); gap: 3px; align-items: center; }
+/* Horas pico: una columna por hora (`--n`, de la primera a la última con ventas) y un color que sube de dorado a rojo y, en lo
+   más fuerte, a rojo profundo; lo vacío queda en gris tenue. `--h1`, `--h2` y `--p` los pone `tonoPico` (observatorio-reglas.ts). */
+.o-hm { display: grid; grid-template-columns: 22px repeat(var(--n, 11), minmax(0, 1fr)); gap: 3px; align-items: center; }
 .o-hm span { font-size: 10px; color: var(--o-tx3); text-align: center; }
-.o-hm i { display: block; aspect-ratio: 1.9; border-radius: 4px; background: color-mix(in oklab, var(--o-foco) var(--p), transparent); transition: transform 0.25s var(--o-ease); }
+.o-hm .o-hm-h small { font-size: 9.5px; margin-left: 1px; }
+.o-hm i { display: block; aspect-ratio: 1.9; border-radius: 4px; background: color-mix(in oklab, color-mix(in oklab, var(--color-rojo-profundo) var(--h2, 0%), color-mix(in oklab, var(--color-rojo) var(--h1, 0%), var(--color-grafico-baja))) var(--p), transparent); transition: transform 0.25s var(--o-ease); }
+.o-hm i.vacia { background: color-mix(in oklab, var(--color-tinta) 6%, transparent); }
+@container obs (max-width: 640px) { .o-hm .o-hm-h.par { visibility: hidden; } .o-hm i { aspect-ratio: 1.2; } }
 .o-hm i:hover { transform: scale(1.18); outline: 1.5px solid var(--o-foco); outline-offset: 1px; }
 .o-t-cuerpo.nuevo .o-hm i { animation: o-celda 0.55s var(--o-ease) both; animation-delay: calc((var(--r) + var(--c)) * 26ms + 200ms); }
 @keyframes o-celda { from { opacity: 0; transform: scale(0.3); } }
 .o-hm-ley { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--o-tx3); justify-content: flex-end; margin-top: 8px; }
-.o-hm-ley b { display: block; width: 90px; height: 7px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in oklab, var(--o-foco) 6%, transparent), var(--o-foco)); }
+.o-hm-ley b { display: block; width: 90px; height: 7px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in oklab, var(--color-grafico-baja) 32%, transparent), var(--color-grafico-baja) 25%, var(--color-rojo) 50%, var(--color-rojo-profundo)); }
 .o-pills { display: flex; gap: 6px; flex-wrap: wrap; }
 .o-pill { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--o-borde) !important; font-size: 12px; font-weight: 600; color: var(--o-tx2); transition: background 0.3s var(--o-ease), color 0.3s, border-color 0.3s; }
 .o-pill:hover { color: var(--o-tx); border-color: var(--o-tx3) !important; }
