@@ -59,3 +59,8 @@
   POR QUÉ ASÍ: en producción las 7 órdenes ya tienen pasos: el cajón solo servía para las de antes de los pasos, y ya no hay ninguna.
   QUÉ SE ROMPERÍA SIN ESTO: el rediseño habría tenido que cargar con dos maneras de ver una orden.
   Verificado: la web completa (166,433 pruebas), tipos, Knip y Knip de producción; en el navegador local la lista enlaza a `/produccion/ordenes/OP-000379`.
+- **Actividad 16 · Prueba completa y entrega.**
+  QUÉ HICE: corrí 70 suites de la base, la web completa, las 10 guías del Taller en el navegador y `/chaos` en la base; dejé el mapa para el rediseño.
+  POR QUÉ ASÍ: el rediseño parte de reglas verificadas y sabe qué no tocar.
+  QUÉ SE ROMPERÍA SIN ESTO: un cambio visual podría llevarse una regla de dinero sin que nadie lo note; `produccion_ploteo` estaba en rojo por el tope de corte y lo habría encontrado el CI.
+  Verificado: 70 de 70 suites (dos solo pasan sin las órdenes de prueba locales que dejé, porque cuentan todas las órdenes: se comprobó quitándolas dentro de una transacción), 166,433 pruebas web, Knip y las 10 guías. `/chaos`: 0 estados imposibles, las invariantes limpias y la base local restaurada idéntica.

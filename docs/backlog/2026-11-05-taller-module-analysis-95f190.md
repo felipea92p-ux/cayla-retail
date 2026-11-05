@@ -18,6 +18,12 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 13 · Los avíos declarados se descuentan solos al pasar al stock, no al terminar cada paso (la base no sabe qué paso usa cada avío). Si no alcanza, descuenta lo que hay y lo deja escrito, sin frenar. **POR PEGAR:** `20261106003000_avios_se_descuentan_al_cerrar.sql`, una parte. Vale para órdenes que cierren después: OP-2 y OP-3 no se tocan solas.
 - [x] 14 · Las tres etapas de una prenda: en producción no sale en ningún lado; terminada, en Existencias y Análisis; en una tienda, en todo. Llegar a una tienda no tiene vuelta. **POR PEGAR:** `20261106004000_tres_etapas_de_una_prenda.sql`, una parte, antes de publicar la web.
 - [x] 15 · Retirar el cajón de órdenes antiguas: seis archivos y las reglas que solo él usaba. Verificado en producción que las 7 órdenes tienen pasos. `?orden=<id>` lleva a la página de la orden. Sin migración.
-- [ ] 16 · Prueba completa y entrega para el rediseño.
+- [x] 16 · Prueba completa y entrega para el rediseño: mapa en `docs/pantallas/taller-reglas-para-el-rediseno.md`.
+
+### Lo que falta, con el OK de Felipe
+- [ ] Pegar en producción, en este orden: `20261105221000`, `20261105222000`, `20261105223000`, `20261105225000`, `20261105232000`, `20261105233000`, `20261105234000`, `20261106003000`, `20261106004000`. Cada archivo dice cómo verificarlo.
+- [ ] Abrir el PR con `/abrir-pr` y publicar la web.
+- [ ] Al pegar, refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`). Hoy no toca: describe producción, y solo `20261105213000` está pegada.
+- [ ] Dudas abiertas de `/chaos` (informe fuera de git): una fecha de emisión de 1900 se acepta, y una cantidad enorme responde con un error en inglés.
 
 **Límite conocido de la actividad 1:** una prenda con un cierre revertido sigue con su costo bloqueado a mano.

@@ -98,3 +98,9 @@ SE ROMPE SI: alguien busca en Productos un modelo que sigue en el Taller para ed
 DECIDÍ: borrar `OrdenPanel`, `OrdenInsumos`, `OrdenCierre`, `OrdenModales`, `OrdenTarjeta` y `MatrizOrden`, con las reglas que solo ellos usaban. Antes se preguntó a producción (2026-11-05, solo lectura): 7 órdenes, ninguna sin pasos. Toda orden se sigue en su página y `?orden=<id>` lleva a ella.
 DESCARTÉ: (1) dejarlo «por si acaso»: 1.269 líneas que el rediseño tendría que rodear, con su guía y sus pendientes contados; (2) soltar ya `set_etapa_produccion` de la base: es otra migración, sin apuro, y la lista la recoge para después.
 SE ROMPE SI: reaparece una orden sin pasos (por SQL a mano; ninguna pantalla la crea): su página abre, pero no ofrece ningún paso. Lo correcto entonces es agregarle sus pasos, no revivir el cajón.
+
+## Actividad 16: prueba completa y entrega (sin migración)
+
+DECIDÍ: dejar el mapa de lo que el rediseño no puede romper en `docs/pantallas/taller-reglas-para-el-rediseno.md`, y no refrescar el diccionario hasta pegar: describe producción, no esta rama.
+DESCARTÉ: atacar desde el navegador cada hoja con `/chaos`: el ataque en la base cubre lo que puede dejar datos malos, y lo visual se rehace en el rediseño. Queda dicho como «no cubierto».
+SE ROMPE SI: se publica la web antes de pegar las migraciones: las hojas nuevas fallan al guardar. El orden está en el backlog.

@@ -83,7 +83,16 @@ const REGISTRAR_AVANCE_DE_ANTES = (() => {
   if (desde < 0 || hasta < 0) throw new Error("no encontré registrar_avance en 20261014155000: revisa el inverso de esta suite");
   return texto.slice(desde, hasta + 4);
 })();
+// Y `fn_produccion_entrada_variante`, que 20261105232000 (ADR-0614, tope de corte de 3 prendas) reescribió entera: vuelve a la que dejó 20261019192000 (leída de esa migración).
+const ENTRADA_VARIANTE_DE_ANTES = (() => {
+  const texto = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
+  const desde = texto.indexOf("create or replace function retail.fn_produccion_entrada_variante(");
+  const hasta = texto.indexOf("\n$$;", desde);
+  if (desde < 0 || hasta < 0) throw new Error("no encontré fn_produccion_entrada_variante en 20261019192000: revisa el inverso de esta suite");
+  return texto.slice(desde, hasta + 4);
+})();
 const DESHACER_CINCO_PASOS = `
+${ENTRADA_VARIANTE_DE_ANTES}
 ${REGISTRAR_AVANCE_DE_ANTES}
 do $deshacer_cinco$
 declare v_def text;
