@@ -132,6 +132,15 @@ export function textosDeOrden(tipo: TipoColumna): { asc: string; desc: string } 
   return { asc: "A → Z", desc: "Z → A" };
 }
 
+/**
+ * A dónde lleva tocar una cabecera que solo ordena (sin globo: la flecha cambia ahí mismo). Si ya es la ordenada, da la vuelta; si no, empieza
+ * por lo que se quiere ver primero: el nombre de la A a la Z, y la cifra o la fecha de mayor a menor.
+ */
+export function ordenAlTocar<F>(columna: Pick<ColumnaDatos<F>, "clave" | "tipo">, orden: OrdenViva | null): OrdenViva {
+  if (orden?.clave === columna.clave) return { clave: columna.clave, dir: orden.dir === "desc" ? "asc" : "desc" };
+  return { clave: columna.clave, dir: columna.tipo === "texto" || columna.tipo === "opcion" ? "asc" : "desc" };
+}
+
 /** «Blusas», «Blusas o Casacas», «Blusas, Casacas o Jeans». */
 export function unirConO(valores: readonly string[]): string {
   if (valores.length <= 1) return valores[0] ?? "";

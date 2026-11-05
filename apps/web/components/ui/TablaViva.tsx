@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject } from "react";
-import { ArrowDown, ArrowDownUp, ChevronDown, Funnel, FunnelX } from "lucide-react";
+import { ArrowDown, ArrowDownUp, ArrowUp, ArrowUpDown, ChevronDown, Funnel, FunnelX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { Interruptor } from "@/components/ui/campos";
@@ -23,6 +23,7 @@ import {
   filtrarFilas,
   fraseDeLoQueVes,
   hayFiltrosPuestos,
+  ordenAlTocar,
   ordenarFilas,
   partesDeFiltros,
   textosDeOrden,
@@ -43,9 +44,10 @@ import {
      1. Letra que cualquiera lee: el dato a 15 px, lo de debajo a 14 (el piso de lectura del ERP), la cabecera a 12,5 en tinta. Y
         «Letra grande» (17 px), que se recuerda en el aparato (`localStorage`, con try/catch: sin él, vale mientras dure la página).
      2. Todo al centro, cabecera y dato; los montos, en una caja del ancho del más largo con las cifras a la derecha.
-     3. Filtrar y ordenar desde la cabecera: tocar el nombre abre el globo con «Ordenar» y «Mostrar solo» (cuántas filas tiene cada
-        opción); se aplica al tocar, sin «Aplicar». La cabecera filtrada lleva un punto rojo. Bajo 640 px de ventana el globo es la hoja
-        del celular a media altura (`<Modal mediaAltura>`, ADR-0479), con opciones de 44 px.
+     3. Filtrar y ordenar desde la cabecera: tocar el nombre de una columna que filtra abre el globo con las flechas de «Ordenar» (↑ ↓, sin
+        texto: Felipe 2026-11-05) y «Mostrar solo» (cuántas filas tiene cada opción); una columna que solo ordena cambia su flecha al tocarla,
+        sin globo. Todo se aplica al tocar, sin «Aplicar». La cabecera filtrada lleva un punto rojo. Bajo 640 px de ventana el globo es la
+        hoja del celular a media altura (`<Modal mediaAltura>`, ADR-0479), con opciones de 44 px.
      4. Lo que ves, en una frase, y lo puesto en píldoras que se quitan (`<FiltroPuesto>`, `<BotonLimpiar>`).
      5. La cabecera te acompaña al bajar: pegada bajo las islas del marco, recortando lo que sube por encima (CSS guiado por el
         desplazamiento, ver app/estilos/vidrio/tabla-viva.css).
@@ -74,8 +76,8 @@ export type ColumnaViva<F> = ColumnaDatos<F> & {
   /** La pista de la rejilla (`minmax(0,1.5fr)`, `8rem`). De fábrica `minmax(0,1fr)`; un monto o un número con `texto`, de fábrica, nunca
    *  más angosto que su caja (el más largo + aire): así un monto no se sale de su columna. */
   ancho?: string;
-  /** Bajo qué ancho de la tabla se va la columna. Sin él, se queda hasta la tarjeta. */
-  seVa?: 1060 | 840;
+  /** Bajo qué ancho de la tabla se va la columna (los escalones de tabla-viva.css). Sin él, se queda hasta la tarjeta. */
+  seVa?: 1060 | 960 | 840 | 740;
   /** Lo que dice bajo la columna principal cuando esta columna se fue («6 artículos», «entró hace 3 días»). */
   resumen?: (fila: F) => ReactNode;
   /** La columna que nombra la fila (proveedor, modelo): recibe la línea de debajo y va primera en la tarjeta. */
@@ -261,8 +263,8 @@ export function TablaViva<F>({
     for (const c of columnas) if ((c.tipo === "monto" || c.tipo === "numero") && c.texto) m.set(c.clave, anchoDeMontos(filas.map((f) => c.texto!(f))));
     return m;
   }, [columnas, filas]);
-  // La pista de la rejilla en cada escalón: todas, sin las de `seVa: 1060`, y sin ninguna de las que se van. El ancho de una cifra
-  // (`--tv-cifra`) se mide en la tabla con su letra (15 o 17 px): la columna crece con «Letra grande» igual que su caja.
+  // La pista de la rejilla en cada escalón: en cada uno se quedan las que no declaran `seVa` y las que se van más abajo. El ancho de una
+  // cifra (`--tv-cifra`) se mide en la tabla con su letra (15 o 17 px): la columna crece con «Letra grande» igual que su caja.
   const pista = (c: ColumnaViva<F>) => {
     if (c.ancho) return c.ancho;
     const w = anchoMonto.get(c.clave);
@@ -270,10 +272,17 @@ export function TablaViva<F>({
     // columnas de texto, que son las que cortan.
     return w ? `max(calc(${w} * var(--tv-cifra) + 1.5rem), 7.5rem)` : "minmax(0,1fr)";
   };
+  const pistasBajo = (escalon: number) =>
+    columnas
+      .filter((c) => !c.seVa || c.seVa < escalon)
+      .map(pista)
+      .join(" ");
   const estiloTabla = {
     "--tv-cols-todas": columnas.map(pista).join(" "),
-    "--tv-cols-1060": columnas.filter((c) => c.seVa !== 1060).map(pista).join(" "),
-    "--tv-cols-840": columnas.filter((c) => !c.seVa).map(pista).join(" "),
+    "--tv-cols-1060": pistasBajo(1060),
+    "--tv-cols-960": pistasBajo(960),
+    "--tv-cols-840": pistasBajo(840),
+    "--tv-cols-740": pistasBajo(740),
   } as CSSProperties;
   // Dónde se pega la cabecera y dónde termina: se mide al pintar, al cambiar el ancho o la letra (UNA vez, no en cada desplazamiento).
   // El recorte de lo que sube lo hace el navegador en el mismo cuadro en que mueve la lista (tabla-viva.css).
@@ -334,7 +343,6 @@ export function TablaViva<F>({
   function celdas(f: F, i: number) {
     const debajo = columnas
       .filter((c) => c.seVa && c.resumen)
-      .sort((a, b) => (b.seVa ?? 0) - (a.seVa ?? 0))
       .map((c) => (
         <span key={c.clave} className={`tv-en-${c.seVa}`}>
           {c.resumen!(f)}
@@ -415,10 +423,20 @@ export function TablaViva<F>({
             className="pildora-cayla tv-pildora-m"
             aria-haspopup="dialog"
             aria-expanded={globo?.tipo === "orden"}
+            aria-label={columnaOrdenada && orden ? `Ordenar. Ahora: ${columnaOrdenada.titulo}, ${(columnaOrdenada.textosOrden ?? textosDeOrden(columnaOrdenada.tipo))[orden.dir]}` : "Ordenar"}
             onClick={(e) => abrirGlobo({ tipo: "orden" }, e.currentTarget)}
           >
-            <ArrowDownUp aria-hidden className="h-3.5 w-3.5" />
-            {columnaOrdenada && orden ? `${columnaOrdenada.titulo}: ${(columnaOrdenada.textosOrden ?? textosDeOrden(columnaOrdenada.tipo))[orden.dir]}` : "Ordenar"}
+            {columnaOrdenada && orden ? (
+              <>
+                {columnaOrdenada.titulo}
+                <ArrowDown aria-hidden className="tv-flecha-puesta h-3.5 w-3.5" data-dir={orden.dir} />
+              </>
+            ) : (
+              <>
+                <ArrowDownUp aria-hidden className="h-3.5 w-3.5" />
+                Ordenar
+              </>
+            )}
           </button>
         )}
         {columnas
@@ -451,6 +469,9 @@ export function TablaViva<F>({
               const ordenada = orden?.clave === c.clave ? orden.dir : undefined;
               const puestas = (filtros[c.clave] ?? []).length;
               const tocable = c.filtra || c.ordena !== false;
+              // Con «Mostrar solo», el nombre abre el globo. Si solo ordena no hay nada que elegir: la flecha cambia al tocar, sin globo.
+              const siguiente = ordenAlTocar(c, orden);
+              const textos = c.textosOrden ?? textosDeOrden(c.tipo);
               const clases = ["tv-celda", c.seVa ? `tv-se-va-${c.seVa}` : "", c.alinear === "izquierda" ? "tv-izq" : ""].join(" ");
               return (
                 <div
@@ -465,16 +486,21 @@ export function TablaViva<F>({
                     <button
                       type="button"
                       className="tv-col"
-                      aria-haspopup="dialog"
-                      aria-expanded={globo?.tipo === "columna" && globo.clave === c.clave}
-                      aria-label={`${c.titulo}: ${c.filtra ? "ordenar y filtrar" : "ordenar"}${puestas ? `, ${puestas} ${puestas === 1 ? "filtro puesto" : "filtros puestos"}` : ""}`}
+                      aria-haspopup={c.filtra ? "dialog" : undefined}
+                      aria-expanded={c.filtra ? globo?.tipo === "columna" && globo.clave === c.clave : undefined}
+                      aria-label={
+                        c.filtra
+                          ? `${c.titulo}: ${c.ordena !== false ? "ordenar y filtrar" : "filtrar"}${puestas ? `, ${puestas} ${puestas === 1 ? "filtro puesto" : "filtros puestos"}` : ""}`
+                          : `${c.titulo}: ordenar, ${textos[siguiente.dir]}`
+                      }
+                      title={c.filtra ? undefined : [c.ayuda, `Ordenar: ${textos[siguiente.dir]}.`].filter(Boolean).join(" ")}
                       data-ordenada={ordenada}
                       data-filtrada={puestas > 0 || undefined}
-                      onClick={(e) => abrirGlobo({ tipo: "columna", clave: c.clave }, e.currentTarget)}
+                      onClick={(e) => (c.filtra ? abrirGlobo({ tipo: "columna", clave: c.clave }, e.currentTarget) : tabla.ordenarPor(siguiente.clave, siguiente.dir))}
                     >
                       <span className="tv-col-nombre">{c.titulo}</span>
                       {c.filtra && <Funnel aria-hidden className="tv-col-embudo" />}
-                      {ordenada && <ArrowDown aria-hidden className="tv-col-flecha" />}
+                      {ordenada ? <ArrowDown aria-hidden className="tv-col-flecha" /> : !c.filtra && <ArrowUpDown aria-hidden className="tv-col-flecha" />}
                       <span aria-hidden className="tv-col-punto" />
                     </button>
                   ) : (
@@ -656,28 +682,35 @@ function GloboFlotante<F>({ titulo, ancla, onCerrar, globo, tabla }: { titulo: s
   );
 }
 
+/** Las dos flechas de ordenar: ↑ de menor a mayor, ↓ de mayor a menor (la misma de la cabecera). Lo que significa en esta columna lo dicen `title` y el lector de pantalla. */
+function FlechasDeOrden<F>({ columna, tabla }: { columna: ColumnaViva<F>; tabla: TablaVivaEstado<F> }) {
+  const textos = columna.textosOrden ?? textosDeOrden(columna.tipo);
+  return (
+    <SegmentoDeslizante
+      forma="modo"
+      etiqueta={`Ordenar por ${columna.titulo.toLowerCase()}`}
+      valor={tabla.orden?.clave === columna.clave ? tabla.orden.dir : ""}
+      onCambio={(d) => tabla.ordenarPor(columna.clave, d as DireccionOrden)}
+      opciones={[
+        { clave: "asc", icono: <ArrowUp aria-hidden />, etiqueta: <span className="sr-only">{textos.asc}</span>, ayuda: textos.asc },
+        { clave: "desc", icono: <ArrowDown aria-hidden />, etiqueta: <span className="sr-only">{textos.desc}</span>, ayuda: textos.desc },
+      ]}
+      className="tv-flechas"
+    />
+  );
+}
+
 function ContenidoGlobo<F>({ globo, tabla }: { globo: Globo; tabla: TablaVivaEstado<F> }) {
   if (globo.tipo === "orden") return <ElegirOrden tabla={tabla} />;
   const c = tabla.columnas.find((x) => x.clave === globo.clave);
   if (!c) return null;
-  const textos = c.textosOrden ?? textosDeOrden(c.tipo);
   return (
     <>
       {c.ordena !== false && (
-        <>
+        <div className="tv-globo-orden">
           <p className="tv-globo-titulo">Ordenar</p>
-          <SegmentoDeslizante
-            forma="modo"
-            etiqueta={`Ordenar por ${c.titulo.toLowerCase()}`}
-            valor={tabla.orden?.clave === c.clave ? tabla.orden.dir : ""}
-            onCambio={(d) => tabla.ordenarPor(c.clave, d as DireccionOrden)}
-            opciones={[
-              { clave: "asc", etiqueta: textos.asc },
-              { clave: "desc", etiqueta: textos.desc },
-            ]}
-            className="tv-globo-orden"
-          />
-        </>
+          <FlechasDeOrden columna={c} tabla={tabla} />
+        </div>
       )}
       {c.filtra && <MostrarSolo columna={c} tabla={tabla} />}
     </>
@@ -724,24 +757,18 @@ function MostrarSolo<F>({ columna, tabla }: { columna: ColumnaViva<F>; tabla: Ta
   );
 }
 
-/** En la tarjeta no hay cabeceras: un solo globo con todas las columnas que ordenan, cada una en sus dos sentidos. */
+/** En la tarjeta no hay cabeceras: una sola hoja con todas las columnas que ordenan, cada una con sus dos flechas. */
 function ElegirOrden<F>({ tabla }: { tabla: TablaVivaEstado<F> }) {
   return (
-    <div className="tv-globo-opciones" role="group" aria-label="Ordenar por">
+    <div className="tv-orden-lista" role="group" aria-label="Ordenar por">
       {tabla.columnas
         .filter((c) => c.ordena !== false)
-        .flatMap((c) =>
-          (["desc", "asc"] as const).map((d) => {
-            const puesta = tabla.orden?.clave === c.clave && tabla.orden.dir === d;
-            return (
-              <button key={`${c.clave}-${d}`} type="button" className="tv-op" aria-pressed={puesta} data-elegida={puesta || undefined} onClick={() => tabla.ordenarPor(c.clave, d)}>
-                <span className="tv-op-texto">
-                  {c.titulo} · {(c.textosOrden ?? textosDeOrden(c.tipo))[d]}
-                </span>
-              </button>
-            );
-          }),
-        )}
+        .map((c) => (
+          <div key={c.clave} className="tv-orden-fila" data-elegida={tabla.orden?.clave === c.clave || undefined}>
+            <span className="tv-op-texto">{c.titulo}</span>
+            <FlechasDeOrden columna={c} tabla={tabla} />
+          </div>
+        ))}
     </div>
   );
 }

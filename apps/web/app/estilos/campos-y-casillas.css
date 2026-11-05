@@ -238,6 +238,8 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    /* Nunca más ancha que su fila: un valor largo se corta con «…», no empuja la tarjeta de lado. */
+    max-width: 100%;
     height: 34px;
     border-radius: 999px;
     border: 1px solid var(--color-sand);

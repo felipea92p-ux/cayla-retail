@@ -74,3 +74,37 @@ pnpm --filter web guias:recorrer -- --guia rendimiento --base-url http://localho
 ```
 
 Datos inventados para mirarla: `scripts/demo/rendimiento-local.mjs`. Solo corre con el contenedor dicho a mano (`CAYLA_CONTENEDOR_DB`), porque la base local de siempre la comparten otras sesiones y está atrasada frente a `main`; esta construcción se probó en una pila aparte con todas las migraciones.
+
+## Actualización 2026-11-05 — la tabla: flechas en vez de texto, el globo en vidrio y más escalones (Felipe)
+
+**Por qué:** el globo de «Cómo va» se veía corrido y con una barra de desplazamiento: «Por debajo primero / Adelante primero» medía 314 px dentro de un globo de 270, y además no tenía el vidrio de las hojas. Felipe pidió flechas para ahorrar texto y una tabla «super responsive». Se cambió en `TablaViva`, así que también llega a Movimientos ▸ Ingresos.
+
+- **Ordenar son dos flechas, sin texto:** ↑ menor a mayor, ↓ mayor a menor, en una línea (`FlechasDeOrden`). Lo que significa en cada columna sigue en `title` y para el lector de pantalla.
+- **Una columna que solo ordena no abre globo:** tocarla cambia su flecha (`ordenAlTocar`). Empieza por la cifra o la fecha mayor, o por el nombre de la A a la Z. El globo queda para las columnas con «Mostrar solo», que llevan embudo.
+- **El globo es vidrio y mide lo que pide su contenido:** receta nueva `--globo-tabla-*` en `recetas.css`. Sin velo que desenfoque detrás, el desenfoque lo pone él. Ya no puede correrse de lado.
+- **Cuatro escalones en vez de dos:** `seVa` admite 1060, 960, 840 y 740, y las columnas se van de una en una: Su mes, Mejor día, Ticket y Meta. Las pistas reparten lo que sobra, para que en una pantalla muy ancha no se lo lleve todo la barra.
+- **Bajo el nombre, cada dato baja entero** a la línea siguiente, sin un «·» huérfano. En el celular, «Ordenar» es una lista de columnas con sus flechas y los filtros bajan de línea en vez de esconderse a la derecha.
+- **De paso, en toda hoja del celular:** el asa pegada se bajaba 24 px y su franja tapaba el título (`top: 0` se cuenta desde dentro del relleno). Ahora es `top: -1.5rem`.
+
+**Verificado en local:** de 280 a 1700 px de tabla, con letra normal y grande, sin desbordes ni nombres cortados; a 375 y 1024 px de ventana; el globo en claro y en oscuro. **Sin ver en el navegador:** Movimientos ▸ Ingresos con filas, porque la base local no tiene ingresos.
+
+## Actualización 2026-11-05 (b) — lo mismo en las demás tablas del ERP (Felipe: «rastrea dónde se usan tablas parecidas»)
+
+Se midieron las 113 pantallas sin dirección dinámica en seis anchos, con datos, y se buscaron por código las 160 plantillas de columnas.
+
+**La causa de fondo era una sola:** casi toda tabla activa sus columnas con `sm:grid-cols-[…]`, que mira la ventana. Con el menú abierto, a 1024 px la tabla mide 690; la plantilla de Historial de compras pedía 864, corría de lado y su columna `1fr` quedaba sin ancho: no se veía el proveedor.
+
+- **La tabla mira su ancho (`lib/tabla-corte-reglas.ts`, `app/estilos/tabla-corte.css`):** de la plantilla sale cuánto ancho necesita y, bajo eso, la tabla usa la forma de celular que ya tenía. Una consulta de contenedor lo aplica sin tocar cada tabla: `fila()` y `<Encabezado>` suman solos la clase. Se hizo así porque 80 archivos usan `<Tabla>`.
+- **DESCARTÉ pasar todas a `TablaViva`:** muchas paginan en la base y sus filas no están todas en el navegador, y es la condición de esa pieza (ADR-0596).
+- **DESCARTÉ arreglar tabla por tabla con `@container`:** 18 o más archivos, y una tabla nueva volvería a nacer con el error.
+- **Tablas ajustadas a mano:** Historial de compras (columnas más justas, para que siga en tabla a 1280 px), Plan del piso (sin ancho mínimo), Calendario y Historial de campañas, y las tablas por colaboradora y por producto de Comercial, que nunca tuvieron forma angosta y ahora son tarjetas con cada cifra titulada.
+- **Mismas flechas en `<Encabezado>`:** ↕ si se puede ordenar, ↓ o ↑ si ya está ordenada; `aria-sort` pasó del botón a la cabecera, que es donde vale. En Ventas sin registrar, «Recientes/Antiguas» pasó a «Fecha» con su flecha.
+- **El vidrio llegó a lo que faltaba:** el globo de `CapaDeFiltro` (`.globo-filtro`) y el calendario de `CampoFecha` (la lista de los combos). El desenfoque del globo va en un `::before` y su animación no se queda aplicada: si no, el calendario de adentro se recorta o pierde su desenfoque.
+- **El calendario dentro de un globo se salía por abajo:** `usePosicionLista` tomaba el globo de Radix como su límite. Ahora manda la ventana, y se abre hacia arriba si abajo no cabe.
+- **Una píldora de filtro nunca es más ancha que su fila** (`.pildora-filtro`): «Ordenar por: La de ahora y las que vienen» empujaba la tarjeta de lado en el celular.
+
+**Lo que cuesta:** a 1024 px con el menú abierto, Historial de compras y Plan del piso se ven como tarjetas altas, no como tabla. Con el menú cerrado o desde 1280 px vuelven las columnas.
+
+**Quedan corriendo de lado, a propósito:** la matriz de dañadas por tienda y mes, la planilla de Configuración y las tablas de Finanzas ▸ Reportes (su kit, ADR-0195, y su rediseño pendiente). Tampoco se tocaron los desbordes de página que no vienen de una tabla: quedan en el backlog.
+
+**Verificado en local:** las pantallas en ocho anchos de 375 a 1920 px, sin ninguna tabla colapsada y sin que ningún globo o lista corra de lado; capturas de las tablas y del globo y el calendario, estos en claro y en oscuro. **Lo que el recorrido no ve:** pantallas con dirección dinámica (`[id]`), tablas sin filas en esta base y las que viven dentro de un modal. Reciben la misma regla, pero no se miraron una por una.

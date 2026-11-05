@@ -110,6 +110,7 @@
 @import "./estilos/vidrio/recetas.css";
 /* La pantalla (cabecera, tarjetas de cifra, pestañas, tablas) antes que la hoja: dentro de una hoja manda la lámina de la hoja. */
 @import "./estilos/vidrio/pantalla.css";
+@import "./estilos/tabla-corte.css"; /* la tabla mira su ancho, no el de la ventana */
 @import "./estilos/vidrio/tabla-viva.css"; /* La tabla con superpoderes (TablaViva) */
 @import "./estilos/vidrio/hoja.css";
 @import "./estilos/vidrio/campos-y-botones.css";
@@ -2016,10 +2017,11 @@ html[data-buscando] [data-resultados] {
       transition: width 260ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
     }
     /* En una hoja que scrollea el asa no corre con el contenido: va pegada arriba (sticky) y tapa lo que pasa por debajo con el
-       fondo de la hoja. Su margen negativo la ubica en el relleno de la hoja (p-6) sin mover nada del contenido. */
+       fondo de la hoja. Su margen negativo la ubica en el relleno de la hoja (p-6) sin mover nada del contenido. El `top` también va
+       negativo: el navegador cuenta el «pegado» desde dentro del relleno, y con `top: 0` la franja se bajaba 24 px y tapaba el título. */
     .asa-hoja.asa-hoja-fija {
       position: sticky;
-      top: 0;
+      top: -1.5rem;
       left: auto;
       right: auto;
       z-index: 20;
