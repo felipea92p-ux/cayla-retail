@@ -685,6 +685,47 @@ select pg_temp.intento($q$select * from retail.fn_lo_que_falta_del_mes(retail.fn
   esperar("quien no ve el Estado de resultados no lo lee", r.ok && /Reportes financieros/.test(micaela ?? ""), r);
 }
 
+// 13. Lo que solo cambia de lugar y lo que se deshace (tarea 36 de «Las 36»): `fn_flujo_disponible` es el saldo total que cada pantalla repite. Mover plata
+// entre bancos no lo cambia, y anular un movimiento o un gasto deja el total EXACTO de antes, céntimo por céntimo.
+{
+  const r = correr(`${ESCENA}
+select retail.crear_cuenta_dinero('Interbank prueba F6', 'banco', 500, retail.fn_hoy_lima() - 20) as ibk \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d0 \\gset
+select retail.registrar_movimiento_dinero('entre_cuentas', 300, :'bcp', :'ibk') as m1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d1 \\gset
+select :'d1'::numeric - :'d0'::numeric;
+select retail.anular_movimiento_dinero(:'m1', 'Prueba: se registró mal') as _a1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d2 \\gset
+select :'d2'::numeric - :'d0'::numeric;
+select retail.registrar_movimiento_dinero('pago_sunat', 120.55, :'bcp', null, null, 'Prueba') as m2 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d3 \\gset
+select :'d3'::numeric - :'d0'::numeric;
+select retail.anular_movimiento_dinero(:'m2', 'Prueba: se registró mal') as _a2 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d4 \\gset
+select :'d4'::numeric - :'d0'::numeric;
+select retail.registrar_gasto(:'tru', 'publicidad', 'Anuncio de prueba', :'hoy'::date, 77.10, p_medio_pago => 'transferencia', p_cuenta_id => :'bcp') as g1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d5 \\gset
+select :'d5'::numeric - :'d0'::numeric;
+select retail.anular_gasto(:'g1', 'Prueba: se registró mal') as _a3 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d6 \\gset
+select :'d6'::numeric - :'d0'::numeric;
+select pg_temp.cuadra(${REAL});
+select set_config('request.headers', '{"x-responsable-omitido": "fondo_entregar"}', true) \\g /dev/null
+select c.persona_id as persona from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${MICAELA}' limit 1 \\gset
+select retail.entregar_fondo(:'persona', :'bcp', 100, 'Fondo de prueba', null, null) as e1 \\gset
+select retail.fn_flujo_disponible(:'hoy'::date) as d7 \\gset
+select :'d7'::numeric - :'d0'::numeric;`);
+  const [entre, anEntre, sunat, anSunat, gasto, anGasto, cuadra, fondo] = lineas(r);
+  esperar("mover S/ 300 entre dos bancos no cambia el disponible", r.ok && Number(entre) === 0, r);
+  esperar("anularlo tampoco", r.ok && Number(anEntre) === 0, r);
+  esperar("un pago a SUNAT de S/ 120.55 baja el disponible en S/ 120.55", r.ok && Number(sunat) === -120.55, r);
+  esperar("anularlo lo devuelve exacto", r.ok && Number(anSunat) === 0, r);
+  esperar("un gasto de S/ 77.10 por banco baja el disponible en S/ 77.10", r.ok && Number(gasto) === -77.1, r);
+  esperar("anular ese gasto lo devuelve exacto", r.ok && Number(anGasto) === 0, r);
+  esperar("después de todo eso, el flujo sigue cuadrando", r.ok && cuadra === "t", r);
+  esperar("entregar un fondo de S/ 100 no cambia el disponible: sigue siendo plata de CAYLA, en otras manos", r.ok && Number(fondo) === 0, r);
+}
+
 console.log(`\n${casos - fallos}/${casos} casos en verde.`);
 if (fallos) {
   console.error(`${fallos} caso(s) fallaron.`);
