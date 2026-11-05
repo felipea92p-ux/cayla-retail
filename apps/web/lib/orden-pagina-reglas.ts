@@ -2084,6 +2084,23 @@ export function insumosPorDevolver(insumos: readonly InsumoPagina[]): { nombre: 
   return [...porInsumo.values()].filter((i) => i.usado > 0).map((i) => ({ nombre: i.nombre, texto: cantidadConUnidad(i.usado, i.unidad) }));
 }
 
+/** ¿Hay tela ya cortada? Tela usada y prendas en algún paso: anular tiene que preguntar qué se hace con ella (ADR-0614, P-05 de Felipe). Es la misma cuenta de `fn_orden_tiene_tela_cortada`. */
+export function tieneTelaCortada(o: Pick<OrdenPagina, "fases" | "insumos">): boolean {
+  return o.insumos.some((i) => i.tipo === "tela" && i.usado > 0) && o.fases.some((f) => f.hechas > 0 || f.salieron > 0);
+}
+
+export const RPC_ANULAR_CON_TELA_CORTADA = "anular_orden_con_tela_cortada";
+
+export type DestinoDeLoCortado = "otra_orden" | "liquidar" | "botar";
+
+/** Qué falta para anular una orden con tela cortada. `null` si se puede. */
+export function problemaDelDestino(e: { destino: DestinoDeLoCortado | null; motivo: string; ordenDestino: string }): string | null {
+  if (e.destino === null) return "Di qué se hace con lo cortado.";
+  if (e.destino === "otra_orden" && e.ordenDestino === "") return "Elige a qué orden pasa la tela.";
+  if (e.motivo.trim() === "") return "Escribe por qué se anula.";
+  return null;
+}
+
 /** El aviso de éxito de anular: «Orden de Pantalón Lía anulada». */
 export function textoAnulasteLaOrden(referencia: string): string {
   return `Orden de ${referencia} anulada`;

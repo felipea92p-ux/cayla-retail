@@ -34,3 +34,8 @@
   POR QUÉ ASÍ: un porcentaje da margen de sobra en un plan grande y casi nada en uno chico; la regla vive en una sola función.
   QUÉ SE ROMPERÍA SIN ESTO: un plan de 200 por talla seguiría dejando cortar 20 de más sin avisar.
   Verificado: `pruebas:produccion-tope-de-corte` 4/4, avances 29/29, «Terminé» con falla 21/21, cierre 20/20 y corte con su tela 20/20. Sin pegar en producción.
+- **Actividad 10 · Anular con tela cortada (migración `20261105233000`).**
+  QUÉ HICE: una orden con tela ya cortada no se anula por la puerta de siempre: la hoja pide qué se hace con lo cortado y por qué. «Se usa en otra orden» pasa la tela y su costo a esa orden; «Se liquida» y «Se bota» la dejan fuera del estante, con su costo en la orden anulada. Los avíos siempre vuelven.
+  POR QUÉ ASÍ: es lo que Felipe decidió el 16-oct (P-05). Sale del libro de insumos de siempre, sin tablas nuevas. El candado está en la base, no en la pantalla.
+  QUÉ SE ROMPERÍA SIN ESTO: el estante diría tener metros que ya están cortados, y el costo de lo perdido desaparecería.
+  Verificado: `pruebas:produccion-anular-tela-cortada` 12/12; anulaciones 18/18, cierre 20/20, devolución 10/10, tela al cortar 16/16, tela 14/14, Frescura 260/260; y en el navegador local, OP-378 pasó su tela a OP-379. Sin mirar a 375 px ni en oscuro. Sin pegar en producción.

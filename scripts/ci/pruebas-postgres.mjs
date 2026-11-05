@@ -1917,6 +1917,9 @@ export const PRUEBAS = [
   // Cortar de más: hasta 3 por talla y color (ADR-0614, actividad 8). ROLLBACK.
   "pruebas:produccion-tope-de-corte",
 
+  // Anular con tela cortada (ADR-0614, actividad 10): la puerta de siempre frena, y cada destino deja el libro de insumos como corresponde. ROLLBACK.
+  "pruebas:produccion-anular-tela-cortada",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 

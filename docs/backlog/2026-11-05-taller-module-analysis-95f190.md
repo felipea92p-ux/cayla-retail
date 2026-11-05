@@ -12,7 +12,7 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 7 · Ajustar lo que queda de un lote ya usado: baja como merma; si hay más, es «Saldo inicial». Misma migración. Una lectura de producción del 5-nov confirmó que el saldo del libro y el de los lotes cuadran en todos los insumos: no hay nada que convertir.
 - [x] 8 · Tope de corte de 3 prendas por talla y color. **POR PEGAR:** `20261105232000_tope_de_corte_tres_prendas.sql`, una parte.
 - [x] 9 · Cerrar un paso incompleto con motivo: **ya existía** desde ADR-0570, actividad 2 (en producción desde el 29-oct): «Terminé» anota las prendas que se perdieron, con su motivo, y el paso cierra (`pruebas:produccion-termine-con-falla`, casos B3 y B5). Sin código nuevo.
-- [ ] 10 · Anular con tela cortada pregunta qué hacer.
+- [x] 10 · Anular con tela cortada pregunta qué hacer: otra orden, liquidar o botar, con motivo. **POR PEGAR:** `20261105233000_anular_con_tela_cortada.sql`, una parte, justo antes de publicar la web: con la web vieja, anular una orden con tela cortada da error con su motivo. **Sin tabla de retazos:** lo liquidado o botado queda como consumo de la orden anulada, sin venderse desde el ERP.
 - [ ] 11 · Datos al abrir una orden.
 - [ ] 12 · Cambiar una orden abierta, con motivo.
 - [ ] 13 · Avíos que se descuentan solos.

@@ -85,6 +85,8 @@ import {
   RPC_MARCAR_YA_EN_STOCK,
   textoPrendasAfuera,
   textoQuePasaAlRevertir,
+  problemaDelDestino,
+  tieneTelaCortada,
   totalDeCierre,
   textoQuePasaAlAnular,
   textoQueSigue,
@@ -2025,5 +2027,26 @@ describe("Paridad con la migración del corte con su tela (20261031014000)", () 
     expect(mig).toContain(`create or replace function retail.${RPC_DESHACER_TERMINE}(p_avance_ids uuid[], p_falla_ids uuid[], p_consumo_ids uuid[])`);
     for (const p of ["p_fase_id", "p_lineas", "p_nota", "p_hecho_en", "p_fallas", "p_tela", "p_token", "p_guia"]) expect(mig, p).toContain(p);
     for (const k of ["repetido", "avance_ids", "falla_ids", "consumo_ids"]) expect(mig, k).toContain(`'${k}'`);
+  });
+});
+
+describe("anular con tela cortada (ADR-0614, actividad 10)", () => {
+  const tela = { tipo: "tela" as const, usado: 5 };
+  const corte = { hechas: 3, salieron: 0 };
+  const sinNada = { hechas: 0, salieron: 0 };
+  const orden = (insumos: { tipo: "tela" | "avio"; usado: number }[], fases: { hechas: number; salieron: number }[]) => ({ insumos, fases }) as unknown as Parameters<typeof tieneTelaCortada>[0];
+  it("hay tela cortada solo con tela usada y prendas en algún paso", () => {
+    expect(tieneTelaCortada(orden([tela], [corte]))).toBe(true);
+    expect(tieneTelaCortada(orden([tela], [{ hechas: 0, salieron: 4 }]))).toBe(true);
+    expect(tieneTelaCortada(orden([tela], [sinNada]))).toBe(false);
+    expect(tieneTelaCortada(orden([{ tipo: "avio", usado: 5 }], [corte]))).toBe(false);
+    expect(tieneTelaCortada(orden([{ tipo: "tela", usado: 0 }], [corte]))).toBe(false);
+  });
+  it("pide el destino, la orden si pasa a otra, y el motivo", () => {
+    expect(problemaDelDestino({ destino: null, motivo: "x", ordenDestino: "" })).toContain("qué se hace");
+    expect(problemaDelDestino({ destino: "otra_orden", motivo: "x", ordenDestino: "" })).toContain("a qué orden");
+    expect(problemaDelDestino({ destino: "botar", motivo: " ", ordenDestino: "" })).toContain("por qué");
+    expect(problemaDelDestino({ destino: "botar", motivo: "x", ordenDestino: "" })).toBeNull();
+    expect(problemaDelDestino({ destino: "otra_orden", motivo: "x", ordenDestino: "o" })).toBeNull();
   });
 });

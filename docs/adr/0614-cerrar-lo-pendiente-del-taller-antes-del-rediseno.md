@@ -58,3 +58,19 @@ SE ROMPE SI: una boleta por kilos difiere un centavo del papel: sin IGV, la base
 DECIDÍ: `ajustar_lote_usado` escribe una `merma` por lo que falta, sin tocar `cantidad_ingresada`; `asignar_proveedor_a_lote` solo escribe el nombre; `reemplazar_papel_provisional` cambia la cabecera del comprobante y el documento de sus lotes, sin tocar líneas ni pagos.
 DESCARTÉ: (1) subir o bajar `cantidad_ingresada` en un lote usado: lo recibido de la factura se lee de ahí y mentiría; (2) ajustar hacia arriba: si hay más, es otra tela con su propio costo y se anota como «Saldo inicial»; (3) crear la deuda al completar un proveedor: no se sabe si esa compra se pagó.
 SE ROMPE SI: una factura real trae otras cantidades o precios que el papel provisional: `reemplazar_papel_provisional` no cambia las líneas. Ahí se anula y se registra de nuevo, si nadie la recibió ni la pagó.
+
+## Actividad 8: tope de corte (migración `20261105232000`)
+
+DECIDÍ: el plan más 3 prendas por talla y color (P-22 y N-3), en `fn_produccion_entrada_variante`. SE ROMPE SI alguien corta más de 3 de más de verdad: se anota lo que quepa y se abre otra orden.
+
+## Actividad 9: cerrar un paso incompleto
+
+**No llevó código.** ADR-0570, actividad 2 ya deja anotar en «Terminé» las prendas perdidas, con su motivo, y el paso cierra (P-04). Lo cubren los casos B3 y B5 de `pruebas:produccion-termine-con-falla`.
+
+## Actividad 10: anular con tela cortada (migración `20261105233000`)
+
+**El problema.** Anular devolvía toda la tela al estante, aunque ya estuviera cortada.
+
+DECIDÍ: `anular_produccion` frena con `anular_con_tela_cortada`, y `anular_orden_con_tela_cortada` pide destino y motivo. «Otra orden» escribe devolución aquí y consumo allá, del mismo lote; «liquidar» y «botar» dejan el consumo en la orden anulada. Una señal de transacción (`retail.anular_tela_decidida`) le dice a la puerta de siempre que ya se preguntó.
+DESCARTÉ: (1) un parámetro nuevo en `anular_produccion`: obliga a soltar la firma vieja, y las suites y la web vieja la usan; (2) una tabla de retazos: nadie vende ni usa retazos desde el ERP (R-28: el retazo se bota, rara vez se rescata); (3) devolver lo no usado por talla: el libro no sabe qué parte de la tela se cortó.
+SE ROMPE SI: se anula por la puerta de siempre una orden cuyo corte se anotó sin tela: no hay nada que decidir y todo sigue como antes. Y si el corte se hizo pero la tela se anotará después, «sin tela cortada» es correcto: no hay movimiento que mover.

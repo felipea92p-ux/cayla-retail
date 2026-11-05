@@ -323,6 +323,7 @@
     "pruebas:produccion-llego-una-compra": "node scripts/pruebas/produccion_llego_una_compra.mjs",
     "pruebas:produccion-regularizar-lotes": "node scripts/pruebas/produccion_regularizar_lotes.mjs",
     "pruebas:produccion-tope-de-corte": "node scripts/pruebas/produccion_tope_de_corte.mjs",
+    "pruebas:produccion-anular-tela-cortada": "node scripts/pruebas/produccion_anular_tela_cortada.mjs",
     "pruebas:produccion-tela": "node scripts/pruebas/produccion_tela.mjs",
     "pruebas:produccion-tarifas": "node scripts/pruebas/produccion_tarifas.mjs",
     "pruebas:produccion-tela-del-taller": "node scripts/pruebas/produccion_tela_del_taller.mjs",
