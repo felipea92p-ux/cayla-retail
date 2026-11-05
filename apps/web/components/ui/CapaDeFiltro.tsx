@@ -63,7 +63,7 @@ export function CapaDeFiltro({
           align={alinear}
           sideOffset={6}
           collisionPadding={16}
-          className={`anim-revelar z-50 ${ancho} max-w-[calc(100vw-2rem)] rounded-lg border border-sand bg-papel shadow-md`}
+          className={`anim-revelar z-50 ${ancho} max-w-[calc(100vw-2rem)] globo-filtro`}
         >
           {contenido(() => onAbierta(false))}
         </Popover.Content>

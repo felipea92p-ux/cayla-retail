@@ -42,7 +42,7 @@ import { TarjetaDelRiel, type GrupoDelRiel } from "@/components/plan-piso/Tarjet
 // Y mientras la sede no cuadró su piso, lo que cuelga es lo que el sistema CREE: se dice en condicional, nunca como un hecho (Formidable 2026-10-10).
 // Los nombres son los mismos en toda la pantalla: «punto de partida» (el surtido de otras tiendas) y «tus ventas» (lo que vendió la sede); «industria» y «venta propia» ya no.
 
-const PLANTILLA = "sm:grid-cols-[minmax(0,1.5fr)_7.5rem_6rem_9.5rem_8.5rem_6.5rem]";
+const PLANTILLA = "sm:grid-cols-[minmax(10.5rem,1.5fr)_7.5rem_6rem_9.5rem_8.5rem_6.5rem]";
 const COLUMNAS = [
   { titulo: "Grupo" },
   { titulo: "Hoy", subtitulo: "prendas · % colgado", alinear: "der" as const, ayuda: "Lo que el sistema dice que cuelga en el piso hoy. Mientras la sede no cuadre su piso, no es confiable." },
@@ -108,7 +108,7 @@ function FilaGrupo({ f, indice, cuadrado, capacidad }: { f: FilaDelRiel; indice:
         ) : (
           <span>
             {pct(f.ventaPct)}
-            <span className="block text-sm text-taupe">
+            <span className="block whitespace-normal text-sm text-taupe">
               {f.rangoDeVenta !== null && `entre ${n(f.rangoDeVenta.desde)} y ${n(f.rangoDeVenta.hasta)} · `}
               {f.ventasConfirmadas} {f.ventasConfirmadas === 1 ? "venta" : "ventas"}
             </span>
@@ -325,11 +325,9 @@ export function PropuestaDelMix({
             Mezcla el punto de partida con lo que vendió la sede, para compararla con lo que cuelga.
           </p>
         </div>
-        {/* La tabla se desplaza dentro de su tarjeta (como `Tabla`, ADR-0169) y tiene un ancho mínimo: las columnas fijas suman 38 rem y con las separaciones (5 × 1 rem) y el
-            relleno de la fila (2 × 1.25 rem) son 45.5 rem; el mínimo de 56 rem le deja 10.5 rem a «Grupo». Sin él, una tarjeta angosta (1024 px con el menú abierto: 657 px) dejaba
-            a «Grupo» en 0 px y a «Diferencia» fuera de la tarjeta. Desde 1280 px cabe sin desplazarse. Bajo `sm` las filas se apilan y no hay mínimo. */}
-        <div className="scroll-cayla overflow-x-auto">
-          <div className="divide-y divide-sand sm:min-w-[56rem]">
+        {/* Las columnas piden 56 rem. Con menos (el menú abierto en una laptop chica) cada grupo es una tarjeta, como en el celular: lo hace `corteDePlantilla`. */}
+        <div className="tabla-corte-zona">
+          <div className="divide-y divide-sand">
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
             {p.enRiel.map((f, indice) => (
               <FilaGrupo key={f.grupo.clave} f={f} indice={indice} cuadrado={p.cuadrado} capacidad={p.capacidad} />

@@ -790,7 +790,7 @@ export const GUIA_POR_REGULARIZAR: Guia = {
       ancla: "regularizar.herramientas",
       opcional: true,
       titulo: "Orden y quién vendió",
-      texto: "Ordena de la más reciente a la más antigua (o al revés) y elige una colaboradora para ver solo sus ventas. En «Más» están las acciones en bloque, como identificar con sugerencias.",
+      texto: "La flecha de «Fecha» ordena de la más reciente a la más antigua (o al revés), y aquí eliges una colaboradora para ver solo sus ventas. En «Más» están las acciones en bloque, como identificar con sugerencias.",
     },
     {
       id: "talon",
