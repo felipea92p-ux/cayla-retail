@@ -271,7 +271,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 47;
+export const MODALES_PENDIENTES_HOY = 45;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -385,7 +385,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
   "components/plan-compra/RepartoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RepartoModal.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles
-  "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   // ADR-0400 (actividad 3): la página de la orden. «Terminé» lo único que falta es lo que ya viene precargado (cuántas) y quién lo anota; «Cambiar quién» es la fila de la fase entera.
   "components/orden-pagina/AnotarAvanceModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarAvanceModal.tsx"] },
   "components/orden-pagina/AgregarPasoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AgregarPasoModal.tsx"] },
@@ -427,9 +426,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/CorregirAnotacionModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CorregirAnotacionModal.tsx"] },
   "components/orden-pagina/CambioConMotivoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CambioConMotivoModal.tsx"] },
   "components/orden-pagina/NotaDeLaOrdenModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/NotaDeLaOrdenModal.tsx"] },
-  // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
-  // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
-  "components/OrdenPanel.tsx": PENDIENTE, // 1 control propio + 8 del cierre y los insumos
   "components/PagarServicioModal.tsx": { estado: "aplicada", evidencia: ["components/PagarServicioModal.tsx"] },
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles

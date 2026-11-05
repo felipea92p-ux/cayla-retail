@@ -54,3 +54,8 @@
   POR QUÉ ASÍ: es la decisión 8 de ADR-0551. La etapa se deriva de la orden, el stock y los movimientos, y lo ocultado nunca tiene stock en una tienda: no puede frenar una venta. Si la lectura falla, se muestra.
   QUÉ SE ROMPERÍA SIN ESTO: la colaboradora busca una prenda que todavía es tela y no entiende por qué no hay ninguna.
   Verificado: `pruebas:produccion-etapas-de-prenda` 15/15, las vecinas de Productos, Análisis, Existencias, tienda web y vitrina, la web completa (166,460 pruebas), Knip, y en el navegador local un modelo que no aparecía en Productos ni Buscar hasta darle stock en Trujillo. Vender no se pudo mirar con la caja cerrada: lo cubren la prueba de la regla y la misma función de Buscar. Sin pegar en producción.
+- **Actividad 15 · Se retira el cajón de órdenes antiguas.**
+  QUÉ HICE: borré seis componentes y las reglas que solo ellos usaban; cada orden se abre en su página, y los enlaces viejos `?orden=` llevan a ella.
+  POR QUÉ ASÍ: en producción las 7 órdenes ya tienen pasos: el cajón solo servía para las de antes de los pasos, y ya no hay ninguna.
+  QUÉ SE ROMPERÍA SIN ESTO: el rediseño habría tenido que cargar con dos maneras de ver una orden.
+  Verificado: la web completa (166,433 pruebas), tipos, Knip y Knip de producción; en el navegador local la lista enlaza a `/produccion/ordenes/OP-000379`.

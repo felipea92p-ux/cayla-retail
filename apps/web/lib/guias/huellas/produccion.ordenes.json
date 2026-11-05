@@ -2,16 +2,8 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 144,
+  "total": 107,
   "controles": {
-    "components/AvisoCostoAtipico.tsx": [
-      "CampoTexto «Por qué es correcto este costo · obligatorio»",
-      "Boton «{textoCorregir}»",
-      "Boton «{problemaMotivo ?? motivoNoListo ?? undefined}»"
-    ],
-    "components/MatrizOrden.tsx": [
-      "input «{`Buenas de ${c.nombre}»"
-    ],
     "components/ModeloNuevoCampos.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
       "CampoSelect «{guia.etiqueta(\"categoria\", \"Categoría\")}»",
@@ -35,46 +27,6 @@
       "Boton «Es otro modelo, crearlo igual»",
       "button «prod-orden-nueva.cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
-    ],
-    "components/OrdenCierre.tsx": [
-      "CampoMonto «Tela (real)»",
-      "CampoMonto «Avíos (real)»",
-      "CampoMonto «Servicios (real)»",
-      "ComboResponsable «{responsable}»",
-      "Boton «{responsable.motivo ?? undefined}»"
-    ],
-    "components/OrdenInsumos.tsx": [
-      "button «{abierto ? \"Cancelar devolución\" : \"Devolver al estante\"}»",
-      "input «0»",
-      "button «Devolver todo»",
-      "ComboResponsable «{responsable}»",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "Link «Cárgalos en Insumos»",
-      "button «{i.nombre}»",
-      "input «0» #2",
-      "ComboResponsable «{responsable}» #2",
-      "Boton «{responsable.motivo ?? undefined}» #2"
-    ],
-    "components/OrdenModales.tsx": [
-      "input «Por qué se cancela el lote»",
-      "ComboResponsable «{responsable}»",
-      "button «Volver»",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "ComboResponsable «{responsable}» #2",
-      "button «Volver» #2",
-      "Boton «{responsable.motivo ?? undefined}» #2"
-    ],
-    "components/OrdenPanel.tsx": [
-      "Link «Llevarlas a las tiendas»",
-      "BotonImprimir «Imprimir etiquetas de precio»",
-      "Boton «{orden.esMuestra ? \"Dar por terminada\" : \"Pasar al stock\"}»",
-      "Boton «Anular»",
-      "Boton «Volver sin cerrar»",
-      "Boton «Revertir cierre»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Marcar hecho»",
-      "Boton «(sin nombre)»",
-      "button «Reabrir»"
     ],
     "components/ProduccionSoloEnTaller.tsx": [
       "BotonVer «Volver al inicio»"
@@ -190,7 +142,6 @@
       "Casilla «Dejar estos avíos como los del modelo»"
     ],
     "components/ordenes-lista/FilaDeOrden.tsx": [
-      "button «{`Abrir ${f.numeroTexto}»",
       "Link «{`Abrir ${f.numeroTexto}»",
       "button «{guiaPorque ? \"prod-ordenes.porque\" : undefined}»"
     ],
