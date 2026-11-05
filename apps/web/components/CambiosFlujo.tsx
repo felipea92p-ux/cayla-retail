@@ -204,6 +204,7 @@ export function CambiosFlujo({
     );
   }, [reportarCambio, paso, sede, seleccion, venta, lineaInicialId, lineaId, compra.clienta, compra.comprobante, faseDelEnvio, instantaneaDelEnvio]);
 
+  const raiz = useRef<HTMLDivElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const refMotivo = useRef<HTMLFieldSetElement>(null);
@@ -263,8 +264,7 @@ export function CambiosFlujo({
         })
       : null;
 
-  useVistaDelPaso(paso);
-  useFocoAlCambiarDePaso(titulo, paso);
+  useVistaDelPaso(paso, raiz, titulo);
   // Si la base rechazó el cambio, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);
 
@@ -448,7 +448,7 @@ export function CambiosFlujo({
   }
 
   return (
-    <div className="space-y-6">
+    <div ref={raiz} className="scroll-mt-24 space-y-6">
       {paso !== "exito" && (
         <EncabezadoFlujo
           volverA="Volver a Cambios"

@@ -136,7 +136,6 @@ export function CambiosPanel({
     if (!abrir) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- responde a los resultados que trajo la navegación, no a un render
     setFlujo(abrir);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [lineas, busqueda, ahora]);
 
   function navegar(parametros: URLSearchParams | null) {
@@ -161,7 +160,6 @@ export function CambiosPanel({
    *  fila puntual de la búsqueda sigue entrando con esa prenda ya marcada. */
   function iniciar(linea: LineaVentaReciente, preseleccionar: boolean) {
     setFlujo({ venta: lineas.filter((l) => l.ventaId === linea.ventaId), lineaId: preseleccionar ? linea.ventaItemId : null });
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   /** Con `?item=` en la URL la lista de fondo es solo esa compra: al salir se vuelve a la

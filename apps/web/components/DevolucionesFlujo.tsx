@@ -157,6 +157,7 @@ export function DevolucionesFlujo({
     );
   }, [reportarDevolucion, paso, sede, elegidas, motivo, detalle, venta, lineaInicialId, compra.clienta, compra.comprobante]);
 
+  const raiz = useRef<HTMLDivElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const refMotivo = useRef<HTMLFieldSetElement>(null);
@@ -186,8 +187,7 @@ export function DevolucionesFlujo({
     esTotal: esDevolucionTotal(venta, cantidades),
   });
 
-  useVistaDelPaso(paso);
-  useFocoAlCambiarDePaso(titulo, paso);
+  useVistaDelPaso(paso, raiz, titulo);
   // Si la base rechazó la devolución, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);
 
@@ -307,7 +307,7 @@ export function DevolucionesFlujo({
       : "/cambios";
 
   return (
-    <div className="space-y-6">
+    <div ref={raiz} className="scroll-mt-24 space-y-6">
       {paso !== "exito" && (
         <EncabezadoFlujo
           volverA="Volver a Devoluciones"
