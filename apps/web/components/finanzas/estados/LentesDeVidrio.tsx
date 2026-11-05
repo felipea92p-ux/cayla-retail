@@ -42,7 +42,7 @@ export function LentesDeVidrio() {
     let reloj = 0;
 
     function poner() {
-      // Las placas de una pantalla que ya se fue sueltan su filtro.
+      // Las placas que ya no están sueltan su filtro.
       for (const [id, el] of conLente) {
         if (el.isConnected) continue;
         conLente.delete(id);
@@ -88,7 +88,7 @@ export function LentesDeVidrio() {
     poner();
     const tamano = new ResizeObserver(luego);
     tamano.observe(raiz);
-    // Al pasar de un estado a otro nacen placas nuevas.
+    // Una placa puede llegar después: un mensaje de error que se va, lo que trae su `Suspense`.
     const cambios = new MutationObserver(luego);
     cambios.observe(raiz, { childList: true, subtree: true });
     window.addEventListener("resize", luego);

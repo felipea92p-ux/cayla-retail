@@ -101,9 +101,10 @@ function Tarjeta({ parte }: { parte: ParteEstado }) {
 
 /** Una tarjeta por parte, con su cifra. */
 export function TarjetasDePartes({ partes, columnas }: { partes: readonly ParteEstado[]; columnas?: number }) {
+  const conTarjeta = partes.filter((x) => !x.soloEnElGrafico);
   return (
-    <div className="estados-partes" style={{ "--n": columnas ?? partes.length } as CSSProperties}>
-      {partes.map((x) => (
+    <div className="estados-partes" style={{ "--n": columnas ?? conTarjeta.length } as CSSProperties}>
+      {conTarjeta.map((x) => (
         <Tarjeta key={x.clave} parte={x} />
       ))}
     </div>

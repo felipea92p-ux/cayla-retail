@@ -32,6 +32,8 @@ export type ParteEstado = {
   chip: ChipDeParte | null;
   /** Lo que hay que saber de esta parte, en una línea. */
   aviso?: string | null;
+  /** Se explora en el gráfico, pero no lleva tarjeta debajo (empezar y terminar). */
+  soloEnElGrafico?: boolean;
 };
 
 /** La barrita de una fila del detalle, contra la mayor. */

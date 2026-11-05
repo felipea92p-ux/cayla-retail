@@ -6,7 +6,7 @@ import { FilasDeMas } from "@/components/ui/VerMas";
 import { pasosDelLibro, textoDelLibro, type FilaDelLibro } from "@/lib/estados-partes";
 
 /** El estado con sus nombres de siempre, para el contador (ADR-0611): se abre aquí mismo y cada fila lleva una barrita que ayuda a leerlo. */
-export function LibroDelContador({ titulo, detalle, filas, guia, nota }: { titulo: string; detalle: string; filas: readonly FilaDelLibro[]; guia?: string; /** La razón de la cifra, en la misma fila del botón. */ nota?: ReactNode }) {
+export function LibroDelContador({ titulo, detalle, filas, guia, nota, pie }: { titulo: string; detalle: string; filas: readonly FilaDelLibro[]; guia?: string; /** La razón de la cifra, en la misma fila del botón. */ nota?: ReactNode; /** Lo que cierra el cuadro. */ pie?: ReactNode }) {
   const [abierto, setAbierto] = useState(false);
   const pasos = pasosDelLibro(filas);
   return (
@@ -35,6 +35,7 @@ export function LibroDelContador({ titulo, detalle, filas, guia, nota }: { titul
               </div>
             ))}
           </div>
+          {pie}
         </div>
       </FilasDeMas>
     </>

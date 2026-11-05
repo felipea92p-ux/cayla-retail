@@ -1,4 +1,3 @@
-import { LentesDeVidrio } from "@/components/finanzas/estados/LentesDeVidrio";
 import { TelaHilos } from "@/components/finanzas/estados/TelaHilos";
 import { letraEstados } from "@/lib/letra-estados";
 import { exigirModulo } from "@/lib/persona-actual";
@@ -11,7 +10,6 @@ export default async function ReportesLayout({ children }: { children: React.Rea
   return (
     <div className={`${letraEstados.variable} estados-vidrio`}>
       <TelaHilos />
-      <LentesDeVidrio />
       {children}
     </div>
   );

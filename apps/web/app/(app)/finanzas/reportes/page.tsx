@@ -21,7 +21,7 @@ import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CuadreVentas } from "@/components/finanzas/estados/CuadreVentas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
-import { GananciasVidrio } from "@/components/finanzas/estados/GananciasVidrio";
+import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
 import { LineaDeGanancias, LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
 import { MasDeGanancias } from "@/components/finanzas/estados/MasDeGanancias";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
@@ -118,18 +118,22 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           {actual.falla ? (
             <Aviso tono="error">{actual.falla}</Aviso>
           ) : (
-            <GananciasVidrio
+            <EstadoVidrio
               nombre={`Ganancias y pérdidas · ${periodo.titulo}`}
               lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo)}
-              partes={fila ? partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : []}
-              tituloPartes={fila ? tituloDeLasPartes(fila, tramos) : ""}
-              periodo={periodo}
-              libro={fila ? libroDeGanancias(fila, tramos) : []}
-              linea={
+              grafico={
                 <Suspense fallback={<LineaEsperando />}>
                   <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} />
                 </Suspense>
               }
+              guiaRespuesta="fin-ganamos.respuesta"
+              guiaPartes="fin-ganamos.partes"
+              guiaLibro="fin-ganamos.libro"
+              titulo={fila ? tituloDeLasPartes(fila, tramos) : ""}
+              conTubo
+              partes={fila ? partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : []}
+              tituloColumnas={unMes ? "Mes a mes" : "Período a período"}
+              libro={{ titulo: "Ganancias y pérdidas", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: fila ? libroDeGanancias(fila, tramos) : [] }}
             />
           )}
         </>
