@@ -10,13 +10,15 @@ El desfile llama la atención, pero no invita a quedarse: tapa su propio título
 
 ## Lo que se decidió
 
-**1. En la computadora, tres paneles; en el celular, una prenda por pantalla.** Tres prendas que combinan, cada una sobre su color, con «Lo nuevo» cruzando los paneles. Los grupos cambian cada 6 segundos, y se detienen con el mouse encima, con el foco o con la pausa. En el celular no cambian solos: se deslizan con el dedo, porque una prenda que cambia justo al tocarla lleva a otra (Baymard). Son las dos caras de `components/PortadaTresPaneles.tsx`.
+**1. En la computadora, tres paneles; en el celular, una prenda por pantalla.** Tres prendas, cada una sobre un color, con «Lo nuevo» cruzando los paneles. Los grupos cambian cada 6 segundos, y se detienen con el mouse encima, con el foco o con la pausa. En el celular no cambian solos: se deslizan con el dedo, porque una prenda que cambia justo al tocarla lleva a otra (Baymard). Son las dos caras de `components/PortadaTresPaneles.tsx`.
 
-**2. Los grupos los elige una persona, y lo que manda es lo que hay.** Un grupo armado por una regla no se ve como un outfit, así que están en `GRUPOS_DE_PORTADA` (`lib/portada-l.ts`), por el código de cada prenda y con su color. Un grupo solo sale si sus tres prendas siguen siendo nuevas (`fn_tienda_lo_nuevo`: hasta 30 días desde su primera llegada a una tienda, salvo fijadas en la Vitrina) y se pueden recoger en una misma tienda: la elegida o, con «Todas», alguna. Por eso los grupos vencen: hay que renovarlos cada pocas semanas. El 2026-11-05, un día después de armar la maqueta, una prenda del grupo 3 ya no tenía stock en ninguna tienda: por eso esto no es opcional.
+**2. Las prendas salen solas, con una regla de Felipe:** «las 3 últimas ingresadas de 3 categorías, que tengan foto». Son las tres categorías con lo más reciente de la tienda elegida. Sale la última de cada una, después la penúltima y la antepenúltima: tres grupos de tres (`gruposDeLaPortada`, `lib/portada-l.ts`). Si una categoría se queda sin prendas, entra la siguiente, sin repetir ninguna. La «última» es la de `fn_tienda_lo_nuevo`: hasta 30 días desde su primera llegada a una tienda, salvo fijadas o quitadas a mano en la Vitrina.
 
-**3. Sin grupos completos, tres prendas sueltas.** Hoy Lima tiene 9 prendas nuevas de arriba y ninguna de abajo ni para encima. Ahí salen tres prendas nuevas, de tipos distintos si se puede, sin decir que combinan y sin total. Con menos de tres, sigue la portada de siempre.
+**Por qué no grupos elegidos a mano.** Primero se armaron 6 outfits a mano. Felipe preguntó en qué se basaban, y la respuesta fue el criterio de quien los armó. Además, vencían: de 6, solo uno habría durado más de una semana. Y en los últimos 90 días, de 1893 tickets, las combinaciones más frecuentes son del mismo tipo (Polos + Polos: 84; Camisas y Blusas: 47; Tops: 40), no arriba, abajo y encima. La regla no dice que las prendas combinan ni suma un total: dice «Lo último que llegó».
 
-**4. El recorte se calcula una vez y se guarda.** `GET /api/recorte/<foto>?w=` quita el fondo blanco, deja su gris como sombra y entrega un WebP: un original de 2,5 MB queda en unos 110 KB, y Vercel lo guarda un año. Solo acepta nombres de fotos del almacén. Una prenda blanca se confunde con su fondo: no se recorta y se muestra la foto tal cual, y las prendas sueltas no la eligen.
+**3. El fondo sale del color de la prenda en su foto.** Una prenda oscura va sobre un fondo claro y las demás sobre uno oscuro, para que siempre se distinga. Se mira el color de la foto, no el primero de la prenda.
+
+**4. El recorte se calcula una vez y se guarda.** `GET /api/recorte/<foto>?w=` quita el fondo blanco, deja su gris como sombra y entrega un WebP: un original de 2,5 MB queda en unos 110 KB, y Vercel lo guarda un año. Solo acepta nombres de fotos del almacén. Una prenda blanca o muy clara se confunde con su fondo, así que la regla no la elige; si un recorte falla, se muestra la foto tal cual.
 
 **5. Una campaña vigente va primero.** Como hasta ahora: la portada es la de la campaña, y el desfile sigue como su sección. Al terminar la campaña vuelve L.
 
@@ -26,7 +28,8 @@ El desfile llama la atención, pero no invita a quedarse: tapa su propio título
 
 ## Lo que queda para después
 
-- **Elegir los grupos desde el ERP:** una pantalla para el líder, con su migración. Mientras tanto, cambiar un grupo es un cambio en `lib/portada-l.ts`.
+- **Quitar una prenda de la portada a mano:** hoy se hace quitándola de Lo nuevo en la Vitrina. Con el uso se verá si hace falta otra cosa.
+- **Categorías que no deberían salir:** una categoría como Lencería puede salir si recibe algo; hoy no hay manera de excluirla, salvo el interruptor de la familia.
 - **El armador no se abre con el grupo:** «Arma tu outfit» lleva a `/looks/arma`, que no recibe prendas elegidas y todavía dice «look».
 - **El peso del color:** los fondos salen de cada prenda y no siguen el tema oscuro, como la foto.
 

@@ -1,4 +1,4 @@
-/* La portada «L» (ADR-0613). Los fondos son datos de cada prenda (`lib/portada-l.ts`): no cambian con el tema oscuro, como la foto. */
+/* La portada «L» (ADR-0613). Los fondos los elige `lib/portada-l.ts` según la prenda: no cambian con el tema oscuro, como la foto. */
 .pl { position: relative; background: #0b0b0b; }
 .pl-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
@@ -21,8 +21,7 @@
 .pl-marcas i { display: block; width: 20px; height: 2px; background: currentColor; opacity: .3; }
 .pl-marcas i[data-on] { opacity: 1; }
 .pl-tot { min-width: 0; }
-.pl-tot b { display: block; font-family: var(--nombre); font-weight: 400; font-size: 22px; line-height: 1.1; }
-.pl-tot small { display: block; font-size: 12.5px; line-height: 1.25; opacity: .82; }
+.pl-tot small { display: block; font-size: 14px; line-height: 1.25; opacity: .86; }
 .pl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 16px; background: #f4f1ea; color: #0b0b0b; font-size: 14.5px; font-weight: 500; border-radius: 2px; white-space: nowrap; }
 .pl-btn svg { width: 17px; height: 17px; }
 
@@ -56,7 +55,6 @@
 .pl-pausa { display: grid; place-items: center; width: 32px; }
 .pl-pausa svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .pl-frase { font-size: 15px; }
-.pl-frase b { font-weight: 600; }
 .pl-ver { font-size: 14px; font-weight: 500; border-bottom: 1px solid currentColor; padding-bottom: 2px; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   .pl-p, .pl-im { transition: none; }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
-import { dondeDelGrupo, fraseDelGrupo, type GrupoDePortada, type PrendaDePortada } from "@/lib/portada-l";
+import type { GrupoDePortada, PrendaDePortada } from "@/lib/portada-l";
 import { urlDeRecorte } from "@/lib/recorte";
 import { Icono } from "./Icono";
 import "@/app/estilos/portada-l.css";
@@ -39,7 +39,6 @@ export function PortadaTresPaneles({ grupos, hrefArmar, hrefNuevo }: { grupos: G
   const fila = useRef<HTMLDivElement>(null);
   const todas = grupos.flatMap((g) => g.prendas);
   const porGrupo = grupos[0]?.prendas.length ?? 3;
-  const grupoActual = grupos[Math.floor(actual / porGrupo)] ?? grupos[0];
 
   const [grupo, setGrupo] = useState(0);
   const [parado, setParado] = useState(false);
@@ -132,7 +131,7 @@ export function PortadaTresPaneles({ grupos, hrefArmar, hrefNuevo }: { grupos: G
                   <button
                     key={k}
                     type="button"
-                    aria-label={`Ver el grupo ${k + 1} de ${grupos.length}`}
+                    aria-label={`Ver las prendas ${k + 1} de ${grupos.length}`}
                     aria-current={k === grupo || undefined}
                     onClick={() => {
                       setParado(true);
@@ -147,15 +146,7 @@ export function PortadaTresPaneles({ grupos, hrefArmar, hrefNuevo }: { grupos: G
                 </button>
               </div>
             )}
-            <span className="pl-frase">
-              {fraseDelGrupo(delPanel)}
-              {delPanel.total && (
-                <>
-                  {" "}
-                  <b>{delPanel.total}</b> el outfit.
-                </>
-              )}
-            </span>
+            <span className="pl-frase">Lo último que llegó a nuestras tiendas.</span>
           </div>
           <div className="pl-bar-de">
             <Link className="pl-ver" href={hrefNuevo}>
@@ -189,7 +180,7 @@ export function PortadaTresPaneles({ grupos, hrefArmar, hrefNuevo }: { grupos: G
           {grupos.length > 1 && (
             <div className="pl-marcas">
               {grupos.map((g, a) => (
-                <button key={a} type="button" aria-label={`Ver el grupo ${a + 1} de ${grupos.length}`} onClick={() => irAlGrupo(a)}>
+                <button key={a} type="button" aria-label={`Ver las prendas ${a + 1} de ${grupos.length}`} onClick={() => irAlGrupo(a)}>
                   {g.prendas.map((_, b) => (
                     <i key={b} data-on={a * porGrupo + b === actual || undefined} />
                   ))}
@@ -198,14 +189,7 @@ export function PortadaTresPaneles({ grupos, hrefArmar, hrefNuevo }: { grupos: G
             </div>
           )}
           <div className="pl-tot">
-            {grupoActual?.total ? (
-              <>
-                <b>{grupoActual.total}</b>
-                <small>{dondeDelGrupo(grupoActual)}</small>
-              </>
-            ) : (
-              <small>Lo último que llegó</small>
-            )}
+            <small>Lo último que llegó</small>
           </div>
           <Link className="pl-btn" href={hrefArmar}>
             <Icono nombre="percha" />

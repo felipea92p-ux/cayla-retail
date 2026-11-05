@@ -1,169 +1,100 @@
-import { categoriasDe, claveCategoria, conFotoPrimero, hrefDePrenda, soles, type Prenda } from "./catalogo";
+import { categoriasDe, claveCategoria, hrefDePrenda, soles, type Prenda } from "./catalogo";
 import { lasNuevas } from "./inicio";
-import { hayAlgo, type Tienda } from "./stock";
 
-// La portada «L» de la tienda (ADR-0613): tres prendas nuevas que combinan, cada una sobre su color. Los grupos los elige una persona y los
-// colores salen de cada prenda: un grupo armado por una regla no se ve como un outfit. Lo que manda es lo que hay de verdad: un grupo con una
-// prenda agotada no sale, y si en la tienda elegida no queda ninguno, salen tres prendas nuevas sueltas, sin decir que combinan.
-
-type PiezaElegida = { codigo: string; fondo: string; texto: string };
-type GrupoElegido = readonly [PiezaElegida, PiezaElegida, PiezaElegida];
-
-const OSCURO = "#17110D";
-const CLARO = "#F4F1EA";
-
-/** Los grupos, por el código de cada prenda. Hasta que el líder los elija desde el ERP, se cambian aquí. */
-export const GRUPOS_DE_PORTADA: readonly GrupoElegido[] = [
-  // Arequipa
-  [
-    { codigo: "CMS-0090", fondo: "#DCCBB8", texto: OSCURO },
-    { codigo: "PAN-0033", fondo: "#4E1820", texto: CLARO },
-    { codigo: "CHA-0019", fondo: "#191512", texto: CLARO },
-  ],
-  [
-    { codigo: "CMS-0046", fondo: "#14284A", texto: CLARO },
-    { codigo: "PAN-0032", fondo: "#EBD3C8", texto: "#2A0E12" },
-    { codigo: "BLZ-0009", fondo: "#A8937B", texto: OSCURO },
-  ],
-  [
-    { codigo: "TOP-0036", fondo: "#D9C7A8", texto: OSCURO },
-    { codigo: "FAL-0010", fondo: "#26382F", texto: CLARO },
-    { codigo: "CAS-0013", fondo: "#1E2A3A", texto: CLARO },
-  ],
-  // Trujillo
-  [
-    { codigo: "POL-0077", fondo: "#123E33", texto: CLARO },
-    { codigo: "PAN-0030", fondo: "#E9D9B6", texto: OSCURO },
-    { codigo: "CHA-0014", fondo: "#22303A", texto: CLARO },
-  ],
-  [
-    { codigo: "TOP-0031", fondo: "#1F2B3A", texto: CLARO },
-    { codigo: "FAL-0011", fondo: "#EADCC8", texto: OSCURO },
-    { codigo: "BLZ-0008", fondo: "#8A3B22", texto: CLARO },
-  ],
-  [
-    { codigo: "CMS-0012", fondo: "#3A1B24", texto: CLARO },
-    { codigo: "FAL-0012", fondo: "#D9C7A8", texto: OSCURO },
-    { codigo: "CHA-0016", fondo: "#22303A", texto: CLARO },
-  ],
-];
-
-/** Los fondos de las tres prendas sueltas: no hay una persona eligiendo, así que son los que sirven para cualquier prenda. */
-const FONDOS_SUELTOS: readonly Omit<PiezaElegida, "codigo">[] = [
-  { fondo: "#DCCBB8", texto: OSCURO },
-  { fondo: "#4E1820", texto: CLARO },
-  { fondo: "#191512", texto: CLARO },
-];
+// La portada «L» de la tienda (ADR-0613, regla de Felipe del 2026-11-05): las últimas prendas que entraron de las tres categorías con lo más
+// reciente, siempre con foto. Primero sale la última de cada una, después la penúltima y la antepenúltima: tres grupos de tres, nueve prendas.
+// Es automática: sigue sola lo que llega, lo que se agota y lo que deja de ser nuevo a los 30 días, sin que nadie tenga que armar nada.
 
 const GRUPOS_A_LA_VEZ = 3;
 const PRENDAS_POR_GRUPO = 3;
 
+/** Los fondos: sobre cuál va cada prenda lo decide su color, para que siempre se distinga. Los usa uno detrás de otro para que varíen. */
+const FONDOS_CLAROS = ["#DCCBB8", "#EBD3C8", "#E9D9B6"] as const;
+const FONDOS_OSCUROS = ["#4E1820", "#14284A", "#123E33", "#191512"] as const;
+const TEXTO_SOBRE_CLARO = "#17110D";
+const TEXTO_SOBRE_OSCURO = "#F4F1EA";
+
 export type PrendaDePortada = { id: string; nombre: string; precio: string; href: string; foto: string; fondo: string; texto: string };
-export type GrupoDePortada = {
-  prendas: PrendaDePortada[];
-  /** Tres prendas que una persona eligió juntas: solo entonces se dice que combinan y se suma su total. */
-  combinan: boolean;
-  total: string | null;
-  /** En qué tiendas se puede recoger todo junto. Vacío con una tienda elegida: el cliente ya sabe dónde está. */
-  donde: string[];
-};
+export type GrupoDePortada = { prendas: PrendaDePortada[] };
 
-const nombresJuntos = (nombres: readonly string[]) =>
-  nombres.length < 2 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+/** El color de la prenda que se ve en su primera foto; si no se sabe cuál es, el primero que tiene. */
+const colorDeLaFoto = (p: Prenda): string | null => (p.colores.find((c) => c.foto && c.foto === p.fotos[0]) ?? p.colores[0])?.hex ?? null;
 
-/** Lo que dice la portada de un grupo: «Estas tres combinan y hay en Arequipa.», o «Lo último que llegó.» si son prendas sueltas. */
-export const fraseDelGrupo = (g: GrupoDePortada): string =>
-  !g.combinan ? "Lo último que llegó." : g.donde.length ? `Estas tres combinan y hay en ${nombresJuntos(g.donde)}.` : "Estas tres combinan.";
+const canales = (hex: string): [number, number, number] => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
 
-/** Lo que dice debajo del total en el celular. */
-export const dondeDelGrupo = (g: GrupoDePortada): string => (g.donde.length ? `Este outfit, en ${nombresJuntos(g.donde)}` : "Este outfit");
-
-function prendaDePortada(p: Prenda, sede: string | null, colores: Omit<PiezaElegida, "codigo">): PrendaDePortada | null {
-  const foto = p.fotos[0];
-  if (!foto) return null;
-  return { id: p.id, nombre: p.nombre, precio: soles(p.precioFinal), href: hrefDePrenda(p, sede), foto, ...colores };
-}
-
-/** Un color de los que no se recortan bien: una prenda blanca o muy clara se confunde con el fondo de su foto. */
+/** Una prenda blanca o muy clara no se puede recortar: se confunde con el fondo blanco de su foto. */
 const esMuyClara = (p: Prenda): boolean => {
-  const hex = p.colores[0]?.hex;
-  if (!hex) return false;
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  return Math.min(r, g, b) >= 225;
+  const hex = colorDeLaFoto(p);
+  return hex ? Math.min(...canales(hex)) >= 225 : false;
 };
 
-/** Tres prendas nuevas que se ven bien en grande, de tipos distintos si se puede. */
-function prendasSueltas(prendas: readonly Prenda[], sede: string | null): GrupoDePortada | null {
-  const candidatas = lasNuevas(prendas)
-    .filter((p) => p.fotos[0] && !esMuyClara(p))
-    .sort(conFotoPrimero);
-  const elegidas: Prenda[] = [];
-  const tipos = new Set<string | null>();
-  for (const p of candidatas) {
-    const tipo = p.categoria?.prefijo ?? null;
-    if (tipos.has(tipo)) continue;
-    tipos.add(tipo);
-    elegidas.push(p);
-    if (elegidas.length === PRENDAS_POR_GRUPO) break;
-  }
-  for (const p of candidatas) {
-    if (elegidas.length === PRENDAS_POR_GRUPO) break;
-    if (!elegidas.includes(p)) elegidas.push(p);
-  }
-  if (elegidas.length < PRENDAS_POR_GRUPO) return null;
-  const lista = elegidas.flatMap((p, i) => prendaDePortada(p, sede, FONDOS_SUELTOS[i]) ?? []);
-  return { prendas: lista, combinan: false, total: null, donde: [] };
+/** ¿Es oscura? Entonces va sobre un fondo claro; las demás, sobre uno oscuro. Sin el dato, sobre oscuro. */
+const esOscura = (p: Prenda): boolean => {
+  const hex = colorDeLaFoto(p);
+  if (!hex) return false;
+  const [r, g, b] = canales(hex);
+  return 0.299 * r + 0.587 * g + 0.114 * b < 100;
+};
+
+function prendaDePortada(p: Prenda, sede: string | null, turno: number): PrendaDePortada {
+  const oscura = esOscura(p);
+  const fondos = oscura ? FONDOS_CLAROS : FONDOS_OSCUROS;
+  return {
+    id: p.id,
+    nombre: p.nombre,
+    precio: soles(p.precioFinal),
+    href: hrefDePrenda(p, sede),
+    foto: p.fotos[0],
+    fondo: fondos[turno % fondos.length],
+    texto: oscura ? TEXTO_SOBRE_CLARO : TEXTO_SOBRE_OSCURO,
+  };
 }
 
 /**
- * Los grupos que salen ahora en la portada, hasta tres. Un grupo sale si todas sus prendas siguen siendo nuevas y se pueden recoger en un mismo
- * lugar: en la tienda elegida o, con «Todas», en alguna. Sin ninguno, tres prendas nuevas sueltas; sin eso, `[]` y la portada sigue siendo la de siempre.
+ * Los grupos de la portada, hasta tres. `prendas` ya viene con lo que hay en la tienda elegida. Las categorías van de la que recibió algo hace
+ * menos a la que hace más, y cada grupo toma la siguiente prenda de sus tres categorías. Si una se queda sin prendas, la reemplaza la que sigue,
+ * sin repetir ninguna prenda (hoy Lima tiene una sola prenda nueva de Polos). Sin tres prendas, `[]`: sigue la portada de siempre.
  */
-export function gruposDeLaPortada(
-  prendas: readonly Prenda[],
-  elegida: Tienda | null,
-  tiendas: readonly Tienda[],
-  sede: string | null,
-  grupos: readonly GrupoElegido[] = GRUPOS_DE_PORTADA,
-): GrupoDePortada[] {
-  const porCodigo = new Map(prendas.flatMap((p) => (p.codigo ? [[p.codigo, p] as const] : [])));
-  const salen: GrupoDePortada[] = [];
-  for (const grupo of grupos) {
-    const suyas = grupo.map((pieza) => porCodigo.get(pieza.codigo));
-    if (suyas.some((p) => !p)) continue;
-    const juntas = suyas as Prenda[];
-    // La portada dice «Lo nuevo»: una prenda que ya dejó de serlo (a los 30 días de llegar a una tienda, si no está fijada) saca al grupo.
-    if (juntas.some((p) => !p.nuevo)) continue;
-    const lugares = (elegida ? [elegida] : tiendas).filter((t) => juntas.every((p) => hayAlgo(p.stock?.sedes[t.id])));
-    if (lugares.length === 0) continue;
-    const lista = juntas.flatMap((p, i) => prendaDePortada(p, sede, grupo[i]) ?? []);
-    if (lista.length < PRENDAS_POR_GRUPO) continue;
-    salen.push({
-      prendas: lista,
-      combinan: true,
-      total: soles(juntas.reduce((suma, p) => suma + p.precioFinal, 0)),
-      donde: elegida ? [] : lugares.map((t) => t.nombre),
-    });
-    if (salen.length === GRUPOS_A_LA_VEZ) break;
+export function gruposDeLaPortada(prendas: readonly Prenda[], sede: string | null): GrupoDePortada[] {
+  const porCategoria = new Map<string, Prenda[]>();
+  for (const p of lasNuevas(prendas)) {
+    const clave = claveCategoria(p.categoria);
+    if (!clave || !p.fotos[0] || esMuyClara(p)) continue;
+    porCategoria.set(clave, [...(porCategoria.get(clave) ?? []), p]);
   }
-  if (salen.length > 0) return salen;
-  const sueltas = prendasSueltas(prendas, sede);
-  return sueltas ? [sueltas] : [];
+  // `lasNuevas` ya las ordena por llegada: la primera categoría que aparece es la que recibió algo hace menos.
+  const filas = [...porCategoria.values()];
+  const enUso = filas.slice(0, PRENDAS_POR_GRUPO);
+  let siguiente = enUso.length;
+  const grupos: GrupoDePortada[] = [];
+  let turno = 0;
+  for (let g = 0; g < GRUPOS_A_LA_VEZ; g++) {
+    const elegidas: PrendaDePortada[] = [];
+    for (let lugar = 0; lugar < PRENDAS_POR_GRUPO; lugar++) {
+      while ((enUso[lugar]?.length ?? 0) === 0 && siguiente < filas.length) enUso[lugar] = filas[siguiente++];
+      // Sin más categorías, lo que quede de las que ya están: mejor dos prendas del mismo tipo que un panel vacío.
+      const fila = enUso[lugar]?.length ? enUso[lugar] : filas.find((f) => f.length > 0);
+      const p = fila?.shift();
+      if (p) elegidas.push(prendaDePortada(p, sede, turno++));
+    }
+    if (elegidas.length < PRENDAS_POR_GRUPO) break;
+    grupos.push({ prendas: elegidas });
+  }
+  return grupos;
 }
 
 export type CategoriaConFoto = { clave: string; nombre: string; foto: string; fondo: string };
 
 /**
- * Una prenda por categoría, para la fila de categorías (ADR-0613): la más vendida con foto o, si ninguna tiene puesto, la que llegó hace menos.
- * Sale de lo que hay ahora en la tienda elegida, así que nunca muestra algo agotado. El fondo es el color de esa prenda, muy suave, y una muy
- * clara sale sobre gris para que se distinga.
+ * Una prenda por categoría, para la fila de categorías: la más vendida con foto o, si ninguna tiene puesto, la que llegó hace menos. Sale de lo
+ * que hay ahora en la tienda elegida, así que nunca muestra algo agotado. El fondo es el color de esa prenda, muy suave.
  */
 export function categoriasConFoto(prendas: readonly Prenda[]): CategoriaConFoto[] {
   return categoriasDe(prendas).flatMap((c) => {
     const suyas = prendas.filter((p) => claveCategoria(p.categoria) === c.clave && p.fotos[0]);
     if (suyas.length === 0) return [];
     const mejor = [...suyas].sort((a, b) => (a.vendidos ?? 99) - (b.vendidos ?? 99) || (a.nuevo?.dias ?? 99) - (b.nuevo?.dias ?? 99))[0];
-    return [{ clave: c.clave, nombre: c.nombre, foto: mejor.fotos[0], fondo: mejor.colores[0]?.hex && !esMuyClara(mejor) ? mejor.colores[0].hex : "#8f8f8c" }];
+    return [{ clave: c.clave, nombre: c.nombre, foto: mejor.fotos[0], fondo: !esMuyClara(mejor) ? (colorDeLaFoto(mejor) ?? "#8f8f8c") : "#8f8f8c" }];
   });
 }
 

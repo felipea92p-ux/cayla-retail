@@ -107,7 +107,7 @@ export default async function Inicio({ searchParams }: Props) {
   // La portada nueva (ADR-0613), solo con `?portada=l` hasta que Felipe la pruebe en su teléfono y la active. Una campaña vigente va primero.
   const conPortadaL = sp.portada === "l";
   const portadaL = conPortadaL ? sp.portada : null;
-  const gruposL = conPortadaL && hero.tipo !== "campana" ? gruposDeLaPortada(prendas, elegida, sedes, sede) : [];
+  const gruposL = conPortadaL && hero.tipo !== "campana" ? gruposDeLaPortada(prendas, sede) : [];
   // El diseño de la campaña que anuncia la portada (la misma que la franja): viste el héroe y el sello de sus prendas; sin él, todo como siempre.
   const diseno = await leerDisenoDeCampana(campana?.nombre);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });

@@ -1,14 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import { categoriasConFoto, dondeDelGrupo, fraseDelGrupo, GRUPOS_DE_PORTADA, gruposDeLaPortada, prendasDeAbajo } from "./portada-l";
-import type { Nivel } from "./stock";
+import { categoriasConFoto, gruposDeLaPortada, prendasDeAbajo } from "./portada-l";
 
-const AQP = { id: "a", nombre: "Arequipa" };
-const LIM = { id: "l", nombre: "Lima" };
-const TRU = { id: "t", nombre: "Trujillo" };
-const TIENDAS = [AQP, LIM, TRU];
-
-function prenda(codigo: string, sedes: Partial<Record<"a" | "l" | "t", Nivel>>, extra: Partial<Prenda> = {}): Prenda {
+/** `codigo` es «CAT-n»; el orden en que se pasan no importa: manda `dias`. */
+function prenda(codigo: string, dias: number | null, extra: Partial<Prenda> = {}): Prenda {
   const prefijo = codigo.split("-")[0];
   return {
     id: codigo,
@@ -17,117 +12,101 @@ function prenda(codigo: string, sedes: Partial<Record<"a" | "l" | "t", Nivel>>, 
     categoria: { nombre: prefijo, prefijo },
     precio: 50,
     precioFinal: 50,
-    colores: [{ codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", foto: null }],
+    colores: [{ codigo: "BEI", nombre: "Beige", hex: "#D5BA98", foto: null }],
     fotos: [`https://x.co/${codigo}.png`],
-    stock: { total: "hay", sedes },
-    nuevo: { dias: 3 },
+    stock: { total: "hay", sedes: {} },
+    nuevo: { dias },
     ...extra,
   } as Prenda;
 }
-const grupo = (fondo: string, ...codigos: [string, string, string]) =>
-  codigos.map((codigo) => ({ codigo, fondo, texto: "#fff" })) as unknown as (typeof GRUPOS_DE_PORTADA)[number];
+const ids = (grupos: ReturnType<typeof gruposDeLaPortada>) => grupos.map((g) => g.prendas.map((p) => p.id));
 
-const G1 = grupo("#111111", "A-1", "B-1", "C-1");
-const G2 = grupo("#222222", "A-2", "B-2", "C-2");
-const enArequipa = ["A-1", "B-1", "C-1"].map((c) => prenda(c, { a: "hay" }));
-const enTrujillo = ["A-2", "B-2", "C-2"].map((c) => prenda(c, { t: 2 }));
-
-describe("los grupos que salen en la portada", () => {
-  it("con una tienda elegida, solo los que están completos en ella, y no repite su nombre", () => {
-    const [g, ...resto] = gruposDeLaPortada([...enArequipa, ...enTrujillo], TRU, TIENDAS, "trujillo", [G1, G2]);
-    expect(resto).toEqual([]);
-    expect(g.prendas.map((p) => p.id)).toEqual(["A-2", "B-2", "C-2"]);
-    expect(g.combinan).toBe(true);
-    expect(g.donde).toEqual([]);
-    expect(fraseDelGrupo(g)).toBe("Estas tres combinan.");
-    expect(dondeDelGrupo(g)).toBe("Este outfit");
+describe("las últimas prendas de tres categorías", () => {
+  it("toma las tres categorías con lo más reciente, y de cada una, de la última a la antepenúltima", () => {
+    const lista = [
+      prenda("POL-3", 9), prenda("POL-1", 1), prenda("POL-2", 5), prenda("POL-4", 20),
+      prenda("PAN-1", 2), prenda("PAN-2", 6), prenda("PAN-3", 10),
+      prenda("TOP-1", 3), prenda("TOP-2", 7), prenda("TOP-3", 11),
+      prenda("FAL-1", 4), prenda("FAL-2", 8), prenda("FAL-3", 12),
+    ];
+    expect(ids(gruposDeLaPortada(lista, null))).toEqual([
+      ["POL-1", "PAN-1", "TOP-1"],
+      ["POL-2", "PAN-2", "TOP-2"],
+      ["POL-3", "PAN-3", "TOP-3"],
+    ]);
   });
 
-  it("con «Todas», salen los que se pueden recoger juntos, y dice dónde", () => {
-    const grupos = gruposDeLaPortada([...enArequipa, ...enTrujillo], null, TIENDAS, null, [G1, G2]);
-    expect(grupos.map((g) => g.donde)).toEqual([["Arequipa"], ["Trujillo"]]);
-    expect(fraseDelGrupo(grupos[0])).toBe("Estas tres combinan y hay en Arequipa.");
-    expect(dondeDelGrupo(grupos[1])).toBe("Este outfit, en Trujillo");
+  it("sin foto no entra, y la que sigue ocupa su lugar", () => {
+    const lista = [prenda("POL-1", 1, { fotos: [] }), prenda("POL-2", 5), prenda("PAN-1", 2), prenda("TOP-1", 3)];
+    expect(ids(gruposDeLaPortada(lista, null))[0]).toEqual(["PAN-1", "TOP-1", "POL-2"]);
   });
 
-  it("una prenda agotada o que ya no está saca al grupo entero", () => {
-    const agotada = [prenda("A-1", { a: 0 }), prenda("B-1", { a: "hay" }), prenda("C-1", { a: "hay" })];
-    expect(gruposDeLaPortada(agotada, AQP, TIENDAS, null, [G1]).every((g) => !g.combinan)).toBe(true);
-    const falta = enArequipa.slice(0, 2);
-    expect(gruposDeLaPortada(falta, AQP, TIENDAS, null, [G1]).every((g) => !g.combinan)).toBe(true);
+  it("lo que ya no es nuevo no entra", () => {
+    const lista = [prenda("POL-1", 1, { nuevo: null }), prenda("POL-2", 5), prenda("PAN-1", 2), prenda("TOP-1", 3)];
+    expect(gruposDeLaPortada(lista, null).flatMap((g) => g.prendas.map((p) => p.id))).not.toContain("POL-1");
   });
 
-  it("una prenda que dejó de ser nueva saca al grupo; una fijada como nueva, sin días, sigue", () => {
-    const vencida = [prenda("A-1", { a: "hay" }, { nuevo: null }), prenda("B-1", { a: "hay" }), prenda("C-1", { a: "hay" })];
-    expect(gruposDeLaPortada(vencida, AQP, TIENDAS, null, [G1]).some((g) => g.combinan)).toBe(false);
-    const fijada = [prenda("A-1", { a: "hay" }, { nuevo: { dias: null } }), prenda("B-1", { a: "hay" }), prenda("C-1", { a: "hay" })];
-    expect(gruposDeLaPortada(fijada, AQP, TIENDAS, null, [G1])[0].combinan).toBe(true);
+  it("una prenda fijada como nueva, sin días, entra al final", () => {
+    const lista = [prenda("POL-1", null), prenda("PAN-1", 2), prenda("TOP-1", 3)];
+    expect(ids(gruposDeLaPortada(lista, null))[0]).toEqual(["PAN-1", "TOP-1", "POL-1"]);
   });
 
-  it("repartidas en tiendas distintas no combinan: no se pueden recoger juntas", () => {
-    const repartidas = [prenda("A-1", { a: "hay" }), prenda("B-1", { t: "hay" }), prenda("C-1", { l: "hay" })];
-    expect(gruposDeLaPortada(repartidas, null, TIENDAS, null, [G1]).some((g) => g.combinan)).toBe(false);
+  it("una prenda blanca no entra: no se puede recortar de su foto", () => {
+    const blanca = { colores: [{ codigo: "BLA", nombre: "Blanco", hex: "#ffffff", foto: null }] };
+    const lista = [prenda("POL-1", 1, blanca), prenda("POL-2", 5), prenda("PAN-1", 2), prenda("TOP-1", 3)];
+    expect(ids(gruposDeLaPortada(lista, null))[0]).toEqual(["PAN-1", "TOP-1", "POL-2"]);
   });
 
-  it("una prenda sin foto saca al grupo", () => {
-    const sinFoto = [prenda("A-1", { a: "hay" }, { fotos: [] }), prenda("B-1", { a: "hay" }), prenda("C-1", { a: "hay" })];
-    expect(gruposDeLaPortada(sinFoto, AQP, TIENDAS, null, [G1]).some((g) => g.combinan)).toBe(false);
+  it("mira el color de la foto, no el primero de la prenda", () => {
+    const foto = "https://x.co/POL-1.png";
+    const colores = [{ codigo: "BLA", nombre: "Blanco", hex: "#ffffff", foto: null }, { codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", foto }];
+    const [g] = gruposDeLaPortada([prenda("POL-1", 1, { colores, fotos: [foto] }), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
+    expect(g.prendas[0].id).toBe("POL-1");
+    expect(g.prendas[0].texto).toBe("#17110D");
   });
 
-  it("nunca salen más de tres grupos", () => {
-    const muchos = [1, 2, 3, 4].map((n) => grupo("#333333", `A-${n}`, `B-${n}`, `C-${n}`));
-    const prendas = [1, 2, 3, 4].flatMap((n) => [`A-${n}`, `B-${n}`, `C-${n}`].map((c) => prenda(c, { a: "hay" })));
-    expect(gruposDeLaPortada(prendas, AQP, TIENDAS, null, muchos)).toHaveLength(3);
+  it("si una categoría se queda sin prendas, entra la que sigue, sin repetir ninguna (como Lima)", () => {
+    const lista = [prenda("CMS-1", 6), prenda("CMS-2", 20), prenda("POL-1", 12), prenda("CON-1", 13), prenda("TOP-1", 22), prenda("TOP-2", 23)];
+    const grupos = ids(gruposDeLaPortada(lista, "lima"));
+    expect(grupos).toEqual([["CMS-1", "POL-1", "CON-1"], ["CMS-2", "TOP-1", "TOP-2"]]);
+    expect(new Set(grupos.flat()).size).toBe(grupos.flat().length);
   });
 
-  it("suma lo que paga el cliente, con la campaña si la hay", () => {
-    const conOferta = [prenda("A-1", { a: "hay" }, { precioFinal: 40 }), prenda("B-1", { a: "hay" }), prenda("C-1", { a: "hay" })];
-    expect(gruposDeLaPortada(conOferta, AQP, TIENDAS, null, [G1])[0].total).toContain("140");
-  });
-});
-
-describe("sin grupos completos, como en Lima", () => {
-  const tops = ["TOP-1", "TOP-2", "CMS-1", "POL-1"].map((c) => prenda(c, { l: "hay" }));
-
-  it("salen tres prendas nuevas sueltas, de tipos distintos, sin decir que combinan ni sumar", () => {
-    const [g, ...resto] = gruposDeLaPortada(tops, LIM, TIENDAS, "lima", [G1]);
-    expect(resto).toEqual([]);
-    expect(g.combinan).toBe(false);
-    expect(g.total).toBeNull();
-    expect(g.prendas.map((p) => p.id)).toEqual(["TOP-1", "CMS-1", "POL-1"]);
-    expect(fraseDelGrupo(g)).toBe("Lo último que llegó.");
+  it("con menos de tres prendas no hay portada nueva", () => {
+    expect(gruposDeLaPortada([prenda("POL-1", 1), prenda("PAN-1", 2)], null)).toEqual([]);
+    expect(gruposDeLaPortada([], null)).toEqual([]);
   });
 
-  it("no usa una prenda blanca: se confunde con el fondo de su foto", () => {
-    const blanca = prenda("POL-9", { l: "hay" }, { colores: [{ codigo: "BLA", nombre: "Blanco", hex: "#ffffff", foto: null }] });
-    const [g] = gruposDeLaPortada([blanca, ...tops], LIM, TIENDAS, null, [G1]);
-    expect(g.prendas.map((p) => p.id)).not.toContain("POL-9");
+  it("con una sola categoría, llena los tres paneles con ella", () => {
+    expect(ids(gruposDeLaPortada([prenda("POL-1", 1), prenda("POL-2", 2), prenda("POL-3", 3)], null))).toEqual([["POL-1", "POL-2", "POL-3"]]);
   });
 
-  it("con menos de tres, no hay portada nueva: sigue la de siempre", () => {
-    expect(gruposDeLaPortada(tops.slice(0, 2), LIM, TIENDAS, null, [G1])).toEqual([]);
-    expect(gruposDeLaPortada([], null, TIENDAS, null)).toEqual([]);
-  });
-});
-
-describe("los grupos elegidos", () => {
-  it("ninguna prenda se repite entre grupos, y cada uno tiene tres", () => {
-    const codigos = GRUPOS_DE_PORTADA.flat().map((p) => p.codigo);
-    expect(new Set(codigos).size).toBe(codigos.length);
-    for (const g of GRUPOS_DE_PORTADA) expect(g).toHaveLength(3);
+  it("nunca hay más de tres grupos", () => {
+    const lista = ["POL", "PAN", "TOP"].flatMap((c, i) => [1, 2, 3, 4, 5].map((n) => prenda(`${c}-${n}`, n * 3 + i)));
+    expect(gruposDeLaPortada(lista, null)).toHaveLength(3);
   });
 
-  it("todo fondo y todo texto son colores escritos completos", () => {
-    for (const p of GRUPOS_DE_PORTADA.flat()) {
-      expect(p.fondo).toMatch(/^#[0-9A-Fa-f]{6}$/);
-      expect(p.texto).toMatch(/^#[0-9A-Fa-f]{6}$/);
-    }
+  it("una prenda oscura va sobre fondo claro, y una clara sobre oscuro, con el texto que se lee", () => {
+    const negra = { colores: [{ codigo: "NEG", nombre: "Negro", hex: "#2D2C2F", foto: null }] };
+    const [g] = gruposDeLaPortada([prenda("POL-1", 1, negra), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
+    expect(g.prendas[0]).toMatchObject({ fondo: "#DCCBB8", texto: "#17110D" });
+    expect(g.prendas[1].texto).toBe("#F4F1EA");
+  });
+
+  it("dos paneles seguidos del mismo tipo de color no llevan el mismo fondo", () => {
+    const [g] = gruposDeLaPortada([prenda("POL-1", 1), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
+    expect(new Set(g.prendas.map((p) => p.fondo)).size).toBe(3);
+  });
+
+  it("muestra lo que paga el cliente", () => {
+    const [g] = gruposDeLaPortada([prenda("POL-1", 1, { precioFinal: 40 }), prenda("PAN-1", 2), prenda("TOP-1", 3)], null);
+    expect(g.prendas[0].precio).toContain("40");
   });
 });
 
 describe("debajo de la portada", () => {
   it("cada categoría muestra su prenda más vendida con foto", () => {
-    const lista = [prenda("TOP-1", { a: "hay" }), prenda("TOP-2", { a: "hay" }, { vendidos: 3 }), prenda("TOP-3", { a: "hay" }, { fotos: [], vendidos: 1 })];
+    const lista = [prenda("TOP-1", 3), prenda("TOP-2", 4, { vendidos: 3 }), prenda("TOP-3", 5, { fotos: [], vendidos: 1 })];
     const [c, ...resto] = categoriasConFoto(lista);
     expect(resto).toEqual([]);
     expect(c.foto).toContain("TOP-2");
@@ -135,20 +114,19 @@ describe("debajo de la portada", () => {
   });
 
   it("una categoría sin ninguna foto no sale", () => {
-    expect(categoriasConFoto([prenda("TOP-1", { a: "hay" }, { fotos: [] })])).toEqual([]);
+    expect(categoriasConFoto([prenda("TOP-1", 3, { fotos: [] })])).toEqual([]);
   });
 
   it("sin puesto en ventas, la que llegó hace menos", () => {
-    const lista = [prenda("TOP-1", { a: "hay" }, { nuevo: { dias: 20 } }), prenda("TOP-2", { a: "hay" }, { nuevo: { dias: 2 } })];
-    expect(categoriasConFoto(lista)[0].foto).toContain("TOP-2");
+    expect(categoriasConFoto([prenda("TOP-1", 20), prenda("TOP-2", 2)])[0].foto).toContain("TOP-2");
   });
 
   it("las prendas son las de la portada primero, sin repetir, y hasta nueve", () => {
-    const portada = gruposDeLaPortada(enArequipa, AQP, TIENDAS, null, [G1]);
-    const otras = Array.from({ length: 12 }, (_, i) => prenda(`POL-${i}`, { a: "hay" }));
-    const lista = prendasDeAbajo([...enArequipa, ...otras], portada);
+    const portada = [prenda("POL-1", 1), prenda("PAN-1", 2), prenda("TOP-1", 3)];
+    const otras = Array.from({ length: 12 }, (_, i) => prenda(`FAL-${i}`, 10 + i));
+    const lista = prendasDeAbajo([...portada, ...otras], gruposDeLaPortada(portada, null));
     expect(lista).toHaveLength(9);
-    expect(lista.slice(0, 3).map((p) => p.id)).toEqual(["A-1", "B-1", "C-1"]);
+    expect(lista.slice(0, 3).map((p) => p.id)).toEqual(["POL-1", "PAN-1", "TOP-1"]);
     expect(new Set(lista.map((p) => p.id)).size).toBe(9);
   });
 });
