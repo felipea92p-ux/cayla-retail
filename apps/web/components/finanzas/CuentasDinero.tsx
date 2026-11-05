@@ -633,7 +633,8 @@ function RegistrarMovimientoModal({
   const maquinaId = esDepositoMaquina ? b.origen || null : null;
   // Lo leído va con la máquina de la que se leyó: si la persona cambia de máquina, la lista anterior deja de valer sola
   // (sin tocar el estado dentro del efecto) mientras llega la nueva.
-  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[] } | null>(null);
+  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[]; falla: boolean } | null>(null);
+  const [intentoLotes, setIntentoLotes] = useState(0);
   useEffect(() => {
     if (!maquinaId) return;
     let vivo = true;
@@ -642,15 +643,16 @@ function RegistrarMovimientoModal({
       .then(({ data, error }) => {
         if (!vivo) return;
         const lista = error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerLotePendiente);
-        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha) });
+        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha), falla: !!error });
       });
     return () => {
       vivo = false;
     };
     // La fecha no vuelve a cargar la lista: solo decide qué se marca de entrada al llegar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maquinaId]);
+  }, [maquinaId, intentoLotes]);
   const lotes = leido && leido.maquinaId === maquinaId ? leido.lotes : null;
+  const lotesFalla = !!leido && leido.maquinaId === maquinaId && leido.falla;
   const marcados = leido && leido.maquinaId === maquinaId ? leido.marcados : [];
   const marcar = (clave: string, si: boolean) =>
     setLeido((l) => (l && l.maquinaId === maquinaId ? { ...l, marcados: si ? [...l.marcados.filter((c) => c !== clave), clave] : l.marcados.filter((c) => c !== clave) } : l));
@@ -804,6 +806,22 @@ function RegistrarMovimientoModal({
             ayuda={
               lotes === null
                 ? "Leyendo lo que la máquina todavía no depositó…"
+                : lotesFalla
+                  ? (
+                    <>
+                      No se pudo leer lo que esta máquina tiene por depositar.{" "}
+                      <button
+                        type="button"
+                        className="btn-enlace"
+                        onClick={() => {
+                          setLeido(null);
+                          setIntentoLotes((n) => n + 1);
+                        }}
+                      >
+                        Volver a intentar
+                      </button>
+                    </>
+                  )
                 : lotes.length === 0
                   ? "Esta máquina no tiene nada por depositar."
                   : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito."

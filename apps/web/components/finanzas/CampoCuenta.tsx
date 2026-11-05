@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CampoSelect } from "@/components/ui/campos";
 import { CampoFin, SelectFin } from "@/components/finanzas/kit";
@@ -107,7 +107,12 @@ export function useCuentasParaElegir(
   const fijas = useContext(CuentasDePrueba)?.[clase] ?? null;
   const conFondo = !!opciones.conMiFondo && clase === "pago";
   const miFondo = useMiFondo(activo && conFondo && !fijas);
-  const [estado, setEstado] = useState<{ clave: string; cuentas: CuentaElegible[] }>({ clave: "", cuentas: [] });
+  const [estado, setEstado] = useState<{ clave: string; cuentas: CuentaElegible[]; falla: boolean }>({ clave: "", cuentas: [], falla: false });
+  const [intento, setIntento] = useState(0);
+  const reintentar = useCallback(() => {
+    setEstado({ clave: "", cuentas: [], falla: false });
+    setIntento((n) => n + 1);
+  }, []);
   useEffect(() => {
     if (!activo || fijas) return;
     let vivo = true;
@@ -115,20 +120,21 @@ export function useCuentasParaElegir(
       .rpc("fn_cuentas_para_elegir" as never, { p_clase: clase, p_ubicacion_id: ubicacionId || null } as never)
       .then(({ data, error }) => {
         if (!vivo) return;
-        setEstado({ clave, cuentas: error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerCuentaElegible) });
+        setEstado({ clave, cuentas: error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerCuentaElegible), falla: !!error });
       });
     return () => {
       vivo = false;
     };
-  }, [clase, ubicacionId, activo, clave, fijas]);
+  }, [clase, ubicacionId, activo, clave, fijas, intento]);
+  const falla = estado.clave === clave && estado.falla;
   const propuestas = useMemo(
     () => (soloDe ? estado.cuentas.map((c) => ({ ...c, propuestaPara: c.propuestaPara.filter((m) => soloDe.split(",").includes(m)) })) : estado.cuentas),
     [estado.cuentas, soloDe],
   );
-  if (fijas) return { cuentas: fijas, listo: true };
+  if (fijas) return { cuentas: fijas, listo: true, falla: false, reintentar };
   // Con el fondo, el combo espera a las dos lecturas: así la propuesta no salta de la caja al fondo cuando llega la segunda.
-  if (conFondo) return { cuentas: conMiFondo(propuestas, miFondo.fondo), listo: estado.clave === clave && miFondo.listo };
-  return { cuentas: propuestas, listo: estado.clave === clave };
+  if (conFondo) return { cuentas: conMiFondo(propuestas, miFondo.fondo), listo: estado.clave === clave && miFondo.listo, falla, reintentar };
+  return { cuentas: propuestas, listo: estado.clave === clave, falla, reintentar };
 }
 
 const SIN_CUENTAS = "Sin cuentas para este medio: se agregan en Configuración ▸ Dinero";
@@ -145,18 +151,33 @@ type PropsCampo = {
   sentido?: "sale" | "entra";
   id?: string;
   deshabilitado?: boolean;
+  /** Tarea 35: no se pudieron leer las cuentas. No es lo mismo que no tener: la frase lo dice y deja volver a intentar. */
+  falla?: boolean;
+  reintentar?: () => void;
   /** Lo que sale del fondo con este pago hasta esta línea (`usadoDelFondo`): la frase dice cuánto le queda o si CAYLA le deberá. */
   montoDelFondo?: number;
 };
 
 /** Lo que dice el combo sin cuenta elegida: buscando, o por qué está bloqueado. Con cuentas, el «Elegir» de siempre. */
-function marcadorDe(listo: boolean, hay: boolean) {
+function marcadorDe(listo: boolean, hay: boolean, falla = false) {
   if (!listo) return "…";
+  if (falla) return "No se pudieron leer las cuentas";
   return hay ? undefined : SIN_CUENTAS;
 }
 
-function ayudaDe({ cuentas, listo, valor, sentido = "sale", montoDelFondo }: PropsCampo, hay: boolean) {
+function ayudaDe({ cuentas, listo, valor, sentido = "sale", montoDelFondo, falla, reintentar }: PropsCampo, hay: boolean) {
   if (!listo) return "Buscando las cuentas…";
+  if (falla)
+    return (
+      <>
+        No se pudieron leer las cuentas.{" "}
+        {reintentar && (
+          <button type="button" className="btn-enlace" onClick={reintentar}>
+            Volver a intentar
+          </button>
+        )}
+      </>
+    );
   if (!hay) return "Queda «sin cuenta» hasta que el líder la agregue; se registra igual.";
   const elegida = cuentas.find((c) => c.id === valor) ?? null;
   if (elegida?.tipo === "fondo") return ayudaDelFondo(elegida.saldo ?? 0, montoDelFondo ?? 0);
@@ -177,7 +198,7 @@ export function CampoSaleDe(props: PropsCampo) {
       valor={hay ? (valor ?? "") : ""}
       onValor={onValor}
       opciones={hay ? opcionesDeCuenta(cuentas, clase, medio) : []}
-      marcador={sinMedio ? "Primero elige con qué se pagó" : marcadorDe(listo, hay)}
+      marcador={sinMedio ? "Primero elige con qué se pagó" : marcadorDe(listo, hay, props.falla)}
       deshabilitado={deshabilitado || !hay}
       pie={sinMedio ? undefined : ayudaDe(props, hay)}
     />
@@ -195,7 +216,7 @@ export function CampoCuentaFin(props: PropsCampo & { sinMedio?: boolean; classNa
         valor={hay ? (valor ?? "") : ""}
         onValor={onValor}
         opciones={hay ? opcionesDeCuenta(cuentas, clase, sinMedio ? undefined : medio) : []}
-        marcador={marcadorDe(listo, hay)}
+        marcador={marcadorDe(listo, hay, props.falla)}
         deshabilitado={deshabilitado || !hay}
       />
     </CampoFin>

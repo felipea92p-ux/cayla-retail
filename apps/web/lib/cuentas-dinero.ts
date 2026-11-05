@@ -65,11 +65,11 @@ export async function getMovimientos(ubicacionId: string | null): Promise<Lectur
 }
 
 /** Solo el líder: aportes, préstamos, retiros y devoluciones. */
-export async function getPlataDelDueno(): Promise<MovimientoDueno[]> {
+export async function getPlataDelDueno(): Promise<Lectura<MovimientoDueno[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_plata_del_dueno" as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerMovimientoDueno);
+  if (error) return { datos: [], falla: falla("la plata del dueño", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerMovimientoDueno), falla: null };
 }
 
 /** Solo el líder: a qué cuenta entra hoy cada medio en cada tienda. */
@@ -143,11 +143,11 @@ export async function getPlanillaCuentas(): Promise<CuentaPlanilla[] | null> {
 }
 
 /** Solo el líder: lo que movió plata este mes y todavía no dice de qué cuenta. */
-export async function getSinCuenta(): Promise<SinCuenta[]> {
+export async function getSinCuenta(): Promise<Lectura<SinCuenta[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_dinero_sin_cuenta" as never, { p_desde: null, p_hasta: null } as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerSinCuenta).filter((s) => Math.abs(s.monto) >= 0.01);
+  if (error) return { datos: [], falla: falla("lo que movió plata sin decir de qué cuenta", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerSinCuenta).filter((s) => Math.abs(s.monto) >= 0.01), falla: null };
 }
 
 export async function getEfectivo(ubicacionId: string | null): Promise<Lectura<EfectivoFila[]>> {
@@ -157,11 +157,11 @@ export async function getEfectivo(ubicacionId: string | null): Promise<Lectura<E
   return { datos: ((data ?? []) as Fila[]).map(leerEfectivo), falla: null };
 }
 
-export async function getCierresConDiferencia(ubicacionId: string | null): Promise<CierreConDiferencia[]> {
+export async function getCierresConDiferencia(ubicacionId: string | null): Promise<Lectura<CierreConDiferencia[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_cierres_con_diferencia" as never, { p_ubicacion_id: ubicacionId, p_dias: 14 } as never);
-  if (error) return [];
-  return ((data ?? []) as Fila[]).map(leerCierre);
+  if (error) return { datos: [], falla: falla("los cierres con diferencia", error) };
+  return { datos: ((data ?? []) as Fila[]).map(leerCierre), falla: null };
 }
 
 /** Solo el líder: las cuentas que se concilian, con su última conciliación y lo pendiente. */
@@ -191,6 +191,8 @@ export async function getContextoDinero(
   esLider: boolean;
   cuentas: Lectura<CuentaDinero[]>;
   plata: MovimientoDueno[];
+  /** No se pudo leer la plata del dueño: `deuda` sale 0 sin serlo, y la pantalla tiene que decirlo. */
+  plataFalla: string | null;
   deuda: number;
   conciliacion: Lectura<ConciliacionCuenta[]>;
 }> {
@@ -199,13 +201,13 @@ export async function getContextoDinero(
   const [{ ubicaciones, talleres }, cuentas, plata, conciliacion] = await Promise.all([
     getUbicacionesDinero(),
     getSaldos(null),
-    esLider ? getPlataDelDueno() : Promise.resolve([]),
+    esLider ? getPlataDelDueno() : Promise.resolve({ datos: [], falla: null }),
     esLider ? getConciliacionCuentas() : Promise.resolve({ datos: [], falla: null }),
   ]);
   // «Ver» es una sede, todas o la empresa (`ver.soloEmpresa`: los bancos y lo que no es de ninguna sede). La empresa no tiene cajón, pero
   // sí cuentas: leerla como «todas» (lo que se hacía hasta el 2026-10-28) le mostraba a Felipe las cajas de las tiendas en «Empresa».
   const ver = leerVer(verParam, ubicaciones, esLider, persona.ubicacionId);
-  return { ubicaciones, talleres, ver, esLider, cuentas, plata, deuda: deudaConDueno(plata).deuda, conciliacion };
+  return { ubicaciones, talleres, ver, esLider, cuentas, plata: plata.datos, plataFalla: plata.falla, deuda: deudaConDueno(plata.datos).deuda, conciliacion };
 }
 
 /** La píldora de Conciliación: las líneas de los bancos que faltan revisar. */

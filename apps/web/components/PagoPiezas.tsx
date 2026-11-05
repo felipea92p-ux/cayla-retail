@@ -339,7 +339,7 @@ export function MediosDePago({
    */
   exacto?: boolean;
   /** ADR-0195 F3b: con las cuentas, cada medio pregunta «Sale de» (propuesta según el medio y la tienda). */
-  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean; falla?: boolean; reintentar?: () => void };
   /** ADR-0362 (fase 6 · actividad 6): el total del COMPROBANTE que se paga; de S/ 2 000 o más avisa lo que queda «no deducible». */
   totalComprobante?: number;
   /** Pagar juntos: cada comprobante con su total y lo que recibe de este pago (el aviso de lo no deducible mira a cada uno). */
@@ -403,6 +403,8 @@ export function MediosDePago({
           etiqueta={varios ? `Sale de (${i + 1})` : "Sale de"}
           cuentas={cuentas.lista}
           listo={cuentas.listo}
+          falla={cuentas.falla}
+          reintentar={cuentas.reintentar}
           clase="pago"
           medio={l.metodo}
           valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}

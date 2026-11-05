@@ -629,7 +629,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 saldoFavor={datos.proveedor?.saldoFavor ?? 0}
                 datosProveedor={datos.proveedor?.datosPago ?? null}
                 enlaceFicha={`/compras/proveedores/${orden.proveedor.id}`}
-                cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }}
+                cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }}
               />
             </CampoGuiado>
           </section>
