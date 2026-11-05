@@ -36,3 +36,11 @@ Prueba: `pnpm pruebas:produccion-revertir-costo`. **En producción desde el 2026
 DECIDÍ: derivarla (`fn_servicios_por_pagar` = devengado − líneas de comprobante vigentes que apuntan a la fase con `fase_id`). Se cuenta sin IGV, porque la tarifa es sin IGV. El nombre de un servicio se registra también con la orden terminada, sin cambiar tarifa ni fijo, que ya entraron al costo.
 DESCARTÉ: (1) crear una factura automática por vuelta: exigiría serie y proveedor que no se conocen, y al anular una vuelta habría que anular papeles; (2) una tabla propia de pagos a servicios: Finanzas, IGV, flujo y balance ya leen `comprobantes_produccion`, y habría que enseñarles otra.
 SE ROMPE SI: alguien factura un servicio sin apuntar la línea a su fase: esa deuda se contaría dos veces. La actividad 4 hace que el pago desde Por pagar la apunte sola; la factura suelta sigue pudiendo hacerlo mal.
+
+## Actividad 4: pagar a un servicio con el papel que dio (migración `20261105222000`)
+
+**El problema.** Pagar un servicio exigía escribir la línea a mano en Facturas de insumos. Felipe decidió que un servicio da «una mezcla de papeles» (P-14), que sin factura se sigue, marcado (P-17), y que se paga al recibir (P-15).
+
+DECIDÍ: `pagar_servicio_de_orden` arma un comprobante de una línea con `fase_id` y llama a `registrar_comprobante_produccion`. `comprobantes_produccion.tipo` suma `recibo_por_honorarios` (la misma palabra de Compras); Impuestos lo cuenta y deja fuera `sin_comprobante`.
+DESCARTÉ: el pago automático desde BCP Operativa al anotar la vuelta (ADR-0551, decisión 7): la vuelta la anota la encargada, que no ve el dinero, y un descuento silencioso de un banco no se revisa. En su lugar, el aviso lleva a pagar y la hoja propone la cuenta del Taller.
+SE ROMPE SI: alguien factura el servicio por «Facturas de insumos» sin apuntar a la fase: se contaría dos veces (la hoja de pago sí la apunta).

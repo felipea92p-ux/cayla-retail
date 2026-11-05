@@ -18,6 +18,7 @@ import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonEnlace } from "@/components/ui/campos";
 import { hrefDeLaOrden, totalDeServicios, type ServicioPorPagar } from "@/lib/servicios-por-pagar-reglas";
+import { PagarServicioModal } from "@/components/PagarServicioModal";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -46,6 +47,7 @@ export function PorPagarProduccionPanel({
   sede: string;
 }) {
   const [pagando, setPagando] = useState<ComprobanteProduccion | null>(null);
+  const [pagandoServicio, setPagandoServicio] = useState<(ServicioPorPagar & { proveedor: string }) | null>(null);
   const tramos = tramosPorPagar(comprobantes, hoy);
   const totalServicios = totalDeServicios(servicios);
   const totalPorPagar = tramos.reduce((s, t) => s + t.monto, 0) + totalServicios;
@@ -116,10 +118,14 @@ export function PorPagarProduccionPanel({
                   </span>
                 </span>
                 <span className="text-right text-[14px] font-semibold tabular-nums text-tinta">{soles(x.falta)}</span>
-                {x.proveedor === null && (
+                {x.proveedor === null ? (
                   <BotonEnlace href={hrefDeLaOrden(x.numero)} peso="fantasma" data-guia="prod-por-pagar.registrar-quien" className="col-span-2 sm:col-span-1">
                     Registrar quién
                   </BotonEnlace>
+                ) : (
+                  <Boton peso="fantasma" data-guia="prod-por-pagar.pagar-servicio" onClick={() => setPagandoServicio({ ...x, proveedor: x.proveedor as string })} className="col-span-2 sm:col-span-1">
+                    Pagar
+                  </Boton>
                 )}
               </li>
             ))}
@@ -278,6 +284,7 @@ export function PorPagarProduccionPanel({
         )}
       </section>
 
+      {pagandoServicio && <PagarServicioModal servicio={pagandoServicio} hoy={hoy} onClose={() => setPagandoServicio(null)} />}
       {pagando && <PagarComprobanteProduccionModal comprobante={pagando} hoy={hoy} faltante={avisoDeFaltante(faltantes[pagando.id], pagando)} onClose={() => setPagando(null)} />}
     </div>
   );

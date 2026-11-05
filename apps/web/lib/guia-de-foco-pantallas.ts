@@ -425,6 +425,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control propio + 8 del cierre y los insumos
+  "components/PagarServicioModal.tsx": { estado: "aplicada", evidencia: ["components/PagarServicioModal.tsx"] },
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },

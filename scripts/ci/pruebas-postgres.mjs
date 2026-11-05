@@ -1905,6 +1905,9 @@ export const PRUEBAS = [
   // solo lo ve el líder, y el nombre se registra con la orden cerrada sin tocar el monto. ROLLBACK.
   "pruebas:produccion-servicios-por-pagar",
 
+  // Pagar a un servicio con el papel que dio (ADR-0614, actividad 4): cada papel, la deuda que baja sin IGV, de más no, sin nombre no, y el token. ROLLBACK.
+  "pruebas:produccion-pagar-servicio",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 

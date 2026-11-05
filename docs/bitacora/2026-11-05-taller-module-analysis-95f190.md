@@ -14,3 +14,8 @@
   POR QUÉ ASÍ: copiar la deuda a otra tabla daría dos verdades; derivada cambia sola con otra vuelta o una anulación. Se cuenta sin IGV porque la tarifa es sin IGV.
   QUÉ SE ROMPERÍA SIN ESTO: el Taller debería plata a quien le cose sin que ninguna pantalla de dinero lo dijera.
   Verificado: `pruebas:produccion-servicios-por-pagar` 12/12 y en el navegador local, de la lista a registrar el nombre en una orden cerrada. Sin mirar a 375 px ni en oscuro (va con el rediseño). Sin pegar en producción.
+- **Actividad 4 · Pagar a un servicio con el papel que dio (migración `20261105222000`).**
+  QUÉ HICE: hoja «Pagar a…» desde Por pagar: cuánto, qué papel (factura, boleta, recibo por honorarios o sin papel), y si ya se pagó o queda por pagar. Al anotar una vuelta, el aviso lleva «Ir a pagar».
+  POR QUÉ ASÍ: `pagar_servicio_de_orden` usa la misma puerta de siempre (`registrar_comprobante_produccion`), así Finanzas, IGV y el flujo lo ven sin cambiar. Sin papel queda marcado y fuera de Impuestos.
+  QUÉ SE ROMPERÍA SIN ESTO: habría que escribir el pago a mano en Facturas, y la deuda de la orden no se enteraría.
+  Verificado: `pruebas:produccion-pagar-servicio` 16/16, reglas 9/9 y en el navegador local un pago sin papel que deja el Taller sin deuda. Sin mirar a 375 px ni en oscuro. Sin pegar en producción.

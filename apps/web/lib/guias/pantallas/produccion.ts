@@ -1623,6 +1623,13 @@ export const GUIA_PROD_POR_PAGAR: Guia = {
       texto: "Cuando un servicio devuelve prendas, lo que se le debe aparece aquí, aunque todavía no te haya dado papel. Sale de la orden: nadie lo escribe.",
     },
     {
+      id: "pagar-servicio",
+      ancla: "prod-por-pagar.pagar-servicio",
+      opcional: true,
+      titulo: "Pagarle a un servicio",
+      texto: "Abre una hoja corta: cuánto, qué papel te dio (factura, boleta, recibo o ninguno) y si ya lo pagaste o queda por pagar. En la demo no lo tocamos.",
+    },
+    {
       id: "registrar-quien",
       ancla: "prod-por-pagar.registrar-quien",
       opcional: true,
