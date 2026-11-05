@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
-import { estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
+import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
 //
@@ -39,6 +39,14 @@ export type GuiaCampos = {
   enfocar: (id: string) => void;
   /** Dejó de escribir en ese campo (salió de él, o el campo desapareció): la luz puede pasar al que sigue. */
   soltar: (id: string) => void;
+  /** Quiso confirmar: si falta algo, cada campo pendiente dice su error y se va al primero. Devuelve si se puede seguir (ADR-0611, mejora 1). */
+  revisar: () => boolean;
+  /** El error que dice un campo bajo su control, o null. Lo dibuja `CampoGuiado`. */
+  errorDe: (id: string) => string | null;
+  /** Un error que devolvió el guardado para un campo: lo dice bajo él y lleva hasta allá. */
+  marcarError: (id: string, mensaje: string) => void;
+  /** La persona ya está corrigiendo este campo: su error del guardado se borra (lo llama `CampoGuiado`). */
+  limpiarError: (id: string) => void;
 };
 
 /**
@@ -56,6 +64,17 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
   const [escribiendoEn, setEscribiendoEn] = useState<string | null>(null);
   const enfocar = useCallback((id: string) => setEscribiendoEn(id), []);
   const soltar = useCallback((id: string) => setEscribiendoEn((actual) => (actual === id ? null : actual)), []);
+
+  // Se avisa solo después de intentar confirmar: un campo vacío no regaña a quien todavía no llega a él.
+  const [mostrarFaltas, setMostrarFaltas] = useState(false);
+  const [externos, setExternos] = useState<Record<string, string>>({});
+  const limpiarError = useCallback((id: string) => {
+    setExternos((e) => {
+      if (!(id in e)) return e;
+      const { [id]: _quitado, ...resto } = e;
+      return resto;
+    });
+  }, []);
 
   const estados = estadosDe(campos, escribiendoEn);
   const ahora = siguienteDe(campos, escribiendoEn)?.id ?? null;
@@ -89,6 +108,19 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
     frase: fraseDeLoQueFalta(campos),
     claseConfirmar: puedeConfirmar ? "hilo-seguir" : "",
     ir: (id) => irAlIdCampo(id, { cursor: true, enModal }),
+    revisar: () => {
+      const primero = primeroQueBloquea(campos);
+      if (!primero) return true;
+      setMostrarFaltas(true);
+      irAlIdCampo(primero.id, { cursor: true, enModal });
+      return false;
+    },
+    errorDe: (id) => errorDeCampo(campos, id, mostrarFaltas, externos[id]),
+    marcarError: (id, mensaje) => {
+      setExternos((e) => ({ ...e, [id]: mensaje }));
+      irAlIdCampo(id, { cursor: true, enModal });
+    },
+    limpiarError,
     enfocar,
     soltar,
   };

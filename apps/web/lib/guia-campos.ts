@@ -73,6 +73,22 @@ export function fraseDeLoQueFalta(campos: readonly CampoDeGuia[]): string | null
   return `${faltan.length === 1 ? "Falta" : "Faltan"}: ${lista}`;
 }
 
+/** El primer campo que de verdad impide confirmar: a él lleva `revisar()` al intentar guardar con algo pendiente. null si nada bloquea. */
+export function primeroQueBloquea(campos: readonly CampoDeGuia[]): CampoDeGuia | null {
+  return campos.find((c) => c.requerido && !c.hecho) ?? null;
+}
+
+/**
+ * Qué error dice UN campo bajo su control (ADR-0611, mejora 1). Se avisa solo después de intentar guardar (`mostrarFaltas`): un campo vacío no
+ * regaña a quien todavía no llega a él. Un error que el guardado devolvió para este campo (`externo`) manda, y se borra apenas se corrige.
+ */
+export function errorDeCampo(campos: readonly CampoDeGuia[], id: string, mostrarFaltas: boolean, externo?: string | null): string | null {
+  if (externo) return externo;
+  if (!mostrarFaltas) return null;
+  const campo = campos.find((c) => c.id === id);
+  return campo && campo.requerido && !campo.hecho ? campo.pendiente || null : null;
+}
+
 /** El grado de un campo por hacer en una palabra, para escribirla junto a su título: «obligatorio» (sin él no se confirma), «conviene» (casi siempre se llena, no bloquea)
  *  u «opcional». Un campo hecho no dice nada: ya lleva su ✓. Solo lo usan las hojas que lo piden (`useGuiaCampos` con `conGrado`). */
 export function palabraDeGrado(c: CampoDeGuia): "obligatorio" | "conviene" | "opcional" | null {

@@ -214,6 +214,10 @@
   transition: opacity 260ms var(--ease-cayla);
 }
 /* Un bloque suelto no tiene relleno propio: la luz sale 8 px a cada lado. La fila y la tarjeta ya traen su holgura y la luz es su propio borde. */
+/* Al llevarte a un campo, su luz (8 px afuera) queda a la vista entera, no cortada por el borde de la hoja. */
+.hilo-luz {
+  scroll-margin-block: 1rem;
+}
 .hilo-luz::before,
 .hilo-luz::after {
   inset: -0.5rem;
@@ -241,6 +245,12 @@
 :is(.hilo-luz, .hilo-fila, .hilo-tarjeta)[data-estado="ahora"]::before,
 :is(.hilo-luz, .hilo-fila, .hilo-tarjeta)[data-estado="ahora"]::after {
   opacity: 1;
+}
+
+/* Un campo guiado que dice su error (ADR-0611, mejora 1): la caja de adentro toma el borde del error de `Campo`. La luz sigue siendo la
+   marca («mira aquí»); el error lo dicen el texto y su «!». Vale para la caja de un campo o de un combo, sea cual sea el control. */
+.hilo-luz[data-error] .caja-campo {
+  border-color: color-mix(in srgb, var(--color-rojo) 55%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

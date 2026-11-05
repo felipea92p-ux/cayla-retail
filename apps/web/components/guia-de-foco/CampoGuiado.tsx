@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { CircleAlert } from "lucide-react";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { useRetenerLuz, type ModoRetencion } from "./useRetenerLuz";
 import { separarFaltan } from "@/lib/guia-campos";
@@ -9,6 +10,9 @@ import type { GuiaCampos } from "./useGuiaCampos";
 // Las dos piezas de la guía de foco para un modal (CLAUDE.md «Guía de foco», ADR-0284). Sus estilos: `app/estilos/alta-guia.css`
 // (`hilo-luz`). Lo único que hacen: encender el control que sigue —una caja de texto, un combo, chips, un interruptor, un grupo de
 // tres cajas— y decir qué falta antes del botón. No conocen ningún control en particular: envuelven lo que les pongas.
+
+/** A qué control de adentro se une el error de un campo guiado: el primero que espere el dato. */
+const CONTROL_DEL_CAMPO = "input:not([type='hidden']):not([type='file']), textarea, select, [role='combobox'], [role='radiogroup'], button[aria-haspopup]";
 
 /**
  * Envuelve UN campo (o un grupo de ellos) y lo ENCIENDE cuando es el que sigue: un halo suave alrededor, el fondo más claro en la
@@ -40,9 +44,35 @@ export function CampoGuiado({
 }) {
   const estado = guia.estado(id);
   const retener = useRetenerLuz(id, guia, retiene);
+  const error = guia.errorDe(id);
+  const idError = useId();
+  const caja = useRef<HTMLDivElement>(null);
+
+  // El error queda unido al control, sea cual sea: el lector de pantalla lo lee al llegar a él.
+  useEffect(() => {
+    const control = caja.current?.querySelector<HTMLElement>(CONTROL_DEL_CAMPO);
+    if (!control) return;
+    const previo = (control.getAttribute("aria-describedby") ?? "").split(" ").filter((x) => x && x !== idError);
+    const unidos = error ? [...previo, idError] : previo;
+    if (unidos.length) control.setAttribute("aria-describedby", unidos.join(" "));
+    else control.removeAttribute("aria-describedby");
+    if (error) control.setAttribute("aria-invalid", "true");
+    else control.removeAttribute("aria-invalid");
+  }, [error, idError]);
 
   return (
-    <div {...retener} data-campo={id} data-estado={estado} className={`hilo-luz ${className}`}>
+    <div
+      {...retener}
+      ref={caja}
+      data-campo={id}
+      data-estado={estado}
+      data-error={error ? "" : undefined}
+      className={`hilo-luz ${className}`}
+      onInputCapture={() => guia.limpiarError(id)}
+      onClickCapture={(e) => {
+        if ((e.target as HTMLElement).closest("button, [role='option'], [role='radio'], [role='switch']")) guia.limpiarError(id);
+      }}
+    >
       {titulo && (
         <>
           <p className={`${ayuda && ayudaAbajo ? "" : "mb-1.5 "}flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta`}>
@@ -53,6 +83,14 @@ export function CampoGuiado({
         </>
       )}
       {children}
+      {error && (
+        <p id={idError} role="alert" className="mt-1.5 text-xs leading-tight text-rojo">
+          <span className="pie-error trazo-dibuja anim-revelar">
+            <CircleAlert aria-hidden />
+            <span>{error}</span>
+          </span>
+        </p>
+      )}
     </div>
   );
 }

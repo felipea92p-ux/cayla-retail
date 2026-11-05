@@ -201,6 +201,9 @@ export function HojaRegistrarGasto({
   const fijoDelGasto = fijo ?? fijoElegido;
   const campos = camposDeLaHoja(h, { proveedorListo, proveedorSinRuc: fijoSinRuc, salidaLista, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
+  // Tras intentar registrar, el error lo dice la guía bajo el campo: el motivo no se repite.
+  const motivoMonto = guia.errorDe("monto") ? null : motivoDelMonto(h.monto);
+  const motivoSerie = !guia.errorDe("serie") && h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : undefined;
   const ticket = ticketDeLaHoja(h, {
     categoriaNombre: categoria?.nombre ?? null,
     sedeNombre: sede?.nombre ?? null,
@@ -229,8 +232,10 @@ export function HojaRegistrarGasto({
   }
 
   async function guardar(otro: boolean) {
+    // Si falta algo, cada campo dice su error y se va al primero (ADR-0611, mejora 1): un aviso en la esquina no dice dónde está el problema.
+    if (!guia.revisar()) return;
     const v0 = validarHoja(h, existente?.id ?? "x", salidaHoja, hoy, proveedorListo);
-    if (!v0.ok) return avisar.error(v0.error);
+    if (!v0.ok) return v0.campo ? guia.marcarError(v0.campo, v0.error) : avisar.error(v0.error);
     const choque = fijoDelGasto ? choqueConElFijo(fijoDelGasto, { categoria: h.categoria, fecha: h.fecha }) : null;
     if (choque) return avisar.error(choque.mensaje);
     // Registrar sin contestar si es uno de los fijos que faltan es justo lo que duplica un gasto: no se registra.
@@ -372,7 +377,7 @@ export function HojaRegistrarGasto({
           )}
 
           <CampoGuiado id="monto" guia={guia} titulo="Cuánto">
-            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoDelMonto(h.monto)} pie={motivoDelMonto(h.monto) ?? undefined} tono={motivoDelMonto(h.monto) ? "aviso" : undefined} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
+            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoMonto} pie={motivoMonto ?? undefined} tono={motivoMonto ? "aviso" : undefined} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">
@@ -439,8 +444,8 @@ export function HojaRegistrarGasto({
                     if (legible) poner("serieNumero", legible);
                   }}
                   placeholder={sugerirSerie(h.comprobante)}
-                  pie={h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : undefined}
-                  tono={h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "aviso" : undefined}
+                  pie={motivoSerie}
+                  tono={motivoSerie ? "aviso" : undefined}
                 />
               </CampoGuiado>
             </div>

@@ -111,6 +111,14 @@ const TONO_PIE = {
   ok: "text-verde-profundo",
 } as const;
 
+/** El id del pie de un campo: el control se une a él para que el lector de pantalla lea el error o la ayuda al llegar (ADR-0611, mejora 1). */
+const idPieDe = (idControl: string) => `${idControl}-pie`;
+/** Lo que el control de un campo necesita para quedar unido a su pie. Quien pasa su propio `aria-describedby` o `aria-invalid` manda. */
+const unidoAlPie = (id: string, pie: ReactNode, tono: CampoProps["tono"]) => ({
+  "aria-describedby": pie ? idPieDe(id) : undefined,
+  "aria-invalid": tono === "error" ? true : undefined,
+});
+
 export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, sinPie = false, children }: CampoProps) {
   return (
     // `campo`: la etiqueta se oscurece mientras su caja está encendida (ADR-0358, ronda 6; app/estilos/campos-y-casillas.css).
@@ -120,11 +128,11 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
         {ayuda}
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
-      {sinPie && !pie ? null : <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
+      {sinPie && !pie ? null : <div id={htmlFor ? idPieDe(htmlFor) : undefined} className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
         {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
         {pie ? (
           tono === "error" ? (
-            <span className="pie-error trazo-dibuja anim-revelar">
+            <span role="alert" className="pie-error trazo-dibuja anim-revelar">
               <CircleAlert aria-hidden />
               <span>{pie}</span>
             </span>
@@ -200,6 +208,7 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
           // de contactos de quien está en la caja: el ícono azul de persona. En el ERP nunca se escribe el contacto
           // propio en un campo de catálogo o de clienta. Un campo que sí quiera autocompletar pasa su `autoComplete`.
           autoComplete="off"
+          {...unidoAlPie(id, pie, tono)}
           {...props}
           className={`self-stretch py-0 ${mono ? "font-mono tabular-nums tracking-wider" : ""} ${
             props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""
@@ -239,6 +248,7 @@ export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiqueta
         </span>
         <input
           id={id}
+          {...unidoAlPie(id, pie, tono)}
           {...props}
           // Las flechitas del type=number rompen la lectura de instrumento.
           className={`font-display self-stretch py-0 text-2xl leading-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
+import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -148,5 +148,42 @@ describe("el grado de cada campo en palabras (P09 del análisis del Taller: «Si
   it("lo obligatorio nunca se mezcla con lo que conviene: «Faltan:» no lista nada que se pueda dejar vacío", () => {
     const { obligatorios } = separarFaltan(faltanDe([campo("composicion", { requerido: false, sugerido: true })]));
     expect(obligatorios).toEqual([]);
+  });
+});
+
+describe("guardar con algo pendiente — el error va a su campo (ADR-0611, mejora 1)", () => {
+  const pendientes = [campo("monto", { hecho: true }), campo("sede", { pendiente: "Elige la sede." }), campo("nota", { requerido: false, pendiente: "Agrega una nota." }), campo("motivo", { pendiente: "Escribe el motivo." })];
+
+  it("el primero que bloquea es el primer requerido sin hacer, no un opcional ni uno hecho", () => {
+    expect(primeroQueBloquea(pendientes)?.id).toBe("sede");
+    expect(primeroQueBloquea([campo("nota", { requerido: false }), campo("a", { hecho: true })])).toBeNull();
+  });
+
+  it("un sugerido no bloquea ni dice error: la guía no cambia qué se puede confirmar", () => {
+    const campos = [campo("color", { requerido: false, sugerido: true, pendiente: "Elige un color." })];
+    expect(primeroQueBloquea(campos)).toBeNull();
+    expect(errorDeCampo(campos, "color", true)).toBeNull();
+  });
+
+  it("primeroQueBloquea existe si y solo si no se puede confirmar", () => {
+    for (const campos of [pendientes, [campo("a", { hecho: true })], [campo("n", { requerido: false })], []]) {
+      expect(primeroQueBloquea(campos) === null).toBe(sePuedeConfirmar(campos));
+    }
+  });
+
+  it("antes de intentar guardar, un campo vacío no regaña a nadie", () => {
+    expect(errorDeCampo(pendientes, "sede", false)).toBeNull();
+  });
+
+  it("al intentarlo, cada requerido sin hacer dice lo suyo; lo hecho y lo opcional callan", () => {
+    expect(errorDeCampo(pendientes, "sede", true)).toBe("Elige la sede.");
+    expect(errorDeCampo(pendientes, "motivo", true)).toBe("Escribe el motivo.");
+    expect(errorDeCampo(pendientes, "monto", true)).toBeNull();
+    expect(errorDeCampo(pendientes, "nota", true)).toBeNull();
+    expect(errorDeCampo(pendientes, "no-existe", true)).toBeNull();
+  });
+
+  it("un error que devolvió el guardado manda, aunque el campo parezca hecho o no se hubiera intentado", () => {
+    expect(errorDeCampo(pendientes, "monto", false, "El monto no puede pasar de S/ 1 000 000.")).toBe("El monto no puede pasar de S/ 1 000 000.");
   });
 });
