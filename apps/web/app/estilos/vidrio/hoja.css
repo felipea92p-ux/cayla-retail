@@ -113,7 +113,7 @@
 /* ---------- la entrada: la de Mi perfil (desenfocada, crece y se enfoca), una vez ---------- */
 @media (prefers-reduced-motion: no-preference) {
   @media (min-width: 640px) {
-    .hoja-serena.anim-modal-entra { animation: vidrio-entra 560ms var(--ease-cayla) backwards; }
+    .hoja-serena.anim-modal-entra { animation: vidrio-entra var(--t-hoja) var(--ease-cayla) backwards; }
   }
   .hoja-serena.cascada-modal > :not(form):not([data-sin-cascada]),
   .hoja-serena.cascada-modal > form > :not([data-sin-cascada]) {

@@ -319,7 +319,7 @@ export function ProveedorProduccionModal({
           ) : (
             <span />
           )}
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={`sm:min-w-44 ${guia.claseConfirmar}`}>
+          <Boton peso="primario" type="submit" cargando={cargando} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={`sm:min-w-44 ${guia.claseConfirmar}`}>
             {esAlta ? "Agregar al directorio" : "Guardar cambios"}
           </Boton>
         </div>

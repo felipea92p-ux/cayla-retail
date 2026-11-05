@@ -107,7 +107,7 @@ export function EnviarPedidoWebHoja({ envio, onClose, onEnviado }: { envio: Envi
                 peso="primario"
                 cargando={enviando}
                 textoCargando="Enviando…"
-                disabled={!guia.puedeConfirmar}
+                confirma={guia}
                 title={guia.frase ?? undefined}
                 className={guia.claseConfirmar}
                 onClick={() => enviar(cerrar)}

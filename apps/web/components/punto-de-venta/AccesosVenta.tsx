@@ -18,7 +18,7 @@ const ICONO: Record<IconoAcceso, LucideIcon> = {
 };
 
 const BOTON =
-  "inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-crema px-2.5 text-sm text-tinta/80 transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-taupe hover:text-tinta active:translate-y-px";
+  "area-dedo inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-crema px-2.5 text-sm text-tinta/80 transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-taupe hover:text-tinta active:translate-y-px";
 
 /**
  * «Más» del Punto de venta (spike «el ticket a lo alto», `docs/maquetas/punto-venta-ticket-alto-2026-09/`, Felipe
@@ -96,7 +96,7 @@ export function BotonApartados({ prendas, onApartar, deshabilitado }: { prendas:
         data-guia="vender.apartados"
         disabled={deshabilitado}
         title={`Lleva ${prendas === 1 ? "la prenda" : `las ${prendas} prendas`} del ticket a Apartados`}
-        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-sm text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
+        className="area-dedo inline-flex h-9 items-center gap-1.5 rounded-lg bg-tinta px-3 text-sm text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:opacity-50"
       >
         <Bookmark className="h-4 w-4" aria-hidden />
         Apartar

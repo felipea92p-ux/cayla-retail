@@ -198,7 +198,7 @@ export function EditarTelaModal({
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar || !puedeGuardar} title={!puedeGuardar ? "No cambiaste nada de la tela." : (guia.frase ?? responsable.motivo ?? undefined)} className={puedeGuardar ? guia.claseConfirmar : ""}>
+              <Boton type="submit" peso="primario" cargando={cargando} disabled={!puedeGuardar} confirma={guia} title={!puedeGuardar ? "No cambiaste nada de la tela." : (guia.frase ?? responsable.motivo ?? undefined)} className={puedeGuardar ? guia.claseConfirmar : ""}>
                 {soloPonerAlDia ? "Poner al día los nombres" : "Guardar los cambios"}
               </Boton>
             </div>

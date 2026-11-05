@@ -64,6 +64,9 @@
 }
 .tv-letra {
   flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
 .tv-puestos {
   display: flex;
@@ -297,6 +300,14 @@
 }
 
 /* «Letra grande» (17 px), para quien lo necesite, sin agrandar todo el ERP. */
+/* «Compacta» (ADR-0611, mejora 9): filas de 44 px, para ver más sin bajar de 14 px de letra ni de 44 px con el dedo. */
+.tv-tabla[data-densidad="compacta"] .tv-fila {
+  min-height: 44px;
+  padding-block: 5px;
+}
+.tv-tabla[data-densidad="compacta"] .tv-pie {
+  min-height: 44px;
+}
 .tv-tabla[data-letra="grande"] {
   font-size: 17px;
 }

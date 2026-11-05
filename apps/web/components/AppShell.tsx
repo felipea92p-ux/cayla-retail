@@ -974,7 +974,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           type="button"
           onClick={() => cerrarMovil()}
           aria-label="Cerrar menú"
-          className="mr-3 mt-6 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+          className="area-dedo mr-3 mt-6 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
         >
           <Icono d={IC.cerrar} className="h-5 w-5" />
         </button>
@@ -1134,7 +1134,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               aria-label="Abrir menú"
               aria-expanded={movilAbierto}
               aria-controls="lateral"
-              className="grid h-9 w-9 place-items-center rounded-full text-tinta transition-colors hover:bg-tinta/6 sm:hidden"
+              className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta transition-colors hover:bg-tinta/6 sm:hidden"
             >
               <Icono d={IC.menu} className="h-5 w-5" />
             </button>
@@ -1187,7 +1187,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               <Link
                 href="/buscar"
                 aria-label="Buscar"
-                className="grid h-9 w-9 place-items-center rounded-full text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+                className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
               >
                 <Icono d={IC.buscar} className="h-4 w-4" />
               </Link>

@@ -7,7 +7,7 @@ import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { BilleteRapido } from "@/components/BilleteRapido";
-import { CampoMonto } from "@/components/ui/CampoMonto";
+import { EntradaMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -362,7 +362,7 @@ export function EntregarVista({
                             </span>
                             <span className="flex items-center gap-1 border-b border-tinta/20 text-sm">
                               <span className="text-tinta/50">S/</span>
-                              <CampoMonto aria-label={`Monto en ${pg.metodo}`} valor={pg.monto} onCambio={(v) => setPagos((ps) => ps.map((y, j) => (j === i ? { ...y, monto: v } : y)))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
+                              <EntradaMonto aria-label={`Monto en ${pg.metodo}`} valor={pg.monto} onCambio={(v) => setPagos((ps) => ps.map((y, j) => (j === i ? { ...y, monto: v } : y)))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
                             </span>
                             <button type="button" aria-label={`Quitar ${pg.metodo}`} onClick={() => setPagos((ps) => ps.filter((_, j) => j !== i))} className="p-1 text-rojo-profundo">
                               <Trash2 className="h-3.5 w-3.5" aria-hidden />

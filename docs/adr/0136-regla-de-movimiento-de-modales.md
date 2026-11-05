@@ -647,3 +647,16 @@ menos de 1,5°), que no se mueve solo. Todo se apaga con `prefers-reduced-motion
 Felipe aprobó extender el lenguaje de Las vitrinas a las otras cuatro pestañas (`docs/maquetas/configuracion-cuatro-vistas-2026-11/`). Los bloques entran enfocándose en cascada; los tubos de Metas se
 llenan, los hilos de Dinero se dibujan de cada cobro a su cuenta, los días de Gastos asoman sobre la línea del mes que se llena y la barra del límite de Impuestos es la del sistema. Una vez, sin rebote
 ni bucle, cada pieza en 1,2 s o menos y con la curva del sistema; el filo y el brillo siguen al mouse sin moverse solos. Todo se apaga con `prefers-reduced-motion`. Lo vigila `lib/config-vistas-movimiento.test.ts`.
+
+## Actualización 2026-11-05: cuatro tiempos con nombre, ritmo «Rápido»
+
+Felipe comparó los dos ritmos en la maqueta (`docs/maquetas/finanzas-eeff-vidrio-2026-11/`, «Probar ▸ Movimiento») y eligió **Rápido**. Lo que se usa todo el día responde en menos de 200 ms, y lo
+vistoso se guarda para entrar a una pantalla y para un logro. Los tiempos viven en `app/globals.css`: `--t-resp` 100 ms (color, presión, foco), `--t-cambio` 160 ms (la píldora, el hilo, la casilla, la lista
+que abre), `--t-hoja` 260 ms (una hoja entra) y `--t-momento` 480 ms (una vez y por algo).
+
+Cambió: el velo pasa de 220 a 160 ms; la hoja, de 420 (560 en vidrio) a 260; **la cascada, de 55 ms de desfase con 120 de espera a 18 y 40**, y su duración, de 500 a 260. Medido en Registrar gasto: el último
+campo terminaba de entrar a los 1115 ms y ahora a los 390. El botón sube en 160 ms; su luz, de 650 a 480; su onda, de 450 a 260. Campos, casillas, interruptores, listas y pestañas usan `--t-resp` y `--t-cambio`.
+
+**No cambian** las excepciones con su lista en este ADR, donde Felipe pidió «full animaciones»: login, Análisis, Tienda web, Mi perfil, Las vitrinas, Rendimiento y las demás. La salida de una hoja sigue en
+220 ms (`MS_SALIDA`). Lo vigila `lib/movimiento-tiempos.test.ts`: una pieza del sistema no vuelve a un número suelto de 100 ms o más.
+

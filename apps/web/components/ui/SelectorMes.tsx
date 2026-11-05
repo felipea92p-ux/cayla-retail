@@ -7,6 +7,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useDestinoFlotante, usePosicionAnclada } from "@/components/ui/useAnclaje";
 import { esMismoMes, mesAnterior, mesSiguiente, paramDeMes, type Mes } from "@/lib/facturacion-reglas";
 import { mesesDelSelector, nombreDelMes } from "@/lib/historial-cierres-reglas";
+import { mesPorTecla } from "@/lib/campo-fecha-reglas";
 
 const ANCHO = 268;
 
@@ -78,6 +79,25 @@ export function SelectorMes({
     return () => cancelAnimationFrame(id);
   }, [abierto, pos]);
 
+  // Flechas por la grilla de meses (ADR-0611, mejora 8). Un mes que todavía no llega se ve pero no recibe el foco: el foco se queda donde está.
+  const focoAlCambiarDeAnio = useRef<number | null>(null);
+  const enfocarMes = (mes: number) => panel.current?.querySelector<HTMLElement>(`[data-mes="${mes}"]:not(:disabled)`)?.focus();
+  useEffect(() => {
+    if (focoAlCambiarDeAnio.current === null) return;
+    enfocarMes(focoAlCambiarDeAnio.current);
+    focoAlCambiarDeAnio.current = null;
+  }, [anio]);
+  function alTeclearGrilla(e: React.KeyboardEvent<HTMLDivElement>) {
+    const enFoco = (e.target as HTMLElement).closest<HTMLElement>("[data-mes]");
+    const destino = enFoco ? mesPorTecla(anio, Number(enFoco.dataset.mes), e.key) : null;
+    if (!destino) return;
+    e.preventDefault();
+    if (destino.anio < anioMinimo || destino.anio > actual.anio) return;
+    if (destino.anio === anio) return enfocarMes(destino.mes);
+    focoAlCambiarDeAnio.current = destino.mes;
+    setAnio(destino.anio);
+  }
+
   // Escape cierra el panel y se queda con la tecla: la hoja de abajo sigue abierta.
   useEffect(() => {
     if (!abierto) return;
@@ -100,7 +120,7 @@ export function SelectorMes({
         aria-label={`Ir a ${nombreDelMes(previo)}`}
         disabled={!hayPrevio}
         onClick={() => onCambiar(previo)}
-        className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+        className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
       >
         <ChevronLeft className="h-4 w-4" aria-hidden />
       </button>
@@ -110,7 +130,7 @@ export function SelectorMes({
         aria-haspopup="dialog"
         aria-expanded={abierto}
         onClick={() => (abierto ? cerrar() : abrir())}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold text-tinta"
+        className="area-dedo inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold text-tinta"
       >
         {nombreDelMes(valor)}
         {/* Da media vuelta al abrir, como la flecha del «Más». */}
@@ -125,7 +145,7 @@ export function SelectorMes({
         aria-label={haySiguiente ? `Ir a ${nombreDelMes(mesSiguiente(valor))}` : "Ya estás en el mes actual"}
         disabled={!haySiguiente}
         onClick={() => onCambiar(mesSiguiente(valor))}
-        className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+        className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
       >
         <ChevronRight className="h-4 w-4" aria-hidden />
       </button>
@@ -150,7 +170,7 @@ export function SelectorMes({
                   aria-label={`Ver los meses de ${anio - 1}`}
                   disabled={anio - 1 < anioMinimo}
                   onClick={() => setAnio((a) => a - 1)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+                  className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
                 >
                   <ChevronLeft className="h-4 w-4" aria-hidden />
                 </button>
@@ -162,12 +182,12 @@ export function SelectorMes({
                   aria-label={`Ver los meses de ${anio + 1}`}
                   disabled={anio + 1 > actual.anio}
                   onClick={() => setAnio((a) => a + 1)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
+                  className="area-dedo grid h-8 w-8 place-items-center rounded-full text-tinta disabled:pointer-events-none disabled:text-tinta/25"
                 >
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
               </div>
-              <div className="selector-mes-grilla grid grid-cols-3 gap-1.5">
+              <div className="selector-mes-grilla grid grid-cols-3 gap-1.5" onKeyDown={alTeclearGrilla}>
                 {mesesDelSelector(anio, actual).map((m) => {
                   const elegido = esMismoMes({ anio, mes: m.mes }, valor);
                   const esActual = esMismoMes({ anio, mes: m.mes }, actual);

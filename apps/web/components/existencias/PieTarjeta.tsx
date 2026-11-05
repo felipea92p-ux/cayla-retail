@@ -54,7 +54,7 @@ export function PieTarjeta({
     return () => document.removeEventListener("pointerdown", afuera);
   }, [abierto]);
 
-  const estiloBoton = "inline-flex h-8 min-w-0 items-center gap-1.5 rounded-[9px] border px-3 text-[12.5px] transition-colors";
+  const estiloBoton = "area-dedo inline-flex h-8 min-w-0 items-center gap-1.5 rounded-[9px] border px-3 text-[12.5px] transition-colors";
   return (
     <div ref={caja} className="relative mt-auto flex items-center gap-1.5">
       {boton.tipo === "colgar" || boton.tipo === "ver" ? (

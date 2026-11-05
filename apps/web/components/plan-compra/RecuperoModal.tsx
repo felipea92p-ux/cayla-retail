@@ -97,7 +97,7 @@ export function RecuperoModal({ planId, planNombre, actual, heredado, onClose }:
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={trabajando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={trabajando} confirma={guia} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
                 Guardar
               </Boton>
             </div>

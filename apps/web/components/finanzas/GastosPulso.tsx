@@ -417,7 +417,7 @@ function TarjetaEgreso({
         </CampoGuiado>
         <div className="pila-listo-boton">
           {!enDuda && <PieGuia guia={guia} listo="Listo para guardar." />}
-          <Boton type="button" peso="primario" onClick={onListo} disabled={!guia.puedeConfirmar || ocupado || revisando} title={guia.frase ?? undefined} className={guia.claseConfirmar} data-guia="fin-gastos.resolver">
+          <Boton type="button" peso="primario" onClick={onListo} disabled={ocupado || revisando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar} data-guia="fin-gastos.resolver">
             {enDuda ? "Volver a intentar" : "Listo"}
           </Boton>
         </div>

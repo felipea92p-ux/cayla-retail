@@ -1,0 +1,41 @@
+/* ---- Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5) ----
+   Apple pide 44 px; con mouse alcanza con 24. Solo aplica en una pantalla táctil (`pointer: coarse`): en la computadora de la tienda nada cambia de tamaño.
+   Dos formas, según quepa:
+   · Lo que tiene sitio CRECE: botones, cajas, filas del menú, chips (`min-height`; le gana a un `h-9` de Tailwind porque este archivo va sin capa).
+   · Lo que ocuparía demasiado conserva su dibujo y agranda su ÁREA con un `::after` invisible: los íconos de la cabecera, las tallas, el interruptor, el
+     enlace dentro de una frase. Sirve también `.area-dedo` en un botón sin clase propia. Un botón sólido no usa este truco: su `::after` es la luz de `.mov-boton`.
+   Para medirlo: `pnpm --filter web tacto:medir`. Lo vigila `lib/tacto.test.ts`. */
+@media (pointer: coarse) {
+  :is(
+    .btn-cayla:not(.btn-enlace),
+    .marco-fila,
+    .combo-pastilla,
+    .caja-campo:not(.paso-cantidad),
+    .fin-control,
+    .buscador,
+    .hoja-gasto-sede,
+    .hilo-chip,
+    .sede-telar,
+    .te-toca-telar,
+    .pildora-filtro-boton,
+    .enlace-ver
+  ) {
+    min-height: 44px;
+  }
+  .pildora-filtro-boton {
+    min-width: 44px;
+  }
+
+  :is(.area-dedo, .boton-tema, .marco-yo-salir, .pv-talla, .interruptor, .btn-enlace) {
+    position: relative;
+  }
+  :is(.area-dedo, .boton-tema, .marco-yo-salir, .pv-talla, .interruptor, .btn-enlace)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}

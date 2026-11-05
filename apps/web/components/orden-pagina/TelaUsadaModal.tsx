@@ -137,7 +137,7 @@ export function TelaUsadaModal({ datos, onClose }: { datos: OrdenPagina; onClose
               Cancelar
             </Boton>
             {tela && (
-              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
                 Devolver
               </Boton>
             )}

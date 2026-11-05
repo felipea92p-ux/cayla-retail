@@ -20,6 +20,7 @@ import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { LeerQrComprobante } from "@/components/finanzas/gastos/LeerQrComprobante";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -66,6 +67,8 @@ export function HojaComprobanteDeGasto({
   const proveedorListo = Boolean(existente) || (validarRuc(b.ruc).valido && b.razonSocial.trim().length > 1);
   const problema = problemaDelComprobante(b, { proveedorListo, hoy, monto: g.montoTotal });
   const guia = useGuiaCampos(camposDelComprobante(b, { proveedorListo, hoy }, { listo: responsable.listo, motivo: responsable.motivo }));
+  // Lo mal escrito se dice al salir del campo, no a la primera letra (ADR-0611, mejora 2).
+  const avisoSerie = useValidarAlSalir(b.serieNumero && !serieNumeroLegible(b.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : null);
   const pasa = loQuePasaAlGuardar(g, b);
 
   /** Lo leído llena la hoja. El IGV del papel se usa solo si su total es el del gasto (si no, es otro papel: lo avisa y se queda el de la tasa). */
@@ -182,10 +185,11 @@ export function HojaComprobanteDeGasto({
               onBlur={() => {
                 const legible = serieNumeroLegible(b.serieNumero);
                 if (legible) poner("serieNumero", legible);
+                avisoSerie.alSalir();
               }}
               placeholder={sugerirSerie(b.tipo)}
-              pie={b.serieNumero && !serieNumeroLegible(b.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : undefined}
-              tono={b.serieNumero && !serieNumeroLegible(b.serieNumero) ? "aviso" : undefined}
+              pie={avisoSerie.motivo ?? undefined}
+              tono={avisoSerie.motivo ? "error" : undefined}
             />
           </CampoGuiado>
           <CampoGuiado id="fecha" guia={guia}>

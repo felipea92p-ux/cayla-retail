@@ -598,7 +598,7 @@ function CambiarClave({ onCancelar }: { onCancelar: () => void }) {
           <Boton type="button" onClick={onCancelar}>
             Cancelar
           </Boton>
-          <Boton peso="primario" cargando={guardando} type="submit" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+          <Boton peso="primario" cargando={guardando} type="submit" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
             Guardar contraseña
           </Boton>
         </div>

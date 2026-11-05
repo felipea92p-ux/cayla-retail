@@ -288,7 +288,7 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
             type="submit"
             peso="primario"
             cargando={guardando}
-            disabled={!guia.puedeConfirmar || sinCambios}
+            disabled={sinCambios} confirma={guia}
             title={responsable.motivo ?? guia.frase ?? (sinCambios ? "No cambiaste ningún beneficio." : undefined)}
             className={sinCambios ? "" : guia.claseConfirmar}
           >

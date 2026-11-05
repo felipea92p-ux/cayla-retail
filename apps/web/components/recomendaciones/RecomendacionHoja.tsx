@@ -386,7 +386,7 @@ export function RecomendacionHoja({
               peso="primario"
               cargando={guardando === "respondida"}
               textoCargando="Enviando…"
-              disabled={!guia.puedeConfirmar || ocupado}
+              disabled={ocupado} confirma={guia}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
               onClick={enviar}

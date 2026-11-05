@@ -540,7 +540,7 @@ export function NuevoAvioModal({
               <Boton type="button" disabled={cargando} onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="submit" peso="primario" cargando={cargando} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
                 {agregarA ? (
                   n > 0 ? (
                     `Agregar ${n} ${n === 1 ? "color" : "colores"}`
