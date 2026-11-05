@@ -18,8 +18,9 @@ export type EnLoNuevo = "automatico" | "fijo" | "quitado";
 /** Por qué un modelo NO se puede mostrar en la web (`fn_vitrina_por_que_no`, 20261015122000): `empaque` (de una familia fuera de los
  *  motores —bolsas, cajas—: se vende desde el ticket, en la caja; «Solo ropa en la web», Felipe 2026-10-15), `sin_precio` (ninguna
  *  tienda que se ve en la web la ofrece: sin precio en su ficha ni el propio de una de esas tiendas; el precio de la prenda es siempre
- *  el de la tienda, Felipe 2026-10-15) o `no_se_vende` (descontinuado, de prueba o sin tallas activas). */
-export type PorQueNoSeMuestra = "empaque" | "sin_precio" | "no_se_vende";
+ *  el de la tienda, Felipe 2026-10-15), `no_llega_a_tienda` (del Taller, todavía sin pasar por una tienda, ADR-0614) o `no_se_vende`
+ *  (descontinuado, de prueba o sin tallas activas). */
+export type PorQueNoSeMuestra = "empaque" | "sin_precio" | "no_llega_a_tienda" | "no_se_vende";
 export type ColorVitrina = { codigo: string; nombre: string; hex: string | null; foto: string | null };
 export type StockTienda = { ubicacionId: string; cantidad: number };
 export type EstadoVitrina = {
@@ -64,7 +65,7 @@ const numero = (v: unknown): number | null => {
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const esEnLoNuevo = (v: unknown): v is EnLoNuevo => v === "automatico" || v === "fijo" || v === "quitado";
-const esPorQueNo = (v: unknown): v is PorQueNoSeMuestra => v === "empaque" || v === "sin_precio" || v === "no_se_vende";
+const esPorQueNo = (v: unknown): v is PorQueNoSeMuestra => v === "empaque" || v === "sin_precio" || v === "no_llega_a_tienda" || v === "no_se_vende";
 
 function estadoDeJson(v: unknown): EstadoVitrina | null {
   if (!esObjeto(v)) return null;
@@ -150,6 +151,14 @@ export function razonNoSeMuestra(m: ModeloVitrina): { chip: string; tono: "neutr
       tono: "ambar",
       frase:
         "No se puede mostrar: no tiene precio en ninguna tienda que se ve en la web. Ponle precio en su ficha, en Catálogo ▸ Productos: el de la prenda o el de una de esas tiendas.",
+    };
+  }
+  // Del Taller, todavía sin pasar por una tienda (ADR-0614): se muestra solo cuando llega.
+  if (m.porQueNo === "no_llega_a_tienda") {
+    return {
+      chip: m.vitrina?.publicado ? "Aún en el Taller: no se ve" : "Aún en el Taller",
+      tono: "neutro",
+      frase: "Todavía no llega a una tienda. Se mostrará sola cuando llegue, si la dejas encendida.",
     };
   }
   return {

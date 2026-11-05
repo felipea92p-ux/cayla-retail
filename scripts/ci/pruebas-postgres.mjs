@@ -1925,6 +1925,7 @@ export const PRUEBAS = [
 
   // Los avíos declarados se descuentan solos al cerrar (ADR-0614, actividad 13), sin frenar si no alcanza y sin descontar dos veces. ROLLBACK.
   "pruebas:produccion-avios-al-cerrar",
+  "pruebas:produccion-etapas-de-prenda",
 
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",

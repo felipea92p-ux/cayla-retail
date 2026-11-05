@@ -86,3 +86,9 @@ SE ROMPE SI: alguien sube el plan y olvida la tela: «no alcanza» avisará al c
 DECIDÍ: `fn_descontar_avios_al_cerrar`, antes de calcular el costo: consumo por prenda × buenas del color, menos lo ya anotado, por lote más antiguo. Si no alcanza, descuenta lo que hay y lo deja en la nota.
 DESCARTÉ: (1) descontar al terminar cada paso, como decía ADR-0570: pide decir qué paso usa cada avío, un dato nuevo para cada modelo, por un resultado final igual; (2) frenar el cierre si falta: la prenda ya está hecha; (3) devolver al revertir: lo cosido sigue cosido.
 SE ROMPE SI: una orden declara un avío de más y nadie lo corrige: se descuenta igual. Se corrige con «Devolver lo que sobró» mientras la orden esté abierta.
+
+## Actividad 14: las tres etapas de una prenda (migración `20261106004000`)
+
+DECIDÍ: `fn_productos_por_etapa` es la única definición. Productos la pregunta en `fn_productos_filtro`; la tienda web, en `fn_vitrina_por_que_no` (nuevo porqué, `no_llega_a_tienda`); Vender, Apartados, Cambios y Buscar la leen por `getCatalogoParaOfrecer`; Existencias quita solo `en_produccion` de «sin stock aquí». Análisis no cambia: su universo ya es lo que tiene stock, ventas o llegadas en la sede. Se agrega a ADR-0551 que **llegar a una tienda no tiene vuelta**: un modelo vendido hasta cero con una orden de reposición sigue visible.
+DESCARTÉ: (1) guardar la etapa en una columna: dos fuentes de verdad; (2) esconder también en Recibir, Conteos y Traslados: tienen que ver lo que hay, y el traslado es justo el paso que la lleva a la tienda; (3) la regla tal cual de ADR-0551 («orden abierta y stock 0»): la reposición de un modelo agotado desaparecía de Productos.
+SE ROMPE SI: alguien busca en Productos un modelo que sigue en el Taller para editarlo: no lo encuentra, se entra por su enlace o desde la orden. Es lo que decidió Felipe (ADR-0551, decisión 8); si estorba, el rediseño puede sumar el enlace.

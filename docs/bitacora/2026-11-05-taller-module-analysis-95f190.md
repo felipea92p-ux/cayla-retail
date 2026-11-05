@@ -49,3 +49,8 @@
   POR QUÉ ASÍ: ADR-0570 pedía «al terminar el paso que los usa», pero la base no sabe qué paso usa cada avío: al cerrar, el estante y el costo quedan iguales sin agregar una configuración más. Si no alcanza, no frena: la prenda ya está hecha.
   QUÉ SE ROMPERÍA SIN ESTO: el estante diría tener botones ya cosidos y el costo saldría sin ellos, como le pasó a OP-2.
   Verificado: `pruebas:produccion-avios-al-cerrar` 7/7 y las de cierre, avíos, tela, costo atípico, cinco pasos y ruta nueva. Sin mirar la frase nueva de la hoja en el navegador. Sin pegar en producción.
+- **Actividad 14 · Las tres etapas de una prenda (migración `20261106004000`).**
+  QUÉ HICE: un modelo en producción ya no sale en Productos, Vender, Apartados, Cambios, Buscar, Existencias ni la tienda web; terminado en el Taller sale solo en Existencias y Análisis; al llegar a una tienda sale en todo, solo.
+  POR QUÉ ASÍ: es la decisión 8 de ADR-0551. La etapa se deriva de la orden, el stock y los movimientos, y lo ocultado nunca tiene stock en una tienda: no puede frenar una venta. Si la lectura falla, se muestra.
+  QUÉ SE ROMPERÍA SIN ESTO: la colaboradora busca una prenda que todavía es tela y no entiende por qué no hay ninguna.
+  Verificado: `pruebas:produccion-etapas-de-prenda` 15/15, las vecinas de Productos, Análisis, Existencias, tienda web y vitrina, la web completa (166,460 pruebas), Knip, y en el navegador local un modelo que no aparecía en Productos ni Buscar hasta darle stock en Trujillo. Vender no se pudo mirar con la caja cerrada: lo cubren la prueba de la regla y la misma función de Buscar. Sin pegar en producción.
