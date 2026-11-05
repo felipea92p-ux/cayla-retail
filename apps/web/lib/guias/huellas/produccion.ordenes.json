@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 141,
+  "total": 144,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "CampoTexto «Por qué es correcto este costo · obligatorio»",
@@ -24,6 +24,9 @@
       "button «{anclaGuia ? \"prod-orden-nueva.talla-nueva-boton\" : undefined}»",
       "Boton «Retomarla»",
       "Boton «Descartarla»",
+      "CampoSelect «¿Reposición o novedad?»",
+      "CampoSelect «¿A qué tienda va?»",
+      "CampoTexto «¿Quién aprobó la muestra?»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
       "Link «Ponle precio en Editar producto»",

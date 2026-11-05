@@ -45,6 +45,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm font-medium text-tinta">{f.referencia}</span>
               {f.esMuestra && <Chip tono="tinta">Muestra</Chip>}
+              {f.urgente && <Chip tono="ambar">Urgente</Chip>}
             </span>
             <span className="block break-words text-sm text-tinta/65 @min-[620px]:truncate">
               {f.numeroTexto}

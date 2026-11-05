@@ -341,6 +341,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, cuánto cuesta cada prenda y de qué se forma (la tela y cada servicio de afuera), el margen que queda y la fecha. Nada del costo se escribe a mano: sale de la tela y de las tarifas.",
     },
     {
+      id: "datos",
+      ancla: "prod-orden-nueva.datos",
+      opcional: true,
+      titulo: "Lo que la orden dice de sí misma",
+      texto: "Si es reposición o novedad, a qué tienda va, quién aprobó la muestra y si es urgente. Todo es opcional y solo informa: no reparte stock ni cambia el orden de nada.",
+    },
+    {
       id: "entrega",
       ancla: "prod-orden-nueva.entrega",
       titulo: "Fecha y nota",
@@ -843,6 +850,20 @@ export const GUIA_PROD_ORDEN: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Restaurar lo eliminado",
       texto: "Lo eliminado sale de la vista pero queda en la historia: «Restaurar» lo vuelve a anotar tal como era y con su día, con su porqué. Una marca quitada la restaura un líder. Si mientras tanto la fase se llenó, la base te lo dice. En la demo no se restaura nada.",
+    },
+    {
+      id: "cambiar-plan",
+      ancla: "prod-orden.cambiar-plan",
+      opcional: true,
+      titulo: "Cambiar cantidades",
+      texto: "Si cambió el pedido, aquí subes o bajas cuántas de cada talla y color, o sumas otra, con su motivo. Nunca por debajo de lo ya cortado.",
+    },
+    {
+      id: "cambiar-datos",
+      ancla: "prod-orden.cambiar-datos",
+      opcional: true,
+      titulo: "Los datos de la orden",
+      texto: "Reposición o novedad, a qué tienda va, si es urgente y quién aprobó la muestra. Se pueden cambiar mientras la orden siga abierta.",
     },
     {
       id: "anular",

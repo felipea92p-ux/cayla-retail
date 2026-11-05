@@ -39,3 +39,8 @@
   POR QUÉ ASÍ: es lo que Felipe decidió el 16-oct (P-05). Sale del libro de insumos de siempre, sin tablas nuevas. El candado está en la base, no en la pantalla.
   QUÉ SE ROMPERÍA SIN ESTO: el estante diría tener metros que ya están cortados, y el costo de lo perdido desaparecería.
   Verificado: `pruebas:produccion-anular-tela-cortada` 12/12; anulaciones 18/18, cierre 20/20, devolución 10/10, tela al cortar 16/16, tela 14/14, Frescura 260/260; y en el navegador local, OP-378 pasó su tela a OP-379. Sin mirar a 375 px ni en oscuro. Sin pegar en producción.
+- **Actividades 11 y 12 · Datos al abrir y cambiar una orden abierta (migración `20261105234000`).**
+  QUÉ HICE: la orden guarda si es reposición o novedad, a qué tienda va, si es urgente y quién aprobó la muestra; se ve en su ficha y «Urgente» sale en la lista. «Cambiar cantidades» sube, baja o suma tallas con motivo, sin bajar de lo cortado, y queda en la historia.
+  POR QUÉ ASÍ: son decisiones de Felipe del 16-oct (P-28, P-29, P-34, P-35). Todo opcional, para no frenar al Taller: solo informan y no reparten stock ni deciden prioridades.
+  QUÉ SE ROMPERÍA SIN ESTO: si el pedido cambiaba, había que anular la orden o seguir con un plan falso.
+  Verificado: `pruebas:produccion-datos-y-plan` 13/13, las de Producción que dependen, la web completa (166,455 pruebas), y en el navegador local OP-379 de 10 a 15 prendas. Ahí se vio un error, ya corregido: la historia lo titulaba «Restauró»; quedó cubierto solo en parte por pruebas, porque el título no se volvió a mirar en el navegador. Sin mirar «Datos» con clics, 375 px ni oscuro. Sin pegar en producción.

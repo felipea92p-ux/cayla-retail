@@ -1920,6 +1920,9 @@ export const PRUEBAS = [
   // Anular con tela cortada (ADR-0614, actividad 10): la puerta de siempre frena, y cada destino deja el libro de insumos como corresponde. ROLLBACK.
   "pruebas:produccion-anular-tela-cortada",
 
+  // Datos al abrir y cambiar una orden abierta (ADR-0614, actividades 11 y 12): nunca bajo lo cortado, con motivo y en la historia. ROLLBACK.
+  "pruebas:produccion-datos-y-plan",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 

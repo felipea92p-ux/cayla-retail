@@ -49,6 +49,7 @@ export type FilaDeLista = {
   /** «negro, caqui» o `null` si la orden no tiene líneas. */
   colores: string | null;
   esMuestra: boolean;
+  urgente: boolean;
   estado: EstadoOrden;
   /** Las del plan; en una orden que pasó al stock, las que salieron buenas. */
   cuantas: number;
@@ -150,6 +151,7 @@ export function filaDeLaLista(p: OrdenPagina, hoy: string): FilaDeLista {
     colorHex,
     colores,
     esMuestra: o.esMuestra,
+    urgente: o.urgente,
     estado: o.estado,
     cuantas: o.estado === "terminada" && o.cantidadBuenas !== null ? o.cantidadBuenas : o.cantidadPlan,
     grupo: !enProceso ? null : lista ? (p.fases[p.fases.length - 1]?.clave ?? null) : (actual?.clave ?? null),

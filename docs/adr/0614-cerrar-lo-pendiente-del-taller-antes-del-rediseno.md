@@ -74,3 +74,9 @@ DECIDÍ: el plan más 3 prendas por talla y color (P-22 y N-3), en `fn_produccio
 DECIDÍ: `anular_produccion` frena con `anular_con_tela_cortada`, y `anular_orden_con_tela_cortada` pide destino y motivo. «Otra orden» escribe devolución aquí y consumo allá, del mismo lote; «liquidar» y «botar» dejan el consumo en la orden anulada. Una señal de transacción (`retail.anular_tela_decidida`) le dice a la puerta de siempre que ya se preguntó.
 DESCARTÉ: (1) un parámetro nuevo en `anular_produccion`: obliga a soltar la firma vieja, y las suites y la web vieja la usan; (2) una tabla de retazos: nadie vende ni usa retazos desde el ERP (R-28: el retazo se bota, rara vez se rescata); (3) devolver lo no usado por talla: el libro no sabe qué parte de la tela se cortó.
 SE ROMPE SI: se anula por la puerta de siempre una orden cuyo corte se anotó sin tela: no hay nada que decidir y todo sigue como antes. Y si el corte se hizo pero la tela se anotará después, «sin tela cortada» es correcto: no hay movimiento que mover.
+
+## Actividades 11 y 12: datos al abrir y cambiar una orden abierta (migración `20261105234000`)
+
+DECIDÍ: cuatro columnas opcionales en `producciones` y `cambiar_plan_de_orden`, que escribe en `produccion_lineas` y deja su fila en `produccion_cambios`. El piso de cada línea es lo ya hecho o enviado en la primera fase.
+DESCARTÉ: (1) que la tienda destino arme el traslado: Felipe dejó abierto cómo conviven, y el destino real lo decide quien traslada; (2) que «urgente» ordene algo: P-35 dice que no hay prioridades automáticas; (3) recalcular la tela al cambiar el plan: el plan de tela es una promesa aparte, se corrige en «Editar».
+SE ROMPE SI: alguien sube el plan y olvida la tela: «no alcanza» avisará al cortar, no al cambiar.

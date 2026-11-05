@@ -13,8 +13,8 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 8 · Tope de corte de 3 prendas por talla y color. **POR PEGAR:** `20261105232000_tope_de_corte_tres_prendas.sql`, una parte.
 - [x] 9 · Cerrar un paso incompleto con motivo: **ya existía** desde ADR-0570, actividad 2 (en producción desde el 29-oct): «Terminé» anota las prendas que se perdieron, con su motivo, y el paso cierra (`pruebas:produccion-termine-con-falla`, casos B3 y B5). Sin código nuevo.
 - [x] 10 · Anular con tela cortada pregunta qué hacer: otra orden, liquidar o botar, con motivo. **POR PEGAR:** `20261105233000_anular_con_tela_cortada.sql`, una parte, justo antes de publicar la web: con la web vieja, anular una orden con tela cortada da error con su motivo. **Sin tabla de retazos:** lo liquidado o botado queda como consumo de la orden anulada, sin venderse desde el ERP.
-- [ ] 11 · Datos al abrir una orden.
-- [ ] 12 · Cambiar una orden abierta, con motivo.
+- [x] 11 · Datos al abrir una orden: reposición o novedad, tienda, urgente y quién aprobó la muestra; todos opcionales, y se cambian con «Datos». **POR PEGAR:** `20261105234000_datos_al_abrir_y_cambiar_orden.sql`, una parte.
+- [x] 12 · Cambiar una orden abierta: «Cambiar cantidades», con motivo, nunca bajo lo cortado. Misma migración. No recalcula la tela declarada: se revisa en «Editar».
 - [ ] 13 · Avíos que se descuentan solos.
 - [ ] 14 · Las tres etapas de una prenda.
 - [ ] 15 · Retirar el cajón de órdenes antiguas.

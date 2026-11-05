@@ -86,6 +86,8 @@ import {
   textoPrendasAfuera,
   textoQuePasaAlRevertir,
   problemaDelDestino,
+  problemasDelPlan,
+  textoDatosDeLaOrden,
   tieneTelaCortada,
   totalDeCierre,
   textoQuePasaAlAnular,
@@ -2048,5 +2050,35 @@ describe("anular con tela cortada (ADR-0614, actividad 10)", () => {
     expect(problemaDelDestino({ destino: "botar", motivo: " ", ordenDestino: "" })).toContain("por qué");
     expect(problemaDelDestino({ destino: "botar", motivo: "x", ordenDestino: "" })).toBeNull();
     expect(problemaDelDestino({ destino: "otra_orden", motivo: "x", ordenDestino: "o" })).toBeNull();
+  });
+});
+
+describe("datos de la orden y su plan (ADR-0614, actividades 11 y 12)", () => {
+  it("dice sus datos en una línea, y nada si no tiene", () => {
+    expect(textoDatosDeLaOrden({ motivoOrden: "reposicion", tiendaDestino: "Tienda TRU", muestraAprobadaPor: "Claudia" })).toBe("Reposición · va a Tienda TRU · muestra aprobada por Claudia");
+    expect(textoDatosDeLaOrden({ motivoOrden: "novedad", tiendaDestino: null, muestraAprobadaPor: null })).toBe("Novedad");
+    expect(textoDatosDeLaOrden({ motivoOrden: null, tiendaDestino: null, muestraAprobadaPor: null })).toBeNull();
+  });
+  it("el plan no baja de lo cortado ni deja la orden sin prendas, y pide motivo", () => {
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 10, cortado: 5 }], "x")).toEqual([]);
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 4, cortado: 5 }], "x")[0]).toContain("ya se cortaron 5");
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 0, cortado: 0 }], "x")[0]).toContain("sin prendas");
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: null, cortado: 0 }], "x")[0]).toContain("entero");
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 10, cortado: 0 }], " ")[0]).toContain("por qué");
+  });
+});
+
+describe("los cambios de plan y de datos en la historia (ADR-0614)", () => {
+  const lectura = (accion: string, texto: string) =>
+    leerOrdenPagina({
+      orden: { id: "o", numero: 1, numero_texto: "OP-000001", estado: "en_proceso", es_muestra: false, cantidad_plan: 15, created_at: "2026-11-05T10:00:00-05:00", producto: { id: "p", referencia: "Blusa" }, ubicacion: { id: "u", nombre: "Taller" } },
+      lineas: [], fases: [], insumos: [], permisos: { puede_operar: true, ve_costos: false },
+      cambios: [{ id: "c", cuando: "2026-11-05T10:00:00-05:00", accion, texto }],
+    });
+  it("se leen sin confundirse con un «Restauró»", () => {
+    const p = lectura("plan", "Cambió el plan de 10 a 15 prendas: pidieron más");
+    expect(p?.cambios.map((c) => c.accion)).toEqual(["plan"]);
+    const q = lectura("datos", "Cambió los datos de la orden");
+    expect(q?.cambios.map((c) => c.accion)).toEqual(["datos"]);
   });
 });

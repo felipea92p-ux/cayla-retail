@@ -61,7 +61,7 @@ export type EstadoFase = "pendiente" | "en_curso" | "hecha";
 export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca" | "falla" | "falla_deshecha";
 /** Lo que se cambió de la orden (ADR-0570, actividades 3 y 4; ADR-0581; ADR-0586): cada corrección, eliminación, restauración y nota, el permiso de un líder de pasar al stock sin tela, el cambio de tipo (muestra ↔ lote) y un paso
  *  agregado tarde, con quién, cuándo y el motivo. */
-export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela" | "tipo" | "paso_tarde";
+export type AccionCambio = "corregir" | "eliminar" | "restaurar" | "nota" | "sin_tela" | "tipo" | "paso_tarde" | "plan" | "datos";
 /** Una entrada de la historia: lo que pasó en la orden o un cambio que se le hizo. */
 export type TipoEntrada = TipoEvento | AccionCambio;
 
@@ -280,6 +280,12 @@ export type OrdenPagina = {
     inventariadoEn: string | null;
     /** `ya_estaba`: las prendas ya estaban registradas en una sede; cerrar la orden no las suma al stock ni toca el costo de la prenda. */
     ingresoAlStock: IngresoAlStock;
+    /** Lo que la orden dice de sí misma al abrir (ADR-0614): solo datos, ninguno decide nada. */
+    motivoOrden: MotivoOrden | null;
+    tiendaDestinoId: string | null;
+    tiendaDestino: string | null;
+    urgente: boolean;
+    muestraAprobadaPor: string | null;
     cantidadPlan: number;
     cantidadBuenas: number | null;
     ubicacionId: string;
@@ -425,10 +431,10 @@ function leerCambio(crudo: unknown): CambioOrden | null {
   const id = texto(crudo.id);
   const cuando = texto(crudo.cuando);
   const accion = crudo.accion;
-  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "sin_tela" && accion !== "tipo" && accion !== "paso_tarde")) return null;
+  if (!id || !cuando || (accion !== "corregir" && accion !== "eliminar" && accion !== "restaurar" && accion !== "nota" && accion !== "plan" && accion !== "datos" && accion !== "sin_tela" && accion !== "tipo" && accion !== "paso_tarde")) return null;
   const faseClave = texto(crudo.fase_clave);
   // Un cambio de tipo no guarda un «Terminé»: su antes y su después son `{ es_muestra }` y se leen aparte, no como buenas y fallas.
-  const esTipo = accion === "tipo";
+  const esTipo = accion === "tipo" || accion === "plan" || accion === "datos";
   // Un paso agregado tarde guarda otra cosa en `despues` (quién lo hizo y cuántas prendas), no un «Terminé».
   const tarde = accion === "paso_tarde";
   return {
@@ -495,6 +501,11 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       numeroTexto: texto(o.numero_texto) ?? `OP-${String(Math.round(numeroOrden)).padStart(6, "0")}`,
       estado,
       esMuestra: o.es_muestra === true,
+      motivoOrden: o.motivo_orden === "reposicion" || o.motivo_orden === "novedad" ? o.motivo_orden : null,
+      tiendaDestinoId: texto(o.tienda_destino_id),
+      tiendaDestino: texto(o.tienda_destino),
+      urgente: o.urgente === true,
+      muestraAprobadaPor: texto(o.muestra_aprobada_por),
       fechaEntrega: texto(o.fecha_entrega),
       nota: texto(o.nota),
       creadoEn: texto(o.created_at) ?? "",
@@ -1046,6 +1057,8 @@ export function tonoDeEntrada(tipo: TipoEntrada): TonoDeEntrada {
     case "sin_tela":
     case "tipo":
     case "paso_tarde":
+    case "plan":
+    case "datos":
       return "cambio";
     // Una nota del equipo no es un hecho de la orden: punto neutro.
     case "nota":
@@ -1691,6 +1704,12 @@ function entradaDeCambio(c: CambioOrden, lineas: readonly LineaPagina[]): Entrad
     titulo = "Dejó pasar al stock sin tela";
   } else if (c.accion === "tipo") {
     ({ titulo, detalle } = entradaDeCambioDeTipo(c.pasoAMuestra, c.texto));
+  } else if (c.accion === "plan") {
+    titulo = "Cambió las cantidades";
+    detalle = c.texto;
+  } else if (c.accion === "datos") {
+    titulo = "Cambió los datos de la orden";
+    detalle = null;
   } else if (c.accion === "paso_tarde") {
     titulo = `Agregó ${fase} tarde`;
     cuanto = c.tarde && c.tarde.prendas > 0 ? `${cuantas(c.tarde.prendas, "prenda", "prendas")} ya ${c.tarde.prendas === 1 ? "hecha" : "hechas"}` : null;
@@ -2082,6 +2101,26 @@ export function insumosPorDevolver(insumos: readonly InsumoPagina[]): { nombre: 
   const porInsumo = new Map<string, InsumoPagina>();
   for (const i of insumos) if (i.usado > (porInsumo.get(i.insumoId)?.usado ?? 0)) porInsumo.set(i.insumoId, i);
   return [...porInsumo.values()].filter((i) => i.usado > 0).map((i) => ({ nombre: i.nombre, texto: cantidadConUnidad(i.usado, i.unidad) }));
+}
+
+export type MotivoOrden = "reposicion" | "novedad";
+export const RPC_CAMBIAR_DATOS_ORDEN = "cambiar_datos_de_orden";
+export const RPC_CAMBIAR_PLAN_ORDEN = "cambiar_plan_de_orden";
+
+/** Los datos de la orden, en una línea: «Reposición · va a Tienda TRU · muestra aprobada por Claudia». `null` si no dice nada. */
+export function textoDatosDeLaOrden(o: Pick<OrdenPagina["orden"], "motivoOrden" | "tiendaDestino" | "muestraAprobadaPor">): string | null {
+  const partes = [o.motivoOrden === "reposicion" ? "Reposición" : o.motivoOrden === "novedad" ? "Novedad" : null, o.tiendaDestino ? `va a ${o.tiendaDestino}` : null, o.muestraAprobadaPor ? `muestra aprobada por ${o.muestraAprobadaPor}` : null].filter(Boolean);
+  return partes.length > 0 ? partes.join(" · ") : null;
+}
+
+/** Lo que el plan no puede ser: menos de lo cortado, o dejar la orden sin prendas. Vacío si se puede guardar. `cortado` es lo ya anotado en la primera fase. */
+export function problemasDelPlan(filas: readonly { nombre: string; cantidad: number | null; cortado: number }[], motivo: string): string[] {
+  const p: string[] = [];
+  if (filas.some((f) => f.cantidad === null)) p.push("Cada cantidad es un número entero, cero o más.");
+  for (const f of filas) if (f.cantidad !== null && f.cantidad < f.cortado) p.push(`De ${f.nombre} ya se cortaron ${f.cortado}: el plan no puede ser menos.`);
+  if (filas.length > 0 && filas.every((f) => f.cantidad === 0)) p.push("La orden se quedaría sin prendas: mejor anúlala.");
+  if (motivo.trim() === "") p.push("Escribe por qué cambia el plan.");
+  return p;
 }
 
 /** ¿Hay tela ya cortada? Tela usada y prendas en algún paso: anular tiene que preguntar qué se hace con ella (ADR-0614, P-05 de Felipe). Es la misma cuenta de `fn_orden_tiene_tela_cortada`. */

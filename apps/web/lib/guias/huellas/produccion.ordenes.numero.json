@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 206,
+  "total": 220,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -49,6 +49,8 @@
       "button «›»"
     ],
     "components/orden-pagina/AccionesDeLaOrden.tsx": [
+      "Boton «prod-orden.cambiar-plan»",
+      "Boton «prod-orden.cambiar-datos»",
       "Boton «prod-orden.cambiar-tipo»",
       "Boton «prod-orden.anular-orden»",
       "Boton «prod-orden.pasar-al-stock»",
@@ -110,6 +112,20 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/CambiarPlanYDatosModal.tsx": [
+      "CampoTexto «{`Cantidad de ${f.nombre}»",
+      "CampoSelect «Sumar otra talla o color»",
+      "CampoTexto «Por qué cambia»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»",
+      "CampoSelect «¿Reposición o novedad?»",
+      "CampoSelect «¿A qué tienda va?»",
+      "CampoTexto «¿Quién aprobó la muestra?»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «Guardar» #2"
     ],
     "components/orden-pagina/CambiarQuienModal.tsx": [
       "ComboResponsable «{responsable}»",
