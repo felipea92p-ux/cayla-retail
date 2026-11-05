@@ -5,10 +5,6 @@ import {
   ESTADOS,
   filaDeLaSede,
   leerPatrimonio,
-  respuestaGanamos,
-  respuestaPlata,
-  respuestaTuyo,
-  respuestaVale,
 } from "./estados-financieros-reglas";
 import type { FilaER } from "./resultados-reglas";
 
@@ -39,56 +35,7 @@ describe("filaDeLaSede", () => {
   });
 });
 
-describe("respuestaGanamos", () => {
-  it("ganó: verde, con lo vendido", () => {
-    const r = respuestaGanamos({ resultado: 3850, ventas: 48600 }, null);
-    expect(r).toMatchObject({ valor: 3850, punto: "verde", contexto: "Sí: vendiste S/\u00a048,600", conSigno: false });
-  });
-  it("perdió: rojo", () => {
-    expect(respuestaGanamos({ resultado: -1450, ventas: 12000 }, null)).toMatchObject({ punto: "rojo", contexto: "No: vendiste S/\u00a012,000" });
-  });
-  it("una unidad que no vende lo dice", () => {
-    expect(respuestaGanamos({ resultado: -2680, ventas: 0 }, null).contexto).toBe("No: no vende, sus gastos los cubren las tiendas");
-  });
-  it("sin lectura: «no se pudo leer», nunca un cero", () => {
-    expect(respuestaGanamos(null, "falló")).toMatchObject({ valor: null, noSePudoLeer: true });
-    expect(respuestaGanamos(null, null)).toMatchObject({ valor: null, noSePudoLeer: false });
-  });
-});
-
-describe("respuestaPlata", () => {
-  it("bajó: ámbar y cuánto", () => {
-    expect(respuestaPlata({ saldoInicial: 31200, saldoFinal: 27450, categorias: [], arranques: [] }, null, false)).toMatchObject({ valor: 27450, punto: "ambar", contexto: "Bajó S/\u00a03,750 en el mes" });
-  });
-  it("subió: verde; mirando una sede, dice que es de toda CAYLA", () => {
-    expect(respuestaPlata({ saldoInicial: 100, saldoFinal: 400, categorias: [], arranques: [] }, null, true)).toMatchObject({ punto: "verde", contexto: "Subió S/\u00a0300 en el mes · toda CAYLA" });
-  });
-});
-
-describe("respuestaPlata con una cuenta que arrancó a mitad de mes (ADR-0609)", () => {
-  const arranque = { cuentaId: "c", cuenta: "Banco", desde: "2026-10-28", saldoInicial: 5000, cobros: 100, salidas: 0, entreCuentas: 0, comision: 0 };
-  it("dice cuánto hay, pero no «subió» ni «bajó», y sin punto de color", () => {
-    const r = respuestaPlata({ saldoInicial: 100, saldoFinal: 400, categorias: [], arranques: [arranque] }, null, false);
-    expect(r).toMatchObject({ valor: 400, punto: null, contexto: "Cuentas desde 28 oct" });
-  });
-});
-
-describe("respuestaVale", () => {
-  it("CAYLA entera: lo tuyo del Balance, solo si cuadra", () => {
-    expect(respuestaVale({ total: 103600, cuadra: true, sinArranque: false }, null, null)).toMatchObject({ valor: 103600, pregunta: "¿Cuánto vale CAYLA?" });
-    expect(respuestaVale({ total: 103600, cuadra: false, sinArranque: false }, null, null)).toMatchObject({ valor: null, contexto: "Todavía no cuadra: el Balance dice qué falta." });
-    expect(respuestaVale({ total: 0, cuadra: true, sinArranque: true }, null, null)).toMatchObject({ valor: null, contexto: "Faltan los saldos de arranque." });
-  });
-  it("una sede: lo invertido en ella, con otra pregunta", () => {
-    expect(respuestaVale({ total: 25950, cuadra: true, sinArranque: false }, null, "Lima")).toMatchObject({
-      valor: 25950,
-      pregunta: "¿Cuánto hay invertido?",
-      contexto: "Invertido en Lima",
-    });
-  });
-});
-
-describe("leerPatrimonio y respuestaTuyo", () => {
+describe("leerPatrimonio", () => {
   const p = leerPatrimonio({
     mes: "2026-10-01",
     corte: "2026-10-30",
@@ -106,15 +53,6 @@ describe("leerPatrimonio y respuestaTuyo", () => {
     expect(p.inicio?.utilidades).toBe(22750);
     expect(p.fin?.total).toBe(103600);
     expect(p.serie[0]).toEqual({ mes: "2026-09", corte: "2026-09-30", total: 102750 });
-  });
-  it("creció: el cambio con su signo, y la frase con lo que lo movió", () => {
-    expect(respuestaTuyo(p, null)).toMatchObject({ valor: 850, conSigno: true, punto: "verde", contexto: "Ganaste S/\u00a03,850 y retiraste S/\u00a03,000" });
-  });
-  it("con un aporte, lo dice", () => {
-    expect(respuestaTuyo({ ...p, aportes: 1000 }, null).contexto).toBe("Ganaste S/\u00a03,850, pusiste S/\u00a01,000 y retiraste S/\u00a03,000");
-  });
-  it("sin arranque: lo dice, sin cifra", () => {
-    expect(respuestaTuyo(leerPatrimonio({ sin_arranque: true }), null)).toMatchObject({ valor: null, contexto: "Faltan los saldos de arranque." });
   });
 });
 

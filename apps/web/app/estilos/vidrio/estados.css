@@ -89,6 +89,19 @@
   backdrop-filter: var(--estados-filtro);
 }
 
+/* La cabecera de la pantalla va sobre su placa: el título y la fecha no pueden quedar con los hilos pasándoles por encima. */
+.estados-vidrio .estados-cabecera {
+  padding: 16px 24px;
+  border-radius: 26px;
+}
+
+/* Las pestañas del sistema, con su fondo más lleno: sus nombres no pueden quedar con los hilos pasándoles por encima. */
+.estados-vidrio .pestanas-cayla {
+  background: var(--estados-fondo-fuerte);
+  -webkit-backdrop-filter: var(--estados-filtro);
+  backdrop-filter: var(--estados-filtro);
+}
+
 /* ---------- Lo que se lee sobre el vidrio ---------- */
 .estados-vidrio .fin-estado :is(.text-taupe, .fin-titular-bajada) {
   color: var(--estados-secundario);

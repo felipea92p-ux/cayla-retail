@@ -50,14 +50,6 @@ const DOCK_GASTOS: PasoGuia = {
   texto: "Abajo están las cuatro cosas que más se hacen en Gastos: registrar un gasto (G), los fijos del mes (F), las salidas de caja (E) y los activos fijos (A). Las tocas o apretas su letra cuando no estás escribiendo.",
 };
 
-/** Las cuatro respuestas de Estados financieros (ADR-0585): cada tarjeta es un estado y a la vez su pestaña (se explican, no se tocan). */
-const RESPUESTAS_ESTADOS: PasoGuia = {
-  id: "respuestas",
-  ancla: "fin-estados.respuestas",
-  titulo: "Las cuatro respuestas",
-  texto: "Cada tarjeta responde una pregunta con su cifra: ¿Ganamos? (ganancias y pérdidas), ¿Dónde está la plata? (flujo de efectivo), ¿Cuánto vale CAYLA? (balance) y ¿Lo tuyo creció? (cambios en el patrimonio). La que estás mirando queda marcada; tocas otra y pasas a ella, con la misma sede y el mismo mes.",
-};
-
 /** «Descargar Excel» de cada cuadro del contador (ADR-0585): se explica, no se toca. Solo está en un cuadro, no en «Respuestas». */
 const CONTADOR: PasoGuia = {
   id: "contador",
@@ -67,12 +59,20 @@ const CONTADOR: PasoGuia = {
   texto: "Cada cuadro del contador trae su botón: baja solo ese cuadro, con sus cuentas, en un archivo que abre Excel. No cambia nada en el sistema. En la demo no lo descargamos.",
 };
 
-/** La barra de las siete vistas de Estados financieros (Felipe 2026-10-31): se explica, no se toca. */
+/** Las cuatro pestañas de Estados financieros (Felipe 2026-11-05, ADR-0611): se explican, no se tocan. */
 const VISTAS: PasoGuia = {
   id: "vistas",
   ancla: "fin-estados.vistas",
-  titulo: "Qué ver: siete vistas",
-  texto: "«Respuestas» muestra cada estado en palabras de tienda. Después vienen los cuadros del contador: los cuatro estados en formato formal, los saldos por cuenta y el libro diario del mes. Un toque y cambias.",
+  titulo: "Los cuatro estados",
+  texto: "Cada pestaña es un estado con su nombre de siempre: Ganancias y pérdidas, Flujo de efectivo, Balance general y Cambios en el patrimonio. La sede y el mes de arriba valen para los cuatro. En la demo no cambiamos de pestaña.",
+};
+
+/** «Para el contador» (ADR-0611): se explica, no se toca. */
+const PARA_EL_CONTADOR: PasoGuia = {
+  id: "para-el-contador",
+  ancla: "fin-estados.contador",
+  titulo: "Para el contador",
+  texto: "Aquí está lo que no se usa todos los días: cada estado en formato formal, los saldos por cuenta y el libro diario, con su Excel para descargar. En la demo no lo abrimos.",
 };
 
 const EXCEL: PasoGuia = {
@@ -1031,8 +1031,8 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       texto: "Lo que se vendió en el mes, menos lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
     },
     ...TELAR,
-    RESPUESTAS_ESTADOS,
     VISTAS,
+    PARA_EL_CONTADOR,
     CONTADOR,
     {
       id: "respuesta",
@@ -1202,8 +1202,8 @@ export const GUIA_FIN_FLUJO: Guia = {
       texto: "Vender no es lo mismo que tener plata: una factura grande, un retiro o una máquina nueva se la llevan. Aquí ves de dónde vino y a dónde fue la plata en el mes, y lo que viene en las próximas semanas. Es una demo.",
     },
     ...TELAR,
-    RESPUESTAS_ESTADOS,
     VISTAS,
+    PARA_EL_CONTADOR,
     CONTADOR,
     {
       id: "respuesta",
@@ -1436,8 +1436,8 @@ export const GUIA_FIN_BALANCE: Guia = {
       texto: "Lo que CAYLA tiene (plata, mercadería, muebles), contra lo que debe (proveedores, impuestos) y lo que es tuyo. Mirando una tienda, ves cuánta plata tiene metida y cuánto le rinde. Es una demo.",
     },
     ...TELAR,
-    RESPUESTAS_ESTADOS,
     VISTAS,
+    PARA_EL_CONTADOR,
     CONTADOR,
     {
       id: "respuesta",
@@ -1611,8 +1611,8 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       texto: "Lo tuyo es lo que tiene CAYLA menos lo que debe. Aquí ves cuánto era al empezar el mes, qué lo movió (lo que ganaste, lo que pusiste y lo que retiraste) y cuánto quedó. Sale del mismo diario que el Balance: nadie lo escribe. Es una demo.",
     },
     ...TELAR,
-    RESPUESTAS_ESTADOS,
     VISTAS,
+    PARA_EL_CONTADOR,
     CONTADOR,
     {
       id: "respuesta",
@@ -1693,6 +1693,7 @@ export const GUIA_FIN_CONTADOR: Guia = {
     },
     ...TELAR,
     VISTAS,
+    PARA_EL_CONTADOR,
     CONTADOR,
     {
       id: "saldos",
