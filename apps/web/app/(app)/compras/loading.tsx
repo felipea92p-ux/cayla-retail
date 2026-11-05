@@ -10,7 +10,7 @@
 // espera; con movimiento reducido queda quieto.
 import { EsperaPantalla } from "@/components/ui/Espera";
 
-const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
+const PLANTILLA = "sm:grid-cols-[6.5rem_1fr_7.5rem_10rem_9.5rem_6.5rem_1rem]";
 
 export default function LoadingCompras() {
   return (

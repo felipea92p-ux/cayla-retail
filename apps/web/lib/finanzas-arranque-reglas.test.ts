@@ -68,9 +68,9 @@ describe("palabras del corte", () => {
 });
 
 describe("opcionesCorte — el combo de Configuración", () => {
-  it("«Sin corte» primero y 12 meses hacia atrás, el de hoy incluido", () => {
+  it("«Desde el principio» primero y 12 meses hacia atrás, el de hoy incluido", () => {
     const o = opcionesCorte("2026-10-04", null);
-    expect(o[0]).toEqual({ valor: SIN_CORTE, texto: "Sin corte: cuenta todo" });
+    expect(o[0]).toEqual({ valor: SIN_CORTE, texto: "Desde el principio" });
     expect(o).toHaveLength(13);
     expect(o[1]).toEqual({ valor: "2026-10-01", texto: "Desde Octubre 2026" });
     expect(o[12]!.valor).toBe("2025-11-01");

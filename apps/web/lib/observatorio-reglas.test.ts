@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 import type { Repeticion } from "./perdidas-reglas";
 import type { TramoPlanilla } from "./planilla-salidas-reglas";
 import {
+  alMomento,
   avisoPerdidasObs,
   avisoPlanillaObs,
   calcular,
+  calcularVentaja,
   diasDesde,
+  fraseVentaja,
   grillaPico,
   hora12,
   horaDe,
+  indiceCercano,
   llenadoDelAro,
+  momentoDe,
   nivelPorCuenta,
   parsearObservatorio,
   parsearTienda,
@@ -17,13 +22,16 @@ import {
   rangoPico,
   tonoPico,
   rankear,
+  solesConSigno,
   sumarDias,
   textoDelPeriodo,
   textoVsDe,
   ventanaDe,
   ventasNuevas,
   type DatosObservatorio,
+  type NombresVentaja,
 } from "./observatorio-reglas";
+import { formatoSoles } from "./resumen-formato";
 
 const HOY = "2026-10-03"; // sábado
 function datos(): DatosObservatorio {
@@ -326,5 +334,199 @@ describe("avisoPlanillaObs — la planilla pagada sin su salida del banco (ADR-0
     expect(avisoPlanillaObs({ tramos: [tramo({ movimientoId: "m", netoAlRegistrar: 12740 })], cuentas: [] }, AHORA)).toBeUndefined();
     expect(avisoPlanillaObs({ tramos: [], cuentas: [] }, AHORA)).toBeUndefined();
     expect(avisoPlanillaObs(null, AHORA)).toMatchObject({ n: null, detalle: null });
+  });
+});
+
+describe("calcular: el acumulado en soles", () => {
+  it("termina en el total en los tres periodos, también si la tienda tiene meta", () => {
+    const d = datos();
+    for (const p of ["hoy", "7d", "30d"] as const) {
+      const c = calcular(d, "tru", p);
+      expect(c.acumulado.at(-1)?.[1]).toBe(c.total);
+      expect(c.acumulado.map((x) => x[0])).toEqual(c.curva.map((x) => x[0]));
+    }
+  });
+
+  it("una venta después de las 9 p. m. entra en el último punto de la curva", () => {
+    const d = datos();
+    d.ahoraMin = 21 * 60 + 40;
+    d.hoyVentas.push({ id: "tarde", u: "tru", min: 21 * 60 + 30, s: 700, p: 1, q: "Rosa" });
+    const c = calcular(d, "tru", "hoy");
+    expect(c.total).toBe(1000);
+    expect(c.acumulado.at(-1)).toEqual([1, 1000]);
+    expect(c.curva.at(-1)?.[1]).toBeCloseTo(100, 6);
+  });
+});
+
+describe("indiceCercano y los momentos de una curva", () => {
+  it("elige el punto más cercano a la x", () => {
+    const curva: [number, number][] = [[0, 0], [0.5, 1], [1, 2]];
+    expect(indiceCercano(curva, 0.1)).toBe(0);
+    expect(indiceCercano(curva, 0.4)).toBe(1);
+    expect(indiceCercano(curva, 0.95)).toBe(2);
+  });
+
+  it("nombra el punto por su fecha o su hora, con el artículo que le toca", () => {
+    const dias = { periodo: "7d", dias: 7 } as const;
+    const horas = { periodo: "hoy", dias: 1 } as const;
+    expect(momentoDe(dias, HOY, 1000, 0)).toBe("Inicio");
+    expect(momentoDe(dias, HOY, 1000, 1)).toBe("27 sep");
+    expect(alMomento(dias, HOY, 1000, 1)).toBe("el 27 sep");
+    expect(alMomento(horas, HOY, 1000, 3)).toBe("la 1:00 p. m.");
+    expect(alMomento(horas, HOY, 1000, 4)).toBe("las 2:00 p. m.");
+  });
+});
+
+describe("calcularVentaja", () => {
+  const TRU_LIM: NombresVentaja = { propia: "TRU", rival: "LIM" };
+  const LIM_TRU: NombresVentaja = { propia: "LIM", rival: "TRU" };
+  const OTRAS: NombresVentaja = { propia: "TRU", rival: null };
+  const al = (j: number) => alMomento({ periodo: "7d", dias: 7 }, HOY, 1000, j);
+  /** Una tienda con lo que vendió cada uno de los 6 días antes de hoy, de más antiguo a más nuevo. */
+  const conVentas = (d: DatosObservatorio, u: string, ventas: readonly number[]) => {
+    ventas.forEach((s, i) => {
+      const f = sumarDias(HOY, i - 6);
+      const fila = d.dias.find((x) => x.u === u && x.f === f);
+      if (fila) fila.s = s;
+      else d.dias.push({ u, f, s, t: 1, p: 1, m: null });
+    });
+  };
+
+  it("es lo que lleva una menos lo que lleva la otra, y termina en la diferencia de totales", () => {
+    const d = datos();
+    const tru = calcular(d, "tru", "7d");
+    const lim = calcular(d, "lim", "7d");
+    const v = calcularVentaja(tru, [lim]);
+    expect(v.brecha).toBe(tru.total - lim.total);
+    expect(v.serie.map((p) => p[0])).toEqual(tru.curva.map((p) => p[0]));
+    expect(v.propia.at(-1)).toBe(tru.total);
+    expect(v.rival.at(-1)).toBe(lim.total);
+  });
+
+  it("dice quién va adelante, por cuánto y hasta cuándo iban parejas", () => {
+    const d = datos();
+    const v = calcularVentaja(calcular(d, "tru", "7d"), [calcular(d, "lim", "7d")]);
+    expect(v.estado).toBe("adelante");
+    const f = fraseVentaja(v, TRU_LIM, al);
+    expect(f.titular).toBe(`TRU le saca ${formatoSoles(3200)} a LIM.`);
+    expect(f.detalle).toBe("Iban parejas hasta el 27 sep.");
+  });
+
+  it("desde el otro lado, la misma diferencia se dice como ir detrás", () => {
+    const d = datos();
+    const v = calcularVentaja(calcular(d, "lim", "7d"), [calcular(d, "tru", "7d")]);
+    expect(v.estado).toBe("detras");
+    expect(v.brecha).toBe(-3200);
+    const f = fraseVentaja(v, LIM_TRU, al);
+    expect(f.titular).toBe(`LIM va ${formatoSoles(3200)} detrás de TRU.`);
+    expect(f.detalle).toBe("Iban parejas hasta el 27 sep.");
+  });
+
+  it("si se despegó desde el primer día, lo dice", () => {
+    const d = datos();
+    conVentas(d, "lim", [0, 0, 0, 0, 0, 0]);
+    d.hoyVentas = d.hoyVentas.filter((x) => x.u !== "lim");
+    const v = calcularVentaja(calcular(d, "tru", "7d"), [calcular(d, "lim", "7d")]);
+    expect(v.quiebre).toBe(0);
+    expect(fraseVentaja(v, TRU_LIM, al).detalle).toBe("Va adelante desde el inicio.");
+    const atras = calcularVentaja(calcular(d, "lim", "7d"), [calcular(d, "tru", "7d")]);
+    expect(fraseVentaja(atras, LIM_TRU, al).detalle).toBe("Va detrás desde el inicio.");
+  });
+
+  it("si la otra iba adelante y la pasó, dice hasta cuándo iba adelante", () => {
+    const d = datos();
+    conVentas(d, "tru", [0, 0, 0, 3000, 3000, 3000]);
+    conVentas(d, "lim", [1000, 1000, 1000, 0, 0, 0]);
+    const v = calcularVentaja(calcular(d, "tru", "7d"), [calcular(d, "lim", "7d")]);
+    expect(v.estado).toBe("adelante");
+    expect(v.otraIbaAdelante).toBe(3);
+    expect(fraseVentaja(v, TRU_LIM, al).detalle).toBe("LIM iba adelante hasta el 29 sep.");
+    const atras = calcularVentaja(calcular(d, "lim", "7d"), [calcular(d, "tru", "7d")]);
+    expect(fraseVentaja(atras, LIM_TRU, al).detalle).toBe("LIM iba adelante hasta el 29 sep.");
+  });
+
+  it("menos de lo que se vende en un día promedio es ir parejas", () => {
+    const d = datos();
+    conVentas(d, "lim", [1000, 1000, 1000, 1000, 1000, 800]);
+    const v = calcularVentaja(calcular(d, "tru", "7d"), [calcular(d, "lim", "7d")]);
+    expect(v.estado).toBe("parejas");
+    const f = fraseVentaja(v, TRU_LIM, al);
+    expect(f.titular).toBe(`TRU y LIM van parejas: ${formatoSoles(400)} de diferencia.`);
+    expect(f.detalle).toBeNull();
+  });
+
+  it("idénticas: van parejas, sin cifra", () => {
+    const d = datos();
+    conVentas(d, "lim", [1000, 1000, 1000, 1000, 1000, 1000]);
+    d.hoyVentas = d.hoyVentas.map((x) => (x.u === "lim" ? { ...x, s: 300 } : x));
+    const v = calcularVentaja(calcular(d, "tru", "7d"), [calcular(d, "lim", "7d")]);
+    expect(fraseVentaja(v, TRU_LIM, al).titular).toBe("TRU y LIM van parejas.");
+  });
+
+  it("sin ventas de ningún lado, no inventa un ganador", () => {
+    const d = datos();
+    d.hoyVentas = [];
+    const v = calcularVentaja(calcular(d, "tru", "hoy"), [calcular(d, "lim", "hoy")]);
+    expect(v.estado).toBe("sin-ventas");
+    const f = fraseVentaja(v, TRU_LIM, al);
+    expect(f.titular).toBe("Todavía no hay ventas para comparar.");
+    expect(f.detalle).toBeNull();
+  });
+
+  it("contra varias, compara con su promedio y lo dice", () => {
+    const d = datos();
+    d.tiendas.push({ id: "aqp", nombre: "Tienda Arequipa", sigla: "AQP", mapa: "AQP", cierre: "21:00", caja: null, turno: null });
+    conVentas(d, "aqp", [100, 100, 100, 100, 100, 100]);
+    const tru = calcular(d, "tru", "7d");
+    const lim = calcular(d, "lim", "7d");
+    const aqp = calcular(d, "aqp", "7d");
+    const v = calcularVentaja(tru, [lim, aqp]);
+    expect(v.rival.at(-1)).toBe((lim.total + aqp.total) / 2);
+    expect(fraseVentaja(v, OTRAS, al).titular).toBe(`TRU le saca ${formatoSoles(tru.total - (lim.total + aqp.total) / 2)} al promedio de las otras.`);
+    const atras = calcularVentaja(aqp, [tru, lim]);
+    expect(fraseVentaja(atras, { propia: "AQP", rival: null }, al).titular).toBe(`AQP va ${formatoSoles((tru.total + lim.total) / 2 - aqp.total)} detrás del promedio de las otras.`);
+  });
+
+  it("si iba adelante el promedio, lo nombra con mayúscula al empezar la frase", () => {
+    const d = datos();
+    d.tiendas.push({ id: "aqp", nombre: "Tienda Arequipa", sigla: "AQP", mapa: "AQP", cierre: "21:00", caja: null, turno: null });
+    conVentas(d, "tru", [0, 0, 0, 3000, 3000, 3000]);
+    conVentas(d, "lim", [1000, 1000, 1000, 0, 0, 0]);
+    conVentas(d, "aqp", [1000, 1000, 1000, 0, 0, 0]);
+    const v = calcularVentaja(calcular(d, "tru", "7d"), [calcular(d, "lim", "7d"), calcular(d, "aqp", "7d")]);
+    expect(fraseVentaja(v, OTRAS, al).detalle).toBe("El promedio de las otras iba adelante hasta el 29 sep.");
+  });
+
+  it("una tienda sin meta también se compara: va en soles, y entonces no se habla de metas", () => {
+    const d = datos();
+    d.dias = d.dias.map((x) => (x.u === "lim" ? { ...x, m: null } : x));
+    const v = calcularVentaja(calcular(d, "tru", "7d"), [calcular(d, "lim", "7d")]);
+    expect(v.brecha).toBe(3200);
+    expect(v.pctRival).toBeNull();
+    expect(fraseVentaja(v, TRU_LIM, al).metas).toBeNull();
+  });
+
+  it("con meta de los dos lados, dice el % de cada uno", () => {
+    const d = datos();
+    const tru = calcular(d, "tru", "7d");
+    const lim = calcular(d, "lim", "7d");
+    const f = fraseVentaja(calcularVentaja(tru, [lim]), TRU_LIM, al);
+    expect(f.metas).toBe(`TRU va en ${Math.round(tru.pct ?? 0)}% de su meta · LIM en ${Math.round(lim.pct ?? 0)}%`);
+  });
+
+  it("con «Hoy» cuenta por horas: dice hasta qué hora iban parejas", () => {
+    const d = datos();
+    d.hoyVentas = [{ id: "a", u: "tru", min: 14 * 60, s: 900, p: 1, q: "Rosa" }];
+    const tru = calcular(d, "tru", "hoy");
+    const v = calcularVentaja(tru, [calcular(d, "lim", "hoy")]);
+    expect(v.estado).toBe("adelante");
+    const f = fraseVentaja(v, TRU_LIM, (j) => alMomento(tru, HOY, d.ahoraMin, j));
+    expect(f.detalle).toBe("Iban parejas hasta la 1:00 p. m.");
+  });
+
+  it("solesConSigno lleva signo solo si hay diferencia", () => {
+    expect(solesConSigno(3250)).toBe(`+${formatoSoles(3250)}`);
+    expect(solesConSigno(-1200)).toBe(`−${formatoSoles(1200)}`);
+    expect(solesConSigno(0.2)).toBe(formatoSoles(0));
   });
 });

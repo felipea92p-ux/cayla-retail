@@ -1,0 +1,121 @@
+/* ====================================================================
+   El corte de una tabla (Felipe 2026-11-05; ADR-0610 act.; la cuenta, lib/tabla-corte-reglas.ts): la tabla mira SU ancho, no el de la ventana.
+   Bajo lo que piden sus columnas pasa a la forma de celular que ya tiene: sin cabecera, una columna, todo a la izquierda, y lo que `sm:`
+   mostraba o escondía vuelve como en el celular. Así no corre de lado ni deja una columna flexible sin ancho.
+   Una tabla armada sin `<Tabla>` pone `tabla-corte-zona` en su caja. Un bloque por escalón: una consulta de contenedor no acepta variables. Lo escribe a mano quien cambie los escalones, y
+   `lib/tabla-corte-reglas.test.ts` falla si alguno no está.
+   ==================================================================== */
+.tabla-cayla,
+.tabla-corte-zona {
+  container: tabla / inline-size;
+}
+@container tabla (max-width: 399.98px) {
+  .tabla-corte-400.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-400:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-400:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-400 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-400 .sm\:hidden { display: revert !important; }
+  .tabla-corte-400 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-400 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-400 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 479.98px) {
+  .tabla-corte-480.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-480:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-480:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-480 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-480 .sm\:hidden { display: revert !important; }
+  .tabla-corte-480 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-480 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-480 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 559.98px) {
+  .tabla-corte-560.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-560:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-560:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-560 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-560 .sm\:hidden { display: revert !important; }
+  .tabla-corte-560 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-560 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-560 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 639.98px) {
+  .tabla-corte-640.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-640:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-640:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-640 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-640 .sm\:hidden { display: revert !important; }
+  .tabla-corte-640 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-640 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-640 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 719.98px) {
+  .tabla-corte-720.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-720:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-720:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-720 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-720 .sm\:hidden { display: revert !important; }
+  .tabla-corte-720 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-720 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-720 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 799.98px) {
+  .tabla-corte-800.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-800:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-800:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-800 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-800 .sm\:hidden { display: revert !important; }
+  .tabla-corte-800 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-800 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-800 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 879.98px) {
+  .tabla-corte-880.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-880:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-880:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-880 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-880 .sm\:hidden { display: revert !important; }
+  .tabla-corte-880 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-880 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-880 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 959.98px) {
+  .tabla-corte-960.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-960:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-960:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-960 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-960 .sm\:hidden { display: revert !important; }
+  .tabla-corte-960 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-960 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-960 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 1039.98px) {
+  .tabla-corte-1040.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-1040:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-1040:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-1040 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-1040 .sm\:hidden { display: revert !important; }
+  .tabla-corte-1040 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-1040 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-1040 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 1119.98px) {
+  .tabla-corte-1120.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-1120:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-1120:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-1120 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-1120 .sm\:hidden { display: revert !important; }
+  .tabla-corte-1120 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-1120 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-1120 .grid.sm\:hidden { display: grid !important; }
+}
+@container tabla (max-width: 1199.98px) {
+  .tabla-corte-1200.encabezado-tabla-cayla { display: none !important; }
+  .tabla-corte-1200:not(.encabezado-tabla-cayla) { grid-template-columns: minmax(0, 1fr) !important; }
+  .tabla-corte-1200:not(.encabezado-tabla-cayla) > * { text-align: left !important; }
+  .tabla-corte-1200 .hidden:is(.sm\:block, .sm\:flex, .sm\:inline, .sm\:inline-flex, .sm\:grid) { display: none !important; }
+  .tabla-corte-1200 .sm\:hidden { display: revert !important; }
+  .tabla-corte-1200 .flex.sm\:hidden { display: flex !important; }
+  .tabla-corte-1200 .inline-flex.sm\:hidden { display: inline-flex !important; }
+  .tabla-corte-1200 .grid.sm\:hidden { display: grid !important; }
+}

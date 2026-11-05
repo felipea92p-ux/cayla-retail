@@ -10,22 +10,17 @@ import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ProveedorGasto } from "@/components/RegistrarGastoModal";
-import { CabeceraBloque, CampoFin, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { ProveedorElegido } from "@/components/ProveedorElegido";
 import { FichaDePagoCampos } from "@/components/gasto-fijo/FichaDePagoCampos";
 import { HistorialFicha } from "@/components/gasto-fijo/HistorialFicha";
 import {
-  contratoPorVencer,
   datosDeLaFicha,
   esProveedorDeGasto,
-  faltaDeLaFicha,
   FICHA_VACIA,
   fichaParaEnviar,
   leerFicha,
-  TEXTO_FORMA_DE_PAGO,
-  textoContratoPorVencer,
   type FichaFijo,
-  type ResumenFicha,
 } from "@/lib/gasto-fijo-ficha-reglas";
 import { colaDeFijos, bajadaDeLaCola, textoFechaDeFijo, tituloDeLaCola } from "@/lib/fijos-del-mes-reglas";
 import { limpiarCantidad } from "@/lib/alta-producto";
@@ -49,9 +44,7 @@ import {
   puedeAnularActivo,
   resumenActivosPorSede,
   solesRedondo,
-  textoColumnaCuando,
   textoMes,
-  textoDiasAntes,
   textoPagarDesde,
   textoVidaUtil,
   totalesActivos,
@@ -71,7 +64,7 @@ import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { CalendarClock, Laptop } from "lucide-react";
 import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
-import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 // Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b), y la lista de fijos de Configuración,
 // dibujadas como el spike (docs/maquetas/finanzas-2026-09/, `vistaFijos`, `tablaActivos`, `cfgFijos`).
@@ -131,7 +124,7 @@ export function FijosDelMes({
   // `shrink-0`: en el celular el título se parte en dos renglones y el botón se achicaba hasta cortar «Editar fijos».
   const editar = puedeConfigurar ? (
     <span className="shrink-0">
-      <BotonEditar chico href="/configuracion?tab=fijos">
+      <BotonEditar chico href="/configuracion?tab=gastos">
         Editar fijos
       </BotonEditar>
     </span>
@@ -160,13 +153,13 @@ export function FijosDelMes({
             titulo="Todavía no hay gastos fijos"
             acciones={
               puedeConfigurar ? (
-                <BotonEnlace href="/configuracion?tab=fijos" peso="primario">
+                <BotonEnlace href="/configuracion?tab=gastos" peso="primario">
                   Agregar el primero
                 </BotonEnlace>
               ) : null
             }
           >
-            El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles ya están registrados y cuáles faltan.
+            El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles ya están registrados y cuáles faltan.
           </Vacio>
         </Superficie>
         <NotaFijos />
@@ -324,138 +317,6 @@ export function NoEsFijoModal({ sugerido: s, onCerrar }: { sugerido: FijoSugerid
         </Boton>
       </div>
     </Modal>
-  );
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Configuración ▸ Gastos fijos: la lista de lo que se repite, para agregar, corregir o archivar.
-
-export function TablaGastosFijos({
-  fijos,
-  categorias,
-  ubicaciones,
-  proveedores,
-  fichas = {},
-  fichaDisponible = false,
-  hoy = "",
-}: {
-  fijos: GastoFijoMes[];
-  categorias: CategoriaGasto[];
-  ubicaciones: UbicacionGastos[];
-  proveedores: ProveedorGasto[];
-  /** Lo que se sabe de cada fijo para pagarlo (ADR-0452), por id. */
-  fichas?: Record<string, ResumenFicha>;
-  /** La base ya tiene la ficha. Si no, la tabla se dibuja como antes. */
-  fichaDisponible?: boolean;
-  /** Hoy en Lima (`AAAA-MM-DD`), para avisar de un contrato que vence pronto. */
-  hoy?: string;
-}) {
-  const [editar, setEditar] = useState<{ fijo?: GastoFijoMes } | null>(null);
-  const cuenta = (codigo: string) => categorias.find((c) => c.codigo === codigo)?.cuenta ?? "";
-  const total = fijos.reduce((t, f) => t + f.monto, 0);
-  const sinCompletar = fichaDisponible ? fijos.filter((f) => faltaDeLaFicha(fichas[f.id]).length > 0).length : 0;
-  return (
-    <>
-      <Superficie className="anim-sube" guia="config.fijos">
-        <TituloDeTarjeta titulo="Gastos que se repiten" bajada="El sistema los propone cada mes en Gastos ▸ Fijos del mes. Los variables (luz, agua) piden el monto del recibo.">
-          <Boton type="button" peso="primario" onClick={() => setEditar({})}>
-            + Agregar fijo
-          </Boton>
-        </TituloDeTarjeta>
-        {fijos.length === 0 ? (
-          <Vacio tamano="chico" icono={<CalendarClock />}>
-            Todavía no hay gastos fijos. El alquiler, la luz o el contador: agrégalos una vez.
-          </Vacio>
-        ) : (
-          <div className="fin-tabla-wrap">
-            <table className="fin-tabla">
-              <thead>
-                <tr>
-                  <th>Gasto</th>
-                  <th>Unidad</th>
-                  <th>{fichaDisponible ? "Se le paga a" : "Proveedor"}</th>
-                  <th>Llega con</th>
-                  <th className="fin-num">Monto</th>
-                  <th className="fin-num">Vence</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {fijos.map((f) => (
-                  <tr key={f.id}>
-                    <td className="fin-ancha" data-l="Gasto">
-                      <b>{f.descripcion}</b>
-                      <span className="fin-sub">
-                        {f.categoriaNombre} · {cuenta(f.categoria)}
-                        {f.montoVariable ? " · variable" : ""}
-                      </span>
-                    </td>
-                    <td data-l="Unidad">{f.ubicacionId ? f.ubicacionNombre : "De la empresa"}</td>
-                    {fichaDisponible ? (
-                      <td data-l="Se le paga a">
-                        <CeldaSePagaA r={fichas[f.id]} hoy={hoy} />
-                      </td>
-                    ) : (
-                      <td data-l="Proveedor">{f.proveedorNombre ?? <span className="fin-tenue">Sin proveedor</span>}</td>
-                    )}
-                    <td data-l="Llega con">{TEXTO_COMPROBANTE[f.comprobanteTipo]}</td>
-                    <td className="fin-num" data-l="Monto">
-                      {f.montoVariable ? "~" : ""}
-                      {solesRedondo(f.monto)}
-                    </td>
-                    <td className="fin-num" data-l="Vence">
-                      {textoColumnaCuando(f.momento, f.diaDelMes)}
-                      {f.diasAntes ? <span className="fin-sub">se paga {textoDiasAntes(f.diasAntes)}</span> : null}
-                    </td>
-                    <td className="fin-num">
-                      <LapizEditar que={f.descripcion} onClick={() => setEditar({ fijo: f })} className="ml-auto" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <PieTabla>
-          <span>
-            {fijos.length} {fijos.length === 1 ? "fijo" : "fijos"} · suman {solesRedondo(total)} al mes · uno que ya no se paga se archiva, no se borra
-            {sinCompletar > 0 && ` · ${sinCompletar} sin completar a quién y cómo se paga`}
-          </span>
-        </PieTabla>
-      </Superficie>
-      {editar && (
-        <GastoFijoModal
-          fijo={editar.fijo}
-          categorias={categorias}
-          ubicaciones={ubicaciones}
-          proveedores={proveedores}
-          esLider
-          conDiasAntes={fijos.some((f) => f.diasAntes !== null)}
-          ubicacionInicial={ubicaciones[0]?.id ?? "empresa"}
-          onCerrar={() => setEditar(null)}
-        />
-      )}
-    </>
-  );
-}
-
-/** La celda «Se le paga a» de la lista de fijos (ADR-0452): quién cobra y cómo, o que falta completarlo. */
-function CeldaSePagaA({ r, hoy }: { r: ResumenFicha | undefined; hoy: string }) {
-  const vence = r?.contratoVence && hoy ? contratoPorVencer(r.contratoVence, hoy) : null;
-  if (!r || !r.beneficiario) return <span className="fin-tenue">Sin completar</span>;
-  return (
-    <>
-      <b>{r.beneficiario}</b>
-      <span className="fin-sub">
-        {r.formaDePago ? TEXTO_FORMA_DE_PAGO[r.formaDePago] : "Falta cómo se paga"}
-        {r.codigoServicio ? ` · ${r.codigoServicio}` : ""}
-      </span>
-      {vence && (
-        <Chip tono={vence.vencido || vence.dias <= 30 ? "ambar" : "neutro"} versalitas={false}>
-          {textoContratoPorVencer(vence)}
-        </Chip>
-      )}
-    </>
   );
 }
 

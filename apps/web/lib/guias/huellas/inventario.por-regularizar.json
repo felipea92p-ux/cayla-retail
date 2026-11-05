@@ -16,7 +16,7 @@
     ],
     "components/PorRegularizarLista.tsx": [
       "button «{f.texto}»",
-      "button «(sin nombre)»",
+      "button «Fecha»",
       "DesplegablePildora «Vendió»"
     ],
     "components/PrendaSinRegistrarModal.tsx": [

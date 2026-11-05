@@ -1,17 +1,21 @@
 "use client";
 
 // El panel de una tienda (ADR-0322), a la derecha del mapa acercado: su cabecera (caja, turno, ‹ › para pasar de tienda),
-// sus cifras y cuatro pestañas — Ritmo (el % de la meta acumulado contra el periodo anterior y, con un toque, contra CAYLA
-// u otra tienda; y las horas pico de 4 semanas), Productos (qué categorías pesan y lo que más sale), Equipo (cuánto vendió
+// sus cifras y cuatro pestañas — Ritmo (el % de la meta acumulado contra el periodo anterior y, con un toque, la ventaja sobre
+// otra tienda o sobre el promedio de las demás; y las horas pico de 4 semanas), Productos (qué categorías pesan y lo que más sale), Equipo (cuánto vendió
 // cada integrante) y Stock (lo que se va a agotar, lo que no se mueve y sus traslados) — más los avisos de esa tienda.
 
 import { useRef, type CSSProperties, type PointerEvent as EventoPuntero, type ReactNode } from "react";
 import { useFlip } from "@/lib/useFlip";
 import {
-  ABRE,
+  alMomento,
+  calcularVentaja,
   fechaCorta,
+  fraseVentaja,
   grillaPico,
   hora12,
+  indiceCercano,
+  momentoDe,
   PICO_DESDE,
   PICO_HASTA,
   rangoPico,
@@ -27,6 +31,7 @@ import {
 } from "@/lib/observatorio-reglas";
 import { Ic } from "./iconos";
 import { Anillo, AreaVidrio, Cifra, Odometro, Revela, Segmento, Trazo, ancho, fmt, iniciales, useArranque, useObs, type Arranque } from "./piezas";
+import { GraficoVentaja, TitularVentaja } from "./Ventaja";
 
 export type Tab = "ritmo" | "productos" | "equipo" | "stock";
 export const TABS: readonly (readonly [Tab, string])[] = [
@@ -90,8 +95,8 @@ function Esqueleto({ filas = 5 }: { filas?: number }) {
 function Ritmo({
   tienda,
   c,
-  cmp,
-  cmpNombre,
+  rivales,
+  rivalNombre,
   periodo,
   hoy,
   corte,
@@ -104,8 +109,10 @@ function Ritmo({
 }: {
   tienda: TiendaObs;
   c: Calculo;
-  cmp: Calculo | null;
-  cmpNombre: string;
+  /** Con quién se compara: una tienda, varias (su promedio) o ninguna («Sola»). Nunca incluye a `tienda`. */
+  rivales: readonly Calculo[];
+  /** La sigla del rival; `null` = el promedio de las otras. */
+  rivalNombre: string | null;
   periodo: Periodo;
   hoy: string;
   corte: number;
@@ -122,8 +129,9 @@ function Ritmo({
   const grafRef = useRef<HTMLDivElement>(null);
   const cruzRef = useRef<HTMLElement>(null);
   const enPct = c.meta !== null;
-  const conCmp = cmp && (cmp.meta !== null) === enPct ? cmp : null;
-  const mx = Math.max(enPct ? 110 : 1, ...c.curva.map((p) => p[1]), ...c.curvaAnterior.map((p) => p[1]), ...(conCmp ? conCmp.curva.map((p) => p[1]) : [0])) * 1.08;
+  const ventaja = rivales.length > 0 ? calcularVentaja(c, rivales) : null;
+  const nombres = { propia: tienda.sigla, rival: rivalNombre };
+  const mx = Math.max(enPct ? 110 : 1, ...c.curva.map((p) => p[1]), ...c.curvaAnterior.map((p) => p[1])) * 1.08;
   const Y = (v: number) => 100 - (v / mx) * 100;
   const valor = (v: number) => (enPct ? fmt("p", v) : fmt("s", v));
   const ultimo = c.curva[c.curva.length - 1];
@@ -156,22 +164,12 @@ function Ritmo({
     if (!g) return;
     const r = g.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    let j = 0;
-    let mejor = 9;
-    c.curva.forEach((p, n) => {
-      const d = Math.abs(p[0] - x);
-      if (d < mejor) {
-        mejor = d;
-        j = n;
-      }
-    });
+    const j = indiceCercano(c.curva, x);
     if (cruzRef.current) cruzRef.current.style.left = `${c.curva[j][0] * 100}%`;
-    const cuando = periodo === "hoy" ? hora12(Math.min(ABRE + 60 * j, Math.max(corte, ABRE))) : j === 0 ? "Inicio" : fechaCorta(sumarDias(hoy, j - c.dias));
     const ant = c.curvaAnterior[j] ?? c.curvaAnterior[c.curvaAnterior.length - 1];
-    const otro = conCmp ? (conCmp.curva[j] ?? conCmp.curva[conCmp.curva.length - 1]) : null;
     mostrarTip(
       <>
-        <div className="cab">{cuando}</div>
+        <div className="cab">{momentoDe(c, hoy, corte, j)}</div>
         <div className="fila f">
           <i />
           <b>{valor(c.curva[j][1])}</b>&nbsp;{tienda.sigla}
@@ -180,12 +178,6 @@ function Ritmo({
           <i />
           {valor(ant[1])}&nbsp;antes
         </div>
-        {otro && (
-          <div className="fila d">
-            <i />
-            {valor(otro[1])}&nbsp;{cmpNombre}
-          </div>
-        )}
       </>,
       e.clientX,
       e.clientY
@@ -200,62 +192,65 @@ function Ritmo({
   return (
     <>
       <div className="o-cmp">
-        <div className="o-ley">
-          <span>
-            <i />
-            {tienda.sigla}
-          </span>
-          <span>
-            <i className="ant" />
-            {textoVs.replace("vs ", "")}
-          </span>
-          {conCmp && (
+        {opcionesComparar.length > 0 && (
+          <Segmento
+            valor={comparar}
+            opciones={opcionesComparar}
+            onValor={onComparar}
+            chico
+            etiqueta="Comparar el ritmo"
+            guia="inicio.obs-comparar"
+            data-guia={(v: string) => (v === "nadie" ? "inicio.obs-comparar-sola" : v === opcionesComparar[1]?.[0] ? "inicio.obs-comparar-rival" : undefined)}
+          />
+        )}
+        {ventaja ? (
+          <TitularVentaja frase={fraseVentaja(ventaja, nombres, (j) => alMomento(c, hoy, corte, j))} />
+        ) : (
+          <div className="o-ley">
             <span>
-              <i className="cmp" />
-              {cmpNombre}
+              <i />
+              {tienda.sigla}
+            </span>
+            <span>
+              <i className="ant" />
+              {textoVs.replace("vs ", "")}
+            </span>
+          </div>
+        )}
+      </div>
+      {ventaja ? (
+        <GraficoVentaja v={ventaja} nombres={nombres} ejes={ejes} momento={(j) => momentoDe(c, hoy, corte, j)} />
+      ) : (
+        <div className="o-graf o-ritmo" ref={grafRef}>
+          <Revela key={c.curva.length}>
+            {(enPct ? [25, 50, 75] : [mx * 0.25, mx * 0.5, mx * 0.75]).map((v) => (
+              <line key={v} className="rej" x1="0" x2="100" y1={Y(v)} y2={Y(v)} />
+            ))}
+            {enPct && <line className="meta" x1="0" x2="100" y1={Y(100)} y2={Y(100)} />}
+            <Trazo pts={c.curvaAnterior.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln ant" />
+            <AreaVidrio pts={c.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} />
+            <Trazo pts={c.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln f" />
+          </Revela>
+          {enPct && (
+            <span className="yl" style={{ top: `${Y(100)}%` }}>
+              Meta
             </span>
           )}
-        </div>
-        <Segmento
-          valor={comparar}
-          opciones={opcionesComparar}
-          onValor={onComparar}
-          chico
-          etiqueta="Comparar el ritmo"
-          guia="inicio.obs-comparar"
-          data-guia={(v: string) => (v === "TODAS" ? "inicio.obs-comparar-cayla" : v === "nadie" ? "inicio.obs-comparar-sola" : undefined)}
-        />
-      </div>
-      <div className="o-graf o-ritmo" ref={grafRef}>
-        <Revela key={c.curva.length}>
-          {(enPct ? [25, 50, 75] : [mx * 0.25, mx * 0.5, mx * 0.75]).map((v) => (
-            <line key={v} className="rej" x1="0" x2="100" y1={Y(v)} y2={Y(v)} />
-          ))}
-          {enPct && <line className="meta" x1="0" x2="100" y1={Y(100)} y2={Y(100)} />}
-          <Trazo pts={c.curvaAnterior.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln ant" />
-          {conCmp && <Trazo key={`cmp-${conCmp.foco}`} pts={conCmp.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln cmp" />}
-          <AreaVidrio pts={c.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} />
-          <Trazo pts={c.curva.map((p) => [p[0] * 100, Y(p[1])] as const)} tipo="l" className="ln f" />
-        </Revela>
-        {enPct && (
-          <span className="yl" style={{ top: `${Y(100)}%` }}>
-            Meta
+          <span className="pt o-anima" style={pt(ultimo)} />
+          <span className="pt-l o-anima" style={pt(ultimo)}>
+            {valor(ultimo[1])}
           </span>
-        )}
-        <span className="pt o-anima" style={pt(ultimo)} />
-        <span className="pt-l o-anima" style={pt(ultimo)}>
-          {valor(ultimo[1])}
-        </span>
-        <div className="capa" onPointerMove={cruz} onPointerLeave={ocultarTip} />
-        <i className="cruz" ref={cruzRef} />
-        <div className="eje">
-          {ejes.map(([x, t]) => (
-            <span key={t} style={{ left: `${x * 100}%` }}>
-              {t}
-            </span>
-          ))}
+          <div className="capa" onPointerMove={cruz} onPointerLeave={ocultarTip} />
+          <i className="cruz" ref={cruzRef} />
+          <div className="eje">
+            {ejes.map(([x, t]) => (
+              <span key={t} style={{ left: `${x * 100}%` }}>
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div className="o-tcab o-t-tcab">
         <span className="o-lbl">Horas pico · últimas 4 semanas</span>
       </div>
@@ -525,13 +520,19 @@ export function PanelTienda({
   const anterior = tiendas[(n - 1 + tiendas.length) % tiendas.length];
   const siguiente = tiendas[(n + 1) % tiendas.length];
   const abierta = tienda.caja !== null && tienda.caja.desde <= corte;
-  const cmp = comparar !== "nadie" && comparar !== tienda.id ? calculoDe(comparar) : null;
-  const cmpNombre = comparar === "TODAS" ? "CAYLA" : (tiendas.find((t) => t.id === comparar)?.sigla ?? "");
-  const opcionesComparar: (readonly [string, string])[] = [
-    ["nadie", "Sola"],
-    ["TODAS", "vs CAYLA"],
-    ...tiendas.filter((t) => t.id !== tienda.id).map((t) => [t.id, `vs ${t.sigla}`] as const),
-  ];
+  // Se compara contra las OTRAS: un total que incluye a esta tienda la compararía consigo misma.
+  const otras = tiendas.filter((t) => t.id !== tienda.id);
+  const rivales = comparar === "nadie" ? [] : comparar === "TODAS" ? otras : otras.filter((t) => t.id === comparar);
+  const opcionesComparar: (readonly [string, string])[] =
+    otras.length === 0
+      ? []
+      : [
+          ["nadie", "Sola"],
+          ...(otras.length > 1 ? ([["TODAS", "vs otras"]] as const) : []),
+          ...otras.map((t) => [t.id, `vs ${t.sigla}`] as const),
+        ];
+  // Con dos tiendas no hay «las otras»: la única otra es la opción que queda prendida.
+  const compararEnPantalla = comparar === "TODAS" && otras.length === 1 ? otras[0].id : comparar;
   const revisar = avisos.filter((x) => x.nivel !== "ok" && x.porTienda && (x.porTienda[tienda.id] ?? 0) > 0);
 
   let cuerpo: ReactNode;
@@ -540,14 +541,14 @@ export function PanelTienda({
       <Ritmo
         tienda={tienda}
         c={c}
-        cmp={cmp}
-        cmpNombre={cmpNombre}
+        rivales={rivales.map((t) => calculoDe(t.id))}
+        rivalNombre={rivales.length === 1 ? rivales[0].sigla : null}
         periodo={periodo}
         hoy={hoy}
         corte={corte}
         textoVs={textoVs}
         opcionesComparar={opcionesComparar}
-        comparar={comparar}
+        comparar={compararEnPantalla}
         onComparar={onComparar}
         datos={datos}
         onReintentar={onReintentar}
