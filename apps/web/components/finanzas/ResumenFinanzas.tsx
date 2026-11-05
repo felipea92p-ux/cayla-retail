@@ -32,7 +32,7 @@ import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
 import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
   mesAnteriorDe,
-  mesPasadoComparable,
+  comparacionMesPasado,
   respuestaResumen,
   vendidoPorSede,
   type DiaVenta,
@@ -121,8 +121,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   };
   const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
   const filas = estadoMes.falla ? [] : estadoMes.datos;
-  const antes = mesPasadoComparable(filas, estadoAntes);
-  const resp = respuestaResumen(r, antes, provisional, enCurso);
+  const comparacion = comparacionMesPasado(filas, estadoAntes);
+  const resp = respuestaResumen(r, comparacion.antes, provisional, enCurso, comparacion.antesDeSueldos);
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const faltan = noRevisado(resumen);
   // La inversión en mercadería es de CAYLA entera: mirando una sola sede no se reparte (como el saldo de los bancos), así que ahí no se dibuja.
@@ -215,7 +215,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           </div>
 
           <div {...columna(6)}>
-            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes, enCurso })} />
+            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
           </div>
         </div>
       </div>
