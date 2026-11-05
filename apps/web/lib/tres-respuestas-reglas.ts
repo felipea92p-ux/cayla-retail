@@ -54,6 +54,8 @@ type Entrada = {
   claure?: { saldo: number } | null;
   /** La lectura de CLAURE se cayó: la tarjeta lo dice (un chip) en vez de callarlo o inventar un reparto. */
   claureFalla?: boolean;
+  /** Lo que Dynamic marcó pagado de la planilla y aquí no dice de qué banco salió: sigue sumando en lo que tienes, y la tarjeta lo dice. */
+  planillaSinSalida?: number | null;
   /** Lo vendido y lo que salió del mes: la frase bajo «¿Cuánto te deja?» («Vendiste S/ 99,950 y salió S/ 130,215»). */
   plata?: { vendido: number; salio: number } | null;
 };
@@ -97,13 +99,14 @@ function detalleDeTienes(d: DesgloseTienes | null | undefined): string {
   return `A mano ${soles(d.enMano)} · ${aparte.join(" · ")}`;
 }
 
-function tienes(caja: CajaProxima, href: string | null, desglose?: DesgloseTienes | null, claure?: { saldo: number } | null, claureFalla = false): Respuesta {
+function tienes(caja: CajaProxima, href: string | null, desglose?: DesgloseTienes | null, claure?: { saldo: number } | null, claureFalla = false, planillaSinSalida?: number | null): Respuesta {
   const base = { clave: "tienes" as const, chips: [] as Chip[], ...(href ? { href } : {}) };
   if (caja.tipo === "cayla") {
     const estado = estadoDeCaja(caja);
     const chips: Chip[] = [];
     if (caja.provisional) chips.push({ texto: "Provisional", tono: "pizarra" });
     if (estado) chips.push({ texto: estado.texto, tono: estado.tono });
+    if (planillaSinSalida) chips.push({ texto: `Incluye ${soles(planillaSinSalida)} de planilla que ya salió`, tono: "ambar" });
     // Solo CAYLA entera: una sede no lleva los bancos ni las máquinas, donde cae lo que se le debe a Claudia.
     if (claureFalla) chips.push({ texto: "No se pudo leer lo de CLAURE", tono: "pizarra" });
     // Si a CLAURE se le pagó de más, no hay plata suya que repartir: lo que ella le debe a CAYLA se dice aparte.
@@ -172,6 +175,6 @@ function deja(resp: RespuestaResumen, plata?: { vendido: number; salio: number }
 }
 
 /** Las tres, en el orden en que una persona se las hace: lo que tiene, lo que debe, lo que gana. */
-export function tresRespuestas({ r, caja, deja: resp, hrefDinero, hrefPorPagar, desglose, claure, claureFalla, plata }: Entrada): [Respuesta, Respuesta, Respuesta] {
-  return [tienes(caja, hrefDinero, desglose, claure, claureFalla), debes(r, hrefPorPagar), deja(resp, plata)];
+export function tresRespuestas({ r, caja, deja: resp, hrefDinero, hrefPorPagar, desglose, claure, claureFalla, planillaSinSalida, plata }: Entrada): [Respuesta, Respuesta, Respuesta] {
+  return [tienes(caja, hrefDinero, desglose, claure, claureFalla, planillaSinSalida), debes(r, hrefPorPagar), deja(resp, plata)];
 }

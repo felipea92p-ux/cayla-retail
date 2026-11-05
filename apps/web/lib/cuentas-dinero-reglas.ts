@@ -102,6 +102,8 @@ export type MaquinaPos = {
   cuentaId: string;
   cuentaNombre: string;
   archivada: boolean;
+  /** A qué banco deposita: lo que la hoja del depósito trae puesto (`fn_pos_bancos_de_maquinas`). */
+  bancoId: string | null;
   /** En qué tiendas cobra y con qué medio; `porDefecto` si hoy es a donde entra ese medio en esa tienda (`medios_de_cobro`). */
   sedes: SedeDeMaquina[];
 };
@@ -114,7 +116,7 @@ export function agruparMaquinas(filas: readonly Record<string, unknown>[]): Maqu
     const id = String(f.maquina_id);
     let m = porId.get(id);
     if (!m) {
-      m = { id, nombre: String(f.nombre), cuentaId: String(f.cuenta_id), cuentaNombre: String(f.cuenta_nombre ?? ""), archivada: Boolean(f.archivada), sedes: [] };
+      m = { id, nombre: String(f.nombre), cuentaId: String(f.cuenta_id), cuentaNombre: String(f.cuenta_nombre ?? ""), archivada: Boolean(f.archivada), bancoId: null, sedes: [] };
       porId.set(id, m);
     }
     if (f.ubicacion_id !== null && f.ubicacion_id !== undefined) {
@@ -664,9 +666,35 @@ export function leerLotePendiente(f: Fila): LotePendiente {
   };
 }
 
-/** Lo que la hoja marca de entrada: todos los días pendientes hasta la fecha del depósito (la máquina deposita lo de antes). */
-export function lotesPorDefecto(lotes: readonly LotePendiente[], fechaDeposito: string): string[] {
-  return lotes.filter((l) => l.fecha <= fechaDeposito).map((l) => l.clave);
+/**
+ * Lo que la hoja marca de entrada: los días pendientes hasta la fecha del depósito (la máquina deposita lo de antes). Lo anterior al arranque de la
+ * cuenta (`desde`) se puede marcar (ADR-0552), pero no viene marcado: su saldo de arranque ya lo contiene y casi nunca es de este depósito.
+ */
+export function lotesPorDefecto(lotes: readonly LotePendiente[], fechaDeposito: string, desde: string | null = null): string[] {
+  return lotes.filter((l) => l.fecha <= fechaDeposito && !(desde && l.fecha < desde)).map((l) => l.clave);
+}
+
+/** Cuántos puntos porcentuales de diferencia con la tarifa aguanta un depósito sin pedir confirmación (Felipe 2026-11-05). */
+export const DESVIO_COMISION_PUNTOS = 1;
+/** Sin tarifa no hay contra qué medir: solo se pregunta lo que casi seguro es un error, una comisión de casi nada. */
+const COMISION_CASI_CERO_PCT = 0.5;
+const pct1 = (n: number) => `${n.toFixed(1).replace(/\.0$/, "")} %`;
+
+/**
+ * Si la comisión de este depósito se aleja de lo normal, qué decirle a la persona (tarea 3 de «Las 36»). `null`: no hay nada que confirmar. Avisa y
+ * pide confirmar, nunca prohíbe: el extracto del banco manda. Dos abonos del 31 de octubre llevaron S/ 0 y S/ 5 de comisión sobre S/ 17,277 sin que nada dijera.
+ */
+export function revisarComision(r: { bruto: number; comision: number | null; esperado: number | null }): string | null {
+  if (r.comision === null || r.comision < 0 || r.bruto <= 0) return null;
+  const real = (r.comision / r.bruto) * 100;
+  if (r.esperado === null) return real < COMISION_CASI_CERO_PCT ? `La comisión sale ${pct1(real)} y esta máquina no tiene tarifa con que compararla.` : null;
+  const esperada = (r.esperado / r.bruto) * 100;
+  return Math.abs(real - esperada) > DESVIO_COMISION_PUNTOS ? `La comisión sale ${pct1(real)} y la tarifa espera ${pct1(esperada)}.` : null;
+}
+
+/** Lo que debería llegar según la tarifa, para proponerlo; `null` sin días marcados o sin tarifa. */
+export function netoEsperado(r: { dias: number; bruto: number; esperado: number | null }): number | null {
+  return r.dias > 0 && r.esperado !== null ? Math.round((r.bruto - r.esperado) * 100) / 100 : null;
 }
 
 /** «mié 15 oct · Trujillo · tarjeta»: cómo se lee un día pendiente en la lista. */
@@ -697,7 +725,7 @@ export function validarAbonoPos(
   b: Pick<BorradorMovimiento, "origen" | "destino" | "monto" | "referencia" | "fecha">,
   lotes: readonly LotePendiente[],
   marcados: readonly string[],
-  ctx: { cuentas: readonly CuentaDinero[]; hoy: string },
+  ctx: { cuentas: readonly CuentaDinero[]; hoy: string; comisionConfirmada?: boolean },
 ): Resultado<PayloadAbonoPos> {
   const maquina = ctx.cuentas.find((c) => c.id === b.origen);
   const banco = ctx.cuentas.find((c) => c.id === b.destino);
@@ -711,7 +739,9 @@ export function validarAbonoPos(
   if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
   const ultimo = elegidos.map((l) => l.fecha).sort().at(-1)!;
   if (b.fecha < ultimo) return { ok: false, error: `El depósito no puede ser anterior al último día que cubre (${fechaCorta(ultimo)}).` };
-  const { bruto, comision } = resumenAbono(lotes, marcados, b.monto);
+  const { bruto, comision, esperado } = resumenAbono(lotes, marcados, b.monto);
+  const rara = revisarComision({ bruto, comision, esperado });
+  if (rara && !ctx.comisionConfirmada) return { ok: false, error: `${rara} Revísala contra el extracto y confirma.` };
   if (comision !== null && comision < 0) {
     return { ok: false, error: `Llegó ${soles2(m.valor)} y esos días suman ${soles2(bruto)}: el depósito no puede ser mayor que lo cobrado. Marca los días que faltan (¿tarjeta y QR juntos?) o revisa el monto.` };
   }
