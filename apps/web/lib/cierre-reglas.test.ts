@@ -17,6 +17,7 @@ import {
   leerPanelCierre,
   primerNombre,
   puedeCerrar,
+  promesaDeAvisos,
   resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
@@ -379,6 +380,10 @@ describe("estados", () => {
 });
 
 describe("la historia de una unidad", () => {
+  it("dice con qué avisos se cerró (tarea 7)", () => {
+    const historia = [{ ...panel.historia[0]!, avisos: [ch("papeles_por_completar", false, {}, false)] }];
+    expect(historiaDe({ historia }, { alcance: "ubicacion", ubicacionId: TRU })[0]).toContain("con un aviso: compras por completar");
+  });
   it("cierres y reaperturas en orden, con quién y por qué", () => {
     const historia = [
       { ...panel.historia[0]!, reabiertoEn: "2026-09-26T15:00:00Z", reabiertoPor: "Felipe Alvarez", motivoReapertura: "llegó una factura tarde" },
@@ -401,7 +406,8 @@ describe("el aviso del modal «Cerrar el mes»: dice lo que FALTA, no el estado 
   const CLAVES: Record<ClaveChequeo, true> = {
     cajas: true, egresos: true, regularizar: true, fijos: true, conciliacion: true, planilla: true, sin_costo: true,
     cerrada_sin_prenda: true, envios_con_diferencia: true, conteos_abiertos: true, sobrantes_traslado: true,
-    facturas_sin_recibir: true, diario: true, huella: true, sire: true,
+    facturas_sin_recibir: true, envios_abiertos: true, comprobantes_sin_aceptar: true, papeles_por_completar: true, gastos_por_revisar: true, arranque: true,
+    diario: true, huella: true, sire: true,
   };
   it("octubre: cuatro pendientes avisan y el modal los nombra por lo que falta", () => {
     const avisos = ["envios_con_diferencia", "conteos_abiertos", "sobrantes_traslado", "facturas_sin_recibir"].map((c) => ch(c, false, {}, false));
@@ -409,6 +415,11 @@ describe("el aviso del modal «Cerrar el mes»: dice lo que FALTA, no el estado 
       cuenta: "4 avisos",
       lista: "envíos recibidos con faltantes por resolver · conteos de inventario sin cerrar · prendas de más de traslados sin revisar · mercadería facturada sin recibir",
     });
+  });
+  it("no promete guardar el aviso de SUNAT, que la web arma y no queda en el cierre (tarea 7)", () => {
+    expect(promesaDeAvisos([ch("fijos", false, {}, false)])).toBe("Quedan guardados en la historia del cierre.");
+    expect(promesaDeAvisos([ch("fijos", false, {}, false), ch("sire", false, {}, false)])).toContain("menos el de SUNAT");
+    expect(promesaDeAvisos([ch("sire", false, {}, false)])).toBe("Este aviso no queda guardado en la historia del cierre.");
   });
   it("uno solo es «un aviso», y la frase de siempre sigue igual", () => {
     expect(resumenAvisos([ch("fijos", false, {}, false)])).toEqual({ cuenta: "un aviso", lista: "gastos fijos del mes sin registrar" });
