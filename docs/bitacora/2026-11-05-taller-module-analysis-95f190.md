@@ -44,3 +44,8 @@
   POR QUÉ ASÍ: son decisiones de Felipe del 16-oct (P-28, P-29, P-34, P-35). Todo opcional, para no frenar al Taller: solo informan y no reparten stock ni deciden prioridades.
   QUÉ SE ROMPERÍA SIN ESTO: si el pedido cambiaba, había que anular la orden o seguir con un plan falso.
   Verificado: `pruebas:produccion-datos-y-plan` 13/13, las de Producción que dependen, la web completa (166,455 pruebas), y en el navegador local OP-379 de 10 a 15 prendas. Ahí se vio un error, ya corregido: la historia lo titulaba «Restauró»; quedó cubierto solo en parte por pruebas, porque el título no se volvió a mirar en el navegador. Sin mirar «Datos» con clics, 375 px ni oscuro. Sin pegar en producción.
+- **Actividad 13 · Los avíos se descuentan solos al cerrar (migración `20261106003000`).**
+  QUÉ HICE: al pasar al stock, cada avío declarado baja lo que faltaba (por prenda × buenas), el lote más antiguo primero, y entra al costo de la orden. La hoja lo avisa.
+  POR QUÉ ASÍ: ADR-0570 pedía «al terminar el paso que los usa», pero la base no sabe qué paso usa cada avío: al cerrar, el estante y el costo quedan iguales sin agregar una configuración más. Si no alcanza, no frena: la prenda ya está hecha.
+  QUÉ SE ROMPERÍA SIN ESTO: el estante diría tener botones ya cosidos y el costo saldría sin ellos, como le pasó a OP-2.
+  Verificado: `pruebas:produccion-avios-al-cerrar` 7/7 y las de cierre, avíos, tela, costo atípico, cinco pasos y ruta nueva. Sin mirar la frase nueva de la hoja en el navegador. Sin pegar en producción.

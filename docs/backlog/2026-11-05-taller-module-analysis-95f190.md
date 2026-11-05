@@ -15,7 +15,7 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 10 · Anular con tela cortada pregunta qué hacer: otra orden, liquidar o botar, con motivo. **POR PEGAR:** `20261105233000_anular_con_tela_cortada.sql`, una parte, justo antes de publicar la web: con la web vieja, anular una orden con tela cortada da error con su motivo. **Sin tabla de retazos:** lo liquidado o botado queda como consumo de la orden anulada, sin venderse desde el ERP.
 - [x] 11 · Datos al abrir una orden: reposición o novedad, tienda, urgente y quién aprobó la muestra; todos opcionales, y se cambian con «Datos». **POR PEGAR:** `20261105234000_datos_al_abrir_y_cambiar_orden.sql`, una parte.
 - [x] 12 · Cambiar una orden abierta: «Cambiar cantidades», con motivo, nunca bajo lo cortado. Misma migración. No recalcula la tela declarada: se revisa en «Editar».
-- [ ] 13 · Avíos que se descuentan solos.
+- [x] 13 · Los avíos declarados se descuentan solos al pasar al stock, no al terminar cada paso (la base no sabe qué paso usa cada avío). Si no alcanza, descuenta lo que hay y lo deja escrito, sin frenar. **POR PEGAR:** `20261106003000_avios_se_descuentan_al_cerrar.sql`, una parte. Vale para órdenes que cierren después: OP-2 y OP-3 no se tocan solas.
 - [ ] 14 · Las tres etapas de una prenda.
 - [ ] 15 · Retirar el cajón de órdenes antiguas.
 - [ ] 16 · Prueba completa y entrega para el rediseño.

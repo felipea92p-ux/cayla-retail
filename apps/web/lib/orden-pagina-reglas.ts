@@ -2123,6 +2123,11 @@ export function problemasDelPlan(filas: readonly { nombre: string; cantidad: num
   return p;
 }
 
+/** Los avíos declarados que todavía no se descontaron: salen solos del estante al pasar al stock (ADR-0614, actividad 13). */
+export function aviosQueSaldranSolos(insumos: readonly Pick<InsumoPagina, "tipo" | "nombre" | "usado" | "cantidadPlan">[]): string[] {
+  return insumos.filter((i) => i.tipo === "avio" && i.usado < i.cantidadPlan).map((i) => i.nombre);
+}
+
 /** ¿Hay tela ya cortada? Tela usada y prendas en algún paso: anular tiene que preguntar qué se hace con ella (ADR-0614, P-05 de Felipe). Es la misma cuenta de `fn_orden_tiene_tela_cortada`. */
 export function tieneTelaCortada(o: Pick<OrdenPagina, "fases" | "insumos">): boolean {
   return o.insumos.some((i) => i.tipo === "tela" && i.usado > 0) && o.fases.some((f) => f.hechas > 0 || f.salieron > 0);

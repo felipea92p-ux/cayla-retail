@@ -80,3 +80,9 @@ SE ROMPE SI: se anula por la puerta de siempre una orden cuyo corte se anotó si
 DECIDÍ: cuatro columnas opcionales en `producciones` y `cambiar_plan_de_orden`, que escribe en `produccion_lineas` y deja su fila en `produccion_cambios`. El piso de cada línea es lo ya hecho o enviado en la primera fase.
 DESCARTÉ: (1) que la tienda destino arme el traslado: Felipe dejó abierto cómo conviven, y el destino real lo decide quien traslada; (2) que «urgente» ordene algo: P-35 dice que no hay prioridades automáticas; (3) recalcular la tela al cambiar el plan: el plan de tela es una promesa aparte, se corrige en «Editar».
 SE ROMPE SI: alguien sube el plan y olvida la tela: «no alcanza» avisará al cortar, no al cambiar.
+
+## Actividad 13: los avíos se descuentan solos al cerrar (migración `20261106003000`)
+
+DECIDÍ: `fn_descontar_avios_al_cerrar`, antes de calcular el costo: consumo por prenda × buenas del color, menos lo ya anotado, por lote más antiguo. Si no alcanza, descuenta lo que hay y lo deja en la nota.
+DESCARTÉ: (1) descontar al terminar cada paso, como decía ADR-0570: pide decir qué paso usa cada avío, un dato nuevo para cada modelo, por un resultado final igual; (2) frenar el cierre si falta: la prenda ya está hecha; (3) devolver al revertir: lo cosido sigue cosido.
+SE ROMPE SI: una orden declara un avío de más y nadie lo corrige: se descuenta igual. Se corrige con «Devolver lo que sobró» mientras la orden esté abierta.

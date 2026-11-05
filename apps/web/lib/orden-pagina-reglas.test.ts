@@ -85,6 +85,7 @@ import {
   RPC_MARCAR_YA_EN_STOCK,
   textoPrendasAfuera,
   textoQuePasaAlRevertir,
+  aviosQueSaldranSolos,
   problemaDelDestino,
   problemasDelPlan,
   textoDatosDeLaOrden,
@@ -2080,5 +2081,15 @@ describe("los cambios de plan y de datos en la historia (ADR-0614)", () => {
     expect(p?.cambios.map((c) => c.accion)).toEqual(["plan"]);
     const q = lectura("datos", "Cambió los datos de la orden");
     expect(q?.cambios.map((c) => c.accion)).toEqual(["datos"]);
+  });
+});
+
+describe("avíos que salen solos al cerrar (ADR-0614, actividad 13)", () => {
+  it("solo los avíos que faltan por descontar, nunca la tela", () => {
+    expect(aviosQueSaldranSolos([
+      { tipo: "avio", nombre: "Botón", usado: 0, cantidadPlan: 16 },
+      { tipo: "avio", nombre: "Cierre", usado: 16, cantidadPlan: 16 },
+      { tipo: "tela", nombre: "Milano", usado: 0, cantidadPlan: 5 },
+    ])).toEqual(["Botón"]);
   });
 });

@@ -34,8 +34,7 @@ import {
   textoPasasteAlStock,
   textoQuePasaConElStock,
   totalDeCierre,
-  type OrdenPagina,
-} from "@/lib/orden-pagina-reglas";
+  type OrdenPagina, aviosQueSaldranSolos } from "@/lib/orden-pagina-reglas";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
 import { MOTIVOS_SIN_TELA, avisoSinTelaDeclarada, avisoTelaSinAnotar, frenoSinTelaDeclarada, permisoSinTela } from "@/lib/orden-tela-sin-anotar-reglas";
 import { urlLlevarATiendas } from "@/lib/produccion-reglas";
@@ -72,6 +71,7 @@ export function PasarAlStockModal({
   esLider?: boolean;
 }) {
   const router = useRouter();
+  const aviosSolos = aviosQueSaldranSolos(datos.insumos);
   const { orden, fases, lineas: lineasOrden } = datos;
   const responsable = useResponsable({ ubicacionId: orden.ubicacionId, etiqueta: orden.ubicacionNombre });
   const terminadas = useMemo(() => cantidadesTerminadas(fases), [fases]);
@@ -282,6 +282,11 @@ export function PasarAlStockModal({
           {resumen.costoTotal !== null && !orden.esMuestra && total > 0 && (
             <p className="text-sm text-tinta/65">
               Costo real hasta hoy: {soles(resumen.costoTotal)} (tela, avíos y servicios, tal como están en la orden).
+            </p>
+          )}
+          {aviosSolos.length > 0 && (
+            <p className="text-sm text-tinta/65">
+              {aviosSolos.join(", ")}: lo que falte por descontar sale solo del estante y suma al costo.
             </p>
           )}
         </div>

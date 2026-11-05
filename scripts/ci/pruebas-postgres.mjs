@@ -1923,6 +1923,9 @@ export const PRUEBAS = [
   // Datos al abrir y cambiar una orden abierta (ADR-0614, actividades 11 y 12): nunca bajo lo cortado, con motivo y en la historia. ROLLBACK.
   "pruebas:produccion-datos-y-plan",
 
+  // Los avíos declarados se descuentan solos al cerrar (ADR-0614, actividad 13), sin frenar si no alcanza y sin descontar dos veces. ROLLBACK.
+  "pruebas:produccion-avios-al-cerrar",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 
