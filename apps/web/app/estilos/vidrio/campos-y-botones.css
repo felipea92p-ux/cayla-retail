@@ -16,7 +16,7 @@
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
   border-radius: 14px;
-  transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 220ms var(--ease-cayla), transform 300ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla), transform var(--t-cambio) var(--ease-cayla);
 }
 .caja-campo:has(:is(input, textarea):focus),
 .caja-campo[aria-expanded="true"],
@@ -34,7 +34,7 @@
   border-radius: 14px;
   background-color: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
-  transition: background-color 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
+  transition: background-color var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla), background-size var(--t-cambio) var(--ease-cayla);
 }
 .caja-campo-input:focus {
   border-color: var(--color-borde-control);
@@ -64,7 +64,7 @@
   border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
-  transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla);
 }
 .buscador:not(.mostrador) { height: 44px; padding-left: 16px; }
 .buscador:focus-within { border-color: var(--color-borde-control); background: var(--pozo-encendido-fondo); box-shadow: var(--pozo-encendido-sombra); }
@@ -116,7 +116,7 @@
   color: color-mix(in srgb, var(--color-tinta) 82%, transparent); /* contraste: texto sobre la gota de una píldora (crema, papel, Aurora) */
   background: var(--gota-fondo-encima);
   box-shadow: var(--gota-luz);
-  transition: background 200ms var(--ease-cayla), border-color 200ms, color 200ms, transform 250ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio), color var(--t-cambio), transform var(--t-cambio) var(--ease-cayla);
 }
 @media (hover: hover) {
   .pildora-cayla:not([aria-pressed="true"], [aria-current="page"], [data-activa="true"], .pildora-limpiar):hover,
@@ -221,7 +221,7 @@
   border-radius: 999px;
   border: 1px solid transparent;
   color: color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: gráfico sobre crema, papel, hueso */
-  transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), color var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla);
 }
 .icono-fila:focus-visible,
 .icono-fila[aria-expanded="true"] {
@@ -257,7 +257,7 @@
 .selector-mes > button,
 .selector-mes-panel button,
 .selector-mes > button svg {
-  transition: background 200ms var(--ease-cayla), color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), color var(--t-cambio) var(--ease-cayla), translate var(--t-cambio) var(--ease-cayla);
 }
 .selector-mes > button[aria-expanded="true"] { background: color-mix(in srgb, var(--color-vidrio) 70%, transparent); }
 @media (hover: hover) {
@@ -311,7 +311,7 @@
   border-color: var(--color-borde-control);
   background: var(--pozo-fondo);
   box-shadow: var(--pozo-sombra);
-  transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
+  transition: background var(--t-cambio) var(--ease-cayla), box-shadow var(--t-cambio) var(--ease-cayla), border-color var(--t-cambio) var(--ease-cayla);
 }
 .cfg-casilla > .fin-control:focus {
   background: var(--pozo-encendido-fondo);
@@ -328,7 +328,7 @@
   transform: scaleX(0);
   transform-origin: center;
   pointer-events: none;
-  transition: transform 320ms var(--ease-cayla);
+  transition: transform var(--t-cambio) var(--ease-cayla);
 }
 .cfg-casilla:focus-within .cfg-casilla-hilo { transform: scaleX(1); }
 

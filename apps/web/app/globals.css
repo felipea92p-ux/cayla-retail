@@ -1491,6 +1491,19 @@ body {
    con movimiento reducido todo colapsa a un instante. No es obligatoria en
    cada pantalla: se usa donde ayuda a leer (Proveedores fue la primera).
    ================================================================== */
+/* Los cuatro tiempos con nombre (ADR-0611, mejora 6; Felipe eligió el ritmo «Rápido» mirando la maqueta, 2026-11-05). Lo que se usa todo el día responde en
+   menos de 200 ms; lo vistoso se guarda para entrar a una pantalla y para un logro. Una pieza del sistema usa estos, nunca un número suelto.
+     --t-resp     respuesta a un toque: color, presión, foco
+     --t-cambio   algo cambia de lugar o de estado: la píldora, el hilo, la casilla, la lista que abre
+     --t-hoja     una hoja entra o sale
+     --t-momento  una vez y por algo: la luz del botón, un logro
+   Las excepciones que Felipe pidió «full animaciones» (ADR-0136, su lista) siguen con sus propios tiempos. */
+:root {
+  --t-resp: 100ms;
+  --t-cambio: 160ms;
+  --t-hoja: 260ms;
+  --t-momento: 480ms;
+}
 @theme {
   --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1); /* entradas: arranca suave y frena largo */
   --ease-salida: cubic-bezier(0.4, 0, 1, 1);      /* salidas: arranca lento y se va */
@@ -1717,23 +1730,23 @@ html[data-buscando] [data-resultados] {
   /* El MOVIMIENTO ÚNICO de un botón (ADR-0358, ronda 3: Felipe eligió la D tocándola, 2026-10-07). Lo usan `<Boton>`,
      `<BotonEnlace>`, `<BotonAncla>`, la barra de vidrio de Comprobantes (`BotonCompacto`) y los botones de los pasos de
      Cambios y Devoluciones (`FlujoGuiado`); antes eran tres movimientos distintos.
-     · Al pasar el mouse: sube 2 px con su sombra, cruza una luz (650 ms, una vez) y el ícono responde: el «+» da un
+     · Al pasar el mouse: sube 2 px con su sombra, cruza una luz (`--t-momento`, una vez) y el ícono responde: el «+» da un
        cuarto de vuelta y la flecha que va adelante se adelanta 4 px (lo que Felipe quería de la C).
      · Al presionar: se encoge un 3 % y baja; la mano siente que lo presionó.
      · Al hacer clic (ronda 4, Felipe 2026-10-07: «más animaciones para que sea más interactivo cuando haces clic»): una
-       onda nace donde tocaste y se apaga (450 ms). La pone `<OndaBotones>` (montado una vez en `app/layout.tsx`).
+       onda nace donde tocaste y se apaga (`--t-hoja`). La pone `<OndaBotones>` (montado una vez en `app/layout.tsx`).
      Lo tienen también todos los `btn-cayla` (menos `btn-enlace`, que es texto): un botón del ERP se mueve igual, venga de
      donde venga. Sin rebote y sin bucle (ADR-0136); con «reducir movimiento» queda solo el cambio de color. */
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) {
     position: relative;
     overflow: hidden;
     transition:
-      translate 260ms var(--ease-cayla),
-      scale 120ms var(--ease-cayla),
-      box-shadow 260ms var(--ease-cayla),
-      background-color 200ms var(--ease-cayla),
-      border-color 200ms var(--ease-cayla),
-      color 200ms var(--ease-cayla);
+      translate var(--t-cambio) var(--ease-cayla),
+      scale var(--t-resp) var(--ease-cayla),
+      box-shadow var(--t-cambio) var(--ease-cayla),
+      background-color var(--t-resp) var(--ease-cayla),
+      border-color var(--t-resp) var(--ease-cayla),
+      color var(--t-resp) var(--ease-cayla);
   }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after {
     content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
@@ -1743,7 +1756,7 @@ html[data-buscando] [data-resultados] {
   }
   @media (hover: hover) {
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
-    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo var(--t-momento) var(--ease-cayla); }
   }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
@@ -1772,7 +1785,7 @@ html[data-buscando] [data-resultados] {
     background: color-mix(in srgb, currentColor 24%, transparent);
     opacity: 0;
   }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace))[data-onda]::before { animation: cayla-onda 450ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))[data-onda]::before { animation: cayla-onda var(--t-hoja) var(--ease-cayla); }
 
   /* LAS DOS VOCES (ADR-0358, ronda 4: Felipe eligió la B, 2026-10-07). Dentro de la cabecera de una pantalla
      (`data-voz="cabecera"`: EncabezadoPagina, CabeceraPantalla y las cabeceras propias de Compras y Producción) los botones
@@ -1843,11 +1856,11 @@ html[data-buscando] [data-resultados] {
     .anim-captura { opacity: 1; }
   }
 
-  .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
+  .anim-velo { animation: cayla-velo var(--t-cambio) var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
-  .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
+  .anim-revelar { animation: cayla-revelar var(--t-cambio) var(--ease-cayla) both; }
   .anim-flota { animation: cayla-flota 220ms var(--ease-cayla) both; }
-  .anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
+  .anim-revelar-salida { animation: cayla-revelar-salida var(--t-resp) var(--ease-salida) both; }
   .anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
   /* Tope de stock en Vender: la tarjeta respira en rojo suave y se apaga sola (keyframes arriba). */
@@ -1862,11 +1875,12 @@ html[data-buscando] [data-resultados] {
 /* ---- REGLA DE MODALES (ADR-0136) ------------------------------------------------------------
    Todo modal del retail se dibuja con `<Modal>` (components/ui/Modal.tsx) y hereda ESTE movimiento
    sin hacer nada; un modal nuevo NO define su propia animación. El efecto, en orden:
-     1. el velo aparece con desenfoque leve (`anim-velo`, 220 ms);
-     2. la hoja sube 18 px y crece de .965 a 1 (`anim-modal-entra`, 420 ms, --ease-cayla); en móvil es
+     1. el velo aparece con desenfoque leve (`anim-velo`, `--t-cambio`);
+     2. la hoja sube 18 px y crece de .965 a 1 (`anim-modal-entra`, `--t-hoja`, --ease-cayla); en móvil es
         una hoja que sube desde el borde (sin escala: escalarla se ve mal);
-     3. su CONTENIDO entra en cascada (`cascada-modal`): cada pieza sube 10 px y aparece, 55 ms de desfase
-        entre una y otra, empezando 120 ms después de la hoja. Cuenta como pieza el título, la bajada y los
+     3. su CONTENIDO entra en cascada (`cascada-modal`): cada pieza sube 10 px y aparece, 18 ms de desfase
+        entre una y otra, empezando 40 ms después de la hoja (ritmo «Rápido», ADR-0611, mejora 6: antes, 55 y 120, y
+        el último campo se podía tocar a 1,1 s). Cuenta como pieza el título, la bajada y los
         hijos directos del modal; si el modal es un único <form>, cuentan los hijos del form.
      4. al cerrar la hoja se va en 220 ms hacia abajo y el velo se apaga (`anim-modal-sale`).
    Lo que un modal SÍ puede agregar por su cuenta (y nada más): una barra que se llena, una cifra que cuenta,
@@ -1890,10 +1904,10 @@ html[data-buscando] [data-resultados] {
   /* `backwards` y no `both` (2026-09-22): terminada la entrada la hoja vuelve a su estilo natural, que es el mismo
      cuadro final. Con `both` la animación seguía «sosteniendo» el transform y Chrome trataba la hoja como contenedor
      de todo `position: fixed` de adentro: la lista de un desplegable (usePosicionLista) quedaba otra vez recortada. */
-  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) backwards; }
+  .anim-modal-entra { animation: cayla-hoja var(--t-hoja) var(--ease-cayla) backwards; }
   .anim-modal-sale { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
   @media (min-width: 640px) {
-    .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: 420ms; }
+    .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: var(--t-hoja); }
     .anim-modal-sale { animation-name: cayla-modal-sale; }
   }
 
@@ -1901,13 +1915,13 @@ html[data-buscando] [data-resultados] {
      hover/transición puede mover su `transform`. Un <form> hijo directo NO se anima entero (sus hijos sí):
      animar el form y sus piezas a la vez multiplica la opacidad y se ve sucio. */
   .cascada-modal > :not(form):not([data-sin-cascada]) {
-    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
-    animation-delay: calc(var(--k, 0) * 55ms + 120ms);
+    animation: cayla-cascada var(--t-hoja) var(--ease-cayla) backwards;
+    animation-delay: calc(var(--k, 0) * 18ms + 40ms);
   }
   /* Las piezas de un <form> empiezan después del título y la bajada (2 pasos más). */
   .cascada-modal > form > :not([data-sin-cascada]) {
-    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
-    animation-delay: calc((var(--k, 0) + 2) * 55ms + 120ms);
+    animation: cayla-cascada var(--t-hoja) var(--ease-cayla) backwards;
+    animation-delay: calc((var(--k, 0) + 2) * 18ms + 40ms);
   }
   .cascada-modal > :nth-child(1), .cascada-modal > form > :nth-child(1) { --k: 0; }
   .cascada-modal > :nth-child(2), .cascada-modal > form > :nth-child(2) { --k: 1; }
@@ -1925,8 +1939,8 @@ html[data-buscando] [data-resultados] {
      bajada. */
   :is(.cascada-modal, .cascada-modal > form) > fieldset.campos-congelables { animation: none; }
   :is(.cascada-modal, .cascada-modal > form) > fieldset.campos-congelables > :not([data-sin-cascada]) {
-    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
-    animation-delay: calc((var(--k, 0) + 2) * 55ms + 120ms);
+    animation: cayla-cascada var(--t-hoja) var(--ease-cayla) backwards;
+    animation-delay: calc((var(--k, 0) + 2) * 18ms + 40ms);
   }
   :is(.cascada-modal, .cascada-modal > form) > fieldset.campos-congelables > :nth-child(1) { --k: 0; }
   :is(.cascada-modal, .cascada-modal > form) > fieldset.campos-congelables > :nth-child(2) { --k: 1; }

@@ -44,7 +44,7 @@ const SELECTOR_MARCADA = '[aria-current]:not([aria-current="false"])';
 const VARIANTE = { "linea-tinta": "cmp-ind-linea cmp-ind-tinta", "pildora-tinta": "cmp-ind-pildora", gota: "cmp-ind-pildora cmp-ind-gota" } as const;
 /** La gota fluye en dos tramos (ADR-0596, «A · La gota de Mi perfil», Felipe 2026-10-31): se estira hasta cubrir la de antes y la nueva,
  *  y se recoge en la nueva. Los tiempos van en `.cmp-ind-gota[data-fluye]` (vidrio/pantalla.css); aquí solo cuándo pasa al segundo. */
-const GOTA_ESTIRA_MS = 200;
+const GOTA_ESTIRA_MS = 140; // un poco menos que `--t-cambio`: el segundo tramo arranca antes de que la gota se detenga
 
 export function IndicadorDeslizante({
   activa,

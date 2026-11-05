@@ -131,10 +131,10 @@
 }
 /* Los dos tramos del flujo (el JavaScript solo dice cuándo pasa al segundo). */
 .cmp-ind-gota[data-fluye="estira"] {
-  transition-duration: 220ms;
+  transition-duration: var(--t-cambio);
 }
 .cmp-ind-gota[data-fluye="recoge"] {
-  transition-duration: 300ms;
+  transition-duration: var(--t-cambio);
 }
 
 /* ---------- Las tablas: la placa Serena, sin rayado, un hilo entre filas ---------- */
