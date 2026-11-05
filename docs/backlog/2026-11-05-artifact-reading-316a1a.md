@@ -2,7 +2,8 @@
 
 Orden aprobado por Felipe. Lo que depende del contador avanza con la recomendación y se deja escrito el supuesto; pegar en producción y lo que mueve dinero esperan su OK en cada caso.
 
-- [ ] Pegar en producción `20261105215000` y `20261105220000`, con el OK de Felipe, junto con publicar la web de la tanda 1 (la tarea 24 llama a `fn_lo_que_falta_del_mes`: sin ella, «¿Ya pagaste el mes?» dice «Por confirmar»).
+- [x] Pegar en producción `20261105215000` y `20261105220000` (2026-11-05).
+- [ ] Después de fusionar, mirar el Resumen en producción con datos reales: «antes de sueldos» y «¿Ya pagaste el mes?» solo se probaron en reglas. Y refrescar el volcado para que el diccionario traiga `fn_lo_que_falta_del_mes` (`generado/COMO-REFRESCAR.md`).
 - [ ] Tanda 2: tareas 1, 3, 7.
 - [ ] Tanda 3: tareas 8, 4, 5, 6, 9.
 - [ ] Tanda 4: tareas 10, 12 con 13, 22, 14, 15, 17.
