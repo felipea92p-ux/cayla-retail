@@ -101,8 +101,8 @@ export function CartelClub({
                 <b>{sinNumero.join(", ")}</b> {sinNumero.length === 1 ? "no tiene" : "no tienen"} número de WhatsApp: el cartel sirve igual, pero
                 {sinNumero.length === 1 ? "esa tienda no tiene" : "esas tiendas no tienen"} desde dónde escribir las novedades del Club. El
                 líder lo carga en{" "}
-                <Link href="/configuracion?tab=tiendas" className="btn-enlace">
-                  Configuración ▸ Tiendas y caja
+                <Link href="/configuracion?tab=empresa" className="btn-enlace">
+                  Configuración ▸ Empresa y tiendas
                 </Link>
                 .
               </p>

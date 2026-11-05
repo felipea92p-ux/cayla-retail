@@ -571,7 +571,7 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `celular_invalido`: el celular de la clienta (o el número que escribió) no tiene 9 dígitos que empiecen en 9.
  *   · `no_es_socia`: «Llegó su mensaje» de alguien que todavía no es socia.
  *   · `socia_sin_celular`: a una socia no se le puede dejar sin celular.
- *   · `whatsapp_tienda_invalido`: el WhatsApp de una tienda (Configuración ▸ Tiendas y caja) no es un celular.
+ *   · `whatsapp_tienda_invalido`: el WhatsApp de una tienda (Configuración ▸ Empresa y tiendas) no es un celular.
  *   · `socia_sin_documento`: para ser socia hacen falta documento y nombre, además del celular (CL-1).
  *   · `club_texto_cambio`: el texto `club` cambió desde que la asesora lo leyó; el permiso guarda exactamente lo leído.
  * Camino B (ADR-0288, «Actualización 2026-09-30 (c)»):

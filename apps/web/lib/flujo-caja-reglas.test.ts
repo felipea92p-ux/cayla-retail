@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./flujo-caja.fixture.json";
 import { leerFilaER, type FilaER } from "./resultados-reglas";
 import {
+  solesCentimos,
   PALANCAS_INICIALES,
   alquilerDe,
   alquilerDeFijos,
@@ -402,5 +403,14 @@ describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => 
   it("los pagos de la planilla y de SUNAT tienen su rótulo en lo que salió", () => {
     expect(textoCategoria("planilla")).toBe("Pago de la planilla");
     expect(textoCategoria("impuestos")).toBe("Pago a SUNAT (IGV)");
+  });
+});
+
+describe("solesCentimos (ADR-0609)", () => {
+  it("siempre con dos decimales y el signo delante", () => {
+    expect(solesCentimos(1752)).toBe("S/\u00a01,752.00");
+    expect(solesCentimos(-25.34)).toBe("−S/\u00a025.34");
+    expect(solesCentimos(0)).toBe("S/\u00a00.00");
+    expect(solesCentimos(0.1 + 0.2)).toBe("S/\u00a00.30");
   });
 });

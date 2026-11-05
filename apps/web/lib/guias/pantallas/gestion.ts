@@ -702,7 +702,7 @@ export const GUIA_PREGUNTAS_EQUIPO: Guia = {
       ancla: "preguntas.vacio",
       opcional: true,
       titulo: "Todavía nadie preguntó",
-      texto: "Si el asistente está apagado en tu sede, aquí no llega nada: se enciende sede por sede en Configuración ▸ Tiendas y caja.",
+      texto: "Si el asistente está apagado en tu sede, aquí no llega nada: se enciende sede por sede en Configuración ▸ Empresa y tiendas.",
     },
     {
       id: "cierre",

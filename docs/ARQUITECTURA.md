@@ -1948,6 +1948,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
   pura) → `ConfiguracionTiendas.tsx` → RPC `guardar_metas_tienda`, `guardar_efecto_campana` (firmadas con el responsable).
+  **Desde el 2026-11-04 «Tiendas y caja» son dos pestañas: `?tab=metas` (`ConfiguracionMetas.tsx`) y `?tab=empresa` («Las vitrinas», `components/vitrinas-sedes/`, reglas en `lib/vitrinas-sedes-reglas.ts`; fondo de caja y hora de cierre viven aquí, y la hoja de la carga inicial sigue en `ConfiguracionCargaInicial.tsx`); ADR-0195, actualizaciones de ese día. Lo que sigue la nombra como era.**
   Desde ADR-0328 (actividad 4) la pestaña «Tiendas y caja» trae además «Carga inicial de cada sede» (`ConfiguracionCargaInicial.tsx`
   ← `lib/carga-inicial.ts` → `fn_carga_inicial_sedes`; la hoja guarda con `fijar_cierre_carga_inicial`).
   **Caja y avisos** (`ConfiguracionCajaAvisos.tsx`) también fija «Desde cuándo cuenta Finanzas» (ADR-0332): RPC `guardar_inicio_finanzas` →
@@ -2121,10 +2122,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     - `/finanzas/reportes` ¿Ganamos? → `components/finanzas/estados/GanamosPanel.tsx`, `lib/ganamos-reglas.ts` → `lib/resultados.ts`
       (`fn_estado_resultados`, `fn_campanas_reporte`, `fn_periodos_mes`), `lib/presupuesto.ts` (`fn_presupuesto_vs_real`); plegado,
       `EstadoResultadosPanel.tsx` con «De dónde sale» (`fn_diario`, por páginas). `presupuesto` redirige aquí; `campanas` es una página
-      interna con su vuelta (`CampanasPanel.tsx`).
+      interna con su vuelta (`CampanasPanel.tsx`). El cuadre con Ventas: `CuadreVentas.tsx`, `lib/cuadre-ventas.ts` (`fn_cuadre_ventas_finanzas`, ADR-0609).
     - `/finanzas/reportes/flujo` ¿Dónde está la plata? → `components/finanzas/estados/PlataPanel.tsx`, `lib/plata-reglas.ts` →
       `lib/flujo-caja.ts` (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`); «¿Y si…?» es `EscenariosPanel.tsx` adentro (`escenarios`
-      redirige a `flujo#y-si`).
+      redirige a `flujo#y-si`). Lo que el Flujo no cubre: `arranques` de `fn_flujo_caja_real` y `loQueNoCubre` (ADR-0609).
     - `/finanzas/reportes/balance` ¿Cuánto vale CAYLA? → `BalancePanel.tsx` + `components/finanzas/estados/Balanza.tsx`,
       `lib/vale-reglas.ts` → `lib/balance.ts` (`fn_balance_general`, `fn_conciliacion_contable`, `fn_balance_por_tienda`,
       `fn_saldos_iniciales`; los registra el líder con `registrar_saldo_inicial`). Tabla `saldos_iniciales`.
@@ -2189,8 +2190,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - **Rendimiento con meta por persona** (ADR-0219, ADR-0325; módulo `rendimiento`, sin módulo nuevo — D-157):
   - `/rendimiento` (`?vista=hoy|semana|mes`, `?sede=`) → `lib/rendimiento.ts` (`leerPantallaRendimiento`: `fn_rendimiento_equipo` para los rankings, y `fn_metas_equipo`, `fn_rendimiento_serie`,
     `fn_metas_historial` para el panel; el panel es una lectura secundaria: si la base no lo tiene la pantalla sigue con los rankings y lo dice) + `lib/rendimiento-meta-reglas.ts` (puro: ventanas Hoy/Semana/Mes,
-    cifras, orden, asignado contra la meta de la sede, ritmo del turno, validación de un cambio) + `components/rendimiento/PanelRendimiento.tsx` (cliente: Hoy · Semana · Mes es estado local, sin navegar),
-    `GraficoVentasMeta.tsx` (SVG de altura fija) y `EditarMetaModal.tsx` (→ RPC `fijar_meta_persona`, con la Guía de foco). El Admin abre en «Todas» (una tarjeta por tienda).
+    cifras, orden, asignado contra la meta de la sede, ritmo del turno, validación de un cambio) + `components/rendimiento/MesaRendimiento.tsx` y sus piezas (desde ADR-0610; la meta se cambia en `FilaAbierta.tsx` → RPC `fijar_meta_persona`, y el detalle de esta pantalla está en la sección de ADR-0610, más abajo). El Admin abre en «Todas» (una tarjeta por tienda).
   - `/` (Inicio) de una integrante con meta → `lib/inicio.ts` (`getMiMeta`: `fn_mi_meta` + `fn_mis_ventas_por_dia`) + `lib/mi-meta-reglas.ts` (puro) + `components/inicio/MiMeta.tsx`
     («Tu meta de hoy», «Tu mes» y el gráfico con solo lo suyo). «Tus ventas» sale de `fn_mis_ventas_del_dia`. Sin meta el Inicio queda como estaba.
 

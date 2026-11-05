@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { actividadDe, fraseDeLaPlata, partesDelFlujo, puentePlata, recomendacionesPlata } from "./plata-reglas";
-import type { FlujoReal, Proyeccion, SemanaProy } from "./flujo-caja-reglas";
+import { actividadDe, fraseDeLaPlata, loQueNoCubre, partesDelFlujo, puentePlata, recomendacionesPlata } from "./plata-reglas";
+import type { ArranqueCuenta, FlujoReal, Proyeccion, SemanaProy } from "./flujo-caja-reglas";
 
 const S = (n: string) => n.replace(/S\/ /g, "S/ ");
 const real = (p: Partial<FlujoReal> = {}): FlujoReal =>
@@ -28,6 +28,7 @@ const real = (p: Partial<FlujoReal> = {}): FlujoReal =>
     ],
     semanas: [],
     sinCuenta: [],
+    arranques: [],
     planillaVisible: true,
     planilla: [],
     ...p,
@@ -88,5 +89,54 @@ describe("recomendacionesPlata", () => {
     });
     expect(r.map((x) => x.clave)).toEqual(["dias", "impuesto", "alcanza"]);
     expect(r[1]!.titulo).toBe(S("IGV de octubre: S/ 4,200 el 18/11"));
+  });
+});
+
+describe("lo que el flujo no cubre (ADR-0609)", () => {
+  const cuenta = (p: Partial<ArranqueCuenta> = {}): ArranqueCuenta => ({ cuentaId: "c1", cuenta: "BCP", desde: "2026-10-28", saldoInicial: 1000, cobros: 0, salidas: 0, entreCuentas: 0, comision: 0, ...p });
+
+  it("sin cuentas que arranquen a mitad de período, el cuadro está completo", () => {
+    expect(loQueNoCubre(real())).toBeNull();
+  });
+  it("una cuenta que arrancó en cero y sin movimientos no le quita nada al cuadro", () => {
+    expect(loQueNoCubre(real({ arranques: [cuenta({ saldoInicial: 0 })] }))).toBeNull();
+  });
+  it("suma lo cobrado de verdad en céntimos exactos; lo del dueño no es un cobro", () => {
+    const r = loQueNoCubre(
+      real({
+        categorias: [
+          { clave: "efectivo", lado: "entra", monto: 39801.84 },
+          { clave: "qr", lado: "entra", monto: 11020.3 },
+          { clave: "dueno_pone", lado: "entra", monto: 500 },
+        ],
+        arranques: [cuenta({ cobros: 70000.1, salidas: 110.4, comision: 5 }), cuenta({ cuentaId: "c2", cuenta: "Izipay", saldoInicial: 0, cobros: 6829.49, entreCuentas: -19162.66 })],
+      }),
+    )!;
+    expect(r.cobrosEnElCuadro).toBe(50822.14);
+    expect(r.cobrosFuera).toBe(76829.59);
+    expect(r.cobrosDelPeriodo).toBe(127651.73);
+    expect(r.salidasFuera).toBe(110.4);
+    expect(r.entreCuentasFuera).toBe(-19162.66);
+    expect(r.comisionFuera).toBe(5);
+    expect(r.cuando).toBe("el 28 oct");
+  });
+  it("con dos fechas de arranque dice el tramo", () => {
+    expect(loQueNoCubre(real({ arranques: [cuenta(), cuenta({ cuentaId: "c2", desde: "2026-10-23" })] }))!.cuando).toBe("entre el 23 oct y el 28 oct");
+  });
+  it("no cambia ninguna cifra del puente, pero no llama «al empezar el mes» a un saldo de fin de mes", () => {
+    const completo = puentePlata(real(), false);
+    const parcial = puentePlata(real({ arranques: [cuenta()] }), false);
+    expect(parcial.map((t) => t.monto)).toEqual(completo.map((t) => t.monto));
+    expect(completo[0]!.nombre).toBe("Al empezar el mes");
+    expect(parcial[0]!.nombre).toBe("Saldo de partida");
+    expect(parcial[0]!.detalle).toContain("el 28 oct");
+  });
+  it("la frase no afirma que subió, bajó ni por qué", () => {
+    const f = fraseDeLaPlata(real({ arranques: [cuenta()] }), 9000);
+    expect(f).toBe("No se puede decir cuánto subió o bajó en el mes: una cuenta arrancó con su saldo el 28 oct.");
+  });
+  it("no recomienda por una baja que no se sabe si ocurrió", () => {
+    const r = recomendacionesPlata({ real: real({ arranques: [cuenta()] }), proyeccion: null, semanas: [], ganancia: 9000, href: (x) => x });
+    expect(r.map((x) => x.clave)).not.toContain("gano-y-bajo");
   });
 });

@@ -34,7 +34,7 @@ import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Impuestos (ADR-0195 F8), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgImpuestos`): la
 // tasa de IGV con sus vigencias, la UIT de cada año y —lo que el spike dejaba para cuando el contador confirme— el
-// régimen, el límite de ventas y el pago a cuenta de cada año. Como Tiendas y caja, CADA CASILLA SE GUARDA SOLA al salir de
+// régimen, el límite de ventas y el pago a cuenta de cada año. Como Metas, CADA CASILLA SE GUARDA SOLA al salir de
 // ella si cambió, firmada con el responsable — salvo la tabla del régimen, que lleva su botón «Guardar» por fila
 // (Felipe 2026-10-31). En la base solo se agregan filas: una corrección es una fila nueva.
 //

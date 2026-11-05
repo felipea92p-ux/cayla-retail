@@ -1,6 +1,6 @@
 # ADR-0610 — Rendimiento con superpoderes: una mesa donde cada pieza responde a las demás (2026-11-04)
 
-**Estado:** construido y probado en local. Sin PR y sin tocar producción: **la migración `20261104213000` no está pegada**, y la web no se publica antes que ella.
+**Estado:** construido y probado en local. La migración `20261104213000` está en producción desde el 2026-11-05 (Felipe lo ordenó); la web va en su PR.
 **Maqueta:** `docs/maquetas/rendimiento-superpoderes-2026-11/` (cuarta ronda; Felipe descartó tres: «Listo, me gusta ese estilo»).
 
 ## DECIDÍ

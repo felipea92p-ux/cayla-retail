@@ -4,7 +4,7 @@
 - **Pregunta que debería resolver (1 frase):** ¿cómo va mi equipo y a quién reconozco o acompaño? · **Protagonista:** las personas
 - **Veredicto en una línea:** se entiende en 5 segundos gracias a la frase de arriba, pero **la ley 3 está en 4**: en «Este mes», «En ritmo» dice poco a inicio de mes.
 
-Datos inventados, en una base local aparte. Rama sin publicar. La migración `20261104213000` no está en producción.
+Datos inventados, en una base local aparte. Rama sin publicar. La migración `20261104213000` no estaba en producción (se pegó el 2026-11-05).
 
 ## Notas (0–10)
 | Eje | Nota | Evidencia |

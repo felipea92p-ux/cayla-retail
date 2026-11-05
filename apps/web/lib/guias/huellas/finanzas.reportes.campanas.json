@@ -9,7 +9,7 @@
     ],
     "components/finanzas/CampanasPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
-      "Link «Configuración ▸ Tiendas y caja»"
+      "Link «Configuración ▸ Metas»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
       "button «Todas»",

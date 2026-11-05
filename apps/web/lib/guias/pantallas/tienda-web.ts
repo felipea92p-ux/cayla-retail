@@ -1198,7 +1198,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       ancla: "config.tienda-web-nota",
       opcional: true,
       titulo: "Un solo WhatsApp por tienda",
-      texto: "Es el mismo número del cartel del club: cambiarlo aquí también lo cambia en Configuración ▸ Tiendas y caja. Y por ahora todo pedido web se recoge en tienda: no hay envíos.",
+      texto: "Es el mismo número del cartel del club: cambiarlo aquí también lo cambia en Configuración ▸ Empresa y tiendas. Y por ahora todo pedido web se recoge en tienda: no hay envíos.",
     },
     {
       id: "fin",

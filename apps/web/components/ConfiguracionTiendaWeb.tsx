@@ -63,7 +63,7 @@ import {
 // BOTÓN «Guardar», firmada con el responsable (Felipe 2026-10-21: guardar solo al salir de una casilla no estaba bien: nadie sabía
 // cuándo se había guardado). Lo escrito, y el interruptor «Se ve en la web», quedan como borrador hasta apretarlo.
 //
-// El WhatsApp es `ubicaciones.whatsapp_numero`, el mismo del QR del club (Tiendas y caja): se guarda con `guardar_whatsapp_tienda`,
+// El WhatsApp es `ubicaciones.whatsapp_numero`, el mismo del QR del club (Empresa y tiendas): se guarda con `guardar_whatsapp_tienda`,
 // la misma función y la misma regla de allá. El resto, con `guardar_sede_tienda_web`, que no deja encender una tienda a la que
 // le falte algo (la guía de foco lo dice antes, con la misma regla: `faltaParaMostrar`).
 

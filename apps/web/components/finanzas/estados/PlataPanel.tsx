@@ -28,6 +28,7 @@ import {
   queFaltaEnLaProyeccion,
   queVence,
   soles,
+  solesCentimos,
   solesConSigno,
   textoSinCuenta,
   tiendasDeLaProyeccion,
@@ -35,7 +36,7 @@ import {
   type FlujoReal,
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
-import { partesDelFlujo, puentePlata } from "@/lib/plata-reglas";
+import { loQueNoCubre, partesDelFlujo, puentePlata } from "@/lib/plata-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 
 // Estados financieros ▸ ¿Dónde está la plata? (flujo de efectivo; ADR-0195 F6, ADR-0585, actividad 5). De arriba abajo: la respuesta (lo
@@ -91,7 +92,10 @@ export function PlataPanel({
       <div className="min-w-0 space-y-4" data-guia="fin-plata.formal">
         {avisos}
         {real ? (
-          <Formal real={real} />
+          <>
+            <NoCubre real={real} />
+            <Formal real={real} />
+          </>
         ) : (
           <Vacio tamano="chico" icono={<CalendarX />}>
             Sin movimientos de plata en este mes.
@@ -100,6 +104,8 @@ export function PlataPanel({
       </div>
     );
   const cambio = real ? Math.round(real.saldoFinal - real.saldoInicial) : 0;
+  // ADR-0609: con una cuenta que arrancó a mitad del mes se sabe cuánto hay, no cuánto cambió.
+  const incompleto = real ? loQueNoCubre(real) !== null : false;
   return (
     <div className="fin-estado min-w-0 space-y-8">
       {avisos}
@@ -109,13 +115,16 @@ export function PlataPanel({
           formal={`Flujo de efectivo · ${mesNombre(mes)}`}
           respuesta={
             real
-              ? `${cambio === 0 ? "Quedó igual" : `${cambio > 0 ? "Subió" : "Bajó"} ${soles(Math.abs(cambio))}`}. ${enCurso ? "Tienes" : "Cerró con"} ${soles(real.saldoFinal)}`
+              ? incompleto
+                ? `${enCurso ? "Tienes" : "Cerró con"} ${soles(real.saldoFinal)}`
+                : `${cambio === 0 ? "Quedó igual" : `${cambio > 0 ? "Subió" : "Bajó"} ${soles(Math.abs(cambio))}`}. ${enCurso ? "Tienes" : "Cerró con"} ${soles(real.saldoFinal)}`
               : "Sin movimientos de plata"
           }
           bajada={real ? frase : "No entró ni salió plata en este mes."}
         />
         {real && (
           <>
+            <NoCubre real={real} className="mt-4" />
             <div className="fin-estado-sep" />
             <TituloSeccion accion={<span className="text-sm text-taupe">Toca una fila para ver qué tiene</span>}>De dónde vino y a dónde fue</TituloSeccion>
             <div className="mt-3">
@@ -196,7 +205,7 @@ function Formal({ real }: { real: FlujoReal }) {
               </tr>,
             ])}
             <tr>
-              <td data-l="Partida">Efectivo al inicio</td>
+              <td data-l="Partida">{loQueNoCubre(real) ? "Saldo de partida" : "Efectivo al inicio"}</td>
               <td className="fin-num" data-l="S/">
                 {soles(real.saldoInicial)}
               </td>
@@ -252,6 +261,70 @@ function Formal({ real }: { real: FlujoReal }) {
       </div>
 
     </Superficie>
+  );
+}
+
+/**
+ * ADR-0609: lo que este cuadro no cubre porque una cuenta arrancó con su saldo a mitad del mes. Va junto a la respuesta y en céntimos: sin
+ * esto, «lo que entró» parece todo lo que se cobró y el saldo de partida parece el del primer día. No cambia ninguna cifra de abajo.
+ */
+function NoCubre({ real, className }: { real: FlujoReal; className?: string }) {
+  const n = loQueNoCubre(real);
+  if (!n) return null;
+  return (
+    <div className={`space-y-3 ${className ?? ""}`} data-guia="fin-plata.no-cubre">
+      <Aviso tono="atencion" titulo="Este cuadro no tiene todo el mes">
+        Lo que pasó antes de que {n.cuentas.length === 1 ? "esta cuenta arrancara" : "estas cuentas arrancaran"} ya está dentro de su saldo, así que no suma aquí abajo. Cobrado en todo el período:{" "}
+        <b>{solesCentimos(n.cobrosDelPeriodo)}</b>, de los que {solesCentimos(n.cobrosEnElCuadro)} están en este cuadro y {solesCentimos(n.cobrosFuera)} son de antes de arrancar.
+        {Math.round(n.comisionFuera * 100) !== 0 ? ` Además, ${solesCentimos(n.comisionFuera)} de comisión de las máquinas quedaron en ese tramo.` : ""}
+      </Aviso>
+      <div className="fin-tabla-wrap">
+        <table className="fin-tabla fin-tabla-flujo">
+          <caption className="sr-only">Lo que cada cuenta registró antes de arrancar</caption>
+          <thead>
+            <tr>
+              <th>Cuenta</th>
+              <th>Arrancó</th>
+              <th className="fin-num">Cobró antes</th>
+              <th className="fin-num">Gastó y pagó antes</th>
+              <th className="fin-num">Entre cuentas antes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {n.cuentas.map((a) => (
+              <tr key={a.cuentaId}>
+                <td data-l="Cuenta">{a.cuenta}</td>
+                <td data-l="Arrancó">{`${fechaCorta(a.desde)} con ${solesCentimos(a.saldoInicial)}`}</td>
+                <td className="fin-num" data-l="Cobró antes">
+                  {solesCentimos(a.cobros)}
+                </td>
+                <td className="fin-num" data-l="Gastó y pagó antes">
+                  {solesCentimos(a.salidas)}
+                </td>
+                <td className="fin-num" data-l="Entre cuentas antes">
+                  {solesCentimos(a.entreCuentas)}
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <td data-l="Cuenta">
+                <b>Total</b>
+              </td>
+              <td data-l="Arrancó" />
+              <td className="fin-num" data-l="Cobró antes">
+                <b>{solesCentimos(n.cobrosFuera)}</b>
+              </td>
+              <td className="fin-num" data-l="Gastó y pagó antes">
+                <b>{solesCentimos(n.salidasFuera)}</b>
+              </td>
+              <td className="fin-num" data-l="Entre cuentas antes">
+                <b>{solesCentimos(n.entreCuentasFuera)}</b>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -383,8 +456,8 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         <p className="nota-cayla mt-3" data-guia="fin-flujo.sin-meta">
           <b>{sinMeta.map((t) => t.nombre).join(" y ")}</b> {sinMeta.length === 1 ? "no tiene" : "no tienen"} meta{sinMeta.some((t) => t.origen === "mixto") ? " algunos días" : ""}: se
           espera su promedio de ese día de la semana (hasta 8 semanas atrás){sinMeta.some((t) => t.corto) ? "; con pocos días de historia se acerca al promedio de todos sus días, para que un día atípico no mande" : ""}. Ponle meta en{" "}
-          <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2 hover:text-rojo">
-            Configuración ▸ Tiendas y caja
+          <Link href="/configuracion?tab=metas" className="underline underline-offset-2 hover:text-rojo">
+            Configuración ▸ Metas
           </Link>
           .
         </p>

@@ -98,7 +98,7 @@ export function DetalleRendimiento({
 
       {metaSedeMes === null ? (
         <p className="nota-cayla">
-          Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Tiendas y caja</b> y se reparte sola, por horas.
+          Sin meta de la sede, aquí solo ves lo vendido. Cárgala en <b>Configuración ▸ Metas</b> y se reparte sola, por horas.
         </p>
       ) : (
         <p className="nota-cayla" data-guia="rendimiento.reparto">

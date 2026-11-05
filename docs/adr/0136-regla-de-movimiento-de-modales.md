@@ -634,3 +634,10 @@ Felipe pidió «muchas animaciones» y «liquid glass al máximo». Excepción, 
 - **Al tocar:** la cifra se voltea, la fila se abre y se recoge, el calendario entra en cascada y, al llegar a la meta, el visto sale con una onda.
 - **«Ver cómo fue»:** repite el mes día a día y se detiene solo al llegar a hoy. No es un bucle.
 - **Lo único que sigue al mouse:** el brillo y el filo de cada placa, la misma luz de «Mi perfil», que nunca se mueve sola.
+
+## Actualización 2026-11-04: Las vitrinas de Configuración ▸ Empresa y tiendas
+
+Felipe pidió «full animaciones y sofisticada», «siempre siguiendo el estilo de liquid glass» (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). Cada dato de una sede es un instrumento en
+una gota de vidrio, y se arma una vez al entrar o al guardarlo: el haz que escanea el QR, la aguja del dial, el líquido que sube, la estrella del asistente, la caja que se sella, el RUC que rueda y
+el aro por tramos. Sin rebote ni bucle, cada pieza en 1,2 s o menos y con la curva del sistema. Lo único que sigue vivo es lo que sigue al mouse (el filo de luz, el brillo y una inclinación de
+menos de 1,5°), que no se mueve solo. Todo se apaga con `prefers-reduced-motion`. Lo vigila `lib/vitrinas-movimiento.test.ts`.

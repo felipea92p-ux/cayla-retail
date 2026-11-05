@@ -48,7 +48,7 @@ export function CampanasPanel({
   fallas,
 }: {
   campanas: CampanaFila[];
-  /** Lleva a Configuración ▸ Tiendas y caja (hoy, el líder). */
+  /** Lleva a Configuración ▸ Metas (hoy, el líder). */
   esLider: boolean;
   /** Mira las campañas de CAYLA entera (ADR-0585: el líder o quien tiene Estados financieros). */
   veTodo: boolean;
@@ -277,11 +277,11 @@ export function CampanasPanel({
         Una campaña también vale por otras cosas (clientes nuevos, sacar lo que no rota): aquí ves <b>cuánto cuesta</b> en margen. Las fechas, el descuento y las categorías se cambian en
         Catálogo ▸ Insignias; la meta y el fondo, en{" "}
         {esLider ? (
-          <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2">
-            Configuración ▸ Tiendas y caja
+          <Link href="/configuracion?tab=metas" className="underline underline-offset-2">
+            Configuración ▸ Metas
           </Link>
         ) : (
-          "Configuración ▸ Tiendas y caja"
+          "Configuración ▸ Metas"
         )}
         .
       </div>

@@ -129,7 +129,7 @@ export function CifrasRendimiento({ grupo, quien, tramoTexto, trazo, serieMes, h
         frente={
           dif === null ? (
             <TarjetaCifra etiqueta="Contra lo que tocaba" valor={null}>
-              {grupo.meta === null ? "Sin meta no se inventa cuánto tocaba. Se carga en Configuración ▸ Tiendas y caja." : "Todavía no toca nada: no hay un turno corriendo ahora."}
+              {grupo.meta === null ? "Sin meta no se inventa cuánto tocaba. Se carga en Configuración ▸ Metas." : "Todavía no toca nada: no hay un turno corriendo ahora."}
             </TarjetaCifra>
           ) : (
             <TarjetaCifra

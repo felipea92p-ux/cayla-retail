@@ -25,6 +25,12 @@ export function soles(n: number): string {
   const v = Math.round(n);
   return v < 0 ? `−${solesRedondo(-v)}` : solesRedondo(v);
 }
+/** «S/ 1,752.00» o «−S/ 25.34»: siempre con céntimos, para una cifra que se compara con otra pantalla o con un extracto (ADR-0609). */
+export function solesCentimos(n: number): string {
+  const v = r2(n);
+  const cuerpo = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${v < 0 ? "−" : ""}S/\u00a0${cuerpo}`;
+}
 /** «+S/ 38,200» / «−S/ 41,300»: una línea de la lista de lo que entró o salió. */
 export function solesConSigno(n: number): string {
   return Math.round(n) < 0 ? soles(n) : `+${soles(n)}`;
@@ -76,6 +82,22 @@ export const TEXTO_SIN_CUENTA: Record<string, string> = {
 
 export type CategoriaFlujo = { clave: string; lado: Lado; monto: number };
 export type SemanaReal = { desde: string; hasta: string; entro: number; salio: number; ajustes: number; saldo: number };
+/** Una cuenta que arrancó con su saldo después del primer día del período, y lo que su libro registró antes (ADR-0609). */
+export type ArranqueCuenta = {
+  cuentaId: string;
+  cuenta: string;
+  /** El día desde el que la cuenta suma (`saldo_desde`). */
+  desde: string;
+  saldoInicial: number;
+  /** Lo cobrado antes de arrancar: ya está dentro del saldo de arranque, por eso no suma en lo que entró. */
+  cobros: number;
+  /** Gastos y pagos antes de arrancar (positivo = salió plata). */
+  salidas: number;
+  /** Depósitos y abonos antes de arrancar, con su signo. */
+  entreCuentas: number;
+  /** Lo que las máquinas descontaron en ese tramo; ya está dentro de `entreCuentas`. */
+  comision: number;
+};
 export type FlujoReal = {
   desde: string;
   hasta: string;
@@ -90,6 +112,8 @@ export type FlujoReal = {
   categorias: CategoriaFlujo[];
   semanas: SemanaReal[];
   sinCuenta: { origen: string; n: number; monto: number }[];
+  /** ADR-0609. Vacío si todas las cuentas ya sumaban desde el primer día (o si la base aún no trae el dato). */
+  arranques: ArranqueCuenta[];
   planillaVisible: boolean;
   planilla: { nombre: string; fechaFin: string; pagado: number }[];
 };
@@ -118,6 +142,16 @@ export function leerFlujoReal(data: unknown): FlujoReal {
       saldo: num(s.saldo),
     })),
     sinCuenta: lista(d.sin_cuenta).map((s) => ({ origen: String(s.origen), n: num(s.n), monto: num(s.monto) })),
+    arranques: lista(d.arranques).map((a) => ({
+      cuentaId: String(a.cuenta_id),
+      cuenta: String(a.cuenta ?? ""),
+      desde: fecha(a.desde),
+      saldoInicial: num(a.saldo_inicial),
+      cobros: num(a.cobros),
+      salidas: num(a.salidas),
+      entreCuentas: num(a.entre_cuentas),
+      comision: num(a.comision),
+    })),
     planillaVisible: d.planilla_visible === true,
     planilla: lista(d.planilla).map((p) => ({ nombre: String(p.nombre ?? ""), fechaFin: fecha(p.fecha_fin), pagado: num(p.pagado) })),
   };

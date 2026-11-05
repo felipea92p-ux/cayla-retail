@@ -5,7 +5,7 @@
 //   pnpm --filter web asistente:evaluar -- --base-url http://localhost:3011
 //
 // Solo local (`exigirLocal`): las cuentas y sus claves son del seed. Necesita `ANTHROPIC_API_KEY` en el `.env.local` del servidor y el
-// asistente encendido en Tienda Lima y en el Taller (Configuración ▸ Tiendas y caja). Cuesta ~US$0,05 y deja las 40 preguntas anotadas en
+// asistente encendido en Tienda Lima y en el Taller (Configuración ▸ Empresa y tiendas). Cuesta ~US$0,05 y deja las 40 preguntas anotadas en
 // la base local. Sale con 1 si acierta menos que `--minimo` (por defecto 90 %).
 
 import { chromium } from "playwright";

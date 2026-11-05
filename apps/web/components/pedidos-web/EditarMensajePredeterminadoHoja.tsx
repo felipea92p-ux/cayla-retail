@@ -7,9 +7,10 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo } from "@/components/ui/campos";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { avisar } from "@/components/ui/Avisos";
+import { FilaEmojis } from "@/components/ui/FilaEmojis";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { EMOJIS_DEL_MENSAJE, MAX_MENSAJE_PREDETERMINADO_WEB, MENSAJE_PREDETERMINADO_WEB, mensajePredeterminadoDelPedido } from "@/lib/pedidos-web-reglas";
+import { MAX_MENSAJE_PREDETERMINADO_WEB, MENSAJE_PREDETERMINADO_WEB, mensajePredeterminadoDelPedido } from "@/lib/pedidos-web-reglas";
 
 /** Un pedido de muestra para la vista previa: el mensaje se ve con un nombre, un código y la tienda reales. */
 const PEDIDO_DE_MUESTRA = { codigo: "W-0001", cliente: { nombre: "Valeria Chávez" } } as const;
@@ -132,6 +133,11 @@ export function EditarMensajePredeterminadoHoja({
                   setTexto(e.target.value);
                   recordarCursor(e.target);
                 }}
+                onFocus={(e) => {
+                  // La hoja abre con el foco aquí y el cursor al principio: lo tocado caería antes del saludo. Se pone al final. Un clic
+                  // de la persona ubica el cursor después de este foco, así que no lo pisa.
+                  if (!cursor.current) e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length);
+                }}
                 onSelect={(e) => recordarCursor(e.currentTarget)}
                 onBlur={(e) => recordarCursor(e.currentTarget)}
                 aria-label="Mensaje predeterminado"
@@ -150,14 +156,7 @@ export function EditarMensajePredeterminadoHoja({
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-sm text-taupe">Emojis:</span>
-              {EMOJIS_DEL_MENSAJE.map((e) => (
-                <button key={e} type="button" className="pildora-cayla" aria-label={`Insertar ${e}`} disabled={guardando} onClick={() => insertar(e)}>
-                  {e}
-                </button>
-              ))}
-            </div>
+            <FilaEmojis disabled={guardando} onElegir={insertar} />
           </div>
 
           <div>

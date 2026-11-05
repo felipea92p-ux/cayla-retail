@@ -545,3 +545,30 @@ controles, los gráficos, el calendario, las teclas del dock y los rótulos de l
 que el spike de `docs/maquetas/finanzas-2026-09/`:** al comparar una pantalla con el spike, la letra de lectura se compara contra 14 px, no
 contra la del spike. Configuración, que usa el mismo kit, sube con ella. Registro: `docs/unificar/texto.md`.
 
+## Actualización 2026-11-04: «Tiendas y caja» se parte en dos (Felipe)
+
+La pestaña juntaba 7 temas en 4,3 pantallas y 160 controles a 1440 × 900. Desde hoy son dos: **«Metas»** (`?tab=metas`, la de fábrica: lo normal de cada
+tienda, mes por mes, fechas especiales y campañas) y **«Empresa y tiendas»** (`?tab=empresa`: los datos fiscales que solo se leen, el WhatsApp, «Pregúntale a CAYLA»
+por sede y la carga inicial). Siguen siendo 8 pestañas porque «Empresa» se juntó. Solo cambia cómo se presenta: ni reglas, ni funciones, ni migración.
+
+- **Mes por mes va de a una tienda** (`pildora-cayla`): nadie carga dos tiendas a la vez, y eran 84 casillas.
+- **Las campañas que ya pasaron quedan plegadas** en `<BotonVerMas>`. Abiertas siguen editables como antes. Van en el mismo `<tbody>` y no en `<FilasDeMas>`, porque
+  una tabla partida en dos desalinea sus columnas.
+- **Lo que solo se lee ya no se dibuja en un campo:** los datos de la empresa pasan a `ListaDatos`. En el vidrio, «lo hundido espera tu dato» (ADR-0596).
+- **La dirección vieja `?tab=tiendas` cae en Metas** (es la pestaña de fábrica); los enlaces de otras pantallas ya apuntan a la pestaña correcta.
+
+Medido a 1440 × 900 con los datos locales: Metas 2,3 pantallas y 72 controles; Empresa y tiendas, 1,8 y 2 (más los de sus filas). Maquetas de lo que sigue:
+`docs/maquetas/configuracion-vistas-2026-11/`.
+
+## Actualización 2026-11-04 (b): «Empresa y tiendas» son Las vitrinas
+
+Felipe eligió la dirección A de `docs/maquetas/empresa-tiendas-2026-11/` y la pidió en vidrio líquido, con el color ordenado (`docs/maquetas/empresa-tiendas-vitrinas-2026-11/`). El carnet
+de la empresa y una tarjeta por sede reemplazan a las cuatro tablas (`components/vitrinas-sedes/`, reglas en `lib/vitrinas-sedes-reglas.ts`, vidrio en `app/estilos/vidrio/vitrinas-sedes.css`).
+
+- **Fondo de caja y hora de cierre pasan de Metas a la tarjeta de la sede.** `guardar_metas_tienda` y `guardar_metas_mes` reemplazan la semana entera, así que antes de guardar se lee lo último de la base y se cambia solo el dato tocado (`lib/metas-frescas.ts`); si no se puede leer, no se guarda. Queda un margen de milisegundos entre leer y guardar.
+- **«Falta» lo decidió Felipe:** en una tienda, WhatsApp, hora de cierre, fondo y fecha de carga; en otra sede, solo la fecha. Preguntar apagado es una elección. Que falte no bloquea nada.
+- **La carga inicial conserva su hoja y sus permisos**, porque cerrar una sede no debe pasar por un Tab de más. Preguntar usa `<Interruptor>` y el tope de Preguntar, `<BarraAvance>`.
+- **Sin el vidrio que doblaba el fondo:** Felipe quitó las luces de color de detrás, y sin ellas el efecto casi no se notaba. Queda un desenfoque normal en pocos bloques.
+- **Son 5 vitrinas o menos a propósito.** Como ADR-0596 pide no desenfocar «muchas tarjetas iguales», si CAYLA crece mucho en sedes hay que volver a mirarlo.
+
+Siguen siendo 8 pestañas hasta construir Dinero y Gastos. Sin funciones nuevas ni migración.
