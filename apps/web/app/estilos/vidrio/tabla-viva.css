@@ -90,14 +90,14 @@
   font-size: 15px;
   position: relative;
   isolation: isolate;
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
 }
 .tv-fondo {
   position: absolute;
   inset: var(--tv-alto-cabeza, 0px) 0 0 0;
   z-index: -1;
   pointer-events: none;
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   border: 1px solid var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);
@@ -131,7 +131,7 @@
   position: sticky;
   top: var(--tv-tope);
   z-index: 3;
-  border-radius: 22px 22px 0 0;
+  border-radius: var(--radius-tarjeta) var(--radius-tarjeta) 0 0;
   border: 1px solid var(--serena-borde);
   border-bottom: 0;
   background-color: var(--tv-cab-reposo);

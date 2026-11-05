@@ -31,7 +31,7 @@
 
 /* ---------- Las cifras de la sede (ResumenSede): la placa Serena ---------- */
 .resumen-sede {
-  border-radius: 24px;
+  border-radius: var(--radius-tarjeta);
   border: 1px solid var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);
@@ -57,7 +57,7 @@
 
 /* ---------- La tarjeta de cifra: la misma placa ---------- */
 .tarjeta-cifra:not([data-sin-dato]) {
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);
@@ -67,7 +67,7 @@
 }
 /* Sin dato: el borde punteado de siempre, sin vidrio (no hay nada que mirar a través). */
 .tarjeta-cifra[data-sin-dato] {
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--color-borde-control);
   background: transparent;
 }
@@ -542,7 +542,7 @@ svg.lucide:is(.h-5, .size-5, .h-6, .size-6, .h-7, .h-8, .size-8, .h-10, .h-12):n
   min-width: 0; /* un hijo de la grilla no se ensancha más que su columna por el largo de un nombre */
   padding: 8px 8px 12px;
   border: 1px solid var(--placa-prenda-borde);
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   background: var(--placa-prenda-fondo);
   box-shadow: var(--placa-prenda-sombra);
   transition:

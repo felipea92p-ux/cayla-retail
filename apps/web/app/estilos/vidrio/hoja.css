@@ -128,7 +128,7 @@
   background: var(--placa-fondo);
   border-color: var(--placa-borde);
   box-shadow: var(--placa-luz);
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
 }
 /* Lo que era hueso, papel o crema SÓLIDO dentro de una hoja o un cajón (una nota, un resumen, una caja con borde, la pista de una barra): la
    placa de vidrio, en UN solo lugar y no pantalla por pantalla (Felipe 2026-11-02: «muchos módulos tienen el mismo problema»; son ~150

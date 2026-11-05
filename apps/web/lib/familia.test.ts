@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ATRIBUTO_TEMA, TEMAS } from "./tema-reglas";
@@ -275,5 +275,76 @@ describe("las recetas pueden viajar a Dynamic", () => {
     const m = /--vidrio-hoja-radio\s*:\s*(\d+)px/.exec(recetas);
     expect(m, "--vidrio-hoja-radio en recetas.css").not.toBeNull();
     expect(Number(m![1])).toBe(hoja?.px);
+  });
+});
+
+// P10 (Felipe, 2026-11-05): una sola esquina de tarjeta, 22 px, en los dos sistemas. Lo que sigue en 20 o 24 px es porque no es una tarjeta, o porque tiene diseño propio
+// decidido: Felipe dice si se unifica (CLAUDE.md, «Una función, una pieza»). Una pieza nueva no entra a esta lista: lee `--radius-tarjeta`.
+const FUERA_DE_P10: Record<string, string> = {
+  ".aviso-tarjeta": "flota: es un aviso, no una tarjeta",
+  ".lista-flotante": "flota: la lista de un combo",
+  ".globo-filtro": "flota: un globo",
+  ".tv-globo": "flota: un globo",
+  ".ca-panel": "flota: el panel del centro de avisos",
+  ".acompana-recorte::after": "el recorte de la guía sobre lo que se explica",
+  ".marco-cajon-grupo": "el marco: grupo del menú en el celular",
+  ".marco-yo": "el marco: la placa de quien entró",
+  ".cv-mes": "un mes que se elige: es un control, no una tarjeta",
+  ".mc-accion": "una gota grande que se aprieta: es un botón, no una tarjeta",
+  ".liq-previa": "un pozo: es hundido, no una tarjeta",
+  ".obs .o-tj": "diseño propio: el Observatorio",
+  ".obs .o-hpanel": "diseño propio: el Observatorio",
+  ".o-tj": "diseño propio: el Observatorio",
+  ".vs-carnet": "diseño propio: Las vitrinas de Configuración",
+  ".vs-tubo": "diseño propio: Las vitrinas de Configuración",
+  ".tarjeta-vitrina": "diseño propio: la tarjeta Vitrina de Existencias (ADR-0589)",
+  ".sl-pase": "diseño propio: Catálogo ▸ Insignias",
+  ".sl-cab": "diseño propio: Catálogo ▸ Insignias",
+  ".sl-pase:not(.sl-abierto) .sl-cab": "diseño propio: Catálogo ▸ Insignias",
+  ".tp-pase": "diseño propio: los pases de Traslados",
+  ".rcc-caps": "diseño propio: el aviso de cierre de caja",
+  ".rcc-ola": "diseño propio: el aviso de cierre de caja",
+  ".rcc-pulso": "diseño propio: el aviso de cierre de caja",
+  ".fin-estado": "diseño propio: Finanzas",
+};
+
+/** Las esquinas de 20 o 24 px de un CSS, con el selector del bloque que las lleva. */
+function esquinasViejas(css: string): string[] {
+  const salida: string[] = [];
+  const limpio = sinComentarios(css);
+  for (const m of limpio.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (/border-radius:\s*(20|24)px/.test(m[2])) salida.push(m[1].trim().replace(/\s+/g, " "));
+  }
+  return salida;
+}
+
+describe("una sola esquina de tarjeta: P10 está decidido y Retail ya lo aplica", () => {
+  it("P10 está decidido en 22 px, y el contrato guarda 22 para la tarjeta", () => {
+    const p10 = contrato.pendientes.find((p) => p.id === "P10");
+    expect(p10?.estado).toBe("decidido");
+    expect(p10?.decision).toMatch(/22 px/);
+    expect(contrato.marca.radios.find((r) => r.funcion === "tarjeta")?.px).toBe(22);
+  });
+
+  it("el detector no está ciego", () => {
+    expect(esquinasViejas(".a { color: red; border-radius: 20px; }")).toEqual([".a"]);
+    expect(esquinasViejas(".a { border-radius: 24px; }")).toEqual([".a"]);
+    expect(esquinasViejas(".a { border-radius: 22px; }")).toEqual([]);
+    expect(esquinasViejas("@media (min-width: 1px) { .a { border-radius: 20px; } }")).toEqual([".a"]);
+  });
+
+  it("ninguna pieza de los estilos usa 20 o 24 px sin un motivo escrito", () => {
+    const raizEstilos = join(raiz, "apps/web/app/estilos");
+    const archivos = (readdirSync(raizEstilos, { recursive: true }) as string[]).filter((f) => f.endsWith(".css"));
+    expect(archivos.length, "no encontró hojas de estilo").toBeGreaterThan(20);
+    const sinMotivo = archivos.flatMap((f) => esquinasViejas(readFileSync(join(raizEstilos, f), "utf8")).filter((s) => !(s in FUERA_DE_P10)).map((s) => `${f}: ${s}`));
+    expect(sinMotivo, "Usa `var(--radius-tarjeta)`, o escribe su motivo en FUERA_DE_P10").toEqual([]);
+  });
+
+  it("la lista de excepciones no guarda piezas que ya no existen", () => {
+    const raizEstilos = join(raiz, "apps/web/app/estilos");
+    const archivos = (readdirSync(raizEstilos, { recursive: true }) as string[]).filter((f) => f.endsWith(".css"));
+    const vivas = new Set(archivos.flatMap((f) => esquinasViejas(readFileSync(join(raizEstilos, f), "utf8"))));
+    expect(Object.keys(FUERA_DE_P10).filter((s) => !vivas.has(s))).toEqual([]);
   });
 });
