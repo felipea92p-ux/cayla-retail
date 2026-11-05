@@ -439,7 +439,8 @@
   /* Dos columnas (Fijos del mes) y una columna de bloques apilados. */
   .fin-dos-col {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, …): una columna no se estira con la tabla ancha que lleva adentro; la tabla corre en su `fin-tabla-wrap`. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
   }
@@ -544,7 +545,7 @@
   @media (max-width: 860px) {
     .fin-dos-col,
     .fin-dos-campos {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .fin-herramientas .fin-desplegable-caja {
       flex: 1 1 130px;
@@ -738,7 +739,7 @@
 
   @media (max-width: 860px) {
     .fin-dos-col.fin-dos-col-izq {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .fin-decidir li {
       grid-template-columns: 10px 1fr;
@@ -1076,7 +1077,7 @@
 
   @media (max-width: 860px) {
     .fin-dos-col.fin-der {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 }
@@ -1397,7 +1398,7 @@
 
   @media (max-width: 860px) {
     .fin-dos-col.fin-esc {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .fin-tabla.fin-tabla-utilidad {
       min-width: 0;
@@ -1553,7 +1554,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .fin-dos-col.fin-cierre-cols {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
   @media (max-width: 480px) {

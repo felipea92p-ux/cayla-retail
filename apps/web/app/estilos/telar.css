@@ -660,6 +660,10 @@ span.sede-telar { cursor: default; }
 }
 
 /* ---- La respuesta: la pregunta del submódulo y la cifra grande, a la derecha de la cabecera ---- */
+/* Las tres respuestas del Resumen: en una fila si caben a 13 rem cada una. Mira el espacio que hay, no la ventana: a 768 px el lateral se lleva 272. */
+.tres-respuestas {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
 .respuesta-telar {
   display: flex;
   flex-direction: column;

@@ -128,7 +128,6 @@ export function BarrasTiempo({
             const h = px(b.valor);
             const baja = b.valor < 0;
             const tono = b.tono ?? (b.clave === destacada ? "tinta" : undefined);
-            const lado = i < 2 ? "izq" : i > n - 3 ? "der" : undefined;
             const cuerpo = (
               <>
                 <span
@@ -146,7 +145,7 @@ export function BarrasTiempo({
                   </span>
                 )}
                 {b.tip && (
-                  <span aria-hidden className="barra-t-globo" data-lado={lado} style={{ bottom: cero + (baja ? 0 : h) + 8 }}>
+                  <span aria-hidden className="barra-t-globo" style={{ bottom: cero + (baja ? 0 : h) + 8, ["--x" as string]: (i + 0.5) / n }}>
                     {b.tip}
                   </span>
                 )}
