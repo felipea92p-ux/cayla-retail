@@ -33,7 +33,7 @@ acepta un mes, lo cual lleva migración y pegado en producción.
 
 - **ADR-0596, una receta nueva y no otro vidrio suelto.** El vidrio con filo de luz, brillo que sigue al mouse y borde que desvía se agrega a `recetas.css`
   como receta propia. **Se usa solo en Estados financieros: no cambia ninguna pieza del resto del ERP.** Llevarlo a todo el sistema es otra decisión,
-  porque toca todos los módulos. La regla de que una hoja no lleva `backdrop-filter` no cambia: la receta es de las placas de la pantalla.
+  porque toca todos los módulos. Felipe (2026-11-05): se hará después de construir Estados financieros, con las demás mejoras visuales (ver el backlog de esta rama). La regla de que una hoja no lleva `backdrop-filter` no cambia: la receta es de las placas de la pantalla.
 - **Letra.** Inter entra por `next/font` solo en el layout de `/finanzas/reportes`, y solo para las cifras. El ERP sigue con DM Sans y EB Garamond.
 - **ADR-0169, colores.** El fondo y sus hilos salen de los tokens, leídos del CSS al pintar. El hilo rojo cuenta como uno de los dos acentos rojos de la
   pantalla. Rojo en texto chico: `rojo-profundo` en claro y un rojo aclarado en oscuro, porque el token `rojo` no alcanza 4,5:1 sobre el vidrio.
@@ -70,13 +70,18 @@ Salieron de comparar los componentes con otros sistemas (`docs/investigacion/202
 | 6 | Cuatro tiempos con nombre, ritmo «Rápido» | `--t-resp`, `--t-cambio`, `--t-hoja`, `--t-momento` | Piezas del sistema. Las excepciones de ADR-0136 siguen con los suyos |
 | 7 | Vidrio macizo con menos transparencia o más contraste | Final de `recetas.css` | Automático en todo el ERP |
 | 8 | Fechas con límites, fechas cortas y teclado en el mes | `CampoFecha` (`min`, `max`), `lib/campo-fecha-reglas.ts`, `SelectorMes` | Límites puestos en Registrar gasto y en las etiquetas. 18 archivos siguen con `type="date"` del navegador |
-| 9 | Tabla | «Compacta» en `TablaViva` | Parcial: ver abajo |
+| 9 | Tabla | «Compacta» en `TablaViva` | Solo esto por ahora: ver abajo |
 
 **Decisiones que se tomaron al construir.** Lo mostrado nunca dice otra cifra: como cada pantalla lee lo escrito a su manera, por defecto solo se da formato a lo que todas leen igual, y lo ambiguo se queda como
 se escribió. El límite de una fecha no borra lo tipeado: si lo borrara, un «Hasta» opcional se guardaría vacío mientras la pantalla muestra un error, y por eso la validación de quien usa el campo sigue mandando.
 Al poner límites a un rango solo se limita «Hasta»: si «Desde» también tuviera tope, mover una temporada hacia adelante obligaría a cambiar primero el final.
 
-**La mejora 9 está abierta porque pide decisiones de Felipe.** El encabezado fijo y el orden ya existen en `TablaViva`, pero solo 2 pantallas la usan (Rendimiento y Movimientos ▸ Ingresos) y las otras 75 tablas son `<Tabla>`: pasarlas es por pantalla, porque TablaViva exige tener todas las filas en el navegador. El lote ya existe en Por pagar («Pagar juntos»), Productos, Existencias y Apartados: lo abierto es si hace falta otro. Hoy toda corrección va en su hoja, y el monto de un gasto ni ahí se cambia (ADR-0588). ADR-0149 ya admite un esqueleto parcial en una sección; lo que reabriría esa decisión es reemplazar el loader.
+**La mejora 9: lo que decidió Felipe (2026-11-05),** mirando los pros y contras de cada opción:
+
+- **Más tablas con encabezado fijo y orden: después.** `TablaViva` sigue solo en Rendimiento y Movimientos ▸ Ingresos, y 75 tablas son `<Tabla>`. Primero se implementa el diseño de Estados financieros; recién después se llevan las mejoras de componentes y de visuales al resto de los módulos. Lo que falta está anotado, con sus archivos, en `docs/backlog/2026-11-05-financial-statements-redesign-afaa35.md`.
+- **Otro lote: no, por ahora.** Marcar varias filas ya existe en Por pagar («Pagar juntos»), Productos, Existencias y Apartados. Si la tienda lo pide en otra pantalla, se hace con ese caso real.
+- **Editar en la fila: no.** Toda corrección sigue en su hoja, con responsable y «antes → ahora», y el monto de un gasto no se corrige ni ahí (ADR-0588).
+- **Esqueleto de carga: no cambia nada.** Sigue el loader único, y el esqueleto parcial de una sección que ADR-0149 ya admite.
 
 ## Cómo se verifica
 
