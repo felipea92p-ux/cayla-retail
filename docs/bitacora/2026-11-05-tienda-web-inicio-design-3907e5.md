@@ -1,0 +1,1 @@
+**2026-11-05 · Tienda: letra y nota de existencias (ADR-0612).** Felipe encontró Bodoni muy fina y eligió DM Serif Display mirando tres opciones; las prendas ya no repiten la tienda elegida y siempre dicen si hay. El Inicio nuevo sigue como maqueta en `docs/maquetas/tienda-inicio-2026-11/` (propuesta L).

@@ -75,7 +75,7 @@
 
 /* ---- Los datos ---- */
 .t-pdp-info { display: flex; flex-direction: column; gap: 18px; padding-top: 12px; min-width: 0; }
-/* G · Pasarela (ADR-0524): el nombre en Didone recta, como el de la maqueta (`.p-panel h1`). */
+/* G · Pasarela (ADR-0524): el nombre en letra recta, como el de la maqueta (`.p-panel h1`). */
 .t-pdp-info h1 { margin: 6px 0 0; font-family: var(--nombre); font-style: normal; font-weight: 400; font-size: clamp(36px, 4.2cqi, 58px); line-height: 1.02; letter-spacing: -.01em; text-wrap: balance; }
 /* En el celular la caja del nombre se deshace: el nombre y el precio quedan pegados a la foto (en la primera pantalla) y los chips
    («Nuevo», la campaña) bajan bajo el precio. En la computadora, los chips van sobre el nombre. */

@@ -122,7 +122,7 @@
   .t-aviso-club-envol { transition: none; }
 }
 
-/* ---- «Así se separa» en el Inicio (G · Pasarela, `.p-pasos`): cuatro columnas con su raya negra arriba y un filo entre sí, el número en Didone
+/* ---- «Así se separa» en el Inicio (G · Pasarela, `.p-pasos`): cuatro columnas con su raya negra arriba y un filo entre sí, el número en la letra de títulos
    (01 a 04), el título y una línea. En el celular, una fila por paso. ---- */
 .as-pasos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; border-top: 1px solid var(--tinta); }
 .as-paso { display: grid; grid-template-columns: 72px 1fr; column-gap: 12px; padding: 22px 0; border-top: 1px solid var(--sand); }

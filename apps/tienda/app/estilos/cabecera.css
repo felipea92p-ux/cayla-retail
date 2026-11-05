@@ -288,5 +288,5 @@ html[data-theme="light"] .t-tema-iconos .t-tema-claro, html[data-theme="dark"] .
 .t-persona:has([data-avisos-pendientes]) > .t-ico::after { content: ""; position: absolute; top: 8px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--rojo); }
 .t-persona-menu[hidden] { display: none; }
 
-/* El selector de tienda (ADR-0524): los nombres de las tiendas en la Didone, como las salidas del programa. */
+/* El selector de tienda (ADR-0524): los nombres de las tiendas en la letra de títulos, como las salidas del programa. */
 .t-sel-tienda .t-persona-op { font-family: var(--display); font-size: 20px; line-height: 1.2; }
