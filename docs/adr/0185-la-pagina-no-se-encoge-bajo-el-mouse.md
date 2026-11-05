@@ -110,3 +110,13 @@ sobre aire hasta que volvía. No se buscó si alguna pantalla lo hace.
 aire, con el título a 231 px ([captura](../capturas/2026-11-05-devoluciones-en-blanco/red-sola-registrar-375.jpg)). En un banco de prueba temporal sobre el marco real: quitar 276 px al
 fondo sigue reservando 276 (vista quieta); cambiar de vista con esa reserva puesta la suelta; lo mismo dentro de una hoja de 500 px (quitar 120 reserva 120; cambiar de
 vista suelta). En `/devoluciones`, el filtro «Con devolución» baja la página de 4078 a 1686 px sin mover la vista. No se recorrió el resto del ERP ni un iPhone real.
+
+## Actualización 2026-11-05 (c): en Safari, el título quedaba bajo la cabecera
+
+**El problema.** La primera prueba en Safari de iPhone (simulador, iOS 26.5, 375 × 667) mostró lo que Chrome no podía: ya no había pantalla en blanco, pero al entrar a un flujo el título quedaba a 5 px y al registrar a 0 px, los dos bajo la cabecera fija de 60 px. Quien registraba veía el detalle de la devolución sin el «Devolución registrada». Dos causas: Safari da por visto un título aunque lo tape la cabecera, y el viaje suave hacia arriba se cortaba al acortarse la página.
+
+**La decisión.** `useVistaDelPaso(paso, raiz, titulo)` lleva la vista, antes de pintar y sin animación, al inicio del flujo (`scroll-mt-24`, bajo la cabecera), y el título recibe el foco sin moverla. Los paneles ya no piden `window.scrollTo`.
+
+**Verificación.** En Safari a 375 × 667, con 800 ms de demora dentro de la base: al entrar se ven la flecha, «Paso 2 de 4», la barra, el título y la prenda; al registrar, `scrollY` 197, título a 181 px, sin aire y con el foco en el título al irse el loader. En Chrome a 375 × 812, el título queda a 247 px en todos los pasos y a 235 px al registrar; a 1440 × 900, igual o sin moverse si la página cabe. Capturas en `docs/capturas/2026-11-05-safari-titulo/`. En el simulador los gestos son por software: falta un iPhone en la mano.
+
+**Lo que también se comprobó en Safari.** La red de esta decisión (un bloque de 276 px reserva sus 276; un cambio de vista suelta la reserva) y lo de ADR-0479 y ADR-0596: el asa va de 67 a 91 px y el título empieza en 91, y tirar de ella mueve la hoja aunque su contenido esté corrido 159 px, sin tocar el foco ni el contenido; el botón negro y el aviso se leen en claro y en oscuro.
