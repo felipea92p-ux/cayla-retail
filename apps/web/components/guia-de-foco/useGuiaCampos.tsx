@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { avisar } from "@/components/ui/Avisos";
-import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
+import { asegurarVisible, estaEscribiendo, hayCampo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, revisadosVigentes, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
@@ -117,7 +117,7 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
       if (!primero) return true;
       setRevisados((r) => new Set([...r, ...pendientesAlRevisar(campos)]));
       // Tocar el botón nunca queda sin respuesta: si ese campo no se está dibujando (está plegado o en otro paso), se dice en un aviso.
-      if (!document.querySelector(`[data-campo="${CSS.escape(primero.id)}"]`)) avisar.aviso(primero.pendiente || `Falta: ${primero.nombre}.`);
+      if (!hayCampo(primero.id)) avisar.aviso(primero.pendiente || `Falta: ${primero.nombre}.`);
       else irAlIdCampo(primero.id, { cursor: true, enModal });
       return false;
     },

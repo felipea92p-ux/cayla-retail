@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
+import { campoDeMasArriba, errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -211,5 +211,30 @@ describe("«Guardar y registrar otro» no deja una hoja limpia regañando (/chao
   it("sin nada que olvidar devuelve lo mismo, para no repintar en bucle", () => {
     const vacio = new Set<string>();
     expect(revisadosVigentes(vacio, listos)).toBe(vacio);
+  });
+});
+
+describe("«llevarte al campo» va a la hoja que ves, no a la de atrás (/chaos 2026-11-05)", () => {
+  // Cada campo con el número de su hoja en orden de apertura; -1 es la pantalla, sin hoja.
+  const hojaDe = (c: { hoja: number }) => c.hoja;
+
+  it("el campo existe en la pantalla y en la hoja abierta encima: manda la hoja", () => {
+    const pila = { nombre: "pila", hoja: -1 };
+    const hoja = { nombre: "hoja", hoja: 0 };
+    expect(campoDeMasArriba([pila, hoja], hojaDe)).toBe(hoja);
+    expect(campoDeMasArriba([hoja, pila], hojaDe)).toBe(hoja);
+  });
+
+  it("con dos hojas abiertas, manda la de más arriba", () => {
+    const abajo = { nombre: "abajo", hoja: 0 };
+    const arriba = { nombre: "arriba", hoja: 1 };
+    expect(campoDeMasArriba([abajo, arriba], hojaDe)).toBe(arriba);
+  });
+
+  it("sin hoja abierta, el primero de la pantalla; sin campo, nada", () => {
+    const a = { nombre: "a", hoja: -1 };
+    const b = { nombre: "b", hoja: -1 };
+    expect(campoDeMasArriba([a, b], hojaDe)).toBe(a);
+    expect(campoDeMasArriba([], hojaDe)).toBeNull();
   });
 });

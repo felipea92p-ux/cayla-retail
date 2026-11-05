@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { campoDeMasArriba } from "@/lib/guia-campos";
 
 // Llevar a la persona al campo (ADR-0284): lo pide el «Falta: …» del pie y el «Siguiente: …» de la ficha, y lo hace el propio
 // formulario cuando un campo que sigue queda fuera de la vista. Nada aquí decide QUÉ sigue (eso es `lib/alta-producto-guia.ts`):
@@ -42,8 +43,15 @@ function reducido(): boolean {
 }
 
 function fila(id: IdCampo): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[data-campo="${id}"]`);
+  const hojas = [...document.querySelectorAll('[role="dialog"]')];
+  return campoDeMasArriba([...document.querySelectorAll<HTMLElement>(`[data-campo="${id}"]`)], (c) => {
+    const hoja = c.closest('[role="dialog"]');
+    return hoja ? hojas.indexOf(hoja) : -1;
+  });
 }
+
+/** ¿Ese campo se está dibujando? (Uno puede estar plegado o en otro paso.) */
+export const hayCampo = (id: IdCampo): boolean => fila(id) !== null;
 
 /** ¿La persona está escribiendo ahora (foco en una caja de texto)? Entonces la guía mueve su luz pero NUNCA la página: al teclear el
  *  precio no puede saltar. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil. */

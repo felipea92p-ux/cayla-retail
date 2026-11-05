@@ -78,6 +78,23 @@ export function primeroQueBloquea(campos: readonly CampoDeGuia[]): CampoDeGuia |
   return campos.find((c) => c.requerido && !c.hecho) ?? null;
 }
 
+/**
+ * De los campos con un mismo nombre, el de la hoja de más arriba: la pila de Gastos tiene su «En qué» detrás de la hoja de Registrar gasto, y «llevarte al
+ * campo» tiene que ir al que se ve. `hojaDe` dice en qué hoja está cada uno, por orden de apertura (-1, en la pantalla).
+ */
+export function campoDeMasArriba<T>(campos: readonly T[], hojaDe: (campo: T) => number): T | null {
+  let elegido: T | null = null;
+  let masArriba = Number.NEGATIVE_INFINITY;
+  for (const campo of campos) {
+    const hoja = hojaDe(campo);
+    if (hoja > masArriba) {
+      elegido = campo;
+      masArriba = hoja;
+    }
+  }
+  return elegido;
+}
+
 /** Los campos que faltaban al intentar guardar: solo esos dicen su error. Uno que aparece después (el RUC, al elegir «Factura») no regaña a quien recién llega a él. */
 export function pendientesAlRevisar(campos: readonly CampoDeGuia[]): string[] {
   return campos.filter((c) => c.requerido && !c.hecho).map((c) => c.id);
