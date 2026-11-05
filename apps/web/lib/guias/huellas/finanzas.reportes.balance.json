@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.balance",
   "ruta": "/finanzas/reportes/balance",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 30,
+  "total": 31,
   "controles": {
     "components/finanzas/BalancePanel.tsx": [
       "button «fin-balance.arranque»",
@@ -27,7 +27,8 @@
       "BotonDescargar «Descargar Excel»"
     ],
     "components/finanzas/estados/Recomendaciones.tsx": [
-      "BotonVer «{r.accion.texto}»"
+      "BotonVer «{r.accion.texto}»",
+      "BotonVer «{r.accion.texto}» #2"
     ],
     "components/finanzas/estados/SelectorPeriodo.tsx": [
       "button «{`Ver el ${queSeMira}»",

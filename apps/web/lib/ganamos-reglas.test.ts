@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { filaDeVer, leerResumen } from "./resumen-finanzas-reglas";
-import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, porSede, titularGanamos, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
+import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
 import type { FilaPpto } from "./presupuesto-reglas";
 import type { CampanaFila, FilaER } from "./resultados-reglas";
 
@@ -128,16 +128,6 @@ describe("recomendacionesGanamos", () => {
 });
 
 describe("la respuesta y lo de cada sede como en la maqueta (ADR-0585)", () => {
-  it("«Sí. Ganaste» con cuánto quedó de cada S/ 100; «No. Perdiste»; el Taller y la empresa no venden", () => {
-    expect(titularGanamos({ resultado: 3850, ventas: 48600, unidad: "consolidado" })).toEqual({
-      si: true,
-      respuesta: "Ganaste S/\u00a03,850",
-      bajada: "De cada S/\u00a0100 que vendiste te quedaron S/\u00a07,9.",
-    });
-    expect(titularGanamos({ resultado: -29016, ventas: 106447, unidad: "consolidado" })).toMatchObject({ si: false, respuesta: "Perdiste S/\u00a029,016" });
-    expect(titularGanamos({ resultado: -5000, ventas: 0, unidad: "taller" }).bajada).toMatch(/^El Taller no vende/);
-    expect(titularGanamos({ resultado: -800, ventas: 0, unidad: "empresa" })).toMatchObject({ respuesta: "Costó S/\u00a0800" });
-  });
   it("cada sede, en el orden del telar, con su color y su enlace", () => {
     const f = filasDeSedes(
       [

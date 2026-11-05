@@ -108,7 +108,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
   "/finanzas/impuestos/sire": { estado: "no-aplica", motivo: "Comparar con SUNAT (ADR-0601) solo mira: las cifras filtran la lista y nada se llena aquí. El archivo y quién lo sube se eligen en la hoja «Propuesta de compras» (SubirPropuestaSireModal), que lleva su registro aparte." },
-  "/finanzas/reportes": { estado: "no-aplica", motivo: "¿Ganamos? (Estados financieros, ADR-0585) solo mira: la respuesta, la cascada y lo de cada sede se tocan para ver más, nada se llena. El mes y la sede los elige la barra del telar." },
+  "/finanzas/reportes": { estado: "no-aplica", motivo: "Ganancias y pérdidas (Estados financieros, ADR-0611) solo mira: la cifra, la línea y las partes de la barra se tocan para ver más, nada se llena. El mes y la sede los elige la barra del telar." },
   "/finanzas/reportes/balance": { estado: "no-aplica", motivo: "¿Cuánto vale CAYLA? (ADR-0585) solo mira: su único control es la fecha del Balance, un filtro. Los saldos de arranque se llenan en su propia hoja (SaldosArranqueModal), que lleva su registro aparte." },
   "/finanzas/reportes/campanas": { estado: "no-aplica", motivo: "La lista de campañas y cómo le fue a cada una (ADR-0585: la puerta desde ¿Ganamos?): solo mira, sin campos ni pasos." },
   "/finanzas/reportes/cuentas": { estado: "no-aplica", motivo: "Ver ▸ Saldos por cuenta o Libro diario (ADR-0585): solo mira. Su único campo es el buscador del diario, que filtra; no hay nada que llenar." },

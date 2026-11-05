@@ -22,6 +22,8 @@ export type Periodo = Rango & {
   unMes: boolean;
   /** Varios meses enteros seguidos. */
   variosMeses: boolean;
+  /** Termina hoy: todavía se está llenando. */
+  enCurso: boolean;
   dias: number;
   /** «Octubre 2026», «Agosto a octubre 2026», «5 al 20 de octubre 2026». */
   titulo: string;
@@ -99,7 +101,7 @@ export function periodoDe(desde: string, hasta: string, hoy: string): Periodo {
 
   const largo = hasta === hoy ? "hasta hoy" : unMes ? "mes completo" : variosMeses ? `${mesesEntre(mesA, mesZ) + 1} meses completos` : `${dias} ${dias === 1 ? "día" : "días"}`;
   const tramo = desde === hasta ? "Un día" : `${dA} ${corto(mesA)} – ${dZ} ${corto(mesZ)}`;
-  return { desde, hasta, mes: mesZ, unMes, variosMeses, dias, titulo, en, tramo, largo, al: `Al ${dZ} de ${nomZ} de ${anioDe(hasta)}` };
+  return { desde, hasta, mes: mesZ, unMes, variosMeses, enCurso: hasta === hoy, dias, titulo, en, tramo, largo, al: `Al ${dZ} de ${nomZ} de ${anioDe(hasta)}` };
 }
 
 const esFecha = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && deMs(aMs(v)) === v;
@@ -172,17 +174,51 @@ export function vecinos(p: Periodo, hoy: string, minimo: string | null, una: boo
   };
 }
 
-/** Con qué se compara: los mismos meses enteros justo antes, o los mismos días justo antes. `null` si Finanzas todavía no contaba. */
+/**
+ * Con qué se compara. El mes de hoy, con los mismos días del mes pasado: contra el mes entero siempre saldría perdiendo. Unos meses ya cerrados, con los
+ * mismos meses justo antes. Lo demás, con los mismos días justo antes. `null` si Finanzas todavía no contaba.
+ */
 export function periodoAnterior(p: Periodo, minimo: string | null): Rango | null {
   if (minimo && p.desde <= minimo) return null;
-  if (p.unMes || p.variosMeses) {
-    const hasta = sumarDias(p.desde, -1);
+  const hasta = sumarDias(p.desde, -1);
+  if (p.unMes && p.enCurso) {
+    const mes = mesDe(hasta);
+    return { desde: primero(mes), hasta: elMenor(`${mes}-${String(diaDe(p.hasta)).padStart(2, "0")}`, finDelMes(mes)) };
+  }
+  if (p.unMes || (p.variosMeses && !p.enCurso)) {
     const desde = primero(sumarMeses(mesDe(hasta), -mesesEntre(mesDe(p.desde), p.mes)));
     return minimo && mesDe(desde) < mesDe(minimo) ? null : { desde, hasta };
   }
-  const hasta = sumarDias(p.desde, -1);
   const desde = sumarDias(hasta, 1 - p.dias);
   return minimo && desde < minimo ? null : { desde, hasta };
+}
+
+export type Comparable = Rango & { etiqueta: string };
+
+/**
+ * Los dos períodos de antes, para las columnas del detalle, del más viejo al más nuevo. En el mes de hoy, los mismos días de los dos meses pasados: si no, el
+ * último tendría 5 días y el de antes también, pero de días distintos. Los meses se nombran por su mes; otras fechas, «Antes» y «Anterior».
+ */
+export function periodosAnteriores(p: Periodo, hoy: string, minimo: string | null): Comparable[] {
+  const uno = periodoAnterior(p, minimo);
+  if (!uno) return [];
+  const conEtiqueta = (r: Rango, siNoEsMes: string): Comparable => ({ ...r, etiqueta: p.unMes ? capital(corto(mesDe(r.desde))) : siNoEsMes });
+  const anterior = conEtiqueta(uno, "Anterior");
+  const dos =
+    p.unMes && p.enCurso
+      ? periodoAnterior(periodoDe(primero(mesDe(uno.desde)), elMenor(uno.hasta, hoy), uno.hasta), minimo)
+      : periodoAnterior(periodoDe(uno.desde, uno.hasta, hoy), minimo);
+  return dos ? [conEtiqueta(dos, "Antes"), anterior] : [anterior];
+}
+
+/** Cómo se nombra el período en su columna: «Oct», o «Ahora». */
+export const etiquetaDelPeriodo = (p: Periodo) => (p.unMes ? capital(corto(p.mes)) : "Ahora");
+
+/** Cómo se nombra aquello con lo que se compara: «octubre», «octubre a esta fecha», «el período anterior». */
+export function nombreDelAnterior(p: Periodo): string {
+  if (!p.unMes) return "el período anterior";
+  const antes = mesNombre(sumarMeses(p.mes, -1));
+  return p.enCurso ? `${antes} a esta fecha` : antes;
 }
 
 /** La frase junto al período que dice contra qué se comparan las cifras. */
@@ -191,9 +227,7 @@ export function comparacionDelPeriodo(p: Periodo, minimo: string | null, una: bo
     const mesAntes = sumarMeses(p.mes, -1);
     return mesAlAlcance(mesAntes, minimo) ? `Se compara con el fin de ${mesNombre(mesAntes)}` : "Sin fecha anterior";
   }
-  const antes = periodoAnterior(p, minimo);
-  if (!antes) return "Sin período anterior";
-  return p.unMes ? `Se compara con ${mesNombre(mesDe(antes.desde))}` : "Se compara con el período anterior";
+  return periodoAnterior(p, minimo) ? `Se compara con ${nombreDelAnterior(p)}` : "Sin período anterior";
 }
 
 export type Atajo = Rango & { clave: string; titulo: string; detalle: string };

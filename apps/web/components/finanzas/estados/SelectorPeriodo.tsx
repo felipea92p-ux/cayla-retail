@@ -87,7 +87,16 @@ export function SelectorPeriodo({ desde, hasta, hoy, minimo, una, sede }: { desd
           <b className="tabular-nums" aria-live="polite">
             {una ? p.al : p.titulo}
           </b>
-          <small>{una ? (hasta === hoy ? "Hoy" : "Una foto a esa fecha") : `${p.tramo} · ${p.largo}`}</small>
+          <small>
+            {una ? (
+              hasta === hoy ? "Hoy" : "Una foto a esa fecha"
+            ) : (
+              <>
+                <span className="estados-fecha-tramo">{`${p.tramo} · `}</span>
+                {p.largo}
+              </>
+            )}
+          </small>
         </span>
         <ChevronDown aria-hidden className="estados-fecha-giro h-4 w-4" />
       </button>
@@ -384,7 +393,7 @@ function Calendario({
             )}
           </div>
           {!enCelular && (
-            <button type="button" className="cerrar-hoja estados-cal-cerrar area-dedo" aria-label="Cerrar" onClick={() => {
+            <button type="button" className="estados-cal-cerrar" aria-label="Cerrar" onClick={() => {
               onCerrar();
               volverA.current?.focus({ preventScroll: true });
             }}>

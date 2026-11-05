@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAPAS_DE_HILOS, corrimientoDeCapa, esElHiloRojo, estadoDeLaRuta, mouseEnLaTela, puntosDelHilo, tamanoDelLienzo } from "./estados-tela";
+import { CAPAS_DE_HILOS, corrimientoDeCapa, esElHiloRojo, estadoDeLaRuta, mouseEnLaTela, puntosDelHilo, tamanoDelLienzo, pixelesDeLente } from "./estados-tela";
 
 describe("los hilos", () => {
   it("son los mismos cada vez: sin azar", () => {
@@ -59,5 +59,32 @@ describe("la pestaña por la ruta", () => {
 
   it("lo demás se queda con la tela del primero", () => {
     expect(estadoDeLaRuta("/finanzas/reportes/campanas")).toBe(0);
+  });
+});
+
+describe("la lente", () => {
+  const { w, h, datos } = pixelesDeLente(400, 200, 30, 34);
+  const pixel = (i: number, j: number) => [datos[(j * w + i) * 4]!, datos[(j * w + i) * 4 + 1]!];
+  it("se dibuja a la mitad del tamaño", () => {
+    expect([w, h]).toEqual([200, 100]);
+    expect(datos.length).toBe(200 * 100 * 4);
+  });
+  it("lejos del borde no mueve nada", () => {
+    expect(pixel(100, 50).map(Math.round)).toEqual([128, 128]);
+  });
+  it("en cada borde empuja hacia adentro, y en su dirección", () => {
+    expect(pixel(0, 50)[0]).toBeGreaterThan(200);
+    expect(pixel(199, 50)[0]).toBeLessThan(60);
+    expect(pixel(100, 0)[1]).toBeGreaterThan(200);
+    expect(pixel(100, 99)[1]).toBeLessThan(60);
+    expect(Math.round(pixel(0, 50)[1]!)).toBe(128);
+  });
+  it("una esquina empuja en diagonal", () => {
+    const [r, g] = pixel(5, 5);
+    expect(r).toBeGreaterThan(128);
+    expect(g).toBeGreaterThan(128);
+  });
+  it("todo se ve: el alfa es pleno", () => {
+    for (let o = 3; o < datos.length; o += 4000) expect(datos[o]).toBe(255);
   });
 });

@@ -7,14 +7,17 @@ import {
   cubreElMes,
   diaPorTecla,
   diasDelMes,
+  etiquetaDelPeriodo,
   hrefPeriodo,
   intensidadDelDia,
   leerPeriodo,
   marcaDelDia,
   mesesDelHilo,
+  nombreDelAnterior,
   paramsDelRango,
   periodoAnterior,
   periodoDe,
+  periodosAnteriores,
   revisarEscritas,
   sumarMeses,
   vecinos,
@@ -169,6 +172,18 @@ describe("con qué se compara", () => {
     expect(periodoAnterior(periodoDe("2026-10-05", "2026-10-11", HOY), MIN)).toEqual({ desde: "2026-09-28", hasta: "2026-10-04" });
   });
 
+  it("el mes de hoy, con los mismos días del mes pasado: contra el mes entero siempre saldría perdiendo", () => {
+    expect(periodoAnterior(periodoDe("2026-11-01", HOY, HOY), MIN)).toEqual({ desde: "2026-10-01", hasta: "2026-10-05" });
+    // Un 31 sin su 31 en el mes pasado: hasta su último día.
+    expect(periodoAnterior(periodoDe("2026-10-01", "2026-10-31", "2026-10-31"), MIN)).toEqual({ desde: "2026-09-01", hasta: "2026-09-30" });
+    expect(nombreDelAnterior(periodoDe("2026-11-01", HOY, HOY))).toBe("octubre a esta fecha");
+    expect(comparacionDelPeriodo(periodoDe("2026-11-01", HOY, HOY), MIN, false)).toBe("Se compara con octubre a esta fecha");
+  });
+
+  it("varios meses que terminan hoy, con los mismos días justo antes", () => {
+    expect(periodoAnterior(periodoDe("2026-10-01", HOY, HOY), MIN)).toEqual({ desde: "2026-08-26", hasta: "2026-09-30" });
+  });
+
   it("antes de que Finanzas contara no hay con qué", () => {
     expect(periodoAnterior(periodoDe("2025-11-01", "2025-11-30", HOY), MIN)).toBeNull();
     expect(periodoAnterior(periodoDe("2025-11-03", "2025-11-10", HOY), MIN)).toBeNull();
@@ -180,6 +195,38 @@ describe("con qué se compara", () => {
     expect(comparacionDelPeriodo(periodoDe("2026-10-05", "2026-10-11", HOY), MIN, false)).toBe("Se compara con el período anterior");
     expect(comparacionDelPeriodo(periodoDe("2026-11-01", HOY, HOY), MIN, true)).toBe("Se compara con el fin de octubre");
     expect(comparacionDelPeriodo(periodoDe("2025-11-01", "2025-11-30", HOY), MIN, true)).toBe("Sin fecha anterior");
+  });
+});
+
+describe("las columnas de antes", () => {
+  it("un mes, con sus dos meses de antes", () => {
+    const c = periodosAnteriores(periodoDe("2026-10-01", "2026-10-31", HOY), HOY, MIN);
+    expect(c).toEqual([
+      { desde: "2026-08-01", hasta: "2026-08-31", etiqueta: "Ago" },
+      { desde: "2026-09-01", hasta: "2026-09-30", etiqueta: "Sep" },
+    ]);
+    expect(etiquetaDelPeriodo(periodoDe("2026-10-01", "2026-10-31", HOY))).toBe("Oct");
+  });
+
+  it("el mes de hoy, con los mismos días de los dos meses pasados", () => {
+    expect(periodosAnteriores(periodoDe("2026-11-01", HOY, HOY), HOY, MIN)).toEqual([
+      { desde: "2026-09-01", hasta: "2026-09-05", etiqueta: "Sep" },
+      { desde: "2026-10-01", hasta: "2026-10-05", etiqueta: "Oct" },
+    ]);
+  });
+
+  it("otras fechas, los mismos días justo antes", () => {
+    const p = periodoDe("2026-10-05", "2026-10-11", HOY);
+    expect(periodosAnteriores(p, HOY, MIN)).toEqual([
+      { desde: "2026-09-21", hasta: "2026-09-27", etiqueta: "Antes" },
+      { desde: "2026-09-28", hasta: "2026-10-04", etiqueta: "Anterior" },
+    ]);
+    expect(etiquetaDelPeriodo(p)).toBe("Ahora");
+  });
+
+  it("solo los que Finanzas alcanzó a contar", () => {
+    expect(periodosAnteriores(periodoDe("2025-11-01", "2025-11-30", HOY), HOY, MIN)).toEqual([]);
+    expect(periodosAnteriores(periodoDe("2025-12-01", "2025-12-31", HOY), HOY, MIN).map((c) => c.etiqueta)).toEqual(["Nov"]);
   });
 });
 

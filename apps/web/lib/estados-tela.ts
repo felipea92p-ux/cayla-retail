@@ -71,3 +71,42 @@ export function corrimientoDeCapa(estado: number, capa: number, mx: number, my: 
 
 /** El mouse, de -5 a 5 px: va al revés del puntero, como si la tela estuviera más lejos. */
 export const mouseEnLaTela = (posicion: number, largo: number): number => (posicion / largo - 0.5) * -10;
+
+/**
+ * El mapa de la lente (Felipe eligió el vidrio de la maqueta): cómo el borde de una placa desvía lo que hay detrás, como el canto de un vidrio. Cada pixel dice hacia
+ * dónde empujar: rojo en horizontal, verde en vertical, y 127,5 es «no moverse». Lejos del borde no se mueve nada; en el borde, lo que más. Se dibuja a la mitad del
+ * tamaño: no hace falta más y una placa grande son muchos pixeles.
+ */
+export function pixelesDeLente(ancho: number, alto: number, radio: number, banda: number): { w: number; h: number; datos: Uint8ClampedArray } {
+  const paso = 2;
+  const w = Math.ceil(ancho / paso);
+  const h = Math.ceil(alto / paso);
+  const datos = new Uint8ClampedArray(w * h * 4);
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) {
+      const px = i * paso + 0.5;
+      const py = j * paso + 0.5;
+      const qx = Math.abs(px - ancho / 2) - (ancho / 2 - radio);
+      const qy = Math.abs(py - alto / 2) - (alto / 2 - radio);
+      // Qué tan adentro está, medido desde el borde redondeado.
+      const adentro = -(Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radio);
+      let nx = 0;
+      let ny = 0;
+      if (qx > 0 && qy > 0) {
+        const l = Math.hypot(qx, qy) || 1;
+        nx = qx / l;
+        ny = qy / l;
+      } else if (qx > qy) nx = 1;
+      else ny = 1;
+      nx *= Math.sign(px - ancho / 2) || 1;
+      ny *= Math.sign(py - alto / 2) || 1;
+      const m = adentro < banda ? Math.pow(1 - Math.max(adentro, 0) / banda, 2.2) : 0;
+      const o = (j * w + i) * 4;
+      datos[o] = 127.5 - nx * m * 127.5;
+      datos[o + 1] = 127.5 - ny * m * 127.5;
+      datos[o + 2] = 128;
+      datos[o + 3] = 255;
+    }
+  }
+  return { w, h, datos };
+}

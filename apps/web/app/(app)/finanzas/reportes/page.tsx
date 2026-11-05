@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import { exigirModulo, veDiarioDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe } from "@/lib/gastos-reglas";
-import { mesAnterior } from "@/lib/resultados-reglas";
+import { mesAnterior, mesNombre } from "@/lib/resultados-reglas";
 import { getCampanas, getEstadoResultados, getUnidadesCerradas } from "@/lib/resultados";
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
 import { getParametrosFinanzas } from "@/lib/configuracion";
@@ -9,20 +10,26 @@ import { getVentasClaure } from "@/lib/cuenta-claure";
 import { getCuadreVentas } from "@/lib/cuadre-ventas";
 import { cuadroVentas } from "@/lib/cuadre-ventas-reglas";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
-import { leerPeriodo, periodoAnterior } from "@/lib/estados-periodo";
+import { etiquetaDelPeriodo, leerPeriodo, periodoAnterior, periodosAnteriores } from "@/lib/estados-periodo";
+import { lecturaDeGanancias, libroDeGanancias, partesDeGanancias, tituloDeLasPartes } from "@/lib/estados-ganancias";
+import { textoDeVerMas } from "@/lib/estados-partes";
 import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, formaDe, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CuadreVentas } from "@/components/finanzas/estados/CuadreVentas";
-import { GanamosPanel } from "@/components/finanzas/estados/GanamosPanel";
+import { Aviso } from "@/components/ui/Aviso";
+import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
+import { GananciasVidrio } from "@/components/finanzas/estados/GananciasVidrio";
+import { LineaDeGanancias, LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
+import { MasDeGanancias } from "@/components/finanzas/estados/MasDeGanancias";
+import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
 import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 
-// Finanzas ▸ Estados financieros ▸ ¿Ganamos? (ganancias y pérdidas; ADR-0195 F5, ADR-0585). Lee en el servidor, a la vez: el Estado de
-// resultados del mes (a la fecha en el mes en curso), el presupuesto contra lo real (la raya de lo planeado: el presupuesto ya no tiene
-// pantalla aparte) y las campañas. La sede y el mes son los de la barra del telar (`?sede=`, `?mes=`); `?comparar=1` pone en el formato
-// formal cuánto cambió cada total contra el mes anterior. Quien ve todo (el líder, Configuración, Cierre de mes, CAYLA Global o este
+// Finanzas ▸ Estados financieros ▸ Ganancias y pérdidas (ADR-0195 F5, ADR-0585, ADR-0611). Lee en el servidor, a la vez: el Estado de resultados de las fechas del
+// calendario y de los dos períodos de antes, el presupuesto contra lo real y las campañas (estos dos, si se mira un mes). La línea de los meses llega aparte, con su
+// `Suspense`. La sede es la de la barra del telar (`?sede=`); `?comparar=1` pone en el formato formal cuánto cambió cada total contra el mes anterior. Quien ve todo (el líder, Configuración, Cierre de mes, CAYLA Global o este
 // módulo, ADR-0585) elige la sede; una terminal mira la suya (lo decide la base).
 export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ mes?: string; desde?: string; hasta?: string; ver?: string; sede?: string; comparar?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
@@ -41,9 +48,13 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const antes = unMes ? periodoAnterior(periodo, inicio) : null;
   const comparar = sp.comparar === "1" && unMes;
 
-  const [actual, anterior, cerradas, claure, ppto, campanas, cuadre] = await Promise.all([
+  // Los dos períodos de antes: de ahí salen «contra qué se compara» y las columnas del detalle. Si no se pueden leer, la pantalla sale sin comparar.
+  const anteriores = periodosAnteriores(periodo, hoy, inicio);
+
+  const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre] = await Promise.all([
     getEstadoResultados(desde, hasta),
     comparar && antes ? getEstadoResultados(antes.desde, antes.hasta) : Promise.resolve(null),
+    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await getEstadoResultados(c.desde, c.hasta) }))),
     // El mes en curso no se cierra: no hay nada que preguntar.
     enCurso ? Promise.resolve([] as string[]) : getUnidadesCerradas(mes),
     // Lo vendido de CLAURE no suma a nada de esta pantalla: la nota dice cuánto se dejó fuera (apoyo; sin permiso o sin CLAURE llega `null`).
@@ -71,39 +82,74 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const sedesCascada = deCadaSede ? filasDeSedes(deCadaSede, (c) => href("/finanzas/reportes", c)) : null;
   const cuadro = cuadroVentas(cuadre.datos, sede);
   const recomendaciones = recomendacionesGanamos({ fila, sedes: deCadaSede, tramos, meta, campanas: delMes, enCurso, href });
+  const hayCuadre = cuadre.falla || cuadro;
+  const textoMas = textoDeVerMas([
+    ...(tramos.some((t) => t.plan !== undefined) ? ["lo planeado"] : []),
+    ...(sedesCascada && sedesCascada.length > 1 ? ["las sedes"] : []),
+    ...(unMes ? ["las campañas"] : []),
+    ...(hayCuadre ? ["lo que cuadra con Ventas"] : []),
+  ]);
+  const leidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, fila: c.lectura.falla ? null : filaDeLaSede(c.lectura.datos, sede) }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <CabeceraEstados pantalla="ganamos" mes={mes} sede={sede} hoy={hoy} params={params} forma={forma} />
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <GanamosPanel
-          fila={fila}
-          tramos={tramos}
-          meta={meta}
-          sedes={sedesCascada}
-          campanas={delMes}
-          hrefCampanas={href("/finanzas/reportes/campanas")}
-          mes={mes}
-          enCurso={enCurso}
-          forma={forma}
-          cuadre={cuadre.falla || cuadro ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
-          formal={{
-            filas: actual.datos,
-            anteriores: anterior?.datos ?? null,
-            veTodo,
-            cerradas,
-            sedeActual: persona.ubicacionId,
-            verParam: verDeLaVista(persona.vista, sedeDeLaUrl(sp)),
-            mes,
-            mesPrevio: previo,
-            hoy,
-            comparar,
-            claure,
-            fallas: [avisoCorte, actual.falla, anterior?.falla ?? null].filter((f): f is string => !!f),
-          }}
-        />
-        <Recomendaciones recomendaciones={recomendaciones} />
-      </div>
+      {forma === "formal" ? (
+        <div className="min-w-0 space-y-4" data-guia="fin-ganamos.formal">
+          <EstadoResultadosPanel
+            filas={actual.datos}
+            anteriores={anterior?.datos ?? null}
+            veTodo={veTodo}
+            cerradas={cerradas}
+            sedeActual={persona.ubicacionId}
+            verParam={verDeLaVista(persona.vista, sedeDeLaUrl(sp))}
+            mes={mes}
+            mesPrevio={previo}
+            hoy={hoy}
+            comparar={comparar}
+            claure={claure}
+            fallas={[avisoCorte, actual.falla, anterior?.falla ?? null].filter((f): f is string => !!f)}
+          />
+        </div>
+      ) : (
+        <>
+          {avisoCorte && <Aviso tono="info">{avisoCorte}</Aviso>}
+          {/* Si no se pudo leer se dice: nunca una cifra en cero que no es. */}
+          {actual.falla ? (
+            <Aviso tono="error">{actual.falla}</Aviso>
+          ) : (
+            <GananciasVidrio
+              nombre={`Ganancias y pérdidas · ${periodo.titulo}`}
+              lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo)}
+              partes={fila ? partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : []}
+              tituloPartes={fila ? tituloDeLasPartes(fila, tramos) : ""}
+              periodo={periodo}
+              libro={fila ? libroDeGanancias(fila, tramos) : []}
+              linea={
+                <Suspense fallback={<LineaEsperando />}>
+                  <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} />
+                </Suspense>
+              }
+            />
+          )}
+        </>
+      )}
+      <Recomendaciones recomendaciones={recomendaciones} enFila />
+      {textoMas && (
+        <MasDelEstado texto={textoMas} guia="fin-ganamos.mas">
+          <MasDeGanancias
+            fila={fila}
+            tramos={tramos}
+            meta={meta}
+            enCurso={enCurso}
+            sedes={sedesCascada}
+            campanas={unMes ? delMes : null}
+            hrefCampanas={href("/finanzas/reportes/campanas")}
+            nombreDelMes={mesNombre(mes)}
+            cuadre={hayCuadre ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
+          />
+        </MasDelEstado>
+      )}
     </div>
   );
 }
