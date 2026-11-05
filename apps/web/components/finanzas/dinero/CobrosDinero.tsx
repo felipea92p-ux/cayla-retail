@@ -72,7 +72,7 @@ export function CobrosDinero({ filas }: { filas: FilaCobro[] }) {
           <TituloSeccion cuenta={sinCuenta > 0 ? sinCuenta : undefined}>A qué cuenta entra cada cobro</TituloSeccion>
           <p className="dp-tenue">Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</p>
         </div>
-        <Link href="/configuracion?tab=cuentas" className="btn-cayla btn-sutil btn-chico">
+        <Link href="/configuracion?tab=dinero" className="btn-cayla btn-sutil btn-chico">
           Cambiar en Configuración
         </Link>
       </header>

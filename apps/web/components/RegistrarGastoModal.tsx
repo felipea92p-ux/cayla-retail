@@ -502,7 +502,7 @@ export function RegistrarGastoModal({
               htmlFor="gasto-categoria"
               ayuda={
                 fijo
-                  ? `${categoria ? `Va a la cuenta ${categoria.cuenta}. ` : ""}Viene del fijo «${fijo.descripcion}»: si es otro gasto, regístralo aparte; si la categoría del fijo está mal, se corrige en Configuración ▸ Gastos fijos.`
+                  ? `${categoria ? `Va a la cuenta ${categoria.cuenta}. ` : ""}Viene del fijo «${fijo.descripcion}»: si es otro gasto, regístralo aparte; si la categoría del fijo está mal, se corrige en Configuración ▸ Gastos.`
                   : categoria
                     ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.`
                     : "Sin «Otros»: si no calza en ninguna, avisa al líder."

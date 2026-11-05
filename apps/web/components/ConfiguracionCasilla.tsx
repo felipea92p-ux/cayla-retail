@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { VISTO_MS, cambioLaCasilla } from "@/lib/configuracion-casilla";
@@ -17,7 +16,7 @@ import { VISTO_MS, cambioLaCasilla } from "@/lib/configuracion-casilla";
 // al número y se va solo en 1,6 s («A · Visto en la celda»). El aviso de la esquina sigue saliendo: dice qué más cambió (la meta del mes).
 
 /** Lo que cada casilla llama para guardar: firma con el responsable, avisa y refresca. `true` si la base lo aceptó. */
-export type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string) => Promise<boolean>;
+export type Guardar = (hacer: () => PromiseLike<{ error: unknown; data?: unknown }>, que: string, listo: string | ((data: unknown) => string)) => Promise<boolean>;
 
 /** El guardado de las casillas: exige el responsable, firma, avisa y refresca. Lo comparten Metas y Empresa y tiendas. */
 export function useGuardarCasilla() {
@@ -31,31 +30,19 @@ export function useGuardarCasilla() {
       return false;
     }
     setGuardando(true);
-    const { error } = await firmar(hacer() as never, responsable.firma());
+    const { error, data } = (await firmar(hacer() as never, responsable.firma())) as { error: unknown; data?: unknown };
     setGuardando(false);
     responsable.despues(error as never);
     if (error) {
       avisar.error(traducirError(error as never, que));
       return false;
     }
-    avisar.exito(listo);
+    avisar.exito(typeof listo === "function" ? listo(data) : listo);
     router.refresh();
     return true;
   };
 
   return { responsable, guardando, guardar };
-}
-
-/** La frase de «se guarda sola» con el combo de quién firma. `guia`: el ancla de la guía interactiva, si esta fila es la que explica. */
-export function FilaResponsable({ responsable, guardando, guia }: { responsable: ReturnType<typeof useResponsable>; guardando: boolean; guia?: string }) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-guia={guia}>
-      <p className="max-w-md text-sm text-taupe">Cada casilla se guarda sola al salir de ella y queda en la historia.</p>
-      <div className="w-full max-w-xs">
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
-      </div>
-    </div>
-  );
 }
 
 /** El ✓ de «se guardó»: `vez` cuenta los guardados (0 = no se ve). Cada guardado nuevo lo vuelve a dibujar desde cero (otra `key`). */
@@ -85,10 +72,14 @@ export function MarcoCasilla({ vez, children }: { vez: number; children: ReactNo
   );
 }
 
-/** Una casilla numérica que se guarda al salir (blur) si su texto cambió. Si el guardado falla, vuelve a lo de antes. */
+/**
+ * Una casilla numérica que se guarda al salir (blur) si su texto cambió. Si el guardado falla, vuelve a lo de antes. Mientras guarda no se edita (/chaos 2026-10-14): con la red
+ * lenta, dos cambios seguidos llegaban en desorden y quedaba el primero aunque se escribió el segundo.
+ */
 export function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { valor: string; etiqueta: string; ancho: string; alGuardar: (nuevo: string) => Promise<boolean>; placeholder?: string }) {
   const [t, setT] = useState(valor);
   const [antes, setAntes] = useState(valor);
+  const [guardando, setGuardando] = useState(false);
   const visto = useVistoGuardado();
   // Si la base trae otro valor (otro guardado, un refresco), la casilla lo toma.
   if (valor !== antes) {
@@ -102,16 +93,42 @@ export function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—"
         inputMode="decimal"
         value={t}
         placeholder={placeholder}
+        readOnly={guardando}
+        aria-busy={guardando || undefined}
         onChange={(e) => setT(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          if (e.key === "Escape") setT(valor);
+          if (e.key === "Escape" && !guardando) setT(valor);
         }}
         onBlur={async () => {
-          if (!cambioLaCasilla(t, valor)) return;
+          if (guardando || !cambioLaCasilla(t, valor)) return;
+          setGuardando(true);
           const ok = await alGuardar(t);
+          setGuardando(false);
           if (ok) visto.marcar();
           else setT(valor);
+        }}
+        className={`fin-control fin-num inline-block ${ancho}`}
+      />
+    </MarcoCasilla>
+  );
+}
+
+/** Una casilla que NO se guarda sola: lo tipeado vive afuera hasta que se aprieta «Guardar». Enter guarda; Escape devuelve lo guardado. */
+export function CasillaManual({ valor, guardado, onValor, onEnter, etiqueta, ancho, placeholder = "—", bloqueada }: { valor: string; guardado: string; onValor: (nuevo: string) => void; onEnter: () => void; etiqueta: string; ancho: string; placeholder?: string; bloqueada: boolean }) {
+  return (
+    <MarcoCasilla vez={0}>
+      <input
+        aria-label={etiqueta}
+        inputMode="decimal"
+        value={valor}
+        placeholder={placeholder}
+        readOnly={bloqueada}
+        aria-busy={bloqueada || undefined}
+        onChange={(e) => onValor(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onEnter();
+          if (e.key === "Escape" && !bloqueada) onValor(guardado);
         }}
         className={`fin-control fin-num inline-block ${ancho}`}
       />

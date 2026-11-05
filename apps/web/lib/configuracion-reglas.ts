@@ -277,7 +277,7 @@ export function leerConfiguracionMetas(data: unknown): ConfiguracionMetas | null
   };
 }
 
-// ---- Configuración ▸ Caja y avisos (20260925103000) ----------------------------------------------------------------
+// ---- Configuración ▸ Dinero (20260925103000) ----------------------------------------------------------------
 
 export type ParametrosFinanzas = { minimoCaja: number; avisoGastoPct: number; avisoVenceDias: number };
 /** Lo de Caja y avisos más desde cuándo cuenta Finanzas (ADR-0332): «2026-10-01», o null si no hay corte. */

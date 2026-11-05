@@ -238,7 +238,7 @@ export function fraseClaure(desde: string | null): string {
 
 /** La nota al pie: cómo se calcula lo que no se ve en la tabla. */
 export const NOTA_CLAURE =
-  "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Cuentas y cobros) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA, que lo declara y lo paga, así que se descuenta a Claudia. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no. En un cambio la plata sigue a la prenda que se lleva el cliente: si se lleva una de CAYLA, baja lo que se le debe; si pasa de una de CAYLA a una de CLAURE, sube.";
+  "La comisión del POS es una estimación con la tarifa de la máquina (Configuración ▸ Dinero) y la asume CLAURE. El IGV va incluido en lo cobrado: la boleta sale con el RUC de CAYLA, que lo declara y lo paga, así que se descuenta a Claudia. Una prenda de CLAURE devuelta y reembolsada desde una cuenta de CAYLA resta; si se reembolsó en efectivo, no. En un cambio la plata sigue a la prenda que se lleva el cliente: si se lleva una de CAYLA, baja lo que se le debe; si pasa de una de CAYLA a una de CLAURE, sube.";
 
 /** Bajo los pagos: dónde se anula uno equivocado. */
 /** Bajo los gastos: de dónde sale la parte de cada uno. */

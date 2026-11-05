@@ -28,7 +28,7 @@
     "components/finanzas/estados/PlataPanel.tsx": [
       "BotonVerMas «fin-plata.y-si»",
       "Link «Configuración ▸ Metas»",
-      "Link «Configuración ▸ Caja y avisos»"
+      "Link «Configuración ▸ Dinero»"
     ],
     "components/finanzas/estados/Recomendaciones.tsx": [
       "BotonVer «{r.accion.texto}»"
