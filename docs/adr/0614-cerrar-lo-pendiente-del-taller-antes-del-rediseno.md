@@ -44,3 +44,11 @@ SE ROMPE SI: alguien factura un servicio sin apuntar la línea a su fase: esa de
 DECIDÍ: `pagar_servicio_de_orden` arma un comprobante de una línea con `fase_id` y llama a `registrar_comprobante_produccion`. `comprobantes_produccion.tipo` suma `recibo_por_honorarios` (la misma palabra de Compras); Impuestos lo cuenta y deja fuera `sin_comprobante`.
 DESCARTÉ: el pago automático desde BCP Operativa al anotar la vuelta (ADR-0551, decisión 7): la vuelta la anota la encargada, que no ve el dinero, y un descuento silencioso de un banco no se revisa. En su lugar, el aviso lleva a pagar y la hoja propone la cuenta del Taller.
 SE ROMPE SI: alguien factura el servicio por «Facturas de insumos» sin apuntar a la fase: se contaría dos veces (la hoja de pago sí la apunta).
+
+## Actividad 5: «Llegó una compra» (migración `20261105223000`)
+
+**El problema.** La compra de una línea no servía para una factura con varios colores (la segunda vez la base la rechazaba por repetida) y pedía metros aunque la tela se compre por kilo.
+
+DECIDÍ: `registrar_compra_de_insumos` con una lista de líneas, compuesta con `registrar_comprobante_produccion` y `recibir_comprobante_produccion`; `recibir_insumo_comprado` la llama. La conversión vive en la pantalla (`lineaAlLibro`): el rinde lo da la ficha o lo corrige quien midió, y queda en la nota del lote. En una factura, el total es el del papel (`p_total`): a 4 decimales, los metros pueden perder un centavo.
+DESCARTÉ: (1) convertir en la base: tendría que conocer la ficha y lo medido, y el costo saldría igual; (2) repetir un insumo a dos precios en una misma compra: la recepción lo rechaza; se registran dos compras; (3) «solo el precio es obligatorio» (ADR-0570): el 2 de noviembre Felipe eligió pedir proveedor y papel (P03), con la salida «Todavía no tengo el papel».
+SE ROMPE SI: una boleta por kilos difiere un centavo del papel: sin IGV, la base exige que el total sea la suma de las líneas. Se acepta: es un centavo y el saldo no queda mal.

@@ -7,7 +7,7 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
   - [ ] **Falta el nombre de 4 servicios:** OP-1 (Corte, Ojales y botones), OP-2 (Planchado) y OP-4 (Corte). Ya se puede con la orden cerrada (actividad 3), cuando se publique.
 - [x] 3 · La deuda de un servicio llega a Por pagar, y el nombre se registra con la orden cerrada. **POR PEGAR:** `20261105221000_servicios_del_taller_por_pagar.sql`, una parte, con el OK de Felipe, antes de publicar la web. Finanzas ▸ Por pagar (`fn_por_pagar_consolidado`) todavía no lista estos servicios: su botón «Pagar» espera una factura.
 - [x] 4 · Pagar a un servicio desde Por pagar, con su papel. **POR PEGAR:** `20261105222000_pagar_servicio_de_la_orden.sql`, una parte, DESPUÉS de `20261105221000` y antes de publicar la web. Al publicar, Por pagar mostrará lo que se les debe a los servicios de las órdenes ya anotadas: si Felipe ya les pagó fuera del ERP, se registra con «Ya lo pagué» y su fecha.
-- [ ] 5 · «Llegó una compra», en hoja sencilla.
+- [x] 5 · «Llegó una compra», en hoja sencilla: varias líneas, por metro, kilo o rollo, y un aviso si el proveedor tiene un pedido abierto. «Ingresar insumo» pasó a «Saldo inicial». **POR PEGAR:** `20261105223000_llego_una_compra.sql`, una parte, DESPUÉS de `20261105222000` y antes de publicar la web. **Sin kilos en un avío ni rollos con código de lote:** el código solo se pide en metros; va con el rediseño.
 - [ ] 6 · Regularizar los lotes de compra sin proveedor y reemplazar una nota provisional.
 - [ ] 7 · Ajustar lo que queda de un lote ya usado.
 - [ ] 8 · Tope de corte de 3 prendas por talla y color.

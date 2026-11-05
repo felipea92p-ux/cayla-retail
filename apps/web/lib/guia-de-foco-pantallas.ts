@@ -335,6 +335,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/GastosPanel.tsx": PENDIENTE, // 13 controles
   "components/HistorialCierresModal.tsx": { estado: "no-aplica", motivo: "Hoja de solo lectura (Felipe 2026-10-12): los cierres de un mes como tickets, con su gráfico. Lo único que se toca es el mes (SelectorMes) y el filtro Todos / Faltó / Sobró, que cambian lo que se ve al instante; no hay nada que completar ni pasos que seguir." },
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
+  "components/insumos-taller/LlegoUnaCompraModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/LlegoUnaCompraModal.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
   "components/recepcion-conteo/LlegoSinAviso.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/LlegoSinAviso.tsx"] },

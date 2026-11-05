@@ -19,3 +19,8 @@
   POR QUÉ ASÍ: `pagar_servicio_de_orden` usa la misma puerta de siempre (`registrar_comprobante_produccion`), así Finanzas, IGV y el flujo lo ven sin cambiar. Sin papel queda marcado y fuera de Impuestos.
   QUÉ SE ROMPERÍA SIN ESTO: habría que escribir el pago a mano en Facturas, y la deuda de la orden no se enteraría.
   Verificado: `pruebas:produccion-pagar-servicio` 16/16, reglas 9/9 y en el navegador local un pago sin papel que deja el Taller sin deuda. Sin mirar a 375 px ni en oscuro. Sin pegar en producción.
+- **Actividad 5 · «Llegó una compra» (migración `20261105223000`).**
+  QUÉ HICE: una sola hoja para lo que se le compró a un proveedor: varias líneas de un mismo papel, por metro, kilo o rollo, con su rinde corregible, y cómo se paga. `registrar_compra_de_insumos` deja un comprobante y un lote por línea, todo o nada. La hoja vieja quedó solo para «Saldo inicial».
+  POR QUÉ ASÍ: reutiliza las dos funciones de siempre. El factor de kilos a metros sale de la ficha y se puede corregir, y queda escrito en la nota del lote.
+  QUÉ SE ROMPERÍA SIN ESTO: una factura con varios colores no cabía en el camino corto, y comprar por kilo obligaba a convertir de memoria.
+  Verificado: `pruebas:produccion-llego-una-compra` 12/12, la compra de una línea 23/23, reglas en verde y en el navegador local 100 kg a S/ 18: 333 m a S/ 5.4054, factura de S/ 2,124 y la nota «100 kg × 3.33 m/kg». Sin mirar a 375 px ni en oscuro. Sin pegar en producción.

@@ -12,7 +12,7 @@ import type { CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import type { MedioForm } from "@/lib/medios-pago-reglas";
 import type { TipoPapel } from "@/lib/insumo-compra-reglas";
 
-// Lo que agrega «Compra» al ingreso de un insumo (P03 del «Análisis del Taller», Felipe 2026-11-02): a quién se le compró, el papel del proveedor (o «todavía no lo tengo») y si ya se pagó o queda por pagar.
+// La parte de «Llegó una compra» que no depende de las líneas (ADR-0614; P03 del «Análisis del Taller», Felipe 2026-11-02): a quién se le compró, el papel del proveedor (o «todavía no lo tengo») y si ya se pagó o queda por pagar.
 // Es solo la parte de pantalla: el estado vive en `IngresarInsumoModal` (que arma lo que se manda con `insumo-compra-reglas`) y la base exige todo otra vez (`recibir_insumo_comprado`).
 
 export type ProveedorParaCompra = { id: string; nombre: string; plazoCreditoDias: number | null };

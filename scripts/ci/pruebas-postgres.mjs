@@ -1908,6 +1908,9 @@ export const PRUEBAS = [
   // Pagar a un servicio con el papel que dio (ADR-0614, actividad 4): cada papel, la deuda que baja sin IGV, de más no, sin nombre no, y el token. ROLLBACK.
   "pruebas:produccion-pagar-servicio",
 
+  // «Llegó una compra» (ADR-0614, actividad 5): varias líneas, todo o nada, deuda o pago, nota por lote y el token. ROLLBACK.
+  "pruebas:produccion-llego-una-compra",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 
