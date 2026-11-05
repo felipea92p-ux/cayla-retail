@@ -42,6 +42,11 @@ import { pathToFileURL } from "node:url";
  */
 export const CONOCIDAS = [
   {
+    patron: /^candado\tgastos\.gastos_(igv_check|ubicacion_id_fkey)1?$/,
+    motivo:
+      "Mismo candado con otro nombre: en producción, la tabla vieja renombrada a gastos_legado_2026_09 se quedó con estos nombres y la nueva tomó el sufijo 1. En una base nueva no existe la vieja.",
+  },
+  {
     patron: /^(columna|candado|indice|permiso|rls|politica)\tgastos_legado_2026_09(\.|_|$)/,
     motivo: "La tabla vieja de gastos que Finanzas renombró (20260924235100) solo si tenía datos: existe en producción y no en una base nueva.",
   },
