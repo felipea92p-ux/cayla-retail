@@ -116,8 +116,8 @@ function prendasSueltas(prendas: readonly Prenda[], sede: string | null): GrupoD
 }
 
 /**
- * Los grupos que salen ahora en la portada, hasta tres. Un grupo sale si todas sus prendas se pueden recoger en un mismo lugar: en la tienda
- * elegida o, con «Todas», en alguna. Sin ninguno, tres prendas nuevas sueltas; sin eso, `[]` y la portada sigue siendo la de siempre.
+ * Los grupos que salen ahora en la portada, hasta tres. Un grupo sale si todas sus prendas siguen siendo nuevas y se pueden recoger en un mismo
+ * lugar: en la tienda elegida o, con «Todas», en alguna. Sin ninguno, tres prendas nuevas sueltas; sin eso, `[]` y la portada sigue siendo la de siempre.
  */
 export function gruposDeLaPortada(
   prendas: readonly Prenda[],
@@ -132,6 +132,8 @@ export function gruposDeLaPortada(
     const suyas = grupo.map((pieza) => porCodigo.get(pieza.codigo));
     if (suyas.some((p) => !p)) continue;
     const juntas = suyas as Prenda[];
+    // La portada dice «Lo nuevo»: una prenda que ya dejó de serlo (a los 30 días de llegar a una tienda, si no está fijada) saca al grupo.
+    if (juntas.some((p) => !p.nuevo)) continue;
     const lugares = (elegida ? [elegida] : tiendas).filter((t) => juntas.every((p) => hayAlgo(p.stock?.sedes[t.id])));
     if (lugares.length === 0) continue;
     const lista = juntas.flatMap((p, i) => prendaDePortada(p, sede, grupo[i]) ?? []);

@@ -57,6 +57,13 @@ describe("los grupos que salen en la portada", () => {
     expect(gruposDeLaPortada(falta, AQP, TIENDAS, null, [G1]).every((g) => !g.combinan)).toBe(true);
   });
 
+  it("una prenda que dejó de ser nueva saca al grupo; una fijada como nueva, sin días, sigue", () => {
+    const vencida = [prenda("A-1", { a: "hay" }, { nuevo: null }), prenda("B-1", { a: "hay" }), prenda("C-1", { a: "hay" })];
+    expect(gruposDeLaPortada(vencida, AQP, TIENDAS, null, [G1]).some((g) => g.combinan)).toBe(false);
+    const fijada = [prenda("A-1", { a: "hay" }, { nuevo: { dias: null } }), prenda("B-1", { a: "hay" }), prenda("C-1", { a: "hay" })];
+    expect(gruposDeLaPortada(fijada, AQP, TIENDAS, null, [G1])[0].combinan).toBe(true);
+  });
+
   it("repartidas en tiendas distintas no combinan: no se pueden recoger juntas", () => {
     const repartidas = [prenda("A-1", { a: "hay" }), prenda("B-1", { t: "hay" }), prenda("C-1", { l: "hay" })];
     expect(gruposDeLaPortada(repartidas, null, TIENDAS, null, [G1]).some((g) => g.combinan)).toBe(false);
