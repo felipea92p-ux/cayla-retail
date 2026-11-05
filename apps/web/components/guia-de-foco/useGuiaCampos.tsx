@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
-import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
+import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
 //
@@ -65,8 +65,8 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
   const enfocar = useCallback((id: string) => setEscribiendoEn(id), []);
   const soltar = useCallback((id: string) => setEscribiendoEn((actual) => (actual === id ? null : actual)), []);
 
-  // Se avisa solo después de intentar confirmar: un campo vacío no regaña a quien todavía no llega a él.
-  const [mostrarFaltas, setMostrarFaltas] = useState(false);
+  // Se avisa solo después de intentar confirmar, y solo lo que faltaba entonces: un campo vacío no regaña a quien todavía no llega a él.
+  const [revisados, setRevisados] = useState<ReadonlySet<string>>(() => new Set());
   const [externos, setExternos] = useState<Record<string, string>>({});
   const limpiarError = useCallback((id: string) => {
     setExternos((e) => {
@@ -111,11 +111,11 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
     revisar: () => {
       const primero = primeroQueBloquea(campos);
       if (!primero) return true;
-      setMostrarFaltas(true);
+      setRevisados((r) => new Set([...r, ...pendientesAlRevisar(campos)]));
       irAlIdCampo(primero.id, { cursor: true, enModal });
       return false;
     },
-    errorDe: (id) => errorDeCampo(campos, id, mostrarFaltas, externos[id]),
+    errorDe: (id) => errorDeCampo(campos, id, revisados.has(id), externos[id]),
     marcarError: (id, mensaje) => {
       setExternos((e) => ({ ...e, [id]: mensaje }));
       irAlIdCampo(id, { cursor: true, enModal });

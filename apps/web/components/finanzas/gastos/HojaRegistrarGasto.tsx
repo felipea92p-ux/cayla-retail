@@ -27,6 +27,7 @@ import { choqueConElFijo, claveDeFijo, fijosQueSeParecen, mesDelFijo, textoFecha
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
@@ -201,9 +202,9 @@ export function HojaRegistrarGasto({
   const fijoDelGasto = fijo ?? fijoElegido;
   const campos = camposDeLaHoja(h, { proveedorListo, proveedorSinRuc: fijoSinRuc, salidaLista, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
-  // Tras intentar registrar, el error lo dice la guía bajo el campo: el motivo no se repite.
-  const motivoMonto = guia.errorDe("monto") ? null : motivoDelMonto(h.monto);
-  const motivoSerie = !guia.errorDe("serie") && h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : undefined;
+  // Lo mal escrito se dice al salir del campo, no a la primera letra (ADR-0611, mejora 2).
+  const avisoMonto = useValidarAlSalir(motivoDelMonto(h.monto));
+  const avisoSerie = useValidarAlSalir(h.serieNumero && !serieNumeroLegible(h.serieNumero) ? "Escríbela como F001-2231 (la letra, tres números, un guion y el número)." : null);
   const ticket = ticketDeLaHoja(h, {
     categoriaNombre: categoria?.nombre ?? null,
     sedeNombre: sede?.nombre ?? null,
@@ -377,7 +378,7 @@ export function HojaRegistrarGasto({
           )}
 
           <CampoGuiado id="monto" guia={guia} titulo="Cuánto">
-            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!motivoMonto} pie={motivoMonto ?? undefined} tono={motivoMonto ? "aviso" : undefined} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
+            <CampoMonto etiqueta="Monto" etiquetaOculta sinPie={!avisoMonto.motivo} pie={avisoMonto.motivo ?? undefined} tono={avisoMonto.motivo ? "error" : undefined} onBlur={avisoMonto.alSalir} inputMode="decimal" value={h.monto} readOnly={Boolean(egreso)} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" /* sugerir-fijo: el formato de un monto no depende de lo elegido */ autoFocus={!egreso} />
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="Para qué sede">
@@ -442,10 +443,11 @@ export function HojaRegistrarGasto({
                   onBlur={() => {
                     const legible = serieNumeroLegible(h.serieNumero);
                     if (legible) poner("serieNumero", legible);
+                    avisoSerie.alSalir();
                   }}
                   placeholder={sugerirSerie(h.comprobante)}
-                  pie={motivoSerie}
-                  tono={motivoSerie ? "aviso" : undefined}
+                  pie={avisoSerie.motivo ?? undefined}
+                  tono={avisoSerie.motivo ? "error" : undefined}
                 />
               </CampoGuiado>
             </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
+import { errorDeCampo, estadosDe, pendientesAlRevisar, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -163,6 +163,11 @@ describe("guardar con algo pendiente — el error va a su campo (ADR-0611, mejor
     const campos = [campo("color", { requerido: false, sugerido: true, pendiente: "Elige un color." })];
     expect(primeroQueBloquea(campos)).toBeNull();
     expect(errorDeCampo(campos, "color", true)).toBeNull();
+  });
+
+  it("al intentar guardar se recuerdan los que faltaban; uno que aparece después no regaña", () => {
+    expect(pendientesAlRevisar(pendientes)).toEqual(["sede", "motivo"]);
+    expect(pendientesAlRevisar([campo("a", { hecho: true }), campo("n", { requerido: false })])).toEqual([]);
   });
 
   it("primeroQueBloquea existe si y solo si no se puede confirmar", () => {

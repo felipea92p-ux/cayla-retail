@@ -252,6 +252,10 @@
 .hilo-luz[data-error] .caja-campo {
   border-color: color-mix(in srgb, var(--color-rojo) 55%, transparent);
 }
+/* Nunca dos mensajes peleando: si el campo de adentro ya dice por qué está mal, la guía se calla. */
+.hilo-luz[data-error]:has(.campo .pie-error) > .hilo-error {
+  display: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   :is(.hilo-luz, .hilo-fila, .hilo-tarjeta)::before,

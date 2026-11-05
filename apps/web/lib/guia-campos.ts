@@ -78,13 +78,18 @@ export function primeroQueBloquea(campos: readonly CampoDeGuia[]): CampoDeGuia |
   return campos.find((c) => c.requerido && !c.hecho) ?? null;
 }
 
+/** Los campos que faltaban al intentar guardar: solo esos dicen su error. Uno que aparece después (el RUC, al elegir «Factura») no regaña a quien recién llega a él. */
+export function pendientesAlRevisar(campos: readonly CampoDeGuia[]): string[] {
+  return campos.filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+}
+
 /**
- * Qué error dice UN campo bajo su control (ADR-0611, mejora 1). Se avisa solo después de intentar guardar (`mostrarFaltas`): un campo vacío no
- * regaña a quien todavía no llega a él. Un error que el guardado devolvió para este campo (`externo`) manda, y se borra apenas se corrige.
+ * Qué error dice UN campo bajo su control (ADR-0611, mejora 1). Se avisa solo si estaba pendiente al intentar guardar (`revisado`): un campo vacío
+ * no regaña a quien todavía no llega a él. Un error que el guardado devolvió para este campo (`externo`) manda, y se borra apenas se corrige.
  */
-export function errorDeCampo(campos: readonly CampoDeGuia[], id: string, mostrarFaltas: boolean, externo?: string | null): string | null {
+export function errorDeCampo(campos: readonly CampoDeGuia[], id: string, revisado: boolean, externo?: string | null): string | null {
   if (externo) return externo;
-  if (!mostrarFaltas) return null;
+  if (!revisado) return null;
   const campo = campos.find((c) => c.id === id);
   return campo && campo.requerido && !campo.hecho ? campo.pendiente || null : null;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
 import { MONTO_ILEGIBLE, lecturaCampoMonto, montoIlegible, porcentajeMalEscrito } from "@/lib/monto-plata-reglas";
 
 /**
@@ -32,12 +33,13 @@ export function CampoMonto({
 }) {
   // `null` = no se está editando: se muestra el número del padre.
   const [borrador, setBorrador] = useState<string | null>(null);
-  const ilegible = borrador !== null && lecturaCampoMonto(borrador).ilegible;
+  // Mientras escribe, «12.5» puede estar a medias: lo que no se entiende se marca al salir, no a la primera letra (ADR-0611, mejora 2).
+  const aviso = useValidarAlSalir(borrador !== null && lecturaCampoMonto(borrador).ilegible ? MONTO_ILEGIBLE : null);
   return (
     <input
       aria-label={ariaLabel}
-      aria-invalid={ilegible || undefined}
-      title={ilegible ? MONTO_ILEGIBLE : undefined}
+      aria-invalid={aviso.motivo ? true : undefined}
+      title={aviso.motivo ?? undefined}
       data-monto-medio={medio}
       type="text"
       inputMode="decimal"
@@ -55,15 +57,18 @@ export function CampoMonto({
         onCambio(lecturaCampoMonto(e.target.value).valor);
       }}
       // Al salir se ve el número entendido; lo que no se entendió se queda escrito, en rojo, para corregirlo.
-      onBlur={() => setBorrador((b) => (b !== null && lecturaCampoMonto(b).ilegible ? b : null))}
+      onBlur={() => {
+        aviso.alSalir();
+        setBorrador((b) => (b !== null && lecturaCampoMonto(b).ilegible ? b : null));
+      }}
     />
   );
 }
 
-/** Lo escrito que no se entiende se ve en rojo con un subrayado ondulado (lo pone `aria-invalid`). Un `<input>` propio la suma a su clase;
- *  un `CampoTexto` dice el porqué en su pie (`tono="error"`). */
+/** Lo escrito que no se entiende se ve en rojo con un subrayado ondulado (lo pone `aria-invalid`), pero no mientras se escribe: «12.5» puede estar a
+ *  medias (ADR-0611, mejora 2). Un `<input>` propio la suma a su clase; un `CampoTexto` dice el porqué en su pie (`tono="error"`). */
 export const CLASE_MONTO_ILEGIBLE =
-  "aria-[invalid=true]:text-rojo-profundo aria-[invalid=true]:underline aria-[invalid=true]:decoration-rojo aria-[invalid=true]:decoration-wavy";
+  "not-focus:aria-[invalid=true]:text-rojo-profundo not-focus:aria-[invalid=true]:underline not-focus:aria-[invalid=true]:decoration-rojo not-focus:aria-[invalid=true]:decoration-wavy";
 
 /**
  * Para un campo de plata que guarda lo escrito como TEXTO y no puede ser un `CampoMonto` (su padre lee el texto, lleva su propia caja o

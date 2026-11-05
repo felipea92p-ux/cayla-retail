@@ -84,7 +84,7 @@ export function CampoGuiado({
       )}
       {children}
       {error && (
-        <p id={idError} role="alert" className="mt-1.5 text-xs leading-tight text-rojo">
+        <p id={idError} role="alert" className="hilo-error mt-1.5 text-xs leading-tight text-rojo">
           <span className="pie-error trazo-dibuja anim-revelar">
             <CircleAlert aria-hidden />
             <span>{error}</span>
