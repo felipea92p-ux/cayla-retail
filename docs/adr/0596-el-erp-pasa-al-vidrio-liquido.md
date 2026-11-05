@@ -77,6 +77,14 @@ stock), Felipe aceptó tres cambios de regla que deshacen decisiones anteriores:
 SE ROMPE SI: alguien vuelve a poner lo de la sede en grande en la tarjeta sin leer esto, o usa el rojo de «Sin stock» para algo que no sea
 que no queda ninguna en toda la empresa.
 
+## Actualización 2026-11-05 — en qué sede está vuelve a verse en la tarjeta de producto
+
+Felipe, mirando Catálogo ▸ Productos: «ya no me sale lo que está disponible en Trujillo o en Arequipa», y «que especifique si es en Lima
+también». Lo de cada sede había quedado solo en el `title` del stock, que en el celular no existe y con el mouse hay que ir a buscar. La
+tarjeta suma una cuarta línea, «Trujillo 2 · Arequipa 5 · Lima 1 · Taller 40» (`lugaresDeStock`, `lib/productos-stock.ts`): la sede elegida
+primero aunque tenga 0, las demás de más a menos, siempre la ciudad con su nombre y nunca «2 sedes más». Sigue valiendo lo de arriba: el
+número grande es el de la empresa, y la línea cuenta solo lo que se puede vender (sin apartadas ni dañadas), por eso puede sumar menos.
+
 ## Actualización 2026-11-02 (b) — se cierran las maquetas; la estética es obligatoria
 
 Felipe paró la creación de maquetas de vidrio y pidió dejar la regla escrita: **desde hoy todo lo nuevo o editado sigue esta estética**,
