@@ -369,6 +369,14 @@ select 'N5 prendas de Producción: la mercadería NO cuadra y lo explica (−120
 `;
 
 // El arranque tiene que cuadrar, y se registra una sola vez (en una base sin arranque: la escena se arma sin registrarlo).
+// Un banco que empieza con su saldo DESPUÉS del arranque (tarea 4 de «Las 36»): la diferencia se explica sola, con su signo y su monto, sin «sin explicar».
+const CASOS_CUENTA_NUEVA = `
+select retail.crear_cuenta_dinero('Banco tardío prueba', 'banco', 1000, '2024-03-15') as tardio \\gset
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'N1 la diferencia del banco suma 1,000 menos: lo que el libro de bancos tiene y el diario no', (select diferencia = -1300 and otro = 5815 and diario = 4515 from con where clave = '104');
+select 'N2 la causa cuenta_nueva explica esos 1,000, con el mismo signo que la diferencia', (select (c ->> 'monto')::numeric = -1000 from con, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'cuenta_nueva');
+select 'N3 no queda nada sin explicar', (select count(*) = 0 from con, jsonb_array_elements(causas) c where clave = '104' and c ->> 'clave' = 'sin_explicar');
+`;
 const CASOS_ARRANQUE = `
 select 'N4 sin arranque la comprobación dice que falta y el Balance no se dibuja', (select count(*) = 1 and bool_and(clave = 'arranque' and estado = 'falta') from retail.fn_conciliacion_contable('2024-03-31'))
   and (select count(*) = 0 from retail.fn_balance_general('2024-03-31'));
@@ -420,6 +428,7 @@ function main() {
   const base = `${ESCENA}\n`;
   verificar("Marzo", correr(base + CASOS_MARZO), casosDe(CASOS_MARZO));
   verificar("Abril", correr(base + CASOS_ABRIL), casosDe(CASOS_ABRIL));
+  verificar("Cuenta nueva", correr(base + CASOS_CUENTA_NUEVA), casosDe(CASOS_CUENTA_NUEVA));
   verificar("Tienda", correr(base + CASOS_TIENDA), casosDe(CASOS_TIENDA));
   verificar("Sin clasificar", correr(base + CASOS_SIN_CLASIFICAR), casosDe(CASOS_SIN_CLASIFICAR));
   verificar("Antes del arranque", correr(base + CASOS_ANTES), casosDe(CASOS_ANTES));
