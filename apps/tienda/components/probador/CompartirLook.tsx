@@ -74,15 +74,15 @@ function HojaDeCompartir({ id, codigo, alCerrar }: { id: string; codigo: string;
   }
 
   return (
-    <HojaNativa etiqueta="Comparte tu look" alCerrar={alCerrar}>
+    <HojaNativa etiqueta="Comparte tu outfit" alCerrar={alCerrar}>
       <h2 className="t-inst-tit">
-        Comparte tu <em>look</em>
+        Comparte tu <em>outfit</em>
       </h2>
-      <p className="t-inst-txt">La imagen lleva la marca y el enlace a la tienda. Quien lo abre ve tu look sin precios y puede armar el suyo.</p>
+      <p className="t-inst-txt">La imagen lleva la marca y el enlace a la tienda. Quien lo abre ve tu outfit sin precios y puede armar el suyo.</p>
       <div className="cl-previa" data-estado={imagen.estado}>
         {imagen.estado === "lista" ? (
           // eslint-disable-next-line @next/next/no-img-element -- es la imagen recién armada para esta persona (un blob), no una foto del catálogo
-          <img src={imagen.url} alt="Tu look en una imagen para estados, con la marca y el enlace a la tienda" />
+          <img src={imagen.url} alt="Tu outfit en una imagen para estados, con la marca y el enlace a la tienda" />
         ) : imagen.estado === "cargando" ? (
           <span role="status">Preparando tu imagen…</span>
         ) : (

@@ -172,7 +172,7 @@ export function HistoriaDelLook({ titulo, piezas }: { titulo: { antes: string; u
           }}
         >
           <div style={{ width: px(26), height: Math.max(2, px(1)), background: COLOR.acento }} />
-          Mi look
+          Mi outfit
         </div>
         <div style={{ display: "flex", flexDirection: "column", fontFamily: SERIF, fontWeight: 500, fontSize: px(titulo.tamano), lineHeight: 0.92, letterSpacing: -px(titulo.tamano * 0.02) }}>
           {titulo.antes && <span>{titulo.antes}</span>}
@@ -211,16 +211,16 @@ export function VistaDelLook({ piezas }: { piezas: readonly PiezaConFoto[] }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 19, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", color: COLOR.acento }}>
             <div style={{ width: 40, height: 2, background: COLOR.acento }} />
-            {conLook ? "Un look armado en CAYLA" : "El probador de CAYLA"}
+            {conLook ? "Un outfit armado en CAYLA" : "El probador de CAYLA"}
           </div>
           <div style={{ display: "flex", gap: 30, fontFamily: SERIF, fontWeight: 500, fontSize: 104, lineHeight: 0.92, letterSpacing: -2 }}>
             <span>{conLook ? "Mira este" : "Arma tu"}</span>
-            <span style={{ fontStyle: "italic", color: COLOR.acento }}>look</span>
+            <span style={{ fontStyle: "italic", color: COLOR.acento }}>outfit</span>
           </div>
           <span style={{ fontSize: 24, lineHeight: 1.35, color: "rgba(245, 240, 232, 0.78)", maxWidth: 470 }}>
             {conLook
               ? "Mira los precios y las tallas, y sepáralo para recoger en tu tienda."
-              : "Arma tu look con las prendas de la tienda, a escala y en sus colores."}
+              : "Arma tu outfit con las prendas de la tienda, a escala y en sus colores."}
           </span>
         </div>
         <div style={{ display: "flex" }}>

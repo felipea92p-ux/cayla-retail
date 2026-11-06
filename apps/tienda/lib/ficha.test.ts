@@ -472,7 +472,7 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
   it("«Combínalo con»: el PRIMER look que la lleva y sus otras prendas, como las trae el catálogo; sin look, nada", () => {
     const prenda = (id: string) => ({ id, nombre: `Prenda ${id.slice(-1)}` }) as Prenda;
     const pieza = (id: string, posicion: number) => ({ posicion, prenda: { id } });
-    const look = (id: string, ids: string[]) => ({ id, nombre: `Look ${id}`, piezas: ids.map(pieza) }) as unknown as Look;
+    const look = (id: string, ids: string[]) => ({ id, nombre: `Outfit ${id}`, piezas: ids.map(pieza) }) as unknown as Look;
     const [A, B, C, D] = ["a", "b", "c", "d"].map((x) => `00000000-0000-4000-8000-00000000000${x}`);
     const catalogo = [prenda(A), prenda(B), prenda(C)];
     const looks = [look("1", [B, C]), look("2", [A, B, D]), look("3", [A, C])];

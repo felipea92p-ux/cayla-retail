@@ -351,7 +351,7 @@ export function FichaPrenda({
             <div className="t-pdp-probador">
               <Link className="t-btn t-btn-sec" href={hrefDelProbador(probador.sede, `${probador.codigo}.${color}`)}>
                 <Icono nombre="chispas" />
-                Arma un look con esta prenda
+                Arma un outfit con esta prenda
               </Link>
             </div>
           )}
