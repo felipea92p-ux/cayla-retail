@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { estadoDeFrase, fraseVecina } from "@/lib/anuncio";
+import { useEffect, useRef, useState } from "react";
+import { estadoDeFrase, fraseSiguiente, MILISEGUNDOS_POR_FRASE } from "@/lib/anuncio";
 import { variablesDelDiseno, type DisenoDeLaTienda } from "@/lib/diseno-campana";
 import type { FraseAnuncio } from "@/lib/portada";
 import { Icono } from "./Icono";
@@ -16,9 +16,10 @@ let ultima: { frases: FraseAnuncio[]; actual: number } | null = null;
 const mismas = (a: readonly FraseAnuncio[], b: readonly FraseAnuncio[]) => a.length === b.length && a.every((f, i) => f.texto === b[i].texto);
 
 /**
- * La franja de arriba (ADR-0615): un mensaje a la vez, con una flecha a cada lado. Es manual: nada se mueve mientras se lee. Todos viven apilados en el
- * mismo lugar, así que la franja toma el alto del más largo y las flechas no se corren al cambiar. El lector de pantalla oye el mensaje nuevo porque
- * la persona lo pidió. Con el diseño de una campaña se viste con sus colores, y sus modos «quieta» y «marquesina» siguen como los programó el líder.
+ * La franja de arriba (ADR-0615): un mensaje a la vez, que pasan solos (Felipe 2026-11-06). Se detienen con el mouse encima o con el foco en el enlace,
+ * para poder leerlo y tocarlo; con «reducir movimiento» se queda el primero. Todos viven apilados en el mismo lugar, así que la franja toma el alto del
+ * más largo y nada salta al cambiar. El lector de pantalla no lo anuncia: una voz que interrumpe cada 4 segundos no ayuda a nadie. Con el diseño de una
+ * campaña se viste con sus colores, y sus modos «quieta» y «marquesina» siguen como los programó el líder.
  */
 export function Anuncio({ frases: propias, diseno = null }: { frases: FraseAnuncio[]; diseno?: DisenoDeLaTienda | null }) {
   const [inicio] = useState(() => {
@@ -29,12 +30,27 @@ export function Anuncio({ frases: propias, diseno = null }: { frases: FraseAnunc
   const modo = diseno?.donde.franja ? diseno.movimiento.franja : "rota";
   const todas = propias.length > 0 ? propias : inicio.frases;
   const frases = modo === "quieta" ? todas.slice(0, 1) : todas;
-  const [turno, setTurno] = useState({ actual: mismas(inicio.frases, frases) ? inicio.actual : 0, previa: null as number | null, paso: 1 as 1 | -1 });
+  const [turno, setTurno] = useState({ actual: mismas(inicio.frases, frases) ? inicio.actual : 0, previa: null as number | null });
   const actual = frases.length > 0 ? turno.actual % frases.length : 0;
+  const cantidad = frases.length;
+  const rota = modo === "rota" && cantidad > 1;
+  const quieta = useRef({ mouse: false, foco: false });
 
   useEffect(() => {
     if (propias.length > 0) ultima = { frases: propias, actual };
   }, [propias, actual]);
+
+  useEffect(() => {
+    if (!rota || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const reloj = setInterval(() => {
+      if (document.hidden || quieta.current.mouse || quieta.current.foco) return;
+      setTurno((t) => {
+        const ahora = t.actual % cantidad;
+        return { actual: fraseSiguiente(ahora, cantidad), previa: ahora };
+      });
+    }, MILISEGUNDOS_POR_FRASE);
+    return () => clearInterval(reloj);
+  }, [rota, cantidad]);
 
   if (modo === "marquesina" && frases.length > 0) {
     // Corren de lado, dos veces seguidas para que el hueco de la vuelta no se note; con «reducir movimiento» queda quieta (campana-efectos.css).
@@ -53,21 +69,26 @@ export function Anuncio({ frases: propias, diseno = null }: { frases: FraseAnunc
     );
   }
 
-  const mover = (paso: 1 | -1) => setTurno({ actual: fraseVecina(actual, paso, frases.length), previa: actual, paso });
-  const varias = frases.length > 1;
   return (
     <section
       className="t-anuncio t-anuncio-pila"
       aria-label="Lo que te ofrece CAYLA"
       data-campana={diseno?.donde.franja ? diseno.plantilla : undefined}
       style={diseno?.donde.franja ? variablesDelDiseno(diseno) : undefined}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") quieta.current.mouse = true;
+      }}
+      onPointerLeave={() => {
+        quieta.current.mouse = false;
+      }}
+      onFocus={() => {
+        quieta.current.foco = true;
+      }}
+      onBlur={() => {
+        quieta.current.foco = false;
+      }}
     >
-      {varias && (
-        <button type="button" className="t-anuncio-flecha" aria-label="Mensaje anterior" onClick={() => mover(-1)}>
-          <Icono nombre="izquierda" />
-        </button>
-      )}
-      <div className="t-anuncio-frases" data-paso={turno.paso} aria-live="polite">
+      <div className="t-anuncio-frases">
         {frases.map((frase, i) => {
           const estado = estadoDeFrase(i, actual, turno.previa);
           const aLaVista = estado === "fija" || estado === "entra";
@@ -90,11 +111,6 @@ export function Anuncio({ frases: propias, diseno = null }: { frases: FraseAnunc
           );
         })}
       </div>
-      {varias && (
-        <button type="button" className="t-anuncio-flecha" aria-label="Mensaje siguiente" onClick={() => mover(1)}>
-          <Icono nombre="derecha" />
-        </button>
-      )}
     </section>
   );
 }
