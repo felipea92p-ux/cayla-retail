@@ -2,7 +2,9 @@
 
 import type { ComponentProps, ReactNode } from "react";
 import { BadgePercent } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import type { NotaCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
@@ -35,6 +37,8 @@ export function GanamosPanel({
   forma,
   formal,
   cuadre,
+  costoEstimado,
+  costoEstimadoFalla,
 }: {
   fila: FilaER | null;
   tramos: TramoCascada[];
@@ -50,6 +54,10 @@ export function GanamosPanel({
   formal: ComponentProps<typeof EstadoResultadosPanel>;
   /** De Ventas a Finanzas (ADR-0609); nada si no hay qué comparar. */
   cuadre: ReactNode;
+  /** Cuánto de lo vendido lleva costo estimado (tarea 28); `null` si todo lleva costo real. */
+  costoEstimado: NotaCostoEstimado | null;
+  /** Por qué no se pudo leer; la ganancia no se presenta como toda real sin decirlo. */
+  costoEstimadoFalla: string | null;
 }) {
   if (forma === "formal")
     return (
@@ -83,6 +91,22 @@ export function GanamosPanel({
   return (
     <div className="fin-estado min-w-0">
       <TitularEstado formal={formalNombre} si={t.si} respuesta={t.respuesta} bajada={t.bajada} guia="fin-ganamos.respuesta" />
+      {(costoEstimado || costoEstimadoFalla) && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {costoEstimado ? (
+            <>
+              <Chip tono={costoEstimado.tono} versalitas={false} title={costoEstimado.detalle}>
+                {costoEstimado.texto}
+              </Chip>
+              <EnlaceVer href={costoEstimado.href}>Registrar el costo real</EnlaceVer>
+            </>
+          ) : (
+            <Chip tono="pizarra" versalitas={false}>
+              {costoEstimadoFalla}
+            </Chip>
+          )}
+        </div>
+      )}
 
       <div className="fin-estado-sep" />
       <section data-guia="fin-ganamos.cascada">
