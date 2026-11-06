@@ -11,6 +11,12 @@
   --t-oferta: #681c24; --t-sombra-foto: rgba(79, 20, 27, .22);
   --nombre: var(--font-titulos), "Playfair Display", Georgia, serif;
   --display: var(--nombre); --serif: var(--nombre);
+  /* Jerarquía del color. Rojo institucional (--t-logo, #d13730, del archivo oficial, packages/shared/src/marca.ts): solo el logo. Borgoña (--dn-borgona): la acción
+     y lo destacado. Marfil y arena: las superficies. Marrón (--tinta): el texto. Rosa empolvado (--hueso): acentos suaves. --rojo queda solo para errores. */
+  /* Medidas de todo control: una sola escala */
+  --dn-r-s: 8px; --dn-r-m: 14px; --dn-r-l: 20px; --dn-r-p: 999px;
+  --dn-alto: 48px; --dn-alto-chico: 40px; --dn-alto-icono: 44px; --dn-ic: 20px; --dn-ic-boton: 18px; --dn-ic-linea: 16px; --dn-trazo: 1.7;
+  --dn-lado: clamp(16px, 4cqi, 64px);
   /* Una sola escala de letra y de espacios */
   --dn-borgona: #681c24; --dn-borgona-2: #4f141b; --dn-arena: #e9d9cc; --dn-arena-2: #f5ece4;
   /* Lo que se escribe en vino: en oscuro pasa a un tono claro, porque el vino sobre oscuro no se lee */
@@ -24,17 +30,9 @@
   --dn-arco: #e8d1c1; --dn-arco-luz: #f2e0d2; --dn-arco-sombra: #d6b9a6; --dn-arco-hondo: #bf9f8b; --dn-arco-fondo: #e3c9b7; --dn-sombra-arco: rgba(104, 66, 46, .46);
   --dn-suelo-1: #e2cbbb; --dn-suelo-2: #eedccf; --dn-sombra-prenda: rgba(58, 30, 22, .30); --dn-sombra-lejos: rgba(58, 30, 22, .16); --dn-sombra-contacto: rgba(74, 42, 28, .36);
 
-  & .t-marca-logo { color: var(--t-logo); }
 
   /* Botones y enlaces */
-  & .t-btn { background: var(--dn-borgona); border-color: var(--dn-borgona); color: #fff; border-radius: 999px; text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 500; min-height: 48px; padding-inline: var(--e-5); box-shadow: none; }
-  & .t-btn::before { background: var(--dn-borgona-2); }
-  & .t-btn.t-btn-chico { min-height: 40px; height: 40px; font-size: 14px; letter-spacing: 0; }
-  & .t-btn-sec { background: transparent; color: var(--tinta); border-color: var(--tinta); }
-  & .t-btn-sec::before { background: var(--tinta); }
-  & .t-btn:disabled { background: var(--hueso); border-color: var(--sand); color: var(--tinta-60); }
   & .t-ceja { color: var(--dn-acento); letter-spacing: .32em; font-size: 11.5px; font-weight: 600; }
-  & .t-ver { font-size: 14.5px; letter-spacing: 0; text-transform: none; border-bottom-color: currentColor; }
 
   /* Títulos: una jerarquía, sin versalitas ni cursivas sueltas */
   & .t-sec { padding-block: var(--dn-seccion) 0; }
@@ -52,7 +50,8 @@
   & .t-buscador-caja { border-radius: 999px; }
   & .t-buscador-caja input { font-family: var(--sans); }
 
-  & .dn-buscar-cab { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: var(--tinta); cursor: pointer; order: 1; flex: none; }
+  & .dn-buscar-cab { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: var(--tinta); cursor: pointer; flex: none; }
+  & .t-esp { order: -1; }
   & .dn-buscar-cab span { display: none; }
 
   /* Encabezado de las listas y títulos con cursiva: todos con la misma voz */
@@ -70,8 +69,7 @@
 
   /* Sobre el borgoña: el texto y el botón claros */
   & .t-club .t-ceja, & .t-pie .t-ceja { color: var(--t-hero-tinta); }
-  & .t-club .t-btn { background: #fff; border-color: #fff; color: #35201e; }
-  & .t-club .t-btn::before { background: var(--dn-arena); }
+  & .t-club .t-btn { --dn-btn-fondo: #fff; --dn-btn-borde: #fff; --dn-btn-tinta: #35201e; --dn-btn-hover: var(--dn-arena); --dn-btn-hover-tinta: #35201e; }
 
   /* La tarjeta de prenda: la misma en todas las secciones, con la información pegada a la foto */
   & .t-card-foto { aspect-ratio: 5 / 6; border-radius: 14px; overflow: hidden; }
@@ -98,17 +96,103 @@
 
   /* Secciones oscuras y pie */
   & .t-club { margin-top: var(--dn-seccion); }
-  & .t-pie { margin-top: var(--dn-seccion); background: var(--dn-borgona-2); color: var(--marfil); border-top: 0; --tinta: var(--marfil); --taupe: rgba(251, 243, 238, .74); --sand: rgba(251, 243, 238, .24); }
+  /* El pie va en marfil: sobre el borgoña, el rojo del logo no se leería */
+  & .t-pie { margin-top: var(--dn-seccion); background: var(--dn-arena-2); border-top: 1px solid var(--sand); }
 }
 @media (hover: hover) {
   :root[data-diseno="nuevo"] {
     & .pl-cat:hover span img { transform: translateY(-4px); }
     & .pl-cat:hover::before { opacity: 1; }
-    & .t-btn:hover:not(:disabled) { color: #fff; }
-    & .t-btn-sec:hover:not(:disabled) { color: var(--crema); }
-    & .dn-btn-claro:hover:not(:disabled) { color: #fff; }
-    & .t-club .t-btn:hover:not(:disabled) { color: #35201e; }
+    & .t-btn:hover:not(:disabled) { color: var(--dn-btn-hover-tinta); }
     & .dn-buscar-cab:hover { border-color: var(--tinta); }
+  }
+}
+
+/* ===== El sistema: cada familia se define UNA vez aquí, y ninguna página hace la suya ===== */
+:root[data-diseno="nuevo"] {
+  /* El logo oficial, en su rojo: nunca borgoña ni con filtros. Medidas iguales en todas partes */
+  & .t-logo { padding: 0; }
+  & .t-marca-logo, & .t-logo .t-marca-logo, & .t-cab-fila .t-logo .t-marca-logo { color: var(--t-logo); filter: none; }
+  & .t-logo .t-marca-logo { height: 30px; }
+
+  /* Botón principal: borgoña. Secundario: claro, con borde discreto. Terciario: solo texto. Las variables dejan que una superficie oscura lo aclare sin otro botón */
+  & .t-btn { --dn-btn-fondo: var(--dn-borgona); --dn-btn-borde: var(--dn-borgona); --dn-btn-tinta: #fff; --dn-btn-hover: var(--dn-borgona-2); --dn-btn-hover-tinta: #fff; height: auto; min-height: var(--dn-alto); padding: 0 var(--e-5); gap: var(--e-3); background: var(--dn-btn-fondo); border: 1px solid var(--dn-btn-borde); border-radius: var(--dn-r-p); color: var(--dn-btn-tinta); font-size: 15px; font-weight: 500; letter-spacing: 0; text-transform: none; box-shadow: none; }
+  & .t-btn::before { background: var(--dn-btn-hover); }
+  & .t-btn-sec { --dn-btn-fondo: var(--papel); --dn-btn-borde: var(--sand); --dn-btn-tinta: var(--tinta); --dn-btn-hover: var(--hueso); --dn-btn-hover-tinta: var(--tinta); }
+  & .t-btn.t-btn-chico { min-height: var(--dn-alto-chico); height: auto; margin-left: 0; padding: 0 var(--e-4); font-size: 14px; letter-spacing: 0; }
+  & .t-btn .ic { width: var(--dn-ic-boton); height: var(--dn-ic-boton); }
+  & .t-btn:active:not(:disabled) { opacity: 1; transform: scale(.98); }
+  & .t-btn:disabled { background: var(--hueso); border-color: var(--sand); color: var(--tinta-60); }
+  & .t-btn-sec:disabled { background: var(--papel); }
+  & .t-btn[aria-busy="true"]:disabled { background: var(--dn-btn-fondo); border-color: var(--dn-btn-borde); color: var(--dn-btn-tinta); }
+  & .pb-agregar, & .pb-sorpresa, & .pb-bus-probar, & .fp-ver { border-radius: var(--dn-r-p); text-transform: none; letter-spacing: 0; }
+  & :is(.t-enlace, .t-ver, .w-ver, .w-falta-ir, .w-enlace, .ay-enlace, .ay-tienda-ver, .en-olvide) { font-size: 14.5px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  & .t-ver { border-bottom-color: currentColor; }
+  & :is(.t-ver, .w-ver, .ay-enlace, .ay-tienda-ver) .ic { width: var(--dn-ic-linea); height: var(--dn-ic-linea); }
+
+  /* Botón de ícono: 44 px, redondo y sin fondo. El fondo suave solo aparece al pasar el mouse o al presionar */
+  & :is(.t-ico, .t-buscar-cat, .c-corazon, .c-corazon-grande, .t-carril-flecha, .pb-pag-flecha, .pl-cats-flecha, .dn-buscar-cab) { border-radius: var(--dn-r-p); transition: background-color .2s, color .2s, border-color .2s; }
+  & :is(.t-ico, .c-corazon, .t-buscar-cat, .dn-buscar-cab) { width: var(--dn-alto-icono); height: var(--dn-alto-icono); }
+  & .c-corazon { top: 2px; right: 2px; }
+  & .t-ico:hover { opacity: 1; }
+  & :is(.t-ico, .c-corazon, .t-buscar-cat):active { background: var(--hueso); }
+  & :is(.t-ico, .t-buscar-cat, .c-corazon, .dn-buscar-cab, .t-carril-flecha, .pl-cats-flecha) .ic { width: var(--dn-ic); height: var(--dn-ic); }
+  & .t-carril-flecha { background: var(--papel); border: 1px solid var(--sand); }
+  /* Los íconos son todos de components/Icono.tsx: un solo trazo */
+  & svg.ic { stroke-width: var(--dn-trazo); }
+  & :focus-visible { outline-color: var(--dn-acento); }
+
+  /* El botón de Recomendaciones: un botón flotante más, no otra familia */
+  & .rv-boton { height: var(--dn-alto-icono); padding: 0 var(--e-4) 0 var(--e-3); gap: var(--e-2); background: var(--papel); border: 1px solid var(--sand); border-radius: var(--dn-r-p); color: var(--tinta); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; box-shadow: 0 6px 18px color-mix(in srgb, var(--dn-borgona-2) 14%, transparent); }
+
+  /* Letra: serif en los títulos, sans en lo demás, y tres niveles de título */
+  & :is(.w-titulo, .ay-titulo, .ay-sin-salida-t, .t-titulo-letras, .t-lista-cab h1, .t-club h2) { font-size: var(--dn-pagina); line-height: 1.08; letter-spacing: 0; text-transform: none; }
+  & .en-partida[data-titulo="corto"] .w-titulo { font-size: var(--dn-pagina); text-transform: none; }
+  & :is(.t-sec-cab h2, .t-cab-centro h2, .ay-h2, .ay-legal-h2, .t-vacio h3) { font-size: var(--dn-tit-seccion); line-height: 1.12; letter-spacing: 0; }
+  & :is(.ay-punto-t, .ay-tienda-nombre, .en-promesa-t) { font-size: var(--dn-sub); line-height: 1.2; letter-spacing: 0; }
+  & :is(.t-pie .t-pie-tit, .ay-caminos-t) { font-size: 12px; font-weight: 600; letter-spacing: .08em; }
+  & :is(.t-pildora, .t-pildora-mini, .t-chip, .c-chip, .pb-chip, .pb-bus-zona, .fp-filtros-btn, .fp-etq, .w-estado-chip, .pb-etq, .t-orden a, .t-pag) { text-transform: none; letter-spacing: 0; }
+
+  /* Campos */
+  & .w-caja { height: var(--dn-alto); padding-inline: var(--e-3); border: 1px solid var(--sand); border-radius: var(--dn-r-s); background: linear-gradient(var(--dn-borgona), var(--dn-borgona)) 50% 100% / 0 2px no-repeat, var(--papel); caret-color: var(--dn-acento); }
+  & .w-caja:focus { border-color: var(--tinta); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dn-borgona) 12%, transparent); }
+  & .w-caja-pref span { height: var(--dn-alto); border-width: 1px; }
+  & :is(.w-caja-pref, .en-form .w-caja-pref) .w-caja { border-radius: 0 var(--dn-r-s) var(--dn-r-s) 0; }
+  & :is(.w-caja-pref, .en-form .w-caja-pref) span { border-radius: var(--dn-r-s) 0 0 var(--dn-r-s); }
+  & .pb-bus-caja, & .t-buscador-caja { border-radius: var(--dn-r-p); }
+
+  /* Esquinas: píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa */
+  & :is(.t-pildora, .t-pildora-mini, .t-chip, .c-chip, .pb-chip, .pb-bus-zona, .fp-filtros-btn, .fp-cierra, .fp-op, .t-insignia, .w-estado-chip, .pb-etq, .en-paso-aqui, .ay-reco-cuantas, .pb-bus-cuantas, .pb-bus-sugerida) { border-radius: var(--dn-r-p); }
+  & :is(.w-tipo, .w-tipos, .en-form .w-tipos, .w-opcion, .w-info, .w-nota, .w-aviso, .en-aviso, .pb-aviso, .pb-bus-aviso, .t-aviso-suave, .t-cantidad, .t-talla, .t-look-talla, .t-pag, .t-orden a, .t-mini, .t-look-tile, .t-mega-prenda > span, .t-mega-cat, .lg-pieza-foto, .pb-bus-foto, .pb-fila-foto, .pb-opcion-foto, .w-codigo-caja, .w-reloj, .t-bolsa-cupon-mio, .t-rapido, .fp-qt, .r-sobre-op, .t-pdp-nota, .t-look-hoja-motivo, .en-beneficio-ic, .t-aviso-club-ic, .t-inst-icono, .t-club-sello, .w-borrador) { border-radius: var(--dn-r-s); }
+  & :is(.ay-llamado, .ay-punto, .ay-reco-panel, .ay-tienda, .ay-tiendas-vacio, .ay-indice-movil, .c-novedad, .cl-previa, .fp-ficha, .fp-panel, .lg-figura, .lg-tarjeta-figura, .pb-fila, .pf-acceso, .pf-atajo, .pf-cuenta, .r-form, .r-gracias, .r-item, .r-respuesta, .r-tuyo, .t-aviso-club, .t-inst-tarjeta, .t-inst-fila, .t-lamina, .t-resumen, .t-tarjeta-club, .t-stock-envol, .w-ped, .w-tarjeta, .w-frena-item, .t-polaroid, .t-mega-envol, .t-persona-menu) { border-radius: var(--dn-r-m); }
+  & :is(.t-buscador, .t-look-hoja, .t-inst-hoja) { border-radius: var(--dn-r-l); }
+
+  /* La tarjeta de entrar y crear cuenta: una superficie más, sin el filo negro de la identidad anterior */
+  & .en-lado > .en-form { border-radius: var(--dn-r-l); background: var(--papel); }
+  & .en-lado > .en-form::before { display: none; }
+  /* El rojo es del logo: los íconos de ayuda van en el acento */
+  & :is(.ay-pie-tema-ic, .ay-punto-ic) { color: var(--dn-acento); border-radius: var(--dn-r-s); }
+
+  /* Menú del celular: la navegación primero; cuenta y servicios aparte, con su tienda */
+  & .t-menu { background: var(--crema); }
+  & .t-menu-cab { min-height: 60px; padding: var(--e-2) var(--e-1) var(--e-2) var(--e-4); }
+  & .t-menu-grandes { padding: var(--e-3) var(--e-4) var(--e-2); }
+  & :is(.t-menu-grandes > a, .t-menu-acor > summary) { min-height: 48px; padding: var(--e-2) 0; display: flex; align-items: center; justify-content: space-between; font-size: 24px; line-height: 1.15; letter-spacing: 0; border-bottom: 1px solid var(--sand); }
+  & .t-menu-grandes > a[aria-current] { color: var(--dn-acento); }
+  & .t-menu-sub { padding: var(--e-1) 0 var(--e-3); border-left: 0; margin: 0; }
+  & .t-menu-sub a { min-height: 44px; display: flex; align-items: center; padding: 0 0 0 var(--e-3); }
+  & .t-menu-grupo-t { color: var(--taupe); }
+  & .t-menu-pie { margin-top: 0; padding: var(--e-4); gap: 0; align-items: stretch; }
+  & .t-menu-pie > a, & .t-menu-pie > button { min-height: 44px; display: flex; align-items: center; padding: 0; font-size: 15px; }
+  & .dn-menu-tit { margin: 0 0 var(--e-2); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); }
+  & .dn-menu-tienda { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-size: 15px; }
+}
+@media (hover: hover) {
+  :root[data-diseno="nuevo"] {
+    & :is(.t-ico, .c-corazon, .t-buscar-cat):hover { background: var(--hueso); }
+    & .t-carril-flecha:hover { background: var(--tinta); color: var(--crema); }
+    & .rv-boton:hover { border-color: var(--tinta); background: var(--papel); color: var(--tinta); }
+    & .t-btn-sec:hover:not(:disabled) { border-color: var(--tinta); }
   }
 }
 
@@ -145,10 +229,19 @@
   }
 }
 
+/* Una pantalla muy angosta: los íconos ceden un poco para que quepa todo sin esconder ninguno */
+@container tienda (max-width: 374px) {
+  :root[data-diseno="nuevo"] {
+    & .t-cab-fila { padding-inline: var(--e-1); gap: 0; }
+    & .t-cab-fila :is(.t-ico, .dn-buscar-cab) { width: 38px; }
+    & .t-cab-fila .t-logo .t-marca-logo { height: 24px; }
+  }
+}
+
 /* La portada */
 .dn-heroe { position: relative; overflow: hidden; background: url(/escenario/yeso.webp), radial-gradient(ellipse 58% 95% at 74% 8%, var(--dn-luz), transparent 72%), radial-gradient(ellipse 46% 80% at 6% 96%, var(--dn-sombra-calida), transparent 70%), linear-gradient(104deg, var(--dn-heroe-luz), var(--dn-heroe) 52%, var(--dn-heroe-sombra)); }
 .dn-heroe::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(116deg, transparent 16%, var(--dn-rayo) 25%, transparent 33%, var(--dn-rayo-sombra) 40%, transparent 47%, var(--dn-rayo) 58%, transparent 66%, var(--dn-rayo-sombra) 76%, transparent 86%); }
-.dn-heroe-rejilla { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; max-width: 1480px; margin-inline: auto; }
+.dn-heroe-rejilla { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; max-width: 1440px; margin-inline: auto; }
 .dn-heroe-texto { display: contents; }
 .dn-ceja { order: 1; margin-top: 18px; font-size: 11px; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; color: var(--dn-acento); }
 .dn-heroe h1, .dn-titulo-espera { order: 2; margin: 8px 0 4px; font-family: var(--nombre); font-weight: 400; font-size: clamp(56px, 16.5cqi, 104px); line-height: 1; letter-spacing: -.005em; color: var(--dn-titulo); }
@@ -177,7 +270,7 @@
 
 /* Lo que se promete */
 .dn-beneficios { background: var(--dn-arena-2); border-bottom: 1px solid var(--sand); }
-.dn-beneficios ul { list-style: none; margin: 0 auto; max-width: 1480px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 0; padding: 14px 8px; }
+.dn-beneficios ul { list-style: none; margin: 0 auto; max-width: 1440px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 0; padding: 14px 8px; }
 .dn-beneficios li { display: flex; align-items: center; gap: 9px; padding: 2px 8px; }
 .dn-beneficios .ic { width: 24px; height: 24px; }
 .dn-beneficios b { display: block; font-weight: 600; font-size: 13px; line-height: 1.25; }
@@ -189,7 +282,7 @@
 .dn-banner-texto { position: relative; z-index: 1; align-self: center; padding: var(--e-5) var(--e-4) var(--e-5) var(--e-3); }
 .dn-banner h2 { margin: 0 0 var(--e-2); font-family: var(--nombre); font-weight: 400; font-size: var(--dn-pagina); line-height: 1.08; }
 .dn-banner p { margin: 0 0 var(--e-3); font-size: 15px; line-height: 1.5; max-width: 28em; }
-:root[data-diseno="nuevo"] .dn-btn-claro { background: #fff; border-color: #fff; color: #35201e; width: 100%; padding-inline: var(--e-2); gap: var(--e-2); }
+:root[data-diseno="nuevo"] .dn-btn-claro { --dn-btn-fondo: #fff; --dn-btn-borde: #fff; --dn-btn-tinta: #35201e; --dn-btn-hover: var(--dn-arena); --dn-btn-hover-tinta: #35201e; width: 100%; padding-inline: var(--e-2); gap: var(--e-2); }
 .dn-foto { position: relative; min-width: 0; }
 .dn-foto img { position: absolute; display: block; }
 .dn-foto-modelo { border-radius: 20px 0 0 0; background: radial-gradient(ellipse 72% 70% at 50% 58%, color-mix(in srgb, #e9d9cc 34%, #681c24), #4f141b 78%); }
@@ -205,7 +298,7 @@
   :root[data-diseno="nuevo"] .dn-btn-claro { width: auto; padding-inline: var(--e-4); }
 }
 @container tienda (min-width: 960px) {
-  .dn-heroe-rejilla { grid-template-columns: minmax(330px, .66fr) 1.34fr; column-gap: clamp(16px, 3cqi, 56px); justify-items: stretch; text-align: left; padding-inline: clamp(16px, 3.4cqi, 48px); min-height: clamp(380px, 27cqi, 480px); align-items: center; }
+  .dn-heroe-rejilla { grid-template-columns: minmax(330px, .66fr) 1.34fr; column-gap: clamp(16px, 3cqi, 56px); justify-items: stretch; text-align: left; padding-inline: var(--dn-lado); min-height: clamp(380px, 27cqi, 480px); align-items: center; }
   .dn-heroe-texto { display: block; padding-block: var(--e-6); position: relative; z-index: 2; }
   .dn-ceja { display: block; margin: 0; font-size: 11.5px; }
   .dn-heroe h1, .dn-titulo-espera { margin: var(--e-4) 0 var(--e-3); font-size: var(--dn-editorial); }
@@ -220,7 +313,7 @@
   .dn-prenda, .dn-podio.alto .dn-prenda { left: 14%; width: 72%; }
   .dn-flor[data-lado="izq"] { left: -7%; }
   .dn-flor[data-lado="der"] { right: -7%; }
-  .dn-beneficios ul { padding: 14px clamp(16px, 3.4cqi, 48px); gap: 0; }
+  .dn-beneficios ul { padding: 14px var(--dn-lado); gap: 0; }
   .dn-beneficios li { justify-content: center; gap: 14px; padding: 4px 12px; }
   .dn-beneficios li + li { border-left: 1px solid var(--sand); }
   .dn-beneficios .ic { width: 30px; height: 30px; }

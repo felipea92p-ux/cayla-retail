@@ -15,6 +15,14 @@ Felipe llevó el rediseño de la tienda de una referencia propia a una maqueta n
 7. **En oscuro, lo que se escribe en vino pasa a un tono claro** (`--dn-acento`, `--dn-titulo`), porque el vino sobre oscuro no se lee, y las tarjetas de categoría usan la placa rosada de las prendas de «Lo nuevo», porque sobre oscuro se perdían las prendas negras (Felipe la prefirió al blanco).
 8. **«Outfit» es solo el texto que lee el cliente.** Rutas (`/looks`), tablas y nombres del código no cambian, para no romper enlaces ni la medición.
 
+## Actualización 2026-11-05: un solo sistema (auditoría de Felipe)
+Un censo en 13 rutas y 2 anchos encontró 16 formas de botón, 35 combinaciones de ícono y 14 tamaños de título principal. Se decide, todo en `diseno-nuevo.css`:
+- **Color:** el rojo institucional `#d13730` (del archivo oficial, `packages/shared/src/marca.ts`) es solo del logo, sin filtros. El borgoña es la acción y lo destacado. Marfil y arena, las superficies. Marrón, el texto. Rosa empolvado, los acentos. `--rojo` queda para errores.
+- **El pie pasa a marfil:** sobre borgoña, el rojo del logo no se lee.
+- **Botones:** principal, secundario y terciario, con variables para aclararlos sobre una superficie oscura, sin crear otro botón.
+- **Botón de ícono:** 44 px, redondo y sin fondo; el fondo suave solo al pasar el mouse o presionar. Bajo 375 px miden 38 de ancho, para que quepan todos.
+- **Esquinas, alturas, letra y márgenes:** una escala. Píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa, 20 px las hojas.
+
 ## Qué se rompería sin esto
 Sin un archivo único, cada página volvería a tener su propia versión de los mismos botones y títulos.
 

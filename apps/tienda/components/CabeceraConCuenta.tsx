@@ -256,7 +256,7 @@ export function CabeceraConCuenta({
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} visitante={visitante} />}
+      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} visitante={visitante} actual={actual} tiendas={tiendas} prendasEnBolsa={prendasEnBolsa} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} indice={indiceDeEstaTienda} reintentar={prepararBuscador} cerrar={cerrar} />}
     </>
   );
@@ -653,8 +653,14 @@ function HojaMenu({
   datos,
   cerrar,
   visitante,
+  actual,
+  tiendas,
+  prendasEnBolsa,
 }: {
   datos: DatosCabecera;
+  actual: SeccionActual;
+  tiendas: OpcionTienda[] | null;
+  prendasEnBolsa: number;
   cerrar: () => void;
   visitante: boolean;
 }) {
@@ -670,7 +676,7 @@ function HojaMenu({
         </button>
       </div>
       <nav className="t-menu-grandes" aria-label="Secciones">
-        <Link href={datos.nuevo.href} onClick={cerrar}>
+        <Link href={datos.nuevo.href} onClick={cerrar} aria-current={actual === "nuevo" ? "page" : undefined}>
           Lo nuevo
         </Link>
         {datos.menus.map((m) => (
@@ -695,14 +701,21 @@ function HojaMenu({
             </div>
           </details>
         ))}
-        <Link href={datos.looks} onClick={cerrar}>
+        <Link href={datos.looks} onClick={cerrar} aria-current={actual === "looks" ? "page" : undefined}>
           Outfits
         </Link>
-        <Link href={datos.ofertas.href} onClick={cerrar}>
+        <Link href={datos.ofertas.href} onClick={cerrar} aria-current={actual === "ofertas" ? "page" : undefined}>
           Ofertas
         </Link>
       </nav>
       <div className="t-menu-pie">
+        <p className="dn-menu-tit">Tu cuenta y servicios</p>
+        {tiendas && (
+          <div className="dn-menu-tienda">
+            <span>Tu tienda</span>
+            <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />
+          </div>
+        )}
         <Link href={visitante ? hrefDeEntrada("/entrar") : "/cuenta"} onClick={cerrar}>
           {visitante ? "Entrar" : "Mi perfil"}
         </Link>
