@@ -1,6 +1,6 @@
 /* «EL HILO» DEL ALTA DE PRODUCTO (ADR-0284)
-   Cómo se ve la guía de «Nuevo producto»: una marca en el título de cada campo (hecha, sigue aquí, falta, opcional), un tinte
-   suave en el campo que sigue y una etiqueta «Sigue aquí». El movimiento es de RESPUESTA a lo que la persona hace (ADR-0136):
+   Cómo se ve la guía de «Nuevo producto»: una marca en el título de cada campo (hecha, sigue, falta), un hilo
+   al costado del campo que sigue y la palabra «Sigue». El movimiento es de RESPUESTA a lo que la persona hace (ADR-0136):
    un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle, sin rebote, con `--ease-cayla`, y todo se apaga con
    `prefers-reduced-motion`. Los colores salen solo de los tokens de
    globals.css (ADR-0169). Desde el 2026-11-05 el campo que sigue lleva «El hilo» (ver «LA LUZ» más abajo): tinta, porque el rojo es solo del error. */

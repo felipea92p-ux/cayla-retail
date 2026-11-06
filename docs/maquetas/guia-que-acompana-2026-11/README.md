@@ -3,6 +3,8 @@
 Felipe: «siento que es muy llamativa y con un color rojo que indica error más que una guía; incluso muchas veces es bastante invasiva».
 Es la guía de foco (ADR-0284). Para abrir: `index.html`, o el servidor «maquetas» de `.claude/launch.json`. Nada se guarda y los datos son inventados.
 
+**Felipe eligió A, El hilo (2026-11-05)**, con las conductas que venían encendidas: ya está en el código (ADR-0284, actualización j). La maqueta queda como registro.
+
 ## Qué se elige
 
 | | Cara | Ganas | Pagas |
