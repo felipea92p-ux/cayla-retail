@@ -41,9 +41,18 @@
   background-color: color-mix(in srgb, var(--color-vidrio) 38%, transparent);
   box-shadow: var(--pozo-encendido-sombra);
 }
-/* «Sigue aquí» de la guía de foco (ADR-0284): ya no toca la caja. La luz es del bloque entero (el «filo de luz» rojo de alta-guia.css, el mismo del
-   paso que sigue de Vender) y la caja de adentro se queda en su pozo de siempre; el papel sólido y el anillo pizarra de antes la hacían un bloque
-   opaco sobre el vidrio (Felipe 2026-11-03: el foco de Vender debe ser el de todo el sistema). */
+/* El foco de un campo sin línea dura alrededor (Felipe 2026-11-05, ADR-0351 act.): borde de tinta plena (el 3:1 lo da la tinta, no la transparencia: lo que ADR-0351 midió
+   como débil era el borde translúcido), el hilo de abajo y un halo difuminado. Quien pidió más contraste y el modo de colores forzados conservan el anillo común de 2 px. */
+@media (forced-colors: none) and (not (prefers-contrast: more)) {
+  .caja-campo:has(:focus-visible),
+  .caja-campo:focus-visible,
+  .caja-campo-input:focus-visible {
+    outline: none;
+    border-color: var(--color-tinta);
+    box-shadow: var(--pozo-encendido-sombra), var(--pozo-foco-halo);
+  }
+}
+/* «Sigue» de la guía de foco (ADR-0284) no toca la caja: el hilo es del bloque entero (alta-guia.css) y la caja de adentro se queda en su pozo de siempre. */
 /* La flecha de un combo es una gota: lo que aprietas sobresale del pozo donde va tu dato (combo «A · Pozo y gota»). */
 .caja-campo .combo-flecha {
   box-sizing: content-box;

@@ -683,47 +683,38 @@
 }
 
 /* =====================================================================
-   EL PASO QUE SIGUE: «D · FILO DE LUZ» (Felipe 2026-11-02, docs/maquetas/foco-vidrio-2026-11/). El paso numerado del cobro y del
-   descuento (`.hoja-cobro-paso`, `CabezaPaso`) ya no es papel con un tinte rojo: es vidrio claro con un borde de luz del rojo de CAYLA que
-   está QUIETO: la pasada de luz que daba al llegar se quitó (Felipe 2026-11-02: «dejar el borde pero sin la pasada animada»). El número, el chip
-   «Sigue aquí» y los controles de adentro no cambian.
-   El filo es un borde con máscara (`::after`) y el tinte un `::before`: los dos se pintan por fuera y no mueven ni empujan nada.
+   EL PASO QUE SIGUE: «EL HILO» (Felipe 2026-11-05, docs/maquetas/guia-que-acompana-2026-11/, cara A; antes, «D · Filo de luz»). El paso numerado del
+   cobro y del descuento (`.hoja-cobro-paso`, `CabezaPaso`) lleva la misma línea de tinta que todo campo que sigue: el rojo es solo del error.
+   Se pinta por fuera y no mueve ni empuja nada. El número, «Sigue» y los controles de adentro no cambian.
    ===================================================================== */
 .hoja-cobro-paso {
   position: relative;
   isolation: isolate;
 }
-/* El tinte vive en un `::before` y no en el fondo del paso: el cobro y el descuento le ponen `background: transparent` al paso (reglas más
-   específicas de arriba, «sin recuadro»), y un fondo propio quedaba pisado (Felipe 2026-11-02: «¿por qué lo sigo viendo así?»). Un blanco
-   translúcido sobre una hoja que ya es blanca translúcida no se distingue de ella: el tinte es del rojo de CAYLA, más lleno arriba, y deja ver el
-   vidrio a través. */
+.hoja-cobro-paso::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--hilo-guia);
+  transform: scaleY(0);
+  pointer-events: none;
+  transition: transform 240ms var(--ease-cayla);
+}
 .hoja-cobro-paso.sigue-aqui::before {
-  content: "";
-  position: absolute;
-  inset: -1.5px;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background: var(--filo-luz-tinte);
-  box-shadow: var(--filo-luz-brillo);
+  transform: scaleY(1);
 }
-/* En el descuento el paso no lleva relleno (padding 0): el tinte y el filo salen a su alrededor, sin mover ni empujar nada. */
-.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui::before,
-.pv-desc-cuerpo .hoja-cobro-paso.sigue-aqui::after {
-  inset: -0.45rem -0.75rem;
-  border-radius: 1.1rem;
+/* En el descuento el paso no lleva relleno (padding 0): el hilo va un poco afuera, sin mover nada. */
+.pv-desc-cuerpo .hoja-cobro-paso::before {
+  left: -0.625rem;
+  top: 0;
+  bottom: 0;
 }
-.hoja-cobro-paso.sigue-aqui::after {
-  content: "";
-  position: absolute;
-  inset: -1.5px;
-  border-radius: inherit;
-  padding: 1.5px;
-  pointer-events: none;
-  background: var(--filo-luz-borde);
-  /* la máscara solo usa el alfa: el color es un token opaco cualquiera */
-  mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
-  mask-composite: exclude;
-  -webkit-mask: linear-gradient(var(--color-tinta-fija) 0 0) content-box, linear-gradient(var(--color-tinta-fija) 0 0);
-  -webkit-mask-composite: xor;
+@media (prefers-reduced-motion: reduce) {
+  .hoja-cobro-paso::before {
+    transition: none;
+  }
 }

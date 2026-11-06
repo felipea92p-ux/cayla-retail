@@ -299,3 +299,26 @@ que ahora reinicia los pasos visitados).
 **Aviso para el entorno local:** la base de desarrollo no trae patrones (producción tiene 9), y «Indumentaria exige patrón»
 dejaba el paso 2 sin salida. Para probar se sembraron 3 patrones de prueba (Liso, Rayas, Floral) en la categoría «Camisas y Blusas»
 de la base LOCAL (`notas` = «[sembrado local para probar el alta]»). No tocan producción ni el repo.
+
+## Actualización 2026-11-05 (j) — la guía acompaña sin parecer error: «El hilo»
+
+**Lo que se vio (Felipe):** «siento que es muy llamativa y con un color rojo que indica error más que una guía; incluso muchas veces es bastante invasiva». Se midió en Nuevo color y Registrar
+cliente: el filo rojo de la guía (85 % a 45 %) gritaba más que el borde de un error (55 %), «Sigue aquí» y el texto del error usaban el mismo rojo profundo, la pastilla partía la etiqueta y bajaba
+la caja de «Código» 15,5 px, y al elegir Familia la hoja se desplazaba 168 px sola.
+
+**Decisión.** Felipe eligió mirando entre diez caras (`docs/maquetas/guia-que-acompana-2026-11/`): **A, El hilo**, una línea de tinta al costado y la palabra «Sigue». Reemplaza al «filo de luz»
+de la actualización anterior (2026-11-03), en todo el ERP y también en Vender. Más las conductas que venían encendidas en la maqueta:
+
+- **Nada se mueve al llegar la luz.** «Sigue» va fuera de flujo y se calla si no le cabe (`EtiquetaAhora flota`, que mide choques; `rectangulosChocan`). La marca dejó de cambiar el alto de la línea.
+- **La luz cede a quien escribe.** Con el cursor en cualquier caja de texto, el hilo y la palabra se apagan; vuelven al salir. Es CSS (`:root:has(...)`), sin cableado por hoja: un combo o unas
+  opciones conservan el hilo, porque ahí nadie teclea. Es lo mismo que ya decidía `estaEscribiendo`.
+- **La hoja no se mueve sola.** Solo al tocar lo que falta o al intentar guardar. Cinco hojas largas que no lo tenían dejan el pie a la vista (`pie-hoja-fijo`). El «Sigue» del pie y el botón que confirma son la salida. En Nuevo producto, abrir un paso nuevo sigue llevando a ese paso, y marca y proveedor recién elegidos llevan al nombre.
+- **«Falta» discreto.** `PieGuia` dice «Sigue: Nombre · quedan 2 más» (`resumenDelPie`) y la lista completa sale al intentar guardar. `conGrado` (Taller) y el pie de Nuevo producto conservan su lista: son otra decisión. `noSeEscribe`: lo que la persona no puede llenar no se le pide, y sigue impidiendo confirmar.
+- **El destello** al llevar a un campo es una luz difuminada, no un bloque teñido sin esquinas.
+- **Sin círculos que giran:** lo opcional no lleva marca (ADR-0136, actualización c, queda sin efecto). **El hilo del cursor en tinta y el foco difuminado:** ADR-0351, actualización 2026-11-05.
+
+**Lo que no cambió:** qué se puede confirmar. Solo la cara y cuándo se muestra.
+
+**Descartado:** F («Lo demás baja», lo atenuado parece apagado), J («La barra», el campo no se señala) y C («Solo la marca», la que más le puede costar a alguien nuevo). Si una colaboradora se pierde con el hilo, la alternativa es B, Filo pizarra: es una receta.
+
+**Verificado:** en el navegador, en Nuevo color, Registrar cliente, el cobro y el descuento de Vender (escritorio; el cobro también a 375 px), con teclas y clics reales; el foco en claro y oscuro. **Sin probar:** una colaboradora real, Safari y los modos de más contraste y colores forzados.
