@@ -1228,7 +1228,7 @@ export type ParaDespues =
 export const BOTON_DE_PENDIENTE: Record<ParaDespues["tipo"], string> = {
   separar: "Hacer ahora",
   detalle: "Tallas y colores ahora",
-  crear: "+ Crear ahora",
+  crear: "Crear o asociar",
 };
 
 /** Lo que queda por terminar, línea por línea: lo sin separar, cada «detalle» y cada «crear» con lo que todavía no entró. */

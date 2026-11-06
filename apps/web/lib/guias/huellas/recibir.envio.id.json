@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 224,
+  "total": 227,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -274,6 +274,11 @@
     ],
     "components/recepcion-conteo/TiposDelEnvio.tsx": [
       "button «{t.icono}»"
+    ],
+    "components/recepcion-conteo/YaExisteLaPrenda.tsx": [
+      "Boton «Sí, es esta»",
+      "Boton «No, es otra»",
+      "Boton «No está, crearla como nueva»"
     ],
     "components/recepcion-envio/BloquePrenda.tsx": [
       "Boton «+ talla o color»",

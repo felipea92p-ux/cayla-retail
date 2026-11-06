@@ -812,3 +812,9 @@ Al probar la recepción sin aviso de punta a punta (`docs/flujos/recibir/sin-avi
 - **Producción, revisado el 2026-11-03 antes de arreglar:** 3 envíos sin aviso, 4 líneas recibidas y ninguna fuera de lo normal. No hay costos que corregir.
 - **Pruebas:** `pruebas:envio-sin-aviso` S3b y S3c, que fallaban sin la migración.
 - **En producción desde el 2026-11-03,** con `apply_migration`: quedó registrada con la versión `20261103223056`. Las dos funciones tienen el mismo md5 que en local.
+
+## Actualización 2026-11-06: lo contado como nuevo puede ser re stock (Felipe)
+
+Con el envío cerrado, un pendiente «por crear» solo se podía crear: si la prenda ya estaba en el catálogo con otro nombre, no había cómo asociarla y nacía repetida. Ahora «Crear o asociar» (y «Crearlo ahora» con el envío abierto) pregunta primero «¿Esta prenda ya existe?» (`YaExisteLaPrenda.tsx`): busca en su categoría y su marca, con el nombre anotado primero, y pide confirmar. El costo no se pide otra vez: `ligar_prenda_a_pendiente` pasa `nueva:<descripción>` a la prenda elegida.
+
+**La marca anotada manda:** solo se elige dentro de ella, porque la base no mezcla marcas en una línea. Una prenda con ese nombre en otra marca se avisa (reabrir y corregir). Sin migración.
