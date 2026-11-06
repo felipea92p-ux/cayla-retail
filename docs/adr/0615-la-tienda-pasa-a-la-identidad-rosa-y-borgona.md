@@ -34,3 +34,13 @@ Sin un archivo único, cada página volvería a tener su propia versión de los 
 
 ## Pendiente
 Ver `docs/backlog/2026-11-05-tienda-rediseno-maqueta.md`.
+
+## Actualización 2026-11-06: el rojo de CAYLA reemplaza al vino
+Felipe preguntó por qué la tienda no usaba el color de identidad. El vino venía de su imagen de referencia, y la regla de «el rojo solo en el logo» la había puesto la auditoría, sin comparar los dos colores. Se comparó en una maqueta sobre capturas de `cayla.pe`, en seis pantallas ([Rojo CAYLA en la tienda](https://claude.ai/artifact/VJ9KRam2LpTQai2CJJu9ud), privada), y Felipe eligió el rojo mirándola. Reemplaza a la línea «Color» de la actualización del 2026-11-05:
+- **Rojo del logo `#d13730`** (`--dn-rojo`, `--t-oscuro`): botones principales, franja de arriba y puntos de la portada. Con letra blanca da 4,88; con la crema daba 4,45, por eso la franja pasa a blanco.
+- **Rojo hondo `#ad2a24`** (`--dn-rojo-hondo`, `--t-hero`): bloques grandes (Club, «Arma tu outfit», fondo de Entrar) y el botón al pasar el mouse, porque el rojo pleno cansa en mucha superficie.
+- **Rojo de letra `#a8281f`** (`--dn-acento`, `--t-oferta`): letra chica y ofertas. El del logo sobre rosa da 3,94 y sobre el escenario 3,68; este, de 5,11 en adelante. En oscuro esa letra sigue en su tono claro.
+- **Títulos en marrón** (`--dn-titulo`). **Las sombras pasan a marrón** (`--dn-sombra-tono`): teñidas de rojo se veían como un resplandor que manchaba lo de abajo.
+- **El fondo de la modelo** en «Arma tu outfit» es un halo claro que se apaga en el mismo rojo del bloque, antes de llegar al texto. Sube de 34 % a 50 % de arena porque sobre el rojo el 34 % casi no se notaba, y así desaparece la línea recta que había entre la foto y el texto.
+
+**Lo que se paga:** los errores (`--rojo`) quedan en el mismo tono que las ofertas, así que se distinguen por su ícono y su frase, no por el color. **Lo vigila** `apps/tienda/lib/css-de-la-tienda.test.ts`: no queda vino en ningún CSS, las acciones usan exactamente el rojo del logo y todo lo que se lee llega a 4,5. Los nombres del archivo y del ADR siguen con «borgoña» porque son historia.
