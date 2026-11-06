@@ -11,6 +11,10 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
 import type { ProveedorParaCompra } from "@/components/insumos-taller/CompraDelInsumo";
+import { AjustarLoteModal } from "@/components/insumos-taller/AjustarLoteModal";
+import { LlegoUnaCompraModal } from "@/components/insumos-taller/LlegoUnaCompraModal";
+import { ProveedorDelLoteModal } from "@/components/insumos-taller/ProveedorDelLoteModal";
+import type { OrdenInsumoPorRecibir } from "@/lib/recepcion-orden-insumo-reglas";
 import { CorregirIngresoModal } from "@/components/insumos-taller/CorregirIngresoModal";
 import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
@@ -66,6 +70,7 @@ export function InsumosPanel({
   datos,
   tallerId,
   proveedores = [],
+  pedidos = [],
   esLider,
   veCostos,
   vocabulario,
@@ -80,8 +85,10 @@ export function InsumosPanel({
   sede: string;
   datos: InsumosDelTaller;
   tallerId: string;
-  /** A quién se le puede comprar (solo el líder los lee): «Ingresar insumo ▸ Compra» pide proveedor (P03). */
+  /** A quién se le puede comprar (solo el líder los lee): «Llegó una compra» pide proveedor (P03). */
   proveedores?: readonly ProveedorParaCompra[];
+  /** Los pedidos abiertos del Taller: «Llegó una compra» avisa si el proveedor tiene uno, para no contarlo dos veces. */
+  pedidos?: readonly OrdenInsumoPorRecibir[];
   esLider: boolean;
   /** Quien ve Producción en el Taller ve el costo de cada lote (no el capital). */
   veCostos: boolean;
@@ -103,11 +110,14 @@ export function InsumosPanel({
   // «Nueva tela»: abierta para crear una (`agregarA: null`) o para sumarle colores a una que ya existe.
   const [nuevaTela, setNuevaTela] = useState<{ agregarA: MaterialVista | null } | null>(null);
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
+  const [comprando, setComprando] = useState<{ insumoId: string | null } | null>(null);
   const [fichando, setFichando] = useState<InsumoVista | null>(null);
   // «Retirar color» (solo el líder): el color de tela que se está retirando de la lista.
   const [retirando, setRetirando] = useState<InsumoVista | null>(null);
   // «Corregir este ingreso» y «Restaurar» (solo el líder): el ingreso de un color que se está corrigiendo, o el eliminado que se está restaurando (ADR-0570).
   const [corrigiendo, setCorrigiendo] = useState<{ insumo: InsumoVista; lote: LoteConSaldo } | null>(null);
+  const [ajustando, setAjustando] = useState<{ insumo: InsumoVista; lote: LoteConSaldo } | null>(null);
+  const [nombrando, setNombrando] = useState<{ insumo: InsumoVista; lote: LoteConSaldo } | null>(null);
   const [restaurando, setRestaurando] = useState<{ insumo: InsumoVista; eliminado: IngresoEliminado } | null>(null);
   // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
   const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number; desfasados: number } | null>(null);
@@ -138,8 +148,13 @@ export function InsumosPanel({
                 + Nuevo avío
               </Boton>
             {esLider && (
-              <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
-                Ingresar insumo
+              <Boton peso="fantasma" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
+                Saldo inicial
+              </Boton>
+            )}
+            {esLider && (
+              <Boton peso="primario" data-guia="prod-insumos.comprar" onClick={() => setComprando({ insumoId: null })} disabled={insumos.length === 0}>
+                Llegó una compra
               </Boton>
             )}
           </>
@@ -245,12 +260,14 @@ export function InsumosPanel({
                             vocabulario={vocabulario}
                             abierto={!!abiertos[i.id]}
                             onAlternar={() => setAbiertos((a) => ({ ...a, [i.id]: !a[i.id] }))}
-                            onIngresar={() => setIngresando({ insumoId: i.id })}
+                            onIngresar={() => setComprando({ insumoId: i.id })}
                             onFicha={() => setFichando(i)}
                             onRetirar={() => setRetirando(i)}
                             ingresosEditables={datos.ingresosEditables}
                             eliminados={eliminados.filter((e) => e.insumoId === i.id)}
                             onCorregir={(lote) => setCorrigiendo({ insumo: i, lote })}
+                            onAjustar={(lote) => setAjustando({ insumo: i, lote })}
+                            onNombrar={proveedores.length > 0 ? (lote) => setNombrando({ insumo: i, lote }) : undefined}
                             onRestaurar={(eliminado) => setRestaurando({ insumo: i, eliminado })}
                           />
                         ))}
@@ -339,9 +356,12 @@ export function InsumosPanel({
       )}
       {fichando && <FichaDeLaTelaModal insumo={fichando} vocabulario={vocabulario} leyo={leyoVocabulario} onClose={() => setFichando(null)} />}
       {retirando && <RetirarColorModal key={retirando.id} insumo={retirando} tallerId={tallerId} onClose={() => setRetirando(null)} />}
+      {ajustando && <AjustarLoteModal key={ajustando.lote.id} insumo={ajustando.insumo} lote={ajustando.lote} onClose={() => setAjustando(null)} />}
+      {nombrando && <ProveedorDelLoteModal key={nombrando.lote.id} insumo={nombrando.insumo} lote={nombrando.lote} proveedores={proveedores} onClose={() => setNombrando(null)} />}
       {corrigiendo && <CorregirIngresoModal key={corrigiendo.lote.id} insumo={corrigiendo.insumo} lote={corrigiendo.lote} veCostos={veCostos} onClose={() => setCorrigiendo(null)} />}
       {restaurando && <RestaurarIngresoModal key={restaurando.eliminado.loteId} insumo={restaurando.insumo} eliminado={restaurando.eliminado} onClose={() => setRestaurando(null)} />}
-      {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} proveedores={proveedores} onClose={() => setIngresando(null)} />}
+      {ingresando && <IngresarInsumoModal insumos={insumos} insumoInicialId={ingresando.insumoId} tallerId={tallerId} onClose={() => setIngresando(null)} />}
+      {comprando && <LlegoUnaCompraModal insumos={insumos} materiales={datos.materiales} insumoInicialId={comprando.insumoId} tallerId={tallerId} proveedores={proveedores} pedidos={pedidos} onClose={() => setComprando(null)} />}
     </div>
   );
 }
@@ -360,6 +380,8 @@ function FilaInsumo({
   ingresosEditables,
   eliminados,
   onCorregir,
+  onAjustar,
+  onNombrar,
   onRestaurar,
 }: {
   insumo: InsumoVista;
@@ -377,6 +399,10 @@ function FilaInsumo({
   /** Los ingresos de este color que se eliminaron por error (solo los ve el líder). */
   eliminados: IngresoEliminado[];
   onCorregir: (lote: LoteConSaldo) => void;
+  /** Un lote ya usado: lo que entró no se cambia, se ajusta lo que queda (ADR-0614, actividad 7). */
+  onAjustar: (lote: LoteConSaldo) => void;
+  /** Un lote de compra sin proveedor: decir a quién se le compró (ADR-0614, actividad 6). */
+  onNombrar?: (lote: LoteConSaldo) => void;
   onRestaurar: (eliminado: IngresoEliminado) => void;
 }) {
   const { llenado, marcaMinimo } = tramoDeSaldo(i.saldo, i.minimo);
@@ -442,6 +468,14 @@ function FilaInsumo({
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
                       <p className="mt-1 truncate text-tinta/65">
                         {origenDeLote(l)} · {diaMes(l.ingreso)}
+                        {onNombrar && esLider && l.origen === "compra" && !l.proveedor && (
+                          <>
+                            {" · "}
+                            <button type="button" aria-haspopup="dialog" data-guia={indice === 0 && k === 0 ? "prod-insumos.decir-a-quien" : undefined} className="btn-enlace" onClick={() => onNombrar(l)}>
+                              Decir a quién
+                            </button>
+                          </>
+                        )}
                         {l.documento ? ` · ${l.documento}` : ""}
                       </p>
                       {/* La nota del ingreso (la cuenta de kilos a metros, o «Encontré tela») a la vista, no escondida: P11 del análisis del Taller. */}
@@ -464,11 +498,10 @@ function FilaInsumo({
                     {/* Un ingreso equivocado se corrige o se elimina aquí (ADR-0570): el lápiz abre una hoja con el motivo; si de ese lote ya salió material, se apaga y dice por qué. */}
                     {esLider && ingresosEditables && (
                       <LapizEditar
-                        que="este ingreso"
+                        que={l.noSeToca ? "lo que queda de este lote" : "este ingreso"}
                         guia={indice === 0 && k === 0 ? "prod-insumos.corregir-ingreso" : undefined}
-                        disabled={!!l.noSeToca}
-                        title={l.noSeToca ?? "Corregir o eliminar este ingreso"}
-                        onClick={() => onCorregir(l)}
+                        title={l.noSeToca ? "Ajustar lo que queda" : "Corregir o eliminar este ingreso"}
+                        onClick={() => (l.noSeToca ? onAjustar(l) : onCorregir(l))}
                       />
                     )}
                   </li>

@@ -71,7 +71,7 @@ describe("ninguna hoja que guarda se envía con un Enter de costumbre", () => {
   // La deuda de antes de la regla. Son 146 formularios y repartirlos es un despliegue módulo por módulo, no un PR:
   // este cierra las hojas de Insumos y Compras que `/chaos` señaló, y deja contadas las demás. **Una hoja NUEVA no
   // puede nacer aquí**: el número solo baja, y si sube, esta prueba se pone en rojo y dice cuál se coló.
-  const PENDIENTES_HOY = 129;
+  const PENDIENTES_HOY = 128;
 
   it("una hoja nueva que guarda no puede nacer sin la guardia", () => {
     const sinGuardia = CON_FORM.filter((a) => !a.fuente.includes("enterNoGuarda") && !(a.ruta in FUERA)).map((a) => a.ruta);

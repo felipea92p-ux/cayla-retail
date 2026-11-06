@@ -167,7 +167,7 @@ export function RutaViva({
             {fases.map((fase, i) => {
               const estado = estadoEnRuta(fase);
               const esAbierta = fase.id === abierta?.id;
-              const hayAlgo = accionesDeFase(fase, datos, { esLider }).some((a) => a !== "desmarcar");
+              const hayAlgo = accionesDeFase(fase, datos, { esLider }).some((a) => a !== "desmarcar") || (orden.estado === "terminada" && puedeRegistrarQuien(fase, datos));
               return (
                 <li key={fase.id} className="op-nodo-li" data-estado={estado} data-previa={i === 0 ? undefined : fases[i - 1].estado === "hecha" ? "hecha" : "no"}>
                   <button

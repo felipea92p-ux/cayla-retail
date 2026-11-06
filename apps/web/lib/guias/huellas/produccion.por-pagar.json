@@ -2,7 +2,7 @@
   "guia": "produccion.por-pagar",
   "ruta": "/produccion/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 24,
   "controles": {
     "components/MediosDePago.tsx": [
       "Desplegable «{m.metodo}»",
@@ -18,7 +18,20 @@
       "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
+    "components/PagarServicioModal.tsx": [
+      "CampoMonto «{guia.etiqueta(\"monto\", \"Cuánto, sin IGV\")}»",
+      "CampoSelect «{guia.etiqueta(\"papel\", \"El papel que te dio\")}»",
+      "CampoFecha «Fecha»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoFecha «Vence»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{yaPagado ? `Pagar ${soles(total)}»"
+    ],
     "components/PorPagarProduccionPanel.tsx": [
+      "BotonEnlace «prod-por-pagar.registrar-quien»",
+      "Boton «prod-por-pagar.pagar-servicio»",
       "Boton «prod-por-pagar.pagar»"
     ],
     "components/ProduccionSoloEnTaller.tsx": [
