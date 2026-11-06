@@ -117,7 +117,7 @@
   :root[data-diseno="nuevo"]:not([data-theme="light"]) {
     --crema: #191312; --papel: #221a19; --hueso: #2c2120; --sand: #3f312e; --tinta: #f6ece6; --taupe: #c3b1aa; --rojo: #f0877f; --dn-arena: #3a2c29; --dn-arena-2: #261d1c; --t-banda: #261d1c; --chat: #261d1c; --lienzo: #2c2120; --estudio: #2c2120;
     --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85);
-    --dn-cat-fondo: #ffffff; --dn-cat-velo: none; --dn-cat-tinta: #35201e;
+    --dn-cat-fondo: var(--t-foto); --dn-cat-velo: none; --dn-cat-tinta: #35201e;
     --dn-heroe: #261c1b; --dn-heroe-luz: #2e2322; --dn-heroe-sombra: #1e1615; --dn-rayo: rgba(255, 240, 230, .03); --dn-rayo-sombra: rgba(0, 0, 0, .08); --dn-luz: rgba(255, 220, 200, .06); --dn-sombra-calida: rgba(0, 0, 0, .25);
     --dn-arco: #4a3934; --dn-arco-luz: #5e4a44; --dn-arco-sombra: #392b28; --dn-arco-hondo: #1c1412; --dn-arco-fondo: #443430; --dn-sombra-arco: rgba(0, 0, 0, .6); --dn-suelo-1: #231917; --dn-suelo-2: #2b211f; --dn-sombra-prenda: rgba(0, 0, 0, .5); --dn-sombra-lejos: rgba(0, 0, 0, .3); --dn-sombra-contacto: rgba(0, 0, 0, .55);
   }
@@ -125,7 +125,7 @@
 :root[data-diseno="nuevo"][data-theme="dark"] {
   --crema: #191312; --papel: #221a19; --hueso: #2c2120; --sand: #3f312e; --tinta: #f6ece6; --taupe: #c3b1aa; --rojo: #f0877f; --dn-arena: #3a2c29; --dn-arena-2: #261d1c; --t-banda: #261d1c; --chat: #261d1c; --lienzo: #2c2120; --estudio: #2c2120;
   --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85);
-    --dn-cat-fondo: #ffffff; --dn-cat-velo: none; --dn-cat-tinta: #35201e;
+    --dn-cat-fondo: var(--t-foto); --dn-cat-velo: none; --dn-cat-tinta: #35201e;
     --dn-heroe: #261c1b; --dn-heroe-luz: #2e2322; --dn-heroe-sombra: #1e1615; --dn-rayo: rgba(255, 240, 230, .03); --dn-rayo-sombra: rgba(0, 0, 0, .08); --dn-luz: rgba(255, 220, 200, .06); --dn-sombra-calida: rgba(0, 0, 0, .25);
   --dn-arco: #4a3934; --dn-arco-luz: #5e4a44; --dn-arco-sombra: #392b28; --dn-arco-hondo: #1c1412; --dn-arco-fondo: #443430; --dn-sombra-arco: rgba(0, 0, 0, .6); --dn-suelo-1: #231917; --dn-suelo-2: #2b211f; --dn-sombra-prenda: rgba(0, 0, 0, .5); --dn-sombra-lejos: rgba(0, 0, 0, .3); --dn-sombra-contacto: rgba(0, 0, 0, .55);
 }

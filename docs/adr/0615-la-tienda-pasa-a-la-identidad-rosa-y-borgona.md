@@ -12,7 +12,7 @@ Felipe llevó el rediseño de la tienda de una referencia propia a una maqueta n
 4. **Solo se promete lo que la tienda hace:** «Separa sin pagar», «Recoge en tu tienda», los plazos de `retail.tienda_ayuda()` y «Asesoría por WhatsApp». Los «Envíos a todo el Perú» y «Pagos 100% seguros» de la referencia no se usan, porque la tienda no los ofrece.
 5. **El escenario es dibujo propio** (`docs/maquetas/tienda-rediseno-2026-11/recursos/generar.cjs`), sin imágenes de terceros. Las prendas son las fotos del catálogo; `lib/escena-portada.ts` equilibra su tamaño sin deformarlas. Las fotos de las modelos son las que dio Felipe, sin retoques.
 6. **Con una campaña vigente manda la portada de la campaña;** sin tres prendas para la escena, el héroe de antes.
-7. **En oscuro, lo que se escribe en vino pasa a un tono claro** (`--dn-acento`, `--dn-titulo`), porque el vino sobre oscuro no se lee, y las tarjetas de categoría van en blanco, porque sobre oscuro se perdían las prendas negras (Felipe).
+7. **En oscuro, lo que se escribe en vino pasa a un tono claro** (`--dn-acento`, `--dn-titulo`), porque el vino sobre oscuro no se lee, y las tarjetas de categoría usan la placa rosada de las prendas de «Lo nuevo», porque sobre oscuro se perdían las prendas negras (Felipe la prefirió al blanco).
 8. **«Outfit» es solo el texto que lee el cliente.** Rutas (`/looks`), tablas y nombres del código no cambian, para no romper enlaces ni la medición.
 
 ## Qué se rompería sin esto
