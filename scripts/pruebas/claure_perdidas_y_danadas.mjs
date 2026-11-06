@@ -32,7 +32,17 @@ const FIRMAS = [
   "retail.fn_asientos(date, date, uuid)",
   "retail.fn_estado_resultados(date, date, uuid)",
 ];
-const ANTES = sqlDeshacer(ARCHIVO, FIRMAS);
+// Lo que una migración POSTERIOR cambió dentro del texto que esta migración ancla: 20261106153000 metió el corte de mermas entre
+// `fn_es_merma(...)` y la línea de CLAURE. Se deshace primero (dentro de la transacción) para que el ancla de esta migración vuelva a estar.
+const POSTERIORES = `reset role;
+do $deshacer_posteriores$
+begin
+  execute replace(pg_get_functiondef('retail.fn_asientos(date,date,uuid)'::regprocedure),
+    $q$
+       and m.created_at >= retail.fn_mermas_asientan_desde()$q$, '');
+end $deshacer_posteriores$;
+`;
+const ANTES = POSTERIORES + sqlDeshacer(ARCHIVO, FIRMAS);
 const MIGRACION = leer(ARCHIVO);
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'";

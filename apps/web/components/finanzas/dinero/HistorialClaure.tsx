@@ -9,7 +9,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { SeparadorDia } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { soles } from "@/lib/compras-reglas";
-import { solesRedondo } from "@/lib/gastos-reglas";
+import { solesDos } from "@/lib/gastos-reglas";
 import {
   FILTROS_LIBRO,
   PERIODOS_LIBRO,
@@ -130,7 +130,7 @@ export function HistorialClaure({ libro, hoy, filtroInicial, periodoInicial, onC
                     <small>{m.detalle}</small>
                   </div>
                   <span className={`cl-m ${m.efecto < 0 ? "" : "cl-pos"}`}>{conSigno(m.efecto)}</span>
-                  <span className="cl-sd">debías {solesRedondo(m.saldo)}</span>
+                  <span className="cl-sd">debías {solesDos(m.saldo)}</span>
                 </div>
               ))}
             </section>

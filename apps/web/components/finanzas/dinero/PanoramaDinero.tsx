@@ -13,7 +13,7 @@ import { HistorialModal } from "@/components/finanzas/dinero/HistorialDinero";
 import { CirculoDinero } from "@/components/finanzas/dinero/CirculoDinero";
 import { colorDeEtapa, repartoPorCuenta } from "@/lib/dinero-reparto-reglas";
 import { montoConSigno } from "@/lib/dinero-telar-reglas";
-import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
+import { fechaCorta, solesDos } from "@/lib/gastos-reglas";
 import { TEXTO_MOVIMIENTO, type CuentaDinero, type MovimientoDinero } from "@/lib/cuentas-dinero-reglas";
 import { AYUDA_ETAPA, ETAPAS_EN_ORDEN, TEXTO_ETAPA, fraseDeEtapas, totalesPorEtapa, type EtapaDinero, type FilaEstado, type ItemAtencion, type TipoAtencion } from "@/lib/dinero-estados-reglas";
 
@@ -144,7 +144,7 @@ export function PanoramaDinero({
         <div className="dp-franja-pie">
           <p>
             {fraseDeEtapas(totales)}
-            {tarjeta > 0 && <> Además debes {solesRedondo(tarjeta)} en la tarjeta de crédito.</>}
+            {tarjeta > 0 && <> Además debes {solesDos(tarjeta)} en la tarjeta de crédito.</>}
           </p>
           {notas.map((n) => (
             <Chip key={n.texto} tono={n.tono} versalitas={false}>
@@ -195,7 +195,7 @@ export function PanoramaDinero({
                             {f.estado ? ` · ${f.estado.texto}` : ""}
                           </small>
                         </span>
-                        <span className={`dp-saldo ${f.saldo !== null && Math.round(f.saldo) < 0 ? "dp-neg" : ""}`}>
+                        <span className={`dp-saldo ${f.saldo !== null && Math.round(f.saldo * 100) < 0 ? "dp-neg" : ""}`}>
                           {f.saldo === null ? <small>Lo ve quien cierra la caja</small> : montoConSigno(f.saldo)}
                         </span>
                       </button>
@@ -241,7 +241,7 @@ export function PanoramaDinero({
                   </p>
                 )}
               </div>
-              <div className={`dp-saldo-grande ${sel.saldo !== null && Math.round(sel.saldo) < 0 ? "dp-neg" : ""}`}>{sel.saldo === null ? "—" : montoConSigno(sel.saldo)}</div>
+              <div className={`dp-saldo-grande ${sel.saldo !== null && Math.round(sel.saldo * 100) < 0 ? "dp-neg" : ""}`}>{sel.saldo === null ? "—" : montoConSigno(sel.saldo)}</div>
               {sel.estado && (
                 <div style={{ alignSelf: "flex-start" }}>
                   <Chip tono={sel.estado.tono}>{sel.estado.texto}</Chip>
@@ -377,7 +377,7 @@ function MovimientosDeLaCuenta({ cuenta, movimientos, hoy }: { cuenta: { id: str
                 </span>
                 <b className={`dp-m ${entra ? "dp-ent" : "dp-sal"}`}>
                   {entra ? "+" : "−"}
-                  {solesRedondo(m.monto)}
+                  {solesDos(m.monto)}
                 </b>
               </li>
             );

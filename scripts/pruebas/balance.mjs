@@ -171,6 +171,8 @@ set local session_replication_role = replica;
 delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where nombre ilike 'vendem%');
 set local session_replication_role = origin;
 ${AYUDANTES}
+-- El mundo de esta prueba es de 2024: las mermas asientan desde antes (en producción el corte es el 1-nov-2026, 20261106153000).
+update retail.parametros_finanzas set mermas_asientan_desde = '2000-01-01' where id;
 ${cambiaA(FELIPE)}
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -368,8 +370,10 @@ update retail.venta_pagos set monto = 190 where venta_id = pg_temp.k('V1');
 select pg_temp.entrada_con_costo('PR1', :'p1', :'tru', 3, 40, 'produccion', '2024-03-22 12:00-05');
 create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
 select 'N3 un asiento descuadrado: «el diario cuadra» NO, con el asiento y la diferencia (−10)', (select estado = 'no_cuadra' and bloquea and diferencia = -10 and jsonb_array_length(causas) = 1 from con where clave = 'diario');
-select 'N5 prendas de Producción: la mercadería NO cuadra y lo explica (−120: 3 × 40)', (select estado = 'no_cuadra' and diferencia = -120 from con where clave = '201')
-  and (select (causas -> 0 ->> 'clave') = 'produccion' and (causas -> 0 ->> 'monto')::numeric = -120 from con where clave = '201');
+-- 20261106171000: la Producción ya entra al diario (201 contra 231, al costo de la prenda) y deja de ser una causa.
+select 'N5 prendas de Producción: el diario las asienta (201 contra 231, 3 × 40) y la mercadería cuadra', (select estado = 'ok' from con where clave = '201')
+  and (select sum(debe) filter (where cuenta = '201') = 120 and sum(haber) filter (where cuenta = '231') = 120
+         from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'produccion');
 `;
 
 // El arranque tiene que cuadrar, y se registra una sola vez (en una base sin arranque: la escena se arma sin registrarlo).

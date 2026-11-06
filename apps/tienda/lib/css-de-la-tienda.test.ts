@@ -120,3 +120,62 @@ describe("lo que la auditoría del 2026-11-06 encontró roto no vuelve", () => {
     expect(fuente("next.config.ts")).toContain("geolocation=(self)");
   });
 });
+
+// El rojo de CAYLA (ADR-0615, actualización 2026-11-06). Se mide aquí porque en la maqueta se escapó un vino escrito fuera de los tokens (el fondo de la modelo), y porque
+// el rojo del logo se lee bien con letra blanca pero no como letra chica sobre marfil o rosa.
+describe("el rojo de CAYLA", () => {
+  const DISENO = leer(join(TIENDA, "app", "estilos", "diseno-nuevo.css"));
+  const GLOBAL = leer(join(TIENDA, "app", "globals.css"));
+  /** El valor de un token en modo claro: la primera vez que aparece en el archivo, antes de los bloques oscuros. */
+  const token = (css: string, nombre: string) => {
+    const hallado = css.match(new RegExp(`--${nombre}:\\s*(#[0-9a-f]{3,6})\\b`, "i"))?.[1];
+    if (!hallado) throw new Error(`No encuentro el token --${nombre} con un color fijo`);
+    return hallado.length === 4 ? `#${[...hallado.slice(1)].map((c) => c + c).join("")}` : hallado;
+  };
+  const luz = (hex: string) => {
+    const [r, g, b] = [1, 3, 5]
+      .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contraste = (a: string, b: string) => {
+    const [claro, oscuro] = [luz(a), luz(b)].sort((x, y) => y - x);
+    return (claro + 0.05) / (oscuro + 0.05);
+  };
+
+  it("no queda vino en ningún estilo de la tienda, ni escrito fuera de los tokens", () => {
+    const conVino = CSS_TIENDA.filter((f) => /#681c24|#4f141b|79,\s*20,\s*27/i.test(sinComentarios(leer(f))));
+    expect(conVino.map((f) => relative(RAIZ, f))).toEqual([]);
+  });
+
+  it("el rojo de las acciones es exactamente el del logo", () => {
+    expect(token(DISENO, "dn-rojo")).toBe(token(GLOBAL, "t-logo"));
+    expect(token(DISENO, "t-oscuro")).toBe(token(GLOBAL, "t-logo"));
+  });
+
+  it("el fondo de la modelo y el bloque de Arma tu outfit terminan en el mismo rojo: entre los dos no hay línea", () => {
+    const css = sinComentarios(DISENO);
+    expect(css).toMatch(/\.dn-banner \{[^}]*background: var\(--dn-rojo-hondo\)/);
+    expect(css).toMatch(/\.dn-foto-modelo \{[^}]*radial-gradient\([^;]*var\(--dn-rojo-hondo\)\);/);
+  });
+
+  it("todo lo que se lee sobre el rojo, o en rojo, llega a 4,5", () => {
+    const blanco = "#ffffff";
+    const parejas: [string, string, string][] = [
+      ["botón: blanco sobre el rojo", blanco, token(DISENO, "dn-rojo")],
+      ["botón al pasar el mouse", blanco, token(DISENO, "dn-rojo-hondo")],
+      ["franja de arriba", token(DISENO, "t-oscuro-tinta"), token(DISENO, "t-oscuro")],
+      ["bloque del Club", token(DISENO, "t-hero-tinta"), token(DISENO, "t-hero")],
+      ["insignia de oferta", token(GLOBAL, "t-oferta-tinta"), token(DISENO, "t-oferta")],
+      ...["papel", "crema", "marfil", "hueso", "dn-arena", "dn-arena-2", "dn-heroe"].map(
+        (fondo): [string, string, string] => [`letra en rojo sobre ${fondo}`, token(DISENO, "dn-acento"), token(DISENO, fondo)],
+      ),
+    ];
+    const flojas = parejas.filter(([, a, b]) => contraste(a, b) < 4.5).map(([nombre, a, b]) => `${nombre}: ${contraste(a, b).toFixed(2)}`);
+    expect(flojas).toEqual([]);
+  });
+
+  it("los puntos de la portada, que no son letra, llegan a 3 sobre el escenario", () => {
+    expect(contraste(token(DISENO, "dn-rojo"), token(DISENO, "dn-heroe"))).toBeGreaterThanOrEqual(3);
+  });
+});

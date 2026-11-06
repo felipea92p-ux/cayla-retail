@@ -8,7 +8,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { ChartNoAxesColumn } from "lucide-react";
 import { useAbrirMovimiento } from "@/components/finanzas/CuentasDinero";
-import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
+import { fechaCorta, solesDos } from "@/lib/gastos-reglas";
 import type { MovimientoDinero } from "@/lib/cuentas-dinero-reglas";
 import { graficoDelDueno, type VistaDueno } from "@/lib/dinero-dueno-cobros-reglas";
 
@@ -54,7 +54,7 @@ export function PlataDelDueno({
         <div className="dp-dueno-izq">
           <div>
             <span className="dp-versalita">CAYLA te debe</span>
-            <div className={`dp-dueno-debe ${deuda > 0 ? "dp-ambar" : ""}`}>{solesRedondo(deuda)}</div>
+            <div className={`dp-dueno-debe ${deuda > 0 ? "dp-ambar" : ""}`}>{solesDos(deuda)}</div>
             <Chip tono={deuda > 0 ? "ambar" : "verde"} versalitas={false}>
               {deuda > 0 ? "Préstamo sin devolver" : "Al día: no te debe nada"}
             </Chip>
@@ -71,7 +71,7 @@ export function PlataDelDueno({
                     {fechaCorta(p.fecha)} · préstamo{p.referencia ? ` · ${p.referencia}` : ""}
                   </span>
                   <span className="dp-num">
-                    {solesRedondo(p.monto)} · devuelto {solesRedondo(p.devuelto)}
+                    {solesDos(p.monto)} · devuelto {solesDos(p.devuelto)}
                   </span>
                   <BarraAvance pct={p.monto > 0 ? (p.devuelto / p.monto) * 100 : 0} alto="fina" tono="ambar" decorativa />
                 </li>
@@ -83,20 +83,20 @@ export function PlataDelDueno({
               <div>
                 <dt>Puso</dt>
                 <dd className="dp-num" style={{ color: "var(--color-verde)" }}>
-                  {solesRedondo(g.puso)}
+                  {solesDos(g.puso)}
                 </dd>
               </div>
               <div>
                 <dt>Sacó</dt>
                 <dd className="dp-num" style={{ color: "var(--color-ambar)" }}>
-                  {solesRedondo(g.saco)}
+                  {solesDos(g.saco)}
                 </dd>
               </div>
               <div>
                 <dt>Queda en CAYLA</dt>
                 <dd className="dp-num">
                   {neto < 0 ? "−" : "+"}
-                  {solesRedondo(Math.abs(neto))}
+                  {solesDos(Math.abs(neto))}
                 </dd>
               </div>
             </dl>
@@ -142,13 +142,13 @@ export function PlataDelDueno({
                       <div>
                         <BarraAvance pct={g.maximo > 0 ? (f.puso / g.maximo) * 100 : 0} alto="normal" tono="verde" decorativa indice={i} />
                         <b className="dp-num" style={{ color: "var(--color-verde)" }}>
-                          {f.puso ? `+${solesRedondo(f.puso)}` : "—"}
+                          {f.puso ? `+${solesDos(f.puso)}` : "—"}
                         </b>
                       </div>
                       <div>
                         <BarraAvance pct={g.maximo > 0 ? (f.saco / g.maximo) * 100 : 0} alto="normal" tono="ambar" decorativa indice={i} />
                         <b className="dp-num" style={{ color: "var(--color-ambar)" }}>
-                          {f.saco ? `−${solesRedondo(f.saco)}` : "—"}
+                          {f.saco ? `−${solesDos(f.saco)}` : "—"}
                         </b>
                       </div>
                     </div>
@@ -156,10 +156,10 @@ export function PlataDelDueno({
                 ))}
               </ul>
               <p className="dp-tenue" style={{ fontSize: "14px" }}>
-                Puso <b className="dp-num" style={{ color: "var(--color-verde)" }}>{solesRedondo(g.puso)}</b> · Sacó <b className="dp-num" style={{ color: "var(--color-ambar)" }}>{solesRedondo(g.saco)}</b> · Neto{" "}
+                Puso <b className="dp-num" style={{ color: "var(--color-verde)" }}>{solesDos(g.puso)}</b> · Sacó <b className="dp-num" style={{ color: "var(--color-ambar)" }}>{solesDos(g.saco)}</b> · Neto{" "}
                 <b className="dp-num text-tinta">
                   {neto < 0 ? "−" : "+"}
-                  {solesRedondo(Math.abs(neto))}
+                  {solesDos(Math.abs(neto))}
                 </b>{" "}
                 para CAYLA. Cuenta a quien registró el movimiento; pasa el mouse por una fila para ver aportes, préstamos, devoluciones y retiros.
               </p>
