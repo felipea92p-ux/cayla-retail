@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { leerFichaParaRecibir, tallasYColoresDe } from "./recepcion-envio-reglas";
 import {
   argsPrepararPrenda,
   argsRecibirDespacho,
@@ -1178,5 +1179,24 @@ describe("lo comprado desde el celular (ADR-0480, actividad 6): el papel con su 
   it("un envío del escritorio (la base sin papeles) se lee igual: sin papeles ni prenda elegida", () => {
     expect(detalle.papeles).toEqual([]);
     expect(detalle.lineas.every((l) => l.prendaElegida === null)).toBe(true);
+  });
+});
+
+describe("la ficha para reconocer una prenda al recibir (Felipe 2026-11-06)", () => {
+  it("lee los nombres de sus tablas, y lo vacío queda sin registrar", () => {
+    expect(leerFichaParaRecibir({ descripcion: " Top de lino ", tejido: { nombre: "Lino" }, patron: null, marca: { nombre: "Miramhe" }, categoria: [{ nombre: "Tops" }] })).toEqual({
+      descripcion: "Top de lino",
+      material: "Lino",
+      patron: null,
+      marca: "Miramhe",
+      categoria: "Tops",
+    });
+    expect(leerFichaParaRecibir({ descripcion: "  " })).toEqual({ descripcion: null, material: null, patron: null, marca: null, categoria: null });
+    expect(leerFichaParaRecibir(null)).toBeNull();
+  });
+
+  it("junta tallas y colores sin repetir; sin talla o color lo dice", () => {
+    const v = (talla: string | null, color: string | null) => ({ id: `${talla}${color}`, tallaId: null, talla, colorCodigo: null, color, codigo: null, costo: null, precio: null });
+    expect(tallasYColoresDe({ variantes: [v("S", "Negro"), v("M", "Negro"), v(null, null)] })).toEqual({ tallas: ["S", "M", "Única"], colores: ["Negro", "Sin color"] });
   });
 });

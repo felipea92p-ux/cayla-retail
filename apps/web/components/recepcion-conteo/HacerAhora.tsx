@@ -39,11 +39,12 @@ import {
   type VarianteSeparada,
   mensajeAlGuardar,
   marcaDeLinea,
+  sePuedeCambiarCategoria,
   type CambioDePrecio,
   type MarcaDeLinea,
   type ResultadoDeLigar,
 } from "@/lib/recepcion-conteo-reglas";
-import { cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
+import { cambiarCategoriaDePendiente, cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
 import type { Firma } from "@/lib/responsable-reglas";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { HojaTallas } from "./HojaTallas";
@@ -81,6 +82,7 @@ export function HacerAhora({
   detalle,
   item,
   linea,
+  empezarCreando = false,
   catalogo,
   responsable,
   prendas,
@@ -88,12 +90,15 @@ export function HacerAhora({
   sinAviso = false,
   veDinero = true,
   onPrendaVista,
+  onCategoriaCambiada,
   onListo,
   onCerrar,
 }: {
   detalle: DetalleEnvio;
   item: ParaDespues;
   linea: LineaParaContar | null;
+  /** Ya se dijo que no existe, antes de pasarla a su categoría: se abre directo la hoja de crearla. */
+  empezarCreando?: boolean;
   catalogo: CatalogoParaRecibir | null;
   responsable: ControlResponsable;
   prendas: ReadonlyMap<string, PrendaRecepcion>;
@@ -104,13 +109,15 @@ export function HacerAhora({
   veDinero?: boolean;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
+  /** El modelo pasó a otra línea: esta hoja se queda vieja, y el padre relee el envío y sigue con él. `crear`: la persona pidió crear la prenda. */
+  onCategoriaCambiada: (crear: boolean) => void;
   onListo: () => void;
   /** `huboCambio`: algo quedó guardado sin terminar (la prenda de un «crear» ya existe): la lista de «Para después» se vuelve a leer. */
   onCerrar: (huboCambio: boolean) => void;
 }) {
   const [vista, setVista] = useState<Vista>(() => {
     if (item.tipo === "separar") return { tipo: "separar" };
-    if (item.tipo === "crear") return { tipo: "existe" };
+    if (item.tipo === "crear") return empezarCreando ? { tipo: "prenda" } : { tipo: "existe" };
     const ya = item.pendiente.producto ? prendas.get(item.pendiente.producto.id) : undefined;
     return ya ? { tipo: "tallas", prenda: ya, original: null } : { tipo: "cargando" };
   });
@@ -339,6 +346,14 @@ export function HacerAhora({
     prendaCreada(prenda);
   };
 
+  /** Pasa el «por crear» a la categoría elegida (Felipe 2026-11-06). Devuelve el error en palabras; `null` si quedó. */
+  const pasarACategoria = async (categoriaId: string): Promise<string | null> => {
+    if (item.tipo !== "crear") return null;
+    const { error: e } = await cambiarCategoriaDePendiente({ p_despacho_id: detalle.id, p_pendiente_id: item.pendiente.id, p_categoria_id: categoriaId }, responsable.firma());
+    responsable.despues(e);
+    return e ? mensajeAlGuardar(e, "cambiar la categoría") : null;
+  };
+
   // La hoja que toca (las salidas tempranas de abajo), y encima la confirmación de precios si hay.
   const hojaActual = (): ReactNode => {
     if (!linea || !categoria || !marca) {
@@ -390,8 +405,17 @@ export function HacerAhora({
           cantidad={item.cantidad}
           costo={costoDe ? costoInicialDePrenda(linea, "", descripcionNueva) : null}
           comoCorregirMarca="Si la marca anotada está mal, reabre el conteo y corrígela."
-          onUsar={alExistir}
-          onCrear={() => setVista({ tipo: "prenda" })}
+          categorias={sePuedeCambiarCategoria(item, linea) ? (catalogo?.categorias ?? []) : []}
+          responsable={responsable}
+          onPasarACategoria={pasarACategoria}
+          onUsar={async (prenda, cambio) => {
+            if (!cambio) return alExistir(prenda);
+            // La línea de esta hoja ya no es la suya: se liga la prenda y el padre sigue con la línea nueva.
+            await ligarPrenda(prenda);
+            onPrendaVista(prenda);
+            onCategoriaCambiada(false);
+          }}
+          onCrear={(cambio) => (cambio ? onCategoriaCambiada(true) : setVista({ tipo: "prenda" }))}
           onCerrar={cerrar}
         />
       );
