@@ -24,14 +24,14 @@ import { MarcaDeVista } from "../Vistas";
 
 /**
  * El marco de las páginas de la cuenta y de ayuda, el mismo de la portada: la franja de arriba (con la campaña vigente), la cabecera,
- * el contenido y, si se pide, el pie. Sin cuenta, la cabecera de la portada («Entrar», «Crear mi cuenta»); con cuenta, la de la tienda
- * (el menú, el buscador, los favoritos, «Mi cuenta» y la bolsa, armada con el catálogo con «Todas»). Los formularios (crear, entrar,
- * recuperar) van sin pie, como en la maqueta. El pie va después de <main> y llega solo al borde
+ * el contenido y, si se pide, el pie. La cabecera es la de la tienda (el menú, el buscador, los favoritos, «Mi cuenta» y la bolsa, armada
+ * con el catálogo con «Todas»), con o sin cuenta; solo los formularios de entrar (crear, entrar, recuperar) llevan la del logo, y van sin
+ * pie, como en la maqueta. El pie va después de <main> y llega solo al borde
  * de abajo en una página corta (pie.css).
  *
  * Una página pública que sirve a quien tiene cuenta y a quien no («Cómo separar», «Nuestras tiendas», la privacidad…) pasa
- * `segunSesion` en vez de leer las cookies ella misma: el marco sale armado por adelantado, con la cabecera y el pie de quien no tiene
- * cuenta, y la franja, la cabecera y el pie de quien sí la tiene llegan por detrás, dentro de su `<Suspense>` (`SegunSesion`, ADR-0432).
+ * `segunSesion` en vez de leer las cookies ella misma: el marco sale armado por adelantado con la cabecera sin datos, y sus datos (el menú,
+ * la bolsa, la cuenta) llegan por detrás, dentro de su `<Suspense>` (`SegunSesion`, ADR-0432).
  */
 export async function MarcoCuenta({
   children,
@@ -60,10 +60,22 @@ export async function MarcoCuenta({
 }) {
   if (segunSesion) {
     const [{ campana }, anio, { diasParaCambiar }] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0), leerAyuda()]);
-    const visitante = (
+    // La cabecera mientras llegan sus datos: la misma de la tienda, sin nombre, sin números y sin leer ninguna cookie (la página se guarda armada).
+    const enEspera = (comoVisitante: boolean) => (
       <>
         <Anuncio frases={anuncios(campana, diasParaCambiar)} />
-        <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
+        <CabeceraConCuenta
+          datos={datosDeCabecera([], null, undefined)}
+          actual={enPagina === "cuenta" ? "cuenta" : null}
+          deEspera
+          visitante={comoVisitante}
+          campanita={comoVisitante ? null : <CampanitaApagada />}
+          bolsa={
+            <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
+              <Icono nombre="bolsa" />
+            </Link>
+          }
+        />
       </>
     );
     return (
@@ -72,31 +84,10 @@ export async function MarcoCuenta({
         <MarcaDeVista />
         <div className="tienda">
           <SegunSesion
-            visitante={visitante}
-            conCuenta={<ArranqueConCuenta campana={campana} enPagina={enPagina} />}
-            // Mientras el servidor lee la cookie: quien trae sesión ve la cabecera de siempre sin los números ni el nombre (los de él
-            // llegan por detrás) y quien no, la del visitante, que es la que se queda.
-            mientras={
-              <ElegirPorCookie
-                visitante={visitante}
-                conCuenta={
-                  <>
-                    <Anuncio frases={anuncios(campana, diasParaCambiar)} />
-                    <CabeceraConCuenta
-                      datos={datosDeCabecera([], null, undefined)}
-                      actual={enPagina === "cuenta" ? "cuenta" : null}
-                      deEspera
-                      campanita={<CampanitaApagada />}
-                      bolsa={
-                        <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
-                          <Icono nombre="bolsa" />
-                        </Link>
-                      }
-                    />
-                  </>
-                }
-              />
-            }
+            visitante={<ArranqueDeLaTienda campana={campana} enPagina={enPagina} visitante />}
+            conCuenta={<ArranqueDeLaTienda campana={campana} enPagina={enPagina} />}
+            // Mientras el servidor lee la cookie, la misma cabecera sin datos: según la cookie, con o sin lo de la cuenta.
+            mientras={<ElegirPorCookie visitante={enEspera(true)} conCuenta={enEspera(false)} />}
           />
           <main className="t-pagina">{children}</main>
           {conPie && <SegunSesion visitante={<Pie anio={anio} />} conCuenta={<Pie anio={anio} conCuenta />} />}
@@ -143,23 +134,24 @@ export async function MarcoCuenta({
   );
 }
 
-/** La franja y la cabecera de quien tiene cuenta, para el marco `segunSesion`: lo mismo que arma el marco de las páginas con cuenta,
- *  pero leído por detrás de la página (el catálogo para el menú es compartido; los favoritos y el nombre son de la persona). */
-async function ArranqueConCuenta({ campana, enPagina }: { campana: Portada["campana"]; enPagina?: "entrar" | "crear-cuenta" | "cuenta" }) {
-  const [catalogo, favoritos, nombre] = await Promise.all([leerCatalogo(null), cuantosFavoritos(), nombreDeLaCuenta()]);
+/** La franja y la cabecera de la tienda, para el marco `segunSesion`: lo mismo que arma el marco de las páginas con cuenta, pero leído por
+ *  detrás de la página (el catálogo para el menú es compartido; los favoritos y el nombre, solo si hay cuenta). */
+async function ArranqueDeLaTienda({ campana, enPagina, visitante = false }: { campana: Portada["campana"]; enPagina?: "entrar" | "crear-cuenta" | "cuenta"; visitante?: boolean }) {
+  const [catalogo, favoritos, nombre] = await Promise.all([leerCatalogo(null), visitante ? null : cuantosFavoritos(), visitante ? null : nombreDeLaCuenta()]);
   const conProbador = await hayAlgoParaProbar(catalogo?.prendas ?? []);
   const datos = datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador);
   return (
     <>
       <Anuncio frases={anuncios(campana, (await leerAyuda()).diasParaCambiar)} />
-      <EntradaDelDia />
+      {!visitante && <EntradaDelDia />}
       <CabeceraConCuenta
         datos={datos}
         actual={enPagina === "cuenta" ? "cuenta" : null}
         favoritos={favoritos}
         nombre={nombre}
         bolsa={<BotonBolsa />}
-        campanita={<CampanitaConEspera prendas={catalogo?.prendas ?? []} hrefNuevo={datos.nuevo.href} />}
+        campanita={visitante ? null : <CampanitaConEspera prendas={catalogo?.prendas ?? []} hrefNuevo={datos.nuevo.href} />}
+        visitante={visitante}
       />
     </>
   );

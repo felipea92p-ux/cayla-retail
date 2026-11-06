@@ -16,6 +16,13 @@ export type StockModelo = z.infer<typeof esquemaStockModelo>;
 export const hayAlgo = (n: Nivel | undefined): boolean => n === "hay" || (typeof n === "number" && n > 0);
 
 /** Lo que dice la celda: «Hay», «3», «2», «Última» o «—». */
+/** Lo que hay, dicho como frase para una sola tienda («Última en Arequipa»). */
+export function fraseDeNivel(n: Nivel): string {
+  if (n === "hay") return "Hay";
+  if (n === 0) return "Agotada";
+  return n === 1 ? "Última" : `Quedan ${n}`;
+}
+
 export function textoNivel(n: Nivel): string {
   if (n === "hay") return "Hay";
   if (n <= 0) return "—";

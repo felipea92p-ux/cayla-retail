@@ -6,6 +6,7 @@ import { EscenarioDelDesfile } from "@/components/desfile/EscenarioDelDesfile";
 import { FilaDeCategorias } from "@/components/FilaDeCategorias";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
+import { OutfitUnico } from "@/components/looks/OutfitUnico";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
@@ -120,7 +121,9 @@ export default async function Inicio({ searchParams }: Props) {
   const ofertaElegida = campanas.find((c) => c.id === leerCampana(sp.oferta)) ?? null;
   const grillaDe = (lista: Prenda[]) =>
     lista.slice(0, 8).map((p) => <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} diseno={diseno} />);
-  const vendidos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "vendidos" }).slice(0, 8);
+  // Filas completas (de a 4 en la computadora, de a 2 en el celular): 5 vendidos dejarían una prenda sola en la última fila.
+  const todosLosVendidos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "vendidos" }).slice(0, 8);
+  const vendidos = todosLosVendidos.length >= 4 ? todosLosVendidos.slice(0, todosLosVendidos.length - (todosLosVendidos.length % 4)) : todosLosVendidos;
   const lista = (l: "nuevo" | "ofertas" | "vendidos", campanaId: string | null = null) =>
     hrefLista({ sede, categoria: null, orden: "destacado", lista: l, campana: campanaId });
 
@@ -197,15 +200,19 @@ export default async function Inicio({ searchParams }: Props) {
                   </h2>
                 </div>
                 <Link className="t-ver" href={hrefLooks(sede)}>
-                  Ver todos <b>{looks.length}</b>
+                  Ver todos
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-looks-inicio" data-revela-lista>
-                {looks.slice(0, 3).map((l) => (
-                  <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
-                ))}
-              </div>
+              {looks.length === 1 ? (
+                <OutfitUnico look={looks[0]} sede={sede} origenFotos={origenFotos} />
+              ) : (
+                <div className="t-looks-inicio" data-revela-lista>
+                  {looks.slice(0, 3).map((l) => (
+                    <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
+                  ))}
+                </div>
+              )}
             </section>
           )}
 

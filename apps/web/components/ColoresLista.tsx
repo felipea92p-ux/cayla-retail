@@ -1,6 +1,7 @@
 "use client";
 
-import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
+import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { coloresQueYaExisten } from "@/lib/color-alta-reglas";
 import { vistaDeCoincidencias } from "@/lib/atributo-parecido";
 import { claveTexto } from "@/lib/nombres-parecidos";
@@ -106,8 +107,8 @@ function ordenar(lista: Color[]) {
 // pura y la claridad nunca «sube» a mitad de una fila (ADR-0314).
 function gruposPorFamilia(lista: Color[]) {
   // Un solo agrupador para todas las pantallas de colores (`agruparPorFamilia`, lib/colores-familias.ts). Una familia que esta pantalla aún
-  // no conoce —la base la agregó antes de que el código se desplegara— sale con su propio nombre, no escondida en «Sin familia»: «Sin
-  // familia» es solo para el color que de verdad no tiene (el 2-oct se vieron «Sin familia 7» que eran Rosado y Naranja).
+  // no conoce —la base la agregó antes de que el código se desplegara— sale con su propio nombre, no escondida en «Varios colores», que
+  // es solo para el color que de verdad no tiene familia (el 2-oct se vieron «Sin familia 7» que eran Rosado y Naranja).
   return agruparPorFamilia(lista, (c) => c.familiaColor);
 }
 
@@ -117,7 +118,7 @@ function gruposPorFamilia(lista: Color[]) {
 // color de `tipo` textura (Gris melange: el hilo mismo es jaspeado) se pinta
 // jaspeado sobre su hex, para no verse igual que el liso del mismo tono.
 function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "var(--color-sand)", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeColor(hex, familia, tipo), borderColor: bordeDeMuestra(hex) }} aria-hidden />;
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
@@ -148,7 +149,7 @@ function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<strin
                 key={x.codigo}
                 title={x.nombre}
                 className="inline-block h-3 w-3 rounded-full border border-tinta/15"
-                style={{ background: fondoDeMuestra(x.hex, x.familiaColor, x.tipo) ?? "transparent", borderColor: bordeDeMuestra(x.hex) }}
+                style={{ background: fondoDeColor(x.hex, x.familiaColor, x.tipo), borderColor: bordeDeMuestra(x.hex) }}
               />
             ))}
           </span>
@@ -709,6 +710,8 @@ function ColorEditarModal({
   const [familiaColor, setFamiliaColor] = useState<FamiliaColor>((color.familiaColor as FamiliaColor) ?? "neutro");
   const [hex, setHex] = useState(color.hex ?? "#c9b79c"); // tema-fijo: valor inicial del selector de color (un input type=color exige un hex): es un dato
   const [hexAbierto, setHexAbierto] = useState(false);
+  // Un color sin hex es de varios colores (Multicolor): no tiene un tono ni una familia que elegir, y guardar no se los inventa.
+  const esVarios = color.hex === null;
   const [notas, setNotas] = useState(color.notas ?? "");
   const [pantone, setPantone] = useState(color.pantoneTcx ?? "");
   const [sinonimos, setSinonimos] = useState(color.sinonimos.join(", "));
@@ -732,7 +735,7 @@ function ColorEditarModal({
   const nombreCambio = claveTexto(nombre) !== claveTexto(color.nombre);
   const existe = useExisteTambien(
     nombre,
-    vistaDeCoincidencias(coloresQueYaExisten(nombre, hex, familiaColor, existentes, { excluir: color.codigo }).filter((c) => nombreCambio || c.por === "tono"), leerColorExistente)
+    vistaDeCoincidencias(coloresQueYaExisten(nombre, esVarios ? null : hex, familiaColor, existentes, { excluir: color.codigo }).filter((c) => nombreCambio || c.por === "tono"), leerColorExistente)
   );
   const faltaExiste = faltaPorExistente("color", nombre, existe);
 
@@ -757,7 +760,7 @@ function ColorEditarModal({
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, ...(esVarios ? {} : { familiaColor, hex }), notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -836,7 +839,7 @@ function ColorEditarModal({
               si={(o) => ({ texto: `Ver ${o.nombre}`, onClick: () => { onVer(o.nombre); cerrar(); } })}
               deshabilitado={ocupado}
             />
-            <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+            {!esVarios && <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />}
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
             <CampoGuiado id="pantone" guia={guia}>
             <CampoTexto
@@ -862,6 +865,15 @@ function ColorEditarModal({
           <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
           <CombinaConCampo colores={vocabulario} valor={combinaCon} onValor={setCombinaCon} propio={color.codigo} />
 
+          {esVarios ? (
+            <div>
+              <p className="label-cayla text-[11px] text-tinta/65">Color</p>
+              <div className="mt-1.5 flex items-center gap-3">
+                <Muestra hex={null} className="h-6 w-10" />
+                <span className="text-sm text-tinta/65">De varios colores: no tiene un solo tono. Se ve así en todo el ERP y en la tienda.</span>
+              </div>
+            </div>
+          ) : (
           <div>
             {hexAbierto ? (
               <SelectorColor hex={hex} onHex={setHex} />
@@ -879,6 +891,7 @@ function ColorEditarModal({
             )}
             <p className="mt-1 text-sm text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
+          )}
           <ExisteTambien
             que="color"
             nombre={nombre}

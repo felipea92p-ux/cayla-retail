@@ -21,6 +21,8 @@
   --dn-borgona: #681c24; --dn-borgona-2: #4f141b; --dn-arena: #e9d9cc; --dn-arena-2: #f5ece4;
   /* Lo que se escribe en vino: en oscuro pasa a un tono claro, porque el vino sobre oscuro no se lee */
   --dn-acento: #681c24; --dn-titulo: #4f141b; --dn-base-filtro: none;
+  /* Un color sin tono propio (Multicolor: `colores.hex` vacío). La rueda es un dato de la prenda, no cambia con el modo oscuro; la misma del ERP */
+  --dn-varios: conic-gradient(from 20deg, #c0272d, #f2c14e, #3e7a4e, #1b2a4a, #5b3a78, #c0272d);
   --dn-cat-fondo: var(--dn-arena-2); --dn-cat-velo: linear-gradient(180deg, var(--hueso), var(--dn-arena)); --dn-cat-tinta: var(--tinta);
   --e-1: 4px; --e-2: 8px; --e-3: 12px; --e-4: 16px; --e-5: 24px; --e-6: 32px; --e-7: 48px;
   --dn-seccion: clamp(40px, 4.4cqi, 64px); --dn-editorial: clamp(56px, 5.7cqi, 88px); --dn-pagina: clamp(38px, 4cqi, 58px); --dn-tit-seccion: clamp(27px, 2.5cqi, 36px); --dn-sub: clamp(17px, 1.5cqi, 22px);
@@ -160,10 +162,11 @@
   & :is(.w-caja-pref, .en-form .w-caja-pref) span { border-radius: var(--dn-r-s) 0 0 var(--dn-r-s); }
   & .pb-bus-caja, & .t-buscador-caja { border-radius: var(--dn-r-p); }
 
-  /* Esquinas: píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa */
-  & :is(.t-pildora, .t-pildora-mini, .t-chip, .c-chip, .pb-chip, .pb-bus-zona, .fp-filtros-btn, .fp-cierra, .fp-op, .t-insignia, .w-estado-chip, .pb-etq, .en-paso-aqui, .ay-reco-cuantas, .pb-bus-cuantas, .pb-bus-sugerida) { border-radius: var(--dn-r-p); }
-  & :is(.w-tipo, .w-tipos, .en-form .w-tipos, .w-opcion, .w-info, .w-nota, .w-aviso, .en-aviso, .pb-aviso, .pb-bus-aviso, .t-aviso-suave, .t-cantidad, .t-talla, .t-look-talla, .t-pag, .t-orden a, .t-mini, .t-look-tile, .t-mega-prenda > span, .t-mega-cat, .lg-pieza-foto, .pb-bus-foto, .pb-fila-foto, .pb-opcion-foto, .w-codigo-caja, .w-reloj, .t-bolsa-cupon-mio, .t-rapido, .fp-qt, .r-sobre-op, .t-pdp-nota, .t-look-hoja-motivo, .en-beneficio-ic, .t-aviso-club-ic, .t-inst-icono, .t-club-sello, .w-borrador) { border-radius: var(--dn-r-s); }
-  & :is(.ay-llamado, .ay-punto, .ay-reco-panel, .ay-tienda, .ay-tiendas-vacio, .ay-indice-movil, .c-novedad, .cl-previa, .fp-ficha, .fp-panel, .lg-figura, .lg-tarjeta-figura, .pb-fila, .pf-acceso, .pf-atajo, .pf-cuenta, .r-form, .r-gracias, .r-item, .r-respuesta, .r-tuyo, .t-aviso-club, .t-inst-tarjeta, .t-inst-fila, .t-lamina, .t-resumen, .t-tarjeta-club, .t-stock-envol, .w-ped, .w-tarjeta, .w-frena-item, .t-polaroid, .t-mega-envol, .t-persona-menu) { border-radius: var(--dn-r-m); }
+  /* Esquinas: píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa. Nunca a una pieza cuya única línea es un borde de un lado (una pestaña,
+     una fila separada por una raya): el borde se curva en las puntas y se ve un arco (auditoría 2026-11-06). Lo vigila lib/css-de-la-tienda.test.ts */
+  & :is(.t-sugerencias .t-pildora, .t-chip, .c-chip, .pb-chip, .pb-bus-zona, .fp-op, .t-insignia, .w-estado-chip, .pb-etq, .en-paso-aqui, .ay-reco-cuantas, .pb-bus-cuantas, .pb-bus-sugerida) { border-radius: var(--dn-r-p); }
+  & :is(.w-tipo, .w-tipos, .en-form .w-tipos, .w-opcion, .w-info, .w-nota, .w-aviso, .en-aviso, .pb-aviso, .pb-bus-aviso, .t-aviso-suave, .t-cantidad, .t-talla, .t-look-talla, .t-mini, .t-look-tile, .t-mega-prenda > span, .t-mega-cat, .lg-pieza-foto, .pb-bus-foto, .pb-fila-foto, .pb-opcion-foto, .w-codigo-caja, .w-reloj, .t-bolsa-cupon-mio, .t-rapido, .r-sobre-op, .t-pdp-nota, .t-look-hoja-motivo, .en-beneficio-ic, .t-aviso-club-ic, .t-inst-icono, .t-club-sello, .w-borrador) { border-radius: var(--dn-r-s); }
+  & :is(.ay-llamado, .ay-punto, .ay-reco-panel, .ay-indice-movil, .c-novedad, .cl-previa, .fp-ficha, .fp-panel, .lg-figura, .lg-tarjeta-figura, .pf-acceso, .pf-atajo, .pf-cuenta, .r-form, .r-gracias, .r-item, .r-respuesta, .r-tuyo, .t-aviso-club, .t-inst-tarjeta, .t-inst-fila, .t-lamina, .t-resumen, .t-tarjeta-club, .w-ped, .w-tarjeta, .w-frena-item, .t-polaroid, .t-mega-envol, .t-persona-menu) { border-radius: var(--dn-r-m); }
   & :is(.t-buscador, .t-look-hoja, .t-inst-hoja) { border-radius: var(--dn-r-l); }
 
   /* La tarjeta de entrar y crear cuenta: una superficie más, sin el filo negro de la identidad anterior */
@@ -323,10 +326,79 @@
   .dn-beneficios b { font-size: 14.5px; }
   .dn-beneficios small { font-size: 13px; }
   .dn-seccion-banner { padding-top: calc(var(--dn-seccion) + clamp(48px, 5.6cqi, 84px)); }
+}
+
+/* Arma tu outfit a tres zonas desde 700 px: en la tablet, dos filas dejaban un gran hueco junto a la modelo. */
+@container tienda (min-width: 700px) {
   .dn-banner { grid-template-columns: minmax(0, .82fr) minmax(0, 1fr) minmax(0, 1.18fr); min-height: clamp(280px, 25cqi, 360px); }
   .dn-banner-texto { padding: var(--e-6) clamp(16px, 2cqi, 32px); }
   .dn-foto-modelo { border-radius: 20px 0 0 20px; }
   .dn-foto-modelo img { height: 122%; filter: drop-shadow(2px 3px 5px color-mix(in srgb, #4f141b 26%, transparent)); clip-path: inset(-20px -20px 0 -20px); }
   .dn-foto-mesa { grid-column: auto; height: auto; border-radius: 50% 20px 20px 50% / 100% 20px 20px 100%; }
   .dn-foto-mesa img { height: 94%; }
+  .dn-banner h2 { font-size: clamp(32px, 4cqi, 58px); }
+}
+
+/* ── Lo que dejó la auditoría del 2026-11-06 ── */
+:root[data-diseno="nuevo"] {
+  /* `hidden` significa escondido, siempre: nuestra rejilla (`display: grid`) le ganaba y las ofertas salían repetidas, con las pestañas muertas. */
+  & [hidden] { display: none !important; }
+
+  /* Un color sin tono propio se dibuja en rueda, no como un punto vacío */
+  & [data-color-dato]:not([style]):not(g) { background: var(--dn-varios); }
+
+  /* El precio no se parte («Desde S/» arriba y «39.90» abajo) */
+  & .t-precio { flex-wrap: wrap; column-gap: var(--e-2); }
+  & :is(.t-precio b, .t-precio s) { white-space: nowrap; }
+
+  /* La tarjeta del Club: papel marfil y su letra en tinta, con el filo vino */
+  & .t-invitacion-cara { background: #fbf6ef; color: #35201e; }
+  & .t-invitacion-cara::before { border-color: #681c24; }
+  & .t-invitacion-cara .t-ceja { color: #681c24; }
+  & .t-invitacion-gris, & .t-invitacion-cara .t-invitacion-gris { color: #6b5a55; }
+  & .t-invitacion-nombre { color: #35201e; }
+
+  /* Sobre el vino, letra blanca (también en oscuro) */
+  & :is(.t-insignia.oferta, .t-chip.oferta) { color: #fff; }
+  & .t-stock td.poco { color: var(--dn-acento); }
+
+  /* La burbuja de ayuda no tapa la barra de abajo de la ficha */
+  @media (max-width: 959px) {
+    &:has(.t-pdp-barra) .rv-boton { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+    &:has(.t-pdp-bolsa-barra[data-lleno]) .rv-boton { bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
+  }
+
+  /* Entrar y recuperar: sin la mancha de luz, con el título a su medida */
+  & .en-partida::before { display: none; }
+  & .en-partida .w-titulo { font-size: clamp(34px, 3cqi, 44px); text-wrap: balance; }
+
+  /* «Ver N prendas» de los filtros: el botón de acción de siempre */
+  & .fp-ver { background: var(--dn-borgona); border-color: var(--dn-borgona); color: #fff; }
+
+  /* Las prendas de un outfit, recortadas sobre el rosa */
+  & .t-pieza:has(.t-pieza-recorte) { mix-blend-mode: normal; }
+  & .t-pieza-recorte { object-fit: contain; padding: 0; filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--dn-borgona-2) 14%, transparent)); }
+
+  /* Cuánto hay con una sola tienda: una línea */
+  & .t-stock-linea { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--e-1) var(--e-3); margin: 0; font-size: 14px; color: var(--taupe); }
+  & .t-stock-linea b { font-weight: 600; color: var(--tinta); }
+  & :is(.t-stock-linea.poco, .t-stock-linea .poco) b { color: var(--dn-acento); }
+  & :is(.t-stock-linea.cero, .t-stock-linea .cero) b { color: var(--taupe); font-weight: 400; }
+
+  /* Un solo outfit: la lámina junto a lo que trae */
+  & .t-outfit-unico { display: grid; gap: var(--e-5); }
+  & .t-outfit-unico-datos { display: flex; flex-direction: column; gap: var(--e-3); }
+  & .t-outfit-unico-datos h3 { margin: 0; font-family: var(--nombre); font-weight: 400; font-size: var(--dn-pagina); line-height: 1.08; }
+  & .t-outfit-unico-datos p { margin: 0; color: var(--taupe); font-size: 15px; line-height: 1.5; }
+  & .t-outfit-unico-datos ul { list-style: none; margin: var(--e-2) 0 0; padding: 0; border-top: 1px solid var(--sand); }
+  & .t-outfit-unico-datos li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--e-4); padding-block: var(--e-3); border-bottom: 1px solid var(--sand); font-size: 15px; }
+  & .t-outfit-unico-datos small { display: block; margin-top: 2px; font-size: 13px; color: var(--taupe); }
+  & .t-outfit-unico-datos .t-btn { width: 100%; margin-top: var(--e-2); }
+}
+@container tienda (min-width: 960px) {
+  :root[data-diseno="nuevo"] .t-outfit-unico { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 5cqi, 80px); align-items: center; }
+  /* La barra del catálogo, ordenada a la izquierda: las pestañas centradas quedaban sueltas respecto de lo demás */
+  :root[data-diseno="nuevo"] :is(.t-pildoras, .t-subcats) { justify-content: flex-start; }
+  :root[data-diseno="nuevo"] .t-filtros-niveles { align-items: flex-start; }
+  :root[data-diseno="nuevo"] .t-conteo { text-align: left; }
 }
