@@ -30,7 +30,9 @@ import {
   destinosDePapel,
   ejemploSerie,
   fraseCompletar,
+  lineaMarcas,
   llegadaDePapel,
+  marcasDePapel,
   notaNoCuadra,
   pagoPapel,
   pideSerie,
@@ -242,6 +244,8 @@ function Prendas({ papel }: { papel: PapelConFoto }) {
   // Abiertas de entrada solo si faltó algo: ahí está lo que dijo la tienda.
   const [abierto, setAbierto] = useState(() => papel.lineas.some((x) => x.faltan.length > 0));
   if (papel.lineas.length === 0) return null;
+  // Con una sola marca ya la dice la cabecera; con varias, cada prenda dice la suya.
+  const variasMarcas = marcasDePapel(papel).length > 1;
   return (
     <div className="flex flex-col gap-1">
       <BotonVerMas
@@ -261,6 +265,7 @@ function Prendas({ papel }: { papel: PapelConFoto }) {
                   {x.cantidad} · {x.nombre}
                 </span>
                 <span className="block text-sm text-taupe">
+                  {variasMarcas && x.marca ? `${x.marca} · ` : ""}
                   {soles(x.costo)} c/u · {x.destino}
                   {textoFaltan(x) ? <span className="text-ambar-profundo"> · {textoFaltan(x)}</span> : null}
                 </span>
@@ -476,6 +481,7 @@ export function DetallePapel({
       guia="fondos.papel-detalle"
       sobre={sobrePapel(papel)}
       titulo={proveedor}
+      bajoTitulo={lineaMarcas(papel)}
       subtitulo={subtituloPapel(papel)}
       monto={soles(papel.monto)}
       // ADR-0517: si un Admin recibió lo que él mismo compró, quien completa el papel (que nunca es quien compró) lo ve aquí.

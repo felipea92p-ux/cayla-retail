@@ -164,6 +164,7 @@ export function BandejaRevisar(d: Datos) {
                         {mini}
                         <span className="min-w-0">
                           <span className="block truncate text-[15px] font-medium text-tinta">{fila.titulo}</span>
+                          {fila.marca && <span className="mt-0.5 block truncate text-sm text-tinta">{fila.marca}</span>}
                           <span className="mt-0.5 block truncate text-sm text-taupe">
                             {fila.quien}
                             {fila.cuando ? ` · ${fila.cuando}` : ""}
