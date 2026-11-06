@@ -54,7 +54,7 @@ export function HojaTallas({
   error?: string | null;
   onListo: (prenda: PrendaRecepcion, variantes: VarianteSeparada[]) => void;
   /** «Es nueva» o «+ talla o color»: la pantalla abre la hoja de la prenda y vuelve aquí con la que quedó. */
-  onAbrirHoja: (modo: "nueva" | "agregar", prenda: PrendaRecepcion | null) => void;
+  onAbrirHoja: (modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, escritas: VarianteSeparada[]) => void;
   /** El precio de venta de la prenda elegida (Felipe 2026-10-26: «Hacer ahora» lo ofrece una vez identificada); sigue a «Cambiar». */
   precioDe?: (prenda: PrendaRecepcion) => ReactNode;
   /** Una sede con dos empresas (ADR-0542): de quién es lo que entra. Sin `empresas`, no se pregunta. */
@@ -128,7 +128,7 @@ export function HojaTallas({
               setConteo(conteoDeVariantes(null));
             }}
             onConteo={(cambios) => setConteo((c) => ({ ...c, ...cambios }))}
-            onAbrirHoja={(modo) => onAbrirHoja(modo, prenda)}
+            onAbrirHoja={(modo) => onAbrirHoja(modo, prenda, prenda ? variantesDeConteo(conteo, prenda) : [])}
           />
           {prenda && precioDe?.(prenda)}
           {maximo == null && sugeridas != null && prenda && s.contado > 0 && s.contado !== sugeridas && (
