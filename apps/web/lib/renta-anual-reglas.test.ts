@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { leerParametro } from "./impuestos-reglas";
-import {
+import { corteDeLaRenta,
   armarRentaDelAno,
   clasePapel,
   desdeDelSistema,
@@ -234,6 +234,31 @@ describe("la tarjeta de Impuestos", () => {
   it("lo del contador de OTRO año no cuenta", () => {
     const r = armarRentaDelAno({ ...base, parametros: [...ESCALA, p("renta_utilidad_previa", "2025-01-01", 60_000)] })!;
     expect(r.previoCargado).toBe(false);
+  });
+  it("con menos de un mes completo no estima, y lo pagado de verdad se dice aparte de lo estimado", () => {
+    const base = { inicioFinanzas: "2026-10-20", parametros: ESCALA, filas: [], utilidad: 1000, costoVentas: 0, ventasSinIgv: 5000 };
+    expect(armarRentaDelAno({ ...base, hoy: "2026-11-05" })!.sinMesCompleto).toBe(true);
+    const r = armarRentaDelAno({ ...base, hoy: "2026-12-05", pagadoRegistrado: 40 })!;
+    expect(r.sinMesCompleto).toBe(false);
+    expect(r.pagadoDeVerdad).toBe(40);
+  });
+});
+
+describe("lo que corrigió la tarea 17", () => {
+  it("de enero a marzo se mira el año que se está por pagar, ya cerrado; desde abril, el de hoy", () => {
+    expect(corteDeLaRenta("2027-01-05")).toBe("2026-12-31");
+    expect(corteDeLaRenta("2027-03-31")).toBe("2026-12-31");
+    expect(corteDeLaRenta("2027-04-01")).toBe("2027-04-01");
+    expect(corteDeLaRenta("2026-11-05")).toBe("2026-11-05");
+  });
+  it("una comisión del banco resta y lo no bancarizado no, aunque tenga factura", () => {
+    expect(clasePapel("no_requiere")).toBe("sustenta");
+    expect(clasePapel("no_bancarizado")).toBe("no_sustenta");
+  });
+  it("a un proveedor ya con factura pero pagado en efectivo no se le pide factura", () => {
+    const fila = (papel: string, monto: number): FilaSustento => ({ origen: "gasto", proveedorId: "p1", proveedor: "Uno", papel, documentos: 1, monto });
+    expect(proveedoresSinFactura([fila("no_bancarizado", 500)], 0.1)).toEqual([]);
+    expect(proveedoresSinFactura([fila("sin_comprobante", 500), fila("no_bancarizado", 500)], 0.1)[0]?.sinPapel).toBe(500);
   });
 });
 
