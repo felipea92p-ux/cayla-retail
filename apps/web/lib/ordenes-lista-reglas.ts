@@ -49,6 +49,7 @@ export type FilaDeLista = {
   /** «negro, caqui» o `null` si la orden no tiene líneas. */
   colores: string | null;
   esMuestra: boolean;
+  urgente: boolean;
   estado: EstadoOrden;
   /** Las del plan; en una orden que pasó al stock, las que salieron buenas. */
   cuantas: number;
@@ -71,8 +72,6 @@ export type FilaDeLista = {
   abierta: string;
   /** Lo que se lee de una orden que ya no está en proceso: «45 buenas de 48 · en el stock desde el 12 oct». */
   cierre: string | null;
-  /** Una orden abierta ANTES de que existieran las fases: no trae ninguna, se lee de sus etapas de siempre (`conEtapasDeAntes`) y se sigue desde el cajón, no desde su página. */
-  legado: boolean;
 };
 
 export type ListaDeOrdenes = { filas: FilaDeLista[]; alStockMes: { lotes: number; prendas: number } };
@@ -150,6 +149,7 @@ export function filaDeLaLista(p: OrdenPagina, hoy: string): FilaDeLista {
     colorHex,
     colores,
     esMuestra: o.esMuestra,
+    urgente: o.urgente,
     estado: o.estado,
     cuantas: o.estado === "terminada" && o.cantidadBuenas !== null ? o.cantidadBuenas : o.cantidadPlan,
     grupo: !enProceso ? null : lista ? (p.fases[p.fases.length - 1]?.clave ?? null) : (actual?.clave ?? null),
@@ -162,7 +162,6 @@ export function filaDeLaLista(p: OrdenPagina, hoy: string): FilaDeLista {
     causas: rojoDeLaOrden(p, hoy),
     abierta,
     cierre: enProceso ? null : textoDeCierre(p),
-    legado: enProceso && p.fases.length === 0,
   };
 }
 
@@ -174,24 +173,6 @@ const ETAPA_DE_ANTES: Record<string, { texto: string; grupo: FaseClave | null }>
   muestra: { texto: "En muestra y aprobación", grupo: null },
   escalado: { texto: "En escalado y ploteo", grupo: null },
 };
-
-/**
- * Una orden abierta antes de las fases no tiene ninguna: dónde está se lee de sus etapas de siempre (una tercerizada sigue en curso: la prenda no volvió). Lo demás —el color, las
- * causas, la entrega— sale igual, de la misma lectura. Una fila con fases queda como está.
- */
-export function conEtapasDeAntes(f: FilaDeLista, etapas: Partial<Record<EtapaClave, EstadoEtapa>> | undefined): FilaDeLista {
-  if (!f.legado) return f;
-  const actual = etapaActual(etapas ?? {}, f.esMuestra);
-  if (actual === "listo") return { ...f, grupo: "acabado", lista: true, chip: { texto: "Lista para pasar al stock", tono: "verde" }, quien: "Orden de antes de las fases", dias: null };
-  const e = ETAPA_DE_ANTES[actual];
-  const afuera = (etapas ?? {})[actual] === "tercerizado";
-  return {
-    ...f,
-    grupo: e?.grupo ?? null,
-    chip: { texto: `${e?.texto ?? "En proceso"}${afuera ? " · afuera" : ""}`, tono: "pizarra" },
-    quien: afuera ? "Con un servicio · orden de antes de las fases" : "Orden de antes de las fases",
-  };
-}
 
 /**
  * La respuesta de `fn_ordenes_produccion_lista` leída. `null` si no se parece a lo que la base manda (la pantalla dice «no se pudo leer», nunca una lista vacía que parezca «no hay
