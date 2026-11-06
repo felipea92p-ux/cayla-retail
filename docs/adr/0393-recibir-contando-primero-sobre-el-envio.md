@@ -828,5 +828,5 @@ Se anotó «Polo 3» en Polos y era un top. Con el envío cerrado no había cóm
 - **Lo que niega:** una línea de la guía (bajarle lo contado inventaría un faltante; se corrige en Compras), una línea que anotó una diferencia al cerrar (quedó escrita con esa categoría) y un envío abierto (ahí se quita el modelo y se agrega en su categoría). El permiso es el módulo Recibir, como ligar: la categoría no decide a quién se le atribuye un costo.
 - **Ficha:** tocar una sugerencia abre la foto en grande, marca, categoría, material, patrón, tallas, colores y descripción, con «Sí, es esta» y «No, es otra». Lee `productos` con su RLS; lo vacío dice «Sin registrar», y si no responde se decide con la foto y las tallas.
 - **Pruebas:** `pruebas:envio-sin-aviso` S3f y S3g. Probado en el navegador en local: asociar, entrar al stock y crear como nueva, también a 375 px y en oscuro.
-- **No está en producción** hasta que Felipe dé el OK para pegar la migración: una parte, idempotente, sin políticas ni `drop trigger`. Si los anclajes no coinciden con la base viva, falla sin aplicar nada.
+- **En producción desde el 2026-11-06,** con el OK de Felipe, por `supabase db query --linked -f` (no queda fila en `schema_migrations`, igual que un pegado en el SQL Editor). La función tiene el mismo md5 que en local.
 
