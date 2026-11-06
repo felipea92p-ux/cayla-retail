@@ -58,7 +58,7 @@ export function CirculoDinero({
         ) : (
           <b className="dp-circulo-cifra">
             <small>S/</small>
-            {Math.round(total).toLocaleString("en-US")}
+            {total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </b>
         )}
         <span className="dp-circulo-pie">
