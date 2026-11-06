@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
-import { soles, solesConSigno } from "@/lib/flujo-caja-reglas";
+import { solesCentimos, solesConSignoCentimos } from "@/lib/flujo-caja-reglas";
 import { DESVIO_QUE_IMPORTA } from "@/lib/ganamos-reglas";
 import { geometriaCascada, type FilaCascada } from "@/lib/cascada-estados-reglas";
 
@@ -43,9 +43,9 @@ export function CascadaEstados({ id, filas, etiqueta, guia, sedes = false }: { i
                 data-clase={geo.clase}
                 style={{ left: `${geo.izq}%`, width: `${geo.ancho}%`, ["--i" as string]: i, ...(f.color ? { ["--c" as string]: f.color } : {}) } as CSSProperties}
               />
-              {geo.plan !== null && <span className="fin-casc-plan" style={{ left: `${geo.plan}%` }} title={f.plan !== undefined ? `Lo planeado: ${soles(f.plan)}` : undefined} />}
+              {geo.plan !== null && <span className="fin-casc-plan" style={{ left: `${geo.plan}%` }} title={f.plan !== undefined ? `Lo planeado: ${solesCentimos(f.plan)}` : undefined} />}
             </span>
-            <span className="fin-casc-monto num">{f.tipo === "paso" ? solesConSigno(f.valor) : soles(f.valor)}</span>
+            <span className="fin-casc-monto num">{f.tipo === "paso" ? solesConSignoCentimos(f.valor) : solesCentimos(f.valor)}</span>
             {pasa !== null && (
               <span className="fin-casc-chip">
                 <Chip tono={pasa > 0 ? "ambar" : "verde"}>{`${Math.round(Math.abs(pasa) * 100)} % ${pasa > 0 ? "sobre" : "bajo"} lo planeado`}</Chip>
@@ -83,12 +83,12 @@ export function CascadaEstados({ id, filas, etiqueta, guia, sedes = false }: { i
                       <span>{l.nombre}</span>
                       <span className="num">
                         <span className="sr-only">Real: </span>
-                        {soles(l.real)}
+                        {solesCentimos(l.real)}
                       </span>
                       {conPlan(f) && (
                         <span className="num">
                           <span className="sr-only">Planeado: </span>
-                          {l.plan === null ? "—" : soles(l.plan)}
+                          {l.plan === null ? "—" : solesCentimos(l.plan)}
                         </span>
                       )}
                     </li>

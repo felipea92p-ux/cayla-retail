@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cortesAnteriores, etiquetaDelCorte, ladosDeLaSede, ladosDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
 import { pasosDelLado } from "./estados-partes";
-import { soles } from "./flujo-caja-reglas";
+import { solesCentimos } from "./flujo-caja-reglas";
 import type { UnidadBalance } from "./balance-reglas";
 import type { GrupoBalance } from "./vale-reglas";
 
@@ -27,15 +27,15 @@ describe("los cierres con que se compara", () => {
 describe("lo que dice la pantalla", () => {
   it("lo que vale, lo que tienes y lo que debes", () => {
     const l = lecturaDelBalance(GRUPOS, ANTES, "2026-10-31");
-    expect(l).toMatchObject({ valor: 70000, mal: false, frase: `Es lo que vale CAYLA: tienes ${soles(100000)} y debes ${soles(30000)}.` });
-    expect(l.chip).toEqual({ texto: `${soles(10000)} más que a fin de septiembre`, tono: "bien" });
+    expect(l).toMatchObject({ valor: 70000, mal: false, frase: `Es lo que vale CAYLA: tienes ${solesCentimos(100000)} y debes ${solesCentimos(30000)}.` });
+    expect(l.chip).toEqual({ texto: `${solesCentimos(10000)} más que a fin de septiembre`, tono: "bien" });
     expect(l.nota).toBe("El 60 % de lo que tienes está en mercadería.");
   });
   it("sin un cierre anterior que cuadre, no compara", () => {
     expect(lecturaDelBalance(GRUPOS, null, "2026-10-31").chip).toBeNull();
   });
   it("menos, igual y en negativo", () => {
-    expect(lecturaDelBalance(GRUPOS, [g("tuyo", "tuyo", 80000)], "2026-10-31").chip).toEqual({ texto: `${soles(10000)} menos que a fin de septiembre`, tono: "mal" });
+    expect(lecturaDelBalance(GRUPOS, [g("tuyo", "tuyo", 80000)], "2026-10-31").chip).toEqual({ texto: `${solesCentimos(10000)} menos que a fin de septiembre`, tono: "mal" });
     expect(lecturaDelBalance(GRUPOS, [g("tuyo", "tuyo", 70000)], "2026-10-31").chip).toEqual({ texto: "Igual que a fin de septiembre", tono: null });
     expect(lecturaDelBalance([g("tuyo", "tuyo", -5)], null, "2026-10-31")).toMatchObject({ mal: true, nota: null });
   });
@@ -53,8 +53,8 @@ describe("las partes", () => {
     expect(suma(["plata", "mercaderia", "equipos"])).toBe(suma(["proveedores", "impuestos", "tuyo"]));
   });
   it("lo tuyo que sube es bueno, una deuda que sube no, y lo demás solo se dice", () => {
-    expect(p.find((x) => x.clave === "tuyo")!.chip).toEqual({ texto: `${soles(10000)} más que a fin de septiembre`, tono: "bien" });
-    expect(p.find((x) => x.clave === "proveedores")!.chip).toEqual({ texto: `${soles(5000)} menos que a fin de septiembre`, tono: "bien" });
+    expect(p.find((x) => x.clave === "tuyo")!.chip).toEqual({ texto: `${solesCentimos(10000)} más que a fin de septiembre`, tono: "bien" });
+    expect(p.find((x) => x.clave === "proveedores")!.chip).toEqual({ texto: `${solesCentimos(5000)} menos que a fin de septiembre`, tono: "bien" });
     expect(p.find((x) => x.clave === "plata")!.chip!.tono).toBeNull();
   });
   it("un cierre que no cuadró no se dibuja", () => {
@@ -86,9 +86,9 @@ describe("mirando una sede", () => {
   const u = (o: Partial<UnidadBalance> = {}): UnidadBalance => ({ ubicacionId: "u1", nombre: "Tienda Lima", tipo: "tienda", caja: 2000, mercaderia: 40000, activosFijos: 8000, activosCosto: 10000, activosDepreciacion: 2000, facturasPorPagar: 15000, invertido: 35000, ventasMes: 50000, utilidadMes: 4000, rinde: 0.114, desde: "2026-10-01", hasta: "2026-10-31", planillaVisible: true, sueldosEstimados: 0, ...o });
   it("dice que no es un Balance completo y cuánto rinde", () => {
     const l = lecturaDeLaSede(u(), u({ invertido: 30000 }), "2026-10-31");
-    expect(l.frase).toBe(`Es lo que hay invertido en Tienda Lima: tiene ${soles(50000)} y debe ${soles(15000)}.`);
+    expect(l.frase).toBe(`Es lo que hay invertido en Tienda Lima: tiene ${solesCentimos(50000)} y debe ${solesCentimos(15000)}.`);
     expect(l.nota).toBe("No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. Rinde 11,4 % al mes.");
-    expect(l.chip!.texto).toBe(`${soles(5000)} más que a fin de septiembre`);
+    expect(l.chip!.texto).toBe(`${solesCentimos(5000)} más que a fin de septiembre`);
     expect(lecturaDeLaSede(u({ tipo: "taller" }), null, "2026-10-31").nota).toBe("No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. El Taller no vende.");
   });
   const p = partesDeLaSede({ unidad: u(), comparadas: [{ etiqueta: "Sep", unidad: u({ mercaderia: 30000 }) }], etiquetaActual: "Oct", corte: "2026-10-31" });
@@ -99,7 +99,7 @@ describe("mirando una sede", () => {
       { nombre: "Lo que costaron", valor: 10000 },
       { nombre: "Desgaste", valor: -2000 },
     ]);
-    expect(p[1]!.chip!.texto).toBe(`${soles(10000)} más que a fin de septiembre`);
+    expect(p[1]!.chip!.texto).toBe(`${solesCentimos(10000)} más que a fin de septiembre`);
   });
   it("los dos tubos miden lo mismo", () => {
     const suma = (claves: string[]) => p.filter((x) => claves.includes(x.clave)).reduce((a, x) => a + x.enBarra, 0);

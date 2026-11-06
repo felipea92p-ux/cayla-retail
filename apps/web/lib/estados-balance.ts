@@ -8,9 +8,12 @@
 import { textoRinde, type UnidadBalance } from "./balance-reglas";
 import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type FilaDelLibro, type LadoDelLibro, type ParteEstado } from "./estados-partes";
 import { finDelMes, sumarMeses } from "./estados-periodo";
-import { soles } from "./flujo-caja-reglas";
+import { solesCentimos } from "./flujo-caja-reglas";
 import { mesNombre } from "./resultados-reglas";
 import type { GrupoBalance } from "./vale-reglas";
+
+/** Montos con céntimos (Felipe 2026-11-06): la pantalla los escribe con dos decimales, así que no se redondean al sol. */
+const aCentimos = (n: number) => Math.round(n * 100) / 100;
 
 const rojo = (p: number) => `color-mix(in srgb, var(--color-rojo) ${p}%, var(--color-hueso))`;
 
@@ -61,13 +64,13 @@ export type LecturaDelBalance = { valor: number; mal: boolean; frase: string; ch
 export function lecturaDelBalance(grupos: readonly GrupoBalance[], antes: readonly GrupoBalance[] | null, corte: string): LecturaDelBalance {
   const { tiene, debe, tuyo } = totalesDelBalance(grupos);
   const mercaderia = montoDe(grupos, "mercaderia");
-  const d = antes ? Math.round(tuyo - totalDe(antes, "tuyo")) : null;
+  const d = antes ? aCentimos(tuyo - totalDe(antes, "tuyo")) : null;
   const cierre = nombreDelCierre(corte);
   return {
     valor: tuyo,
     mal: tuyo < 0,
-    frase: `Es lo que vale CAYLA: tienes ${soles(tiene)} y debes ${soles(debe)}.`,
-    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${soles(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
+    frase: `Es lo que vale CAYLA: tienes ${solesCentimos(tiene)} y debes ${solesCentimos(debe)}.`,
+    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
     nota: tiene > 0 && mercaderia > 0 ? `El ${Math.round((mercaderia / tiene) * 100)} % de lo que tienes está en mercadería.` : null,
   };
 }
@@ -86,14 +89,14 @@ export function partesDelBalance({ grupos, comparadas, etiquetaActual, corte }: 
       nombre: g.nombre,
       color: dato.color,
       enBarra: Math.max(g.monto, 0),
-      texto: soles(g.monto),
+      texto: solesCentimos(g.monto),
       tono: g.clave === "tuyo" ? (g.monto < 0 ? "mal" : "bien") : undefined,
       que: dato.que,
       cifra: g.monto,
       filas: g.lineas.map((l) => ({ nombre: l.nombre, valor: l.monto })),
       columnas,
       // Una deuda que sube no es buena; lo tuyo que sube, sí. El resto solo se dice.
-      chip: chipContraAnterior(columnas, cierre, g.lado === "tuyo" ? true : g.lado === "debe" ? false : null, soles),
+      chip: chipContraAnterior(columnas, cierre, g.lado === "tuyo" ? true : g.lado === "debe" ? false : null, solesCentimos),
       soloEnElGrafico: g.lado === "tuyo",
     };
   });
@@ -123,13 +126,13 @@ export type ComparadaSede = { etiqueta: string; unidad: UnidadBalance | null };
 
 /** Lo que dice la pantalla mirando una sede: no es un Balance completo y se dice sin rodeos. */
 export function lecturaDeLaSede(u: UnidadBalance, antes: UnidadBalance | null, corte: string): LecturaDelBalance {
-  const d = antes ? Math.round(u.invertido - antes.invertido) : null;
+  const d = antes ? aCentimos(u.invertido - antes.invertido) : null;
   const cierre = nombreDelCierre(corte);
   return {
     valor: u.invertido,
     mal: u.invertido < 0,
-    frase: `Es lo que hay invertido en ${u.nombre}: tiene ${soles(tieneLaSede(u))} y debe ${soles(u.facturasPorPagar)}.`,
-    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${soles(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
+    frase: `Es lo que hay invertido en ${u.nombre}: tiene ${solesCentimos(tieneLaSede(u))} y debe ${solesCentimos(u.facturasPorPagar)}.`,
+    chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
     nota: u.tipo === "taller" ? "No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. El Taller no vende." : `No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. Rinde ${textoRinde(u.rinde)}.`,
   };
 }
@@ -141,7 +144,7 @@ export function partesDeLaSede({ unidad: u, comparadas, etiquetaActual, corte }:
   const columnasDe = (de: (x: UnidadBalance) => number) => [...pasadas.map((c) => ({ etiqueta: c.etiqueta, valor: de(c.unidad!), actual: false })), { etiqueta: etiquetaActual, valor: de(u), actual: true }];
   const parte = (clave: string, nombre: string, color: string, que: string, de: (x: UnidadBalance) => number, filas: FilaDeParte[], buenoSubir: boolean | null, extra: Partial<ParteEstado> = {}): ParteEstado => {
     const columnas = columnasDe(de);
-    return { clave, nombre, color, que, enBarra: Math.max(de(u), 0), texto: soles(de(u)), cifra: de(u), filas, columnas, chip: chipContraAnterior(columnas, cierre, buenoSubir, soles), ...extra };
+    return { clave, nombre, color, que, enBarra: Math.max(de(u), 0), texto: solesCentimos(de(u)), cifra: de(u), filas, columnas, chip: chipContraAnterior(columnas, cierre, buenoSubir, solesCentimos), ...extra };
   };
   const caja: ParteEstado =
     u.caja === null

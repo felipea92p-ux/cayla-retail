@@ -8,7 +8,7 @@ import { mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { mesAnterior } from "@/lib/resultados-reglas";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { gruposDelBalance, medidores, recomendacionesVale } from "@/lib/vale-reglas";
 import {
   cortesAnteriores,
@@ -106,8 +106,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             grafico={
               <TubosDelBalance
                 guia="fin-vale.tubos"
-                arriba={{ rotulo: "Lo que tienes", cifra: soles(t.tiene), partes: delLado("tiene") }}
-                abajo={{ rotulo: "Lo que debes y lo que es tuyo", cifra: `Debes ${soles(t.debe)} + tuyo ${soles(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
+                arriba={{ rotulo: "Lo que tienes", cifra: solesCentimos(t.tiene), partes: delLado("tiene") }}
+                abajo={{ rotulo: "Lo que debes y lo que es tuyo", cifra: `Debes ${solesCentimos(t.debe)} + tuyo ${solesCentimos(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
                 huecos={["tuyo"]}
               />
             }
@@ -119,7 +119,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             partes={partes}
             columnasDeTarjetas={4}
             tituloColumnas="Mes a mes"
-            libro={{ titulo: "Balance general", detalle: `${periodo.al} · en soles · formato del contador`, lados: ladosDelBalance(grupos) }}
+            libro={{ titulo: "Balance general", detalle: `${periodo.al} · en solesCentimos · formato del contador`, lados: ladosDelBalance(grupos) }}
             pieDeLibro={<EcuacionDelBalance tiene={t.tiene} debe={t.debe} tuyo={t.tuyo} dicho="Activo = Pasivo + Patrimonio: cuadra" />}
           />
         );
@@ -135,8 +135,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             lectura={lecturaDeLaSede(unidad, comparadas.at(-1)?.unidad ?? null, corte)}
             grafico={
               <TubosDelBalance
-                arriba={{ rotulo: "Lo que tiene", cifra: soles(tiene), partes: de("caja", "mercaderia", "equipos") }}
-                abajo={{ rotulo: "Lo que debe y lo invertido", cifra: `Debe ${soles(unidad.facturasPorPagar)} + invertido ${soles(unidad.invertido)}`, partes: de("facturas", "invertido") }}
+                arriba={{ rotulo: "Lo que tiene", cifra: solesCentimos(tiene), partes: de("caja", "mercaderia", "equipos") }}
+                abajo={{ rotulo: "Lo que debe y lo invertido", cifra: `Debe ${solesCentimos(unidad.facturasPorPagar)} + invertido ${solesCentimos(unidad.invertido)}`, partes: de("facturas", "invertido") }}
                 huecos={["invertido"]}
               />
             }
@@ -148,7 +148,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             partes={partes}
             columnasDeTarjetas={4}
             tituloColumnas="Mes a mes"
-            libro={{ titulo: unidad.nombre, detalle: `${periodo.al} · en soles`, lados: ladosDeLaSede(unidad) }}
+            libro={{ titulo: unidad.nombre, detalle: `${periodo.al} · en solesCentimos`, lados: ladosDeLaSede(unidad) }}
           />
         );
       })()}

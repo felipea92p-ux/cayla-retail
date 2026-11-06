@@ -6,9 +6,12 @@
 
 import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
-import { soles, solesConSigno } from "./flujo-caja-reglas";
+import { solesCentimos, solesConSignoCentimos } from "./flujo-caja-reglas";
 import { cambioDelMes, tieneExtremos } from "./patrimonio-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
+
+/** Montos con céntimos (Felipe 2026-11-06): la pantalla los escribe con dos decimales, así que no se redondean al sol. */
+const aCentimos = (n: number) => Math.round(n * 100) / 100;
 
 type ConExtremos = PatrimonioCambios & { inicio: NonNullable<PatrimonioCambios["inicio"]>; fin: NonNullable<PatrimonioCambios["fin"]> };
 
@@ -18,15 +21,15 @@ export type LecturaDelPatrimonio = { valor: number; mal: boolean; conSigno: bool
 
 /** La razón de la cifra: qué parte de lo ganado se quedó. */
 function razonDelPatrimonio(p: ConExtremos, sueldosEstimados: number): string | null {
-  const g = Math.round(p.ganancia - sueldosEstimados);
-  const r = Math.round(p.retiros);
+  const g = aCentimos(p.ganancia - sueldosEstimados);
+  const r = aCentimos(p.retiros);
   if (g > 0) {
     if (r === 0) return "Todo lo ganado se quedó en CAYLA.";
-    if (r > g) return `Retiraste más de lo que ganaste: ${soles(r - g)} salieron de lo que ya tenía CAYLA.`;
+    if (r > g) return `Retiraste más de lo que ganaste: ${solesCentimos(r - g)} salieron de lo que ya tenía CAYLA.`;
     return `El ${Math.round(((g - r) / g) * 100)} % de lo ganado se quedó en CAYLA.`;
   }
-  if (g < 0) return r > 0 ? `Perdiste ${soles(-g)} y además retiraste ${soles(r)}.` : "La pérdida baja tu parte igual que un retiro.";
-  return r > 0 ? `No hubo ganancia y retiraste ${soles(r)}.` : null;
+  if (g < 0) return r > 0 ? `Perdiste ${solesCentimos(-g)} y además retiraste ${solesCentimos(r)}.` : "La pérdida baja tu parte igual que un retiro.";
+  return r > 0 ? `No hubo ganancia y retiraste ${solesCentimos(r)}.` : null;
 }
 
 /**
@@ -36,19 +39,19 @@ function razonDelPatrimonio(p: ConExtremos, sueldosEstimados: number): string | 
 function notaDelPatrimonio(p: ConExtremos, sueldosEstimados: number): string | null {
   const razon = razonDelPatrimonio(p, sueldosEstimados);
   if (Math.round(sueldosEstimados) <= 0) return razon;
-  const rotulo = `Sin sueldos provisionados: aún falta restar ${soles(sueldosEstimados)} que Dynamic no paga.`;
+  const rotulo = `Sin sueldos provisionados: aún falta restar ${solesCentimos(sueldosEstimados)} que Dynamic no paga.`;
   return razon ? `${razon} ${rotulo}` : rotulo;
 }
 
 /** Lo que dice la pantalla arriba: cuánto cambió tu parte, de cuánto a cuánto, y qué la movió. */
 export function lecturaDelPatrimonio(p: ConExtremos, sueldosEstimados = 0): LecturaDelPatrimonio {
-  const cambio = Math.round(cambioDelMes(p));
-  const ini = soles(p.inicio.total);
-  const fin = soles(p.fin.total);
-  const g = Math.round(p.ganancia);
-  const r = Math.round(p.retiros);
-  const a = Math.round(p.aportes);
-  const movio = [g > 0 ? `Ganaste ${soles(g)}` : g < 0 ? `Perdiste ${soles(-g)}` : "", a > 0 ? `pusiste ${soles(a)}` : "", r > 0 ? `retiraste ${soles(r)}` : ""].filter(Boolean);
+  const cambio = aCentimos(cambioDelMes(p));
+  const ini = solesCentimos(p.inicio.total);
+  const fin = solesCentimos(p.fin.total);
+  const g = aCentimos(p.ganancia);
+  const r = aCentimos(p.retiros);
+  const a = aCentimos(p.aportes);
+  const movio = [g > 0 ? `Ganaste ${solesCentimos(g)}` : g < 0 ? `Perdiste ${solesCentimos(-g)}` : "", a > 0 ? `pusiste ${solesCentimos(a)}` : "", r > 0 ? `retiraste ${solesCentimos(r)}` : ""].filter(Boolean);
   const dicho = movio.length ? `${movio.slice(0, -1).join(", ")}${movio.length > 1 ? " y " : ""}${movio.at(-1)}` : "";
   return {
     valor: cambio,
@@ -80,17 +83,17 @@ export function partesDelPatrimonio({ datos, comparadas, etiquetaActual, periodo
   const col = (de: (x: ConExtremos) => number): ColumnaDeParte[] => [...pasadas.map((c) => ({ etiqueta: c.etiqueta, valor: de(c.datos as ConExtremos), actual: false })), { etiqueta: etiquetaActual, valor: de(datos), actual: true }];
   const con = (de: (x: ConExtremos) => number, buenoSubir: boolean | null) => {
     const columnas = col(de);
-    return { columnas, chip: chipContraAnterior(columnas, anterior, buenoSubir, soles) };
+    return { columnas, chip: chipContraAnterior(columnas, anterior, buenoSubir, solesCentimos) };
   };
   const gano = datos.ganancia >= 0;
   const partes: ParteEstado[] = [
-    { clave: "inicio", nombre: "Empezaste", color: "var(--estados-parte-3)", enBarra: 0, texto: soles(datos.inicio.total), que: "Tu parte en CAYLA al empezar estas fechas.", cifra: datos.inicio.total, filas: deQueEstaHecho(datos.inicio), ...con((x) => x.inicio.total, true) },
+    { clave: "inicio", nombre: "Empezaste", color: "var(--estados-parte-3)", enBarra: 0, texto: solesCentimos(datos.inicio.total), que: "Tu parte en CAYLA al empezar estas fechas.", cifra: datos.inicio.total, filas: deQueEstaHecho(datos.inicio), ...con((x) => x.inicio.total, true) },
     {
       clave: "ganancia",
       nombre: gano ? "Ganaste" : "Perdiste",
       color: gano ? VERDE : ROJO,
       enBarra: 0,
-      texto: solesConSigno(datos.ganancia),
+      texto: solesConSignoCentimos(datos.ganancia),
       tono: gano ? "bien" : "mal",
       que: "El resultado de estas fechas, y cuánto dejó cada sede. Sale del diario: los sueldos estimados que Ganancias y pérdidas ya resta entran aquí cuando Dynamic los paga.",
       cifra: datos.ganancia,
@@ -99,13 +102,13 @@ export function partesDelPatrimonio({ datos, comparadas, etiquetaActual, periodo
       ...con((x) => x.ganancia, true),
     },
   ];
-  if (pesa(datos.aportes)) partes.push({ clave: "aportes", nombre: "Pusiste", color: VERDE, enBarra: 0, texto: solesConSigno(datos.aportes), tono: "bien", que: "La plata que le pusiste a CAYLA en estas fechas.", cifra: datos.aportes, filas: [], conSignos: true, ...con((x) => x.aportes, null) });
+  if (pesa(datos.aportes)) partes.push({ clave: "aportes", nombre: "Pusiste", color: VERDE, enBarra: 0, texto: solesConSignoCentimos(datos.aportes), tono: "bien", que: "La plata que le pusiste a CAYLA en estas fechas.", cifra: datos.aportes, filas: [], conSignos: true, ...con((x) => x.aportes, null) });
   partes.push({
     clave: "retiros",
     nombre: "Retiraste",
     color: ROJO,
     enBarra: 0,
-    texto: pesa(datos.retiros) ? solesConSigno(-datos.retiros) : soles(0),
+    texto: pesa(datos.retiros) ? solesConSignoCentimos(-datos.retiros) : solesCentimos(0),
     tono: pesa(datos.retiros) ? "mal" : undefined,
     que: "Lo que sacaste de CAYLA en estas fechas.",
     cifra: -datos.retiros,
@@ -113,8 +116,8 @@ export function partesDelPatrimonio({ datos, comparadas, etiquetaActual, periodo
     conSignos: true,
     ...con((x) => x.retiros, false),
   });
-  if (pesa(datos.otros)) partes.push({ clave: "otros", nombre: "Sin explicar", color: "var(--color-ambar)", enBarra: 0, texto: solesConSigno(datos.otros), que: "Un ajuste a mano: ni una venta, ni un gasto, ni un aporte, ni un retiro. El Balance dice de dónde sale.", cifra: datos.otros, filas: [], conSignos: true, ...con((x) => x.otros, null) });
-  partes.push({ clave: "fin", nombre: "Terminaste", color: "var(--estados-parte-1)", enBarra: 0, texto: soles(datos.fin.total), que: "Tu parte en CAYLA al terminar estas fechas.", cifra: datos.fin.total, filas: deQueEstaHecho(datos.fin), ...con((x) => x.fin.total, true) });
+  if (pesa(datos.otros)) partes.push({ clave: "otros", nombre: "Sin explicar", color: "var(--color-ambar)", enBarra: 0, texto: solesConSignoCentimos(datos.otros), que: "Un ajuste a mano: ni una venta, ni un gasto, ni un aporte, ni un retiro. El Balance dice de dónde sale.", cifra: datos.otros, filas: [], conSignos: true, ...con((x) => x.otros, null) });
+  partes.push({ clave: "fin", nombre: "Terminaste", color: "var(--estados-parte-1)", enBarra: 0, texto: solesCentimos(datos.fin.total), que: "Tu parte en CAYLA al terminar estas fechas.", cifra: datos.fin.total, filas: deQueEstaHecho(datos.fin), ...con((x) => x.fin.total, true) });
   return partes;
 }
 

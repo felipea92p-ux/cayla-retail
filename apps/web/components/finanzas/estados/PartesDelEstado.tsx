@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueRueda } from "@/components/finanzas/estados/CifraQueRueda";
 import { altoDeColumna, anchoDeFila, type ParteEstado } from "@/lib/estados-partes";
-import { soles, solesConSigno } from "@/lib/flujo-caja-reglas";
+import { solesCentimos, solesConSignoCentimos } from "@/lib/flujo-caja-reglas";
 
 // Lo que se explora de un estado (ADR-0611, Felipe 2026-11-05): al pasar el mouse por una parte, el resto se apaga para darle énfasis, y al tocarla su detalle completo se abre
 // justo debajo. Vale igual para una parte de la barra, su tarjeta o un gráfico: todas se enteran por el mismo contexto.
@@ -172,7 +172,7 @@ export function DetalleDeParte({ partes, tituloColumnas }: { partes: readonly Pa
                   <div key={x.nombre} className="estados-det-fila" style={{ "--i": i, "--f": x.valor < 0 ? "var(--color-rojo)" : parte.conSignos ? "var(--color-verde)" : parte.color } as CSSProperties}>
                     <span>{x.nombre}</span>
                     <b className="tabular-nums" data-tono={parte.conSignos ? (x.valor < 0 ? "mal" : "bien") : undefined}>
-                      {parte.conSignos ? solesConSigno(x.valor) : soles(x.valor)}
+                      {parte.conSignos ? solesConSignoCentimos(x.valor) : solesCentimos(x.valor)}
                     </b>
                     <u aria-hidden>
                       <i style={{ width: `${anchoDeFila(x.valor, conFilas)}%` }} />

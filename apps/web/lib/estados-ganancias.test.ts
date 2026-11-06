@@ -3,7 +3,7 @@ import { lecturaDeGanancias, libroDeGanancias, montosDeGanancias, partesDeGananc
 import { altoDeColumna, anchoDeFila, chipContraAnterior, pasosDelLibro, textoDeVerMas, textoDelLibro } from "./estados-partes";
 import { franjaDelPeriodo, geometriaDeLinea } from "./estados-linea";
 import { periodoDe } from "./estados-periodo";
-import { soles } from "./flujo-caja-reglas";
+import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const HOY = "2026-11-05";
@@ -69,7 +69,7 @@ describe("las cinco partes", () => {
     const p = partesDeGanancias(params(fila()));
     expect(p.map((x) => x.clave)).toEqual(["mercaderia", "sueldos", "local", "otros", "resultado"]);
     expect(p.reduce((a, x) => a + x.enBarra, 0)).toBe(10000);
-    expect(p[4]).toMatchObject({ nombre: "Te quedó", tono: "bien", texto: soles(2550), sub: "26 % de lo vendido" });
+    expect(p[4]).toMatchObject({ nombre: "Te quedó", tono: "bien", texto: solesCentimos(2550), sub: "26 % de lo vendido" });
     expect(p[0]).toMatchObject({ sub: "42 % de lo vendido", cifra: 4150 });
     expect(p[0]!.filas.map((x) => x.nombre)).toEqual(["La ropa vendida", "Fletes de la mercadería", "Prendas perdidas o dañadas"]);
     expect(p[3]!.filas.map((x) => x.nombre)).toEqual(["Publicidad, envíos y comisiones", "Desgaste de máquinas y muebles"]);
@@ -78,9 +78,9 @@ describe("las cinco partes", () => {
   it("con pérdida, lo que faltó tiene tarjeta pero no entra a la barra: la barra es lo que se gastó", () => {
     const f = fila({ ventas: 5000, resultado: -2450 });
     const p = partesDeGanancias(params(f));
-    expect(p[4]).toMatchObject({ nombre: "Perdiste", tono: "mal", enBarra: 0, cifra: -2450, texto: soles(2450) });
+    expect(p[4]).toMatchObject({ nombre: "Perdiste", tono: "mal", enBarra: 0, cifra: -2450, texto: solesCentimos(2450) });
     expect(p.reduce((a, x) => a + x.enBarra, 0)).toBe(7450);
-    expect(tituloDeLasPartes(f)).toBe(`No alcanzó: vendiste ${soles(5000)} y gastaste ${soles(7450)}`);
+    expect(tituloDeLasPartes(f)).toBe(`No alcanzó: vendiste ${solesCentimos(5000)} y gastaste ${solesCentimos(7450)}`);
   });
 
   it("lo que no pasó no se dibuja, salvo lo que quedó, que es la respuesta", () => {
@@ -92,13 +92,13 @@ describe("las cinco partes", () => {
 
   it("lo devuelto que pasa a los gastos suma, y se dice", () => {
     const p = partesDeGanancias(params(fila({ depreciacion: 0, detalleGastos: [{ cuenta: "637", nombre: "Publicidad", monto: -200 }], resultado: 4050 })));
-    expect(p.find((x) => x.clave === "otros")).toMatchObject({ nombre: "Otros a favor", enBarra: 0, texto: `+${soles(200)}`, tono: "bien", cifra: 200 });
+    expect(p.find((x) => x.clave === "otros")).toMatchObject({ nombre: "Otros a favor", enBarra: 0, texto: `+${solesCentimos(200)}`, tono: "bien", cifra: 200 });
   });
 
   it("sin ventas no hay porcentajes y el título habla de lo gastado", () => {
     const f = fila({ ventas: 0, costo: 0, fletes: 0, mermas: 0, resultado: -3300, unidad: "empresa" });
     expect(partesDeGanancias(params(f))[0]!.sub).toBeUndefined();
-    expect(tituloDeLasPartes(f)).toBe(`En qué se gastó: ${soles(3300)}`);
+    expect(tituloDeLasPartes(f)).toBe(`En qué se gastó: ${solesCentimos(3300)}`);
   });
 
   it("lo que no vende no dice que le faltó: dice lo que costó", () => {
@@ -141,7 +141,7 @@ describe("las cinco partes", () => {
       ["Sep", 2000, false],
       ["Oct", 2550, true],
     ]);
-    expect(p[4]!.chip).toEqual({ texto: `${soles(550)} más que septiembre`, tono: "bien" });
+    expect(p[4]!.chip).toEqual({ texto: `${solesCentimos(550)} más que septiembre`, tono: "bien" });
     // Un gasto que sube no es ni bueno ni malo por sí solo.
     expect(p[1]!.chip).toEqual({ texto: "Igual que septiembre", tono: null });
   });
@@ -157,16 +157,16 @@ describe("lo que dice la pantalla", () => {
   it("una ganancia", () => {
     const l = lecturaDeGanancias(fila(), fila({ resultado: 2000 }), OCT);
     expect(l).toMatchObject({ valor: 2550, mal: false, frase: "Ganaste en octubre: te quedó el 26 % de lo que vendiste." });
-    expect(l.chip).toEqual({ texto: `${soles(550)} más que septiembre`, tono: "bien" });
+    expect(l.chip).toEqual({ texto: `${solesCentimos(550)} más que septiembre`, tono: "bien" });
   });
 
   it("una pérdida", () => {
     const l = lecturaDeGanancias(fila({ resultado: -500 }), null, OCT);
-    expect(l).toMatchObject({ valor: -500, mal: true, frase: `Perdiste en octubre: por cada ${soles(100)} que vendiste, faltaron ${soles(5)}.`, chip: null });
+    expect(l).toMatchObject({ valor: -500, mal: true, frase: `Perdiste en octubre: por cada ${solesEntero(100)} que vendiste, faltaron ${solesEntero(5)}.`, chip: null });
   });
 
-  it("una pérdida mayor que lo vendido se sigue diciendo en soles, sin un porcentaje raro", () => {
-    expect(lecturaDeGanancias(fila({ ventas: 100, resultado: -177 }), null, OCT).frase).toBe(`Perdiste en octubre: por cada ${soles(100)} que vendiste, faltaron ${soles(177)}.`);
+  it("una pérdida mayor que lo vendido se sigue diciendo en solesCentimos, sin un porcentaje raro", () => {
+    expect(lecturaDeGanancias(fila({ ventas: 100, resultado: -177 }), null, OCT).frase).toBe(`Perdiste en octubre: por cada ${solesEntero(100)} que vendiste, faltaron ${solesEntero(177)}.`);
   });
 
   it("quedó más de lo vendido: se dice por qué", () => {
@@ -190,20 +190,26 @@ describe("lo que dice la pantalla", () => {
 
   it("el mes de hoy se compara a la misma fecha", () => {
     const l = lecturaDeGanancias(fila(), fila({ resultado: 2000 }), periodoDe("2026-11-01", HOY, HOY));
-    expect(l.chip!.texto).toBe(`${soles(550)} más que octubre a esta fecha`);
+    expect(l.chip!.texto).toBe(`${solesCentimos(550)} más que octubre a esta fecha`);
+  });
+
+  it("una pérdida del mes en curso dice que el mes recién empieza (2026-11-06)", () => {
+    const p = periodoDe("2026-11-01", HOY, HOY);
+    const f = lecturaDeGanancias(fila({ ventas: 100, resultado: -64 }), null, p).frase;
+    expect(f).toBe(`Vas perdiendo ${p.en}: por cada ${solesEntero(100)} que vendiste, faltan ${solesEntero(64)}. Las ventas llevan ${p.dias} ${p.dias === 1 ? "día" : "días"} y los sueldos corren desde el 29: el mes recién empieza.`);
   });
 });
 
 describe("la razón de la cifra", () => {
   const nota = (f: FilaER, a: FilaER | null) => lecturaDeGanancias(f, a, OCT).nota;
   it("cuánto hacía falta para no perder", () => {
-    expect(nota(fila({ ventas: 5000, costo: 2500, fletes: 0, mermas: 0, resultado: -300 }), null)).toBe(`Para no perder hacía falta vender unos ${soles(5600)}. Vendiste ${soles(5000)}.`);
+    expect(nota(fila({ ventas: 5000, costo: 2500, fletes: 0, mermas: 0, resultado: -300 }), null)).toBe(`Para no perder hacía falta vender unos ${solesCentimos(5600)}. Vendiste ${solesCentimos(5000)}.`);
   });
   it("cuando la mercadería ya se comió lo vendido", () => {
-    expect(nota(fila({ ventas: 1000, costo: 1200, fletes: 0, mermas: 0, resultado: -1800 }), null)).toBe(`Lo que costó la mercadería ya pasa lo que vendiste: ${soles(1200)} contra ${soles(1000)}.`);
+    expect(nota(fila({ ventas: 1000, costo: 1200, fletes: 0, mermas: 0, resultado: -1800 }), null)).toBe(`Lo que costó la mercadería ya pasa lo que vendiste: ${solesCentimos(1200)} contra ${solesCentimos(1000)}.`);
   });
   it("sin nada con qué comparar", () => {
-    expect(nota(fila(), null)).toBe(`Te quedaron ${soles(2550)} de ${soles(10000)} vendidos.`);
+    expect(nota(fila(), null)).toBe(`Te quedaron ${solesCentimos(2550)} de ${solesCentimos(10000)} vendidos.`);
   });
   it("ventas contra mercadería", () => {
     const antes = fila({ ventas: 8000, costo: 3500, fletes: 0, mermas: 0 });
@@ -261,9 +267,9 @@ describe("el detalle", () => {
     expect(altoDeColumna(0, [{ etiqueta: "a", valor: 100, actual: true }])).toBe(4);
   });
   it("el chip sin nada con qué comparar", () => {
-    expect(chipContraAnterior([{ etiqueta: "a", valor: 1, actual: true }], "x", true, soles)).toBeNull();
-    expect(chipContraAnterior([{ etiqueta: "a", valor: 5, actual: false }, { etiqueta: "b", valor: 1, actual: true }], "x", true, soles)).toEqual({ texto: `${soles(4)} menos que x`, tono: "mal" });
-    expect(chipContraAnterior([{ etiqueta: "a", valor: 5, actual: false }, { etiqueta: "b", valor: 1, actual: true }], "x", false, soles)!.tono).toBe("bien");
+    expect(chipContraAnterior([{ etiqueta: "a", valor: 1, actual: true }], "x", true, solesCentimos)).toBeNull();
+    expect(chipContraAnterior([{ etiqueta: "a", valor: 5, actual: false }, { etiqueta: "b", valor: 1, actual: true }], "x", true, solesCentimos)).toEqual({ texto: `${solesCentimos(4)} menos que x`, tono: "mal" });
+    expect(chipContraAnterior([{ etiqueta: "a", valor: 5, actual: false }, { etiqueta: "b", valor: 1, actual: true }], "x", false, solesCentimos)!.tono).toBe("bien");
   });
 });
 
@@ -288,6 +294,14 @@ describe("la línea", () => {
   });
   it("todos iguales no rompen la cuenta", () => {
     for (const p of geometriaDeLinea([0, 0, 0])!.puntos) expect(Number.isFinite(p.y)).toBe(true);
+  });
+
+  it("con todos los meses en pérdida, el cero cae dentro del gráfico y no encima de la cifra (2026-11-06)", () => {
+    const g = geometriaDeLinea([-14000, -9422])!;
+    expect(g.cero).not.toBeNull();
+    expect(g.cero!).toBeGreaterThan(8);
+    expect(g.cero!).toBeLessThan(100);
+    for (const p of g.puntos) expect(p.y).toBeGreaterThan(g.cero!);
   });
   it("la franja de unas fechas", () => {
     const meses = ["2026-09", "2026-10", "2026-11"];

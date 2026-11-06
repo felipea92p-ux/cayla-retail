@@ -31,7 +31,7 @@ import {
   type Periodo,
   type Rango,
 } from "@/lib/estados-periodo";
-import { soles } from "@/lib/flujo-caja-reglas";
+import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { letraEstados } from "@/lib/letra-estados";
 
 const ANCHO_PANEL = 868;
@@ -431,7 +431,7 @@ function Calendario({
             {meses.map((m, i) => {
               const r = resultados?.find((x) => x.mes === m.mes)?.resultado ?? null;
               const cubre = dosEnMovimiento ? (i >= dosEnMovimiento[0] && i <= dosEnMovimiento[1] ? "entero" : "no") : cubreElMes(m, p, una);
-              const dicho = r === null ? m.nombre : r === 0 ? `${m.nombre}, sin ganancia ni pérdida` : `${m.nombre}, ${r < 0 ? "perdiste" : "ganaste"} ${soles(Math.abs(r))}`;
+              const dicho = r === null ? m.nombre : r === 0 ? `${m.nombre}, sin ganancia ni pérdida` : `${m.nombre}, ${r < 0 ? "perdiste" : "ganaste"} ${solesCentimos(Math.abs(r))}`;
               return (
                 <button
                   key={m.mes}

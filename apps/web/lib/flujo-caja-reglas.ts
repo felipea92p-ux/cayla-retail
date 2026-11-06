@@ -698,3 +698,7 @@ export function csvEscenario(base: readonly SemanaProy[], nuevo: readonly Semana
   }
   return csv(filas);
 }
+/** «+S/ 38,200.00» / «−S/ 41,300.50»: como `solesConSigno`, con céntimos (Estados financieros, Felipe 2026-11-06). */
+export function solesConSignoCentimos(n: number): string {
+  return Math.round(n * 100) < 0 ? solesCentimos(n) : `+${solesCentimos(n)}`;
+}

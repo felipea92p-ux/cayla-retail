@@ -22,9 +22,8 @@ import {
   etiquetasEje,
   queFaltaEnLaProyeccion,
   queVence,
-  soles,
   solesCentimos,
-  solesConSigno,
+  solesConSignoCentimos,
   textoSinCuenta,
   tiendasDeLaProyeccion,
   tonoDiasDeCaja,
@@ -127,21 +126,21 @@ function SemanaASemana({ real }: { real: FlujoReal }) {
               <td className="fin-num" data-l="Entró" />
               <td className="fin-num" data-l="Salió" />
               <td className="fin-num" data-l="Quedó">
-                {soles(real.saldoInicial)}
+                {solesCentimos(real.saldoInicial)}
               </td>
             </tr>
             {real.semanas.map((s) => (
               <tr key={s.desde}>
                 <td data-l="Semana">{etiquetaSemana(s.desde, s.hasta)}</td>
                 <td className="fin-num" data-l="Entró">
-                  {soles(s.entro)}
+                  {solesCentimos(s.entro)}
                 </td>
                 <td className="fin-num" data-l="Salió">
-                  {soles(s.salio)}
+                  {solesCentimos(s.salio)}
                 </td>
                 <td className="fin-num" data-l="Quedó">
-                  <b>{soles(s.saldo)}</b>
-                  {Math.round(s.ajustes) !== 0 && <span className="fin-sub">{solesConSigno(s.ajustes)} de diferencias</span>}
+                  <b>{solesCentimos(s.saldo)}</b>
+                  {Math.round(s.ajustes) !== 0 && <span className="fin-sub">{solesConSignoCentimos(s.ajustes)} de diferencias</span>}
                 </td>
               </tr>
             ))}
@@ -221,7 +220,7 @@ export function NoCuadra({ real }: { real: FlujoReal }) {
   if (Math.round(real.descuadre * 100) === 0) return null;
   return (
     <Aviso tono="error" titulo="No cuadra">
-      Hay {soles(Math.abs(real.descuadre))} que las cuentas no explican. Avísale al equipo: el flujo no inventa la diferencia.
+      Hay {solesCentimos(Math.abs(real.descuadre))} que las cuentas no explican. Avísale al equipo: el flujo no inventa la diferencia.
     </Aviso>
   );
 }
@@ -241,7 +240,7 @@ function Notas({ real }: { real: FlujoReal }) {
       <p className="nota-cayla">
         {real.planillaVisible
           ? planilla > 0
-            ? `La planilla la paga Dynamic y lo que no registres como pago de un banco no baja de ninguno aquí: en este período, ${soles(planilla)}${planillaRegistrada > 0 ? `, de los que ya registraste ${soles(planillaRegistrada)} (sale arriba como «Pago de la planilla»)` : ""}.`
+            ? `La planilla la paga Dynamic y lo que no registres como pago de un banco no baja de ninguno aquí: en este período, ${solesCentimos(planilla)}${planillaRegistrada > 0 ? `, de los que ya registraste ${solesCentimos(planillaRegistrada)} (sale arriba como «Pago de la planilla»)` : ""}.`
             : "La planilla la paga Dynamic y todavía no baja de ningún banco aquí."
           : "La planilla la paga Dynamic y no se ve desde tu cuenta: no baja de ningún banco aquí."}
       </p>
@@ -257,7 +256,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
     <>
       <h3 className="fin-hoy">
         Hoy tienes {provisional ? "≈ " : ""}
-        {soles(p.saldoHoy)}
+        {solesCentimos(p.saldoHoy)}
         {provisional && (
           <>
             {" "}
@@ -280,25 +279,25 @@ function LoQueViene({ p }: { p: Proyeccion }) {
           </Chip>
           <span>
             Si mañana no vendieras nada, tu plata alcanzaría para {provisional ? "unos " : ""}
-            {p.diasDeCaja} {p.diasDeCaja === 1 ? "día" : "días"}: salen {soles(p.salidasDiarias)} en un día normal (los últimos 30 días, con la planilla).
+            {p.diasDeCaja} {p.diasDeCaja === 1 ? "día" : "días"}: salen {solesCentimos(p.salidasDiarias)} en un día normal (los últimos 30 días, con la planilla).
             {provisional ? " No cuenta el IGV ni lo que falte registrar." : ""}
           </span>
         </p>
       )}
       <GraficoSemanas
-        etiqueta={`Lo que queda cada semana, contra tu mínimo de caja de ${soles(p.minimoCaja)}`}
+        etiqueta={`Lo que queda cada semana, contra tu mínimo de caja de ${solesCentimos(p.minimoCaja)}`}
         alto={230}
         ancho={560}
-        etiquetaValor={soles}
+        etiquetaValor={solesCentimos}
         umbral={p.minimoCaja}
-        umbralTexto={`tu mínimo de caja: ${soles(p.minimoCaja)} (se cambia en Configuración)`}
+        umbralTexto={`tu mínimo de caja: ${solesCentimos(p.minimoCaja)} (se cambia en Configuración)`}
         barras={p.semanas.map((w, i) => ({
           nombre: eje[i] ?? "",
           valor: w.saldo,
           mala: w.bajoMinimo,
           malaTexto: "bajo el mínimo",
           titulo: etiquetaSemana(w.desde, w.hasta),
-          lineas: [`Entra ${soles(w.entra)} · Sale ${soles(w.sale)}`, `Queda ${soles(w.saldo)}`, queVence(p.salidas, w.desde, w.hasta)],
+          lineas: [`Entra ${solesCentimos(w.entra)} · Sale ${solesCentimos(w.sale)}`, `Queda ${solesCentimos(w.saldo)}`, queVence(p.salidas, w.desde, w.hasta)],
         }))}
       />
       <div className="fin-tabla-wrap mt-3" data-guia="fin-flujo.que-vence">
@@ -327,13 +326,13 @@ function LoQueViene({ p }: { p: Proyeccion }) {
                     ))}
                   </td>
                   <td className="fin-num" data-l="Entra">
-                    {soles(w.entra)}
+                    {solesCentimos(w.entra)}
                   </td>
                   <td className="fin-num" data-l="Sale">
-                    {soles(w.sale)}
+                    {solesCentimos(w.sale)}
                   </td>
                   <td className="fin-num" data-l="Queda">
-                    <b className={w.bajoMinimo ? "fin-queda-malo" : undefined}>{soles(w.saldo)}</b>
+                    <b className={w.bajoMinimo ? "fin-queda-malo" : undefined}>{solesCentimos(w.saldo)}</b>
                     {w.bajoMinimo && <span className="fin-sub fin-queda-malo">bajo el mínimo</span>}
                   </td>
                   <td className="fin-ancha fin-que-vence" data-l="Qué vence">

@@ -3,7 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
-import { aplicarProvision, hastaDeLaProvision } from "@/lib/planilla-provision-reglas";
+import { aplicarProvision, hastaDeLaProvision, sueldosAEstaFecha } from "@/lib/planilla-provision-reglas";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
 import type { FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 
@@ -45,6 +45,22 @@ export const getEstadoResultados = cache(async function getEstadoResultados(desd
     falla: null,
   };
 });
+
+/**
+ * Unas fechas de un mes que ya pasó, para comparar con el mes en curso («octubre a esta fecha»). La base pone los sueldos en el mes donde termina el período
+ * de Dynamic (el 28): del 1 al 6 no llevarían ninguno, mientras el mes en curso sí. Se lee también el mes entero y se le pone a cada fila la parte de sus
+ * sueldos que corresponde a los días corridos (`sueldosAEstaFecha`). Si el mes entero no se lee, sale la lectura tal cual: la comparación queda sin sueldos,
+ * como antes, pero la pantalla no se cae.
+ */
+export async function getEstadoResultadosAEstaFecha(desde: string, hasta: string): Promise<Lectura<FilaER[]>> {
+  const mes = hasta.slice(0, 7);
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  const fin = `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  if (desde.slice(0, 7) !== mes || hasta >= `${mes}-28`) return getEstadoResultados(desde, hasta);
+  const [parcial, entero] = await Promise.all([getEstadoResultados(desde, hasta), getEstadoResultados(`${mes}-01`, fin)]);
+  if (parcial.falla || entero.falla) return parcial;
+  return { datos: sueldosAEstaFecha(parcial.datos, entero.datos, hasta), falla: null };
+}
 
 /**
  * Qué unidades del mes ya están cerradas (`fn_periodos_mes`): su columna del Estado de resultados lee lo congelado y la pantalla lo dice.

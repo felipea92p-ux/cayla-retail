@@ -5,7 +5,7 @@
 // ganancia, porque salen de `cascadaGanamos`, que ya pone en su propio tramo lo que no se nombra.
 // ASUME: toda cifra viene de la base. Aquí no se calcula plata: se agrupa, se compara y se escribe. Sin dato se dice, nunca un cero que no es.
 
-import { soles } from "./flujo-caja-reglas";
+import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
 import { cascadaGanamos, porSede, type DejaSede } from "./ganamos-reglas";
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
@@ -54,7 +54,7 @@ function avisoDePlan(tramos: readonly TramoCascada[]): string | null {
   if (!conPlan.length) return null;
   const plan = conPlan.reduce((a, t) => a + t.plan!, 0);
   const sobre = conPlan.find((t) => t.desvio !== undefined && t.desvio >= 0.1);
-  return `Lo planeado: ${soles(plan)}${sobre ? `. ${sobre.nombre} va ${Math.round(sobre.desvio! * 100)} % sobre lo planeado` : ""}.`;
+  return `Lo planeado: ${solesCentimos(plan)}${sobre ? `. ${sobre.nombre} va ${Math.round(sobre.desvio! * 100)} % sobre lo planeado` : ""}.`;
 }
 
 /**
@@ -85,7 +85,7 @@ export function partesDeGanancias({
   const m = montosDeGanancias(fila, tramos);
   const anterior = nombreDelAnterior(periodo);
   const columnas = (clave: keyof MontosDeGanancias) => columnasDe(clave, m, comparadas, etiquetaActual);
-  const chip = (clave: keyof MontosDeGanancias, buenoSubir: boolean | null) => chipContraAnterior(columnas(clave), anterior, buenoSubir, soles);
+  const chip = (clave: keyof MontosDeGanancias, buenoSubir: boolean | null) => chipContraAnterior(columnas(clave), anterior, buenoSubir, solesCentimos);
   const lineas = (clave: string): FilaDeParte[] => (tramos.find((t) => t.clave === clave)?.lineas ?? []).filter((l) => l.real !== 0).map((l) => ({ nombre: l.nombre, valor: l.real }));
   const deOtros = tramos.filter((t) => EN_OTROS.has(t.clave));
   const sedes = veCadaSede ? porSede(datos) : [];
@@ -94,7 +94,7 @@ export function partesDeGanancias({
     ...resto,
     enBarra: Math.max(m[clave], 0),
     // Un gasto que quedó a favor suma: se escribe y se pinta como lo que es.
-    texto: m[clave] < 0 ? `+${soles(-m[clave])}` : soles(m[clave]),
+    texto: m[clave] < 0 ? `+${solesCentimos(-m[clave])}` : solesCentimos(m[clave]),
     ...(m[clave] < 0 ? { tono: "bien" as const } : {}),
     sub: porciento(m[clave], m.ventas),
     cifra: m[clave] < 0 ? -m[clave] : m[clave],
@@ -147,7 +147,7 @@ export function partesDeGanancias({
       nombre: gano ? "Te quedó" : m.ventas > 0 ? "Perdiste" : "Costó",
       color: gano ? "var(--color-verde)" : "var(--color-rojo)",
       enBarra: gano ? m.resultado : 0,
-      texto: soles(Math.abs(m.resultado)),
+      texto: solesCentimos(Math.abs(m.resultado)),
       sub: porciento(m.resultado, m.ventas),
       tono: gano ? "bien" : m.ventas > 0 ? "mal" : undefined,
       que: m.ventas <= 0 && !gano ? "Lo que costó en estas fechas. No vende: lo cubren las tiendas." : sedes.length > 1 ? "Lo que quedó del período, y cuánto dejó cada sede. El Taller y la Empresa no venden: solo gastan." : gano ? "Lo que quedó después de pagar todo lo del período." : "Lo que faltó para cubrir el período.",
@@ -166,8 +166,8 @@ export function partesDeGanancias({
 export function tituloDeLasPartes(f: FilaER, tramos: readonly TramoCascada[] = cascadaGanamos(f, [])): string {
   const m = montosDeGanancias(f, tramos);
   const gastos = m.mercaderia + m.sueldos + m.local + m.otros;
-  if (m.ventas <= 0) return `En qué se gastó: ${soles(gastos)}`;
-  return m.resultado >= 0 ? `A dónde se fue lo que vendiste: ${soles(m.ventas)}` : `No alcanzó: vendiste ${soles(m.ventas)} y gastaste ${soles(gastos)}`;
+  if (m.ventas <= 0) return `En qué se gastó: ${solesCentimos(gastos)}`;
+  return m.resultado >= 0 ? `A dónde se fue lo que vendiste: ${solesCentimos(m.ventas)}` : `No alcanzó: vendiste ${solesCentimos(m.ventas)} y gastaste ${solesCentimos(gastos)}`;
 }
 
 export type LecturaDeGanancias = {
@@ -190,12 +190,12 @@ function notaDeGanancias(actual: MontosDeGanancias, antes: MontosDeGanancias | n
   if (v <= 0) return null;
   if (resultado < 0) {
     const margen = (v - mercaderia) / v;
-    if (margen <= 0) return `Lo que costó la mercadería ya pasa lo que vendiste: ${soles(mercaderia)} contra ${soles(v)}.`;
+    if (margen <= 0) return `Lo que costó la mercadería ya pasa lo que vendiste: ${solesCentimos(mercaderia)} contra ${solesCentimos(v)}.`;
     const cubre = Math.round((sueldos + local + otros) / margen / 100) * 100;
-    return `Para no perder hacía falta vender unos ${soles(cubre)}. Vendiste ${soles(v)}.`;
+    return `Para no perder hacía falta vender unos ${solesCentimos(cubre)}. Vendiste ${solesCentimos(v)}.`;
   }
   if (resultado > v) return null;
-  if (!antes || antes.ventas <= 0) return `Te quedaron ${soles(resultado)} de ${soles(v)} vendidos.`;
+  if (!antes || antes.ventas <= 0) return `Te quedaron ${solesCentimos(resultado)} de ${solesCentimos(v)} vendidos.`;
   const dv = Math.round((v / antes.ventas - 1) * 100);
   const frente = anterior.startsWith("el ") ? `frente al ${anterior.slice(3)}` : `frente a ${anterior}`;
   if (dv < 0) return `Las ventas bajaron ${-dv} % ${frente}.`;
@@ -211,21 +211,24 @@ function notaDeGanancias(actual: MontosDeGanancias, antes: MontosDeGanancias | n
 export function lecturaDeGanancias(fila: FilaER | null, antes: FilaER | null, p: Periodo): LecturaDeGanancias {
   if (!fila) return { valor: 0, mal: false, frase: `Todavía no hay ventas ni gastos ${p.en}.`, chip: null, nota: null };
   const m = montosDeGanancias(fila);
-  const r = Math.round(fila.resultado);
+  const r = Math.round(fila.resultado * 100) / 100;
   const vende = fila.ventas > 0;
   if (!vende && r === 0) return { valor: 0, mal: false, frase: `No hubo ventas ni gastos ${p.en}.`, chip: null, nota: null };
   const pc = vende ? Math.round((Math.abs(fila.resultado) / fila.ventas) * 100) : 0;
   const frase = !vende
-    ? (QUE_NO_VENDE[fila.unidad] ?? `No hubo ventas ${p.en}: se gastaron ${soles(Math.abs(r))}.`)
+    ? (QUE_NO_VENDE[fila.unidad] ?? `No hubo ventas ${p.en}: se gastaron ${solesCentimos(Math.abs(r))}.`)
     : r >= 0
       ? pc > 100
         ? `Ganaste ${p.en}: te quedó más de lo que vendiste, por ajustes a favor que no son ventas.`
         : `Ganaste ${p.en}: te quedó el ${pc} % de lo que vendiste.`
-      : `Perdiste ${p.en}: por cada ${soles(100)} que vendiste, faltaron ${soles(pc)}.`;
+      : p.enCurso && p.unMes
+        ? // Un mes a medias: las ventas van por día y los sueldos se cuentan desde el 29 del mes pasado. Se dice, para no asustar con la foto del día 6 (Felipe 2026-11-06).
+          `Vas perdiendo ${p.en}: por cada ${solesEntero(100)} que vendiste, faltan ${solesEntero(pc)}. Las ventas llevan ${p.dias} ${p.dias === 1 ? "día" : "días"} y los sueldos corren desde el 29: el mes recién empieza.`
+        : `Perdiste ${p.en}: por cada ${solesEntero(100)} que vendiste, faltaron ${solesEntero(pc)}.`;
   const anterior = nombreDelAnterior(p);
   const mAntes = antes ? montosDeGanancias(antes) : null;
-  const d = mAntes ? r - Math.round(mAntes.resultado) : 0;
-  const chip = !mAntes ? null : d === 0 ? { texto: `Igual que ${anterior}`, tono: null } : { texto: `${soles(Math.abs(d))} ${d > 0 ? "más" : "menos"} que ${anterior}`, tono: d > 0 ? ("bien" as const) : ("mal" as const) };
+  const d = mAntes ? Math.round((r - mAntes.resultado) * 100) / 100 : 0;
+  const chip = !mAntes ? null : d === 0 ? { texto: `Igual que ${anterior}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que ${anterior}`, tono: d > 0 ? ("bien" as const) : ("mal" as const) };
   return { valor: r, mal: r < 0 && vende, frase, chip, nota: notaDeGanancias(m, mAntes, anterior) };
 }
 

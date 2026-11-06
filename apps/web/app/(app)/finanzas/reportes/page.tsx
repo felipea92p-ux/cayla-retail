@@ -3,7 +3,7 @@ import { exigirModulo, veDiarioDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe } from "@/lib/gastos-reglas";
 import { avisosER, columnasER, leerVerER, mesAnterior, mesNombre } from "@/lib/resultados-reglas";
-import { getCampanas, getEstadoResultados, getUnidadesCerradas } from "@/lib/resultados";
+import { getCampanas, getEstadoResultados, getEstadoResultadosAEstaFecha, getUnidadesCerradas } from "@/lib/resultados";
 import { getPresupuestoVsReal } from "@/lib/presupuesto";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getVentasClaure } from "@/lib/cuenta-claure";
@@ -57,10 +57,12 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
 
   // Una sede suelta pregunta por la suya; CAYLA entera (o «De la empresa»), por todas las que la cuenta ve.
   const ubicacionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sede) ? sede : null;
+  // En el mes en curso se compara con los mismos días de los meses pasados: esos días también llevan su parte de sueldos, como hoy (`getEstadoResultadosAEstaFecha`).
+  const leerAnterior = enCurso && unMes ? getEstadoResultadosAEstaFecha : getEstadoResultados;
   const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst] = await Promise.all([
     getEstadoResultados(desde, hasta),
-    comparar && antes ? getEstadoResultados(antes.desde, antes.hasta) : Promise.resolve(null),
-    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await getEstadoResultados(c.desde, c.hasta) }))),
+    comparar && antes ? leerAnterior(antes.desde, antes.hasta) : Promise.resolve(null),
+    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await leerAnterior(c.desde, c.hasta) }))),
     // El mes en curso no se cierra: no hay nada que preguntar.
     enCurso ? Promise.resolve([] as string[]) : getUnidadesCerradas(mes),
     // Lo vendido de CLAURE no suma a nada de esta pantalla: la nota dice cuánto se dejó fuera (apoyo; sin permiso o sin CLAURE llega `null`).
