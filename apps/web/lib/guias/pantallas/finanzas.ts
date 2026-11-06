@@ -157,6 +157,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "La barra reparte lo vendido del mes entre las tiendas: cada color es una sede, del tamaño de lo que vendió. Abajo van los montos. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas. Arriba a la derecha está la confianza del número.",
     },
     {
+      id: "sedes-juntas",
+      ancla: "fin-resumen.sedes-juntas",
+      opcional: true,
+      titulo: "Cada sede, junta",
+      texto: "Lo que vendió, costó, gastó y dejó cada sede, y lo que tiene en su caja, en una sola tabla. El Taller y la Empresa van aparte porque no venden. Los bancos no salen aquí: son de toda CAYLA.",
+    },
+    {
       id: "confianza",
       ancla: "fin-resumen.confianza",
       opcional: true,

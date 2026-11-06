@@ -35,7 +35,7 @@ import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 // calendario y de los dos períodos de antes, el presupuesto contra lo real y las campañas (estos dos, si se mira un mes). La línea de los meses llega aparte, con su
 // `Suspense`. La sede es la de la barra del telar (`?sede=`); `?comparar=1` pone en el cuadro por sede cuánto cambió cada total contra el mes anterior. Quien ve todo (el líder, Configuración, Cierre de mes, CAYLA Global o este
 // módulo, ADR-0585) elige la sede; una terminal mira la suya (lo decide la base).
-export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ mes?: string; desde?: string; hasta?: string; ver?: string; sede?: string; comparar?: string; forma?: string }> }) {
+export default async function ReportesPage({ searchParams }: { searchParams: Promise<{ mes?: string; desde?: string; hasta?: string; ver?: string; sede?: string; comparar?: string; forma?: string; cuadre?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
   const sp = await searchParams;
   const hoy = hoyLima();
@@ -158,7 +158,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
         />
       )}
       <Recomendaciones recomendaciones={recomendaciones} />
-      <MasDelEstado texto={textoMas} guia="fin-ganamos.mas" abierto={comparar}>
+      <MasDelEstado texto={textoMas} guia="fin-ganamos.mas" abierto={comparar || sp.cuadre === "1"}>
         <MasDeGanancias
           fila={fila}
           tramos={tramos}

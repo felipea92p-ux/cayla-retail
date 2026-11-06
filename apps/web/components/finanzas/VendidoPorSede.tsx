@@ -20,6 +20,7 @@ export function VendidoPorSede({
   mes,
   confianza,
   falla,
+  hrefCuadre,
 }: {
   porSede: Record<ClaveSede, number>;
   sedes: SedeTelar[];
@@ -27,6 +28,8 @@ export function VendidoPorSede({
   /** El nombre del mes que se mira («octubre»). */
   mes: string;
   confianza: ConfianzaDatos | null;
+  /** Lleva a «De Ventas a Finanzas» (ADR-0609): por qué esta cifra no es la de la pantalla de Ventas. */
+  hrefCuadre: string;
   /** Por qué no se pudo medir la confianza, si no se pudo. */
   falla?: string | null;
 }) {
@@ -40,7 +43,17 @@ export function VendidoPorSede({
   const ir = (clave: ClaveSede) => hrefTelar(pathname, sp.entries(), { sede: clave === elegida ? SEDE_TODAS : clave }, { mismaPantalla: true, mesDeHoy: mesDelDia(hoy) });
   return (
     <Superficie pad guia="fin-resumen.sedes">
-      <CabeceraBloque titulo="Vendido por sede" bajada={`${soles(total)} en ${mes}.`}>
+      <CabeceraBloque
+        titulo="Vendido por sede"
+        bajada={
+          <>
+            {`${soles(total)} en ${mes}, sin IGV ni CLAURE. `}
+            <Link href={hrefCuadre} className="btn-enlace">
+              Por qué no es la cifra de Ventas
+            </Link>
+          </>
+        }
+      >
         {confianza ? <ConfianzaChip confianza={confianza} /> : null}
       </CabeceraBloque>
       <nav className="vendido-sede" data-una={elegida !== SEDE_TODAS ? "" : undefined} aria-label={`Cuánto vendió cada sede en ${mes}`}>
