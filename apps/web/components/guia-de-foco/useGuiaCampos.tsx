@@ -21,7 +21,7 @@ import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, p
 export type GuiaCampos = {
   campos: readonly CampoDeGuia[];
   estado: (id: string) => EstadoCampo;
-  /** El título de un campo con su marca a la izquierda (y «Sigue aquí» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
+  /** El título de un campo con su marca a la izquierda (y «Sigue» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
   etiqueta: (id: string, texto: ReactNode) => ReactNode;
   faltan: CampoDeGuia[];
   /** La hoja pidió decir el grado de cada campo en palabras (`conGrado`): `PieGuia` separa «Faltan» de «Conviene». */

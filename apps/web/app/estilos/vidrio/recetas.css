@@ -115,6 +115,9 @@
   --filo-luz-tinte: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 12%, transparent), color-mix(in srgb, var(--color-rojo) 4%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --filo-luz-borde: linear-gradient(115deg, color-mix(in srgb, var(--color-rojo) 85%, transparent), color-mix(in srgb, var(--color-rojo) 45%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --filo-luz-brillo: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  /* El hilo de lo que sigue (Felipe 2026-11-05, docs/maquetas/guia-que-acompana-2026-11/, cara A): una línea de tinta al costado del bloque, con las
+     puntas que se desvanecen. Es la receta de «sigue aquí» en todo el ERP: tinta y no rojo, porque el rojo es del error. */
+  --hilo-guia: linear-gradient(180deg, transparent, var(--color-tinta) 16%, var(--color-tinta) 84%, transparent);
 
   /* ---------- el marco: el riel del menú y las islas de la cabecera (marco-vidrio-2026-10; piezas en vidrio/marco.css) ---------- */
   /* Más transparente que una hoja: el marco está siempre a la vista y no debe tapar la aurora ni lo que pasa por debajo. El

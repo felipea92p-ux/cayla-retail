@@ -15,10 +15,9 @@ import type { GuiaCampos } from "./useGuiaCampos";
 const CONTROL_DEL_CAMPO = "input:not([type='hidden']):not([type='file']), textarea, select, [role='combobox'], [role='radiogroup'], button[aria-haspopup]";
 
 /**
- * Envuelve UN campo (o un grupo de ellos) y lo ENCIENDE cuando es el que sigue: un halo suave alrededor, el fondo más claro en la
- * caja de texto o el combo de adentro, y la marca de su título. `titulo` es solo para un grupo o un control sin etiqueta propia
+ * Envuelve UN campo (o un grupo de ellos) y le pone EL HILO cuando es el que sigue: una línea fina de tinta al costado, y la marca y «Sigue» en su título. `titulo` es solo para un grupo o un control sin etiqueta propia
  * (los `CampoTexto` ya traen la suya: pásale `guia.etiqueta(id, "Nombre")`). Sin `guia.estado(id)` conocido es «opcional».
- * No cambia el tamaño de nada: la luz se pinta por detrás y por fuera.
+ * No cambia el tamaño de nada: el hilo se pinta por fuera.
  */
 export function CampoGuiado({
   id,

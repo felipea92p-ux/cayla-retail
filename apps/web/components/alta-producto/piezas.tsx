@@ -163,7 +163,7 @@ export function FilaAlta({
         {estado && <VozDelEstado estado={estado} />}
         {etiqueta}
       </span>
-      {estado === "ahora" && <EtiquetaAhora />}
+      {estado === "ahora" && <EtiquetaAhora flota />}
       {ayuda && <span className="text-[12px] leading-snug text-taupe">{ayuda}</span>}
       {accion && <span className="ml-auto">{accion}</span>}
     </div>

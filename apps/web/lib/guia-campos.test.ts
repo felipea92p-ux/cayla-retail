@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campoDeMasArriba, errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia } from "./guia-campos";
+import { campoDeMasArriba, errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia, rectangulosChocan } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -236,5 +236,19 @@ describe("«llevarte al campo» va a la hoja que ves, no a la de atrás (/chaos 
     const b = { nombre: "b", hoja: -1 };
     expect(campoDeMasArriba([a, b], hojaDe)).toBe(a);
     expect(campoDeMasArriba([], hojaDe)).toBeNull();
+  });
+});
+
+describe("«Sigue» se calla si no le cabe", () => {
+  const palabra = { left: 100, right: 140, top: 0, bottom: 18 };
+  it("choca con lo que tiene encima", () => {
+    expect(rectangulosChocan(palabra, { left: 120, right: 200, top: 4, bottom: 30 })).toBe(true);
+  });
+  it("no choca con lo que solo le toca el borde o está en otra línea", () => {
+    expect(rectangulosChocan(palabra, { left: 140, right: 200, top: 0, bottom: 18 })).toBe(false);
+    expect(rectangulosChocan(palabra, { left: 100, right: 140, top: 18, bottom: 40 })).toBe(false);
+  });
+  it("un rectángulo sin área no pisa nada", () => {
+    expect(rectangulosChocan(palabra, { left: 110, right: 110, top: 0, bottom: 18 })).toBe(false);
   });
 });

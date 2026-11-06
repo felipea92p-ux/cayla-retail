@@ -13,6 +13,8 @@
 // Un GRUPO («al menos un dato: DNI, nombre o WhatsApp») se modela como UN campo virtual —`identificacion`, hecho si alguno de los tres
 // tiene algo— que envuelve a los controles del grupo: se ilumina el bloque entero, no un control a la suerte.
 
+type Rectangulo = { left: number; right: number; top: number; bottom: number };
+
 /** Cómo se ve un campo en la guía: la marca de su título y la luz sobre su control. */
 export type EstadoCampo = "hecho" | "ahora" | "falta" | "opcional";
 
@@ -121,6 +123,12 @@ export function errorDeCampo(campos: readonly CampoDeGuia[], id: string, revisad
 export function palabraDeGrado(c: CampoDeGuia): "obligatorio" | "conviene" | "opcional" | null {
   if (c.hecho) return null;
   return c.requerido ? "obligatorio" : c.sugerido ? "conviene" : "opcional";
+}
+
+/** ¿Se pisan dos rectángulos de pantalla? Un rectángulo sin área (un texto vacío, un control oculto) no pisa nada. Lo usa «Sigue» para callarse si no le cabe. */
+export function rectangulosChocan(a: Rectangulo, b: Rectangulo): boolean {
+  const conArea = (r: Rectangulo) => r.right > r.left && r.bottom > r.top;
+  return conArea(a) && conArea(b) && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 }
 
 /** Lo que falta partido en dos: lo que hay que hacer para confirmar (`obligatorios`) y lo que solo conviene (`convienen`). Recibe `faltanDe(campos)`, que ya deja fuera lo opcional. */
