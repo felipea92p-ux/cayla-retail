@@ -42,7 +42,6 @@
   & .t-sec-cab h2 [data-revela], & [data-revela][data-r="visto"] h2 { animation-name: none; }
 
   /* Cabecera */
-  & .t-anuncio { height: 36px; font-size: 13px; letter-spacing: 0; text-transform: none; }
   & .t-cab { background: var(--papel); backdrop-filter: none; border-bottom: 1px solid var(--sand); }
   & .t-nav-b { font-size: 14.5px; letter-spacing: 0; text-transform: none; font-weight: 500; }
   & .t-nav-b::after { background: var(--dn-acento); height: 1.5px; }

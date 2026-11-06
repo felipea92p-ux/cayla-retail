@@ -23,6 +23,9 @@ Un censo en 13 rutas y 2 anchos encontró 16 formas de botón, 35 combinaciones 
 - **Botón de ícono:** 44 px, redondo y sin fondo; el fondo suave solo al pasar el mouse o presionar. Bajo 375 px miden 38 de ancho, para que quepan todos.
 - **Esquinas, alturas, letra y márgenes:** una escala. Píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa, 20 px las hojas.
 
+## Actualización 2026-11-05: la franja de arriba es manual
+Un mensaje a la vez con flechas, sin rotación automática: Felipe pidió priorizar lo manual si es más accesible y estable, y los mismos beneficios ya se ven bajo la portada. El plazo de cambio sale de `retail.tienda_ayuda()`. Los modos de campaña «quieta» y «marquesina» siguen como los programe el líder.
+
 ## Qué se rompería sin esto
 Sin un archivo único, cada página volvería a tener su propia versión de los mismos botones y títulos.
 
