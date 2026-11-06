@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { avisar } from "@/components/ui/Avisos";
-import { asegurarVisible, estaEscribiendo, hayCampo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
+import { hayCampo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, revisadosVigentes, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
@@ -21,9 +21,11 @@ import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, p
 export type GuiaCampos = {
   campos: readonly CampoDeGuia[];
   estado: (id: string) => EstadoCampo;
-  /** El título de un campo con su marca a la izquierda (y «Sigue aquí» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
+  /** El título de un campo con su marca a la izquierda (y «Sigue» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
   etiqueta: (id: string, texto: ReactNode) => ReactNode;
   faltan: CampoDeGuia[];
+  /** Ya intentó confirmar con algo pendiente (o el guardado devolvió un error): el pie pasa de «Sigue» a la lista de lo que falta. */
+  revisado: boolean;
   /** La hoja pidió decir el grado de cada campo en palabras (`conGrado`): `PieGuia` separa «Faltan» de «Conviene». */
   conGrado: boolean;
   /** El id del campo que sigue, o null. */
@@ -84,16 +86,7 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
   const ahora = siguienteDe(campos, escribiendoEn)?.id ?? null;
   const puedeConfirmar = sePuedeConfirmar(campos);
 
-  // Cuando lo que sigue cambia, si el nuevo campo quedó fuera de vista dentro del modal se le trae con suavidad. Nunca mientras la
-  // persona teclea (mover la luz sí, mover el modal no), y no al abrir (ahí el modal ya pone su propio foco).
-  const previo = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    const antes = previo.current;
-    previo.current = ahora;
-    if (antes === undefined || antes === ahora || ahora === null || estaEscribiendo()) return;
-    asegurarVisible(ahora, { enModal });
-  }, [ahora, enModal]);
-
+  // La luz nunca mueve la hoja (Felipe 2026-11-05: «invasiva»). Solo se desplaza si la persona lo pide: tocar lo que falta (`ir`) o intentar guardar (`revisar`).
   return {
     campos,
     estado: (id) => estados[id] ?? "opcional",
@@ -106,6 +99,7 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
       );
     },
     faltan: faltanDe(campos),
+    revisado: revisados.size > 0,
     conGrado,
     ahora,
     puedeConfirmar,

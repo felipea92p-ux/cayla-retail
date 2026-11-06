@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { campoDeMasArriba } from "@/lib/guia-campos";
 
-// Llevar a la persona al campo (ADR-0284): lo pide el «Falta: …» del pie y el «Siguiente: …» de la ficha, y lo hace el propio
-// formulario cuando un campo que sigue queda fuera de la vista. Nada aquí decide QUÉ sigue (eso es `lib/alta-producto-guia.ts`):
+// Llevar a la persona al campo (ADR-0284): lo pide el «Falta: …» del pie, el «Siguiente: …» de la ficha o el botón que confirma. Que la luz
+// cambie de campo nunca mueve la pantalla. Nada aquí decide QUÉ sigue (eso es `lib/alta-producto-guia.ts`):
 // solo mueve la vista y el foco.
 //
 // Reglas de tacto:
@@ -69,7 +69,7 @@ export function esCajaDeTexto(el: EventTarget | null): el is HTMLInputElement | 
 
 /** Deja el campo a la vista con el menor movimiento posible. Dentro de un modal el que se desplaza es el modal, no la ventana:
  *  ahí basta con «lo justo» (`nearest`), que no hace nada si ya se ve. */
-export function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {}): void {
+function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {}): void {
   const el = fila(id);
   if (!el) return;
   if (opciones.enModal) {

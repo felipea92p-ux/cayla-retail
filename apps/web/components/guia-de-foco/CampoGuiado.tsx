@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { useRetenerLuz, type ModoRetencion } from "./useRetenerLuz";
-import { separarFaltan } from "@/lib/guia-campos";
+import { resumenDelPie, separarFaltan } from "@/lib/guia-campos";
 import type { GuiaCampos } from "./useGuiaCampos";
 
 // Las dos piezas de la guía de foco para un modal (CLAUDE.md «Guía de foco», ADR-0284). Sus estilos: `app/estilos/alta-guia.css`
@@ -15,10 +15,9 @@ import type { GuiaCampos } from "./useGuiaCampos";
 const CONTROL_DEL_CAMPO = "input:not([type='hidden']):not([type='file']), textarea, select, [role='combobox'], [role='radiogroup'], button[aria-haspopup]";
 
 /**
- * Envuelve UN campo (o un grupo de ellos) y lo ENCIENDE cuando es el que sigue: un halo suave alrededor, el fondo más claro en la
- * caja de texto o el combo de adentro, y la marca de su título. `titulo` es solo para un grupo o un control sin etiqueta propia
+ * Envuelve UN campo (o un grupo de ellos) y le pone EL HILO cuando es el que sigue: una línea fina de tinta al costado, y la marca y «Sigue» en su título. `titulo` es solo para un grupo o un control sin etiqueta propia
  * (los `CampoTexto` ya traen la suya: pásale `guia.etiqueta(id, "Nombre")`). Sin `guia.estado(id)` conocido es «opcional».
- * No cambia el tamaño de nada: la luz se pinta por detrás y por fuera.
+ * No cambia el tamaño de nada: el hilo se pinta por fuera.
  */
 export function CampoGuiado({
   id,
@@ -99,7 +98,8 @@ export function CampoGuiado({
   );
 }
 
-/** «Falta: ● Nombre ○ Motivo» sobre el botón principal, cada cosa tocable (lleva a su campo); con todo listo, «Todo listo.».
+/** Sobre el botón principal: «Sigue: Nombre · quedan 2 más», y tocarlo lleva al campo. Al intentar guardar con algo pendiente pasa a «Falta: ● Nombre ○ Motivo», cada cosa
+ *  tocable, y con todo listo dice «Todo listo.». Lo que no bloquea nunca dice «Falta».
  *  `conFrase`: además, escribe A LA VISTA qué hacer con el campo que sigue («El precio va con punto, por ejemplo 12.50.»). Sin esto la frase solo vive en el
  *  `title` de cada chip (pasar el mouse), que no se ve con el dedo ni con el teclado (ley 6 de Formidable). Por defecto no cambia nada para los demás modales. */
 export function PieGuia({ guia, listo = "Todo listo.", conFrase = false, tope }: { guia: GuiaCampos; listo?: string; conFrase?: boolean; /** Cuántas cosas que faltan se listan a lo sumo; las demás se cuentan. */ tope?: number }) {
@@ -109,8 +109,10 @@ export function PieGuia({ guia, listo = "Todo listo.", conFrase = false, tope }:
       <div className="space-y-1 pt-1">
         {guia.conGrado ? (
           <PieSeparado guia={guia} />
-        ) : (
+        ) : guia.revisado ? (
           <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} tope={tope} />
+        ) : (
+          <SigueDelPie guia={guia} />
         )}
         {conFrase && siguiente?.pendiente && (
           <p role="status" className="text-[12.5px] text-tinta/80">
@@ -120,9 +122,33 @@ export function PieGuia({ guia, listo = "Todo listo.", conFrase = false, tope }:
       </div>
     );
   }
+  // No queda nada que la persona pueda hacer, pero todavía no se puede confirmar (el padrón está respondiendo): se dice qué se espera, nunca «Todo listo».
+  if (!guia.puedeConfirmar) {
+    return (
+      <p role="status" className="pt-1 text-sm text-taupe">
+        {guia.campos.find((c) => c.requerido && !c.hecho)?.pendiente}
+      </p>
+    );
+  }
   return (
-    <p role="status" className="pt-1 text-[12.5px] text-verde">
+    <p role="status" className="pt-1 text-sm text-verde">
       {listo}
+    </p>
+  );
+}
+
+/** Lo que sigue y cuánto queda, en una línea que no regaña a quien recién llega. */
+function SigueDelPie({ guia }: { guia: GuiaCampos }) {
+  const resumen = resumenDelPie(guia.faltan, guia.ahora);
+  if (!resumen) return null;
+  const { sigue, quedan, soloSugeridas } = resumen;
+  return (
+    <p className="flex flex-wrap items-baseline gap-x-1.5 text-sm text-taupe">
+      <span>{soloSugeridas ? "Sin elegir:" : "Sigue:"}</span>
+      <button type="button" className="btn-enlace font-semibold text-tinta" title={sigue.pendiente} onClick={() => guia.ir(sigue.id)}>
+        {sigue.nombre}
+      </button>
+      {soloSugeridas ? <span>· puedes seguir así</span> : quedan > 0 && <span>· {quedan === 1 ? "queda 1 más" : `quedan ${quedan} más`}</span>}
     </p>
   );
 }

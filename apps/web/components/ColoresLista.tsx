@@ -576,6 +576,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
+              <div className="pie-hoja-fijo pt-2">
               <PieGuia guia={guia} listo="Todo listo para guardar." />
               <div className="pie-acciones pt-3">
                 <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
@@ -592,6 +593,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 >
                   Guardar color
                 </Boton>
+              </div>
               </div>
             </div>
           )}

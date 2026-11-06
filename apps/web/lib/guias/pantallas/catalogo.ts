@@ -355,7 +355,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.seccion-producto",
       preparar: [{ tipo: "clic", ancla: "editar.seccion-producto" }],
       titulo: "Cada campo dice su estado",
-      texto: "Como en Nuevo producto, cada campo te dice si está listo, si falta o si es opcional, y «Sigue aquí» marca el que conviene llenar. Lo que cambias se pinta en ámbar hasta que guardas. La cerramos de nuevo.",
+      texto: "Como en Nuevo producto, cada campo te dice si está listo, si falta o si es opcional, y «Sigue» marca el que conviene llenar. Lo que cambias se pinta en ámbar hasta que guardas. La cerramos de nuevo.",
     },
     {
       id: "tejido",
@@ -1513,7 +1513,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       // La demo elige la tienda si hace falta: sin ella la familia espera y no se puede tocar.
       preparar: [{ tipo: "clic", ancla: "nuevo.empresa-elegir", siEsta: true }],
       titulo: "Empieza por la familia",
-      texto: "«Sigue aquí» te marca lo que toca ahora. Elige la familia de la prenda: ropa, calzado, accesorios… (te abrimos la primera).",
+      texto: "«Sigue» te marca lo que toca ahora. Elige la familia de la prenda: ropa, calzado, accesorios… (te abrimos la primera).",
     },
     {
       id: "categorias",

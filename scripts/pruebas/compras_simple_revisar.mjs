@@ -42,6 +42,8 @@ const MIGRACIONES = [
   leer("20261023183000_compras_simple_ronda_de_compras.sql"),
   // El papel pasa solo a los libros al cerrar el conteo (ADR-0574): parcha `completar_papel_compra`, así que va después de todo lo anterior.
   leer("20261029194000_mis_compras_el_papel_pasa_solo_a_los_libros.sql"),
+  // La marca en cada línea de la lectura (Felipe 2026-11-06): parcha `fn_revisar_compras`, que las de arriba acaban de volver a crear.
+  leer("20261106154000_revisar_compras_trae_la_marca.sql"),
 ].join("\n");
 
 // Esta función se rebobina antes de pegar las migraciones viejas (`rebobinar_terminar_dia.sql`): en una base que ya pasó por 20261029170000 solo existe la de
@@ -331,6 +333,14 @@ ${REVISA("papel_completar")}
 select retail.completar_papel_compra(:'papel', null, 'F001', '5') \\g /dev/null
 select count(*) from jsonb_array_elements(retail.fn_revisar_compras() -> 'papeles') p where p ->> 'id' = :'papel';`,
   "false|2 / true|6:6:,2:2:no_vino / 0",
+);
+
+caso(
+  "cada prenda del papel dice su marca (la razón social sola no dice qué mercadería es)",
+  `${COMPRA}${REVISA(null)}
+select string_agg(distinct l ->> 'marca', ',')
+  from jsonb_array_elements(retail.fn_revisar_compras() -> 'papeles') p, jsonb_array_elements(p -> 'lineas') l where p ->> 'id' = :'papel';`,
+  "Marca Revisar Prueba",
 );
 
 // El cierre del día: Sandra anota S/ 500 (Felipe la confirma desde el banco), compra S/ 300 y devuelve lo que le queda (S/ 200).

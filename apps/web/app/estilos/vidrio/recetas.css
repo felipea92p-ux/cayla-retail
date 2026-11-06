@@ -50,6 +50,8 @@
   --pozo-fondo: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --pozo-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--color-vidrio) 75%, transparent);
+  /* El halo del campo con el cursor: sin línea dura alrededor (Felipe 2026-11-05: «más difuminado y sutil»). Lo que cumple el 3:1 del foco es el borde de tinta plena y el hilo de abajo. */
+  --pozo-foco-halo: 0 0 0 3px color-mix(in srgb, var(--color-tinta) 7%, transparent), 0 0 18px 3px color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   /* Al escribir sube como la gota, pero sigue siendo vidrio (Felipe: «que no se pongan con un color sólido»). */
   --pozo-encendido-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 50%, transparent), color-mix(in srgb, var(--color-vidrio) 22%, transparent));
   --pozo-encendido-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 95%, transparent),
@@ -109,12 +111,9 @@
   /* El hilo entre filas de una tabla o entre cifras: apenas tinta. */
   --hilo-fila: color-mix(in srgb, var(--color-tinta) 9%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --hilo-cabeza: color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-  /* La luz de lo que sigue, «D · Filo de luz» (Felipe 2026-11-02, docs/maquetas/foco-vidrio-2026-11/; extendida a todo el ERP el 2026-11-03):
-     un tinte del rojo de CAYLA, más lleno arriba, y un filo de 1,5 px del mismo rojo. La usan el paso numerado de Vender (`.hoja-cobro-paso`) y
-     la guía de foco de todo modal y formulario (`.hilo-luz`, `.hilo-fila`, `.hilo-tarjeta`, alta-guia.css): una sola cara para «sigue aquí». */
-  --filo-luz-tinte: linear-gradient(180deg, color-mix(in srgb, var(--color-rojo) 12%, transparent), color-mix(in srgb, var(--color-rojo) 4%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-  --filo-luz-borde: linear-gradient(115deg, color-mix(in srgb, var(--color-rojo) 85%, transparent), color-mix(in srgb, var(--color-rojo) 45%, transparent)); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
-  --filo-luz-brillo: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 70%, transparent);
+  /* El hilo de lo que sigue (Felipe 2026-11-05, docs/maquetas/guia-que-acompana-2026-11/, cara A): una línea de tinta al costado del bloque, con las
+     puntas que se desvanecen. Es la receta de «sigue aquí» en todo el ERP: tinta y no rojo, porque el rojo es del error. */
+  --hilo-guia: linear-gradient(180deg, transparent, var(--color-tinta) 16%, var(--color-tinta) 84%, transparent);
 
   /* ---------- el marco: el riel del menú y las islas de la cabecera (marco-vidrio-2026-10; piezas en vidrio/marco.css) ---------- */
   /* Más transparente que una hoja: el marco está siempre a la vista y no debe tapar la aurora ni lo que pasa por debajo. El

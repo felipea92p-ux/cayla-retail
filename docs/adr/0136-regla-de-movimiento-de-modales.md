@@ -660,6 +660,11 @@ campo terminaba de entrar a los 1115 ms y ahora a los 390. El botón sube en 160
 **No cambian** las excepciones con su lista en este ADR, donde Felipe pidió «full animaciones»: login, Análisis, Tienda web, Mi perfil, Las vitrinas, Rendimiento y las demás. La salida de una hoja sigue en
 220 ms (`MS_SALIDA`). Lo vigila `lib/movimiento-tiempos.test.ts`: una pieza del sistema no vuelve a un número suelto de 100 ms o más.
 
+
+## Actualización 2026-11-05 — sale el círculo punteado que giraba
+
+Felipe, al revisar la guía de foco: «muy llamativa» y «bastante invasiva». La excepción de la actualización 2026-09-30 (c) queda sin efecto: un campo opcional ya no lleva marca en su título (su texto dice «Opcional»), y en un «Sin elegir» del pie el círculo punteado está quieto. Detalle: ADR-0284, actualización (j).
+
 ## Actualización 2026-11-05 (b): Estados financieros en vidrio
 
 Felipe pidió «full animaciones» y eligió la dirección mirando la maqueta (ADR-0611, `docs/maquetas/finanzas-eeff-vidrio-2026-11/`). Entran a la lista de excepciones, solo en `/finanzas/reportes/*`: el filo de luz que corre una vez por la placa, las cifras que ruedan,
