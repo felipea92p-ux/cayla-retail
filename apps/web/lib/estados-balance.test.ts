@@ -83,7 +83,7 @@ describe("el libro", () => {
 });
 
 describe("mirando una sede", () => {
-  const u = (o: Partial<UnidadBalance> = {}): UnidadBalance => ({ ubicacionId: "u1", nombre: "Tienda Lima", tipo: "tienda", caja: 2000, mercaderia: 40000, activosFijos: 8000, activosCosto: 10000, activosDepreciacion: 2000, facturasPorPagar: 15000, invertido: 35000, ventasMes: 50000, utilidadMes: 4000, rinde: 0.114, desde: "2026-10-01", hasta: "2026-10-31", planillaVisible: true, ...o });
+  const u = (o: Partial<UnidadBalance> = {}): UnidadBalance => ({ ubicacionId: "u1", nombre: "Tienda Lima", tipo: "tienda", caja: 2000, mercaderia: 40000, activosFijos: 8000, activosCosto: 10000, activosDepreciacion: 2000, facturasPorPagar: 15000, invertido: 35000, ventasMes: 50000, utilidadMes: 4000, rinde: 0.114, desde: "2026-10-01", hasta: "2026-10-31", planillaVisible: true, sueldosEstimados: 0, ...o });
   it("dice que no es un Balance completo y cuánto rinde", () => {
     const l = lecturaDeLaSede(u(), u({ invertido: 30000 }), "2026-10-31");
     expect(l.frase).toBe(`Es lo que hay invertido en Tienda Lima: tiene ${soles(50000)} y debe ${soles(15000)}.`);

@@ -7,7 +7,7 @@ import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { getFlujoProximo, getTiendasActivas, getVentasPorDia } from "@/lib/resumen-telar";
 import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
 import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea, tramoDeComparacion, tramoDelMes, tramoDeSueldos } from "@/lib/resumen-telar-reglas";
+import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea, tramoDeComparacion, tramoDelMes } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 import { getCuentaClaure } from "@/lib/cuenta-claure";
 import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
@@ -31,7 +31,6 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const veTodo = veFinanzasDeTodoDe(persona);
   const pedido = leerVerResumen(sedeDeLaUrl(sp), veTodo);
   const tramo = tramoDelMes(mes, hoy)!;
-  const sueldos = tramoDeSueldos(mes, hoy)!;
   const comparar = tramoDeComparacion(mes, hoy);
   // La línea de ventas (si la cuenta ve Rendimiento) se pide A LA VEZ que todo lo demás, con las tiendas adivinadas de la URL (ADR-0583): antes
   // esperaba al resumen entero para saber qué tiendas pedir. Si la base resolvió otras, se piden de nuevo abajo.
@@ -46,7 +45,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas, faltaDelMes, planillaPorRegistrar] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
-    getEstadoResultados(tramo.desde, tramo.hasta, sueldos.hasta),
+    getEstadoResultados(tramo.desde, tramo.hasta),
     getEstadoResultados(comparar.desde, comparar.hasta),
     getSedesDelTelar(),
     getFlujoProximo(),

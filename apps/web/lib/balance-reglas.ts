@@ -53,6 +53,8 @@ export type UnidadBalance = {
   desde: string;
   hasta: string;
   planillaVisible: boolean;
+  /** Lo que `utilidadMes` ya resta de sueldos que Dynamic todavía no paga (tarea 23). */
+  sueldosEstimados: number;
 };
 
 export type SaldoInicial = {
@@ -134,7 +136,26 @@ export function leerUnidad(r: Fila): UnidadBalance {
     desde: String(r.desde ?? ""),
     hasta: String(r.hasta ?? ""),
     planillaVisible: r.planilla_visible === true,
+    sueldosEstimados: 0,
   };
+}
+
+/**
+ * La utilidad de cada tienda con los sueldos que Dynamic todavía no paga, igual que Ganancias y pérdidas (tarea 23). La base da la utilidad del diario; el rinde se vuelve a
+ * dividir con la misma regla de `fn_balance_por_tienda` (solo una tienda, con algo invertido, a 4 decimales). Lo de la empresa no es de ninguna tienda: no se le reparte (ADR-0485).
+ */
+export function unidadesConSueldos(unidades: readonly UnidadBalance[], provision: readonly { ubicacionId: string | null; devengado: number }[]): UnidadBalance[] {
+  return unidades.map((u) => {
+    const sueldos = provision.reduce((a, p) => (p.ubicacionId === u.ubicacionId && p.devengado > 0 ? a + p.devengado : a), 0);
+    if (sueldos <= 0) return u;
+    const utilidadMes = Math.round((u.utilidadMes - sueldos) * 100) / 100;
+    return {
+      ...u,
+      utilidadMes,
+      rinde: u.tipo === "tienda" && u.invertido > 0 ? Math.round((utilidadMes / u.invertido) * 10000) / 10000 : u.rinde,
+      sueldosEstimados: Math.round(sueldos * 100) / 100,
+    };
+  });
 }
 
 export function leerSaldoInicial(r: Fila): SaldoInicial {

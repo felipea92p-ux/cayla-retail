@@ -79,6 +79,18 @@ export const delMes = (prov: readonly FilaProvision[], mes: string): FilaProvisi
 /** La clave con la que una fila de provisión cae en una fila del Estado de resultados: la ubicación, o «empresa». */
 const claveDe = (p: FilaProvision): string => p.ubicacionId ?? "empresa";
 
+/**
+ * Hasta dónde se piden los sueldos estimados de un tramo (tarea 23 de «Las 36»). La base devuelve el período de Dynamic que TERMINA dentro del rango (D-35) con lo devengado
+ * hasta hoy; pedirlos «del 1 a hoy» dejaba fuera el período que termina el 28 y, del 1 al 27, cada pantalla decía una ganancia distinta. Por eso el mes en curso se pide hasta su
+ * último día. Cualquier otro tramo (un mes que ya pasó, «del 1 a hoy» del mes pasado para comparar, unas fechas sueltas) se pide tal cual.
+ */
+export function hastaDeLaProvision(desde: string, hasta: string, hoy: string): string {
+  const mes = hasta.slice(0, 7);
+  if (hasta !== hoy || desde !== `${mes}-01`) return hasta;
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+}
+
 /** Cómo se llama en pantalla una sede de Dynamic que no es una tienda. Un código nuevo se muestra tal cual, nunca se inventa un nombre. */
 const NOMBRE_SEDE_DYNAMIC: Record<string, string> = { CCO: "Central", OTRU: "Oficina Trujillo" };
 export const nombreSedeDynamic = (codigo: string): string => NOMBRE_SEDE_DYNAMIC[codigo] ?? codigo;

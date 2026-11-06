@@ -46,10 +46,12 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
     getEstadoResultados(desde, hasta),
   ]);
   const datos = patrimonio.datos;
-  const recomendaciones = recomendacionesTuyo({ datos, href });
+  // «Ganaste» sale del diario y aún no resta los sueldos que Dynamic no paga: las filas por sede lo mismo, para sumar lo que dice arriba (cada una, sin su estimado).
+  const sueldosEstimados = er.falla ? 0 : (er.datos.find((f) => f.unidad === "consolidado")?.planillaEstimada ?? 0);
+  const recomendaciones = recomendacionesTuyo({ datos, href, sueldosEstimados });
   const porSede = er.falla
     ? []
-    : er.datos.filter((f) => f.unidad !== "consolidado").map((f) => ({ nombre: f.unidad === "empresa" ? "Empresa" : nombreCortoSede(f.nombre), valor: f.resultado }));
+    : er.datos.filter((f) => f.unidad !== "consolidado").map((f) => ({ nombre: f.unidad === "empresa" ? "Empresa" : nombreCortoSede(f.nombre), valor: f.resultado + f.planillaEstimada }));
 
   return (
     <div className="space-y-4">
@@ -63,7 +65,7 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
       ) : (
         <EstadoVidrio
           nombre={`Cambios en el patrimonio · ${periodo.titulo}`}
-          lectura={lecturaDelPatrimonio(datos)}
+          lectura={lecturaDelPatrimonio(datos, sueldosEstimados)}
           grafico={
             <Suspense fallback={<LineaEsperando />}>
               <LineaDePatrimonio hoy={hoy} periodo={periodo} final={datos.fin.total} />

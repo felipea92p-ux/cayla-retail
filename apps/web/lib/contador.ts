@@ -7,8 +7,9 @@ import { getPatrimonioCambios } from "@/lib/estados-financieros";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
 import { csvBalance } from "@/lib/balance-reglas";
-import { columnasER, conceptosER, csvDe, csvEstado, leerLineaDiario, mesTitulo, ORDEN_DIARIO, type LineaDiario } from "@/lib/resultados-reglas";
+import { AVISO_SIN_SUELDOS, columnasER, conceptosER, csvDe, csvEstado, leerLineaDiario, mesTitulo, ORDEN_DIARIO, veLaPlanilla, type LineaDiario } from "@/lib/resultados-reglas";
 import {
+  conPrimerasLineas,
   csvDiarioContador,
   csvFlujoContador,
   csvPatrimonioContador,
@@ -34,7 +35,19 @@ export async function saldosDelMes(mes: string): Promise<{ datos: SaldoCuenta[];
   return { datos: ((data ?? []) as Record<string, unknown>[]).map(leerSaldoCuenta), falla: null };
 }
 
+/**
+ * El archivo con lo que hay que saber antes de leerlo (tarea 23; Felipe 2026-11-06: quien no ve la planilla baja igual, con el aviso). La misma lectura que su pantalla: si no se
+ * puede saber, se dice que no se pudo comprobar en vez de callar.
+ */
 export async function armarArchivoContador(archivo: ArchivoContador, mes: string, hoy: string): Promise<Armado> {
+  const { desde, hasta } = rangoDelMes(mes, hoy);
+  const [armado, er] = await Promise.all([armarCuerpo(archivo, mes, hoy), getEstadoResultados(desde, hasta)]);
+  if (armado.falla !== null) return armado;
+  const ve = veLaPlanilla(er);
+  return listo(conPrimerasLineas(armado.csv, ve === false ? [AVISO_SIN_SUELDOS] : ve === null ? ["No se pudo comprobar si estas cifras llevan sueldos."] : []));
+}
+
+async function armarCuerpo(archivo: ArchivoContador, mes: string, hoy: string): Promise<Armado> {
   const { desde, hasta } = rangoDelMes(mes, hoy);
   switch (archivo) {
     case "resultados": {
