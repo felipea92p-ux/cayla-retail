@@ -10,11 +10,6 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { SelectEnLineaFin, Superficie } from "@/components/finanzas/kit";
-import { CascadaEstados } from "@/components/finanzas/estados/CascadaEstados";
-import { TitularEstado } from "@/components/finanzas/estados/TitularEstado";
-import { filasDeTramos } from "@/lib/cascada-estados-reglas";
-import type { FormaEstado } from "@/lib/estados-financieros-reglas";
-import { mesNombre } from "@/lib/resultados-reglas";
 import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
 import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
 import { EscenariosPanel } from "@/components/finanzas/EscenariosPanel";
@@ -36,41 +31,30 @@ import {
   type FlujoReal,
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
-import { loQueNoCubre, partesDelFlujo, puentePlata } from "@/lib/plata-reglas";
+import { loQueNoCubre } from "@/lib/plata-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 
-// Estados financieros ▸ ¿Dónde está la plata? (flujo de efectivo; ADR-0195 F6, ADR-0585, actividad 5). De arriba abajo: la respuesta (lo
-// que hay hoy o al cerrar el mes) con la frase de por qué la plata no siguió a la ganancia; el puente del mes en el método directo (del día
-// a día, compras que duran años, tú y los préstamos; cada parte se toca y muestra sus categorías); lo que viene semana a semana contra tu
-// mínimo; y «¿Y si…?», que es Escenarios entero (ya no tiene pantalla aparte: nada se guarda). Todo en una tarjeta, como la maqueta
-// aprobada; con «Formato formal» arriba (`?forma=formal`), el estado de flujos del contador en su lugar. Es de CAYLA
-// entera. La pantalla no calcula plata: la base da las cifras (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`).
+// Estados financieros ▸ Flujo de efectivo: lo que no es la cifra (ADR-0195 F6, ADR-0585, ADR-0611). Lo plegado en «Ver más»: lo que no suma aquí, lo que viene semana a semana contra tu
+// mínimo, «¿Y si…?», que es Escenarios entero (nada se guarda), y lo que entró y salió semana a semana. Es de CAYLA entera. La pantalla no calcula plata: la base da las
+// cifras (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`).
 
-
-export function PlataPanel({
+/** Lo plegado de Flujo de efectivo. */
+export function MasDelFlujo({
   real,
   proyeccion,
-  frase,
-  fallas,
+  falla,
   semanas,
-  enCurso,
   hoy,
   escenarios,
-  mes,
-  forma,
 }: {
   real: FlujoReal | null;
   proyeccion: Proyeccion | null;
-  /** Por qué la plata no siguió a la ganancia (`fraseDeLaPlata`). */
-  frase: string | null;
-  fallas: string[];
+  /** Por qué no se pudo leer lo que viene. */
+  falla: string | null;
   semanas: number;
-  enCurso: boolean;
   hoy: string;
   /** Lo que «¿Y si…?» necesita: el estado de resultados del último mes completo. */
   escenarios: { resultados: FilaER[] | null; mesBase: string };
-  mes: string;
-  forma: FormaEstado;
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -81,59 +65,8 @@ export function PlataPanel({
     p.set("semanas", String(n));
     router.push(`${ruta}?${p.toString()}`, { scroll: false });
   };
-
-  const avisos = fallas.map((f) => (
-    <Aviso key={f} tono="error">
-      {f}
-    </Aviso>
-  ));
-  if (forma === "formal")
-    return (
-      <div className="min-w-0 space-y-4" data-guia="fin-plata.formal">
-        {avisos}
-        {real ? (
-          <>
-            <NoCubre real={real} />
-            <Formal real={real} />
-          </>
-        ) : (
-          <Vacio tamano="chico" icono={<CalendarX />}>
-            Sin movimientos de plata en este mes.
-          </Vacio>
-        )}
-      </div>
-    );
-  const cambio = real ? Math.round(real.saldoFinal - real.saldoInicial) : 0;
-  // ADR-0609: con una cuenta que arrancó a mitad del mes se sabe cuánto hay, no cuánto cambió.
-  const incompleto = real ? loQueNoCubre(real) !== null : false;
   return (
-    <div className="fin-estado min-w-0 space-y-8">
-      {avisos}
-
-      <section data-guia="fin-plata.respuesta">
-        <TitularEstado
-          formal={`Flujo de efectivo · ${mesNombre(mes)}`}
-          respuesta={
-            real
-              ? incompleto
-                ? `${enCurso ? "Tienes" : "Cerró con"} ${soles(real.saldoFinal)}`
-                : `${cambio === 0 ? "Quedó igual" : `${cambio > 0 ? "Subió" : "Bajó"} ${soles(Math.abs(cambio))}`}. ${enCurso ? "Tienes" : "Cerró con"} ${soles(real.saldoFinal)}`
-              : "Sin movimientos de plata"
-          }
-          bajada={real ? frase : "No entró ni salió plata en este mes."}
-        />
-        {real && (
-          <>
-            <NoCubre real={real} className="mt-4" />
-            <div className="fin-estado-sep" />
-            <TituloSeccion accion={<span className="text-sm text-taupe">Toca una fila para ver qué tiene</span>}>De dónde vino y a dónde fue</TituloSeccion>
-            <div className="mt-3">
-              <CascadaEstados id="fin-plata-puente" filas={filasDeTramos(puentePlata(real, enCurso))} etiqueta="De dónde vino y a dónde fue la plata" guia="fin-plata.puente" />
-            </div>
-          </>
-        )}
-      </section>
-
+    <>
       {real && <Notas real={real} />}
 
       <section className="space-y-3" data-guia="fin-flujo.viene">
@@ -148,6 +81,7 @@ export function PlataPanel({
             />
           </span>
         </TituloSeccion>
+        {falla && <Aviso tono="error">{falla}</Aviso>}
         <Superficie pad>
           {proyeccion ? (
             <LoQueViene p={proyeccion} />
@@ -166,62 +100,17 @@ export function PlataPanel({
         </FilasDeMas>
       </section>
 
-    </div>
+      {real && real.semanas.length > 0 && <SemanaASemana real={real} />}
+    </>
   );
 }
 
-/** El estado de flujos de efectivo como lo lee un contador (método directo), sin cuentas, y lo que quedó semana a semana. */
-function Formal({ real }: { real: FlujoReal }) {
-  const partes = partesDelFlujo(real);
+/** Lo que entró, lo que salió y lo que quedó, semana a semana. */
+function SemanaASemana({ real }: { real: FlujoReal }) {
   return (
-    <Superficie pad>
-      <p className="mb-3 text-sm text-taupe">Estado de flujos de efectivo, método directo.</p>
-      <div className="fin-tabla-wrap" data-guia="fin-plata.formal-tabla">
-        <table className="fin-tabla fin-tabla-flujo">
-          <caption className="sr-only">Estado de flujos de efectivo</caption>
-          <thead>
-            <tr>
-              <th>Partida</th>
-              <th className="fin-num">S/</th>
-            </tr>
-          </thead>
-          <tbody>
-            {partes.flatMap((p) => [
-              ...p.lineas.map((l) => (
-                <tr key={`${p.clave}-${l.nombre}`}>
-                  <td data-l="Partida">{l.nombre}</td>
-                  <td className="fin-num" data-l="S/">
-                    {solesConSigno(l.monto)}
-                  </td>
-                </tr>
-              )),
-              <tr key={`${p.clave}-total`} className="fin-suave">
-                <td data-l="Partida">
-                  <b>{p.formal}</b>
-                </td>
-                <td className="fin-num" data-l="S/">
-                  <b>{solesConSigno(p.total)}</b>
-                </td>
-              </tr>,
-            ])}
-            <tr>
-              <td data-l="Partida">{loQueNoCubre(real) ? "Saldo de partida" : "Efectivo al inicio"}</td>
-              <td className="fin-num" data-l="S/">
-                {soles(real.saldoInicial)}
-              </td>
-            </tr>
-            <tr className="fin-suave">
-              <td data-l="Partida">
-                <b>Efectivo al final</b>
-              </td>
-              <td className="fin-num" data-l="S/">
-                <b>{soles(real.saldoFinal)}</b>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div className="fin-tabla-wrap mt-4" data-guia="fin-flujo.semana-a-semana">
+    <section className="space-y-3">
+      <TituloSeccion>Semana a semana</TituloSeccion>
+      <div className="fin-tabla-wrap" data-guia="fin-flujo.semana-a-semana">
         <table className="fin-tabla fin-tabla-flujo">
           <caption className="sr-only">Semana a semana: lo que entró, lo que salió y lo que quedó</caption>
           <thead>
@@ -259,8 +148,7 @@ function Formal({ real }: { real: FlujoReal }) {
           </tbody>
         </table>
       </div>
-
-    </Superficie>
+    </section>
   );
 }
 
@@ -268,7 +156,7 @@ function Formal({ real }: { real: FlujoReal }) {
  * ADR-0609: lo que este cuadro no cubre porque una cuenta arrancó con su saldo a mitad del mes. Va junto a la respuesta y en céntimos: sin
  * esto, «lo que entró» parece todo lo que se cobró y el saldo de partida parece el del primer día. No cambia ninguna cifra de abajo.
  */
-function NoCubre({ real, className }: { real: FlujoReal; className?: string }) {
+export function NoCubre({ real, className }: { real: FlujoReal; className?: string }) {
   const n = loQueNoCubre(real);
   if (!n) return null;
   return (
@@ -328,18 +216,23 @@ function NoCubre({ real, className }: { real: FlujoReal; className?: string }) {
   );
 }
 
-/** Lo que el puente no muestra pero hay que saber: un descuadre, lo que no dice de qué cuenta salió y la planilla de Dynamic. */
+/** Lo que hay que saber si no cuadra: va a la vista, nunca plegado. */
+export function NoCuadra({ real }: { real: FlujoReal }) {
+  if (Math.round(real.descuadre * 100) === 0) return null;
+  return (
+    <Aviso tono="error" titulo="No cuadra">
+      Hay {soles(Math.abs(real.descuadre))} que las cuentas no explican. Avísale al equipo: el flujo no inventa la diferencia.
+    </Aviso>
+  );
+}
+
+/** Lo que la cifra no muestra pero hay que saber: lo que no dice de qué cuenta salió y la planilla de Dynamic. */
 function Notas({ real }: { real: FlujoReal }) {
   const sinCuenta = textoSinCuenta(real.sinCuenta);
   const planilla = real.planilla.reduce((a, p) => a + p.pagado, 0);
   const planillaRegistrada = real.categorias.find((c) => c.clave === "planilla")?.monto ?? 0;
   return (
     <div className="space-y-3" data-guia="fin-plata.notas">
-      {Math.round(real.descuadre * 100) !== 0 && (
-        <Aviso tono="error" titulo="No cuadra" >
-          Hay {soles(Math.abs(real.descuadre))} que las cuentas no explican. Avísale al equipo: el flujo no inventa la diferencia.
-        </Aviso>
-      )}
       {sinCuenta && (
         <p className="nota-cayla">
           <b>No suma aquí</b> lo que todavía no dice de qué cuenta salió o a cuál entró (igual que en Cuentas y dinero): {sinCuenta}.
@@ -456,7 +349,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         <p className="nota-cayla mt-3" data-guia="fin-flujo.sin-meta">
           <b>{sinMeta.map((t) => t.nombre).join(" y ")}</b> {sinMeta.length === 1 ? "no tiene" : "no tienen"} meta{sinMeta.some((t) => t.origen === "mixto") ? " algunos días" : ""}: se
           espera su promedio de ese día de la semana (hasta 8 semanas atrás){sinMeta.some((t) => t.corto) ? "; con pocos días de historia se acerca al promedio de todos sus días, para que un día atípico no mande" : ""}. Ponle meta en{" "}
-          <Link href="/configuracion?tab=metas" className="underline underline-offset-2 hover:text-rojo">
+          <Link href="/configuracion?tab=metas" className="btn-enlace">
             Configuración ▸ Metas
           </Link>
           .
@@ -465,7 +358,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
       {!p.planillaVisible && <p className="nota-cayla mt-3">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
       <p className="nota-cayla mt-3" data-guia="fin-flujo.config">
         El mínimo de caja y los avisos se cambian en{" "}
-        <Link href="/configuracion?tab=dinero" className="underline underline-offset-2 hover:text-rojo">
+        <Link href="/configuracion?tab=dinero" className="btn-enlace">
           Configuración ▸ Dinero
         </Link>
         .

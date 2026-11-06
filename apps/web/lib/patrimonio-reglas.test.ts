@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cambioDelMes, cuadroFormalPatrimonio, fraseTuyo, mesesBajando, filasTuyo, recomendacionesTuyo, tieneExtremos } from "./patrimonio-reglas";
+import { cambioDelMes, cuadroFormalPatrimonio, mesesBajando, recomendacionesTuyo, tieneExtremos } from "./patrimonio-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 
 const S = (s: string) => s.replace(/S\/ /g, "S/ ");
@@ -22,7 +22,6 @@ const datos = (p: Partial<PatrimonioCambios> = {}): PatrimonioCambios => ({
   ...p,
 });
 const href = (r: string) => `${r}?mes=2026-10`;
-const suma = (filas: ReturnType<typeof filasTuyo>) => filas.filter((f) => f.tipo === "paso").reduce((a, f) => a + f.valor, 0);
 
 describe("tieneExtremos", () => {
   it("sin arranque o sin extremos no hay con qué contar", () => {
@@ -30,53 +29,6 @@ describe("tieneExtremos", () => {
     expect(tieneExtremos(datos({ sinArranque: true }))).toBe(false);
     expect(tieneExtremos(datos({ fin: null }))).toBe(false);
     expect(tieneExtremos(datos())).toBe(true);
-  });
-});
-
-describe("filasTuyo", () => {
-  it("lo que lo movió, con su signo, y al final cuánto creció: los pasos suman el final", () => {
-    const d = datos();
-    if (!tieneExtremos(d)) throw new Error();
-    const f = filasTuyo(d);
-    expect(f.map((x) => [x.clave, x.tipo, x.valor])).toEqual([
-      ["ganancia", "paso", 10000],
-      ["aportes", "paso", 5000],
-      ["retiros", "paso", -6000],
-      ["cambio", "final", 9000],
-    ]);
-    expect(f.at(-1)!.nombre).toBe("Creció");
-    expect(suma(f)).toBe(9000);
-  });
-  it("una pérdida resta, lo que es cero no se dibuja y lo sin explicar se muestra", () => {
-    const d = datos({ ganancia: -2000, aportes: 0, retiros: 0, otros: 500, fin: { fecha: "2026-10-31", capital: 100000, aportes: 20000, utilidades: 28500, total: 148500 } });
-    if (!tieneExtremos(d)) throw new Error();
-    const f = filasTuyo(d);
-    expect(f.map((x) => x.clave)).toEqual(["ganancia", "otros", "cambio"]);
-    expect(f[0]).toMatchObject({ nombre: "Lo que perdiste", valor: -2000 });
-    expect(f.at(-1)).toMatchObject({ nombre: "Bajó", valor: -1500 });
-    expect(suma(f)).toBe(-1500);
-  });
-});
-
-describe("fraseTuyo", () => {
-  it("dice qué parte de lo ganado retiraste", () => {
-    const d = datos();
-    if (!tieneExtremos(d)) throw new Error();
-    expect(fraseTuyo(d)).toBe(S("De los S/ 10,000 que ganaste, retiraste S/ 6,000: el 60 % y pusiste S/ 5,000."));
-  });
-  it("si retiras más de lo ganado, lo dice", () => {
-    const d = datos({ aportes: 0, retiros: 12000 });
-    if (!tieneExtremos(d)) throw new Error();
-    expect(fraseTuyo(d)).toBe(S("Ganaste S/ 10,000 y retiraste S/ 12,000: más de lo que ganaste."));
-  });
-  it("sin retiros, con pérdida o sin nada", () => {
-    const a = datos({ aportes: 0, retiros: 0 });
-    const b = datos({ ganancia: -3000, aportes: 0, retiros: 1000 });
-    const c = datos({ ganancia: 0, aportes: 0, retiros: 0 });
-    if (!tieneExtremos(a) || !tieneExtremos(b) || !tieneExtremos(c)) throw new Error();
-    expect(fraseTuyo(a)).toBe(S("Ganaste S/ 10,000 y no retiraste nada."));
-    expect(fraseTuyo(b)).toBe(S("Perdiste S/ 3,000 en el mes y retiraste S/ 1,000."));
-    expect(fraseTuyo(c)).toBe("No se movió en el mes.");
   });
 });
 
@@ -135,7 +87,7 @@ describe("recomendacionesTuyo", () => {
     expect(r[0]!.accion?.href).toBe("/finanzas/reportes/balance?mes=2026-10");
     expect(r[2]!.titulo).toBe("Lo tuyo baja hace 2 meses");
   });
-  it("una pérdida lleva a ¿Ganamos?", () => {
+  it("una pérdida lleva a Ganancias y pérdidas", () => {
     const r = recomendacionesTuyo({ datos: datos({ ganancia: -4000, retiros: 0 }), href });
     expect(r[0]).toMatchObject({ clave: "perdida", accion: { href: "/finanzas/reportes?mes=2026-10" } });
   });

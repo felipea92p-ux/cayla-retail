@@ -690,8 +690,8 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         detalle: `${cerrado ? "Cerró" : "Al cierre llegaría"} en ${soles(f.proyeccion ?? 0)} contra un tope de ${soles(f.presupuesto ?? 0)} (${chip.texto}); lleva ${soles(f.aLaFecha)}.`,
         impacto: `${soles((f.proyeccion ?? 0) - (f.presupuesto ?? 0))} sobre el tope`,
         href: enlace("reportes_financieros", conQuery("/finanzas/reportes", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
-        boton: "Ver en ¿Ganamos?",
-        origen: "Estados financieros ▸ ¿Ganamos?",
+        boton: "Ver en Ganancias y pérdidas",
+        origen: "Estados financieros ▸ Ganancias y pérdidas",
         peso: (f.proyeccion ?? 0) - (f.presupuesto ?? 0),
       });
     }

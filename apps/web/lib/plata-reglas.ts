@@ -1,16 +1,15 @@
-// Estados financieros ▸ ¿Dónde está la plata? (flujo de efectivo; ADR-0585, actividad 5).
+// Estados financieros ▸ Flujo de efectivo (flujo de efectivo; ADR-0585, actividad 5).
 //
 // PROMETE: el flujo del mes en el «método directo», que es el que se lee como «cobraste / pagaste»: la plata de cada categoría que ya
 // da la base va a una de tres partes (del día a día, compras que duran años, tú y los préstamos), con las diferencias de caja y la
-// plata en camino aparte; el puente de cómo empezó a cómo terminó el mes; la frase que explica por qué la plata no siguió a la
-// ganancia; lo que el cuadro no cubre cuando una cuenta arrancó a mitad del período (ADR-0609); y las recomendaciones.
+// plata en camino aparte; lo que el cuadro no cubre cuando una cuenta arrancó a mitad del período (ADR-0609); y las recomendaciones.
+// Las palabras y las columnas de la pantalla están en `estados-flujo.ts`.
 // ASUME: toda cifra viene de la base (`fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`). Aquí no se suma plata nueva: se agrupa lo que
 // la base ya dio y se escribe.
 
 import { etiquetaSemana, puntoMasBajo, soles, textoCategoria, type ArranqueCuenta, type CategoriaFlujo, type FlujoReal, type Proyeccion, type SemanaProy } from "./flujo-caja-reglas";
 import { fechaCorta } from "./gastos-reglas";
 import type { Recomendacion } from "./ganamos-reglas";
-import type { TramoCascada } from "./pulso-reglas";
 
 export type Actividad = "operacion" | "inversion" | "financiamiento" | "ajustes";
 
@@ -86,62 +85,13 @@ export function loQueNoCubre(real: Pick<FlujoReal, "categorias" | "arranques">):
   };
 }
 
-/** El puente del mes: lo que había al empezar, lo que movió cada parte (se toca y muestra sus categorías) y lo que hay al cerrar. */
-export function puentePlata(real: FlujoReal, enCurso: boolean): TramoCascada[] {
-  // Con una cuenta que arrancó a mitad de mes, este saldo trae el de su arranque: llamarlo «al empezar el mes» sería afirmar lo que no se sabe.
-  const noCubre = loQueNoCubre(real);
-  const tramos: TramoCascada[] = [
-    noCubre
-      ? { clave: "inicio", nombre: "Saldo de partida", detalle: `El de cada cuenta al empezar; las que arrancaron ${noCubre.cuando}, con el de ese día`, monto: real.saldoInicial, tipo: "entra" }
-      : { clave: "inicio", nombre: "Al empezar el mes", monto: real.saldoInicial, tipo: "entra" },
-  ];
-  for (const p of partesDelFlujo(real)) {
-    tramos.push({
-      clave: p.clave,
-      nombre: p.nombre,
-      detalle: p.detalle,
-      monto: Math.abs(p.total),
-      tipo: p.total >= 0 ? "entra" : "sale",
-      lineas: p.lineas.map((l) => ({ nombre: l.nombre, real: l.monto, plan: null })),
-    });
-  }
-  tramos.push({ clave: "fin", nombre: enCurso ? "Hoy" : "Al cerrar el mes", monto: Math.abs(real.saldoFinal), tipo: "queda", ...(real.saldoFinal < 0 ? { negativo: true } : {}) });
-  return tramos;
-}
-
-const montoDe = (real: Pick<FlujoReal, "categorias">, clave: string) => real.categorias.filter((c) => c.clave === clave).reduce((a, c) => a + c.monto, 0);
-
-/**
- * Por qué la plata no siguió a la ganancia, en una frase. Nombra solo lo que se fue fuera del día a día (las compras que duran, los
- * retiros, la tarjeta), que es lo que separa «gané» de «tengo». Sin la ganancia, dice cuánto subió o bajó.
- */
-export function fraseDeLaPlata(real: FlujoReal, ganancia: number | null): string {
-  // ADR-0609: sin saber con cuánto empezó el mes de verdad, «subió» o «bajó» no se puede afirmar, y tampoco por qué no siguió a la ganancia.
-  const noCubre = loQueNoCubre(real);
-  if (noCubre) return `No se puede decir cuánto subió o bajó en el mes: ${noCubre.cuentas.length === 1 ? "una cuenta arrancó" : `${noCubre.cuentas.length} cuentas arrancaron`} con su saldo ${noCubre.cuando}.`;
-  const d = Math.round(real.saldoFinal - real.saldoInicial);
-  const cambio = d === 0 ? "La plata quedó igual que al empezar el mes" : `La plata ${d > 0 ? "subió" : "bajó"} ${soles(Math.abs(d))} en el mes`;
-  if (ganancia === null) return `${cambio}.`;
-  const g = Math.round(ganancia);
-  const fuera = [
-    [montoDe(real, "activos"), "compraste cosas que duran años por"],
-    [montoDe(real, "dueno_saca"), "retiraste"],
-    [montoDe(real, "pago_tarjeta"), "pagaste la tarjeta de crédito por"],
-  ]
-    .filter(([m]) => Math.round(m as number) > 0)
-    .map(([m, t]) => `${t} ${soles(m as number)}`);
-  const lista = fuera.length > 1 ? `${fuera.slice(0, -1).join(", ")} y ${fuera.at(-1)}` : (fuera[0] ?? "");
-  if (g > 0 && d < 0) return lista ? `Ganaste ${soles(g)}, pero ${lista}.` : `Ganaste ${soles(g)}, pero la plata bajó ${soles(-d)}: revisa lo que entró y salió del día a día.`;
-  if (g > 0) return `Ganaste ${soles(g)} y la plata ${d > 0 ? `subió ${soles(d)}` : "quedó igual"}.`;
-  if (g < 0) return `Perdiste ${soles(-g)} en el mes. ${cambio}.`;
-  return `${cambio}.`;
-}
+export const montoDe = (real: Pick<FlujoReal, "categorias">, clave: string) => real.categorias.filter((c) => c.clave === clave).reduce((a, c) => a + c.monto, 0);
 
 /** Desde cuántos días de caja (sin vender nada) conviene decirlo. */
 export const DIAS_DE_CAJA_CORTOS = 15;
 
 /**
- * Qué te recomiendo en ¿Dónde está la plata? (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si la plata alcanza
+ * Qué te recomiendo en Flujo de efectivo (hasta 3, la más urgente arriba). Sale de lo que la pantalla ya muestra: si la plata alcanza
  * en las próximas semanas, por qué bajó aunque se ganó, los días de caja y el próximo impuesto. Ninguna inventa una regla.
  */
 export function recomendacionesPlata({

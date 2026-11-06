@@ -343,9 +343,9 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/reportes/patrimonio": { estado: "aplicada", guia: GUIA_FIN_PATRIMONIO.id },
   "/finanzas/reportes/cuentas": { estado: "aplicada", guia: GUIA_FIN_CONTADOR.id },
   "/finanzas/reportes/campanas": { estado: "aplicada", guia: GUIA_FIN_CAMPANAS.id },
-  "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de ¿Dónde está la plata? (ADR-0585). Su guía es la de esa pantalla." },
+  "/finanzas/reportes/escenarios": { estado: "no-aplica", motivo: "Solo redirige a «¿Y si…?», dentro de Flujo de efectivo (ADR-0585). Su guía es la de esa pantalla." },
   "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },
-  "/finanzas/reportes/presupuesto": { estado: "no-aplica", motivo: "Solo redirige a ¿Ganamos?: el presupuesto vive ahí, como la raya de lo planeado sobre cada gasto (ADR-0585). Su guía es la de ¿Ganamos?." },
+  "/finanzas/reportes/presupuesto": { estado: "no-aplica", motivo: "Solo redirige a Ganancias y pérdidas: el presupuesto vive ahí, como la raya de lo planeado sobre cada gasto (ADR-0585). Su guía es la de Ganancias y pérdidas." },
   "/finanzas/resumen": { estado: "aplicada", guia: GUIA_FIN_RESUMEN.id },
   // ---- gestion ----
   "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) lleva a la primera de sus cuatro pantallas que la cuenta ve (Análisis, Frescura del piso, Plan del piso o Rendimiento). La guía es la de la pantalla a la que llega." },

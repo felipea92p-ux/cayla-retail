@@ -11,7 +11,7 @@ import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { SaldosPanel } from "@/components/finanzas/estados/SaldosPanel";
 import { DiarioPanel } from "@/components/finanzas/estados/DiarioPanel";
 
-// Finanzas ▸ Estados financieros ▸ Ver ▸ Saldos por cuenta o Libro diario del mes (ADR-0585; Felipe 2026-10-31: «la 2, el menú Ver»).
+// Finanzas ▸ Estados financieros ▸ Para el contador ▸ Saldos por cuenta o Libro diario del mes (ADR-0585, ADR-0611).
 // Los dos cuadros del contador que no son un estado: `?cuadro=saldos` (`fn_saldos_por_cuenta`) o `?cuadro=diario` (`fn_diario`, todo el
 // mes, por páginas). Son los mismos datos que se descargan. Es de CAYLA entera: lo ve quien ve los Estados financieros de todo; una
 // terminal, no (la base lo exige igual).
@@ -21,7 +21,7 @@ export default async function CuentasPage({ searchParams }: { searchParams: Prom
   const hoy = hoyLima();
   const mes = mesDeLosEstados(sp.mes, hoy);
   const cuadro = leerVerCuentas(sp.cuadro);
-  const cabecera = <CabeceraEstados pantalla={cuadro} mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={paramsDe(sp)} forma="respuesta" />;
+  const cabecera = <CabeceraEstados pantalla={cuadro} mes={mes} sede={sedeDeLaUrl(sp)} hoy={hoy} params={paramsDe(sp)} />;
 
   if (!veEstadosFinancierosDeTodoDe(persona))
     return (
@@ -40,8 +40,7 @@ export default async function CuentasPage({ searchParams }: { searchParams: Prom
         {cabecera}
         {s.falla?.includes("Faltan los saldos de arranque") ? (
           <Vacio icono={<Landmark />} titulo="Faltan los saldos de arranque">
-            Los saldos por cuenta se cuentan desde el día en que CAYLA empezó a usar el sistema. El líder los registra en ¿Cuánto vale CAYLA? ▸
-            Formato formal ▸ Saldos de arranque.
+            Los saldos por cuenta se cuentan desde el día en que CAYLA empezó a usar el sistema. El líder los registra en Balance general.
           </Vacio>
         ) : s.falla ? (
           <Aviso tono="error" titulo="No se pudieron leer los saldos por cuenta">
