@@ -64,9 +64,12 @@ import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
 
 type Vista =
   | { tipo: "separar" }
-  | { tipo: "tallas"; prenda: PrendaRecepcion; original: PrendaSeparada | null }
+  // `escritas`: lo que ya se repartió en la tabla antes de ir a sumar una talla o un color; al volver sigue ahí.
+  | { tipo: "tallas"; prenda: PrendaRecepcion; original: PrendaSeparada | null; escritas?: readonly VarianteSeparada[] }
   // `desde`: la nueva ya descrita que se está creando al separar. Sin ella, es la hoja de siempre («Crear ahora» de un pendiente o «Es nueva»).
   | { tipo: "prenda"; desde?: { cantidad: number; descripcion: string } }
+  // «+ talla o color»: se le suma a la prenda ya elegida; no se crea otra.
+  | { tipo: "agregar"; prenda: PrendaRecepcion; original: PrendaSeparada | null; escritas: readonly VarianteSeparada[] }
   // Lo contado como nuevo puede ser una prenda que ya existe: se pregunta antes de crear.
   | { tipo: "existe" }
   | { tipo: "cargando" };
@@ -394,6 +397,38 @@ export function HacerAhora({
       );
     }
 
+    if (vista.tipo === "agregar") {
+      const volver = (prenda: PrendaRecepcion) => setVista({ tipo: "tallas", prenda, original: vista.original, escritas: vista.escritas });
+      return (
+        <HojaPrenda
+          destino={{
+            modo: "agregar",
+            despachoId: detalle.id,
+            despachoItemId: linea.linea?.id ?? null,
+            categoriaId: categoria.id,
+            marcaId: marca.id,
+            marcaNombre: marca.nombre,
+            descripcionOrden: null,
+            precioSugerido: null,
+            costoUnitario: null,
+            prenda: vista.prenda,
+            proveedorId: null,
+          }}
+          categoria={catalogo?.categorias.find((c) => c.id === categoria.id) ?? null}
+          colores={catalogo?.colores ?? []}
+          vocabulario={catalogo?.vocabulario ?? null}
+          responsable={responsable}
+          onListo={(prenda) => {
+            onPrendaVista(prenda);
+            volver(prenda);
+          }}
+          // Al sumar a una prenda no hay otra que elegir: el nombre no cambia.
+          onUsarExistente={async () => false}
+          onCerrar={() => volver(vista.prenda)}
+        />
+      );
+    }
+
     if (vista.tipo === "prenda") {
       const escritoAlContar = vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null);
       return (
@@ -440,7 +475,7 @@ export function HacerAhora({
           categoria={categoria}
           marca={marca}
           colores={catalogo?.colores ?? []}
-          variantes={vista.original?.variantes ?? null}
+          variantes={vista.escritas ?? vista.original?.variantes ?? null}
           sugeridas={item.tipo === "separar" ? (vista.original?.cantidad ?? null) : item.cantidad}
           maximo={item.tipo === "separar" ? null : item.cantidad}
           dueno={dueno}
@@ -448,7 +483,7 @@ export function HacerAhora({
           guardando={guardando}
           error={error}
           onListo={tallasListas}
-          onAbrirHoja={() => setVista({ tipo: "prenda" })}
+          onAbrirHoja={(modo, prenda, escritas) => setVista(modo === "agregar" && prenda ? { tipo: "agregar", prenda, original: vista.original, escritas } : { tipo: "prenda" })}
           precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={cambiarCosto} sinNombre />}
           onCerrar={item.tipo === "separar" ? () => setVista({ tipo: "separar" }) : cerrar}
         />

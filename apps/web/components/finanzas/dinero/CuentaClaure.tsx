@@ -16,7 +16,7 @@ import { AbrirPagoDesdeUrl } from "@/components/finanzas/dinero/AbrirPagoDesdeUr
 import { BotonPagarClaure } from "@/components/finanzas/dinero/BotonPagarClaure";
 import { HistorialClaure } from "@/components/finanzas/dinero/HistorialClaure";
 import { soles } from "@/lib/compras-reglas";
-import { solesRedondo } from "@/lib/gastos-reglas";
+import { solesDos } from "@/lib/gastos-reglas";
 import { NOTA_CLAURE, NOTA_GASTOS_CLAURE, NOTA_PAGOS_CLAURE, filasContadas, montoSugeridoPago, resumenClaure, type FilaClaure, type GastoClaure, type PagoClaure } from "@/lib/cuenta-claure-reglas";
 import {
   avisosClaure,
@@ -91,7 +91,7 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
           <span className="cl-debe-pie">{aFavor ? "Se le pagó de más: queda a favor de CAYLA" : faltan > 0 ? `${faltan} por revisar` : "Nada por revisar"}</span>
         </div>
         {terminos.map((t, i) => (
-          <TarjetaCifra key={t.clave} etiqueta={t.titulo} valor={solesRedondo(t.valor)} punto={t.punto} onClick={() => setHistorial({ filtro: t.filtro, periodo: "todo" })} {...entra(i + 1)}>
+          <TarjetaCifra key={t.clave} etiqueta={t.titulo} valor={solesDos(t.valor)} punto={t.punto} onClick={() => setHistorial({ filtro: t.filtro, periodo: "todo" })} {...entra(i + 1)}>
             {t.detalle}
           </TarjetaCifra>
         ))}
@@ -99,7 +99,7 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
 
       <div className="cl-dos">
         <section className="card-cayla anim-sube" aria-label="Por dónde entra la plata de Claudia" data-guia="fin-claure.entra">
-          <TituloSeccion dato={<span className="cl-tenue">{solesRedondo(r.cobrado)} cobrados</span>}>Por dónde entra la plata de Claudia</TituloSeccion>
+          <TituloSeccion dato={<span className="cl-tenue">{solesDos(r.cobrado)} cobrados</span>}>Por dónde entra la plata de Claudia</TituloSeccion>
           {medios.length === 0 ? (
             <Vacio tamano="chico" icono={<Handshake />}>
               Todavía no hay cobros de CLAURE en cuentas de CAYLA.
@@ -109,7 +109,7 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
               <BarraApilada
                 segmentos={medios.map((m) => ({ clave: m.medio, nombre: m.texto, valor: m.cobrado, color: m.color }))}
                 unidad="soles"
-                formato={solesRedondo}
+                formato={solesDos}
                 alto={12}
                 decorativa
               />
@@ -117,7 +117,7 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
                 {medios.map((m) => (
                   <span key={m.medio}>
                     <MuestraTramo color={m.color} />
-                    {m.texto} <b className="cl-num">{solesRedondo(m.cobrado)}</b> · {Math.round(m.pct)} %
+                    {m.texto} <b className="cl-num">{solesDos(m.cobrado)}</b> · {Math.round(m.pct)} %
                   </span>
                 ))}
               </p>
@@ -134,7 +134,7 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
                       )}
                     </b>
                     <BarraAvance pct={c.pct} alto="normal" tono="tinta" decorativa />
-                    <span className="cl-num font-semibold">{solesRedondo(c.monto)}</span>
+                    <span className="cl-num font-semibold">{solesDos(c.monto)}</span>
                   </div>
                 ))}
               </div>
@@ -150,15 +150,15 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
                       </span>
                       <span className={celda("der")}>
                         <span className="text-taupe sm:hidden">Cobrado · </span>
-                        {solesRedondo(m.cobrado)}
+                        {solesDos(m.cobrado)}
                       </span>
                       <span className={celda("der")}>
                         <span className="text-taupe sm:hidden">Comisión · </span>
-                        {m.comision > 0 ? `−${solesRedondo(m.comision)}` : "—"}
+                        {m.comision > 0 ? `−${solesDos(m.comision)}` : "—"}
                       </span>
                       <span className={celda("der", "font-semibold text-tinta")}>
                         <span className="font-normal text-taupe sm:hidden">Para Claudia · </span>
-                        {solesRedondo(m.paraClaudia)}
+                        {solesDos(m.paraClaudia)}
                       </span>
                     </div>
                   ))}
@@ -263,12 +263,12 @@ export function CuentaClaure({ filas, pagos, gastos, esLider, hoy }: { filas: Fi
                   Pagado a CLAURE
                 </span>
               </p>
-              <div className="cl-sem" role="img" aria-label={`Cobrado y pagado a CLAURE, ${semanas.map((s) => `semana del ${fechaDiaMes(s.lunes)}: cobrado ${solesRedondo(s.cobrado)}, pagado ${solesRedondo(s.pagado)}`).join("; ")}`}>
+              <div className="cl-sem" role="img" aria-label={`Cobrado y pagado a CLAURE, ${semanas.map((s) => `semana del ${fechaDiaMes(s.lunes)}: cobrado ${solesDos(s.cobrado)}, pagado ${solesDos(s.pagado)}`).join("; ")}`}>
                 {semanas.map((s, i) => (
                   <div key={s.lunes}>
                     <div className="cl-sem-bb">
-                      <i style={{ ["--c" as string]: "var(--color-verde)", ["--h" as string]: `${(s.cobrado / maximoSemana) * 100}%`, animationDelay: `${i * 70}ms` } as CSSProperties} title={`Cobrado ${solesRedondo(s.cobrado)}`} />
-                      <i style={{ ["--c" as string]: "var(--color-pizarra)", ["--h" as string]: `${(s.pagado / maximoSemana) * 100}%`, animationDelay: `${i * 70 + 40}ms` } as CSSProperties} title={`Pagado ${solesRedondo(s.pagado)}`} />
+                      <i style={{ ["--c" as string]: "var(--color-verde)", ["--h" as string]: `${(s.cobrado / maximoSemana) * 100}%`, animationDelay: `${i * 70}ms` } as CSSProperties} title={`Cobrado ${solesDos(s.cobrado)}`} />
+                      <i style={{ ["--c" as string]: "var(--color-pizarra)", ["--h" as string]: `${(s.pagado / maximoSemana) * 100}%`, animationDelay: `${i * 70 + 40}ms` } as CSSProperties} title={`Pagado ${solesDos(s.pagado)}`} />
                     </div>
                     <small>{fechaDiaMes(s.lunes)}</small>
                   </div>

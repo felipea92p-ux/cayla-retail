@@ -5,7 +5,7 @@
 // ordena, filtra, cuenta y pagina lo que `gruposDeDinero`, `getCierresConDiferencia`, `avisosDeMaquinas` y la planilla ya traen.
 
 import { GRUPO_CAMINO, montoConSigno, type GrupoCuentas } from "./dinero-telar-reglas";
-import { fechaCorta, solesRedondo } from "./gastos-reglas";
+import { fechaCorta, solesDos } from "./gastos-reglas";
 import { avisosDeMaquinas, diaYNumero, type AlertaPos, type CierreConDiferencia, type CuentaDinero } from "./cuentas-dinero-reglas";
 import { textoRegistrar, type AvisoPlanilla } from "./planilla-salidas-reglas";
 import type { TonoChip } from "@/components/ui/Chip";
@@ -61,7 +61,7 @@ export function filasDeEstado(grupos: readonly GrupoCuentas[], atrasadas: Readon
       const ins = f.insignia;
       let estado: EstadoCuenta | null = ins ? { texto: ins.texto, tono: TONO_DE_INSIGNIA[ins.tono] } : null;
       let pide: Pedido | null = null;
-      if (f.saldo !== null && Math.round(f.saldo) < 0) {
+      if (f.saldo !== null && Math.round(f.saldo * 100) < 0) {
         estado = { texto: "Saldo negativo: revisar", tono: "rojo" };
         pide = "negativo";
       } else if (f.tipo === "por_abonar" && atrasadas.has(f.id)) {
@@ -239,10 +239,10 @@ export function totalesPorEtapa(filas: readonly Pick<FilaEstado, "etapa" | "sald
 export function fraseDeEtapas(totales: readonly { etapa: EtapaDinero; total: number }[]): string {
   const de = (e: EtapaDinero) => totales.find((t) => t.etapa === e)?.total ?? 0;
   const partes: string[] = [];
-  if (de("banco") > 0) partes.push(`Ya puedes usar ${solesRedondo(de("banco"))} que están en el banco`);
-  if (de("camino") > 0) partes.push(`${solesRedondo(de("camino"))} vienen en camino con las máquinas`);
-  if (de("deposito") > 0) partes.push(`faltan por llevar al banco ${solesRedondo(de("deposito"))} de las cajas fuertes y del líder`);
-  if (de("caja") > 0) partes.push(`${solesRedondo(de("caja"))} están en las cajas de venta`);
+  if (de("banco") > 0) partes.push(`Ya puedes usar ${solesDos(de("banco"))} que están en el banco`);
+  if (de("camino") > 0) partes.push(`${solesDos(de("camino"))} vienen en camino con las máquinas`);
+  if (de("deposito") > 0) partes.push(`faltan por llevar al banco ${solesDos(de("deposito"))} de las cajas fuertes y del líder`);
+  if (de("caja") > 0) partes.push(`${solesDos(de("caja"))} están en las cajas de venta`);
   if (partes.length === 0) return "Todavía no hay plata registrada en estas cuentas.";
   const frase = partes.join("; ");
   return `${frase.charAt(0).toUpperCase()}${frase.slice(1)}.`;
@@ -281,8 +281,8 @@ export function itemsDeAtencion(
       clave: "dueno",
       tipo: "dueno",
       tono: "atencion",
-      titulo: `CAYLA te debe ${solesRedondo(dueno.deuda)} (préstamo del dueño)`,
-      detalle: p ? `Préstamo del ${fechaCorta(p.fecha)}: devuelto ${solesRedondo(p.devuelto)} de ${solesRedondo(p.monto)}.` : "Hay un préstamo del dueño sin devolver.",
+      titulo: `CAYLA te debe ${solesDos(dueno.deuda)} (préstamo del dueño)`,
+      detalle: p ? `Préstamo del ${fechaCorta(p.fecha)}: devuelto ${solesDos(p.devuelto)} de ${solesDos(p.monto)}.` : "Hay un préstamo del dueño sin devolver.",
       accion: { tipo: "movimiento", que: "dueno_saca", texto: "Devolver" },
     });
   }
@@ -299,7 +299,7 @@ export function itemsDeAtencion(
       tipo: "depositar",
       tono: "atencion",
       titulo: `${f.nombre} · ${f.sede}: ${f.estado?.texto ?? "sin depositar"}`,
-      detalle: `Hay ${solesRedondo(f.saldo ?? 0)} guardados sin llevar al banco.`,
+      detalle: `Hay ${solesDos(f.saldo ?? 0)} guardados sin llevar al banco.`,
       accion: { tipo: "movimiento", que: "deposito", cuentaId: f.id, texto: "Registrar el depósito" },
     });
   }
@@ -310,7 +310,7 @@ export function itemsDeAtencion(
       tipo: "cierres",
       tono: "atencion",
       titulo: faltaron.length === 1 ? "1 cierre donde faltó plata" : `${faltaron.length} cierres donde faltó plata`,
-      detalle: faltaron.slice(0, 3).map((c) => `${c.sede} ${c.dia}: −${solesRedondo(-c.diferencia)}`).join(" · "),
+      detalle: faltaron.slice(0, 3).map((c) => `${c.sede} ${c.dia}: −${solesDos(-c.diferencia)}`).join(" · "),
       accion: { tipo: "campana", vista: "cierres", texto: "Ver los cierres" },
     });
   }

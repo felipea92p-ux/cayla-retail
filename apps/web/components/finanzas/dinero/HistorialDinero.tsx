@@ -7,7 +7,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { SeparadorDia, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { PieDePaginas } from "@/components/finanzas/dinero/PieDePaginas";
-import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
+import { fechaCorta, solesDos } from "@/lib/gastos-reglas";
 import { nombreCorto, TEXTO_MOVIMIENTO, type MovimientoDinero } from "@/lib/cuentas-dinero-reglas";
 import { paginar, type TamanoPagina } from "@/lib/dinero-estados-reglas";
 import { agruparPorDia, delPeriodo, diaDe, etiquetaDePeriodo, haySiguiente, moverPeriodo, rangoDe, tocaALaCuenta, ultimoDiaConMovimientos, type Periodo } from "@/lib/dinero-historial-reglas";
@@ -34,13 +34,13 @@ function FilaDeMovimiento({ m, cuentaId, onElegir }: { m: MovimientoDinero; cuen
         <b className="block text-sm font-semibold text-tinta">{TEXTO_MOVIMIENTO[m.tipo]}</b>
         <small className="dp-tenue block truncate text-xs">
           {m.origenNombre ? nombreCorto(m.origenNombre) : "El dueño"} → {m.destinoNombre ? nombreCorto(m.destinoNombre) : "Sale del negocio"}
-          {m.comision > 0 ? ` · comisión ${solesRedondo(m.comision)} → gasto` : ""}
+          {m.comision > 0 ? ` · comisión ${solesDos(m.comision)} → gasto` : ""}
           {m.estado === "anulado" ? ` · anulado: ${m.motivoAnulacion ?? ""}` : ""}
         </small>
       </span>
       <b className={`dp-m ${entra === null ? "" : entra ? "dp-ent" : "dp-sal"} ${m.estado === "anulado" ? "line-through opacity-60" : ""}`}>
         {entra === null ? "" : entra ? "+" : "−"}
-        {solesRedondo(m.monto)}
+        {solesDos(m.monto)}
       </b>
     </>
   );
@@ -152,10 +152,10 @@ export function HistorialModal({
         {cuenta && (
           <p className="dp-resumen-cuenta">
             <span>
-              Entró <b className="dp-ent dp-num">+{solesRedondo(entro)}</b>
+              Entró <b className="dp-ent dp-num">+{solesDos(entro)}</b>
             </span>
             <span>
-              Salió <b className="dp-sal dp-num">−{solesRedondo(salio)}</b>
+              Salió <b className="dp-sal dp-num">−{solesDos(salio)}</b>
             </span>
             <span className="dp-tenue">en {etiquetaDePeriodo(periodo, ref).toLowerCase()}</span>
           </p>
@@ -167,7 +167,7 @@ export function HistorialModal({
         ) : (
           dias.map((d) => (
             <div key={d.dia}>
-              <SeparadorDia hoy={d.dia === hoy} total={<span className="dp-num">{d.movs.length} {d.movs.length === 1 ? "movimiento" : "movimientos"} · {cuenta && d.total > 0 ? "+" : ""}{solesRedondo(d.total)}</span>}>
+              <SeparadorDia hoy={d.dia === hoy} total={<span className="dp-num">{d.movs.length} {d.movs.length === 1 ? "movimiento" : "movimientos"} · {cuenta && d.total > 0 ? "+" : ""}{solesDos(d.total)}</span>}>
                 {d.titulo}
               </SeparadorDia>
               <div className="dp-mov-lista">
