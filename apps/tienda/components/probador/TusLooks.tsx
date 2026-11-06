@@ -15,7 +15,7 @@ export function TusLooks({ looks, prendas, sede }: { looks: readonly LookGuardad
   return (
     <section className="lg-lista" aria-labelledby="tus-looks">
       <div className="lg-lista-cab">
-        <h2 id="tus-looks">Tus looks</h2>
+        <h2 id="tus-looks">Tus outfits</h2>
         <Link className="t-enlace" href={hrefDelProbador(sede)}>
           Arma otro
         </Link>

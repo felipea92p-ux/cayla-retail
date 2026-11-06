@@ -102,13 +102,13 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
           <div className="t-vacio">
             <Icono nombre="bolsa" />
             <h3>Tu bolsa está vacía</h3>
-            <p>Elige una prenda y su talla, o agrega un look completo.</p>
+            <p>Elige una prenda y su talla, o agrega un outfit completo.</p>
             <div className="cp-vacio-acciones">
               <Link className="t-btn" href="/catalogo">
                 Ver toda la tienda
               </Link>
               <Link className="t-btn t-btn-sec" href="/looks">
-                Ver los looks
+                Ver los outfits
               </Link>
             </div>
           </div>

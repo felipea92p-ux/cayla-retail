@@ -41,11 +41,11 @@ const prenda = (n: number, zona: Zona): PrendaDelProbador => ({
 });
 
 describe("el enlace que se comparte", () => {
-  it("es la página pública con el look tal cual (los ~ y los . se leen)", () => {
+  it("es la página pública con el outfit tal cual (los ~ y los . se leen)", () => {
     expect(hrefTuLook("TOP-0053.RPA~PAN-0012.CAM")).toBe("/tu-look?p=TOP-0053.RPA~PAN-0012.CAM");
-    expect(textoAlCompartir("https://cayla.pe/tu-look?p=A.B")).toBe("Mira mi look en CAYLA: https://cayla.pe/tu-look?p=A.B");
+    expect(textoAlCompartir("https://cayla.pe/tu-look?p=A.B")).toBe("Mira mi outfit en CAYLA: https://cayla.pe/tu-look?p=A.B");
   });
-  it("lleva la marca de WhatsApp al final, sin tocar el look (ADR-0495)", () => {
+  it("lleva la marca de WhatsApp al final, sin tocar el outfit (ADR-0495)", () => {
     expect(enlaceParaCompartir("https://cayla.pe", "TOP-0053.RPA~PAN-0012.CAM")).toBe(
       "https://cayla.pe/tu-look?p=TOP-0053.RPA~PAN-0012.CAM&utm_source=whatsapp",
     );
@@ -123,10 +123,10 @@ describe("la foto y el título", () => {
     expect(fotoContenida({ w: 100, h: 100 }, 2)).toEqual({ w: 100, h: 50 });
     expect(fotoContenida({ w: 100, h: 100 }, 0)).toEqual({ w: 100, h: 100 });
   });
-  it("el nombre del look: la última palabra aparte y un tamaño que entra", () => {
+  it("el nombre del outfit: la última palabra aparte y un tamaño que entra", () => {
     expect(tituloDeLaHistoria("Look de domingo")).toEqual({ antes: "Look de", ultima: "domingo", tamano: 56 });
     // «Mi look para la» es el renglón largo (15 letras).
-    expect(tituloDeLaHistoria("Mi look para la oficina").tamano).toBe(38);
+    expect(tituloDeLaHistoria("Mi outfit para la oficina").tamano).toBe(38);
     expect(tituloDeLaHistoria("Look de viernes").tamano).toBe(56);
     expect(tituloDeLaHistoria("Lo que me pongo para la boda de mi prima").tamano).toBe(32);
     expect(tituloDeLaHistoria("Domingo").antes).toBe("");

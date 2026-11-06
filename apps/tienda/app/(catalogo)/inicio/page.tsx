@@ -211,7 +211,7 @@ export default async function Inicio({ searchParams }: Props) {
               <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="arma-tu-look">
-                    Arma tu <em>look</em>
+                    Arma tu <em>outfit</em>
                   </h2>
                 </div>
                 <Link className="t-ver" href={hrefLooks(sede)}>

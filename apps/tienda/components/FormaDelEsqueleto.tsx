@@ -437,8 +437,8 @@ function Looks() {
     <div aria-hidden="true">
       <header className="t-lista-cab">
         <span className="t-ceja">Combinaciones listas</span>
-        <TituloQuieto primera="Arma tu" cursiva="look" />
-        <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
+        <TituloQuieto primera="Arma tu" cursiva="outfit" />
+        <p>Prendas que se ven bien juntas. Agrega el outfit completo y eliges cada talla en un solo paso.</p>
       </header>
       {/* De a tres, como la página con tres looks (`looksDeATres`). */}
       <div className="t-looks" data-tres="">
@@ -489,10 +489,10 @@ function Bolsa() {
         <div className="t-vacio">
           <Icono nombre="bolsa" />
           <h3>Tu bolsa está vacía</h3>
-          <p>Elige una prenda y su talla, o agrega un look completo.</p>
+          <p>Elige una prenda y su talla, o agrega un outfit completo.</p>
           <div className="cp-vacio-acciones">
             <span className="t-btn">Ver toda la tienda</span>
-            <span className="t-btn t-btn-sec">Ver los looks</span>
+            <span className="t-btn t-btn-sec">Ver los outfits</span>
           </div>
         </div>
         <section className="t-sec cp-sigue">

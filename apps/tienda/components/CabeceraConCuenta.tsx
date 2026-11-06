@@ -227,7 +227,7 @@ export function CabeceraConCuenta({
               <MenuGrande key={m.clave} menu={m} hrefNuevo={datos.nuevo.href} />
             ))}
             <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
-              Looks
+              Outfits
             </Link>
             <Link className="t-nav-b" href={datos.ofertas.href} aria-current={marca("ofertas")}>
               Ofertas
@@ -691,7 +691,7 @@ function HojaMenu({
           </details>
         ))}
         <Link href={datos.looks} onClick={cerrar}>
-          Looks
+          Outfits
         </Link>
         <Link href={datos.ofertas.href} onClick={cerrar}>
           Ofertas

@@ -15,7 +15,7 @@ import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/looks.css";
 
-export const metadata: Metadata = { title: "Arma tu look · CAYLA" };
+export const metadata: Metadata = { title: "Arma tu outfit · CAYLA" };
 
 // «Arma tu look» (maqueta v4, `vLooks`): las combinaciones que el ERP arma en Vitrina web ▸ Looks, en su orden, cada una con su lámina, su
 // frase y lo que cuesta completa en la tienda elegida («Ver lo que hay en»; con «Todas», al mayor entre las tiendas de la web). Se lee en
@@ -51,18 +51,18 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
     >
       <div className="t-ancho">
         <header className="t-lista-cab t-looks-cab">
-          <TituloConLetras primera="Arma tu" cursiva="look" />
+          <TituloConLetras primera="Arma tu" cursiva="outfit" />
           {/* Los looks de CAYLA están abajo; este es el camino para armar el propio (el probador). Siempre a la vista: si todavía no hay
-              prendas que probar en esa tienda, el probador lo dice y lleva de vuelta a los looks. */}
+              prendas que probar en esa tienda, el probador lo dice y lleva de vuelta a los outfits. */}
           <Link className="t-btn t-btn-sec" href={hrefDelProbador(sede)}>
-            Arma tu look personalizado <Icono nombre="flecha" />
+            Arma tu outfit personalizado <Icono nombre="flecha" />
           </Link>
         </header>
 
         {lectura === null ? (
           <div className="t-vacio" role="status">
             <Icono nombre="tienda" />
-            <h3>No pudimos cargar los looks</h3>
+            <h3>No pudimos cargar los outfits</h3>
             <p>Es un problema de conexión de nuestro lado. Vuelve a intentarlo en un momento.</p>
             <Link className="t-btn" href={hrefLooks(pedida ? claveDeSede(pedida.nombre) : null)}>
               Volver a intentar
@@ -71,18 +71,18 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
         ) : lectura.looks.length === 0 && elegida && otrasConLooks.length > 0 ? (
           <div className="t-vacio">
             <Icono nombre="tienda" />
-            <h3>{`Por ahora no hay looks completos en ${elegida.nombre}`}</h3>
-            <p>A estos looks les faltan prendas que hoy están en otras tiendas. Mira los que sí están completos o arma el tuyo con lo que hay aquí.</p>
+            <h3>{`Por ahora no hay outfits completos en ${elegida.nombre}`}</h3>
+            <p>A estos outfits les faltan prendas que hoy están en otras tiendas. Mira los que sí están completos o arma el tuyo con lo que hay aquí.</p>
             {otrasConLooks.map((s) => (
               <Link key={s.id} className="t-btn" href={hrefLooks(claveDeSede(s.nombre))}>
-                {`Ver los looks de ${s.nombre}`}
+                {`Ver los outfits de ${s.nombre}`}
               </Link>
             ))}
           </div>
         ) : lectura.looks.length === 0 ? (
           <div className="t-vacio">
             <Icono nombre="chispa" />
-            <h3>Pronto verás aquí nuestros looks</h3>
+            <h3>Pronto verás aquí nuestros outfits</h3>
             <p>Estamos armando combinaciones de prendas que se ven bien juntas. Mientras tanto, mira toda la tienda.</p>
             <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
               Ver toda la tienda
