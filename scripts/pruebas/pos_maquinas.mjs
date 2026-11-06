@@ -441,5 +441,29 @@ select count(*) from retail.fn_pos_pendientes(:'izipay_cta') where fecha = retai
   esperar("el QR corregido aparece como día pendiente de depósito en Izipay", r.ok && Number(pendiente) >= 1, r);
 }
 
+// El banco de cada máquina (tarea 3 de «Las 36»): viene puesto en el depósito, solo a un banco vigente, y un banco archivado deja de proponerse.
+{
+  const r = correr(`${ESCENA}
+select id as visa_prueba from retail.cuentas_dinero where tipo = 'por_abonar' limit 1 \\gset
+select retail.crear_cuenta_dinero('Banco fijo prueba', 'banco', 0, retail.fn_hoy_lima()) as banco_fijo \\gset
+select m.id as maq from retail.pos_maquinas m where m.archivada_en is null order by m.nombre limit 1 \\gset
+select retail.guardar_banco_de_maquina(:'maq', :'banco_fijo') \\g /dev/null
+select banco_id = :'banco_fijo' from retail.fn_pos_bancos_de_maquinas() where maquina_id = :'maq';
+select pg_temp.intento(format('select retail.guardar_banco_de_maquina(%L, %L)', :'maq', :'visa_prueba'));
+update retail.cuentas_dinero set archivada_en = now() where id = :'banco_fijo';
+select banco_id is null from retail.fn_pos_bancos_de_maquinas() where maquina_id = :'maq';
+select retail.guardar_banco_de_maquina(:'maq', null) \\g /dev/null
+select (select banco_id from retail.pos_maquinas where id = :'maq') is null;
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_banco_de_maquina(%L, null)', :'maq'));
+select pg_temp.intento('select * from retail.fn_pos_bancos_de_maquinas()');`);
+  const [puesto, noBanco, archivado, quitado, sinPermisoGuardar, sinPermisoLeer] = lineas(r);
+  esperar("el banco elegido viene de vuelta en la lectura", r.ok && puesto === "t", r);
+  esperar("una cuenta que no es banco se rechaza", r.ok && /banco vigente/.test(noBanco ?? ""), r);
+  esperar("un banco archivado deja de proponerse", r.ok && archivado === "t", r);
+  esperar("se puede quitar", r.ok && quitado === "t", r);
+  esperar("quien no configura no lo cambia ni lo lee", r.ok && /líder/.test(sinPermisoGuardar ?? "") && /líder/.test(sinPermisoLeer ?? ""), r);
+}
+
 console.log(fallos === 0 ? `\nTodo en orden (${casos} casos) · contenedor: ${CONTENEDOR_LOCAL}` : `\n${fallos} de ${casos} caso(s) fallaron · contenedor: ${CONTENEDOR_LOCAL}`);
 process.exit(fallos === 0 ? 0 : 1);

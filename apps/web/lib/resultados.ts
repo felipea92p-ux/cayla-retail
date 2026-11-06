@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
 import { aplicarProvision } from "@/lib/planilla-provision-reglas";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
+import type { FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 
 // Finanzas ▸ Reportes (ADR-0195 F5; contrato en 20260925130000_finanzas_diario_y_estado_de_resultados.sql). Solo LEE: toda
 // la plata se calcula en Postgres, sobre el diario `fn_asientos`, y la base ya filtra por cuenta (el líder, todo y el
@@ -20,6 +21,18 @@ const falla = (que: string, e: { message: string }) => `No se pudo leer ${que}: 
  * `provisionHasta` deja pedir la provisión con otro «hasta» que el diario: el Resumen mira el mes «a hoy», pero el período de Dynamic que termina
  * más adelante en el mes (el 28) ya devenga sueldos hoy y solo aparece si se pide hasta fin de mes (`tramoDeSueldos`).
  */
+/** Lo que el mes en curso todavía va a gastar (tarea 24). `null` si no se pudo leer: la pantalla no debe confundirlo con «no falta nada». */
+export async function getFaltaDelMes(mes: string): Promise<FaltaDelMes[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_lo_que_falta_del_mes" as never, { p_mes: `${mes}-01` } as never);
+  if (error) return null;
+  return ((data ?? []) as { ubicacion_id: string | null; fijos: number | string; depreciacion: number | string }[]).map((f) => ({
+    ubicacionId: f.ubicacion_id,
+    fijos: Number(f.fijos),
+    depreciacion: Number(f.depreciacion),
+  }));
+}
+
 export const getEstadoResultados = cache(async function getEstadoResultados(desde: string, hasta: string, provisionHasta: string = hasta): Promise<Lectura<FilaER[]>> {
   const supabase = await createClient();
   const [{ data, error }, provision] = await Promise.all([

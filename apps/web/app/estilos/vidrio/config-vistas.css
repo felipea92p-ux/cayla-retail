@@ -56,7 +56,7 @@
 
 /* Los días especiales y las filas de una lista */
 .cv-boletos { display: grid; gap: 10px; margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
-.cv-boleto { display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; border-radius: 20px; color: var(--color-tinta); background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 5%, transparent); }
+.cv-boleto { display: flex; align-items: center; gap: 12px; padding: 10px 14px 10px 10px; border-radius: var(--radius-tarjeta); color: var(--color-tinta); background: var(--placa-fondo); box-shadow: var(--placa-luz), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 5%, transparent); }
 .cv-boleto.nuevo { justify-content: center; gap: 8px; min-height: 80px; font-size: 15px; color: var(--color-taupe); cursor: pointer; background: none; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-tinta) 14%, transparent); transition: color 250ms var(--ease-cayla), background 250ms var(--ease-cayla); }
 @media (hover: hover) { .cv-boleto.nuevo:hover { color: var(--color-tinta); background: var(--placa-fondo); } }
 .cv-boleto.nuevo:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
@@ -72,7 +72,7 @@
 .cv-fila.tenue .cv-fila-tx b { color: var(--color-taupe); }
 
 @media (max-width: 767px) {
-  .cv-bloque { padding: 16px; border-radius: 24px; }
+  .cv-bloque { padding: 16px; border-radius: var(--radius-tarjeta); }
   .cv-ver-mas { width: calc(100% + 32px); margin: 12px -16px -16px; border-radius: 0 0 24px 24px; }
   .cv-meses { grid-template-columns: repeat(7, minmax(74px, 1fr)); overflow-x: auto; padding-bottom: 6px; }
   .cv-dias { grid-template-columns: repeat(4, minmax(0, 1fr)); }

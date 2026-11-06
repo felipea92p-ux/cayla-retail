@@ -4,6 +4,9 @@
 /** Los anchos que se preparan: uno para el celular y otro para la computadora. Pocos, porque cada uno se calcula y se guarda aparte. */
 export const ANCHOS_DE_RECORTE = [640, 1000] as const;
 
+/** Un recorte se guarda un año por su dirección: si cambia cómo se recorta, se sube este número para que se vuelva a calcular. */
+const VERSION_DEL_RECORTE = 2;
+
 const CARPETA_DE_FOTOS = "/storage/v1/object/public/retail-productos-fotos/fotos/";
 const NOMBRE_DE_FOTO = /^[0-9a-f-]{36}\.(?:png|jpe?g|webp)$/i;
 
@@ -18,7 +21,7 @@ export function urlDeRecorte(foto: string, ancho: (typeof ANCHOS_DE_RECORTE)[num
   const i = foto.indexOf(CARPETA_DE_FOTOS);
   if (i < 0) return null;
   const archivo = foto.slice(i + CARPETA_DE_FOTOS.length);
-  return esNombreDeFoto(archivo) ? `/api/recorte/${archivo}?w=${ancho}` : null;
+  return esNombreDeFoto(archivo) ? `/api/recorte/${archivo}?w=${ancho}&v=${VERSION_DEL_RECORTE}` : null;
 }
 
 export type CajaDePrenda = { izquierda: number; arriba: number; ancho: number; alto: number };
@@ -121,7 +124,7 @@ export function recortarFondo(puntos: Uint8Array | Uint8ClampedArray, ancho: num
     const luz = (puntos[p] + puntos[p + 1] + puntos[p + 2]) / 3;
     puntos[p] = puntos[p + 1] = puntos[p + 2] = 0;
     // La sombra se mide contra el color del fondo: el crema de una foto no es una sombra.
-    puntos[p + 3] = luz >= luzDelFondo - 9 ? 0 : Math.min(150, (luzDelFondo - luz) * 1.1);
+    puntos[p + 3] = luz >= luzDelFondo - 9 ? 0 : Math.min(90, (luzDelFondo - luz) * 0.8);
   }
   // La orilla: un punto de prenda junto al fondo trae mezclado el blanco de la foto.
   for (let i = 0; i < total; i++) {

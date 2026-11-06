@@ -31,6 +31,7 @@ import {
   nombreMes,
   primerNombre,
   puedeCerrar,
+  promesaDeAvisos,
   resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
@@ -317,7 +318,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
-          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. Quedan guardados en la historia del cierre.
+          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. {promesaDeAvisos(avisos)}
         </div>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando} />

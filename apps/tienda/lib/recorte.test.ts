@@ -32,7 +32,7 @@ describe("recortar la prenda de su foto", () => {
     const i = (160 * 200 + 100) * 4;
     expect([p[i], p[i + 1], p[i + 2]]).toEqual([0, 0, 0]);
     expect(p[i + 3]).toBeGreaterThan(0);
-    expect(p[i + 3]).toBeLessThanOrEqual(150);
+    expect(p[i + 3]).toBeLessThanOrEqual(90);
   });
 
   it("abre un hueco blanco grande encerrado por la prenda, pero no un brillo pequeño", () => {
@@ -78,7 +78,7 @@ describe("las direcciones", () => {
   it("arma el recorte de una foto del almacén; otra dirección se queda sin recorte", () => {
     const original = urlDeFotoOriginal("https://x.supabase.co/", FOTO);
     expect(original).toBe(`https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/${FOTO}`);
-    expect(urlDeRecorte(original, 640)).toBe(`/api/recorte/${FOTO}?w=640`);
+    expect(urlDeRecorte(original, 640)).toBe(`/api/recorte/${FOTO}?w=640&v=2`);
     expect(urlDeRecorte(`https://otro.pe/${FOTO}`, 640)).toBeNull();
   });
 });

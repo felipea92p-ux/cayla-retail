@@ -20,6 +20,8 @@ import {
   leerEgresoParaMovimiento,
   leerLotePendiente,
   lotesPorDefecto,
+  netoEsperado,
+  revisarComision,
   mediosDeMaquina,
   resumenAbono,
   resumenConciliacion,
@@ -508,5 +510,36 @@ describe("el depósito de una máquina se explica solo (/formidable, ADR-0429)",
   it("solo «Por depositar» se ve con céntimos", () => {
     expect(saldoConCentimos("por_abonar")).toBe(true);
     for (const t of ["cajon", "caja_fuerte", "por_rendir", "banco", "tarjeta_credito"] as const) expect(saldoConCentimos(t)).toBe(false);
+  });
+});
+
+describe("revisarComision (tarea 3)", () => {
+  const b = 17277;
+  it("dentro de 1 punto de la tarifa no pregunta; a más de 1 punto, sí", () => {
+    const esperado = (b * 2.7) / 100;
+    expect(revisarComision({ bruto: b, comision: (b * 2.7) / 100, esperado })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: (b * 3.6) / 100, esperado })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: (b * 1.8) / 100, esperado })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: (b * 3.8) / 100, esperado })).toContain("3.8 %");
+    expect(revisarComision({ bruto: b, comision: 5, esperado })).toContain("la tarifa espera 2.7 %");
+  });
+  it("los abonos del 31 de octubre: S/ 0 sin tarifa también pregunta; una comisión normal sin tarifa, no", () => {
+    expect(revisarComision({ bruto: b, comision: 0, esperado: null })).toContain("no tiene tarifa");
+    expect(revisarComision({ bruto: b, comision: (b * 2.6) / 100, esperado: null })).toBeNull();
+  });
+  it("sin lo que llegó, sin bruto o con comisión negativa (ya tiene su propio aviso), nada", () => {
+    expect(revisarComision({ bruto: b, comision: null, esperado: 100 })).toBeNull();
+    expect(revisarComision({ bruto: 0, comision: 0, esperado: 0 })).toBeNull();
+    expect(revisarComision({ bruto: b, comision: -1, esperado: 100 })).toBeNull();
+  });
+  it("propone lo que debería llegar solo si tiene con qué", () => {
+    expect(netoEsperado({ dias: 2, bruto: 1000, esperado: 27 })).toBe(973);
+    expect(netoEsperado({ dias: 0, bruto: 0, esperado: 0 })).toBeNull();
+    expect(netoEsperado({ dias: 1, bruto: 1000, esperado: null })).toBeNull();
+  });
+  it("lo anterior al arranque de la cuenta no viene marcado", () => {
+    const l = (fecha: string) => ({ clave: fecha, fecha } as unknown as Parameters<typeof lotesPorDefecto>[0][number]);
+    expect(lotesPorDefecto([l("2026-10-20"), l("2026-10-30")], "2026-10-31", "2026-10-28")).toEqual(["2026-10-30"]);
+    expect(lotesPorDefecto([l("2026-10-20")], "2026-10-31")).toEqual(["2026-10-20"]);
   });
 });

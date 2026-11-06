@@ -495,6 +495,8 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
                 id="gasto-viaje-cuenta"
                 cuentas={cuentas.cuentas}
                 listo={cuentas.listo}
+                falla={cuentas.falla}
+                reintentar={cuentas.reintentar}
                 clase="pago"
                 medio={medio}
                 valor={cuentaId}
@@ -538,7 +540,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
             <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} confirma={congelada ? undefined : guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={cuentas.falla} confirma={congelada ? undefined : guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {congelada ? "Volver a intentar" : fraseRegistrarGasto(montoLeido)}
             </Boton>
           </div>
