@@ -24,6 +24,8 @@ export type GuiaCampos = {
   /** El título de un campo con su marca a la izquierda (y «Sigue» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
   etiqueta: (id: string, texto: ReactNode) => ReactNode;
   faltan: CampoDeGuia[];
+  /** Ya intentó confirmar con algo pendiente (o el guardado devolvió un error): el pie pasa de «Sigue» a la lista de lo que falta. */
+  revisado: boolean;
   /** La hoja pidió decir el grado de cada campo en palabras (`conGrado`): `PieGuia` separa «Faltan» de «Conviene». */
   conGrado: boolean;
   /** El id del campo que sigue, o null. */
@@ -97,6 +99,7 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
       );
     },
     faltan: faltanDe(campos),
+    revisado: revisados.size > 0,
     conGrado,
     ahora,
     puedeConfirmar,

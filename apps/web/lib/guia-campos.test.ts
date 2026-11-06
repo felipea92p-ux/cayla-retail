@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campoDeMasArriba, errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia, rectangulosChocan } from "./guia-campos";
+import { campoDeMasArriba, errorDeCampo, estadosDe, pendientesAlRevisar, revisadosVigentes, faltanDe, fraseDeLoQueFalta, palabraDeGrado, primeroQueBloquea, sePuedeConfirmar, separarFaltan, siguienteDe, type CampoDeGuia, rectangulosChocan, resumenDelPie } from "./guia-campos";
 
 const campo = (id: string, o: Partial<CampoDeGuia> = {}): CampoDeGuia => ({ id, nombre: id, requerido: true, hecho: false, pendiente: `Llena ${id}.`, ...o });
 
@@ -250,5 +250,38 @@ describe("«Sigue» se calla si no le cabe", () => {
   });
   it("un rectángulo sin área no pisa nada", () => {
     expect(rectangulosChocan(palabra, { left: 110, right: 110, top: 0, bottom: 18 })).toBe(false);
+  });
+});
+
+describe("lo que no se puede escribir no se le pide a la persona", () => {
+  const documento: CampoDeGuia = { id: "documento", nombre: "Documento", requerido: true, hecho: false, pendiente: "Escribe el número." };
+  const padron: CampoDeGuia = { id: "nombre", nombre: "Nombre del padrón", requerido: true, hecho: false, pendiente: "Lo trae el padrón.", noSeEscribe: true };
+
+  it("no aparece en lo que falta, ni recibe la luz, ni da error al intentar guardar", () => {
+    expect(faltanDe([documento, padron]).map((c) => c.id)).toEqual(["documento"]);
+    expect(siguienteDe([{ ...documento, hecho: true }, padron])).toBeNull();
+    expect(pendientesAlRevisar([documento, padron])).toEqual(["documento"]);
+  });
+  it("pero sigue impidiendo confirmar: la guía no cambia qué se puede guardar", () => {
+    expect(sePuedeConfirmar([{ ...documento, hecho: true }, padron])).toBe(false);
+    expect(sePuedeConfirmar([{ ...documento, hecho: true }, { ...padron, hecho: true }])).toBe(true);
+    expect(primeroQueBloquea([{ ...documento, hecho: true }, padron])?.id).toBe("nombre");
+  });
+});
+
+describe("el pie antes de intentar guardar dice lo que sigue y cuánto queda", () => {
+  const a: CampoDeGuia = { id: "a", nombre: "A", requerido: true, hecho: false, pendiente: "" };
+  const b: CampoDeGuia = { id: "b", nombre: "B", requerido: true, hecho: false, pendiente: "" };
+  const s: CampoDeGuia = { id: "s", nombre: "S", requerido: false, sugerido: true, hecho: false, pendiente: "" };
+
+  it("nombra el que sigue, aunque no sea el primero de la lista", () => {
+    expect(resumenDelPie([a, b], "b")).toEqual({ sigue: b, quedan: 1, soloSugeridas: false });
+  });
+  it("sin el que sigue en la lista (se escribe en otro), nombra el primero", () => {
+    expect(resumenDelPie([a, b], "x")?.sigue.id).toBe("a");
+  });
+  it("con solo lo sugerido avisa que se puede seguir, y sin nada no dice nada", () => {
+    expect(resumenDelPie([s], "s")?.soloSugeridas).toBe(true);
+    expect(resumenDelPie([], null)).toBeNull();
   });
 });
