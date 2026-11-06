@@ -1,29 +1,24 @@
-/* La franja de arriba (`components/Anuncio.tsx`, ADR-0615): un mensaje al centro y una flecha a cada lado, siempre en el mismo lugar. Los mensajes viven
+/* La franja de arriba (`components/Anuncio.tsx`, ADR-0615): un mensaje al centro, que pasan solos. Los mensajes viven
    apilados en la misma celda: la franja toma el alto del más largo, ninguno se corta y nada salta al cambiar. Sin gradientes, sombras ni adornos. */
-.t-anuncio.t-anuncio-pila { display: grid; grid-template-columns: 44px minmax(0, auto) 44px; justify-content: center; align-items: stretch; column-gap: clamp(0px, 1.6cqi, 20px); height: auto; min-height: 44px; padding: 0 var(--e-1, 4px); font-size: 13px; font-weight: 500; line-height: 1.3; letter-spacing: .01em; text-transform: none; white-space: normal; }
-.t-anuncio-flecha { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; opacity: .7; transition: opacity .2s; }
-.t-anuncio-flecha .ic { width: 15px; height: 15px; }
-.t-anuncio-flecha:focus-visible, .t-anuncio-frase a:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; opacity: 1; }
-.t-anuncio-frases { grid-column: 2; display: grid; align-items: center; justify-items: center; min-width: 0; }
+.t-anuncio.t-anuncio-pila { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: center; height: auto; min-height: 44px; padding: 0 var(--e-1, 4px); font-size: 13px; font-weight: 500; line-height: 1.3; letter-spacing: .01em; text-transform: none; white-space: normal; }
+.t-anuncio-frase a:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
+.t-anuncio-frases { display: grid; align-items: center; justify-items: center; min-width: 0; }
 .t-anuncio-frase { grid-area: 1 / 1; display: block; max-width: 100%; opacity: 0; visibility: hidden; text-align: center; text-wrap: balance; }
 .t-anuncio-frase :is(a, .t-anuncio-sin-enlace) { display: inline-flex; align-items: center; gap: 8px; padding-block: 6px; color: inherit; }
 .t-anuncio-frase .ic { width: 15px; height: 15px; flex: none; opacity: .85; }
 .t-anuncio-frase[data-estado="fija"], .t-anuncio-frase[data-estado="entra"] { opacity: 1; visibility: visible; }
 .t-anuncio-frase[data-estado="entra"] { animation: t-anuncio-entra .32s var(--ease) both; }
 .t-anuncio-frase[data-estado="sale"] { animation: t-anuncio-sale .22s var(--ease) both; }
-.t-anuncio-frases[data-paso="1"] { --t-anuncio-desde: 12px; --t-anuncio-hacia: -12px; }
-.t-anuncio-frases[data-paso="-1"] { --t-anuncio-desde: -12px; --t-anuncio-hacia: 12px; }
+.t-anuncio-frases { --t-anuncio-desde: 12px; --t-anuncio-hacia: -12px; }
 @keyframes t-anuncio-entra { from { opacity: 0; transform: translateX(var(--t-anuncio-desde)); } }
 @keyframes t-anuncio-sale {
   from { opacity: 1; visibility: visible; transform: none; }
   to { opacity: 0; visibility: hidden; transform: translateX(var(--t-anuncio-hacia)); }
 }
 @media (hover: hover) {
-  .t-anuncio-flecha:hover { opacity: 1; }
   .t-anuncio-frase a { background: linear-gradient(currentColor, currentColor) 50% calc(100% - 4px) / 0 1px no-repeat; transition: background-size .3s var(--ease); }
   .t-anuncio-frase a:hover { background-size: 100% 1px; }
 }
 @container tienda (min-width: 960px) {
   .t-anuncio.t-anuncio-pila { min-height: 40px; }
-  .t-anuncio-flecha { min-height: 40px; }
 }
