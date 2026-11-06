@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MediosDePago } from "@/components/MediosDePago";
@@ -55,7 +55,7 @@ export function PagarServicioModal({ servicio: s, hoy, onClose }: { servicio: Se
   const mediosLeidos = mediosParaRpc(medios, emision, cuentas.cuentas);
   const pago = { monto: montoLeido, falta: s.falta, papel, serie, numero, emision, hoy, yaPagado, vence, medios: mediosLeidos };
   const problemas = problemasDelPago(pago);
-  const faltan = useMemo(() => problemas.map((p) => p.campo), [problemas]);
+  const faltan = problemas.map((p) => p.campo);
   const guia = useGuiaCampos(camposDelPago(faltan, responsable.listo));
   const listo = problemas.length === 0 && responsable.listo;
   const conPapel = papel !== "sin_comprobante";
