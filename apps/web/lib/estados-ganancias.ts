@@ -10,6 +10,7 @@ import { cascadaGanamos, porSede, type DejaSede } from "./ganamos-reglas";
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
+import { pesoContra, type FilaInforme, type Informe } from "./estados-informe";
 import type { FilaPpto } from "./presupuesto-reglas";
 import type { TramoCascada } from "./pulso-reglas";
 import type { FilaER } from "./resultados-reglas";
@@ -162,14 +163,6 @@ export function partesDeGanancias({
   return partes.filter((p) => p.clave === "resultado" || Math.round(p.cifra) !== 0);
 }
 
-/** El título sobre la barra. */
-export function tituloDeLasPartes(f: FilaER, tramos: readonly TramoCascada[] = cascadaGanamos(f, [])): string {
-  const m = montosDeGanancias(f, tramos);
-  const gastos = m.mercaderia + m.sueldos + m.local + m.otros;
-  if (m.ventas <= 0) return `En qué se gastó: ${solesCentimos(gastos)}`;
-  return m.resultado >= 0 ? `A dónde se fue lo que vendiste: ${solesCentimos(m.ventas)}` : `No alcanzó: vendiste ${solesCentimos(m.ventas)} y gastaste ${solesCentimos(gastos)}`;
-}
-
 export type LecturaDeGanancias = {
   valor: number;
   /** La cifra va en rojo. */
@@ -232,16 +225,65 @@ export function lecturaDeGanancias(fila: FilaER | null, antes: FilaER | null, p:
   return { valor: r, mal: r < 0 && vende, frase, chip, nota: notaDeGanancias(m, mAntes, anterior) };
 }
 
-/** El cuadro del contador, con sus nombres de siempre. Suma: vendido − costo = bruta; bruta − gastos = resultado. */
-export function libroDeGanancias(f: FilaER, tramos: readonly TramoCascada[] = cascadaGanamos(f, [])): FilaDelLibro[] {
-  const m = montosDeGanancias(f, tramos);
-  return [
-    { nombre: "Ventas netas", valor: m.ventas, tipo: "normal" },
-    { nombre: "Costo de ventas", valor: -m.mercaderia, tipo: "normal" },
-    { nombre: "Utilidad bruta", valor: m.ventas - m.mercaderia, tipo: "total" },
-    { nombre: "Gastos de personal", valor: -m.sueldos, tipo: "normal" },
-    { nombre: "Local y servicios", valor: -m.local, tipo: "normal" },
-    { nombre: "Otros gastos", valor: -m.otros, tipo: "normal" },
-    { nombre: "Resultado del período", valor: m.resultado, tipo: "total" },
+
+/**
+ * Ganancias y pérdidas como informe (camino A, 2026-11-06): lo vendido, cada gasto que resta, lo que queda de las prendas y el resultado, con las columnas de
+ * antes al lado y lo que pesa cada fila contra lo vendido. Las frases y el detalle de cada fila salen de las mismas partes de siempre (`partesDeGanancias`).
+ */
+export function informeDeGanancias({
+  fila,
+  partes,
+  comparadas,
+  etiquetaActual,
+}: {
+  fila: FilaER;
+  partes: readonly ParteEstado[];
+  /** Los períodos anteriores, del más viejo al más nuevo. Uno que no se pudo leer va con `fila: null`. */
+  comparadas: readonly ComparadaGanancias[];
+  etiquetaActual: string;
+}): Informe {
+  const m = montosDeGanancias(fila);
+  const antes = comparadas.map((c) => (c.fila ? montosDeGanancias(c.fila) : null));
+  const valores = (de: (x: MontosDeGanancias) => number) => [...antes.map((a) => (a ? de(a) : null)), de(m)];
+  const parte = (clave: string) => partes.find((p) => p.clave === clave);
+  const deParte = (clave: string) => {
+    const p = parte(clave);
+    return p ? { que: p.que, detalle: p.filas, aviso: p.aviso ?? null } : {};
+  };
+  const gasto = (clave: "mercaderia" | "sueldos" | "local" | "otros", nombre: string, contable: string): FilaInforme => ({
+    clave,
+    nombre: m[clave] < 0 ? `${nombre} a favor` : nombre,
+    contable,
+    tipo: "linea",
+    resta: true,
+    valores: valores((x) => x[clave]),
+    peso: pesoContra(m[clave], m.ventas),
+    ...deParte(clave),
+  });
+  const gano = m.resultado >= 0;
+  const filas: FilaInforme[] = [
+    { clave: "ventas", nombre: "Lo que vendiste", contable: "Ventas netas", tipo: "linea", valores: valores((x) => x.ventas), peso: m.ventas > 0 ? "100 %" : null, que: "Sin IGV: ese 18 % es de SUNAT." },
+    gasto("mercaderia", "Mercadería", "Costo de ventas"),
+    { clave: "bruta", nombre: "Te queda de las prendas", contable: "Utilidad bruta", tipo: "subtotal", valores: valores((x) => x.ventas - x.mercaderia), peso: pesoContra(m.ventas - m.mercaderia, m.ventas) },
+    gasto("sueldos", "Sueldos", "Gastos de personal"),
+    gasto("local", "Local y servicios", "Local y servicios"),
+    gasto("otros", "Otros gastos", "Otros gastos"),
+    {
+      clave: "resultado",
+      nombre: gano ? "Te quedó" : m.ventas > 0 ? "Perdiste" : "Costó",
+      contable: "Resultado del período",
+      tipo: "total",
+      valores: valores((x) => x.resultado),
+      peso: m.ventas > 0 ? `${gano ? "" : "−"}${pesoContra(m.resultado, m.ventas)}` : null,
+      tono: gano ? "bien" : m.ventas > 0 ? "mal" : null,
+      ...deParte("resultado"),
+    },
   ];
+  return {
+    titulo: "Ganancias y pérdidas",
+    columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
+    pesoDe: m.ventas > 0 ? "De lo vendido" : null,
+    // Un gasto que no pasó en ninguna columna no se dibuja: una fila en S/ 0 solo estorba.
+    filas: filas.filter((f) => f.tipo !== "linea" || f.clave === "ventas" || f.valores.some((v) => v !== null && Math.abs(v) >= 0.005)),
+  };
 }

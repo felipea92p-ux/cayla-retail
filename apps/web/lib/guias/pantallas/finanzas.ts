@@ -1084,7 +1084,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       ancla: "fin-ganamos.respuesta",
       opcional: true,
       titulo: "La cifra y cómo viene",
-      texto: "Lo que quedó en estas fechas, una frase que dice qué significa y contra qué se compara. Abajo, cómo viene mes a mes: pasa el mouse para leer cada mes.",
+      texto: "Lo que quedó en estas fechas, una frase que dice qué significa y contra qué se compara. Debajo, cómo viene mes a mes: pasa el mouse para leer cada mes.",
     },
     {
       id: "costo-estimado",
@@ -1097,15 +1097,15 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       id: "partes",
       ancla: "fin-ganamos.partes",
       opcional: true,
-      titulo: "A dónde se fue lo que vendiste",
-      texto: "Cada parte de la barra es un gasto, del ancho de lo que pesa. Al pasar el mouse el resto se apaga; al tocarla, su detalle se abre justo debajo: de qué está hecha y cómo venía.",
+      titulo: "El estado, fila por fila",
+      texto: "Lo que vendiste, cada gasto que resta y lo que quedó, con los meses de antes al lado y cuánto pesa cada fila de lo vendido. Toca una fila para ver de qué está hecha.",
     },
     {
       id: "libro",
       ancla: "fin-ganamos.libro",
       opcional: true,
-      titulo: "El formato formal",
-      texto: "El mismo estado con sus nombres de siempre, como lo lee un contador. Se abre aquí mismo.",
+      titulo: "Los nombres del contador",
+      texto: "Cambia las palabras de cada fila a las de siempre del contador: Ventas netas, Costo de ventas, Utilidad bruta. Las cifras no cambian.",
     },
     {
       id: "recos",

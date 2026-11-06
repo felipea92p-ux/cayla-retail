@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lecturaDeGanancias, libroDeGanancias, montosDeGanancias, partesDeGanancias, tituloDeLasPartes } from "./estados-ganancias";
+import { informeDeGanancias, lecturaDeGanancias, montosDeGanancias, partesDeGanancias } from "./estados-ganancias";
 import { altoDeColumna, anchoDeFila, chipContraAnterior, pasosDelLibro, textoDeVerMas, textoDelLibro } from "./estados-partes";
 import { franjaDelPeriodo, geometriaDeLinea } from "./estados-linea";
 import { periodoDe } from "./estados-periodo";
@@ -56,11 +56,24 @@ describe("los montos siempre suman", () => {
     expect(m.otros).toBe(1050);
   });
 
-  it("el libro del contador da lo mismo", () => {
-    const l = libroDeGanancias(fila());
-    expect(l.map((x) => x.nombre)).toEqual(["Ventas netas", "Costo de ventas", "Utilidad bruta", "Gastos de personal", "Local y servicios", "Otros gastos", "Resultado del período"]);
-    expect(l[2]!.valor).toBe(5850);
-    expect(l[2]!.valor + l[3]!.valor + l[4]!.valor + l[5]!.valor).toBe(l[6]!.valor);
+  it("el informe da lo mismo, con los nombres del contador al lado (camino A, 2026-11-06)", () => {
+    const f = fila();
+    const inf = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f)), comparadas: [{ etiqueta: "Sep", fila: null }], etiquetaActual: "Oct" });
+    expect(inf.filas.map((x) => x.contable)).toEqual(["Ventas netas", "Costo de ventas", "Utilidad bruta", "Gastos de personal", "Local y servicios", "Otros gastos", "Resultado del período"]);
+    const ahora = (clave: string) => inf.filas.find((x) => x.clave === clave)!.valores.at(-1)!;
+    expect(ahora("bruta")).toBe(5850);
+    expect(ahora("bruta") - ahora("sueldos") - ahora("local") - ahora("otros")).toBe(ahora("resultado"));
+    // Un período que no se pudo leer es «—», nunca un cero.
+    expect(inf.filas[0]!.valores).toEqual([null, 10000]);
+    expect(inf.columnas).toEqual([{ etiqueta: "Sep", actual: false }, { etiqueta: "Oct", actual: true }]);
+    expect(inf.filas.find((x) => x.clave === "resultado")).toMatchObject({ nombre: "Te quedó", peso: "26 %", tono: "bien" });
+    expect(inf.filas.find((x) => x.clave === "mercaderia")!.detalle!.map((x) => x.nombre)).toEqual(["La ropa vendida", "Fletes de la mercadería", "Prendas perdidas o dañadas"]);
+  });
+
+  it("con pérdida, el total va en rojo y su peso con signo", () => {
+    const f = fila({ ventas: 5000, resultado: -2450 });
+    const inf = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f)), comparadas: [], etiquetaActual: "Oct" });
+    expect(inf.filas.at(-1)).toMatchObject({ nombre: "Perdiste", tono: "mal", peso: "−49 %" });
   });
 });
 
@@ -80,7 +93,6 @@ describe("las cinco partes", () => {
     const p = partesDeGanancias(params(f));
     expect(p[4]).toMatchObject({ nombre: "Perdiste", tono: "mal", enBarra: 0, cifra: -2450, texto: solesCentimos(2450) });
     expect(p.reduce((a, x) => a + x.enBarra, 0)).toBe(7450);
-    expect(tituloDeLasPartes(f)).toBe(`No alcanzó: vendiste ${solesCentimos(5000)} y gastaste ${solesCentimos(7450)}`);
   });
 
   it("lo que no pasó no se dibuja, salvo lo que quedó, que es la respuesta", () => {
@@ -95,10 +107,9 @@ describe("las cinco partes", () => {
     expect(p.find((x) => x.clave === "otros")).toMatchObject({ nombre: "Otros a favor", enBarra: 0, texto: `+${solesCentimos(200)}`, tono: "bien", cifra: 200 });
   });
 
-  it("sin ventas no hay porcentajes y el título habla de lo gastado", () => {
+  it("sin ventas no hay porcentajes", () => {
     const f = fila({ ventas: 0, costo: 0, fletes: 0, mermas: 0, resultado: -3300, unidad: "empresa" });
     expect(partesDeGanancias(params(f))[0]!.sub).toBeUndefined();
-    expect(tituloDeLasPartes(f)).toBe(`En qué se gastó: ${solesCentimos(3300)}`);
   });
 
   it("lo que no vende no dice que le faltó: dice lo que costó", () => {

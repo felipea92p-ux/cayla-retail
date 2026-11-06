@@ -11,7 +11,7 @@ import { getCuadreVentas } from "@/lib/cuadre-ventas";
 import { cuadroVentas } from "@/lib/cuadre-ventas-reglas";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { etiquetaDelPeriodo, leerPeriodo, periodoAnterior, periodosAnteriores } from "@/lib/estados-periodo";
-import { lecturaDeGanancias, libroDeGanancias, partesDeGanancias, tituloDeLasPartes } from "@/lib/estados-ganancias";
+import { informeDeGanancias, lecturaDeGanancias, partesDeGanancias } from "@/lib/estados-ganancias";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
@@ -25,7 +25,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
-import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
+import { EstadoEnInforme } from "@/components/finanzas/estados/EstadoEnInforme";
 import { LineaDeGanancias, LineaEsperando } from "@/components/finanzas/estados/LineaDeGanancias";
 import { MasDeGanancias } from "@/components/finanzas/estados/MasDeGanancias";
 import { MasDelEstado } from "@/components/finanzas/estados/MasDelEstado";
@@ -113,8 +113,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
       {actual.falla ? (
         <Aviso tono="error">{actual.falla}</Aviso>
       ) : (
-        <EstadoVidrio
-          nombre={`Ganancias y pérdidas · ${periodo.titulo}`}
+        <EstadoEnInforme
+          nombre={`Resultado · ${periodo.titulo}`}
           lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo)}
           grafico={
             <Suspense fallback={<LineaEsperando />}>
@@ -122,8 +122,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
             </Suspense>
           }
           guiaRespuesta="fin-ganamos.respuesta"
-          guiaPartes="fin-ganamos.partes"
-          guiaLibro="fin-ganamos.libro"
+          guiaInforme="fin-ganamos.partes"
+          guiaContador="fin-ganamos.libro"
           aviso={
             <>
               {avisosGraves.map((a) => (
@@ -152,11 +152,11 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
               ) : null}
             </>
           }
-          titulo={fila ? tituloDeLasPartes(fila, tramos) : ""}
-          conTubo
-          partes={fila ? partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : []}
-          tituloColumnas={unMes ? "Mes a mes" : "Período a período"}
-          libro={{ titulo: "Ganancias y pérdidas", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: fila ? libroDeGanancias(fila, tramos) : [] }}
+          informe={
+            fila
+              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })
+              : { titulo: "Ganancias y pérdidas", columnas: [], pesoDe: null, filas: [] }
+          }
         />
       )}
       <Recomendaciones recomendaciones={recomendaciones} />
