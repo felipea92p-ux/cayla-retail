@@ -11,7 +11,7 @@
 
 import { cuentasVisibles, diaYNumero, insigniaCuenta, type CuentaDinero, type EfectivoFila, type Insignia, type MovimientoDinero } from "./cuentas-dinero-reglas";
 import { diaLima, diasEntreFechas, horaLima } from "./fechas-lima";
-import { solesRedondo } from "./gastos-reglas";
+import { solesDos } from "./gastos-reglas";
 import { soles } from "./flujo-caja-reglas";
 import type { SedeTelar } from "./finanzas-telar-reglas";
 import type { TonoChip } from "@/components/ui/Chip";
@@ -74,7 +74,7 @@ export function escalaDeCuenta(saldo: number | null, maximo: number): number | n
 
 /** Un saldo con su signo siempre igual, en la cifra de una fila y en el total de su grupo: «S/ 1,100» y «−S/ 24,000» (con el menos de verdad, no el guion). */
 export function montoConSigno(n: number): string {
-  return Math.round(n) < 0 ? `−${solesRedondo(-n)}` : solesRedondo(n);
+  return Math.round(n * 100) < 0 ? `−${solesDos(-n)}` : solesDos(n);
 }
 
 /**
@@ -258,7 +258,7 @@ export function detalleCajon(f: Pick<EfectivoFila, "abierta" | "abiertaEn" | "ve
   if (!f.abierta) return f.cerradaEn ? `Caja cerrada desde el ${diaYNumero(f.cerradaEn)}` : "Caja cerrada";
   const hora = horaLima(f.abiertaEn);
   const salio = Math.round((f.egresos + f.depositos) * 100) / 100;
-  return [`Abierta${hora ? ` desde las ${hora}` : ""}`, `vendió ${solesRedondo(f.ventasEfectivo)} en efectivo`, salio > 0 ? `salieron ${solesRedondo(salio)}` : null]
+  return [`Abierta${hora ? ` desde las ${hora}` : ""}`, `vendió ${solesDos(f.ventasEfectivo)} en efectivo`, salio > 0 ? `salieron ${solesDos(salio)}` : null]
     .filter(Boolean)
     .join(" · ");
 }

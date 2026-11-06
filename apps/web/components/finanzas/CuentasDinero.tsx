@@ -16,7 +16,7 @@ import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesF
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { fechaCorta, solesRedondo, type Ver } from "@/lib/gastos-reglas";
+import { fechaCorta, solesDos, type Ver } from "@/lib/gastos-reglas";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
   OPCIONES_QUE_PASO,
@@ -783,7 +783,7 @@ function RegistrarMovimientoModal({
 
   // En el combo, una máquina se nombra sin «Por depositar» (el campo ya lo dice y con los céntimos no cabría): «Vendemás · S/ 149.90».
   const nombreEnCombo = (c: CuentaDinero) => (saldoConCentimos(c.tipo) ? nombreDeMaquinaDeLaPuente(c.nombre) ?? c.nombre : c.nombre);
-  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${verSaldo(c, c.saldo)}`);
+  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${soles(c.saldo)}`);
 
   return (
     <Modal variante="hoja" titulo={titulo} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
@@ -816,7 +816,7 @@ function RegistrarMovimientoModal({
             valor={b.clase}
             onValor={(v) => cambiar({ clase: v })}
             opciones={[
-              ...(deuda > 0 ? [{ valor: "devolucion_prestamo" as const, titulo: "Devolución de préstamo", detalle: `CAYLA te debe ${solesRedondo(deuda)}. Baja esa deuda.` }] : []),
+              ...(deuda > 0 ? [{ valor: "devolucion_prestamo" as const, titulo: "Devolución de préstamo", detalle: `CAYLA te debe ${solesDos(deuda)}. Baja esa deuda.` }] : []),
               { valor: "retiro", titulo: "Retiro de utilidades", detalle: "Te llevas ganancia del negocio. No es un gasto: no baja la utilidad." },
             ]}
           />
@@ -1055,11 +1055,6 @@ function fuenteInicial(c: CuentaDinero | undefined): "caja" | "egreso" {
 function origenDeArranque(que: QuePaso, origenId: string | undefined, cuentas: CuentaDinero[]): CuentaDinero | null {
   if (!origenId) return null;
   return cuentasPara(cuentas, opcionQuePaso(que).origen, "origen").find((c) => c.id === origenId) ?? null;
-}
-
-/** El saldo de una cuenta como lo ve la persona: con céntimos en «Por depositar» (se cruza contra un depósito), redondeado en las demás. */
-function verSaldo(c: CuentaDinero, n: number): string {
-  return saldoConCentimos(c.tipo) ? soles(n) : solesRedondo(n);
 }
 
 function inicialDe(que: QuePaso, cuentas: CuentaDinero[], ubicacionId: string | null, deuda: number, hoy: string, antes?: BorradorMovimiento): BorradorMovimiento {

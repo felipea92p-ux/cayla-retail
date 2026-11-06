@@ -405,6 +405,12 @@ export function solesRedondo(n: number): string {
   return `S/\u00a0${(Math.round(n) || 0).toLocaleString("es-PE")}`;
 }
 
+/** «S/ 1,234.50»: siempre con sus dos decimales (Cuentas y dinero, Felipe 2026-11-06). `|| 0` evita «S/ -0.00». */
+export function solesDos(n: number): string {
+  const c = Math.round(n * 100) / 100 || 0;
+  return `S/\u00a0${c.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 /** «23 sep» (con el año si se pide: «23 sep 2026»). */
 export function fechaCorta(iso: string | null, conAnio = false): string {
