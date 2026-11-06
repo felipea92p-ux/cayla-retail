@@ -4,6 +4,7 @@
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
 import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
+import { textoDeMotivo } from "./prenda-sin-registrar-motivo";
 // Reglas puras y relativas (no `./cuadre-piso`, que importa por alias `@/` y vitest no lo resuelve al probar este archivo).
 import { RPC_ESTADO, leerEstadoCuadre } from "./cuadre-piso-reglas";
 import type { CuadresPorSede } from "./cola-arranque-reglas";
@@ -40,6 +41,8 @@ export type FilaPorRegularizar = {
   prendaReal: string | null;
   forma: "ya_registrada" | "llego_nueva" | null;
   diferencia: number | null;
+  /** Por qué la caja la anotó a mano, dicho en palabras («La pistola no la lee»). `null`: venta de antes del 2026-11-06 o sin motivo. */
+  motivo: string | null;
 };
 
 const COLUMNAS = `id, venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id, color_codigo, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
@@ -97,6 +100,16 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     for (const c of data ?? []) if (!correcciones.has(c.prenda_id)) correcciones.set(c.prenda_id, { veces: c.veces, ultimaEn: c.ultima_en, ultimaPor: c.ultima_por, antes: c.antes });
   }
 
+  // Por qué se anotó a mano (20261106233000). Es lo accesorio y va aparte: hasta que la migración esté en producción la columna no
+  // existe, y meterla en `COLUMNAS` tumbaría la lista entera (principio 9). Solo las que lo tienen (las nuevas): son pocas.
+  const motivos = new Map<string, { motivo: string | null; detalle: string | null }>();
+  {
+    let consulta = supabase.from("prendas_por_regularizar").select("id, motivo, motivo_detalle" as "id").not("motivo" as "id", "is", null);
+    if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
+    const { data } = await consulta.range(0, 999);
+    for (const m of (data ?? []) as unknown as { id: string; motivo: string | null; motivo_detalle: string | null }[]) motivos.set(m.id, { motivo: m.motivo, detalle: m.motivo_detalle });
+  }
+
   // `personas` vive en `public` (Dynamic): PostgREST no la embebe; se nombra con la misma función que Historial.
   const ids = [...new Set([...filas.flatMap((f) => (f.vendido_por ? [f.vendido_por] : [])), ...[...correcciones.values()].flatMap((c) => (c.ultimaPor ? [c.ultimaPor] : []))])];
   const nombres = new Map<string, string>();
@@ -128,6 +141,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     prendaReal: f.variante ? `${f.variante.producto?.referencia ?? ""} · ${f.variante.sku}` : null,
     forma: f.forma as FilaPorRegularizar["forma"],
     diferencia: f.diferencia === null ? null : Number(f.diferencia),
+    motivo: textoDeMotivo(motivos.get(f.id)?.motivo, motivos.get(f.id)?.detalle),
   });
   return filas.map(aFila);
 }
