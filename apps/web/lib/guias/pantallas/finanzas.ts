@@ -1059,6 +1059,13 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       texto: "Lo que quedó en estas fechas, una frase que dice qué significa y contra qué se compara. Abajo, cómo viene mes a mes: pasa el mouse para leer cada mes.",
     },
     {
+      id: "costo-estimado",
+      ancla: "fin-ganamos.costo-estimado",
+      opcional: true,
+      titulo: "Cuánto de la ganancia es estimado",
+      texto: "Si vendiste prendas sin registrar, su costo es un promedio y la ganancia es una estimación. Este aviso dice cuánto pesa y lleva a registrar el costo real. Si todo lleva costo real, no aparece.",
+    },
+    {
       id: "partes",
       ancla: "fin-ganamos.partes",
       opcional: true,

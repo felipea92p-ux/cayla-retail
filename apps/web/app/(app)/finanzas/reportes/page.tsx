@@ -17,9 +17,12 @@ import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
+import { getCostoEstimado } from "@/lib/costo-estimado";
+import { notaCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CuadreVentas } from "@/components/finanzas/estados/CuadreVentas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EstadoResultadosPanel } from "@/components/finanzas/EstadoResultadosPanel";
 import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
@@ -52,7 +55,9 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   // Los dos períodos de antes: de ahí salen «contra qué se compara» y las columnas del detalle. Si no se pueden leer, la pantalla sale sin comparar.
   const anteriores = periodosAnteriores(periodo, hoy, inicio);
 
-  const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre] = await Promise.all([
+  // Una sede suelta pregunta por la suya; CAYLA entera (o «De la empresa»), por todas las que la cuenta ve.
+  const ubicacionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sede) ? sede : null;
+  const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst] = await Promise.all([
     getEstadoResultados(desde, hasta),
     comparar && antes ? getEstadoResultados(antes.desde, antes.hasta) : Promise.resolve(null),
     Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await getEstadoResultados(c.desde, c.hasta) }))),
@@ -65,6 +70,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     getCampanas(),
     // De Ventas a Finanzas (ADR-0609): si falla, la tarjeta lo dice y el resto de la pantalla se dibuja igual.
     getCuadreVentas(desde, hasta),
+    // Cuánto de lo vendido lleva costo estimado: si no se lee, la ganancia no se presenta como 100 % real sin decirlo (principio 9).
+    getCostoEstimado(desde, hasta, ubicacionId),
   ]);
   // ADR-0332: un mes anterior a la fecha desde la que cuenta Finanzas sale vacío; se dice por qué en vez de dejar ceros mudos.
   const avisoCorte = inicio && mesAntesDelCorte(mes, inicio) ? avisoAntesDelCorte(inicio) : null;
@@ -94,6 +101,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     "el cuadro por sede",
   ])!;
   const leidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, fila: c.lectura.falla ? null : filaDeLaSede(c.lectura.datos, sede) }));
+  const notaCosto = notaCostoEstimado(costoEst.datos);
 
   return (
     <div className="space-y-4">
@@ -114,11 +122,34 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           guiaRespuesta="fin-ganamos.respuesta"
           guiaPartes="fin-ganamos.partes"
           guiaLibro="fin-ganamos.libro"
-          aviso={avisosGraves.map((a) => (
-            <Aviso key={a.texto} tono={a.tono === "rojo" ? "error" : "atencion"}>
-              {a.texto}
-            </Aviso>
-          ))}
+          aviso={
+            <>
+              {avisosGraves.map((a) => (
+                <Aviso key={a.texto} tono={a.tono === "rojo" ? "error" : "atencion"}>
+                  {a.texto}
+                </Aviso>
+              ))}
+              {/* Si parte del costo es un promedio, la ganancia es una estimación y se dice aquí, junto a la cifra (tarea 28 de «Las 36 de Finanzas»). */}
+              {notaCosto ? (
+                <Aviso
+                  tono={notaCosto.tono === "rojo" ? "error" : "atencion"}
+                  titulo={notaCosto.texto}
+                  guia="fin-ganamos.costo-estimado"
+                  accion={
+                    <BotonVer href={notaCosto.href} chico>
+                      Registrar el costo real
+                    </BotonVer>
+                  }
+                >
+                  {notaCosto.detalle}
+                </Aviso>
+              ) : costoEst.falla ? (
+                <Aviso tono="info" chico>
+                  {costoEst.falla}
+                </Aviso>
+              ) : null}
+            </>
+          }
           titulo={fila ? tituloDeLasPartes(fila, tramos) : ""}
           conTubo
           partes={fila ? partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : []}

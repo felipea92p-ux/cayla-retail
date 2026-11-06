@@ -1625,6 +1625,17 @@
     min-height: 300px;
     margin-inline: 0;
   }
+  /* Con el botón al lado, el texto de un aviso quedaba en una columna de una palabra: en el celular va debajo. */
+  .estados-vidrio .aviso-linea-tit,
+  .estados-vidrio .aviso-linea-det {
+    grid-column: 2 / -1;
+  }
+  .estados-vidrio .aviso-linea-acc {
+    grid-column: 2 / -1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 8px;
+  }
   /* Los dos tubos ya miden lo suyo: con el alto de la cascada quedaban sobre un hueco vacío. */
   .estados-grafico[data-aire]:has(.estados-tubos) {
     min-height: 0;
