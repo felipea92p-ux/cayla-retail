@@ -17,6 +17,7 @@ import { estadoVisible, etiquetaMetodo, etiquetaTipo, type ComprobanteProduccion
 import { cantidadTexto, type UnidadInsumo } from "@/lib/insumos-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
+import { ReemplazarPapelModal } from "@/components/ReemplazarPapelModal";
 
 // Detalle de un comprobante de Producción (ADR-0133, F4b): sus líneas, sus pagos y su saldo. Lo leído aquí es del líder por RLS. Anular
 // pide un motivo y solo se puede si no hay pagos (anular dejaría dinero sin respaldo); nunca se borra.
@@ -32,6 +33,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
   const [recepcion, setRecepcion] = useState<Record<string, { recibido: number; cerrado: number; pendiente: number }>>({});
   const [fallo, setFallo] = useState(false);
   const [anulando, setAnulando] = useState(false);
+  const [papel, setPapel] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161 act. d): la anulación queda en `anulada_por` con quien se elige en el combo.
@@ -170,6 +172,13 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
         )}
 
         {c.nota && <p className="text-sm text-tinta/75">Nota: {c.nota}</p>}
+
+        {c.estado === "vigente" && c.serie === "S/P" && (
+          <Boton peso="fantasma" type="button" onClick={() => setPapel(true)}>
+            Llegó el papel
+          </Boton>
+        )}
+        {papel && <ReemplazarPapelModal comprobante={c} hoy={hoy} onClose={() => setPapel(false)} />}
 
         {puedeAnular &&
           (anulando ? (

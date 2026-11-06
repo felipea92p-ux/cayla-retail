@@ -3,7 +3,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getOpcionesNuevaOrden } from "@/lib/produccion";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { getEdicionDeTela, getOrdenProduccionPagina, sePuedeEditarLaTela } from "@/lib/orden-pagina";
-import { cifrasDeLaOrden, fraseDeLaOrden, pasosAgregables, puedeCambiarQuien } from "@/lib/orden-pagina-reglas";
+import { cifrasDeLaOrden, fraseDeLaOrden, pasosAgregables, puedeCambiarQuien, puedeRegistrarQuien } from "@/lib/orden-pagina-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
@@ -62,7 +62,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
   const puedeEditarTela = sePuedeEditarLaTela(datos);
   // «Agregar un paso» también la usa (quién lo hace, a quién y a cuánto): se pide si hay un paso que agregar, aunque ninguna fase pueda cambiar de quién (ADR-0586: la orden que ya avanzó entera).
   const hayPasoQueAgregar = pasosAgregables(datos, { esLider: persona.rol === "lider" }).ofrecidos.length > 0;
-  const opciones = datos.fases.some((f) => puedeCambiarQuien(f, datos)) || puedeEditarTela || hayPasoQueAgregar ? await getOpcionesNuevaOrden(datos.orden.ubicacionId) : null;
+  const opciones = datos.fases.some((f) => puedeCambiarQuien(f, datos) || puedeRegistrarQuien(f, datos)) || puedeEditarTela || hayPasoQueAgregar ? await getOpcionesNuevaOrden(datos.orden.ubicacionId) : null;
   const edicionDeTela = await getEdicionDeTela(datos, opciones?.datos ?? null, hoy);
 
   return (

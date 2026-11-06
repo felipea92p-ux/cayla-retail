@@ -132,7 +132,7 @@ export function cambiosDeCuenta(d: DetalleCuenta, f: FormCuenta, hoy: string): R
 
   let saldo = d.saldoInicial;
   let desde = d.saldoDesde;
-  if (d.puedeCambiarSaldo && !d.automatica) {
+  if (d.puedeCambiarSaldo) {
     const escrito = f.saldo.trim().replace(/^-/, "");
     let valor = 0;
     if (escrito !== "" && escrito !== "0") {

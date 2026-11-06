@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Aviso } from "@/components/ui/Aviso";
+import { leerCuenta, type CuentaDinero } from "@/lib/cuentas-dinero-reglas";
+import { cuentasQueEmpiezanDespues } from "@/lib/balance-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -69,6 +73,21 @@ export function SaldosArranqueModal({
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const propuesta = cargadas[fecha] ?? null;
+  // Una cuenta que empieza después del día elegido dejaría ese tramo sin explicar: se frena aquí, donde se puede resolver.
+  const [cuentas, setCuentas] = useState<CuentaDinero[]>([]);
+  useEffect(() => {
+    if (hayArranque) return;
+    let vivo = true;
+    void createClient()
+      .rpc("fn_cuentas_dinero_saldos" as never, { p_corte: null, p_ubicacion_id: null } as never)
+      .then(({ data, error }) => {
+        if (vivo && !error) setCuentas(((data ?? []) as Record<string, unknown>[]).map(leerCuenta));
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [hayArranque]);
+  const empiezanDespues = hayArranque ? [] : cuentasQueEmpiezanDespues(cuentas, fecha);
   const falla = fallas[fecha] ?? null;
 
   useEffect(() => {
@@ -108,6 +127,7 @@ export function SaldosArranqueModal({
   const correcciones = saldos.filter((s) => s.motivo).sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
 
   const puedeGuardar =
+    empiezanDespues.length === 0 &&
     !!propuesta && !guardando && invalidas.length === 0 && cuadre.cuadra && lineas.length > 0 && (!hayArranque || motivo.trim().length >= 5);
 
   async function guardar() {
@@ -158,6 +178,21 @@ export function SaldosArranqueModal({
         >
           <InputFin id="arr-fecha" data-guia="fin-balance.arranque-fecha" type="date" max={hoy} value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
         </CampoFin>
+      )}
+
+      {empiezanDespues.length > 0 && (
+        <Aviso
+          tono="atencion"
+          titulo="Hay cuentas que empiezan después de este día"
+          chico
+          accion={
+            <Link href="/finanzas/dinero" className="btn-enlace">
+              Ir a Cuentas y dinero
+            </Link>
+          }
+        >
+          {empiezanDespues.map((c) => `${c.nombre} (${c.saldoDesde})`).join(" · ")}. Di cuánto tenía cada una este día, en Editar cuenta, o elige un arranque posterior.
+        </Aviso>
       )}
 
       {falla && <p className="card-cayla border-dashed px-4 py-3 text-sm text-tinta/75">{falla}</p>}

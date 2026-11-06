@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { argsDeCompra, problemasDeCompra, totalesDeCompra, vencimientoPorDefecto, type CompraDeInsumo } from "./insumo-compra-reglas";
+import { argsDeCompra, lineaAlLibro, problemasDeCompra, problemasDeLineas, subtotalDelPapel, totalAPagar, totalesDeCompra, vencimientoPorDefecto, type CompraDeInsumo, type LineaEscrita } from "./insumo-compra-reglas";
 
-// P03 del «Análisis del Taller» (Felipe, 2-nov-2026): «Ingresar insumo ▸ Compra» pide proveedor y deja su deuda. Estas reglas dicen qué falta antes de guardar y arman lo que se le manda
-// a `recibir_insumo_comprado`; la base vuelve a exigirlo todo (esto solo guía).
+// P03 del «Análisis del Taller» (Felipe, 2-nov-2026) y ADR-0614: «Llegó una compra» pide proveedor y deja su deuda. Estas reglas dicen qué falta antes de guardar y arman lo que se le manda
+// a `registrar_compra_de_insumos`; la base vuelve a exigirlo todo (esto solo guía).
 
 const base: CompraDeInsumo = {
   proveedorId: "prov-1",
@@ -13,8 +13,7 @@ const base: CompraDeInsumo = {
   pagada: false,
   emision: "2026-11-02",
   vence: "2026-12-02",
-  cantidad: 10,
-  costoUnitario: 5,
+  lineas: [{ insumoId: "i-1", cantidad: 10, costoUnitario: 5, codigoLote: " L-9 " }],
   medios: [],
 };
 
@@ -68,27 +67,75 @@ describe("problemasDeCompra — lo que falta antes de guardar", () => {
   });
 });
 
+const leer = {
+  cantidad: (t: string) => { const n = Number(t); return t.trim() === "" || !Number.isFinite(n) ? null : n; },
+  precio: (t: string) => { const n = Number(t); return t.trim() === "" || !Number.isFinite(n) ? null : n; },
+};
+const escrita = (o: Partial<LineaEscrita> = {}): LineaEscrita => ({ clave: "a", insumoId: "i-1", como: "libro", cantidad: "10", precio: "5", rinde: "", codigoLote: "", ...o });
+
+describe("lineaAlLibro — pasa lo comprado a la unidad del libro", () => {
+  it("en la unidad del libro no cambia nada", () => {
+    expect(lineaAlLibro(escrita(), leer)).toMatchObject({ cantidad: 10, costoUnitario: 5 });
+    expect(lineaAlLibro(escrita(), leer)?.nota).toBeUndefined();
+  });
+  it("por kilo: 100 kg a S/ 18 con rinde 3.47 son 347 m a S/ 5.1873, y lo deja escrito", () => {
+    expect(lineaAlLibro(escrita({ como: "kilo", cantidad: "100", precio: "18", rinde: "3.47" }), leer)).toMatchObject({ cantidad: 347, costoUnitario: 5.1873, nota: "100 kg × 3.47 m/kg" });
+  });
+  it("por rollo: 2 rollos de 50 m a S/ 300 son 100 m a S/ 6", () => {
+    expect(lineaAlLibro(escrita({ como: "rollo", cantidad: "2", precio: "300", rinde: "50" }), leer)).toMatchObject({ cantidad: 100, costoUnitario: 6, nota: "2 rollos × 50 m/rollo" });
+  });
+  it("sin rinde, sin cantidad o sin insumo no hay línea", () => {
+    expect(lineaAlLibro(escrita({ como: "kilo", rinde: "" }), leer)).toBeNull();
+    expect(lineaAlLibro(escrita({ cantidad: "0" }), leer)).toBeNull();
+    expect(lineaAlLibro(escrita({ precio: "" }), leer)).toBeNull();
+    expect(lineaAlLibro(escrita({ insumoId: "" }), leer)).toBeNull();
+  });
+  it("precio cero sí vale: una tela regalada es una línea", () => {
+    expect(lineaAlLibro(escrita({ precio: "0" }), leer)).toMatchObject({ costoUnitario: 0 });
+  });
+});
+
+describe("totalAPagar — en una factura manda el papel", () => {
+  const kilos = [{ insumoId: "i-1", cantidad: 347, costoUnitario: 5.1873 }];
+  it("factura: S/ 1,800 + IGV, aunque en metros la cuenta dé S/ 1,799.99", () => {
+    expect(totalAPagar({ lineas: kilos, subtotalDelPapel: 1800, tipo: "factura", sinPapel: false })).toBe(2124);
+  });
+  it("boleta o sin papel: la suma de las líneas, porque la base lo exige", () => {
+    expect(totalAPagar({ lineas: kilos, subtotalDelPapel: 1800, tipo: "boleta", sinPapel: false })).toBe(1799.99);
+    expect(totalAPagar({ lineas: kilos, subtotalDelPapel: 1800, tipo: "factura", sinPapel: true })).toBe(1799.99);
+  });
+});
+
+describe("problemasDeLineas y subtotalDelPapel", () => {
+  it("una línea completa no tiene problemas", () => {
+    expect(problemasDeLineas([escrita()], leer)).toEqual([]);
+  });
+  it("pide al menos una línea, el insumo, y no deja repetirlo", () => {
+    expect(problemasDeLineas([], leer)).toHaveLength(1);
+    expect(problemasDeLineas([escrita({ insumoId: "" })], leer)[0]).toContain("Elige qué llegó");
+    expect(problemasDeLineas([escrita(), escrita({ clave: "b" })], leer)[0]).toContain("una sola vez");
+  });
+  it("suma lo escrito × su precio, sin pasar por metros", () => {
+    expect(subtotalDelPapel([escrita({ como: "kilo", cantidad: "100", precio: "18", rinde: "3.47" }), escrita({ cantidad: "4", precio: "2.5" })], leer)).toBe(1810);
+  });
+});
+
 describe("argsDeCompra — lo que se le manda a la base", () => {
-  const ids = { insumoId: "i-1", tallerId: "t-1", codigoLote: " L-9 ", nota: "  ", token: "tok" };
-  it("a crédito: condición, vencimiento y sin pago", () => {
-    expect(argsDeCompra(base, ids)).toMatchObject({
-      p_insumo_id: "i-1", p_ubicacion_id: "t-1", p_proveedor_id: "prov-1", p_cantidad: 10, p_costo_unitario: 5,
-      p_tipo: "factura", p_serie: "F001", p_numero: "123", p_sin_papel: false, p_condicion: "credito",
-      p_fecha_emision: "2026-11-02", p_fecha_vencimiento: "2026-12-02", p_igv_porcentaje: 18, p_codigo_lote: "L-9", p_token: "tok",
-    });
-    expect(argsDeCompra(base, ids).p_pago).toBeUndefined();
-    expect(argsDeCompra(base, ids).p_nota).toBeUndefined();
+  const ids = { tallerId: "t-1", nota: "  ", token: "tok" };
+  it("a crédito: condición, vencimiento, sin pago, y las líneas limpias", () => {
+    const a = argsDeCompra(base, ids);
+    expect(a).toMatchObject({ p_ubicacion_id: "t-1", p_proveedor_id: "prov-1", p_tipo: "factura", p_serie: "F001", p_numero: "123", p_sin_papel: false, p_condicion: "credito", p_fecha_emision: "2026-11-02", p_fecha_vencimiento: "2026-12-02", p_igv_porcentaje: 18, p_token: "tok" });
+    expect(a.p_lineas).toEqual([{ insumo_id: "i-1", cantidad: 10, costo_unitario: 5, codigo_lote: "L-9", nota: undefined }]);
+    expect(a.p_pago).toBeUndefined();
+    expect(a.p_nota).toBeUndefined();
   });
-  it("al contado: condición contado, sin vencimiento y con sus medios de pago", () => {
+  it("factura manda su total; sin papel, ni total ni serie", () => {
+    expect(argsDeCompra(base, ids).p_total).toBe(59);
+    const sp = argsDeCompra({ ...base, sinPapel: true }, ids);
+    expect([sp.p_total, sp.p_serie, sp.p_numero, sp.p_sin_papel]).toEqual([undefined, undefined, undefined, true]);
+  });
+  it("«ya la pagué» manda los medios y no el vencimiento", () => {
     const a = argsDeCompra({ ...base, pagada: true, medios: [{ metodo: "efectivo", monto: 59 }] }, ids);
-    expect(a.p_condicion).toBe("contado");
-    expect(a.p_fecha_vencimiento).toBeUndefined();
-    expect(a.p_pago).toEqual([{ metodo: "efectivo", monto: 59 }]);
-  });
-  it("sin papel: no manda serie ni número y la base pone la nota de venta provisional", () => {
-    const a = argsDeCompra({ ...base, sinPapel: true, serie: "F001", numero: "123" }, ids);
-    expect(a.p_sin_papel).toBe(true);
-    expect(a.p_serie).toBeUndefined();
-    expect(a.p_numero).toBeUndefined();
+    expect([a.p_condicion, a.p_fecha_vencimiento, a.p_pago]).toEqual(["contado", undefined, [{ metodo: "efectivo", monto: 59 }]]);
   });
 });

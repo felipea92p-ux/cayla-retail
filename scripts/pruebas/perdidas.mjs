@@ -627,6 +627,8 @@ const ER_6951 = `pg_get_functiondef('retail.fn_estado_resultados(date, date, uui
 const FOTO_6951 = (n) => `
 create temp table dia_${n} as select * from retail.fn_asientos('2031-03-01', '2031-03-31');
 create temp table er_${n} as select to_jsonb(e) as j from retail.fn_estado_resultados('2031-03-01', '2031-03-31') e;
+-- detalle_mermas va por monto, sin desempate: dos reglas con el mismo monto salen en cualquier orden. Se comparan cifras, no ese orden.
+update er_${n} set j = jsonb_set(j, '{detalle_mermas}', (select coalesce(jsonb_agg(e order by e ->> 'regla'), '[]'::jsonb) from jsonb_array_elements(j -> 'detalle_mermas') e));
 insert into huellas select '${n}', md5(${ASIENTOS_6951}), md5(${ER_6951});
 `;
 // Lo que la migración cambia en la sesión (`search_path`, `lock_timeout`): se devuelve para que lo que sigue corra como siempre.

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
-import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
+import { getCatalogoParaOfrecer } from "@/lib/catalogo-v2";
 import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -67,7 +67,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas] = await Promise.all([
     // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
-    getCatalogoDeLaSede(persona.ubicacionId),
+    getCatalogoParaOfrecer(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
     getUbicaciones(),

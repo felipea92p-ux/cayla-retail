@@ -240,58 +240,6 @@ export function estadoInsumo(saldo: number, minimo: number | null): EstadoInsumo
   return { tono: "bien", etiqueta: "Alcanza" };
 }
 
-export type PrevisionConsumo =
-  | { ok: true; lote: LoteConSaldo; saldoLote: number; quedaria: number; cantidad: number }
-  | { ok: false; motivo: string };
-
-/** Lo que la base va a hacer con un consumo, dicho ANTES de confirmar: de qué lote sale, cuánto le queda. Refleja la
- *  regla de `registrar_consumo_insumo`: sale del lote más antiguo con saldo y **no se parte** entre lotes; si no
- *  alcanza, se rechaza con el saldo exacto de ESE lote. */
-export function previsualizarConsumo(lotes: LoteConSaldo[], cantidad: number, nombre: string, unidad: UnidadInsumo): PrevisionConsumo {
-  if (!(cantidad > 0)) return { ok: false, motivo: "Indica cuánto se va a descontar." };
-  const lote = loteMasAntiguoConSaldo(lotes);
-  if (!lote) return { ok: false, motivo: `No hay saldo de ${nombre}. Ingrésalo primero.` };
-  if (cantidad > lote.saldo) {
-    const t = cantidadTexto(lote.saldo, unidad);
-    return { ok: false, motivo: `El lote ${lote.codigo ?? "más antiguo"} solo tiene ${t}. Registra ${t} y luego el resto: sale del siguiente lote, con su propio costo.` };
-  }
-  return { ok: true, lote, saldoLote: lote.saldo, quedaria: lote.saldo - cantidad, cantidad };
-}
-
-/** Un descuento de una orden, con signo: el consumo suma y la devolución resta. */
-export type DescuentoDeOrden = { loteId: string | null; cantidad: number };
-
-export type PrevisionDevolucion =
-  | { ok: true; lote: LoteConSaldo; netoLote: number; netoTotal: number; saldoLoteDespues: number; cantidad: number }
-  | { ok: false; motivo: string };
-
-/** Lo que la base va a hacer al devolver, dicho ANTES de confirmar. Refleja `devolver_insumo_de_produccion`: la cantidad
- *  vuelve al ÚLTIMO lote (por ingreso) del que esta orden sacó el insumo —PEPS al revés— y no se parte entre lotes;
- *  nunca se devuelve más de lo que la orden tiene descontado. */
-export function previsualizarDevolucion(
-  lotes: LoteConSaldo[],
-  descontados: DescuentoDeOrden[],
-  cantidad: number,
-  nombre: string,
-  unidad: UnidadInsumo
-): PrevisionDevolucion {
-  if (!(cantidad > 0)) return { ok: false, motivo: "Indica cuánto se va a devolver." };
-  const netoDe = (id: string) => descontados.filter((d) => d.loteId === id).reduce((s, d) => s + d.cantidad, 0);
-  const conNeto = [...lotes]
-    .sort((a, b) => (a.ingreso === b.ingreso ? a.creadoEn.localeCompare(b.creadoEn) : a.ingreso.localeCompare(b.ingreso)))
-    .map((l) => ({ lote: l, neto: netoDe(l.id) }))
-    .filter((x) => x.neto > 0);
-  if (conNeto.length === 0) return { ok: false, motivo: `Esta orden no tiene ${nombre} descontado.` };
-  const netoTotal = conNeto.reduce((s, x) => s + x.neto, 0);
-  const ultimo = conNeto[conNeto.length - 1];
-  if (cantidad > netoTotal) return { ok: false, motivo: `Esta orden solo tiene descontado ${cantidadTexto(netoTotal, unidad)} de ${nombre}.` };
-  if (cantidad > ultimo.neto) {
-    const t = cantidadTexto(ultimo.neto, unidad);
-    return { ok: false, motivo: `El último lote del que salió (${ultimo.lote.codigo ?? "sin código"}) tiene ${t} de esta orden. Devuelve ${t} y luego el resto: vuelve al lote anterior, con su propio costo.` };
-  }
-  return { ok: true, lote: ultimo.lote, netoLote: ultimo.neto, netoTotal, saldoLoteDespues: ultimo.lote.saldo + cantidad, cantidad };
-}
-
 /** Consumo semanal medido: lo consumido en los últimos `dias` (28 = 4 semanas) llevado a una semana. `null` si no
  *  hubo consumo en la ventana (no hay con qué estimar cuánto dura, y no se inventa). */
 export function consumoSemanal(movs: Pick<MovimientoInsumo, "tipo" | "cantidad" | "creadoEn">[], hoy: string, dias = 28): number | null {
