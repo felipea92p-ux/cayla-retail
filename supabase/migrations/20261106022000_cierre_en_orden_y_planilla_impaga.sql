@@ -26,7 +26,8 @@
 --   motivo viaja por una variable de la transacción (`retail.cierre_salta_planilla`) y no debe bastar con ponerla para saltar.
 -- SE ROMPE SI: una migración futura recrea una de estas funciones copiando un texto viejo del repo (lo vigila `pnpm pruebas:cierre-mes`).
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución. Sin tablas ni políticas ni disparadores. Pegarla dos veces no hace nada.
+-- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución. Sin tablas ni políticas ni disparadores. Pegarla dos veces no hace nada. Sin `select … into` dentro de
+-- los textos citados (el SQL Editor lo toma por un SELECT INTO y rompe el pegado, ADR-0288).
 -- ============================================================================
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -111,11 +112,10 @@ $a$     where not (x ->> 'bloquea')::boolean and not (x ->> 'ok')::boolean and x
 $n$     where (not (x ->> 'bloquea')::boolean or (v_saltada and x ->> 'clave' = 'planilla')) and not (x ->> 'ok')::boolean and x ->> 'clave' <> 'huella';
     -- La planilla saltada queda en el cierre con su motivo: ahí se ve quién la dejó pasar y por qué.
     if v_saltada then
-      select coalesce(jsonb_agg(case when x ->> 'clave' = 'planilla'
-                                     then x || jsonb_build_object('saltada', true, 'motivo', v_salta, 'saltada_por', v_actor)
-                                     else x end), '[]'::jsonb)
-        into v_avisos
-        from jsonb_array_elements(v_avisos) x;
+      v_avisos := (select coalesce(jsonb_agg(case when x ->> 'clave' = 'planilla'
+                                                  then x || jsonb_build_object('saltada', true, 'motivo', v_salta, 'saltada_por', v_actor)
+                                                  else x end), '[]'::jsonb)
+                     from jsonb_array_elements(v_avisos) x);
     end if;$n$, 1);
 
 -- ---------- 3. reabrir_periodo: solo el último cerrado ----------
