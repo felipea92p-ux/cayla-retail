@@ -41,6 +41,10 @@ import {
   tipoDeMovimiento,
   validarAbonoPos,
   validarMovimiento,
+  validarPagoSunat,
+  mesesParaPagarSunat,
+  totalPagoSunat,
+  type BorradorPagoSunat,
   type BorradorMovimiento,
   type Conciliacion,
   type ConciliacionCuenta,
@@ -133,18 +137,21 @@ export function PantallaDinero({
 }) {
   const params = useSearchParams();
   const ruta = usePathname();
-  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string } | null>(null);
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string; mesSunat?: string } | null>(null);
   // El dock de las otras caras lleva aquí con `?registrar=1`: la hoja abre sola, como si se hubiera tocado el botón, y el parámetro
   // sale de la dirección (recargar no la vuelve a abrir).
-  const pideRegistrar = params.get("registrar") === "1";
+  // Desde Impuestos llega con `?registrar=pago_sunat&mes=`: la hoja abre en Pagar a SUNAT, en ese mes.
+  const registrar = params.get("registrar");
+  const pideRegistrar = registrar === "1" || registrar === "pago_sunat";
+  const mesPedido = params.get("mes") ?? undefined;
   useEffect(() => {
     if (!pideRegistrar) return;
     const p = new URLSearchParams(window.location.search);
     p.delete("registrar");
     window.history.replaceState(null, "", p.size ? `${ruta}?${p}` : ruta);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la hoja abierta desde el primer pintado no dejaba hidratar la página (medido 2026-10-23): se abre al montar, como el #fotos de ProductoForm
-    setModal({ que: "deposito" });
-  }, [pideRegistrar, ruta]);
+    setModal(registrar === "pago_sunat" ? { que: "pago_sunat", mesSunat: mesPedido } : { que: "deposito" });
+  }, [pideRegistrar, registrar, mesPedido, ruta]);
 
   return (
     <ContextoMovimiento.Provider value={(que, origenId, monto) => setModal({ que: que ?? "deposito", origenId, monto })}>
@@ -186,6 +193,7 @@ export function PantallaDinero({
           inicial={modal.que}
           origenInicial={modal.origenId}
           montoInicial={modal.monto}
+          mesSunatInicial={modal.mesSunat}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -573,6 +581,7 @@ function RegistrarMovimientoModal({
   inicial,
   origenInicial,
   montoInicial,
+  mesSunatInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -581,6 +590,8 @@ function RegistrarMovimientoModal({
   onCerrar,
 }: {
   inicial: QuePaso;
+  /** El mes con que arranca Pagar a SUNAT, si se llega desde Impuestos. */
+  mesSunatInicial?: string;
   /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
   origenInicial?: string;
   /** El monto con que arranca, si una pantalla ya lo sabe (el saldo con CLAURE); la persona lo puede cambiar. */
@@ -598,6 +609,12 @@ function RegistrarMovimientoModal({
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
   const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
+  const mesesSunat = mesesParaPagarSunat(hoy);
+  const [sunat, setSunat] = useState<BorradorPagoSunat>(() => ({
+    mes: mesesSunat.find((m) => m.valor === mesSunatInicial)?.valor ?? mesesSunat[0]!.valor,
+    igv: "",
+    renta: "",
+  }));
   const [b, setB] = useState<BorradorMovimiento>(() => {
     const base = { ...inicialDe(inicial, cuentas, ubicacionId, deuda, hoy), ...(montoInicial ? { monto: montoInicial } : {}) };
     const origenDelAviso = origenDeArranque(inicial, origenInicial, cuentas);
@@ -697,6 +714,19 @@ function RegistrarMovimientoModal({
       avisar.exito("Depósito de la máquina registrado", {
         detalle: r.comision && r.comision > 0 ? `La comisión real, ${soles(r.comision)}, quedó como gasto bancario de la empresa.` : "Llegó completo: sin comisión.",
       });
+      onCerrar();
+      router.refresh();
+      return;
+    }
+    if (b.que === "pago_sunat") {
+      const p = validarPagoSunat(b, sunat, { cuentas, hoy });
+      if (!p.ok) return avisar.error(p.error);
+      setGuardando(true);
+      const { error } = await firmar(createClient().rpc("registrar_pago_sunat" as never, { ...p.valor, p_token: token } as never), responsable.firma());
+      setGuardando(false);
+      responsable.despues(error);
+      if (error) return avisar.error(traducirError(error, "registrar el pago a SUNAT"));
+      avisar.exito("Pago a SUNAT registrado", { detalle: p.valor.p_referencia });
       onCerrar();
       router.refresh();
       return;
@@ -882,9 +912,27 @@ function RegistrarMovimientoModal({
         </div>
       )}
 
+      {b.que === "pago_sunat" && (
+        <div className="space-y-3" data-sin-cascada data-guia="fin-dinero.mov-sunat">
+          <CampoFin etiqueta="De qué mes es" htmlFor="mov-sunat-mes">
+            <SelectFin<string> id="mov-sunat-mes" valor={sunat.mes} onValor={(mes) => setSunat((s) => ({ ...s, mes }))} opciones={mesesSunat} />
+          </CampoFin>
+          <div className="fin-dos-campos">
+            <CampoFin etiqueta="IGV" htmlFor="mov-sunat-igv">
+              <InputFin id="mov-sunat-igv" inputMode="decimal" value={sunat.igv} onChange={(e) => setSunat((s) => ({ ...s, igv: e.target.value }))} />
+            </CampoFin>
+            <CampoFin etiqueta="Impuesto a la renta" htmlFor="mov-sunat-renta">
+              <InputFin id="mov-sunat-renta" inputMode="decimal" value={sunat.renta} onChange={(e) => setSunat((s) => ({ ...s, renta: e.target.value }))} />
+            </CampoFin>
+          </div>
+        </div>
+      )}
+
       <div className="fin-dos-campos" data-guia="fin-dinero.mov-monto">
-        <CampoFin etiqueta={tipo === "abono_tarjeta" ? "Monto que llegó al banco" : "Monto"} htmlFor="mov-monto">
-          {esCajon && b.fuente === "egreso" ? (
+        <CampoFin etiqueta={tipo === "abono_tarjeta" ? "Monto que llegó al banco" : b.que === "pago_sunat" ? "Total que salió del banco" : "Monto"} htmlFor="mov-monto">
+          {b.que === "pago_sunat" ? (
+            <InputFin id="mov-monto" readOnly value={soles(totalPagoSunat(sunat))} />
+          ) : esCajon && b.fuente === "egreso" ? (
             <InputFin id="mov-monto" readOnly value={egresos.find((e) => e.id === b.egresoId) ? soles(egresos.find((e) => e.id === b.egresoId)!.monto) : "—"} />
           ) : (
             <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : "1,500.00" /* sugerir-fijo: el formato de un monto, no depende de nada elegido */} />

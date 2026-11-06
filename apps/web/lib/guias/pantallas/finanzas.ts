@@ -718,6 +718,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "A la derecha, lo que se puso (verde) y lo que se sacó (ámbar), agrupado por quién lo registró, por cuenta o por mes. Dice a quien anotó el movimiento, no necesariamente a quien lo pidió. Abajo, el neto que queda para CAYLA.",
     },
     {
+      id: "mov-sunat",
+      ancla: "fin-dinero.mov-sunat",
+      opcional: true,
+      titulo: "De qué mes es el pago a SUNAT",
+      texto: "Eliges el mes y escribes cuánto pagaste de IGV y de impuesto a la renta. Así ese mes queda marcado como pagado en Impuestos y la renta no se confunde con el IGV. Si anulas el pago, el mes vuelve a quedar sin pagar. En la demo no guardamos nada.",
+    },
+    {
       id: "mov-dueno",
       ancla: "fin-dinero.mov-dueno",
       opcional: true,

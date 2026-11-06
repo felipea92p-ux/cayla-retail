@@ -37,6 +37,9 @@ import {
   tipoDeMovimiento,
   tiposParaMedio,
   validarMovimiento,
+  validarPagoSunat,
+  totalPagoSunat,
+  mesesParaPagarSunat,
   OPCIONES_QUE_PASO,
   type BorradorMovimiento,
   type ConciliacionCuenta,
@@ -226,6 +229,33 @@ describe("el formulario «Registrar movimiento»", () => {
   const egresos: EgresoParaMovimiento[] = [{ id: "e1", cajaId: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: "Voucher 7788", creadoEn: "2026-09-23T15:00:00Z", marca: null }];
   const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: " Voucher 1 ", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
   const ctx = { cuentas: TODAS, egresos, deuda: 6000, hoy };
+
+  it("pagar a SUNAT dice de qué mes es y separa IGV de renta (tarea 10)", () => {
+    const b = { origen: "bcp", referencia: "", fecha: hoy };
+    const c = { cuentas: TODAS, hoy };
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "1,200", renta: "300.50" }, c)).toEqual({
+      ok: true,
+      valor: {
+        p_cuenta_id: "bcp",
+        p_fecha: hoy,
+        p_lineas: [{ mes: "2026-08-01", concepto: "igv", monto: 1200 }, { mes: "2026-08-01", concepto: "renta", monto: 300.5 }],
+        p_referencia: "IGV y Renta de agosto 2026",
+      },
+    });
+    // Solo renta: el IGV a favor no se paga.
+    expect(validarPagoSunat({ ...b, referencia: " OP-1 " }, { mes: "2026-08", igv: "", renta: "80" }, c)).toMatchObject({ ok: true, valor: { p_lineas: [{ concepto: "renta", monto: 80 }], p_referencia: "OP-1" } });
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "", renta: "" }, c)).toEqual({ ok: false, error: "Escribe cuánto pagaste de IGV o de renta." });
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "0", renta: "" }, c).ok).toBe(false);
+    expect(validarPagoSunat(b, { mes: "2026-08", igv: "abc", renta: "" }, c).ok).toBe(false);
+    expect(validarPagoSunat({ ...b, origen: "cTRU" }, { mes: "2026-08", igv: "10", renta: "" }, c)).toEqual({ ok: false, error: "Elige de qué banco salió el pago." });
+    expect(validarPagoSunat(b, { mes: "", igv: "10", renta: "" }, c)).toEqual({ ok: false, error: "Elige de qué mes es el pago." });
+    expect(validarPagoSunat({ ...b, fecha: "2026-09-25" }, { mes: "2026-08", igv: "10", renta: "" }, c)).toEqual({ ok: false, error: "La fecha no puede ser futura." });
+    expect(validarPagoSunat({ ...b, fecha: "2026-07-20" }, { mes: "2026-08", igv: "10", renta: "" }, c).ok).toBe(false);
+    expect(totalPagoSunat({ igv: "1,200", renta: "300.50" })).toBe(1500.5);
+    expect(totalPagoSunat({ igv: "abc", renta: "" })).toBe(0);
+    expect(mesesParaPagarSunat(hoy)[0]).toEqual({ valor: "2026-08", texto: "agosto 2026" });
+    expect(mesesParaPagarSunat(hoy)).toHaveLength(12);
+  });
 
   it("pagar la planilla y pagar a SUNAT salen de un banco y no llegan a ninguna cuenta (ADR-0417, situaciones 15 y 16)", () => {
     const r = validarMovimiento({ ...base, que: "pago_planilla", origen: "bcp", destino: "", monto: "25,400", referencia: "Planilla de octubre" }, ctx);

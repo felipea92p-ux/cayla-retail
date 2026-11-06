@@ -63,6 +63,9 @@ export const TEXTO_REGIMEN: Record<Regimen, string> = {
 };
 
 type Vigente = { valor: number; provisional: boolean };
+/** Lo pagado a SUNAT de un mes, de los movimientos vigentes. */
+export type PagoDeMes = { mes: string; igv: number; renta: number };
+
 export type PanelImpuestos = {
   hoy: string;
   /** El mes que se mira («2026-08»). */
@@ -70,6 +73,8 @@ export type PanelImpuestos = {
   mesActual: string;
   foco: MesIgv | null;
   historial: MesIgv[];
+  /** Lo pagado a SUNAT por mes (tarea 10). Sin el dato, ningún mes se da por pagado: el sistema no afirma lo que no leyó. */
+  pagos?: PagoDeMes[];
   parametros: {
     igv: Vigente | null;
     uit: (Vigente & { anio: number }) | null;
@@ -187,20 +192,36 @@ export function nombreMes(mes: string): string {
 
 // ---- Estado de cada mes en el historial ----------------------------------------------------------------------------------
 
-export type EstadoMesIgv = "en_curso" | "por_declarar" | "a_favor" | "sin_pago" | "sin_movimiento";
+export type EstadoMesIgv = "en_curso" | "por_declarar" | "pagado" | "a_favor" | "sin_pago" | "sin_movimiento";
 export const TEXTO_ESTADO_MES: Record<EstadoMesIgv, { texto: string; tono: "pizarra" | "ambar" | "verde" | "neutro" | "apagado" }> = {
   en_curso: { texto: "en curso", tono: "pizarra" },
   por_declarar: { texto: "por declarar", tono: "ambar" },
+  pagado: { texto: "pagado", tono: "verde" },
   a_favor: { texto: "a favor", tono: "verde" },
-  // El pago a SUNAT todavía no se registra aquí (necesita Cuentas y dinero): no se afirma que se declaró.
   sin_pago: { texto: "sin pago registrado", tono: "neutro" },
   sin_movimiento: { texto: "sin movimiento", tono: "apagado" },
 };
 
-/** El mes en curso todavía cambia; el anterior es el que se declara ahora (se declara aunque quede a favor); los de antes
- *  dicen si dejaron algo a pagar o a favor. «Declarado» no se afirma: el pago a SUNAT no se registra todavía. */
-export function estadoMes(m: Pick<MesIgv, "mes" | "aPagar" | "saldoAFavor" | "debito" | "credito">, mesActual: string): EstadoMesIgv {
+/** Las filas de `fn_impuestos_pagos` (mes, concepto, monto), una por mes. */
+export function leerPagosSunat(data: unknown): PagoDeMes[] {
+  const porMes = new Map<string, PagoDeMes>();
+  for (const f of Array.isArray(data) ? data : []) {
+    const fila = obj(f);
+    const mes = texto(fila.mes).slice(0, 7);
+    const pago = porMes.get(mes) ?? { mes, igv: 0, renta: 0 };
+    if (fila.concepto === "igv") pago.igv += num(fila.monto);
+    if (fila.concepto === "renta") pago.renta += num(fila.monto);
+    porMes.set(mes, pago);
+  }
+  return [...porMes.values()];
+}
+
+/** El mes en curso todavía cambia; un mes cuyo IGV ya se cubrió con pagos dice «pagado»; el anterior es el que se declara ahora
+ *  (se declara aunque quede a favor); los de antes dicen si dejaron algo a pagar o a favor. «Declarado» no se afirma: aquí se
+ *  registra el pago, no la declaración. */
+export function estadoMes(m: Pick<MesIgv, "mes" | "aPagar" | "saldoAFavor" | "debito" | "credito">, mesActual: string, pago?: PagoDeMes): EstadoMesIgv {
   if (m.mes >= mesActual) return "en_curso";
+  if (m.aPagar > 0 && pago && pago.igv >= m.aPagar - 0.005) return "pagado";
   if (m.mes === sumarMeses(mesActual, -1)) return "por_declarar";
   if (m.aPagar > 0) return "sin_pago";
   if (m.saldoAFavor > 0) return "a_favor";

@@ -26,9 +26,9 @@ export function PagasImpuestos({ cuenta, guia }: { cuenta: CuentaImpuestos; guia
       </p>
       {hay && <span className="fin-pagas-chip">{cuenta.chip}</span>}
       <p className="fin-pagas-frase">{cuenta.frase}</p>
-      {hay && (
+      {hay && !cuenta.pagadoTodo && (
         <div>
-          <BotonEnlace href="/finanzas/dinero" peso="fantasma" title="Anota el pago que hiciste desde un banco, en Cuentas y dinero">
+          <BotonEnlace href={cuenta.registrarPago} peso="fantasma" title="Anota el pago que hiciste desde un banco, en Cuentas y dinero">
             <Landmark aria-hidden className="h-4 w-4" /> Registrar pago
           </BotonEnlace>
         </div>
