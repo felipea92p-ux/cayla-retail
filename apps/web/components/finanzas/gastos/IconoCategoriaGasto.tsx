@@ -14,7 +14,9 @@ import {
   Plug,
   Receipt,
   Scissors,
+  ScrollText,
   ShieldCheck,
+  Shirt,
   ShoppingBag,
   SprayCan,
   Truck,
@@ -47,6 +49,8 @@ const DIBUJO: Record<IconoGasto, LucideIcon> = {
   edificio: Landmark,
   maleta: Luggage,
   regla: PencilRuler,
+  rollo: ScrollText,
+  prenda: Shirt,
   recibo: Receipt,
 };
 
