@@ -2,12 +2,13 @@ import { exigirModulo, veFinanzasDeTodoDe, veModulo } from "@/lib/persona-actual
 import { hoyLima } from "@/lib/fechas-lima";
 import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
 import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
+import { getBalancePorTienda } from "@/lib/balance";
 import { getEstadoResultados, getFaltaDelMes } from "@/lib/resultados";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { getFlujoProximo, getTiendasActivas, getVentasPorDia } from "@/lib/resumen-telar";
 import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
 import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea, tramoDeComparacion, tramoDelMes, tramoDeSueldos } from "@/lib/resumen-telar-reglas";
+import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea, tramoDeComparacion, tramoDelMes } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 import { getCuentaClaure } from "@/lib/cuenta-claure";
 import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
@@ -31,7 +32,6 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const veTodo = veFinanzasDeTodoDe(persona);
   const pedido = leerVerResumen(sedeDeLaUrl(sp), veTodo);
   const tramo = tramoDelMes(mes, hoy)!;
-  const sueldos = tramoDeSueldos(mes, hoy)!;
   const comparar = tramoDeComparacion(mes, hoy);
   // La línea de ventas (si la cuenta ve Rendimiento) se pide A LA VEZ que todo lo demás, con las tiendas adivinadas de la URL (ADR-0583): antes
   // esperaba al resumen entero para saber qué tiendas pedir. Si la base resolvió otras, se piden de nuevo abajo.
@@ -43,10 +43,10 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       })
     : null;
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas, faltaDelMes, planillaPorRegistrar] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas, faltaDelMes, planillaPorRegistrar, cajasPorSede] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
-    getEstadoResultados(tramo.desde, tramo.hasta, sueldos.hasta),
+    getEstadoResultados(tramo.desde, tramo.hasta),
     getEstadoResultados(comparar.desde, comparar.hasta),
     getSedesDelTelar(),
     getFlujoProximo(),
@@ -57,6 +57,8 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     mes === mesDeHoy ? getFaltaDelMes(mes) : Promise.resolve([]),
     // La planilla que Dynamic pagó y aquí no bajó del banco: «¿Cuánto tienes?» la sigue sumando, y lo dice. Sin lectura, calla: el aviso sale en el cajón.
     persona.rol === "lider" ? getPlanillaParaElInicio().catch(() => undefined) : Promise.resolve(undefined),
+    // «Cada sede, junta» (tarea 27): la caja de cada sede a la misma fecha que las cifras del mes. Solo quien ve todas las sedes.
+    veTodo ? getBalancePorTienda(tramo.hasta) : Promise.resolve(null),
   ]);
   // `null`: la cuenta no lo ve o CLAURE no tiene nada todavía (la tarjeta no se dibuja); `{ saldo: null }`: se cayó la lectura (se dice, no se inventa).
   const claure =
@@ -92,6 +94,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       inversionFalla={inversion.falla}
       acceso={{ lider: veTodo, modulos: persona.modulos.map((m) => m.clave) }}
       claure={claure}
+      cajasPorSede={cajasPorSede}
     />
   );
 }

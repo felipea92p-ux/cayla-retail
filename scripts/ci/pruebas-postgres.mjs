@@ -195,10 +195,14 @@ export const PRUEBAS = [
   // El medidor de confianza de Finanzas (ADR-0417): los siete hechos salen y cada uno se mueve con su dato; por sede; permisos;
   // pegar dos veces. ROLLBACK.
   "pruebas:finanzas-confianza",
+  "pruebas:cierre-orden-y-planilla",
 
   // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
   "pruebas:pago-planilla-y-sunat",
+  "pruebas:planilla-conceptos",
+  "pruebas:comision-estimada",
+  "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo
   // pagado partido por banco, lo que no corresponde fuera (sin pagar, antes del inicio, sin plata), quién lo ve, registrado con otro
@@ -1905,6 +1909,7 @@ export const PRUEBAS = [
   // Lo que se le debe a un servicio llega a Por pagar (ADR-0614, actividad 3): devengado menos lo documentado, se suma a la deuda de Producción,
   // solo lo ve el líder, y el nombre se registra con la orden cerrada sin tocar el monto. ROLLBACK.
   "pruebas:produccion-servicios-por-pagar",
+  "pruebas:finanzas-servicios-por-pagar",
 
   // Pagar a un servicio con el papel que dio (ADR-0614, actividad 4): cada papel, la deuda que baja sin IGV, de más no, sin nombre no, y el token. ROLLBACK.
   "pruebas:produccion-pagar-servicio",

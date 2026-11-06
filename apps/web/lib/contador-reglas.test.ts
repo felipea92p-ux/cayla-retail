@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ARCHIVOS_CONTADOR,
+  conPrimerasLineas,
   csvDiarioContador,
   csvFlujoContador,
   csvPatrimonioContador,
@@ -11,13 +12,13 @@ import {
   nombreArchivoContador,
   balanzaCuadra,
   leerVerCuentas,
-  opcionesVer,
-  vistaActiva,
+  opcionesDelContador,
   filtrarDiario,
   gruposDeSaldos,
   sedesDelDiario,
 } from "./contador-reglas";
 import type { FlujoReal } from "./flujo-caja-reglas";
+import { csvDe } from "./resultados-reglas";
 import type { FilaER, LineaDiario } from "./resultados-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 
@@ -161,34 +162,43 @@ describe("ver en pantalla: los saldos por cuenta y el libro diario", () => {
   });
 });
 
-describe("la barra de las siete vistas", () => {
-  const hrefEstado = (c: string, f: string) => `/${c}${f === "formal" ? "?forma=formal" : ""}`;
-  const hrefCuentas = (v: string) => `/cuentas?ver=${v}`;
-  it("siete opciones: las respuestas y los seis cuadros, cada uno a su lugar", () => {
-    const o = opcionesVer({ pantalla: "plata", hrefEstado, hrefCuentas, veTodo: true });
-    expect(o.map((x) => [x.clave, x.href])).toEqual([
-      ["respuestas", "/plata"],
-      ["resultados", "/ganamos?forma=formal"],
-      ["flujo", "/plata?forma=formal"],
-      ["balance", "/vale?forma=formal"],
-      ["patrimonio", "/tuyo?forma=formal"],
-      ["saldos", "/cuentas?ver=saldos"],
-      ["diario", "/cuentas?ver=diario"],
+describe("«Para el contador»", () => {
+  const hrefCuentas = (v: string) => `/cuentas?cuadro=${v}`;
+  it("ver los dos cuadros y bajar cada archivo", () => {
+    const o = opcionesDelContador({ veTodo: true, hrefCuentas });
+    expect(o.map((x) => x.etiqueta)).toEqual([
+      "Ver saldos por cuenta",
+      "Ver el libro diario",
+      "Descargar estado de resultados",
+      "Descargar flujo de efectivo",
+      "Descargar Balance general",
+      "Descargar cambios en el patrimonio",
+      "Descargar saldos por cuenta",
+      "Descargar libro diario",
     ]);
-    expect(o.every((x) => !x.motivo)).toBe(true);
-    expect(o.map((x) => x.corto)).toEqual(["Respuestas", "Resultados", "Flujo de efectivo", "Balance", "Patrimonio", "Saldos por cuenta", "Libro diario"]);
+    expect(o[0]).toMatchObject({ href: "/cuentas?cuadro=saldos" });
+    expect(o[2]).toMatchObject({ archivo: "resultados" });
   });
-  it("desde las cuentas, «Las respuestas» vuelve a ¿Ganamos?; una terminal ve lo de CAYLA entera con su motivo", () => {
-    const o = opcionesVer({ pantalla: "diario", hrefEstado, hrefCuentas, veTodo: false });
-    expect(o[0]!.href).toBe("/ganamos");
-    expect(o.filter((x) => x.motivo).map((x) => x.clave)).toEqual(["flujo", "balance", "patrimonio", "saldos", "diario"]);
+  it("una terminal solo ve lo suyo: lo de CAYLA entera no se le ofrece", () => {
+    expect(opcionesDelContador({ veTodo: false, hrefCuentas }).map((x) => x.clave)).toEqual(["bajar-resultados"]);
   });
-  it("lo que se está viendo", () => {
-    expect(vistaActiva("ganamos", "respuesta")).toBe("respuestas");
-    expect(vistaActiva("vale", "formal")).toBe("balance");
-    expect(vistaActiva("tuyo", "formal")).toBe("patrimonio");
-    expect(vistaActiva("diario", "respuesta")).toBe("diario");
+  it("el cuadro que se mira", () => {
     expect(leerVerCuentas("diario")).toBe("diario");
     expect(leerVerCuentas(undefined)).toBe("saldos");
+  });
+});
+
+describe("lo que hay que saber antes de leer un archivo (tarea 23)", () => {
+  it("el aviso va en la primera línea, después de la marca de Excel, y el resto del archivo queda igual", () => {
+    const csv = csvDe([["Estado de resultados"], ["Ventas", 100]]);
+    const con = conPrimerasLineas(csv, ["Sin sueldos: no se ve; la planilla"]);
+    expect(con.charCodeAt(0)).toBe(0xfeff);
+    expect(con.slice(1).split("\r\n")[0]).toBe('"Sin sueldos: no se ve; la planilla"');
+    expect(con.endsWith(csv.slice(1))).toBe(true);
+    expect(con.match(/\uFEFF/g)).toHaveLength(1);
+  });
+  it("sin avisos, el archivo no cambia", () => {
+    const csv = csvDe([["a"]]);
+    expect(conPrimerasLineas(csv, [])).toBe(csv);
   });
 });

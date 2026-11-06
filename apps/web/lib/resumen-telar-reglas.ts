@@ -153,20 +153,6 @@ export function tramoDelMes(mes: string, hoy: string): { desde: string; hasta: s
   return { desde: `${mes}-01`, hasta: mes === hoy.slice(0, 7) ? hoy : ultimo };
 }
 
-/**
- * El rango con el que se pide la provisión de sueldos (`fn_planilla_provision`): del 1 al ÚLTIMO día del mes, aunque el resto de las cifras llegue
- * solo hasta hoy. La base devuelve el período de Dynamic que TERMINA dentro del rango (D-35: el período que termina en el mes es la planilla de
- * ese mes) y trae lo devengado hasta hoy; pedirla «del 1 a hoy» dejaba fuera el período 28-sep → 28-oct hasta el día 28 y el mes parecía ganar
- * lo que no ganaba. `null` si el mes todavía no llega.
- */
-export function tramoDeSueldos(mes: string, hoy: string): { desde: string; hasta: string } | null {
-  const t = tramoDelMes(mes, hoy);
-  if (!t) return null;
-  const [a, m] = mes.split("-").map(Number) as [number, number];
-  const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
-  return { desde: t.desde, hasta: `${mes}-${String(ultimo).padStart(2, "0")}` };
-}
-
 /** La misma columna sin sueldos: los saca de la planilla, de los gastos, de su línea 62 y de lo que deja. */
 function sinSueldos(f: FilaER): FilaER {
   if (!f.planilla) return f;

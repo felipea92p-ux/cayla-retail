@@ -17,7 +17,8 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
  *  · `sustenta`: resta entero — factura, recibo por honorarios, planilla de movilidad (art. 37 inc. a1);
  *  · `con_tope`: resta solo hasta el 6 % de lo sustentado y 200 UIT al año — boleta y ticket (art. 37 inc. z, pensado para el
  *    Nuevo RUS; se asume que todo el que da boleta lo es, que es lo más favorable: el contador lo afina);
- *  · `no_sustenta`: no resta — nota de venta, sin comprobante, y cualquier papel que la regla todavía no conozca (lo prudente).
+ *  · `no_sustenta`: no resta — nota de venta, sin comprobante, lo pagado sin bancarizar (Ley 28194) y cualquier papel que la regla todavía no conozca (lo prudente).
+ * `no_requiere` (tarea 17) es lo que no lleva comprobante de un proveedor, como una comisión del banco: resta.
  */
 export type ClasePapel = "sustenta" | "con_tope" | "no_sustenta";
 
@@ -25,6 +26,7 @@ const CLASE: Record<string, ClasePapel> = {
   factura: "sustenta",
   recibo_por_honorarios: "sustenta",
   planilla_movilidad: "sustenta",
+  no_requiere: "sustenta",
   boleta: "con_tope",
   ticket: "con_tope",
 };
@@ -241,6 +243,15 @@ export function previoDelAno(parametros: readonly ParametroFila[], anio: number,
   };
 }
 
+/**
+ * Qué año se mira (tarea 17): de enero a marzo, el anterior, que es el que se está por pagar; y su corte es el 31 de diciembre, así que no proyecta nada. Desde abril, el
+ * año en curso hasta hoy. Sin esto, el 1 de enero la renta de 2026 desaparecía justo antes de pagarla y el 5 se proyectaba 2027 con cinco días.
+ */
+export function corteDeLaRenta(hoy: string): string {
+  const anio = Number(hoy.slice(0, 4));
+  return Number(hoy.slice(5, 7)) <= 3 ? `${anio - 1}-12-31` : hoy;
+}
+
 /** Desde cuándo cuenta el sistema en el año: el 1 de enero, o el inicio de Finanzas si fue después. */
 export function desdeDelSistema(anio: number, inicioFinanzas: string | null): string {
   const enero = `${anio}-01-01`;
@@ -262,6 +273,12 @@ export type RentaPantalla = {
   mesesAntes: number;
   /** ¿El contador ya dio lo de esos meses? Si no, el año entero sale del ritmo del sistema. */
   previoCargado: boolean;
+  /** Tarea 17: con menos de un mes completo, proyectar al año daría cualquier cosa: la tarjeta lo dice en vez de estimar. */
+  sinMesCompleto: boolean;
+  /** La tasa del pago a cuenta del año («1.5 %»), del parámetro. */
+  tasaPagoCuenta: number;
+  /** Lo pagado de verdad a SUNAT por la renta de este año: lo registrado más lo que el contador dijo de antes. */
+  pagadoDeVerdad: number;
   proyeccion: RentaDelAno;
   /** El costo por papel tal como se midió desde `desdeSistema` (sin proyectar): lo que dibuja la barra y lista la hoja. */
   medido: Sustento;
@@ -270,6 +287,8 @@ export type RentaPantalla = {
 
 /** Arma la tarjeta; `null` si falta la escala (sin ella no hay renta que estimar: la tarjeta lo dice). */
 export function armarRentaDelAno(e: {
+  /** Pagos a cuenta registrados del año (`fn_impuestos_pagos`). */
+  pagadoRegistrado?: number;
   hoy: string;
   inicioFinanzas: string | null;
   parametros: readonly ParametroFila[];
@@ -290,7 +309,8 @@ export function armarRentaDelAno(e: {
     { utilidad: e.utilidad, costoVentas: e.costoVentas, filas: e.filas, meses: mesesSistema, pagosACuenta: e.ventasSinIgv * tasaPagoCuenta, previo },
     tasas
   );
-  return { anio, desdeSistema, hasta: e.hoy, mesesSistema, mesesAntes, previoCargado: previo !== null, proyeccion, medido: resumirSustento(e.filas, tasas), filas: [...e.filas] };
+  const pagadoDeVerdad = r2((e.pagadoRegistrado ?? 0) + (previo?.pagado ?? 0));
+  return { anio, desdeSistema, hasta: e.hoy, mesesSistema, mesesAntes, previoCargado: previo !== null, sinMesCompleto: mesesSistema < 1, tasaPagoCuenta, pagadoDeVerdad, proyeccion, medido: resumirSustento(e.filas, tasas), filas: [...e.filas] };
 }
 
 // ---- A quién pedirle factura -----------------------------------------------------------------------------------------------
@@ -316,7 +336,8 @@ export function proveedoresSinFactura(filas: readonly FilaSustento[], tasa: numb
   const grupos = new Map<string, ProveedorSinFactura>();
   for (const f of filas) {
     const clase = clasePapel(f.papel);
-    if (clase === "sustenta") continue;
+    // Lo pagado sin bancarizar ya tiene su factura: pedirla otra vez no lo arregla.
+    if (clase === "sustenta" || f.papel === "no_bancarizado") continue;
     const clave = `${f.origen}:${f.proveedorId ?? "sin-proveedor"}`;
     const g = grupos.get(clave) ?? { clave, proveedor: f.proveedor, origen: f.origen, sinPapel: 0, enBoleta: 0, documentos: 0, ahorroRenta: 0, precioConFactura: 0 };
     if (clase === "con_tope") g.enBoleta += f.monto;

@@ -1,8 +1,9 @@
 "use client";
 
-import type { CampoDeGuia, EstadoCampo } from "@/lib/guia-campos";
+import { useLayoutEffect, useRef } from "react";
+import { rectangulosChocan, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
-// Las piezas visuales de «el hilo» (ADR-0284): la marca del título de un campo, la etiqueta «Sigue aquí» y la lista «Falta:» del
+// Las piezas visuales de «el hilo» (ADR-0284): la marca del título de un campo, la palabra «Sigue» y la lista «Falta:» del
 // pie de cada paso. Sus estilos viven en `app/estilos/alta-guia.css`; aquí solo se decide qué se dice y cómo se lee con lector
 // de pantalla.
 
@@ -32,9 +33,42 @@ export function VozDelEstado({ estado }: { estado: EstadoCampo }) {
   return texto ? <span className="sr-only">{texto}</span> : null;
 }
 
-/** «Sigue aquí»: solo el campo que sigue la lleva. */
-export function EtiquetaAhora() {
-  return <span className="hilo-etiqueta">Sigue aquí</span>;
+const CONTROLES_DEL_BLOQUE = "input:not([type='hidden']), textarea, button, [role='switch'], [role='radio'], [role='combobox']";
+
+/** ¿«Sigue» se monta sobre algo del bloque? Se mira cada texto y cada control, porque un título puede partirse en dos líneas y un interruptor vive a la derecha. */
+function palabraChoca(palabra: HTMLElement, bloque: HTMLElement): boolean {
+  const donde = palabra.getBoundingClientRect();
+  const rango = document.createRange();
+  const textos = document.createTreeWalker(bloque, NodeFilter.SHOW_TEXT);
+  for (let nodo = textos.nextNode(); nodo; nodo = textos.nextNode()) {
+    if (palabra.contains(nodo) || !nodo.textContent?.trim() || nodo.parentElement?.closest(".sr-only")) continue;
+    rango.selectNodeContents(nodo);
+    if ([...rango.getClientRects()].some((r) => rectangulosChocan(donde, r))) return true;
+  }
+  return [...bloque.querySelectorAll(CONTROLES_DEL_BLOQUE)].some((c) => rectangulosChocan(donde, c.getBoundingClientRect()));
+}
+
+/**
+ * «Sigue»: solo el campo que sigue la lleva. Sin `flota` va en su lugar (el estado de una tarjeta o de una lista). Con `flota` (el título de un campo guiado)
+ * va a la derecha del bloque y fuera de flujo: nada se mueve al aparecer, y si no le cabe se calla: ya lo dicen la marca y el hilo.
+ */
+export function EtiquetaAhora({ flota = false }: { flota?: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const palabra = ref.current;
+    const bloque = flota ? palabra?.closest<HTMLElement>(".hilo-luz, .hilo-fila-in") : null;
+    if (!palabra || !bloque) return;
+    const medir = () => palabra.toggleAttribute("data-sin-lugar", palabraChoca(palabra, bloque));
+    medir();
+    const cambia = new ResizeObserver(medir);
+    cambia.observe(bloque);
+    return () => cambia.disconnect();
+  }, [flota]);
+  return (
+    <span ref={ref} className={`hilo-etiqueta${flota ? " hilo-etiqueta-flota" : ""}`}>
+      Sigue
+    </span>
+  );
 }
 
 /**

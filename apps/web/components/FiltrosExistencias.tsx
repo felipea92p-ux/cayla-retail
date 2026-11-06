@@ -14,7 +14,8 @@ import { TEXTO_HOY, TIPOS_HOY } from "@/lib/existencias-hoy";
 import type { ConteoDeLista } from "@/lib/existencias-tarjetas";
 import { opcionesConConteo } from "@/lib/productos-facetas";
 import { alternarColor, estadoDeColor, listaParaUrl, opcionesDeColor, separarColor } from "@/lib/productos-filtros";
-import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
+import { bordeDeMuestra, FAMILIAS_COLOR } from "@/lib/colores-familias";
 import {
   chipsDeFiltros,
   CONDICIONES,
@@ -216,7 +217,7 @@ export function FiltrosExistencias({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   }

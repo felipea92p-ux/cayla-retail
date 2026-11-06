@@ -162,6 +162,7 @@ export function CabeceraConCuenta({
 
   function abrir(cual: "menu" | "buscar", boton: HTMLButtonElement) {
     disparador.current = boton;
+    if (cual === "buscar") prepararBuscador();
     setHoja(cual);
   }
   function cerrar() {
@@ -227,13 +228,18 @@ export function CabeceraConCuenta({
               <MenuGrande key={m.clave} menu={m} hrefNuevo={datos.nuevo.href} />
             ))}
             <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
-              Looks
+              Outfits
             </Link>
             <Link className="t-nav-b" href={datos.ofertas.href} aria-current={marca("ofertas")}>
               Ofertas
             </Link>
             <span className="t-raya" aria-hidden="true" />
           </nav>
+          {/* El buscador a la vista, en la cabecera (ADR-0615). Abre el mismo buscador de siempre. */}
+          <button type="button" className="dn-buscar-cab" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
+            <Icono nombre="lupa" />
+            <span>¿Qué estás buscando?</span>
+          </button>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
           {/* La bolsa antes y la cuenta al final (Felipe 2026-10-19): la cuenta, con su menú, queda en la esquina. */}
@@ -251,7 +257,7 @@ export function CabeceraConCuenta({
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} visitante={visitante} />}
+      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} visitante={visitante} actual={actual} tiendas={tiendas} prendasEnBolsa={prendasEnBolsa} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} indice={indiceDeEstaTienda} reintentar={prepararBuscador} cerrar={cerrar} />}
     </>
   );
@@ -648,8 +654,14 @@ function HojaMenu({
   datos,
   cerrar,
   visitante,
+  actual,
+  tiendas,
+  prendasEnBolsa,
 }: {
   datos: DatosCabecera;
+  actual: SeccionActual;
+  tiendas: OpcionTienda[] | null;
+  prendasEnBolsa: number;
   cerrar: () => void;
   visitante: boolean;
 }) {
@@ -665,7 +677,7 @@ function HojaMenu({
         </button>
       </div>
       <nav className="t-menu-grandes" aria-label="Secciones">
-        <Link href={datos.nuevo.href} onClick={cerrar}>
+        <Link href={datos.nuevo.href} onClick={cerrar} aria-current={actual === "nuevo" ? "page" : undefined}>
           Lo nuevo
         </Link>
         {datos.menus.map((m) => (
@@ -690,14 +702,21 @@ function HojaMenu({
             </div>
           </details>
         ))}
-        <Link href={datos.looks} onClick={cerrar}>
-          Looks
+        <Link href={datos.looks} onClick={cerrar} aria-current={actual === "looks" ? "page" : undefined}>
+          Outfits
         </Link>
-        <Link href={datos.ofertas.href} onClick={cerrar}>
+        <Link href={datos.ofertas.href} onClick={cerrar} aria-current={actual === "ofertas" ? "page" : undefined}>
           Ofertas
         </Link>
       </nav>
       <div className="t-menu-pie">
+        <p className="dn-menu-tit">Tu cuenta y servicios</p>
+        {tiendas && (
+          <div className="dn-menu-tienda">
+            <span>Tu tienda</span>
+            <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />
+          </div>
+        )}
         <Link href={visitante ? hrefDeEntrada("/entrar") : "/cuenta"} onClick={cerrar}>
           {visitante ? "Entrar" : "Mi perfil"}
         </Link>
@@ -753,7 +772,7 @@ function HojaBuscar({
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Busca por nombre, prenda o color"
+            placeholder="Prenda o color"
             autoComplete="off"
             enterKeyHint="search"
             autoFocus

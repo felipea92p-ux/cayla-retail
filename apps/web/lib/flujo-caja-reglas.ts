@@ -201,7 +201,7 @@ export type CobroEsperado = {
   metaPct: number;
   campanas: CampanaDia[];
 };
-export type TipoSalida = "vencimiento" | "fijo" | "planilla" | "impuesto" | "nuevo";
+export type TipoSalida = "vencimiento" | "fijo" | "planilla" | "aportes" | "impuesto" | "nuevo";
 export type SalidaProy = {
   tipo: TipoSalida;
   id: string;
@@ -245,7 +245,7 @@ export type Proyeccion = {
   salidas: SalidaProy[];
 };
 
-const TIPOS_SALIDA: readonly TipoSalida[] = ["vencimiento", "fijo", "planilla", "impuesto", "nuevo"];
+const TIPOS_SALIDA: readonly TipoSalida[] = ["vencimiento", "fijo", "planilla", "aportes", "impuesto", "nuevo"];
 
 export function leerProyeccion(data: unknown): Proyeccion {
   const d = (data ?? {}) as Fila;

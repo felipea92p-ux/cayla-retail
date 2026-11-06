@@ -14,6 +14,13 @@ describe("pendientesDeDinero", () => {
     expect(pendientesDeDinero({ ...BASE, planilla: { salidas: 0, total: 0 } }, HOY, "")).toEqual([]);
     expect(pendientesDeDinero({ ...BASE, planilla: null }, HOY, "")).toEqual([]);
   });
+  it("una liquidación sin salida de banco se avisa y lleva a la hoja con su mes y su monto (tarea 12)", () => {
+    const [p] = pendientesDeDinero({ ...BASE, liquidaciones: [{ mes: "2026-10", falta: 1411.5 }] }, HOY, "");
+    expect(p!.id).toBe("dinero.liquidacion.2026-10");
+    expect(plano(p!.titulo)).toContain("de octubre 2026");
+    expect(p!.href).toBe("/finanzas/dinero?registrar=liquidacion&mes=2026-10&monto=1411.5");
+    expect(pendientesDeDinero({ ...BASE, liquidaciones: [] }, HOY, "")).toEqual([]);
+  });
   it("sin nada pendiente, nada", () => {
     expect(pendientesDeDinero(BASE, HOY, "")).toEqual([]);
   });

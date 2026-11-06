@@ -5,16 +5,13 @@ import {
   cambiosDelSistema,
   causaCorta,
   cifraChequeo,
-  cortesDisponibles,
   csvBalance,
   cuadreArranque,
   cuentaLinea,
-  diaAnterior,
   enlaceDeCausa,
   iconoChequeo,
   ladoDeCuenta,
   leerChequeo,
-  leerCorte,
   leerLinea,
   leerMontoArranque,
   leerPropuesta,
@@ -24,7 +21,9 @@ import {
   nombreDeCuenta,
   nombreLinea,
   notaLinea,
+  avisoBalanceSinCuadrar,
   situacion,
+  unidadesConSueldos,
   solesBalance,
   solesExactos,
   textoRinde,
@@ -230,23 +229,6 @@ describe("cifras, fechas y nombres", () => {
     expect(g.totalTiene).toBe(1305);
     expect(g.totalDebe + g.totalTuyo).toBe(1285);
   });
-  it("la fecha del Balance: una que no pase de hoy, o hoy", () => {
-    expect(leerCorte("2026-08-31", "2026-09-24")).toBe("2026-08-31");
-    expect(leerCorte("2026-10-01", "2026-09-24")).toBe("2026-09-24");
-    expect(leerCorte("31/08/2026", "2026-09-24")).toBe("2026-09-24");
-    expect(leerCorte(undefined, "2026-09-24")).toBe("2026-09-24");
-  });
-  it("las fechas que se ofrecen: hoy y cada fin de mes, sin pasar del día anterior al arranque", () => {
-    const todas = cortesDisponibles("2026-09-24", null);
-    expect(todas).toHaveLength(13);
-    expect(todas[0]).toEqual({ valor: "2026-09-24", texto: "Hoy, 24 sep" });
-    expect(todas[1]).toEqual({ valor: "2026-08-31", texto: "Al 31 ago" });
-    expect(todas[12].valor).toBe("2025-09-30");
-    expect(cortesDisponibles("2026-09-24", "2026-07-01").map((c) => c.valor)).toEqual(["2026-09-24", "2026-08-31", "2026-07-31", "2026-06-30"]);
-    expect(cortesDisponibles("2026-09-24", "2026-09-10").map((c) => c.valor)).toEqual(["2026-09-24"]);
-    expect(cortesDisponibles("2024-03-15", null)[1].valor).toBe("2024-02-29");
-    expect(diaAnterior("2024-03-01")).toBe("2024-02-29");
-  });
 });
 
 describe("los saldos de arranque (el modal)", () => {
@@ -324,5 +306,37 @@ describe("cuentasQueEmpiezanDespues (tarea 4)", () => {
   it("frena solo las vigentes que empiezan después del día elegido; ese mismo día ya vale", () => {
     expect(cuentasQueEmpiezanDespues([c("2026-10-28"), c("2026-09-30"), c(null), c("2026-10-28", true)], "2026-10-01")).toEqual([c("2026-10-28")]);
     expect(cuentasQueEmpiezanDespues([c("2026-10-01")], "2026-10-01")).toEqual([]);
+  });
+});
+
+describe("la utilidad de cada tienda resta los sueldos que Dynamic no paga (tarea 23)", () => {
+  const tienda = leerUnidad({ ubicacion_id: "t", nombre: "Tienda Trujillo", tipo: "tienda", caja: 100, invertido: 1000, utilidad_mes: 300, rinde: 0.3, planilla_visible: true });
+  const taller = leerUnidad({ ubicacion_id: "x", nombre: "Taller", tipo: "taller", caja: null, invertido: 500, utilidad_mes: -50, rinde: null, planilla_visible: true });
+  it("resta lo de la sede, vuelve a dividir el rinde y deja dicho cuánto restó", () => {
+    const [t, x] = unidadesConSueldos([tienda, taller], [{ ubicacionId: "t", devengado: 120.5 }, { ubicacionId: "t", devengado: 79.5 }, { ubicacionId: "x", devengado: 50 }]);
+    expect(t).toMatchObject({ utilidadMes: 100, rinde: 0.1, sueldosEstimados: 200 });
+    expect(x).toMatchObject({ utilidadMes: -100, rinde: null, sueldosEstimados: 50 });
+  });
+  it("lo de la empresa no se le reparte a ninguna tienda, y sin estimado queda igual", () => {
+    const [t] = unidadesConSueldos([tienda], [{ ubicacionId: null, devengado: 900 }, { ubicacionId: "t", devengado: 0 }]);
+    expect(t).toBe(tienda);
+  });
+  it("sin nada invertido no hay rinde que dividir", () => {
+    const sinInvertir = leerUnidad({ ubicacion_id: "t", nombre: "Tienda Trujillo", tipo: "tienda", invertido: 0, utilidad_mes: 10, rinde: null });
+    expect(unidadesConSueldos([sinInvertir], [{ ubicacionId: "t", devengado: 5 }])[0]).toMatchObject({ utilidadMes: 5, rinde: null });
+  });
+});
+
+describe("lo que se dice cuando el Balance no cuadra (tarea 28)", () => {
+  const ch = (o: object) => leerChequeo({ clave: "101", titulo: "Caja", estado: "ok", bloquea: true, orden: 1, ...o });
+  it("con todo en orden no dice nada", () => {
+    expect(avisoBalanceSinCuadrar([ch({})])).toBeNull();
+  });
+  it("cuenta lo que falta y avisa que las cifras pueden cambiar", () => {
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" })])).toContain("1 comprobación pendiente");
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" }), ch({ clave: "121", estado: "no_cuadra" })])).toContain("2 comprobaciones pendientes");
+  });
+  it("sin arranque tampoco afirma que cuadra", () => {
+    expect(avisoBalanceSinCuadrar([])).toContain("faltan los saldos de arranque");
   });
 });

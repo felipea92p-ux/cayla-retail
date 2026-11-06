@@ -53,6 +53,8 @@ export type UnidadBalance = {
   desde: string;
   hasta: string;
   planillaVisible: boolean;
+  /** Lo que `utilidadMes` ya resta de sueldos que Dynamic todavía no paga (tarea 23). */
+  sueldosEstimados: number;
 };
 
 export type SaldoInicial = {
@@ -134,7 +136,26 @@ export function leerUnidad(r: Fila): UnidadBalance {
     desde: String(r.desde ?? ""),
     hasta: String(r.hasta ?? ""),
     planillaVisible: r.planilla_visible === true,
+    sueldosEstimados: 0,
   };
+}
+
+/**
+ * La utilidad de cada tienda con los sueldos que Dynamic todavía no paga, igual que Ganancias y pérdidas (tarea 23). La base da la utilidad del diario; el rinde se vuelve a
+ * dividir con la misma regla de `fn_balance_por_tienda` (solo una tienda, con algo invertido, a 4 decimales). Lo de la empresa no es de ninguna tienda: no se le reparte (ADR-0485).
+ */
+export function unidadesConSueldos(unidades: readonly UnidadBalance[], provision: readonly { ubicacionId: string | null; devengado: number }[]): UnidadBalance[] {
+  return unidades.map((u) => {
+    const sueldos = provision.reduce((a, p) => (p.ubicacionId === u.ubicacionId && p.devengado > 0 ? a + p.devengado : a), 0);
+    if (sueldos <= 0) return u;
+    const utilidadMes = Math.round((u.utilidadMes - sueldos) * 100) / 100;
+    return {
+      ...u,
+      utilidadMes,
+      rinde: u.tipo === "tienda" && u.invertido > 0 ? Math.round((utilidadMes / u.invertido) * 10000) / 10000 : u.rinde,
+      sueldosEstimados: Math.round(sueldos * 100) / 100,
+    };
+  });
 }
 
 export function leerSaldoInicial(r: Fila): SaldoInicial {
@@ -185,6 +206,18 @@ export function situacion(chequeos: readonly Chequeo[]): Situacion {
   const bloqueos = chequeos.filter((c) => c.bloquea && (c.estado === "no_cuadra" || c.estado === "falta"));
   if (bloqueos.length) return { tipo: "no_cuadra", bloqueos };
   return { tipo: "cuadra", notas: chequeos.filter((c) => c.estado === "nota" || c.estado === "revisar") };
+}
+
+/**
+ * Lo que dice un archivo o ¿Lo tuyo? cuando el Balance no se dibuja (tarea 28): la pantalla del Balance lo oculta, pero el Excel lo imprimía igual y ¿Lo tuyo? daba su cifra sin avisar.
+ * `null` si cuadra.
+ */
+export function avisoBalanceSinCuadrar(chequeos: readonly Chequeo[]): string | null {
+  const s = situacion(chequeos);
+  if (s.tipo === "cuadra") return null;
+  return s.tipo === "no_cuadra"
+    ? `No cuadra: el Balance tiene ${s.bloqueos.length === 1 ? "1 comprobación pendiente" : `${s.bloqueos.length} comprobaciones pendientes`} y estas cifras pueden cambiar.`
+    : "No cuadra todavía: faltan los saldos de arranque de esta fecha y estas cifras pueden cambiar.";
 }
 
 /** Las cuentas se muestran con su código delante («101 Caja…»); las comprobaciones generales, sin él. */
@@ -309,7 +342,6 @@ export function textoRinde(r: number | null): string {
 }
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /** «Al 31 de agosto» · «Hoy, 24 de septiembre» (con el año si no es el de hoy). */
 export function tituloCorte(corte: string, hoy: string): string {
@@ -373,7 +405,7 @@ export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion"
     if (camino) partes.push(`${solesBalance(camino)} en camino entre tiendas`);
     return partes.length ? `incluye ${partes.join(" y ")}` : null;
   }
-  if (l.cuenta === "4011" && l.seccion === "pasivo") return "los pagos a SUNAT todavía no se registran: por ahora solo sube";
+  if (l.cuenta === "4011" && l.seccion === "pasivo") return "sube con cada mes y baja con cada pago a SUNAT";
   if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
   if (l.cuenta === "479") return "lo cobrado en las cuentas de CAYLA por prendas de CLAURE, sin el IGV, menos lo que ya se le pagó y su parte de los gastos";
   if (l.cuenta === "4699") return "lo vendido de la mercadería de CLAURE, a su costo: los pagos a CLAURE todavía no se registran, por ahora solo sube";
@@ -399,42 +431,6 @@ export function agrupar(lineas: readonly LineaBalance[]): BalanceAgrupado {
 
 // ---- Fechas del Balance -------------------------------------------------------------------------------------------------
 
-const esFecha = (x: string | undefined): x is string => !!x && /^\d{4}-\d{2}-\d{2}$/.test(x) && !Number.isNaN(Date.parse(`${x}T12:00:00Z`));
-const finDeMes = (anio: number, mes: number) => {
-  const d = new Date(Date.UTC(anio, mes, 0));
-  return d.toISOString().slice(0, 10);
-};
-
-/** `?corte=` válido (una fecha que no pase de hoy) o hoy. */
-export function leerCorte(param: string | undefined, hoy: string): string {
-  return esFecha(param) && param <= hoy ? param : hoy;
-}
-
-/** Las fechas que se ofrecen: hoy y el último día de los 12 meses anteriores (sin pasar del día anterior al arranque). */
-export function cortesDisponibles(hoy: string, arranque: string | null, meses = 12): { valor: string; texto: string }[] {
-  const lista = [{ valor: hoy, texto: `Hoy, ${fechaLarga(hoy, hoy)}` }];
-  let [a, m] = hoy.split("-").map(Number);
-  for (let i = 0; i < meses; i++) {
-    m -= 1;
-    if (m === 0) {
-      m = 12;
-      a -= 1;
-    }
-    const fin = finDeMes(a, m);
-    if (arranque && fin < diaAnterior(arranque)) break;
-    lista.push({ valor: fin, texto: `Al ${fechaLarga(fin, hoy)}` });
-  }
-  return lista;
-}
-export function diaAnterior(iso: string): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-function fechaLarga(iso: string, hoy: string): string {
-  const [a, m, d] = iso.split("-").map(Number);
-  return `${d} ${MESES_CORTOS[m - 1]}${iso.slice(0, 4) === hoy.slice(0, 4) ? "" : ` ${a}`}`;
-}
 
 // ---- Los saldos de arranque (el modal) ------------------------------------------------------------------------------------
 

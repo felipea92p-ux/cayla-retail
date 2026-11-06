@@ -13,6 +13,8 @@
 // Un GRUPO («al menos un dato: DNI, nombre o WhatsApp») se modela como UN campo virtual —`identificacion`, hecho si alguno de los tres
 // tiene algo— que envuelve a los controles del grupo: se ilumina el bloque entero, no un control a la suerte.
 
+type Rectangulo = { left: number; right: number; top: number; bottom: number };
+
 /** Cómo se ve un campo en la guía: la marca de su título y la luz sobre su control. */
 export type EstadoCampo = "hecho" | "ahora" | "falta" | "opcional";
 
@@ -27,10 +29,13 @@ export type CampoDeGuia = {
   hecho: boolean;
   /** Lo que hay que hacer con él, en una frase: «Escribe el monto.». */
   pendiente: string;
+  /** Hoy la persona no lo puede llenar: se completa solo cuando llene otro (el nombre del padrón, con los 8 dígitos del DNI). Sigue impidiendo
+   *  confirmar, pero no se le pide: ni la luz, ni el «Falta», ni un error al intentar guardar (Felipe 2026-11-05). */
+  noSeEscribe?: boolean;
 };
 
 /** Lo que falta hacer de un campo: requerido o sugerido, y sin hacer. */
-const porHacer = (c: CampoDeGuia) => !c.hecho && (c.requerido || Boolean(c.sugerido));
+const porHacer = (c: CampoDeGuia) => !c.hecho && !c.noSeEscribe && (c.requerido || Boolean(c.sugerido));
 
 /**
  * El primer campo por hacer: es el que «sigue» (se ilumina). null si no queda nada.
@@ -52,6 +57,7 @@ export function estadosDe(campos: readonly CampoDeGuia[], enFoco?: string | null
   const out: Record<string, EstadoCampo> = {};
   // El que sigue va primero: un campo hecho que la persona aún está escribiendo (`enFoco`) sigue siendo «ahora», sin ✓ todavía.
   for (const c of campos) out[c.id] = c.id === ahora ? "ahora" : c.hecho ? "hecho" : c.requerido || c.sugerido ? "falta" : "opcional";
+  // (Un `noSeEscribe` sigue diciendo «falta» en su título: es verdad, solo que no le toca a la persona.)
   return out;
 }
 
@@ -97,7 +103,7 @@ export function campoDeMasArriba<T>(campos: readonly T[], hojaDe: (campo: T) => 
 
 /** Los campos que faltaban al intentar guardar: solo esos dicen su error. Uno que aparece después (el RUC, al elegir «Factura») no regaña a quien recién llega a él. */
 export function pendientesAlRevisar(campos: readonly CampoDeGuia[]): string[] {
-  return campos.filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+  return campos.filter((c) => c.requerido && !c.hecho && !c.noSeEscribe).map((c) => c.id);
 }
 
 /** Cuando ya no falta nada se olvida lo revisado: una hoja que se limpia para el siguiente («Guardar y registrar otro») empieza sin regañar. */
@@ -121,6 +127,21 @@ export function errorDeCampo(campos: readonly CampoDeGuia[], id: string, revisad
 export function palabraDeGrado(c: CampoDeGuia): "obligatorio" | "conviene" | "opcional" | null {
   if (c.hecho) return null;
   return c.requerido ? "obligatorio" : c.sugerido ? "conviene" : "opcional";
+}
+
+/**
+ * Lo que dice el pie antes de intentar guardar: lo que sigue y cuánto queda, sin la lista entera (Felipe 2026-11-05: «invasiva»). La lista sale al intentar guardar.
+ * `soloSugeridas`: ya se puede confirmar y lo que queda solo conviene. null si no falta nada.
+ */
+export function resumenDelPie(faltan: readonly CampoDeGuia[], ahora: string | null): { sigue: CampoDeGuia; quedan: number; soloSugeridas: boolean } | null {
+  if (faltan.length === 0) return null;
+  return { sigue: faltan.find((c) => c.id === ahora) ?? faltan[0], quedan: faltan.length - 1, soloSugeridas: faltan.every((c) => !c.requerido) };
+}
+
+/** ¿Se pisan dos rectángulos de pantalla? Un rectángulo sin área (un texto vacío, un control oculto) no pisa nada. Lo usa «Sigue» para callarse si no le cabe. */
+export function rectangulosChocan(a: Rectangulo, b: Rectangulo): boolean {
+  const conArea = (r: Rectangulo) => r.right > r.left && r.bottom > r.top;
+  return conArea(a) && conArea(b) && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 }
 
 /** Lo que falta partido en dos: lo que hay que hacer para confirmar (`obligatorios`) y lo que solo conviene (`convienen`). Recibe `faltanDe(campos)`, que ya deja fuera lo opcional. */

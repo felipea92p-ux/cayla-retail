@@ -5,6 +5,7 @@ import {
   igvDelPapel,
   loQuePasaAlGuardar,
   payloadDelComprobante,
+  igvDeLoEscrito,
   problemaDelComprobante,
   puedeRecibirComprobante,
   type BorradorComprobante,
@@ -55,6 +56,13 @@ describe("problemaDelComprobante y la guía de foco", () => {
 });
 
 describe("igvDelPapel y payloadDelComprobante", () => {
+  it("lo que se escribe en «IGV del papel»: vacío, la tasa; 0, exonerada; ilegible, se frena (tarea 15)", () => {
+    expect(igvDeLoEscrito("  ")).toBeNull();
+    expect(igvDeLoEscrito("0")).toBe(0);
+    expect(igvDeLoEscrito("70.50")).toBe(70.5);
+    expect(problemaDelComprobante({ ...LLENO, igv: igvDeLoEscrito("abc") }, { proveedorListo: true, hoy: "2099-01-01", monto: 118 })).toBe("El IGV tiene que estar entre cero y el total.");
+  });
+
   it("una factura lleva el IGV de la tasa si el papel no dice otro", () => expect(igvDelPapel(LLENO, 472)).toBe(72));
   it("o el que dice el papel", () => expect(igvDelPapel({ ...LLENO, igv: 70.5 }, 472)).toBe(70.5));
   it("una boleta no lleva IGV", () => expect(igvDelPapel({ ...LLENO, tipo: "boleta", igv: 10 }, 472)).toBe(0));

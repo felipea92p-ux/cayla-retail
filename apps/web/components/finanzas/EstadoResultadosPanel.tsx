@@ -7,7 +7,7 @@ import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Herramientas, ListaDatos, PieTabla, Superficie } from "@/components/finanzas/kit";
-import { fechaCorta, mesDe, rangoMes } from "@/lib/gastos-reglas";
+import { fechaCorta, mesDe } from "@/lib/gastos-reglas";
 import {
   avisosER,
   claveUnidad,
@@ -18,7 +18,6 @@ import {
   leerLineaDiario,
   leerVerER,
   mesNombre,
-  mesTitulo,
   NOTA_MES_CERRADO,
   montoNatural,
   nombreCorto,
@@ -35,7 +34,7 @@ import { CalendarX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { notaResultadosClaure, type VentasClaure } from "@/lib/cuenta-claure-reglas";
 
-// Estados financieros ▸ ¿Ganamos? ▸ el formato formal (ADR-0195 F5; desde ADR-0585 va plegado al pie de ¿Ganamos?): UNA tarjeta con
+// Estados financieros ▸ Ganancias y pérdidas ▸ el formato formal (ADR-0195 F5; desde ADR-0585 va plegado al pie de Ganancias y pérdidas): UNA tarjeta con
 // «Comparar» y el cuadro (conceptos en filas, unidades en columnas, CAYLA al final) → dos notas. Cada cifra se puede tocar: abre las
 // líneas del diario de las que sale. La sede y el mes los elige la barra del telar; las cuentas contables no se muestran (van en lo que
 // se descarga, Felipe 2026-10-30). La pantalla no calcula plata: todo viene de `fn_estado_resultados`.
@@ -54,6 +53,9 @@ export function EstadoResultadosPanel({
   sedeActual,
   verParam,
   mes,
+  desde,
+  hasta,
+  titulo,
   mesPrevio,
   hoy,
   comparar,
@@ -67,7 +69,13 @@ export function EstadoResultadosPanel({
   sedeActual: string | null;
   verParam: string | undefined;
   mes: string;
-  mesPrevio: string;
+  /** Las fechas que se miran: de ahí sale cada cifra al abrirla. */
+  desde: string;
+  hasta: string;
+  /** «Octubre 2026», «5 al 20 de octubre 2026». */
+  titulo: string;
+  /** Con qué se compara; `null` si no se puede comparar: va por mes. */
+  mesPrevio: string | null;
   hoy: string;
   comparar: boolean;
   /** Las unidades de este mes que ya están cerradas (llave de `claveUnidad`): su columna es la foto congelada. */
@@ -112,9 +120,9 @@ export function EstadoResultadosPanel({
       <div {...entra(1)}>
         <Superficie>
           <Herramientas>
-            <label className="btn-cayla btn-sutil gap-2" data-guia="fin-resultados.comparar">
+            <label className={`btn-cayla btn-sutil gap-2 ${mesPrevio ? "" : "hidden"}`} data-guia="fin-resultados.comparar">
               <input type="checkbox" checked={comparar} onChange={(e) => ir({ comparar: e.target.checked ? "1" : null })} />
-              Comparar con {mesNombre(mesPrevio)}
+              Comparar con {mesPrevio ? mesNombre(mesPrevio) : ""}
             </label>
             <span className="ml-auto text-sm text-taupe">Toca una cifra para ver de qué filas sale.</span>
           </Herramientas>
@@ -144,7 +152,7 @@ export function EstadoResultadosPanel({
                             concepto={k}
                             columna={c}
                             previa={comparar ? (previas.get(claveUnidad(c)) ?? null) : null}
-                            mesPrevio={mesPrevio}
+                            mesPrevio={mesPrevio ?? mes}
                             onAbrir={() => setOrigen({ concepto: k, columna: c })}
                           />
                         ))}
@@ -209,7 +217,7 @@ export function EstadoResultadosPanel({
         </div>
       )}
 
-      {origen && <OrigenCifra origen={origen} mes={mes} onCerrar={() => setOrigen(null)} />}
+      {origen && <OrigenCifra origen={origen} desde={desde} hasta={hasta} titulo={titulo} onCerrar={() => setOrigen(null)} />}
     </div>
   );
 }
@@ -271,13 +279,12 @@ function Celda({
 }
 
 /** «De dónde sale»: las líneas del diario detrás de una cifra, agrupadas por la operación que las generó. */
-function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { origen: Origen; mes: string; onCerrar: () => void }) {
+function OrigenCifra({ origen: { concepto: k, columna: c }, desde, hasta, titulo, onCerrar }: { origen: Origen; desde: string; hasta: string; titulo: string; onCerrar: () => void }) {
   const [lineas, setLineas] = useState<LineaDiario[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let vivo = true;
-    const { desde, hasta } = rangoMes(mes);
     // Por páginas: un mes de ventas da unas 5.400 líneas de diario y PostgREST corta en 1.000 sin error; «De dónde sale» sumaba solo los primeros días.
     leerRpcPorPaginas(createClient(), "fn_diario", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: c.ubicacionId }, ORDEN_DIARIO).then(({ data, error: e }) => {
       if (!vivo) return;
@@ -287,7 +294,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
     return () => {
       vivo = false;
     };
-  }, [mes, c.ubicacionId]);
+  }, [desde, hasta, c.ubicacionId]);
 
   const o = lineas ? origenDeCifra(lineas, k.cuentas, claveUnidad(c)) : null;
   const fuentes = fuentesDe(k.clave);
@@ -300,7 +307,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
           {k.nombre} · {c.unidad === "consolidado" ? "CAYLA" : c.nombre}
         </>
       }
-      subtitulo={`${mesTitulo(mes)} · ${solesER(Math.abs(k.valor(c)))}`}
+      subtitulo={`${titulo} · ${solesER(Math.abs(k.valor(c)))}`}
       onClose={onCerrar}
       tamano="mediana"
     >

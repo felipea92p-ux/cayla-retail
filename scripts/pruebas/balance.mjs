@@ -166,6 +166,10 @@ $f$;
 // ============================================================================================================================
 const ESCENA = `
 begin;
+-- La tarea 14 sembró la tarifa de Vendemás y devenga su comisión (se prueba en pruebas:comision-estimada): estas cifras se calculan sin ella.
+set local session_replication_role = replica;
+delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where nombre ilike 'vendem%');
+set local session_replication_role = origin;
 ${AYUDANTES}
 -- El mundo de esta prueba es de 2024: las mermas asientan desde antes (en producción el corte es el 1-nov-2026, 20261106153000).
 update retail.parametros_finanzas set mermas_asientan_desde = '2000-01-01' where id;
@@ -465,6 +469,17 @@ insert into retail.devolucion_items (devolucion_id, venta_item_id, cantidad, con
 select 'F1 la devolución con tarjeta sale de la 105 (el POS), no de la 451', (select sum(haber) filter (where cuenta = '105') = 100 and coalesce(sum(haber) filter (where cuenta = '451'), 0) = 0 from retail.fn_asientos('2024-03-01', '2024-03-31') where origen_id = pg_temp.k('D1'));
 `;
 
+// Tarea 10: pagar el IGV baja el diario y Impuestos por igual, así que no abre una diferencia nueva en la 4011.
+const CASOS_PAGO_SUNAT = `
+create temp table antes as select * from retail.fn_conciliacion_contable('2024-03-31');
+insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_desde) values ('Banco T10', 'banco', '104', '2024-03-01') returning id as bt10 \\gset
+select retail.registrar_pago_sunat(:'bt10', '2024-03-15', '[{"mes":"2024-02-01","concepto":"igv","monto":99},{"mes":"2024-02-01","concepto":"renta","monto":40}]'::jsonb) as p10 \\gset
+create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
+select 'T10 pagar IGV no abre una diferencia en la 4011: sigue en lo mismo que antes del pago', (select c.diferencia = a.diferencia and c.diario = a.diario - 99 from con c join antes a using (clave) where clave = '4011');
+select 'T10 la renta pagada no es gasto: la 4017 queda como pago adelantado', (select coalesce(sum(debe - haber), 0) = 40 from retail.fn_asientos('2024-03-01', '2024-03-31', null) where cuenta = '4017');
+select 'T10 el diario y la ecuación siguen cuadrando', (select bool_and(estado = 'ok') from con where clave in ('diario', 'ecuacion'));
+`;
+
 function main() {
   console.log("F7 · El Balance (saldos de arranque, comprobación y lo que es de cada tienda)\n");
   const base = `${ESCENA}\n`;
@@ -480,6 +495,7 @@ function main() {
   verificar("Descuadre y Producción", correr(base + CASOS_DESCUADRE), casosDe(CASOS_DESCUADRE));
   verificar("Permisos", correr(base + CASOS_PERMISOS), casosDe(CASOS_PERMISOS));
   verificar("Tarjeta", correr(base + CASOS_TARJETA), casosDe(CASOS_TARJETA));
+  verificar("Pago a SUNAT", correr(base + CASOS_PAGO_SUNAT), casosDe(CASOS_PAGO_SUNAT));
   // Sin arranque: la escena sin la parte que lo registra.
   const sinArranque = ESCENA.replace(/-- EL ARRANQUE:[\s\S]*?-- Marzo\./, "-- Marzo.");
   verificar("Arranque", correr(sinArranque + CASOS_ARRANQUE), casosDe(CASOS_ARRANQUE));

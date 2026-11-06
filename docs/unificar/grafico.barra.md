@@ -165,3 +165,7 @@ El cierre de una caja repartía lo cobrado por medio de pago en una dona de 150 
 (`CierreCajaDetalle.tsx`); la firma de los anillos (`grafico.anillo`) ya no la exime.
 
 ![P1: lo cobrado en el turno con la barra apilada](capturas/grafico.barra.dona.propuesta.jpg)
+
+## Excepción (Felipe 2026-11-05)
+
+La barra que se explora de Estados financieros (`TuboDePartes`) queda aparte: al apuntar un tramo los demás se apagan y al tocarlo su detalle se abre debajo, como pidió Felipe en la maqueta (ADR-0611). No se copia a otra pantalla.

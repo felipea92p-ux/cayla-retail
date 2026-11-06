@@ -38,6 +38,8 @@ function otraFrase(faceta: Faceta, e: Elegido): string {
 
 /** Un color claro lleva su ✓ en tinta; uno oscuro, en papel (el color de una muestra es un dato: no cambia con el tema). */
 function luma(hex: string): number {
+  // La rueda de Multicolor no es un #hex: su ✓ va en papel, como sobre un color vivo.
+  if (!hex.startsWith("#")) return 0;
   const n = Number.parseInt(hex.slice(1), 16);
   return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
 }

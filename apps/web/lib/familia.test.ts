@@ -305,7 +305,6 @@ const FUERA_DE_P10: Record<string, string> = {
   ".rcc-caps": "diseño propio: el aviso de cierre de caja",
   ".rcc-ola": "diseño propio: el aviso de cierre de caja",
   ".rcc-pulso": "diseño propio: el aviso de cierre de caja",
-  ".fin-estado": "diseño propio: Finanzas",
 };
 
 /** Las esquinas de 20 o 24 px de un CSS, con el selector del bloque que las lleva. */

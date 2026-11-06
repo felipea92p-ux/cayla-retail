@@ -16,16 +16,19 @@ import { MAX_PRENDAS_PARA_RECIBIR, type CategoriaDeLinea, type PrendaRecepcion }
 export function ElegirPrendaExistente({
   categoria,
   marca,
+  busquedaInicial = "",
   onElegir,
   onEsNueva,
 }: {
   categoria: CategoriaDeLinea;
   /** `id` vacío = sin marca (ADR-0393, 2026-10-14). */
   marca: { id: string | null; nombre: string };
+  /** Lo que ya se sabe de la prenda: las que coinciden salen primero, y las demás siguen en la lista. */
+  busquedaInicial?: string;
   onElegir: (prenda: PrendaRecepcion) => void;
   onEsNueva: () => void;
 }) {
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda] = useState(busquedaInicial);
   const [prendas, setPrendas] = useState<PrendaRecepcion[] | null>(null);
   // Arranca buscando: al abrirse ya pide las prendas de la categoría y marca.
   const [buscando, setBuscando] = useState(true);

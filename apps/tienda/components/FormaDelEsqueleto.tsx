@@ -5,7 +5,7 @@ import { Suspense, useLayoutEffect } from "react";
 import { formaDeLaRuta, prendaDeLaRuta, tituloDeEspera, type FormaEsqueleto, type TituloDeEspera } from "@/lib/esqueleto";
 import { useBolsaVista } from "./bolsa/BolsaRecordada";
 import { useCabeceraVista } from "./CabeceraConCuenta";
-import { EscenarioDelDesfile } from "./desfile/EscenarioDelDesfile";
+import { EscenaEnEspera } from "./EscenaPortada";
 import { Icono } from "./Icono";
 import { usePrendaTocada } from "./PrendaTocada";
 import { fotoQueViaja } from "./Vistas";
@@ -186,7 +186,7 @@ function Inicio({ heroe }: { heroe: React.ReactNode }) {
   const circulos = cabecera ? cabecera.menus.reduce((n, m) => n + m.grupos.reduce((k, g) => k + g.categorias.length, 0), 0) || 8 : 8;
   return (
     <div aria-hidden="true">
-      {heroe ?? <EscenarioDelDesfile enEspera piezas={[]} modo="portada" ceja="Llegó en los últimos 30 días" titulo="Lo nuevo" boton={{ texto: "Ver lo nuevo", href: null }} />}
+      {heroe ?? <EscenaEnEspera />}
       <div className="t-carril-envol t-circs-envol">
         <div className="t-circs">
           {Array.from({ length: circulos }, (_, i) => (
@@ -437,8 +437,8 @@ function Looks() {
     <div aria-hidden="true">
       <header className="t-lista-cab">
         <span className="t-ceja">Combinaciones listas</span>
-        <TituloQuieto primera="Arma tu" cursiva="look" />
-        <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
+        <TituloQuieto primera="Arma tu" cursiva="outfit" />
+        <p>Prendas que se ven bien juntas. Agrega el outfit completo y eliges cada talla en un solo paso.</p>
       </header>
       {/* De a tres, como la página con tres looks (`looksDeATres`). */}
       <div className="t-looks" data-tres="">
@@ -489,10 +489,10 @@ function Bolsa() {
         <div className="t-vacio">
           <Icono nombre="bolsa" />
           <h3>Tu bolsa está vacía</h3>
-          <p>Elige una prenda y su talla, o agrega un look completo.</p>
+          <p>Elige una prenda y su talla, o agrega un outfit completo.</p>
           <div className="cp-vacio-acciones">
             <span className="t-btn">Ver toda la tienda</span>
-            <span className="t-btn t-btn-sec">Ver los looks</span>
+            <span className="t-btn t-btn-sec">Ver los outfits</span>
           </div>
         </div>
         <section className="t-sec cp-sigue">

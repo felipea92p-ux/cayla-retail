@@ -1755,6 +1755,46 @@ ESCENARIOS.push(
 // ---------- Finanzas (actividad 12) ----------
 const FIN = ["admin"];
 ESCENARIOS.push(
+  // ---------- Estados financieros en vidrio (ADR-0611): el calendario, el detalle de una parte, el libro del contador y lo plegado ----------
+  { id: "estados.calendario", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-cal, [role=dialog]", nombre: "Estados financieros · el calendario abierto, con un rango a medias", async preparar(pagina) {
+    await pagina.locator(".estados-fecha-boton").click();
+    await esperar(pagina, 900);
+    await pagina.locator(".estados-cal-dia:not(:disabled)").nth(1).click();
+    await esperar(pagina, 400);
+  } },
+  { id: "estados.calendario-error", ruta: "/finanzas/reportes", cuentas: FIN, abre: '.estados-cal-paso[data-tono="mal"]', nombre: "Estados financieros · el calendario con una fecha que no existe", async preparar(pagina) {
+    await pagina.locator(".estados-fecha-boton").click();
+    await esperar(pagina, 900);
+    await pagina.locator(".estados-cal-tipeo input").first().fill("31/02/2026");
+    await pagina.locator(".estados-cal-tipeo input").first().press("Enter");
+    await esperar(pagina, 300);
+  } },
+  { id: "estados.balance-calendario", ruta: "/finanzas/reportes/balance", cuentas: FIN, abre: ".estados-cal, [role=dialog]", nombre: "Balance general · el calendario de una sola fecha", async preparar(pagina) {
+    await pagina.locator(".estados-fecha-boton").click();
+    await esperar(pagina, 900);
+  } },
+  { id: "estados.detalle", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-det[data-abierto]", nombre: "Ganancias y pérdidas · el detalle de una parte", async preparar(pagina) {
+    await pagina.locator(".estados-parte").first().click();
+    await pagina.mouse.move(2, 2);
+    await esperar(pagina, 900);
+  } },
+  { id: "estados.libro", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-formal[data-abierto]", nombre: "Ganancias y pérdidas · el libro del contador", async preparar(pagina) {
+    await pagina.getByRole("button", { name: /formato formal/ }).click();
+    await esperar(pagina, 900);
+  } },
+  { id: "estados.mas", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-mas .filas-de-mas[data-abierto]", nombre: "Ganancias y pérdidas · «Ver más»", async preparar(pagina) {
+    await pagina.locator(".estados-mas-boton button").click();
+    await esperar(pagina, 900);
+  } },
+  { id: "estados.flujo-detalle", ruta: "/finanzas/reportes/flujo", cuentas: FIN, abre: ".estados-det[data-abierto]", nombre: "Flujo de efectivo · el detalle de una columna", async preparar(pagina) {
+    await pagina.locator(".estados-cc").nth(1).click();
+    await pagina.mouse.move(2, 2);
+    await esperar(pagina, 900);
+  } },
+  { id: "estados.flujo-mas", ruta: "/finanzas/reportes/flujo", cuentas: FIN, abre: ".estados-mas .filas-de-mas[data-abierto]", nombre: "Flujo de efectivo · «Ver más»", async preparar(pagina) {
+    await pagina.locator(".estados-mas-boton button").click();
+    await esperar(pagina, 900);
+  } },
   { id: "finanzas.que-mirar", ruta: "/finanzas/resumen", cuentas: FIN, abre: "[role=listbox]", nombre: "Finanzas · la lista «Qué mirar» (tienda o empresa)", preparar: clicRol("combobox", /Qué mirar/i) },
   { id: "finanzas.resumen-confianza", ruta: "/finanzas/resumen", cuentas: FIN, abre: "#fin-confianza-piezas", nombre: "Resumen · «cosas por revisar» abre el medidor de confianza", preparar: clicRol("button", /(cosas? por revisar|Ver el detalle)/i) },
   { id: "gastos.registrar", ruta: "/finanzas/gastos", cuentas: FIN, abre: "[role=dialog]", nombre: "Gastos · «Registrar gasto»", preparar: clicRol("button", /Registrar gasto/i) },
@@ -1795,8 +1835,11 @@ ESCENARIOS.push(
   { id: "impuestos.compras", ruta: "/finanzas/impuestos", cuentas: FIN, nombre: "Impuestos · «Registro de compras»", preparar: clicRol("button", /Registro de compras/i) },
   { id: "impuestos.contador", ruta: "/finanzas/impuestos", cuentas: FIN, nombre: "Impuestos · «Paquete para el contador»", preparar: clicRol("button", /Paquete para el contador/i) },
   { id: "impuestos.mes", ruta: "/finanzas/impuestos", cuentas: FIN, abre: "[role=listbox]", nombre: "Impuestos · la lista «Mes que se mira»", preparar: clicRol("combobox", /Mes que se mira/i) },
-  { id: "reportes.mes", ruta: "/finanzas/reportes", cuentas: FIN, abre: "[role=listbox]", nombre: "Estado de resultados · la lista «Mes»", preparar: clicRol("combobox", /^Mes/i) },
-  { id: "reportes.de-donde", ruta: "/finanzas/reportes", cuentas: FIN, abre: "[role=dialog]", nombre: "Estado de resultados · «De dónde sale» una cifra", preparar: clicRol("button", /^De dónde sale: Ventas, Lima/i) },
+  { id: "reportes.de-donde", ruta: "/finanzas/reportes", cuentas: FIN, abre: "[role=dialog]", nombre: "Ganancias y pérdidas · «De dónde sale» una cifra del cuadro por sede", async preparar(pagina) {
+    await pagina.locator(".estados-mas-boton button").click();
+    await esperar(pagina, 900);
+    await pagina.getByRole("button", { name: /^De dónde sale: Ventas, Lima/i }).click();
+  } },
   { id: "balance.arranque", ruta: "/finanzas/reportes/balance", cuentas: FIN, abre: "[role=dialog]", nombre: "Balance · «Registrar saldos de arranque»", preparar: clicRol("button", /Registrar saldos de arranque/i) },
   { id: "cierre.pendientes", ruta: "/finanzas/cierre", cuentas: FIN, nombre: "Cierre de mes · lo que falta de Tienda Lima", preparar: clicRol("button", /Tienda Lima .*pendientes/i) },
   { id: "cierre.mes", ruta: "/finanzas/cierre", cuentas: FIN, abre: "[role=listbox]", nombre: "Cierre de mes · la lista «Mes que se cierra»", preparar: clicRol("combobox", /Mes que se cierra/i) },

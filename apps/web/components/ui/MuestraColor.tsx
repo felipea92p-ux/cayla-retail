@@ -14,8 +14,15 @@
    degradado de varios tonos: «esto es de varios colores», no «no sé cuál».
    ==================================================================== */
 
+import { fondoDeMuestra } from "../../lib/colores-familias";
+
 /** Para los colores sin hex: varios tonos del propio catálogo, en rueda. */
 export const VARIOS_COLORES = "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)";
+
+/** El fondo de la muestra de un color: el de `fondoDeMuestra` y, sin hex, la rueda de «varios colores». Toda muestra de color se pinta con esto. */
+export function fondoDeColor(hex: string | null, familia?: string | null, tipo?: string | null): string {
+  return fondoDeMuestra(hex, familia, tipo) ?? VARIOS_COLORES;
+}
 
 /** La cápsula sola, sin el nombre: para cuando el nombre ya está escrito al lado (Etiquetas de precio). Decorativa: no se
  *  enfoca ni la lee el lector de pantalla. `fondo` es un hex o lo que da `fondoDeMuestra` (metálico, jaspeado). */

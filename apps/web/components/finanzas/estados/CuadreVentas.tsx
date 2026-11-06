@@ -4,7 +4,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import type { CuadroVentas } from "@/lib/cuadre-ventas-reglas";
 import { solesCentimos } from "@/lib/flujo-caja-reglas";
 
-// ¿Ganamos? ▸ De Ventas a Finanzas (ADR-0609). Las dos pantallas parten de las mismas ventas y dan cifras distintas a propósito: este cuadro
+// Ganancias y pérdidas ▸ De Ventas a Finanzas (ADR-0609). Las dos pantallas parten de las mismas ventas y dan cifras distintas a propósito: este cuadro
 // dice qué las separa, en céntimos, para que nadie tenga que sacar la cuenta. Si algo no tiene nombre, sale «Sin explicar»: no se reparte ni se esconde.
 
 export function CuadreVentas({ cuadro, falla }: { cuadro: CuadroVentas | null; falla: string | null }) {
@@ -13,7 +13,7 @@ export function CuadreVentas({ cuadro, falla }: { cuadro: CuadroVentas | null; f
   const { columnas, filas, conTotal, sinExplicar } = cuadro;
   const cuadra = Math.round(sinExplicar * 100) === 0;
   return (
-    <section data-guia="fin-ganamos.cuadre">
+    <section id="de-ventas-a-finanzas" className="scroll-mt-40" data-guia="fin-ganamos.cuadre">
       <TituloSeccion
         accion={
           cuadra ? (

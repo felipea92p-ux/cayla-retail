@@ -12,7 +12,10 @@ import { InversionMercaderia } from "@/components/finanzas/InversionMercaderia";
 import { useAjustesResumen } from "@/components/finanzas/useAjustesResumen";
 import { CambiosDelMesPieza } from "@/components/finanzas/CambiosDelMes";
 import { AdondeVaLaPlata } from "@/components/finanzas/AdondeVaLaPlata";
+import { SedesJuntas } from "@/components/finanzas/SedesJuntas";
 import { VendidoPorSede } from "@/components/finanzas/VendidoPorSede";
+import { sedesJuntas } from "@/lib/sedes-juntas-reglas";
+import type { UnidadBalance } from "@/lib/balance-reglas";
 import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
@@ -74,11 +77,13 @@ type Props = {
   acceso: Acceso;
   /** Lo que se le debe a CLAURE (ADR-0560): `null` = no se ve o no hay nada; `saldo: null` = se cayó la lectura. */
   claure?: { saldo: number | null } | null;
+  /** La caja de cada sede, para «Cada sede, junta»; `null` si la cuenta no ve todas las sedes. */
+  cajasPorSede?: Lectura<UnidadBalance[]> | null;
 };
 
 const FRASE = "De lo que vendes a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null, cajasPorSede = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -149,12 +154,13 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
 
   // «Vendiste X y salió Y» bajo «¿Cuánto te deja?»: de lo mismo que dibuja «A dónde va la plata» (el recorrido), así que las dos dicen el mismo número.
-  const plata = recorrido && recorrido.modo === "vende" ? { vendido: recorrido.nudo.monto, salio: recorrido.salidas.filter((h) => h.tipo !== "deja").reduce((a, h) => a + h.monto, 0) } : null;
+  const plata = recorrido && recorrido.modo === "vende" ? { vendido: recorrido.nudo.monto, salio: recorrido.salidas.filter((h) => h.tipo !== "deja").reduce((a, h) => a + h.monto, 0), nota: r.ver.todas ? undefined : recorrido.nota } : null;
   const bajadaPlata = recorrido
     ? recorrido.modo === "vende" && plata
-      ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}.`
+      ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}. ${recorrido.nota}`
       : recorrido.nota
     : "";
+  const juntas = cajasPorSede && r.ver.todas ? sedesJuntas(filas, cajasPorSede.falla ? null : cajasPorSede.datos) : null;
 
   return (
     <div className="space-y-6">
@@ -163,7 +169,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
       <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata })} />
       {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
-      <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} />
+      <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} hrefCuadre={`${ir("/finanzas/reportes")}${ir("/finanzas/reportes").includes("?") ? "&" : "?"}cuadre=1#de-ventas-a-finanzas`} />
+      {juntas && <SedesJuntas juntas={juntas} mes={mesNombre(mes)} hoy={hoy} falla={cajasPorSede?.falla ?? null} />}
       {dock}
 
       {/* La caja y «Hoy te toca» van lado a lado y a la misma altura (desde 1280 px, con 20 rem de piso para «Hoy te toca»: antes, a 1024 px

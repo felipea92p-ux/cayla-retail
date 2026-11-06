@@ -1,4 +1,4 @@
-// El tramo de una cascada (camino A de las maquetas finanzas-v2-2026-10, Felipe 2026-10-15): lo arman ¿Ganamos?, la plata y los pulsos de
+// El tramo de una cascada (camino A de las maquetas finanzas-v2-2026-10, Felipe 2026-10-15): lo arman Ganancias y pérdidas, la plata y los pulsos de
 // Finanzas. La respuesta y la cascada del Pulso de Reportes se retiraron el 2026-10-31: Estados financieros dibuja la cascada de su maqueta
 // (`lib/cascada-estados-reglas.ts`, ADR-0585), y su prueba de ADR-0453 pasó a `ganamos-reglas.test.ts`.
 

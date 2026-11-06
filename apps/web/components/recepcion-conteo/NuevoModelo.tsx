@@ -258,6 +258,7 @@ export function NuevoModelo({
           </CampoGuiado>
           {!catalogo && <Aviso tono="atencion" titulo="No se pudo leer el catálogo">Recarga la pantalla para elegir la marca.</Aviso>}
           {error && <Aviso tono="error" titulo="No se pudo agregar">{errorDelGuardado ?? error}</Aviso>}
+          <div className="pie-hoja-fijo space-y-3 pt-2">
           <PieGuia guia={guia} listo="Todo listo." />
           <div className="pie-acciones">
             <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
@@ -266,6 +267,7 @@ export function NuevoModelo({
             <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Agregando…" confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {yaEsta ? "Ir a contarlo" : "+ Agregar y contar"}
             </Boton>
+          </div>
           </div>
         </form>
       )}

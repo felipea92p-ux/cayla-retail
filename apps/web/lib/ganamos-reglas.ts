@@ -1,4 +1,4 @@
-// Estados financieros ▸ ¿Ganamos? (ganancias y pérdidas; ADR-0585, actividad 4).
+// Estados financieros ▸ Ganancias y pérdidas (ganancias y pérdidas; ADR-0585, actividad 4).
 //
 // PROMETE: la cascada de la venta a la ganancia en palabras de tienda (los gastos agrupados en lo que la persona reconoce, no en cuentas),
 // cada grupo con lo planeado en el presupuesto y cuánto se pasa; lo que dejó cada sede; las campañas del mes y las recomendaciones.
@@ -45,7 +45,7 @@ export function desvio(real: number, plan: number | null | undefined): number | 
 }
 
 /**
- * La cascada de ¿Ganamos?: vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
+ * La cascada de Ganancias y pérdidas: vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
  * tope lleva `plan` y `desvio` (contra la proyección en el mes en curso) y sus cuentas, para abrirlo.
  */
 export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCascada[] {
@@ -156,19 +156,6 @@ export function filasDeSedes(sedes: readonly DejaSede[], hrefDe: (clave: ClaveSe
     }));
 }
 
-/** La respuesta de ¿Ganamos?: «Sí. Ganaste S/ X» o «No. Perdiste S/ X», y de cada S/ 100 vendidos cuánto quedó. */
-export function titularGanamos(f: Pick<FilaER, "resultado" | "ventas" | "unidad">): { si: boolean; respuesta: string; bajada: string } {
-  const r = Math.round(f.resultado);
-  const vende = f.ventas > 0;
-  const respuesta = r >= 0 ? `Ganaste ${soles(r)}` : vende ? `Perdiste ${soles(-r)}` : `Costó ${soles(-r)}`;
-  const bajada = vende
-    ? `De cada S/\u00a0100 que vendiste ${r >= 0 ? "te quedaron" : "perdiste"} S/\u00a0${Math.abs((f.resultado / f.ventas) * 100).toFixed(1).replace(".", ",")}.`
-    : f.unidad === "taller"
-      ? "El Taller no vende: sus prendas pasan a las tiendas a su costo. Esto es lo que costó tenerlo abierto."
-      : "La empresa no vende: estos gastos los cubren las tiendas.";
-  return { si: r >= 0, respuesta, bajada };
-}
-
 /** Las campañas que corrieron en el mes (alguno de sus días cae dentro) y ya terminaron o siguen. */
 export function campanasDelMes(campanas: readonly CampanaFila[], mes: string): CampanaFila[] {
   const ini = `${mes}-01`;
@@ -194,7 +181,7 @@ export type Recomendacion = {
 };
 
 /**
- * Qué te recomiendo en ¿Ganamos? (hasta 3, la más urgente arriba). Cada una sale de una cifra que la pantalla ya muestra: una sede que
+ * Qué te recomiendo en Ganancias y pérdidas (hasta 3, la más urgente arriba). Cada una sale de una cifra que la pantalla ya muestra: una sede que
  * pierde, un gasto que se pasa de lo planeado, una campaña que cerró y la meta de ventas. Ninguna inventa una regla.
  * `href` arma la dirección con la sede y el mes de la barra.
  */

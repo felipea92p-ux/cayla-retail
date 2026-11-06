@@ -154,7 +154,7 @@ export function FilaAlta({
   const retener = useRetenerLuz(campo, useContext(RetencionLuzContexto), retiene);
   const titulo = (
     <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      {campo && estado && (
+      {campo && estado && estado !== "opcional" && (
         <span className="self-center">
           <MarcaCampo estado={estado} />
         </span>
@@ -163,7 +163,7 @@ export function FilaAlta({
         {estado && <VozDelEstado estado={estado} />}
         {etiqueta}
       </span>
-      {estado === "ahora" && <EtiquetaAhora />}
+      {estado === "ahora" && <EtiquetaAhora flota />}
       {ayuda && <span className="text-[12px] leading-snug text-taupe">{ayuda}</span>}
       {accion && <span className="ml-auto">{accion}</span>}
     </div>

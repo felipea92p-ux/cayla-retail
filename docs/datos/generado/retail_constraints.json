@@ -3526,7 +3526,7 @@
  },
  {
   "conname": "comprobantes_produccion_tipo_check",
-  "definicion": "CHECK ((tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'nota_venta'::text, 'sin_comprobante'::text])))",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'nota_venta'::text, 'sin_comprobante'::text, 'recibo_por_honorarios'::text])))",
   "tabla": "retail.comprobantes_produccion"
  },
  {
@@ -3597,6 +3597,11 @@
  {
   "conname": "comprobantes_produccion_items_costo_unitario_check",
   "definicion": "CHECK ((costo_unitario >= (0)::numeric))",
+  "tabla": "retail.comprobantes_produccion_items"
+ },
+ {
+  "conname": "comprobantes_produccion_items_fase_id_fkey",
+  "definicion": "FOREIGN KEY (fase_id) REFERENCES retail.produccion_fases(id)",
   "tabla": "retail.comprobantes_produccion_items"
  },
  {
@@ -4011,12 +4016,22 @@
  },
  {
   "conname": "costo_historial_origen_check",
-  "definicion": "CHECK ((origen = ANY (ARRAY['compra'::text, 'produccion'::text])))",
+  "definicion": "CHECK ((origen = ANY (ARRAY['compra'::text, 'produccion'::text, 'reversion'::text])))",
   "tabla": "retail.costo_historial"
  },
  {
   "conname": "costo_historial_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.costo_historial"
+ },
+ {
+  "conname": "costo_historial_reversion_coherente",
+  "definicion": "CHECK (((origen = 'reversion'::text) = (revierte_movimiento_id IS NOT NULL)))",
+  "tabla": "retail.costo_historial"
+ },
+ {
+  "conname": "costo_historial_revierte_movimiento_id_fkey",
+  "definicion": "FOREIGN KEY (revierte_movimiento_id) REFERENCES retail.movimientos(id)",
   "tabla": "retail.costo_historial"
  },
  {
@@ -6546,7 +6561,7 @@
  },
  {
   "conname": "insumo_lote_cambios_accion_check",
-  "definicion": "CHECK ((accion = ANY (ARRAY['corregir'::text, 'eliminar'::text, 'restaurar'::text])))",
+  "definicion": "CHECK ((accion = ANY (ARRAY['corregir'::text, 'eliminar'::text, 'restaurar'::text, 'proveedor'::text, 'ajustar'::text])))",
   "tabla": "retail.insumo_lote_cambios"
  },
  {
@@ -9410,6 +9425,11 @@
   "tabla": "retail.pos_abonos_lotes"
  },
  {
+  "conname": "pos_maquinas_banco_id_fkey",
+  "definicion": "FOREIGN KEY (banco_id) REFERENCES retail.cuentas_dinero(id)",
+  "tabla": "retail.pos_maquinas"
+ },
+ {
   "conname": "pos_maquinas_creada_por_fkey",
   "definicion": "FOREIGN KEY (creada_por) REFERENCES personas(id)",
   "tabla": "retail.pos_maquinas"
@@ -10131,7 +10151,7 @@
  },
  {
   "conname": "produccion_cambios_accion_check",
-  "definicion": "CHECK ((accion = ANY (ARRAY['corregir'::text, 'eliminar'::text, 'restaurar'::text, 'nota'::text, 'sin_tela'::text, 'tipo'::text, 'paso_tarde'::text])))",
+  "definicion": "CHECK ((accion = ANY (ARRAY['corregir'::text, 'eliminar'::text, 'restaurar'::text, 'nota'::text, 'sin_tela'::text, 'tipo'::text, 'paso_tarde'::text, 'plan'::text, 'datos'::text])))",
   "tabla": "retail.produccion_cambios"
  },
  {
@@ -10141,7 +10161,7 @@
  },
  {
   "conname": "produccion_cambios_forma",
-  "definicion": "CHECK (\nCASE accion\n    WHEN 'nota'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'sin_tela'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'tipo'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL) AND COALESCE((((antes ->> 'es_muestra'::text) = ANY (ARRAY['true'::text, 'false'::text])) AND ((despues ->> 'es_muestra'::text) = ANY (ARRAY['true'::text, 'false'::text])) AND ((antes ->> 'es_muestra'::text) <> (despues ->> 'es_muestra'::text))), false))\n    WHEN 'eliminar'::text THEN ((objeto IS NOT NULL) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) > 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'corregir'::text THEN ((objeto = 'termine'::text) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) > 0) AND (cardinality(pone_ids) > 0) AND (restaura_id IS NULL))\n    WHEN 'restaurar'::text THEN ((objeto IS NOT NULL) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) > 0) AND (restaura_id IS NOT NULL))\n    WHEN 'paso_tarde'::text THEN ((objeto IS NULL) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) = 0) AND (restaura_id IS NULL))\n    ELSE false\nEND)",
+  "definicion": "CHECK (\nCASE accion\n    WHEN 'nota'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'sin_tela'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'plan'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'datos'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'tipo'::text THEN ((objeto IS NULL) AND (fase_id IS NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL) AND COALESCE((((antes ->> 'es_muestra'::text) = ANY (ARRAY['true'::text, 'false'::text])) AND ((despues ->> 'es_muestra'::text) = ANY (ARRAY['true'::text, 'false'::text])) AND ((antes ->> 'es_muestra'::text) <> (despues ->> 'es_muestra'::text))), false))\n    WHEN 'eliminar'::text THEN ((objeto IS NOT NULL) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) > 0) AND (cardinality(pone_ids) = 0) AND (restaura_id IS NULL))\n    WHEN 'corregir'::text THEN ((objeto = 'termine'::text) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) > 0) AND (cardinality(pone_ids) > 0) AND (restaura_id IS NULL))\n    WHEN 'restaurar'::text THEN ((objeto IS NOT NULL) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) = 0) AND (cardinality(pone_ids) > 0) AND (restaura_id IS NOT NULL))\n    WHEN 'paso_tarde'::text THEN ((objeto IS NULL) AND (fase_id IS NOT NULL) AND (cardinality(quita_ids) = 0) AND (restaura_id IS NULL))\n    ELSE false\nEND)",
   "tabla": "retail.produccion_cambios"
  },
  {
@@ -10600,6 +10620,16 @@
   "tabla": "retail.producciones"
  },
  {
+  "conname": "producciones_motivo_orden_valido",
+  "definicion": "CHECK (((motivo_orden IS NULL) OR (motivo_orden = ANY (ARRAY['reposicion'::text, 'novedad'::text]))))",
+  "tabla": "retail.producciones"
+ },
+ {
+  "conname": "producciones_muestra_aprobada_por_largo",
+  "definicion": "CHECK (((muestra_aprobada_por IS NULL) OR ((btrim(muestra_aprobada_por) <> ''::text) AND (length(muestra_aprobada_por) <= 120))))",
+  "tabla": "retail.producciones"
+ },
+ {
   "conname": "producciones_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.producciones"
@@ -10612,6 +10642,11 @@
  {
   "conname": "producciones_terminada_coherente",
   "definicion": "CHECK ((((estado = 'terminada'::text) AND (cantidad_buenas IS NOT NULL)) OR ((estado <> 'terminada'::text) AND (cantidad_buenas IS NULL) AND (inventariado_at IS NULL))))",
+  "tabla": "retail.producciones"
+ },
+ {
+  "conname": "producciones_tienda_destino_id_fkey",
+  "definicion": "FOREIGN KEY (tienda_destino_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.producciones"
  },
  {

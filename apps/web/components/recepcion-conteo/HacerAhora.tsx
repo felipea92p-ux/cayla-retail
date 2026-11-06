@@ -54,6 +54,7 @@ import { enfocarCosto, enfocarPrecio, type CostoDePrenda } from "./PrecioDePrend
 import { PreciosDeVenta } from "./PreciosDeVenta";
 import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { SepararPrendas } from "./SepararPrendas";
+import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
 
 // «Hacer ahora» (ADR-0393, decisión 3): terminar lo que quedó de un envío cerrado. Tres caminos, una sola puerta a la base
 // (`resolver_pendiente_envio`): «Separar» lo que nadie dijo qué es (prendas con o sin tallas, nuevas); «Tallas y colores» de un pendiente
@@ -66,6 +67,8 @@ type Vista =
   | { tipo: "tallas"; prenda: PrendaRecepcion; original: PrendaSeparada | null }
   // `desde`: la nueva ya descrita que se está creando al separar. Sin ella, es la hoja de siempre («Crear ahora» de un pendiente o «Es nueva»).
   | { tipo: "prenda"; desde?: { cantidad: number; descripcion: string } }
+  // Lo contado como nuevo puede ser una prenda que ya existe: se pregunta antes de crear.
+  | { tipo: "existe" }
   | { tipo: "cargando" };
 
 /** ¿Ese nombre es el provisional que le puso el sistema? La marca vive en el conteo; el texto no lo dice: una blusa puede llamarse «Blusa 1» de verdad. */
@@ -104,7 +107,7 @@ export function HacerAhora({
 }) {
   const [vista, setVista] = useState<Vista>(() => {
     if (item.tipo === "separar") return { tipo: "separar" };
-    if (item.tipo === "crear") return { tipo: "prenda" };
+    if (item.tipo === "crear") return { tipo: "existe" };
     const ya = item.pendiente.producto ? prendas.get(item.pendiente.producto.id) : undefined;
     return ya ? { tipo: "tallas", prenda: ya, original: null } : { tipo: "cargando" };
   });
@@ -372,6 +375,22 @@ export function HacerAhora({
         <Modal titulo={item.titulo} onClose={cerrar} conCerrar>
           {error ? <Aviso tono="error">{error}</Aviso> : <p className="text-sm text-taupe">Buscando sus tallas y colores…</p>}
         </Modal>
+      );
+    }
+
+    if (vista.tipo === "existe") {
+      return (
+        <YaExisteLaPrenda
+          categoria={categoria}
+          marca={marca}
+          nombre={esProvisional(linea, descripcionNueva) ? null : descripcionNueva}
+          cantidad={item.cantidad}
+          costo={costoDe ? costoInicialDePrenda(linea, "", descripcionNueva) : null}
+          comoCorregirMarca="Si la marca anotada está mal, reabre el conteo y corrígela."
+          onUsar={alExistir}
+          onCrear={() => setVista({ tipo: "prenda" })}
+          onCerrar={cerrar}
+        />
       );
     }
 

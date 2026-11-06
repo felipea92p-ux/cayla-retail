@@ -8,7 +8,8 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { nombreDeColor } from "@/lib/color-alta-reglas";
 import { esColorClaro, partirEnGamas } from "@/lib/color-escala";
 import { coloresParecidos } from "@/lib/color-parecido";
-import { bordeDeMuestra, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
+import { bordeDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { fichaDelColor } from "@/lib/ficha-del-color";
 import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { useEnLinea } from "@/lib/useEnLinea";
@@ -226,7 +227,7 @@ export function ElegirColores({
                             onMouseEnter={() => setSenalado(c)}
                             onFocus={() => setSenalado(c)}
                             onBlur={() => setSenalado(null)}
-                            style={{ background: fondoDeMuestra(c.hex, c.familiaColor, c.tipo) ?? "transparent", borderColor: bordeDeMuestra(c.hex) }}
+                            style={{ background: fondoDeColor(c.hex, c.familiaColor, c.tipo), borderColor: bordeDeMuestra(c.hex) }}
                             className={`grid h-8 w-8 place-items-center rounded-full border border-tinta/25 text-[12px] font-bold transition-transform duration-150 hover:scale-110 ${
                               elegido ? "ring-2 ring-tinta ring-offset-2 ring-offset-crema" : ""
                             } ${esColorClaro(c.hex) ? "text-tinta" : "text-crema"}`}
@@ -274,7 +275,7 @@ function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: Col
               <span className="text-tinta">{senalado.nombre}</span>
               <span className="text-taupe">
                 {" "}
-                · {textoDeFamilia(senalado.familiaColor)}
+                · {senalado.familiaColor ? textoDeFamilia(senalado.familiaColor) : "Varios colores"}
                 {senalado.pantoneTcx ? ` · ${senalado.pantoneTcx}` : ""}
                 {elegido ? " · elegido" : ""}
               </span>

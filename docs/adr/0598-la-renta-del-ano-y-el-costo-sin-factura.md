@@ -67,3 +67,11 @@ DESCARTÉ pedir el costo de lo vendido de enero a septiembre: con un contador qu
 `pnpm pruebas:sustento-costos` (13 casos, con mutación verificada), `pruebas:impuestos` y `pruebas:no-deducible` (que ahora deshacen también esta
 migración antes de re-pegar la suya), `renta-anual-reglas.test.ts` (32), `impuestos-reglas.test.ts`. En el navegador, a 1440 y 375 px, claro y oscuro,
 la tarjeta y la hoja. `guias:recorrer` pasa los 16 pasos de Impuestos.
+
+## Actualización 2026-11-05 (tarea 17 de «Las 36 de Finanzas», `20261106021000`)
+
+- **Permiso:** la tarjeta y `fn_sustento_costos` pasan de «solo el líder» a quien tiene el módulo Impuestos, que ya descarga el registro de compras. Antes, con el módulo delegado salía un error.
+- **Papeles nuevos:** `no_requiere` (categorías sin comprobante de un proveedor: el banco y SUNAT, `categorias_gasto.no_requiere_papel`, las confirma el contador) resta; `no_bancarizado` (Ley 28194) no resta, aunque tenga factura, y no aparece en «A quién pedirle factura».
+- **Rótulo:** «Pagos a cuenta estimados», con la tasa del parámetro. Lo pagado de verdad va aparte, y sale de `impuestos_pagos` (tarea 10).
+- **Enero a marzo** se mira el año anterior, cerrado al 31 de diciembre, porque es el que se está por pagar. Con menos de un mes completo no se proyecta.
+

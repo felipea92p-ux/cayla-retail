@@ -29,6 +29,9 @@
     --gota-roja-fondo: var(--color-rojo);
     --gota-roja-hover: var(--color-rojo-profundo);
     --tubo-brillo: none;
+    --estados-fondo: var(--color-papel);
+    --estados-fondo-fuerte: var(--color-papel);
+    --estados-cal-fondo: var(--color-papel);
     /* Más contraste no es solo más sólido: sin transparencia, las recetas de arriba (`prefers-reduced-transparency`) también valen aquí. */
     --vidrio-hoja-fondo: var(--color-papel);
     --vidrio-pie-fondo: var(--color-papel);

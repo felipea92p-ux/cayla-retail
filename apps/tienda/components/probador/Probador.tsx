@@ -208,7 +208,7 @@ export function Probador({
       }
       return { ...s, look, entradas, recordados };
     });
-    avisar(conFijos ? "Te armamos otro. Lo que fijaste se queda." : "Te armamos otro look.");
+    avisar(conFijos ? "Te armamos otro. Lo que fijaste se queda." : "Te armamos otro outfit.");
   }
 
   const numero: Partial<Record<Zona, number>> = Object.fromEntries(presentes(estado.look).map((z, i) => [z, i + 1]));
@@ -221,7 +221,7 @@ export function Probador({
     <div className="pb">
       <header className="pb-cab">
         <div className="pb-cab-txt">
-          <span className="t-ceja">Arma tu look</span>
+          <span className="t-ceja">Arma tu outfit</span>
           <h1>
             Arma el <em>tuyo</em>
           </h1>

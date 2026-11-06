@@ -76,3 +76,7 @@ proyección), `cifraProyeccion` y `onElegir`/`elegido` (tocar un momento, tambi�
 
 Una `<polyline>` o un `<path>` armado con su propia función de trazo (`d={trazo(…)}`, `camino`, `linea`) fuera de la pieza. Con el código de
 antes reconocen 4 archivos.
+
+## Excepción (Felipe 2026-11-05)
+
+La línea de los meses de Estados financieros (`LineaDeMeses`) queda aparte: es de la maqueta que Felipe eligió mirando (ADR-0611). No se copia a otra pantalla.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actividadDe, fraseDeLaPlata, loQueNoCubre, partesDelFlujo, puentePlata, recomendacionesPlata } from "./plata-reglas";
+import { actividadDe, loQueNoCubre, partesDelFlujo, recomendacionesPlata } from "./plata-reglas";
 import type { ArranqueCuenta, FlujoReal, Proyeccion, SemanaProy } from "./flujo-caja-reglas";
 
 const S = (n: string) => n.replace(/S\/ /g, "S/ ");
@@ -49,24 +49,6 @@ describe("las tres partes del método directo (ADR-0585)", () => {
       ["financiamiento", -4300],
     ]);
     expect(p[0]!.lineas[0]).toEqual({ nombre: "Efectivo", monto: 30000 });
-  });
-  it("el puente suma: empezar + las partes = cerrar", () => {
-    const t = puentePlata(real(), false);
-    const suma = t.slice(0, -1).reduce((s, x) => s + (x.tipo === "entra" ? x.monto : -x.monto), 0);
-    expect(suma).toBe(27450);
-    expect(t.at(-1)).toMatchObject({ nombre: "Al cerrar el mes", monto: 27450, tipo: "queda" });
-    expect(puentePlata(real(), true).at(-1)!.nombre).toBe("Hoy");
-  });
-});
-
-describe("fraseDeLaPlata", () => {
-  it("ganó y la plata bajó: nombra lo que se fue fuera del día a día", () => {
-    expect(fraseDeLaPlata(real(), 3850)).toBe(S("Ganaste S/ 3,850, pero compraste cosas que duran años por S/ 4,800, retiraste S/ 3,000 y pagaste la tarjeta de crédito por S/ 1,300."));
-  });
-  it("ganó y subió; perdió; sin ganancia", () => {
-    expect(fraseDeLaPlata(real({ saldoFinal: 32000 }), 3850)).toBe(S("Ganaste S/ 3,850 y la plata subió S/ 800."));
-    expect(fraseDeLaPlata(real(), -500)).toBe(S("Perdiste S/ 500 en el mes. La plata bajó S/ 3,750 en el mes."));
-    expect(fraseDeLaPlata(real(), null)).toBe(S("La plata bajó S/ 3,750 en el mes."));
   });
 });
 
@@ -122,18 +104,6 @@ describe("lo que el flujo no cubre (ADR-0609)", () => {
   });
   it("con dos fechas de arranque dice el tramo", () => {
     expect(loQueNoCubre(real({ arranques: [cuenta(), cuenta({ cuentaId: "c2", desde: "2026-10-23" })] }))!.cuando).toBe("entre el 23 oct y el 28 oct");
-  });
-  it("no cambia ninguna cifra del puente, pero no llama «al empezar el mes» a un saldo de fin de mes", () => {
-    const completo = puentePlata(real(), false);
-    const parcial = puentePlata(real({ arranques: [cuenta()] }), false);
-    expect(parcial.map((t) => t.monto)).toEqual(completo.map((t) => t.monto));
-    expect(completo[0]!.nombre).toBe("Al empezar el mes");
-    expect(parcial[0]!.nombre).toBe("Saldo de partida");
-    expect(parcial[0]!.detalle).toContain("el 28 oct");
-  });
-  it("la frase no afirma que subió, bajó ni por qué", () => {
-    const f = fraseDeLaPlata(real({ arranques: [cuenta()] }), 9000);
-    expect(f).toBe("No se puede decir cuánto subió o bajó en el mes: una cuenta arrancó con su saldo el 28 oct.");
   });
   it("no recomienda por una baja que no se sabe si ocurrió", () => {
     const r = recomendacionesPlata({ real: real({ arranques: [cuenta()] }), proyeccion: null, semanas: [], ganancia: 9000, href: (x) => x });

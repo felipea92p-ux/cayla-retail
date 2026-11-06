@@ -24,12 +24,14 @@ import {
   tallasDelColor,
   type ChipFicha,
   type Ficha,
+  type Promesa,
 } from "@/lib/ficha";
 import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
-import { textoNivel, tonoNivel } from "@/lib/stock";
+import { fraseDeNivel, textoNivel, tonoNivel } from "@/lib/stock";
 import { anotarPaso } from "@/lib/visita-cola";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
+import { Promesas } from "./bolsa/Promesas";
 import { volarALaBolsa } from "./bolsa/volarALaBolsa";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
@@ -67,6 +69,7 @@ export function FichaPrenda({
   enLaBolsa = 0,
   separadas = [],
   probador = null,
+  promesas = [],
   children,
 }: {
   ficha: Ficha;
@@ -92,6 +95,8 @@ export function FichaPrenda({
   /** Si la prenda está en el probador de esta tienda («Arma el tuyo», ADR-0434, actividad 10): su código y la tienda elegida, para
    *  «Arma un look con esta prenda», que lo abre con ella en el color elegido. null si no se puede probar (sin recorte o sin largo). */
   probador?: { codigo: string; sede: string | null } | null;
+  /** Lo que la tienda cumple al comprar (`promesasDeCompra`), con los plazos de la ayuda: lo mismo que dice el outfit abierto. */
+  promesas?: readonly Promesa[];
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
@@ -351,12 +356,14 @@ export function FichaPrenda({
             <div className="t-pdp-probador">
               <Link className="t-btn t-btn-sec" href={hrefDelProbador(probador.sede, `${probador.codigo}.${color}`)}>
                 <Icono nombre="chispas" />
-                Arma un look con esta prenda
+                Arma un outfit con esta prenda
               </Link>
             </div>
           )}
 
-          {/* Solo el detalle de la prenda (A · Muro, menos texto): cómo se separa y los cambios viven en su página de ayuda. */}
+          {promesas.length > 0 && <Promesas promesas={promesas} />}
+
+          {/* El detalle de la prenda. */}
           <div className="t-acordeon">
             {ficha.descripcion && (
               <details open>
@@ -562,11 +569,36 @@ function TablaStock({
   // Cada tienda maneja lo suyo (2026-10-19): con una tienda elegida, la tabla muestra solo esa; sin ella, todas.
   const tiendas = ficha.sedes.filter((s) => !sedeElegida || s.id === sedeElegida);
   const soloUna = tiendas.length === 1 ? tiendas[0] : null;
+  // Con una sola tienda no hace falta una tabla de una fila: una línea dice lo mismo, y con la talla elegida, solo la de esa talla.
+  if (soloUna) {
+    const unaTalla = tallas.length === 1 ? tallas[0] : tallas.find((t) => t.talla.id === tallaId);
+    if (unaTalla) {
+      const nivel = unaTalla.variante.stock[soloUna.id] ?? 0;
+      return (
+        <p className={`t-stock-linea ${tonoNivel(nivel)}`}>
+          <b>{fraseDeNivel(nivel)}</b> en {soloUna.nombre}
+        </p>
+      );
+    }
+    return (
+      <p className="t-stock-linea">
+        <span>En {soloUna.nombre}:</span>
+        {tallas.map(({ talla, variante }) => {
+          const nivel = variante.stock[soloUna.id] ?? 0;
+          return (
+            <span key={variante.id} className={tonoNivel(nivel)}>
+              {talla.nombre} <b>{textoNivel(nivel)}</b>
+            </span>
+          );
+        })}
+      </p>
+    );
+  }
   return (
     <div className="t-bloque t-stock-bloque">
       <span className="t-etq">
         <span>
-          {soloUna ? `Cuánto hay en ${soloUna.nombre}` : "Cuánto hay por tienda"} <b>{colorNombre}</b>
+          Cuánto hay por tienda <b>{colorNombre}</b>
         </span>
       </span>
       {ficha.sedes.length === 0 ? (
@@ -576,7 +608,7 @@ function TablaStock({
           <div className="t-stock-envol">
             <table className="t-stock">
               <caption className="t-sr">
-                Cuánto hay de {ficha.nombre} en {colorNombre}, {soloUna ? `en ${soloUna.nombre}` : "por tienda"} y por talla
+                Cuánto hay de {ficha.nombre} en {colorNombre}, por tienda y por talla
               </caption>
               <thead>
                 <tr>
@@ -592,7 +624,7 @@ function TablaStock({
               </thead>
               <tbody>
                 {tiendas.map((s) => (
-                  <tr key={s.id} className={s.id === sedeElegida && !soloUna ? "elegida" : undefined}>
+                  <tr key={s.id} className={s.id === sedeElegida ? "elegida" : undefined}>
                     <th scope="row">{s.nombre}</th>
                     {tallas.map(({ talla, variante }) => {
                       const nivel = variante.stock[s.id] ?? 0;
