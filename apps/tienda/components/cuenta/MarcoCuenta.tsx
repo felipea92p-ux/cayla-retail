@@ -4,6 +4,7 @@ import { datosDeCabecera } from "@/lib/inicio";
 import { leerPortada } from "@/lib/portada-servidor";
 import { hayAlgoParaProbar } from "@/lib/probador-servidor";
 import { anioActual } from "@/lib/hoy-servidor";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { anuncios } from "@/lib/portada";
 import { Anuncio } from "../Anuncio";
 import { BotonBolsa } from "../bolsa/BotonBolsa";
@@ -58,10 +59,10 @@ export async function MarcoCuenta({
   prendasEnBolsa?: number;
 }) {
   if (segunSesion) {
-    const [{ campana }, anio] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0)]);
+    const [{ campana }, anio, { diasParaCambiar }] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0), leerAyuda()]);
     const visitante = (
       <>
-        <Anuncio frases={anuncios(campana, false)} />
+        <Anuncio frases={anuncios(campana, diasParaCambiar)} />
         <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
       </>
     );
@@ -80,7 +81,7 @@ export async function MarcoCuenta({
                 visitante={visitante}
                 conCuenta={
                   <>
-                    <Anuncio frases={anuncios(campana, true)} />
+                    <Anuncio frases={anuncios(campana, diasParaCambiar)} />
                     <CabeceraConCuenta
                       datos={datosDeCabecera([], null, undefined)}
                       actual={enPagina === "cuenta" ? "cuenta" : null}
@@ -117,7 +118,7 @@ export async function MarcoCuenta({
       {/* Otra página: la pantalla se funde a la nueva. Antes de la caja, sin elementos encima (components/Vistas.tsx). */}
       <MarcaDeVista />
       <div className="tienda">
-        <Anuncio frases={anuncios(campana, conSesion)} />
+        <Anuncio frases={anuncios(campana, (await leerAyuda()).diasParaCambiar)} />
         {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
         {conSesion && <EntradaDelDia />}
         {datosCabecera ? (
@@ -150,7 +151,7 @@ async function ArranqueConCuenta({ campana, enPagina }: { campana: Portada["camp
   const datos = datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador);
   return (
     <>
-      <Anuncio frases={anuncios(campana, true)} />
+      <Anuncio frases={anuncios(campana, (await leerAyuda()).diasParaCambiar)} />
       <EntradaDelDia />
       <CabeceraConCuenta
         datos={datos}

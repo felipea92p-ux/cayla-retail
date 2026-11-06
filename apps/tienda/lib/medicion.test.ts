@@ -54,7 +54,7 @@ describe("la página que se mide, sin la dirección", () => {
     expect(rutaDeMedicion("")).toBe("/");
   });
 
-  it("una parte fija gana a una variable: «Arma el tuyo» no es un look", () => {
+  it("una parte fija gana a una variable: «Arma el tuyo» no es un outfit", () => {
     expect(rutaDeMedicion("/looks/arma")).toBe("/looks/arma");
     expect(rutaDeMedicion("/looks/look-de-verano")).toBe("/looks/[id]");
     expect(rutaDeMedicion("/looks/guardado/abc")).toBe("/looks/guardado/[id]");

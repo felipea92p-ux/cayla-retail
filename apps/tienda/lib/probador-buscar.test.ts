@@ -60,7 +60,7 @@ describe("la búsqueda abierta en la dirección", () => {
     expect(leerFiltroDeZona("zapatos")).toBeNull();
     expect(leerFiltroDeZona(null)).toBeNull();
   });
-  it("abrirla y cerrarla deja lo demás de la dirección como estaba, con el look legible", () => {
+  it("abrirla y cerrarla deja lo demás de la dirección como estaba, con el outfit legible", () => {
     expect(busquedaConBuscar("?sede=lima&p=P-1.NEG~P-2.GRI", "arriba")).toBe("?sede=lima&buscar=arriba&p=P-1.NEG~P-2.GRI");
     expect(busquedaConBuscar("?sede=lima&buscar=arriba&p=P-1.NEG", null)).toBe("?sede=lima&p=P-1.NEG");
     expect(busquedaConBuscar("", "todo")).toBe("?buscar=todo");
@@ -109,14 +109,14 @@ describe("lo que se ve", () => {
 });
 
 describe("el color de cada tarjeta", () => {
-  it("el que tocó el cliente; si no, el que nombra lo escrito; si no, el del look o el que entra solo", () => {
+  it("el que tocó el cliente; si no, el que nombra lo escrito; si no, el del outfit o el que entra solo", () => {
     expect(colorEnLaBusqueda(TOP, [], { [TOP.id]: "NEG" }, {}).codigo).toBe("NEG");
     expect(colorEnLaBusqueda(TOP, palabrasDe("negro"), {}, {}).codigo).toBe("NEG");
     expect(colorEnLaBusqueda(TOP, palabrasDe("rosa"), {}, { [TOP.id]: "NEG" }).codigo).toBe("RPA");
     expect(colorEnLaBusqueda(TOP, palabrasDe("top"), {}, { [TOP.id]: "NEG" }).codigo).toBe("NEG");
     expect(colorEnLaBusqueda(TOP, [], {}, {}).codigo).toBe("RPA");
   });
-  it("el botón: probarla, ponerle este color, ya está en tu look, o agotada", () => {
+  it("el botón: probarla, ponerle este color, ya está en tu outfit, o agotada", () => {
     const look = { ...LOOK_VACIO, arriba: { id: TOP.id, color: "RPA" } };
     expect(estadoDeLaTarjeta(BLUSA, BLUSA.colores[0], look)).toBe("probar");
     expect(estadoDeLaTarjeta(TOP, TOP.colores[0], look)).toBe("en-tu-look");

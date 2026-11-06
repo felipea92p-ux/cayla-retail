@@ -144,5 +144,5 @@ export const AVISO_AL_PROBAR: Record<Zona, string> = {
   vestido: "Ocupa arriba y abajo en tu probador.",
   abajo: "Ahora está abajo en tu probador.",
   encima: "Va encima en tu probador.",
-  bolso: "Ahora es el bolso de tu look.",
+  bolso: "Ahora es el bolso de tu outfit.",
 };

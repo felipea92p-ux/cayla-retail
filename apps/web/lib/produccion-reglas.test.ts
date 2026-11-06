@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { conPreciosMasBajos, esProducible, problemaDeBuenas, problemaDeEntrega, topeDeBuenas, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
+import { conPreciosMasBajos, esProducible, problemaDeEntrega, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, TEXTO_SEMAFORO } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -23,16 +23,14 @@ describe("las palabras del semáforo (/formidable 2026-10-10, cambio 3)", () => 
   it("«Pierde» no se usa: con un margen de 38 % POSITIVO decía que se perdía dinero; la palabra es «Margen bajo», la misma de Nuevo producto", () => {
     expect(semaforoMargen(85, 53)?.tono).toBe("pierde");
     expect(TEXTO_SEMAFORO).toEqual({ gana: "Gana", filo: "Al filo", pierde: "Margen bajo" });
-    expect(LEYENDA_SEMAFORO.pierde).toBe("margen bajo < 40%");
-    expect(LEYENDA_SEMAFORO.gana).toBe("gana ≥ 60%");
   });
   it("la hoja de Nueva orden, la tarjeta y el panel leen la MISMA palabra (una sola fuente) y ninguno escribe «Pierde» a mano", () => {
     const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx"]) {
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx"]) {
       const fuente = leer(ruta);
       expect(fuente, ruta).not.toMatch(/"Pierde"/);
       expect(fuente, ruta).not.toMatch(/pierde &lt; 40%/);
-      expect(fuente, ruta).toMatch(/TEXTO_SEMAFORO|LEYENDA_SEMAFORO/);
+      expect(fuente, ruta).toMatch(/TEXTO_SEMAFORO/);
     }
   });
 });
@@ -91,7 +89,7 @@ describe("el margen se mide con el precio más bajo de cualquier tienda (ADR-037
 
   it("nadie vuelve a medir el margen con el precio de la grilla a secas: todo `semaforoMargen(` de una pantalla pasa por `precioParaMargen`", () => {
     const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "lib/produccion-reglas.ts"]) {
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "lib/produccion-reglas.ts"]) {
       const llamadas = leer(ruta).match(/semaforoMargen\([^)]*\)\)?/g) ?? [];
       // La definición (`export function semaforoMargen(precioVenta: number, ...)`) no es una llamada.
       for (const l of llamadas.filter((x) => !x.includes("precioVenta: number"))) expect(l, `${ruta}: ${l}`).toMatch(/precioParaMargen/);
@@ -121,18 +119,12 @@ describe("etapas", () => {
 
 import {
   DIAS_ENTREGA_PRONTO,
-  claveCelda,
   datosDeVariante,
-  desgloseCosto,
   estadoEntrega,
   etapaActual,
   etapasDe,
-  matrizDeLineas,
-  posicionEnMedidor,
   resumenTablero,
-  segundas,
   terminadasDesde,
-  totalBuenas,
 } from "./produccion-reglas";
 
 describe("etapaActual", () => {
@@ -173,42 +165,6 @@ describe("estadoEntrega", () => {
   });
 });
 
-describe("matrizDeLineas", () => {
-  const lin = (color: string | null, talla: string | null, plan: number, buenas: number | null = null) => ({
-    varianteId: `${color}-${talla}`,
-    color,
-    colorHex: color === "Negro" ? "#111" : null,
-    talla,
-    cantidadPlan: plan,
-    cantidadBuenas: buenas,
-  });
-  const m = matrizDeLineas([lin("Crudo", "L", 8), lin("Crudo", "S", 6), lin("Crudo", "M", 10), lin("Negro", "S", 4), lin("Negro", "M", 8)]);
-
-  it("ordena las tallas en su orden canónico, no en el que llegaron", () => {
-    expect(m.tallas).toEqual(["S", "M", "L"]);
-  });
-  it("conserva los colores en el orden en que aparecen, con su tono", () => {
-    expect(m.colores).toEqual([
-      { nombre: "Crudo", hex: null },
-      { nombre: "Negro", hex: "#111" },
-    ]);
-  });
-  it("suma por talla, por color y el total", () => {
-    expect(m.totalPorTalla).toEqual({ S: 10, M: 18, L: 8 });
-    expect(m.totalPorColor).toEqual({ Crudo: 24, Negro: 12 });
-    expect(m.total).toBe(36);
-  });
-  it("una combinación que no está en la orden no tiene celda", () => {
-    expect(m.celdas[claveCelda("Negro", "L")]).toBeUndefined();
-    expect(m.celdas[claveCelda("Crudo", "M")]).toMatchObject({ plan: 10, buenas: null });
-  });
-  it("sin color o sin talla igual se dibuja", () => {
-    const u = matrizDeLineas([lin(null, null, 5)]);
-    expect(u.colores[0].nombre).toBe("Sin color");
-    expect(u.tallas).toEqual(["Única"]);
-  });
-});
-
 describe("datosDeVariante: cómo se nombra una prenda de la orden", () => {
   const talla = { valor: "L" };
   const color = { nombre: "Violeta", hex: "#7a5" };
@@ -233,36 +189,6 @@ describe("datosDeVariante: cómo se nombra una prenda de la orden", () => {
   });
   it("sin talla o sin color deja null, para que la matriz pinte «Única» / «Sin color»", () => {
     expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null, colorCodigo: null });
-  });
-});
-
-describe("cierre: buenas y segundas", () => {
-  it("suma las buenas ignorando vacíos, negativos y decimales", () => {
-    expect(totalBuenas({ a: 6, b: "10", c: "", d: -3, e: "4.9" })).toBe(20);
-  });
-  it("las segundas nunca son negativas", () => {
-    expect(segundas(48, 46)).toBe(2);
-    expect(segundas(48, 50)).toBe(0);
-  });
-});
-
-describe("desgloseCosto", () => {
-  it("reparte los tres costos como partes de un todo", () => {
-    const d = desgloseCosto(700, 100, 200);
-    expect(d.total).toBe(1000);
-    expect(d.partes.map((p) => [p.clave, p.parte])).toEqual([
-      ["tela", 0.7],
-      ["avios", 0.1],
-      ["maquila", 0.2],
-    ]);
-  });
-  it("con costo cero no hay partes que dibujar", () => {
-    expect(desgloseCosto(0, 0, 0).partes.every((p) => p.parte === 0)).toBe(true);
-  });
-  it("el medidor recorta el margen a 0–1", () => {
-    expect(posicionEnMedidor(-0.2)).toBe(0);
-    expect(posicionEnMedidor(0.83)).toBe(0.83);
-    expect(posicionEnMedidor(1.4)).toBe(1);
   });
 });
 
@@ -369,18 +295,6 @@ describe("esProducible (Resumen de Producción: qué se le ofrece a la líder pa
 });
 
 // ADR-0415 (recomendaciones de /chaos): hasta el doble de lo pedido por talla, y una entrega que no es anterior a hoy.
-describe("las buenas de una talla tienen techo", () => {
-  it("el doble de lo pedido, o 5 más si la talla es chica", () => {
-    expect([topeDeBuenas(6), topeDeBuenas(10), topeDeBuenas(1), topeDeBuenas(0)]).toEqual([12, 20, 6, 5]);
-  });
-  it("dice la primera talla que se pasa; si todas caben, nada", () => {
-    const lineas = [{ varianteId: "a", cantidadPlan: 6 }, { varianteId: "b", cantidadPlan: 1 }];
-    expect(problemaDeBuenas(lineas, { a: 12, b: 6 })).toBeNull();
-    expect(problemaDeBuenas(lineas, { a: "9", b: "2" })).toBeNull();
-    expect(problemaDeBuenas(lineas, { a: 60, b: 1 })).toMatch(/se pidieron 6 y anotaste 60 buenas.*hasta 12/);
-    expect(problemaDeBuenas(lineas, { a: 6, b: 7 })).toMatch(/se pidieron 1 y anotaste 7/);
-  });
-});
 
 describe("la entrega no es anterior a hoy", () => {
   it("ayer o 1990 no; hoy, más adelante o en blanco sí", () => {

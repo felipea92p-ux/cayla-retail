@@ -373,7 +373,7 @@ export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion"
     if (camino) partes.push(`${solesBalance(camino)} en camino entre tiendas`);
     return partes.length ? `incluye ${partes.join(" y ")}` : null;
   }
-  if (l.cuenta === "4011" && l.seccion === "pasivo") return "los pagos a SUNAT todavía no se registran: por ahora solo sube";
+  if (l.cuenta === "4011" && l.seccion === "pasivo") return "sube con cada mes y baja con cada pago a SUNAT";
   if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
   if (l.cuenta === "479") return "lo cobrado en las cuentas de CAYLA por prendas de CLAURE, sin el IGV, menos lo que ya se le pagó y su parte de los gastos";
   if (l.cuenta === "4699") return "lo vendido de la mercadería de CLAURE, a su costo: los pagos a CLAURE todavía no se registran, por ahora solo sube";
@@ -529,4 +529,12 @@ export function csvBalance(lineas: readonly LineaBalance[], chequeos: readonly C
     for (const u of unidades) filas.push([u.nombre, u.caja ?? "", u.mercaderia, u.activosFijos, u.facturasPorPagar, u.invertido, u.utilidadMes, u.rinde == null ? "" : textoRinde(u.rinde)]);
   }
   return `﻿${filas.map((f) => f.map(celda).join(";")).join("\n")}\n`;
+}
+
+/**
+ * Las cuentas que empiezan después del día de arranque (tarea 4 de «Las 36»). Antes de su `saldo_desde` no tienen plata para el sistema: arrancar antes dejaría
+ * esa cuenta en cero y todo lo de ese tramo sin explicar. Se corrige diciendo cuánto tenía ese día en Editar cuenta, o eligiendo un arranque posterior.
+ */
+export function cuentasQueEmpiezanDespues<T extends { saldoDesde: string | null; archivada: boolean }>(cuentas: readonly T[], fecha: string): T[] {
+  return cuentas.filter((c) => !c.archivada && c.saldoDesde !== null && c.saldoDesde > fecha);
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTiendasDeDestino } from "@/components/orden-pagina/CambiarPlanYDatosModal";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -7,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
+import { CampoTexto, Boton, Interruptor, CampoSelect } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
 import { campoEtiqueta } from "@/components/ui/Modal";
@@ -270,6 +271,12 @@ export function NuevaOrdenProduccionForm({
   const [fichaAbierta, setFichaAbierta] = useState(false);
   const [fechaEntrega, setFechaEntrega] = useState(inicio?.fechaEntrega ?? "");
   const [nota, setNota] = useState(inicio?.nota ?? "");
+  // Lo que la orden dice de sí misma (ADR-0614, P-28, P-34 y P-35). Todo opcional: nada de esto frena abrirla.
+  const [motivoOrden, setMotivoOrden] = useState("");
+  const [tiendaDestinoId, setTiendaDestinoId] = useState("");
+  const [urgente, setUrgente] = useState(false);
+  const [muestraAprobadaPor, setMuestraAprobadaPor] = useState("");
+  const tiendas = useTiendasDeDestino();
   const [cargando, setCargando] = useState(false);
   // Dos clics en el mismo ciclo del navegador leen el MISMO `cargando` (falso) y enviaban dos llamadas (/chaos DC-01, 2026-10-10): la base las resolvía con el
   // token (1 modelo, 1 orden), pero la pantalla no debe depender de eso. Una marca síncrona corta la segunda.
@@ -728,6 +735,10 @@ export function NuevaOrdenProduccionForm({
             variantes: p.p_variantes,
             precio: p.p_precio,
             es_muestra: p.p_es_muestra,
+            motivo_orden: motivoOrden || null,
+            tienda_destino_id: tiendaDestinoId || null,
+            urgente,
+            muestra_aprobada_por: muestraAprobadaPor.trim() || null,
             fecha_entrega: p.p_fecha_entrega ?? null,
             nota: p.p_nota ?? null,
             confirmo_distinto: p.p_confirmo_distinto,
@@ -802,6 +813,10 @@ export function NuevaOrdenProduccionForm({
             producto_id: modelo.productoId,
             lineas,
             es_muestra: tipo === "muestra",
+            motivo_orden: motivoOrden || null,
+            tienda_destino_id: tiendaDestinoId || null,
+            urgente,
+            muestra_aprobada_por: muestraAprobadaPor.trim() || null,
             fecha_entrega: fechaEntrega || null,
             nota: nota.trim() || null,
             token: token.actual(),
@@ -1062,6 +1077,12 @@ export function NuevaOrdenProduccionForm({
           </>
         )}
 
+        <div data-guia="prod-orden-nueva.datos" className="grid gap-4 sm:grid-cols-2">
+          <CampoSelect etiqueta="¿Reposición o novedad?" pie="Opcional" valor={motivoOrden} onValor={setMotivoOrden} marcador="Sin decir" opciones={[{ valor: "reposicion", texto: "Reposición" }, { valor: "novedad", texto: "Novedad" }]} />
+          <CampoSelect etiqueta="¿A qué tienda va?" pie="Opcional · el traslado se decide después" valor={tiendaDestinoId} onValor={setTiendaDestinoId} marcador="Sin decir" opciones={tiendas} />
+          <CampoTexto etiqueta="¿Quién aprobó la muestra?" pie="Opcional" value={muestraAprobadaPor} onChange={(e) => setMuestraAprobadaPor(e.target.value)} maxLength={120} />
+          <Interruptor etiqueta="Es urgente" activo={urgente} onActivo={setUrgente} pie="Solo se marca: no cambia el orden de nada." />
+        </div>
         <div data-guia="prod-orden-nueva.entrega" className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" min={hoyLima()} value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />

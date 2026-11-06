@@ -271,7 +271,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
-export const MODALES_PENDIENTES_HOY = 47;
+export const MODALES_PENDIENTES_HOY = 45;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -335,6 +335,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/GastosPanel.tsx": PENDIENTE, // 13 controles
   "components/HistorialCierresModal.tsx": { estado: "no-aplica", motivo: "Hoja de solo lectura (Felipe 2026-10-12): los cierres de un mes como tickets, con su gráfico. Lo único que se toca es el mes (SelectorMes) y el filtro Todos / Faltó / Sobró, que cambian lo que se ve al instante; no hay nada que completar ni pasos que seguir." },
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
+  "components/insumos-taller/LlegoUnaCompraModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/LlegoUnaCompraModal.tsx"] },
+  "components/insumos-taller/AjustarLoteModal.tsx": { estado: "aplicada", evidencia: ["components/insumos-taller/AjustarLoteModal.tsx"] },
+  "components/insumos-taller/ProveedorDelLoteModal.tsx": { estado: "no-aplica", motivo: "Un solo dato, quién fue, con su responsable: no hay un orden que guiar." },
+  "components/ReemplazarPapelModal.tsx": { estado: "no-aplica", motivo: "Hoja corta de un papel que ya se tiene en la mano; lo que falta sale sobre el botón." },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
   "components/recepcion-conteo/LlegoSinAviso.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/LlegoSinAviso.tsx"] },
@@ -381,7 +385,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
   "components/plan-compra/RepartoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RepartoModal.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles
-  "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   // ADR-0400 (actividad 3): la página de la orden. «Terminé» lo único que falta es lo que ya viene precargado (cuántas) y quién lo anota; «Cambiar quién» es la fila de la fase entera.
   "components/orden-pagina/AnotarAvanceModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarAvanceModal.tsx"] },
   "components/orden-pagina/AgregarPasoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AgregarPasoModal.tsx"] },
@@ -406,6 +409,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/insumos-taller/RetirarColorModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién retira el color): el título dice qué color sale de la lista, la bajada avisa que no se borra nada y el aviso de la hoja dice por qué no se puede si tiene saldo; la base rechaza el resto (orden en proceso, tela por recibir, receta) con su frase." },
   // Actividad 6: pasar la orden al stock (cuántas salieron buenas, precargado con lo terminado, y quién lo anota; «falta» sale de los candados de `cerrar_produccion`), anular la orden y revertir el cierre.
   "components/orden-pagina/PasarAlStockModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/PasarAlStockModal.tsx"] },
+  "components/orden-pagina/CambiarPlanYDatosModal.tsx": { estado: "no-aplica", motivo: "Dos hojas cortas sobre una orden que ya existe: se cambia lo que se quiere, sin un orden que guiar; lo que falta sale sobre el botón." },
   "components/orden-pagina/AnularLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación con UN dato obligatorio (quién la anula): el título dice qué orden se anula, qué pasa con la tela y los avíos y, si hay prendas afuera, por qué no se puede; el motivo es opcional. No hay camino que indicar." },
   "components/orden-pagina/CambiarTipoModal.tsx": { estado: "no-aplica", motivo: "Confirmación con UN dato obligatorio (quién lo cambia): el título dice a qué tipo pasa, el texto dice qué cambia al cerrar la orden y si falta el precio, y el motivo es opcional. No hay camino que indicar." },
   "components/orden-pagina/RevertirLaOrdenModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo revierte): el texto dice qué pasa con el stock; no hay camino que indicar." },
@@ -422,9 +426,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/CorregirAnotacionModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CorregirAnotacionModal.tsx"] },
   "components/orden-pagina/CambioConMotivoModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/CambioConMotivoModal.tsx"] },
   "components/orden-pagina/NotaDeLaOrdenModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/NotaDeLaOrdenModal.tsx"] },
-  // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
-  // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
-  "components/OrdenPanel.tsx": PENDIENTE, // 1 control propio + 8 del cierre y los insumos
+  "components/PagarServicioModal.tsx": { estado: "aplicada", evidencia: ["components/PagarServicioModal.tsx"] },
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
@@ -518,6 +520,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
   // ADR-0429 (act. 4): «Cambiar la tarifa» de una máquina de cobro. Falta = lo mismo que apaga «Guardar» (`validarTarifa`): la tasa, los
   // días de abono y quién hace el cambio; el cargo fijo es opcional y el IGV viene marcado (lo usual en Perú).
+  "components/finanzas/CuadrarDepositos.tsx": { estado: "no-aplica", motivo: "Tarea 14: la hoja es una vista previa con un solo botón, y el reemplazo son dos campos que viven dentro del detalle de un movimiento; no hay un camino de pasos que guiar." },
   "components/finanzas/TarifaMaquinaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/TarifaMaquinaModal.tsx"] },
   "components/finanzas/dinero/SalidasPlanillaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/dinero/SalidasPlanillaModal.tsx"] },
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles

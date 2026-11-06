@@ -616,6 +616,10 @@ export type BorradorGasto = {
   referencia: string;
   /** F2b: el gasto fijo del que sale este gasto, si viene de «Fijos del mes». */
   gastoFijoId?: string;
+  /** Tarea 15: el IGV que dice la factura, si no es el de la tasa (una exonerada dice 0). */
+  igv?: number;
+  /** Tarea 15: cuándo salió del banco, si no fue el día del comprobante. */
+  fechaPago?: string;
   /** F3b: la cuenta de «Salió de» (cajón, caja fuerte, lo que tiene el líder, un banco o la tarjeta). La base la sella. */
   cuentaId?: string;
 };
@@ -633,6 +637,8 @@ export type PayloadGasto = {
     numero: string;
     condicion: "contado" | "credito";
     fecha_vencimiento?: string;
+    igv?: number;
+    fecha_pago?: string;
   };
   p_medio_pago: MedioGasto | null;
   p_caja_id: string | null;
@@ -667,6 +673,8 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
     if (!b.proveedorId) return { ok: false, error: "Elige el proveedor del comprobante." };
     if (!b.serie.trim() || !b.numero.trim()) return { ok: false, error: "Escribe la serie y el número del comprobante." };
     if (aCredito && (!b.vence || b.vence < b.fecha)) return { ok: false, error: "A crédito, di cuándo vence (no antes de la fecha)." };
+    if (b.comprobante === "factura" && b.igv !== undefined && (b.igv < 0 || b.igv >= monto.valor)) return { ok: false, error: "El IGV tiene que estar entre cero y el total." };
+    if (!aCredito && b.fechaPago && (b.fechaPago < b.fecha || b.fechaPago > hoy)) return { ok: false, error: "La salida del banco va entre la fecha del comprobante y hoy." };
   }
   if (!aCredito && !b.egresoId) {
     if (!b.medio) return { ok: false, error: "Di cómo se pagó." };
@@ -691,6 +699,8 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
             numero: b.numero.trim(),
             condicion: aCredito ? "credito" : "contado",
             ...(aCredito ? { fecha_vencimiento: b.vence } : {}),
+            ...(b.comprobante === "factura" && b.igv !== undefined ? { igv: b.igv } : {}),
+            ...(!aCredito && !b.egresoId && b.fechaPago ? { fecha_pago: b.fechaPago } : {}),
           }
         : null,
       p_medio_pago: medio,

@@ -59,9 +59,9 @@ export function TuLook({
   const sinFoto = zonas.some((z) => notaDeLaFoto(colorDeLaPieza(indice.get(look[z]!.id)!, look[z]!)));
   const algunaFuera = zonas.some((z) => sin.has(look[z]!.id));
   return (
-    <section className="pb-look" aria-label="Tu look">
+    <section className="pb-look" aria-label="Tu outfit">
       <div className="pb-look-cab">
-        <h2>Tu look</h2>
+        <h2>Tu outfit</h2>
         <span>El candado deja una prenda fija</span>
       </div>
       <ul className="pb-filas">
@@ -114,7 +114,7 @@ export function TuLook({
                   type="button"
                   className="pb-candado pb-no-llevo"
                   aria-pressed={fuera}
-                  aria-label={fuera ? `Llevar ${p.nombre}` : `No llevar ${p.nombre}: sigue en tu look, pero no entra a la bolsa`}
+                  aria-label={fuera ? `Llevar ${p.nombre}` : `No llevar ${p.nombre}: sigue en tu outfit, pero no entra a la bolsa`}
                   title={fuera ? "Llevarla" : "No la llevo"}
                   onClick={() => onNoLlevar(z)}
                 >
@@ -127,7 +127,7 @@ export function TuLook({
       </ul>
       {(sinFoto || algunaFuera) && (
         <p className="pb-look-nota">
-          {algunaFuera ? "Las que no llevas siguen en tu look, pero no entran a la bolsa." : "Algunos colores aún no tienen foto: ves otra foto de la prenda."}
+          {algunaFuera ? "Las que no llevas siguen en tu outfit, pero no entran a la bolsa." : "Algunos colores aún no tienen foto: ves otra foto de la prenda."}
         </p>
       )}
 
@@ -142,7 +142,7 @@ export function TuLook({
       ))}
 
       <div className="pb-total">
-        <span>{algunaFuera ? "Lo que llevas" : "El look completo"}</span>
+        <span>{algunaFuera ? "Lo que llevas" : "El outfit completo"}</span>
         <span className="pb-total-cifra">
           {totales.lista > totales.final + 0.005 && <s>{soles(totales.lista)}</s>}
           <b>

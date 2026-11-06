@@ -195,10 +195,14 @@ export const PRUEBAS = [
   // El medidor de confianza de Finanzas (ADR-0417): los siete hechos salen y cada uno se mueve con su dato; por sede; permisos;
   // pegar dos veces. ROLLBACK.
   "pruebas:finanzas-confianza",
+  "pruebas:cierre-orden-y-planilla",
 
   // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
   "pruebas:pago-planilla-y-sunat",
+  "pruebas:planilla-conceptos",
+  "pruebas:comision-estimada",
+  "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo
   // pagado partido por banco, lo que no corresponde fuera (sin pagar, antes del inicio, sin plata), quién lo ve, registrado con otro
@@ -1777,6 +1781,7 @@ export const PRUEBAS = [
   // Compras simple (ADR-0480, actividad 6): la tienda recibe mirando el papel de la compra (sin montos) y con la prenda que eligió la
   // compradora; Recibir lee las fotos de papeles/ y nada más del depósito.
   "pruebas:compras-simple-recibir",
+  "pruebas:costo-sin-igv",
   "pruebas:compras-simple-revisar",
   // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
   "pruebas:compras-simple-marca",
@@ -1896,6 +1901,36 @@ export const PRUEBAS = [
   // El cierre «ya estaban registradas» (ADR-0551 C, actividad 3): cerrar la orden SIN tocar el stock ni variantes.costo, solo un líder la marca, nunca una muestra, el tope
   // de cordura (`ya_estaba_sin_registro`), desmarcar vuelve al cierre de siempre y «Revertir» no descuenta un stock que nunca entró. ROLLBACK.
   "pruebas:produccion-ya-estaba",
+
+  // Revertir el cierre devuelve el costo de la prenda (ADR-0614, actividad 1): el costo exacto de antes, rechazo si ya está mezclado con otra compra
+  // o cierre, en orden inverso sí se puede, y el par cierre + reversión no sale en la pestaña «Costo». ROLLBACK.
+  "pruebas:produccion-revertir-costo",
+
+  // Lo que se le debe a un servicio llega a Por pagar (ADR-0614, actividad 3): devengado menos lo documentado, se suma a la deuda de Producción,
+  // solo lo ve el líder, y el nombre se registra con la orden cerrada sin tocar el monto. ROLLBACK.
+  "pruebas:produccion-servicios-por-pagar",
+
+  // Pagar a un servicio con el papel que dio (ADR-0614, actividad 4): cada papel, la deuda que baja sin IGV, de más no, sin nombre no, y el token. ROLLBACK.
+  "pruebas:produccion-pagar-servicio",
+
+  // «Llegó una compra» (ADR-0614, actividad 5): varias líneas, todo o nada, deuda o pago, nota por lote y el token. ROLLBACK.
+  "pruebas:produccion-llego-una-compra",
+
+  // Regularizar lo que ya entró (ADR-0614, actividades 6 y 7): proveedor de un lote, papel provisional y ajustar lo que queda como merma. ROLLBACK.
+  "pruebas:produccion-regularizar-lotes",
+
+  // Cortar de más: hasta 3 por talla y color (ADR-0614, actividad 8). ROLLBACK.
+  "pruebas:produccion-tope-de-corte",
+
+  // Anular con tela cortada (ADR-0614, actividad 10): la puerta de siempre frena, y cada destino deja el libro de insumos como corresponde. ROLLBACK.
+  "pruebas:produccion-anular-tela-cortada",
+
+  // Datos al abrir y cambiar una orden abierta (ADR-0614, actividades 11 y 12): nunca bajo lo cortado, con motivo y en la historia. ROLLBACK.
+  "pruebas:produccion-datos-y-plan",
+
+  // Los avíos declarados se descuentan solos al cerrar (ADR-0614, actividad 13), sin frenar si no alcanza y sin descontar dos veces. ROLLBACK.
+  "pruebas:produccion-avios-al-cerrar",
+  "pruebas:produccion-etapas-de-prenda",
 
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",

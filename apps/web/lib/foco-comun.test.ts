@@ -95,7 +95,7 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // anillo propio y pasó a <Aviso>.
   // 28 → 26 el 2026-10-17 (ADR-0358, ronda 17): la × de la orden de Producción pasó a <Cajon> y un paso de cantidad a mano, a
   // <PasoCantidad>, los dos con el anillo del sistema.
-  const PENDIENTES_HOY = 26;
+  const PENDIENTES_HOY = 25;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

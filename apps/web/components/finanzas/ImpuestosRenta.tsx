@@ -32,6 +32,20 @@ export function RentaDelAno({ renta, falla, guia }: { renta: RentaPantalla | nul
     );
   }
 
+  if (renta.sinMesCompleto) {
+    return (
+      <Superficie pad className="anim-sube" guia={guia}>
+        <div className="fin-imp-cab">
+          <h3 className="fin-imp-titulo">Renta de {renta.anio}</h3>
+          <Chip tono="pizarra">Se paga en marzo {renta.anio + 1}</Chip>
+        </div>
+        <Vacio tamano="chico" icono={<Receipt />}>
+          Todavía no hay un mes completo desde {textoMes(renta.desdeSistema.slice(0, 7))}: proyectar el año con tan pocos días daría cualquier cifra.
+        </Vacio>
+      </Superficie>
+    );
+  }
+
   const r = renta.proyeccion;
   // La barra dice «desde octubre»: lo medido, no lo proyectado al año (la hoja de proveedores también lista lo medido).
   const s = renta.medido;
@@ -57,8 +71,12 @@ export function RentaDelAno({ renta, falla, guia }: { renta: RentaPantalla | nul
               <dd className="tabular-nums">{solesRedondo(r.renta)}</dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt>− Ya pagado a cuenta (el 1 % de cada mes)</dt>
+              <dt>− Pagos a cuenta estimados ({Math.round(renta.tasaPagoCuenta * 1000) / 10} % de cada mes)</dt>
               <dd className="tabular-nums">{solesRedondo(r.pagosACuenta)}</dd>
+            </div>
+            <div className="flex justify-between gap-4 text-taupe">
+              <dt>{renta.pagadoDeVerdad > 0 ? "De eso, pagado a SUNAT hasta hoy" : "Pagado a SUNAT hasta hoy: nada registrado"}</dt>
+              {renta.pagadoDeVerdad > 0 && <dd className="tabular-nums">{solesRedondo(renta.pagadoDeVerdad)}</dd>}
             </div>
           </dl>
           {r.cuestaSinFactura > 0 && (
