@@ -1,4 +1,5 @@
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Aviso } from "@/components/ui/Aviso";
 import { DescargarCuadro } from "@/components/finanzas/estados/DescargarContador";
 import { LentesDeVidrio } from "@/components/finanzas/estados/LentesDeVidrio";
 import { MenuContador } from "@/components/finanzas/estados/MenuContador";
@@ -12,7 +13,9 @@ import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { ESTADOS, type ClaveEstado } from "@/lib/estados-financieros-reglas";
 import { ARCHIVOS_CONTADOR, opcionesDelContador, RUTA_CUENTAS, type VerCuentas } from "@/lib/contador-reglas";
 import { hilosDeLaRuta, hrefTelar, mesDelDia, SEDE_EMPRESA, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
-import { mesNombre } from "@/lib/resultados-reglas";
+import { rangoDelMes } from "@/lib/flujo-caja-reglas";
+import { getEstadoResultados } from "@/lib/resultados";
+import { AVISO_SIN_SUELDOS, mesNombre, veLaPlanilla } from "@/lib/resultados-reglas";
 
 // La cabecera de Estados financieros (ADR-0585, rediseñada en ADR-0611): la cabecera única del ERP (ADR-0220) sobre vidrio, con «Estados financieros» de título, el calendario de fechas, el
 // botón «Para el contador» (los saldos, el libro diario y las descargas) y debajo las cuatro pestañas fijas que eligió Felipe, cada una con el nombre real de su estado. En un cuadro del
@@ -59,6 +62,9 @@ export async function CabeceraEstados({
   const periodo = activa ? leerPeriodo(Object.fromEntries(actuales), hoy) : null;
   const una = activa === "vale";
   const parametros = activa ? await getParametrosFinanzas() : null;
+  // Mismas fechas que la página: la lectura ya está en caché y no cuesta otra vuelta a la base (el Balance y los cuadros del contador, sí). Si falla, no se afirma nada.
+  const rango = periodo ?? rangoDelMes(mes, hoy);
+  const sinSueldos = veLaPlanilla(await getEstadoResultados(rango.desde, rango.hasta)) === false;
   const dicho = !periodo
     ? `Cómo le fue a CAYLA en ${mesNombre(mes)}${mes === mesDeHoy ? " (a la fecha)" : ""}.`
     : una
@@ -86,6 +92,11 @@ export async function CabeceraEstados({
         activa={activa ?? ""}
         items={ESTADOS.map((e) => ({ clave: e.clave, etiqueta: e.formal, href: hrefEstado(e.clave) }))}
       />
+      {sinSueldos && (
+        <Aviso tono="info" chico>
+          {AVISO_SIN_SUELDOS} Los archivos que bajes lo dicen en su primera línea.
+        </Aviso>
+      )}
       {cuadro && <TituloSeccion accion={<DescargarCuadro archivo={cuadro.clave} mes={mes} />}>{`${cuadro.etiqueta} · ${mesNombre(mes)}`}</TituloSeccion>}
       {/* Va dentro de la página, no en su layout: tocar las placas antes de que React las hidrate sería una discrepancia. */}
       <LentesDeVidrio />

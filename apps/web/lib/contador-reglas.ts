@@ -34,6 +34,12 @@ export const leerArchivoContador = (v: string | null | undefined): ArchivoContad
 /** «estado-de-resultados-2026-10.csv». */
 export const nombreArchivoContador = (clave: ArchivoContador, mes: string) => `${ARCHIVOS_CONTADOR.find((a) => a.clave === clave)!.archivo}-${mes}.csv`;
 
+/** Pone avisos antes de la primera línea de un archivo, después de la marca que le dice a Excel que va en UTF-8. Sin avisos, el archivo queda igual. */
+export function conPrimerasLineas(csv: string, avisos: readonly string[]): string {
+  if (!avisos.length) return csv;
+  return `${csvDe(avisos.map((a) => [a]))}${csv.replace(/^\uFEFF/, "")}`;
+}
+
 /** Por qué una opción no se baja (`null`: se baja): lo de CAYLA entera no lo baja una terminal. */
 export const motivoArchivoContador = (clave: ArchivoContador, veTodo: boolean): string | null =>
   !veTodo && ARCHIVOS_CONTADOR.find((a) => a.clave === clave)!.deTodo ? "Es de CAYLA entera: se baja desde una cuenta personal con el módulo." : null;

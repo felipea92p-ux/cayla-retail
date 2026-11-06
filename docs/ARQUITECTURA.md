@@ -2158,6 +2158,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
+  - `/finanzas/resumen` → también «Cada sede, junta» (tarea 27 de «Las 36», 2026-11-06): `getEstadoResultados` + `getBalancePorTienda` → `lib/sedes-juntas-reglas.ts` → `components/finanzas/SedesJuntas.tsx`. Los sueldos estimados de un tramo se piden en un solo lugar (`hastaDeLaProvision`, `lib/planilla-provision-reglas.ts`).
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
     `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
     y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
