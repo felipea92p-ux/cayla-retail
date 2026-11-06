@@ -771,3 +771,33 @@ export function csvResumenIgv(panel: Pick<PanelImpuestos, "mes" | "foco" | "para
 
 /** Nombres de archivo con el mes: «registro-ventas-2026-08.csv». */
 export const nombreArchivo = (que: "registro-ventas" | "registro-compras" | "resumen-igv", mes: string) => `${que}-${mes}.csv`;
+
+// ---- El IGV de un mes cerrado que cambió (tarea 19) ---------------------------------------------------------------------------
+
+/** Un mes con CAYLA entera cerrada cuyo IGV de hoy ya no es el de la foto del cierre. */
+export type IgvCambiado = { mes: string; aPagarFoto: number; aPagarHoy: number; aFavorFoto: number; aFavorHoy: number };
+
+export function leerIgvCambiado(r: Record<string, unknown>): IgvCambiado {
+  return {
+    mes: String(r.mes ?? "").slice(0, 7),
+    aPagarFoto: Number(r.a_pagar_foto ?? 0),
+    aPagarHoy: Number(r.a_pagar_hoy ?? 0),
+    aFavorFoto: Number(r.a_favor_foto ?? 0),
+    aFavorHoy: Number(r.a_favor_hoy ?? 0),
+  };
+}
+
+const quedaba = (aPagar: number, aFavor: number) => (aFavor > 0 ? `${solesRedondo(aFavor)} a favor` : `${solesRedondo(aPagar)} a pagar`);
+
+/**
+ * Lo que dice el aviso. No decide qué hacer: rectificatoria o ajuste en el mes corriente lo decide el contador, y por eso lo declarado sigue saliendo del cálculo de hoy.
+ * Si lo que resulta es igual (se movió una cifra y otra la compensó), igual se avisa: el débito o el crédito ya no son los del cierre.
+ */
+export function textoIgvCambiado(c: IgvCambiado): { titulo: string; texto: string } {
+  const antes = quedaba(c.aPagarFoto, c.aFavorFoto);
+  const hoy = quedaba(c.aPagarHoy, c.aFavorHoy);
+  return {
+    titulo: `El IGV de ${textoMes(c.mes)} cambió después de cerrarlo`,
+    texto: `${antes === hoy ? `Sigue dando ${hoy}, pero cambió lo que lo compone.` : `Al cerrar daba ${antes} y hoy da ${hoy}.`} Si ya lo declaraste, revísalo con el contador.`,
+  };
+}
