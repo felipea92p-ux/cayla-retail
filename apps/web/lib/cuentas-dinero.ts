@@ -59,9 +59,14 @@ export async function getSaldos(ubicacionId: string | null = null): Promise<Lect
 
 export async function getMovimientos(ubicacionId: string | null): Promise<Lectura<MovimientoDinero[]>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_movimientos_dinero" as never, { p_ubicacion_id: ubicacionId, p_limite: 150 } as never);
+  const [{ data, error }, estimados] = await Promise.all([
+    supabase.rpc("fn_movimientos_dinero" as never, { p_ubicacion_id: ubicacionId, p_limite: 150 } as never),
+    // Solo el líder los lee; para los demás, o si no responde, ningún depósito lleva la insignia.
+    supabase.rpc("fn_depositos_estimados" as never),
+  ]);
   if (error) return { datos: [], falla: falla("los movimientos", error) };
-  return { datos: ((data ?? []) as Fila[]).map(leerMovimiento), falla: null };
+  const marcados = new Set(estimados.error ? [] : ((estimados.data ?? []) as { movimiento_id: string }[]).map((e) => e.movimiento_id));
+  return { datos: ((data ?? []) as Fila[]).map(leerMovimiento).map((m) => (marcados.has(m.id) ? { ...m, estimado: true } : m)), falla: null };
 }
 
 /** Solo el líder: aportes, préstamos, retiros y devoluciones. */

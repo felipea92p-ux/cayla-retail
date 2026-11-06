@@ -260,6 +260,8 @@ export type MovimientoDinero = {
   registradoPor: string | null;
   anuladoPor: string | null;
   cajaMovimientoId: string | null;
+  /** Un depósito que «Cuadrar depósitos» registró y nadie comparó todavía con el banco (tarea 14). */
+  estimado?: boolean;
   puedeAnular: boolean;
 };
 export function leerMovimiento(m: Fila): MovimientoDinero {
@@ -751,6 +753,42 @@ export function validarAbonoPos(
     valor: { p_cuenta_id: maquina.id, p_banco_id: banco.id, p_fecha: b.fecha, p_neto: m.valor, p_claves: elegidos.map((l) => l.clave), p_referencia: b.referencia.trim() || null },
   };
 }
+
+// ---- Cuadrar depósitos (tarea 14, ADR-0552) -----------------------------------------------------------------------------------
+
+export type FilaCuadre = {
+  cuentaId: string;
+  maquina: string;
+  banco: string | null;
+  dias: number;
+  bruto: number;
+  comision: number;
+  neto: number;
+  claves: string[];
+  desde: string;
+  hasta: string;
+  /** Lo que impide cuadrar esa máquina. */
+  falta: "banco" | "tarifa" | null;
+};
+export const TEXTO_FALTA_CUADRE: Record<"banco" | "tarifa", string> = { banco: "Falta su banco", tarifa: "Falta su tarifa" };
+
+export function leerFilaCuadre(f: Fila): FilaCuadre {
+  return {
+    cuentaId: String(f.cuenta_id),
+    maquina: String(f.maquina),
+    banco: f.banco ? String(f.banco) : null,
+    dias: num(f.dias),
+    bruto: num(f.bruto),
+    comision: num(f.comision),
+    neto: num(f.neto),
+    claves: Array.isArray(f.claves) ? f.claves.map(String) : [],
+    desde: String(f.desde),
+    hasta: String(f.hasta),
+    falta: f.falta === "banco" || f.falta === "tarifa" ? f.falta : null,
+  };
+}
+/** Con su banco, su tarifa y algo que depositar. */
+export const sePuedeCuadrar = (f: FilaCuadre) => f.falta === null && f.neto > 0;
 
 // ---- Pagar a SUNAT (tarea 10): de qué mes es y cuánto de IGV y de renta -----------------------------------------------------
 

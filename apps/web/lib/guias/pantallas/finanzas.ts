@@ -718,6 +718,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "A la derecha, lo que se puso (verde) y lo que se sacó (ámbar), agrupado por quién lo registró, por cuenta o por mes. Dice a quien anotó el movimiento, no necesariamente a quien lo pidió. Abajo, el neto que queda para CAYLA.",
     },
     {
+      id: "cuadrar",
+      ancla: "fin-dinero.cuadrar",
+      opcional: true,
+      titulo: "Cuadrar depósitos",
+      texto: "Abre una vista de lo que cada máquina ya debió depositar y con cuánta comisión. Si confirmas, queda como depósito estimado hasta que lo compares con el banco. En la demo no lo abrimos ni guardamos nada.",
+    },
+    {
       id: "mov-planilla",
       ancla: "fin-dinero.mov-planilla",
       opcional: true,

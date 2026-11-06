@@ -38,6 +38,8 @@ import {
   tiposParaMedio,
   validarMovimiento,
   validarPagoSunat,
+  leerFilaCuadre,
+  sePuedeCuadrar,
   validarPagoPlanilla,
   mesesDePlanilla,
   totalPagoSunat,
@@ -231,6 +233,16 @@ describe("el formulario «Registrar movimiento»", () => {
   const egresos: EgresoParaMovimiento[] = [{ id: "e1", cajaId: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: "Voucher 7788", creadoEn: "2026-09-23T15:00:00Z", marca: null }];
   const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: " Voucher 1 ", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
   const ctx = { cuentas: TODAS, egresos, deuda: 6000, hoy };
+
+  it("una máquina se cuadra solo con su banco, su tarifa y algo que depositar (tarea 14)", () => {
+    const f = leerFilaCuadre({ cuenta_id: "p", maquina: "Vendemás", banco: "Interbank", dias: 2, bruto: "133.33", comision: "3.62", neto: "129.71", claves: ["a", "b"], desde: "2026-10-29", hasta: "2026-10-30", falta: null });
+    expect(f).toMatchObject({ cuentaId: "p", bruto: 133.33, neto: 129.71, claves: ["a", "b"], falta: null });
+    expect(sePuedeCuadrar(f)).toBe(true);
+    expect(sePuedeCuadrar({ ...f, falta: "banco" })).toBe(false);
+    expect(sePuedeCuadrar({ ...f, falta: "tarifa" })).toBe(false);
+    expect(sePuedeCuadrar({ ...f, neto: 0 })).toBe(false);
+    expect(leerFilaCuadre({ falta: "otra", claves: null }).falta).toBeNull();
+  });
 
   it("pagar a SUNAT dice de qué mes es y separa IGV de renta (tarea 10)", () => {
     const b = { origen: "bcp", referencia: "", fecha: hoy };

@@ -1,7 +1,7 @@
 # ADR-0552 — Cuadre de depósitos de las máquinas: tope de 2 días, estimador por operación y reinicio de saldos desde cero
 
-- **Fecha:** 2026-10-27 · **Estado:** **propuesto, sin construir.** Lo que se hizo hasta aquí fue medir (solo lectura) y decidir con Felipe;
-  no hay migración ni código. Las actividades de abajo esperan su OK y el calendario del cierre de octubre.
+- **Fecha:** 2026-10-27 · **Estado:** **aceptado por Felipe el 2026-11-05 y construido en `20261106012000`** (actividades 1 a 3, ver «Actualización 2026-11-05»). Faltan la 4 (`/chaos`, en la
+  tanda de blindaje) y la 5 (cargar el reporte de la máquina).
 - **Relacionados:** ADR-0429 (la máquina, las puentes «Por depositar» y la comisión real), ADR-0417 (Fase 1 de Finanzas), ADR-0195 F3
   (cuentas de dinero y `saldo_desde`), ADR-0544 y ADR-0548 (idempotencia del depósito), ADR-0332 (desde cuándo cuenta Finanzas).
 - **Cifras y archivos:** los extractos bancarios, los reportes de las máquinas y las cifras exactas **no entran al repo** (es público, como en
@@ -101,3 +101,14 @@ Fricciones que salieron y entran como requisito de la actividad 3 (la pantalla):
 3. **El destino por defecto fue una cuenta equivocada** (BCP en vez de Interbank): la máquina debe proponer el banco donde deposita.
 4. **El total cobrado cambia** si alguien registra o corrige una venta vieja durante la operación: el monto se toma del total que muestra la pantalla, y el formulario debe proponer «cobrado − comisión esperada» en vez de dejar que se teclee.
 5. **Vendemás no tenía tarifa cargada:** su «comisión esperada» salía en 0. Hay que sembrar su tarifa (2,30 % + IGV, por operación) antes de la actividad 1.
+
+## Actualización 2026-11-05: cómo se construyó (tarea 14 de «Las 36 de Finanzas»)
+
+Felipe eligió «sí, estimar y ajustar». Lo construido se aparta de lo de arriba en dos puntos:
+
+- **La comisión entra a su mes aunque nadie cuadre nada.** Cada lote devenga lo estimado el día que se cobró (6392 | 4691) y se revierte el día del depósito (4691 | 6392), cuando entra el gasto real en la 639. El mes del lote lleva lo estimado; el del depósito, solo la diferencia. No guarda nada: sale de pagos y tarifas que no cambian, así que un mes cerrado queda igual aunque el depósito llegue después. La puente no se toca.
+- **Sin factor aprendido (decisión 4).** Cambia con cada depósito: la reversa no devolvería lo que el mes cerrado devengó y la 4691 nunca volvería a cero. Se estima con la tarifa del día, por operación. Se reconsidera si el error medido crece.
+
+Lo demás sigue la decisión: «Cuadrar depósitos» con vista previa, todo o nada por máquina, idempotente por token, frena si algo cambió desde la vista previa, y `reemplazar_deposito_estimado` cambia lo estimado por lo real en una sola transacción. La decisión 6 sigue siendo la condición: cuadrar sin comparar con el banco deja el saldo del ERP sin verificar.
+
+Sede e IGV de la comisión quedan como estaban (sin sede, sin crédito fiscal): repartirla cambia cuántos gastos nacen por depósito y la decide el contador.

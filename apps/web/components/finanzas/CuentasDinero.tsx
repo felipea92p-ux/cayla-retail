@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CuadrarDepositosHoja, ReemplazarEstimado } from "@/components/finanzas/CuadrarDepositos";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
@@ -146,6 +147,7 @@ export function PantallaDinero({
   // sale de la dirección (recargar no la vuelve a abrir).
   // Desde Impuestos llega con `?registrar=pago_sunat&mes=`: la hoja abre en Pagar a SUNAT, en ese mes. El cajón «Te toca», con `?registrar=liquidacion&mes=&monto=`.
   const registrar = params.get("registrar");
+  const [cuadrando, setCuadrando] = useState(false);
   const pideRegistrar = registrar === "1" || registrar === "pago_sunat" || registrar === "liquidacion";
   const mesPedido = params.get("mes") ?? undefined;
   const montoPedido = params.get("monto") ?? undefined;
@@ -182,6 +184,11 @@ export function PantallaDinero({
             ) : (
               <>
                 {campana}
+                {esLider && (
+                  <Boton type="button" peso="fantasma" onClick={() => setCuadrando(true)} aria-haspopup="dialog" data-guia="fin-dinero.cuadrar">
+                    Cuadrar depósitos
+                  </Boton>
+                )}
                 <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
                   + Registrar movimiento
                 </Boton>
@@ -196,6 +203,7 @@ export function PantallaDinero({
         ))}
         {children}
       </div>
+      {cuadrando && <CuadrarDepositosHoja onCerrar={() => setCuadrando(false)} />}
       {modal && (
         <RegistrarMovimientoModal
           inicial={modal.que}
@@ -1108,11 +1116,12 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
           { dato: "A", valor: m.destinoNombre ?? "Sale del negocio" },
           { dato: m.tipo === "abono_tarjeta" ? "Llegó al banco" : "Monto", valor: soles(m.monto) },
           ...(m.comision > 0 ? [{ dato: "Comisión de la máquina (queda como gasto)", valor: soles(m.comision) }] : []),
-          { dato: "Estado", valor: <Chip tono={m.estado === "anulado" ? "apagado" : "verde"}>{m.estado === "anulado" ? "Anulado" : "Vigente"}</Chip> },
+          { dato: "Estado", valor: m.estimado ? <Chip tono="ambar">Estimado</Chip> : <Chip tono={m.estado === "anulado" ? "apagado" : "verde"}>{m.estado === "anulado" ? "Anulado" : "Vigente"}</Chip> },
           ...(m.registradoPor ? [{ dato: "Lo registró", valor: m.registradoPor, tenue: true }] : []),
           ...(m.motivoAnulacion ? [{ dato: "Anulado", valor: `${m.motivoAnulacion}${m.anuladoPor ? ` · ${m.anuladoPor}` : ""}`, tenue: true }] : []),
         ]}
       />
+      {m.estimado && <ReemplazarEstimado movimientoId={m.id} onHecho={onCerrar} />}
       <div className="fin-botones">
         {m.puedeAnular && (
           <button type="button" className="btn-cayla btn-sutil" onClick={() => setAnulando(true)}>

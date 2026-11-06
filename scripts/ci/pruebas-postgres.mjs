@@ -200,6 +200,7 @@ export const PRUEBAS = [
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
   "pruebas:pago-planilla-y-sunat",
   "pruebas:planilla-conceptos",
+  "pruebas:comision-estimada",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo
   // pagado partido por banco, lo que no corresponde fuera (sin pagar, antes del inicio, sin plata), quién lo ve, registrado con otro
