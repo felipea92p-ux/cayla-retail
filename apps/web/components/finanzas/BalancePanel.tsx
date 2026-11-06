@@ -424,7 +424,7 @@ export function MasDeLaSede({ unidad, hoy, veTodo }: { unidad: UnidadBalance; ho
       <section className="fin-cifras" data-guia="fin-balance.tienda-cifras">
         <TarjetaCifra etiqueta={`Utilidad de ${mes}`} valor={solesBalance(unidad.utilidadMes)} tono={unidad.utilidadMes < 0 ? "text-rojo" : undefined} {...entra(1)}>
           {enCurso ? "a la fecha" : "el mes entero"}
-          {!unidad.planillaVisible ? " · sin planilla" : ""}
+          {!unidad.planillaVisible ? " · sin planilla" : unidad.sueldosEstimados > 0 ? " · con sueldos estimados" : ""}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Rinde" valor={unidad.tipo === "taller" ? null : textoRinde(unidad.rinde).replace(" al mes", "")} {...entra(2)}>
           {unidad.tipo === "taller" ? "el Taller no vende" : "de lo invertido, al mes"}

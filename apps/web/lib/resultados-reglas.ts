@@ -341,6 +341,15 @@ export function avisosER(columnas: readonly FilaER[], enCurso: boolean): AvisoER
   return out;
 }
 
+/** ¿Esta cuenta ve la planilla en Dynamic? `null` si no se sabe (la lectura falló o no hay filas): no se afirma ni una cosa ni la otra. */
+export function veLaPlanilla(lectura: { datos: readonly Pick<FilaER, "planillaVisible">[]; falla: string | null }): boolean | null {
+  if (lectura.falla || !lectura.datos.length) return null;
+  return lectura.datos.some((f) => f.planillaVisible);
+}
+
+/** Lo mismo en la pantalla y en la primera línea de cada archivo (tarea 23; ocultar la planilla es a propósito, ADR-0133; callarlo, no). */
+export const AVISO_SIN_SUELDOS = "Sin sueldos: esta cuenta no ve la planilla en Dynamic, así que estas cifras no la restan.";
+
 // ---- De dónde sale cada cifra ---------------------------------------------------------------------------------------------
 
 export type LineaDiario = {

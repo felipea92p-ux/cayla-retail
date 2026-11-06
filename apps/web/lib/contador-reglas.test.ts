@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ARCHIVOS_CONTADOR,
+  conPrimerasLineas,
   csvDiarioContador,
   csvFlujoContador,
   csvPatrimonioContador,
@@ -17,6 +18,7 @@ import {
   sedesDelDiario,
 } from "./contador-reglas";
 import type { FlujoReal } from "./flujo-caja-reglas";
+import { csvDe } from "./resultados-reglas";
 import type { FilaER, LineaDiario } from "./resultados-reglas";
 import type { PatrimonioCambios } from "./estados-financieros-reglas";
 
@@ -183,5 +185,20 @@ describe("«Para el contador»", () => {
   it("el cuadro que se mira", () => {
     expect(leerVerCuentas("diario")).toBe("diario");
     expect(leerVerCuentas(undefined)).toBe("saldos");
+  });
+});
+
+describe("lo que hay que saber antes de leer un archivo (tarea 23)", () => {
+  it("el aviso va en la primera línea, después de la marca de Excel, y el resto del archivo queda igual", () => {
+    const csv = csvDe([["Estado de resultados"], ["Ventas", 100]]);
+    const con = conPrimerasLineas(csv, ["Sin sueldos: no se ve; la planilla"]);
+    expect(con.charCodeAt(0)).toBe(0xfeff);
+    expect(con.slice(1).split("\r\n")[0]).toBe('"Sin sueldos: no se ve; la planilla"');
+    expect(con.endsWith(csv.slice(1))).toBe(true);
+    expect(con.match(/\uFEFF/g)).toHaveLength(1);
+  });
+  it("sin avisos, el archivo no cambia", () => {
+    const csv = csvDe([["a"]]);
+    expect(conPrimerasLineas(csv, [])).toBe(csv);
   });
 });

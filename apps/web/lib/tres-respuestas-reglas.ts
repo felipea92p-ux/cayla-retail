@@ -57,7 +57,7 @@ type Entrada = {
   /** Lo que Dynamic marcó pagado de la planilla y aquí no dice de qué banco salió: sigue sumando en lo que tienes, y la tarjeta lo dice. */
   planillaSinSalida?: number | null;
   /** Lo vendido y lo que salió del mes: la frase bajo «¿Cuánto te deja?» («Vendiste S/ 99,950 y salió S/ 130,215»). */
-  plata?: { vendido: number; salio: number } | null;
+  plata?: { vendido: number; salio: number; nota?: string } | null;
 };
 
 /** Lo que suma «¿Cuánto tienes?», agrupado por lo que una persona entiende: lo que está a mano, lo que las máquinas deben depositar y el resto. */
@@ -175,8 +175,8 @@ function debes(r: ResumenFinanzas, href: string | null): Respuesta {
   };
 }
 
-function deja(resp: RespuestaResumen, plata?: { vendido: number; salio: number } | null): Respuesta {
-  const detalle = plata && resp.valor !== null ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}.` : undefined;
+function deja(resp: RespuestaResumen, plata?: { vendido: number; salio: number; nota?: string } | null): Respuesta {
+  const detalle = plata && resp.valor !== null ? `Vendiste ${soles(plata.vendido)} y salió ${soles(plata.salio)}.${plata.nota ? ` ${plata.nota}` : ""}` : undefined;
   return { clave: "deja", pregunta: resp.pregunta, valor: resp.valor, ...(resp.motivo ? { motivo: resp.motivo } : {}), ...(detalle ? { detalle } : {}), chips: resp.chips };
 }
 

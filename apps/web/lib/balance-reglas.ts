@@ -53,6 +53,8 @@ export type UnidadBalance = {
   desde: string;
   hasta: string;
   planillaVisible: boolean;
+  /** Lo que `utilidadMes` ya resta de sueldos que Dynamic todavía no paga (tarea 23). */
+  sueldosEstimados: number;
 };
 
 export type SaldoInicial = {
@@ -134,7 +136,26 @@ export function leerUnidad(r: Fila): UnidadBalance {
     desde: String(r.desde ?? ""),
     hasta: String(r.hasta ?? ""),
     planillaVisible: r.planilla_visible === true,
+    sueldosEstimados: 0,
   };
+}
+
+/**
+ * La utilidad de cada tienda con los sueldos que Dynamic todavía no paga, igual que Ganancias y pérdidas (tarea 23). La base da la utilidad del diario; el rinde se vuelve a
+ * dividir con la misma regla de `fn_balance_por_tienda` (solo una tienda, con algo invertido, a 4 decimales). Lo de la empresa no es de ninguna tienda: no se le reparte (ADR-0485).
+ */
+export function unidadesConSueldos(unidades: readonly UnidadBalance[], provision: readonly { ubicacionId: string | null; devengado: number }[]): UnidadBalance[] {
+  return unidades.map((u) => {
+    const sueldos = provision.reduce((a, p) => (p.ubicacionId === u.ubicacionId && p.devengado > 0 ? a + p.devengado : a), 0);
+    if (sueldos <= 0) return u;
+    const utilidadMes = Math.round((u.utilidadMes - sueldos) * 100) / 100;
+    return {
+      ...u,
+      utilidadMes,
+      rinde: u.tipo === "tienda" && u.invertido > 0 ? Math.round((utilidadMes / u.invertido) * 10000) / 10000 : u.rinde,
+      sueldosEstimados: Math.round(sueldos * 100) / 100,
+    };
+  });
 }
 
 export function leerSaldoInicial(r: Fila): SaldoInicial {
@@ -185,6 +206,18 @@ export function situacion(chequeos: readonly Chequeo[]): Situacion {
   const bloqueos = chequeos.filter((c) => c.bloquea && (c.estado === "no_cuadra" || c.estado === "falta"));
   if (bloqueos.length) return { tipo: "no_cuadra", bloqueos };
   return { tipo: "cuadra", notas: chequeos.filter((c) => c.estado === "nota" || c.estado === "revisar") };
+}
+
+/**
+ * Lo que dice un archivo o ¿Lo tuyo? cuando el Balance no se dibuja (tarea 28): la pantalla del Balance lo oculta, pero el Excel lo imprimía igual y ¿Lo tuyo? daba su cifra sin avisar.
+ * `null` si cuadra.
+ */
+export function avisoBalanceSinCuadrar(chequeos: readonly Chequeo[]): string | null {
+  const s = situacion(chequeos);
+  if (s.tipo === "cuadra") return null;
+  return s.tipo === "no_cuadra"
+    ? `No cuadra: el Balance tiene ${s.bloqueos.length === 1 ? "1 comprobación pendiente" : `${s.bloqueos.length} comprobaciones pendientes`} y estas cifras pueden cambiar.`
+    : "No cuadra todavía: faltan los saldos de arranque de esta fecha y estas cifras pueden cambiar.";
 }
 
 /** Las cuentas se muestran con su código delante («101 Caja…»); las comprobaciones generales, sin él. */

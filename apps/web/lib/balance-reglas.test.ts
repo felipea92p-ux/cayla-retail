@@ -21,7 +21,9 @@ import {
   nombreDeCuenta,
   nombreLinea,
   notaLinea,
+  avisoBalanceSinCuadrar,
   situacion,
+  unidadesConSueldos,
   solesBalance,
   solesExactos,
   textoRinde,
@@ -304,5 +306,37 @@ describe("cuentasQueEmpiezanDespues (tarea 4)", () => {
   it("frena solo las vigentes que empiezan después del día elegido; ese mismo día ya vale", () => {
     expect(cuentasQueEmpiezanDespues([c("2026-10-28"), c("2026-09-30"), c(null), c("2026-10-28", true)], "2026-10-01")).toEqual([c("2026-10-28")]);
     expect(cuentasQueEmpiezanDespues([c("2026-10-01")], "2026-10-01")).toEqual([]);
+  });
+});
+
+describe("la utilidad de cada tienda resta los sueldos que Dynamic no paga (tarea 23)", () => {
+  const tienda = leerUnidad({ ubicacion_id: "t", nombre: "Tienda Trujillo", tipo: "tienda", caja: 100, invertido: 1000, utilidad_mes: 300, rinde: 0.3, planilla_visible: true });
+  const taller = leerUnidad({ ubicacion_id: "x", nombre: "Taller", tipo: "taller", caja: null, invertido: 500, utilidad_mes: -50, rinde: null, planilla_visible: true });
+  it("resta lo de la sede, vuelve a dividir el rinde y deja dicho cuánto restó", () => {
+    const [t, x] = unidadesConSueldos([tienda, taller], [{ ubicacionId: "t", devengado: 120.5 }, { ubicacionId: "t", devengado: 79.5 }, { ubicacionId: "x", devengado: 50 }]);
+    expect(t).toMatchObject({ utilidadMes: 100, rinde: 0.1, sueldosEstimados: 200 });
+    expect(x).toMatchObject({ utilidadMes: -100, rinde: null, sueldosEstimados: 50 });
+  });
+  it("lo de la empresa no se le reparte a ninguna tienda, y sin estimado queda igual", () => {
+    const [t] = unidadesConSueldos([tienda], [{ ubicacionId: null, devengado: 900 }, { ubicacionId: "t", devengado: 0 }]);
+    expect(t).toBe(tienda);
+  });
+  it("sin nada invertido no hay rinde que dividir", () => {
+    const sinInvertir = leerUnidad({ ubicacion_id: "t", nombre: "Tienda Trujillo", tipo: "tienda", invertido: 0, utilidad_mes: 10, rinde: null });
+    expect(unidadesConSueldos([sinInvertir], [{ ubicacionId: "t", devengado: 5 }])[0]).toMatchObject({ utilidadMes: 5, rinde: null });
+  });
+});
+
+describe("lo que se dice cuando el Balance no cuadra (tarea 28)", () => {
+  const ch = (o: object) => leerChequeo({ clave: "101", titulo: "Caja", estado: "ok", bloquea: true, orden: 1, ...o });
+  it("con todo en orden no dice nada", () => {
+    expect(avisoBalanceSinCuadrar([ch({})])).toBeNull();
+  });
+  it("cuenta lo que falta y avisa que las cifras pueden cambiar", () => {
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" })])).toContain("1 comprobación pendiente");
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" }), ch({ clave: "121", estado: "no_cuadra" })])).toContain("2 comprobaciones pendientes");
+  });
+  it("sin arranque tampoco afirma que cuadra", () => {
+    expect(avisoBalanceSinCuadrar([])).toContain("faltan los saldos de arranque");
   });
 });
