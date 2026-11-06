@@ -22,7 +22,8 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").replace(/^reset lock_timeout;$/gm, "");
-const MIGRACION = sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", "20261106004000_tres_etapas_de_una_prenda.sql"), "utf8"));
+const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
+const MIGRACION = `${leer("20261106004000_tres_etapas_de_una_prenda.sql")}\n${leer("20261106014000_etapa_de_prenda_sin_replanear.sql")}`;
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 
@@ -144,6 +145,14 @@ caso(
   `${MIGRACION}
    select position('no_llega_a_tienda' in pg_get_functiondef('retail.fn_vitrina_por_que_no(uuid)'::regprocedure)) > 0;`,
   "t"
+);
+
+caso(
+  "E16 las dos siguen en PL/pgSQL y un modelo sin orden se responde sin hacer la cuenta: en SQL, la tienda web tardaba 3 s más",
+  `select string_agg(l.lanname, ',' order by p.proname), bool_and(position('not exists' in pg_get_functiondef('retail.fn_producto_etapa(uuid)'::regprocedure)) > 0)
+     from pg_proc p join pg_language l on l.oid = p.prolang
+    where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_producto_etapa', 'fn_productos_por_etapa');`,
+  "plpgsql,plpgsql|t"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR}, base: ${BASE})`);

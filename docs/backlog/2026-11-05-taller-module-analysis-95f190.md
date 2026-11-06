@@ -21,9 +21,10 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 - [x] 16 · Prueba completa y entrega para el rediseño: mapa en `docs/pantallas/taller-reglas-para-el-rediseno.md`.
 
 ### Lo que falta, con el OK de Felipe
-- [ ] Pegar en producción, en este orden: `20261105221000`, `20261105222000`, `20261105223000`, `20261105225000`, `20261105232000`, `20261105233000`, `20261105234000`, `20261106003000`, `20261106004000`. Cada archivo dice cómo verificarlo.
+- [x] Pegadas en producción el 2026-11-05, en este orden: `20261105221000`, `20261105222000`, `20261105223000`, `20261105225000`, `20261105232000`, `20261105233000`, `20261105234000`, `20261106003000`, `20261106004000`.
+- [ ] Pegar `20261106014000_etapa_de_prenda_sin_replanear.sql`, con el OK de Felipe: `20261106004000` volvió lenta la tienda web (3,4 s el catálogo, 3,1 s por las etapas).
 - [ ] Abrir el PR con `/abrir-pr` y publicar la web.
-- [ ] Al pegar, refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`). Hoy no toca: describe producción, y solo `20261105213000` está pegada.
+- [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`): ya toca, las migraciones están en producción.
 - [ ] Dudas abiertas de `/chaos` (informe fuera de git): una fecha de emisión de 1900 se acepta, y una cantidad enorme responde con un error en inglés.
 
 **Límite conocido de la actividad 1:** una prenda con un cierre revertido sigue con su costo bloqueado a mano.

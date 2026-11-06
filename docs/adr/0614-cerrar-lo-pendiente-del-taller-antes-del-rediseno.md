@@ -104,3 +104,9 @@ SE ROMPE SI: reaparece una orden sin pasos (por SQL a mano; ninguna pantalla la 
 DECIDÍ: dejar el mapa de lo que el rediseño no puede romper en `docs/pantallas/taller-reglas-para-el-rediseno.md`, y no refrescar el diccionario hasta pegar: describe producción, no esta rama.
 DESCARTÉ: atacar desde el navegador cada hoja con `/chaos`: el ataque en la base cubre lo que puede dejar datos malos, y lo visual se rehace en el rediseño. Queda dicho como «no cubierto».
 SE ROMPE SI: se publica la web antes de pegar las migraciones: las hojas nuevas fallan al guardar. El orden está en el backlog.
+
+## Al pegar en producción: la etapa volvió lenta a la tienda web (migración `20261106014000`)
+
+DECIDÍ: pasar `fn_producto_etapa` y `fn_productos_por_etapa` a PL/pgSQL y responder primero «no tiene orden viva». Medido en producción tras pegar `20261106004000`: 3,1 s de los 3,4 s de `tienda_catalogo`. En local, las mismas llamadas bajan de 390 ms a 58 ms.
+DESCARTÉ: guardar la etapa en una columna (dos fuentes de verdad) y una versión por lista dentro de `fn_vitrina_por_que_no` (obliga a reescribir la regla única de la vitrina y sus mutantes).
+SE ROMPE SI: se vuelven a escribir en SQL. Lo vigila el caso E16 de `pruebas:produccion-etapas-de-prenda`. Lección: lo que se mete en una función que se pregunta por prenda se mide con el catálogo entero, y en local no se ve porque hay 11 productos.
