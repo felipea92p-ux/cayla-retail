@@ -95,6 +95,7 @@ import {
 import { borradorDeTallas, mismasVariantes, modoDeTallas, modosAlCambiar, tablaParaElNumero, tallasListas, type BorradorTallas, type ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
 import { EditarModelo } from "./EditarModelo";
 import { QuitarModelo } from "./QuitarModelo";
+import { YaExisteLaPrenda } from "./YaExisteLaPrenda";
 import { NuevoModelo, type ModeloPedido } from "./NuevoModelo";
 import { ElegirQuienCuenta } from "./ElegirQuienCuenta";
 import { ListaDelEnvio } from "./CategoriasAcordeon";
@@ -126,6 +127,8 @@ type Hoja =
   | { tipo: "salida-hecha"; resultado: ResultadoDeSalida; nombre: string }
   | { tipo: "corregir-salida"; salida: SalidaDelEnvio }
   | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
+  // Antes de crear: lo contado como nuevo puede ser una prenda que ya existe.
+  | { tipo: "existe"; grupo: string; nueva: { cantidad: number; descripcion: string; porDefecto: boolean; nota: string | null }; parada: string }
   // «¿Qué llegó?» o, con su categoría, el «+»: otro modelo para contar aparte.
   | { tipo: "modelo"; categoria: string | null }
   | { tipo: "editar"; parada: string }
@@ -441,7 +444,7 @@ export function ContarEnvio({
     const m = p.modelo;
     if (!m) return;
     if (modo === "ahora" && !m.productoId) {
-      setHoja({ tipo: "crear", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto, nota: m.nota }, parada: p.clave });
+      setHoja({ tipo: "existe", grupo: p.grupo.clave, nueva: { cantidad: m.contadas, descripcion: m.nombre, porDefecto: m.porDefecto, nota: m.nota }, parada: p.clave });
       return;
     }
     const sep = prendaSeparada(p);
@@ -603,7 +606,7 @@ export function ContarEnvio({
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
   const lineaDeHoja =
     grupoDeHoja && hoja && "grupo" in hoja
-      ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
+      ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" || hoja.tipo === "existe" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
       : null;
   const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
 
@@ -892,6 +895,20 @@ export function ContarEnvio({
             void leerSalidasDelEnvio(detalle.id).then(setSalidas);
             onSalida();
           }}
+        />
+      )}
+
+      {hoja?.tipo === "existe" && grupoDeHoja?.principal.categoria && (
+        <YaExisteLaPrenda
+          categoria={grupoDeHoja.principal.categoria}
+          marca={marcaDeLinea(grupoDeHoja.principal)}
+          nombre={hoja.nueva.porDefecto ? null : hoja.nueva.descripcion}
+          cantidad={hoja.nueva.cantidad}
+          costo={null}
+          comoCorregirMarca="Si la marca anotada está mal, quita este modelo y agrégalo de nuevo con su marca."
+          onUsar={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.parada, hoja.nueva.descripcion, prenda)}
+          onCrear={() => setHoja({ ...hoja, tipo: "crear" })}
+          onCerrar={() => setHoja(null)}
         />
       )}
 

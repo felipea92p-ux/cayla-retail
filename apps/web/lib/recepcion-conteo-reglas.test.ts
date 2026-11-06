@@ -677,7 +677,7 @@ describe("«Crear ahora» una nueva ya descrita: de «por crear» a prenda conoc
 
 describe("el botón de cada fila de «Para después»", () => {
   it("cada tipo dice lo que hace: crear, tallas y colores, o el genérico de separar", () => {
-    expect(BOTON_DE_PENDIENTE).toEqual({ separar: "Hacer ahora", detalle: "Tallas y colores ahora", crear: "+ Crear ahora" });
+    expect(BOTON_DE_PENDIENTE).toEqual({ separar: "Hacer ahora", detalle: "Tallas y colores ahora", crear: "Crear o asociar" });
   });
 
   it("cubre todos los tipos que paraDespues puede devolver", () => {
