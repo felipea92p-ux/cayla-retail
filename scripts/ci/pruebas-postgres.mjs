@@ -201,6 +201,7 @@ export const PRUEBAS = [
   "pruebas:pago-planilla-y-sunat",
   "pruebas:planilla-conceptos",
   "pruebas:comision-estimada",
+  "pruebas:gasto-fecha-pago",
 
   // La salida del banco de la planilla que Dynamic marca pagada (ADR-0567): el banco del colaborador desde las grafías reales, el grupo
   // pagado partido por banco, lo que no corresponde fuera (sin pagar, antes del inicio, sin plata), quién lo ve, registrado con otro

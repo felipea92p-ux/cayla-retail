@@ -38,7 +38,7 @@ import { medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
 import { soles } from "@/lib/compras-reglas";
-import { TEXTO_MEDIO, mediosPara, parsearMonto, solesRedondo, textoMes, textoCuandoVence, type CategoriaGasto, type EgresoPorClasificar, type GastoFijoMes, type MedioGasto, type ProveedorGasto, type TipoComprobante } from "@/lib/gastos-reglas";
+import { TEXTO_MEDIO, igvDeFactura, mediosPara, parsearMonto, solesRedondo, textoMes, textoCuandoVence, type CategoriaGasto, type EgresoPorClasificar, type GastoFijoMes, type MedioGasto, type ProveedorGasto, type TipoComprobante } from "@/lib/gastos-reglas";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { sugerirQueFue, sugerirSerie } from "@/lib/sugerencias-hoja-gasto";
 import {
@@ -50,6 +50,7 @@ import {
   hojaDePlantilla,
   hojaSiguiente,
   hojaVacia,
+  igvDelQr,
   motivoDelMonto,
   proveedorDelRuc,
   salidaDeLaHoja,
@@ -145,6 +146,7 @@ export function HojaRegistrarGasto({
     elegirComprobante(leido.tipo);
     setH((x) => ({
       ...x,
+      igvPapel: igvDelQr(leido, x.monto.trim() ? (leerMontoPlata(x.monto) ?? 0) : leido.total),
       comprobante: leido.tipo,
       ruc: leido.rucEmisor,
       serieNumero: serieNumeroDelQr(leido),
@@ -176,7 +178,7 @@ export function HojaRegistrarGasto({
   const medioSalida: MedioGasto | "" = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
   const cajaDe = (ubicacionId: string | null | undefined) => cajasAbiertas.find((c) => c.ubicacionId === ubicacionId)?.id ?? "";
   const salidaHoja: SalidaDeLaHoja = conCuentas
-    ? { medio: medioSalida, cuentaId: cuentaSalida ?? undefined, cajaId: salida?.tipo === "cajon" ? cajaDe(salida.ubicacionId) : "", referencia }
+    ? { medio: medioSalida, cuentaId: cuentaSalida ?? undefined, cajaId: salida?.tipo === "cajon" ? cajaDe(salida.ubicacionId) : "", referencia, banco: salida?.tipo === "banco" }
     : { medio: medioSinCuentas, cajaId: medioSinCuentas === "efectivo" ? cajaDe(h.sede) : "", referencia };
   const salidaLista = !h.sede ? false : conCuentas ? Boolean(cuentaSalida) : Boolean(medioSinCuentas) && (medioSinCuentas !== "efectivo" || Boolean(cajaDe(h.sede)));
 
@@ -454,6 +456,18 @@ export function HojaRegistrarGasto({
             </div>
           )}
 
+          {h.comprobante === "factura" && (
+            <CampoTexto
+              etiqueta="IGV del papel · opcional"
+              inputMode="decimal"
+              caja
+              value={h.igvPapel}
+              onChange={(e) => poner("igvPapel", e.target.value)}
+              placeholder={monto.ok ? igvDeFactura(monto.valor).toFixed(2) : undefined} // sugerir-fijo: es el IGV de la tasa sobre el monto escrito, no un ejemplo.
+              pie="Déjalo vacío si es el 18 %. Una factura exonerada dice 0."
+            />
+          )}
+
           <div className="grid gap-x-3 sm:grid-cols-2">
             <CampoFecha etiqueta={papel ? "Fecha del comprobante" : "Fecha"} valor={h.fecha} onValor={(v) => poner("fecha", v)} disabled={Boolean(egreso)} max={hoy} motivoMax="La fecha no puede ser futura." estricto required />
             {papel && !egreso && (
@@ -487,6 +501,9 @@ export function HojaRegistrarGasto({
                   <CampoCuentaFin id="hoja-gasto-cuenta" etiqueta="Salió de" cuentas={cuentasGasto} listo={cuentasPago.listo} clase="pago" medio={medioSalida || "transferencia"} sinMedio valor={cuentaSalida} onValor={(v) => setCuentaId(v)} />
                   {bancoConMedio && (
                     <CampoSelect etiqueta="Cómo" caja valor={bancoConMedio} onValor={(m) => setMedioBanco(m)} opciones={mediosDeBanco(papel).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))} />
+                  )}
+                  {bancoConMedio && papel && !egreso && (
+                    <CampoFecha etiqueta="¿Cuándo salió del banco?" valor={h.fechaPago || h.fecha} onValor={(v) => poner("fechaPago", v)} min={h.fecha} max={hoy} />
                   )}
                 </div>
               ) : (
