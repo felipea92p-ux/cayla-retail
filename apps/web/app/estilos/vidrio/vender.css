@@ -707,6 +707,10 @@
 .hoja-cobro-paso.sigue-aqui::before {
   transform: scaleY(1);
 }
+/* Como todo hilo (alta-guia.css): cede a quien está tecleando, por ejemplo el monto que recibió. */
+:root:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="file"], [type="range"], [type="color"], [role="combobox"]), textarea):focus) .hoja-cobro-paso.sigue-aqui::before {
+  transform: scaleY(0);
+}
 /* En el descuento el paso no lleva relleno (padding 0): el hilo va un poco afuera, sin mover nada. */
 .pv-desc-cuerpo .hoja-cobro-paso::before {
   left: -0.625rem;

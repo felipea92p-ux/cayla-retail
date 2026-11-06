@@ -268,6 +268,15 @@
 .hilo-luz[data-error]::before {
   transform: scaleY(0);
 }
+/* La luz cede a quien escribe (Felipe 2026-11-05): con el cursor en una caja de texto ya se sabe dónde se está, y si la persona decidió escribir en
+   otro campo, el hilo no se queda señalando a otra parte. Vuelve al salir. Solo cuenta lo que se teclea: un combo o unas opciones esperan a que elijas,
+   y ahí el hilo sigue ayudando (el mismo criterio de `estaEscribiendo`). */
+:root:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="file"], [type="range"], [type="color"], [role="combobox"]), textarea):focus) :is(.hilo-luz, .hilo-fila, .hilo-tarjeta)[data-estado="ahora"]::before {
+  transform: scaleY(0);
+}
+:root:has(:is(input:not([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="file"], [type="range"], [type="color"], [role="combobox"]), textarea):focus) .hilo-etiqueta-flota {
+  opacity: 0;
+}
 
 /* Un campo guiado que dice su error (ADR-0611, mejora 1): la caja de adentro toma el borde del error de `Campo`, y el error lo dicen el texto y
    su «!». Vale para la caja de un campo o de un combo, sea cual sea el control. */
