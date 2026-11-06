@@ -39,5 +39,4 @@ Se llaman desde cualquier diseño; no se copian ni se reescriben dentro de un co
 ## Después, con su propio trabajo
 
 - El Taller como mayorista (ADR-0547), con cotizaciones reales.
-- Finanzas ▸ Por pagar no lista todavía a los servicios; Taller ▸ Por pagar sí.
 - `set_etapa_produccion` ya no tiene quien la llame: se retira con una migración propia.

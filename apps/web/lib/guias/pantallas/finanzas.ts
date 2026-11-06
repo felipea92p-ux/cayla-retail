@@ -907,7 +907,7 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       ancla: "fin-por-pagar.pagar",
       opcional: true,
       titulo: "Pagar una factura",
-      texto: "Abre el mismo pago de Compras (o de Producción, si es tela del Taller): cuánto, con qué medio y desde qué cuenta, sin elegir tienda. El pago queda en su factura y baja la deuda. En la demo no lo tocamos.",
+      texto: "Abre el mismo pago de Compras o, si es del Taller, el de Producción: cuánto, con qué medio y desde qué cuenta. El pago baja la deuda. A un servicio sin nombre primero hay que decirle quién: su botón te lleva a la orden. En la demo no lo tocamos.",
     },
     {
       id: "varias",
