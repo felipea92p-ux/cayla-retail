@@ -6,7 +6,7 @@ import { getBalanceGeneral, getBalancePorTienda, getConciliacion } from "@/lib/b
 import { getPatrimonioCambios } from "@/lib/estados-financieros";
 import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { rangoDelMes } from "@/lib/flujo-caja-reglas";
-import { csvBalance } from "@/lib/balance-reglas";
+import { avisoBalanceSinCuadrar, csvBalance } from "@/lib/balance-reglas";
 import { AVISO_SIN_SUELDOS, columnasER, conceptosER, csvDe, csvEstado, leerLineaDiario, mesTitulo, ORDEN_DIARIO, veLaPlanilla, type LineaDiario } from "@/lib/resultados-reglas";
 import {
   conPrimerasLineas,
@@ -64,7 +64,9 @@ async function armarCuerpo(archivo: ArchivoContador, mes: string, hoy: string): 
     case "balance": {
       const [lineas, chequeos, unidades] = await Promise.all([getBalanceGeneral(hasta), getConciliacion(hasta), getBalancePorTienda(hasta)]);
       const f = lineas.falla ?? chequeos.falla ?? unidades.falla;
-      return f ? fallo(f) : listo(csvBalance(lineas.datos, chequeos.datos, unidades.datos, hasta));
+      if (f) return fallo(f);
+      const noCuadra = avisoBalanceSinCuadrar(chequeos.datos);
+      return listo(conPrimerasLineas(csvBalance(lineas.datos, chequeos.datos, unidades.datos, hasta), noCuadra ? [noCuadra] : []));
     }
     case "patrimonio": {
       const p = await getPatrimonioCambios(mes);

@@ -208,6 +208,18 @@ export function situacion(chequeos: readonly Chequeo[]): Situacion {
   return { tipo: "cuadra", notas: chequeos.filter((c) => c.estado === "nota" || c.estado === "revisar") };
 }
 
+/**
+ * Lo que dice un archivo o ¿Lo tuyo? cuando el Balance no se dibuja (tarea 28): la pantalla del Balance lo oculta, pero el Excel lo imprimía igual y ¿Lo tuyo? daba su cifra sin avisar.
+ * `null` si cuadra.
+ */
+export function avisoBalanceSinCuadrar(chequeos: readonly Chequeo[]): string | null {
+  const s = situacion(chequeos);
+  if (s.tipo === "cuadra") return null;
+  return s.tipo === "no_cuadra"
+    ? `No cuadra: el Balance tiene ${s.bloqueos.length === 1 ? "1 comprobación pendiente" : `${s.bloqueos.length} comprobaciones pendientes`} y estas cifras pueden cambiar.`
+    : "No cuadra todavía: faltan los saldos de arranque de esta fecha y estas cifras pueden cambiar.";
+}
+
 /** Las cuentas se muestran con su código delante («101 Caja…»); las comprobaciones generales, sin él. */
 export const esCuenta = (c: Pick<Chequeo, "clave">) => /^\d+$/.test(c.clave);
 export const tituloChequeo = (c: Pick<Chequeo, "clave" | "titulo">) => (esCuenta(c) ? `${c.clave} ${c.titulo}` : c.titulo);

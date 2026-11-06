@@ -21,6 +21,7 @@ import {
   nombreDeCuenta,
   nombreLinea,
   notaLinea,
+  avisoBalanceSinCuadrar,
   situacion,
   unidadesConSueldos,
   solesBalance,
@@ -323,5 +324,19 @@ describe("la utilidad de cada tienda resta los sueldos que Dynamic no paga (tare
   it("sin nada invertido no hay rinde que dividir", () => {
     const sinInvertir = leerUnidad({ ubicacion_id: "t", nombre: "Tienda Trujillo", tipo: "tienda", invertido: 0, utilidad_mes: 10, rinde: null });
     expect(unidadesConSueldos([sinInvertir], [{ ubicacionId: "t", devengado: 5 }])[0]).toMatchObject({ utilidadMes: 5, rinde: null });
+  });
+});
+
+describe("lo que se dice cuando el Balance no cuadra (tarea 28)", () => {
+  const ch = (o: object) => leerChequeo({ clave: "101", titulo: "Caja", estado: "ok", bloquea: true, orden: 1, ...o });
+  it("con todo en orden no dice nada", () => {
+    expect(avisoBalanceSinCuadrar([ch({})])).toBeNull();
+  });
+  it("cuenta lo que falta y avisa que las cifras pueden cambiar", () => {
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" })])).toContain("1 comprobación pendiente");
+    expect(avisoBalanceSinCuadrar([ch({ estado: "no_cuadra" }), ch({ clave: "121", estado: "no_cuadra" })])).toContain("2 comprobaciones pendientes");
+  });
+  it("sin arranque tampoco afirma que cuadra", () => {
+    expect(avisoBalanceSinCuadrar([])).toContain("faltan los saldos de arranque");
   });
 });
