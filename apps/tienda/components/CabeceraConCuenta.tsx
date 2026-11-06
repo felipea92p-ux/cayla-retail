@@ -162,6 +162,7 @@ export function CabeceraConCuenta({
 
   function abrir(cual: "menu" | "buscar", boton: HTMLButtonElement) {
     disparador.current = boton;
+    if (cual === "buscar") prepararBuscador();
     setHoja(cual);
   }
   function cerrar() {
@@ -771,7 +772,7 @@ function HojaBuscar({
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Busca por nombre, prenda o color"
+            placeholder="Prenda o color"
             autoComplete="off"
             enterKeyHint="search"
             autoFocus

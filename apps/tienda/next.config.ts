@@ -30,7 +30,9 @@ const origen = origenDeFotos();
 // - `nosniff`: el navegador no adivina el tipo de un archivo (un texto no se ejecuta como script).
 // - `Referrer-Policy`: a otro sitio (WhatsApp, Instagram) solo viaja el dominio, nunca la dirección completa (que puede llevar el
 //   número de un pedido).
-// - `Permissions-Policy`: la tienda no usa cámara, micrófono, ubicación ni pagos del navegador; nadie que se cuele en ella tampoco.
+// - `Permissions-Policy`: la tienda no usa cámara, micrófono ni pagos del navegador; nadie que se cuele en ella tampoco. La ubicación sí, y
+//   solo el propio sitio: con ella se elige la tienda más cercana al entrar (`SelectorTienda`). Con `geolocation=()` el navegador la negaba
+//   sin preguntar y esa función nunca corrió en producción (auditoría 2026-11-06).
 // - `base-uri` y `object-src`: sin `<base>` ajeno ni plugins.
 // No hay una lista de orígenes para scripts (`script-src`): Next mete scripts en línea y una lista mal hecha deja la tienda en blanco;
 // queda para cuando se pruebe en el navegador con la cuenta de clientes. HSTS lo pone Vercel en todo dominio con https.
@@ -39,7 +41,7 @@ const CABECERAS_DE_SEGURIDAD = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), payment=(), usb=()" },
 ];
 
 // Los íconos y el colibrí de `public/` (2026-10-16): Vercel los sirve con `max-age=0, must-revalidate`, así que el navegador volvía a

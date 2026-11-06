@@ -35,7 +35,7 @@ export function OfertasPorCampana({ campanas, inicial, titulo }: { campanas: Cam
       <div className="t-sec-cab" data-revela>
         {titulo}
         <Link className="t-ver" href={actual.verTodas}>
-          Ver todas <b>{actual.cuantas}</b>
+          Ver todas
           <Icono nombre="flecha" />
         </Link>
       </div>

@@ -55,7 +55,7 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
           {/* Los looks de CAYLA están abajo; este es el camino para armar el propio (el probador). Siempre a la vista: si todavía no hay
               prendas que probar en esa tienda, el probador lo dice y lleva de vuelta a los outfits. */}
           <Link className="t-btn t-btn-sec" href={hrefDelProbador(sede)}>
-            Arma tu outfit personalizado <Icono nombre="flecha" />
+            Arma el tuyo <Icono nombre="flecha" />
           </Link>
         </header>
 
