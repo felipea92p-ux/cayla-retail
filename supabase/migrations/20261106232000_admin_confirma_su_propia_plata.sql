@@ -79,7 +79,7 @@ begin
     raise exception 'Elige quién confirma la plata.' using errcode = '42501', hint = 'responsable_requerido';
   end if;
   v_propia := v_a.persona_id = v_actor
-              or v_a.persona_id = (select p.id from public.personas p where p.auth_user_id = auth.uid());
+              or v_a.persona_id = retail.fn_persona_de_la_cuenta();
   -- 20261106232000 (Felipe): el Admin confirma también la suya; para todos los demás sigue haciendo falta otra persona.
   if not (v_propia and coalesce(retail.fn_es_admin(), false)) then
     perform retail.fn_fondo_exigir_otra_persona(v_a.persona_id, v_actor, 'Nadie confirma su propia plata');
