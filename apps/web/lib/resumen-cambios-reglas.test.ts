@@ -122,6 +122,17 @@ describe("cuando la lista no cabe o no cuadra", () => {
   });
 });
 
+describe("sin sueldos en uno de los dos meses (tarea 25)", () => {
+  it("el titular dice que la comparación es antes de sueldos, y si no, no lo dice", () => {
+    const con = ok(cambiosDelMes({ r: verTodas(), ahora: [OCT], antes: [SEP], enCurso: true, antesDeSueldos: true }));
+    expect(con.antesDeSueldos).toBe(true);
+    expect(texto(con.titular)).toContain("antes de sueldos");
+    const sin = ok(cambiosDelMes({ r: verTodas(), ahora: [OCT], antes: [SEP], enCurso: true }));
+    expect(sin.antesDeSueldos).toBe(false);
+    expect(texto(sin.titular)).not.toContain("antes de sueldos");
+  });
+});
+
 describe("cuando no se puede comparar", () => {
   it("sin el mes pasado no se inventa nada", () => {
     const c = cambiosDelMes({ r: verTodas(), ahora: [OCT], antes: null, enCurso: true });

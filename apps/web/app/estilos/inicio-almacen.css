@@ -537,7 +537,7 @@
     min-width: 0;
     padding: 20px;
     border: 1px solid var(--h-glass-b);
-    border-radius: 20px;
+    border-radius: var(--radius-tarjeta);
     background: var(--h-glass);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);

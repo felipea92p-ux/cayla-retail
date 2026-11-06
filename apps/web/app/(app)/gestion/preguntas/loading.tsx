@@ -14,12 +14,12 @@ export default function LoadingPreguntasEquipo() {
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-[20px] bg-sand/50" />
+            <div key={i} className="h-24 rounded-tarjeta bg-sand/50" />
           ))}
         </div>
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="h-48 rounded-[20px] bg-sand/50" />
-          <div className="h-48 rounded-[20px] bg-sand/50" />
+          <div className="h-48 rounded-tarjeta bg-sand/50" />
+          <div className="h-48 rounded-tarjeta bg-sand/50" />
         </div>
         <div>
           <div className="card-cayla divide-y divide-sand">

@@ -96,8 +96,8 @@ select meses_depreciados, depreciacion_mensual, depreciacion_acumulada, valor_ho
 select meses_depreciados, depreciacion_acumulada, valor_hoy from retail.fn_activos_lista('2025-08-31') where id = :'a';`);
   const [fila, lista, mismoMes] = lineas(r);
   esperar("queda «ya lo teníamos»: sin medio, comprobante, egreso ni cuenta; S/ 2,928, 10 años (10 %), cuenta 333, firmado", r.ok && fila === "t|t|t|t|t|2928.00|0.00|120|0.1000|333|activo|t|SERIE-PRUEBA-1", r);
-  esperar("a fines de septiembre de 2026 lleva 13 meses depreciados: S/ 317.20, vale S/ 2,610.80, y la lista lo marca", r.ok && lista === "13|24.40|317.20|2610.80|t|Taller", r);
-  esperar("el mes de la compra no se deprecia (desde el mes siguiente, como todo activo)", r.ok && mismoMes === "0|0.00|2928.00", r);
+  esperar("a fines de septiembre de 2026 lleva 14 meses depreciados: S/ 341.60, vale S/ 2,586.40, y la lista lo marca", r.ok && lista === "14|24.40|341.60|2586.40|t|Taller", r);
+  esperar("el mes de la compra ya lleva su cuota, como todo activo", r.ok && mismoMes === "1|24.40|2903.60", r);
 }
 
 // 2. Idempotente: el mismo token no duplica.
@@ -133,7 +133,7 @@ select retail.cargar_activo_inicial(:'taller', 'maquinaria', 'Máquina (prueba)'
 select cuenta, monto from retail.fn_saldos_iniciales_propuesta('2026-10-01') where cuenta in ('333', '391') order by cuenta;`);
   const [l333, l391] = lineas(r);
   esperar("la propuesta de arranque (1-oct-2026) lleva la máquina en la 333 por su costo", r.ok && l333 === "333|2928.00", r);
-  esperar("y su depreciación hasta el día anterior en la 391 (13 meses = S/ 317.20)", r.ok && l391 === "391|317.20", r);
+  esperar("y su depreciación hasta el día anterior en la 391 (14 meses = S/ 341.60)", r.ok && l391 === "391|341.60", r);
 }
 
 // 5. Solo el líder, y los datos obligatorios.

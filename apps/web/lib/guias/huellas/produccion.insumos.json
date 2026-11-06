@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 107,
+  "total": 108,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -37,7 +37,8 @@
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «{valor}»"
+      "Desplegable «{valor}»",
+      "button «Volver a intentar»"
     ],
     "components/ProduccionSoloEnTaller.tsx": [
       "BotonVer «Volver al inicio»"

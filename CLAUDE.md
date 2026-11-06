@@ -242,7 +242,11 @@ contenedor de las listas `fixed` de sus combos y las recortaría; el desenfoque 
 usa una receta o agrega una a `recetas.css`. Lo que ya se eligió vive en el tablero `docs/vidrio/README.md`.
 
 **El vidrio aguanta (ADR-0611, mejora 7):** quien en su aparato pidió menos transparencia o más contraste ve las mismas piezas macizas y sin desenfoque. Una receta nueva con fondo translúcido
-agrega su versión maciza al final de `recetas.css`: `lib/vidrio-que-aguanta.test.ts` falla si no.
+agrega su versión maciza a `vidrio/aguanta.css`: `lib/vidrio-que-aguanta.test.ts` falla si no.
+
+**Retail manda en diseño (contrato de familia v4, Felipe 2026-11-05; `docs/familia/README.md`):** lo que cambie de aspecto aquí llega a CAYLA Dynamic, que trae `recetas.css` con un vigilante. Por eso `recetas.css` **solo lleva variables, en tres formas** (`:root`,
+`@media screen { :root[data-tema="oscuro"] }` y `@media (prefers-reduced-transparency: reduce) { :root, :root[data-tema="oscuro"] }`), sin `--color-*` ni `--radius-*` propios: una regla de clase o un `@keyframes` va en otro archivo de `vidrio/`, y `lib/familia.test.ts` falla si no.
+Renombrar o quitar una variable de una receta abre una tarea en Dynamic; un `--color-*` nuevo que una receta consuma entra antes al contrato; `recetas.css` y `docs/familia/contrato.json` no se mueven de lugar; y este repositorio sigue público, o el vigilante deja de verlo.
 
 **Con el dedo, todo se toca en 44 px (ADR-0611, mejora 5):** `app/estilos/tacto.css`, solo con `pointer: coarse`. Una pieza nueva del sistema se suma ahí; un botón de ícono sin clase propia lleva
 `area-dedo`, que agranda su área sin cambiar su dibujo. Se mide con `pnpm --filter web tacto:medir`.

@@ -15,7 +15,7 @@ const texto = (s: string) => s.replace(/ /g, " ");
 function caso(c: { ventas: number; margen: number; gastos: number; detalleGastos?: FilaER["detalleGastos"] }, tipo: "todas" | "taller" | "empresa" = "todas") {
   const r = leerResumen(fixture.todas);
   if (r.resultadosMes.estado !== "ok") throw new Error("fixture");
-  const filas = r.resultadosMes.datos.map((f) => (f.unidad === "consolidado" ? { ...f, ventas: c.ventas, margen: c.margen, gastos: c.gastos, detalleGastos: c.detalleGastos ?? [] } : f));
+  const filas = r.resultadosMes.datos.map((f) => (f.unidad === "consolidado" ? { ...f, ventas: c.ventas, margen: c.margen, gastos: c.gastos, depreciacion: 0, detalleGastos: c.detalleGastos ?? [] } : f));
   const ver: ResumenFinanzas["ver"] =
     tipo === "todas" ? { ...r.ver, todas: true, tipo: "todas", soloEmpresa: false }
     : tipo === "taller" ? { ...r.ver, todas: false, tipo: "taller", soloEmpresa: false, ubicacionId: "tal" }
@@ -28,7 +28,7 @@ function dias(n: number, diario: number, metaSede: number | null = null): { seri
 }
 const eq = (c: Parameters<typeof caso>[0], ventas = dias(10, 4_720), extra: Partial<Parameters<typeof equilibrioMes>[0]> = {}, tipo: "todas" | "taller" | "empresa" = "todas") => {
   const { r, filas } = caso(c, tipo);
-  return equilibrioMes({ r, filas, ventasPorDia: ventas, hoy: HOY, mes: MES, enCurso: true, ...extra });
+  return equilibrioMes({ r, filas, ventasPorDia: ventas, hoy: HOY, mes: MES, enCurso: true, faltaDelMes: [], ...extra });
 };
 function ok(x: ReturnType<typeof eq>) {
   if (x.tipo !== "ok") throw new Error(`se esperaba «ok» y salió ${x.tipo}`);
@@ -125,14 +125,59 @@ describe("equilibrioMes · la meta, en las mismas unidades", () => {
     const { r, filas } = caso(A);
     const conMeta: ResumenFinanzas = { ...r, presupuesto: { estado: "ok", datos: [{ linea: "ventas", unidad: "consolidado", ubicacionId: null, presupuesto: 56_640 } as never] } };
     // 56,640 con IGV × (40,000 ÷ 47,200) = 48,000 sin IGV.
-    const x = ok(equilibrioMes({ r: conMeta, filas, ventasPorDia: dias(10, 4_720), hoy: HOY, mes: MES, enCurso: true }));
+    const x = ok(equilibrioMes({ r: conMeta, filas, ventasPorDia: dias(10, 4_720), hoy: HOY, mes: MES, enCurso: true, faltaDelMes: [] }));
     expect(x.meta).toBeCloseTo(48_000, 0);
   });
 
   it("el camino es más largo que lo mayor de lo vendido, el equilibrio y la meta", () => {
     const { r, filas } = caso(A);
     const conMeta: ResumenFinanzas = { ...r, presupuesto: { estado: "ok", datos: [{ linea: "ventas", unidad: "consolidado", ubicacionId: null, presupuesto: 56_640 } as never] } };
-    const x = ok(equilibrioMes({ r: conMeta, filas, ventasPorDia: dias(10, 4_720), hoy: HOY, mes: MES, enCurso: true }));
+    const x = ok(equilibrioMes({ r: conMeta, filas, ventasPorDia: dias(10, 4_720), hoy: HOY, mes: MES, enCurso: true, faltaDelMes: [] }));
     expect(x.tope).toBeGreaterThan(Math.max(x.vendido, x.pe, x.meta ?? 0));
+  });
+});
+
+describe("equilibrioMes · contra el mes entero (tarea 24)", () => {
+  const FALTA = [{ ubicacionId: "u-tru", fijos: 3_000, depreciacion: 500 }];
+  it("el día 5 y el día 28 dan casi el mismo equilibrio: lo que falta del mes cuenta desde el principio", () => {
+    // El día 5: 2,000 registrados + lo que falta. El día 28: ya están registrados los mismos 5,500 y no falta nada.
+    const dia5 = ok(eq({ ...A, gastos: 2_000 }, dias(5, 4_720), { hoy: "2026-10-05", faltaDelMes: FALTA }));
+    const dia28 = ok(eq({ ...A, gastos: 5_500 }, dias(10, 4_720), { hoy: "2026-10-28", faltaDelMes: [] }));
+    expect(dia5.pe).toBe(dia28.pe);
+    expect(dia5.pe).toBe(11_000);
+  });
+  it("sin contar lo que falta diría «Pagado»; contándolo, todavía no", () => {
+    const sinContar = ok(eq({ ventas: 5_000, margen: 2_500, gastos: 1_000 }, dias(2, 2_950), { hoy: "2026-10-02" }));
+    expect(sinContar.estado).toBe("cubierto");
+    const contando = ok(eq({ ventas: 5_000, margen: 2_500, gastos: 1_000 }, dias(2, 2_950), { hoy: "2026-10-02", faltaDelMes: FALTA }));
+    expect(contando.estado).not.toBe("cubierto");
+    expect(contando.pe).toBe(9_000);
+  });
+  it("mirando una sede solo cuenta lo de esa sede; la empresa, lo que no tiene sede", () => {
+    const { r, filas } = caso(A);
+    const una = (ver: Partial<ResumenFinanzas["ver"]>) => {
+      const v = { ...r.ver, todas: false, tipo: "tienda", soloEmpresa: false, ...ver } as ResumenFinanzas["ver"];
+      const fs = filas.map((f) => (f.unidad === "consolidado" ? { ...f, ubicacionId: "u-tru", unidad: "tienda" as const } : f));
+      return equilibrioMes({ r: { ...r, ver: { ...v, ubicacionId: "u-tru" } }, filas: fs, ventasPorDia: dias(10, 4_720), hoy: HOY, mes: MES, enCurso: true, faltaDelMes: [...FALTA, { ubicacionId: "u-lim", fijos: 9_000, depreciacion: 0 }] });
+    };
+    expect(ok(una({})).pe).toBe(31_000);
+  });
+  it("la depreciación no se suma dos veces cuando el último día ya se asentó", () => {
+    const { r, filas } = caso(A);
+    const fs = filas.map((f) => (f.unidad === "consolidado" ? { ...f, depreciacion: 500, gastos: 12_500 } : f));
+    const x = ok(equilibrioMes({ r, filas: fs, ventasPorDia: dias(10, 4_720), hoy: "2026-10-31", mes: MES, enCurso: true, faltaDelMes: FALTA }));
+    expect(x.pe).toBe(31_000);
+  });
+  it("la planilla que falta devengar cuenta, y un mes que ya pasó no suma nada", () => {
+    const { r, filas } = caso(A);
+    const fs = filas.map((f) => (f.unidad === "consolidado" ? { ...f, planillaEstimada: 1_000, planillaAlCierre: 3_000 } : f));
+    expect(ok(equilibrioMes({ r, filas: fs, ventasPorDia: dias(10, 4_720), hoy: HOY, mes: MES, enCurso: true, faltaDelMes: [] })).pe).toBe(28_000);
+    expect(ok(equilibrioMes({ r, filas: fs, ventasPorDia: dias(10, 4_720), hoy: "2026-11-05", mes: MES, enCurso: false, faltaDelMes: FALTA })).pe).toBe(24_000);
+  });
+  it("sin poder leer lo que falta no dice «Pagado»: dice que está por confirmar", () => {
+    const x = ok(eq(A, dias(10, 4_720), { faltaDelMes: null }));
+    expect(x.estado).toBe("sin_confirmar");
+    expect(x.titular).not.toContain("pagado");
+    expect(x.detalle).toContain("No se pudo leer");
   });
 });

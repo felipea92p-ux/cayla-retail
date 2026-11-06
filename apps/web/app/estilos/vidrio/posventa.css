@@ -192,7 +192,7 @@
 
 /* ---------- las tarjetas: la placa Serena ---------- */
 .posv-placa {
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   border: 1px solid var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);

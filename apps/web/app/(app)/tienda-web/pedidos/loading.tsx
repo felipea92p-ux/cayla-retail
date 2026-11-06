@@ -14,7 +14,7 @@ export default function LoadingPedidosWeb() {
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-[20px] bg-sand/50" />
+            <div key={i} className="h-24 rounded-tarjeta bg-sand/50" />
           ))}
         </div>
         <div className="card-cayla divide-y divide-sand">

@@ -18,7 +18,7 @@ import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
 import { alinearAvisoDeCaja, cajaProxima, loQueHayEnCuentas, type FlujoProximo } from "@/lib/caja-proxima-reglas";
-import { equilibrioMes } from "@/lib/equilibrio-mes-reglas";
+import { equilibrioMes, type FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
 import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
@@ -32,7 +32,7 @@ import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
 import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
   mesAnteriorDe,
-  mesPasadoComparable,
+  comparacionMesPasado,
   respuestaResumen,
   vendidoPorSede,
   type DiaVenta,
@@ -60,6 +60,8 @@ type Props = {
   estadoMes: Lectura<FilaER[]>;
   /** El tramo con que se compara (el mes pasado a la misma fecha); `null` si no se pudo leer. */
   estadoAntes: FilaER[] | null;
+  faltaDelMes: readonly FaltaDelMes[] | null;
+  planillaSinSalida: number | null;
   /** Lo vendido por día de cada tienda; `null` si la cuenta no ve Rendimiento. */
   ventasPorDia: { series: DiaVenta[][]; incompleta: boolean } | null;
   sedes: SedeTelar[];
@@ -76,7 +78,7 @@ type Props = {
 
 const FRASE = "De lo que vendes a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, faltaDelMes, planillaSinSalida, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso, claure = null }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -121,8 +123,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   };
   const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
   const filas = estadoMes.falla ? [] : estadoMes.datos;
-  const antes = mesPasadoComparable(filas, estadoAntes);
-  const resp = respuestaResumen(r, antes, provisional, enCurso);
+  const comparacion = comparacionMesPasado(filas, estadoAntes);
+  const resp = respuestaResumen(r, comparacion.antes, provisional, enCurso, comparacion.antesDeSueldos);
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const faltan = noRevisado(resumen);
   // La inversión en mercadería es de CAYLA entera: mirando una sola sede no se reparte (como el saldo de los bancos), así que ahí no se dibuja.
@@ -159,7 +161,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. «Tienes» dice cuánto es de CAYLA
           y cuánto de CLAURE, y «Debes pronto» lista cada deuda con su fecha (Felipe 2026-10-29). */}
-      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, plata })} />
+      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: resp, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose, claure: saldoClaure, claureFalla, planillaSinSalida, plata })} />
       {/* «Vendido por sede» y la confianza del número, en UNA tarjeta (ADR-0417; Felipe 2026-10-29, opción 3). Si no se pudo medir, se dice (nunca un 0 % falso). */}
       <VendidoPorSede porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} hoy={hoy} mes={mesNombre(mes)} confianza={confianza.datos} falla={confianza.falla} />
       {dock}
@@ -211,11 +213,11 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
         <div className="flex flex-col gap-4">
           <div {...columna(5)}>
-            <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
+            <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes })} provisional={provisional} />
           </div>
 
           <div {...columna(6)}>
-            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes, enCurso })} />
+            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ...comparacion, enCurso })} />
           </div>
         </div>
       </div>
