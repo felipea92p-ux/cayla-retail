@@ -22,7 +22,7 @@ const DISTANCIA_MINIMA = 22;
 
 export type Rgb = readonly [number, number, number];
 
-export type PrendaDePortada = { id: string; nombre: string; precio: string; href: string; foto: string; color: Rgb | null };
+export type PrendaDePortada = { id: string; nombre: string; categoria: string | null; precio: string; href: string; foto: string; color: Rgb | null };
 export type GrupoDePortada = { prendas: PrendaDePortada[] };
 
 /** El color de la prenda que se ve en su primera foto; si no se sabe cuál es, el primero que tiene. */
@@ -75,7 +75,7 @@ export function fondosDelGrupo(colores: readonly (Rgb | null)[], turno: number):
 
 function prendaDePortada(p: Prenda, sede: string | null): PrendaDePortada {
   const hex = colorDeLaFoto(p);
-  return { id: p.id, nombre: p.nombre, precio: soles(p.precioFinal), href: hrefDePrenda(p, sede), foto: p.fotos[0], color: hex ? canales(hex) : null };
+  return { id: p.id, nombre: p.nombre, categoria: p.categoria?.nombre ?? null, precio: soles(p.precioFinal), href: hrefDePrenda(p, sede), foto: p.fotos[0], color: hex ? canales(hex) : null };
 }
 
 /**

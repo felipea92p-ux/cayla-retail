@@ -28,6 +28,9 @@ import { hoyLima } from "@/lib/cuentas";
 import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { piezasDelDesfile } from "@/lib/desfile";
 import { categoriasConFoto, gruposDeLaPortada, prendasDeAbajo } from "@/lib/portada-l";
+import { ArmaTuOutfit, BeneficiosDeLaTienda } from "@/components/BloquesDelRediseno";
+import { EscenaPortada } from "@/components/EscenaPortada";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
@@ -108,6 +111,10 @@ export default async function Inicio({ searchParams }: Props) {
   const conPortadaL = sp.portada === "l";
   const portadaL = conPortadaL ? sp.portada : null;
   const gruposL = conPortadaL && hero.tipo !== "campana" ? gruposDeLaPortada(prendas, sede) : [];
+  // El rediseño (ADR-0615) va en la misma página, escondido por CSS: así la página sigue en caché y solo cambia para quien lo encendió.
+  const gruposEscena = hero.tipo !== "campana" ? gruposDeLaPortada(prendas, sede) : [];
+  const plazos = await leerAyuda();
+  const hrefArmar = sede ? `/looks/arma?sede=${encodeURIComponent(sede)}` : "/looks/arma";
   // El diseño de la campaña que anuncia la portada (la misma que la franja): viste el héroe y el sello de sus prendas; sin él, todo como siempre.
   const diseno = await leerDisenoDeCampana(campana?.nombre);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
@@ -135,11 +142,26 @@ export default async function Inicio({ searchParams }: Props) {
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
+      {gruposEscena.length > 0 && <EscenaPortada grupos={gruposEscena} hrefNuevo={lista("nuevo")} />}
       {gruposL.length > 0 ? (
         <PortadaTresPaneles grupos={gruposL} hrefArmar={sede ? `/looks/arma?sede=${encodeURIComponent(sede)}` : "/looks/arma"} hrefNuevo={lista("nuevo")} />
       ) : (
-        <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+        <div className={hero.tipo === "campana" ? undefined : "dn-oculto"}>
+          <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+        </div>
       )}
+      <BeneficiosDeLaTienda diasParaRecoger={plazos.diasParaRecoger} diasParaCambiar={plazos.diasParaCambiar} />
+      <section className="t-ancho dn-categorias dn-solo" aria-labelledby="dn-categorias">
+        <div className="t-sec-cab">
+          <h2 id="dn-categorias">Compra por categoría</h2>
+          <Link className="t-ver" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
+            Ver todas
+            <Icono nombre="flecha" />
+          </Link>
+        </div>
+        <FilaDeCategorias categorias={categoriasConFoto(prendas)} sede={sede} />
+      </section>
+      <ArmaTuOutfit href={hrefArmar} />
       {/* Con una campaña vigente la portada es la de la campaña y el desfile baja a su propia sección (ADR-0524); sin campaña, el desfile ES la portada. */}
       {hero.tipo === "campana" && nuevas.length > 0 && (
         <EscenarioDelDesfile
@@ -166,7 +188,7 @@ export default async function Inicio({ searchParams }: Props) {
         <>
           {gruposL.length > 0 && (
             <>
-              <FilaDeCategorias categorias={categoriasConFoto(prendas)} sede={sede} origenFotos={origenFotos} />
+              <FilaDeCategorias categorias={categoriasConFoto(prendas)} sede={sede} />
               <section className="t-sec t-ancho" aria-labelledby="lo-nuevo">
                 <div className="t-sec-cab" data-revela>
                   <div>
@@ -189,7 +211,19 @@ export default async function Inicio({ searchParams }: Props) {
           )}
 
           {gruposL.length === 0 && delPrograma.length > 0 && (
-            <section className="t-programa-sec t-ancho" aria-labelledby="lo-nuevo">
+            <section className="t-sec t-ancho dn-solo" aria-labelledby="dn-lo-nuevo-lista">
+              <div className="t-sec-cab">
+                <h2 id="dn-lo-nuevo-lista">Lo nuevo</h2>
+                <Link className="t-ver" href={lista("nuevo")}>
+                  Ver todo
+                  <Icono nombre="flecha" />
+                </Link>
+              </div>
+              <div className="t-top">{grillaDe(delPrograma)}</div>
+            </section>
+          )}
+          {gruposL.length === 0 && delPrograma.length > 0 && (
+            <section className="t-programa-sec t-ancho dn-oculto" aria-labelledby="lo-nuevo">
               <div className="t-cab-centro" data-revela>
                 <span className="t-ceja">El programa</span>
                 <h2 id="lo-nuevo">
