@@ -107,6 +107,6 @@ SE ROMPE SI: se publica la web antes de pegar las migraciones: las hojas nuevas 
 
 ## Al pegar en producción: la etapa volvió lenta a la tienda web (migración `20261106014000`)
 
-DECIDÍ: pasar `fn_producto_etapa` y `fn_productos_por_etapa` a PL/pgSQL y responder primero «no tiene orden viva». Medido en producción tras pegar `20261106004000`: 3,1 s de los 3,4 s de `tienda_catalogo`. En local, las mismas llamadas bajan de 390 ms a 58 ms.
+DECIDÍ: pasar `fn_producto_etapa` y `fn_productos_por_etapa` a PL/pgSQL y responder primero «no tiene orden viva». Medido en producción tras pegar `20261106004000`: 3,1 s de los 3,4 s de `tienda_catalogo`. Ya pegada, en producción: la revisión de etapas de las 472 prendas bajó de 3,1 s a 0,08 s y el catálogo de 3,4 s a 0,6 s, con las mismas respuestas.
 DESCARTÉ: guardar la etapa en una columna (dos fuentes de verdad) y una versión por lista dentro de `fn_vitrina_por_que_no` (obliga a reescribir la regla única de la vitrina y sus mutantes).
 SE ROMPE SI: se vuelven a escribir en SQL. Lo vigila el caso E16 de `pruebas:produccion-etapas-de-prenda`. Lección: lo que se mete en una función que se pregunta por prenda se mide con el catálogo entero, y en local no se ve porque hay 11 productos.

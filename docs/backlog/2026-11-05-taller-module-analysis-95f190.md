@@ -22,7 +22,7 @@ Lista de 16 actividades aprobada por Felipe el 2026-11-05.
 
 ### Lo que falta, con el OK de Felipe
 - [x] Pegadas en producción el 2026-11-05, en este orden: `20261105221000`, `20261105222000`, `20261105223000`, `20261105225000`, `20261105232000`, `20261105233000`, `20261105234000`, `20261106003000`, `20261106004000`.
-- [ ] Pegar `20261106014000_etapa_de_prenda_sin_replanear.sql`, con el OK de Felipe: `20261106004000` volvió lenta la tienda web (3,4 s el catálogo, 3,1 s por las etapas).
+- [x] Pegada `20261106014000_etapa_de_prenda_sin_replanear.sql` el 2026-11-05: la revisión de etapas de las 472 prendas bajó de 3,1 s a 0,08 s, y el catálogo de la tienda web de 3,4 s a 0,6 s.
 - [ ] Abrir el PR con `/abrir-pr` y publicar la web.
 - [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`): ya toca, las migraciones están en producción.
 - [ ] Dudas abiertas de `/chaos` (informe fuera de git): una fecha de emisión de 1900 se acepta, y una cantidad enorme responde con un error en inglés.
