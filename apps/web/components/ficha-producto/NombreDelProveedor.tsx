@@ -22,12 +22,15 @@ export function NombreDelProveedor({
   productoId,
   valor,
   firma,
+  listo,
   motivoSinFirma,
 }: {
   productoId: string;
   valor: string | null;
-  /** La firma del responsable de la ficha; `null` = falta elegirlo. */
+  /** La firma del responsable de la ficha. Puede ser `null` estando `listo`: una terminal con firma de respaldo (ADR-0454) no manda firma. */
   firma: () => Firma | null;
+  /** Hay responsable (o la terminal firma sola): se puede guardar. */
+  listo: boolean;
   motivoSinFirma?: string | null;
 }) {
   const [guardado, setGuardado] = useState(valor);
@@ -36,11 +39,11 @@ export function NombreDelProveedor({
   const [guardando, setGuardando] = useState(false);
 
   async function guardar() {
-    const f = firma();
-    if (!f) {
+    if (!listo) {
       avisar.error(motivoSinFirma ?? "Elige quién hace este cambio.");
       return;
     }
+    const f = firma();
     setGuardando(true);
     const nuevo = texto.trim().replace(/\s+/g, " ");
     const { error } = await firmar(createClient().rpc("fijar_nombre_proveedor", { p_producto_id: productoId, p_nombre: nuevo }), f);

@@ -880,7 +880,7 @@ export function ProductoForm({
   /** El precio de la tienda que la terminal escribió en la tabla (Felipe 2026-10-27). Va después del guardado de la prenda, con la misma
    *  firma. Devuelve la frase para el aviso de éxito; `null` si no había nada; `false` si falló (ya avisó; lo escrito sigue en la tabla
    *  y «Revisar y guardar» lo vuelve a intentar). `"responsable"`: quien firma ya no está de turno, la hoja sigue abierta. */
-  async function guardarPrecioAqui(supabase: ReturnType<typeof createClient>, firma: NonNullable<ReturnType<typeof stock.responsable.firma>>, nombrePrenda: string) {
+  async function guardarPrecioAqui(supabase: ReturnType<typeof createClient>, firma: ReturnType<typeof stock.responsable.firma>, nombrePrenda: string) {
     if (!producto || !tiendaTerminal || (cambioAqui.que !== "poner" && cambioAqui.que !== "quitar")) return null;
     const corto = nombreCorto(tiendaTerminal.nombre);
     const { error } = await firmar(
@@ -928,14 +928,15 @@ export function ProductoForm({
     // Solo se tocó el precio de la tienda (en una terminal): no hay nada de la prenda que mandar (ni versión que subir, ni
     // historial que escribir).
     if (resumen.total === 0) {
-      const firmaAqui = cambioAqui.que === "nada" ? null : stock.responsable.firma();
-      if (cambioAqui.que !== "nada" && !firmaAqui) {
+      // Se pregunta `listo`, no si hay firma: una terminal con firma de respaldo (ADR-0454, Caja y Almacén de Lima) está lista y no
+      // manda firma (la base firma sola a nombre del respaldo). Preguntar por la firma la bloqueaba con «Elige quién hace estos cambios».
+      if (cambioAqui.que !== "nada" && !stock.responsable.listo) {
         avisar.error(stock.responsable.motivo ?? "Elige quién hace estos cambios.", { enfocar: "confirmar-cambios-responsable" });
         return false;
       }
       setLoading(true);
       const cerrarProceso = avisar.proceso(`Guardando el precio de ${referencia.trim()}…`);
-      const fraseAqui = firmaAqui ? await guardarPrecioAqui(createClient(), firmaAqui, referencia.trim()) : null;
+      const fraseAqui = cambioAqui.que !== "nada" ? await guardarPrecioAqui(createClient(), stock.responsable.firma(), referencia.trim()) : null;
       if (fraseAqui === false || fraseAqui === "responsable") {
         cerrarProceso();
         setLoading(false);
@@ -948,11 +949,12 @@ export function ProductoForm({
       terminarGuardado(referencia.trim(), fraseAqui ? [fraseAqui] : [], false, 0, 0, filas);
       return true;
     }
-    const firma = stock.responsable.firma();
-    if (!firma) {
+    // `listo`, no la firma: con firma de respaldo (ADR-0454) no hay firma que mandar y aun así se puede guardar.
+    if (!stock.responsable.listo) {
       avisar.error(stock.responsable.motivo ?? "Elige quién hace estos cambios.", { enfocar: "confirmar-cambios-responsable" });
       return false;
     }
+    const firma = stock.responsable.firma();
     // Lo que dirá el aviso de éxito, tomado ANTES de que el guardado toque nada.
     const hecho = resumen.frasesPasado;
 
@@ -1597,6 +1599,7 @@ export function ProductoForm({
                   productoId={producto.id}
                   valor={nombreProveedor}
                   firma={() => stock.responsable.firma()}
+                  listo={stock.responsable.listo}
                   motivoSinFirma={stock.responsable.motivo}
                 />
               </div>
