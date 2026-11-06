@@ -1,3 +1,3 @@
 **2026-11-06 — «Revisar compras» dice la marca, no solo la razón social (Felipe).** La lista «Por completar» suma una línea con la marca bajo la razón social; el detalle dice «Marca: X» (o «Marcas: X · Y») bajo el título; y en «Ver las prendas», solo si hay varias marcas, cada prenda dice la suya.
 Migración `20261106154000` (reemplazo anclado de `fn_revisar_compras`: suma `marca` a cada línea). Sin ella la web sigue igual, sin esa línea. Probada en Postgres local con una compra de mentira en una transacción deshecha; pantalla vista con datos inventados a 800 y 375 px.
-**No está en producción ni fusionado:** el conector de Supabase de esta sesión ya no ve `cayla-dynamic`, así que no se comparó contra la función viva; el ancla frena el pegado si difiere.
+**En producción desde el 2026-11-06:** Felipe pegó la migración y la consulta de comprobación dio `true`. Falta refrescar el volcado.
