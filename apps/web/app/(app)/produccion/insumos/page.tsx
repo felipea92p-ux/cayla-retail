@@ -12,6 +12,7 @@ import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { Factory } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { getOrdenesInsumoPorRecibir } from "@/lib/recepcion-orden-insumo";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos, con su saldo por lote. Mismo acceso que Órdenes (`puedeVerProduccion`):
 // solo parado en el Taller, líder incluido. El costo de cada lote lo ve quien ve Producción en el Taller (Felipe 2026-10-15,
@@ -38,7 +39,7 @@ export default async function InsumosPage() {
   }
 
   const esLider = persona.rol === "lider";
-  const [datosConCostos, vocabulario, carta, clases, telasCortadas, proveedores] = await Promise.all([
+  const [datosConCostos, vocabulario, carta, clases, telasCortadas, proveedores, porRecibir] = await Promise.all([
     getInsumosDelTaller(taller.id, { conCostos: true, hoy: hoyLima() }),
     // Dato de apoyo (la ficha de la tela): si no se lee, la lista sigue en pie y la ficha lo dice.
     getVocabularioDeTelas(),
@@ -50,6 +51,8 @@ export default async function InsumosPage() {
     getTelasCortadasSinAnotar(taller.id),
     // A quién se le puede comprar (P03: «Ingresar insumo ▸ Compra» pide proveedor). Solo el líder los lee; si no responden, la hoja dice que no hay y no deja comprar sin proveedor.
     esLider ? opcional(getProveedoresProduccion(), "los proveedores de la compra") : Promise.resolve(null),
+    // Los pedidos abiertos: «Llegó una compra» avisa si el proveedor tiene uno. Dato de apoyo.
+    esLider ? opcional(getOrdenesInsumoPorRecibir(taller.id), "los pedidos abiertos") : Promise.resolve(null),
   ]);
   // `veCostos` lo dice la base (si no entregó costo teniendo lotes, no se dibuja «S/ 0.00» como si fuera un dato). El capital total es solo del líder.
   const veCostos = datosConCostos.veCostos;
@@ -70,6 +73,7 @@ export default async function InsumosPage() {
         clases={clases.clases}
         leyoClases={clases.leyo}
         avisosDeTela={avisosDeTelaCortada(telasCortadas)}
+        pedidos={porRecibir?.ordenes ?? []}
         proveedores={(proveedores ?? []).filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, plazoCreditoDias: p.plazoCreditoDias }))}
       />
     </div>

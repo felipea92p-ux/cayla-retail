@@ -2,9 +2,7 @@
 
 import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from "react";
 import { Factory, FunnelX, Scissors, Shirt } from "lucide-react";
-import { AnularOrdenModal, RevertirOrdenModal } from "@/components/OrdenModales";
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
-import { OrdenPanel } from "@/components/OrdenPanel";
 import { FilaDeOrden, PLANTILLA_LISTA } from "@/components/ordenes-lista/FilaDeOrden";
 import { MarcoDePagina } from "@/components/ordenes-lista/MarcoDePagina";
 import { Aviso } from "@/components/ui/Aviso";
@@ -30,7 +28,7 @@ import {
   type PartidaDeOrden,
 } from "@/lib/borrador-orden";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
-import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
+import type { InsumoVista } from "@/lib/insumos";
 import type { OpcionesNuevaOrden, ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 import type { TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
@@ -39,7 +37,6 @@ import type { FaseClave } from "@/lib/orden-fases-reglas";
 import { DIAS_SIN_MOVERSE } from "@/lib/orden-pagina-reglas";
 import {
   cifrasHoyEnElTaller,
-  conEtapasDeAntes,
   cuentasDeFiltros,
   cuentasDePestanas,
   datoHoyEnElTaller,
@@ -57,8 +54,8 @@ import type { Tolerado } from "@/lib/resultado";
 
 // Órdenes de producción del Taller (ADR-0400, actividad 5; «A · Lista», elegida por Felipe el 2026-10-14): una fila por lote, ordenadas por entrega, y la fase es un dato de la fila (un chip
 // con quién la tiene). Arriba, «Hoy en el Taller» cuenta por fase y filtra al tocarse; la tabla lleva las pestañas En curso · Muestras · Terminadas, las píldoras de filtro y el buscador.
-// Cada fila lleva a la página de la orden (`/produccion/ordenes/OP-000012`); lo que NO se hace en esa página todavía —pasar al stock, anular, revertir— sigue abriendo el cajón de siempre
-// (`?orden=<id>`) hasta la actividad 6. Toda escritura es una RPC (ninguna toca las tablas directo).
+// Cada fila lleva a la página de la orden (`/produccion/ordenes/OP-000012`): ahí se hace todo, también pasar al stock, anular y revertir. El cajón de antes se retiró
+// (ADR-0614, actividad 15). Toda escritura es una RPC (ninguna toca las tablas directo).
 
 const COLUMNAS: Columna[] = [
   { titulo: "Orden" },
@@ -101,9 +98,7 @@ export function OrdenesLista({
   esLider,
   hoy,
   insumos,
-  consumosPorOrden,
   decision,
-  ordenInicialId = null,
   nuevaInicial = null,
   sugeridaInicial = false,
   tipoInicial = "produccion",
@@ -123,11 +118,9 @@ export function OrdenesLista({
   esLider: boolean;
   hoy: string;
   insumos: InsumoVista[];
-  consumosPorOrden: Record<string, ConsumoDeOrden[]>;
   /** Solo el líder (F5): lo que aconseja la red al abrir una orden. */
   decision: Tolerado<DecisionProduccion> | null;
-  /** Enlaces del Resumen (F6) y de la página de la orden: `?orden=<id>` abre su cajón; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero). */
-  ordenInicialId?: string | null;
+  /** Enlaces del Resumen (F6) y de la página de la orden: `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero). */
   nuevaInicial?: string | null;
   /** `&sugerida=1` (solo desde «Abrir orden sugerida» del Resumen): «Nueva orden» llega con la matriz ya llena con la sugerencia de la red. */
   sugeridaInicial?: boolean;
@@ -142,12 +135,9 @@ export function OrdenesLista({
   /** Las órdenes del Taller que dicen qué modelos ya tienen molde (`moldeDelModelo`). `null` si no se pudo leer: la hoja pregunta en vez de deducir. */
   historialDeMoldes?: readonly OrdenParaMolde[] | null;
 }) {
-  const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
   // La sugerencia del Resumen se aplica UNA vez, a la apertura que vino por la URL: la URL no cambia al cerrar ni al guardar, así que sin esto cada «+ Nueva orden» la volvería a escribir.
   const [sugeridaPendiente, setSugeridaPendiente] = useState(sugeridaInicial);
-  const [anulando, setAnulando] = useState<OrdenProduccion | null>(null);
-  const [revirtiendo, setRevirtiendo] = useState<OrdenProduccion | null>(null);
   const [pestana, setPestana] = useState<PestanaLista>("en_curso");
   const [fase, setFase] = useState<FaseClave | null>(null);
   const [filtro, setFiltro] = useState<FiltroDeLista>("todas");
@@ -169,11 +159,7 @@ export function OrdenesLista({
     return () => window.clearTimeout(t);
   }, [recien]);
 
-  // Una orden abierta antes de las fases no trae ninguna: su lugar se lee de las etapas de siempre (las que ya traen `ordenes`).
-  const filas = useMemo(() => {
-    const etapas = new Map(ordenes.map((o) => [o.id, o.etapas] as const));
-    return (lista?.filas ?? []).map((f) => conEtapasDeAntes(f, etapas.get(f.id)));
-  }, [lista, ordenes]);
+  const filas = useMemo(() => lista?.filas ?? [], [lista]);
   // Para la lista de «Nueva orden»: cuántas órdenes abiertas tiene cada modelo y cuáles fueron los últimos (ADR-0396).
   const paraLaLista = useMemo(() => ordenesParaLaLista(ordenes), [ordenes]);
   const cifras = useMemo(() => cifrasHoyEnElTaller(filas), [filas]);
@@ -181,7 +167,6 @@ export function OrdenesLista({
   const visibles = useMemo(() => ordenarFilas(filtrarFilas(filas, { pestana, fase, filtro, texto }), pestana), [filas, pestana, fase, filtro, texto]);
   const porFiltro = useMemo(() => cuentasDeFiltros(filas, { pestana, fase, texto }), [filas, pestana, fase, texto]);
   const hayFiltro = fase !== null || filtro !== "todas" || texto.trim() !== "";
-  const abierta = ordenes.find((o) => o.id === abiertaId && o.estado !== "anulada") ?? null;
   const primeraConPorque = visibles.find((f) => f.causas.length > 0)?.id ?? null;
   const pie = pieDeLaLista(visibles.length, pestana, hayFiltro);
 
@@ -354,7 +339,7 @@ export function OrdenesLista({
               <>
                 <Encabezado visible="hidden @min-[620px]:grid" plantilla={PLANTILLA_LISTA} columnas={COLUMNAS} />
                 {visibles.map((f, i) => (
-                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaPorque={f.id === primeraConPorque} recien={f.id === recien} onAbrirCajon={() => setAbiertaId(f.id)} />
+                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaPorque={f.id === primeraConPorque} recien={f.id === recien} />
                 ))}
               </>
             )}
@@ -451,22 +436,6 @@ export function OrdenesLista({
 
       {cuerpo}
 
-      {abierta && (
-        <OrdenPanel
-          key={abierta.id}
-          orden={abierta}
-          tallerId={tallerId}
-          esLider={esLider}
-          hoy={hoy}
-          insumos={insumos}
-          consumos={consumosPorOrden[abierta.id] ?? []}
-          onCerrar={() => setAbiertaId(null)}
-          onAnular={() => setAnulando(abierta)}
-          onRevertir={() => setRevirtiendo(abierta)}
-        />
-      )}
-      {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}
-      {revirtiendo && <RevertirOrdenModal orden={revirtiendo} onClose={() => setRevirtiendo(null)} />}
     </div>
   );
 }

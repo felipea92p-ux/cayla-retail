@@ -144,7 +144,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.confianza",
       opcional: true,
       titulo: "Qué tan seguro es ese número",
-      texto: "El chip «Seguro al 86 %» dice cuánto confiar en el número: solo es tan cierto como lo que los otros módulos registraron. Abajo de la tarjeta, «cosas por revisar» muestra qué falta —el costo de las prendas, los alquileres, las facturas, el banco cuadrado—, cada una con su botón para arreglarla.",
+      texto: "El chip («confiable», «a medias» o «poco seguro») dice cuánto fiarte del número: solo es tan cierto como lo que los otros módulos registraron. Abajo de la tarjeta, «cosas por revisar» muestra qué falta —el costo de las prendas, los alquileres, las facturas, el banco cuadrado—, cada una con su botón para arreglarla.",
     },
     {
       id: "dock",

@@ -543,6 +543,8 @@ const DEVUELVE_SESION_6951 = `select set_config('search_path', :'sp', true), set
 /** Una foto de lo que lee la cuenta de mermas: el Estado de resultados y el diario; con `completa`, también el Balance, la conciliación y la huella viva de Cierre de mes. */
 const FOTO_6951 = (n, completa = true) => `
 create temp table er_${n} as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
+-- detalle_mermas va por monto, sin desempate: dos reglas con el mismo monto salen en cualquier orden. Se comparan cifras, no ese orden.
+update er_${n} set detalle_mermas = (select coalesce(jsonb_agg(e order by e ->> 'regla'), '[]'::jsonb) from jsonb_array_elements(detalle_mermas) e);
 create temp table dia_${n} as select * from retail.fn_asientos('2030-09-01', '2030-09-30');
 ${completa ? `create temp table bal_${n} as select * from retail.fn_balance_general('2030-09-30');
 create temp table con_${n} as select * from retail.fn_conciliacion_contable('2030-09-30');

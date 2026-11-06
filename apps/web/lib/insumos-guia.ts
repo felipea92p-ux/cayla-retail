@@ -22,8 +22,7 @@ export function camposDeFichaDeLaTela(e: EntradaFichaDeLaTela): CampoDeGuia[] {
   ];
 }
 
-/** Lo que una compra con deuda agrega al ingreso (P03): qué falta de su proveedor, su papel y su pago o vencimiento (`problemasDeCompra`). Sin `compra`, el ingreso es el de siempre (saldo inicial). */
-export type EntradaIngresoDeInsumo = { tieneInsumo: boolean; cantidad: string; costo: string; responsableListo: boolean; compra?: { faltan: readonly ("proveedor" | "documento" | "vencimiento" | "pago")[] } };
+export type EntradaIngresoDeInsumo = { tieneInsumo: boolean; cantidad: string; costo: string; responsableListo: boolean };
 
 /** «Ingresar insumo» abre un lote: qué llegó, cuánta cantidad (mayor que cero) y a qué costo (desde cero; se escribe, aunque sea 0). La hoja no guarda con menos.
  *  La cantidad se lee con `leerCantidad` y el costo por unidad con `numeroDeCostoUnitario` (hasta 4 decimales: un botón a S/ 0.045): ambos aceptan la coma decimal, y lo que NO se entiende no es 0 sino «falta»
@@ -40,19 +39,6 @@ export function camposDeIngresoDeInsumo(e: EntradaIngresoDeInsumo): CampoDeGuia[
   const costoLegible = Number.isFinite(costo);
   return [
     { id: "insumo", nombre: "Qué llegó", requerido: true, hecho: e.tieneInsumo, pendiente: "Elige qué insumo llegó." },
-    ...(e.compra
-      ? [
-          { id: "proveedor", nombre: "A quién se la compraste", requerido: true, hecho: !e.compra.faltan.includes("proveedor"), pendiente: "Elige el proveedor: sin él no hay a quién pagarle." },
-          { id: "documento", nombre: "El papel del proveedor", requerido: true, hecho: !e.compra.faltan.includes("documento"), pendiente: "Escribe la serie y el número, o marca «Todavía no tengo el papel»." },
-          {
-            id: "pago",
-            nombre: "Si ya la pagaste o queda por pagar",
-            requerido: true,
-            hecho: !e.compra.faltan.includes("vencimiento") && !e.compra.faltan.includes("pago"),
-            pendiente: e.compra.faltan.includes("pago") ? "Los medios de pago tienen que sumar justo el total." : "Escribe cuándo vence: queda por pagar.",
-          },
-        ]
-      : []),
     {
       id: "cantidad",
       nombre: "Cantidad",

@@ -1901,6 +1901,36 @@ export const PRUEBAS = [
   // de cordura (`ya_estaba_sin_registro`), desmarcar vuelve al cierre de siempre y «Revertir» no descuenta un stock que nunca entró. ROLLBACK.
   "pruebas:produccion-ya-estaba",
 
+  // Revertir el cierre devuelve el costo de la prenda (ADR-0614, actividad 1): el costo exacto de antes, rechazo si ya está mezclado con otra compra
+  // o cierre, en orden inverso sí se puede, y el par cierre + reversión no sale en la pestaña «Costo». ROLLBACK.
+  "pruebas:produccion-revertir-costo",
+
+  // Lo que se le debe a un servicio llega a Por pagar (ADR-0614, actividad 3): devengado menos lo documentado, se suma a la deuda de Producción,
+  // solo lo ve el líder, y el nombre se registra con la orden cerrada sin tocar el monto. ROLLBACK.
+  "pruebas:produccion-servicios-por-pagar",
+
+  // Pagar a un servicio con el papel que dio (ADR-0614, actividad 4): cada papel, la deuda que baja sin IGV, de más no, sin nombre no, y el token. ROLLBACK.
+  "pruebas:produccion-pagar-servicio",
+
+  // «Llegó una compra» (ADR-0614, actividad 5): varias líneas, todo o nada, deuda o pago, nota por lote y el token. ROLLBACK.
+  "pruebas:produccion-llego-una-compra",
+
+  // Regularizar lo que ya entró (ADR-0614, actividades 6 y 7): proveedor de un lote, papel provisional y ajustar lo que queda como merma. ROLLBACK.
+  "pruebas:produccion-regularizar-lotes",
+
+  // Cortar de más: hasta 3 por talla y color (ADR-0614, actividad 8). ROLLBACK.
+  "pruebas:produccion-tope-de-corte",
+
+  // Anular con tela cortada (ADR-0614, actividad 10): la puerta de siempre frena, y cada destino deja el libro de insumos como corresponde. ROLLBACK.
+  "pruebas:produccion-anular-tela-cortada",
+
+  // Datos al abrir y cambiar una orden abierta (ADR-0614, actividades 11 y 12): nunca bajo lo cortado, con motivo y en la historia. ROLLBACK.
+  "pruebas:produccion-datos-y-plan",
+
+  // Los avíos declarados se descuentan solos al cerrar (ADR-0614, actividad 13), sin frenar si no alcanza y sin descontar dos veces. ROLLBACK.
+  "pruebas:produccion-avios-al-cerrar",
+  "pruebas:produccion-etapas-de-prenda",
+
   // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
   "pruebas:produccion-tela",
 
