@@ -234,6 +234,11 @@ export function CabeceraConCuenta({
             </Link>
             <span className="t-raya" aria-hidden="true" />
           </nav>
+          {/* El rediseño (ADR-0615): el buscador a la vista, en la cabecera. Abre el mismo buscador de siempre. */}
+          <button type="button" className="dn-buscar-cab dn-solo" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
+            <Icono nombre="lupa" />
+            <span>¿Qué estás buscando?</span>
+          </button>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
           {/* La bolsa antes y la cuenta al final (Felipe 2026-10-19): la cuenta, con su menú, queda en la esquina. */}

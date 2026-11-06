@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Serif_Display, Public_Sans } from "next/font/google";
+import { DM_Serif_Display, Playfair_Display, Public_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
@@ -9,6 +9,7 @@ import { RevelaAlBajar } from "@/components/RevelaAlBajar";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { RecomendacionFlotante } from "@/components/recomendaciones/RecomendacionFlotante";
+import { SCRIPT_DEL_DISENO } from "@/lib/diseno";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
 import { SCRIPT_DEL_TEMA } from "@/lib/tema";
 import "./globals.css";
@@ -23,11 +24,15 @@ import "./estilos/cabecera.css";
 import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
+// El rediseño (ADR-0615): solo actúa con `<html data-diseno="nuevo">` (lib/diseno.ts). Va al final: pisa lo de arriba.
+import "./estilos/diseno-nuevo.css";
 
 // Las letras de la tienda: Public Sans para todo el texto y las versalitas, y DM Serif Display para los títulos, el nombre de cada prenda y las cifras
 // grandes (Felipe 2026-11-05, ADR-0612: Bodoni Moda, la de «G · Pasarela», era tan fina que costaba leerla). Solo tiene un peso.
 // La palabra CAYLA no va con ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
 const sans = Public_Sans({ subsets: ["latin"], variable: "--font-public", display: "swap" });
+// La letra de títulos del rediseño. Sin precarga: quien no lo tiene encendido no la baja.
+const titulosNuevos = Playfair_Display({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-titulos-nuevos", display: "swap", preload: false });
 const titulos = DM_Serif_Display({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-titulos", display: "swap" });
 
 export const metadata: Metadata = {
@@ -49,10 +54,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // `suppressHydrationWarning`: el script del tema marca `<html>` antes de que React lo hidrate, y esa marca no viene del servidor.
-    <html lang="es" className={`${sans.variable} ${titulos.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${sans.variable} ${titulos.variable} ${titulosNuevos.variable}`} suppressHydrationWarning>
       <head>
         {/* El tema elegido (claro, oscuro o el del aparato) se aplica antes de pintar: sin esto, quien eligió oscuro vería un destello blanco (lib/tema.ts). */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_TEMA }} />
+        {/* El rediseño, solo para quien entró con `?diseno=nuevo`: se decide antes de pintar (lib/diseno.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_DISENO }} />
         {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />
       </head>
