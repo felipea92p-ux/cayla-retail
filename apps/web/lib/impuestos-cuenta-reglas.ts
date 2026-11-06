@@ -35,8 +35,12 @@ export type CuentaImpuestos =
       estado: "a_pagar" | "a_favor";
       /** «Pagas» o «Pagarás» (el mes en curso todavía cambia). */
       etiqueta: string;
-      /** Lo que de verdad sale hacia SUNAT: con IGV a favor, solo la renta. */
+      /** Lo que de verdad sale hacia SUNAT: con IGV a favor, solo la renta; ya registrado el pago, lo que falta (o lo pagado, si no falta nada). */
       pagas: number;
+      /** Ya se registró todo el pago de este mes: no hay nada más que registrar. */
+      pagadoTodo: boolean;
+      /** A dónde lleva «Registrar pago»: la hoja abierta en este mes. */
+      registrarPago: string;
       /** El chip bajo la cifra: cuándo se paga, o cuánto IGV pasa al mes siguiente. */
       chip: string;
       frase: string;
@@ -72,13 +76,20 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
         ? `Solo pagas la renta. El IGV a favor pasa a ${siguiente}.`
         : `No pagas IGV. El saldo a favor pasa a ${siguiente}.`;
   const chip = opciones.enCurso ? "Va a la fecha" : pulso.estado === "a_pagar" ? `Se paga en ${siguiente}` : `IGV a favor ${solesRedondo(pulso.aFavor)} → ${siguiente}`;
+  const pago = p.pagos?.find((x) => x.mes === pulso.mes);
+  const pagado = pago ? r2(pago.igv + pago.renta) : 0;
+  const pagadoTodo = pagado > 0 && pagado >= pagas - 0.005;
+  const dichoDelPago = pagadoTodo
+    ? { etiqueta: "Ya pagaste a SUNAT", pagas: pagado, chip: "Pagado", frase: `El pago de ${nombreMes(pulso.mes)} ya está registrado.` }
+    : pagado > 0
+      ? { etiqueta: "Te falta pagar a SUNAT", pagas: r2(pagas - pagado), chip, frase: `Ya pagaste ${solesRedondo(pagado)} de ${solesRedondo(pagas)}.` }
+      : { etiqueta: opciones.enCurso ? "Pagarás a SUNAT" : "Pagas a SUNAT", pagas, chip, frase };
 
   return {
     estado: pulso.estado,
-    etiqueta: opciones.enCurso ? "Pagarás a SUNAT" : "Pagas a SUNAT",
-    pagas,
-    chip,
-    frase,
+    ...dichoDelPago,
+    pagadoTodo,
+    registrarPago: `/finanzas/dinero?registrar=pago_sunat&mes=${pulso.mes}`,
     vendiste: f.baseVentas,
     comprobantes: f.comprobantes,
     igvVentas: b.cuenta.cobraste,

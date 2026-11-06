@@ -292,7 +292,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }],
       titulo: "Cinco toques",
-      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie. Con el QR del papel (la pistola, pegarlo o la cámara) se llena solo.",
+      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie. Con el QR del papel se llena solo. Si el IGV no es el 18 % o salió del banco otro día, lo dices.",
     },
     {
       id: "hoja-repetir",
@@ -716,6 +716,27 @@ export const GUIA_FIN_CUENTAS: Guia = {
       opcional: true,
       titulo: "Quién puso y sacó plata",
       texto: "A la derecha, lo que se puso (verde) y lo que se sacó (ámbar), agrupado por quién lo registró, por cuenta o por mes. Dice a quien anotó el movimiento, no necesariamente a quien lo pidió. Abajo, el neto que queda para CAYLA.",
+    },
+    {
+      id: "cuadrar",
+      ancla: "fin-dinero.cuadrar",
+      opcional: true,
+      titulo: "Cuadrar depósitos",
+      texto: "Abre una vista de lo que cada máquina ya debió depositar y con cuánta comisión. Si confirmas, queda como depósito estimado hasta que lo compares con el banco. En la demo no lo abrimos ni guardamos nada.",
+    },
+    {
+      id: "mov-planilla",
+      ancla: "fin-dinero.mov-planilla",
+      opcional: true,
+      titulo: "Qué parte de la planilla pagas",
+      texto: "Sueldos, o una parte que sale aparte: AFP, EsSalud y retenciones, gratificación, CTS o una liquidación. Todas bajan lo que CAYLA debe de planilla; ninguna es un gasto nuevo, porque el gasto ya entró con el mes. En la demo no guardamos nada.",
+    },
+    {
+      id: "mov-sunat",
+      ancla: "fin-dinero.mov-sunat",
+      opcional: true,
+      titulo: "De qué mes es el pago a SUNAT",
+      texto: "Eliges el mes y escribes cuánto pagaste de IGV y de impuesto a la renta. Así ese mes queda marcado como pagado en Impuestos y la renta no se confunde con el IGV. Si anulas el pago, el mes vuelve a quedar sin pagar. En la demo no guardamos nada.",
     },
     {
       id: "mov-dueno",

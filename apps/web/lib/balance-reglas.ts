@@ -373,7 +373,7 @@ export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion"
     if (camino) partes.push(`${solesBalance(camino)} en camino entre tiendas`);
     return partes.length ? `incluye ${partes.join(" y ")}` : null;
   }
-  if (l.cuenta === "4011" && l.seccion === "pasivo") return "los pagos a SUNAT todavía no se registran: por ahora solo sube";
+  if (l.cuenta === "4011" && l.seccion === "pasivo") return "sube con cada mes y baja con cada pago a SUNAT";
   if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
   if (l.cuenta === "479") return "lo cobrado en las cuentas de CAYLA por prendas de CLAURE, sin el IGV, menos lo que ya se le pagó y su parte de los gastos";
   if (l.cuenta === "4699") return "lo vendido de la mercadería de CLAURE, a su costo: los pagos a CLAURE todavía no se registran, por ahora solo sube";

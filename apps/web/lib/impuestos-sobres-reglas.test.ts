@@ -35,8 +35,16 @@ describe("sobresIgv", () => {
     expect(s.find((x) => x.mes === "2026-08")).toMatchObject({ monto: 814, aFavor: true });
   });
 
-  it("ningún sobre se sella: el sistema todavía no sabe qué mes pagó cada pago a SUNAT", () => {
-    expect(s.some((x) => (x.forma as string) === "sellado")).toBe(false);
+  it("pagar un mes sella solo ese mes; sin lo pagado, ninguno se sella", () => {
+    const pagado = sobresIgv(HISTORIAL, "2026-10", "2026-09", [{ mes: "2026-07", igv: 8980, renta: 0 }]);
+    expect(pagado.find((x) => x.mes === "2026-07")).toMatchObject({ estado: "pagado", texto: "pagado", forma: "cerrado" });
+    expect(pagado.find((x) => x.mes === "2026-09")).toMatchObject({ estado: "por_declarar", forma: "abierto" });
+    expect(s.some((x) => x.estado === "pagado")).toBe(false);
+  });
+
+  it("un pago a medias no sella el mes", () => {
+    const aMedias = sobresIgv(HISTORIAL, "2026-10", "2026-09", [{ mes: "2026-07", igv: 100, renta: 0 }]);
+    expect(aMedias.find((x) => x.mes === "2026-07")).toMatchObject({ estado: "sin_pago", forma: "abierto" });
   });
 
   it("el nombre lleva el año solo si no es el del mes en curso", () => {

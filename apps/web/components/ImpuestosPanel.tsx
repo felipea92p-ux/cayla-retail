@@ -72,7 +72,7 @@ function Pantalla({ panel, falla, sede, sedes, claure, sire, renta }: { panel: P
   // Cambiar de mes sube a la cuenta (la respuesta cambia arriba y tiene que verse) y conserva la sede de la mesa de mando.
   const irA = (m: string) => router.push(hrefTelar("/finanzas/impuestos", sp.entries(), { mes: m }, { mismaPantalla: true, mesDeHoy: mesActual }));
   const aDeclarar = mesADeclarar(mesActual);
-  const sobres = sobresIgv(panel.historial, mesActual, mes);
+  const sobres = sobresIgv(panel.historial, mesActual, mes, panel.pagos);
   const sobreADeclarar = sobres.find((x) => x.mes === aDeclarar);
 
   async function bajar(que: Descarga) {
