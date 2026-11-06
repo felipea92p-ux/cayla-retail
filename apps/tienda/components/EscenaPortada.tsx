@@ -23,7 +23,6 @@ function alCargar(e: SyntheticEvent<HTMLImageElement>) {
 
 /**
  * La portada del rediseño (ADR-0615): el título y el botón, y tres prendas reales recién llegadas sobre sus pedestales, que rotan por grupos.
- * Para quien no tiene el rediseño encendido no se ve (`dn-solo`) y no rota: sus fotos son perezosas y dentro de un `display: none` no se piden.
  */
 export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[]; hrefNuevo: string }) {
   const [grupo, setGrupo] = useState(0);
@@ -32,7 +31,7 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
 
   useEffect(() => {
     const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (grupos.length < 2 || quieto || document.documentElement.dataset.diseno !== "nuevo") return;
+    if (grupos.length < 2 || quieto) return;
     let espera = 0;
     const reloj = window.setInterval(() => {
       if (document.hidden || pausa.current) return;
@@ -48,10 +47,15 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
     };
   }, [grupos.length]);
 
+  // La siguiente tanda ya descargada: al rotar no aparece un hueco.
+  useEffect(() => {
+    for (const p of grupos[(grupo + 1) % grupos.length]?.prendas ?? []) new Image().src = urlDeRecorte(p.foto, 640) ?? p.foto;
+  }, [grupo, grupos]);
+
   const actual = grupos[grupo % grupos.length];
   if (!actual) return null;
   return (
-    <section className="dn-heroe dn-solo" aria-labelledby="dn-lo-nuevo">
+    <section className="dn-heroe" aria-labelledby="dn-lo-nuevo">
       <div className="dn-heroe-rejilla">
         <div className="dn-heroe-texto">
           <span className="dn-ceja">New in · CAYLA</span>
@@ -73,10 +77,10 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
           <div className="dn-podios">
             {ordenDeLaEscena(actual.prendas).map((p, i) => (
               <Link key={p.id} className={`dn-podio${i === 1 ? " alto" : ""}`} href={p.href} aria-label={`${p.nombre}, ${p.precio}`}>
-                <img className="dn-base" src={`/escenario/pedestal-${i === 1 ? "alto" : "bajo"}.webp`} alt="" width={760} height={i === 1 ? 351 : 268} loading="lazy" />
+                <img className="dn-base" src={`/escenario/pedestal-${i === 1 ? "alto" : "bajo"}.webp`} alt="" width={760} height={i === 1 ? 351 : 268} />
                 <span className="dn-contacto" />
                 {i !== 1 && (
-                  <img className="dn-flor" data-lado={i === 0 ? "izq" : "der"} src={`/escenario/flor-${i === 0 ? "izquierda" : "derecha"}.webp`} alt="" width={420} height={420} loading="lazy" />
+                  <img className="dn-flor" data-lado={i === 0 ? "izq" : "der"} src={`/escenario/flor-${i === 0 ? "izquierda" : "derecha"}.webp`} alt="" width={420} height={420} />
                 )}
                 <img
                   className="dn-prenda"
@@ -84,7 +88,7 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
                   data-original={p.foto}
                   data-categoria={p.categoria ?? undefined}
                   alt={p.nombre}
-                  loading="lazy"
+                  fetchPriority={grupo === 0 ? "high" : "auto"}
                   style={{ "--esc": topeDeCategoria(p.categoria) } as React.CSSProperties}
                   onError={alFallar}
                   onLoad={alCargar}
@@ -95,5 +99,33 @@ export function EscenaPortada({ grupos, hrefNuevo }: { grupos: GrupoDePortada[];
         </div>
       </div>
     </section>
+  );
+}
+
+/** Lo que se ve mientras llega el Inicio: la misma escena y el mismo texto, sin prendas. Así la portada no salta al cargar. */
+export function EscenaEnEspera() {
+  return (
+    <div className="dn-heroe">
+      <div className="dn-heroe-rejilla">
+        <div className="dn-heroe-texto">
+          <span className="dn-ceja">New in · CAYLA</span>
+          <div className="dn-titulo-espera">Lo nuevo</div>
+          <p className="dn-heroe-bajada">Prendas que inspiran tu estilo.</p>
+          <span className="t-btn">
+            Descubrir novedades <Icono nombre="flecha" />
+          </span>
+        </div>
+        <div className="dn-escena">
+          <div className="dn-arco" />
+          <div className="dn-podios">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className={`dn-podio${i === 1 ? " alto" : ""}`}>
+                <img className="dn-base" src={`/escenario/pedestal-${i === 1 ? "alto" : "bajo"}.webp`} alt="" width={760} height={i === 1 ? 351 : 268} />
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

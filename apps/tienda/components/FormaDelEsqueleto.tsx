@@ -5,7 +5,7 @@ import { Suspense, useLayoutEffect } from "react";
 import { formaDeLaRuta, prendaDeLaRuta, tituloDeEspera, type FormaEsqueleto, type TituloDeEspera } from "@/lib/esqueleto";
 import { useBolsaVista } from "./bolsa/BolsaRecordada";
 import { useCabeceraVista } from "./CabeceraConCuenta";
-import { EscenarioDelDesfile } from "./desfile/EscenarioDelDesfile";
+import { EscenaEnEspera } from "./EscenaPortada";
 import { Icono } from "./Icono";
 import { usePrendaTocada } from "./PrendaTocada";
 import { fotoQueViaja } from "./Vistas";
@@ -186,7 +186,7 @@ function Inicio({ heroe }: { heroe: React.ReactNode }) {
   const circulos = cabecera ? cabecera.menus.reduce((n, m) => n + m.grupos.reduce((k, g) => k + g.categorias.length, 0), 0) || 8 : 8;
   return (
     <div aria-hidden="true">
-      {heroe ?? <EscenarioDelDesfile enEspera piezas={[]} modo="portada" ceja="Llegó en los últimos 30 días" titulo="Lo nuevo" boton={{ texto: "Ver lo nuevo", href: null }} />}
+      {heroe ?? <EscenaEnEspera />}
       <div className="t-carril-envol t-circs-envol">
         <div className="t-circs">
           {Array.from({ length: circulos }, (_, i) => (

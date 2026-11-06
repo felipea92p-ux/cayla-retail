@@ -6,9 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { hrefLista } from "@/lib/catalogo";
 import type { CategoriaConFoto } from "@/lib/portada-l";
 import { urlDeRecorte } from "@/lib/recorte";
+import "@/app/estilos/fila-categorias.css";
 
 /**
- * La fila de categorías bajo la portada (ADR-0613): una prenda real de cada una, en un círculo con su color. Se desliza si no cabe, y con mouse
+ * La fila de categorías bajo la portada (ADR-0615): una prenda real de cada una, en un círculo con su color. Se desliza si no cabe, y con mouse
  * lleva una flecha a cada lado (Felipe 2026-11-05), que solo se ve si hay más hacia ese lado.
  */
 export function FilaDeCategorias({ categorias, sede }: { categorias: CategoriaConFoto[]; sede: string | null }) {

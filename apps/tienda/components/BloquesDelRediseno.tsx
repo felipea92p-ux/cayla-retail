@@ -10,7 +10,7 @@ export function BeneficiosDeLaTienda({ diasParaRecoger, diasParaCambiar }: { dia
     ["chispa", "Asesoría", "Vía WhatsApp"],
   ];
   return (
-    <section className="dn-beneficios dn-solo" aria-label="Lo que te damos">
+    <section className="dn-beneficios" aria-label="Lo que te damos">
       <ul>
         {lista.map(([icono, titulo, detalle]) => (
           <li key={titulo}>
@@ -29,7 +29,7 @@ export function BeneficiosDeLaTienda({ diasParaRecoger, diasParaCambiar }: { dia
 /** «Arma tu outfit»: la modelo a la izquierda, el texto al centro y las dos modelos a la derecha. Las fotos son las que eligió Felipe, sin retoques. */
 export function ArmaTuOutfit({ href }: { href: string }) {
   return (
-    <section className="t-ancho dn-seccion-banner dn-solo" aria-labelledby="dn-arma">
+    <section className="t-ancho dn-seccion-banner" aria-labelledby="dn-arma">
       <div className="dn-banner">
         <div className="dn-foto dn-foto-modelo">
           <img

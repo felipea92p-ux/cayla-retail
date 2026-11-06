@@ -234,8 +234,8 @@ export function CabeceraConCuenta({
             </Link>
             <span className="t-raya" aria-hidden="true" />
           </nav>
-          {/* El rediseño (ADR-0615): el buscador a la vista, en la cabecera. Abre el mismo buscador de siempre. */}
-          <button type="button" className="dn-buscar-cab dn-solo" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
+          {/* El buscador a la vista, en la cabecera (ADR-0615). Abre el mismo buscador de siempre. */}
+          <button type="button" className="dn-buscar-cab" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
             <Icono nombre="lupa" />
             <span>¿Qué estás buscando?</span>
           </button>
