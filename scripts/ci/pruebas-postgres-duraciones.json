@@ -170,6 +170,7 @@
   "pruebas:finanzas-apartados-por-pago": 1,
   "pruebas:finanzas-arranque": 1,
   "pruebas:finanzas-confianza": 1,
+  "pruebas:cierre-orden-y-planilla": 1,
   "pruebas:finanzas-lecturas-que-escalan": 1,
   "pruebas:finanzas-mes-cerrado": 29,
   "pruebas:finanzas-montos-y-caja-fuerte": 6,

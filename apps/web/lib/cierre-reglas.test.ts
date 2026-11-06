@@ -17,6 +17,7 @@ import {
   leerPanelCierre,
   primerNombre,
   puedeCerrar,
+  soloFaltaPlanilla,
   promesaDeAvisos,
   resumenAvisos,
   textoBotonCerrar,
@@ -448,5 +449,26 @@ describe("el aviso del modal «Cerrar el mes»: dice lo que FALTA, no el estado 
     const fuente = readFileSync(join(__dirname, "..", "components", "finanzas", "CierreMes.tsx"), "utf8");
     expect(fuente).toContain("resumenAvisos(");
     expect(fuente).not.toMatch(/avisos\.map\(\(c\) => textoChequeo/);
+  });
+});
+
+describe("soloFaltaPlanilla (tarea 18: el atajo del Admin)", () => {
+  const base = unidad("Tienda Trujillo");
+  const con = (chequeos: Chequeo[], estado: "abierto" | "cerrado" | "reabierto" = "abierto"): typeof base => ({
+    ...base,
+    estado,
+    chequeos,
+    bloqueantes: chequeos.filter((c) => c.bloquea && !c.ok).length,
+  });
+  it("es verdad cuando lo único que frena es la planilla impaga que la cuenta sí ve", () => {
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: true }), ch("cajas", true, {})]))).toBe(true);
+  });
+  it("no hay atajo si además frena otra cosa", () => {
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: true }), ch("egresos", false, { n: 2 })]))).toBe(false);
+  });
+  it("no hay atajo si la cuenta ni ve la planilla (cerrar con otra cuenta), si nada frena o si ya está cerrado", () => {
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: false })]))).toBe(false);
+    expect(soloFaltaPlanilla(con([ch("planilla", true, { visible: true })]))).toBe(false);
+    expect(soloFaltaPlanilla(con([ch("planilla", false, { visible: true })], "cerrado"))).toBe(false);
   });
 });

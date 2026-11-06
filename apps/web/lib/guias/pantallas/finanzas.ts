@@ -1929,7 +1929,7 @@ export const GUIA_FIN_CIERRE: Guia = {
       id: "boton",
       ancla: "fin-cierre.boton",
       titulo: "Cerrar esta parte",
-      texto: "Se activa cuando no queda nada pendiente. Si ya está cerrada, «Reabrir» pide un motivo y queda en la historia. En la demo no lo tocamos.",
+      texto: "Se activa cuando no queda nada pendiente; sin la planilla pagada en Dynamic no deja cerrar (un Admin puede saltarlo con un motivo). Los meses se cierran en orden. «Reabrir» solo sirve para el último cerrado y pide motivo. En la demo no lo tocamos.",
     },
     {
       id: "otra-unidad",
