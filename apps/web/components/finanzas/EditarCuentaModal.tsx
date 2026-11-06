@@ -128,33 +128,37 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
               <InputFin id="ed-cta-numero" value={form.numero} disabled={bloqueado} onChange={(e) => poner({ numero: e.target.value })} placeholder="•••• 1942" maxLength={MAX_NUMERO_CUENTA} />
             </CampoFin>
           </div>
-          <div className="fin-dos-campos">
-            <CampoFin
-              etiqueta={esTarjeta ? "Lo que se debe al empezar" : "Saldo con el que empieza"}
-              htmlFor="ed-cta-saldo"
-              ayuda={detalle?.motivoSaldo ?? undefined}
-              tono={detalle?.motivoSaldo ? "aviso" : undefined}
-            >
-              <InputFin
-                id="ed-cta-saldo"
-                inputMode="decimal"
-                value={form.saldo}
-                disabled={bloqueado || !detalle?.puedeCambiarSaldo}
-                onChange={(e) => poner({ saldo: e.target.value })}
-              />
-            </CampoFin>
-            <CampoFin etiqueta="Al empezar el día" htmlFor="ed-cta-desde">
-              <InputFin
-                id="ed-cta-desde"
-                type="date"
-                max={hoy}
-                value={form.desde}
-                disabled={bloqueado || !detalle?.puedeCambiarSaldo}
-                onChange={(e) => poner({ desde: e.target.value })}
-              />
-            </CampoFin>
-          </div>
         </>
+      )}
+
+      {/* El cajón no lleva saldo inicial: su punto de partida es la caja que se cierra. La caja fuerte y «por rendir», sí (tarea 4 de «Las 36»). */}
+      {detalle?.tipo !== "cajon" && (
+        <div className="fin-dos-campos">
+          <CampoFin
+            etiqueta={esTarjeta ? "Lo que se debe al empezar" : "Saldo con el que empieza"}
+            htmlFor="ed-cta-saldo"
+            ayuda={detalle?.motivoSaldo ?? undefined}
+            tono={detalle?.motivoSaldo ? "aviso" : undefined}
+          >
+            <InputFin
+              id="ed-cta-saldo"
+              inputMode="decimal"
+              value={form.saldo}
+              disabled={bloqueado || !detalle?.puedeCambiarSaldo}
+              onChange={(e) => poner({ saldo: e.target.value })}
+            />
+          </CampoFin>
+          <CampoFin etiqueta="Al empezar el día" htmlFor="ed-cta-desde">
+            <InputFin
+              id="ed-cta-desde"
+              type="date"
+              max={hoy}
+              value={form.desde}
+              disabled={bloqueado || !detalle?.puedeCambiarSaldo}
+              onChange={(e) => poner({ desde: e.target.value })}
+            />
+          </CampoFin>
+        </div>
       )}
 
       {/* Quién la usa: decide si se elimina o se archiva. El lugar se reserva mientras llega, para que la hoja no salte. */}
