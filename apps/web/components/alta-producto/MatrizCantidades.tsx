@@ -8,7 +8,7 @@ import { Aviso } from "../ui/Aviso";
 import { RAYADO_FUERA } from "./rayado";
 import { useCantidadEscrita } from "./useCantidadEscrita";
 import { leerCantidad, limpiarCantidad, textoCantidadRechazada, type CeldaAlta } from "../../lib/alta-producto";
-import { fondoDeMuestra } from "../../lib/colores-familias";
+import { fondoDeColor } from "../ui/MuestraColor";
 import {
   cambiosDeRelleno,
   celdaVecina,
@@ -270,7 +270,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
               // la fila como franja pegada al nombre. El anillo interior (no el color) es lo que la hace legible incluso
               // en blanco, hueso o crema: sin él, esos colores desaparecen contra el papel.
               const conZebra = i % 2 === 1;
-              const franja = c ? (fondoDeMuestra(c.hex, c.familiaColor, c.tipo) ?? "var(--color-sand)") : "var(--color-sand)";
+              const franja = c ? fondoDeColor(c.hex, c.familiaColor, c.tipo) : "var(--color-sand)";
               const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
               // En la orden la columna del color queda pegada mientras la tabla se desliza de lado: su fondo tiene que ser opaco (el 40 % de hueso deja ver las celdas que pasan por detrás).
               const fondoNombre = conZebra ? (solo ? "bg-[color-mix(in_srgb,var(--color-hueso)_40%,var(--color-papel))]" : "bg-hueso/40") : "bg-papel";

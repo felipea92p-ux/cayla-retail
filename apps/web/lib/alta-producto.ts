@@ -134,7 +134,7 @@ export function ordenarColores(
     .sort((a, b) => (usoEnCategoria[b.codigo] ?? 0) - (usoEnCategoria[a.codigo] ?? 0) || a.nombre.localeCompare(b.nombre, "es"))
     .slice(0, max);
   // Un solo agrupador para las tres pantallas de colores (`agruparPorFamilia`): una familia que el código aún no conoce sale con su propio
-  // nombre y un color sin familia como «Sin familia»; ninguno desaparece.
+  // nombre y un color sin familia como «Varios colores»; ninguno desaparece.
   const grupos = agruparPorFamilia(colores, (c) => c.familiaColor, familias).map((g) => ({ ...g, colores: [...g.colores].sort(enEscala) }));
   return { frecuentes, grupos };
 }

@@ -50,17 +50,20 @@ const COLORES_ACTIVOS_DEL_ERP: Record<string, string> = Object.fromEntries(
     rojo: "COR ROJ FRA CER VIN MSA RTO",
     rosado: "ROS PAL FUC RCH RPA RSA",
     tierra: "BEI ARN CAQ CAM MOK TOS TOP TER MAC MAR CHO",
-    verde: "PIS VEL SAV VOL VEM VEA ESM VER VEB MEN MIU VHO VJA VEO VEP",
+    verde: "PIS VEL SAV VOL VEM VEA ESM VER VEB MEN VHO VJA VEO VEP",
+    // Multicolor no tiene familia en el ERP (`familia_color` vacío); aquí la clave solo agrupa.
+    multicolor: "MIU",
   }).flatMap(([familia, codigos]) => codigos.split(" ").map((c) => [c, familia])),
 );
 
 describe("las familias de color de la tienda", () => {
-  it("son 13, con su nombre, en el orden de la paleta, y cada una con un círculo propio", () => {
+  it("son 14, con su nombre, en el orden de la paleta, y cada una con un círculo propio", () => {
     expect(FAMILIAS_DE_COLOR.map((f) => f.id)).toEqual([
-      "negro", "blanco", "gris", "beige", "marron", "rosado", "rojo", "naranja", "amarillo", "verde", "celeste", "azul", "morado",
+      "negro", "blanco", "gris", "beige", "marron", "rosado", "rojo", "naranja", "amarillo", "verde", "celeste", "azul", "morado", "multicolor",
     ]);
-    expect(new Set(FAMILIAS_DE_COLOR.map((f) => f.muestra)).size).toBe(13);
-    for (const f of FAMILIAS_DE_COLOR) expect(f.muestra).toMatch(/^#[0-9A-F]{6}$/);
+    expect(new Set(FAMILIAS_DE_COLOR.map((f) => f.muestra)).size).toBe(14);
+    // Todas con un #hex, menos Multicolor, que es de varios: su rueda.
+    for (const f of FAMILIAS_DE_COLOR) expect(f.muestra).toMatch(f.id === "multicolor" ? /^conic-gradient\(/ : /^#[0-9A-F]{6}$/);
   });
 
   it("los 101 colores activos del ERP tienen familia (ninguno queda sin poder elegirse) y la tabla no repite ninguno", () => {

@@ -12,7 +12,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
 import { nivelMargen } from "@/lib/alta-producto";
-import { fondoDeMuestra } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
 import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
@@ -366,7 +366,7 @@ export function MatrizStockFicha({
               // La franja y la zebra de la tabla del alta (maqueta B de docs/maquetas/matriz-color-identificacion-2026-10/): no se
               // pierde la fila de vista al mirar de lejos, y el anillo interior hace legible incluso un blanco o un crema.
               const conZebra = i % 2 === 1;
-              const franja = color ? (fondoDeMuestra(color.hex, color.familiaColor, color.tipo) ?? "var(--color-sand)") : "var(--color-sand)";
+              const franja = color ? fondoDeColor(color.hex, color.familiaColor, color.tipo) : "var(--color-sand)";
               const fondoFila = conZebra ? "bg-hueso/40" : "bg-papel";
               return (
                 <tr key={c ?? "sin-color"} id={`matriz-color-${c ?? "sin-color"}`} className={esNuevo ? "taller-fila-nueva" : undefined}>
