@@ -86,7 +86,6 @@ Lo siguiente existe por una decisión, o no es esta función, y **no se corrigi�
   `ResumenStockOverlay` la ve la firma y está marcada con `unificar-fijo`.
 - **El medidor de la barra fija de Recibir** (`RecepcionEnvio`: contado, faltante y lo que falta contar): una franja de 3 px pegada al borde de
   la barra fija, sin extremos redondeados, es otro diseño; la firma la ve y está marcada con `unificar-fijo`. Felipe dice si se unifica.
-- **El medidor de margen de una orden** (`OrdenPanel`: pierde, al filo, gana; tres zonas fijas con un marcador): es una escala, no reparte un total.
 
 ## Deuda y migración
 
@@ -101,7 +100,7 @@ migró el 2026-10-09, un commit por módulo:
 | Vender ▸ Comprobantes y Proformas | `ComprobantesGraficos.tsx` (la pieza homónima con `partes` y leyenda propia pasó a llamarse `BarraConLeyenda` y dibuja su barra con la del sistema), `ComprobantesTarjetas.tsx`, `ProformasTarjetas.tsx`; `.kpi-apilada` y `kpi-crece-x` salieron de `globals.css` | **migrado** |
 | Vender ▸ Historial | `HistorialVentasPulso.tsx` («Cómo se pagó»): un tramo por método con su token (`color`) | **migrado** |
 | Caja | `CajaTablero.tsx` (cobrado en el turno), `CierreCajaDetalle.tsx` (a dónde fue el efectivo) | **migrado** |
-| Producción ▸ Órdenes, Por pagar y Eficiencia | `OrdenTarjeta.tsx`, `OrdenPanel.tsx`, `EficienciaTallerPanel.tsx`, `PorPagarProduccionPanel.tsx` (`/produccion/por-pagar`: Producción contra Compras) | **migrado** |
+| Producción ▸ Órdenes, Por pagar y Eficiencia | `EficienciaTallerPanel.tsx`, `PorPagarProduccionPanel.tsx` (`/produccion/por-pagar`: Producción contra Compras) | **migrado** |
 | Inventario ▸ Frescura | en `main` desde el PR #889 con la versión simple de la pieza; hereda la cara nueva al traer `main` a esta rama | en `main` |
 
 **Cómo se verificó:** en el navegador local, en claro y oscuro, a 1440 y 375 px, y con `tema:auditar` sin hallazgos. Con datos reales del seed:

@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import {
   RPC_LISTA_DE_ORDENES,
   cifrasHoyEnElTaller,
-  conEtapasDeAntes,
   cuentasDeFiltros,
   cuentasDePestanas,
   cumpleBusqueda,
@@ -140,41 +139,6 @@ describe("filaDeLaLista — una orden en una fila, con las reglas de su página"
   it("una anulada lo dice con el día en que se abrió y su nota; no pide nada aunque la entrega haya pasado", () => {
     const f = fila({ orden: { estado: "anulada", nota: "se abrió por error", fecha_entrega: "2026-10-01" } });
     expect(f).toMatchObject({ estado: "anulada", causas: [], chip: { texto: "Anulada" }, cierre: "Anulada · se abrió el mar 13 oct · se abrió por error" });
-  });
-});
-
-describe("órdenes abiertas antes de las fases", () => {
-  const antes = (orden: Parameters<typeof fila>[0] = {}) => fila({ fases: [], ...orden });
-  it("una orden en proceso sin ninguna fase es de antes de las fases; una con fases, o una cerrada, no", () => {
-    expect(antes().legado).toBe(true);
-    expect(fila().legado).toBe(false);
-    expect(antes({ orden: { estado: "terminada", cantidad_buenas: 40 } }).legado).toBe(false);
-  });
-  it("se lee de sus etapas de siempre: «Por cortar», «En confección», «En acabado»; una tercerizada sigue en curso, afuera", () => {
-    expect(conEtapasDeAntes(antes(), { corte: "pendiente" })).toMatchObject({ grupo: "corte", chip: { texto: "Por cortar", tono: "pizarra" }, quien: "Orden de antes de las fases", lista: false });
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "pendiente" })).toMatchObject({ grupo: "costura", chip: { texto: "En confección" } });
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "tercerizado" })).toMatchObject({ grupo: "costura", chip: { texto: "En confección · afuera" }, quien: "Con un servicio · orden de antes de las fases" });
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "hecho", acabado: "pendiente" })).toMatchObject({ grupo: "acabado", chip: { texto: "En acabado" } });
-  });
-  it("sin etapas anotadas está por cortar; con las tres hechas, lista para pasar al stock (cuenta en acabado, sin días)", () => {
-    expect(conEtapasDeAntes(antes(), undefined).chip.texto).toBe("Por cortar");
-    expect(conEtapasDeAntes(antes(), { corte: "hecho", confeccion: "hecho", acabado: "hecho" })).toMatchObject({ lista: true, grupo: "acabado", dias: null, chip: { texto: "Lista para pasar al stock", tono: "verde" } });
-  });
-  it("una muestra usa las etapas de las muestras y no cuenta en «Hoy en el Taller»", () => {
-    const muestra = antes({ orden: { es_muestra: true } });
-    expect(conEtapasDeAntes(muestra, { patronaje: "hecho" })).toMatchObject({ grupo: null, chip: { texto: "En muestra y aprobación" } });
-    expect(conEtapasDeAntes(muestra, {})).toMatchObject({ chip: { texto: "En patronaje" } });
-    const [corte] = cifrasHoyEnElTaller([conEtapasDeAntes(muestra, {})]);
-    expect(corte.ordenes).toBe(0);
-  });
-  it("una fila con fases no se toca, aunque le pasen etapas", () => {
-    const f = fila();
-    expect(conEtapasDeAntes(f, { corte: "pendiente" })).toBe(f);
-  });
-  it("las causas y la entrega de una orden de antes salen igual que las de cualquiera", () => {
-    const f = conEtapasDeAntes(antes({ orden: { fecha_entrega: "2026-10-18" } }), { corte: "pendiente" });
-    expect(f.entrega).toMatchObject({ relativo: "ayer", atrasada: true });
-    expect(f.causas.map((c) => c.clave)).toContain("entrega_pasada");
   });
 });
 

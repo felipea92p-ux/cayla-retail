@@ -85,6 +85,11 @@ import {
   RPC_MARCAR_YA_EN_STOCK,
   textoPrendasAfuera,
   textoQuePasaAlRevertir,
+  aviosQueSaldranSolos,
+  problemaDelDestino,
+  problemasDelPlan,
+  textoDatosDeLaOrden,
+  tieneTelaCortada,
   totalDeCierre,
   textoQuePasaAlAnular,
   textoQueSigue,
@@ -383,7 +388,7 @@ describe("las fases", () => {
     expect(volvio).toEqual({ cifra: "46", de: "de 48", detalle: "Hecha el mar 20 oct · 1 segunda · 1 faltante" });
   });
 
-  it("cantidadesQueFaltan: en Corte es el plan menos lo cortado (aunque la base deje cortar un 10 % más); en las demás, lo que entró menos lo terminado", () => {
+  it("cantidadesQueFaltan: en Corte es el plan menos lo cortado (aunque la base deje cortar 3 más por talla y color); en las demás, lo que entró menos lo terminado", () => {
     const sinCortar: FasePagina = { ...corte, estado: "pendiente", porVariante: corte.porVariante.map((v) => ({ ...v, hechas: 0, entrada: 9, plan: 8 })) };
     expect(cantidadesQueFaltan(sinCortar, p.fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
     const cortoDeMas: FasePagina = { ...corte, porVariante: corte.porVariante.map((v) => ({ ...v, hechas: 9, entrada: 9, plan: 8 })) };
@@ -438,7 +443,8 @@ describe("las fases", () => {
     expect(puedeRegistrarQuien(pendiente, p)).toBe(true); // …pero SÍ se registra quién fue
     expect(puedeRegistrarQuien(costura, p)).toBe(false);
     expect(puedeRegistrarQuien(pendiente, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
-    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
+    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(true); // ADR-0614: el nombre se registra también con la orden cerrada
+    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "anulada" } })).toBe(false);
   });
 
   it("puedeCambiarQuien: solo mientras la fase no empezó y la orden está en proceso", () => {
@@ -803,10 +809,10 @@ describe("Salida y Vuelta — lo que se puede mandar y lo que está afuera, por 
     const p = orden();
     const corte = p.fases.find((f) => f.clave === "corte")!;
     const costuraListo = (extra: Partial<FasePagina> = {}, v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...costura(p), porVariante: costura(p).porVariante.map((x) => ({ ...x, entrada: 8, salieron: 0, afuera: 0, ...v })), ...extra });
-    /** Corte mandado afuera sin registrar quién (Pendiente de registrar): el plan es 8 por talla y color y la base deja salir hasta 9 (8 + 10 %, hacia arriba). */
+    /** Corte mandado afuera sin registrar quién (Pendiente de registrar): el plan es 8 por talla y color y la base deja salir un poco más (el margen de corte). */
     const corteAfuera = (v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...corte, quien: "servicio", proveedorId: null, proveedorNombre: null, porVariante: corte.porVariante.map((x) => ({ ...x, plan: 8, entrada: 9, hechas: 0, salieron: 0, afuera: 0, ...v })) });
 
-    it("en Corte parte del plan, no del margen del 10 %: 8 por talla y color, no 9 (el 57 que se volvía 72)", () => {
+    it("en Corte parte del plan, no del margen de corte: 8 por talla y color, no 9", () => {
       const f = corteAfuera();
       const fases = [f, ...p.fases.slice(1)];
       expect(cantidadesDeFabricaDeSalida(f, fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
@@ -1155,6 +1161,7 @@ describe("pasar la orden al stock, anularla y revertirla", () => {
 
   it("al revertir, dice qué pasa con el stock: las prendas salen (con un movimiento) o, en una muestra, nada que devolver", () => {
     expect(textoQuePasaAlRevertir({ inventariadoEn: "2026-10-15T12:00:00+00:00", cantidadBuenas: 46 })).toContain("Las 46 prendas salen del stock del Taller");
+    expect(textoQuePasaAlRevertir({ inventariadoEn: "2026-10-15T12:00:00+00:00", cantidadBuenas: 46 })).toContain("El costo de la prenda vuelve al que tenía");
     expect(textoQuePasaAlRevertir({ inventariadoEn: null, cantidadBuenas: 3 })).toBe("La muestra vuelve a estar en proceso. No había stock que devolver.");
   });
 
@@ -2023,5 +2030,66 @@ describe("Paridad con la migración del corte con su tela (20261031014000)", () 
     expect(mig).toContain(`create or replace function retail.${RPC_DESHACER_TERMINE}(p_avance_ids uuid[], p_falla_ids uuid[], p_consumo_ids uuid[])`);
     for (const p of ["p_fase_id", "p_lineas", "p_nota", "p_hecho_en", "p_fallas", "p_tela", "p_token", "p_guia"]) expect(mig, p).toContain(p);
     for (const k of ["repetido", "avance_ids", "falla_ids", "consumo_ids"]) expect(mig, k).toContain(`'${k}'`);
+  });
+});
+
+describe("anular con tela cortada (ADR-0614, actividad 10)", () => {
+  const tela = { tipo: "tela" as const, usado: 5 };
+  const corte = { hechas: 3, salieron: 0 };
+  const sinNada = { hechas: 0, salieron: 0 };
+  const orden = (insumos: { tipo: "tela" | "avio"; usado: number }[], fases: { hechas: number; salieron: number }[]) => ({ insumos, fases }) as unknown as Parameters<typeof tieneTelaCortada>[0];
+  it("hay tela cortada solo con tela usada y prendas en algún paso", () => {
+    expect(tieneTelaCortada(orden([tela], [corte]))).toBe(true);
+    expect(tieneTelaCortada(orden([tela], [{ hechas: 0, salieron: 4 }]))).toBe(true);
+    expect(tieneTelaCortada(orden([tela], [sinNada]))).toBe(false);
+    expect(tieneTelaCortada(orden([{ tipo: "avio", usado: 5 }], [corte]))).toBe(false);
+    expect(tieneTelaCortada(orden([{ tipo: "tela", usado: 0 }], [corte]))).toBe(false);
+  });
+  it("pide el destino, la orden si pasa a otra, y el motivo", () => {
+    expect(problemaDelDestino({ destino: null, motivo: "x", ordenDestino: "" })).toContain("qué se hace");
+    expect(problemaDelDestino({ destino: "otra_orden", motivo: "x", ordenDestino: "" })).toContain("a qué orden");
+    expect(problemaDelDestino({ destino: "botar", motivo: " ", ordenDestino: "" })).toContain("por qué");
+    expect(problemaDelDestino({ destino: "botar", motivo: "x", ordenDestino: "" })).toBeNull();
+    expect(problemaDelDestino({ destino: "otra_orden", motivo: "x", ordenDestino: "o" })).toBeNull();
+  });
+});
+
+describe("datos de la orden y su plan (ADR-0614, actividades 11 y 12)", () => {
+  it("dice sus datos en una línea, y nada si no tiene", () => {
+    expect(textoDatosDeLaOrden({ motivoOrden: "reposicion", tiendaDestino: "Tienda TRU", muestraAprobadaPor: "Claudia" })).toBe("Reposición · va a Tienda TRU · muestra aprobada por Claudia");
+    expect(textoDatosDeLaOrden({ motivoOrden: "novedad", tiendaDestino: null, muestraAprobadaPor: null })).toBe("Novedad");
+    expect(textoDatosDeLaOrden({ motivoOrden: null, tiendaDestino: null, muestraAprobadaPor: null })).toBeNull();
+  });
+  it("el plan no baja de lo cortado ni deja la orden sin prendas, y pide motivo", () => {
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 10, cortado: 5 }], "x")).toEqual([]);
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 4, cortado: 5 }], "x")[0]).toContain("ya se cortaron 5");
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 0, cortado: 0 }], "x")[0]).toContain("sin prendas");
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: null, cortado: 0 }], "x")[0]).toContain("entero");
+    expect(problemasDelPlan([{ nombre: "Negro M", cantidad: 10, cortado: 0 }], " ")[0]).toContain("por qué");
+  });
+});
+
+describe("los cambios de plan y de datos en la historia (ADR-0614)", () => {
+  const lectura = (accion: string, texto: string) =>
+    leerOrdenPagina({
+      orden: { id: "o", numero: 1, numero_texto: "OP-000001", estado: "en_proceso", es_muestra: false, cantidad_plan: 15, created_at: "2026-11-05T10:00:00-05:00", producto: { id: "p", referencia: "Blusa" }, ubicacion: { id: "u", nombre: "Taller" } },
+      lineas: [], fases: [], insumos: [], permisos: { puede_operar: true, ve_costos: false },
+      cambios: [{ id: "c", cuando: "2026-11-05T10:00:00-05:00", accion, texto }],
+    });
+  it("se leen sin confundirse con un «Restauró»", () => {
+    const p = lectura("plan", "Cambió el plan de 10 a 15 prendas: pidieron más");
+    expect(p?.cambios.map((c) => c.accion)).toEqual(["plan"]);
+    const q = lectura("datos", "Cambió los datos de la orden");
+    expect(q?.cambios.map((c) => c.accion)).toEqual(["datos"]);
+  });
+});
+
+describe("avíos que salen solos al cerrar (ADR-0614, actividad 13)", () => {
+  it("solo los avíos que faltan por descontar, nunca la tela", () => {
+    expect(aviosQueSaldranSolos([
+      { tipo: "avio", nombre: "Botón", usado: 0, cantidadPlan: 16 },
+      { tipo: "avio", nombre: "Cierre", usado: 16, cantidadPlan: 16 },
+      { tipo: "tela", nombre: "Milano", usado: 0, cantidadPlan: 5 },
+    ])).toEqual(["Botón"]);
   });
 });

@@ -776,7 +776,6 @@ describe("ninguna caja de cantidad vuelve a borrar lo que no es una cifra mientr
       ["components/DevolucionesFlujo.tsx", 1],
       ["components/LlegoMercaderia.tsx", 1],
       ["components/RecepcionEnvio.tsx", 3],
-      ["components/MatrizOrden.tsx", 1],
       ["components/NuevaProformaModal.tsx", 1],
       ["components/ImprimirEtiquetasPrecio.tsx", 1],
       ["components/rotulos/TiraBrother.tsx", 1],

@@ -138,6 +138,8 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
     const devengado = datos.permisos.veCostos ? devengadoDeLaRespuesta(data, fase.id) : null;
     avisar.exito(textoVolvieron({ buenas: buenasTotal, segundas: segundasTotal, faltantes: faltantesTotal }, servicio), {
       detalle: detalleDeVuelta({ numeroTexto: datos.orden.numeroTexto, segundas: segundasTotal, faltantes: faltantesTotal, devengado }),
+      // Se le paga al recibir (P-15): quien ve el dinero va directo a la hoja de pago.
+      ...(devengado !== null && devengado > 0 ? { accion: { texto: "Ir a pagar", onClick: () => router.push("/produccion/por-pagar") } } : {}),
     });
     cerrarTrasGuardar();
   }
