@@ -1,6 +1,6 @@
 # ADR-0611 · Estados financieros en vidrio: una cifra, una frase y un gráfico sobre hilos
 
-- **Fecha:** 2026-11-05 · **Estado:** aceptado y construido en local, en la rama `claude/estados-financieros-vidrio` (9 actividades que Felipe aprobó). Falta pegar la migración `20261105230000`, que espera su OK, y abrir el PR.
+- **Fecha:** 2026-11-05 · **Estado:** aceptado y construido, en la rama `claude/estados-financieros-vidrio` (9 actividades que Felipe aprobó). La migración `20261105230000` se pegó en producción el 2026-11-05 con su OK; la pantalla llega a las tiendas al fusionar el PR.
 - **Decide:** Felipe, mirando dos rondas de referencias y la maqueta `docs/maquetas/finanzas-eeff-vidrio-2026-11/`.
 - **Toca:** ADR-0585 (Estados financieros, que este rediseño reemplaza en su forma, no en sus datos ni permisos), ADR-0596 (vidrio «Serena»), ADR-0169
   (paleta), ADR-0136 (movimiento), ADR-0493 (El telar) y ADR-0358 (una función, una pieza).
@@ -103,8 +103,8 @@ La maqueta decía cómo se ve; esto es lo que salió al conectarla con los datos
 - **Fuera de la pieza del sistema, a propósito:** la línea de los meses (`LineaDeMeses`), la barra que se explora (`TuboDePartes`) y el calendario (`SelectorPeriodo`) son de esta pantalla, por la maqueta que Felipe eligió. Lo anotan `docs/unificar/grafico.linea.md`,
   `grafico.barra.md` y `mes.md`.
 
-**Una función nueva en la base: `retail.fn_patrimonio_en_fechas(p_desde, p_hasta)`** (migración `20261105230000`; solo lee, `security definer`, con el mismo candado de `fn_patrimonio_cambios`; sin `alter` ni políticas). Sin pegarla, un mes entero funciona igual con
-`fn_patrimonio_cambios`, y solo fallan, con su mensaje, otras fechas y la comparación del mes en curso.
+**Una función nueva en la base: `retail.fn_patrimonio_en_fechas(p_desde, p_hasta)`** (migración `20261105230000`; solo lee, `security definer`, con el mismo candado de `fn_patrimonio_cambios`; sin `alter` ni políticas). Se pegó en producción el 2026-11-05, con el OK de Felipe y antes de fusionar. Se comprobó que lo pegado era idéntico al archivo (SHA-256 y md5 del cuerpo), que `anon` no la puede ejecutar y que `authenticated` sí. Sin ella, un mes entero funcionaría igual con
+`fn_patrimonio_cambios`, y solo fallarían, con su mensaje, otras fechas y la comparación del mes en curso.
 
 **Lo que Felipe aprobó tras la prueba ciega (2026-11-05):** el calendario dice cómo se usa («Toca el primer día y luego el último. Se aplica solo»); una pérdida se dice en soles («por cada S/ 100 que vendiste, faltaron S/ 177»), con la tarjeta «Perdiste» y los porcentajes «de lo vendido»; y el tubo del Balance nombra sus lados («Debes … + tuyo …»). Además, el detalle de «Ganaste» en Patrimonio avisa que no trae los sueldos estimados que Ganancias y pérdidas ya resta: las dos cifras pueden diferir en un mes con sueldos sin pagar, y no se igualaron porque eso es tema del contador.
 

@@ -2130,7 +2130,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
       `lib/vale-reglas.ts` → `lib/balance.ts` (`fn_balance_general`, `fn_conciliacion_contable`, `fn_balance_por_tienda`,
       `fn_saldos_iniciales`; los registra el líder con `registrar_saldo_inicial`). Tabla `saldos_iniciales`.
     - `/finanzas/reportes/patrimonio` Cambios en el patrimonio → `lib/estados-patrimonio.ts`, `LineaDePatrimonio.tsx`, `components/finanzas/estados/PatrimonioPanel.tsx`, `lib/patrimonio-reglas.ts`
-      → `getPatrimonioCambios` → `fn_patrimonio_cambios` (migración `20261030235100`) y, con otras fechas, `getPatrimonioEnFechas` → `fn_patrimonio_en_fechas` (migración `20261105230000`, **sin pegar en producción**).
+      → `getPatrimonioCambios` → `fn_patrimonio_cambios` (migración `20261030235100`) y, con otras fechas, `getPatrimonioEnFechas` → `fn_patrimonio_en_fechas` (migración `20261105230000`, en producción desde el 2026-11-05).
     - Las recomendaciones de cada una (`components/finanzas/estados/Recomendaciones.tsx`) salen de su `*-reglas.ts`, sin RPC propia.
     - `/finanzas/reportes/cuentas` (`?cuadro=saldos` → `SaldosPanel`, `fn_saldos_por_cuenta`; `?cuadro=diario` → `DiarioPanel`, `fn_diario` por páginas; los dos por
       `saldosDelMes` y `diarioDelMes` de `lib/contador.ts`): los dos cuadros que no son un estado. Se llega desde «Para el contador» (`opcionesDelContador`, `lib/contador-reglas.ts`), que también descarga cada archivo.

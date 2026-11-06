@@ -1,8 +1,9 @@
 ## Estados financieros en vidrio (ADR-0611, rama `claude/estados-financieros-vidrio`)
 
-- [x] Las 9 actividades que aprobó Felipe (2026-11-05), en local. Esta rama va sobre el PR #1650: primero se fusiona ese.
-- [ ] **No está en producción:** la migración `20261105230000_estados_financieros_patrimonio_en_fechas.sql` (`retail.fn_patrimonio_en_fechas`). Espera el OK de Felipe. Sin ella, un mes entero funciona; otras fechas y la comparación del mes en curso, en Patrimonio, dicen que no se pudo leer. Al pegarla: refrescar el volcado y `pnpm datos:generar:produccion`, para que entre al diccionario. Hasta entonces `pnpm datos:comparar` avisa de esta función (esperado).
-- [ ] Abrir el PR con `/abrir-pr` cuando Felipe lo diga. Mirar choques con las tandas de «Las 36 de Finanzas» (PR #1652, #1654 y `claude/finanzas-36-tanda-3`), que tocan los mismos archivos de Finanzas. Las tareas 23 y 28 de esa lista esperan a que entre esta rama.
+- [x] Las 9 actividades que aprobó Felipe (2026-11-05). El PR #1650, de donde salió esta rama, ya se fusionó.
+- [x] La migración `20261105230000_estados_financieros_patrimonio_en_fechas.sql` (`retail.fn_patrimonio_en_fechas`), pegada en producción el 2026-11-05 con el OK de Felipe y comprobada.
+- [ ] Refrescar el volcado de producción y `pnpm datos:generar:produccion` para que esa función entre al diccionario. Hasta entonces `pnpm datos:comparar` la marca (la foto es del 2026-11-04), aunque en producción ya existe.
+- [ ] Fusionar este PR. Las tareas 23 y 28 de «Las 36 de Finanzas» esperan a que entre esta rama. Choque probable: #1655 (tanda 3) cambia `lib/balance-reglas.ts`, de donde esta rama quitó `leerCorte` y `cortesDisponibles`.
 - [x] Los 3 cambios de `/formidable` (solo textos; Felipe, 2026-11-05): cómo se usa el calendario, cómo se dice una pérdida y los lados del tubo del Balance.
 - [x] Ganancias resta los sueldos estimados que Dynamic no pagó y Patrimonio lee el diario, así que los dos «ganaste» pueden diferir en un mes con sueldos sin pagar. Felipe eligió explicarlo: el detalle de «Ganaste» en Patrimonio lo dice. Si conviene igualarlos es tema para el contador.
 - [ ] Medir la fluidez en el Mac mini de la tienda (lente, desenfoque y lienzos). No se puede medir desde aquí. Si no alcanza, se apaga primero la lente (`LentesDeVidrio`).
