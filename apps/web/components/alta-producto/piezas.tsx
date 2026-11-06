@@ -154,7 +154,7 @@ export function FilaAlta({
   const retener = useRetenerLuz(campo, useContext(RetencionLuzContexto), retiene);
   const titulo = (
     <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      {campo && estado && (
+      {campo && estado && estado !== "opcional" && (
         <span className="self-center">
           <MarcaCampo estado={estado} />
         </span>

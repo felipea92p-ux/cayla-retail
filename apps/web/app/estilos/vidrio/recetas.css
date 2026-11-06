@@ -50,6 +50,8 @@
   --pozo-fondo: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   --pozo-sombra: inset 0 1.5px 3px color-mix(in srgb, var(--color-sombra) 16%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--color-vidrio) 75%, transparent);
+  /* El halo del campo con el cursor: sin línea dura alrededor (Felipe 2026-11-05: «más difuminado y sutil»). Lo que cumple el 3:1 del foco es el borde de tinta plena y el hilo de abajo. */
+  --pozo-foco-halo: 0 0 0 3px color-mix(in srgb, var(--color-tinta) 7%, transparent), 0 0 18px 3px color-mix(in srgb, var(--color-tinta) 10%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
   /* Al escribir sube como la gota, pero sigue siendo vidrio (Felipe: «que no se pongan con un color sólido»). */
   --pozo-encendido-fondo: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 50%, transparent), color-mix(in srgb, var(--color-vidrio) 22%, transparent));
   --pozo-encendido-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 95%, transparent),

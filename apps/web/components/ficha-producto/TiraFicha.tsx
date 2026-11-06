@@ -11,7 +11,7 @@ import type { EstadoCampo } from "@/lib/alta-producto-guia";
 /** El título de un campo con su marca a la izquierda (y «Sigue» si es el que sigue). `null` = el campo ya venía completo: sin marca. `grado`: la palabra que dice si es obligatorio, conviene u opcional.
  *  `sinAhora`: sin «Sigue», para un título en una columna angosta donde se montaba sobre el texto (Qué pasó, en Ajustar stock). */
 export function ConMarca({ estado, sinAhora = false, grado = null, children }: { estado: EstadoCampo | null; sinAhora?: boolean; grado?: string | null; children: ReactNode }) {
-  if (!estado) return <>{children}</>;
+  if (!estado || (estado === "opcional" && !grado)) return <>{children}</>;
   // La marca y el texto van en una fila que NO se envuelve: una etiqueta larga («Acepta que la contactemos por WhatsApp») se parte
   // dentro de su propio texto, no deja la marca sola en una línea de arriba.
   return (
