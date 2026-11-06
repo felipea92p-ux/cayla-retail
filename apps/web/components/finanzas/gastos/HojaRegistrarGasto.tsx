@@ -457,15 +457,20 @@ export function HojaRegistrarGasto({
           )}
 
           {h.comprobante === "factura" && (
-            <CampoTexto
-              etiqueta="IGV del papel · opcional"
-              inputMode="decimal"
-              caja
-              value={h.igvPapel}
-              onChange={(e) => poner("igvPapel", e.target.value)}
-              placeholder={monto.ok ? igvDeFactura(monto.valor).toFixed(2) : undefined} // sugerir-fijo: es el IGV de la tasa sobre el monto escrito, no un ejemplo.
-              pie="Déjalo vacío si es el 18 %. Una factura exonerada dice 0."
-            />
+            <div>
+              <span className="campo-etiqueta" aria-hidden>
+                IGV del papel · opcional
+              </span>
+              <CampoTexto
+                etiqueta="IGV del papel, opcional"
+                inputMode="decimal"
+                caja
+                value={h.igvPapel}
+                onChange={(e) => poner("igvPapel", e.target.value)}
+                placeholder={monto.ok ? igvDeFactura(monto.valor).toFixed(2) : undefined} // sugerir-fijo: es el IGV de la tasa sobre el monto escrito, no un ejemplo.
+                pie="Déjalo vacío si es el 18 %. Una factura exonerada dice 0."
+              />
+            </div>
           )}
 
           <div className="grid gap-x-3 sm:grid-cols-2">

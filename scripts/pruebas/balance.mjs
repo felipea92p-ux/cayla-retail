@@ -166,6 +166,10 @@ $f$;
 // ============================================================================================================================
 const ESCENA = `
 begin;
+-- La tarea 14 sembró la tarifa de Vendemás y devenga su comisión (se prueba en pruebas:comision-estimada): estas cifras se calculan sin ella.
+set local session_replication_role = replica;
+delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where nombre ilike 'vendem%');
+set local session_replication_role = origin;
 ${AYUDANTES}
 ${cambiaA(FELIPE)}
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset

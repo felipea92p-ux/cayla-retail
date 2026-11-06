@@ -202,18 +202,23 @@ export function HojaComprobanteDeGasto({
         </div>
 
         {b.tipo === "factura" && (
-          <CampoTexto
-            etiqueta="IGV del papel · opcional"
-            inputMode="decimal"
-            caja
-            value={igvTexto}
-            onChange={(e) => {
-              setIgvTexto(e.target.value);
-              poner("igv", igvDeLoEscrito(e.target.value));
-            }}
-            placeholder={igvDeFactura(g.montoTotal).toFixed(2)} // sugerir-fijo: es el IGV de la tasa sobre este gasto, no un ejemplo.
-            pie="Déjalo vacío si es el 18 %. Una factura exonerada dice 0."
-          />
+          <div>
+            <span className="campo-etiqueta" aria-hidden>
+              IGV del papel · opcional
+            </span>
+            <CampoTexto
+              etiqueta="IGV del papel, opcional"
+              inputMode="decimal"
+              caja
+              value={igvTexto}
+              onChange={(e) => {
+                setIgvTexto(e.target.value);
+                poner("igv", igvDeLoEscrito(e.target.value));
+              }}
+              placeholder={igvDeFactura(g.montoTotal).toFixed(2)} // sugerir-fijo: es el IGV de la tasa sobre este gasto, no un ejemplo.
+              pie="Déjalo vacío si es el 18 %. Una factura exonerada dice 0."
+            />
+          </div>
         )}
 
         <div className="mb-3 rounded-[12px] bg-hueso px-3 py-2 text-sm">

@@ -216,13 +216,17 @@ export function ticketDeLaHoja(
     if (ctx.proveedorNombre) lineas.push({ etiqueta: "De", valor: ctx.proveedorNombre });
   } else if (h.comprobante === "sin_comprobante") lineas.push({ etiqueta: "Comprobante", valor: "Sin comprobante" });
   if (total !== null && h.comprobante === "factura") {
-    const igv = igvDeFactura(total);
-    lineas.push({ etiqueta: "Base", valor: soles(total - igv) }, { etiqueta: "IGV 18 %", valor: soles(igv) });
+    const escrito = igvEscrito(h);
+    const igv = escrito ?? igvDeFactura(total);
+    lineas.push({ etiqueta: "Base", valor: soles(total - igv) }, { etiqueta: escrito === null ? "IGV 18 %" : "IGV del papel", valor: soles(igv) });
   }
   if (total !== null) lineas.push({ etiqueta: "Total", valor: soles(total), fuerte: true });
 
   if (total !== null && ctx.categoriaNombre && ctx.sedeNombre) pasara.push(`Se suma a lo gastado en ${ctx.categoriaNombre.toLowerCase()} de ${ctx.sedeNombre}.`);
-  if (total !== null && h.comprobante === "factura") pasara.push(`Recuperas ${soles(igvDeFactura(total))} de IGV.`);
+  if (total !== null && h.comprobante === "factura") {
+    const igv = igvEscrito(h) ?? igvDeFactura(total);
+    pasara.push(igv > 0 ? `Recuperas ${soles(igv)} de IGV.` : "Esta factura no trae IGV que recuperar.");
+  }
   else if (h.comprobante === "boleta") pasara.push("Una boleta no recupera IGV: con factura lo recuperarías.");
   else if (h.comprobante === "sin_comprobante") pasara.push("Sin comprobante no recuperas IGV.");
   if (aCredito(h)) pasara.push(h.vence ? `Queda en Por pagar hasta el ${h.vence.split("-").reverse().join("/")}.` : "Queda en Por pagar.");

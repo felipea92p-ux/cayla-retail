@@ -62,6 +62,13 @@ describe("lo que dice el papel (tarea 15)", () => {
     expect(validarHoja(factura({ igvPapel: "abc" }), "p1", banco, HOY)).toMatchObject({ ok: false, campo: "igv" });
     expect(validarHoja(factura({ igvPapel: "118" }), "p1", banco, HOY)).toMatchObject({ ok: false, error: "El IGV tiene que estar entre cero y el total." });
   });
+  it("«Así queda» dice el IGV del papel, no el de la tasa", () => {
+    const ctx = { categoriaNombre: null, sedeNombre: null, salidaNombre: null, proveedorNombre: null };
+    const exonerada = ticketDeLaHoja(factura({ igvPapel: "0" }), ctx);
+    expect(exonerada.lineas).toContainEqual({ etiqueta: "IGV del papel", valor: expect.stringContaining("0.00") });
+    expect(exonerada.pasara).toContain("Esta factura no trae IGV que recuperar.");
+    expect(ticketDeLaHoja(factura(), ctx).lineas).toContainEqual({ etiqueta: "IGV 18 %", valor: expect.stringContaining("18.00") });
+  });
   it("«¿Cuándo salió?» solo si sale por banco y es otro día", () => {
     const dias = factura({ fechaPago: "2026-09-12" });
     expect(comprobante(dias)?.fecha_pago).toBe("2026-09-12");

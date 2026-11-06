@@ -1981,6 +1981,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen` (desde 2026-10-24, una franja bajo la respuesta); y los tipos
   `pago_planilla` y `pago_sunat` de `movimientos_dinero` (20261016002000; `registrar_movimiento_dinero`, `fn_asientos_dinero_y_caja` 41 | 104 y
   4011 | 104), que ofrece el modal de `/finanzas/dinero` (`OPCIONES_QUE_PASO`) y enlaza Impuestos.
+  **Tanda 4 de «Las 36» (2026-11-05):** cada pago a SUNAT lleva su mes y concepto (`registrar_pago_sunat`, `impuestos_pagos`, `fn_impuestos_pagos`; la renta va a la 4017); lo que no son sueldos, `registrar_pago_de_planilla` (`planilla_pagos_concepto`, `fn_liquidaciones_por_registrar`); la comisión de la máquina se devenga en su día (6392 | 4691, `fn_pos_comision_lote`) y «Cuadrar depósitos» es `fn_cuadrar_depositos_vista`, `cuadrar_deposito_maquina` y `reemplazar_deposito_estimado` (`components/finanzas/CuadrarDepositos.tsx`).
   **La planilla estimada por sede (ADR-0453, pegada en producción el 2026-10-17):** `fn_planilla_provision` (20261018040000; la interna
   `fn_planilla_provision_calc` pide a Dynamic `public.fn_proyeccion_periodo` y agrega por sede lo devengado hasta hoy y lo que costaría el
   período entero) → `lib/planilla-provision.ts` (lectura; tolera que falte) → `lib/planilla-provision-reglas.ts` (`aplicarProvision` la suma,

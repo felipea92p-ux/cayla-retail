@@ -116,7 +116,7 @@
       "button «{c.texto}»",
       "CampoTexto «Serie y número»",
       "CampoFecha «Fecha del comprobante»",
-      "CampoTexto «IGV del papel · opcional»",
+      "CampoTexto «IGV del papel, opcional»",
       "ComboResponsable «{responsable}»",
       "Volver «→onVolver»",
       "Boton «Agregar comprobante»"
@@ -143,7 +143,7 @@
       "CampoTexto «Qué fue»",
       "button «{c.texto}»",
       "CampoTexto «Serie y número»",
-      "CampoTexto «IGV del papel · opcional»",
+      "CampoTexto «IGV del papel, opcional»",
       "CampoFecha «{papel ? \"Fecha del comprobante\" : \"Fecha\"}»",
       "button «{t}»",
       "CampoFecha «Cuándo vence»",

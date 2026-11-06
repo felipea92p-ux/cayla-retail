@@ -19,7 +19,7 @@
 -- SE ROMPE SI: alguien cambia la fecha de una venta o el monto de un pago de un mes ya cerrado; hoy nada lo permite. Si la máquina retiene un lote ya «cuadrado», el banco del ERP queda alto hasta la
 -- conciliación diaria (ADR-0552). Cuadrar solo es seguro con esa conciliación: es la condición de la decisión 6 del ADR.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución, sin políticas (RLS encendido, se lee solo por funciones `security definer`, ADR-0195). Crea una tabla, dos cuentas, cinco funciones, y reescribe una función
+-- CÓMO SE PEGA EN PRODUCCIÓN: una ejecución, sin políticas (RLS encendido, se lee solo por funciones `security definer`, ADR-0195). Crea una tabla, dos cuentas, cinco funciones, y reescribe dos funciones
 -- desde su definición viva; si el ancla no aparece, aborta entero. Pegarla dos veces no hace nada. Al pegarla, los lotes pendientes desde el inicio de Finanzas entran a su mes y el resultado baja por eso.
 -- Verificado: `pnpm pruebas:comision-estimada`.
 -- ============================================================================
@@ -91,11 +91,8 @@ $$;
 revoke all on function retail.fn_pos_comision_lote(uuid, date, uuid, text) from public, anon, authenticated;
 
 select pg_temp.reemplazar('retail.fn_asientos_dinero_y_caja(date,date,boolean,uuid[])',
-$a$  )
-  select * from l_md
-  union all select * from l_tb$a$,
-$n$  ),
-  -- Tarea 14: la comisión estimada de cada lote, el día del lote; y su reversa, el día del depósito. Sin sede, como el gasto real.
+$a$  l_md as ($a$,
+$n$  -- Tarea 14: la comisión estimada de cada lote, el día del lote; y su reversa, el día del depósito. Sin sede, como el gasto real.
   lotes_est as (
     select l.cuenta_id, l.f, l.ubicacion_id, l.medio, retail.fn_pos_comision_lote(l.cuenta_id, l.f, l.ubicacion_id, l.medio) as estimada
       from (select distinct vp.cuenta_dinero_id as cuenta_id, (v.created_at at time zone 'America/Lima')::date as f, v.ubicacion_id, vp.metodo as medio
@@ -126,10 +123,25 @@ $n$  ),
     union all
     select r.f, null::uuid, 'comision_rev:' || r.movimiento_id || ':' || r.clave, 'comision_estimada', '6392', 0, r.estimada, 'movimientos_dinero', r.movimiento_id, 'Ya depositó: entra la comisión real'
       from rev_est r where r.estimada > 0
-  )
-  select * from l_md
-  union all select * from l_comision_est
-  union all select * from l_tb$n$, 1);
+  ),
+  l_md as ($n$, 1);
+
+-- Dentro de `l_md`: el final de la función lo vuelven a pegar otras migraciones en sus pruebas, y no se toca.
+select pg_temp.reemplazar('retail.fn_asientos_dinero_y_caja(date,date,boolean,uuid[])',
+$a$      from md where md.renta > 0
+  ),$a$,
+$n$      from md where md.renta > 0
+    union all
+    select * from l_comision_est
+  ),$n$, 1);
+
+-- Dos mermas con el mismo monto no tenían orden fijo: cambiar el diario volteaba el detalle sin mover una cifra, y la foto de un mes podía salir distinta. Desempata por su regla.
+select pg_temp.reemplazar('retail.fn_estado_resultados(date,date,uuid)',
+$a$jsonb_build_object('regla', m.regla, 'monto', m.monto) order by m.monto desc)$a$,
+$n$jsonb_build_object('regla', m.regla, 'monto', m.monto) order by m.monto desc, m.regla)$n$, 1);
+select pg_temp.reemplazar('retail.fn_estado_resultados(date,date,uuid)',
+$a$jsonb_build_object('regla', q.regla, 'monto', q.monto) order by q.monto desc)$a$,
+$n$jsonb_build_object('regla', q.regla, 'monto', q.monto) order by q.monto desc, q.regla)$n$, 1);
 
 -- Lo que ya venció en cada máquina y cuánto debería haber llegado. Solo lee.
 create or replace function retail.fn_cuadrar_depositos_vista()
