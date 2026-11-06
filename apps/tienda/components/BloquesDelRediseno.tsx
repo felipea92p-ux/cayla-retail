@@ -26,7 +26,7 @@ export function BeneficiosDeLaTienda({ diasParaRecoger, diasParaCambiar }: { dia
   );
 }
 
-/** «Arma tu outfit»: la modelo a la izquierda, el texto al centro y las dos modelos a la derecha. Las fotos son las que eligió Felipe, sin retoques. */
+/** «Arma tu outfit»: la modelo a la izquierda, el texto al centro y, a la derecha, el brazo que entra por el borde con las prendas. Las fotos son las que eligió Felipe, sin retoques. */
 export function ArmaTuOutfit({ href }: { href: string }) {
   return (
     <section className="t-ancho dn-seccion-banner" aria-labelledby="dn-arma">
@@ -51,12 +51,12 @@ export function ArmaTuOutfit({ href }: { href: string }) {
         </div>
         <div className="dn-foto dn-foto-mesa">
           <img
-            src="/escenario/modelos-arma-tu-look-1200.webp"
-            srcSet="/escenario/modelos-arma-tu-look-800.webp 800w, /escenario/modelos-arma-tu-look-1200.webp 1200w"
-            sizes="(max-width: 639px) 100vw, 640px"
-            alt="Dos modelos, una con casaca de jean y otra con polo blanco y gorra"
-            width={1200}
-            height={800}
+            src="/escenario/mano-arma-tu-outfit-1000.webp"
+            srcSet="/escenario/mano-arma-tu-outfit-640.webp 640w, /escenario/mano-arma-tu-outfit-1000.webp 1000w"
+            sizes="(max-width: 639px) 70vw, 420px"
+            alt="Una mano sostiene tres prendas: una chompa crema, un blazer beige y una chompa marrón"
+            width={1000}
+            height={915}
             loading="lazy"
           />
         </div>
