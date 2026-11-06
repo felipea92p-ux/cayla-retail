@@ -101,12 +101,12 @@ export function carrilesDeDeudas(filas: readonly Pick<FilaPorPagar, "id" | "venc
 /** Desde cuántos días antes de vencer una factura pide atención (ámbar): hoy y los 3 días que siguen. */
 export const DIAS_DE_AVISO = 3;
 
-export type AvisoDeuda = { id: string; proveedor: string; documento: string; saldo: number; vence: string; dias: number; tono: "rojo" | "ambar" };
+export type AvisoDeuda = { id: string; origen?: FilaPorPagar["origen"]; proveedor: string; documento: string; saldo: number; vence: string; dias: number; tono: "rojo" | "ambar" };
 
 /** Las facturas vencidas (rojo) y las que vencen de hoy a `DIAS_DE_AVISO` días (ámbar), de la más urgente a la menos. */
-export function atencionDeDeudas(filas: readonly Pick<FilaPorPagar, "id" | "proveedor" | "documento" | "saldo" | "vence">[], hoy: string): AvisoDeuda[] {
+export function atencionDeDeudas(filas: readonly (Pick<FilaPorPagar, "id" | "proveedor" | "documento" | "saldo" | "vence"> & Partial<Pick<FilaPorPagar, "origen">>)[], hoy: string): AvisoDeuda[] {
   return filas
-    .map((f) => ({ id: f.id, proveedor: f.proveedor, documento: f.documento, saldo: f.saldo, vence: f.vence, dias: diasHasta(f.vence, hoy) }))
+    .map((f) => ({ id: f.id, origen: f.origen, proveedor: f.proveedor, documento: f.documento, saldo: f.saldo, vence: f.vence, dias: diasHasta(f.vence, hoy) }))
     .filter((f) => f.saldo > 0 && f.dias <= DIAS_DE_AVISO)
     .sort((a, b) => a.dias - b.dias || b.saldo - a.saldo)
     .map((f) => ({ ...f, tono: f.dias < 0 ? ("rojo" as const) : ("ambar" as const) }));

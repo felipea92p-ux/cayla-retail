@@ -20,7 +20,7 @@ import { colorDeGrupo } from "@/lib/dinero-telar-reglas";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
 import { debesPulso } from "@/lib/dinero-pulso-reglas";
-import { TEXTO_NATURALEZA, TONO_NATURALEZA, diasHasta, puedePagar, resumenTramos, textoUnidad, textoVence, totalPorPagar, type ClaveTramo, type FilaPorPagar, type NaturalezaDeuda } from "@/lib/por-pagar-consolidado-reglas";
+import { TEXTO_NATURALEZA, TONO_NATURALEZA, diasHasta, fechaDeVence, puedePagar, resumenTramos, textoDelPago, textoUnidad, textoVence, totalPorPagar, type ClaveTramo, type FilaPorPagar, type NaturalezaDeuda } from "@/lib/por-pagar-consolidado-reglas";
 import { atencionDeDeudas, carrilesDeDeudas, filtrarDeudas, filtrosPuestosDeuda, leerFiltrosDeuda, ORDEN_DEUDA_INICIAL, ordenarDeudas, proveedoresMayores, repartoPorTipo, type FiltrosDeuda } from "@/lib/que-debes-reglas";
 
 // Finanzas ▸ Cuentas y dinero ▸ Qué debes (ADR-0195 F4; El telar, Felipe 2026-10-23; rediseño «Panorama ajustado», Felipe 2026-10-31,
@@ -32,14 +32,14 @@ import { atencionDeDeudas, carrilesDeDeudas, filtrarDeudas, filtrosPuestosDeuda,
 // Los filtros de tramo viven en la URL (?tramo=, y ?tipo=, ?q= de enlaces anteriores) y filtran aquí mismo, sin volver a la base.
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
-const plural = (n: number) => `${n} ${n === 1 ? "factura" : "facturas"}`;
+const plural = (n: number) => `${n} ${n === 1 ? "deuda" : "deudas"}`;
 const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 /** Cuántas facturas muestra la lista corta; el resto vive en la ventana. */
 const FILAS_CORTAS = 8;
 /** Cuántas cosas lista «Pide tu atención» antes de mandar a la ventana. */
 const AVISOS_VISIBLES = 6;
 /** El color de cada tipo de deuda en «En qué se va» (clases de token: ADR-0169). */
-const COLOR_TIPO: Record<NaturalezaDeuda, string> = { mercaderia: "bg-pizarra", gasto: "bg-ambar", activo: "bg-verde", insumo: "bg-taupe" };
+const COLOR_TIPO: Record<NaturalezaDeuda, string> = { mercaderia: "bg-pizarra", gasto: "bg-ambar", activo: "bg-verde", insumo: "bg-taupe", servicio: "bg-tinta" };
 const COLOR_TRAMO: Record<ClaveTramo, string> = { vencidas: "bg-rojo-profundo", semana: "bg-ambar", proxima: "bg-pizarra", despues: "bg-verde" };
 /** El puntito de color de cada tramo, junto a su nombre (el vocabulario de `TarjetaCifra`). */
 /** El color de la línea bajo cada cifra de la franja (tokens). */
@@ -213,7 +213,7 @@ export function PorPagarConsolidado({
                       return (
                         <li key={`${x.origen}-${x.id}`} className="qd-fac">
                           <div className="qd-fac-vence">
-                            <b>{fechaCorta(x.vence)}</b>
+                            <b>{fechaDeVence(x, fechaCorta)}</b>
                             <small className={vencida ? "text-rojo-profundo" : ""}>{textoVence(x, hoy)}</small>
                           </div>
                           <div className="qd-fac-prov">
@@ -234,8 +234,8 @@ export function PorPagarConsolidado({
                           <div className="qd-fac-saldo">
                             <span className={vencida ? "text-rojo-profundo" : ""}>{soles(x.saldo)}</span>
                             {puedePagar(x, cuenta) && (
-                              <Link href={hrefPagar(x.id)} scroll={false} className="btn-cayla btn-secundario btn-chico" aria-label={`Pagar ${x.proveedor} ${x.documento}`} data-guia="fin-por-pagar.pagar">
-                                Pagar
+                              <Link href={hrefPagar(x.id)} scroll={false} className="btn-cayla btn-secundario btn-chico" aria-label={`${textoDelPago(x)}: ${x.proveedor} ${x.documento}`} data-guia="fin-por-pagar.pagar">
+                                {textoDelPago(x)}
                               </Link>
                             )}
                           </div>
@@ -326,12 +326,12 @@ export function PorPagarConsolidado({
                               {a.proveedor} · {soles(a.saldo)}
                             </b>
                             <span>
-                              {a.documento} · {textoVence({ vence: a.vence }, hoy)}
+                              {a.documento} · {textoVence(a, hoy)}
                             </span>
                           </div>
                           {x && puedePagar(x, cuenta) && (
-                            <Link href={hrefPagar(a.id)} scroll={false} className="btn-cayla btn-enlace qd-enlace-rojo" aria-label={`Pagar ${a.proveedor} ${a.documento}`}>
-                              Pagar
+                            <Link href={hrefPagar(a.id)} scroll={false} className="btn-cayla btn-enlace qd-enlace-rojo" aria-label={`${textoDelPago(x)}: ${a.proveedor} ${a.documento}`}>
+                              {textoDelPago(x)}
                             </Link>
                           )}
                         </li>
@@ -392,7 +392,7 @@ export function PorPagarConsolidado({
           <p className="nota-cayla anim-entra" style={{ ["--i" as string]: 6 } as CSSProperties}>
             La planilla no está en esta lista porque la paga Dynamic.{" "}
             {esLider || pagaCompras
-              ? "«Pagar» abre el mismo pago de Compras (o de Producción, para la tela del Taller): el pago queda en su factura."
+              ? "«Pagar» abre el mismo pago de Compras o, para lo del Taller, el de Producción: el pago queda en su factura. Un servicio sin papel no tiene fecha: se debe desde que devolvió las prendas."
               : "Los pagos los registra quien tiene Por pagar en Compras; aquí se ve cuándo vence cada uno."}
           </p>
         </>

@@ -2,7 +2,9 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PagarComprobanteProduccionModal } from "@/components/PagarComprobanteProduccionModal";
+import { PagarServicioModal } from "@/components/PagarServicioModal";
 import type { ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
+import type { ServicioPorPagar } from "@/lib/servicios-por-pagar-reglas";
 
 // La pieza de Finanzas ▸ Por pagar que necesita el navegador (ADR-0195 F4): el pago de la tela del Taller abierto por
 // `?pagar=` («Ver» se fue con El telar: la sede la elige la barra común). El pago de una factura de proveedor usa `PagoDesdeUrl` de Compras tal cual.
@@ -13,13 +15,23 @@ import type { ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas
  * El modal pide el dato fresco por su cuenta al registrar.
  */
 export function PagoTallerDesdeUrl({ comprobante, hoy }: { comprobante: ComprobanteProduccion; hoy: string }) {
+  const cerrar = useCerrarElPago();
+  return <PagarComprobanteProduccionModal comprobante={comprobante} hoy={hoy} onClose={cerrar} />;
+}
+
+/** Un servicio del Taller sin papel se paga con la misma hoja de Taller ▸ Por pagar (ADR-0614). */
+export function PagoServicioDesdeUrl({ servicio, hoy }: { servicio: ServicioPorPagar & { proveedor: string }; hoy: string }) {
+  const cerrar = useCerrarElPago();
+  return <PagarServicioModal servicio={servicio} hoy={hoy} onClose={cerrar} />;
+}
+
+function useCerrarElPago() {
   const router = useRouter();
   const ruta = usePathname();
   const params = useSearchParams();
-  function cerrar() {
+  return () => {
     const p = new URLSearchParams(params.toString());
     p.delete("pagar");
     router.replace(p.size ? `${ruta}?${p}` : ruta, { scroll: false });
-  }
-  return <PagarComprobanteProduccionModal comprobante={comprobante} hoy={hoy} onClose={cerrar} />;
+  };
 }

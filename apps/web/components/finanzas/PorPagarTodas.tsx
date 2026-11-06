@@ -20,7 +20,9 @@ import {
   TONO_NATURALEZA,
   TRAMOS,
   diasHasta,
+  fechaDeVence,
   puedePagar,
+  textoDelPago,
   textoUnidad,
   textoVence,
   tramoDe,
@@ -45,7 +47,7 @@ function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
     </div>
   );
 }
-const plural = (n: number) => `${n} ${n === 1 ? "factura" : "facturas"}`;
+const plural = (n: number) => `${n} ${n === 1 ? "deuda" : "deudas"}`;
 
 export function PorPagarTodas({
   filas,
@@ -110,7 +112,7 @@ export function PorPagarTodas({
   return (
     <Modal
       titulo="Todo lo que CAYLA debe"
-      subtitulo="Mercadería, gastos, activos e insumos del Taller en una sola lista. Lo pagado y lo anulado no aparecen."
+      subtitulo="Mercadería, gastos, activos, insumos y servicios del Taller en una sola lista. Lo pagado y lo anulado no aparecen."
       onClose={onCerrar}
       conCerrar
       ancho="max-w-[80rem]" /* unificar-fijo: la ventana de todas las deudas es de diseño propio, con tabla de 8 columnas, filtros y páginas (Felipe 2026-10-31) */
@@ -179,7 +181,7 @@ export function PorPagarTodas({
               return (
                 <div key={`${x.origen}-${x.id}`} className={fila(PLANTILLA, "sm:items-center")}>
                   <span className={celda("izq", "whitespace-nowrap")}>
-                    {fechaCorta(x.vence)}
+                    {fechaDeVence(x, fechaCorta)}
                     <small className={`block text-xs ${vencida ? "text-rojo-profundo" : "text-tinta/65"}`}>{textoVence(x, hoy)}</small>
                   </span>
                   <span className={celda("izq", "!whitespace-normal")}>
@@ -204,8 +206,8 @@ export function PorPagarTodas({
                   </span>
                   <span className={celda("der")}>
                     {puedePagar(x, cuenta) && (
-                      <Link href={hrefPagar(x.id)} scroll={false} onClick={onCerrar} className="btn-cayla btn-secundario btn-chico" aria-label={`Pagar ${x.proveedor} ${x.documento}`}>
-                        Pagar
+                      <Link href={hrefPagar(x.id)} scroll={false} onClick={onCerrar} className="btn-cayla btn-secundario btn-chico" aria-label={`${textoDelPago(x)}: ${x.proveedor} ${x.documento}`}>
+                        {textoDelPago(x)}
                       </Link>
                     )}
                   </span>

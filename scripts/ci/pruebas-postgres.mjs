@@ -1909,6 +1909,7 @@ export const PRUEBAS = [
   // Lo que se le debe a un servicio llega a Por pagar (ADR-0614, actividad 3): devengado menos lo documentado, se suma a la deuda de Producción,
   // solo lo ve el líder, y el nombre se registra con la orden cerrada sin tocar el monto. ROLLBACK.
   "pruebas:produccion-servicios-por-pagar",
+  "pruebas:finanzas-servicios-por-pagar",
 
   // Pagar a un servicio con el papel que dio (ADR-0614, actividad 4): cada papel, la deuda que baja sin IGV, de más no, sin nombre no, y el token. ROLLBACK.
   "pruebas:produccion-pagar-servicio",

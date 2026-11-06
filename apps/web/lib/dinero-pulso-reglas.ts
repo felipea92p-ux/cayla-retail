@@ -133,7 +133,7 @@ export function debesPulso(filas: readonly FilaPorPagar[], hoy: string): Debes {
   const futuras = conSaldo.filter((f) => diasHasta(f.vence, hoy) >= 0).sort((a, b) => diasHasta(a.vence, hoy) - diasHasta(b.vence, hoy) || b.saldo - a.saldo);
   const p = futuras[0];
   const proxima = p ? { proveedor: p.proveedor, documento: p.documento, saldo: r2(p.saldo), vence: p.vence, dias: diasHasta(p.vence, hoy) } : null;
-  const cuando = (d: number) => (d === 0 ? "vence hoy" : d === 1 ? "vence mañana" : `vence en ${d} días`);
+  const cuando = (d: number) => (p?.origen === "servicio" ? "sin fecha" : d === 0 ? "vence hoy" : d === 1 ? "vence mañana" : `vence en ${d} días`);
   let frase: string;
   if (conSaldo.length === 0) frase = "No debes nada registrado. Si hay facturas sin anotar, no están aquí.";
   else if (vencidas.length > 0) frase = `${vencidas.length} ${vencidas.length === 1 ? "factura vencida" : "facturas vencidas"} por ${soles(montoVencido)}.${proxima ? ` Lo próximo: ${proxima.proveedor}, ${soles(proxima.saldo)}, ${cuando(proxima.dias)}.` : ""}`;
