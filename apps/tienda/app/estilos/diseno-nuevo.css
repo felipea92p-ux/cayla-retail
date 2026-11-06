@@ -135,7 +135,7 @@
     & .t-cab-fila > .t-logo { position: static; transform: none; order: -2; margin-right: var(--e-4); }
     & .t-esp { display: none; }
     & .pl-cats { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; }
-    & .pl-cat:nth-child(n + 7) { display: flex; }
+    & .pl-cat:nth-child(n + 7) { display: block; }
     & .pl-cats-flecha { display: grid; }
     & .pl-cats-flecha[hidden] { display: none; }
     & .dn-buscar-cab { order: 0; flex: 1; max-width: 440px; margin-inline: auto; width: auto; justify-content: flex-start; gap: var(--e-3); height: 44px; padding: 0 var(--e-4); border: 1px solid var(--sand); border-radius: 999px; background: var(--crema); font-size: 14.5px; color: var(--taupe); transition: border-color .2s; }
