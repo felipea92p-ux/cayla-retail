@@ -283,7 +283,7 @@
    dentro de la placa se separa con el hilo de fila, no con arena. */
 .ap-mesa .ap-placa {
   border: 1px solid var(--serena-borde);
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);
   backdrop-filter: var(--serena-filtro);
@@ -321,7 +321,7 @@
 }
 .ap-mesa .ap-cifra {
   border: 1px solid var(--serena-borde);
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);
   backdrop-filter: var(--serena-filtro);

@@ -24,7 +24,7 @@ const TELAR: PasoGuia[] = [
     id: "telar-mes",
     ancla: "telar.mes",
     titulo: "Qué mes mirar",
-    texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede.",
+    texto: "Las flechas pasan al mes anterior o al siguiente; tocando el nombre eliges cualquier mes. Vale para todo Finanzas, como la sede. Donde la sede o el mes no aplican, la barra los apaga y lo dice.",
   },
   {
     id: "telar-te-toca",
@@ -651,7 +651,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-monto",
       opcional: true,
       titulo: "Monto y voucher",
-      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión.",
+      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión. Si la comisión se aleja más de 1 punto de la tarifa, te pide confirmarla contra el extracto.",
     },
     {
       id: "mov-fecha",

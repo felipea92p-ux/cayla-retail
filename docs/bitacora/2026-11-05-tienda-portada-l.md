@@ -1,0 +1,1 @@
+**2026-11-05 · Tienda: portada L construida, sin activar (ADR-0613).** Tres paneles en computadora y una prenda que se desliza en el celular, detrás de `/inicio?portada=l`. Las prendas salen solas (las últimas de tres categorías, con foto) y se recortan en una ruta que guarda el resultado. Felipe la prueba en su teléfono antes de activarla.

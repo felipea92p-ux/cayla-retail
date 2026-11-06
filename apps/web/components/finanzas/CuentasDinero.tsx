@@ -32,7 +32,9 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   opcionQuePaso,
+  netoEsperado,
   resumenAbono,
+  revisarComision,
   resumenConciliacion,
   textoLote,
   textoSalida,
@@ -610,6 +612,8 @@ function RegistrarMovimientoModal({
   const esCajon = origen?.tipo === "cajon";
   const tipo = tipoDeMovimiento(b);
   const cambiar = (c: Partial<BorradorMovimiento>) => setB((x) => ({ ...x, ...c }));
+  // Lo que la persona eligió a mano no se pisa con la propuesta del banco de la máquina.
+  const [bancoElegido, setBancoElegido] = useState(false);
 
   // Del cajón, los egresos que la tienda ya registró y que nada usa todavía (o marcados «no es gasto: depósito»).
   const ubicacionCajon = esCajon ? origen?.ubicacionId ?? null : null;
@@ -633,7 +637,11 @@ function RegistrarMovimientoModal({
   const maquinaId = esDepositoMaquina ? b.origen || null : null;
   // Lo leído va con la máquina de la que se leyó: si la persona cambia de máquina, la lista anterior deja de valer sola
   // (sin tocar el estado dentro del efecto) mientras llega la nueva.
-  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[] } | null>(null);
+  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[]; falla: boolean } | null>(null);
+  const [intentoLotes, setIntentoLotes] = useState(0);
+  const desdeDeLaMaquina = cuentas.find((c) => c.id === maquinaId)?.saldoDesde ?? null;
+  // La confirmación vale para una comisión: si cambia el monto o los días, se vuelve a preguntar.
+  const [comisionConfirmada, setComisionConfirmada] = useState<number | null>(null);
   useEffect(() => {
     if (!maquinaId) return;
     let vivo = true;
@@ -642,19 +650,31 @@ function RegistrarMovimientoModal({
       .then(({ data, error }) => {
         if (!vivo) return;
         const lista = error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerLotePendiente);
-        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha) });
+        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha, desdeDeLaMaquina), falla: !!error });
+      });
+    // El banco al que deposita esta máquina viene puesto; sin banco guardado, se elige (ya no se propone el primero de la lista).
+    void createClient()
+      .rpc("fn_pos_bancos_de_maquinas" as never)
+      .then(({ data }) => {
+        if (!vivo || bancoElegido) return;
+        const fila = ((data ?? []) as { cuenta_id: string; banco_id: string | null }[]).find((f) => f.cuenta_id === maquinaId);
+        setB((x) => ({ ...x, destino: fila?.banco_id ?? "" }));
       });
     return () => {
       vivo = false;
     };
     // La fecha no vuelve a cargar la lista: solo decide qué se marca de entrada al llegar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maquinaId]);
+  }, [maquinaId, intentoLotes]);
   const lotes = leido && leido.maquinaId === maquinaId ? leido.lotes : null;
+  const lotesFalla = !!leido && leido.maquinaId === maquinaId && leido.falla;
   const marcados = leido && leido.maquinaId === maquinaId ? leido.marcados : [];
   const marcar = (clave: string, si: boolean) =>
     setLeido((l) => (l && l.maquinaId === maquinaId ? { ...l, marcados: si ? [...l.marcados.filter((c) => c !== clave), clave] : l.marcados.filter((c) => c !== clave) } : l));
   const cuentaAbono = esDepositoMaquina ? resumenAbono(lotes ?? [], marcados, b.monto) : null;
+  const comisionRara = cuentaAbono ? revisarComision(cuentaAbono) : null;
+  const confirmada = !!cuentaAbono && cuentaAbono.comision !== null && comisionConfirmada === cuentaAbono.comision;
+  const netoPropuesto = cuentaAbono && b.monto.trim() === "" ? netoEsperado(cuentaAbono) : null;
 
   function elegirQue(que: QuePaso) {
     setB(inicialDe(que, cuentas, ubicacionId, deuda, hoy, b));
@@ -666,7 +686,7 @@ function RegistrarMovimientoModal({
       return;
     }
     if (esDepositoMaquina) {
-      const v = validarAbonoPos(b, lotes ?? [], marcados, { cuentas, hoy });
+      const v = validarAbonoPos(b, lotes ?? [], marcados, { cuentas, hoy, comisionConfirmada: confirmada });
       if (!v.ok) return avisar.error(v.error);
       setGuardando(true);
       const { error } = await firmar(createClient().rpc("registrar_abono_pos" as never, { ...v.valor, p_token: token } as never), responsable.firma());
@@ -755,7 +775,10 @@ function RegistrarMovimientoModal({
             <SelectFin
               id="mov-a"
               valor={b.destino}
-              onValor={(destino) => cambiar({ destino })}
+              onValor={(destino) => {
+                setBancoElegido(true);
+                cambiar({ destino });
+              }}
               opciones={destinos.map((c) => ({ valor: c.id, texto: c.nombre }))}
               marcador={destinos.length === 0 ? "No hay cuentas de ese tipo" : undefined}
               deshabilitado={destinos.length === 0}
@@ -804,6 +827,22 @@ function RegistrarMovimientoModal({
             ayuda={
               lotes === null
                 ? "Leyendo lo que la máquina todavía no depositó…"
+                : lotesFalla
+                  ? (
+                    <>
+                      No se pudo leer lo que esta máquina tiene por depositar.{" "}
+                      <button
+                        type="button"
+                        className="btn-enlace"
+                        onClick={() => {
+                          setLeido(null);
+                          setIntentoLotes((n) => n + 1);
+                        }}
+                      >
+                        Volver a intentar
+                      </button>
+                    </>
+                  )
                 : lotes.length === 0
                   ? "Esta máquina no tiene nada por depositar."
                   : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito."
@@ -821,6 +860,12 @@ function RegistrarMovimientoModal({
                         <>
                           {" "}
                           <Chip tono="ambar">atrasado</Chip>
+                        </>
+                      )}
+                      {desdeDeLaMaquina && l.fecha < desdeDeLaMaquina && (
+                        <>
+                          {" "}
+                          <Chip tono="pizarra" title="Es anterior al saldo de arranque de esta máquina: márcalo solo si este depósito lo cubre de verdad">antes del arranque</Chip>
                         </>
                       )}
                     </span>
@@ -867,6 +912,23 @@ function RegistrarMovimientoModal({
             </CampoFin>
           )}
         </div>
+      )}
+      {esDepositoMaquina && netoPropuesto !== null && (
+        <p className="nota-cayla sin-i">
+          Según la tarifa deberían llegar {soles(netoPropuesto)}.{" "}
+          <button type="button" className="btn-enlace" onClick={() => cambiar({ monto: netoPropuesto.toFixed(2) })}>
+            Usar ese monto
+          </button>
+        </p>
+      )}
+      {esDepositoMaquina && comisionRara && cuentaAbono?.comision !== null && cuentaAbono?.comision !== undefined && (
+        <Aviso tono="atencion" titulo="Esta comisión se ve rara" chico>
+          <p>{comisionRara} Revísala contra el extracto del banco.</p>
+          <span className="mt-2 flex items-center gap-2 text-sm">
+            <Casilla marcada={confirmada} onCambio={() => setComisionConfirmada(confirmada ? null : cuentaAbono.comision)} etiqueta="Sí, revisé el extracto: la comisión es esa" />
+            Sí, revisé el extracto: la comisión es esa
+          </span>
+        </Aviso>
       )}
       {esDepositoMaquina && cuentaAbono?.comision !== null && cuentaAbono?.comision !== undefined && cuentaAbono.comision < 0 && (
         <Aviso tono="atencion" titulo="Llegó más de lo cobrado en los días marcados" chico>

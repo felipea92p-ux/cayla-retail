@@ -39,6 +39,8 @@ export function pendientesDeDinero(
     cajasSinDepositar: readonly { nombre: string; saldo: number; dias: number }[];
     lineasSinRevisar: number;
     esLider: boolean;
+    /** Lo que Dynamic marcó pagado y aquí no dice de qué banco salió. */
+    planilla?: { salidas: number; total: number } | null;
   },
   hoy: string,
   consulta: string,
@@ -48,6 +50,18 @@ export function pendientesDeDinero(
     return q ? `${ruta}?${q}` : ruta;
   };
   const lista: Pendiente[] = [];
+
+  if (datos.planilla && datos.planilla.salidas > 0) {
+    lista.push({
+      submodulo: "finanzas.dinero",
+      id: "dinero.planilla",
+      estado: "avisa",
+      titulo: `${soles(datos.planilla.total)} de planilla ya salieron del banco`,
+      detalle: "Dynamic la marcó pagada y aquí falta decir de qué banco: hasta entonces sigue sumando en «¿Cuánto tienes?»",
+      verbo: "Registrar",
+      href: "/finanzas/dinero",
+    });
+  }
 
   const vencidas = datos.porPagar.filter((f) => diasHasta(f.vence, hoy) < 0);
   const semana = datos.porPagar.filter((f) => {

@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 
 // ADR-0611, mejora 7: quien pidió menos transparencia o más contraste en su aparato ve el vidrio macizo. Una receta nueva con fondo translúcido se agrega al bloque.
 const css = readFileSync("app/estilos/vidrio/recetas.css", "utf8");
+const aguanta = readFileSync("app/estilos/vidrio/aguanta.css", "utf8");
+const globals = readFileSync("app/globals.css", "utf8");
 const raiz = css.slice(css.indexOf(":root {"), css.indexOf("@media screen {"));
-const inicio = css.indexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {");
-const bloque = css.slice(inicio);
+const inicio = aguanta.indexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {");
+const bloque = aguanta.slice(inicio);
 const todoLoMacizo = bloque + [...css.matchAll(/@media \(prefers-reduced-transparency: reduce\) \{[\s\S]*?\n\}\n/g)].map((m) => m[0]).join("");
 
 const fondosTranslucidos = [...raiz.matchAll(/^\s*(--[a-z0-9-]+-fondo(?:-encima)?):\s*([^;]+);/gm)].filter((m) => m[2].includes("transparent")).map((m) => m[1]);
@@ -13,7 +15,11 @@ const fondosTranslucidos = [...raiz.matchAll(/^\s*(--[a-z0-9-]+-fondo(?:-encima)
 describe("el vidrio que aguanta (ADR-0611, mejora 7)", () => {
   it("el bloque existe y responde a las dos preferencias del aparato", () => {
     expect(inicio).toBeGreaterThan(0);
-    expect(css).toContain("@media (prefers-contrast: more) {");
+    expect(aguanta).toContain("@media (prefers-contrast: more) {");
+  });
+
+  it("se importa justo después de las recetas: pisa sus variables por orden, no por especificidad", () => {
+    expect(globals).toMatch(/@import "\.\/estilos\/vidrio\/recetas\.css";\n@import "\.\/estilos\/vidrio\/aguanta\.css";/);
   });
 
   it("no queda nada desenfocado", () => {

@@ -384,12 +384,12 @@ const RANGO: Record<Aviso["tono"], number> = { rojo: 0, ambar: 1, pizarra: 2 };
 /** La clase de cada aviso, en el orden del spike: deudas vencidas, la caja bajo el mínimo, lo que vence, una tienda que
  *  pierde, un fijo que falta, un rubro que se pasa, una campaña que viene, el mes sin cerrar, lo fuera de lo normal, los
  *  egresos sin clasificar, lo que no tiene cuenta y el límite del régimen. */
-const CLASE = { vencida: 0, minimo: 1, vencen: 2, pierde: 3, fijo: 4, ppto: 5, campana: 6, cierre: 7, raro: 8, egresos: 9, sin_cuenta: 10, umbral: 11 } as const;
+export const CLASE_AVISO = { vencida: 0, minimo: 1, vencen: 2, pierde: 3, fijo: 4, ppto: 5, campana: 6, cierre: 7, raro: 8, egresos: 9, sin_cuenta: 10, umbral: 11 } as const;
 const MAX_POR_TIPO = 3;
 /** El lugar del aviso «bajo tu mínimo de caja» en el orden: `alinearAvisoDeCaja` (caja-proxima-reglas) lo crea cuando la tarjeta ve una caída que el bloque semanal no ve. */
-export const ORDEN_AVISO_CAJA = CLASE.minimo;
+export const ORDEN_AVISO_CAJA = CLASE_AVISO.minimo;
 /** El lugar de «te falta pedir» (la inversión en mercadería de una campaña): entre las campañas que vienen. */
-export const ORDEN_AVISO_CAMPANA = CLASE.campana;
+export const ORDEN_AVISO_CAMPANA = CLASE_AVISO.campana;
 
 /** «Primero lo que más cuesta si se deja pasar»: rojo, ámbar, informativo; dentro de cada tono, la clase (el orden del
  *  spike) y, dentro de la clase, más soles primero. */
@@ -424,7 +424,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const hace = -diasHasta(f.vence, r.hoy);
       out.push({
         clave: `vencida:${f.id}`,
-        orden: CLASE.vencida,
+        orden: CLASE_AVISO.vencida,
         tono: "rojo",
         titulo: `${f.tipo === "factura" ? "Factura vencida" : "Deuda vencida"}: ${f.proveedor}`,
         detalle: `Saldo ${soles(f.saldo)}${f.concepto ? ` (${f.concepto})` : ""}, venció ${hace === 1 ? "ayer" : `hace ${hace} días`}.`,
@@ -440,7 +440,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const monto = r2(resto.reduce((a, f) => a + f.saldo, 0));
       out.push({
         clave: "vencidas:resto",
-        orden: CLASE.vencida,
+        orden: CLASE_AVISO.vencida,
         tono: "rojo",
         titulo: `${resto.length} deudas vencidas más`,
         detalle: `Por ${soles(monto)} en total.`,
@@ -458,7 +458,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const dias = r.porPagar.estado === "ok" ? r.porPagar.datos.dias : 7;
       out.push({
         clave: "vencen",
-        orden: CLASE.vencen,
+        orden: CLASE_AVISO.vencen,
         tono: "ambar",
         titulo: `${deb.proximas.length === 1 ? "Vence 1 deuda" : `Vencen ${deb.proximas.length} deudas`} en los próximos ${dias} días`,
         detalle: `Por ${soles(monto)}. La primera: ${primera.proveedor}, ${soles(primera.saldo)}, ${textoVence(primera, r.hoy)}.`,
@@ -480,7 +480,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const yaHoy = p.saldoHoy < p.minimoCaja;
       out.push({
         clave: "minimo",
-        orden: CLASE.minimo,
+        orden: CLASE_AVISO.minimo,
         tono: peor.saldo < 0 ? "rojo" : "ambar",
         titulo: yaHoy ? "Hoy ya estás bajo tu mínimo de caja" : `La semana del ${etiquetaSemana(bajo.desde, bajo.hasta)} quedas bajo tu mínimo de caja`,
         detalle: yaHoy
@@ -503,7 +503,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const eq = equilibrio(f, diasDelMes(r.mesAnterior));
       out.push({
         clave: `pierde:${f.ubicacionId}`,
-        orden: CLASE.pierde,
+        orden: CLASE_AVISO.pierde,
         tono: "ambar",
         titulo: `${nombreCorto(f)} perdió ${soles(-f.resultado)} en ${mes}`,
         detalle: eq
@@ -524,7 +524,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     for (const f of fs.slice(0, MAX_POR_TIPO)) {
       out.push({
         clave: `fijo:${f.id}`,
-        orden: CLASE.fijo,
+        orden: CLASE_AVISO.fijo,
         tono: "ambar",
         titulo: `Falta registrar: ${f.descripcion} ${deUnidad(f.ubicacionNombre ?? "De la empresa")}`,
         detalle: `Venció el día ${Number(f.fechaEsperada.slice(8, 10)) || f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
@@ -539,7 +539,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const resto = fs.slice(MAX_POR_TIPO);
       out.push({
         clave: "fijos:resto",
-        orden: CLASE.fijo,
+        orden: CLASE_AVISO.fijo,
         tono: "ambar",
         titulo: `${resto.length} gastos fijos más sin registrar`,
         detalle: `Por unos ${soles(resto.reduce((a, f) => a + f.monto, 0))}.`,
@@ -558,7 +558,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     for (const g of r.raros.datos.slice(0, MAX_POR_TIPO)) {
       out.push({
         clave: `raro:${g.llave}:${g.ubicacionId ?? "empresa"}:${g.mes}`,
-        orden: CLASE.raro,
+        orden: CLASE_AVISO.raro,
         tono: "pizarra",
         raro: true,
         titulo: `${g.proveedor} ${deUnidad(g.ubicacionNombre)} vino ${porcentaje(g.excesoPct / 100, 1)} más alto que su promedio`,
@@ -578,7 +578,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     const donde = r.ver.todas && e.porUbicacion.length > 1 ? ` ${e.porUbicacion.map((u) => `${corto(u.nombre)} ${u.n}`).join(" · ")}.` : "";
     out.push({
       clave: "egresos",
-      orden: CLASE.egresos,
+      orden: CLASE_AVISO.egresos,
       tono: "pizarra",
       titulo: `${e.n} ${e.n === 1 ? "egreso" : "egresos"} de caja sin clasificar`,
       detalle: `Mientras no se diga si son gasto, depósito o retiro, no cuentan en ningún número.${donde}`,
@@ -600,7 +600,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const sube = c.conEfecto && c.metaPct != null ? `la meta sube ${porcentaje(c.metaPct, 100)}` : "la meta no sube";
       out.push({
         clave: `campana:${c.id}`,
-        orden: CLASE.campana,
+        orden: CLASE_AVISO.campana,
         tono: v.tono,
         titulo: `${c.nombre} empieza ${dias === 1 ? "mañana" : `en ${dias} días`}`,
         detalle:
@@ -627,7 +627,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const cerradas = c.unidades.length - abiertas.length;
       out.push({
         clave: "cierre",
-        orden: CLASE.cierre,
+        orden: CLASE_AVISO.cierre,
         tono: primeraSemana ? "pizarra" : "ambar",
         titulo: abiertas.length ? `${mayuscula(mes)} sigue abierto` : `Falta cerrar ${mes} de CAYLA entera`,
         detalle: abiertas.length
@@ -642,7 +642,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     } else if (abiertas.length) {
       out.push({
         clave: "cierre",
-        orden: CLASE.cierre,
+        orden: CLASE_AVISO.cierre,
         tono: primeraSemana ? "pizarra" : "ambar",
         titulo: `${mayuscula(mes)} ${deUnidad(r.ver.nombre)} sigue abierto`,
         detalle: `Mientras siga abierto, se puede registrar con fecha de ${mes} y sus números pueden cambiar.`,
@@ -663,7 +663,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const cerrado = f.momento === "cerrado";
       out.push({
         clave: `ppto:${f.ubicacionId ?? f.unidad}:${f.linea}`,
-        orden: CLASE.ppto,
+        orden: CLASE_AVISO.ppto,
         tono: "ambar",
         titulo: `${f.lineaNombre} ${deUnidad(f.nombre)} ${cerrado ? "se pasó" : "va a pasarse"} de su tope`,
         detalle: `${cerrado ? "Cerró" : "Al cierre llegaría"} en ${soles(f.proyeccion ?? 0)} contra un tope de ${soles(f.presupuesto ?? 0)} (${chip.texto}); lleva ${soles(f.aLaFecha)}.`,
@@ -683,7 +683,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
     const monto = r2(s.reduce((a, x) => a + Math.abs(x.monto), 0));
     out.push({
       clave: "sin_cuenta",
-      orden: CLASE.sin_cuenta,
+      orden: CLASE_AVISO.sin_cuenta,
       tono: "pizarra",
       titulo: `${n} ${n === 1 ? "movimiento" : "movimientos"} de plata sin cuenta este mes`,
       detalle: `No suman en ningún saldo: ${s.map((x) => `${TEXTO_SIN_CUENTA[x.origen] ?? x.origen} (${soles(Math.abs(x.monto))})`).join("; ")}.`,
@@ -705,7 +705,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
   if (anticipado && tituloAnticipado) {
     out.push({
       clave: "umbral_aviso",
-      orden: CLASE.umbral,
+      orden: CLASE_AVISO.umbral,
       tono: "ambar",
       titulo: tituloAnticipado,
       detalle: [anticipado.detalle, anticipado.alcance].filter(Boolean).join(" "),
@@ -726,7 +726,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
       const uit = r.igv.datos.parametros.umbralUit?.valor;
       out.push({
         clave: "umbral",
-        orden: CLASE.umbral,
+        orden: CLASE_AVISO.umbral,
         tono: tono === "rojo" ? "rojo" : "pizarra",
         titulo: u.cruzado ? `Cruzaste el límite de ${uit ?? 300} UIT` : `Vas al ${porcentaje(u.avance ?? 0, 1)} del límite de ${uit ?? 300} UIT`,
         detalle: u.cruzado

@@ -2,7 +2,7 @@
   "guia": "produccion.por-pagar",
   "ruta": "/produccion/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 13,
   "controles": {
     "components/MediosDePago.tsx": [
       "Desplegable «{m.metodo}»",
@@ -10,7 +10,8 @@
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «{valor}»"
+      "Desplegable «{valor}»",
+      "button «Volver a intentar»"
     ],
     "components/PagarComprobanteProduccionModal.tsx": [
       "CampoTexto «Fecha del pago»",

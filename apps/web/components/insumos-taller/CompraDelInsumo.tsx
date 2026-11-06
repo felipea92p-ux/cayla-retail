@@ -67,7 +67,7 @@ export function CompraDelInsumo({
   onMedios: (m: MedioForm[]) => void;
   /** Lo que se paga, con IGV: lo que los medios tienen que sumar. */
   total: number;
-  cuentas: { lista: readonly CuentaElegible[]; listo: boolean };
+  cuentas: { lista: readonly CuentaElegible[]; listo: boolean; falla?: boolean; reintentar?: () => void };
 }) {
   return (
     <div data-guia="prod-ingreso.compra" className="space-y-4 rounded-2xl border border-sand bg-crema p-3.5">

@@ -125,3 +125,9 @@ verbo no lo ve), o si el aviso se pone donde sí se puede volver a hacer y deja 
 
 Revierte en Retail: «Lo peligroso, rojo desde el principio» (ADR-0358, 2026-10-07), la hoja que vuelve a papel (esta ADR, 2026-10-31) y la gota roja de
 «Cerrar caja» (2026-11-02). Dynamic adopta lo mismo al migrar sus piezas.
+
+## Actualización 2026-11-05 (c): una sola esquina de tarjeta, y lo que puede viajar a Dynamic
+
+**Una esquina.** Felipe cerró la pregunta P10 del contrato de familia v4: una sola esquina de tarjeta, 22 px, en los dos sistemas. Retail tenía tres (20, 22 y 24 px), sin que nadie las hubiera elegido como jerarquía. Hay un token por pieza (`--radius-boton` 999, `--radius-campo` 14, `--radius-tarjeta` 22, `--radius-cajon` 28, `--radius-hoja` 32 px) y las piezas lo leen. Lo que sigue en 20 o 24 px no es una tarjeta (lo que flota, el marco, un control) o tiene diseño propio decidido (Observatorio, Insignias, Las vitrinas, los pases de Traslados, el aviso de cierre, la tarjeta Vitrina, Finanzas): cada uno con su motivo en `lib/familia.test.ts`. Una pieza nueva lee el token.
+
+**Lo que viaja.** `recetas.css` solo lleva variables en tres formas, porque Dynamic lo trae con un vigilante. La versión maciza de ADR-0611 (más contraste, menos transparencia) lleva reglas de clase y redefine `--color-*`, y desde ese día Dynamic rechazaba el archivo entero: salió a `vidrio/aguanta.css`, importado justo después, sin cambiar nada de lo que se ve. Medido en el navegador, en claro y oscuro, con cada preferencia: los mismos valores. Dynamic no recibe el macizo por este camino: traerlo es una decisión aparte.

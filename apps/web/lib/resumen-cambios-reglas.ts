@@ -29,6 +29,8 @@ export type CambiosMes =
   | {
       tipo: "ok";
       contra: string;
+      /** Los dos meses se comparan sin sueldos, porque el mes pasado a esta fecha todavía no los llevaba. */
+      antesDeSueldos: boolean;
       resultadoAhora: number;
       resultadoAntes: number;
       /** Lo que te deja este mes menos lo que te dejaba el mes pasado a esta fecha. */
@@ -51,14 +53,15 @@ export function cambiosDelMes(o: {
   ahora: readonly FilaER[];
   antes: readonly FilaER[] | null;
   enCurso: boolean;
+  antesDeSueldos?: boolean;
 }): CambiosMes {
-  const { r, ahora, antes, enCurso } = o;
+  const { r, ahora, antes, enCurso, antesDeSueldos = false } = o;
   if (!antes) return { tipo: "sin_comparacion", motivo: "No se pudo leer el mes pasado para compararlo. Vuelve a cargar la página en un rato." };
   const fa = filaDeVer(ahora, r.ver);
   const fb = filaDeVer(antes, r.ver);
   if (!fa || !fb) return { tipo: "sin_comparacion", motivo: "El mes pasado no tuvo movimientos de lo que miras para compararlos." };
 
-  const contra = enCurso ? `${mesNombre(r.mesAnterior)} a esta fecha` : mesNombre(r.mesAnterior);
+  const contra = `${enCurso ? `${mesNombre(r.mesAnterior)} a esta fecha` : mesNombre(r.mesAnterior)}${antesDeSueldos ? ", antes de sueldos" : ""}`;
   const conceptos = conceptosER([fa, fb]).filter((c) => c.tipo === "linea");
   const todos: CambioRubro[] = conceptos.map((c) => {
     const a = r2(c.valor(fa));
@@ -92,6 +95,7 @@ export function cambiosDelMes(o: {
   return {
     tipo: "ok",
     contra,
+    antesDeSueldos,
     resultadoAhora: r2(fa.resultado),
     resultadoAntes: r2(fb.resultado),
     dif,

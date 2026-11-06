@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
   VENTANA_TRAS_CLIC_MS,
+  esCambioDeVista,
   esChangeInmediatoAlClic,
   esContinuacionDeTecleo,
   puedeSoltar,
@@ -99,6 +100,8 @@ export function PaginaEstable() {
       // El clic fue un enlace: la pantalla nueva es otra cosa, no un bloque que se acortó.
       if (location.href !== url) return alNavegar.current();
       const ahora = medir(contenedor);
+      // Tampoco es un bloque que se acortó si volver adonde estaba dejaría la pantalla casi sin contenido: lo que se veía ya no existe (la red, ver reglas).
+      if (esCambioDeVista(alClic, ahora, reserva?.contenedor === contenedor ? reserva.px : 0)) return alNavegar.current();
       if (reserva && reserva.contenedor === contenedor && puedeSoltar(ahora, reserva.px)) soltar();
       const falta = reservaNecesaria(alClic, ahora);
       if (falta <= 0) return;

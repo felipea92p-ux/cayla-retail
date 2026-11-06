@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.por-pagar",
   "ruta": "/finanzas/dinero/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 60,
+  "total": 62,
   "controles": {
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -27,7 +27,8 @@
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «{valor}»"
+      "Desplegable «{valor}»",
+      "button «Volver a intentar»"
     ],
     "components/PagarComprobanteProduccionModal.tsx": [
       "CampoTexto «Fecha del pago»",
@@ -48,6 +49,7 @@
       "button «Completar con el último medio»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ],
     "components/finanzas/PorPagarConsolidado.tsx": [
@@ -58,8 +60,8 @@
       "button «{TEXTO_NATURALEZA[p.tipo]}»",
       "Link «{`Pagar ${a.proveedor}»",
       "button «Ver las vencidas»",
-      "Link «fin-por-pagar.varias»",
-      "button «{p.proveedor}»"
+      "button «{p.proveedor}»",
+      "Link «fin-por-pagar.varias»"
     ],
     "components/finanzas/PorPagarTodas.tsx": [
       "button «Todas»",

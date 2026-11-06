@@ -25,7 +25,7 @@ import { MesAMes } from "@/components/reportes-ventas/MesAMes";
 // mes a mes y cómo se pagó. Todo sale de `fn_reporte_ventas_series`, la hermana de la lectura de las cifras: suman lo mismo. Las piezas son las del
 // sistema (ADR-0358): `BarrasTiempo` y `BarraApilada`; ningún gráfico dibujado a mano.
 const PORCENTAJE = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
-const bloque = "anim-sube rounded-[20px] bg-papel p-5 ring-1 ring-tinta/[0.07]";
+const bloque = "anim-sube rounded-tarjeta bg-papel p-5 ring-1 ring-tinta/[0.07]";
 
 export function GraficosReporteMes({ r, s, tiendaId, corte }: { r: ReporteMes; s: SeriesMes; tiendaId: string | null; corte: string | null }) {
   const mes = { anio: Number(s.mes.slice(0, 4)), mes: Number(s.mes.slice(5, 7)) };

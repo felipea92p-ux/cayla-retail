@@ -1,0 +1,67 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { fotoOptimizable, hrefLista } from "@/lib/catalogo";
+import type { CategoriaConFoto } from "@/lib/portada-l";
+
+/**
+ * La fila de categorías bajo la portada (ADR-0613): una prenda real de cada una, en un círculo con su color. Se desliza si no cabe, y con mouse
+ * lleva una flecha a cada lado (Felipe 2026-11-05), que solo se ve si hay más hacia ese lado.
+ */
+export function FilaDeCategorias({ categorias, sede, origenFotos }: { categorias: CategoriaConFoto[]; sede: string | null; origenFotos: string | undefined }) {
+  const fila = useRef<HTMLElement>(null);
+  const [hay, setHay] = useState({ izquierda: false, derecha: false });
+
+  useEffect(() => {
+    const caja = fila.current;
+    if (!caja) return;
+    const medir = () => {
+      const izquierda = caja.scrollLeft > 2;
+      const derecha = caja.scrollLeft + caja.clientWidth < caja.scrollWidth - 2;
+      setHay((h) => (h.izquierda === izquierda && h.derecha === derecha ? h : { izquierda, derecha }));
+    };
+    medir();
+    caja.addEventListener("scroll", medir, { passive: true });
+    const vigia = new ResizeObserver(medir);
+    vigia.observe(caja);
+    return () => {
+      caja.removeEventListener("scroll", medir);
+      vigia.disconnect();
+    };
+  }, []);
+
+  const mover = (hacia: -1 | 1) => {
+    const caja = fila.current;
+    if (!caja) return;
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    caja.scrollBy({ left: hacia * caja.clientWidth * 0.8, behavior: quieto ? "auto" : "smooth" });
+  };
+
+  if (categorias.length === 0) return null;
+  return (
+    <div className="pl-cats-marco t-ancho">
+      <button className="pl-cats-flecha" data-lado="izquierda" type="button" aria-label="Ver las categorías anteriores" hidden={!hay.izquierda} onClick={() => mover(-1)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" />
+        </svg>
+      </button>
+      <nav className="pl-cats" ref={fila} aria-label="Categorías">
+        {categorias.map((c) => (
+          <Link className="pl-cat" key={c.clave} href={hrefLista({ sede, categoria: c.clave, orden: "destacado" })} style={{ "--c": c.fondo } as React.CSSProperties}>
+            <span>
+              <Image src={c.foto} alt="" width={124} height={124} sizes="124px" unoptimized={!fotoOptimizable(c.foto, origenFotos)} />
+            </span>
+            {c.nombre}
+          </Link>
+        ))}
+      </nav>
+      <button className="pl-cats-flecha" data-lado="derecha" type="button" aria-label="Ver más categorías" hidden={!hay.derecha} onClick={() => mover(1)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+}

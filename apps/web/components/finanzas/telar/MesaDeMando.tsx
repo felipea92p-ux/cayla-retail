@@ -9,6 +9,8 @@ import { ESTADOS } from "@/lib/estados-financieros-reglas";
 import { rutaActiva } from "@/lib/menu";
 import {
   aceptaVariasSedes,
+  alcanceDeRuta,
+  dichoDelAlcance,
   alternarSede,
   claveDeSedes,
   dichoDeLaSede,
@@ -75,12 +77,17 @@ export function MesaDeMando({
   const deAUna = !aceptaVariasSedes(pathname);
   const variasSinJuntar = deAUna && elegidas.length > 1;
   const puedeElegir = veTodo && sedes.length > 1;
+  const alcance = alcanceDeRuta(pathname);
+  const sedeNoAplica = alcance.sede === "toda";
   // En una pantalla que todavía no suma varias, se dice: si no, tocar una segunda sede y ver que reemplaza a la primera parece una falla.
-  const dicho = variasSinJuntar
+  const dicho = sedeNoAplica
+    ? dichoDelAlcance(alcance)!
+    : variasSinJuntar
     ? "Esta pantalla aún no suma varias: muestra todas. Toca una para verla sola."
     : deAUna && elegidas.length === 1
       ? `${dichoDeLaSede(elegidas, sedes)} (aquí, una a la vez)`
       : dichoDeLaSede(elegidas, sedes);
+  const dichoMes = !sedeNoAplica && !alcance.mes ? `${dicho}. ${dichoDelAlcance(alcance)}` : dicho;
   const tocar = (clave: ClaveSede) => router.push(aqui({ sede: claveDeSedes(alternarSede(elegidas, clave, sedes, deAUna), sedes) }), { scroll: false });
 
   return (
@@ -90,13 +97,13 @@ export function MesaDeMando({
           <span className="sedes-telar-titulo">Ver sede</span>
           {puedeElegir ? (
             <>
-              <button type="button" className="sede-telar" data-color="todas" aria-pressed={elegidas.length === 0} onClick={() => tocar(SEDE_TODAS)}>
+              <button type="button" className="sede-telar" data-color="todas" aria-pressed={elegidas.length === 0} disabled={sedeNoAplica} onClick={() => tocar(SEDE_TODAS)}>
                 Todas
               </button>
               {sedes.map((s) => {
                 const marcada = elegidas.includes(s.clave);
                 return (
-                  <button key={s.clave} type="button" className="sede-telar" data-color={s.color} aria-pressed={marcada} onClick={() => tocar(s.clave)}>
+                  <button key={s.clave} type="button" className="sede-telar" data-color={s.color} aria-pressed={marcada} disabled={sedeNoAplica} onClick={() => tocar(s.clave)}>
                     <span className="sede-telar-punto" aria-hidden>
                       {marcada && <Check className="h-3 w-3" />}
                     </span>
@@ -116,18 +123,20 @@ export function MesaDeMando({
         </div>
         {/* Los cuatro estados financieros eligen sus fechas con el calendario de su cabecera (ADR-0611): un solo control de la fecha en la pantalla. */}
         {!ESTADOS.some((e) => e.ruta === pathname) && (
-          <SelectorMes
-            valor={{ anio, mes: m }}
-            actual={{ anio: anioHoy, mes: mHoy }}
-            onCambiar={(x) => router.push(aqui({ mes: mesTelar(x.anio, x.mes) }), { scroll: false })}
-            guia="telar.mes"
-          />
+          <div className={alcance.mes ? "contents" : "mesa-telar-no-aplica"} inert={!alcance.mes} title={alcance.mes ? undefined : "Esta pantalla no cambia con el mes"}>
+            <SelectorMes
+              valor={{ anio, mes: m }}
+              actual={{ anio: anioHoy, mes: mHoy }}
+              onCambiar={(x) => router.push(aqui({ mes: mesTelar(x.anio, x.mes) }), { scroll: false })}
+              guia="telar.mes"
+            />
+          </div>
         )}
         {/* El Resumen cuelga aquí su ícono «Qué se ve» (`AjustesResumen`): solo esa pantalla lo dibuja, el resto de Finanzas no. */}
         <span id={SLOT_AJUSTES_RESUMEN} className="contents" />
-        {puedeElegir && (
-          <span className="mesa-telar-dice" role="status" title={dicho}>
-            {dicho}
+        {(puedeElegir || !alcance.mes) && (
+          <span className="mesa-telar-dice" role="status" title={puedeElegir ? dichoMes : dichoDelAlcance(alcance)!}>
+            {puedeElegir ? dichoMes : dichoDelAlcance(alcance)}
           </span>
         )}
         <TeToca submodulos={submodulos} />
