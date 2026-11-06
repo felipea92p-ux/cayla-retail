@@ -219,7 +219,7 @@ export default async function Inicio({ searchParams }: Props) {
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-top">{grillaDe(delPrograma)}</div>
+              <div className="t-grilla">{grillaDe(delPrograma)}</div>
             </section>
           )}
           {gruposL.length === 0 && delPrograma.length > 0 && (
