@@ -31,7 +31,7 @@ export function montosDeGanancias(f: FilaER, tramos: readonly TramoCascada[] = c
   return { ventas: f.ventas, mercaderia: de("costo"), sueldos: de("planilla"), local: de("local"), otros, resultado: f.resultado };
 }
 
-const porciento = (v: number, ventas: number) => (ventas > 0 ? `${Math.round((Math.abs(v) / ventas) * 100)} %` : undefined);
+const porciento = (v: number, ventas: number) => (ventas > 0 ? `${Math.round((Math.abs(v) / ventas) * 100)} % de lo vendido` : undefined);
 
 export type ComparadaGanancias = { etiqueta: string; fila: FilaER | null };
 
@@ -144,7 +144,7 @@ export function partesDeGanancias({
     }),
     {
       clave: "resultado",
-      nombre: gano ? "Te quedó" : m.ventas > 0 ? "Faltaron" : "Costó",
+      nombre: gano ? "Te quedó" : m.ventas > 0 ? "Perdiste" : "Costó",
       color: gano ? "var(--color-verde)" : "var(--color-rojo)",
       enBarra: gano ? m.resultado : 0,
       texto: soles(Math.abs(m.resultado)),
@@ -221,7 +221,7 @@ export function lecturaDeGanancias(fila: FilaER | null, antes: FilaER | null, p:
       ? pc > 100
         ? `Ganaste ${p.en}: te quedó más de lo que vendiste, por ajustes a favor que no son ventas.`
         : `Ganaste ${p.en}: te quedó el ${pc} % de lo que vendiste.`
-      : `Perdiste ${p.en}: faltó el ${pc} % de lo que vendiste.`;
+      : `Perdiste ${p.en}: por cada ${soles(100)} que vendiste, faltaron ${soles(pc)}.`;
   const anterior = nombreDelAnterior(p);
   const mAntes = antes ? montosDeGanancias(antes) : null;
   const d = mAntes ? r - Math.round(mAntes.resultado) : 0;

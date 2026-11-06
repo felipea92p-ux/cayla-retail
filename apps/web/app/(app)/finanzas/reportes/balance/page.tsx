@@ -107,7 +107,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
               <TubosDelBalance
                 guia="fin-vale.tubos"
                 arriba={{ rotulo: "Lo que tienes", cifra: soles(t.tiene), partes: delLado("tiene") }}
-                abajo={{ rotulo: "Lo que debes y lo que es tuyo", cifra: `${soles(t.debe)} + ${soles(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
+                abajo={{ rotulo: "Lo que debes y lo que es tuyo", cifra: `Debes ${soles(t.debe)} + tuyo ${soles(t.tuyo)}`, partes: [...delLado("debe"), ...delLado("tuyo")] }}
                 huecos={["tuyo"]}
               />
             }
@@ -136,7 +136,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             grafico={
               <TubosDelBalance
                 arriba={{ rotulo: "Lo que tiene", cifra: soles(tiene), partes: de("caja", "mercaderia", "equipos") }}
-                abajo={{ rotulo: "Lo que debe y lo invertido", cifra: `${soles(unidad.facturasPorPagar)} + ${soles(unidad.invertido)}`, partes: de("facturas", "invertido") }}
+                abajo={{ rotulo: "Lo que debe y lo invertido", cifra: `Debe ${soles(unidad.facturasPorPagar)} + invertido ${soles(unidad.invertido)}`, partes: de("facturas", "invertido") }}
                 huecos={["invertido"]}
               />
             }

@@ -54,10 +54,10 @@ Las cuatro pantallas siguen la maqueta aprobada por Felipe (`docs/maquetas/finan
 | **Leyes (promedio)** | **8,5** | |
 | **Oficio visual** | sin nota | [Medido] contraste: 0 fallas · dedo: solo los tramos de la barra. El motor marca de 5 a 7 de 8 comprobaciones, casi todo del marco o de lo plegado (texto chico de la cabecera, radios del vidrio, negativos en rojo de una tabla): no alcanza para una nota honesta sin separar eso |
 
-## Los 3 cambios de mayor impacto (presentación; esperan el OK de Felipe)
+## Los 3 cambios de mayor impacto (Felipe aprobó los tres el 2026-11-05; ya están hechos)
 
 1. **El calendario dice cómo se usa.** Antes: «Elige los días, un atajo, o escríbelos». Después: «Toca el primer día y luego el último. Se aplica solo». Ley 1. Se verifica repitiendo la tarea E. Esfuerzo S.
-2. **Una pérdida se dice con palabras.** Antes: «Perdiste en noviembre: faltó el 177 % de lo que vendiste», la tarjeta «Faltaron» y «45 %» sueltos. Después: «Perdiste en noviembre: lo que vendiste no alcanzó para lo que costó», la tarjeta «La pérdida» y «45 % de lo vendido». Ley 3. Solo textos, las cifras no cambian. Esfuerzo S.
+2. **Una pérdida se dice con palabras.** Antes: «Perdiste en noviembre: faltó el 177 % de lo que vendiste», la tarjeta «Faltaron» y «45 %» sueltos. Después: «Perdiste en noviembre: por cada S/ 100 que vendiste, faltaron S/ 177», la tarjeta «Perdiste» y «45 % de lo vendido». Ley 3. Solo textos, las cifras no cambian. Esfuerzo S.
 3. **El tubo del Balance nombra sus lados.** Antes: «S/ 54,486 + S/ 155,753» y una parte rayada sin nombre. Después: «Debes S/ 54,486 + tuyo S/ 155,753». Ley 3. Esfuerzo S.
 
 ## Lo que sobra (ley 8)
@@ -66,7 +66,7 @@ Nada a la vista. El cuadro por sede con sus casillas nativas sigue dentro de «V
 
 ## Lo que no pediste y importa más
 
-**Ganancias y Patrimonio pueden decir dos «ganaste» distintos.** Ganancias suma los sueldos estimados que Dynamic todavía no paga (`getEstadoResultados` → `aplicarProvision`, `lib/resultados.ts`); Patrimonio y Balance leen el diario, que no los tiene. [Código] leído, no observado con datos reales: el seed local no trae provisión. En la prueba, la contradicción que vio el ciego («Ganaste S/ 59» contra «−S/ 6,447») viene de los datos inventados, que no salen de un mismo diario, pero con datos reales puede pasar en un mes con sueldos sin pagar. Hoy Patrimonio no lo explica. Es de dinero y lo decide Felipe.
+**Ganancias y Patrimonio pueden decir dos «ganaste» distintos.** Ganancias suma los sueldos estimados que Dynamic todavía no paga (`getEstadoResultados` → `aplicarProvision`, `lib/resultados.ts`); Patrimonio y Balance leen el diario, que no los tiene. [Código] leído, no observado con datos reales: el seed local no trae provisión. En la prueba, la contradicción que vio el ciego («Ganaste S/ 59» contra «−S/ 6,447») viene de los datos inventados, que no salen de un mismo diario, pero con datos reales puede pasar en un mes con sueldos sin pagar. Felipe eligió explicarlo (2026-11-05): el detalle de «Ganaste» en Patrimonio ahora lo dice. Las cifras no cambian.
 
 ## Lista aparte (no se ejecuta)
 
@@ -97,4 +97,4 @@ Errores evitables: no aplica, porque fue sobre capturas: no tocó nada. No prueb
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-31 | rama `claude/dazzling-gauss-34te52` | 7,8 (provisional) | sin medir | — |
-| 2026-11-05 | `c29f39de5` + cierre | 8,5 | medido, sin nota | Los 3 de octubre: la línea de lo tuyo ya no arranca en 0 (`geometriaDeLinea`) y «Qué te recomiendo» va a todo el ancho antes de «Ver más». El de la terminal sigue esperando |
+| 2026-11-05 | cierre de la rama | 8,5 (antes de los 3 cambios de texto; sin volver a medir con el ciego) | medido, sin nota | Los 3 de esta pasada. De los 3 de octubre: la línea de lo tuyo ya no arranca en 0 (`geometriaDeLinea`) y «Qué te recomiendo» va a todo el ancho antes de «Ver más». El de la terminal sigue esperando |

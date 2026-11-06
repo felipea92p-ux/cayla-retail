@@ -326,7 +326,7 @@ function Calendario({
   const elegibles = diasPorMes.flatMap((m) => m.dias.filter((d) => !d.apagado));
   const conTab = elegibles.some((d) => d.iso === foco) ? foco : (elegibles.at(-1)?.iso ?? null);
   const cambioEscrito = tecleo && (textoHasta !== fechaEnCampo(p.hasta) || (!una && textoDesde !== fechaEnCampo(p.desde)));
-  const paso = errorEscrito ?? (una ? "Elige la fecha de la foto, o escríbela" : pendiente !== null ? "Ahora elige el último día" : "Elige los días, un atajo, o escríbelos");
+  const paso = errorEscrito ?? (una ? "Elige la fecha de la foto, o escríbela" : pendiente !== null ? "Ahora elige el último día" : "Toca el primer día y luego el último. Se aplica solo.");
   const titulo = pendiente !== null ? `Desde el ${fechaLarga(pendiente)}` : una ? p.al : p.titulo;
   const dosEnMovimiento = arrastre ? ([Math.min(...arrastre), Math.max(...arrastre)] as const) : null;
 

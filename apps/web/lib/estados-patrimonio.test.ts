@@ -61,6 +61,9 @@ describe("las partes", () => {
     const de = (c: string) => p.find((x) => x.clave === c)!.cifra;
     expect(de("inicio") + de("ganancia") + de("aportes") + de("retiros") + de("otros")).toBe(de("fin"));
   });
+  it("lo ganado avisa que no trae los sueldos estimados, porque Ganancias y pérdidas sí los resta", () => {
+    expect(partesDelPatrimonio({ ...base, datos: dato() }).find((x) => x.clave === "ganancia")!.que).toContain("sueldos estimados");
+  });
   it("perdiste en rojo y lo que no se explica aparte", () => {
     const p = partesDelPatrimonio({ ...base, datos: dato({ ganancia: -100, otros: 40 }) });
     expect(p.find((x) => x.clave === "ganancia")).toMatchObject({ nombre: "Perdiste", tono: "mal", color: "var(--color-rojo)" });

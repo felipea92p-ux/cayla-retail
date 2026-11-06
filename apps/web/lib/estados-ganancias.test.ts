@@ -69,8 +69,8 @@ describe("las cinco partes", () => {
     const p = partesDeGanancias(params(fila()));
     expect(p.map((x) => x.clave)).toEqual(["mercaderia", "sueldos", "local", "otros", "resultado"]);
     expect(p.reduce((a, x) => a + x.enBarra, 0)).toBe(10000);
-    expect(p[4]).toMatchObject({ nombre: "Te quedó", tono: "bien", texto: soles(2550), sub: "26 %" });
-    expect(p[0]).toMatchObject({ sub: "42 %", cifra: 4150 });
+    expect(p[4]).toMatchObject({ nombre: "Te quedó", tono: "bien", texto: soles(2550), sub: "26 % de lo vendido" });
+    expect(p[0]).toMatchObject({ sub: "42 % de lo vendido", cifra: 4150 });
     expect(p[0]!.filas.map((x) => x.nombre)).toEqual(["La ropa vendida", "Fletes de la mercadería", "Prendas perdidas o dañadas"]);
     expect(p[3]!.filas.map((x) => x.nombre)).toEqual(["Publicidad, envíos y comisiones", "Desgaste de máquinas y muebles"]);
   });
@@ -78,7 +78,7 @@ describe("las cinco partes", () => {
   it("con pérdida, lo que faltó tiene tarjeta pero no entra a la barra: la barra es lo que se gastó", () => {
     const f = fila({ ventas: 5000, resultado: -2450 });
     const p = partesDeGanancias(params(f));
-    expect(p[4]).toMatchObject({ nombre: "Faltaron", tono: "mal", enBarra: 0, cifra: -2450, texto: soles(2450) });
+    expect(p[4]).toMatchObject({ nombre: "Perdiste", tono: "mal", enBarra: 0, cifra: -2450, texto: soles(2450) });
     expect(p.reduce((a, x) => a + x.enBarra, 0)).toBe(7450);
     expect(tituloDeLasPartes(f)).toBe(`No alcanzó: vendiste ${soles(5000)} y gastaste ${soles(7450)}`);
   });
@@ -162,7 +162,11 @@ describe("lo que dice la pantalla", () => {
 
   it("una pérdida", () => {
     const l = lecturaDeGanancias(fila({ resultado: -500 }), null, OCT);
-    expect(l).toMatchObject({ valor: -500, mal: true, frase: "Perdiste en octubre: faltó el 5 % de lo que vendiste.", chip: null });
+    expect(l).toMatchObject({ valor: -500, mal: true, frase: `Perdiste en octubre: por cada ${soles(100)} que vendiste, faltaron ${soles(5)}.`, chip: null });
+  });
+
+  it("una pérdida mayor que lo vendido se sigue diciendo en soles, sin un porcentaje raro", () => {
+    expect(lecturaDeGanancias(fila({ ventas: 100, resultado: -177 }), null, OCT).frase).toBe(`Perdiste en octubre: por cada ${soles(100)} que vendiste, faltaron ${soles(177)}.`);
   });
 
   it("quedó más de lo vendido: se dice por qué", () => {

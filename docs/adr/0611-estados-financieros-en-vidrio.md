@@ -106,6 +106,8 @@ La maqueta decía cómo se ve; esto es lo que salió al conectarla con los datos
 **Una función nueva en la base: `retail.fn_patrimonio_en_fechas(p_desde, p_hasta)`** (migración `20261105230000`; solo lee, `security definer`, con el mismo candado de `fn_patrimonio_cambios`; sin `alter` ni políticas). Sin pegarla, un mes entero funciona igual con
 `fn_patrimonio_cambios`, y solo fallan, con su mensaje, otras fechas y la comparación del mes en curso.
 
+**Lo que Felipe aprobó tras la prueba ciega (2026-11-05):** el calendario dice cómo se usa («Toca el primer día y luego el último. Se aplica solo»); una pérdida se dice en soles («por cada S/ 100 que vendiste, faltaron S/ 177»), con la tarjeta «Perdiste» y los porcentajes «de lo vendido»; y el tubo del Balance nombra sus lados («Debes … + tuyo …»). Además, el detalle de «Ganaste» en Patrimonio avisa que no trae los sueldos estimados que Ganancias y pérdidas ya resta: las dos cifras pueden diferir en un mes con sueldos sin pagar, y no se igualaron porque eso es tema del contador.
+
 **Con el dedo, un tramo angosto de la barra sigue siendo angosto** (de 7 a 42 px): su ancho es la proporción, que es el dato. La tarjeta de abajo hace lo mismo y mide 44 px; WCAG 2.5.8 admite ese caso (control equivalente).
 
 ## Cómo se verificó

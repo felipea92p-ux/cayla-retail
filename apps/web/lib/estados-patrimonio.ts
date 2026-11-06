@@ -81,7 +81,7 @@ export function partesDelPatrimonio({ datos, comparadas, etiquetaActual, periodo
       enBarra: 0,
       texto: solesConSigno(datos.ganancia),
       tono: gano ? "bien" : "mal",
-      que: "El resultado de estas fechas, y cuánto dejó cada sede.",
+      que: "El resultado de estas fechas, y cuánto dejó cada sede. Sale del diario: los sueldos estimados que Ganancias y pérdidas ya resta entran aquí cuando Dynamic los paga.",
       cifra: datos.ganancia,
       filas: [...porSede],
       conSignos: true,
