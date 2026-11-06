@@ -569,6 +569,7 @@ export function HojaRegistrarGasto({
 
       {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} className="mt-4" />}
 
+      <div className="pie-hoja-fijo pt-2">
       <PieGuia guia={guia} listo="Todo listo para registrar." />
       <PieAcciones className="mt-3" guia="fin-hoja.botones">
         <Boton type="button" peso="fantasma" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
@@ -583,6 +584,7 @@ export function HojaRegistrarGasto({
           {intento.incierto ? "Volver a intentar" : egreso ? "Guardar como gasto" : "Registrar gasto"}
         </Boton>
       </PieAcciones>
+      </div>
       {avisoSalida.aviso}
     </Modal>
   );

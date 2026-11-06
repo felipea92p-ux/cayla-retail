@@ -492,6 +492,7 @@ export function PrendaSinRegistrarModal({
               <ComboResponsable control={corregir.responsable} deshabilitado={corregir.guardando} />
             </CampoGuiado>
           )}
+          <div className="pie-hoja-fijo pt-2">
           <PieGuia
             guia={guia}
             listo={
@@ -515,6 +516,7 @@ export function PrendaSinRegistrarModal({
           >
             {corregir ? "Guardar cambios" : "Agregar al ticket"}
           </Boton>
+          </div>
         </div>
       </div>
     </Modal>

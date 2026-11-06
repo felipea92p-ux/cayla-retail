@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { avisar } from "@/components/ui/Avisos";
-import { asegurarVisible, estaEscribiendo, hayCampo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
+import { hayCampo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, revisadosVigentes, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
@@ -84,16 +84,7 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, 
   const ahora = siguienteDe(campos, escribiendoEn)?.id ?? null;
   const puedeConfirmar = sePuedeConfirmar(campos);
 
-  // Cuando lo que sigue cambia, si el nuevo campo quedó fuera de vista dentro del modal se le trae con suavidad. Nunca mientras la
-  // persona teclea (mover la luz sí, mover el modal no), y no al abrir (ahí el modal ya pone su propio foco).
-  const previo = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    const antes = previo.current;
-    previo.current = ahora;
-    if (antes === undefined || antes === ahora || ahora === null || estaEscribiendo()) return;
-    asegurarVisible(ahora, { enModal });
-  }, [ahora, enModal]);
-
+  // La luz nunca mueve la hoja (Felipe 2026-11-05: «invasiva»). Solo se desplaza si la persona lo pide: tocar lo que falta (`ir`) o intentar guardar (`revisar`).
   return {
     campos,
     estado: (id) => estados[id] ?? "opcional",
