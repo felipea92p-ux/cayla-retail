@@ -28,6 +28,8 @@ export const CAUSAS_FALTANTE: Record<CausaFaltante, string> = {
 export type LineaPapel = {
   id: string;
   nombre: string;
+  /** La marca de la prenda (20261106154000). Nula si la web se publicó antes que la migración. */
+  marca: string | null;
   cantidad: number;
   costo: number;
   subtotal: number;
@@ -145,6 +147,7 @@ function leerLinea(x: unknown): LineaPapel | null {
   return {
     id,
     nombre: texto(o.nombre) ?? "Prenda",
+    marca: texto(o.marca),
     cantidad,
     costo,
     subtotal: numero(o.subtotal) ?? cantidad * costo,
@@ -379,6 +382,18 @@ export function subtituloPapel(p: Pick<PapelPorCompletar, "persona" | "fecha" | 
   return [p.persona, p.fecha ? diaMes(p.fecha) : null, prendas === 1 ? "1 prenda" : `${prendas} prendas`].filter(Boolean).join(" · ");
 }
 
+/** Las marcas del papel, sin repetir y en el orden en que se anotaron (Felipe 2026-11-06: la razón social sola no dice qué mercadería es). */
+export function marcasDePapel(p: Pick<PapelPorCompletar, "lineas">): string[] {
+  return [...new Set(p.lineas.flatMap((l) => (l.marca ? [l.marca] : [])))];
+}
+
+/** Bajo la razón social, en el detalle: «Marca: Kiara» o «Marcas: Kiara · Moda Mia». Sin marcas (web antes de la migración), nada. */
+export function lineaMarcas(p: Pick<PapelPorCompletar, "lineas">): string | undefined {
+  const marcas = marcasDePapel(p);
+  if (marcas.length === 0) return undefined;
+  return `${marcas.length === 1 ? "Marca" : "Marcas"}: ${marcas.join(" · ")}`;
+}
+
 /** A qué tienda iban las prendas, sin repetir: «Tienda Lima», «Tienda Lima · Tienda AQP». */
 export function destinosDePapel(p: Pick<PapelPorCompletar, "lineas">): string {
   return [...new Set(p.lineas.map((l) => l.destino))].join(" · ");
@@ -567,7 +582,7 @@ export function diaYRonda(fecha: string, ronda: string | null): string {
   return [fecha ? diaMes(fecha) : null, ronda].filter(Boolean).join(" · ");
 }
 
-export type FilaBandeja = { id: string; titulo: string; quien: string; cuando: string; monto: number; chip: { tono: "ambar" | "verde" | "pizarra"; texto: string } };
+export type FilaBandeja = { id: string; titulo: string; /** Solo las compras: la marca, bajo la razón social. */ marca?: string; quien: string; cuando: string; monto: number; chip: { tono: "ambar" | "verde" | "pizarra"; texto: string } };
 
 /** Lo que llegó a la tienda de una compra ya recibida: «35 de 35». Antes de llegar, nada. */
 export function llegadaDePapel(p: Pick<PapelPorCompletar, "llego" | "lineas">): { llegaron: number; total: number; completa: boolean } | null {
@@ -604,6 +619,7 @@ export function filaPapel(p: Pick<PapelPorCompletar, "id" | "persona" | "proveed
   return {
     id: p.id,
     titulo: `${p.proveedor} · ${TIPOS_PAPEL[p.tipo].nombre}`,
+    marca: marcasDePapel(p).join(" · ") || undefined,
     quien: p.persona,
     cuando: diaYRonda(p.fecha, p.ronda),
     monto: p.monto,
