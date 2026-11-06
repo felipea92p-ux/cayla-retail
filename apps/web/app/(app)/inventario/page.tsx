@@ -19,6 +19,8 @@ import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
+import { getEtapasOcultas } from "@/lib/etapa-prenda";
+import { sinLasEnProduccion } from "@/lib/etapa-prenda-reglas";
 import { getStockPorDueno } from "@/lib/stock-por-dueno";
 import { getValorInventario } from "@/lib/valor-inventario";
 import { armarVistaValor } from "@/lib/valor-inventario-reglas";
@@ -176,7 +178,8 @@ export default async function InventarioPage({
     pideAjustar(ajustar) && variante && ubicacionActivaId === persona.ubicacionId && puede(persona, "ajustarStock") && !stockBase.some((f) => f.varianteId === variante)
       ? await getFilaSinStockDeVariante(variante, vende).catch(() => null)
       : null;
-  const sinStock = productosSinStockEnSede(soloLasDeAqui(catalogo.productos, empresasAqui), stockBase);
+  // Lo que todavía es una orden no aparece como «sin stock aquí»: aún no es una prenda (ADR-0614, actividad 14). Lo terminado sí.
+  const sinStock = productosSinStockEnSede(sinLasEnProduccion(soloLasDeAqui(catalogo.productos, empresasAqui), await getEtapasOcultas().catch(() => null)), stockBase);
   // Lo que pide cada talla («Hoy») lo cuenta el panel con `hoyDeTalla`, la misma regla de la tabla, el filtro y «Para hoy»; el resumen
   // solo suma cantidades. Hasta el 2026-10-04 también contaba las tallas que piden reponer para una tarjeta que ya no existe.
   const resumen = resumirExistencias(stock);

@@ -397,6 +397,10 @@ begin
   v_def := replace(v_def, '''insignias'', coalesce(ins.insignias, ''[]''::jsonb),' || chr(10) || '        ', '');
   v_def := replace(v_def, chr(10) || '    left join insignias_de ins on ins.producto_id = m.id', '');
   execute v_def;
+  -- ADR-0614, actividad 14 (20261106004000): el porqué de lo que aún no llega a una tienda.
+  execute replace(pg_get_functiondef('retail.fn_vitrina_por_que_no(uuid)'::regprocedure),
+    $parche$when retail.fn_producto_etapa(p.id) in ('en_produccion', 'terminada') then 'no_llega_a_tienda' -- ADR-0614: la web vende lo que está en una tienda
+    $parche$, '');
 end $quitar$;`;
 const sql = (archivo) => readFileSync(archivo, "utf8");
 esperarValor(

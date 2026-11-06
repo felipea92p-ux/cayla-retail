@@ -1,3 +1,5 @@
+import { getEtapasOcultas } from "@/lib/etapa-prenda";
+import { soloLasQueLlegaron } from "@/lib/etapa-prenda-reglas";
 import { filtroDeMarcaOProveedor } from "@/lib/marcas";
 import { unstable_cache } from "next/cache";
 import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
@@ -209,6 +211,15 @@ export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatal
   // La insignia es la de la FICHA (ADR-0505): una prenda dada de alta como de CLAURE lleva «CLAURE». De quién son las UNIDADES de una prenda
   // que tiene de las dos lo dice el reparto (ADR-0542, `lib/stock-por-dueno.ts`): Vender pregunta de cuál sale cuando hay duda.
   return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(v.empresaId, empresas) }));
+}
+
+/**
+ * Lo que se le OFRECE a un cliente en esta sede (Vender, Apartados, Cambios, Buscar): el catálogo de la sede sin lo del Taller que todavía no
+ * llega a una tienda (ADR-0614, actividad 14). Recibir y Conteos siguen con `getCatalogoDeLaSede`: tienen que ver lo que hay.
+ */
+export async function getCatalogoParaOfrecer(sedeId: string): Promise<VarianteCatalogo[]> {
+  const [catalogo, etapas] = await Promise.all([getCatalogoDeLaSede(sedeId), getEtapasOcultas().catch(() => null)]);
+  return soloLasQueLlegaron(catalogo, etapas);
 }
 
 // ============================================================================
