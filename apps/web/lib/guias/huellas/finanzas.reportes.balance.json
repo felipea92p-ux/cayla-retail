@@ -2,7 +2,7 @@
   "guia": "finanzas.reportes.balance",
   "ruta": "/finanzas/reportes/balance",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 34,
+  "total": 35,
   "controles": {
     "components/finanzas/BalancePanel.tsx": [
       "button «fin-balance.arranque»",
@@ -12,6 +12,7 @@
       "button «{enlace.texto}»"
     ],
     "components/finanzas/SaldosArranqueModal.tsx": [
+      "Link «Ir a Cuentas y dinero»",
       "button «Usar esta cifra»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",

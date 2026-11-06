@@ -186,6 +186,10 @@ del mismo Postgres (en una de las tandas).
 - **Dos PR pegan sobre la misma función:** el primero pasó su check; si el segundo pisa su versión en producción antes de
   que el primero se fusione, el primero se fusiona contra la versión del segundo. Este check no vuelve a correr solo; lo
   ve la revisión diaria.
+  Si ninguno se ha fusionado y los dos ya están pegados, se traban: producción tiene la suma, cada uno compara lo suyo, y
+  ninguno pasa (#1655 y #1658 el 2026-11-05). No falta nada por pegar. Se destraba con una migración puente en el que se
+  fusiona primero, que trae para esa función el mismo texto del otro; su reemplazo anclado ve el texto puesto y no hace nada.
+  Se confirma antes comparando las huellas con producción, en privado, y no marcando la otra casilla, que diría algo falso.
 - **Supabase o la API de artefactos de GitHub no responden:** los PR con SQL quedan en rojo («no se pudo leer producción»)
   hasta que vuelvan; los PR sin SQL no se enteran. El dueño puede saltarse la regla en una urgencia.
 

@@ -30,7 +30,7 @@ import {
   valoresIniciales,
   type Chequeo,
   type LineaBalance,
-  type LineaPropuesta,
+  type LineaPropuesta,cuentasQueEmpiezanDespues,
 } from "./balance-reglas";
 
 const ch = (x: Partial<Chequeo>): Chequeo => ({
@@ -296,5 +296,13 @@ describe("descargar Excel", () => {
     expect(csv).toContain("Lo que tiene;101;Caja (cajones, cajas fuertes y lo entregado al líder);125.00");
     expect(csv).toContain("101 Caja;contra lo que dice cada caja;125.00;125.00;0.00;cuadra");
     expect(csv).toContain("Tienda Trujillo;125.00;0.00;0.00;0.00;895.00;113.99;12,7 % al mes");
+  });
+});
+
+describe("cuentasQueEmpiezanDespues (tarea 4)", () => {
+  const c = (saldoDesde: string | null, archivada = false) => ({ saldoDesde, archivada });
+  it("frena solo las vigentes que empiezan después del día elegido; ese mismo día ya vale", () => {
+    expect(cuentasQueEmpiezanDespues([c("2026-10-28"), c("2026-09-30"), c(null), c("2026-10-28", true)], "2026-10-01")).toEqual([c("2026-10-28")]);
+    expect(cuentasQueEmpiezanDespues([c("2026-10-01")], "2026-10-01")).toEqual([]);
   });
 });
