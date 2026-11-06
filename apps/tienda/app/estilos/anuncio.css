@@ -7,7 +7,8 @@
 .t-anuncio-frase :is(a, .t-anuncio-sin-enlace) { display: inline-flex; align-items: center; gap: 8px; padding-block: 6px; color: inherit; }
 .t-anuncio-frase .ic { width: 15px; height: 15px; flex: none; opacity: .85; }
 .t-anuncio-frase[data-estado="fija"], .t-anuncio-frase[data-estado="entra"] { opacity: 1; visibility: visible; }
-.t-anuncio-frase[data-estado="entra"] { animation: t-anuncio-entra .32s var(--ease) both; }
+/* Entra cuando el anterior ya salió: los dos textos no se enciman. */
+.t-anuncio-frase[data-estado="entra"] { animation: t-anuncio-entra .32s var(--ease) .22s both; }
 .t-anuncio-frase[data-estado="sale"] { animation: t-anuncio-sale .22s var(--ease) both; }
 .t-anuncio-frases { --t-anuncio-desde: 12px; --t-anuncio-hacia: -12px; }
 @keyframes t-anuncio-entra { from { opacity: 0; transform: translateX(var(--t-anuncio-desde)); } }
