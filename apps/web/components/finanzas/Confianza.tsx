@@ -4,20 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
-import { textoEstado, tonoPieza, type Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
+import { etiquetaNivel, textoEstado, tonoPieza, type Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 
 // «¿Puedo fiarme de este número?» (ADR-0417, Fase 1; Felipe 2026-10-24: spike 5-A; 2026-10-29: dentro de «Vendido por sede»). Ya no es una franja
-// aparte: el chip «Seguro al 86 %» va arriba a la derecha de la tarjeta, y debajo la frase y, a un toque, lo que falta para que lo sea (cada pieza
+// aparte: el chip «Número a medias» (o «confiable», «poco seguro»; sin cifra) va arriba a la derecha de la tarjeta, y debajo la frase y, a un toque, lo que falta para que lo sea (cada pieza
 // con su insignia, su frase en lenguaje de tienda y el enlace a donde se arregla). No calcula nada: la calificación viene de
 // `lib/finanzas-confianza.ts` (pura, con prueba); aquí solo se dibuja.
 
 const TONO_NIVEL: Record<ConfianzaDatos["nivel"], TonoChip> = { alto: "verde", medio: "ambar", bajo: "rojo" };
 
-/** El chip de arriba a la derecha: «Seguro al 86 %». */
+/** El chip de arriba a la derecha: el nivel en palabras. */
 export function ConfianzaChip({ confianza }: { confianza: ConfianzaDatos }) {
   return (
     <Chip tono={TONO_NIVEL[confianza.nivel]} title="Qué tan seguro es este número" data-guia="fin-resumen.confianza">
-      Seguro al {confianza.pct} %
+      {etiquetaNivel(confianza.nivel)}
     </Chip>
   );
 }
