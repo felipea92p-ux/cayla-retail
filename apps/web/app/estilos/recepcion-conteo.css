@@ -77,7 +77,7 @@ button.rc-parada:disabled { cursor: default; }
 
 
 /* ---- Lo que queda para después ---- */
-.rc-pendientes-caja { border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; }
+.rc-pendientes-caja { border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: var(--radius-tarjeta); }
 .rc-pend { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); }
 .rc-pend[data-tipo="crear"] { border-style: dashed; border-color: color-mix(in srgb, var(--color-pizarra) 45%, transparent); }
 
@@ -117,7 +117,7 @@ button.rc-parada:disabled { cursor: default; }
 
 /* ---- La planilla: la placa Serena ---- */
 .planilla-conteo {
-  border-radius: 20px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);

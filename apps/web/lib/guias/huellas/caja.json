@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 113,
+  "total": 114,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -142,12 +142,12 @@
       "Boton «→guardar»"
     ],
     "components/caja/AbrirCajaPantalla.tsx": [
+      "Boton «{responsable.motivo ?? undefined}»",
       "input «0.00»",
       "Boton «Igual al cierre ·»",
       "input «Ej.: se usó para dar vuelto»",
       "button «Contar billetes y monedas»",
       "ComboResponsable «{responsable}»",
-      "Boton «{responsable.motivo ?? undefined}»",
       "BotonEnlace «Ir a vender»",
       "Boton «Ver la caja»"
     ],
@@ -155,6 +155,7 @@
       "Boton «Usar este total»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ],
     "components/gasto-fijo/FichaDePagoTarjeta.tsx": [

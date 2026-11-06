@@ -17,7 +17,7 @@ export default function LoadingFrescura() {
             <div className="mt-3 h-9 w-72 max-w-full rounded bg-sand sm:h-[46px]" />
             <div className="mt-2.5 h-3 w-[26rem] max-w-full rounded bg-sand/70" />
           </div>
-          <div className="h-24 w-full rounded-[20px] bg-sand/50 lg:w-[34rem]" />
+          <div className="h-24 w-full rounded-tarjeta bg-sand/50 lg:w-[34rem]" />
         </div>
         <div className="card-cayla divide-y divide-sand">
           {/* El tablero «Cómo está el piso»: título y cuatro filas con su barra. */}

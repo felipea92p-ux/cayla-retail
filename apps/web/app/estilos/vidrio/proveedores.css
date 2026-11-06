@@ -7,7 +7,7 @@
 
 /* ---------- La columna derecha («Qué hacer», «Para hoy», «Comparar»): la placa Serena, la misma de la tabla ---------- */
 .prov-lado {
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);

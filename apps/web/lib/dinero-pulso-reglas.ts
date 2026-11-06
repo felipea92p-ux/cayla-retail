@@ -66,7 +66,8 @@ export type Alcanza =
       deClaudia: { monto: number; frase: string } | null;
     };
 
-export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
+export function alcanzaPulso(p: Proyeccion | null, guardado: number, falla = false): Alcanza {
+  if (falla) return { estado: "sin_dato", frase: "No se pudo leer lo que viene. Vuelve a cargar la página en un rato." };
   if (!p || p.semanas.length === 0) return { estado: "sin_dato", frase: "El flujo de caja de las próximas semanas lo ve el líder." };
   const baja = p.semanas.find((s) => s.bajoMinimo) ?? null;
   const masBaja = p.semanas.reduce((m, s) => (s.saldo < m.saldo ? s : m), p.semanas[0]!);
