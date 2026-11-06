@@ -4,14 +4,12 @@ import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { EscenarioDelDesfile } from "@/components/desfile/EscenarioDelDesfile";
 import { FilaDeCategorias } from "@/components/FilaDeCategorias";
-import { ListaDeSalidas } from "@/components/desfile/ListaDeSalidas";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { OfertasPorCampana } from "@/components/OfertasPorCampana";
-import { PortadaTresPaneles } from "@/components/PortadaTresPaneles";
 import { SeccionClub } from "@/components/SeccionClub";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
@@ -27,7 +25,10 @@ import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { piezasDelDesfile } from "@/lib/desfile";
-import { categoriasConFoto, gruposDeLaPortada, prendasDeAbajo } from "@/lib/portada-l";
+import { categoriasConFoto, gruposDeLaPortada } from "@/lib/portada-l";
+import { ArmaTuOutfit, BeneficiosDeLaTienda } from "@/components/BloquesDelRediseno";
+import { EscenaPortada } from "@/components/EscenaPortada";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
@@ -50,11 +51,10 @@ export const metadata: Metadata = { title: "Inicio · CAYLA" };
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 /** El Inicio con la tienda elegida (`?sede=`) y, si se eligió, la campaña de las ofertas (`?oferta=`). */
-const hrefInicio = (sede: string | null, oferta: string | null = null, portada: string | null = null) => {
+const hrefInicio = (sede: string | null, oferta: string | null = null) => {
   const q = new URLSearchParams();
   if (sede) q.set("sede", sede);
   if (oferta) q.set("oferta", oferta);
-  if (portada) q.set("portada", portada);
   const s = q.toString();
   return s ? `/inicio?${s}` : "/inicio";
 };
@@ -104,10 +104,10 @@ export default async function Inicio({ searchParams }: Props) {
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
   const hero = heroDelInicio(campana, prendas);
-  // La portada nueva (ADR-0613), solo con `?portada=l` hasta que Felipe la pruebe en su teléfono y la active. Una campaña vigente va primero.
-  const conPortadaL = sp.portada === "l";
-  const portadaL = conPortadaL ? sp.portada : null;
-  const gruposL = conPortadaL && hero.tipo !== "campana" ? gruposDeLaPortada(prendas, sede) : [];
+  // La portada del rediseño (ADR-0615). Con una campaña vigente manda la de la campaña; si no hay tres prendas para la escena, el héroe de siempre.
+  const gruposEscena = hero.tipo !== "campana" ? gruposDeLaPortada(prendas, sede) : [];
+  const plazos = await leerAyuda();
+  const hrefArmar = sede ? `/looks/arma?sede=${encodeURIComponent(sede)}` : "/looks/arma";
   // El diseño de la campaña que anuncia la portada (la misma que la franja): viste el héroe y el sello de sus prendas; sin él, todo como siempre.
   const diseno = await leerDisenoDeCampana(campana?.nombre);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
@@ -130,16 +130,28 @@ export default async function Inicio({ searchParams }: Props) {
       sede={sede}
       actual="inicio"
       filtro={[
-        { nombre: "Todas", href: hrefInicio(null, null, portadaL as string | null), actual: elegida === null },
-        ...sedes.map((s) => ({ nombre: s.nombre, href: hrefInicio(claveDeSede(s.nombre), null, portadaL as string | null), actual: elegida?.id === s.id })),
+        { nombre: "Todas", href: hrefInicio(null), actual: elegida === null },
+        ...sedes.map((s) => ({ nombre: s.nombre, href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
-      {gruposL.length > 0 ? (
-        <PortadaTresPaneles grupos={gruposL} hrefArmar={sede ? `/looks/arma?sede=${encodeURIComponent(sede)}` : "/looks/arma"} hrefNuevo={lista("nuevo")} />
+      {gruposEscena.length > 0 ? (
+        <EscenaPortada grupos={gruposEscena} hrefNuevo={lista("nuevo")} />
       ) : (
         <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
       )}
+      <BeneficiosDeLaTienda diasParaRecoger={plazos.diasParaRecoger} diasParaCambiar={plazos.diasParaCambiar} />
+      <section className="t-ancho dn-categorias" aria-labelledby="dn-categorias">
+        <div className="t-sec-cab">
+          <h2 id="dn-categorias">Compra por categoría</h2>
+          <Link className="t-ver" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
+            Ver todas
+            <Icono nombre="flecha" />
+          </Link>
+        </div>
+        <FilaDeCategorias categorias={categoriasConFoto(prendas)} sede={sede} />
+      </section>
+      <ArmaTuOutfit href={hrefArmar} />
       {/* Con una campaña vigente la portada es la de la campaña y el desfile baja a su propia sección (ADR-0524); sin campaña, el desfile ES la portada. */}
       {hero.tipo === "campana" && nuevas.length > 0 && (
         <EscenarioDelDesfile
@@ -164,54 +176,24 @@ export default async function Inicio({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          {gruposL.length > 0 && (
-            <>
-              <FilaDeCategorias categorias={categoriasConFoto(prendas)} sede={sede} origenFotos={origenFotos} />
-              <section className="t-sec t-ancho" aria-labelledby="lo-nuevo">
-                <div className="t-sec-cab" data-revela>
-                  <div>
-                    <h2 id="lo-nuevo">Lo nuevo</h2>
-                  </div>
-                  <Link className="t-ver" href={lista("nuevo")}>
-                    Ver todo <Icono nombre="flecha" />
-                  </Link>
-                </div>
-                <div className="t-grilla pl-grilla">
-                  {prendasDeAbajo(prendas, gruposL).map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo diseno={diseno} />
-                  ))}
-                  <Link className="pl-todo" href={lista("nuevo")}>
-                    <span>Ver todo lo nuevo</span>
-                  </Link>
-                </div>
-              </section>
-            </>
-          )}
-
-          {gruposL.length === 0 && delPrograma.length > 0 && (
-            <section className="t-programa-sec t-ancho" aria-labelledby="lo-nuevo">
-              <div className="t-cab-centro" data-revela>
-                <span className="t-ceja">El programa</span>
-                <h2 id="lo-nuevo">
-                  En las <em>tiendas</em>
-                </h2>
-                <p>Lo que llegó a nuestras tiendas. Mira cuánto hay en cada una y sepáralo sin pagar.</p>
-              </div>
-              <ListaDeSalidas piezas={piezasDelDesfile(delPrograma, sede, origenFotos, 8)} />
-              <div className="t-programa-pie">
-                <Link className="t-btn t-btn-sec" href={nuevas.length > 0 ? lista("nuevo") : hrefLista({ sede, categoria: null, orden: "destacado" })}>
-                  {nuevas.length > 0 ? `Ver las ${nuevos.length} salidas` : "Ver toda la tienda"}
+          {delPrograma.length > 0 && (
+            <section className="t-sec t-ancho" aria-labelledby="dn-lo-nuevo-lista">
+              <div className="t-sec-cab">
+                <h2 id="dn-lo-nuevo-lista">Lo nuevo</h2>
+                <Link className="t-ver" href={lista("nuevo")}>
+                  Ver todo
+                  <Icono nombre="flecha" />
                 </Link>
               </div>
+              <div className="t-grilla">{grillaDe(delPrograma)}</div>
             </section>
           )}
-
           {looks.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
               <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="arma-tu-look">
-                    Arma tu <em>look</em>
+                    Arma tu <em>outfit</em>
                   </h2>
                 </div>
                 <Link className="t-ver" href={hrefLooks(sede)}>

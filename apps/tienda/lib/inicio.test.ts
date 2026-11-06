@@ -146,7 +146,7 @@ describe("la cabecera con cuenta", () => {
     expect(datosDeCabecera(prendas, null, undefined, true).probador).toBe("/looks/arma");
   });
 
-  it("«Arma tu look» lleva la tienda elegida; los favoritos, no (son de la persona, no de una tienda)", () => {
+  it("«Arma tu outfit» lleva la tienda elegida; los favoritos, no (son de la persona, no de una tienda)", () => {
     const d = datosDeCabecera(prendas, "trujillo", undefined);
     expect(d.looks).toBe("/looks?sede=trujillo");
     expect(d.favoritos).toBe("/catalogo?lista=favoritos");

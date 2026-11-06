@@ -299,6 +299,6 @@ export function avisoDelLook(nombreLook: string | null, lineas: readonly LineaLo
     return { cerrar: false, texto: `${faltan || "No pudimos agregar las prendas."} Elige otra talla o vuelve a intentarlo.` };
   }
   // Sin nombre, el look que el cliente armó en el probador («Arma el tuyo», ADR-0434): «de tu look».
-  const deQue = nombreLook ? `del look «${nombreLook}»` : "de tu look";
+  const deQue = nombreLook ? `del outfit «${nombreLook}»` : "de tu outfit";
   return { cerrar: true, texto: `Agregaste ${cuantasPrendas(r.agregadas.length)} ${deQue} a tu bolsa.${faltan ? ` ${faltan}` : ""}` };
 }

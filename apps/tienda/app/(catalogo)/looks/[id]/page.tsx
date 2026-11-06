@@ -26,10 +26,10 @@ const esId = (id: string) => z.string().uuid().safeParse(id).success;
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  if (!esId(id)) return { title: "Arma tu look · CAYLA" };
+  if (!esId(id)) return { title: "Arma tu outfit · CAYLA" };
   const sedes = sedesEnOrden(await leerSedes());
   const lectura = await leerLook(id, sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
-  return { title: lectura?.look ? `${lectura.look.nombre} · Arma tu look · CAYLA` : "Arma tu look · CAYLA" };
+  return { title: lectura?.look ? `${lectura.look.nombre} · Arma tu outfit · CAYLA` : "Arma tu outfit · CAYLA" };
 }
 
 // Un look abierto (maqueta v4, `vLook` y `lookInfo`): la lámina, «Look N de M», su nombre y su frase, cada prenda con su color y lo que cuesta
@@ -73,7 +73,7 @@ export default async function LookAbierto({ params, searchParams }: Props) {
         <nav className="t-ruta" aria-label="Estás en">
           <Link href={hrefDelInicio(sede)}>Inicio</Link>
           <span aria-hidden="true">/</span>
-          <Link href={hrefLooks(sede)}>Arma tu look</Link>
+          <Link href={hrefLooks(sede)}>Arma tu outfit</Link>
           {look && (
             <>
               <span aria-hidden="true">/</span>
@@ -85,7 +85,7 @@ export default async function LookAbierto({ params, searchParams }: Props) {
         {lectura === null ? (
           <div className="t-vacio" role="status">
             <Icono nombre="tienda" />
-            <h3>No pudimos cargar este look</h3>
+            <h3>No pudimos cargar este outfit</h3>
             <p>Es un problema de conexión de nuestro lado. Vuelve a intentarlo en un momento.</p>
             <Link className="t-btn" href={hrefLook(id, pedida ? claveDeSede(pedida.nombre) : null)}>
               Volver a intentar
@@ -94,17 +94,17 @@ export default async function LookAbierto({ params, searchParams }: Props) {
         ) : look === null ? (
           <div className="t-vacio">
             <Icono nombre="chispa" />
-            <h3>Este look ya no está</h3>
-            <p>Puede que alguna de sus prendas se haya agotado o que lo hayamos cambiado. Mira los otros looks.</p>
+            <h3>Este outfit ya no está</h3>
+            <p>Puede que alguna de sus prendas se haya agotado o que lo hayamos cambiado. Mira los otros outfits.</p>
             <Link className="t-btn" href={hrefLooks(sede)}>
-              Ver los looks
+              Ver los outfits
             </Link>
           </div>
         ) : (
           <div className="t-look t-look-abierto">
             <Lamina look={look} sede={sede} origenFotos={origenFotos} enlaces pronto />
             <div className="t-look-info">
-              <span className="t-ceja">{`Look ${look.numero} de ${look.de}`}</span>
+              <span className="t-ceja">{`Outfit ${look.numero} de ${look.de}`}</span>
               <h1>{look.nombre}</h1>
               {look.frase && <p>{look.frase}</p>}
               <ol className="t-look-items">
@@ -138,7 +138,7 @@ export default async function LookAbierto({ params, searchParams }: Props) {
                 })}
               </ol>
               <div className="t-look-total">
-                <span>El look completo</span>
+                <span>El outfit completo</span>
                 <b className="num">{totalDelLook(look)}</b>
               </div>
               <AgregarLookALaBolsa look={look} origenFotos={origenFotos} sedeId={elegida?.id ?? null} />
@@ -153,7 +153,7 @@ export default async function LookAbierto({ params, searchParams }: Props) {
               <div>
                 <span className="t-ceja">Combinaciones listas</span>
                 <h2 id="otros-looks">
-                  Otros <em>looks</em>
+                  Otros <em>outfits</em>
                 </h2>
               </div>
               <Link className="t-ver" href={hrefLooks(sede)}>
