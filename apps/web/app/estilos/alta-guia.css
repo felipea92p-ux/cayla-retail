@@ -119,10 +119,30 @@
   from { opacity: 0; }
 }
 
-/* Un destello cuando la persona es llevada a un campo (un toque en «Falta: Tejido»): la fila se tiñe y vuelve. */
+/* Un destello cuando la persona es llevada a un campo (al tocar «Guardar» con algo vacío, o una cosa de «Falta»): una luz difuminada que nace del
+   centro del campo y se va sola, sin borde que se note. Antes el bloque entero se teñía y se veía como un rectángulo (Felipe 2026-11-05, maqueta
+   docs/maquetas/guia-que-acompana-2026-11/). Va en un `::after` porque el `::before` es el hilo. */
 [data-campo][data-llamado] {
-  animation: hilo-llamado 1100ms var(--ease-cayla) 1;
+  position: relative;
+  isolation: isolate;
 }
+[data-campo][data-llamado]::after {
+  content: "";
+  position: absolute;
+  inset: -1rem -1.125rem;
+  z-index: -1;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(10px);
+  background: radial-gradient(ellipse closest-side, color-mix(in srgb, var(--color-taupe) 20%, transparent) 40%, transparent);
+  animation: hilo-destello 1100ms var(--ease-cayla) 1;
+}
+@keyframes hilo-destello {
+  0%, 100% { opacity: 0; }
+  30% { opacity: 1; }
+}
+/* El de una tarjeta entera con sus esquinas (Nuevo producto ▸ las parecidas): la tarjeta se tiñe y vuelve. */
 @keyframes hilo-llamado {
   0%, 100% { background-color: transparent; }
   30% { background-color: var(--color-hueso); }
@@ -185,7 +205,7 @@
   .hilo-marca[data-estado="opcional"],
   .hilo-tilde,
   .hilo-etiqueta,
-  [data-campo][data-llamado],
+  [data-campo][data-llamado]::after,
   .hilo-seguir::after {
     animation: none;
   }
