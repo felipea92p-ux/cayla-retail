@@ -820,6 +820,11 @@
   "tablename": "costo_historial"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX costo_historial_revierte_una_vez ON retail.costo_historial USING btree (revierte_movimiento_id) WHERE (revierte_movimiento_id IS NOT NULL)",
+  "indexname": "costo_historial_revierte_una_vez",
+  "tablename": "costo_historial"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX cotizaciones_maquila_pkey ON retail.cotizaciones_maquila USING btree (id)",
   "indexname": "cotizaciones_maquila_pkey",
   "tablename": "cotizaciones_maquila"

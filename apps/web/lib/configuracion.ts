@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { baseTraeElCorte, leerInicioFinanzas } from "@/lib/finanzas-arranque-reglas";
 import {
@@ -55,14 +56,14 @@ export async function getParametrosCaja(ubicacionId: string, fecha: string): Pro
 
 /** Configuración ▸ Dinero (20260925103000): el mínimo de caja y los umbrales de aviso. `null` si la base aún no los
  *  tiene o la cuenta no ve Finanzas. */
-export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCorte | null> {
+export const getParametrosFinanzas = cache(async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCorte | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_parametros_finanzas" as never);
   if (error) return null;
   const p = leerParametrosFinanzas(data);
   // `inicioFinanzas` nace con ADR-0332: una base que aún no tiene esa migración no manda la clave y sale «sin corte».
   return p ? { ...p, inicioFinanzas: leerInicioFinanzas(data), corteDisponible: baseTraeElCorte(data) } : null;
-}
+});
 
 /** Tienda web ▸ Ajustes (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
  *  (su WhatsApp es el del QR del club) y los plazos de los pedidos web. `null` si la base todavía no tiene la migración: la

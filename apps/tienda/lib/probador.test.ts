@@ -347,7 +347,7 @@ describe("Sorpréndeme", () => {
   });
 });
 
-describe("el look con que abre", () => {
+describe("el outfit con que abre", () => {
   it("lo primero que hay arriba y abajo, y un bolso; nada encima", () => {
     expect(lookInicial(TODAS)).toEqual({ ...LOOK_VACIO, arriba: pieza(TOP), abajo: pieza(PANTALON), bolso: pieza(CARTERA) });
   });
@@ -355,19 +355,19 @@ describe("el look con que abre", () => {
     expect(lookInicial([VESTIDO, PANTALON])).toEqual({ ...LOOK_VACIO, vestido: pieza(VESTIDO) });
     expect(lookInicial([PANTALON])).toEqual({ ...LOOK_VACIO, abajo: pieza(PANTALON) });
   });
-  it("un look que perdió lo de arriba o lo de abajo se completa; uno con vestido, no", () => {
+  it("un outfit que perdió lo de arriba o lo de abajo se completa; uno con vestido, no", () => {
     expect(completarLook({ ...LOOK_VACIO, abajo: pieza(JEAN), bolso: pieza(CARTERA) }, TODAS)).toEqual({ ...LOOK_VACIO, arriba: pieza(TOP), abajo: pieza(JEAN), bolso: pieza(CARTERA) });
     expect(completarLook({ ...LOOK_VACIO, vestido: pieza(VESTIDO) }, TODAS)).toEqual({ ...LOOK_VACIO, vestido: pieza(VESTIDO) });
     // Solo un bolso y, en esta tienda, nada de abajo: un vestido.
     expect(completarLook({ ...LOOK_VACIO, bolso: pieza(CARTERA) }, [TOP, VESTIDO, CARTERA])).toEqual({ ...LOOK_VACIO, vestido: pieza(VESTIDO), bolso: pieza(CARTERA) });
   });
-  it("la memoria del vestido: lo de arriba y abajo del look o, si no había, lo primero que hay", () => {
+  it("la memoria del vestido: lo de arriba y abajo del outfit o, si no había, lo primero que hay", () => {
     expect(memoriaInicial({ ...LOOK_VACIO, vestido: pieza(VESTIDO) }, TODAS)).toEqual({ arriba: pieza(TOP), abajo: pieza(PANTALON) });
     expect(memoriaInicial({ ...LOOK_VACIO, arriba: pieza(CAMISA) }, TODAS)).toEqual({ arriba: pieza(CAMISA), abajo: pieza(PANTALON) });
   });
 });
 
-describe("lo que cuesta el look", () => {
+describe("lo que cuesta el outfit", () => {
   it("la suma de lo que se paga por cada prenda en su color, con «Desde» si alguna lo lleva", () => {
     const look: Look = { ...LOOK_VACIO, arriba: pieza(TOP), abajo: pieza(JEAN, "AZD") };
     expect(totales(look, INDICE)).toEqual({ cuantas: 2, final: 90, lista: 100, desde: true });
@@ -422,7 +422,7 @@ describe("tallas y a la bolsa", () => {
     expect(textoAgregarAlLook(1).texto).toBe("Agregar 1 prenda a mi bolsa");
     expect(textoAgregarAlLook(0)).toEqual({ texto: "Elige qué llevar", apagado: true });
   });
-  it("la hoja de los looks recibe cada prenda en su color, con su recorte, lo que vale ese color y sus tallas", () => {
+  it("la hoja de los outfits recibe cada prenda en su color, con su recorte, lo que vale ese color y sus tallas", () => {
     const hoja = lookParaLaHoja(look, INDICE, [
       { id: TOP.id, color: "NEG", tallas: [{ varianteId: id(91), talla: "M", hay: true }] },
       { id: JEAN.id, color: "AZD", tallas: [{ varianteId: id(92), talla: "28", hay: false }] },
@@ -436,7 +436,7 @@ describe("tallas y a la bolsa", () => {
   });
 });
 
-describe("el look en la dirección (`?p=`)", () => {
+describe("el outfit en la dirección (`?p=`)", () => {
   const look: Look = { ...LOOK_VACIO, arriba: pieza(TOP, "NEG"), abajo: pieza(PANTALON), bolso: pieza(CARTERA) };
   it("cada prenda por su código y su color, en el orden de las zonas, y vuelve igual", () => {
     expect(codificarLook(look, INDICE)).toBe("P-1.NEG~P-4.CAM~P-9.NEG");
@@ -451,7 +451,7 @@ describe("el look en la dirección (`?p=`)", () => {
   it("con las reglas de poner: un vestido saca lo de arriba y abajo", () => {
     expect(presentes(lookDeLaUrl("P-1.RPA~P-4.CAM~P-6.ROS", TODAS)!)).toEqual(["vestido"]);
   });
-  it("la dirección del probador lleva la tienda y el look", () => {
+  it("la dirección del probador lleva la tienda y el outfit", () => {
     expect(hrefDelProbador(null)).toBe("/looks/arma");
     expect(hrefDelProbador("trujillo", "P-1.NEG~P-4.CAM")).toBe("/looks/arma?sede=trujillo&p=P-1.NEG~P-4.CAM");
     expect(busquedaConLook("?sede=lima&p=VIEJO.X", "P-9.NEG")).toBe("?sede=lima&p=P-9.NEG");
@@ -459,7 +459,7 @@ describe("el look en la dirección (`?p=`)", () => {
     expect(new URLSearchParams(busquedaConLook("", "A B.X~C")).get("p")).toBe("A B.X~C");
     expect(lookDeLaUrl(new URLSearchParams(hrefDelProbador(null, "P-2.GRI").split("?")[1]).get("p") ?? undefined, TODAS)).toEqual({ ...LOOK_VACIO, arriba: pieza(CAMISA) });
   });
-  it("vacía, rara o sin nada que siga en el probador: null (abre con el look inicial)", () => {
+  it("vacía, rara o sin nada que siga en el probador: null (abre con el outfit inicial)", () => {
     expect(lookDeLaUrl(undefined, TODAS)).toBeNull();
     expect(lookDeLaUrl("   ", TODAS)).toBeNull();
     expect(lookDeLaUrl("NADA.X~OTRA", TODAS)).toBeNull();

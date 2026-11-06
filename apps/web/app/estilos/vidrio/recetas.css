@@ -349,10 +349,43 @@
      la hace la pieza con su `--kc`. */
   --gota-icono-tinte: 14%;
   --gota-icono-luz: inset 0 1px 0 color-mix(in srgb, var(--color-vidrio) 60%, transparent);
+  /* ---------- Estados financieros: el vidrio sobre los hilos (ADR-0611; solo esa pantalla, piezas en vidrio/estados.css) ---------- */
+  --estados-fondo: color-mix(in srgb, var(--color-papel) 66%, transparent);
+  --estados-fondo-fuerte: color-mix(in srgb, var(--color-papel) 80%, transparent);
+  --estados-luz: color-mix(in srgb, var(--color-vidrio) 95%, transparent);
+  --estados-luz-suave: color-mix(in srgb, var(--color-vidrio) 42%, transparent);
+  --estados-sombra: 0 26px 60px -22px color-mix(in srgb, var(--color-sombra) 20%, transparent), 0 2px 6px color-mix(in srgb, var(--color-sombra) 6%, transparent);
+  --estados-filtro: blur(6px) saturate(1.35);
+  /* Las partes de un estado: de la más oscura a la más clara, del mismo tono de la marca. El verde y el rojo se guardan para lo que quedó o lo que faltó. */
+  --estados-parte-1: color-mix(in srgb, var(--color-tinta) 76%, var(--color-taupe));
+  --estados-parte-2: var(--color-taupe);
+  --estados-parte-3: color-mix(in srgb, var(--color-taupe) 52%, var(--color-hueso));
+  --estados-parte-4: color-mix(in srgb, var(--color-taupe) 22%, var(--color-hueso));
+  /* El calendario flota sobre las cifras: más lleno y más desenfocado que una placa, para que lo de atrás no se lea. */
+  --estados-cal-fondo: color-mix(in srgb, var(--color-papel) 88%, transparent);
+  --estados-cal-filtro: blur(26px) saturate(1.4);
+  --estados-cal-sombra: 0 40px 80px -30px color-mix(in srgb, var(--color-sombra) 42%, transparent), 0 4px 12px color-mix(in srgb, var(--color-sombra) 10%, transparent), inset 0 1px 0 var(--estados-luz);
+  /* El texto secundario sube un punto para leerse sobre el vidrio y los hilos: el taupe solo no alcanza (medido en la maqueta, 4,8:1 con este tono). */
+  --estados-secundario: color-mix(in srgb, var(--color-taupe) 72%, var(--color-tinta));
+  /* La tela: el fondo y el color de los hilos, que `TelaHilos` lee al pintar. El hilo rojo es `--color-rojo`. */
+  --hilos-base: linear-gradient(160deg, var(--color-crema), var(--color-hueso));
+  --hilos-hilo: var(--color-borde-control);
 }
 
 @media screen {
   :root[data-tema="oscuro"] {
+    --estados-fondo: color-mix(in srgb, var(--color-crema) 68%, transparent);
+    --estados-fondo-fuerte: color-mix(in srgb, var(--color-crema) 78%, transparent);
+    --estados-parte-1: color-mix(in srgb, var(--color-tinta) 82%, var(--color-taupe));
+    --estados-parte-3: color-mix(in srgb, var(--color-taupe) 62%, var(--color-crema));
+    --estados-parte-4: color-mix(in srgb, var(--color-taupe) 34%, var(--color-crema));
+    --estados-cal-fondo: color-mix(in srgb, var(--color-crema) 90%, transparent);
+    --estados-cal-sombra: 0 40px 80px -30px var(--color-sombra), 0 4px 12px color-mix(in srgb, var(--color-sombra) 40%, transparent), inset 0 1px 0 var(--estados-luz-suave);
+    --estados-luz: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz */
+    --estados-luz-suave: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz */
+    --estados-sombra: 0 26px 60px -22px color-mix(in srgb, var(--color-sombra) 50%, transparent), 0 2px 6px color-mix(in srgb, var(--color-sombra) 24%, transparent);
+    --hilos-base: linear-gradient(160deg, var(--color-crema), var(--color-papel));
+    --hilos-hilo: var(--color-taupe);
     --vidrio-hoja-fondo: color-mix(in srgb, var(--color-vidrio) 82%, transparent);
     --vidrio-hoja-borde: color-mix(in srgb, var(--color-tinta) 14%, transparent); /* contraste: no aplica — es un fondo, un borde o una luz, no un texto */
     --vidrio-hoja-sombra: inset 0 1px 0 color-mix(in srgb, var(--color-tinta) 18%, transparent), 0 50px 90px -40px var(--color-sombra);

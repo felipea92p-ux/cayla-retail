@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularConfianza, leerHechosConfianza, PESOS, textoEstado, tonoPieza, type HechosConfianza } from "./finanzas-confianza";
+import { calcularConfianza, etiquetaNivel, leerHechosConfianza, PESOS, textoEstado, tonoPieza, type HechosConfianza } from "./finanzas-confianza";
 
 // Lo que midió producción el 15-oct-2026: el 64 % de la venta con costo 0 (hoy estimado), cero fijos, cero facturas pero
 // 9 entradas sin factura, cero saldos, la tarjeta directa al banco, la planilla sin pagar, cero conciliaciones.
@@ -8,7 +8,7 @@ const HOY: HechosConfianza = {
   costo: { unidadesEstimadas: 737, ventaEstimada: 35311, unidadesSinCosto: 0, ventaSinCosto: 0, unidadesTotal: 1096, ventaTotal: 55339 },
   fijos: { configurados: 0, sedesActivas: 3, sedesConFijos: 0, faltanMes: 0 },
   facturas: { lotesSinFactura: 9, egresosSinClasificar: 0 },
-  saldos: { registrados: 0, bancos: 1 },
+  saldos: { registrados: 0, bancos: 1, arranqueBalance: 0 },
   tarjeta: { porAbonarCuentas: 0, directoAlBanco: true, cobrosMes: 23430 },
   planilla: { visible: true, mesPagada: false },
   conciliacion: { bancos: 1, conciliadosMes: 0 },
@@ -19,7 +19,7 @@ const TODO_BIEN: HechosConfianza = {
   costo: { unidadesEstimadas: 0, ventaEstimada: 0, unidadesSinCosto: 0, ventaSinCosto: 0, unidadesTotal: 1096, ventaTotal: 55339 },
   fijos: { configurados: 9, sedesActivas: 3, sedesConFijos: 3, faltanMes: 0 },
   facturas: { lotesSinFactura: 0, egresosSinClasificar: 0 },
-  saldos: { registrados: 2, bancos: 2 },
+  saldos: { registrados: 2, bancos: 2, arranqueBalance: 3 },
   tarjeta: { porAbonarCuentas: 2, directoAlBanco: false, cobrosMes: 23430 },
   planilla: { visible: true, mesPagada: true },
   conciliacion: { bancos: 2, conciliadosMes: 2 },
@@ -132,7 +132,7 @@ describe("calcularConfianza", () => {
   });
 
   it("el nivel medio dice que sirve para orientarse, con las dos piezas que más faltan", () => {
-    const c = calcularConfianza({ ...TODO_BIEN, saldos: { registrados: 0, bancos: 2 }, conciliacion: { bancos: 2, conciliadosMes: 0 }, fijos: { configurados: 3, sedesActivas: 3, sedesConFijos: 1, faltanMes: 0 } });
+    const c = calcularConfianza({ ...TODO_BIEN, saldos: { registrados: 0, bancos: 2, arranqueBalance: 0 }, conciliacion: { bancos: 2, conciliadosMes: 0 }, fijos: { configurados: 3, sedesActivas: 3, sedesConFijos: 1, faltanMes: 0 } });
     expect(c.nivel).toBe("medio");
     expect(c.frase).toMatch(/^Sirve para orientarte/);
     expect(c.frase).toContain("alquileres y servicios");
@@ -168,5 +168,42 @@ describe("tono y texto de cada estado", () => {
   it("van con la guía: verde hecho, ámbar a medias, rojo falta, apagado sin dato", () => {
     expect([tonoPieza("ok"), tonoPieza("parcial"), tonoPieza("falta"), tonoPieza("sin_dato")]).toEqual(["verde", "ambar", "rojo", "apagado"]);
     expect([textoEstado("ok"), textoEstado("parcial"), textoEstado("falta"), textoEstado("sin_dato")]).toEqual(["Completo", "A medias", "Falta", "Sin dato"]);
+  });
+});
+
+describe("etiquetaNivel", () => {
+  it("dice el nivel en palabras y nunca lleva una cifra", () => {
+    expect(etiquetaNivel("alto")).toBe("Número confiable");
+    expect(etiquetaNivel("medio")).toBe("Número a medias");
+    expect(etiquetaNivel("bajo")).toBe("Número poco seguro");
+    for (const n of ["alto", "medio", "bajo"] as const) expect(etiquetaNivel(n)).not.toMatch(/\d|%/);
+  });
+});
+
+describe("la pieza de saldos separa los bancos del arranque del Balance", () => {
+  const saldos = (c: ReturnType<typeof calcularConfianza>) => c.piezas.find((p) => p.clave === "saldos")!;
+
+  it("con los bancos al día no acusa a los bancos, y dice aparte que falta el arranque del Balance", () => {
+    const p = saldos(calcularConfianza({ ...TODO_BIEN, saldos: { registrados: 4, bancos: 4, arranqueBalance: 0 } }));
+    expect(p.estado).toBe("ok");
+    expect(p.detalle).toContain("Cada banco tiene su saldo de arranque.");
+    expect(p.detalle).toContain("falta cargar el arranque del Balance");
+  });
+
+  it("con el Balance cargado no menciona nada aparte, y una base vieja (sin el campo) tampoco", () => {
+    expect(saldos(calcularConfianza(TODO_BIEN)).detalle).not.toContain("Balance");
+    expect(saldos(calcularConfianza({ ...TODO_BIEN, saldos: { registrados: 2, bancos: 2, arranqueBalance: null } })).detalle).not.toContain("Balance");
+  });
+
+  it("si faltan bancos, lleva a Cuentas y dinero, no al Balance", () => {
+    const p = saldos(calcularConfianza({ ...TODO_BIEN, saldos: { registrados: 1, bancos: 3, arranqueBalance: 5 } }));
+    expect(p.estado).toBe("parcial");
+    expect(p.href).toBe("/finanzas/dinero");
+  });
+
+  it("lee el campo nuevo de la base y tolera que falte", () => {
+    const base = { costo: {}, fijos: {}, facturas: {}, tarjeta: {}, planilla: {}, conciliacion: {} };
+    expect(leerHechosConfianza({ ...base, saldos: { registrados: 4, bancos: 4, arranque_balance: 0 } }).saldos).toEqual({ registrados: 4, bancos: 4, arranqueBalance: 0 });
+    expect(leerHechosConfianza({ ...base, saldos: { registrados: 4, bancos: 4 } }).saldos.arranqueBalance).toBeNull();
   });
 });

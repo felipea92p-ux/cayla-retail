@@ -113,7 +113,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Aguja de velocímetro: el panorama que mezcla ventas de la red y dinero
   // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
   // "Resumen" de Producción, una pantalla de otro módulo.
-  panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
+  // Esfera de 240° (lucide «gauge»): llena, al estar elegida, se ve como un dial entero; la media luna anterior quedaba «cortada» (2026-11-05).
+  panorama: "M12 14l4-4 M3.34 19a10 10 0 1 1 17.32 0",
   // Pulso (ADR-0275): «Salud del negocio» de CAYLA Global. No el velocímetro: ese ya es Finanzas ▸ Resumen, en el mismo menú.
   pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
   // Brújula: Gestión es dirigir —mirar y decidir— (ADR-0392). Distinta de los trazos de sus cuatro hijas (analisis,

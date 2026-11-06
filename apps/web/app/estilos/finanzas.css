@@ -938,6 +938,10 @@
   }
   .fin-eerr button.fin-eerr-celda {
     all: unset;
+    /* 24 px de alto, el mínimo de un blanco con mouse (WCAG 2.5.8): medía 21. */
+    display: inline-block;
+    min-height: 24px;
+    line-height: 24px;
     cursor: pointer;
     border-radius: 4px;
   }
@@ -1336,6 +1340,7 @@
   }
   .fin-campo-esc input[type="range"] {
     width: 100%;
+    min-height: 24px;
     accent-color: var(--color-tinta);
   }
   .fin-campo-esc[data-apagado] {

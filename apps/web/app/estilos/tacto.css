@@ -26,10 +26,14 @@
     min-width: 44px;
   }
 
-  :is(.area-dedo, .boton-tema, .marco-yo-salir, .pv-talla, .interruptor, .btn-enlace) {
+  .fin-campo-esc input[type="range"] {
+    min-height: 44px;
+  }
+
+  :is(.area-dedo, .boton-tema, .marco-yo-salir, .pv-talla, .interruptor, .btn-enlace, .fin-eerr-celda, .fin-etq-select) {
     position: relative;
   }
-  :is(.area-dedo, .boton-tema, .marco-yo-salir, .pv-talla, .interruptor, .btn-enlace)::after {
+  :is(.area-dedo, .boton-tema, .marco-yo-salir, .pv-talla, .interruptor, .btn-enlace, .fin-eerr-celda, .fin-etq-select)::after {
     content: "";
     position: absolute;
     top: 50%;

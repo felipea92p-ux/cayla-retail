@@ -148,23 +148,29 @@ function debes(r: ResumenFinanzas, href: string | null): Respuesta {
   const d = debesPronto(r);
   if (!d) return { ...base, valor: null, chips: [], noSePudoLeer: r.porPagar.estado === "falla", motivo: r.porPagar.estado === "falla" ? "No se pudo leer lo que debes. Vuelve a cargar la página en un rato." : "Tu cuenta no ve lo que debes." };
   const dias = r.porPagar.estado === "ok" ? r.porPagar.datos.dias : 7;
+  const hayAlgo = d.proximas.length > 0 || !!d.planilla || d.otras.length > 0;
   const chip: Chip = d.vencidas.length
     ? { texto: d.vencidas.length === 1 ? "1 vencida" : `${d.vencidas.length} vencidas`, tono: "ambar" }
-    : d.proximas.length || d.planilla
+    : hayAlgo
       ? { texto: "Vence pronto", tono: "pizarra" }
-      : { texto: "Nada por vencer", tono: "verde" };
+      : d.leyoSalidas && d.planillaVisible
+        ? { texto: "Nada por vencer", tono: "verde" }
+        : { texto: d.leyoSalidas ? "Sin planilla" : "Sin leer fijos ni planilla", tono: "pizarra" };
+  // Lo que la cifra no incluye se dice aunque haya otras deudas: nunca verde sin haberlo leído.
+  const aparte: Chip[] = (d.vencidas.length || hayAlgo) && !d.planillaVisible ? [{ texto: d.leyoSalidas ? "Sin planilla" : "Sin leer fijos ni planilla", tono: "pizarra" }] : [];
   // Cada deuda con su fecha, de la que vence antes a la que vence después: así se ve QUÉ hay que pagar, no solo cuánto.
   const todas = [
     ...[...d.vencidas, ...d.proximas].map((f) => ({ fecha: f.vence, fila: { texto: f.proveedor, monto: f.saldo, cuando: cuandoVence(f.vence, r.hoy), tono: diasHasta(f.vence, r.hoy) < 0 ? ("rojo" as const) : ("ambar" as const) } })),
     ...(d.planilla ? [{ fecha: d.planilla.fecha, fila: { texto: "Planilla", monto: d.planilla.monto, cuando: cuandoVence(d.planilla.fecha, r.hoy), tono: diasHasta(d.planilla.fecha, r.hoy) < 0 ? ("rojo" as const) : ("ambar" as const) } }] : []),
+    ...d.otras.map((o) => ({ fecha: o.fecha, fila: { texto: o.titulo, monto: o.monto, cuando: cuandoVence(o.fecha, r.hoy), tono: diasHasta(o.fecha, r.hoy) < 0 ? ("rojo" as const) : ("ambar" as const) } })),
   ].sort((a, b) => a.fecha.localeCompare(b.fecha));
   const filas = todas.slice(0, MAX_DEUDAS).map((x) => x.fila);
   const masFilas = todas.length - filas.length;
   return {
     ...base,
     valor: d.monto,
-    detalle: filas.length ? undefined : `No vence nada en los próximos ${dias} días.`,
-    chips: [chip],
+    detalle: filas.length ? undefined : d.leyoSalidas && d.planillaVisible ? `No vence nada en los próximos ${dias} días.` : `Sin facturas por vencer en ${dias} días. ${d.leyoSalidas ? "Tu cuenta no ve la planilla." : "No se pudieron leer los fijos ni la planilla."}`,
+    chips: [chip, ...aparte],
     ...(filas.length ? { filas, ...(masFilas > 0 ? { masFilas } : {}) } : {}),
   };
 }

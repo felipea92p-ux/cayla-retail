@@ -1,4 +1,5 @@
-import { fechaCorta, montoDentroDelTope, parsearMonto, type Resultado } from "./gastos-reglas";
+import { fechaCorta, montoDentroDelTope, parsearMonto, textoMes, type Resultado } from "./gastos-reglas";
+import { sumarMeses } from "./impuestos-reglas";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000): lógica pura, sin servidor ni navegador. La leen las páginas
@@ -37,7 +38,7 @@ export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   entre_cuentas: "Entre cuentas",
   // ADR-0417, situaciones 15 y 16: salen de un banco y bajan una deuda (sueldos por pagar · IGV), no van a otra cuenta.
   pago_planilla: "Pago de la planilla",
-  pago_sunat: "Pago a SUNAT (IGV)",
+  pago_sunat: "Pago a SUNAT",
   // ADR-0560: sale de un banco y baja lo que se le debe a CLAURE (la empresa de Claudia).
   pago_claure: "Pago a CLAURE",
 };
@@ -259,6 +260,8 @@ export type MovimientoDinero = {
   registradoPor: string | null;
   anuladoPor: string | null;
   cajaMovimientoId: string | null;
+  /** Un depósito que «Cuadrar depósitos» registró y nadie comparó todavía con el banco (tarea 14). */
+  estimado?: boolean;
   puedeAnular: boolean;
 };
 export function leerMovimiento(m: Fila): MovimientoDinero {
@@ -589,7 +592,7 @@ export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLi
   { valor: "pago_tarjeta", texto: "Pagar la tarjeta de crédito", soloLider: true, origen: ["banco"], destino: ["tarjeta_credito"] },
   { valor: "entre_cuentas", texto: "Entre cuentas", soloLider: true, origen: ["banco"], destino: ["banco"] },
   { valor: "pago_planilla", texto: "Pagar la planilla", soloLider: true, origen: ["banco"], destino: null },
-  { valor: "pago_sunat", texto: "Pagar a SUNAT (el IGV)", soloLider: true, origen: ["banco"], destino: null },
+  { valor: "pago_sunat", texto: "Pagar a SUNAT", soloLider: true, origen: ["banco"], destino: null },
   { valor: "pago_claure", texto: "Pagar a CLAURE", soloLider: true, origen: ["banco"], destino: null },
   { valor: "dueno_pone", texto: "Poner plata del dueño", soloLider: true, origen: null, destino: ["banco", "caja_fuerte", "por_rendir"] },
   { valor: "dueno_saca", texto: "Sacar plata del dueño", soloLider: true, origen: ["banco", "cajon", "caja_fuerte", "por_rendir"], destino: null },
@@ -749,6 +752,140 @@ export function validarAbonoPos(
     ok: true,
     valor: { p_cuenta_id: maquina.id, p_banco_id: banco.id, p_fecha: b.fecha, p_neto: m.valor, p_claves: elegidos.map((l) => l.clave), p_referencia: b.referencia.trim() || null },
   };
+}
+
+// ---- Cuadrar depósitos (tarea 14, ADR-0552) -----------------------------------------------------------------------------------
+
+export type FilaCuadre = {
+  cuentaId: string;
+  maquina: string;
+  banco: string | null;
+  dias: number;
+  bruto: number;
+  comision: number;
+  neto: number;
+  claves: string[];
+  desde: string;
+  hasta: string;
+  /** Lo que impide cuadrar esa máquina. */
+  falta: "banco" | "tarifa" | null;
+};
+export const TEXTO_FALTA_CUADRE: Record<"banco" | "tarifa", string> = { banco: "Falta su banco", tarifa: "Falta su tarifa" };
+
+export function leerFilaCuadre(f: Fila): FilaCuadre {
+  return {
+    cuentaId: String(f.cuenta_id),
+    maquina: String(f.maquina),
+    banco: f.banco ? String(f.banco) : null,
+    dias: num(f.dias),
+    bruto: num(f.bruto),
+    comision: num(f.comision),
+    neto: num(f.neto),
+    claves: Array.isArray(f.claves) ? f.claves.map(String) : [],
+    desde: String(f.desde),
+    hasta: String(f.hasta),
+    falta: f.falta === "banco" || f.falta === "tarifa" ? f.falta : null,
+  };
+}
+/** Con su banco, su tarifa y algo que depositar. */
+export const sePuedeCuadrar = (f: FilaCuadre) => f.falta === null && f.neto > 0;
+
+// ---- Pagar a SUNAT (tarea 10): de qué mes es y cuánto de IGV y de renta -----------------------------------------------------
+
+export type BorradorPagoSunat = { mes: string; igv: string; renta: string };
+
+export type PayloadPagoSunat = {
+  p_cuenta_id: string;
+  p_fecha: string;
+  p_lineas: { mes: string; concepto: "igv" | "renta"; monto: number }[];
+  p_referencia: string;
+};
+
+/** Los doce meses que se pueden pagar, del anterior al de hoy hacia atrás: lo normal es pagar el mes que acaba de cerrar. */
+export function mesesParaPagarSunat(hoy: string): { valor: string; texto: string }[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const valor = sumarMeses(hoy.slice(0, 7), -(i + 1));
+    return { valor, texto: textoMes(valor) };
+  });
+}
+
+/** El total que sale del banco: lo que se lee de IGV y renta; lo que aún no se puede leer no suma. */
+export function totalPagoSunat(s: Pick<BorradorPagoSunat, "igv" | "renta">): number {
+  const de = (t: string) => {
+    const m = t.trim() === "" ? null : parsearMonto(t);
+    return m?.ok ? m.valor : 0;
+  };
+  return Math.round((de(s.igv) + de(s.renta)) * 100) / 100;
+}
+
+/** Revisa la hoja de Pagar a SUNAT antes de mandarla (la base vuelve a revisar todo). */
+export function validarPagoSunat(
+  b: Pick<BorradorMovimiento, "origen" | "referencia" | "fecha">,
+  s: BorradorPagoSunat,
+  ctx: { cuentas: readonly CuentaDinero[]; hoy: string },
+): Resultado<PayloadPagoSunat> {
+  const banco = ctx.cuentas.find((c) => c.id === b.origen);
+  if (!banco || banco.tipo !== "banco") return { ok: false, error: "Elige de qué banco salió el pago." };
+  if (!/^\d{4}-\d{2}$/.test(s.mes)) return { ok: false, error: "Elige de qué mes es el pago." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return { ok: false, error: "Elige la fecha." };
+  if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
+  if (s.mes > b.fecha.slice(0, 7)) return { ok: false, error: `El ${fechaCorta(b.fecha)} todavía no empezaba ${textoMes(s.mes)}: revisa el mes o la fecha.` };
+  const lineas: PayloadPagoSunat["p_lineas"] = [];
+  for (const [concepto, valor] of [["igv", s.igv], ["renta", s.renta]] as const) {
+    if (valor.trim() === "") continue;
+    const m = montoDentroDelTope(parsearMonto(valor));
+    if (!m.ok) return m;
+    lineas.push({ mes: `${s.mes}-01`, concepto, monto: m.valor });
+  }
+  if (lineas.length === 0) return { ok: false, error: "Escribe cuánto pagaste de IGV o de renta." };
+  const dicho = lineas.map((l) => (l.concepto === "igv" ? "IGV" : "Renta")).join(" y ");
+  return { ok: true, valor: { p_cuenta_id: banco.id, p_fecha: b.fecha, p_lineas: lineas, p_referencia: b.referencia.trim() || `${dicho} de ${textoMes(s.mes)}` } };
+}
+
+// ---- Pagar la planilla (tarea 12): sueldos, o una parte que no pasa por «Registrar la salida» -----------------------------------
+
+export type ConceptoPlanilla = "sueldos" | "aportes" | "gratificacion" | "cts" | "liquidacion";
+export const OPCIONES_CONCEPTO_PLANILLA: readonly { valor: ConceptoPlanilla; texto: string }[] = [
+  { valor: "sueldos", texto: "Sueldos (lo que recibe cada persona)" },
+  { valor: "aportes", texto: "AFP, EsSalud y retenciones" },
+  { valor: "gratificacion", texto: "Gratificación" },
+  { valor: "cts", texto: "CTS" },
+  { valor: "liquidacion", texto: "Liquidación" },
+];
+
+export type PayloadPagoPlanilla = {
+  p_cuenta_id: string;
+  p_fecha: string;
+  p_monto: number;
+  p_concepto: Exclude<ConceptoPlanilla, "sueldos">;
+  p_mes: string;
+  p_referencia: string;
+};
+
+/** Los meses que puede cubrir ese pago: el de hoy (una CTS de noviembre se paga en noviembre) y los once de antes. */
+export function mesesDePlanilla(hoy: string): { valor: string; texto: string }[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const valor = sumarMeses(hoy.slice(0, 7), -i);
+    return { valor, texto: textoMes(valor) };
+  });
+}
+
+/** Revisa un pago de la planilla que no es de sueldos (los sueldos siguen por `validarMovimiento`). */
+export function validarPagoPlanilla(
+  b: Pick<BorradorMovimiento, "origen" | "referencia" | "fecha" | "monto">,
+  c: { concepto: Exclude<ConceptoPlanilla, "sueldos">; mes: string },
+  ctx: { cuentas: readonly CuentaDinero[]; hoy: string },
+): Resultado<PayloadPagoPlanilla> {
+  const banco = ctx.cuentas.find((x) => x.id === b.origen);
+  if (!banco || banco.tipo !== "banco") return { ok: false, error: "Elige de qué banco salió el pago." };
+  if (!/^\d{4}-\d{2}$/.test(c.mes)) return { ok: false, error: "Elige de qué mes es el pago." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return { ok: false, error: "Elige la fecha." };
+  if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
+  if (c.mes > b.fecha.slice(0, 7)) return { ok: false, error: `El ${fechaCorta(b.fecha)} todavía no empezaba ${textoMes(c.mes)}: revisa el mes o la fecha.` };
+  const m = montoDentroDelTope(parsearMonto(b.monto));
+  if (!m.ok) return m;
+  const dicho = OPCIONES_CONCEPTO_PLANILLA.find((o) => o.valor === c.concepto)!.texto;
+  return { ok: true, valor: { p_cuenta_id: banco.id, p_fecha: b.fecha, p_monto: m.valor, p_concepto: c.concepto, p_mes: `${c.mes}-01`, p_referencia: b.referencia.trim() || `${dicho} de ${textoMes(c.mes)}` } };
 }
 
 /** Revisa el formulario antes de mandarlo (la base vuelve a revisar todo). `deuda` = lo que CAYLA le debe al dueño. */

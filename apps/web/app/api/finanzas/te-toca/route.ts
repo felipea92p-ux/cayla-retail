@@ -5,7 +5,7 @@ import { getContextoGastos, getFijosMes, getGastos, getPanelGastos } from "@/lib
 import { sinComprobanteGrande } from "@/lib/gastos-extracto-reglas";
 import { sedeDeLaUrl, SEDE_TODAS } from "@/lib/finanzas-telar-reglas";
 import { pendientesDeCierre, pendientesDeFijos, pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "@/lib/finanzas-te-toca-reglas";
-import { getContextoDinero, getMovimientos, getPlanillaParaElInicio, pendientesDeConciliar } from "@/lib/cuentas-dinero";
+import { getContextoDinero, getMovimientos, getLiquidacionesPorRegistrar, getPlanillaParaElInicio, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { mesNombre } from "@/lib/resultados-reglas";
 import { mesAnteriorDe } from "@/lib/resumen-telar-reglas";
 import { getUnidadesCerradas } from "@/lib/resultados";
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       // «Dónde está» no tiene «empresa» propia (la empresa no tiene cajón): sus cajas fuertes se miran como todas.
       const ctx = await getContextoDinero(persona, sede === "empresa" ? SEDE_TODAS : sede);
       // La planilla que Dynamic pagó baja un banco de la empresa: se avisa en toda vista, como en Cuentas y dinero (ADR-0567).
-      const [deuda, movimientos, planilla] = await Promise.all([
+      const [deuda, movimientos, planilla, liquidaciones] = await Promise.all([
         getPorPagarConsolidado(verDeuda),
         getMovimientos(ctx.ver.ubicacionId),
         esLider
@@ -68,6 +68,12 @@ export async function GET(request: Request) {
               return undefined;
             })
           : Promise.resolve(undefined),
+        esLider
+          ? getLiquidacionesPorRegistrar().catch(() => {
+              incompleto = true;
+              return [];
+            })
+          : Promise.resolve([]),
       ]);
       if (deuda.falla || ctx.cuentas.falla) incompleto = true;
       pendientes.push(
@@ -78,6 +84,7 @@ export async function GET(request: Request) {
             lineasSinRevisar: pendientesDeConciliar(ctx.conciliacion.datos),
             esLider,
             planilla,
+            liquidaciones,
           },
           hoy,
           consulta,

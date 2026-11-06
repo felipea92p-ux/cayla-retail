@@ -309,7 +309,6 @@ export function textoRinde(r: number | null): string {
 }
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /** «Al 31 de agosto» · «Hoy, 24 de septiembre» (con el año si no es el de hoy). */
 export function tituloCorte(corte: string, hoy: string): string {
@@ -373,7 +372,7 @@ export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion"
     if (camino) partes.push(`${solesBalance(camino)} en camino entre tiendas`);
     return partes.length ? `incluye ${partes.join(" y ")}` : null;
   }
-  if (l.cuenta === "4011" && l.seccion === "pasivo") return "los pagos a SUNAT todavía no se registran: por ahora solo sube";
+  if (l.cuenta === "4011" && l.seccion === "pasivo") return "sube con cada mes y baja con cada pago a SUNAT";
   if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
   if (l.cuenta === "479") return "lo cobrado en las cuentas de CAYLA por prendas de CLAURE, sin el IGV, menos lo que ya se le pagó y su parte de los gastos";
   if (l.cuenta === "4699") return "lo vendido de la mercadería de CLAURE, a su costo: los pagos a CLAURE todavía no se registran, por ahora solo sube";
@@ -399,42 +398,6 @@ export function agrupar(lineas: readonly LineaBalance[]): BalanceAgrupado {
 
 // ---- Fechas del Balance -------------------------------------------------------------------------------------------------
 
-const esFecha = (x: string | undefined): x is string => !!x && /^\d{4}-\d{2}-\d{2}$/.test(x) && !Number.isNaN(Date.parse(`${x}T12:00:00Z`));
-const finDeMes = (anio: number, mes: number) => {
-  const d = new Date(Date.UTC(anio, mes, 0));
-  return d.toISOString().slice(0, 10);
-};
-
-/** `?corte=` válido (una fecha que no pase de hoy) o hoy. */
-export function leerCorte(param: string | undefined, hoy: string): string {
-  return esFecha(param) && param <= hoy ? param : hoy;
-}
-
-/** Las fechas que se ofrecen: hoy y el último día de los 12 meses anteriores (sin pasar del día anterior al arranque). */
-export function cortesDisponibles(hoy: string, arranque: string | null, meses = 12): { valor: string; texto: string }[] {
-  const lista = [{ valor: hoy, texto: `Hoy, ${fechaLarga(hoy, hoy)}` }];
-  let [a, m] = hoy.split("-").map(Number);
-  for (let i = 0; i < meses; i++) {
-    m -= 1;
-    if (m === 0) {
-      m = 12;
-      a -= 1;
-    }
-    const fin = finDeMes(a, m);
-    if (arranque && fin < diaAnterior(arranque)) break;
-    lista.push({ valor: fin, texto: `Al ${fechaLarga(fin, hoy)}` });
-  }
-  return lista;
-}
-export function diaAnterior(iso: string): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-function fechaLarga(iso: string, hoy: string): string {
-  const [a, m, d] = iso.split("-").map(Number);
-  return `${d} ${MESES_CORTOS[m - 1]}${iso.slice(0, 4) === hoy.slice(0, 4) ? "" : ` ${a}`}`;
-}
 
 // ---- Los saldos de arranque (el modal) ------------------------------------------------------------------------------------
 
@@ -529,4 +492,12 @@ export function csvBalance(lineas: readonly LineaBalance[], chequeos: readonly C
     for (const u of unidades) filas.push([u.nombre, u.caja ?? "", u.mercaderia, u.activosFijos, u.facturasPorPagar, u.invertido, u.utilidadMes, u.rinde == null ? "" : textoRinde(u.rinde)]);
   }
   return `﻿${filas.map((f) => f.map(celda).join(";")).join("\n")}\n`;
+}
+
+/**
+ * Las cuentas que empiezan después del día de arranque (tarea 4 de «Las 36»). Antes de su `saldo_desde` no tienen plata para el sistema: arrancar antes dejaría
+ * esa cuenta en cero y todo lo de ese tramo sin explicar. Se corrige diciendo cuánto tenía ese día en Editar cuenta, o eligiendo un arranque posterior.
+ */
+export function cuentasQueEmpiezanDespues<T extends { saldoDesde: string | null; archivada: boolean }>(cuentas: readonly T[], fecha: string): T[] {
+  return cuentas.filter((c) => !c.archivada && c.saldoDesde !== null && c.saldoDesde > fecha);
 }

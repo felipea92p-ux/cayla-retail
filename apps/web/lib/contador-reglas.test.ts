@@ -11,8 +11,7 @@ import {
   nombreArchivoContador,
   balanzaCuadra,
   leerVerCuentas,
-  opcionesVer,
-  vistaActiva,
+  opcionesDelContador,
   filtrarDiario,
   gruposDeSaldos,
   sedesDelDiario,
@@ -161,33 +160,27 @@ describe("ver en pantalla: los saldos por cuenta y el libro diario", () => {
   });
 });
 
-describe("la barra de las siete vistas", () => {
-  const hrefEstado = (c: string, f: string) => `/${c}${f === "formal" ? "?forma=formal" : ""}`;
-  const hrefCuentas = (v: string) => `/cuentas?ver=${v}`;
-  it("siete opciones: las respuestas y los seis cuadros, cada uno a su lugar", () => {
-    const o = opcionesVer({ pantalla: "plata", hrefEstado, hrefCuentas, veTodo: true });
-    expect(o.map((x) => [x.clave, x.href])).toEqual([
-      ["respuestas", "/plata"],
-      ["resultados", "/ganamos?forma=formal"],
-      ["flujo", "/plata?forma=formal"],
-      ["balance", "/vale?forma=formal"],
-      ["patrimonio", "/tuyo?forma=formal"],
-      ["saldos", "/cuentas?ver=saldos"],
-      ["diario", "/cuentas?ver=diario"],
+describe("«Para el contador»", () => {
+  const hrefCuentas = (v: string) => `/cuentas?cuadro=${v}`;
+  it("ver los dos cuadros y bajar cada archivo", () => {
+    const o = opcionesDelContador({ veTodo: true, hrefCuentas });
+    expect(o.map((x) => x.etiqueta)).toEqual([
+      "Ver saldos por cuenta",
+      "Ver el libro diario",
+      "Descargar estado de resultados",
+      "Descargar flujo de efectivo",
+      "Descargar Balance general",
+      "Descargar cambios en el patrimonio",
+      "Descargar saldos por cuenta",
+      "Descargar libro diario",
     ]);
-    expect(o.every((x) => !x.motivo)).toBe(true);
-    expect(o.map((x) => x.corto)).toEqual(["Respuestas", "Resultados", "Flujo de efectivo", "Balance", "Patrimonio", "Saldos por cuenta", "Libro diario"]);
+    expect(o[0]).toMatchObject({ href: "/cuentas?cuadro=saldos" });
+    expect(o[2]).toMatchObject({ archivo: "resultados" });
   });
-  it("desde las cuentas, «Las respuestas» vuelve a ¿Ganamos?; una terminal ve lo de CAYLA entera con su motivo", () => {
-    const o = opcionesVer({ pantalla: "diario", hrefEstado, hrefCuentas, veTodo: false });
-    expect(o[0]!.href).toBe("/ganamos");
-    expect(o.filter((x) => x.motivo).map((x) => x.clave)).toEqual(["flujo", "balance", "patrimonio", "saldos", "diario"]);
+  it("una terminal solo ve lo suyo: lo de CAYLA entera no se le ofrece", () => {
+    expect(opcionesDelContador({ veTodo: false, hrefCuentas }).map((x) => x.clave)).toEqual(["bajar-resultados"]);
   });
-  it("lo que se está viendo", () => {
-    expect(vistaActiva("ganamos", "respuesta")).toBe("respuestas");
-    expect(vistaActiva("vale", "formal")).toBe("balance");
-    expect(vistaActiva("tuyo", "formal")).toBe("patrimonio");
-    expect(vistaActiva("diario", "respuesta")).toBe("diario");
+  it("el cuadro que se mira", () => {
     expect(leerVerCuentas("diario")).toBe("diario");
     expect(leerVerCuentas(undefined)).toBe("saldos");
   });

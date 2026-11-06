@@ -2,7 +2,7 @@
 //
 // PROMETE: la geometría de una cascada de verdad: cada paso empieza donde terminó el anterior (la barra «flota»), los totales y
 // subtotales nacen en cero, y todo se dibuja a una sola escala, de la cifra más baja a la más alta que toque cualquier barra (con el
-// cero marcado si hay negativos). También pasa los tramos que ya arman ¿Ganamos?, la plata y lo tuyo (`TramoCascada`) a filas con
+// cero marcado si hay negativos). También pasa los tramos que ya arman Ganancias y pérdidas, la plata y lo tuyo (`TramoCascada`) a filas con
 // signo, e inserta el subtotal del margen.
 // ASUME: las cifras vienen de la base; aquí solo se ubican. Sin estado y sin red: lo dibuja `components/finanzas/estados/CascadaEstados.tsx`.
 

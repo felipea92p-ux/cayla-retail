@@ -65,11 +65,11 @@ export async function generateMetadata({
   const descripcion =
     nombres.length > 0
       ? `${listaDeNombres(nombres)}. Arma el tuyo en ${DOMINIO_A_LA_VISTA}.`
-      : `Arma tu look en ${DOMINIO_A_LA_VISTA}.`;
+      : `Arma tu outfit en ${DOMINIO_A_LA_VISTA}.`;
   const titulo =
-    nombres.length > 0 ? "Mira este look en CAYLA" : "Arma tu look en CAYLA";
+    nombres.length > 0 ? "Mira este outfit en CAYLA" : "Arma tu outfit en CAYLA";
   return {
-    title: `${nombres.length > 0 ? "Mira este look" : "Arma tu look"} · CAYLA`,
+    title: `${nombres.length > 0 ? "Mira este outfit" : "Arma tu outfit"} · CAYLA`,
     description: descripcion,
     openGraph: {
       title: titulo,
@@ -113,7 +113,7 @@ async function ElLookCompartido({ searchParams }: Props) {
       {prendas === null ? (
         <div className="t-vacio" role="status">
           <Icono nombre="tienda" />
-          <h3>No pudimos abrir este look</h3>
+          <h3>No pudimos abrir este outfit</h3>
           <p>
             Es un problema de conexión de nuestro lado. Vuelve a intentarlo en
             un momento.
@@ -128,7 +128,7 @@ async function ElLookCompartido({ searchParams }: Props) {
       ) : !look ? (
         <div className="t-vacio">
           <Icono nombre="chispas" />
-          <h3>Este look ya no está</h3>
+          <h3>Este outfit ya no está</h3>
           <p>
             Sus prendas se agotaron o ya no están en la tienda online. Arma el
             tuyo con lo que hay hoy.
@@ -148,9 +148,9 @@ async function ElLookCompartido({ searchParams }: Props) {
             />
           </div>
           <div className="lg-info">
-            <span className="t-ceja">Un look armado en CAYLA</span>
+            <span className="t-ceja">Un outfit armado en CAYLA</span>
             <h1 className="tl-titulo">
-              Mira este <em>look</em>
+              Mira este <em>outfit</em>
             </h1>
             <ol className="lg-piezas">
               {presentes(look).flatMap((z, i) => {

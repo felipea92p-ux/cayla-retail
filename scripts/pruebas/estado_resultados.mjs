@@ -154,6 +154,10 @@ select * from (values
 // ============================================================================================================================
 const ESCENA = `
 begin;
+-- La tarea 14 sembró la tarifa de Vendemás y devenga su comisión (se prueba en pruebas:comision-estimada): estas cifras se calculan sin ella.
+set local session_replication_role = replica;
+delete from retail.pos_tarifas where maquina_id in (select id from retail.pos_maquinas where nombre ilike 'vendem%');
+set local session_replication_role = origin;
 ${AYUDANTES}
 ${cambiaA(FELIPE)}
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
@@ -227,7 +231,7 @@ insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motiv
   (:'va', :'tru', 'salida',  1, 'cuarentena_donada',             '2030-09-09 12:00-05'),  -- 50
   (:'va', :'tru', 'salida',  1, 'cuarentena_devuelta_proveedor', '2030-09-09 13:00-05'),  -- NO es merma
   (:'va', :'tru', 'ajuste', -1, 'conteo',                        '2030-09-20 12:00-05'),  -- faltante de conteo: 50
-  (:'va', :'tru', 'ajuste',  3, 'conteo',                        '2030-09-20 12:05-05'),  -- sobrante: no se reconoce
+  (:'va', :'tru', 'ajuste',  3, 'conteo',                        '2030-09-20 12:05-05'),  -- sobrante: desde el corte entra a la 6959 (S/ 150), en los gastos
   (:'va', :'tru', 'ajuste', -1, 'conteo_fisico',                 '2030-09-21 12:00-05'),  -- faltante del modal de ajuste: 50
   (:'vb', :'tru', 'ajuste', -2, 'merma',                         '2030-09-21 12:00-05'),  -- sin costo: 0 y se AVISA (2 u.)
   (:'va', :'tru', 'ajuste', -1, 'reposicion',                    '2030-09-21 13:00-05');  -- resta a mano: SÍ es merma desde ADR-0328 act. 14 (50)
@@ -259,7 +263,7 @@ insert into retail.proveedor_creditos (id, proveedor_id, tipo, monto, fecha, com
 
 -- Activos. A1 TRU: estante con factura de 2,360 el 15-jun (costo 2,000, 10 años): septiembre deprecia 16.67.
 -- A2 Taller: remalladora de 1,200 sin comprobante el 10-mar, 12 meses (100 al mes), dada de baja el 15-sep: septiembre
--- deprecia 100 y la baja pierde 600 (1,200 − 6 meses). A3 TRU: laptop de 590 por Yape el 20-sep (se deprecia desde oct).
+-- deprecia 100 y la baja pierde 500 (1,200 − 7 meses, desde su mes de uso). A3 TRU: laptop de 590 por Yape el 20-sep (se deprecia desde ese mes: 12.29).
 insert into retail.compras (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, subtotal, igv, total, naturaleza, ubicacion_gestion_id)
 values (pg_temp.k('CA1'), :'prov', 'factura', 'F5A', '1', '2030-06-15', 'contado', 2000, 360, 2360, 'activo', :'tru');
 insert into retail.activos_fijos (id, ubicacion_id, tipo, nombre, cuenta_codigo, costo, vida_util_meses, tasa_anual, fecha_adquisicion, compra_id, medio_pago, estado, fecha_baja, motivo_baja) values
@@ -274,13 +278,13 @@ insert into retail.activos_fijos (id, ubicacion_id, tipo, nombre, cuenta_codigo,
 //   TRU costo 140 = 80 + 40 + 40 + 40 − 40 − 40 − 40 + 20 (cambio: 60 − 40) + 40 (S10)
 //   TRU mermas 280 = 80 (2 × 40, antes del cambio de costo) + 50 (donada) + 50 (conteo) + 50 (conteo_fisico) + 0 (sin costo)
 //       + 50 (la «reposición» que RESTÓ 1: desde ADR-0328 act. 14 toda resta sin venta es pérdida; antes no contaba)
-//   TRU margen −23.57 · gastos: alquiler 1,000 − 100 (nota de crédito) = 900; planilla 14,556.84; depreciación 16.67; IGV perdido
+//   TRU margen −23.57 · gastos: alquiler 1,000 − 100 (nota de crédito) = 900; planilla 14,556.84; depreciación 28.96 (estante 16.67 + laptop 12.29); IGV perdido
 //       152.54 (ADR-0362 fase 6 · actividad 8: el pago de 1,000 en efectivo de la factura de 2,360 pierde 360 × 1,000 ÷ 2,360, a la 64)
-//       → 15,626.05 · resultado −15,649.62
+//       − sobrante 150 → 15,488.34 · resultado −15,511.91
 //   LIM ventas 127.12 (S3; S8 se vende y se anula en el mes) · costo 0 · mermas 90 (S8 no vendible 40 + botada 50) → 37.12
-//   Taller: alquiler 400 + planilla 5,093.69 + depreciación 100 + baja 600 = 6,193.69
+//   Taller: alquiler 400 + planilla 5,093.69 + depreciación 100 + baja 500 = 6,093.69
 //   De la empresa: internet 300 + planilla 7,021.06 = 7,321.06
-//   CAYLA: ventas 523.55, costo 140, mermas 370, margen 13.55, gastos 29,140.80, resultado −29,127.25 (con el IGV perdido de TRU)
+//   CAYLA: ventas 523.55, costo 140, mermas 370, margen 13.55, gastos 28,903.09, resultado −28,889.54 (con el IGV perdido de TRU)
 const CASOS_ER = `
 select set_config('prueba.planilla', 'si', true);
 create temp table er as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
@@ -290,9 +294,9 @@ select 'E1 TRU costo de lo vendido = 140 (costo sellado; el cambio suma la difer
 select 'E1 TRU mermas = 280 (al costo de esa fecha; toda resta sin venta, también la «reposición» que restó; devuelto al proveedor y sobrantes no)', (select mermas = 280 from er where ubicacion_id = :'tru');
 select 'E1 TRU margen bruto = −23.57', (select margen_bruto = -23.57 from er where ubicacion_id = :'tru');
 select 'E1 TRU planilla = 14,556.84 (período de Dynamic que termina en septiembre; el de agosto no)', (select planilla = 14556.84 from er where ubicacion_id = :'tru');
-select 'E1 TRU depreciación = 16.67 (el estante; la laptop recién desde octubre)', (select depreciacion = 16.67 from er where ubicacion_id = :'tru');
-select 'E1 TRU gastos = 15,626.05 (el alquiler sin IGV y menos la nota de crédito: 900; y el IGV perdido: 152.54)', (select gastos_operacion = 15626.05 from er where ubicacion_id = :'tru');
-select 'E1 TRU resultado = −15,649.62', (select resultado = -15649.62 from er where ubicacion_id = :'tru');
+select 'E1 TRU depreciación = 28.96 (el estante 16.67 y la laptop 12.29, desde su mes de uso)', (select depreciacion = 28.96 from er where ubicacion_id = :'tru');
+select 'E1 TRU gastos = 15,488.34, con el sobrante restando (el alquiler sin IGV y menos la nota de crédito: 900; y el IGV perdido: 152.54)', (select gastos_operacion = 15488.34 from er where ubicacion_id = :'tru');
+select 'E1 TRU resultado = −15,511.91', (select resultado = -15511.91 from er where ubicacion_id = :'tru');
 select 'E1 TRU IGV perdido (64) = 152.54 en el detalle: el pago de 1,000 en efectivo de una factura de 2,360 (ADR-0362, decisión 72)', (select (x ->> 'monto')::numeric = 152.54 from er, jsonb_array_elements(detalle_gastos) x where ubicacion_id = :'tru' and x ->> 'cuenta' = '64');
 select 'E1 TRU alquiler (635) = 900 en el detalle', (select (x ->> 'monto')::numeric = 900 from er, jsonb_array_elements(detalle_gastos) x where ubicacion_id = :'tru' and x ->> 'cuenta' = '635');
 select 'E1 TRU IGV de ventas = 71.37 (con el del adelanto al cobrarlo, sin contarlo dos veces al entregar)', (select igv_ventas = 71.37 from er where ubicacion_id = :'tru');
@@ -301,16 +305,17 @@ select 'E1 TRU separa 3 orígenes de merma (a mano, cuarentena, conteo)', (selec
 select 'E2 LIM ventas 127.12, costo 0, mermas 90 (anulación no vendible + botada), resultado 37.12', (select ventas_netas = 127.12 and costo_ventas = 0 and mermas = 90 and resultado = 37.12 from er where ubicacion_id = :'lim');
 select 'E2 LIM avisa 3 prendas vendidas sin costo (el margen sale inflado)', (select unidades_sin_costo = 3 from er where ubicacion_id = :'lim');
 select 'E2 LIM: el adelanto que se devolvió no deja IGV ni ventas', (select igv_ventas = 22.88 from er where ubicacion_id = :'lim');
-select 'E3 Taller: alquiler 400 + planilla 5,093.69 + depreciación 100 + baja 600 = 6,193.69', (select ventas_netas = 0 and planilla = 5093.69 and depreciacion = 100 and gastos_operacion = 6193.69 and resultado = -6193.69 from er where ubicacion_id = :'tal');
-select 'E3 Taller: la baja pierde lo que faltaba depreciar (655 = 600)', (select (x ->> 'monto')::numeric = 600 from er, jsonb_array_elements(detalle_gastos) x where ubicacion_id = :'tal' and x ->> 'cuenta' = '655');
+select 'E3 Taller: alquiler 400 + planilla 5,093.69 + depreciación 100 + baja 500 = 6,093.69', (select ventas_netas = 0 and planilla = 5093.69 and depreciacion = 100 and gastos_operacion = 6093.69 and resultado = -6093.69 from er where ubicacion_id = :'tal');
+select 'E3 Taller: la baja pierde lo que faltaba depreciar (655 = 500)', (select (x ->> 'monto')::numeric = 500 from er, jsonb_array_elements(detalle_gastos) x where ubicacion_id = :'tal' and x ->> 'cuenta' = '655');
 select 'E4 De la empresa: internet 300 + planilla de la central 7,021.06', (select gastos_operacion = 7321.06 and ventas_netas = 0 from er where unidad = 'empresa');
 select 'E4 consolidado: ventas 523.55, costo 140, mermas 370, margen 13.55', (select ventas_netas = 523.55 and costo_ventas = 140 and mermas = 370 and margen_bruto = 13.55 from er where unidad = 'consolidado');
-select 'E4 consolidado: gastos 29,140.80 y resultado −29,127.25', (select gastos_operacion = 29140.80 and resultado = -29127.25 from er where unidad = 'consolidado');
+select 'E4 consolidado: gastos 28,903.09 y resultado −28,889.54', (select gastos_operacion = 28903.09 and resultado = -28889.54 from er where unidad = 'consolidado');
 select 'E4 el consolidado es la suma EXACTA de las filas (ventas, costo, mermas, gastos y resultado)',
   (select c.ventas_netas = s.v and c.costo_ventas = s.c and c.mermas = s.m and c.gastos_operacion = s.g and c.resultado = s.r
      from er c, (select sum(ventas_netas) v, sum(costo_ventas) c, sum(mermas) m, sum(gastos_operacion) g, sum(resultado) r from er where unidad <> 'consolidado') s
     where c.unidad = 'consolidado');
 select 'E4 una fila por tienda, el Taller, la empresa y CAYLA; nadie descuadrado', (select count(*) filter (where unidad = 'consolidado') = 1 and count(*) filter (where unidad = 'empresa') = 1 and bool_and(asientos_descuadrados = 0) and bool_and(planilla_visible) from er);
+select 'E5 el sobrante desde el corte: 201 = 150 contra 6959 = 150 (tarea 6)', (select sum(debe) filter (where cuenta = '201') = 150 and sum(haber) filter (where cuenta = '6959') = 150 from dia where regla = 'sobrante');
 select 'E5 cada asiento cuadra (debe = haber) y el diario entero también', (select count(*) = 0 from retail.fn_asientos_descuadrados('2030-09-01', '2030-09-30')) and (select round(sum(debe), 2) = round(sum(haber), 2) from dia);
 select 'E5 cobros de venta: efectivo 101 = 629.80, tarjeta 105 = 50, Yape y transferencia 104 = 190, adelanto aplicado 122 = 100',
   (select sum(debe) filter (where cuenta = '101') = 629.80 and sum(debe) filter (where cuenta = '105') = 50 and sum(debe) filter (where cuenta = '104') = 190 and sum(debe) filter (where cuenta = '122') = 100 from dia where regla = 'venta');
@@ -328,11 +333,11 @@ select 'E5 pagar con saldo a favor no asienta; el pago en efectivo sale de la 10
 select 'E5 el reembolso del proveedor entra al banco y baja el 421', (select sum(debe) filter (where cuenta = '104') = 50 and sum(haber) filter (where cuenta = '421') = 50 from dia where origen_id = pg_temp.k('R1'));
 select 'E5 la nota de crédito baja el 421 y el alquiler (635) y el IGV', (select sum(debe) filter (where cuenta = '421') = 118 and sum(haber) filter (where cuenta = '635') = 100 and sum(haber) filter (where cuenta = '4011') = 18 from dia where origen_id = pg_temp.k('NC1'));
 select 'E5 el alta de la laptop: 336 = 590 contra el banco; no es gasto', (select sum(debe) filter (where cuenta = '336') = 590 and sum(haber) filter (where cuenta = '104') = 590 from dia where origen_id = pg_temp.k('A3') and regla = 'activo');
-select 'E5 la baja: 391 = 600 + 655 = 600 contra 333 = 1,200', (select sum(debe) filter (where cuenta = '391') = 600 and sum(debe) filter (where cuenta = '655') = 600 and sum(haber) filter (where cuenta = '333') = 1200 from dia where regla = 'baja_activo');
+select 'E5 la baja: 391 = 700 + 655 = 500 contra 333 = 1,200', (select sum(debe) filter (where cuenta = '391') = 700 and sum(debe) filter (where cuenta = '655') = 500 and sum(haber) filter (where cuenta = '333') = 1200 from dia where regla = 'baja_activo');
 select 'E5 la planilla: 62 contra 41, fechada al cierre del período', (select count(*) = 3 and bool_and(fecha = '2030-09-28') from dia where regla = 'planilla' and cuenta = '41');
 select 'E5 la anulación con prenda no vendible pasa su costo a merma (6951 = 40; antes iba a la 659)', (select sum(debe) filter (where cuenta = '6951') = 40 and sum(haber) filter (where cuenta = '691') = 40 from dia where origen_id = pg_temp.k('S8') and regla = 'anulacion');
 select 'E5 pedir una tienda devuelve solo esa tienda', (select count(*) > 0 and bool_and(ubicacion_id = :'tru') from retail.fn_asientos('2030-09-01', '2030-09-30', :'tru'));
-select 'E6 agosto: la depreciación del estante (16.66), la planilla de agosto y sus ventas (S9, anulada en septiembre, y la de las 23:50 del 31)', (select depreciacion = 16.66 and planilla = 12000 and ventas_netas = 169.50 from retail.fn_estado_resultados('2030-08-01', '2030-08-31') where ubicacion_id = :'tru');
+select 'E6 agosto: la depreciación del estante (16.67), la planilla de agosto y sus ventas (S9, anulada en septiembre, y la de las 23:50 del 31)', (select depreciacion = 16.67 and planilla = 12000 and ventas_netas = 169.50 from retail.fn_estado_resultados('2030-08-01', '2030-08-31') where ubicacion_id = :'tru');
 `;
 
 // Descuadre, permisos, planilla y tasa: sobre la misma escena, cada uno en su transacción.
@@ -346,8 +351,8 @@ const CASOS_SIN_PLANILLA = `
 select set_config('prueba.planilla', 'no', true);
 create temp table er as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
 select 'P1 sin permiso en Dynamic no entra la planilla y se dice (planilla_visible = false)', (select bool_and(planilla = 0) and not bool_or(planilla_visible) from er);
-select 'P1 TRU sin planilla: gastos 1,069.21 y resultado −1,092.78', (select gastos_operacion = 1069.21 and resultado = -1092.78 from er where ubicacion_id = :'tru');
-select 'P1 consolidado sin planilla: resultado −2,455.66', (select resultado = -2455.66 from er where unidad = 'consolidado');
+select 'P1 TRU sin planilla: gastos 931.50 y resultado −955.07', (select gastos_operacion = 931.50 and resultado = -955.07 from er where ubicacion_id = :'tru');
+select 'P1 consolidado sin planilla: resultado −2,217.95', (select resultado = -2217.95 from er where unidad = 'consolidado');
 select 'P1 el diario no trae ninguna línea de planilla', (select count(*) = 0 from retail.fn_asientos('2030-09-01', '2030-09-30') where regla = 'planilla');
 `;
 
@@ -361,7 +366,7 @@ ${conModulo("reportes_financieros")}
 create temp table er as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
 -- ADR-0585 (Felipe 2026-10-30): con el módulo se ve CAYLA entera, como el líder (antes: solo su tienda).
 select 'R2 con el módulo ve CAYLA entera, como el líder: las tiendas, la empresa y el consolidado', (select bool_or(unidad = 'empresa') and bool_or(unidad = 'consolidado') and bool_or(ubicacion_id = :'lim') from er);
-select 'R2 los números de su tienda son los mismos que ve el líder (sin la planilla, que es de Dynamic)', (select ventas_netas = 396.43 and gastos_operacion = 1069.21 from er where ubicacion_id = :'tru');
+select 'R2 los números de su tienda son los mismos que ve el líder (sin la planilla, que es de Dynamic)', (select ventas_netas = 396.43 and gastos_operacion = 931.50 from er where ubicacion_id = :'tru');
 select 'R2 su diario trae también lo de las otras tiendas', (select count(distinct ubicacion_id) > 1 from retail.fn_asientos('2030-09-01', '2030-09-30'));
 select 'R2 puede pedir otra tienda', (select pg_temp.intento(format('select * from retail.fn_estado_resultados(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim')) = 'SIN_ERROR');
 select 'R2 y el diario de otra tienda', (select pg_temp.intento(format('select * from retail.fn_asientos(%L, %L, %L)', '2030-09-01', '2030-09-30', :'lim')) = 'SIN_ERROR');
@@ -385,8 +390,8 @@ const CASOS_TASA = `
 select set_config('prueba.planilla', 'si', true);
 insert into retail.parametros_tributarios (nombre, vigente_desde, valor, nota) values ('igv', '2030-10-01', 0.20, 'prueba F5');
 select 'T1 septiembre NO cambia al cambiar la tasa desde octubre', (select ventas_netas = 396.43 from retail.fn_estado_resultados('2030-09-01', '2030-09-30') where ubicacion_id = :'tru');
--- S5 (1-oct, 100 al 20 %): IGV = 100 − 100/1.2 = 16.67 → 83.33. Gastos de octubre: G4 500 + estante 16.67 + laptop 12.29 (590 ÷ 48).
-select 'T1 octubre usa el 20 %: la venta de 100 deja 83.33; el gasto de octubre (500) y la depreciación, en octubre', (select ventas_netas = 83.33 and gastos_operacion = 528.96 from retail.fn_estado_resultados('2030-10-01', '2030-10-31') where ubicacion_id = :'tru');
+-- S5 (1-oct, 100 al 20 %): IGV = 100 − 100/1.2 = 16.67 → 83.33. Gastos de octubre: G4 500 + estante 16.66 + laptop 12.29 (590 ÷ 48).
+select 'T1 octubre usa el 20 %: la venta de 100 deja 83.33; el gasto de octubre (500) y la depreciación, en octubre', (select ventas_netas = 83.33 and gastos_operacion = 528.95 from retail.fn_estado_resultados('2030-10-01', '2030-10-31') where ubicacion_id = :'tru');
 `;
 
 // ============================================================================================================================
@@ -538,6 +543,8 @@ const DEVUELVE_SESION_6951 = `select set_config('search_path', :'sp', true), set
 /** Una foto de lo que lee la cuenta de mermas: el Estado de resultados y el diario; con `completa`, también el Balance, la conciliación y la huella viva de Cierre de mes. */
 const FOTO_6951 = (n, completa = true) => `
 create temp table er_${n} as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
+-- detalle_mermas va por monto, sin desempate: dos reglas con el mismo monto salen en cualquier orden. Se comparan cifras, no ese orden.
+update er_${n} set detalle_mermas = (select coalesce(jsonb_agg(e order by e ->> 'regla'), '[]'::jsonb) from jsonb_array_elements(detalle_mermas) e);
 create temp table dia_${n} as select * from retail.fn_asientos('2030-09-01', '2030-09-30');
 ${completa ? `create temp table bal_${n} as select * from retail.fn_balance_general('2030-09-30');
 create temp table con_${n} as select * from retail.fn_conciliacion_contable('2030-09-30');
@@ -547,9 +554,9 @@ const IGUALES_6951 = (tabla, a, b) =>
   `(select count(*) = 0 from (select * from ${tabla}_${a} except select * from ${tabla}_${b}) x) and (select count(*) = 0 from (select * from ${tabla}_${b} except select * from ${tabla}_${a}) x) and (select count(*) = (select count(*) from ${tabla}_${b}) from ${tabla}_${a})`;
 /** Las cifras de mermas de la escena, calculadas a mano (ver arriba), para un estado dado. */
 const CIFRAS_6951 = (n) => `
-  (select mermas = 280 and margen_bruto = -23.57 and resultado = -15649.62 and jsonb_array_length(detalle_mermas) = 3 from er_${n} where ubicacion_id = :'tru')
+  (select mermas = 280 and margen_bruto = -23.57 and resultado = -15511.91 and jsonb_array_length(detalle_mermas) = 3 from er_${n} where ubicacion_id = :'tru')
   and (select mermas = 90 and resultado = 37.12 and jsonb_array_length(detalle_mermas) = 2 from er_${n} where ubicacion_id = :'lim')
-  and (select mermas = 370 and margen_bruto = 13.55 and gastos_operacion = 29140.80 and resultado = -29127.25 from er_${n} where unidad = 'consolidado')`;
+  and (select mermas = 370 and margen_bruto = 13.55 and gastos_operacion = 28903.09 and resultado = -28889.54 from er_${n} where unidad = 'consolidado')`;
 const CASOS_6951_ER = `
 select set_config('prueba.planilla', 'si', true);
 ${GUARDA_SESION_6951}
@@ -563,7 +570,7 @@ ${FOTO_6951("antes")}
 ${MIGRACION_6951}
 ${FOTO_6951("despues")}
 ${DEVUELVE_SESION_6951}
-select 'N1 las mermas de la escena valen lo calculado a mano con la migración aplicada: TRU 280, LIM 90, CAYLA 370 (margen 13.55, resultado −29,127.25)',
+select 'N1 las mermas de la escena valen lo calculado a mano con la migración aplicada: TRU 280, LIM 90, CAYLA 370 (margen 13.55, resultado −28,889.54)',
   ${CIFRAS_6951("hoy")};
 select 'N1 y valen EXACTAMENTE lo mismo antes de la migración (con la cuenta 659): ni un centavo se movió',
   ${CIFRAS_6951("antes")};
@@ -615,8 +622,8 @@ select 'N7 la diferencia de caja (6599 = 5) y el redondeo (6598 = 0.08) se asien
   and (select sum(debe) = 0.08 from dia_antes where cuenta = '6598') and (select sum(debe) = 0.08 from dia_hoy where cuenta = '6598') and (select sum(debe) = 0.08 from dia_despues where cuenta = '6598')
   and (select count(*) = 0 from dia_hoy where cuenta in ('6598', '6599') and regla like 'merma%');
 select 'N7 y el Estado de resultados de TRU las suma a sus gastos (5.08 más que sin ellas) y su cifra de mermas sigue en 280',
-  (select mermas = 280 and gastos_operacion = 15626.05 + 5.08 from er_hoy where ubicacion_id = :'tru')
-  and (select mermas = 280 and gastos_operacion = 15626.05 + 5.08 from er_antes where ubicacion_id = :'tru');
+  (select mermas = 280 and gastos_operacion = 15488.34 + 5.08 from er_hoy where ubicacion_id = :'tru')
+  and (select mermas = 280 and gastos_operacion = 15488.34 + 5.08 from er_antes where ubicacion_id = :'tru');
 select 'N7 todo el Estado de resultados es idéntico antes, hoy y después también con estas cuentas en el mes',
   ${IGUALES_6951("er", "antes", "hoy")} and ${IGUALES_6951("er", "hoy", "despues")};
 `;

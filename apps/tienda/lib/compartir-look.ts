@@ -29,7 +29,7 @@ export function enlaceParaCompartir(origen: string, codigo: string): string {
 export const DOMINIO_A_LA_VISTA = "cayla.pe";
 
 /** Lo que acompaña al enlace cuando se comparte: el enlace va dentro, porque al compartir una imagen algunas aplicaciones lo pierden. */
-export const textoAlCompartir = (url: string): string => `Mira mi look en CAYLA: ${url}`;
+export const textoAlCompartir = (url: string): string => `Mira mi outfit en CAYLA: ${url}`;
 
 /** «Top Estela, Wide Leg y Cartera Crescent»: las prendas del look, para la descripción del enlace. */
 export function listaDeNombres(nombres: readonly string[]): string {

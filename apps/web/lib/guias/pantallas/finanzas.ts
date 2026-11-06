@@ -1,5 +1,5 @@
 // Guías de Finanzas (ADR-0389): Resumen, Gastos, Cuentas y dinero (Cuentas, Efectivo por tienda, Por pagar, Conciliación), los cuatro
-// Estados financieros (¿Ganamos?, ¿Dónde está la plata?, ¿Cuánto vale CAYLA?, ¿Lo tuyo creció?) con sus páginas internas (Presupuesto,
+// Estados financieros (Ganancias y pérdidas, Flujo de efectivo, Balance general, Cambios en el patrimonio) con sus páginas internas (Presupuesto,
 // Campañas, Escenarios), Impuestos y Cierre de mes. Es dinero:
 // cada guía dice con cuidado QUÉ muestra cada cifra y DE DÓNDE sale (casi siempre: de lo que ya registran Ventas, Caja, Compras y
 // Producción; aquí nadie escribe un saldo a mano), en lenguaje de tienda y sin estadística. El piloto solo cambia de pestaña dentro de
@@ -50,14 +50,6 @@ const DOCK_GASTOS: PasoGuia = {
   texto: "Abajo están las cuatro cosas que más se hacen en Gastos: registrar un gasto (G), los fijos del mes (F), las salidas de caja (E) y los activos fijos (A). Las tocas o apretas su letra cuando no estás escribiendo.",
 };
 
-/** Las cuatro respuestas de Estados financieros (ADR-0585): cada tarjeta es un estado y a la vez su pestaña (se explican, no se tocan). */
-const RESPUESTAS_ESTADOS: PasoGuia = {
-  id: "respuestas",
-  ancla: "fin-estados.respuestas",
-  titulo: "Las cuatro respuestas",
-  texto: "Cada tarjeta responde una pregunta con su cifra: ¿Ganamos? (ganancias y pérdidas), ¿Dónde está la plata? (flujo de efectivo), ¿Cuánto vale CAYLA? (balance) y ¿Lo tuyo creció? (cambios en el patrimonio). La que estás mirando queda marcada; tocas otra y pasas a ella, con la misma sede y el mismo mes.",
-};
-
 /** «Descargar Excel» de cada cuadro del contador (ADR-0585): se explica, no se toca. Solo está en un cuadro, no en «Respuestas». */
 const CONTADOR: PasoGuia = {
   id: "contador",
@@ -67,12 +59,37 @@ const CONTADOR: PasoGuia = {
   texto: "Cada cuadro del contador trae su botón: baja solo ese cuadro, con sus cuentas, en un archivo que abre Excel. No cambia nada en el sistema. En la demo no lo descargamos.",
 };
 
-/** La barra de las siete vistas de Estados financieros (Felipe 2026-10-31): se explica, no se toca. */
+/** En los cuatro estados la fecha no es la de la barra: es la de su calendario (ADR-0611). La barra se explica sin su mes. */
+const TELAR_SIN_MES: PasoGuia[] = TELAR.filter((p) => p.id !== "telar-mes");
+
+const FECHAS: PasoGuia = {
+  id: "fecha",
+  ancla: "fin-estados.fecha",
+  titulo: "Qué fechas mirar",
+  texto: "Las flechas pasan al período de al lado, del mismo largo. Tocando el nombre se abre el calendario: un atajo, un mes de la fila o dos días, el primero y el último. También se pueden escribir. Los cuatro estados miran las mismas fechas.",
+};
+
+const FECHA_DEL_BALANCE: PasoGuia = {
+  id: "fecha",
+  ancla: "fin-estados.fecha",
+  titulo: "A qué fecha",
+  texto: "El Balance es una foto de un solo día. Las flechas van de un cierre de mes a otro; tocando la fecha eliges o escribes cualquier día. Es la misma fecha final que miran los otros estados.",
+};
+
+/** Las cuatro pestañas de Estados financieros (Felipe 2026-11-05, ADR-0611): se explican, no se tocan. */
 const VISTAS: PasoGuia = {
   id: "vistas",
   ancla: "fin-estados.vistas",
-  titulo: "Qué ver: siete vistas",
-  texto: "«Respuestas» muestra cada estado en palabras de tienda. Después vienen los cuadros del contador: los cuatro estados en formato formal, los saldos por cuenta y el libro diario del mes. Un toque y cambias.",
+  titulo: "Los cuatro estados",
+  texto: "Cada pestaña es un estado con su nombre de siempre: Ganancias y pérdidas, Flujo de efectivo, Balance general y Cambios en el patrimonio. La sede y el mes de arriba valen para los cuatro. En la demo no cambiamos de pestaña.",
+};
+
+/** «Para el contador» (ADR-0611): se explica, no se toca. */
+const PARA_EL_CONTADOR: PasoGuia = {
+  id: "para-el-contador",
+  ancla: "fin-estados.contador",
+  titulo: "Para el contador",
+  texto: "Lo que no se usa todos los días: los saldos por cuenta, el libro diario y cada estado en un archivo que abre Excel, con sus cuentas. Cada estado en su formato formal se abre dentro de él.",
 };
 
 const EXCEL: PasoGuia = {
@@ -144,7 +161,7 @@ export const GUIA_FIN_RESUMEN: Guia = {
       ancla: "fin-resumen.confianza",
       opcional: true,
       titulo: "Qué tan seguro es ese número",
-      texto: "El chip «Seguro al 86 %» dice cuánto confiar en el número: solo es tan cierto como lo que los otros módulos registraron. Abajo de la tarjeta, «cosas por revisar» muestra qué falta —el costo de las prendas, los alquileres, las facturas, el banco cuadrado—, cada una con su botón para arreglarla.",
+      texto: "El chip («confiable», «a medias» o «poco seguro») dice cuánto fiarte del número: solo es tan cierto como lo que los otros módulos registraron. Abajo de la tarjeta, «cosas por revisar» muestra qué falta —el costo de las prendas, los alquileres, las facturas, el banco cuadrado—, cada una con su botón para arreglarla.",
     },
     {
       id: "dock",
@@ -292,7 +309,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }],
       titulo: "Cinco toques",
-      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie. Con el QR del papel (la pistola, pegarlo o la cámara) se llena solo.",
+      texto: "Cuánto, para qué sede, en qué, qué fue y si tiene comprobante. La parte que sigue se ilumina sola. Si eliges factura, boleta o recibo, aparecen el RUC (que se busca solo en SUNAT) y la serie. Con el QR del papel se llena solo. Si el IGV no es el 18 % o salió del banco otro día, lo dices.",
     },
     {
       id: "hoja-repetir",
@@ -718,6 +735,27 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "A la derecha, lo que se puso (verde) y lo que se sacó (ámbar), agrupado por quién lo registró, por cuenta o por mes. Dice a quien anotó el movimiento, no necesariamente a quien lo pidió. Abajo, el neto que queda para CAYLA.",
     },
     {
+      id: "cuadrar",
+      ancla: "fin-dinero.cuadrar",
+      opcional: true,
+      titulo: "Cuadrar depósitos",
+      texto: "Abre una vista de lo que cada máquina ya debió depositar y con cuánta comisión. Si confirmas, queda como depósito estimado hasta que lo compares con el banco. En la demo no lo abrimos ni guardamos nada.",
+    },
+    {
+      id: "mov-planilla",
+      ancla: "fin-dinero.mov-planilla",
+      opcional: true,
+      titulo: "Qué parte de la planilla pagas",
+      texto: "Sueldos, o una parte que sale aparte: AFP, EsSalud y retenciones, gratificación, CTS o una liquidación. Todas bajan lo que CAYLA debe de planilla; ninguna es un gasto nuevo, porque el gasto ya entró con el mes. En la demo no guardamos nada.",
+    },
+    {
+      id: "mov-sunat",
+      ancla: "fin-dinero.mov-sunat",
+      opcional: true,
+      titulo: "De qué mes es el pago a SUNAT",
+      texto: "Eliges el mes y escribes cuánto pagaste de IGV y de impuesto a la renta. Así ese mes queda marcado como pagado en Impuestos y la renta no se confunde con el IGV. Si anulas el pago, el mes vuelve a quedar sin pagar. En la demo no guardamos nada.",
+    },
+    {
       id: "mov-dueno",
       ancla: "fin-dinero.mov-dueno",
       opcional: true,
@@ -1021,38 +1059,66 @@ export const GUIA_FIN_CONCILIACION: Guia = {
 export const GUIA_FIN_RESULTADOS: Guia = {
   id: "finanzas.reportes",
   ruta: "/finanzas/reportes",
-  titulo: "¿Ganamos?",
-  resumen: "Ganancias y pérdidas: lo que vendiste, lo que costó y lo que quedó, con lo planeado al lado de cada gasto.",
+  titulo: "Ganancias y pérdidas",
+  resumen: "Cuánto ganaste o perdiste en las fechas que elijas, a dónde se fue lo que vendiste y cómo viene mes a mes.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "¿Ganamos?",
-      texto: "Lo que se vendió en el mes, menos lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
+      titulo: "Ganancias y pérdidas",
+      texto: "Lo que se vendió, menos lo que costaron esas prendas y los gastos. Sale solo de cada venta, compra, gasto y movimiento de caja: nadie lo escribe. Es una demo.",
     },
-    ...TELAR,
-    RESPUESTAS_ESTADOS,
+    ...TELAR_SIN_MES,
+    FECHAS,
     VISTAS,
-    CONTADOR,
+    PARA_EL_CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-ganamos.respuesta",
       opcional: true,
-      titulo: "¿Ganamos?",
-      texto: "La respuesta del mes: sí o no, cuánto, y de cada S/\u00a0100 que vendiste cuánto te quedó.",
+      titulo: "La cifra y cómo viene",
+      texto: "Lo que quedó en estas fechas, una frase que dice qué significa y contra qué se compara. Abajo, cómo viene mes a mes: pasa el mouse para leer cada mes.",
     },
     {
-      id: "cascada",
-      ancla: "fin-ganamos.cascada",
-      titulo: "De la venta a la ganancia",
-      texto: "Arriba lo que vendiste; abajo, lo que se fue en cada cosa, hasta lo que quedó. La raya sobre un gasto es lo planeado en el presupuesto: si se pasa más del 10 %, lo dice. Toca un gasto y ves sus partes, lo real contra lo planeado.",
-    },
-    {
-      id: "cuadre",
-      ancla: "fin-ganamos.cuadre",
+      id: "costo-estimado",
+      ancla: "fin-ganamos.costo-estimado",
       opcional: true,
-      titulo: "De Ventas a Finanzas",
-      texto: "Por qué lo vendido en Ventas no es la venta de aquí: el IGV, las devoluciones, los cambios y lo de CLAURE, en céntimos y por sede. Si algo no tiene nombre, sale como «Sin explicar».",
+      titulo: "Cuánto de la ganancia es estimado",
+      texto: "Si vendiste prendas sin registrar, su costo es un promedio y la ganancia es una estimación. Este aviso dice cuánto pesa y lleva a registrar el costo real. Si todo lleva costo real, no aparece.",
+    },
+    {
+      id: "partes",
+      ancla: "fin-ganamos.partes",
+      opcional: true,
+      titulo: "A dónde se fue lo que vendiste",
+      texto: "Cada parte de la barra es un gasto, del ancho de lo que pesa. Al pasar el mouse el resto se apaga; al tocarla, su detalle se abre justo debajo: de qué está hecha y cómo venía.",
+    },
+    {
+      id: "libro",
+      ancla: "fin-ganamos.libro",
+      opcional: true,
+      titulo: "El formato formal",
+      texto: "El mismo estado con sus nombres de siempre, como lo lee un contador. Se abre aquí mismo.",
+    },
+    {
+      id: "recos",
+      ancla: "fin-estados.recos",
+      titulo: "Qué te recomiendo",
+      texto: "Hasta tres cosas para hacer, la más urgente arriba: una sede que pierde, un gasto que se pasa de lo planeado, una campaña que valió la pena. Cada una te lleva a donde se hace. Nada se cambia solo.",
+    },
+    {
+      id: "mas",
+      ancla: "fin-ganamos.mas",
+      titulo: "Ver más",
+      texto: "Lo que no hace falta para saber si ganaste, pero sigue a un toque: lo planeado, lo que dejó cada sede, las campañas y cómo cuadra con Ventas (te lo abrimos).",
+    },
+    {
+      id: "planeado",
+      ancla: "fin-ganamos.planeado",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-ganamos.mas" }],
+      titulo: "Contra lo planeado",
+      texto: "Si hay presupuesto, la raya sobre cada gasto es lo planeado: si se pasa más del 10 %, lo dice. Toca un gasto y ves sus partes.",
     },
     {
       id: "sedes",
@@ -1064,21 +1130,23 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     {
       id: "campanas",
       ancla: "fin-ganamos.campanas",
+      opcional: true,
       titulo: "Las campañas del mes",
       texto: "Las campañas que corrieron este mes y si dejaron más o menos que un día normal. «Ver las campañas» abre todas, con las que vienen.",
     },
     {
-      id: "recos",
-      ancla: "fin-estados.recos",
-      titulo: "Qué te recomiendo",
-      texto: "Hasta tres cosas para hacer, la más urgente arriba: una sede que pierde, un gasto que se pasa de lo planeado, una campaña que valió la pena. Cada una te lleva a donde se hace. Nada se cambia solo.",
+      id: "cuadre",
+      ancla: "fin-ganamos.cuadre",
+      opcional: true,
+      titulo: "De Ventas a Finanzas",
+      texto: "Por qué lo vendido en Ventas no es la venta de aquí: el IGV, las devoluciones, los cambios y lo de CLAURE, en céntimos y por sede. Si algo no tiene nombre, sale como «Sin explicar».",
     },
     {
-      id: "formal",
-      ancla: "fin-ganamos.formal",
+      id: "cuadro",
+      ancla: "fin-ganamos.cuadro",
       opcional: true,
-      titulo: "El formato formal",
-      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final. Se ve en la barra de arriba.",
+      titulo: "El cuadro por sede",
+      texto: "El estado de resultados como lo lee un contador: una columna por sede y CAYLA al final.",
     },
     {
       id: "comparar",
@@ -1137,7 +1205,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes si CAYLA ganó en el mes. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Ganamos?.",
+      texto: "Ya sabes si CAYLA ganó en el mes. Para repasarlo: Mi perfil ▸ Demo ▸ Ganancias y pérdidas.",
     },
   ],
   alSalir: [{ tipo: "escape" }],
@@ -1192,44 +1260,66 @@ export const GUIA_FIN_CAMPANAS: Guia = {
 export const GUIA_FIN_FLUJO: Guia = {
   id: "finanzas.reportes.flujo",
   ruta: "/finanzas/reportes/flujo",
-  titulo: "¿Dónde está la plata?",
-  resumen: "Flujo de efectivo: de dónde vino y a dónde fue la plata, lo que viene y qué pasa si cambias algo.",
+  titulo: "Flujo de efectivo",
+  resumen: "Con cuánta plata terminaste, por qué cambió, lo que viene y qué pasa si cambias algo.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "¿Vendí bien y no hay plata?",
-      texto: "Vender no es lo mismo que tener plata: una factura grande, un retiro o una máquina nueva se la llevan. Aquí ves de dónde vino y a dónde fue la plata en el mes, y lo que viene en las próximas semanas. Es una demo.",
+      texto: "Vender no es lo mismo que tener plata: una factura grande, un retiro o una máquina nueva se la llevan. Aquí ves por qué cambió tu plata en las fechas que elijas, y lo que viene. Es una demo.",
     },
-    ...TELAR,
-    RESPUESTAS_ESTADOS,
+    ...TELAR_SIN_MES,
+    FECHAS,
     VISTAS,
-    CONTADOR,
+    PARA_EL_CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-plata.respuesta",
+      opcional: true,
       titulo: "Cuánta plata hay",
-      texto: "La plata que tiene CAYLA hoy (o con la que cerró el mes), y en una frase por qué no siguió a la ganancia: lo que se fue en compras que duran, en retiros o en la tarjeta.",
+      texto: "La plata con la que terminaste (hoy, si las fechas llegan hasta hoy) y si es más o menos que al empezar. Las columnas muestran por qué: de cuánto partiste, qué la movió y con cuánto terminaste. Toca una y su detalle se abre abajo.",
     },
     {
       id: "no-cubre",
       ancla: "fin-plata.no-cubre",
       opcional: true,
       titulo: "Lo que este cuadro no tiene",
-      texto: "Si una cuenta arrancó con su saldo a mitad de mes, lo anterior ya está dentro de ese saldo y no suma abajo. Aquí ves, cuenta por cuenta, cuánto fue y cuánto se cobró en todo el período.",
+      texto: "Si una cuenta arrancó con su saldo a mitad de mes, lo anterior ya está dentro de ese saldo y no suma abajo. Aquí ves, cuenta por cuenta, cuánto fue y cuánto se cobró en total.",
     },
     {
-      id: "puente",
-      ancla: "fin-plata.puente",
-      titulo: "De dónde vino y a dónde fue",
-      texto: "Lo que había al empezar; lo que dejó el día a día (vender, comprar mercadería, pagar gastos); lo que se fue en cosas que duran años; lo que pusiste, retiraste o pagaste de deudas; y lo que hay al cerrar. Toca una parte y ves de qué está hecha.",
+      id: "partes",
+      ancla: "fin-plata.partes",
+      opcional: true,
+      titulo: "Por qué cambió tu plata",
+      texto: "Lo que dejó el día a día (vender, comprar mercadería, pagar gastos), lo que se fue en cosas que duran años y lo que pusiste, retiraste o pagaste de deudas. Al tocar una parte ves de qué está hecha y cómo venía.",
+    },
+    {
+      id: "libro",
+      ancla: "fin-plata.libro",
+      opcional: true,
+      titulo: "El formato formal",
+      texto: "El mismo estado con sus nombres de siempre, como lo lee un contador. Se abre aquí mismo.",
+    },
+    {
+      id: "recos",
+      ancla: "fin-estados.recos",
+      titulo: "Qué te recomiendo",
+      texto: "Si la plata alcanza las próximas semanas, por qué bajó aunque ganaste, cuántos días aguantas sin vender y el próximo impuesto. Cada una te lleva a donde se hace. Nada se cambia solo.",
+    },
+    {
+      id: "mas",
+      ancla: "fin-plata.mas",
+      titulo: "Ver más",
+      texto: "Lo que viene semana a semana y «¿Y si…?», donde pruebas un cambio antes de decidir (te lo abrimos).",
     },
     {
       id: "notas",
       ancla: "fin-plata.notas",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-plata.mas" }],
       titulo: "Lo que no suma aquí",
-      texto: "Si algo no cuadra, lo que todavía no dice de qué cuenta salió y la planilla que paga Dynamic: aquí se dice, no se esconde.",
+      texto: "Lo que todavía no dice de qué cuenta salió y la planilla que paga Dynamic: aquí se dice, no se esconde.",
     },
     {
       id: "viene",
@@ -1269,12 +1359,6 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-flujo.config",
       titulo: "Tu mínimo de caja",
       texto: "La línea punteada del gráfico es tu mínimo de caja: la plata que nunca quieres tener por debajo. Ese mínimo y los avisos se cambian en Configuración ▸ Dinero (el enlace te lleva; en la demo no salimos).",
-    },
-    {
-      id: "recos",
-      ancla: "fin-estados.recos",
-      titulo: "Qué te recomiendo",
-      texto: "Si la plata alcanza las próximas semanas, por qué bajó aunque ganaste, cuántos días aguantas sin vender y el próximo impuesto. Cada una te lleva a donde se hace. Nada se cambia solo.",
     },
     {
       id: "y-si",
@@ -1394,20 +1478,6 @@ export const GUIA_FIN_FLUJO: Guia = {
       demostrar: [{ tipo: "clic", ancla: "fin-escenarios.volver" }],
     },
     {
-      id: "formal",
-      ancla: "fin-plata.formal",
-      opcional: true,
-      titulo: "El formato formal",
-      texto: "El estado de flujos de efectivo como lo lee un contador (método directo: operación, inversión y financiamiento) y lo que quedó semana a semana. Se ve en la barra de arriba.",
-    },
-    {
-      id: "formal-tabla",
-      ancla: "fin-plata.formal-tabla",
-      opcional: true,
-      titulo: "Las tres partes",
-      texto: "Cada parte con lo que la forma y su total, y la plata al empezar y al terminar. Las cuentas contables no se muestran: van en lo que se descarga.",
-    },
-    {
       id: "semana-a-semana",
       ancla: "fin-flujo.semana-a-semana",
       opcional: true,
@@ -1418,7 +1488,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes por qué la plata no siempre acompaña a las ventas. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Dónde está la plata?.",
+      texto: "Ya sabes por qué la plata no siempre acompaña a las ventas. Para repasarlo: Mi perfil ▸ Demo ▸ Flujo de efectivo.",
     },
   ],
   alSalir: [{ tipo: "clic", ancla: "fin-escenarios.volver" }],
@@ -1426,19 +1496,19 @@ export const GUIA_FIN_FLUJO: Guia = {
 export const GUIA_FIN_BALANCE: Guia = {
   id: "finanzas.reportes.balance",
   ruta: "/finanzas/reportes/balance",
-  titulo: "¿Cuánto vale CAYLA?",
-  resumen: "Balance general: lo que tiene, contra lo que debe y lo que es tuyo.",
+  titulo: "Balance general",
+  resumen: "Cuánto vale CAYLA a una fecha: lo que tiene, contra lo que debe y lo que es tuyo.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "¿Cuánto vale CAYLA?",
-      texto: "Lo que CAYLA tiene (plata, mercadería, muebles), contra lo que debe (proveedores, impuestos) y lo que es tuyo. Mirando una tienda, ves cuánta plata tiene metida y cuánto le rinde. Es una demo.",
+      titulo: "Balance general",
+      texto: "Lo que CAYLA tiene (plata, mercadería, muebles), contra lo que debe (proveedores, impuestos) y lo que es tuyo, a la fecha que elijas. Mirando una sede, lo que es de ella. Es una demo.",
     },
-    ...TELAR,
-    RESPUESTAS_ESTADOS,
+    ...TELAR_SIN_MES,
+    FECHA_DEL_BALANCE,
     VISTAS,
-    CONTADOR,
+    PARA_EL_CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-vale.respuesta",
@@ -1447,39 +1517,46 @@ export const GUIA_FIN_BALANCE: Guia = {
       texto: "Lo que es tuyo: lo que tiene CAYLA menos lo que debe. Sale solo si el Balance cuadra.",
     },
     {
-      id: "fecha",
-      ancla: "fin-vale.fecha",
+      id: "tubos",
+      ancla: "fin-vale.tubos",
       opcional: true,
-      titulo: "A qué fecha",
-      texto: "Por defecto, el último día del mes de la barra (hoy, en el mes en curso). Puedes mirar el cierre de otro mes.",
-    },
-    {
-      id: "balanza",
-      ancla: "fin-vale.balanza",
-      opcional: true,
-      titulo: "La balanza",
-      texto: "Arriba, lo que tiene: plata, lo que te deben, mercadería y muebles. Abajo, lo que debe y lo tuyo. Las dos barras miden lo mismo: eso es que cuadre. Toca un tramo y ves de qué está hecho.",
+      titulo: "Los dos tubos",
+      texto: "Arriba, lo que tienes: plata, lo que te deben, mercadería y muebles. Abajo, lo que debes y lo tuyo. Los dos miden lo mismo: eso es que cuadre. Al pasar el mouse por una parte el resto se apaga.",
     },
     {
       id: "partes",
       ancla: "fin-vale.partes",
       opcional: true,
-      titulo: "De qué está hecho",
-      texto: "Las partes del tramo que tocaste, cada una por su nombre.",
+      titulo: "En qué está y a quién se le debe",
+      texto: "Cada parte con su cifra. Al tocarla, su detalle se abre justo debajo: de qué está hecha y cómo venía.",
     },
     {
-      id: "medidores",
-      ancla: "fin-vale.medidores",
+      id: "libro",
+      ancla: "fin-vale.libro",
       opcional: true,
-      titulo: "Dos preguntas que importan",
-      texto: "Si mañana te cobraran todo lo que debes, cuánto pagas con plata y cobros; y para cuántos meses de venta te alcanza la mercadería guardada. Mucha mercadería es plata quieta.",
+      titulo: "El formato formal",
+      texto: "El mismo Balance con sus nombres de siempre, como lo lee un contador: Activo = Pasivo + Patrimonio. Se abre aquí mismo.",
     },
     {
-      id: "tiendas",
-      ancla: "fin-balance.tiendas",
+      id: "tienda-respuesta",
+      ancla: "fin-balance.tienda-respuesta",
       opcional: true,
-      titulo: "Lo que es de cada sede",
-      texto: "Cuánta plata tiene metida cada sede (su cajón, su mercadería, sus muebles, menos su parte de las facturas) y cuánto le rindió este mes. Sirve para comparar qué sede aprovecha mejor cada sol.",
+      titulo: "Lo invertido en la sede",
+      texto: "Mirando una sede: lo que tiene menos lo que debe. No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera.",
+    },
+    {
+      id: "tienda-partes",
+      ancla: "fin-balance.tienda-partes",
+      opcional: true,
+      titulo: "Parte por parte",
+      texto: "Su cajón, su mercadería, sus muebles y las facturas que pidió. Con la caja abierta, su cifra la ve quien la cierra.",
+    },
+    {
+      id: "tienda-libro",
+      ancla: "fin-balance.tienda-libro",
+      opcional: true,
+      titulo: "En dos lados",
+      texto: "Lo mismo, como un cuadro: lo que tiene de un lado, y lo que debe y lo invertido del otro.",
     },
     {
       id: "recos",
@@ -1488,11 +1565,33 @@ export const GUIA_FIN_BALANCE: Guia = {
       texto: "Si el Balance no cuadra, la mercadería quieta, cuánto de lo que debes cubre la plata y la sede que no devuelve lo invertido. Cada una te lleva a donde se hace. Nada se cambia solo.",
     },
     {
-      id: "formal",
-      ancla: "fin-vale.formal",
+      id: "mas",
+      ancla: "fin-vale.mas",
       opcional: true,
-      titulo: "El formato formal",
-      texto: "Cómo se comprobó, el balance general como lo lee un contador (sin cuentas: van en lo que se descarga) y los saldos de arranque. Se ve en la barra de arriba.",
+      titulo: "Ver más",
+      texto: "Dos preguntas que importan, lo de cada sede y cómo se comprobó que el Balance cuadra (te lo abrimos).",
+    },
+    {
+      id: "medidores",
+      ancla: "fin-vale.medidores",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-vale.mas" }],
+      titulo: "Dos preguntas que importan",
+      texto: "Si mañana te cobraran todo lo que debes, cuánto pagas con plata y cobros; y para cuántos meses de venta te alcanza la mercadería guardada.",
+    },
+    {
+      id: "tiendas",
+      ancla: "fin-balance.tiendas",
+      opcional: true,
+      titulo: "Lo que es de cada sede",
+      texto: "Cuánta plata tiene metida cada sede (su cajón, su mercadería, sus muebles, menos su parte de las facturas) y cuánto le rindió este mes. Sirve para comparar.",
+    },
+    {
+      id: "tienda-mas",
+      ancla: "fin-balance.tienda-mas",
+      opcional: true,
+      titulo: "Ver más",
+      texto: "Mirando una sede: cómo le fue en el mes y lo que hay que saber de estas cifras (te lo abrimos).",
     },
     {
       id: "arranque",
@@ -1570,15 +1669,9 @@ export const GUIA_FIN_BALANCE: Guia = {
       id: "tienda-cifras",
       ancla: "fin-balance.tienda-cifras",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-balance.tienda-mas" }],
       titulo: "Lo que tiene invertido tu tienda",
       texto: "Mirando una sola tienda: cuánta plata tiene metida (lo que tiene menos lo que debe), cuánto ganó en el mes, cuánto le rinde cada sol metido y cuánto vendió.",
-    },
-    {
-      id: "tienda-detalle",
-      ancla: "fin-balance.tienda-detalle",
-      opcional: true,
-      titulo: "Qué tiene y qué debe la tienda",
-      texto: "A la izquierda, lo que tiene: su cajón y caja fuerte, su mercadería y sus muebles. A la derecha, su parte de las facturas por pagar. La resta es lo invertido en la tienda. Arriba eliges a qué fecha mirarlo.",
     },
     {
       id: "tienda-nota",
@@ -1591,7 +1684,7 @@ export const GUIA_FIN_BALANCE: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes cuánto vale CAYLA y cuánto tiene cada tienda. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Cuánto vale CAYLA?.",
+      texto: "Ya sabes cuánto vale CAYLA y cuánto tiene cada tienda. Para repasarlo: Mi perfil ▸ Demo ▸ Balance general.",
     },
   ],
   alSalir: [{ tipo: "escape" }],
@@ -1601,46 +1694,39 @@ export const GUIA_FIN_BALANCE: Guia = {
 export const GUIA_FIN_PATRIMONIO: Guia = {
   id: "finanzas.reportes.patrimonio",
   ruta: "/finanzas/reportes/patrimonio",
-  titulo: "¿Lo tuyo creció?",
-  resumen: "Cambios en el patrimonio: si lo tuyo creció en el mes, qué lo movió y cómo viene mes a mes.",
+  titulo: "Cambios en el patrimonio",
+  resumen: "Cuánto cambió tu parte en CAYLA en las fechas que elijas, qué la movió y cómo viene mes a mes.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "¿Lo tuyo creció?",
-      texto: "Lo tuyo es lo que tiene CAYLA menos lo que debe. Aquí ves cuánto era al empezar el mes, qué lo movió (lo que ganaste, lo que pusiste y lo que retiraste) y cuánto quedó. Sale del mismo diario que el Balance: nadie lo escribe. Es una demo.",
+      titulo: "Cambios en el patrimonio",
+      texto: "Tu parte en CAYLA es lo que tiene menos lo que debe. Aquí ves con cuánto empezaste, qué la movió (lo que ganaste, lo que pusiste y lo que retiraste) y con cuánto terminaste. Es una demo.",
     },
-    ...TELAR,
-    RESPUESTAS_ESTADOS,
+    ...TELAR_SIN_MES,
+    FECHAS,
     VISTAS,
-    CONTADOR,
+    PARA_EL_CONTADOR,
     {
       id: "respuesta",
       ancla: "fin-patrimonio.respuesta",
       opcional: true,
       titulo: "Creció o bajó, y cuánto",
-      texto: "La respuesta del mes y, debajo, qué parte de lo que ganaste retiraste. Si retiras más de lo que ganas, lo tuyo baja aunque el negocio gane.",
+      texto: "Cuánto cambió tu parte en estas fechas, de cuánto a cuánto y qué la movió. La línea muestra cómo viene mes a mes: pasa el mouse para leer cada mes. Si retiras más de lo que ganas, baja aunque el negocio gane.",
     },
     {
-      id: "extremos",
-      ancla: "fin-patrimonio.extremos",
+      id: "partes",
+      ancla: "fin-patrimonio.partes",
       opcional: true,
-      titulo: "Al empezar y al cerrar",
-      texto: "Cuánto era lo tuyo el primer día del mes y cuánto es al cerrarlo (o hoy, si el mes sigue).",
+      titulo: "Qué movió tu parte",
+      texto: "Con cuánto empezaste, lo que ganaste, lo que pusiste, lo que retiraste y con cuánto terminaste. Si algo se movió a mano, sale aparte como «Sin explicar». Al tocar una parte ves de qué está hecha y cómo venía.",
     },
     {
-      id: "puente",
-      ancla: "fin-patrimonio.puente",
+      id: "libro",
+      ancla: "fin-patrimonio.libro",
       opcional: true,
-      titulo: "De dónde salió el cambio",
-      texto: "De lo tuyo al empezar el mes a lo tuyo al cerrar: lo que ganaste, lo que pusiste y lo que retiraste. Si algo se movió a mano, sale aparte como «Sin explicar».",
-    },
-    {
-      id: "linea",
-      ancla: "fin-patrimonio.linea",
-      opcional: true,
-      titulo: "Lo tuyo, mes a mes",
-      texto: "Cuánto era lo tuyo al cierre de cada uno de los últimos meses. Pasa el mouse por un punto para ver su cifra.",
+      titulo: "El formato formal",
+      texto: "El mismo estado con sus nombres de siempre, como lo lee un contador. Se abre aquí mismo.",
     },
     {
       id: "recos",
@@ -1650,11 +1736,19 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       texto: "Si retiraste más de lo que ganaste, cuánto habría crecido retirando la mitad, si lo tuyo viene bajando y si hay algo sin explicar. Nada se cambia solo.",
     },
     {
+      id: "mas",
+      ancla: "fin-patrimonio.mas",
+      opcional: true,
+      titulo: "Ver más",
+      texto: "El cuadro por columna, como lo lee un contador (te lo abrimos).",
+    },
+    {
       id: "formal",
       ancla: "fin-patrimonio.formal",
       opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-patrimonio.mas" }],
       titulo: "El formato formal",
-      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre. Se ve en la barra de arriba.",
+      texto: "El estado de cambios en el patrimonio como lo lee un contador: capital, aportes y resultados acumulados, cada uno del inicio al cierre.",
     },
     {
       id: "formal-tabla",
@@ -1668,13 +1762,13 @@ export const GUIA_FIN_PATRIMONIO: Guia = {
       ancla: "fin-patrimonio.vacio",
       opcional: true,
       titulo: "Faltan los saldos de arranque",
-      texto: "Lo tuyo se cuenta desde el día en que CAYLA empezó a usar el sistema. Hasta que el líder registre esos saldos en ¿Cuánto vale CAYLA?, aquí no hay cifras.",
+      texto: "Lo tuyo se cuenta desde el día en que CAYLA empezó a usar el sistema. Hasta que el líder registre esos saldos en Balance general, aquí no hay cifras.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes si lo tuyo creció y por qué. Para repasarlo: Mi perfil ▸ Demo ▸ ¿Lo tuyo creció?.",
+      texto: "Ya sabes si lo tuyo creció y por qué. Para repasarlo: Mi perfil ▸ Demo ▸ Cambios en el patrimonio.",
     },
   ],
 };
@@ -1693,6 +1787,7 @@ export const GUIA_FIN_CONTADOR: Guia = {
     },
     ...TELAR,
     VISTAS,
+    PARA_EL_CONTADOR,
     CONTADOR,
     {
       id: "saldos",
@@ -1929,7 +2024,7 @@ export const GUIA_FIN_CIERRE: Guia = {
       id: "boton",
       ancla: "fin-cierre.boton",
       titulo: "Cerrar esta parte",
-      texto: "Se activa cuando no queda nada pendiente. Si ya está cerrada, «Reabrir» pide un motivo y queda en la historia. En la demo no lo tocamos.",
+      texto: "Se activa cuando no queda nada pendiente; sin la planilla pagada en Dynamic no deja cerrar (un Admin puede saltarlo con un motivo). Los meses se cierran en orden. «Reabrir» solo sirve para el último cerrado y pide motivo. En la demo no lo tocamos.",
     },
     {
       id: "otra-unidad",

@@ -1,7 +1,7 @@
 // Las familias de color PARA QUIEN COMPRA en la tienda online (ADR-0512, actividad 2). El ERP ya tiene `colores.familia_color`, pero está
 // pensada para ordenar la carta de colores (ADR-0312) y mete negro, blanco y gris en un solo «neutro», y beige y marrón en «tierra»: para
 // quien compra eso es demasiado grueso. Con los datos reales de Trujillo (2026-10-25) hay 80 colores distintos con unidades: una lista
-// de 80 muestras no se puede usar, y 13 familias sí. Una sola tabla, como la de las categorías (`categorias-de-la-tienda.ts`): vive en
+// de 80 muestras no se puede usar, y 14 familias sí. Una sola tabla, como la de las categorías (`categorias-de-la-tienda.ts`): vive en
 // código y no en una columna nueva de `colores`, así no hay migración de tablas ni se toca la familia del ERP.
 //
 // Cada color va en UNA familia, siempre por su CÓDIGO (`colores.codigo`, nunca el nombre visible, que se renombra). Un código que no está
@@ -21,9 +21,10 @@ export type FamiliaDeColorId =
   | "verde"
   | "celeste"
   | "azul"
-  | "morado";
+  | "morado"
+  | "multicolor";
 
-/** `muestra`: el color con que se dibuja su círculo. Es un dato de la familia (como el de una prenda): no cambia con el modo oscuro. */
+/** `muestra`: el fondo con que se dibuja su círculo (un #hex; en Multicolor, su rueda). Es un dato de la familia (como el de una prenda): no cambia con el modo oscuro. */
 export type FamiliaDeColor = { id: FamiliaDeColorId; nombre: string; muestra: string };
 
 /** Las familias en el orden de la paleta: de lo más neutro a lo más vivo. */
@@ -41,6 +42,8 @@ export const FAMILIAS_DE_COLOR: readonly FamiliaDeColor[] = [
   { id: "celeste", nombre: "Celeste", muestra: "#A9CADA" },
   { id: "azul", nombre: "Azul", muestra: "#3F5E8C" },
   { id: "morado", nombre: "Morado y lila", muestra: "#8B6FA8" },
+  // Una prenda de varios colores no es «verde» ni «marrón»: es la suya (Felipe 2026-11-06). La misma rueda de `MuestraColor` del ERP.
+  { id: "multicolor", nombre: "Multicolor", muestra: "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" },
 ];
 
 /** Los códigos de cada familia (`colores.codigo`). */
@@ -54,10 +57,11 @@ const CODIGOS_DE_LA_FAMILIA: Readonly<Record<FamiliaDeColorId, readonly string[]
   rojo: ["ROJ", "RTO", "CER", "VIN", "FRA", "COR", "MSA"],
   naranja: ["NAR", "MAN", "NQU", "SAL", "DUR", "ALB", "AMB", "TER", "COE"],
   amarillo: ["AMM", "AML", "AMA", "MOS", "GIR", "ACH", "DOR", "ORV"],
-  verde: ["PIS", "VEL", "SAV", "VOL", "VEM", "VEA", "ESM", "VER", "VEB", "MEN", "VHO", "VJA", "VEO", "VEP", "MIU"],
+  verde: ["PIS", "VEL", "SAV", "VOL", "VEM", "VEA", "ESM", "VER", "VEB", "MEN", "VHO", "VJA", "VEO", "VEP"],
   celeste: ["CEL", "AZC", "HIB", "AZA"],
   azul: ["AZD", "AZM", "AZF", "AZE", "AZI", "AME", "AZN", "TUR", "AZP", "IND", "COB", "AZU"],
   morado: ["LAV", "LIL", "VIO", "MOR", "MAL", "ORQ", "MOA", "CIR", "BER", "GLI"],
+  multicolor: ["MIU"],
 };
 
 const FAMILIA_DEL_CODIGO: ReadonlyMap<string, FamiliaDeColorId> = new Map(

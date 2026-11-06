@@ -5,16 +5,13 @@ import {
   cambiosDelSistema,
   causaCorta,
   cifraChequeo,
-  cortesDisponibles,
   csvBalance,
   cuadreArranque,
   cuentaLinea,
-  diaAnterior,
   enlaceDeCausa,
   iconoChequeo,
   ladoDeCuenta,
   leerChequeo,
-  leerCorte,
   leerLinea,
   leerMontoArranque,
   leerPropuesta,
@@ -33,7 +30,7 @@ import {
   valoresIniciales,
   type Chequeo,
   type LineaBalance,
-  type LineaPropuesta,
+  type LineaPropuesta,cuentasQueEmpiezanDespues,
 } from "./balance-reglas";
 
 const ch = (x: Partial<Chequeo>): Chequeo => ({
@@ -230,23 +227,6 @@ describe("cifras, fechas y nombres", () => {
     expect(g.totalTiene).toBe(1305);
     expect(g.totalDebe + g.totalTuyo).toBe(1285);
   });
-  it("la fecha del Balance: una que no pase de hoy, o hoy", () => {
-    expect(leerCorte("2026-08-31", "2026-09-24")).toBe("2026-08-31");
-    expect(leerCorte("2026-10-01", "2026-09-24")).toBe("2026-09-24");
-    expect(leerCorte("31/08/2026", "2026-09-24")).toBe("2026-09-24");
-    expect(leerCorte(undefined, "2026-09-24")).toBe("2026-09-24");
-  });
-  it("las fechas que se ofrecen: hoy y cada fin de mes, sin pasar del día anterior al arranque", () => {
-    const todas = cortesDisponibles("2026-09-24", null);
-    expect(todas).toHaveLength(13);
-    expect(todas[0]).toEqual({ valor: "2026-09-24", texto: "Hoy, 24 sep" });
-    expect(todas[1]).toEqual({ valor: "2026-08-31", texto: "Al 31 ago" });
-    expect(todas[12].valor).toBe("2025-09-30");
-    expect(cortesDisponibles("2026-09-24", "2026-07-01").map((c) => c.valor)).toEqual(["2026-09-24", "2026-08-31", "2026-07-31", "2026-06-30"]);
-    expect(cortesDisponibles("2026-09-24", "2026-09-10").map((c) => c.valor)).toEqual(["2026-09-24"]);
-    expect(cortesDisponibles("2024-03-15", null)[1].valor).toBe("2024-02-29");
-    expect(diaAnterior("2024-03-01")).toBe("2024-02-29");
-  });
 });
 
 describe("los saldos de arranque (el modal)", () => {
@@ -316,5 +296,13 @@ describe("descargar Excel", () => {
     expect(csv).toContain("Lo que tiene;101;Caja (cajones, cajas fuertes y lo entregado al líder);125.00");
     expect(csv).toContain("101 Caja;contra lo que dice cada caja;125.00;125.00;0.00;cuadra");
     expect(csv).toContain("Tienda Trujillo;125.00;0.00;0.00;0.00;895.00;113.99;12,7 % al mes");
+  });
+});
+
+describe("cuentasQueEmpiezanDespues (tarea 4)", () => {
+  const c = (saldoDesde: string | null, archivada = false) => ({ saldoDesde, archivada });
+  it("frena solo las vigentes que empiezan después del día elegido; ese mismo día ya vale", () => {
+    expect(cuentasQueEmpiezanDespues([c("2026-10-28"), c("2026-09-30"), c(null), c("2026-10-28", true)], "2026-10-01")).toEqual([c("2026-10-28")]);
+    expect(cuentasQueEmpiezanDespues([c("2026-10-01")], "2026-10-01")).toEqual([]);
   });
 });

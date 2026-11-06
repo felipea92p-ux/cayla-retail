@@ -1,63 +1,9 @@
 /* ====================================================================
    Estados financieros (ADR-0585): las piezas de la maqueta aprobada (`docs/maquetas/finanzas-eeff-2026-10/`), con los tokens del ERP.
-   La respuesta (`TitularEstado`), la cascada que flota (`CascadaEstados`), la tarjeta de una campaña, la balanza de bloques y los
-   extremos de lo tuyo. Solo tokens (ADR-0169, ADR-0336); movimiento de ADR-0136: una vez, sin rebote, nada con `prefers-reduced-motion`.
+   La cascada que flota (`CascadaEstados`) y la tarjeta de una campaña, las dos en «Ver más» de Ganancias y pérdidas. Lo demás de la pantalla está en `vidrio/estados.css`
+   (ADR-0611). Solo tokens (ADR-0169, ADR-0336); movimiento de ADR-0136: una vez, sin rebote, nada con `prefers-reduced-motion`.
    ==================================================================== */
 @layer components {
-  /* ---- La tarjeta de la pantalla: todo el estado va en una (la maqueta, `.panel`) ---- */
-  .fin-estado {
-    min-width: 0;
-    background: var(--color-papel);
-    border: 1px solid var(--color-sand);
-    border-radius: 20px;
-    padding: 28px;
-  }
-  .fin-estado-sep {
-    height: 1px;
-    background: var(--color-sand);
-    margin: 24px 0;
-  }
-  @media (max-width: 640px) {
-    .fin-estado {
-      padding: 18px;
-      border-radius: 16px;
-    }
-  }
-
-  /* ---- La respuesta ---- */
-  .fin-titular {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-  .fin-titular h2 {
-    margin-top: 6px;
-    font-family: var(--font-serif);
-    font-size: 30px;
-    line-height: 1.1;
-    color: var(--color-tinta);
-    font-variant-numeric: tabular-nums;
-  }
-  .fin-titular h2 [data-si="true"] {
-    color: var(--color-verde);
-  }
-  .fin-titular h2 [data-si="false"] {
-    color: var(--color-rojo);
-  }
-  .fin-titular-bajada {
-    margin-top: 6px;
-    max-width: 60ch;
-    color: var(--color-taupe);
-    font-size: 14.5px;
-  }
-  @media (max-width: 640px) {
-    .fin-titular h2 {
-      font-size: 25px;
-    }
-  }
-
   /* ---- La cascada que flota ---- */
   .fin-casc {
     display: flex;
@@ -342,142 +288,12 @@
     color: var(--color-rojo);
   }
 
-  /* ---- La balanza de ¿Cuánto vale CAYLA?: dos platillos con sus bloques apilados ---- */
-  .fin-balanza2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-  .fin-platillo-cab {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-  .fin-platillo-cab b {
-    font-family: var(--font-serif);
-    font-size: 20px;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-  }
-  .fin-pila {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    height: 380px;
-  }
-  .fin-bloque {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    min-height: 42px;
-    padding: 10px 14px;
-    overflow: hidden;
-    border: 0;
-    border-radius: 12px;
-    text-align: left;
-    color: var(--color-tinta);
-    transform-origin: top;
-    animation: fin-bloque-baja 550ms var(--ease-cayla) both;
-    animation-delay: calc(var(--i, 0) * 80ms);
-    transition: transform 200ms var(--ease-cayla);
-  }
-  @media (hover: hover) {
-    .fin-bloque:hover {
-      transform: translateX(2px);
-    }
-  }
-  .fin-bloque span {
-    font-size: 13.5px;
-    line-height: 1.25;
-  }
-  .fin-bloque b {
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
-  .fin-bloque[data-lado="tiene"] {
-    background: color-mix(in srgb, var(--color-verde) 16%, var(--color-papel));
-  }
-  .fin-bloque[data-lado="debe"] {
-    background: color-mix(in srgb, var(--color-ambar) 20%, var(--color-papel));
-  }
-  .fin-bloque[data-lado="tuyo"] {
-    background: var(--color-tinta);
-    color: var(--color-crema);
-  }
-  .fin-bloque[data-lado="tuyo"] span {
-    font-family: var(--font-serif);
-    font-size: 19px;
-  }
-  .fin-bloque[data-lado="tuyo"] b {
-    font-family: var(--font-serif);
-    font-size: 22px;
-    font-weight: 500;
-  }
-  .fin-bloque[aria-expanded="true"] {
-    outline: 2px solid var(--color-tinta);
-    outline-offset: 1px;
-  }
-  @keyframes fin-bloque-baja {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-  }
-  .fin-cuadra {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 14px;
-    font-size: 13px;
-    color: var(--color-verde);
-  }
-  @media (max-width: 640px) {
-    .fin-pila {
-      height: 300px;
-    }
-  }
-
-  /* ---- Lo tuyo: al empezar y al cerrar ---- */
-  .fin-extremos {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 16px;
-    margin-top: 16px;
-  }
-  .fin-extremo {
-    padding: 14px 16px;
-    border: 1px solid var(--color-sand);
-    border-radius: 14px;
-  }
-  .fin-extremo[data-fin] {
-    background: var(--color-tinta);
-    border-color: var(--color-tinta);
-    color: var(--color-crema);
-  }
-  .fin-extremo[data-fin] .label-cayla {
-    color: var(--color-crema);
-  }
-  .fin-extremo-valor {
-    font-family: var(--font-serif);
-    font-size: 30px;
-    font-variant-numeric: tabular-nums;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .fin-casc-barra,
-    .fin-casc-detalle,
-    .fin-bloque {
+    .fin-casc-detalle {
       animation: none;
     }
-    .fin-casc-flecha,
-    .fin-bloque {
+    .fin-casc-flecha {
       transition: none;
     }
   }

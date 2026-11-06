@@ -336,8 +336,15 @@ export function filaDeVer(filasER: readonly FilaER[], ver: VerResumen): FilaER |
 
 const DINERO = "Cuentas y dinero";
 
-/** «Debes en 7 días»: lo vencido y lo que vence en `aviso_vence_dias` (F4), más la planilla de esos días si se ve (F6). */
-export function debesPronto(r: ResumenFinanzas): { monto: number; vencidas: FilaPorPagar[]; proximas: FilaPorPagar[]; planilla: { monto: number; fecha: string } | null } | null {
+/** Una salida de la proyección que entra en «debes»: un fijo, un impuesto, o AFP y retenciones. */
+export type OtraDeuda = { id: string; titulo: string; monto: number; fecha: string; atrasada: boolean };
+
+/**
+ * «Debes en 7 días»: lo vencido y lo que vence en `aviso_vence_dias` (F4), más lo que la proyección trae en esos días: la planilla, los fijos, los impuestos y
+ * AFP, EsSalud y retenciones (tarea 22). La planilla vale su NETO, lo que sale del banco (Felipe 2026-11-05); `al_cierre` es costo, no salida. Los vencimientos no se
+ * suman de la proyección porque ya están en `porPagar`. Mirando una sede, solo lo de esa sede. `leyoSalidas`: sin esa lectura la cifra no incluye eso y no se puede decir que no vence nada.
+ */
+export function debesPronto(r: ResumenFinanzas): { monto: number; vencidas: FilaPorPagar[]; proximas: FilaPorPagar[]; planilla: { monto: number; fecha: string } | null; otras: OtraDeuda[]; leyoSalidas: boolean; planillaVisible: boolean } | null {
   if (r.porPagar.estado !== "ok") return null;
   const { filas: fs, dias } = r.porPagar.datos;
   const vencidas = fs.filter((f) => diasHasta(f.vence, r.hoy) < 0);
@@ -346,12 +353,26 @@ export function debesPronto(r: ResumenFinanzas): { monto: number; vencidas: Fila
     return d >= 0 && d <= dias;
   });
   let planilla: { monto: number; fecha: string } | null = null;
+  let otras: OtraDeuda[] = [];
   if (r.flujo.estado === "ok") {
-    const pl = r.flujo.datos.salidas.filter((s) => s.tipo === "planilla" && diasHasta(s.fecha, r.hoy) <= dias);
+    const deLoQueSeMira = (u: string | null) => (r.ver.todas ? true : r.ver.soloEmpresa ? u === null : u === r.ver.ubicacionId);
+    const enPlazo = r.flujo.datos.salidas.filter((s) => s.monto > 0 && diasHasta(s.fecha, r.hoy) <= dias && deLoQueSeMira(s.ubicacionId));
+    const pl = enPlazo.filter((s) => s.tipo === "planilla");
     if (pl.length) planilla = { monto: r2(pl.reduce((a, s) => a + s.monto, 0)), fecha: pl[0]!.fecha };
+    otras = enPlazo
+      .filter((s) => s.tipo === "fijo" || s.tipo === "impuesto" || s.tipo === "aportes")
+      .map((s) => ({ id: s.id, titulo: s.titulo, monto: s.monto, fecha: s.vence ?? s.fecha, atrasada: s.atrasada }));
   }
-  const monto = r2([...vencidas, ...proximas].reduce((a, f) => a + f.saldo, 0) + (planilla?.monto ?? 0));
-  return { monto, vencidas, proximas, planilla };
+  const monto = r2([...vencidas, ...proximas].reduce((a, f) => a + f.saldo, 0) + (planilla?.monto ?? 0) + otras.reduce((a, o) => a + o.monto, 0));
+  return {
+    monto,
+    vencidas,
+    proximas,
+    planilla,
+    otras,
+    leyoSalidas: r.flujo.estado === "ok",
+    planillaVisible: r.flujo.estado === "ok" && r.flujo.datos.planillaVisible,
+  };
 }
 
 
@@ -669,8 +690,8 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         detalle: `${cerrado ? "Cerró" : "Al cierre llegaría"} en ${soles(f.proyeccion ?? 0)} contra un tope de ${soles(f.presupuesto ?? 0)} (${chip.texto}); lleva ${soles(f.aLaFecha)}.`,
         impacto: `${soles((f.proyeccion ?? 0) - (f.presupuesto ?? 0))} sobre el tope`,
         href: enlace("reportes_financieros", conQuery("/finanzas/reportes", verParam(r, f.unidad === "empresa" ? null : f.ubicacionId))),
-        boton: "Ver en ¿Ganamos?",
-        origen: "Estados financieros ▸ ¿Ganamos?",
+        boton: "Ver en Ganancias y pérdidas",
+        origen: "Estados financieros ▸ Ganancias y pérdidas",
         peso: (f.proyeccion ?? 0) - (f.presupuesto ?? 0),
       });
     }

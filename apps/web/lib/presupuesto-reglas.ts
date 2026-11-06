@@ -1,5 +1,5 @@
 // Reglas del Presupuesto (ADR-0195, capa «para decidir»; contrato en 20260925190000_finanzas_presupuesto.sql). Lógica
-// pura: la usan Configuración ▸ Gastos y la raya de lo planeado de ¿Ganamos? (`ganamos-reglas.ts`, ADR-0585: el presupuesto ya no
+// pura: la usan Configuración ▸ Gastos y la raya de lo planeado de Ganancias y pérdidas (`ganamos-reglas.ts`, ADR-0585: el presupuesto ya no
 // tiene pantalla aparte), y sus pruebas.
 // Qué NO hace este archivo: calcular plata. El tope, lo real, la proyección al cierre y el estado de cada línea vienen de
 // `fn_presupuesto_vs_real`; la meta de ventas es la de las metas del día (`fn_meta_mes`, F1). Aquí solo se decide qué

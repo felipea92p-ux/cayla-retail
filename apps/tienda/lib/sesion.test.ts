@@ -22,7 +22,7 @@ describe("a dónde lleva el proxy", () => {
     expect(redireccionDelProxy("/catalogo", "GET", "no", "?lista=nuevo")).toBeNull();
   });
 
-  it("el catálogo, los precios, los looks, la bolsa y lo público se ven sin cuenta (Felipe 2026-10-17)", () => {
+  it("el catálogo, los precios, los outfits, la bolsa y lo público se ven sin cuenta (Felipe 2026-10-17)", () => {
     for (const ruta of [
       "/inicio",
       "/catalogo",

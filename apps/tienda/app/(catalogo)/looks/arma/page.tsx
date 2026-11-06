@@ -77,10 +77,10 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
         <div className="t-ancho">
           <div className="t-vacio">
             <Icono nombre="chispa" />
-            <h3>Pronto podrás armar tu look aquí</h3>
-            <p>{elegida ? `Todavía no hay prendas listas para el probador en ${elegida.nombre}.` : "Estamos preparando las prendas para el probador."} Mientras tanto, mira los looks que armamos para ti.</p>
+            <h3>Pronto podrás armar tu outfit aquí</h3>
+            <p>{elegida ? `Todavía no hay prendas listas para el probador en ${elegida.nombre}.` : "Estamos preparando las prendas para el probador."} Mientras tanto, mira los outfits que armamos para ti.</p>
             <Link className="t-btn" href={hrefLooks(sede)}>
-              Ver los looks
+              Ver los outfits
             </Link>
             <Link className="t-enlace" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
               Ver toda la tienda

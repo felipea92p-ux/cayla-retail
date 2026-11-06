@@ -11,6 +11,7 @@ import { Boton } from "@/components/ui/campos";
 import { queSigue, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import type { DatosEditarTela } from "@/lib/orden-tela-editar-reglas";
 import { destinoDeTipo } from "@/lib/orden-tipo-reglas";
+import { CambiarDatosModal, CambiarPlanModal } from "@/components/orden-pagina/CambiarPlanYDatosModal";
 
 // Las salidas de la orden, en la cabecera (ADR-0400, actividad 6): «Pasar al stock» cuando todas las fases terminaron (una muestra: «Terminar muestra»), «Anular orden» mientras está en proceso y
 // «Revertir el cierre» cuando ya pasó al stock. Mientras está en proceso también se corrige su tipo (ADR-0581): «Pasar a lote de producción» si se abrió como muestra, «Pasar a muestra» si fue al
@@ -18,7 +19,7 @@ import { destinoDeTipo } from "@/lib/orden-tipo-reglas";
 // (`fn_puede_operar_ubicacion`) y pone sus candados (buenas, prendas afuera, y desde ADR-0570 la tela sin anotar). Desde «Pasar al stock», la tela sin anotar abre «¿Cuánto quedó en el estante?»
 // en lugar de esa hoja (un líder puede, además, dejarla pasar sin tela con su porqué), y la orden que no declaró ninguna tela abre «Declarar tela y avíos».
 
-type Hoja = "stock" | "anular" | "revertir" | "tela" | "declarar" | "tipo";
+type Hoja = "stock" | "anular" | "revertir" | "tela" | "declarar" | "tipo" | "plan" | "datos";
 
 export function AccionesDeLaOrden({
   datos,
@@ -40,6 +41,12 @@ export function AccionesDeLaOrden({
     <div data-guia="prod-orden.acciones" className="flex flex-wrap items-center gap-2">
       {enProceso ? (
         <>
+          <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.cambiar-plan" onClick={() => setHoja("plan")}>
+            Cambiar cantidades
+          </Boton>
+          <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.cambiar-datos" onClick={() => setHoja("datos")}>
+            Datos
+          </Boton>
           <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.cambiar-tipo" onClick={() => setHoja("tipo")}>
             {destinoDeTipo(datos.orden.esMuestra).boton}
           </Boton>
@@ -69,6 +76,8 @@ export function AccionesDeLaOrden({
       {hoja === "declarar" && edicion && <EditarTelaModal datos={datos} edicion={edicion} onClose={cierra} />}
       {hoja === "tela" && <AnotarLoUsadoModal datos={datos} onClose={cierra} />}
       {hoja === "tipo" && <CambiarTipoModal datos={datos} onClose={cierra} />}
+      {hoja === "plan" && <CambiarPlanModal datos={datos} onClose={cierra} />}
+      {hoja === "datos" && <CambiarDatosModal datos={datos} onClose={cierra} />}
       {hoja === "anular" && <AnularLaOrdenModal datos={datos} onClose={cierra} />}
       {hoja === "revertir" && <RevertirLaOrdenModal datos={datos} onClose={cierra} />}
     </div>
