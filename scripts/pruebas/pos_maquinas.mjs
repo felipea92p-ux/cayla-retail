@@ -94,6 +94,10 @@ select id as izipay_cta from retail.cuentas_dinero where nombre = 'Por depositar
 select id as vendemas_cta from retail.cuentas_dinero where nombre = 'Por depositar Vendemás' and archivada_en is null \\gset
 select id as izipay from retail.pos_maquinas where nombre = 'Izipay' and archivada_en is null \\gset
 select id as vendemas from retail.pos_maquinas where nombre = 'Vendemás' and archivada_en is null \\gset
+-- La tarea 14 sembró la tarifa de Vendemás (20261106012000): aquí se prueba una máquina que todavía no tiene ninguna.
+set local session_replication_role = replica;
+delete from retail.pos_tarifas where maquina_id = :'vendemas';
+set local session_replication_role = origin;
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select u, 'Piso de venta', 'piso_venta' from unnest(array[:'tru', :'lim']::uuid[]) u
    where not exists (select 1 from retail.sububicaciones s where s.ubicacion_id = u and s.tipo = 'piso_venta');

@@ -666,6 +666,8 @@ rollback;`);
   // Una función nueva que lea los pagos aparece aquí y la prueba falla hasta que alguien decida qué hace con la fila 'redondeo'
   // (y la anote). Es el candado que reemplaza a «acordarse»: sin él, cada lector olvidado deja una cifra de dinero mal.
   const REVISADAS = {
+    fn_pos_comision_lote: "Tarea 14 (20261106012000): suma solo las filas con el medio de la máquina (tarjeta o QR); la fila de redondeo no pasa por ninguna máquina.",
+    fn_asientos_dinero_y_caja: "Tarea 14 (20261106012000): de venta_pagos solo saca qué lotes hubo con cuenta de una máquina; la fila de redondeo no lleva esa cuenta.",
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0311 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
     corregir_pagos_venta:

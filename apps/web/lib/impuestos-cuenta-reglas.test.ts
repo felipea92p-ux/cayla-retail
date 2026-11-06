@@ -48,6 +48,19 @@ describe("cuentaImpuestos", () => {
     expect(c.tasaIgv).toBe(18);
   });
 
+  it("con el pago registrado dice lo que falta, y pagado entero ya no pide registrar nada", () => {
+    const aMedias = cuentaImpuestos({ ...PANEL, pagos: [{ mes: "2026-09", igv: 7400, renta: 0 }] }, { enCurso: false, pendientes: 0 });
+    if (aMedias.estado !== "a_pagar") throw new Error("a pagar");
+    expect(aMedias).toMatchObject({ etiqueta: "Te falta pagar a SUNAT", pagas: 1830, pagadoTodo: false, frase: "Ya pagaste S/\u00a07,400 de S/\u00a09,230." });
+    const todo = cuentaImpuestos({ ...PANEL, pagos: [{ mes: "2026-09", igv: 7400, renta: 1830 }] }, { enCurso: false, pendientes: 0 });
+    if (todo.estado !== "a_pagar") throw new Error("a pagar");
+    expect(todo).toMatchObject({ etiqueta: "Ya pagaste a SUNAT", pagas: 9230, pagadoTodo: true, chip: "Pagado" });
+    // Lo pagado de otro mes no cuenta aquí, y el botón llega a la hoja en este mes.
+    const otro = cuentaImpuestos({ ...PANEL, pagos: [{ mes: "2026-08", igv: 7400, renta: 1830 }] }, { enCurso: false, pendientes: 0 });
+    if (otro.estado !== "a_pagar") throw new Error("a pagar");
+    expect(otro).toMatchObject({ etiqueta: "Pagas a SUNAT", pagas: 9230, registrarPago: "/finanzas/dinero?registrar=pago_sunat&mes=2026-09" });
+  });
+
   it("con otra tasa en el parámetro, cambia el texto y no hay ningún 1 % escrito en la cuenta", () => {
     const c = cuentaImpuestos({ ...PANEL, renta: { base: 122000, tasa: 0.01, monto: 1220 } }, { enCurso: false, pendientes: 0 });
     if (c.estado !== "a_pagar") throw new Error("a pagar");

@@ -121,6 +121,60 @@ select 'diario_sin_sunat|' || count(*) from retail.fn_asientos('2019-07-20', '20
   });
 }
 
+// ---------- Escena de la tarea 10: cada pago dice de qué mes es y qué paga ----------
+{
+  const r = correr(`
+begin;
+${cambiaA(FELIPE)}
+${MIGRACION}
+${SEMILLA}
+select retail.registrar_pago_sunat(:'banco', '2019-07-20', '[{"mes":"2019-06-01","concepto":"igv","monto":300},{"mes":"2019-06-01","concepto":"renta","monto":100}]'::jsonb, 'Junio', '00000000-0000-4000-8000-0000000000a1') as pago \\gset
+-- El diario: el IGV baja la 4011, la renta va a la 4017 y el banco baja por el total.
+select 't10_diario|' || string_agg(cuenta || ':' || debe || '/' || haber, ' ' order by cuenta) from retail.fn_asientos('2019-07-20', '2019-07-20', null) where regla = 'pago_sunat';
+select 't10_cuadra|' || (sum(debe) = sum(haber)) from retail.fn_asientos('2019-07-20', '2019-07-20', null) where regla = 'pago_sunat';
+select 't10_lee|' || string_agg(concepto || ':' || monto, ' ' order by concepto) from retail.fn_impuestos_pagos() where mes = '2019-06-01';
+select 't10_total|' || monto from retail.movimientos_dinero where id = :'pago';
+-- Repetir con el mismo token no duplica el pago ni sus líneas.
+select 't10_mismo|' || (retail.registrar_pago_sunat(:'banco', '2019-07-20', '[{"mes":"2019-06-01","concepto":"igv","monto":300},{"mes":"2019-06-01","concepto":"renta","monto":100}]'::jsonb, 'Junio', '00000000-0000-4000-8000-0000000000a1') = :'pago');
+select 't10_lineas|' || count(*) from retail.impuestos_pagos where movimiento_id = :'pago';
+-- Un pago viejo, sin líneas, sigue yendo entero a la 4011.
+select retail.registrar_movimiento_dinero('pago_sunat', 50, :'banco', null, '2019-07-21', 'Sin líneas') as viejo \\gset
+select 't10_viejo|' || string_agg(cuenta || ':' || debe || '/' || haber, ' ' order by cuenta) from retail.fn_asientos('2019-07-21', '2019-07-21', null) where regla = 'pago_sunat';
+-- Anular el movimiento anula sus líneas para quien las lea; nunca se borran.
+select retail.anular_movimiento_dinero(:'pago', 'Se registró dos veces');
+select 't10_anulado|' || count(*) from retail.fn_impuestos_pagos() where mes = '2019-06-01';
+select 't10_queda|' || count(*) from retail.impuestos_pagos where movimiento_id = :'pago';
+select 't10_rls|' || relrowsecurity || ',' || (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'impuestos_pagos') from pg_class where oid = 'retail.impuestos_pagos'::regclass;
+${debeFallar("t10_sin_lineas", `perform retail.registrar_pago_sunat((select id from retail.cuentas_dinero where nombre = 'Banco de prueba'), '2019-07-20', '[]'::jsonb)`, "P0001")}
+${debeFallar("t10_mal_concepto", `perform retail.registrar_pago_sunat((select id from retail.cuentas_dinero where nombre = 'Banco de prueba'), '2019-07-20', '[{"mes":"2019-06-01","concepto":"multa","monto":10}]'::jsonb)`, "P0001")}
+${debeFallar("t10_monto_cero", `perform retail.registrar_pago_sunat((select id from retail.cuentas_dinero where nombre = 'Banco de prueba'), '2019-07-20', '[{"mes":"2019-06-01","concepto":"igv","monto":0}]'::jsonb)`, "P0001")}
+${debeFallar("t10_mes_a_medias", `perform retail.registrar_pago_sunat((select id from retail.cuentas_dinero where nombre = 'Banco de prueba'), '2019-07-20', '[{"mes":"2019-06-15","concepto":"igv","monto":10}]'::jsonb)`, "P0001")}
+${debeFallar("t10_mes_futuro", `perform retail.registrar_pago_sunat((select id from retail.cuentas_dinero where nombre = 'Banco de prueba'), '2019-07-20', '[{"mes":"2099-01-01","concepto":"igv","monto":10}]'::jsonb)`, "P0001")}
+${cambiaA(MICAELA)}
+${debeFallar("t10_sin_ser_lider", `perform retail.registrar_pago_sunat((select id from retail.cuentas_dinero where nombre = 'Banco de prueba'), '2019-07-20', '[{"mes":"2019-06-01","concepto":"igv","monto":10}]'::jsonb)`, "42501")}
+${debeFallar("t10_sin_ver_impuestos", `perform retail.fn_impuestos_pagos()`, "42501")}
+`);
+  verificar("cada pago con su mes", r, {
+    t10_diario: "104:0/400.00 4011:300.00/0 4017:100.00/0",
+    t10_cuadra: "true",
+    t10_lee: "igv:300.00 renta:100.00",
+    t10_total: "400.00",
+    t10_mismo: "true",
+    t10_lineas: "2",
+    t10_viejo: "104:0/50.00 4011:50.00/0",
+    t10_anulado: "0",
+    t10_queda: "2",
+    t10_rls: "true,0",
+    t10_sin_lineas: "ok",
+    t10_mal_concepto: "ok",
+    t10_monto_cero: "ok",
+    t10_mes_a_medias: "ok",
+    t10_mes_futuro: "ok",
+    t10_sin_ser_lider: "ok",
+    t10_sin_ver_impuestos: "ok",
+  });
+}
+
 // ---------- Escena 2: los candados ----------
 {
   const r = correr(`

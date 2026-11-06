@@ -234,6 +234,9 @@
     & .t-cab-fila { padding-inline: var(--e-1); gap: 0; }
     & .t-cab-fila :is(.t-ico, .dn-buscar-cab) { width: 38px; }
     & .t-cab-fila .t-logo .t-marca-logo { height: 24px; }
+    & .dn-banner-texto { padding-inline: var(--e-2); }
+    & .dn-banner h2 { font-size: 31px; }
+    & .dn-btn-claro { font-size: 14px; padding-inline: var(--e-1); gap: 6px; white-space: nowrap; }
   }
 }
 
@@ -286,8 +289,9 @@
 .dn-foto img { position: absolute; display: block; }
 .dn-foto-modelo { border-radius: 20px 0 0 0; background: radial-gradient(ellipse 72% 70% at 50% 58%, color-mix(in srgb, #e9d9cc 34%, #681c24), #4f141b 78%); }
 .dn-foto-modelo img { inset: auto auto 0 50%; transform: translateX(-50%); width: 112%; height: auto; max-width: none; object-fit: contain; }
-.dn-foto-mesa { grid-column: 1 / -1; aspect-ratio: 3 / 2; max-height: 380px; width: 100%; overflow: hidden; background: linear-gradient(100deg, var(--dn-arena), color-mix(in srgb, var(--dn-arena) 78%, #fff)); border-radius: 50% 50% 20px 20px / 32px 32px 20px 20px; }
-.dn-foto-mesa img { inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
+.dn-foto-mesa { grid-column: 1 / -1; height: clamp(230px, 64cqi, 360px); width: 100%; overflow: hidden; background: var(--dn-arena); border-radius: 50% 50% 20px 20px / 32px 32px 20px 20px; }
+/* El brazo entra por el borde derecho (ahí termina el recorte) y las prendas caen hasta el borde de abajo. No sobresale por arriba: el brazo quedaría cortado en el aire */
+.dn-foto-mesa img { inset: auto 0 0 auto; width: auto; height: 92%; max-width: none; object-fit: contain; filter: drop-shadow(-3px 4px 7px color-mix(in srgb, #4f141b 18%, transparent)); }
 
 @container tienda (min-width: 640px) {
   .dn-beneficios ul { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -319,10 +323,10 @@
   .dn-beneficios b { font-size: 14.5px; }
   .dn-beneficios small { font-size: 13px; }
   .dn-seccion-banner { padding-top: calc(var(--dn-seccion) + clamp(48px, 5.6cqi, 84px)); }
-  .dn-banner { grid-template-columns: minmax(0, .8fr) minmax(0, .9fr) minmax(0, 1.3fr); min-height: clamp(260px, 21cqi, 320px); }
+  .dn-banner { grid-template-columns: minmax(0, .82fr) minmax(0, 1fr) minmax(0, 1.18fr); min-height: clamp(280px, 25cqi, 360px); }
   .dn-banner-texto { padding: var(--e-6) clamp(16px, 2cqi, 32px); }
   .dn-foto-modelo { border-radius: 20px 0 0 20px; }
-  .dn-foto-modelo img { height: 130%; filter: drop-shadow(2px 3px 5px color-mix(in srgb, #4f141b 26%, transparent)); clip-path: inset(-20px -20px 0 -20px); }
-  .dn-foto-mesa { grid-column: auto; aspect-ratio: auto; max-height: none; overflow: visible; border-radius: 50% 20px 20px 50% / 100% 20px 20px 100%; }
-  .dn-foto-mesa img { inset: auto 0 0 auto; width: 100%; height: auto; filter: drop-shadow(-3px 3px 6px color-mix(in srgb, #4f141b 20%, transparent)); clip-path: inset(-20px -20px 0 -20px); }
+  .dn-foto-modelo img { height: 122%; filter: drop-shadow(2px 3px 5px color-mix(in srgb, #4f141b 26%, transparent)); clip-path: inset(-20px -20px 0 -20px); }
+  .dn-foto-mesa { grid-column: auto; height: auto; border-radius: 50% 20px 20px 50% / 100% 20px 20px 100%; }
+  .dn-foto-mesa img { height: 94%; }
 }
