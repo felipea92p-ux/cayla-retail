@@ -195,6 +195,7 @@ export const PRUEBAS = [
   // El medidor de confianza de Finanzas (ADR-0417): los siete hechos salen y cada uno se mueve con su dato; por sede; permisos;
   // pegar dos veces. ROLLBACK.
   "pruebas:finanzas-confianza",
+  "pruebas:cierre-orden-y-planilla",
 
   // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.

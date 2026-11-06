@@ -31,6 +31,7 @@ import {
   nombreMes,
   primerNombre,
   puedeCerrar,
+  soloFaltaPlanilla,
   promesaDeAvisos,
   resumenAvisos,
   textoBotonCerrar,
@@ -52,7 +53,7 @@ import { Boton } from "@/components/ui/campos";
 
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
-type Accion = { tipo: "cerrar"; unidad: Unidad } | { tipo: "consolidado" } | { tipo: "reabrir"; unidad: Unidad } | null;
+type Accion = { tipo: "cerrar"; unidad: Unidad } | { tipo: "saltar"; unidad: Unidad } | { tipo: "consolidado" } | { tipo: "reabrir"; unidad: Unidad } | null;
 
 /**
  * El mes y la sede los elige la barra común de Finanzas (`MesaDeMando`): la pantalla no trae otro selector de mes. `avisoCorte`
@@ -63,11 +64,14 @@ export function CierreMes({
   falla,
   unidadPedida,
   avisoCorte = null,
+  esAdmin = false,
 }: {
   panel: PanelCierre | null;
   falla: string | null;
   unidadPedida: string | null;
   avisoCorte?: string | null;
+  /** Solo un Admin puede cerrar sin la planilla pagada (tarea 18). */
+  esAdmin?: boolean;
 }) {
   if (!panel) {
     return (
@@ -77,10 +81,10 @@ export function CierreMes({
       </div>
     );
   }
-  return <Pantalla panel={panel} unidadPedida={unidadPedida} />;
+  return <Pantalla panel={panel} unidadPedida={unidadPedida} esAdmin={esAdmin} />;
 }
 
-function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: string | null }) {
+function Pantalla({ panel, unidadPedida, esAdmin }: { panel: PanelCierre; unidadPedida: string | null; esAdmin: boolean }) {
   const { mes, unidades, consolidado } = panel;
   const [elegida, setElegida] = useState<string | null>(() => unidadInicial(unidades, unidadPedida));
   const [accion, setAccion] = useState<Accion>(null);
@@ -171,7 +175,7 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
       </div>
 
       <section className="fin-dos-col fin-cierre-cols">
-        {u ? <Chequeos panel={panel} u={u} onCerrar={() => setAccion({ tipo: "cerrar", unidad: u })} onReabrir={() => setAccion({ tipo: "reabrir", unidad: u })} /> : <div />}
+        {u ? <Chequeos panel={panel} u={u} puedeSaltar={esAdmin && soloFaltaPlanilla(u)} onSaltar={() => setAccion({ tipo: "saltar", unidad: u })} onCerrar={() => setAccion({ tipo: "cerrar", unidad: u })} onReabrir={() => setAccion({ tipo: "reabrir", unidad: u })} /> : <div />}
         <Superficie pad className="anim-sube" guia="fin-cierre.rutina">
           <p className="label-cayla text-[11px] text-taupe">La rutina de fin de mes</p>
           <div className="fin-pasos-cierre">
@@ -207,13 +211,14 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
           }}
         />
       )}
+      {accion?.tipo === "saltar" && <CerrarSinPlanillaModal mes={mes} unidad={accion.unidad} onCerrar={() => setAccion(null)} />}
       {accion?.tipo === "consolidado" && <CerrarConsolidadoModal mes={mes} onCerrar={() => setAccion(null)} />}
       {accion?.tipo === "reabrir" && <ReabrirModal mes={mes} unidad={accion.unidad} onCerrar={() => setAccion(null)} />}
     </div>
   );
 }
 
-function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Unidad; onCerrar: () => void; onReabrir: () => void }) {
+function Chequeos({ panel, u, puedeSaltar, onSaltar, onCerrar, onReabrir }: { panel: PanelCierre; u: Unidad; puedeSaltar: boolean; onSaltar: () => void; onCerrar: () => void; onReabrir: () => void }) {
   const historia = historiaDe(panel, u);
   const cerrada = u.estado === "cerrado";
   return (
@@ -258,6 +263,11 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
         ) : (
           <button type="button" className="btn-cayla btn-primario" onClick={onCerrar} disabled={!puedeCerrar(u)}>
             {textoBotonCerrar(panel.mes, u)}
+          </button>
+        )}
+        {!cerrada && puedeSaltar && (
+          <button type="button" className="btn-cayla btn-secundario" onClick={onSaltar}>
+            Cerrar sin la planilla…
           </button>
         )}
       </div>
@@ -360,6 +370,47 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
         </button>
         <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
           Cerrar consolidado
+        </Boton>
+      </div>
+    </Modal>
+  );
+}
+
+// Tarea 18 de «Las 36 de Finanzas»: Dynamic todavía no pagó la planilla del mes y aun así hay que cerrar. Solo un Admin; el motivo queda en los avisos del cierre.
+function CerrarSinPlanillaModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; onCerrar: () => void }) {
+  const { responsable, guardando, ejecutar } = useEjecutar();
+  const [motivo, setMotivo] = useState("");
+  const [tocado, setTocado] = useState(false);
+  const error = validarMotivo(motivo);
+  async function cerrar() {
+    setTocado(true);
+    if (error) return avisar.error(error);
+    const ok = await ejecutar(
+      "cerrar_periodo_saltando_planilla",
+      { p_mes: `${mes}-01`, p_alcance: unidad.alcance, p_ubicacion_id: unidad.ubicacionId, p_motivo: motivo.trim() },
+      `cerrar ${nombreMes(mes)} ${deUnidad(unidad)} sin la planilla`,
+      `${nombreMes(mes).replace(/^./, (l) => l.toUpperCase())} ${deUnidad(unidad)} quedó cerrado sin la planilla pagada. El motivo quedó en el cierre.`,
+    );
+    if (ok) onCerrar();
+  }
+  return (
+    <Modal
+      variante="hoja"
+      titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)} sin la planilla`}
+      subtitulo="Dynamic todavía no pagó la planilla de este mes. Si cierras ahora, el mes se congela sin esos sueldos y la ganancia sale de más. Queda escrito quién lo hizo y por qué."
+      onClose={onCerrar}
+      tamano="mediana"
+    >
+      <CampoFin etiqueta="Motivo (obligatorio)" htmlFor="saltar-motivo" ayuda={tocado && error ? error : undefined} tono={tocado && error ? "aviso" : undefined}>
+        <InputFin id="saltar-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={`Ej. Dynamic paga la planilla de ${nombreMes(mes)} el lunes`} />
+      </CampoFin>
+      <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <div className="fin-botones mt-4">
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+          Cancelar
+        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar sin la planilla
         </Boton>
       </div>
     </Modal>
