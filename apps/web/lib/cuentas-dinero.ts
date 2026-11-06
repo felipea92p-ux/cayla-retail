@@ -122,6 +122,20 @@ export async function getPlanillaPorRegistrar(): Promise<TramoPlanilla[]> {
   }
 }
 
+/** Las liquidaciones de Dynamic sin salida de banco, por mes (tarea 12). Si no se puede leer, lanza: el cajón dice que está incompleto. */
+export async function getLiquidacionesPorRegistrar(): Promise<{ mes: string; falta: number }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_liquidaciones_por_registrar" as never);
+  if (error) {
+    if (esFuncionAusente(error)) return [];
+    throw new Error(`No se pudieron leer las liquidaciones: ${error.message}`);
+  }
+  return ((data ?? []) as { mes: string; total: number; registrado: number }[]).map((f) => ({
+    mes: String(f.mes).slice(0, 7),
+    falta: Math.round((Number(f.total) - Number(f.registrado)) * 100) / 100,
+  }));
+}
+
 /** El aviso del Inicio del líder: `undefined` si no hay nada que registrar o la base no tiene la función (el aviso no existe); si la base
  *  no responde, lanza y `tolerarLectura` lo vuelve «no se pudo leer». */
 export async function getPlanillaParaElInicio(): Promise<PlanillaParaElInicio | undefined> {

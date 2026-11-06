@@ -42,6 +42,10 @@ import {
   validarAbonoPos,
   validarMovimiento,
   validarPagoSunat,
+  validarPagoPlanilla,
+  mesesDePlanilla,
+  OPCIONES_CONCEPTO_PLANILLA,
+  type ConceptoPlanilla,
   mesesParaPagarSunat,
   totalPagoSunat,
   type BorradorPagoSunat,
@@ -137,21 +141,25 @@ export function PantallaDinero({
 }) {
   const params = useSearchParams();
   const ruta = usePathname();
-  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string; mesSunat?: string } | null>(null);
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string; monto?: string; mesSunat?: string; concepto?: ConceptoPlanilla } | null>(null);
   // El dock de las otras caras lleva aquí con `?registrar=1`: la hoja abre sola, como si se hubiera tocado el botón, y el parámetro
   // sale de la dirección (recargar no la vuelve a abrir).
-  // Desde Impuestos llega con `?registrar=pago_sunat&mes=`: la hoja abre en Pagar a SUNAT, en ese mes.
+  // Desde Impuestos llega con `?registrar=pago_sunat&mes=`: la hoja abre en Pagar a SUNAT, en ese mes. El cajón «Te toca», con `?registrar=liquidacion&mes=&monto=`.
   const registrar = params.get("registrar");
-  const pideRegistrar = registrar === "1" || registrar === "pago_sunat";
+  const pideRegistrar = registrar === "1" || registrar === "pago_sunat" || registrar === "liquidacion";
   const mesPedido = params.get("mes") ?? undefined;
+  const montoPedido = params.get("monto") ?? undefined;
   useEffect(() => {
     if (!pideRegistrar) return;
     const p = new URLSearchParams(window.location.search);
     p.delete("registrar");
+    p.delete("monto");
     window.history.replaceState(null, "", p.size ? `${ruta}?${p}` : ruta);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la hoja abierta desde el primer pintado no dejaba hidratar la página (medido 2026-10-23): se abre al montar, como el #fotos de ProductoForm
-    setModal(registrar === "pago_sunat" ? { que: "pago_sunat", mesSunat: mesPedido } : { que: "deposito" });
-  }, [pideRegistrar, registrar, mesPedido, ruta]);
+    if (registrar === "pago_sunat") setModal({ que: "pago_sunat", mesSunat: mesPedido });
+    else if (registrar === "liquidacion") setModal({ que: "pago_planilla", concepto: "liquidacion", mesSunat: mesPedido, monto: montoPedido });
+    else setModal({ que: "deposito" });
+  }, [pideRegistrar, registrar, mesPedido, montoPedido, ruta]);
 
   return (
     <ContextoMovimiento.Provider value={(que, origenId, monto) => setModal({ que: que ?? "deposito", origenId, monto })}>
@@ -194,6 +202,7 @@ export function PantallaDinero({
           origenInicial={modal.origenId}
           montoInicial={modal.monto}
           mesSunatInicial={modal.mesSunat}
+          conceptoInicial={modal.concepto}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -582,6 +591,7 @@ function RegistrarMovimientoModal({
   origenInicial,
   montoInicial,
   mesSunatInicial,
+  conceptoInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -592,6 +602,8 @@ function RegistrarMovimientoModal({
   inicial: QuePaso;
   /** El mes con que arranca Pagar a SUNAT, si se llega desde Impuestos. */
   mesSunatInicial?: string;
+  /** La parte de la planilla con que arranca, si se llega desde un aviso. */
+  conceptoInicial?: ConceptoPlanilla;
   /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
   origenInicial?: string;
   /** El monto con que arranca, si una pantalla ya lo sabe (el saldo con CLAURE); la persona lo puede cambiar. */
@@ -615,6 +627,9 @@ function RegistrarMovimientoModal({
     igv: "",
     renta: "",
   }));
+  const mesesPlanilla = mesesDePlanilla(hoy);
+  const [concepto, setConcepto] = useState<ConceptoPlanilla>(conceptoInicial ?? "sueldos");
+  const [mesPlanilla, setMesPlanilla] = useState(() => mesesPlanilla.find((m) => m.valor === mesSunatInicial)?.valor ?? mesesPlanilla[1]!.valor);
   const [b, setB] = useState<BorradorMovimiento>(() => {
     const base = { ...inicialDe(inicial, cuentas, ubicacionId, deuda, hoy), ...(montoInicial ? { monto: montoInicial } : {}) };
     const origenDelAviso = origenDeArranque(inicial, origenInicial, cuentas);
@@ -727,6 +742,19 @@ function RegistrarMovimientoModal({
       responsable.despues(error);
       if (error) return avisar.error(traducirError(error, "registrar el pago a SUNAT"));
       avisar.exito("Pago a SUNAT registrado", { detalle: p.valor.p_referencia });
+      onCerrar();
+      router.refresh();
+      return;
+    }
+    if (b.que === "pago_planilla" && concepto !== "sueldos") {
+      const p = validarPagoPlanilla(b, { concepto, mes: mesPlanilla }, { cuentas, hoy });
+      if (!p.ok) return avisar.error(p.error);
+      setGuardando(true);
+      const { error } = await firmar(createClient().rpc("registrar_pago_de_planilla" as never, { ...p.valor, p_token: token } as never), responsable.firma());
+      setGuardando(false);
+      responsable.despues(error);
+      if (error) return avisar.error(traducirError(error, "registrar el pago"));
+      avisar.exito("Pago registrado", { detalle: p.valor.p_referencia });
       onCerrar();
       router.refresh();
       return;
@@ -909,6 +937,19 @@ function RegistrarMovimientoModal({
               </ul>
             )}
           </CampoFin>
+        </div>
+      )}
+
+      {b.que === "pago_planilla" && (
+        <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-planilla">
+          <CampoFin etiqueta="Qué parte pagas" htmlFor="mov-planilla-parte">
+            <SelectFin<ConceptoPlanilla> id="mov-planilla-parte" valor={concepto} onValor={setConcepto} opciones={OPCIONES_CONCEPTO_PLANILLA} />
+          </CampoFin>
+          {concepto !== "sueldos" && (
+            <CampoFin etiqueta="De qué mes es" htmlFor="mov-planilla-mes">
+              <SelectFin<string> id="mov-planilla-mes" valor={mesPlanilla} onValor={setMesPlanilla} opciones={mesesPlanilla} />
+            </CampoFin>
+          )}
         </div>
       )}
 

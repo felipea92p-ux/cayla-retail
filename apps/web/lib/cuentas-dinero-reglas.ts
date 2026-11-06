@@ -804,6 +804,52 @@ export function validarPagoSunat(
   return { ok: true, valor: { p_cuenta_id: banco.id, p_fecha: b.fecha, p_lineas: lineas, p_referencia: b.referencia.trim() || `${dicho} de ${textoMes(s.mes)}` } };
 }
 
+// ---- Pagar la planilla (tarea 12): sueldos, o una parte que no pasa por «Registrar la salida» -----------------------------------
+
+export type ConceptoPlanilla = "sueldos" | "aportes" | "gratificacion" | "cts" | "liquidacion";
+export const OPCIONES_CONCEPTO_PLANILLA: readonly { valor: ConceptoPlanilla; texto: string }[] = [
+  { valor: "sueldos", texto: "Sueldos (lo que recibe cada persona)" },
+  { valor: "aportes", texto: "AFP, EsSalud y retenciones" },
+  { valor: "gratificacion", texto: "Gratificación" },
+  { valor: "cts", texto: "CTS" },
+  { valor: "liquidacion", texto: "Liquidación" },
+];
+
+export type PayloadPagoPlanilla = {
+  p_cuenta_id: string;
+  p_fecha: string;
+  p_monto: number;
+  p_concepto: Exclude<ConceptoPlanilla, "sueldos">;
+  p_mes: string;
+  p_referencia: string;
+};
+
+/** Los meses que puede cubrir ese pago: el de hoy (una CTS de noviembre se paga en noviembre) y los once de antes. */
+export function mesesDePlanilla(hoy: string): { valor: string; texto: string }[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const valor = sumarMeses(hoy.slice(0, 7), -i);
+    return { valor, texto: textoMes(valor) };
+  });
+}
+
+/** Revisa un pago de la planilla que no es de sueldos (los sueldos siguen por `validarMovimiento`). */
+export function validarPagoPlanilla(
+  b: Pick<BorradorMovimiento, "origen" | "referencia" | "fecha" | "monto">,
+  c: { concepto: Exclude<ConceptoPlanilla, "sueldos">; mes: string },
+  ctx: { cuentas: readonly CuentaDinero[]; hoy: string },
+): Resultado<PayloadPagoPlanilla> {
+  const banco = ctx.cuentas.find((x) => x.id === b.origen);
+  if (!banco || banco.tipo !== "banco") return { ok: false, error: "Elige de qué banco salió el pago." };
+  if (!/^\d{4}-\d{2}$/.test(c.mes)) return { ok: false, error: "Elige de qué mes es el pago." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return { ok: false, error: "Elige la fecha." };
+  if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
+  if (c.mes > b.fecha.slice(0, 7)) return { ok: false, error: `El ${fechaCorta(b.fecha)} todavía no empezaba ${textoMes(c.mes)}: revisa el mes o la fecha.` };
+  const m = montoDentroDelTope(parsearMonto(b.monto));
+  if (!m.ok) return m;
+  const dicho = OPCIONES_CONCEPTO_PLANILLA.find((o) => o.valor === c.concepto)!.texto;
+  return { ok: true, valor: { p_cuenta_id: banco.id, p_fecha: b.fecha, p_monto: m.valor, p_concepto: c.concepto, p_mes: `${c.mes}-01`, p_referencia: b.referencia.trim() || `${dicho} de ${textoMes(c.mes)}` } };
+}
+
 /** Revisa el formulario antes de mandarlo (la base vuelve a revisar todo). `deuda` = lo que CAYLA le debe al dueño. */
 export function validarMovimiento(
   b: BorradorMovimiento,

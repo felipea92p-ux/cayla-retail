@@ -38,6 +38,8 @@ import {
   tiposParaMedio,
   validarMovimiento,
   validarPagoSunat,
+  validarPagoPlanilla,
+  mesesDePlanilla,
   totalPagoSunat,
   mesesParaPagarSunat,
   OPCIONES_QUE_PASO,
@@ -255,6 +257,21 @@ describe("el formulario «Registrar movimiento»", () => {
     expect(totalPagoSunat({ igv: "abc", renta: "" })).toBe(0);
     expect(mesesParaPagarSunat(hoy)[0]).toEqual({ valor: "2026-08", texto: "agosto 2026" });
     expect(mesesParaPagarSunat(hoy)).toHaveLength(12);
+  });
+
+  it("pagar una parte de la planilla dice qué parte y de qué mes (tarea 12)", () => {
+    const b = { origen: "bcp", referencia: "", fecha: hoy, monto: "1,500" };
+    const c = { cuentas: TODAS, hoy };
+    expect(validarPagoPlanilla(b, { concepto: "aportes", mes: "2026-08" }, c)).toEqual({
+      ok: true,
+      valor: { p_cuenta_id: "bcp", p_fecha: hoy, p_monto: 1500, p_concepto: "aportes", p_mes: "2026-08-01", p_referencia: "AFP, EsSalud y retenciones de agosto 2026" },
+    });
+    expect(validarPagoPlanilla({ ...b, referencia: " OP-9 " }, { concepto: "cts", mes: "2026-09" }, c)).toMatchObject({ ok: true, valor: { p_concepto: "cts", p_referencia: "OP-9" } });
+    expect(validarPagoPlanilla({ ...b, origen: "cTRU" }, { concepto: "cts", mes: "2026-09" }, c)).toEqual({ ok: false, error: "Elige de qué banco salió el pago." });
+    expect(validarPagoPlanilla({ ...b, monto: "" }, { concepto: "cts", mes: "2026-09" }, c).ok).toBe(false);
+    expect(validarPagoPlanilla(b, { concepto: "cts", mes: "" }, c)).toEqual({ ok: false, error: "Elige de qué mes es el pago." });
+    expect(validarPagoPlanilla({ ...b, fecha: "2026-08-20" }, { concepto: "cts", mes: "2026-09" }, c).ok).toBe(false);
+    expect(mesesDePlanilla(hoy)[0]).toEqual({ valor: "2026-09", texto: "septiembre 2026" });
   });
 
   it("pagar la planilla y pagar a SUNAT salen de un banco y no llegan a ninguna cuenta (ADR-0417, situaciones 15 y 16)", () => {
