@@ -1,6 +1,6 @@
 # Backlog — motivo de la venta sin registrar (2026-11-06)
 
-- [ ] **Pegar en producción `supabase/migrations/20261106233000_motivo_de_la_venta_sin_registrar.sql`** (una sola ejecución; toma
+- [x] **Pegada en producción el 2026-11-06 por Felipe** (verificado: columnas, candados y `registrar_venta` con el motivo). Era: pegar `supabase/migrations/20261106233000_motivo_de_la_venta_sin_registrar.sql` (una sola ejecución; toma
   `prendas_por_regularizar` un instante y `registrar_venta`; sin políticas). Comprobado el 2026-11-06, solo lectura: el ancla está una vez
   y las columnas no existen. Después: `pnpm datos:generar:produccion`.
 - [ ] **A la semana de pegarla (≈ 2026-11-13):** contar por tienda y por motivo

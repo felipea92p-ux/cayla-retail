@@ -6,4 +6,4 @@ Felipe se lleva: la regla no cambió; el almacén de las dos tiendas sigue sin v
 ## 2026-11-06 (Vender pregunta por qué se anota a mano una prenda)
 Qué hice: la hoja «Prenda sin registrar» pide primero el motivo (la pistola no la lee, no tiene etiqueta, el sistema dice que no hay, había cola, u otro con texto); viaja con la venta y se ve en Ventas sin registrar. Migración `20261106233000` (dos columnas y un reemplazo anclado del insert de `registrar_venta`).
 Por qué así: con todo etiquetado la proporción de ventas sin registrar no bajó, y sin el motivo no se sabe si arreglar la pistola, el etiquetado, el stock o el mostrador. Va dentro de la misma venta (también sin conexión) y un motivo raro nunca la tumba.
-Felipe se lleva: falta pegar la migración en producción (una sola ejecución, sin políticas); hasta entonces la pantalla funciona igual y los motivos no se guardan. En una semana se cuenta qué motivo pesa más.
+Felipe se lleva: la migración ya está en producción (la pegó el mismo 6-nov): desde que se publique la web, cada venta sin registrar guarda su motivo. En una semana se cuenta qué motivo pesa más.
