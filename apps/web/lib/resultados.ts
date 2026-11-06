@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
-import { aplicarProvision } from "@/lib/planilla-provision-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import { aplicarProvision, hastaDeLaProvision } from "@/lib/planilla-provision-reglas";
 import { getProvisionPlanilla } from "@/lib/planilla-provision";
 import type { FaltaDelMes } from "@/lib/equilibrio-mes-reglas";
 
@@ -18,8 +19,6 @@ const falla = (que: string, e: { message: string }) => `No se pudo leer ${que}: 
  * Una fila por ubicación que la cuenta ve; para el líder, además «De la empresa» y CAYLA. Los sueldos de un período que Dynamic
  * todavía no pagó entran como ESTIMADO (lo que corresponde pagar hasta hoy según sus boletas, ADR-0453): fuera del libro, y se
  * reemplazan solos cuando Dynamic paga. Si esa lectura falla, las cifras salen como siempre, sin los sueldos estimados.
- * `provisionHasta` deja pedir la provisión con otro «hasta» que el diario: el Resumen mira el mes «a hoy», pero el período de Dynamic que termina
- * más adelante en el mes (el 28) ya devenga sueldos hoy y solo aparece si se pide hasta fin de mes (`tramoDeSueldos`).
  */
 /** Lo que el mes en curso todavía va a gastar (tarea 24). `null` si no se pudo leer: la pantalla no debe confundirlo con «no falta nada». */
 export async function getFaltaDelMes(mes: string): Promise<FaltaDelMes[] | null> {
@@ -33,11 +32,12 @@ export async function getFaltaDelMes(mes: string): Promise<FaltaDelMes[] | null>
   }));
 }
 
-export const getEstadoResultados = cache(async function getEstadoResultados(desde: string, hasta: string, provisionHasta: string = hasta): Promise<Lectura<FilaER[]>> {
+// Un mes, una ganancia (tarea 23): el Resumen, Ganancias y pérdidas, los archivos del contador y la línea de los meses pasan por aquí y piden los mismos sueldos (`hastaDeLaProvision`).
+export const getEstadoResultados = cache(async function getEstadoResultados(desde: string, hasta: string): Promise<Lectura<FilaER[]>> {
   const supabase = await createClient();
   const [{ data, error }, provision] = await Promise.all([
     supabase.rpc("fn_estado_resultados" as never, { p_desde: desde, p_hasta: hasta } as never),
-    getProvisionPlanilla(desde, provisionHasta),
+    getProvisionPlanilla(desde, hastaDeLaProvision(desde, hasta, hoyLima())),
   ]);
   if (error) return { datos: [], falla: falla("el estado de resultados", error) };
   return {

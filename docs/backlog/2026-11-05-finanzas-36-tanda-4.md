@@ -1,6 +1,6 @@
 ## Las 36 de Finanzas, tanda 4: lo que queda (2026-11-05)
 
-- [ ] **POR PEGAR**, en orden y con el OK de Felipe: `20261106010000`, `20261106011000`, `20261106012000`, `20261106013000`, `20261106021000`.
+- [x] Las 5 migraciones (`20261106010000`, `20261106011000`, `20261106012000`, `20261106013000`, `20261106021000`) ya están en producción. El check «SQL pegado» las vio el 2026-11-06 antes de fusionar el PR #1663, y se comprobó en solo lectura ese mismo día.
 - [ ] Felipe: confirmar el régimen laboral. Hasta entonces CTS y gratificación se pueden pagar, pero no se proyectan.
 - [ ] Felipe: elegir el banco de cada máquina en Configuración ▸ Dinero; sin él, «Cuadrar depósitos» no la deja cuadrar.
 - [ ] Felipe: mirar quiénes son el grupo «prueba» de Dynamic: no entra al costo, pero sí a la salida de banco.

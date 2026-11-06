@@ -97,3 +97,13 @@ describe("recomendacionesTuyo", () => {
     expect(r[0]!.tono).toBe("exito");
   });
 });
+
+describe("retirar contra lo ganado de verdad (tarea 23)", () => {
+  const base = { sinArranque: false, inicio: { capital: 0, aportes: 0, utilidades: 0, total: 1000 }, fin: { capital: 0, aportes: 0, utilidades: 0, total: 1200 }, ganancia: 1000, aportes: 0, retiros: 800, otros: 0, serie: [] };
+  const claves = (sueldosEstimados?: number) => recomendacionesTuyo({ datos: base as never, href: (r) => r, sueldosEstimados }).map((x) => x.clave);
+  it("sin sueldos pendientes, retirar el 80 % es un retiro alto; con sueldos pendientes, ya es más de lo ganado", () => {
+    expect(claves()).toContain("retiro-alto");
+    expect(claves(500)).toContain("retiro-mayor");
+    expect(claves(500)).not.toContain("retiro-alto");
+  });
+});

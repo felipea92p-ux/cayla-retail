@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { comparacionMesPasado, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, tramoDeSueldos, vendidoPorSede } from "./resumen-telar-reglas";
+import { comparacionMesPasado, lineaVentasMeta, mismasTiendas, respuestaResumen, tiendasAdivinadas, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -113,14 +113,6 @@ describe("lineaVentasMeta", () => {
 // devuelve el período que TERMINA dentro del rango pedido; el Resumen pedía «del 1 a hoy» y el período 28-sep → 28-oct, que termina mañana, no
 // entraba: el mes parecía +S/ 13 mil cuando con sus sueldos devengados estaba en unos −S/ 28 mil.
 describe("los sueldos del mes en el Resumen", () => {
-  it("la provisión se pide hasta el último día del mes en curso: el período que termina el 28 entra desde el día 1", () => {
-    expect(tramoDeSueldos("2026-10", "2026-10-27")).toEqual({ desde: "2026-10-01", hasta: "2026-10-31" });
-    expect(tramoDeSueldos("2028-02", "2028-02-10")).toEqual({ desde: "2028-02-01", hasta: "2028-02-29" });
-  });
-  it("un mes que ya pasó se pide entero, como el resto de sus cifras; uno que no llega, sin tramo", () => {
-    expect(tramoDeSueldos("2026-09", "2026-10-27")).toEqual({ desde: "2026-09-01", hasta: "2026-09-30" });
-    expect(tramoDeSueldos("2026-11", "2026-10-27")).toBeNull();
-  });
   it("sin sueldos en uno de los dos meses, compara los dos antes de sueldos y lo dice (tarea 25)", () => {
     const base = filas(todas());
     const con = (fs: FilaER[], planilla: number) =>

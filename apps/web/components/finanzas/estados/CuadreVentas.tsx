@@ -13,7 +13,7 @@ export function CuadreVentas({ cuadro, falla }: { cuadro: CuadroVentas | null; f
   const { columnas, filas, conTotal, sinExplicar } = cuadro;
   const cuadra = Math.round(sinExplicar * 100) === 0;
   return (
-    <section data-guia="fin-ganamos.cuadre">
+    <section id="de-ventas-a-finanzas" className="scroll-mt-40" data-guia="fin-ganamos.cuadre">
       <TituloSeccion
         accion={
           cuadra ? (

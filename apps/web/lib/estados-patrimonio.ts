@@ -17,8 +17,8 @@ const pesa = (n: number) => Math.round(n) !== 0;
 export type LecturaDelPatrimonio = { valor: number; mal: boolean; conSigno: boolean; frase: string; chip: { texto: string; tono: "bien" | "mal" | null } | null; nota: string | null };
 
 /** La razón de la cifra: qué parte de lo ganado se quedó. */
-function notaDelPatrimonio(p: ConExtremos): string | null {
-  const g = Math.round(p.ganancia);
+function razonDelPatrimonio(p: ConExtremos, sueldosEstimados: number): string | null {
+  const g = Math.round(p.ganancia - sueldosEstimados);
   const r = Math.round(p.retiros);
   if (g > 0) {
     if (r === 0) return "Todo lo ganado se quedó en CAYLA.";
@@ -29,8 +29,19 @@ function notaDelPatrimonio(p: ConExtremos): string | null {
   return r > 0 ? `No hubo ganancia y retiraste ${soles(r)}.` : null;
 }
 
+/**
+ * La razón, y si hace falta, que esta cifra todavía no resta los sueldos que Dynamic no paga (tarea 23). El puente del patrimonio no los resta porque tiene que cuadrar con el Balance,
+ * que lee el diario; pero lo retirado se mide contra lo ganado de verdad: si no, un retiro «dentro de lo ganado» ya se comió los sueldos.
+ */
+function notaDelPatrimonio(p: ConExtremos, sueldosEstimados: number): string | null {
+  const razon = razonDelPatrimonio(p, sueldosEstimados);
+  if (Math.round(sueldosEstimados) <= 0) return razon;
+  const rotulo = `Sin sueldos provisionados: aún falta restar ${soles(sueldosEstimados)} que Dynamic no paga.`;
+  return razon ? `${razon} ${rotulo}` : rotulo;
+}
+
 /** Lo que dice la pantalla arriba: cuánto cambió tu parte, de cuánto a cuánto, y qué la movió. */
-export function lecturaDelPatrimonio(p: ConExtremos): LecturaDelPatrimonio {
+export function lecturaDelPatrimonio(p: ConExtremos, sueldosEstimados = 0): LecturaDelPatrimonio {
   const cambio = Math.round(cambioDelMes(p));
   const ini = soles(p.inicio.total);
   const fin = soles(p.fin.total);
@@ -45,7 +56,7 @@ export function lecturaDelPatrimonio(p: ConExtremos): LecturaDelPatrimonio {
     conSigno: cambio > 0,
     frase: cambio === 0 ? `Tu parte en CAYLA no se movió: sigue en ${fin}.` : `Tu parte en CAYLA ${cambio > 0 ? "creció" : "bajó"}: pasó de ${ini} a ${fin}.`,
     chip: dicho ? { texto: dicho.charAt(0).toUpperCase() + dicho.slice(1), tono: cambio === 0 ? null : cambio > 0 ? "bien" : "mal" } : null,
-    nota: notaDelPatrimonio(p),
+    nota: notaDelPatrimonio(p, sueldosEstimados),
   };
 }
 

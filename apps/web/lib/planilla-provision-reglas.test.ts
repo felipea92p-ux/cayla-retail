@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarProvision, delMes, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
+import { aplicarProvision, delMes, hastaDeLaProvision, leerProvision, nombreSedeDynamic, notaProvisionado, resumenDeProvision, type FilaProvision } from "./planilla-provision-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const fila = (p: Partial<FilaER>): FilaER => ({
@@ -211,5 +211,20 @@ describe("lo de hoy (act. 2026-10-22)", () => {
   it("el resumen de la confianza suma lo de hoy de todas las sedes", () => {
     const r = resumenDeProvision([prov({ devengado: 1000, deHoy: 100 }), prov({ devengado: 500, deHoy: 40.5 })]);
     expect(r).toMatchObject({ devengado: 1500, deHoy: 140.5 });
+  });
+});
+
+describe("hasta dónde se piden los sueldos (tarea 23)", () => {
+  it("el mes en curso se pide entero: el período que termina el 28 entra desde el día 1, y todas las pantallas dicen la misma ganancia", () => {
+    expect(hastaDeLaProvision("2026-10-01", "2026-10-27", "2026-10-27")).toBe("2026-10-31");
+    expect(hastaDeLaProvision("2026-10-01", "2026-10-05", "2026-10-05")).toBe("2026-10-31");
+    expect(hastaDeLaProvision("2028-02-01", "2028-02-10", "2028-02-10")).toBe("2028-02-29");
+  });
+  it("un mes que ya pasó se pide tal cual", () => {
+    expect(hastaDeLaProvision("2026-09-01", "2026-09-30", "2026-10-27")).toBe("2026-09-30");
+  });
+  it("«del 1 a esta fecha» del mes pasado y las fechas sueltas no piden más que lo que miran", () => {
+    expect(hastaDeLaProvision("2026-09-01", "2026-09-27", "2026-10-27")).toBe("2026-09-27");
+    expect(hastaDeLaProvision("2026-10-10", "2026-10-27", "2026-10-27")).toBe("2026-10-27");
   });
 });

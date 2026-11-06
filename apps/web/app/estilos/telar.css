@@ -813,18 +813,19 @@ span.sede-telar { cursor: default; }
   border-top: 1px solid var(--color-sand);
   font-size: 0.875rem;
 }
-.vendido-sede-lista i {
+.vendido-sede-lista i, .sedes-juntas i {
   --c: var(--color-taupe);
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 0.25rem;
   background: var(--c);
 }
-.vendido-sede-lista i[data-color="tru"] { --c: var(--color-sede-tru); }
-.vendido-sede-lista i[data-color="aqp"] { --c: var(--color-sede-aqp); }
-.vendido-sede-lista i[data-color="lim"] { --c: var(--color-sede-lim); }
-.vendido-sede-lista i[data-color="tal"] { --c: var(--color-sede-tal); }
-.vendido-sede-lista i[data-color="emp"] { --c: var(--color-sede-emp); }
+:is(.vendido-sede-lista, .sedes-juntas) i[data-color="tru"] { --c: var(--color-sede-tru); }
+:is(.vendido-sede-lista, .sedes-juntas) i[data-color="aqp"] { --c: var(--color-sede-aqp); }
+:is(.vendido-sede-lista, .sedes-juntas) i[data-color="lim"] { --c: var(--color-sede-lim); }
+:is(.vendido-sede-lista, .sedes-juntas) i[data-color="tal"] { --c: var(--color-sede-tal); }
+:is(.vendido-sede-lista, .sedes-juntas) i[data-color="emp"] { --c: var(--color-sede-emp); }
+.sedes-juntas i { display: inline-block; margin-right: 0.5rem; vertical-align: -0.05em; }
 
 /* ---- Gastos · la bandeja como pila (la 03 del benchmark visual, Felipe 2026-10-31; docs/maquetas/gastos-benchmark-2026-10/) ----
    La tarjeta de arriba se resuelve en su lugar; bajo ella asoman una o dos capas (las que siguen). Al decir «Listo» se va 56 px hacia la

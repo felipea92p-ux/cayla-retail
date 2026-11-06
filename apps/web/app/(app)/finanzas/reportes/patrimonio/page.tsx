@@ -9,8 +9,11 @@ import { lecturaDelPatrimonio, libroDelPatrimonio, partesDelPatrimonio, tituloDe
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { getEstadoResultados } from "@/lib/resultados";
+import { getConciliacion } from "@/lib/balance";
+import { avisoBalanceSinCuadrar } from "@/lib/balance-reglas";
 import { recomendacionesTuyo, tieneExtremos } from "@/lib/patrimonio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { EstadoVidrio } from "@/components/finanzas/estados/EstadoVidrio";
 import { LineaDePatrimonio } from "@/components/finanzas/estados/LineaDePatrimonio";
@@ -40,16 +43,21 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
   const parametros = await getParametrosFinanzas();
   const anteriores = periodosAnteriores(periodo, hoy, parametros?.inicioFinanzas ?? null);
 
-  const [patrimonio, comparadas, er] = await Promise.all([
+  const [patrimonio, comparadas, er, chequeos] = await Promise.all([
     leerPatrimonio(desde, hasta, hoy),
     Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await leerPatrimonio(c.desde, c.hasta, hoy) }))),
     getEstadoResultados(desde, hasta),
+    // ¿Lo tuyo? sale del mismo diario que el Balance: si el Balance no cuadra, su cifra tampoco es firme (tarea 28).
+    getConciliacion(hasta),
   ]);
   const datos = patrimonio.datos;
-  const recomendaciones = recomendacionesTuyo({ datos, href });
+  const noCuadra = chequeos.falla ? "No se pudo comprobar si el Balance cuadra: esta cifra puede cambiar." : avisoBalanceSinCuadrar(chequeos.datos);
+  // «Ganaste» sale del diario y aún no resta los sueldos que Dynamic no paga: las filas por sede lo mismo, para sumar lo que dice arriba (cada una, sin su estimado).
+  const sueldosEstimados = er.falla ? 0 : (er.datos.find((f) => f.unidad === "consolidado")?.planillaEstimada ?? 0);
+  const recomendaciones = recomendacionesTuyo({ datos, href, sueldosEstimados });
   const porSede = er.falla
     ? []
-    : er.datos.filter((f) => f.unidad !== "consolidado").map((f) => ({ nombre: f.unidad === "empresa" ? "Empresa" : nombreCortoSede(f.nombre), valor: f.resultado }));
+    : er.datos.filter((f) => f.unidad !== "consolidado").map((f) => ({ nombre: f.unidad === "empresa" ? "Empresa" : nombreCortoSede(f.nombre), valor: f.resultado + f.planillaEstimada }));
 
   return (
     <div className="space-y-4">
@@ -61,9 +69,21 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
       ) : !tieneExtremos(datos) ? (
         <PatrimonioSinArranque />
       ) : (
+        <>
+        {noCuadra && (
+          <Aviso
+            tono={chequeos.falla ? "info" : "atencion"}
+            titulo={noCuadra}
+            accion={
+              <BotonVer href={href("/finanzas/reportes/balance")} chico>
+                Ver el Balance
+              </BotonVer>
+            }
+          />
+        )}
         <EstadoVidrio
           nombre={`Cambios en el patrimonio · ${periodo.titulo}`}
-          lectura={lecturaDelPatrimonio(datos)}
+          lectura={lecturaDelPatrimonio(datos, sueldosEstimados)}
           grafico={
             <Suspense fallback={<LineaEsperando />}>
               <LineaDePatrimonio hoy={hoy} periodo={periodo} final={datos.fin.total} />
@@ -83,6 +103,7 @@ export default async function PatrimonioPage({ searchParams }: { searchParams: P
           tituloColumnas={periodo.unMes ? "Mes a mes" : "Período a período"}
           libro={{ titulo: "Cambios en el patrimonio", detalle: `${periodo.titulo} · en soles · formato del contador`, filas: libroDelPatrimonio(datos) }}
         />
+        </>
       )}
       {recomendaciones.length > 0 && <Recomendaciones recomendaciones={recomendaciones} />}
       {tieneExtremos(datos) && (

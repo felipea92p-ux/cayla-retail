@@ -92,3 +92,18 @@ it("el libro suma: saldo inicial + lo que lo movió = saldo final", () => {
   expect(l.slice(0, -1).reduce((a, x) => a + x.valor, 0)).toBe(l.at(-1)!.valor);
   expect(libroDelPatrimonio(dato()).map((x) => x.nombre)).toEqual(["Saldo inicial", "Resultado del período", "Retiros del dueño", "Saldo final"]);
 });
+
+describe("con sueldos que Dynamic todavía no paga (tarea 23)", () => {
+  it("la cifra y el chip no cambian: el puente cuadra con el Balance; la nota lo rotula", () => {
+    const sin = lecturaDelPatrimonio(dato());
+    const con = lecturaDelPatrimonio(dato(), 500);
+    expect(con.valor).toBe(sin.valor);
+    expect(con.chip).toEqual(sin.chip);
+    expect(con.nota).toContain(`Sin sueldos provisionados: aún falta restar ${soles(500)}`);
+  });
+  it("lo retirado se mide contra lo ganado menos los sueldos", () => {
+    const d = dato({ ganancia: 1000, retiros: 800, fin: { ...dato().fin, total: dato().inicio.total + 200 } });
+    expect(lecturaDelPatrimonio(d).nota).toBe("El 20 % de lo ganado se quedó en CAYLA.");
+    expect(lecturaDelPatrimonio(d, 500).nota).toContain(`Retiraste más de lo que ganaste: ${soles(300)}`);
+  });
+});
