@@ -368,12 +368,18 @@ select 'N2 un saldo de arranque no se edita ni se borra', (select pg_temp.intent
 const CASOS_DESCUADRE = `
 update retail.venta_pagos set monto = 190 where venta_id = pg_temp.k('V1');
 select pg_temp.entrada_con_costo('PR1', :'p1', :'tru', 3, 40, 'produccion', '2024-03-22 12:00-05');
+-- 20261106234000: la maquila de esas 3 prendas se paga como gasto «Maquila del Taller», que va a la 231 (no al resultado).
+insert into retail.gastos (id, ubicacion_id, categoria, descripcion, fecha, monto_total, igv, medio_pago)
+values (pg_temp.k('GM1'), :'tru', 'maquila', 'Costura de la orden F7', '2024-03-22', 120, 0, 'transferencia');
 create temp table con as select * from retail.fn_conciliacion_contable('2024-03-31');
 select 'N3 un asiento descuadrado: «el diario cuadra» NO, con el asiento y la diferencia (−10)', (select estado = 'no_cuadra' and bloquea and diferencia = -10 and jsonb_array_length(causas) = 1 from con where clave = 'diario');
 -- 20261106171000: la Producción ya entra al diario (201 contra 231, al costo de la prenda) y deja de ser una causa.
 select 'N5 prendas de Producción: el diario las asienta (201 contra 231, 3 × 40) y la mercadería cuadra', (select estado = 'ok' from con where clave = '201')
   and (select sum(debe) filter (where cuenta = '201') = 120 and sum(haber) filter (where cuenta = '231') = 120
          from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'produccion');
+select 'N6 la maquila pagada entra a «Productos en proceso» (231) y no al Estado de resultados (gastos de TRU siguen en 45)',
+  (select sum(debe) filter (where cuenta = '231') = 120 from retail.fn_asientos('2024-03-01', '2024-03-31') where regla = 'gasto' and origen_id = pg_temp.k('GM1'))
+  and (select gastos_operacion = 45 from retail.fn_estado_resultados('2024-03-01', '2024-03-31') where ubicacion_id = :'tru');
 `;
 
 // El arranque tiene que cuadrar, y se registra una sola vez (en una base sin arranque: la escena se arma sin registrarlo).

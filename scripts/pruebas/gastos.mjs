@@ -282,7 +282,8 @@ select count(*) from retail.fn_categorias_gasto();`);
   // 13 desde los gastos del viaje (ADR-0362 fase 6 · actividad 3, 20261013221000): «Traer la mercadería» (609) y «Viaje de compra» (631).
   // 18 desde Luz, Agua, Internet, Telefonía y Software (ADR-0477, 20261022205000): son 5 filas nuevas del catálogo.
   // 21 desde «Consumibles del Taller» (ADR-0594, 20261031195000).
-  esperar("las 21 categorías (las 18 de siempre, «limpieza» y «bolsas» de 20261029044000 y «consumibles_taller» de 20261031195000) se leen por su función", r.ok && Number(categorias) === 21, r);
+  // 23 desde «Telas e insumos del Taller» (241) y «Maquila del Taller» (231) (20261106234000).
+  esperar("las 23 categorías (las 18 de siempre, «limpieza» y «bolsas» de 20261029044000, «consumibles_taller» de 20261031195000 y «telas_insumos» y «maquila» de 20261106234000) se leen por su función", r.ok && Number(categorias) === 23, r);
 }
 
 // 9. El gasto rápido de Caja pagado con el Yape o el Plin de la tienda (ADR-0368, act. 2026-10-12): lo que manda la hoja (sin caja y
