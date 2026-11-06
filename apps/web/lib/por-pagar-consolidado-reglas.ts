@@ -2,14 +2,16 @@
 // la usan la pantalla y sus pruebas. La base (`fn_por_pagar_consolidado`, 20260925120000) decide QUÉ se debe y de quién es;
 // aquí solo se ordena en el calendario (vencido, esta semana, la próxima, más adelante) y se suma lo que ya llegó.
 
-export type NaturalezaDeuda = "mercaderia" | "gasto" | "activo" | "insumo";
-export type OrigenDeuda = "compras" | "produccion";
+export type NaturalezaDeuda = "mercaderia" | "gasto" | "activo" | "insumo" | "servicio";
+/** `servicio`: lo que se le debe a un servicio de una orden y todavía no tiene papel (ADR-0614); su id es el de la fase. Con papel, es una fila `produccion` más. */
+export type OrigenDeuda = "compras" | "produccion" | "servicio";
 
 export const TEXTO_NATURALEZA: Record<NaturalezaDeuda, string> = {
   mercaderia: "Mercadería",
   gasto: "Gasto",
   activo: "Activo fijo",
   insumo: "Insumo del Taller",
+  servicio: "Servicio del Taller",
 };
 /** El tono de la insignia (spike: mercadería e insumo en arena, gasto y activo en pizarra). */
 export const TONO_NATURALEZA: Record<NaturalezaDeuda, "neutro" | "pizarra"> = {
@@ -17,12 +19,14 @@ export const TONO_NATURALEZA: Record<NaturalezaDeuda, "neutro" | "pizarra"> = {
   gasto: "pizarra",
   activo: "pizarra",
   insumo: "neutro",
+  servicio: "neutro",
 };
 
 export type FilaPorPagar = {
   origen: OrigenDeuda;
   id: string;
   naturaleza: NaturalezaDeuda;
+  /** `SIN_NOMBRE` en un servicio que todavía no dice quién lo hizo: así se agrupan en una sola fila de «A quién le debes más». */
   proveedorId: string;
   proveedor: string;
   documento: string;
@@ -48,16 +52,17 @@ export type FilaPorPagar = {
 type Fila = Record<string, unknown>;
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
 const txt = (v: unknown) => (v === null || v === undefined || v === "" ? null : String(v));
-const NATURALEZAS: readonly NaturalezaDeuda[] = ["mercaderia", "gasto", "activo", "insumo"];
+const NATURALEZAS: readonly NaturalezaDeuda[] = ["mercaderia", "gasto", "activo", "insumo", "servicio"];
+const SIN_NOMBRE = "sin-nombre";
 
 export function leerFilaPorPagar(f: Fila): FilaPorPagar {
   const naturaleza = NATURALEZAS.includes(f.naturaleza as NaturalezaDeuda) ? (f.naturaleza as NaturalezaDeuda) : "mercaderia";
   const vence = String(f.vence ?? f.fecha_vencimiento ?? f.fecha_emision).slice(0, 10);
   return {
-    origen: f.origen === "produccion" ? "produccion" : "compras",
+    origen: f.origen === "produccion" || f.origen === "servicio" ? f.origen : "compras",
     id: String(f.id),
     naturaleza,
-    proveedorId: String(f.proveedor_id),
+    proveedorId: f.proveedor_id === null || f.proveedor_id === undefined ? SIN_NOMBRE : String(f.proveedor_id),
     proveedor: String(f.proveedor ?? ""),
     documento: String(f.documento ?? ""),
     tipo: String(f.tipo ?? "factura"),
@@ -118,8 +123,14 @@ export function totalPorPagar(filas: readonly Pick<FilaPorPagar, "saldo">[]): { 
   return { saldo: redondear(filas.reduce((a, f) => a + f.saldo, 0)), n: filas.length };
 }
 
-/** «vencida hace 2 días» · «vence hoy» · «en 4 días» (el texto del spike, bajo la fecha). */
-export function textoVence(f: Pick<FilaPorPagar, "vence">, hoy: string): string {
+/** Un servicio sin papel no tiene vencimiento: la base lo cuenta para hoy, pero nadie pactó esa fecha y la pantalla no la afirma (ADR-0614). */
+export function fechaDeVence(f: Pick<FilaPorPagar, "origen" | "vence">, fechaCorta: (iso: string) => string): string {
+  return f.origen === "servicio" ? "Sin fecha" : fechaCorta(f.vence);
+}
+
+/** «vencida hace 2 días» · «vence hoy» · «en 4 días» (el texto del spike, bajo la fecha); un servicio sin papel, «aún sin papel». */
+export function textoVence(f: Pick<FilaPorPagar, "vence"> & Partial<Pick<FilaPorPagar, "origen">>, hoy: string): string {
+  if (f.origen === "servicio") return "aún sin papel";
   const d = diasHasta(f.vence, hoy);
   if (d < 0) return `vencida hace ${-d} ${-d === 1 ? "día" : "días"}`;
   if (d === 0) return "vence hoy";
@@ -142,10 +153,15 @@ export function textoUnidad(f: Pick<FilaPorPagar, "unidades">): string {
 /**
  * ¿Puede esta cuenta pagar esa fila desde aquí? No hay lógica de pago nueva (ADR-0195 F4): cada fila se paga con el modal de
  * su libro, y ese modal le pregunta a la base con el permiso de SU módulo. La factura de proveedor, con `por_pagar` de
- * Compras (`fn_puede_pagar_compras`) o siendo líder; la tela del Taller, solo el líder (D-G de ADR-0133).
+ * Compras (`fn_puede_pagar_compras`) o siendo líder; lo del Taller (la tela y los servicios), solo el líder (D-G de ADR-0133).
  */
 export function puedePagar(f: Pick<FilaPorPagar, "origen">, cuenta: { esLider: boolean; pagaCompras: boolean }): boolean {
-  return f.origen === "produccion" ? cuenta.esLider : cuenta.esLider || cuenta.pagaCompras;
+  return f.origen === "compras" ? cuenta.esLider || cuenta.pagaCompras : cuenta.esLider;
+}
+
+/** Un servicio sin nombre todavía no se le puede pagar a nadie: su botón lleva a la orden, a decir quién lo hizo (ADR-0614). */
+export function textoDelPago(f: Pick<FilaPorPagar, "origen" | "proveedorId">): string {
+  return f.origen === "servicio" && f.proveedorId === SIN_NOMBRE ? "Decir quién" : "Pagar";
 }
 
 /** `?pagar=<id>` → la fila a pagar, si está en la lista y todavía se debe (un enlace viejo no abre nada). */

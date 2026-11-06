@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.por-pagar",
   "ruta": "/finanzas/dinero/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 62,
+  "total": 71,
   "controles": {
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -35,6 +35,17 @@
       "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
+    "components/PagarServicioModal.tsx": [
+      "CampoMonto «{guia.etiqueta(\"monto\", \"Cuánto, sin IGV\")}»",
+      "CampoSelect «{guia.etiqueta(\"papel\", \"El papel que te dio\")}»",
+      "CampoFecha «Fecha»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoFecha «Vence»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{yaPagado ? `Pagar ${soles(total)}»"
+    ],
     "components/PagoPiezas.tsx": [
       "BotonCopiar «{que}»",
       "Boton «Listo»",
@@ -58,7 +69,7 @@
       "Link «fin-por-pagar.pagar»",
       "button «fin-por-pagar.todas»",
       "button «{TEXTO_NATURALEZA[p.tipo]}»",
-      "Link «{`Pagar ${a.proveedor}»",
+      "Link «{`${textoDelPago(x)}»",
       "button «Ver las vencidas»",
       "button «{p.proveedor}»",
       "Link «fin-por-pagar.varias»"
@@ -69,7 +80,7 @@
       "button «{TEXTO_NATURALEZA[t]}»",
       "button «{u.texto}»",
       "button «Limpiar filtros»",
-      "Link «{`Pagar ${x.proveedor}»",
+      "Link «{`${textoDelPago(x)}»",
       "SegmentoDeslizante «Cuántas por página»"
     ],
     "components/finanzas/telar/DockTelar.tsx": [
