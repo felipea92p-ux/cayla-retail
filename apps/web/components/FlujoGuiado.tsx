@@ -27,31 +27,36 @@ export const OPCION =
 export const OPCION_INACTIVA = `${OPCION} posv-opcion`;
 export const OPCION_ACTIVA = `${OPCION} posv-opcion posv-opcion-puesta`;
 
-/** El foco sigue al paso: quien navega con teclado o lector de pantalla oye dónde está. Con el loader a la vista la página está `inert` y
- *  `focus()` no hace nada (lo normal al guardar: la respuesta pasa de 200 ms): se espera a que se libere, como `TrasladoEnviado` (ADR-0149). */
-export function useFocoAlCambiarDePaso(ref: RefObject<HTMLElement | null>, paso: unknown) {
-  useEffect(() => {
-    if (!esperaOcupada()) {
-      ref.current?.focus();
-      return;
-    }
-    const dejarDeEscuchar = suscribirEspera(() => {
-      if (esperaOcupada()) return;
-      dejarDeEscuchar();
-      ref.current?.focus();
-    });
-    return dejarDeEscuchar;
-  }, [ref, paso]);
+/** Enfoca apenas se pueda: con el loader a la vista la página está `inert` y `focus()` no hace nada (lo normal al guardar: la respuesta pasa de 200 ms),
+ *  así que espera a que se libere, como `TrasladoEnviado` (ADR-0149). Devuelve con qué dejar de esperar. */
+function enfocarAlLiberarse(enfocar: () => void): (() => void) | undefined {
+  if (!esperaOcupada()) {
+    enfocar();
+    return undefined;
+  }
+  const dejarDeEscuchar = suscribirEspera(() => {
+    if (esperaOcupada()) return;
+    dejarDeEscuchar();
+    enfocar();
+  });
+  return dejarDeEscuchar;
 }
 
-/** Entrar al flujo, cambiar de paso y salir es cambiar de VISTA, no un bloque que se encogió: se suelta <PaginaEstable> (ADR-0185) antes de pintar.
- *  Sin esto, a 375 px, «Registrar devolución» acortaba la página y ella devolvía la vista adonde estaba el botón: 1205 px de aire y el aviso de
- *  éxito 970 px más arriba. Igual al entrar desde abajo de una lista, cortando el viaje hacia arriba. El navegador ya deja la vista donde corresponde. */
-export function useVistaDelPaso(paso: unknown) {
+/** El foco va adonde está pasando algo (el aviso de un error, al lado del botón), y lo trae a la vista. */
+export function useFocoAlCambiarDePaso(ref: RefObject<HTMLElement | null>, paso: unknown) {
+  useEffect(() => enfocarAlLiberarse(() => ref.current?.focus()), [ref, paso]);
+}
+
+/** Entrar al flujo, cambiar de paso y salir es cambiar de VISTA, no un bloque que se encogió. Antes de pintar se suelta <PaginaEstable> (ADR-0185) y la vista
+ *  arranca en el inicio del flujo, bajo la cabecera fija; el título recibe el foco sin moverla, para quien navega con teclado o lector de pantalla.
+ *  No basta con `focus()`: Safari da por visto un título a 0 px, escondido bajo la cabecera (iPhone de 375 × 667, 2026-11-05). Tampoco con un viaje suave: se corta cuando la página se acorta. */
+export function useVistaDelPaso(paso: unknown, raiz: RefObject<HTMLElement | null>, titulo: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     soltarPaginaEstable();
+    raiz.current?.scrollIntoView({ block: "start", behavior: "instant" });
     return soltarPaginaEstable;
-  }, [paso]);
+  }, [paso, raiz]);
+  useEffect(() => enfocarAlLiberarse(() => titulo.current?.focus({ preventScroll: true })), [titulo, paso]);
 }
 
 /** Escape retrocede un paso. Dentro de un campo (input, select, textarea) Escape es del

@@ -10,6 +10,7 @@ import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas"
 import { mismasTiendas, tiendasAdivinadas, tiendasDeLaLinea, tramoDeComparacion, tramoDelMes, tramoDeSueldos } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 import { getCuentaClaure } from "@/lib/cuenta-claure";
+import { getPlanillaParaElInicio } from "@/lib/cuentas-dinero";
 import { resumenClaure } from "@/lib/cuenta-claure-reglas";
 
 // Finanzas ▸ Resumen en El telar (ADR-0195 F10; ADR-0493, Felipe 2026-10-23). La sede y el mes los elige la barra común (`?sede=`,
@@ -42,7 +43,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       })
     : null;
 
-  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas, faltaDelMes] = await Promise.all([
+  const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion, claureLeido, adelantadas, faltaDelMes, planillaPorRegistrar] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
     getEstadoResultados(tramo.desde, tramo.hasta, sueldos.hasta),
@@ -54,6 +55,8 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
     veTodo ? getCuentaClaure() : Promise.resolve(null),
     ventasAdelantadas ?? Promise.resolve(null),
     mes === mesDeHoy ? getFaltaDelMes(mes) : Promise.resolve([]),
+    // La planilla que Dynamic pagó y aquí no bajó del banco: «¿Cuánto tienes?» la sigue sumando, y lo dice. Sin lectura, calla: el aviso sale en el cajón.
+    persona.rol === "lider" ? getPlanillaParaElInicio().catch(() => undefined) : Promise.resolve(undefined),
   ]);
   // `null`: la cuenta no lo ve o CLAURE no tiene nada todavía (la tarjeta no se dibuja); `{ saldo: null }`: se cayó la lectura (se dice, no se inventa).
   const claure =
@@ -81,6 +84,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
       estadoMes={erMes}
       estadoAntes={erAntes.falla ? null : erAntes.datos}
       faltaDelMes={faltaDelMes}
+      planillaSinSalida={planillaPorRegistrar?.total || null}
       ventasPorDia={ventas}
       sedes={telar.sedes}
       flujoProximo={flujoProximo}

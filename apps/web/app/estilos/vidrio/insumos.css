@@ -18,7 +18,7 @@
 /* ---------- 1 · La placa de una tela ---------- */
 .insumos-placa {
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   border: 1px solid var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);
@@ -56,7 +56,7 @@
 
 /* ---------- 2 · El libro de movimientos ---------- */
 .insumos-libro.card-cayla {
-  border-radius: 22px;
+  border-radius: var(--radius-tarjeta);
   border-color: var(--serena-borde);
   background: var(--serena-fondo);
   -webkit-backdrop-filter: var(--serena-filtro);
