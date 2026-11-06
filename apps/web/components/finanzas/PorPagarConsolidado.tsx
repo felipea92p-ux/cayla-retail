@@ -15,7 +15,7 @@ import { PorPagarCarriles } from "@/components/finanzas/PorPagarCarriles";
 import { PorPagarTodas } from "@/components/finanzas/PorPagarTodas";
 import { Superficie } from "@/components/finanzas/kit";
 import { soles } from "@/lib/compras-reglas";
-import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
+import { fechaCorta, solesDos, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
 import { colorDeGrupo } from "@/lib/dinero-telar-reglas";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
@@ -134,7 +134,7 @@ export function PorPagarConsolidado({
         <>
           <section className="qd-franja" data-guia="fin-por-pagar.cifras">
             <div className="qd-cifras">
-              <TarjetaCifra compacta className="anim-entra qd-total [&_.font-display]:!text-[34px]" style={{ ["--i" as string]: 0 } as CSSProperties} etiqueta={nombre && !verTodas ? `Debe ${nombre.replace(/^la\s+/i, "")}` : "Debes en total"} valor={<><span className="mr-1 text-base text-taupe">S/</span>{solesRedondo(totalPorPagar(filas).saldo).replace(/^S\/\s*/, "")}</>}>
+              <TarjetaCifra compacta className="anim-entra qd-total [&_.font-display]:!text-[34px]" style={{ ["--i" as string]: 0 } as CSSProperties} etiqueta={nombre && !verTodas ? `Debe ${nombre.replace(/^la\s+/i, "")}` : "Debes en total"} valor={<><span className="mr-1 text-base text-taupe">S/</span>{solesDos(totalPorPagar(filas).saldo).replace(/^S\/\s*/, "")}</>}>
                 {plural(filas.length)}
               </TarjetaCifra>
               {tramos.map((t, i) => (
@@ -144,7 +144,7 @@ export function PorPagarConsolidado({
                   etiqueta={t.etiqueta}
                   punto={PUNTO_TRAMO[t.clave]}
                   tono={t.clave === "vencidas" && t.monto > 0 ? "text-rojo" : undefined}
-                  valor={solesRedondo(t.monto)}
+                  valor={solesDos(t.monto)}
                   onClick={() => poner({ tramo: f.tramo === t.clave ? null : t.clave })}
                   activa={f.tramo === t.clave}
                   className="anim-entra"
@@ -160,7 +160,7 @@ export function PorPagarConsolidado({
                   <BarraApilada
                     segmentos={porSede.map((x) => ({ clave: x.clave, nombre: x.nombre, valor: x.monto, color: x.color }))}
                     unidad="soles"
-                    formato={solesRedondo}
+                    formato={solesDos}
                     alto={8}
                     decorativa
                   />
@@ -168,7 +168,7 @@ export function PorPagarConsolidado({
                     {porSede.map((x) => (
                       <li key={x.clave}>
                         <MuestraTramo color={x.color} />
-                        {x.nombre} <b>{solesRedondo(x.monto)}</b>
+                        {x.nombre} <b>{solesDos(x.monto)}</b>
                       </li>
                     ))}
                   </ul>
@@ -190,7 +190,7 @@ export function PorPagarConsolidado({
             <div className="qd-mas">
               <Superficie className="qd-lista anim-sube" guia="fin-por-pagar.lista">
                 <div className="qd-cab">
-                  <TituloSeccion dato={`${plural(total.n)} · ${solesRedondo(total.saldo)}${verTodas ? "" : ` de ${nombre}`}`}>{f.tramo ? tramos.find((t) => t.clave === f.tramo)!.etiqueta : "Lo que vence primero"}</TituloSeccion>
+                  <TituloSeccion dato={`${plural(total.n)} · ${solesDos(total.saldo)}${verTodas ? "" : ` de ${nombre}`}`}>{f.tramo ? tramos.find((t) => t.clave === f.tramo)!.etiqueta : "Lo que vence primero"}</TituloSeccion>
                 </div>
                 {puestos.length > 0 && (
                   <div className="din-puestos" aria-label="Filtros puestos">
@@ -281,7 +281,7 @@ export function PorPagarConsolidado({
                       <BarraApilada
                         segmentos={porTipo.map((p) => ({ clave: p.tipo, nombre: TEXTO_NATURALEZA[p.tipo], valor: p.monto, clase: COLOR_TIPO[p.tipo] }))}
                         unidad="soles"
-                        formato={solesRedondo}
+                        formato={solesDos}
                         alto={12}
                         decorativa
                       />
@@ -291,7 +291,7 @@ export function PorPagarConsolidado({
                             <button type="button" aria-pressed={f.tipo === p.tipo} onClick={() => poner({ tipo: f.tipo === p.tipo ? null : p.tipo })}>
                               <MuestraTramo clase={COLOR_TIPO[p.tipo]} />
                               <b>{TEXTO_NATURALEZA[p.tipo]}</b>
-                              <span className="qd-tipo-monto">{solesRedondo(p.monto)}</span>
+                              <span className="qd-tipo-monto">{solesDos(p.monto)}</span>
                               <small>
                                 {p.n} · {p.porcentaje} %
                               </small>
@@ -358,10 +358,10 @@ export function PorPagarConsolidado({
                     <li key={p.proveedorId}>
                       <button type="button" onClick={() => setTodas({ q: p.proveedor, tramo: null })} aria-haspopup="dialog">
                         <b>{p.proveedor}</b>
-                        <span className="qd-prov-saldo">{solesRedondo(p.saldo)}</span>
+                        <span className="qd-prov-saldo">{solesDos(p.saldo)}</span>
                         <small>
                           {plural(p.n)}
-                          {p.vencido > 0 ? ` · ${solesRedondo(p.vencido)} vencido` : ""}
+                          {p.vencido > 0 ? ` · ${solesDos(p.vencido)} vencido` : ""}
                         </small>
                         <BarraApilada
                           segmentos={[

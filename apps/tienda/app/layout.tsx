@@ -23,7 +23,7 @@ import "./estilos/cabecera.css";
 import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
-// La identidad rosa y borgoña (ADR-0615): actúa con `<html data-diseno="nuevo">`. Va al final: pisa lo de arriba.
+// La identidad rosa y rojo CAYLA (ADR-0615): actúa con `<html data-diseno="nuevo">`. Va al final: pisa lo de arriba.
 import "./estilos/diseno-nuevo.css";
 
 // Las letras de la tienda: Public Sans para todo el texto y Playfair Display para los títulos (ADR-0615; antes DM Serif, ADR-0612).
