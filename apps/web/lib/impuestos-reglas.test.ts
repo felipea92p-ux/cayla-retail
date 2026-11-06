@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
+import { leerPagosSunat,
   ALCANCE_DEL_AVISO,
   COLUMNAS_COMPRAS,
   COLUMNAS_VENTAS,
@@ -50,6 +50,23 @@ describe("el estado de cada mes", () => {
     expect(estadoMes(mesIgv("2026-06", 800), "2026-09")).toBe("sin_pago");
     expect(estadoMes(mesIgv("2026-06", 0, 120), "2026-09")).toBe("a_favor");
     expect(estadoMes(mesIgv("2026-06"), "2026-09")).toBe("sin_movimiento");
+  });
+});
+
+describe("lo pagado a SUNAT", () => {
+  it("se junta por mes y separa IGV de renta", () => {
+    expect(leerPagosSunat([
+      { mes: "2026-10-01", concepto: "igv", monto: 300 },
+      { mes: "2026-10-01", concepto: "renta", monto: "100.50" },
+      { mes: "2026-09-01", concepto: "igv", monto: 50 },
+    ])).toEqual([{ mes: "2026-10", igv: 300, renta: 100.5 }, { mes: "2026-09", igv: 50, renta: 0 }]);
+    expect(leerPagosSunat(null)).toEqual([]);
+  });
+  it("el mes queda pagado solo si su IGV está cubierto, y el mes en curso sigue en curso", () => {
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 500, renta: 0 })).toBe("pagado");
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 499, renta: 0 })).toBe("por_declarar");
+    expect(estadoMes(mesIgv("2026-08", 500), "2026-09", { mes: "2026-08", igv: 0, renta: 500 })).toBe("por_declarar");
+    expect(estadoMes(mesIgv("2026-09", 500), "2026-09", { mes: "2026-09", igv: 500, renta: 0 })).toBe("en_curso");
   });
 });
 

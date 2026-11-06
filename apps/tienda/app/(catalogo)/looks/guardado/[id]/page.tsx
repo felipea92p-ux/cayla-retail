@@ -44,7 +44,7 @@ async function misLooks() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [{ id }, looks] = await Promise.all([params, misLooks()]);
   const look = looks?.find((l) => l.id === id);
-  return { title: look ? `${look.nombre} · Tus favoritos · CAYLA` : "Tu look · CAYLA" };
+  return { title: look ? `${look.nombre} · Tus favoritos · CAYLA` : "Tu outfit · CAYLA" };
 }
 
 // Un look que el cliente guardó desde «Arma el tuyo» (ADR-0434, actividad 8; lienzo v3, `V3TuLook`): se abre como los looks de CAYLA. La
@@ -111,7 +111,7 @@ export default async function LookGuardado({ params, searchParams }: Props) {
         {conError ? (
           <div className="t-vacio" role="status">
             <Icono nombre="tienda" />
-            <h3>No pudimos cargar tu look</h3>
+            <h3>No pudimos cargar tu outfit</h3>
             <p>Es un problema de conexión de nuestro lado. Vuelve a intentarlo en un momento.</p>
             <Link className="t-btn" href={hrefDelGuardado(id, pedida ? claveDeSede(pedida.nombre) : null)}>
               Volver a intentar
@@ -120,7 +120,7 @@ export default async function LookGuardado({ params, searchParams }: Props) {
         ) : !guardado ? (
           <div className="t-vacio">
             <Icono nombre="corazon" />
-            <h3>Este look ya no está</h3>
+            <h3>Este outfit ya no está</h3>
             <p>Puede que lo hayas quitado de tus favoritos. Arma otro en el probador.</p>
             <Link className="t-btn" href={hrefDelProbador(sede)}>
               Ir al probador
@@ -132,10 +132,10 @@ export default async function LookGuardado({ params, searchParams }: Props) {
         ) : !look || !total || zonas.length === 0 ? (
           <div className="t-vacio">
             <Icono nombre="corazon" />
-            <h3>Las prendas de este look ya no están</h3>
+            <h3>Las prendas de este outfit ya no están</h3>
             <p>Se agotaron o dejaron de verse en la tienda online. Puedes quitarlo de tus favoritos o armar otro.</p>
             <Link className="t-btn" href={hrefDelProbador(sede)}>
-              Armar otro look
+              Armar otro outfit
             </Link>
             <QuitarLookGuardado id={guardado.id} />
           </div>
@@ -146,7 +146,7 @@ export default async function LookGuardado({ params, searchParams }: Props) {
               <span className="lg-sello">Armado por ti</span>
             </div>
             <div className="lg-info">
-              <span className="t-ceja">Tu look · {cuandoSeGuardo(guardado.guardadoEn, diaIso(hoy)).toLocaleLowerCase("es")}</span>
+              <span className="t-ceja">Tu outfit · {cuandoSeGuardo(guardado.guardadoEn, diaIso(hoy)).toLocaleLowerCase("es")}</span>
               <NombreDelLook id={guardado.id} nombre={guardado.nombre} />
               <ol className="lg-piezas">
                 {zonas.map((z, i) => {
@@ -190,7 +190,7 @@ export default async function LookGuardado({ params, searchParams }: Props) {
               </ol>
               {textoDeLasQueFaltan(faltan.length) && <p className="lg-faltan">{textoDeLasQueFaltan(faltan.length)}</p>}
               <div className="lg-total">
-                <span>El look completo</span>
+                <span>El outfit completo</span>
                 <span>
                   {total.lista > total.final + 0.005 && (
                     <s>

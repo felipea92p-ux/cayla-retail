@@ -26,13 +26,14 @@ import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { sugerirSerie } from "@/lib/sugerencias-hoja-gasto";
 import { proveedorDelRuc, serieNumeroLegible } from "@/lib/hoja-gasto-reglas";
-import type { GastoFila, ProveedorGasto } from "@/lib/gastos-reglas";
+import { igvDeFactura, type GastoFila, type ProveedorGasto } from "@/lib/gastos-reglas";
 import { leerQrComprobante, serieNumeroDelQr, type QrComprobante } from "@/lib/qr-comprobante-reglas";
 import {
   PAPELES_TARDIOS,
   RPC_AGREGAR_COMPROBANTE,
   borradorInicial,
   camposDelComprobante,
+  igvDeLoEscrito,
   loQuePasaAlGuardar,
   payloadDelComprobante,
   problemaDelComprobante,
@@ -60,6 +61,7 @@ export function HojaComprobanteDeGasto({
   const responsable = useResponsable();
   const [b, setB] = useState<BorradorComprobante>(() => borradorInicial(g));
   const [guardando, setGuardando] = useState(false);
+  const [igvTexto, setIgvTexto] = useState("");
   const [qr, setQr] = useState<QrComprobante | null>(null);
   const [camara, setCamara] = useState(false);
   const poner = <K extends keyof BorradorComprobante>(k: K, v: BorradorComprobante[K]) => setB((x) => ({ ...x, [k]: v }));
@@ -74,13 +76,15 @@ export function HojaComprobanteDeGasto({
   /** Lo leído llena la hoja. El IGV del papel se usa solo si su total es el del gasto (si no, es otro papel: lo avisa y se queda el de la tasa). */
   function aplicarQr(leido: QrComprobante) {
     setQr(leido);
+    const igvLeido = leido.tipo === "factura" && Math.abs(leido.total - g.montoTotal) < 0.01 ? leido.igv : null;
+    setIgvTexto(igvLeido === null ? "" : igvLeido.toFixed(2));
     setB((x) => ({
       ...x,
       tipo: leido.tipo,
       ruc: leido.rucEmisor,
       serieNumero: serieNumeroDelQr(leido),
       fecha: leido.fecha,
-      igv: leido.tipo === "factura" && Math.abs(leido.total - g.montoTotal) < 0.01 ? leido.igv : null,
+      igv: igvLeido,
     }));
   }
 
@@ -196,6 +200,26 @@ export function HojaComprobanteDeGasto({
             <CampoFecha etiqueta="Fecha del comprobante" valor={b.fecha} onValor={(v) => poner("fecha", v)} />
           </CampoGuiado>
         </div>
+
+        {b.tipo === "factura" && (
+          <div>
+            <span className="campo-etiqueta" aria-hidden>
+              IGV del papel · opcional
+            </span>
+            <CampoTexto
+              etiqueta="IGV del papel, opcional"
+              inputMode="decimal"
+              caja
+              value={igvTexto}
+              onChange={(e) => {
+                setIgvTexto(e.target.value);
+                poner("igv", igvDeLoEscrito(e.target.value));
+              }}
+              placeholder={igvDeFactura(g.montoTotal).toFixed(2)} // sugerir-fijo: es el IGV de la tasa sobre este gasto, no un ejemplo.
+              pie="Déjalo vacío si es el 18 %. Una factura exonerada dice 0."
+            />
+          </div>
+        )}
 
         <div className="mb-3 rounded-[12px] bg-hueso px-3 py-2 text-sm">
           <span className="campo-etiqueta">Lo que pasa al guardar</span>

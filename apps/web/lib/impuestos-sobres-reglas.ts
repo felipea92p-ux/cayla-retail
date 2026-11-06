@@ -1,10 +1,9 @@
 // Finanzas ▸ Impuestos en «El telar» (Felipe 2026-10-23): un sobre por mes, en lugar de la tabla de los últimos meses.
 // Abierto si falta algo (se declara ahora, o no hay pago registrado), punteado si el mes todavía corre, apagado si no hubo
-// movimiento. **Sellado (con lacre) solo cuando el sistema sepa que ese mes se pagó**: hoy el pago a SUNAT
-// (`movimientos_dinero.tipo = 'pago_sunat'`) no dice de qué mes es, y unirlo es decisión de Felipe; mientras tanto ningún sobre
-// se sella: el sistema no afirma lo que no sabe. Lógica pura sobre `fn_impuestos_panel` (historial y estado de cada mes).
+// movimiento. **Sellado (con lacre) cuando el IGV del mes ya se cubrió con pagos a SUNAT** (`impuestos_pagos`, tarea 10) o quedó a favor. Lógica
+// pura sobre `fn_impuestos_panel` (historial y estado de cada mes) y `fn_impuestos_pagos`.
 
-import { TEXTO_ESTADO_MES, estadoMes, nombreMes, sumarMeses, type EstadoMesIgv, type MesIgv } from "./impuestos-reglas";
+import { TEXTO_ESTADO_MES, estadoMes, nombreMes, sumarMeses, type EstadoMesIgv, type MesIgv, type PagoDeMes } from "./impuestos-reglas";
 
 export type Sobre = {
   mes: string;
@@ -27,6 +26,7 @@ const FORMA: Record<EstadoMesIgv, Sobre["forma"]> = {
   en_curso: "curso",
   por_declarar: "abierto",
   sin_pago: "abierto",
+  pagado: "cerrado",
   a_favor: "cerrado",
   sin_movimiento: "vacio",
 };
@@ -36,9 +36,9 @@ const Mayus = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** El mes que se declara ahora: el anterior al de hoy. */
 export const mesADeclarar = (mesActual: string) => sumarMeses(mesActual, -1);
 
-export function sobresIgv(historial: MesIgv[], mesActual: string, mesElegido: string): Sobre[] {
+export function sobresIgv(historial: MesIgv[], mesActual: string, mesElegido: string, pagos: readonly PagoDeMes[] = []): Sobre[] {
   return historial.map((m) => {
-    const estado = estadoMes(m, mesActual);
+    const estado = estadoMes(m, mesActual, pagos.find((p) => p.mes === m.mes));
     const aFavor = m.aPagar === 0 && m.saldoAFavor > 0;
     return {
       mes: m.mes,

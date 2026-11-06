@@ -348,7 +348,7 @@ export function textoChequeo(c: Chequeo, mes: string, u?: UnidadDeFrase | null):
     case "planilla": {
       if (d.visible === false) return { titulo, detalle: "Tu cuenta no ve la planilla en Dynamic: ciérralo con una cuenta que la vea, o el mes quedaría sin sueldos" };
       if (c.ok) return { titulo, detalle: `Del ${fechaCorta(textoONulo(d.ini))} al ${fechaCorta(textoONulo(d.fin))}${d.personas != null ? ` · ${plural(numero(d.personas), "persona", "personas")}` : ""}` };
-      return { titulo, detalle: `Dynamic todavía no tiene pagada la planilla que termina en ${m}: si se paga después, el mes cerrado no la tendrá` };
+      return { titulo, detalle: `Dynamic todavía no tiene pagada la planilla que termina en ${m}: hasta que la pague no se puede cerrar (un Admin puede saltarlo con un motivo)` };
     }
     case "sin_costo": {
       const n = numero(d.n);
@@ -517,6 +517,16 @@ export function estadoTarjeta(u: Unidad): { texto: string; tono: TonoEstado } {
 
 /** Se puede cerrar: abierta (o reabierta) y ningún chequeo que bloquee. */
 export const puedeCerrar = (u: Unidad): boolean => u.estado !== "cerrado" && u.bloqueantes === 0;
+
+/**
+ * Lo único que frena el cierre es la planilla de Dynamic sin pagar (que la cuenta sí ve): el caso en que un Admin puede cerrar igual, con motivo
+ * (tarea 18 de «Las 36 de Finanzas»; `cerrar_periodo_saltando_planilla`). Si frena otra cosa, no hay atajo.
+ */
+export function soloFaltaPlanilla(u: Unidad): boolean {
+  if (u.estado === "cerrado" || u.bloqueantes === 0) return false;
+  const frenan = u.chequeos.filter((c) => c.bloquea && !c.ok);
+  return frenan.length > 0 && frenan.every((c) => c.clave === "planilla" && c.datos.visible !== false);
+}
 
 /** Lo que el modal dice de los avisos. La comparación con SUNAT la arma la web y no queda guardada en el cierre, así que no se promete. */
 export function promesaDeAvisos(avisos: readonly Pick<Chequeo, "clave">[]): string {

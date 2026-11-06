@@ -146,7 +146,21 @@ console.log("Sustento del costo (ADR-0598, actividad 1)");
 
 {
   const r = correr(`begin;\n${cambiaA(MICAELA)}select retail.fn_sustento_costos('2024-01-01', '2024-01-31');`);
-  esperar("una colaboradora no lo ve (42501)", !r.ok && /Solo el líder ve el sustento/.test(r.mensaje), r);
+  esperar("una colaboradora sin Impuestos no lo ve (42501)", !r.ok && /necesita el módulo Impuestos/.test(r.mensaje), r);
+}
+
+// Tarea 17: lo que no necesita papel resta; lo pagado sin bancarizar no, aunque tenga factura.
+{
+  const r = correr(`${ESCENA}
+select retail.registrar_gasto(null, 'gastos_bancarios', 'Comisión de prueba', '2024-01-10', 30, null, 'transferencia');
+select retail.registrar_gasto(null, 'tributos', 'Licencia de prueba', '2024-01-11', 40, null, 'transferencia');
+insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id, naturaleza)
+values (:'prov2', 'factura', 'F900', '1', '2024-01-13', 'credito', '2024-02-13', 3000, 540, 3540, :'tru', 'gasto') returning id as cara \\gset
+insert into retail.compra_pagos (compra_id, fecha, monto, metodo) values (:'cara', '2024-01-14', 1770, 'efectivo'), (:'cara', '2024-01-14', 1770, 'transferencia');
+select origen, coalesce(proveedor, '—'), papel, monto from retail.fn_sustento_costos('2024-01-01', '2024-01-31') where papel in ('no_requiere', 'no_bancarizado') or (proveedor = 'Bodega Prueba S1' and papel = 'factura') order by papel, monto;`);
+  const filas = lineas(r);
+  esperar("una comisión y un tributo no piden papel", r.ok && filas.includes("gasto|—|no_requiere|70.00"), r);
+  esperar("de una factura de S/ 3,540 pagada mitad en efectivo, la mitad no resta", r.ok && filas.includes("gasto|Bodega Prueba S1|no_bancarizado|1500.00") && filas.includes("gasto|Bodega Prueba S1|factura|1500.00"), r);
 }
 
 {

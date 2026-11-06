@@ -144,7 +144,7 @@ export default async function FichaDePrenda(props: Props) {
                     </h2>
                   </div>
                   <Link className="t-ver" href={hrefLook(combina.look.id, sede)}>
-                    Ver el look <Icono nombre="flecha" />
+                    Ver el outfit <Icono nombre="flecha" />
                   </Link>
                 </div>
                 <CarrilConFlechas className="cp-carril">

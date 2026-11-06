@@ -19,7 +19,7 @@ import { conChequeoSire } from "@/lib/cierre-reglas";
 // cuándo se mide, en vez de abrir un mes vacío. La fecha se lee con `fn_parametros_finanzas`; quien entra solo con el módulo
 // Cierre y no puede leerla ve el comportamiento de siempre (la base igual no cuenta lo anterior).
 export default async function CierrePage({ searchParams }: { searchParams: Promise<{ mes?: string; u?: string; sede?: string }> }) {
-  await exigirModulo("cierre_mes");
+  const persona = await exigirModulo("cierre_mes");
   const sp = await searchParams;
   const inicio = (await getParametrosFinanzas())?.inicioFinanzas ?? null;
   const mes = mesDeLaRuta(RUTA_CIERRE, sp.mes, mesDelDia(hoyLima()));
@@ -32,5 +32,5 @@ export default async function CierrePage({ searchParams }: { searchParams: Promi
   // Impuestos no se lee y el cierre se ve como siempre.
   const [panel, sire] = await Promise.all([getPanelCierre(mes), getEstadoSire(mes)]);
   // La `key` vuelve a abrir la unidad pedida cuando la barra cambia de mes o de sede (la tarjeta elegida vive en la pieza cliente).
-  return <CierreMes key={`${mes}|${unidadPedida ?? ""}`} panel={panel.datos ? conChequeoSire(panel.datos, chequeoSire(sire)) : null} falla={panel.falla} unidadPedida={unidadPedida} />;
+  return <CierreMes key={`${mes}|${unidadPedida ?? ""}`} panel={panel.datos ? conChequeoSire(panel.datos, chequeoSire(sire)) : null} falla={panel.falla} unidadPedida={unidadPedida} esAdmin={persona.esAdmin} />;
 }

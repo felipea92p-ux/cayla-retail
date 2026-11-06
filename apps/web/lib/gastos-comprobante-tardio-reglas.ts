@@ -6,6 +6,7 @@ import { soles } from "./compras-reglas";
 import { esDelViaje } from "./gastos-corregir-reglas";
 import { igvDeFactura, partirSerieNumero, textoMes, type GastoFila } from "./gastos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import { leerMontoPlata } from "./monto-plata-reglas";
 import { serieNumeroLegible } from "./hoja-gasto-reglas";
 import { UMBRAL_BANCARIZACION } from "./no-deducible-reglas";
 
@@ -45,6 +46,12 @@ export function borradorInicial(g: Pick<GastoFila, "fecha">): BorradorComprobant
 export function igvDelPapel(b: Pick<BorradorComprobante, "tipo" | "igv">, monto: number): number {
   if (b.tipo !== "factura") return 0;
   return b.igv ?? igvDeFactura(monto);
+}
+
+/** Lo que se escribe en «IGV del papel»: vacío, el de la tasa; ilegible, un negativo para que `problemaDelComprobante` lo frene. */
+export function igvDeLoEscrito(texto: string): number | null {
+  if (texto.trim() === "") return null;
+  return leerMontoPlata(texto) ?? -1;
 }
 
 /** Lo primero que falta para poder guardar (las mismas reglas que la base), o `null`. */

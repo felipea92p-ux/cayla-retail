@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { estadoDeCaja, loQueHayEnCuentas, type CajaCayla, type CajaProxima } from "./caja-proxima-reglas";
 import { debesPronto, leerResumen } from "./resumen-finanzas-reglas";
+import type { SalidaProy } from "./flujo-caja-reglas";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { desgloseDeTienes, tresRespuestas } from "./tres-respuestas-reglas";
 
@@ -115,7 +116,7 @@ describe("tresRespuestas", () => {
     const r = leerResumen(fixture.todas);
     const d = debesPronto(r)!;
     const [, b] = armar(cajaCayla(), r);
-    const total = d.vencidas.length + d.proximas.length + (d.planilla ? 1 : 0);
+    const total = d.vencidas.length + d.proximas.length + (d.planilla ? 1 : 0) + d.otras.length;
     expect(b.filas!.length).toBe(Math.min(4, total));
     expect((b.masFilas ?? 0) + b.filas!.length).toBe(total);
     // Lo que vence antes va primero: ninguna fila «Vencida» detrás de una que vence en el futuro.
@@ -124,11 +125,62 @@ describe("tresRespuestas", () => {
     expect(b.detalle).toBeUndefined();
   });
 
+  describe("lo que trae de la proyección (tarea 22)", () => {
+    const salida = (over: Partial<SalidaProy>): SalidaProy => ({ tipo: "fijo", id: "x", fecha: "", vence: null, titulo: "Alquiler", detalle: "", clase: "", ubicacionId: null, unidad: null, monto: 100, atrasada: false, ...over });
+    const conSalidas = (salidas: Partial<SalidaProy>[], over: Partial<{ planillaVisible: boolean }> = {}) => {
+      const r = leerResumen(fixture.todas);
+      if (r.porPagar.estado !== "ok" || r.flujo.estado !== "ok") throw new Error("fixture");
+      r.porPagar.datos.filas = [];
+      r.flujo.datos.salidas = salidas.map((s) => salida({ fecha: r.hoy, ...s }));
+      r.flujo.datos.planillaVisible = over.planillaVisible ?? true;
+      return r;
+    };
+
+    it("suma fijos, impuestos y aportes, sin los vencimientos que ya vienen de lo por pagar", () => {
+      const r = conSalidas([{ tipo: "fijo", monto: 100 }, { tipo: "impuesto", titulo: "IGV de octubre", monto: 50 }, { tipo: "aportes", titulo: "AFP", monto: 20 }, { tipo: "planilla", monto: 1000 }, { tipo: "vencimiento", monto: 999 }]);
+      const [, b] = armar(cajaCayla(), r);
+      expect(b.valor).toBe(1170);
+      expect(b.chips).toEqual([{ texto: "Vence pronto", tono: "pizarra" }]);
+      expect(b.filas!.map((f) => f.texto).sort()).toEqual(["AFP", "Alquiler", "IGV de octubre", "Planilla"]);
+    });
+
+    it("lo que cae pasado el plazo no entra", () => {
+      const r = conSalidas([{ tipo: "fijo", monto: 100, fecha: "2099-01-01" }]);
+      expect(armar(cajaCayla(), r)[1].valor).toBe(0);
+    });
+
+    it("mirando una sede, cuenta lo de esa sede y no lo de las demás", () => {
+      const r = conSalidas([{ tipo: "planilla", monto: 1000, ubicacionId: "tru" }, { tipo: "planilla", monto: 900, ubicacionId: "lim" }, { tipo: "impuesto", monto: 50, ubicacionId: null }]);
+      r.ver = { ...r.ver, todas: false, soloEmpresa: false, ubicacionId: "tru", tipo: "tienda" };
+      const [, b] = armar(cajaCayla(), r);
+      expect(b.valor).toBe(1000);
+      expect(b.chips).toEqual([{ texto: "Vence pronto", tono: "pizarra" }]);
+    });
+
+    it("sin ver la planilla, nunca dice «Nada por vencer» en verde", () => {
+      const [, b] = armar(cajaCayla(), conSalidas([], { planillaVisible: false }));
+      expect(b.chips).toEqual([{ texto: "Sin planilla", tono: "pizarra" }]);
+      expect(b.detalle).toContain("Tu cuenta no ve la planilla");
+      const [, otra] = armar(cajaCayla(), conSalidas([{ tipo: "fijo" }], { planillaVisible: false }));
+      expect(otra.chips).toEqual([{ texto: "Vence pronto", tono: "pizarra" }, { texto: "Sin planilla", tono: "pizarra" }]);
+    });
+
+    it("sin leer la proyección tampoco es verde", () => {
+      const r = conSalidas([]);
+      r.flujo = { estado: "falla", mensaje: "x" };
+      const [, b] = armar(cajaCayla(), r);
+      expect(b.chips).toEqual([{ texto: "Sin leer fijos ni planilla", tono: "pizarra" }]);
+    });
+  });
+
   it("sin nada que vencer, lo dice en vez de dejar un renglón vacío", () => {
     const r = leerResumen(fixture.todas);
     if (r.porPagar.estado !== "ok") throw new Error("fixture");
     r.porPagar.datos.filas = [];
-    if (r.flujo.estado === "ok") r.flujo.datos.salidas = r.flujo.datos.salidas.filter((s) => s.tipo !== "planilla");
+    if (r.flujo.estado === "ok") {
+      r.flujo.datos.salidas = [];
+      r.flujo.datos.planillaVisible = true;
+    }
     const [, b] = armar(cajaCayla(), r);
     expect(b.valor).toBe(0);
     expect(b.chips).toEqual([{ texto: "Nada por vencer", tono: "verde" }]);
