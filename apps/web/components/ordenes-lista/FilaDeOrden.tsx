@@ -21,7 +21,7 @@ export const PLANTILLA_LISTA =
 const SOLO_ANCHA = "hidden @min-[900px]:block";
 const DESDE_MEDIA = "hidden @min-[620px]:block";
 
-export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = false, onAbrirCajon }: { f: FilaDeLista; primera?: boolean; /** La guía interactiva enciende el «¿Por qué?» de la primera fila que lo tenga. */ guiaPorque?: boolean; /** La orden que se acaba de abrir (ADR-0509): respira en verde una vez (`data-recien`) y se lleva a la vista. */ recien?: boolean; /** Una orden de antes de las fases no tiene página: se sigue desde el cajón de siempre. */ onAbrirCajon?: () => void }) {
+export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = false }: { f: FilaDeLista; primera?: boolean; /** La guía interactiva enciende el «¿Por qué?» de la primera fila que lo tenga. */ guiaPorque?: boolean; /** La orden que se acaba de abrir (ADR-0509): respira en verde una vez (`data-recien`) y se lleva a la vista. */ recien?: boolean; /** Una orden de antes de las fases no tiene página: se sigue desde el cajón de siempre. */ onAbrirCajon?: () => void }) {
   const [abierta, setAbierta] = useState(false);
   const idPorque = useId();
   const raiz = useRef<HTMLDivElement>(null);
@@ -33,11 +33,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
   const entregaEnLinea = f.entrega.fecha ? `Entrega ${f.entrega.texto}${f.entrega.relativo ? ` · ${f.entrega.relativo}` : ""}` : "Sin fecha de entrega";
   return (
     <div ref={raiz} className="fila-cayla ol-fila cursor-pointer px-5 py-3 pr-8" data-guia={primera ? "prod-ordenes.fila" : undefined} data-recien={recien ? "" : undefined}>
-      {f.legado && onAbrirCajon ? (
-        <button type="button" className="ol-enlace" aria-haspopup="dialog" aria-label={`Abrir ${f.numeroTexto}, ${f.referencia}`} onClick={onAbrirCajon} />
-      ) : (
-        <Link href={f.href} className="ol-enlace" aria-label={`Abrir ${f.numeroTexto}, ${f.referencia}`} />
-      )}
+      <Link href={f.href} className="ol-enlace" aria-label={`Abrir ${f.numeroTexto}, ${f.referencia}`} />
       <div className={`ol-celdas grid items-center gap-x-4 gap-y-2 ${PLANTILLA_LISTA}`}>
         <span className="flex min-w-0 items-center gap-3">
           <MiniaturaPrenda fotoUrl={null} colorHex={f.colorHex} tamano="lg" {...prenda} />
@@ -45,6 +41,7 @@ export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = f
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm font-medium text-tinta">{f.referencia}</span>
               {f.esMuestra && <Chip tono="tinta">Muestra</Chip>}
+              {f.urgente && <Chip tono="ambar">Urgente</Chip>}
             </span>
             <span className="block break-words text-sm text-tinta/65 @min-[620px]:truncate">
               {f.numeroTexto}

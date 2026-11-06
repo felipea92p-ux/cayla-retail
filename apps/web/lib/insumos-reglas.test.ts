@@ -10,8 +10,6 @@ import {
   leerCantidad,
   loteMasAntiguoConSaldo,
   origenDeLote,
-  previsualizarConsumo,
-  previsualizarDevolucion,
   saldoDeInsumo,
   saldoDeLote,
   semanasDeCobertura,
@@ -109,60 +107,6 @@ describe("estadoInsumo", () => {
     expect(estadoInsumo(0, 60).etiqueta).toBe("Se acabó");
     expect(estadoInsumo(59.9, 60).etiqueta).toBe("Bajo el mínimo");
     expect(estadoInsumo(4438, 1).etiqueta).toBe("Alcanza");
-  });
-});
-
-describe("previsualizarConsumo (lo que hará registrar_consumo_insumo)", () => {
-  const lotes = [conSaldo(lote("L-0902", "2026-09-02", 120), 13), conSaldo(lote("L-0916", "2026-09-16", 80), 80)];
-  it("sale del lote más antiguo con saldo y dice cuánto le queda", () => {
-    const p = previsualizarConsumo(lotes, 10, "Lino", "metro");
-    expect(p.ok && p.lote.id).toBe("L-0902");
-    expect(p.ok && p.quedaria).toBe(3);
-  });
-  it("NO parte el consumo entre lotes: rechaza con el saldo exacto de ese lote", () => {
-    const p = previsualizarConsumo(lotes, 30, "Lino", "metro");
-    expect(p.ok).toBe(false);
-    expect(!p.ok && p.motivo).toContain("solo tiene 13.00 m");
-    expect(!p.ok && p.motivo).toContain("siguiente lote");
-  });
-  it("pedir exactamente el saldo del lote se puede", () => {
-    expect(previsualizarConsumo(lotes, 13, "Lino", "metro").ok).toBe(true);
-  });
-  it("sin saldo o sin cantidad, lo dice", () => {
-    expect(previsualizarConsumo([], 5, "Lino", "metro")).toEqual({ ok: false, motivo: "No hay saldo de Lino. Ingrésalo primero." });
-    expect(previsualizarConsumo(lotes, 0, "Lino", "metro").ok).toBe(false);
-  });
-});
-
-describe("previsualizarDevolucion (lo que hará devolver_insumo_de_produccion)", () => {
-  const a = conSaldo(lote("A", "2026-09-02", 100), 0);
-  const b = conSaldo(lote("B", "2026-09-16", 50), 30);
-  const lotes = [b, a];
-  const descontado = [
-    { loteId: "A", cantidad: 100 },
-    { loteId: "B", cantidad: 20 },
-  ];
-  it("vuelve al ÚLTIMO lote del que salió la orden, no al primero", () => {
-    const p = previsualizarDevolucion(lotes, descontado, 5, "Lino", "metro");
-    expect(p.ok && p.lote.id).toBe("B");
-    expect(p.ok && p.saldoLoteDespues).toBe(35);
-    expect(p.ok && p.netoTotal).toBe(120);
-  });
-  it("lo ya devuelto no cuenta: si B quedó en 0 neto, vuelve a A", () => {
-    const p = previsualizarDevolucion(lotes, [...descontado, { loteId: "B", cantidad: -20 }], 10, "Lino", "metro");
-    expect(p.ok && p.lote.id).toBe("A");
-  });
-  it("no devuelve más de lo descontado", () => {
-    const p = previsualizarDevolucion(lotes, descontado, 121, "Lino", "metro");
-    expect(!p.ok && p.motivo).toContain("solo tiene descontado 120.00 m");
-  });
-  it("no parte la devolución entre lotes: dice cuánto cabe en el último", () => {
-    const p = previsualizarDevolucion(lotes, descontado, 50, "Lino", "metro");
-    expect(!p.ok && p.motivo).toContain("tiene 20.00 m de esta orden");
-  });
-  it("sin nada descontado o sin cantidad, lo dice", () => {
-    expect(previsualizarDevolucion(lotes, [], 5, "Lino", "metro").ok).toBe(false);
-    expect(previsualizarDevolucion(lotes, descontado, 0, "Lino", "metro").ok).toBe(false);
   });
 });
 

@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 108,
+  "total": 130,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -19,13 +19,15 @@
       "Boton «prod-insumos.nueva-tela»",
       "Boton «prod-insumos.nuevo»",
       "Boton «prod-insumos.ingresar»",
+      "Boton «prod-insumos.comprar»",
       "button «Ocultar»",
       "button «Ver el capital en insumos»",
       "Boton «Crear la primera tela»",
       "button «{g.material.id === primeraTelaId ? \"prod-insumos.agregar-colores\" : undefined}»",
       "LapizEditar «{`la tela ${g.material.nombre}»",
       "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
-      "LapizEditar «este ingreso»",
+      "button «{indice === 0 && k === 0 ? \"prod-insumos.decir-a-quien\" : undefined}»",
+      "LapizEditar «{l.noSeToca ? \"lo que queda de este lote\" : \"este ingreso\"}»",
       "button «Restaurar»",
       "Boton «+ Ingresar lote»",
       "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»",
@@ -65,6 +67,13 @@
       "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»"
     ],
+    "components/insumos-taller/AjustarLoteModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"queda\", `Cuánto queda de verdad (${unidad}»",
+      "CampoTexto «{guia.etiqueta(\"porque\", \"Por qué\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
+    ],
     "components/insumos-taller/CamposDeLaFicha.tsx": [
       "CampoSelect «{foco.etiqueta(\"tejido\", \"Tejido\")}»",
       "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
@@ -99,6 +108,19 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/insumos-taller/LlegoUnaCompraModal.tsx": [
+      "ComboBuscable «{l.insumoId}»",
+      "button «Quitar esta línea»",
+      "CampoTexto «{`Cantidad (${unidad}»",
+      "CampoMonto «{`Precio por ${unidad}»",
+      "CampoTexto «{l.como === \"kilo\" ? \"Metros por kilo\" : \"Metros por rollo\"}»",
+      "CampoTexto «Código de lote»",
+      "Boton «Agregar otra línea»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Registrar la compra»"
     ],
     "components/insumos-taller/NuevaTelaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
@@ -135,6 +157,12 @@
       "CampoTexto «Gramaje (g/m²)»",
       "CampoTexto «¿Cuántos metros trae un rollo?»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»"
+    ],
+    "components/insumos-taller/ProveedorDelLoteModal.tsx": [
+      "ComboBuscable «{proveedorId}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ],
     "components/insumos-taller/RestaurarIngresoModal.tsx": [
       "button «{m}»",
