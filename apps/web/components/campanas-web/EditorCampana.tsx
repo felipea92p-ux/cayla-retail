@@ -809,7 +809,7 @@ function PasoDelEditor({
           <b className="block text-[14px] font-semibold">{titulo}</b>
           <small className="block truncate text-sm text-tinta/65">{resumen}</small>
         </span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{falta ? "Falta" : hecho ? "Listo" : bloqueado ? "" : "Sigue aquí"}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{falta ? "Falta" : hecho ? "Listo" : bloqueado ? "" : "Sigue"}</span>
       </button>
       {abierto && <div className="border-t border-sand px-4 pb-4 pt-3">{children}</div>}
     </section>
