@@ -14,6 +14,8 @@ import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, formaDe, mesDeLosEstados, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
+import { getCostoEstimado } from "@/lib/costo-estimado";
+import { notaCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
 import { CuadreVentas } from "@/components/finanzas/estados/CuadreVentas";
 import { GanamosPanel } from "@/components/finanzas/estados/GanamosPanel";
@@ -37,7 +39,9 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const veTodo = veDiarioDeTodoDe(persona);
   const sede: ClaveSede = veTodo ? sedeDeLaUrl(sp) : (persona.ubicacionId ?? SEDE_TODAS);
 
-  const [actual, anterior, parametros, cerradas, claure, ppto, campanas, cuadre] = await Promise.all([
+  // Una sede suelta pregunta por la suya; CAYLA entera (o «De la empresa»), por todas las que la cuenta ve.
+  const ubicacionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sede) ? sede : null;
+  const [actual, anterior, parametros, cerradas, claure, ppto, campanas, cuadre, costoEst] = await Promise.all([
     getEstadoResultados(desde, hasta),
     comparar ? getEstadoResultados(antes.desde, antes.hasta) : Promise.resolve(null),
     getParametrosFinanzas(),
@@ -50,6 +54,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     getCampanas(),
     // De Ventas a Finanzas (ADR-0609): si falla, la tarjeta lo dice y el resto de la pantalla se dibuja igual.
     getCuadreVentas(desde, hasta),
+    // Cuánto de lo vendido lleva costo estimado: si no se lee, la ganancia no se presenta como 100 % real sin decirlo (principio 9).
+    getCostoEstimado(desde, hasta, ubicacionId),
   ]);
   // ADR-0332: un mes anterior a la fecha desde la que cuenta Finanzas sale vacío; se dice por qué en vez de dejar ceros mudos.
   const inicio = parametros?.inicioFinanzas ?? null;
@@ -85,6 +91,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           enCurso={enCurso}
           forma={forma}
           cuadre={cuadre.falla || cuadro ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
+          costoEstimado={notaCostoEstimado(costoEst.datos)}
+          costoEstimadoFalla={costoEst.falla}
           formal={{
             filas: actual.datos,
             anteriores: anterior?.datos ?? null,

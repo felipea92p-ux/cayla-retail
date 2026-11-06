@@ -530,3 +530,11 @@ export function csvBalance(lineas: readonly LineaBalance[], chequeos: readonly C
   }
   return `﻿${filas.map((f) => f.map(celda).join(";")).join("\n")}\n`;
 }
+
+/**
+ * Las cuentas que empiezan después del día de arranque (tarea 4 de «Las 36»). Antes de su `saldo_desde` no tienen plata para el sistema: arrancar antes dejaría
+ * esa cuenta en cero y todo lo de ese tramo sin explicar. Se corrige diciendo cuánto tenía ese día en Editar cuenta, o eligiendo un arranque posterior.
+ */
+export function cuentasQueEmpiezanDespues<T extends { saldoDesde: string | null; archivada: boolean }>(cuentas: readonly T[], fecha: string): T[] {
+  return cuentas.filter((c) => !c.archivada && c.saldoDesde !== null && c.saldoDesde > fecha);
+}
