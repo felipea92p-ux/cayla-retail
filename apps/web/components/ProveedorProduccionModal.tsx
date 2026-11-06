@@ -310,6 +310,7 @@ export function ProveedorProduccionModal({
         <ComboResponsable control={responsable} deshabilitado={cargando || archivando} />
         </CampoGuiado>
 
+        <div className="pie-hoja-fijo space-y-3 pt-2">
         <PieGuia guia={guia} listo="Todo listo para guardar." />
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           {proveedor ? (
@@ -322,6 +323,7 @@ export function ProveedorProduccionModal({
           <Boton peso="primario" type="submit" cargando={cargando} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={`sm:min-w-44 ${guia.claseConfirmar}`}>
             {esAlta ? "Agregar al directorio" : "Guardar cambios"}
           </Boton>
+        </div>
         </div>
         </div>
       </form>

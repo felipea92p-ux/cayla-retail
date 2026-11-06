@@ -7,6 +7,8 @@ import {
   notaNoCuadra,
   sobrePapel,
   subtituloPapel,
+  marcasDePapel,
+  lineaMarcas,
   destinosDePapel,
   totalBandeja,
   CIFRA_BANDEJA,
@@ -48,6 +50,7 @@ import { CONCEPTOS_GASTO, type ConceptoGasto } from "./mi-plata-reglas";
 const linea = (o: Partial<LineaPapel> = {}): LineaPapel => ({
   id: "l1",
   nombre: "Polo",
+  marca: null,
   cantidad: 6,
   costo: 40,
   subtotal: 240,
@@ -160,6 +163,15 @@ describe("textos del veredicto y de la llegada", () => {
     expect(sobrePapel({ tipo: "sin_comprobante", ronda: null })).toBe("Sin papel");
     expect(subtituloPapel({ persona: "Marisol Rojas", fecha: "2026-10-23", lineas: [linea({ cantidad: 7 }), linea({ cantidad: 5 })] })).toBe("Marisol Rojas · 23/10 · 12 prendas");
     expect(subtituloPapel({ persona: "Rosa", fecha: "", lineas: [linea({ cantidad: 1 })] })).toBe("Rosa · 1 prenda");
+  });
+
+  it("la marca del papel: sin repetir, en el orden anotado; sin dato, no se inventa", () => {
+    const kiara = linea({ marca: "Kiara" });
+    const moda = linea({ marca: "Moda Mia" });
+    expect(marcasDePapel({ lineas: [kiara, moda, kiara] })).toEqual(["Kiara", "Moda Mia"]);
+    expect(lineaMarcas({ lineas: [kiara, kiara] })).toBe("Marca: Kiara");
+    expect(lineaMarcas({ lineas: [kiara, moda] })).toBe("Marcas: Kiara · Moda Mia");
+    expect(lineaMarcas({ lineas: [linea()] })).toBeUndefined();
     expect(destinosDePapel({ lineas: [linea({ destino: "Tienda Lima" }), linea({ destino: "Tienda AQP" }), linea({ destino: "Tienda Lima" })] })).toBe("Tienda Lima · Tienda AQP");
   });
   it("lo que faltó lo dijo la tienda", () => {
@@ -269,7 +281,7 @@ describe("los gastos que no son ropa", () => {
 });
 
 describe("la bandeja de Revisar compras (rediseño)", () => {
-  const linea = (cantidad: number, faltan = 0) => ({ id: "l", nombre: "x", cantidad, costo: 1, subtotal: cantidad, destino: "AQP", mandadas: cantidad, faltan: faltan ? [{ cantidad: faltan, causa: "no_vino" as const }] : [], sobran: 0 });
+  const linea = (cantidad: number, faltan = 0, marca: string | null = null) => ({ id: "l", nombre: "x", marca, cantidad, costo: 1, subtotal: cantidad, destino: "AQP", mandadas: cantidad, faltan: faltan ? [{ cantidad: faltan, causa: "no_vino" as const }] : [], sobran: 0 });
   it("lo que llegó: todo, o cuántos faltaron; antes de llegar, dónde está", () => {
     expect(llegadaDePapel({ llego: true, lineas: [linea(20), linea(15)] })).toEqual({ llegaron: 35, total: 35, completa: true });
     expect(llegadaDePapel({ llego: true, lineas: [linea(14, 2)] })).toEqual({ llegaron: 12, total: 14, completa: false });
@@ -287,6 +299,9 @@ describe("la bandeja de Revisar compras (rediseño)", () => {
     // La foto existe pero no se pudo firmar su enlace: no se dice «con foto» como si se pudiera ver.
     expect(filaPlata({ id: "a", persona: "M", medio: "efectivo", monto: 1, fecha: "", fotoRuta: "plata/x.jpg", fotoNoAbrio: true }).titulo).toBe("Efectivo · no se pudo abrir la foto");
     expect(filaPapel({ id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, fecha: "2026-10-22", ronda: "RC-000003", llego: true, lineas: [linea(35)], envios: [] })).toMatchObject({ titulo: "Textiles Rosa · Factura", cuando: "22/10 · RC-000003", chip: { tono: "verde" } });
+    const base = { id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura" as const, monto: 525, fecha: "2026-10-22", ronda: null, llego: true, envios: [] };
+    expect(filaPapel({ ...base, lineas: [linea(35, 0, "Kiara"), linea(2, 0, "Moda Mia")] }).marca).toBe("Kiara · Moda Mia");
+    expect(filaPapel({ ...base, lineas: [linea(35)] }).marca).toBeUndefined();
     expect(filaGasto({ id: "g", persona: "M", concepto: "taxi", nota: null, monto: 12, fecha: "2026-10-23", ronda: null, fotoRuta: null }).titulo).toBe("Taxi · sin papel");
     expect(filaGasto({ id: "g", persona: "M", concepto: "comida", nota: null, monto: 12, fecha: "2026-10-23", ronda: null, fotoRuta: null, papel: "boleta" }).titulo).toBe("Comida · Boleta");
     expect(filaCierre({ id: "c", persona: "L", decision: "le_deben", monto: 20, fecha: "2026-10-22", ronda: "RC-000002" }).chip).toEqual({ tono: "ambar", texto: "Le debemos" });

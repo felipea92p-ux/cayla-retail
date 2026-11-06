@@ -89,7 +89,7 @@ export function PanelDescuento({
     <div ref={raiz} className="pv-desc-cuerpo">
       {/* 1 · A qué prendas: todo el ticket, o solo las que se marquen. */}
       <section className={`${clasePaso(hecho.prendas, sigue.prendas)} pv-desc-prendas`}>
-        <CabezaPaso numero={1} titulo="¿A qué prendas?" hecho={hecho.prendas} pista={sigue.prendas ? "Sigue aquí" : null} estado={null} />
+        <CabezaPaso numero={1} titulo="¿A qué prendas?" hecho={hecho.prendas} pista={sigue.prendas ? "Sigue" : null} estado={null} />
         <label className="pv-desc-fila pv-desc-todo">
           <Casilla marcada={todasLasPrendas} onCambio={() => onDescuento({ elegidas: todasLasPrendas ? [] : null })} etiqueta="Todo el ticket" disabled={bloqueado} />
           <span className="min-w-0 flex-1 font-semibold">Todo el ticket</span>
@@ -111,7 +111,7 @@ export function PanelDescuento({
       <div className="pv-desc-der">
         {/* 2 · Cuánto: con palabras, y sobre qué se calcula. */}
         <section className={clasePaso(hecho.cuanto, sigue.cuanto)}>
-          <CabezaPaso numero={2} titulo="¿Cuánto?" hecho={hecho.cuanto} pista={sigue.cuanto ? "Sigue aquí" : null} estado={null} />
+          <CabezaPaso numero={2} titulo="¿Cuánto?" hecho={hecho.cuanto} pista={sigue.cuanto ? "Sigue" : null} estado={null} />
           <SegmentoDeslizante
             forma="modo"
             etiqueta="Cómo escribir el descuento"
@@ -175,7 +175,7 @@ export function PanelDescuento({
         {/* 3 · Por qué (R-45): de una lista cerrada, no texto libre — «un texto libre no se puede sumar; una lista sí, y a fin de mes se ve
             cuánto margen se fue por cada motivo». `registrar_venta` lo exige apenas hay descuento. */}
         <section className={clasePaso(hecho.porque, sigue.porque)}>
-          <CabezaPaso numero={3} titulo="¿Por qué?" hecho={hecho.porque} pista={sigue.porque ? "Sigue aquí" : null} estado={null} />
+          <CabezaPaso numero={3} titulo="¿Por qué?" hecho={hecho.porque} pista={sigue.porque ? "Sigue" : null} estado={null} />
           <div data-paso-descuento="motivo" role="radiogroup" aria-label="Motivo del descuento" className="pv-desc-opciones">
             {RAZONES_DESCUENTO.map((r) => (
               <button
@@ -211,7 +211,7 @@ export function PanelDescuento({
             de descuento). El candado real vive en la base; acá se pide antes de que llegue a rechazarlo. */}
         {mostrarArgumento && (
           <section className={clasePaso(descuento.argumento.trim() !== "", sigue.argumento)}>
-            <CabezaPaso numero={4} titulo="Argumento" hecho={descuento.argumento.trim() !== ""} pista={sigue.argumento ? "Sigue aquí" : null} estado={null} />
+            <CabezaPaso numero={4} titulo="Argumento" hecho={descuento.argumento.trim() !== ""} pista={sigue.argumento ? "Sigue" : null} estado={null} />
             <p className="pv-desc-ayuda">Pasa el 15 %: cuenta por qué se autoriza.</p>
             <textarea
               aria-label="Argumento del descuento"

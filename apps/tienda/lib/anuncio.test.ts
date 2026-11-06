@@ -1,16 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { estadoDeFrase, fraseVecina } from "./anuncio";
+import { estadoDeFrase, fraseSiguiente } from "./anuncio";
 
 describe("la franja de anuncios", () => {
-  it("las flechas pasan de un mensaje a otro y dan la vuelta en los dos sentidos", () => {
-    expect(fraseVecina(0, 1, 3)).toBe(1);
-    expect(fraseVecina(2, 1, 3)).toBe(0);
-    expect(fraseVecina(0, -1, 3)).toBe(2);
-    expect(fraseVecina(1, -1, 3)).toBe(0);
+  it("los mensajes pasan de uno en uno y al final dan la vuelta", () => {
+    expect(fraseSiguiente(0, 3)).toBe(1);
+    expect(fraseSiguiente(1, 3)).toBe(2);
+    expect(fraseSiguiente(2, 3)).toBe(0);
   });
 
   it("sin mensajes no se cae", () => {
-    expect(fraseVecina(0, 1, 0)).toBe(0);
+    expect(fraseSiguiente(0, 0)).toBe(0);
   });
 
   it("al cargar se ve uno, quieto", () => {

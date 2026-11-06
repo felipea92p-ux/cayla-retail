@@ -26,6 +26,9 @@ Un censo en 13 rutas y 2 anchos encontró 16 formas de botón, 35 combinaciones 
 ## Actualización 2026-11-05: la franja de arriba es manual
 Un mensaje a la vez con flechas, sin rotación automática: Felipe pidió priorizar lo manual si es más accesible y estable, y los mismos beneficios ya se ven bajo la portada. El plazo de cambio sale de `retail.tienda_ayuda()`. Los modos de campaña «quieta» y «marquesina» siguen como los programe el líder.
 
+## Actualización 2026-11-06: los mensajes de la franja pasan solos
+Felipe, al verla publicada: quieta no se nota y nadie va a tocar las flechas. Se quitan las flechas y cada mensaje se queda 4,5 s. Se detiene con el mouse encima o con el foco en su enlace, y con «reducir movimiento» se queda el primero. Reemplaza a la actualización del 2026-11-05.
+
 ## Qué se rompería sin esto
 Sin un archivo único, cada página volvería a tener su propia versión de los mismos botones y títulos.
 

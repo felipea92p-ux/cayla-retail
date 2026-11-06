@@ -104,3 +104,9 @@ se usó como criterio. El recorte se comprobó **mirando capturas a 2x** de ~15 
 segmentados, tarjeta de prenda, punto de color, acciones a 375 px, enlace del lateral): todos completos salvo el lateral (ver
 arriba). Solo se recorrieron tres pantallas; el resto del ERP no se midió. El contraste se mide con una captura del control sin y con
 foco (método de `/formidable`; `medir-oficio.js` convierte el color con un canvas).
+
+## Actualización 2026-11-05 — el foco de un campo es difuminado
+
+Felipe pidió que lo que se ilumina sea «más difuminado y sutil». Solo para las cajas de campo y de combo (`.caja-campo`, `.caja-campo-input`): el anillo de 2 px con separación se cambia por un **borde de tinta plena**, el **hilo de tinta** de abajo y un **halo difuminado** (`--pozo-foco-halo`). Todo lo demás conserva el anillo común.
+
+No repite el error que esta decisión corrigió: lo que aquí se midió como débil (2,10:1) era el borde **translúcido o de arena**. La tinta plena da los mismos 13,4 a 16,4:1 de la tabla, en 1 px. La pierde la lectura de `2.4.13` (2 px alrededor), que es de nivel AAA. **Quien pidió más contraste y el modo de colores forzados conservan el anillo de 2 px.** No se recorrió con teclado todo el ERP, y esos dos modos no se probaron en un navegador.

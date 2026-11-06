@@ -2967,7 +2967,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     .hoja-cobro-vuelto-monto.es-exacto { font-size: 2.25rem; }
   }
 
-  /* Cada paso; el que sigue se enciende (guía de foco, ADR-0284): un tinte terracota suave y su borde. */
+  /* Cada paso; el que sigue lleva el hilo (guía de foco, ADR-0284). */
   .hoja-cobro-paso {
     margin-inline: -0.75rem;
     padding: 0.6rem 0.75rem;
@@ -2975,8 +2975,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     border-radius: 1.1rem;
     transition: background-color 500ms var(--ease-cayla), border-color 500ms var(--ease-cayla);
   }
-  /* El paso que sigue ya no lleva un tinte de papel: es vidrio claro con un filo de luz (`estilos/vidrio/vender.css`, «Filo de luz»,
-     docs/maquetas/foco-vidrio-2026-11/). Va allí y no aquí porque esta capa (`components`) pierde frente a lo que no tiene capa. */
+  /* El hilo del paso que sigue vive en `estilos/vidrio/vender.css`: esta capa (`components`) pierde frente a lo que no tiene capa. */
 
   /* Un medio: cuadrado, con la franja de su color arriba y el ícono ocupando casi todo el cuadro. */
   .hoja-cobro-medio {

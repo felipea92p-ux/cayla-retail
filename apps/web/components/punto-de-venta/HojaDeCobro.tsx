@@ -216,7 +216,7 @@ export function HojaDeCobro({
       <div ref={cuerpoRef} className={compacta ? "contents" : "hoja-cobro-cuerpo scroll-cayla"}>
         {/* 1 · Pago */}
         <section className={`hoja-cobro-paso ${pagoOk ? "es-hecho" : "sigue-aqui"}`}>
-          <CabezaPaso numero={1} titulo="Pago" hecho={pagoOk} pista={pagoOk ? null : "Sigue aquí"} estado={estadoPago} />
+          <CabezaPaso numero={1} titulo="Pago" hecho={pagoOk} pista={pagoOk ? null : "Sigue"} estado={estadoPago} />
           <div className="hoja-cobro-pago grid">
             <div data-guia="vender.cobro-medio" className={`hoja-cobro-medios grid ${varios ? "con-montos" : ""}`}>
               {medios.map((m, iAtajo) => {
@@ -398,7 +398,7 @@ export function HojaDeCobro({
             numero={2}
             titulo="Comprobante"
             hecho={comprobanteOk}
-            pista={tipoComprobante ? (comprobanteOk || !pagoOk ? null : "Sigue aquí") : "Elige uno"}
+            pista={tipoComprobante ? (comprobanteOk || !pagoOk ? null : "Sigue") : "Elige uno"}
             pistaFuerte={pagoOk && !comprobanteOk}
             estado={!tipoComprobante ? null : comprobanteOk ? { ok: true, texto: ETIQUETA_TIPO[tipoComprobante] } : { ok: false, texto: faltaDocumento ?? "" }}
           />
@@ -445,7 +445,7 @@ export function HojaDeCobro({
   );
 }
 
-/** El título de un paso: número (✓ al completarlo), nombre, la pastilla de «Sigue aquí»/«Elige uno» y su estado a la derecha. También lo usa
+/** El título de un paso: número (✓ al completarlo), nombre, la palabra «Sigue» o «Elige uno» y su estado a la derecha. También lo usa
  *  la hoja del descuento (`PanelDescuento`): los dos pasos a paso de Vender se ven igual. */
 export function CabezaPaso({
   numero,
@@ -466,14 +466,14 @@ export function CabezaPaso({
     <div className="hoja-cobro-cabeza-paso flex items-center gap-2.5">
       <span
         className={`hoja-cobro-numero grid shrink-0 place-items-center rounded-full border-[1.5px] font-bold transition-colors ${
-          hecho ? "border-verde bg-verde text-crema" : "border-rojo text-rojo-profundo"
+          hecho ? "border-verde bg-verde text-crema" : "border-tinta text-tinta"
         }`}
       >
         {hecho ? <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
       </span>
       <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
       {pista && (
-        <span className={`anim-revelar whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${pistaFuerte ? "bg-rojo/10 text-rojo-profundo" : "bg-hueso text-tinta"}`}>
+        <span className={`hilo-etiqueta ${pistaFuerte ? "" : "!text-taupe"}`}>
           {pista}
         </span>
       )}

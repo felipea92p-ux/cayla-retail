@@ -73,7 +73,7 @@ export function Hilo({
       />
       {trabajando && (
         <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-          <span className="block h-full w-1/3 rounded-full bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
+          <span className="block h-full w-1/3 rounded-full bg-tinta [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
         </span>
       )}
     </>
@@ -822,7 +822,7 @@ export function Desplegable<T extends string>({
             a quien está en el mostrador que el sistema no se colgó. */}
         {esPastilla && trabajando && (
           <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-            <span className="block h-full w-1/3 rounded-full bg-rojo [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
+            <span className="block h-full w-1/3 rounded-full bg-tinta [animation:cayla-hilo-barrido_1.1s_linear_infinite]" />
           </span>
         )}
       </button>
