@@ -140,7 +140,7 @@ export function PagarServicioModal({ servicio: s, hoy, onClose }: { servicio: Se
               ]}
             />
             {yaPagado ? (
-              <MediosDePago medios={medios} onCambio={setMedios} esperado={total} totalComprobante={total} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+              <MediosDePago medios={medios} onCambio={setMedios} esperado={total} totalComprobante={total} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }} />
             ) : (
               <CampoFecha etiqueta="Vence" valor={vence} onValor={setVence} caja />
             )}

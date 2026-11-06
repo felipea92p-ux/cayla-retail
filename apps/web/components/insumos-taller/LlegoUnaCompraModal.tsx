@@ -258,7 +258,7 @@ export function LlegoUnaCompraModal({
           medios={medios}
           onMedios={setMedios}
           total={total}
-          cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }}
+          cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }}
         />
 
         <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
