@@ -99,13 +99,13 @@ export function BloquePrenda({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Boton type="button" peso="discreto" className="px-3 py-1.5 text-sm" onClick={() => onAbrirHoja("agregar")}>
+                <Boton type="button" peso="fantasma" className="btn-chico" onClick={() => onAbrirHoja("agregar")}>
                   + talla o color
                 </Boton>
                 <Boton
                   type="button"
-                  peso="discreto"
-                  className="px-3 py-1.5 text-sm"
+                  peso="fantasma"
+                  className="btn-chico"
                   onClick={() => {
                     setBuscando(false);
                     onPrenda(null);
