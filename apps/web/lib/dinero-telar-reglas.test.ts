@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { solesRedondo } from "./gastos-reglas";
+import { solesDos } from "./gastos-reglas";
 import { avisoCajaFuerte, avisoCajon, chipsDondeEsta, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
 import { tienesPulso } from "./dinero-pulso-reglas";
 
@@ -64,11 +64,13 @@ describe("escalaDeCuenta", () => {
 
 describe("montoConSigno", () => {
   it("escribe el negativo con el menos de verdad y siempre igual; el cero no lleva signo", () => {
-    expect(montoConSigno(1141)).toBe(solesRedondo(1141));
-    expect(montoConSigno(-24000)).toBe(`−${solesRedondo(24000)}`);
-    expect(montoConSigno(-950.4)).toBe(`−${solesRedondo(950.4)}`);
-    expect(montoConSigno(0)).toBe(solesRedondo(0));
-    expect(montoConSigno(-0.3)).toBe(solesRedondo(0)); // un negativo que redondea a cero no se escribe «−S/ 0»
+    expect(montoConSigno(1141)).toBe(solesDos(1141));
+    expect(montoConSigno(-24000)).toBe(`−${solesDos(24000)}`);
+    expect(montoConSigno(-950.4)).toBe(`−${solesDos(950.4)}`);
+    expect(montoConSigno(0)).toBe(solesDos(0));
+    expect(montoConSigno(-0.003)).toBe(solesDos(0)); // un negativo que redondea a cero no se escribe «−S/ 0.00»
+    expect(montoConSigno(-0.3)).toBe(`−${solesDos(0.3)}`);
+    expect(solesDos(1234.5)).toBe("S/\u00a01,234.50");
   });
 });
 
@@ -245,8 +247,8 @@ describe("detalleCajon", () => {
   const plano = (t: string | null) => t?.replace(/\s/g, " ") ?? null;
   const ABIERTA = { abierta: true, abiertaEn: "2026-10-15T14:58:00Z", ventasEfectivo: 1180, egresos: 40, depositos: 0, cerradaEn: null };
   it("abierta: desde qué hora (en Lima), cuánto vendió en efectivo y cuánto salió", () => {
-    expect(plano(detalleCajon(ABIERTA, false))).toBe("Abierta desde las 09:58 · vendió S/ 1,180 en efectivo · salieron S/ 40");
-    expect(plano(detalleCajon({ ...ABIERTA, egresos: 0 }, false))).toBe("Abierta desde las 09:58 · vendió S/ 1,180 en efectivo");
+    expect(plano(detalleCajon(ABIERTA, false))).toBe("Abierta desde las 09:58 · vendió S/ 1,180.00 en efectivo · salieron S/ 40.00");
+    expect(plano(detalleCajon({ ...ABIERTA, egresos: 0 }, false))).toBe("Abierta desde las 09:58 · vendió S/ 1,180.00 en efectivo");
   });
   it("cerrada: desde cuándo; el Taller: fondo fijo; sin fila: nada", () => {
     expect(detalleCajon({ ...ABIERTA, abierta: false, cerradaEn: "2026-10-14T23:30:00Z" }, false)).toBe("Caja cerrada desde el miércoles 14");

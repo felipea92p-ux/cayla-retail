@@ -195,7 +195,7 @@ export function CampanaDinero({
                             <span className={celda()}>{f.sinSede ? <span className="dp-sin-sede">sin sede</span> : f.sede}</span>
                             <span className={celda()}>{TEXTO_ETAPA[f.etapa]}</span>
                             <span className={celda()}>{f.estado ? <Chip tono={f.estado.tono}>{f.estado.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
-                            <span className={celda("der", f.saldo !== null && Math.round(f.saldo) < 0 ? "text-rojo-profundo" : "")}>{f.saldo === null ? "—" : montoConSigno(f.saldo)}</span>
+                            <span className={celda("der", f.saldo !== null && Math.round(f.saldo * 100) < 0 ? "text-rojo-profundo" : "")}>{f.saldo === null ? "—" : montoConSigno(f.saldo)}</span>
                           </button>
                           {filaAbierta === f.id && <DetalleDeCuenta f={f} abrirMovimiento={abrirMovimiento} onCerrar={() => setAbierta(false)} />}
                         </div>
