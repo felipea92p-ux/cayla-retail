@@ -596,6 +596,12 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
 
+## La tienda y el ERP no comparten estilos (regla — ADR-0616, Felipe 2026-11-06)
+
+**`apps/tienda` y `apps/web` tienen cada una sus estilos: ninguna importa una hoja ni usa una variable de la otra** (`--color-*` son del ERP, `--dn-*` de la tienda). Cambiar el diseño de una no toca a la
+otra. Lo común es lógica (`packages/shared`), nunca aspecto; el único CSS repetido, `campana-efectos.css`, es una copia en cada app con su prueba. En la tienda, **una pieza cuya única línea es un borde de un
+lado no lleva esquinas redondas** (el borde se curva y se ve un arco). Lo vigila `apps/tienda/lib/css-de-la-tienda.test.ts`.
+
 ## Skills de diseño de afuera: se consultan, no mandan (regla — Felipe 2026-10-17)
 
 **`frontend-design` (Anthropic) y `ui-ux-pro-max` solo se consultan: nunca mandan sobre los colores ni sobre las piezas ya decididas.**

@@ -58,17 +58,22 @@ export function gruposDeLaPortada(prendas: readonly Prenda[], sede: string | nul
   return grupos;
 }
 
-export type CategoriaConFoto = { clave: string; nombre: string; foto: string; fondo: string };
+/** `alternativas`: otras fotos de la categoría, por si la prenda elegida no se puede recortar (una prenda clara sobre fondo blanco). */
+export type CategoriaConFoto = { clave: string; nombre: string; foto: string; alternativas: string[]; fondo: string };
 
 /**
  * Una prenda por categoría, para la fila de categorías: la más vendida con foto o, si ninguna tiene puesto, la que llegó hace menos. Sale de lo
  * que hay ahora en la tienda elegida, así que nunca muestra algo agotado. El fondo es el color de esa prenda, muy suave.
  */
+const ALTERNATIVAS_POR_CATEGORIA = 3;
+
 export function categoriasConFoto(prendas: readonly Prenda[]): CategoriaConFoto[] {
   return categoriasDe(prendas).flatMap((c) => {
     const suyas = prendas.filter((p) => claveCategoria(p.categoria) === c.clave && p.fotos[0]);
     if (suyas.length === 0) return [];
-    const mejor = [...suyas].sort((a, b) => (a.vendidos ?? 99) - (b.vendidos ?? 99) || (a.nuevo?.dias ?? 99) - (b.nuevo?.dias ?? 99))[0];
-    return [{ clave: c.clave, nombre: c.nombre, foto: mejor.fotos[0], fondo: !esMuyClara(mejor) ? (colorDeLaFoto(mejor) ?? "#8f8f8c") : "#8f8f8c" }];
+    const ordenadas = [...suyas].sort((a, b) => (a.vendidos ?? 99) - (b.vendidos ?? 99) || (a.nuevo?.dias ?? 99) - (b.nuevo?.dias ?? 99));
+    const mejor = ordenadas[0];
+    const alternativas = ordenadas.slice(1, ALTERNATIVAS_POR_CATEGORIA + 1).map((p) => p.fotos[0]);
+    return [{ clave: c.clave, nombre: c.nombre, foto: mejor.fotos[0], alternativas, fondo: !esMuyClara(mejor) ? (colorDeLaFoto(mejor) ?? "#8f8f8c") : "#8f8f8c" }];
   });
 }

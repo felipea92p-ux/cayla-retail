@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esquemaNivel, hayAlgo, hayEnTienda, notaDeStock, textoNivel, tonoNivel, type StockModelo } from "./stock";
+import { esquemaNivel, fraseDeNivel, hayAlgo, hayEnTienda, notaDeStock, textoNivel, tonoNivel, type StockModelo } from "./stock";
 
 const TRU = { id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Trujillo" };
 const LIM = { id: "2d97d322-8a0a-4cd5-99c4-70e52b9c01db", nombre: "Lima" };
@@ -12,6 +12,7 @@ const stock = (total: StockModelo["total"], tru: StockModelo["total"], lim: Stoc
 describe("el nivel", () => {
   it("se lee «Hay», el número, «Última» o «—»", () => {
     expect(["hay", 3, 2, 1, 0].map((n) => textoNivel(n as never))).toEqual(["Hay", "3", "2", "Última", "—"]);
+    expect(["hay", 3, 2, 1, 0].map((n) => fraseDeNivel(n as never))).toEqual(["Hay", "Quedan 3", "Quedan 2", "Última", "Agotada"]);
     expect(["hay", 3, 1, 0].map((n) => tonoNivel(n as never))).toEqual(["hay", "poco", "poco", "cero"]);
     expect([hayAlgo("hay"), hayAlgo(1), hayAlgo(0), hayAlgo(undefined)]).toEqual([true, true, false, false]);
   });

@@ -64,9 +64,9 @@ describe("el buscador de la cabecera", () => {
 });
 
 describe("la respuesta de GET /api/buscador (la lista llega aparte de la página)", () => {
-  it("con la forma buena, la lista; sin sesión, lo dice; cualquier otra cosa es como si la base no hubiera contestado", () => {
+  it("con la forma buena, la lista; cualquier otra cosa es como si la base no hubiera contestado", () => {
     expect(leerRespuestaDelBuscador({ estado: "ok", indice: [] })).toEqual({ estado: "ok", indice: [] });
-    expect(leerRespuestaDelBuscador({ estado: "sin_sesion" })).toEqual({ estado: "sin_sesion" });
+    expect(leerRespuestaDelBuscador({ estado: "sin_sesion" })).toEqual({ estado: "sin_respuesta" });
     expect(leerRespuestaDelBuscador({ estado: "sin_respuesta" })).toEqual({ estado: "sin_respuesta" });
     expect(leerRespuestaDelBuscador({ estado: "ok" })).toEqual({ estado: "sin_respuesta" });
     expect(leerRespuestaDelBuscador({ estado: "ok", indice: "x" })).toEqual({ estado: "sin_respuesta" });

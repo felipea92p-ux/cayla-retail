@@ -53,9 +53,7 @@ export function FilaDeCategorias({ categorias, sede }: { categorias: CategoriaCo
         {categorias.map((c) => (
           <Link className="pl-cat" key={c.clave} href={hrefLista({ sede, categoria: c.clave, orden: "destacado" })} style={{ "--c": c.fondo } as React.CSSProperties}>
             <span>
-              <Image src={urlDeRecorte(c.foto, 640) ?? c.foto} alt="" width={320} height={320} sizes="(max-width: 639px) 33vw, 180px" unoptimized onError={(e) => {
-                if (e.currentTarget.src !== c.foto) e.currentTarget.src = c.foto;
-              }} />
+              <FotoDeCategoria categoria={c} />
             </span>
             {c.nombre}
           </Link>
@@ -67,5 +65,22 @@ export function FilaDeCategorias({ categorias, sede }: { categorias: CategoriaCo
         </svg>
       </button>
     </div>
+  );
+}
+
+/** La prenda recortada de la categoría. Si esa prenda no se puede recortar, prueba con la siguiente, para no dibujar un recuadro; si ninguna se puede, su foto. */
+function FotoDeCategoria({ categoria: c }: { categoria: CategoriaConFoto }) {
+  const recortes = [c.foto, ...c.alternativas].flatMap((f) => urlDeRecorte(f, 640) ?? []);
+  const [intento, setIntento] = useState(0);
+  return (
+    <Image
+      src={recortes[intento] ?? c.foto}
+      alt=""
+      width={320}
+      height={320}
+      sizes="(max-width: 639px) 33vw, 180px"
+      unoptimized
+      onError={() => setIntento((i) => (i < recortes.length ? i + 1 : i))}
+    />
   );
 }
