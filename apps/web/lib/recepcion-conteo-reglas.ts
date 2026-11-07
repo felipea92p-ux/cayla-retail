@@ -1646,11 +1646,16 @@ export function leerResuelto(data: unknown): { entraron: number; quedaronPendien
 }
 
 /**
- * ¿Se puede corregir la categoría o la marca de este «por crear»? Solo lo de fuera de la guía: una línea de la guía viene de una orden de compra, y bajarle lo contado
- * inventaría un faltante (`cambiar_categoria_de_pendiente` lo niega igual). Quien cuenta sin aviso es quien anota la categoría, y ahí es donde se equivoca.
+ * ¿Se puede corregir la categoría o la marca de este «por crear»? Sí, con y sin aviso. Fuera de la guía el modelo pasa a otra línea; en una línea del aviso se
+ * corrige la línea entera (llegaron shorts y el aviso decía jeans, Felipe 2026-11-07): `cambiar_linea_de_pendiente` lo niega si algo de ella ya entró al stock.
  */
 export function sePuedeCambiarCategoria(item: Pick<ParaDespues, "tipo">, linea: { linea: unknown } | null): boolean {
-  return item.tipo === "crear" && !!linea && !linea.linea;
+  return item.tipo === "crear" && !!linea;
+}
+
+/** Una línea del aviso siempre lleva marca (`despacho_items.marca_id`): ahí «Sin marca» no se ofrece. */
+export function admiteSinMarca(linea: { linea: unknown } | null): boolean {
+  return !linea?.linea;
 }
 
 export type ArgsLigarPrenda = { p_despacho_id: string; p_pendiente_id: string; p_producto_id: string };
