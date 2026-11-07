@@ -828,7 +828,7 @@ export const DECISIONES = {
       "components/alta-producto/MatrizVariantes.tsx",
       "components/alta-producto/piezas.tsx",
       "components/asistente/Acompanante.tsx",
-      "components/asistente/Asistente.tsx",
+      "components/asistente/CajonAsistente.tsx",
       "components/clientas/PaginaLegalClub.tsx",
       "components/clientas/club-piezas.tsx",
       "components/ficha-producto/ImprimirLoQueEntro.tsx",

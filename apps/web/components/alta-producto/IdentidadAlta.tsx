@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { firmaDeMitad, type FirmaDeMitad, type IdentidadDelAlta } from "@/lib/identidad-alta-reglas";
+import { firmaDeMitad, type FirmaDeMitad } from "@/lib/identidad-alta-reglas";
 import type { ClaveSinResponsable } from "@/lib/responsable-omitido";
 import type { ControlResponsable } from "@/lib/useResponsable";
 
@@ -12,7 +12,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // El estado vive en `useResponsable` dentro de `NuevoProductoForm`, así que salir de la pantalla lo acaba; este archivo solo lo
 // reparte por contexto a los componentes del alta, para que ninguno pinte su propio combo ni reciba la identidad de mano en mano.
 
-const Contexto = createContext<IdentidadDelAlta | null>(null);
+const Contexto = createContext<ControlResponsable | null>(null);
 
 /** Envuelve el formulario del alta. Los componentes de adentro piden su firma con `useFirmaDeMitad`. */
 export function IdentidadAltaProveedor({ control, children }: { control: ControlResponsable; children: ReactNode }) {
@@ -26,6 +26,21 @@ export function IdentidadAltaProveedor({ control, children }: { control: Control
  */
 export function useFirmaDeMitad(clave: ClaveSinResponsable): FirmaDeMitad {
   return firmaDeMitad(useContext(Contexto), clave);
+}
+
+/**
+ * El mismo combo «Responsable» de la pantalla (Recibir, Nuevo producto), dentro de una hoja que se abre ENCIMA de ella («Nuevo color»): el de la pantalla
+ * queda detrás del velo y no se alcanza (Felipe 2026-11-07, «siempre pidiendo el responsable»). Es el mismo control: elegir aquí lo deja elegido allá.
+ * Fuera de esas pantallas no hay combo (`null`) y la hoja dice qué falta con `AvisoSinIdentidad`.
+ */
+export function ResponsableEnHoja({ deshabilitado = false }: { deshabilitado?: boolean }) {
+  const control = useContext(Contexto);
+  return control ? <ComboResponsable control={control} deshabilitado={deshabilitado} /> : null;
+}
+
+/** ¿Esta hoja está dentro de una pantalla con su combo «Responsable»? */
+export function useHayResponsableDeMitad(): boolean {
+  return useContext(Contexto) !== null;
 }
 
 /** Anclaje al que apunta «Elegir / Cambiar» del paso 4 y el aviso de los guardados de mitad. */

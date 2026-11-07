@@ -13,22 +13,27 @@ import { veActividad } from "@/lib/actividad-reglas";
 import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
-import { PerfilModal } from "@/components/PerfilModal";
 import { MotorGuias } from "@/components/guias/MotorGuias";
-import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
 import { BotonDemo } from "@/components/guias/BotonDemo";
 import { BotonAsistente } from "@/components/asistente/Asistente";
-import { Acompanante } from "@/components/asistente/Acompanante";
 import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
+import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { hrefConSedeYMes } from "@/lib/finanzas-telar-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useLateralConElDedo } from "@/components/useLateralConElDedo";
 import { useMenuHolgado } from "@/components/useMenuHolgado";
+
+// Lo que solo se usa al abrirlo se descarga aparte (ADR-0623): Mi perfil al acercarse a su botón, «Demo» al abrirla y el acompañante del
+// asistente cuando la sede lo tiene encendido. Antes viajaban con cada pantalla.
+const cargarPerfil = () => import("@/components/PerfilModal");
+const PerfilModal = dynamic(() => cargarPerfil().then((m) => m.PerfilModal), { ssr: false });
+const ElegirDemoModal = dynamic(() => import("@/components/guias/ElegirDemoModal").then((m) => m.ElegirDemoModal), { ssr: false });
+const Acompanante = dynamic(() => import("@/components/asistente/Acompanante").then((m) => m.Acompanante), { ssr: false });
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -878,10 +883,20 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   // la gota se vuelve a medir sobre ellas.
   const reubicarGota = useCallback(() => ponerGota(false), [ponerGota]);
   useMenuHolgado(navRef, reubicarGota, `${compacto}-${esCelular}-${grupos.length}`);
+  const formaDelMenu = useRef<unknown[] | null>(null);
   useLayoutEffect(() => {
     const navego = rutaDeLaGota.current !== null && rutaDeLaGota.current !== pathname;
     rutaDeLaGota.current = pathname;
     cancelAnimationFrame(relojGota.current);
+    // Si solo cambió la pantalla y el menú conserva su forma, una medición basta: la transición de marco.css lleva la gota a la fila
+    // nueva (ADR-0623). Medirla cuadro a cuadro durante medio segundo forzaba ~30 recálculos justo mientras la pantalla nueva se armaba.
+    const forma = [gruposAbiertos, compacto, esCelular];
+    const mismaForma = formaDelMenu.current?.every((v, i) => v === forma[i]) ?? false;
+    formaDelMenu.current = forma;
+    if (navego && mismaForma) {
+      ponerGota(true);
+      return;
+    }
     // 520 ms: lo que tarda en abrirse una caja (460) con algo de aire, y de sobra para el plegado (300).
     const fin = performance.now() + 520;
     const paso = () => {
@@ -1034,9 +1049,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             <button
               type="button"
               onClick={() => setPerfilAbierto(true)}
-              onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+              onMouseEnter={(e) => {
+                void cargarPerfil();
+                entrarFila(e.currentTarget, "Mi perfil");
+              }}
               onMouseLeave={salirFila}
-              onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+              onFocus={(e) => {
+                void cargarPerfil();
+                entrarFila(e.currentTarget, "Mi perfil");
+              }}
               onBlur={salirFila}
               aria-label={compacto ? "Mi perfil" : undefined}
               title={compacto ? undefined : "Mi perfil"}

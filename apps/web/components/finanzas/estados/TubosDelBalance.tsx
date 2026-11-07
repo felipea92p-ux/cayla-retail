@@ -13,7 +13,7 @@ function Fila({ rotulo, cifra, partes, huecos }: { rotulo: string; cifra: string
   );
 }
 
-/** El Balance (ADR-0611): dos tubos del mismo largo. Lo que tienes, contra lo que debes y lo que es tuyo: que midan lo mismo es que cuadre. Lo tuyo es lo que queda: un hueco. */
+/** El Balance (ADR-0611): dos tubos del mismo largo. Activo, contra Pasivo + Patrimonio: que midan lo mismo es que cuadre. El Patrimonio es lo que queda: un hueco. */
 export function TubosDelBalance({
   arriba,
   abajo,
