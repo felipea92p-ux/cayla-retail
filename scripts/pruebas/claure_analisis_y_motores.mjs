@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PRODUCTO_SIN_HISTORIA } from "./_claure_prendas.mjs";
+import { DESHACER_0622, REHACER_0622, PEGAR_DE_NUEVO } from "./_deshacer_0622.mjs";
 import { sqlDeshacer } from "./_deshacer_claure.mjs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_PG ?? "supabase_db_cayla-retail";
@@ -64,8 +65,10 @@ const PRELUDIO = `
 begin;
 ${DESHACER_CANAL}
 \\o /dev/null
+${DESHACER_0622}
 ${PREVIAS}
 ${MIGRACION}
+${REHACER_0622}
 \\o
 insert into retail.empresa_sedes (empresa_id, ubicacion_id) select ${CAYLA}, u.id from retail.ubicaciones u on conflict do nothing;
 insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, '${LIMA}') on conflict do nothing;
@@ -211,7 +214,7 @@ caso("las migraciones se pueden volver a pegar: mismas cifras y sin error", () =
     ultima(
       psql(`${PRELUDIO}
 \\o /dev/null
-${MIGRACION}
+${PEGAR_DE_NUEVO(MIGRACION)}
 \\o
 ${FOTO(0)}
 ${VENTAS()}
