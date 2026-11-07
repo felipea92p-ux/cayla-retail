@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Revisa y cierra · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@500&display=swap" rel="stylesheet" />
+<style>
+  /* Maquetas para Felipe (2026-11-07, punto 3 de «pulir sin aviso»): tres formas de la vista «Revisa y cierra» de Recibir. Tokens reales del ERP
+     (apps/web/app/globals.css y estilos/tema.css). Solo HTML: nada de esto es código del ERP hasta que Felipe elija. */
+  :root {
+    --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+    --borde-control: #96786a; --verde: #48603f; --ambar: #74501a; --rojo: #b8412d; --pizarra: #4c5d6e;
+    --placa: color-mix(in srgb, var(--papel) 78%, transparent);
+  }
+  :root[data-tema="oscuro"] {
+    --crema: #1c1a17; --papel: #26241f; --hueso: #33302a; --sand: #403b34; --tinta: #f5f0e8; --taupe: #c4a898;
+    --borde-control: #8d7a6e; --verde: #9ccb8d; --ambar: #e4b968; --rojo: #e8806a; --pizarra: #9fb3c6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.45 "DM Sans", system-ui, sans-serif; }
+  .barra { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px;
+    background: color-mix(in srgb, var(--crema) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--sand); }
+  .barra h1 { font: 500 22px "EB Garamond", serif; margin: 0 12px 0 0; }
+  .pild { border: 1px solid var(--borde-control); background: transparent; color: var(--tinta); border-radius: 999px; padding: 6px 14px; font: inherit; cursor: pointer; }
+  .pild[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+  .marco { max-width: 1180px; margin: 24px auto; padding: 0 16px; }
+  .marco[data-ancho="movil"] { max-width: 375px; }
+  .nota { color: var(--taupe); font-size: 14px; margin: 0 0 16px; max-width: 70ch; }
+  h2.op { font: 500 27px "EB Garamond", serif; margin: 0 0 4px; }
+  .tarjeta { background: var(--placa); border: 1px solid var(--sand); border-radius: 24px; padding: 20px; }
+  .titulo { font: 500 21px "EB Garamond", serif; margin: 0; }
+  .sub { color: var(--taupe); font-size: 14px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12.5px; background: var(--hueso); color: var(--tinta); }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pizarra); }
+  .chip.ambar::before { background: var(--ambar); }
+  .chip.verde::before { background: var(--verde); }
+  .caja { width: 100%; height: 40px; border: 1px solid var(--borde-control); border-radius: 12px; background: var(--hueso); color: var(--tinta);
+    padding: 0 12px; font: 600 15px "DM Sans"; text-align: right; font-variant-numeric: tabular-nums; }
+  .caja::placeholder { color: color-mix(in srgb, var(--tinta) 45%, transparent); font-weight: 400; }
+  .combo { width: 100%; height: 40px; border: 1px solid var(--borde-control); border-radius: 12px; background: var(--hueso); color: var(--tinta); padding: 0 12px; font: inherit; }
+  .ic { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--hueso); font-size: 16px; }
+  .btn { border: 0; border-radius: 999px; padding: 11px 22px; font: 500 15px "DM Sans"; cursor: pointer; }
+  .btn.prim { background: var(--tinta); color: var(--crema); }
+  .grid2 { display: grid; gap: 16px; }
+  @media (min-width: 900px) { .marco:not([data-ancho="movil"]) .grid2 { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; } }
+
+  /* --- A: tabla agrupada por categoría --- */
+  .tabla { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .tabla th { text-align: left; font-size: 12.5px; color: var(--taupe); font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--sand); }
+  .tabla td { padding: 10px 12px; border-bottom: 1px solid var(--sand); vertical-align: middle; }
+  .tabla .der { text-align: right; }
+  .tabla tr.grupo td { background: color-mix(in srgb, var(--hueso) 55%, transparent); font-weight: 600; padding-top: 12px; }
+  .tabla tr.sub td { font-size: 13.5px; color: var(--taupe); }
+  .tabla tfoot td { font-weight: 600; border-bottom: 0; padding-top: 14px; }
+  .modelo { display: flex; gap: 12px; align-items: center; min-width: 0; }
+  .marco[data-ancho="movil"] .tabla thead { display: none; }
+  .marco[data-ancho="movil"] .tabla tr:not(.grupo) td:first-child { padding-bottom: 0; border-bottom: 0; }
+  .marco[data-ancho="movil"] .tabla tr, .marco[data-ancho="movil"] .tabla td { display: block; }
+  .marco[data-ancho="movil"] .tabla td.der { text-align: left; }
+
+  /* --- B: tarjetas por categoría y marca --- */
+  .pila { display: grid; gap: 12px; }
+  .grupoB { border: 1px solid var(--sand); border-radius: 20px; background: var(--papel); overflow: hidden; }
+  .grupoB header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 14px 16px;
+    background: color-mix(in srgb, var(--hueso) 50%, transparent); border-bottom: 1px solid var(--sand); }
+  .fila { display: grid; grid-template-columns: minmax(0, 1fr) 72px 140px; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--sand); }
+  .fila:last-child { border-bottom: 0; }
+  .marco[data-ancho="movil"] .fila { grid-template-columns: minmax(0, 1fr) 90px; }
+  .marco[data-ancho="movil"] .fila .caja { grid-column: 1 / -1; }
+  .prov { display: grid; grid-template-columns: auto minmax(0, 220px); gap: 8px; align-items: center; }
+
+  /* --- C: resumen arriba --- */
+  .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .cifra { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 12px 14px; }
+  .cifra b { display: block; font: 500 30px "EB Garamond", serif; line-height: 1.1; }
+  .lista { display: grid; gap: 8px; }
+  .lineaC { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto 130px; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 16px; background: var(--papel); border: 1px solid var(--sand); }
+  .marco[data-ancho="movil"] .lineaC { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .marco[data-ancho="movil"] .lineaC .caja { grid-column: 2 / -1; }
+  .etq { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); margin: 14px 0 6px; }
+
+  .vista { display: none; }
+  .vista[data-activa] { display: block; }
+  .pie { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="barra">
+  <h1>Revisa y cierra</h1>
+  <button class="pild" data-op="A" aria-pressed="true">A · Tabla por categoría</button>
+  <button class="pild" data-op="B" aria-pressed="false">B · Tarjetas por marca</button>
+  <button class="pild" data-op="C" aria-pressed="false">C · Resumen arriba</button>
+  <span style="flex:1"></span>
+  <button class="pild" id="ancho" aria-pressed="false">375 px</button>
+  <button class="pild" id="tema" aria-pressed="false">Oscuro</button>
+</div>
+
+<main class="marco" id="marco">
+  <p class="nota">Los datos de tu captura (ENV de prueba): Casaca 1 · 5, Casaca 2 · 10 y Vestido 1 · 10, todos «por crear». Las tres suman, en el mismo lugar, el
+    «De quién llegó» marca por marca que ya está hecho. Elige mirando; lo elegido pasa a la pantalla.</p>
+
+  <!-- ============ A ============ -->
+  <section class="vista" data-op="A" data-activa>
+    <h2 class="op">A · Una tabla, agrupada por categoría</h2>
+    <p class="nota">Como hoy, pero cada categoría es un título con su subtotal, las cifras quedan pegadas al modelo y al pie está el total. «Para después» deja de ser
+      una franja aparte: es un chip en cada fila.</p>
+    <div class="tarjeta">
+      <table class="tabla">
+        <thead><tr><th>Modelo</th><th class="der">Llegó</th><th style="width:170px">Costo</th></tr></thead>
+        <tbody>
+          <tr class="grupo"><td>Casacas <span class="sub">· sin marca · Confecciones del Sur</span></td><td class="der num">15</td><td></td></tr>
+          <tr><td><div class="modelo"><span class="ic">🧥</span><div><div>Casaca 1</div><span class="chip ambar">Por crear</span> <span class="sub">contó Felipe</span></div></div></td><td class="der num">5</td><td><input class="caja" placeholder="S/ 0.00" /></td></tr>
+          <tr><td><div class="modelo"><span class="ic">🧥</span><div><div>Casaca 2</div><span class="chip ambar">Por crear</span> <span class="sub">contó Felipe</span></div></div></td><td class="der num">10</td><td><input class="caja" placeholder="S/ 0.00" /></td></tr>
+          <tr class="grupo"><td>Vestidos <span class="sub">· AELO · Textiles Andina</span></td><td class="der num">10</td><td></td></tr>
+          <tr><td><div class="modelo"><span class="ic">👗</span><div><div>Vestido 1</div><span class="chip ambar">Por crear</span> <span class="sub">contó Felipe</span></div></div></td><td class="der num">10</td><td><input class="caja" placeholder="S/ 0.00" /></td></tr>
+        </tbody>
+        <tfoot><tr><td>Total · 3 modelos</td><td class="der num">25</td><td class="sub">Sin costo: llega con la factura</td></tr></tfoot>
+      </table>
+      <div class="pie"><span class="sub">Al cerrar, las 25 quedan guardadas para terminar después: crear los 3 modelos y poner sus tallas.</span><button class="btn prim">Cerrar el envío · 25</button></div>
+    </div>
+  </section>
+
+  <!-- ============ B ============ -->
+  <section class="vista" data-op="B">
+    <h2 class="op">B · Una tarjeta por categoría y marca, con su proveedor</h2>
+    <p class="nota">Cada grupo dice de quién es en su propia cabecera (y lo pide ahí si falta), así «De quién llegó» deja de ser un bloque aparte. A la derecha, el resumen fijo
+      con el total y el botón.</p>
+    <div class="grid2">
+      <div class="pila">
+        <article class="grupoB">
+          <header>
+            <div><div class="titulo">Casacas · Sin marca</div><span class="sub num">2 modelos · 15 prendas</span></div>
+            <label class="prov"><span class="sub">Proveedor</span><select class="combo"><option>Elige el proveedor</option><option>Confecciones del Sur EIRL</option><option>Textiles Andina SAC</option></select></label>
+          </header>
+          <div class="fila"><div class="modelo"><span class="ic">🧥</span><div><div>Casaca 1</div><span class="chip ambar">Por crear</span></div></div><div class="num" style="text-align:right"><b>5</b> <span class="sub">llegaron</span></div><input class="caja" placeholder="Costo S/" /></div>
+          <div class="fila"><div class="modelo"><span class="ic">🧥</span><div><div>Casaca 2</div><span class="chip ambar">Por crear</span></div></div><div class="num" style="text-align:right"><b>10</b> <span class="sub">llegaron</span></div><input class="caja" placeholder="Costo S/" /></div>
+        </article>
+        <article class="grupoB">
+          <header>
+            <div><div class="titulo">Vestidos · AELO</div><span class="sub num">1 modelo · 10 prendas</span></div>
+            <span class="chip verde">Textiles Andina · lo dice su marca</span>
+          </header>
+          <div class="fila"><div class="modelo"><span class="ic">👗</span><div><div>Vestido 1</div><span class="chip ambar">Por crear</span></div></div><div class="num" style="text-align:right"><b>10</b> <span class="sub">llegaron</span></div><input class="caja" placeholder="Costo S/" /></div>
+        </article>
+      </div>
+      <aside class="tarjeta" style="position:sticky;top:76px">
+        <div class="titulo">Al cerrar</div>
+        <p class="num" style="font: 500 44px 'EB Garamond', serif; margin: 6px 0 0">25</p>
+        <p class="sub" style="margin:0 0 12px">prendas · 3 modelos · 2 proveedores</p>
+        <p class="sub">Quedan guardadas para después: crear los 3 modelos y poner sus tallas. Sin costo entran igual; llega con la factura.</p>
+        <p class="sub" style="color:var(--ambar)">Falta: el proveedor de Casacas.</p>
+        <button class="btn prim" style="width:100%">Cerrar el envío</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ C ============ -->
+  <section class="vista" data-op="C">
+    <h2 class="op">C · El resumen primero, la lista debajo</h2>
+    <p class="nota">Arriba, en cifras, lo que se va a cerrar. Debajo, una lista simple de modelos agrupada por categoría. «De quién llegó» y el costo, al final, como los dos
+      pasos que quedan.</p>
+    <div class="cifras">
+      <div class="cifra"><span class="sub">Llegaron</span><b class="num">25</b></div>
+      <div class="cifra"><span class="sub">Modelos</span><b class="num">3</b></div>
+      <div class="cifra"><span class="sub">Por crear</span><b class="num" style="color:var(--ambar)">3</b></div>
+      <div class="cifra"><span class="sub">Costo</span><b class="num">—</b><span class="sub">llega con la factura</span></div>
+    </div>
+    <div class="tarjeta">
+      <div class="etq">Casacas · 15</div>
+      <div class="lista">
+        <div class="lineaC"><span class="ic">🧥</span><div>Casaca 1 <span class="chip ambar">Por crear</span></div><b class="num">5</b><input class="caja" placeholder="S/ 0.00" /></div>
+        <div class="lineaC"><span class="ic">🧥</span><div>Casaca 2 <span class="chip ambar">Por crear</span></div><b class="num">10</b><input class="caja" placeholder="S/ 0.00" /></div>
+      </div>
+      <div class="etq">Vestidos · 10</div>
+      <div class="lista">
+        <div class="lineaC"><span class="ic">👗</span><div>Vestido 1 <span class="chip ambar">Por crear</span> <span class="sub">AELO</span></div><b class="num">10</b><input class="caja" placeholder="S/ 0.00" /></div>
+      </div>
+      <div class="etq">De quién llegó</div>
+      <div class="lista">
+        <div class="lineaC" style="grid-template-columns:minmax(0,1fr) 240px"><div>Sin marca <span class="sub">· 15</span></div><select class="combo"><option>Elige el proveedor</option></select></div>
+        <div class="lineaC" style="grid-template-columns:minmax(0,1fr) 240px"><div>AELO <span class="sub">· 10 · lo dice su marca</span></div><select class="combo"><option>Textiles Andina SAC</option></select></div>
+      </div>
+      <div class="pie"><span class="sub">Falta: el proveedor de lo sin marca.</span><button class="btn prim">Cerrar el envío · 25</button></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const raiz = document.documentElement;
+  document.querySelectorAll('.pild[data-op]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.pild[data-op]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('.vista').forEach((v) => v.toggleAttribute('data-activa', v.dataset.op === b.dataset.op));
+  }));
+  document.getElementById('tema').addEventListener('click', (e) => {
+    const oscuro = raiz.dataset.tema !== 'oscuro';
+    raiz.dataset.tema = oscuro ? 'oscuro' : 'claro';
+    e.currentTarget.setAttribute('aria-pressed', String(oscuro));
+  });
+  document.getElementById('ancho').addEventListener('click', (e) => {
+    const m = document.getElementById('marco');
+    const movil = m.dataset.ancho !== 'movil';
+    m.dataset.ancho = movil ? 'movil' : '';
+    e.currentTarget.setAttribute('aria-pressed', String(movil));
+  });
+</script>
+</body>
+</html>
