@@ -4,7 +4,7 @@ import { solesCentimos } from "./flujo-caja-reglas";
 import { cuadreArranque, leerMontoArranque, nombreLinea, type LineaBalance, type UnidadBalance } from "./balance-reglas";
 import { gruposDelBalance, type GrupoBalance } from "./vale-reglas";
 
-const g = (clave: string, lado: GrupoBalance["lado"], monto: number, nombre = clave): GrupoBalance => ({ clave, nombre, lado, clase: "", monto, lineas: [{ nombre: `${nombre} 1`, monto }] });
+const g = (clave: string, lado: GrupoBalance["lado"], monto: number, nombre = clave): GrupoBalance => ({ clave, nombre, lado, clase: "", monto, lineas: [{ nombre: `${nombre} 1`, monto, cuenta: lado === "tuyo" ? "50" : clave }] });
 const GRUPOS: GrupoBalance[] = [g("plata", "tiene", 30000, "Plata"), g("mercaderia", "tiene", 60000, "Mercadería"), g("equipos", "tiene", 10000, "Muebles"), g("proveedores", "debe", 25000, "Proveedores"), g("impuestos", "debe", 5000, "Impuestos"), g("tuyo", "tuyo", 70000, "Lo tuyo")];
 const ANTES: GrupoBalance[] = [g("plata", "tiene", 20000), g("proveedores", "debe", 30000), g("tuyo", "tuyo", 60000)];
 
@@ -26,9 +26,9 @@ describe("los cierres con que se compara", () => {
 describe("lo que dice la pantalla", () => {
   it("lo que vale, lo que tienes y lo que debes", () => {
     const l = lecturaDelBalance(GRUPOS, ANTES, "2026-10-31");
-    expect(l).toMatchObject({ valor: 70000, mal: false, frase: `Es lo que vale CAYLA: tienes ${solesCentimos(100000)} y debes ${solesCentimos(30000)}.` });
+    expect(l).toMatchObject({ valor: 70000, mal: false, frase: `Es lo que vale CAYLA: Activo ${solesCentimos(100000)} menos Pasivo ${solesCentimos(30000)}.` });
     expect(l.chip).toEqual({ texto: `${solesCentimos(10000)} más que a fin de septiembre`, tono: "bien" });
-    expect(l.nota).toBe("El 60 % de lo que tienes está en mercadería.");
+    expect(l.nota).toBe("El 60 % del Activo está en mercadería y telas.");
   });
   it("sin un cierre anterior que cuadre, no compara", () => {
     expect(lecturaDelBalance(GRUPOS, null, "2026-10-31").chip).toBeNull();
@@ -69,16 +69,39 @@ describe("las partes", () => {
 describe("el informe (camino A, 2026-11-06)", () => {
   const partes = partesDelBalance({ grupos: GRUPOS, comparadas: [], etiquetaActual: "Oct", corte: "2026-10-31" });
   const inf = informeDelBalance({ grupos: GRUPOS, partes, comparadas: [{ etiqueta: "Sep", grupos: null }], etiquetaActual: "Oct" });
-  it("con los nombres del contador, sus subtotales y lo tuyo al final", () => {
-    expect(inf.filas.map((f) => f.contable)).toEqual(["Efectivo y equivalentes", "Mercadería", "Muebles y equipos", "Total activo", "Proveedores", "Tributos por pagar", "Total pasivo", "Patrimonio"]);
+  it("tres secciones, cada una con su total, y Pasivo + Patrimonio al final", () => {
+    expect(inf.filas.map((f) => f.contable)).toEqual(["Activo", "Efectivo y equivalentes", "Existencias", "Muebles y equipos", "Total activo", "Pasivo", "Proveedores", "Tributos por pagar", "Total pasivo", "Patrimonio", "Capital", "Total patrimonio", "Total pasivo y patrimonio"]);
     expect(totalesDelBalance(GRUPOS)).toEqual({ tiene: 100000, debe: 30000, tuyo: 70000 });
   });
-  it("cuadra: lo que tienes menos lo que debes es lo tuyo, y cada fila pesa contra lo que tienes", () => {
+  it("cuadra: Activo = Pasivo + Patrimonio, y cada fila pesa contra el Activo", () => {
     const ahora = (clave: string) => inf.filas.find((f) => f.clave === clave)!.valores.at(-1)!;
-    expect(ahora("total-tiene") - ahora("total-debe")).toBe(ahora("tuyo"));
+    expect(ahora("total-tiene") - ahora("total-debe")).toBe(ahora("total-tuyo"));
+    expect(ahora("total-pasivo-patrimonio")).toBe(ahora("total-tiene"));
     expect(inf.filas.find((f) => f.clave === "mercaderia")!.peso).toBe("60 %");
     // Un cierre que no cuadró no se compara: «—».
-    expect(inf.filas[0]!.valores[0]).toBeNull();
+    expect(inf.filas.find((f) => f.clave === "plata")!.valores[0]).toBeNull();
+  });
+  it("el Patrimonio va línea por línea y compara cada una por su cuenta", () => {
+    const linea = (nombre: string, monto: number, cuenta: string) => ({ nombre, monto, cuenta });
+    const tuyo = (lineas: GrupoBalance["lineas"]): GrupoBalance => ({ clave: "tuyo", nombre: "Patrimonio", lado: "tuyo", clase: "", monto: lineas.reduce((a, l) => a + l.monto, 0), lineas });
+    const ahora = [g("plata", "tiene", 100), tuyo([linea("Capital", 150, "50"), linea("Pérdida de noviembre", -50, "resultado_mes")])];
+    const antes = [g("plata", "tiene", 80), tuyo([linea("Capital", 150, "50"), linea("Pérdida de octubre", -70, "resultado_mes")])];
+    const f = informeDelBalance({ grupos: ahora, partes: [], comparadas: [{ etiqueta: "Oct", grupos: antes }], etiquetaActual: "Nov" }).filas.find((x) => x.clave === "tuyo-resultado_mes")!;
+    expect(f.nombre).toBe("Resultado del mes");
+    expect(f.contable).toBe("Resultado del ejercicio");
+    expect(f.valores).toEqual([-70, -50]);
+    // Sin columnas de antes, la fila dice su mes.
+    expect(informeDelBalance({ grupos: ahora, partes: [], comparadas: [], etiquetaActual: "Nov" }).filas.find((x) => x.clave === "tuyo-resultado_mes")!.nombre).toBe("Pérdida de noviembre");
+  });
+  it("una línea en cero hoy, con saldo en un cierre de antes, se queda: cada columna suma su total", () => {
+    const linea = (nombre: string, monto: number, cuenta: string) => ({ nombre, monto, cuenta });
+    const tuyo = (lineas: GrupoBalance["lineas"]): GrupoBalance => ({ clave: "tuyo", nombre: "Patrimonio", lado: "tuyo", clase: "", monto: lineas.reduce((a, l) => a + l.monto, 0), lineas });
+    const ahora = [g("plata", "tiene", 1200), tuyo([linea("Capital", 800, "50"), linea("Resultados acumulados", 400, "591"), linea("Utilidad de noviembre", 0, "resultado_mes")])];
+    const antes = [g("plata", "tiene", 1000), tuyo([linea("Capital", 800, "50"), linea("Resultados acumulados", 400, "591"), linea("Pérdida de octubre", -200, "resultado_mes")])];
+    const filas = informeDelBalance({ grupos: ahora, partes: [], comparadas: [{ etiqueta: "Oct", grupos: antes }], etiquetaActual: "Nov" }).filas;
+    const delPatrimonio = filas.filter((f) => f.clave.startsWith("tuyo-"));
+    expect(delPatrimonio.map((f) => f.clave)).toEqual(["tuyo-50", "tuyo-591", "tuyo-resultado_mes"]);
+    expect(delPatrimonio.reduce((a, f) => a + f.valores[0]!, 0)).toBe(filas.find((f) => f.clave === "total-tuyo")!.valores[0]);
   });
 });
 
