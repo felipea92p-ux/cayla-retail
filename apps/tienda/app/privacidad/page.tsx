@@ -32,9 +32,9 @@ const [responsable, datos, finalidades, obligatorios, compartir, conservacion, d
  * de inicio de sesión). La revisa CAYLA antes de publicar la tienda; lo que se acepta al crear la cuenta queda anotado con su
  * versión (`TEXTOS_VERSION`). Programa de puntos (2026-10-19, borrador para el abogado: docs/club/texto-legal-puntos-v1-borrador.md):
  * los datos de los puntos y cupones, la finalidad del club y la conservación de 3 años con los puntos. Revisión «a nivel mundial»
- * (2026-10-16): cambió cómo se lee, NUNCA qué dice (ni una palabra, ni el sello
- * «Borrador»): el título grande, la letra de 16 px, cada título con su número aparte y, en la computadora, el índice fijo al costado
- * que enciende el punto que se está leyendo; en el celular, «En esta página» arriba.
+ * (2026-10-16): cambió cómo se lee, NUNCA qué dice: el título grande, la letra de 16 px, cada título con su número aparte y, en la computadora, el índice fijo al costado
+ * que enciende el punto que se está leyendo; en el celular, «En esta página» arriba. Sin el sello «Borrador: lo revisa el abogado»
+ * sobre el título (Felipe, 2026-11-07); la versión del texto sigue siendo `TEXTOS_VERSION`.
  */
 export default function Privacidad() {
   return (
@@ -43,7 +43,6 @@ export default function Privacidad() {
         <article className="ay-legal">
           <EncabezadoAyuda
             apilado
-            sello={<span className="w-borrador">Borrador: lo revisa el abogado</span>}
             titulo={
               <>
                 Política de <em>privacidad</em>
