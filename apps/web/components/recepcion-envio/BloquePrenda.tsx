@@ -47,6 +47,8 @@ export function BloquePrenda({
   onPrenda,
   onConteo,
   onAbrirHoja,
+  quitables,
+  onQuitar,
 }: {
   ids: { prenda: string; conteo: string; danadas: string; arreglo: string };
   guia: GuiaCampos;
@@ -72,6 +74,9 @@ export function BloquePrenda({
   onPrenda: (prenda: PrendaRecepcion | null) => void;
   onConteo: (cambios: Partial<Conteo>) => void;
   onAbrirHoja: (modo: "nueva" | "agregar") => void;
+  /** Lo agregado por error en este envío (ver `MatrizRecepcion`). */
+  quitables?: { colores: ReadonlyMap<string, string[]>; tallas: ReadonlyMap<string, string[]> };
+  onQuitar?: (tipo: "talla" | "color", ids: string[], nombre: string) => void;
 }) {
   const [buscando, setBuscando] = useState(false);
   const s = sumasDe(conteo, prenda);
@@ -166,7 +171,15 @@ export function BloquePrenda({
                   {enviado != null ? `Contaste ${s.contado.toLocaleString("es-PE")} de ${enviado.toLocaleString("es-PE")}` : `Contaste ${s.contado.toLocaleString("es-PE")}`}
                 </span>
               </p>
-              <MatrizRecepcion prenda={prenda} colores={colores} valores={conteo.cantidades} onValor={(id, texto) => onConteo({ cantidades: { ...conteo.cantidades, [id]: texto } })} modo="cantidades" />
+              <MatrizRecepcion
+                prenda={prenda}
+                colores={colores}
+                valores={conteo.cantidades}
+                onValor={(id, texto) => onConteo({ cantidades: { ...conteo.cantidades, [id]: texto } })}
+                modo="cantidades"
+                quitables={quitables}
+                onQuitar={onQuitar}
+              />
               {s.invalidas > 0 && <p className="text-sm text-ambar">Las cantidades son números enteros, de 0 a 9999.</p>}
               <p className="text-sm text-taupe">Buenas y dañadas juntas. Lo que no llegó, déjalo vacío. «—» = esa combinación no existe en la prenda.</p>
             </div>

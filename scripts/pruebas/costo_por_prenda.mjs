@@ -36,11 +36,28 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const SIN_MIGRACION = process.argv.includes("--sin-migracion");
+const leer = (archivo) =>
+  readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8")
+    .replace(/^set lock_timeout.*$/m, "")
+    .replace(/^reset lock_timeout;$/m, "");
+// 20261107194000 (quien recibe pone el costo) cambió una línea DENTRO del parche de esta migración: así, al volver a aplicarla sobre la base, su reemplazo
+// anclado no se reconocería. Se deshace en la transacción de la prueba (que termina en rollback), se aplica esta y se vuelve a aplicar 20261107194000.
+const DESHACER_COSTO_AL_RECIBIR = `
+do $d$
+declare v_f text; v_def text;
+begin
+  foreach v_f in array array['retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)', 'retail.resolver_pendiente_envio(uuid,uuid,integer,uuid,jsonb,boolean,uuid)'] loop
+    v_def := pg_get_functiondef(v_f::regprocedure);
+    if position('fn_puede_poner_costo_al_recibir' in v_def) > 0 then
+      execute replace(v_def, 'not retail.fn_puede_poner_costo_al_recibir()', 'not retail.fn_puede_ver_dinero_de_compras()');
+    end if;
+  end loop;
+end
+$d$;
+`;
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : readFileSync(join(RAIZ, "supabase", "migrations", "20261026164000_costo_por_prenda_en_la_recepcion.sql"), "utf8")
-      .replace(/^set lock_timeout.*$/m, "")
-      .replace(/^reset lock_timeout;$/m, "");
+  : `${DESHACER_COSTO_AL_RECIBIR}\n${leer("20261026164000_costo_por_prenda_en_la_recepcion.sql")}\n${leer("20261107194000_costo_al_recibir_para_quien_recibe.sql")}`;
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";

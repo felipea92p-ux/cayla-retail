@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { admiteSinMarca, sePuedeCambiarCategoria } from "./recepcion-conteo-reglas";
+import { admiteSinMarca, sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo } from "./recepcion-conteo-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -75,7 +75,11 @@ import {
   type Separado,
   necesitaCatalogoAlCerrar,
   resumenDelCierre,
-  prendasQueEntraron,
+  loQueEntroPorPrenda,
+  deQuienLlego,
+  ejesQuitables,
+  leerQuitables,
+  urlEtiquetasDeLoQueEntro,
   detalleParaDespues,
   describirNuevas,
   quitarNuevaDescrita,
@@ -581,6 +585,11 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
     expect(proveedorDelSinAviso(null)).toBeNull();
+    const P2 = { id: "p2", nombre: "Textiles Andina" };
+    const P3 = { id: "p3", nombre: "Confecciones del Sur" };
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2] }))).toBe(`${PROV.nombre} y Textiles Andina`);
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV, P2, P3, { id: "p4", nombre: "X" }] }))).toBe(`${PROV.nombre}, Textiles Andina y 2 más`);
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true, proveedores: [P2] }))).toBe("Textiles Andina, y algo por confirmar");
   });
 
   it("en la puerta, la marca de un envío sin aviso sale de lo ya contado: sin repetir y en orden alfabético", () => {
@@ -738,20 +747,30 @@ describe("maqueta A: lo que queda para después, línea por línea", () => {
   });
 });
 
-describe("maqueta A: las prendas que ya se pueden vender", () => {
-  it("se juntan por nombre, sin las dañadas, de más a menos", () => {
-    expect(
-      prendasQueEntraron([
-        { prenda: "Blusa Nina", cantidad: 5, danadas: 0 },
-        { prenda: "Blusa Aurora", cantidad: 6, danadas: 0 },
-        { prenda: "Blusa Aurora", cantidad: 7, danadas: 1 },
-        { prenda: "Falda Plisada", cantidad: 2, danadas: 2 },
-      ]),
-    ).toEqual([
-      { nombre: "Blusa Aurora", cantidad: 12 },
-      { nombre: "Blusa Nina", cantidad: 5 },
+describe("lo que entró al stock, prenda por prenda y talla por talla (Felipe 2026-11-07)", () => {
+  const r = (prenda: string, varianteId: string, talla: string | null, color: string | null, cantidad: number, danadas = 0) => ({ prenda, varianteId, talla, color, cantidad, danadas });
+  it("junta cada combinación, sin las dañadas, de la prenda que más entró a la que menos", () => {
+    const prendas = loQueEntroPorPrenda([
+      r("Blusa Nina", "n-s", "S", "Negro", 5),
+      r("Blusa Aurora", "a-m", "M", "Azul", 6),
+      r("Blusa Aurora", "a-s", "S", "Azul", 4),
+      r("Blusa Aurora", "a-m", "M", "Azul", 3, 1),
+      r("Falda Plisada", "f-s", "S", null, 2, 2),
     ]);
-    expect(prendasQueEntraron(null)).toEqual([]);
+    expect(prendas.map((p) => [p.nombre, p.cantidad])).toEqual([
+      ["Blusa Aurora", 12],
+      ["Blusa Nina", 5],
+    ]);
+    expect(prendas[0].combinaciones.map((c) => [c.talla, c.cantidad])).toEqual([
+      ["S", 4],
+      ["M", 8],
+    ]);
+    expect(loQueEntroPorPrenda(null)).toEqual([]);
+  });
+  it("el enlace lleva una etiqueta por prenda de cada combinación marcada, y vuelve al envío", () => {
+    const prendas = loQueEntroPorPrenda([r("Blusa Aurora", "a-m", "M", "Azul", 6), r("Blusa Aurora", "a-s", "S", "Azul", 4)]);
+    expect(urlEtiquetasDeLoQueEntro("env", prendas, new Set(["a-s"]))).toEqual({ href: "/etiquetas-de-precio?unidades=a-s:4&envio=env", etiquetas: 4 });
+    expect(urlEtiquetasDeLoQueEntro("env", prendas, new Set())).toBeNull();
   });
 });
 
@@ -998,9 +1017,10 @@ describe("Felipe 2026-10-14: sin proveedor y sin marca", () => {
 
   it("al cerrar, «De quién llegó» se pide solo si se abrió sin saberlo, y la guía coincide con lo que frena la base", () => {
     const base = { lineas: [sinMarca], decisiones: {}, sinAviso: true, responsable: true };
-    expect(camposDelCierre(base).some((c) => c.id === "proveedor")).toBe(false);
-    expect(camposDelCierre({ ...base, proveedorPorConfirmar: true }).find((c) => c.id === "proveedor")).toMatchObject({ requerido: true, hecho: false });
-    expect(camposDelCierre({ ...base, proveedorPorConfirmar: true, proveedorElegido: true }).find((c) => c.id === "proveedor")).toMatchObject({ hecho: true });
+    expect(camposDelCierre(base).some((c) => c.id.startsWith("proveedor"))).toBe(false);
+    const fila = (proveedor: { id: string; nombre: string } | null) => ({ clave: "m1", marca: { id: "m1", nombre: "AELO" }, prendas: 3, proveedor, varios: false });
+    expect(camposDelCierre({ ...base, deQuien: [fila(null)] }).find((c) => c.id === "proveedor-m1")).toMatchObject({ requerido: true, hecho: false });
+    expect(camposDelCierre({ ...base, deQuien: [fila({ id: "p", nombre: "P" })] }).find((c) => c.id === "proveedor-m1")).toMatchObject({ hecho: true });
   });
 });
 
@@ -1365,5 +1385,76 @@ describe("cambiar la categoría de lo contado (Felipe 2026-11-06)", () => {
   it("una línea del aviso siempre lleva marca: ahí no se ofrece «Sin marca»", () => {
     expect(admiteSinMarca({ linea: null })).toBe(true);
     expect(admiteSinMarca({ linea: { id: "x" } })).toBe(false);
+  });
+});
+
+describe("el costo que la prenda ya tiene (Felipe 2026-11-07: el costo y el precio salen juntos)", () => {
+  const v = (costo: number | null) => ({ id: String(Math.random()), tallaId: null, talla: null, colorCodigo: null, color: null, codigo: null, costo, precio: null });
+  it("toma el costo que más se repite entre sus combinaciones; si empatan, el menor", () => {
+    expect(costoDeCatalogo({ variantes: [v(30), v(30), v(35)] })).toBe(30);
+    expect(costoDeCatalogo({ variantes: [v(35), v(30)] })).toBe(30);
+  });
+  it("un 0 o un vacío no es un costo", () => {
+    expect(costoDeCatalogo({ variantes: [v(0), v(null)] })).toBeNull();
+    expect(costoDeCatalogo({ variantes: [v(0), v(28)] })).toBe(28);
+    expect(costoDeCatalogo(undefined)).toBeNull();
+  });
+  it("se manda el de catálogo solo de la prenda que nadie tocó y no traía costo", () => {
+    const prendas = [{ productoId: "a" }, { productoId: "b" }, { productoId: "c" }, { productoId: "d" }];
+    const inicial = (id: string) => (id === "b" ? "25.00" : "");
+    const catalogo = (id: string) => (id === "d" ? null : 30);
+    expect(costosConCatalogo(prendas, { c: "40" }, inicial, catalogo)).toEqual({ a: "30.00", c: "40" });
+  });
+});
+
+describe("qué talla o color se puede quitar (Felipe 2026-11-07: solo lo que se agregó)", () => {
+  const v = (id: string, tallaId: string, colorCodigo: string) => ({ id, tallaId, talla: tallaId, colorCodigo, color: colorCodigo, codigo: null, costo: null, precio: null });
+  const prenda = { variantes: [v("sN", "S", "NEG"), v("mN", "M", "NEG"), v("sR", "S", "ROJ"), v("mR", "M", "ROJ")] };
+  it("un color entero agregado en el envío, sí; uno que la prenda ya tenía, no", () => {
+    const q = ejesQuitables(prenda, new Set(["sR", "mR"]));
+    expect([...q.colores.keys()]).toEqual(["ROJ"]);
+    expect(q.colores.get("ROJ")).toEqual(["sR", "mR"]);
+    expect([...q.tallas.keys()]).toEqual([]);
+  });
+  it("una talla solo si todas sus combinaciones nacieron aquí", () => {
+    expect([...ejesQuitables(prenda, new Set(["mN", "mR"])).tallas.keys()]).toEqual(["M"]);
+    expect([...ejesQuitables(prenda, new Set(["mR"])).tallas.keys()]).toEqual([]);
+  });
+  it("nunca deja a la prenda sin combinaciones", () => {
+    const q = ejesQuitables({ variantes: [v("a", "S", "NEG")] }, new Set(["a"]));
+    expect(q.colores.size + q.tallas.size).toBe(0);
+  });
+  it("lee las que se pueden quitar, y sin respuesta ninguna", () => {
+    expect([...leerQuitables([{ variante_id: "x" }, { otra: 1 }])]).toEqual(["x"]);
+    expect(leerQuitables(null).size).toBe(0);
+  });
+});
+
+describe("de quién llegó, marca por marca, en un envío sin aviso (Felipe 2026-11-07)", () => {
+  const P1 = { id: "p1", nombre: "Confecciones del Sur" };
+  const P2 = { id: "p2", nombre: "Textiles Andina" };
+  const linea = (pos: number, contadas: number, marca: { id: string; nombre: string } | null, proveedor: { id: string; nombre: string } | null): LineaParaContar => ({
+    clave: `extra:${pos}`,
+    linea: null,
+    conteo: { contadas } as LineaParaContar["conteo"],
+    categoria: null,
+    marca,
+    proveedor,
+    dijeron: null,
+  });
+  const AELO = { id: "aelo", nombre: "AELO" };
+  const MIR = { id: "mir", nombre: "Miramhe" };
+  it("una fila por marca, con lo que suma; la marca con más prendas primero; lo no contado no cuenta", () => {
+    const filas = deQuienLlego([linea(1, 10, AELO, P1), linea(2, 26, MIR, P2), linea(3, 5, null, null), linea(4, 0, MIR, null), linea(5, 4, AELO, P1)]);
+    expect(filas.map((f) => [f.marca?.nombre ?? "Sin marca", f.prendas, f.proveedor?.nombre ?? null])).toEqual([
+      ["Miramhe", 26, "Textiles Andina"],
+      ["AELO", 14, "Confecciones del Sur"],
+      ["Sin marca", 5, null],
+    ]);
+  });
+  it("basta una línea sin proveedor para que la marca lo pida; lo elegido aquí manda; dos proveedores en una marca se dicen", () => {
+    expect(deQuienLlego([linea(1, 3, AELO, P1), linea(2, 2, AELO, null)])[0].proveedor).toBeNull();
+    expect(deQuienLlego([linea(1, 2, null, null)], { "": P2 })[0].proveedor).toEqual(P2);
+    expect(deQuienLlego([linea(1, 3, AELO, P1), linea(2, 2, AELO, P2)])[0].varios).toBe(true);
   });
 });

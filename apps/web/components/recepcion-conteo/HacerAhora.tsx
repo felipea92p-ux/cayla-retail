@@ -21,6 +21,9 @@ import {
   cambiosDeVentaDe,
   costoInicialDePrenda,
   costosDeHacerAhora,
+  costosConCatalogo,
+  costoDeCatalogo,
+  costoComoTexto,
   costosSinGuardar,
   leerCostoCierre,
   ponerTallas,
@@ -45,7 +48,7 @@ import {
   type MarcaDeLinea,
   type ResultadoDeLigar,
 } from "@/lib/recepcion-conteo-reglas";
-import { cambiarLineaDePendiente, cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
+import { cambiarLineaDePendiente, cambiarPrecioEnRecepcion, leerCombinacionesQuitables, ligarPrendaAPendiente, quitarCombinaciones, resolverPendiente } from "@/lib/recepcion-conteo-acciones";
 import type { Firma } from "@/lib/responsable-reglas";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { HojaTallas } from "./HojaTallas";
@@ -149,11 +152,15 @@ export function HacerAhora({
   const [costosEscritos, setCostosEscritos] = useState<Record<string, string>>({});
   const descripcionNueva = item.tipo === "crear" ? item.pendiente.descripcion : null;
   const costoInicial = (productoId: string) => costoInicialDePrenda(linea, productoId, descripcionNueva);
+  // Sin costo en el conteo ni en la línea, el campo trae el que la prenda ya tiene en el catálogo, como el precio trae el de hoy (Felipe 2026-11-07).
+  const deCatalogo = (productoId: string) => costoDeCatalogo(prendas.get(productoId));
+  /** Lo que dice el campo sin tocarlo: contra esto se mide si la persona cambió el costo (y se le pide confirmar). */
+  const costoDeFabrica = (productoId: string) => costoInicial(productoId) || costoComoTexto(deCatalogo(productoId));
   const costoDe = editaCosto
     ? (productoId: string): CostoDePrenda => {
-        const antes = costoInicial(productoId);
-        const valor = Object.hasOwn(costosEscritos, productoId) ? (costosEscritos[productoId] ?? "") : antes;
-        return { valor, deLaLinea: antes, antes, problema: valor.trim() ? leerCostoCierre(valor).problema : null };
+        const deFabrica = costoDeFabrica(productoId);
+        const valor = Object.hasOwn(costosEscritos, productoId) ? (costosEscritos[productoId] ?? "") : deFabrica;
+        return { valor, deLaLinea: deFabrica, antes: deFabrica, problema: valor.trim() ? leerCostoCierre(valor).problema : null };
       }
     : undefined;
   const cambiarCosto = (productoId: string, valor: string) => setCostosEscritos((c) => ({ ...c, [productoId]: valor }));
@@ -162,6 +169,28 @@ export function HacerAhora({
   // La de la línea, o «Sin marca» (ADR-0393, 2026-10-14): una línea sin marca también se termina.
   const marca = linea ? marcaDeLinea(linea) : null;
   const pendienteId = item.tipo === "separar" ? null : item.pendiente.id;
+
+  // Las tallas y colores que nacieron en este envío y se pueden quitar (Felipe 2026-11-07): se leen al abrir «Tallas y colores» y cada vez que la prenda
+  // cambia (al volver de «+ talla o color»). Sin respuesta, ninguna: la × no se ofrece y nada se rompe.
+  const [quitables, setQuitables] = useState<ReadonlySet<string>>(() => new Set());
+  const prendaDeTallas = vista.tipo === "tallas" ? `${vista.prenda.productoId}:${vista.prenda.variantes.length}` : null;
+  useEffect(() => {
+    if (!prendaDeTallas) return;
+    let vigente = true;
+    void leerCombinacionesQuitables(detalle.id).then((ids) => vigente && setQuitables(ids));
+    return () => {
+      vigente = false;
+    };
+  }, [prendaDeTallas, detalle.id]);
+  async function quitarDelEnvio(ids: string[]): Promise<string | null> {
+    const { error: e } = await quitarCombinaciones({ p_despacho_id: detalle.id, p_variante_ids: ids }, responsable.firma());
+    responsable.despues(e);
+    if (e) return mensajeAlGuardar(e, "quitar esa talla o color");
+    setQuitables((q) => new Set([...q].filter((id) => !ids.includes(id))));
+    // La prenda que se ve en el resto de la pantalla también pierde esa combinación.
+    if (vista.tipo === "tallas") onPrendaVista({ ...vista.prenda, variantes: vista.prenda.variantes.filter((v) => !ids.includes(v.id)) });
+    return null;
+  }
 
   // Un «detalle»: la prenda del pendiente con sus tallas y colores (de lo ya buscado, o se busca por su nombre).
   const cargando = vista.tipo === "cargando";
@@ -209,7 +238,7 @@ export function HacerAhora({
   async function pedirGuardar(s: Separado) {
     // Un costo o un precio escrito mal no se ignora: el motivo ya está junto al campo (`PrecioDePrenda`, siempre a la vista al escribir mal) y
     // aquí solo se lleva el cursor. El costo primero: su campo va antes que el precio.
-    const malCosto = costosDeHacerAhora(s.prendas, costosEscritos, costoInicial).problemas;
+    const malCosto = costosDeHacerAhora(s.prendas, costosEscritos, costoDeFabrica).problemas;
     if (malCosto.length > 0) {
       enfocarCosto(malCosto[0].productoId);
       return;
@@ -219,7 +248,7 @@ export function HacerAhora({
       enfocarPrecio(mal[0].productoId);
       return;
     }
-    const cambiosCosto = costosDeHacerAhora(s.prendas, costosEscritos, costoInicial).cambios;
+    const cambiosCosto = costosDeHacerAhora(s.prendas, costosEscritos, costoDeFabrica).cambios;
     const cambiosVenta = cambiosDeVentaDe(s.prendas, precios.ventas);
     if (cambiosCosto.length === 0 && cambiosVenta.length === 0) {
       void guardar(s);
@@ -274,7 +303,9 @@ export function HacerAhora({
       }
     }
     // El costo de las prendas que se identifican ahora viaja con lo separado y entra con ellas (todo o nada, en la misma llamada).
-    const { costos, cambios: cambiosCosto } = costosDeHacerAhora(s.prendas, costosEscritos, costoInicial);
+    // Lo que se manda incluye el costo de catálogo que el campo mostraba (`costosConCatalogo`); lo que se confirma sigue siendo solo lo que la persona cambió.
+    const { cambios: cambiosCosto } = costosDeHacerAhora(s.prendas, costosEscritos, costoDeFabrica);
+    const { costos } = costosDeHacerAhora(s.prendas, editaCosto ? costosConCatalogo(s.prendas, costosEscritos, costoInicial, deCatalogo) : costosEscritos, costoInicial);
     const { resuelto, error: e } = await resolverPendiente(
       argsResolverPendiente({ despachoId: detalle.id, linea, pendienteId, separado: s, costos, confirmaCosto, token }),
       firma,
@@ -375,7 +406,7 @@ export function HacerAhora({
             costos={atipicosPorLinea(atipicos.costos)}
             pie={
               // Si lo que se ve raro es el costo que se acaba de escribir, se dice así; si no, es el con el que se cerró la línea.
-              costosDeHacerAhora(atipicos.separado.prendas, costosEscritos, costoInicial).cambios.length > 0
+              costosDeHacerAhora(atipicos.separado.prendas, costosEscritos, costoDeFabrica).cambios.length > 0
                 ? "El costo que escribiste no se parece al que tiene la prenda hoy. Si está bien, confírmalo: el costo de la prenda se promedia con él."
                 : "El costo con el que se cerró esta línea no se parece al de la prenda. Si está bien, confírmalo: el costo de la prenda se promedia con él."
             }
@@ -515,6 +546,7 @@ export function HacerAhora({
           onListo={tallasListas}
           onAbrirHoja={(modo, prenda, escritas) => setVista(modo === "agregar" && prenda ? { tipo: "agregar", prenda, original: vista.original, escritas } : { tipo: "prenda" })}
           precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={cambiarCosto} sinNombre />}
+          quitar={{ ids: quitables, onQuitar: quitarDelEnvio }}
           onCerrar={item.tipo === "separar" ? () => setVista({ tipo: "separar" }) : cerrar}
         />
       );

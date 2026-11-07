@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 231,
+  "total": 241,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -105,7 +105,7 @@
       "BotonVerMas «recepcion.plegadas»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
-      "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
+      "CampoSelect «{f.proveedor ? \"Proveedor\" : guia.etiqueta(id, \"Proveedor\")}»",
       "ComboResponsable «{responsable}»",
       "button «Reintentar»",
       "Volver «→() => onVolver(undefined, decisiones)»",
@@ -160,7 +160,9 @@
     ],
     "components/recepcion-conteo/HojaTallas.tsx": [
       "Boton «Dejar para después»",
-      "Boton «{textoListo}»"
+      "Boton «{textoListo}»",
+      "Boton «Cancelar»",
+      "Boton «→() => void confirmarQuitar()»"
     ],
     "components/recepcion-conteo/LlevarAlStock.tsx": [
       "Boton «{esperandoGuardar ? \"Guardando lo último que contaste…\" : undefined}»",
@@ -177,14 +179,23 @@
       "Boton «Cancelar» #2",
       "Boton «{guia.frase ?? undefined}» #2"
     ],
+    "components/recepcion-conteo/LoQueEntro.tsx": [
+      "Casilla «{`Etiquetas de ${p.nombre}»",
+      "Casilla «{`Etiquetas de ${p.nombre}» #2",
+      "BotonImprimir «{`Imprimir ${enlace.etiquetas}»",
+      "button «{todasMarcadas ? \"Desmarcar todas\" : \"Marcar todas\"}»"
+    ],
     "components/recepcion-conteo/NuevoModelo.tsx": [
       "CampoSelect «{guia.etiqueta(\"modelo-proveedor\", \"De qué proveedor\")}»",
       "CampoSelect «{guia.etiqueta(\"modelo-categoria\", \"Qué llegó\")}»",
+      "button «{titulo}»",
+      "CampoSelect «De qué marca»",
       "CampoTexto «{guia.etiqueta(\"modelo-nombre\", \"El nombre\")}»",
       "Boton «Sí, es esta»",
       "Boton «No, es otra»",
       "CampoSelect «{guia.etiqueta(\"modelo-marca\", \"La marca\")}»",
       "CampoTexto «{guia.etiqueta(\"modelo-nota\", \"La descripción (para no confundirlo con otro)\")}»",
+      "Boton «No, es otra» #2",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -323,6 +334,9 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "Boton «{guia.frase ?? undefined}» #2"
+    ],
+    "components/recepcion-envio/MatrizRecepcion.tsx": [
+      "button «{tipo === \"talla\" ? `Quitar la talla ${nombre}»"
     ],
     "components/recepcion-envio/PiezasEnvio.tsx": [
       "Volver «/recibir»"
