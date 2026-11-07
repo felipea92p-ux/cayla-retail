@@ -46,6 +46,7 @@
     "pruebas:precio-cero": "node scripts/pruebas/precio_cero_solo_empaque.mjs",
     "pruebas:historial-prenda": "node scripts/pruebas/historial_prenda.mjs",
     "pruebas:costo-de-la-prenda": "node scripts/pruebas/costo_de_la_prenda.mjs",
+    "pruebas:costo-de-las-tallas": "node scripts/pruebas/costo_de_las_tallas.mjs",
     "pruebas:costo-corregir-compra": "node scripts/pruebas/costo_corregir_compra.mjs",
     "pruebas:precio-sede": "node scripts/pruebas/precio_sede.mjs",
     "pruebas:precio-sede-variante": "node scripts/pruebas/precio_sede_variante.mjs",

@@ -5,6 +5,7 @@ import { Desplegable } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, type NombresFicha } from "@/lib/variantes-ficha-reglas";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { sugerenciaDeCosto, type ResumenCostoPrenda } from "@/lib/costo-tallas-reglas";
 
 // Precio o costo en bloque: «Cambiar [Precio|Costo] de [Todas | Color: Negro | Talla: S] a [monto] · Aplicar». Es la
 // fila de grupo de Shopify («si cambias el precio del grupo, cambia en todas sus variantes») y el «Price extra» de Odoo,
@@ -28,6 +29,7 @@ export function CambiarEnBloque({
   onCampo,
   campoFijo,
   admitePrecioCero = false,
+  ultimaEntrada = null,
 }: {
   filas: FilaFicha[];
   onFilas: (siguiente: FilaFicha[]) => void;
@@ -42,6 +44,9 @@ export function CambiarEnBloque({
   campoFijo?: CampoBloque;
   /** La categoría elegida es de Empaque (fuera de los motores, ADR-0377): el precio puede ser 0, la bolsa de obsequio. */
   admitePrecioCero?: boolean;
+  /** La última compra o cierre del Taller de la prenda (ADR-0631): en Costos, ofrece su costo para las tallas que aún no llegan por
+   *  compra. `null` = no hubo, o la cuenta no ve el dinero. */
+  ultimaEntrada?: ResumenCostoPrenda["ultima"] | null;
 }) {
   const [campoPropio, setCampo] = useState<CampoBloque>("precio");
   const campo = campoFijo ?? campoPropio;
@@ -66,6 +71,23 @@ export function CambiarEnBloque({
 
   // Si la barra desaparece (todas quedaron desactivadas) con un monto escrito, ya no hay nada pendiente que avisar.
   useEffect(() => () => onPendiente(null), [onPendiente]);
+
+  // Las tallas escritas a mano con otro costo que el de la última compra (ADR-0631). Solo en Costos y sin nada escrito en el monto.
+  const sugerencia = campo === "costo" && monto.trim() === "" ? sugerenciaDeCosto(filas, ultimaEntrada) : null;
+
+  /** «Usar S/ 48.00, el de la última compra»: es «Cambiar el costo de Todas a S/ 48.00»; las tallas grises no se tocan. */
+  function usarSugerencia() {
+    if (!sugerencia) return;
+    const r = aplicarEnBloque(filas, "costo", "todas", sugerencia.monto, admitePrecioCero);
+    if (r.error) return setResultado({ texto: r.error, error: true });
+    onFilas(r.filas);
+    setResultado({
+      texto: `Costo de S/\u00a0${sugerencia.monto} puesto en ${r.aplicadas} ${r.aplicadas === 1 ? "talla" : "tallas"}${
+        r.fijas > 0 ? ` · ${r.fijas} no ${r.fijas === 1 ? "cambia" : "cambian"}: su costo viene de compras` : ""
+      }. Se guarda con «Revisar y guardar».`,
+      error: false,
+    });
+  }
 
   function aplicar() {
     if (alcancePerdido) {
@@ -146,11 +168,26 @@ export function CambiarEnBloque({
           Aplicar
         </button>
       </div>
-      <p aria-live="polite" className={`mt-1.5 min-h-[1rem] text-sm ${resultado?.error ? "text-rojo-profundo" : "text-taupe"}`}>
+      {/* En Costos, si hay tallas escritas a mano con otro costo que el de la última compra, la línea de ayuda las ofrece igualar
+          (ADR-0631). La región que avisa sigue montada (vacía): así el resultado del botón se anuncia al lector. */}
+      {!resultado && sugerencia && (
+        <div data-guia="editar.sugerencia-costo" className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-taupe">
+          <span>{sugerencia.texto}</span>
+          <button type="button" onClick={usarSugerencia} disabled={deshabilitado} className="btn-cayla btn-sutil btn-chico">
+            {sugerencia.boton}
+          </button>
+        </div>
+      )}
+      <p
+        aria-live="polite"
+        className={!resultado && sugerencia ? "sr-only" : `mt-1.5 min-h-[1rem] text-sm ${resultado?.error ? "text-rojo-profundo" : "text-taupe"}`}
+      >
         {resultado?.texto ??
-          (monto.trim() !== ""
-            ? "Pulsa Aplicar para ponerlo en las variantes (o bórralo): si no, no se guarda."
-            : "Cambia varias de una vez con Aplicar (también puedes tocar cada celda abajo). El costo no toca lo que ya viene de Compras.")}
+          (sugerencia
+            ? ""
+            : monto.trim() !== ""
+              ? "Pulsa Aplicar para ponerlo en las variantes (o bórralo): si no, no se guarda."
+              : "Cambia varias de una vez con Aplicar (también puedes tocar cada celda abajo). El costo no toca lo que ya viene de Compras.")}
       </p>
     </div>
   );

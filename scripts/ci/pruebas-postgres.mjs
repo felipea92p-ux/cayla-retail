@@ -285,6 +285,10 @@ export const PRUEBAS = [
   // compras, junta dos líneas de una misma variante), la cuenta de la pantalla cierra y sin permiso de dinero no ve nada. ROLLBACK.
   "pruebas:costo-de-la-prenda",
 
+  // El «?» de cada talla gris en Catálogo ▸ Costos (ADR-0631): la última compra de cada talla, con lo que había antes, lo que llegó
+  // y en cuánto quedó; dos líneas de una misma compra son una; un cierre revertido no cuenta; sin permiso de dinero, null. ROLLBACK.
+  "pruebas:costo-de-las-tallas",
+
   // Corregir el costo de la ÚLTIMA compra (Felipe 2026-10-24, ADR-0515): solo un líder y con motivo, solo la última, un cierre del
   // Taller no, encadena dos líneas de una misma variante, costo_historial queda idéntico, la tabla solo agrega y la vista previa
   // dice lo mismo que quedó. ROLLBACK.

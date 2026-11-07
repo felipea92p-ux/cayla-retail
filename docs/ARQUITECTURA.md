@@ -747,6 +747,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
   almacén; solo la sede activa y solo con `puede(persona, "ajustarStock")`). La página del editor pasa `ajusteStock`
   (sububicaciones de la sede) a `ProductoForm` → `ContextoFicha`. Es inmediato y aparte de «Revisar y guarda».
+- `/productos/[id]/editar` ▸ Costos (ADR-0631, 2026-11-07): la página lee `getCostoEnLaFicha` (`lib/catalogo-v2.ts`) → RPC
+  `fn_costo_de_la_prenda` (la misma del Historial ▸ Costo: la cifra «Cada prenda te cuesta hoy…») y `fn_costo_de_las_tallas`
+  (`20261107232000`: la última compra de cada talla gris, para su «?»), y la pasa a `ProductoForm` → `ContextoFicha.costo`. La lógica
+  pura es `lib/costo-tallas-reglas.ts`; `MatrizStockFicha` dibuja la línea y el «?», y `CambiarEnBloque` ofrece «Usar S/ … de la última
+  compra» con `aplicarEnBloque`. «Ver la historia del costo» lleva a `/productos/[id]/historial?ver=costo` (`HistorialPrenda abrirEnCosto`).
 - `/rotulos?productos=…&origen=existencias|almacen` o `&desde=<vista de Productos>` (ADR-0366; sin módulo propio, como
   Etiquetas de precio: la salida de Productos —cabecera, lo marcado y la vista rápida—, Existencias e Inicio de Almacén) → `lib/rotulos.ts` (`getRotulos`: los modelos
   pedidos y el catálogo activo para el buscador, todos con su marca y sus tallas activas —las prendas se suman y se quitan en el
