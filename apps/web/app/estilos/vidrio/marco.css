@@ -32,14 +32,17 @@
 .marco-aurora i {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  /* Cada nube es un degradado que se apaga hacia el borde, no una mancha con `filter: blur(90px)` (ADR-0623): se ve igual y el equipo no
+     tiene que desenfocar tres manchas de 600 px detrás de toda la pantalla. El `scale` le devuelve el halo que el desenfoque esparcía. */
+  background: radial-gradient(closest-side, var(--c) 0%, color-mix(in srgb, var(--c) 70%, transparent) 30%, color-mix(in srgb, var(--c) 25%, transparent) 62%, transparent 100%);
+  transform: scale(1.55);
   opacity: var(--aurora-o);
   animation: marco-aurora-entra 1.4s var(--ease-cayla) both;
 }
 /* Las nubes se apartan del menú (Felipe 2026-11-02): la roja ya no nace bajo el riel y se mezcla con él, sino arriba a la derecha del contenido. */
-.marco-aurora i:nth-child(1) { width: 620px; height: 520px; right: 12%; top: -260px; background: var(--color-rojo); --aurora-o: 0.12; }
-.marco-aurora i:nth-child(2) { width: 700px; height: 560px; right: -220px; top: 120px; background: var(--color-pizarra); --aurora-o: 0.12; }
-.marco-aurora i:nth-child(3) { width: 560px; height: 460px; left: 30%; bottom: -260px; background: var(--color-ambar); --aurora-o: 0.10; }
+.marco-aurora i:nth-child(1) { width: 620px; height: 520px; right: 12%; top: -260px; --c: var(--color-rojo); --aurora-o: 0.12; }
+.marco-aurora i:nth-child(2) { width: 700px; height: 560px; right: -220px; top: 120px; --c: var(--color-pizarra); --aurora-o: 0.12; }
+.marco-aurora i:nth-child(3) { width: 560px; height: 460px; left: 30%; bottom: -260px; --c: var(--color-ambar); --aurora-o: 0.10; }
 @keyframes marco-aurora-entra {
   from { opacity: 0; }
 }

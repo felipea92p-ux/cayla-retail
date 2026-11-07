@@ -82,6 +82,8 @@ const TITULOS: Record<Lista, string> = {
 
 /** Cuántas tarjetas de arriba cargan su foto apenas llega la página (las que se ven sin bajar: 2 en el celular, 4 en la computadora). */
 const ARRIBA = 4;
+/** En «Más vendidos», cuántas tarjetas llevan su puesto. */
+const PUESTOS_CON_SELLO = 3;
 
 // El título de la pestaña dice lo que se ve, como el de la página: la categoría (con su nombre: la lectura del catálogo es la misma de
 // la página, una sola por visita) o el grupo.
@@ -273,6 +275,7 @@ export default async function Catalogo({ searchParams }: Props) {
       sede={sede}
       origenFotos={origenFotos}
       nota={(p) => notaDeStock(p.stock, elegida, sedes)}
+      sinNuevo={seguir.lista === "nuevo"}
     />
   );
 
@@ -539,7 +542,8 @@ export default async function Catalogo({ searchParams }: Props) {
                       sede={sede}
                       origenFotos={origenFotos}
                       nota={notaDeStock(p.stock, elegida, sedes)}
-                      puesto={lista === "vendidos" && orden === "destacado" ? pag.desde + i + 1 : null}
+                      // El sello de «Más vendido» solo en los tres primeros (rediseño Premium): numerar todas las tarjetas no ayudaba a elegir.
+                      puesto={lista === "vendidos" && orden === "destacado" && pag.desde + i < PUESTOS_CON_SELLO ? pag.desde + i + 1 : null}
                       sinNuevo={lista === "nuevo"}
                       arriba={i < ARRIBA}
                       diseno={diseno}
@@ -565,9 +569,17 @@ export default async function Catalogo({ searchParams }: Props) {
                 <Icono nombre="tienda" />
                 <h3>No hay {que} aquí por ahora</h3>
                 <p>Prueba con otra categoría o mira todas.</p>
-                <Link className="t-btn" href={href({ categoria: null, grupo: null, menu: null })}>
-                  {lista === "todo" ? "Ver toda la tienda" : "Ver todas"}
-                </Link>
+                <div className="t-vacio-acciones">
+                  <Link className="t-btn" href={href({ categoria: null, grupo: null, menu: null })}>
+                    {lista === "todo" ? "Ver toda la tienda" : "Ver todas"}
+                  </Link>
+                  {/* Una segunda salida que nunca está vacía cuando hay algo nuevo (rediseño Premium): el vacío no es un callejón. */}
+                  {lista !== "nuevo" && (
+                    <Link className="t-btn t-btn-sec" href={hrefLista({ sede, categoria: null, orden: "destacado", lista: "nuevo" })}>
+                      Ver lo nuevo
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
           </>

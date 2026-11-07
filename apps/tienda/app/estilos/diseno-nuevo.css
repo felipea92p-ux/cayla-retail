@@ -16,6 +16,10 @@
      el del logo no llega a 4,5. Marfil y arena: las superficies. Marrón (--tinta): títulos y texto. Rosa empolvado (--hueso): acentos suaves. */
   /* Medidas de todo control: una sola escala */
   --dn-r-s: 8px; --dn-r-m: 14px; --dn-r-l: 20px; --dn-r-p: 999px;
+  /* El filo de lo que se toca (campo, talla, cantidad): 3,7:1 sobre papel, WCAG 1.4.11 (rediseño Premium, 2026-11-07). La línea decorativa sigue siendo --sand */
+  --dn-borde-control: #958079;
+  /* El vino del Club (el mismo --rojo-profundo): el bloque grande que no es una acción. Letra marfil, 11,6:1 */
+  --dn-vino: #7f1d16;
   --dn-alto: 48px; --dn-alto-chico: 40px; --dn-alto-icono: 44px; --dn-ic: 20px; --dn-ic-boton: 18px; --dn-ic-linea: 16px; --dn-trazo: 1.7;
   --dn-lado: clamp(16px, 4cqi, 64px);
   /* Una sola escala de letra y de espacios */
@@ -64,6 +68,20 @@
   & .t-lista-cab h1, & .t-titulo-letras { text-transform: none; font-size: var(--dn-pagina); line-height: 1.08; letter-spacing: 0; margin: 0; }
   & .t-filtros, & .t-filtros * { text-transform: none; letter-spacing: 0; }
   & .t-filtros { font-size: 14px; }
+  /* Los filtros de la lista (grupos, categorías, Color y Talla) son fichas que se tocan, no una línea de texto con barras (rediseño Premium,
+     2026-11-07): borde de control, 40 px de alto; la elegida, llena de tinta. Las subcategorías siguen como texto subrayado: son el nivel de abajo. */
+  & .t-filtros .t-pildoras { gap: var(--e-2); }
+  /* La búsqueda: el nombre en la letra de las tarjetas, lo escrito subrayado (no en una caja beige) y, debajo, cuánto hay (rediseño Premium) */
+  & .t-resultado-nom { font-family: var(--sans); font-style: normal; font-size: 15px; font-weight: 500; }
+  & .t-resultado mark { background: none; color: inherit; text-decoration: underline; text-decoration-color: var(--dn-acento); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  & .t-resultado small { font-size: 13px; }
+  & .t-resultado .t-card-nota { font-size: 12.5px; }
+  & .t-buscador .t-resultados-cuenta { margin-top: var(--e-5); }
+  & .t-vacio-acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--e-3); }
+  & .t-filtros .t-pildora { min-height: var(--dn-alto-chico); padding: 0 var(--e-4); border: 1px solid var(--dn-borde-control); border-radius: var(--dn-r-p); background: var(--papel); color: var(--tinta); font-size: 14px; font-weight: 500; }
+  & .t-filtros .t-pildora small { font-size: 12.5px; letter-spacing: 0; opacity: 1; color: var(--taupe); font-variant-numeric: tabular-nums; }
+  & .t-filtros .t-pildora:is([aria-current="true"], :has(> .t-pendiente[data-pendiente])) { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+  & .t-filtros .t-pildora:is([aria-current="true"], :has(> .t-pendiente[data-pendiente])) small { color: inherit; opacity: .78; }
   & .t-conteo { text-transform: none; letter-spacing: 0; font-size: 13px; }
   & .t-cab-centro h2 { font-size: var(--dn-tit-seccion); }
   /* Una sola rejilla: dos por fila en el celular, cuatro en la computadora */
@@ -97,12 +115,21 @@
   & .pl-cats-flecha { background: var(--papel); border-color: var(--sand); top: 50%; transform: translateY(-50%); }
 
   /* Secciones oscuras y pie */
-  & .t-club { margin-top: var(--dn-seccion); }
+  /* El Club: un bloque vino con sus esquinas dentro del ancho de la página (rediseño Premium, 2026-11-07) */
+  & .t-club { --t-hero: var(--dn-vino); --t-hero-2: #6c1812; --t-hero-filo: rgba(251, 243, 238, .2); margin-top: var(--dn-seccion); padding-block: 0; background: none; }
+  & .t-club-in { background: var(--t-hero); color: var(--t-hero-tinta); border-radius: var(--dn-r-l); padding: clamp(32px, 5cqi, 72px); gap: clamp(32px, 4cqi, 64px); }
+  & .t-club h2 { color: #fff; }
+  & .t-club-acciones { display: flex; flex-wrap: wrap; gap: var(--e-3); }
+  & .t-club .t-btn.t-btn-sec { --dn-btn-fondo: transparent; --dn-btn-borde: rgba(251, 243, 238, .6); --dn-btn-tinta: #fbf3ee; --dn-btn-hover: #fbf3ee; --dn-btn-hover-tinta: var(--dn-vino); }
   /* El pie va en marfil: sobre el rojo, el logo no se leería */
   & .t-pie { margin-top: var(--dn-seccion); background: var(--dn-arena-2); border-top: 1px solid var(--sand); }
+  /* El pie en cuatro columnas (maqueta Premium): la marca con su lema, comprar, ayuda y el Club */
+  & .t-pie .t-pie-lema { margin: 0; font-family: var(--nombre); font-size: 18px; line-height: 1.4; color: var(--tinta); max-width: 24ch; }
+  & .t-pie .t-pie-boton { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; }
 }
 @media (hover: hover) {
   :root[data-diseno="nuevo"] {
+    & .t-filtros .t-pildora:not([aria-current="true"]):hover { border-color: var(--tinta); }
     & .pl-cat:hover span img { transform: translateY(-4px); }
     & .pl-cat:hover::before { opacity: 1; }
     & .t-btn:hover:not(:disabled) { color: var(--dn-btn-hover-tinta); }
@@ -118,14 +145,15 @@
   & .t-logo .t-marca-logo { height: 30px; }
 
   /* Botón principal: rojo. Secundario: claro, con borde discreto. Terciario: solo texto. Las variables dejan que una superficie oscura lo aclare sin otro botón */
-  & .t-btn { --dn-btn-fondo: var(--dn-rojo); --dn-btn-borde: var(--dn-rojo); --dn-btn-tinta: #fff; --dn-btn-hover: var(--dn-rojo-hondo); --dn-btn-hover-tinta: #fff; height: auto; min-height: var(--dn-alto); padding: 0 var(--e-5); gap: var(--e-3); background: var(--dn-btn-fondo); border: 1px solid var(--dn-btn-borde); border-radius: var(--dn-r-p); color: var(--dn-btn-tinta); font-size: 15px; font-weight: 500; letter-spacing: 0; text-transform: none; box-shadow: none; }
+  & .t-btn { --dn-btn-fondo: var(--dn-rojo); --dn-btn-borde: var(--dn-rojo); --dn-btn-tinta: #fff; --dn-btn-hover: var(--dn-rojo-hondo); --dn-btn-hover-tinta: #fff; height: auto; min-height: var(--dn-alto); padding: 0 var(--e-5); gap: var(--e-3); background: var(--dn-btn-fondo); border: 1px solid var(--dn-btn-borde); border-radius: var(--dn-r-p); color: var(--dn-btn-tinta); font-size: 14.5px; font-weight: 600; letter-spacing: 0; text-transform: none; box-shadow: none; }
   & .t-btn::before { background: var(--dn-btn-hover); }
-  & .t-btn-sec { --dn-btn-fondo: var(--papel); --dn-btn-borde: var(--sand); --dn-btn-tinta: var(--tinta); --dn-btn-hover: var(--hueso); --dn-btn-hover-tinta: var(--tinta); }
+  /* Secundario (Premium): sin fondo y con el filo de la tinta; al pasar el mouse se llena de tinta. Antes era papel con filo arena (1,3:1, no se veía el borde) */
+  & .t-btn-sec { --dn-btn-fondo: transparent; --dn-btn-borde: var(--tinta); --dn-btn-tinta: var(--tinta); --dn-btn-hover: var(--tinta); --dn-btn-hover-tinta: var(--crema); }
   & .t-btn.t-btn-chico { min-height: var(--dn-alto-chico); height: auto; margin-left: 0; padding: 0 var(--e-4); font-size: 14px; letter-spacing: 0; }
   & .t-btn .ic { width: var(--dn-ic-boton); height: var(--dn-ic-boton); }
   & .t-btn:active:not(:disabled) { opacity: 1; transform: scale(.98); }
   & .t-btn:disabled { background: var(--hueso); border-color: var(--sand); color: var(--tinta-60); }
-  & .t-btn-sec:disabled { background: var(--papel); }
+  & .t-btn-sec:disabled { background: transparent; border-color: var(--sand); }
   & .t-btn[aria-busy="true"]:disabled { background: var(--dn-btn-fondo); border-color: var(--dn-btn-borde); color: var(--dn-btn-tinta); }
   & .pb-agregar, & .pb-sorpresa, & .pb-bus-probar, & .fp-ver { border-radius: var(--dn-r-p); text-transform: none; letter-spacing: 0; }
   & :is(.t-enlace, .t-ver, .w-ver, .w-falta-ir, .w-enlace, .ay-enlace, .ay-tienda-ver, .en-olvide) { font-size: 14.5px; font-weight: 500; letter-spacing: 0; text-transform: none; }
@@ -144,8 +172,6 @@
   & svg.ic { stroke-width: var(--dn-trazo); }
   & :focus-visible { outline-color: var(--dn-acento); }
 
-  /* El botón de Recomendaciones: un botón flotante más, no otra familia */
-  & .rv-boton { height: var(--dn-alto-icono); padding: 0 var(--e-4) 0 var(--e-3); gap: var(--e-2); background: var(--papel); border: 1px solid var(--sand); border-radius: var(--dn-r-p); color: var(--tinta); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; box-shadow: 0 6px 18px color-mix(in srgb, var(--dn-sombra-tono) 14%, transparent); }
 
   /* Letra: serif en los títulos, sans en lo demás, y tres niveles de título */
   & :is(.w-titulo, .ay-titulo, .ay-sin-salida-t, .t-titulo-letras, .t-lista-cab h1, .t-club h2) { font-size: var(--dn-pagina); line-height: 1.08; letter-spacing: 0; text-transform: none; }
@@ -156,12 +182,19 @@
   & :is(.t-pildora, .t-pildora-mini, .t-chip, .c-chip, .pb-chip, .pb-bus-zona, .fp-filtros-btn, .fp-etq, .w-estado-chip, .pb-etq, .t-orden a, .t-pag) { text-transform: none; letter-spacing: 0; }
 
   /* Campos */
-  & .w-caja { height: var(--dn-alto); padding-inline: var(--e-3); border: 1px solid var(--sand); border-radius: var(--dn-r-s); background: linear-gradient(var(--dn-rojo), var(--dn-rojo)) 50% 100% / 0 2px no-repeat, var(--papel); caret-color: var(--dn-acento); }
+  & .w-caja { height: var(--dn-alto); padding-inline: var(--e-3); border: 1px solid var(--dn-borde-control); border-radius: var(--dn-r-s); background: linear-gradient(var(--dn-rojo), var(--dn-rojo)) 50% 100% / 0 2px no-repeat, var(--papel); caret-color: var(--dn-acento); }
   & .w-caja:focus { border-color: var(--tinta); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dn-rojo) 12%, transparent); }
   & .w-caja-pref span { height: var(--dn-alto); border-width: 1px; }
   & :is(.w-caja-pref, .en-form .w-caja-pref) .w-caja { border-radius: 0 var(--dn-r-s) var(--dn-r-s) 0; }
   & :is(.w-caja-pref, .en-form .w-caja-pref) span { border-radius: var(--dn-r-s) 0 0 var(--dn-r-s); }
   & .pb-bus-caja, & .t-buscador-caja { border-radius: var(--dn-r-p); }
+  /* La disponibilidad de la tarjeta: un punto que dice el estado y la frase en el gris de lectura (maqueta Premium). Antes, la frase en verde o
+     en ámbar a 12 px: el color cargaba todo el mensaje */
+  & .t-card-nota { font-size: 12.5px; color: var(--taupe); }
+  & .t-card-nota::before { content: ""; display: inline-block; vertical-align: middle; width: 6px; height: 6px; margin: -2px 6px 0 0; border-radius: 50%; background: var(--ambar); }
+  & .t-card-nota.ok::before { background: var(--verde); }
+  & .t-card-nota.no::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--taupe); }
+  & :is(.t-talla, .t-cantidad, .t-look-talla, .w-codigo-caja, .pb-bus-caja, .t-buscador-caja, .w-caja-pref span) { border-color: var(--dn-borde-control); }
 
   /* Esquinas: píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa. Nunca a una pieza cuya única línea es un borde de un lado (una pestaña,
      una fila separada por una raya): el borde se curva en las puntas y se ve un arco (auditoría 2026-11-06). Lo vigila lib/css-de-la-tienda.test.ts */
@@ -173,6 +206,8 @@
   /* La tarjeta de entrar y crear cuenta: una superficie más, sin el filo negro de la identidad anterior */
   & .en-lado > .en-form { border-radius: var(--dn-r-l); background: var(--papel); }
   & .en-lado > .en-form::before { display: none; }
+  /* El panel del Club de Entrar y recuperar: un bloque vino con sus esquinas (en el celular, bajo el formulario), no texto suelto sobre el rojo */
+  & .en-partida[data-alto="corto"] .en-panel { background: var(--dn-vino); margin: 0 16px 36px; border-radius: var(--dn-r-l); }
   /* El rojo es del logo: los íconos de ayuda van en el acento */
   & :is(.ay-pie-tema-ic, .ay-punto-ic) { color: var(--dn-acento); border-radius: var(--dn-r-s); }
 
@@ -194,7 +229,7 @@
   :root[data-diseno="nuevo"] {
     & :is(.t-ico, .c-corazon, .t-buscar-cat):hover { background: var(--hueso); }
     & .t-carril-flecha:hover { background: var(--tinta); color: var(--crema); }
-    & .rv-boton:hover { border-color: var(--tinta); background: var(--papel); color: var(--tinta); }
+    & .t-pie .t-pie-boton:hover { text-decoration-color: var(--tinta); }
     & .t-btn-sec:hover:not(:disabled) { border-color: var(--tinta); }
   }
 }
@@ -203,7 +238,7 @@
 @media (prefers-color-scheme: dark) {
   :root[data-diseno="nuevo"]:not([data-theme="light"]) {
     --crema: #191312; --papel: #221a19; --hueso: #2c2120; --sand: #3f312e; --tinta: #f6ece6; --taupe: #c3b1aa; --rojo: #f0877f; --dn-arena: #3a2c29; --dn-arena-2: #261d1c; --t-banda: #261d1c; --chat: #261d1c; --lienzo: #2c2120; --estudio: #2c2120;
-    --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85);
+    --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85); --dn-borde-control: #8a756f;
     --dn-cat-fondo: var(--t-foto); --dn-cat-velo: none; --dn-cat-tinta: #35201e;
     --dn-heroe: #261c1b; --dn-heroe-luz: #2e2322; --dn-heroe-sombra: #1e1615; --dn-rayo: rgba(255, 240, 230, .03); --dn-rayo-sombra: rgba(0, 0, 0, .08); --dn-luz: rgba(255, 220, 200, .06); --dn-sombra-calida: rgba(0, 0, 0, .25);
     --dn-arco: #4a3934; --dn-arco-luz: #5e4a44; --dn-arco-sombra: #392b28; --dn-arco-hondo: #1c1412; --dn-arco-fondo: #443430; --dn-sombra-arco: rgba(0, 0, 0, .6); --dn-suelo-1: #231917; --dn-suelo-2: #2b211f; --dn-sombra-prenda: rgba(0, 0, 0, .5); --dn-sombra-lejos: rgba(0, 0, 0, .3); --dn-sombra-contacto: rgba(0, 0, 0, .55);
@@ -211,7 +246,7 @@
 }
 :root[data-diseno="nuevo"][data-theme="dark"] {
   --crema: #191312; --papel: #221a19; --hueso: #2c2120; --sand: #3f312e; --tinta: #f6ece6; --taupe: #c3b1aa; --rojo: #f0877f; --dn-arena: #3a2c29; --dn-arena-2: #261d1c; --t-banda: #261d1c; --chat: #261d1c; --lienzo: #2c2120; --estudio: #2c2120;
-  --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85);
+  --dn-acento: #e9a9a2; --dn-titulo: #f6ece6; --dn-base-filtro: brightness(.62) saturate(.85); --dn-borde-control: #8a756f;
     --dn-cat-fondo: var(--t-foto); --dn-cat-velo: none; --dn-cat-tinta: #35201e;
     --dn-heroe: #261c1b; --dn-heroe-luz: #2e2322; --dn-heroe-sombra: #1e1615; --dn-rayo: rgba(255, 240, 230, .03); --dn-rayo-sombra: rgba(0, 0, 0, .08); --dn-luz: rgba(255, 220, 200, .06); --dn-sombra-calida: rgba(0, 0, 0, .25);
   --dn-arco: #4a3934; --dn-arco-luz: #5e4a44; --dn-arco-sombra: #392b28; --dn-arco-hondo: #1c1412; --dn-arco-fondo: #443430; --dn-sombra-arco: rgba(0, 0, 0, .6); --dn-suelo-1: #231917; --dn-suelo-2: #2b211f; --dn-sombra-prenda: rgba(0, 0, 0, .5); --dn-sombra-lejos: rgba(0, 0, 0, .3); --dn-sombra-contacto: rgba(0, 0, 0, .55);
@@ -219,6 +254,10 @@
 
 @container tienda (min-width: 960px) {
   :root[data-diseno="nuevo"] {
+    /* La tienda elegida, a la vista (maqueta Premium): escudo, nombre y ▾ en una píldora. Antes el nombre solo asomaba al pasar el mouse */
+    & .t-sel-tienda .t-nav-b:has(.t-escudo) { display: inline-flex; align-items: center; gap: var(--e-2); height: var(--dn-alto-chico); padding: 0 var(--e-3) 0 var(--e-2); border: 1px solid var(--sand); border-radius: var(--dn-r-p); background: var(--papel); }
+    & .t-sel-tienda .t-nav-b:has(.t-escudo) .t-sel-nombre { position: static; order: 1; opacity: 1; transform: none; font-size: 13.5px; font-weight: 600; }
+    & .t-sel-tienda .t-nav-b:has(.t-escudo) > span[aria-hidden="true"]:not(.t-sel-nombre) { order: 2; }
     & .t-cab-fila > .t-logo { position: static; transform: none; order: -2; margin-right: var(--e-4); }
     & .t-esp { display: none; }
     & .pl-cats { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; }
@@ -229,6 +268,13 @@
     & .dn-buscar-cab .ic { color: var(--tinta); }
     & .dn-buscar-cab span { display: inline; }
     & .t-top, & .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    /* Entrar y recuperar la contraseña (rediseño Premium, 2026-11-07): una sola tarjeta en dos columnas, centrada sobre el rojo; el
+       formulario manda a la izquierda y el Club, en vino, la completa a la derecha. Crear la cuenta («largo») sigue con su panel fijo. */
+    & .en-partida[data-alto="corto"] { grid-template-columns: minmax(0, 460px) minmax(0, 440px); justify-content: center; align-content: center; padding: 48px var(--dn-lado) 56px; }
+    & .en-partida[data-alto="corto"] .en-lado { padding: 0; align-items: stretch; }
+    & .en-partida[data-alto="corto"] .en-lado > .en-form { max-width: none; width: 100%; border-radius: var(--dn-r-l) 0 0 var(--dn-r-l); }
+    & .en-partida[data-alto="corto"] .en-panel { margin: 0; border-radius: 0 var(--dn-r-l) var(--dn-r-l) 0; }
+    & .en-partida[data-alto="corto"] .en-panel-in { position: static; min-height: 0; height: 100%; max-width: none; margin: 0; padding: 44px 40px; }
   }
 }
 
@@ -365,11 +411,6 @@
   & :is(.t-insignia.oferta, .t-chip.oferta) { color: #fff; }
   & .t-stock td.poco { color: var(--dn-acento); }
 
-  /* La burbuja de ayuda no tapa la barra de abajo de la ficha */
-  @media (max-width: 959px) {
-    &:has(.t-pdp-barra) .rv-boton { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
-    &:has(.t-pdp-bolsa-barra[data-lleno]) .rv-boton { bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
-  }
 
   /* Entrar y recuperar: sin la mancha de luz, con el título a su medida */
   & .en-partida::before { display: none; }

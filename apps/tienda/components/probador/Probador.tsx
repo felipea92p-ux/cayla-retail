@@ -221,12 +221,12 @@ export function Probador({
     <div className="pb">
       <header className="pb-cab">
         <div className="pb-cab-txt">
-          <span className="t-ceja">Arma tu outfit</span>
+          <span className="t-ceja">Outfits</span>
           <h1>
-            Arma el <em>tuyo</em>
+            Arma tu <em>outfit</em>
           </h1>
           {/* En la computadora, junto al título (lienzo `V3Escritorio`); en el celular, la figura ya lo dice sola. */}
-          <p className="pb-cab-ayuda">Arrastra una prenda hacia un lado o elige a la derecha.</p>
+          <p className="pb-cab-ayuda">Toca una prenda a la derecha para ponértela; también puedes arrastrarla hacia un lado.</p>
         </div>
         <CorazonDelLook look={estado.look} guardados={guardados} onGuardados={setGuardados} avisar={avisar} />
       </header>

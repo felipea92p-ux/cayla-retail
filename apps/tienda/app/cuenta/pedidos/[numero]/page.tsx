@@ -310,7 +310,7 @@ function Extra({ p, tienda, diasParaCambiar }: { p: Pedido; tienda: string; dias
   if (p.estado === "por_confirmar") {
     const enlace = enlaceDelPedido(p);
     return enlace ? (
-      <a className="t-btn t-btn-ancho t-btn-wsp" href={enlace} target="_blank" rel="noopener noreferrer">
+      <a className="t-btn t-btn-ancho" href={enlace} target="_blank" rel="noopener noreferrer">
         <Icono nombre="chat" />
         Enviar por WhatsApp
       </a>

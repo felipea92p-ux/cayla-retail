@@ -4,6 +4,8 @@ import { CabeceraNeutra, PorDondeSeguir } from "@/components/ayuda/PorDondeSegui
 import { TEMAS_DE_AYUDA } from "@/components/ayuda/temas";
 import { Icono } from "@/components/Icono";
 import "./globals.css";
+// La identidad de la tienda también aquí (antes salía en blanco y negro con DM Serif: auditoría 2026-11-07).
+import "./estilos/diseno-nuevo.css";
 
 /**
  * Si falla hasta el marco de la tienda (la raíz), esta página lo reemplaza entero: por eso trae su propio `<html>`. Nunca el detalle del
@@ -14,7 +16,7 @@ import "./globals.css";
  */
 export default function ErrorGeneral({ retry, reset }: { error: Error & { digest?: string }; retry?: () => void; reset: () => void }) {
   return (
-    <html lang="es" style={{ "--font-public": '"Public Sans"', "--font-titulos": '"DM Serif Display"' } as React.CSSProperties}>
+    <html lang="es" data-diseno="nuevo" style={{ "--font-public": '"Public Sans"', "--font-titulos": '"Playfair Display"' } as React.CSSProperties}>
       <body>
         <title>CAYLA · Tienda online</title>
         <div className="tienda">
