@@ -214,9 +214,6 @@
 /* Una nota que se queda (los avisos que no se activaron al crear la cuenta): hueso, como las notas del ERP. */
 .w-nota { margin: 0; padding: 12px 14px; border-radius: 0; background: var(--hueso); color: var(--tinta); font-size: 13px; line-height: 1.5; max-width: 52ch; }
 
-/* ---- La privacidad y los términos ---- */
-.w-borrador { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ambar); padding: 4px 10px; border-radius: 0; border: 1px dashed var(--ambar); }
-
 /* ---- El aviso «Listo: …» (vive fuera de la tienda, en el layout: por eso con @media y no con @container) ---- */
 .w-aviso { position: fixed; left: 14px; right: 14px; bottom: 24px; z-index: 30; background: var(--tinta); color: var(--crema); border-radius: 0; padding: 12px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center; box-shadow: 0 16px 30px -16px var(--sombra); animation: aviso-breve 3.4s var(--ease) both; pointer-events: none; }
 .w-aviso .ic { width: 18px; height: 18px; flex: none; }
