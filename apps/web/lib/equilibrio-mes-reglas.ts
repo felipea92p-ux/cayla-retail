@@ -29,12 +29,23 @@ export type FaltaDelMes = { ubicacionId: string | null; fijos: number; depreciac
  * cada día. En el mes en curso se suman la planilla que falta devengar, los fijos que faltan y la depreciación, que se asienta el último día
  * (por eso no se suma si ya está). Un mes que ya pasó tiene todo registrado. `null`: no se pudo leer lo que falta; se suma lo que sí se sabe.
  */
-function gastosDelMesEntero(f: FilaER, ver: ResumenFinanzas["ver"], falta: readonly FaltaDelMes[] | null): number {
+function gastosDelMesEntero(f: FilaER, ver: Pick<ResumenFinanzas["ver"], "todas" | "soloEmpresa" | "ubicacionId">, falta: readonly FaltaDelMes[] | null): number {
   const planilla = Math.max(0, f.planillaAlCierre - f.planillaEstimada);
   const mias = (falta ?? []).filter((x) => ver.todas || (ver.soloEmpresa ? x.ubicacionId === null : x.ubicacionId === ver.ubicacionId));
   const fijos = mias.reduce((s, x) => s + x.fijos, 0);
   const depreciacion = f.depreciacion > 0 ? 0 : mias.reduce((s, x) => s + x.depreciacion, 0);
   return r2(f.gastos + planilla + fijos + depreciacion);
+}
+
+/**
+ * Cuánto hay que vender en el mes ENTERO para cubrirlo, con el margen de hoy, de una fila del Estado de resultados. Es la cuenta de «¿Ya pagaste el mes?»: Ganancias no se queda
+ * con los gastos de los días que van. `null` sin margen o si no se pudo leer lo que falta: en un mes a medias, una cifra sin esos gastos saldría muy por debajo (ADR-0621).
+ */
+export function ventaParaElMesEntero(f: FilaER, falta: readonly FaltaDelMes[] | null): number | null {
+  if (falta === null) return null;
+  const ver = { todas: f.unidad === "consolidado", soloEmpresa: f.unidad === "empresa", ubicacionId: f.ubicacionId };
+  const eq = puntoDeEquilibrio({ ...f, gastos: gastosDelMesEntero(f, ver, falta) });
+  return eq ? Math.ceil(eq.ventas / 100) * 100 : null;
 }
 
 export type EquilibrioMes =

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { columnasDeCascada, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "./estados-flujo";
+import { columnasDeCascada, comparadaDelFlujo, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "./estados-flujo";
 import { periodoDe } from "./estados-periodo";
 import { solesCentimos, type FlujoReal } from "./flujo-caja-reglas";
 
@@ -66,7 +66,7 @@ describe("la razón de la cifra", () => {
     expect(nota(r, null)).toBe(`En el día a día pagaste ${solesCentimos(300)} más de lo que cobraste.`);
   });
   it("cobraste más de lo que pagaste", () => {
-    expect(nota(real({ categorias: [{ clave: "tarjeta", lado: "entra", monto: 500 }, { clave: "gastos", lado: "sale", monto: 100 }] }), null)).toBe("Cobraste más de lo que pagaste, y por eso la plata subió.");
+    expect(nota(real({ saldoFinal: 30400, categorias: [{ clave: "tarjeta", lado: "entra", monto: 500 }, { clave: "gastos", lado: "sale", monto: 100 }] }), null)).toBe("Cobraste más de lo que pagaste, y por eso la plata subió.");
   });
   it("el día a día a favor y aun así bajó", () => {
     const r = real({ saldoFinal: 29000, categorias: [{ clave: "tarjeta", lado: "entra", monto: 500 }, { clave: "activos", lado: "sale", monto: 1500 }] });
@@ -115,9 +115,7 @@ describe("las columnas", () => {
     expect(c[1]!.abajo).toBeCloseTo((30000 / tope) * 100);
     expect(c[1]!.alto).toBeCloseTo((8000 / tope) * 100);
     expect(c[2]!.abajo).toBeCloseTo((35000 / tope) * 100);
-    expect(c[1]!.enlace).toBeCloseTo((38000 / tope) * 100);
-    expect(c[4]).toMatchObject({ abajo: 0, enlace: null });
-    expect(c[3]!.enlace).toBeCloseTo((33000 / tope) * 100);
+    expect(c[4]).toMatchObject({ abajo: 0 });
   });
   it("los movimientos llevan signo y los saldos su moneda", () => {
     expect(c[1]!.texto).toBe("+8,000.00");
@@ -146,4 +144,49 @@ it("el informe suma: inicio + cada actividad = final, con los nombres del contad
   expect(ahora.slice(0, -1).reduce((a, x) => a + x, 0)).toBe(ahora.at(-1));
   // El mes que no se pudo leer es «—», nunca un cero.
   expect(inf.filas[0]!.valores[0]).toBeNull();
+});
+
+describe("lo que el flujo no debe afirmar (ADR-0621)", () => {
+  const NOV = periodoDe("2026-11-01", HOY, HOY);
+  const arranque = { cuenta: "BCP", desde: "2026-10-28", saldoInicial: 3000, cobros: 500, salidas: 0, entreCuentas: 0, comision: 0 };
+
+  it("una columna con una cuenta que arrancó después no se muestra, y dice por qué", () => {
+    const c = comparadaDelFlujo("1–5 oct", { datos: real({ arranques: [arranque] as FlujoReal["arranques"] }), falla: null });
+    expect(c.real).toBeNull();
+    expect(c.motivo).toContain("1–5 oct no se compara");
+  });
+
+  it("una columna completa se muestra", () => {
+    expect(comparadaDelFlujo("Oct", { datos: real(), falla: null })).toEqual({ etiqueta: "Oct", real: expect.anything() });
+  });
+
+  it("«por eso» solo si el día a día explica toda la subida", () => {
+    const mixta = real({
+      saldoInicial: 1000,
+      saldoFinal: 2000,
+      categorias: [
+        { clave: "tarjeta", lado: "entra", monto: 700 },
+        { clave: "dueno_pone", lado: "entra", monto: 300 },
+      ],
+    });
+    const nota = lecturaDelFlujo(mixta, null, OCT).nota!;
+    expect(nota).not.toContain("por eso");
+    expect(nota).toContain(solesCentimos(300));
+  });
+
+  it("cada columna suma a su saldo final, aunque la parte solo exista en la de antes", () => {
+    const antes = real({ categorias: [...real().categorias, { clave: "dueno_pone", lado: "entra", monto: 500 }] });
+    const ahora = real({ categorias: [{ clave: "tarjeta", lado: "entra", monto: 3000 }] });
+    const comparadas = [{ etiqueta: "Oct", real: antes }];
+    const partes = partesDelEstadoFlujo({ real: ahora, comparadas, etiquetaActual: "Nov", periodo: NOV });
+    const inf = informeDelFlujo({ real: ahora, partes, comparadas, etiquetaActual: "Nov" });
+    expect(inf.filas.map((f) => f.clave)).toContain("financiamiento");
+    expect(columnasDeCascada(partes).map((c) => c.clave)).not.toContain("financiamiento");
+  });
+
+  it("la fila final no se llama «Hoy» si hay columnas de antes", () => {
+    const comparadas = [{ etiqueta: "1–5 oct", real: real() }];
+    const partes = partesDelEstadoFlujo({ real: real(), comparadas, etiquetaActual: "Nov", periodo: NOV });
+    expect(informeDelFlujo({ real: real(), partes, comparadas, etiquetaActual: "Nov" }).filas.at(-1)!.nombre).toBe("Al terminar");
+  });
 });

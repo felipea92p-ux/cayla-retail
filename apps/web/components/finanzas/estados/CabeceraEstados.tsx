@@ -39,7 +39,8 @@ export async function CabeceraEstados({
   const ruta = ESTADOS.find((e) => e.clave === pantalla)?.ruta ?? RUTA_CUENTAS;
   const telar = await getSedesDelTelar();
   const { sedes } = hilosDeLaRuta(ruta, telar, telar.sedesEstados);
-  const nombre = sede === SEDE_TODAS ? null : sede === SEDE_EMPRESA ? "Empresa" : (sedes.find((s) => s.clave === sede)?.nombre ?? null);
+  // Flujo y Patrimonio son de CAYLA entera: mostrar una sede sería afirmar que sus cifras son de ella. La sede sigue en la URL para volver a Ganancias con ella.
+  const nombre = sede === SEDE_TODAS || pantalla === "plata" || pantalla === "tuyo" ? null : sede === SEDE_EMPRESA ? "Empresa" : (sedes.find((s) => s.clave === sede)?.nombre ?? null);
   const persona = await requirePersonaActualV2();
   const actuales = [...params];
   const mesDeHoy = mesDelDia(hoy);

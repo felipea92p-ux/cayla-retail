@@ -178,12 +178,14 @@ const QUE_NO_VENDE: Partial<Record<FilaER["unidad"], string>> = {
 };
 
 /** La nota al pie: la razón de la cifra, en una línea. */
-function notaDeGanancias(actual: MontosDeGanancias, antes: MontosDeGanancias | null, anterior: string): string | null {
+function notaDeGanancias(actual: MontosDeGanancias, antes: MontosDeGanancias | null, anterior: string, ventaDelMes?: number | null): string | null {
   const { ventas: v, mercaderia, sueldos, local, otros, resultado } = actual;
   if (v <= 0) return null;
   if (resultado < 0) {
     const margen = (v - mercaderia) / v;
     if (margen <= 0) return `Lo que costó la mercadería ya pasa lo que vendiste: ${solesCentimos(mercaderia)} contra ${solesCentimos(v)}.`;
+    // Mes en curso: los gastos de los días que van no dicen cuánto cuesta el mes (ADR-0621).
+    if (ventaDelMes !== undefined) return ventaDelMes === null ? `Llevas ${solesCentimos(v)} vendidos en lo que va del mes.` : `Para cubrir el mes entero hacen falta unos ${solesCentimos(ventaDelMes)}. Llevas ${solesCentimos(v)}.`;
     const cubre = Math.round((sueldos + local + otros) / margen / 100) * 100;
     return `Para no perder hacía falta vender unos ${solesCentimos(cubre)}. Vendiste ${solesCentimos(v)}.`;
   }
@@ -201,7 +203,7 @@ function notaDeGanancias(actual: MontosDeGanancias, antes: MontosDeGanancias | n
 }
 
 /** Lo que dice la pantalla arriba: la cifra, la frase que la interpreta, contra qué se compara y la razón. */
-export function lecturaDeGanancias(fila: FilaER | null, antes: FilaER | null, p: Periodo): LecturaDeGanancias {
+export function lecturaDeGanancias(fila: FilaER | null, antes: FilaER | null, p: Periodo, ventaDelMes?: number | null): LecturaDeGanancias {
   if (!fila) return { valor: 0, mal: false, frase: `Todavía no hay ventas ni gastos ${p.en}.`, chip: null, nota: null };
   const m = montosDeGanancias(fila);
   const r = Math.round(fila.resultado * 100) / 100;
@@ -222,7 +224,7 @@ export function lecturaDeGanancias(fila: FilaER | null, antes: FilaER | null, p:
   const mAntes = antes ? montosDeGanancias(antes) : null;
   const d = mAntes ? Math.round((r - mAntes.resultado) * 100) / 100 : 0;
   const chip = !mAntes ? null : d === 0 ? { texto: `Igual que ${anterior}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que ${anterior}`, tono: d > 0 ? ("bien" as const) : ("mal" as const) };
-  return { valor: r, mal: r < 0 && vende, frase, chip, nota: notaDeGanancias(m, mAntes, anterior) };
+  return { valor: r, mal: r < 0 && vende, frase, chip, nota: notaDeGanancias(m, mAntes, anterior, p.enCurso && p.unMes ? (ventaDelMes ?? null) : undefined) };
 }
 
 
