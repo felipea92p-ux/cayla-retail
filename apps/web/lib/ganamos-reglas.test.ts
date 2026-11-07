@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { filaDeVer, leerResumen } from "./resumen-finanzas-reglas";
-import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
+import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, NOTA_VENTAS_CON_IGV, NOTA_VENTAS_SIN_IGV, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
+import { filasDeGestion } from "./igv-gestion-reglas";
 import type { FilaPpto } from "./presupuesto-reglas";
 import type { CampanaFila, FilaER } from "./resultados-reglas";
 
@@ -35,6 +36,29 @@ const fila = (p: Partial<FilaER>): FilaER =>
 
 const ppto = (p: Partial<FilaPpto>): FilaPpto =>
   ({ ubicacionId: null, unidad: "consolidado", nombre: "CAYLA", tipo: "tope", presupuesto: null, aLaFecha: 0, proyeccion: null, momento: "cerrado", linea: "", ...p }) as FilaPpto;
+
+describe("cascadaGanamos con el IGV de gestión (ADR-0620)", () => {
+  const con = (monto: number | null, igvTramo = 1800) => filasDeGestion([fila({})], [{ mes: "2026-10", ubicacionId: "u", igvTramo, igvMes: igvTramo, montoDicho: monto, igvParte: monto }])[0]!;
+  const suma = (f: FilaER) => cascadaGanamos(f, []).filter((x) => x.tipo !== "queda").reduce((a, x) => a + (x.tipo === "entra" ? x.monto : -x.monto), 0);
+
+  it("el IGV va justo tras las ventas, aunque sea 0", () => {
+    const t = cascadaGanamos(con(0), []);
+    expect(t[1]).toMatchObject({ clave: "igv", nombre: "IGV del mes", monto: 0, tipo: "sale", detalle: "Lo dijo el líder." });
+  });
+  it("lo que dijo el líder no cae en «Otros ajustes»: la cascada suma sola", () => {
+    const f = con(20000, 20500);
+    expect(cascadaGanamos(f, []).some((x) => x.clave === "ajustes")).toBe(false);
+    expect(suma(f)).toBeCloseTo(f.resultado, 2);
+  });
+  it("la nota de las ventas dice en qué base va", () => {
+    expect(cascadaGanamos(con(0), [])[0]!.detalle).toBe(NOTA_VENTAS_CON_IGV);
+    expect(cascadaGanamos(fila({}), [])[0]!.detalle).toBe(NOTA_VENTAS_SIN_IGV);
+    expect(cascadaGanamos(fila({}), []).some((x) => x.clave === "igv")).toBe(false);
+  });
+  it("un IGV negativo entra en vez de salir", () => {
+    expect(cascadaGanamos(con(-9, -9), [])[1]).toMatchObject({ monto: 9, tipo: "entra" });
+  });
+});
 
 describe("cascadaGanamos (ADR-0585)", () => {
   const t = cascadaGanamos(fila({}), [

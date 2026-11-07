@@ -17,6 +17,8 @@ import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
+import { getResultadosDeGestion } from "@/lib/igv-gestion";
+import { avisoDelIgv } from "@/lib/igv-gestion-reglas";
 import { getCostoEstimado } from "@/lib/costo-estimado";
 import { notaCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
@@ -82,11 +84,16 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const mesDeHoy = mesDelDia(hoy);
   const href = (ruta: string, otra?: ClaveSede) => hrefTelar(ruta, params, otra ? { sede: otra } : {}, { mismaPantalla: false, mesDeHoy });
 
-  const fila = filaDeLaSede(actual.datos, sede);
+  // La respuesta de arriba va con las ventas con IGV y el IGV del mes (ADR-0620), y sus columnas de antes también: pasan juntas o no pasa ninguna. El cuadro por sede sigue con el libro.
+  const gestion = await getResultadosDeGestion([{ desde, hasta, lectura: actual }, ...comparadas.map((c, i) => ({ desde: anteriores[i]!.desde, hasta: anteriores[i]!.hasta, lectura: c.lectura }))]);
+  const [enGestion, ...antesEnGestion] = gestion.lecturas;
+  const columnas = enGestion!.datos;
+
+  const fila = filaDeLaSede(columnas, sede);
   const pptoSede = pptoDeLaSede(ppto.datos, sede);
   const tramos = fila ? cascadaGanamos(fila, pptoSede) : [];
   const meta = metaDeVentas(pptoSede);
-  const deCadaSede = sede === SEDE_TODAS && veTodo ? porSede(actual.datos) : null;
+  const deCadaSede = sede === SEDE_TODAS && veTodo ? porSede(columnas) : null;
   const delMes = unMes ? campanasDelMes(campanas.datos, mes) : [];
   const sedesCascada = deCadaSede ? filasDeSedes(deCadaSede, (c) => href("/finanzas/reportes", c)) : null;
   const cuadro = cuadroVentas(cuadre.datos, sede);
@@ -102,7 +109,8 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     ...(hayCuadre ? ["lo que cuadra con Ventas"] : []),
     "el cuadro por sede",
   ])!;
-  const leidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, fila: c.lectura.falla ? null : filaDeLaSede(c.lectura.datos, sede) }));
+  const leidas = comparadas.map((c, i) => ({ etiqueta: c.etiqueta, fila: antesEnGestion[i]!.falla ? null : filaDeLaSede(antesEnGestion[i]!.datos, sede) }));
+  const avisoIgv = avisoDelIgv(fila?.igvGestion, veTodo);
   const notaCosto = notaCostoEstimado(costoEst.datos);
 
   return (
@@ -131,6 +139,17 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                   {a.texto}
                 </Aviso>
               ))}
+              {/* Sin leer el IGV, o sin que nadie lo diga, la cifra es otra: se dice junto a ella. */}
+              {gestion.falla && (
+                <Aviso tono="atencion" chico>
+                  {gestion.falla}
+                </Aviso>
+              )}
+              {avisoIgv && (
+                <Aviso tono="info" chico>
+                  {avisoIgv}
+                </Aviso>
+              )}
               {/* Si parte del costo es un promedio, la ganancia es una estimación y se dice aquí, junto a la cifra (tarea 28 de «Las 36 de Finanzas»). */}
               {notaCosto ? (
                 <Aviso
@@ -154,7 +173,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           }
           informe={
             fila
-              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })
+              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: columnas, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })
               : { titulo: "Ganancias y pérdidas", columnas: [], pesoDe: null, filas: [] }
           }
         />

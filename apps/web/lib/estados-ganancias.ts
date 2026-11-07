@@ -6,7 +6,8 @@
 // ASUME: toda cifra viene de la base. Aquí no se calcula plata: se agrupa, se compara y se escribe. Sin dato se dice, nunca un cero que no es.
 
 import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
-import { cascadaGanamos, NOTA_VENTAS_SIN_IGV, porSede, type DejaSede } from "./ganamos-reglas";
+import { cascadaGanamos, NOTA_VENTAS_CON_IGV, NOTA_VENTAS_SIN_IGV, porSede, type DejaSede } from "./ganamos-reglas";
+import { mismaBaseDeIgv, textoDelIgv } from "./igv-gestion-reglas";
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
@@ -20,16 +21,16 @@ const conSigno = (t: TramoCascada) => (t.tipo === "entra" ? -t.monto : t.monto);
 /** Lo que no es mercadería, sueldos ni local va junto en «Otros gastos». Es lo que una tienda reconoce de una mirada; el detalle lo abre. */
 const EN_OTROS = new Set(["publicidad", "administracion", "caja", "otros", "desgaste", "ajustes"]);
 
-export type MontosDeGanancias = { ventas: number; mercaderia: number; sueldos: number; local: number; otros: number; resultado: number };
+export type MontosDeGanancias = { ventas: number; igv: number; mercaderia: number; sueldos: number; local: number; otros: number; resultado: number; libro: number };
 
-/** Los cinco montos de la pantalla. Lo vendido menos los cuatro gastos da la ganancia. */
+/** Los montos de la pantalla. Lo vendido menos el IGV del mes y los cuatro gastos da la ganancia. `libro` no suma: es la misma cifra como la dice el contador (ADR-0620). */
 export function montosDeGanancias(f: FilaER, tramos: readonly TramoCascada[] = cascadaGanamos(f, [])): MontosDeGanancias {
   const de = (clave: string) => {
     const t = tramos.find((x) => x.clave === clave);
     return t ? conSigno(t) : 0;
   };
   const otros = tramos.filter((t) => EN_OTROS.has(t.clave)).reduce((a, t) => a + conSigno(t), 0);
-  return { ventas: f.ventas, mercaderia: de("costo"), sueldos: de("planilla"), local: de("local"), otros, resultado: f.resultado };
+  return { ventas: f.ventas, igv: de("igv"), mercaderia: de("costo"), sueldos: de("planilla"), local: de("local"), otros, resultado: f.resultado, libro: f.resultadoLibro ?? f.resultado };
 }
 
 const porciento = (v: number, ventas: number) => (ventas > 0 ? `${Math.round((Math.abs(v) / ventas) * 100)} % de lo vendido` : undefined);
@@ -87,11 +88,15 @@ export function partesDeGanancias({
   const anterior = nombreDelAnterior(periodo);
   const columnas = (clave: keyof MontosDeGanancias) => columnasDe(clave, m, comparadas, etiquetaActual);
   const chip = (clave: keyof MontosDeGanancias, buenoSubir: boolean | null) => chipContraAnterior(columnas(clave), anterior, buenoSubir, solesCentimos);
+  // Un período con el IGV dicho y otro estimado no se comparan: «más» o «menos» diría algo que solo cambió de base.
+  const antes = comparadas.filter((c) => c.fila).at(-1)?.fila ?? null;
+  const mismaBase = mismaBaseDeIgv(fila, antes);
   const lineas = (clave: string): FilaDeParte[] => (tramos.find((t) => t.clave === clave)?.lineas ?? []).filter((l) => l.real !== 0).map((l) => ({ nombre: l.nombre, valor: l.real }));
   const deOtros = tramos.filter((t) => EN_OTROS.has(t.clave));
   const sedes = veCadaSede ? porSede(datos) : [];
   const gano = m.resultado >= 0;
-  const gasto = (clave: "mercaderia" | "sueldos" | "local" | "otros", resto: Pick<ParteEstado, "clave" | "nombre" | "color" | "que" | "filas"> & { aviso?: string | null }): ParteEstado => ({
+  const g = fila.igvGestion;
+  const gasto = (clave: "igv" | "mercaderia" | "sueldos" | "local" | "otros", resto: Pick<ParteEstado, "clave" | "nombre" | "color" | "que" | "filas"> & { aviso?: string | null }): ParteEstado => ({
     ...resto,
     enBarra: Math.max(m[clave], 0),
     // Un gasto que quedó a favor suma: se escribe y se pinta como lo que es.
@@ -100,9 +105,24 @@ export function partesDeGanancias({
     sub: porciento(m[clave], m.ventas),
     cifra: m[clave] < 0 ? -m[clave] : m[clave],
     columnas: columnas(clave),
-    chip: chip(clave, null),
+    chip: clave === "igv" && !mismaBase ? null : chip(clave, null),
   });
   const partes: ParteEstado[] = [
+    ...(g && g.origen !== "sin_igv"
+      ? [
+          gasto("igv", {
+            clave: "igv",
+            nombre: "IGV del mes",
+            color: "var(--color-taupe)",
+            que: "Lo que de verdad se paga de IGV en estas fechas. Lo que queda del IGV de las ventas se ve como parte de lo vendido.",
+            filas: [
+              { nombre: "El IGV que traen tus ventas", valor: g.incluido },
+              { nombre: "Se resta", valor: g.monto },
+            ],
+            aviso: textoDelIgv(g),
+          }),
+        ]
+      : []),
     gasto("mercaderia", {
       clave: "mercaderia",
       nombre: "Mercadería",
@@ -156,11 +176,11 @@ export function partesDeGanancias({
       filas: sedes.length > 1 ? sedes.map((s) => ({ nombre: nombreDeUnidad(s), valor: s.resultado })) : [],
       conSignos: true,
       columnas: columnas("resultado"),
-      chip: chip("resultado", true),
+      chip: mismaBase ? chip("resultado", true) : null,
     },
   ];
-  // Lo que no pasó no se dibuja: una tarjeta en S/ 0 solo estorba. Lo que quedó siempre va: es la respuesta.
-  return partes.filter((p) => p.clave === "resultado" || Math.round(p.cifra) !== 0);
+  // Lo que no pasó no se dibuja: una tarjeta en S/ 0 solo estorba. Lo que quedó siempre va: es la respuesta. El IGV también: un mes con 0 dicho se tiene que poder leer.
+  return partes.filter((p) => p.clave === "resultado" || p.clave === "igv" || Math.round(p.cifra) !== 0);
 }
 
 export type LecturaDeGanancias = {
@@ -179,11 +199,11 @@ const QUE_NO_VENDE: Partial<Record<FilaER["unidad"], string>> = {
 
 /** La nota al pie: la razón de la cifra, en una línea. */
 function notaDeGanancias(actual: MontosDeGanancias, antes: MontosDeGanancias | null, anterior: string): string | null {
-  const { ventas: v, mercaderia, sueldos, local, otros, resultado } = actual;
+  const { ventas: v, igv, mercaderia, sueldos, local, otros, resultado } = actual;
   if (v <= 0) return null;
   if (resultado < 0) {
-    const margen = (v - mercaderia) / v;
-    if (margen <= 0) return `Lo que costó la mercadería ya pasa lo que vendiste: ${solesCentimos(mercaderia)} contra ${solesCentimos(v)}.`;
+    const margen = (v - igv - mercaderia) / v;
+    if (margen <= 0) return igv > 0 ? `La mercadería y el IGV ya pasan lo que vendiste: ${solesCentimos(mercaderia + igv)} contra ${solesCentimos(v)}.` : `Lo que costó la mercadería ya pasa lo que vendiste: ${solesCentimos(mercaderia)} contra ${solesCentimos(v)}.`;
     const cubre = Math.round((sueldos + local + otros) / margen / 100) * 100;
     return `Para no perder hacía falta vender unos ${solesCentimos(cubre)}. Vendiste ${solesCentimos(v)}.`;
   }
@@ -221,7 +241,7 @@ export function lecturaDeGanancias(fila: FilaER | null, antes: FilaER | null, p:
   const anterior = nombreDelAnterior(p);
   const mAntes = antes ? montosDeGanancias(antes) : null;
   const d = mAntes ? Math.round((r - mAntes.resultado) * 100) / 100 : 0;
-  const chip = !mAntes ? null : d === 0 ? { texto: `Igual que ${anterior}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que ${anterior}`, tono: d > 0 ? ("bien" as const) : ("mal" as const) };
+  const chip = !mAntes || !mismaBaseDeIgv(fila, antes) ? null : d === 0 ? { texto: `Igual que ${anterior}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que ${anterior}`, tono: d > 0 ? ("bien" as const) : ("mal" as const) };
   return { valor: r, mal: r < 0 && vende, frase, chip, nota: notaDeGanancias(m, mAntes, anterior) };
 }
 
@@ -250,7 +270,7 @@ export function informeDeGanancias({
     const p = parte(clave);
     return p ? { que: p.que, detalle: p.filas, aviso: p.aviso ?? null } : {};
   };
-  const gasto = (clave: "mercaderia" | "sueldos" | "local" | "otros", nombre: string, contable: string): FilaInforme => ({
+  const gasto = (clave: "igv" | "mercaderia" | "sueldos" | "local" | "otros", nombre: string, contable: string): FilaInforme => ({
     clave,
     nombre: m[clave] < 0 ? `${nombre} a favor` : nombre,
     contable,
@@ -261,29 +281,45 @@ export function informeDeGanancias({
     ...deParte(clave),
   });
   const gano = m.resultado >= 0;
+  const conIgv = !!fila.igvGestion;
   const filas: FilaInforme[] = [
-    { clave: "ventas", nombre: "Lo que vendiste", contable: "Ventas netas", tipo: "linea", valores: valores((x) => x.ventas), peso: m.ventas > 0 ? "100 %" : null, que: NOTA_VENTAS_SIN_IGV },
+    conIgv
+      ? { clave: "ventas", nombre: "Ventas con IGV", contable: "Ventas con IGV", tipo: "linea", valores: valores((x) => x.ventas), peso: m.ventas > 0 ? "100 %" : null, que: NOTA_VENTAS_CON_IGV }
+      : { clave: "ventas", nombre: "Lo que vendiste", contable: "Ventas netas", tipo: "linea", valores: valores((x) => x.ventas), peso: m.ventas > 0 ? "100 %" : null, que: NOTA_VENTAS_SIN_IGV },
+    gasto("igv", "IGV del mes", "IGV del mes"),
     gasto("mercaderia", "Mercadería", "Costo de ventas"),
-    { clave: "bruta", nombre: "Te queda de las prendas", contable: "Utilidad bruta", tipo: "subtotal", valores: valores((x) => x.ventas - x.mercaderia), peso: pesoContra(m.ventas - m.mercaderia, m.ventas) },
+    { clave: "bruta", nombre: "Te queda de las prendas", contable: "Utilidad bruta", tipo: "subtotal", valores: valores((x) => x.ventas - x.igv - x.mercaderia), peso: pesoContra(m.ventas - m.igv - m.mercaderia, m.ventas) },
     gasto("sueldos", "Sueldos", "Gastos de personal"),
     gasto("local", "Local y servicios", "Local y servicios"),
     gasto("otros", "Otros gastos", "Otros gastos"),
     {
       clave: "resultado",
       nombre: gano ? "Te quedó" : m.ventas > 0 ? "Perdiste" : "Costó",
-      contable: "Resultado del período",
+      contable: conIgv ? "Resultado de gestión" : "Resultado del período",
       tipo: "total",
       valores: valores((x) => x.resultado),
       peso: m.ventas > 0 ? `${gano ? "" : "−"}${pesoContra(m.resultado, m.ventas)}` : null,
       tono: gano ? "bien" : m.ventas > 0 ? "mal" : null,
       ...deParte("resultado"),
     },
+    ...(conIgv
+      ? [
+          {
+            clave: "libro",
+            nombre: "Según el libro",
+            contable: "Resultado contable",
+            tipo: "subtotal" as const,
+            valores: valores((x) => x.libro),
+            que: "La misma ganancia como la lee el contador: ventas sin IGV y solo los sueldos ya pagados. Es la cifra del Balance y de la renta.",
+          },
+        ]
+      : []),
   ];
   return {
     titulo: "Ganancias y pérdidas",
     columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
     pesoDe: m.ventas > 0 ? "De lo vendido" : null,
-    // Un gasto que no pasó en ninguna columna no se dibuja: una fila en S/ 0 solo estorba.
-    filas: filas.filter((f) => f.tipo !== "linea" || f.clave === "ventas" || f.valores.some((v) => v !== null && Math.abs(v) >= 0.005)),
+    // Un gasto que no pasó en ninguna columna no se dibuja: una fila en S/ 0 solo estorba. El IGV con su parte sí: un mes con 0 dicho se tiene que poder leer y abrir.
+    filas: filas.filter((f) => f.tipo !== "linea" || f.clave === "ventas" || (f.clave === "igv" && !!parte("igv")) || f.valores.some((v) => v !== null && Math.abs(v) >= 0.005)),
   };
 }
