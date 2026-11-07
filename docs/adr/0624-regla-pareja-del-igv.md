@@ -29,7 +29,9 @@ Restar 0 no arreglaba el segundo y empeoraba el primero.
   a favor bajó S/ 20,157 y te quedan S/ 41,878.» (`lib/impuestos-cuenta-reglas.ts`, con lo que el panel ya trae). Dice «bajó» y no «usaste»: el IGV de las
   compras del mes lo vuelve a subir, y «usaste» sería falso en un mes con compras con factura.
 - **Lo cobrado con IGV se ve como PRESENTACIÓN, no como otra cifra.** En el informe y en la cascada de Ganancias, arriba:
-  «Cobraste» (133,922.31 en octubre) → «IGV de tus ventas · es de SUNAT» (se resta, 20,501.26) → «Lo que vendiste» (113,421.05, el 100 %) → mercadería → … → resultado.
+  «Vendiste con IGV» (133,922.31 en octubre) → «IGV de tus ventas» (se resta, 20,501.26, sin peso ni barrita) → «Lo que vendiste» (113,421.05, el 100 %) → mercadería → … → resultado.
+  El detalle del IGV lleva a Impuestos con la misma sede y el mismo mes. Primero se llamó «Cobraste»; tras /formidable (2026-11-07) Felipe pidió la recomendación y quedó
+  «Vendiste con IGV»: es venta, no la plata que entró, que Caja y el Flujo llaman «cobrado».
   Los pesos siguen contra lo vendido sin IGV; el chip contra el mes de antes compara siempre (misma base). Si no se pudo leer el IGV de las ventas, esas dos filas
   no se dibujan y la pantalla queda como antes, sin aviso: el resultado no depende del IGV, así que no hay mezcla de bases posible.
 - **El Flujo de caja** vuelve a leer el resultado del libro, sin capa ni aviso.

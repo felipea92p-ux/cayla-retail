@@ -4,7 +4,7 @@ import { conIgvDeLasVentas, leerFilasIgvVentas } from "@/lib/igv-ventas-reglas";
 import type { FilaER } from "@/lib/resultados-reglas";
 
 // El IGV de las ventas para presentar lo cobrado en Ganancias y pérdidas (ADR-0624; contrato en 20261107174000_igv_de_las_ventas_regla_pareja.sql). Solo LEE y no cambia
-// ninguna cifra del Estado de resultados: si no se puede leer, la pantalla queda como siempre, sin las filas «Cobraste» e «IGV de tus ventas».
+// ninguna cifra del Estado de resultados: si no se puede leer, la pantalla queda como siempre, sin las filas «Vendiste con IGV» e «IGV de tus ventas».
 
 type Lectura<T> = { datos: T; falla: string | null };
 

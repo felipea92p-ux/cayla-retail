@@ -19,18 +19,22 @@ export const DESVIO_QUE_IMPORTA = 0.1;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Lo que se dice de las ventas sin IGV, la base de toda la pantalla. */
-export const NOTA_VENTAS = "Sin IGV: ese 18 % es de SUNAT.";
+export const NOTA_VENTAS = "Sin IGV.";
 
 /**
  * El IGV de tus ventas (ADR-0624, «regla pareja»): se resta siempre, porque es de SUNAT. Que hoy no salga de la caja no lo vuelve ganancia: se descuenta del saldo a favor, que ya
  * está en el Balance. Una línea, para el informe y la cascada.
  */
-export const NOTA_IGV_VENTAS = "Es de SUNAT. Mientras tengas saldo a favor no sale de tu caja: se descuenta de ese saldo (míralo en Impuestos).";
+export const NOTA_IGV_VENTAS = "Le toca a SUNAT. Mientras tengas saldo a favor no sale de tu caja: se descuenta de ese saldo.";
 
-/** Lo cobrado: solo se muestra para que se vea de dónde sale lo vendido. No es ingreso de CAYLA. */
-export const NOTA_COBRASTE = "Lo que te pagaron tus clientes, con IGV.";
+/**
+ * Lo vendido con su IGV: solo se muestra para que se vea de dónde sale lo vendido. No es ingreso de CAYLA. Se llama «Vendiste con IGV» y no «Cobraste»: lo cobrado es la plata
+ * que entró (Caja y el Flujo cuentan también los abonos de apartados), y esta cifra son ventas (Felipe, /formidable 2026-11-07).
+ */
+export const NOMBRE_VENDISTE_CON_IGV = "Vendiste con IGV";
+export const NOTA_VENDISTE_CON_IGV = "Tus ventas con el IGV que pagaron tus clientes, menos lo devuelto y lo anulado.";
 /** El nombre de la fila del IGV de las ventas: el mismo en el informe y en la cascada. */
-export const NOMBRE_IGV_VENTAS = "IGV de tus ventas · es de SUNAT";
+export const NOMBRE_IGV_VENTAS = "IGV de tus ventas";
 
 /** Los gastos (que no son sueldos ni desgaste), agrupados como los dice una tienda. Lo que no está aquí cae en «Otros gastos». */
 const GRUPOS: readonly { clave: string; nombre: string; cuentas: readonly string[] }[] = [
@@ -78,7 +82,7 @@ export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCasca
   const tramos: TramoCascada[] =
     Math.abs(igv) >= 0.005
       ? [
-          { clave: "cobraste", nombre: "Cobraste", monto: r2(f.ventas + igv), tipo: "entra", detalle: NOTA_COBRASTE },
+          { clave: "con_igv", nombre: NOMBRE_VENDISTE_CON_IGV, monto: r2(f.ventas + igv), tipo: "entra", detalle: NOTA_VENDISTE_CON_IGV },
           { clave: "igv", nombre: NOMBRE_IGV_VENTAS, monto: Math.abs(igv), tipo: igv > 0 ? "sale" : "entra", detalle: NOTA_IGV_VENTAS },
           { clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", subtotal: true, detalle: NOTA_VENTAS },
         ]

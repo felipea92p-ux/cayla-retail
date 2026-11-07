@@ -2,6 +2,7 @@
 
 import { Fragment, useState, type CSSProperties } from "react";
 import { ChevronRight } from "lucide-react";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { anchoEnElInforme, bloquesDelInforme, seAbre, type FilaInforme, type Informe } from "@/lib/estados-informe";
 
@@ -137,6 +138,7 @@ function DetalleDeFila({ fila }: { fila: FilaInforme }) {
           ))}
         </ul>
       )}
+      {fila.ver && <EnlaceVer href={fila.ver.href}>{fila.ver.texto}</EnlaceVer>}
     </div>
   );
 }

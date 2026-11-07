@@ -6,7 +6,7 @@
 // ASUME: toda cifra viene de la base. Aquí no se calcula plata: se agrupa, se compara y se escribe. Sin dato se dice, nunca un cero que no es.
 
 import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
-import { cascadaGanamos, NOMBRE_IGV_VENTAS, NOTA_COBRASTE, NOTA_IGV_VENTAS, NOTA_VENTAS, porSede, type DejaSede } from "./ganamos-reglas";
+import { cascadaGanamos, NOMBRE_IGV_VENTAS, NOMBRE_VENDISTE_CON_IGV, NOTA_IGV_VENTAS, NOTA_VENDISTE_CON_IGV, NOTA_VENTAS, porSede, type DejaSede } from "./ganamos-reglas";
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
@@ -238,9 +238,12 @@ export function informeDeGanancias({
   partes,
   comparadas,
   etiquetaActual,
+  verImpuestos,
 }: {
   fila: FilaER;
   partes: readonly ParteEstado[];
+  /** A dónde lleva el detalle del IGV: Impuestos con la misma sede y el mismo mes. Sin esto, el detalle no lleva enlace. */
+  verImpuestos?: string;
   /** Los períodos anteriores, del más viejo al más nuevo. Uno que no se pudo leer va con `fila: null`. */
   comparadas: readonly ComparadaGanancias[];
   etiquetaActual: string;
@@ -264,14 +267,14 @@ export function informeDeGanancias({
     ...deParte(clave),
   });
   const gano = m.resultado >= 0;
-  // Lo cobrado y su IGV van arriba como presentación (ADR-0624): «Cobraste − IGV de tus ventas = Lo que vendiste». No cambian ninguna cifra ni los pesos, que siguen contra lo
+  // Lo cobrado y su IGV van arriba como presentación (ADR-0624): «Vendiste con IGV − IGV de tus ventas = Lo que vendiste». No cambian ninguna cifra ni los pesos, que siguen contra lo
   // vendido sin IGV. Sin el IGV leído no se dibujan, y la pantalla queda como siempre.
   const igv = m.igv;
   const conIgv = igv !== null && Math.abs(igv) >= 0.005;
   const cobrado: FilaInforme[] = conIgv
     ? [
-        { clave: "cobraste", nombre: "Cobraste", contable: "Ventas con IGV", tipo: "linea", valores: valores((x) => (x.igv === null ? null : x.ventas + x.igv)), peso: null, que: NOTA_COBRASTE },
-        { clave: "igv", nombre: NOMBRE_IGV_VENTAS, contable: "IGV de las ventas", tipo: "linea", resta: igv > 0, valores: valores((x) => (x.igv === null ? null : igv > 0 ? x.igv : -x.igv)), peso: pesoContra(igv, m.ventas), que: NOTA_IGV_VENTAS },
+        { clave: "con_igv", nombre: NOMBRE_VENDISTE_CON_IGV, contable: "Ventas con IGV", tipo: "linea", valores: valores((x) => (x.igv === null ? null : x.ventas + x.igv)), peso: null, que: NOTA_VENDISTE_CON_IGV },
+        { clave: "igv", nombre: NOMBRE_IGV_VENTAS, contable: "IGV de las ventas", tipo: "linea", resta: igv > 0, valores: valores((x) => (x.igv === null ? null : igv > 0 ? x.igv : -x.igv)), peso: null, que: NOTA_IGV_VENTAS, ...(verImpuestos ? { ver: { href: verImpuestos, texto: "Ver tu saldo a favor en Impuestos" } } : {}) },
       ]
     : [];
   const filas: FilaInforme[] = [

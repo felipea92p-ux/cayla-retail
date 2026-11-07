@@ -1,5 +1,5 @@
 // El IGV de las ventas en Ganancias y pérdidas (ADR-0624, «regla pareja»): el IGV que cobras es de SUNAT, así que el resultado lo resta SIEMPRE, como el libro.
-// Esta capa no cambia ninguna cifra: solo PRESENTA lo cobrado arriba de «Lo que vendiste» («Cobraste» → «IGV de tus ventas · es de SUNAT» → «Lo que vendiste»).
+// Esta capa no cambia ninguna cifra: solo PRESENTA lo cobrado arriba de «Lo que vendiste» («Vendiste con IGV» → «IGV de tus ventas» → «Lo que vendiste»).
 //
 // PROMETE: `conIgvDeLasVentas` suma a cada columna el IGV de sus ventas (`igvCobrado`) y no toca `ventas`, `margen` ni `resultado`. CAYLA suma todas las unidades;
 // «De la empresa», las que no son de una tienda; una tienda o el Taller, la suya.

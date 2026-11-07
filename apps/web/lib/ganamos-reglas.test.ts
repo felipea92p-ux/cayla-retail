@@ -37,15 +37,15 @@ const fila = (p: Partial<FilaER>): FilaER =>
 const ppto = (p: Partial<FilaPpto>): FilaPpto =>
   ({ ubicacionId: null, unidad: "consolidado", nombre: "CAYLA", tipo: "tope", presupuesto: null, aLaFecha: 0, proyeccion: null, momento: "cerrado", linea: "", ...p }) as FilaPpto;
 
-// ADR-0624: la cascada parte de lo cobrado, resta el IGV de tus ventas (es de SUNAT) y llega a lo vendido como subtotal. La suma no cambia.
+// ADR-0624: la cascada parte de lo vendido con IGV, resta el IGV de tus ventas (es de SUNAT) y llega a lo vendido como subtotal. La suma no cambia.
 describe("cascadaGanamos con lo cobrado", () => {
   const suma = (f: FilaER) => cascadaGanamos(f, []).filter((x) => x.tipo !== "queda" && !x.subtotal).reduce((a, x) => a + (x.tipo === "entra" ? x.monto : -x.monto), 0);
 
-  it("Cobraste → IGV de tus ventas → Vendiste, y lo vendido es un subtotal", () => {
+  it("Vendiste con IGV → IGV de tus ventas → Vendiste, y lo vendido es un subtotal", () => {
     const t = cascadaGanamos(fila({ igvCobrado: 1800 }), []);
     expect(t.slice(0, 3).map((x) => [x.clave, x.nombre, x.tipo, x.monto, x.subtotal ?? false])).toEqual([
-      ["cobraste", "Cobraste", "entra", fila({}).ventas + 1800, false],
-      ["igv", "IGV de tus ventas · es de SUNAT", "sale", 1800, false],
+      ["con_igv", "Vendiste con IGV", "entra", fila({}).ventas + 1800, false],
+      ["igv", "IGV de tus ventas", "sale", 1800, false],
       ["ventas", "Vendiste", "entra", fila({}).ventas, true],
     ]);
     expect(t[1]!.detalle).toBe(NOTA_IGV_VENTAS);
@@ -58,8 +58,8 @@ describe("cascadaGanamos con lo cobrado", () => {
   });
   it("sin el IGV leído, la cascada empieza en lo vendido, como siempre", () => {
     const t = cascadaGanamos(fila({}), []);
-    expect(t[0]).toMatchObject({ clave: "ventas", tipo: "entra", detalle: "Sin IGV: ese 18 % es de SUNAT." });
-    expect(t.some((x) => x.clave === "igv" || x.clave === "cobraste")).toBe(false);
+    expect(t[0]).toMatchObject({ clave: "ventas", tipo: "entra", detalle: "Sin IGV." });
+    expect(t.some((x) => x.clave === "igv" || x.clave === "con_igv")).toBe(false);
   });
 });
 

@@ -1778,7 +1778,7 @@ ESCENARIOS.push(
     await pagina.mouse.move(2, 2);
     await esperar(pagina, 900);
   } },
-  { id: "estados.igv", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-informe-abierta", nombre: "Ganancias y pérdidas · el detalle de «IGV de tus ventas · es de SUNAT»", async preparar(pagina) {
+  { id: "estados.igv", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-informe-abierta", nombre: "Ganancias y pérdidas · el detalle de «IGV de tus ventas»", async preparar(pagina) {
     await pagina.locator(".estados-informe-nombre button", { hasText: "IGV de tus ventas" }).first().click();
     await pagina.mouse.move(2, 2);
     await esperar(pagina, 900);

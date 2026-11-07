@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// ADR-0624: el IGV de las ventas que lee Ganancias y pérdidas es solo PRESENTACIÓN («Cobraste» sobre «Lo que vendiste»). La renta, el Balance, Patrimonio, el archivo del contador
+// ADR-0624: el IGV de las ventas que lee Ganancias y pérdidas es solo PRESENTACIÓN («Vendiste con IGV» sobre «Lo que vendiste»). La renta, el Balance, Patrimonio, el archivo del contador
 // y el cuadro por sede no lo leen: si uno lo hiciera, podría sumar a una cifra del libro un IGV que es de SUNAT, que es justo el doble conteo que esta regla cerró.
 const DEL_LIBRO = [
   "lib/renta-anual.ts",

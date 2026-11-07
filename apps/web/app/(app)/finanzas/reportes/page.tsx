@@ -61,7 +61,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const ubicacionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sede) ? sede : null;
   // En el mes en curso se compara con los mismos días de los meses pasados: esos días también llevan su parte de sueldos, como hoy (`getEstadoResultadosAEstaFecha`).
   const leerAnterior = enCurso && unMes ? getEstadoResultadosAEstaFecha : getEstadoResultados;
-  // Cada lectura de arriba lleva el IGV de sus ventas (ADR-0624): solo para presentar «Cobraste» e «IGV de tus ventas» sobre «Lo que vendiste». No cambia ninguna cifra.
+  // Cada lectura de arriba lleva el IGV de sus ventas (ADR-0624): solo para presentar «Vendiste con IGV» e «IGV de tus ventas» sobre «Lo que vendiste». No cambia ninguna cifra.
   const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst, faltaDelMes] = await Promise.all([
     getEstadoResultados(desde, hasta).then((l) => conIgvDeLasVentasDe(desde, hasta, l)),
     comparar && antes ? leerAnterior(antes.desde, antes.hasta) : Promise.resolve(null),
@@ -163,7 +163,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           }
           informe={
             fila
-              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })
+              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), verImpuestos: href("/finanzas/impuestos") })
               : { titulo: "Ganancias y pérdidas", columnas: [], pesoDe: null, filas: [] }
           }
         />

@@ -84,11 +84,11 @@ describe("lo cobrado y el IGV de tus ventas", () => {
   const oct = (o: Partial<FilaER> = {}) => fila({ ventas: 113421.05, igvCobrado: 20501.26, ...o });
   const informe = (f: FilaER, comparadas: { etiqueta: string; fila: FilaER | null }[] = []) => informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f, comparadas)), comparadas, etiquetaActual: "Oct" });
 
-  it("arriba: Cobraste → IGV de tus ventas → Lo que vendiste, y lo cobrado menos el IGV da lo vendido", () => {
+  it("arriba: Vendiste con IGV → IGV de tus ventas → Lo que vendiste, y lo de arriba menos el IGV da lo vendido", () => {
     const inf = informe(oct());
     expect(inf.filas.slice(0, 3).map((f) => [f.clave, f.nombre, f.tipo, f.resta ?? false])).toEqual([
-      ["cobraste", "Cobraste", "linea", false],
-      ["igv", "IGV de tus ventas · es de SUNAT", "linea", true],
+      ["con_igv", "Vendiste con IGV", "linea", false],
+      ["igv", "IGV de tus ventas", "linea", true],
       ["ventas", "Lo que vendiste", "subtotal", false],
     ]);
     const [cobraste, igv, ventas] = inf.filas.map((f) => f.valores.at(-1)!);
@@ -102,9 +102,10 @@ describe("lo cobrado y el IGV de tus ventas", () => {
     const igv = inf.filas.find((f) => f.clave === "igv")!;
     expect(igv.que).toContain("SUNAT");
     expect(igv.que).toContain("saldo a favor");
-    expect(igv.peso).toBe("18 %");
+    // Siempre daría 18 %: no ayuda a decidir (/formidable 2026-11-07). Sin peso no lleva barrita.
+    expect(igv.peso).toBeNull();
     expect(inf.filas.find((f) => f.clave === "ventas")!.peso).toBe("100 %");
-    expect(inf.filas.find((f) => f.clave === "cobraste")!.peso).toBeNull();
+    expect(inf.filas.find((f) => f.clave === "con_igv")!.peso).toBeNull();
   });
 
   it("no cambia ninguna cifra: el resultado y los montos son los mismos con o sin el IGV leído", () => {
@@ -119,22 +120,22 @@ describe("lo cobrado y el IGV de tus ventas", () => {
 
   it("sin el IGV leído no se dibujan esas dos filas y la pantalla queda como siempre", () => {
     const inf = informe(fila());
-    expect(inf.filas[0]).toMatchObject({ clave: "ventas", tipo: "linea", que: "Sin IGV: ese 18 % es de SUNAT." });
-    expect(inf.filas.some((f) => f.clave === "cobraste" || f.clave === "igv")).toBe(false);
+    expect(inf.filas[0]).toMatchObject({ clave: "ventas", tipo: "linea", que: "Sin IGV." });
+    expect(inf.filas.some((f) => f.clave === "con_igv" || f.clave === "igv")).toBe(false);
   });
 
   it("un mes de antes sin el IGV leído va en blanco en esas filas, no en cero", () => {
     const inf = informe(oct(), [{ etiqueta: "Sep", fila: fila({ ventas: 90000 }) }]);
-    expect(inf.filas.find((f) => f.clave === "cobraste")!.valores[0]).toBeNull();
+    expect(inf.filas.find((f) => f.clave === "con_igv")!.valores[0]).toBeNull();
     expect(inf.filas.find((f) => f.clave === "ventas")!.valores[0]).toBe(90000);
   });
 
-  it("las barritas se miden contra lo vendido sin IGV, como su peso; «Cobraste» no lleva barra", () => {
+  it("las barritas se miden contra lo vendido sin IGV, como su peso; ni «Vendiste con IGV» ni el IGV llevan barra", () => {
     const inf = informe(oct());
     const ancho = (clave: string) => anchoEnElInforme(inf.filas.find((f) => f.clave === clave)!, inf.filas, inf.referencia);
-    expect(ancho("cobraste")).toBeNull();
-    expect(ancho("igv")).toBeCloseTo((20501.26 / 113421.05) * 100, 1);
-    for (const f of inf.filas.filter((x) => x.tipo === "linea" && x.peso && x.clave !== "cobraste")) {
+    expect(ancho("con_igv")).toBeNull();
+    expect(ancho("igv")).toBeNull();
+    for (const f of inf.filas.filter((x) => x.tipo === "linea" && x.peso)) {
       expect(Math.round(ancho(f.clave)!)).toBe(Number.parseInt(f.peso!, 10));
     }
   });
@@ -142,9 +143,16 @@ describe("lo cobrado y el IGV de tus ventas", () => {
   it("un IGV a favor (más devuelto que vendido) lleva el mismo nombre que en la cascada y suma, no resta un negativo", () => {
     const inf = informe(oct({ igvCobrado: -500 }));
     const igv = inf.filas.find((f) => f.clave === "igv")!;
-    expect(igv.nombre).toBe("IGV de tus ventas · es de SUNAT");
+    expect(igv.nombre).toBe("IGV de tus ventas");
     expect(igv.resta).toBe(false);
     expect(igv.valores.at(-1)).toBe(500);
+  });
+
+  it("el detalle del IGV lleva a Impuestos con la misma sede y el mismo mes, y sin destino no lleva enlace", () => {
+    const f = oct();
+    const con = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f, [])), comparadas: [], etiquetaActual: "Oct", verImpuestos: "/finanzas/impuestos?sede=tr&mes=2026-10" });
+    expect(con.filas.find((x) => x.clave === "igv")!.ver).toEqual({ href: "/finanzas/impuestos?sede=tr&mes=2026-10", texto: "Ver tu saldo a favor en Impuestos" });
+    expect(informe(f).filas.find((x) => x.clave === "igv")!.ver).toBeUndefined();
   });
 
   it("el chip contra el mes de antes vuelve a compararse siempre: es la misma base", () => {

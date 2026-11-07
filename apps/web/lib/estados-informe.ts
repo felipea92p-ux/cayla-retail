@@ -30,6 +30,8 @@ export type FilaInforme = {
   detalle?: readonly FilaDeParte[];
   /** Lo que hay que saber de esta fila, en una línea. */
   aviso?: string | null;
+  /** Lleva a la pantalla donde se ve lo que esta fila resume (`<EnlaceVer>` dentro de la fila abierta). */
+  ver?: { href: string; texto: string };
 };
 
 export type ColumnaInforme = { etiqueta: string; actual: boolean };
@@ -46,7 +48,7 @@ export type Informe = {
 };
 
 /** Una fila se puede abrir si tiene algo que decir además de su cifra. */
-export const seAbre = (f: FilaInforme): boolean => !!(f.que || f.aviso || (f.detalle && f.detalle.length));
+export const seAbre = (f: FilaInforme): boolean => !!(f.que || f.aviso || f.ver || (f.detalle && f.detalle.length));
 
 /** Las filas en bloques, uno por sección, para que cada título gobierne las suyas (`<tbody>`, `scope="rowgroup"`). Sin secciones, un solo bloque. */
 export function bloquesDelInforme(filas: readonly FilaInforme[]): FilaInforme[][] {
@@ -66,7 +68,7 @@ export function pesoContra(valor: number, referencia: number): string | null {
 
 /**
  * La barrita de una fila, en la columna de ahora, de 0 a 100. Sin referencia, contra la mayor del informe. Con referencia (Ganancias: «Lo que vendiste»), contra
- * ella, para que la barra diga lo mismo que su peso escrito aunque arriba haya una fila mayor («Cobraste», con IGV); y una fila sin peso no lleva barra (`null`).
+ * ella, para que la barra diga lo mismo que su peso escrito aunque arriba haya una fila mayor («Vendiste con IGV»); y una fila sin peso no lleva barra (`null`).
  */
 export function anchoEnElInforme(fila: FilaInforme, filas: readonly FilaInforme[], referencia?: string): number | null {
   const actual = (f: FilaInforme) => Math.abs(f.valores.at(-1) ?? 0);
