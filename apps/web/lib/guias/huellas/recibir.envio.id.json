@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 241,
+  "total": 244,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -97,15 +97,18 @@
       "button «recepcion.agregar»"
     ],
     "components/recepcion-conteo/CerrarEnvio.tsx": [
+      "button «Cambiar»",
+      "CampoSelect «{f.proveedor ? `Proveedor de ${f.marca?.nombre ?? \"lo sin marca\"}»",
       "input «{`Costo de ${nombre}»",
+      "button «{verDet ? \"Ocultar detalle\" : \"Ver detalle\"}»",
       "button «{`${abiertaEsta ? \"Esconder\" : \"Cambiar\"}»",
       "Boton «Contarla»",
       "CampoTexto «¿Qué pasó exactamente?»",
       "button «Empezar de cero»",
       "BotonVerMas «recepcion.plegadas»",
+      "button «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
-      "CampoSelect «{f.proveedor ? \"Proveedor\" : guia.etiqueta(id, \"Proveedor\")}»",
       "ComboResponsable «{responsable}»",
       "button «Reintentar»",
       "Volver «→() => onVolver(undefined, decisiones)»",
