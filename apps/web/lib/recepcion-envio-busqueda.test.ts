@@ -12,9 +12,10 @@ const envio: EnvioPorAbrir = {
   lineas: 3,
   ordenes: ["OC-001309"],
   proveedores: ["Textiles Andina SAC"],
+  marcas: ["Anqori"],
   creadoPorMi: false,
 };
-const orden: OrdenDirecta = { ordenId: "o1", numero: "OC-001311", proveedor: "Confecciones del Sur EIRL", unidadesPorEnviar: 6, creadaPorMi: false };
+const orden: OrdenDirecta = { ordenId: "o1", numero: "OC-001311", proveedor: "Confecciones del Sur EIRL", marcas: ["Sureña"], unidadesPorEnviar: 6, creadaPorMi: false };
 
 describe("buscador de envíos por recibir", () => {
   it("encuentra un envío por número, guía, proveedor, orden y estado, sin tildes ni mayúsculas", () => {
@@ -33,9 +34,13 @@ describe("buscador de envíos por recibir", () => {
   it("un envío sin aviso se encuentra por su proveedor", () => {
     expect(coincideConBusqueda(textoBuscableDeEnvio({ ...envio, proveedores: [], ordenes: [], lineas: 0 }, "Entel Perú S.A."), "entel")).toBe(true);
   });
-  it("una orden sin guía se encuentra por su número, proveedor o «sin guía»", () => {
+  it("una orden sin guía se encuentra por su número, proveedor, marca o «sin guía»", () => {
     const t = textoBuscableDeOrden(orden);
-    for (const q of ["1311", "confecciones", "sin guía"]) expect(coincideConBusqueda(t, q), q).toBe(true);
+    for (const q of ["1311", "confecciones", "sin guía", "surena"]) expect(coincideConBusqueda(t, q), q).toBe(true);
+  });
+  it("un envío se encuentra por la marca que trae (Felipe 2026-11-07: es lo que dice la etiqueta)", () => {
+    expect(coincideConBusqueda(textoBuscableDeEnvio(envio), "anqori")).toBe(true);
+    expect(coincideConBusqueda(textoBuscableDeEnvio({ ...envio, marcas: [] }), "anqori")).toBe(false);
   });
   it("ordena: seguir recibiendo, en camino, órdenes sin guía y al final lo que esta cuenta no puede recibir", () => {
     const e = (id: string, estado: "en_camino" | "abierto", creadoPorMi = false) => ({ ...envio, id, estado, creadoPorMi });
