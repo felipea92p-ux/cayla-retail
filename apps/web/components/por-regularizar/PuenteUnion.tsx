@@ -116,6 +116,8 @@ export function PuenteUnion({
           <b>{venta.descripcion}</b>
           {anotadoPorCaja(venta) && <small className="vsr-sl-anotado">{anotadoPorCaja(venta)}</small>}
           <small>{venta.vendidoPor}</small>
+          {/* Por qué la anotó a mano (20261106233000): las de antes no lo tienen y no dicen nada. */}
+          {venta.motivo && <small data-motivo-sin-registrar>Por qué a mano: {venta.motivo}</small>}
           <LineaCorregida fila={venta} />
           <span className="vsr-sl-pr">{soles(venta.precioCobrado)} cobrado</span>
           {/* Caja anota a ojo (ADR-0369): si la categoría, la talla o el color no eran, se corrigen aquí, antes de buscar la prenda. */}

@@ -233,3 +233,21 @@ dos caras que hay que explicar (opción C de la pregunta).
 **Cómo se verifica.** `pnpm pruebas:cola-arranque` (56 casos: sin cuadre no cierra; un cuadre anterior a la última venta no vale; con
 el cuadre después, cierra, y regularizar y reabrir no lo piden), `lib/cola-arranque-reglas.test.ts` (33), y en el navegador local la
 mesa dice «primero cuadra el piso» en vez de ofrecer «Cerrar la cola de arranque».
+
+## Actualización 2026-11-06: un tercer cierre, a mano en la base y sin cuadre (excepción de una vez)
+
+**Qué pasó.** Las dos tiendas acumularon 586 ventas sin registrar entre el 11-oct y el 6-nov (AQP 324, S/ 14,660.85; TRU 262,
+S/ 10,133.01). Ninguna de las dos había cuadrado su piso nunca, el plazo de TRU había vencido el 18-oct y el de AQP vencía el 7-nov, así
+que el botón no se ofrecía. Felipe decidió cerrarlas igual, sin escanear el almacén («si están guardadas, no me voy a poner a hacer esto»).
+**Cómo se hizo.** En el SQL Editor de producción, en una sola sentencia, con la misma lógica de `cerrar_cola_arranque` (filas bloqueadas en
+orden de id, corte un segundo antes de `now()`, un registro en `cierres_cola_arranque` por tienda, filas a `cerrada_sin_prenda` con su
+`cierre_id`), motivo `no_se_sabe`, firmado con la persona de Felipe. Se saltaron solo dos candados: el plazo y el cuadre (A6). El disparador
+de Actividad anotó un cierre por tienda. El costo estimado de las 586 (ADR-0417) no se tocó: todas lo tienen y ninguna está en 0.
+**Lo que NO cambia.** La regla sigue igual: la función y la pantalla siguen exigiendo plazo y cuadre. Esto fue una excepción de una vez,
+no un camino nuevo.
+**Lo que se paga.** El almacén de las dos tiendas sigue sin verificar (el aviso «el piso nunca se ha cuadrado» de Existencias), y las
+prendas que salieron sin registrar pueden seguir figurando en el piso del sistema. Felipe: cuadrar el almacén «cuando haya un día tranquilo».
+**Lo que se midió ese día (solo lectura).** Las ventas sin registrar no bajaron en proporción tras etiquetar: en los últimos 7 días fueron
+el ~34 % de las prendas vendidas en AQP y el ~15 % en TRU, casi lo mismo que a fines de octubre; el número absoluto bajó porque se vendió
+menos. En AQP, en más de la mitad había una prenda igual (categoría, talla y color) con stock en el piso de venta. La causa está en el
+mostrador, no en la etiqueta; el detalle por persona no se versiona (el repo es público).

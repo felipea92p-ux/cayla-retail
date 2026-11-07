@@ -268,7 +268,24 @@ ${CAMPANAS_SEDE.map(
 end $rehacer$;
 `;
 
+/** Inverso de 20261106233000 (el motivo de la venta sin registrar): el `insert into prendas_por_regularizar` vuelve a no llevar
+ *  `motivo` ni `motivo_detalle` (las columnas quedan: deshacer solo devuelve la función). El reemplazo se lee del archivo. Si la base no
+ *  lo tiene, `replace` no cambia nada. */
+const MOTIVO_SIN_REGISTRAR = readFileSync("supabase/migrations/20261106233000_motivo_de_la_venta_sin_registrar.sql", "utf8");
+const REEMPLAZO_MOTIVO = [...MOTIVO_SIN_REGISTRAR.matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
+if (REEMPLAZO_MOTIVO.length !== 1) throw new Error("registrar-venta-antes-de-precio-sede: no encontré el reemplazo del motivo de la venta sin registrar");
+export const DESHACER_MOTIVO_SIN_REGISTRAR = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${REEMPLAZO_MOTIVO[0][1]}$q$, $q$${REEMPLAZO_MOTIVO[0][0]}$q$);
+end $deshacer$;
+`;
+/** Rehacerlo es volver a pegar la migración entera: es re-ejecutable (columnas y candados con `if not exists`; el reemplazo no hace
+ *  nada si el texto nuevo ya está). */
+export const REHACER_MOTIVO_SIN_REGISTRAR = MOTIVO_SIN_REGISTRAR;
+
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
-export const DESHACER_POSTERIORES = `${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
+export const DESHACER_POSTERIORES = `${DESHACER_MOTIVO_SIN_REGISTRAR}\n${DESHACER_CAMPANAS_SEDE}\n${DESHACER_CLUB_PUNTOS}\n${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
 /** Y rehechos en su orden. */
-export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}\n${REHACER_CAMPANAS_SEDE}`;
+export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}\n${REHACER_CLUB_PUNTOS}\n${REHACER_CAMPANAS_SEDE}\n${REHACER_MOTIVO_SIN_REGISTRAR}`;

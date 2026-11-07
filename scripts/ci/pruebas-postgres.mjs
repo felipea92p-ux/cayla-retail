@@ -1419,6 +1419,10 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:corregir-prenda-sin-registrar",
 
+  // Por qué se anotó a mano (20261106233000): `registrar_venta` guarda el motivo de cada «Prenda sin registrar» y, con «otro», su
+  // texto (recortado a 120); un motivo raro o ausente nunca tumba la venta (queda null) y la tabla rechaza uno fuera de la lista. ROLLBACK.
+  "pruebas:prenda-sin-registrar-motivo",
+
   // Limpieza de las ventas sin registrar (ADR-0328, actividad 5; rescatada de #788 el 2026-10-12): las candidatas de cada venta
   // con el saldo del libro a la hora de la venta y lo que cambió después (de ahí la respuesta que sugiere la mesa), que contestar
   // mal descuenta dos veces, que nadie regulariza su propia venta salvo el líder firmando él mismo (ni desde la terminal), que
