@@ -70,6 +70,7 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { motivoParaRegistrar } from "@/lib/prenda-sin-registrar-motivo";
 import { prendasPosibles } from "@/lib/prenda-sin-registrar-posibles";
 import { rangoDePreciosDeCategoria } from "@/lib/prenda-sin-registrar-precio";
 import { AgregarBolsaModal, BotonDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
@@ -1407,7 +1408,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         // La descripción de caja es el nombre de la línea en el ticket y en el comprobante.
         referencia: d.descripcion,
         sku: "SIN-REGISTRAR",
-        prendaLibre: { descripcion: d.descripcion, categoriaId: d.categoriaId, tallaId: d.tallaId, colorCodigo: d.colorCodigo },
+        prendaLibre: { descripcion: d.descripcion, categoriaId: d.categoriaId, tallaId: d.tallaId, colorCodigo: d.colorCodigo, motivo: d.motivo, motivoDetalle: d.motivoDetalle },
         codigo: null,
         cantidad: 1,
         precioUnitario: d.precio,
@@ -1975,6 +1976,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,
         color_codigo: it.prendaLibre?.colorCodigo,
+        // Por qué se anotó a mano (20261106233000): sin motivo las claves ni aparecen y la base la deja «sin motivo».
+        ...motivoParaRegistrar(it.prendaLibre?.motivo, it.prendaLibre?.motivoDetalle),
         // De dónde salió la línea (Felipe 2026-10-10): `registrar_venta` la guarda en `venta_items.origen_sugerencia` cuando la
         // migración 20261010220100 esté pegada; antes, la ignora. Sin origen la clave ni aparece.
         origen_sugerencia: it.origen,
