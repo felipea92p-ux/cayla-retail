@@ -20,7 +20,9 @@ quitan, la hoja de filtros con «Ver N prendas»).
      «Recomendaciones» deja de flotar y pasa al pie («Envíanos una sugerencia»).
    - Tarjeta: una sola insignia automática (descuento > puesto > nuevo); en «Lo nuevo», sin «Nuevo» repetido; la disponibilidad con un punto.
    - Inicio: Club en un bloque vino (`--dn-vino`, el mismo `--rojo-profundo`) con los cuatro beneficios de sus Términos y su enlace
-     «Cómo funciona», bajadas en las secciones, «Así se separa» al final.
+     «Cómo funciona», bajadas en las secciones, «Así se separa» al final. **Sin «Outfits listos» ni «Las ofertas»** (Felipe, 2026-11-07:
+     demasiada información para la primera pantalla): las dos siguen en el menú y en el pie. Con ellas se fueron `OfertasPorCampana`,
+     `OutfitUnico` y sus estilos, que solo usaba el Inicio.
    - Catálogo: grupos, categorías, Color y Talla como fichas de 40 px; el puesto de «Más vendidos» solo en los tres primeros; el vacío con «Ver lo nuevo».
    - Ficha: la leyenda de la foto ya no tapa los puntos de la galería.
    - Búsqueda: cada resultado dice cuánto hay (la nota de su tarjeta), sin escribir ofrece lo recién llegado y el conteo dice «8 de 29».
