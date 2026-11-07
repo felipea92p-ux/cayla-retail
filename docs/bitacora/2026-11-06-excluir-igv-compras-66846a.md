@@ -1,0 +1,5 @@
+## 2026-11-06 (Ganancias y pérdidas: el IGV de las compras se contaba dos veces)
+Qué hice: medí octubre en producción: las ventas van sin IGV y el costo de la carga inicial lo trae (ADR-0433, punto 5), así que ese IGV pesa como costo y además es el crédito fiscal. Cargué `saldo_favor_igv` = S/ 62,035 con vigencia 1-oct, con el OK de Felipe, y cambié la nota «ese 18 % es de SUNAT», que hoy no es cierta.
+Por qué así: el arreglo del costo va en los costos con factura (ADR-0417 d.2), no en las ventas; el 20261106005000 solo cubre lo que entra desde ahora. La nota no menciona un saldo ni un mes para seguir siendo cierta cuando el crédito se acabe.
+Qué se rompería sin esto: Impuestos y «¿Me alcanza?» seguirían calculando sin el crédito, y octubre seguiría leyéndose peor de lo que fue sin que nada lo avisara.
+Estado: saldo en producción (la cifra sale de la bitácora del 2-nov; falta confirmarla contra el PDT, y una corrección va como fila nueva). La nota está en la rama. Sin corregir: el costo ya cargado, que espera el documento de Felipe y su decisión.

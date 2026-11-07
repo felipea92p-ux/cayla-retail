@@ -16,6 +16,9 @@ import type { CampanaFila, FilaER } from "./resultados-reglas";
 /** Desde cuánto un desvío contra lo planeado merece decirse: lo que se mira de un presupuesto son los desvíos grandes. */
 export const DESVIO_QUE_IMPORTA = 0.1;
 
+/** Por qué las ventas van sin IGV. No dice «es de SUNAT»: mientras haya crédito fiscal no se le paga nada, y el texto no puede dejar de ser cierto cuando se acabe. */
+export const NOTA_VENTAS_SIN_IGV = "Sin IGV: no es ingreso de CAYLA. Primero se descuenta de tu crédito fiscal y a SUNAT se le paga solo lo que falte.";
+
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Los gastos (que no son sueldos ni desgaste), agrupados como los dice una tienda. Lo que no está aquí cae en «Otros gastos». */
@@ -59,7 +62,7 @@ export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCasca
     return { ...t, plan, desvio: desvio(comp, plan) ?? undefined };
   };
   const detalle = f.detalleGastos.filter((g) => g.monto !== 0);
-  const tramos: TramoCascada[] = [{ clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", detalle: "Sin IGV: ese 18 % es de SUNAT." }];
+  const tramos: TramoCascada[] = [{ clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", detalle: NOTA_VENTAS_SIN_IGV }];
 
   const costo = f.costo + f.fletes + f.mermas;
   if (costo > 0) {

@@ -6,7 +6,7 @@
 // ASUME: toda cifra viene de la base. Aquí no se calcula plata: se agrupa, se compara y se escribe. Sin dato se dice, nunca un cero que no es.
 
 import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
-import { cascadaGanamos, porSede, type DejaSede } from "./ganamos-reglas";
+import { cascadaGanamos, NOTA_VENTAS_SIN_IGV, porSede, type DejaSede } from "./ganamos-reglas";
 import { nombreCortoSede, SEDE_EMPRESA } from "./finanzas-telar-reglas";
 import { chipContraAnterior, type ColumnaDeParte, type FilaDeParte, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
@@ -262,7 +262,7 @@ export function informeDeGanancias({
   });
   const gano = m.resultado >= 0;
   const filas: FilaInforme[] = [
-    { clave: "ventas", nombre: "Lo que vendiste", contable: "Ventas netas", tipo: "linea", valores: valores((x) => x.ventas), peso: m.ventas > 0 ? "100 %" : null, que: "Sin IGV: ese 18 % es de SUNAT." },
+    { clave: "ventas", nombre: "Lo que vendiste", contable: "Ventas netas", tipo: "linea", valores: valores((x) => x.ventas), peso: m.ventas > 0 ? "100 %" : null, que: NOTA_VENTAS_SIN_IGV },
     gasto("mercaderia", "Mercadería", "Costo de ventas"),
     { clave: "bruta", nombre: "Te queda de las prendas", contable: "Utilidad bruta", tipo: "subtotal", valores: valores((x) => x.ventas - x.mercaderia), peso: pesoContra(m.ventas - m.mercaderia, m.ventas) },
     gasto("sueldos", "Sueldos", "Gastos de personal"),
