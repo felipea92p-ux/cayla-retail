@@ -258,7 +258,11 @@ export async function ponerProveedorDeMarca(args: { p_despacho_id: string; p_mar
   return { error: error ?? null };
 }
 
-/** Pone el proveedor de un envío sin aviso que se abrió sin saberlo (una sola vez; el mismo otra vez no hace nada). Antes de cerrar. */
+/**
+ * Pone el proveedor de un envío sin aviso que se abrió sin saberlo (una sola vez; el mismo otra vez no hace nada). Antes de cerrar.
+ * @public Sin uso desde 2026-11-07: el cierre pone el proveedor marca por marca (`ponerProveedorDeMarca`). Se queda mientras la web publicada llame a
+ * `poner_proveedor_envio`; se quita junto con esa función de la base cuando ninguna web la use.
+ */
 export async function ponerProveedorEnvio(
   args: { p_despacho_id: string; p_proveedor_id: string },
   firma: Firma | null,
