@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCajaAbierta } from "@/lib/caja";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { puede, type PersonaActualV2 } from "@/lib/persona-actual";
 import type { CifrasRecordatorio, DatosRecordatorioCierre } from "@/lib/recordatorio-cierre-reglas";
 
@@ -25,15 +26,24 @@ type PersonaRecordatorio = Pick<PersonaActualV2, "vista" | "ubicacionTipo" | "pe
  */
 export async function leerRecordatorioCierre(persona: PersonaRecordatorio): Promise<DatosRecordatorioCierre | null> {
   if (!recibeRecordatorioCierre(persona)) return null;
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("ubicaciones").select("hora_cierre").eq("id", persona.ubicacionId).maybeSingle();
-  if (error) throw error;
-  const horaCierre = data?.hora_cierre ? String(data.hora_cierre).slice(0, 5) : null;
+  // La hora de cierre y la caja abierta van EN PARALELO (antes, en serie: tres idas a la base antes de pintar cualquier
+  // pantalla). La hora sale de `getUbicaciones()` —con `cache()`, la misma lectura que el layout ya hace para el selector— y la
+  // caja de `getCajaAbierta()`, también con `cache()`. Si la sede no tiene hora de cierre, la caja se descarta (y un error al
+  // leerla no importa: no hay nada que recordar).
+  const [ubicaciones, caja] = await Promise.all([
+    getUbicaciones(),
+    getCajaAbierta(persona.ubicacionId).then(
+      (c) => ({ ok: true as const, c }),
+      (e: unknown) => ({ ok: false as const, e }),
+    ),
+  ]);
+  const horaCierre = ubicaciones.find((u) => u.id === persona.ubicacionId)?.horaCierre ?? null;
   const base = { ubicacionId: persona.ubicacionId, sede: persona.ubicacionEtiqueta, horaCierre };
-  // Sin hora de cierre no hay nada que recordar: ni se pregunta por la caja.
+  // Sin hora de cierre no hay nada que recordar.
   if (!horaCierre) return { ...base, caja: null };
-  const caja = await getCajaAbierta(persona.ubicacionId);
-  return { ...base, caja: caja ? { id: caja.id, abiertaEn: caja.abiertaEn, abiertaPor: caja.abiertaPorNombre } : null };
+  if (!caja.ok) throw caja.e;
+  const abierta = caja.c;
+  return { ...base, caja: abierta ? { id: abierta.id, abiertaEn: abierta.abiertaEn, abiertaPor: abierta.abiertaPorNombre } : null };
 }
 
 /** Lo mismo, total: para el layout. Si la base no responde, no hay recordatorio en esta carga (el sondeo lo trae después). */
