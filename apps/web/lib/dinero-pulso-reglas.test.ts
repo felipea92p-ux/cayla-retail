@@ -136,3 +136,35 @@ describe("debesPulso", () => {
     expect(d.frase).toContain("Si hay facturas sin anotar, no están aquí");
   });
 });
+
+// ADR-0621: el fondo de compras ya viene sin lo gastado; lo que queda es tuyo, pero no paga cuentas.
+describe("lo por volver de compras", () => {
+  const FONDO = cuenta({ id: "fondo", nombre: "Fondo · Micaela", tipo: "fondo", cuentaContable: "1413", saldo: 285 });
+  it("«Tienes» lo cuenta, aparte, como «Por volver de compras»", () => {
+    const sin = tienesPulso(CUENTAS, null);
+    const con = tienesPulso([...CUENTAS, FONDO], null);
+    expect(con.total).toBe(sin.total + 285);
+    expect(con.partes.at(-1)).toEqual({ clave: "compras", titulo: "Por volver de compras", monto: 285 });
+    expect(con.frase).toContain("por volver de compras S/");
+  });
+  it("si una compradora gastó de más, «por volver» no baja de 0 y lo que se le debe va aparte, dentro del total", () => {
+    const debe = cuenta({ id: "fondo2", nombre: "Fondo · Sandra", tipo: "fondo", cuentaContable: "1413", saldo: -40 });
+    const t = tienesPulso([...CUENTAS, FONDO, debe], null);
+    expect(t.total).toBe(tienesPulso(CUENTAS, null).total + 285 - 40);
+    expect(t.partes.slice(-2)).toEqual([
+      { clave: "compras", titulo: "Por volver de compras", monto: 285 },
+      { clave: "debes_compras", titulo: "Le debes a las compradoras", monto: -40 },
+    ]);
+  });
+  it("sin fondo no aparece la parte", () => {
+    expect(tienesPulso(CUENTAS, null).partes.some((p) => p.clave === "compras")).toBe(false);
+  });
+  it("«¿Me alcanza?» dice que la proyección ya no lo cuenta, solo si hay algo", () => {
+    const a = alcanzaPulso({ ...PROY, porVolverCompras: 285 }, 0);
+    expect(a.estado === "sin_dato" ? null : a.porVolver?.monto).toBe(285);
+    for (const sin of [null, 0, undefined]) {
+      const b = alcanzaPulso({ ...PROY, porVolverCompras: sin }, 0);
+      expect(b.estado === "sin_dato" ? null : b.porVolver).toBeNull();
+    }
+  });
+});

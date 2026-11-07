@@ -54,6 +54,16 @@ function notaDelFlujo(real: FlujoReal, ganancia: number | null): string | null {
   return null;
 }
 
+/**
+ * ADR-0621: cuánto de lo que tienes lo tienen las compradoras para comprar. Es plata de CAYLA y por eso está en la cifra, pero no paga cuentas
+ * (la proyección ya no la cuenta). Lo que ya gastaron salió el día del papel como mercadería o gasto, aunque Compras todavía no lo complete.
+ */
+export function avisoPorVolver(real: Pick<FlujoReal, "porVolverCompras">, p: Pick<Periodo, "enCurso">): string | null {
+  const v = aCentimos(real.porVolverCompras ?? 0);
+  if (!(v > 0)) return null;
+  return `${p.enCurso ? "De lo que tienes hoy" : "De lo que tenías al terminar"}, ${solesCentimos(v)} ${p.enCurso ? "lo tienen" : "lo tenían"} las compradoras para comprar: es tuyo, pero va a mercadería, no a pagar cuentas. Lo que ya gastaron salió el día de su papel, aunque Compras todavía no lo complete.`;
+}
+
 /** Lo que dice la pantalla arriba: con cuánto terminaste y si es más o menos que al empezar. */
 export function lecturaDelFlujo(real: FlujoReal, ganancia: number | null, p: Periodo): LecturaDelFlujo {
   const noCubre = loQueNoCubre(real);
