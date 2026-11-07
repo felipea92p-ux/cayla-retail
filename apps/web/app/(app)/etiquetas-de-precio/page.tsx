@@ -6,7 +6,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 
 // Etiquetas de precio (ADR-0180). Se llega desde:
-//   - el resultado de Recibir (`?lotes=` con los lotes del envío) o de Ingreso sin comprobante (`?lotes=` con su lote);
+//   - el resultado de Recibir (`?lotes=` con los lotes del envío, y `?envio=` para volver a él) o de Ingreso sin comprobante (`?lotes=` con su lote);
 //   - una orden cerrada del Taller (`?produccion=`);
 //   - una campaña (`?campana=`): sus prendas en la tienda, con el precio de campaña o, si ya terminó, el normal;
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
@@ -31,6 +31,8 @@ type Params = {
   traslado?: string | string[];
   /** Llegó desde «Ajustar stock» de Existencias (`?unidades=` + `?ajuste=1`, ADR-0494): cambia el texto; «Volver» ya va a Existencias. */
   ajuste?: string | string[];
+  /** El envío de Recibir de donde se salió (`?lotes=` + `?envio=`): «Volver» regresa a ese envío, no a la lista. */
+  envio?: string | string[];
 };
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -45,6 +47,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const variantes = unidades.size > 0 ? [...unidades.keys()] : idsDeParam(params.variantes);
   const desde = desdeDeParams(params.desde);
   const [traslado] = idsDeParam(params.traslado);
+  const [envio] = idsDeParam(params.envio);
 
   const origen: OrigenEtiquetas | null = produccion
     ? { tipo: "produccion", id: produccion, ubicacionId: persona.ubicacionId }
@@ -81,7 +84,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null)}
+      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null, envio ?? null)}
     />
   );
 }

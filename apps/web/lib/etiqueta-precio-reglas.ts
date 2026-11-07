@@ -370,12 +370,13 @@ export function fechaEtiqueta(hoy: string): string {
 /** El enlace a la pantalla de impresión: desde el resultado de un ingreso (los lotes de Recibir / Ingreso sin
  *  comprobante, o la producción cerrada del Taller), desde una campaña o desde un producto. */
 export function urlEtiquetasDePrecio(
-  origen: { lotes: string[] } | { produccion: string } | { campana: string } | { producto: string } | { variantes: string[] },
+  origen: { lotes: string[]; envio?: string } | { produccion: string } | { campana: string } | { producto: string } | { variantes: string[] },
   /** La pantalla exacta que abre las etiquetas (ruta + filtros + vista): con ella, «Volver» regresa a la misma Tabla
    *  o Grilla con los mismos filtros, y no a la vista por defecto. Solo la usan producto y variantes (`desdeSeguro`). */
   desde?: string,
 ): string {
-  if ("lotes" in origen) return `/etiquetas-de-precio?lotes=${origen.lotes.join(",")}`;
+  // El envío de donde se salió (`&envio=`): «Volver» regresa a ESE envío, no a la lista de Recibir (Felipe 2026-11-07).
+  if ("lotes" in origen) return `/etiquetas-de-precio?lotes=${origen.lotes.join(",")}${origen.envio ? `&envio=${origen.envio}` : ""}`;
   // Varias prendas marcadas en la Tabla de Productos (ADR-0254): sus tallas, como las marcadas en Existencias (ADR-0237).
   if ("variantes" in origen) return conDesde(`/etiquetas-de-precio?variantes=${origen.variantes.join(",")}`, desde);
   if ("produccion" in origen) return `/etiquetas-de-precio?produccion=${origen.produccion}`;
@@ -407,8 +408,11 @@ export function volverDeEtiquetas(
   desde?: string | null,
   /** El traslado de donde se salió (`?traslado=`, ya validado como id): vuelve a su detalle, no a Existencias, que quien recibió quizá ni ve. */
   traslado?: string | null,
+  /** El envío de donde se salió (`?envio=`, ya validado como id): vuelve a ese envío, no a la lista de Recibir mercadería. */
+  envio?: string | null,
 ): { href: string; a: string } {
   if (!origen) return { href: "/", a: "Inicio" };
+  if (origen.tipo === "lotes" && envio) return { href: `/recibir/envio/${envio}`, a: "Envío" };
   if (origen.tipo === "variantes" && traslado) return { href: `/inventario/traslados/${traslado}`, a: "Traslado" };
   // Producto y variantes salen de la Tabla o la Grilla de Productos: se vuelve a la misma vista, con sus filtros.
   const vuelta = desdeSeguro(desde);

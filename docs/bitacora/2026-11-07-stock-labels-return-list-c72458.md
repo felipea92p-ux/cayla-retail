@@ -1,0 +1,4 @@
+## 2026-11-07 (Recibir: al volver de imprimir las etiquetas, se vuelve al envío que se estaba contando)
+Qué hice: el botón «Imprimir etiquetas de precio» de un envío (cerrado o recién cerrado) ahora lleva el envío en el enlace (`&envio=<id>`), y la hoja de etiquetas lo usa para que su flecha «Volver» regrese a `/recibir/envio/<id>`; sin envío (Llegó mercadería, Ingreso sin comprobante) sigue volviendo a Recibir mercadería.
+Por qué: Felipe reportó que, tras imprimir, «Volver» llevaba a la lista de todas las órdenes y había que buscar de nuevo la que se estaba contando; la vuelta estaba fija en `/recibir` (`volverDeEtiquetas`), igual que ya se resolvió para Traslados con `?traslado=`.
+Cómo verificar: `pnpm --filter web exec vitest run lib/etiqueta-precio-reglas.test.ts lib/recepcion-envio-reglas.test.ts`; en local, abrir un envío cerrado con stock, «Imprimir … etiquetas de precio» → la flecha dice «Volver a Envío» y regresa al mismo envío (probado con ENV-001917).

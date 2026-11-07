@@ -1379,6 +1379,8 @@ export function buenasDeRecibidos(recibidos: readonly RecibidoEnvio[] | null): {
  */
 export function despuesDeRecibirEnvio(p: {
   lotes: readonly string[];
+  /** El envío que se está recibiendo: la hoja de etiquetas vuelve a él, no a la lista de Recibir. */
+  envioId?: string;
   buenas: readonly { varianteId: string; cantidad: number }[];
   unidades: number;
   unidadesBuenas: number;
@@ -1389,7 +1391,7 @@ export function despuesDeRecibirEnvio(p: {
     acciones.push({
       clave: "etiquetas",
       texto: p.unidades === 1 ? "Imprimir la etiqueta de precio" : `Imprimir ${p.unidades.toLocaleString("es-PE")} etiquetas de precio`,
-      href: urlEtiquetasDePrecio({ lotes: [...p.lotes] }),
+      href: urlEtiquetasDePrecio({ lotes: [...p.lotes], envio: p.envioId }),
       principal: true,
     });
   }
