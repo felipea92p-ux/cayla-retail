@@ -36,7 +36,9 @@ export function geometriaDeLinea(valores: readonly number[]): GeometriaDeLinea |
   const max = Math.max(...valores);
   const pad = (max - min) * 0.16 || 1;
   const lo = min < 0 ? min - pad : min - (max - min) * 0.5 - (max === min ? 1 : 0);
-  const hi = max + pad * 2.2;
+  // Con todos los meses en pérdida el techo quedaba bajo cero y la raya del cero se salía por arriba del gráfico, encima del chip (Felipe 2026-11-06):
+  // el cero siempre cae dentro, con aire por encima para su etiqueta.
+  const hi = min < 0 ? Math.max(max, 0) + pad * 2.2 : max + pad * 2.2;
   const X = (i: number) => ((i + 0.5) / valores.length) * A;
   const Y = (v: number) => B - ((v - lo) / (hi - lo)) * B;
   const pts = valores.map((v, i) => [X(i), Y(v)] as const);

@@ -31,12 +31,10 @@ describe("el movimiento de Estados financieros (ADR-0611)", () => {
   });
 });
 
-describe("la tela no toca el resto del ERP", () => {
-  it("el fondo y la letra los pone solo el layout de Estados financieros", () => {
+describe("Estados financieros no toca el resto del ERP", () => {
+  it("la letra la pone solo su layout, y sin tela de hilos detrás de las cifras (camino A, 2026-11-06)", () => {
     const layout = readFileSync("app/(app)/finanzas/reportes/layout.tsx", "utf8");
     expect(layout).toContain("estados-vidrio");
-    expect(layout).toContain("<TelaHilos />");
-    expect(readFileSync("app/layout.tsx", "utf8")).not.toContain("TelaHilos");
-    expect(readFileSync("app/(app)/finanzas/layout.tsx", "utf8")).not.toContain("TelaHilos");
+    expect(layout).not.toContain("TelaHilos");
   });
 });

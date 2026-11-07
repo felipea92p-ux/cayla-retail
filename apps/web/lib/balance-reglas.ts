@@ -281,8 +281,6 @@ const QUE_ES: Record<string, [string, string]> = {
   "122": ["adelantos de clientes", "la suma de las separaciones pendientes"],
 };
 
-/** El texto de una causa sin su aclaración entre paréntesis (para la franja de «Causa probable»). */
-export const causaCorta = (texto: string) => texto.replace(/\s*\([^)]*\)\s*$/, "");
 
 /** Lo que dice la guía cuando el Balance no se dibuja: la primera cuenta que no cuadra, por cuánto y su causa más grande. */
 export function motivoNoCuadra(bloqueos: readonly Chequeo[]): { titulo: string; texto: string; causa: Causa | null; enlace: Enlace | null; otros: number } {
@@ -313,12 +311,10 @@ export function motivoNoCuadra(bloqueos: readonly Chequeo[]): { titulo: string; 
 
 /** «S/ 5,420» y «−S/ 1,778» (el signo menos de verdad), sin céntimos salvo que la cifra sea chica: como el spike. */
 export function solesBalance(v: number): string {
-  const conCentimos = Math.abs(v) < 100 && Math.round(v) !== v;
+  // Siempre con céntimos, como el resto de Estados financieros (Felipe 2026-11-06): antes S/ 147,468 y S/ 25.50 convivían en la misma lista.
   const abs = Math.abs(v);
-  const cuerpo = conCentimos
-    ? abs.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : Math.round(abs).toLocaleString("es-PE");
-  const cero = conCentimos ? abs === 0 : Math.round(abs) === 0;
+  const cuerpo = abs.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const cero = Math.round(abs * 100) === 0;
   return `${v < 0 && !cero ? "−" : ""}S/\u00a0${cuerpo}`;
 }
 
@@ -395,22 +391,6 @@ export function nombreDeCuenta(cuenta: string, nombre: string): string {
 /** El código que se muestra a la izquierda (el resultado del mes no tiene cuenta propia: se cierra en «lo tuyo»). */
 export const cuentaLinea = (l: Pick<LineaBalance, "cuenta">) => (l.cuenta === "resultado_mes" ? "" : l.cuenta);
 
-/** Una aclaración chica bajo la línea, cuando la cifra necesita contexto para no confundir. */
-export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion">): string | null {
-  if (l.cuenta === "201") {
-    const partes: string[] = [];
-    const recibir = n(l.detalle?.por_recibir);
-    const camino = n(l.detalle?.en_transito);
-    if (recibir) partes.push(`${solesBalance(recibir)} facturado por recibir`);
-    if (camino) partes.push(`${solesBalance(camino)} en camino entre tiendas`);
-    return partes.length ? `incluye ${partes.join(" y ")}` : null;
-  }
-  if (l.cuenta === "4011" && l.seccion === "pasivo") return "sube con cada mes y baja con cada pago a SUNAT";
-  if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
-  if (l.cuenta === "479") return "lo cobrado en las cuentas de CAYLA por prendas de CLAURE, sin el IGV, menos lo que ya se le pagó y su parte de los gastos";
-  if (l.cuenta === "4699") return "lo vendido de la mercadería de CLAURE, a su costo: los pagos a CLAURE todavía no se registran, por ahora solo sube";
-  return null;
-}
 
 export type BalanceAgrupado = {
   tiene: LineaBalance[];

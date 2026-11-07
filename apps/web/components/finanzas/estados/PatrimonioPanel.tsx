@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Landmark } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { Superficie } from "@/components/finanzas/kit";
-import { soles, solesConSigno } from "@/lib/flujo-caja-reglas";
+import { solesCentimos, solesConSignoCentimos } from "@/lib/flujo-caja-reglas";
 import { cuadroFormalPatrimonio } from "@/lib/patrimonio-reglas";
 
 // Estados financieros ▸ Cambios en el patrimonio: lo que no es la cifra (ADR-0585, ADR-0611). El cuadro del contador por columna, plegado en «Ver más», y lo que se dice si faltan los saldos de
@@ -43,7 +43,7 @@ export function PatrimonioFormal({ datos, titulo }: { datos: Parameters<typeof c
           </thead>
           <tbody>
             {filas.map((f) => {
-              const cifra = (v: number) => (f.fuerte ? soles(v) : Math.round(v) === 0 ? "—" : solesConSigno(v));
+              const cifra = (v: number) => (f.fuerte ? solesCentimos(v) : Math.round(v) === 0 ? "—" : solesConSignoCentimos(v));
               const celda = (v: number, l: string) => (
                 <td className="fin-num" data-l={l}>
                   {f.fuerte ? <b>{cifra(v)}</b> : cifra(v)}

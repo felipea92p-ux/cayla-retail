@@ -5,11 +5,15 @@
 // ASUME: toda cifra viene de la base. Aquí no se suma plata nueva: se agrupa lo que ya dio y se escribe. Con una cuenta que arrancó a mitad del período (ADR-0609) no se afirma
 // cuánto subió o bajó: no se sabe.
 
-import { chipContraAnterior, type ColumnaDeParte, type FilaDelLibro, type ParteEstado } from "./estados-partes";
+import { chipContraAnterior, type ColumnaDeParte, type ParteEstado } from "./estados-partes";
 import { nombreDelAnterior, type Periodo } from "./estados-periodo";
-import { soles, solesConSigno, type FlujoReal } from "./flujo-caja-reglas";
+import type { FilaInforme, Informe } from "./estados-informe";
+import { solesCentimos, solesConSignoCentimos, type FlujoReal } from "./flujo-caja-reglas";
 import { loQueNoCubre, montoDe, partesDelFlujo, type Actividad } from "./plata-reglas";
 import { mesNombre } from "./resultados-reglas";
+
+/** Montos con céntimos (Felipe 2026-11-06): la pantalla los escribe con dos decimales, así que no se redondean al sol. */
+const aCentimos = (n: number) => Math.round(n * 100) / 100;
 
 const QUE_ES: Record<Actividad, string> = {
   operacion: "Lo que cobraste a clientes menos lo que pagaste para operar.",
@@ -30,9 +34,9 @@ export type LecturaDelFlujo = {
 
 /** La razón de la cifra: nombra lo que se fue fuera del día a día, que es lo que separa «gané» de «tengo». */
 function notaDelFlujo(real: FlujoReal, ganancia: number | null): string | null {
-  const dia = Math.round(totalDe(real, "operacion"));
-  const d = Math.round(real.saldoFinal - real.saldoInicial);
-  const g = ganancia === null ? null : Math.round(ganancia);
+  const dia = aCentimos(totalDe(real, "operacion"));
+  const d = aCentimos(real.saldoFinal - real.saldoInicial);
+  const g = ganancia === null ? null : aCentimos(ganancia);
   if (g !== null && g > 0 && d < 0) {
     const fuera = [
       [montoDe(real, "activos"), "compraste cosas que duran años por"],
@@ -40,34 +44,34 @@ function notaDelFlujo(real: FlujoReal, ganancia: number | null): string | null {
       [montoDe(real, "pago_tarjeta"), "pagaste la tarjeta de crédito por"],
     ]
       .filter(([m]) => Math.round(m as number) > 0)
-      .map(([m, t]) => `${t} ${soles(m as number)}`);
-    if (fuera.length) return `Ganaste ${soles(g)}, pero ${fuera.length > 1 ? `${fuera.slice(0, -1).join(", ")} y ${fuera.at(-1)}` : fuera[0]}.`;
+      .map(([m, t]) => `${t} ${solesCentimos(m as number)}`);
+    if (fuera.length) return `Ganaste ${solesCentimos(g)}, pero ${fuera.length > 1 ? `${fuera.slice(0, -1).join(", ")} y ${fuera.at(-1)}` : fuera[0]}.`;
   }
-  if (dia < 0) return `En el día a día pagaste ${soles(-dia)} más de lo que cobraste.`;
+  if (dia < 0) return `En el día a día pagaste ${solesCentimos(-dia)} más de lo que cobraste.`;
   if (dia > 0 && d > 0) return "Cobraste más de lo que pagaste, y por eso la plata subió.";
-  if (dia > 0 && d < 0) return `En el día a día entraron ${soles(dia)}, pero salió más por otro lado.`;
+  if (dia > 0 && d < 0) return `En el día a día entraron ${solesCentimos(dia)}, pero salió más por otro lado.`;
   return null;
 }
 
 /** Lo que dice la pantalla arriba: con cuánto terminaste y si es más o menos que al empezar. */
 export function lecturaDelFlujo(real: FlujoReal, ganancia: number | null, p: Periodo): LecturaDelFlujo {
   const noCubre = loQueNoCubre(real);
-  const final = Math.round(real.saldoFinal);
-  const inicial = Math.round(real.saldoInicial);
+  const final = aCentimos(real.saldoFinal);
+  const inicial = aCentimos(real.saldoInicial);
   const queSeMira = p.unMes ? mesNombre(p.mes) : "el período";
   if (noCubre) {
     return {
       valor: final,
       mal: final < 0,
       frase: `No se puede decir cuánto subió o bajó: ${noCubre.cuentas.length === 1 ? "una cuenta arrancó" : `${noCubre.cuentas.length} cuentas arrancaron`} ${noCubre.cuando}.`,
-      chip: { texto: `Saldo de partida: ${soles(inicial)}`, tono: null },
+      chip: { texto: `Saldo de partida: ${solesCentimos(inicial)}`, tono: null },
       nota: null,
     };
   }
   const d = final - inicial;
-  const cuanto = d === 0 ? "lo mismo" : `${soles(Math.abs(d))} ${d > 0 ? "más" : "menos"}`;
+  const cuanto = d === 0 ? "lo mismo" : `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"}`;
   const frase = p.enCurso ? `Hoy tienes ${cuanto} que al empezar ${queSeMira}.` : `Terminaste ${queSeMira} con ${cuanto} que al empezar.`;
-  return { valor: final, mal: final < 0, frase, chip: { texto: `Empezaste con ${soles(inicial)}`, tono: null }, nota: notaDelFlujo(real, ganancia) };
+  return { valor: final, mal: final < 0, frase, chip: { texto: `Empezaste con ${solesCentimos(inicial)}`, tono: null }, nota: notaDelFlujo(real, ganancia) };
 }
 
 export type ComparadaFlujo = { etiqueta: string; real: FlujoReal | null };
@@ -84,14 +88,14 @@ export function partesDelEstadoFlujo({ real, comparadas, etiquetaActual, periodo
   const noCubre = loQueNoCubre(real) !== null;
   const conDe = (de: (r: FlujoReal) => number, buenoSubir: boolean | null) => {
     const c = columnas(de);
-    return { columnas: c, chip: chipContraAnterior(c, anterior, buenoSubir, soles) };
+    return { columnas: c, chip: chipContraAnterior(c, anterior, buenoSubir, solesCentimos) };
   };
   const delMedio: ParteEstado[] = partesDelFlujo(real).map((p) => ({
     clave: p.clave,
     nombre: p.nombre,
     color: colorDe(p.total),
     enBarra: Math.abs(p.total),
-    texto: solesConSigno(p.total),
+    texto: solesConSignoCentimos(p.total),
     tono: p.total < 0 ? "mal" : "bien",
     que: QUE_ES[p.clave],
     cifra: p.total,
@@ -106,7 +110,7 @@ export function partesDelEstadoFlujo({ real, comparadas, etiquetaActual, periodo
       color: "var(--estados-parte-3)",
       enBarra: 0,
       soloEnElGrafico: true,
-      texto: soles(real.saldoInicial),
+      texto: solesCentimos(real.saldoInicial),
       que: noCubre ? "El saldo de cada cuenta al empezar; las que arrancaron a mitad del período, con el de ese día." : `La plata con la que empezaste ${queSeMira}.`,
       cifra: real.saldoInicial,
       filas: [],
@@ -119,7 +123,7 @@ export function partesDelEstadoFlujo({ real, comparadas, etiquetaActual, periodo
       color: COLOR_TOTAL,
       enBarra: 0,
       soloEnElGrafico: true,
-      texto: soles(real.saldoFinal),
+      texto: solesCentimos(real.saldoFinal),
       que: periodo.enCurso ? "La plata que tienes hoy." : `La plata con la que terminaste ${queSeMira}.`,
       cifra: real.saldoFinal,
       filas: [
@@ -164,7 +168,7 @@ export function columnasDeCascada(partes: readonly ParteEstado[]): ColumnaCascad
   return tramos.map(({ p, total, menor, mayor, nivel }, i) => ({
     clave: p.clave,
     nombre: p.nombre,
-    texto: total ? soles(p.cifra) : `${Math.round(p.cifra) < 0 ? "−" : "+"}${Math.abs(Math.round(p.cifra)).toLocaleString("en-US")}`,
+    texto: total ? solesCentimos(p.cifra) : `${aCentimos(p.cifra) < 0 ? "−" : "+"}${Math.abs(aCentimos(p.cifra)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     total,
     color: total ? "color-mix(in srgb, var(--color-tinta) 15%, transparent)" : colorDe(p.cifra),
     abajo: escala(menor),
@@ -173,12 +177,43 @@ export function columnasDeCascada(partes: readonly ParteEstado[]): ColumnaCascad
   }));
 }
 
-/** El estado de flujos del contador, con sus nombres de siempre. Suma: inicio + cada actividad = final. */
-export function libroDelFlujo(real: FlujoReal): FilaDelLibro[] {
-  const partes = partesDelFlujo(real);
-  return [
-    { nombre: loQueNoCubre(real) ? "Saldo de partida" : "Saldo inicial", valor: real.saldoInicial, tipo: "normal" },
-    ...partes.map((p) => ({ nombre: p.formal.replace(/^Efectivo de actividades/, "Actividades"), valor: p.total, tipo: "normal" as const })),
-    { nombre: "Saldo final", valor: real.saldoFinal, tipo: "total" },
+
+/**
+ * El flujo de efectivo como informe (camino A, 2026-11-06): con cuánto se empezó, cada actividad que movió la plata (con su signo) y con cuánto se terminó, con los
+ * períodos de antes al lado. Las frases y el detalle de cada fila salen de las mismas partes (`partesDelEstadoFlujo`).
+ */
+export function informeDelFlujo({ real, partes, comparadas, etiquetaActual }: { real: FlujoReal; partes: readonly ParteEstado[]; comparadas: readonly ComparadaFlujo[]; etiquetaActual: string }): Informe {
+  const valores = (de: (r: FlujoReal) => number) => [...comparadas.map((c) => (c.real ? de(c.real) : null)), de(real)];
+  const formal = new Map(partesDelFlujo(real).map((p) => [p.clave, p.formal.replace(/^Efectivo de actividades/, "Actividades")]));
+  const deParte = (p: ParteEstado) => ({ que: p.que, detalle: p.filas, aviso: p.aviso ?? null });
+  const inicio = partes.find((p) => p.clave === "inicio");
+  const fin = partes.find((p) => p.clave === "fin");
+  const medio = partes.filter((p) => p.clave !== "inicio" && p.clave !== "fin");
+  const filas: FilaInforme[] = [
+    { clave: "inicio", nombre: inicio?.nombre ?? "Al empezar", contable: loQueNoCubre(real) ? "Saldo de partida" : "Saldo inicial", tipo: "subtotal", valores: valores((r) => r.saldoInicial), ...(inicio ? { que: inicio.que } : {}) },
+    ...medio.map((p) => ({
+      clave: p.clave,
+      nombre: p.nombre,
+      contable: formal.get(p.clave as Actividad) ?? p.nombre,
+      tipo: "linea" as const,
+      valores: valores((r) => totalDe(r, p.clave as Actividad)),
+      tono: p.cifra < 0 ? ("mal" as const) : null,
+      ...deParte(p),
+    })),
+    {
+      clave: "fin",
+      nombre: fin?.nombre ?? "Al terminar",
+      contable: "Saldo final",
+      tipo: "total",
+      valores: valores((r) => r.saldoFinal),
+      tono: real.saldoFinal < 0 ? "mal" : null,
+      ...(fin ? deParte(fin) : {}),
+    },
   ];
+  return {
+    titulo: "Flujo de efectivo",
+    columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
+    pesoDe: null,
+    filas,
+  };
 }

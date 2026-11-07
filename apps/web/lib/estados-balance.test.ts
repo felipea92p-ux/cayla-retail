@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cortesAnteriores, etiquetaDelCorte, ladosDeLaSede, ladosDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
-import { pasosDelLado } from "./estados-partes";
-import { soles } from "./flujo-caja-reglas";
+import { cortesAnteriores, etiquetaDelCorte, informeDeLaSede, informeDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
+import { solesCentimos } from "./flujo-caja-reglas";
 import type { UnidadBalance } from "./balance-reglas";
 import type { GrupoBalance } from "./vale-reglas";
 
@@ -27,15 +26,15 @@ describe("los cierres con que se compara", () => {
 describe("lo que dice la pantalla", () => {
   it("lo que vale, lo que tienes y lo que debes", () => {
     const l = lecturaDelBalance(GRUPOS, ANTES, "2026-10-31");
-    expect(l).toMatchObject({ valor: 70000, mal: false, frase: `Es lo que vale CAYLA: tienes ${soles(100000)} y debes ${soles(30000)}.` });
-    expect(l.chip).toEqual({ texto: `${soles(10000)} más que a fin de septiembre`, tono: "bien" });
+    expect(l).toMatchObject({ valor: 70000, mal: false, frase: `Es lo que vale CAYLA: tienes ${solesCentimos(100000)} y debes ${solesCentimos(30000)}.` });
+    expect(l.chip).toEqual({ texto: `${solesCentimos(10000)} más que a fin de septiembre`, tono: "bien" });
     expect(l.nota).toBe("El 60 % de lo que tienes está en mercadería.");
   });
   it("sin un cierre anterior que cuadre, no compara", () => {
     expect(lecturaDelBalance(GRUPOS, null, "2026-10-31").chip).toBeNull();
   });
   it("menos, igual y en negativo", () => {
-    expect(lecturaDelBalance(GRUPOS, [g("tuyo", "tuyo", 80000)], "2026-10-31").chip).toEqual({ texto: `${soles(10000)} menos que a fin de septiembre`, tono: "mal" });
+    expect(lecturaDelBalance(GRUPOS, [g("tuyo", "tuyo", 80000)], "2026-10-31").chip).toEqual({ texto: `${solesCentimos(10000)} menos que a fin de septiembre`, tono: "mal" });
     expect(lecturaDelBalance(GRUPOS, [g("tuyo", "tuyo", 70000)], "2026-10-31").chip).toEqual({ texto: "Igual que a fin de septiembre", tono: null });
     expect(lecturaDelBalance([g("tuyo", "tuyo", -5)], null, "2026-10-31")).toMatchObject({ mal: true, nota: null });
   });
@@ -53,8 +52,8 @@ describe("las partes", () => {
     expect(suma(["plata", "mercaderia", "equipos"])).toBe(suma(["proveedores", "impuestos", "tuyo"]));
   });
   it("lo tuyo que sube es bueno, una deuda que sube no, y lo demás solo se dice", () => {
-    expect(p.find((x) => x.clave === "tuyo")!.chip).toEqual({ texto: `${soles(10000)} más que a fin de septiembre`, tono: "bien" });
-    expect(p.find((x) => x.clave === "proveedores")!.chip).toEqual({ texto: `${soles(5000)} menos que a fin de septiembre`, tono: "bien" });
+    expect(p.find((x) => x.clave === "tuyo")!.chip).toEqual({ texto: `${solesCentimos(10000)} más que a fin de septiembre`, tono: "bien" });
+    expect(p.find((x) => x.clave === "proveedores")!.chip).toEqual({ texto: `${solesCentimos(5000)} menos que a fin de septiembre`, tono: "bien" });
     expect(p.find((x) => x.clave === "plata")!.chip!.tono).toBeNull();
   });
   it("un cierre que no cuadró no se dibuja", () => {
@@ -67,18 +66,19 @@ describe("las partes", () => {
   });
 });
 
-describe("el libro", () => {
-  const lados = ladosDelBalance(GRUPOS);
-  it("con sus nombres de siempre y sus totales", () => {
-    expect(lados[0]!.filas.map((f) => f.nombre)).toEqual(["Efectivo y equivalentes", "Mercadería", "Muebles y equipos", "Total activo"]);
-    expect(lados[1]!.filas.map((f) => f.nombre)).toEqual(["Proveedores", "Tributos por pagar", "Total pasivo", "Patrimonio"]);
+describe("el informe (camino A, 2026-11-06)", () => {
+  const partes = partesDelBalance({ grupos: GRUPOS, comparadas: [], etiquetaActual: "Oct", corte: "2026-10-31" });
+  const inf = informeDelBalance({ grupos: GRUPOS, partes, comparadas: [{ etiqueta: "Sep", grupos: null }], etiquetaActual: "Oct" });
+  it("con los nombres del contador, sus subtotales y lo tuyo al final", () => {
+    expect(inf.filas.map((f) => f.contable)).toEqual(["Efectivo y equivalentes", "Mercadería", "Muebles y equipos", "Total activo", "Proveedores", "Tributos por pagar", "Total pasivo", "Patrimonio"]);
     expect(totalesDelBalance(GRUPOS)).toEqual({ tiene: 100000, debe: 30000, tuyo: 70000 });
   });
-  it("cada barra mide contra lo que tienes", () => {
-    const pasos = pasosDelLado(lados[0]!);
-    expect(pasos[1]).toMatchObject({ desde: 0, ancho: 60 });
-    expect(pasos[3]).toMatchObject({ ancho: 100, tipo: "total" });
-    expect(pasosDelLado({ titulo: "x", total: 0, filas: [{ nombre: "a", valor: 5, tipo: "normal" }] })[0]!.ancho).toBe(0);
+  it("cuadra: lo que tienes menos lo que debes es lo tuyo, y cada fila pesa contra lo que tienes", () => {
+    const ahora = (clave: string) => inf.filas.find((f) => f.clave === clave)!.valores.at(-1)!;
+    expect(ahora("total-tiene") - ahora("total-debe")).toBe(ahora("tuyo"));
+    expect(inf.filas.find((f) => f.clave === "mercaderia")!.peso).toBe("60 %");
+    // Un cierre que no cuadró no se compara: «—».
+    expect(inf.filas[0]!.valores[0]).toBeNull();
   });
 });
 
@@ -86,9 +86,9 @@ describe("mirando una sede", () => {
   const u = (o: Partial<UnidadBalance> = {}): UnidadBalance => ({ ubicacionId: "u1", nombre: "Tienda Lima", tipo: "tienda", caja: 2000, mercaderia: 40000, activosFijos: 8000, activosCosto: 10000, activosDepreciacion: 2000, facturasPorPagar: 15000, invertido: 35000, ventasMes: 50000, utilidadMes: 4000, rinde: 0.114, desde: "2026-10-01", hasta: "2026-10-31", planillaVisible: true, sueldosEstimados: 0, ...o });
   it("dice que no es un Balance completo y cuánto rinde", () => {
     const l = lecturaDeLaSede(u(), u({ invertido: 30000 }), "2026-10-31");
-    expect(l.frase).toBe(`Es lo que hay invertido en Tienda Lima: tiene ${soles(50000)} y debe ${soles(15000)}.`);
+    expect(l.frase).toBe(`Es lo que hay invertido en Tienda Lima: tiene ${solesCentimos(50000)} y debe ${solesCentimos(15000)}.`);
     expect(l.nota).toBe("No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. Rinde 11,4 % al mes.");
-    expect(l.chip!.texto).toBe(`${soles(5000)} más que a fin de septiembre`);
+    expect(l.chip!.texto).toBe(`${solesCentimos(5000)} más que a fin de septiembre`);
     expect(lecturaDeLaSede(u({ tipo: "taller" }), null, "2026-10-31").nota).toBe("No es un Balance completo: el banco, el capital y el IGV son de CAYLA entera. El Taller no vende.");
   });
   const p = partesDeLaSede({ unidad: u(), comparadas: [{ etiqueta: "Sep", unidad: u({ mercaderia: 30000 }) }], etiquetaActual: "Oct", corte: "2026-10-31" });
@@ -99,7 +99,7 @@ describe("mirando una sede", () => {
       { nombre: "Lo que costaron", valor: 10000 },
       { nombre: "Desgaste", valor: -2000 },
     ]);
-    expect(p[1]!.chip!.texto).toBe(`${soles(10000)} más que a fin de septiembre`);
+    expect(p[1]!.chip!.texto).toBe(`${solesCentimos(10000)} más que a fin de septiembre`);
   });
   it("los dos tubos miden lo mismo", () => {
     const suma = (claves: string[]) => p.filter((x) => claves.includes(x.clave)).reduce((a, x) => a + x.enBarra, 0);
@@ -108,11 +108,12 @@ describe("mirando una sede", () => {
   it("con la caja abierta su cifra no se muestra (ADR-0186): se dice por qué", () => {
     const q = partesDeLaSede({ unidad: u({ caja: null }), comparadas: [], etiquetaActual: "Oct", corte: "2026-10-31" });
     expect(q[0]).toMatchObject({ texto: "—", cifra: 0, enBarra: 0, que: "La caja está abierta: su cifra la ve quien la cierra." });
-    expect(ladosDeLaSede(u({ caja: null }))[0]!.filas.map((f) => f.nombre)).not.toContain("Cajón y caja fuerte");
+    expect(informeDeLaSede({ unidad: u({ caja: null }), partes: q, comparadas: [], etiquetaActual: "Oct" }).filas[0]!.valores).toEqual([null]);
   });
-  it("su libro suma", () => {
-    const [a, b] = ladosDeLaSede(u());
-    expect(a!.filas.at(-1)).toMatchObject({ valor: 50000 });
-    expect(b!.filas.reduce((x, f) => x + f.valor, 0)).toBe(50000);
+  it("su informe suma", () => {
+    const inf = informeDeLaSede({ unidad: u(), partes: [], comparadas: [], etiquetaActual: "Oct" });
+    const ahora = (clave: string) => inf.filas.find((f) => f.clave === clave)!.valores.at(-1)!;
+    expect(ahora("total-tiene")).toBe(50000);
+    expect(ahora("facturas") + ahora("invertido")).toBe(50000);
   });
 });

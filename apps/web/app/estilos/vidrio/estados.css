@@ -1,28 +1,8 @@
 /* =====================================================================
-   ESTADOS FINANCIEROS EN VIDRIO (ADR-0611; Felipe eligió la tela «Hilos», las pestañas fijas y la letra Inter mirando la maqueta,
+   ESTADOS FINANCIEROS EN VIDRIO (ADR-0611; Felipe eligió las pestañas fijas y la letra Inter mirando la maqueta; la tela «Hilos» salió el 2026-11-06 con el camino «A · El informe»,
    docs/maquetas/finanzas-eeff-vidrio-2026-11/). Solo vale dentro de `.estados-vidrio`, que pone `app/(app)/finanzas/reportes/layout.tsx`: el resto del ERP no cambia.
    Los números salen de `recetas.css`. El movimiento (una vez, sin rebote ni bucle) es una excepción de ADR-0136, con su lista y su prueba: `lib/estados-movimiento.test.ts`.
    ===================================================================== */
-
-/* ---------- La tela: detrás de todo, también del marco ---------- */
-.tela-hilos {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-  background: var(--hilos-base);
-}
-.tela-hilos canvas {
-  position: absolute;
-  top: -8%;
-  left: -8%;
-  display: block;
-  width: 116%;
-  height: 116%;
-  will-change: transform;
-  transition: transform 1500ms var(--ease-cayla);
-}
 
 /* ---------- La placa: lo que explica, de vidrio con un filo de luz que da su vuelta una vez y un brillo que sigue al mouse ---------- */
 @property --giro-estados {
@@ -1747,21 +1727,278 @@
   }
 }
 
-/* ---------- Quien pidió menos transparencia o más contraste: la tela se apaga y el vidrio ya es macizo (`recetas.css`) ---------- */
-@media (prefers-reduced-transparency: reduce) {
-  .tela-hilos canvas {
-    opacity: 0.35;
-  }
-}
+/* ---------- Quien pidió más contraste: el filo de luz se apaga y el vidrio ya es macizo (`recetas.css`) ---------- */
 @media (prefers-contrast: more) {
-  .tela-hilos canvas,
   .placa-estados::before,
   .placa-estados::after {
     display: none;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .tela-hilos canvas {
-    transition: none;
+
+/* =====================================================================
+   EL INFORME (camino «A · El informe», Felipe 2026-11-06; maqueta docs/maquetas/estados-financieros-2026-11-rediseno/).
+   Cada estado se lee como lo leería el contador: el informe a la izquierda, la respuesta a la derecha. Placa Serena (recetas.css), sin desenfoque propio de esta pantalla.
+   ===================================================================== */
+.estados-en-informe {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1100px) {
+  .estados-en-informe {
+    grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+  }
+}
+.estados-informe-placa {
+  min-width: 0;
+  border: 1px solid var(--serena-borde);
+  border-radius: var(--radius-tarjeta);
+  background: var(--serena-fondo);
+  -webkit-backdrop-filter: var(--serena-filtro);
+  backdrop-filter: var(--serena-filtro);
+  box-shadow: var(--serena-sombra);
+  padding: 24px;
+}
+.estados-respuesta-columna {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- El informe ---------- */
+.estados-informe {
+  container-type: inline-size;
+  overflow-x: auto;
+  /* Sin esto, las filas que entran subiendo 6 px abren una barra de desplazamiento vertical mientras dura la entrada. */
+  overflow-y: hidden;
+}
+.estados-informe-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.estados-informe-cabeza h2 {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+.estados-informe-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.estados-informe-tabla thead th {
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--hilo-fila);
+  text-align: right;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-taupe);
+}
+.estados-informe-tabla thead th[data-actual] {
+  color: var(--color-tinta);
+}
+.estados-informe-tabla thead th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+.estados-informe-fila > * {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--hilo-fila);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-taupe);
+}
+.estados-informe-fila > [data-actual] {
+  font-weight: 500;
+  color: var(--color-tinta);
+}
+.estados-informe-fila > th {
+  width: 100%;
+  padding-left: 0;
+  text-align: left;
+  font-weight: 400;
+  color: var(--color-tinta);
+}
+.estados-informe-fila[data-tipo="subtotal"] > * {
+  background: var(--hundido-fondo);
+  font-weight: 600;
+}
+.estados-informe-fila[data-tipo="subtotal"] > th {
+  padding-left: 12px;
+  border-radius: 12px 0 0 12px;
+}
+.estados-informe-fila[data-tipo="subtotal"] > :last-child {
+  border-radius: 0 12px 12px 0;
+}
+.estados-informe-fila[data-tipo="total"] > * {
+  padding-top: 18px;
+  border-bottom: 0;
+  font-size: 17px;
+}
+.estados-informe-fila[data-tipo="total"] > [data-actual] {
+  font-family: var(--font-serif);
+  font-size: 26px;
+}
+.estados-informe-fila [data-tono="mal"],
+.estados-informe-fila > [data-tono="mal"] {
+  color: var(--color-rojo);
+}
+.estados-informe-fila > [data-tono="bien"] {
+  color: var(--color-verde);
+}
+.estados-informe-peso {
+  font-size: 13px;
+}
+/* Angosto: la columna más vieja se va primero; la de ahora y la de antes siempre quedan. */
+@container (max-width: 620px) {
+  .estados-informe [data-viejo] {
+    display: none;
+  }
+}
+.estados-informe-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.estados-informe-nombre button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  border-radius: 8px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.estados-informe-nombre button svg {
+  color: var(--color-taupe);
+}
+.estados-informe-nombre button svg[data-abierta] {
+  transform: rotate(90deg);
+}
+@media (hover: hover) {
+  .estados-informe-nombre button:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--color-borde-control);
+    text-underline-offset: 4px;
+  }
+}
+.estados-informe-menos {
+  margin-right: 6px;
+  color: var(--color-taupe);
+}
+.estados-informe-nombre u {
+  display: block;
+  width: min(220px, 100%);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hundido-fondo);
+  text-decoration: none;
+}
+.estados-informe-nombre u i {
+  display: block;
+  width: var(--w);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-tinta);
+  opacity: 0.55;
+  transform-origin: left;
+}
+.estados-informe-abierta > td {
+  padding: 4px 0 16px;
+  border-bottom: 1px solid var(--hilo-fila);
+}
+.estados-informe-detalle {
+  display: grid;
+  gap: 8px;
+  max-width: 60ch;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--hundido-fondo);
+  font-size: 14px;
+}
+.estados-informe-detalle p {
+  color: var(--color-taupe);
+}
+.estados-informe-aviso {
+  color: var(--color-ambar) !important;
+}
+.estados-informe-detalle ul {
+  display: grid;
+  gap: 6px;
+}
+.estados-informe-detalle li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ---------- La respuesta ---------- */
+.estados-respuesta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.estados-respuesta-nombre {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-taupe);
+}
+.estados-vidrio .estados-respuesta-cifra {
+  font-size: clamp(40px, 4.2vw, 60px);
+}
+.estados-respuesta-frase {
+  max-width: 40ch;
+  font-size: 17px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+.estados-respuesta-grafico {
+  position: relative;
+  height: 200px;
+  margin: 4px -8px 0;
+}
+.estados-respuesta-grafico .estados-linea-cero {
+  right: 0;
+  left: 0;
+}
+.estados-respuesta-nota {
+  font-size: 14px;
+  color: var(--color-taupe);
+}
+
+/* El movimiento, una vez y sin rebote (ADR-0136): las filas entran en cascada, la barrita crece, el detalle asoma. */
+@media (prefers-reduced-motion: no-preference) {
+  .estados-informe-fila > * {
+    animation: estados-informe-entra var(--t-hoja) var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 18ms);
+  }
+  .estados-informe-nombre u i {
+    animation: estados-informe-barra var(--t-momento) var(--ease-cayla) both;
+  }
+  .estados-informe-detalle {
+    animation: estados-informe-entra var(--t-hoja) var(--ease-cayla) both;
+  }
+  .estados-informe-nombre button svg {
+    transition: transform var(--t-cambio) var(--ease-cayla);
+  }
+}
+@keyframes estados-informe-entra {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes estados-informe-barra {
+  from {
+    transform: scaleX(0);
   }
 }
