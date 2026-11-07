@@ -213,3 +213,19 @@
 @media (prefers-reduced-motion: reduce) {
   .rc-lacre, .rc-lacre-sello, .rc-lacre-cifras > div, .rc-odo--entra .rc-odo-tira { animation: none; }
 }
+
+/* «Revisa y cierra» B (Felipe 2026-11-07): cada categoría y marca es una tarjeta (la de <Tabla>), con su cabecera —nombre, cuántas y su proveedor—,
+   el detalle de cada modelo al abrirlo y el costo del grupo al pie. Al costado, «Al cerrar» con lo que falta, tocable. Solo tokens. */
+.rc-cierre-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 14px 20px;
+  background: color-mix(in srgb, var(--color-hueso) 45%, transparent); }
+.rc-cierre-detalle { padding: 10px 20px 14px 72px; background: color-mix(in srgb, var(--color-hueso) 28%, transparent); }
+@container (max-width: 759px) { .rc-cierre-detalle { padding-left: 20px; } }
+.rc-cierre-pie { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 10px 20px;
+  background: color-mix(in srgb, var(--color-hueso) 30%, transparent); }
+.rc-cierre-falta { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 8px 12px; text-align: left;
+  border: 1px solid color-mix(in srgb, var(--color-ambar) 45%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--color-ambar) 9%, transparent);
+  color: var(--color-tinta); font-size: 14px; font-weight: 500; transition: background-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-cierre-falta:hover { background: color-mix(in srgb, var(--color-ambar) 16%, transparent); }
+}
+.rc-cierre-falta:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }

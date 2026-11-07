@@ -760,3 +760,12 @@ describe("nombreDeFila", () => {
     expect(nombreDeFila({ prenda: "Bolso", color: null, talla: null })).toBe("Bolso");
   });
 });
+
+describe("etiquetas de lo elegido en un envío de Recibir (Felipe 2026-11-07)", () => {
+  it("vuelve al envío y lo dice como lo elegido de lo que entró", () => {
+    expect(volverDeEtiquetas({ tipo: "variantes" }, null, null, "abc")).toEqual({ href: "/recibir/envio/abc", a: "el envío" });
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", entraron: true, desdeEnvio: true }, { unidades: 4, modelos: 1 }, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Recibir · Lo que elegiste");
+    expect(e.columnaCantidad).toBe("Entraron");
+  });
+});

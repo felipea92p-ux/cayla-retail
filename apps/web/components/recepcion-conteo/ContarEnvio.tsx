@@ -635,7 +635,7 @@ export function ContarEnvio({
       )}
       {proveedorPorConfirmar && (
         <p className="nota-cayla text-sm">
-          <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
+          <b className="text-tinta">Algo no dice de quién es.</b> Cuenta igual: al cerrar eliges el proveedor de esa marca (pregúntale a Compras). Lo demás lo dice su marca.
         </p>
       )}
       {/* Lo primero al entrar: sin un responsable la base rechaza todo guardado (ElegirQuienCuenta). */}
@@ -915,7 +915,7 @@ export function ContarEnvio({
       {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
           // Lo escrito al contar ya llena la hoja, igual que con «Crear ahora» de «Para después». Un nombre provisional («Blusa 1») no: aquí se le pone el de verdad.
-          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), nombreEscrito: hoja.nueva.porDefecto ? null : hoja.nueva.descripcion, nota: hoja.nueva.nota, descripcionOrden: sinAviso ? null : (lineaDeHoja.linea?.descripcion ?? null) }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length, sinAviso), nombreEscrito: hoja.nueva.porDefecto ? null : hoja.nueva.descripcion, nota: hoja.nueva.nota, descripcionOrden: sinAviso ? null : (lineaDeHoja.linea?.descripcion ?? null) }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}
@@ -935,7 +935,7 @@ export function ContarEnvio({
 
       {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
-          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length), pedidas: hoja.pedidas }}
+          destino={{ ...destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length, sinAviso), pedidas: hoja.pedidas }}
           categoria={categoriaDeHoja}
           colores={catalogo?.colores ?? []}
           vocabulario={catalogo?.vocabulario ?? null}
@@ -970,7 +970,7 @@ function estadoDelGrupo(lineas: readonly LineaParaContar[], guardados: Readonly<
 }
 
 /** A dónde va la hoja de la prenda («Es nueva» / «+ talla o color») desde una línea del conteo. */
-function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number): DestinoHoja {
+function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number, sinAviso = false): DestinoHoja {
   return {
     modo,
     despachoId: detalle.id,
@@ -982,6 +982,7 @@ function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "a
     precioSugerido: l.linea?.precioVentaSugerido ?? null,
     costoUnitario: l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null,
     prenda,
-    proveedorId: !l.linea && nProveedores >= 2 ? (l.proveedor?.id ?? null) : null,
+    // Lo de fuera de la guía lleva el proveedor de su línea: con dos o más en el envío, o sin aviso, donde cada línea es de su proveedor (Felipe 2026-11-07).
+    proveedorId: !l.linea && (nProveedores >= 2 || sinAviso) ? (l.proveedor?.id ?? null) : null,
   };
 }
