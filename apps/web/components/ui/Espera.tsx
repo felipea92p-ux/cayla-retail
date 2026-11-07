@@ -9,6 +9,7 @@ import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
 import { entradaActiva, suscribirEntrada } from "@/lib/entrada-estado";
 import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
 import { prefiereQuieto } from "@/lib/movimiento-cliente";
+import { useTituloDelDestino } from "@/components/useNavegacionAlInstante";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
@@ -115,7 +116,9 @@ export function useEsperando(activo: boolean, mensaje?: MensajeEspera) {
  */
 export function EsperaPantalla() {
   useEffect(() => tomarFicha(PRIORIDAD.carga, MENSAJE_ESPERA), []);
-  return <EsqueletoPantalla />;
+  // ADR-0628: si se entró desde el menú, el mismo nombre que ya mostraba el marco desde el clic (no cambia a medio camino).
+  const titulo = useTituloDelDestino();
+  return <EsqueletoPantalla titulo={titulo} />;
 }
 
 // ---- Las navegaciones de un buscador por URL: no muestran el loader (tienen su «Buscando…» propio) ----

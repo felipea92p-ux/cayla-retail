@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { filaDeVer, leerResumen } from "./resumen-finanzas-reglas";
-import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
+import { campanasDelMes, cascadaGanamos, desvio, filasDeSedes, metaDeVentas, NOTA_IGV_VENTAS, porSede, pptoDeLaSede, recomendacionesGanamos, ventaQueCubre } from "./ganamos-reglas";
+import { filasDeTramos } from "./cascada-estados-reglas";
 import type { FilaPpto } from "./presupuesto-reglas";
 import type { CampanaFila, FilaER } from "./resultados-reglas";
 
@@ -35,6 +36,32 @@ const fila = (p: Partial<FilaER>): FilaER =>
 
 const ppto = (p: Partial<FilaPpto>): FilaPpto =>
   ({ ubicacionId: null, unidad: "consolidado", nombre: "CAYLA", tipo: "tope", presupuesto: null, aLaFecha: 0, proyeccion: null, momento: "cerrado", linea: "", ...p }) as FilaPpto;
+
+// ADR-0624: la cascada parte de lo vendido con IGV, resta el IGV de tus ventas (es de SUNAT) y llega a lo vendido como subtotal. La suma no cambia.
+describe("cascadaGanamos con lo cobrado", () => {
+  const suma = (f: FilaER) => cascadaGanamos(f, []).filter((x) => x.tipo !== "queda" && !x.subtotal).reduce((a, x) => a + (x.tipo === "entra" ? x.monto : -x.monto), 0);
+
+  it("Vendiste con IGV → IGV de tus ventas → Vendiste, y lo vendido es un subtotal", () => {
+    const t = cascadaGanamos(fila({ igvCobrado: 1800 }), []);
+    expect(t.slice(0, 3).map((x) => [x.clave, x.nombre, x.tipo, x.monto, x.subtotal ?? false])).toEqual([
+      ["con_igv", "Vendiste con IGV", "entra", fila({}).ventas + 1800, false],
+      ["igv", "IGV de tus ventas", "sale", 1800, false],
+      ["ventas", "Vendiste", "entra", fila({}).ventas, true],
+    ]);
+    expect(t[1]!.detalle).toBe(NOTA_IGV_VENTAS);
+    expect(filasDeTramos(t).slice(0, 3).map((x) => x.tipo)).toEqual(["total", "paso", "subtotal"]);
+  });
+  it("no cambia la suma ni agrega «Otros ajustes»", () => {
+    const con = fila({ igvCobrado: 1800 });
+    expect(cascadaGanamos(con, []).some((x) => x.clave === "ajustes")).toBe(cascadaGanamos(fila({}), []).some((x) => x.clave === "ajustes"));
+    expect(suma(con)).toBeCloseTo(suma(fila({})), 2);
+  });
+  it("sin el IGV leído, la cascada empieza en lo vendido, como siempre", () => {
+    const t = cascadaGanamos(fila({}), []);
+    expect(t[0]).toMatchObject({ clave: "ventas", tipo: "entra", detalle: "Sin IGV." });
+    expect(t.some((x) => x.clave === "igv" || x.clave === "con_igv")).toBe(false);
+  });
+});
 
 describe("cascadaGanamos (ADR-0585)", () => {
   const t = cascadaGanamos(fila({}), [

@@ -25,6 +25,9 @@ import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { hrefConSedeYMes } from "@/lib/finanzas-telar-reglas";
+import { alEntrarDesdeElMenu, registrarPantallas } from "@/lib/navegacion-al-instante";
+import { useDestinoEnCamino } from "@/components/useNavegacionAlInstante";
+import { EsqueletoPantalla } from "@/components/Esqueleto";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useLateralConElDedo } from "@/components/useLateralConElDedo";
 import { useMenuHolgado } from "@/components/useMenuHolgado";
@@ -216,6 +219,8 @@ type FilaLateral =
 function useConSedeYMes() {
   const router = useRouter();
   return (href: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // ADR-0628: el clic entra al módulo EN ESTE INSTANTE (fila activa y esqueleto con su nombre), sin esperar al servidor.
+    alEntrarDesdeElMenu(href, e);
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const destino = hrefConSedeYMes(href, window.location.pathname, new URLSearchParams(window.location.search));
     if (destino === href) return;
@@ -786,7 +791,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     setCajon({ grupoId, top: Math.max(64, Math.min(r.top - 8, window.innerHeight - alto - 12)), left: borde(), enfocar });
   };
 
-  const activo = (href: string) => rutaActiva(pathname, href);
+  // ADR-0628: mientras el módulo al que se entró todavía no llega, el menú ya lo marca como activo (el clic se ve en el mismo instante).
+  const enCamino = useDestinoEnCamino();
+  const rutaVista = enCamino?.pathname ?? pathname;
+  const activo = (href: string) => rutaActiva(rutaVista, href);
 
   // El menú de esta persona: filas del lateral (y del cajón del celular) y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
   const menu = menuPara({
@@ -799,6 +807,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   // Buscador global (cabecera): toda pantalla que ESTE perfil ve, sin importar en qué grupo vive —
   // mismo filtro por rol que ya resolvió `menuPara`, no uno nuevo.
   const pantallasBuscables = menu.riel.flatMap(hojasDe);
+  // Los nombres del menú, para que el clic en una fila lleve el nombre de su módulo al esqueleto (ADR-0628).
+  useEffect(() => registrarPantallas(pantallasBuscables), [pantallasBuscables]);
 
   // Grupos colapsables: arrancan CERRADOS por defecto (pedido de Felipe,
   // 2026-09-16 — con "Catálogo" sumado a "Venta" se veía todo desplegado a
@@ -885,9 +895,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   const reubicarGota = useCallback(() => ponerGota(false), [ponerGota]);
   useMenuHolgado(navRef, reubicarGota, `${compacto}-${esCelular}-${grupos.length}`);
   const formaDelMenu = useRef<unknown[] | null>(null);
+  // La gota sigue a la ruta que se VE (ADR-0628): con el clic ya va a la fila del módulo al que se entra, sin esperar al servidor.
   useLayoutEffect(() => {
-    const navego = rutaDeLaGota.current !== null && rutaDeLaGota.current !== pathname;
-    rutaDeLaGota.current = pathname;
+    const navego = rutaDeLaGota.current !== null && rutaDeLaGota.current !== rutaVista;
+    rutaDeLaGota.current = rutaVista;
     cancelAnimationFrame(relojGota.current);
     // Si solo cambió la pantalla y el menú conserva su forma, una medición basta: la transición de marco.css lleva la gota a la fila
     // nueva (ADR-0623). Medirla cuadro a cuadro durante medio segundo forzaba ~30 recálculos justo mientras la pantalla nueva se armaba.
@@ -907,7 +918,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     };
     paso();
     return () => cancelAnimationFrame(relojGota.current);
-  }, [pathname, gruposAbiertos, compacto, esCelular, ponerGota]);
+  }, [rutaVista, gruposAbiertos, compacto, esCelular, ponerGota]);
   useEffect(() => {
     const alCambiar = () => ponerGota(false);
     // Y al terminar de crecer una caja o de plegarse el riel, una vez más: si el navegador no pintó cuadros mientras tanto
@@ -973,7 +984,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
         {/* El logo oficial, el mismo dibujo que la tienda (ADR-0446): la palabra CAYLA es el trazo del logo, no una letra. */}
-        <Link href="/" aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-[18px]" : "pl-7"}`}>
+        <Link href="/" onClick={(e) => alEntrarDesdeElMenu("/", e)} aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-[18px]" : "pl-7"}`}>
           {/* Plegado la palabra se desvanece y el lienzo sigue ancho: el colibrí mide 47 px de los 32 de alto (862 × 582), así que
               18 px de margen lo dejan al centro de los 84. */}
           <LogoCayla sinPalabra={compacto} className="h-8 origin-left transition-transform duration-500 ease-cayla group-hover:scale-105" />
@@ -1004,7 +1015,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               key={g.titulo}
               titulo={grupos.length > 1 ? g.titulo : null}
               items={g.items}
-              pathname={pathname}
+              pathname={rutaVista}
               activo={activo}
               gruposAbiertos={gruposAbiertos}
               compacto={compacto}
@@ -1168,7 +1179,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               ubicacionEtiqueta={persona.ubicacionEtiqueta}
               mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
             />
-            <Link href="/" aria-label="CAYLA, ir al inicio" className="marco-colibri mr-1.5 flex items-center gap-2 sm:hidden">
+            <Link href="/" onClick={(e) => alEntrarDesdeElMenu("/", e)} aria-label="CAYLA, ir al inicio" className="marco-colibri mr-1.5 flex items-center gap-2 sm:hidden">
               <LogoCayla soloColibri className="h-[26px]" />
             </Link>
           </div>
@@ -1228,7 +1239,14 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       >
         {/* `has-[[data-ancho-completo]]`: una pantalla con tope que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
             Felipe 2026-09-30) sin quitarle el tope a todas las cuentas de «/». */}
-        <div className={conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""}>{children}</div>
+        <div className={conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""}>
+          {/* ADR-0628: entraste a otro módulo y todavía no llega: su esqueleto con su nombre. La pantalla anterior queda montada pero
+              escondida: si la navegación no llega (un error, «atrás», 15 s), vuelve tal cual, con lo que tenía escrito. */}
+          {enCamino ? <EsqueletoPantalla titulo={enCamino.etiqueta} /> : null}
+          <div hidden={!!enCamino} className={enCamino ? undefined : "contents"}>
+            {children}
+          </div>
+        </div>
       </main>
 
       {/* Guías interactivas (ADR-0389): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por

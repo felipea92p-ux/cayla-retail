@@ -65,6 +65,15 @@ describe("medidores", () => {
     expect(m.cobertura).toBeCloseTo(0.8036, 3);
     expect(m.mesesDeMercaderia).toBeCloseTo(3.556, 2);
   });
+  it("el saldo a favor de IGV no cuenta como plata: SUNAT no lo paga, y el medidor no salta sin que entre un sol", () => {
+    // Los saldos de arranque de producción con la 4011 a favor: 13,687.68 en plata y cobros, 10,582.85 de deudas y 41,878 de crédito.
+    const lineas = [L("activo", "101", 2682.44), L("activo", "104", 5305.24), L("activo", "1413", 5700), L("activo", "4011", 41878), L("pasivo", "122", 11.78), L("pasivo", "41", 10571.07)];
+    const g = gruposDelBalance(lineas);
+    expect(g.find((x) => x.clave === "credito")).toMatchObject({ lado: "tiene", monto: 41878 });
+    const conCredito = medidores(g, null);
+    expect(conCredito.plataYCobros).toBeCloseTo(13687.68, 2);
+    expect(conCredito.cobertura).toBeCloseTo(1.2934, 3);
+  });
   it("sin deudas o sin costo, no inventa", () => {
     expect(medidores([], null)).toMatchObject({ cobertura: null, mesesDeMercaderia: null });
   });

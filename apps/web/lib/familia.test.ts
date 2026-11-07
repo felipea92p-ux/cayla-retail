@@ -289,7 +289,6 @@ const FUERA_DE_P10: Record<string, string> = {
   ".acompana-recorte::after": "el recorte de la guía sobre lo que se explica",
   ".marco-cajon-grupo": "el marco: grupo del menú en el celular",
   ".marco-yo": "el marco: la placa de quien entró",
-  ".cv-mes": "un mes que se elige: es un control, no una tarjeta",
   ".mc-accion": "una gota grande que se aprieta: es un botón, no una tarjeta",
   ".liq-previa": "un pozo: es hundido, no una tarjeta",
   ".obs .o-tj": "diseño propio: el Observatorio",

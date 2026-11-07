@@ -32,6 +32,7 @@ import {
   leerDetalleEnvio,
   leerEnviosPorAbrir,
   leerOrdenesDirectas,
+  textoMarcas,
   leerPrecioVenta,
   leerPrendaPreparada,
   leerPrendasParaRecibir,
@@ -161,8 +162,23 @@ describe("leer lo que está por recibir en la sede", () => {
       { id: "e1", numero: "ENV-000061", numero_guia: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"] },
     ]);
     expect(filas).toEqual([
-      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", despachadoEn: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], creadoPorMi: false },
+      { id: "e1", numero: "ENV-000061", numeroGuia: null, estado: "en_camino", despachadoEn: null, unidades: 32, lineas: 2, ordenes: ["OC-000129"], proveedores: ["Textiles Andina"], marcas: [], creadoPorMi: false },
     ]);
+  });
+
+  it("lee las marcas que trae cada envío y cada orden: sin repetir, en orden alfabético, `[]` si la base no las manda", () => {
+    const [e] = leerEnviosPorAbrir([{ id: "e1", numero: "ENV-000061", marcas: ["Zoe", "Anqori", "Zoe", "", null, { id: "m", nombre: "Bruma" }] }]);
+    expect(e.marcas).toEqual(["Anqori", "Bruma", "Zoe"]);
+    const [o] = leerOrdenesDirectas([{ orden_id: "o1", numero: "OC-000465", unidades_por_enviar: 2, marcas: ["Élite", "Anqori"] }]);
+    expect(o.marcas).toEqual(["Anqori", "Élite"]);
+    expect(leerOrdenesDirectas([{ orden_id: "o1", numero: "OC-000465", unidades_por_enviar: 2 }])[0].marcas).toEqual([]);
+  });
+
+  it("la línea de la marca: hasta tres separadas por «·», con más las dos primeras y «y N más», nada sin marca", () => {
+    expect(textoMarcas([])).toBeNull();
+    expect(textoMarcas(["Anqori"])).toBe("Anqori");
+    expect(textoMarcas(["A", "B", "C"])).toBe("A · B · C");
+    expect(textoMarcas(["A", "B", "C", "D", "E"])).toBe("A · B y 3 más");
   });
 
   it("lee cuándo salió el envío (`despachado_en`) tal como lo manda la base, y null si no lo manda", () => {
@@ -201,8 +217,8 @@ describe("leer lo que está por recibir en la sede", () => {
       { numero: 468, unidades_por_enviar: 4 },
     ]);
     expect(filas).toEqual([
-      { ordenId: "o1", numero: "OC-000465", proveedor: "Textiles Andina", unidadesPorEnviar: 12, creadaPorMi: false },
-      { ordenId: "o2", numero: "OC-000466", proveedor: "Sur", unidadesPorEnviar: 3, creadaPorMi: true },
+      { ordenId: "o1", numero: "OC-000465", proveedor: "Textiles Andina", marcas: [], unidadesPorEnviar: 12, creadaPorMi: false },
+      { ordenId: "o2", numero: "OC-000466", proveedor: "Sur", marcas: [], unidadesPorEnviar: 3, creadaPorMi: true },
     ]);
   });
 });

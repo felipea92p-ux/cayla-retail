@@ -1098,7 +1098,7 @@ export const GUIA_FIN_RESULTADOS: Guia = {
       ancla: "fin-ganamos.partes",
       opcional: true,
       titulo: "El estado, fila por fila",
-      texto: "Lo que vendiste, cada gasto que resta y lo que quedó, con los meses de antes al lado y cuánto pesa cada fila de lo vendido. Toca una fila para ver de qué está hecha.",
+      texto: "Arriba, lo que vendiste con IGV y el IGV de tus ventas, que es de SUNAT. Después lo que vendiste sin IGV, cada gasto que resta y lo que quedó, con los meses de antes al lado y cuánto pesa cada fila de lo vendido. Toca una fila para ver de qué está hecha.",
     },
     {
       id: "libro",

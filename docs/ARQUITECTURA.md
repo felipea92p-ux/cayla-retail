@@ -1993,6 +1993,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `leerProvision` la suma al devengado y las pantallas dicen «provisionado».
   **El costo de planilla es el costo real (ADR-0474, 20261022164000):** `planilla_por_sede.costo_total` y `fn_planilla_provision_calc` cuentan `total + AFP + renta de 4ª + EsSalud del
   empleador + provisiones` (antes, `total + provisiones`: 12,5 % corto en septiembre); en un período abierto el EsSalud corre por días corridos. `pagado` (el neto) no cambia: el Flujo de caja lo lee.
+  **El IGV de las ventas, «regla pareja» (ADR-0624, 20261107174000; reemplaza la capa del IGV dicho de ADR-0620):** el resultado de Ganancias es el del libro (más los sueldos estimados):
+  todo el IGV de las ventas se resta siempre, porque es de SUNAT. `fn_igv_de_las_ventas` → `lib/igv-ventas.ts` (`conIgvDeLasVentasDe`) → `lib/igv-ventas-reglas.ts` (`conIgvDeLasVentas`, `FilaER.igvCobrado`)
+  solo PRESENTAN lo cobrado en `/finanzas/reportes`: «Cobraste» → «IGV de tus ventas · es de SUNAT» → «Lo que vendiste» en el informe (`lib/estados-ganancias.ts`) y en la cascada (`lib/ganamos-reglas.ts`,
+  tramo `subtotal` de `filasDeTramos`). Sin la lectura no se dibujan esas filas. `decir_igv_del_mes`, `fn_igv_de_gestion` y (vacía) `retail.igv_del_mes` se retiraron; `lib/igv-ventas-uso.test.ts`
+  falla si la renta, el contador, el Balance, Patrimonio o el Flujo leen esta capa.
+  **El arranque resta el crédito (ADR-0620, 20261107035000, en producción):** dos filas en `saldos_iniciales` (4011 = 41,878.00 a favor, 50 = 201,758.78) y ninguna función cambia; el Balance pone la 4011 a favor en su grupo «Saldo a favor de IGV», fuera de plata y cobros. Pruebas: `pnpm pruebas:igv-ventas`, `pnpm pruebas:arranque-igv`.
 - **Finanzas F3–F10** (2026-09-25, ADR-0195, PR #396; detalle por fase en `docs/finanzas/fases/`). Todas las pantallas se
   arman con `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`; permisos en la base con `fn_es_lider()` o
   `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.
