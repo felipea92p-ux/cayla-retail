@@ -56,15 +56,29 @@ export function EsqueletoTarjetas({ tarjetas = 4 }: { tarjetas?: number }) {
  * la cabecera que siguen vivos. La forma de casi toda pantalla del ERP: el título, una fila de cifras y una tabla, con las piezas
  * de vidrio de siempre (`tarjeta-cifra`, `tabla-cayla`) para que al llegar lo real nada cambie de lugar ni de color.
  */
-export function EsqueletoPantalla() {
+/**
+ * La silueta de una pantalla mientras llega. Con `titulo` (ADR-0628: el nombre del menú del módulo al que se entró) dibuja ese nombre
+ * donde irá el de la cabecera, con la misma letra y medida: así se ve en el instante que el clic entró y a dónde. Es texto, no un `<h1>`:
+ * la pantalla todavía no llegó; para el lector, una línea «Abriendo …».
+ */
+export function EsqueletoPantalla({ titulo }: { titulo?: string | null } = {}) {
   const anchos = [42, 31, 47, 28, 38, 34, 44, 30];
   return (
-    <div aria-hidden data-esqueleto-pantalla className="flex flex-col gap-6 pt-2">
-      <div className="flex flex-col gap-3">
+    <div data-esqueleto-pantalla className="flex flex-col gap-6 pt-2">
+      {titulo ? (
+        <p role="status" className="sr-only">
+          Abriendo {titulo}…
+        </p>
+      ) : null}
+      <div aria-hidden className="flex flex-col gap-3">
         <Banda ancho={18} />
-        <div className="h-10 w-64 max-w-[70%] animate-pulse rounded bg-tinta/10" />
+        {titulo ? (
+          <p className="font-display mt-1 text-4xl leading-none tracking-tight text-tinta sm:text-[46px]">{titulo}</p>
+        ) : (
+          <div className="h-10 w-64 max-w-[70%] animate-pulse rounded bg-tinta/10" />
+        )}
       </div>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div aria-hidden className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="tarjeta-cifra card-cayla flex flex-col gap-3 p-5">
             <Banda ancho={50} />
@@ -72,7 +86,7 @@ export function EsqueletoPantalla() {
           </div>
         ))}
       </div>
-      <div className="tabla-cayla card-cayla divide-y overflow-hidden">
+      <div aria-hidden className="tabla-cayla card-cayla divide-y overflow-hidden">
         {anchos.map((ancho, i) => (
           <div key={i} className="flex items-center gap-4 px-5 py-4">
             <div className="h-4 animate-pulse rounded bg-tinta/10" style={{ width: `${ancho}%` }} />

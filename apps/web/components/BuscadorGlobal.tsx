@@ -11,6 +11,7 @@ import { armarEquipo, textoEstado, type MiembroEquipo } from "@/lib/inicio-aviso
 import type { ItemMenu } from "@/lib/menu";
 import { SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { alEntrarDesdeElMenu } from "@/lib/navegacion-al-instante";
 
 type Props = {
   /** Toda pantalla que este perfil puede abrir, ya resuelta por rol (`menu.riel.flatMap(hojasDe)` en
@@ -136,6 +137,8 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
         e.preventDefault();
         const href = fila.item.href;
         cerrar();
+        // ADR-0628: se entra a la pantalla en el instante (la misma señal que un clic en el menú).
+        alEntrarDesdeElMenu(href, { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false });
         router.push(href);
       }
     }
@@ -204,7 +207,10 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
                     <Link
                       key={p.href}
                       href={p.href}
-                      onClick={cerrar}
+                      onClick={(e) => {
+                        alEntrarDesdeElMenu(p.href, e);
+                        cerrar();
+                      }}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                         idx === marcada ? "bg-hueso text-tinta" : "text-tinta/80 hover:bg-sand/40"
                       }`}

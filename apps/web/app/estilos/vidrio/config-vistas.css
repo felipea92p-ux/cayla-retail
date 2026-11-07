@@ -15,44 +15,14 @@
 .cv-fila-tx { flex: 1; min-width: 0; }
 .cv-fila-tx b { display: block; font-size: 15.5px; font-weight: 500; line-height: 1.25; }
 
-/* Los tubos: se llenan según lo que valen */
-.cv-tubo {
-  position: relative;
-  display: block;
-  width: 34px;
-  height: 96px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--pozo-fondo);
-  box-shadow: var(--pozo-sombra), inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 7%, transparent);
-}
-.cv-tubo i {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(var(--n) * 100%);
-  border-radius: 0 0 999px 999px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 42%, var(--color-vidrio)), color-mix(in srgb, var(--c) 68%, transparent));
-  transition: height 700ms var(--ease-cayla);
-}
-.cv-tubo.hereda i { background: color-mix(in srgb, var(--color-tinta) 14%, transparent); }
-.cv-tubo::after { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 5px; border-radius: 9px; pointer-events: none; background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 80%, transparent), transparent 62%); }
-
-.cv-meses { display: grid; gap: 8px; margin-top: 12px; grid-template-columns: repeat(7, minmax(0, 1fr)); align-items: end; }
-.cv-mes { display: grid; justify-items: center; gap: 7px; padding: 10px 4px 9px; border-radius: 20px; color: var(--color-tinta); cursor: pointer; transition: background 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla), transform 300ms var(--ease-cayla); }
-.cv-mes[aria-pressed="true"] { background: var(--gota-fondo); box-shadow: var(--gota-luz); }
-.cv-mes:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
-@media (hover: hover) { .cv-mes:hover { transform: translateY(-2px); } }
-.cv-mes-nombre { font-size: 15px; font-weight: 500; }
-.cv-mes-monto { font: 500 18px/1 var(--font-serif); font-variant-numeric: lining-nums; white-space: nowrap; }
-.cv-semana-t { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin: 16px 0 10px; padding-top: 16px; border-top: 1px solid var(--hilo-fila); }
+/* Cuánto vender: una barra por mes y la semana (la pieza de las barras por tiempo, `<BarrasTiempo>`; los tubos se fueron el 2026-11-07). «Lo normal» se elige con su píldora. Las casillas van en las mismas siete columnas que las barras, para que cada una quede bajo su día. */
+.cv-meses { display: grid; gap: 14px; justify-items: start; margin-top: 12px; }
+.cv-meses-barras { width: 100%; }
+.cv-semana-t { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin: 18px 0 12px; padding-top: 16px; border-top: 1px solid var(--hilo-fila); }
 .cv-semana-t b { font: 500 22px var(--font-serif); }
-.cv-dias { display: grid; gap: 8px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.cv-dia { display: grid; justify-items: center; gap: 7px; min-width: 0; }
-.cv-dia .cv-tubo { width: 30px; height: 70px; }
-.cv-dia .cfg-casilla { width: 100%; max-width: 92px; }
-.cv-dia .fin-control { text-align: center; }
+.cv-dias { display: grid; column-gap: 4px; margin-top: 10px; grid-template-columns: repeat(7, minmax(0, 1fr)); justify-items: center; }
+.cv-dias .cfg-casilla { width: 100%; max-width: 104px; }
+.cv-dias .fin-control { text-align: center; }
 
 /* Los días especiales y las filas de una lista */
 .cv-boletos { display: grid; gap: 10px; margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
@@ -74,18 +44,16 @@
 @media (max-width: 767px) {
   .cv-bloque { padding: 16px; border-radius: var(--radius-tarjeta); }
   .cv-ver-mas { width: calc(100% + 32px); margin: 12px -16px -16px; border-radius: 0 0 24px 24px; }
-  .cv-meses { grid-template-columns: repeat(7, minmax(74px, 1fr)); overflow-x: auto; padding-bottom: 6px; }
-  .cv-dias { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cv-semana { overflow-x: auto; padding-bottom: 6px; }
+  .cv-semana-in { min-width: 518px; }
 }
 
 /* ---------- el movimiento: una vez ---------- */
 @keyframes cv-enfoca { from { opacity: 0; filter: blur(14px); transform: translateY(18px); } }
-@keyframes cv-sube { from { height: 0; } }
 .cv-bloque { animation: cv-enfoca 850ms var(--ease-cayla) calc(var(--e, 0) * 110ms) backwards; }
-.cv-tubo i { animation: cv-sube 1200ms var(--ease-cayla) calc(250ms + var(--k, 0) * 70ms) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
-  .cv-bloque, .cv-tubo i, .cv-mes, .cv-boleto { animation: none !important; transition: none !important; }
+  .cv-bloque, .cv-boleto { animation: none !important; transition: none !important; }
 }
 
 /* ---------- Dinero: los hilos, las tarjetas y las frases que avisan ---------- */

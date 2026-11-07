@@ -149,3 +149,12 @@ test("la orden de apps/web/vercel.json encuentra el script desde apps/web y desd
     assert.equal(correr({ VERCEL_ENV: "production", VERCEL_GIT_PREVIOUS_SHA: r.codigo }).status, 1, cwd);
   }
 });
+
+test("la rama de la cola de fusión no construye vista previa (la prueba el CI y producción construye main)", () => {
+  const cola = decidir({ entorno: "preview", asuntos: null, rama: "gh-readonly-queue/main/pr-1696-abc123" });
+  assert.equal(cola.construir, false);
+  assert.match(cola.motivo, /cola de fusión/);
+  // Una rama cualquiera sin historia sigue construyéndose, y producción siempre.
+  assert.equal(decidir({ entorno: "preview", asuntos: null, rama: "claude/algo" }).construir, true);
+  assert.equal(decidir({ entorno: "production", asuntos: null, rama: "gh-readonly-queue/main/pr-1" }).construir, true);
+});

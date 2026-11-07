@@ -7,6 +7,7 @@ import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { BotonEnlace, Boton } from "@/components/ui/campos";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
@@ -31,23 +32,17 @@ import {
 import type { CampanaConfig, ConfiguracionMetas as DatosMetas, ConfiguracionTiendas as Datos, FechaMeta, TiendaConfig } from "@/lib/configuracion-reglas";
 import { semanaConCambio, semanaDelMesConCambio } from "@/lib/metas-frescas-reglas";
 import { NO_SE_PUDO_LEER, semanaDelMesFresca, tiendaFresca } from "@/lib/metas-frescas";
-import { alturas, heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva, primerPasoMetas } from "@/lib/metas-tubos-reglas";
+import { heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva, primerPasoMetas } from "@/lib/metas-tubos-reglas";
 
-// Configuración ▸ Metas (Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/; metas por mes y por fecha, ADR-0435): ¿cuánto tiene que vender cada tienda? Un
-// tubo por mes que se llena según su meta y, al tocarlo, los siete días de ese mes: siete casillas en vez de cuarenta y dos. Cada casilla se guarda sola al salir de ella, firmada
-// con el responsable, con las mismas funciones de siempre.
+// Configuración ▸ Metas (Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/; metas por mes y por fecha, ADR-0435): ¿cuánto tiene que vender cada tienda? Una
+// barra por mes (`<BarrasTiempo>`, la pieza de las barras por tiempo; «Lo normal» es su píldora) y, al tocarla, los siete días de ese mes: siete casillas en vez de cuarenta y
+// dos. Cada casilla se guarda sola al salir de ella, firmada con el responsable, con las mismas funciones de siempre. Los tubos redondos se fueron el 2026-11-07: «parecen
+// píldoras» (Felipe).
 
 const conVar = (x: Record<string, string | number>) => x as CSSProperties;
 const texto = (n: number | null) => (n === null ? "" : String(n));
 const LO_NORMAL = "normal";
-
-function Tubo({ nivel, hereda = false, k = 0 }: { nivel: number; hereda?: boolean; k?: number }) {
-  return (
-    <span className={`cv-tubo ${hereda ? "hereda" : ""}`} aria-hidden>
-      <i style={conVar({ "--n": nivel, "--k": k })} />
-    </span>
-  );
-}
+const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 function CampanaFila({ campana, tienda, hoy, guardar }: { campana: CampanaConfig; tienda: TiendaConfig; hoy: string; guardar: Guardar }) {
   const estado = estadoCampana(campana.desde, campana.hasta, hoy);
@@ -259,13 +254,11 @@ export function VistaMetas({ datos, metas, metaDeHoy }: { datos: Datos; metas: D
   const normal = tienda.metas;
   const primerPaso = primerPasoMetas(normal);
   const totalNormal = mesTipico(normal);
-  const niveles = alturas([totalNormal, ...meses.map((m) => m.total)]);
   const mes = meses.find((m) => m.mes === elegido) ?? null;
   const esNormal = !mes;
   const propia = mes ? mes.metas : normal;
   const hereda = !esNormal && heredaLoNormal(propia);
   const efectiva = esNormal ? normal : semanaEfectiva(propia, normal);
-  const nivelesDia = alturas(efectiva);
   const alto = mesMasAlto(meses);
   const fechas = (metas?.fechas ?? []).filter((f) => f.ubicacionId === tienda.id);
   const nombreDelMes = (iso: string) => textoMes(iso.slice(0, 7));
@@ -340,39 +333,58 @@ export function VistaMetas({ datos, metas, metaDeHoy }: { datos: Datos; metas: D
 
         {primerPaso && <p className="cv-primer-paso">{primerPaso}</p>}
         <div className="cv-meses">
-          <button type="button" className="cv-mes" aria-pressed={esNormal} data-guia="config.tiendas-normal" aria-label={`Lo normal: ${totalNormal === null ? "sin meta" : solesRedondo(totalNormal)} al mes, aproximado`} onClick={() => setElegido(LO_NORMAL)}>
-            <Tubo nivel={niveles[0] ?? 0} />
-            <span className="cv-mes-nombre">Normal</span>
-            <span className="cv-mes-monto">{montoCorto(totalNormal)}</span>
+          <button type="button" className="pildora-cayla" aria-pressed={esNormal} data-guia="config.tiendas-normal" aria-label={`Lo normal: ${totalNormal === null ? "sin meta" : solesRedondo(totalNormal)} al mes, aproximado`} onClick={() => setElegido(LO_NORMAL)}>
+            Lo normal · {montoCorto(totalNormal)}
           </button>
-          {meses.map((m, i) => (
-            <button key={m.mes} type="button" className="cv-mes" aria-pressed={m.mes === elegido} aria-label={`${nombreDelMes(m.mes)}: ${m.total === null ? "sin meta" : solesRedondo(m.total)}`} onClick={() => setElegido(m.mes)}>
-              <Tubo nivel={niveles[i + 1] ?? 0} hereda={heredaLoNormal(m.metas)} k={i + 1} />
-              <span className="cv-mes-nombre capitalize">{nombreDelMes(m.mes).slice(0, 3)}</span>
-              <span className="cv-mes-monto">{montoCorto(m.total)}</span>
-            </button>
-          ))}
+          <BarrasTiempo
+            className="cv-meses-barras"
+            alto={132}
+            cifras="todas"
+            destacada={esNormal ? null : elegido}
+            respuesta={{ onElegir: setElegido }}
+            etiqueta={`Meta de cada mes en ${tienda.nombre}`}
+            barras={meses.map((m) => ({
+              clave: m.mes,
+              valor: m.total ?? 0,
+              etiqueta: mayuscula(nombreDelMes(m.mes).slice(0, 3)),
+              cifra: montoCorto(m.total),
+              aria: `${mayuscula(nombreDelMes(m.mes))}: ${m.total === null ? "sin meta" : solesRedondo(m.total)}${heredaLoNormal(m.metas) ? ", usa lo normal" : ""}${m.mes === elegido ? ". A la vista" : ""}`,
+            }))}
+          />
         </div>
 
         <div className="cv-semana-t">
-          <b className="capitalize">{mes ? nombreDelMes(mes.mes) : "Lo normal"}</b>
+          <b>{mes ? mayuscula(nombreDelMes(mes.mes)) : "Lo normal"}</b>
           <span className="vs-rotulo">{esNormal ? "Vale todo el año, salvo el mes que tenga su propia semana." : hereda ? "Usa lo normal. Escribe solo el día que cambia." : "Tiene su propia semana."}</span>
         </div>
-        <div className="cv-dias">
-          {DIAS_CORTOS.map((d, i) => (
-            <div key={d} className="cv-dia">
-              <Tubo nivel={nivelesDia[i] ?? 0} hereda={!esNormal && propia[i] === null} k={i} />
-              <span className="vs-rotulo">{d}</span>
-              <Casilla
-                key={`${tienda.id}|${elegido}|${i}`}
-                valor={texto(propia[i] ?? null)}
-                etiqueta={`Meta del ${DIAS_SEMANA[i]!.toLowerCase()} de ${mes ? nombreDelMes(mes.mes) : "lo normal"} en ${tienda.nombre}`}
-                ancho="w-full"
-                placeholder={esNormal || normal[i] === null ? "—" : String(normal[i])}
-                alGuardar={(n) => guardarDia(i, n)}
-              />
+        <div className="cv-semana">
+          <div className="cv-semana-in">
+            <BarrasTiempo
+              decorativa
+              alto={72}
+              cifras="ninguna"
+              etiqueta="La semana"
+              barras={DIAS_CORTOS.map((d, i) => ({
+                clave: d,
+                valor: efectiva[i] ?? 0,
+                etiqueta: d,
+                // En un mes, el día que cambia va en tinta; el que usa lo normal, en arena.
+                tono: !esNormal && propia[i] !== null ? ("tinta" as const) : undefined,
+              }))}
+            />
+            <div className="cv-dias">
+              {DIAS_CORTOS.map((d, i) => (
+                <Casilla
+                  key={`${tienda.id}|${elegido}|${i}`}
+                  valor={texto(propia[i] ?? null)}
+                  etiqueta={`Meta del ${DIAS_SEMANA[i]!.toLowerCase()} de ${mes ? nombreDelMes(mes.mes) : "lo normal"} en ${tienda.nombre}`}
+                  ancho="w-full"
+                  placeholder={esNormal || normal[i] === null ? "—" : String(normal[i])}
+                  alGuardar={(n) => guardarDia(i, n)}
+                />
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
