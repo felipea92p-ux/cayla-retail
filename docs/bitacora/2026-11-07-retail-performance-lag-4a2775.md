@@ -1,0 +1,5 @@
+# 2026-11-07 — Fluidez: lo que se desplaza no se desenfoca, y cambiar de pantalla no tapa nada (ADR-0623)
+
+**Qué se hizo:** se midió el lag en un equipo modesto simulado (32 cuadros/s y 18 tirones en una pantalla típica) y la causa principal fue el desenfoque de las tablas y las cifras sobre la Aurora fija. Felipe revisó una maqueta navegable con antes y después y eligió el vidrio claro «B» y «después» en todo lo demás: sin desenfoque en lo que se desplaza, nubes con degradados, esqueleto en vez de velo al navegar, la marca del menú medida una vez, guías y modales descargados al abrirlos, y menos mediciones al escribir y al mover el mouse.
+**Por qué:** en un equipo sin buena tarjeta gráfica el ERP volvía a desenfocar 10 pantallas de vidrio en cada cuadro del scroll; en un Mac M4 no se notaba, por eso pasó inadvertido.
+**Felipe se lleva:** la misma pantalla pasa a 53,6 cuadros/s y 1 tirón. Al cambiar de pantalla el menú y la cabecera se quedan y el contenido llega como esqueleto; guardar sigue con el velo. Los cambios de `vidrio/` no viajan solos a Dynamic: quedan como tarea allá.
