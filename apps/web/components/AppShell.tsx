@@ -11,7 +11,7 @@ import { BotonTema } from "@/components/ui/BotonTema";
 import { BotonMovimiento } from "@/components/ui/BotonMovimiento";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, modulosDeLasHojas, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
 import { MotorGuias } from "@/components/guias/MotorGuias";
@@ -20,7 +20,7 @@ import { BotonAsistente } from "@/components/asistente/Asistente";
 import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { BuscadorGlobal } from "@/components/BuscadorGlobal";
+import { BuscadorGlobal, abrirBuscadorGlobal } from "@/components/BuscadorGlobal";
 import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
@@ -176,7 +176,7 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   chevron: "M9 6l6 6-6 6",
   menu: "M4 7h16M4 12h16M4 17h16",
   cerrar: "M6 6l12 12M18 6L6 18",
-  // Lupa: atajo de cabecera a /buscar (celular).
+  // Lupa: en el celular abre el buscador de pantallas (BuscadorGlobal).
   buscar: "M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8",
 };
 
@@ -807,6 +807,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   // Buscador global (cabecera): toda pantalla que ESTE perfil ve, sin importar en qué grupo vive —
   // mismo filtro por rol que ya resolvió `menuPara`, no uno nuevo.
   const pantallasBuscables = menu.riel.flatMap(hojasDe);
+  const modulosBuscables = modulosDeLasHojas(menu.riel);
   // Los nombres del menú, para que el clic en una fila lleve el nombre de su módulo al esqueleto (ADR-0628).
   useEffect(() => registrarPantallas(pantallasBuscables), [pantallasBuscables]);
 
@@ -1175,6 +1176,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
                 este es otro buscador, otro trabajo. */}
             <BuscadorGlobal
               pantallas={pantallasBuscables}
+              modulos={modulosBuscables}
               ubicacionId={persona.ubicacionId}
               ubicacionEtiqueta={persona.ubicacionEtiqueta}
               mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
@@ -1217,16 +1219,17 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
                 <span className="label-cayla px-1.5 text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
               )}
             </div>
-            {/* `/buscar` es el buscador de prendas de UNA sede: en CAYLA Global no existe (ADR-0275). */}
-            {persona.vista === "global" ? null : (
-              <Link
-                href="/buscar"
-                aria-label="Buscar"
-                className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
-              >
-                <Icono d={IC.buscar} className="h-4 w-4" />
-              </Link>
-            )}
+            {/* Celular: la lupa abre el mismo buscador de pantallas del menú que «Buscar…» en escritorio (Felipe 2026-11-07). Antes
+                llevaba a `/buscar`, el de prendas, y en el teléfono no había cómo buscar un módulo; ese sigue en los accesos de Inicio. */}
+            <button
+              type="button"
+              onClick={abrirBuscadorGlobal}
+              aria-label="Buscar una pantalla o a alguien del equipo"
+              aria-haspopup="dialog"
+              className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+            >
+              <Icono d={IC.buscar} className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>
