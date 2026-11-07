@@ -1473,6 +1473,46 @@ export function costosDeHacerAhora(
 }
 
 /**
+ * El costo que una prenda ya tiene en el catálogo (Felipe 2026-11-07: «el costo y el precio siempre deben salir juntos»): el que más se repite
+ * entre sus combinaciones activas, como el precio de hoy. Un 0 no cuenta: es la combinación que nació sin costo, no un costo. Sin ninguno, `null`.
+ */
+export function costoDeCatalogo(prenda: Pick<PrendaRecepcion, "variantes"> | null | undefined): number | null {
+  const cuenta = new Map<number, number>();
+  for (const v of prenda?.variantes ?? []) if (v.costo != null && v.costo > 0) cuenta.set(v.costo, (cuenta.get(v.costo) ?? 0) + 1);
+  let mejor: number | null = null;
+  let veces = 0;
+  // Si empatan, el menor: el mismo criterio que el precio «normal» de una prenda.
+  for (const [v, n] of [...cuenta.entries()].sort((x, y) => x[0] - y[0])) {
+    if (n > veces) {
+      mejor = v;
+      veces = n;
+    }
+  }
+  return mejor;
+}
+
+/**
+ * Lo que dice cada campo de costo sin que la persona lo toque, en «Hacer ahora»: el costo que la prenda ya tiene en este conteo o en su línea y, si
+ * no tiene ninguno, el de su catálogo. Ese costo de catálogo se guarda con lo que entra, porque se ve en el campo: quien lo deja así lo está aceptando
+ * (si no se mandara, entraría sin costo mostrando uno). No se confirma como un cambio, porque no cambia nada de la prenda.
+ * Devuelve lo escrito más los costos de catálogo de las prendas que nadie tocó y no tenían costo.
+ */
+export function costosConCatalogo(
+  prendas: readonly { productoId: string }[],
+  escritos: Readonly<Record<string, string>>,
+  inicial: (productoId: string) => string,
+  deCatalogo: (productoId: string) => number | null,
+): Record<string, string> {
+  const efectivos: Record<string, string> = { ...escritos };
+  for (const p of prendas) {
+    if (Object.hasOwn(efectivos, p.productoId) || inicial(p.productoId).trim()) continue;
+    const c = deCatalogo(p.productoId);
+    if (c !== null) efectivos[p.productoId] = costoComoTexto(c);
+  }
+  return efectivos;
+}
+
+/**
  * Los cambios de costo que la base NO dejó anotados: la respuesta trae el conteo de la línea con el costo de cada prenda, y si lo que se mandó no
  * está ahí es que la base todavía no acepta el costo desde «Hacer ahora» (la migración sin pegar la deja pasar sin error y sin hacer nada). Sin
  * respuesta no se puede saber: no se alarma.

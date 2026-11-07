@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sePuedeCambiarCategoria } from "./recepcion-conteo-reglas";
+import { sePuedeCambiarCategoria, costoDeCatalogo, costosConCatalogo} from "./recepcion-conteo-reglas";
 import {
   lineasSinModelosEnCero,
   modelosEnCeroDe,
@@ -1343,5 +1343,24 @@ describe("cambiar la categoría de lo contado (Felipe 2026-11-06)", () => {
     expect(sePuedeCambiarCategoria({ tipo: "detalle" }, { linea: null })).toBe(false);
     expect(sePuedeCambiarCategoria({ tipo: "separar" }, { linea: null })).toBe(false);
     expect(sePuedeCambiarCategoria({ tipo: "crear" }, null)).toBe(false);
+  });
+});
+
+describe("el costo que la prenda ya tiene (Felipe 2026-11-07: el costo y el precio salen juntos)", () => {
+  const v = (costo: number | null) => ({ id: String(Math.random()), tallaId: null, talla: null, colorCodigo: null, color: null, codigo: null, costo, precio: null });
+  it("toma el costo que más se repite entre sus combinaciones; si empatan, el menor", () => {
+    expect(costoDeCatalogo({ variantes: [v(30), v(30), v(35)] })).toBe(30);
+    expect(costoDeCatalogo({ variantes: [v(35), v(30)] })).toBe(30);
+  });
+  it("un 0 o un vacío no es un costo", () => {
+    expect(costoDeCatalogo({ variantes: [v(0), v(null)] })).toBeNull();
+    expect(costoDeCatalogo({ variantes: [v(0), v(28)] })).toBe(28);
+    expect(costoDeCatalogo(undefined)).toBeNull();
+  });
+  it("se manda el de catálogo solo de la prenda que nadie tocó y no traía costo", () => {
+    const prendas = [{ productoId: "a" }, { productoId: "b" }, { productoId: "c" }, { productoId: "d" }];
+    const inicial = (id: string) => (id === "b" ? "25.00" : "");
+    const catalogo = (id: string) => (id === "d" ? null : 30);
+    expect(costosConCatalogo(prendas, { c: "40" }, inicial, catalogo)).toEqual({ a: "30.00", c: "40" });
   });
 });
