@@ -1,22 +1,14 @@
-// Configuración ▸ Metas (Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/): un tubo por mes y otro por día. Lógica pura de lo que dibujan.
+// Configuración ▸ Metas (Felipe 2026-11-05, docs/maquetas/configuracion-cuatro-vistas-2026-11/): una barra por mes y otra por día (desde el 2026-11-07 con `<BarrasTiempo>`, que
+// mide la altura sola; antes eran tubos). Lógica pura de lo que dibujan.
 // Solo dibuja: las reglas de qué meta rige siguen en la base (`fn_parametros_caja`, `fn_configuracion_metas`).
 
-const ALTURA_MINIMA = 0.04;
-
-/** Lo que vale «Lo normal» en un mes cualquiera: la semana tipo llevada a 30 días. Es para comparar tubos, no una meta: la del mes de verdad la suma la base. */
+/** Lo que vale «Lo normal» en un mes cualquiera: la semana tipo llevada a 30 días. Es para la píldora «Lo normal», no una meta: la del mes de verdad la suma la base. */
 export function mesTipico(semana: readonly (number | null)[]): number | null {
   if (semana.every((m) => m === null)) return null;
   return (semana.reduce<number>((t, m) => t + (m ?? 0), 0) * 30) / 7;
 }
 
-/** Hasta dónde se llena cada tubo, de 0 a 1, contra el más alto. Sin dato, vacío; con poco, se alcanza a ver. */
-export function alturas(valores: readonly (number | null)[]): number[] {
-  const tope = Math.max(0, ...valores.map((v) => v ?? 0));
-  if (tope <= 0) return valores.map(() => 0);
-  return valores.map((v) => (v === null || v <= 0 ? 0 : Math.max(ALTURA_MINIMA, v / tope)));
-}
-
-/** «123 mil», «850», «1,2 M»: lo que cabe bajo un tubo. Sin dato, «—». El monto exacto va en el nombre del botón. */
+/** «123 mil», «850», «1,2 M»: lo que cabe sobre una barra. Sin dato, «—». El monto exacto va en el nombre del botón. */
 export function montoCorto(v: number | null): string {
   if (v === null) return "—";
   if (v >= 1_000_000) return `${(v / 1_000_000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} M`;

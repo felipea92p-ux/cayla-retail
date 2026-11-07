@@ -1,24 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { primerPasoMetas, alturas, heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva } from "./metas-tubos-reglas";
+import { primerPasoMetas, heredaLoNormal, mesMasAlto, mesTipico, montoCorto, semanaEfectiva } from "./metas-tubos-reglas";
 
-describe("los tubos de Metas", () => {
+describe("las barras de Metas", () => {
   it("«Lo normal» se lleva a 30 días para compararse; sin metas no vale nada", () => {
     expect(mesTipico([700, 700, 700, 700, 700, 700, 700])).toBe(21000);
     expect(mesTipico([700, null, null, null, null, null, null])).toBe(3000);
     expect(mesTipico([null, null, null, null, null, null, null])).toBeNull();
   });
 
-  it("cada tubo se mide contra el más alto, y uno muy chico igual se ve", () => {
-    expect(alturas([100, 50, null])).toEqual([1, 0.5, 0]);
-    expect(alturas([1000, 1])).toEqual([1, 0.04]);
-  });
-
-  it("sin ninguna meta, todos vacíos", () => {
-    expect(alturas([null, null])).toEqual([0, 0]);
-    expect(alturas([0, null])).toEqual([0, 0]);
-  });
-
-  it("el monto corto cabe bajo el tubo", () => {
+  it("el monto corto cabe sobre la barra", () => {
     expect(montoCorto(null)).toBe("—");
     expect(montoCorto(850)).toBe("850");
     expect(montoCorto(123456)).toBe("123 mil");
