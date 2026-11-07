@@ -1,0 +1,37 @@
+// Dibuja los recursos del escenario (pedestales, flor y textura) con SVG en Chromium y los guarda en WebP. Se corre una vez: la página solo carga el
+// resultado, sin filtros en vivo. Es todo dibujo propio: no hay imágenes de terceros ni derechos que verificar.
+// Uso: PW=<ruta a playwright> SH=<ruta a sharp> node generar.cjs
+const path=require("path");const {chromium}=require(process.env.PW||"playwright");const sharp=require(process.env.SH||"sharp");
+const piedra=(alto)=>{const W=1000,top=70,rx=470,ry=62,cx=500,bot=top+alto;
+return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${bot+ry+60}" viewBox="0 0 ${W} ${bot+ry+60}"><defs>
+<linearGradient id="lado" x1="0" x2="1"><stop offset="0" stop-color="#a98c75"/><stop offset=".06" stop-color="#c2a78f"/><stop offset=".28" stop-color="#e3cfbb"/><stop offset=".44" stop-color="#e9d7c5"/><stop offset=".7" stop-color="#d5bea8"/><stop offset=".92" stop-color="#b59a82"/><stop offset="1" stop-color="#987d66"/></linearGradient>
+<linearGradient id="oclusion" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#6f5a49" stop-opacity=".30"/><stop offset=".12" stop-color="#6f5a49" stop-opacity="0"/><stop offset=".7" stop-color="#6f5a49" stop-opacity="0"/><stop offset="1" stop-color="#5c4a3b" stop-opacity=".34"/></linearGradient>
+<radialGradient id="tapa" cx=".36" cy=".34" r=".78"><stop offset="0" stop-color="#f6ebdf"/><stop offset=".55" stop-color="#ecdccb"/><stop offset="1" stop-color="#d9c3ae"/></radialGradient>
+<radialGradient id="suelo" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#4a3226" stop-opacity=".5"/><stop offset=".6" stop-color="#4a3226" stop-opacity=".2"/><stop offset="1" stop-color="#4a3226" stop-opacity="0"/></radialGradient>
+<filter id="vetas" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .045" numOctaves="3" seed="7"/><feColorMatrix values="0 0 0 0 .52  0 0 0 0 .38  0 0 0 0 .27  1.2 0 0 0 -.56"/></filter>
+<filter id="poros" x="0" y="0" width="100%" height="100%"><feTurbulence type="turbulence" baseFrequency=".55" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 .3  0 0 0 0 .22  0 0 0 0 .16  0 2.4 0 0 -1.05"/></filter>
+<filter id="relieve" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="4" seed="11" result="n"/><feDiffuseLighting in="n" surfaceScale="1.1" diffuseConstant="1" lighting-color="#fff"><feDistantLight azimuth="225" elevation="62"/></feDiffuseLighting></filter>
+<clipPath id="cuerpo"><path d="M${cx-rx} ${top}V${bot}A${rx} ${ry} 0 0 0 ${cx+rx} ${bot}V${top}Z"/></clipPath><clipPath id="disco"><ellipse cx="${cx}" cy="${top}" rx="${rx}" ry="${ry}"/></clipPath>
+<filter id="suave"><feGaussianBlur stdDeviation="12"/></filter></defs>
+<ellipse cx="${cx+34}" cy="${bot+22}" rx="${rx+24}" ry="${ry*.62}" fill="url(#suelo)" filter="url(#suave)"/>
+<g clip-path="url(#cuerpo)"><rect width="${W}" height="${bot+ry}" fill="url(#lado)"/><rect width="${W}" height="${bot+ry}" filter="url(#relieve)" style="mix-blend-mode:multiply" opacity=".2"/><rect width="${W}" height="${bot+ry}" filter="url(#vetas)" opacity=".26"/><rect width="${W}" height="${bot+ry}" filter="url(#poros)" opacity=".62"/><rect y="${top}" width="${W}" height="${alto+ry}" fill="url(#oclusion)"/></g>
+<g clip-path="url(#disco)"><ellipse cx="${cx}" cy="${top}" rx="${rx}" ry="${ry}" fill="url(#tapa)"/><rect width="${W}" height="${top*2+20}" filter="url(#vetas)" opacity=".14"/><rect width="${W}" height="${top*2+20}" filter="url(#poros)" opacity=".42"/></g>
+<path d="M${cx-rx} ${top}A${rx} ${ry} 0 0 0 ${cx+rx} ${top}" fill="none" stroke="#fbf1e6" stroke-opacity=".75" stroke-width="3"/><path d="M${cx-rx+2} ${top+6}A${rx} ${ry} 0 0 0 ${cx+rx-2} ${top+6}" fill="none" stroke="#7a6452" stroke-opacity=".22" stroke-width="5"/>
+</svg>`};
+// Una flor: cinco pétalos grandes con la orilla ondulada, vetas y luz por pétalo. Discreta y borgoña, para acompañar sin competir.
+const flor=(seed,giro)=>{const p=(a,i)=>`<g transform="rotate(${a} 300 300)"><path d="M300 300C${210-i*6} 240 ${150} 130 ${206+i*4} 66C${250} 26 ${350} 26 ${394-i*4} 66C${450} 130 ${390+i*6} 240 300 300Z" fill="url(#pet${i%2})" filter="url(#onda)"/><g stroke="#3d0a12" stroke-opacity=".34" fill="none" stroke-width="1.6" filter="url(#onda)"><path d="M300 288C298 200 300 130 300 60"/><path d="M300 270C278 200 252 130 240 86"/><path d="M300 270C322 200 348 130 360 86"/><path d="M300 280C286 220 270 170 268 70"/><path d="M300 280C314 220 330 170 332 70"/></g><path d="M300 300C262 262 232 190 222 110C258 180 280 240 300 300Z" fill="#fff" opacity=".07" filter="url(#onda)"/></g>`;
+return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><defs>
+<radialGradient id="pet0" gradientUnits="userSpaceOnUse" cx="300" cy="300" r="250"><stop offset="0" stop-color="#2b050b"/><stop offset=".22" stop-color="#590d18"/><stop offset=".62" stop-color="#7f1622"/><stop offset="1" stop-color="#9a2530"/></radialGradient>
+<radialGradient id="pet1" gradientUnits="userSpaceOnUse" cx="300" cy="300" r="250"><stop offset="0" stop-color="#260409"/><stop offset=".24" stop-color="#4f0b15"/><stop offset=".66" stop-color="#70131e"/><stop offset="1" stop-color="#881e29"/></radialGradient>
+<filter id="onda" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="3" seed="${seed}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="34" xChannelSelector="R" yChannelSelector="G" result="d"/><feDropShadow in="d" dx="2" dy="3" stdDeviation="5" flood-color="#21040a" flood-opacity=".5"/></filter>
+<linearGradient id="est" x1="0" x2="1"><stop offset="0" stop-color="#93242f"/><stop offset="1" stop-color="#5f0f1a"/></linearGradient></defs>
+<g transform="rotate(${giro} 300 300)">${[0,144,288,72,216].map((a,i)=>p(a,i)).join("")}
+<path d="M298 300C330 262 372 214 412 176" fill="none" stroke="url(#est)" stroke-width="9" stroke-linecap="round"/>${Array.from({length:16},(_,k)=>{const t=.55+k*.03;const x=298+(114*t)+(k%2?10:-10);const y=300-(124*t)+(k%2?10:-8);return `<circle cx="${x}" cy="${y}" r="4.500" fill="#c49a4c"/>`}).join("")}</g></svg>`};
+const yeso=`<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><defs><filter id="f" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" seed="4" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .32  0 0 0 0 .22  0 0 0 0 .18  0 0 0 .14 -.05"/></filter></defs><rect width="128" height="128" filter="url(#f)"/></svg>`;
+(async()=>{const b=await chromium.launch();const p=await b.newPage();const fuera=__dirname;
+ const toma=async(svg,w,h,nombre,ancho,q=82)=>{await p.setViewportSize({width:w,height:h});await p.setContent(`<!doctype html><body style="margin:0;background:transparent">${svg}</body>`);await p.waitForTimeout(150);const png=await p.screenshot({omitBackground:true,clip:{x:0,y:0,width:w,height:h}});const r=await sharp(png).resize({width:ancho}).webp({quality:q,alphaQuality:90,effort:6}).toFile(path.join(fuera,nombre));console.log(nombre,r.width,r.height,Math.round(r.size/1024)+" KB")};
+ await toma(piedra(160),1000,352,"pedestal-bajo.webp",760);
+ await toma(piedra(270),1000,462,"pedestal-alto.webp",760);
+ await toma(flor(5,-12),600,600,"flor-izquierda.webp",420,84);
+ await toma(flor(13,28),600,600,"flor-derecha.webp",420,84);
+ await toma(yeso,128,128,"yeso.webp",128,30);await b.close()})();

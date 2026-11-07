@@ -15,7 +15,6 @@ import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrup
 import { ImpactoVista } from "@/components/CambioResumen";
 import {
   BotonPrincipal,
-  BotonRojo,
   BotonSecundario,
   Dato,
   EncabezadoFlujo,
@@ -25,6 +24,7 @@ import {
   PieDelPaso,
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
+  useVistaDelPaso,
 } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { etiquetaDia, primerBloqueo, unidadesDisponibles, varianteLegible, type Validacion } from "@/lib/cambios-reglas";
@@ -47,11 +47,15 @@ import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { CLASE_MONTO_ILEGIBLE } from "@/components/ui/CampoMonto";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisosDeLaDevolucion, type DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 import { Casilla } from "@/components/ui/Casilla";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
+const CANTIDAD_A_DEVOLVER = reglaDeEntero();
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
 
@@ -82,7 +86,8 @@ function itemInicial(): ItemElegido {
  * - Se elige UNA O VARIAS prendas de la boleta y todas viajan en una sola devolución
  *   (`crear_devolucion` recibe la lista): la pantalla de antes creaba una por prenda, y cada
  *   una aprobada emitía su propia nota de crédito parcial.
- * - Registrar NO mueve nada: queda pendiente y un líder la aprueba. Por eso el impacto se
+ * - Registrar NO mueve nada: queda pendiente hasta que alguien la revisa y la aprueba (quien ve
+ *   Devoluciones en la tienda, ADR-0534; la líder la valida en persona). Por eso el impacto se
  *   dice «al aprobarla», y la caja se valida en la aprobación, no acá.
  * - R-37: primero un cambio. En el paso de las prendas hay un salto a Cambios sobre esa
  *   misma prenda.
@@ -92,7 +97,6 @@ export function DevolucionesFlujo({
   lineaInicialId,
   ubicacionId,
   sede,
-  esLider,
   ahora,
   onCerrar,
   onNuevo,
@@ -105,7 +109,6 @@ export function DevolucionesFlujo({
   sede: string;
   /** Nombre de la sesión. Ya no se muestra: «Lo registra» es el responsable elegido (ADR-0161). */
   colaboradora: string;
-  esLider: boolean;
   ahora: Date;
   onCerrar: () => void;
   onNuevo: () => void;
@@ -116,7 +119,7 @@ export function DevolucionesFlujo({
   // La devolución a medio armar es de SU sede (Felipe, 2026-10-11): si se vuelve a una sede con una guardada, se sigue en el mismo paso
   // (el panel ya retomó la venta).
   const { inicial: guardado, reportar: reportarDevolucion } = useTrabajoPorSede<DevolucionArmada>(ubicacionId);
-  // Quién solicita la devolución (ADR-0161). Aprobarla sigue siendo solo del líder (ADR-0160), con su propia sesión.
+  // Quién solicita la devolución (ADR-0161). La aprueba quien ve Devoluciones en esta tienda (ADR-0534), con el mismo combo.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
   const [paso, setPaso] = useState<Paso>(guardado?.paso ?? 2);
@@ -131,6 +134,7 @@ export function DevolucionesFlujo({
   const [errorIncierto, setErrorIncierto] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
+  const escrita = useCantidadEscrita(CANTIDAD_A_DEVOLVER);
   // Doble clic: el estado `enviando` tarda un render en apagar el botón; el ref es inmediato.
   const enviandoAhora = useRef(false);
   // La marca de ESTA devolución (20261015162000): el navegador puede reenviar el envío por su cuenta si la conexión se corta, y la
@@ -153,6 +157,7 @@ export function DevolucionesFlujo({
     );
   }, [reportarDevolucion, paso, sede, elegidas, motivo, detalle, venta, lineaInicialId, compra.clienta, compra.comprobante]);
 
+  const raiz = useRef<HTMLDivElement>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const refMotivo = useRef<HTMLFieldSetElement>(null);
@@ -182,7 +187,7 @@ export function DevolucionesFlujo({
     esTotal: esDevolucionTotal(venta, cantidades),
   });
 
-  useFocoAlCambiarDePaso(titulo, paso);
+  useVistaDelPaso(paso, raiz, titulo);
   // Si la base rechazó la devolución, el foco va al aviso, al lado del botón.
   useFocoAlCambiarDePaso(errorRef, error);
 
@@ -209,6 +214,8 @@ export function DevolucionesFlujo({
   }
 
   function continuarDesdePrendas() {
+    // Lo escrito en «¿Cuántas devuelve?» no valió: antes de seguir con lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     if (lineasElegidas.length === 0) {
       setAvisoContinuar("Elige al menos una prenda.");
       return;
@@ -300,7 +307,7 @@ export function DevolucionesFlujo({
       : "/cambios";
 
   return (
-    <div className="space-y-6">
+    <div ref={raiz} className="scroll-mt-24 space-y-6">
       {paso !== "exito" && (
         <EncabezadoFlujo
           volverA="Volver a Devoluciones"
@@ -316,9 +323,11 @@ export function DevolucionesFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          {/* Las tarjetas del flujo son la placa Serena (`posv-placa`, vidrio/posventa.css). */}
+          <div className="posv-placa p-5 sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
-            <fieldset className="mt-4">
+            {/* `min-w-0`: el fieldset no crece al ancho mínimo de su fila (a 375 px la fila se salía 12 px de la tarjeta). */}
+            <fieldset data-guia="devolucion.prendas" className="mt-4 min-w-0">
               <legend className="sr-only">Prendas que el cliente quiere devolver</legend>
               <div className="space-y-1.5">
                 {venta.map((l) => {
@@ -326,10 +335,11 @@ export function DevolucionesFlujo({
                   const item = elegidas[l.ventaItemId];
                   const disponibles = unidadesDisponibles(l);
                   return (
-                    <div key={l.ventaItemId} className={`rounded-lg transition-colors duration-200 ${item ? "bg-crema ring-1 ring-tinta/30" : ""}`}>
+                    <div key={l.ventaItemId} data-elegida={item ? "" : undefined} className="posv-fila rounded-lg transition-colors duration-200">
                       <label
-                        className={`flex items-center gap-4 rounded-lg p-3 transition-colors duration-200 ${
-                          estado.devolvible ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
+                        data-tocable={estado.devolvible ? "" : undefined}
+                        className={`posv-fila flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
+                          estado.devolvible ? "cursor-pointer" : "cursor-not-allowed"
                         }`}
                       >
                         <Casilla
@@ -343,11 +353,14 @@ export function DevolucionesFlujo({
                         <span className={`min-w-0 flex-1 ${estado.devolvible ? "" : "opacity-60"}`}>
                           <span className="block text-[15px] font-semibold text-tinta">{l.referencia}</span>
                           <span className="block text-sm text-tinta/75">{varianteLegible(l)}</span>
-                          <span className="mt-0.5 block text-xs text-tinta/70">
+                          <span className="mt-0.5 block text-sm text-tinta/70">
                             <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
                           </span>
                         </span>
-                        <ChipEstado estado={estado} />
+                        {/* En el celular el chip baja a su propia línea, alineado con el texto (como en Cambios). */}
+                        <span className="max-sm:basis-full max-sm:pl-9">
+                          <ChipEstado estado={estado} />
+                        </span>
                       </label>
                       {item && disponibles > 1 && (
                         <div className="flex items-center gap-3 px-3 pb-3 pl-[3.25rem]">
@@ -356,12 +369,8 @@ export function DevolucionesFlujo({
                           </label>
                           <input
                             id={`cantidad-${l.ventaItemId}`}
-                            type="number"
-                            min={1}
-                            max={disponibles}
-                            value={item.cantidad}
-                            onChange={(e) => cambiarItem(l.ventaItemId, { cantidad: Math.max(1, Math.min(disponibles, Number(e.target.value) || 1)) })}
-                            className="caja-campo-input w-20 text-sm"
+                            {...escrita.campo(l.ventaItemId, String(item.cantidad), (v) => cambiarItem(l.ventaItemId, { cantidad: Math.max(1, Math.min(disponibles, Number(v) || 1)) }), disponibles)}
+                            className={`caja-campo-input w-20 text-sm ${CLASE_MONTO_ILEGIBLE}`}
                           />
                         </div>
                       )}
@@ -374,7 +383,7 @@ export function DevolucionesFlujo({
 
           {/* R-37: primero se intenta un cambio; la devolución es para cuando no hay talla ni
               nada de su agrado. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[22px] bg-papel/60 px-5 py-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 posv-placa-plana rounded-[22px] px-5 py-4 text-sm">
             <p className="max-w-xl text-tinta/80">
               <span className="font-semibold text-tinta">¿Le sirve otra talla o color?</span> Primero prueba un cambio; si no hay lo que busca, sigue con la devolución.
             </p>
@@ -387,7 +396,7 @@ export function DevolucionesFlujo({
             </Link>
           </div>
 
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={escrita.problema ?? avisoContinuar} guia="devolucion.pie-prendas">
             <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
             <BotonPrincipal onClick={continuarDesdePrendas}>
               Continuar
@@ -400,8 +409,8 @@ export function DevolucionesFlujo({
       {paso === 3 && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-9 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
-              <fieldset ref={refMotivo}>
+            <div className="posv-placa space-y-9 p-5 sm:p-7">
+              <fieldset ref={refMotivo} data-guia="devolucion.motivo">
                 <legend className="text-[15px] font-semibold text-tinta">¿Por qué la devuelve?</legend>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {MOTIVOS_DEVOLUCION.map((m) => (
@@ -448,7 +457,7 @@ export function DevolucionesFlujo({
             {/* El impacto aparece en cuanto hay al menos una prenda con su estado elegido. */}
             <PanelValidaciones validaciones={validaciones} impacto={impacto.inventario.length > 0 ? impacto : null} />
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={avisoContinuar} guia="devolucion.pie-motivo">
             <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar la devolución
@@ -461,7 +470,7 @@ export function DevolucionesFlujo({
       {paso === 4 && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div className="posv-placa space-y-8 p-5 sm:p-7">
               <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
@@ -475,20 +484,20 @@ export function DevolucionesFlujo({
               </dl>
 
               <div>
-                <h3 className="text-xs font-semibold text-tinta/70">{lineasElegidas.length === 1 ? "Prenda que devuelve" : "Prendas que devuelve"}</h3>
+                <TituloGrupo>{lineasElegidas.length === 1 ? "Prenda que devuelve" : "Prendas que devuelve"}</TituloGrupo>
                 <ul className="mt-3 space-y-2.5">
                   {lineasElegidas.map((l) => {
                     const item = elegidas[l.ventaItemId]!;
                     const condicion = condicionDeItem(item);
                     return (
-                      <li key={l.ventaItemId} className="flex flex-wrap items-center gap-3 rounded-xl bg-crema/70 p-3">
+                      <li key={l.ventaItemId} className="posv-placa-plana flex flex-wrap items-center gap-3 rounded-xl p-3">
                         <MiniaturaPrenda fotoUrl={l.fotoUrl} colorHex={l.colorHex} tamano="lg" />
                         <div className="min-w-0 flex-1">
                           <p className="text-[15px] font-semibold text-tinta">
                             {l.referencia} <span className="font-normal text-tinta/70">× {item.cantidad}</span>
                           </p>
                           <p className="text-sm text-tinta/75">{varianteLegible(l)}</p>
-                          <p className="mt-0.5 text-xs text-tinta/70">
+                          <p className="mt-0.5 text-sm text-tinta/70">
                             <span className="font-mono">{codigoPrenda(l)}</span> · {soles(valorPagado(l, item.cantidad))}
                           </p>
                         </div>
@@ -509,10 +518,12 @@ export function DevolucionesFlujo({
           </div>
 
           <p className="text-sm text-tinta/75">
-            Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: un líder la revisa y recién ahí se mueve el stock.
+            Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: recién al revisarla y aprobarla se mueve el stock.
           </p>
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+          <div data-guia="devolucion.responsable">
+            <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+          </div>
 
           {error && (
             // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
@@ -522,28 +533,28 @@ export function DevolucionesFlujo({
             </Aviso>
           )}
 
-          <PieDelPaso aviso={null}>
+          <PieDelPaso aviso={null} guia="devolucion.confirmar">
             <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
+              <BotonPrincipal onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
                 <Check className="h-4 w-4" aria-hidden />
                 Registrar devolución
-              </BotonRojo>
+              </BotonPrincipal>
             </div>
           </PieDelPaso>
         </div>
       )}
 
       {paso === "exito" && resultado && (
-        <div className="anim-revelar mx-auto max-w-2xl rounded-[22px] bg-papel p-6 text-center ring-1 ring-tinta/[0.07] sm:p-10">
+        <div className="posv-placa anim-revelar mx-auto max-w-2xl p-6 text-center sm:p-10">
           <CheckCircle2 className="anim-asentar mx-auto h-11 w-11 text-verde-profundo" aria-hidden />
           <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
             {TITULOS.exito}
           </h2>
-          <p className="mt-2 text-sm text-tinta/75">Queda pendiente de aprobación de un líder. El stock y la caja no cambian hasta entonces.</p>
+          <p className="mt-2 text-sm text-tinta/75">Queda pendiente de aprobación: el stock y la caja no cambian hasta que la revises y la apruebes.</p>
           <dl className="mt-8 grid gap-4 text-left text-sm sm:grid-cols-2">
             <Dato titulo="Devuelve">
               {resultado.prendas.map((p) => `${p.referencia} · ${varianteLegible(p)}${p.cantidad > 1 ? ` (×${p.cantidad})` : ""}`).join(", ")}
@@ -555,8 +566,8 @@ export function DevolucionesFlujo({
             </Dato>
           </dl>
           <div className="mt-9 flex flex-wrap justify-center gap-2">
-            {esLider ? <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal> : null}
-            {esLider ? <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario> : <BotonPrincipal onClick={onNuevo}>Nueva devolución</BotonPrincipal>}
+            <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal>
+            <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario>
             <Volver onClick={onCerrar} a="Volver a la actividad" className="self-center" />
           </div>
         </div>
@@ -567,7 +578,7 @@ export function DevolucionesFlujo({
 
 /** «¿En qué estado vuelve?» de UNA prenda: impecable (al piso) o con defecto o uso (a
  *  cuarentena) y, si es lo segundo, qué se piensa hacer con ella. Las tres opciones de
- *  destino entran igual a cuarentena; el destino real lo decide después un líder. */
+ *  destino entran igual a cuarentena; el destino real se decide después, al resolverla en Inventario. */
 function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente; item: ItemElegido; onCambio: (c: Partial<ItemElegido>) => void }) {
   const sinDestino = item.grupo === "danada" && item.destino === null;
   return (
@@ -580,7 +591,7 @@ function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente
         {(
           [
             { grupo: "vendible", titulo: "Impecable", detalle: "Vuelve al piso de venta." },
-            { grupo: "danada", titulo: "Con defecto o uso", detalle: "Va a cuarentena hasta que un líder decida." },
+            { grupo: "danada", titulo: "Con defecto o uso", detalle: "Va a cuarentena hasta que se decida qué hacer con ella." },
           ] as const
         ).map((o) => {
           const activa = item.grupo === o.grupo;
@@ -590,19 +601,18 @@ function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente
               type="button"
               aria-pressed={activa}
               onClick={() => onCambio({ grupo: o.grupo, destino: o.grupo === "vendible" ? null : item.destino })}
-              className={`rounded-lg border px-4 py-3 text-left transition-colors duration-200 ${
-                activa ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/40"
-              }`}
+              // La tarjeta de opción es una gota; la elegida lleva el filo de tinta (`posv-tarjeta-opcion`, vidrio/posventa.css).
+              className="posv-tarjeta-opcion rounded-lg border px-4 py-3 text-left text-tinta transition-colors duration-200"
             >
               <span className="block text-sm font-semibold">{o.titulo}</span>
-              <span className={`mt-0.5 block text-xs ${activa ? "text-crema/85" : "text-tinta/70"}`}>{o.detalle}</span>
+              <span className="mt-0.5 block text-sm text-tinta/70">{o.detalle}</span>
             </button>
           );
         })}
       </div>
       {item.grupo === "danada" && (
         <fieldset data-falta-destino={sinDestino ? "" : undefined} className="anim-revelar">
-          <legend className="text-xs font-semibold text-tinta/70">¿Qué se piensa hacer con ella?</legend>
+          <legend className="text-sm font-semibold text-tinta/70">¿Qué se piensa hacer con ella?</legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {DESTINOS_DANADA.map((d) => (
               <button

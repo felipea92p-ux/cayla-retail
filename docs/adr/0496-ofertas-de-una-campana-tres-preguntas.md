@@ -57,7 +57,8 @@ Las tablas tienen RLS encendido y SIN políticas: se leen y escriben solo por fu
 
 ## Lo que NO cubre (y queda en el backlog)
 
-- **Lectores directos de `etiquetas.descuento_pct`** que NO pasan por `fn_campanas_en_sede` y por eso no ven una campaña que solo tiene ofertas: el portada de la tienda
+- **Lectores directos de `etiquetas.descuento_pct`** que NO pasan por `fn_campanas_en_sede` y por eso no ven una campaña que solo tiene ofertas
+  *(2026-10-27: la lista de Tienda web ▸ Campañas, la portada y el diseño ya las leen, ADR-0541; el resto sigue pendiente)*: el portada de la tienda
   (`tienda_portada`), `campana_detalle`, el reporte de Finanzas (`fn_campanas_reporte`), `tienda_diseno_*`, `fn_configuracion_tiendas` y las copias en TypeScript
   (`lib/precio-de-hoy.ts`, `lib/etiqueta-campana.ts`). Una campaña con solo ofertas cobra bien en caja pero puede no salir en esas pantallas.
 - **Etiquetas de precio impresas con días sueltos:** el papel no cambia cada día; hoy solo se avisa.

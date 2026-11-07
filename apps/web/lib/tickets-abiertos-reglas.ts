@@ -110,6 +110,18 @@ export function pasarAlTicket<T extends { id: string }>(
   };
 }
 
+/** Descartar uno que espera (el basurero de «En espera»): sale de la fila y la caja conserva su hueco. */
+export function quitarDeLaEspera<T extends { id: string }>(
+  enEspera: readonly T[],
+  posActivo: number | null,
+  id: string,
+): { espera: T[]; posActivo: number | null } {
+  const i = enEspera.findIndex((t) => t.id === id);
+  if (i < 0) return { espera: [...enEspera], posActivo };
+  const p = posicionDelActivo(posActivo, enEspera.length);
+  return { espera: enEspera.filter((t) => t.id !== id), posActivo: posActivo === null ? null : i < p ? p - 1 : p };
+}
+
 /**
  * Los nombres de los tickets que ESPERAN y llevan la misma prenda que una línea del ticket de la caja, pero solo cuando entre todos
  * piden más de lo que hay (Felipe, 2026-10-25, pregunta 9: «el primero que cobra se la lleva»; no se reserva nada). Con stock para

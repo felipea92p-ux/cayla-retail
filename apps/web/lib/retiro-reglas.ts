@@ -102,9 +102,6 @@ export function tituloDeExitoRetiro(unidades: number): string {
  *  «Por colgar» (basta 1 por color: lo único que vuelve a pedir bajar es quedarse sin ninguna). */
 export const AVISO_QUEDA_SIN_COLGAR = "Alguna talla se queda sin ninguna colgada: Existencias va a pedir bajarla de nuevo.";
 
-/** Los dos textos que puede mostrar el bloque de abajo, para que la ventana reserve el alto del más largo (ADR-0185). */
-export const TEXTOS_BLOQUE_SUBIR: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_QUEDA_SIN_COLGAR];
-
 /**
  * El texto del bloque: si alguna talla elegida quedaría pidiendo colgar según el motor del piso, lo dice; si no,
  * recuerda que subir no es dar de baja. Pregunta a `quedaraPidiendoColgar` (`lib/piso-plan.ts`), la misma regla que después

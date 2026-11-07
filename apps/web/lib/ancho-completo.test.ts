@@ -21,7 +21,7 @@ import { ARBOL, type Nodo } from "./menu";
 const RAIZ = join(__dirname, "..");
 const MARCADOR = "data-ancho-completo";
 /** Las rutas que llevaban el tope el 2026-10-20, cuando se invirtió la regla. Al revisar una a lo ancho, se saca de AppShell y de aquí. */
-const CON_TOPE_HOY = ["/actividad", "/buscar", "/comercial", "/configuracion", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
+const CON_TOPE_HOY = ["/actividad", "/buscar", "/comercial", "/global", "/movimientos", "/pedidos-no-atendidos", "/sin-acceso"];
 const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx", "components/observatorio/Observatorio.tsx", "components/ui/Aventurero.tsx"];
 
 function archivos(dir: string): string[] {

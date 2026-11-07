@@ -8,7 +8,7 @@ import type { EmpresasAqui } from "@/lib/empresas-de-sede-reglas";
  */
 export async function getEmpresasAqui(sedeId: string | null): Promise<EmpresasAqui> {
   const supabase = await createClient();
-  const { data, error } = sedeId ? await supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId }) : await supabase.rpc("fn_empresas");
+  const { data, error } = await (sedeId ? supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId }) : supabase.rpc("fn_empresas"));
   if (error || !data || data.length === 0) return null;
   return data.map((e) => ({ id: e.id, clave: e.clave, nombre: e.nombre }));
 }

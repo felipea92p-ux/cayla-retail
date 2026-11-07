@@ -8,6 +8,8 @@ import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
+import type { AvisoFaltante } from "@/lib/faltante-por-pagar-reglas";
 import { Modal } from "@/components/ui/Modal";
 import { MediosDePago } from "@/components/MediosDePago";
 import { etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
@@ -15,12 +17,12 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
-import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/components/finanzas/CampoCuenta";
 
 // Pagar un saldo desde Por pagar (ADR-0133, F4c). Entero o en partes, con uno o varios medios: `registrar_pago_comprobante_produccion` bloquea
 // el comprobante, no deja pasarse del saldo y con el mismo token no repite el pago (un reintento no cobra dos veces). Con `<Modal>` del sistema.
 
-export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }: { comprobante: ComprobanteProduccion; hoy: string; onClose: () => void }) {
+export function PagarComprobanteProduccionModal({ comprobante: c, hoy, faltante = null, onClose }: { comprobante: ComprobanteProduccion; hoy: string; faltante?: AvisoFaltante | null; onClose: () => void }) {
   const router = useRouter();
   const [token] = useState(() => crypto.randomUUID());
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo("transferencia", c.saldo.toFixed(2))]);
@@ -28,8 +30,10 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el pago firma con quien se elige en el combo (lista de la sede activa).
   const responsable = useResponsable();
-  // ADR-0195 F3b: «Sale de» en cada medio. El Taller no cobra: sin propuesta de medios de cobro, la primera cuenta que sirve.
-  const cuentas = useCuentasParaElegir("pago", null);
+  // ADR-0195 F3b: «Sale de» en cada medio. Se pide con la sede del Taller: propone la cuenta que el líder eligió para sus
+  // transferencias; sin ella (o si el Taller no responde), la primera cuenta que sirve, como siempre.
+  const taller = useIdDelTaller();
+  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { propuestaSoloDe: PROPUESTA_DEL_TALLER });
 
   const reparto = repartoDeMedios(medios, c.saldo, false);
   const errorFecha = fecha > hoy ? "La fecha del pago no puede ser futura." : fecha < c.fechaEmision ? "El pago no puede ser anterior a la emisión del comprobante." : null;
@@ -79,12 +83,19 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
           </div>
         </dl>
 
-        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} totalComprobante={c.total} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+        {/* P02, opción B: solo avisa que el pedido cerró con mercadería que no llegó; no cambia el saldo ni frena el pago. */}
+        {faltante && (
+          <Aviso tono="atencion" titulo={faltante.titulo} chico>
+            {faltante.detalle}
+          </Aviso>
+        )}
+
+        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} totalComprobante={c.total} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo, falla: cuentas.falla, reintentar: cuentas.reintentar }} />
 
         <CampoTexto etiqueta="Fecha del pago" type="date" value={fecha} min={c.fechaEmision} max={hoy} onChange={(e) => setFecha(e.target.value)} tono={errorFecha ? "error" : "neutro"} pie={errorFecha ?? undefined} />
 
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <Boton textoCargando="Registrando…" peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+        <Boton textoCargando="Registrando…" peso="primario" type="submit" cargando={cargando} disabled={!listo || cuentas.falla || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
           {reparto.suma > 0 ? (quedaria > 0 ? `Pagar ${soles(reparto.suma)} · quedan ${soles(quedaria)}` : `Pagar ${soles(reparto.suma)} y saldar`) : "Pagar"}
         </Boton>
       </form>

@@ -89,7 +89,7 @@ export function AgregarColor({
         <Boton type="button" peso="fantasma" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>
           {abierto ? "Listo con los colores" : "+ Agregar color"}
         </Boton>
-        {elegidos.length === 0 && <span className="text-[12.5px] text-tinta/70">Opcional: si no tiene color, déjalo así.</span>}
+        {elegidos.length === 0 && <span className="text-sm text-tinta/70">Opcional: si no tiene color, déjalo así.</span>}
       </div>
       {/* Sin marco propio: la carta de colores ya trae el suyo, y dos marcos iguales uno dentro del otro se veían como un error. */}
       {abierto && <ElegirColores colores={colores} grupos={grupos} elegidos={elegidos} onAlternar={onAlternar} onCreado={onCreado} cartaAbierta={false} sinElegidos enfocarBuscador />}

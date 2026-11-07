@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Celular — Spike de la tienda</title>
+<style>
+/* El celular de la revisión (no es parte del diseño): un marco de 390 × 844 con la dirección adentro. */
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: #8d8c88; font: 500 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: #e9e9e7; display: grid; grid-template-rows: auto 1fr; }
+.barra { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 14px; background: #161616; }
+.barra a { color: #bdbdba; text-decoration: none; padding: 5px 8px; border-radius: 6px; }
+.barra a:hover { color: #fff; background: #2a2a2a; }
+.barra a[aria-current="page"] { color: #161616; background: #e9e9e7; }
+.grupo { display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: #222; }
+main { display: grid; place-items: center; padding: 24px; }
+.cel { width: 418px; padding: 14px; border-radius: 52px; background: #0d0d0d; box-shadow: 0 40px 90px -30px #000a, inset 0 0 0 2px #333; }
+.cel iframe { display: block; width: 390px; height: 844px; border: 0; border-radius: 38px; background: #fff; }
+</style>
+</head>
+<body>
+<div class="barra" id="barra"></div>
+<main><div class="cel"><iframe id="pantalla" title="La tienda en un celular"></iframe></div></main>
+<script>
+const q = new URLSearchParams(location.search);
+const d = ["blanco", "arcilla", "rojo"].includes(q.get("d")) ? q.get("d") : "blanco";
+const h = q.get("h") || "portada";
+const extra = new URLSearchParams(q); ["d", "h"].forEach((k) => extra.delete(k)); extra.set("previa", "");
+document.getElementById("pantalla").src = `${d}.html?${extra.toString().replace("previa=", "previa")}#${h}`;
+document.getElementById("barra").innerHTML = `<a href="index.html">← Comparar</a><span class="grupo">${[["blanco", "Blanco"], ["arcilla", "Arcilla"], ["rojo", "Rojo colibrí"]].map(([k, n]) => `<a href="celular.html?d=${k}&h=${encodeURIComponent(h)}" ${k === d ? 'aria-current="page"' : ""}>${n}</a>`).join("")}</span><span class="grupo">${[["portada", "Portada"], ["catalogo", "Catálogo"], ["prenda/kalessi", "Prenda"], ["bolsa", "Bolsa"], ["entrar", "Entrar"], ["cuenta", "Mi perfil"]].map(([k, n]) => `<a href="celular.html?d=${d}&h=${encodeURIComponent(k)}" ${k === h ? 'aria-current="page"' : ""}>${n}</a>`).join("")}</span><a href="${d}.html#${h}">Abrir a pantalla completa</a>`;
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base sin filtros — prueba del motor</title>
+<link rel="stylesheet" href="../base.css">
+</head>
+<body>
+<main id="lienzo"></main>
+<div id="capas"></div>
+<script src="../datos-filtros.js"></script>
+<script src="../logica.js"></script>
+<script>
+// Una «opción» mínima para probar el motor: una fila de botones simples. No es un diseño.
+window.OPCION = {
+  nombre: "Base (prueba)",
+  montar(m) {
+    const zona = m.slot("filtros");
+    m.alCambiar((d) => {
+      zona.innerHTML = '<div id="prueba" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0">' +
+        d.opciones.familias.map((f) => `<button type="button" data-id="c-${f.id}" data-c="${f.id}" aria-pressed="${d.estado.color.includes(f.id)}" ${d.conteos.color[f.id] === 0 && !d.estado.color.includes(f.id) ? "disabled" : ""}>${f.nombre} ${d.conteos.color[f.id]}</button>`).join("") +
+        d.opciones.tallas.map((t) => `<button type="button" data-id="t-${t}" data-t="${t}" aria-pressed="${d.estado.talla.includes(t)}" ${d.conteos.talla[t] === 0 && !d.estado.talla.includes(t) ? "disabled" : ""}>${m.etiquetaTalla(t)} ${d.conteos.talla[t]}</button>`).join("") + "</div>";
+    });
+    zona.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-c],[data-t]");
+      if (!b) return;
+      m.alternar(b.dataset.c ? "color" : "talla", b.dataset.c || b.dataset.t);
+    });
+  },
+};
+</script>
+<script src="../motor.js"></script>
+</body>
+</html>

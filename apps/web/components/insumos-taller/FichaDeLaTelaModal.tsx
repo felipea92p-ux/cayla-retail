@@ -93,7 +93,7 @@ export function FichaDeLaTelaModal({ insumo, vocabulario, leyo, onClose }: { ins
             <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={cargando} confirma={guia} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
               Guardar la ficha
             </Boton>
           </div>

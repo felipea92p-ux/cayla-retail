@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animación del aviso de versión nueva</title>
+<style>
+  /* Tokens reales (globals.css / tema.css). La animación es la misma de apps/web/app/estilos/avisos.css. */
+  :root{ --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c; --sombra:#1a1a18; --ease:cubic-bezier(.22,1,.36,1); --vel:1 }
+  :root[data-tema="oscuro"]{ --crema:#1c1a17; --papel:#26241f; --hueso:#33302a; --sand:#403b34; --tinta:#f5f0e8; --taupe:#c4a898; --sombra:#000 }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.45 "DM Sans",system-ui,sans-serif;padding:24px}
+  h1{font:500 26px/1.2 "EB Garamond",Georgia,serif;margin:0 0 4px}
+  p.s{color:var(--taupe);margin:0 0 16px;max-width:75ch}
+  .barra{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .barra button{font:500 13px/1 inherit;font-family:inherit;padding:9px 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);cursor:pointer}
+  .barra button.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .marco{position:relative;height:300px;border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:var(--crema)}
+  .cab{position:absolute;inset:0 0 auto 0;height:48px;border-bottom:1px solid var(--sand);display:flex;align-items:center;padding:0 18px;font:600 10px/1 inherit;font-family:inherit;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe)}
+  .cont{position:absolute;inset:48px 0 0 0;padding:16px 18px}
+  .tit{font:500 28px/1.1 "EB Garamond",Georgia,serif;margin:4px 0 10px}
+  .fila{height:34px;border-radius:8px;background:var(--papel);border:1px solid var(--sand);margin-bottom:6px}
+
+  .version-nueva{position:absolute;z-index:40;left:50%;translate:-50% 0;top:8px;display:flex;align-items:center;gap:10px;white-space:nowrap;
+    padding:5px 5px 5px 14px;border-radius:999px;background:var(--tinta);color:var(--crema);font-size:13px;
+    box-shadow:0 12px 24px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}
+  .version-nueva.entra{animation:entra calc(420ms * var(--vel)) var(--ease) both}
+  .version-nueva.sale{animation:sale calc(220ms * var(--vel)) var(--ease) forwards}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--crema)}
+  .t{margin:0;font-weight:500}.t span{font-weight:400;color:color-mix(in srgb,var(--crema) 78%,transparent)}
+  .go{font:600 12px/1 inherit;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:32px;border-radius:999px;border:0;background:var(--crema);color:var(--tinta);cursor:pointer;transition:background-color 200ms var(--ease)}
+  .go:hover{background:var(--hueso)}
+  .x{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:0;background:none;color:color-mix(in srgb,var(--crema) 78%,transparent);cursor:pointer;transition:background-color 200ms var(--ease)}
+  .x:hover{background:color-mix(in srgb,var(--crema) 16%,transparent);color:var(--crema)}
+  .x svg{width:16px;height:16px}
+
+  /* ENTRADA: la que está construida. Baja 10 px y aparece (420 ms), una vez. */
+  @keyframes entra{from{opacity:0;transform:translate3d(0,-10px,0)}}
+  /* SALIDA: propuesta (no construida). Sube 6 px y se desvanece (220 ms). */
+  @keyframes sale{to{opacity:0;transform:translate3d(0,-6px,0)}}
+  @media (prefers-reduced-motion:reduce){.version-nueva{animation:none!important}}
+
+  .linea{margin-top:14px;display:grid;gap:6px;max-width:75ch}
+  .linea div{display:flex;gap:10px;align-items:baseline}
+  .linea b{min-width:150px;font-weight:600}
+  .linea span{color:var(--taupe)}
+</style>
+</head>
+<body>
+<h1>La animación del aviso «Hay una versión nueva»</h1>
+<p class="s">Toca <b>Ver la entrada</b> para repetirla. Con <b>Cámara lenta</b> se ve mejor cada cuadro. <b>Salida propuesta</b> muestra lo que se agregaría al cerrar: hoy desaparece de golpe.</p>
+
+<div class="barra">
+  <button onclick="entrar()">▶ Ver la entrada</button>
+  <button onclick="salir()">▶ Salida propuesta</button>
+  <button id="lenta" onclick="lenta()">Cámara lenta</button>
+  <button onclick="document.documentElement.dataset.tema=document.documentElement.dataset.tema==='oscuro'?'':'oscuro'">Claro / Oscuro</button>
+</div>
+
+<div class="marco">
+  <div class="cab">Lima · 28 oct</div>
+  <div class="cont"><div class="tit">Impuestos</div><div class="fila"></div><div class="fila"></div><div class="fila"></div></div>
+  <div class="version-nueva entra" id="pil" role="status">
+    <span class="punto"></span>
+    <p class="t">Hay una versión nueva <span>· actualiza cuando termines</span></p>
+    <button class="go">Actualizar</button>
+    <button class="x" aria-label="Más tarde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+</div>
+
+<div class="linea">
+  <div><b>Entrada (construida)</b><span>baja 10 px y aparece · 420 ms · curva suave, sin rebote · una sola vez</span></div>
+  <div><b>Botón «Actualizar»</b><span>al pasar el mouse cambia de tono en 200 ms (pruébalo arriba)</span></div>
+  <div><b>Salida (propuesta)</b><span>sube 6 px y se desvanece · 220 ms · hoy no existe</span></div>
+  <div><b>Sin movimiento</b><span>con «reducir movimiento» del sistema no anima nada</span></div>
+</div>
+
+<script>
+  const p=document.getElementById('pil');
+  function entrar(){p.className='version-nueva';void p.offsetWidth;p.className='version-nueva entra'}
+  function salir(){p.className='version-nueva';void p.offsetWidth;p.className='version-nueva sale';p.addEventListener('animationend',()=>{setTimeout(entrar,700)},{once:true})}
+  function lenta(){const r=document.documentElement,b=document.getElementById('lenta');const on=r.style.getPropertyValue('--vel')!=='4';r.style.setProperty('--vel',on?'4':'1');b.classList.toggle('on',on)}
+  p.querySelector('.x').addEventListener('click',salir);
+</script>
+</body>
+</html>

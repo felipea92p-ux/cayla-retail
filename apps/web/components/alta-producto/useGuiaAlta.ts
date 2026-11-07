@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { campoDeMasArriba } from "@/lib/guia-campos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
-// Llevar a la persona al campo (ADR-0284): lo pide el «Falta: …» del pie y el «Siguiente: …» de la ficha, y lo hace el propio
-// formulario cuando un campo que sigue queda fuera de la vista. Nada aquí decide QUÉ sigue (eso es `lib/alta-producto-guia.ts`):
+// Llevar a la persona al campo (ADR-0284): lo pide el «Falta: …» del pie, el «Siguiente: …» de la ficha o el botón que confirma. Que la luz
+// cambie de campo nunca mueve la pantalla. Nada aquí decide QUÉ sigue (eso es `lib/alta-producto-guia.ts`):
 // solo mueve la vista y el foco.
 //
 // Reglas de tacto:
@@ -38,12 +40,19 @@ type IdCampo = string;
 const CON_CURSOR: ReadonlySet<IdCampo> = new Set(["nombre", "descripcion", "precio"]);
 
 function reducido(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return typeof window !== "undefined" && prefiereQuieto();
 }
 
 function fila(id: IdCampo): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[data-campo="${id}"]`);
+  const hojas = [...document.querySelectorAll('[role="dialog"]')];
+  return campoDeMasArriba([...document.querySelectorAll<HTMLElement>(`[data-campo="${id}"]`)], (c) => {
+    const hoja = c.closest('[role="dialog"]');
+    return hoja ? hojas.indexOf(hoja) : -1;
+  });
 }
+
+/** ¿Ese campo se está dibujando? (Uno puede estar plegado o en otro paso.) */
+export const hayCampo = (id: IdCampo): boolean => fila(id) !== null;
 
 /** ¿La persona está escribiendo ahora (foco en una caja de texto)? Entonces la guía mueve su luz pero NUNCA la página: al teclear el
  *  precio no puede saltar. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil. */
@@ -61,7 +70,7 @@ export function esCajaDeTexto(el: EventTarget | null): el is HTMLInputElement | 
 
 /** Deja el campo a la vista con el menor movimiento posible. Dentro de un modal el que se desplaza es el modal, no la ventana:
  *  ahí basta con «lo justo» (`nearest`), que no hace nada si ya se ve. */
-export function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {}): void {
+function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {}): void {
   const el = fila(id);
   if (!el) return;
   if (opciones.enModal) {
@@ -84,14 +93,17 @@ export function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {
 }
 
 /** Lleva a la persona al campo: lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor. */
+/** Lo que recibe el foco cuando el campo no se escribe: con el teclado se sigue desde ahí, y el lector de pantalla lee su error. */
+const CONTROL_SIN_TECLEO = 'button[role="combobox"]:not([disabled]), [role="radio"]:not([disabled]), [role="switch"]:not([disabled])';
+
 export function irAlIdCampo(id: IdCampo, opciones: { destello?: boolean; cursor?: boolean; enModal?: boolean } = {}): void {
   const { destello = true, cursor = CON_CURSOR.has(id), enModal = false } = opciones;
   const el = fila(id);
   if (!el) return;
   asegurarVisible(id, { enModal });
-  // El cursor solo a una caja de texto: un combo o un interruptor no se abren solos, la persona elige. Una caja que dice `data-sin-cursor` («Llenar todas con» de la tabla de
+  // El cursor va a una caja de texto; un combo, unas opciones o un interruptor reciben el foco, pero no se abren solos: la persona elige (`CONTROL_SIN_TECLEO`). Una caja que dice `data-sin-cursor` («Llenar todas con» de la tabla de
   // cantidades de «Nueva orden») es una herramienta, no el dato que falta: el cursor va a la primera celda.
-  if (cursor) el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([data-sin-cursor]), textarea:not([disabled])')?.focus({ preventScroll: true });
+  if (cursor) (el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([data-sin-cursor]), textarea:not([disabled])') ?? el.querySelector<HTMLElement>(CONTROL_SIN_TECLEO))?.focus({ preventScroll: true });
   if (!destello) return;
   el.removeAttribute("data-llamado");
   // Reinicia la animación aunque se pida dos veces seguidas.

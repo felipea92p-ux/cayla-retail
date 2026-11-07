@@ -26,6 +26,16 @@ import {
   leerDetalle,
   leerTablero,
   limpiarCodigo,
+  avisoCoordinar,
+  borrarCasillaAnterior,
+  escribirEnCasilla,
+  etiquetaDeEstado,
+  filtrarCerrados,
+  opcionesSinStock,
+  pasoDeLaRuta,
+  textoDeCierreDelPedido,
+  whatsappDeLaHoja,
+  gruposDeLaLista,
   loQueTeToca,
   MENSAJE_PREDETERMINADO_WEB,
   mensajePredeterminadoDelPedido,
@@ -247,7 +257,7 @@ describe("Confirmar: la decisión de cada prenda", () => {
         {
           a: { tipo: "reservar", ubicacionId: TRU, lugar: "piso" },
           b: { tipo: "reservar", ubicacionId: LIM, lugar: "piso" },
-          c: { tipo: "por_conseguir", fecha: "2026-10-21" },
+          c: { tipo: "por_conseguir", via: "compra", fecha: "2026-10-21" },
           d: { tipo: "quitar" },
         },
         { almacen: "s-alm", piso: "s-piso" },
@@ -256,7 +266,7 @@ describe("Confirmar: la decisión de cada prenda", () => {
     ).toEqual([
       { linea_id: "a", decision: "reservar", ubicacion_id: TRU, sububicacion_id: "s-piso" },
       { linea_id: "b", decision: "reservar", ubicacion_id: LIM, sububicacion_id: null },
-      { linea_id: "c", decision: "por_conseguir", fecha: "2026-10-21" },
+      { linea_id: "c", decision: "por_conseguir", fecha: "2026-10-21", via: "compra" },
       { linea_id: "d", decision: "quitar" },
       { linea_id: "e", decision: null },
     ]);
@@ -322,7 +332,7 @@ describe("Lo que la base rechaza", () => {
 });
 
 describe("Después de confirmar: en qué está cada prenda", () => {
-  const base = { ubicacionId: TRU, tiendaReserva: "Tienda Trujillo", lugar: "almacen" as const, fechaCompromiso: null, traslado: null };
+  const base = { ubicacionId: TRU, tiendaReserva: "Tienda Trujillo", lugar: "almacen" as const, fechaCompromiso: null, conseguirVia: null, traslado: null };
 
   it("reservada aquí, por traer de otra tienda, en camino, o el envío que se anuló", () => {
     expect(estadoDeLinea({ ...base, estado: "reservada" }, TRU)).toEqual({ texto: "Reservada", tono: "verde", detalle: "En el almacén" });
@@ -331,6 +341,28 @@ describe("Después de confirmar: en qué está cada prenda", () => {
     expect(estadoDeLinea({ ...base, estado: "por_conseguir", traslado }, TRU)).toEqual({ texto: "En camino", tono: "pizarra", detalle: "Desde Tienda Lima · traslado N.º 698 · llega el 15 oct" });
     expect(estadoDeLinea({ ...base, estado: "por_conseguir", traslado: { ...traslado, estado: "anulada" } }, TRU).detalle).toMatch(/se anuló/);
     expect(estadoDeLinea({ ...base, estado: "por_conseguir", fechaCompromiso: "2026-10-21" }, TRU).detalle).toBe("Prometida para el 21 oct");
+  });
+
+  it("lo que se consigue con compra o taller lo dice (por comprar, en taller); sin decirlo, «Por conseguir» como siempre", () => {
+    const conFecha = { ...base, estado: "por_conseguir" as const, fechaCompromiso: "2026-11-08" };
+    expect(estadoDeLinea({ ...conFecha, conseguirVia: "compra" }, TRU)).toEqual({ texto: "Por comprar", tono: "pizarra", detalle: "Prometida para el 8 nov" });
+    expect(estadoDeLinea({ ...conFecha, conseguirVia: "taller" }, TRU).texto).toBe("En taller");
+    expect(estadoDeLinea(conFecha, TRU).texto).toBe("Por conseguir");
+  });
+
+  it("una prenda que no hay: pedirla a cada sede que la tiene, comprarla o pedirla al taller; y coordinar antes de elegir", () => {
+    const sinStock = { disponible: { almacen: 0, piso: 0, sinLugar: 0, otras: [{ ubicacionId: LIM, tienda: "Tienda Lima", libres: 2 }] } };
+    expect(opcionesSinStock(sinStock)).toEqual([
+      { clave: `otra:${LIM}`, etiqueta: "Pedirla a Tienda Lima (2)" },
+      { clave: "compra", etiqueta: "Comprarla" },
+      { clave: "taller", etiqueta: "Pedirla al taller" },
+    ]);
+    expect(opcionesSinStock({ disponible: { ...sinStock.disponible, otras: [] } }).map((o) => o.clave)).toEqual(["compra", "taller"]);
+    expect(avisoCoordinar(sinStock)).toContain("con la otra sede");
+    expect(avisoCoordinar({ disponible: { ...sinStock.disponible, otras: [] } })).not.toContain("otra sede");
+    // La decisión de comprarla o pedirla al taller viaja a la base con su vía.
+    const dec = decisionesParaLaBase([{ lineaId: "a" }], { a: { tipo: "por_conseguir", via: "taller", fecha: "2026-11-08" } }, {}, TRU);
+    expect(dec).toEqual([{ linea_id: "a", decision: "por_conseguir", fecha: "2026-11-08", via: "taller" }]);
   });
 
   it("«Reservarla»: una prenda por conseguir que ya está en la tienda y no viene en camino", () => {
@@ -363,25 +395,28 @@ describe("El cliente y WhatsApp", () => {
     expect(datosDelCliente(p.cliente)).toBe("DNI ••••4415 · Cel. 900 000 440 · Miembro del club");
   });
 
-  it("los mensajes de la maqueta, con el primer nombre y la dirección de Configuración", () => {
+  it("los mensajes, con el primer nombre, emojis y la dirección de Configuración", () => {
     expect(mensajeWhatsapp(p, "confirmado")).toBe(
-      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0229.80). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
+      "¡Hola Andrea! 🎉 Confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0229.80).\n¿Cómo prefieres pagar? Yape, Plin, transferencia o en tienda 💳\nLo recoges en Jr. Pizarro 123 📍",
     );
     expect(mensajeWhatsapp(p, "cobro")).toMatch(/Falta pagar S\/\u00a0229\.80/);
     expect(mensajeWhatsapp(p, "sinstock")).toMatch(/una prenda ya no está/);
+    expect(mensajeWhatsapp(p, "sinstock")).toContain("pedirla a otra sede");
     // Actividad 9: un pedido anulado que ya había pagado.
     expect(mensajeWhatsapp(p, "devolucion")).toBe(
-      "Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012: quedó anulado y te devolvemos S/\u00a050.00. ¿Cómo prefieres recibirlo?",
+      "Hola Andrea 🙏 Tu pedido W-0012 de CAYLA Trujillo quedó anulado y te devolvemos S/\u00a050.00.\n¿Cómo prefieres recibirlo?",
     );
     // Actividad 10: listo para recoger, y el que no viene. Nunca dicen el código (lo ve el cliente en su pedido).
     expect(mensajeWhatsapp(p, "listo")).toBe(
-      "Hola Andrea, tu pedido W-0012 ya está listo para recoger en CAYLA Trujillo (Jr. Pizarro 123). Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».",
+      "¡Hola Andrea! 🛍️ Tu pedido W-0012 ya está listo para recoger en CAYLA Trujillo (Jr. Pizarro 123).\nTu código está en «Mis pedidos», en tu cuenta de la web 🔑 Muéstralo en caja.",
     );
-    expect(mensajeWhatsapp(p, "norecoge")).toBe("Hola Andrea, tu pedido W-0012 te espera en CAYLA Trujillo. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.");
+    expect(mensajeWhatsapp(p, "norecoge")).toBe("Hola Andrea 😊 Tu pedido W-0012 te espera en CAYLA Trujillo.\n¿Cuándo pasas a recogerlo? Tu código está en «Mis pedidos» 🔑");
+    // Los mensajes que hablan de recoger mandan al cliente a «Mis pedidos»; ninguno trae el código.
+    for (const pl of ["listo", "norecoge"] as const) expect(mensajeWhatsapp(p, pl)).toContain("«Mis pedidos»");
   });
 
-  it("el mensaje de fábrica llena sus marcas con el pedido y coincide con el de antes", () => {
-    expect(mensajePredeterminadoDelPedido(p, null)).toBe("Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012.");
+  it("el mensaje de fábrica llena sus marcas con el pedido", () => {
+    expect(mensajePredeterminadoDelPedido(p, null)).toBe("¡Hola Andrea! 👋 Te escribimos de CAYLA Trujillo por tu pedido W-0012 🛍️\n¡Gracias por elegirnos! 💛");
     expect(mensajePredeterminadoDelPedido(p, "   ")).toBe(mensajePredeterminadoDelPedido(p, MENSAJE_PREDETERMINADO_WEB));
   });
 
@@ -395,7 +430,7 @@ describe("El cliente y WhatsApp", () => {
     const cupon = { codigo: "CAY-4K7P-9H2M", valor: 10, descuento: 10, estado: "reservado" as const, liberadoMotivo: null };
     const conCupon = { ...p, total: 219.8, cupon };
     expect(mensajeWhatsapp(conCupon, "confirmado")).toBe(
-      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0219.80, ya con tu cupón CAY-••••-9H2M de − S/\u00a010.00). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
+      "¡Hola Andrea! 🎉 Confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0219.80, ya con tu cupón CAY-••••-9H2M de − S/\u00a010.00).\n¿Cómo prefieres pagar? Yape, Plin, transferencia o en tienda 💳\nLo recoges en Jr. Pizarro 123 📍",
     );
     // El código entero nunca viaja por WhatsApp.
     expect(mensajeWhatsapp(conCupon, "confirmado")).not.toContain("4K7P");
@@ -558,6 +593,30 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     expect(lista.map((p) => p.id)).toEqual(["sin-pago-1h", "confirmar-2h", "sin-pagar", "devolver", "confirmar-19h", "confirmado", "listo", "espera"]);
   });
 
+  it("«Lo que te toca» en tramos: urgente, pide tu atención, en plazo y esperan una prenda (los dos «en plazo» se leen como uno)", () => {
+    const grupos = gruposDeLaLista(
+      [
+        pedido({ id: "espera", estado: "pagado", pagadoEn: hace(3), listoParaRecoger: false }),
+        pedido({ id: "listo", estado: "pagado", pagadoEn: hace(24), listoParaRecoger: true }),
+        pedido({ id: "confirmado", estado: "confirmado", confirmadoEn: hace(6) }),
+        pedido({ id: "confirmar-19h", venceEn: en(19) }),
+        pedido({ id: "sin-pagar", estado: "confirmado", confirmadoEn: hace(50), sinPagar: true, pagado: 30 }),
+        pedido({ id: "confirmar-2h", venceEn: en(2) }),
+        pedido({ id: "entregado", estado: "entregado" }),
+      ],
+      PLAZOS,
+      AHORA,
+    );
+    expect(grupos.map((g) => g.clave)).toEqual(["urgente", "atencion", "plazo", "prenda"]);
+    expect(grupos.map((g) => g.pedidos.map((p) => p.id))).toEqual([["confirmar-2h"], ["sin-pagar"], ["confirmar-19h", "confirmado", "listo"], ["espera"]]);
+    expect(grupos[0]).toMatchObject({ titulo: "Urgente", nota: "Se pierde en menos de 3 h" });
+    // Sin pedidos en un tramo, el tramo no existe; lo cerrado sin plata no entra.
+    expect(gruposDeLaLista([pedido({ id: "e", estado: "entregado" })], PLAZOS, AHORA)).toEqual([]);
+    // Es el mismo orden de siempre: aplanar los tramos da `loQueTeToca`.
+    const todos = [pedido({ id: "a", venceEn: en(19) }), pedido({ id: "b", venceEn: en(2) }), pedido({ id: "c", estado: "pagado", pagadoEn: hace(2), listoParaRecoger: false })];
+    expect(gruposDeLaLista(todos, PLAZOS, AHORA).flatMap((g) => g.pedidos.map((p) => p.id))).toEqual(loQueTeToca(todos, PLAZOS, AHORA).map((p) => p.id));
+  });
+
   it("el reloj de cada fila: qué pasa y cuándo, una sola vez", () => {
     expect(relojDeFila(pedido({ creadoEn: hace(22), venceEn: en(2) }), PLAZOS, AHORA)).toMatchObject({
       texto: "Se cierra solo en 2 h",
@@ -635,17 +694,95 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
   });
 
   it("todo al día: en una línea, con lo último que pasó", () => {
-    expect(todoAlDia([], "Tienda TRU", AHORA)).toBe("No hay pedidos web esperando en Tienda TRU. Todavía no llegó ninguno.");
+    expect(todoAlDia([], AHORA)).toBe("Todavía no llegó ningún pedido.");
     expect(
       todoAlDia(
         [
           pedido({ codigo: "W-0008", estado: "entregado", creadoEn: hace(30) }),
           pedido({ codigo: "W-0009", estado: "anulado", cierreMotivo: "cliente_desistio", creadoEn: hace(1) }),
         ],
-        "Tienda TRU",
         AHORA,
       ),
-    ).toBe("No hay pedidos web esperando en Tienda TRU. El último (W-0009) llegó hoy a las 09:00 y se cerró: el cliente desistió.");
+    ).toBe("Nada por hacer. El último, W-0009, llegó hoy a las 09:00 y se cerró: el cliente desistió.");
+  });
+
+  it("cerrados: se filtran por motivo y por lo escrito (número o cliente, sin tildes)", () => {
+    const cerrados = [
+      pedido({ codigo: "W-0019", cliente: "Felipe Álvarez", estado: "anulado", cierreMotivo: "cliente_no_respondio" }),
+      pedido({ codigo: "W-0018", cliente: "Lorena Chávez", estado: "vencido", cierreMotivo: "sin_confirmar" }),
+      pedido({ codigo: "W-0017", cliente: "Gabriela Soto", estado: "anulado", cierreMotivo: "sin_stock" }),
+      pedido({ codigo: "W-0016", cliente: "Natalia Álvarez", estado: "entregado" }),
+    ];
+    const codigos = (r: { codigo: string }[]) => r.map((p) => p.codigo);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "" }))).toEqual(["W-0019", "W-0018", "W-0017", "W-0016"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: "entregado", busca: "" }))).toEqual(["W-0016"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: "sin_confirmar", busca: "" }))).toEqual(["W-0018"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "ALVAREZ" }))).toEqual(["W-0019", "W-0016"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "w-0017" }))).toEqual(["W-0017"]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: "entregado", busca: "felipe" }))).toEqual([]);
+    expect(codigos(filtrarCerrados(cerrados, { motivo: null, busca: "  natalia   alvarez " }))).toEqual(["W-0016"]);
+  });
+
+  it("la ruta del pedido: en qué paso va (y null si ya se cerró)", () => {
+    expect(pasoDeLaRuta("por_confirmar")).toBe(0);
+    expect(pasoDeLaRuta("confirmado")).toBe(1);
+    expect(pasoDeLaRuta("pagado")).toBe(2);
+    for (const e of ["entregado", "vencido", "anulado"] as const) expect(pasoDeLaRuta(e)).toBeNull();
+  });
+
+  it("la etiqueta del título de la hoja: corta, solo el estado", () => {
+    const f = (estado: PedidoDeLista["estado"], x: Partial<{ pagado: number; sinPagar: boolean; sinRecoger: boolean; listoParaRecoger: boolean }> = {}) =>
+      etiquetaDeEstado({ estado, pagado: 0, sinPagar: false, sinRecoger: false, listoParaRecoger: false, ...x });
+    expect(f("por_confirmar")).toBe("Por confirmar");
+    expect(f("confirmado")).toBe("Por cobrar");
+    expect(f("confirmado", { sinPagar: true })).toBe("Sin pagar");
+    expect(f("pagado", { listoParaRecoger: true })).toBe("Por entregar");
+    expect(f("pagado", { listoParaRecoger: true, sinRecoger: true })).toBe("Sin recoger");
+    expect(f("pagado")).toBe("Espera una prenda");
+    expect(f("anulado", { pagado: 50 })).toBe("Por devolver S/\u00a050.00");
+    expect(f("anulado")).toBe("Anulado");
+    expect(f("vencido")).toBe("Cerrado sin confirmar");
+    expect(f("entregado")).toBe("Entregado");
+  });
+
+  it("el código en 4 casillas: se escribe de a una, se pega entero y se borra hacia atrás", () => {
+    expect(escribirEnCasilla("", 0, "2")).toEqual({ valor: "2", cursor: 1 });
+    expect(escribirEnCasilla("2", 1, "0")).toEqual({ valor: "20", cursor: 2 });
+    expect(escribirEnCasilla("209", 3, "4")).toEqual({ valor: "2094", cursor: 3 });
+    // Una letra o un espacio no entra; lo pegado se limpia.
+    expect(escribirEnCasilla("20", 2, "a")).toEqual({ valor: "20", cursor: 2 });
+    expect(escribirEnCasilla("", 2, "20 94")).toEqual({ valor: "2094", cursor: 3 });
+    expect(escribirEnCasilla("1111", 0, "2094")).toEqual({ valor: "2094", cursor: 3 });
+    // Corregir una casilla del medio la reemplaza y deja el resto.
+    expect(escribirEnCasilla("2194", 1, "0")).toEqual({ valor: "2094", cursor: 2 });
+    // Dejar una casilla vacía quita esa cifra; «borrar» en una vacía quita la anterior.
+    expect(escribirEnCasilla("2094", 3, "")).toEqual({ valor: "209", cursor: 3 });
+    expect(borrarCasillaAnterior("20", 2)).toEqual({ valor: "2", cursor: 1 });
+    expect(borrarCasillaAnterior("20", 0)).toEqual({ valor: "20", cursor: 0 });
+  });
+
+  it("un cerrado dice cómo terminó en una línea", () => {
+    const base = { entregadoEn: null, entregadoPor: null, cierreMotivo: null, ventaId: null, plazos: PLAZOS };
+    expect(textoDeCierreDelPedido({ ...base, estado: "entregado", entregadoEn: hace(2), entregadoPor: "Rosa" }, AHORA)).toMatch(/^Entregado .* por Rosa\. Sus prendas salieron del stock\.$/);
+    expect(textoDeCierreDelPedido({ ...base, estado: "vencido" }, AHORA)).toBe(`Se cerró solo: nadie lo confirmó en ${PLAZOS.horasParaConfirmar} h. Nada se había reservado.`);
+    expect(textoDeCierreDelPedido({ ...base, estado: "anulado", cierreMotivo: "cliente_desistio" }, AHORA)).toBe("Anulado: el cliente desistió.");
+    expect(textoDeCierreDelPedido({ ...base, estado: "anulado", cierreMotivo: "error_en_pedido", ventaId: "v1" }, AHORA)).toBe(
+      "Anulado después de pagarse: error en el pedido. Se devolvió lo pagado y sus prendas quedaron libres.",
+    );
+  });
+
+  it("un solo WhatsApp por hoja: cada estado dice para qué es", () => {
+    const f = (estado: PedidoDeLista["estado"], x: Partial<{ pagado: number; sinRecoger: boolean; listoParaRecoger: boolean }> = {}, recien = false) =>
+      whatsappDeLaHoja({ estado, pagado: 0, sinRecoger: false, listoParaRecoger: false, ...x }, recien);
+    expect(f("por_confirmar")).toEqual({ plantilla: "predeterminado", boton: "Escribirle por WhatsApp" });
+    expect(f("confirmado")).toEqual({ plantilla: "cobro", boton: "Pedirle el pago" });
+    expect(f("confirmado", {}, true).plantilla).toBe("confirmado");
+    expect(f("pagado", { listoParaRecoger: true })).toEqual({ plantilla: "listo", boton: "Avisarle que ya puede recoger" });
+    expect(f("pagado", { listoParaRecoger: true, sinRecoger: true }).plantilla).toBe("norecoge");
+    expect(f("pagado", { listoParaRecoger: false }).plantilla).toBe("libre");
+    expect(f("anulado", { pagado: 50 }).plantilla).toBe("devolucion");
+    expect(f("anulado").plantilla).toBe("predeterminado");
+    expect(f("entregado").plantilla).toBe("predeterminado");
   });
 
   it("los instantes, como se dicen en la tienda (en hora de Lima, también de noche)", () => {

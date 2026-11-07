@@ -1,6 +1,7 @@
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import { lineasA4, numeroA4 } from "@/lib/boleta-a4-reglas";
 import { desglosaIgv, fechaHoraLima, LEY_REDONDEO, montoEnLetras, NOMBRE_METODO, TEXTO_REDONDEO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
@@ -51,10 +52,10 @@ export function BoletaA4({
       {/* ---------- Cabecera ---------- */}
       <header className="flex items-start justify-between gap-6">
         <div className="flex min-w-0 items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element -- se imprime: una <img> normal se decodifica antes de `print()` */}
-          <img src="/cayla-isotipo.png" alt="" className="h-auto w-16 shrink-0" />
           <div className="min-w-0">
-            <p className="font-display text-[22pt] leading-none tracking-[0.14em] text-rojo">{emisor.nombreComercial}</p>
+            {/* El logo oficial (ADR-0446) en el rojo de marca, nunca «CAYLA» escrito con una letra del sistema. */}
+            <LogoCayla className="h-[12mm] [print-color-adjust:exact]" />
+            <p className="sr-only">{emisor.nombreComercial}</p>
             <p className="mt-1.5 font-semibold">{emisor.razonSocial}</p>
             <p className="text-[8pt] text-black/75">{emisor.direccion.join(" · ")}</p>
             <p className="text-[8pt] text-black/75">{[emisor.telefono, emisor.email, emisor.web].filter(Boolean).join(" · ")}</p>

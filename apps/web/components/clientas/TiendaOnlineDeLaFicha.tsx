@@ -58,7 +58,7 @@ export function TiendaOnlineDeLaFicha({ clientaId, verCompleto, onRestablecer }:
             Restablecer acceso
           </Boton>
         </div>
-        <span className="text-xs text-tinta/55 sm:col-start-2">{textoDeLaTiendaOnline(acceso, verCompleto, new Date())}</span>
+        <span className="text-sm text-tinta/55 sm:col-start-2">{textoDeLaTiendaOnline(acceso, verCompleto, new Date())}</span>
       </div>
     </div>
   );
@@ -172,8 +172,7 @@ export function RestablecerAccesoWeb({
     <form onSubmit={mandar} className="space-y-4" noValidate>
       <TituloGrupo nivel={3}>Restablecer acceso a la tienda online</TituloGrupo>
       <p className="text-sm text-tinta/75">
-        Para el cliente que ya no puede entrar a la tienda online porque perdió su correo. Revisa su documento y escribe el correo nuevo que
-        te da: le llega un código a ese correo, y con él confirma el correo y crea su contraseña. <strong>Hasta que escriba el código, su
+        Para el cliente que perdió su correo. Revisa su documento y escribe el correo nuevo: le llega un código para confirmarlo y crear su contraseña. <strong>Hasta que escriba el código, su
         cuenta sigue igual.</strong> A su correo de antes le avisamos del cambio.
       </p>
       <CampoGuiado id="correo" guia={guia}>

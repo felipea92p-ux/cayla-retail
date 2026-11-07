@@ -82,6 +82,64 @@ export const RUTAS_CON_VARIAS_SEDES: readonly string[] = [
 export const aceptaVariasSedes = (ruta: string) => RUTAS_CON_VARIAS_SEDES.some((r) => ruta === r || ruta.startsWith(`${r}/`));
 
 /**
+ * Qué filtra de verdad cada pantalla de Finanzas (tarea 26 de «Las 36»). La barra es común, pero no todo se parte por sede ni cambia con el mes: en
+ * Campañas decía «Viendo solo Lima» mostrando toda CAYLA, y el mes no movía nada en Cuentas y dinero. Sede y mes siguen viajando en la URL, para
+ * la pantalla siguiente; aquí la barra apaga lo que no aplica y lo dice. Una pantalla nueva se declara aquí: `lib/finanzas-telar-reglas.test.ts`
+ * falla si un `page.tsx` de Finanzas no está. `redirige`: no dibuja nada, lleva a otra pantalla.
+ */
+export type AlcanceDeRuta = { sede: "sede" | "toda"; mes: boolean } | { redirige: true };
+export const ALCANCE_POR_RUTA: Readonly<Record<string, AlcanceDeRuta>> = {
+  "/finanzas": { redirige: true },
+  "/finanzas/resumen": { sede: "sede", mes: true },
+  "/finanzas/gastos": { sede: "sede", mes: true },
+  "/finanzas/cierre": { sede: "sede", mes: true },
+  "/finanzas/dinero": { sede: "sede", mes: false },
+  "/finanzas/dinero/por-pagar": { sede: "sede", mes: false },
+  "/finanzas/dinero/conciliacion": { sede: "toda", mes: false },
+  "/finanzas/dinero/claure": { sede: "toda", mes: false },
+  "/finanzas/dinero/efectivo": { redirige: true },
+  "/finanzas/impuestos": { sede: "sede", mes: true },
+  "/finanzas/impuestos/sire": { sede: "toda", mes: true },
+  "/finanzas/reportes": { sede: "sede", mes: true },
+  "/finanzas/reportes/balance": { sede: "sede", mes: true },
+  "/finanzas/reportes/cuentas": { sede: "toda", mes: true },
+  "/finanzas/reportes/flujo": { sede: "toda", mes: true },
+  "/finanzas/reportes/patrimonio": { sede: "toda", mes: true },
+  "/finanzas/reportes/campanas": { sede: "toda", mes: false },
+  "/finanzas/reportes/presupuesto": { redirige: true },
+  "/finanzas/reportes/escenarios": { redirige: true },
+};
+
+/** Lo que aplica en esta ruta. Una que no se conoce deja la barra como siempre. */
+export function alcanceDeRuta(ruta: string): { sede: "sede" | "toda"; mes: boolean } {
+  const a = ALCANCE_POR_RUTA[ruta];
+  return a && !("redirige" in a) ? a : { sede: "sede", mes: true };
+}
+
+/** Lo que la barra dice cuando algo no aplica. `null`: todo aplica. */
+export function dichoDelAlcance(a: { sede: "sede" | "toda"; mes: boolean }): string | null {
+  if (a.sede === "toda") return a.mes ? "Aquí es toda CAYLA" : "Aquí es toda CAYLA, y no cambia con el mes";
+  return a.mes ? null : "No cambia con el mes";
+}
+
+/** Estados financieros (antes «Reportes»): su ruta no se renombró (ADR-0585, como `/clientas`). */
+export const RUTA_ESTADOS_FINANCIEROS = "/finanzas/reportes";
+
+/**
+ * Los hilos de la barra en ESTA pantalla. Quien tiene Estados financieros ve ahí CAYLA entera (ADR-0585: `fn_ve_estados_financieros_de_todo`),
+ * aunque en Gastos o en Cuentas y dinero siga viendo solo su sede (esas lecturas no cambiaron). `estados` son los hilos de todas las
+ * sedes y la empresa, o `null` si la cuenta ya los ve en todo Finanzas o no tiene el módulo.
+ */
+export function hilosDeLaRuta(
+  ruta: string,
+  base: { sedes: SedeTelar[]; veTodo: boolean },
+  estados: SedeTelar[] | null
+): { sedes: SedeTelar[]; veTodo: boolean } {
+  const enEstados = ruta === RUTA_ESTADOS_FINANCIEROS || ruta.startsWith(`${RUTA_ESTADOS_FINANCIEROS}/`);
+  return enEstados && estados ? { sedes: estados, veTodo: true } : base;
+}
+
+/**
  * La sede y el mes de Finanzas viajan también por el menú lateral: un enlace a otra pantalla de Finanzas, tocado DESDE Finanzas,
  * lleva `?sede=` y `?mes=` tal como están. Fuera de Finanzas, o hacia otro módulo, el enlace queda igual.
  */
@@ -113,17 +171,19 @@ export function sedeElegida(pedida: ClaveSede, sedes: readonly SedeTelar[], veTo
 /** «Tienda Trujillo» → «Trujillo». */
 export const nombreCortoSede = (nombre: string) => nombre.replace(/^Tienda\s+/i, "").trim();
 
-/** El color del hilo de una ubicación. Sale de la ciudad o del tipo, porque `ubicaciones` no tiene código; una sede que no se
- *  reconoce va en taupe («otra»), nunca con el color de otra sede. */
+/** El color del hilo de una ubicación. Sale de la ciudad o de su sigla (TRU, AQP, LIM) o del tipo, porque `ubicaciones` no tiene
+ *  código; una sede que no se reconoce va en taupe («otra»), nunca con el color de otra sede. Las tiendas de CAYLA se llaman
+ *  «Tienda TRU», «Tienda AQP» y «Tienda LIM»: con solo el nombre de la ciudad ninguna se reconocía y todas salían del mismo marrón.
+ *  La sigla va entera y suelta (`\b`): «Truco» o «Limpieza» no son ni Trujillo ni Lima. */
 export function colorDeSede(u: { nombre: string; tipo?: string | null } | typeof SEDE_EMPRESA): ColorSede {
   if (u === SEDE_EMPRESA) return "emp";
   if (u.tipo === "taller") return "tal";
   // Un almacén no es la tienda de su ciudad: con el color de Lima, el gasto del almacén se leería como de la tienda.
   if (u.tipo === "almacen") return "otra";
   const n = u.nombre.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-  if (n.includes("trujillo")) return "tru";
-  if (n.includes("arequipa")) return "aqp";
-  if (n.includes("lima")) return "lim";
+  if (n.includes("trujillo") || /\btru\b/.test(n)) return "tru";
+  if (n.includes("arequipa") || /\baqp\b/.test(n)) return "aqp";
+  if (n.includes("lima") || /\blim\b/.test(n)) return "lim";
   if (n.includes("taller")) return "tal";
   return "otra";
 }
@@ -145,6 +205,27 @@ export const esMesTelar = (m: string | null | undefined): m is string => !!m && 
 
 export function mesTelar(anio: number, mes: number): string {
   return `${anio}-${String(mes).padStart(2, "0")}`;
+}
+
+/** Cierre de mes: su pantalla elige el mes que se CIERRA con la barra común, y el mes en curso nunca se cierra. */
+export const RUTA_CIERRE = "/finanzas/cierre";
+const esRutaCierre = (ruta: string) => ruta === RUTA_CIERRE || ruta.startsWith(`${RUTA_CIERRE}/`);
+
+/** El último mes que la barra deja elegir en esta pantalla: en Cierre, el anterior al de hoy; en las demás, el de hoy. */
+export function ultimoMesDeLaRuta(ruta: string, mesDeHoy: string): string {
+  if (!esRutaCierre(ruta)) return mesDeHoy;
+  const [a, m] = mesDeHoy.split("-").map(Number) as [number, number];
+  return m === 1 ? mesTelar(a - 1, 12) : mesTelar(a, m - 1);
+}
+
+/**
+ * El mes que mira esta pantalla, el MISMO para la barra y para la página. En Cierre, sin `?mes=` o con uno que todavía no
+ * terminó, es el anterior al de hoy (antes la barra decía octubre y la página, septiembre). Las demás pantallas, como siempre.
+ */
+export function mesDeLaRuta(ruta: string, mesUrl: string | null | undefined, mesDeHoy: string): string {
+  const tope = ultimoMesDeLaRuta(ruta, mesDeHoy);
+  if (!esMesTelar(mesUrl)) return tope;
+  return esRutaCierre(ruta) && mesUrl > tope ? tope : mesUrl;
 }
 
 type Params = Iterable<[string, string]>;

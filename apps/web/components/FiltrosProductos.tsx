@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, PackageSearch, Palette, Ruler, Shirt, Store, Tag, Truck } from "lucide-react";
-import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { fondoDeColor } from "@/components/ui/MuestraColor";
+import { bordeDeMuestra, FAMILIAS_COLOR, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
@@ -399,7 +400,7 @@ export function FiltrosProductos({
                       <span
                         aria-hidden
                         className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
-                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
+                        style={{ background: fondoDeColor(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   },
@@ -547,7 +548,7 @@ export function FiltrosProductos({
       {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana" mediaAltura>
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
           {panel}
           <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (
@@ -659,7 +660,7 @@ function BloquePrecio({
                 type="button"
                 aria-pressed={activo}
                 onClick={() => onTramo(t)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm transition-colors ${
                   activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/75 hover:border-tinta/35 hover:text-tinta"
                 }`}
               >
@@ -693,7 +694,7 @@ function CajaMonto({
 }) {
   return (
     <label className="caja-cayla caja-campo caja-campo-baja h-7 min-h-7 w-[4.75rem] shrink-0 gap-1 px-2">
-      <span aria-hidden className="text-[11px] text-tinta/45">
+      <span aria-hidden className="text-sm text-tinta/45">
         S/
       </span>
       <input
@@ -705,7 +706,7 @@ function CajaMonto({
         inputMode="decimal"
         autoComplete="off"
         aria-label={etiqueta}
-        className="self-stretch py-0 text-[12px] tabular-nums"
+        className="self-stretch py-0 text-sm tabular-nums"
       />
     </label>
   );

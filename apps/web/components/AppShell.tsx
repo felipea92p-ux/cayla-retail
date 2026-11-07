@@ -1,31 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { BotonActividad } from "@/components/actividad/BotonActividad";
 import { BotonTema } from "@/components/ui/BotonTema";
+import { BotonMovimiento } from "@/components/ui/BotonMovimiento";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, nombreCorto, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
-import { PerfilModal } from "@/components/PerfilModal";
 import { MotorGuias } from "@/components/guias/MotorGuias";
-import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
 import { BotonDemo } from "@/components/guias/BotonDemo";
 import { BotonAsistente } from "@/components/asistente/Asistente";
+import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
+import dynamic from "next/dynamic";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { hrefConSedeYMes } from "@/lib/finanzas-telar-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useLateralConElDedo } from "@/components/useLateralConElDedo";
+import { useMenuHolgado } from "@/components/useMenuHolgado";
+
+// Lo que solo se usa al abrirlo se descarga aparte (ADR-0623): Mi perfil al acercarse a su botón, «Demo» al abrirla y el acompañante del
+// asistente cuando la sede lo tiene encendido. Antes viajaban con cada pantalla.
+const cargarPerfil = () => import("@/components/PerfilModal");
+const PerfilModal = dynamic(() => cargarPerfil().then((m) => m.PerfilModal), { ssr: false });
+const ElegirDemoModal = dynamic(() => import("@/components/guias/ElegirDemoModal").then((m) => m.ElegirDemoModal), { ssr: false });
+const Acompanante = dynamic(() => import("@/components/asistente/Acompanante").then((m) => m.Acompanante), { ssr: false });
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -73,6 +82,13 @@ import { useLateralConElDedo } from "@/components/useLateralConElDedo";
 // primer cuadro (2026-10-10). Animar el margen del <main> obligaba al navegador a recalcular la pantalla entera
 // ~19 veces: en el Punto de venta (todo el ancho, grilla por `@container`) eran ~70 ms con 64 prendas contra ~21 ms
 // sin animarlo, y la grilla cambiaba de 3 a 4 columnas a mitad del movimiento. Ese era el tirón al plegar.
+//
+// v5 (2026-10-31, ADR-0596, maqueta `docs/maquetas/marco-vidrio-2026-10/`): el marco con vidrio. Detrás de todo, la aurora; el
+// lateral es un riel de vidrio y la fila activa ya no lleva el riel rojo de 2 px: lleva LA GOTA, una sola placa en relieve con su
+// marca roja que viaja a la fila que tocas (midiendo la fila, `ponerGota`: con filas de alto distinto por nivel y la bandeja,
+// un cálculo por índice ya no alcanza). Los submódulos viven en una bandeja hundida y se despliegan en cascada; plegado mide
+// 84 px, con el ícono al centro y su nombre corto debajo (`nombreCorto`, lib/menu.ts); el botón de plegar flota sobre el borde
+// del riel, a la altura del logo; la cabecera son dos islas de vidrio. El aspecto vive en `app/estilos/vidrio/marco.css`.
 //
 // v3.7 (2026-09-25, pedido de Felipe): se retira el "+ Nuevo" global —el botón del lateral de
 // escritorio y el "+" central del celular— entero: el menú (`MenuNuevo`), el botón y las 6 acciones
@@ -130,6 +146,8 @@ type Props = {
   trasladosPorAtender?: number | null;
   /** Pedidos web que esperan confirmación en la tienda activa (`getPedidosWebPorConfirmar`, ADR-0408 act. 8). `null` = sin número. */
   pedidosWebPorConfirmar?: number | null;
+  /** «Pregúntale a CAYLA» encendido en la sede que mira (ADR-0536, act. 8; `getAsistenteEncendido`). Ausente = apagado. */
+  asistenteEncendido?: boolean;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
   children: React.ReactNode;
@@ -160,25 +178,20 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
 };
 
 /* ------------------------------------------------------------------
-   Geometría del riel. El indicador y las filas leen los MISMOS dos
-   números, así que el riel no se puede desalinear de la fila que
-   marca — que es exactamente lo que pasa cuando el alto de la fila
-   vive en una clase de Tailwind y el desplazamiento en un `style`.
+   El tamaño del ícono de una fila, por nivel: 20 en un módulo, 16 en un submódulo y en el de un subgrupo. La maqueta del
+   marco (ADR-0596) dibuja 18 en el segundo nivel; aquí va 16 porque los íconos del marco usan la escala de `lib/iconos.ts`
+   (12 · 14 · 16 · 20, ronda 16 de /unificar). El alto de la fila lo pone `marco.css` (`data-prof`).
    ------------------------------------------------------------------ */
-const ALTO_FILA = 48; // px
-const AIRE_FILA = 8; // px entre filas
-const PASO_FILA = ALTO_FILA + AIRE_FILA;
-const ALTO_RIEL = 20; // px — la misma marca de canto del listbox de campos.tsx
+const ICONO_POR_PROFUNDIDAD = ["h-5 w-5", "h-4 w-4", "h-4 w-4"] as const;
 
 // `Item` (una pantalla) e `ItemGrupo` (una cabecera colapsable que no navega) llegan de `lib/menu.ts`. `id` identifica el
 // grupo en los mapas de estado de abajo (gruposAbiertos/gruposTocados) — con un solo grupo alcanzaba una variable por
 // nombre; con varios hace falta una clave. `icono` es una clave: el trazo sale de `IC[clave]`.
 
 /* ------------------------------------------------------------------
-   Una sección del lateral. Cada grupo lleva su propio riel: con un
-   riel único para toda la columna habría que medir el alto real de
-   los títulos de grupo en el DOM, y una medición que se hace tarde es
-   un riel que salta al cargar la página.
+   Una sección del lateral. Marca su fila activa con `data-fila-activa`;
+   la gota que la señala es una sola para todo el menú y la ubica el
+   AppShell midiendo esa fila (`ponerGota`).
 
    v3.6 (2026-09-19): el lateral se pliega a una columna de íconos
    (`compacto`). Ahí los grupos no se abren en línea — sus hijas viven en
@@ -231,6 +244,7 @@ function GrupoLateral({
   onAbrirCajon,
   onEntrarFila,
   onSalirFila,
+  grupoTocado,
   kInicial = 0,
 }: {
   titulo: string | null;
@@ -247,6 +261,8 @@ function GrupoLateral({
   /** Mouse/foco sobre una fila: el AppShell decide si muestra la etiqueta o abre el cajón. */
   onEntrarFila: (el: HTMLElement, texto: string, grupoId?: string) => void;
   onSalirFila: () => void;
+  /** El último grupo que la persona abrió o cerró con un toque: solo su ícono «asiente» (al cargar, ninguno se mueve). */
+  grupoTocado: string | null;
   /** Lugar de la primera fila en la cascada del cajón del celular (las de arriba son el logo y «Nuevo»). */
   kInicial?: number;
 }) {
@@ -319,15 +335,22 @@ function GrupoLateral({
   const filaActiva = indiceActivo >= 0 ? filas[indiceActivo] : null;
   const claveActiva = filaActiva ? (filaActiva.tipo === "grupo" ? `g:${filaActiva.item.id}` : `i:${filaActiva.item.href}`) : null;
 
-  // Clases de una fila (cabecera o ítem). `overflow-hidden` + `nowrap`: al plegar, la etiqueta se apaga y el ancho la
-  // recorta, en vez de partirse en dos líneas a mitad de la animación. `profundidad` reemplaza al viejo `indentada`
-  // (booleano): 0 es de primer nivel, 1 es hija de un grupo, 2 es hija de un SUBGRUPO (D-84, p.ej. Abastecimiento).
-  const PL_POR_PROFUNDIDAD = ["pl-4", "pl-9", "pl-14"] as const;
-  const claseFila = (esActivo: boolean, profundidad: 0 | 1 | 2) =>
-    `group relative flex items-center gap-3.5 overflow-hidden whitespace-nowrap rounded-lg pr-3 text-sm transition-colors ${
-      PL_POR_PROFUNDIDAD[profundidad]
-    } ${esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"}`;
-  const claseEtiqueta = `min-w-0 flex-1 truncate transition-opacity duration-200 ease-cayla ${compacto ? "opacity-0" : ""}`;
+  // Clases de una fila (cabecera o ítem). `overflow-hidden` + `nowrap`: al plegar, el ancho recorta la etiqueta en vez de
+  // partirla en dos líneas a mitad de la animación. `profundidad`: 0 es de primer nivel, 1 es hija de un grupo, 2 es hija de
+  // un SUBGRUPO (D-84, p.ej. Abastecimiento). El alto, el relleno y el corrimiento de la fila elegida los pone `marco.css`
+  // por `data-prof` y `data-fila-activa` (ADR-0596); el fondo de la elegida es la gota, que vive aparte.
+  const claseFila = (esActivo: boolean) =>
+    `marco-fila group flex items-center gap-3 overflow-hidden whitespace-nowrap ${
+      esActivo ? "font-semibold text-tinta" : "text-tinta/80 hover:bg-tinta/6 hover:text-tinta"
+    }`;
+  const datosFila = (esActivo: boolean, profundidad: 0 | 1 | 2) => ({ "data-prof": profundidad, "data-fila-activa": esActivo ? "" : undefined });
+  const claseIcono = (esActivo: boolean, profundidad: 0 | 1 | 2, seCorre: boolean) =>
+    `marco-icono shrink-0 transition-[translate,color] duration-300 ease-cayla ${ICONO_POR_PROFUNDIDAD[profundidad]} ${
+      esActivo ? "text-tinta" : `text-tinta/60 group-hover:text-tinta ${seCorre ? "group-hover:translate-x-0.5" : ""}`
+    }`;
+  // Plegado, la etiqueta se esconde a la vista pero sigue siendo el nombre del enlace para el lector (marco.css); bajo el ícono
+  // va el nombre corto, que el lector no repite.
+  const claseEtiqueta = "marco-etiqueta min-w-0 flex-1 truncate text-left";
 
   // Pinta UNA hija — una pantalla (Link) o, a su vez, un SUBGRUPO (D-84: botón que despliega SUS propias hijas, un
   // nivel más indentado) — a la profundidad 1 (hija de un grupo de primer nivel) o 2 (hija de un subgrupo). Es la
@@ -339,19 +362,10 @@ function GrupoLateral({
     if (!esGrupo(h)) {
       const hijoActivo = claveActiva === `i:${h.href}`;
       return (
-        <div key={h.href} className="lateral-hijo" style={{ marginTop: AIRE_FILA, "--i": idx } as React.CSSProperties}>
-          <Link href={h.href} onClick={conSedeYMes(h.href)} aria-current={hijoActivo ? "page" : undefined} style={{ height: ALTO_FILA }} className={claseFila(hijoActivo, profundidad)}>
-            {/* Marca fantasma: al pasar el mouse por una fila apagada aparece el riel en gris, en el mismo sitio
-                exacto donde va a quedar el rojo si sueltas el clic. Se lee "estás acá / irías allá" — es el riel
-                mostrando su próximo destino, no un efecto aparte. */}
-            <FantasmaRiel esActivo={hijoActivo} />
-            <Icono
-              d={IC[h.icono]}
-              className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
-                hijoActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
-              }`}
-            />
-            <span className="flex-1">{h.etiqueta}</span>
+        <div key={h.href} className="lateral-hijo" style={{ "--i": idx } as React.CSSProperties}>
+          <Link href={h.href} onClick={conSedeYMes(h.href)} aria-current={hijoActivo ? "page" : undefined} {...datosFila(hijoActivo, profundidad)} className={claseFila(hijoActivo)}>
+            <Icono d={IC[h.icono]} className={claseIcono(hijoActivo, profundidad, true)} />
+            <span className={claseEtiqueta}>{h.etiqueta}</span>
             <Insignia n={h.contador ?? 0} etiqueta="por atender" />
           </Link>
         </div>
@@ -362,25 +376,21 @@ function GrupoLateral({
     const contieneActivoSub = hojasDe(h).some((x) => activo(x.href));
     const sumaSub = hojasDe(h).reduce((acc, x) => acc + (x.contador ?? 0), 0);
     return (
-      <div key={h.id} className="lateral-hijo" style={{ marginTop: AIRE_FILA, "--i": idx } as React.CSSProperties}>
+      <div key={h.id} className="lateral-hijo" style={{ "--i": idx } as React.CSSProperties}>
         <button
           type="button"
           onClick={() => onToggleGrupo(h.id)}
-          style={{ height: ALTO_FILA }}
-          className={`w-full text-left ${claseFila(esActivoSub, profundidad)}`}
+          {...datosFila(esActivoSub, profundidad)}
+          data-asiente={abierto && grupoTocado === h.id ? "" : undefined}
+          className={`w-full text-left ${claseFila(esActivoSub)}`}
           aria-expanded={abierto}
         >
-          <Icono
-            d={IC[h.icono]}
-            className={`h-5 w-5 shrink-0 transition-colors duration-300 ease-cayla ${
-              esActivoSub || contieneActivoSub ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"
-            }`}
-          />
-          <span className="flex-1 text-left">{h.etiqueta}</span>
+          <Icono d={IC[h.icono]} className={claseIcono(esActivoSub || contieneActivoSub, profundidad, false)} />
+          <span className={claseEtiqueta}>{h.etiqueta}</span>
           {!abierto && <Insignia n={sumaSub} etiqueta="por atender" />}
           <Icono
             d={IC.chevron}
-            className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`}
+            className={`marco-chevron h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`}
           />
         </button>
         <div className="lateral-hijos" data-abierto={abierto} inert={!abierto}>
@@ -396,22 +406,11 @@ function GrupoLateral({
           menú, que es justo el ruido que se estaba sacando. Una Encargada ve
           las tres filas sin encabezado; el Líder ve los dos nombres. */}
       {titulo && <p className="label-cayla px-4 pb-3 text-[11px] text-tinta/65">{titulo}</p>}
-      {/* Sin `gap`: las hijas de un grupo cerrado miden 0 pero seguirían pagando su separación. El aire
-          (AIRE_FILA) se pone como margen de cada fila, así un grupo cerrado no deja huecos. */}
+      {/* Sin `gap`: las hijas de un grupo cerrado miden 0 pero seguirían pagando su separación. */}
       <div className="relative flex flex-col">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-0 w-[2px] rounded-full bg-rojo transition-[transform,opacity] duration-300 ease-cayla"
-          style={{
-            height: ALTO_RIEL,
-            top: (ALTO_FILA - ALTO_RIEL) / 2,
-            transform: `translateY(${Math.max(indiceActivo, 0) * PASO_FILA}px)`,
-            opacity: indiceActivo >= 0 ? 1 : 0,
-          }}
-        />
         {items.map((it, n) => {
           // Cada fila de primer nivel es una pieza de la cascada del cajón (celular); las hijas de un grupo ya tienen la suya.
-          const margen = { ...(n > 0 ? { marginTop: AIRE_FILA } : {}), "--k": kInicial + n } as React.CSSProperties;
+          const margen = { "--k": kInicial + n } as React.CSSProperties;
 
           if (!esGrupo(it)) {
             const esActivo = claveActiva === `i:${it.href}`;
@@ -421,21 +420,16 @@ function GrupoLateral({
                   href={it.href}
                   onClick={conSedeYMes(it.href)}
                   aria-current={esActivo ? "page" : undefined}
-                  style={{ height: ALTO_FILA }}
-                  className={claseFila(esActivo, 0)}
+                  {...datosFila(esActivo, 0)}
+                  className={claseFila(esActivo)}
                   onMouseEnter={(e) => onEntrarFila(e.currentTarget, it.etiqueta)}
                   onFocus={(e) => onEntrarFila(e.currentTarget, it.etiqueta)}
                   onMouseLeave={onSalirFila}
                   onBlur={onSalirFila}
                 >
-                  <FantasmaRiel esActivo={esActivo} />
-                  <Icono
-                    d={IC[it.icono]}
-                    className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
-                      esActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
-                    }`}
-                  />
+                  <Icono d={IC[it.icono]} className={claseIcono(esActivo, 0, true)} />
                   <span className={claseEtiqueta}>{it.etiqueta}</span>
+                  <span aria-hidden className="marco-corto">{nombreCorto(it)}</span>
                   <InsigniaFila n={it.contador ?? 0} compacto={compacto} />
                 </Link>
               </div>
@@ -459,29 +453,25 @@ function GrupoLateral({
                 // Plegado el botón abre un menú (el cajón); expandido, despliega sus hijas en línea.
                 aria-haspopup={compacto ? "menu" : undefined}
                 aria-expanded={compacto ? cajonDe === it.id : abierto}
-                style={{ height: ALTO_FILA }}
-                className={`w-full text-left ${claseFila(esActivo, 0)}`}
+                {...datosFila(esActivo, 0)}
+                data-asiente={abierto && grupoTocado === it.id ? "" : undefined}
+                className={`w-full text-left ${claseFila(esActivo)}`}
               >
-                <Icono
-                  d={IC[it.icono]}
-                  className={`h-5 w-5 shrink-0 transition-colors duration-300 ease-cayla ${
-                    esActivo || contieneActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"
-                  }`}
-                />
-                <span className={`${claseEtiqueta} text-left`}>{it.etiqueta}</span>
+                <Icono d={IC[it.icono]} className={claseIcono(esActivo || contieneActivo, 0, false)} />
+                <span className={claseEtiqueta}>{it.etiqueta}</span>
+                <span aria-hidden className="marco-corto">{nombreCorto(it)}</span>
                 {/* Cerrado (o plegado), el grupo no muestra a sus hijas: el número sube a la cabecera para que se vea igual. */}
                 {!abierto && <InsigniaFila n={suma} compacto={compacto} />}
                 <Icono
                   d={IC.chevron}
-                  className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-[transform,opacity] duration-300 ease-cayla ${
-                    abierto ? "rotate-90" : ""
-                  } ${compacto ? "opacity-0" : ""}`}
+                  className={`marco-chevron h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`}
                 />
               </button>
               {/* Las hijas se despliegan por `grid-template-rows: 0fr → 1fr`: se abren sin medir alturas
                   (una medición tardía es un salto). `inert` cerrado: invisibles Y fuera del tabulador. Cada hija
-                  se pinta con `filaHija` — una pantalla o, si es un subgrupo (D-84), su propio botón desplegable. */}
-              <div className="lateral-hijos" data-abierto={abierto} inert={!abierto}>
+                  se pinta con `filaHija` — una pantalla o, si es un subgrupo (D-84), su propio botón desplegable.
+                  `data-bandeja`: solo las de un módulo de primer nivel viven en la bandeja hundida (marco.css). */}
+              <div className="lateral-hijos" data-bandeja data-abierto={abierto} inert={!abierto}>
                 <div>{it.hijos.map((h, idx) => filaHija(h, idx, 1))}</div>
               </div>
             </div>
@@ -492,23 +482,12 @@ function GrupoLateral({
   );
 }
 
-function FantasmaRiel({ esActivo }: { esActivo: boolean }) {
-  if (esActivo) return null;
-  return (
-    <span
-      aria-hidden
-      className="pointer-events-none absolute left-0 top-1/2 w-[2px] -translate-y-1/2 scale-y-0 rounded-full bg-tinta/30 transition-transform duration-200 ease-cayla group-hover:scale-y-100"
-      style={{ height: ALTO_RIEL }}
-    />
-  );
-}
-
 // El número «por atender» de una fila del lateral: en línea al final de la fila; plegado, no hay
 // sitio para una columna, así que se posa sobre la esquina del ícono (con un anillo del color del
-// fondo para que no se funda con el trazo).
+// fondo para que no se funda con el trazo). Plegado el ícono va al centro del cuadrado: la insignia, a su derecha.
 function InsigniaFila({ n, compacto }: { n: number; compacto: boolean }) {
   if (compacto) {
-    return <Insignia n={n} etiqueta="por atender" tamano="compacta" className="absolute left-[27px] top-[5px] ring-2 ring-crema" />;
+    return <Insignia n={n} etiqueta="por atender" tamano="compacta" className="absolute left-[calc(50%+3px)] top-[4px] ring-2 ring-crema" />;
   }
   return <Insignia n={n} etiqueta="por atender" />;
 }
@@ -631,7 +610,7 @@ function CajonGrupo({
       onMouseEnter={onEntrar}
       onMouseLeave={onSalir}
       style={{ top, left }}
-      className="anim-flota card-cayla fixed z-[60] w-[15rem] p-2 shadow-lg"
+      className="anim-flota marco-cajon-grupo fixed z-[60] w-[15rem] p-2"
     >
       <p aria-hidden className="label-cayla px-3 pb-1.5 pt-2 text-[11px] text-tinta/65">{grupo.etiqueta}</p>
       {pintarFilas(grupo.hijos)}
@@ -656,12 +635,12 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
       }}
       // Escalonado de 30 ms por fila, el mismo del desplegable de campos.tsx.
       style={{ animationDelay: `${i * 30}ms` }}
-      className={`anim-revelar group relative flex h-11 items-center gap-3 rounded-lg px-3 text-sm outline-none transition-colors focus-visible:bg-sand/60 focus-visible:text-rojo ${
-        esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
+      // La pantalla en la que estás es la gota con su marca roja, como en el riel (marco.css, ADR-0596).
+      className={`anim-revelar marco-cajon-fila group relative flex h-11 items-center gap-3 px-3 text-sm outline-none transition-colors focus-visible:bg-tinta/6 focus-visible:text-tinta ${
+        esActivo ? "font-semibold text-tinta" : "text-tinta/80 hover:bg-tinta/6 hover:text-tinta"
       }`}
     >
-      {esActivo && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo" />}
-      <Icono d={IC[h.icono]} className={`h-5 w-5 shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
+      <Icono d={IC[h.icono]} className={`h-5 w-5 shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-tinta"}`} />
       <span className="flex-1">{h.etiqueta}</span>
       <Insignia n={h.contador ?? 0} etiqueta="por atender" />
     </Link>
@@ -677,14 +656,14 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`…), no con la pantalla entera.
 // El Inicio («/», exacto) también lleva el tope: es de todas las cuentas y no fue pensado a lo ancho; el de almacén, el Observatorio y la
 // pantalla de Aventurero lo piden con `data-ancho-completo`.
-const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/configuracion", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
+const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/global", "/movimientos", "/pedidos-no-atendidos", "/sin-acceso"];
 
 /** ¿Esta ruta lleva todavía el tope de 64 rem? El Inicio exacto y lo que cuelga de `CON_TOPE_DE_ANCHO`; todo lo demás, ancho completo. */
 function conTopeDeAncho(pathname: string): boolean {
   return pathname === "/" || CON_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
-export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
+export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, asistenteEncendido = false, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
@@ -715,6 +694,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
   // al borde derecho del lateral.
   const [etiqueta, setEtiqueta] = useState<{ texto: string; top: number; left: number } | null>(null);
   const [cajon, setCajon] = useState<{ grupoId: string; top: number; left: number; enfocar: boolean } | null>(null);
+  // El último grupo que se abrió o cerró con un toque (su ícono «asiente» una vez; ADR-0596).
+  const [grupoTocado, setGrupoTocado] = useState<string | null>(null);
   const relojCajon = useRef(0); // espera de 120 ms antes de abrir por mouse
   const relojCierre = useRef(0); // cierre con 260 ms de gracia: cruzar del lateral al cajón no lo cierra
 
@@ -862,19 +843,110 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
     ? (grupos.flatMap((x) => x.items).find((f): f is ItemGrupo => esGrupo(f) && f.id === cajon.grupoId) ?? null)
     : null;
 
+  // ---- La gota de la fila activa (ADR-0596) ----
+  // Una sola placa para todo el menú, ubicada midiendo la fila que lleva `data-fila-activa` (la marca `GrupoLateral`). Medir es
+  // lo único que aguanta filas de alto distinto por nivel, la bandeja que crece y el plegado; para que no salte al cargar se
+  // mide antes de pintar (`useLayoutEffect`) y sin transición. Al navegar, VIAJA a la fila nueva (380 ms, marco.css); cuando
+  // un grupo se abre o se cierra, o el menú se pliega, ACOMPAÑA a su fila cuadro a cuadro mientras las cajas cambian de alto,
+  // sin transición, para no quedarse atrás. Si la fila activa no se ve (nada calza, o vive en un grupo cerrado del cajón), se apaga.
+  const navRef = useRef<HTMLElement | null>(null);
+  const gotaRef = useRef<HTMLSpanElement | null>(null);
+  const relojGota = useRef(0);
+  const rutaDeLaGota = useRef<string | null>(null);
+  const ponerGota = useCallback((animar: boolean) => {
+    const nav = navRef.current;
+    const gota = gotaRef.current;
+    if (!nav || !gota) return;
+    const fila = nav.querySelector<HTMLElement>("[data-fila-activa]");
+    if (!fila || fila.offsetHeight < 1) {
+      gota.removeAttribute("data-lista");
+      return;
+    }
+    // Por `offset*` y no por `getBoundingClientRect`: se mide dónde queda la fila, sin los desplazamientos de paso (la cascada del
+    // cajón del celular la trae 14 px desde la izquierda; una medición a mitad de camino dejaba la gota corrida).
+    let top = 0;
+    let left = 0;
+    for (let el: HTMLElement | null = fila; el && el !== nav; el = el.offsetParent as HTMLElement | null) {
+      top += el.offsetTop;
+      left += el.offsetLeft;
+    }
+    // Recién encendida aparece en su lugar: viajar desde la esquina sería un adorno.
+    gota.toggleAttribute("data-quieta", !animar || !gota.hasAttribute("data-lista"));
+    gota.style.top = `${top}px`;
+    gota.style.left = `${left}px`;
+    gota.style.width = `${fila.offsetWidth}px`;
+    gota.style.height = `${fila.offsetHeight}px`;
+    // En el cajón del celular la gota entra en la cascada junto con su fila, no antes (marco.css).
+    gota.style.setProperty("--k", fila.closest<HTMLElement>("[data-pieza-cajon]")?.style.getPropertyValue("--k") || "0");
+    gota.setAttribute("data-lista", "");
+  }, []);
+  // Las filas de primer nivel se reparten el alto del menú y se acomodan cuadro a cuadro cuando una bandeja se abre (useMenuHolgado);
+  // la gota se vuelve a medir sobre ellas.
+  const reubicarGota = useCallback(() => ponerGota(false), [ponerGota]);
+  useMenuHolgado(navRef, reubicarGota, `${compacto}-${esCelular}-${grupos.length}`);
+  const formaDelMenu = useRef<unknown[] | null>(null);
+  useLayoutEffect(() => {
+    const navego = rutaDeLaGota.current !== null && rutaDeLaGota.current !== pathname;
+    rutaDeLaGota.current = pathname;
+    cancelAnimationFrame(relojGota.current);
+    // Si solo cambió la pantalla y el menú conserva su forma, una medición basta: la transición de marco.css lleva la gota a la fila
+    // nueva (ADR-0623). Medirla cuadro a cuadro durante medio segundo forzaba ~30 recálculos justo mientras la pantalla nueva se armaba.
+    const forma = [gruposAbiertos, compacto, esCelular];
+    const mismaForma = formaDelMenu.current?.every((v, i) => v === forma[i]) ?? false;
+    formaDelMenu.current = forma;
+    if (navego && mismaForma) {
+      ponerGota(true);
+      return;
+    }
+    // 520 ms: lo que tarda en abrirse una caja (460) con algo de aire, y de sobra para el plegado (300).
+    const fin = performance.now() + 520;
+    const paso = () => {
+      ponerGota(navego);
+      if (performance.now() < fin) relojGota.current = requestAnimationFrame(paso);
+      else gotaRef.current?.removeAttribute("data-quieta");
+    };
+    paso();
+    return () => cancelAnimationFrame(relojGota.current);
+  }, [pathname, gruposAbiertos, compacto, esCelular, ponerGota]);
+  useEffect(() => {
+    const alCambiar = () => ponerGota(false);
+    // Y al terminar de crecer una caja o de plegarse el riel, una vez más: si el navegador no pintó cuadros mientras tanto
+    // (pestaña de fondo), el seguimiento por tiempo de arriba pudo terminar antes que la caja.
+    const alTerminar = (e: TransitionEvent) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if ((t.classList.contains("lateral-hijos") && e.propertyName === "grid-template-rows") || (t === asideRef.current && e.propertyName === "width")) ponerGota(false);
+    };
+    const aside = asideRef.current;
+    window.addEventListener("resize", alCambiar);
+    aside?.addEventListener("transitionend", alTerminar);
+    return () => {
+      window.removeEventListener("resize", alCambiar);
+      aside?.removeEventListener("transitionend", alTerminar);
+    };
+  }, [ponerGota]);
+
 
   return (
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
     // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
-    <div className="min-h-screen bg-crema" data-lateral={plegado ? "plegado" : undefined}>
+    // Sin fondo propio: el crema es el del <body> y, encima, la aurora (que vive DETRÁS del contenido, marco.css).
+    <div className="min-h-screen" data-lateral={plegado ? "plegado" : undefined}>
+      {/* El fondo con vidrio (ADR-0596, «B · Aurora»): tres nubes muy tenues, quietas, para que el vidrio tenga algo que desenfocar. */}
+      <div aria-hidden className="marco-aurora">
+        <i />
+        <i />
+        <i />
+      </div>
       {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
-          globals.css); cerrado no recibe toques. */}
+          globals.css); cerrado no recibe toques. Su tinte y su desenfoque son del vidrio (`vidrio/marco.css`, «A · Hoja con
+          profundidad»). */}
       <div
         ref={veloRef}
         aria-hidden
         data-abierto={movilAbierto}
         onClick={() => cerrarMovil()}
-        className={`velo-cajon fixed inset-0 z-40 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] sm:hidden ${movilAbierto ? "" : "pointer-events-none"}`}
+        className={`velo-cajon fixed inset-0 z-40 sm:hidden ${movilAbierto ? "" : "pointer-events-none"}`}
       />
 
       {/* ==================== Lateral (escritorio) / cajón (celular) ==================== */}
@@ -891,19 +963,24 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         // Cerrado en celular queda fuera de pantalla y fuera del tabulador.
         inert={esCelular && !movilAbierto}
         data-cajon={movilAbierto ? "abierto" : undefined}
-        className={`cajon-lateral fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden border-r border-tinta/10 bg-crema pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] sm:z-40 sm:pl-[env(safe-area-inset-left)] sm:transition-[width] sm:duration-300 sm:ease-cayla sm:w-lateral sm:max-w-none sm:pb-0 ${movilAbierto ? "max-sm:shadow-xl" : ""}`}
+        // Plegado con nombre (marco.css): solo en escritorio; en el cajón del celular el menú va siempre abierto.
+        data-compacto={compacto ? "" : undefined}
+        className={`cajon-lateral marco-riel fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] sm:z-40 sm:pl-[env(safe-area-inset-left)] sm:transition-[width] sm:duration-300 sm:ease-cayla sm:w-lateral sm:max-w-none sm:pb-0 ${movilAbierto ? "max-sm:shadow-xl" : ""}`}
       >
-        {/* Plegado el isotipo queda centrado en la columna (76 px): el padding se anima con el ancho. */}
+        {/* Plegado el isotipo queda centrado en la columna (84 px). El botón de plegar flota sobre el borde (fuera del <aside>):
+            no le quita lugar al logo ni abierto ni plegado. */}
         {/* En el cajón del celular la ✕ comparte fila con el logo. `data-pieza-cajon` + `--k`: el orden de la cascada
             al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
         {/* El logo oficial, el mismo dibujo que la tienda (ADR-0446): la palabra CAYLA es el trazo del logo, no una letra. */}
-        <Link href="/" aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
+        <Link href="/" aria-label="CAYLA Retail, ir al inicio" className={`group flex min-w-0 flex-1 flex-col items-start overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-[18px]" : "pl-7"}`}>
+          {/* Plegado la palabra se desvanece y el lienzo sigue ancho: el colibrí mide 47 px de los 32 de alto (862 × 582), así que
+              18 px de margen lo dejan al centro de los 84. */}
           <LogoCayla sinPalabra={compacto} className="h-8 origin-left transition-transform duration-500 ease-cayla group-hover:scale-105" />
           {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
           <span
             aria-hidden
-            className={`label-cayla -mt-0.5 text-[10px] text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}
+            className={`label-cayla -mt-0.5 text-[10px] text-taupe-profundo transition-opacity duration-200 ${compacto ? "hidden" : ""}`}
             style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 2}rem` }}
           >
             Retail
@@ -913,13 +990,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           type="button"
           onClick={() => cerrarMovil()}
           aria-label="Cerrar menú"
-          className="mr-3 mt-6 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+          className="area-dedo mr-3 mt-6 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
         >
           <Icono d={IC.cerrar} className="h-5 w-5" />
         </button>
         </div>
 
-        <nav className="scroll-cayla flex-1 space-y-7 overflow-y-auto px-3">
+        <nav ref={navRef} className="scroll-cayla relative flex-1 space-y-7 overflow-y-auto px-3">
+          {/* La gota de la fila activa: una sola, la ubica `ponerGota`. */}
+          <span ref={gotaRef} aria-hidden className="marco-gota" />
           {grupos.map((g) => (
             <GrupoLateral
               key={g.titulo}
@@ -930,13 +1009,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               gruposAbiertos={gruposAbiertos}
               compacto={compacto}
               cajonDe={cajon?.grupoId ?? null}
-              onToggleGrupo={(id) =>
+              grupoTocado={grupoTocado}
+              onToggleGrupo={(id) => {
+                setGrupoTocado(id);
                 setGruposAbiertos((g) => {
                   const abre = !g[id];
                   const cerrados = abre ? Object.fromEntries(hermanosDe(id, menu.riel).map((h) => [h, false])) : {};
                   return { ...g, ...cerrados, [id]: abre };
-                })
-              }
+                });
+              }}
               onAbrirCajon={abrirCajon}
               onEntrarFila={entrarFila}
               onSalirFila={salirFila}
@@ -945,64 +1026,59 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
           ))}
         </nav>
 
-        {/* El lateral terminaba en un vacío de media pantalla. La firma de la
-            marca le da un piso al bloque de abajo, en vez de dejar el aire
-            colgando entre el último ítem y la persona. */}
-        <p aria-hidden={compacto} data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-          Donde el estilo transforma.
-        </p>
-
-        {/* Plegado el avatar queda centrado en la columna (px-5 + 36 de avatar = centro en 38 px). */}
-        <div data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${compacto ? "px-5" : "px-7"}`}>
-          <div className="flex items-center gap-3">
-            {esAparato ? (
-              // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
-              // (no tiene ficha de RRHH en Dynamic). No es botón: nada que hacer al tocarlo. Plegado, el nombre sale al pasar
-              // el mouse igual que en las filas del menú.
-              <div
-                className="flex min-w-0 flex-1 items-center gap-3"
-                onMouseEnter={(e) => entrarFila(e.currentTarget, persona.nombre)}
-                onMouseLeave={salirFila}
-              >
-                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-tinta text-crema">
+        {/* Abajo, la persona: una placa de vidrio con su foto, su nombre y su rol en la sede, y «Salir» como una gota redonda (Felipe
+            2026-10-31: sin la firma de la marca, que ocupaba lugar sin decir nada; el aire de abajo ahora lo usan los módulos,
+            useMenuHolgado). Plegado queda la foto sola, centrada. */}
+        <div data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className="marco-yo">
+          {esAparato ? (
+            // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
+            // (no tiene ficha de RRHH en Dynamic). No es botón: nada que hacer al tocarlo. Plegado, el nombre sale al pasar
+            // el mouse igual que en las filas del menú.
+            <div className="marco-yo-quien" onMouseEnter={(e) => entrarFila(e.currentTarget, persona.nombre)} onMouseLeave={salirFila}>
+              <span aria-hidden className="marco-yo-lente">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-tinta text-crema">
                   <IconoAparato />
                 </span>
-                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-                  <p className="truncate text-sm text-tinta">{persona.nombre}</p>
-                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">Aparato · {persona.ubicacionEtiqueta}</p>
-                </div>
-              </div>
-            ) : (
-              // Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
-              // botón, como hermano — un clic ahí nunca dispara el perfil.
-              <button
-                type="button"
-                onClick={() => setPerfilAbierto(true)}
-                onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-                onMouseLeave={salirFila}
-                onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-                onBlur={salirFila}
-                aria-label={compacto ? "Mi perfil" : undefined}
-                className="group flex min-w-0 flex-1 items-center gap-3 text-left"
-              >
-                <AvatarPersona
-                  personaId={persona.personaId}
-                  nombre={persona.nombre}
-                  className="transition-colors group-hover:bg-rojo/15"
-                />
-                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
-                  <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
-                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                    {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
-                  </p>
-                </div>
-              </button>
-            )}
-            {/* Plegado «Salir» no cabe: se apaga y sale del tabulador (`inert`); el perfil sigue a un clic. */}
-            <span className={`transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`} inert={compacto}>
-              <LogoutButton nombre={persona.nombre} terminal={!!persona.terminal} />
-            </span>
-          </div>
+              </span>
+              <span className="marco-yo-texto">
+                <span className="marco-yo-nombre">{persona.nombre}</span>
+                <span className="marco-yo-rol">Aparato · {persona.ubicacionEtiqueta}</span>
+              </span>
+            </div>
+          ) : (
+            // Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este botón, como hermano — un clic ahí nunca dispara el perfil.
+            <button
+              type="button"
+              onClick={() => setPerfilAbierto(true)}
+              onMouseEnter={(e) => {
+                void cargarPerfil();
+                entrarFila(e.currentTarget, "Mi perfil");
+              }}
+              onMouseLeave={salirFila}
+              onFocus={(e) => {
+                void cargarPerfil();
+                entrarFila(e.currentTarget, "Mi perfil");
+              }}
+              onBlur={salirFila}
+              aria-label={compacto ? "Mi perfil" : undefined}
+              title={compacto ? undefined : "Mi perfil"}
+              className="marco-yo-quien group text-left"
+            >
+              <span className="marco-yo-lente">
+                <AvatarPersona personaId={persona.personaId} nombre={persona.nombre} />
+              </span>
+              <span className="marco-yo-texto">
+                <span className="marco-yo-nombre">{persona.nombre}</span>
+                <span className="marco-yo-rol">
+                  {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
+                </span>
+              </span>
+            </button>
+          )}
+          {/* Plegado «Salir» no cabe: se esconde y sale del tabulador (`inert`); el perfil sigue a un clic y ahí también se sale. */}
+          <span className="marco-yo-salida" inert={compacto}>
+            <LogoutButton nombre={persona.nombre} terminal={!!persona.terminal} forma="icono" />
+          </span>
         </div>
       </aside>
 
@@ -1044,65 +1120,67 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
         />
       )}
 
+      {/* ==================== Botón de plegar (escritorio) ==================== */}
+      {/* Una gota redonda sobre el borde derecho del riel, a la altura del logo (ADR-0596): viaja con el borde al plegar y da
+          vuelta su flecha. Fuera del <aside> a propósito: el aside recorta lo que sobresale. Bajo 640 px no se ve (marco.css):
+          ahí el menú es un cajón con su ✕. */}
+      <button
+        type="button"
+        onClick={alternarLateral}
+        aria-label={plegado ? "Expandir menú lateral" : "Contraer menú lateral"}
+        aria-expanded={!plegado}
+        aria-controls="lateral"
+        title={`${plegado ? "Expandir" : "Contraer"} el menú  ( [ )`}
+        className="marco-plegar"
+      >
+        {/* La flecha apunta hacia donde irá el borde: a la izquierda abierto, a la derecha plegado. */}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M15 6l-6 6 6 6" />
+        </svg>
+      </button>
+
       {/* ==================== Cabecera ==================== */}
-      {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
-          No es decoración, es la única forma de que se note que hay más página
-          arriba en vez de que el texto se corte contra una banda opaca. */}
-      {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos y la cabecera se
-          redondea arriba (ADR-0479, components/ui/fondoDeLaHoja.ts). */}
-      <header data-cabecera-app data-fondo-hoja="borde" className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 pt-[env(safe-area-inset-top)] backdrop-blur-md sm:left-lateral">
-        <div className="flex items-center gap-3 px-4 pr-[max(1rem,env(safe-area-inset-right))] py-2.5 sm:px-8 sm:pr-[max(2rem,env(safe-area-inset-right))] sm:py-3">
-          {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del logo. */}
-          <button
-            type="button"
-            ref={botonMenuMovil}
-            onClick={() => setMovilAbierto(true)}
-            aria-label="Abrir menú"
-            aria-expanded={movilAbierto}
-            aria-controls="lateral"
-            className="-ml-1.5 grid h-10 w-10 place-items-center rounded-lg text-tinta transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
-          >
-            <Icono d={IC.menu} className="h-5 w-5" />
-          </button>
-          {/* Plegar/expandir el lateral. Solo escritorio: en celular el lateral es un cajón (botón de arriba). */}
-          <button
-            type="button"
-            onClick={alternarLateral}
-            aria-label={plegado ? "Expandir menú lateral" : "Contraer menú lateral"}
-            aria-expanded={!plegado}
-            aria-controls="lateral"
-            title={`${plegado ? "Expandir" : "Contraer"} el menú  ( [ )`}
-            className="-ml-2 hidden h-9 w-9 shrink-0 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:grid"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-              <rect x="3" y="4" width="18" height="16" rx="2.5" />
-              <path d="M9 4v16" />
-              {/* La flecha se da vuelta al plegar: apunta hacia donde irá el lateral. */}
-              <path d="M15.5 9.5L13 12l2.5 2.5" className={`origin-center transition-transform duration-300 ease-cayla ${plegado ? "-scale-x-100" : ""}`} />
-            </svg>
-          </button>
-          {/* NUEVO — se agrega al lado del botón de plegar; ninguno de los dos existentes (Actividad,
-              Tienda TRU, más adelante) se mueve. Solo escritorio: en celular la lupa de siempre (abajo)
-              sigue yendo a `/buscar`, el buscador de prendas — este es otro buscador, otro trabajo. */}
-          <BuscadorGlobal
-            pantallas={pantallasBuscables}
-            ubicacionId={persona.ubicacionId}
-            ubicacionEtiqueta={persona.ubicacionEtiqueta}
-            mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
-          />
-          <Link href="/" className="flex items-center gap-2 sm:hidden">
-            <LogoCayla soloColibri className="h-[26px]" />
-          </Link>
-          {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
-              cambia toda la app de perspectiva, no solo Inventario/Recepción
-              (que ya tenían el suyo propio, local a esa pantalla). Un
-              integrante sigue viendo solo la etiqueta, sin poder tocarla.
-              En celular (ADR-0205) se agrupa con Buscar, pegadas al borde como una sola unidad. El avatar
-              que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            {/* «Pregúntale a CAYLA» (ADR-0529): lo ve toda cuenta, también una terminal. No es un módulo (ADR-0306): es una ayuda,
-                como «Demo», y solo ofrece las pantallas del menú de esta cuenta. */}
-            <BotonAsistente rutasDelMenu={pantallasBuscables.map((h) => h.href)} />
+      {/* «C · Dos islas» (ADR-0596): ya no es una banda. A la izquierda, una cápsula de vidrio con el buscador (en el celular, el
+          menú y el colibrí); a la derecha, otra con las acciones y la sede; entre ellas se ve el contenido. La cabecera es un
+          contenedor: el buscador se encoge con ella hasta quedar en una lupa, y nunca se sale de su isla (marco.css). */}
+      {/* `data-fondo-hoja`: con una hoja abierta en el celular, la cabecera y el contenido se alejan juntos (ADR-0479,
+          components/ui/fondoDeLaHoja.ts). */}
+      <header data-cabecera-app data-fondo-hoja="borde" className="marco-cabecera">
+        <div className="marco-cabecera-fila">
+          <div className="marco-isla marco-isla-izq">
+            {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del colibrí. */}
+            <button
+              type="button"
+              ref={botonMenuMovil}
+              onClick={() => setMovilAbierto(true)}
+              aria-label="Abrir menú"
+              aria-expanded={movilAbierto}
+              aria-controls="lateral"
+              className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta transition-colors hover:bg-tinta/6 sm:hidden"
+            >
+              <Icono d={IC.menu} className="h-5 w-5" />
+            </button>
+            {/* Solo escritorio: en celular la lupa de siempre (en la otra isla) sigue yendo a `/buscar`, el buscador de prendas —
+                este es otro buscador, otro trabajo. */}
+            <BuscadorGlobal
+              pantallas={pantallasBuscables}
+              ubicacionId={persona.ubicacionId}
+              ubicacionEtiqueta={persona.ubicacionEtiqueta}
+              mostrarEquipo={persona.ubicacionTipo === "tienda" && !esAparato}
+            />
+            <Link href="/" aria-label="CAYLA, ir al inicio" className="marco-colibri mr-1.5 flex items-center gap-2 sm:hidden">
+              <LogoCayla soloColibri className="h-[26px]" />
+            </Link>
+          </div>
+          {/* Selector de ubicación del líder: cambia toda la app de perspectiva. Un integrante ve solo la etiqueta, sin poder
+              tocarla. El avatar que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
+          <div className="marco-isla marco-isla-der">
+            {/* «Pregúntale a CAYLA» (ADR-0536): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Empresa y tiendas,
+                act. 8), también una terminal. No es un módulo (ADR-0306): es una ayuda, como «Demo», y solo ofrece las pantallas del
+                menú de esta cuenta. Apagado, tampoco responde a su atajo. */}
+            {asistenteEncendido ? (
+              <BotonAsistente rutasDelMenu={pantallasDelAsistente({ delMenu: pantallasBuscables.map((h) => h.href), modulos: persona.modulos ?? [] })} />
+            ) : null}
             {/* Actividad (ADR-0207): el historial del módulo donde uno está, pegado a la sede que mira. No es fila del
                 lateral: no es una pantalla más. Solo para el líder y quien tenga el módulo; nunca en una terminal. */}
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
@@ -1113,22 +1191,27 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
                 del aparato, no un módulo ni una pantalla. */}
             <BotonTema />
-            {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (
-              <UbicacionSwitcher
-                ubicaciones={ubicaciones}
-                ubicacionActualId={persona.ubicacionId}
-                puedeVerGlobal={!!persona.puedeVerGlobal}
-                enVistaGlobal={persona.vista === "global"}
-              />
-            ) : (
-              <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
-            )}
+            {/* Animaciones (ADR-0625): junto al modo oscuro y por la misma razón, del aparato. El ERP arranca quieto. */}
+            <BotonMovimiento />
+            {/* La sede va en su propia caja: los botones de la isla se redondean (marco.css) y el combo conserva su aspecto. */}
+            <div data-marco-sede className="flex items-center">
+              {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (
+                <UbicacionSwitcher
+                  ubicaciones={ubicaciones}
+                  ubicacionActualId={persona.ubicacionId}
+                  puedeVerGlobal={!!persona.puedeVerGlobal}
+                  enVistaGlobal={persona.vista === "global"}
+                />
+              ) : (
+                <span className="label-cayla px-1.5 text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+              )}
+            </div>
             {/* `/buscar` es el buscador de prendas de UNA sede: en CAYLA Global no existe (ADR-0275). */}
             {persona.vista === "global" ? null : (
               <Link
                 href="/buscar"
                 aria-label="Buscar"
-                className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+                className="area-dedo grid h-9 w-9 place-items-center rounded-full text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
               >
                 <Icono d={IC.buscar} className="h-4 w-4" />
               </Link>
@@ -1151,6 +1234,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* Guías interactivas (ADR-0389): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por
           persona»: la persona, o la cuenta de la terminal (la base afina con la responsable de turno). */}
       <Suspense fallback={null}>
+        {/* «Pregúntale a CAYLA» acompaña una tarea paso a paso con la barra de abajo (ADR-0536, act. 2026-10-27). */}
+        {asistenteEncendido ? <Acompanante /> : null}
         <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} entradas={pantallasBuscables.map((h) => h.href)} />
       </Suspense>
     </div>

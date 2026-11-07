@@ -28,10 +28,10 @@ describe("verboAprobacion", () => {
 });
 
 describe("avisoEtiquetaAgregada", () => {
-  it("una propuesta pendiente NO promete que se pueda usar: el alta y «Prendas» solo aceptan aprobadas", () => {
+  it("una que quedara pendiente NO promete que se pueda usar (el alta y «Prendas» solo aceptan aprobadas), ni espera a un líder (ADR-0534)", () => {
     const { titulo, detalle } = avisoEtiquetaAgregada("Oferta", "pendiente");
     expect(`${titulo} ${detalle}`).not.toMatch(/ya la puedes usar|no te frena/i);
-    expect(detalle).toMatch(/Líder/);
+    expect(`${titulo} ${detalle}`).not.toMatch(/líder/i);
     expect(detalle).toMatch(/aprobarla/);
     expect(avisoEtiquetaAgregada("Día del Padre", "pendiente", "campanas").detalle).toMatch(/aprobarla/);
   });

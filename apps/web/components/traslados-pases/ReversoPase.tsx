@@ -56,6 +56,7 @@ import { Volver } from "@/components/ui/Volver";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Boton } from "@/components/ui/campos";
 import { SobrantesPase } from "@/components/traslados-pases/SobrantesPase";
+import { AvisoNoSeDeshace } from "@/components/ui/Aviso";
 
 // El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
 //  · Te llega: cuentas a ciegas (− / +, la pistola o la cámara; lo contado se guarda solo). «Terminé de contar» destapa lo que
@@ -297,7 +298,7 @@ export function ReversoPase({
                           · {[l.talla, l.color].filter(Boolean).join(" · ")} · {codigoPrenda(l)}
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs text-taupe">+1</span>
+                      <span className="shrink-0 text-sm text-taupe">+1</span>
                     </button>
                   </li>
                 ))}
@@ -498,11 +499,12 @@ export function ReversoPase({
         ) : modo === "envio" && esOrigen && anulando ? (
           <>
             <PieGuia guia={guiaAnular} listo="Listo: ya puedes anularla." />
+            <AvisoNoSeDeshace />
             <div className="tp-fila">
               <button type="button" onClick={() => setAnulando(false)} disabled={ocupado} className="btn-cayla btn-secundario">
                 No anular
               </button>
-              <Boton peso="peligro" cargando={anulandoAhora} textoCargando="Anulando…"
+              <Boton peso="primario" cargando={anulandoAhora} textoCargando="Anulando…"
                 type="button"
                 onClick={() => void alAnular()}
                 disabled={ocupado || !textoObligatorioValido(motivo) || !responsable.listo}

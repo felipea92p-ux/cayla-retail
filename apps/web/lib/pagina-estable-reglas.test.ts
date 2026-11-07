@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esChangeInmediatoAlClic, esContinuacionDeTecleo, puedeSoltar, reservaNecesaria } from "./pagina-estable-reglas";
+import { esCambioDeVista, esChangeInmediatoAlClic, esContinuacionDeTecleo, puedeSoltar, reservaNecesaria } from "./pagina-estable-reglas";
 
 // Página de 2000 px, se ven 800: abajo del todo el scroll vale 1200.
 const alFondo = { arriba: 1200, alto: 2000, visible: 800 };
@@ -29,6 +29,57 @@ describe("reservaNecesaria", () => {
     // Subió y además se acortó, pero la vista no quedó pegada al final: no fue un recorte.
     expect(reservaNecesaria(alFondo, { arriba: 0, alto: 1850, visible: 800 })).toBe(0);
     expect(reservaNecesaria(alFondo, { arriba: 600, alto: 1850, visible: 800 })).toBe(0);
+  });
+});
+
+// La red (ADR-0185, act. 2026-11-05): si volver adonde estaba la vista la dejaría casi sin contenido, lo que se veía ya no existe. Las cifras de
+// los dos primeros casos son las medidas en Devoluciones a 375 px, con clic real, cuando el flujo todavía no declaraba su cambio de vista.
+describe("esCambioDeVista", () => {
+  const celular = 812;
+
+  it("registrar una devolución: lo que queda acaba 393 px por encima de donde estaba la vista", () => {
+    expect(esCambioDeVista({ arriba: 1351, alto: 2163, visible: celular }, { arriba: 147, alto: 958, visible: celular })).toBe(true);
+  });
+
+  it("entrar a un flujo desde abajo de una lista larga", () => {
+    expect(esCambioDeVista({ arriba: 2198, alto: 3975, visible: celular }, { arriba: 221, alto: 1033, visible: celular })).toBe(true);
+  });
+
+  it("un bloque que se acorta y deja contenido a la vista sigue siendo un bloque: se reserva como siempre", () => {
+    // La casilla de la verificación de ADR-0185: quita 276 px al fondo y quedan 524 px de contenido.
+    expect(esCambioDeVista({ arriba: 1200, alto: 2000, visible: 800 }, { arriba: 924, alto: 1724, visible: 800 })).toBe(false);
+    // Todos los recortes de las pruebas de `reservaNecesaria`.
+    expect(esCambioDeVista(alFondo, { arriba: 1050, alto: 1850, visible: 800 })).toBe(false);
+    expect(esCambioDeVista({ arriba: 1100, alto: 2000, visible: 800 }, { arriba: 1050, alto: 1850, visible: 800 })).toBe(false);
+  });
+
+  it("no alcanza para todo: con 445 px a la vista no salta, y por eso un flujo sigue declarando su cambio de vista", () => {
+    // Entrar a un flujo con dos resultados: el título del paso quedaba fuera aunque hubiera contenido.
+    expect(esCambioDeVista({ arriba: 588, alto: 1915, visible: celular }, { arriba: 221, alto: 1033, visible: celular })).toBe(false);
+  });
+
+  it("el borde: exactamente un cuarto de lo visible todavía se reserva; menos, ya no", () => {
+    const alClic = { arriba: 1200, alto: 2400, visible: 800 };
+    expect(esCambioDeVista(alClic, { arriba: 600, alto: 1400, visible: 800 })).toBe(false);
+    expect(esCambioDeVista(alClic, { arriba: 599, alto: 1399, visible: 800 })).toBe(true);
+  });
+
+  it("el aire ya reservado no cuenta como contenido", () => {
+    // De los 1800 px de alto, 600 son aire de un clic anterior: el contenido real acaba justo donde estaba la vista.
+    const alClic = { arriba: 1200, alto: 2000, visible: 800 };
+    const ahora = { arriba: 1000, alto: 1800, visible: 800 };
+    expect(esCambioDeVista(alClic, ahora)).toBe(false);
+    expect(esCambioDeVista(alClic, ahora, 600)).toBe(true);
+  });
+
+  it("si nada se acortó, no hay nada que decidir", () => {
+    expect(esCambioDeVista(alFondo, alFondo)).toBe(false);
+    expect(esCambioDeVista({ arriba: 1200, alto: 1300, visible: 800 }, { arriba: 1200, alto: 1300, visible: 800 })).toBe(false);
+  });
+
+  it("también vale dentro de una hoja: se mide contra lo que se ve de ella", () => {
+    expect(esCambioDeVista({ arriba: 900, alto: 1400, visible: 500 }, { arriba: 200, alto: 700, visible: 500 })).toBe(true);
+    expect(esCambioDeVista({ arriba: 900, alto: 1400, visible: 500 }, { arriba: 780, alto: 1280, visible: 500 })).toBe(false);
   });
 });
 

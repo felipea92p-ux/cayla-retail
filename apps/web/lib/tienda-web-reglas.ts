@@ -3,7 +3,7 @@
 // 20261014231000); aquí solo se dice con una frase clara ANTES de ir a la base y se arma lo que necesita la guía de foco.
 //
 // El WhatsApp de una tienda es `ubicaciones.whatsapp_numero`, el mismo número del QR del club (ADR-0288): esta pestaña lo
-// guarda con la misma función que Tiendas y caja (`guardar_whatsapp_tienda`) y con la misma regla (`celularValido`).
+// guarda con la misma función que Empresa y tiendas (`guardar_whatsapp_tienda`) y con la misma regla (`celularValido`).
 
 import { cierresDesdeFilas, semanaDeSerializada, semanaDesdeFilas, semanaTieneHoras, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
 import { serializarCierres } from "./horario-edicion-reglas";
@@ -121,9 +121,9 @@ export function faltaParaMostrar(b: Pick<BorradorSede, "nombreWeb" | "whatsapp" 
   return falta;
 }
 
-/** Cómo lo nombra la persona (la guía de foco y la tarjeta). */
+/** Cómo lo nombra la persona (la guía de foco y la tarjeta). UNA palabra por dato: la misma en la etiqueta del campo, en la puerta, en «Faltan:» y en el teléfono (Formidable 2026-10-26). */
 export const NOMBRE_DATO: Record<DatoWeb | "horario", string> = {
-  nombre_web: "Nombre en la web",
+  nombre_web: "Nombre",
   whatsapp: "WhatsApp",
   direccion: "Dirección",
   horario: "Horario",
@@ -144,7 +144,7 @@ const EN_FRASE: Record<DatoWeb, string> = { nombre_web: "el nombre en la web", w
 export function estadoSedeWeb(s: { mostrar: boolean } & Pick<BorradorSede, "nombreWeb" | "whatsapp" | "direccion">): { tono: "verde" | "ambar" | "neutro"; texto: string } {
   if (!s.mostrar) return { tono: "neutro", texto: "No se ve en la web" };
   const falta = faltaParaMostrar(s);
-  // Encendida pero incompleta: pasa si le quitaron el WhatsApp en Tiendas y caja. La web ya no la muestra (`tienda_sedes`).
+  // Encendida pero incompleta: pasa si le quitaron el WhatsApp en Empresa y tiendas. La web ya no la muestra (`tienda_sedes`).
   if (falta.length > 0) return { tono: "ambar", texto: `No se ve: falta ${new Intl.ListFormat("es", { type: "conjunction" }).format(falta.map((d) => EN_FRASE[d]))}` };
   return { tono: "verde", texto: "Se ve en la web" };
 }
@@ -180,7 +180,7 @@ export function ordenarSedes<T extends { id: string }>(sedes: readonly T[], ids:
 }
 
 /** La palabra suelta con que la puerta de una tienda dice lo que le falta (sin frases: la maqueta de Conf. Tienda, 2026-10-26). */
-export const PALABRA_FALTA: Record<DatoWeb, string> = { nombre_web: "Nombre", whatsapp: "WhatsApp", direccion: "Dónde" };
+export const PALABRA_FALTA: Record<DatoWeb, string> = { nombre_web: "Nombre", whatsapp: "WhatsApp", direccion: "Dirección" };
 
 /** Cuántos de los tres datos obligatorios tiene una tienda: el anillo de su puerta. */
 export function avanceDeSede(b: Pick<BorradorSede, "nombreWeb" | "whatsapp" | "direccion">): { listos: number; total: number; pct: number } {
@@ -292,6 +292,12 @@ export function parametroFueraDeRango(clave: keyof ParametrosTiendaWeb, texto: s
   const t = texto.trim();
   const [min, max] = RANGOS_PARAMETROS[clave];
   return !/^-?\d+$/.test(t) || Number(t) < min || Number(t) > max;
+}
+
+/** Lo que se dice bajo un plazo que se sale de su rango o no es un entero: hasta dónde llega. */
+export function textoRangoParametro(clave: keyof ParametrosTiendaWeb): string {
+  const [min, max] = RANGOS_PARAMETROS[clave];
+  return `Un número entero, de ${min} a ${max}`;
 }
 
 /** Subir o bajar un plazo de a `paso`, sin salirse de su rango. Si lo escrito no es un número, parte de lo más bajo que se acepta. */

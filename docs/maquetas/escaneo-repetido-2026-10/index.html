@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maqueta · ¿Quieres volver a agregar esta prenda?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="maqueta.css?v=1">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M11 8v8M15 8v8M18 8v8"/></symbol>
+<symbol id="i-cam" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2ZM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-hanger" viewBox="0 0 24 24"><path d="M12 8V7a2 2 0 1 0-2-2M12 8l9 6.2a1.4 1.4 0 0 1-.8 2.6H3.8A1.4 1.4 0 0 1 3 14.2Z"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+</defs></svg>
+
+<div class="barra" role="toolbar" aria-label="Controles del demo">
+  <b>Maqueta · ¿Quieres volver a agregar esta prenda?</b>
+  <div class="grupo"><span>Dirección</span>
+    <button data-act="dir" data-v="a" class="on">A · Aviso en el campo<i class="rec">★ recomendada</i></button>
+    <button data-act="dir" data-v="b">B · Hoja al centro</button>
+    <button data-act="dir" data-v="c">C · La fila pregunta</button>
+  </div>
+  <div class="grupo"><span>Pantalla</span>
+    <button data-act="pant" data-v="escr" class="on">Escritorio · pistola</button>
+    <button data-act="pant" data-v="cel">Celular · cámara</button>
+  </div>
+  <div class="grupo fin">
+    <button data-act="tema">Modo oscuro</button>
+    <button data-act="lento">Cámara lenta</button>
+    <button data-act="reset">↻ Repetir</button>
+  </div>
+</div>
+
+<div class="lienzo">
+  <div class="estrado">
+
+    <!-- ESCRITORIO · Bajar prendas al piso (BajarAlPisoForm.tsx) -->
+    <div class="erp" id="escr">
+      <header class="cab">
+        <div class="linea"><span class="volver"><svg class="ic"><use href="#i-back"/></svg></span><span>Lima</span><span class="hilo-t"></span><span>Miércoles 28 de octubre</span></div>
+        <h1>Bajar prendas al piso</h1>
+        <p>Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez.</p>
+      </header>
+
+      <div class="stack">
+        <section class="card escaner" id="escaner">
+          <label for="campo" class="lbl">Escanear prenda</label>
+          <div class="fila-c">
+            <div class="caja"><svg class="ic g"><use href="#i-scan"/></svg>
+              <input id="campo" type="text" autocomplete="off" spellcheck="false" placeholder="Escanea o escribe el nombre" aria-describedby="ayuda-c"></div>
+            <button class="btn btn-cam" data-act="pant" data-v="cel" aria-label="Escanear con la cámara"><svg class="ic g"><use href="#i-cam"/></svg><span>Cámara</span></button>
+          </div>
+          <p class="ayuda-c" id="ayuda-c"><span class="nuevo-t">Texto nuevo</span>La primera lectura de una prenda suma 1. Si la misma vuelve a leerse, te pregunto antes de sumarla. Si tienes 12 iguales, di «Son varias iguales» y pon el número.</p>
+          <div id="z-nota"></div>
+          <div id="z-aviso"></div>
+        </section>
+
+        <section class="card lista" id="lista"></section>
+      </div>
+
+      <div class="isla" id="isla"></div>
+      <div id="z-hoja"></div>
+    </div>
+
+    <!-- CELULAR · cámara en ráfaga (EscanerConteo.tsx) a 375 px -->
+    <div class="tel-marco" id="cel" hidden>
+      <div class="tel" id="tel"></div>
+    </div>
+  </div>
+
+  <aside class="nota">
+    <div class="bloque prueba">
+      <h2>Pruébalo tú</h2>
+      <p>Cada botón es <b>una lectura</b> de la etiqueta, como una pistola o la cámara. También puedes escribir un código en el campo y dar Enter.</p>
+      <h3>1 · Una prenda</h3>
+      <div class="fila-p" id="botones-prendas"></div>
+      <h3>2 · La misma otra vez</h3>
+      <div class="fila-p">
+        <button class="btn" data-act="repetir">Escanear la última otra vez</button>
+        <button class="btn fuerte" data-act="quieta">Dejarla quieta frente al lector · 6 lecturas</button>
+      </div>
+      <p style="margin-top:8px;font-size:12px;color:var(--t65)">Esc = «No». Escanear <b>otra</b> prenda también cuenta como «No» y sigue normal.</p>
+    </div>
+
+    <div class="bloque">
+      <h2>Lo que pasó</h2>
+      <ul class="reg" id="registro"></ul>
+    </div>
+
+    <div class="bloque reco" id="reco"></div>
+
+    <div class="bloque">
+      <h2>Cómo decide</h2>
+      <ol>
+        <li><b>Primera lectura:</b> se registra normal. Sin preguntas, sin demora.</li>
+        <li><b>Misma prenda otra vez:</b> no se suma sola. Pregunta, con lo que llevas de esa prenda y lo que serían si la agregas.</li>
+        <li><b>Mientras decides,</b> la misma etiqueta que sigue frente al lector <b>no suma</b>; solo se cuenta cuántas lecturas se ignoraron.</li>
+        <li><b>Se responde tocando,</b> nunca con Enter: el Enter de la pistola no puede decir «Sí» por ti.</li>
+        <li><b>«Son varias iguales»:</b> pones el total de una vez y esa prenda deja de preguntar.</li>
+      </ol>
+    </div>
+
+    <div class="bloque">
+      <h2>Dónde aplicaría</h2>
+      <table class="tabla-d">
+        <tr><th>Escáner</th><th>Hoy</th><th>Propuesta</th></tr>
+        <tr><td>Bajar al piso</td><td>suma 1 siempre</td><td>pregunta en la 2.ª</td></tr>
+        <tr><td>Cuadrar el piso</td><td>suma 1 siempre</td><td>pregunta en la 2.ª</td></tr>
+        <tr><td>Recibir envío / Llegó mercadería</td><td>suma 1 siempre</td><td>pregunta en la 2.ª</td></tr>
+        <tr><td>Etiquetas / Apartar</td><td>suma 1 siempre</td><td>pregunta en la 2.ª</td></tr>
+        <tr><td>Conteo (cámara)</td><td>pila de iguales cuenta cada una</td><td><i>decisión de Felipe</i></td></tr>
+        <tr><td>Vender (ticket)</td><td>suma 1 siempre</td><td><i>decisión de Felipe</i></td></tr>
+      </table>
+    </div>
+  </aside>
+</div>
+<script src="maqueta.js?v=1"></script>
+</body>
+</html>

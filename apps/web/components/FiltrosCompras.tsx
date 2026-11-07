@@ -181,7 +181,7 @@ export function FiltrosCompras({
         ].map(
           (control, i) =>
             control && (
-              <div key={i} className="shrink-0">
+              <div key={i} className="max-w-full shrink-0">
                 {control}
               </div>
             ),

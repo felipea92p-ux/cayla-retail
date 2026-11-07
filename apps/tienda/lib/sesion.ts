@@ -55,13 +55,22 @@ export const INICIO_CON_CUENTA = "/inicio";
  */
 export function redireccionDelProxy(ruta: string, metodo: string, usuario: "si" | "no" | "no_se", busqueda = ""): string | null {
   if (metodo !== "GET" && metodo !== "HEAD") return null;
-  // La portada ya no es otra pantalla: la tienda se ve igual con o sin cuenta, y su puerta es el Inicio.
-  if (ruta === "/") return INICIO_CON_CUENTA;
+  // La portada ya no es otra pantalla: la tienda se ve igual con o sin cuenta, y su puerta es el Inicio. Las marcas del enlace
+  // (`?utm_source=qr` del cartel del Club) siguen hasta el Inicio: sin ellas, Tráfico contaría al que escaneó como «Directo» (ADR-0495).
+  if (ruta === "/") return INICIO_CON_CUENTA + marcasDelEnlace(busqueda);
   if (usuario === "si" && SOLO_SIN_CUENTA.has(ruta)) return INICIO_CON_CUENTA;
   if (usuario === "no" && (soloConCuenta(ruta) || esListaDeFavoritos(ruta, busqueda))) {
     return `/entrar?${PARAMETRO_VOLVER_DEL_PROXY}=${encodeURIComponent(ruta + busqueda)}`;
   }
   return null;
+}
+
+/** Solo las marcas `utm_*` de una dirección («?utm_source=qr»), o "" si no trae ninguna. */
+function marcasDelEnlace(busqueda: string): string {
+  const marcas = new URLSearchParams();
+  for (const [clave, valor] of new URLSearchParams(busqueda)) if (/^utm_[a-z]{1,12}$/.test(clave)) marcas.append(clave, valor.slice(0, 60));
+  const texto = marcas.toString();
+  return texto ? `?${texto}` : "";
 }
 
 /** Los favoritos son de la persona: la lista de todos no (`/catalogo?lista=favoritos`). */

@@ -60,7 +60,7 @@ export function BarraAtributos({
         {filtros}
       </div>
       {(busqueda || agregar) && (
-        <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
+        <div className="ml-auto flex w-full max-w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
           {busqueda && <Buscador {...busqueda} />}
           {agregar && (
             <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0" data-guia="vocabulario.agregar">
@@ -170,7 +170,8 @@ export function TarjetaAtributo({
 }) {
   const arriba = (
     <>
-      {muestra}
+      {/* La muestra al aire (vidrio/catalogo.css): llega al borde de arriba de la placa, sin su recuadro. */}
+      <div className="tarjeta-valor-muestra">{muestra}</div>
       <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <span className="text-[15px] font-medium leading-snug text-tinta">
@@ -187,7 +188,7 @@ export function TarjetaAtributo({
   return (
     <div
       data-guia="vocabulario.tarjeta"
-      className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
+      className={`tarjeta-valor group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
         apagada ? "opacity-60" : ""
       }`}
     >
@@ -243,7 +244,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
 /** «Reactivar» de una tarjeta desactivada. */
 export function BotonReactivar({ onClick, cambiando = false }: { onClick: () => void; cambiando?: boolean }) {
   return (
-    <Boton textoCargando="Reactivando…" peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
+    <Boton textoCargando="Reactivando…" peso="discreto" className="w-full px-2.5! py-1.5 text-sm whitespace-nowrap" cargando={cambiando} onClick={onClick}>
       Reactivar
     </Boton>
   );

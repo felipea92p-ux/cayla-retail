@@ -108,7 +108,7 @@ describe("la cookie de la bolsa", () => {
     expect(agregarVarias(dos, [B, A], { marca: M2 })).toBeNull();
   });
 
-  it("un look entra entero o no entra: varias de una vez, la misma dos veces suma dos, y si no caben todas la bolsa no cambia", () => {
+  it("un outfit entra entero o no entra: varias de una vez, la misma dos veces suma dos, y si no caben todas la bolsa no cambia", () => {
     const b: Bolsa = { lineas: [{ varianteId: A, cantidad: 1 }], sedeId: TRU, marca: M1 };
     expect(agregarVarias(b, [A, B], { marca: M2 })).toEqual({
       lineas: [
@@ -217,7 +217,7 @@ describe("lo que dice la base", () => {
     expect(interpretarBolsaEnBase({ nada: true })).toBeNull();
   });
 
-  it("al agregar (una prenda o un look): entra si alcanza; si no queda ninguna, agotada; si quedan pero no tantas, no alcanza; sin respuesta o fuera, no está", () => {
+  it("al agregar (una prenda o un outfit): entra si alcanza; si no queda ninguna, agotada; si quedan pero no tantas, no alcanza; sin respuesta o fuera, no está", () => {
     const b = enBase(null, [
       lineaBase(A, 1, { [TRU]: [true, true] }),
       // Lleva 2 y en Trujillo queda 1: las que quedan ya están en su bolsa. No es «ya no está en ninguna tienda».

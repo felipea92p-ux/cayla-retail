@@ -55,6 +55,7 @@ import { FrescuraAguja } from "./FrescuraAguja";
 import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
 import { conteoDeTodo, pisoDeLaTienda, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
 import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -319,7 +320,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           puedeBajar={acceso.existencias}
           onVerCategoria={(cat) => {
             cambiar({ cat });
-            const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const quieto = prefiereQuieto();
             document.getElementById("frescura-prendas")?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" });
           }}
         />
@@ -393,7 +394,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               />
             )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
-              <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
+              <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-sm leading-normal sm:mx-5">
                 <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{sede.decisiones.aviso}</span>
               </p>
@@ -461,7 +462,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                     )}
                     <div className="overflow-x-auto [scrollbar-width:thin]">
                       <div className={ANCHO_MINIMO_TABLA}>
-                        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-[12.5px] text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
+                        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-sm text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
                           <span>Prenda</span>
                           <span>Estado</span>
                           <span>Qué hacer</span>
@@ -505,7 +506,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             {/* El pie: «Mostrando N de M» solo con filtros (sin ellos, la franja y las cifras ya lo dicen); el almacén en cifras con los
                 nombres a un toque (Formidable 2026-10-09, ley 8: eran 12 nombres en 6 renglones). */}
             {(hayFiltros(filtros) || (efectivos.porDecidir && porDecidirOtras > 0) || resumenDelPie?.guardadas || resumenDelPie?.nuncaColgadas || resumenDelPie?.agotadas) && (
-              <div data-guia="frescura.pie" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
+              <div data-guia="frescura.pie" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-sm text-taupe sm:px-5">
                 {hayFiltros(filtros) && (
                   <span>
                     Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {enTabla.length} {enTabla.length === 1 ? "prenda" : "prendas"} ·{" "}

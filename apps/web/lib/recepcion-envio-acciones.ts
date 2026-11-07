@@ -1,6 +1,7 @@
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
+import { conDueno } from "@/lib/dueno-reglas";
 import {
   leerDetalleEnvio,
   leerPrendaPreparada,
@@ -10,11 +11,15 @@ import {
   RPC_ABRIR_DESPACHO,
   RPC_PREPARAR_PRENDA,
   RPC_PRENDAS_PARA_RECIBIR,
+  RPC_PARECIDAS_PARA_RECIBIR,
+  leerParecidasParaRecibir,
   RPC_RECIBIR_DESPACHO,
   RPC_RECIBIR_SIN_ENVIO,
   type ArgsPrepararPrenda,
   type DetalleEnvio,
   type ArgsRecibirDespacho,
+  leerFichaParaRecibir,
+  type FichaParaRecibir,
   type PrendaRecepcion,
   type ResultadoApertura,
   type ResultadoRecepcion,
@@ -56,8 +61,9 @@ export async function prepararPrendaAlRecibir(
 }
 
 /** Cierra la recepción (`recibir_despacho`): el stock entra, el costo se promedia y el envío queda cerrado. */
-export async function recibirDespacho(args: ArgsRecibirDespacho, firma: Firma | null): Promise<{ resultado: ResultadoRecepcion | null; error: ErrorDeBase }> {
-  const { data, error } = (await firmar(createClient().rpc(RPC_RECIBIR_DESPACHO as never, args as never), firma)) as Respuesta;
+export async function recibirDespacho(args: ArgsRecibirDespacho, firma: Firma | null, dueno: string | null = null): Promise<{ resultado: ResultadoRecepcion | null; error: ErrorDeBase }> {
+  // `dueno` (ADR-0542): de quién es lo que entra, donde operan dos empresas (Lima); `x-dueno` lo lee el disparador de movimientos.
+  const { data, error } = (await firmar(conDueno(createClient().rpc(RPC_RECIBIR_DESPACHO as never, args as never), dueno), firma)) as Respuesta;
   return { resultado: error ? null : leerResultadoRecepcion(data), error: error ?? null };
 }
 
@@ -68,6 +74,22 @@ export async function buscarPrendasParaRecibir(categoriaId: string, marcaId: str
     { p_categoria_id: categoriaId, p_marca_id: marcaId, p_busqueda: busqueda.trim() || null } as never,
   )) as unknown as Respuesta;
   return { prendas: error ? [] : leerPrendasParaRecibir(data), error: error ?? null };
+}
+
+/** La ficha de una prenda para reconocerla antes de asociarla. Es lectura y puede faltar: sin respuesta, la persona decide con la foto y el nombre. */
+export async function leerFichaDePrenda(productoId: string): Promise<FichaParaRecibir | null> {
+  const { data, error } = await createClient()
+    .from("productos")
+    .select("descripcion, categoria:categorias(nombre), marca:marcas(nombre), tejido:tejidos(nombre), patron:patrones(nombre)")
+    .eq("id", productoId)
+    .maybeSingle();
+  return error ? null : leerFichaParaRecibir(data);
+}
+
+/** Lo que se parece en TODAS las marcas de la categoría, para no crear una prenda repetida al recibir. Si no responde, se sigue sin ellas. */
+export async function buscarParecidasParaRecibir(categoriaId: string, busqueda: string): Promise<PrendaRecepcion[]> {
+  const { data, error } = (await createClient().rpc(RPC_PARECIDAS_PARA_RECIBIR as never, { p_categoria_id: categoriaId, p_busqueda: busqueda.trim() } as never)) as unknown as Respuesta;
+  return error ? [] : leerParecidasParaRecibir(data);
 }
 
 /** El detalle de un envío (`fn_envio_detalle`) leído desde el navegador: lo que trae, para la hoja «Detalle» de la lista de Recibir. Solo lee. */

@@ -2,6 +2,7 @@ import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getVentasDelMesDeSede } from "@/lib/resumen-inventario";
 import { mesEnCursoDe, recortarVentasDelMes } from "@/lib/existencias-resumen";
+import { unstable_rethrow } from "next/navigation";
 
 // GET /api/existencias/ventas-del-mes[?ubicacion=<id>] → lo vendido en el MES EN CURSO (del día 1 a hoy, hora de Lima), una fila por
 // talla que vendió algo, para la ventana «Resumen disponible» de Existencias.
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
     const filas = await getVentasDelMesDeSede(ubicacionId, ahora);
     return Response.json({ mes: mesEnCursoDe(ahora), ventas: recortarVentasDelMes(filas) });
   } catch (e) {
+    unstable_rethrow(e);
     console.error("No se pudieron leer las ventas del mes para el resumen de Existencias", e);
     return Response.json({ error: "No pudimos leer las ventas del mes." }, { status: 500 });
   }

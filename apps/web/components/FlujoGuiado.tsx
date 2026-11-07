@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, type ReactNode, type RefObject } from "react";
 import { Anillo } from "@/components/ui/Anillo";
 import { AlertTriangle, Check, Clock } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
@@ -9,6 +9,8 @@ import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 
 // Las piezas que Cambios y Devoluciones comparten (2026-09-18): las dos son un flujo
 // guiado en la misma página —sin modal, ADR-0044— con "Paso X de N", validaciones en vivo
@@ -17,17 +19,44 @@ import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
 
 /** Las opciones de un campo de elección (motivo, talla, estado): elegido = tinta, no rojo —
  *  un paso marca varias a la vez y varios rojos juntos pasan el tope de
- *  `MAX_ROJO_POR_PANTALLA` (design-tokens.ts). */
+ *  `MAX_ROJO_POR_PANTALLA` (design-tokens.ts).
+ *  Su cara es vidrio (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): la gota suelta; la elegida, la gota ahumada
+ *  (`posv-opcion-puesta`); la que no hay aquí, el hueco punteado (`posv-opcion-hueco`). La pinta vidrio/posventa.css. */
 export const OPCION =
   "min-h-11 rounded-[14px] border px-[17px] py-2 text-[14.5px] font-medium transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
-export const OPCION_INACTIVA = `${OPCION} border-tinta/15 bg-papel text-tinta/80 hover:border-tinta/40 hover:text-tinta`;
-export const OPCION_ACTIVA = `${OPCION} border-tinta bg-tinta text-crema`;
+export const OPCION_INACTIVA = `${OPCION} posv-opcion`;
+export const OPCION_ACTIVA = `${OPCION} posv-opcion posv-opcion-puesta`;
 
-/** El foco sigue al paso: quien navega con teclado o lector de pantalla oye dónde está. */
+/** Enfoca apenas se pueda: con el loader a la vista la página está `inert` y `focus()` no hace nada (lo normal al guardar: la respuesta pasa de 200 ms),
+ *  así que espera a que se libere, como `TrasladoEnviado` (ADR-0149). Devuelve con qué dejar de esperar. */
+function enfocarAlLiberarse(enfocar: () => void): (() => void) | undefined {
+  if (!esperaOcupada()) {
+    enfocar();
+    return undefined;
+  }
+  const dejarDeEscuchar = suscribirEspera(() => {
+    if (esperaOcupada()) return;
+    dejarDeEscuchar();
+    enfocar();
+  });
+  return dejarDeEscuchar;
+}
+
+/** El foco va adonde está pasando algo (el aviso de un error, al lado del botón), y lo trae a la vista. */
 export function useFocoAlCambiarDePaso(ref: RefObject<HTMLElement | null>, paso: unknown) {
-  useEffect(() => {
-    ref.current?.focus();
-  }, [ref, paso]);
+  useEffect(() => enfocarAlLiberarse(() => ref.current?.focus()), [ref, paso]);
+}
+
+/** Entrar al flujo, cambiar de paso y salir es cambiar de VISTA, no un bloque que se encogió. Antes de pintar se suelta <PaginaEstable> (ADR-0185) y la vista
+ *  arranca en el inicio del flujo, bajo la cabecera fija; el título recibe el foco sin moverla, para quien navega con teclado o lector de pantalla.
+ *  No basta con `focus()`: Safari da por visto un título a 0 px, escondido bajo la cabecera (iPhone de 375 × 667, 2026-11-05). Tampoco con un viaje suave: se corta cuando la página se acorta. */
+export function useVistaDelPaso(paso: unknown, raiz: RefObject<HTMLElement | null>, titulo: RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    soltarPaginaEstable();
+    raiz.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    return soltarPaginaEstable;
+  }, [paso, raiz]);
+  useEffect(() => enfocarAlLiberarse(() => titulo.current?.focus({ preventScroll: true })), [titulo, paso]);
 }
 
 /** Escape retrocede un paso. Dentro de un campo (input, select, textarea) Escape es del
@@ -87,9 +116,11 @@ export function EncabezadoFlujo({
   );
 }
 
-/** Los pasos son un hilo (Atelier, 2026-09-19): una línea punteada de nudo a nudo, y encima
+/** Los pasos son un hilo (Atelier, 2026-09-19): una ranura de nudo a nudo, y encima
  *  el tramo ya cosido, en tinta, que se dibuja al entrar y avanza al cambiar de paso; una
- *  chispa de luz lo recorre de vez en cuando. Los nudos hechos son botones: se puede volver. */
+ *  chispa de luz lo recorre de vez en cuando. Los nudos hechos son botones: se puede volver.
+ *  Su cara es «A · Hilo de vidrio» (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): la ranura tallada, el nudo hecho
+ *  en la gota ahumada y el de ahora en la gota clara con su halo. La pintan `posv-pasos-ranura` y `posv-nudo` (vidrio/posventa.css). */
 function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: number; onIr: (n: number) => void }) {
   const total = pasos.length;
   // Cada nudo está al centro de su columna: el hilo va del primero al último.
@@ -98,11 +129,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   const avance = ((actual - 1) / (total - 1)) * largo;
   return (
     <ol data-guia="posventa.pasos" className="relative grid pt-0.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label="Pasos">
-      <span
-        aria-hidden
-        className="absolute top-[17px] h-0.5 rounded-full"
-        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-taupe) 50%, transparent) 0 6px, transparent 6px 11px)" }}
-      />
+      <span aria-hidden className="posv-pasos-ranura absolute rounded-full" style={{ left: `${inicio}%`, width: `${largo}%` }} />
       <span
         aria-hidden
         className="hilo-dibuja absolute top-[17px] h-0.5 rounded-full bg-tinta transition-[width] duration-700 ease-[var(--ease-cayla)]"
@@ -127,12 +154,10 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
             >
               <span
                 style={hecho ? { animationDelay: `${i * 260 + 500}ms` } : undefined}
-                className={`flex h-[34px] w-[34px] items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ${
-                  hecho
-                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80" // unificar-fijo: el círculo de un paso hecho, no un botón principal
-                    : esActual
-                      ? "bg-papel text-tinta shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-tinta)_6%,transparent)] ring-2 ring-tinta"
-                      : "bg-crema text-tinta/65 ring-[1.5px] ring-taupe/60"
+                // El vidrio del nudo (fondo, filo, halo) lo pone `posv-nudo` según `data-estado` (vidrio/posventa.css); aquí, la letra.
+                data-estado={hecho ? "hecho" : esActual ? "actual" : "pendiente"}
+                className={`posv-nudo flex h-[34px] w-[34px] items-center justify-center rounded-full border text-sm font-semibold ${
+                  hecho ? "anim-pop text-crema" : esActual ? "text-tinta" : "text-tinta/65"
                 }`}
               >
                 {hecho ? <Check className="h-4 w-4" aria-hidden /> : n}
@@ -160,7 +185,8 @@ export function PanelValidaciones({ validaciones, impacto, guia }: { validacione
   const plazo = validaciones.find((v) => v.clave === "plazo");
   return (
     <aside data-guia={guia} className="grid gap-4 self-start lg:sticky lg:top-24">
-      <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
+      {/* Las dos tarjetas son la placa Serena (`posv-placa`, vidrio/posventa.css). */}
+      <div className="posv-placa p-6">
         <div className="mb-5 flex items-center gap-4">
           {/* El anillo del sistema (ronda 13): en tinta mientras faltan revisiones y verde cuando están todas. */}
           <Anillo pct={total ? (cumplidas / total) * 100 : 0} tamano="mediano" etiqueta={`${cumplidas} de ${total} revisiones cumplidas`}>
@@ -187,7 +213,7 @@ export function PanelValidaciones({ validaciones, impacto, guia }: { validacione
         <ListaValidaciones validaciones={validaciones} />
       </div>
       {impacto && (
-        <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
+        <div className="posv-placa p-6">
           <TituloSeccion nivel={3} className="mb-4">Impacto</TituloSeccion>
           <ImpactoVista impacto={impacto} compacto />
         </div>
@@ -221,10 +247,11 @@ export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; ch
   );
 }
 
-// Los botones son los de «Cobrar» de Vender (PuntoDeVentaTicket): esquina apenas redondeada,
-// la etiqueta en mayúsculas chicas con aire entre las letras (`label-cayla`) y, si hay un
-// monto, a la derecha y en la serif de la casa — la etiqueta dice qué se hace; el monto,
-// cuánto. Sin monto, la etiqueta va centrada.
+// Los botones son los de «Cobrar» de Vender (PuntoDeVentaTicket): la etiqueta en mayúsculas chicas
+// con aire entre las letras (`label-cayla`) y, si hay un monto, a la derecha y en la serif de la
+// casa — la etiqueta dice qué se hace; el monto, cuánto. Sin monto, la etiqueta va centrada.
+// Su cara es vidrio en píldora (Felipe 2026-11-02, docs/maquetas/posventa-vidrio-2026-11/): el principal, el ahumado de
+// `btn-primario` (vidrio/campos-y-botones.css), también en el paso que mueve stock o plata de verdad (Felipe 2026-11-05: antes, un botón rojo).
 // Mientras espera (ADR-0358, ronda 12): la etiqueta pasa a `textoCargando` sin cambiar el ancho, corre el hilo y el botón se apaga, como en
 // todo botón que guarda (`Boton`); el monto se queda a la vista.
 type Espera = { cargando?: boolean; textoCargando?: string };
@@ -253,7 +280,7 @@ export function BotonPrincipal({ onClick, children, disabled = false, monto, gui
       onClick={onClick}
       disabled={disabled || cargando}
       aria-busy={cargando || undefined}
-      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      className={`btn-primario mov-boton relative flex h-12 items-center gap-8 rounded-full border px-6 text-crema disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
         {children}
@@ -272,23 +299,6 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       className="btn-cayla btn-secundario h-12 gap-2 px-5"
     >
       {children}
-    </button>
-  );
-}
-
-/** El único rojo del flujo: la acción que mueve stock o plata de verdad. */
-export function BotonRojo({ onClick, children, disabled = false, monto, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string } & Espera) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || cargando}
-      aria-busy={cargando || undefined}
-      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
-    >
-      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
-        {children}
-      </ContenidoBoton>
     </button>
   );
 }

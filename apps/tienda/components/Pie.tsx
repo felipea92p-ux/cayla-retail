@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { hrefLista } from "@/lib/catalogo";
+import { CREDITOS_DE_ESCUDOS } from "@/lib/escudos-creditos";
 import { hrefLooks } from "@/lib/looks";
+import { hrefDelProbador } from "@/lib/probador";
+import { RecomendacionEnElPie } from "./recomendaciones/RecomendacionFlotante";
 import { TEMAS_DE_AYUDA } from "./ayuda/temas";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
 import "@/app/estilos/pie.css";
 
-type Columna = { titulo: string; enlaces: [string, string][] };
+type Columna = { titulo: string; enlaces: [string, string][]; sugerencia?: boolean };
 
-/** Las listas para comprar (maqueta, `pieTienda`), con la tienda elegida en «Ver lo que hay en» (como la cabecera). */
+/** Las listas para comprar, con la tienda elegida (como la cabecera). Un nombre por destino (rediseño Premium, 2026-11-07): «Outfits
+ *  listos» son los que arma CAYLA (/looks) y «Arma tu outfit» es la herramienta (/looks/arma); antes «Arma tu outfit» llevaba a /looks. */
 const comprar = (sede: string | null): Columna => {
   const lista = (l: "nuevo" | "ofertas" | "vendidos") => hrefLista({ sede, categoria: null, orden: "destacado", lista: l });
   return {
@@ -17,28 +21,32 @@ const comprar = (sede: string | null): Columna => {
       ["Lo nuevo", lista("nuevo")],
       ["Ofertas", lista("ofertas")],
       ["Más vendidos", lista("vendidos")],
-      ["Arma tu look", hrefLooks(sede)],
+      ["Outfits listos", hrefLooks(sede)],
+      ["Arma tu outfit", hrefDelProbador(sede)],
       ["Toda la tienda", hrefLista({ sede, categoria: null, orden: "destacado" })],
     ],
   };
 };
 
-/** Las listas para comprar son de todos (la tienda se mira sin cuenta, Felipe 2026-10-17). Sin cuenta, «CAYLA» ofrece entrar o crearla;
- *  con cuenta (`conCuenta`), el Club lleva a la cuenta y aparece «Recomendaciones» (Felipe 2026-10-15: lo que el cliente le quiera decir
- *  a CAYLA; va con su nombre, así que solo con cuenta). La ayuda va aparte, arriba y a la vista (revisión «a nivel mundial», 2026-10-16):
- *  cada página con lo que promete en una línea (`TEMAS_DE_AYUDA`, las mismas que ofrecen las páginas que no están). */
+/** Cuatro columnas (maqueta Premium): la marca, comprar, ayuda y el Club. La ayuda también va arriba, a la vista, con lo que promete cada
+ *  página (`TEMAS_DE_AYUDA`); aquí suma «Envíanos una sugerencia», que abre la ventana de Recomendaciones (antes, un botón flotante). Las
+ *  listas son de todos (la tienda se mira sin cuenta, Felipe 2026-10-17); sin cuenta, el Club ofrece crearla o entrar. */
 const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
   comprar(sede),
   {
-    titulo: "CAYLA",
+    titulo: "Ayuda",
+    enlaces: [...TEMAS_DE_AYUDA.map((a) => [a.titulo, a.href] as [string, string]), ["Preguntas frecuentes", "/preguntas-frecuentes"]],
+    sugerencia: true,
+  },
+  {
+    titulo: "Club CAYLA",
     enlaces: [
-      ["Club CAYLA", conCuenta ? "/cuenta" : "/crear-cuenta"],
+      ["Cómo funciona el Club", "/club"],
       ...(conCuenta
-        ? [["Recomendaciones", "/recomendaciones"] as [string, string]]
+        ? [["Mi perfil", "/cuenta"] as [string, string]]
         : [["Crear mi cuenta", "/crear-cuenta"] as [string, string], ["Entrar", "/entrar"] as [string, string]]),
-      ["Privacidad", "/privacidad"],
-      // «Club» con mayúscula, como en el título de la página («Términos del Club CAYLA») y en «Club CAYLA».
       ["Términos del Club", "/terminos-del-club"],
+      ["Privacidad", "/privacidad"],
     ],
   },
 ];
@@ -78,6 +86,7 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
               <Link className="t-logo" href="/inicio" aria-label="CAYLA, ir al inicio">
                 <Logo />
               </Link>
+              <p className="t-pie-lema">Donde el estilo transforma.</p>
             </div>
             {columnas(conCuenta, sede).map((c) => (
               <div key={c.titulo}>
@@ -88,12 +97,35 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
                       <Link href={href}>{texto}</Link>
                     </li>
                   ))}
+                  {c.sugerencia && (
+                    <li>
+                      <RecomendacionEnElPie />
+                    </li>
+                  )}
                 </ul>
               </div>
             ))}
           </div>
           <p className="t-pie-legal">
             <span>© {anio} CAYLA</span>
+          </p>
+          {/* Los escudos de las ciudades (cabecera) son de Wikimedia Commons con licencia Creative Commons: piden mencionar al autor y la licencia. */}
+          <p className="t-pie-creditos">
+            Escudos de las ciudades, de Wikimedia Commons, reducidos de tamaño:{" "}
+            {CREDITOS_DE_ESCUDOS.map((c, i) => (
+              <span key={c.clave}>
+                {i > 0 && (i === CREDITOS_DE_ESCUDOS.length - 1 ? " y " : ", ")}
+                <a href={c.hrefArchivo} target="_blank" rel="noopener noreferrer">
+                  {c.ciudad}
+                </a>{" "}
+                (por {c.autor},{" "}
+                <a href={c.hrefLicencia} target="_blank" rel="noopener noreferrer">
+                  {c.licencia}
+                </a>
+                )
+              </span>
+            ))}
+            .
           </p>
         </div>
       </footer>

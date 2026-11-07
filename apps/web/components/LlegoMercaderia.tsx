@@ -11,6 +11,9 @@ import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { nuevaOperacion } from "@/lib/cola-offline";
+import { conDueno, faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useColaRecibir } from "@/lib/useColaRecibir";
 import { useResponsable } from "@/lib/useResponsable";
 import { diaMes } from "@/lib/fechas-lima";
@@ -54,6 +57,8 @@ import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
@@ -74,6 +79,7 @@ type ConteoDeLaLlegada = {
   token: string;
 };
 
+const CANTIDAD_QUE_LLEGO = reglaDeEntero();
 const ID_BUSCADOR = "llegada-buscador";
 const ID_LISTA = "llegada-sugerencias";
 
@@ -147,7 +153,13 @@ export function LlegoMercaderia({
   // Si fueron a crear una prenda nueva en otra pestaña, al volver se relee el catálogo (la lista de aquí no se pierde).
   const fueACrear = useRef(false);
   const colaOffline = useColaRecibir();
+  const escrita = useCantidadEscrita(CANTIDAD_QUE_LLEGO);
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
+  // ADR-0542: en una sede donde operan dos empresas (Lima), quien recibe dice de quién es lo que llegó. Sin respuesta de fábrica.
+  const empresasDeLaSede = useEmpresasDeSede(ubicacionId);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresasDeLaSede, duenoId);
 
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   // Cuando la página relee el directorio, el recién agregado ya viene en `proveedores`: no se repite. `directorioCompleto` incluye a quien
@@ -176,6 +188,7 @@ export function LlegoMercaderia({
     responsableListo: responsable.listo,
     responsableMotivo: responsable.motivo,
     facturaRespondida: susFacturas.length > 0 ? sinFactura.includes(proveedorId) : null,
+    duenoFalta: preguntaDueno ? faltaDueno : null,
   });
   const guia = useGuiaCampos(campos, { enModal: false });
   // Dormida, la guía no marca «Sigue aquí» ni pinta el «Falta: …» del pie: lo que falta sigue diciendo «falta» en cada título. Recibir
@@ -280,6 +293,8 @@ export function LlegoMercaderia({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Lo escrito en una cantidad no valió: antes de recibir lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     await recibir(null);
   }
 
@@ -301,7 +316,7 @@ export function LlegoMercaderia({
     setLoading(true);
     const params = pedidoRecibirLote({ ubicacionId, proveedorId, lineas, numeroGuia, token: token.current, confirmadas });
     const firma = responsable.firma();
-    const { data: loteId, error, status } = await firmar(createClient().rpc("recibir_lote", params), firma);
+    const { data: loteId, error, status } = await firmar(conDueno(createClient().rpc("recibir_lote", params), preguntaDueno ? duenoId : null), firma);
     setLoading(false);
 
     // Sin red (ADR-0210): la llegada no se pierde. Entra a la cola con su token y sube sola al volver internet.
@@ -311,6 +326,7 @@ export function LlegoMercaderia({
         rpc: "recibir_lote",
         params,
         firma,
+        dueno: preguntaDueno ? duenoId : null,
         resumen: `${unidades} ${unidades === 1 ? "prenda" : "prendas"} de ${proveedor?.nombre ?? "proveedor"} · ${ubicacionEtiqueta}`,
       });
       if (!colaOffline.encolar(op)) {
@@ -395,19 +411,19 @@ export function LlegoMercaderia({
                 opciones={directorio.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
               />
               {puedeAgregarProveedor ? (
-                <p className="mt-1.5 text-xs text-taupe">
+                <p className="mt-1.5 text-sm text-taupe">
                   ¿No está?{" "}
                   <button type="button" onClick={() => setAgregando(true)} className="btn-cayla btn-enlace whitespace-normal text-left text-xs">
                     + Agregar proveedor
                   </button>
                 </p>
               ) : (
-                <p className="mt-1.5 text-xs text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
+                <p className="mt-1.5 text-sm text-taupe">¿No está? Pídele a quien administra Proveedores que lo agregue.</p>
               )}
             </CampoGuiado>
             </div>
             <label data-guia="recibir.guia" className="block">
-              <span className="mb-1.5 block text-[13px] font-semibold text-tinta">
+              <span className="mb-1.5 block text-sm font-semibold text-tinta">
                 Guía <span className="font-normal text-taupe">opcional</span>
               </span>
               <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-campo-input" />
@@ -422,7 +438,7 @@ export function LlegoMercaderia({
 
           {susFacturas.length > 0 &&
             (sinFactura.includes(proveedorId) ? (
-              <p className="-mt-2 text-[13px] text-taupe">
+              <p className="-mt-2 text-sm text-taupe">
                 Se recibe sin factura.{" "}
                 <button type="button" onClick={() => setSinFactura((a) => a.filter((id) => id !== proveedorId))} className="btn-enlace">
                   Ver sus facturas pendientes
@@ -531,7 +547,7 @@ export function LlegoMercaderia({
             </p>
 
             {lineas.length > 0 && verMontos && (
-              <p className="mt-1 text-xs text-taupe">El costo por prenda es opcional: si todavía no lo sabes, recibe sin costo y llega con la factura.</p>
+              <p className="mt-1 text-sm text-taupe">El costo por prenda es opcional: si todavía no lo sabes, recibe sin costo y llega con la factura.</p>
             )}
             {lineas.length > 0 && (
               <ul className="mt-3 divide-y divide-tinta/10 border-y border-tinta/10">
@@ -546,22 +562,31 @@ export function LlegoMercaderia({
                       <Muestra prenda={p} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-tinta">{p.referencia}</p>
-                        <p className="truncate text-xs text-taupe">
+                        <p className="truncate text-sm text-taupe">
                           {detalle(p)} · {p.sku}
                         </p>
                       </div>
                       <PasoCantidad
                         role="group"
                         aria-label={`Cantidad de ${p.referencia}`}
-                        menos={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1)), etiqueta: "Una menos" }}
-                        mas={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1)), etiqueta: "Una más" }}
+                        tono={escrita.invalida(l.varianteId) ? "error" : undefined}
+                        menos={{
+                          onClick: () => {
+                            escrita.olvidar();
+                            cambiarLineas(sumarPrenda(lineas, l.varianteId, -1));
+                          },
+                          etiqueta: "Una menos",
+                        }}
+                        mas={{
+                          onClick: () => {
+                            escrita.olvidar();
+                            cambiarLineas(sumarPrenda(lineas, l.varianteId, 1));
+                          },
+                          etiqueta: "Una más",
+                        }}
                         campo={{
-                          type: "number",
-                          min: 0,
-                          inputMode: "numeric",
                           "aria-label": "Cantidad",
-                          value: l.cantidad,
-                          onChange: (e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value))),
+                          ...escrita.campo(l.varianteId, String(l.cantidad), (v) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(v)))),
                         }}
                       />
                       {verMontos && (
@@ -583,8 +608,19 @@ export function LlegoMercaderia({
                 })}
               </ul>
             )}
+            {escrita.problema && (
+              <Aviso tono="error" chico className="mt-2">
+                {escrita.problema}
+              </Aviso>
+            )}
           </CampoGuiado>
           </div>
+
+          {preguntaDueno && empresasDeLaSede && (
+            <CampoGuiado id="llegada-dueno" guia={guiaVista} titulo="¿De quién es la mercadería?" ayuda="CAYLA o CLAURE: lo marcas tú, no la marca de la prenda" retiene="fila">
+              <ElegirDueno empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={loading} guia="recibir.dueno" />
+            </CampoGuiado>
+          )}
 
           <div data-guia="recibir.responsable">
             <CampoGuiado id="llegada-responsable" guia={guiaVista}>

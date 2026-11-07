@@ -50,7 +50,7 @@ import { BuscadorOrdenesInsumo } from "@/components/ordenes-insumo/BuscadorOrden
 const PLANTILLA =
   "@min-[40rem]:grid-cols-[6.5rem_minmax(0,1fr)_7.5rem_6.5rem_1rem] @min-[60rem]:grid-cols-[7.5rem_minmax(0,1fr)_5.5rem_minmax(0,0.85fr)_7.5rem_6.5rem_1rem]";
 const SOLO_ANCHA = "hidden @min-[60rem]:block";
-const SEGUNDA_LINEA = "block @min-[60rem]:hidden text-xs text-taupe";
+const SEGUNDA_LINEA = "block @min-[60rem]:hidden text-sm text-taupe";
 const CON_COLUMNAS = "hidden @min-[40rem]:block";
 const CIFRA = "min-w-0 whitespace-nowrap tabular-nums @min-[40rem]:text-right";
 
@@ -90,8 +90,7 @@ export default async function OrdenesInsumoPage({ searchParams }: { searchParams
       ) : primeraVez ? (
         <div className="card-cayla">
           <Vacio icono={<Spool />} titulo="Todavía no hay órdenes de insumos" acciones={nuevaOrden}>
-            Crea la primera con lo que le vas a pedir a un proveedor del Taller: aquí vas a ver su número, cuánto pediste de cada insumo y
-            cuánto suma.
+            Crea la primera con lo que le vas a pedir a un proveedor del Taller.
           </Vacio>
         </div>
       ) : (
@@ -170,9 +169,9 @@ export default async function OrdenesInsumoPage({ searchParams }: { searchParams
                             )}
                           </span>
                           {esRecien ? (
-                            <span className="block text-xs font-medium text-verde">Recién guardada</span>
+                            <span className="block text-sm font-medium text-verde">Recién guardada</span>
                           ) : (
-                            <span className="block text-xs text-taupe">del {diaMes(f.fechaEmision)}</span>
+                            <span className="block text-sm text-taupe">del {diaMes(f.fechaEmision)}</span>
                           )}
                         </span>
                         <span className={celda("izq", "text-tinta")} data-guia="oi-lista.proveedor">
@@ -196,13 +195,13 @@ export default async function OrdenesInsumoPage({ searchParams }: { searchParams
                                   </span>
                                 ))}
                           </span>
-                          <span className="block text-xs text-taupe">{lineas}</span>
+                          <span className="block text-sm text-taupe">{lineas}</span>
                         </span>
                         {/* Una anulada no suma: su total va tachado. */}
                         <span className={`${CIFRA} cmp-total font-medium`}>
                           <span className={anulada ? "text-tinta/45 line-through" : "text-tinta"}>{soles(f.total)}</span>
                           <span className={`${SEGUNDA_LINEA} font-normal`}>{lineas}</span>
-                          {f.nosDebe && <span data-guia="oi-lista.nos-debe" className="block text-xs font-normal text-ambar">nos debe {soles(f.nosDebe.monto)}</span>}
+                          {f.nosDebe && <span data-guia="oi-lista.nos-debe" className="block text-sm font-normal text-ambar">nos debe {soles(f.nosDebe.monto)}</span>}
                         </span>
                         <span className={celda("izq", `${CON_COLUMNAS} space-y-1`)}>
                           <Chip tono={estado.tono}>{estado.texto}</Chip>

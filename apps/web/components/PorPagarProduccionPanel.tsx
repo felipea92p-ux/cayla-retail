@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { PagarComprobanteProduccionModal } from "@/components/PagarComprobanteProduccionModal";
+import { avisoDeFaltante, type FaltanteDePedido } from "@/lib/faltante-por-pagar-reglas";
 import { diasHasta, etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
 import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes } from "@/lib/por-pagar-produccion-reglas";
 import { CircleCheck } from "lucide-react";
@@ -15,6 +16,9 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { BotonEnlace } from "@/components/ui/campos";
+import { hrefDeLaOrden, totalDeServicios, type ServicioPorPagar } from "@/lib/servicios-por-pagar-reglas";
+import { PagarServicioModal } from "@/components/PagarServicioModal";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -26,19 +30,27 @@ export function PorPagarProduccionPanel({
   comprobantes,
   deuda,
   igv,
+  faltantes = {},
+  servicios = [],
   hoy,
   sede,
 }: {
   comprobantes: ComprobanteProduccion[];
   deuda: DeudaFila[];
   igv: IgvMes | null;
+  /** Lo que cerró como «no va a llegar» el pedido de cada factura, por id de factura (P02, opción B): solo un aviso, la deuda no cambia. */
+  faltantes?: Record<string, FaltanteDePedido>;
+  /** Lo que se le debe a un servicio y todavía no tiene papel (ADR-0614, actividad 3). */
+  servicios?: ServicioPorPagar[];
   hoy: string;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
 }) {
   const [pagando, setPagando] = useState<ComprobanteProduccion | null>(null);
+  const [pagandoServicio, setPagandoServicio] = useState<(ServicioPorPagar & { proveedor: string }) | null>(null);
   const tramos = tramosPorPagar(comprobantes, hoy);
-  const totalPorPagar = tramos.reduce((s, t) => s + t.monto, 0);
+  const totalServicios = totalDeServicios(servicios);
+  const totalPorPagar = tramos.reduce((s, t) => s + t.monto, 0) + totalServicios;
   const vencido = tramos.find((t) => t.clave === "vencido");
   const semana = tramos.find((t) => t.clave === "semana");
   const consolidado = resumenDeuda(deuda);
@@ -50,7 +62,7 @@ export function PorPagarProduccionPanel({
       <EncabezadoPagina
         sede={sede}
         titulo="Por pagar"
-        subtitulo="Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita."
+        subtitulo="Lo que el Taller le debe a sus proveedores, del más urgente al menos."
       />
 
       <div data-guia="prod-por-pagar.cifras" className="grid gap-3 sm:grid-cols-3">
@@ -61,7 +73,7 @@ export function PorPagarProduccionPanel({
           style={{ ["--i" as string]: 0 }}
           valor={totalPorPagar === 0 ? null : <CifraQueCuenta valor={totalPorPagar} formato="soles" alMontar />}
         >
-          {totalPorPagar > 0 ? plural(tramos.reduce((s, t) => s + t.comprobantes.length, 0), "comprobante", "comprobantes") : "no se debe nada"}
+          {totalPorPagar > 0 ? [tramos.length > 0 ? plural(tramos.reduce((s, t) => s + t.comprobantes.length, 0), "comprobante", "comprobantes") : null, servicios.length > 0 ? plural(servicios.length, "servicio sin papel", "servicios sin papel") : null].filter(Boolean).join(" · ") : "no se debe nada"}
         </TarjetaCifra>
         <TarjetaCifra
           punto={vencido ? "rojo" : "verde"}
@@ -84,7 +96,44 @@ export function PorPagarProduccionPanel({
         </TarjetaCifra>
       </div>
 
-      {tramos.length === 0 ? (
+      {servicios.length > 0 && (
+        <section data-guia="prod-por-pagar.servicios" className="space-y-2" aria-label="Servicios de las órdenes">
+          <TituloSeccion
+            dato={
+              <>
+                <b>{soles(totalServicios)}</b> · {plural(servicios.length, "servicio", "servicios")}
+              </>
+            }
+          >
+            Servicios de las órdenes
+          </TituloSeccion>
+          <ul className="card-cayla overflow-hidden">
+            {servicios.map((x) => (
+              <li key={x.faseId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] text-tinta">{x.proveedor ?? "Falta decir quién lo hizo"}</span>
+                  <span className="block text-sm text-tinta/65">
+                    {x.numeroTexto} · {x.producto} · {x.fase}
+                    {x.documentado > 0 ? ` · con papel ${soles(x.documentado)} de ${soles(x.devengado)}` : ""}
+                  </span>
+                </span>
+                <span className="text-right text-[14px] font-semibold tabular-nums text-tinta">{soles(x.falta)}</span>
+                {x.proveedor === null ? (
+                  <BotonEnlace href={hrefDeLaOrden(x.numero)} peso="fantasma" data-guia="prod-por-pagar.registrar-quien" className="col-span-2 sm:col-span-1">
+                    Registrar quién
+                  </BotonEnlace>
+                ) : (
+                  <Boton peso="fantasma" data-guia="prod-por-pagar.pagar-servicio" onClick={() => setPagandoServicio({ ...x, proveedor: x.proveedor as string })} className="col-span-2 sm:col-span-1">
+                    Pagar
+                  </Boton>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {tramos.length === 0 && servicios.length > 0 ? null : tramos.length === 0 ? (
         <div className="card-cayla">
           <Vacio guia="prod-por-pagar.lista" icono={<CircleCheck />} titulo="El Taller no debe nada">
             Cuando registres un comprobante a crédito, aparecerá aquí con su vencimiento.
@@ -106,14 +155,27 @@ export function PorPagarProduccionPanel({
               <ul className="card-cayla overflow-hidden">
                 {t.comprobantes.map((c) => {
                   const d = c.fechaVencimiento ? diasHasta(c.fechaVencimiento, hoy) : null;
+                  const faltante = avisoDeFaltante(faltantes[c.id], c);
                   return (
                     <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.5fr)_9rem_7rem_auto]">
                       <span className="min-w-0">
                         <span className="block truncate text-[14px] text-tinta">{c.proveedor}</span>
-                        <span className="block text-xs text-tinta/65">
+                        <span className="block text-sm text-tinta/65">
                           {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero}
                           {c.pagado > 0 ? ` · pagado ${soles(c.pagado)} de ${soles(c.total)}` : ""}
                         </span>
+                        {c.serie === "S/P" && (
+                          <span className="mt-1 block">
+                            <Chip tono="pizarra" title="La compra se registró sin el papel del proveedor: se reemplaza cuando llegue.">Sin papel todavía</Chip>
+                          </span>
+                        )}
+                        {faltante && (
+                          <span className="mt-1 block">
+                            <Chip tono="ambar" title={faltante.detalle}>
+                              {faltante.chip}
+                            </Chip>
+                          </span>
+                        )}
                       </span>
                       <span className="hidden sm:block">
                         {c.fechaVencimiento && d !== null && (
@@ -138,7 +200,7 @@ export function PorPagarProduccionPanel({
       <section data-guia="prod-por-pagar.deuda-total" aria-label="Deuda total de CAYLA" className="card-cayla anim-entra space-y-4 p-5" style={{ ["--i" as string]: 3 }}>
         <div>
           <TituloSeccion>Deuda total de CAYLA</TituloSeccion>
-          <p className="text-xs text-tinta/65">Compras y Producción juntos, en un solo lugar. Solo se lee: cada deuda se paga en su propio módulo.</p>
+          <p className="text-sm text-tinta/65">Compras y Producción juntos. Cada deuda se paga en su propio módulo.</p>
         </div>
 
         {consolidado.total === 0 ? (
@@ -163,7 +225,7 @@ export function PorPagarProduccionPanel({
                   { clave: "compras", nombre: "Compras", valor: 1 - (consolidado.parteProduccion ?? 0), clase: "bg-tinta/30", titulo: `Compras: ${Math.round((1 - (consolidado.parteProduccion ?? 0)) * 100)} %` },
                 ]}
               />
-              <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
+              <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-tinta/70">
                 <span>
                   <MuestraTramo clase="bg-tinta" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Producción {soles(consolidado.porOrigen.produccion.saldo)} · {plural(consolidado.porOrigen.produccion.proveedores, "proveedor", "proveedores")}
@@ -176,14 +238,14 @@ export function PorPagarProduccionPanel({
             </div>
             <ul data-guia="prod-por-pagar.deudores">
               {deuda.slice(0, 8).map((f) => (
-                <li key={`${f.origen}-${f.proveedorId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-tinta/10 py-2 text-[13px] last:border-b-0">
+                <li key={`${f.origen}-${f.proveedorId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-tinta/10 py-2 text-sm last:border-b-0">
                   <span className="min-w-0">
                     <span className="truncate text-tinta">{f.proveedor}</span>
                     <span className="ml-2 align-middle">
                       <Chip tono="neutro">{f.origen === "produccion" ? "Producción" : "Compras"}</Chip>
                     </span>
-                    <small className="block text-xs text-tinta/65">
-                      {plural(f.comprobantes, "comprobante", "comprobantes")}
+                    <small className="block text-sm text-tinta/65">
+                      {f.origen === "produccion" ? plural(f.comprobantes, "deuda", "deudas") : plural(f.comprobantes, "comprobante", "comprobantes")}
                       {f.proximoVencimiento ? ` · vence ${diaMes(f.proximoVencimiento)}` : ""}
                       {f.vencido > 0 ? ` · ${soles(f.vencido)} vencidos` : ""}
                     </small>
@@ -192,14 +254,14 @@ export function PorPagarProduccionPanel({
                 </li>
               ))}
             </ul>
-            {deuda.length > 8 && <p className="text-xs text-tinta/65">y {deuda.length - 8} proveedores más con saldos menores.</p>}
+            {deuda.length > 8 && <p className="text-sm text-tinta/65">y {deuda.length - 8} proveedores más con saldos menores.</p>}
           </>
         )}
 
         {igv && (
           <div data-guia="prod-por-pagar.igv" className="border-t border-tinta/10 pt-4">
             <TituloGrupo>IGV crédito fiscal · {nombreDeMes(igv.mes)}</TituloGrupo>
-            <dl className="mt-2 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
+            <dl className="mt-2 divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-sm">
               <div className="flex justify-between gap-3 px-3 py-2">
                 <dt>Comprobantes de Compras</dt>
                 <dd className="tabular-nums">{soles(igv.igvCompras)}</dd>
@@ -217,12 +279,13 @@ export function PorPagarProduccionPanel({
                 <dd className="font-display text-lg tabular-nums">{soles(igv.igvNeto)}</dd>
               </div>
             </dl>
-            <p className="mt-2 text-xs text-tinta/65">Según la fecha de emisión de los comprobantes vigentes. Es una lectura de apoyo, no el registro de compras de SUNAT.</p>
+            <p className="mt-2 text-sm text-tinta/65">Por fecha de emisión. Es una ayuda, no el registro de compras de SUNAT.</p>
           </div>
         )}
       </section>
 
-      {pagando && <PagarComprobanteProduccionModal comprobante={pagando} hoy={hoy} onClose={() => setPagando(null)} />}
+      {pagandoServicio && <PagarServicioModal servicio={pagandoServicio} hoy={hoy} onClose={() => setPagandoServicio(null)} />}
+      {pagando && <PagarComprobanteProduccionModal comprobante={pagando} hoy={hoy} faltante={avisoDeFaltante(faltantes[pagando.id], pagando)} onClose={() => setPagando(null)} />}
     </div>
   );
 }

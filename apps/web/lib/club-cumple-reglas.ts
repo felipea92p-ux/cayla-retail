@@ -34,11 +34,6 @@ export const OPCIONES_MES_CUMPLE = ["ene", "feb", "mar", "abr", "may", "jun", "j
 export type CumpleEscrito = { dia: string; mes: string; anio: string };
 export const CUMPLE_VACIO: CumpleEscrito = { dia: "", mes: "", anio: "" };
 
-/** Lo que queda en la caja del día al tipear: solo dígitos, hasta 2. */
-export const ajustarDia = (texto: string) => texto.replace(/\D/g, "").slice(0, 2);
-/** Lo que queda en la caja del año al tipear: solo dígitos, hasta 4. */
-export const ajustarAnio = (texto: string) => texto.replace(/\D/g, "").slice(0, 4);
-
 /** No escribió nada del cumpleaños (ni día, ni mes, ni año). */
 export const cumpleVacio = (c: CumpleEscrito) => c.dia.trim() === "" && c.mes.trim() === "" && c.anio.trim() === "";
 
@@ -57,6 +52,8 @@ export function problemaCumple(c: CumpleEscrito, anioActual: number): string | n
   const anio = c.anio.trim();
   if (!dia && !mes) return anio ? "Con el año, elige también el día y el mes." : null;
   if (!dia) return "Falta el día de su cumpleaños.";
+  // Las cajas ya no borran lo que no es una cifra («2,5» era el 25): se lee por su forma, porque `Number` tomaría «1e1» por 10. Se dice antes que el mes: ya está a la vista.
+  if (!/^\d{1,2}$/.test(dia)) return "El día es un número entero, del 1 al 31.";
   if (!mes) return "Falta el mes de su cumpleaños.";
   const d = Number(dia);
   const m = Number(mes);

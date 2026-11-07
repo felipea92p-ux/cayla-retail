@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
-import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
-import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
+import { avisar } from "@/components/ui/Avisos";
+import { hayCampo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
+import { errorDeCampo, estadosDe, faltanDe, fraseDeLoQueFalta, palabraDeGrado, pendientesAlRevisar, primeroQueBloquea, revisadosVigentes, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
 
 // El estado de la guía de foco de UN modal (o de cualquier formulario corto). CLAUDE.md «Guía de foco», ADR-0284.
 //
@@ -13,16 +14,20 @@ import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe, 
 //   ]);
 //   <CampoGuiado guia={guia} id="monto"><CampoTexto etiqueta={guia.etiqueta("monto", "Monto")} … /></CampoGuiado>
 //   <PieGuia guia={guia} />
-//   <Boton disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>Guardar</Boton>
+//   <Boton confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>Guardar</Boton>
 //
 // `hecho` y `requerido` salen de la validación REAL del modal (la misma regla que apaga su botón): la guía no inventa reglas.
 
 export type GuiaCampos = {
   campos: readonly CampoDeGuia[];
   estado: (id: string) => EstadoCampo;
-  /** El título de un campo con su marca a la izquierda (y «Sigue aquí» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
+  /** El título de un campo con su marca a la izquierda (y «Sigue» si es el que sigue): para el `etiqueta` de `CampoTexto`, `Interruptor`… */
   etiqueta: (id: string, texto: ReactNode) => ReactNode;
   faltan: CampoDeGuia[];
+  /** Ya intentó confirmar con algo pendiente (o el guardado devolvió un error): el pie pasa de «Sigue» a la lista de lo que falta. */
+  revisado: boolean;
+  /** La hoja pidió decir el grado de cada campo en palabras (`conGrado`): `PieGuia` separa «Faltan» de «Conviene». */
+  conGrado: boolean;
   /** El id del campo que sigue, o null. */
   ahora: string | null;
   /** Solo lo REQUERIDO cuenta. */
@@ -37,44 +42,85 @@ export type GuiaCampos = {
   enfocar: (id: string) => void;
   /** Dejó de escribir en ese campo (salió de él, o el campo desapareció): la luz puede pasar al que sigue. */
   soltar: (id: string) => void;
+  /** Quiso confirmar: si falta algo, cada campo pendiente dice su error y se va al primero. Devuelve si se puede seguir (ADR-0611, mejora 1). */
+  revisar: () => boolean;
+  /** El error que dice un campo bajo su control, o null. Lo dibuja `CampoGuiado`. */
+  errorDe: (id: string) => string | null;
+  /** Un error que devolvió el guardado para un campo: lo dice bajo él y lleva hasta allá. */
+  marcarError: (id: string, mensaje: string) => void;
+  /** La persona ya está corrigiendo este campo: su error del guardado se borra (lo llama `CampoGuiado`). */
+  limpiarError: (id: string) => void;
 };
 
 /**
  * `enModal` (por defecto sí): el formulario vive dentro de un modal, que se desplaza solo lo mínimo. Una PANTALLA con su propio
  * formulario corto (Conteo ▸ Abrir un conteo) pasa `{ enModal: false }`: se lleva el campo a la vista de la ventana, sin taparlo
  * con la barra de abajo ni con la cabecera.
+ *
+ * `conGrado` (por defecto no): cada título dice en palabras si su campo es «obligatorio», «conviene» u «opcional» mientras no esté hecho, y el pie separa
+ * «Faltan:» (lo que bloquea) de «Conviene:» (lo que no). Es opt-in a propósito: lo piden las hojas del Taller (P09 del análisis del 2-nov); que lo adopte
+ * el resto de las hojas lo decide Felipe mirándolo (`/unificar`).
  */
-export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true }: { enModal?: boolean } = {}): GuiaCampos {
+export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true, conGrado = false }: { enModal?: boolean; conGrado?: boolean } = {}): GuiaCampos {
   // El campo de texto donde la persona está escribiendo: mientras siga ahí conserva la luz (`siguienteDe`). Sin esto, la primera
   // letra del nombre ya lo daba por «hecho» y la luz se iba al siguiente campo a media palabra.
   const [escribiendoEn, setEscribiendoEn] = useState<string | null>(null);
   const enfocar = useCallback((id: string) => setEscribiendoEn(id), []);
   const soltar = useCallback((id: string) => setEscribiendoEn((actual) => (actual === id ? null : actual)), []);
 
+  // Se avisa solo después de intentar confirmar, y solo lo que faltaba entonces: un campo vacío no regaña a quien todavía no llega a él.
+  const [revisados, setRevisados] = useState<ReadonlySet<string>>(() => new Set());
+  const vigentes = revisadosVigentes(revisados, campos);
+  if (vigentes !== revisados) setRevisados(vigentes);
+  const [externos, setExternos] = useState<Record<string, string>>({});
+  const limpiarError = useCallback((id: string) => {
+    setExternos((e) => {
+      if (!(id in e)) return e;
+      const resto = { ...e };
+      delete resto[id];
+      return resto;
+    });
+  }, []);
+
   const estados = estadosDe(campos, escribiendoEn);
   const ahora = siguienteDe(campos, escribiendoEn)?.id ?? null;
   const puedeConfirmar = sePuedeConfirmar(campos);
 
-  // Cuando lo que sigue cambia, si el nuevo campo quedó fuera de vista dentro del modal se le trae con suavidad. Nunca mientras la
-  // persona teclea (mover la luz sí, mover el modal no), y no al abrir (ahí el modal ya pone su propio foco).
-  const previo = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    const antes = previo.current;
-    previo.current = ahora;
-    if (antes === undefined || antes === ahora || ahora === null || estaEscribiendo()) return;
-    asegurarVisible(ahora, { enModal });
-  }, [ahora, enModal]);
-
+  // La luz nunca mueve la hoja (Felipe 2026-11-05: «invasiva»). Solo se desplaza si la persona lo pide: tocar lo que falta (`ir`) o intentar guardar (`revisar`).
   return {
     campos,
     estado: (id) => estados[id] ?? "opcional",
-    etiqueta: (id, texto) => <ConMarca estado={estados[id] ?? "opcional"}>{texto}</ConMarca>,
+    etiqueta: (id, texto) => {
+      const campo = conGrado ? campos.find((c) => c.id === id) : undefined;
+      return (
+        <ConMarca estado={estados[id] ?? "opcional"} grado={campo ? palabraDeGrado(campo) : null}>
+          {texto}
+        </ConMarca>
+      );
+    },
     faltan: faltanDe(campos),
+    revisado: revisados.size > 0,
+    conGrado,
     ahora,
     puedeConfirmar,
     frase: fraseDeLoQueFalta(campos),
     claseConfirmar: puedeConfirmar ? "hilo-seguir" : "",
     ir: (id) => irAlIdCampo(id, { cursor: true, enModal }),
+    revisar: () => {
+      const primero = primeroQueBloquea(campos);
+      if (!primero) return true;
+      setRevisados((r) => new Set([...r, ...pendientesAlRevisar(campos)]));
+      // Tocar el botón nunca queda sin respuesta: si ese campo no se está dibujando (está plegado o en otro paso), se dice en un aviso.
+      if (!hayCampo(primero.id)) avisar.aviso(primero.pendiente || `Falta: ${primero.nombre}.`);
+      else irAlIdCampo(primero.id, { cursor: true, enModal });
+      return false;
+    },
+    errorDe: (id) => errorDeCampo(campos, id, revisados.has(id), externos[id]),
+    marcarError: (id, mensaje) => {
+      setExternos((e) => ({ ...e, [id]: mensaje }));
+      irAlIdCampo(id, { cursor: true, enModal });
+    },
+    limpiarError,
     enfocar,
     soltar,
   };

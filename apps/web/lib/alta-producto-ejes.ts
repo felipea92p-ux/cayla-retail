@@ -75,15 +75,15 @@ async function proponerEnVocabulario(
   }
 }
 
-/** Propone un valor nuevo (POST /api/productos/{tipo}). Un Líder lo deja aprobado de una; cualquier otro rol lo deja pendiente. */
+/** Crea un valor nuevo (POST /api/productos/{tipo}). Nace aprobado, lo cree quien lo cree (ADR-0534). */
 export function proponerValorVocabulario(tipo: TipoVocabulario, texto: string, encabezados: Record<string, string>) {
   return proponerEnVocabulario(tipo, texto, encabezados);
 }
 
 /**
  * Crea una etiqueta nueva desde el alta (POST /api/productos/etiquetas): el mismo mecanismo que un tejido o un patrón nuevo
- * (vocabulario cerrado, ADR-0095). Un Líder la deja aprobada de una y se puede aplicar ya; cualquier otro rol la deja
- * PENDIENTE y no se puede aplicar a la prenda hasta que un Líder la apruebe (`valor.aprobado === false`).
+ * (vocabulario cerrado, ADR-0095). Nace aprobada, la cree quien la cree (ADR-0534), y se puede aplicar ya; `valor.aprobado`
+ * solo sale `false` si la base todavía no tiene ese cambio.
  * Con internet caído devuelve la frase «No se pudo hablar con el servidor», sin crear nada.
  */
 export function proponerEtiqueta(texto: string, encabezados: Record<string, string>) {

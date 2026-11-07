@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./flujo-caja.fixture.json";
 import { leerFilaER, type FilaER } from "./resultados-reglas";
 import {
+  solesCentimos,
   PALANCAS_INICIALES,
   alquilerDe,
   alquilerDeFijos,
@@ -9,16 +10,12 @@ import {
   conclusiones,
   etiquetaSemana,
   etiquetasEje,
-  fraseDelFlujo,
   hayCambios,
   leerFlujoReal,
   leerProyeccion,
   leerSemanas,
   csvEscenario,
-  csvFlujo,
   rangoDelMes,
-  textoPeriodo,
-  listasDelFlujo,
   proyectar,
   queFaltaEnLaProyeccion,
   puntoMasBajo,
@@ -99,34 +96,6 @@ describe("Lo que ya pasó (fn_flujo_caja_real)", () => {
     const suma = REAL.semanas.reduce((a, s) => a + s.entro, 0);
     expect(Math.round(suma * 100) / 100).toBe(REAL.entro);
     expect(REAL.semanas.at(-1)!.saldo).toBe(REAL.saldoFinal);
-  });
-
-  it("las listas del spike: lo que entró en el orden de los medios, lo que salió de mayor a menor, los ajustes aparte y sin ceros", () => {
-    const l = listasDelFlujo({
-      categorias: [
-        { clave: "plin", lado: "entra", monto: 10 },
-        { clave: "efectivo", lado: "entra", monto: 5 },
-        { clave: "dueno_pone", lado: "entra", monto: 99 },
-        { clave: "yape", lado: "entra", monto: 0.001 },
-        { clave: "qr", lado: "entra", monto: 40 },
-        { clave: "gastos", lado: "sale", monto: 30 },
-        { clave: "mercaderia", lado: "sale", monto: 80 },
-        { clave: "faltantes_caja", lado: "ajuste", monto: -12 },
-      ],
-    });
-    expect(l.entradas.map((c) => c.clave)).toEqual(["efectivo", "plin", "qr", "dueno_pone"]);
-    expect(l.salidas.map((c) => c.clave)).toEqual(["mercaderia", "gastos"]);
-    expect(l.ajustes.map((c) => c.clave)).toEqual(["faltantes_caja"]);
-  });
-
-  it("la frase dice por qué: salió más que entró por pagar mercadería, o entró más y el saldo subió", () => {
-    const baja = fraseDelFlujo({ ...REAL, entro: 100, salio: 180, saldoInicial: 500, saldoFinal: 420, categorias: [{ clave: "mercaderia", lado: "sale", monto: 150 }] });
-    expect(baja.tono).toBe("aviso");
-    expect(baja.partes).toContainEqual({ b: "S/\u00a080 más de lo que entró" });
-    expect(String(baja.partes.at(-1))).toContain("mercadería antes de venderla");
-    const sube = fraseDelFlujo({ ...REAL, entro: 300, salio: 100, saldoInicial: 500, saldoFinal: 700 });
-    expect(sube.tono).toBe("neutro");
-    expect(String(sube.partes.at(-1))).toContain("de S/\u00a0500 a S/\u00a0700");
   });
 
   it("lo «sin cuenta» se dice aparte, de mayor a menor, sin ceros", () => {
@@ -356,17 +325,9 @@ describe("La URL y la descarga", () => {
   it("el mes en curso se mira hasta hoy; uno que terminó, entero", () => {
     expect(rangoDelMes("2026-09", "2026-09-24")).toEqual({ desde: "2026-09-01", hasta: "2026-09-24" });
     expect(rangoDelMes("2026-08", "2026-09-24")).toEqual({ desde: "2026-08-01", hasta: "2026-08-31" });
-    expect(textoPeriodo("2026-09-01", "2026-09-24", "2026-09-24")).toBe("septiembre al 24");
-    expect(textoPeriodo("2026-08-01", "2026-08-31", "2026-09-24")).toBe("agosto");
-    expect(textoPeriodo("2025-12-01", "2025-12-31", "2026-01-10")).toBe("diciembre 2025");
   });
 
-  it("el CSV lleva las dos partes, separado por «;» y con los montos exactos", () => {
-    const t = csvFlujo(REAL, PROY);
-    expect(t.startsWith("﻿Lo que ya pasó;2026-09-01;2026-09-24")).toBe(true);
-    expect(t).toContain(`Saldo al empezar;;;;${REAL.saldoInicial.toFixed(2)}`);
-    expect(t).toContain("Lo que viene;2026-09-25;2026-11-05");
-    expect(t.split("\r\n").filter((l) => l.includes(";sí;")).length).toBe(PROY.semanas.filter((w) => w.bajoMinimo).length);
+  it("el CSV del escenario va separado por «;» y con los montos exactos", () => {
     const e = csvEscenario(proyectar(CHICA), proyectar(CHICA, con({ ventasTodas: 10 })), null);
     expect(e.split("\r\n")[1]).toBe("25 sep – 1 oct;4500.00;4650.00;150.00");
   });
@@ -382,6 +343,11 @@ describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => 
       ...base, historia_dias: 16, saldo_inicial_declarado: false, hay_facturas_de_proveedor: false, incluye_impuestos: true, dias_de_caja_confiable: false,
     });
     expect(p).toMatchObject({ historiaDias: 16, saldoInicialDeclarado: false, hayFacturasDeProveedor: false, incluyeImpuestos: true, diasDeCajaConfiable: false });
+  });
+  it("lee lo que se le debe a Claudia y ya se restó del saldo (ADR-0560, actividad 16); una base más vieja no lo trae y no se inventa", () => {
+    expect(leerProyeccion({ ...base, de_claudia: "291.69" }).deClaudia).toBe(291.69);
+    expect(leerProyeccion({ ...base, de_claudia: 0 }).deClaudia).toBe(0);
+    expect(leerProyeccion(base).deClaudia).toBeNull();
   });
   it("una base más vieja que la web (sin esos campos) no dice nada: ni provisional ni lista, no inventa", () => {
     const p = leerProyeccion(base);
@@ -437,5 +403,26 @@ describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => 
   it("los pagos de la planilla y de SUNAT tienen su rótulo en lo que salió", () => {
     expect(textoCategoria("planilla")).toBe("Pago de la planilla");
     expect(textoCategoria("impuestos")).toBe("Pago a SUNAT (IGV)");
+  });
+});
+
+describe("solesCentimos (ADR-0609)", () => {
+  it("siempre con dos decimales y el signo delante", () => {
+    expect(solesCentimos(1752)).toBe("S/\u00a01,752.00");
+    expect(solesCentimos(-25.34)).toBe("−S/\u00a025.34");
+    expect(solesCentimos(0)).toBe("S/\u00a00.00");
+    expect(solesCentimos(0.1 + 0.2)).toBe("S/\u00a00.30");
+  });
+});
+
+// ADR-0621: lo por volver de compras viene de la base; una base más vieja no lo manda y no se inventa.
+describe("lo por volver de compras", () => {
+  it("se lee de la proyección y del flujo real", () => {
+    expect(leerProyeccion({ ...fixture.proyeccion, por_volver_compras: 285 }).porVolverCompras).toBe(285);
+    expect(leerFlujoReal({ ...fixture.real, por_volver_compras: "285.50" }).porVolverCompras).toBe(285.5);
+  });
+  it("sin el dato queda null", () => {
+    expect(leerProyeccion(fixture.proyeccion).porVolverCompras).toBeNull();
+    expect(leerFlujoReal(fixture.real).porVolverCompras).toBeNull();
   });
 });

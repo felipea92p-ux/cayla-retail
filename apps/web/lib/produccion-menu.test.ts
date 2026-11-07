@@ -1,96 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { hijosMenuCompras, hijosMenuProduccion, puedeVerCompras, puedeVerProduccion } from "./produccion-menu";
+import { puedeVerProduccion } from "./produccion-menu";
 
 const TIPOS = ["tienda", "almacen", "taller"] as const;
-
-describe("hijosMenuProduccion (ADR-0133, D-A revertida el 2026-09-20; regrupado D-84/ADR-0155 el 2026-09-21)", () => {
-  it("parado en el Taller, el líder ve además el Resumen y, agrupadas, Proveedores/Comprobantes/Recibir/Por pagar bajo «abastecimiento»", () => {
-    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["resumenProduccion", "ordenes", "insumos", "abastecimiento"]);
-  });
-
-  // Desde ADR-0362 fase 7 (decisión 47), «Órdenes de insumos» vive en Abastecimiento sin pedir el dinero del Taller: con la regla fija de
-  // antes (sin módulos) quien trabaja en el Taller la ve junto a Recibir, y el subgrupo ya no se disuelve en «Recibir». Con los módulos de
-  // su rol la ve solo si lo tiene (`menu.test.ts`, «con módulos: …»).
-  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación y Abastecimiento (Órdenes de insumos y Recibir), pero no Resumen, Proveedores, Comprobantes ni Por pagar (datos bancarios y montos)", () => {
-    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "abastecimiento"]);
-  });
-
-  it("un líder que mira desde una tienda o un almacén NO ve Producción", () => {
-    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "tienda" })).toEqual([]);
-    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "almacen" })).toEqual([]);
-  });
-
-  it("quien trabaja en una tienda o un almacén no ve el módulo", () => {
-    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "tienda" })).toEqual([]);
-    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "almacen" })).toEqual([]);
-  });
-});
 
 describe("puedeVerProduccion", () => {
   it("depende solo del tipo de la ubicación activa, no del rol", () => {
     expect(TIPOS.filter((ubicacionTipo) => puedeVerProduccion({ ubicacionTipo }))).toEqual(["taller"]);
-  });
-
-  it("el menú y la puerta no pueden discrepar: el menú muestra Producción exactamente cuando la página abre", () => {
-    for (const esLider of [true, false]) {
-      for (const ubicacionTipo of TIPOS) {
-        const menuLaMuestra = hijosMenuProduccion({ esLider, ubicacionTipo }).length > 0;
-        expect(menuLaMuestra).toBe(puedeVerProduccion({ ubicacionTipo }));
-      }
-    }
-  });
-});
-
-describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se muestra — Felipe, 2026-09-21)", () => {
-  it("el líder ve las cuatro filas de Compras desde una tienda o un almacén, en el orden plan → mi plata → proveedor → historial (ADR-0504: Revisar compras y Por pagar son pestañas del Historial; Recibir vive en Inventario desde el 2026-10-14)", () => {
-    for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "miPlata", "proveedores", "comprobantes"]);
-    }
-  });
-
-  it("parado en el Taller, el líder NO ve Compras: allí se trabaja Producción", () => {
-    expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "taller" })).toEqual([]);
-  });
-
-  // ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): Plan de campaña y Órdenes de compra piden solo su módulo, no la plata de
-  // Compras. Sin módulos (la forma vieja con que esta vista arma el menú) quien no es líder ve esas dos en una tienda o un almacén;
-  // con módulos, cada cuenta ve solo las de su rol. Las cinco de plata siguen pidiendo `verDineroCompras`. En el Taller, nada.
-  // ADR-0362 fase 6 (decisión 65): Fondos por rendir, igual que esas dos, pide solo su módulo (nace sin rol: con módulos solo la ve el líder).
-  // ADR-0480 (2026-10-22): Órdenes de compra pasa a «Mis compras» y Fondos por rendir a «Revisar compras», con las mismas llaves.
-  // ADR-0504 (2026-10-24): «Revisar compras» ya no es una fila: es una pestaña de «Historial de compras», que se abre con CUALQUIERA de sus tres
-  // módulos y por eso no pide `verDineroCompras` (con él, un rol con solo «Revisar compras» no la vería). Esta vista no trae módulos, así que
-  // quien no es líder ve esa fila donde antes veía «Revisar compras»; con módulos, solo la ve quien tiene uno de los tres, y cada pestaña
-  // pide el suyo.
-  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña, Mis compras y la fila del Historial); en el Taller, nada", () => {
-    for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "miPlata", "comprobantes"]);
-    }
-  });
-
-  it("el menú y la regla no pueden discrepar", () => {
-    for (const esLider of [true, false]) {
-      for (const ubicacionTipo of TIPOS) {
-        expect(hijosMenuCompras({ esLider, ubicacionTipo }).length > 0).toBe(puedeVerCompras({ esLider, ubicacionTipo }));
-      }
-    }
-  });
-
-  it("en cada ubicación el líder ve UNO de los dos módulos: Producción en el Taller, Compras en las demás", () => {
-    for (const ubicacionTipo of TIPOS) {
-      const ve = [hijosMenuProduccion({ esLider: true, ubicacionTipo }).length > 0, hijosMenuCompras({ esLider: true, ubicacionTipo }).length > 0];
-      expect(ve.filter(Boolean)).toHaveLength(1);
-    }
-  });
-});
-
-describe("Producción y Compras son módulos distintos", () => {
-  it("ninguna pantalla aparece en los dos menús", () => {
-    // Cada lista se pide donde su módulo SÍ muestra algo (Producción en el Taller, Compras en una tienda): pedida donde sale vacía,
-    // la prueba pasaría siempre aunque los dos menús se hubieran mezclado.
-    const prod = hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" }) as string[];
-    const comp = hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" }) as string[];
-    expect(prod.length).toBeGreaterThan(0);
-    expect(comp.length).toBeGreaterThan(0);
-    expect(prod.filter((c) => comp.includes(c))).toEqual([]);
   });
 });

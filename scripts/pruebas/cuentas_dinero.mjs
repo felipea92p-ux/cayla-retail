@@ -19,11 +19,19 @@
  *
  * USO
  *   pnpm pruebas:cuentas-dinero    → con las migraciones ya aplicadas en el local
+ *   pnpm pruebas:cuentas-dinero -- --con-migracion supabase/migrations/<archivo>.sql [--contenedor <nombre>]
+ *                                  → prueba una migración que el local aún no tiene, dentro de cada transacción (se deshace)
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// `--con-migracion <archivo>`: para probar una migración que la base de prueba todavía no tiene, sin escribir nada en ella: el
+// archivo se aplica DENTRO de la transacción de cada escenario y se deshace con su ROLLBACK (ADR-0548). El CI no lo usa.
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_EN_LA_TRANSACCION = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
+const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
+const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo
 
@@ -66,6 +74,7 @@ $f$;
  *  y un egreso «Depósito bancario» de S/ 300 que la tienda registró. */
 const ESCENA = `
 begin;
+${MIGRACION_EN_LA_TRANSACCION}
 ${INTENTO}
 ${SALDO}
 ${cambiaA(FELIPE)}
@@ -287,6 +296,50 @@ select pg_temp.saldo(:'ibk');`);
   esperar("una venta anulada ya no suma en el banco", r.ok && anulada === "0.00", r);
 }
 
+// 7b. El Taller (ADR-0553): una cuenta por defecto SOLO para sus transferencias, que rige desde hoy y no mueve lo pasado.
+{
+  const r = correr(`${ESCENA}
+select id as taller from retail.ubicaciones where tipo = 'taller' and activo order by created_at limit 1 \\gset
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, %L)', :'taller', 'yape', :'bcp'));
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, %L)', :'taller', 'plin', :'bcp'));
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, %L)', :'taller', 'tarjeta', :'pos'));
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, %L)', :'taller', 'qr', :'pos'));
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, null)', :'taller', 'yape'));
+select pg_temp.intento(format('insert into retail.medios_de_cobro (ubicacion_id, medio, cuenta_id, vigente_desde) values (%L, ''yape'', %L, current_date)', :'taller', :'bcp'));
+select pg_temp.intento(format('insert into retail.medios_de_cobro (ubicacion_id, medio, cuenta_id, vigente_desde) values (%L, ''qr'', null, current_date)', :'taller'));
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, %L)', :'taller', 'transferencia', :'fuerte_tru'));
+select count(*) from retail.fn_medios_de_cobro() where ubicacion_id = :'taller';
+select retail.guardar_medio_de_cobro(:'taller', 'transferencia', :'ibk') is null;
+select string_agg(medio || ':' || coalesce(cuenta_nombre, '-') || ':' || (vigente_desde = retail.fn_hoy_lima()), ',') from retail.fn_medios_de_cobro() where ubicacion_id = :'taller';
+select count(*) from retail.fn_medios_de_cobro() where ubicacion_id = :'tru';
+select retail.guardar_medio_de_cobro(:'tru', 'transferencia', :'bcp') is null;
+select vigente_desde from retail.fn_medios_de_cobro() where ubicacion_id = :'tru' and medio = 'transferencia';
+select retail.guardar_medio_de_cobro(:'taller', 'transferencia', :'ibk') is null;
+select count(*) from retail.medios_de_cobro where ubicacion_id = :'taller';
+select retail.fn_cuenta_de_cobro(:'taller', 'transferencia', retail.fn_hoy_lima() - 1) is null;
+select (retail.fn_cuenta_dinero_detalle(:'ibk') -> 'recibe')::text;
+select pg_temp.intento(format('select retail.archivar_cuenta_dinero(%L)', :'ibk'));
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, %L)', 'fe9d4cb8-0000-4000-8000-00000000dead', 'transferencia', :'bcp'));
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_medio_de_cobro(%L, %L, %L)', :'taller', 'transferencia', :'bcp'));`);
+  const [yape, plin, tarjeta, qr, nulo, insYape, insQr, aFuerte, filasAntes, _g, taller, filasTienda, _g2, vigTienda, _g3, historia, ayer, detalle, archivar, inexistente, sinPermiso] = lineas(r);
+  void _g; void _g2; void _g3;
+  esperar("el Taller no guarda Yape ni Plin: solo sus transferencias", r.ok && yape.includes("El Taller solo guarda") && plin.includes("El Taller solo guarda"), r);
+  esperar("ni tarjeta ni QR (el Taller no cobra)", r.ok && tarjeta.includes("El Taller solo guarda") && qr.includes("El Taller solo guarda"), r);
+  esperar("ni siquiera «sin cuenta» para un medio que no es transferencia", r.ok && nulo.includes("El Taller solo guarda"), r);
+  esperar("el candado está también en la tabla: un insert directo de Yape o QR del Taller se rechaza", r.ok && insYape.includes("El Taller solo guarda") && insQr.includes("El Taller solo guarda"), r);
+  esperar("las transferencias del Taller siguen las reglas de siempre: no entran a una caja fuerte", r.ok && aFuerte.includes("banco o billetera"), r);
+  esperar("antes de configurarlo, «a qué cuenta entra» lista al Taller con UNA fila (la transferencia)", r.ok && filasAntes === "1", r);
+  esperar("configurado, esa fila dice el banco y rige desde HOY (no desde 1900: lo pasado no se mueve)", r.ok && taller === "transferencia:Interbank prueba F3:true", r);
+  esperar("las tiendas siguen con sus cinco medios", r.ok && filasTienda === "5", r);
+  esperar("a una tienda la primera vez le sigue valiendo para lo anterior (1900-01-01)", r.ok && vigTienda === "1900-01-01", r);
+  esperar("guardar la misma cuenta otra vez no agrega otra fila a la historia", r.ok && historia === "1", r);
+  esperar("ayer, la cuenta del Taller sigue siendo ninguna", r.ok && ayer === "t", r);
+  esperar("«Editar cuenta» dice que el Taller recibe ahí sus transferencias, y esa cuenta no se archiva", r.ok && detalle.includes("Taller") && detalle.includes("transferencia") && archivar.includes("Hoy entran cobros"), r);
+  esperar("una ubicación que no existe sigue diciendo «Esa tienda no existe»", r.ok && inexistente.includes("Esa tienda no existe"), r);
+  esperar("una colaboradora sin el módulo no configura al Taller", r.ok && sinPermiso !== "SIN_ERROR", r);
+}
+
 // 8. Se anula con motivo; no se borra ni se edita; lo anulado se queda a la vista y deja de sumar.
 {
   const r = correr(`${ESCENA}
@@ -309,6 +362,33 @@ select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'ibk',
   esperar("su egreso vuelve a «por clasificar» (la plata sí salió del cajón)", r.ok && Number(vuelve) === 1, r);
   esperar("no se anula dos veces", r.ok && dosVeces.includes("ya estaba anulado"), r);
   esperar("el egreso liberado se puede depositar de nuevo, bien", r.ok && reusar === "t", r);
+}
+
+// 8b. ADR-0548: el token de un movimiento que se deshizo no devuelve «hecho» en falso (hermana de pos_maquinas, ADR-0544).
+{
+  const r = correr(`${ESCENA}
+select gen_random_uuid() as tok \\gset
+select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', null, null, 0, null, null, :'tok') as m1 \\gset
+select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', null, null, 0, null, null, :'tok') = :'m1'::uuid;
+select retail.anular_movimiento_dinero(:'m1', 'Me equivoqué de cuenta') as _a \\gset
+select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''entre_cuentas'', 50, %L, %L, null, null, 0, null, null, %L)', :'bcp', :'ibk', :'tok'));
+select count(*), count(*) filter (where estado = 'anulado') from retail.movimientos_dinero where token_cliente = :'tok';
+select pg_temp.saldo(:'bcp');
+select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', null, null, 0, null, null, gen_random_uuid()) is not null;
+select pg_temp.saldo(:'bcp');
+select gen_random_uuid() as tok2 \\gset
+select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'bcp', null, null, 0, null, :'egreso', :'tok2') as m2 \\gset
+select retail.anular_movimiento_dinero(:'m2', 'Era de otra tienda') as _b \\gset
+select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''deposito'', 300, %L, %L, null, null, 0, null, %L, %L)', :'cajon_tru', :'bcp', :'egreso', :'tok2'));
+select count(*), count(*) filter (where estado = 'anulado') from retail.movimientos_dinero where token_cliente = :'tok2';
+select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'bcp', null, null, 0, null, :'egreso', gen_random_uuid()) is not null;`);
+  const [mismo, tokenDeshecho, unaFila, saldoSinNuevo, nuevoRegistra, saldoConNuevo, depositoDeshecho, unaFilaDeposito, depositoNuevo] = lineas(r);
+  esperar("el mismo token con su movimiento vigente devuelve ese mismo movimiento (doble clic)", r.ok && mismo === "t", r);
+  esperar("con el movimiento deshecho, reintentar con el mismo token dice que se deshizo (un movimiento, no un depósito)", r.ok && tokenDeshecho === "Ese movimiento ya se deshizo: vuelve a registrarlo desde cero.", r);
+  esperar("ese reintento no escribe nada: el token sigue con su única fila, anulada", r.ok && unaFila === "1|1" && saldoSinNuevo === "1000.00", r);
+  esperar("con un token nuevo, el movimiento se registra y el banco baja", r.ok && nuevoRegistra === "t" && saldoConNuevo === "950.00", r);
+  esperar("un depósito deshecho también avisa, con la palabra «depósito», y no escribe", r.ok && depositoDeshecho === "Ese depósito ya se deshizo: vuelve a registrarlo desde cero." && unaFilaDeposito === "1|1", r);
+  esperar("el egreso que liberó el «Deshacer» se deposita de nuevo con un token nuevo", r.ok && depositoNuevo === "t", r);
 }
 
 // 9. Decisión B: con el módulo, su tienda y solo depósitos; sin él, nada. Nadie lee las tablas directo.

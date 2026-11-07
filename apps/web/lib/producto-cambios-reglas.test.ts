@@ -275,7 +275,7 @@ describe("agruparCambios — lo que lee la hoja «Revisa y guarda los cambios»"
     });
     const grupos = agruparCambios(r.cambios);
     expect(grupos.map((g) => g.clave)).toEqual(["desactivan", "activan", "agregan", "precios", "etiquetas", "fotos", "datos"]);
-    expect(grupos.map((g) => g.titulo)).toEqual(["Se desactivan", "Se activan", "Se agregan", "Precios", "Insignias y campañas", "Fotos", "Datos de la prenda"]);
+    expect(grupos.map((g) => g.titulo)).toEqual(["Se desactivan", "Se activan", "Se agregan", "Precios", "Insignias", "Fotos", "Datos de la prenda"]);
     expect(grupos.find((g) => g.clave === "agregan")?.lineas).toEqual([{ texto: "Rojo M", detalle: "S/\u00a080.50" }]);
     expect(grupos.find((g) => g.clave === "precios")?.lineas).toEqual([{ texto: "Gris XS", antes: "S/\u00a090", despues: "S/\u00a095" }]);
     expect(grupos.find((g) => g.clave === "etiquetas")?.lineas).toEqual([{ texto: "Beige S", detalle: "+ Etiqueta e1" }]);

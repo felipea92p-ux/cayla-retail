@@ -7,16 +7,14 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 import { MosaicoDeVenta, IconoVisto } from "./piezas";
 import { LineaCorregida } from "./LineaCorregida";
 
-/** Lo que se dice de una venta que ya no está pendiente (regularizada, cerrada sin prenda, anulada): sin prendas que elegir. Un líder
- *  puede reabrir una cerrada (la base lo exige, `reabrir_prenda_cerrada`). */
+/** Lo que se dice de una venta que ya no está pendiente (regularizada, cerrada sin prenda, anulada): sin prendas que elegir. Una cerrada
+ *  se reabre desde aquí (`reabrir_prenda_cerrada`: quien ve Existencias, ADR-0534). */
 export function ResumenResuelta({
   fila,
-  esLider,
   onReabrir,
   onCorregir,
 }: {
   fila: FilaPorRegularizar;
-  esLider: boolean;
   onReabrir: (f: FilaPorRegularizar) => void;
   /** Una cerrada sin prenda sigue contando en la demanda con lo anotado: también se corrige (ADR-0369). */
   onCorregir: (f: FilaPorRegularizar) => void;
@@ -31,18 +29,18 @@ export function ResumenResuelta({
       <div>
         <p className="text-base font-semibold text-tinta">{fila.estado === "regularizada" ? fila.prendaReal : fila.descripcion}</p>
         {fila.estado === "regularizada" && fila.diferencia !== null && (
-          <p className="mt-0.5 text-[13px] text-taupe-profundo">
+          <p className="mt-0.5 text-sm text-taupe-profundo">
             {textoDeDiferencia(fila.diferencia)}
             {fila.forma === "llego_nueva" ? " · llegó nueva" : " · perdió la etiqueta"}
           </p>
         )}
         {fila.estado === "cerrada_sin_prenda" && fila.cierre && (
-          <p className="mt-0.5 text-[13px] text-taupe-profundo">
+          <p className="mt-0.5 text-sm text-taupe-profundo">
             {motivoLegible(fila.cierre.motivo)}. Cerrada el {diaYHoraLima(fila.cierre.cerradoEn).dia}: el stock no cambió.
           </p>
         )}
         {fila.estado === "cerrada_sin_prenda" && (
-          <p className="mt-0.5 text-[13px] text-taupe-profundo">
+          <p className="mt-0.5 text-sm text-taupe-profundo">
             <LineaCorregida fila={fila} />
           </p>
         )}
@@ -52,11 +50,9 @@ export function ResumenResuelta({
           <button type="button" onClick={() => onCorregir(fila)} className="btn-cayla btn-secundario">
             Corregir lo anotado
           </button>
-          {esLider && (
-            <button type="button" onClick={() => onReabrir(fila)} className="btn-cayla btn-secundario">
-              Reabrir
-            </button>
-          )}
+          <button type="button" onClick={() => onReabrir(fila)} className="btn-cayla btn-secundario">
+            Reabrir
+          </button>
         </div>
       )}
     </div>

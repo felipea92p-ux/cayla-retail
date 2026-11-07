@@ -69,7 +69,10 @@ describe("llenarTodas", () => {
   it("limpia lo escrito: «007» se llena como 7; 0 sí se aplica", () => {
     expect(llenarTodas(celdas, new Set(), "007")[0].valor).toBe("7");
     expect(llenarTodas(celdas, new Set(), "0")[0].valor).toBe("0");
-    expect(llenarTodas(celdas, new Set(), "-2")[0].valor).toBe("2");
+  });
+
+  it("lo que no es una cantidad no llena nada: «2,5» no se vuelve 25 en todas las celdas (Felipe 2026-11-03)", () => {
+    for (const malo of ["2,5", "1.5", "-2", "12345", "1e3"]) expect(llenarTodas(celdas, new Set(), malo), malo).toEqual([]);
   });
 });
 
@@ -133,6 +136,19 @@ describe("precios de la tabla", () => {
     expect(limpiarPrecio("1.2.3")).toBe("1.23");
     expect(limpiarPrecio("S/ 45.505")).toBe("45.50");
     expect(limpiarPrecio("abc")).toBe("");
+  });
+
+  // /chaos 2026-10-28 (semilla 2810): un precio pegado entero se leía mal en silencio («S/. 59» → 0.59, «1.299,50» → 1.29).
+  it("un monto pegado entero se lee con la regla de la plata: «S/ 59», «S/. 59», «1.299,50», «1,299»", () => {
+    expect(limpiarPrecio("S/ 59")).toBe("59");
+    expect(limpiarPrecio("S/. 59")).toBe("59");
+    expect(limpiarPrecio("S/. 59,90")).toBe("59.9");
+    expect(limpiarPrecio("1.299,50")).toBe("1299.5");
+    expect(limpiarPrecio("1,299.50")).toBe("1299.5");
+    expect(limpiarPrecio("1,299")).toBe("1299");
+    // Mientras se escribe, la coma sigue siendo el decimal.
+    expect(limpiarPrecio("59,")).toBe("59.");
+    expect(limpiarPrecio("59,9")).toBe("59.9");
   });
 
   it("vacía = S/ precio de venta", () => {
@@ -317,22 +333,47 @@ describe("columnasEditables y celdaVecina", () => {
 describe("cambiosDeRelleno («Llenar todas con»)", () => {
   const celdas = construirCeldas(["S", "M"], ["NEG", "BLA"]);
   const excluidas = new Set([claveCelda("M", "BLA")]);
+  // Lo que tenían las celdas al entrar a la caja.
+  const ANTES = { [claveCelda("S", "NEG")]: "3", [claveCelda("M", "NEG")]: "12" };
 
   it("con un número lo pone en todas las que siguen en la tabla (también «007» como 7), sea cual sea la pantalla", () => {
     const esperado = [claveCelda("S", "NEG"), claveCelda("M", "NEG"), claveCelda("S", "BLA")].map((clave) => ({ clave, valor: "7" }));
-    expect(cambiosDeRelleno(celdas, excluidas, "007", true)).toEqual(esperado);
-    expect(cambiosDeRelleno(celdas, excluidas, "007", false)).toEqual(esperado);
+    expect(cambiosDeRelleno(celdas, excluidas, "007", true, ANTES)).toEqual(esperado);
+    expect(cambiosDeRelleno(celdas, excluidas, "007", false, ANTES)).toEqual(esperado);
   });
 
-  it("vacía (borrada o con una tecla que no es dígito): Nuevo producto deja vacías esas celdas; Nueva orden no toca nada", () => {
-    for (const texto of ["", "a", "-", " ", "e"]) {
-      expect(cambiosDeRelleno(celdas, excluidas, texto, true)).toHaveLength(3);
-      expect(cambiosDeRelleno(celdas, excluidas, texto, true).every((c) => c.valor === "")).toBe(true);
-      expect(cambiosDeRelleno(celdas, excluidas, texto, false)).toEqual([]);
+  it("vacía: Nuevo producto deja vacías esas celdas; Nueva orden no toca nada", () => {
+    for (const texto of ["", " "]) {
+      expect(cambiosDeRelleno(celdas, excluidas, texto, true, ANTES)).toHaveLength(3);
+      expect(cambiosDeRelleno(celdas, excluidas, texto, true, ANTES).every((c) => c.valor === "")).toBe(true);
+      expect(cambiosDeRelleno(celdas, excluidas, texto, false, ANTES)).toEqual([]);
     }
   });
 
+  it("con algo que no es una cantidad las deja como estaban al entrar a la caja, en las dos pantallas", () => {
+    const esperado = [
+      { clave: claveCelda("S", "NEG"), valor: "3" },
+      { clave: claveCelda("M", "NEG"), valor: "12" },
+      { clave: claveCelda("S", "BLA"), valor: "" },
+    ];
+    for (const texto of ["a", "-", "e", "2,", "2,5", "12345"]) {
+      expect(cambiosDeRelleno(celdas, excluidas, texto, true, ANTES), texto).toEqual(esperado);
+      expect(cambiosDeRelleno(celdas, excluidas, texto, false, ANTES), texto).toEqual(esperado);
+    }
+  });
+
+  it("teclear «2,5» de a una no deja un 2 en todas: el «2» las llena y la coma las devuelve", () => {
+    const estado: Record<string, string> = { ...ANTES };
+    const teclas = ["2", "2,", "2,5"];
+    const despues = teclas.map((texto) => {
+      for (const { clave, valor } of cambiosDeRelleno(celdas, excluidas, texto, true, ANTES)) estado[clave] = valor;
+      return estado[claveCelda("S", "NEG")];
+    });
+    expect(despues).toEqual(["2", "3", "3"]);
+    expect(estado).toEqual({ ...ANTES, [claveCelda("S", "BLA")]: "" });
+  });
+
   it("un «0» sí se aplica: es la forma de dejar todo en cero a propósito", () => {
-    expect(cambiosDeRelleno(celdas, excluidas, "0", false).every((c) => c.valor === "0")).toBe(true);
+    expect(cambiosDeRelleno(celdas, excluidas, "0", false, ANTES).every((c) => c.valor === "0")).toBe(true);
   });
 });

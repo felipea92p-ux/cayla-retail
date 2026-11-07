@@ -129,7 +129,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
                 <Dato etiqueta="En camino" valor={hoja.enCamino} nota={hoja.enCamino > 0 ? "a las tiendas" : undefined} />
                 <Dato etiqueta="En producción" valor={hoja.enProduccion} nota={hoja.enProduccion > 0 ? "en órdenes abiertas" : undefined} />
               </dl>
-              {falta && <p className="mt-3 text-[13.5px] leading-relaxed text-tinta">{falta}</p>}
+              {falta && <p className="mt-3 text-[15px] leading-relaxed text-tinta">{falta}</p>}
             </div>
 
             {/* De quién es y quién lo trae, ARRIBA: lo primero que se pregunta al decidir una corrida (Felipe 2026-10-15). Abajo de la matriz quedaba bajo el pliegue y la hoja parecía no decirlo. */}

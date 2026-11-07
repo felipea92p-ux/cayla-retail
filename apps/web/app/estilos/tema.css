@@ -53,12 +53,14 @@
     --color-verde-profundo: #a8d49a;
     --color-ambar: #e4b968;
     --color-ambar-profundo: #ecc676;
+    --color-naranja: #dba04a;
     --color-pizarra: #a2b8cd;
 
     /* Marcas de gráfico: relleno, no texto. Separadas ΔE > 45 entre sí. El neutro sigue siendo el punto medio, claro a propósito. */
     --color-grafico-alza: #7fb36d;
     --color-grafico-neutro: #7a7467;
     --color-grafico-baja: #d9a441;
+    --color-avance-medio: #e4b968;
 
     /* Métodos de pago (color de DATO). El dorado es relleno; su «tinta» es el texto que va sobre él. */
     --color-metodo-efectivo: #d19a12;
@@ -74,6 +76,29 @@
     --color-sede-lim: #2fa585;
     --color-sede-tal: #a26cc6;
     --color-sede-emp: #8a7d70;
+    --color-persona-0: #cc6b98;
+    --color-persona-1: #5b93cc;
+    --color-persona-2: #cf7f3f;
+    --color-persona-3: #2fa98a;
+    --color-persona-4: #9f78cc;
+    --color-persona-5: #8f9c40;
+
+    /* El círculo de «Dónde está»: los mismos tonos, ajustados para leerse sobre el fondo oscuro. */
+    --color-reparto-verde-claro: #8fcf79;
+    --color-reparto-menta: #5f8f52;
+    --color-reparto-terracota: #e0845e;
+    --color-reparto-arcilla: #b9714f;
+    --color-reparto-ocre: #e6bb68;
+    --color-reparto-pizarra-claro: #6b8199;
+
+    /* Los caminos de Tráfico: los mismos tonos de la maqueta, aclarados para leerse sobre el fondo oscuro. */
+    --color-camino-instagram: #b793e0;
+    --color-camino-directo: #a9b4c0;
+    --color-camino-whatsapp: #5fc7a8;
+    --color-camino-tiktok: #7fb2e5;
+    --color-camino-google: #e8b84a;
+    --color-camino-qr: #c4a898;
+    --color-camino-otros: #b9ad9f;
 
     /* Sombras: en oscuro la tinta no se ve sobre la tinta; son de negro y más abiertas, solo para lo que flota. */
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
@@ -124,12 +149,14 @@
     --color-verde: #48603f;
     --color-ambar: #74501a;
     --color-oliva: color-mix(in srgb, var(--color-verde) 66%, var(--color-ambar));
+    --color-avance-medio: #c08a1e;
     --color-grafico-alza: #48603f;
     --color-grafico-neutro: #d3c8b4;
     --color-grafico-baja: #a8741f;
     --color-verde-profundo: #44583a;
     --color-taupe-profundo: #805c4c;
     --color-ambar-profundo: #734f15;
+    --color-naranja: #bf8029;
     --color-metodo-efectivo: #d19a12;
     --color-metodo-efectivo-tinta: #6b4a00;
     --color-metodo-tarjeta: #525a64;
@@ -143,6 +170,25 @@
     --color-sede-lim: #1d8a72;
     --color-sede-tal: #8a4fa8;
     --color-sede-emp: #9a8b7b;
+    --color-persona-0: #b84a7a;
+    --color-persona-1: #2f6aa3;
+    --color-persona-2: #c26a2e;
+    --color-persona-3: #1d8a72;
+    --color-persona-4: #8a4fa8;
+    --color-persona-5: #7c8a2e;
+    --color-reparto-verde-claro: #78b060;
+    --color-reparto-menta: #b7d8a6;
+    --color-reparto-terracota: #cb6a42;
+    --color-reparto-arcilla: #e3ab8d;
+    --color-reparto-ocre: #d7a44a;
+    --color-reparto-pizarra-claro: #9db2c6;
+    --color-camino-instagram: #6d3fa3;
+    --color-camino-directo: #525a64;
+    --color-camino-whatsapp: #1c6b56;
+    --color-camino-tiktok: #2f6aa3;
+    --color-camino-google: #b88410;
+    --color-camino-qr: #805c4c;
+    --color-camino-otros: #9a8b7b;
     --color-metodo-redondeo: var(--color-taupe);
 
     --color-background: var(--color-crema);

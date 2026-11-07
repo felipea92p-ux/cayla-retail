@@ -10,6 +10,7 @@ import { FilasQueSeDeslizan } from "@/components/ui/FilasQueSeDeslizan";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 import { EntradaColibri } from "@/components/login/EntradaColibri";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
+import { SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR } from "@/lib/movimiento-reglas";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -24,6 +25,8 @@ export const metadata: Metadata = {
   // (app/favicon.ico, app/icon.png, app/apple-icon.png). Un `icons` manual convivía
   // con el favicon.ico de plantilla (el triángulo de Vercel) y el navegador elegía
   // el equivocado.
+  // Instalado en el iPhone (ADR-0582): se abre sin la barra de Safari y con este nombre bajo el ícono.
+  appleWebApp: { capable: true, title: "CAYLA ERP", statusBarStyle: "default" },
 };
 
 // `viewport-fit=cover` (ADR-0479, actividad 9): la página llega hasta los bordes del iPhone, con el fondo crema bajo la isla, la
@@ -33,11 +36,13 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // `suppressHydrationWarning`: el script de abajo pone `data-tema` en <html> antes de que React hidrate (ADR-0336).
+    // `suppressHydrationWarning`: los scripts de abajo ponen `data-tema` y `data-movimiento` en <html> antes de que React hidrate (ADR-0336).
     <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
       <head>
         {/* El tema guardado se aplica ANTES de la primera pintura: sin esto, quien eligió oscuro vería un destello claro en cada carga. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_DE_PINTAR }} />
+        {/* Las animaciones, igual (ADR-0625): quieto salvo que este aparato las haya encendido; sin esto, la primera hoja se animaría. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_MOVIMIENTO_ANTES_DE_PINTAR }} />
       </head>
       <body className="antialiased">
         {children}

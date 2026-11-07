@@ -40,7 +40,7 @@ export const TEXTOS_MODO: Record<
     nuevo: "Nueva campaña",
     ejemplo: "Ej. Día del Padre, Cierre de verano", // sugerir-fijo: una campaña nueva no depende de nada elegido antes en la hoja
     filtrar: "Filtrar campañas",
-    agregarDetalle: "Después le pones sus fechas, su descuento y dónde rige con «Configurar».",
+    agregarDetalle: "Las fechas son opcionales. Después le pones sus ofertas, sus prendas y dónde rige con «Configurar».",
   },
 };
 

@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
 import { colorDelSello, particulasDeEfecto, textoSobre, type ColoresDeCampana, type CuentaCampana, type DuracionCampana, type EfectoCampana, type EntradaCampana, type FranjaCampana, type IntensidadCampana } from "@cayla-retail/shared";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { fechaCortaDicha, pctDicho } from "@/lib/campanas-web-reglas";
 import { DONDE_TODO, type Donde } from "@/lib/campanas-web-editor";
 
@@ -77,7 +78,9 @@ export function PreviewCampana({
       <Franja frase={frase} modo={franjaVestida ? movimiento.franja : "rota"} vestida={franjaVestida} />
       <div className="flex items-center justify-between border-b border-sand px-4 py-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">{celular ? "☰" : "Lo nuevo · Ropa · Looks"}</span>
-        <span className="font-serif text-lg tracking-[0.3em]">CAYLA</span>
+        {/* El logo oficial, como la cabecera de la tienda (ADR-0446). */}
+        <LogoCayla className="h-6" />
+        <span className="sr-only">CAYLA</span>
         <span className="w-6" />
       </div>
       {pieza === "portada" && imagenes && !!colores && donde.portada && <PortadaConImagen colores={colores} imagenes={imagenes} celular={celular} movimiento={movimiento} />}

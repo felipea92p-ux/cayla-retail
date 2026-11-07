@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import type { TonoKpi } from "@/lib/facturacion-resumen-reglas";
 
 // Tono de la cifra cuando la tarjeta la colorea (las de la cola de SUNAT: «Por enviar», «Pendientes»,
@@ -13,8 +13,9 @@ const COLOR_DE_LA_CIFRA: Record<TonoKpi, string> = {
 };
 
 /**
- * Una tarjeta de indicador de la isla de vidrio de Facturación (ADR-0124): borde izquierdo de 3 px
- * en el color del estado, un tinte que se difumina hacia la derecha y una luz que sigue al cursor.
+ * Una tarjeta de indicador de Comprobantes (ADR-0124), con el vidrio del ERP (ADR-0596, «A · Lente del tono», Felipe
+ * 2026-11-02): la placa Serena que, si tiene un estado que decir, se tiñe apenas de él con su filo; el ícono en su gota y
+ * una luz que sigue al cursor. El material vive en `app/estilos/vidrio/comprobantes.css`.
  * Mismo criterio de color que `TarjetaKpi` de Caja: verde va bien, ámbar hay algo pendiente, rojo
  * exige acción, taupe solo informa. El color no va solo: cada tarjeta lo dice también con texto.
  *
@@ -43,12 +44,21 @@ export function TarjetaKpiVidrio({
 }) {
   const tarjeta = useRef<HTMLDivElement>(null);
 
+  // Una vez por cuadro (ADR-0623): el mouse manda más movimientos de los que la pantalla alcanza a pintar.
+  const cuadro = useRef(0);
+  const punto = useRef({ x: 0, y: 0 });
+  useEffect(() => () => cancelAnimationFrame(cuadro.current), []);
   function seguirCursor(e: PointerEvent<HTMLDivElement>) {
-    const el = tarjeta.current;
-    if (!el) return;
-    const caja = el.getBoundingClientRect();
-    el.style.setProperty("--mx", `${e.clientX - caja.left}px`);
-    el.style.setProperty("--my", `${e.clientY - caja.top}px`);
+    punto.current = { x: e.clientX, y: e.clientY };
+    if (cuadro.current) return;
+    cuadro.current = requestAnimationFrame(() => {
+      cuadro.current = 0;
+      const el = tarjeta.current;
+      if (!el) return;
+      const caja = el.getBoundingClientRect();
+      el.style.setProperty("--mx", `${punto.current.x - caja.left}px`);
+      el.style.setProperty("--my", `${punto.current.y - caja.top}px`);
+    });
   }
 
   return (
@@ -61,7 +71,7 @@ export function TarjetaKpiVidrio({
           </span>
         </div>
         <p className={`font-display mt-1 text-3xl tabular-nums ${colorearCifra ? COLOR_DE_LA_CIFRA[tono] : "text-tinta"}`}>{valor}</p>
-        {contexto && <p className="mt-1 text-[13px] leading-[1.45] text-tinta/65">{contexto}</p>}
+        {contexto && <p className="mt-1 text-sm leading-[1.45] text-tinta/70">{contexto}</p>}
         {children}
       </div>
     </div>

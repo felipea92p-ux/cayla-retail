@@ -51,6 +51,12 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MIGRACION_HOY = readFileSync(join(RAIZ, "supabase", "migrations", "20261022081000_planilla_provision_hoy_por_horario.sql"), "utf8");
 // La del costo real va ENCIMA de las dos: cambia la vista de lo pagado y el cuerpo de dos funciones (sin cambiar su forma).
 const MIGRACION_COSTO = readFileSync(join(RAIZ, "supabase", "migrations", "20261022164000_planilla_costo_real_con_cargas.sql"), "utf8");
+// Y la de ADR-0585 (quien tiene Estados financieros ve todo), que reescribe con un reemplazo anclado la pregunta de alcance de
+// `fn_planilla_provision`: pegar la de lo de hoy la deja con la pregunta vieja, así que se vuelve a pegar encima, como en la base real.
+const MIGRACION_EEFF = readFileSync(join(RAIZ, "supabase", "migrations", "20261030235000_estados_financieros_ve_todo_quien_tiene_el_modulo.sql"), "utf8");
+// Y la que quita el piso de 3 personas (ADR-0453, act. 2026-11-06): toda sede cuenta. Las escenas de arriba siguen probando la versión con
+// piso (la que pegan); las de «Toda sede cuenta», al final, pegan esta encima, como en la base real.
+const MIGRACION_TODA_SEDE = readFileSync(join(RAIZ, "supabase", "migrations", "20261106235000_planilla_cuenta_toda_sede.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(
@@ -167,6 +173,7 @@ select 'f0f0f0f0-0000-4000-8000-0000000000b1'::uuid, 'TRU', 'planilla', false, 7
 
 ${MIGRACION_HOY}
 ${MIGRACION_COSTO}
+${MIGRACION_EEFF}
 `;
 
 // Todos los casos usan ESTE rango: el período A (termina el 28-oct) y el D (el 28-nov); el B ya está pagado y el C no existe.
@@ -230,8 +237,9 @@ select 'R1 el líder puede pedir una sola sede', (select count(*) = 1 and bool_a
 ${cambiaA(MICAELA)}
 select 'R2 sin el módulo, una colaboradora no ve la planilla estimada', (select pg_temp.intento($$select * from retail.fn_planilla_provision('2030-10-01', '2030-11-30')$$) like '%Reportes financieros%');
 ${conModulo("reportes_financieros")}
-select 'R3 con el módulo ve SU sede y nada más: ni el Taller ni la empresa', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
-select 'R3 pedir otra sede falla', (select pg_temp.intento(format('select * from retail.fn_planilla_provision(%L, %L, %L)', '2030-10-01', '2030-11-30', :'lim')) like '%esa ubicación%');
+-- ADR-0585 (Felipe 2026-10-30): con el módulo se ve CAYLA entera, como el líder (antes: solo su sede).
+select 'R3 con el módulo ve todas las sedes y «de la empresa», como el líder', (select count(*) = 4 and count(distinct unidad) = 3 from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
+select 'R3 y puede pedir otra sede', (select pg_temp.intento(format('select * from retail.fn_planilla_provision(%L, %L, %L)', '2030-10-01', '2030-11-30', :'lim')) = 'SIN_ERROR');
 -- La regla única de Finanzas (ADR-0433): quien cierra el mes ve «De la empresa» en el Estado de resultados, así que también su estimación.
 ${conModulo("cierre_mes")}
 select 'R3b con «Cierre de mes» ve lo mismo que el líder: todas las sedes y «de la empresa», como el Estado de resultados', (select count(*) = 4 and count(distinct unidad) = 3 from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
@@ -401,7 +409,39 @@ ${MIGRACION_COSTO}
 select 'V6 sin v_planilla_pagada la migración no falla y no toca la vista de ensayo', (select count(*) = 0 from retail.planilla_por_sede);
 `;
 
+// TODA SEDE CUENTA (20261106235000). En nov-2026 Tienda AQP bajó a 2 personas y el piso de 3 sacaba sus sueldos del TOTAL. Ahora ZMIN
+// (2 personas, 500 + 50 cada una, sin ubicación de retail: «de la empresa») devenga 1,100 y el total de sedes pasa de 4 a 5.
+const CASOS_TODA_SEDE = `
+select set_config('prueba.planilla', 'si', true);
+${MIGRACION_TODA_SEDE}
+${CALC("2030-10-14")}
+select 'S1 una sede con 2 personas ahora cuenta: devenga 1,100', (select personas = 2 and devengado = 1100.00 from pv where sede_codigo = 'ZMIN');
+select 'S2 las otras sedes no cambian (TRU 525, LIM 880, Taller 400, Central 150)', (select (select devengado from pv where sede_codigo = 'TRU') = 525.00 and (select devengado from pv where sede_codigo = 'LIM') = 880.00 and (select devengado from pv where sede_codigo = 'ZTAL') = 400.00 and (select devengado from pv where sede_codigo = 'ZCCO') = 150.00);
+select 'S3 son 5 sedes y el total suma a ZMIN', (select count(*) = 5 and sum(devengado) = 3055.00 from pv);
+select 'S4 el grupo prueba sigue fuera y nunca sale una persona', (select personas = 3 from pv where sede_codigo = 'TRU') and (select pg_get_function_result('retail.fn_planilla_provision_calc(date, date, date, timestamptz)'::regprocedure) !~* '(nombre|persona_id|apellido|documento)');
+select 'S5 sin ser admin o líder en Dynamic sigue sin devolver nada', (select set_config('prueba.planilla', 'no', true) is not null) and (select count(*) = 0 from retail.fn_planilla_provision_calc('2030-10-01', '2030-11-30', '2030-10-14'));
+create temp table def_antes as select pg_get_functiondef('retail.fn_planilla_provision_calc(date,date,date,timestamp with time zone)'::regprocedure) d;
+${MIGRACION_TODA_SEDE}
+select 'S6 pegarla dos veces no cambia la función', (select d = pg_get_functiondef('retail.fn_planilla_provision_calc(date,date,date,timestamp with time zone)'::regprocedure) from def_antes);
+`;
+// La vista de lo PAGADO con una sede de 2 personas: antes no aparecía; ahora sí, con su costo.
+const CASOS_TODA_SEDE_VISTA = `
+select set_config('prueba.planilla', 'si', true);
+drop view retail.planilla_por_sede;
+create table public.v_planilla_pagada (periodo_id uuid, persona_id uuid, sede_codigo text, grupo text, total numeric, provision_total numeric, costo_total numeric,
+  descuento_pension numeric, retencion_4ta numeric, aporte_essalud numeric);
+create table if not exists public.movimientos_planilla (periodo_id uuid, persona_id uuid, tipo text, categoria text, monto numeric);
+insert into public.v_planilla_pagada select 'f0f0f0f0-0000-4000-8000-0000000000b1', gen_random_uuid(), 'ZMIN', 'planilla', 100, 20, 120, 13, 2, 9 from generate_series(1, 2);
+insert into public.v_planilla_pagada select 'f0f0f0f0-0000-4000-8000-0000000000b1', gen_random_uuid(), 'ZTAL', 'planilla', 100, 20, 120, 13, 2, 9 from generate_series(1, 3);
+${MIGRACION_TODA_SEDE}
+select 'SV1 lo pagado de una sede con 2 personas aparece: 2 × 144 = 288', (select personas = 2 and costo_total = 288 from retail.planilla_por_sede where sede_codigo = 'ZMIN');
+select 'SV2 la de 3 sigue igual: 432', (select costo_total = 432 from retail.planilla_por_sede where sede_codigo = 'ZTAL');
+select 'SV3 la vista sigue siendo security_invoker y sin personas', (select reloptions::text like '%security_invoker=true%' from pg_class where oid = 'retail.planilla_por_sede'::regclass) and (select count(*) = 0 from information_schema.columns where table_schema = 'retail' and table_name = 'planilla_por_sede' and column_name in ('persona_id', 'nombre'));
+`;
+
 verificar("El cálculo por sede", correr(`${ESCENA}${CASOS_CALCULO}`), casosDe(CASOS_CALCULO));
+verificar("Toda sede cuenta: lo estimado", correr(`${ESCENA}${CASOS_TODA_SEDE}`), casosDe(CASOS_TODA_SEDE));
+verificar("Toda sede cuenta: lo pagado", correr(`${ESCENA}${CASOS_TODA_SEDE_VISTA}`), casosDe(CASOS_TODA_SEDE_VISTA));
 verificar("El tiempo corrido", correr(`${ESCENA}${CASOS_TIEMPO}`), casosDe(CASOS_TIEMPO));
 verificar("Lo cerrado se queda cerrado", correr(`${ESCENA}${CASOS_CERRADO}`), casosDe(CASOS_CERRADO));
 verificar("Sin Dynamic", correr(`${ESCENA}${CASOS_SIN_DYNAMIC}`), casosDe(CASOS_SIN_DYNAMIC));

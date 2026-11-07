@@ -49,7 +49,7 @@ function Progreso({ resumen, lateral, conPorcentaje = false }: { resumen: Resume
     <div className="w-full min-w-0">
       <div className="flex items-baseline justify-between gap-3">
         <p className={`min-w-0 tabular-nums text-tinta ${conPorcentaje ? "text-[15px] font-semibold" : "text-sm font-medium"}`}>{texto}</p>
-        {lateral ? <span className="shrink-0 text-xs text-taupe">{lateral}</span> : null}
+        {lateral ? <span className="shrink-0 text-sm text-taupe">{lateral}</span> : null}
       </div>
       {/* La barra de avance del sistema (ronda 13): tinta mientras se cuenta y verde cuando ya se verificó todo. */}
       <div className={conPorcentaje ? "mt-1.5 flex items-center gap-4" : undefined}>
@@ -66,7 +66,7 @@ function Cifras({ resumen }: { resumen: ResumenParaMostrar }) {
   // La cola «· N con diferencia» sale de la misma función que el resto. Sin diferencias se reserva con `1` (invisible).
   const cola = textoResumen({ ...resumen, conDiferencia: hay ? resumen.conDiferencia : 1 }).slice(base.length);
   return (
-    <p className="text-xs tabular-nums text-taupe">
+    <p className="text-sm tabular-nums text-taupe">
       {sinPuntoAlInicio(base)}
       <span aria-hidden={hay ? undefined : true} className={hay ? undefined : "invisible"}>
         {sinPuntoAlInicio(cola)}

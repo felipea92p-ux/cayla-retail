@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 4): cuando lo que la persona pregunta vive en una pantalla que su rol no ve. Sin React ni
+// «Pregúntale a CAYLA» (ADR-0536, actividad 4): cuando lo que la persona pregunta vive en una pantalla que su rol no ve. Sin React ni
 // red: se prueba en `sin-acceso.test.ts`.
 //
 // Felipe (2026-10-26): la IA dice QUIÉN puede («eso lo hace quien tiene Inventario ▸ Existencias; pídeselo a tu líder de equipo»), sin

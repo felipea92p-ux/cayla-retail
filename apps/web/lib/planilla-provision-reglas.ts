@@ -8,7 +8,7 @@
 // resultados. Qué NO hace: calcular plata (la cifra sale de Dynamic) ni tocar el libro (el diario, el Balance y el cierre siguen con lo
 // pagado de verdad: la provisión vive solo en lo que se ve, y desaparece sola cuando Dynamic paga ese período).
 
-import { solesER, type DetalleGastoER, type FilaER } from "./resultados-reglas";
+import { solesER, type DetalleGastoER, type FilaER, type PlanillaDeSede } from "./resultados-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v !== "" && Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -79,6 +79,37 @@ export const delMes = (prov: readonly FilaProvision[], mes: string): FilaProvisi
 /** La clave con la que una fila de provisión cae en una fila del Estado de resultados: la ubicación, o «empresa». */
 const claveDe = (p: FilaProvision): string => p.ubicacionId ?? "empresa";
 
+/**
+ * Hasta dónde se piden los sueldos estimados de un tramo (tarea 23 de «Las 36»). La base devuelve el período de Dynamic que TERMINA dentro del rango (D-35) con lo devengado
+ * hasta hoy; pedirlos «del 1 a hoy» dejaba fuera el período que termina el 28 y, del 1 al 27, cada pantalla decía una ganancia distinta. Por eso el mes en curso se pide hasta su
+ * último día. Cualquier otro tramo (un mes que ya pasó, «del 1 a hoy» del mes pasado para comparar, unas fechas sueltas) se pide tal cual.
+ */
+export function hastaDeLaProvision(desde: string, hasta: string, hoy: string): string {
+  const mes = hasta.slice(0, 7);
+  if (hasta !== hoy || desde !== `${mes}-01`) return hasta;
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+}
+
+/** Cómo se llama en pantalla una sede de Dynamic que no es una tienda. Un código nuevo se muestra tal cual, nunca se inventa un nombre. */
+const NOMBRE_SEDE_DYNAMIC: Record<string, string> = { CCO: "Central", OTRU: "Oficina Trujillo" };
+export const nombreSedeDynamic = (codigo: string): string => NOMBRE_SEDE_DYNAMIC[codigo] ?? codigo;
+
+/** Lo que cada sede de Dynamic aporta a una columna, de la mayor a la menor. Dos filas de la misma sede (dos períodos) se suman. */
+function porSedeDe(prov: readonly FilaProvision[]): PlanillaDeSede[] {
+  const m = new Map<string, PlanillaDeSede>();
+  for (const p of prov) {
+    const antes = m.get(p.sedeCodigo);
+    m.set(p.sedeCodigo, {
+      sedeCodigo: p.sedeCodigo,
+      nombre: nombreSedeDynamic(p.sedeCodigo),
+      personas: antes ? Math.max(antes.personas, p.personas) : p.personas,
+      devengado: r2((antes?.devengado ?? 0) + p.devengado),
+    });
+  }
+  return [...m.values()].sort((a, b) => b.devengado - a.devengado || a.sedeCodigo.localeCompare(b.sedeCodigo));
+}
+
 type Suma = { devengado: number; alCierre: number; personas: number; deHoy: number };
 const vacia = (): Suma => ({ devengado: 0, alCierre: 0, personas: 0, deHoy: 0 });
 function sumar(s: Suma, p: FilaProvision): Suma {
@@ -121,6 +152,7 @@ export function aplicarProvision(filas: readonly FilaER[], prov: readonly FilaPr
   const util = prov.filter((p) => p.devengado > 0);
   if (!util.length) return [...filas];
   const porClave = new Map<string, Suma>();
+  const sedesDeEmpresa = porSedeDe(util.filter((p) => claveDe(p) === "empresa"));
   let total = vacia();
   for (const p of util) {
     porClave.set(claveDe(p), sumar(porClave.get(claveDe(p)) ?? vacia(), p));
@@ -138,6 +170,7 @@ export function aplicarProvision(filas: readonly FilaER[], prov: readonly FilaPr
       planillaEstimada: s.devengado,
       planillaAlCierre: s.alCierre,
       planillaPersonas: s.personas,
+      planillaPorSede: f.unidad === "empresa" ? sedesDeEmpresa : [],
       planillaNota: notaProvisionado(s.personas, s.deHoy, f.planillaNota),
     };
   });
@@ -151,4 +184,37 @@ export function resumenDeProvision(prov: readonly FilaProvision[]): ResumenProvi
   if (!util.length) return null;
   const s = util.reduce(sumar, vacia());
   return { sedes: util.length, personas: s.personas, devengado: s.devengado, alCierre: s.alCierre, deHoy: s.deHoy };
+}
+
+/**
+ * Los sueldos de unas fechas que no cierran el período de Dynamic («octubre a esta fecha», del 1 al 6). La base pone toda la planilla de un período en el
+ * mes donde TERMINA (el 28, D-35): del 1 al 6 de octubre no termina ninguno y la columna salía con S/ 0 de sueldos. Mientras tanto, el mes en curso sí los
+ * lleva (provisionados hasta hoy), así que «X menos que octubre a esta fecha» comparaba noviembre con sueldos contra octubre sin ellos y la caída salía
+ * inflada (Felipe 2026-11-06). Aquí se le pone a cada fila la parte que le toca de la planilla del mes entero: los días corridos del período (del 29 del
+ * mes anterior hasta `hasta`) sobre los días del período, como reparte Dynamic el sueldo fijo. No calcula plata nueva: reparte la del mes entero.
+ * Si las fechas ya llegan al 28 (el período entra entero) o la fila ya trae planilla, queda tal cual.
+ */
+export function sueldosAEstaFecha(parcial: readonly FilaER[], mesEntero: readonly FilaER[], hasta: string): FilaER[] {
+  const [a, m, d] = hasta.split("-").map(Number) as [number, number, number];
+  if (d >= 28) return [...parcial];
+  const ini = Date.UTC(a, m - 2, 29);
+  const fin = Date.UTC(a, m - 1, 28);
+  const fraccion = Math.min(1, Math.max(0, ((Date.UTC(a, m - 1, d) - ini) / 86_400_000 + 1) / ((fin - ini) / 86_400_000 + 1)));
+  const clave = (f: FilaER) => `${f.unidad}|${f.ubicacionId ?? ""}`;
+  const entero = new Map(mesEntero.map((f) => [clave(f), f]));
+  return parcial.map((f) => {
+    const e = entero.get(clave(f));
+    if (!e || e.planilla <= 0 || Math.abs(f.planilla) >= 0.005) return f;
+    const parte = r2(e.planilla * fraccion);
+    if (parte <= 0) return f;
+    return {
+      ...f,
+      planilla: parte,
+      gastos: r2(f.gastos + parte),
+      resultado: r2(f.resultado - parte),
+      detalleGastos: conPersonal(f.detalleGastos, parte),
+      planillaEstimada: parte,
+      planillaNota: `${f.planillaNota ? `${f.planillaNota} · ` : ""}Sueldos de estas fechas: la parte de los días corridos de la planilla de todo el mes (${solesER(e.planilla)}).`,
+    };
+  });
 }

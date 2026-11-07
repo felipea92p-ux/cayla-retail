@@ -2,9 +2,10 @@
   "guia": "produccion.comprobantes",
   "ruta": "/produccion/comprobantes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 37,
+  "total": 50,
   "controles": {
     "components/ComprobanteProduccionDetalle.tsx": [
+      "Boton «Llegó el papel»",
       "CampoTexto «Motivo de la anulación»",
       "ComboResponsable «{responsable}»",
       "Boton «Volver»",
@@ -13,6 +14,8 @@
     ],
     "components/ComprobanteProduccionForm.tsx": [
       "CampoSelect «Proveedor»",
+      "BotonEnlace «Registrarla en el pedido»",
+      "Link «{p.documento}»",
       "SegmentoDeslizante «Tipo de comprobante»",
       "CampoTexto «{<span className=\"sr-only\">Serie</span>}»",
       "CampoTexto «{<span className=\"sr-only\">Número</span>}»",
@@ -46,10 +49,24 @@
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «{valor}»"
+      "Desplegable «{valor}»",
+      "button «Volver a intentar»"
+    ],
+    "components/ProduccionSoloEnTaller.tsx": [
+      "BotonVer «Volver al inicio»"
     ],
     "components/ProduccionSoloLider.tsx": [
       "BotonVer «Ir a Órdenes»"
+    ],
+    "components/ReemplazarPapelModal.tsx": [
+      "CampoSelect «Qué papel es»",
+      "CampoFecha «Fecha»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoMonto «Total del papel, con IGV»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar el papel»"
     ]
   }
 }

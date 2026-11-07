@@ -11,7 +11,8 @@
 //            efectivo por rendir o el cajón de la otra sede en la misma operación, o lo anota como aporte del dueño;
 //            (2) pedir lo que la base exige: «quién la trajo» y «qué sede» se guardan en la nota, que la base pide para esos dos
 //            motivos y para «Otro»; (3) la guía de foco sale de lo mismo que `validarIngreso` bloquea (la prueba exige que coincidan).
-//   ASUME:   entra en efectivo al cajón abierto, hoy. El sobrante es un ajuste: solo el líder lo ve (la base lo exige igual).
+//   ASUME:   entra en efectivo al cajón abierto, hoy. El sobrante es un ajuste: desde ADR-0534 lo anota quien opera la caja, no
+//            solo el líder (la líder lo valida en persona).
 //   NO HACE: no registra un abono de apartado, una venta ni el reembolso de un proveedor: tienen su pantalla y su marca, y aquí se
 //            contarían dos veces. La pantalla manda a su lugar.
 
@@ -32,8 +33,6 @@ export type ConceptoIngreso = {
   /** La línea bajo el mosaico al elegirlo: de dónde viene la plata. */
   deDonde: string;
   detalle: DetalleIngreso;
-  /** Un ajuste de caja: solo el líder (`registrar_movimiento_caja` lo rechaza a los demás). */
-  soloLider: boolean;
 };
 
 export const CONCEPTOS_INGRESO: readonly ConceptoIngreso[] = [
@@ -43,17 +42,15 @@ export const CONCEPTOS_INGRESO: readonly ConceptoIngreso[] = [
     motivo: "Sencillo de la caja fuerte",
     deDonde: "Viene de la caja fuerte de esta sede.",
     detalle: "ninguno",
-    soloLider: false,
   },
-  { clave: "lider", nombre: "Lo trae el líder", motivo: "Entrega del líder", deDonde: "La trae el líder de equipo: di quién.", detalle: "quien", soloLider: false },
-  { clave: "otra_sede", nombre: "Otra sede", motivo: "Préstamo de otra sede", deDonde: "La presta otra tienda: di cuál.", detalle: "sede", soloLider: false },
+  { clave: "lider", nombre: "Lo trae el líder", motivo: "Entrega del líder", deDonde: "La trae el líder de equipo: di quién.", detalle: "quien" },
+  { clave: "otra_sede", nombre: "Otra sede", motivo: "Préstamo de otra sede", deDonde: "La presta otra tienda: di cuál.", detalle: "sede" },
   {
     clave: "vuelve_retiro",
     nombre: "Vuelve de un retiro",
     motivo: "Devolución de un retiro",
     deDonde: "Regresa plata que se sacó antes en este turno.",
     detalle: "ninguno",
-    soloLider: false,
   },
   {
     clave: "sobrante",
@@ -61,17 +58,11 @@ export const CONCEPTOS_INGRESO: readonly ConceptoIngreso[] = [
     motivo: "Ajuste de caja (sobrante)",
     deDonde: "Hay más plata de la que dice la caja: es un ajuste.",
     detalle: "ninguno",
-    soloLider: true,
   },
-  { clave: "otro", nombre: "Otro", motivo: "Otro", deDonde: "Di qué fue: así se entiende al cerrar.", detalle: "que", soloLider: false },
+  { clave: "otro", nombre: "Otro", motivo: "Otro", deDonde: "Di qué fue: así se entiende al cerrar.", detalle: "que" },
 ];
 
 export const conceptoIngresoPorClave = (clave: string): ConceptoIngreso | null => CONCEPTOS_INGRESO.find((c) => c.clave === clave) ?? null;
-
-/** Los conceptos que ve la cuenta: sin «Sobrante» si no es líder (la base lo rechazaría recién al guardar). */
-export function conceptosIngresoVisibles(esLider: boolean): ConceptoIngreso[] {
-  return CONCEPTOS_INGRESO.filter((c) => esLider || !c.soloLider);
-}
 
 export type SedeIngreso = { id: string; nombre: string };
 
@@ -105,9 +96,11 @@ export const MAX_NOTA_INGRESO = 200;
 
 const lleno = (s: string) => s.trim().length >= MIN_TEXTO;
 
-/** Lo que se teclea en el monto: dígitos y UN punto, dos decimales; la coma es decimal («0,50» son cincuenta céntimos). */
+/** Lo que se teclea en el monto: dígitos y UN punto, dos decimales; la coma es decimal («0,50» son cincuenta céntimos).
+ *  Los blancos de adentro se conservan (el «S/» no), para que `parsearMonto` pueda rechazar un pegado de varias celdas en
+ *  vez de juntarlas en un número; «1 200» sigue siendo mil doscientos. Lo mismo que `limpiarMonto` del gasto rápido. */
 export function limpiarMontoIngreso(texto: string): string {
-  const s = texto.replace(/,/g, ".").replace(/[^\d.]/g, "");
+  const s = texto.replace(/^\s*s\s*\/\s*\.?\s*/i, "").replace(/,/g, ".").replace(/[^\d.\s]/g, "");
   const [entero, ...resto] = s.split(".");
   return resto.length ? `${entero}.${resto.join("").slice(0, 2)}` : entero;
 }
@@ -165,11 +158,9 @@ export type ArgumentosIngreso = {
 export function validarIngreso(
   e: EstadoIngresoRapido,
   sedes: readonly SedeIngreso[],
-  esLider: boolean,
 ): { ok: true; valor: ArgumentosIngreso } | { ok: false; error: string } {
   const c = conceptoIngresoPorClave(e.concepto);
   if (!c) return { ok: false, error: "Toca de dónde viene la plata." };
-  if (c.soloLider && !esLider) return { ok: false, error: "Un sobrante es un ajuste: lo registra un líder de equipo." };
   if (c.detalle === "quien" && !e.deDonde) return { ok: false, error: "Di si es plata de un cierre o del dueño." };
   if (c.detalle === "quien" && !lleno(e.quien)) return { ok: false, error: "Escribe quién la trajo." };
   if (c.detalle === "sede" && !sedes.some((s) => s.id === e.sedeId)) return { ok: false, error: "Elige qué sede la presta." };

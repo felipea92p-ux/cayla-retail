@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { lecturaDesdeJson, planDelPiso, type LecturaDelPiso, type OpcionesPlan, type PlanDelPiso } from "@/lib/piso-plan";
+import { unstable_rethrow } from "next/navigation";
 
 /* ====================================================================
    piso-plan-servidor · la ÚNICA puerta de la web al motor del piso (ADR-0328 act. 7)
@@ -25,6 +26,7 @@ export async function leerLecturaDelPiso(ubicacionId: string): Promise<LecturaDe
     if (!lectura) console.error("Motor del piso: fn_piso_plan_lectura respondió vacío o con una forma que no se entiende.");
     return lectura;
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Motor del piso: la lectura falló.", e);
     return null;
   }

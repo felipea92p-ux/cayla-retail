@@ -64,13 +64,13 @@ function Tallas({ celdas }: { celdas: readonly CeldaTallaSede[] }) {
             <span className={celda("izq", "font-serif text-lg text-tinta")}>{c.talla}</span>
             <span className={celda("izq", "overflow-visible")}>
               <span className="block text-sm tabular-nums text-tinta">
-                {c.v} % <span className="text-xs text-taupe">· {num(c.vend)} vendidas</span>
+                {c.v} % <span className="text-sm text-taupe">· {num(c.vend)} vendidas</span>
               </span>
               <BarraAvance pct={(c.v / curva.max) * 100} alto="fina" tono="tinta" decorativa className="mt-1" />
             </span>
             <span className={celda("izq", "overflow-visible")}>
               <span className="block text-sm tabular-nums text-tinta">
-                {c.t} % <span className="text-xs text-taupe">· {num(c.tiene)} en stock</span>
+                {c.t} % <span className="text-sm text-taupe">· {num(c.tiene)} en stock</span>
               </span>
               <BarraAvance pct={(c.t / curva.max) * 100} alto="fina" tono={concluye && c.sobra ? "ambar" : "tinta"} decorativa className="mt-1" />
             </span>
@@ -154,14 +154,14 @@ function Sedes({ celdas, hoy, hrefTraslados }: { celdas: readonly CeldaTallaSede
               <span className={celda("izq", "text-sm text-tinta")}>{s.sede}</span>
               {/* En el celular las celdas se apilan: cada número lleva su palabra para no quedar suelto. */}
               <span className={celda("der", "text-sm text-tinta")}>
-                {num(s.vendidas)} <span className="text-xs text-taupe sm:hidden">vendidas</span>
+                {num(s.vendidas)} <span className="text-sm text-taupe sm:hidden">vendidas</span>
               </span>
               <span className={celda("der", "text-sm text-tinta")}>
-                {num(s.stock)} <span className="text-xs text-taupe sm:hidden">quedan</span>
+                {num(s.stock)} <span className="text-sm text-taupe sm:hidden">quedan</span>
               </span>
               <span className={celda("der", "overflow-visible")}>
                 <span className="block text-sm tabular-nums text-tinta">
-                  {unaDecima(s.ritmo.porSemana)} <span className="text-xs text-taupe sm:hidden">por semana</span>
+                  {unaDecima(s.ritmo.porSemana)} <span className="text-sm text-taupe sm:hidden">por semana</span>
                 </span>
                 <BarraAvance pct={maxPorSemana > 0 ? (s.ritmo.porSemana / maxPorSemana) * 100 : 0} alto="fina" tono="tinta" decorativa className="mt-1" />
               </span>

@@ -5,6 +5,8 @@
 // las mismas reglas que la base: `v_insumo_saldos` y `registrar_consumo_insumo`
 // (supabase/migrations/20260917145000_insumos_taller_reconstruido.sql, 20260917141500_registrar_consumo_insumo.sql).
 
+import { sinBlancosDeMiles } from "./numero-escrito";
+
 export type TipoInsumo = "tela" | "avio";
 export type UnidadInsumo = "metro" | "unidad" | "kilo" | "cono" | "par" | "docena";
 export type TipoMovInsumo = "compra" | "consumo" | "devolucion" | "merma" | "ajuste";
@@ -14,20 +16,145 @@ export const TIPOS_INSUMO: { valor: TipoInsumo; etiqueta: string; plural: string
   { valor: "avio", etiqueta: "Avío", plural: "Avíos", ayuda: "botones, cierres, etiquetas e hilo" },
 ];
 
-/** `corta` acompaña a la cifra («12.5 m»); `larga` es lo que se lee en un selector. */
-export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; decimales: number }> = {
-  metro: { corta: "m", larga: "Metros", decimales: 1 },
-  kilo: { corta: "kg", larga: "Kilos", decimales: 2 },
-  unidad: { corta: "unid.", larga: "Unidades", decimales: 0 },
-  cono: { corta: "conos", larga: "Conos", decimales: 0 },
-  par: { corta: "pares", larga: "Pares", decimales: 0 },
-  docena: { corta: "doc.", larga: "Docenas", decimales: 0 },
+/** `corta` acompaña a la cifra («12.50 m»); `larga` es lo que se lee en un selector.
+ *  Son DOS resoluciones y no se mezclan: `decimales` es con la que se PIDE al proveedor (`cantidadAPedir`: metros de 10 en 10 cm, hacia arriba) y `vista` es con la que se MUESTRA,
+ *  siempre fija. Un lote de 12.25 m se escribe con dos decimales (`leerCantidad`), así que verlo «12.3 m» o, peor, un saldo de 0.70 m como «1 m» es mostrar menos de lo que hay
+ *  (Felipe 2026-10-30). */
+export const UNIDADES_INSUMO: Record<UnidadInsumo, { corta: string; larga: string; articulo: "los" | "las"; decimales: number; vista: number }> = {
+  metro: { corta: "m", larga: "Metros", articulo: "los", decimales: 1, vista: 2 },
+  kilo: { corta: "kg", larga: "Kilos", articulo: "los", decimales: 2, vista: 2 },
+  unidad: { corta: "unid.", larga: "Unidades", articulo: "las", decimales: 0, vista: 0 },
+  cono: { corta: "conos", larga: "Conos", articulo: "los", decimales: 0, vista: 0 },
+  par: { corta: "pares", larga: "Pares", articulo: "los", decimales: 0, vista: 0 },
+  docena: { corta: "doc.", larga: "Docenas", articulo: "las", decimales: 0, vista: 0 },
 };
 
-/** `12.5 m`, `40 unid.`: los decimales que la unidad admite y no más. */
+/** Lo que se cuenta de uno en uno y no admite partes: medio botón, medio cono o medio par no existen. Es la MISMA tabla de arriba, no una
+ *  lista aparte: una unidad que no admite decimales al pedirla tampoco los admite al contarla. Lo que se MIDE (metros, kilos) sí: medio
+ *  metro de tela es medio metro. */
+export function seCuentaEntera(unidad: UnidadInsumo): boolean {
+  return UNIDADES_INSUMO[unidad].decimales === 0;
+}
+
+/** Lo que la hoja dice si la cantidad escrita no puede existir; `null` si está bien. Vacío y cero no son asunto suyo: eso lo dice quien
+ *  llama (en una hoja, «¿Ya tienes?» vacío es «todavía no llegó nada»).
+ *
+ *  Nació de `/chaos` (2026-10-31): «0,5» en «¿Ya tienes?» de un botón entraba sin aviso, la base guardaba `0.500` y la pantalla mostraba
+ *  «1 unid.». La base lo rechaza desde `20261031211000`, pero quien escribe tiene que enterarse ANTES de guardar, y con el nombre de lo
+ *  que está contando. */
+export function problemaDeCantidad(n: number | null, unidad: UnidadInsumo): string | null {
+  if (n === null || Number.isInteger(n)) return null;
+  if (!seCuentaEntera(unidad)) return null;
+  const u = UNIDADES_INSUMO[unidad];
+  // El artículo va en la tabla y no escrito aquí: «Los unidades» fue lo primero que salió en la pantalla (2026-10-31).
+  return `${u.articulo === "las" ? "Las" : "Los"} ${u.larga.toLowerCase()} se cuentan de uno en uno: escribe un número entero.`;
+}
+
+/** `12.50 m`, `40 unid.`: los decimales de `vista` de la unidad, siempre los mismos (nunca «12.5» en una fila y «12.50» en la de al lado).
+ *  Con UNA excepción, y es a propósito: si lo que se cuenta de uno en uno trae partes (un dato de antes del candado de la base), se MUESTRAN.
+ *  Redondear media unidad a «1 unid.» es decir que hay una cosa que no está — el mismo criterio por el que un saldo de 0.70 m no se ve «1 m». */
 export function cantidadTexto(n: number, unidad: UnidadInsumo): string {
   const u = UNIDADES_INSUMO[unidad];
-  return `${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: u.decimales })} ${u.corta}`;
+  const maximo = seCuentaEntera(unidad) ? 3 : u.vista;
+  return `${n.toLocaleString("es-PE", { minimumFractionDigits: u.vista, maximumFractionDigits: maximo })} ${u.corta}`;
+}
+
+/** En qué unidades se puede llevar el libro de cada tipo (ADR-0554). Una TELA va siempre en metros: el kilo y el rollo son unidades de COMPRA que se convierten al recibir, porque lo que el
+ *  sistema aprende del consumo (Audaces, el cierre de la orden) habla en metros. Un avío, en la unidad que se elija. Es el mismo candado que `insumos_tela_en_metros` en la base. */
+export function unidadesPermitidas(tipo: TipoInsumo): UnidadInsumo[] {
+  return tipo === "tela" ? ["metro"] : (Object.keys(UNIDADES_INSUMO) as UnidadInsumo[]);
+}
+
+/** Lo que dice la hoja cuando una cantidad escrita no se entiende. */
+export const CANTIDAD_ILEGIBLE = "No se entiende la cantidad: escríbela así, 48.2 o 48,2.";
+
+/**
+ * Una cantidad escrita a mano (metros, un mínimo, una merma en %): «48,2» y «48.2» son lo mismo, con uno o dos decimales.
+ *
+ * EL PROBLEMA. `Number("48,2")` es `NaN`: «Ingresar insumo» no dejaba guardar una cantidad con coma (se apagaba el botón sin decir por qué) y, peor, un COSTO con coma («2,5») se leía como 0 y la hoja
+ * lo daba por bueno: el lote se abría a costo cero. El costo (es plata) se lee con la regla única `numeroDeMonto`; una cantidad no admite miles ni tres decimales a propósito.
+ *
+ * LA REGLA. Solo cifras y UN separador (punto o coma) con 0, 1 o 2 decimales («12,» mientras se escribe es 12). Todo lo demás es `null` y la hoja dice cómo escribirlo:
+ * «1.200» ¿son mil doscientos o uno con dos? No se adivina, igual que `leerMontoPlata`. Vacío es `null` (quien llama decide si «vacío» es 0 o falta).
+ */
+export function leerCantidad(texto: string): number | null {
+  // Los blancos se quitan con la regla única: un espacio adentro solo separa miles, así que una columna de tres celdas
+  // de Excel pegada aquí («12 8 5») ya no entra como 1 285 (/chaos de «Nuevo avío», 2026-10-31).
+  const t = sinBlancosDeMiles(texto);
+  if (t === null || !/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
+  return Number(t.replace(",", "."));
+}
+
+/** Cómo se COMPRA una tela (ADR-0554). El libro va siempre en metros: el kilo y el rollo se convierten al recibir. */
+export type CompraDeTela = "metro" | "kilo" | "rollo";
+
+/** En qué se mide un AVÍO (ADR-0580): no es la unidad en que se cuenta su stock, sino la medida que lo distingue de otro de su misma clase (18 líneas, 40 centímetros, título 40).
+ *  Vive aquí, y no en `avio-clases-reglas.ts`, para que `MaterialVista` no tenga que importar de un archivo que ya importa de este. */
+export type UnidadMedidaAvio = "linea" | "milimetro" | "centimetro" | "titulo";
+
+/** La medida de un avío, tal como la guarda la base (`materiales.medida_valor` + `medida_unidad`): las dos, o ninguna. */
+export type MedidaDeAvio = { valor: number; unidad: UnidadMedidaAvio };
+
+/** La tela (o el avío): lo que es y cómo se compra. Sus colores son los `InsumoVista` con su `materialId`. */
+export type MaterialVista = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: TipoInsumo;
+  tejidoId: string | null;
+  composicion: string | null;
+  /** La clase del avío (ADR-0580: botón, cierre, hilo…); `null` en una tela. */
+  claseId: string | null;
+  /** La medida que lo distingue de otro de su clase; `null` si no lleva, o si es una tela. */
+  medida: MedidaDeAvio | null;
+  /** La unidad del libro (una tela, siempre metro). */
+  unidad: UnidadInsumo;
+  /** 0 a 0,5. */
+  merma: number;
+  /** Cómo se compra: una tela, metro / kilo / rollo; un avío, su unidad. */
+  compra: UnidadInsumo | "rollo";
+  ancho: number | null;
+  gramaje: number | null;
+  metrosPorRollo: number | null;
+  /** Su `updated_at` tal como lo devolvió la base (texto, sin pasarlo por `Date`: pierde los microsegundos). «Editar tela» lo manda de vuelta y la base rechaza el guardado si otra persona cambió la tela entretanto (ADR-0193). */
+  version: string;
+};
+
+/** Metros que salen de un kilo: `1000 ÷ (gramaje en g/m² × ancho en m)`. `null` si falta el ancho o el gramaje. */
+export function metrosPorKilo(anchoCm: number | null, gramaje: number | null): number | null {
+  if (anchoCm === null || gramaje === null || !(anchoCm > 0) || !(gramaje > 0)) return null;
+  return 1000 / (gramaje * (anchoCm / 100));
+}
+
+/** Lo que se dice de cómo se compra una tela: «Se compra por kilo · rinde ≈ 3,47 m/kg». */
+export function textoDeCompra(m: Pick<MaterialVista, "tipo" | "compra" | "ancho" | "gramaje" | "metrosPorRollo">): string {
+  if (m.tipo === "avio") return `Se cuenta en ${m.compra === "unidad" ? "unidades" : UNIDADES_INSUMO[m.compra as UnidadInsumo].larga.toLowerCase()}`;
+  if (m.compra === "kilo") {
+    const r = metrosPorKilo(m.ancho, m.gramaje);
+    return r === null ? "Se compra por kilo" : `Se compra por kilo · rinde ≈ ${r.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m/kg`;
+  }
+  if (m.compra === "rollo") return m.metrosPorRollo ? `Se compra por rollo · ≈ ${m.metrosPorRollo.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m cada uno` : "Se compra por rollo";
+  return "Se compra por metro";
+}
+
+/** Los insumos de una lista juntados por tela, en el orden en que aparece cada una. Un insumo sin tela (o con una tela que no se leyó) queda solo, sin encabezado. */
+export function agruparPorTela<I extends { materialId?: string | null }>(lista: readonly I[], materiales: readonly MaterialVista[]): { material: MaterialVista | null; insumos: I[] }[] {
+  const porId = new Map(materiales.map((m) => [m.id, m]));
+  const grupos: { material: MaterialVista | null; insumos: I[] }[] = [];
+  const lugar = new Map<string, number>();
+  for (const i of lista) {
+    const m = i.materialId ? (porId.get(i.materialId) ?? null) : null;
+    if (!m) {
+      grupos.push({ material: null, insumos: [i] });
+      continue;
+    }
+    const k = lugar.get(m.id);
+    if (k === undefined) {
+      lugar.set(m.id, grupos.length);
+      grupos.push({ material: m, insumos: [i] });
+    } else grupos[k].insumos.push(i);
+  }
+  return grupos;
 }
 
 export type MovimientoInsumo = {
@@ -66,7 +193,20 @@ export type LoteInsumo = {
   costoUnitario: number | null;
   documento: string | null;
   origen: "compra" | "saldo_inicial";
+  /** A quién se le compró (solo lo lee quien ve los proveedores del Taller: el líder); `null` o ausente si no se sabe. */
+  proveedor?: string | null;
+  /** La nota del ingreso: «1041 kg × 3.21 m/kg (ancho 133 cm, gramaje 234 g/m²)» cuando se compró por kilo, o «Encontré tela». */
+  nota?: string | null;
+  /** Por qué este ingreso no se corrige ni se elimina desde la pantalla (de él ya salió material); `null` o ausente si se puede (ADR-0570, `motivoParaNoTocarIngreso`). */
+  noSeToca?: string | null;
 };
+
+/** De dónde vino un lote, en una frase de tienda: «saldo inicial», «compra a Textiles Gamarra» o, sin saber a quién, «compra» (P11 del análisis del Taller: «s/c» y «compra» solos no decían nada). */
+export function origenDeLote(l: Pick<LoteInsumo, "origen" | "proveedor">): string {
+  if (l.origen === "saldo_inicial") return "saldo inicial";
+  const quien = l.proveedor?.trim();
+  return quien ? `compra a ${quien}` : "compra";
+}
 
 /** Lo que queda de un lote, como lo recalcula `registrar_consumo_insumo`: lo ingresado, menos consumo y merma,
  *  más devoluciones. (El movimiento `compra` que abre el lote no se vuelve a sumar: ya es `cantidadIngresada`.) */
@@ -92,64 +232,12 @@ export function loteMasAntiguoConSaldo(lotes: LoteConSaldo[]): LoteConSaldo | nu
 
 export type EstadoInsumo = { tono: "sin_saldo" | "bajo" | "bien" | "sin_minimo"; etiqueta: string };
 
-/** Sin saldo, bajo el mínimo o bien. Un insumo sin mínimo definido no puede estar «bajo»: se dice, no se inventa. */
+/** Se acabó, bajo el mínimo o alcanza (palabras de tienda: «Bien» no decía nada con 4,438 m y un mínimo de 1 m). Un insumo sin mínimo definido no puede estar «bajo»: se dice, no se inventa. */
 export function estadoInsumo(saldo: number, minimo: number | null): EstadoInsumo {
-  if (saldo <= 0) return { tono: "sin_saldo", etiqueta: "Sin saldo" };
+  if (saldo <= 0) return { tono: "sin_saldo", etiqueta: "Se acabó" };
   if (minimo === null) return { tono: "sin_minimo", etiqueta: "Sin mínimo" };
-  if (saldo < minimo) return { tono: "bajo", etiqueta: "Bajo mínimo" };
-  return { tono: "bien", etiqueta: "Bien" };
-}
-
-export type PrevisionConsumo =
-  | { ok: true; lote: LoteConSaldo; saldoLote: number; quedaria: number; cantidad: number }
-  | { ok: false; motivo: string };
-
-/** Lo que la base va a hacer con un consumo, dicho ANTES de confirmar: de qué lote sale, cuánto le queda. Refleja la
- *  regla de `registrar_consumo_insumo`: sale del lote más antiguo con saldo y **no se parte** entre lotes; si no
- *  alcanza, se rechaza con el saldo exacto de ESE lote. */
-export function previsualizarConsumo(lotes: LoteConSaldo[], cantidad: number, nombre: string, unidad: UnidadInsumo): PrevisionConsumo {
-  if (!(cantidad > 0)) return { ok: false, motivo: "Indica cuánto se va a descontar." };
-  const lote = loteMasAntiguoConSaldo(lotes);
-  if (!lote) return { ok: false, motivo: `No hay saldo de ${nombre}. Ingrésalo primero.` };
-  if (cantidad > lote.saldo) {
-    const t = cantidadTexto(lote.saldo, unidad);
-    return { ok: false, motivo: `El lote ${lote.codigo ?? "más antiguo"} solo tiene ${t}. Registra ${t} y luego el resto: sale del siguiente lote, con su propio costo.` };
-  }
-  return { ok: true, lote, saldoLote: lote.saldo, quedaria: lote.saldo - cantidad, cantidad };
-}
-
-/** Un descuento de una orden, con signo: el consumo suma y la devolución resta. */
-export type DescuentoDeOrden = { loteId: string | null; cantidad: number };
-
-export type PrevisionDevolucion =
-  | { ok: true; lote: LoteConSaldo; netoLote: number; netoTotal: number; saldoLoteDespues: number; cantidad: number }
-  | { ok: false; motivo: string };
-
-/** Lo que la base va a hacer al devolver, dicho ANTES de confirmar. Refleja `devolver_insumo_de_produccion`: la cantidad
- *  vuelve al ÚLTIMO lote (por ingreso) del que esta orden sacó el insumo —PEPS al revés— y no se parte entre lotes;
- *  nunca se devuelve más de lo que la orden tiene descontado. */
-export function previsualizarDevolucion(
-  lotes: LoteConSaldo[],
-  descontados: DescuentoDeOrden[],
-  cantidad: number,
-  nombre: string,
-  unidad: UnidadInsumo
-): PrevisionDevolucion {
-  if (!(cantidad > 0)) return { ok: false, motivo: "Indica cuánto se va a devolver." };
-  const netoDe = (id: string) => descontados.filter((d) => d.loteId === id).reduce((s, d) => s + d.cantidad, 0);
-  const conNeto = [...lotes]
-    .sort((a, b) => (a.ingreso === b.ingreso ? a.creadoEn.localeCompare(b.creadoEn) : a.ingreso.localeCompare(b.ingreso)))
-    .map((l) => ({ lote: l, neto: netoDe(l.id) }))
-    .filter((x) => x.neto > 0);
-  if (conNeto.length === 0) return { ok: false, motivo: `Esta orden no tiene ${nombre} descontado.` };
-  const netoTotal = conNeto.reduce((s, x) => s + x.neto, 0);
-  const ultimo = conNeto[conNeto.length - 1];
-  if (cantidad > netoTotal) return { ok: false, motivo: `Esta orden solo tiene descontado ${cantidadTexto(netoTotal, unidad)} de ${nombre}.` };
-  if (cantidad > ultimo.neto) {
-    const t = cantidadTexto(ultimo.neto, unidad);
-    return { ok: false, motivo: `El último lote del que salió (${ultimo.lote.codigo ?? "sin código"}) tiene ${t} de esta orden. Devuelve ${t} y luego el resto: vuelve al lote anterior, con su propio costo.` };
-  }
-  return { ok: true, lote: ultimo.lote, netoLote: ultimo.neto, netoTotal, saldoLoteDespues: ultimo.lote.saldo + cantidad, cantidad };
+  if (saldo < minimo) return { tono: "bajo", etiqueta: "Bajo el mínimo" };
+  return { tono: "bien", etiqueta: "Alcanza" };
 }
 
 /** Consumo semanal medido: lo consumido en los últimos `dias` (28 = 4 semanas) llevado a una semana. `null` si no

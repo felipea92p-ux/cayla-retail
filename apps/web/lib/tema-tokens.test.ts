@@ -229,10 +229,14 @@ describe("modo oscuro: contraste medido", () => {
 
   it("las marcas de gráfico (relleno) se ven sobre papel (≥ 3:1) y no se confunden entre sí (ΔE ≥ 17)", () => {
     const g = [oscuro["grafico-alza"], oscuro["grafico-neutro"], oscuro["grafico-baja"]];
-    for (const c of [...g, oscuro["metodo-efectivo"]]) expect(contraste(c, oscuro.papel)).toBeGreaterThanOrEqual(3);
+    for (const c of [...g, oscuro["metodo-efectivo"], oscuro.naranja]) expect(contraste(c, oscuro.papel)).toBeGreaterThanOrEqual(3);
     expect(deltaE(g[0], g[1])).toBeGreaterThanOrEqual(17);
     expect(deltaE(g[0], g[2])).toBeGreaterThanOrEqual(17);
     expect(deltaE(g[1], g[2])).toBeGreaterThanOrEqual(17);
+  });
+
+  it("el naranja del tramo donde se pierde la gente (Tráfico, 2026-10-31) se ve como línea y como relleno sobre papel en claro: ≥ 3:1", () => {
+    expect(contraste(claro.naranja, claro.papel)).toBeGreaterThanOrEqual(3);
   });
 
   it("la línea de una tarjeta (sand sobre papel) se ve pero no grita: entre 1.2 y 1.8", () => {

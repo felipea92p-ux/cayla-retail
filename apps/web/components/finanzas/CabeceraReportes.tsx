@@ -1,47 +1,31 @@
 import type { ReactNode } from "react";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
-import { PestanasFin } from "@/components/finanzas/kit";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
-// Finanzas ▸ Reportes (ADR-0195 F5–F7; spike `vista-reportes.js`): la cabecera y las pestañas que comparten sus páginas.
-// Cada pestaña es una ruta propia bajo /finanzas/reportes, así cada fase agrega su página sin tocar las demás. `lista` = la
-// pestaña ya tiene página; las que no, no se muestran (sin pestañas vacías).
-
-export type PestanaReportes = "resultados" | "presupuesto" | "campanas" | "escenarios" | "flujo" | "balance";
-
-const PESTANAS: { clave: PestanaReportes; etiqueta: string; href: string; lista: boolean }[] = [
-  { clave: "resultados", etiqueta: "Estado de resultados", href: "/finanzas/reportes", lista: true },
-  { clave: "presupuesto", etiqueta: "Presupuesto", href: "/finanzas/reportes/presupuesto", lista: true },
-  { clave: "campanas", etiqueta: "Campañas", href: "/finanzas/reportes/campanas", lista: true },
-  { clave: "escenarios", etiqueta: "Escenarios", href: "/finanzas/reportes/escenarios", lista: true },
-  { clave: "flujo", etiqueta: "Flujo de caja", href: "/finanzas/reportes/flujo", lista: true },
-  { clave: "balance", etiqueta: "Balance", href: "/finanzas/reportes/balance", lista: true },
-];
+// El título de cada estado, bajo las cuatro respuestas (ADR-0585). Desde que «Reportes» pasó a ser «Estados financieros», la cabecera de
+// la pantalla es una sola (`CabeceraEstados`: la cabecera única con las cuatro respuestas, que son las pestañas) y aquí queda lo de cada
+// estado: su título de sección («Resultados de agosto», «¿Alcanza para pagar?»), su frase y sus herramientas (el mes, la sede, descargar).
+// Presupuesto, Campañas y Escenarios ya no son pestañas: son páginas internas con su vuelta, y usan esto mismo bajo su cabecera.
 
 export function CabeceraReportes({
-  pestana,
   titulo,
   bajada,
   acciones,
   children,
 }: {
-  pestana: PestanaReportes;
-  /** Cada reporte dice su título («Resultados de agosto», «¿Alcanza para pagar?»). */
+  /** Cada estado dice su título («Resultados de agosto», «¿Alcanza para pagar?»). */
   titulo: ReactNode;
   bajada?: ReactNode;
   acciones?: ReactNode;
   children?: ReactNode;
 }) {
   return (
-    <>
-      <CabeceraPantalla sobretitulo="Finanzas · Reportes" titulo={titulo} bajada={bajada} accionesAbajo acciones={acciones}>
+    <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+      <div className="min-w-0 max-w-[40rem] grow basis-[22rem]">
+        <TituloSeccion>{titulo}</TituloSeccion>
+        {bajada && <p className="mt-1 text-[15px] leading-relaxed text-taupe">{bajada}</p>}
         {children}
-      </CabeceraPantalla>
-      <PestanasFin
-        etiqueta="Reportes"
-        guia="fin-reportes.pestanas"
-        valor={pestana}
-        items={PESTANAS.filter((p) => p.lista || p.clave === pestana).map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, href: p.href }))}
-      />
-    </>
+      </div>
+      {acciones && <div className="flex flex-wrap items-center gap-2.5">{acciones}</div>}
+    </div>
   );
 }

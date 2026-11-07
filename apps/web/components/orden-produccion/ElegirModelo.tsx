@@ -119,7 +119,7 @@ export function ElegirModelo({
                       <Prenda modelo={m} tamano="md" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-display text-[17px] leading-tight text-tinta">{m.referencia}</span>
-                        <span className="block truncate text-[12.5px] text-tinta/65">
+                        <span className="block truncate text-sm text-tinta/65">
                           {m.categoria ? `${m.categoria} · ` : ""}
                           {resumenDeModelo(m)}
                         </span>
@@ -154,7 +154,7 @@ export function ElegirModelo({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold text-tinta">{escrito ? `Crear «${escrito}» como modelo nuevo` : "Crear un modelo nuevo"}</span>
-            <span className="block text-[12.5px] text-tinta/65">Se arma aquí mismo, junto con su orden.</span>
+            <span className="block text-sm text-tinta/65">Se arma aquí mismo, junto con su orden.</span>
           </span>
         </button>
       </div>
@@ -169,7 +169,7 @@ export function TarjetaModelo({ modelo, precio, onCambiar }: { modelo: ModeloPro
       <Prenda modelo={modelo} tamano="lg" />
       <div className="min-w-0 flex-1">
         <p className="truncate font-display text-[22px] leading-tight text-tinta">{modelo.referencia}</p>
-        <p className="truncate text-[12.5px] text-tinta/65">
+        <p className="truncate text-sm text-tinta/65">
           {modelo.categoria ? `${modelo.categoria} · ` : ""}
           {resumenDeModelo(modelo)}
           {precio > 0 ? ` · se vende a S/\u00a0${precio.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}

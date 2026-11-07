@@ -77,7 +77,7 @@ export function ReabrirEnvio({
             />
           </CampoGuiado>
           <CampoGuiado id="reabrir-quien" guia={guia}>
-            <p className="mb-1.5 text-[13px] font-semibold text-tinta">{guia.etiqueta("reabrir-quien", "Quién lo reabre")}</p>
+            <p className="mb-1.5 text-sm font-semibold text-tinta">{guia.etiqueta("reabrir-quien", "Quién lo reabre")}</p>
             <ComboResponsable control={responsable} />
           </CampoGuiado>
           {error && <Aviso tono="error" titulo="No se pudo reabrir">{error}</Aviso>}

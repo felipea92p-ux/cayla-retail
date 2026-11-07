@@ -6,20 +6,20 @@ import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "./orden-nive
 const base = { hayModelo: true, fases: fasesIniciales(), telasElegidas: 0, entrega: null, hayNota: false };
 
 describe("resumenNivelDos — la línea que habla por lo plegado", () => {
-  it("lo de siempre: siete fases en el Taller, sin tela y sin fecha", () => {
-    expect(resumenNivelDos(base)).toBe("7 fases · todo en el Taller · sin tela elegida · sin fecha de entrega");
+  it("lo de siempre: cinco fases en el Taller, sin tela y sin fecha", () => {
+    expect(resumenNivelDos(base)).toBe("5 fases · todo en el Taller · sin tela elegida · sin fecha de entrega");
   });
   it("nombra las fases que salen a un servicio, en el orden de la ruta", () => {
     const fases = fasesIniciales().map((f) => (f.clave === "costura" || f.clave === "corte" ? { ...f, quien: "servicio" as const } : f));
-    expect(resumenNivelDos({ ...base, fases })).toBe("7 fases · 2 afuera (Corte, Costura) · sin tela elegida · sin fecha de entrega");
+    expect(resumenNivelDos({ ...base, fases })).toBe("5 fases · 2 afuera (Corte, Costura) · sin tela elegida · sin fecha de entrega");
   });
   it("una sola fase afuera, una tela, la fecha y la nota", () => {
     const fases = fasesIniciales().map((f) => (f.clave === "costura" ? { ...f, quien: "servicio" as const } : f));
-    expect(resumenNivelDos({ ...base, fases, telasElegidas: 1, entrega: "23 oct", hayNota: true })).toBe("7 fases · 1 afuera (Costura) · 1 tela · entrega 23 oct · con nota");
+    expect(resumenNivelDos({ ...base, fases, telasElegidas: 1, entrega: "23 oct", hayNota: true })).toBe("5 fases · 1 afuera (Costura) · 1 tela · entrega 23 oct · con nota");
   });
   it("cuenta solo las fases encendidas (Ojales y botones se enciende si el modelo los lleva)", () => {
     const conOjales = fasesIniciales().map((f) => (f.clave === "ojales_botones" ? { ...f, encendida: true } : f));
-    expect(resumenNivelDos({ ...base, fases: conOjales })).toContain("8 fases");
+    expect(resumenNivelDos({ ...base, fases: conOjales })).toContain("6 fases");
     expect(resumenNivelDos({ ...base, fases: fasesIniciales().map((f) => ({ ...f, encendida: false })) })).toContain("0 fases");
   });
   it("dos telas, en plural", () => {

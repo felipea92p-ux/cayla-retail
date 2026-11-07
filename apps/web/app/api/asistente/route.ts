@@ -1,8 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
-import { preseleccionar } from "@/lib/asistente/preseleccion";
+import { pantallasAlcanzables, pantallasQueSeAbrenDesde, preseleccionar } from "@/lib/asistente/preseleccion";
+import { candidatasDeReceta, recetasAlcanzables } from "@/lib/asistente/recetas";
 import { erroresParecidos, reglasParecidas } from "@/lib/asistente/conocimiento";
+import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { rutasFueraDelMenu } from "@/lib/asistente/sin-acceso";
 import {
   costoEnDolares,
@@ -23,11 +25,12 @@ import { limpiarDatosPersonales, sinConsulta } from "@/lib/errores-reglas";
 import { GUIAS } from "@/lib/guias/registro";
 import { hojasDe, menuPara, permisosDe } from "@/lib/menu";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 import { createClient } from "@/lib/supabase/server";
 
 // POST /api/asistente  { pregunta, ruta }  →  { resultado, preguntaId }
 //
-// «Pregúntale a CAYLA» (ADR-0529, actividades 2 a 5): la pregunta va a la IA con las pocas guías que la búsqueda local encontró, y vuelve
+// «Pregúntale a CAYLA» (ADR-0536, actividades 2 a 5): la pregunta va a la IA con las pocas guías que la búsqueda local encontró, y vuelve
 // un recorrido de 1 a 3 tramos elegidos DE ESA LISTA, cada uno con la dirección para llegar (o «sin acceso», «no existe», «fuera de
 // tema»). Cada pregunta queda anotada (`registrar_pregunta_asistente`) y su id vuelve para contestar «¿Te sirvió?».
 //
@@ -35,7 +38,7 @@ import { createClient } from "@/lib/supabase/server";
 //   PROMETE: responder siempre 200 con algo que mostrar. Si la IA no está (falta la clave, ya se gastó el tope del mes, no contesta en
 //            8 s, falla, declina o dice algo que no se le puede creer), `resultado.tipo` es «basico» y el cajón muestra la búsqueda
 //            sin IA: nunca se cae. Si la base no anota la pregunta, la respuesta llega igual (`preguntaId: null`, sin «¿Te sirvió?»).
-//   ASUME:   sesión válida. El menú (qué pantallas puede ofrecer) se arma AQUÍ con los módulos de la cuenta, no con lo que mande el
+//   ASUME:   sesión válida y una sede con el asistente encendido (si no, 403: el piloto es por sede). El menú (qué pantallas puede ofrecer) se arma AQUÍ con los módulos de la cuenta, no con lo que mande el
 //            navegador: nadie se entera por la IA de una pantalla que su rol no ve.
 //            Lo que vive en un módulo que su rol no tiene solo se nombra («sin_acceso»: a quién pedírselo), nunca se enseña.
 //   NO HACE: no lee datos de la tienda. Lo único que escribe es la fila de la pregunta.
@@ -76,20 +79,32 @@ export async function POST(request: Request) {
   const persona = await requirePersonaActualV2();
   const cuenta = persona.personaId ?? `terminal:${persona.ubicacionId}`;
   if (excedeTope(cuenta)) return Response.json({ error: "Son muchas preguntas seguidas: espera un minuto." }, { status: 429 });
+  // El piloto es por sede (actividad 8): una sede apagada no gasta el tope del mes, aunque alguien llame aquí sin el botón.
+  if (!(await getAsistenteEncendido(persona.vista === "global" ? null : persona.ubicacionId))) {
+    return Response.json({ error: "El asistente todavía no está encendido en esta sede." }, { status: 403 });
+  }
 
-  // Las pantallas que esta cuenta ve: el mismo menú del lateral (`AppShell`), armado con sus módulos.
-  const rutasDelMenu = menuPara({
-    permisos: persona.permisos ?? permisosDe(persona.rol),
-    ubicacionTipo: persona.ubicacionTipo,
-    terminal: !!persona.terminal,
+  // Las pantallas que esta cuenta ve: el mismo menú del lateral (`AppShell`), armado con sus módulos, más las de la cabecera.
+  const rutasDelMenu = pantallasDelAsistente({
+    delMenu: menuPara({
+      permisos: persona.permisos ?? permisosDe(persona.rol),
+      ubicacionTipo: persona.ubicacionTipo,
+      terminal: !!persona.terminal,
+      modulos: persona.modulos.map((m) => m.clave),
+    })
+      .riel.flatMap(hojasDe)
+      .map((h) => h.href),
     modulos: persona.modulos.map((m) => m.clave),
-  })
-    .riel.flatMap(hojasDe)
-    .map((h) => h.href);
+  });
 
   const pregunta = limpiarDatosPersonales(cuerpo.data.pregunta);
   const rutaActual = sinConsulta(cuerpo.data.ruta);
   const sugerencias = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu, rutaActual, cuantas: GUIAS_PARA_LA_IA });
+  // Las pantallas con id que se abren desde una de ellas (Editar producto, desde Productos): una tarea puede terminar ahí.
+  const hijas = pantallasQueSeAbrenDesde(sugerencias, GUIAS);
+  // Las recetas (tareas de todos los días con su camino escrito) que esta cuenta puede hacer entera: la IA solo elige cuál y pone los datos.
+  const alcanzables = pantallasAlcanzables({ guias: GUIAS, rutasDelMenu, rutaActual });
+  const recetas = recetasAlcanzables(alcanzables).map((receta) => ({ receta, candidatas: candidatasDeReceta(receta, GUIAS, alcanzables) }));
   // Las pantallas de un módulo que su rol no tiene: la IA solo puede decir que existen y a quién pedírselas (actividad 4).
   const modulos = persona.modulos.map((m) => m.clave);
   const ajenas = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: rutasFueraDelMenu({ guias: GUIAS, modulos }), rutaActual: "", cuantas: GUIAS_AJENAS_PARA_LA_IA });
@@ -134,21 +149,39 @@ export async function POST(request: Request) {
   if (errorGasto) console.error(`[asistente] no se pudo leer el gasto del mes: ${errorGasto.code ?? "sin código"}`);
   if (seLlegoAlTope(errorGasto ? null : Number(gastado))) return basico("tope");
 
-  // Sin reintentos: con la persona esperando, un segundo intento haría pasar los 8 s. Si no responde, la búsqueda sin IA ya sirve.
+  // Sin reintentos del SDK: con la persona esperando, un segundo intento entero haría pasar los 8 s. Uno solo, a mano, si el primero
+  // falló rápido y no por tiempo (un corte de conexión): con lo que queda de los 8 s, nunca más. Si no responde, la búsqueda sin IA sirve.
   const cliente = new Anthropic({ timeout: ESPERA_IA_MS, maxRetries: 0 });
   const inicio = Date.now();
   let respuesta;
+  const pedir = (timeout: number) =>
+    cliente.messages.parse(
+      {
+        model: MODELO_RESPUESTA,
+        max_tokens: 2048,
+        // Las instrucciones son siempre las mismas: la API las guarda en su caché y cobra la décima parte al releerlas.
+        system: [{ type: "text", text: INSTRUCCIONES, cache_control: { type: "ephemeral" } }],
+        // Elegir de una lista corta no pide pensar, y la persona está esperando: sin pensamiento y con el esfuerzo más bajo. Con el
+        // pensamiento prendido (el de fábrica en Haiku 5.5), una tarea de 6 pasos escribía ~1.500 tokens y tardaba 7,5 s, al borde de los 8.
+        thinking: { type: "disabled" },
+        output_config: { format: zodOutputFormat(RespuestaDeLaIA), effort: "low" },
+        messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas, conocimiento, hijas, recetas.map((r) => r.receta)) }],
+      },
+      { timeout },
+    );
   try {
-    respuesta = await cliente.messages.parse({
-      model: MODELO_RESPUESTA,
-      max_tokens: 2048,
-      // Las instrucciones son siempre las mismas: la API las guarda en su caché y cobra la décima parte al releerlas.
-      system: [{ type: "text", text: INSTRUCCIONES, cache_control: { type: "ephemeral" } }],
-      // Elegir de una lista corta no pide pensar mucho, y la persona está esperando: el esfuerzo más bajo.
-      output_config: { format: zodOutputFormat(RespuestaDeLaIA), effort: "low" },
-      messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas, conocimiento) }],
-    });
+    try {
+      respuesta = await pedir(ESPERA_IA_MS);
+    } catch (primero) {
+      const queda = ESPERA_IA_MS - (Date.now() - inicio);
+      if (primero instanceof Anthropic.APIConnectionTimeoutError || queda < ESPERA_IA_MS / 2) throw primero;
+      respuesta = await pedir(queda);
+    }
   } catch (error) {
+    if (process.env.NODE_ENV !== "production" && error instanceof Error && !(error instanceof Anthropic.APIError)) {
+      // En desarrollo, qué fue (el mensaje del SDK, nunca la pregunta).
+      console.error(`[asistente] detalle: ${error.message.replace(/\s+/g, " ").slice(0, 600)}`);
+    }
     // Lo que se anota lleva el tipo de error y su código, nunca la pregunta (ADR-0424).
     console.error(`[asistente] sin respuesta de la IA: ${error instanceof Anthropic.APIError ? `${error.constructor.name} ${error.status ?? ""}` : error instanceof Error ? error.name : "desconocido"}`);
     return basico("sin_respuesta", { ...SIN_GASTO, modelo: MODELO_RESPUESTA, ms: Date.now() - inicio });
@@ -169,5 +202,9 @@ export async function POST(request: Request) {
   // Una respuesta declinada o que no se le puede creer igual costó: se anota con su gasto.
   if (respuesta.stop_reason === "refusal") return basico("rechazo", gasto);
   const cruda = respuesta.parsed_output ?? null;
-  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta, conocimiento), cruda?.tema ?? null, gasto);
+  if (process.env.NODE_ENV !== "production" && cruda) {
+    // En desarrollo: qué pasos propuso la IA (solo ids, nunca la pregunta), para ver por qué una tarea quedó corta.
+    console.info(`[asistente] receta: ${cruda.receta || "ninguna"} · pasos de la IA: ${cruda.pasos.map((p) => `${p.guia_id}#${p.paso_id}`).join(" · ") || "ninguno"}`);
+  }
+  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta, conocimiento, hijas, recetas), cruda?.tema ?? null, gasto);
 }

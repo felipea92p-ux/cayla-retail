@@ -10,8 +10,9 @@ import { exigirModulo } from "@/lib/persona-actual";
 // y `[...catchAll]` lo limpia al navegar a otra pantalla del módulo).
 export default async function OrdenesInsumoLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   await exigirModulo("ordenes_insumos");
+  // `pantalla-en-vidrio`: los bloques del grupo y el kit de Finanzas toman el vidrio (estilos/vidrio/pantalla-en-vidrio.css).
   return (
-    <div className="space-y-6">
+    <div className="pantalla-en-vidrio space-y-6">
       {children}
       {modal}
     </div>

@@ -2,7 +2,7 @@
 // falta en una cifra, el anillo de lo que ya está y las primeras cosas por resolver, cada una con su enlace. Lógica pura
 // sobre `fn_cierre_panel` (`PanelCierre`): no repite ningún chequeo, solo los cuenta y los pone en orden.
 
-import { enlaceChequeo, estadoConsolidado, textoChequeo, type Chequeo, type PanelCierre, type Unidad } from "./cierre-reglas";
+import { enlaceChequeo, estadoConsolidado, etiquetaEnlace, textoChequeo, type Chequeo, type PanelCierre, type Unidad } from "./cierre-reglas";
 import { mesNombre } from "./resultados-reglas";
 
 export type CosaDelCierre = {
@@ -12,9 +12,12 @@ export type CosaDelCierre = {
   detalle: string;
   bloquea: boolean;
   href: string | null;
+  /** Lo que dice su botón: «Resolver», o «Ver ventas» si solo se mira (`etiquetaEnlace`, el mismo de los chequeos de abajo). */
+  enlace: string;
 };
 
 export type PulsoCierre = {
+  /** «listo»: ya se puede cerrar algo (una unidad abierta sin nada que frene, o CAYLA entera); «faltan»: algo frena. */
   estado: "cerrado" | "listo" | "faltan";
   mes: string;
   /** Lo que bloquea el cierre, sumado en las unidades abiertas. */
@@ -41,7 +44,7 @@ export function pulsoCierre(p: PanelCierre): PulsoCierre {
     .sort((a, b) => Number(b.c.bloquea) - Number(a.c.bloquea))
     .map(({ u, c }) => {
       const t = textoChequeo(c, p.mes, u);
-      return { clave: `${u.clave}:${c.clave}`, unidad: u.nombre, titulo: t.titulo, detalle: t.detalle, bloquea: c.bloquea, href: enlaceChequeo(c, u, p.mes) };
+      return { clave: `${u.clave}:${c.clave}`, unidad: u.nombre, titulo: t.titulo, detalle: t.detalle, bloquea: c.bloquea, href: enlaceChequeo(c, u, p.mes), enlace: etiquetaEnlace(c) };
     });
   const bloqueantes = (u: Unidad) => u.chequeos.filter((c) => c.bloquea && cuentaHuella(c));
   const total = abiertas.reduce((s, u) => s + bloqueantes(u).length, 0);
@@ -55,12 +58,12 @@ export function pulsoCierre(p: PanelCierre): PulsoCierre {
   if (cons.estado === "listo") {
     return { estado: "listo", mes: p.mes, faltan: 0, hechos: total, total, pct: 100, listas: ["CAYLA entera"], cosas, frase: `Puedes cerrar ${mes} de CAYLA entera.`, explica: "Todas las tiendas, el Taller y lo de la empresa ya cerraron: solo falta el cierre de CAYLA entera." };
   }
-  const pct = total > 0 ? Math.round((hechos / total) * 100) : 0;
   if (faltan === 0) {
-    return { estado: "faltan", mes: p.mes, faltan: 0, hechos, total, pct, listas, cosas, frase: `Puedes cerrar ${mes}.`, explica: `${enumerar(listas)} ${listas.length === 1 ? "ya está lista" : "ya están listas"}: ningún chequeo frena el cierre. Lo que avisa sin frenar queda guardado con el cierre.` };
+    // Nada frena: el anillo se cierra y dice «✓ listo», nunca «0 cosas» (y sin chequeos que frenen, no queda vacío).
+    return { estado: "listo", mes: p.mes, faltan: 0, hechos, total, pct: 100, listas, cosas, frase: `Puedes cerrar ${mes}.`, explica: `${enumerar(listas)} ${listas.length === 1 ? "ya está lista" : "ya están listas"}: ningún chequeo frena el cierre. Lo que avisa sin frenar queda guardado con el cierre.` };
   }
   return {
-    estado: "faltan", mes: p.mes, faltan, hechos, total, pct, listas, cosas,
+    estado: "faltan", mes: p.mes, faltan, hechos, total, pct: Math.round((hechos / total) * 100), listas, cosas,
     frase: faltan === 1 ? `Te falta 1 cosa para cerrar ${mes}.` : `Te faltan ${faltan} cosas para cerrar ${mes}.`,
     explica: `${hechos} de ${total} chequeos ya pasaron${listas.length ? `; ${enumerar(listas)} ${listas.length === 1 ? "ya se puede cerrar" : "ya se pueden cerrar"}` : ""}. Cada cosa que falta lleva a la pantalla donde se arregla.`,
   };

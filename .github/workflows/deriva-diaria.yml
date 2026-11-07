@@ -76,12 +76,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Igual que el job «Pruebas de RPC contra Postgres» del CI: main entero, con el stub de Dynamic.
+      # Igual que el job «Pruebas de RPC contra Postgres» del CI: main entero, con el stub de Dynamic, la MISMA versión del
+      # CLI y solo la base. Sin versión, `npx` bajó el CLI 3 (rechaza `[inbucket]` de config.toml) y la alarma falló a diario
+      # sin comparar nada desde octubre. Se sube junto con ci.yml: lo vigila deriva-diaria.test.mjs.
       - name: Main, como el CI
         id: main
+        env:
+          SUPABASE_CLI: supabase@2.118.0
+          SIN_SERVICIOS: gotrue,kong,mailpit,postgres-meta,postgrest,storage-api,studio
         run: |
           cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
-          npx supabase start
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
 
       - name: Huellas de main
         id: huellas_main
@@ -182,7 +187,7 @@ jobs:
           CORRIDA: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ "$PRODUCCION" = failure ]; then paso="Huellas de producción: no respondió, la llave no coincide o falta configurarla"
-          elif [ "$MAIN" = failure ]; then paso="Main, como el CI: las migraciones de main no armaron"
+          elif [ "$MAIN" = failure ]; then paso="Main, como el CI: no se pudo levantar la base (el CLI de Supabase o una migración de main)"
           elif [ "$HUELLAS_MAIN" = failure ]; then paso="Huellas de main"
           elif [ "$PEGADOS" = failure ]; then paso="PR que declaran su SQL pegado: GitHub no respondió"
           elif [ "$HUELLAS_PEGADOS" = failure ]; then paso="Huellas de main con lo pegado"

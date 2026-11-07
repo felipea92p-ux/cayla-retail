@@ -107,7 +107,8 @@ export function Observatorio({
   const [foco, setFoco] = useState(() => (focoInicial === "TODAS" || datosIniciales.tiendas.some((t) => t.id === focoInicial) ? focoInicial : "TODAS"));
   const [tab, setTab] = useState<Tab>("ritmo");
   const [dirTab, setDirTab] = useState<"" | "de-der" | "de-izq">("");
-  const [comparar, setComparar] = useState("TODAS");
+  // Abre en «Sola»: el ritmo contra la meta es lo primero que se pregunta de una tienda; comparar es una pregunta más.
+  const [comparar, setComparar] = useState("nadie");
   const [cat, setCat] = useState("todas");
   const [alerta, setAlerta] = useState<string | null>(null);
   const [replay, setReplay] = useState<number | null>(null);

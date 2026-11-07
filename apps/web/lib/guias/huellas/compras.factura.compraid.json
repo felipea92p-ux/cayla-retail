@@ -2,7 +2,7 @@
   "guia": "compras.factura.compraid",
   "ruta": "/compras/factura/[compraId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 51,
+  "total": 52,
   "controles": {
     "app/(app)/compras/factura/[compraId]/page.tsx": [
       "Volver «/compras»"
@@ -71,6 +71,7 @@
       "Boton «{error ?? undefined}»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
+      "button «Volver a intentar»",
       "CampoSelect «{etiqueta}»"
     ]
   }

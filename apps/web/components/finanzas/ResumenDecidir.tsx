@@ -5,6 +5,8 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
 import type { Aviso } from "@/lib/resumen-finanzas-reglas";
+import { listaDeHoy } from "@/lib/finanzas-te-toca-reglas";
+import { usePendientesTelar } from "@/components/finanzas/telar/usePendientesTelar";
 
 // «Para decidir hoy» (ADR-0195 F10; spike `vista-resumen.js`): cada aviso con su punto de color, lo que pasa, cuánto está
 // en juego, de qué pantalla sale y el botón que lleva a donde se actúa. Se ven los 5 primeros («primero lo que más cuesta
@@ -13,8 +15,11 @@ import type { Aviso } from "@/lib/resumen-finanzas-reglas";
 const VISIBLES = 5;
 
 /** `parcial`: hay partes que esta cuenta no ve (se listan debajo); «nada urgente» vale para lo que sí ve. */
-export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; parcial?: boolean }) {
+export function ResumenDecidir({ avisos: delResumen, parcial = false }: { avisos: Aviso[]; parcial?: boolean }) {
   const [todos, setTodos] = useState(false);
+  // Una sola lista con el cajón «Te toca» de la barra (tarea 1 de «Las 36»): lo que hay que hacer sale de ahí, y el Resumen pone su lectura.
+  const { lista, incompleto, leyendo } = usePendientesTelar();
+  const avisos = listaDeHoy(lista, incompleto, delResumen);
   const fila = (a: Aviso) => (
             <li key={a.clave}>
               <span className="fin-punto" data-tono={a.tono} aria-hidden />
@@ -26,10 +31,7 @@ export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; p
                   </Chip>
                 )}
                 <p>{a.detalle}</p>
-                <p className="fin-impacto">
-                  {a.impacto && <>{a.impacto} · </>}
-                  <span className="fin-origen">sale de {a.origen}</span>
-                </p>
+                {a.impacto && <p className="fin-impacto">{a.impacto}</p>}
               </div>
               {a.href ? (
                 <Link href={a.href} className="btn-cayla btn-sutil btn-chico" data-guia="fin-resumen.aviso-accion">
@@ -45,6 +47,14 @@ export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; p
       <ul className="fin-decidir">
         {avisos.length ? (
           avisos.slice(0, VISIBLES).map(fila)
+        ) : leyendo ? (
+          <li>
+            <span className="fin-punto" data-tono="pizarra" aria-hidden />
+            <div>
+              <b>Buscando lo que te toca…</b>
+            </div>
+            <span />
+          </li>
         ) : (
           <li>
             <span className="fin-punto" data-tono="verde" aria-hidden />

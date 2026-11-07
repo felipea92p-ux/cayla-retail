@@ -1,18 +1,21 @@
 "use client";
 
+import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno } from "@/lib/dueno-reglas";
+import { useStockPorDueno } from "@/lib/useStockPorDueno";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Volver } from "@/components/ui/Volver";
 import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, BadgePercent, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
+import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CanalDelApartado } from "@/components/apartados/CanalDelApartado";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
-import { CampoMonto } from "@/components/ui/CampoMonto";
+import { EntradaMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -22,6 +25,7 @@ import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
+import { argumentosDeCanal, canalInicialDe, esCanalOnline, ofreceCanal, type CanalVenta, type ModoEntrega } from "@/lib/canales-venta-reglas";
 import { huellaDe, type InstantaneaIntento } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
@@ -32,7 +36,7 @@ import { nombreDePersona } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
-import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
+import { lineasApartables, tomarDescuentosParaApartar, type LineaApartar } from "@/lib/apartar-desde-ticket";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -58,6 +62,8 @@ import { BarraMovil, FotoPrenda, fechaCorta } from "@/components/apartados/pieza
 import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
 import { Aviso } from "@/components/ui/Aviso";
+import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
+import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
@@ -65,6 +71,15 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
+import { DescuentoApartado } from "@/components/apartados/DescuentoApartado";
+import {
+  descuentoParaGuardar,
+  descuentosVigentes,
+  lineaDescontada,
+  quitarDelApartado,
+  totalDescontado,
+  type DescuentosDelApartado,
+} from "@/lib/apartar-descuento-reglas";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -77,7 +92,7 @@ const MQ_APILADO = "(max-width: 1023.98px)";
 
 /** Los campos con un formato que se puede equivocar al tipearlo: su aviso sale al dejar el campo, no recién al confirmar
  *  (en la captura de Felipe un DNI de 9 dígitos pasó sin aviso hasta el final). Los vacíos siguen esperando al intento. */
-const CAMPOS_CON_FORMATO = new Set(["celular", "dni", "ruc", "devolucion"]);
+const CAMPOS_CON_FORMATO = new Set(["celular", "dni", "ruc", "devolucion", "direccionEnvio"]);
 
 /** «Terracota · M»: la variante en una línea, para que dos tallas del mismo modelo no se lean iguales en el ticket. */
 const variante = (p: { color: string | null; talla: string | null }) => [p.color, p.talla].filter(Boolean).join(" · ");
@@ -86,6 +101,7 @@ const variante = (p: { color: string | null; talla: string | null }) => [p.color
  *  aparta lo del piso (ADR-0141), pero si la prenda está atrás la colaboradora tiene que saberlo para traerla. */
 export type PrendaApartable = VarianteBusqueda & { almacenAqui?: number };
 
+const CANTIDAD_DE_LINEA = reglaDeEntero();
 const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
@@ -109,6 +125,8 @@ type ApartadoArmado = {
   clientaId: string | null;
   sinFicha: null | "padron" | "nada";
   intento: InstantaneaIntento | null;
+  /** El descuento a mano de cada prenda (ADR-0584). */
+  descuentos?: DescuentosDelApartado;
 };
 
 const FORMULARIO_VACIO = {
@@ -124,6 +142,10 @@ const FORMULARIO_VACIO = {
   devolucionNumero: "",
   devolucionCci: "",
   acepta: false,
+  // ADR-0607: por dónde se vende y cómo se entrega. En la tienda no se pregunta: `canal` queda en «tienda» y la entrega, en recojo.
+  canal: "tienda",
+  modoEntrega: "recojo" as ModoEntrega,
+  direccionEnvio: "",
 };
 
 export function ApartarVista({
@@ -139,6 +161,7 @@ export function ApartarVista({
   tiendas = [],
   pedido = null,
   onPedidoHecho,
+  canales = [],
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -160,6 +183,8 @@ export function ApartarVista({
   /** Un pedido que ya llegó: su prenda y su clienta arrancan cargadas y se aparta con `separar_pedido_para_apartar`. */
   pedido?: PedidoApartado | null;
   onPedidoHecho?: () => void;
+  /** ADR-0607: los canales de venta que opera la cuenta. Solo la tienda (o vacío) = el formulario de siempre. */
+  canales?: readonly CanalVenta[];
 }) {
   const router = useRouter();
   // El apartado a medio armar es de SU sede (Felipe, 2026-10-11): el panel monta Apartar con la sede en la key, y lo armado en otra
@@ -208,16 +233,45 @@ export function ApartarVista({
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
   // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
+  const escrita = useCantidadEscrita(CANTIDAD_DE_LINEA);
   const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : (guardado?.lineas ?? desdeTicket.lineas)));
+  // ADR-0542: de quién es lo que se aparta cuando hay unidades de las dos empresas (Lima). Sin respuesta de fábrica.
+  const duenosPorVariante = useStockPorDueno(ubicacionId);
+  const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
+  // El descuento a mano de cada prenda (ADR-0584), con las reglas de la venta. Se guarda por variante: Apartar junta las unidades.
+  const [descuentos, setDescuentos] = useState<DescuentosDelApartado>(() => (pedido ? {} : (guardado?.descuentos ?? {})));
+  // La hoja «Descuento» abierta, con las prendas que arrancan marcadas.
+  const [hojaDescuento, setHojaDescuento] = useState<string[] | null>(null);
+  const faltaDuenoEn = variantesSinDueno(lineas.map((l) => l.varianteId), duenosPorVariante, duenoDeLinea);
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
   }, [lineasIniciales, router]);
+  // ADR-0584: el descuento puesto a mano en el ticket llega con las prendas. Vive en el almacenamiento de la pestaña (lleva texto
+  // escrito: no va en la dirección), así que se lee ya montada la pantalla; se toma una sola vez y solo si es de estas prendas.
+  const descuentoDelTicketLeido = useRef(false);
+  useEffect(() => {
+    if (descuentoDelTicketLeido.current || pedido || guardado || !lineasIniciales?.length) return;
+    descuentoDelTicketLeido.current = true;
+    const delTicket = tomarDescuentosParaApartar(lineasIniciales);
+    if (Object.keys(delTicket).length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lo dejó el ticket en la pestaña: leerlo al iniciar el estado rompería la hidratación (misma decisión que BajarAlPisoForm)
+    setDescuentos(delTicket);
+    // Si alguna prenda no entró (aviso de error), ese aviso manda; si no, se dice que el descuento llegó.
+    setMensaje((m) => (m?.tono === "info" ? { tono: "info", texto: "Las prendas del ticket ya están en la lista, con su descuento. Revisa y sigue con los datos del cliente." } : m));
+  }, [lineasIniciales, pedido, guardado]);
   const [nota, setNota] = useState(guardado?.nota ?? "");
   const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
   const [f, setF] = useState(() =>
-    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : (guardado?.f ?? FORMULARIO_VACIO),
+    pedido
+      ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular }
+      : { ...FORMULARIO_VACIO, canal: canalInicialDe(canales), ...guardado?.f },
   );
+  // Lo guardado de otra sesión puede traer un canal que esta cuenta ya no opera: se vuelve al de arranque.
+  const canalElegido = canales.some((c) => c.clave === f.canal) ? f.canal : canalInicialDe(canales);
+  const conCanal = !pedido && ofreceCanal(canales);
+  const esOnline = conCanal && esCanalOnline(canales, canalElegido);
+  const modoDeEntrega: ModoEntrega = esOnline ? f.modoEntrega : "recojo";
   const conOtraSede = encendida(apagadas, "otra_sede");
   const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string; cantidad: number } } | null>(null);
   const [intento, setIntento] = useState(false);
@@ -273,23 +327,28 @@ export function ApartarVista({
         ? {
             etiqueta: ubicacionEtiqueta,
             unidades: prendas,
-            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio() },
+            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio(), descuentos },
             ...avisosDelApartado({ etiqueta: ubicacionEtiqueta, nombres: f.nombres, apellidos: f.apellidos, prendas }),
           }
         : null,
     );
-  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio]);
+  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio, descuentos]);
 
-  const total = totalDeLineas(
-    lineas.map((l) => {
-      const p = porId.get(l.varianteId)!;
-      return { cantidad: l.cantidad, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) };
-    }),
-  );
+  // Cada prenda con el descuento que de verdad lleva: el puesto a mano si supera a su campaña; si no, la campaña (ADR-0584).
+  const conDescuento = descuentosVigentes(descuentos, lineas.map((l) => l.varianteId));
+  const lineasConDescuento = lineas.map((l) => lineaDescontada(porId.get(l.varianteId)!, l.cantidad, conDescuento[l.varianteId]));
+  const descuentoDe = new Map(lineasConDescuento.map((l) => [l.varianteId, l]));
+  const total = totalDeLineas(lineasConDescuento);
+  const descontado = totalDescontado(lineasConDescuento);
+  /** Quita una prenda del apartado y, con ella, su descuento a mano (si vuelve, vuelve sin él). */
+  const quitarPrenda = (varianteId: string) => {
+    setLineas((ls) => ls.filter((x) => x.varianteId !== varianteId));
+    setDescuentos((d) => quitarDelApartado(d, [varianteId]));
+  };
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);
   const vence = sumarDiasIso(hoy, PLAZO_DIAS);
   // Quién atiende ya no se valida como campo del formulario: lo exige el combo «Responsable», que apaga el botón.
-  const formulario: FormularioApartado = { ...f, asesoraId: responsable.elegidoId, faltaAsesora: false };
+  const formulario: FormularioApartado = { ...f, modoEntrega: modoDeEntrega, asesoraId: responsable.elegidoId, faltaAsesora: false };
   const errores = erroresDelApartado(formulario, total);
   const pasoForm = pasoDelApartado(errores);
   const adelanto = Math.min(adelantoDe(f.pagos), total);
@@ -302,7 +361,13 @@ export function ApartarVista({
     setPaso(siguiente);
     if (apilado) document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
   }
-  const cambiar = <K extends keyof typeof FORMULARIO_VACIO>(k: K, v: (typeof FORMULARIO_VACIO)[K]) => setF((x) => ({ ...x, [k]: v }));
+  /** Del ticket a los datos del cliente. */
+  function seguirDelTicket() {
+    // Lo escrito en una cantidad no valió, y el paso siguiente deja atrás la caja donde se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
+    irAPaso("clienta");
+  }
+  const cambiar =<K extends keyof typeof FORMULARIO_VACIO>(k: K, v: (typeof FORMULARIO_VACIO)[K]) => setF((x) => ({ ...x, [k]: v }));
 
   /** Suma una prenda al apartado. `silencioso`: la cámara ya dice en su tarjeta qué pasó, y enfocar el campo le
    *  abriría el teclado encima. */
@@ -414,10 +479,10 @@ export function ApartarVista({
           <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} colorHex={v.colorHex} categoria={v.categoria} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={44} className="w-11" />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
-            <span className="block truncate text-xs text-tinta/60">
+            <span className="block truncate text-sm text-tinta/60">
               {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
             </span>
-            <span className="mt-0.5 block text-xs @[19rem]:hidden">
+            <span className="mt-0.5 block text-sm @[19rem]:hidden">
               <span className="font-semibold tabular-nums text-tinta">{money(precioFinal(v))}</span>
               <span className={puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}>
                 {" · "}
@@ -427,13 +492,13 @@ export function ApartarVista({
           </span>
           <span className="hidden shrink-0 text-right @[19rem]:block">
             <span className="block text-sm font-semibold tabular-nums text-tinta">
-              {v.campana && <span className="mr-1.5 text-xs font-normal text-tinta/45 line-through">{money(v.precio)}</span>}
+              {v.campana && <span className="mr-1.5 text-sm font-normal text-tinta/45 line-through">{money(v.precio)}</span>}
               {money(precioFinal(v))}
             </span>
-            <span className={`block text-xs ${puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}`}>
+            <span className={`block text-sm ${puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}`}>
               {puede ? `${v.stockAqui} disp.` : atras ? `${atras} en el almacén: tráela al piso` : "sin disponible aquí"}
             </span>
-            {otras && <span className="block text-[11px] text-tinta/55">{otras}</span>}
+            {otras && <span className="block text-sm text-tinta/55">{otras}</span>}
           </span>
         </button>
       </li>
@@ -520,14 +585,24 @@ export function ApartarVista({
   }
 
   async function confirmar() {
+    // Lo escrito en una cantidad no valió: antes de apartar lo que quedó, se lee por qué (`useCantidadEscrita`).
+    if (escrita.frenar()) return;
     setIntento(true);
-    if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo) return;
+    if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo || faltaDuenoEn.length > 0) return;
     const supabase = createClient();
     const args = {
       p_ubicacion_id: ubicacionId,
       p_items: lineas.map((l) => {
         const p = porId.get(l.varianteId)!;
-        return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoCampana(p) };
+        return {
+          variante_id: l.varianteId,
+          // ADR-0542: solo cuando había de quién elegir; viaja en `x-dueno-lineas`, la función lo ignora.
+          empresa_id: duenosParaElegir(duenosPorVariante?.[l.varianteId]) ? duenoDeLinea[l.varianteId] : undefined,
+          cantidad: l.cantidad,
+          precio_unitario: p.precio,
+          // ADR-0584: la campaña sin motivo; el descuento a mano con su motivo y su argumento (la base los vuelve a exigir).
+          ...descuentoParaGuardar(lineaDescontada(p, l.cantidad, conDescuento[l.varianteId])),
+        };
       }),
       p_pagos: pagosParaRpcApartado(f.pagos),
       p_clienta_nombres: f.nombres.trim(),
@@ -544,11 +619,18 @@ export function ApartarVista({
       p_clienta_id: clientaId ?? undefined,
       p_nota: nota.trim() || undefined,
     };
-    const r = await envio.enviar(huellaDe(pedido ? [pedido.id, args] : args), (token, senal) =>
+    // ADR-0607: la tienda sigue por `separar_prendas`; un canal online, por `separar_prendas_online`, que además guarda el canal y la entrega.
+    const porCanal = conCanal ? argumentosDeCanal(canales, { canal: canalElegido, modoEntrega: modoDeEntrega, direccionEnvio: f.direccionEnvio }) : ({ rpc: "separar_prendas" } as const);
+    const r = await envio.enviar(huellaDe(pedido ? [pedido.id, args] : [args, porCanal]), (token, senal) =>
       firmar(
-        pedido
-          ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: { ...args, p_token: token } })
-          : supabase.rpc("separar_prendas", { ...args, p_token: token }),
+        conDuenoPorLineas(
+          pedido
+            ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: { ...args, p_token: token } })
+            : porCanal.rpc === "separar_prendas_online"
+              ? supabase.rpc("separar_prendas_online", { ...args, p_canal: porCanal.p_canal, p_modo_entrega: porCanal.p_modo_entrega, p_direccion_envio: porCanal.p_direccion_envio, p_token: token })
+              : supabase.rpc("separar_prendas", { ...args, p_token: token }),
+          duenoDeLasLineas(args.p_items),
+        ),
         responsable.firma(),
       ).abortSignal(senal),
     );
@@ -596,8 +678,10 @@ export function ApartarVista({
       avisar.exito("Apartado registrado");
     }
     setLineas([]);
+    setDescuentos({});
     setNota("");
-    setF(FORMULARIO_VACIO);
+    // Se sigue en el mismo canal (quien vende por TikTok registra varias seguidas); la dirección de ese envío no se arrastra.
+    setF({ ...FORMULARIO_VACIO, canal: canalElegido, modoEntrega: f.modoEntrega });
     setIntento(false);
     setTocados(new Set());
     setClientaId(null);
@@ -621,7 +705,7 @@ export function ApartarVista({
   const hermanas = p ? prendas.filter((x) => x.referencia === p.referencia && x.color === p.color) : [];
 
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="ap-dos grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
       {envio.incierto && (
         <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
           <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={confirmar} reintentando={enviando} />
@@ -631,9 +715,9 @@ export function ApartarVista({
       <fieldset disabled={envio.incierto} className="contents">
       {/* Izquierda: la cabecera de la hoja y, debajo, solo lo escaneado, nunca el catálogo entero. En el celular, en los
           pasos de la clienta y el adelanto se esconde lo escaneado, no la cabecera. */}
-      <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
+      <div className="flex min-w-0 flex-col">
       {cabecera}
-      <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
+      <div className={`ap-cuerpo flex min-w-0 flex-col gap-4 p-5 sm:p-6 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">
             {/* El buscador del mostrador (ADR-0358, ronda 5): el código de barras que se enciende, filtra mientras se escribe. */}
@@ -687,7 +771,7 @@ export function ApartarVista({
           )}
         </div>
         {mensaje && (
-          <p role="status" className={`text-[13px] ${mensaje.tono === "error" ? "text-rojo-profundo" : mensaje.tono === "ok" ? "text-verde-profundo" : "text-tinta/70"}`}>
+          <p role="status" className={`text-sm ${mensaje.tono === "error" ? "text-rojo-profundo" : mensaje.tono === "ok" ? "text-verde-profundo" : "text-tinta/70"}`}>
             {mensaje.texto}
           </p>
         )}
@@ -696,7 +780,7 @@ export function ApartarVista({
           // `@container`: foto y datos lado a lado solo si la TARJETA tiene ancho (≥ 32rem), no la ventana. Con el lateral
           // abierto o en un celular, se apilan: la foto más chica y centrada, y el encabezado y las tallas centrados con ella.
           <div className="@container">
-          <article className="anim-revelar grid gap-4 rounded-2xl border border-sand bg-papel p-4 @lg:grid-cols-[200px_minmax(0,1fr)] @lg:gap-5">
+          <article className="ap-placa anim-revelar grid gap-4 rounded-2xl border border-sand bg-papel p-4 @lg:grid-cols-[200px_minmax(0,1fr)] @lg:gap-5">
             <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={200} className="mx-auto w-full max-w-[150px] @lg:mx-0 @lg:max-w-[200px]" />
             <div className="flex min-w-0 flex-col">
               <div className="text-center @lg:text-left">
@@ -706,12 +790,12 @@ export function ApartarVista({
               </div>
               <div className="mt-3 flex flex-wrap justify-center gap-1.5 @lg:justify-start" role="group" aria-label="Tallas">
                 {hermanas.map((h) => (
-                  <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`h-9 min-w-9 rounded-lg border px-2 text-xs font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
+                  <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`h-9 min-w-9 rounded-lg border px-2 text-sm font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
                     {h.talla ?? "—"}
                   </button>
                 ))}
               </div>
-              <dl className="mt-3 divide-y divide-sand border-t border-sand text-[13px]">
+              <dl className="mt-3 divide-y divide-sand border-t border-sand text-sm">
                 <div className="flex justify-between gap-3 py-2"><dt className="shrink-0 text-tinta/60">Código</dt><dd className="min-w-0 break-all text-right font-mono">{codigoPrenda(p)}</dd></div>
                 <div className="flex justify-between py-2">
                   <dt className="text-tinta/60">Precio</dt>
@@ -723,7 +807,7 @@ export function ApartarVista({
                 <div className="flex justify-between gap-3 py-2"><dt className="min-w-0 text-tinta/60">En {ubicacionEtiqueta}</dt><dd className="shrink-0 tabular-nums">{p.stockAqui} disponibles</dd></div>
               </dl>
               {tiendasConPrenda.length > 0 ? (
-                <div className="mt-3 space-y-2 rounded-xl bg-ambar/10 p-3 text-[12.5px] text-ambar-profundo">
+                <div className="mt-3 space-y-2 rounded-xl bg-ambar/10 p-3 text-sm text-ambar-profundo">
                   <p><b>No queda en {ubicacionEtiqueta}.</b> {tiendasConPrenda.map((t) => `${t.nombre} tiene ${t.cantidad}`).join(" · ")}.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {tiendasConPrenda.map((t) => (
@@ -732,10 +816,10 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la aparta al instante y la envía en el próximo traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
+                  <p className="text-sm text-tinta/60">{tiendasConPrenda[0].nombre} la aparta al instante y la envía en el próximo traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
                 </div>
               ) : (
-                <p className="mt-auto flex items-center gap-1.5 pt-3 text-[12.5px] text-verde-profundo">
+                <p className="mt-auto flex items-center gap-1.5 pt-3 text-sm text-verde-profundo">
                   <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Al apartarla, ninguna caja la podrá vender.
                 </p>
               )}
@@ -759,10 +843,10 @@ export function ApartarVista({
               {recientes.map((id) => {
                 const r = porId.get(id)!;
                 return (
-                  <button key={id} type="button" onClick={() => agregar(id)} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
+                  <button key={id} type="button" onClick={() => agregar(id)} className="ap-placa flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
                     <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} colorHex={r.colorHex} categoria={r.categoria} categoriaPrefijo={r.categoriaPrefijo} categoriaFamilia={r.categoriaFamilia} ancho={44} className="w-11" />
-                    <span className="min-w-0 text-xs">
-                      <b className="block truncate text-[13px] font-semibold">{r.referencia}</b>
+                    <span className="min-w-0 text-sm">
+                      <b className="block truncate text-sm font-semibold">{r.referencia}</b>
                       <span className="text-tinta/60">{r.color ?? "—"} · {r.talla ?? "—"} · {r.stockAqui} disp.</span>
                     </span>
                   </button>
@@ -776,16 +860,16 @@ export function ApartarVista({
 
       {/* Derecha: el ticket y, al tocar «Apartar», el formulario — como el cobro del Punto de venta. Va de arriba abajo
           de la hoja; su cabecera mide lo mismo que la fila de pestañas (64 px más su raya: 65) y queda en la misma raya. */}
-      <aside data-guia="apartados.ticket" className="flex min-h-0 flex-col">
+      <aside data-guia="apartados.ticket" className="ap-ticket flex min-h-0 flex-col">
         {paso === "ticket" ? (
           <>
-            <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
+            <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
               <TituloSeccion>
                 <span className="inline-flex items-center gap-2.5">
                   <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Por apartar
                 </span>
               </TituloSeccion>
-              {prendasEnTicket > 0 && <span className="text-xs text-tinta/60">{prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"}</span>}
+              {prendasEnTicket > 0 && <span className="text-sm text-tinta/60">{prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"}</span>}
             </div>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
               {lineas.length === 0 ? (
@@ -794,44 +878,78 @@ export function ApartarVista({
                 </Vacio>
               ) : (
                 <>
-                  {lineas.map((l, i) => {
-                    const pr = porId.get(l.varianteId)!;
-                    return (
-                      <div key={l.varianteId} className="anim-revelar border-b border-sand px-5 py-4">
-                        <div className="flex justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-[15px] font-semibold text-tinta">{pr.referencia}</p>
-                            <p className="truncate text-[12px] text-tinta/60">
-                              {variante(pr)} · <span className="font-mono text-[11px]">{codigoPrenda(pr)}</span>
-                            </p>
-                          </div>
-                          <button type="button" onClick={() => setLineas((ls) => ls.filter((_, j) => j !== i))} className="label-cayla flex h-7 items-center gap-1 text-[10.5px] text-rojo-profundo">
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden /> Quitar
-                          </button>
+                  {/* La fila de cada prenda es la del ticket de Vender (`LineaDelTicket`): nombre · color y talla · stock | − 1 + | importe | quitar.
+                      Lo propio de Apartar —cuántas quedan tras apartar, de qué sede llegó una prenda pedida— va en su `pie`. */}
+                  <div className="divide-y divide-sand border-b border-sand">
+                    {lineas.map((l) => {
+                      const pr = porId.get(l.varianteId)!;
+                      const d = descuentoDe.get(l.varianteId)!;
+                      const duenos = duenosParaElegir(duenosPorVariante?.[l.varianteId]);
+                      const linea: ItemCarrito = {
+                        claveLinea: l.varianteId,
+                        varianteId: l.varianteId,
+                        referencia: pr.referencia,
+                        sku: pr.sku,
+                        codigo: pr.codigo,
+                        cantidad: l.cantidad,
+                        precioUnitario: d.precioUnitario,
+                        descuentoUnitario: d.descuentoUnitario,
+                        stockAqui: pr.stockAqui,
+                        razonDescuento: d.razonDescuento,
+                        razonDescuentoOtro: d.razonDescuentoOtro,
+                        argumentoDescuento: d.argumentoDescuento,
+                        campana: d.campana,
+                      };
+                      return (
+                        <div key={l.varianteId} className="anim-revelar">
+                          <LineaDelTicket
+                            linea={linea}
+                            detalle={{ color: pr.color, talla: pr.talla }}
+                            bloqueado={enviando}
+                            onQuitar={quitarPrenda}
+                            onCantidad={(clave, valor) => {
+                              if (!Number.isFinite(valor) || valor < 1) return;
+                              // Subir de a una pasa por `agregar` (valida lo que queda y avisa); un número escrito se topa con el stock.
+                              if (valor === l.cantidad + 1) agregar(clave);
+                              else setLineas((ls) => ls.map((x) => (x.varianteId === clave ? { ...x, cantidad: Math.min(Math.floor(valor), pr.stockAqui) } : x)));
+                            }}
+                            escrita={escrita}
+                            onDescuento={(clave) => setHojaDescuento([clave])}
+                            duenos={duenos}
+                            duenoElegido={duenoDeLinea[l.varianteId]}
+                            onDueno={(varianteId, empresaId) => setDuenoDeLinea((x) => ({ ...x, [varianteId]: empresaId }))}
+                            guiaDueno="apartar.dueno"
+                            pie={
+                              pedido && l.varianteId === pedido.varianteId
+                                ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
+                                : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`
+                            }
+                          />
                         </div>
-                        <div className="mt-2.5 grid grid-cols-[auto_1fr_auto] items-end gap-x-4 gap-y-1">
-                          <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Cantidad</span>
-                          <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Precio</span>
-                          <span className="text-right text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Importe</span>
-                          <PasoCantidad
-                            menos={{ onClick: () => setLineas((ls) => ls.flatMap((x, j) => (j !== i ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
-                            mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
-                          >
-                            {l.cantidad}
-                          </PasoCantidad>
-                          <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
-                          <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([{ cantidad: l.cantidad, precioUnitario: pr.precio, descuentoUnitario: descuentoCampana(pr) }]))}</span>
-                        </div>
-                        <p className="mt-2 text-[11px] text-taupe-profundo">
-                          {pedido && l.varianteId === pedido.varianteId
-                            ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
-                            : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                  {escrita.problema && (
+                    <div className="border-b border-sand px-5 py-3">
+                      <Aviso tono="error" chico>
+                        {escrita.problema}
+                      </Aviso>
+                    </div>
+                  )}
+                  {/* El descuento a mano (ADR-0584): el mismo de la venta, para todas las prendas o las que se marquen. */}
+                  <div className="flex items-center justify-between gap-3 border-b border-sand px-5 py-3">
+                    <button
+                      type="button"
+                      data-guia="apartados.descuento"
+                      onClick={() => setHojaDescuento(lineas.map((l) => l.varianteId))}
+                      className="btn-cayla btn-secundario btn-chico"
+                    >
+                      <BadgePercent className="h-4 w-4" aria-hidden /> Descuento
+                    </button>
+                    {descontado > 0 && <span className="text-sm tabular-nums text-tinta/70">Descuento −{money(descontado)}</span>}
+                  </div>
                   <label className="block px-5 py-4">
-                    <span className="mb-2 flex items-center gap-1.5 text-[11.5px] text-tinta/60">
+                    <span className="mb-2 flex items-center gap-1.5 text-sm text-tinta/60">
                       <StickyNote className="h-3.5 w-3.5" aria-hidden /> Nota del apartado (opcional)
                     </span>
                     <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Viene el sábado, quiere probársela otra vez…" className="caja-campo-input h-11 w-full text-sm" />
@@ -839,9 +957,9 @@ export function ApartarVista({
                 </>
               )}
             </div>
-            <div className="space-y-3 border-t border-sand px-5 py-5 max-lg:hidden">
+            <div className="ap-ticket-hilo space-y-3 border-t border-sand px-5 py-5 max-lg:hidden">
               <div className="flex items-end justify-between gap-3">
-                <p className="text-[12.5px] text-tinta/60">
+                <p className="text-sm text-tinta/60">
                   Precio congelado
                   <br />hasta el {fechaCorta(vence)}
                 </p>
@@ -850,16 +968,16 @@ export function ApartarVista({
                   <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(total)}</p>
                 </div>
               </div>
-              <button type="button" disabled={lineas.length === 0} onClick={() => irAPaso("clienta")} className={BOTON_PRINCIPAL}>
+              <button type="button" disabled={lineas.length === 0 || faltaDuenoEn.length > 0} title={faltaDuenoEn.length > 0 ? "Marca de quién es lo que apartas." : undefined} onClick={seguirDelTicket} className={BOTON_PRINCIPAL}>
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> Apartar</span>
                 <span className="font-display text-xl tabular-nums">{money(total)}</span>
               </button>
-              {lineas.length === 0 && <p className="text-center text-xs text-tinta/55">Agrega una prenda para apartar.</p>}
+              {lineas.length === 0 && <p className="text-center text-sm text-tinta/55">Agrega una prenda para apartar.</p>}
             </div>
           </>
         ) : (
           <>
-            <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
+            <div className="ap-ticket-hilo flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
               <Volver
                 onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")}
                 a={apilado && paso === "adelanto" ? "Volver a los datos del cliente" : "Volver al ticket"}
@@ -871,7 +989,7 @@ export function ApartarVista({
                     <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Apartado
                   </span>
                 </TituloSeccion>
-                <p className="mt-1 text-xs text-tinta/60">
+                <p className="mt-1 text-sm text-tinta/60">
                   {prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"} · recoger hasta el {fechaCorta(vence)}
                 </p>
               </div>
@@ -884,11 +1002,28 @@ export function ApartarVista({
                       <span key={i} className={`h-1 flex-1 rounded-full transition-colors duration-500 ${i < pasoForm ? "bg-tinta" : i === pasoForm ? "bg-rojo" : "bg-sand"}`} />
                     ))}
                   </div>
-                  <p role="status" className="mt-2 text-[13px] text-taupe-profundo">{TEXTO_PASO_APARTADO[pasoForm]}</p>
+                  <p role="status" className="mt-2 text-sm text-taupe-profundo">{TEXTO_PASO_APARTADO[pasoForm]}</p>
                 </div>
 
+                {conCanal && (
+                  <div className={paso === "adelanto" ? "max-lg:hidden" : ""}>
+                    <CanalDelApartado
+                      canales={canales}
+                      canal={canalElegido}
+                      modoEntrega={modoDeEntrega}
+                      direccionEnvio={f.direccionEnvio}
+                      errorDireccion={ver("direccionEnvio")}
+                      onCanal={(k) => cambiar("canal", k)}
+                      onModo={(m) => cambiar("modoEntrega", m)}
+                      onDireccion={(t) => cambiar("direccionEnvio", t)}
+                      onTocarDireccion={tocar("direccionEnvio")}
+                      deshabilitado={enviando}
+                    />
+                  </div>
+                )}
+
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
                   {/* Sin el módulo Clientas (o con la ficha apagada) el buscador sigue: solo por DNI, al padrón de SUNAT. */}
                   <div className="space-y-1.5">
                     {clientaId ? (
@@ -916,10 +1051,10 @@ export function ApartarVista({
                       </div>
                     )}
                     {sinFicha === "padron" && (
-                      <p className="text-xs text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
+                      <p className="text-sm text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
                     )}
                     {sinFicha === "nada" && (
-                      <p className="text-xs text-tinta/60">
+                      <p className="text-sm text-tinta/60">
                         {soloDigitos(clientaQ).length === 8 ? `${conClienta ? "No tiene ficha y " : ""}SUNAT no devolvió su nombre: escríbelo abajo.` : "No tiene ficha todavía: completa sus datos abajo."}
                       </p>
                     )}
@@ -938,7 +1073,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <p className="-mt-1 text-xs text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
+                  <p className="-mt-1 text-sm text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
                   {f.comprobante === "factura" && (
                     <div className="grid gap-3.5 sm:grid-cols-2">
                       <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
@@ -948,12 +1083,12 @@ export function ApartarVista({
                 </fieldset>
 
                 <fieldset className={`space-y-2 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó el cliente</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó el cliente</legend>
                   <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
                     {METODOS_PAGO.map((m, i) => {
                       const puesto = f.pagos.some((x) => x.metodo === m);
                       return (
-                        <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-[10px] leading-tight capitalize ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
+                        <button key={m} type="button" aria-pressed={puesto} title={`${m} (F${i + 1})`} onClick={() => tocarMedio(m)} style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined} className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-sm leading-tight capitalize ${puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA}`}>
                           <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold opacity-45">F{i + 1}</span>
                           {ICONO_METODO[m]}
                           {m}
@@ -970,12 +1105,12 @@ export function ApartarVista({
                           </span>
                           <span className="flex items-center gap-1 border-b border-tinta/20 text-sm">
                             <span className="text-tinta/50">S/</span>
-                            <CampoMonto aria-label={`Monto en ${pg.metodo}`} valor={pg.monto} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, monto: v } : y)) }))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
+                            <EntradaMonto aria-label={`Monto en ${pg.metodo}`} valor={pg.monto} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, monto: v } : y)) }))} className="w-20 bg-transparent py-1 text-right tabular-nums outline-none" />
                           </span>
                           {pg.metodo === "efectivo" && (
                             <span className="flex items-center gap-1 border-b border-tinta/20 text-sm" title="Con cuánto pagó (para el vuelto)">
-                              <span className="text-[11px] text-tinta/50">Recibe</span>
-                              <CampoMonto aria-label="Efectivo recibido" valor={pg.recibido ?? 0} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, recibido: v || undefined } : y)) }))} className="w-16 bg-transparent py-1 text-right tabular-nums outline-none" />
+                              <span className="text-sm text-tinta/50">Recibe</span>
+                              <EntradaMonto aria-label="Efectivo recibido" valor={pg.recibido ?? 0} onCambio={(v) => setF((x) => ({ ...x, pagos: x.pagos.map((y, j) => (j === i ? { ...y, recibido: v || undefined } : y)) }))} className="w-16 bg-transparent py-1 text-right tabular-nums outline-none" />
                             </span>
                           )}
                           <button type="button" aria-label={`Quitar ${pg.metodo}`} onClick={() => setF((x) => ({ ...x, pagos: x.pagos.filter((_, j) => j !== i) }))} className="p-1 text-rojo-profundo">
@@ -987,13 +1122,13 @@ export function ApartarVista({
                   )}
                   <div className="flex flex-wrap gap-1.5">
                     {([[0.3, "30%"], [0.5, "La mitad"], [1, "Todo"]] as const).map(([k, n]) => (
-                      <button key={n} type="button" onClick={() => atajo(k)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+                      <button key={n} type="button" onClick={() => atajo(k)} className="rounded-full border border-sand px-3 py-1 text-sm tabular-nums hover:border-taupe">
                         {n} · {money(k === 1 ? total : Math.ceil(total * k))}
                       </button>
                     ))}
                   </div>
                   <BarraAvance pct={total ? (adelanto / total) * 100 : 0} decorativa />
-                  <p className="flex justify-between text-xs text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
+                  <p className="flex justify-between text-sm text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
                   {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
                   {vuelto > 0 && (
                     <div className="anim-revelar flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-2.5">
@@ -1004,7 +1139,7 @@ export function ApartarVista({
                 </fieldset>
 
                 <fieldset className={`space-y-2.5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Undo2 className="h-3.5 w-3.5" aria-hidden /> Si no recoge, le devolvemos por</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-sm text-tinta/50"><Undo2 className="h-3.5 w-3.5" aria-hidden /> Si no recoge, le devolvemos por</legend>
                   <div className="grid grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1">
                     {(["yape", "plin", "transferencia"] as const).map((k) => (
                       <button key={k} type="button" aria-pressed={f.devolucionMedio === k} onClick={() => cambiar("devolucionMedio", k)} className={`${OPCION} label-cayla h-10 text-[10.5px] ${f.devolucionMedio === k ? OPCION_ACTIVA : OPCION_INACTIVA}`}>
@@ -1017,21 +1152,21 @@ export function ApartarVista({
                   ) : (
                     <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   )}
-                  <p className="text-xs text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
+                  <p className="text-sm text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
                 </fieldset>
 
-                <label className={`flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
+                <label className={`flex cursor-pointer items-start gap-2.5 text-sm text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
                   <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="mt-0.5 shrink-0" />
                   <span>
                     Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su constancia o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
-                    {ver("acepta") && <span className="block text-xs text-rojo-profundo">{ver("acepta")}</span>}
+                    {ver("acepta") && <span className="block text-sm text-rojo-profundo">{ver("acepta")}</span>}
                   </span>
                 </label>
               </div>
             </div>
-            <div className={`space-y-3 border-t border-sand px-5 py-5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
+            <div className={`ap-ticket-hilo space-y-3 border-t border-sand px-5 py-5 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
               <div className="flex items-end justify-between gap-3 max-lg:hidden">
-                <dl className="grid grid-cols-[auto_auto] gap-x-3 text-[12.5px] text-tinta/60 tabular-nums">
+                <dl className="grid grid-cols-[auto_auto] gap-x-3 text-sm text-tinta/60 tabular-nums">
                   <dt>Total prendas</dt><dd className="text-tinta">{money(total)}</dd>
                   <dt>Saldo al recoger</dt><dd className="text-tinta">{money(total - adelanto)}</dd>
                 </dl>
@@ -1047,7 +1182,7 @@ export function ApartarVista({
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>
               </button>
-              <p className={`text-center text-xs ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
+              <p className={`text-center text-sm ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
                 {!cajaAbierta
                   ? "Abre la caja para poder apartar."
                   : intento && Object.keys(errores).length
@@ -1065,7 +1200,7 @@ export function ApartarVista({
           monto={total}
           accion="Cliente"
           icono={<ArrowRight className="h-4 w-4" aria-hidden />}
-          onClick={() => irAPaso("clienta")}
+          onClick={seguirDelTicket}
         />
       )}
       {paso === "clienta" && (
@@ -1091,6 +1226,21 @@ export function ApartarVista({
           icono={<Check className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cajaAbierta || !responsable.listo}
           onClick={confirmar}
+        />
+      )}
+
+      {hojaDescuento && (
+        <DescuentoApartado
+          lineas={lineasConDescuento}
+          prendas={porId}
+          nombreDe={(id) => {
+            const p = porId.get(id);
+            return p ? [p.referencia, variante(p)].filter(Boolean).join(" · ") : "Prenda";
+          }}
+          elegidasAlAbrir={hojaDescuento}
+          onAplicar={setDescuentos}
+          onQuitar={(ids) => setDescuentos((d) => quitarDelApartado(d, ids))}
+          onClose={() => setHojaDescuento(null)}
         />
       )}
 
@@ -1146,7 +1296,7 @@ function Campo({ etiqueta, error, onBlur, children }: { etiqueta: string; error?
     <label className="campo block" onBlur={onBlur}>
       <span className="campo-etiqueta">{etiqueta}</span>
       {children}
-      {error && <span className="mt-0.5 block text-xs text-rojo-profundo">{error}</span>}
+      {error && <span className="mt-0.5 block text-sm text-rojo-profundo">{error}</span>}
     </label>
   );
 }

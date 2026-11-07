@@ -7,7 +7,7 @@ import { Linea, topeRedondo } from "@/components/ui/Linea";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { diasEntre, estadoDeCaja, fechaEnPalabras, ventanaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
+import { detalleDeHoy, diasEntre, estadoDeCaja, fechaEnPalabras, ventanaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 
 // Finanzas ▸ Resumen, «Tu caja en las próximas dos semanas» (Felipe 2026-10-24, spike 1). Solo DIBUJA lo que arma `cajaProxima`: la línea del
@@ -15,7 +15,7 @@ import { soles } from "@/lib/flujo-caja-reglas";
 // pantalla con JavaScript). Mirando una sede no hay línea: el saldo de los bancos es de CAYLA entera y repartirlo sería inventarlo.
 // Las piezas son las del sistema (`Linea`, `TarjetaCifra`, `BarraApilada`): esta no dibuja nada a mano.
 
-const tituloDe = (dias: number) => `Tu caja en las próximas ${ventanaEnPalabras(dias)}`;
+const tituloDe = (dias: number) => `Tu caja, ${ventanaEnPalabras(dias)}`;
 const TITULO = tituloDe(14);
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -75,7 +75,8 @@ function Estados({ c, estado, className, incluye }: { c: CajaCayla; estado: stri
 function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCayla; hrefFlujo: string; className: string; incluye?: string }) {
   const titulo = tituloDe(diasEntre(c.hoy, c.hasta));
   const ultimo = c.puntos.at(-1)!;
-  const menor = Math.min(...c.puntos.map((p) => p.saldo));
+  const puntoBajo = c.puntos.reduce((a, p) => (p.saldo < a.saldo ? p : a), c.puntos[0]!);
+  const menor = puntoBajo.saldo;
   const minY = menor < 0 ? -topeRedondo(-menor) : 0;
   const hayMinimo = c.minimo > 0;
   const bajo = hayMinimo && c.queda < c.minimo;
@@ -86,7 +87,7 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
   const marcas = [...[...Array(Math.floor(ultimo.dia / paso) + 1)].map((_, k) => k * paso), ultimo.dia]
     .filter((x, k, a) => x <= ultimo.dia && a.indexOf(x) === k)
     .map((x) => ({ x, texto: x === 0 ? "hoy" : diaYMes(c.puntos.find((p) => p.dia === x)?.fecha ?? c.hoy), fuerte: x === 0 }));
-  const etiqueta = `${titulo}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)}; hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
+  const etiqueta = `${titulo}. ${c.titular} Hoy tienes ${soles(c.saldoHoy)} (${detalleDeHoy(c).replace(/\.$/, "").toLowerCase()}); hasta el ${fechaEnPalabras(c.hasta)} sale ${soles(c.sale)} y te quedan ${soles(c.queda)}.`;
 
   return (
     <Superficie pad guia="fin-resumen.caja" className={className}>
@@ -102,6 +103,8 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
           etiqueta={etiqueta}
           serie={c.puntos.map((p) => ({ x: p.dia, y: p.saldo }))}
           referencia={hayMinimo ? [{ x: 0, y: c.minimo }, { x: ultimo.dia, y: c.minimo }] : null}
+          bajoReferencia={hayMinimo}
+          minimo={hayMinimo && puntoBajo.saldo < c.minimo ? { x: puntoBajo.dia, y: puntoBajo.saldo, texto: `${diaYMes(puntoBajo.fecha)} · ${soles(puntoBajo.saldo)}` } : null}
           proyeccion={c.conInversion ? c.conInversion.sin.map((p) => ({ x: p.dia, y: p.saldo })) : null}
           desde={0}
           hasta={ultimo.dia}
@@ -128,13 +131,15 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
           vacio="Todavía no hay una proyección de caja."
           alto={200}
         />
+        {/* Lo que «Hoy tienes» deja fuera (lo de Claudia, lo por volver de compras): sin esto no cuadra con «¿Cuánto tienes?». */}
+        {(c.deClaudia > 0 || c.porVolver > 0) && <p className="mt-2 text-sm text-taupe">Hoy tienes {soles(c.saldoHoy)}. {detalleDeHoy(c)}</p>}
       </div>
 
       {/* Celular: tres cifras y una barra. */}
       <div className="sm:hidden">
         <div className="grid gap-3">
           <TarjetaCifra etiqueta="Hoy tienes" valor={soles(c.saldoHoy)} {...entra(1)}>
-            Cajones, cajas fuertes y bancos.
+            {detalleDeHoy(c)}
           </TarjetaCifra>
           <TarjetaCifra etiqueta={`Hasta el ${fechaEnPalabras(c.hasta)} sale`} valor={soles(c.sale)} {...entra(2)}>
             {c.entra > 0 ? `Y esperas cobrar ${soles(c.entra)}.` : "No se espera cobrar nada."}
@@ -154,7 +159,7 @@ function CajaDeCayla({ caja: c, hrefFlujo, className, incluye }: { caja: CajaCay
             { clave: "sale", nombre: "Lo que sale", valor: c.sale, clase: "bg-tinta/25" },
           ]}
         />
-        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-taupe">
+        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-taupe">
           <span className="inline-flex items-center gap-1.5">
             <MuestraTramo clase={bajo ? "bg-rojo" : "bg-verde"} /> Lo que te queda
           </span>

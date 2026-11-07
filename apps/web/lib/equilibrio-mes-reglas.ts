@@ -19,7 +19,34 @@ import { lineaVentasMeta, metaVentasPresupuesto, type DiaVenta } from "./resumen
 const TASA_IGV = 1.18;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export type EstadoEquilibrio = "cubierto" | "en_camino" | "no_llega";
+export type EstadoEquilibrio = "cubierto" | "en_camino" | "no_llega" | "sin_confirmar";
+
+/** Lo que el mes todavía va a gastar y el diario aún no tiene, por ubicación (`fn_lo_que_falta_del_mes`). */
+export type FaltaDelMes = { ubicacionId: string | null; fijos: number; depreciacion: number };
+
+/**
+ * Los gastos del mes ENTERO (tarea 24 de «Las 36»). El día 5 los registrados son casi nada, y dividirlos entre el margen decía «Pagado» o subía
+ * cada día. En el mes en curso se suman la planilla que falta devengar, los fijos que faltan y la depreciación, que se asienta el último día
+ * (por eso no se suma si ya está). Un mes que ya pasó tiene todo registrado. `null`: no se pudo leer lo que falta; se suma lo que sí se sabe.
+ */
+function gastosDelMesEntero(f: FilaER, ver: Pick<ResumenFinanzas["ver"], "todas" | "soloEmpresa" | "ubicacionId">, falta: readonly FaltaDelMes[] | null): number {
+  const planilla = Math.max(0, f.planillaAlCierre - f.planillaEstimada);
+  const mias = (falta ?? []).filter((x) => ver.todas || (ver.soloEmpresa ? x.ubicacionId === null : x.ubicacionId === ver.ubicacionId));
+  const fijos = mias.reduce((s, x) => s + x.fijos, 0);
+  const depreciacion = f.depreciacion > 0 ? 0 : mias.reduce((s, x) => s + x.depreciacion, 0);
+  return r2(f.gastos + planilla + fijos + depreciacion);
+}
+
+/**
+ * Cuánto hay que vender en el mes ENTERO para cubrirlo, con el margen de hoy, de una fila del Estado de resultados. Es la cuenta de «¿Ya pagaste el mes?»: Ganancias no se queda
+ * con los gastos de los días que van. `null` sin margen o si no se pudo leer lo que falta: en un mes a medias, una cifra sin esos gastos saldría muy por debajo (ADR-0621).
+ */
+export function ventaParaElMesEntero(f: FilaER, falta: readonly FaltaDelMes[] | null): number | null {
+  if (falta === null) return null;
+  const ver = { todas: f.unidad === "consolidado", soloEmpresa: f.unidad === "empresa", ubicacionId: f.ubicacionId };
+  const eq = puntoDeEquilibrio({ ...f, gastos: gastosDelMesEntero(f, ver, falta) });
+  return eq ? Math.ceil(eq.ventas / 100) * 100 : null;
+}
 
 export type EquilibrioMes =
   | { tipo: "no_vende"; motivo: string }
@@ -63,8 +90,10 @@ export function equilibrioMes(o: {
   hoy: string;
   mes: string;
   enCurso: boolean;
+  /** Lo que falta del mes en curso; `null` si no se pudo leer. En un mes que ya pasó no se usa. */
+  faltaDelMes: readonly FaltaDelMes[] | null;
 }): EquilibrioMes {
-  const { r, filas, ventasPorDia, hoy, mes, enCurso } = o;
+  const { r, filas, ventasPorDia, hoy, mes, enCurso, faltaDelMes } = o;
   if (!(r.ver.todas || r.ver.tipo === "tienda"))
     return { tipo: "no_vende", motivo: r.ver.tipo === "taller" ? "El Taller no vende: no hay equilibrio que calcular. Se paga con lo que dejan las tiendas." : "La empresa no vende: no hay equilibrio que calcular. Se paga con lo que dejan las tiendas." };
 
@@ -75,7 +104,7 @@ export function equilibrioMes(o: {
   if (motivo === "sin_margen") return { tipo: "sin_calculo", motivo: "Este mes lo que se vende no deja margen: vender más no paga los gastos. Revisa el costo de las prendas." };
   if (motivo === "sin_gastos")
     return { tipo: "sin_calculo", motivo: "Todavía no hay gastos registrados (sueldos, alquileres…): sin ellos no se sabe cuánto hay que vender para pagar el mes. Cárgalos en Gastos." };
-  const eq = puntoDeEquilibrio(f);
+  const eq = puntoDeEquilibrio(enCurso ? { ...f, gastos: gastosDelMesEntero(f, r.ver, faltaDelMes) } : f);
   if (!eq) return { tipo: "sin_calculo", motivo: "No se pudo calcular cuánto hay que vender para pagar el mes." };
 
   const { total: diasMes, van } = diasDelMes(mes, hoy);
@@ -90,13 +119,18 @@ export function equilibrioMes(o: {
   const ritmoPorDia = r2(vendido / Math.max(van, 1));
   const cierre = r2(ritmoPorDia * diasMes);
   const diaLlegada = vendido >= pe ? null : ritmoPorDia > 0 && cierre >= pe ? Math.min(diasMes, Math.ceil(pe / ritmoPorDia - 1e-9)) : null;
-  const estado: EstadoEquilibrio = vendido >= pe ? "cubierto" : diaLlegada !== null ? "en_camino" : "no_llega";
+  // «Pagado» solo se afirma con la cuenta completa: sin saber lo que falta del mes, lo vendido cubre lo registrado y nada más.
+  const sinConfirmar = enCurso && faltaDelMes === null;
+  const estado: EstadoEquilibrio = vendido >= pe ? (sinConfirmar ? "sin_confirmar" : "cubierto") : diaLlegada !== null ? "en_camino" : "no_llega";
   const margenPor100 = Math.round((f.margen / f.ventas) * 100);
   const nombreMes = mesNombre(mes);
 
   let titular: string;
   let detalle: string;
-  if (estado === "cubierto") {
+  if (estado === "sin_confirmar") {
+    titular = `Llevas ${soles(vendido)}: cubre lo registrado hasta hoy.`;
+    detalle = `No se pudo leer lo que falta de ${nombreMes}, así que todavía no se puede decir que está pagado. Vuelve a cargar en un rato.`;
+  } else if (estado === "cubierto") {
     titular = diaCubierto
       ? `${enCurso ? "El día" : "Desde el día"} ${diaCubierto} ya ${enCurso ? "habías" : "se había"} pagado todo lo de ${nombreMes}.`
       : `Ya pagaste todo lo de ${nombreMes}: llevas ${soles(vendido)} y hacían falta ${soles(pe)}.`;

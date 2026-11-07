@@ -15,8 +15,12 @@
  *      sobre Ploteo se rechazan con `fase_es_hito`.
  *   S  EL SERVICIO DE PLOTEO: se cobra el fijo por orden, sin tarifa por prenda; la lista de precios; lo devengado solo con la marca; los CHECK.
  *   Q  CAMBIAR QUIÉN: antes de marcar sí; con la marca viva no.
- *   T  LA LÍNEA DE TIEMPO y la actividad: «marcó» y «deshizo la marca».
+ *   T  LA LÍNEA DE TIEMPO y la actividad: «marcó» y «quitó la marca».
+ *   L  SOLO EL LÍDER QUITA LA MARCA (ADR-0586 act. 2, `20261031160000`): una integrante del Taller marca, pero no quita ni restaura; sí corrige su «Terminé»; el líder quita
+ *      aunque Corte ya haya empezado (el costo del servicio sale de la orden).
  *   I  INMUTABLE, P  PUERTAS y F  FORMA.
+ *
+ * Desde `20261031160000` la marca se quita SOLO por `eliminar_anotacion_orden` (con motivo y con historia): `deshacer_marca_fase` ya no existe. La envoltura `desmarca` usa ese camino.
  *
  * USO
  *   node scripts/pruebas/produccion_ploteo.mjs                             → contra el stack local compartido (todo con ROLLBACK)
@@ -40,6 +44,180 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
+// ADR-0586 act. 2: se carga DESPUÉS de 20261019192000 en cada caso, porque esa migración vuelve a crear `deshacer_marca_fase` y esta la borra (sus dos reemplazos anclados ya están en la base: no hacen nada).
+const MIGRACION_LIDER = leer("20261031160000_produccion_quitar_marca_solo_lider.sql");
+// 20261028084000 volvió a cambiar `fn_produccion_fases_normalizar` (el pendiente lleva su costo). 20261028074000 volvió a cambiar `abrir_orden_produccion`, `abrir_produccion` y `abrir_produccion_con_modelo_nuevo` (la entrega pasada vale) y 20261028072000 (pendiente de registrar) cuatro funciones más (normalizar, fn_fases_de_orden, abrir_orden_produccion, fn_orden_produccion): su inverso va AL PRINCIPIO del mismo bloque (antes del de 20261028072000: ambos tocan el mismo texto de `normalizar` y se deshace de lo más nuevo a lo más viejo).
+// 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco) y 20261028064000 le quitó la comprobación de la fecha prometida pasada
+// (ADR-0537). Esta suite recarga 20261019192000 en cada caso y esa migración tiene su candado de md5 sobre la función tal como ella la dejó: se deshacen los dos parches antes de cargarla
+// (lo mismo que los `DESHACER_*` de otras suites).
+// 20261029164000 (ADR-0570, «Terminé» con falla y con fecha) insertó tres bloques en `fn_fases_de_orden`. Su inverso exacto se LEE de la misma migración (así no se desencuentran) y va
+// primero: es lo más nuevo.
+const PARCHES_FALLAS = [
+  ...leer("20261029164000_produccion_termine_con_falla_y_fecha.sql").matchAll(
+    /select pg_temp\.reemplazar_anclado\(\s*'retail\.fn_fases_de_orden\(uuid\)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$\s*\);/g
+  ),
+].map(([, viejo, nuevo]) => ({ viejo, nuevo }));
+if (PARCHES_FALLAS.length !== 3) throw new Error(`20261029164000 debería tener 3 reemplazos de fn_fases_de_orden y tiene ${PARCHES_FALLAS.length}: revisa el inverso de esta suite`);
+const DESHACER_FALLAS = PARCHES_FALLAS.map(
+  ({ viejo, nuevo }) => `  v_def := pg_get_functiondef('retail.fn_fases_de_orden(uuid)'::regprocedure);
+  execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
+).join("\n");
+// 20261029210000 (ADR-0570, el catálogo de procesos) cambió líneas de `fn_produccion_fases_normalizar`, `guardar_tarifa_servicio`, `fn_tarifas_de_servicios` y `agregar_paso_orden`
+// por consultas al catálogo. Su inverso exacto también se LEE de la migración (de la última a la primera) y va antes que todo lo demás: es lo más nuevo.
+const PARCHES_CATALOGO = [
+  ...leer("20261029210000_produccion_catalogo_de_procesos.sql").matchAll(
+    /select pg_temp\.reemplazar_anclado\('([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$\);/g
+  ),
+].map(([, firma, viejo, nuevo]) => ({ firma, viejo, nuevo }));
+if (PARCHES_CATALOGO.length !== 6) throw new Error(`20261029210000 debería tener 6 reemplazos anclados y tiene ${PARCHES_CATALOGO.length}: revisa el inverso de esta suite`);
+const DESHACER_CATALOGO = [...PARCHES_CATALOGO].reverse().map(
+  ({ firma, viejo, nuevo }) => `  v_def := pg_get_functiondef('${firma}'::regprocedure);
+  execute replace(v_def, $q$${nuevo}$q$, $q$${viejo}$q$);`
+).join("\n");
+// Y `registrar_avance`, que ADR-0570 volvió un envoltorio de `anotar_termine`: vuelve a ser la de 20261014155000 (leída de esa migración), donde 20261019192000 inserta su regla
+// «una fase que se marca no lleva Terminé» como la primera vez.
+const REGISTRAR_AVANCE_DE_ANTES = (() => {
+  const texto = leer("20261014155000_produccion_avance_salida_y_vuelta.sql");
+  const desde = texto.indexOf("create or replace function retail.registrar_avance(");
+  const hasta = texto.indexOf("\n$$;", desde);
+  if (desde < 0 || hasta < 0) throw new Error("no encontré registrar_avance en 20261014155000: revisa el inverso de esta suite");
+  return texto.slice(desde, hasta + 4);
+})();
+// Y `fn_produccion_entrada_variante`, que 20261105232000 (ADR-0614, tope de corte de 3 prendas) reescribió entera: vuelve a la que dejó 20261019192000 (leída de esa migración).
+const ENTRADA_VARIANTE_DE_ANTES = (() => {
+  const texto = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
+  const desde = texto.indexOf("create or replace function retail.fn_produccion_entrada_variante(");
+  const hasta = texto.indexOf("\n$$;", desde);
+  if (desde < 0 || hasta < 0) throw new Error("no encontré fn_produccion_entrada_variante en 20261019192000: revisa el inverso de esta suite");
+  return texto.slice(desde, hasta + 4);
+})();
+const DESHACER_CINCO_PASOS = `
+${ENTRADA_VARIANTE_DE_ANTES}
+${REGISTRAR_AVANCE_DE_ANTES}
+do $deshacer_cinco$
+declare v_def text;
+begin
+${DESHACER_CATALOGO}
+${DESHACER_FALLAS}
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'planchado']) then
+      raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura y Planchado'$q$,
+    $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'limpieza_revision', 'planchado', 'etiquetado_embolsado']) then
+      raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar'$q$);
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$      -- ADR-0537: una fecha prometida pasada vale (se registra una orden que ya se hizo); solo una fecha que no existe se rechaza.
+$q$,
+    $q$      if v_fecha is not null and v_fecha < retail.fn_hoy_lima() then
+        raise exception 'La fecha prometida de «%» ya pasó', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_pasada';
+      end if;
+$q$);
+  -- Y el de 20261028084000 (el pendiente lleva su costo): vuelve el bloque que fuerza el pendiente a tarifa y fijo vacíos.
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$      end;
+      -- ADR-0551 (pendiente con costo): el pendiente PUEDE llevar tarifa, fijo y mínimo, y devenga como un servicio. Ninguno es obligatorio (sin monto devenga 0, como antes).
+      begin
+        v_tarifa := nullif(btrim(coalesce(v_f ->> 'tarifa_prenda', '')), '')::numeric;
+        v_fijo := coalesce(nullif(btrim(coalesce(v_f ->> 'fijo_orden', '')), '')::numeric, 0);
+        v_min := nullif(btrim(coalesce(v_f ->> 'cantidad_minima', '')), '')::integer;
+      exception when others then
+        raise exception 'La tarifa de «%» no es un número válido', retail.fn_fase_nombre(v_clave) using hint = 'fase_tarifa_invalida';
+      end;
+      if v_clave = 'ploteo' then
+        v_tarifa := null; v_min := null;
+      end if;
+      if (v_tarifa is not null and (v_tarifa <= 0 or v_tarifa > 9999.99)) or v_fijo < 0 or v_fijo > 99999.99 or (v_min is not null and v_min <= 0) then
+        raise exception 'La tarifa de «%» está fuera de rango', retail.fn_fase_nombre(v_clave) using hint = 'fase_tarifa_invalida';
+      end if;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', v_tarifa, 'fijo_orden', v_fijo, 'cantidad_minima', v_min, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+$q$,
+    $q$      end;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', null, 'fijo_orden', 0, 'cantidad_minima', null, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+$q$);
+  -- Y los de «pendiente de registrar» (20261028072000, ADR-0551): el inverso exacto de sus seis reemplazos anclados.
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$    v_prov := null; v_tarifa := null; v_fijo := 0; v_min := null; v_fecha := null;
+    -- ADR-0551 (pendiente de registrar): «pendiente de registrar»: sale afuera, pero todavía no se sabe con quién ni a cuánto. No cobra nada (fijo 0, sin tarifa ni mínimo).
+    -- Solo con la marca explícita: un servicio sin proveedor y SIN la marca sigue siendo \`fase_sin_proveedor\` (un olvido no se vuelve un pendiente).
+    if v_quien = 'servicio' and lower(coalesce(v_f ->> 'proveedor_pendiente', 'false')) = 'true' then
+      begin
+        v_fecha := nullif(v_f ->> 'fecha_prometida', '')::date;
+      exception when others then
+        raise exception 'La fecha prometida de «%» no es válida', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_invalida';
+      end;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', null, 'fijo_orden', 0, 'cantidad_minima', null, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+    end if;
+    if v_quien = 'servicio' then
+$q$,
+    $q$    v_prov := null; v_tarifa := null; v_fijo := 0; v_min := null; v_fecha := null;
+    if v_quien = 'servicio' then
+$q$);
+  v_def := pg_get_functiondef('retail.fn_fases_de_orden(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$round(v_buenas * coalesce(v_f.tarifa_prenda, 0) + v_f.fijo_orden, 2)$q$,
+    $q$round(v_buenas * v_f.tarifa_prenda + v_f.fijo_orden, 2)$q$);
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$jsonb_array_elements(v_fases) f left join retail.proveedores_produccion pr$q$,
+    $q$jsonb_array_elements(v_fases) f join retail.proveedores_produccion pr$q$);
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$' con ' || coalesce(pr.nombre, 'un servicio sin registrar'), ', ' order by (f ->> 'secuencia')::int)$q$,
+    $q$' con ' || pr.nombre, ', ' order by (f ->> 'secuencia')::int)$q$);
+  v_def := pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$from retail.produccion_fases f left join retail.proveedores_produccion pr on pr.id = f.proveedor_id$q$,
+    $q$from retail.produccion_fases f join retail.proveedores_produccion pr on pr.id = f.proveedor_id$q$);
+  v_def := pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$' con ' || coalesce(pr.nombre, 'un servicio sin registrar'), ', ' order by f.secuencia)$q$,
+    $q$' con ' || pr.nombre, ', ' order by f.secuencia)$q$);
+  -- Y los de 20261028074000 (la entrega pasada vale, como en producción): vuelve la comprobación \`entrega_pasada\` en las tres funciones.
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo); en la lista se ve como «Entrega pasada».
+$q$,
+    $q$  if v_fecha is not null and v_fecha < retail.fn_hoy_lima() then
+    raise exception 'La fecha de entrega ya pasó: elige una de hoy en adelante' using hint = 'entrega_pasada';
+  end if;
+$q$);
+  v_def := pg_get_functiondef('retail.abrir_produccion(uuid, uuid, jsonb, numeric, numeric, numeric, boolean, date, text, uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo).
+$q$,
+    $q$  -- ADR-0415: la entrega es una promesa del Taller; una anterior a hoy no promete nada (entrega_pasada).
+  if p_fecha_entrega is not null and p_fecha_entrega < retail.fn_hoy_lima() then
+    raise exception 'La entrega no puede ser antes de hoy (%): elige el día en que el Taller la va a entregar, o déjala en blanco.',
+      to_char(retail.fn_hoy_lima(), 'DD/MM/YYYY')
+      using errcode = 'P0001', hint = 'entrega_pasada';
+  end if;
+$q$);
+  v_def := pg_get_functiondef('retail.abrir_produccion_con_modelo_nuevo(uuid, text, uuid, jsonb, numeric, numeric, numeric, numeric, boolean, date, text, boolean, uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo).
+$q$,
+    $q$  -- ADR-0415: la entrega es una promesa del Taller; una anterior a hoy no promete nada (entrega_pasada).
+  if p_fecha_entrega is not null and p_fecha_entrega < retail.fn_hoy_lima() then
+    raise exception 'La entrega no puede ser antes de hoy (%): elige el día en que el Taller la va a entregar, o déjala en blanco.',
+      to_char(retail.fn_hoy_lima(), 'DD/MM/YYYY')
+      using errcode = 'P0001', hint = 'entrega_pasada';
+  end if;
+$q$);
+end
+$deshacer_cinco$;
+`;
 // Las migraciones que dejaron las funciones de fases, avance, cadena, lectura y lista de precios como estaban ANTES (en el orden en que se pegaron).
 const ANTERIORES = [
   "20261014154000_produccion_fases_y_tela_de_la_orden.sql",
@@ -120,7 +298,13 @@ exception when others then
 end;
 $f$;
 create function pg_temp.marca(p_fase uuid) returns text language sql as $f$ select pg_temp.llama(format('select retail.marcar_fase_hecha(%L)', p_fase)) $f$;
-create function pg_temp.desmarca(p_fase uuid) returns text language sql as $f$ select pg_temp.llama(format('select retail.deshacer_marca_fase(%L)', p_fase)) $f$;
+-- Quitar la marca: el único camino desde 20261031160000, con motivo (la marca viva de la fase; sin marca, \`cambio_inexistente\`).
+create function pg_temp.desmarca(p_fase uuid) returns text language sql as $f$
+  select pg_temp.llama(format('select retail.eliminar_anotacion_orden(array[%L]::uuid[], %L)', retail.fn_produccion_marca_viva(p_fase), 'Se marcó por error')) $f$;
+-- Restaurar la última marca quitada de la fase.
+create function pg_temp.restaura(p_fase uuid) returns text language sql as $f$
+  select pg_temp.llama(format('select retail.restaurar_anotacion_orden(%L, %L)',
+    (select c.id from retail.produccion_cambios c where c.fase_id = p_fase and c.accion = 'eliminar' and c.objeto = 'marca' order by c.created_at desc limit 1), 'Sí se hizo')) $f$;
 create function pg_temp.avanza(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.llama(format('select retail.registrar_avance(%L, %L::jsonb)', p_fase, p_lineas)) $f$;
 create function pg_temp.sale(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.llama(format('select retail.registrar_salida(%L, %L::jsonb)', p_fase, p_lineas)) $f$;
 create function pg_temp.vuelve(p_fase uuid, p_lineas jsonb) returns text language sql as $f$ select pg_temp.llama(format('select retail.registrar_vuelta(%L, %L::jsonb)', p_fase, p_lineas)) $f$;
@@ -131,7 +315,10 @@ const PRELUDIO = `
 set client_min_messages = warning;
 begin;
 set local search_path = retail, public, extensions;
+${DESHACER_CINCO_PASOS}
 ${MIGRACION}
+set local search_path = retail, public, extensions;
+${MIGRACION_LIDER}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
 ${ENVOLTURAS_FASE}
@@ -257,7 +444,7 @@ caso(
 
 // M. MARCAR Y DESHACER ---------------------------------------------------------------------------------------------------------
 caso(
-  "M1 Ploteo nace pendiente y «actual»; al marcarlo queda hecha y la «actual» pasa a Corte; al deshacerlo vuelve a pendiente",
+  "M1 Ploteo nace pendiente y «actual»; al marcarlo queda hecha y la «actual» pasa a Corte; al quitarle la marca (el líder, con motivo) vuelve a pendiente",
   `${ORDEN()}
    select ${ESTADO(["ploteo", "corte"])} as s1 \\gset
    select pg_temp.marca(:'f_plot') as m \\gset
@@ -268,7 +455,7 @@ caso(
   "ploteo:pendiente:true corte:pendiente:false|OK|ploteo:hecha:false corte:pendiente:true|OK|ploteo:pendiente:true corte:pendiente:false"
 );
 caso(
-  "M2 los rechazos: marcar o deshacer una fase que cuenta prendas (fase_no_es_hito), deshacer sin marca (marca_inexistente), marcar dos veces (marca_ya_hecha) y una orden cerrada (orden_cerrada)",
+  "M2 los rechazos: marcar una fase que cuenta prendas (fase_no_es_hito); quitar una marca de una fase que no la tiene o que no es hito (cambio_inexistente); marcar dos veces (marca_ya_hecha) y una orden cerrada (orden_cerrada)",
   `${ORDEN()}
    select pg_temp.marca(:'f_corte') as a \\gset
    select pg_temp.desmarca(:'f_corte') as a2 \\gset
@@ -278,10 +465,10 @@ caso(
    update retail.producciones set estado = 'anulada' where id = :'oid';
    select pg_temp.desmarca(:'f_plot') as e \\gset
    select concat_ws(',', pg_temp.eh(:'a'), pg_temp.eh(:'a2'), pg_temp.eh(:'b'), :'c', pg_temp.eh(:'d'), pg_temp.eh(:'e'));`,
-  "P0001|fase_no_es_hito,P0001|fase_no_es_hito,P0001|marca_inexistente,OK,P0001|marca_ya_hecha,P0001|orden_cerrada"
+  "P0001|fase_no_es_hito,P0001|cambio_inexistente,P0001|cambio_inexistente,OK,P0001|marca_ya_hecha,P0001|orden_cerrada"
 );
 caso(
-  "M3 se puede volver a marcar tras deshacer: tres filas (marca, deshacer, marca), la marca viva es la última y la fase queda hecha",
+  "M3 se puede volver a marcar tras quitar la marca: tres filas (marca, la que la quita, marca), la marca viva es la última y la fase queda hecha",
   `${ORDEN()}
    select pg_temp.marca(:'f_plot') as a \\gset
    select pg_temp.desmarca(:'f_plot') as b \\gset
@@ -383,7 +570,7 @@ caso(
 
 // Q. CAMBIAR QUIÉN -------------------------------------------------------------------------------------------------------------
 caso(
-  "Q1 el ploteo pasa a un servicio con su fijo antes de marcarse; marcado ya empezó (fase_empezada); deshecho vuelve a poder cambiar",
+  "Q1 el ploteo pasa a un servicio con su fijo antes de marcarse; marcado ya empezó (fase_empezada); con la marca quitada vuelve a poder cambiar",
   `${ORDEN()}
    select pg_temp.cambia(:'f_plot', 'servicio', :'maquila', null, 30, null, null) as c1 \\gset
    select pg_temp.marca(:'f_plot') as m \\gset
@@ -396,7 +583,7 @@ caso(
 
 // T. LA LÍNEA DE TIEMPO Y LA ACTIVIDAD ------------------------------------------------------------------------------------------
 caso(
-  "T1 la línea de tiempo de la orden suma «marca» y «desmarca» (la más reciente primero), la fase sale con hito y marcada, y la actividad anota lo marcado y lo deshecho sin montos",
+  "T1 la línea de tiempo de la orden suma «marca» y «desmarca» (la más reciente primero), la fase sale con hito y marcada, y la actividad anota lo marcado y la marca quitada con su motivo, sin montos",
   `${ORDEN()}
    select pg_temp.marca(:'f_plot') as a \\gset
    select pg_temp.desmarca(:'f_plot') as b \\gset
@@ -408,10 +595,65 @@ caso(
      (select (f ->> 'hito') || ':' || (f ->> 'marcada') from jsonb_array_elements(retail.fn_orden_produccion(:'oid') -> 'fases') f where f ->> 'clave' = 'ploteo'),
      (select (f ->> 'hito') || ':' || (f ->> 'marcada') from jsonb_array_elements(retail.fn_orden_produccion(:'oid') -> 'fases') f where f ->> 'clave' = 'corte'),
      ${ACTIVIDAD("produccion_fase_marcada", "marcó Ploteo como hecho%")},
-     ${ACTIVIDAD("produccion_fase_desmarcada", "deshizo la marca de Ploteo%")});`,
+     ${ACTIVIDAD("produccion_anotacion_eliminada", "quitó la marca de Ploteo: Se marcó por error%")});`,
   "2,1,marca,true:true,false:false,2,1"
 );
 
+// L. SOLO EL LÍDER QUITA LA MARCA (ADR-0586 act. 2) ------------------------------------------------------------------------------
+// Micaela pasa a ser integrante del Taller con el módulo (no líder), como en `produccion_paso_tarde.mjs` R1.
+const MICAELA_EN_EL_TALLER = `
+select p.id as micaela_p from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
+insert into retail.rol_modulos (rol_id, modulo) select c.rol_id, 'produccion' from retail.colaboradores c where c.persona_id = :'micaela_p' on conflict do nothing;
+update retail.colaboradores set ubicacion_asignada_id = :'taller' where persona_id = :'micaela_p';
+`;
+const CAMBIOS_DE_MARCA = `(select count(*) from retail.produccion_cambios c where c.produccion_id = :'oid' and c.objeto = 'marca')`;
+caso(
+  "L1 una integrante del Taller con el módulo marca Ploteo, pero NO le quita la marca: 42501 marca_solo_lider, la marca sigue viva y la historia no cambia",
+  `${MICAELA_EN_EL_TALLER}
+   ${ORDEN()}
+   ${como(MICAELA)}
+   select pg_temp.marca(:'f_plot') as m \\gset
+   select pg_temp.desmarca(:'f_plot') as d \\gset
+   ${como(FELIPE)}
+   select concat_ws(',', :'m', pg_temp.eh(:'d'), :'d' like '%es de un líder%', ${ESTADO(["ploteo"])}, ${CAMBIOS_DE_MARCA});`,
+  "OK,42501|marca_solo_lider,t,ploteo:hecha:false,0"
+);
+caso(
+  "L2 lo que quitó el líder no lo restaura una integrante (marca_solo_lider); ella sí vuelve a marcar Ploteo el día que se hace, y el líder sí restaura",
+  `${MICAELA_EN_EL_TALLER}
+   ${ORDEN()}
+   select pg_temp.marca(:'f_plot') as m \\gset
+   select pg_temp.desmarca(:'f_plot') as d \\gset
+   ${como(MICAELA)}
+   select pg_temp.restaura(:'f_plot') as r1 \\gset
+   select pg_temp.marca(:'f_plot') as m2 \\gset
+   ${como(FELIPE)}
+   select pg_temp.desmarca(:'f_plot') as d2 \\gset
+   select pg_temp.restaura(:'f_plot') as r2 \\gset
+   select concat_ws(',', :'m', :'d', pg_temp.eh(:'r1'), :'m2', :'d2', :'r2', ${ESTADO(["ploteo"])});`,
+  "OK,OK,42501|marca_solo_lider,OK,OK,OK,ploteo:hecha:false"
+);
+caso(
+  "L3 el candado es solo de la marca: la misma integrante sigue quitando, con motivo, un «Terminé» de Corte",
+  `${MICAELA_EN_EL_TALLER}
+   ${ORDEN()}
+   ${como(MICAELA)}
+   select pg_temp.avanza(:'f_corte', ${L(["v1", 5])}) as a \\gset
+   select pg_temp.llama(format('select retail.eliminar_anotacion_orden(array(select x.id from retail.produccion_avances x where x.fase_id = %L)::uuid[], %L)', :'f_corte', 'Lo anoté dos veces')) as e \\gset
+   ${como(FELIPE)}
+   select concat_ws(',', :'a', :'e', (select count(*) from retail.produccion_cambios c where c.produccion_id = :'oid' and c.objeto = 'termine' and c.accion = 'eliminar'));`,
+  "OK,OK,1"
+);
+caso(
+  "L4 el líder quita la marca aunque Corte ya empezó (Felipe 2026-10-31): Ploteo vuelve a «por hacer» sin ser la «actual», Corte sigue igual y el fijo del servicio sale de la orden",
+  `${ORDEN(NUEVA_PLOTEO_AFUERA)}
+   select pg_temp.marca(:'f_plot') as m \\gset
+   select ${DEVENGADO("ploteo")} as dev1 \\gset
+   select pg_temp.avanza(:'f_corte', ${L(["v1", 10])}) as a \\gset
+   select pg_temp.desmarca(:'f_plot') as d \\gset
+   select concat_ws(',', :'m', :'dev1', :'a', :'d', ${DEVENGADO("ploteo")}, ${ESTADO(["ploteo", "corte"])});`,
+  "OK,40.00,OK,OK,0,ploteo:pendiente:false corte:en_curso:true"
+);
 // I. INMUTABLE -----------------------------------------------------------------------------------------------------------------
 caso(
   "I1 una marca no se edita ni se borra (42501); una marca solo se deshace una vez (23505 si se intenta una segunda fila que la deshaga)",
@@ -428,27 +670,32 @@ caso(
 
 // P. PUERTAS -------------------------------------------------------------------------------------------------------------------
 caso(
-  "P1 una integrante de Trujillo (sin el módulo, o parada en otra sede) no marca ni deshace (42501) y no deja nada escrito",
+  "P1 una integrante de Trujillo (sin el módulo, o parada en otra sede) no marca ni quita la marca que dejó el líder (42501): solo queda esa marca",
   `${ORDEN()}
    ${como(MICAELA)}
    select ${CODIGO("pg_temp.marca(:'f_plot')")} as a \\gset
+   ${como(FELIPE)}
+   select pg_temp.marca(:'f_plot') as m \\gset
+   ${como(MICAELA)}
    select ${CODIGO("pg_temp.desmarca(:'f_plot')")} as b \\gset
-   select concat_ws(',', :'a', :'b', (select count(*) from retail.produccion_fase_marcas));`,
-  "42501,42501,0"
+   ${como(FELIPE)}
+   select concat_ws(',', :'a', :'m', :'b', (select count(*) from retail.produccion_fase_marcas where fase_id = :'f_plot'));`,
+  "42501,OK,42501,1"
 );
 
 // F. LA FORMA -------------------------------------------------------------------------------------------------------------------
 const DE = (nombres) => `from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname in (${nombres})`;
 caso(
-  "F1 marcar y deshacer son security definer con search_path y abiertas a authenticated (anon no); las dos internas (fn_fase_es_hito y la marca viva) están cerradas a la API",
+  "F1 marcar es security definer con search_path y abierta a authenticated (anon no); deshacer_marca_fase ya no existe (20261031160000); las dos internas (fn_fase_es_hito y la marca viva) están cerradas a la API",
   `reset role;
    select concat_ws(',',
-     (select count(*) ${DE("'marcar_fase_hecha','deshacer_marca_fase'")}),
+     (select count(*) ${DE("'marcar_fase_hecha'")}),
      (select bool_and(p.prosecdef and array_to_string(p.proconfig, ',') like '%search_path%' and has_function_privilege('authenticated', p.oid, 'execute')
-                      and not has_function_privilege('anon', p.oid, 'execute')) ${DE("'marcar_fase_hecha','deshacer_marca_fase'")}),
+                      and not has_function_privilege('anon', p.oid, 'execute')) ${DE("'marcar_fase_hecha'")}),
+     (select count(*) ${DE("'deshacer_marca_fase'")}),
      (select count(*) ${DE("'fn_fase_es_hito','fn_produccion_marca_viva'")}),
      (select bool_or(has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')) ${DE("'fn_fase_es_hito','fn_produccion_marca_viva'")}));`,
-  "2,t,2,f"
+  "1,t,0,2,f"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR})`);

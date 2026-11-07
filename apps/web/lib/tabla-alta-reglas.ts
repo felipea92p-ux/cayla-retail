@@ -11,6 +11,8 @@
 
 import { leerCantidad, limpiarCantidad, type CeldaAlta } from "./alta-producto";
 import { precioValido } from "./variantes-ficha-reglas";
+import { leerMontoPlata } from "./monto-plata-reglas";
+import { sinBlancosDeMiles } from "./numero-escrito";
 
 /** Tope de una celda de cantidad (`leerCantidad`/`crear_producto_con_stock_inicial`): un entero de 4 dígitos. */
 const CANTIDAD_MAXIMA = 9999;
@@ -43,14 +45,14 @@ export function totalesCantidades(
   return { porFila, porColumna, total };
 }
 
-/** «Llenar todas con [n]»: qué celdas reciben qué valor. Solo las que siguen en la tabla; con la caja vacía (o sin un
- *  solo dígito) no se toca nada, para que un «Aplicar» por error no borre lo ya contado. */
+/** «Llenar todas con [n]»: qué celdas reciben qué valor. Solo las que siguen en la tabla; con la caja vacía, o con algo que no es
+ *  una cantidad («2,5», «12345»), no se toca nada: ni se borra lo ya contado ni se llena con un número que nadie escribió. */
 export function llenarTodas(celdas: readonly CeldaAlta[], excluidas: ReadonlySet<string>, valor: string): { clave: string; valor: string }[] {
   const limpio = limpiarCantidad(valor);
-  if (limpio === "") return [];
+  const n = leerCantidad(limpio);
+  if (limpio === "" || n === null) return [];
   // «007» se escribe «7»: es lo que la persona ve después en cada celda.
-  const normal = String(Number(limpio));
-  return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: normal }));
+  return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: String(n) }));
 }
 
 /** El reverso de `llenarTodas`: al borrar la caja «Llenar todas con», deja vacías las mismas celdas que habría tocado
@@ -60,17 +62,20 @@ export function vaciarTodas(celdas: readonly CeldaAlta[], excluidas: ReadonlySet
 }
 
 /**
- * Lo que hace escribir (o borrar) en «Llenar todas con». Con un número, lo pone en todas las celdas que siguen en la tabla. Con la caja VACÍA —porque se borró o porque se tecleó algo que no
- * es un dígito— depende de la pantalla: en Nuevo producto es el reverso de lo anterior y deja vacías esas celdas (`borraAlVaciar`, lo de siempre); en «Nueva orden» NO toca nada, porque ahí
- * las cantidades suelen venir de la sugerencia de la red o de teclearlas una por una, y una tecla de más no debe vaciar la orden entera sin avisar (revisión adversaria de A2, 2026-10-13).
+ * Lo que hace escribir (o borrar) en «Llenar todas con». Con un número, lo pone en todas las celdas que siguen en la tabla. Con lo que no es una cantidad, las deja como estaban al entrar a la caja
+ * (`antes`): se aplica en cada tecla, así que el «2» de «2,5» ya las había llenado, y sin esto quedaba un 2 en todas (Felipe 2026-11-03). Con la caja VACÍA depende de la pantalla: en Nuevo producto es el reverso de
+ * lo anterior y deja vacías esas celdas (`borraAlVaciar`, lo de siempre); en «Nueva orden» NO toca nada, porque ahí las cantidades suelen venir de la sugerencia de la red o de teclearlas una por una, y una
+ * tecla de más no debe vaciar la orden entera sin avisar (revisión adversaria de A2, 2026-10-13).
  */
 export function cambiosDeRelleno(
   celdas: readonly CeldaAlta[],
   excluidas: ReadonlySet<string>,
   texto: string,
-  borraAlVaciar: boolean
+  borraAlVaciar: boolean,
+  antes: Readonly<Record<string, string>>
 ): { clave: string; valor: string }[] {
   const limpio = limpiarCantidad(texto);
+  if (leerCantidad(limpio) === null) return celdas.filter((c) => !excluidas.has(c.clave)).map((c) => ({ clave: c.clave, valor: antes[c.clave] ?? "" }));
   if (limpio !== "") return llenarTodas(celdas, excluidas, limpio);
   return borraAlVaciar ? vaciarTodas(celdas, excluidas) : [];
 }
@@ -84,9 +89,18 @@ export function pasoCantidad(valor: string, delta: -1 | 1): string {
 }
 
 /** Lo que admite la caja de precio de una celda mientras se tipea: dígitos y UN separador decimal (la coma se vuelve
- *  punto, que es lo que lee `Number`), hasta 2 decimales. */
+ *  punto, que es lo que lee `Number`), hasta 2 decimales.
+ *  Un monto PEGADO entero —con «S/» adelante, con dos separadores o con una coma de miles («1,299»)— se lee primero con la regla de
+ *  la plata (`leerMontoPlata`, ADR-0419): antes «S/. 59» quedaba en 0.59 y «1.299,50» en 1.29, sin aviso (/chaos 2026-10-28). Lo que esa
+ *  regla no entiende («12.500», ambiguo) sigue por el camino de siempre. */
 export function limpiarPrecio(texto: string): string {
-  const t = texto.replace(",", ".").replace(/[^0-9.]/g, "");
+  if (/^\s*s\/|[.,]\d*[.,]|,\d{3}$/i.test(texto.trim())) {
+    const leido = leerMontoPlata(texto);
+    if (leido !== null && leido >= 0) return limpiarPrecio(String(Math.round(leido * 100) / 100));
+  }
+  // Igual que en Vender: los miles se juntan y el pegado se deja a la vista, para que quede en NaN y la fila no se guarde.
+  const base = texto.replace(",", ".");
+  const t = (sinBlancosDeMiles(base) ?? base).replace(/[^0-9.\s]/g, "").trim(); // el `.trim()` quita el blanco del «S/», no los de adentro
   const i = t.indexOf(".");
   if (i === -1) return t.slice(0, 7);
   return t.slice(0, Math.min(i, 7)) + "." + t.slice(i + 1).replace(/\./g, "").slice(0, 2);

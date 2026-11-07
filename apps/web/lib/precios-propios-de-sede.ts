@@ -21,3 +21,11 @@ export async function leerPreciosPropiosDeSede(supabase: Pick<SupabaseClient<Dat
     { enParalelo: 1 },
   );
 }
+
+/**
+ * Los precios propios de la tienda de UNAS variantes (las de una prenda: unas decenas), para mostrar el precio de hoy de esa prenda en la tienda.
+ * Acotada por esos ids, así que no se corta en 1.000 filas (la regla de arriba es para lo que no se acota): sirve para una prenda, nunca para la tienda.
+ */
+export async function leerPreciosPropiosDeVariantes(supabase: Pick<SupabaseClient<Database, "retail">, "rpc">, ubicacionId: string, varianteIds: readonly string[]) {
+  return supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: ubicacionId }).in("variante_id", [...varianteIds]);
+}

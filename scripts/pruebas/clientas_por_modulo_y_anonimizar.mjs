@@ -58,6 +58,7 @@
  */
 
 import { execFileSync, spawn } from "node:child_process";
+import { sqlDeshacer } from "./_deshacer_claure.mjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -241,6 +242,10 @@ DE_LA_FICHA_Y_LA_TIENDA.push("fn_clienta_acceso_web", "restablecer_acceso_tienda
 // sin nombre ni ficha si se anonimizó). Con el candado de SU módulo, `recomendaciones` (como las de Avisos y las de los pedidos web):
 // lo justo para responderle, nunca la ficha entera. La prueba a fondo es scripts/pruebas/recomendaciones_web.mjs.
 const DE_RECOMENDACIONES = ["fn_recomendaciones"];
+
+// Y Tienda web ▸ Vitrina ▸ Esperan una talla (Felipe 2026-10-31, 20261031181000): `fn_vitrina_esperan` dice quién espera cada talla (nombre,
+// celular con su permiso de WhatsApp y correo de la cuenta; nada si la ficha se anonimizó). Con el candado de SU módulo, `vitrina_web`.
+const DE_VITRINA_ESPERAN = ["fn_vitrina_esperan"];
 
 // Y los puntos del Club (ADR-0459, 2026-10-19). Tres grupos, cada uno con lo que el vigilante le exige (no solo su nombre en una lista):
 //  · DE_LOS_PUNTOS_EN_CAJA: canjear_puntos (20261019203000: crea el cupón en la caja), validar_cupon (20261019204000: lee un cupón por su
@@ -448,6 +453,12 @@ const DEL_APARTADO = (como = "sep") => `(a.modulo = 'apartados' and (split_part(
 
 const md5Norm = (expr) =>
   `md5(regexp_replace(regexp_replace(regexp_replace(${expr}, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g'))`;
+// 20261029035000 (ADR-0560, 6c) cambió a propósito la ficha de la cliente (no lista lo de CLAURE) con reemplazos anclados: se deshacen antes de medir.
+const DESHACER_CLAURE = sqlDeshacer("20261029035000_claure_fuera_del_club_y_las_clientes.sql", [
+  "retail.fn_clienta_compras(uuid)",
+  "retail.fn_clienta_cambios(uuid)",
+  "retail.fn_clienta_devoluciones(uuid)",
+]);
 /** Una línea por firma de la tabla de versiones: el md5 normalizado vivo (vacío si no existe). */
 const MD5_VIVOS = VERSIONES.map(
   (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
@@ -793,6 +804,7 @@ const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.pron
   and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')
   and not (x.proname in (${DE_PEDIDOS_WEB.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_pedido_web_exigir\\(')
   and not (x.proname in (${DE_RECOMENDACIONES.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''recomendaciones''\\)')
+  and not (x.proname in (${DE_VITRINA_ESPERAN.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''vitrina_web''\\)')
   and not (x.proname in (${DEL_LIDER.map((n) => `'${n}'`).join(", ")})
            and x.src ~ 'if\\s+not\\s+retail\\.fn_es_lider\\(\\)\\s+then\\s+raise\\s+exception[^;]*errcode\\s*=\\s*''42501''')
   and not (x.proname in (${DE_LOS_PUNTOS_EN_CAJA.map((n) => `'${n}'`).join(", ")})
@@ -810,7 +822,7 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
 caso(
   `(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las ${DE_LA_TIENDA.length} de la tienda online, las 2 de los pedidos web, las ${DE_LA_FICHA_Y_LA_TIENDA.length} de la ficha y la tienda online (fn_clienta_tienda_online y las de «Restablecer acceso»), la 1 de Recomendaciones (fn_recomendaciones) y las ${DE_LOS_PUNTOS_EN_CAJA.length + DE_LOS_PUNTOS_INTERNAS.length} de los puntos del Club, y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las ${DE_LA_TIENDA.length} de la tienda (las de Avisos, las de los pedidos web y la de Recomendaciones, el de su módulo; las de los puntos en caja, «Vender o Clientas»; las internas de los puntos, sin EXECUTE para nadie de la API)`,
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES, ...DE_LOS_PUNTOS_EN_CAJA, ...DE_LOS_PUNTOS_INTERNAS, ...DEL_LIDER].sort().join(",")}\nninguna`
+  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES, ...DE_VITRINA_ESPERAN, ...DE_LOS_PUNTOS_EN_CAJA, ...DE_LOS_PUNTOS_INTERNAS, ...DEL_LIDER].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
@@ -868,7 +880,7 @@ caso(
 );
 caso(
   "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las que las tandas 1a y 1b del club volvieron a cambiar, con el «después» de la última que las tocó (si alguien edita una sin actualizar su tabla, esto lo dice)",
-  MD5_VIVOS,
+  DESHACER_CLAURE + MD5_VIVOS,
   DESPUES_HOY.join("\n")
 );
 
@@ -942,7 +954,7 @@ caso(
   "(6) …y no pisa NADA: las 14 siguen con los md5 de hoy, y la registrar_clienta de hoy (la de la 1b) sigue siendo la única",
   // Sin ON_ERROR_STOP y dentro de un savepoint: si el candado aborta, se vuelve al savepoint para mirar qué quedó. Si NO
   // abortara, no se revierte nada y las funciones ya reemplazadas lo delatan.
-  `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE_1}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
+  DESHACER_CLAURE + `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE_1}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
     `set local search_path = retail, public, extensions;\n` +
     MD5_VIVOS +
     `select string_agg(p.oid::regprocedure::text, ',') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_clienta';\n`,

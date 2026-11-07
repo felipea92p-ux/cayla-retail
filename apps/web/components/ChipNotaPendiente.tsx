@@ -15,7 +15,7 @@ export function ChipNotaPendiente({ nota, saldo, conAyuda = false, className = "
   return (
     <span className={`inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 ${className}`} title={chip.pista}>
       <Chip tono={chip.tono}>{chip.texto}</Chip>
-      {conAyuda && chip.ayuda && <span className="text-xs text-ambar-profundo">{chip.ayuda}</span>}
+      {conAyuda && chip.ayuda && <span className="text-sm text-ambar-profundo">{chip.ayuda}</span>}
       <span className="sr-only">{chip.pista}</span>
     </span>
   );

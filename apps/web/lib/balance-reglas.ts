@@ -53,6 +53,8 @@ export type UnidadBalance = {
   desde: string;
   hasta: string;
   planillaVisible: boolean;
+  /** Lo que `utilidadMes` ya resta de sueldos que Dynamic todavía no paga (tarea 23). */
+  sueldosEstimados: number;
 };
 
 export type SaldoInicial = {
@@ -134,7 +136,26 @@ export function leerUnidad(r: Fila): UnidadBalance {
     desde: String(r.desde ?? ""),
     hasta: String(r.hasta ?? ""),
     planillaVisible: r.planilla_visible === true,
+    sueldosEstimados: 0,
   };
+}
+
+/**
+ * La utilidad de cada tienda con los sueldos que Dynamic todavía no paga, igual que Ganancias y pérdidas (tarea 23). La base da la utilidad del diario; el rinde se vuelve a
+ * dividir con la misma regla de `fn_balance_por_tienda` (solo una tienda, con algo invertido, a 4 decimales). Lo de la empresa no es de ninguna tienda: no se le reparte (ADR-0485).
+ */
+export function unidadesConSueldos(unidades: readonly UnidadBalance[], provision: readonly { ubicacionId: string | null; devengado: number }[]): UnidadBalance[] {
+  return unidades.map((u) => {
+    const sueldos = provision.reduce((a, p) => (p.ubicacionId === u.ubicacionId && p.devengado > 0 ? a + p.devengado : a), 0);
+    if (sueldos <= 0) return u;
+    const utilidadMes = Math.round((u.utilidadMes - sueldos) * 100) / 100;
+    return {
+      ...u,
+      utilidadMes,
+      rinde: u.tipo === "tienda" && u.invertido > 0 ? Math.round((utilidadMes / u.invertido) * 10000) / 10000 : u.rinde,
+      sueldosEstimados: Math.round(sueldos * 100) / 100,
+    };
+  });
 }
 
 export function leerSaldoInicial(r: Fila): SaldoInicial {
@@ -174,17 +195,38 @@ export type Situacion =
   | { tipo: "sin_arranque" }
   | { tipo: "antes_del_arranque"; arranque: string | null }
   | { tipo: "no_cuadra"; bloqueos: Chequeo[] }
+  | { tipo: "con_diferencias"; diferencias: Chequeo[] }
   | { tipo: "cuadra"; notas: Chequeo[] };
 
-/** Regla de ADR-0198: el Balance se dibuja solo si ningún chequeo que bloquea está «no cuadra» o «falta». */
+/**
+ * ADR-0619 (corrige a ADR-0198): lo de fondo (el arranque, el diario y que Activo = Pasivo + Patrimonio) decide si hay Balance. Una cuenta que no coincide con su otro camino
+ * no lo esconde: sale con un aviso que dice cuál y por cuánto. Antes, S/ 88 sobre S/ 150 mil dejaban a Felipe sin Activo, Pasivo ni Patrimonio.
+ */
 export function situacion(chequeos: readonly Chequeo[]): Situacion {
   if (chequeos.some((c) => c.clave === "arranque" && c.estado === "falta")) return { tipo: "sin_arranque" };
   const corte = chequeos.find((c) => c.clave === "corte" && c.estado === "falta");
   if (corte) return { tipo: "antes_del_arranque", arranque: corte.arranque };
   if (!chequeos.length) return { tipo: "sin_arranque" };
   const bloqueos = chequeos.filter((c) => c.bloquea && (c.estado === "no_cuadra" || c.estado === "falta"));
-  if (bloqueos.length) return { tipo: "no_cuadra", bloqueos };
+  if (bloqueos.some((c) => !esCuenta(c))) return { tipo: "no_cuadra", bloqueos };
+  if (bloqueos.length) return { tipo: "con_diferencias", diferencias: bloqueos };
   return { tipo: "cuadra", notas: chequeos.filter((c) => c.estado === "nota" || c.estado === "revisar") };
+}
+
+/** ¿Hay Balance que dibujar? Sí si cuadra y también con diferencias en una cuenta, con su aviso (ADR-0619). */
+export const seDibuja = (s: Situacion) => s.tipo === "cuadra" || s.tipo === "con_diferencias";
+
+/**
+ * Lo que dice un archivo o ¿Lo tuyo? cuando el Balance no cuadra del todo (tarea 28): el Excel imprimía la cifra igual y ¿Lo tuyo? la daba sin avisar.
+ * `null` si cuadra.
+ */
+export function avisoBalanceSinCuadrar(chequeos: readonly Chequeo[]): string | null {
+  const s = situacion(chequeos);
+  if (s.tipo === "cuadra") return null;
+  const pendientes = s.tipo === "no_cuadra" ? s.bloqueos : s.tipo === "con_diferencias" ? s.diferencias : null;
+  return pendientes
+    ? `No cuadra: el Balance tiene ${pendientes.length === 1 ? "1 comprobación pendiente" : `${pendientes.length} comprobaciones pendientes`} y estas cifras pueden cambiar.`
+    : "No cuadra todavía: faltan los saldos de arranque de esta fecha y estas cifras pueden cambiar.";
 }
 
 /** Las cuentas se muestran con su código delante («101 Caja…»); las comprobaciones generales, sin él. */
@@ -222,8 +264,6 @@ export function enlaceDeCausa(clave: string): Enlace | null {
     case "antes_del_arranque":
       return { texto: "Corregir los saldos de arranque", accion: "arranque" };
     case "produccion":
-    case "pagos_taller":
-    case "taller_cajon":
       return { texto: "Ir a Producción", href: "/produccion" };
     case "igv_comprobantes":
     case "igv_taller":
@@ -248,8 +288,6 @@ const QUE_ES: Record<string, [string, string]> = {
   "122": ["adelantos de clientes", "la suma de las separaciones pendientes"],
 };
 
-/** El texto de una causa sin su aclaración entre paréntesis (para la franja de «Causa probable»). */
-export const causaCorta = (texto: string) => texto.replace(/\s*\([^)]*\)\s*$/, "");
 
 /** Lo que dice la guía cuando el Balance no se dibuja: la primera cuenta que no cuadra, por cuánto y su causa más grande. */
 export function motivoNoCuadra(bloqueos: readonly Chequeo[]): { titulo: string; texto: string; causa: Causa | null; enlace: Enlace | null; otros: number } {
@@ -280,13 +318,22 @@ export function motivoNoCuadra(bloqueos: readonly Chequeo[]): { titulo: string; 
 
 /** «S/ 5,420» y «−S/ 1,778» (el signo menos de verdad), sin céntimos salvo que la cifra sea chica: como el spike. */
 export function solesBalance(v: number): string {
-  const conCentimos = Math.abs(v) < 100 && Math.round(v) !== v;
+  // Siempre con céntimos, como el resto de Estados financieros (Felipe 2026-11-06): antes S/ 147,468 y S/ 25.50 convivían en la misma lista.
   const abs = Math.abs(v);
-  const cuerpo = conCentimos
-    ? abs.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : Math.round(abs).toLocaleString("es-PE");
-  const cero = conCentimos ? abs === 0 : Math.round(abs) === 0;
+  const cuerpo = abs.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const cero = Math.round(abs * 100) === 0;
   return `${v < 0 && !cero ? "−" : ""}S/\u00a0${cuerpo}`;
+}
+
+/**
+ * La cifra exacta, con céntimos si los tiene: la que el líder tiene que escribir para que el arranque cuadre. Con
+ * `solesBalance` una diferencia de 67,928.73 se leía «S/ 67,929»; quien la copiaba seguía sin poder guardar.
+ */
+export function solesExactos(v: number): string {
+  const centimos = Math.round(Math.abs(v) * 100);
+  if (centimos % 100 === 0) return solesBalance(v);
+  const cuerpo = (centimos / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${v < 0 ? "−" : ""}S/\u00a0${cuerpo}`;
 }
 
 /** «7,2 % al mes» (coma decimal, como el resto de Reportes). */
@@ -298,7 +345,6 @@ export function textoRinde(r: number | null): string {
 }
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /** «Al 31 de agosto» · «Hoy, 24 de septiembre» (con el año si no es el de hoy). */
 export function tituloCorte(corte: string, hoy: string): string {
@@ -316,6 +362,8 @@ const NOMBRE_LINEA: Record<string, string> = {
   "1419": "Faltantes que debe el personal",
   "201": "Mercaderías",
   "211": "Productos terminados del Taller",
+  "231": "Ropa en proceso en el Taller",
+  "241": "Telas e insumos del Taller",
   "332": "Mejoras del local",
   "333": "Máquinas y equipos del Taller",
   "334": "Vehículos",
@@ -327,10 +375,12 @@ const NOMBRE_LINEA: Record<string, string> = {
   "421": "Facturas por pagar",
   "451": "Tarjeta de crédito",
   "47": "Préstamo del dueño (por devolver)",
+  "479": "Por pagar a Claudia (lo cobrado de sus ventas)",
+  "4699": "Por liquidar a CLAURE (lo vendido de su mercadería)",
   "122": "Adelantos de clientes",
   "50": "Capital",
   "52": "Aportes del dueño",
-  "591": "Utilidades acumuladas",
+  "591": "Resultados acumulados",
 };
 export function nombreLinea(l: Pick<LineaBalance, "cuenta" | "nombre" | "seccion" | "monto" | "detalle">): string {
   if (l.cuenta === "4011") return l.seccion === "activo" ? "Crédito fiscal de IGV (SUNAT le debe a CAYLA)" : "IGV por pagar";
@@ -350,20 +400,6 @@ export function nombreDeCuenta(cuenta: string, nombre: string): string {
 /** El código que se muestra a la izquierda (el resultado del mes no tiene cuenta propia: se cierra en «lo tuyo»). */
 export const cuentaLinea = (l: Pick<LineaBalance, "cuenta">) => (l.cuenta === "resultado_mes" ? "" : l.cuenta);
 
-/** Una aclaración chica bajo la línea, cuando la cifra necesita contexto para no confundir. */
-export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion">): string | null {
-  if (l.cuenta === "201") {
-    const partes: string[] = [];
-    const recibir = n(l.detalle?.por_recibir);
-    const camino = n(l.detalle?.en_transito);
-    if (recibir) partes.push(`${solesBalance(recibir)} facturado por recibir`);
-    if (camino) partes.push(`${solesBalance(camino)} en camino entre tiendas`);
-    return partes.length ? `incluye ${partes.join(" y ")}` : null;
-  }
-  if (l.cuenta === "4011" && l.seccion === "pasivo") return "los pagos a SUNAT todavía no se registran: por ahora solo sube";
-  if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
-  return null;
-}
 
 export type BalanceAgrupado = {
   tiene: LineaBalance[];
@@ -384,42 +420,6 @@ export function agrupar(lineas: readonly LineaBalance[]): BalanceAgrupado {
 
 // ---- Fechas del Balance -------------------------------------------------------------------------------------------------
 
-const esFecha = (x: string | undefined): x is string => !!x && /^\d{4}-\d{2}-\d{2}$/.test(x) && !Number.isNaN(Date.parse(`${x}T12:00:00Z`));
-const finDeMes = (anio: number, mes: number) => {
-  const d = new Date(Date.UTC(anio, mes, 0));
-  return d.toISOString().slice(0, 10);
-};
-
-/** `?corte=` válido (una fecha que no pase de hoy) o hoy. */
-export function leerCorte(param: string | undefined, hoy: string): string {
-  return esFecha(param) && param <= hoy ? param : hoy;
-}
-
-/** Las fechas que se ofrecen: hoy y el último día de los 12 meses anteriores (sin pasar del día anterior al arranque). */
-export function cortesDisponibles(hoy: string, arranque: string | null, meses = 12): { valor: string; texto: string }[] {
-  const lista = [{ valor: hoy, texto: `Hoy, ${fechaLarga(hoy, hoy)}` }];
-  let [a, m] = hoy.split("-").map(Number);
-  for (let i = 0; i < meses; i++) {
-    m -= 1;
-    if (m === 0) {
-      m = 12;
-      a -= 1;
-    }
-    const fin = finDeMes(a, m);
-    if (arranque && fin < diaAnterior(arranque)) break;
-    lista.push({ valor: fin, texto: `Al ${fechaLarga(fin, hoy)}` });
-  }
-  return lista;
-}
-export function diaAnterior(iso: string): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-function fechaLarga(iso: string, hoy: string): string {
-  const [a, m, d] = iso.split("-").map(Number);
-  return `${d} ${MESES_CORTOS[m - 1]}${iso.slice(0, 4) === hoy.slice(0, 4) ? "" : ` ${a}`}`;
-}
 
 // ---- Los saldos de arranque (el modal) ------------------------------------------------------------------------------------
 
@@ -450,7 +450,9 @@ export function cuadreArranque(lineas: readonly { cuenta: string; tipo: string; 
 
 /** Un monto escrito por el líder («1,250.50», «648,50», «−300», vacío = 0), con la regla única de `leerMontoPlata`. `null` si no se entiende. */
 export function leerMontoArranque(texto: string): number | null {
-  const limpio = texto.replace(/\s/g, "").replace(/−/g, "-");
+  // El menos tipográfico (U+2212) se normaliza aquí; los blancos NO se tocan: los decide `leerMontoPlata` con la regla única.
+  // Borrarlos antes la dejaba ciega, y un pegado de varias celdas entraba como el saldo de arranque de todo el Balance.
+  const limpio = texto.trim().replace(/−/g, "-");
   if (limpio === "" || limpio === "-") return 0;
   return leerMontoPlata(limpio);
 }
@@ -500,11 +502,11 @@ const celda = (v: string | number) => {
 export function csvBalance(lineas: readonly LineaBalance[], chequeos: readonly Chequeo[], unidades: readonly UnidadBalance[], corte: string): string {
   const filas: (string | number)[][] = [["Balance al", corte], [], ["Sección", "Cuenta", "Concepto", "Monto"]];
   const g = agrupar(lineas);
-  const sec = { tiene: "Lo que tiene", debe: "Lo que debe", tuyo: "Lo que es tuyo" } as const;
+  const sec = { tiene: "Activo", debe: "Pasivo", tuyo: "Patrimonio" } as const;
   for (const [k, xs] of [["tiene", g.tiene], ["debe", g.debe], ["tuyo", g.tuyo]] as const) {
     for (const l of xs) filas.push([sec[k], cuentaLinea(l), nombreLinea(l), l.monto]);
   }
-  if (lineas.length) filas.push([], ["Total lo que tiene", "", "", g.totalTiene], ["Total lo que debe + lo tuyo", "", "", g.totalDebe + g.totalTuyo]);
+  if (lineas.length) filas.push([], ["Total activo", "", "", g.totalTiene], ["Total pasivo", "", "", g.totalDebe], ["Total patrimonio", "", "", g.totalTuyo], ["Total pasivo + patrimonio", "", "", g.totalDebe + g.totalTuyo]);
   filas.push([], ["Comprobación", "Contra", "Diario", "Otro camino", "Diferencia", "Estado"]);
   for (const c of chequeos) filas.push([tituloChequeo(c), c.contra, c.diario ?? "", c.otro ?? "", c.diferencia ?? "", iconoChequeo(c.estado).texto]);
   if (unidades.length) {
@@ -512,4 +514,12 @@ export function csvBalance(lineas: readonly LineaBalance[], chequeos: readonly C
     for (const u of unidades) filas.push([u.nombre, u.caja ?? "", u.mercaderia, u.activosFijos, u.facturasPorPagar, u.invertido, u.utilidadMes, u.rinde == null ? "" : textoRinde(u.rinde)]);
   }
   return `﻿${filas.map((f) => f.map(celda).join(";")).join("\n")}\n`;
+}
+
+/**
+ * Las cuentas que empiezan después del día de arranque (tarea 4 de «Las 36»). Antes de su `saldo_desde` no tienen plata para el sistema: arrancar antes dejaría
+ * esa cuenta en cero y todo lo de ese tramo sin explicar. Se corrige diciendo cuánto tenía ese día en Editar cuenta, o eligiendo un arranque posterior.
+ */
+export function cuentasQueEmpiezanDespues<T extends { saldoDesde: string | null; archivada: boolean }>(cuentas: readonly T[], fecha: string): T[] {
+  return cuentas.filter((c) => !c.archivada && c.saldoDesde !== null && c.saldoDesde > fecha);
 }

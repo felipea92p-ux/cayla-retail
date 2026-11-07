@@ -1,0 +1,116 @@
+/* =====================================================================
+   RECIBIR MERCADERÍA «B» CON EL VIDRIO «SERENA» (ADR-0596; la pantalla es diseño propio, ADR-0575; maqueta
+   docs/maquetas/recibir-vidrio-2026-11/, tablero docs/vidrio/README.md).
+
+   Felipe eligió mirando (2026-11-02) las dos recomendadas:
+   · Superficies, «A · Vidrio claro»: los grupos del acordeón, la tarjeta del contador, la del lacre y la de la Vitrina pasan del papel al
+     vidrio claro SIN desenfoque (la receta `--vidrio-claro-*`, la misma de la Vitrina de Existencias); lo de adentro (la prenda del
+     acordeón, el ícono de la categoría, las cifras del lacre) va al pozo; el «+» del Dial, a la gota ahumada; el «−», a la gota clara.
+   · Avances, «B · Tubo» (el de la barra de avance de todo el ERP, vidrio/barras.css): la pista del Dial y la vía del Trayecto son tubos
+     hundidos; el arco, el relleno de la vía y las barras del Podio, vidrio teñido de su tono con la luz arriba. El Dial gana un brillo
+     QUIETO sobre el arco (`.rc-dial-luz`): sigue al arco cuando cambia y no se mueve solo.
+
+   Solo cambia el MATERIAL. El movimiento de ADR-0575 (el Trayecto que se llena y suelta su halo, el Dial que se llena con su chispa y su
+   halo al cuadrar, el acordeón que se abre, el podio que crece, la etiqueta que se estampa, el lacre que cae) vive intacto en
+   recepcion-viva.css: aquí no hay duraciones ni keyframes nuevos. El rojo de la etiqueta de precio y el del sello de lacre SE QUEDAN (son la
+   metáfora de la pantalla). Los pasos de arriba (`rc-riel`) ya son la ranura con gotas de Conteo (recepcion-conteo.css).
+
+   Sin capa, después de recepcion-viva.css: le gana con la misma especificidad. Solo recetas de recetas.css; el tono de un dato (la
+   tinta, el verde, el ámbar, el color de la etapa del Trayecto) se mezcla aquí, como en barras.css.
+   ===================================================================== */
+
+/* ---------- Las superficies: vidrio claro, sin desenfoque ---------- */
+.rc-lacre,
+.rc-vitrina-tarjeta {
+  border-color: var(--vidrio-claro-borde);
+  background: var(--vidrio-claro-fondo);
+  box-shadow: var(--vidrio-claro-sombra);
+}
+
+/* ---------- Lo de adentro: el pozo ---------- */
+.rc-lacre-cifras > div {
+  background: var(--pozo-fondo);
+  box-shadow: var(--pozo-sombra);
+}
+/* El número del Dial: al pasar el mouse se hunde (antes, hueso); al escribirlo, el pozo encendido de un campo, con su raya roja. */
+@media (hover: hover) {
+  .rc-dial-numero:hover {
+    background: var(--pozo-fondo);
+    box-shadow: var(--pozo-sombra), inset 0 -3px 0 var(--color-borde-control);
+  }
+}
+.rc-dial-caja {
+  background: var(--pozo-encendido-fondo);
+  box-shadow: var(--pozo-encendido-sombra), inset 0 -3px 0 var(--color-rojo);
+}
+
+/* ---------- Los botones del Dial: el «−» es la gota clara y el «+», la gota ahumada ---------- */
+.rc-dial-boton {
+  border-color: color-mix(in srgb, var(--color-borde-control) 80%, transparent);
+  background: var(--gota-marca);
+  box-shadow: var(--gota-luz);
+}
+.rc-dial-boton--mas {
+  border-color: var(--ahumado-denso-borde);
+  background: var(--ahumado-denso-fondo);
+  box-shadow: var(--ahumado-denso-luz);
+}
+@media (hover: hover) {
+  .rc-dial-boton--menos:hover:not(:disabled) { background: var(--gota-marca); }
+  /* Como el botón principal: el ahumado pasa a rojo profundo, nunca a un macizo. */
+  .rc-dial-boton--mas:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--color-rojo-profundo) 70%, transparent);
+    background: var(--ahumado-hover);
+  }
+}
+
+/* ---------- El Dial: el tubo en redondo ---------- */
+.rc-dial { --rc-dial-tono: var(--color-tinta); }
+.rc-dial--cuadra { --rc-dial-tono: var(--color-verde); }
+.rc-dial--sobra { --rc-dial-tono: var(--color-ambar); }
+/* La pista: el anillo hundido de los tubos (el de los anillos de meta del Observatorio). */
+.rc-dial-pista {
+  stroke: var(--tubo-anillo);
+  filter: var(--tubo-anillo-sombra);
+}
+/* El arco: vidrio teñido de su tono, con la sombra de su color (cambia junto con el tono, sin transición nueva). */
+.rc-dial-arco { filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--rc-dial-tono) 30%, transparent)); }
+.rc-dial:is(.rc-dial--cuadra, .rc-dial--sobra) .rc-dial-arco { filter: drop-shadow(0 3px 6px color-mix(in srgb, var(--rc-dial-tono) 45%, transparent)); }
+/* La luz quieta: un hilo de vidrio sobre la mitad de adentro del arco. Sigue al arco con su misma transición y se llena con él al entrar
+   (las mismas reglas del arco, recepcion-viva.css); nunca corre sola. */
+.rc-dial-luz {
+  fill: none;
+  stroke: var(--color-vidrio);
+  stroke-width: 5;
+  stroke-dasharray: 100;
+  opacity: 0.55;
+  pointer-events: none;
+  transition: stroke-dashoffset 600ms var(--ease-cayla);
+  animation: rc-dial-llena 1.1s var(--ease-cayla) both;
+}
+@media screen {
+  :root[data-tema="oscuro"] .rc-dial-luz { opacity: 0.18; }
+}
+
+/* ---------- El Trayecto: la vía es un tubo y lo recorrido, vidrio del color de la etapa ---------- */
+.rc-tray { --via: 12px; }
+.rc-tray[data-forma="compacta"] { --via: 8px; }
+.rc-tray-via {
+  padding: 2px;
+  border: 1px solid var(--tubo-borde);
+  background: var(--tubo-fondo);
+  box-shadow: var(--tubo-sombra);
+}
+/* Lo recorrido va DENTRO del tubo (2 px de aire); su ancho sigue siendo el de la etapa, con su tope para no cortar la punta redonda. */
+.rc-tray-lleno {
+  inset: 2px auto 2px 2px;
+  max-width: calc(100% - 4px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tc) var(--tubo-relleno-mezcla), var(--tubo-relleno-arriba)), var(--tc) 70%);
+  box-shadow: var(--tubo-relleno-luz);
+}
+/* La parada que falta: vidrio casi lleno (antes, papel), para que el tubo no se vea a través de ella. */
+.rc-tray-parada:not([data-hecha]) { background: color-mix(in srgb, var(--color-vidrio) 90%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-dial-luz { transition: none; animation: none; }
+}

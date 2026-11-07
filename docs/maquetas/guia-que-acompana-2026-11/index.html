@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guía de foco · alternativas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · la guía de foco que acompaña sin parecer error (2026-11-05)
+   Felipe: «es muy llamativa, con un color rojo que indica error más que una guía, y muchas veces bastante invasiva».
+   X reproduce lo de hoy con los números de alta-guia.css y recetas.css. A, B y C cambian la cara y las conductas; el rojo queda para el error.
+   Nada cambia qué se puede guardar. Solo tokens (ADR-0169 / ADR-0336), copiados abajo. Movimiento de una vez, sin rebote ni bucle,
+   apagado con prefers-reduced-motion (ADR-0136); el único bucle es el círculo opcional de X, porque así está hoy. Datos inventados (repo público).
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-prof:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;
+--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--borde:#96786a;--sombra:#1a1a18;--vidrio:#ffffff;--lienzo:#ddd5c6;
+--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{color-scheme:dark;--crema:#1c1a17;--papel:#26241f;--hueso:#33302a;--sand:#403b34;--tinta:#f5f0e8;--taupe:#c4a898;--borde:#8d7a6e;
+--rojo:#e8806a;--rojo-prof:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000000;--vidrio:#33302a;--lienzo:#0f0e0c}
+:root{
+/* las recetas de vidrio/recetas.css, tal cual */
+--hoja-fondo:color-mix(in srgb,var(--vidrio) 70%,transparent);
+--hoja-borde:color-mix(in srgb,var(--vidrio) 55%,transparent);
+--hoja-sombra:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 90%,transparent),0 50px 90px -40px color-mix(in srgb,var(--sombra) 55%,transparent);
+--pozo-fondo:color-mix(in srgb,var(--tinta) 5%,transparent);
+--pozo-sombra:inset 0 1.5px 3px color-mix(in srgb,var(--sombra) 16%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--vidrio) 75%,transparent);
+--pozo-enc-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 50%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+--pozo-enc-sombra:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 10px 22px -12px color-mix(in srgb,var(--sombra) 40%,transparent);
+--pozo-sigue-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 40%,transparent),color-mix(in srgb,var(--vidrio) 16%,transparent));
+--gota-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 58%,transparent),color-mix(in srgb,var(--vidrio) 22%,transparent));
+--gota-luz:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),inset 0 -1px 2px color-mix(in srgb,var(--sombra) 6%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent);
+--ahumado-fondo:linear-gradient(180deg,color-mix(in srgb,var(--tinta) 72%,transparent),color-mix(in srgb,var(--tinta) 93%,transparent));
+--placa-fondo:linear-gradient(180deg,color-mix(in srgb,var(--vidrio) 45%,transparent),color-mix(in srgb,var(--vidrio) 20%,transparent));
+--placa-borde:color-mix(in srgb,var(--vidrio) 55%,transparent);
+--filo-tinte:linear-gradient(180deg,color-mix(in srgb,var(--rojo) 12%,transparent),color-mix(in srgb,var(--rojo) 4%,transparent));
+--filo-borde:linear-gradient(115deg,color-mix(in srgb,var(--rojo) 85%,transparent),color-mix(in srgb,var(--rojo) 45%,transparent));
+--filo-brillo:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 70%,transparent);
+--t80:color-mix(in srgb,var(--tinta) 80%,transparent);--t62:color-mix(in srgb,var(--tinta) 62%,transparent);--t25:color-mix(in srgb,var(--tinta) 25%,transparent)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+
+/* ---------- la barra de la maqueta (no es parte del diseño) ---------- */
+.barra{position:sticky;top:0;z-index:300;background:#171614;color:#f5f0e8;font-size:13px;padding:10px 16px;display:grid;gap:8px} /* tema-fijo: barra de la maqueta */
+.barra .t{font-family:'EB Garamond',serif;font-size:20px;line-height:1.15}
+.barra .t span{font-family:'DM Sans',sans-serif;font-size:12.5px;color:rgba(245,240,232,.72);margin-left:8px} /* tema-fijo: barra de la maqueta */
+.barra .fila{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.barra .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.62)} /* tema-fijo: barra de la maqueta */
+.barra .grupo{display:inline-flex;align-items:center;gap:7px}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden} /* tema-fijo: barra de la maqueta */
+.seg button{min-height:28px;padding:0 11px;font-size:12px;color:rgba(245,240,232,.78)} /* tema-fijo: barra de la maqueta */
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600} /* tema-fijo: barra de la maqueta */
+.barra .accion{min-height:28px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.25);font-size:12px;color:#f5f0e8} /* tema-fijo: barra de la maqueta */
+.barra .llave{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0 10px 0 7px;border-radius:999px;border:1px solid rgba(245,240,232,.22);font-size:12px;color:rgba(245,240,232,.72)} /* tema-fijo: barra de la maqueta */
+.barra .llave i{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(245,240,232,.5)} /* tema-fijo: barra de la maqueta */
+.barra .llave[aria-pressed="true"]{color:#f5f0e8;border-color:rgba(245,240,232,.5)} /* tema-fijo: barra de la maqueta */
+.barra .llave[aria-pressed="true"] i{background:#f5f0e8;border-color:#f5f0e8} /* tema-fijo: barra de la maqueta */
+.barra button:focus-visible{outline:2px solid #f5f0e8;outline-offset:2px} /* tema-fijo: barra de la maqueta */
+@media (max-width:760px){.barra{position:static}.solo-ancho{display:none!important}}
+
+/* ---------- las columnas ---------- */
+.rejilla{display:grid;gap:26px 14px;padding:14px;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));max-width:2400px;margin:0 auto}
+.opcion{display:grid;grid-row:span 2;grid-template-rows:subgrid;row-gap:8px;min-width:0}
+.elige{display:inline-flex;align-items:center;gap:5px;margin-left:auto;min-height:32px;padding:0 12px 0 9px;border-radius:999px;border:1px solid var(--borde);background:var(--gota-fondo);box-shadow:var(--gota-luz);font-size:13px;font-weight:500;white-space:nowrap;flex:none}
+.elige .ic{width:14px;height:14px}
+.elige[aria-pressed="true"]{color:var(--crema);background:var(--ahumado-fondo);border-color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.elige[aria-pressed="true"] .ic{fill:currentColor}
+.elige:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.cab .titulo{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.cab .letra{font-family:'EB Garamond',serif;font-size:26px;line-height:1}
+.cab h2{font-size:15px;font-weight:700}
+.cab .dice{font-size:14px;color:var(--t80)}
+.cab .gp{font-size:14px;color:var(--t80);margin-top:2px}
+.cab .gp b{color:var(--tinta);font-weight:600}
+
+/* ---------- el escenario: algo detrás para que el vidrio refracte ---------- */
+.escena{position:relative;display:flex;justify-content:center;align-items:flex-start;padding:16px 10px;height:var(--escena-alto,760px);border-radius:20px;overflow:hidden;background:var(--crema);border:1px solid var(--t25);isolation:isolate}
+/* Lo de atrás es una pantalla neutra, sin colores de prenda. Antes llevaba baldosas azul y roja: a través del vidrio se veían como un rectángulo
+   azul detrás de «Nombre» y uno rojo detrás de «Código», y parecían parte de la guía (Felipe 2026-11-05). */
+.aurora i{position:absolute;border-radius:50%;filter:blur(80px);opacity:.14;z-index:-3}
+.aurora i:nth-child(1){width:300px;height:260px;right:-40px;top:-60px;background:var(--taupe)}
+.aurora i:nth-child(2){width:340px;height:280px;left:-90px;top:140px;background:var(--sand)}
+.aurora i:nth-child(3){width:300px;height:240px;right:30px;bottom:-80px;background:var(--taupe)}
+.fondo{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:110px;gap:10px;padding:18px;opacity:.9;z-index:-3}
+.fondo div{border-radius:12px}
+.fondo div{background:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.velo{position:absolute;inset:0;z-index:-2;background:color-mix(in srgb,var(--sombra) 20%,transparent);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2)}
+
+/* ---------- la hoja Serena (vidrio/hoja.css) ---------- */
+.hoja{position:relative;flex:none;width:448px;max-width:100%;padding:28px 28px 0;border-radius:32px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--t25) transparent;
+  background:var(--hoja-fondo);border:1px solid var(--hoja-borde);box-shadow:var(--hoja-sombra)}
+.hoja h3{font-family:'EB Garamond',serif;font-weight:500;font-size:27px;line-height:1.1}
+.hoja .baj{color:var(--taupe);font-size:14px;margin:4px 0 16px}
+.cuerpo{position:relative;display:grid;gap:14px}
+.dos{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start}
+.par{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.hoja{width:100%;padding:22px 18px 0;border-radius:26px}.escena{padding:12px 8px}}
+
+/* ---------- un campo: título + caja ---------- */
+.cg{position:relative;isolation:isolate;min-width:0}
+.cg.abierto{z-index:30}
+.tit{position:relative;display:flex;align-items:flex-start;gap:6px;margin-bottom:6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;line-height:1.5;min-height:18px;color:var(--t62);transition:color .2s var(--ease)}
+.tit .txt{min-width:0}
+.tit.grupo{font-size:13px;letter-spacing:0;text-transform:none;color:var(--tinta)}
+.tit.grupo .nota{font-weight:400;font-size:12px;color:var(--taupe);margin-left:6px}
+.sub-et{display:block;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--t62);margin-bottom:4px}
+.marca{position:relative;flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;transition:background-color .24s var(--ease),border-color .24s var(--ease)}
+.marca[data-e="hecho"]{background:var(--verde);color:var(--crema)}
+.marca[data-e="ahora"]{background:var(--tinta)}
+.marca[data-e="ahora"]::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--crema)}
+.marca[data-e="falta"]{border:1.5px solid color-mix(in srgb,var(--tinta) 30%,transparent)}
+.marca[data-e="opcional"]{border:1.5px dashed color-mix(in srgb,var(--tinta) 26%,transparent)}
+.marca svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:14;animation:traza .32s var(--ease) .06s backwards}
+.pastilla{display:none}
+.palabra{position:absolute;right:0;bottom:0;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;line-height:18px;opacity:0;pointer-events:none;transition:opacity .2s var(--ease)}
+
+.caja{position:relative;display:flex;align-items:center;gap:8px;width:100%;height:40px;padding:0 12px;text-align:left;
+  border:1px solid var(--borde);border-radius:14px;background:var(--pozo-fondo);box-shadow:var(--pozo-sombra);
+  transition:background .25s var(--ease),box-shadow .25s var(--ease),border-color .2s var(--ease),transform .25s var(--ease)}
+.caja.alta{height:64px;align-items:flex-start;padding:9px 12px}
+.caja input,.caja textarea{flex:1;width:100%;min-width:0;background:none;border:0;outline:0;font-size:14px;resize:none}
+.caja textarea{height:100%}
+.caja input::placeholder,.caja textarea::placeholder,.caja .ph{color:color-mix(in srgb,var(--tinta) 56%,transparent)}
+.caja.mono input{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em}
+.caja:has(:disabled){opacity:.6}
+.caja:has(input:focus,textarea:focus),.caja[aria-expanded="true"]{background:var(--pozo-enc-fondo);box-shadow:var(--pozo-enc-sombra);transform:translateY(-1px)}
+.caja:has(:focus-visible),button.caja:focus-visible{outline:2px solid var(--tinta);outline-offset:1px}
+button.caja:focus{outline-offset:1px}
+/* El anillo del cursor sin línea dura: el borde sube un escalón, un halo difuminado y el hilo de abajo dicen dónde estás. */
+.hoja[data-anillo="suave"] .caja:has(:focus-visible),.hoja[data-anillo="suave"] button.caja:focus-visible{outline:none;border-color:color-mix(in srgb,var(--tinta) 65%,transparent);
+  box-shadow:var(--pozo-enc-sombra),0 0 0 3px color-mix(in srgb,var(--tinta) 7%,transparent),0 0 18px 3px color-mix(in srgb,var(--tinta) 10%,transparent)}
+/* el hilo del campo con el cursor: nace del centro, abajo */
+.caja::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:2px 2px 0 0;background:var(--rojo);transform:scaleX(0);transition:transform .25s var(--ease);pointer-events:none}
+.caja:has(input:focus,textarea:focus)::after,.caja[aria-expanded="true"]::after{transform:scaleX(1)}
+.hoja[data-hilo="tinta"] .caja::after{background:var(--tinta)}
+.caja .v{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flecha{flex:none;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:var(--gota-fondo);box-shadow:var(--gota-luz)}
+.ic{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.flecha .ic{width:14px;height:14px}
+.muestra{flex:none;width:52px;height:52px;border-radius:12px;border:1px dashed var(--borde);background:var(--pozo-fondo)}
+.tono{display:flex;gap:10px;align-items:flex-start}
+.tono>div{flex:1;min-width:0}
+.avatar{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:12px;background:var(--sand)}
+.ayuda{margin-top:4px;font-size:13px;line-height:1.35;color:var(--taupe)}
+.err{display:flex;gap:6px;align-items:flex-start;margin-top:6px;font-size:13px;line-height:1.35;color:var(--rojo-prof)}
+.err .ic{width:14px;height:14px;margin-top:1px}
+.cg[data-error] .caja{border-color:color-mix(in srgb,var(--rojo) 55%,transparent)}
+.hoja[data-anillo] .cg[data-error] .caja{border-color:color-mix(in srgb,var(--rojo) 55%,transparent)}
+.cg[data-error] [data-ayuda="codigo"]{display:none}
+.placa{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:var(--placa-fondo);border:1px solid var(--placa-borde);font-size:13px;line-height:1.4}
+.placa .ic{margin-top:2px;color:var(--pizarra)}
+.lista{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:40;max-height:220px;overflow:auto;border-radius:16px;padding:6px;display:none;
+  background:color-mix(in srgb,var(--vidrio) 86%,transparent);border:1px solid var(--placa-borde);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);
+  box-shadow:inset 0 1px 0 var(--vidrio),0 26px 54px -24px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.lista.arriba{top:auto;bottom:calc(100% + 6px)}
+.lista.abierta{display:block;animation:revela .2s var(--ease) both}
+.lista button{display:block;width:100%;text-align:left;padding:8px 12px;border-radius:10px;font-size:14px;min-height:36px}
+.lista button:focus-visible{outline:2px solid var(--tinta);outline-offset:-2px}
+@media (hover:hover){.lista button:hover{background:var(--gota-fondo);box-shadow:var(--gota-luz)}}
+
+/* ---------- el pie ---------- */
+.pie{display:grid;gap:10px;margin:14px -28px 0;padding:12px 28px 20px}
+.pie.fijo{position:sticky;bottom:0;z-index:20}
+/* El fondo del pie solo cuando algo pasa por detrás: si todo cabe, no se nota (como `pie-hoja-fijo`). */
+.pie.fijo.corre{background:color-mix(in srgb,var(--vidrio) 98%,transparent)}
+.pie.fijo.corre::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:26px;background:linear-gradient(to top,color-mix(in srgb,var(--vidrio) 98%,transparent),transparent);pointer-events:none}
+@media (max-width:760px){.pie{margin-inline:-18px;padding-inline:18px}.dos>.cg:last-child .palabra{display:none}}
+.guia-pie{min-height:24px;font-size:14px;color:var(--t80)}
+.faltan{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;color:var(--taupe);font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);padding:3px 10px 3px 6px;font-size:14px;font-weight:500;color:var(--tinta)}
+.chip .marca{width:14px;height:14px}.chip .marca[data-e="ahora"]::before{width:4px;height:4px}
+.sigue-pie{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
+.ir{font-weight:600;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px}
+@media (hover:hover){.ir:hover{text-decoration-color:var(--tinta)}.chip:hover{border-color:color-mix(in srgb,var(--tinta) 40%,transparent)}}
+.ir:focus-visible,.chip:focus-visible,.boton:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.listo{font-size:14px;color:var(--verde)}
+.acciones{display:flex;justify-content:flex-end;gap:8px}
+.boton{min-height:42px;padding:0 20px;border-radius:999px;font-size:13.5px;font-weight:500}
+.boton.sec{background:var(--gota-fondo);box-shadow:var(--gota-luz);border:1px solid var(--borde)}
+.boton.pri{position:relative;color:var(--crema);background:var(--ahumado-fondo);border:1px solid color-mix(in srgb,var(--tinta) 55%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 45%,transparent),0 8px 18px -10px color-mix(in srgb,var(--sombra) 55%,transparent)}
+
+/* ---------- lo que hace al llevarte a un campo ---------- */
+/* X, como hoy: el bloque se tiñe entero y sin esquinas redondas: de ahí el rectángulo (Felipe 2026-11-05, al tocar Guardar). */
+.hoja[data-cara="x"] .cg[data-llamado]{animation:llamado 1.1s var(--ease) 1}
+/* Las nuevas: una luz difuminada que nace del centro del campo y se va sola. No tiene borde que se note. */
+.destello{position:absolute;inset:-16px -18px;z-index:-1;border-radius:50%;opacity:0;pointer-events:none;filter:blur(10px);
+  background:radial-gradient(ellipse closest-side,color-mix(in srgb,var(--taupe) 20%,transparent) 40%,transparent);animation:destello 1.1s var(--ease) 1}
+
+/* =========================================================================================================
+   X · COMO ESTÁ HOY — los números de alta-guia.css: la pastilla va EN FLUJO (por eso parte la etiqueta y mueve la caja) y el bloque se estira con su fila
+   ========================================================================================================= */
+.hoja[data-cara="x"] .pastilla{flex:none;align-self:center;white-space:nowrap;border-radius:999px;padding:2px 10px;font-size:14px;font-weight:600;line-height:1.43;text-transform:none;letter-spacing:0;color:var(--rojo-prof);background:color-mix(in srgb,var(--rojo) 10%,transparent);animation:revela .24s var(--ease) both}
+.hoja[data-cara="x"] .cg[data-luz="1"] .pastilla{display:inline-flex}
+.hoja[data-cara="x"] .cg::before,.hoja[data-cara="x"] .cg::after{content:"";position:absolute;inset:-8px;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .26s var(--ease)}
+.hoja[data-cara="x"] .cg::before{z-index:-1;background:var(--filo-tinte);box-shadow:var(--filo-brillo)}
+.hoja[data-cara="x"] .cg::after{padding:1.5px;background:var(--filo-borde);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor}
+.hoja[data-cara="x"] .cg[data-luz="1"]::before,.hoja[data-cara="x"] .cg[data-luz="1"]::after{opacity:1}
+.hoja[data-cara="x"] .cg[data-campo][data-estado="opcional"] .marca{animation:gira 8s linear infinite}
+.hoja[data-cara="x"] .dos{align-items:stretch}
+
+/* ---- lo común de A, B y C: nada de lo que hace la guía mueve la caja ---- */
+.hoja:not([data-cara="x"]) .cg[data-luz="1"] .tit{color:var(--tinta)}
+.hoja[data-opcional="sin"] .cg[data-estado="opcional"] .marca{display:none}
+.hoja:not([data-cara="x"]):not([data-opcional="sin"]) .cg[data-estado="opcional"] .marca{animation:gira 8s linear infinite}
+
+/* =========================================================================================================
+   A · EL HILO — una línea de tinta al costado del bloque, que se dibuja una vez, y la palabra «Sigue» a su altura
+   ========================================================================================================= */
+.hoja[data-cara="a"] .cg::before{content:"";position:absolute;left:-10px;top:-2px;bottom:-2px;width:2.5px;border-radius:2px;background:linear-gradient(180deg,transparent,var(--tinta) 16%,var(--tinta) 84%,transparent);transform:scaleY(0);transition:transform .24s var(--ease);pointer-events:none}
+.hoja[data-cara="a"] .cg[data-luz="1"]::before{transform:scaleY(1)}
+.hoja[data-cara="a"] .cg[data-luz="1"] .palabra{opacity:1;color:var(--tinta)}
+
+/* =========================================================================================================
+   B · FILO PIZARRA — la misma idea de hoy, ajustada al campo: pizarra (informativo, no semáforo) y de 1 px
+   ========================================================================================================= */
+.hoja[data-cara="b"] .cg::before,.hoja[data-cara="b"] .cg::after{content:"";position:absolute;inset:-6px;border-radius:14px;opacity:0;pointer-events:none;transition:opacity .22s var(--ease)}
+.hoja[data-cara="b"] .cg::before{z-index:-1;background:linear-gradient(180deg,color-mix(in srgb,var(--pizarra) 10%,transparent),color-mix(in srgb,var(--pizarra) 4%,transparent))}
+.hoja[data-cara="b"] .cg::after{border:1px solid color-mix(in srgb,var(--pizarra) 50%,transparent)}
+.hoja[data-cara="b"] .cg[data-luz="1"]::before,.hoja[data-cara="b"] .cg[data-luz="1"]::after{opacity:1}
+.hoja[data-cara="b"] .cg[data-luz="1"] .palabra{opacity:1;color:var(--pizarra)}
+
+/* =========================================================================================================
+   C · SOLO LA MARCA — sin línea ni recuadro: el punto suelta un aro una vez y la caja sube a medias
+   ========================================================================================================= */
+.hoja[data-cara="c"] .cg[data-luz="1"] .marca[data-e="ahora"]{box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 14%,transparent)}
+.hoja[data-cara="c"] .cg[data-luz="1"] .marca[data-e="ahora"]::after{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--tinta);animation:pulso .9s var(--ease) .12s 1 both;pointer-events:none}
+.hoja[data-cara="c"] .cg[data-luz="1"] .caja{background:var(--pozo-sigue-fondo);border-color:color-mix(in srgb,var(--tinta) 65%,transparent)}
+
+/* La palabra «Sigue» de las caras que la llevan. */
+.hoja:is([data-cara="d"],[data-cara="e"]) .cg[data-luz="1"] .palabra{opacity:1;color:var(--tinta)}
+
+/* =========================================================================================================
+   D · LA RAYA — el mismo hilo que sale con el cursor, pero ya esperándote. Nada nuevo: es la pieza del campo.
+   ========================================================================================================= */
+.hoja[data-cara="d"] .cg[data-luz="1"] .caja::after{transform:scaleX(1);background:var(--tinta)}
+
+/* =========================================================================================================
+   E · LA GOTA — el idioma del vidrio: lo que sobresale es lo que toca hacer. Se despega sin empujar a nadie.
+   ========================================================================================================= */
+.hoja[data-cara="e"] .cg[data-luz="1"] .caja{background:var(--gota-fondo);border-color:color-mix(in srgb,var(--tinta) 45%,transparent);transform:translateY(-2px);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--vidrio) 95%,transparent),0 12px 22px -12px color-mix(in srgb,var(--sombra) 45%,transparent)}
+
+/* =========================================================================================================
+   F · LO DEMÁS BAJA — no se agrega nada: el campo que sigue queda igual y el resto baja un escalón.
+   ========================================================================================================= */
+.hoja[data-cara="f"] .cuerpo .cg,.hoja[data-cara="f"] .placa{transition:opacity .25s var(--ease)}
+.hoja[data-cara="f"]:has(.cg[data-luz="1"]) .cuerpo .cg:not([data-luz="1"]),.hoja[data-cara="f"]:has(.cg[data-luz="1"]) .placa{opacity:.62}
+
+/* =========================================================================================================
+   G · LA ETIQUETA — una etiqueta colgante, como la de una prenda, que se asienta una vez sobre el canto de la caja.
+   ========================================================================================================= */
+.hoja[data-cara="g"] .tit{z-index:2}
+.hoja[data-cara="g"] .palabra{right:8px;bottom:-14px;padding:1px 10px 1px 17px;line-height:18px;color:var(--crema);background:var(--ahumado-fondo);border-radius:4px 10px 10px 4px;transform:translateY(-5px) rotate(-5deg);transform-origin:12px 50%;transition:opacity .2s var(--ease),transform .3s var(--ease)}
+.hoja[data-cara="g"] .palabra::before{content:"";position:absolute;left:7px;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:var(--crema)}
+.hoja[data-cara="g"] .cg:has([data-combo]:not(.par [data-combo])) .palabra{right:42px}
+.hoja[data-cara="g"] .cg[data-luz="1"] .palabra{opacity:1;transform:translateY(0) rotate(-1.5deg)}
+
+/* =========================================================================================================
+   H · LA COSTURA — una puntada alrededor del campo, en taupe: el hilo del taller, no el rojo del error.
+   ========================================================================================================= */
+.hoja[data-cara="h"] .cg::after{content:"";position:absolute;inset:-7px;border-radius:15px;border:1.5px dashed color-mix(in srgb,var(--taupe) 85%,transparent);opacity:0;pointer-events:none;transition:opacity .22s var(--ease)}
+.hoja[data-cara="h"] .cg[data-luz="1"]::after{opacity:1}
+.hoja[data-cara="h"] .cg[data-luz="1"] .palabra{opacity:1;color:var(--taupe)}
+
+/* =========================================================================================================
+   I · EL SEÑALADOR — una sola flecha por hoja, que viaja de un campo al siguiente.
+   ========================================================================================================= */
+.senal{position:absolute;left:0;top:0;width:12px;height:14px;color:var(--tinta);opacity:0;pointer-events:none;z-index:5;transition:transform .34s var(--ease),opacity .2s var(--ease)}
+.senal svg{display:block;width:100%;height:100%;fill:currentColor}
+.senal.ve{opacity:1}
+
+/* =========================================================================================================
+   J · LA BARRA — el campo no se señala: una barra de avance en el pie, junto a lo que sigue.
+   ========================================================================================================= */
+.tubo-fila{display:flex;align-items:center;gap:10px;font-size:14px;font-variant-numeric:tabular-nums;color:var(--t80);white-space:nowrap}
+.tubo{flex:1;height:5px;border-radius:999px;background:color-mix(in srgb,var(--tinta) 10%,transparent);overflow:hidden}
+.tubo i{display:block;height:100%;width:0;border-radius:999px;background:var(--tinta);transition:width .4s var(--ease),background-color .3s var(--ease)}
+.tubo i.llena{background:var(--verde)}
+
+@keyframes traza{from{stroke-dashoffset:14}}
+@keyframes revela{from{opacity:0;transform:translateY(4px)}}
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes pulso{from{transform:scale(1);opacity:.6}to{transform:scale(2.2);opacity:0}}
+@keyframes llamado{0%,100%{background-color:transparent}30%{background-color:var(--hueso)}}
+@keyframes destello{0%,100%{opacity:0}30%{opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="barra">
+  <p class="t">Guía de foco: diez caras y la de hoy <span>Tócalas como en el ERP. Nada se guarda; los datos son inventados.</span></p>
+  <div class="fila">
+    <span class="grupo"><span class="tag">Hoja</span><span class="seg" id="s-hoja"><button data-v="color">Nuevo color</button><button data-v="cliente">Registrar cliente</button></span></span>
+    <span class="grupo"><span class="tag">Ver</span><span class="seg" id="s-vista"><button data-v="todas" class="solo-ancho">Todas</button><button data-v="elegidas" id="v-elegidas">Me gustan (0)</button><button data-v="x">X</button><button data-v="a">A</button><button data-v="b">B</button><button data-v="c">C</button><button data-v="d">D</button><button data-v="e">E</button><button data-v="f">F</button><button data-v="g">G</button><button data-v="h">H</button><button data-v="i">I</button><button data-v="j">J</button></span></span>
+    <span class="grupo"><span class="tag">Tema</span><span class="seg" id="s-tema"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></span></span>
+    <span class="grupo"><span class="tag">A la vez</span><button class="accion" id="a-llenar">Llenar lo que sigue</button><button class="accion" id="a-guardar">Intentar guardar</button><button class="accion" id="a-reiniciar">Empezar de nuevo</button></span>
+  </div>
+  <div class="fila">
+    <span class="tag">Qué hacen las diez</span>
+    <span class="fila" id="llaves" style="gap:6px"></span>
+  </div>
+</header>
+<main class="rejilla" id="rejilla"></main>
+
+<script>
+/* ------- lo que dice cada cara ------- */
+const CARAS = {
+  x: { nombre: "Como está hoy", dice: "Recuadro y pastilla en rojo, igual que hoy.", gp: "Es la referencia para comparar." },
+  a: { nombre: "El hilo", dice: "Una línea fina de tinta al costado y la palabra «Sigue».", gana: "ocupa casi nada y deja la hoja limpia.", paga: "en una hoja larga se nota menos que un recuadro." },
+  b: { nombre: "Filo pizarra", dice: "Un recuadro azul grisáceo, fino y ajustado al campo.", gana: "se encuentra de lejos, como hoy, sin parecer error.", paga: "sigue siendo un recuadro: de las tres, la que más se nota." },
+  c: { nombre: "Solo la marca", dice: "Sin línea ni recuadro: el punto de la marca y la caja que sube.", gana: "la hoja más tranquila de todas.", paga: "es la que más le puede costar a alguien nuevo." },
+  d: { nombre: "La raya", dice: "Una raya de tinta bajo la caja: la misma que sale con el cursor, ya esperándote.", gana: "es la pieza de siempre, nada nuevo que aprender.", paga: "es chica: en una hoja llena cuesta más encontrarla." },
+  e: { nombre: "La gota", dice: "La caja sale de su hundido y se despega un poco, con su sombra.", gana: "habla el idioma del vidrio: lo que sobresale es lo que toca hacer.", paga: "se puede confundir con un botón." },
+  f: { nombre: "Lo demás baja", dice: "No agrega nada: el campo que sigue queda igual y lo demás se atenúa.", gana: "sin color ni adornos, y el ojo va solo.", paga: "lo atenuado parece apagado y puede frenar a quien quiere saltarse el orden." },
+  g: { nombre: "La etiqueta", dice: "Una etiqueta colgante, como la de una prenda, que dice «Sigue».", gana: "se ve al instante y es muy de CAYLA.", paga: "es un objeto más sobre la caja: con el uso diario puede cansar." },
+  h: { nombre: "La costura", dice: "Una puntada alrededor del campo, en el taupe del taller.", gana: "tiene oficio y no parece error.", paga: "si los círculos opcionales se quedan, el punteado significa dos cosas." },
+  i: { nombre: "El señalador", dice: "Una sola flecha chica que viaja de un campo al siguiente.", gana: "el movimiento dice «ahora aquí» sin pintar nada.", paga: "si estabas mirando a otro lado, es fácil perderla." },
+  j: { nombre: "La barra", dice: "Nada en el campo: una barra de avance abajo, junto a lo que sigue.", gana: "responde «cuánto me falta» de un vistazo.", paga: "el campo no se señala: hay que leer abajo y buscarlo." },
+};
+const LLAVES = [
+  { id: "cursor", txt: "El cursor apaga la luz", on: true },
+  { id: "cede", txt: "Cede si escribes en otro campo", on: true },
+  { id: "quieta", txt: "La hoja no se mueve sola", on: true },
+  { id: "discreto", txt: "«Falta» discreto", on: true },
+  { id: "circulos", txt: "Opcionales sin círculo", on: true },
+  { id: "hilo", txt: "Hilo del cursor en tinta, no en rojo", on: true },
+  { id: "anillo", txt: "Anillo del cursor difuminado", on: true },
+  { id: "corta", txt: "Hoja corta: solo marcas", on: false },
+];
+const f = Object.fromEntries(LLAVES.map((l) => [l.id, l.on]));
+const estado = { hoja: "color", vista: innerWidth < 760 ? "x" : "todas", gustan: new Set() };
+let hojas = [];
+
+const IC = {
+  flecha: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+  lupa: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  error: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+  info: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  candado: '<svg class="ic" style="width:12px;height:12px;display:inline;vertical-align:-1.5px" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  gusta: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.8-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.8z"/></svg>',
+  tilde: '<svg viewBox="0 0 18 18" aria-hidden="true"><path pathLength="14" d="M5 9.4l2.7 2.7L13 6.4"/></svg>',
+};
+const FAMILIAS = ["Neutro", "Tierra", "Rosado", "Rojo", "Naranja", "Amarillo", "Verde", "Azul", "Morado", "Metálico"];
+const esTexto = (el) => el && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && !el.disabled));
+
+/* ------- un título con su marca ------- */
+const titulo = (t, { grupo = false, nota = "" } = {}) => `
+  <div class="tit${grupo ? " grupo" : ""}">
+    <span class="marca" data-e="falta"></span><span class="txt">${t}${nota ? `<span class="nota">${nota}</span>` : ""}</span><span class="pastilla">Sigue aquí</span><span class="palabra" aria-hidden="true">Sigue</span>
+  </div>`;
+const campoTexto = ({ id, t, ph, mono, ayuda, alta, sinGuia, max }) => `
+  <div class="cg" ${sinGuia ? "" : `data-campo="${id}"`} data-id="${id}">
+    ${sinGuia ? `<div class="tit"><span class="txt">${t}</span></div>` : titulo(t)}
+    <div class="caja${mono ? " mono" : ""}${alta ? " alta" : ""}">${alta ? `<textarea data-c="${id}" placeholder="${ph}"></textarea>` : `<input data-c="${id}" placeholder="${ph}" autocomplete="off"${max ? ` maxlength="${max}"` : ""}>`}</div>
+    ${ayuda ? `<p class="ayuda" data-ayuda="${id}">${ayuda}</p>` : `<p class="ayuda" data-ayuda="${id}" hidden></p>`}
+  </div>`;
+const combo = ({ id, t, ph, valor, sinGuia, lupa, avatar, ayuda }) => `
+  <div class="cg" ${sinGuia ? "" : `data-campo="${id}"`} data-id="${id}">
+    ${sinGuia ? `<div class="tit"><span class="txt">${t}</span></div>` : titulo(t)}
+    <button type="button" class="caja" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="${t}" data-combo="${id}">
+      ${avatar ? `<span class="avatar">${avatar}</span>` : ""}${lupa ? IC.lupa : ""}<span class="v ${valor ? "" : "ph"}">${valor || ph}</span><span class="flecha">${IC.flecha}</span>
+    </button>
+    <div class="lista" role="listbox" data-lista="${id}"></div>
+    ${ayuda ? `<p class="ayuda">${ayuda}</p>` : ""}
+  </div>`;
+
+/* ------- las dos hojas ------- */
+const PLANTILLA = {
+  color: () => `
+    <h3>Nuevo color del vocabulario</h3>
+    <p class="baj">Queda disponible de inmediato para cualquier prenda nueva o existente.</p>
+    <div class="cuerpo">
+      <div class="dos">
+        ${campoTexto({ id: "nombre", t: "Nombre", ph: "Ej. Verde botella" })}
+        ${campoTexto({ id: "codigo", t: "Código (3 letras)", ph: "VEB", mono: true, max: 3 })}
+      </div>
+      ${combo({ id: "familia", t: "Familia", valor: "Neutro" })}
+      ${campoTexto({ id: "notas", t: "Notas", ph: "Proveedor de la tela, advertencias…", ayuda: "Opcional, uso interno", sinGuia: true })}
+      ${campoTexto({ id: "pantone", t: "Pantone (TCX)", ph: "19-1557 TCX", mono: true, ayuda: "Opcional: el código para pedir la tela al taller o al proveedor." })}
+      ${campoTexto({ id: "sinonimos", t: "Sinónimos", ph: "plomo, gris medio", ayuda: "Opcional: cómo le dicen en tienda, separados por coma.", sinGuia: true })}
+      ${campoTexto({ id: "descripcion", t: "Descripción", ph: "Qué transmite y dónde funciona", alta: true, ayuda: "Opcional. La lee la asesora para recomendar.", sinGuia: true })}
+      ${combo({ id: "combina", t: "Combina con", ph: "Busca un color…", lupa: true, sinGuia: true, ayuda: "Opcional: hasta 8 colores con los que se lleva bien." })}
+      <div class="cg" data-campo="color" data-id="color">
+        ${titulo("Color")}
+        <div class="tono"><button type="button" class="muestra" data-muestra aria-label="Elegir un tono de ejemplo"></button><div>
+          <div class="caja mono"><input data-c="color" placeholder="#c9b79c" autocomplete="off"></div>
+          <p class="ayuda">Toca el cuadro o escribe #hex.</p>
+        </div></div>
+      </div>
+      ${combo({ id: "responsable", t: "Quién registra", valor: "Felipe Alvarez", avatar: "FA" })}
+    </div>`,
+  cliente: () => `
+    <h3>Registrar cliente</h3>
+    <p class="baj">Solo su documento: vino, preguntó, se probó. Para ser del club, se une por su cuenta escaneando el cartel.</p>
+    <div class="cuerpo">
+      <div class="cg" data-campo="documento" data-id="documento">
+        ${titulo("Documento", { grupo: true, nota: "DNI por defecto" })}
+        <div class="par">
+          <div class="cg-sub" data-id="tipo"><span class="sub-et">Tipo de documento</span>
+            <button type="button" class="caja" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Tipo de documento" data-combo="tipo"><span class="v">DNI</span><span class="flecha">${IC.flecha}</span></button>
+            <div class="lista" role="listbox" data-lista="tipo"></div>
+          </div>
+          <div><span class="sub-et">DNI</span><div class="caja mono"><input data-c="documento" placeholder="8 dígitos" inputmode="numeric" maxlength="8" autocomplete="off"></div></div>
+        </div>
+      </div>
+      <div class="cg" data-campo="padron" data-id="padron">
+        ${titulo(`Nombre ${IC.candado}`)}
+        <div class="caja"><input data-c="padron" placeholder="Lo trae el padrón" disabled></div>
+        <p class="ayuda" data-ayuda="padron">Lo trae el padrón con los 8 dígitos del DNI.</p>
+      </div>
+      <div class="placa">${IC.info}<span><b style="font-weight:600">Eres admin.</b> Guardas a tu nombre, sin autorización.</span></div>
+    </div>`,
+};
+const OPCIONES = { familia: FAMILIAS, responsable: ["Felipe Alvarez", "Micaela Prueba"], combina: ["Crudo", "Terracota", "Azul noche"], tipo: ["DNI", "Carné de extranjería", "RUC"] };
+const PONER = { nombre: "Verde botella", familia: "Verde", color: "#6d7b6a", documento: "45871236" };
+
+function codigoDe(nombre) {
+  const p = nombre.trim().toUpperCase().normalize("NFD").replace(/[^A-Z ]/g, "").split(/\s+/).filter(Boolean);
+  if (!p.length) return "";
+  return (p.length > 1 ? p[0][0] + p[1].slice(0, 2) : p[0].slice(0, 3)).padEnd(3, "X");
+}
+
+function crearHoja(cara, tipo, rejilla, reemplaza) {
+  const v = { nombre: "", codigo: "", familia: "Neutro", notas: "", pantone: "", sinonimos: "", descripcion: "", combina: "", color: "", responsable: "Felipe Alvarez", documento: "", tipo: "DNI", padron: "" };
+  const s = { enFoco: null, familiaElegida: false, codigoEditado: false, revisados: new Set(), previo: undefined, guardado: false, reloj: null };
+  const nueva = cara !== "x";
+  const c = CARAS[cara];
+  const op = document.createElement("section");
+  op.className = "opcion";
+  op.innerHTML = `
+    <header class="cab"><div class="titulo"><span class="letra">${cara.toUpperCase()}</span><h2>${c.nombre}</h2><button type="button" class="elige" data-gusta aria-pressed="${estado.gustan.has(cara)}">${IC.gusta}Me gusta</button></div>
+      <p class="dice">${c.dice}</p>
+      <p class="gp">${c.gp ? c.gp : `<b>Ganas:</b> ${c.gana} <b>Pagas:</b> ${c.paga}`}</p></header>
+    <div class="escena"><div class="aurora"><i></i><i></i><i></i></div><div class="fondo"><div></div><div></div><div></div><div></div><div></div><div></div></div><div class="velo"></div>
+      <div class="hoja" data-cara="${cara}" role="dialog" aria-label="${c.nombre}">
+        ${PLANTILLA[tipo]()}
+        <div class="pie">${cara === "j" ? '<div class="tubo-fila"><div class="tubo"><i data-tubo></i></div><span data-cuenta></span></div>' : ""}<div class="guia-pie" data-guia></div><div class="acciones"><button type="button" class="boton sec" data-cancelar>Cancelar</button><button type="button" class="boton pri" data-guardar>${tipo === "color" ? "Guardar color" : "Registrar"}</button></div></div>
+      </div></div>`;
+  if (reemplaza) reemplaza.replaceWith(op); else rejilla.append(op);
+  const hoja = op.querySelector(".hoja");
+  const pie = op.querySelector(".pie");
+  const guiaPie = op.querySelector("[data-guia]");
+  op.querySelector("[data-gusta]").addEventListener("click", (e) => {
+    const b = e.currentTarget;
+    if (estado.gustan.has(cara)) estado.gustan.delete(cara); else estado.gustan.add(cara);
+    b.setAttribute("aria-pressed", estado.gustan.has(cara));
+    document.getElementById("v-elegidas").textContent = `Me gustan (${estado.gustan.size})`;
+  });
+  const senal = cara === "i" ? hoja.querySelector(".cuerpo").appendChild(Object.assign(document.createElement("span"), { className: "senal", innerHTML: '<svg viewBox="0 0 12 14" aria-hidden="true"><path d="M1 1.6c0-.8.9-1.3 1.6-.8l8 5.4c.6.4.6 1.2 0 1.6l-8 5.4c-.7.5-1.6 0-1.6-.8z"/></svg>' })) : null;
+
+  const campos = () => tipo === "color"
+    ? [
+        { id: "nombre", nombre: "Nombre", requerido: true, hecho: v.nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
+        { id: "codigo", nombre: "Código", requerido: true, hecho: v.codigo.length === 3, pendiente: "Escribe las 3 letras del código." },
+        { id: "familia", nombre: "Familia", requerido: false, sugerido: true, hecho: s.familiaElegida, pendiente: "Elige la familia del color (ahora dice Neutro)." },
+        { id: "pantone", nombre: "Pantone", requerido: false, hecho: false, pendiente: "" },
+        { id: "color", nombre: "Color", requerido: true, hecho: /^#[0-9a-f]{6}$/i.test(v.color), pendiente: "Elige el tono del color." },
+        { id: "responsable", nombre: "Quién registra", requerido: true, hecho: true, pendiente: "" },
+      ]
+    : [
+        { id: "documento", nombre: "Documento", requerido: true, hecho: /^\d{8}$/.test(v.documento), pendiente: "Elige el tipo y escribe el número." },
+        // No se escribe a mano: lo trae el padrón. Hoy cuenta como «falta»; en A, B y C no se le pide a la persona.
+        { id: "padron", nombre: "Nombre del padrón", requerido: true, hecho: v.padron !== "", pendiente: "Lo trae el padrón con los 8 dígitos del DNI.", bloqueado: true },
+      ];
+  const porHacer = (x) => !x.hecho && (x.requerido || x.sugerido) && !(nueva && f.discreto && x.bloqueado);
+  const cg = (id) => hoja.querySelector(`[data-id="${id}"]`);
+  const control = (id) => hoja.querySelector(`[data-c="${id}"]:not(:disabled), [data-combo="${id}"]`);
+
+  function moverA(el, suave = true) {
+    const r = el.getBoundingClientRect(), h = hoja.getBoundingClientRect();
+    const tapa = pie.classList.contains("fijo") ? pie.getBoundingClientRect().height : 0;
+    const z = parseFloat(hoja.style.zoom) || 1;
+    let d = 0;
+    if (r.bottom + 12 > h.bottom - tapa) d = r.bottom + 12 - (h.bottom - tapa);
+    else if (r.top - 12 < h.top) d = r.top - 12 - h.top;
+    if (d) hoja.scrollBy({ top: d / z, behavior: suave && !matchMedia("(prefers-reduced-motion:reduce)").matches ? "smooth" : "auto" });
+  }
+  function ir(id, conFoco = true) {
+    const el = cg(id);
+    if (!el) return;
+    moverA(el);
+    if (conFoco) control(id)?.focus({ preventScroll: true });
+    if (nueva) {
+      el.querySelector(":scope > .destello")?.remove();
+      const luz = document.createElement("span");
+      luz.className = "destello";
+      luz.setAttribute("aria-hidden", "true");
+      luz.addEventListener("animationend", () => luz.remove());
+      el.append(luz);
+    } else {
+      el.removeAttribute("data-llamado");
+      void el.offsetWidth;
+      el.setAttribute("data-llamado", "");
+      el.addEventListener("animationend", function fin(e) { if (e.animationName !== "llamado") return; el.removeAttribute("data-llamado"); el.removeEventListener("animationend", fin); });
+    }
+  }
+
+  function actualizar() {
+    const lista = campos();
+    const activo = document.activeElement;
+    const aqui = hoja.contains(activo);
+    const escribiendo = aqui && esTexto(activo);
+    const retiene = s.enFoco ? lista.find((x) => x.id === s.enFoco && (x.requerido || x.sugerido)) : null;
+    const ahora = (retiene || lista.find(porHacer))?.id ?? null;
+    const corta = nueva && f.corta && tipo === "cliente";
+    hoja.dataset.opcional = nueva && f.circulos ? "sin" : "con";
+    hoja.dataset.hilo = nueva && f.hilo ? "tinta" : "rojo";
+    hoja.dataset.anillo = nueva && f.anillo ? "suave" : "duro";
+    pie.classList.toggle("fijo", nueva && f.quieta);
+    pie.classList.toggle("corre", hoja.scrollHeight > hoja.clientHeight + 1);
+
+    for (const x of lista) {
+      const el = hoja.querySelector(`[data-campo="${x.id}"]`);
+      if (!el) continue;
+      const e = x.id === ahora ? "ahora" : x.hecho ? "hecho" : x.requerido || x.sugerido ? "falta" : "opcional";
+      el.dataset.estado = e;
+      const m = el.querySelector(".marca");
+      if (m.dataset.e !== e) { m.dataset.e = e; m.innerHTML = e === "hecho" ? IC.tilde : ""; }
+      else if (e === "hecho" && !m.innerHTML) m.innerHTML = IC.tilde;
+      let luz = x.id === ahora;
+      if (nueva && luz) {
+        const adentro = aqui && el.contains(activo);
+        if (f.cursor && escribiendo && adentro) luz = false;
+        if (f.cede && escribiendo && !adentro) luz = false;
+        if (corta) luz = false;
+      }
+      const ayudaErr = el.querySelector(".err");
+      const conError = s.revisados.has(x.id) && x.requerido && !x.hecho && !(nueva && x.bloqueado);
+      // En A, B y C un campo con error no lleva además la guía: ahí manda el rojo.
+      if (nueva && conError) luz = false;
+      el.dataset.luz = luz ? "1" : "0";
+      if (conError) { el.dataset.error = ""; if (!ayudaErr) el.insertAdjacentHTML("beforeend", `<p class="err" role="alert">${IC.error}<span>${x.pendiente}</span></p>`); }
+      else { delete el.dataset.error; ayudaErr?.remove(); }
+    }
+    if (tipo === "cliente") { const a = hoja.querySelector('[data-ayuda="padron"]'); if (a) a.hidden = s.revisados.has("padron") && !nueva && !v.padron; }
+
+    /* I: la flecha viaja al campo que sigue, a la altura de su caja */
+    if (senal) {
+      const prendido = hoja.querySelector('.cg[data-luz="1"]');
+      senal.classList.toggle("ve", !!prendido);
+      if (prendido) {
+        const z = parseFloat(hoja.style.zoom) || 1;
+        const base = hoja.querySelector(".cuerpo").getBoundingClientRect();
+        const caja = prendido.querySelector(".caja").getBoundingClientRect();
+        const izq = prendido.getBoundingClientRect().left;
+        senal.style.transform = `translate(${(izq - base.left) / z - 15}px,${(caja.top + caja.height / 2 - base.top) / z - 7}px)`;
+      }
+    }
+    /* J: cuánto va */
+    if (cara === "j") {
+      const cuentan = lista.filter((x) => (x.requerido || x.sugerido) && !(f.discreto && x.bloqueado));
+      const van = cuentan.filter((x) => x.hecho).length;
+      const barra = hoja.querySelector("[data-tubo]");
+      barra.style.width = (van / cuentan.length) * 100 + "%";
+      barra.classList.toggle("llena", van === cuentan.length);
+      hoja.querySelector("[data-cuenta]").textContent = `${van} de ${cuentan.length}`;
+    }
+
+    /* el pie */
+    const pendientes = lista.filter(porHacer);
+    const bloquean = pendientes.filter((x) => x.requerido);
+    if (!lista.some((x) => x.requerido && !x.hecho) && s.revisados.size) s.revisados = new Set();
+    let html;
+    if (s.guardado && !bloquean.length) html = '<p class="listo" role="status">Aquí se guardaría. Esto es una maqueta.</p>';
+    else if (!pendientes.length) html = '<p class="listo" role="status">Todo listo.</p>';
+    else if (nueva && f.discreto && !s.revisados.size) {
+      const sig = pendientes.find((x) => x.id === ahora) || pendientes[0];
+      const mas = pendientes.length - 1;
+      html = bloquean.length
+        ? `<p class="sigue-pie"><span>Sigue:</span><button type="button" class="ir" data-ir="${sig.id}">${sig.nombre}</button>${mas ? `<span>· ${mas === 1 ? "queda 1 más" : `quedan ${mas} más`}</span>` : ""}</p>`
+        : `<p class="sigue-pie"><span>Sin elegir:</span><button type="button" class="ir" data-ir="${sig.id}">${sig.nombre}</button><span>· puedes seguir así</span></p>`;
+    } else {
+      const solo = !bloquean.length;
+      html = `<div class="faltan"><span>${solo ? "Sin elegir" : pendientes.length === 1 ? "Falta" : "Faltan"}:</span>${pendientes.map((x) => `<button type="button" class="chip" data-ir="${x.id}" title="${x.pendiente}"><span class="marca" data-e="${x.id === ahora ? "ahora" : x.requerido ? "falta" : "opcional"}"></span>${x.nombre}</button>`).join("")}${solo ? "<span>· puedes seguir así</span>" : ""}</div>`;
+    }
+    if (guiaPie.dataset.html !== html) { guiaPie.innerHTML = html; guiaPie.dataset.html = html; }
+
+    /* la hoja se mueve sola cuando la luz cambia de campo: así es hoy */
+    const antes = s.previo;
+    s.previo = ahora;
+    if (antes !== undefined && antes !== ahora && ahora && !escribiendo && !(nueva && f.quieta)) { const el = cg(ahora); if (el) moverA(el); }
+  }
+
+  function poner(id, valor) {
+    v[id] = valor;
+    const el = hoja.querySelector(`[data-c="${id}"]`);
+    if (el) el.value = valor;
+    if (id === "nombre" && !s.codigoEditado) { v.codigo = codigoDe(valor); const k = hoja.querySelector('[data-c="codigo"]'); if (k) k.value = v.codigo; const a = hoja.querySelector('[data-ayuda="codigo"]'); if (a) { a.hidden = nueva ? false : !v.codigo; a.style.visibility = v.codigo ? "visible" : "hidden"; a.textContent = "Sugerido del nombre"; } }
+    if (id === "color") hoja.querySelector("[data-muestra]").style.background = /^#[0-9a-f]{6}$/i.test(valor) ? valor : "";
+    if (id === "documento") {
+      clearTimeout(s.reloj);
+      v.padron = "";
+      const pad = hoja.querySelector('[data-c="padron"]');
+      if (pad) pad.value = "";
+      if (/^\d{8}$/.test(valor)) s.reloj = setTimeout(() => { v.padron = "Ana Prueba Ejemplo"; pad.value = v.padron; actualizar(); }, 350);
+    }
+    if (id === "familia") { const b = hoja.querySelector('[data-combo="familia"] .v'); if (b) b.textContent = valor; s.familiaElegida = true; }
+  }
+
+  /* lo que la persona hace */
+  hoja.addEventListener("input", (e) => {
+    const id = e.target.dataset.c;
+    if (!id) return;
+    if (id === "codigo") { s.codigoEditado = true; e.target.value = e.target.value.toUpperCase(); }
+    if (id === "documento") e.target.value = e.target.value.replace(/\D/g, "");
+    poner(id, e.target.value);
+    s.guardado = false;
+    actualizar();
+  });
+  hoja.addEventListener("focusin", (e) => {
+    if (esTexto(e.target)) { const id = e.target.closest("[data-campo]")?.dataset.campo ?? null; s.enFoco = id; }
+    actualizar();
+  });
+  hoja.addEventListener("focusout", () => setTimeout(() => {
+    if (!esTexto(document.activeElement) || !hoja.contains(document.activeElement)) s.enFoco = null;
+    actualizar();
+  }, 0));
+  function cerrarListas() {
+    hoja.querySelectorAll(".lista.abierta").forEach((l) => l.classList.remove("abierta", "arriba"));
+    hoja.querySelectorAll('[data-combo][aria-expanded="true"]').forEach((b) => b.setAttribute("aria-expanded", "false"));
+    hoja.querySelectorAll(".cg.abierto").forEach((b) => b.classList.remove("abierto"));
+  }
+  hoja.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && hoja.querySelector(".lista.abierta")) { const b = hoja.querySelector('[data-combo][aria-expanded="true"]'); cerrarListas(); b?.focus(); e.stopPropagation(); }
+  });
+  hoja.addEventListener("click", (e) => {
+    const t = e.target;
+    const irA = t.closest("[data-ir]");
+    if (irA) { ir(irA.dataset.ir); return; }
+    if (t.closest("[data-muestra]")) { poner("color", PONER.color); s.guardado = false; actualizar(); return; }
+    if (t.closest("[data-cancelar]")) { const i = hojas.findIndex((h) => h.hoja === hoja); hojas[i] = crearHoja(cara, tipo, rejilla, op); medir(); return; }
+    if (t.closest("[data-guardar]")) { intentar(true); return; }
+    const opcion = t.closest("[data-op]");
+    if (opcion) {
+      const id = opcion.dataset.op, val = opcion.textContent;
+      const boton = hoja.querySelector(`[data-combo="${id}"]`);
+      v[id] = val;
+      const w = boton.querySelector(".v"); w.textContent = val; w.classList.remove("ph");
+      if (id === "familia") s.familiaElegida = true;
+      cerrarListas(); boton.focus({ preventScroll: true }); actualizar(); return;
+    }
+    const b = t.closest("[data-combo]");
+    if (b) {
+      const id = b.dataset.combo, l = hoja.querySelector(`[data-lista="${id}"]`), abierta = l.classList.contains("abierta");
+      cerrarListas();
+      if (!abierta) {
+        l.innerHTML = OPCIONES[id].map((o) => `<button type="button" role="option" data-op="${id}">${o}</button>`).join("");
+        l.classList.add("abierta"); b.setAttribute("aria-expanded", "true");
+        (b.closest(".cg") || b.closest(".cg-sub")?.closest(".cg"))?.classList.add("abierto");
+        const r = l.getBoundingClientRect(), h = hoja.getBoundingClientRect();
+        if (r.bottom > h.bottom - 4) l.classList.add("arriba");
+      }
+    }
+  });
+
+  function intentar(conFoco) {
+    const lista = campos();
+    const faltan = lista.filter((x) => x.requerido && !x.hecho && !(nueva && x.bloqueado));
+    const todasFaltan = lista.filter((x) => x.requerido && !x.hecho);
+    if (!faltan.length && !todasFaltan.length) { s.guardado = true; actualizar(); return; }
+    s.revisados = new Set((nueva ? faltan : todasFaltan).map((x) => x.id));
+    actualizar();
+    if (faltan.length) ir(faltan[0].id, conFoco);
+  }
+  function avanzar() {
+    const lista = campos();
+    const sig = lista.find(porHacer);
+    if (!sig) return;
+    if (PONER[sig.id]) poner(sig.id, PONER[sig.id]);
+    s.enFoco = null;
+    actualizar();
+  }
+  /* En A, B y C la ayuda de «Código» ya tiene su lugar: que aparezca no empuja a los de abajo. */
+  if (nueva && tipo === "color") { const a = hoja.querySelector('[data-ayuda="codigo"]'); a.hidden = false; a.textContent = "Sugerido del nombre"; a.style.visibility = "hidden"; }
+  /* El primer pintado no anima el «se mueve sola». */
+  actualizar();
+  return { hoja, actualizar, avanzar, intentar, cerrarListas, control };
+}
+
+/* ------- la página ------- */
+const rejilla = document.getElementById("rejilla");
+const TODAS = ["x", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+function carasDeLaVista() {
+  if (estado.vista === "todas") return TODAS;
+  if (estado.vista === "elegidas") return estado.gustan.size ? TODAS.filter((c) => estado.gustan.has(c)) : [];
+  return [estado.vista];
+}
+function medir() {
+  const n = hojas.length;
+  const todas = n > 1;
+  const ancho = innerWidth;
+  const cols = !todas ? 1 : ancho >= 1180 ? Math.min(n, 4) : ancho >= 760 ? 2 : 1;
+  rejilla.style.setProperty("--cols", Math.max(cols, 1));
+  const barra = document.querySelector(".barra").getBoundingClientRect().height;
+  const alto = ancho < 760 ? 700 : Math.max(620, Math.min(900, innerHeight - (barra || 0) - (cols > 1 ? 165 : 110)));
+  /* Muchas a la vez: filas más bajas, para ver más sin desplazar tanto. */
+  const altoFila = n > 4 ? Math.min(alto, 700) : alto;
+  rejilla.style.setProperty("--escena-alto", (estado.hoja === "cliente" && ancho >= 760 ? Math.min(altoFila, 560) : altoFila) + "px");
+  document.querySelectorAll(".escena").forEach((e) => {
+    const h = e.querySelector(".hoja");
+    const disponible = e.clientWidth - 20;
+    const z = todas && ancho >= 760 ? Math.min(1, disponible / 448) : 1;
+    h.style.zoom = z;
+    h.style.maxHeight = (e.clientHeight - 32) / z + "px";
+    h.querySelector(".pie").classList.toggle("corre", h.scrollHeight > h.clientHeight + 1);
+  });
+  hojas.forEach((h) => h.actualizar());
+}
+function redibujar() {
+  rejilla.innerHTML = "";
+  const caras = carasDeLaVista();
+  hojas = caras.map((c) => crearHoja(c, estado.hoja, rejilla));
+  if (!caras.length) rejilla.innerHTML = '<p style="grid-column:1/-1;padding:40px 0;text-align:center;font-size:15px">Todavía no marcaste ninguna. En «Todas», toca «Me gusta» en las que quieras comparar.</p>';
+  medir();
+  /* Una sola: abre con el cursor en el primer campo, como el modal real (en el celular, no). */
+  if (hojas.length === 1 && innerWidth >= 760) hojas[0].control(estado.hoja === "color" ? "nombre" : "documento")?.focus({ preventScroll: true });
+  hojas.forEach((h) => h.actualizar());
+}
+function marcar(id, valor) { document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset.v === valor)); }
+function segmento(id, alElegir) { document.getElementById(id).addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) alElegir(b.dataset.v); }); }
+segmento("s-hoja", (v) => { estado.hoja = v; marcar("s-hoja", v); redibujar(); });
+segmento("s-vista", (v) => { estado.vista = v; marcar("s-vista", v); redibujar(); });
+segmento("s-tema", (v) => { document.documentElement.dataset.tema = v; marcar("s-tema", v); });
+document.getElementById("a-llenar").onclick = () => hojas.forEach((h) => h.avanzar());
+document.getElementById("a-guardar").onclick = () => hojas.forEach((h) => h.intentar(false));
+document.getElementById("a-reiniciar").onclick = () => redibujar();
+const llaves = document.getElementById("llaves");
+llaves.innerHTML = LLAVES.map((l) => `<button type="button" class="llave" data-l="${l.id}" aria-pressed="${l.on}"><i></i>${l.txt}</button>`).join("");
+llaves.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-l]");
+  if (!b) return;
+  f[b.dataset.l] = !f[b.dataset.l];
+  b.setAttribute("aria-pressed", f[b.dataset.l]);
+  hojas.forEach((h) => h.actualizar());
+});
+marcar("s-hoja", estado.hoja); marcar("s-vista", estado.vista); marcar("s-tema", "claro");
+addEventListener("resize", medir);
+document.addEventListener("pointerdown", (e) => { if (!e.target.closest?.("[data-lista],[data-combo]")) hojas.forEach((h) => h.cerrarListas()); });
+redibujar();
+document.fonts?.ready.then(medir);
+</script>
+</body>
+</html>

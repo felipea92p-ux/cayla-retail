@@ -73,7 +73,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Escanear con la cámara",
-      texto: "En el celular o la tablet no hay lector: este botón abre la cámara para leer el código de la etiqueta.",
+      texto: "En el celular o la tablet no hay lector: este botón abre la cámara para leer la etiqueta. Arriba tiene un interruptor: «Al ticket» agrega la prenda; «Existencias» solo mira y dice cuántas hay de cada talla y color, en el piso y en el almacén.",
     },
     {
       id: "sin-registrar",
@@ -81,7 +81,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Prenda sin registrar",
-      texto: "Para la prenda que todavía no está en el sistema (llegó sin etiqueta). Te pide categoría, talla, color y precio, y entra al ticket como cualquier otra; después Almacén la registra y le pone su etiqueta. Como el botón registra algo, en la demo no lo tocamos.",
+      texto: "Para la prenda que no puedes escanear. Primero dices por qué (la pistola no la lee, no tiene etiqueta, el sistema dice que no hay…); después categoría, talla y color. Si en el piso hay una igual, «Es esta» la cobra como siempre; si no, pones el precio y Almacén la registra después. En la demo no lo tocamos.",
     },
     {
       id: "ver-catalogo",
@@ -151,6 +151,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Si el cliente pidió una talla que no está y no quiere esperar, «Anotar que no había» se lo cuenta a Compras para que la reponga (en la demo no lo tocamos). «Listo» cierra la ventana y vuelves al catálogo.",
     },
     {
+      id: "dueno",
+      ancla: "vender.dueno",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "¿De quién sale?",
+      texto: "En Tienda Lima, si una prenda tiene unidades de CAYLA y de CLAURE, marca de cuál sale la que vendes (la etiqueta del colibrí es de CAYLA). Sin marcar, el cobro espera. Si solo hay de un dueño no pregunta. En la demo no se toca.",
+    },
+    {
       id: "ticket",
       ancla: "vender.ticket",
       solo: "escritorio",
@@ -181,7 +189,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Código de cupón» canjea un cupón del Club. «Dejar en espera» guarda el ticket para atender a otro; «En espera · N» muestra los guardados para retomarlos. Sobre «Cobrar» eliges quién atiende.",
+      texto: "«Aplicar descuento» abre una hoja al lado, como el cobro: eliges a qué prendas, cuánto (porcentaje o monto en soles) y por qué. «Código de cupón» canjea un cupón del Club. «Dejar en espera» guarda el ticket para atender a otro; «En espera · N» los muestra. Sobre «Cobrar» eliges quién atiende; debajo, las sin registrar.",
     },
     {
       id: "codigo-cupon",
@@ -202,12 +210,62 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Si el cliente es miembro del club, aquí ves cuántos puntos suma con lo que paga (1 por sol) y, en su mes de cumpleaños, los 100 de regalo. Se suman solos al cobrar.",
     },
     {
+      id: "responsable",
+      ancla: "vender.responsable",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Quién atiende",
+      texto: "En la terminal de la tienda, antes de cobrar eliges quién está atendiendo: la venta queda a su nombre. Solo salen las personas que marcaron su entrada hoy en esta tienda.",
+    },
+    {
       id: "cobrar",
       ancla: "vender.cobrar",
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "Cobrar",
       texto: "Abre la hoja de cobro: eliges cómo paga (efectivo, tarjeta, Yape o QR, o varios), cuánto entrega para el vuelto y si quiere boleta o factura con su DNI o RUC. Con dos máquinas de tarjeta en la tienda, marcas en cuál la pasaste (Vendemás viene marcada). Se guarda solo al confirmar. En la demo no lo tocamos.",
+    },
+    // La hoja de cobro (ADR-0389): estos pasos solo se ven con la hoja ya abierta (el asistente que acompaña una venta real
+    // la abre la cajera al tocar «Cobrar»). La demo nunca la abre: sin la hoja, los pasos opcionales se saltan solos.
+    {
+      id: "cobro-medio",
+      ancla: "vender.cobro-medio",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "¿Cómo paga?",
+      texto: "Toca cómo paga el cliente: efectivo, tarjeta, Yape o QR. Si paga con dos, toca los dos y escribe cuánto va en cada uno; el otro se queda con el resto.",
+    },
+    {
+      id: "cobro-recibe",
+      ancla: "vender.cobro-recibe",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "¿Con cuánto paga?",
+      texto: "Con efectivo, toca el billete que te entrega o escribe el monto en «Otro». Abajo ves el vuelto que le das, grande.",
+    },
+    {
+      id: "cobro-comprobante",
+      ancla: "vender.cobro-comprobante",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Boleta, factura o nota de venta",
+      texto: "Elige qué comprobante lleva el cliente. Ninguno viene marcado: sin elegir uno no se puede cobrar.",
+    },
+    {
+      id: "cobro-documento",
+      ancla: "vender.cobro-documento",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "El DNI o el RUC del cliente",
+      texto: "Para una factura escribe el RUC de la empresa. Para una boleta, el DNI es opcional: sin documento sale a «Cliente varios». Con DNI o RUC, el nombre se busca solo.",
+    },
+    {
+      id: "cobro-confirmar",
+      ancla: "vender.cobro-confirmar",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Confirmar cobro",
+      texto: "Cuando el pago está cubierto y el comprobante elegido, tú confirmas aquí y la venta se guarda. Si falta algo, el botón te dice qué. La demo no lo toca.",
     },
     {
       id: "barra-ticket",
@@ -225,6 +283,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       titulo: "Apartados",
       texto: "Para separar prendas a un cliente que vuelve después. Con prendas en el ticket, este botón se las lleva a Apartados ya cargadas.",
+    },
+    {
+      id: "danada",
+      ancla: "vender.danada",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Separé una dañada",
+      texto: "Si ves una prenda dañada en el piso, la separas aquí en el momento: eliges la prenda, la talla y qué tiene, y deja de venderse. En la demo no se toca.",
     },
     {
       id: "hoy",
@@ -297,6 +363,27 @@ export const GUIA_APARTADOS: Guia = {
       texto: "Aquí van las prendas separadas. Después pides los datos del cliente (celular para avisarle), el adelanto y cómo lo pagó. Hasta que no confirmas, no se separa nada.",
     },
     {
+      id: "descuento-apartado",
+      ancla: "apartados.descuento",
+      opcional: true,
+      titulo: "Un descuento, como en la venta",
+      texto: "Si acordaste un precio con el cliente, toca «Descuento» (o el importe de una prenda, para solo esa): en % o en soles, con su motivo y, pasado el 15 %, por qué. Lo conserva hasta que recoja y la boleta sale con ese precio. Igual al sumar prendas a un apartado ya hecho. En la demo no se aplica.",
+    },
+    {
+      id: "canal-apartado",
+      ancla: "apartados.canal",
+      opcional: true,
+      titulo: "¿Por dónde se vende?",
+      texto: "Si tu rol vende también por un canal online (TikTok), aquí eliges por cuál: la prenda sale igual de esta tienda. En un canal online preguntas cómo se entrega: recojo en tienda, o envío con la dirección y la agencia. Con solo la tienda, este bloque no aparece. En la demo no se toca.",
+    },
+    {
+      id: "dueno-apartado",
+      ancla: "apartar.dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que apartas?",
+      texto: "Si una prenda tiene unidades de CAYLA y de CLAURE en Tienda Lima, marca de cuál separas. Sin marcar, no se avanza. Si solo hay de un dueño no pregunta. En la demo no se toca.",
+    },
+    {
       id: "entregar",
       ancla: "apartados.entregar-buscador",
       opcional: true,
@@ -310,7 +397,7 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       solo: "escritorio",
       titulo: "Cobrar el saldo y entregar",
-      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si el cliente ya no la quiere, desde aquí se libera y se le devuelve el adelanto, sin gastar ningún comprobante.",
+      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si se apartó por error o el cliente ya no la quiere, «Liberar apartado» deja la prenda disponible y el adelanto queda por devolver. En la demo no se toca.",
     },
     {
       id: "todos",
@@ -318,7 +405,14 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "apartados.pestana-todos" }],
       titulo: "Todos los apartados",
-      texto: "«Necesitan algo» junta los que vencen pronto, los vencidos y los que esperan que se les devuelva el adelanto; «Por recoger», los abiertos; «Cerrados», los ya entregados o liberados. El buscador encuentra cualquiera por nombre, DNI, celular o número, y «Qué ver» elige qué datos muestra cada uno.",
+      texto: "«Necesitan algo» junta lo que vence pronto, lo vencido y lo que espera su devolución; «Por recoger», los abiertos; «Cerrados», los entregados o liberados. «Canal» (si vendes por TikTok) deja ver solo un canal. El buscador encuentra por nombre, DNI, celular o número.",
+    },
+    {
+      id: "marcar-enviado",
+      ancla: "apartados.marcar-enviado",
+      opcional: true,
+      titulo: "Marcar un envío",
+      texto: "En una venta online con envío, «Marcar enviado» deja anotado que la prenda ya salió, con la guía o la agencia si la tienes. Es solo una marca: cobrar el saldo y entregar se hace aparte, en «Entregar». En la demo no se toca.",
     },
     {
       id: "periodo",
@@ -436,6 +530,14 @@ export const GUIA_HISTORIAL: Guia = {
       texto: "Avisos de cualquier fecha, como comprobantes que todavía no llegan a SUNAT o apartados por vencer. Cada uno te lleva a la pantalla donde se resuelve, y no se van hasta que se resuelve.",
     },
     {
+      // ADR-0532: solo donde conviven CAYLA y CLAURE (Lima, o «Todas las tiendas»).
+      id: "reparto-empresas",
+      ancla: "historial.reparto-empresas",
+      opcional: true,
+      titulo: "De quién es lo vendido",
+      texto: "Cuánto de lo vendido en el período es de CAYLA y cuánto de CLAURE. Cada prenda suma a su tienda por lo que se cobró de ella; en la lista, la venta que lleva prendas de CLAURE lo dice.",
+    },
+    {
       id: "lista",
       ancla: "historial.lista",
       titulo: "Las ventas, por día",
@@ -550,7 +652,7 @@ export const GUIA_COMPROBANTES: Guia = {
       ancla: "comprobantes.lista",
       opcional: true,
       titulo: "Cada comprobante",
-      texto: "Número, cliente, monto y su estado en SUNAT. Desde cada uno se reenvía, se descarga o se anula (anular lo decide el líder).",
+      texto: "Número, cliente, monto y su estado en SUNAT. Desde cada uno se reenvía, se descarga o se anula (anular lo hace quien tiene Facturación).",
     },
     {
       id: "fin",

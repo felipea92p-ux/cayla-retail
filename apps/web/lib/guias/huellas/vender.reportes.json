@@ -1,0 +1,20 @@
+{
+  "guia": "vender.reportes",
+  "ruta": "/vender/reportes",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 4,
+  "controles": {
+    "app/(app)/vender/reportes/page.tsx": [
+      "BotonDescargar «Baja la tabla del mes que miras (por tienda o por categoría), con su total»"
+    ],
+    "components/reportes-ventas/CabeceraReportes.tsx": [
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/reportes-ventas/FiltrosReporteMes.tsx": [
+      "DesplegablePildora «Tienda»"
+    ],
+    "components/reportes-ventas/TablaCortes.tsx": [
+      "SegmentoEnlaces «(sin nombre)»"
+    ]
+  }
+}

@@ -108,11 +108,6 @@ export function nivelPorMinutos(minutos: number): NivelRecordatorio {
   return 3;
 }
 
-/** Cuánto del anillo está lleno: la primera hora después del cierre (0 → 1). */
-export function progreso(minutos: number): number {
-  return Math.max(0, Math.min(1, minutos / MINUTOS_NIVEL_3));
-}
-
 function duracion(minutos: number): string {
   const dias = Math.floor(minutos / 1440);
   if (dias >= 1) return dias === 1 ? "1 día" : `${dias} días`;

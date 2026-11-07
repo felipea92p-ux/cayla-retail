@@ -1,7 +1,7 @@
 import { parsearMonto, type Resultado } from "./gastos-reglas";
 import { TEXTO_MEDIO_COBRO, TIPOS_AUTOMATICOS, type MedioCobro, type TipoCuenta } from "./cuentas-dinero-reglas";
 
-// Configuración ▸ Cuentas y cobros ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25;
+// Configuración ▸ Dinero ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25;
 // 20260925210100_finanzas_editar_y_eliminar_cuentas.sql). Lógica pura: lee lo que dice la base de una cuenta
 // (`fn_cuenta_dinero_detalle`), cuenta en palabras quién la usa y arma lo que se manda a `editar_cuenta_dinero`. QUÉ se
 // puede cambiar lo decide la base (y lo vuelve a exigir al guardar); aquí solo se refleja.
@@ -132,7 +132,7 @@ export function cambiosDeCuenta(d: DetalleCuenta, f: FormCuenta, hoy: string): R
 
   let saldo = d.saldoInicial;
   let desde = d.saldoDesde;
-  if (d.puedeCambiarSaldo && !d.automatica) {
+  if (d.puedeCambiarSaldo) {
     const escrito = f.saldo.trim().replace(/^-/, "");
     let valor = 0;
     if (escrito !== "" && escrito !== "0") {
@@ -173,5 +173,5 @@ export function salidaDeCuenta(d: DetalleCuenta): SalidaCuenta {
   if (d.puedeEliminar) return { accion: "eliminar" };
   if (d.archivada) return { accion: "reactivar" };
   const recibe = textoRecibeHoy(d.recibe);
-  return { accion: "archivar", bloqueo: recibe ? `Hoy entra a esta cuenta: ${recibe}. Cámbialo en «A qué cuenta entra cada cobro» antes de archivarla.` : null };
+  return { accion: "archivar", bloqueo: recibe ? `Hoy se usa esta cuenta para: ${recibe}. Cámbialo en «A qué cuenta entra cada cobro» antes de archivarla.` : null };
 }

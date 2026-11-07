@@ -2,16 +2,22 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 94,
+  "total": 110,
   "controles": {
     "components/plan-compra/AvisoStock.tsx": [
-      "BotonVer «Ir a Conteo»",
-      "Boton «Ver qué falta»"
+      "BotonVer «Ir a Conteo»"
     ],
     "components/plan-compra/CampanasArchivadasModal.tsx": [
       "BotonEnlace «Ver»",
       "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «{responsable}»"
+    ],
+    "components/plan-compra/CentroDeAvisos.tsx": [
+      "Link «{a.texto}»",
+      "button «{a.tipo === \"cambiar-dias\" ? \"plan.plazo-cambiar\" : undefined}»",
+      "button «{aviso.nivel === \"pendiente\" ? \"Deja de contarlo hasta que cambie\" : undefined}»",
+      "button «{`${urgente.corto}»",
+      "button «{etiqueta}»"
     ],
     "components/plan-compra/EditarCampanaModal.tsx": [
       "CampoTexto «Nombre del plan»",
@@ -24,12 +30,31 @@
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? (cambio ? undefined : \"No cambiaste nada\")}»"
     ],
+    "components/plan-compra/EnviarACompras.tsx": [
+      "Boton «Reintentar»",
+      "Boton «Ir al paso 2»",
+      "Boton «Ir al paso 2» #2",
+      "Boton «Todos: pedir ya»",
+      "Boton «Todos: el»",
+      "Boton «Ver lo que guardó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Rectificar el envío»",
+      "BotonVer «Ver en Compras»",
+      "Boton «Cancelar»",
+      "Boton «Enviar como pendientes de campaña»",
+      "SegmentoDeslizante «{`Cuándo pedir a ${g.proveedor}»",
+      "CampoFecha «{<span className=\"sr-only\">Fecha en que pedir a {g.proveedor}»"
+    ],
     "components/plan-compra/ExportarPlan.tsx": [
       "BotonImprimir «Imprimir la lista»",
       "BotonDescargar «Descargar Excel»"
     ],
     "components/plan-compra/FilaCategoria.tsx": [
       "button «plan.categoria»"
+    ],
+    "components/plan-compra/FilaDeModelo.tsx": [
+      "button «{m.nombre}»",
+      "Boton «Usar lo que propone»"
     ],
     "components/plan-compra/FormularioCategoria.tsx": [
       "button «Usar el del catálogo: S/&nbsp;»",
@@ -56,8 +81,11 @@
       "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Limpiar filtros\"}»",
       "button «{plegadas.length}»"
     ],
+    "components/plan-compra/MarcoPlan.tsx": [
+      "Boton «Restaurar…»"
+    ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
-      "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
+      "CampoTexto «{<span className=\"sr-only\">Nombre del plan</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
       "ComboResponsable «{responsable}»",
@@ -73,28 +101,30 @@
       "Boton «Saltar por ahora»",
       "Boton «{motivo}»"
     ],
+    "components/plan-compra/PasoModelos.tsx": [
+      "Boton «Reintentar»",
+      "Boton «Usar»",
+      "Boton «Usar lo que propone»",
+      "button «Ir al paso 1»",
+      "Boton «Ver lo que guardó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{reparto.sePasa > 0 ? `Te pasaste ${reparto.sePasa}»"
+    ],
     "components/plan-compra/PestanasPlan.tsx": [
       "Pestanas «{[ { clave: \"plan\", etiqueta: \"Plan\", href: `/compras/plan${conPlan}»"
     ],
     "components/plan-compra/PlanCampana.tsx": [
-      "Boton «Armar el plan de»",
-      "Boton «Campaña nueva»",
-      "Boton «Campaña nueva» #2",
-      "Boton «Ver campañas archivadas»",
       "Boton «plan.resumen»",
       "BotonDescargar «Descargar la lista»",
       "Boton «plan.empezar»",
-      "Boton «plan.plazo-cambiar»",
-      "Boton «Restaurar…»",
       "BotonEnlace «{aviso.verResultados}»",
       "BotonEnlace «Planificar»",
       "Boton «Planificar»",
-      "Boton «Campaña nueva» #3",
-      "Link «{numeroDeOrden(o.numero)}»",
-      "Boton «→() => setEditandoRecupero(true)»",
-      "Boton «→() => setEditandoReparto(true)»"
+      "BotonEnlace «Elegir mis campañas»"
     ],
     "components/plan-compra/PlanCategoriaModal.tsx": [
+      "Pestanas «{[ { clave: \"1\", etiqueta: \"1 · Cuánto compro\"}»",
       "Boton «Cancelar»",
       "Boton «{motivo}»",
       "Boton «{motivo}» #2"
@@ -106,26 +136,20 @@
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
-    "components/plan-compra/RecuperoModal.tsx": [
-      "CampoTexto «Lo que sobra, en % del precio»",
-      "ComboResponsable «{responsable}»",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
-    ],
-    "components/plan-compra/RepartoModal.tsx": [
-      "CampoTexto «{`Mínimo de ${t.nombre}»",
+    "components/plan-compra/RectificarPedidos.tsx": [
+      "CampoSelect «¿Por qué rectificas?»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{pendientes.length > 1 ? `Rectificar los ${pendientes.length}»"
     ],
     "components/plan-compra/SelectorCampana.tsx": [
       "Desplegable «{actual ? actualId : \"\"}»"
     ],
-    "components/plan-compra/SimuladorPlan.tsx": [
-      "input «{mult}»",
-      "input «{rec}»",
-      "Link «Qué pedir, prenda por prenda, en Análisis»"
+    "components/plan-compra/SinCampana.tsx": [
+      "Boton «Armar el plan de»",
+      "BotonEnlace «Elegir mis campañas»",
+      "BotonEnlace «Ver mi calendario»",
+      "Boton «Ver campañas archivadas»"
     ],
     "components/plan-compra/TopeModal.tsx": [
       "CampoMonto «{texto}»",

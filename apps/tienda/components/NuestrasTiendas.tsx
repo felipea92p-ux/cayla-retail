@@ -40,7 +40,7 @@ export function NuestrasTiendas({
   const Nombre = enPagina ? "h2" : "h3";
   const lista =
     sedes.length > 0 ? (
-      <ul className="ay-tiendas" data-columnas={columnasDeTiendas(sedes.length)}>
+      <ul className="ay-tiendas" data-revela-lista data-columnas={columnasDeTiendas(sedes.length)}>
         {sedes.map((s) => {
           const enlace = ver?.[s.id];
           return (
@@ -152,7 +152,7 @@ export function NuestrasTiendas({
   }
   return (
     <section className="t-sec t-ancho ay-tiendas-sec" aria-labelledby={idTitulo}>
-      <div className="t-sec-cab">
+      <div className="t-sec-cab" data-revela>
         <div>
           {laCeja && <span className="t-ceja">{laCeja}</span>}
           <h2 id={idTitulo}>

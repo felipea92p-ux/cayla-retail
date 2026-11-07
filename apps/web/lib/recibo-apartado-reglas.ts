@@ -20,6 +20,8 @@ export type ComprobanteDeApartado = {
 /**
  * La boleta o factura del apartado entregado, como la imprime la térmica. Los pagos van VACÍOS a propósito: el papel dice
  * «CANCELADO» y no cómo se pagó (el adelanto es un pacto interno). El redondeo del efectivo, si lo hubo, se sigue diciendo (es ley).
+ * Una prenda con descuento sale con su P.U., su «Dscto.» y el precio acordado como importe; el motivo y el argumento de un descuento
+ * a mano (ADR-0584) son de la tienda y no se imprimen, como en el ticket de cualquier venta.
  */
 export function reciboDeApartado(a: Apartado, comprobante: ComprobanteDeApartado, sede: string, redondeo = 0): ReciboVenta {
   return armarRecibo({

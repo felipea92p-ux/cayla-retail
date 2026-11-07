@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentProps } from "react";
 import { useRouter } from "next/navigation";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
+import { estabaEnCerrar, recordarEnCerrar } from "@/lib/recepcion-cierre-borrador";
+import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
-import { TEXTO_LA_RECIBE_OTRA, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
+import type { BorradorTallas, ModoDeTallas } from "@/lib/recepcion-tallas-reglas";
+import { TEXTO_COMPRASTE_Y_LO_RECIBES, TEXTO_LA_RECIBE_OTRA, TEXTO_LO_RECIBIO_QUIEN_COMPRO, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import {
   argsGuardarConteo,
   claveDe,
@@ -17,29 +20,31 @@ import {
   insigniaDelEnvio,
   lineasParaContar,
   paraDespues,
-  resumenDelCierre,
-  subtitulosDelRiel,
   textoPisaste,
   type ClaveLinea,
+  type DecisionCierre,
   type ConteoDeLinea,
   type ConteosDelEnvio,
   type LineaParaContar,
   type Separado,
   mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
-import { guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
+import { agregarFotoPapel, guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
+import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
 import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
 import { ContarEnvio } from "./ContarEnvio";
+import { CancelarRecepcion } from "./CancelarRecepcion";
+import { CorregirProveedor } from "./CorregirProveedor";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
-import { PreguntaDeLaCompra } from "./PreguntaDeLaCompra";
-import { siguienteAnotada } from "@/lib/recibir-papel-reglas";
-import { PasosConteo } from "@/components/conteo/PasosConteo";
+import { Trayecto } from "@/components/recepcion-envio/Trayecto";
+import { etapaDelEnvio } from "@/lib/trayecto-envio-reglas";
 
 // «Recibir ENV-000061» contando primero (ADR-0393, la cara A; maqueta `docs/maquetas/recibir-fardo-2026-10/a-camino.html`). Tres pasos:
 // ¿Qué llegó? (en camino: «Empezar a recibir»), Contar (por categoría: un número por línea y, si se quiere, qué prendas son) y Cerrar (lo que
@@ -56,15 +61,7 @@ export type EstadoGuardado = "guardando" | "guardado" | "error";
 const ESPERA_GUARDAR_MS = 700;
 
 type Paso = 1 | 2 | 3;
-// El mismo indicador del conteo de inventario (una función, una pieza: ADR-0358), en su forma «riel» (la maqueta A): tres paradas a lo
-// ancho con lo que pasó en cada una. Con el envío abierto, «Contar» y «Cerrar» se tocan para ir y volver.
-// Solo dos paradas: lo que antes era «¿Qué llegó?» ahora es la hoja «Detalle» de la lista de Recibir (Felipe 2026-10-24); un paso que ya no
-// se recorre aquí confundiría («¿me salté uno?»). Las claves siguen siendo «2» y «3».
-const PASOS = [
-  { clave: "2", nombre: "Contar" },
-  { clave: "3", nombre: "Cerrar" },
-] as const;
-
+const sinCambios = () => () => {};
 /** Una copia del registro sin esa clave (lo guardado deja de ser borrador o error). */
 function sinClave<T>(r: Readonly<Record<string, T>>, clave: string): Record<string, T> {
   const copia = { ...r };
@@ -81,6 +78,7 @@ export function RecibirContando({
   lotes,
   veExistencias,
   veDinero,
+  soloSede = false,
   proveedoresParaElegir = [],
   papeles = [],
 }: {
@@ -91,16 +89,21 @@ export function RecibirContando({
   catalogo: CatalogoParaRecibir | null;
   lotes: string[];
   veExistencias: boolean;
-  /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
+  /** Ve el dinero de Compras: decide «Corregir proveedor». El costo de lo que se recibe ya no depende de esto (`poneCosto`, 20261107194000). */
   veDinero: boolean;
+  /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
+  soloSede?: boolean;
   /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
   proveedoresParaElegir?: readonly { id: string; nombre: string }[];
   /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
   papeles?: ComponentProps<typeof PapelesDeLaCompra>["papeles"];
 }) {
   const router = useRouter();
-  const responsable = useResponsable();
+  // Se recuerda por envío: en una terminal se vaciaba tras cada guardado, y contar modelo por modelo volvía a pedirlo a cada toque.
+  const responsable = useResponsable(undefined, { recordarEn: claveResponsableRecepcion(detalle.id) });
   const [apertura, setApertura] = useState<ResultadoApertura | null>(null);
+  const [cancelando, setCancelando] = useState(false);
+  const [corrigiendo, setCorrigiendo] = useState(false);
   // Lo guardado en esta visita, más nuevo que lo que leyó la página: gana la versión más alta.
   const [locales, setLocales] = useState<Record<string, ConteoDeLinea>>({});
   // Lo que se lee de nuevo de la base (después de cerrar, reabrir o «Hacer ahora»), sin esperar a que la página recargue.
@@ -108,7 +111,18 @@ export function RecibirContando({
   const [borradores, setBorradores] = useState<Record<string, Borrador>>({});
   const [guardados, setGuardados] = useState<Record<string, EstadoGuardado>>({});
   const [errores, setErrores] = useState<Record<string, string>>({});
-  const [paso, setPaso] = useState<Paso>(detalle.estado === "en_camino" ? 1 : 2);
+  // Se recargó la página estando en Cerrar: se vuelve ahí (solo el navegador lo sabe: en el primer dibujo manda lo de siempre).
+  const seguiaEnCerrar = useSyncExternalStore(sinCambios, () => estabaEnCerrar(detalle.id), () => false);
+  const [pasoElegido, setPaso] = useState<Paso | null>(null);
+  const paso: Paso = pasoElegido ?? (seguiaEnCerrar ? 3 : detalle.estado === "en_camino" ? 1 : 2);
+  // «Contarla», desde Cerrar: la línea a la que se vuelve, y lo que ya se había decidido, para no perderlo al ir y volver.
+  const [volverA, setVolverA] = useState<ClaveLinea | null>(null);
+  const [decisionesCierre, setDecisionesCierre] = useState<Readonly<Record<string, DecisionCierre>> | null>(null);
+  // Lo que se estaba contando: Contar se desmonta al ir a Cerrar, y al volver sigue ahí.
+  const [focoAlVolver, setFocoAlVolver] = useState<string | null>(null);
+  // De cada modelo: «solo la cantidad» o «tallas y colores ahora», y lo escrito en su tabla. Aquí y no en Contar: ir a Cerrar y volver no lo borra.
+  const [modos, setModos] = useState<Readonly<Record<string, ModoDeTallas>>>({});
+  const [tablas, setTablas] = useState<Readonly<Record<string, BorradorTallas>>>({});
   // Las prendas que ya se buscaron (con sus tallas y colores): la hoja de tallas las necesita.
   const [prendas, setPrendas] = useState<ReadonlyMap<string, PrendaRecepcion>>(() => new Map());
   const recordarPrenda = useCallback((p: PrendaRecepcion) => setPrendas((m) => (m.get(p.productoId) === p ? m : new Map(m).set(p.productoId, p))), []);
@@ -153,6 +167,7 @@ export function RecibirContando({
           contadas: b.contadas,
           separado: b.separado,
           costoUnitario: null,
+          costosPrendas: {},
           version: 0,
           contadoPor: null,
           contadoEn: null,
@@ -164,8 +179,6 @@ export function RecibirContando({
     });
   }, [detalle, conteos, borradores]);
   const cifras = cifrasDelEnvio(lineas);
-  // Lo anotado que se dejó para después con «Es otra prenda» (rediseño de Compras simple): se cuenta a mano en el contador.
-  const [saltadas, setSaltadas] = useState<ReadonlySet<string>>(() => new Set());
 
   /** Guarda una línea en la base con lo último que se escribió. */
   const guardar = useCallback(
@@ -179,7 +192,7 @@ export function RecibirContando({
       responsable.despues(error);
       if (error || !guardado) {
         setGuardados((g) => ({ ...g, [linea.clave]: "error" }));
-        setErrores((e) => ({ ...e, [linea.clave]: mensajeAlGuardar(error, "guardar lo contado") }));
+        setErrores((e) => ({ ...e, [linea.clave]: mensajeAlGuardar(error, "guardar lo contado").replace("«Responsable»", "«Quién cuenta»") }));
         return null;
       }
       const clave = claveDe(guardado.conteo);
@@ -228,10 +241,28 @@ export function RecibirContando({
   }, []);
 
   const pendientesDeGuardar = Object.keys(borradores).length > 0;
+  // Lo repartido que todavía no cuadra espera en la pantalla: la base solo guarda tallas que suman lo contado.
+  const tablaSinCuadrar = Object.entries(tablas).some(([clave, t]) => t.sinGuardar && modos[clave] !== "despues");
   const avisoSalida = useSalidaSinGuardar(
-    pendientesDeGuardar,
-    "Lo último que contaste todavía se está guardando. Espera un segundo: si sales ahora, ese número se pierde (lo demás ya quedó guardado).",
+    pendientesDeGuardar || tablaSinCuadrar,
+    pendientesDeGuardar
+      ? "Lo último que contaste todavía se está guardando. Espera un segundo: si sales ahora, ese número se pierde (lo demás ya quedó guardado)."
+      : "Tienes tallas y colores sin cuadrar con lo contado. Si sales ahora, lo que repartiste se pierde (lo contado ya quedó guardado).",
   );
+
+  /** Vuelve a mandar lo que no se pudo guardar: al tocar «Volver a guardar» y al volver la conexión. */
+  const lineasConError = lineas.filter((l) => errores[l.clave] && borradores[l.clave]);
+  const reintentar = useRef<() => void>(() => {});
+  useEffect(() => {
+    reintentar.current = () => {
+      for (const l of lineasConError) void guardar(l, borradores[l.clave]);
+    };
+  });
+  useEffect(() => {
+    const alVolver = () => reintentar.current();
+    window.addEventListener("online", alVolver);
+    return () => window.removeEventListener("online", alVolver);
+  }, []);
 
   /** Vuelve a leer lo contado (después de cerrar, reabrir o «Hacer ahora») y la página. */
   const releer = useCallback(async () => {
@@ -242,6 +273,30 @@ export function RecibirContando({
     }
     router.refresh();
   }, [detalle.id, router]);
+
+  /** Sube la foto de un papel que llegó sin ella y se la pone a la compra. Devuelve por qué no se pudo, o `null` si quedó. */
+  const subirFotoDelPapel = useCallback(
+    async (papelId: string, archivo: File): Promise<string | null> => {
+      const subida = await subirFotoPapel(archivo);
+      if (!subida.ruta) return subida.motivo ?? "No se pudo subir la foto.";
+      const { error } = await agregarFotoPapel({ p_despacho_id: detalle.id, p_papel_id: papelId, p_foto_ruta: subida.ruta }, responsable.firma());
+      responsable.despues(error);
+      if (error) return mensajeAlGuardar(error, "subir la foto del papel");
+      avisar.exito("Subiste la foto del papel");
+      router.refresh();
+      return null;
+    },
+    [detalle.id, responsable, router],
+  );
+
+  // Entre Contar y Cerrar cambia la VISTA: Cerrar es largo y Contar llena la ventana. Sin esto, al volver se veía una pantalla vacía hasta subir (prueba ciega, 2026-11-02).
+  const pasoVisto = useRef(paso);
+  useLayoutEffect(() => {
+    if (pasoVisto.current === paso) return;
+    pasoVisto.current = paso;
+    soltarPaginaEstable();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [paso]);
 
   // Cerrar cambia la VISTA (de contar a «cerrado»): se suelta <PaginaEstable> (ADR-0185) y la vista va arriba.
   const [recienCerrado, setRecienCerrado] = useState(false);
@@ -254,32 +309,63 @@ export function RecibirContando({
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
   const conPapel = papeles.length > 0 && (porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe;
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
-  // La frase de la maqueta, la misma en los tres pasos (de qué envío se trata lo dicen el riel y su tarjeta).
+  // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y sin nada en el stock (también reabierto: lo que frena es el stock). Uno de Compras o uno cerrado no lo ofrecen.
+  const sePuedeCancelar = estado === "abierto" && sinAviso && lineas.every((l) => (l.conteo?.enStock ?? 0) === 0) && !otraSede && !noLoRecibe;
+  // Corregir de quién llegó: sin aviso, ya con proveedor, y solo quien ve el dinero de Compras.
+  // Corregir es para un envío de UN proveedor (Felipe 2026-11-07): con varios, cada marca ya tiene el suyo y no hay un «proveedor del envío» que cambiar.
+  const proveedorActual = sinAviso && base?.proveedores.length === 1 ? base.proveedores[0] : null;
+  const sePuedeCorregirProveedor = !!proveedorActual && veDinero && (estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe;
+  // El costo de lo que se recibe lo pone quien recibe, también una terminal (Felipe 2026-11-07: «el costo y el precio siempre deben salir juntos, incluso en las
+  // cuentas de terminales»; 20261107194000). Las piezas de abajo lo reciben como `veDinero`, que ahí solo decide el costo; «Corregir proveedor», arriba, sigue
+  // siendo de quien ve el dinero de Compras.
+  const poneCosto = true;
+  const accionesDelEnvio = [
+    ...(sePuedeCorregirProveedor ? [{ clave: "proveedor", etiqueta: "Corregir el proveedor", onSelect: () => setCorrigiendo(true) }] : []),
+    ...(sePuedeCancelar ? [{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }] : []),
+  ];
+  // Al contar, las fotos van en el resumen; al cerrar y ya cerrado, en la cabecera.
+  const contando = estado === "abierto" && paso !== 3;
+  const conPapelArriba = conPapel && !contando;
+  // La frase de la maqueta, la misma en los tres pasos.
   const frase =
     estado === "anulado"
       ? "Este envío se anuló: ya no llega."
       : otraSede || noLoRecibe
         ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
-        : "Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
-  // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. El número del envío y lo que se
-  // lleva contado van en el riel y en la balanza.
+        : "Abre un fardo y cuenta cuántas llegaron de cada modelo. Elige la categoría en la lista y toca el modelo que tienes en la mano.";
+  // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. Lo que se lleva contado va en el resumen.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
   const insignia = insigniaDelEnvio(estado, pendientesDelEnvio);
-  const subtitulos = subtitulosDelRiel({
-    estado,
-    numero: detalle.numero,
-    enviado: detalle.enviado,
-    sinAviso,
-    proveedor: base?.proveedorPorConfirmar ? "proveedor por confirmar" : (base?.proveedores[0]?.nombre ?? null),
-    contadas: cifras.contadas,
-    paraDespues: resumenDelCierre(lineas).guardadas,
-  });
+  // El Trayecto (rediseño «B», Felipe 2026-10-29) reemplaza al chip de estado; un envío anulado no tiene camino y sigue con su chip.
+  const etapaDelCamino = etapaDelEnvio(estado, { pendientes: pendientesDelEnvio, contadas: estado === "abierto" ? cifras.contadas : undefined, dijeron: cifras.dijeron });
+  // Al contar, «148 de 8,412» ya lo dice el resumen de la derecha (Felipe 2026-11-03). El camino sigue llenándose con su color.
+  const etapa = etapaDelCamino && contando ? { ...etapaDelCamino, detalle: null } : etapaDelCamino;
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería" subtitulo={frase} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
-        <div className="anim-sube" style={{ "--i": 1 } as React.CSSProperties}>
-          <Chip tono={insignia.tono}>{insignia.texto}</Chip>
+      <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería"
+        subtitulo={frase}
+        detalle={detalle.numero}
+        volver={<Volver href="/recibir" a="Recibir mercadería" />}
+      >
+        {/* En la fila del título, para no gastar una fila propia (Felipe 2026-11-02): en qué va el envío, con sus cinco paradas, y las fotos si no están en el resumen. */}
+        <div
+          className={`anim-sube flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-3 sm:justify-end ${etapa ? (conPapelArriba ? "grow basis-[29.5rem]" : "grow basis-[20rem] sm:max-w-[28rem]") : ""}`}
+          style={{ "--i": 1 } as React.CSSProperties}
+        >
+          {conPapelArriba && <PapelesDeLaCompra papeles={papeles} alSubirFoto={subirFotoDelPapel} />}
+          {etapa ? (
+            // Con el botón al lado, el Trayecto toma lo que quede: bajo 22 rem sus nombres se tocan en la última etapa.
+            <div className={conPapelArriba ? "min-w-[min(20rem,100%)] max-w-[28rem] flex-1" : accionesDelEnvio.length > 0 ? "min-w-[min(18rem,100%)] flex-1" : "w-full"}>
+              <div className="rc-tray-cabecera">
+                <Trayecto etapa={etapa} />
+              </div>
+            </div>
+          ) : (
+            <Chip tono={insignia.tono}>{insignia.texto}</Chip>
+          )}
+          {/* Cancelar es raro y no se deshace: va a la derecha de la cabecera, como un «⋯» (no un «Más» suelto bajo el título), y su lista se abre bajo el botón. */}
+          {accionesDelEnvio.length > 0 && <MenuAcciones etiqueta="Más acciones de este envío" guia="recepcion.cancelar" redondo items={accionesDelEnvio} />}
         </div>
       </EncabezadoPagina>
 
@@ -297,7 +383,8 @@ export function RecibirContando({
             </Aviso>
           ) : (
             <Aviso tono="atencion" guia="recepcion.quien-compro" titulo={TEXTO_LA_RECIBE_OTRA}>
-              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder: contar es certificar lo que llegó. Pídele a otra persona de la tienda que lo haga.
+              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder (solo un Admin recibe lo que él mismo compró): contar es certificar lo que llegó.
+              Pídele a otra persona de la tienda que lo haga.
             </Aviso>
           )}
           {detalle.lineas.length > 0 && (
@@ -309,35 +396,16 @@ export function RecibirContando({
         </>
       )}
 
-      {(estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe && (
-        <PasosConteo
-          forma="riel"
-          actual={String(estado === "cerrado" ? 3 : paso)}
-          pasos={PASOS}
-          subtitulos={subtitulos}
-          etiqueta="Pasos de la recepción"
-          onIr={
-            estado === "abierto"
-              ? (clave) => {
-                  if (clave === "2" || clave === "3") setPaso(Number(clave) as Paso);
-                }
-              : undefined
-          }
-        />
+      {/* ADR-0517: un Admin sí recibe lo que él mismo compró. Antes de contar se le avisa; ya cerrado, lo ve cualquiera que mire el envío. */}
+      {porRecibir && !otraSede && !noLoRecibe && detalle.comproQuienMira && (
+        <Aviso tono="info" titulo={TEXTO_COMPRASTE_Y_LO_RECIBES}>
+          Al cerrar el conteo queda anotado que lo recibió quien hizo la compra, y quien revise las compras lo verá.
+        </Aviso>
       )}
-
-      {/* Con el papel de una compra anotada desde el celular, el papel va en una columna fija a la izquierda mientras se cuenta (maqueta
-          compras-formidable-2026-10); sin papeles, todo sigue a lo ancho. */}
-      <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[21.25rem_minmax(0,1fr)]" : "space-y-6"}>
-      {conPapel && (
-        <div className="xl:sticky xl:top-4">
-          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas, saltadas)?.clave ?? null) : null} />
-        </div>
-      )}
-      <div className={conPapel ? "min-w-0 space-y-6" : "space-y-6"}>
-
-      {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && conPapel && (
-        <PreguntaDeLaCompra lineas={lineas} saltadas={saltadas} onEscribir={escribir} onSaltar={(c) => setSaltadas((s) => new Set(s).add(c))} />
+      {estado === "cerrado" && detalle.recibioQuienCompro && (
+        <Aviso tono="atencion" titulo={TEXTO_LO_RECIBIO_QUIEN_COMPRO}>
+          La misma persona hizo la compra y cerró el conteo (un Admin puede recibir lo que él mismo compró), así que nadie más contó esta mercadería.
+        </Aviso>
       )}
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
@@ -356,6 +424,11 @@ export function RecibirContando({
 
       {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && (
         <ContarEnvio
+          onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
+          veDinero={poneCosto}
+          veExistencias={veExistencias}
+          esperandoGuardar={pendientesDeGuardar}
+          onSalida={() => void releer()}
           detalle={detalle}
           lineas={lineas}
           conteos={conteos}
@@ -367,14 +440,29 @@ export function RecibirContando({
           guardados={guardados}
           errores={errores}
           prendas={prendas}
+          papeles={conPapel ? papeles : []}
+          alSubirFoto={subirFotoDelPapel}
           onPrendaVista={recordarPrenda}
           onEscribir={escribir}
+          sinGuardar={lineasConError.length}
+          onReintentar={() => reintentar.current()}
+          modos={modos}
+          onModos={setModos}
+          tablas={tablas}
+          onTablas={setTablas}
           onAgregar={async (nuevo) => {
             const linea: LineaParaContar = { clave: "extra:0", linea: null, conteo: null, categoria: null, marca: null, proveedor: null, dijeron: null };
-            const c = await guardar(linea, { contadas: 0, separado: { prendas: [], nuevas: [] } }, nuevo);
+            const { separado, ...donde } = nuevo;
+            const c = await guardar(linea, { contadas: 0, separado: separado ?? { prendas: [], nuevas: [] } }, donde);
             return c ? claveDe(c) : null;
           }}
-          onCerrar={() => setPaso(3)}
+          onCerrar={() => {
+            recordarEnCerrar(detalle.id, true);
+            setPaso(3);
+          }}
+          lineaInicial={volverA}
+          focoPrevio={focoAlVolver}
+          onFoco={setFocoAlVolver}
         />
       )}
 
@@ -385,15 +473,25 @@ export function RecibirContando({
           lineas={lineas}
           sinAviso={sinAviso}
           reabierto={reabierto}
+          generacion={base?.cierres.length ?? 0}
           sede={sedeActual.etiqueta}
           responsable={responsable}
-          veDinero={veDinero}
-          proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
+          veDinero={poneCosto}
+          soloSede={soloSede}
           proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}
-          onVolver={() => setPaso(2)}
+          onVolver={(clave, decisiones) => {
+            setVolverA(clave ?? null);
+            setDecisionesCierre(decisiones);
+            recordarEnCerrar(detalle.id, false);
+            setPaso(2);
+          }}
+          decisionesPrevias={decisionesCierre}
+          sinGuardar={lineasConError.length}
+          onReintentarGuardado={() => reintentar.current()}
           onConteoCambiado={() => void releer()}
           onCerrado={() => {
+            recordarEnCerrar(detalle.id, false);
             setRecienCerrado(true);
             void avisoSalida.retirarYa().then(() => releer());
           }}
@@ -410,19 +508,46 @@ export function RecibirContando({
           veExistencias={veExistencias}
           responsable={responsable}
           prendas={prendas}
+          soloSede={soloSede}
+          sinAviso={sinAviso}
+          veDinero={poneCosto}
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {
+            recordarEnCerrar(detalle.id, false);
             setPaso(2);
             void releer();
           }}
         />
       )}
 
-      </div>
-      </div>
-
       {avisoSalida.aviso}
+      {corrigiendo && proveedorActual && (
+        <CorregirProveedor
+          detalle={detalle}
+          actual={proveedorActual}
+          proveedores={proveedoresParaElegir}
+          responsable={responsable}
+          onCorregido={() => {
+            setCorrigiendo(false);
+            router.refresh();
+            void releer();
+          }}
+          onCerrar={() => setCorrigiendo(false)}
+        />
+      )}
+      {cancelando && (
+        <CancelarRecepcion
+          detalle={{ ...detalle, version }}
+          contadas={cifras.contadas}
+          responsable={responsable}
+          onCancelado={() => {
+            setCancelando(false);
+            router.push("/recibir");
+          }}
+          onCerrar={() => setCancelando(false)}
+        />
+      )}
     </div>
   );
 }

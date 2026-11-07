@@ -254,7 +254,7 @@ export function LiquidacionPantalla({
                   {/* Lo que la reconoce arriba y la categoría debajo; sin descripción, la categoría sola (/formidable, H7). */}
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-tinta" data-guia="liquidacion.prenda">{p.descripcion ?? p.categoria}</span>
-                    {p.descripcion && <span className="block truncate text-[12px] text-taupe">{p.categoria}</span>}
+                    {p.descripcion && <span className="block truncate text-sm text-taupe">{p.categoria}</span>}
                   </span>
                 </span>
                 <span className="hidden font-mono text-[13px] text-taupe lg:block">{p.codigo ?? "—"}</span>
@@ -262,9 +262,9 @@ export function LiquidacionPantalla({
                     a 800 px (/chaos, 2026-10-10). */}
                 <span className="flex flex-col items-end tabular-nums text-tinta">
                   <span className="whitespace-nowrap">S/&nbsp;{soles(p.precio)}</span>
-                  {p.precioInicial > p.precio && <span className="liq-tachado text-[12px] leading-tight">S/&nbsp;{soles(p.precioInicial)}</span>}
+                  {p.precioInicial > p.precio && <span className="liq-tachado text-sm leading-tight">S/&nbsp;{soles(p.precioInicial)}</span>}
                 </span>
-                <span className="text-[13px] text-taupe">
+                <span className="text-sm text-taupe">
                   {p.estado === "disponible"
                     ? tiempoALaVenta(diasALaVenta(p, hoy))
                     : (diaLima(p.estado === "vendida" ? p.vendidaEn : p.retiradaEn) ?? "—")}
@@ -280,10 +280,10 @@ export function LiquidacionPantalla({
         )}
       </section>
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="liquidacion.nota">
+      <div className="nota-cayla space-y-2 text-sm" data-guia="liquidacion.nota">
         {/* Solo lo que no dice la cabecera (/formidable, ley 8). */}
         <p>
-          La caja la cobra escaneando su etiqueta, <b>al precio que dice y sin descuentos</b>. Es venta final: no tiene cambio ni devolución.
+          Se cobra al escanear su etiqueta, <b>sin descuentos</b>. Venta final: sin cambio ni devolución.
         </p>
         <PrecioMinimoLiquidacion minimo={minimo} esLider={esLider} />
       </div>

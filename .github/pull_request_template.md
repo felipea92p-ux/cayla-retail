@@ -25,6 +25,9 @@
 - [ ] Si agrega, quita o cambia un botón, un campo o una pestaña de una pantalla: **su guía interactiva está al día** (`/guia`; CLAUDE.md
   «Guías interactivas», ADR-0389): explica lo nuevo con su `data-guia`, ya no menciona lo que se fue, `guias:recorrer` en verde (la demo
   no escribe en la base) y recién ahí la huella aceptada (`guias:huella <id>`). Una pantalla nueva trae su guía o dice por qué no aplica.
+- [ ] Si toca `apps/web/app/estilos/vidrio/`, `apps/web/components/ui/` o `docs/familia/contrato.json`: **el cuerpo dice qué le cambia a Dynamic**
+  (CLAUDE.md «Los dos sistemas», ADR-0516): «llega solo» (`recetas.css`, `contrato.json`) o «queda como tarea allá» (lo demás), con las piezas,
+  y qué tendrá que hacerse a mano si cambia cómo funciona una pieza. Se le dijo a Felipe.
 
 ## SQL para producción
 

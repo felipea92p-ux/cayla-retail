@@ -22,6 +22,16 @@ test("la batería tiene forma: ids únicos, gravedad 1 o 2, SQL de solo lectura 
   }
 });
 
+// Lo encontró /chaos el 2026-10-30, sobre «Nuevo avío»: ADR-0580 hizo que el disparador compusiera el nombre de cada color
+// como «<ficha> <medida> · <color>» («Botón nácar 18 L · Negro»), pero INV-24 seguía exigiendo «<ficha> · <color>». Resultado:
+// gritaba en TODOS los avíos con medida —que son casi todos— y un descuadre de verdad quedaba indistinguible del ruido.
+test("la invariante del nombre compuesto cuenta la MEDIDA: si no, todo avío con medida es un falso positivo (ADR-0580)", () => {
+  const inv = INVARIANTES.find((i) => i.id === "INV-24");
+  assert.ok(inv, "INV-24 existe");
+  assert.match(inv.sql, /fn_medida_texto/, "INV-24 compara el nombre sin contar la medida: todo avío con medida saldría violado");
+  assert.match(inv.dice, /medida/i, "INV-24 no cuenta en su texto que la medida entra en el nombre");
+});
+
 test("una sospecha lo dice en su texto: no se la puede confundir con un estado imposible", () => {
   for (const i of INVARIANTES.filter((x) => x.nivel === "sospecha")) assert.match(i.dice, /^SOSPECHA/, i.id);
   for (const i of INVARIANTES.filter((x) => x.nivel === "cruzada")) assert.doesNotMatch(i.dice, /^SOSPECHA/, i.id);

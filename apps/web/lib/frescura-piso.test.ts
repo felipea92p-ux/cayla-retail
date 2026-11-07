@@ -4,7 +4,6 @@ import { analizarSede, inicioDelMesLima, lecturaAl, type EstadoFrescura, type Fr
 import {
   avisoDeLaPuerta,
   CAUSAS_SIN_SABER,
-  conteoDeFamilia,
   conteoDeTodo,
   conteoVacio,
   pasoDeLaPuerta,
@@ -417,17 +416,6 @@ describe("pisoAnterior: el piso de hace 4 semanas", () => {
 
   it("si la lectura no llega tan atrás, no hay con qué comparar", () => {
     expect(pisoAnterior({ ...lecturaDosMeses(), desde: ts(100) })).toBeNull();
-  });
-
-  it("conteoDeFamilia junta las categorías de la misma familia, con la misma regla que la barra", () => {
-    const anterior = { fecha: ts(92), porCategoria: [
-      { categoriaId: "polos", unidades: { ...conteoVacio(), fresca: 3 } },
-      { categoriaId: "anillos", unidades: { ...conteoVacio(), sin_saber: 5 } },
-    ] };
-    const o = { familiaDe: (c: string) => (c === "polos" ? "indumentaria" : "bisuteria"), familias: [{ codigo: "indumentaria", nombre: "Indumentaria", orden: 10 }] };
-    expect(conteoDeFamilia(anterior, "indumentaria", o).fresca).toBe(3);
-    // Bisutería no está en el catálogo leído: va en «Otras» (null), como en la barra de hoy.
-    expect(conteoDeFamilia(anterior, null, o).sin_saber).toBe(5);
   });
 });
 

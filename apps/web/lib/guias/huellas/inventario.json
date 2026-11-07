@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 192,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -42,7 +42,8 @@
     ],
     "components/ExistenciasTarjetas.tsx": [
       "button «{`${lectura}»",
-      "button «{`${h.color ?? \"Sin color\"}»"
+      "button «{`${h.color ?? \"Sin color\"}»",
+      "button «existencias.mas-colores»"
     ],
     "components/ExistenciasVacio.tsx": [
       "Link «{`Ver «${producto.referencia}»",
@@ -92,20 +93,38 @@
     ],
     "components/ResolverDanadosModal.tsx": [
       "ComboResponsable «{responsable}»",
+      "CampoTexto «{guia.etiqueta(\"lugar\", \"¿Dónde dejan las prendas dañadas?\")}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "button «{lugar ? \"Cambiar\" : \"Marcar el lugar\"}»",
+      "a «{textoVerFotos(1)}»",
+      "a «Foto»",
       "CampoTexto «Nota (opcional)»",
+      "Boton «{responsable.motivo ?? \"Anota que la prenda sale de la tienda a arreglarse\"}»",
+      "Boton «{responsable.motivo ?? \"Volvió de arreglarse, pero no se pudo arreglar\"}»",
       "Boton «{responsable.motivo ?? \"Vuelve al almacén de la tienda\"}»",
       "Boton «{responsable.motivo ?? `Vuelve a ${p.devolucion.proveedor}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}» #2",
-      "CampoTexto «{guia.etiqueta(\"arreglo\", \"¿Qué se arregló?\")}»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
-      "CampoTexto «{guia.etiqueta(\"devolucion\", \"Nota\")}»",
+      "CampoSelect «{guia.etiqueta(\"ruta\", \"¿Quién la arregla?\")}»",
+      "CampoTexto «{guia.etiqueta(\"nota\", \"¿Con quién va? (opcional)\")}»",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
+      "CampoTexto «{guia.etiqueta(\"motivo\", \"¿Por qué no se pudo? (opcional)\")}»",
+      "Boton «Cancelar» #3",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #3",
+      "CampoTexto «{guia.etiqueta(\"arreglo\", \"¿Qué se arregló?\")}»",
+      "CampoSelect «{guia.etiqueta(\"destino\", \"¿A dónde vuelve?\")}»",
+      "CampoMonto «{guia.etiqueta(\"costo\", \"¿Cuánto costó el arreglo? (opcional)\")}»",
+      "CampoSelect «{guia.etiqueta(\"medio\", \"¿Cómo se pagó?\")}»",
+      "Boton «Cancelar» #4",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #4",
+      "CampoTexto «{guia.etiqueta(\"devolucion\", \"Nota\")}»",
+      "Boton «Cancelar» #5",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #5",
       "CampoMonto «0.00»",
       "CampoSelect «{guia.etiqueta(\"metodo\", \"Forma de pago\")}»",
-      "Boton «Cancelar» #3",
+      "Boton «Cancelar» #6",
       "Boton «{responsable.motivo ?? undefined}» #3"
     ],
     "components/ResumenStockOverlay.tsx": [
@@ -127,21 +146,25 @@
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
       "ComboResponsable «{control}»",
+      "ComboResponsable «{control}» #2",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
       "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
-      "button «Cancelar»",
-      "button «Elegir»"
+      "Boton «{(!enLinea || existe.bloquea ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
     ],
     "components/existencias/AjusteDelModelo.tsx": [
       "button «existencias.cajon-ajustar»",
       "Volver «→onVolver»",
       "button «→() => elegirLugar(u)»",
-      "button «{cerrado ?? x.ayuda}»",
+      "Desplegable «{control.motivo}»",
       "CampoTexto «{m.nota.etiqueta}»",
       "Boton «{control.problema ? (guia.frase ?? undefined) : undefined}»",
       "Boton «Descartar y pasar»",
@@ -149,7 +172,7 @@
       "button «Reintentar»",
       "ComboResponsable «{control.responsable}»",
       "Boton «{n > 0 ? \"Descartar\" : \"Cancelar\"}»",
-      "Boton «{problema ? (guia.frase ?? undefined) : undefined}»",
+      "Boton «{problema || control.faltaDueno ? (guia.frase ?? undefined) : undefined}»",
       "Boton «Más tarde»",
       "BotonImprimir «Imprimir»"
     ],
@@ -158,6 +181,9 @@
     ],
     "components/existencias/BotonAjustarStock.tsx": [
       "BotonEditar «Ajustar stock»"
+    ],
+    "components/existencias/BuscarPrendaParaAjustar.tsx": [
+      "button «Escanear etiqueta con la cámara»"
     ],
     "components/existencias/FiltrosRapidos.tsx": [
       "button «{rotulo}»"
@@ -178,8 +204,10 @@
       "input «Nombres»",
       "input «Apellidos»",
       "input «Celular»",
-      "button «{x}»",
-      "textarea «O escríbelo aquí»",
+      "button «{x.etiqueta}»",
+      "textarea «{pistaDeNota(d.tipoDano)}»",
+      "input «(sin nombre)»",
+      "button «Quitar»",
       "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Volver «→atras»",
@@ -213,6 +241,14 @@
       "button «existencias.colgar»",
       "button «existencias.mas»",
       "button «{o.clave === \"ficha\" ? \"existencias.ver-ficha\" : undefined}»"
+    ],
+    "components/existencias/ValorInventarioExistencias.tsx": [
+      "button «Ver el valor a costo»",
+      "button «Ocultar»",
+      "button «Ocultar la lista»",
+      "button «→verCuales»",
+      "button «→() => setPorQue((v) => !v)»",
+      "Link «Poner costo»"
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [
       "button «Más tarde»",

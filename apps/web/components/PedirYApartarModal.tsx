@@ -184,7 +184,7 @@ export function PedirYApartarModal({
                 className={`${campoTexto} font-mono`}
                 disabled={enviando}
               />
-              {celular.trim() !== "" && !celularValido(celular) && <span className="mt-0.5 block text-xs text-tinta/70">9 dígitos y empieza en 9.</span>}
+              {celular.trim() !== "" && !celularValido(celular) && <span className="mt-0.5 block text-sm text-tinta/70">9 dígitos y empieza en 9.</span>}
             </label>
           </CampoGuiado>
           <CampoGuiado id="nota" guia={guia}>
@@ -194,7 +194,7 @@ export function PedirYApartarModal({
             </label>
           </CampoGuiado>
 
-          <ol className="list-decimal space-y-1 rounded-xl bg-hueso px-8 py-3 text-xs text-tinta/75">
+          <ol className="list-decimal space-y-1 rounded-xl bg-hueso px-8 py-3 text-sm text-tinta/75">
             <li>{tienda ? tienda.corto : "La otra tienda"} la aparta ahora: nadie más la vende.</li>
             <li>Viaja en el próximo envío a {ubicacion.etiqueta}.</li>
             <li>Al llegar queda guardada para el cliente y Vender te avisa para escribirle.</li>
@@ -211,7 +211,7 @@ export function PedirYApartarModal({
             </button>
             <Boton peso="primario" cargando={enviando} textoCargando="Pidiendo…"
               type="button"
-              disabled={enviando || !guia.puedeConfirmar}
+              disabled={enviando} confirma={guia}
               title={responsable.motivo ?? guia.frase ?? undefined}
               onClick={() => pedir(cerrar)}
               className={`flex-1 ${guia.claseConfirmar}`}

@@ -12,7 +12,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veEstadosFinancierosDeTodo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -196,6 +196,8 @@ const fotoDeAntes = (p: PerfilDelMenu) => {
 // Avisos, porque sus perfiles no traen módulos.
 // (ADR-0430, 2026-10-16): «Resumen» de Tienda web, igual: nace sin rol; la fotografía de antes lo trae primero en «Tienda web»,
 // porque sus perfiles no traen módulos.
+// (ADR-0536, actividad 9, 2026-10-27): «Preguntas del equipo», igual: nace sin rol; la fotografía de antes la trae en Gestión, después
+// de Rendimiento, porque sus perfiles no traen módulos.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)
@@ -219,6 +221,7 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "campanas" as const, completo: false },
         { clave: "recomendaciones" as const, completo: false },
         { clave: "tienda_web" as const, completo: false },
+        { clave: "preguntas_equipo" as const, completo: false },
       ];
 const hrefs = (p: PerfilDelMenu) =>
   JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
@@ -233,11 +236,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «beneficios_club» (puntos, act. 8), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «campanas_web» (2026-10-21), «campanas» (ADR-0473), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15) ni «tienda_web» (ADR-0430) le faltan exactamente esas dieciocho`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «beneficios_club» (puntos, act. 8), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «campanas_web» (2026-10-21), «campanas» (ADR-0473), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15) «tienda_web» (ADR-0430) ni «preguntas_equipo» (ADR-0536) le faltan exactamente esas diecinueve`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web", "/gestion/preguntas"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
@@ -286,6 +289,26 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(veFinanzasDeTodo("integrante", con("reportes_financieros", "gastos", "cuentas_dinero", "impuestos"))).toBe(false); // ven SU tienda
     for (const clave of MODULOS_QUE_VEN_TODO_FINANZAS) expect(veFinanzasDeTodo("integrante", con(clave))).toBe(true);
     expect(veFinanzasDeTodo("integrante", [{ clave: "cierre_mes", completo: false }])).toBe(false); // «limitado como hoy» no abre nada
+  });
+
+  // ADR-0585 (Felipe 2026-10-30): «puede ver todo del módulo quien lo tenga». Solo MIRAR los Estados financieros de CAYLA entera:
+  // registrar gastos sigue en veFinanzasDeTodo. Una terminal con el módulo sigue viendo solo su tienda (ADR-0161 P6).
+  it("ADR-0585: veEstadosFinancierosDeTodo espeja fn_ve_estados_financieros_de_todo — el líder, o el módulo completo sin ser terminal", () => {
+    const con = (...cs: ClaveModulo[]) => cs.map((clave) => ({ clave, completo: true }));
+    expect(veEstadosFinancierosDeTodo("lider", [], false)).toBe(true);
+    expect(veEstadosFinancierosDeTodo("integrante", con("reportes_financieros"), false)).toBe(true);
+    expect(veEstadosFinancierosDeTodo("integrante", con("reportes_financieros"), true)).toBe(false); // la terminal, su tienda
+    expect(veEstadosFinancierosDeTodo("integrante", [{ clave: "reportes_financieros", completo: false }], false)).toBe(false);
+    expect(veEstadosFinancierosDeTodo("integrante", con("cierre_mes", "configuracion", "gastos"), false)).toBe(false); // otros módulos no lo abren
+    expect(veFinanzasDeTodo("integrante", con("reportes_financieros"))).toBe(false); // y mirar no abre escribir
+  });
+
+  it("ADR-0585: la base pregunta lo mismo que la web (el módulo y no ser terminal)", () => {
+    const definicion = TODAS.map((m) => /create or replace function retail\.fn_ve_estados_financieros_de_todo\(\)[\s\S]*?\$\$([\s\S]*?)\$\$/i.exec(m.sql)?.[1]).filter(Boolean).at(-1);
+    expect(definicion).toBeDefined();
+    expect(definicion).toMatch(/fn_es_lider\(\)/);
+    expect(definicion).toMatch(/fn_capacidad_por_modulos\(array\['reportes_financieros'\]\)/);
+    expect(definicion).toMatch(/not exists \(select 1 from retail\.fn_terminal_actual\(\)\)/);
   });
 
   it("G16: los módulos que abren «todo» son exactamente los de la última migración que define fn_ve_finanzas_de_todo()", () => {

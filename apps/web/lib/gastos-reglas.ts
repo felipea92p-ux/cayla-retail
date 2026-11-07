@@ -2,12 +2,14 @@
 // Las mismas reglas las cierra la base (`registrar_gasto`, checks y disparadores de 20260924235100); aquí se dicen con una
 // frase clara ANTES de ir a la base, y se arma lo que la RPC espera.
 
+import { reglaDeEntero } from "./cantidad-escrita-reglas";
 import { claveTexto, type MotivoParecido } from "./nombres-parecidos";
 import { proveedoresParecidos } from "./proveedores-reglas";
 import { soles } from "./compras-reglas";
 import { UMBRAL_BANCARIZACION } from "./no-deducible-reglas";
 import { MAX_MONTO_FINANZAS } from "./finanzas-topes";
 import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
+import type { NoEmite } from "./gastos-no-emite-reglas";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -219,6 +221,8 @@ export type GastoFila = {
   igvPerdido: number;
   /** Los pagos en efectivo o desde un fondo que se llevaron su parte del IGV (`fn_gastos_igv_perdido`), del más viejo al más nuevo. */
   pagosSinBanco: PagoSinBanco[];
+  /** Marcado «no emite comprobante», con su motivo (ADR-0588, `fn_gastos_no_emiten`): ya no pide comprobante. Sin la lectura, `undefined`. */
+  noEmite?: NoEmite | null;
 };
 
 /** Un pago en efectivo o desde un fondo de una factura de S/ 2 000 o más: la base dice cuánto IGV se llevó (`fn_igv_perdido`). */
@@ -399,6 +403,12 @@ export function solesRedondo(n: number): string {
   // `|| 0`: un negativo de céntimos redondea a -0 y se escribiría «S/ -0» (el IGV del mes menos lo perdido, partido en pagos que
   // redondean cada uno, puede quedar en -0.01).
   return `S/\u00a0${(Math.round(n) || 0).toLocaleString("es-PE")}`;
+}
+
+/** «S/ 1,234.50»: siempre con sus dos decimales (Cuentas y dinero, Felipe 2026-11-06). `|| 0` evita «S/ -0.00». */
+export function solesDos(n: number): string {
+  const c = Math.round(n * 100) / 100 || 0;
+  return `S/\u00a0${c.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -612,6 +622,10 @@ export type BorradorGasto = {
   referencia: string;
   /** F2b: el gasto fijo del que sale este gasto, si viene de «Fijos del mes». */
   gastoFijoId?: string;
+  /** Tarea 15: el IGV que dice la factura, si no es el de la tasa (una exonerada dice 0). */
+  igv?: number;
+  /** Tarea 15: cuándo salió del banco, si no fue el día del comprobante. */
+  fechaPago?: string;
   /** F3b: la cuenta de «Salió de» (cajón, caja fuerte, lo que tiene el líder, un banco o la tarjeta). La base la sella. */
   cuentaId?: string;
 };
@@ -629,6 +643,8 @@ export type PayloadGasto = {
     numero: string;
     condicion: "contado" | "credito";
     fecha_vencimiento?: string;
+    igv?: number;
+    fecha_pago?: string;
   };
   p_medio_pago: MedioGasto | null;
   p_caja_id: string | null;
@@ -663,6 +679,8 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
     if (!b.proveedorId) return { ok: false, error: "Elige el proveedor del comprobante." };
     if (!b.serie.trim() || !b.numero.trim()) return { ok: false, error: "Escribe la serie y el número del comprobante." };
     if (aCredito && (!b.vence || b.vence < b.fecha)) return { ok: false, error: "A crédito, di cuándo vence (no antes de la fecha)." };
+    if (b.comprobante === "factura" && b.igv !== undefined && (b.igv < 0 || b.igv >= monto.valor)) return { ok: false, error: "El IGV tiene que estar entre cero y el total." };
+    if (!aCredito && b.fechaPago && (b.fechaPago < b.fecha || b.fechaPago > hoy)) return { ok: false, error: "La salida del banco va entre la fecha del comprobante y hoy." };
   }
   if (!aCredito && !b.egresoId) {
     if (!b.medio) return { ok: false, error: "Di cómo se pagó." };
@@ -687,6 +705,8 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
             numero: b.numero.trim(),
             condicion: aCredito ? "credito" : "contado",
             ...(aCredito ? { fecha_vencimiento: b.vence } : {}),
+            ...(b.comprobante === "factura" && b.igv !== undefined ? { igv: b.igv } : {}),
+            ...(!aCredito && !b.egresoId && b.fechaPago ? { fecha_pago: b.fechaPago } : {}),
           }
         : null,
       p_medio_pago: medio,
@@ -1113,6 +1133,24 @@ export type ParamsFijo = { p_ubicacion_id: string | null; p_categoria: string; p
 /** Lo mismo que el candado de la base (`gastos_fijos_dias_antes_valido`): una persona que escribe «45» casi seguro quiso decir otra cosa. */
 const MAX_DIAS_ANTES = 30;
 
+export const TEXTO_DIA_FIJO = "El día va del 1 al 28. Si vence el 29, 30 o 31, elige «A fin de mes».";
+export const TEXTO_DIAS_ANTES_FIJO = `Pagar antes va de 0 a ${MAX_DIAS_ANTES} días. Con 0 se paga el mismo día que vence.`;
+
+const CIFRA_DE_FIJO = reglaDeEntero(2);
+
+/** El día o los días antes como se escribieron, o `NaN` si no es un entero. Vacío es 0. Se lee por su forma, no con `Number`, que tomaría «1e1» por 10. */
+export const leerCifraDeFijo = (texto: string): number => CIFRA_DE_FIJO.leer(texto) ?? Number.NaN;
+
+export function diaDeFijoValido(texto: string): boolean {
+  const dia = leerCifraDeFijo(texto);
+  return dia >= 1 && dia <= 28;
+}
+
+export function diasAntesDeFijoValidos(texto: string): boolean {
+  const dias = leerCifraDeFijo(texto);
+  return dias >= 0 && dias <= MAX_DIAS_ANTES;
+}
+
 /** El día que respalda a cada momento (el mismo que exige la base: 7, 15 y 28 son solo el orden). */
 const DIA_DE_RESPALDO: Record<Exclude<MomentoFijo, "dia">, number> = { primera_semana: 7, quincena: 15, fin_de_mes: 28 };
 
@@ -1124,17 +1162,15 @@ export function validarFijo(b: BorradorFijo): Resultado<ParamsFijo> {
   if (!m.ok) return m;
   let dia: number;
   if (b.momento === "dia") {
-    dia = Number(b.dia);
-    if (!Number.isInteger(dia) || dia < 1 || dia > 28) return { ok: false, error: "El día va del 1 al 28. Si vence el 29, 30 o 31, elige «A fin de mes»." };
+    if (!diaDeFijoValido(b.dia)) return { ok: false, error: TEXTO_DIA_FIJO };
+    dia = leerCifraDeFijo(b.dia);
   } else {
     dia = DIA_DE_RESPALDO[b.momento];
   }
   let diasAntes: number | undefined;
   if (b.diasAntes !== null) {
-    diasAntes = b.diasAntes.trim() === "" ? 0 : Number(b.diasAntes);
-    if (!Number.isInteger(diasAntes) || diasAntes < 0 || diasAntes > MAX_DIAS_ANTES) {
-      return { ok: false, error: `Pagar antes va de 0 a ${MAX_DIAS_ANTES} días. Con 0 se paga el mismo día que vence.` };
-    }
+    if (!diasAntesDeFijoValidos(b.diasAntes)) return { ok: false, error: TEXTO_DIAS_ANTES_FIJO };
+    diasAntes = leerCifraDeFijo(b.diasAntes);
   }
   return {
     ok: true,

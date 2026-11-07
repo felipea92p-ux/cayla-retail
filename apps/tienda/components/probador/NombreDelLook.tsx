@@ -72,7 +72,7 @@ export function NombreDelLook({ id, nombre: inicial }: { id: string; nombre: str
         value={escrito}
         onChange={(e) => setEscrito(e.target.value)}
         maxLength={60}
-        aria-label="El nombre de tu look"
+        aria-label="El nombre de tu outfit"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? idError : undefined}
         autoFocus

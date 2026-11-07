@@ -70,6 +70,7 @@ export function ComboBuscable<T extends string>({
   alEscribir,
   ampliar,
   campoRef,
+  varios = false,
 }: {
   valor: T | "";
   onValor: (v: T) => void;
@@ -106,6 +107,10 @@ export function ComboBuscable<T extends string>({
   ampliar?: { texto: string; onAmpliar: () => void };
   /** El input, para quien lo escucha desde afuera (la pistola de Cambios: `usePistola` necesita saber cuál es su campo). */
   campoRef?: RefObject<HTMLInputElement | null>;
+  /** Elegir VARIOS seguidos (los colores de una tela o un avío): al elegir una opción la lista NO se cierra ni se vuelve a montar, el buscador queda
+   *  vacío con el cursor adentro y la lista sigue donde estaba, con lo elegido a la vista. Quien lo pide muestra lo ya elegido (`detalle: "elegido"`) y
+   *  decide qué hace `onValor` con una opción repetida. El valor del combo no cambia (queda `""`). Sin la prop, todo queda como estaba. */
+  varios?: boolean;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -113,6 +118,8 @@ export function ComboBuscable<T extends string>({
   const [texto, setTexto] = useState(elegida?.texto ?? "");
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
+  // Cada elección en modo `varios` pide traer lo elegido a la vista aunque su número de fila no haya cambiado (el buscador se vació y la lista cambió de largo).
+  const [veniaDe, setVeniaDe] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
   // La lista va en `fixed`, medida contra el input: dentro de un <Modal> o de una tabla con scroll, una lista
@@ -173,7 +180,7 @@ export function ComboBuscable<T extends string>({
   useEffect(() => {
     if (!abierto) return;
     lista.current?.querySelector<HTMLElement>(`[data-i="${activo}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [activo, abierto]);
+  }, [activo, abierto, veniaDe]);
 
   function abrir() {
     const i = filtradas.findIndex((o) => o.valor === valor);
@@ -192,6 +199,15 @@ export function ComboBuscable<T extends string>({
       return;
     }
     onValor(o.valor);
+    if (varios) {
+      // La lista sigue abierta y el buscador vacío: lo que sigue es elegir otro. Se resalta (y se trae a la vista) la opción recién elegida DENTRO de la lista completa.
+      const i = opciones.findIndex((x) => x.valor === o.valor);
+      setTexto("");
+      setActivo(i >= 0 ? i + (hayCrearPara("") && crearArriba ? 1 : 0) : primeraFila(""));
+      mostrarDesde(Math.max(0, i));
+      setVeniaDe((v) => v + 1);
+      return;
+    }
     setTexto(o.texto);
     setAbierto(false);
   }
@@ -218,7 +234,17 @@ export function ComboBuscable<T extends string>({
       abrir();
       return;
     }
-    if (!abierto) return;
+    if (!abierto) {
+      // Con la lista cerrada, el Enter sigue siendo del combo: sin esto cae al `<form>` como envío implícito y guarda la
+      // hoja sin que nadie toque el botón. Se llega aquí por tres caminos —elegir con Enter, elegir con el mouse, cerrar
+      // con Escape— y en los tres el foco se queda en la caja. Reabrir la lista es lo que ya hace `Desplegable`
+      // (`campos.tsx`), así que la tecla siempre tiene dueño y una respuesta visible (/chaos 2026-10-31).
+      if (e.key === "Enter") {
+        e.preventDefault();
+        abrir();
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActivo((a) => Math.min(ultimoTotal, a + 1));

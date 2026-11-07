@@ -101,6 +101,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   finanzas: "M13.744 17.736a6 6 0 1 1-7.48-7.48 M15 6h1v4 M6.134 14.768l.866-.5 2 3.464 M10 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", // lucide «coins»
   dinero: "M3 6h18v12H3z M7 12h.01 M17 12h.01 M12 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z",
   reportes: "M4 20V10 M10 20V4 M16 20v-7 M3 20h18",
+  // La línea que sube sobre sus ejes: las ventas por mes (Ventas ▸ Reportes). Distinta de «reportes» (las barras de Finanzas ▸ Estados financieros): una prueba exige que ningún ícono se repita en el lateral. lucide «chart-line».
+  reportesVentas: "M3 3v16a2 2 0 0 0 2 2h16 M19 9l-5 5-4-4-3 3",
   impuestos: "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01",
   cierre: "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4",
   // Lupa sobre una línea que sube: qué se vende, qué no y qué pedir (Gestión ▸ Análisis). Antes un microscopio.
@@ -111,7 +113,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Aguja de velocímetro: el panorama que mezcla ventas de la red y dinero
   // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
   // "Resumen" de Producción, una pantalla de otro módulo.
-  panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
+  // Esfera de 240° (lucide «gauge»): llena, al estar elegida, se ve como un dial entero; la media luna anterior quedaba «cortada» (2026-11-05).
+  panorama: "M12 14l4-4 M3.34 19a10 10 0 1 1 17.32 0",
   // Pulso (ADR-0275): «Salud del negocio» de CAYLA Global. No el velocímetro: ese ya es Finanzas ▸ Resumen, en el mismo menú.
   pulso: "M3 12h4l2.5-6 4 12 2.5-6H21",
   // Brújula: Gestión es dirigir —mirar y decidir— (ADR-0392). Distinta de los trazos de sus cuatro hijas (analisis,
@@ -134,6 +137,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // «Facturas de proveedor» (el papel) y de la mano con monedas de «Mis compras» (la plata de quien compra).
   revisarCompras: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM9 14l2 2 4-4", // lucide «clipboard-check»
   rendimiento: "M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3", // lucide «trophy»
+  // El globo con su «?»: el mismo del botón «Preguntar» de la cabecera, porque son sus preguntas (Preguntas del equipo, ADR-0536).
+  preguntas: "M7.9 20A9 9 0 1 0 4 16.1L2 22ZM9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01", // lucide «message-circle-question»
   // Monitor con su percha: la tienda online, donde el cliente ve la prenda desde su pantalla (Vitrina web, ADR-0408). No la tienda
   // con toldo de «Inicio» (la puerta física) ni la polera de «Productos» (lo que ES la prenda): lo que se MUESTRA en la web.
   vitrina: "M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z M8 21h8 M12 17v4 M10.8 6.8a1.2 1.2 0 1 1 1.2 1.2v.9l4 3H8l4-3",
@@ -167,6 +172,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Paleta: Tienda web ▸ Campañas (2026-10-21), cómo se ve la tienda durante cada campaña. Ninguna otra fila lleva colores.
   paleta: "M12 22a1 1 0 0 1 0-20a10 9 0 0 1 10 9a5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z M13 6.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M17 10.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M8 7.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M6 12.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0", // lucide «palette»
   ajustesWeb: "M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4", // lucide «sliders-horizontal»
+  // Pisadas: Tienda web ▸ Tráfico (ADR-0495), la gente que pasa por la tienda online y hasta dónde llega. Ninguna otra fila lleva pies.
+  trafico: "M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z M16 17h4 M4 13h4", // lucide «footprints»
 };
 
 /* ------------------------------------------------------------------
@@ -209,7 +216,9 @@ function iconosPorModulo(nodos: readonly Nodo[], acumulado = new Map<ClaveModulo
 const DEL_MENU = iconosPorModulo(ARBOL);
 
 /** El ícono del menú de este módulo: el de su fila (la primera, si tiene varias con el mismo dibujo) o el que se declaró a mano.
- *  `null` si el módulo no tiene ninguno en el menú. */
+ *  `null` si el módulo no tiene ninguno en el menú.
+ *  @internal Roles ya no dibuja un ícono por módulo (maqueta del 2026-10-27); lo cruzan las pruebas de `menu-iconos.test.ts` (el ícono de cada acceso del Inicio
+ *  es el de su fila del menú). */
 export function iconoDeModulo(clave: ClaveModulo): ClaveIcono | null {
   if (clave in APARTE) return APARTE[clave] ?? null;
   return DEL_MENU.get(clave) ?? null;

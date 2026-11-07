@@ -1,0 +1,19 @@
+/* Roles ▸ módulos como píldoras (maqueta colaboradores-compacto, 2026-10-27, ADR-0540). Se apoyan en `.pildora-cayla`:
+   la encendida es tinta; lo que se cambió SIN guardar toma otro color para distinguirlo de lo ya guardado (verde = se
+   suma, rojo punteado y tachado = se quita) y el que no se puede dar va punteado, con su candado. Solo tokens. */
+.pildora-cayla[data-cambio="suma"] {
+  background: var(--color-verde);
+  border-color: var(--color-verde);
+  color: var(--color-crema);
+}
+.pildora-cayla[data-cambio="quita"] {
+  background: color-mix(in srgb, var(--color-rojo) 10%, transparent);
+  border: 1.5px dashed var(--color-rojo);
+  color: var(--color-rojo-profundo);
+  text-decoration: line-through;
+}
+.pildora-cayla[data-bloq="si"] {
+  border-style: dashed;
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent); /* contraste: texto sobre papel */
+  cursor: default;
+}

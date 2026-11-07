@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { letrasDelNombre, VELO_SALE_MS } from "@/lib/sede-velo";
+import { MarcaDeTienda } from "./MarcaDeTienda";
 
 /**
  * El velo del cambio de tienda (ADR-0466): la pantalla de carga de «elegir otra tienda». Un velo oscuro y desenfocado cubre lo que hay
@@ -35,7 +36,7 @@ export function VeloDeSede({ nombre, fase, arriba }: { nombre: string; fase: "es
 }
 
 /**
- * El nombre de la tienda en la cabecera: cuando cambia (la página nueva llegó), el de antes rueda hacia arriba y el nuevo sube desde
+ * La tienda en la cabecera (su escudo o, sin él, su nombre): cuando cambia (la página nueva llegó), el de antes rueda hacia arriba y el nuevo sube desde
  * abajo, como la cédula de un museo. Los dos comparten el lugar, alineados a la derecha (junto a la flecha), así el nombre más corto no
  * se corre al terminar. Sin cambio, es solo el texto.
  */
@@ -56,11 +57,11 @@ export function NombreQueRueda({ nombre }: { nombre: string }) {
     <span className="t-sede-caja">
       {antes !== null && (
         <span className="t-sede-nom t-sede-nom-sale" aria-hidden="true">
-          {antes}
+          <MarcaDeTienda nombre={antes} />
         </span>
       )}
       <span key={nombre} className={antes !== null ? "t-sede-nom t-sede-nom-entra" : "t-sede-nom"}>
-        {nombre}
+        <MarcaDeTienda nombre={nombre} />
       </span>
     </span>
   );

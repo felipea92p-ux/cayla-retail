@@ -101,16 +101,6 @@ export function textoFechas(desde: string | undefined, hasta: string | undefined
   return desde ? `Desde ${fechaDeLaPastilla(desde, hoy)}` : `Hasta ${fechaDeLaPastilla(hasta as string, hoy)}`;
 }
 
-/**
- * Texto de la pastilla «Proveedor»: «Proveedor: Todos» sin filtro, «Proveedor: <nombre>» con él.
- * Un id que ya no está en la lista de activos (proveedor archivado, enlace viejo) sigue
- * filtrando en el servidor; la pastilla lo dice como «Otro» en vez de mentir con «Todos».
- */
-export function textoProveedor(proveedorId: string | undefined, proveedores: readonly { id: string; nombre: string }[]): string {
-  if (!proveedorId) return "Proveedor: Todos";
-  return `Proveedor: ${proveedores.find((p) => p.id === proveedorId)?.nombre ?? "Otro"}`;
-}
-
 // ---------------------------------------------------------------------------
 // Lo que llega por la URL
 // ---------------------------------------------------------------------------

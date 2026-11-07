@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATEGORIAS_FILTRO, GRUPOS_RESUMEN, filtroDePalabra, filtrosDesdeParams, leerResumenTienda, type Movimiento } from "./movimientos-reglas";
-import { GRUPOS_TIPO, TIPOS_VISUALES, grupoDeTipo, grupoPorId, kindDeLugar, rotuloDeMovimiento, tipoDeOperacion, tipoVisual, type TipoVisual } from "./movimientos-tipos";
+import { GRUPOS_TIPO, TIPOS_VISUALES, grupoPorId, kindDeLugar, rotuloDeMovimiento, tipoDeOperacion, tipoVisual, type TipoVisual } from "./movimientos-tipos";
 
 type Fila = Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">;
 const sub = (tipo: string) => ({ id: tipo, nombre: tipo, tipo });
@@ -111,10 +111,11 @@ describe("los siete grupos del filtro de la derecha", () => {
   });
 
   it("devoluciones y cambios van juntos; apartados, dañadas, movidas y otros no tienen botón", () => {
-    expect(grupoDeTipo("devolucion")?.id).toBe("cliente");
-    expect(grupoDeTipo("cambio")?.id).toBe("cliente");
-    expect(grupoDeTipo("conteo")?.id).toBe("ajuste");
-    for (const t of ["apartado", "danada", "movida", "otro"] as const) expect(grupoDeTipo(t)).toBeNull();
+    const grupoDe = (tipo: TipoVisual) => GRUPOS_TIPO.find((g) => g.tipos.includes(tipo));
+    expect(grupoDe("devolucion")?.id).toBe("cliente");
+    expect(grupoDe("cambio")?.id).toBe("cliente");
+    expect(grupoDe("conteo")?.id).toBe("ajuste");
+    for (const t of ["apartado", "danada", "movida", "otro"] as const) expect(grupoDe(t)).toBeUndefined();
   });
 
   it("se busca por id y un id raro no rompe", () => {

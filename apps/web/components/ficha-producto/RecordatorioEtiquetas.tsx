@@ -80,13 +80,13 @@ function BannerRecordatorio({ pendientes, onLimpiar }: { pendientes: readonly Li
     <div role="status" className="anim-revelar mb-4 -mt-1 rounded-xl border border-ambar/50 bg-[color-mix(in_srgb,var(--color-ambar)_10%,var(--color-papel))] px-4 py-3 sm:px-5">
       <div className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-x-3 gap-y-1.5">
         <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-ambar" />
-        <p className="shrink-0 text-[13.5px] font-semibold text-ambar-profundo">
+        <p className="shrink-0 text-[15px] font-semibold text-ambar-profundo">
           {pendientes.length} {pendientes.length === 1 ? "prenda nueva sin etiquetar" : "prendas nuevas sin etiquetar"}
         </p>
-        <p className="min-w-0 flex-1 truncate text-[12.5px] text-tinta/60" title={detalle}>
+        <p className="min-w-0 flex-1 truncate text-sm text-tinta/60" title={detalle}>
           {detalle}
         </p>
-        <BotonImprimir href={href} peso="primario" className="shrink-0 text-[12.5px]">
+        <BotonImprimir href={href} peso="primario" className="shrink-0 text-sm">
           Imprimir etiquetas
         </BotonImprimir>
         <button

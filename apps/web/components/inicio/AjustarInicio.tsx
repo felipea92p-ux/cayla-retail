@@ -44,7 +44,7 @@ export function AjustarInicio({
         type="button"
         aria-haspopup="dialog"
         onClick={() => setAbierto(true)}
-        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12.5px] text-taupe transition-colors hover:bg-tinta/5"
+        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-taupe transition-colors hover:bg-tinta/5"
       >
         <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" aria-hidden>
           <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
@@ -76,7 +76,7 @@ export function AjustarInicio({
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-tinta">{a.titulo}</p>
                               {a.ocultable && a.urgenteSi && (
-                                <p className="mt-0.5 text-xs text-rojo-profundo">{/* unificar-fijo: dice cuándo un aviso urgente sale igual, no es un error */}Sale aunque lo apagues: {a.urgenteSi.toLowerCase()}</p>
+                                <p className="mt-0.5 text-sm text-rojo-profundo">{/* unificar-fijo: dice cuándo un aviso urgente sale igual, no es un error */}Sale aunque lo apagues: {a.urgenteSi.toLowerCase()}</p>
                               )}
                             </div>
                             {a.ocultable ? (
@@ -91,7 +91,7 @@ export function AjustarInicio({
                                 <span aria-hidden className="interruptor-perilla" />
                               </button>
                             ) : (
-                              <span className="flex shrink-0 items-center gap-1 text-xs text-rojo-profundo">
+                              <span className="flex shrink-0 items-center gap-1 text-sm text-rojo-profundo">
                                 <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
                                   <rect x="5" y="11" width="14" height="9" rx="2" />
                                   <path d="M8 11V8a4 4 0 0 1 8 0v3" />

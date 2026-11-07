@@ -1,6 +1,6 @@
 "use client";
 
-import { fondoSegun } from "@/lib/hoja-gesto";
+import { fondoDeLadoSegun, fondoSegun } from "@/lib/hoja-gesto";
 
 /* ====================================================================
    Lo de atrás se aleja (ADR-0479, la «B» que eligió Felipe el 2026-10-22)
@@ -17,18 +17,38 @@ import { fondoSegun } from "@/lib/hoja-gesto";
    de ella) y al volver aparece con un fundido corto.
 
    Una sola hoja a la vez es la dueña del efecto: la que se abre encima de otra no aleja nada más.
+
+   De costado (`forma: "lado"`): el menú del celular («A · Hoja con profundidad», Felipe 2026-11-01, maqueta
+   docs/maquetas/cajon-menu-vidrio-2026-11/) entra desde la izquierda, así que lo de atrás se corre 34 px a la derecha y se aleja
+   a 0,94: la cabecera alrededor de su propio centro izquierdo (se queda arriba) y el contenido alrededor del borde izquierdo a
+   media altura de lo que se ve, recortado a lo que se ve con esquinas de 22 px.
    ==================================================================== */
+
+type Forma = "abajo" | "lado";
 
 const CAPAS = "[data-fondo-hoja]";
 
 let duena: symbol | null = null;
+let forma: Forma = "abajo";
 let capas: HTMLElement[] = [];
+/** De costado: cuánto de cada capa queda fuera de la pantalla arriba y abajo (el recorte redondeado es lo que se ve). */
+let fuera = new Map<HTMLElement, { arriba: number; abajo: number }>();
 let escondidos: HTMLElement[] = [];
 let reloj: ReturnType<typeof setTimeout> | undefined;
 
-function pintar(progreso: number, ms: number) {
+function pintar(progreso: number, ms: number, curva = "var(--ease-cayla)") {
+  const t = ms ? `${ms}ms ${curva}` : "0ms";
+  if (forma === "lado") {
+    const { escala, corrida, radio } = fondoDeLadoSegun(progreso);
+    for (const el of capas) {
+      el.style.transition = `transform ${t}, clip-path ${t}`;
+      el.style.transform = `translate3d(${corrida}px, 0, 0) scale(${escala})`;
+      const f = fuera.get(el);
+      if (f) el.style.clipPath = `inset(${f.arriba}px 0 ${f.abajo}px 0 round ${radio}px)`;
+    }
+    return;
+  }
   const { escala, bajada, radio } = fondoSegun(progreso);
-  const t = ms ? `${ms}ms var(--ease-cayla)` : "0ms";
   for (const el of capas) {
     el.style.transition = `transform ${t}, border-radius ${t}`;
     el.style.transform = `translate3d(0, ${bajada}px, 0) scale(${escala})`;
@@ -61,25 +81,37 @@ function soltarTodo() {
   }
   capas = [];
   escondidos = [];
+  fuera = new Map();
 }
 
 /**
  * Aleja lo de atrás en `ms` y devuelve la llave de la hoja que lo hizo, o `null` si ya hay otra hoja dueña o no hay nada
  * que alejar (una pantalla fuera del marco del ERP).
  */
-export function alejarFondo(ms: number): symbol | null {
+export function alejarFondo(ms: number, de: Forma = "abajo"): symbol | null {
   if (duena) return null;
   soltarTodo();
   capas = [...document.querySelectorAll<HTMLElement>(CAPAS)];
   if (capas.length === 0) return null;
+  forma = de;
   // ANTES de tocar los estilos: un `will-change: transform` ya vuelve a la capa contenedora de lo fijo de adentro, y eso
   // dejaría de verse como fijo.
   escondidos = fijosDentro(capas);
   const centro = window.innerWidth / 2;
   for (const el of capas) {
     const r = el.getBoundingClientRect();
-    el.style.transformOrigin = `${centro - r.left}px ${-r.top}px`;
     el.style.willChange = "transform";
+    if (de === "lado") {
+      if (el.dataset.fondoHoja === "borde") {
+        // La cabecera se aleja alrededor de su propio centro izquierdo: se queda arriba, como en la maqueta.
+        el.style.transformOrigin = "0 50%";
+      } else {
+        el.style.transformOrigin = `${-r.left}px ${window.innerHeight / 2 - r.top}px`;
+        fuera.set(el, { arriba: Math.max(0, Math.round(-r.top)), abajo: Math.max(0, Math.round(r.bottom - window.innerHeight)) });
+      }
+      continue;
+    }
+    el.style.transformOrigin = `${centro - r.left}px ${-r.top}px`;
     // Lo que quedaba justo arriba de la pantalla (con la página bajada) asomaría sobre la cabecera al achicarse: se recorta
     // en el borde de arriba de lo que se ve, y la tarjeta empieza en la cabecera.
     if (el.dataset.fondoHoja !== "borde" && r.top < 0) el.style.clipPath = `inset(${Math.round(-r.top)}px 0 0 0)`;
@@ -98,11 +130,14 @@ export function moverFondo(llave: symbol | null, progreso: number, ms: number) {
   pintar(progreso, ms);
 }
 
-/** La hoja se va: lo de atrás vuelve a su lugar en `ms` y después queda sin ningún estilo puesto. */
-export function devolverFondo(llave: symbol | null, ms: number) {
+/**
+ * La hoja se va: lo de atrás vuelve a su lugar en `ms` y después queda sin ningún estilo puesto. `curva`: la del que se va
+ * (el menú del celular se va con `--ease-salida`, y lo de atrás vuelve con él).
+ */
+export function devolverFondo(llave: symbol | null, ms: number, curva?: string) {
   if (!llave || llave !== duena) return;
   duena = null;
-  pintar(1, ms);
+  pintar(1, ms, curva);
   clearTimeout(reloj);
   reloj = setTimeout(soltarTodo, ms + 20);
 }

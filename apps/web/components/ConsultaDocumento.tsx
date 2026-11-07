@@ -6,6 +6,7 @@ import { largoDocumento, soloDigitos, validarDocumento } from "@cayla-retail/sha
 import type { RespuestaPadron } from "@/lib/padron";
 import { Ayuda } from "@/components/Ayuda";
 import { CampoTexto } from "@/components/ui/campos";
+import { useValidarAlSalir } from "@/components/ui/useValidarAlSalir";
 
 // Campo de identificación de la clienta para un comprobante: se tipea el número
 // y el sistema muestra a quién pertenece ANTES de emitir.
@@ -164,13 +165,15 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   );
 
   const datos = actual?.fase === "listo" ? actual.datos : null;
+  // Un número a medias no está mal: está a medias. Se avisa al salir del campo (ADR-0611, mejora 2); mientras, el contador dice cuánto falta.
+  const avisoNumero = useValidarAlSalir(!vacio && !validacion.valido ? validacion.motivo : null);
 
   // Una sola línea de estado bajo el campo, por prioridad: nunca dos mensajes
   // peleando (si el número es inválido no se dispara consulta, así que en la
   // práctica solo uno puede estar vivo — el orden lo deja garantizado).
   const estado: { pie: React.ReactNode; tono: "neutro" | "error" | "aviso" | "ok" } =
-    !vacio && !validacion.valido
-      ? { pie: validacion.motivo, tono: "error" }
+    avisoNumero.motivo
+      ? { pie: avisoNumero.motivo, tono: "error" }
       : contador && validacion.valido && problemaExterno
         ? { pie: problemaExterno, tono: "error" }
       : actual?.fase === "cargando"
@@ -235,6 +238,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       placeholder={tipo === "dni" ? "8 dígitos" : "11 dígitos"}
       value={numero}
       onChange={(e) => onNumero(soloDigitos(e.target.value).slice(0, largoDocumento(tipo)))}
+      onBlur={avisoNumero.alSalir}
       onKeyDown={
         disparo === "boton"
           ? (e) => {

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Componentes propuestos · Recibir B v2</title>
+<link rel="stylesheet" href="estilos.css">
+<style>
+  .indice{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 8px}
+  .indice a{padding:8px 14px;border-radius:99px;background:var(--papel);border:1px solid var(--sand);text-decoration:none;color:var(--tinta);font-weight:600;font-size:15px}
+  .comp{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:28px;padding:28px 0;border-top:1px solid var(--sand);align-items:start}
+  .comp .ficha{position:sticky;top:80px;display:grid;gap:12px}
+  .comp .num{font-family:"EB Garamond",Georgia,serif;font-size:20px;color:var(--taupe)}
+  .comp h2{font-size:34px;line-height:1.05}
+  .comp .reemplaza{font-size:15px;padding:10px 12px;border-radius:12px;background:var(--hueso)}
+  .comp .reemplaza b{display:block;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe);margin-bottom:2px}
+  .comp ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:16px}
+  .comp li{display:grid;grid-template-columns:20px 1fr;gap:8px}.comp li svg{color:var(--verde-profundo);margin-top:2px}
+  .comp .mas{font-size:15px;color:var(--tinta-60)}.comp .mas b{color:var(--tinta)}
+  .demo{background:var(--crema);border:1px dashed var(--borde-control);border-radius:22px;padding:22px;display:grid;gap:14px;min-width:0}
+  .demo .isla{position:relative;left:auto;bottom:auto;transform:none;width:100%;animation:none;flex-wrap:wrap}.demo .isla .der{margin-left:auto}
+  .demo .riel-cats{position:static;max-width:280px}
+  .demo .rc.sel::after{display:none}
+  .solo-ver{pointer-events:auto}
+  .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .etq{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe)}
+  @media (max-width:900px){.comp{grid-template-columns:1fr}.comp .ficha{position:static}.duo{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="proto"><b>Componentes propuestos · Recibir B v2</b><a class="btn chico" href="index.html">← Volver al flujo</a><span class="der"><button class="redondo tema" data-a="tema" aria-label="Modo oscuro"></button></span></div>
+<main class="pagina estreno">
+  <div class="sede-linea">Propuesta para el sistema · 29 de octubre</div>
+  <h1 style="font-size:clamp(36px,4.4vw,52px);margin:6px 0">Nueve piezas nuevas</h1>
+  <p class="frase" style="max-width:62ch">Nacieron en Recibir. Si las eliges, reemplazan a la pieza de hoy en todo el ERP, no solo aquí. Todas se tocan: prueba cada una.</p>
+  <nav class="indice" id="indice"></nav>
+  <div id="comps"></div>
+</main>
+<script src="app.js"></script>
+<script>
+(function(){
+const {ico,E,S}=RB;
+/* un envío de muestra, abierto, que comparten el Dial, el Riel, la Bandeja, la Etiqueta y la Isla: lo que cambies en uno se ve en los otros */
+const G=(cat,dij,anot,x)=>Object.assign({cat,marca:'CAYLA',dij,cont:null,anot:anot||[],sep:[],nuevas:0,desc:[],obs:[],causa:null,causaNota:'',extra:false,costoLinea:'',quien:null},x||{});
+E.push({id:'ENV-MUESTRA',estado:'abierto',env:'hoy',dias:0,prov:'CAYLA SAC',guia:'',oc:'OC-000000',fardos:1,de:'—',papel:{foto:false,tipo:'Factura',quien:'Felipe',f:'hoy'},
+  g:[G('blusas',6,[{m:'emma',n:6}],{cont:3}),G('faldas',3,[{m:'ariana',n:3}],{cont:3,sep:[{m:'ariana',n:3,mat:{'Rosado|S':2},dan:{}}]}),G('pantalones',4,[{m:'carla',n:4}])]});
+RB.setEnvio('ENV-MUESTRA');S.paso='contar';
+const buscar=id=>E.find(e=>e.id===id);
+const cintaG=(dij,cont,venden,x)=>Object.assign(G('blusas',dij,[],{cont,sep:[{m:'valentina',n:cont,mat:{'Verde|M':venden},dan:{}}]}),x||{});
+const C=[
+ {id:'trayecto',t:'Trayecto',r:'El chip de estado («En camino», «Abierto») y las columnas Enviado / Estado / Prendas de la tabla (EnviosParaRecibir, RecibidoEnLaSede).',
+  b:['Se ve dónde va el envío y qué le falta, sin leer.','Una sola fila sirve para los cinco estados: por recibir, contando, por terminar y recibido.','Al pasar el mouse por el número, «lo que trae», sin abrir nada.'],
+  mas:'Traslados, Pedidos web, Órdenes de compra, Devoluciones.',
+  demo:()=>`<div class="filas-tray solo-ver">${['OC-007712','ENV-002668','ENV-002765','ENV-001990','ENV-003035'].map((id,i)=>RB.filaEnvio(buscar(id),i)).join('')}</div>`},
+ {id:'dial',t:'Dial',r:'El número grande + PasoCantidad (− +) + la barra de avance del conteo (ContadorDeGrupo).',
+  b:['Cada prenda es un segmento del aro: se ve cuántas faltan.','Se gira con el dedo o con la rueda; ↑ ↓ en el teclado. Los atajos siguen.','Si sobran, aparece un segundo aro en ámbar; si cuadra, se pone verde con su ✓.'],
+  mas:'Conteo de inventario, Ajustar stock, Contar el envío de Traslados.',
+  demo:()=>{const e=buscar('ENV-MUESTRA'),g=e.g[S.gi];return `<div class="dial-zona">${RB.dial(g,e)}<div style="display:grid;gap:10px"><span class="etq">Pruébalo</span><span class="tenue">Gira el aro, usa la rueda del mouse o toca − y +.</span><div class="veredicto" id="veredicto"></div><div class="atajos-b"><button class="btn" data-a="poner" data-v="${g.dij}">Llegaron las ${g.dij}</button><button class="btn sutil" data-a="sumar" data-d="5">+5</button></div></div></div>`}},
+ {id:'riel',t:'Riel de categorías',r:'Las píldoras de categoría en fila (rc-cat-pildora, ContarEnvio).',
+  b:['Cada categoría con su propio aro de avance y lo que le falta (−2, 3?).','La elegida se engancha al panel, como la lengüeta de una carpeta.','Quién cuenta vive al lado, siempre a la vista.'],
+  mas:'Conteo de inventario (por zona), Nuevo producto (pasos), Plan de campaña.',
+  demo:()=>RB.rielCats(buscar('ENV-MUESTRA'))},
+ {id:'bandeja',t:'Bandeja de identificación',r:'La lista «¿Qué … son?» con chips de anotadas y filas sueltas (SepararPrendas).',
+  b:['La barra se tiñe con el color de cada prenda: se ve cuánto falta identificar.','Lo anotado en la compra es una tarjeta: un toque y la prenda vuela a su fila.','Cada fila muestra sus tallas como una tira, no como texto.'],
+  mas:'Apartados (qué prendas lleva), Cambios y devoluciones, Separar en «Hacer ahora».',
+  demo:()=>{const e=buscar('ENV-MUESTRA');return RB.bandeja(e,e.g[S.gi])}},
+ {id:'tallas',t:'Tablero de tallas',r:'La matriz color × talla con un PasoCantidad (− n +) en cada celda (MatrizRecepcion, HojaTallas).',
+  b:['Se toca la talla: un toque, una prenda. Sin apuntar a un + chiquito.','Arriba, las casillas se llenan con el color y la letra: se ve cuánto falta.','Las dañadas son un modo del mismo tablero, no otra matriz.'],
+  mas:'Ajustar stock, Nuevo producto (stock inicial), Conteo por talla.',
+  demo:()=>`<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="tenue">Se abre como hoja, igual que en el flujo.</span><button class="btn primario" id="abrirTablero">${ico('paleta')}Abrir el tablero de Falda Ariana</button></div>`},
+ {id:'cinta',t:'Cinta de cierre',r:'La tabla de cierre (Dijeron · Contaste · Se pueden vender · Para después · Diferencia) y la BarraApilada (CerrarEnvio).',
+  b:['Una sola barra a escala: lo que se vende, lo que espera y lo que falta o sobra.','La marca «dijeron» muestra la diferencia sin restar.','La causa se elige con tarjetas con dibujo, no con chips de texto.'],
+  mas:'Cierre de caja (esperado vs contado), Conteo de inventario, Traslado recibido.',
+  demo:()=>`<div class="duo">${[['Cuadra',cintaG(6,6,6)],['Faltan 2',cintaG(12,10,4)],['Sobran 3',cintaG(8,11,8)],['Llegó sin aviso',cintaG(0,5,2)]].map(([t,g],i)=>`<div class="tarjeta" style="padding:16px"><span class="etq">${t}</span>${RB.cinta(g,i===3)}</div>`).join('')}</div>`},
+ {id:'etiqueta',t:'Etiqueta de precio',r:'Los campos sueltos «Costo» y «Precio de venta» con su «¿Dónde vale?» (PrecioDePrenda, PrendaConCombinaciones).',
+  b:['Tiene la forma de la etiqueta que se cuelga: se entiende qué se está fijando.','Muestra al momento lo que se gana por prenda.','Cambiar el precio la marca en ámbar hasta confirmar.'],
+  mas:'Nuevo producto, Editar producto, Liquidación, Apunte de compras.',
+  demo:()=>{const e=buscar('ENV-MUESTRA');return `<div class="tags">${RB.etiqueta(e.g[1],1,e.g[1].sep[0],0)}</div><span class="tenue">Cambia el precio o el costo y sal del campo.</span>`}},
+ {id:'talon',t:'Talón de recepción',r:'El sello + las 4 TarjetaCifra + las tarjetas sueltas de «stock» y «para después» (EnvioCerrado).',
+  b:['El envío cerrado se ve como un comprobante, con su sello.','«Lo que sigue» ordena el después: etiquetas, piso, pendientes.','Cada paso hecho se marca con su ✓.'],
+  mas:'Cierre de caja, Traslado recibido, Venta cobrada (resumen).',
+  demo:()=>RB.talon(buscar('ENV-003035'))},
+ {id:'isla',t:'Isla con hilo',r:'La BarraDeAbajo sin avance (rc-cierre).',
+  b:['Un hilo en su borde dice cuánto del envío ya está listo.','Se pone verde cuando todo cuadra.','Mismo lugar y mismos botones que hoy.'],
+  mas:'Vender (ticket), Conteo, Nuevo producto (pasos).',
+  demo:()=>RB.isla(buscar('ENV-MUESTRA'))}
+];
+document.getElementById('indice').innerHTML=C.map((c,i)=>`<a href="#c-${c.id}">${i+1} · ${c.t}</a>`).join('');
+function pinta(){
+  document.getElementById('comps').innerHTML=C.map((c,i)=>`<section class="comp" id="c-${c.id}"><div class="ficha"><span class="num">${String(i+1).padStart(2,'0')}</span><h2>${c.t}</h2>
+    <div class="reemplaza"><b>Reemplazaría</b>${c.r}</div><ul>${c.b.map(x=>`<li>${ico('ok')}<span>${x}</span></li>`).join('')}</ul><div class="mas"><b>Dónde más serviría:</b> ${c.mas}</div></div>
+    <div class="demo" data-demo="${c.id}">${c.demo()}</div></section>`).join('');
+  const b=document.getElementById('abrirTablero');if(b)b.onclick=()=>{S.gi=1;RB.hojaTallas(1,0)};
+}
+RB.demo=pinta;
+/* el Trayecto es solo para mirar: sus botones no navegan en esta página */
+document.addEventListener('click',ev=>{if(ev.target.closest('.solo-ver')){ev.stopPropagation();ev.preventDefault()}},true);
+document.addEventListener('DOMContentLoaded',()=>setTimeout(pinta,0));
+})();
+</script>
+</body>
+</html>

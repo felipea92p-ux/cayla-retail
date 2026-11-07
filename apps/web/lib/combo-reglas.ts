@@ -23,6 +23,16 @@ export function comboNecesitaBuscador(totalOpciones: number): boolean {
   return totalOpciones > UMBRAL_BUSCAR_COMBO;
 }
 
+/**
+ * ¿El campo de búsqueda de un combo toma el foco al abrirse? Sí con mouse y teclado (tipear filtra ya). No en una pantalla táctil
+ * (`pointer: coarse`): enfocarlo sube el teclado, que tapa media hoja y deja a la lista sin lugar (filtros de Productos en el iPhone,
+ * 2026-11-01); ahí el campo sigue a la vista y el teclado sale cuando se lo toca.
+ */
+export function enfocaBuscadorAlAbrir(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
+  return !window.matchMedia("(pointer: coarse)").matches;
+}
+
 /** El scroll de la lista llegó al fondo (con margen): momento de revelar más. */
 export function comboLlegoAlFinal(medida: { scrollTop: number; clientHeight: number; scrollHeight: number }, margen = 32): boolean {
   return medida.scrollTop + medida.clientHeight >= medida.scrollHeight - margen;

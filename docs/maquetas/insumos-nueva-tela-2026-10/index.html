@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insumos · Nueva tela y Llegó tela (maqueta)</title>
+<link rel="stylesheet" href="base.css?v=1">
+<style>.lista:empty{display:none}.queMirar{max-width:900px;margin:0 auto 18px;font-size:13px;color:var(--t60)}.queMirar b{color:var(--tinta)}</style>
+</head>
+<body>
+<div class="mq"><b>Maqueta</b><span>Insumos · «Nueva tela» y «Llegó tela» (ADR-0554) · datos de ejemplo, nada se guarda</span><span class="sp"></span><button id="tema">Ver en oscuro</button></div>
+
+<header class="cab">
+  <div class="sede">Taller · Producción</div>
+  <h1>Insumos</h1>
+  <p class="frase">Tela y avíos del Taller. Elige mirando: dos caras para <b>Nueva tela</b>, y cómo se ven <b>Llegó tela</b> y la <b>lista por tela</b>. Todo es tocable.</p>
+</header>
+
+<nav class="tabs" aria-label="Vistas de la maqueta">
+  <button class="tab on" data-v="a">① Nueva tela · A · una hoja</button>
+  <button class="tab" data-v="b">② Nueva tela · B · paso a paso</button>
+  <button class="tab" data-v="l">③ Llegó tela</button>
+  <button class="tab" data-v="lista">④ La lista, por tela</button>
+</nav>
+
+<p class="queMirar">
+  <b>Qué probar.</b> En ① y ②: cambia «Por metro / kilo / rollo» (aparecen ancho y gramaje, o los metros por rollo); escribe «Milano Melange» (avisa que ya existe); en Tejido escribe «Milano» y crea el tejido ahí mismo;
+  elige colores con el buscador o con la carta; mira cómo cada color ya trae su código. En ③: cambia entre tela por kilo, metro o rollo y mueve los kilos o los metros medidos. Prueba el modo oscuro arriba a la derecha.
+</p>
+
+<main id="app"></main>
+<script src="app.js?v=1"></script>
+</body>
+</html>

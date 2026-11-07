@@ -15,6 +15,7 @@ import {
   type ClaveModulo,
   type ModuloDeCuenta,
   type TipoTerminalLegado,
+  veEstadosFinancierosDeTodo,
   veFinanzasDeTodo,
 } from "@/lib/modulos";
 import { funcionaEnVistaGlobal, modulosEnLaVista, NOMBRE_VISTA_GLOBAL, RUTA_ELEGIR_SEDE, VALOR_VISTA_GLOBAL, type Vista } from "@/lib/vista-global";
@@ -117,8 +118,9 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   // aparato (una base vieja, su tipo); vacío o error = una persona. Falla cerrado (principio 9).
   // Los módulos del rol también van en paralelo (ADR-0161). Si la función aún no existe (web publicada antes de pegar
   // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
-  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): con `p_de_tienda = false`
-  // `fn_actor_persona_id` devuelve el id propio sin mirar encabezados. En una terminal falla (exige responsable): null.
+  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): `fn_mi_persona_id` (ADR-0533) devuelve el id propio y
+  // NULL en una terminal, sin rechazar: antes se leía con `fn_actor_persona_id(false)`, que a una terminal la rechazaba y llenaba el
+  // registro de Postgres (4 258 errores al día). Web publicada antes de pegar 20261027140000: se usa esa lectura de antes (abajo).
   // ¿Admin? También en paralelo; un error = no es admin (falla cerrado: se le pide el combo como a todos).
   const [
     { data, error, status: estadoDelResumen },
@@ -131,7 +133,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
     supabase.rpc("fn_mi_terminal"),
     supabase.rpc("fn_mis_modulos"),
-    supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }),
+    supabase.rpc("fn_mi_persona_id"),
     supabase.rpc("fn_es_admin"),
     supabase.rpc("fn_mi_pantalla_principal"),
   ]);
@@ -145,6 +147,9 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
 
   const textoTerminal = !errorTerminal && typeof miTerminal === "string" ? miTerminal.trim() : "";
   const terminal = textoTerminal !== "";
+  // Sin `fn_mi_persona_id` todavía en esa base (PGRST202): la lectura de antes, para que la persona no pierda su propuesta en el combo.
+  const personaPropia =
+    errorPersonaId?.code === "PGRST202" ? await supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }) : { data: miPersonaId, error: errorPersonaId };
   const rol = data.es_lider ? "lider" : "integrante";
   const firmaRespaldo = terminal ? await leerFirmaRespaldo(supabase) : null;
   const deLaBase = !errorModulos && Array.isArray(filasModulos);
@@ -202,7 +207,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     vista,
     puedeVerGlobal,
     terminal,
-    personaId: !terminal && !errorPersonaId && typeof miPersonaId === "string" ? miPersonaId : null,
+    personaId: !terminal && !personaPropia.error && typeof personaPropia.data === "string" ? personaPropia.data : null,
     esAdmin: !terminal && soyAdmin === true,
     firmaRespaldo,
     permisos,
@@ -263,6 +268,18 @@ export function accionesDeCompraDe(persona: Pick<PersonaActualV2, "rol" | "modul
  *  CAYLA Global ve todo estando donde esté, y eso lo dice `puedeVerGlobal`. */
 export function veFinanzasDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "puedeVerGlobal">): boolean {
   return veFinanzasDeTodo(persona.rol, persona.modulos) || persona.puedeVerGlobal;
+}
+
+/** ¿Ve los Estados financieros de CAYLA entera? (ADR-0585, `fn_ve_estados_financieros_de_todo`): el flujo, el Balance entero y todas
+ *  las sedes. Solo mirar. */
+export function veEstadosFinancierosDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "terminal">): boolean {
+  return veEstadosFinancierosDeTodo(persona.rol, persona.modulos, persona.terminal);
+}
+
+/** El alcance de las lecturas del diario (`fn_ve_diario_de_todo`, ADR-0585): quien ve las finanzas de todo o los Estados financieros
+ *  de todo. Lo usan las pantallas de Estados financieros para repartir columnas por sede. */
+export function veDiarioDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "puedeVerGlobal" | "terminal">): boolean {
+  return veFinanzasDeTodoDe(persona) || veEstadosFinancierosDeTodoDe(persona);
 }
 
 /** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Plazos } from "./ayuda";
 import { claveCategoria, conFotoPrimero, soles, type Color, type PrecioTarjeta, type Prenda } from "./catalogo";
+import { clavesDeTalla } from "./filtros-color-talla";
 import { grupoDe } from "./grupos";
 import { dibujoDeLaInsignia, leerInsigniasDeLaFicha, sinLasQueLaTiendaYaDice, type DibujoDeInsignia, type InsigniaDeLaFicha } from "./insignias";
 import type { Look } from "./looks";
@@ -153,6 +154,14 @@ export function colorInicial(f: Ficha, pedido?: string | null, sedeId: string | 
   if (pedido && f.colores.some((c) => c.codigo === pedido)) return pedido;
   const conAlgo = (c: Color) => f.variantes.some((v) => v.color === c.codigo && hayAlgo(nivelAqui(v, sedeId)));
   return (f.colores.find((c) => c.foto && conAlgo(c)) ?? f.colores.find((c) => c.foto) ?? f.colores[0]).codigo;
+}
+
+/** La talla con que abre la ficha: la pedida (`?talla=`, la clave que usan los filtros: «M», «28», «UNICA»; ADR-0512) si el color elegido la tiene; si no,
+ *  ninguna (la persona elige). «Estándar» y «Única» son la misma para quien compra, y «S/M» cuenta como S y como M. */
+export function tallaInicial(f: Ficha, pedida: string | null | undefined, color: string): string | null {
+  if (!pedida) return null;
+  const claves = clavesDeTalla(pedida);
+  return tallasDelColor(f, color).find((t) => clavesDeTalla(t.talla.nombre).some((c) => claves.includes(c)))?.talla.id ?? null;
 }
 
 /** Las tallas de un color, en el orden de la tienda, cada una con su variante. */

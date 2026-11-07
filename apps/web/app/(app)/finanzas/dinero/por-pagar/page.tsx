@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { exigirModulo, accionesDeCompraDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { leerVer } from "@/lib/gastos-reglas";
@@ -6,9 +7,10 @@ import { filaAPagar, puedePagar } from "@/lib/por-pagar-consolidado-reglas";
 import { getPorPagarConsolidado, getUnidadesPorPagar } from "@/lib/por-pagar-consolidado";
 import { getCompra } from "@/lib/compras";
 import { getProveedores } from "@/lib/proveedores";
-import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
+import { getComprobantesProduccion, getServiciosPorPagar } from "@/lib/comprobantes-produccion";
+import { hrefDeLaOrden } from "@/lib/servicios-por-pagar-reglas";
 import { PorPagarConsolidado } from "@/components/finanzas/PorPagarConsolidado";
-import { PagoTallerDesdeUrl } from "@/components/finanzas/PorPagarAcciones";
+import { PagoServicioDesdeUrl, PagoTallerDesdeUrl } from "@/components/finanzas/PorPagarAcciones";
 import { PagoDesdeUrl } from "@/components/CompraDetallePanel";
 import { verDeLaVista } from "@/lib/vista-global";
 import { sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
@@ -66,6 +68,11 @@ export default async function PorPagarFinanzasPage({ searchParams }: { searchPar
   } else if (pagable?.origen === "produccion") {
     const comprobante = (await getComprobantesProduccion()).find((c) => c.id === pagable.id && c.estado === "vigente" && c.saldo > 0);
     if (comprobante) modal = <PagoTallerDesdeUrl comprobante={comprobante} hoy={hoy} />;
+  } else if (pagable?.origen === "servicio") {
+    // Sin papel, la fila es la fase de la orden. Si todavía no dice quién lo hizo, no hay a quién pagarle: se va a la orden a decirlo.
+    const servicio = (await getServiciosPorPagar()).find((s) => s.faseId === pagable.id);
+    if (servicio?.proveedor === null) redirect(hrefDeLaOrden(servicio.numero));
+    if (servicio) modal = <PagoServicioDesdeUrl servicio={{ ...servicio, proveedor: servicio.proveedor as string }} hoy={hoy} />;
   }
 
   return (

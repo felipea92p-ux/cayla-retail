@@ -52,13 +52,32 @@ const PROY: Proyeccion = {
 };
 
 describe("alcanzaPulso", () => {
-  it("la primera semana bajo el mínimo, y qué pasa si depositas lo guardado", () => {
+  it("lo que es de Claudia ya está restado de lo que tienes, y lo dice (ADR-0560, actividad 16)", () => {
+    const a = alcanzaPulso({ ...PROY, deClaudia: 291.69 }, 0);
+    expect(a.estado === "sin_dato" ? null : a.deClaudia).toMatchObject({ monto: 291.69 });
+    expect(a.estado === "sin_dato" ? "" : a.deClaudia!.frase).toContain("S/ 292 que son de Claudia");
+    // Sin deuda con ella (o una base más vieja que esta web) no dice nada.
+    for (const sin of [null, 0, undefined]) expect(alcanzaPulso({ ...PROY, deClaudia: sin }, 0).estado === "sin_dato" ? null : (alcanzaPulso({ ...PROY, deClaudia: sin }, 0) as { deClaudia: unknown }).deClaudia).toBeNull();
+  });
+  it("la primera semana bajo el mínimo, y lo guardado ya cuenta en ese saldo (depositar no lo aumenta)", () => {
     const a = alcanzaPulso(PROY, 10100);
     expect(a.estado).toBe("baja");
     if (a.estado !== "baja") return;
     expect(a.frase).toMatch(/^La semana .* bajas a S\/ 11,280, bajo tu mínimo de S\/ 15,000\.$/);
-    expect(a.siDepositas).toMatchObject({ monto: 10100, saldo: 21380, alcanza: true });
-    expect(a.siDepositas!.frase).toContain("por encima de tu mínimo");
+    // El saldo de la proyección (`fn_flujo_disponible`) ya incluye las cajas fuertes y lo del líder: sumarles lo guardado otra vez
+    // prometía S/ 21,380 y la semana sigue en S/ 11,280 (2026-10-27, DIN-01 del examen de Finanzas).
+    expect(a.guardadoYaCuenta).toMatchObject({ monto: 10100 });
+    expect(a.guardadoYaCuenta!.frase).toContain("ya cuenta");
+    expect(a.guardadoYaCuenta!.frase).toContain("S/ 10,100");
+    expect(a.guardadoYaCuenta!.frase).not.toContain("S/ 21,380");
+    expect(a.guardadoYaCuenta!.frase).not.toContain("quedas en");
+    expect("siDepositas" in a).toBe(false);
+  });
+  it("sin nada guardado, o en «bien», no dice nada de depositar", () => {
+    const sinGuardado = alcanzaPulso(PROY, 0);
+    expect(sinGuardado.estado === "baja" && sinGuardado.guardadoYaCuenta).toBeNull();
+    const bien = alcanzaPulso({ ...PROY, semanas: PROY.semanas.map((s) => ({ ...s, saldo: s.saldo + 10000, bajoMinimo: false })) }, 10100);
+    expect(bien.estado === "bien" && bien.guardadoYaCuenta).toBeNull();
   });
   it("si nada baja del mínimo, lo dice con la semana más baja", () => {
     const a = alcanzaPulso({ ...PROY, semanas: PROY.semanas.map((s) => ({ ...s, saldo: s.saldo + 10000, bajoMinimo: false })) }, 10100);
@@ -115,5 +134,37 @@ describe("debesPulso", () => {
     const d = debesPulso([], hoy);
     expect(d.tono).toBe("verde");
     expect(d.frase).toContain("Si hay facturas sin anotar, no están aquí");
+  });
+});
+
+// ADR-0621: el fondo de compras ya viene sin lo gastado; lo que queda es tuyo, pero no paga cuentas.
+describe("lo por volver de compras", () => {
+  const FONDO = cuenta({ id: "fondo", nombre: "Fondo · Micaela", tipo: "fondo", cuentaContable: "1413", saldo: 285 });
+  it("«Tienes» lo cuenta, aparte, como «Por volver de compras»", () => {
+    const sin = tienesPulso(CUENTAS, null);
+    const con = tienesPulso([...CUENTAS, FONDO], null);
+    expect(con.total).toBe(sin.total + 285);
+    expect(con.partes.at(-1)).toEqual({ clave: "compras", titulo: "Por volver de compras", monto: 285 });
+    expect(con.frase).toContain("por volver de compras S/");
+  });
+  it("si una compradora gastó de más, «por volver» no baja de 0 y lo que se le debe va aparte, dentro del total", () => {
+    const debe = cuenta({ id: "fondo2", nombre: "Fondo · Sandra", tipo: "fondo", cuentaContable: "1413", saldo: -40 });
+    const t = tienesPulso([...CUENTAS, FONDO, debe], null);
+    expect(t.total).toBe(tienesPulso(CUENTAS, null).total + 285 - 40);
+    expect(t.partes.slice(-2)).toEqual([
+      { clave: "compras", titulo: "Por volver de compras", monto: 285 },
+      { clave: "debes_compras", titulo: "Le debes a las compradoras", monto: -40 },
+    ]);
+  });
+  it("sin fondo no aparece la parte", () => {
+    expect(tienesPulso(CUENTAS, null).partes.some((p) => p.clave === "compras")).toBe(false);
+  });
+  it("«¿Me alcanza?» dice que la proyección ya no lo cuenta, solo si hay algo", () => {
+    const a = alcanzaPulso({ ...PROY, porVolverCompras: 285 }, 0);
+    expect(a.estado === "sin_dato" ? null : a.porVolver?.monto).toBe(285);
+    for (const sin of [null, 0, undefined]) {
+      const b = alcanzaPulso({ ...PROY, porVolverCompras: sin }, 0);
+      expect(b.estado === "sin_dato" ? null : b.porVolver).toBeNull();
+    }
   });
 });

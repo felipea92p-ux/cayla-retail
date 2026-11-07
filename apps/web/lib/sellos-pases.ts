@@ -286,10 +286,11 @@ function prendasYDeDonde(prendas: number, aMano: number, categorias: readonly st
   return `${n}: ${prendas - aMano} de ${cats} y ${marcadas}`;
 }
 
-export type ItemListo = { clave: "fechas" | "prendas" | "descuento" | "ofertas"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
+export type ItemListo = { clave: "fechas" | "prendas" | "ofertas" | "promociones"; nombre: string; hecho: boolean; opcional: boolean; detalle: string };
 
-/** Lo que ya tiene una campaña. Fechas y prendas son lo que la hace funcionar; el descuento es opcional (una campaña puede ser solo
- *  de vitrina). Sale de lo mismo que ya decide la pantalla («Sin prendas», «Sin preparar»): no agrega reglas. */
+/** Lo que ya tiene una campaña. Fechas y prendas son lo que la hace funcionar; las ofertas y promociones son opcionales (una campaña puede
+ *  ser solo de vitrina). Ya no hay fila «Descuento»: desde ADR-0496 el descuento se arma con ofertas, no se guarda en la campaña (Felipe
+ *  2026-10-28). Sale de lo mismo que ya decide la pantalla («Sin prendas», «Sin preparar»): no agrega reglas. */
 export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly string[], hoy: string, aMano = 0, ofertas?: { total: number; borradores: number }): ItemListo[] {
   const llega = prendas > 0 || categorias.length > 0;
   const items: ItemListo[] = [
@@ -301,9 +302,8 @@ export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly s
       opcional: false,
       detalle: llega ? prendasYDeDonde(prendas, aMano, categorias) : "ninguna todavía",
     },
-    { clave: "descuento", nombre: "Descuento", hecho: f.descuentoPct !== null, opcional: true, detalle: f.descuentoPct !== null ? pct(f.descuentoPct) : "sin descuento" },
   ];
-  // Las ofertas de la campaña («Tres preguntas», 2026-10-23): opcionales como el descuento; solo se dicen si la pantalla las conoce.
+  // Las ofertas de la campaña («Tres preguntas», 2026-10-23): opcionales; solo se dicen si la pantalla las conoce.
   if (ofertas) {
     items.push({
       clave: "ofertas",
@@ -312,6 +312,9 @@ export function loQueTiene(f: FilaSello, prendas: number, categorias: readonly s
       opcional: true,
       detalle: ofertas.total > 0 ? `${plural(ofertas.total, "oferta", "ofertas")}${ofertas.borradores > 0 ? ` · ${plural(ofertas.borradores, "en borrador", "en borrador")}` : ""}` : "ninguna todavía",
     });
+    // Promociones (Felipe 2026-10-28, debajo de Ofertas): todavía no hay un segundo tipo en la base (solo «un % menos», que ya cuenta la fila
+    // de arriba), así que dice «ninguna todavía» hasta que exista el primero (2x1, soles menos…).
+    items.push({ clave: "promociones", nombre: "Promociones", hecho: false, opcional: true, detalle: "ninguna todavía" });
   }
   return items;
 }

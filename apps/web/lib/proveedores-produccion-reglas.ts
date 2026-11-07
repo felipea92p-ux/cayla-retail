@@ -1,3 +1,4 @@
+import { soloDigitos, validarRuc } from "@cayla-retail/shared";
 // Directorio de proveedores de Producción (ADR-0133, F4a; decisión D-H). Puro: sin Supabase ni React, para poder probarlo.
 //
 // Es un directorio APARTE del de Compras (`retail.proveedores`): acá están quienes le venden al Taller tela, avíos o
@@ -90,4 +91,13 @@ export function resumenProveedores(lista: ProveedorProduccion[]): ResumenProveed
 /** Un proveedor sin ningún dato de pago no se le puede pagar sin preguntar: se dice en la lista, sin adornos. */
 export function sinDatosDePago(p: Pick<ProveedorProduccion, "cci" | "cuentaBancaria" | "celularBilletera">): boolean {
   return !p.cci && !p.cuentaBancaria && !p.celularBilletera;
+}
+
+/** Si el RUC ya tiene sus 11 dígitos pero no existe (prefijo que no es de SUNAT o dígito verificador que no cuadra), lo dice. Es un AVISO: no bloquea guardar (el RUC es opcional y
+ *  Felipe decidió no frenar; el padrón de SUNAT sigue siendo la verdad). Mientras se escribe, o vacío, no dice nada. `null` si no hay nada que avisar. */
+export function avisoDelRuc(ruc: string): string | null {
+  const digitos = soloDigitos(ruc);
+  if (digitos.length !== 11) return null;
+  const v = validarRuc(digitos);
+  return v.valido ? null : v.motivo;
 }

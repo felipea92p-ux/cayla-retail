@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  avisoCargaDeLaFicha,
-  bloqueoDeSubida,
   comoLlenarHueco,
   armarMatriz,
-  cambiosDeStock,
-  cantidadDeCelda,
   coloresQueSeQuitan,
   coloresYaDesactivados,
   conPaso,
@@ -13,16 +9,11 @@ import {
   cuentaEtiqueta,
   devolverColor,
   etiquetaCambiada,
-  fijarCelda,
-  grupoDeStockEnHoja,
   hrefEtiquetasDeSubidas,
   juntarSubidas,
   lineasParaImprimir,
   lineasDelLote,
-  minimoDeCelda,
-  pasoDeCelda,
   ponerEtiqueta,
-  problemaDelStockDeLaVisita,
   quitarColor,
   quitarTalla,
   tallasQueSeQuitan,
@@ -89,26 +80,7 @@ describe("armarMatriz", () => {
   });
 });
 
-describe("la celda: número, piso y paso", () => {
-  it("el número es el stock de hoy en el lugar más lo tocado, nunca arranca en 0 si hay stock", () => {
-    const v = variante("a", { stockAlmacen: 4, stockPiso: 2 });
-    expect(cantidadDeCelda(v, "almacen", 0)).toBe(4);
-    expect(cantidadDeCelda(v, "piso", 1)).toBe(3);
-    expect(cantidadDeCelda(undefined, "almacen", 0)).toBe(0);
-  });
-
-  it("no baja de cero ni de lo apartado para clientas", () => {
-    expect(pasoDeCelda(0, 0, -1, 0)).toBeNull();
-    expect(pasoDeCelda(2, -1, -1, 0)).toBe(-2);
-    expect(pasoDeCelda(2, -2, -1, 0)).toBeNull();
-    const v = variante("a", { stockAlmacen: 3, apartadoAlmacen: 2 });
-    const min = minimoDeCelda(v, "almacen");
-    expect(min).toBe(2);
-    expect(pasoDeCelda(3, 0, -1, min)).toBe(-1);
-    expect(pasoDeCelda(3, -1, -1, min)).toBeNull();
-    expect(pasoDeCelda(0, 4, 1, 0)).toBe(5);
-  });
-
+describe("conPaso", () => {
   it("lo que vuelve a 0 deja de estar pendiente", () => {
     expect(conPaso({ a: 1 }, "a", 0)).toEqual({});
     expect(conPaso({}, "a", -1)).toEqual({ a: -1 });
@@ -139,75 +111,6 @@ describe("lineasDelLote", () => {
   });
 });
 
-// ADR-0328 (actividad 4) en la ficha, tras la revisión adversarial: «Encontré prendas» se ofrece con su nota y, con la carga de
-// la sede cerrada, es la única forma de sumar una talla que nunca estuvo en la tienda. Las MISMAS reglas que la base.
-describe("«Encontré prendas» y la carga cerrada en la ficha", () => {
-  const MOTIVOS = ["reposicion", "merma", "conteo_fisico", "otro"] as const;
-  const conHistoria = variante("h", { stockAlmacen: 4, apartadoAlmacen: 1 });
-  const nueva = variante("n", { sinHistoria: true });
-
-  it("con «Encontré prendas» la celda no baja de lo que hay hoy (solo suma); con los demás, de lo apartado", () => {
-    expect(minimoDeCelda(conHistoria, "almacen", "reposicion")).toBe(4);
-    for (const m of ["merma", "conteo_fisico", "otro"] as const) expect(minimoDeCelda(conHistoria, "almacen", m)).toBe(1);
-    expect(minimoDeCelda(conHistoria, "almacen")).toBe(1);
-    expect(pasoDeCelda(4, 0, -1, minimoDeCelda(conHistoria, "almacen", "reposicion"))).toBeNull();
-    expect(pasoDeCelda(4, 0, 1, minimoDeCelda(conHistoria, "almacen", "reposicion"))).toBe(1);
-    expect(minimoDeCelda(undefined, "almacen", "reposicion")).toBe(0);
-  });
-
-  it("el «+» de una talla sin historia: abierta suma con todo; cerrada, solo con «Encontré prendas», y en el piso manda al almacén", () => {
-    for (const m of MOTIVOS) {
-      expect(bloqueoDeSubida({ sinHistoria: true, cargaAbierta: true, motivo: m, enPisoCerrado: false })).toBeNull();
-      expect(bloqueoDeSubida({ sinHistoria: false, cargaAbierta: false, motivo: m, enPisoCerrado: false })).toBeNull();
-      const cerrada = bloqueoDeSubida({ sinHistoria: true, cargaAbierta: false, motivo: m, enPisoCerrado: false });
-      if (m === "reposicion") expect(cerrada).toBeNull();
-      else expect(cerrada).toMatch(/elige «Encontré prendas»/);
-    }
-    expect(bloqueoDeSubida({ sinHistoria: true, cargaAbierta: false, motivo: "merma", enPisoCerrado: true })).toMatch(/anótala en el almacén/);
-  });
-
-  it("nada que frenar sin cambios, ni con la carga abierta y un motivo sin nota", () => {
-    const base = { nuevasConStock: 0, nota: "", cargaAbierta: true, enPisoCerrado: false };
-    for (const m of MOTIVOS) expect(problemaDelStockDeLaVisita({ ...base, lineas: [], motivo: m })).toBeNull();
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: conHistoria }], motivo: "conteo_fisico" })).toBeNull();
-    // Abierta, lo nuevo es stock inicial: no necesita motivo ni nota (ni una variante nueva, ni una talla sin historia).
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 2, motivo: "reposicion" })).toBeNull();
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: nueva }], motivo: "reposicion" })).toBeNull();
-    // …pero si en el mismo lote hay una talla con historia, esa sí viaja como ajuste y pide la nota.
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: nueva }, { delta: 1, variante: conHistoria }], motivo: "reposicion" })?.campo).toBe("nota");
-  });
-
-  it("«Encontré prendas» pide la nota (3 letras o más) y la manda a su campo; restar se manda al motivo", () => {
-    const base = { nuevasConStock: 0, cargaAbierta: true, enPisoCerrado: false, motivo: "reposicion" as const };
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: conHistoria }], nota: " ab " })).toEqual({
-      texto: "Con «Encontré prendas» cuenta dónde estaban o por qué aparecieron (3 letras o más).",
-      campo: "nota",
-    });
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: conHistoria }], nota: "en una caja" })).toBeNull();
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: -1, variante: conHistoria }], nota: "en una caja" })?.campo).toBe("motivo");
-  });
-
-  it("cerrada: una talla sin historia u otra variante nueva con otro motivo frena en el motivo; con «Encontré prendas», en la nota", () => {
-    const base = { cargaAbierta: false, enPisoCerrado: false, nota: "" };
-    for (const m of ["merma", "conteo_fisico", "otro"] as const) {
-      expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 1, variante: nueva }], nuevasConStock: 0, motivo: m })?.campo).toBe("motivo");
-      expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 1, motivo: m })?.campo).toBe("motivo");
-    }
-    // Las variantes nuevas viajan como ajuste: con «Encontré prendas» piden la nota como cualquier otra.
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 1, motivo: "reposicion" })?.campo).toBe("nota");
-    expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 1, motivo: "reposicion", nota: "en el probador" })).toBeNull();
-  });
-
-  it("la línea bajo el motivo: cerrada y con otro motivo dice qué hacer con las tallas quietas; si no, el aviso tal cual", () => {
-    const aviso = "La carga inicial de Tienda TRU se cerró el 15-oct. Lo que encuentres entra por «Encontré prendas».";
-    expect(avisoCargaDeLaFicha(null, false, "merma", false)).toBeNull();
-    expect(avisoCargaDeLaFicha(aviso, true, "merma", false)).toBe(aviso);
-    expect(avisoCargaDeLaFicha(aviso, false, "reposicion", false)).toBe(aviso);
-    expect(avisoCargaDeLaFicha(aviso, false, "merma", false)).toBe(`${aviso} Las tallas que nunca estuvieron aquí se suman eligiendo «Encontré prendas».`);
-    expect(avisoCargaDeLaFicha(aviso, false, "otro", true)).toMatch(/se suman en el almacén, con «Encontré prendas»\.$/);
-  });
-});
-
 describe("totalesMatriz", () => {
   it("suma por color, por talla y general lo que muestra cada celda", () => {
     const m = armarMatriz([fila("CRU", "s"), fila("CRU", "m"), fila("NEG", "s")], n);
@@ -235,44 +138,7 @@ describe("textos", () => {
   });
 });
 
-describe("stock que espera a «Revisar y guardar» (ADR-0313, act. 2026-10-02 noche)", () => {
-  it("fijarCelda: lo escrito a mano es lo tocado contra el stock de hoy; nunca debajo de lo apartado ni algo que no es un entero", () => {
-    expect(fijarCelda(4, 6, 0)).toBe(2);
-    expect(fijarCelda(4, 1, 0)).toBe(-3);
-    expect(fijarCelda(4, 4, 0)).toBe(0);
-    expect(fijarCelda(4, 1, 2)).toBeNull();
-    expect(fijarCelda(4, 2, 2)).toBe(-2);
-    expect(fijarCelda(4, -1, 0)).toBeNull();
-    expect(fijarCelda(4, 1.5, 0)).toBeNull();
-  });
-
-  it("cambiosDeStock: de cuánto a cuánto en el lugar que se ajusta, solo lo tocado", () => {
-    const vs = [variante("a", { talla: "S", color: "Blanco", stockAlmacen: 4 }), variante("b", { talla: "M", color: "Blanco", stockAlmacen: 3 })];
-    expect(cambiosDeStock(vs, { a: 2 }, "almacen")).toEqual([{ varianteId: "a", color: "Blanco", talla: "S", antes: 4, despues: 6 }]);
-    expect(cambiosDeStock(vs, { b: -1 }, "piso")).toEqual([{ varianteId: "b", color: "Blanco", talla: "M", antes: 0, despues: -1 }]);
-    expect(cambiosDeStock(vs, {}, "almacen")).toEqual([]);
-  });
-
-  it("grupoDeStockEnHoja: una línea por talla y la nota con motivo, lugar y las etiquetas si algo sube", () => {
-    expect(grupoDeStockEnHoja([], "Conteo físico", "en el almacén")).toBeNull();
-    const g = grupoDeStockEnHoja(
-      [
-        { varianteId: "a", color: "Blanco", talla: "S", antes: 4, despues: 6 },
-        { varianteId: "b", color: "Rojo", talla: null, antes: 3, despues: 2 },
-      ],
-      "Conteo físico",
-      "en el almacén"
-    )!;
-    expect(g.lineas).toEqual([
-      { texto: "S · Blanco", antes: "4", despues: "6" },
-      { texto: "Única · Rojo", antes: "3", despues: "2" },
-    ]);
-    expect(g.nota).toBe("Se registra como «Conteo físico» en el almacén. Entran 2 unidades: al guardar te propone imprimir sus etiquetas.");
-    expect(grupoDeStockEnHoja([{ varianteId: "b", color: "Rojo", talla: "M", antes: 3, despues: 2 }], "Merma", "en esta sede")!.nota).toBe(
-      "Se registra como «Merma» en esta sede."
-    );
-  });
-
+describe("lo que entró en un guardado (ADR-0313, act. 2026-10-02 noche)", () => {
   it("juntarSubidas y hrefEtiquetasDeSubidas: una etiqueta por unidad nueva, sumando lo que se repite", () => {
     const una = juntarSubidas([], [{ varianteId: "a", color: "Blanco", talla: "S", unidades: 2 }, { varianteId: "b", color: "Rojo", talla: "M", unidades: 0 }]);
     const dos = juntarSubidas(una, [{ varianteId: "a", color: "Blanco", talla: "S", unidades: 1 }, { varianteId: "c", color: "Rojo", talla: "L", unidades: 4 }]);

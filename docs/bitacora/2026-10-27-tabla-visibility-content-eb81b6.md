@@ -1,0 +1,5 @@
+# 2026-10-27 · Ajustar stock: la planilla se lleva el alto (tabla-visibility-content-eb81b6)
+
+- **Qué:** en la hoja «Ajustar stock» de Existencias la planilla (lo importante) quedaba en una fila y media porque la banda de arriba (~270 px) y el pie con «Responsable» (~133 px) se llevaban el alto. En una hoja ancha, «Dónde» y «Qué pasó» van lado a lado, la nota con su título a la izquierda y la ayuda en una línea que corre (~120 px); el pie pone «Responsable» en línea y sin el «Obligatorio para guardar» (lo dice la guía del pie): ~56 px. Archivos: `app/estilos/ajuste-modelo.css`, `components/existencias/AjusteDelModelo.tsx`, `components/ComboResponsable.tsx` (prop `enLinea`).
+- **Verificado:** en el navegador a 970×737 (3 colores visibles completos, con y sin nota) y a 375 px (sin cambios); pruebas de ajuste, unificar, tema, guías y guía de foco en verde.
+- **Pendiente:** con el aviso «Nadie de turno» (terminal sin nadie marcado) el pie mide ~267 px y tapa la planilla; es de la regla de turno, no de este ajuste.

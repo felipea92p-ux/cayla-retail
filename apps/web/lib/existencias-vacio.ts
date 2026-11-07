@@ -23,7 +23,15 @@ import { interpretarBusquedaEspecial, normalizarCamposBuscables, type IndiceBusq
 type Vocabulario = IndiceBusquedaEspecial<unknown>["vocabulario"];
 
 /** Un producto del catálogo que esta sede NO tiene en su stock (ni una fila). */
-export type ProductoSinStock = { id: string; referencia: string; marca: string | null; categoria: string | null };
+export type ProductoSinStock = {
+  id: string;
+  referencia: string;
+  marca: string | null;
+  categoria: string | null;
+  /** Para dibujar la prenda en «¿Qué prenda vas a ajustar?»: su foto principal y, sin foto, el ícono de su familia. Opcionales: una lista armada sin ellos dibuja la percha. */
+  fotoUrl?: string | null;
+  familia?: string | null;
+};
 
 /** «accion» (Acción hoy) y «estado» (dañado, por colgar) son dos ejes desde el 2026-09-25: el vacío puede quitar uno sin el otro. */
 export type ClaveFiltro = "categoria" | "talla" | "color" | "marca" | "hoy" | "condicion";

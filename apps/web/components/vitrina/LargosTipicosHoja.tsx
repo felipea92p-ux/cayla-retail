@@ -70,7 +70,7 @@ export function LargosTipicosHoja({
   return (
     <Modal
       titulo="Largos típicos"
-      subtitulo="Con este largo sale una prenda en el probador hasta que se anote el suyo. Vacío: esa categoría no tiene típico y sus prendas entran solo con su largo."
+      subtitulo="Con este largo sale una prenda en el probador hasta que se anote el suyo."
       onClose={onClose}
       variante="hoja"
       tamano="mediana"
@@ -108,7 +108,7 @@ export function LargosTipicosHoja({
             <Boton type="button" onClick={onClose} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} confirma={guia} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Guardar
             </Boton>
           </div>

@@ -12,16 +12,13 @@
    Ninguna se pone roja al pasar el mouse. Solo tokens (ADR-0336: el oscuro sale solo). Registro: docs/unificar/pestanas.md. ---- */
 @layer components {
   /* ---------- 1 · Pestaña de vista ----------
-     El vidrio de Comprobantes (`.pestanas-vidrio`, ADR-0124) llevado a toda pestaña de vista: un contenedor de vidrio
-     (`vidrio-cayla`) con 4 px de aire y radio 14, y una píldora en tinta de radio 10 que se DESLIZA bajo la elegida
+     El vidrio de Comprobantes (ADR-0124) llevado a toda pestaña de vista: un contenedor de vidrio (su material, desde el
+     2026-10-31, es el pozo de vidrio/pantalla.css; la isla de ADR-0124 se fue el 2026-11-02) con 4 px de aire y radio 14, y una píldora en tinta de radio 10 que se DESLIZA bajo la elegida
      (`IndicadorDeslizante` «pildora-tinta», 450 ms, ADR-0136). La palabra va en versalitas de 12 px (label-cayla), como pidió
      Felipe: «la que elegí, pero con mayúsculas». La elegida, en crema sobre la píldora. Antes de hidratar (o sin JavaScript) la
      elegida lleva su propio fondo y, en cuanto la píldora se coloca (`data-indicador`), ese fondo se apaga. El foco va hacia
      adentro (la fila se desliza y le recortaba el anillo, ADR-0351) y en celular la fila se desliza de costado. */
   .pestanas-cayla {
-    --vidrio-alfa: 0.45;
-    --vidrio-borde: 0.09;
-    --vidrio-blur: 22px;
     position: relative;
     display: inline-flex;
     align-self: flex-start;
@@ -56,7 +53,7 @@
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
-    transition: color 200ms, background-color 200ms;
+    transition: color var(--t-cambio), background-color var(--t-cambio);
   }
   @media (hover: hover) {
     .pestana-cayla:hover {
@@ -85,7 +82,7 @@
     border-radius: 10px;
     background: var(--color-tinta);
     box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
-    transition-duration: 450ms;
+    transition-duration: var(--t-hoja);
   }
   @media (max-width: 639px) {
     .pestana-cayla {
@@ -158,10 +155,26 @@
     background: color-mix(in srgb, var(--color-rojo) 15%, transparent);
     color: var(--color-rojo-profundo);
   }
+  /* «nuevo»: una vista recién llegada. Pizarra con letra crema: el relleno y la letra se invierten juntos con el tema (pizarra oscura con letra clara en claro;
+     pizarra clara con letra oscura en oscuro, donde `crema-fija` pasaba 1,8:1); sobre la píldora oscura, al revés. */
+  .pestana-cayla__cuenta[data-tono="nuevo"] {
+    background: var(--color-pizarra);
+    color: var(--color-crema);
+    padding: 0 7px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
   .pestana-cayla[aria-selected="true"] .pestana-cayla__cuenta,
   .pestana-cayla[aria-current="page"] .pestana-cayla__cuenta {
     background: color-mix(in srgb, var(--color-crema) 15%, transparent);
     color: var(--color-crema);
+  }
+  .pestana-cayla[aria-selected="true"] .pestana-cayla__cuenta[data-tono="nuevo"],
+  .pestana-cayla[aria-current="page"] .pestana-cayla__cuenta[data-tono="nuevo"] {
+    background: var(--color-crema);
+    color: var(--color-tinta);
   }
 
   /* ---------- 2 · Píldora de filtro y de período ----------
@@ -249,7 +262,7 @@
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
-    transition: color 150ms, background-color 150ms;
+    transition: color var(--t-resp), background-color var(--t-resp);
   }
   @media (hover: hover) {
     .segmento-cayla__opcion:hover {

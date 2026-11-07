@@ -80,6 +80,9 @@ export async function registrarCompraRapida(
     // Pagar ahora o después (20261023181000): cero y sin método si paga Compras desde Por pagar.
     p_pagado: number;
     p_medio: MedioPagoCompra | null;
+    // La serie y el número que copió del papel (20261029193000): solo con factura, boleta o una nota de venta con número.
+    p_serie?: string;
+    p_numero?: string;
   },
   firma: Firma | FirmaOmitida | null,
 ): Promise<{ error: ErrorDeBase }> {

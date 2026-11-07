@@ -9,7 +9,7 @@ export function BurbujaAviso({ texto, cierre, hora, className = "" }: { texto: s
   const cierreLimpio = cierre?.trim() ?? "";
   return (
     <div
-      className={`relative whitespace-pre-line break-words rounded-xl rounded-bl-sm bg-[color-mix(in_srgb,var(--color-verde)_13%,var(--color-papel))] px-3 pb-5 pt-2.5 text-[13.5px] leading-snug text-tinta ${className}`}
+      className={`relative whitespace-pre-line break-words rounded-xl rounded-bl-sm bg-[color-mix(in_srgb,var(--color-verde)_13%,var(--color-papel))] px-3 pb-5 pt-2.5 text-[15px] leading-snug text-tinta ${className}`}
     >
       {parrafos.map((p, i) => {
         const esBaja = p.trim() === LINEA_BAJA;
@@ -19,7 +19,7 @@ export function BurbujaAviso({ texto, cierre, hora, className = "" }: { texto: s
             key={i}
             className={
               esBaja
-                ? "mt-1.5 text-xs text-tinta/65"
+                ? "mt-1.5 text-sm text-tinta/65"
                 : esCierre
                   ? "mt-2 border-t border-dashed border-tinta/20 pt-2"
                   : i > 0
@@ -33,7 +33,7 @@ export function BurbujaAviso({ texto, cierre, hora, className = "" }: { texto: s
           </p>
         );
       })}
-      {hora && <span className="absolute bottom-1 right-2.5 text-[10.5px] tabular-nums text-tinta/55">{hora}</span>}
+      {hora && <span className="absolute bottom-1 right-2.5 text-sm tabular-nums text-tinta/55">{hora}</span>}
     </div>
   );
 }

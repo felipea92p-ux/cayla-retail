@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { leerTodas, tolerar } from "@/lib/resultado";
+import { fotoPrincipal } from "@/lib/inventario-reglas";
 import type { ProductoDeCatalogo } from "@/lib/existencias-catalogo-reglas";
 
 // Lectura ligera de `productos` para Existencias: la marca, la categoría (y su familia) de cada producto y qué productos activos
@@ -27,9 +28,13 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     (desde, hasta) =>
       supabase
         .from("productos")
-        .select("id, referencia, descripcion, estado, estado_alta, es_prueba, empresa_id, marca:marcas ( nombre ), categoria:categorias ( nombre, familia ), variantes ( id )")
+        .select("id, referencia, descripcion, estado, estado_alta, es_prueba, empresa_id, marca:marcas ( nombre ), categoria:categorias ( nombre, familia ), variantes ( id ), producto_fotos ( url, orden, es_principal )")
         .eq("variantes.activo", true)
         .limit(1, { referencedTable: "variantes" })
+        // Solo UNA foto por producto (la principal; si ninguna lo está, la primera): la lectura sigue siendo ligera.
+        .order("es_principal", { ascending: false, referencedTable: "producto_fotos" })
+        .order("orden", { ascending: true, referencedTable: "producto_fotos" })
+        .limit(1, { referencedTable: "producto_fotos" })
         .order("id")
         .range(desde, hasta),
     // Casi siempre cabe en una página: en serie, la segunda solo se pide si la primera vino llena (ADR-0192).
@@ -49,6 +54,7 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     esPrueba: p.es_prueba,
     conVariantesActivas: (p.variantes ?? []).length > 0,
     empresaId: p.empresa_id,
+    fotoUrl: fotoPrincipal(p.producto_fotos),
   }));
   return { productos, fallo };
 }

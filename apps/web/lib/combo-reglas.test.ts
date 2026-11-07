@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   comboLlegoAlFinal,
   comboNecesitaBuscador,
+  enfocaBuscadorAlAbrir,
   TAMANO_PAGINA_COMBO,
   UMBRAL_BUSCAR_COMBO,
   coincidenciaCombo,
@@ -253,5 +254,31 @@ describe("tramosPorGrupo", () => {
   it("sin grupos, un solo tramo sin título: la lista de siempre", () => {
     expect(tramosPorGrupo([{}, {}]).map((t) => [t.grupo, t.items.length])).toEqual([[undefined, 2]]);
     expect(tramosPorGrupo([])).toEqual([]);
+  });
+});
+
+describe("enfocaBuscadorAlAbrir", () => {
+  const original = globalThis.window;
+  afterEach(() => {
+    globalThis.window = original;
+  });
+  const conPantalla = (tactil: boolean) => {
+    globalThis.window = { matchMedia: (q: string) => ({ matches: tactil && q === "(pointer: coarse)" }) } as unknown as Window & typeof globalThis;
+  };
+
+  it("con mouse el campo toma el foco", () => {
+    conPantalla(false);
+    expect(enfocaBuscadorAlAbrir()).toBe(true);
+  });
+
+  it("en una pantalla táctil no lo toma (el teclado taparía la lista)", () => {
+    conPantalla(true);
+    expect(enfocaBuscadorAlAbrir()).toBe(false);
+  });
+
+  it("sin ventana (servidor) conserva lo de siempre", () => {
+    // @ts-expect-error — se simula la ausencia de `window`
+    delete globalThis.window;
+    expect(enfocaBuscadorAlAbrir()).toBe(true);
   });
 });

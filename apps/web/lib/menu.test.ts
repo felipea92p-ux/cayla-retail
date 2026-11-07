@@ -301,9 +301,13 @@ const TOPE_HIJAS = 6;
 // «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. «Órdenes de compra» entró como séptima hija
 // mientras «Recibir mercadería» vivía en Compras (decisión 38); Recibir se mudó a Inventario el 2026-10-14 (ADR-0393, 20261014210000) y
 // Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
-// VENTAS, cerrado (ADR-0430, 2026-10-16): fue 7 mientras «Pedidos web» vivió en Ventas (ADR-0408, act. 8); desde que se mudó a
-// «Tienda web», Ventas vuelve a 6 y cabe en el tope general: la excepción se borra y no vuelve.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
+// VENTAS, 7 (Felipe, 2026-11-03): fue 7 mientras «Pedidos web» vivió en Ventas (ADR-0408, act. 8) y volvió a 6 cuando se mudó a «Tienda web»
+// (ADR-0430), con la nota «la excepción se borra y no vuelve». Felipe la REABRE por «Reportes» (reporte de ventas del mes y ranking de prendas,
+// con su propio módulo): se le preguntó con tres caminos —una séptima hija, agrupar Historial y Reportes, o una pestaña dentro de Historial— y
+// eligió la séptima hija. Se descartó la pestaña porque una pestaña no es un módulo (ADR-0306) y la vería todo el que ve el Historial.
+// TIENDA WEB, 7 (Felipe, 2026-10-23; ADR-0495): «Tráfico» entra como séptima hija, entre Recomendaciones y Conf. Tienda, con su propio
+// módulo. Se descartó hacerla pestaña del Resumen: una pestaña no es un módulo (ADR-0306) y la vería todo el que ve el Resumen.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7, tiendaWeb: 7, venta: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
