@@ -462,9 +462,11 @@ function FilaInsumo({
             ) : (
               <ul>
                 {lotes.map((l, k) => (
-                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto]"} items-center gap-x-4 max-sm:gap-x-2.5 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
-                    <span className="whitespace-nowrap font-mono font-medium text-tinta">{l.codigo ?? <span className="font-sans font-normal text-tinta/65">sin código</span>}</span>
-                    <div className="min-w-0">
+                  // En el celular la fila de cinco columnas no cabía (375 px): el detalle se quedaba en 0 px y el lápiz salía de la pantalla.
+                  // Bajo 640 px se arma en tres renglones con áreas: código · cantidad · lápiz / el detalle a todo el ancho / el costo.
+                  <li key={l.id} className={`grid ${esLider && ingresosEditables ? "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto_auto] max-sm:grid-cols-[minmax(0,1fr)_auto_auto] max-sm:[grid-template-areas:'codigo_cantidad_lapiz'_'detalle_detalle_detalle'_'costo_costo_costo']" : "grid-cols-[5.75rem_minmax(0,1fr)_auto_auto] max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:[grid-template-areas:'codigo_cantidad'_'detalle_detalle'_'costo_costo']"} items-center gap-x-4 max-sm:gap-x-2.5 max-sm:gap-y-1 border-b border-tinta/[0.06] py-2.5 text-sm last:border-0`}>
+                    <span className="whitespace-nowrap font-mono font-medium text-tinta max-sm:[grid-area:codigo]">{l.codigo ?? <span className="font-sans font-normal text-tinta/65">sin código</span>}</span>
+                    <div className="min-w-0 max-sm:[grid-area:detalle]">
                       <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
                       <p className="mt-1 truncate text-tinta/65">
                         {origenDeLote(l)} · {diaMes(l.ingreso)}
@@ -481,13 +483,13 @@ function FilaInsumo({
                       {/* La nota del ingreso (la cuenta de kilos a metros, o «Encontré tela») a la vista, no escondida: P11 del análisis del Taller. */}
                       {l.nota && <p className="mt-0.5 truncate text-tinta/65" title={l.nota}>{l.nota}</p>}
                     </div>
-                    <span className="whitespace-nowrap tabular-nums text-tinta">
+                    <span className="whitespace-nowrap tabular-nums text-tinta max-sm:[grid-area:cantidad]">
                       {/* «quedan de entraron»: dos cifras iguales sin nombre no decían cuál era cuál (P11 del análisis del Taller). */}
                       <span title="Lo que queda de lo que entró">
                         {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">de {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
                       </span>
                     </span>
-                    <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75">
+                    <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75 max-sm:min-w-0 max-sm:justify-start max-sm:[grid-area:costo] max-sm:empty:hidden">
                       {veCostos && l.costoUnitario !== null && costoUnitarioTexto(l.costoUnitario)}
                       {primero?.id === l.id && (
                         <span title="Se descuenta primero: el más antiguo con saldo">
@@ -498,6 +500,7 @@ function FilaInsumo({
                     {/* Un ingreso equivocado se corrige o se elimina aquí (ADR-0570): el lápiz abre una hoja con el motivo; si de ese lote ya salió material, se apaga y dice por qué. */}
                     {esLider && ingresosEditables && (
                       <LapizEditar
+                        className="max-sm:[grid-area:lapiz]"
                         que={l.noSeToca ? "lo que queda de este lote" : "este ingreso"}
                         guia={indice === 0 && k === 0 ? "prod-insumos.corregir-ingreso" : undefined}
                         title={l.noSeToca ? "Ajustar lo que queda" : "Corregir o eliminar este ingreso"}
