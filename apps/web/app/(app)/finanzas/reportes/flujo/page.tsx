@@ -3,7 +3,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { leerSemanas, proyectar } from "@/lib/flujo-caja-reglas";
 import { etiquetaDelPeriodo, leerPeriodo, periodosAnteriores } from "@/lib/estados-periodo";
-import { columnasDeCascada, comparadaDelFlujo, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "@/lib/estados-flujo";
+import { avisoPorVolver, columnasDeCascada, comparadaDelFlujo, informeDelFlujo, lecturaDelFlujo, partesDelEstadoFlujo } from "@/lib/estados-flujo";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { getFlujoReal, getProyeccion } from "@/lib/flujo-caja";
 import { getEstadoResultados } from "@/lib/resultados";
@@ -59,6 +59,7 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
   });
   const leidas = comparadas.map((c) => comparadaDelFlujo(c.etiqueta, c.lectura));
   const noSeComparan = leidas.flatMap((c) => (c.motivo ? [c.motivo] : []));
+  const porVolver = real.datos ? avisoPorVolver(real.datos, periodo) : null;
   const partes = real.datos ? partesDelEstadoFlujo({ real: real.datos, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }) : [];
 
   return (
@@ -82,6 +83,11 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
             <>
               <NoCuadra real={real.datos} />
               <NoCubre real={real.datos} />
+              {porVolver && (
+                <Aviso tono="info" chico>
+                  {porVolver}
+                </Aviso>
+              )}
               {noSeComparan.map((m) => (
                 <Aviso key={m} tono="info" chico>
                   {m}

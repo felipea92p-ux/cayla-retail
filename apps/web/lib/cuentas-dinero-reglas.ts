@@ -8,7 +8,8 @@ import { diaLima, diasEntreFechas } from "./fechas-lima";
 
 // ---- Vocabulario ------------------------------------------------------------------------------------------------------
 
-export type TipoCuenta = "cajon" | "caja_fuerte" | "por_rendir" | "banco" | "por_abonar" | "tarjeta_credito";
+// `fondo`: el fondo de compras de una persona (1413). Nace con `entregar_fondo` y no se agrega a mano.
+export type TipoCuenta = "cajon" | "caja_fuerte" | "por_rendir" | "banco" | "por_abonar" | "tarjeta_credito" | "fondo";
 export const TEXTO_TIPO_CUENTA: Record<TipoCuenta, string> = {
   cajon: "Cajón o fondo fijo",
   caja_fuerte: "Caja fuerte",
@@ -16,6 +17,7 @@ export const TEXTO_TIPO_CUENTA: Record<TipoCuenta, string> = {
   banco: "Banco o billetera",
   por_abonar: "Por depositar (máquina de cobro)",
   tarjeta_credito: "Tarjeta de crédito (deuda)",
+  fondo: "Fondo de compras",
 };
 /** Las que nacen con el sistema (con cada sede, o una sola): se ven, no se archivan. */
 export const TIPOS_AUTOMATICOS: readonly TipoCuenta[] = ["cajon", "caja_fuerte", "por_rendir"];
@@ -538,6 +540,9 @@ export function explicacionCuenta(c: CuentaDinero, medios: readonly FilaMedio[],
       return "Lo que un cierre entrega al líder, hasta que lo deposita";
     case "tarjeta_credito":
       return "Lo que debes a la tarjeta";
+    case "fondo":
+      // ADR-0621: el saldo ya viene sin lo gastado, aunque Compras todavía no complete el papel.
+      return (c.saldo ?? 0) < 0 ? "Gastó más de lo que tenía: CAYLA le debe la diferencia" : "Lo que la compradora todavía tiene para comprar";
   }
 }
 

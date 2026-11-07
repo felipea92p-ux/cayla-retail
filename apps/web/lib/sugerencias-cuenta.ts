@@ -9,6 +9,7 @@ const EJEMPLO_NOMBRE: Record<TipoCuenta, string> = {
   cajon: "Nombre de la cuenta",
   caja_fuerte: "Nombre de la cuenta",
   por_rendir: "Nombre de la cuenta",
+  fondo: "Nombre de la cuenta",
 };
 
 export const sugerirNombreCuenta = (tipo: TipoCuenta): string => EJEMPLO_NOMBRE[tipo];

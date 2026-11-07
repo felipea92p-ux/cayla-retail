@@ -30,7 +30,10 @@ const PREVIAS = [
   leer("20261029043000_claure_apartados_y_pedidos_web.sql"),
   leer("20261029044000_claure_gastos_por_empresa.sql"),
 ].join("\n");
-const ANTES = sqlDeshacer(ARCHIVO, ["retail.fn_flujo_caja_proyeccion(integer)"], { reverso: true });
+// ADR-0621 (20261107165000) parcha después la misma proyección (lo por volver de compras): se deshace primero, o el reverso de esta no encuentra su texto.
+const ANTES =
+  sqlDeshacer("20261107165000_fondo_de_compras_sale_al_gastarse.sql", ["retail.fn_flujo_caja_proyeccion(integer)"], { reverso: true }) +
+  sqlDeshacer(ARCHIVO, ["retail.fn_flujo_caja_proyeccion(integer)"], { reverso: true });
 const MIGRACION = leer(ARCHIVO);
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'";

@@ -414,3 +414,15 @@ describe("solesCentimos (ADR-0609)", () => {
     expect(solesCentimos(0.1 + 0.2)).toBe("S/\u00a00.30");
   });
 });
+
+// ADR-0621: lo por volver de compras viene de la base; una base más vieja no lo manda y no se inventa.
+describe("lo por volver de compras", () => {
+  it("se lee de la proyección y del flujo real", () => {
+    expect(leerProyeccion({ ...fixture.proyeccion, por_volver_compras: 285 }).porVolverCompras).toBe(285);
+    expect(leerFlujoReal({ ...fixture.real, por_volver_compras: "285.50" }).porVolverCompras).toBe(285.5);
+  });
+  it("sin el dato queda null", () => {
+    expect(leerProyeccion(fixture.proyeccion).porVolverCompras).toBeNull();
+    expect(leerFlujoReal(fixture.real).porVolverCompras).toBeNull();
+  });
+});
