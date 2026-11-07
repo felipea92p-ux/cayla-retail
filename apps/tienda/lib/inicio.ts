@@ -21,6 +21,7 @@ import { hrefLooks } from "./looks";
 import { hrefDelProbador } from "./probador";
 import { gruposDe, MENUS, type Menu } from "./grupos";
 import type { Campana } from "./portada";
+import type { NotaStock } from "./stock";
 
 // El Inicio con cuenta y la cabecera de la tienda (ADR-0408, actividad 5; maqueta v4, `vInicio`, `heroCampana`, `heroNuevo`,
 // `circulosCats`, `megaHTML`). Lo que se arma con el catálogo ya leído (y ya filtrado por la tienda elegida): qué va en el héroe, las
@@ -217,7 +218,12 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
 
 /** El buscador de la cabecera: todo lo publicado en la tienda elegida, con lo que dice cada tarjeta (precio, oferta, foto) y nada más. Lo
  *  pide la cabecera recién cuando el cliente va a buscar (`app/acciones/buscador.ts`), no con cada página. */
-export function indiceDelBuscador(prendas: readonly Prenda[], sede: string | null, origenFotos: string | undefined): ItemBusqueda[] {
+export function indiceDelBuscador(
+  prendas: readonly Prenda[],
+  sede: string | null,
+  origenFotos: string | undefined,
+  nota: (p: Prenda) => NotaStock | null = () => null,
+): ItemBusqueda[] {
   return prendas.map((p) => {
     const foto = fotosDeTarjeta(p)[0];
     return {
@@ -232,6 +238,9 @@ export function indiceDelBuscador(prendas: readonly Prenda[], sede: string | nul
       optimizar: foto ? fotoOptimizable(foto, origenFotos) : false,
       forma: formaDe(p.categoria?.prefijo),
       color: colorDeDibujo(p),
+      nota: nota(p),
+      // Fijada en Lo nuevo sin días (llegó hace más de 30): va al final de lo recién llegado.
+      diasNuevo: p.nuevo ? (p.nuevo.dias ?? 31) : null,
     };
   });
 }

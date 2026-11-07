@@ -64,7 +64,7 @@ export async function generateMetadata({
   const imagen = `${origen}${RUTA_TU_LOOK}/vista${codigo ? `?${PARAMETRO_DEL_LOOK}=${encodeURIComponent(codigo)}` : ""}`;
   const descripcion =
     nombres.length > 0
-      ? `${listaDeNombres(nombres)}. Arma el tuyo en ${DOMINIO_A_LA_VISTA}.`
+      ? `${listaDeNombres(nombres)}. Arma tu outfit en ${DOMINIO_A_LA_VISTA}.`
       : `Arma tu outfit en ${DOMINIO_A_LA_VISTA}.`;
   const titulo =
     nombres.length > 0 ? "Mira este outfit en CAYLA" : "Arma tu outfit en CAYLA";
