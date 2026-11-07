@@ -51,7 +51,7 @@ export function MasDeGanancias({
         fila.ventas > 0 && tramos.some((x) => x.clave === "costo")
           ? { tras: "costo", clave: "margen", nombre: "Te quedó de margen", detalle: (v) => `${Math.round((v / fila.ventas) * 100)} % de lo vendido` }
           : undefined,
-      ).map((f) => (f.clave === "ventas" && meta ? { ...f, detalle: `Meta sin IGV: ${solesCentimos(meta.meta)} · ${enCurso ? "al ritmo de hoy, " : ""}${Math.round(meta.avance * 100)} %` } : f))
+      ).map((f) => (f.clave === "ventas" && meta ? { ...f, detalle: `Meta: ${solesCentimos(meta.meta)} · ${enCurso ? "al ritmo de hoy, " : ""}${Math.round(meta.avance * 100)} %` } : f))
     : [];
   const conPlan = filas.some((f) => f.plan !== undefined);
   return (

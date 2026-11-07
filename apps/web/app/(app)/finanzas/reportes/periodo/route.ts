@@ -2,7 +2,6 @@ import { requirePersonaActualV2, veDiarioDeTodoDe, veModulo } from "@/lib/person
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesesDelHilo } from "@/lib/estados-periodo";
 import { getResultadoPorMes, getVentasDelMes } from "@/lib/estados-serie";
-import { mesesDelCalendario } from "@/lib/igv-gestion-reglas";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { sedeDeLaUrl, SEDE_TODAS } from "@/lib/finanzas-telar-reglas";
 
@@ -24,6 +23,6 @@ export async function GET(request: Request) {
     return Response.json({ dias: await getVentasDelMes(mes, sede) }, { headers: NO_GUARDAR_EN_COMPARTIDO });
   }
   const parametros = await getParametrosFinanzas();
-  const serie = await getResultadoPorMes(mesesDelHilo(hoyLima(), parametros?.inicioFinanzas ?? null), sede);
-  return Response.json({ meses: mesesDelCalendario(serie.meses, serie.falla) }, { headers: NO_GUARDAR_EN_COMPARTIDO });
+  const meses = await getResultadoPorMes(mesesDelHilo(hoyLima(), parametros?.inicioFinanzas ?? null), sede);
+  return Response.json({ meses }, { headers: NO_GUARDAR_EN_COMPARTIDO });
 }

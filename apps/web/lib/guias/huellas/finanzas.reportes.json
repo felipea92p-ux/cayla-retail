@@ -2,10 +2,9 @@
   "guia": "finanzas.reportes",
   "ruta": "/finanzas/reportes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 29,
+  "total": 28,
   "controles": {
     "app/(app)/finanzas/reportes/page.tsx": [
-      "BotonVer «Ir a Impuestos»",
       "BotonVer «Registrar el costo real»"
     ],
     "components/finanzas/EstadoResultadosPanel.tsx": [

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { informeDeGanancias, lecturaDeGanancias, montosDeGanancias, partesDeGanancias } from "./estados-ganancias";
+import { anchoEnElInforme } from "./estados-informe";
 import { chipContraAnterior, textoDeVerMas } from "./estados-partes";
 import { franjaDelPeriodo, geometriaDeLinea } from "./estados-linea";
 import { periodoDe } from "./estados-periodo";
 import { solesCentimos, soles as solesEntero } from "./flujo-caja-reglas";
-import { filasDeGestion, type FilaIgvGestion } from "./igv-gestion-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const HOY = "2026-11-05";
@@ -46,7 +46,7 @@ const params = (f: FilaER, comparadas: { etiqueta: string; fila: FilaER | null }
 describe("los montos siempre suman", () => {
   it("lo vendido menos los cuatro gastos da la ganancia", () => {
     const m = montosDeGanancias(fila());
-    expect(m).toEqual({ ventas: 10000, igv: 0, libro: 2550, mercaderia: 4150, sueldos: 2000, local: 800, otros: 500, resultado: 2550 });
+    expect(m).toEqual({ ventas: 10000, igv: null, mercaderia: 4150, sueldos: 2000, local: 800, otros: 500, resultado: 2550 });
     expect(m.ventas - m.mercaderia - m.sueldos - m.local - m.otros).toBe(m.resultado);
   });
 
@@ -75,6 +75,81 @@ describe("los montos siempre suman", () => {
     const f = fila({ ventas: 5000, resultado: -2450 });
     const inf = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f)), comparadas: [], etiquetaActual: "Oct" });
     expect(inf.filas.at(-1)).toMatchObject({ nombre: "Perdiste", tono: "mal", peso: "−49 %" });
+  });
+});
+
+// ADR-0624, «regla pareja»: el IGV de las ventas es de SUNAT y el resultado lo resta siempre. Arriba de lo vendido se PRESENTA lo cobrado y su IGV, sin cambiar ninguna cifra.
+describe("lo cobrado y el IGV de tus ventas", () => {
+  // Octubre de 2026: cobraste 133,922.31, el IGV de tus ventas fue 20,501.26 y lo vendido sin IGV, 113,421.05.
+  const oct = (o: Partial<FilaER> = {}) => fila({ ventas: 113421.05, igvCobrado: 20501.26, ...o });
+  const informe = (f: FilaER, comparadas: { etiqueta: string; fila: FilaER | null }[] = []) => informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f, comparadas)), comparadas, etiquetaActual: "Oct" });
+
+  it("arriba: Cobraste → IGV de tus ventas → Lo que vendiste, y lo cobrado menos el IGV da lo vendido", () => {
+    const inf = informe(oct());
+    expect(inf.filas.slice(0, 3).map((f) => [f.clave, f.nombre, f.tipo, f.resta ?? false])).toEqual([
+      ["cobraste", "Cobraste", "linea", false],
+      ["igv", "IGV de tus ventas · es de SUNAT", "linea", true],
+      ["ventas", "Lo que vendiste", "subtotal", false],
+    ]);
+    const [cobraste, igv, ventas] = inf.filas.map((f) => f.valores.at(-1)!);
+    expect(cobraste).toBeCloseTo(133922.31, 2);
+    expect(igv).toBeCloseTo(20501.26, 2);
+    expect(cobraste! - igv!).toBeCloseTo(ventas!, 2);
+  });
+
+  it("el IGV dice que es de SUNAT y que con saldo a favor no sale de tu caja; los pesos siguen contra lo vendido sin IGV", () => {
+    const inf = informe(oct());
+    const igv = inf.filas.find((f) => f.clave === "igv")!;
+    expect(igv.que).toContain("SUNAT");
+    expect(igv.que).toContain("saldo a favor");
+    expect(igv.peso).toBe("18 %");
+    expect(inf.filas.find((f) => f.clave === "ventas")!.peso).toBe("100 %");
+    expect(inf.filas.find((f) => f.clave === "cobraste")!.peso).toBeNull();
+  });
+
+  it("no cambia ninguna cifra: el resultado y los montos son los mismos con o sin el IGV leído", () => {
+    const con = oct();
+    const sin = fila({ ventas: 113421.05 });
+    const { igv: _a, ...m1 } = montosDeGanancias(con);
+    const { igv: _b, ...m2 } = montosDeGanancias(sin);
+    expect(m1).toEqual(m2);
+    expect(informe(con).filas.find((f) => f.clave === "resultado")!.valores).toEqual(informe(sin).filas.find((f) => f.clave === "resultado")!.valores);
+    expect(lecturaDeGanancias(con, null, OCT)).toEqual(lecturaDeGanancias(sin, null, OCT));
+  });
+
+  it("sin el IGV leído no se dibujan esas dos filas y la pantalla queda como siempre", () => {
+    const inf = informe(fila());
+    expect(inf.filas[0]).toMatchObject({ clave: "ventas", tipo: "linea", que: "Sin IGV: ese 18 % es de SUNAT." });
+    expect(inf.filas.some((f) => f.clave === "cobraste" || f.clave === "igv")).toBe(false);
+  });
+
+  it("un mes de antes sin el IGV leído va en blanco en esas filas, no en cero", () => {
+    const inf = informe(oct(), [{ etiqueta: "Sep", fila: fila({ ventas: 90000 }) }]);
+    expect(inf.filas.find((f) => f.clave === "cobraste")!.valores[0]).toBeNull();
+    expect(inf.filas.find((f) => f.clave === "ventas")!.valores[0]).toBe(90000);
+  });
+
+  it("las barritas se miden contra lo vendido sin IGV, como su peso; «Cobraste» no lleva barra", () => {
+    const inf = informe(oct());
+    const ancho = (clave: string) => anchoEnElInforme(inf.filas.find((f) => f.clave === clave)!, inf.filas, inf.referencia);
+    expect(ancho("cobraste")).toBeNull();
+    expect(ancho("igv")).toBeCloseTo((20501.26 / 113421.05) * 100, 1);
+    for (const f of inf.filas.filter((x) => x.tipo === "linea" && x.peso && x.clave !== "cobraste")) {
+      expect(Math.round(ancho(f.clave)!)).toBe(Number.parseInt(f.peso!, 10));
+    }
+  });
+
+  it("un IGV a favor (más devuelto que vendido) lleva el mismo nombre que en la cascada y suma, no resta un negativo", () => {
+    const inf = informe(oct({ igvCobrado: -500 }));
+    const igv = inf.filas.find((f) => f.clave === "igv")!;
+    expect(igv.nombre).toBe("IGV de tus ventas · es de SUNAT");
+    expect(igv.resta).toBe(false);
+    expect(igv.valores.at(-1)).toBe(500);
+  });
+
+  it("el chip contra el mes de antes vuelve a compararse siempre: es la misma base", () => {
+    const l = lecturaDeGanancias(oct(), oct({ resultado: 1550 }), OCT);
+    expect(l.chip?.texto).toContain("más que");
   });
 });
 
@@ -286,91 +361,5 @@ describe("la línea", () => {
     expect(f.a).toBeCloseTo(200 / 3);
     expect(franjaDelPeriodo(meses, "2025-01-01", "2026-09-30")!.de).toBe(0);
     expect(franjaDelPeriodo(meses, "2025-01-01", "2025-02-01")).toBeNull();
-  });
-});
-
-describe("con el IGV de gestión (ADR-0620)", () => {
-  const dicho = (monto: number, igv = 1800): FilaIgvGestion => ({ mes: "2026-10", ubicacionId: "u", igvTramo: igv, igvMes: igv, montoDicho: monto, igvParte: monto, mesEnCurso: false, veDicho: true });
-  const sinDecir: FilaIgvGestion = { mes: "2026-10", ubicacionId: "u", igvTramo: 1800, igvMes: 1800, montoDicho: null, igvParte: null, mesEnCurso: false, veDicho: true };
-  const enGestion = (f: FilaER, x: FilaIgvGestion) => filasDeGestion([f], [x])[0]!;
-  const base = fila();
-  const cero = enGestion(base, dicho(0));
-
-  it("no aparece nada de «Otros ajustes»: el IGV tiene su tramo", () => {
-    const m = montosDeGanancias(enGestion(base, dicho(1000)));
-    expect(m).toMatchObject({ ventas: 11800, igv: 1000, resultado: 3350, libro: 2550 });
-    expect(m.ventas - m.igv - m.mercaderia - m.sueldos - m.local - m.otros).toBeCloseTo(m.resultado, 2);
-  });
-
-  it("un mes con 0 dicho se ve y se abre", () => {
-    const partes = partesDeGanancias(params(cero));
-    const igv = partes.find((p) => p.clave === "igv")!;
-    expect(igv).toMatchObject({ cifra: 0, aviso: "Lo dijo el líder." });
-    const inf = informeDeGanancias({ fila: cero, partes, comparadas: [], etiquetaActual: "Oct" });
-    expect(inf.filas.find((f) => f.clave === "igv")).toMatchObject({ nombre: "IGV del mes", resta: true, valores: [0], aviso: "Lo dijo el líder." });
-  });
-
-  it("el informe lee de arriba abajo: ventas con IGV, IGV, mercadería, … resultado y según el libro", () => {
-    const f = enGestion(base, dicho(0));
-    const inf = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f)), comparadas: [], etiquetaActual: "Oct" });
-    expect(inf.filas.map((x) => x.clave)).toEqual(["ventas", "igv", "mercaderia", "bruta", "sueldos", "local", "otros", "resultado", "libro"]);
-    expect(inf.filas[0]).toMatchObject({ nombre: "Ventas con IGV", valores: [11800] });
-    expect(inf.filas[0]!.que).toContain("lo dice el líder");
-    expect(inf.filas.find((x) => x.clave === "libro")!.valores).toEqual([2550]);
-    expect(inf.filas.find((x) => x.clave === "bruta")!.valores).toEqual([11800 - 0 - 4150]);
-    expect(inf.filas.find((x) => x.clave === "resultado")!.contable).toBe("Resultado de gestión");
-  });
-
-  it("el subtotal resta el IGV", () => {
-    const f = enGestion(base, dicho(1000));
-    const inf = informeDeGanancias({ fila: f, partes: partesDeGanancias(params(f)), comparadas: [], etiquetaActual: "Oct" });
-    expect(inf.filas.find((x) => x.clave === "bruta")!.valores).toEqual([11800 - 1000 - 4150]);
-  });
-
-  it("si cae al libro, no hay fila de IGV y la nota vuelve a decir que van sin IGV", () => {
-    const inf = informeDeGanancias({ fila: base, partes: partesDeGanancias(params(base)), comparadas: [], etiquetaActual: "Oct" });
-    expect(inf.filas.map((x) => x.clave)).not.toContain("igv");
-    expect(inf.filas.map((x) => x.clave)).not.toContain("libro");
-    expect(inf.filas[0]).toMatchObject({ nombre: "Lo que vendiste", contable: "Ventas netas" });
-    expect(inf.filas[0]!.que).toContain("Sin IGV");
-  });
-
-  it("una sede que no vendió no lleva fila de IGV", () => {
-    const taller = filasDeGestion([fila({ ubicacionId: "t", unidad: "taller", nombre: "Taller", ventas: 0 })], [])[0]!;
-    expect(partesDeGanancias(params(taller)).map((p) => p.clave)).not.toContain("igv");
-    expect(informeDeGanancias({ fila: taller, partes: [], comparadas: [], etiquetaActual: "Oct" }).filas.map((x) => x.clave)).not.toContain("igv");
-  });
-
-  it("una sede con más devuelto que vendido: su IGV suma, con su signo", () => {
-    const f = enGestion(fila(), { ...dicho(-9, -9) });
-    const m = montosDeGanancias(f);
-    expect(m.igv).toBe(-9);
-    expect(m.ventas - m.igv - m.mercaderia - m.sueldos - m.local - m.otros).toBeCloseTo(m.resultado, 2);
-  });
-
-  it("el chip se apaga si un período dijo su IGV y el otro no", () => {
-    const antes = enGestion(fila({ resultado: 1000 }), sinDecir);
-    expect(lecturaDeGanancias(cero, antes, OCT).chip).toBeNull();
-    expect(partesDeGanancias(params(cero, [{ etiqueta: "Sep", fila: antes }])).find((p) => p.clave === "resultado")!.chip).toBeNull();
-    expect(partesDeGanancias(params(cero, [{ etiqueta: "Sep", fila: antes }])).find((p) => p.clave === "igv")!.chip).toBeNull();
-    const otroDicho = enGestion(fila({ resultado: 1000 }), dicho(0));
-    expect(lecturaDeGanancias(cero, otroDicho, OCT).chip).not.toBeNull();
-  });
-
-  it("el mes en curso con su monto no se compara «a esta fecha»: resta entero y el mes pasado solo su parte", () => {
-    const hoy = periodoDe("2026-11-01", HOY, HOY);
-    const noviembre = filasDeGestion([fila({ resultado: -3000 })], [{ ...dicho(5000), mes: "2026-11", mesEnCurso: true }])[0]!;
-    const octubreAEstaFecha = filasDeGestion([fila({ resultado: 1000 })], [{ ...dicho(1000), montoDicho: 5000, igvMes: 9000 }])[0]!;
-    expect(lecturaDeGanancias(noviembre, octubreAEstaFecha, hoy).chip).toBeNull();
-    const partes = partesDeGanancias({ ...params(noviembre, [{ etiqueta: "Oct", fila: octubreAEstaFecha }]), periodo: hoy });
-    expect(partes.find((p) => p.clave === "resultado")!.chip).toBeNull();
-    expect(partes.find((p) => p.clave === "igv")!.chip).toBeNull();
-    expect(partes.find((p) => p.clave === "igv")!.aviso).toContain("el mes no ha terminado");
-  });
-
-  it("la cuenta de cuánto hacía falta vender descuenta el IGV", () => {
-    const f = enGestion(fila({ ventas: 10000, costo: 5000, fletes: 0, mermas: 0, planilla: 4000, gastos: 3000, resultado: -2000, depreciacion: 0, detalleGastos: [{ cuenta: "635", nombre: "Alquileres", monto: 3000 }] }), dicho(1800));
-    // 11,800 vendidos, 1,800 de IGV, 5,000 de mercadería: quedan 5,000 de cada 11,800 para cubrir 7,000.
-    expect(lecturaDeGanancias(f, null, OCT).nota).toBe(`Para no perder hacía falta vender unos ${solesCentimos(16500)}. Vendiste ${solesCentimos(11800)}.`);
   });
 });

@@ -7,7 +7,6 @@
 // Las cuentas contables NO se muestran (Felipe 2026-10-30: solo en lo que se descarga); cada grupo dice sus cuentas por su nombre.
 
 import { soles } from "./flujo-caja-reglas";
-import { textoDelIgv } from "./igv-gestion-reglas";
 import { colorDeSede, nombreCortoSede, SEDE_EMPRESA, SEDE_TODAS, type ClaveSede, type ColorSede } from "./finanzas-telar-reglas";
 import type { FilaCascada } from "./cascada-estados-reglas";
 import type { FilaPpto } from "./presupuesto-reglas";
@@ -17,16 +16,21 @@ import type { CampanaFila, FilaER } from "./resultados-reglas";
 /** Desde cuánto un desvío contra lo planeado merece decirse: lo que se mira de un presupuesto son los desvíos grandes. */
 export const DESVIO_QUE_IMPORTA = 0.1;
 
-/**
- * Por qué las ventas van sin IGV: solo cuando no se pudo leer el IGV del mes y la pantalla cae al libro (ADR-0620). No dice «es de SUNAT»: mientras haya crédito fiscal no se le paga nada, y el
- * texto no puede dejar de ser cierto cuando se acabe.
- */
-export const NOTA_VENTAS_SIN_IGV = "Sin IGV: no es ingreso de CAYLA. Primero se descuenta de tu crédito fiscal y a SUNAT se le paga solo lo que falte.";
-
-/** Lo normal desde ADR-0620: las ventas con su IGV, y una fila aparte con el IGV que de verdad se paga. */
-export const NOTA_VENTAS_CON_IGV = "Con IGV: lo que pagó la gente. El IGV que de verdad se paga va en la fila «IGV del mes», y ese lo dice el líder.";
-
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Lo que se dice de las ventas sin IGV, la base de toda la pantalla. */
+export const NOTA_VENTAS = "Sin IGV: ese 18 % es de SUNAT.";
+
+/**
+ * El IGV de tus ventas (ADR-0624, «regla pareja»): se resta siempre, porque es de SUNAT. Que hoy no salga de la caja no lo vuelve ganancia: se descuenta del saldo a favor, que ya
+ * está en el Balance. Una línea, para el informe y la cascada.
+ */
+export const NOTA_IGV_VENTAS = "Es de SUNAT. Mientras tengas saldo a favor no sale de tu caja: se descuenta de ese saldo (míralo en Impuestos).";
+
+/** Lo cobrado: solo se muestra para que se vea de dónde sale lo vendido. No es ingreso de CAYLA. */
+export const NOTA_COBRASTE = "Lo que te pagaron tus clientes, con IGV.";
+/** El nombre de la fila del IGV de las ventas: el mismo en el informe y en la cascada. */
+export const NOMBRE_IGV_VENTAS = "IGV de tus ventas · es de SUNAT";
 
 /** Los gastos (que no son sueldos ni desgaste), agrupados como los dice una tienda. Lo que no está aquí cae en «Otros gastos». */
 const GRUPOS: readonly { clave: string; nombre: string; cuentas: readonly string[] }[] = [
@@ -55,7 +59,7 @@ export function desvio(real: number, plan: number | null | undefined): number | 
 }
 
 /**
- * La cascada de Ganancias y pérdidas: vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
+ * La cascada de Ganancias y pérdidas: (cobraste → IGV de tus ventas →) vendiste → lo que costaron esas prendas → sueldos → cada grupo de gastos → desgaste → queda. Cada gasto con su
  * tope lleva `plan` y `desvio` (contra la proyección en el mes en curso) y sus cuentas, para abrirlo.
  */
 export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCascada[] {
@@ -69,10 +73,16 @@ export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCasca
     return { ...t, plan, desvio: desvio(comp, plan) ?? undefined };
   };
   const detalle = f.detalleGastos.filter((g) => g.monto !== 0);
-  const g = f.igvGestion;
-  const tramos: TramoCascada[] = [{ clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", detalle: g ? NOTA_VENTAS_CON_IGV : NOTA_VENTAS_SIN_IGV }];
-  // Va aunque sea 0: decir 0 es una respuesta. Sin este tramo, lo que dijo el líder caería en «Otros ajustes».
-  if (g && g.origen !== "sin_igv") tramos.push({ clave: "igv", nombre: "IGV del mes", monto: Math.abs(g.monto), tipo: g.monto >= 0 ? "sale" : "entra", detalle: textoDelIgv(g) ?? undefined });
+  const igv = f.igvCobrado ?? 0;
+  // Con el IGV de las ventas leído, la cascada parte de lo cobrado, le resta el IGV y llega a lo vendido como subtotal: la suma de los tramos no cambia (ADR-0624).
+  const tramos: TramoCascada[] =
+    Math.abs(igv) >= 0.005
+      ? [
+          { clave: "cobraste", nombre: "Cobraste", monto: r2(f.ventas + igv), tipo: "entra", detalle: NOTA_COBRASTE },
+          { clave: "igv", nombre: NOMBRE_IGV_VENTAS, monto: Math.abs(igv), tipo: igv > 0 ? "sale" : "entra", detalle: NOTA_IGV_VENTAS },
+          { clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", subtotal: true, detalle: NOTA_VENTAS },
+        ]
+      : [{ clave: "ventas", nombre: "Vendiste", monto: f.ventas, tipo: "entra", detalle: NOTA_VENTAS }];
 
   const costo = f.costo + f.fletes + f.mermas;
   if (costo > 0) {
@@ -120,14 +130,14 @@ export function cascadaGanamos(f: FilaER, ppto: readonly FilaPpto[]): TramoCasca
   }
   // Lo que la cascada no nombra (un gasto devuelto, una nota de crédito, un ajuste) va en un tramo propio: sumar los tramos da siempre
   // «te queda». Una cuenta que no cuadra es peor que una línea de más (la misma regla que la cascada del Resumen).
-  const explicado = tramos.reduce((s, t) => s + (t.tipo === "entra" ? t.monto : -t.monto), 0);
+  const explicado = tramos.filter((t) => !t.subtotal).reduce((s, t) => s + (t.tipo === "entra" ? t.monto : -t.monto), 0);
   const ajuste = r2(f.resultado - explicado);
   if (Math.abs(ajuste) >= 0.5) tramos.push({ clave: "ajustes", nombre: ajuste > 0 ? "Otros ajustes a favor" : "Otros ajustes", monto: Math.abs(ajuste), tipo: ajuste > 0 ? "entra" : "sale", detalle: "Devoluciones, notas de crédito o correcciones del mes." });
   tramos.push({ clave: "queda", nombre: f.resultado >= 0 ? "Ganaste" : "Perdiste", monto: Math.abs(r2(f.resultado)), tipo: "queda", ...(f.resultado < 0 ? { negativo: true } : {}) });
   return tramos;
 }
 
-/** La meta de ventas del mes y cuánto va (en el mes en curso, al ritmo de hoy). Las dos cifras van sin IGV, aunque la pantalla muestre las ventas con IGV (ADR-0620). `null` si no hay meta. */
+/** La meta de ventas del mes y cuánto va (en el mes en curso, al ritmo de hoy). `null` si no hay meta. */
 export function metaDeVentas(ppto: readonly FilaPpto[]): { meta: number; real: number; avance: number; enCurso: boolean } | null {
   const v = ppto.find((p) => p.tipo === "meta" && p.linea === "ventas");
   if (!v || !v.presupuesto) return null;
@@ -281,7 +291,7 @@ export function recomendacionesGanamos({
       tono: "atencion",
       prioridad: 4,
       titulo: enCurso ? `Al ritmo de hoy, llegas al ${Math.round(meta.avance * 100)} % de la meta` : `Vendiste el ${Math.round(meta.avance * 100)} % de la meta`,
-      texto: `La meta, sin IGV, es ${soles(meta.meta)}; ${enCurso ? "faltarían" : "faltaron"} ${soles(meta.meta - meta.real)}.`,
+      texto: `La meta es ${soles(meta.meta)}; ${enCurso ? "faltarían" : "faltaron"} ${soles(meta.meta - meta.real)}.`,
     });
   }
   if (!out.length) {

@@ -821,26 +821,6 @@
   background: var(--color-rojo);
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-rojo) 24%, transparent), 0 0 0 1.5px var(--color-papel) inset;
 }
-/* El mes con su IGV estimado (ADR-0620): el punto hueco, sin marcar o marcado. */
-.estados-linea-hueco {
-  position: absolute;
-  width: 9px;
-  height: 9px;
-  margin: -4.5px 0 0 -4.5px;
-  border-radius: 50%;
-  border: 2px solid var(--color-verde);
-  background: var(--color-papel);
-}
-.estados-linea-hueco[data-mal] {
-  border-color: var(--color-rojo);
-}
-.estados-linea-punto[data-estimado] {
-  background: var(--color-papel);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-verde) 24%, transparent), 0 0 0 3px var(--color-verde) inset;
-}
-.estados-linea-punto[data-estimado][data-mal] {
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-rojo) 24%, transparent), 0 0 0 3px var(--color-rojo) inset;
-}
 .estados-linea-globo {
   position: absolute;
   z-index: 2;

@@ -17,3 +17,9 @@ Qué se rompería sin esto: el resultado se vería miles de soles peor que el me
 Estado: en la rama, sin PR y sin producción. `pruebas:igv-gestion` 68/68 y `pruebas:arranque-igv` 32/32 en la pila aparte. Falta verlo en el navegador.
 
 Revisión final: cinco detalles chicos resueltos: un tramo ya no resta más que lo dicho del mes, «Decir IGV» sale también en un mes sin comprobantes, el Flujo avisa cuando el IGV es estimado, «Ir a Impuestos» conserva la sede y la guía nombra «Ventas con IGV» y «Utilidad bruta de gestión».
+
+## 2026-11-07 (Regla pareja del IGV: Ganancias resta siempre el IGV de las ventas, ADR-0624)
+Qué hice: retiré el «IGV que dice el líder» (`decir_igv_del_mes`, `fn_igv_de_gestion`, la tabla vacía `igv_del_mes`, el modal, el botón de Impuestos y la capa de gestión de Ganancias, la línea de meses y el Flujo). Ganancias vuelve al resultado del libro y muestra arriba, solo como presentación, «Cobraste» → «IGV de tus ventas · es de SUNAT» → «Lo que vendiste», con `fn_igv_de_las_ventas` (20261107174000). Impuestos dice cuánto usaste del saldo a favor y cuánto te queda.
+Por qué así: con IGV 0 dicho, el saldo a favor que ya subió el capital en el arranque se volvía a contar como ganancia. Lo decidió Felipe el 7-nov. El arranque contra el crédito y el grupo «Saldo a favor de IGV» del Balance se quedan.
+Qué se rompería sin esto: octubre se leería con miles de soles de ganancia que son de SUNAT, y Patrimonio contaría el mismo IGV dos veces.
+Estado: en la rama, sin PR y sin producción. `pruebas:igv-ventas` 26/26 en la pila aparte (`supabase_db_igv-gestion`), con la migración aplicada a mano; tsc, vitest, knip y knip:produccion en verde. Falta verlo en el navegador con datos reales. El costo de la carga inicial con IGV sigue sin corregir (entrega 2).

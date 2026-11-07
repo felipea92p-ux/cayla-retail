@@ -96,7 +96,7 @@ export function partesDelPatrimonio({ datos, comparadas, etiquetaActual, periodo
       enBarra: 0,
       texto: solesConSignoCentimos(datos.ganancia),
       tono: gano ? "bien" : "mal",
-      que: "El resultado de estas fechas según el libro, y cuánto dejó cada sede. Sale del diario: resta todo el IGV incluido en las ventas, y los sueldos estimados que Ganancias y pérdidas ya resta entran aquí cuando Dynamic los paga.",
+      que: "El resultado de estas fechas, y cuánto dejó cada sede. Sale del diario: los sueldos estimados que Ganancias y pérdidas ya resta entran aquí cuando Dynamic los paga.",
       cifra: datos.ganancia,
       filas: [...porSede],
       conSignos: true,

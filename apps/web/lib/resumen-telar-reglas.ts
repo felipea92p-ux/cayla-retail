@@ -47,8 +47,6 @@ export function respuestaResumen(
 
   const chips: RespuestaResumen["chips"] = [];
   if (provisional) chips.push({ texto: "Provisional: falta registrar cosas", tono: "pizarra" });
-  // Ganancias ya lee ventas con IGV y el IGV del mes (ADR-0620); el Resumen sigue en el libro: son dos cifras y cada una dice la suya.
-  chips.push({ texto: "Según el libro, ventas sin IGV", tono: "pizarra" });
   if (!vende) {
     chips.push({ texto: "No vende: se sostiene con lo que dejan las tiendas", tono: "pizarra" });
     return { pregunta, valor: Math.max(0, -f.resultado), chips };

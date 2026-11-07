@@ -1,5 +1,7 @@
 # ADR-0620 — El IGV de gestión: Ganancias muestra las ventas con IGV y resta lo que el líder dice que paga, sin tocar el libro
 
+> **Reemplazado en parte por ADR-0624 (2026-11-07).** El «IGV que dice el líder» se retiró: Ganancias resta siempre todo el IGV de las ventas («regla pareja»). Se quedan el arranque del Balance contra el crédito (20261107035000) y el grupo «Saldo a favor de IGV».
+
 - Estado: construido en la rama `claude/excluir-igv-compras-66846a`, **sin aplicar en producción**. Decisiones de Felipe, 2026-11-06.
 - Migraciones: `supabase/migrations/20261107034000_igv_de_gestion.sql` (la capa) y
   `supabase/migrations/20261107035000_arranque_igv_contra_el_credito.sql` (el arranque del Balance).

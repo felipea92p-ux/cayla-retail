@@ -2,23 +2,15 @@
   "guia": "finanzas.impuestos",
   "ruta": "/finanzas/impuestos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 21,
+  "total": 15,
   "controles": {
     "components/ImpuestosPanel.tsx": [
       "BotonVer «Comparar con SUNAT»",
       "button «fin-impuestos.ir-a-declarar»",
       "Link «Ver la cuenta con CLAURE»"
     ],
-    "components/finanzas/DecirIgvDelMesModal.tsx": [
-      "CampoMonto «{guia.etiqueta(ID_MONTO, \"Cuánto vas a pagar de IGV\")}»",
-      "CampoTexto «{guia.etiqueta(ID_NOTA, \"Nota · opcional\")}»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
-    ],
     "components/finanzas/ImpuestosCuenta.tsx": [
       "BotonEnlace «Anota el pago que hiciste desde un banco, en Cuentas y dinero»",
-      "Boton «fin-impuestos.decir-igv»",
       "button «− IGV de tus compras»"
     ],
     "components/finanzas/ImpuestosFila.tsx": [

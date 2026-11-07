@@ -388,7 +388,7 @@ function TablaTiendas({ unidades }: { unidades: UnidadBalance[] }) {
                 Invertido
               </th>
               <th scope="col" className="fin-num">
-                Utilidad del mes, según el libro
+                Utilidad del mes
               </th>
               <th scope="col" className="fin-num">
                 Rinde
@@ -416,7 +416,7 @@ function TablaTiendas({ unidades }: { unidades: UnidadBalance[] }) {
                 <td className="fin-num" data-l="Invertido">
                   <b>{solesBalance(u.invertido)}</b>
                 </td>
-                <td className={`fin-num ${u.utilidadMes < 0 ? "text-rojo-profundo" : ""}`} data-l="Utilidad del mes, según el libro">
+                <td className={`fin-num ${u.utilidadMes < 0 ? "text-rojo-profundo" : ""}`} data-l="Utilidad del mes">
                   {solesBalance(u.utilidadMes)}
                 </td>
                 <td className="fin-num" data-l="Rinde">
@@ -447,7 +447,7 @@ export function MasDeLaSede({ unidad, hoy, veTodo }: { unidad: UnidadBalance; ho
     <>
       <section className="fin-cifras" data-guia="fin-balance.tienda-cifras">
         <TarjetaCifra etiqueta={`Utilidad de ${mes}`} valor={solesBalance(unidad.utilidadMes)} tono={unidad.utilidadMes < 0 ? "text-rojo" : undefined} {...entra(1)}>
-          {enCurso ? "según el libro, a la fecha" : "según el libro, el mes entero"}
+          {enCurso ? "a la fecha" : "el mes entero"}
           {!unidad.planillaVisible ? " · sin planilla" : unidad.sueldosEstimados > 0 ? " · con sueldos estimados" : ""}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Rinde" valor={unidad.tipo === "taller" ? null : textoRinde(unidad.rinde).replace(" al mes", "")} {...entra(2)}>
@@ -459,7 +459,7 @@ export function MasDeLaSede({ unidad, hoy, veTodo }: { unidad: UnidadBalance; ho
       </section>
       <div {...entra(4, "nota-cayla")} data-guia="fin-balance.tienda-nota">
         No es un Balance completo: el <b>banco</b>, el <b>capital</b> y el <b>IGV</b> son de CAYLA entera y no se reparten entre las tiendas (repartirlos sería inventar un número). Aquí está lo que es de
-        la tienda y cuánto le rinde: la utilidad del mes (según el libro, con las ventas sin IGV) ÷ lo invertido.
+        la tienda y cuánto le rinde: la utilidad del mes (Estado de resultados) ÷ lo invertido.
         {!unidad.planillaVisible && " La utilidad no descuenta la planilla: esa la ve quien tiene acceso en Dynamic."}
         {veTodo && " El Balance de CAYLA entera, eligiendo «Todas» en la barra de sedes."}
       </div>

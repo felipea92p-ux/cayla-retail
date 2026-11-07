@@ -57,17 +57,15 @@
   color: var(--color-tinta);
   box-shadow: var(--gota-crema-luz);
 }
-/* Un secundario sobre la isla oscura, o sobre la tarjeta de tinta de Impuestos (en oscuro la tinta es clara y los dos se invierten juntos): la gota de su misma crema, apenas teñida (la gota clara de afuera, con letra de tinta, no se leería). */
-.barra-abajo[data-tono="tinta"] .btn-secundario,
-.fin-pagas .btn-secundario {
+/* Un secundario sobre la isla oscura: la gota de su misma crema, apenas teñida (la gota clara de afuera, con letra de tinta, no se leería). */
+.barra-abajo[data-tono="tinta"] .btn-secundario {
   border-color: color-mix(in srgb, var(--color-crema) 30%, transparent);
   background: color-mix(in srgb, var(--color-crema) 10%, transparent);
   color: var(--color-crema);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-crema) 18%, transparent);
 }
 @media (hover: hover) {
-  .barra-abajo[data-tono="tinta"] .btn-secundario:hover:not(:disabled),
-  .fin-pagas .btn-secundario:hover:not(:disabled) { background: color-mix(in srgb, var(--color-crema) 18%, transparent); }
+  .barra-abajo[data-tono="tinta"] .btn-secundario:hover:not(:disabled) { background: color-mix(in srgb, var(--color-crema) 18%, transparent); }
   .barra-abajo[data-tono="tinta"] .btn-primario:hover:not(:disabled) {
     border-color: var(--color-crema);
     background: var(--gota-crema-hover);

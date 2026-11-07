@@ -3,13 +3,7 @@
 
 export const LIENZO = { ancho: 1000, alto: 300 } as const;
 
-export type PuntoDeLinea = {
-  etiqueta: string;
-  nombre: string;
-  valor: number;
-  /** La cifra lleva algo estimado: el mes se dibuja con el punto hueco y el globito lo dice. */
-  estimado?: boolean;
-};
+export type PuntoDeLinea = { etiqueta: string; nombre: string; valor: number };
 
 /** Una curva suave por los puntos, sin pasarse de ninguno. */
 function curva(pts: readonly (readonly [number, number])[]): string {

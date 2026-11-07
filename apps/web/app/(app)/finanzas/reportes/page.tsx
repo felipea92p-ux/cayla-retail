@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { exigirModulo, veDiarioDeTodoDe, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, veDiarioDeTodoDe } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe } from "@/lib/gastos-reglas";
 import { avisosER, columnasER, leerVerER, mesAnterior, mesNombre } from "@/lib/resultados-reglas";
@@ -11,15 +11,14 @@ import { getVentasClaure } from "@/lib/cuenta-claure";
 import { getCuadreVentas } from "@/lib/cuadre-ventas";
 import { cuadroVentas } from "@/lib/cuadre-ventas-reglas";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
-import { etiquetaDelPeriodo, leerPeriodo, mesesDelHilo, periodoAnterior, periodosAnteriores } from "@/lib/estados-periodo";
+import { etiquetaDelPeriodo, leerPeriodo, periodoAnterior, periodosAnteriores } from "@/lib/estados-periodo";
 import { informeDeGanancias, lecturaDeGanancias, partesDeGanancias } from "@/lib/estados-ganancias";
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, SEDE_EMPRESA, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
-import { getIgvDelHilo, getResultadosDeGestion } from "@/lib/igv-gestion";
-import { avisoDelIgv } from "@/lib/igv-gestion-reglas";
+import { conIgvDeLasVentasDe } from "@/lib/igv-ventas";
 import { getCostoEstimado } from "@/lib/costo-estimado";
 import { notaCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
@@ -62,10 +61,11 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const ubicacionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sede) ? sede : null;
   // En el mes en curso se compara con los mismos días de los meses pasados: esos días también llevan su parte de sueldos, como hoy (`getEstadoResultadosAEstaFecha`).
   const leerAnterior = enCurso && unMes ? getEstadoResultadosAEstaFecha : getEstadoResultados;
+  // Cada lectura de arriba lleva el IGV de sus ventas (ADR-0624): solo para presentar «Cobraste» e «IGV de tus ventas» sobre «Lo que vendiste». No cambia ninguna cifra.
   const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst, faltaDelMes] = await Promise.all([
-    getEstadoResultados(desde, hasta),
+    getEstadoResultados(desde, hasta).then((l) => conIgvDeLasVentasDe(desde, hasta, l)),
     comparar && antes ? leerAnterior(antes.desde, antes.hasta) : Promise.resolve(null),
-    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await leerAnterior(c.desde, c.hasta) }))),
+    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await conIgvDeLasVentasDe(c.desde, c.hasta, await leerAnterior(c.desde, c.hasta)) }))),
     // El mes en curso no se cierra: no hay nada que preguntar.
     enCurso ? Promise.resolve([] as string[]) : getUnidadesCerradas(mes),
     // Lo vendido de CLAURE no suma a nada de esta pantalla: la nota dice cuánto se dejó fuera (apoyo; sin permiso o sin CLAURE llega `null`).
@@ -87,20 +87,11 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const mesDeHoy = mesDelDia(hoy);
   const href = (ruta: string, otra?: ClaveSede) => hrefTelar(ruta, params, otra ? { sede: otra } : {}, { mismaPantalla: false, mesDeHoy });
 
-  // La respuesta de arriba va con las ventas con IGV y el IGV del mes (ADR-0620), y sus columnas de antes también: pasan juntas o no pasa ninguna. El cuadro por sede sigue con el libro.
-  // La línea de los meses entra en la misma suerte: se espera aquí su lectura de IGV (`cache`, es la misma que hace la línea), y si la cabecera cae, `enLibro` hace caer a la línea.
-  const gestion = await getResultadosDeGestion(
-    [{ desde, hasta, lectura: actual }, ...comparadas.map((c, i) => ({ desde: anteriores[i]!.desde, hasta: anteriores[i]!.hasta, lectura: c.lectura }))],
-    await getIgvDelHilo(mesesDelHilo(hoy, inicio)),
-  );
-  const [enGestion, ...antesEnGestion] = gestion.lecturas;
-  const columnas = enGestion!.datos;
-
-  const fila = filaDeLaSede(columnas, sede);
+  const fila = filaDeLaSede(actual.datos, sede);
   const pptoSede = pptoDeLaSede(ppto.datos, sede);
   const tramos = fila ? cascadaGanamos(fila, pptoSede) : [];
   const meta = metaDeVentas(pptoSede);
-  const deCadaSede = sede === SEDE_TODAS && veTodo ? porSede(columnas) : null;
+  const deCadaSede = sede === SEDE_TODAS && veTodo ? porSede(actual.datos) : null;
   const delMes = unMes ? campanasDelMes(campanas.datos, mes) : [];
   const sedesCascada = deCadaSede ? filasDeSedes(deCadaSede, (c) => href("/finanzas/reportes", c)) : null;
   const cuadro = cuadroVentas(cuadre.datos, sede);
@@ -120,10 +111,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
     ...(hayCuadre ? ["lo que cuadra con Ventas"] : []),
     "el cuadro por sede",
   ])!;
-  const leidas = comparadas.map((c, i) => ({ etiqueta: c.etiqueta, fila: antesEnGestion[i]!.falla ? null : filaDeLaSede(antesEnGestion[i]!.datos, sede) }));
-  const avisoIgv = avisoDelIgv(fila?.igvGestion);
-  // Quien no ve toda CAYLA no recibe lo dicho: su lista sale vacía y no se le ofrece decirlo.
-  const mesSinDecir = fila?.igvGestion?.mesesSinDecir.at(-1);
+  const leidas = comparadas.map((c) => ({ etiqueta: c.etiqueta, fila: c.lectura.falla ? null : filaDeLaSede(c.lectura.datos, sede) }));
   const notaCosto = notaCostoEstimado(costoEst.datos);
 
   return (
@@ -139,7 +127,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           lectura={lecturaDeGanancias(fila, leidas.at(-1)?.fila ?? null, periodo, fila ? ventaParaElMesEntero(fila, faltaDelMes) : null)}
           grafico={
             <Suspense fallback={<LineaEsperando />}>
-              <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} enLibro={!!gestion.falla} />
+              <LineaDeGanancias hoy={hoy} minimo={inicio} sede={sede} periodo={periodo} resultado={fila?.resultado ?? 0} />
             </Suspense>
           }
           guiaRespuesta="fin-ganamos.respuesta"
@@ -152,28 +140,6 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                   {a.texto}
                 </Aviso>
               ))}
-              {/* Sin leer el IGV, o sin que nadie lo diga, la cifra es otra: se dice junto a ella. */}
-              {gestion.falla && (
-                <Aviso tono="atencion" chico>
-                  {gestion.falla}
-                </Aviso>
-              )}
-              {avisoIgv && (
-                <Aviso
-                  tono="info"
-                  chico
-                  guia="fin-ganamos.igv"
-                  accion={
-                    mesSinDecir && veModulo(persona, "impuestos") ? (
-                      <BotonVer href={hrefTelar("/finanzas/impuestos", params, { mes: mesSinDecir }, { mismaPantalla: false, mesDeHoy })} chico>
-                        Ir a Impuestos
-                      </BotonVer>
-                    ) : undefined
-                  }
-                >
-                  {avisoIgv}
-                </Aviso>
-              )}
               {/* Si parte del costo es un promedio, la ganancia es una estimación y se dice aquí, junto a la cifra (tarea 28 de «Las 36 de Finanzas»). */}
               {notaCosto ? (
                 <Aviso
@@ -197,7 +163,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           }
           informe={
             fila
-              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: columnas, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })
+              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })
               : { titulo: "Ganancias y pérdidas", columnas: [], pesoDe: null, filas: [] }
           }
         />
@@ -216,8 +182,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           cuadre={hayCuadre ? <CuadreVentas cuadro={cuadro} falla={cuadre.falla} /> : null}
           cuadro={
             <section className="min-w-0 space-y-3" data-guia="fin-ganamos.cuadro">
-              <TituloSeccion>El cuadro por sede, según el libro</TituloSeccion>
-              <p className="text-sm text-taupe">Aquí las ventas van sin IGV y se resta todo lo incluido en ellas: es lo que ve el contador. Por eso su resultado puede ser distinto al de arriba.</p>
+              <TituloSeccion>El cuadro por sede</TituloSeccion>
               <EstadoResultadosPanel
                 filas={actual.datos}
                 anteriores={anterior?.datos ?? null}

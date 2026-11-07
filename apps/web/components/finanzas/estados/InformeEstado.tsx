@@ -48,7 +48,7 @@ export function InformeEstado({ informe, guia, guiaContador }: { informe: Inform
               <Fragment key={f.clave}>
                 <tr className="estados-informe-fila" data-tipo={f.tipo} data-abierta={esta || undefined} style={{ "--i": i } as CSSProperties}>
                   <th scope="row">
-                    <NombreDeFila fila={f} contador={contador} abre={abre} abierta={esta} onAbrir={() => setAbierta(esta ? null : f.clave)} ancho={f.tipo === "linea" && informe.pesoDe ? anchoEnElInforme(f, filas) : null} />
+                    <NombreDeFila fila={f} contador={contador} abre={abre} abierta={esta} onAbrir={() => setAbierta(esta ? null : f.clave)} ancho={f.tipo === "linea" && informe.pesoDe ? anchoEnElInforme(f, filas, informe.referencia) : null} />
                   </th>
                   {f.valores.map((v, j) => {
                     const actual = columnas[j]?.actual;

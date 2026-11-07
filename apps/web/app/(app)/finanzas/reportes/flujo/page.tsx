@@ -7,8 +7,6 @@ import { columnasDeCascada, comparadaDelFlujo, informeDelFlujo, lecturaDelFlujo,
 import { textoDeVerMas } from "@/lib/estados-partes";
 import { getFlujoReal, getProyeccion } from "@/lib/flujo-caja";
 import { getEstadoResultados } from "@/lib/resultados";
-import { getResultadosDeGestion } from "@/lib/igv-gestion";
-import { avisoDelIgv } from "@/lib/igv-gestion-reglas";
 import { getParametrosFinanzas } from "@/lib/configuracion";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
@@ -26,7 +24,7 @@ import { Recomendaciones } from "@/components/finanzas/estados/Recomendaciones";
 import { SoloLiderFlujo } from "@/components/finanzas/SoloLiderFlujo";
 
 // Finanzas ▸ Estados financieros ▸ Flujo de efectivo (ADR-0195 F6, ADR-0585, ADR-0611). Lee en el servidor, a la vez: lo que entró y salió en las fechas del calendario y en los dos
-// períodos de antes, lo que viene (`?semanas=4|6|8`), la ganancia de esas fechas (para decir por qué la plata no la siguió) y el último mes completo (lo que usa «¿Y si…?», que sigue partiendo del libro, sin IGV). Es de CAYLA
+// períodos de antes, lo que viene (`?semanas=4|6|8`), la ganancia de esas fechas (para decir por qué la plata no la siguió) y el último mes completo (lo que usa «¿Y si…?»). Es de CAYLA
 // entera: lo ve quien tiene el módulo (`fn_exigir_estados_financieros_de_todo`); una terminal no, y la pantalla lo explica en lugar de fallar.
 export default async function FlujoPage({ searchParams }: { searchParams: Promise<{ mes?: string; desde?: string; hasta?: string; semanas?: string; sede?: string; ver?: string; forma?: string }> }) {
   const persona = await exigirModulo("reportes_financieros");
@@ -50,12 +48,8 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
   ]);
   const params = paramsDe(sp);
   const href = (ruta: string) => hrefTelar(ruta, params, {}, { mismaPantalla: false, mesDeHoy: mesDelDia(hoy) });
-  // La plata es de CAYLA entera: la ganancia con que se compara es la de CAYLA (el consolidado), mire la sede que mire la barra. Es la misma cifra de Ganancias y pérdidas, con el IGV del mes (ADR-0620).
-  const gestion = await getResultadosDeGestion([{ desde, hasta, lectura: er }]);
-  const enGestion = gestion.lecturas[0]!;
-  const filaGanancia = enGestion.falla ? null : filaDeLaSede(enGestion.datos, "todas");
-  const ganancia = filaGanancia?.resultado ?? null;
-  const avisoIgv = avisoDelIgv(filaGanancia?.igvGestion);
+  // La plata es de CAYLA entera: la ganancia con que se compara es la de CAYLA (el consolidado), mire la sede que mire la barra.
+  const ganancia = er.falla ? null : (filaDeLaSede(er.datos, "todas")?.resultado ?? null);
   const recomendaciones = recomendacionesPlata({
     real: real.datos,
     proyeccion: proyeccion.datos,
@@ -86,16 +80,6 @@ export default async function FlujoPage({ searchParams }: { searchParams: Promis
           guiaContador="fin-plata.libro"
           aviso={
             <>
-              {gestion.falla && (
-                <Aviso tono="atencion" chico>
-                  {gestion.falla}
-                </Aviso>
-              )}
-              {avisoIgv && (
-                <Aviso tono="info" chico>
-                  {avisoIgv}
-                </Aviso>
-              )}
               <NoCuadra real={real.datos} />
               <NoCubre real={real.datos} />
               {noSeComparan.map((m) => (

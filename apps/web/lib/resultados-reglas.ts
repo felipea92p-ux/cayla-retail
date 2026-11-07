@@ -5,8 +5,6 @@
 // la base (20260925130000), no aquí. La excepción es la cuenta de «cuánto más hay que vender» de una campaña que viene:
 // es un despeje sobre dos datos de la base (su margen normal y su descuento), y vive aquí con sus pruebas.
 
-import type { IgvGestion } from "./igv-gestion-reglas";
-
 export type UnidadER = "tienda" | "taller" | "empresa" | "consolidado";
 export type DetalleGastoER = { cuenta: string; nombre: string; monto: number };
 export type DetalleMermaER = { regla: string; monto: number };
@@ -50,12 +48,11 @@ export type FilaER = {
    */
   planillaPorSede: PlanillaDeSede[];
   /**
-   * El IGV de gestión (ADR-0620): solo en las filas que pasaron por `filasDeGestion`, donde `ventas`, `margen` y `resultado` ya van con IGV. Sin esto la fila es la del libro. Fuera del libro,
-   * como los sueldos estimados.
+   * El IGV que traen las ventas de esta columna según `fn_igv_de_las_ventas` (ADR-0624, «regla pareja»): es de SUNAT y el resultado no lo cuenta. Solo sirve para PRESENTAR
+   * lo cobrado arriba de «Lo que vendiste» (`ventas + igvCobrado`); no cambia ninguna cifra. No es `igvVentas`, que suma también los adelantos. Sin esto (no se pidió o no se
+   * pudo leer), la pantalla no dibuja esas filas.
    */
-  igvGestion?: IgvGestion;
-  /** Lo que dice el libro de esta columna: sin IGV y sin sueldos estimados. Solo con `igvGestion`. */
-  resultadoLibro?: number;
+  igvCobrado?: number;
 };
 
 /** Lo que una sede de Dynamic aporta a la planilla provisionada de una columna. Nunca una persona: solo cuántas y cuánto. */
@@ -549,7 +546,7 @@ export function csvDe(filas: (string | number)[][]): string {
 
 export function csvEstado(conceptos: readonly ConceptoER[], columnas: readonly FilaER[], mes: string): string {
   return csvDe([
-    [`Estado de resultados · ${mesTitulo(mes)} · Según el libro: las ventas van sin IGV`],
+    [`Estado de resultados · ${mesTitulo(mes)}`],
     ["Concepto", "Cuenta", ...columnas.map((c) => nombreCorto(c))],
     ...conceptos.map((k) => [k.nombre, k.cuenta, ...columnas.map((c) => Math.round(k.valor(c) * 100) / 100)]),
   ]);
