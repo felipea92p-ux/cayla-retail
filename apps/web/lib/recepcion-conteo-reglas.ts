@@ -27,10 +27,12 @@ import {
   type DetalleEnvio,
   type LineaEnvio,
   type PrendaRecepcion,
+  type RecibidoEnvio,
   type SolucionDanada,
   mensajeDeLaRecepcion,
 } from "./recepcion-envio-reglas";
 import { opcionReposicion, type PrendaDebida } from "./nos-debe-reglas";
+import { ordenTalla } from "./catalogo-grupos";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Nombres de la base
@@ -1357,14 +1359,43 @@ export function detalleParaDespues(l: LineaParaContar): string[] {
   return r;
 }
 
-/** Las prendas que ya se pueden vender, juntas por nombre («Blusa Aurora ×12»): lo bueno de lo recibido (sin las dañadas), de más a menos. */
-export function prendasQueEntraron(recibidos: readonly { prenda: string | null; cantidad: number; danadas: number }[] | null): { nombre: string; cantidad: number }[] {
-  const por = new Map<string, number>();
+/** Una combinación que entró al stock de un envío, con lo bueno (lo dañado queda en cuarentena y no se etiqueta). */
+export type CombinacionQueEntro = { varianteId: string; talla: string | null; color: string | null; cantidad: number };
+export type PrendaQueEntro = { nombre: string; cantidad: number; combinaciones: CombinacionQueEntro[] };
+
+/**
+ * Lo que entró al stock de un envío, prenda por prenda y talla por talla (Felipe 2026-11-07: «ahí debe salir el detalle»), para elegir de cuáles
+ * imprimir la etiqueta. Junta las varias entradas de una misma combinación (se pudo recibir en dos veces) y deja fuera lo que no tiene combinación.
+ * Las prendas van de la que más entró a la que menos; las combinaciones, por color y talla.
+ */
+export function loQueEntroPorPrenda(recibidos: readonly Pick<RecibidoEnvio, "varianteId" | "prenda" | "talla" | "color" | "cantidad" | "danadas">[] | null): PrendaQueEntro[] {
+  const prendas = new Map<string, Map<string, CombinacionQueEntro>>();
   for (const r of recibidos ?? []) {
     const buenas = r.cantidad - r.danadas;
-    if (buenas > 0) por.set(r.prenda ?? "Prenda", (por.get(r.prenda ?? "Prenda") ?? 0) + buenas);
+    if (!r.varianteId || buenas <= 0) continue;
+    const nombre = r.prenda ?? "Prenda";
+    const combos = prendas.get(nombre) ?? new Map<string, CombinacionQueEntro>();
+    const ya = combos.get(r.varianteId);
+    combos.set(r.varianteId, { varianteId: r.varianteId, talla: r.talla, color: r.color, cantidad: (ya?.cantidad ?? 0) + buenas });
+    prendas.set(nombre, combos);
   }
-  return [...por.entries()].map(([nombre, cantidad]) => ({ nombre, cantidad })).sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre, "es"));
+  return [...prendas.entries()]
+    .map(([nombre, combos]) => {
+      // Por color y, dentro de cada color, las tallas como se leen en tienda (S, M, L), igual que las etiquetas.
+      const combinaciones = [...combos.values()].sort((a, b) => (a.color ?? "").localeCompare(b.color ?? "", "es") || ordenTalla(a.talla ?? "", b.talla ?? ""));
+      return { nombre, cantidad: combinaciones.reduce((s, c) => s + c.cantidad, 0), combinaciones };
+    })
+    .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Las etiquetas de lo elegido: una por prenda buena de cada combinación marcada (`/etiquetas-de-precio?unidades=…&envio=…`). Sin nada marcado, `null`. */
+export function urlEtiquetasDeLoQueEntro(despachoId: string, prendas: readonly PrendaQueEntro[], marcadas: ReadonlySet<string>): { href: string; etiquetas: number } | null {
+  const elegidas = prendas.flatMap((p) => p.combinaciones).filter((c) => marcadas.has(c.varianteId));
+  if (elegidas.length === 0) return null;
+  return {
+    href: `/etiquetas-de-precio?unidades=${elegidas.map((c) => `${c.varianteId}:${c.cantidad}`).join(",")}&envio=${despachoId}`,
+    etiquetas: elegidas.reduce((s, c) => s + c.cantidad, 0),
+  };
 }
 
 /** Lo que entró al stock del envío y lo que falta: las dos cifras del cierre. */

@@ -1,5 +1,6 @@
 "use client";
 
+import { LoQueEntro } from "./LoQueEntro";
 import { useState } from "react";
 import { Layers, List, ListChecks, Package, RotateCcw, Sparkles } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -8,7 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { BOTON_DE_PENDIENTE, cifrasDelEnvio, paraDespues, textoNoSeReabre, veredictoDelCerrado, prendasQueEntraron, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, paraDespues, textoNoSeReabre, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Lacre } from "./Lacre";
 import { Odometro } from "./Odometro";
@@ -123,17 +124,8 @@ export function EnvioCerrado({
       <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Ya en el stock">
         <TituloSeccion dato={veredicto.chip ? <Chip tono={veredicto.chip.tono}>{veredicto.chip.texto}</Chip> : undefined}>{veredicto.titulo}</TituloSeccion>
         <p className="text-sm text-taupe">{veredicto.texto}</p>
-        {cifras.enStock > 0 && (
-          <ul className="flex flex-wrap gap-1.5" aria-label="Lo que ya se puede vender">
-            {prendasQueEntraron(detalle.recibidos).map((p) => (
-              <li key={p.nombre}>
-                <Chip tono="neutro">
-                  {p.nombre} ×{p.cantidad}
-                </Chip>
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* El detalle de lo que entró y de qué imprimir la etiqueta (Felipe 2026-11-07); antes eran chips «Blusa Amancae ×5». */}
+        {cifras.enStock > 0 && <LoQueEntro key={detalle.recibidos?.length ?? 0} despachoId={detalle.id} recibidos={detalle.recibidos} />}
         {veredicto.accion && lista.length > 0 && (
           <div data-guia="recepcion.despues" className="flex flex-wrap gap-2.5">
             <Boton type="button" peso="primario" onClick={() => setHaciendo(lista[0])}>

@@ -75,7 +75,8 @@ import {
   type Separado,
   necesitaCatalogoAlCerrar,
   resumenDelCierre,
-  prendasQueEntraron,
+  loQueEntroPorPrenda,
+  urlEtiquetasDeLoQueEntro,
   detalleParaDespues,
   describirNuevas,
   quitarNuevaDescrita,
@@ -721,20 +722,30 @@ describe("maqueta A: lo que queda para después, línea por línea", () => {
   });
 });
 
-describe("maqueta A: las prendas que ya se pueden vender", () => {
-  it("se juntan por nombre, sin las dañadas, de más a menos", () => {
-    expect(
-      prendasQueEntraron([
-        { prenda: "Blusa Nina", cantidad: 5, danadas: 0 },
-        { prenda: "Blusa Aurora", cantidad: 6, danadas: 0 },
-        { prenda: "Blusa Aurora", cantidad: 7, danadas: 1 },
-        { prenda: "Falda Plisada", cantidad: 2, danadas: 2 },
-      ]),
-    ).toEqual([
-      { nombre: "Blusa Aurora", cantidad: 12 },
-      { nombre: "Blusa Nina", cantidad: 5 },
+describe("lo que entró al stock, prenda por prenda y talla por talla (Felipe 2026-11-07)", () => {
+  const r = (prenda: string, varianteId: string, talla: string | null, color: string | null, cantidad: number, danadas = 0) => ({ prenda, varianteId, talla, color, cantidad, danadas });
+  it("junta cada combinación, sin las dañadas, de la prenda que más entró a la que menos", () => {
+    const prendas = loQueEntroPorPrenda([
+      r("Blusa Nina", "n-s", "S", "Negro", 5),
+      r("Blusa Aurora", "a-m", "M", "Azul", 6),
+      r("Blusa Aurora", "a-s", "S", "Azul", 4),
+      r("Blusa Aurora", "a-m", "M", "Azul", 3, 1),
+      r("Falda Plisada", "f-s", "S", null, 2, 2),
     ]);
-    expect(prendasQueEntraron(null)).toEqual([]);
+    expect(prendas.map((p) => [p.nombre, p.cantidad])).toEqual([
+      ["Blusa Aurora", 12],
+      ["Blusa Nina", 5],
+    ]);
+    expect(prendas[0].combinaciones.map((c) => [c.talla, c.cantidad])).toEqual([
+      ["S", 4],
+      ["M", 8],
+    ]);
+    expect(loQueEntroPorPrenda(null)).toEqual([]);
+  });
+  it("el enlace lleva una etiqueta por prenda de cada combinación marcada, y vuelve al envío", () => {
+    const prendas = loQueEntroPorPrenda([r("Blusa Aurora", "a-m", "M", "Azul", 6), r("Blusa Aurora", "a-s", "S", "Azul", 4)]);
+    expect(urlEtiquetasDeLoQueEntro("env", prendas, new Set(["a-s"]))).toEqual({ href: "/etiquetas-de-precio?unidades=a-s:4&envio=env", etiquetas: 4 });
+    expect(urlEtiquetasDeLoQueEntro("env", prendas, new Set())).toBeNull();
   });
 });
 

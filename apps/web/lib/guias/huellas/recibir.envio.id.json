@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 233,
+  "total": 237,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -175,6 +175,12 @@
       "BotonEnlace «Ir a Ajustar stock»",
       "Boton «Cancelar» #2",
       "Boton «{guia.frase ?? undefined}» #2"
+    ],
+    "components/recepcion-conteo/LoQueEntro.tsx": [
+      "Casilla «{`Etiquetas de ${p.nombre}»",
+      "Casilla «{`Etiquetas de ${p.nombre}» #2",
+      "BotonImprimir «{`Imprimir ${enlace.etiquetas}»",
+      "button «{todasMarcadas ? \"Desmarcar todas\" : \"Marcar todas\"}»"
     ],
     "components/recepcion-conteo/NuevoModelo.tsx": [
       "CampoSelect «{guia.etiqueta(\"modelo-proveedor\", \"De qué proveedor\")}»",

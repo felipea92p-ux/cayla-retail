@@ -2135,6 +2135,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Si algo ya se puede vender, el primer botón imprime sus etiquetas de precio y «Bajar al piso» lo lleva al piso de venta. Si todo quedó guardado, el botón te lleva a terminar lo primero de «Para después». En la demo no los tocamos.",
     },
     {
+      id: "lo-que-entro",
+      ancla: "recepcion.lo-que-entro",
+      opcional: true,
+      requiere: ["recepcion.lo-que-entro"],
+      titulo: "Lo que entró al stock",
+      texto: "Cada prenda que ya entró, con cuántas llegaron de cada talla y color. Marca de cuáles quieres la etiqueta de precio y toca «Imprimir»: salen solo esas, una por prenda. Las dañadas no salen, quedan en cuarentena.",
+    },
+    {
       id: "para-despues",
       ancla: "recepcion.para-despues",
       requiere: ["recepcion.para-despues"],
