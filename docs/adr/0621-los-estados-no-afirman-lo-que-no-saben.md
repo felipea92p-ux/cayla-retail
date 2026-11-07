@@ -29,7 +29,7 @@ Felipe vio que el Flujo de efectivo mentía. Una auditoría de solo lectura cont
 
 ## Consecuencias
 
-- El punto 1 está construido en `20261107165000_fondo_de_compras_sale_al_gastarse.sql`, en el repo y todavía sin pegar en producción (ver la actualización de abajo).
+- El punto 1 está construido en `20261107165000_fondo_de_compras_sale_al_gastarse.sql` y pegado en producción el 2026-11-07 (ver la actualización de abajo).
 - Los arreglos de costo, IGV y arranque se hacen juntos, antes de cerrar octubre con el contador: cualquiera de ellos mueve la cifra del arranque (ADR-0618).
 
 ## Actualización 2026-11-07 — el fondo sale al gastarse (decisión 1, construida)
