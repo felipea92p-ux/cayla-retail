@@ -13,7 +13,7 @@ import { ExisteTambien, faltaPorExistente, useExisteTambien } from "@/components
 import { createClient } from "@/lib/supabase/client";
 import { sugerirColor } from "@/lib/sugerencias-alta-producto";
 import { useEnLinea } from "@/lib/useEnLinea";
-import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { AvisoSinIdentidad, ResponsableEnHoja, useFirmaDeMitad, useHayResponsableDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import { Aviso } from "@/components/ui/Aviso";
 
 // «+ Nuevo color» sin salir de Nuevo producto (spike producto-nuevo-v2, Felipe 2026-09-28).
@@ -36,8 +36,9 @@ import { Aviso } from "@/components/ui/Aviso";
 // loader). Si esa lectura falla, se sugiere con los activos y, si choca, la API responde «Ese código de 3 letras ya lo
 // usa otro color» y se muestra tal cual.
 //
-// Crear un color es un guardado aparte del producto; en el alta lo firma quien la inició (`useFirmaDeMitad`), sin combo propio desde
-// 2026-09-29. Fuera del alta (la ficha de un producto) sigue soltado del combo, con su clave.
+// Crear un color es un guardado aparte del producto; en el alta (y en Recibir) lo firma quien la inició (`useFirmaDeMitad`). Como hoja encima de esa pantalla,
+// su combo quedaba detrás del velo y «Crear y elegir» se apagaba sin salida: desde el 2026-11-07 la hoja trae el mismo combo «Responsable» (es el mismo
+// control: elegir aquí lo deja elegido allá). Fuera del alta (la ficha de un producto) sigue soltado del combo, con su clave.
 
 export function NuevoColorAlta({
   colores,
@@ -71,6 +72,7 @@ export function NuevoColorAlta({
   const [intento, setIntento] = useState(false);
   const enLinea = useEnLinea();
   const firma = useFirmaDeMitad("alta_producto_color");
+  const conCombo = useHayResponsableDeMitad() && enModal;
   const id = useId();
 
   // Todos los códigos ocupados, también los de colores desactivados (ver arriba).
@@ -220,7 +222,7 @@ export function NuevoColorAlta({
       <ExisteTambien que="color" nombre={nombre} solo="nombre" estado={existe} si={elegirExistente} deshabilitado={guardando} />
       <ExisteTambien que="color" nombre={nombre} solo="tono" estado={existe} si={elegirExistente} deshabilitado={guardando} />
 
-      <AvisoSinIdentidad firma={firma} />
+      {conCombo ? <ResponsableEnHoja deshabilitado={guardando} /> : <AvisoSinIdentidad firma={firma} enHoja={enModal} />}
       <div className="flex flex-wrap items-center gap-2.5">
         <Boton peso="primario" cargando={guardando} textoCargando="Creando…"
           type="button"
