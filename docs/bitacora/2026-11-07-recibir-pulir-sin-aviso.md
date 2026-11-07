@@ -4,3 +4,4 @@
 - **Verificado:** `pruebas:envio-sin-aviso` 43/43 y las suites de Recibir; tipos, lint y vitest de Recibir, guías, foco, unificar y sugerir; cada punto recorrido en el navegador en local salvo el costo con cuenta de terminal.
 - **En producción:** las 4 migraciones, con el OK de Felipe (mismo md5 que en local).
 - **Falta:** que Felipe elija una maqueta de «Revisa y cierra» y probar el costo con una cuenta de terminal.
+- **«Revisa y cierra» B (rama `claude/recibir-revisa-y-cierra-b`):** tarjetas por categoría y marca con su proveedor y su costo, «Ver detalle» de cada modelo y el resumen «Al cerrar» con lo que falta (ADR-0393 act. 2026-11-07 c). Verificado en el navegador en local, escritorio y 375 px.
