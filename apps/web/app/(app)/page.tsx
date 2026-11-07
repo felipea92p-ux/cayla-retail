@@ -116,35 +116,42 @@ export default async function InicioPage() {
   const piso = pisoQueSeVe({ ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos });
   const esAlmacen = esPerfilAlmacen({ ubicacionTipo: persona.ubicacionTipo, modulos, puedeEditarCatalogo });
 
-  const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen, fondo] = await Promise.all([
+  // Las cuatro cuentas que alimentan los avisos van primero como promesas: los avisos (`getFuentesAvisos`, ~14 lecturas) se
+  // encadenan a ellas en vez de esperar a que termine TODO el primer lote, y los envíos a medias van a la par. Antes eran tres
+  // lotes en serie; ahora el Inicio espera solo al tramo más largo.
+  // Total (nunca lanza): la misma cifra del número del menú (lo que llega + lo que otras sedes te piden, ADR-0328 act. 17).
+  const trasladosP = ve("traslados") ? getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined);
+  // Las tres colas del líder (ADR-0179, ADR-0186, PL-114): no son de quien no lo es.
+  const vencidasP = esLider ? contarVencidas() : Promise.resolve(undefined);
+  const aperturasP = esLider ? getAperturasPorRevisar() : Promise.resolve(undefined);
+  const atascadosP = esLider ? contarComprobantesAtascados() : Promise.resolve(undefined);
+  const fuentesP = Promise.all([trasladosP, vencidasP, aperturasP, atascadosP]).then(([traslados, prendasVencidas, aperturas, comprobantesAtascados]) =>
+    getFuentesAvisos(
+      { ubicacionId: persona.ubicacionId, sedePropiaId: persona.sedePropiaId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
+      {
+        traslados,
+        prendasVencidas,
+        aperturas: aperturas === undefined ? undefined : (aperturas?.length ?? null),
+        comprobantesAtascados,
+      }
+    )
+  );
+
+  const [hoy, miMeta, equipo, datosAlmacen, fondo, fuentes, enviosAMedias] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Su meta (ADR-0325): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
     !esLider && mostrarHoy(perfil) ? getMiMeta() : Promise.resolve(null),
-    // Total (nunca lanza): la misma cifra del número del menú (lo que llega + lo que otras sedes te piden, ADR-0328 act. 17).
-    ve("traslados") ? getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined),
-    // Las tres colas del líder (ADR-0179, ADR-0186, PL-114): no son de quien no lo es.
-    esLider ? contarVencidas() : Promise.resolve(undefined),
-    esLider ? getAperturasPorRevisar() : Promise.resolve(undefined),
-    esLider ? contarComprobantesAtascados() : Promise.resolve(undefined),
     persona.ubicacionTipo === "tienda" && !persona.terminal ? getEquipoDeHoy(persona.ubicacionId, ve("actividad")) : Promise.resolve(undefined),
     // Lo que solo lee la cuenta de almacén. El piso de la sede sale del motor del piso (una lectura), ya no de Existencias
     // entera: no hace falta la lista de sedes.
     esAlmacen ? getInicioAlmacen({ ubicacionId: persona.ubicacionId, ve }) : Promise.resolve(null),
     // Una terminal no tiene fondo (es un aparato, ADR-0162): ni se pregunta.
     persona.terminal ? Promise.resolve(null) : getResumenMiFondo(),
+    fuentesP,
+    ve("recibir") || esLider ? getEnviosAMedias(persona.ubicacionId) : Promise.resolve(undefined),
   ]);
   const tuFondo = mostrarTuFondo(fondo) ? fondo : null;
   const hrefFondo = hrefTuFondo((m) => ve(m));
-  const fuentes = await getFuentesAvisos(
-    { ubicacionId: persona.ubicacionId, sedePropiaId: persona.sedePropiaId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
-    {
-      traslados,
-      prendasVencidas,
-      aperturas: aperturas === undefined ? undefined : (aperturas?.length ?? null),
-      comprobantesAtascados,
-    }
-  );
-  const enviosAMedias = ve("recibir") || esLider ? await getEnviosAMedias(persona.ubicacionId) : undefined;
   const avisos = avisosInicio({ ...(datosAlmacen ? { ...fuentes, ...fuentesDeAlmacen(datosAlmacen) } : fuentes), enviosAMedias });
   const cookie = cookieEleccion(persona.personaId);
   const eleccion = leerEleccion((await cookies()).get(cookie)?.value);
