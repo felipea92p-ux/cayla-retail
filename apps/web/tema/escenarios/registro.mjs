@@ -1778,6 +1778,11 @@ ESCENARIOS.push(
     await pagina.mouse.move(2, 2);
     await esperar(pagina, 900);
   } },
+  { id: "estados.igv", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-informe-abierta", nombre: "Ganancias y pérdidas · el detalle de «IGV de tus ventas»", async preparar(pagina) {
+    await pagina.locator(".estados-informe-nombre button", { hasText: "IGV de tus ventas" }).first().click();
+    await pagina.mouse.move(2, 2);
+    await esperar(pagina, 900);
+  } },
   { id: "estados.libro", ruta: "/finanzas/reportes", cuentas: FIN, abre: ".estados-formal[data-abierto]", nombre: "Ganancias y pérdidas · el libro del contador", async preparar(pagina) {
     await pagina.getByRole("button", { name: /formato formal/ }).click();
     await esperar(pagina, 900);

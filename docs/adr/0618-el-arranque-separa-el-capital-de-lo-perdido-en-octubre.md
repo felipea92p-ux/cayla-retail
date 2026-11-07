@@ -5,6 +5,9 @@
 - Relacionados: ADR-0198 (diario derivado y saldos de arranque), ADR-0552 (el reinicio de las cuentas de dinero del 28-oct),
   migraciones `20261106171000` y `20261106204000`
 
+> **Actualización (ADR-0620, 2026-11-06, sin aplicar en producción):** la decisión de este ADR sigue cierta, pero la migración `20261107035000` cambia tres cifras al aplicarse:
+> la 4011 pasa de 20,157.00 por pagar a 41,878.00 a favor, la 50 Capital de 139,723.78 a 201,758.78 y el patrimonio al arranque de 110,423.63 a 172,458.63. La 591 no cambia.
+
 ## El problema
 
 Felipe quería ver la plata de CAYLA cuadrada «desde el inicio del ERP» (primera venta, 30-sep). Las cuentas de dinero ya

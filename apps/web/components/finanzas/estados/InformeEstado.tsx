@@ -2,6 +2,7 @@
 
 import { Fragment, useState, type CSSProperties } from "react";
 import { ChevronRight } from "lucide-react";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { solesCentimos } from "@/lib/flujo-caja-reglas";
 import { anchoEnElInforme, bloquesDelInforme, seAbre, type FilaInforme, type Informe } from "@/lib/estados-informe";
 
@@ -59,7 +60,7 @@ export function InformeEstado({ informe, guia, guiaContador }: { informe: Inform
               <Fragment key={f.clave}>
                 <tr className="estados-informe-fila" data-tipo={f.tipo} data-abierta={esta || undefined} style={{ "--i": i } as CSSProperties}>
                   <th scope="row">
-                    <NombreDeFila fila={f} contador={contador} abre={abre} abierta={esta} onAbrir={() => setAbierta(esta ? null : f.clave)} ancho={f.tipo === "linea" && informe.pesoDe ? anchoEnElInforme(f, filas) : null} />
+                    <NombreDeFila fila={f} contador={contador} abre={abre} abierta={esta} onAbrir={() => setAbierta(esta ? null : f.clave)} ancho={f.tipo === "linea" && informe.pesoDe ? anchoEnElInforme(f, filas, informe.referencia) : null} />
                   </th>
                   {f.valores.map((v, j) => {
                     const actual = columnas[j]?.actual;
@@ -137,6 +138,7 @@ function DetalleDeFila({ fila }: { fila: FilaInforme }) {
           ))}
         </ul>
       )}
+      {fila.ver && <EnlaceVer href={fila.ver.href}>{fila.ver.texto}</EnlaceVer>}
     </div>
   );
 }
