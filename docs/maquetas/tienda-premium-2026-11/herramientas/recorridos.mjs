@@ -45,6 +45,12 @@ for (const w of [1440, 390]) {
     await ir("/catalogo?orden=menor"); const precios = await p.$$eval(".prenda-precio b", bs => bs.slice(0, 6).map(b => Number(b.textContent.replace(/[^\d.]/g, ""))));
     ok(precios.every((x, i) => i === 0 || precios[i - 1] <= x), `desordenado ${precios}`);
   });
+  await prueba(`${t} buscar: resultados mientras se escribe y «Ver las N»`, async () => {
+    await ir("/"); await clic(movil ? '.solo-movil[data-a="buscarMovil"]' : 'button.buscador');
+    await p.keyboard.type("blusa", { delay: 30 }); await p.waitForTimeout(300);
+    ok(await p.locator(".resultados li").count() > 0, "sin resultados"); ok(await p.locator(".resultados mark").count() > 0, "sin resaltado");
+    await clic('.hoja-buscar .btn-primario'); ok(p.url().includes("q=blusa"), "no llevó a la lista");
+  });
   await prueba(`${t} buscar sin resultados muestra el vacío`, async () => { await ir("/catalogo?q=zzzz"); ok((await texto()).includes("No encontramos"), "sin vacío"); });
   await prueba(`${t} ficha: sin talla avisa; con talla agrega`, async () => {
     await ir("/catalogo?talla=M&hay=1"); await p.locator(".prenda-nombre").first().click(); await p.waitForTimeout(300);

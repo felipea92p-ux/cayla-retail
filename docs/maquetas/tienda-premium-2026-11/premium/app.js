@@ -155,7 +155,7 @@
         <a href="#/ofertas" class="oferta" ${actual === "/ofertas" ? 'aria-current="page"' : ""}>Ofertas</a>
       </nav>
       <span class="cab-esp"></span>
-      <form class="buscador" role="search" data-f="buscar">${ic("buscar")}<label class="sr" for="q">Buscar</label><input id="q" name="q" placeholder="Busca blusas, jeans, vestidos…" value="${esc(r.q.get("q") || "")}" autocomplete="off"></form>
+      <button class="buscador" data-a="buscarMovil" aria-label="Buscar">${ic("buscar")}<span>${r.q.get("q") ? esc(r.q.get("q")) : "Busca blusas, jeans, vestidos…"}</span></button>
       <button class="sede-boton" data-a="sede" aria-label="Tienda elegida: ${sede().n}. Cambiar">${`<img src="${ESCUDO(S.sede)}" alt="">`}<span class="sede-nombre">${sede().n}</span>${ic("chev")}</button>
       <button class="btn-icono solo-movil" data-a="buscarMovil" aria-label="Buscar">${ic("buscar")}</button>
       <button class="btn-icono lupa-cab" data-a="buscarMovil" aria-label="Buscar">${ic("buscar")}</button>
@@ -304,7 +304,7 @@
     if (cat) { const c = D.categorias.find(x => x.pre === cat); ps = ps.filter(p => p.cat === c?.n); }
     if (gr) ps = ps.filter(p => p.g === gr);
     if (q.get("campana")) ps = ps.filter(p => campanaDe(p)?.nombre === q.get("campana"));
-    if (b) { const n = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); const bb = n(b); ps = ps.filter(p => n(`${p.n} ${p.cat} ${(p.co || []).map(c => c.n).join(" ")}`).includes(bb)); }
+    if (b) { const n = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); const bb = n(b); ps = ps.filter(p => n(`${p.n} ${(p.co || []).map(c => c.n).join(" ")}`).includes(bb)); }
     const base = ps;
     const talla = q.get("talla"), color = q.get("color");
     if (talla) ps = ps.filter(p => p.t.includes(talla) && !p.tOff.includes(talla));
@@ -825,12 +825,35 @@
     salir: () => { S.sesion = null; S.club = false; guardar(); toast("Saliste de tu cuenta."); ir("/"); },
     canjear: () => toast(`${ic("ticket")} Cupón de S/ 10 <b>CAY-DEMO-0001</b> listo: vale 7 días y se usa cuando pagas. <span class="demo" style="margin-left:4px">Simulado</span>`),
     hay: t => { const r = ruta(); ir(conQ(r.path, r.q, { hay: t.checked ? "1" : null }).slice(1)); if (T.capa === "filtros") setTimeout(cajonFiltros, 30); },
-    buscarMovil: () => abrir(`<div class="modal" role="dialog" aria-modal="true" aria-label="Buscar" style="top:16px;transform:translateX(-50%);animation:none"><form class="buscador" data-f="buscar" style="width:100%;height:52px">${ic("buscar")}<input name="q" placeholder="Busca blusas, jeans, vestidos…" autofocus aria-label="Buscar"></form><p class="texto-chico" style="margin:16px 0 8px">Categorías</p><div class="opciones">${D.categorias.slice(0, 10).map(c => `<a class="opcion" href="#/catalogo?categoria=${c.pre}" data-a="cerrar">${esc(c.n)}</a>`).join("")}</div></div>`, "buscar"),
+    buscarMovil: () => hojaBuscar(),
     sugerencia: () => abrir(modal("Envíanos una sugerencia", `<p class="bajada">Hoy es el botón flotante «Recomendaciones» que aparece en todas las páginas. La propuesta lo lleva aquí, al pie y a Mi perfil, para que no tape productos.</p><div class="campo" style="margin-top:16px"><label for="sug">Tu sugerencia</label><textarea id="sug" style="min-height:100px;border:1px solid var(--linea-fuerte);border-radius:12px;padding:12px;font:inherit"></textarea></div><button class="btn btn-primario btn-ancho" style="margin-top:16px" data-a="sugerenciaOk">Enviar</button>`), "sug"),
     sugerenciaOk: () => { cerrarCapas(); toast(`${ic("check")} Gracias. <span class="demo" style="margin-left:4px">Simulado: no se envió</span>`); },
     irSeccion: (t, e) => { e.preventDefault(); $(`#${t.dataset.s}`)?.scrollIntoView({ behavior: "smooth" }); },
     reintentar: () => ir("/"),
   };
+  // Búsqueda: la hoja de arriba de la tienda real (caja grande, ✕, categorías a un toque) + resultados mientras se escribe.
+  const sinTildes = x => String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function sugerencias(q) {
+    const b = sinTildes(q.trim());
+    const catsSede = D.categorias.map(c => ({ ...c, n2: PRENDAS.filter(p => p.cat === c.n && hayEn(p, S.sede)).length })).filter(c => c.n2);
+    if (!b) return `<p class="ceja" style="margin-top:4px">Busca por categoría</p><div class="opciones">${catsSede.slice(0, 8).map(c => `<a class="opcion" href="#/catalogo?categoria=${c.pre}">${esc(c.n)}</a>`).join("")}</div>
+      <p class="ceja" style="margin-top:24px">Recién llegado a ${esc(sede().n)}</p><ul class="resultados">${PRENDAS.filter(p => p.nuevo && hayEn(p, S.sede)).slice(0, 3).map(filaResultado).join("")}</ul>`;
+    const cats = catsSede.filter(c => sinTildes(c.n).includes(b));
+    const ps = PRENDAS.filter(p => sinTildes(`${p.n} ${(p.co || []).map(c => c.n).join(" ")}`).includes(b)).sort((x, y) => Number(hayEn(y, S.sede)) - Number(hayEn(x, S.sede)));
+    if (!ps.length && !cats.length) return `<div class="vacio" style="padding:32px 8px">${ic("lupaX")}<p class="h3" style="margin:0">No encontramos «${esc(q.trim())}»</p><p>Prueba con una prenda («blusa»), un color («negro») o una categoría.</p></div><div class="opciones" style="justify-content:center">${catsSede.slice(0, 6).map(c => `<a class="opcion" href="#/catalogo?categoria=${c.pre}">${esc(c.n)}</a>`).join("")}</div>`;
+    return `${cats.length ? `<div class="opciones" style="margin-bottom:16px">${cats.map(c => `<a class="opcion" href="#/catalogo?categoria=${c.pre}">${esc(c.n)} <small>${c.n2}</small></a>`).join("")}</div>` : ""}
+      <p class="ceja">${ps.length} ${ps.length === 1 ? "prenda" : "prendas"}</p><ul class="resultados">${ps.slice(0, 6).map(p => filaResultado(p, q.trim())).join("")}</ul>
+      ${ps.length ? `<a class="btn btn-primario btn-ancho" style="margin-top:16px" href="#/catalogo?q=${encodeURIComponent(q.trim())}">Ver ${ps.length === 1 ? "la prenda" : `las ${ps.length} prendas`}</a>` : ""}`;
+  }
+  // Resalta lo que coincide con lo escrito (como la tienda real), sin tildes ni mayúsculas.
+  const resaltar = (txt, q) => { const i = q ? sinTildes(txt).indexOf(sinTildes(q)) : -1; return i < 0 ? esc(txt) : `${esc(txt.slice(0, i))}<mark>${esc(txt.slice(i, i + q.length))}</mark>${esc(txt.slice(i + q.length))}`; };
+  const filaResultado = (p, q = "") => { const n = notaSede(p); return `<li><a href="#/prenda/${p.id}"><span class="prenda-foto"><img src="${FOTO(p.fotos[0], 320)}" alt=""></span><span><b>${resaltar(p.n, q)}</b><small class="texto-chico">${esc(p.cat || "")}</small> <span class="dispo ${nivel(n)}">${esc(n)}</span></span><b class="num${p.a ? " oferta" : ""}">${sol(p.p)}</b></a></li>`; };
+  function hojaBuscar() {
+    abrir(`<div class="hoja-buscar" role="dialog" aria-modal="true" aria-label="Buscar"><div class="hoja-buscar-dentro">
+      <form class="buscar-fila" role="search" data-f="buscar"><label class="caja buscar-caja">${ic("buscar")}<span class="sr">Buscar</span><input name="q" type="text" inputmode="search" enterkeyhint="search" placeholder="Busca blusas, jeans, vestidos…" autocomplete="off" autofocus data-buscar-vivo></label><button type="button" class="btn-icono" data-a="cerrar" aria-label="Cerrar la búsqueda">${ic("cerrar")}</button></form>
+      <div id="sugerencias" aria-live="polite">${sugerencias("")}</div></div></div>`, "buscar");
+    setTimeout(() => capas.querySelector("[data-buscar-vivo]")?.focus(), 30);
+  }
   function modalTallasConjunto(ps, nombre) {
     if (T.conjNombre !== nombre) { T.tallasConj = {}; T.conjFalta = false; }
     T.conj = ps; T.conjNombre = nombre;
@@ -913,6 +936,7 @@
   });
   // El código de 6 números: avanza solo, acepta pegar y se revisa con el sexto.
   document.addEventListener("input", e => {
+    if (e.target.matches("[data-buscar-vivo]")) { $("#sugerencias").innerHTML = sugerencias(e.target.value); return; }
     const t = e.target; if (!t.closest("[data-codigo]")) return;
     const cajas = [...t.closest("[data-codigo]").querySelectorAll("input")];
     const v = t.value.replace(/\D/g, "");

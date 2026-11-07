@@ -644,3 +644,24 @@ input, select, textarea { font: inherit; color: inherit; }
 .ic { width: 20px; height: 20px; flex: none; }
 .revela { animation: revelar .5s var(--ease) both; }
 @keyframes revelar { from { opacity: 0; transform: translateY(10px); } }
+
+/* — Hoja de búsqueda: baja desde arriba (como la tienda real), con resultados mientras se escribe — */
+.hoja-buscar { position: fixed; z-index: 81; top: 0; left: 0; right: 0; max-height: 88vh; overflow-y: auto; background: var(--marfil); border-radius: 0 0 var(--r-l) var(--r-l); box-shadow: var(--sombra-flota); animation: bajar .22s var(--ease); }
+.hoja-buscar-dentro { max-width: 760px; margin-inline: auto; padding: var(--e-4) var(--lado) var(--e-6); }
+.buscar-fila { display: flex; align-items: center; gap: var(--e-2); margin-bottom: var(--e-5); }
+.buscar-caja { flex: 1; height: 52px; padding-left: var(--e-4); gap: var(--e-2); border-radius: var(--r-p); cursor: text; }
+.buscar-caja svg { width: 20px; height: 20px; color: var(--cacao-2); }
+.buscar-caja input { padding-left: 0; font-size: 17px; }
+.buscar-caja input::-webkit-search-cancel-button { cursor: pointer; }
+.resultados { list-style: none; margin: 0; padding: 0; }
+.resultados li + li { border-top: 1px solid var(--linea); }
+.resultados a { display: grid; grid-template-columns: 52px 1fr auto; gap: var(--e-3); align-items: center; padding: var(--e-2) 0; }
+.resultados .prenda-foto { border-radius: var(--r-s); }
+.resultados b { display: block; font-size: 14.5px; font-weight: 500; }
+.resultados .num { font-weight: 600; }
+.resultados .num.oferta { color: var(--acento); }
+.opcion small { color: var(--cacao-3); font-size: 12px; }
+button.buscador { cursor: text; text-align: left; }
+button.buscador span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resultados mark { background: none; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--acento); text-underline-offset: 3px; }
+.resultados small { margin-right: 6px; }

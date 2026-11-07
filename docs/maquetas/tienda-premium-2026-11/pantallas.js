@@ -44,9 +44,19 @@ window.PANTALLAS = [
   { id: "sin-resultados", grupo: "Catálogo", nombre: "Sin resultados", ruta: "/catalogo?categoria=VES&talla=XXXL", actual: "sin-resultados",
     problemas: [{ tipo: "observado", t: "La captura actual usa un filtro por URL", d: "Comparar con cuidado: la tienda real puede ignorar una talla que no existe." }],
     mejoras: [{ tipo: "propuesta", t: "Vacío que dice qué hacer", d: "Ícono de lo que falta, filtros puestos que se quitan, «Ver lo nuevo»." }] },
-  { id: "buscar", grupo: "Catálogo", nombre: "Búsqueda", ruta: "/catalogo?q=blusa", actual: null, sinActual: "La búsqueda de la tienda real abre un panel que la captura automática no reproduce fielmente.",
-    problemas: [{ tipo: "comprobado", t: "El buscador tiene dos textos distintos", d: "«¿Qué estás buscando?» y «Prenda o color» (<code>CabeceraConCuenta.tsx:241,775</code>)." }],
-    mejoras: [{ tipo: "propuesta", t: "Un solo texto con ejemplo real", d: "«Busca blusas, jeans, vestidos…». Busca por nombre, categoría y color, sin tildes." }] },
+  { id: "buscar", grupo: "Catálogo", nombre: "Búsqueda", ruta: "/catalogo?q=blusa", actual: null, sinActual: "La búsqueda real es una hoja que baja desde arriba; la captura automática de página completa no la abre. Felipe la compartió en el chat (2026-11-07). En la Premium se abre con la lupa.",
+    problemas: [
+      { tipo: "comprobado", t: "El buscador tiene dos textos distintos", d: "«¿Qué estás buscando?» en la cabecera y «Prenda o color» en la hoja (<code>CabeceraConCuenta.tsx:241,775</code>)." },
+      { tipo: "observado", t: "Los resultados no dicen si hay en tu tienda", d: "La hoja muestra foto, categoría y precio, pero no la disponibilidad: se descubre al entrar a la prenda." },
+      { tipo: "observado", t: "Nombre en cursiva serif con el resaltado en una caja beige", d: "En las tarjetas el nombre va en letra recta; aquí cambia de voz." },
+      { tipo: "observado", t: "Una franja roja a la derecha con la hoja abierta", d: "En la captura del celular el velo no cubre el borde derecho y asoma el rojo. Confirmar en un aparato." },
+    ],
+    mejoras: [
+      { tipo: "propuesta", t: "Se conserva la hoja de arriba", d: "Caja grande, ✕ para cerrar y categorías a un toque, como hoy." },
+      { tipo: "propuesta", t: "Cada resultado dice si hay en tu tienda", d: "El mismo punto y la misma frase de las tarjetas («Disponible», «Última», «Hay en Lima»)." },
+      { tipo: "propuesta", t: "Resaltado subrayado y nombre en la letra de las tarjetas", d: "Y un botón «Ver las N prendas» que lleva a la lista con filtros." },
+      { tipo: "propuesta", t: "Sin escribir, ofrece lo recién llegado", d: "Tres prendas nuevas de tu tienda debajo de las categorías." },
+    ] },
   { id: "ficha", grupo: "Catálogo", nombre: "Ficha de prenda", ruta: "/prenda/2c2aeab8-eb6b-4808-b5ea-c55cbbb4595f", actual: "ficha",
     problemas: [
       { tipo: "observado", t: "La foto principal sale sobre un bloque gris", d: "En la captura de 1440 px la foto grande aparece sobre un rectángulo gris oscuro, distinto de la placa rosa de las miniaturas. Confirmar en un navegador real." },
