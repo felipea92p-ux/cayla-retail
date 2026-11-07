@@ -14,6 +14,7 @@ import {
   esMostrador,
   hermanosDe,
   hojasDe,
+  modulosDeLasHojas,
   menuPara,
   permisosDe,
   puedeVerProduccion,
@@ -933,5 +934,28 @@ describe("hermanosDe (un solo grupo abierto por nivel)", () => {
   });
   it("un id desconocido no cierra nada", () => {
     expect(hermanosDe("zzz", filas)).toEqual([]);
+  });
+});
+
+describe("modulosDeLasHojas: el módulo de cada pantalla, para el buscador de la cabecera", () => {
+  const riel = [
+    { id: "inicio", etiqueta: "Inicio", href: "/", icono: "inicio" },
+    {
+      id: "inv",
+      etiqueta: "Inventario",
+      icono: "inventario",
+      hijos: [
+        { id: "exi", etiqueta: "Existencias", href: "/inventario", icono: "inventario" },
+        { id: "sub", etiqueta: "Mover", icono: "traslados", hijos: [{ id: "tra", etiqueta: "Traslados", href: "/inventario/traslados", icono: "traslados" }] },
+      ],
+    },
+  ] as unknown as Parameters<typeof modulosDeLasHojas>[0];
+
+  it("da el grupo de cada hoja, con los subgrupos unidos por « · »", () => {
+    expect(modulosDeLasHojas(riel)).toEqual({ "/inventario": "Inventario", "/inventario/traslados": "Inventario · Mover" });
+  });
+
+  it("una pantalla suelta en la raíz no tiene módulo", () => {
+    expect(modulosDeLasHojas(riel)["/"]).toBeUndefined();
   });
 });
