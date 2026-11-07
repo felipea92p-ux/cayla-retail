@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisión · Tienda CAYLA Premium</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<!-- El PANEL DE REVISIÓN: herramienta interna, separada de la tienda. Lo que ve la clienta vive en premium/index.html. -->
+<header class="barra">
+  <div class="marca"><b>CAYLA</b><span>Revisión del rediseño · maqueta</span></div>
+  <label class="control">
+    <span>Pantalla</span>
+    <select id="pantalla"></select>
+  </label>
+  <div class="control" role="group" aria-label="Versión">
+    <span>Versión</span>
+    <div class="segmento" id="modo">
+      <button data-v="actual">Actual</button><button data-v="premium">Premium</button><button data-v="lado">Lado a lado</button>
+    </div>
+  </div>
+  <div class="control" role="group" aria-label="Dispositivo">
+    <span>Dispositivo</span>
+    <div class="segmento" id="dispositivo">
+      <button data-w="1440" title="Escritorio 1440 px">1440</button><button data-w="1280" title="Laptop 1280 px">1280</button><button data-w="768" title="Tablet 768 px">768</button><button data-w="390" title="Móvil 390 px">390</button><button data-w="360" title="Móvil pequeño 360 px">360</button>
+    </div>
+  </div>
+  <label class="control casilla"><input type="checkbox" id="sincro" checked> <span>Desplazar juntas</span></label>
+  <div class="esp"></div>
+  <button class="boton" id="abrirPremium" title="Abrir la maqueta sola, a pantalla completa">Abrir sola ↗</button>
+  <button class="boton" id="verRevision" aria-expanded="true">Revisión</button>
+</header>
+<main class="escenario">
+  <section class="lienzos" id="lienzos"></section>
+  <aside class="revision" id="revision" aria-label="Revisión de la pantalla">
+    <div class="rev-cab">
+      <div>
+        <small id="revGrupo"></small>
+        <h2 id="revTitulo"></h2>
+      </div>
+      <label class="estado-rev"><span>Estado</span>
+        <select id="estado"><option value="por-revisar">Por revisar</option><option value="en-ajuste">Pide ajustes</option><option value="aprobada">Aprobada</option></select>
+      </label>
+    </div>
+    <div class="pestanas-rev" role="tablist">
+      <button role="tab" data-p="problemas" aria-selected="true">Problemas</button>
+      <button role="tab" data-p="mejoras">Mejoras</button>
+      <button role="tab" data-p="notas">Notas <b id="cuentaNotas"></b></button>
+      <button role="tab" data-p="todas">Todas</button>
+    </div>
+    <div class="rev-cuerpo" id="revCuerpo"></div>
+  </aside>
+</main>
+<script src="pantallas.js"></script>
+<script src="panel.js"></script>
+</body>
+</html>
