@@ -1,7 +1,7 @@
-// Estados financieros ▸ Balance general (ADR-0611, actividad 6; maqueta `docs/maquetas/finanzas-eeff-vidrio-2026-11/`): cuánto vale CAYLA, una frase y dos tubos del mismo largo: lo
-// que tienes, contra lo que debes y lo tuyo.
+// Estados financieros ▸ Balance general (ADR-0611, ADR-0619; maqueta `docs/maquetas/finanzas-eeff-vidrio-2026-11/`): Activo, Pasivo y Patrimonio, una frase y dos tubos del mismo largo:
+// Activo, contra Pasivo + Patrimonio.
 //
-// PROMETE: de los grupos de `gruposDelBalance` salen las palabras, las partes y el libro. Los dos tubos miden lo mismo porque el Balance solo se dibuja si cuadra (ADR-0198): esa
+// PROMETE: de los grupos de `gruposDelBalance` salen las palabras, las partes y el libro. Los dos tubos miden lo mismo porque el Balance no se dibuja si esa ecuación falla (ADR-0619): esa
 // decisión no vive aquí, se recibe ya tomada. Mirando una sede, lo mismo con lo que es suyo, y se dice que no es un Balance completo.
 // ASUME: toda cifra viene de la base. Aquí no se suma plata nueva: se agrupa y se escribe. Sin un corte anterior que cuadre no se compara: nunca contra un número que no se sabe.
 
@@ -21,7 +21,7 @@ const rojo = (p: number) => `color-mix(in srgb, var(--color-rojo) ${p}%, var(--c
 const DE_CADA_GRUPO: Record<string, { color: string; que: string; contable: string }> = {
   plata: { color: "var(--color-verde)", que: "Lo que tienes disponible, en cajas y bancos.", contable: "Efectivo y equivalentes" },
   cobros: { color: "var(--estados-parte-3)", que: "Ventas con tarjeta que el banco aún no deposita y lo que te deben.", contable: "Cuentas por cobrar" },
-  mercaderia: { color: "var(--estados-parte-1)", que: "Las prendas que aún no vendes, a lo que te costaron.", contable: "Mercadería" },
+  mercaderia: { color: "var(--estados-parte-1)", que: "Las prendas que aún no vendes, a lo que te costaron, y las telas y la ropa en proceso del Taller.", contable: "Existencias" },
   equipos: { color: "var(--estados-parte-2)", que: "Lo que valen hoy, ya restado el desgaste.", contable: "Muebles y equipos" },
   "otros-tiene": { color: "var(--estados-parte-4)", que: "Lo demás que CAYLA tiene.", contable: "Otros activos" },
   proveedores: { color: "var(--color-rojo)", que: "Facturas de compras por pagar.", contable: "Proveedores" },
@@ -70,15 +70,15 @@ export function lecturaDelBalance(grupos: readonly GrupoBalance[], antes: readon
   return {
     valor: tuyo,
     mal: tuyo < 0,
-    frase: `Es lo que vale CAYLA: tienes ${solesCentimos(tiene)} y debes ${solesCentimos(debe)}.`,
+    frase: `Es lo que vale CAYLA: Activo ${solesCentimos(tiene)} menos Pasivo ${solesCentimos(debe)}.`,
     chip: d === null ? null : d === 0 ? { texto: `Igual que a ${cierre}`, tono: null } : { texto: `${solesCentimos(Math.abs(d))} ${d > 0 ? "más" : "menos"} que a ${cierre}`, tono: d > 0 ? "bien" : "mal" },
-    nota: tiene > 0 && mercaderia > 0 ? `El ${Math.round((mercaderia / tiene) * 100)} % de lo que tienes está en mercadería.` : null,
+    nota: tiene > 0 && mercaderia > 0 ? `El ${Math.round((mercaderia / tiene) * 100)} % del Activo está en mercadería y telas.` : null,
   };
 }
 
 export type ComparadaBalance = { etiqueta: string; grupos: readonly GrupoBalance[] | null };
 
-/** Una parte por grupo. «Lo tuyo» solo está en el tubo: es lo que queda, no algo que se pueda sumar a las tarjetas. */
+/** Una parte por grupo. El Patrimonio solo está en el tubo: es lo que queda, no algo que se pueda sumar a las tarjetas. */
 export function partesDelBalance({ grupos, comparadas, etiquetaActual, corte }: { grupos: readonly GrupoBalance[]; comparadas: readonly ComparadaBalance[]; etiquetaActual: string; corte: string }): ParteEstado[] {
   const pasadas = comparadas.filter((c) => c.grupos);
   const cierre = `a ${nombreDelCierre(corte)}`;
@@ -163,9 +163,18 @@ export function partesDeLaSede({ unidad: u, comparadas, etiquetaActual, corte }:
 
 // ---- Como informe (camino A, Felipe 2026-11-06) -----------------------------------------------------------------------------
 
+/** Cómo llama el contador a cada línea del Patrimonio. */
+const CONTABLE_PATRIMONIO: Record<string, string> = { "50": "Capital", "52": "Capital adicional", "591": "Resultados acumulados", resultado_mes: "Resultado del ejercicio" };
+const ORDEN_PATRIMONIO = Object.keys(CONTABLE_PATRIMONIO);
+const ordenPatrimonio = (cuenta: string) => {
+  const i = ORDEN_PATRIMONIO.indexOf(cuenta);
+  return i < 0 ? ORDEN_PATRIMONIO.length : i;
+};
+
 /**
- * El Balance como informe: lo que tienes, grupo por grupo, con su subtotal; lo que debes, con el suyo; y lo tuyo como total. Las columnas de antes solo
- * llevan un cierre que cuadró (los demás son «—»). Cada fila pesa contra lo que tienes. El detalle de cada fila sale de las mismas partes (`partesDelBalance`).
+ * El Balance como lo lee un contador (ADR-0619): tres secciones, Activo, Pasivo y Patrimonio, cada una con sus filas y su total, y al final Pasivo + Patrimonio, que es igual al Activo.
+ * El Patrimonio va línea por línea: capital, aportes, resultados acumulados y el resultado del mes. Las columnas de antes solo llevan un cierre que cuadró (los demás son «—»). Cada fila pesa
+ * contra el Activo. El detalle de cada fila sale de las mismas partes (`partesDelBalance`).
  */
 export function informeDelBalance({ grupos, partes, comparadas, etiquetaActual }: { grupos: readonly GrupoBalance[]; partes: readonly ParteEstado[]; comparadas: readonly ComparadaBalance[]; etiquetaActual: string }): Informe {
   const t = totalesDelBalance(grupos);
@@ -183,26 +192,39 @@ export function informeDelBalance({ grupos, partes, comparadas, etiquetaActual }
     peso: pesoContra(g.monto, t.tiene),
     ...deParte(g.clave),
   });
-  const tuyo = grupos.find((g) => g.lado === "tuyo");
+  const delPatrimonio = (gs: readonly GrupoBalance[]) => gs.find((g) => g.lado === "tuyo")?.lineas ?? [];
+  const montoPatrimonio = (gs: readonly GrupoBalance[], cuenta: string) => delPatrimonio(gs).find((l) => l.cuenta === cuenta)?.monto ?? 0;
+  // Una línea en cero hoy, con saldo en un cierre de antes, se queda: si no, esa columna no sumaría su total.
+  const pasadas = comparadas.flatMap((c) => (c.grupos ? [c.grupos] : []));
+  const cuentasPatrimonio = [...new Map([grupos, ...pasadas].flatMap((gs) => delPatrimonio(gs)).filter((l) => l.monto !== 0).map((l) => [l.cuenta, l])).values()].sort(
+    (a, b) => ordenPatrimonio(a.cuenta) - ordenPatrimonio(b.cuenta),
+  );
+  const seccion = (nombre: string): FilaInforme => ({ clave: `seccion-${nombre}`, nombre, contable: nombre, tipo: "seccion", valores: [] });
   return {
     titulo: "Balance general",
     columnas: [...comparadas.map((c) => ({ etiqueta: c.etiqueta, actual: false })), { etiqueta: etiquetaActual, actual: true }],
-    pesoDe: t.tiene > 0 ? "De lo que tienes" : null,
+    pesoDe: t.tiene > 0 ? "% del Activo" : null,
     filas: [
+      seccion("Activo"),
       ...grupos.filter((g) => g.lado === "tiene").map(linea),
-      { clave: "total-tiene", nombre: "Lo que tienes", contable: "Total activo", tipo: "subtotal", valores: valores((gs) => totalDe(gs, "tiene")), peso: t.tiene > 0 ? "100 %" : null },
-      ...grupos.filter((g) => g.lado === "debe").map((g) => ({ ...linea(g), resta: true })),
-      { clave: "total-debe", nombre: "Lo que debes", contable: "Total pasivo", tipo: "subtotal", resta: true, valores: valores((gs) => totalDe(gs, "debe")), peso: pesoContra(t.debe, t.tiene) },
-      {
-        clave: "tuyo",
-        nombre: "Lo tuyo",
-        contable: "Patrimonio",
-        tipo: "total",
-        valores: valores((gs) => totalDe(gs, "tuyo")),
-        peso: pesoContra(t.tuyo, t.tiene),
-        tono: t.tuyo < 0 ? "mal" : "bien",
-        ...(tuyo ? deParte(tuyo.clave) : {}),
-      },
+      { clave: "total-tiene", nombre: "Total Activo", contable: "Total activo", tipo: "subtotal", valores: valores((gs) => totalDe(gs, "tiene")), peso: t.tiene > 0 ? "100 %" : null },
+      seccion("Pasivo"),
+      ...grupos.filter((g) => g.lado === "debe").map(linea),
+      { clave: "total-debe", nombre: "Total Pasivo", contable: "Total pasivo", tipo: "subtotal", valores: valores((gs) => totalDe(gs, "debe")), peso: pesoContra(t.debe, t.tiene) },
+      seccion("Patrimonio"),
+      ...cuentasPatrimonio.map(
+        (l): FilaInforme => ({
+          clave: `tuyo-${l.cuenta}`,
+          // El resultado es de un mes distinto en cada columna: con columnas de antes no se le pone el mes de ahora.
+          nombre: l.cuenta === "resultado_mes" && pasadas.length ? "Resultado del mes" : l.nombre,
+          contable: CONTABLE_PATRIMONIO[l.cuenta] ?? l.nombre,
+          tipo: "linea",
+          valores: valores((gs) => montoPatrimonio(gs, l.cuenta)),
+          peso: pesoContra(montoPatrimonio(grupos, l.cuenta), t.tiene),
+        }),
+      ),
+      { clave: "total-tuyo", nombre: "Total Patrimonio", contable: "Total patrimonio", tipo: "subtotal", valores: valores((gs) => totalDe(gs, "tuyo")), peso: pesoContra(t.tuyo, t.tiene), tono: t.tuyo < 0 ? "mal" : "bien" },
+      { clave: "total-pasivo-patrimonio", nombre: "Total Pasivo + Patrimonio", contable: "Total pasivo y patrimonio", tipo: "total", valores: valores((gs) => totalDe(gs, "debe") + totalDe(gs, "tuyo")), peso: t.tiene > 0 ? "100 %" : null },
     ],
   };
 }

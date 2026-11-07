@@ -31,9 +31,9 @@ import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CalendarX, Flag } from "lucide-react";
 
-// Estados financieros ▸ Balance general: lo que no es la cifra (ADR-0195 F7, ADR-0198, ADR-0585, ADR-0611). Si no cuadra, la comprobación y la guía de qué falta siguen a la vista: el
-// Balance no se dibuja (un número falso es peor que ninguno). Si cuadra, la respuesta la dibuja `EstadoVidrio`, y aquí queda lo plegado en «Ver más» (dos preguntas, lo de cada sede, cómo
-// se comprobó y los saldos de arranque). La pantalla no calcula plata: todo viene de la base (`fn_conciliacion_contable`, `fn_balance_general`,
+// Estados financieros ▸ Balance general: lo que no es la cifra (ADR-0195 F7, ADR-0585, ADR-0611, ADR-0619). Si falla lo de fondo (el arranque, el diario o la ecuación), la comprobación y la
+// guía de qué falta siguen a la vista y el Balance no se dibuja. Si no, se dibuja, con su aviso si una cuenta difiere, y aquí queda lo plegado en «Ver más» (dos preguntas, lo de cada sede,
+// cómo se comprobó y los saldos de arranque). La pantalla no calcula plata: todo viene de la base (`fn_conciliacion_contable`, `fn_balance_general`,
 // `fn_balance_por_tienda`).
 
 const entra = (i: number, clase = "") => ({
@@ -71,7 +71,40 @@ export function BalancePanel({
 
 const unDecimal = (n: number) => n.toFixed(1).replace(".", ",");
 
-/** Lo plegado cuando el Balance cuadra: dos preguntas que importan, lo que es de cada sede, cómo se comprobó y los saldos de arranque. */
+/** Lo que hay que saber antes de leer un Balance con una cuenta que difiere (ADR-0619): cuál, por cuánto y dónde se arregla. */
+export function AvisoDiferencias({ diferencias, esLider, hoy, saldos }: { diferencias: Chequeo[]; esLider: boolean; hoy: string; saldos: SaldoInicial[] }) {
+  const [arranqueAbierto, setArranqueAbierto] = useState(false);
+  const m = motivoNoCuadra(diferencias);
+  const c = diferencias[0]!;
+  const arranque = c.arranque ?? saldos.find((s) => s.vigente)?.fecha ?? null;
+  return (
+    <>
+      <Aviso
+        tono="atencion"
+        guia="fin-vale.aviso"
+        titulo={`Balance provisional: ${m.titulo} difiere por ${solesBalance(Math.abs(c.diferencia ?? 0))}`}
+        accion={
+          m.enlace?.href ? (
+            <Link href={m.enlace.href} className="btn-enlace">
+              {m.enlace.texto}
+            </Link>
+          ) : m.enlace?.accion === "arranque" && esLider ? (
+            <button type="button" className="btn-enlace" onClick={() => setArranqueAbierto(true)}>
+              {m.enlace.texto}
+            </button>
+          ) : undefined
+        }
+      >
+        {m.texto}
+        {m.causa && ` Viene de: ${m.causa.texto}.`}
+        {m.otros > 0 && ` Y ${m.otros === 1 ? "una cuenta más difiere" : `${m.otros} cuentas más difieren`}.`}
+      </Aviso>
+      {arranqueAbierto && <SaldosArranqueModal hoy={hoy} arranque={arranque} saldos={saldos} onCerrar={() => setArranqueAbierto(false)} />}
+    </>
+  );
+}
+
+/** Lo plegado cuando el Balance se dibuja: dos preguntas que importan, lo que es de cada sede, cómo se comprobó y los saldos de arranque. */
 export function MasDelBalance({
   esLider,
   hoy,
@@ -99,7 +132,7 @@ export function MasDelBalance({
         </div>
       )}
       <Superficie pad className="fin-balance-tarjeta">
-        <CabeceraBloque titulo="Antes de dibujarlo, el sistema lo comprueba" bajada="Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra.">
+        <CabeceraBloque titulo="Antes de dibujarlo, el sistema lo comprueba" bajada="Cada cuenta se calcula por dos caminos distintos. Si una no coincide, el Balance sale con un aviso; si falla la ecuación, no se muestra.">
           {esLider && (
             <button type="button" className="btn-cayla btn-secundario" onClick={() => setArranqueAbierto(true)} data-guia="fin-balance.arranque">
               Saldos de arranque
@@ -156,7 +189,7 @@ function DosPreguntas({ m }: { m: Medidores }) {
 
 // ---- CAYLA entera ---------------------------------------------------------------------------------------------------------
 
-/** Si no cuadra, la comprobación y la guía de qué falta: el Balance no se dibuja (ADR-0198). */
+/** Si falla lo de fondo, la comprobación y la guía de qué falta: el Balance no se dibuja (ADR-0619). */
 function VistaSinCuadrar({
   hoy,
   chequeos,
@@ -178,7 +211,7 @@ function VistaSinCuadrar({
         <Superficie pad className="fin-balance-tarjeta">
           <CabeceraBloque
             titulo="Antes de dibujarlo, el sistema lo comprueba"
-            bajada="Cada cuenta se calcula por dos caminos. Si no coinciden, el Balance no se muestra."
+            bajada="Cada cuenta se calcula por dos caminos. Si falla el arranque, el diario o la ecuación, el Balance no se muestra."
           >
             {esLider && (
               <button type="button" className="btn-cayla btn-secundario" onClick={onArranque} data-guia="fin-balance.arranque">
