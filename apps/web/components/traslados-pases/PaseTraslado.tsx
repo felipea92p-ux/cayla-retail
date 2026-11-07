@@ -10,6 +10,7 @@ import { TEXTO_SELLO, fechaDeSello, type TonoPase, type VistaPase } from "@/lib/
 import type { LoSiguiente } from "@/lib/traslados-recepcion-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // El escenario: el pase grande que GIRA (ADR-0355). Al frente, de dónde a dónde y un botón; al reverso, lo que se hace con la
 // caja (contar, revisar, ver lo enviado). Al terminar, el pase vuelve al frente, le cae un sello y, un momento después, se abre
@@ -74,7 +75,7 @@ export function PaseTraslado({
     if (!vuelta) return;
     const giro = escenario.current?.querySelector<HTMLElement>(".tp-giro");
     if (!giro) return;
-    const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducir = prefiereQuieto();
     const t = setTimeout(() => giro.scrollIntoView({ block: "nearest", behavior: reducir ? "auto" : "smooth" }), reducir ? 0 : 520);
     return () => clearTimeout(t);
   }, [vuelta]);
@@ -83,7 +84,7 @@ export function PaseTraslado({
     girar: (alReverso) => setVuelta(alReverso),
     sellar: (texto, tono, opciones) => {
       setVuelta(false);
-      const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reducir = prefiereQuieto();
       temporizador.current = setTimeout(() => setSello({ texto, tono, fecha: fechaDeSello(new Date().toISOString()), cae: true }), reducir ? 0 : 720);
       temporizador.current = setTimeout(
         () => {

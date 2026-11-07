@@ -25,6 +25,7 @@ import type { ModeloElegible } from "@/lib/rotulos";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { useCantidadEscrita } from "@/components/alta-producto/useCantidadEscrita";
 import { reglaDeEntero } from "@/lib/cantidad-escrita-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 const CUANTAS_COPIAS = reglaDeEntero();
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -145,7 +146,7 @@ export function ImprimirRotulos({
     }
     const salen = rotulos.filter((r) => (numeros[r.clave] ?? 0) > 0).length;
     const { porRotulo, total: ms } = recorridoDeImpresion(salen);
-    if (ms === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (ms === 0 || prefiereQuieto()) {
       imprimir();
       return;
     }

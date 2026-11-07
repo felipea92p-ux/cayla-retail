@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { IndicadorDeslizante } from "./IndicadorDeslizante";
+import { prefiereQuieto } from "../../lib/movimiento-cliente";
 
 export type OpcionSegmento = {
   clave: string;
@@ -139,7 +140,7 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
     const antes = previo.current;
     const destino = { x: activo.offsetLeft, w: activo.offsetWidth };
     let estirar: number | undefined;
-    if (antes && (antes.x !== destino.x || antes.w !== destino.w) && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    if (antes && (antes.x !== destino.x || antes.w !== destino.w) && !prefiereQuieto()) {
       const x = Math.min(antes.x, destino.x);
       setPulgar({ x, w: Math.max(antes.x + antes.w, destino.x + destino.w) - x });
       estirar = window.setTimeout(() => {

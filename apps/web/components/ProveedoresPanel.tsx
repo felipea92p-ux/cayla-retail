@@ -36,6 +36,7 @@ import { Pestanas } from "@/components/ui/Pestanas";
 import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
 // Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
@@ -252,7 +253,7 @@ export function ProveedoresPanel({
     const el = document.querySelector(`[data-proveedor-id="${id}"]`);
     if (!el) return;
     pendienteScroll.current = null;
-    el.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    el.scrollIntoView({ block: "center", behavior: prefiereQuieto() ? "auto" : "smooth" });
   }, [proveedores]);
 
   async function onCambiarEstado(p: Proveedor, esDeshacer = false) {
@@ -638,7 +639,7 @@ export function ProveedoresPanel({
             <button
               type="button"
               className="btn-cayla btn-primario"
-              onClick={() => document.getElementById("proveedores-comparacion")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })}
+              onClick={() => document.getElementById("proveedores-comparacion")?.scrollIntoView({ behavior: prefiereQuieto() ? "auto" : "smooth", block: "start" })}
             >
               Ver la comparación
             </button>

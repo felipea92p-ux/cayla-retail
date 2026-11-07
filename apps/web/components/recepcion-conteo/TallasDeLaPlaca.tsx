@@ -21,6 +21,7 @@ import {
   tallasPorAgregar,
   type BorradorTallas,
 } from "@/lib/recepcion-tallas-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Tallas y colores en la misma pantalla de Contar (Felipe 2026-11-02, de su boceto; antes se abrían en una hoja). La tabla arranca con las tallas de siempre de la categoría y a cada talla y
 // color se le quita o se le agrega. Quitar solo esconde y limpia lo escrito (si había algo, el aviso ofrece «Deshacer»); nunca se borra una variante del catálogo. Agregar lo que la prenda ya
@@ -132,7 +133,7 @@ function Reparto({
     const el = raiz.current;
     if (!traerALaVista || !el) return;
     const caja = el.closest<HTMLElement>(".rc-scroll");
-    const suave: ScrollBehavior = document.hidden || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    const suave: ScrollBehavior = document.hidden || prefiereQuieto() ? "auto" : "smooth";
     const alto = el.getBoundingClientRect().top;
     if (caja && caja.scrollHeight > caja.clientHeight) caja.scrollTo({ top: caja.scrollTop + alto - caja.getBoundingClientRect().top - 8, behavior: suave });
     else window.scrollBy({ top: alto - 88, behavior: suave });

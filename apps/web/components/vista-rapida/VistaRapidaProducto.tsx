@@ -36,6 +36,7 @@ import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { fichaDelColor, type ColorConFicha } from "@/lib/ficha-del-color";
 import { categoriasQueCombinan, fraseCombina, indiceDeColores, type TarjetaLook } from "@/lib/combinar-reglas";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 const SIN_COLORES: ColorConFicha[] = [];
 const SIN_TARJETAS: TarjetaLook[] = [];
@@ -197,7 +198,7 @@ export function VistaRapidaProducto({
   const historial = useHistorialPrenda(producto.productoId, yaAbrioHistorial);
   const irA = (destino: "ficha" | "historial") => {
     if (destino === pagina) return;
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     if (destino === "historial") setYaAbrioHistorial(true);
     setPaso(destino === "historial" ? "hp-sale-izq" : "hp-sale-der");
     window.setTimeout(() => {
