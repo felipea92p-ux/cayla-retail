@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cortesAnteriores, etiquetaDelCorte, ladosDeLaSede, ladosDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
-import { pasosDelLado } from "./estados-partes";
+import { cortesAnteriores, etiquetaDelCorte, informeDeLaSede, informeDelBalance, lecturaDeLaSede, lecturaDelBalance, nombreDelCierre, partesDeLaSede, partesDelBalance, totalesDelBalance } from "./estados-balance";
 import { solesCentimos } from "./flujo-caja-reglas";
 import type { UnidadBalance } from "./balance-reglas";
 import type { GrupoBalance } from "./vale-reglas";
@@ -67,18 +66,19 @@ describe("las partes", () => {
   });
 });
 
-describe("el libro", () => {
-  const lados = ladosDelBalance(GRUPOS);
-  it("con sus nombres de siempre y sus totales", () => {
-    expect(lados[0]!.filas.map((f) => f.nombre)).toEqual(["Efectivo y equivalentes", "Mercadería", "Muebles y equipos", "Total activo"]);
-    expect(lados[1]!.filas.map((f) => f.nombre)).toEqual(["Proveedores", "Tributos por pagar", "Total pasivo", "Patrimonio"]);
+describe("el informe (camino A, 2026-11-06)", () => {
+  const partes = partesDelBalance({ grupos: GRUPOS, comparadas: [], etiquetaActual: "Oct", corte: "2026-10-31" });
+  const inf = informeDelBalance({ grupos: GRUPOS, partes, comparadas: [{ etiqueta: "Sep", grupos: null }], etiquetaActual: "Oct" });
+  it("con los nombres del contador, sus subtotales y lo tuyo al final", () => {
+    expect(inf.filas.map((f) => f.contable)).toEqual(["Efectivo y equivalentes", "Mercadería", "Muebles y equipos", "Total activo", "Proveedores", "Tributos por pagar", "Total pasivo", "Patrimonio"]);
     expect(totalesDelBalance(GRUPOS)).toEqual({ tiene: 100000, debe: 30000, tuyo: 70000 });
   });
-  it("cada barra mide contra lo que tienes", () => {
-    const pasos = pasosDelLado(lados[0]!);
-    expect(pasos[1]).toMatchObject({ desde: 0, ancho: 60 });
-    expect(pasos[3]).toMatchObject({ ancho: 100, tipo: "total" });
-    expect(pasosDelLado({ titulo: "x", total: 0, filas: [{ nombre: "a", valor: 5, tipo: "normal" }] })[0]!.ancho).toBe(0);
+  it("cuadra: lo que tienes menos lo que debes es lo tuyo, y cada fila pesa contra lo que tienes", () => {
+    const ahora = (clave: string) => inf.filas.find((f) => f.clave === clave)!.valores.at(-1)!;
+    expect(ahora("total-tiene") - ahora("total-debe")).toBe(ahora("tuyo"));
+    expect(inf.filas.find((f) => f.clave === "mercaderia")!.peso).toBe("60 %");
+    // Un cierre que no cuadró no se compara: «—».
+    expect(inf.filas[0]!.valores[0]).toBeNull();
   });
 });
 
@@ -108,11 +108,12 @@ describe("mirando una sede", () => {
   it("con la caja abierta su cifra no se muestra (ADR-0186): se dice por qué", () => {
     const q = partesDeLaSede({ unidad: u({ caja: null }), comparadas: [], etiquetaActual: "Oct", corte: "2026-10-31" });
     expect(q[0]).toMatchObject({ texto: "—", cifra: 0, enBarra: 0, que: "La caja está abierta: su cifra la ve quien la cierra." });
-    expect(ladosDeLaSede(u({ caja: null }))[0]!.filas.map((f) => f.nombre)).not.toContain("Cajón y caja fuerte");
+    expect(informeDeLaSede({ unidad: u({ caja: null }), partes: q, comparadas: [], etiquetaActual: "Oct" }).filas[0]!.valores).toEqual([null]);
   });
-  it("su libro suma", () => {
-    const [a, b] = ladosDeLaSede(u());
-    expect(a!.filas.at(-1)).toMatchObject({ valor: 50000 });
-    expect(b!.filas.reduce((x, f) => x + f.valor, 0)).toBe(50000);
+  it("su informe suma", () => {
+    const inf = informeDeLaSede({ unidad: u(), partes: [], comparadas: [], etiquetaActual: "Oct" });
+    const ahora = (clave: string) => inf.filas.find((f) => f.clave === clave)!.valores.at(-1)!;
+    expect(ahora("total-tiene")).toBe(50000);
+    expect(ahora("facturas") + ahora("invertido")).toBe(50000);
   });
 });

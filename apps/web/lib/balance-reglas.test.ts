@@ -3,7 +3,6 @@ import {
   agrupar,
   arranquePropuesto,
   cambiosDelSistema,
-  causaCorta,
   cifraChequeo,
   csvBalance,
   cuadreArranque,
@@ -20,7 +19,6 @@ import {
   motivoNoCuadra,
   nombreDeCuenta,
   nombreLinea,
-  notaLinea,
   avisoBalanceSinCuadrar,
   situacion,
   unidadesConSueldos,
@@ -126,13 +124,13 @@ describe("cómo se escribe cada chequeo", () => {
     expect(tituloChequeo(ch({ clave: "diario", titulo: "El diario cuadra" }))).toBe("El diario cuadra");
   });
   it("la cifra: si cuadra, una; si no, «a ≠ b»; el diario dice si cuadra", () => {
-    expect(cifraChequeo(ch({ diario: 5420, otro: 5420 }))).toBe("S/\u00a05,420");
-    expect(cifraChequeo(ch({ estado: "no_cuadra", diario: 64300, otro: 63880 }))).toBe("S/\u00a064,300 ≠ S/\u00a063,880");
+    expect(cifraChequeo(ch({ diario: 5420, otro: 5420 }))).toBe("S/\u00a05,420.00");
+    expect(cifraChequeo(ch({ estado: "no_cuadra", diario: 64300, otro: 63880 }))).toBe("S/\u00a064,300.00 ≠ S/\u00a063,880.00");
     expect(cifraChequeo(ch({ clave: "diario", diario: null, otro: null, diferencia: 0 }))).toBe("cuadra");
-    expect(cifraChequeo(ch({ clave: "diario", estado: "no_cuadra", diario: null, otro: null, diferencia: -10 }))).toBe("−S/\u00a010 de diferencia");
+    expect(cifraChequeo(ch({ clave: "diario", estado: "no_cuadra", diario: null, otro: null, diferencia: -10 }))).toBe("−S/\u00a010.00 de diferencia");
     expect(cifraChequeo(ch({ estado: "falta" }))).toBe("falta");
     // Con una aclaración cuadra: va la cifra del diario (la del Balance); la aclaración, debajo.
-    expect(cifraChequeo(ch({ clave: "104", estado: "nota", diario: 4515, otro: 4815 }))).toBe("S/\u00a04,515");
+    expect(cifraChequeo(ch({ clave: "104", estado: "nota", diario: 4515, otro: 4815 }))).toBe("S/\u00a04,515.00");
   });
   it("el ícono: ✓ verde, ✓ ámbar con aclaración, ? para revisar, ! rojo", () => {
     expect(iconoChequeo("ok")).toMatchObject({ signo: "✓", tono: "verde" });
@@ -141,8 +139,6 @@ describe("cómo se escribe cada chequeo", () => {
     expect(iconoChequeo("no_cuadra")).toMatchObject({ signo: "!", tono: "rojo" });
   });
   it("la franja dice la causa sin su aclaración entre paréntesis", () => {
-    expect(causaCorta("Egresos de caja sin clasificar (en Gastos ▸ Egresos por clasificar)")).toBe("Egresos de caja sin clasificar");
-    expect(causaCorta("Sin explicar todavía")).toBe("Sin explicar todavía");
   });
   it("cada causa lleva a donde se arregla", () => {
     expect(enlaceDeCausa("sin_clasificar")?.href).toContain("tab=egresos");
@@ -167,7 +163,7 @@ describe("cómo se escribe cada chequeo", () => {
       }),
       ch({ clave: "101", estado: "no_cuadra" }),
     ]);
-    expect(m.texto).toBe("La cuenta 421 (facturas por pagar) dice S/\u00a0680, pero la suma de las facturas da S/\u00a0916.");
+    expect(m.texto).toBe("La cuenta 421 (facturas por pagar) dice S/\u00a0680.00, pero la suma de las facturas da S/\u00a0916.00.");
     expect(m.causa?.clave).toBe("antes_del_arranque");
     expect(m.enlace?.accion).toBe("arranque");
     expect(m.otros).toBe(1);
@@ -175,17 +171,17 @@ describe("cómo se escribe cada chequeo", () => {
 });
 
 describe("cifras, fechas y nombres", () => {
-  it("soles como el spike: sin céntimos, el menos de verdad, céntimos solo en lo chico", () => {
-    expect(solesBalance(289901)).toBe("S/\u00a0289,901");
-    expect(solesBalance(-1778)).toBe("−S/\u00a01,778");
-    expect(solesBalance(199.01)).toBe("S/\u00a0199");
+  it("soles siempre con céntimos (Felipe 2026-11-06) y el menos de verdad", () => {
+    expect(solesBalance(289901)).toBe("S/\u00a0289,901.00");
+    expect(solesBalance(-1778)).toBe("−S/\u00a01,778.00");
+    expect(solesBalance(199.01)).toBe("S/\u00a0199.01");
     expect(solesBalance(-0.4)).toBe("−S/\u00a00.40");
-    expect(solesBalance(0)).toBe("S/\u00a00");
+    expect(solesBalance(0)).toBe("S/\u00a00.00");
     expect(solesBalance(-0.2)).toBe("−S/\u00a00.20");
     // La diferencia del arranque se escribe tal cual: con sus céntimos, aunque sea grande.
     expect(solesExactos(67928.73)).toBe("S/\u00a067,928.73");
     expect(solesExactos(-67928.7)).toBe("−S/\u00a067,928.70");
-    expect(solesExactos(67929)).toBe("S/\u00a067,929");
+    expect(solesExactos(67929)).toBe("S/\u00a067,929.00");
   });
   it("cuánto rinde, con coma decimal", () => {
     expect(textoRinde(0.0721)).toBe("7,2 % al mes");
@@ -209,12 +205,7 @@ describe("cifras, fechas y nombres", () => {
     expect(nombreDeCuenta("999", "Otra")).toBe("Otra");
   });
   it("la mercadería dice lo que está por recibir y en camino; el IGV, que todavía no baja", () => {
-    expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 400, en_transito: 0 } }))).toBe("incluye S/\u00a0400 facturado por recibir");
-    expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 0, en_transito: 0 } }))).toBeNull();
-    expect(notaLinea(linea({ cuenta: "4011", seccion: "pasivo" }))).toContain("SUNAT");
-    expect(notaLinea(linea({ cuenta: "4699", seccion: "pasivo" }))).toContain("CLAURE");
     expect(nombreDeCuenta("4699", "x")).toContain("CLAURE");
-    expect(notaLinea(linea({ cuenta: "479", seccion: "pasivo" }))).toContain("se le pagó");
     expect(nombreDeCuenta("479", "x")).toContain("Claudia");
   });
   it("agrupa y suma: lo que tiene contra lo que debe + lo tuyo", () => {

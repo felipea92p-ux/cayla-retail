@@ -1535,14 +1535,14 @@ export const GUIA_FIN_BALANCE: Guia = {
       ancla: "fin-vale.partes",
       opcional: true,
       titulo: "En qué está y a quién se le debe",
-      texto: "Cada parte con su cifra. Al tocarla, su detalle se abre justo debajo: de qué está hecha y cómo venía.",
+      texto: "Lo que tienes, lo que debes y lo tuyo, fila por fila, con los cierres de antes al lado y cuánto pesa cada fila de lo que tienes. Toca una fila para ver de qué está hecha.",
     },
     {
       id: "libro",
       ancla: "fin-vale.libro",
       opcional: true,
-      titulo: "El formato formal",
-      texto: "El mismo Balance con sus nombres de siempre, como lo lee un contador: Activo = Pasivo + Patrimonio. Se abre aquí mismo.",
+      titulo: "Los nombres del contador",
+      texto: "Cambia las palabras de cada fila a las de siempre del contador: Total activo, Total pasivo, Patrimonio. Las cifras no cambian.",
     },
     {
       id: "tienda-respuesta",
@@ -1562,8 +1562,8 @@ export const GUIA_FIN_BALANCE: Guia = {
       id: "tienda-libro",
       ancla: "fin-balance.tienda-libro",
       opcional: true,
-      titulo: "En dos lados",
-      texto: "Lo mismo, como un cuadro: lo que tiene de un lado, y lo que debe y lo invertido del otro.",
+      titulo: "Los nombres del contador",
+      texto: "Cambia las palabras de cada fila a las del contador. Las cifras no cambian.",
     },
     {
       id: "recos",
@@ -1656,7 +1656,7 @@ export const GUIA_FIN_BALANCE: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Primero, lo comprueba",
-      texto: "Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra y aquí dice qué falta: un número falso es peor que ninguno.",
+      texto: "Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra: arriba dice en una línea qué no cuadra y por cuánto, y debajo de dónde sale la diferencia. Un número falso es peor que ninguno.",
     },
     {
       id: "resultado",
