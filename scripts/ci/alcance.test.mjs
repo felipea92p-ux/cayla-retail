@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { clasificar, clasificarPush, compilaLaTienda, compilaLaWeb, vieneDeUnPr } from "./alcance.mjs";
+import { clasificar, clasificarPush, compilaLaTienda, compilaLaWeb, seMideComoPr, vieneDeUnPr } from "./alcance.mjs";
 import { leeLaWeb, pruebasQueLeenLaWeb } from "./pruebas-web.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -203,4 +203,19 @@ test("ci.yml: `Compila la tienda` espera a «Qué toca el PR», compila apps/tie
   assert.match(job, /needs: alcance/);
   assert.match(job, /needs\.alcance\.outputs\.compilar_tienda != 'no'/);
   assert.match(job, /pnpm --filter tienda build/);
+});
+
+test("la cola de fusión se mide como un PR (lo que cambia contra su base); el push a main y lo demás, no", () => {
+  assert.equal(seMideComoPr("pull_request"), true);
+  assert.equal(seMideComoPr("merge_group"), true);
+  for (const evento of ["push", "workflow_dispatch", "schedule", undefined]) assert.equal(seMideComoPr(evento), false, String(evento));
+});
+
+test("ci.yml y sql-pegado.yml escuchan la cola de fusión: sin `merge_group` la cola esperaría para siempre sus checks obligatorios", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  assert.match(ci.slice(ci.indexOf("\non:"), ci.indexOf("\nconcurrency:")), /^\s+merge_group:/m);
+  const sql = readFileSync(join(RAIZ, ".github", "workflows", "sql-pegado.yml"), "utf8");
+  assert.match(sql.slice(sql.indexOf("\non:"), sql.indexOf("\nconcurrency:")), /^\s+merge_group:/m);
+  // Sin número de PR en la cola: el grupo cae en la rama de la cola, nunca en uno vacío que compartirían todas las filas.
+  assert.match(sql, /group: sql-pegado-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/);
 });

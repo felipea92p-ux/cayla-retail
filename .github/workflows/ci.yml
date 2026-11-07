@@ -38,6 +38,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # La cola de fusión (2026-11-07): GitHub arma `main` + el PR y corre aquí los checks obligatorios antes de fusionar. Sin
+  # este evento la cola esperaría para siempre unos checks que nunca llegan. `alcance.mjs` lo mide como un PR.
+  merge_group:
 
 # Dos pushes seguidos a un PR: el primero se cancela. Sin esto, corregir un typo hace correr lo
 # mismo dos veces y el resultado que llega segundo puede ser el del commit viejo.
