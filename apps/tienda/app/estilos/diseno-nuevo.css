@@ -166,6 +166,12 @@
   & :is(.w-caja-pref, .en-form .w-caja-pref) .w-caja { border-radius: 0 var(--dn-r-s) var(--dn-r-s) 0; }
   & :is(.w-caja-pref, .en-form .w-caja-pref) span { border-radius: var(--dn-r-s) 0 0 var(--dn-r-s); }
   & .pb-bus-caja, & .t-buscador-caja { border-radius: var(--dn-r-p); }
+  /* La disponibilidad de la tarjeta: un punto que dice el estado y la frase en el gris de lectura (maqueta Premium). Antes, la frase en verde o
+     en ámbar a 12 px: el color cargaba todo el mensaje */
+  & .t-card-nota { font-size: 12.5px; color: var(--taupe); }
+  & .t-card-nota::before { content: ""; display: inline-block; vertical-align: middle; width: 6px; height: 6px; margin: -2px 6px 0 0; border-radius: 50%; background: var(--ambar); }
+  & .t-card-nota.ok::before { background: var(--verde); }
+  & .t-card-nota.no::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--taupe); }
   & :is(.t-talla, .t-cantidad, .t-look-talla, .w-codigo-caja, .pb-bus-caja, .t-buscador-caja, .w-caja-pref span) { border-color: var(--dn-borde-control); }
 
   /* Esquinas: píldora lo que se elige, 8 px lo chico, 14 px lo que agrupa. Nunca a una pieza cuya única línea es un borde de un lado (una pestaña,

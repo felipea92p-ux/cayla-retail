@@ -119,8 +119,9 @@ export default async function Inicio({ searchParams }: Props) {
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
   const ofertaElegida = campanas.find((c) => c.id === leerCampana(sp.oferta)) ?? null;
-  const grillaDe = (lista: Prenda[]) =>
-    lista.slice(0, 8).map((p) => <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} diseno={diseno} />);
+  // En «Lo nuevo» no se repite «Nuevo» en cada tarjeta (como en la lista del catálogo, `sinNuevo`).
+  const grillaDe = (lista: Prenda[], sinNuevo = false) =>
+    lista.slice(0, 8).map((p) => <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo={sinNuevo} diseno={diseno} />);
   // Filas completas (de a 4 en la computadora, de a 2 en el celular): 5 vendidos dejarían una prenda sola en la última fila.
   const todosLosVendidos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "vendidos" }).slice(0, 8);
   const vendidos = todosLosVendidos.length >= 4 ? todosLosVendidos.slice(0, todosLosVendidos.length - (todosLosVendidos.length % 4)) : todosLosVendidos;
@@ -188,7 +189,7 @@ export default async function Inicio({ searchParams }: Props) {
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-grilla">{grillaDe(delPrograma)}</div>
+              <div className="t-grilla">{grillaDe(delPrograma, nuevas.length > 0)}</div>
             </section>
           )}
           {looks.length > 0 && (
