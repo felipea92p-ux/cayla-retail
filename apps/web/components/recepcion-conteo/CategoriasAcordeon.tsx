@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ChevronDown, Lock, Plus, SearchX, Sparkles, Tag, Truck, Trash2 } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -14,6 +14,8 @@ import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import type { SalidaDelEnvio } from "@/lib/recepcion-salida-reglas";
 import { MarcaCampo } from "@/components/alta-producto/guia";
+import { Punto } from "@/components/alta-producto/Punto";
+import type { ColorAlta } from "@/lib/alta-producto";
 import { colorDeAvance } from "@/lib/avance-color";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { ID_CAMPO_AGREGAR, marcaDeLinea } from "@/lib/recepcion-conteo-reglas";
@@ -31,7 +33,9 @@ import {
   origenDelGrupo,
   resumenDeCategoria,
   SIN_FILTRO,
+  tallasDeYaEnStock,
   tipoDeParada,
+  totalesPorTalla,
   type CategoriaDelEnvio,
   type EstadoDelResumen,
   type FiltroDelConteo,
@@ -39,6 +43,7 @@ import {
   type OpcionDelFiltro,
   type OrdenDelConteo,
   type ParadaDelConteo,
+  type YaEnStock,
 } from "@/lib/recepcion-modelos-reglas";
 import { sinIdentificarDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import { BaldosaCategoria } from "./piezas";
@@ -134,6 +139,124 @@ function FilaDeParada({ p, activa, conOrigen, foto, faltanTallas, sinAviso, onEl
   );
 }
 
+/** Lo que ya entró al stock, con lo que dice cómo corregirlo. */
+type YaEnStockDeLaLista = YaEnStock & { salida: SalidaDelEnvio | null };
+
+const sinTildes = (t: string): string => t.normalize("NFD").replace(/\p{M}/gu, "").trim().toLocaleLowerCase("es");
+const fecha = (iso: string): string => new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short" });
+
+/**
+ * Una prenda que ya entró al stock, dentro de su categoría (Felipe 2026-11-07, maqueta «A · Matriz», docs/maquetas/recibir-ya-en-stock-2026-11): plegada dice
+ * cuántas y de cuántas tallas, con un punto por color; abierta, la matriz talla × color de lo que entró y cómo corregirlo. No se cuenta: lleva candado.
+ */
+function FilaYaEnStock({ y, cat, colores, onCorregirSalida, guia }: { y: YaEnStockDeLaLista; cat: CategoriaDelEnvio["categoria"]; colores: readonly ColorAlta[]; onCorregirSalida: (s: SalidaDelEnvio) => void; guia?: string }) {
+  const [abierta, setAbierta] = useState(false);
+  const id = useId();
+  const colorDe = (nombre: string | null) => (nombre ? (colores.find((c) => sinTildes(c.nombre) === sinTildes(nombre)) ?? null) : null);
+  const nTallas = tallasDeYaEnStock(y);
+  const primero = colorDe(y.colores[0]?.color ?? null);
+  const porTalla = totalesPorTalla(y);
+  return (
+    <li className="rc-stock" data-abierta={abierta ? "" : undefined} data-guia={guia}>
+      <button type="button" className="rc-modelo" aria-expanded={abierta} aria-controls={id} onClick={() => setAbierta((a) => !a)}>
+        {cat && <MiniaturaPrenda fotoUrl={null} colorHex={primero?.hex ?? null} tamano="md" prefijo={cat.prefijo} familia={cat.familia} categoria={cat.nombre} />}
+        <span className="rc-modelo-textos">
+          <span className="rc-modelo-nombre">
+            <b title={y.prenda}>{y.prenda}</b>
+          </span>
+          <span className="rc-modelo-cifras">
+            <b>{conMiles(y.cantidad)}</b> en stock · {nTallas} {nTallas === 1 ? "talla" : "tallas"}
+            <span className="rc-stock-puntos" aria-hidden>
+              {y.colores.map((c) => {
+                const color = colorDe(c.color);
+                return color ? <Punto key={c.color ?? ""} hex={color.hex} familia={color.familiaColor} tipo={color.tipo} /> : null;
+              })}
+            </span>
+          </span>
+        </span>
+        <Chip tono="verde" versalitas={false} title="Ya entró al stock: no se vuelve a contar">
+          <Lock aria-hidden className="h-3 w-3" />
+          En stock
+        </Chip>
+        <ChevronDown aria-hidden className="rc-stock-flecha h-4 w-4" />
+      </button>
+      <div id={id} className="rc-stock-cuerpo" inert={!abierta}>
+        <div className="rc-stock-dentro">
+          <div className="rc-matriz-caja scroll-cayla">
+            <table // unificar-fijo: la matriz talla × color de lo que ya entró, no una lista de registros
+              className="rc-tabla-tallas rc-tabla-stock"
+              aria-label={`Tallas y colores de ${y.prenda} que ya entraron`}
+            >
+              <thead>
+                <tr>
+                  <th scope="col">Color</th>
+                  {y.tallas.map((t) => (
+                    <th key={t ?? ""} scope="col">
+                      {t ?? "Única"}
+                    </th>
+                  ))}
+                  <th scope="col">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {y.colores.map((c, fila) => {
+                  const color = colorDe(c.color);
+                  return (
+                    <tr key={c.color ?? ""}>
+                      <th scope="row">
+                        <span className="rc-color">
+                          {color && <Punto hex={color.hex} familia={color.familiaColor} tipo={color.tipo} />}
+                          {c.color ?? "Sin color"}
+                        </span>
+                      </th>
+                      {c.porTalla.map((n, i) => (
+                        <td key={y.tallas[i] ?? ""}>
+                          {n > 0 ? (
+                            <span className="rc-stock-celda" style={{ "--j": fila * c.porTalla.length + i } as React.CSSProperties}>
+                              {conMiles(n)}
+                            </span>
+                          ) : (
+                            <span className="rc-stock-cero" aria-label="ninguna">–</span>
+                          )}
+                        </td>
+                      ))}
+                      <td className="rc-fila-total">{conMiles(c.total)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              {y.colores.length > 1 && (
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total</th>
+                    {porTalla.map((n, i) => (
+                      <td key={y.tallas[i] ?? ""}>{conMiles(n)}</td>
+                    ))}
+                    <td>{conMiles(y.cantidad)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+          {/* Lo que salió antes de cerrar se corrige aquí mientras siga en el almacén; lo demás, en Existencias. */}
+          <div className="rc-stock-pie">
+            <span>{y.salida ? `Entró el ${fecha(y.salida.creadoEn)}${y.salida.quien ? ` · ${y.salida.quien}` : ""}` : "Ya está en el stock de la sede"}</span>
+            {y.salida ? (
+              <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => onCorregirSalida(y.salida as SalidaDelEnvio)}>
+                Corregir {conMiles(y.salida.unidades)}
+              </button>
+            ) : (
+              <Link className="btn-cayla btn-enlace text-sm" href={`/inventario?q=${encodeURIComponent(y.prenda)}`}>
+                Ajustar stock
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 function Categoria({
   c,
   i,
@@ -149,6 +272,10 @@ function Categoria({
   onNoLlego,
   onQuitar,
   onQuitarCategoria,
+  yaEnStock,
+  colores,
+  onCorregirSalida,
+  guiaYaEnStock,
 }: {
   c: CategoriaDelEnvio;
   i: number;
@@ -165,8 +292,15 @@ function Categoria({
   onNoLlego: () => void;
   onQuitar: (p: ParadaDelConteo) => void;
   onQuitarCategoria: () => void;
+  /** Lo de esta categoría que ya entró al stock: va al final de sus modelos, con candado. */
+  yaEnStock: readonly YaEnStockDeLaLista[];
+  colores: readonly ColorAlta[];
+  onCorregirSalida: (s: SalidaDelEnvio) => void;
+  /** La primera categoría con algo en el stock lleva el ancla de la guía. */
+  guiaYaEnStock: boolean;
 }) {
   useFotosDeLaCategoria(c, abierta, onFotos);
+  const enStock = yaEnStock.reduce((a, y) => a + y.cantidad, 0);
   const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
   // Hecha solo con todo contado Y todas sus prendas identificadas (Felipe 2026-10-27).
   const estado = c.hecha ? "hecho" : esta ? "ahora" : "falta";
@@ -191,7 +325,18 @@ function Categoria({
           <BaldosaCategoria categoria={c.categoria} tamano="chico" />
           <span className="rc-cat-textos">
             <b>{nombre}</b>
-            <span className="rc-cat-resumen">{[resumenDeCategoria(c), fuera && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")}</span>
+            <span className="rc-cat-resumen">
+              {[resumenDeCategoria(c), fuera && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")}
+              {enStock > 0 && (
+                <>
+                  {" · "}
+                  <span className="rc-cat-en-stock">
+                    <Lock aria-hidden className="h-3 w-3" />
+                    {conMiles(enStock)} en stock
+                  </span>
+                </>
+              )}
+            </span>
             {c.dijeron != null && (
               <span className="rc-cat-barra">
                 {/* Toda contada pero no cuadra: se queda en ámbar aunque falte poco, que es lo que dice su chip. */}
@@ -217,7 +362,7 @@ function Categoria({
       </div>
       <div id={idCuerpo} className="rc-cat-cuerpo" inert={!abierta}>
         <div className="rc-cat-dentro">
-          {c.paradas.length === 0 && (
+          {c.paradas.length === 0 && yaEnStock.length === 0 && (
             <div className="rc-cat-sin-modelos">
               <p>Aún sin modelos. Agrégalos con el «+».</p>
               {!c.hayConteo && c.grupos.some((g) => g.principal.linea) && (
@@ -231,6 +376,15 @@ function Categoria({
             {c.paradas.map((p) => (
               <FilaDeParada key={p.clave} p={p} activa={enFoco?.clave === p.clave} conOrigen={c.variosOrigenes} foto={p.modelo?.productoId ? (fotos.get(p.modelo.productoId) ?? null) : null} faltanTallas={faltanTallas(p)} sinAviso={sinAviso} onElegir={onElegir} onQuitar={onQuitar} />
             ))}
+            {/* Con modelos por contar al lado, un divisor dice dónde empieza lo que ya entró. */}
+            {c.paradas.length > 0 && yaEnStock.length > 0 && (
+              <li className="rc-stock-divisor" aria-hidden>
+                <TituloGrupo cuenta={yaEnStock.length}>Ya en stock</TituloGrupo>
+              </li>
+            )}
+            {yaEnStock.map((y, k) => (
+              <FilaYaEnStock key={`${y.categoria ?? ""}|${y.prenda}`} y={y} cat={c.categoria} colores={colores} onCorregirSalida={onCorregirSalida} guia={guiaYaEnStock && k === 0 ? "recepcion.ya-en-stock" : undefined} />
+            ))}
           </ul>
         </div>
       </div>
@@ -240,6 +394,8 @@ function Categoria({
 
 export function ListaDelEnvio({
   yaEnStock,
+  sueltos,
+  colores,
   onCorregirSalida,
   categorias,
   enFoco,
@@ -296,8 +452,12 @@ export function ListaDelEnvio({
   onAgregar: () => void;
   /** El «+» de una categoría: otro modelo para contar aparte. */
   onAgregarModelo: (categoria: string) => void;
-  /** Lo que ya entró al stock, en un cierre anterior o en una tanda. Se ve con candado y no se cuenta. */
-  yaEnStock: readonly { prenda: string; cantidad: number; tallas: string; salida: SalidaDelEnvio | null }[];
+  /** Lo que ya entró al stock, en un cierre anterior o en una tanda, por la clave de su categoría (`categoriasConLoQueYaEntro`). Se ve con candado y no se cuenta. */
+  yaEnStock: ReadonlyMap<string, readonly YaEnStockDeLaLista[]>;
+  /** Lo que ya entró y no encontró su categoría en el envío: va al pie, para que nunca se pierda. */
+  sueltos: readonly YaEnStockDeLaLista[];
+  /** El catálogo de colores: el punto de cada color en la matriz. */
+  colores: readonly ColorAlta[];
   onCorregirSalida: (s: SalidaDelEnvio) => void;
   onNoLlego: (c: CategoriaDelEnvio) => void;
   /** El tacho de un modelo agregado al contar. */
@@ -314,6 +474,7 @@ export function ListaDelEnvio({
   const volver = " · tócala otra vez para volver al orden de la compra";
   const conOrden = categorias.flatMap((c) => c.paradas).length > 1;
   const hayPuestos = !!filtro.tipo || !!filtro.estado;
+  const primeraConStock = categorias.find((c) => (yaEnStock.get(c.clave)?.length ?? 0) > 0)?.clave ?? null;
   return (
     <section className="rc-panel rc-lista" aria-label={sinAviso ? "Lo que llegó" : "Categorías del envío"}>
       <div className="rc-lista-cabeza">
@@ -394,31 +555,16 @@ export function ListaDelEnvio({
           )}
           {categorias.map((c, i) => {
             const esta = !!enFoco && c.grupos.some((g) => g.clave === enFoco.grupo.clave);
-            return <Categoria key={c.clave} c={c} i={i} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} onQuitarCategoria={() => onQuitarCategoria(c)} />;
+            return <Categoria key={c.clave} c={c} i={i} yaEnStock={yaEnStock.get(c.clave) ?? []} colores={colores} onCorregirSalida={onCorregirSalida} guiaYaEnStock={c.clave === primeraConStock} enFoco={enFoco} abierta={categoriaAbierta(esta, leyendo, alternadas.has(c.clave))} sinAviso={sinAviso} fotos={fotos} faltanTallas={faltanTallas} onAlternar={() => onAlternar(c.clave)} onElegir={onElegir} onFotos={onFotos} onAgregarModelo={() => onAgregarModelo(c.clave)} onNoLlego={() => onNoLlego(c)} onQuitar={onQuitar} onQuitarCategoria={() => onQuitarCategoria(c)} />;
           })}
         </nav>
-        {yaEnStock.length > 0 && (
-          <section aria-label="Ya en stock" className="rc-ya-en-stock" data-guia="recepcion.ya-en-stock">
-            <TituloGrupo cuenta={yaEnStock.length}>Ya en stock</TituloGrupo>
-            <ul>
-              {yaEnStock.map((y) => (
-                <li key={y.prenda}>
-                  <Lock aria-hidden className="h-3.5 w-3.5 shrink-0 text-taupe" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-tinta" title={y.prenda}>{y.prenda}</span>
-                    <span className="block text-sm text-taupe" title={y.tallas || undefined}>{conMiles(y.cantidad)} ya en stock{y.tallas ? ` · ${y.tallas}` : ""}</span>
-                  </span>
-                  {/* Lo que salió antes de cerrar se corrige aquí mientras siga en el almacén; lo demás, en Existencias. */}
-                  {y.salida ? (
-                    <button type="button" className="btn-cayla btn-enlace shrink-0 text-sm" onClick={() => onCorregirSalida(y.salida as SalidaDelEnvio)}>
-                      Corregir {conMiles(y.salida.unidades)}
-                    </button>
-                  ) : (
-                    <Link className="btn-cayla btn-enlace shrink-0 text-sm" href={`/inventario?q=${encodeURIComponent(y.prenda)}`}>
-                      Ajustar stock
-                    </Link>
-                  )}
-                </li>
+        {/* Lo que ya entró sin una categoría de este envío (un recibido viejo que no la trae): al pie, para que no se pierda. */}
+        {sueltos.length > 0 && (
+          <section aria-label="Ya en stock, sin categoría" className="rc-ya-en-stock">
+            <TituloGrupo cuenta={sueltos.length}>Ya en stock · sin categoría</TituloGrupo>
+            <ul className="rc-modelos">
+              {sueltos.map((y, k) => (
+                <FilaYaEnStock key={`${y.categoria ?? ""}|${y.prenda}`} y={y} cat={null} colores={colores} onCorregirSalida={onCorregirSalida} guia={!primeraConStock && k === 0 ? "recepcion.ya-en-stock" : undefined} />
               ))}
             </ul>
           </section>

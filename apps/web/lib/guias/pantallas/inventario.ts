@@ -1960,7 +1960,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.ya-en-stock",
       requiere: ["recepcion.ya-en-stock"],
       titulo: "Lo que ya está en stock",
-      texto: "Lo que ya entró al stock sale aquí con candado y no se vuelve a contar. «Corregir» deshace lo que salió antes de cerrar, mientras siga en el almacén; si no, «Ajustar stock» te lleva a esa prenda.",
+      texto: "Lo que ya entró al stock sale en su categoría, con candado, y no se vuelve a contar. Tócalo para ver sus tallas y colores. «Corregir» deshace lo que salió antes de cerrar, mientras siga en el almacén; si no, «Ajustar stock» te lleva a esa prenda.",
     },
     {
       id: "tabla-cierre",
