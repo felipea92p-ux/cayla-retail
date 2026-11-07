@@ -10,6 +10,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";
 import { TiraBrother } from "@/components/rotulos/TiraBrother";
+import { useMedirNombre } from "@/components/rotulos/useMedirNombre";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
 import {
@@ -64,6 +65,8 @@ export function ImprimirRotulos({
   const puedeJuntar = modelos.length >= 2 && modelos.length <= MAX_JUNTOS;
   const rotulos = useMemo(() => armarRotulos(modelos, juntar && puedeJuntar), [modelos, juntar, puedeJuntar]);
   const numeros = useMemo(() => Object.fromEntries(rotulos.map((r) => [r.clave, copiasDeTexto(copias[r.clave] ?? "1")])), [rotulos, copias]);
+  // El nombre se mide con la letra que dibuja esta computadora: la tira y la hoja que va a la Brother usan la misma medida.
+  const medir = useMedirNombre();
   const hoja = rotulos.flatMap((r) => Array.from({ length: numeros[r.clave] ?? 0 }, () => r));
   const total = hoja.length;
 
@@ -284,7 +287,7 @@ export function ImprimirRotulos({
           )}
         </div>
 
-        <TiraBrother rotulos={rotulos} copias={copias} onCopias={(clave, texto) => setCopias((c) => ({ ...c, [clave]: texto }))} escrita={escrita} recorriendo={recorriendo} />
+<TiraBrother rotulos={rotulos} copias={copias} onCopias={(clave, texto) => setCopias((c) => ({ ...c, [clave]: texto }))} escrita={escrita} recorriendo={recorriendo} medir={medir} />
       </div>
 
       <p className="nota-cayla" data-guia="rotulos.nota">
@@ -300,7 +303,7 @@ export function ImprimirRotulos({
           <div id="rotulos-print" data-modo={modo} aria-hidden>
             {hoja.map((r, i) => (
               <div key={i} className="rot-hoja">
-                <RotuloAnaquel rotulo={r} />
+                <RotuloAnaquel rotulo={r} medir={medir} />
               </div>
             ))}
           </div>,

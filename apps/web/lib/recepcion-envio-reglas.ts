@@ -144,6 +144,8 @@ export type EnvioPorAbrir = {
   lineas: number;
   ordenes: string[];
   proveedores: string[];
+  /** Las marcas que trae (las de sus líneas, `fn_envios_por_recibir` desde 20261107193000); `[]` si la base no las manda. */
+  marcas: string[];
   /** Quien mira hizo alguna de sus órdenes (decisión 17): la pantalla lo dice antes de que la base lo frene. */
   creadoPorMi: boolean;
 };
@@ -169,6 +171,7 @@ export function leerEnviosPorAbrir(data: unknown): EnvioPorAbrir[] {
         lineas: Math.max(0, cifra(r.lineas) ?? 0),
         ordenes: lista(r.ordenes).map(numeroDeOrden).filter((x): x is string => !!x),
         proveedores: lista(r.proveedores).map((p) => texto(p) ?? idNombre(p)?.nombre ?? null).filter((x): x is string => !!x),
+        marcas: leerMarcas(r.marcas),
         creadoPorMi: booleano(r.creado_por_mi) ?? false,
       };
     })
@@ -181,6 +184,8 @@ export type OrdenDirecta = {
   /** «OC-000465». */
   numero: string;
   proveedor: string | null;
+  /** Las marcas de sus líneas (`fn_ordenes_directas_por_recibir` desde 20261107193000); `[]` si la base no las manda. */
+  marcas: string[];
   unidadesPorEnviar: number;
   creadaPorMi: boolean;
 };
@@ -196,9 +201,25 @@ export function leerOrdenesDirectas(data: unknown): OrdenDirecta[] {
       const unidades = cifra(r.unidades_por_enviar) ?? cifra(r.unidades);
       if (!ordenId || !numero || unidades == null || unidades <= 0) return null;
       const proveedor = texto(r.proveedor) ?? idNombre(r.proveedor)?.nombre ?? texto(r.proveedor_nombre);
-      return { ordenId, numero, proveedor, unidadesPorEnviar: unidades, creadaPorMi: booleano(r.creada_por_mi) ?? booleano(r.creado_por_mi) ?? false };
+      return { ordenId, numero, proveedor, marcas: leerMarcas(r.marcas), unidadesPorEnviar: unidades, creadaPorMi: booleano(r.creada_por_mi) ?? booleano(r.creado_por_mi) ?? false };
     })
     .filter((o): o is OrdenDirecta => o !== null);
+}
+
+/** Las marcas que manda la base: nombres sin repetir y en orden alfabético (una base sin el campo da `[]`, y la lista no dibuja la línea). */
+function leerMarcas(v: unknown): string[] {
+  const nombres = lista(v).map((m) => texto(m) ?? idNombre(m)?.nombre ?? null).filter((x): x is string => !!x);
+  return [...new Set(nombres)].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/**
+ * La línea de la marca bajo el proveedor (Felipe 2026-11-07): quien recibe ve la etiqueta de la prenda, no la razón social. Hasta tres,
+ * separadas por «·»; con más, las dos primeras y «y N más» (el resto va en el `title`). `null` si no hay ninguna: la fila no dibuja la línea.
+ */
+export function textoMarcas(marcas: readonly string[]): string | null {
+  if (marcas.length === 0) return null;
+  if (marcas.length <= 3) return marcas.join(" · ");
+  return `${marcas.slice(0, 2).join(" · ")} y ${marcas.length - 2} más`;
 }
 
 /** Lo que se dice en vez del botón cuando quien mira hizo la orden (decisión 17). */
