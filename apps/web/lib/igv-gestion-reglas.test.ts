@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AVISO_SIN_IGV, avisoDelIgv, esEstimado, filasDeGestion, leerFilasIgv, mismaBaseDeIgv, pasarAGestion, textoDelIgv, type FilaIgvGestion } from "./igv-gestion-reglas";
+import { AVISO_SIN_IGV, avisoDelIgv, columnasDelMes, esEstimado, filasDeGestion, leerFilasIgv, mismaBaseDeIgv, pasarAGestion, textoDelIgv, type FilaIgvGestion } from "./igv-gestion-reglas";
 import type { FilaER } from "./resultados-reglas";
 
 const r = (n: number) => Math.round(n * 100) / 100;
@@ -172,5 +172,25 @@ describe("pasarAGestion: todas las columnas o ninguna", () => {
   it("una lectura que ya había fallado se queda como está", () => {
     const rota = { datos: [], falla: "sin leer" };
     expect(pasarAGestion([rota], [null]).lecturas[0]).toBe(rota);
+  });
+});
+
+describe("columnasDelMes: una lectura para todo el hilo", () => {
+  const leido = { datos: [igv({ mes: "2026-10", igvTramo: 18, igvMes: 18, montoDicho: 0, igvParte: 0 }), igv({ mes: "2026-11", igvTramo: 36, igvMes: 36 })], falla: null };
+  const columnas = [fila({ ventas: 100, resultado: 10 })];
+
+  it("cada mes toma solo lo suyo", () => {
+    const oct = columnasDelMes(columnas, leido, "2026-10")[0]!;
+    const nov = columnasDelMes(columnas, leido, "2026-11")[0]!;
+    expect(oct).toMatchObject({ ventas: 118, resultado: 28 });
+    expect(esEstimado(oct.igvGestion)).toBe(false);
+    expect(nov).toMatchObject({ ventas: 136, resultado: 10 });
+    expect(esEstimado(nov.igvGestion)).toBe(true);
+  });
+  it("un mes sin ventas no está estimado", () => {
+    expect(esEstimado(columnasDelMes(columnas, leido, "2026-09")[0]!.igvGestion)).toBe(false);
+  });
+  it("sin lectura, el mes queda en el libro", () => {
+    expect(columnasDelMes(columnas, { datos: [], falla: "se cayó" }, "2026-10")[0]).toEqual(columnas[0]);
   });
 });

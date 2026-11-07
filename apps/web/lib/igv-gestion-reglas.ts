@@ -109,6 +109,19 @@ export function pasarAGestion(lecturas: readonly Lectura<FilaER[]>[], igv: reado
   };
 }
 
+/**
+ * Las columnas de un mes del hilo, con la lectura de IGV de todo el hilo: una sola para los trece meses (ADR-0450, tope de conexiones). Si no se pudo leer, todos los meses quedan en el libro,
+ * para que la línea no mezcle ventas con y sin IGV.
+ */
+export function columnasDelMes(datos: readonly FilaER[], igv: Lectura<FilaIgvGestion[]>, mes: string): FilaER[] {
+  return igv.falla
+    ? [...datos]
+    : filasDeGestion(
+        datos,
+        igv.datos.filter((x) => x.mes === mes),
+      );
+}
+
 /** «noviembre», «octubre y noviembre», «septiembre, octubre y noviembre». */
 function nombresDeMeses(meses: readonly string[]): string {
   const n = meses.map(mesNombre);

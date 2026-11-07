@@ -7,6 +7,9 @@ import { solesCentimos } from "@/lib/flujo-caja-reglas";
 const VERDE = { stopColor: "var(--color-verde)" };
 const ROJO = { stopColor: "var(--color-rojo)" };
 
+/** El nombre del mes, y lo que hay que saber de su cifra. */
+const nombreDePunto = (p: PuntoDeLinea) => (p.estimado ? `${p.nombre} · IGV estimado` : p.nombre);
+
 /**
  * Cómo viene mes a mes (ADR-0611; maqueta `docs/maquetas/finanzas-eeff-vidrio-2026-11/`): una línea con su área, verde arriba del cero y roja debajo, de borde a borde de la
  * placa. Marca el mes que se mira y, si se miran unas fechas que no son un mes, una franja con lo de esas fechas. Al pasar el mouse lee cada mes. Es una pieza de esta
@@ -43,7 +46,7 @@ export function LineaDeMeses({
   // El globito: sobre el mes marcado o sobre la franja, sin salirse de la placa.
   const centroFranja = franja ? (franja.de + franja.a) / 2 : 0;
   const yFranja = franja && activo !== null ? geo.puntos[activo]!.y : 40;
-  const globo = conFranja ? { x: centroFranja, y: yFranja, b: franja!.valor, s: franja!.titulo } : punto ? { x: punto.x, y: punto.y, b: solesCentimos(serie[marcado!]!.valor), s: serie[marcado!]!.nombre } : null;
+  const globo = conFranja ? { x: centroFranja, y: yFranja, b: franja!.valor, s: franja!.titulo } : punto ? { x: punto.x, y: punto.y, b: solesCentimos(serie[marcado!]!.valor), s: nombreDePunto(serie[marcado!]!) } : null;
   return (
     <div className="estados-linea-marco">
       <div className="estados-linea">
@@ -72,10 +75,12 @@ export function LineaDeMeses({
           </div>
         )}
         <div className="estados-linea-zona" data-sobre={sobre !== null || undefined} onPointerMove={alPasar} onPointerLeave={() => setSobre(null)}>
+          {/* Un mes con su IGV estimado no es una cifra firme: se ve de una mirada, sin pasar el mouse (ADR-0620). */}
+          {geo.puntos.map((q, i) => serie[i]!.estimado && i !== marcado && <i key={serie[i]!.nombre} className="estados-linea-hueco" data-mal={serie[i]!.valor < 0 || undefined} style={{ left: `${q.x}%`, top: `${q.y}%` }} />)}
           {punto && (
             <>
               <span className="estados-linea-guia" style={{ left: `${punto.x}%` }} />
-              <span className="estados-linea-punto" data-mal={serie[marcado!]!.valor < 0 || undefined} style={{ left: `${punto.x}%`, top: `${punto.y}%` }} />
+              <span className="estados-linea-punto" data-mal={serie[marcado!]!.valor < 0 || undefined} data-estimado={serie[marcado!]!.estimado || undefined} style={{ left: `${punto.x}%`, top: `${punto.y}%` }} />
             </>
           )}
           {globo && (
@@ -95,7 +100,7 @@ export function LineaDeMeses({
       </div>
       <ul className="sr-only" aria-label={etiqueta}>
         {serie.map((p) => (
-          <li key={p.nombre}>{`${p.nombre}: ${solesCentimos(p.valor)}`}</li>
+          <li key={p.nombre}>{`${nombreDePunto(p)}: ${solesCentimos(p.valor)}`}</li>
         ))}
       </ul>
     </div>

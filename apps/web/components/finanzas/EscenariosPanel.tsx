@@ -300,10 +300,10 @@ export function EscenariosPanel({
               <Superficie>
                 <div className="fin-tabla-wrap">
                   <table className="fin-tabla fin-tabla-utilidad">
-                    <caption className="sr-only">Utilidad al mes de cada unidad, hoy y con el cambio</caption>
+                    <caption className="sr-only">Utilidad al mes de cada unidad, según el libro y sin IGV, hoy y con el cambio</caption>
                     <thead>
                       <tr>
-                        <th>Utilidad al mes</th>
+                        <th>Utilidad al mes · parte del libro</th>
                         <th className="fin-num">Hoy</th>
                         <th className="fin-num">Con el cambio</th>
                         <th className="fin-num">Diferencia</th>
@@ -334,7 +334,7 @@ export function EscenariosPanel({
               </Superficie>
             ) : (
               <div className="nota-cayla">
-                <b>La utilidad sale del estado de resultados de {textoMes(mesBase)}</b> (Reportes ▸ Estado de resultados) y todavía no se pudo leer: por
+                <b>La utilidad parte del libro de {textoMes(mesBase)}</b>, sin IGV (Estados financieros ▸ Ganancias y pérdidas ▸ El cuadro por sede), y todavía no se pudo leer: por
                 ahora el escenario solo mueve tu caja.
               </div>
             )}

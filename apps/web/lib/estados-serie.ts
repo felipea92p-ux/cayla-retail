@@ -2,25 +2,31 @@ import "server-only";
 import { filaDeLaSede } from "@/lib/estados-financieros-reglas";
 import { SEDE_EMPRESA, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { finDelMes, ventasPorFecha, type MesDelHilo } from "@/lib/estados-periodo";
+import { getIgvDeGestion } from "@/lib/igv-gestion";
+import { columnasDelMes, esEstimado } from "@/lib/igv-gestion-reglas";
 import { getEstadoResultados } from "@/lib/resultados";
 import { getTiendasActivas, getVentasPorDia } from "@/lib/resumen-telar";
 
-export type ResultadoDelMes = { mes: string; resultado: number | null };
+/** `estimado`: el líder todavía no dijo el IGV de ese mes, y su punto se dibuja hueco (ADR-0620). */
+export type ResultadoDelMes = { mes: string; resultado: number | null; estimado: boolean };
 
 /** De a pocas a la vez: el usuario de la tienda tiene tope de conexiones (ADR-0450) y una pantalla no debe pedir trece lecturas de golpe. */
 const LECTURAS_A_LA_VEZ = 4;
 
 /**
- * Cuánto se ganó o se perdió cada mes (`fn_estado_resultados`, la misma lectura de la pantalla, mes por mes), en la sede que se mira. Un mes
- * que no se pudo leer viene en `null`: no es un cero, y su barra no se dibuja.
+ * Cuánto se ganó o se perdió cada mes (`fn_estado_resultados`, la misma lectura de la pantalla, mes por mes, con el IGV de gestión), en la sede que se mira. Un mes
+ * que no se pudo leer viene en `null`: no es un cero, y su barra no se dibuja. El IGV se lee una sola vez, para todo el hilo; si no se puede, toda la línea queda en el libro.
  */
 export async function getResultadoPorMes(meses: readonly MesDelHilo[], sede: ClaveSede): Promise<ResultadoDelMes[]> {
   const salida: ResultadoDelMes[] = [];
+  if (!meses.length) return salida;
+  const igv = await getIgvDeGestion(meses[0]!.desde, meses.at(-1)!.hasta);
   for (let i = 0; i < meses.length; i += LECTURAS_A_LA_VEZ) {
     const tanda = await Promise.all(
       meses.slice(i, i + LECTURAS_A_LA_VEZ).map(async (m) => {
         const er = await getEstadoResultados(m.desde, m.hasta);
-        return { mes: m.mes, resultado: er.falla ? null : (filaDeLaSede(er.datos, sede)?.resultado ?? null) };
+        const fila = er.falla ? null : filaDeLaSede(columnasDelMes(er.datos, igv, m.mes), sede);
+        return { mes: m.mes, resultado: fila?.resultado ?? null, estimado: esEstimado(fila?.igvGestion) };
       }),
     );
     salida.push(...tanda);

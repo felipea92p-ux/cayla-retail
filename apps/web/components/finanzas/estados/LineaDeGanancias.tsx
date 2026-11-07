@@ -13,8 +13,8 @@ export async function LineaDeGanancias({ hoy, minimo, sede, periodo, resultado }
   const meses = mesesDelHilo(hoy, minimo);
   const resultados = await getResultadoPorMes(meses, sede);
   const serie = meses.flatMap((m) => {
-    const r = resultados.find((x) => x.mes === m.mes)?.resultado;
-    return r === null || r === undefined ? [] : [{ mes: m.mes, etiqueta: m.etiqueta, nombre: m.nombre, valor: r }];
+    const r = resultados.find((x) => x.mes === m.mes);
+    return r?.resultado === null || r?.resultado === undefined ? [] : [{ mes: m.mes, etiqueta: m.etiqueta, nombre: m.nombre, valor: r.resultado, estimado: r.estimado }];
   });
   const lista = serie.map((m) => m.mes);
   const i = lista.indexOf(periodo.mes);
