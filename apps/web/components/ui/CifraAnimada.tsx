@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { columnasDeCifra } from "@/lib/cifra-rueda";
 import { soles } from "@/lib/compras-reglas";
 import { soles as solesRedondo } from "@/lib/flujo-caja-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** La cifra que rueda (ADR-0136, act. 2026-10-31): al aparecer, cada dígito gira desde 0 hasta su valor; al cambiar (otra sede, otro mes),
  *  gira del valor viejo al nuevo, sin volver a contar desde cero. Una vez, 700 ms con `--ease-cayla`, sin rebote. Las columnas y sus claves
@@ -33,7 +34,7 @@ function Digito({ digito }: { digito: number }) {
   const tira = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     const t = tira.current;
-    if (!t || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!t || prefiereQuieto()) return;
     const destino = t.style.transform;
     t.style.transition = "none";
     t.style.transform = "translateY(0%)";

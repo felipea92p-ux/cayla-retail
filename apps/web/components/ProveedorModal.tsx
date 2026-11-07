@@ -31,6 +31,7 @@ import {
   validarCuentas,
   type CuentasForm,
 } from "@/lib/proveedores-cuentas-form";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Alta y edición de un proveedor (extraído de ProveedoresPanel el 2026-09-18 para que la lista y la
 // ficha abran el MISMO formulario: la ficha ganó el botón «Editar» y el formulario no se duplica).
@@ -343,7 +344,7 @@ export function ProveedorModal({
     avisar.exito(editando ? "Proveedor actualizado" : "Proveedor registrado", { detalle: nombre.trim() });
     // El ✓ se ve un instante y recién ahí el modal se va: la confirmación es parte del gesto, no un aviso aparte.
     setFase("listo");
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reducido = prefiereQuieto();
     setTimeout(cerrar, reducido ? 0 : 520);
   }
 
@@ -620,7 +621,7 @@ export function ProveedorModal({
                 {fase === "guardando" && (
                   // El mismo hilo que barre en el spike mientras se guarda: se ve que el sistema trabaja.
                   <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
-                    <span className="block h-full w-1/3 bg-crema [animation:cayla-hilo-barrido_0.9s_linear_infinite]" />
+                    <span data-senal className="block h-full w-1/3 bg-crema [animation:cayla-hilo-barrido_0.9s_linear_infinite]" />
                   </span>
                 )}
                 {fase === "listo" ? (

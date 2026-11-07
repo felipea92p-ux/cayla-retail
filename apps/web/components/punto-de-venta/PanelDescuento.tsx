@@ -8,6 +8,7 @@ import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto, atributosPorcentajeTexto } f
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { AYUDA_MODO_DESCUENTO, type CuentaDelDescuento } from "@/lib/descuento-cuenta-reglas";
 import { RAZONES_DESCUENTO, type ModoDescuento, type PasoDescuento } from "@/lib/vender-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** Atajos de % — los que se dan de palabra en el mostrador. */
 const ATAJOS_PCT = [5, 10, 15] as const;
@@ -18,7 +19,7 @@ const ATAJOS_MONTO = [5, 10, 20, 50] as const;
 function irAlPaso(raiz: HTMLElement | null, paso: PasoDescuento) {
   const destino = raiz?.querySelector<HTMLElement>(`[data-paso-descuento="${paso}"]`);
   if (!destino) return;
-  const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reducido = prefiereQuieto();
   destino.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" });
   const campo = destino.matches("input, textarea") ? destino : destino.querySelector<HTMLElement>("input, textarea");
   campo?.focus({ preventScroll: true });

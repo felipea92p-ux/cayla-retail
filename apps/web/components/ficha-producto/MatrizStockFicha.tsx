@@ -19,6 +19,7 @@ import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz, type Huec
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // La matriz color × talla de Editar producto, con el diseño de «Unidades de hoy» de Nuevo producto (`MatrizCantidades`, Felipe
 // 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas y la fila «Total» fija abajo.
@@ -170,7 +171,7 @@ export function MatrizStockFicha({
   function cambiarVista(v: VistaMatriz) {
     onVista(v);
     if (v !== "etiquetas" || vista === "etiquetas") return;
-    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quieto = prefiereQuieto();
     window.setTimeout(() => raiz.current?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" }), 40);
   }
 
