@@ -6,7 +6,8 @@
 
 import type { FilaDeParte } from "./estados-partes";
 
-export type TipoFilaInforme = "linea" | "subtotal" | "total";
+/** `seccion`: el título de un bloque (Activo, Pasivo, Patrimonio); no lleva cifras. */
+export type TipoFilaInforme = "seccion" | "linea" | "subtotal" | "total";
 
 export type FilaInforme = {
   clave: string;
@@ -44,6 +45,16 @@ export type Informe = {
 
 /** Una fila se puede abrir si tiene algo que decir además de su cifra. */
 export const seAbre = (f: FilaInforme): boolean => !!(f.que || f.aviso || (f.detalle && f.detalle.length));
+
+/** Las filas en bloques, uno por sección, para que cada título gobierne las suyas (`<tbody>`, `scope="rowgroup"`). Sin secciones, un solo bloque. */
+export function bloquesDelInforme(filas: readonly FilaInforme[]): FilaInforme[][] {
+  const bloques: FilaInforme[][] = [];
+  for (const f of filas) {
+    if (f.tipo === "seccion" || !bloques.length) bloques.push([f]);
+    else bloques.at(-1)!.push(f);
+  }
+  return bloques;
+}
 
 /** «46 %» contra la referencia; sin referencia (o con referencia en cero o negativa), nada. */
 export function pesoContra(valor: number, referencia: number): string | null {
