@@ -39,6 +39,7 @@ import {
   type VarianteSeparada,
   mensajeAlGuardar,
   marcaDeLinea,
+  admiteSinMarca,
   sePuedeCambiarCategoria,
   type CambioDePrecio,
   type MarcaDeLinea,
@@ -410,6 +411,7 @@ export function HacerAhora({
           comoCorregirMarca={sePuedeCambiarCategoria(item, linea) ? "Si es de esa marca, elígela arriba." : "Si la marca anotada está mal, reabre el conteo y corrígela."}
           categorias={sePuedeCambiarCategoria(item, linea) ? (catalogo?.categorias ?? []) : []}
           marcas={sePuedeCambiarCategoria(item, linea) ? (catalogo?.marcas ?? []) : []}
+          conSinMarca={admiteSinMarca(linea)}
           responsable={responsable}
           onPasarALinea={pasarALinea}
           onUsar={async (prenda, cambio) => {
