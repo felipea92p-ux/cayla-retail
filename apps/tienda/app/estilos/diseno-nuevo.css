@@ -102,6 +102,9 @@
   & .t-club { margin-top: var(--dn-seccion); }
   /* El pie va en marfil: sobre el rojo, el logo no se leería */
   & .t-pie { margin-top: var(--dn-seccion); background: var(--dn-arena-2); border-top: 1px solid var(--sand); }
+  /* El pie en cuatro columnas (maqueta Premium): la marca con su lema, comprar, ayuda y el Club */
+  & .t-pie .t-pie-lema { margin: 0; font-family: var(--nombre); font-size: 18px; line-height: 1.4; color: var(--tinta); max-width: 24ch; }
+  & .t-pie .t-pie-boton { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; }
 }
 @media (hover: hover) {
   :root[data-diseno="nuevo"] {
@@ -147,8 +150,6 @@
   & svg.ic { stroke-width: var(--dn-trazo); }
   & :focus-visible { outline-color: var(--dn-acento); }
 
-  /* El botón de Recomendaciones: un botón flotante más, no otra familia */
-  & .rv-boton { height: var(--dn-alto-icono); padding: 0 var(--e-4) 0 var(--e-3); gap: var(--e-2); background: var(--papel); border: 1px solid var(--sand); border-radius: var(--dn-r-p); color: var(--tinta); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; box-shadow: 0 6px 18px color-mix(in srgb, var(--dn-sombra-tono) 14%, transparent); }
 
   /* Letra: serif en los títulos, sans en lo demás, y tres niveles de título */
   & :is(.w-titulo, .ay-titulo, .ay-sin-salida-t, .t-titulo-letras, .t-lista-cab h1, .t-club h2) { font-size: var(--dn-pagina); line-height: 1.08; letter-spacing: 0; text-transform: none; }
@@ -198,7 +199,7 @@
   :root[data-diseno="nuevo"] {
     & :is(.t-ico, .c-corazon, .t-buscar-cat):hover { background: var(--hueso); }
     & .t-carril-flecha:hover { background: var(--tinta); color: var(--crema); }
-    & .rv-boton:hover { border-color: var(--tinta); background: var(--papel); color: var(--tinta); }
+    & .t-pie .t-pie-boton:hover { text-decoration-color: var(--tinta); }
     & .t-btn-sec:hover:not(:disabled) { border-color: var(--tinta); }
   }
 }
@@ -223,6 +224,10 @@
 
 @container tienda (min-width: 960px) {
   :root[data-diseno="nuevo"] {
+    /* La tienda elegida, a la vista (maqueta Premium): escudo, nombre y ▾ en una píldora. Antes el nombre solo asomaba al pasar el mouse */
+    & .t-sel-tienda .t-nav-b:has(.t-escudo) { display: inline-flex; align-items: center; gap: var(--e-2); height: var(--dn-alto-chico); padding: 0 var(--e-3) 0 var(--e-2); border: 1px solid var(--sand); border-radius: var(--dn-r-p); background: var(--papel); }
+    & .t-sel-tienda .t-nav-b:has(.t-escudo) .t-sel-nombre { position: static; order: 1; opacity: 1; transform: none; font-size: 13.5px; font-weight: 600; }
+    & .t-sel-tienda .t-nav-b:has(.t-escudo) > span[aria-hidden="true"]:not(.t-sel-nombre) { order: 2; }
     & .t-cab-fila > .t-logo { position: static; transform: none; order: -2; margin-right: var(--e-4); }
     & .t-esp { display: none; }
     & .pl-cats { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; }
@@ -369,11 +374,6 @@
   & :is(.t-insignia.oferta, .t-chip.oferta) { color: #fff; }
   & .t-stock td.poco { color: var(--dn-acento); }
 
-  /* La burbuja de ayuda no tapa la barra de abajo de la ficha */
-  @media (max-width: 959px) {
-    &:has(.t-pdp-barra) .rv-boton { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
-    &:has(.t-pdp-bolsa-barra[data-lleno]) .rv-boton { bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
-  }
 
   /* Entrar y recuperar: sin la mancha de luz, con el título a su medida */
   & .en-partida::before { display: none; }

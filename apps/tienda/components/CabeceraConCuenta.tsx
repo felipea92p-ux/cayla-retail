@@ -238,7 +238,7 @@ export function CabeceraConCuenta({
           {/* El buscador a la vista, en la cabecera (ADR-0615). Abre el mismo buscador de siempre. */}
           <button type="button" className="dn-buscar-cab" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
             <Icono nombre="lupa" />
-            <span>¿Qué estás buscando?</span>
+            <span>Busca blusas, jeans, vestidos…</span>
           </button>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
@@ -772,7 +772,7 @@ function HojaBuscar({
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Prenda o color"
+            placeholder="Busca blusas, jeans, vestidos…"
             autoComplete="off"
             enterKeyHint="search"
             autoFocus
