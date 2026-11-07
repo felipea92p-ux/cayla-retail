@@ -56,6 +56,7 @@ export const RUTAS_MEDIDAS = [
   "/notificaciones",
   "/nueva-contrasena",
   "/olvide-mi-contrasena",
+  "/preguntas-frecuentes",
   "/privacidad",
   "/recomendaciones",
   "/restablecer-acceso",

@@ -176,3 +176,39 @@ export function pasosDelPedido(p: Plazos): string[] {
     p.diasParaCambiar !== null ? `Cambias en cualquier tienda CAYLA, en ${enDias(p.diasParaCambiar)}` : "Cambias en cualquier tienda CAYLA",
   ].filter((t): t is string => t !== null);
 }
+
+/** Una pregunta frecuente y su respuesta. */
+export type PreguntaFrecuente = { pregunta: string; respuesta: string };
+
+/**
+ * Las preguntas frecuentes (rediseño Premium, 2026-11-07): solo lo que la tienda ya dice en «Cómo separar», «Cambios y devoluciones» y la
+ * bolsa, con los mismos plazos de Configuración ▸ Tienda web y las tiendas de la web. Nada que la tienda no haya decidido (medios de pago,
+ * envíos): un plazo sin dato se dice sin número.
+ */
+export function preguntasFrecuentes(p: Plazos, nombresDeSedes: readonly string[]): PreguntaFrecuente[] {
+  const guardado = pasosDelPedido(p).slice(1, 4);
+  const tiendas = nombresDeSedes.length > 1 ? ` En cada prenda ves cuánto hay en ${listaDeNombres(nombresDeSedes)}.` : "";
+  const cambio = puntosDeCambios(p).plazo;
+  return [
+    {
+      pregunta: "¿Pago algo en la web?",
+      respuesta: "No. En la web separas tus prendas; la tienda te confirma por WhatsApp y coordinas el pago con ella.",
+    },
+    {
+      pregunta: "¿Cuánto tiempo se guarda lo que separo?",
+      respuesta: guardado.length > 0 ? `${guardado.join(". ")}.` : "La tienda te confirma por WhatsApp y te dice hasta cuándo puedes pagar y recoger.",
+    },
+    {
+      pregunta: "¿Puedo separar prendas de dos tiendas?",
+      respuesta: `Cada pedido es de una tienda, y cada tienda maneja lo suyo: lo que no hay en la tuya no se trae de otra.${tiendas}`,
+    },
+    {
+      pregunta: "¿Puedo cambiar una prenda?",
+      respuesta: `Sí, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. ${cambio.titulo}: ${cambio.texto.charAt(0).toLowerCase()}${cambio.texto.slice(1)}`,
+    },
+    {
+      pregunta: "¿Necesito una cuenta para ver la ropa?",
+      respuesta: "No. El catálogo, los precios y cuánto hay en cada tienda se ven sin cuenta. La cuenta se pide al separar o al guardar tus favoritos.",
+    },
+  ];
+}

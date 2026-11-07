@@ -33,7 +33,11 @@ const comprar = (sede: string | null): Columna => {
  *  listas son de todos (la tienda se mira sin cuenta, Felipe 2026-10-17); sin cuenta, el Club ofrece crearla o entrar. */
 const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
   comprar(sede),
-  { titulo: "Ayuda", enlaces: TEMAS_DE_AYUDA.map((a) => [a.titulo, a.href] as [string, string]), sugerencia: true },
+  {
+    titulo: "Ayuda",
+    enlaces: [...TEMAS_DE_AYUDA.map((a) => [a.titulo, a.href] as [string, string]), ["Preguntas frecuentes", "/preguntas-frecuentes"]],
+    sugerencia: true,
+  },
   {
     titulo: "Club CAYLA",
     enlaces: [
