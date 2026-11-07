@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
+import { TABLA, Tabla } from "@/components/ui/Tabla";
+import { DetalleDelModelo } from "./DetalleDelModelo";
+import { deLasLineas, type ObservacionDeEnvio } from "@/lib/observaciones-envio-reglas";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { BaldosaCategoria } from "./piezas";
 import { PrendaConCombinaciones } from "./PrendaConCombinaciones";
@@ -30,13 +32,14 @@ import {
   type DetalleEnvio,
 } from "@/lib/recepcion-envio-reglas";
 import { hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { soles } from "@/lib/compras-reglas";
 import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { DuenoDeLoQueEntra } from "./DuenoDeLoQueEntra";
 import { agruparLineasDelCierre, camposDelCierrePorGrupo, nombreDelGrupoDelCierre, causasDelGrupo, filasDelCierre, lineaDeLaPrenda, lineaDelGrupo, textoDeLasPlegadas, type GrupoDeLineas } from "@/lib/recepcion-grupos-reglas";
 import { borrarBorradorDelCierre, conCostosDecididos, conLoDecidido, costosCambiados, costosDeCombinacionCambiados, decisionCambiada, type FotoDelCierre, guardarBorradorDelCierre, leerBorradorDelCierre } from "@/lib/recepcion-cierre-borrador";
-import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { type PrendaConCosto, lineasSinModelosEnCero, modelosEnCeroDe, textoModelosEnCero, avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, camposDelCierre, conCostoDeHoy, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, costoDelGrupo, detalleDelModelo, deQuienLlego, type FilaDeQuien, idCampoProveedor, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type ClaveLinea, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
-import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerPreciosDeCombinaciones, ponerProveedorEnvio, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
+import { cambiarPreciosEnRecepcion, cerrarConteo, corregirGuiaEnvio, leerCostosDeHoy, leerObservacionesDelEnvio, leerPreciosDeCombinaciones, ponerProveedorDeMarca, validarPreciosEnRecepcion } from "@/lib/recepcion-conteo-acciones";
 import {
   type CambiosDeCosto,
   type CambiosDePrecio,
@@ -66,7 +69,8 @@ import {
 // de su TARJETA (`@container`, como Clientes), no por el de la ventana: con el lateral abierto, a 1024 px la tarjeta mide ~670 px y siete
 // columnas se pisaban. Desde 880 px de tarjeta, columnas; con menos, cada fila apilada, con su etiqueta en cada dato.
 // Una fila por modelo: nombre, cuánto llegó, un costo y «Cambiar por talla». Lo que no cuadra y lo que queda para después van en una franja debajo, solo si hay (Felipe 2026-11-03).
-const PLANTILLA_CIERRE = "@min-[760px]:grid-cols-[minmax(0,1fr)_7rem_10rem_11rem] @min-[760px]:items-center";
+// «Revisa y cierra» B (Felipe 2026-11-07): una tarjeta por categoría y marca. La última columna lleva «Ver detalle» y, si hay tallas, «Cambiar por talla».
+const PLANTILLA_CIERRE = "@min-[760px]:grid-cols-[minmax(0,1fr)_7rem_10rem_auto] @min-[760px]:items-center";
 
 export function CerrarEnvio({
   detalle,
@@ -79,7 +83,6 @@ export function CerrarEnvio({
   responsable,
   veDinero,
   soloSede = false,
-  proveedorPorConfirmar = false,
   proveedores = [],
   esperandoGuardar,
   onVolver,
@@ -101,8 +104,6 @@ export function CerrarEnvio({
   veDinero: boolean;
   /** Una terminal (Felipe 2026-10-26): el precio de venta vale solo en su sede; la base no le deja cambiar el de todas. */
   soloSede?: boolean;
-  /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): antes de cerrar se elige el proveedor (`poner_proveedor_envio`). */
-  proveedorPorConfirmar?: boolean;
   proveedores?: readonly { id: string; nombre: string }[];
   /** Algo de lo contado todavía se está guardando: se espera antes de cerrar. */
   esperandoGuardar: boolean;
@@ -191,6 +192,25 @@ export function CerrarEnvio({
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
   // Lo que cuadra, plegado: se abre con su franja, y solo si hay que llevar a la persona a algo que está adentro.
   const [verCuadran, setVerCuadran] = useState(false);
+  // «Ver detalle» de cada modelo (`grupo|modelo`) y las observaciones del envío, leídas una vez (es lectura: sin respuesta, el detalle dice «Sin observaciones»).
+  const [detalles, setDetalles] = useState<ReadonlySet<string>>(new Set());
+  // La tarjeta cuyo proveedor (ya puesto por su marca) se está cambiando.
+  const [cambiandoProveedor, setCambiandoProveedor] = useState<string | null>(null);
+  const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    void leerObservacionesDelEnvio(detalle.id).then(({ observaciones: leidas }) => vivo && setObservaciones(leidas));
+    return () => {
+      vivo = false;
+    };
+  }, [detalle.id]);
+  const alternarDetalle = (clave: string) =>
+    setDetalles((d) => {
+      const n = new Set(d);
+      if (n.has(clave)) n.delete(clave);
+      else n.add(clave);
+      return n;
+    });
   const [nota, setNota] = useState(borrador?.nota ?? "");
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
@@ -198,9 +218,26 @@ export function CerrarEnvio({
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
   // Alguien guardó un conteo mientras se cerraba: la franja del pie se pasaba por alto, así que además se dice en una hoja a la vista.
   const [choque, setChoque] = useState<string | null>(null);
-  const [proveedorId, setProveedorId] = useState(() => (proveedores.some((p) => p.id === borrador?.proveedorId) ? (borrador?.proveedorId ?? "") : ""));
-  // Ya quedó puesto en la base (poner_proveedor_envio no lo cambia): no se vuelve a pedir ni a elegir.
-  const [proveedorPuesto, setProveedorPuesto] = useState(false);
+  // «De quién llegó», marca por marca (Felipe 2026-11-07): lo que la persona eligió aquí y la base ya guardó (`poner_proveedor_de_marca`), y la marca que se está
+  // guardando. Se guarda al elegir, no al cerrar: así lo que falta se ve al instante y un error se dice junto a su marca.
+  const [puestos, setPuestos] = useState<Record<string, { id: string; nombre: string }>>({});
+  const [poniendo, setPoniendo] = useState<string | null>(null);
+  const [errorDeQuien, setErrorDeQuien] = useState<{ clave: string; texto: string } | null>(null);
+  const deQuien = sinAviso ? deQuienLlego(visibles, puestos) : [];
+  async function ponerDeQuien(fila: FilaDeQuien, proveedorId: string) {
+    const prov = proveedores.find((x) => x.id === proveedorId);
+    if (!prov || poniendo) return;
+    setPoniendo(fila.clave);
+    setErrorDeQuien(null);
+    const { error: e } = await ponerProveedorDeMarca({ p_despacho_id: detalle.id, p_marca_id: fila.marca?.id ?? null, p_proveedor_id: proveedorId }, responsable.firma());
+    responsable.despues(e);
+    setPoniendo(null);
+    if (e) {
+      setErrorDeQuien({ clave: fila.clave, texto: mensajeAlGuardar(e, "poner de quién llegó") });
+      return;
+    }
+    setPuestos((p) => ({ ...p, [fila.clave]: prov }));
+  }
   // La guía se escribe o corrige al cerrar (Felipe 2026-10-14): lo escrito, lo que ya quedó en la base y la versión nueva del envío.
   const [guiaEscrita, setGuiaEscrita] = useState(borrador?.guia ?? detalle.numeroGuia ?? "");
   const [guiaGuardada, setGuiaGuardada] = useState(detalle.numeroGuia ?? "");
@@ -217,18 +254,19 @@ export function CerrarEnvio({
     cambiosPrecio,
     nota,
     guia: guiaEscrita === (detalle.numeroGuia ?? "") ? null : guiaEscrita,
-    proveedorId,
+    // Ya no se elige un proveedor para todo el envío (Felipe 2026-11-07): cada marca se guarda al elegirla.
+    proveedorId: "",
     duenoId,
   });
   useEffect(() => {
     if (!yaCerrado.current) guardarBorradorDelCierre(detalle.id, generacion, fotoDelCierre());
     // Se guarda lo que decide la persona: lo contado se guarda aparte, en la base.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, proveedorId, duenoId]);
+  }, [decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, duenoId]);
 
   /** «Empezar de cero»: todo como lo trae la base. El aviso ofrece deshacerlo: es trabajo de la persona. */
   function empezarDeCero() {
-    const antes = { decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, proveedorId, duenoId };
+    const antes = { decisiones, costosPrenda, cambiosCosto, cambiosPrecio, nota, guiaEscrita, duenoId };
     const poner = (f: typeof antes) => {
       setAtipicos(null);
       setDecisiones(f.decisiones);
@@ -237,10 +275,9 @@ export function CerrarEnvio({
       setCambiosPrecio(f.cambiosPrecio);
       setNota(f.nota);
       setGuiaEscrita(f.guiaEscrita);
-      setProveedorId(f.proveedorId);
       setDuenoId(f.duenoId);
     };
-    poner({ decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l)])), costosPrenda: costoPrendaInicial, cambiosCosto: cambiosCostoInicial, cambiosPrecio: {}, nota: "", guiaEscrita: detalle.numeroGuia ?? "", proveedorId: "", duenoId: "" });
+    poner({ decisiones: Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l)])), costosPrenda: costoPrendaInicial, cambiosCosto: cambiosCostoInicial, cambiosPrecio: {}, nota: "", guiaEscrita: detalle.numeroGuia ?? "", duenoId: "" });
     setVerRecuperado(false);
     avisar.exito("Empezaste de cero", { detalle: "Quitamos lo que habías decidido en este cierre.", accion: { texto: "Deshacer", onClick: () => poner(antes) } });
   }
@@ -262,8 +299,7 @@ export function CerrarEnvio({
         decisiones,
         sinAviso,
         responsable: responsable.listo,
-        proveedorPorConfirmar,
-        proveedorElegido: proveedorPuesto || proveedorId !== "",
+        deQuien,
         guia: guiaEscrita,
       }),
       grupos,
@@ -471,18 +507,6 @@ export function CerrarEnvio({
     if (hayCostoDePrendaMalo()) return;
     setGuardando(true);
     setError(null);
-    // Primero, de quién llegó (si se abrió sin saberlo): sin proveedor la base no cierra. Puesto una vez, queda puesto.
-    if (proveedorPorConfirmar && !proveedorPuesto) {
-      const { error: ep } = await ponerProveedorEnvio({ p_despacho_id: detalle.id, p_proveedor_id: proveedorId }, responsable.firma());
-      responsable.despues(ep);
-      if (ep) {
-        setGuardando(false);
-        setError({ texto: mensajeAlGuardar(ep, "poner el proveedor"), recargar: ep.hint === "envio_proveedor_puesto" });
-        requestAnimationFrame(() => avisoError.current?.focus());
-        return;
-      }
-      setProveedorPuesto(true);
-    }
     // La guía, si cambió (corregir_guia_envio sube la versión del envío: se cierra con la nueva). Vacía no borra la que había.
     // La versión sube y nunca baja: la más alta entre la que trajo la pantalla y la que devolvió la guía.
     let versionParaCerrar = Math.max(versionTrasGuia ?? 0, version);
@@ -591,7 +615,73 @@ export function CerrarEnvio({
   };
   const plegadasConCambios = plegar ? cuadran.filter((g) => { const c = cambiosDeLaFila(g); return c.costo || c.venta; }).length : 0;
 
-  /** Una fila del cierre, con su costo y su precio de venta si está abierta. */
+  /** Lo que entra de cada fila del grupo y a qué costo (`null` = sin costo): el pie de la tarjeta y el resumen «Al cerrar». */
+  const costosDeFilas = (g: GrupoDeLineas): { unidades: number; costo: number | null }[] => {
+    const l = lineaDelGrupo(g);
+    const dP = decisionDe(g.principal.clave);
+    if (esRegaloFuera(g.principal, dP)) return [{ unidades: g.contadas, costo: 0 }];
+    const deLaLinea = leerCostoCierre(dP.costo).valor;
+    const conNombre = prendasConCosto(l);
+    if (conNombre.length === 0) return [{ unidades: g.contadas, costo: deLaLinea }];
+    const filas = conNombre.map((m) => {
+      const v = dondeViveEn(g, m).clave;
+      const c = costoDePrenda(v, decisionDe(v).costo, m.clave);
+      return { unidades: m.unidades, costo: leerCostoCierre(c.valor.trim() ? c.valor : c.deLaLinea).valor };
+    });
+    const sinId = unidadesSinIdentificar(l);
+    return sinId > 0 ? [...filas, { unidades: sinId, costo: deLaLinea }] : filas;
+  };
+  // El proveedor va en la cabecera de cada tarjeta (sin aviso, por marca). Si dos tarjetas son de la misma marca, el campo de la guía va en la primera.
+  const primeraDeLaMarca = new Map<string, string>();
+  for (const g of [...piden, ...cuadran]) if (!g.principal.linea && !primeraDeLaMarca.has(g.principal.marca?.id ?? "")) primeraDeLaMarca.set(g.principal.marca?.id ?? "", g.clave);
+  const proveedorDelGrupo = (g: GrupoDeLineas) => {
+    const p = g.principal;
+    if (!sinAviso || p.linea) return p.proveedor ? <Chip tono="neutro" versalitas={false}>{p.proveedor.nombre}</Chip> : null;
+    const f = deQuien.find((x) => x.clave === (p.marca?.id ?? ""));
+    if (!f) return null;
+    const enError = errorDeQuien?.clave === f.clave;
+    if (f.proveedor && cambiandoProveedor !== g.clave && !enError) {
+      return (
+        <span className="flex flex-wrap items-center gap-2">
+          {/* Solo el nombre: puede venir de su marca o de la puerta («Todo es de un solo proveedor»), y la pantalla no sabe cuál; «Cambiar» lo corrige. */}
+          <Chip tono="verde" versalitas={false}>
+            {f.proveedor.nombre}
+          </Chip>
+          <button type="button" className="btn-cayla btn-enlace" onClick={() => setCambiandoProveedor(g.clave)} disabled={poniendo !== null || guardando}>
+            Cambiar
+          </button>
+        </span>
+      );
+    }
+    const id = idCampoProveedor(f.clave);
+    const combo = (
+      <div className="w-full sm:w-72">
+        <CampoSelect
+          etiqueta={f.proveedor ? `Proveedor de ${f.marca?.nombre ?? "lo sin marca"}` : guia.etiqueta(id, `Proveedor de ${f.marca?.nombre ?? "lo sin marca"}`)}
+          valor={f.proveedor?.id ?? ""}
+          onValor={(v) => {
+            setCambiandoProveedor(null);
+            void ponerDeQuien(f, v);
+          }}
+          opciones={proveedores.map((x) => ({ valor: x.id, texto: x.nombre }))}
+          marcador="Elige el proveedor"
+          deshabilitado={poniendo !== null || guardando}
+          tono={enError ? "error" : undefined}
+          pie={enError ? errorDeQuien.texto : f.varios ? "Trae más de un proveedor: elegir uno los junta." : undefined}
+          sinPie={!enError && !f.varios}
+        />
+      </div>
+    );
+    return !f.proveedor && primeraDeLaMarca.get(f.clave) === g.clave ? (
+      <CampoGuiado id={id} guia={guia} className="w-full sm:w-auto">
+        {combo}
+      </CampoGuiado>
+    ) : (
+      combo
+    );
+  };
+
+  /** Una tarjeta del cierre (una categoría y marca), con su costo y su precio de venta si está abierta. */
   const filaDe = (g: GrupoDeLineas) => {
     // La categoría como UNA línea: solo para mostrarla (cifras, «para después», prendas con nombre). Lo que se guarda va por las líneas de `g`.
     const l = lineaDelGrupo(g);
@@ -640,7 +730,6 @@ export function CerrarEnvio({
     const { venta: cambiaVenta } = cambiosDeLaFila(g);
     const sinContar = g.lineas.find((x) => x.linea && !x.conteo);
     const filasDelGrupo: (PrendaConCosto | null)[] = conNombre.length > 0 ? conNombre : [null];
-    const dePaso = [p.categoria ? marcaDeLinea(p).nombre : null, contaron.length > 0 ? `contó ${contaron.join(" y ")}` : null];
     // Las prendas que se abren; sin ninguna elegida (un costo fuera de lo normal abrió el grupo), todas: lo que hay que corregir no se esconde.
     const elegidas = prendas.filter((pr) => prendasAbiertas.has(`${g.clave}|${pr.productoId}`));
     const conTallas = prendas.filter((pr) => combinacionesContadas(pr, hoy.porVariante, null).length > 0);
@@ -663,8 +752,29 @@ export function CerrarEnvio({
       });
     };
     const hayFranja = !!sinContar || causas.length > 0 || para > 0 || regaloFuera || !!sinIdentificarTexto;
+    const modelos = conNombre.length;
+    const deCosto = costoDelGrupo(costosDeFilas(g));
     return (
-      <div key={g.clave}>
+      <Tabla key={g.clave} className="@container rc-cierre-grupo">
+        <div className="rc-cierre-cabeza">
+          <div className="min-w-0">
+            <p className="font-display text-[21px] leading-tight text-tinta">{nombreGrupo}</p>
+            <p className="text-sm text-taupe">
+              {[
+                modelos > 0 ? `${modelos} ${modelos === 1 ? "modelo" : "modelos"}` : null,
+                hayConteo ? `${g.contadas.toLocaleString("es-PE")} ${g.contadas === 1 ? "prenda" : "prendas"}` : null,
+                g.dijeron != null ? `dijeron ${g.dijeron.toLocaleString("es-PE")}` : null,
+                contaron.length > 0 ? `contó ${contaron.join(" y ")}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+          {/* El paso «De quién llegó» de la guía se ancla al proveedor de la primera tarjeta de lo de fuera de la guía. */}
+          <div data-guia={!p.linea && sinAviso && primeraDeLaMarca.get(p.marca?.id ?? "") === g.clave && g.clave === [...primeraDeLaMarca.values()][0] ? "recepcion.de-quien" : undefined}>
+            {proveedorDelGrupo(g)}
+          </div>
+        </div>
         {filasDelGrupo.map((m, i) => {
           const v = m ? dondeVive(m).clave : p.clave;
           const c = m ? costoDePrenda(v, decisionDe(v).costo, m.clave) : { valor: dP.costo, deLaLinea: dP.costo, antes: costoInicial[p.clave] ?? "", problema: costo.problema };
@@ -677,15 +787,22 @@ export function CerrarEnvio({
           const variosPorTalla = combinaciones.some((x) => cambiosCosto[x.varianteId] !== undefined && cambiosCosto[x.varianteId] !== heredado);
           const abiertaEsta = abierta && !!prendaFila && prendasALaVista.includes(prendaFila);
           const nombre = m?.nombre ?? nombreGrupo.split(" · ")[0];
+          const det = m ? detalleDelModelo(g.lineas, m) : null;
+          const claveDet = `${g.clave}|${m?.clave ?? ""}`;
+          const verDet = !!m && detalles.has(claveDet);
+          const idDet = `detalle-${idFila}-${i}`;
           const caja = (
             <div>
+              <span className="flex max-w-44 items-center gap-1.5">
+              <span className="text-sm text-taupe" aria-hidden>S/</span>
               <input // unificar-fijo: la caja del sistema dentro de una celda de la tabla, donde el título lo pone la columna
-                className="caja-cayla caja-campo w-full max-w-40 text-right font-semibold tabular-nums"
+                className="caja-cayla caja-campo w-full min-w-0 text-right font-semibold tabular-nums"
                 aria-label={`Costo de ${nombre}`}
                 inputMode="decimal"
                 value={c.valor}
                 // sugerir-fijo: un costo es un monto de soles, no depende de nada elegido antes
-                placeholder={sinAviso ? "Sin costo" : c.deLaLinea.trim() ? `S/ ${c.deLaLinea}` : "S/ 0.00"}
+                // Sin costo entra igual (llega con la factura): la caja vacía dice «0.00», no «Sin costo» (Felipe 2026-11-07).
+                placeholder={c.deLaLinea.trim() ? c.deLaLinea : "0.00"}
                 onChange={(e) => {
                   if (!m) return cambiar(p.clave, { costo: e.target.value, confirmaCosto: false });
                   cambiarCostoPrenda(v, m.clave, e.target.value);
@@ -693,21 +810,27 @@ export function CerrarEnvio({
                   if (costoDeLaLineaObligatorio && !sinAviso && !dP.costo.trim()) cambiar(p.clave, { costo: e.target.value, confirmaCosto: false });
                 }}
               />
+              </span>
               {(c.problema || cambio) && <p className={`mt-1 text-sm leading-tight ${c.problema ? "text-rojo-profundo" : "text-taupe"}`}>{c.problema ?? `Antes S/ ${antes}`}</p>}
             </div>
           );
           return (
+            <div key={m?.clave ?? "linea"}>
             <div
-              key={m?.clave ?? "linea"}
-              className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} ${abiertaEsta ? "bg-tinta/[0.03]" : ""}`}
+              className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} ${abiertaEsta || verDet ? "bg-tinta/[0.03]" : ""}`}
               role="row"
             >
               <div className="flex min-w-0 items-center gap-2.5" role="cell">
                 <BaldosaCategoria categoria={p.categoria} tamano="chico" />
                 <span className="min-w-0">
                   <p className="truncate font-medium text-tinta" title={nombre}>{nombre}</p>
-                  <p className="truncate text-sm text-taupe">{[m?.nueva ? "Nueva, se crea después" : null, ...(i === 0 ? dePaso : [])].filter(Boolean).join(" · ") || " "}</p>
-                  {cambiaVenta && !abierta && i === 0 && <Chip tono="ambar">Precio de venta cambiado</Chip>}
+                  <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    {m?.nueva && <Chip tono="ambar">Por crear</Chip>}
+                    {m && !m.nueva && <Chip tono="pizarra">Re stock</Chip>}
+                    {det?.provisional && <Chip tono="ambar">Nombre provisional</Chip>}
+                    {!m && <span className="text-sm text-taupe">Sin identificar todavía</span>}
+                    {cambiaVenta && !abierta && i === 0 && <Chip tono="ambar">Precio de venta cambiado</Chip>}
+                  </span>
                 </span>
               </div>
               <div className="min-w-0 text-sm" role="cell">
@@ -736,7 +859,14 @@ export function CerrarEnvio({
                   caja
                 ) : null}
               </div>
-              <div className="flex min-w-0 @min-[760px]:justify-end" role="cell">
+              <div className="flex min-w-0 flex-wrap gap-2 @min-[760px]:justify-end" role="cell">
+                {/* Lo que se anotó para diferenciarlo de los demás, sus observaciones y quién lo contó (Felipe 2026-11-07). */}
+                {m && (
+                  <button type="button" onClick={() => alternarDetalle(claveDet)} aria-expanded={verDet} aria-controls={idDet} className="rc-fila-precios" data-guia={i === 0 && g.clave === (piden[0] ?? cuadran[0])?.clave ? "recepcion.ver-detalle" : undefined}>
+                    {verDet ? "Ocultar detalle" : "Ver detalle"}
+                    <ChevronDown aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${verDet ? "rotate-180" : ""}`} />
+                  </button>
+                )}
                 {/* Sin repartir en tallas no hay nada que cambiar por talla: esa prenda solo lleva su costo. */}
                 {prendaFila && combinaciones.length > 0 && (
                   <button
@@ -752,6 +882,19 @@ export function CerrarEnvio({
                   </button>
                 )}
               </div>
+            </div>
+            {m && verDet && det && (
+              <DetalleDelModelo
+                id={idDet}
+                nombre={nombre}
+                nota={det.nota}
+                provisional={det.provisional}
+                contaron={det.contaron}
+                contadoEn={det.contadoEn}
+                observaciones={deLasLineas(observaciones, g.lineas.map((x) => x.linea?.id ?? null))}
+                prenda={m.producto ? { productoId: m.producto.productoId, codigo: m.producto.codigo } : null}
+              />
+            )}
             </div>
           );
         })}
@@ -855,9 +998,25 @@ export function CerrarEnvio({
             })}
           </div>
         )}
-      </div>
+        {editaCosto && hayConteo && g.contadas > 0 && (
+          <div className="rc-cierre-pie">
+            <span className="text-sm text-taupe">Costo de {nombreGrupo.split(" · ")[0]}</span>
+            <b className="tabular-nums text-tinta">
+              {deCosto.conCosto > 0 ? soles(deCosto.total) : "S/\u00a0—"}
+              {deCosto.conCosto > 0 && deCosto.sinCosto > 0 && <span className="font-normal text-taupe"> · {deCosto.sinCosto.toLocaleString("es-PE")} sin costo</span>}
+            </b>
+          </div>
+        )}
+      </Tabla>
     );
   };
+  // «Al cerrar»: los totales de todas las tarjetas.
+  const todosLosGrupos = [...piden, ...cuadran];
+  const costoTotal = costoDelGrupo(todosLosGrupos.flatMap((g) => costosDeFilas(g)));
+  const modelosDelCierre = todosLosGrupos.reduce((a, g) => a + prendasConCosto(lineaDelGrupo(g)).length, 0);
+  const proveedoresDelCierre = new Set(
+    todosLosGrupos.map((g) => (sinAviso && !g.principal.linea ? deQuien.find((f) => f.clave === (g.principal.marca?.id ?? ""))?.proveedor?.id : g.principal.proveedor?.id)).filter(Boolean),
+  ).size;
 
   return (
     <>
@@ -897,40 +1056,75 @@ export function CerrarEnvio({
         </Aviso>
       )}
 
-      <Tabla guia="recepcion.tabla-cierre" className="@container">
-        {(!plegar || piden.length > 0 || verCuadran) && <Encabezado
-          visible="hidden @min-[760px]:grid"
-          plantilla={PLANTILLA_CIERRE}
-          columnas={[
-            { titulo: "Modelo" },
-            { titulo: "Llegó" },
-            { titulo: "Costo" },
-            { titulo: <span className="sr-only">Costo y precio de venta por talla</span> },
-          ]}
-        />}
-            {piden.map((g) => filaDe(g))}
-            {plegar ? (
+      {/* «Revisa y cierra» B (Felipe 2026-11-07, maqueta `docs/maquetas/recibir-revisa-y-cierra-2026-11/`): una tarjeta por categoría y marca, con su proveedor
+          en la cabecera y su costo al pie; al costado, lo que pasa al cerrar y lo que falta, tocable. */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        <div className="space-y-3" data-guia="recepcion.tabla-cierre">
+          {piden.map((g) => filaDe(g))}
+          {plegar ? (
+            <>
+              <FilasDeMas abierto={verCuadran} id="rc-cierre-plegadas">
+                <div className="space-y-3">{cuadran.map((g) => filaDe(g))}</div>
+              </FilasDeMas>
+              <BotonVerMas abierto={verCuadran} onCambiar={setVerCuadran} controla="rc-cierre-plegadas" texto={textoDeLasPlegadas(cuadran.length, plegadasConCambios, sinAviso, piden.length === 0)} data-guia="recepcion.plegadas" />
+            </>
+          ) : (
+            cuadran.map((g) => filaDe(g))
+          )}
+        </div>
+        <aside className="card-cayla space-y-3 p-4 sm:p-5 xl:sticky xl:top-24" aria-label="Al cerrar" data-guia="recepcion.al-cerrar">
+          <p className="font-display text-[21px] leading-tight text-tinta">Al cerrar</p>
+          <p>
+            <b className="block font-display text-[44px] leading-none tabular-nums text-tinta">{contadas.toLocaleString("es-PE")}</b>
+            <span className="text-sm text-taupe">
+              {[
+                `${contadas === 1 ? "prenda" : "prendas"}`,
+                `${modelosDelCierre} ${modelosDelCierre === 1 ? "modelo" : "modelos"}`,
+                proveedoresDelCierre > 0 ? `${proveedoresDelCierre} ${proveedoresDelCierre === 1 ? "proveedor" : "proveedores"}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </p>
+          <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+            {costoTotal.conCosto > 0 && (
               <>
-                <FilasDeMas abierto={verCuadran} id="rc-cierre-plegadas">
-                  {cuadran.map((g) => filaDe(g))}
-                </FilasDeMas>
-                <BotonVerMas abierto={verCuadran} onCambiar={setVerCuadran} controla="rc-cierre-plegadas" texto={textoDeLasPlegadas(cuadran.length, plegadasConCambios, sinAviso, piden.length === 0)} data-guia="recepcion.plegadas" />
+                <dt className="text-taupe">Entran con costo</dt>
+                <dd className="tabular-nums text-tinta">
+                  {costoTotal.conCosto.toLocaleString("es-PE")} · {soles(costoTotal.total)}
+                </dd>
               </>
-            ) : (
-              cuadran.map((g) => filaDe(g))
             )}
-      </Tabla>
-
-      {/* UN solo mensaje debajo de la tabla (Felipe 2026-10-28): lo que pasa al apretar «Cerrar». Antes había otros dos: las reglas del costo (la fila abierta
-          ya muestra sus cajas con su «Antes» y la confirmación lista lo que cambia) y «¿Alguna llegó dañada?» (eso se anota al contar, en «Anotar observación»). */}
-      {(porDetallar > 0 || sinAviso) && (
-        <p className="nota-cayla">
-          {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : ""}
-          {porDetallar > 0
-            ? `Cerrar el envío deja el conteo oficial y ${porDetallar.toLocaleString("es-PE")} ${porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.`
-            : ""}
-        </p>
-      )}
+            {costoTotal.sinCosto > 0 && (
+              <>
+                <dt className="text-taupe">Sin costo</dt>
+                <dd className="tabular-nums text-tinta">{costoTotal.sinCosto.toLocaleString("es-PE")} · llega con la factura</dd>
+              </>
+            )}
+            {porDetallar > 0 && (
+              <>
+                <dt className="text-taupe">Para después</dt>
+                <dd className="tabular-nums text-tinta">{porDetallar.toLocaleString("es-PE")} · separar, tallas y lo nuevo</dd>
+              </>
+            )}
+          </dl>
+          {guia.faltan.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="label-cayla text-[11px] text-taupe">Falta</p>
+              {guia.faltan.slice(0, 4).map((c) => (
+                <button key={c.id} type="button" className="rc-cierre-falta" onClick={() => guia.ir(c.id)}>
+                  {c.nombre}
+                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0" />
+                </button>
+              ))}
+              {guia.faltan.length > 4 && <p className="text-sm text-taupe">y {guia.faltan.length - 4} más.</p>}
+            </div>
+          )}
+          {/* Lo que pasa con lo que no tiene con qué compararse (antes, una nota larga bajo la tabla). */}
+          {sinAviso && <p className="text-sm text-taupe">Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta.</p>}
+          {porDetallar > 0 && <p className="text-sm text-taupe">Hoy se venden las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.</p>}
+        </aside>
+      </div>
 
       {/* La balanza de todo el envío se fue (Formidable 2026-10-29): cada fila y la barra de abajo ya dicen cuánto dijeron y cuánto se contó. */}
 
@@ -955,25 +1149,6 @@ export function CerrarEnvio({
           placeholder="Ej. Llegó en dos bolsas"
         />
       </div>
-
-      {proveedorPorConfirmar && (
-        <div data-guia="recepcion.de-quien">
-          <CampoGuiado id="proveedor" guia={guia} className="card-cayla space-y-2 p-4 sm:p-5">
-            <CampoSelect
-              etiqueta={guia.etiqueta("proveedor", "¿De quién llegó?")}
-              valor={proveedorId}
-              onValor={setProveedorId}
-              opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
-              marcador="Elige el proveedor"
-              deshabilitado={proveedorPuesto || guardando}
-            />
-            <p className="text-sm text-taupe">
-              Se abrió sin saber de quién era. Pregúntale a Compras: sin proveedor no entra al stock, porque el lote, el costo y la factura se
-              unen por él. Las prendas pueden quedar sin marca.
-            </p>
-          </CampoGuiado>
-        </div>
-      )}
 
       {preguntaDueno && empresasDeLaSede && (
         <CampoGuiado id="hacer-ahora-dueno" guia={guia} className="card-cayla p-4 sm:p-5">
