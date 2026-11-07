@@ -176,8 +176,8 @@ select id, 'abierta', 200, now() - interval '1 hour' from t_tiendas;
 -- ---------------------------------------------------------------------------------------------------------------
 -- 6. Clientas
 -- ---------------------------------------------------------------------------------------------------------------
-insert into clientas (dni, nombre, telefono_whatsapp, cumple_dia, cumple_mes, created_at)
-select lpad((40000000 + i)::text, 8, '0'), 'Clienta Carga ' || i, '9' || lpad(i::text, 8, '0'),
+insert into clientas (documento_tipo, documento_numero, nombre, telefono_whatsapp, cumple_dia, cumple_mes, created_at)
+select 'dni', lpad((40000000 + i)::text, 8, '0'), 'Clienta Carga ' || i, '9' || lpad(i::text, 8, '0'),
        1 + i % 28, 1 + i % 12, now() - make_interval(days => i % 365)
 from generate_series(1, 20000) i;
 
@@ -187,7 +187,7 @@ from generate_series(1, 20000) i;
 create temp table t_var as
 select v.id, v.precio, v.costo, row_number() over (order by v.codigo) - 1 as i
 from variantes v join productos p on p.id = v.producto_id and p.codigo like 'CG%';
-create temp table t_cli as select id, row_number() over (order by dni) - 1 as i from clientas where nombre like 'Clienta Carga%';
+create temp table t_cli as select id, row_number() over (order by documento_numero) - 1 as i from clientas where nombre like 'Clienta Carga%';
 create temp table t_per as select id, ubicacion_id, row_number() over (partition by ubicacion_id order by id) - 1 as i from t_personas;
 
 create temp table t_ventas as
@@ -220,9 +220,13 @@ from t_items i join t_tiendas t on t.id = i.ubicacion_id;
 
 -- El libro tiene que cuadrar con la foto (principio 4): la carga inicial fue 1.000 MÁS lo que se vendió en el año, así
 -- el stock de hoy (1.000) es exactamente entradas − salidas.
+-- El candado «el historial no se edita» va `enable always` (corre aun en modo réplica): en esta base descartable se
+-- apaga solo para este ajuste de la carga inicial, que es parte de armar la historia, no una edición.
+alter table movimientos disable trigger movimientos_inmutables;
 update movimientos m set cantidad = m.cantidad + x.n
 from (select variante_id, ubicacion_id, count(*) as n from t_items group by 1, 2) x
 where m.motivo = 'Carga inicial (volumen sintético)' and m.variante_id = x.variante_id and m.ubicacion_id = x.ubicacion_id;
+alter table movimientos enable always trigger movimientos_inmutables;
 
 -- Boleta aceptada por venta, con su serie por tienda.
 insert into comprobantes (venta_id, ubicacion_id, tipo, serie, numero, cliente_tipo_doc, subtotal, igv, total, estado, entorno_transmision, created_at, items)

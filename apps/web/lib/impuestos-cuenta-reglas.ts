@@ -67,14 +67,22 @@ export function cuentaImpuestos(p: PanelImpuestos, opciones: { enCurso: boolean;
   if (b.compras.resta > 0) lineasCompras.push({ clave: "notas", nombre: "Notas de crédito", monto: b.compras.resta, resta: true });
 
   const pagas = pulso.estado === "a_pagar" ? pulso.total : (pulso.renta ?? 0);
+  // Con saldo a favor el IGV de las ventas no sale de la caja: se descuenta de ese saldo (ADR-0624). Se dice cuánto BAJÓ el saldo en el mes (lo descontado menos el IGV de las compras del
+  // mes, que lo vuelve a subir): decir «usaste» sería falso en un mes con compras con factura. Si subió, no se dice nada.
+  const usado = r2(Math.max(0, f.saldoAnterior - pulso.aFavor));
+  const delSaldo = `tu saldo a favor bajó ${solesRedondo(usado)} y te quedan ${solesRedondo(pulso.aFavor)}.`;
   const hacer = opciones.pendientes > 0 ? `Falta: revisar ${plural(opciones.pendientes, "pendiente", "pendientes")}, descargar y pagar.` : "Falta: descargar y pagar.";
   const frase = opciones.enCurso
     ? "El mes sigue abierto: la cifra cambia hasta que cierre."
     : pulso.estado === "a_pagar"
       ? hacer
       : pulso.renta !== null && pulso.renta > 0
-        ? `Solo pagas la renta. El IGV a favor pasa a ${siguiente}.`
-        : `No pagas IGV. El saldo a favor pasa a ${siguiente}.`;
+        ? usado > 0
+          ? `Solo pagas la renta: del IGV, ${delSaldo}`
+          : `Solo pagas la renta. El IGV a favor pasa a ${siguiente}.`
+        : usado > 0
+          ? `No pagas IGV: ${delSaldo}`
+          : `No pagas IGV. El saldo a favor pasa a ${siguiente}.`;
   const chip = opciones.enCurso ? "Va a la fecha" : pulso.estado === "a_pagar" ? `Se paga en ${siguiente}` : `IGV a favor ${solesRedondo(pulso.aFavor)} → ${siguiente}`;
   const pago = p.pagos?.find((x) => x.mes === pulso.mes);
   const pagado = pago ? r2(pago.igv + pago.renta) : 0;

@@ -27,10 +27,12 @@ import {
   type DetalleEnvio,
   type LineaEnvio,
   type PrendaRecepcion,
+  type RecibidoEnvio,
   type SolucionDanada,
   mensajeDeLaRecepcion,
 } from "./recepcion-envio-reglas";
 import { opcionReposicion, type PrendaDebida } from "./nos-debe-reglas";
+import { ordenTalla } from "./catalogo-grupos";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Nombres de la base
@@ -54,6 +56,40 @@ export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 /** Felipe 2026-11-06 y 2026-11-07: lo contado como nuevo en una categoría o una marca que no era pasa a la suya, con el envío cerrado. */
 export const RPC_CAMBIAR_LINEA = "cambiar_linea_de_pendiente";
+/** Las tallas y colores que nacieron al recibir este envío y todavía se pueden quitar (Felipe 2026-11-07). Solo lectura. */
+export const RPC_COMBINACIONES_QUITABLES = "fn_combinaciones_quitables";
+/** Archiva lo agregado por error al recibir: solo lo que nació en este envío y nadie usó (`quitar_combinaciones_al_recibir`). */
+export const RPC_QUITAR_COMBINACIONES = "quitar_combinaciones_al_recibir";
+
+/** Los ids de las combinaciones que se pueden quitar (`fn_combinaciones_quitables`). Sin respuesta, ninguna: la pantalla simplemente no ofrece la ×. */
+export function leerQuitables(data: unknown): Set<string> {
+  const ids = new Set<string>();
+  for (const f of Array.isArray(data) ? data : []) {
+    const id = f && typeof f === "object" ? (f as Record<string, unknown>).variante_id : null;
+    if (typeof id === "string") ids.add(id);
+  }
+  return ids;
+}
+
+/**
+ * Qué color (fila) y qué talla (columna) de una prenda se puede quitar entero: todas sus combinaciones nacieron en este envío y se pueden quitar, y a la
+ * prenda le queda al menos otra combinación. La clave es la de la matriz: el código del color o el id de la talla («» = sin color / talla única).
+ * Lo que la prenda ya tenía no lleva la × (Felipe 2026-11-07: «solo los colores que agregué se deberían quitar, al igual que las tallas»).
+ */
+export function ejesQuitables(
+  prenda: Pick<PrendaRecepcion, "variantes">,
+  quitables: ReadonlySet<string>,
+): { colores: Map<string, string[]>; tallas: Map<string, string[]> } {
+  const porColor = new Map<string, string[]>();
+  const porTalla = new Map<string, string[]>();
+  for (const v of prenda.variantes) {
+    porColor.set(v.colorCodigo ?? "", [...(porColor.get(v.colorCodigo ?? "") ?? []), v.id]);
+    porTalla.set(v.tallaId ?? "", [...(porTalla.get(v.tallaId ?? "") ?? []), v.id]);
+  }
+  const total = prenda.variantes.length;
+  const filtrar = (m: Map<string, string[]>) => new Map([...m].filter(([, ids]) => ids.length < total && ids.every((id) => quitables.has(id))));
+  return { colores: filtrar(porColor), tallas: filtrar(porTalla) };
+}
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
 /** ADR-0605: cancelar la recepción de un envío sin aviso (abierto → anulado, con su motivo). */
 export const RPC_CANCELAR_RECEPCION = "cancelar_recepcion_envio";
@@ -511,11 +547,22 @@ export function esEnvioSinAviso(e: { lineas: number; ordenes: readonly string[] 
   return e.lineas === 0 && e.ordenes.length === 0;
 }
 
-/** De quién es un envío sin aviso, para la puerta: su proveedor, «proveedor por confirmar», o `null` si no se sabe. */
+/**
+ * De quién es un envío sin aviso, para la lista de Recibir: sus proveedores («A y B», «A, B y 2 más»), con «y uno por confirmar» si a lo contado le falta
+ * el suyo, o `null` si todavía no se sabe nada (Felipe 2026-11-07: casi nunca llega de uno solo).
+ */
 export function proveedorDelSinAviso(c: ConteosDelEnvio | null): string | null {
   if (!c) return null;
-  if (c.proveedorPorConfirmar) return "proveedor por confirmar";
-  return c.proveedores[0]?.nombre ?? null;
+  const nombres = c.proveedores.map((p) => p.nombre);
+  const lista = nombres.length <= 2 ? nombres.join(" y ") : `${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`;
+  if (c.proveedorPorConfirmar) return lista ? `${lista}, y algo por confirmar` : "proveedor por confirmar";
+  return lista || null;
+}
+
+/** Las marcas de un envío sin aviso, para la puerta: las de lo que ya se contó (sin repetir, en orden alfabético); `[]` si no se sabe. */
+export function marcasDelSinAviso(c: ConteosDelEnvio | null): string[] {
+  const nombres = (c?.conteos ?? []).map((k) => k.marca?.nombre).filter((n): n is string => !!n);
+  return [...new Set(nombres)].sort((a, b) => a.localeCompare(b, "es"));
 }
 
 export function necesitaCatalogoAlCerrar(conteos: ConteosDelEnvio | null): boolean {
@@ -964,9 +1011,8 @@ export function faltaParaCerrar(p: {
 /** Los campos de la guía de foco del cierre (ADR-0284): los mismos que `faltaParaCerrar`, también los ya hechos (llevan su ✓). */
 export function camposDelCierre(
   p: Parameters<typeof faltaParaCerrar>[0] & {
-    /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): `cerrar_conteo_envio` no cierra sin proveedor (`envio_sin_proveedor`). */
-    proveedorPorConfirmar?: boolean;
-    proveedorElegido?: boolean;
+    /** Sin aviso (Felipe 2026-11-07): las marcas cuyo proveedor falta; `cerrar_conteo_envio` no cierra sin él (`envio_sin_proveedor`). Ver `deQuienLlego`. */
+    deQuien?: readonly FilaDeQuien[];
     /** Lo escrito en «Número de guía» (Felipe 2026-10-14): opcional, se corrige si el papel dice otra cosa. */
     guia?: string;
   },
@@ -1001,12 +1047,52 @@ export function camposDelCierre(
   if (p.guia !== undefined) {
     campos.push({ id: "guia", nombre: "Número de guía", requerido: false, hecho: p.guia.trim() !== "", pendiente: "Si el papel de la guía dice otra cosa, corrígela." });
   }
-  if (p.proveedorPorConfirmar) {
-    campos.push({ id: "proveedor", nombre: "De quién llegó", requerido: true, hecho: p.proveedorElegido === true, pendiente: "Elige de quién llegó: pregúntale a Compras." });
+  for (const f of p.deQuien ?? []) {
+    campos.push({
+      id: idCampoProveedor(f.clave),
+      nombre: `De quién llegó · ${f.marca?.nombre ?? "Sin marca"}`,
+      requerido: true,
+      hecho: f.proveedor !== null,
+      pendiente: `Elige de quién llegó ${f.marca?.nombre ?? "lo sin marca"}: pregúntale a Compras.`,
+    });
   }
   campos.push({ id: "responsable", nombre: "Quién cierra", requerido: true, hecho: p.responsable, pendiente: "Elige quién cierra." });
   return campos;
 }
+
+/**
+ * «De quién llegó», en un envío sin aviso (Felipe 2026-11-07: «casi nunca llega de uno solo»): una fila por marca de lo contado, con su proveedor. La base
+ * ya lo puso solo cuando la marca tiene un único proveedor; si no se puede saber (dos proveedores, o «Sin marca»), la fila lo pide. `puestos` es lo que la
+ * persona eligió en esta pantalla y la base ya guardó (`poner_proveedor_de_marca`): manda sobre lo que trajo la lectura. Si las líneas de una marca tienen
+ * proveedores distintos, la fila muestra el primero y `varios` lo dice. De la marca con más prendas a la de menos.
+ */
+export type FilaDeQuien = { clave: string; marca: { id: string; nombre: string } | null; prendas: number; proveedor: { id: string; nombre: string } | null; varios: boolean };
+export function deQuienLlego(lineas: readonly LineaParaContar[], puestos: Readonly<Record<string, { id: string; nombre: string }>> = {}): FilaDeQuien[] {
+  const filas = new Map<string, { marca: FilaDeQuien["marca"]; prendas: number; proveedores: (FilaDeQuien["proveedor"])[] }>();
+  for (const l of lineas) {
+    if (l.linea || contadasDe(l) <= 0) continue;
+    const clave = l.marca?.id ?? "";
+    const f = filas.get(clave) ?? { marca: l.marca, prendas: 0, proveedores: [] };
+    f.prendas += contadasDe(l);
+    f.proveedores.push(l.proveedor);
+    filas.set(clave, f);
+  }
+  return [...filas.entries()]
+    .map(([clave, f]) => {
+      const puesto = puestos[clave];
+      const conocidos = f.proveedores.filter((x): x is { id: string; nombre: string } => x !== null);
+      // Basta una línea sin proveedor para que la marca lo pida: la base no cierra sin él.
+      const proveedor = puesto ?? (conocidos.length === f.proveedores.length ? (conocidos[0] ?? null) : null);
+      return { clave, marca: f.marca, prendas: f.prendas, proveedor, varios: !puesto && new Set(conocidos.map((x) => x.id)).size > 1 };
+    })
+    .sort((a, b) => b.prendas - a.prendas || (a.marca?.nombre ?? "~").localeCompare(b.marca?.nombre ?? "~", "es"));
+}
+
+/** El id del campo de proveedor de una marca en la guía y en el DOM. */
+export const idCampoProveedor = (claveMarca: string): string => `proveedor-${claveMarca || "sin-marca"}`;
+
+/** Pone el proveedor de todo lo de una marca en un envío sin aviso abierto (`null` = sin marca). */
+export const RPC_PONER_PROVEEDOR_DE_MARCA = "poner_proveedor_de_marca";
 
 /** El id de un campo del cierre en la guía y en el DOM (`data-campo`). */
 export const idCampoCierre = (tipo: "contar" | "causa" | "costo", clave: ClaveLinea): string => `${tipo}-${clave.replace(":", "-")}`;
@@ -1051,6 +1137,37 @@ export function prendasConCosto(l: Pick<LineaParaContar, "conteo">): PrendaConCo
       n.descripcion ? [{ clave: claveCostoDeNueva(n.descripcion), nombre: n.descripcion, unidades: n.cantidad, nueva: true, producto: null }] : [],
     ),
   ];
+}
+
+/**
+ * Lo que se sabe de un modelo para su «Ver detalle» en «Revisa y cierra» (Felipe 2026-11-07: «ver el detalle que se le puso para diferenciar esa prenda de
+ * las demás»): lo que se escribió al agregarlo («para no confundirlo con otro»), si su nombre es provisional («Blusa 1»), quién lo contó y cuándo (lo más
+ * reciente de las líneas donde vive). Una prenda ya existente no trae nota: su ficha la lee la pantalla.
+ */
+export function detalleDelModelo(
+  lineas: readonly Pick<LineaParaContar, "conteo">[],
+  m: Pick<PrendaConCosto, "nueva" | "nombre" | "clave">,
+): { nota: string | null; provisional: boolean; contaron: string[]; contadoEn: string | null } {
+  const nueva = m.nueva ? lineas.flatMap((l) => l.conteo?.separado.nuevas ?? []).find((n) => n.descripcion === m.nombre) : undefined;
+  const conEsto = lineas.filter((l) => (m.nueva ? (l.conteo?.separado.nuevas ?? []).some((n) => n.descripcion === m.nombre) : (l.conteo?.separado.prendas ?? []).some((p) => p.productoId === m.clave)));
+  const contaron = [...new Set(conEsto.map((l) => l.conteo?.contadoPor?.nombre ?? null).filter((n): n is string => !!n))];
+  const contadoEn = conEsto.map((l) => l.conteo?.contadoEn ?? null).filter((x): x is string => !!x).sort().at(-1) ?? null;
+  return { nota: nueva?.nota?.trim() || null, provisional: nueva?.porDefecto === true, contaron, contadoEn };
+}
+
+/** El costo de un grupo de «Revisa y cierra», al pie de su tarjeta: lo que suma lo que ya tiene costo y cuántas prendas entran sin él. */
+export function costoDelGrupo(filas: readonly { unidades: number; costo: number | null }[]): { total: number; conCosto: number; sinCosto: number } {
+  let total = 0;
+  let conCosto = 0;
+  let sinCosto = 0;
+  for (const f of filas) {
+    if (f.costo == null) sinCosto += f.unidades;
+    else {
+      total += f.costo * f.unidades;
+      conCosto += f.unidades;
+    }
+  }
+  return { total: Math.round(total * 100) / 100, conCosto, sinCosto };
 }
 
 /** Cuántas unidades contadas de la línea todavía no son una prenda con nombre (ni identificada ni descrita): entran con el costo de la línea. */
@@ -1357,14 +1474,43 @@ export function detalleParaDespues(l: LineaParaContar): string[] {
   return r;
 }
 
-/** Las prendas que ya se pueden vender, juntas por nombre («Blusa Aurora ×12»): lo bueno de lo recibido (sin las dañadas), de más a menos. */
-export function prendasQueEntraron(recibidos: readonly { prenda: string | null; cantidad: number; danadas: number }[] | null): { nombre: string; cantidad: number }[] {
-  const por = new Map<string, number>();
+/** Una combinación que entró al stock de un envío, con lo bueno (lo dañado queda en cuarentena y no se etiqueta). */
+export type CombinacionQueEntro = { varianteId: string; talla: string | null; color: string | null; cantidad: number };
+export type PrendaQueEntro = { nombre: string; cantidad: number; combinaciones: CombinacionQueEntro[] };
+
+/**
+ * Lo que entró al stock de un envío, prenda por prenda y talla por talla (Felipe 2026-11-07: «ahí debe salir el detalle»), para elegir de cuáles
+ * imprimir la etiqueta. Junta las varias entradas de una misma combinación (se pudo recibir en dos veces) y deja fuera lo que no tiene combinación.
+ * Las prendas van de la que más entró a la que menos; las combinaciones, por color y talla.
+ */
+export function loQueEntroPorPrenda(recibidos: readonly Pick<RecibidoEnvio, "varianteId" | "prenda" | "talla" | "color" | "cantidad" | "danadas">[] | null): PrendaQueEntro[] {
+  const prendas = new Map<string, Map<string, CombinacionQueEntro>>();
   for (const r of recibidos ?? []) {
     const buenas = r.cantidad - r.danadas;
-    if (buenas > 0) por.set(r.prenda ?? "Prenda", (por.get(r.prenda ?? "Prenda") ?? 0) + buenas);
+    if (!r.varianteId || buenas <= 0) continue;
+    const nombre = r.prenda ?? "Prenda";
+    const combos = prendas.get(nombre) ?? new Map<string, CombinacionQueEntro>();
+    const ya = combos.get(r.varianteId);
+    combos.set(r.varianteId, { varianteId: r.varianteId, talla: r.talla, color: r.color, cantidad: (ya?.cantidad ?? 0) + buenas });
+    prendas.set(nombre, combos);
   }
-  return [...por.entries()].map(([nombre, cantidad]) => ({ nombre, cantidad })).sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre, "es"));
+  return [...prendas.entries()]
+    .map(([nombre, combos]) => {
+      // Por color y, dentro de cada color, las tallas como se leen en tienda (S, M, L), igual que las etiquetas.
+      const combinaciones = [...combos.values()].sort((a, b) => (a.color ?? "").localeCompare(b.color ?? "", "es") || ordenTalla(a.talla ?? "", b.talla ?? ""));
+      return { nombre, cantidad: combinaciones.reduce((s, c) => s + c.cantidad, 0), combinaciones };
+    })
+    .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Las etiquetas de lo elegido: una por prenda buena de cada combinación marcada (`/etiquetas-de-precio?unidades=…&envio=…`). Sin nada marcado, `null`. */
+export function urlEtiquetasDeLoQueEntro(despachoId: string, prendas: readonly PrendaQueEntro[], marcadas: ReadonlySet<string>): { href: string; etiquetas: number } | null {
+  const elegidas = prendas.flatMap((p) => p.combinaciones).filter((c) => marcadas.has(c.varianteId));
+  if (elegidas.length === 0) return null;
+  return {
+    href: `/etiquetas-de-precio?unidades=${elegidas.map((c) => `${c.varianteId}:${c.cantidad}`).join(",")}&envio=${despachoId}`,
+    etiquetas: elegidas.reduce((s, c) => s + c.cantidad, 0),
+  };
 }
 
 /** Lo que entró al stock del envío y lo que falta: las dos cifras del cierre. */
@@ -1470,6 +1616,46 @@ export function costosDeHacerAhora(
     cambios.push({ ...cambio, productoId: p.productoId });
   }
   return { costos, cambios, problemas };
+}
+
+/**
+ * El costo que una prenda ya tiene en el catálogo (Felipe 2026-11-07: «el costo y el precio siempre deben salir juntos»): el que más se repite
+ * entre sus combinaciones activas, como el precio de hoy. Un 0 no cuenta: es la combinación que nació sin costo, no un costo. Sin ninguno, `null`.
+ */
+export function costoDeCatalogo(prenda: Pick<PrendaRecepcion, "variantes"> | null | undefined): number | null {
+  const cuenta = new Map<number, number>();
+  for (const v of prenda?.variantes ?? []) if (v.costo != null && v.costo > 0) cuenta.set(v.costo, (cuenta.get(v.costo) ?? 0) + 1);
+  let mejor: number | null = null;
+  let veces = 0;
+  // Si empatan, el menor: el mismo criterio que el precio «normal» de una prenda.
+  for (const [v, n] of [...cuenta.entries()].sort((x, y) => x[0] - y[0])) {
+    if (n > veces) {
+      mejor = v;
+      veces = n;
+    }
+  }
+  return mejor;
+}
+
+/**
+ * Lo que dice cada campo de costo sin que la persona lo toque, en «Hacer ahora»: el costo que la prenda ya tiene en este conteo o en su línea y, si
+ * no tiene ninguno, el de su catálogo. Ese costo de catálogo se guarda con lo que entra, porque se ve en el campo: quien lo deja así lo está aceptando
+ * (si no se mandara, entraría sin costo mostrando uno). No se confirma como un cambio, porque no cambia nada de la prenda.
+ * Devuelve lo escrito más los costos de catálogo de las prendas que nadie tocó y no tenían costo.
+ */
+export function costosConCatalogo(
+  prendas: readonly { productoId: string }[],
+  escritos: Readonly<Record<string, string>>,
+  inicial: (productoId: string) => string,
+  deCatalogo: (productoId: string) => number | null,
+): Record<string, string> {
+  const efectivos: Record<string, string> = { ...escritos };
+  for (const p of prendas) {
+    if (Object.hasOwn(efectivos, p.productoId) || inicial(p.productoId).trim()) continue;
+    const c = deCatalogo(p.productoId);
+    if (c !== null) efectivos[p.productoId] = costoComoTexto(c);
+  }
+  return efectivos;
 }
 
 /**

@@ -29,14 +29,19 @@ export default async function CajaPage({ searchParams }: { searchParams: Promise
   const caja = await getCajaAbierta(persona.ubicacionId);
   // Sin caja (ADR-0186): el último cierre de la sede da el contexto y el monto que debería estar en el cajón.
   // Con los últimos 7 de la sede se dibuja además la racha de «Último cierre» (2026-10-08).
-  const cierresRecientesSede = caja ? [] : await getHistorialCierres(7, false, persona.ubicacionId);
-  const ultimoCierre = cierresRecientesSede[0] ?? null;
   // Con la caja cerrada también se ve lo que ayuda a abrir bien (maqueta «2 · Hoja con resumen», 2026-11-03): lo vendido ayer, la meta de hoy
-  // y la hora de cierre. Cada lectura puede fallar sola (principio 9): lo que no llegue, no se dibuja.
+  // y la hora de cierre. Cada lectura puede fallar sola (principio 9): lo que no llegue, no se dibuja. Las cuatro van a la vez (antes, los
+  // cierres primero y el resto después: una ida a la base más al abrir Caja).
   const hoyAbrir = hoyLima();
-  const [pagosAyer, parametrosAbrir, ubicacionesAbrir] = caja
-    ? [null, null, []]
-    : await Promise.all([getPagosDelDia(persona.ubicacionId, diaAnterior(hoyAbrir)), getParametrosCaja(persona.ubicacionId, hoyAbrir), getUbicaciones()]);
+  const [cierresRecientesSede, pagosAyer, parametrosAbrir, ubicacionesAbrir] = caja
+    ? [[], null, null, []]
+    : await Promise.all([
+        getHistorialCierres(7, false, persona.ubicacionId),
+        getPagosDelDia(persona.ubicacionId, diaAnterior(hoyAbrir)),
+        getParametrosCaja(persona.ubicacionId, hoyAbrir),
+        getUbicaciones(),
+      ]);
+  const ultimoCierre = cierresRecientesSede[0] ?? null;
   const sedeAbrir = ubicacionesAbrir.find((u) => u.id === persona.ubicacionId) ?? null;
 
   return (
@@ -96,7 +101,7 @@ async function CajaConDatos({
   // `fn_puede_registrar_gasto`.
   const gastoDesdeCaja = registraGastos || puedeCerrar;
   const hoy = hoyLima();
-  const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto, pagosHoy, pagosAyer] = await Promise.all([
+  const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto, pagosHoy, pagosAyer, empresasAqui, vendidoPorCaja] = await Promise.all([
     getTableroCaja(caja.id),
     getMovimientosCaja(caja.id),
     getUbicaciones(),
@@ -124,9 +129,11 @@ async function CajaConDatos({
     // Hoy contra ayer (ADR-0319): los pagos de los dos días. Si la base no tiene la lectura, `null` y Caja se ve como antes.
     getPagosDelDia(caja.ubicacionId, hoy),
     getPagosDelDia(caja.ubicacionId, diaAnterior(hoy)),
+    // De quién es lo vendido del turno (ADR-0532): solo donde conviven CAYLA y CLAURE (Lima). Si la base no responde, Caja sale como antes.
+    // Solo depende de la caja: va en este mismo lote (antes, una tanda aparte después).
+    getEmpresasAqui(caja.ubicacionId),
+    getVendidoPorEmpresaDeCajas([caja.id]),
   ]);
-  // De quién es lo vendido del turno (ADR-0532): solo donde conviven CAYLA y CLAURE (Lima). Si la base no responde, Caja sale como antes.
-  const [empresasAqui, vendidoPorCaja] = await Promise.all([getEmpresasAqui(caja.ubicacionId), getVendidoPorEmpresaDeCajas([caja.id])]);
   const repartoEmpresas = repartoDeEmpresas(vendidoPorCaja ? (vendidoPorCaja.get(caja.id) ?? []) : null, empresasAqui);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");

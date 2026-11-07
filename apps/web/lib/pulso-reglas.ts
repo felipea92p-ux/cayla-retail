@@ -8,6 +8,8 @@ export type TramoCascada = {
   nombre: string;
   monto: number;
   tipo: "entra" | "sale" | "queda";
+  /** Un subtotal a mitad de la cascada: su monto es la suma de lo de arriba y no se vuelve a sumar («Lo que vendiste» bajo lo cobrado y su IGV, ADR-0624). */
+  subtotal?: boolean;
   detalle?: string;
   negativo?: boolean;
   /** Lo planeado para este tramo (el tope del presupuesto, en positivo): la cascada dibuja su raya sobre la barra (ADR-0585). */

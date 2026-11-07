@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { exigirOpcional, exigir, leerTodas } from "@/lib/resultado";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -75,7 +76,10 @@ export type SeriesVentasCaja = {
   porHora: PuntoHora[];
 };
 
-export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta | null> {
+// `cache()`: el layout (recordatorio de cierre), Inicio, Caja, Vender, Cambios e Historial la piden en la MISMA petición; sin él
+// eran dos idas a la base (la caja y quién la abrió) repetidas por pantalla. Ninguna acción de servidor la usa, así que nunca
+// devuelve una caja vieja tras abrirla o cerrarla: una acción que lo haga y la vuelva a leer en la misma petición no debe usarla.
+export const getCajaAbierta = cache(async (ubicacionId: string): Promise<CajaAbierta | null> => {
   const supabase = await createClient();
   const res = await supabase
     .from("cajas")
@@ -105,7 +109,7 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
     abiertaEn: fila.abierta_en,
     abiertaPorNombre,
   };
-}
+});
 
 /** Lo que devuelve `fn_resumen_caja` (ADR-0191). Los montos llegan como número o texto según PostgREST. */
 type ResumenCajaDeLaBase = {

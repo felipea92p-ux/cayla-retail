@@ -89,7 +89,7 @@ export function RecibirContando({
   catalogo: CatalogoParaRecibir | null;
   lotes: string[];
   veExistencias: boolean;
-  /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
+  /** Ve el dinero de Compras: decide «Corregir proveedor». El costo de lo que se recibe ya no depende de esto (`poneCosto`, 20261107194000). */
   veDinero: boolean;
   /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
   soloSede?: boolean;
@@ -312,8 +312,13 @@ export function RecibirContando({
   // Cancelar la recepción (ADR-0605): un envío sin aviso, abierto y sin nada en el stock (también reabierto: lo que frena es el stock). Uno de Compras o uno cerrado no lo ofrecen.
   const sePuedeCancelar = estado === "abierto" && sinAviso && lineas.every((l) => (l.conteo?.enStock ?? 0) === 0) && !otraSede && !noLoRecibe;
   // Corregir de quién llegó: sin aviso, ya con proveedor, y solo quien ve el dinero de Compras.
-  const proveedorActual = sinAviso ? (base?.proveedores[0] ?? null) : null;
+  // Corregir es para un envío de UN proveedor (Felipe 2026-11-07): con varios, cada marca ya tiene el suyo y no hay un «proveedor del envío» que cambiar.
+  const proveedorActual = sinAviso && base?.proveedores.length === 1 ? base.proveedores[0] : null;
   const sePuedeCorregirProveedor = !!proveedorActual && veDinero && (estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe;
+  // El costo de lo que se recibe lo pone quien recibe, también una terminal (Felipe 2026-11-07: «el costo y el precio siempre deben salir juntos, incluso en las
+  // cuentas de terminales»; 20261107194000). Las piezas de abajo lo reciben como `veDinero`, que ahí solo decide el costo; «Corregir proveedor», arriba, sigue
+  // siendo de quien ve el dinero de Compras.
+  const poneCosto = true;
   const accionesDelEnvio = [
     ...(sePuedeCorregirProveedor ? [{ clave: "proveedor", etiqueta: "Corregir el proveedor", onSelect: () => setCorrigiendo(true) }] : []),
     ...(sePuedeCancelar ? [{ clave: "cancelar", etiqueta: "Cancelar recepción", peligro: true, onSelect: () => setCancelando(true) }] : []),
@@ -420,7 +425,7 @@ export function RecibirContando({
       {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && (
         <ContarEnvio
           onCancelarRecepcion={sePuedeCancelar ? () => setCancelando(true) : undefined}
-          veDinero={veDinero}
+          veDinero={poneCosto}
           veExistencias={veExistencias}
           esperandoGuardar={pendientesDeGuardar}
           onSalida={() => void releer()}
@@ -471,9 +476,8 @@ export function RecibirContando({
           generacion={base?.cierres.length ?? 0}
           sede={sedeActual.etiqueta}
           responsable={responsable}
-          veDinero={veDinero}
+          veDinero={poneCosto}
           soloSede={soloSede}
-          proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}
           onVolver={(clave, decisiones) => {
@@ -506,7 +510,7 @@ export function RecibirContando({
           prendas={prendas}
           soloSede={soloSede}
           sinAviso={sinAviso}
-          veDinero={veDinero}
+          veDinero={poneCosto}
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {
