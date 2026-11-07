@@ -31,6 +31,8 @@ type Params = {
   traslado?: string | string[];
   /** Llegó desde «Ajustar stock» de Existencias (`?unidades=` + `?ajuste=1`, ADR-0494): cambia el texto; «Volver» ya va a Existencias. */
   ajuste?: string | string[];
+  /** El envío de Recibir de donde se salió (`?unidades=` + `?envio=`): lo elegido de lo que entró; «Volver» regresa a él. */
+  envio?: string | string[];
 };
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -45,6 +47,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const variantes = unidades.size > 0 ? [...unidades.keys()] : idsDeParam(params.variantes);
   const desde = desdeDeParams(params.desde);
   const [traslado] = idsDeParam(params.traslado);
+  const [envio] = idsDeParam(params.envio);
 
   const origen: OrigenEtiquetas | null = produccion
     ? { tipo: "produccion", id: produccion, ubicacionId: persona.ubicacionId }
@@ -65,7 +68,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       : origen?.tipo === "producto"
         ? { tipo: "producto", nombre: datos.producto ?? null }
         : origen?.tipo === "variantes"
-          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0, desdeTraslado: unidades.size > 0 && traslado !== undefined, desdeAjuste: unidades.size > 0 && params.ajuste !== undefined }
+          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0, desdeTraslado: unidades.size > 0 && traslado !== undefined, desdeAjuste: unidades.size > 0 && params.ajuste !== undefined, desdeEnvio: unidades.size > 0 && envio !== undefined }
           : origen
             ? { tipo: origen.tipo }
             : { tipo: "ninguno" };
@@ -81,7 +84,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null)}
+      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null, unidades.size > 0 ? (envio ?? null) : null)}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * Los gestos de respuesta del Inicio de Almacén, en UN solo lugar y por delegación (nadie se cablea pieza por pieza):
@@ -17,7 +18,6 @@ export function EfectosInicio({ atajoNuevo }: { atajoNuevo: string | null }) {
 
   useEffect(() => {
     const fino = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     // Una vez por cuadro, y midiendo todo antes de escribir (ADR-0623): el mouse manda 60 a 120 movimientos por segundo, y medir y
     // escribir intercalados en cada uno obligaba a recalcular la página entre medida y medida.
@@ -49,7 +49,7 @@ export function EfectosInicio({ atajoNuevo }: { atajoNuevo: string | null }) {
       }
     };
     const mover = (e: PointerEvent) => {
-      if (!fino.matches || reducido.matches) return;
+      if (!fino.matches || prefiereQuieto()) return;
       ultimo = e;
       if (!cuadro) cuadro = requestAnimationFrame(aplicar);
     };

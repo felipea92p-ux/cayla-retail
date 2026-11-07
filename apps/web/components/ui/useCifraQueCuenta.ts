@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { valorDeLaCuenta } from "@/lib/vuelo-reglas";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /**
  * Una cifra que, al cambiar, cuenta del valor que mostraba al nuevo (el total de «Tu compra» cuando aterriza una prenda). La primera vez
@@ -10,7 +11,7 @@ import { valorDeLaCuenta } from "@/lib/vuelo-reglas";
 export function useCifraQueCuenta(valor: number, ms = 520): number {
   const [mostrado, setMostrado] = useState(valor);
   const actual = useRef(valor);
-  const sinMovimiento = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const sinMovimiento = typeof window !== "undefined" && prefiereQuieto();
   useEffect(() => {
     const de = actual.current;
     if (de === valor) return;

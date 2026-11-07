@@ -10,6 +10,9 @@ import {
   leerResuelto,
   leerValidacionDePrecio,
   RPC_CERRAR_CONTEO,
+  RPC_COMBINACIONES_QUITABLES,
+  RPC_QUITAR_COMBINACIONES,
+  leerQuitables,
   RPC_CONTEOS_ENVIO,
   RPC_CORREGIR_GUIA,
   RPC_FOTO_PAPEL,
@@ -21,6 +24,7 @@ import {
   RPC_CAMBIAR_LINEA,
   RPC_LIGAR_PRENDA,
   RPC_PONER_PROVEEDOR,
+  RPC_PONER_PROVEEDOR_DE_MARCA,
   RPC_CANCELAR_RECEPCION,
   RPC_COSTOS_DE_HOY,
   RPC_CORREGIR_PROVEEDOR,
@@ -206,6 +210,18 @@ export async function cambiarLineaDePendiente(
   return { error: error ?? null };
 }
 
+/** Las tallas y colores que nacieron en este envío y se pueden quitar. Es lectura: sin respuesta, ninguno (no se ofrece la ×). */
+export async function leerCombinacionesQuitables(despachoId: string): Promise<Set<string>> {
+  const { data, error } = (await createClient().rpc(RPC_COMBINACIONES_QUITABLES as never, { p_despacho_id: despachoId } as never)) as Respuesta;
+  return error ? new Set() : leerQuitables(data);
+}
+
+/** Quita (archiva) las tallas o colores agregados por error en este envío. Todo o nada. */
+export async function quitarCombinaciones(args: { p_despacho_id: string; p_variante_ids: string[] }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_QUITAR_COMBINACIONES as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
+}
+
 /** Reabre un envío cerrado para cuadrarlo (decisión 5). */
 export async function reabrirEnvio(
   args: { p_despacho_id: string; p_version: number; p_motivo: string; p_token: string },
@@ -236,7 +252,17 @@ export async function abrirEnvioSinAviso(
   return { abierto: error ? null : leerEnvioAbierto(data), error: error ?? null };
 }
 
-/** Pone el proveedor de un envío sin aviso que se abrió sin saberlo (una sola vez; el mismo otra vez no hace nada). Antes de cerrar. */
+/** El proveedor de todo lo de una marca en un envío sin aviso abierto (`p_marca_id` nulo = sin marca; Felipe 2026-11-07). Antes de cerrar. */
+export async function ponerProveedorDeMarca(args: { p_despacho_id: string; p_marca_id: string | null; p_proveedor_id: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_PONER_PROVEEDOR_DE_MARCA as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
+}
+
+/**
+ * Pone el proveedor de un envío sin aviso que se abrió sin saberlo (una sola vez; el mismo otra vez no hace nada). Antes de cerrar.
+ * @public Sin uso desde 2026-11-07: el cierre pone el proveedor marca por marca (`ponerProveedorDeMarca`). Se queda mientras la web publicada llame a
+ * `poner_proveedor_envio`; se quita junto con esa función de la base cuando ninguna web la use.
+ */
 export async function ponerProveedorEnvio(
   args: { p_despacho_id: string; p_proveedor_id: string },
   firma: Firma | null,

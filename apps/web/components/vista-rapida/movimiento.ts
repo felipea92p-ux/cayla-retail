@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useContar } from "@/lib/useContar";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /** ¿Hay un mouse de verdad y la persona no pidió menos movimiento? Los efectos que siguen al puntero (paralaje, brillo, onda) solo existen con esto: en un
  *  celular no hay puntero que seguir, y con «reducir movimiento» (prefers-reduced-motion) no se mueve nada que no sea una respuesta directa. */
 export function hayPunteroFino(): boolean {
   if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(hover: hover) and (pointer: fine)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches && !prefiereQuieto();
 }
 
 /**

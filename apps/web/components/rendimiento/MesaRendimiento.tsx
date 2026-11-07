@@ -41,6 +41,7 @@ import { SedesConAnillo } from "./SedesConAnillo";
 import { TablaRendimiento, useColumnasRendimiento } from "./TablaRendimiento";
 import { useFocoPersona } from "./useFocoPersona";
 import { useLuzLiquida } from "./useLuzLiquida";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 /* ====================================================================
    La mesa de Rendimiento (ADR-0610; maqueta docs/maquetas/rendimiento-superpoderes-2026-11/): todo sale de UN solo estado —la tienda, los días, las
@@ -119,7 +120,7 @@ export function MesaRendimiento({
       requestAnimationFrame(() => {
         const fila = raiz.current?.querySelector<HTMLElement>(`[data-fila="${CSS.escape(id)}"]`);
         if (!fila) return;
-        fila.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        fila.scrollIntoView({ block: "start", behavior: prefiereQuieto() ? "auto" : "smooth" });
         fila.querySelector<HTMLElement>(".mesa-fila-abrir")?.focus({ preventScroll: true });
       }),
     );

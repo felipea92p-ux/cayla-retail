@@ -24,6 +24,7 @@ import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Aviso } from "@/components/ui/Aviso";
+import { prefiereQuieto } from "@/lib/movimiento-cliente";
 
 // Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cinco pestañas (Hoy · Se está acabando · No se vende · Nunca salió
 // al piso · Qué pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
@@ -45,7 +46,7 @@ const PESTANAS: { clave: VistaAnalisis; texto: string }[] = [
 /** Las marcas de los gráficos que encienden su prenda en toda la pantalla (no las filas: esas abren la ficha). */
 const MARCA = "[data-ps]:not(.c-fila):not(.rank-f):not(.modelo)";
 
-const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reducido = () => typeof window !== "undefined" && prefiereQuieto();
 
 export function AnalisisPantalla({
   datos,

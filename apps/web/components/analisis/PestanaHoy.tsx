@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
@@ -42,6 +42,7 @@ import {
   type CaminosHoy,
 } from "@/lib/analisis-hoy";
 import { MAX_VARIANTES_EN_URL } from "@/lib/existencias-prendas";
+import { useQuieto } from "@/lib/useQuieto";
 
 // Análisis v4 (ADR-0357): la pestaña «Hoy», como la maqueta aprobada por Felipe (2026-10-06): cuatro tarjetas que responden una
 // pregunta cada una (tocar una lleva a su pestaña; tocar una prenda abre su ficha) y «Qué hacer hoy», el flujo de prendas que entran
@@ -500,15 +501,8 @@ function useCaminoEncima(): CaminoEncima {
   return { clave, entra, sale };
 }
 
-const MOVIMIENTO_REDUCIDO = "(prefers-reduced-motion: reduce)";
-const suscribirMovimiento = (avisar: () => void) => {
-  const m = window.matchMedia(MOVIMIENTO_REDUCIDO);
-  m.addEventListener("change", avisar);
-  return () => m.removeEventListener("change", avisar);
-};
-/** Si la persona pidió «reducir movimiento» (en el servidor, no se sabe: sin puntos). */
-const useMovimientoReducido = (): boolean =>
-  useSyncExternalStore(suscribirMovimiento, () => window.matchMedia(MOVIMIENTO_REDUCIDO).matches, () => true);
+/** Si las animaciones están apagadas o el aparato pidió menos movimiento (en el servidor, no se sabe: sin puntos). ADR-0625. */
+const useMovimientoReducido = useQuieto;
 
 /**
  * Los puntos que corren por la cinta del camino que está bajo el mouse (Felipe, 2026-10-06): de la Compra hacia tu tienda, y de tu
