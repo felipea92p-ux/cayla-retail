@@ -39,6 +39,7 @@ import {
   type Separado,
 } from "./recepcion-conteo-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import { compararTallas } from "./tallas";
 
 const normaliza = (d: string): string => d.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
 
@@ -306,29 +307,105 @@ export function categoriasDelEnvio(grupos: readonly GrupoDeLineas[]): CategoriaD
   });
 }
 
+/** Una prenda que ya entró al stock en un cierre anterior o en una tanda, con su categoría y lo que entró de cada talla y color. */
+export type YaEnStock = {
+  prenda: string;
+  /** El nombre de su categoría, como lo manda la base; `null` si un recibido viejo no la trae. */
+  categoria: string | null;
+  cantidad: number;
+  /** Las columnas de la matriz, en el orden de la curva (S · M · L, 28 · 30 · 32); `null` = sin talla. */
+  tallas: (string | null)[];
+  /** Las filas: cada color, en el orden en que llegó, con lo que entró de cada talla (en el orden de `tallas`). `null` = sin color. */
+  colores: { color: string | null; porTalla: number[]; total: number }[];
+};
+
 /**
  * Lo que un cierre anterior ya metió al stock, por prenda (Felipe 2026-11-03). Al reabrir, lo separado queda vacío: sin esto, esas prendas desaparecían de
  * la lista y parecía que hubiera que volver a contarlas. Se ven con candado; lo que ya es un modelo de la lista con su cifra en el stock no se repite.
+ * Desde el 2026-11-07 (Felipe, maqueta «A · Matriz») trae su categoría y las tallas como datos: antes era una frase («28 Azul denim: 2 · 28 Celeste: 2 · …»)
+ * en una lista suelta al pie, fuera de su categoría.
  */
 export function yaEnStockDelEnvio(
-  recibidos: readonly { prenda: string | null; cantidad: number; talla?: string | null; color?: string | null }[] | null,
+  recibidos: readonly { prenda: string | null; cantidad: number; talla?: string | null; color?: string | null; categoria?: string | null }[] | null,
   modelos: readonly Pick<ModeloDelConteo, "nombre" | "enStock">[] = [],
-): { prenda: string; cantidad: number; tallas: string }[] {
+): YaEnStock[] {
   const yaSeVen = new Set(modelos.filter((m) => m.enStock > 0).map((m) => normaliza(m.nombre)));
-  const porPrenda = new Map<string, { prenda: string; cantidad: number; porTalla: Map<string, number> }>();
+  type Fila = { prenda: string; categoria: string | null; cantidad: number; tallas: Set<string | null>; colores: Map<string | null, Map<string | null, number>> };
+  const porPrenda = new Map<string, Fila>();
   for (const r of recibidos ?? []) {
     const nombre = r.prenda?.trim();
     if (!nombre || r.cantidad <= 0 || yaSeVen.has(normaliza(nombre))) continue;
-    const clave = normaliza(nombre);
-    const fila = porPrenda.get(clave) ?? { prenda: nombre, cantidad: 0, porTalla: new Map<string, number>() };
+    const categoria = r.categoria?.trim() || null;
+    // La misma prenda en dos categorías son dos filas: cada una va a la suya.
+    const clave = `${normaliza(categoria ?? "")}|${normaliza(nombre)}`;
+    const fila = porPrenda.get(clave) ?? { prenda: nombre, categoria, cantidad: 0, tallas: new Set(), colores: new Map() };
     fila.cantidad += r.cantidad;
-    const talla = [r.talla, r.color].filter(Boolean).join(" ");
-    if (talla) fila.porTalla.set(talla, (fila.porTalla.get(talla) ?? 0) + r.cantidad);
+    const talla = r.talla?.trim() || null;
+    const color = r.color?.trim() || null;
+    fila.tallas.add(talla);
+    const delColor = fila.colores.get(color) ?? new Map<string | null, number>();
+    delColor.set(talla, (delColor.get(talla) ?? 0) + r.cantidad);
+    fila.colores.set(color, delColor);
     porPrenda.set(clave, fila);
   }
   return [...porPrenda.values()]
-    .map((f) => ({ prenda: f.prenda, cantidad: f.cantidad, tallas: [...f.porTalla].map(([t, n]) => `${t}: ${n}`).join(" · ") }))
+    .map((f) => {
+      // Sin talla va al final, como «Única».
+      const tallas = [...f.tallas].sort((a, b) => (a == null ? 1 : b == null ? -1 : compararTallas(a, b)));
+      const colores = [...f.colores].map(([color, n]) => {
+        const porTalla = tallas.map((t) => n.get(t) ?? 0);
+        return { color, porTalla, total: porTalla.reduce((a, x) => a + x, 0) };
+      });
+      return { prenda: f.prenda, categoria: f.categoria, cantidad: f.cantidad, tallas, colores };
+    })
     .sort((a, b) => a.prenda.localeCompare(b.prenda, "es"));
+}
+
+/** Cuántas tallas distintas entraron: «12 en stock · 3 tallas». */
+export const tallasDeYaEnStock = (y: Pick<YaEnStock, "tallas">): number => y.tallas.length;
+
+/** Lo que entró de cada talla, sumando los colores: el pie de la matriz. */
+export const totalesPorTalla = (y: Pick<YaEnStock, "tallas" | "colores">): number[] => y.tallas.map((_, i) => y.colores.reduce((a, c) => a + c.porTalla[i], 0));
+
+/**
+ * Lo que ya entró, cada cosa en su categoría (Felipe 2026-11-07). Se busca por el NOMBRE de la categoría (el recibido no trae su id) entre todas las del envío,
+ * no solo las que el filtro deja a la vista: así una categoría escondida por el filtro no hace que lo suyo parezca «sin categoría». Lo que no encuentra la suya
+ * (un recibido viejo sin categoría, o una que ya no está en el envío) va en `sueltos`, al pie: nunca se pierde.
+ *
+ * Con el filtro: buscando por texto, solo lo que coincide (prenda, categoría), y si coincide una prenda de una categoría que el filtro escondía, esa categoría
+ * vuelve a la lista (para que «Falda Jean» se encuentre y se corrija). Con «Re stock», «Producto nuevo» o un estado del resumen puestos, lo que ya entró no se
+ * muestra: esas listas son de lo que se está contando.
+ */
+export function categoriasConLoQueYaEntro<T extends Pick<YaEnStock, "prenda" | "categoria">>(
+  visibles: readonly CategoriaDelEnvio[],
+  todas: readonly CategoriaDelEnvio[],
+  ya: readonly T[],
+  filtro: Pick<FiltroDelConteo, "tipo" | "estado" | "texto">,
+): { categorias: CategoriaDelEnvio[]; porCategoria: ReadonlyMap<string, T[]>; sueltos: T[] } {
+  const porCategoria = new Map<string, T[]>();
+  if (filtro.tipo || filtro.estado) return { categorias: [...visibles], porCategoria, sueltos: [] };
+  const texto = sinTildes(filtro.texto).trim().toLocaleLowerCase("es");
+  const pasa = (y: T) => !texto || sinTildes(`${y.prenda} ${y.categoria ?? ""}`).toLocaleLowerCase("es").includes(texto);
+  const claveDelNombre = new Map<string, string>();
+  for (const c of todas) if (c.categoria?.nombre) claveDelNombre.set(normaliza(c.categoria.nombre), c.clave);
+  const sueltos: T[] = [];
+  for (const y of ya) {
+    if (!pasa(y)) continue;
+    const clave = y.categoria ? claveDelNombre.get(normaliza(y.categoria)) : undefined;
+    if (!clave) {
+      sueltos.push(y);
+      continue;
+    }
+    const lista = porCategoria.get(clave) ?? [];
+    lista.push(y);
+    porCategoria.set(clave, lista);
+  }
+  const aLaVista = new Set(visibles.map((c) => c.clave));
+  // La que vuelve por lo que ya entró, en su lugar del orden de todas y sin sus modelos (no coinciden con lo buscado).
+  const categorias = todas.filter((c) => aLaVista.has(c.clave) || porCategoria.has(c.clave)).map((c) => visibles.find((v) => v.clave === c.clave) ?? { ...c, paradas: [] });
+  // Si el filtro de proveedor o marca dejó afuera una categoría, lo suyo tampoco se ve (salvo que se esté buscando por texto).
+  if (!texto) for (const clave of [...porCategoria.keys()]) if (!aLaVista.has(clave)) porCategoria.delete(clave);
+  return { categorias: texto ? categorias : [...visibles], porCategoria, sueltos };
 }
 
 /** El modelo de esa categoría que ya se llama así, si hay (sin espacios de más ni mayúsculas): no se anota dos veces, se va a contarlo. */

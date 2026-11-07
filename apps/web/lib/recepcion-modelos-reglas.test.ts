@@ -41,6 +41,10 @@ import {
   marcaSugeridaDelModelo,
   parecidasDelNombre,
   yaEnStockDelEnvio,
+  categoriasConLoQueYaEntro,
+  tallasDeYaEnStock,
+  totalesPorTalla,
+  type CategoriaDelEnvio,
 } from "./recepcion-modelos-reglas";
 import { agregarModeloEnCero, agregarPrendaEnCero, devolverModelo, quitarModelo, renombrarModelo } from "./recepcion-conteo-reglas";
 import { agruparLineas, idCampoIdentificar, sinIdentificarDelGrupo, type GrupoDeLineas } from "./recepcion-grupos-reglas";
@@ -1000,20 +1004,82 @@ describe("parecidasDelNombre: antes de crear una repetida", () => {
 });
 
 describe("yaEnStockDelEnvio: lo que un cierre anterior ya metió al stock", () => {
-  const r = (prenda: string | null, cantidad: number) => ({ prenda, cantidad });
+  const r = (prenda: string | null, cantidad: number, categoria: string | null = null) => ({ prenda, cantidad, categoria });
   it("suma por prenda, sin importar la talla ni cómo se escribió", () => {
-    expect(yaEnStockDelEnvio([r("Polo Dalia", 2), r("polo dalia", 3), r("Blusa Rosa", 1)])).toEqual([
-      { prenda: "Blusa Rosa", cantidad: 1, tallas: "" },
-      { prenda: "Polo Dalia", cantidad: 5, tallas: "" },
+    expect(yaEnStockDelEnvio([r("Polo Dalia", 2), r("polo dalia", 3), r("Blusa Rosa", 1)]).map((y) => [y.prenda, y.cantidad])).toEqual([
+      ["Blusa Rosa", 1],
+      ["Polo Dalia", 5],
     ]);
   });
   it("sin recibidos o sin nombre no dibuja nada, y lo que ya se ve como modelo con su cifra no se repite", () => {
     expect(yaEnStockDelEnvio(null)).toEqual([]);
     expect(yaEnStockDelEnvio([r(null, 3), r("Polo", 0)])).toEqual([]);
     expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 2 }])).toEqual([]);
-    expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 0 }])).toEqual([{ prenda: "Polo Dalia", cantidad: 2, tallas: "" }]);
+    expect(yaEnStockDelEnvio([r("Polo Dalia", 2)], [{ nombre: "Polo Dalia", enStock: 0 }])).toHaveLength(1);
   });
-  it("dice qué tallas son", () => {
-    expect(yaEnStockDelEnvio([{ prenda: "Polo", cantidad: 2, talla: "M", color: "Rojo" }, { prenda: "Polo", cantidad: 1, talla: "M", color: "Rojo" }, { prenda: "Polo", cantidad: 4, talla: "L", color: null }])[0].tallas).toBe("M Rojo: 3 · L: 4");
+  it("trae su categoría, y la misma prenda en dos categorías son dos filas", () => {
+    const y = yaEnStockDelEnvio([r("Falda Jean", 2, "Faldas"), r("Falda Jean", 1, "Shorts")]);
+    expect(y.map((f) => [f.categoria, f.cantidad])).toEqual([
+      ["Faldas", 2],
+      ["Shorts", 1],
+    ]);
+  });
+  it("arma la matriz talla × color: tallas en el orden de la curva, colores en el orden en que llegaron, sin talla al final", () => {
+    const [y] = yaEnStockDelEnvio([
+      { prenda: "Polo", cantidad: 1, talla: "M", color: "Rojo" },
+      { prenda: "Polo", cantidad: 2, talla: "S", color: "Rojo" },
+      { prenda: "Polo", cantidad: 1, talla: "M", color: "Rojo" },
+      { prenda: "Polo", cantidad: 4, talla: "L", color: "Azul" },
+      { prenda: "Polo", cantidad: 3, talla: null, color: null },
+    ]);
+    expect(y.tallas).toEqual(["S", "M", "L", null]);
+    expect(y.colores).toEqual([
+      { color: "Rojo", porTalla: [2, 2, 0, 0], total: 4 },
+      { color: "Azul", porTalla: [0, 0, 4, 0], total: 4 },
+      { color: null, porTalla: [0, 0, 0, 3], total: 3 },
+    ]);
+    expect(totalesPorTalla(y)).toEqual([2, 2, 4, 3]);
+    expect(tallasDeYaEnStock(y)).toBe(4);
+    // La matriz suma lo mismo que la fila: nada se pierde al repartir.
+    expect(y.colores.reduce((a, c) => a + c.total, 0)).toBe(y.cantidad);
+  });
+  it("las tallas de número van de menor a mayor", () => {
+    const [y] = yaEnStockDelEnvio([30, 28, 32].map((t) => ({ prenda: "Falda Jean", cantidad: 2, talla: String(t), color: "Celeste" })));
+    expect(y.tallas).toEqual(["28", "30", "32"]);
+  });
+});
+
+describe("categoriasConLoQueYaEntro: lo que ya entró, cada cosa en su categoría", () => {
+  const cat = (clave: string, nombre: string) => ({ clave, categoria: { id: clave, nombre }, grupos: [], paradas: [] }) as unknown as CategoriaDelEnvio;
+  const faldas = cat("c-faldas", "Faldas");
+  const vestidos = cat("c-vestidos", "Vestidos");
+  const y = (prenda: string, categoria: string | null) => ({ prenda, categoria });
+  const ya = [y("Falda Jean", "Faldas"), y("Vestido Lino", "vestidos"), y("Bolso", null), y("Casaca", "Casacas")];
+  const sin = { tipo: null, estado: null, texto: "" };
+
+  it("cada prenda va a su categoría por el nombre (sin importar mayúsculas), y lo que no encuentra la suya queda al pie", () => {
+    const r = categoriasConLoQueYaEntro([faldas, vestidos], [faldas, vestidos], ya, sin);
+    expect(r.porCategoria.get("c-faldas")?.map((x) => x.prenda)).toEqual(["Falda Jean"]);
+    expect(r.porCategoria.get("c-vestidos")?.map((x) => x.prenda)).toEqual(["Vestido Lino"]);
+    expect(r.sueltos.map((x) => x.prenda)).toEqual(["Bolso", "Casaca"]);
+    expect(r.categorias).toEqual([faldas, vestidos]);
+  });
+  it("una categoría que el filtro de proveedor o marca escondió no se vuelve suelta: lo suyo se esconde con ella", () => {
+    const r = categoriasConLoQueYaEntro([faldas], [faldas, vestidos], ya, sin);
+    expect(r.porCategoria.has("c-vestidos")).toBe(false);
+    expect(r.sueltos.map((x) => x.prenda)).toEqual(["Bolso", "Casaca"]);
+    expect(r.categorias).toEqual([faldas]);
+  });
+  it("buscando, solo lo que coincide, y la categoría escondida vuelve si lo suyo coincide", () => {
+    const r = categoriasConLoQueYaEntro([faldas], [faldas, vestidos], ya, { ...sin, texto: "lino" });
+    expect(r.categorias.map((c) => c.clave)).toEqual(["c-faldas", "c-vestidos"]);
+    expect([...r.porCategoria.keys()]).toEqual(["c-vestidos"]);
+    expect(r.sueltos).toEqual([]);
+  });
+  it("con «Re stock», «Producto nuevo» o un estado puestos, lo que ya entró no se muestra", () => {
+    const r = categoriasConLoQueYaEntro([faldas], [faldas, vestidos], ya, { ...sin, estado: "por-contar" });
+    expect(r.porCategoria.size).toBe(0);
+    expect(r.sueltos).toEqual([]);
+    expect(r.categorias).toEqual([faldas]);
   });
 });
