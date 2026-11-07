@@ -423,7 +423,7 @@ input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 1023px) { .filtros-movil { display: flex; } .filtros-movil > * { flex: 1; justify-content: center; } }
 
 /* — Estados — */
-.vacio { display: grid; justify-items: center; text-align: center; gap: var(--e-3); padding: var(--e-8) var(--e-4); border: 1px dashed var(--linea-fuerte); border-radius: var(--r-m); }
+.vacio { display: grid; justify-items: center; text-align: center; gap: var(--e-3); padding: var(--e-8) var(--e-4) var(--e-7); }
 .vacio svg { width: 40px; height: 40px; color: var(--cacao-3); }
 .vacio .h3 { font-size: 26px; }
 .vacio p { margin: 0; color: var(--cacao-2); max-width: 44ch; }

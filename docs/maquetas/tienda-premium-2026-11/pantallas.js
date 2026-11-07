@@ -80,7 +80,16 @@ window.PANTALLAS = [
     ] },
   { id: "favoritos", grupo: "Outfits", nombre: "Favoritos", ruta: "/catalogo?lista=favoritos", actual: null, sinActual: "Requiere iniciar sesión en la tienda real: no se captura con una cuenta.", problemas: [], mejoras: [{ tipo: "propuesta", t: "Sin sesión, explica por qué entrar", d: "Guardar un favorito sin cuenta abre una hoja con Entrar / Crear cuenta." }] },
 
-  { id: "bolsa", grupo: "Bolsa y separación", nombre: "Bolsa vacía", ruta: "/bolsa", actual: "bolsa", problemas: [], mejoras: [{ tipo: "propuesta", t: "Se conserva", d: "Ya cumple: dice qué hacer y ofrece Lo nuevo." }] },
+  { id: "bolsa", grupo: "Bolsa y separación", nombre: "Bolsa vacía", ruta: "/bolsa", actual: "bolsa",
+    problemas: [
+      { tipo: "observado", t: "El botón flotante tapa la disponibilidad", d: "En el celular (captura de Felipe, 2026-11-07) la burbuja de «Recomendaciones» queda sobre la fila de colores y «Última» de la segunda prenda." },
+      { tipo: "observado", t: "La flecha del carril cae sobre la foto", d: "La flecha › de «Lo nuevo» se dibuja encima de la prenda que asoma." },
+      { tipo: "comprobado", t: "«Nuevo» en cada tarjeta de «Lo nuevo»", d: "Mismo caso que en el Inicio." },
+    ],
+    mejoras: [
+      { tipo: "propuesta", t: "El vacío se conserva tal cual", d: "Un título, centrado, sin recuadro, con las dos salidas. Solo cambia «Ver los outfits» por «Ver outfits listos»." },
+      { tipo: "propuesta", t: "Lo nuevo en rejilla de dos, sin sello ni flecha", d: "Se ven dos prendas enteras y nada tapa el precio ni la disponibilidad." },
+    ] },
   { id: "bolsa-llena", grupo: "Bolsa y separación", nombre: "Bolsa con prendas", ruta: "/bolsa?demo=llena", actual: null, sinActual: "Llenar la bolsa de la tienda real requiere una acción del servidor (escritura): no se hizo.",
     problemas: [
       { tipo: "comprobado", t: "Cambiar de tienda vacía la bolsa", d: "«Tu bolsa se vaciará.» (<code>CabeceraConCuenta.tsx:508</code>)." },

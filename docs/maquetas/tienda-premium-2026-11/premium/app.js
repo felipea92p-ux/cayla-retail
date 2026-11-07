@@ -135,7 +135,7 @@
   const rejilla = (ps, cls = "", op = {}) => `<div class="rejilla ${cls}">${ps.map(p => tarjeta(p, op)).join("")}</div>`;
   const secCab = (titulo, href, txt = "Ver todo", ceja = "", bajada = "") => `<div class="sec-cab"><div>${ceja ? `<span class="ceja">${ceja}</span>` : ""}<h2 class="h2">${titulo}</h2>${bajada ? `<p class="bajada">${bajada}</p>` : ""}</div>${href ? `<a class="enlace" href="${href}">${txt} ${ic("flecha")}</a>` : ""}</div>`;
   const migas = items => `<nav class="migas ancho" aria-label="Estás en">${items.map((x, i) => i < items.length - 1 ? `<a href="${x[1]}">${esc(x[0])}</a><span aria-hidden="true">/</span>` : `<span aria-current="page">${esc(x[0])}</span>`).join("")}</nav>`;
-  const vacio = (icono, titulo, texto, acciones = "") => `<div class="vacio">${ic(icono)}<h2 class="h3">${titulo}</h2><p>${texto}</p>${acciones ? `<div class="fila" style="justify-content:center;margin-top:8px">${acciones}</div>` : ""}</div>`;
+  const vacio = (icono, titulo, texto, acciones = "", nivel = "h2") => `<div class="vacio">${ic(icono)}<${nivel} class="h3">${titulo}</${nivel}><p>${texto}</p>${acciones ? `<div class="fila" style="justify-content:center;margin-top:8px">${acciones}</div>` : ""}</div>`;
   const sede = () => SEDES.find(s => s.k === S.sede);
 
   // ——— Marco: anuncio, cabecera, pie ———
@@ -464,7 +464,8 @@
   // Bolsa y separación
   P.bolsa = () => {
     if (!S.bolsa.length) {
-      return `<div class="ancho"><div class="pagina-cab"><h1 class="h1">Tu bolsa</h1></div>${vacio("bolsa", "Tu bolsa está vacía", "Elige una prenda y su talla, o agrega un outfit completo.", '<a class="btn btn-primario" href="#/catalogo">Ver toda la tienda</a><a class="btn btn-secundario" href="#/looks">Ver outfits listos</a>')}</div>
+      // Se conserva el vacío de la tienda real: un solo título, centrado, sin recuadro.
+      return `<div class="ancho">${vacio("bolsa", "Tu bolsa está vacía", "Elige una prenda y su talla, o agrega un outfit completo.", '<a class="btn btn-primario" href="#/catalogo">Ver toda la tienda</a><a class="btn btn-secundario" href="#/looks">Ver outfits listos</a>', "h1")}</div>
       <section class="seccion ancho ultima">${secCab("Lo nuevo", "#/catalogo?lista=nuevo", "Ver todo", "Recién llegado")}${rejilla(PRENDAS.filter(p => p.nuevo).slice(0, 4), "", { sinNuevo: true })}</section>`;
     }
     const lineas = S.bolsa.map((l, i) => ({ l, i, p: porId.get(l.id) })).filter(x => x.p);
