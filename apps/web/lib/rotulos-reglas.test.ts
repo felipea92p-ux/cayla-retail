@@ -61,7 +61,7 @@ describe("armarRotulos", () => {
 });
 
 // Lo que hace el navegador con el nombre a `mm`: cortar por palabras en una caja de ANCHO_NOMBRE_MM. Las líneas que salen.
-function lineasEnCaja(nombres: string[], mm: number): string[] {
+function lineasEnCaja(nombres: string[], mm: number, medir: (t: string) => number = anchoEm): string[] {
   const palabras = nombres.flatMap((n, i) => {
     const p = n.split(/\s+/);
     if (i < nombres.length - 1) p[p.length - 1] += " ·";
@@ -70,7 +70,7 @@ function lineasEnCaja(nombres: string[], mm: number): string[] {
   const lineas: string[] = [];
   for (const p of palabras) {
     const ultima = lineas[lineas.length - 1];
-    if (ultima !== undefined && anchoEm(`${ultima} ${p}`) * mm <= ANCHO_NOMBRE_MM) lineas[lineas.length - 1] = `${ultima} ${p}`;
+    if (ultima !== undefined && medir(`${ultima} ${p}`) * mm <= ANCHO_NOMBRE_MM) lineas[lineas.length - 1] = `${ultima} ${p}`;
     else lineas.push(p);
   }
   return lineas;
@@ -87,6 +87,11 @@ const NOMBRES: string[][] = [
   ["Valeria", "Mia", "Ximena", "Aurora"],
   ["Casaca Wanda", "Maxi Walk Woman", "Mom jeans"],
   ["Supercalifragilisticoespialidoso"],
+  // Una palabra corta y una larga: la larga manda el tamaño (2026-11-07, «CAMPANIT / A» en la tienda).
+  ["Vestido Campanita"],
+  ["Top Margaritas"],
+  ["Short Embellecedor"],
+  ["Body Mia", "Vestido Campanita"],
 ];
 
 describe("medidaNombre (el nombre lo más grande que entra en 62 × 40,1)", () => {
@@ -115,6 +120,39 @@ describe("medidaNombre (el nombre lo más grande que entra en 62 × 40,1)", () =
   it("las tildes miden como su letra, y la Ñ como la N", () => {
     expect(anchoEm("PANTALÓN")).toBeCloseTo(anchoEm("PANTALON"));
     expect(anchoEm("Ñ")).toBeCloseTo(anchoEm("N"));
+  });
+});
+
+// En la tienda (2026-11-07, foto): «VESTIDO CAMPANITA» salió partido en «CAMPANIT / A» y montado sobre la marca. El nombre ahora
+// se mide además con la letra real de cada computadora (`useMedirNombre`): estas pruebas hacen de una con la letra 8 % y 15 %
+// más ancha, y de una más angosta.
+describe("medidaNombre: la palabra más larga entra entera", () => {
+  it("«Vestido Campanita»: dos líneas, CAMPANITA entera y dentro del papel", () => {
+    const { mm, lineas } = medidaNombre(["Vestido Campanita"]);
+    expect(lineas).toBe(2);
+    expect(lineasEnCaja(["Vestido Campanita"], mm)).toEqual(["Vestido", "Campanita"]);
+    expect(anchoEm("CAMPANITA") * mm).toBeLessThanOrEqual(ANCHO_NOMBRE_MM);
+  });
+  const LETRAS: [string, (t: string) => number][] = [
+    ["8 % más ancha", (t) => anchoEm(t) * 1.08],
+    ["15 % más ancha", (t) => anchoEm(t) * 1.15],
+    ["10 % más angosta", (t) => anchoEm(t) * 0.9],
+  ];
+  for (const [como, medir] of LETRAS) {
+    it.each(NOMBRES)(`con la letra ${como}, «%s…» no se sale ni parte una palabra`, (...nombres) => {
+      const { mm, lineas } = medidaNombre(nombres, medir);
+      const salen = lineasEnCaja(nombres, mm, medir);
+      expect(salen.length).toBe(lineas);
+      for (const l of salen) expect(medir(l) * mm).toBeLessThanOrEqual(ANCHO_NOMBRE_MM);
+      expect(lineas * mm * INTERLINEA_NOMBRE).toBeLessThanOrEqual(ALTO_NOMBRE_MM);
+    });
+  }
+  it("una letra más ancha deja el nombre igual o más chico; una más angosta, igual o más grande", () => {
+    for (const nombres of NOMBRES) {
+      const tabla = medidaNombre(nombres).mm;
+      expect(medidaNombre(nombres, (t) => anchoEm(t) * 1.08).mm).toBeLessThanOrEqual(tabla);
+      expect(medidaNombre(nombres, (t) => anchoEm(t) * 0.9).mm).toBeGreaterThanOrEqual(tabla);
+    }
   });
 });
 

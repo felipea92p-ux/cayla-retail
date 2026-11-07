@@ -5,7 +5,7 @@ import { Scissors } from "lucide-react";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useContar } from "@/lib/useContar";
-import { copiasDeTexto, MAX_COPIAS, papelDeTiraCm, quienesSalen, tiraConSalientes, type Rotulo } from "@/lib/rotulos-reglas";
+import { copiasDeTexto, MAX_COPIAS, papelDeTiraCm, quienesSalen, tiraConSalientes, type MedirEm, type Rotulo } from "@/lib/rotulos-reglas";
 
 /** Lo que dura la salida de un rótulo de la tira (`rot-seg--sale` en `app/estilos/rotulos-brother.css`). */
 const SALIDA_MS = 360;
@@ -34,12 +34,15 @@ export function TiraBrother({
   copias,
   onCopias,
   recorriendo,
+  medir,
 }: {
   rotulos: Rotulo[];
   copias: Record<string, string>;
   onCopias: (clave: string, texto: string) => void;
   /** Mientras dura el recorrido de antes de imprimir: `porRotulo` en ms (ver `recorridoDeImpresion`). */
   recorriendo: { porRotulo: number } | null;
+  /** La medida del nombre con la letra de esta computadora (`useMedirNombre`): la misma que usa la hoja que va a la Brother. */
+  medir: MedirEm;
 }) {
   // La entrada en cascada es solo la primera vez: un rótulo que se suma después sale solo, sin esperar turno.
   const [primeraVez, setPrimeraVez] = useState(true);
@@ -116,7 +119,7 @@ export function TiraBrother({
           {vacia && salientes.length === 0 && (
             <div className="rot-seg rot-seg--ejemplo" aria-label="Ejemplo de rótulo">
               <div className="rot-seg__papel papel-fijo">
-                <RotuloAnaquel rotulo={EJEMPLO} />
+                <RotuloAnaquel rotulo={EJEMPLO} medir={medir} />
               </div>
               <div className="rot-seg__copias">
                 <span aria-hidden className="rot-seg__guia" />
@@ -152,7 +155,7 @@ export function TiraBrother({
                 inert={sale}
               >
                 <div className="rot-seg__papel papel-fijo">
-                  <RotuloAnaquel rotulo={r} />
+                  <RotuloAnaquel rotulo={r} medir={medir} />
                   <span aria-hidden className="rot-seg__no-sale">
                     <span>No sale</span>
                   </span>
