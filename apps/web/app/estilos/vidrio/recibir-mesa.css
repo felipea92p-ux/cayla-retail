@@ -421,10 +421,11 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
 .rc-tabla-stock tbody tr:last-child th { border-bottom: 0; }
 .rc-tabla-stock tfoot :is(th, td) { padding-block: 7px; border-top: 1px solid var(--hilo-cabeza); color: var(--color-taupe); font-size: 13px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
 .rc-tabla-stock tfoot th { text-align: left; }
-.rc-stock-celda { display: inline-grid; place-items: center; min-width: 30px; height: 28px; padding: 0 6px; border-radius: 8px; background: var(--pozo-fondo); color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
-/* Las celdas entran en ola al abrir, una vez. */
+/* El número va suelto, sin caja (formidable 2026-11-07): con el fondo hundido de la celda del contador parecía que se podía escribir. El 0 en taupe, que pasa contraste. */
+.rc-stock-celda { display: inline-block; min-width: 30px; line-height: 28px; color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc-stock-cero { color: var(--color-taupe); font-weight: 400; }
+/* Los números entran en ola al abrir, una vez. */
 .rc-stock[data-abierta] .rc-stock-celda { animation: cayla-entrada 320ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--j, 0), 12) * 30ms); }
-.rc-stock-cero { color: color-mix(in srgb, var(--color-tinta) 30%, transparent); } /* contraste: no aplica — la raya dice «ninguna», que la celda lee en voz */
 .rc-stock-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; color: var(--color-taupe); font-size: 13px; }
 .rc-stock-dentro > .rc-stock-pie { margin-top: 8px; }
 .rc-stock-divisor { margin: 6px 0 2px 6px; list-style: none; }

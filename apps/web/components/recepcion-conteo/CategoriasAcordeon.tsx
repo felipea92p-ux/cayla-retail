@@ -165,7 +165,8 @@ function FilaYaEnStock({ y, cat, colores, onCorregirSalida, guia }: { y: YaEnSto
             <b title={y.prenda}>{y.prenda}</b>
           </span>
           <span className="rc-modelo-cifras">
-            <b>{conMiles(y.cantidad)}</b> en stock · {nTallas} {nTallas === 1 ? "talla" : "tallas"}
+            {/* Lo que entró con ESTE envío, no el stock de hoy: si después se vendió una, no coincide con Existencias (formidable 2026-11-07). */}
+            <b>{conMiles(y.cantidad)}</b> {y.cantidad === 1 ? "entró" : "entraron"} · {nTallas} {nTallas === 1 ? "talla" : "tallas"}
             <span className="rc-stock-puntos" aria-hidden>
               {y.colores.map((c) => {
                 const color = colorDe(c.color);
@@ -211,13 +212,10 @@ function FilaYaEnStock({ y, cat, colores, onCorregirSalida, guia }: { y: YaEnSto
                       </th>
                       {c.porTalla.map((n, i) => (
                         <td key={y.tallas[i] ?? ""}>
-                          {n > 0 ? (
-                            <span className="rc-stock-celda" style={{ "--j": fila * c.porTalla.length + i } as React.CSSProperties}>
-                              {conMiles(n)}
-                            </span>
-                          ) : (
-                            <span className="rc-stock-cero" aria-label="ninguna">–</span>
-                          )}
+                          {/* Un número suelto, sin caja: una caja invitaba a escribir ahí, como en la matriz del contador (formidable 2026-11-07). */}
+                          <span className={n > 0 ? "rc-stock-celda" : "rc-stock-celda rc-stock-cero"} style={{ "--j": fila * c.porTalla.length + i } as React.CSSProperties}>
+                            {conMiles(n)}
+                          </span>
                         </td>
                       ))}
                       <td className="rc-fila-total">{conMiles(c.total)}</td>
@@ -240,7 +238,11 @@ function FilaYaEnStock({ y, cat, colores, onCorregirSalida, guia }: { y: YaEnSto
           </div>
           {/* Lo que salió antes de cerrar se corrige aquí mientras siga en el almacén; lo demás, en Existencias. */}
           <div className="rc-stock-pie">
-            <span>{y.salida ? `Entró el ${fecha(y.salida.creadoEn)}${y.salida.quien ? ` · ${y.salida.quien}` : ""}` : "Ya está en el stock de la sede"}</span>
+            <span>
+              {y.salida
+                ? `No se cuenta aquí: entró el ${fecha(y.salida.creadoEn)}${y.salida.quien ? ` (${y.salida.quien})` : ""}. Si hubo un error:`
+                : "No se cuenta aquí: ya está en el stock. Para cambiar cuántas hay hoy:"}
+            </span>
             {y.salida ? (
               <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => onCorregirSalida(y.salida as SalidaDelEnvio)}>
                 Corregir {conMiles(y.salida.unidades)}
@@ -332,7 +334,7 @@ function Categoria({
                   {" · "}
                   <span className="rc-cat-en-stock">
                     <Lock aria-hidden className="h-3 w-3" />
-                    {conMiles(enStock)} en stock
+                    {conMiles(enStock)} ya {enStock === 1 ? "entró" : "entraron"}
                   </span>
                 </>
               )}
