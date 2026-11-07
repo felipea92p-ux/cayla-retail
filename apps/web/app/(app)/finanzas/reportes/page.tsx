@@ -18,6 +18,7 @@ import { verDeLaVista } from "@/lib/vista-global";
 import { hrefTelar, mesDelDia, SEDE_EMPRESA, sedeDeLaUrl, SEDE_TODAS, type ClaveSede } from "@/lib/finanzas-telar-reglas";
 import { filaDeLaSede, paramsDe } from "@/lib/estados-financieros-reglas";
 import { campanasDelMes, cascadaGanamos, filasDeSedes, metaDeVentas, porSede, pptoDeLaSede, recomendacionesGanamos } from "@/lib/ganamos-reglas";
+import { conIgvDeLasVentasDe } from "@/lib/igv-ventas";
 import { getCostoEstimado } from "@/lib/costo-estimado";
 import { notaCostoEstimado } from "@/lib/costo-estimado-reglas";
 import { CabeceraEstados } from "@/components/finanzas/estados/CabeceraEstados";
@@ -60,10 +61,11 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
   const ubicacionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sede) ? sede : null;
   // En el mes en curso se compara con los mismos días de los meses pasados: esos días también llevan su parte de sueldos, como hoy (`getEstadoResultadosAEstaFecha`).
   const leerAnterior = enCurso && unMes ? getEstadoResultadosAEstaFecha : getEstadoResultados;
+  // Cada lectura de arriba lleva el IGV de sus ventas (ADR-0624): solo para presentar «Vendiste con IGV» e «IGV de tus ventas» sobre «Lo que vendiste». No cambia ninguna cifra.
   const [actual, anterior, comparadas, cerradas, claure, ppto, campanas, cuadre, costoEst, faltaDelMes] = await Promise.all([
-    getEstadoResultados(desde, hasta),
+    getEstadoResultados(desde, hasta).then((l) => conIgvDeLasVentasDe(desde, hasta, l)),
     comparar && antes ? leerAnterior(antes.desde, antes.hasta) : Promise.resolve(null),
-    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await leerAnterior(c.desde, c.hasta) }))),
+    Promise.all(anteriores.map(async (c) => ({ etiqueta: c.etiqueta, lectura: await conIgvDeLasVentasDe(c.desde, c.hasta, await leerAnterior(c.desde, c.hasta)) }))),
     // El mes en curso no se cierra: no hay nada que preguntar.
     enCurso ? Promise.resolve([] as string[]) : getUnidadesCerradas(mes),
     // Lo vendido de CLAURE no suma a nada de esta pantalla: la nota dice cuánto se dejó fuera (apoyo; sin permiso o sin CLAURE llega `null`).
@@ -161,7 +163,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           }
           informe={
             fila
-              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo) })
+              ? informeDeGanancias({ fila, partes: partesDeGanancias({ fila, ppto: pptoSede, datos: actual.datos, veCadaSede: !!deCadaSede, comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), periodo }), comparadas: leidas, etiquetaActual: etiquetaDelPeriodo(periodo), verImpuestos: href("/finanzas/impuestos") })
               : { titulo: "Ganancias y pérdidas", columnas: [], pesoDe: null, filas: [] }
           }
         />

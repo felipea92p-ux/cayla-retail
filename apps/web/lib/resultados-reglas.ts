@@ -47,6 +47,12 @@ export type FilaER = {
    * Oficina Trujillo (OTRU): sin esto, quien no ve a OTRU en ninguna columna supone que está dentro de la tienda de Trujillo. Vacío si no hay estimación.
    */
   planillaPorSede: PlanillaDeSede[];
+  /**
+   * El IGV que traen las ventas de esta columna según `fn_igv_de_las_ventas` (ADR-0624, «regla pareja»): es de SUNAT y el resultado no lo cuenta. Solo sirve para PRESENTAR
+   * lo cobrado arriba de «Lo que vendiste» (`ventas + igvCobrado`); no cambia ninguna cifra. No es `igvVentas`, que suma también los adelantos. Sin esto (no se pidió o no se
+   * pudo leer), la pantalla no dibuja esas filas.
+   */
+  igvCobrado?: number;
 };
 
 /** Lo que una sede de Dynamic aporta a la planilla provisionada de una columna. Nunca una persona: solo cuántas y cuánto. */

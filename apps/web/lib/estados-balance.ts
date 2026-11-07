@@ -21,11 +21,12 @@ const rojo = (p: number) => `color-mix(in srgb, var(--color-rojo) ${p}%, var(--c
 const DE_CADA_GRUPO: Record<string, { color: string; que: string; contable: string }> = {
   plata: { color: "var(--color-verde)", que: "Lo que tienes disponible, en cajas y bancos.", contable: "Efectivo y equivalentes" },
   cobros: { color: "var(--estados-parte-3)", que: "Ventas con tarjeta que el banco aún no deposita y lo que te deben.", contable: "Cuentas por cobrar" },
+  credito: { color: "var(--color-taupe)", que: "IGV que SUNAT te reconoce: se descuenta del que tocaría pagar en los próximos meses. No se cobra en plata.", contable: "Crédito fiscal" },
   mercaderia: { color: "var(--estados-parte-1)", que: "Las prendas que aún no vendes, a lo que te costaron, y las telas y la ropa en proceso del Taller.", contable: "Existencias" },
   equipos: { color: "var(--estados-parte-2)", que: "Lo que valen hoy, ya restado el desgaste.", contable: "Muebles y equipos" },
   "otros-tiene": { color: "var(--estados-parte-4)", que: "Lo demás que CAYLA tiene.", contable: "Otros activos" },
   proveedores: { color: "var(--color-rojo)", que: "Facturas de compras por pagar.", contable: "Proveedores" },
-  impuestos: { color: rojo(78), que: "El impuesto de las ventas, que se paga a SUNAT el mes siguiente.", contable: "Tributos por pagar" },
+  impuestos: { color: rojo(78), que: "Lo que el libro dice que le debes a SUNAT. Cuánto pagas cada mes lo dice Impuestos.", contable: "Tributos por pagar" },
   sueldos: { color: rojo(58), que: "Lo que aún no se paga al equipo.", contable: "Sueldos por pagar" },
   prestamos: { color: rojo(40), que: "Lo que se debe de la tarjeta y de préstamos.", contable: "Tarjeta y préstamos" },
   "otros-debe": { color: rojo(28), que: "Lo demás que CAYLA debe.", contable: "Otros pasivos" },

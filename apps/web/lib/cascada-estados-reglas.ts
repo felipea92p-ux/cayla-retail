@@ -87,7 +87,7 @@ export function filasDeTramos(tramos: readonly TramoCascada[], subtotal?: { tras
   let corriente = 0;
   tramos.forEach((t, i) => {
     const valor = t.tipo === "queda" ? (t.negativo ? -t.monto : t.monto) : t.tipo === "sale" ? -t.monto : t.negativo ? -t.monto : t.monto;
-    const tipo: TipoFila = t.tipo === "queda" ? "final" : i === 0 ? "total" : "paso";
+    const tipo: TipoFila = t.tipo === "queda" ? "final" : t.subtotal ? "subtotal" : i === 0 ? "total" : "paso";
     corriente = tipo === "paso" ? corriente + valor : valor;
     filas.push({
       clave: t.clave,
