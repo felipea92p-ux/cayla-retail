@@ -399,7 +399,52 @@ button.rc-celda-falta:focus-visible { outline: 2px solid var(--color-tinta); out
   .rc-cat-cuerpo, .rc-cat-flecha, .rc-modelo, .rc-opcion, .rc-celda, .rc-celda-falta, .rc-estado, .rc-tray, .rc-tray-bola, .rc-suma button, .rc-atajo, .rc-cat-cabeza, .rc-tipo, .rc-radio, .rc-radio::after, .rc-talla-quitar { transition: none; }
 }
 
-/* Al reabrir: lo que ya entró al stock, con candado. No es un modelo que se cuenta: no lleva botón ni cifra que cambie. */
+/* ---------- Lo que ya entró al stock, dentro de su categoría (Felipe 2026-11-07, maqueta «A · Matriz») ----------
+   Una fila más del modelo, con candado: no se cuenta, se abre. Plegada dice cuántas y de cuántas tallas; abierta, la matriz talla × color con la cara de la
+   del contador (`rc-tabla-tallas`) y cómo corregirlo. Antes era una lista suelta al pie, con las tallas en una frase. */
+.rc-cat-en-stock { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.rc-stock { border-radius: 14px; transition: background-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla); }
+.rc-stock[data-abierta] { background: color-mix(in srgb, var(--color-verde) 6%, var(--color-vidrio)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-verde) 22%, transparent); }
+.rc-stock .rc-modelo-cifras { display: flex; align-items: center; gap: 6px; }
+.rc-stock-puntos { display: inline-flex; flex: none; }
+.rc-stock-puntos > * + * { margin-left: -3px; }
+.rc-stock-flecha { flex: none; color: var(--rc-cat-suave); transition: transform 300ms var(--ease-cayla); }
+.rc-stock[data-abierta] .rc-stock-flecha { transform: rotate(180deg); }
+.rc-stock-cuerpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 360ms var(--ease-cayla); }
+.rc-stock[data-abierta] .rc-stock-cuerpo { grid-template-rows: 1fr; }
+.rc-stock-dentro { overflow: hidden; min-height: 0; }
+.rc-stock-dentro > * { margin: 0 10px; }
+.rc-stock-dentro > :last-child { margin-bottom: 10px; }
+.rc-stock .rc-matriz-caja { background: var(--color-papel); }
+.rc-tabla-stock tbody th, .rc-tabla-stock tfoot th { padding: 4px 4px 4px 12px; font-weight: 500; text-align: left; white-space: nowrap; }
+.rc-tabla-stock tbody th { border-bottom: 1px solid var(--hilo-fila); color: var(--color-tinta); }
+.rc-tabla-stock tbody tr:last-child th { border-bottom: 0; }
+.rc-tabla-stock tfoot :is(th, td) { padding-block: 7px; border-top: 1px solid var(--hilo-cabeza); color: var(--color-taupe); font-size: 13px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.rc-tabla-stock tfoot th { text-align: left; }
+/* El número va suelto, sin caja (formidable 2026-11-07): con el fondo hundido de la celda del contador parecía que se podía escribir. El 0 en taupe, que pasa contraste. */
+.rc-stock-celda { display: inline-block; min-width: 30px; line-height: 28px; color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+.rc-stock-cero { color: var(--color-taupe); font-weight: 400; }
+/* Los números entran en ola al abrir, una vez. */
+.rc-stock[data-abierta] .rc-stock-celda { animation: cayla-entrada 320ms var(--ease-cayla) backwards; animation-delay: calc(min(var(--j, 0), 12) * 30ms); }
+.rc-stock-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; color: var(--color-taupe); font-size: 13px; }
+.rc-stock-dentro > .rc-stock-pie { margin-top: 8px; }
+.rc-stock-divisor { margin: 6px 0 2px 6px; list-style: none; }
+/* Con la columna angosta: la flecha a la derecha de las dos líneas, el chip queda en su candado, y la matriz se desplaza si no cabe (el color no se va). */
+@container rc-lista (max-width: 519px) {
+  .rc-stock .rc-modelo { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .rc-stock .rc-modelo-nombre { grid-column: 2 / 4; grid-row: 1; }
+  .rc-stock .rc-modelo-cifras { grid-column: 2; grid-row: 2; }
+  .rc-stock .rc-modelo > .chip-cayla { grid-column: 3; grid-row: 2; }
+  .rc-stock .rc-modelo > .rc-stock-flecha { grid-column: 4; grid-row: 1 / span 2; align-self: center; }
+  .rc-stock-dentro > * { margin-inline: 6px; }
+  .rc-tabla-stock :is(tbody, tfoot) th { position: sticky; left: 0; z-index: 1; background: color-mix(in srgb, var(--color-papel) 92%, transparent); }
+}
+@container rc-lista (max-width: 359px) {
+  .rc-stock .rc-modelo > .chip-cayla { padding-inline: 6px; font-size: 0; gap: 0; }
+}
+/* Lo que no encontró su categoría en el envío: al pie. */
 .rc-ya-en-stock { display: grid; gap: 8px; margin-top: 12px; padding: 12px 8px 0; border-top: 1px solid var(--color-sand); }
-.rc-ya-en-stock ul { display: grid; gap: 4px; }
-.rc-ya-en-stock li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .rc-stock, .rc-stock-flecha, .rc-stock-cuerpo { transition: none; }
+  .rc-stock[data-abierta] .rc-stock-celda { animation: none; }
+}
