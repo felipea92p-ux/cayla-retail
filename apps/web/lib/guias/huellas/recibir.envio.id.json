@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 230,
+  "total": 233,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -179,11 +179,14 @@
     "components/recepcion-conteo/NuevoModelo.tsx": [
       "CampoSelect «{guia.etiqueta(\"modelo-proveedor\", \"De qué proveedor\")}»",
       "CampoSelect «{guia.etiqueta(\"modelo-categoria\", \"Qué llegó\")}»",
+      "button «{titulo}»",
+      "CampoSelect «De qué marca»",
       "CampoTexto «{guia.etiqueta(\"modelo-nombre\", \"El nombre\")}»",
       "Boton «Sí, es esta»",
       "Boton «No, es otra»",
       "CampoSelect «{guia.etiqueta(\"modelo-marca\", \"La marca\")}»",
       "CampoTexto «{guia.etiqueta(\"modelo-nota\", \"La descripción (para no confundirlo con otro)\")}»",
+      "Boton «No, es otra» #2",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],

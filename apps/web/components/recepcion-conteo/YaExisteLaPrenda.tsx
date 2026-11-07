@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoSelect } from "@/components/ui/campos";
-import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendaExistente } from "@/components/recepcion-envio/ElegirPrendaExistente";
-import { buscarParecidasParaRecibir, leerFichaDePrenda } from "@/lib/recepcion-envio-acciones";
-import { tallasYColoresDe, type CategoriaDeLinea, type FichaParaRecibir, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { buscarParecidasParaRecibir } from "@/lib/recepcion-envio-acciones";
+import type { CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { FichaDeLaPrenda } from "./FichaDeLaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 
 // Lo contado como nuevo puede ser una prenda que ya estaba en el catálogo (Felipe 2026-11-06, ADR-0393): antes de crear se pregunta si ya existe. Se busca con lo
@@ -170,8 +170,7 @@ export function YaExisteLaPrenda({
             prenda={elegida}
             categoria={categoria}
             marca={marca}
-            prendas={prendas}
-            costoEscrito={costoEscrito}
+            nota={`Las ${prendas} quedan como esta prenda${costoEscrito ? `, con el costo de ${costoEscrito}` : ""}. Después pones sus tallas y colores.`}
           />
         ) : (
           <ElegirPrendaExistente categoria={categoria} marca={marca} busquedaInicial={nombre ?? ""} textoElegir="Ver ficha" onElegir={setElegida} onEsNueva={() => void crear()} />
@@ -204,78 +203,5 @@ export function YaExisteLaPrenda({
         )}
       </div>
     </Modal>
-  );
-}
-
-/** La ficha para reconocer la prenda: la foto en grande y lo esencial. Lo que no está registrado se dice, porque también ayuda a decidir. */
-function FichaDeLaPrenda({
-  prenda,
-  categoria,
-  marca,
-  prendas,
-  costoEscrito,
-}: {
-  prenda: PrendaRecepcion;
-  categoria: CategoriaDeLinea;
-  marca: { id: string | null; nombre: string };
-  prendas: string;
-  costoEscrito: string | null;
-}) {
-  // `null`: todavía no llega. `false`: no se pudo leer; se decide con la foto, el nombre y las tallas.
-  const [ficha, setFicha] = useState<FichaParaRecibir | null | false>(null);
-
-  useEffect(() => {
-    let vigente = true;
-    void leerFichaDePrenda(prenda.productoId).then((f) => {
-      if (vigente) setFicha(f ?? false);
-    });
-    return () => {
-      vigente = false;
-    };
-  }, [prenda.productoId]);
-
-  const { tallas, colores } = tallasYColoresDe(prenda);
-  const leida = ficha || null;
-  const dato = (valor: string | null | undefined) => (ficha === null ? "…" : valor?.trim() || "Sin registrar");
-  const filas: [string, string][] = [
-    ["Marca", leida?.marca ?? marca.nombre],
-    ["Categoría", leida?.categoria ?? categoria.nombre],
-    ["Material", dato(leida?.material)],
-    ["Patrón", dato(leida?.patron)],
-    ["Tallas", tallas.join(", ")],
-    ["Colores", colores.join(", ")],
-  ];
-
-  return (
-    <div className="space-y-3 rounded-xl border border-sand bg-hueso p-3">
-      <div className="grid gap-4 sm:grid-cols-[13rem_minmax(0,1fr)]">
-        <div className="mx-auto w-full max-w-[13rem]">
-          <FotoDePrenda fotoUrl={prenda.fotoUrl} prefijo={categoria.prefijo} familia={categoria.familia} categoria={categoria.nombre} />
-        </div>
-        <div className="min-w-0 space-y-3">
-          <p className="text-sm">
-            <b className="block text-tinta">¿Llegó esta?</b>
-            <span className="block text-base text-tinta">{prenda.nombre}</span>
-            {prenda.codigo && <span className="block text-taupe">{prenda.codigo}</span>}
-          </p>
-          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
-            {filas.map(([rotulo, valor]) => (
-              <div key={rotulo} className="contents">
-                <dt className="text-taupe">{rotulo}</dt>
-                <dd className="text-tinta">{valor}</dd>
-              </div>
-            ))}
-          </dl>
-          <div className="text-sm">
-            <p className="text-taupe">Descripción</p>
-            <p className="whitespace-pre-line text-tinta">{dato(leida?.descripcion)}</p>
-          </div>
-          {ficha === false && <p className="text-sm text-taupe">No se pudo leer toda su ficha. Puedes decidir con la foto y las tallas, o volver a abrirla.</p>}
-        </div>
-      </div>
-      <p className="text-sm text-taupe">
-        Las {prendas} quedan como esta prenda{costoEscrito ? `, con el costo de ${costoEscrito}` : ""}. Después pones sus tallas y colores.
-      </p>
-    </div>
   );
 }
